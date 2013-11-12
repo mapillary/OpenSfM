@@ -1,0 +1,68 @@
+#!/usr/bin/env python
+
+import numpy as np
+from itertools import combinations
+import argparse
+import networkx as nx
+import dataset
+import features
+import logging
+
+logging.basicConfig(format='%(asctime)s %(message)s', level=logging.DEBUG)
+
+
+    
+def good_track(track, min_length):
+    if len(track) < min_length:
+        return False
+    images = [f[0] for f in track]
+    if len(images) != len(set(images)):
+        return False
+    return True
+
+
+parser = argparse.ArgumentParser(description='Create tracks by grouping the robust matches')
+parser.add_argument('dataset',
+                    help='path to the dataset to be processed')
+parser.add_argument('-l', '--minlength', type=int, default=2,
+                    help='minimum number of features per track (default=2)')
+parser.add_argument('-v', '--visual', action='store_true',
+                    help='plot results during the process')
+args = parser.parse_args()
+
+
+data = dataset.DataSet(args.dataset)
+images = data.images()
+
+# Read sift features
+logging.info('reading sift features')
+sift = {}
+for im in images:
+    p1, f1 = features.read_sift(data.sift_file(im))
+    sift[im] = p1[:,:2]
+
+logging.info('creating features graph')
+g = nx.Graph()
+for im1, im2 in combinations(images, 2):
+    try:
+        matches = np.genfromtxt(data.robust_matches_file(im1, im2), dtype=int)
+        for f1, f2 in matches:
+            g.add_edge((im1, f1),  (im2, f2))
+    except IOError:
+        pass
+
+logging.info('finding connected components')
+tracks = nx.connected_components(g)
+logging.info('Total tracks: %d', len(tracks))
+
+tracks = [t for t in tracks if good_track(t, args.minlength)]
+logging.info('Good tracks: %d', len(tracks))
+
+with open(data.tracks_file(), 'w') as fout:
+    for track_id, track in enumerate(tracks):
+        for feature in track:
+            image = feature[0]
+            featureid = feature[1]
+            x, y = sift[image][featureid]
+            fout.write('%s %d %g %g\n' % (image, track_id, x, y))
+

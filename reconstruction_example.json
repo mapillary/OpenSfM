@@ -1,0 +1,18 @@
+{
+    "cameras" : {
+        "im1.jpg" : {
+            "width": XXX,
+            "height": XXX,
+            "focal": XXX,
+            "k1": XXX,
+            "k2": XXX,
+            "R": XXX,
+            "t": XXX
+        }
+    },
+
+    "points" : {
+        "1": [X, Y, Z, W],
+        "2": [X, Y, Z, W]
+    }
+}
