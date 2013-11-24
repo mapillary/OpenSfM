@@ -35,15 +35,15 @@ def match_lowe(f1, f2):
         checks=128, algorithm='kmeans', branching=64, iterations=5)
 
     good = dists[:, 0] < 0.6 * dists[:, 1]
-
-    return zip(results[good, 0], good.nonzero()[0])
+    matches = zip(results[good, 0], good.nonzero()[0])
+    return np.array(matches, dtype=int)
 
 
 def match_symetric(fi, fj):
-    matches_ij = match_lowe(fi, fj)
-    matches_ji = match_lowe(fj, fi)
-    matches_ji = [(b,a) for a,b in matches_ji]
-    return set(matches_ij).intersection(set(matches_ji))
+    matches_ij = [(a,b) for a,b in match_lowe(fi, fj)]
+    matches_ji = [(b,a) for a,b in match_lowe(fj, fi)]
+    matches = set(matches_ij).intersection(set(matches_ji))
+    return np.array(list(matches), dtype=int)
 
 
 def robust_match(p1, p2, matches):
