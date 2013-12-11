@@ -64,5 +64,5 @@ with open(data.tracks_file(), 'w') as fout:
             image = feature[0]
             featureid = feature[1]
             x, y = sift[image][featureid]
-            fout.write('%s %d %g %g\n' % (image, track_id, x, y))
+            fout.write('%s %d %d %g %g\n' % (image, track_id, featureid, x, y))
 

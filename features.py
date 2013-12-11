@@ -68,7 +68,8 @@ def two_view_reconstruction(p1, p2, d1, d2):
     for l in np.hstack((p1, p2)):
         s += ' '.join(str(i) for i in l) + '\n'
 
-    params = ['-threshold', '10',
+    params = [TWO_VIEW_RECONSTRUCTION,
+              '-threshold', '10',
               '-focal1', d1['focal_ratio'] * d1['width'],
               '-width1', d1['width'],
               '-height1', d1['height'],
@@ -77,7 +78,7 @@ def two_view_reconstruction(p1, p2, d1, d2):
               '-height2', d2['height']]
     params = map(str, params)
 
-    p = Popen([TWO_VIEW_RECONSTRUCTION] + params, stdout=PIPE, stdin=PIPE, stderr=PIPE)
+    p = Popen(params, stdout=PIPE, stdin=PIPE, stderr=PIPE)
     res = p.communicate(input=s)[0]
 
     res = res.split(None, 9 + 3)

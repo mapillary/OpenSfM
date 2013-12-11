@@ -2,6 +2,7 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 
 PROJECT(LABMV C CXX)
 
+
 SET(LIBMV_PATH ../../libmv CACHE PATH "Path to libmv source")
 
 INCLUDE_DIRECTORIES(
@@ -35,5 +36,24 @@ TARGET_LINK_LIBRARIES(two_view_reconstruction
                       pthread
                       gflags
                       glog
+                      )
+
+ADD_EXECUTABLE(bundle bundle.cc)
+TARGET_LINK_LIBRARIES(bundle
+                      ceres_shared
+                      pthread
+                      gflags
+                      glog
+                      jansson
+                      )
+
+ADD_EXECUTABLE(bundle_test bundle_test.cc)
+TARGET_LINK_LIBRARIES(bundle_test
+                      ceres_shared
+                      pthread
+                      gflags
+                      glog
+                      jansson
+                      gtest
                       )
 

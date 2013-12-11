@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 
 import numpy as np
+import transformations as tf
 import argparse
+import json
 import dataset
 import features
 import networkx as nx
@@ -61,14 +63,14 @@ for im1, im2 in image_graph.edges():
     d1 = data.exif_data(im1)
     d2 = data.exif_data(im2)
 
-    t1 = g[im1]
-    t2 = g[im2]
-    p1 = []
-    p2 = []
+    t1, t2 = g[im1], g[im2]
+    p1, p2 = [], []
+    tracks = []
     for track in t1:
         if track in t2:
             p1.append(t1[track]['feature'])
             p2.append(t2[track]['feature'])
+            tracks.append(track)
     p1 = np.array(p1)
     p2 = np.array(p2)
     if len(p1) > 20:
@@ -77,6 +79,35 @@ for im1, im2 in image_graph.edges():
         print len(p1), len(inliers)
 
         if len(inliers) > 20:
+            T = np.identity(4)
+            T[:3,:3] = R
+            angle, direction, point = tf.rotation_from_matrix(T)
+            angleaxis = direction / np.linalg.norm(direction) * angle
+            reconstruction = {
+                "cameras" : {
+                    im1 : {
+                        "width": d1["width"],
+                        "height": d1["height"],
+                        "focal": d1["focal_ratio"] * d1["width"],
+                        "R": [0, 0, 0],
+                        "t": [0, 0, 0]
+                    },
+                    im2 : {
+                        "width": d2["width"],
+                        "height": d2["height"],
+                        "focal": d2["focal_ratio"] * d2["width"],
+                        "R": list(angleaxis),
+                        "t": list(t)
+                    }
+                },
+
+                "points" : {
+                    tracks[inlier]: X for inlier, X in zip(inliers, Xs)
+                }
+            }
+
+            with open(data.reconstruction_file(), 'w') as fout:
+                fout.write(json.dumps(reconstruction, indent=4))
 
             print 'roundness:', roundness(Xs)
             # TODO(pau): get a quality score for the reconstruction and keep only the best.

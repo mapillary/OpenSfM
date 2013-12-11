@@ -72,10 +72,14 @@ class DataSet:
         with open(self.tracks_file()) as fin:
             g = nx.Graph()
             for line in fin:
-                image, track, x, y = line.split()
+                image, track, observation, x, y = line.split()
                 g.add_node(image, bipartite=0)
                 g.add_node(track, bipartite=1)
                 g.add_edge(image, track, feature=(float(x), float(y)))
             return g
         return None
+
+    def reconstruction_file(self):
+        return os.path.join(self.data_path, 'reconstruction.json')
+
 
