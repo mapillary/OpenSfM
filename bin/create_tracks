@@ -1,11 +1,13 @@
 #!/usr/bin/env python
+import os.path, sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import numpy as np
 from itertools import combinations
 import argparse
 import networkx as nx
-import dataset
-import features
+from labmv import dataset
+from labmv import features
 import logging
 
 logging.basicConfig(format='%(asctime)s %(message)s', level=logging.DEBUG)

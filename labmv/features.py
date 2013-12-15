@@ -1,18 +1,10 @@
 
-ROBUST_MATCHING = 'build/robust_matching'
-TWO_VIEW_RECONSTRUCTION = 'build/two_view_reconstruction'
-FLANN_PATH = 'third_party/flann-1.8.4-src/src/python/build/lib'
-SIFT = 'third_party/vlfeat-0.9.16/bin/maci64/sift'
-
 from PIL import Image
 import os, sys
 from subprocess import call, Popen, PIPE
 import numpy as np
 import pylab as pl
-
-sys.path.append(FLANN_PATH)
-import pyflann
-
+import context
 
 
 def extract_sift(image, sift, params=["--edge-thresh=10", "--peak-thresh=5"]):
@@ -20,7 +12,7 @@ def extract_sift(image, sift, params=["--edge-thresh=10", "--peak-thresh=5"]):
 
     Image.open(image).convert('L').save('tmp.pgm')
 
-    call([SIFT, "tmp.pgm", "--output=%s" % sift] + params)
+    call([context.SIFT, "tmp.pgm", "--output=%s" % sift] + params)
 
     os.remove('tmp.pgm')
 
@@ -31,7 +23,7 @@ def read_sift(siftfile):
 
 
 def match_lowe(f1, f2):
-    results, dists = pyflann.FLANN().nn(f1, f2, 2,
+    results, dists = context.pyflann.FLANN().nn(f1, f2, 2,
         checks=128, algorithm='kmeans', branching=64, iterations=5)
 
     good = dists[:, 0] < 0.6 * dists[:, 1]
@@ -55,7 +47,7 @@ def robust_match(p1, p2, matches):
     for l in np.hstack((p1, p2)):
         s += ' '.join(str(i) for i in l) + '\n'
 
-    p = Popen([ROBUST_MATCHING, '-threshold', '0.1'], stdout=PIPE, stdin=PIPE, stderr=PIPE)
+    p = Popen([context.ROBUST_MATCHING, '-threshold', '0.1'], stdout=PIPE, stdin=PIPE, stderr=PIPE)
     res = p.communicate(input=s)[0]
     inliers = [int(i) for i in res.split()]
     return matches[inliers]
@@ -68,7 +60,7 @@ def two_view_reconstruction(p1, p2, d1, d2):
     for l in np.hstack((p1, p2)):
         s += ' '.join(str(i) for i in l) + '\n'
 
-    params = [TWO_VIEW_RECONSTRUCTION,
+    params = [context.TWO_VIEW_RECONSTRUCTION,
               '-threshold', '10',
               '-focal1', d1['focal_ratio'] * d1['width'],
               '-width1', d1['width'],
