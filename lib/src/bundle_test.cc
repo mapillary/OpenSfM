@@ -7,8 +7,8 @@
 
 TEST(BALProblem, LoadJson) {
   BALProblem bal_problem;
-  bool w = bal_problem.LoadJson("../tracks_test.csv",
-                                "../reconstruction_test.json");
+  bool w = bal_problem.LoadJson("../../labmv/test/tracks_test.csv",
+                                "../../labmv/test/reconstruction_test.json");
   EXPECT_TRUE(w);
   EXPECT_EQ(bal_problem.num_observations(), 148);
 

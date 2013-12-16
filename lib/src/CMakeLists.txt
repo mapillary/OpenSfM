@@ -3,7 +3,7 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 PROJECT(LABMV C CXX)
 
 
-SET(LIBMV_PATH ../../libmv CACHE PATH "Path to libmv source")
+SET(LIBMV_PATH ../../../libmv CACHE PATH "Path to libmv source")
 
 INCLUDE_DIRECTORIES(
   .

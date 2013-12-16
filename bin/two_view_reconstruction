@@ -91,15 +91,15 @@ for im1, im2 in image_graph.edges():
                         "width": d1["width"],
                         "height": d1["height"],
                         "focal": d1["focal_ratio"] * d1["width"],
-                        "R": [0, 0, 0],
-                        "t": [0, 0, 0]
+                        "rotation": [0, 0, 0],
+                        "translation": [0, 0, 0]
                     },
                     im2 : {
                         "width": d2["width"],
                         "height": d2["height"],
                         "focal": d2["focal_ratio"] * d2["width"],
-                        "R": list(angleaxis),
-                        "t": list(t)
+                        "rotation": list(angleaxis),
+                        "translation": list(t)
                     }
                 },
 

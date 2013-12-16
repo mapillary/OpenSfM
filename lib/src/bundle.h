@@ -130,10 +130,10 @@ class BALProblem {
       double k1 = json_number_value(json_object_get(camera, "k1"));
       double k2 = json_number_value(json_object_get(camera, "k2"));
       double R[3], t[3];
-      json_t *Rarray = json_object_get(camera, "R");
+      json_t *Rarray = json_object_get(camera, "rotation");
       for (int j = 0; j < 3; ++j)
         R[j] = json_number_value(json_array_get(Rarray, j));
-      json_t *tarray = json_object_get(camera, "t");
+      json_t *tarray = json_object_get(camera, "translation");
       for (int j = 0; j < 3; ++j)
         t[j] = json_number_value(json_array_get(tarray, j));
 

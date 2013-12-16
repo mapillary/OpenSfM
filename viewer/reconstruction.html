@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>Reconstruction Viewer</title>
+        <meta charset="utf-8">
+        <style>
+            body {
+                margin: 0px;
+                background-color: #000000;
+                overflow: hidden;
+            }
+        </style>
+    </head>
+    <body>
+
+        <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+        <script src="js/three.js"></script>
+        <script src="js/TrackballControls.js"></script>
+
+        <script>
+
+            var camera, controls, scene, renderer;
+            var particleSystem;
+            var reconstruction;
+
+            getData();
+
+            function getData() {
+                jQuery.getJSON("reconstruction/reconstruction_test.json", function(data) {
+                    reconstruction = data;
+                    init();
+                    animate();
+                });
+            }
+
+            function rotate(vector, angleaxis) {
+                var v = new THREE.Vector3(vector[0], vector[1], vector[2]);
+                var axis = new THREE.Vector3(angleaxis[0],
+                                             angleaxis[1],
+                                             angleaxis[2]);
+                var angle = axis.length();
+                var matrix = new THREE.Matrix4().makeRotationAxis(axis, angle);
+                v.applyMatrix4(matrix);
+                return v;
+            }
+
+            function opticalCenter(cam) {
+                var angleaxis = [-cam.rotation[0],
+                                 -cam.rotation[1],
+                                 -cam.rotation[2]];
+                var Rt = rotate(cam.translation, angleaxis);
+                Rt.negate();
+                return Rt;
+            }
+
+            function pixelToVertex(cam, u, v, scale) {
+                // Projection model:
+                // xc = R * x + t
+                // u = cam.focal * xc / zc + cam.width / 2
+                // v = cam.focal * yc / zc + cam.height / 2
+
+                var zc = scale;
+                var xc = (u - cam.width / 2) / cam.focal * zc;
+                var yc = (v - cam.height / 2) / cam.focal * zc;
+
+                var xct = [xc - cam.translation[0],
+                           yc - cam.translation[1],
+                           zc - cam.translation[2]]
+
+                var angleaxis = [-cam.rotation[0],
+                                 -cam.rotation[1],
+                                 -cam.rotation[2]];
+
+                return rotate(xct, angleaxis);
+            }
+
+            function init() {
+                renderer = new THREE.WebGLRenderer();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                document.body.appendChild(renderer.domElement);
+                window.addEventListener('resize', onWindowResize, false);
+
+                //
+                camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 1000);
+                camera.position.z = -20;
+                controls = new THREE.TrackballControls(camera);
+                controls.rotateSpeed = 1.0;
+                controls.zoomSpeed = 1.2;
+                controls.panSpeed = 0.8;
+                controls.noZoom = false;
+                controls.noPan = false;
+                controls.staticMoving = true;
+                controls.dynamicDampingFactor = 0.3;
+                controls.keys = [65, 83, 68];
+                controls.addEventListener('change', render);
+
+                scene = new THREE.Scene();
+
+                // Points.
+                var particles = new THREE.Geometry();
+                var pMaterial = new THREE.ParticleBasicMaterial({
+                      color: 0x8844FF,
+                      size: 0.1,
+                    });
+                for (var key in reconstruction.points) {
+                  if (reconstruction.points.hasOwnProperty(key)) {
+                    var p = reconstruction.points[key];
+                    particles.vertices.push(new THREE.Vector3(p[0], p[1], p[2]));
+                  }
+                }
+                particleSystem = new THREE.ParticleSystem(particles, pMaterial);
+                scene.add(particleSystem);
+
+                // Cameras.
+                for (var key in reconstruction.cameras) {
+                    if (reconstruction.cameras.hasOwnProperty(key)) {
+                        var cam = reconstruction.cameras[key];
+                        var ocenter = opticalCenter(cam);
+                        var top_left = pixelToVertex(cam, 0, 0, 1);
+                        var top_right = pixelToVertex(cam, cam.width, 0, 1);
+                        var bottom_right = pixelToVertex(cam, cam.width, cam.height, 1);
+                        var bottom_left = pixelToVertex(cam, 0, cam.height, 1);
+                        var linegeo = new THREE.Geometry();
+                        linegeo.vertices.push(ocenter);
+                        linegeo.vertices.push(top_left);
+                        linegeo.vertices.push(ocenter);
+                        linegeo.vertices.push(top_right);
+                        linegeo.vertices.push(ocenter);
+                        linegeo.vertices.push(bottom_right);
+                        linegeo.vertices.push(ocenter);
+                        linegeo.vertices.push(bottom_left);
+                        linegeo.vertices.push(top_left);
+                        linegeo.vertices.push(top_right);
+                        linegeo.vertices.push(top_right);
+                        linegeo.vertices.push(bottom_right);
+                        linegeo.vertices.push(bottom_right);
+                        linegeo.vertices.push(bottom_left);
+                        linegeo.vertices.push(bottom_left);
+                        linegeo.vertices.push(top_left);
+                        var lineMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, size: 0.1 })
+                        var line = new THREE.Line(linegeo, lineMaterial, THREE.LinePieces);
+                        scene.add(line);
+                    }
+                }
+            }
+
+            function onWindowResize() {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                controls.handleResize();
+                render();
+            }
+
+            function animate() {
+                requestAnimationFrame(animate);
+                controls.update();
+            }
+
+            function render() {
+                renderer.render( scene, camera );
+            }
+
+        </script>
+
+    </body>
+</html>
