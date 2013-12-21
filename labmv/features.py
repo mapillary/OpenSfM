@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 
 from PIL import Image
 import os, sys
@@ -8,12 +9,10 @@ import context
 
 
 def extract_sift(image, sift, params=["--edge-thresh=10", "--peak-thresh=5"]):
-    '''Extracts SIFT features of image and save them in sift'''
-
+    '''Extracts SIFT features of image and save them in sift
+    '''
     Image.open(image).convert('L').save('tmp.pgm')
-
     call([context.SIFT, "tmp.pgm", "--output=%s" % sift] + params)
-
     os.remove('tmp.pgm')
 
 
@@ -47,7 +46,8 @@ def robust_match(p1, p2, matches):
     for l in np.hstack((p1, p2)):
         s += ' '.join(str(i) for i in l) + '\n'
 
-    p = Popen([context.ROBUST_MATCHING, '-threshold', '0.1'], stdout=PIPE, stdin=PIPE, stderr=PIPE)
+    p = Popen([context.ROBUST_MATCHING, '-threshold', '0.1'],
+              stdout=PIPE, stdin=PIPE, stderr=PIPE)
     res = p.communicate(input=s)[0]
     inliers = [int(i) for i in res.split()]
     return matches[inliers]

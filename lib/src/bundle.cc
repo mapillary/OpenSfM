@@ -88,6 +88,8 @@ int main(int argc, char** argv) {
   ceres::Solver::Summary summary;
   ceres::Solve(options, &problem, &summary);
   std::cout << summary.FullReport() << "\n";
+
+  bal_problem.SaveJson("out.json");
   return 0;
 }
 

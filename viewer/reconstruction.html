@@ -26,7 +26,7 @@
             getData();
 
             function getData() {
-                jQuery.getJSON("reconstruction/reconstruction_test.json", function(data) {
+                jQuery.getJSON("reconstruction/reconstruction.json", function(data) {
                     reconstruction = data;
                     init();
                     animate();
@@ -102,45 +102,41 @@
                       color: 0x8844FF,
                       size: 0.1,
                     });
-                for (var key in reconstruction.points) {
-                  if (reconstruction.points.hasOwnProperty(key)) {
-                    var p = reconstruction.points[key];
+                for (var i = 0; i < reconstruction.points.length; ++i) {
+                    var p = reconstruction.points[i].coordinates;
                     particles.vertices.push(new THREE.Vector3(p[0], p[1], p[2]));
-                  }
                 }
                 particleSystem = new THREE.ParticleSystem(particles, pMaterial);
                 scene.add(particleSystem);
 
                 // Cameras.
-                for (var key in reconstruction.cameras) {
-                    if (reconstruction.cameras.hasOwnProperty(key)) {
-                        var cam = reconstruction.cameras[key];
-                        var ocenter = opticalCenter(cam);
-                        var top_left = pixelToVertex(cam, 0, 0, 1);
-                        var top_right = pixelToVertex(cam, cam.width, 0, 1);
-                        var bottom_right = pixelToVertex(cam, cam.width, cam.height, 1);
-                        var bottom_left = pixelToVertex(cam, 0, cam.height, 1);
-                        var linegeo = new THREE.Geometry();
-                        linegeo.vertices.push(ocenter);
-                        linegeo.vertices.push(top_left);
-                        linegeo.vertices.push(ocenter);
-                        linegeo.vertices.push(top_right);
-                        linegeo.vertices.push(ocenter);
-                        linegeo.vertices.push(bottom_right);
-                        linegeo.vertices.push(ocenter);
-                        linegeo.vertices.push(bottom_left);
-                        linegeo.vertices.push(top_left);
-                        linegeo.vertices.push(top_right);
-                        linegeo.vertices.push(top_right);
-                        linegeo.vertices.push(bottom_right);
-                        linegeo.vertices.push(bottom_right);
-                        linegeo.vertices.push(bottom_left);
-                        linegeo.vertices.push(bottom_left);
-                        linegeo.vertices.push(top_left);
-                        var lineMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, size: 0.1 })
-                        var line = new THREE.Line(linegeo, lineMaterial, THREE.LinePieces);
-                        scene.add(line);
-                    }
+                for (var i = 0; i < reconstruction.cameras.length; ++i) {
+                    var cam = reconstruction.cameras[i];
+                    var ocenter = opticalCenter(cam);
+                    var top_left = pixelToVertex(cam, 0, 0, 1);
+                    var top_right = pixelToVertex(cam, cam.width, 0, 1);
+                    var bottom_right = pixelToVertex(cam, cam.width, cam.height, 1);
+                    var bottom_left = pixelToVertex(cam, 0, cam.height, 1);
+                    var linegeo = new THREE.Geometry();
+                    linegeo.vertices.push(ocenter);
+                    linegeo.vertices.push(top_left);
+                    linegeo.vertices.push(ocenter);
+                    linegeo.vertices.push(top_right);
+                    linegeo.vertices.push(ocenter);
+                    linegeo.vertices.push(bottom_right);
+                    linegeo.vertices.push(ocenter);
+                    linegeo.vertices.push(bottom_left);
+                    linegeo.vertices.push(top_left);
+                    linegeo.vertices.push(top_right);
+                    linegeo.vertices.push(top_right);
+                    linegeo.vertices.push(bottom_right);
+                    linegeo.vertices.push(bottom_right);
+                    linegeo.vertices.push(bottom_left);
+                    linegeo.vertices.push(bottom_left);
+                    linegeo.vertices.push(top_left);
+                    var lineMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, size: 0.1 })
+                    var line = new THREE.Line(linegeo, lineMaterial, THREE.LinePieces);
+                    scene.add(line);
                 }
             }
 
