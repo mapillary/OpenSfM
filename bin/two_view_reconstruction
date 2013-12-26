@@ -48,10 +48,6 @@ args = parser.parse_args()
 
 
 data = dataset.DataSet(args.dataset)
-images = data.images()
-
-
-# Build a biparted graph connecting images and tracks.
 g = data.tracks_graph()
 
 # Get the image connectivity graph.
@@ -86,20 +82,31 @@ for im1, im2 in image_graph.edges():
             angle, direction, point = rotation_from_matrix(T)
             angleaxis = direction / np.linalg.norm(direction) * angle
             reconstruction = {
-                "cameras" : [
+                "cameras": [
                     {
                         "id": im1,
                         "width": d1["width"],
                         "height": d1["height"],
                         "focal": d1["focal_ratio"] * d1["width"],
-                        "rotation": [0, 0, 0],
-                        "translation": [0, 0, 0],
                     },
                     {
                         "id": im2,
                         "width": d2["width"],
                         "height": d2["height"],
                         "focal": d2["focal_ratio"] * d2["width"],
+                    },
+                ],
+                
+                "shots" : [
+                    {
+                        "id": im1,
+                        "camera": im1,
+                        "rotation": [0, 0, 0],
+                        "translation": [0, 0, 0],
+                    },
+                    {
+                        "id": im2,
+                        "camera": im2,
                         "rotation": list(angleaxis),
                         "translation": list(t),
                     },

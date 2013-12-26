@@ -1,0 +1,195 @@
+#!/usr/bin/env python
+import os.path, sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+import numpy as np
+import argparse
+import json
+from labmv.transformations import rotation_from_matrix
+from labmv import dataset
+from labmv import features
+from labmv import multiview
+import networkx as nx
+from networkx.algorithms import bipartite
+
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+
+
+def square_aspect_ratio(ax):
+    xmin, xmax = ax.get_xlim()
+    ymin, ymax = ax.get_ylim()
+    zmin, zmax = ax.get_zlim()
+    rmin = min(xmin, ymin, zmin)
+    rmax = max(xmax, ymax, zmax)
+    r = rmax - rmin
+    xm = (r - xmax + xmin) / 2
+    ym = (r - ymax + ymin) / 2
+    zm = (r - zmax + zmin) / 2
+    ax.auto_scale_xyz([xmin - xm, xmax + xm],
+                      [ymin - ym, ymax + ym],
+                      [zmin - zm, zmax + zm])
+
+
+def next_image_to_add(graph, recostruction, min_tracks=10):
+    '''The non-reconstructed images that observes more reconstructed tracks.
+    '''
+    tracks, images = bipartite.sets(g)
+    reconstructed_images = [i['id'] for i in reconstruction['shots']]
+    reconstructed_points = [i['id'] for i in reconstruction['points']]
+    max_tracks = 0
+    best_image = None
+    for image in images:
+        if image not in reconstructed_images:
+            common_tracks = 0
+            for track in graph[image]:
+                if track in reconstructed_points:
+                    common_tracks += 1
+            if max_tracks < common_tracks:
+                max_tracks = common_tracks
+                best_image = image
+    if max_tracks >= min_tracks:
+        return best_image
+    else:
+        return None
+
+
+def angleaxis(R):
+    '''Compute angle-axis representation from a rotation matrix.
+    '''
+    T = np.identity(4)
+    T[:3,:3] = R
+    angle, direction, point = rotation_from_matrix(T)
+    return direction / np.linalg.norm(direction) * angle
+
+
+
+parser = argparse.ArgumentParser(description='Compute reconstruction')
+parser.add_argument('dataset',
+                    help='path to the dataset to be processed')
+parser.add_argument('-v', '--visual', action='store_true',
+                    help='plot results during the process')
+args = parser.parse_args()
+
+
+data = dataset.DataSet(args.dataset)
+g = data.tracks_graph()
+
+# Get the image connectivity graph.
+track_nodes, image_nodes = bipartite.sets(g)
+image_graph = bipartite.weighted_projected_graph(g, image_nodes)
+
+# Choose a starting image pair.
+best_pair = None
+best_weight = 0
+for im1, im2, d in image_graph.edges(data=True):
+    if d['weight'] > best_weight:
+        best_weight = d['weight']
+        best_pair = (im1, im2)
+im1, im2 = best_pair
+
+print 'Matching image', im1, 'with image', im2
+
+d1 = data.exif_data(im1)
+d2 = data.exif_data(im2)
+tracks, p1, p2 = dataset.common_tracks(g, im1, im2)
+
+print 'Number of common tracks', len(tracks)
+
+R, t, inliers, Xs = features.two_view_reconstruction(p1, p2, d1, d2)
+
+print 'Number of inliers', len(inliers)
+
+reconstruction = {
+    "cameras": [
+        {
+            "id": im1,
+            "width": d1["width"],
+            "height": d1["height"],
+            "focal": d1["focal_ratio"] * d1["width"],
+        },
+        {
+            "id": im2,
+            "width": d2["width"],
+            "height": d2["height"],
+            "focal": d2["focal_ratio"] * d2["width"],
+        },
+    ],
+
+    "shots" : [
+        {
+            "id": im1,
+            "camera": im1,
+            "rotation": [0, 0, 0],
+            "translation": [0, 0, 0],
+        },
+        {
+            "id": im2,
+            "camera": im2,
+            "rotation": list(angleaxis(R)),
+            "translation": list(t),
+        },
+    ],
+
+    "points" : [
+        { 
+            "id": tracks[inlier],
+            "coordinates": X,
+        } for inlier, X in zip(inliers, Xs)
+    ]
+}
+
+if args.visual:
+    fig = plt.figure()
+    ax = fig.add_subplot(211, projection='3d')
+    X = np.array(Xs)
+    ax.scatter(X[:, 0], X[:, 1], X[:, 2], c='b')
+    ax.scatter([0], [0], [0], zdir='y', c='r')
+    O = - np.dot(R, t)
+    ax.scatter(O[0], O[1], O[2], c='g')
+
+    square_aspect_ratio(ax)
+
+    fig.add_subplot(212)
+    features.plot_matches(data.image_as_array(im1),
+                          data.image_as_array(im2),
+                          p1[inliers],
+                          p2[inliers])
+
+
+
+# TODO(pau): bundle adjust after each iteration
+# TODO(pau): triangulate new tracks
+# TODO(pau): check the reprojection error
+
+next_image = next_image_to_add(g, reconstruction)
+while next_image:
+    print 'Adding {0} to the reconstruction'.format(next_image)
+
+    reconstructed_tracks = {i['id']: i for i in reconstruction['points']}
+
+    xs = []
+    Xs = []
+    for track in g[next_image]:
+        if track in reconstructed_tracks:
+            xs.append(g[next_image][track]['feature'])
+            Xs.append(reconstructed_tracks[track]['coordinates'])
+    x = np.array(xs)
+    X = np.array(Xs)
+    kernel = multiview.ResectionLinearKernel(x, X)
+    P, inliers, error = multiview.ransac(kernel, 3)
+    K, R, t = multiview.KRt_from_P(P)
+    print len(inliers), len(x)
+
+    reconstruction['shots'].append({
+            "id": next_image,
+            "camera": im1,
+            "rotation": list(angleaxis(R)),
+            "translation": list(t),
+        },)
+
+    next_image = next_image_to_add(g, reconstruction)
+
+with open(data.reconstruction_file(), 'w') as fout:
+    fout.write(json.dumps(reconstruction, indent=4))
+

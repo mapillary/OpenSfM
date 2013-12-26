@@ -83,3 +83,18 @@ class DataSet:
         return os.path.join(self.data_path, 'reconstruction.json')
 
 
+def common_tracks(g, im1, im2):
+    '''Return the list of tracks observed in both images.
+    '''
+    t1, t2 = g[im1], g[im2]
+    tracks, p1, p2 = [], [], []
+    for track in t1:
+        if track in t2:
+            p1.append(t1[track]['feature'])
+            p2.append(t2[track]['feature'])
+            tracks.append(track)
+    p1 = np.array(p1)
+    p2 = np.array(p2)
+    return tracks, p1, p2
+
+

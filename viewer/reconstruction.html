@@ -44,32 +44,32 @@
                 return v;
             }
 
-            function opticalCenter(cam) {
-                var angleaxis = [-cam.rotation[0],
-                                 -cam.rotation[1],
-                                 -cam.rotation[2]];
-                var Rt = rotate(cam.translation, angleaxis);
+            function opticalCenter(shot) {
+                var angleaxis = [-shot.rotation[0],
+                                 -shot.rotation[1],
+                                 -shot.rotation[2]];
+                var Rt = rotate(shot.translation, angleaxis);
                 Rt.negate();
                 return Rt;
             }
 
-            function pixelToVertex(cam, u, v, scale) {
+            function pixelToVertex(cam, shot, u, v, scale) {
                 // Projection model:
                 // xc = R * x + t
-                // u = cam.focal * xc / zc + cam.width / 2
-                // v = cam.focal * yc / zc + cam.height / 2
+                // u = focal * xc / zc + width / 2
+                // v = focal * yc / zc + height / 2
 
                 var zc = scale;
                 var xc = (u - cam.width / 2) / cam.focal * zc;
                 var yc = (v - cam.height / 2) / cam.focal * zc;
 
-                var xct = [xc - cam.translation[0],
-                           yc - cam.translation[1],
-                           zc - cam.translation[2]]
+                var xct = [xc - shot.translation[0],
+                           yc - shot.translation[1],
+                           zc - shot.translation[2]]
 
-                var angleaxis = [-cam.rotation[0],
-                                 -cam.rotation[1],
-                                 -cam.rotation[2]];
+                var angleaxis = [-shot.rotation[0],
+                                 -shot.rotation[1],
+                                 -shot.rotation[2]];
 
                 return rotate(xct, angleaxis);
             }
@@ -110,13 +110,21 @@
                 scene.add(particleSystem);
 
                 // Cameras.
-                for (var i = 0; i < reconstruction.cameras.length; ++i) {
-                    var cam = reconstruction.cameras[i];
-                    var ocenter = opticalCenter(cam);
-                    var top_left = pixelToVertex(cam, 0, 0, 1);
-                    var top_right = pixelToVertex(cam, cam.width, 0, 1);
-                    var bottom_right = pixelToVertex(cam, cam.width, cam.height, 1);
-                    var bottom_left = pixelToVertex(cam, 0, cam.height, 1);
+                for (var i = 0; i < reconstruction.shots.length; ++i) {
+                    var shot = reconstruction.shots[i];
+                    var cam;
+                    for (var j = 0; j < reconstruction.cameras.length; ++j) {
+                        if (reconstruction.shots[i].camera == reconstruction.cameras[j].id) {
+                            cam = reconstruction.cameras[j];
+                            break;
+                        }
+                    }
+                    var ocenter = opticalCenter(shot);
+                    console.log(ocenter);
+                    var top_left = pixelToVertex(cam, shot, 0, 0, 1);
+                    var top_right = pixelToVertex(cam, shot, cam.width, 0, 1);
+                    var bottom_right = pixelToVertex(cam, shot, cam.width, cam.height, 1);
+                    var bottom_left = pixelToVertex(cam, shot, 0, cam.height, 1);
                     var linegeo = new THREE.Geometry();
                     linegeo.vertices.push(ocenter);
                     linegeo.vertices.push(top_left);

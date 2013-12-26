@@ -84,7 +84,7 @@ def two_view_reconstruction(p1, p2, d1, d2):
     for line in inliers_res.splitlines():
         words = line.split()
         inliers.append(int(words[0]))
-        Xs.append(map(float, words[1:]))    
+        Xs.append(map(float, words[1:]))
 
     return R, t, inliers, Xs
 
