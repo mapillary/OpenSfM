@@ -39,12 +39,13 @@
                                              angleaxis[1],
                                              angleaxis[2]);
                 var angle = axis.length();
+                axis.normalize();
                 var matrix = new THREE.Matrix4().makeRotationAxis(axis, angle);
                 v.applyMatrix4(matrix);
                 return v;
             }
 
-            function opticalCenter(shot) {
+            function opticalCenter(cam, shot) {
                 var angleaxis = [-shot.rotation[0],
                                  -shot.rotation[1],
                                  -shot.rotation[2]];
@@ -65,7 +66,8 @@
 
                 var xct = [xc - shot.translation[0],
                            yc - shot.translation[1],
-                           zc - shot.translation[2]]
+                           zc - shot.translation[2]];
+
 
                 var angleaxis = [-shot.rotation[0],
                                  -shot.rotation[1],
@@ -119,8 +121,9 @@
                             break;
                         }
                     }
-                    var ocenter = opticalCenter(shot);
-                    console.log(ocenter);
+                    console.log(cam);
+                    console.log(shot);
+                    var ocenter = opticalCenter(cam, shot);
                     var top_left = pixelToVertex(cam, shot, 0, 0, 1);
                     var top_right = pixelToVertex(cam, shot, cam.width, 0, 1);
                     var bottom_right = pixelToVertex(cam, shot, cam.width, cam.height, 1);

@@ -50,27 +50,38 @@ extern "C" {
 #include "ceres/rotation.h"
 
 
+
+struct Camera {
+  double parameters[3];
+  double width, height;
+  std::string id;
+};
+
+struct Shot {
+  double parameters[6];
+  std::string camera;
+  std::string id;
+};
+
+struct Point {
+  double parameters[3];
+  std::string id;
+};
+
+struct Observation {
+  double coordinates[2];
+  Camera *camera;
+  Shot *shot;
+  Point *point;
+};
+
 // Read a Bundle Adjustment in the Large dataset.
 class BALProblem {
  public:
-  ~BALProblem() {
-    delete[] point_index_;
-    delete[] camera_index_;
-    delete[] observations_;
-    delete[] parameters_;
-  }
+  ~BALProblem() {}
 
-  int num_observations()       const { return num_observations_;               }
-  const double* observations() const { return observations_;                   }
-  double* mutable_cameras()          { return parameters_;                     }
-  double* mutable_points()           { return parameters_  + 9 * num_cameras_; }
-
-  double* mutable_camera_for_observation(int i) {
-    return mutable_cameras() + camera_index_[i] * 9;
-  }
-  double* mutable_point_for_observation(int i) {
-    return mutable_points() + point_index_[i] * 3;
-  }
+  int num_observations() const { return observations_.size(); }
+  const Observation* observations() const { return &observations_[0]; }
 
 
   bool LoadJson(const char *tracks, const char *reconstruction) {
@@ -89,77 +100,55 @@ class BALProblem {
     }
 
     //////////////////////////////////////////////////////////////////
-    // Count cameras and points
-    //////////////////////////////////////////////////////////////////
-    json_t *cameras = json_object_get(root, "cameras");
-    if(!json_is_array(cameras)) {
-        fprintf(stderr, "error: cameras is not an array\n");
-        json_decref(root);
-        return false;
-    }
-    num_cameras_ = json_array_size(cameras);
-
-    json_t *points = json_object_get(root, "points");
-    if(!json_is_array(points)) {
-        fprintf(stderr, "error: points is not an array\n");
-        json_decref(root);
-        return false;
-    }
-    num_points_ = json_array_size(points);
-    
-    num_parameters_ = 9 * num_cameras_ + 3 * num_points_;
-    parameters_ = new double[num_parameters_];
-
-
-    //////////////////////////////////////////////////////////////////
     // Read cameras
     //////////////////////////////////////////////////////////////////
-    for (int i = 0; i < num_cameras_; ++i) {
+    json_t *cameras = json_object_get(root, "cameras");
+    cameras_.resize(json_array_size(cameras));
+    for (int i = 0; i < cameras_.size(); ++i) {
       json_t *camera = json_array_get(cameras, i);
+      cameras_[i].parameters[0] = json_number_value(json_object_get(camera, "focal"));
+      cameras_[i].parameters[1] = json_number_value(json_object_get(camera, "k1"));
+      cameras_[i].parameters[2] = json_number_value(json_object_get(camera, "k2"));
+      cameras_[i].height = json_number_value(json_object_get(camera, "height"));
+      cameras_[i].width = json_number_value(json_object_get(camera, "width"));
       const char *camera_id = json_string_value(json_object_get(camera, "id"));
-      double width = json_number_value(json_object_get(camera, "width"));
-      double height = json_number_value(json_object_get(camera, "height"));
-      double focal = json_number_value(json_object_get(camera, "focal"));
-      double k1 = json_number_value(json_object_get(camera, "k1"));
-      double k2 = json_number_value(json_object_get(camera, "k2"));
-      json_t *Rarray = json_object_get(camera, "rotation");
-      json_t *tarray = json_object_get(camera, "translation");
-      double R[3], t[3];
-      for (int j = 0; j < 3; ++j)
-        R[j] = json_number_value(json_array_get(Rarray, j));
-      for (int j = 0; j < 3; ++j)
-        t[j] = json_number_value(json_array_get(tarray, j));
+      cameras_[i].id = camera_id;
+      camera_by_id_[camera_id] = &cameras_[i];
+    }
 
-      camera_ids_.push_back(camera_id);
-      camera_index_by_id_[camera_id] = i;
-      width_[camera_id] = width;
-      height_[camera_id] = height;
-
-      double *p = mutable_cameras() + 9 * i;
-      p[0] = R[0];
-      p[1] = R[1];
-      p[2] = R[2];
-      p[3] = t[0];
-      p[4] = t[1];
-      p[5] = t[2];
-      p[6] = focal;
-      p[7] = k1;
-      p[8] = k2;
+    //////////////////////////////////////////////////////////////////
+    // Read shots
+    //////////////////////////////////////////////////////////////////
+    json_t *shots = json_object_get(root, "shots");
+    shots_.resize(json_array_size(shots));
+    for (int i = 0; i < shots_.size(); ++i) {
+      json_t *shot = json_array_get(shots, i);
+      json_t *Rarray = json_object_get(shot, "rotation");
+      for (int j = 0; j < 3; ++j)
+        shots_[i].parameters[j] = json_number_value(json_array_get(Rarray, j));
+      json_t *tarray = json_object_get(shot, "translation");
+      for (int j = 0; j < 3; ++j)
+        shots_[i].parameters[3 + j] = json_number_value(json_array_get(tarray, j));
+      const char *shot_camera = json_string_value(json_object_get(shot, "camera"));
+      shots_[i].camera = shot_camera;
+      const char *shot_id = json_string_value(json_object_get(shot, "id"));
+      shots_[i].id = shot_id;
+      shot_by_id_[shot_id] = &shots_[i];
     }
 
     //////////////////////////////////////////////////////////////////
     // Read points
     //////////////////////////////////////////////////////////////////
-    for (int i = 0; i < num_points_; ++i) {
+    json_t *points = json_object_get(root, "points");
+    points_.resize(json_array_size(points));
+    for (int i = 0; i < points_.size(); ++i) {
       json_t *point = json_array_get(points, i);
-      const char *point_id = json_string_value(json_object_get(point, "id"));
       json_t *coordinates = json_object_get(point, "coordinates");
-      point_ids_.push_back(point_id);
-      point_index_by_id_[point_id] = i;
-
-      double *p = mutable_points() + 3 * i;      
       for (int j = 0; j < 3; ++j)
-        p[j] = json_number_value(json_array_get(coordinates, j));
+        points_[i].parameters[j] = json_number_value(json_array_get(coordinates, j));
+      const char *point_id = json_string_value(json_object_get(point, "id"));
+      points_[i].id = point_id;
+      point_by_id_[point_id] = &points_[i];
     }
 
     json_decref(root);
@@ -173,31 +162,23 @@ class BALProblem {
       return false;
     };
 
-    num_observations_ = 0;
     while (true) {
-      char camera_id[1000];
+      char shot_id[1000];
       char point_id[1000];
       int oid;
       double x, y;
-      int n = fscanf(fptr, "%s %s %d %lg %lg", camera_id, point_id, &oid, &x, &y);
+      int n = fscanf(fptr, "%s %s %d %lg %lg", shot_id, point_id, &oid, &x, &y);
       if (n != 5) break;
-      num_observations_++;
-    }
-    point_index_ = new int[num_observations_];
-    camera_index_ = new int[num_observations_];
-    observations_ = new double[2 * num_observations_];
 
-    rewind(fptr);
-    for (int i = 0; i < num_observations_; ++i) {
-      char camera_id[1000];
-      char point_id[1000];
-      int oid;
-      double x, y;
-      int n = fscanf(fptr, "%s %s %d %lg %lg", camera_id, point_id, &oid, &x, &y);
-      camera_index_[i] = camera_index_by_id_[camera_id];
-      point_index_[i] = point_index_by_id_[point_id];
-      observations_[2 * i + 0] = x - width_[camera_id] / 2;
-      observations_[2 * i + 1] = y - height_[camera_id] / 2;
+      if (shot_by_id_.count(shot_id) && point_by_id_.count(point_id)) { 
+        Observation o;
+        o.shot = shot_by_id_[shot_id];
+        o.camera = camera_by_id_[o.shot->camera];
+        o.point = point_by_id_[point_id];
+        o.coordinates[0] = x - o.camera->width / 2;
+        o.coordinates[1] = y - o.camera->height / 2;
+        observations_.push_back(o);
+      }
     }
 
     return true;
@@ -209,71 +190,63 @@ class BALProblem {
     // Cameras.
     json_t *cameras = json_array();
     json_object_set(root, "cameras", cameras);
-    for (int i = 0; i < num_cameras_; ++i) {
-      double *p = mutable_cameras() + 9 * i;
+    for (int i = 0; i < cameras_.size(); ++i) {
       json_t *camera = json_object();
       json_array_append(cameras, camera);
-      json_object_set(camera, "id", json_string(camera_ids_[i].c_str()));
+      json_object_set(camera, "id", json_string(cameras_[i].id.c_str()));
+      json_object_set(camera, "width", json_real(cameras_[i].width));
+      json_object_set(camera, "height", json_real(cameras_[i].height));
+      json_object_set(camera, "focal", json_real(cameras_[i].parameters[0]));
+      json_object_set(camera, "k1", json_real(cameras_[i].parameters[1]));
+      json_object_set(camera, "k2", json_real(cameras_[i].parameters[2]));
+    }
 
-      json_object_set(camera, "width", json_real(width_[camera_ids_[i]]));
-      json_object_set(camera, "height", json_real(height_[camera_ids_[i]]));
-      json_object_set(camera, "focal", json_real(p[6]));
-      json_object_set(camera, "k1", json_real(p[7]));
-      json_object_set(camera, "k2", json_real(p[8]));
-
+    // Shots.
+    json_t *shots = json_array();
+    json_object_set(root, "shots", shots);
+    for (int i = 0; i < shots_.size(); ++i) {
+      json_t *shot = json_object();
+      json_array_append(shots, shot);
+      json_object_set(shot, "id", json_string(shots_[i].id.c_str()));
+      json_object_set(shot, "camera", json_string(shots_[i].camera.c_str()));
       json_t *Rarray = json_array();
       json_t *tarray = json_array();
-      json_object_set(camera, "rotation", Rarray);
-      json_object_set(camera, "translation", Rarray);
+      json_object_set(shot, "rotation", Rarray);
+      json_object_set(shot, "translation", Rarray);
       for (int j = 0; j < 3; ++j)
-        json_array_append(Rarray, json_real(p[j]));
+        json_array_append(Rarray, json_real(shots_[i].parameters[j]));
       for (int j = 0; j < 3; ++j)
-        json_array_append(tarray, json_real(p[3 + j]));
+        json_array_append(tarray, json_real(shots_[i].parameters[3 + j]));
     }
 
     // Points.
     json_t *points = json_array();
     json_object_set(root, "points", points);
-    for (int i = 0; i < num_points_; ++i) {
-      double *p = mutable_points() + 3 * i;      
+    for (int i = 0; i < points_.size(); ++i) {
       json_t *point = json_object();
       json_array_append(points, point);
-      json_object_set(point, "id", json_string(point_ids_[i].c_str()));
+      json_object_set(point, "id", json_string(points_[i].id.c_str()));
       json_t *coordinates = json_array();
       json_object_set(point, "coordinates", coordinates);
       for (int j = 0; j < 3; ++j)
-        json_array_append(coordinates, json_real(p[j]));
+        json_array_append(coordinates, json_real(points_[i].parameters[j]));
     }
 
     json_dump_file(root, dest, JSON_INDENT(4));
+
     return true;
   }
 
 
  private:
-  template<typename T>
-  void FscanfOrDie(FILE *fptr, const char *format, T *value) {
-    int num_scanned = fscanf(fptr, format, value);
-    if (num_scanned != 1) {
-      LOG(FATAL) << "Invalid UW data file.";
-    }
-  }
+  std::vector<Camera> cameras_;
+  std::vector<Shot> shots_;
+  std::vector<Point> points_;
+  std::vector<Observation> observations_;
 
-  int num_cameras_;
-  int num_points_;
-  int num_observations_;
-  int num_parameters_;
-
-  int* point_index_;
-  int* camera_index_;
-  double* observations_;
-  double* parameters_;
-
-  std::vector<std::string> camera_ids_;
-  std::map<std::string, size_t> camera_index_by_id_;
-  std::map<std::string, double> width_, height_; // principal point
-  std::vector<std::string> point_ids_;
-  std::map<std::string, size_t> point_index_by_id_;
+  std::map<std::string, Camera *> camera_by_id_;
+  std::map<std::string, Shot *> shot_by_id_;
+  std::map<std::string, Point *> point_by_id_;
 };
 
 // Templated pinhole camera model for used with Ceres.  The camera is
@@ -286,31 +259,30 @@ struct SnavelyReprojectionError {
 
   template <typename T>
   bool operator()(const T* const camera,
+                  const T* const shot,
                   const T* const point,
                   T* residuals) const {
-    // camera[0,1,2] are the angle-axis rotation.
+    // shot[0,1,2] are the angle-axis rotation.
     T p[3];
-    ceres::AngleAxisRotatePoint(camera, point, p);
+    ceres::AngleAxisRotatePoint(shot, point, p);
 
-    // camera[3,4,5] are the translation.
-    p[0] += camera[3];
-    p[1] += camera[4];
-    p[2] += camera[5];
+    // shot[3,4,5] are the translation.
+    p[0] += shot[3];
+    p[1] += shot[4];
+    p[2] += shot[5];
 
-    // Compute the center of distortion. The sign change comes from
-    // the camera model that Noah Snavely's Bundler assumes, whereby
-    // the camera coordinate system has a negative z axis.
+    // Project.
     T xp = p[0] / p[2];
     T yp = p[1] / p[2];
 
     // Apply second and fourth order radial distortion.
-    const T& l1 = camera[7];
-    const T& l2 = camera[8];
-    T r2 = xp*xp + yp*yp;
+    const T& l1 = camera[1];
+    const T& l2 = camera[2];
+    T r2 = xp * xp + yp * yp;
     T distortion = T(1.0) + r2  * (l1 + l2  * r2);
 
     // Compute final projected point position.
-    const T& focal = camera[6];
+    const T& focal = camera[0];
     T predicted_x = focal * distortion * xp;
     T predicted_y = focal * distortion * yp;
 

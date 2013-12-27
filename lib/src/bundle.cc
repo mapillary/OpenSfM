@@ -46,8 +46,8 @@
 
 int main(int argc, char** argv) {
   google::InitGoogleLogging(argv[0]);
-  if (argc != 3) {
-    std::cerr << "usage: simple_bundle_adjuster <tracks> <reconstruction>\n";
+  if (argc != 4) {
+    std::cerr << "usage: simple_bundle_adjuster <tracks> <input reconstruction> <output reconstruction>\n";
     return 1;
   }
 
@@ -57,7 +57,7 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  const double* observations = bal_problem.observations();
+  const Observation* observations = bal_problem.observations();
 
   // Create residuals for each observation in the bundle adjustment problem. The
   // parameters for cameras and points are added automatically.
@@ -68,14 +68,15 @@ int main(int argc, char** argv) {
     // image location and compares the reprojection against the observation.
 
     ceres::CostFunction* cost_function = 
-        new ceres::AutoDiffCostFunction<SnavelyReprojectionError, 2, 9, 3>(
-            new SnavelyReprojectionError(observations[2 * i + 0],
-                                         observations[2 * i + 1]));
+        new ceres::AutoDiffCostFunction<SnavelyReprojectionError, 2, 3, 6, 3>(
+            new SnavelyReprojectionError(observations[i].coordinates[0],
+                                         observations[i].coordinates[1]));
 
     problem.AddResidualBlock(cost_function,
-                             NULL /* squared loss */,
-                             bal_problem.mutable_camera_for_observation(i),
-                             bal_problem.mutable_point_for_observation(i));
+                             new ceres::HuberLoss(3.0) /* squared loss */,
+                             observations[i].camera->parameters,
+                             observations[i].shot->parameters,
+                             observations[i].point->parameters);
   }
 
   // Make Ceres automatically detect the bundle structure. Note that the
@@ -89,7 +90,7 @@ int main(int argc, char** argv) {
   ceres::Solve(options, &problem, &summary);
   std::cout << summary.FullReport() << "\n";
 
-  bal_problem.SaveJson("out.json");
+  bal_problem.SaveJson(argv[3]);
   return 0;
 }
 

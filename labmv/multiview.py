@@ -77,14 +77,14 @@ def KRt_from_P(P):
     '''
     K, R = rq(P[:, :3])
 
-    T = np.diag(np.sign(np.diag(K)))
-    if np.linalg.det(np.dot(T, R)) < 0:
-        T[1, 1] *= -1
-
+    T = np.diag(np.sign(np.diag(K))) # ensure K has positive diagonal
     K = np.dot(K, T)
     R = np.dot(T, R)
     t = np.linalg.solve(K, P[:,3])
-    K /= K[2, 2]
+    if np.linalg.det(R) < 0:         # ensure det(R) = 1
+        R = -R
+        t = -t
+    K /= K[2, 2]                     # normalise K
     
     return K, R, t
 
@@ -194,7 +194,7 @@ def ransac(kernel, threshold):
             errors = kernel.evaluate(model)
             inliers = np.flatnonzero(np.fabs(errors) < threshold)
             error = np.fabs(errors).clip(0, threshold).sum()
-            if error < best_error:
+            if len(inliers) and error < best_error:
                 best_error = error
                 best_model = model
                 best_inliers = inliers

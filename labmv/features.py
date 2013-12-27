@@ -6,6 +6,7 @@ from subprocess import call, Popen, PIPE
 import numpy as np
 import pylab as pl
 import context
+import json
 
 
 def extract_sift(image, sift, params=["--edge-thresh=10", "--peak-thresh=5"]):
@@ -87,6 +88,21 @@ def two_view_reconstruction(p1, p2, d1, d2):
         Xs.append(map(float, words[1:]))
 
     return R, t, inliers, Xs
+
+def bundle(tracks_file, reconstruction):
+    '''Extracts SIFT features of image and save them in sift
+    '''
+    source = "/tmp/bundle_source.json"
+    dest = "/tmp/bundle_dest.json"
+
+    with open(source, 'w') as fout:
+        fout.write(json.dumps(reconstruction, indent=4))
+
+    call([context.BUNDLE, tracks_file, source, dest])
+
+    with open(dest) as fin:
+        return json.load(fin)
+
 
 
 def plot_features(im, p):

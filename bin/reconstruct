@@ -103,29 +103,23 @@ print 'Number of inliers', len(inliers)
 reconstruction = {
     "cameras": [
         {
-            "id": im1,
+            "id": "main_camera",
             "width": d1["width"],
             "height": d1["height"],
             "focal": d1["focal_ratio"] * d1["width"],
-        },
-        {
-            "id": im2,
-            "width": d2["width"],
-            "height": d2["height"],
-            "focal": d2["focal_ratio"] * d2["width"],
         },
     ],
 
     "shots" : [
         {
             "id": im1,
-            "camera": im1,
+            "camera": "main_camera",
             "rotation": [0, 0, 0],
             "translation": [0, 0, 0],
         },
         {
             "id": im2,
-            "camera": im2,
+            "camera": "main_camera",
             "rotation": list(angleaxis(R)),
             "translation": list(t),
         },
@@ -156,11 +150,12 @@ if args.visual:
                           p1[inliers],
                           p2[inliers])
 
+reconstruction = features.bundle(data.tracks_file(), reconstruction)
 
 
-# TODO(pau): bundle adjust after each iteration
 # TODO(pau): triangulate new tracks
 # TODO(pau): check the reprojection error
+# TODO(pau): implement a MLSE loss function for ceres.
 
 next_image = next_image_to_add(g, reconstruction)
 while next_image:
@@ -183,11 +178,15 @@ while next_image:
 
     reconstruction['shots'].append({
             "id": next_image,
-            "camera": im1,
+            "camera": "main_camera",
             "rotation": list(angleaxis(R)),
             "translation": list(t),
-        },)
+        })
 
+    if next_image == 'et008.jpg':
+        break
+
+    reconstruction = features.bundle(data.tracks_file(), reconstruction)
     next_image = next_image_to_add(g, reconstruction)
 
 with open(data.reconstruction_file(), 'w') as fout:
