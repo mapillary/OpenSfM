@@ -212,7 +212,7 @@ class BALProblem {
       json_t *Rarray = json_array();
       json_t *tarray = json_array();
       json_object_set(shot, "rotation", Rarray);
-      json_object_set(shot, "translation", Rarray);
+      json_object_set(shot, "translation", tarray);
       for (int j = 0; j < 3; ++j)
         json_array_append(Rarray, json_real(shots_[i].parameters[j]));
       for (int j = 0; j < 3; ++j)
@@ -252,7 +252,7 @@ class BALProblem {
 // Templated pinhole camera model for used with Ceres.  The camera is
 // parameterized using 9 parameters: 3 for rotation, 3 for translation, 1 for
 // focal length and 2 for radial distortion. The principal point is not modeled
-// (i.e. it is assumed be located at the image center).
+// (i.e. it is assumed to be located at the image center).
 struct SnavelyReprojectionError {
   SnavelyReprojectionError(double observed_x, double observed_y)
       : observed_x(observed_x), observed_y(observed_y) {}
@@ -279,7 +279,8 @@ struct SnavelyReprojectionError {
     const T& l1 = camera[1];
     const T& l2 = camera[2];
     T r2 = xp * xp + yp * yp;
-    T distortion = T(1.0) + r2  * (l1 + l2  * r2);
+    //T distortion = T(1.0) + r2  * (l1 + l2  * r2);
+    T distortion = T(1.0);
 
     // Compute final projected point position.
     const T& focal = camera[0];

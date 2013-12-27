@@ -5,7 +5,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 import numpy as np
 import argparse
 import json
-from labmv.transformations import rotation_from_matrix
+from labmv import transformations as tf
 from labmv import dataset
 from labmv import features
 from labmv import multiview
@@ -53,13 +53,62 @@ def next_image_to_add(graph, recostruction, min_tracks=10):
     else:
         return None
 
+def rotate(angleaxis, point):
+    angle = np.linalg.norm(angleaxis)
+    if angle < 1e-8:
+        return np.array(point)
+    R = tf.rotation_matrix(angle, angleaxis)
+    return R[:-1, :-1].dot(np.array(point))
+
+def single_reprojection_error(camera, shot, point, observation):
+    p = rotate(shot['rotation'], point['coordinates'])
+    p += shot['translation']
+    xp = p[0] / p[2]
+    yp = p[1] / p[2]
+
+    l1 = camera.get('k1', 0.0)
+    l2 = camera.get('k2', 0.0)
+    r2 = xp * xp + yp * yp;
+    distortion = 1.0 + r2  * (l1 + l2  * r2)
+
+    predicted_x = camera['focal'] * distortion * xp + camera['width'] / 2
+    predicted_y = camera['focal'] * distortion * yp + camera['height'] / 2
+
+    rx = predicted_x - observation[0]
+    ry = predicted_y - observation[1]
+    return np.sqrt(rx * rx + ry * ry)
+
+
+def reprojection_error(graph, reconstruction):
+    tracks, shots = bipartite.sets(g)
+    reconstructed_cameras = {i['id']:i for i in reconstruction['cameras']}
+    reconstructed_shots = {i['id']:i for i in reconstruction['shots']}
+    reconstructed_points = {i['id']:i for i in reconstruction['points']}
+    errors = []
+    for shot_id in shots:
+        if shot_id in reconstructed_shots:
+            for track_id in graph[shot_id]:
+                if track_id in reconstructed_points:
+                    observation = graph[shot_id][track_id]['feature']
+                    shot = reconstructed_shots[shot_id]
+                    camera = reconstructed_cameras[shot['camera']]
+                    point = reconstructed_points[track_id]
+                    errors.append(single_reprojection_error(camera, shot, point, observation))
+    return np.mean(errors)
+
+
+
+
+
+
+
 
 def angleaxis(R):
     '''Compute angle-axis representation from a rotation matrix.
     '''
     T = np.identity(4)
     T[:3,:3] = R
-    angle, direction, point = rotation_from_matrix(T)
+    angle, direction, point = tf.rotation_from_matrix(T)
     return direction / np.linalg.norm(direction) * angle
 
 
@@ -150,11 +199,17 @@ if args.visual:
                           p1[inliers],
                           p2[inliers])
 
+
+with open(data.reconstruction_file() + '.before', 'w') as fout:
+    fout.write(json.dumps(reconstruction, indent=4))
+
+
+print 'BEFORE', reprojection_error(g, reconstruction)
 reconstruction = features.bundle(data.tracks_file(), reconstruction)
+print 'AFTER', reprojection_error(g, reconstruction)
 
 
 # TODO(pau): triangulate new tracks
-# TODO(pau): check the reprojection error
 # TODO(pau): implement a MLSE loss function for ceres.
 
 next_image = next_image_to_add(g, reconstruction)
@@ -183,10 +238,13 @@ while next_image:
             "translation": list(t),
         })
 
+
+    print 'BEFORE', reprojection_error(g, reconstruction)
+    reconstruction = features.bundle(data.tracks_file(), reconstruction)
+    print 'AFTER', reprojection_error(g, reconstruction)
+
     if next_image == 'et008.jpg':
         break
-
-    reconstruction = features.bundle(data.tracks_file(), reconstruction)
     next_image = next_image_to_add(g, reconstruction)
 
 with open(data.reconstruction_file(), 'w') as fout:

@@ -73,7 +73,7 @@ int main(int argc, char** argv) {
                                          observations[i].coordinates[1]));
 
     problem.AddResidualBlock(cost_function,
-                             new ceres::HuberLoss(3.0) /* squared loss */,
+                             new ceres::HuberLoss(1.0),
                              observations[i].camera->parameters,
                              observations[i].shot->parameters,
                              observations[i].point->parameters);

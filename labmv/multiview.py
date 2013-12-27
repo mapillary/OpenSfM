@@ -110,6 +110,32 @@ def rq(A):
     return R[:,::-1], Q[::-1,:]
 
 
+def Preconditioner(x):
+    '''Return an isotropic preconditioner.
+
+    HZ 4.4.4 pag.109: Point conditioning (isotropic)
+    
+    >>> x = np.array([[0, 0],
+    ...               [1, 1],
+    ...               [0, 1],
+    ...               [1, 0]])
+    >>> T = Preconditioner(x)
+    >>> y = euclidean(T.dot(homogeneous(x).T).T)
+    >>> np.allclose(y.mean(axis=0), 0)
+    True
+    >>> np.allclose(y.var(), 2)
+    True
+    '''
+    d = x.shape[1]
+    mean = x.mean(axis=0)
+    variance = x.var()
+    scale = math.sqrt(2.0 / variance);
+
+    T = np.diag([scale] * d + [1])
+    T[:-1,-1] = - scale * mean
+    return T
+
+
 def resection_linear(x, X):
     '''Find P such that x = PX.
 
@@ -120,15 +146,20 @@ def resection_linear(x, X):
     >>> is_proportional(P, P_estimated)
     True
     '''
+    T = Preconditioner(euclidean(x))
+    U = Preconditioner(euclidean(X))
+    x = T.dot(x.T).T
+    X = U.dot(X.T).T
     n = len(x)
-    D = np.zeros((2 * n, 12))
+    A = np.zeros((2 * n, 12))
     for i in range(n):
-        D[2 * i    , 4:8 ] = -x[i, 2] * X[i]
-        D[2 * i    , 8:12] =  x[i, 1] * X[i]
-        D[2 * i + 1, 0:4 ] =  x[i, 2] * X[i]
-        D[2 * i + 1, 8:12] = -x[i, 0] * X[i]
-    s, p = null_space(D)
-    return p.reshape((3,4))
+        A[2 * i    , 4:8 ] = -x[i, 2] * X[i]
+        A[2 * i    , 8:12] =  x[i, 1] * X[i]
+        A[2 * i + 1, 0:4 ] =  x[i, 2] * X[i]
+        A[2 * i + 1, 8:12] = -x[i, 0] * X[i]
+    s, p = null_space(A)
+    P = p.reshape((3,4))
+    return np.linalg.inv(T).dot(P.dot(U))
 
 
 class ResectionLinearKernel:
