@@ -12,23 +12,6 @@ from labmv import multiview
 import networkx as nx
 from networkx.algorithms import bipartite
 
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-
-
-def square_aspect_ratio(ax):
-    xmin, xmax = ax.get_xlim()
-    ymin, ymax = ax.get_ylim()
-    zmin, zmax = ax.get_zlim()
-    rmin = min(xmin, ymin, zmin)
-    rmax = max(xmax, ymax, zmax)
-    r = rmax - rmin
-    xm = (r - xmax + xmin) / 2
-    ym = (r - ymax + ymin) / 2
-    zm = (r - zmax + zmin) / 2
-    ax.auto_scale_xyz([xmin - xm, xmax + xm],
-                      [ymin - ym, ymax + ym],
-                      [zmin - zm, zmax + zm])
 
 
 def next_image_to_add(graph, recostruction, min_tracks=10):
@@ -59,6 +42,14 @@ def rotate(angleaxis, point):
         return np.array(point)
     R = tf.rotation_matrix(angle, angleaxis)
     return R[:-1, :-1].dot(np.array(point))
+
+def angleaxis(R):
+    '''Compute angle-axis representation from a rotation matrix.
+    '''
+    T = np.identity(4)
+    T[:3,:3] = R
+    angle, direction, point = tf.rotation_from_matrix(T)
+    return direction / np.linalg.norm(direction) * angle
 
 def single_reprojection_error(camera, shot, point, observation):
     p = rotate(shot['rotation'], point['coordinates'])
@@ -103,21 +94,11 @@ def reprojection_error(graph, reconstruction):
 
 
 
-def angleaxis(R):
-    '''Compute angle-axis representation from a rotation matrix.
-    '''
-    T = np.identity(4)
-    T[:3,:3] = R
-    angle, direction, point = tf.rotation_from_matrix(T)
-    return direction / np.linalg.norm(direction) * angle
-
 
 
 parser = argparse.ArgumentParser(description='Compute reconstruction')
 parser.add_argument('dataset',
                     help='path to the dataset to be processed')
-parser.add_argument('-v', '--visual', action='store_true',
-                    help='plot results during the process')
 args = parser.parse_args()
 
 
@@ -182,26 +163,6 @@ reconstruction = {
     ]
 }
 
-if args.visual:
-    fig = plt.figure()
-    ax = fig.add_subplot(211, projection='3d')
-    X = np.array(Xs)
-    ax.scatter(X[:, 0], X[:, 1], X[:, 2], c='b')
-    ax.scatter([0], [0], [0], zdir='y', c='r')
-    O = - np.dot(R, t)
-    ax.scatter(O[0], O[1], O[2], c='g')
-
-    square_aspect_ratio(ax)
-
-    fig.add_subplot(212)
-    features.plot_matches(data.image_as_array(im1),
-                          data.image_as_array(im2),
-                          p1[inliers],
-                          p2[inliers])
-
-
-with open(data.reconstruction_file() + '.before', 'w') as fout:
-    fout.write(json.dumps(reconstruction, indent=4))
 
 
 print 'BEFORE', reprojection_error(g, reconstruction)
