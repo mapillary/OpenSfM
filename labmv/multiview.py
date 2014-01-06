@@ -4,7 +4,7 @@ import random
 import math
 
 
-def null_space(A):
+def nullspace(A):
     '''Compute the null space of A.
 
     Return the smallest sigular value and the corresponding vector.
@@ -45,7 +45,7 @@ def homogeneous(x):
 def euclidean(x):
     '''Divide by last column and drop it.
     '''
-    return x[:, :-1] / x[:, -1:]
+    return x[..., :-1] / x[..., -1:]
 
 
 def P_from_KRt(K, R, t):
@@ -157,7 +157,7 @@ def resection_linear(x, X):
         A[2 * i    , 8:12] =  x[i, 1] * X[i]
         A[2 * i + 1, 0:4 ] =  x[i, 2] * X[i]
         A[2 * i + 1, 8:12] = -x[i, 0] * X[i]
-    s, p = null_space(A)
+    s, p = nullspace(A)
     P = p.reshape((3,4))
     return np.linalg.inv(T).dot(P.dot(U))
 
@@ -194,6 +194,27 @@ class ResectionLinearKernel:
         d = euclidean(self.x) - euclidean(x_estimated)
         return (d * d).sum(axis=1)
 
+def triangulate(Ps, xs):
+    '''
+    >>> xs = [np.array([ 1, 1]),
+    ...       np.array([-1, 1])]
+    >>> Ps = [np.array([[1, 0, 0, 0],
+    ...                 [0, 1, 0, 0],
+    ...                 [0, 0, 1, 0]]),
+    ...       np.array([[1, 0, 0,-1],
+    ...                 [0, 1, 0, 0],
+    ...                 [0, 0, 1, 0]])]
+    >>> triangulate(Ps, xs)
+    array([ 0.5,  0.5,  0.5])
+    '''
+    # HZ 12.2 pag.312
+    A = np.zeros((2 * len(Ps), 4))
+    for i, (P, x) in enumerate(zip(Ps, xs)):
+        A[2 * i    ] = x[0] * P[2] - P[0]
+        A[2 * i + 1] = x[1] * P[2] - P[1]
+    s, X = nullspace(A)
+    return euclidean(X)
+
 
 def ransac_max_iterations(kernel, inliers, failure_probability):
     if len(inliers) >= kernel.num_samples():
@@ -212,7 +233,7 @@ def ransac(kernel, threshold):
     >>> ransac(kernel, 0.1)
     (2.0, array([0, 1]), 0.10000000000000001)
     '''
-    max_iterations = 1000 # TODO(pau) compute from num_inliers.
+    max_iterations = 10000
     best_error = float('inf')
     best_model = None
     best_inliers = None
@@ -229,7 +250,8 @@ def ransac(kernel, threshold):
                 best_error = error
                 best_model = model
                 best_inliers = inliers
-                max_iterations = ransac_max_iterations(kernel, best_inliers, 0.01)
+                max_iterations = min(max_iterations,
+                    ransac_max_iterations(kernel, best_inliers, 0.01))
         i += 1
     return best_model, best_inliers, best_error
 

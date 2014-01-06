@@ -72,7 +72,7 @@ def bootstrap_reconstruction(data, graph):
         ]
     }
 
-def next_image_to_add(graph, recostruction, min_tracks=10):
+def next_image_to_add(graph, reconstruction, min_tracks=10):
     '''The non-reconstructed images that observes more reconstructed tracks.
     '''
     tracks, images = bipartite.sets(graph)
@@ -94,13 +94,15 @@ def next_image_to_add(graph, recostruction, min_tracks=10):
     else:
         return None
 
-
-def rotate(angleaxis, point):
+def rotation_matrix(angleaxis):
     angle = np.linalg.norm(angleaxis)
     if angle < 1e-8:
-        return np.array(point)
-    R = tf.rotation_matrix(angle, angleaxis)
-    return R[:-1, :-1].dot(np.array(point))
+        return np.eye(3)
+    return tf.rotation_matrix(angle, angleaxis)[:-1, :-1]
+
+def rotate(angleaxis, point):
+    R = rotation_matrix(angleaxis)
+    return R.dot(np.array(point))
 
 
 def angleaxis(R):
@@ -149,11 +151,10 @@ def reprojection_error(graph, reconstruction):
     return np.mean(errors)
 
 
-def resect(graph, recostruction, shot_id):
+def resect(graph, reconstruction, shot_id):
     '''Add a shot to the reconstruction.
     '''
     reconstructed_tracks = {i['id']: i for i in reconstruction['points']}
-
     xs = []
     Xs = []
     for track in graph[shot_id]:
@@ -166,13 +167,54 @@ def resect(graph, recostruction, shot_id):
     P, inliers, error = multiview.ransac(kernel, 3)
     K, R, t = multiview.KRt_from_P(P)
     print len(inliers), len(x)
-
     reconstruction['shots'].append({
             "id": shot_id,
             "camera": "main_camera",
             "rotation": list(angleaxis(R)),
             "translation": list(t),
         })
+
+
+def projection_matrix(camera, shot):
+    f = camera['focal']
+    w = camera['width']
+    h = camera['height']
+    K = np.array([[f, 0, w / 2],
+                  [0, f, h / 2],
+                  [0, 0, 1]])
+    Rt = np.empty((3, 4))
+    Rt[:,:3] = rotation_matrix(shot['rotation'])
+    Rt[:, 3] = shot['translation']
+    return K.dot(Rt)
+
+def triangulate_shot_features(graph, reconstruction, shot_id):
+    '''Reconstruct as many tracks seen in shot_id as possible.
+    '''
+    reconstructed_cameras = {i['id']:i for i in reconstruction['cameras']}
+    reconstructed_shots = {i['id']:i for i in reconstruction['shots']}
+    reconstructed_tracks = {i['id']: i for i in reconstruction['points']}
+
+    P_by_id = {}
+    for track in graph[shot_id]:
+        if track not in reconstructed_tracks:
+            Ps = []
+            xs = []
+            for shot in graph[track]:
+                if shot in reconstructed_shots:
+                    if shot not in P_by_id:
+                        s = reconstructed_shots[shot]
+                        c = reconstructed_cameras[s['camera']]
+                        P_by_id[shot] = projection_matrix(c, s)
+                    Ps.append(P_by_id[shot])
+                    xs.append(graph[track][shot]['feature'])
+            if len(Ps) >= 2:
+                X = multiview.triangulate(Ps, xs)
+                # TODO(pau): reject points with high reprojection error.
+                reconstruction['points'].append({
+                    "id": track,
+                    "coordinates": list(X),
+                })
+
 
 
 
@@ -197,9 +239,12 @@ if __name__ == "__main__":
         print 'Adding {0} to the reconstruction'.format(next_image)
         resect(graph, reconstruction, next_image)
         reconstruction = features.bundle(data.tracks_file(), reconstruction)
-        # TODO(pau): triangulate new tracks
+        print 'BEFORE', reprojection_error(graph, reconstruction)
+        triangulate_shot_features(graph, reconstruction, next_image)
+        print 'AFTER', reprojection_error(graph, reconstruction)
+        reconstruction = features.bundle(data.tracks_file(), reconstruction)
 
-        if next_image == 'et008.jpg':
+        if next_image == 'et005.jpg':
             break
 
     with open(data.reconstruction_file(), 'w') as fout:
