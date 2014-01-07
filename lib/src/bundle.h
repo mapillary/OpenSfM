@@ -103,52 +103,61 @@ class BALProblem {
     // Read cameras
     //////////////////////////////////////////////////////////////////
     json_t *cameras = json_object_get(root, "cameras");
-    cameras_.resize(json_array_size(cameras));
+    const char *camera_id;
+    json_t *camera;
+    json_object_foreach(cameras, camera_id, camera) {
+      Camera c;
+      c.id = camera_id;
+      c.parameters[0] = json_number_value(json_object_get(camera, "focal"));
+      c.parameters[1] = json_number_value(json_object_get(camera, "k1"));
+      c.parameters[2] = json_number_value(json_object_get(camera, "k2"));
+      c.height = json_number_value(json_object_get(camera, "height"));
+      c.width = json_number_value(json_object_get(camera, "width"));
+      cameras_.push_back(c);
+    }
     for (int i = 0; i < cameras_.size(); ++i) {
-      json_t *camera = json_array_get(cameras, i);
-      cameras_[i].parameters[0] = json_number_value(json_object_get(camera, "focal"));
-      cameras_[i].parameters[1] = json_number_value(json_object_get(camera, "k1"));
-      cameras_[i].parameters[2] = json_number_value(json_object_get(camera, "k2"));
-      cameras_[i].height = json_number_value(json_object_get(camera, "height"));
-      cameras_[i].width = json_number_value(json_object_get(camera, "width"));
-      const char *camera_id = json_string_value(json_object_get(camera, "id"));
-      cameras_[i].id = camera_id;
-      camera_by_id_[camera_id] = &cameras_[i];
+      camera_by_id_[cameras_[i].id] = &cameras_[i];
     }
 
     //////////////////////////////////////////////////////////////////
     // Read shots
     //////////////////////////////////////////////////////////////////
     json_t *shots = json_object_get(root, "shots");
-    shots_.resize(json_array_size(shots));
-    for (int i = 0; i < shots_.size(); ++i) {
-      json_t *shot = json_array_get(shots, i);
+    const char *shot_id;
+    json_t *shot;
+    json_object_foreach(shots, shot_id, shot) {
+      Shot s;
+      s.id = shot_id;
       json_t *Rarray = json_object_get(shot, "rotation");
       for (int j = 0; j < 3; ++j)
-        shots_[i].parameters[j] = json_number_value(json_array_get(Rarray, j));
+        s.parameters[j] = json_number_value(json_array_get(Rarray, j));
       json_t *tarray = json_object_get(shot, "translation");
       for (int j = 0; j < 3; ++j)
-        shots_[i].parameters[3 + j] = json_number_value(json_array_get(tarray, j));
-      const char *shot_camera = json_string_value(json_object_get(shot, "camera"));
-      shots_[i].camera = shot_camera;
-      const char *shot_id = json_string_value(json_object_get(shot, "id"));
-      shots_[i].id = shot_id;
-      shot_by_id_[shot_id] = &shots_[i];
+        s.parameters[3 + j] = json_number_value(json_array_get(tarray, j));
+      s.camera = json_string_value(json_object_get(shot, "camera"));
+      shots_.push_back(s);
     }
+    for (int i = 0; i < shots_.size(); ++i) {
+      shot_by_id_[shots_[i].id] = &shots_[i];
+    }
+
 
     //////////////////////////////////////////////////////////////////
     // Read points
     //////////////////////////////////////////////////////////////////
     json_t *points = json_object_get(root, "points");
-    points_.resize(json_array_size(points));
-    for (int i = 0; i < points_.size(); ++i) {
-      json_t *point = json_array_get(points, i);
+    const char *point_id;
+    json_t *point;
+    json_object_foreach(points, point_id, point) {
+      Point p;
+      p.id = point_id;
       json_t *coordinates = json_object_get(point, "coordinates");
       for (int j = 0; j < 3; ++j)
-        points_[i].parameters[j] = json_number_value(json_array_get(coordinates, j));
-      const char *point_id = json_string_value(json_object_get(point, "id"));
-      points_[i].id = point_id;
-      point_by_id_[point_id] = &points_[i];
+        p.parameters[j] = json_number_value(json_array_get(coordinates, j));
+      points_.push_back(p);
+    }
+    for (int i = 0; i < points_.size(); ++i) {
+      point_by_id_[points_[i].id] = &points_[i];
     }
 
     json_decref(root);
@@ -181,6 +190,7 @@ class BALProblem {
       }
     }
 
+
     return true;
   }
 
@@ -188,12 +198,13 @@ class BALProblem {
     json_t *root = json_object();
 
     // Cameras.
-    json_t *cameras = json_array();
+    json_t *cameras = json_object();
     json_object_set(root, "cameras", cameras);
     for (int i = 0; i < cameras_.size(); ++i) {
       json_t *camera = json_object();
-      json_array_append(cameras, camera);
-      json_object_set(camera, "id", json_string(cameras_[i].id.c_str()));
+      // json_array_append(cameras, camera);
+      // json_object_set(camera, "id", json_string(cameras_[i].id.c_str()));
+      json_object_set(cameras, cameras_[i].id.c_str(), camera);
       json_object_set(camera, "width", json_real(cameras_[i].width));
       json_object_set(camera, "height", json_real(cameras_[i].height));
       json_object_set(camera, "focal", json_real(cameras_[i].parameters[0]));
@@ -202,12 +213,13 @@ class BALProblem {
     }
 
     // Shots.
-    json_t *shots = json_array();
+    json_t *shots = json_object();
     json_object_set(root, "shots", shots);
     for (int i = 0; i < shots_.size(); ++i) {
       json_t *shot = json_object();
-      json_array_append(shots, shot);
-      json_object_set(shot, "id", json_string(shots_[i].id.c_str()));
+      // json_array_append(shots, shot);
+      // json_object_set(shot, "id", json_string(shots_[i].id.c_str()));
+      json_object_set(shots, shots_[i].id.c_str(), shot);
       json_object_set(shot, "camera", json_string(shots_[i].camera.c_str()));
       json_t *Rarray = json_array();
       json_t *tarray = json_array();
@@ -220,12 +232,13 @@ class BALProblem {
     }
 
     // Points.
-    json_t *points = json_array();
+    json_t *points = json_object();
     json_object_set(root, "points", points);
     for (int i = 0; i < points_.size(); ++i) {
       json_t *point = json_object();
-      json_array_append(points, point);
-      json_object_set(point, "id", json_string(points_[i].id.c_str()));
+      // json_array_append(points, point);
+      // json_object_set(point, "id", json_string(points_[i].id.c_str()));
+      json_object_set(points, points_[i].id.c_str(), point);
       json_t *coordinates = json_array();
       json_object_set(point, "coordinates", coordinates);
       for (int j = 0; j < 3; ++j)

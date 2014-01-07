@@ -104,50 +104,56 @@
                       color: 0x8844FF,
                       size: 0.1,
                     });
-                for (var i = 0; i < reconstruction.points.length; ++i) {
-                    var p = reconstruction.points[i].coordinates;
-                    particles.vertices.push(new THREE.Vector3(p[0], p[1], p[2]));
+                for (var point_id in reconstruction.points) {
+                    if (reconstruction.points.hasOwnProperty(point_id)) {
+                        var p = reconstruction.points[point_id].coordinates;
+                        particles.vertices.push(new THREE.Vector3(p[0], p[1], p[2]));
+                    }
                 }
                 particleSystem = new THREE.ParticleSystem(particles, pMaterial);
                 scene.add(particleSystem);
 
                 // Cameras.
-                for (var i = 0; i < reconstruction.shots.length; ++i) {
-                    var shot = reconstruction.shots[i];
-                    var cam;
-                    for (var j = 0; j < reconstruction.cameras.length; ++j) {
-                        if (reconstruction.shots[i].camera == reconstruction.cameras[j].id) {
-                            cam = reconstruction.cameras[j];
-                            break;
+                for (var shot_id in reconstruction.shots) {
+                    if (reconstruction.shots.hasOwnProperty(shot_id)) {
+                        var shot = reconstruction.shots[shot_id];
+                        var cam;
+                        for (var camera_id in reconstruction.cameras) {
+                            if (reconstruction.cameras.hasOwnProperty(camera_id)) {
+                                if (shot.camera == camera_id) {
+                                    cam = reconstruction.cameras[camera_id];
+                                    break;
+                                }
+                            }
                         }
+                        console.log(cam);
+                        console.log(shot);
+                        var ocenter = opticalCenter(cam, shot);
+                        var top_left = pixelToVertex(cam, shot, 0, 0, 1);
+                        var top_right = pixelToVertex(cam, shot, cam.width, 0, 1);
+                        var bottom_right = pixelToVertex(cam, shot, cam.width, cam.height, 1);
+                        var bottom_left = pixelToVertex(cam, shot, 0, cam.height, 1);
+                        var linegeo = new THREE.Geometry();
+                        linegeo.vertices.push(ocenter);
+                        linegeo.vertices.push(top_left);
+                        linegeo.vertices.push(ocenter);
+                        linegeo.vertices.push(top_right);
+                        linegeo.vertices.push(ocenter);
+                        linegeo.vertices.push(bottom_right);
+                        linegeo.vertices.push(ocenter);
+                        linegeo.vertices.push(bottom_left);
+                        linegeo.vertices.push(top_left);
+                        linegeo.vertices.push(top_right);
+                        linegeo.vertices.push(top_right);
+                        linegeo.vertices.push(bottom_right);
+                        linegeo.vertices.push(bottom_right);
+                        linegeo.vertices.push(bottom_left);
+                        linegeo.vertices.push(bottom_left);
+                        linegeo.vertices.push(top_left);
+                        var lineMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, size: 0.1 })
+                        var line = new THREE.Line(linegeo, lineMaterial, THREE.LinePieces);
+                        scene.add(line);
                     }
-                    console.log(cam);
-                    console.log(shot);
-                    var ocenter = opticalCenter(cam, shot);
-                    var top_left = pixelToVertex(cam, shot, 0, 0, 1);
-                    var top_right = pixelToVertex(cam, shot, cam.width, 0, 1);
-                    var bottom_right = pixelToVertex(cam, shot, cam.width, cam.height, 1);
-                    var bottom_left = pixelToVertex(cam, shot, 0, cam.height, 1);
-                    var linegeo = new THREE.Geometry();
-                    linegeo.vertices.push(ocenter);
-                    linegeo.vertices.push(top_left);
-                    linegeo.vertices.push(ocenter);
-                    linegeo.vertices.push(top_right);
-                    linegeo.vertices.push(ocenter);
-                    linegeo.vertices.push(bottom_right);
-                    linegeo.vertices.push(ocenter);
-                    linegeo.vertices.push(bottom_left);
-                    linegeo.vertices.push(top_left);
-                    linegeo.vertices.push(top_right);
-                    linegeo.vertices.push(top_right);
-                    linegeo.vertices.push(bottom_right);
-                    linegeo.vertices.push(bottom_right);
-                    linegeo.vertices.push(bottom_left);
-                    linegeo.vertices.push(bottom_left);
-                    linegeo.vertices.push(top_left);
-                    var lineMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, size: 0.1 })
-                    var line = new THREE.Line(linegeo, lineMaterial, THREE.LinePieces);
-                    scene.add(line);
                 }
             }
 
