@@ -34,9 +34,7 @@ def bootstrap_reconstruction(data, graph):
     tracks, p1, p2 = dataset.common_tracks(graph, im1, im2)
 
     print 'Number of common tracks', len(tracks)
-
     R, t, inliers, Xs = features.two_view_reconstruction(p1, p2, d1, d2)
-
     print 'Number of inliers', len(inliers)
 
     return {
@@ -156,7 +154,7 @@ def resect(graph, reconstruction, shot_id):
     kernel = multiview.ResectionLinearKernel(x, X)
     P, inliers, error = multiview.ransac(kernel, 3)
     K, R, t = multiview.KRt_from_P(P)
-    print len(inliers), len(x)
+    print 'Resection inliers:', len(inliers), '/', len(x)
     reconstruction['shots'][shot_id] = {
         "camera": "main_camera",
         "rotation": list(angleaxis(R)),
@@ -194,10 +192,15 @@ def triangulate_shot_features(graph, reconstruction, shot_id):
                     xs.append(graph[track][shot]['feature'])
             if len(Ps) >= 2:
                 X = multiview.triangulate(Ps, xs)
-                # TODO(pau): reject points with high reprojection error.
-                reconstruction[track] = {
-                    "coordinates": list(X),
-                }
+                error = 0
+                Xh = multiview.homogeneous(X)
+                for P, x in zip(Ps, xs):
+                    reprojected_x = multiview.euclidean(P.dot(Xh))
+                    error = max(error, (reprojected_x - x).max())
+                if error < 3:
+                    reconstruction['points'][track] = {
+                        "coordinates": list(X),
+                    }
 
 
 
@@ -227,9 +230,6 @@ if __name__ == "__main__":
         triangulate_shot_features(graph, reconstruction, next_image)
         print 'AFTER', reprojection_error(graph, reconstruction)
         reconstruction = features.bundle(data.tracks_file(), reconstruction)
-
-        if next_image == 'et005.jpg':
-            break
 
     with open(data.reconstruction_file(), 'w') as fout:
         fout.write(json.dumps(reconstruction, indent=4))

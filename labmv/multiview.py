@@ -39,7 +39,8 @@ def is_proportional(x, y, tol=1e-8):
 def homogeneous(x):
     '''Add a column of ones to x.
     '''
-    return np.hstack((x, np.ones((len(x), 1))))
+    s = x.shape[:-1] + (1,)
+    return np.hstack((x, np.ones(s)))
 
 
 def euclidean(x):
