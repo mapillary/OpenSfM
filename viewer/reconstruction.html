@@ -26,7 +26,7 @@
             getData();
 
             function getData() {
-                jQuery.getJSON("reconstruction/reconstruction.json", function(data) {
+                jQuery.getJSON("data/" + window.location.hash.replace('#','') + "/reconstruction.json", function(data) {
                     reconstruction = data;
                     init();
                     animate();

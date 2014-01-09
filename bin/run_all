@@ -4,4 +4,4 @@ bin/focal_from_exif $1
 bin/detect_features $1
 bin/match_features $1
 bin/create_tracks $1
-bin/two_view_reconstruction $1
+bin/reconstruct $1
