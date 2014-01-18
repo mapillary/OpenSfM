@@ -28,6 +28,7 @@ def best_initial_pair(graph):
 
 def bootstrap_reconstruction(data, graph):
     im1, im2 = best_initial_pair(graph)
+#    im1, im2 = '2013_10_30_09_04_56_100.jpg', '2013_10_30_09_04_54_112.jpg'
     print 'Matching image', im1, 'with image', im2
     d1 = data.exif_data(im1)
     d2 = data.exif_data(im2)
@@ -37,7 +38,7 @@ def bootstrap_reconstruction(data, graph):
     R, t, inliers, Xs = features.two_view_reconstruction(p1, p2, d1, d2)
     print 'Number of inliers', len(inliers)
 
-    return {
+    reconstruction = {
         "cameras": {
             "main_camera": {
                 "width": d1["width"],
@@ -60,11 +61,10 @@ def bootstrap_reconstruction(data, graph):
         },
 
         "points" : {
-            tracks[inlier]: {
-                "coordinates": X,
-            } for inlier, X in zip(inliers, Xs)
         },
     }
+    triangulate_shot_features(graph, reconstruction, im1)
+    return reconstruction
 
 
 def reconstructed_points_for_images(graph, reconstruction):
@@ -146,11 +146,11 @@ def resect(graph, reconstruction, shot_id, min_inliers=20):
             Xs.append(reconstruction['points'][track]['coordinates'])
     x = np.array(xs)
     X = np.array(Xs)
-    kernel = multiview.ResectionLinearKernel(x, X)
-    P, inliers, error = multiview.ransac(kernel, 5)
+    K = K_from_camera(reconstruction['cameras']['main_camera'])
+    kernel = multiview.ResectionP3PKernel(x, X, K)
+    (R, t), inliers, error = multiview.ransac(kernel, 5)
     print 'Resection inliers:', len(inliers), '/', len(x)
     if len(inliers) >= min_inliers:
-        K, R, t = multiview.KRt_from_P(P)
         reconstruction['shots'][shot_id] = {
             "camera": "main_camera",
             "rotation": list(angleaxis(R)),
@@ -160,18 +160,25 @@ def resect(graph, reconstruction, shot_id, min_inliers=20):
     else:
         return False
 
-
-def projection_matrix(camera, shot):
+def K_from_camera(camera):
     f = camera['focal']
     w = camera['width']
     h = camera['height']
-    K = np.array([[f, 0, w / 2],
-                  [0, f, h / 2],
-                  [0, 0, 1]])
+    return np.array([[f, 0, w / 2],
+                     [0, f, h / 2],
+                     [0, 0, 1]])
+
+def Rt_from_shot(shot):
     Rt = np.empty((3, 4))
     Rt[:,:3] = rotation_matrix(shot['rotation'])
     Rt[:, 3] = shot['translation']
-    return K.dot(Rt)
+    return Rt
+
+def projection_matrix(camera, shot):
+    K = K_from_camera(camera)
+    Rt = Rt_from_shot(shot)
+    return np.dot(K, Rt)
+
 
 
 def triangulate_shot_features(graph, reconstruction, shot_id):
@@ -195,7 +202,10 @@ def triangulate_shot_features(graph, reconstruction, shot_id):
                 error = 0
                 Xh = multiview.homogeneous(X)
                 for P, x in zip(Ps, xs):
-                    reprojected_x = multiview.euclidean(P.dot(Xh))
+                    xx, yy, zz = P.dot(Xh)
+                    if zz <= 0:
+                        error = 999999999.0
+                    reprojected_x = np.array([xx / zz, yy / zz])
                     error = max(error, (reprojected_x - x).max())
                 if error < 3:
                     reconstruction['points'][track] = {
@@ -203,8 +213,6 @@ def triangulate_shot_features(graph, reconstruction, shot_id):
                     }
 
 
-
-# TODO(pau): implement a MLSE loss function for ceres.
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Compute reconstruction')
@@ -216,15 +224,21 @@ if __name__ == "__main__":
     graph = data.tracks_graph()
 
     reconstruction = bootstrap_reconstruction(data, graph)
+    #TODO(pau) resectionP3P fails on the 4's image of malmo_small: it gives a mirror solution.
     reconstruction = features.bundle(data.tracks_file(), reconstruction)
 
+    i = 0
     while True:
+        with open(data.reconstruction_file().replace('json', '%04d.json'%i), 'w') as fout:
+            fout.write(json.dumps(reconstruction, indent=4))
+            i += 1
         common_tracks = reconstructed_points_for_images(graph, reconstruction)
         if not common_tracks:
             break
         for image, num_tracks in common_tracks:
             print 'Adding {0} to the reconstruction'.format(image)
-            if resect(graph, reconstruction, image, min_inliers=20):
+            print reconstruction['cameras']['main_camera']['focal']
+            if resect(graph, reconstruction, image, min_inliers=15):
                 print 'Resection succeded'
                 reconstruction = features.bundle(data.tracks_file(), reconstruction)
                 print 'BEFORE', reprojection_error(graph, reconstruction)

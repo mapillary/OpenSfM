@@ -124,8 +124,6 @@ for im1, im2 in image_graph.edges():
                 fout.write(json.dumps(reconstruction, indent=4))
 
             print 'roundness:', roundness(Xs)
-            # TODO(pau): get a quality score for the reconstruction and keep only the best.
-            #            a nice score might be to use SVD to find a measure of roundness of the reconstructed points.
 
             if args.visual:
                 fig = plt.figure()

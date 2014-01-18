@@ -26,7 +26,7 @@
             getData();
 
             function getData() {
-                jQuery.getJSON("data/" + window.location.hash.replace('#','') + "/reconstruction.json", function(data) {
+                jQuery.getJSON("data/" + window.location.hash.replace('#',''), function(data) {
                     reconstruction = data;
                     init();
                     animate();
@@ -82,7 +82,7 @@
                 document.body.appendChild(renderer.domElement);
                 window.addEventListener('resize', onWindowResize, false);
 
-                //
+                // Trackball.
                 camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 1000);
                 camera.position.z = -20;
                 controls = new THREE.TrackballControls(camera);
@@ -126,8 +126,6 @@
                                 }
                             }
                         }
-                        console.log(cam);
-                        console.log(shot);
                         var ocenter = opticalCenter(cam, shot);
                         var top_left = pixelToVertex(cam, shot, 0, 0, 1);
                         var top_right = pixelToVertex(cam, shot, cam.width, 0, 1);

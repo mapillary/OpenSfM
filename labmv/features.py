@@ -62,7 +62,7 @@ def two_view_reconstruction(p1, p2, d1, d2):
         s += ' '.join(str(i) for i in l) + '\n'
 
     params = [context.TWO_VIEW_RECONSTRUCTION,
-              '-threshold', '10',
+              '-threshold', '5',
               '-focal1', d1['focal_ratio'] * d1['width'],
               '-width1', d1['width'],
               '-height1', d1['height'],
@@ -88,6 +88,7 @@ def two_view_reconstruction(p1, p2, d1, d2):
         Xs.append(map(float, words[1:]))
 
     return R, t, inliers, Xs
+
 
 def bundle(tracks_file, reconstruction):
     '''Extracts SIFT features of image and save them in sift

@@ -48,6 +48,7 @@ extern "C" {
 
 #include "ceres/ceres.h"
 #include "ceres/rotation.h"
+#include "ceres/loss_function.h"
 
 
 
@@ -308,4 +309,30 @@ struct SnavelyReprojectionError {
 
   double observed_x;
   double observed_y;
+};
+
+
+class TruncatedLoss : public ceres::LossFunction {
+ public:
+  explicit TruncatedLoss(double t2)
+    : t2_(t2) {
+    CHECK_GT(t2, 0.0);
+  }
+
+  virtual void Evaluate(double s, double rho[3]) const {
+    if (s >= t2_) {
+      // Outlier.
+      rho[0] = t2_;
+      rho[1] = 0.000001;
+      rho[2] = 0.0;
+    } else {
+      // Inlier.
+      rho[0] = s;
+      rho[1] = 1.0;
+      rho[2] = 0.0;
+    }
+  }
+
+ private:
+  const double t2_;
 };

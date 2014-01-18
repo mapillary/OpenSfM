@@ -2,7 +2,7 @@ from scipy.linalg import qr
 import numpy as np
 import random
 import math
-
+import transformations as tf
 
 def nullspace(A):
     '''Compute the null space of A.
@@ -53,8 +53,8 @@ def P_from_KRt(K, R, t):
     '''P = K[R|t].
     '''
     P = np.empty((3, 4))
-    P[:, :3] = K.dot(R)
-    P[:, 3] = K.dot(t)
+    P[:, :3] = np.dot(K, R)
+    P[:, 3] = np.dot(K, t)
     return P
 
 def KRt_from_P(P):
@@ -135,6 +135,310 @@ def Preconditioner(x):
     T = np.diag([scale] * d + [1])
     T[:-1,-1] = - scale * mean
     return T
+
+
+def pixel_direction(K, x):
+    '''Find a vector such that x = K v and v[2] = 1.
+
+    >>> v = [2, 3, 1]
+    >>> K = [[6, 1, 3], [0, 5, 3], [0, 0, 1]]
+    >>> x = np.dot(K, v)[:2]
+    >>> estimated_v = pixel_direction(K, x)
+    >>> np.allclose(estimated_v, v)
+    True
+    '''
+    v = np.linalg.solve(K, [x[0], x[1], 1])
+    return v / v[2]
+
+def vector_angle(u, v):
+    '''
+    >>> u = [ 0.99500417 -0.33333333 -0.09983342]
+    >>> v = [ 0.99500417 -0.33333333 -0.09983342]
+    >>> vector_angle(u, v)
+    0.0
+    '''
+    return math.acos(min(1, vector_cos(u, v)))
+    
+
+def vector_cos(u, v):
+    return np.dot(u, v) / np.linalg.norm(u) / np.linalg.norm(v)
+
+
+def rotation_matrix(angleaxis):
+    angle = np.linalg.norm(angleaxis)
+    if angle < 1e-8:
+        return np.eye(3)
+    return tf.rotation_matrix(angle, angleaxis)[:-1, :-1]
+
+
+def rotate(angleaxis, point):
+    R = rotation_matrix(angleaxis)
+    return R.dot(np.array(point))
+
+
+def AbsoluteOrientation3points(X, Xp):
+    '''The absolute orientation algorithm recovers the transformation between
+    3 3D points, X and Xp such that:
+
+              Xp = R * X + t
+
+    The recovery of the absolute orientation is implemented after:
+    Horn, "Closed-form solution of absolute orientation using
+    orthonormal matrices" section 5.A
+
+    >>> Xs = [[ 1, 0, 0], [ 0, 1, 0], [ -1, 0, 0]]
+    >>> R = rotation_matrix([0.0,0.2,0.0])
+    >>> t = [0, 0, 0]
+    >>> Xps = [np.dot(R, X) + t for X in Xs]
+    >>> estimated_R , estimated_t = AbsoluteOrientation3points(Xs, Xps)
+    >>> np.allclose(estimated_R, R)
+    True
+    >>> np.allclose(estimated_t, t)
+    True
+    '''
+    X = np.array(X)
+    Xp = np.array(Xp)
+    Xmean = X.mean(axis=0)
+    Xpmean = Xp.mean(axis=0)
+    Xn = X - Xmean
+    Xpn = Xp - Xpmean
+
+    nl = np.cross(Xn[2] - Xn[0], Xn[1] - Xn[0])
+    nr = np.cross(Xpn[2] - Xpn[0], Xpn[1] - Xpn[0])
+    nl = nl / np.linalg.norm(nl)
+    nr = nr / np.linalg.norm(nr)
+
+    # Rotation to match planes
+    a = np.cross(nl, nr)
+    norm_a = np.linalg.norm(a)
+    phi = math.asin(norm_a)
+    if norm_a > 1e-8:
+        angleaxis1 = phi * a / norm_a
+    else:
+        angleaxis1 = [0,0,0]
+    Xrot = [rotate(angleaxis1, i) for i in Xn]
+
+    alpha = [vector_angle(i, j) for i, j in zip(Xpn, Xrot)]
+
+    C = sum(i.dot(j) for i, j in zip(Xpn, Xrot))
+    S = sum(np.cross(i, j) for i, j in zip(Xpn, Xrot)).dot(nr)
+    theta = -math.atan2(S, C)
+    angleaxis2 = theta * nr
+
+    R1 = rotation_matrix(angleaxis1)
+    R2 = rotation_matrix(angleaxis2)
+    R = R2.dot(R1)
+
+    # Compute the final translation.
+    t = Xpmean - R.dot(Xmean)
+
+    # print 'phi', phi
+    # print 'a', a
+    # print 'angleaxis1', angleaxis1
+    # print 'Xrot', Xrot
+    # print 'alpha', alpha
+    # print 'theta', theta
+    # print 'X', X
+    # print 'C', C
+    # print 't', t
+
+    return R, t
+
+
+
+
+
+# def AbsoluteOrientation(X, Xp):
+#     '''The absolute orientation algorithm recovers the transformation between
+#     a set of 3D points, X and Xp such that:
+
+#               Xp = R * X + t
+
+#     The recovery of the absolute orientation is implemented after:
+#     Horn, Hilden, "Closed-form solution of absolute orientation using
+#     orthonormal matrices"
+
+#     Copied from libmv/multiview/euclidean_resection.cc
+
+#     >>> Xs = [[ 1, 0, 0], [ 0, 1, 0], [ -1, 0, 0], [0,-1,0], [0,0,-1], [0,0,1]]
+#     >>> R = [[0, -1, 0], [1, 0, 0], [0, 0, 1]]
+#     >>> t = [0, 0, 0]
+#     >>> Xps = [np.dot(R, X) + t for X in Xs]
+#     >>> Xps
+#     >>> estimated_R, estimated_t = AbsoluteOrientation(Xs, Xps)
+#     >>> estimated_R, estimated_t
+#     >>> np.allclose(estimated_R, R)
+#     True
+#     >>> np.allclose(estimated_t, t)
+#     True
+#     '''
+#     X = np.array(X)
+#     Xp = np.array(Xp)
+#     C = X.mean(axis=0)
+#     Cp = Xp.mean(axis=0)
+#     Xn = X - C
+#     Xpn = Xp - Cp
+
+#     # Construct the N matrix (pg. 635).
+#     Sxx = Xn[0].dot(Xpn[0])
+#     Syy = Xn[1].dot(Xpn[1])
+#     Szz = Xn[2].dot(Xpn[2])
+#     Sxy = Xn[0].dot(Xpn[1])
+#     Syx = Xn[1].dot(Xpn[0])
+#     Sxz = Xn[0].dot(Xpn[2])
+#     Szx = Xn[2].dot(Xpn[0])
+#     Syz = Xn[1].dot(Xpn[2])
+#     Szy = Xn[2].dot(Xpn[1])
+
+#     N = np.array([
+#          [Sxx + Syy + Szz, Syz - Szy,        Szx - Sxz,        Sxy - Syx],
+#          [Syz - Szy,       Sxx - Syy - Szz,  Sxy + Syx,        Szx + Sxz],
+#          [Szx - Sxz,       Sxy + Syx,       -Sxx + Syy - Szz,  Syz + Szy],
+#          [Sxy - Syx,       Szx + Sxz,        Syz + Szy,       -Sxx - Syy + Szz]
+#     ])
+
+#     # Find the unit quaternion q that maximizes qNq. It is the eigenvector
+#     # corresponding to the lagest eigenvalue.
+#     w, v = np.linalg.eig(N)
+#     a, b, c, d = v[:, w.argmax()]
+
+#     # Retrieve the 3x3 rotation matrix from unit quaternion.
+#     R = np.array([[a*a + b*b - c*c - d*d, 2*b*c - 2*a*d, 2*b*d + 2*a*c],
+#                   [2*b*c + 2*a*d, a*a - b*b + c*c - d*d, 2*c*d - 2*a*b],
+#                   [2*b*d - 2*a*c, 2*c*d + 2*a*b, a*a - b*b - c*c + d*d]])
+
+#     # Fix the handedness of the R matrix.
+#     if np.linalg.det(R) < 0:
+#         R[2] *= -1
+
+#     # Compute the final translation.
+#     t = Cp - R.dot(C)
+
+#     return R, t
+
+
+def resection_p3p(xs, Xs, K):
+    '''Find R and t such that x = K[R t]X
+
+    See Apendix A of  Ransac paper (Fischler 1981).
+
+    >>> Xs = np.array([[-1, 0, 1], [ 1, 0, 1], [ 0, 1, 1]])
+    >>> K = [[6, 1, 3], [0, 5, 3], [0, 0, 1]]
+    >>> R = rotation_matrix([0.8, 0.3, 0.1])
+    >>> t = np.array([1, 0, 0])
+    >>> P = P_from_KRt(K, R, t)
+    >>> xs = [euclidean(np.dot(P, homogeneous(X))) for X in Xs]
+    >>> Rts = resection_p3p(xs, Xs, K)
+    >>> found = False
+    >>> for estimated_R, estimated_t in Rts:
+    ...     if np.allclose(estimated_R, R, atol=1e-6) and np.allclose(estimated_t, t, atol=1e-6):
+    ...         found = True
+    >>> found
+    True
+    '''
+    Xs = np.array(Xs)
+    Rab = np.linalg.norm(Xs[0] - Xs[1])
+    Rbc = np.linalg.norm(Xs[1] - Xs[2])
+    Rac = np.linalg.norm(Xs[0] - Xs[2])
+
+    if Rab < 1e-6 or Rbc < 1e-6 or Rac < 1e-6:
+        return []
+
+    va = pixel_direction(K, xs[0])
+    vb = pixel_direction(K, xs[1])
+    vc = pixel_direction(K, xs[2])
+    cosab = vector_cos(va, vb)
+    cosbc = vector_cos(vb, vc)
+    cosac = vector_cos(va, vc)
+
+    K1 = (Rbc**2) / (Rac**2)
+    K2 = (Rbc**2) / (Rab**2)
+
+    G4 = (K1 * K2 - K1 - K2)**2 - 4 * K1 * K2 * (cosbc**2)
+    G3 = (4 * (K1 * K2 - K1 - K2) * K2 * (1 - K1) * cosab
+        + 4 * K1 * cosbc * ((K1 * K2 + K2 - K1) * cosac 
+            + 2 * K2 * cosab * cosbc))
+    G2 = ((2 * K2 * (1 - K1) * cosab)**2
+        + 2 * (K1 * K2 + K1 - K2) * (K1 * K2 - K1 - K2)
+        + 4 * K1 * ((K1 - K2) * (cosbc**2) + (1 - K2) * K1 * (cosac**2)
+        - 2 * K2 * (1 + K1) * cosab * cosac * cosbc))
+    G1 = (4 * (K1 * K2 + K1 - K2) * K2 * (1 - K1) * cosab
+        + 4 * K1 * ((K1 * K2 - K1 + K2) * cosac * cosbc
+        + 2 * K1 * K2 * cosab * (cosac**2)))
+    G0 = (K1 * K2 + K1 - K2)**2 - 4 * (K1**2) * K2 * (cosac**2)
+
+    roots = np.roots([G4, G3, G2, G1, G0])
+    xs = [x.real for x in roots if x.imag < 1e-7]
+
+    # print 'roots', roots
+    # print 'xs', xs
+
+    abcs = []
+    for x in xs:
+        if x > 0:
+            a = Rab / math.sqrt((x**2) - 2 * x * cosab + 1)
+            b = a * x
+            for sign in [-1, 1]:
+                D = cosac**2 + ((Rac**2) - (a**2)) / (a**2)
+                if D >= 0:
+                    y = cosac + sign * math.sqrt(D)
+                    c = y * a
+                    abcs.append((a,b,c))
+    #print abcs
+
+    solutions = []
+    for a, b, c in abcs:
+        Xa = a * va / np.linalg.norm(va)
+        Xb = b * vb / np.linalg.norm(vb)
+        Xc = c * vc / np.linalg.norm(vc)
+        #print 'Xs', np.array(Xs)
+        #print 'Xa', np.array([Xa, Xb, Xc])
+        R, t = AbsoluteOrientation3points(Xs, [Xa, Xb, Xc])
+        solutions.append((R, t))
+    return solutions
+
+
+class ResectionP3PKernel:
+    '''A kernel for the resection problem x = K(R t) * X with known K
+
+    >>> K = [[6, 1, 3], [0, 5, 3], [0, 0, 1]]
+    >>> R = rotation_matrix([0.8, 0.3, 0.1])
+    >>> t = np.array([1, 2, 3])
+    >>> P = P_from_KRt(K, R, t)
+    >>> X = np.random.rand(10, 3)
+    >>> x = euclidean(np.dot(P, homogeneous(X).T).T)
+    >>> kernel = ResectionP3PKernel(x, X, K)
+    >>> Rts = kernel.fit(range(3))
+    >>> found = False
+    >>> for estimated_R, estimated_t in Rts:
+    ...     if np.allclose(estimated_R, R, atol=1e-6) and np.allclose(estimated_t, t, atol=1e-6):
+    ...         found = True
+    ...         break
+    >>> found
+    True
+    >>> kernel.evaluate((R, t))
+    '''
+    required_samples = 3
+
+    def __init__(self, x, X, K):
+        self.x = x if x.shape[1] == 2 else euclidean(x)
+        self.X = X if X.shape[1] == 3 else euclidean(X)
+        self.K = K
+
+    def num_samples(self):
+        return len(self.x)
+
+    def fit(self, samples):
+        x = self.x[samples]
+        X = self.X[samples]
+        return resection_p3p(x, X, self.K)
+
+    def evaluate(self, model):
+        R, t = model
+        P = P_from_KRt(self.K, R, t)
+        x_estimated = np.dot(P, homogeneous(self.X).T).T
+        d = self.x - euclidean(x_estimated)
+        return (d * d).sum(axis=1)
 
 
 def resection_linear(x, X):
