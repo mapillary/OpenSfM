@@ -14,6 +14,8 @@ from networkx.algorithms import bipartite
 
 
 def best_initial_pair(graph):
+    #TODO(pau): implement H vs F test to choose wiselier
+
     # Get the image connectivity graph.
     track_nodes, image_nodes = bipartite.sets(graph)
     image_graph = bipartite.weighted_projected_graph(graph, image_nodes)
@@ -35,7 +37,7 @@ def bootstrap_reconstruction(data, graph):
     tracks, p1, p2 = dataset.common_tracks(graph, im1, im2)
 
     print 'Number of common tracks', len(tracks)
-    R, t, inliers, Xs = features.two_view_reconstruction(p1, p2, d1, d2)
+    R, t, inliers, Xs = features.two_view_reconstruction(p1, p2, d1, d2, data.config)
     print 'Number of inliers', len(inliers)
 
     reconstruction = {
@@ -132,7 +134,7 @@ def reprojection_error(graph, reconstruction):
                     camera = reconstruction['cameras'][shot['camera']]
                     point = reconstruction['points'][track_id]
                     errors.append(single_reprojection_error(camera, shot, point, observation))
-    return np.mean(errors)
+    return np.median(errors)
 
 
 def resect(graph, reconstruction, shot_id, min_inliers=20):
@@ -212,7 +214,7 @@ def triangulate_shot_features(graph, reconstruction, shot_id):
                         "coordinates": list(X),
                     }
 
-
+#TODO(pau): put colors to reconstructed points
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Compute reconstruction')
@@ -241,10 +243,9 @@ if __name__ == "__main__":
             if resect(graph, reconstruction, image, min_inliers=15):
                 print 'Resection succeded'
                 reconstruction = features.bundle(data.tracks_file(), reconstruction)
-                print 'BEFORE', reprojection_error(graph, reconstruction)
                 triangulate_shot_features(graph, reconstruction, image)
-                print 'AFTER', reprojection_error(graph, reconstruction)
                 reconstruction = features.bundle(data.tracks_file(), reconstruction)
+                print 'reprojection_error', reprojection_error(graph, reconstruction)
                 break
             else:
                 print 'Resection failed'

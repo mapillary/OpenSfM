@@ -34,7 +34,7 @@ for im1, im2 in combinations(images, 2):
                               p1[matches[:,0]],
                               p2[matches[:,1]])
 
-    rmatches = features.robust_match(p1, p2, matches)
+    rmatches = features.robust_match(p1, p2, matches, data.config)
     np.savetxt(data.robust_matches_file(im1, im2), rmatches, "%d")
     if args.visual:
         features.plot_matches(data.image_as_array(im1),

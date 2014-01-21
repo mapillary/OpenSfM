@@ -5,12 +5,17 @@ import json
 import numpy as np
 from PIL import Image
 import networkx as nx
+import yaml
 
 
 class DataSet:
 
     def __init__(self, data_path):
         self.data_path = data_path
+
+        with open(os.path.join(self.data_path, 'config.yaml')) as fin:
+            self.config = yaml.load(fin)
+        print self.config
 
         for p in [self.exif_path(),
                   self.sift_path(),

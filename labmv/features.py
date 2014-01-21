@@ -38,7 +38,7 @@ def match_symetric(fi, fj):
     return np.array(list(matches), dtype=int)
 
 
-def robust_match(p1, p2, matches):
+def robust_match(p1, p2, matches, config):
     '''Computes robust matches by estimating the Fundamental matrix via RANSAC.
     '''
     p1 = p1[matches[:, 0]][:, :2]
@@ -47,14 +47,14 @@ def robust_match(p1, p2, matches):
     for l in np.hstack((p1, p2)):
         s += ' '.join(str(i) for i in l) + '\n'
 
-    p = Popen([context.ROBUST_MATCHING, '-threshold', '0.1'],
+    p = Popen([context.ROBUST_MATCHING, '-threshold', str(config['robust_matching_threshold'])],
               stdout=PIPE, stdin=PIPE, stderr=PIPE)
     res = p.communicate(input=s)[0]
     inliers = [int(i) for i in res.split()]
     return matches[inliers]
 
 
-def two_view_reconstruction(p1, p2, d1, d2):
+def two_view_reconstruction(p1, p2, d1, d2, config):
     '''Computes a two view reconstruction from a set of matches.
     '''
     s = ''
@@ -62,7 +62,7 @@ def two_view_reconstruction(p1, p2, d1, d2):
         s += ' '.join(str(i) for i in l) + '\n'
 
     params = [context.TWO_VIEW_RECONSTRUCTION,
-              '-threshold', '5',
+              '-threshold', str(config['five_point_algo_threshold']),
               '-focal1', d1['focal_ratio'] * d1['width'],
               '-width1', d1['width'],
               '-height1', d1['height'],

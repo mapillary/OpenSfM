@@ -211,6 +211,7 @@ def AbsoluteOrientation3points(X, Xp):
     # Rotation to match planes
     a = np.cross(nl, nr)
     norm_a = np.linalg.norm(a)
+    # TODO(pau): compute also cos(phi) and phi from atan2
     phi = math.asin(norm_a)
     if norm_a > 1e-8:
         angleaxis1 = phi * a / norm_a
@@ -222,6 +223,7 @@ def AbsoluteOrientation3points(X, Xp):
 
     C = sum(i.dot(j) for i, j in zip(Xpn, Xrot))
     S = sum(np.cross(i, j) for i, j in zip(Xpn, Xrot)).dot(nr)
+    # TODO(pau): check the sign of atan. It may not be always negative.
     theta = -math.atan2(S, C)
     angleaxis2 = theta * nr
 
