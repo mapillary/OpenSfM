@@ -3,7 +3,9 @@ import os.path, sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import numpy as np
+from PIL import Image
 import argparse
+from collections import defaultdict
 import json
 from labmv import transformations as tf
 from labmv import dataset
@@ -214,6 +216,33 @@ def triangulate_shot_features(graph, reconstruction, shot_id):
                         "coordinates": list(X),
                     }
 
+
+def paint_reconstruction(data, graph, reconstruction):
+    to_paint = defaultdict(list)
+    to_paint_track = defaultdict(list)
+    for track in reconstruction['points']:
+        for shot in graph[track]:
+            to_paint[shot].append(graph[track][shot]['feature'])
+            to_paint_track[shot].append(track)
+
+    track_colors = {track: np.zeros(3) for track in reconstruction['points']}
+    track_sum = {track: 0 for track in reconstruction['points']}
+
+    for shot in to_paint:
+        features = np.array(to_paint[shot]).astype(int)
+        tracks = to_paint_track[shot]
+        im = data.image_as_array(shot)
+        colors = im[features[:,1], features[:,0]]
+        for track, color in zip(tracks, colors):
+            track_colors[track] += color
+            track_sum[track] += 1
+
+    for track in reconstruction['points']:
+        c = track_colors[track] / track_sum[track]
+        reconstruction['points'][track]['color'] = list(c)
+
+
+
 #TODO(pau): put colors to reconstructed points
 
 if __name__ == "__main__":
@@ -231,6 +260,7 @@ if __name__ == "__main__":
 
     i = 0
     while True:
+        paint_reconstruction(data, graph, reconstruction)
         with open(data.reconstruction_file().replace('json', '%04d.json'%i), 'w') as fout:
             fout.write(json.dumps(reconstruction, indent=4))
             i += 1

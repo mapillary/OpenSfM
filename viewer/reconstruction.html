@@ -12,16 +12,20 @@
         </style>
     </head>
     <body>
+        <div id="ThreeJS" style="position: absolute; left:0px; top:0px"></div>
 
         <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
         <script src="js/three.js"></script>
         <script src="js/TrackballControls.js"></script>
+        <script type="text/javascript" src="js/dat.gui.js"></script>
 
         <script>
 
             var camera, controls, scene, renderer;
             var particleSystem;
             var reconstruction;
+            var pMaterial;
+            var cameraParams = { size: 1 };
 
             getData();
 
@@ -76,10 +80,19 @@
                 return rotate(xct, angleaxis);
             }
 
+            function addDatGui(){
+                var gui = new dat.GUI();
+
+                gui.add(pMaterial, 'size', 0, 10).step(0.1);
+                gui.add(cameraParams, 'size', 0, 10).step(0.1);
+            }
+
             function init() {
                 renderer = new THREE.WebGLRenderer();
                 renderer.setSize(window.innerWidth, window.innerHeight);
-                document.body.appendChild(renderer.domElement);
+
+                var container = document.getElementById( 'ThreeJS' );
+                container.appendChild(renderer.domElement);
                 window.addEventListener('resize', onWindowResize, false);
 
                 // Trackball.
@@ -100,14 +113,18 @@
 
                 // Points.
                 var particles = new THREE.Geometry();
-                var pMaterial = new THREE.ParticleBasicMaterial({
-                      color: 0x8844FF,
+                pMaterial = new THREE.ParticleBasicMaterial({
                       size: 0.1,
+                      vertexColors: true,
                     });
                 for (var point_id in reconstruction.points) {
                     if (reconstruction.points.hasOwnProperty(point_id)) {
                         var p = reconstruction.points[point_id].coordinates;
+                        var c = reconstruction.points[point_id].color;
+                        var color = new THREE.Color();
+                        color.setRGB(c[0] / 255., c[1] / 255., c[2] / 255.)
                         particles.vertices.push(new THREE.Vector3(p[0], p[1], p[2]));
+                        particles.colors.push(color);
                     }
                 }
                 particleSystem = new THREE.ParticleSystem(particles, pMaterial);
@@ -127,10 +144,10 @@
                             }
                         }
                         var ocenter = opticalCenter(cam, shot);
-                        var top_left = pixelToVertex(cam, shot, 0, 0, 1);
-                        var top_right = pixelToVertex(cam, shot, cam.width, 0, 1);
-                        var bottom_right = pixelToVertex(cam, shot, cam.width, cam.height, 1);
-                        var bottom_left = pixelToVertex(cam, shot, 0, cam.height, 1);
+                        var top_left = pixelToVertex(cam, shot, 0, 0, cameraParams.size);
+                        var top_right = pixelToVertex(cam, shot, cam.width, 0, cameraParams.size);
+                        var bottom_right = pixelToVertex(cam, shot, cam.width, cam.height, cameraParams.size);
+                        var bottom_left = pixelToVertex(cam, shot, 0, cam.height, cameraParams.size);
                         var linegeo = new THREE.Geometry();
                         linegeo.vertices.push(ocenter);
                         linegeo.vertices.push(top_left);
@@ -153,6 +170,8 @@
                         scene.add(line);
                     }
                 }
+
+                addDatGui();
             }
 
             function onWindowResize() {
