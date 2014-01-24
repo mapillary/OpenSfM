@@ -3,13 +3,6 @@
     <head>
         <title>Reconstruction Viewer</title>
         <meta charset="utf-8">
-        <style>
-            body {
-                margin: 0px;
-                background-color: #000000;
-                overflow: hidden;
-            }
-        </style>
     </head>
     <body>
         <div id="ThreeJS" style="position: absolute; left:0px; top:0px"></div>
@@ -17,15 +10,16 @@
         <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
         <script src="js/three.js"></script>
         <script src="js/TrackballControls.js"></script>
-        <script type="text/javascript" src="js/dat.gui.js"></script>
+        <script src="js/dat.gui.js"></script>
 
         <script>
-
             var camera, controls, scene, renderer;
             var particleSystem;
             var reconstruction;
             var pMaterial;
             var cameraParams = { size: 1 };
+            var camera_lines = [];
+            var camera_shot_ids = [];
 
             getData();
 
@@ -83,8 +77,61 @@
             function addDatGui(){
                 var gui = new dat.GUI();
 
-                gui.add(pMaterial, 'size', 0, 10).step(0.1);
-                gui.add(cameraParams, 'size', 0, 10).step(0.1);
+                gui.add(pMaterial, 'size', 0, 3);
+                gui.add(cameraParams, 'size', 0, 10)
+                    .onChange(function(value) {
+                        updateCameraLines();
+                    });
+               // gui.open();
+            }
+
+            function initCameraLines() {
+                for (var shot_id in reconstruction.shots) {
+                    if (reconstruction.shots.hasOwnProperty(shot_id)) {
+                        var lineMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, size: 0.1 })
+                        var linegeo = cameraLineGeo(shot_id);
+                        var line = new THREE.Line(linegeo, lineMaterial, THREE.LinePieces);
+                        camera_lines.push(line);
+                        camera_shot_ids.push(shot_id);
+                    }
+                }
+            }
+
+            function cameraLineGeo(shot_id) {
+                var shot = reconstruction.shots[shot_id];
+                var cam = reconstruction.cameras[shot.camera];
+                var ocenter = opticalCenter(cam, shot);
+                var top_left = pixelToVertex(cam, shot, 0, 0, cameraParams.size);
+                var top_right = pixelToVertex(cam, shot, cam.width, 0, cameraParams.size);
+                var bottom_right = pixelToVertex(cam, shot, cam.width, cam.height, cameraParams.size);
+                var bottom_left = pixelToVertex(cam, shot, 0, cam.height, cameraParams.size);
+                var linegeo = new THREE.Geometry();
+                linegeo.vertices.push(ocenter);
+                linegeo.vertices.push(top_left);
+                linegeo.vertices.push(ocenter);
+                linegeo.vertices.push(top_right);
+                linegeo.vertices.push(ocenter);
+                linegeo.vertices.push(bottom_right);
+                linegeo.vertices.push(ocenter);
+                linegeo.vertices.push(bottom_left);
+                linegeo.vertices.push(top_left);
+                linegeo.vertices.push(top_right);
+                linegeo.vertices.push(top_right);
+                linegeo.vertices.push(bottom_right);
+                linegeo.vertices.push(bottom_right);
+                linegeo.vertices.push(bottom_left);
+                linegeo.vertices.push(bottom_left);
+                linegeo.vertices.push(top_left);
+                return linegeo;
+            }
+
+            function updateCameraLines() {
+                for (var i = 0; i < camera_shot_ids.length; ++i) {
+                    var shot_id = camera_shot_ids[i];
+                    var linegeo = cameraLineGeo(shot_id);
+                    camera_lines[i].geometry.vertices = linegeo.vertices;
+                    camera_lines[i].geometry.verticesNeedUpdate = true;
+                }
             }
 
             function init() {
@@ -98,7 +145,7 @@
                 // Trackball.
                 camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 1000);
                 camera.position.z = -20;
-                controls = new THREE.TrackballControls(camera);
+                controls = new THREE.TrackballControls(camera, renderer.domElement);
                 controls.rotateSpeed = 1.0;
                 controls.zoomSpeed = 1.2;
                 controls.panSpeed = 0.8;
@@ -131,45 +178,9 @@
                 scene.add(particleSystem);
 
                 // Cameras.
-                for (var shot_id in reconstruction.shots) {
-                    if (reconstruction.shots.hasOwnProperty(shot_id)) {
-                        var shot = reconstruction.shots[shot_id];
-                        var cam;
-                        for (var camera_id in reconstruction.cameras) {
-                            if (reconstruction.cameras.hasOwnProperty(camera_id)) {
-                                if (shot.camera == camera_id) {
-                                    cam = reconstruction.cameras[camera_id];
-                                    break;
-                                }
-                            }
-                        }
-                        var ocenter = opticalCenter(cam, shot);
-                        var top_left = pixelToVertex(cam, shot, 0, 0, cameraParams.size);
-                        var top_right = pixelToVertex(cam, shot, cam.width, 0, cameraParams.size);
-                        var bottom_right = pixelToVertex(cam, shot, cam.width, cam.height, cameraParams.size);
-                        var bottom_left = pixelToVertex(cam, shot, 0, cam.height, cameraParams.size);
-                        var linegeo = new THREE.Geometry();
-                        linegeo.vertices.push(ocenter);
-                        linegeo.vertices.push(top_left);
-                        linegeo.vertices.push(ocenter);
-                        linegeo.vertices.push(top_right);
-                        linegeo.vertices.push(ocenter);
-                        linegeo.vertices.push(bottom_right);
-                        linegeo.vertices.push(ocenter);
-                        linegeo.vertices.push(bottom_left);
-                        linegeo.vertices.push(top_left);
-                        linegeo.vertices.push(top_right);
-                        linegeo.vertices.push(top_right);
-                        linegeo.vertices.push(bottom_right);
-                        linegeo.vertices.push(bottom_right);
-                        linegeo.vertices.push(bottom_left);
-                        linegeo.vertices.push(bottom_left);
-                        linegeo.vertices.push(top_left);
-                        var lineMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, size: 0.1 })
-                        var line = new THREE.Line(linegeo, lineMaterial, THREE.LinePieces);
-                        scene.add(line);
-                    }
-                }
+                initCameraLines();
+                for (var i = 0; i < camera_lines.length; ++i)
+                    scene.add(camera_lines[i]);
 
                 addDatGui();
             }
@@ -185,6 +196,7 @@
             function animate() {
                 requestAnimationFrame(animate);
                 controls.update();
+                render();
             }
 
             function render() {
