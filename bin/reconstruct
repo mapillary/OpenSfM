@@ -32,7 +32,6 @@ def best_initial_pair(graph):
 
 def bootstrap_reconstruction(data, graph):
     im1, im2 = best_initial_pair(graph)
-#    im1, im2 = '2013_10_30_09_04_56_100.jpg', '2013_10_30_09_04_54_112.jpg'
     print 'Matching image', im1, 'with image', im2
     d1 = data.exif_data(im1)
     d2 = data.exif_data(im2)
@@ -260,6 +259,7 @@ if __name__ == "__main__":
 
     i = 0
     while True:
+        print 'Painting the reconstruction'
         paint_reconstruction(data, graph, reconstruction)
         with open(data.reconstruction_file().replace('json', '%04d.json'%i), 'w') as fout:
             fout.write(json.dumps(reconstruction, indent=4))

@@ -14,6 +14,7 @@ def extract_sift(image, sift, params=["--edge-thresh=10", "--peak-thresh=5"]):
     '''
     Image.open(image).convert('L').save('tmp.pgm')
     call([context.SIFT, "tmp.pgm", "--output=%s" % sift] + params)
+    # TODO(pau): create flann index and save it.
     os.remove('tmp.pgm')
 
 

@@ -26,11 +26,28 @@ images = data.images()
 for image in images:
     print 'Extracting focal lengths for image', image
 
-    exif = check_output([JHEAD, data.image_file(image)])
-    size = exif.split('Resolution   :')[1].split('\n')[0].split('x')
+    exif_string = check_output([JHEAD, data.image_file(image)])
+    exif = {}
+    for line in exif_string.splitlines():
+        words = line.split(':', 1)
+        if len(words) == 2:
+            exif[words[0].strip()] = words[1].strip()
+    print exif
+
+    size = exif['Resolution'].split('x')
     width, height = [int(i) for i in size]
-    focal_35 = float(exif.split('(35mm equivalent:')[1].split('mm')[0])
-    focal_ratio = focal_35 / 36.0 # 35mm film produces 36x24mm pictures.
+
+    if '(35mm equivalent:' in exif['Focal length']:        
+        focal_35 = float(exif['Focal length'].split('(35mm equivalent:')[1].split('mm')[0])
+        focal_ratio = focal_35 / 36.0 # 35mm film produces 36x24mm pictures.
+    else:
+        if 'CCD width' in exif:
+            sensor_width = float(exif['CCD width'].strip('mm'))
+        elif exif['Camera model'] == 'Nexus 5':
+            sensor_width = 4.54
+        focal = float(exif['Focal length'].split()[0].strip('mm'))
+        focal_ratio = focal / sensor_width
+        focal_35 = 36.0 * focal_ratio
 
     d = {
             'width': width,
