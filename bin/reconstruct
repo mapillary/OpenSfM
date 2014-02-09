@@ -32,6 +32,7 @@ def best_initial_pair(graph):
 
 def bootstrap_reconstruction(data, graph):
     im1, im2 = best_initial_pair(graph)
+
     print 'Matching image', im1, 'with image', im2
     d1 = data.exif_data(im1)
     d2 = data.exif_data(im2)
@@ -241,8 +242,6 @@ def paint_reconstruction(data, graph, reconstruction):
         reconstruction['points'][track]['color'] = list(c)
 
 
-
-#TODO(pau): put colors to reconstructed points
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Compute reconstruction')

@@ -69,8 +69,12 @@ def match_symetric(fi, indexi, fj, indexj, config):
 def robust_match(p1, p2, matches, config):
     '''Computes robust matches by estimating the Fundamental matrix via RANSAC.
     '''
+    if len(matches) == 0:
+        return np.array([])
+
     p1 = p1[matches[:, 0]][:, :2]
     p2 = p2[matches[:, 1]][:, :2]
+
     s = ''
     for l in np.hstack((p1, p2)):
         s += ' '.join(str(i) for i in l) + '\n'

@@ -50,10 +50,10 @@ def match(imagepair):
                               p[im1][rmatches[:,0]],
                               p[im2][rmatches[:,1]])
 
-# from multiprocessing import Pool
-# p = Pool(data.config['processes'])
-# p.map(match, combinations(images, 2))
+from multiprocessing import Pool
+p = Pool(data.config['processes'])
+p.map(match, combinations(images, 2))
 
-for pair in combinations(images, 2):
-    match(pair)
+# for pair in combinations(images, 2):
+#     match(pair)
 
