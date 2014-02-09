@@ -177,7 +177,8 @@ class BALProblem {
       char point_id[1000];
       int oid;
       double x, y;
-      int n = fscanf(fptr, "%s %s %d %lg %lg", shot_id, point_id, &oid, &x, &y);
+      int n = fscanf(fptr, "%[^\t]\t%[^\t]\t%d\t%lg\t%lg\n", shot_id, point_id, &oid, &x, &y);
+
       if (n != 5) break;
 
       if (shot_by_id_.count(shot_id) && point_by_id_.count(point_id)) { 
