@@ -7,15 +7,34 @@ import numpy as np
 import pylab as pl
 import context
 import json
+import uuid
 
 
-def extract_sift(image, sift, params=["--edge-thresh=10", "--peak-thresh=5"]):
+def extract_sift(image, siftfile, config):
     '''Extracts SIFT features of image and save them in sift
     '''
-    Image.open(image).convert('L').save('tmp.pgm')
-    call([context.SIFT, "tmp.pgm", "--output=%s" % sift] + params)
-    # TODO(pau): create flann index and save it.
-    os.remove('tmp.pgm')
+    tmpfile = '{0}.pgm'.format(uuid.uuid4())
+
+    Image.open(image).convert('L').save(tmpfile)
+
+    sift_peak_threshold = config['sift_peak_threshold']
+    while True:
+        print 'Computing sift with threshold {0}'.format(sift_peak_threshold)
+        call([context.SIFT, tmpfile,
+            "--output=%s" % siftfile,
+            "--first-octave=%s" % config['sift_first_octave'],
+            "--peak-thresh=%s" % sift_peak_threshold,
+            "--edge-thresh=%s" % config['sift_edge_threshold'],
+            ])
+        p, f = read_sift(siftfile)
+        print len(p)
+        if len(p) < config['sift_min_frames'] and sift_peak_threshold > 0:
+            sift_peak_threshold = (sift_peak_threshold * 2) / 3
+            print 'reducing threshold'
+        else:
+            print 'done'
+            break
+    os.remove(tmpfile)
 
 
 def read_sift(siftfile):
@@ -23,18 +42,26 @@ def read_sift(siftfile):
     return s[:,:4], s[:,4:]
 
 
-def match_lowe(f1, f2):
-    results, dists = context.pyflann.FLANN().nn(f1, f2, 2,
-        checks=128, algorithm='kmeans', branching=64, iterations=5)
+def build_flann_index(f, index_file, config):
+    flann = context.pyflann.FLANN()
+    params = flann.build_index(f,
+                               algorithm="kmeans",
+                               branching=config['flann_branching'],
+                               iterations=config['flann_iterations'])
+    flann.save_index(index_file)
+
+
+def match_lowe(index, f2, config):
+    results, dists = index.nn_index(f2, 2, checks=config['flann_checks'])
 
     good = dists[:, 0] < 0.6 * dists[:, 1]
     matches = zip(results[good, 0], good.nonzero()[0])
     return np.array(matches, dtype=int)
 
 
-def match_symetric(fi, fj):
-    matches_ij = [(a,b) for a,b in match_lowe(fi, fj)]
-    matches_ji = [(b,a) for a,b in match_lowe(fj, fi)]
+def match_symetric(fi, indexi, fj, indexj, config):
+    matches_ij = [(a,b) for a,b in match_lowe(indexi, fj, config)]
+    matches_ji = [(b,a) for a,b in match_lowe(indexj, fi, config)]
     matches = set(matches_ij).intersection(set(matches_ji))
     return np.array(list(matches), dtype=int)
 

@@ -32,7 +32,6 @@ for image in images:
         words = line.split(':', 1)
         if len(words) == 2:
             exif[words[0].strip()] = words[1].strip()
-    print exif
 
     size = exif['Resolution'].split('x')
     width, height = [int(i) for i in size]
@@ -55,6 +54,6 @@ for image in images:
             'focal_ratio': focal_ratio,
             'focal_35mm_equiv': focal_35,
         }
-    print d
+
     with open(data.exif_file(image), 'w') as fout:
         fout.write(json.dumps(d, indent=4))

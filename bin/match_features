@@ -7,6 +7,7 @@ from itertools import combinations
 import argparse
 from labmv import dataset
 from labmv import features
+from labmv import context
 
 
 parser = argparse.ArgumentParser(description='Match features between all image pairs.')
@@ -20,27 +21,39 @@ args = parser.parse_args()
 data = dataset.DataSet(args.dataset)
 images = data.images()
 
-for im1, im2 in combinations(images, 2):
-    print 'Matching image', im1, 'with image', im2
-    p1, f1 = features.read_sift(data.sift_file(im1))
-    p2, f2 = features.read_sift(data.sift_file(im2))
+print 'Loading features and indexes'
+p, f = {}, {}
+index = {}
+for image in images:
+    p[image], f[image] = features.read_sift(data.sift_file(image))
+    index[image] = context.pyflann.FLANN()
+    index[image].load_index(data.sift_index_file(image), f[image])
 
-    matches = features.match_symetric(f1, f2)
+def match(imagepair):
+    im1, im2 = imagepair
+    print 'Matching image', im1, 'with image', im2
+
+    matches = features.match_symetric(f[im1], index[im1], f[im2], index[im2], data.config)
     np.savetxt(data.matches_file(im1, im2), matches, "%d")
 
     if args.visual:
         features.plot_matches(data.image_as_array(im1),
                               data.image_as_array(im2),
-                              p1[matches[:,0]],
-                              p2[matches[:,1]])
+                              p[im1][matches[:,0]],
+                              p[im2][matches[:,1]])
 
-    rmatches = features.robust_match(p1, p2, matches, data.config)
+    rmatches = features.robust_match(p[im1], p[im2], matches, data.config)
     np.savetxt(data.robust_matches_file(im1, im2), rmatches, "%d")
     if args.visual:
         features.plot_matches(data.image_as_array(im1),
                               data.image_as_array(im2),
-                              p1[rmatches[:,0]],
-                              p2[rmatches[:,1]])
+                              p[im1][rmatches[:,0]],
+                              p[im2][rmatches[:,1]])
 
+# from multiprocessing import Pool
+# p = Pool(data.config['processes'])
+# p.map(match, combinations(images, 2))
 
+for pair in combinations(images, 2):
+    match(pair)
 

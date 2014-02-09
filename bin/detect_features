@@ -19,6 +19,16 @@ else:
 data = dataset.DataSet(path)
 images = data.images()
 
-for image in images:
+
+def detect(image):
     print 'Extracting SIFT features for image', image
-    features.extract_sift(data.image_file(image), data.sift_file(image))
+    features.extract_sift(data.image_file(image), data.sift_file(image), data.config)
+    p1, f1 = features.read_sift(data.sift_file(image))
+    print len(f1), 'points found. Building index...'
+    features.build_flann_index(f1, data.sift_index_file(image), data.config)
+
+
+
+from multiprocessing import Pool
+p = Pool(data.config['processes'])
+p.map(detect, images)

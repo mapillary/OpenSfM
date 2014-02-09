@@ -15,7 +15,6 @@ class DataSet:
 
         with open(os.path.join(self.data_path, 'config.yaml')) as fin:
             self.config = yaml.load(fin)
-        print self.config
 
         for p in [self.exif_path(),
                   self.sift_path(),
@@ -58,6 +57,9 @@ class DataSet:
     def sift_file(self, image):
         return os.path.join(self.sift_path(), image + '.sift')
 
+    def sift_index_file(self, image):
+        return os.path.join(self.sift_path(), image + '.flann')
+
     def matches_path(self):
         return os.path.join(self.data_path, 'matches')
 
@@ -77,7 +79,7 @@ class DataSet:
         with open(self.tracks_file()) as fin:
             g = nx.Graph()
             for line in fin:
-                image, track, observation, x, y = line.split()
+                image, track, observation, x, y = line.split('\t')
                 g.add_node(image, bipartite=0)
                 g.add_node(track, bipartite=1)
                 g.add_edge(image, track, feature=(float(x), float(y)))
