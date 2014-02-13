@@ -1,0 +1,15 @@
+#!/usr/bin/env python
+
+
+
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Compute depthmaps for all images')
+    parser.add_argument('dataset',
+                        help='path to the dataset to be processed')
+    args = parser.parse_args()
+
+    data = dataset.DataSet(args.dataset)
+    graph = data.tracks_graph()
+	#TODO(pau)

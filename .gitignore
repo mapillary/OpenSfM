@@ -3,3 +3,4 @@ data
 build
 .DS_Store
 biblio
+*.pgm
