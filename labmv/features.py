@@ -59,7 +59,7 @@ def match_lowe(index, f2, config):
     return np.array(matches, dtype=int)
 
 
-def match_symetric(fi, indexi, fj, indexj, config):
+def match_symmetric(fi, indexi, fj, indexj, config):
     matches_ij = [(a,b) for a,b in match_lowe(indexi, fj, config)]
     matches_ji = [(b,a) for a,b in match_lowe(indexj, fi, config)]
     matches = set(matches_ij).intersection(set(matches_ji))

@@ -33,7 +33,7 @@ def match(imagepair):
     im1, im2 = imagepair
     print 'Matching image', im1, 'with image', im2
 
-    matches = features.match_symetric(f[im1], index[im1], f[im2], index[im2], data.config)
+    matches = features.match_symmetric(f[im1], index[im1], f[im2], index[im2], data.config)
     np.savetxt(data.matches_file(im1, im2), matches, "%d")
 
     if args.visual:

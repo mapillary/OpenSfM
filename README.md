@@ -1,14 +1,15 @@
 
 labmv
 =====
-This is a testbed for SFM pipelines.
+
+Random tests around SfM and python.
 
 Dependencies
 ------------
 * libmv
 * PCV
-* flann (included in third_party)
-* vlfleat (included in third_party)
+* flann (to be replaced by opencv)
+* vlfleat (to be replaced by opencv)
 
 Building
 --------

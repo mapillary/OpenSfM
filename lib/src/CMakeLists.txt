@@ -18,16 +18,6 @@ INCLUDE_DIRECTORIES(
 
 LINK_DIRECTORIES(${LIBMV_PATH}/build-g++-release/lib)
 
-ADD_LIBRARY(mvc SHARED libmvc.cc)
-TARGET_LINK_LIBRARIES(mvc
-                      multiview_test_data
-                      multiview
-                      numeric
-                      pthread
-                      gflags
-                      glog
-                      )
-
 
 ADD_EXECUTABLE(robust_matching robust_matching.cc)
 TARGET_LINK_LIBRARIES(robust_matching
