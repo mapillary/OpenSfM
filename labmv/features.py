@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from PIL import Image
 import os, sys
 from subprocess import call, Popen, PIPE
 import numpy as np
@@ -8,9 +7,37 @@ import pylab as pl
 import context
 import json
 import uuid
+import cv2
 
 
-def extract_sift(image, siftfile, config):
+def extract_sift(imagefile, config):
+    print 'Getting detectors'
+    detector = cv2.FeatureDetector_create("SIFT")
+    descriptor = cv2.DescriptorExtractor_create("SIFT")
+
+    image = cv2.imread(imagefile)
+
+    detector.setDouble('edgeThreshold', config['sift_edge_threshold'])
+
+    sift_peak_threshold = float(config['sift_peak_threshold'])
+    while True:
+        print 'Computing sift with threshold {0}'.format(sift_peak_threshold)
+        detector.setDouble("contrastThreshold", sift_peak_threshold) #default: 0.04
+        points = detector.detect(image)
+        print 'Found {0} points'.format(len(points))
+        if len(points) < config['sift_min_frames'] and sift_peak_threshold > 0.0001:
+            sift_peak_threshold = (sift_peak_threshold * 2) / 3
+            print 'reducing threshold'
+        else:
+            print 'done'
+            break
+
+    points, desc = descriptor.compute(image, points)
+
+    ps = np.array([(i.pt[0], i.pt[1], i.size, i.angle) for i in points])
+    return ps, desc
+
+def extract_sift_old(image, siftfile, config):
     '''Extracts SIFT features of image and save them in sift
     '''
     tmpfile = '{0}.pgm'.format(uuid.uuid4())
@@ -36,23 +63,26 @@ def extract_sift(image, siftfile, config):
             break
     os.remove(tmpfile)
 
+def write_sift(points, descriptors, siftfile):
+    a = np.hstack((points, descriptors))
+    s = np.savetxt(siftfile, a, fmt='%g')
 
 def read_sift(siftfile):
-    s = np.loadtxt(siftfile)
-    return s[:,:4], s[:,4:]
+    s = np.loadtxt(siftfile, dtype=np.float32)
+    return s[:,:4].copy(), s[:,4:].copy()
 
 
 def build_flann_index(f, index_file, config):
-    flann = context.pyflann.FLANN()
-    params = flann.build_index(f,
-                               algorithm="kmeans",
-                               branching=config['flann_branching'],
-                               iterations=config['flann_iterations'])
-    flann.save_index(index_file)
+    flann_params = dict(algorithm=2,
+                        branching=config['flann_branching'],
+                        terations=config['flann_iterations'])
+    index = cv2.flann_Index(f, flann_params)
+    index.save(index_file)
 
 
 def match_lowe(index, f2, config):
-    results, dists = index.nn_index(f2, 2, checks=config['flann_checks'])
+    search_params = dict(checks=config['flann_checks'])
+    results, dists = index.knnSearch(f2, 2, params=search_params)
 
     good = dists[:, 0] < 0.6 * dists[:, 1]
     matches = zip(results[good, 0], good.nonzero()[0])

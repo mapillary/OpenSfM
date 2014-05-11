@@ -3,9 +3,9 @@
 import os
 import json
 import numpy as np
-from PIL import Image
 import networkx as nx
 import yaml
+import cv2
 
 
 class DataSet:
@@ -38,7 +38,7 @@ class DataSet:
         return os.path.join(self.image_path(), image)
 
     def image_as_array(self, image):
-        return np.array(Image.open(self.image_file(image)))
+        return cv2.imread(self.image_file(image))
 
     def exif_path(self):
         return os.path.join(self.data_path, 'exif')

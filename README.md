@@ -7,9 +7,8 @@ Random tests around SfM and python.
 Dependencies
 ------------
 * libmv
-* PCV
-* flann (to be replaced by opencv)
-* vlfleat (to be replaced by opencv)
+* pyopencv
+* jansson
 
 Building
 --------
@@ -22,9 +21,7 @@ Building
 
 Running
 -------
-1. put some images in dataset_folder/images
-2. run detect_features.py dataset_folder/images
-3. run match_features.py dataset_folder/images
-4. run robust_match.py dataset_folder/images
-5. run create_tracks.py dataset_folder/images
-6. run find_homographies.py dataset_folder/images
+1. put some images in DATASET_FOLDER/images/
+2. run bin/run_all DATASET_FOLDER
+3. start a http server with python -m SimpleHTTPServer
+4. browse http://localhost:8000/viewer/reconstruction.html#DATASET_FOLDER/reconstruction.json

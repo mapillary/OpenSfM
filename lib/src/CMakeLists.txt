@@ -21,7 +21,6 @@ LINK_DIRECTORIES(${LIBMV_PATH}/build-g++-release/lib)
 
 ADD_EXECUTABLE(robust_matching robust_matching.cc)
 TARGET_LINK_LIBRARIES(robust_matching
-                      multiview_test_data
                       multiview
                       numeric
                       pthread
@@ -31,7 +30,6 @@ TARGET_LINK_LIBRARIES(robust_matching
 
 ADD_EXECUTABLE(two_view_reconstruction two_view_reconstruction.cc)
 TARGET_LINK_LIBRARIES(two_view_reconstruction
-                      multiview_test_data
                       multiview
                       numeric
                       pthread

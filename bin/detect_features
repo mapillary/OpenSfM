@@ -22,11 +22,10 @@ images = data.images()
 
 def detect(image):
     print 'Extracting SIFT features for image', image
-    features.extract_sift(data.image_file(image), data.sift_file(image), data.config)
-    p1, f1 = features.read_sift(data.sift_file(image))
+    p1, f1 = features.extract_sift(data.image_file(image), data.config)
+    features.write_sift(p1, f1, data.sift_file(image))
     print len(f1), 'points found. Building index...'
     features.build_flann_index(f1, data.sift_index_file(image), data.config)
-
 
 
 from multiprocessing import Pool

@@ -3,11 +3,11 @@ import os.path, sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import numpy as np
+import cv2
 from itertools import combinations
 import argparse
 from labmv import dataset
 from labmv import features
-from labmv import context
 
 
 parser = argparse.ArgumentParser(description='Match features between all image pairs.')
@@ -26,8 +26,8 @@ p, f = {}, {}
 index = {}
 for image in images:
     p[image], f[image] = features.read_sift(data.sift_file(image))
-    index[image] = context.pyflann.FLANN()
-    index[image].load_index(data.sift_index_file(image), f[image])
+    index[image] = cv2.flann_Index()
+    index[image].load(f[image], data.sift_index_file(image))
 
 def match(imagepair):
     im1, im2 = imagepair
