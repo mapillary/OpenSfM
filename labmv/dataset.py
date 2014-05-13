@@ -38,7 +38,7 @@ class DataSet:
         return os.path.join(self.image_path(), image)
 
     def image_as_array(self, image):
-        return cv2.imread(self.image_file(image))
+        return cv2.imread(self.image_file(image))[:,:,::-1]
 
     def exif_path(self):
         return os.path.join(self.data_path, 'exif')
