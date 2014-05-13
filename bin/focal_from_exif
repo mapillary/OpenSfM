@@ -7,7 +7,6 @@ from labmv import dataset
 import json
 from subprocess import check_output
 
-JHEAD = '/usr/bin/jhead'
 
 def usage():
     print 'USAGE: %s data_set_path' % sys.argv[0]
@@ -26,7 +25,7 @@ images = data.images()
 for image in images:
     print 'Extracting focal lengths for image', image
 
-    exif_string = check_output([JHEAD, data.image_file(image)])
+    exif_string = check_output(['jhead', data.image_file(image)])
     exif = {}
     for line in exif_string.splitlines():
         words = line.split(':', 1)
