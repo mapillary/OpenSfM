@@ -31,7 +31,7 @@ for image in images:
 
 def match(imagepair):
     im1, im2 = imagepair
-    print 'Matching image', im1, 'with image', im2
+    print 'Matching image', im1, 'with image', im2,
 
     matches = features.match_symmetric(f[im1], index[im1], f[im2], index[im2], data.config)
     np.savetxt(data.matches_file(im1, im2), matches, "%d")
@@ -49,11 +49,9 @@ def match(imagepair):
                               data.image_as_array(im2),
                               p[im1][rmatches[:,0]],
                               p[im2][rmatches[:,1]])
+    print "{0} / {1} matches found".format(len(rmatches), len(matches))
 
 from multiprocessing import Pool
 p = Pool(data.config['processes'])
 p.map(match, combinations(images, 2))
-
-# for pair in combinations(images, 2):
-#     match(pair)
 

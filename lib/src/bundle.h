@@ -38,17 +38,41 @@
 #include <cmath>
 #include <cstdio>
 #include <iostream>
+#include <fstream>
 #include <map>
 #include <string>
+#include <json/json.h>
 
 extern "C" { 
 #include <string.h>
-#include <jansson.h>
 }
 
 #include "ceres/ceres.h"
 #include "ceres/rotation.h"
 #include "ceres/loss_function.h"
+
+
+
+// Return a newly allocated char array with the file contents.
+static bool FileContents(const char *filename, std::string *file_contents) {
+  std::ifstream file_stream;
+  file_stream.open(filename, std::ios::binary );
+
+  if (!file_stream.good()) return false;
+
+  // get length of file:
+  file_stream.seekg(0, std::ios::end);
+  int file_length = file_stream.tellg();
+  file_stream.seekg(0, std::ios::beg);
+
+  // read data as a block:
+  file_contents->resize(file_length);
+  file_stream.read(&(*file_contents)[0], file_length);
+  file_stream.close();
+
+  return true;
+}
+
 
 
 
@@ -86,82 +110,76 @@ class BALProblem {
 
 
   bool LoadJson(const char *tracks, const char *reconstruction) {
-    json_error_t error;    
-    json_t *root = json_load_file(reconstruction, 0, &error);
 
-    if(!root) {
-        fprintf(stderr, "error: on line %d: %s\n", error.line, error.text);
-        return false;
+    std::string file_contents;
+    FileContents(reconstruction, &file_contents);
+
+    Json::Value root;   // will contains the root value after parsing.
+    Json::Reader reader;
+    bool parsingSuccessful = reader.parse(file_contents, root);
+    if (!parsingSuccessful) {
+      // report to the user the failure and their locations in the document.
+      std::cout  << "Failed to parse json\n"
+                 << reader.getFormatedErrorMessages();
+      return false;
     }
 
-    if(!json_is_object(root)) {
-        fprintf(stderr, "error: root is not an object\n");
-        json_decref(root);
-        return false;
-    }
 
     //////////////////////////////////////////////////////////////////
     // Read cameras
     //////////////////////////////////////////////////////////////////
-    json_t *cameras = json_object_get(root, "cameras");
-    const char *camera_id;
-    json_t *camera;
-    json_object_foreach(cameras, camera_id, camera) {
+    Json::Value cameras = root["cameras"];
+    for(Json::ValueIterator i = cameras.begin() ; i != cameras.end() ; ++i) {
       Camera c;
-      c.id = camera_id;
-      c.parameters[0] = json_number_value(json_object_get(camera, "focal"));
-      c.parameters[1] = json_number_value(json_object_get(camera, "k1"));
-      c.parameters[2] = json_number_value(json_object_get(camera, "k2"));
-      c.height = json_number_value(json_object_get(camera, "height"));
-      c.width = json_number_value(json_object_get(camera, "width"));
+      c.id = i.key().asString();
+      c.parameters[0] = (*i)["focal"].asDouble();
+      c.parameters[1] = (*i)["k1"].asDouble();
+      c.parameters[2] = (*i)["k2"].asDouble();
+      c.height = (*i)["height"].asDouble();
+      c.width = (*i)["width"].asDouble();
       cameras_.push_back(c);
     }
     for (int i = 0; i < cameras_.size(); ++i) {
       camera_by_id_[cameras_[i].id] = &cameras_[i];
     }
+    std::cout << cameras_.size() << " cameras read." << std::endl;
+
 
     //////////////////////////////////////////////////////////////////
     // Read shots
     //////////////////////////////////////////////////////////////////
-    json_t *shots = json_object_get(root, "shots");
-    const char *shot_id;
-    json_t *shot;
-    json_object_foreach(shots, shot_id, shot) {
+    Json::Value shots = root["shots"];
+    for(Json::ValueIterator i = shots.begin() ; i != shots.end() ; ++i) {
       Shot s;
-      s.id = shot_id;
-      json_t *Rarray = json_object_get(shot, "rotation");
+      s.id = i.key().asString();
       for (int j = 0; j < 3; ++j)
-        s.parameters[j] = json_number_value(json_array_get(Rarray, j));
-      json_t *tarray = json_object_get(shot, "translation");
+        s.parameters[j] = (*i)["rotation"][j].asDouble();
       for (int j = 0; j < 3; ++j)
-        s.parameters[3 + j] = json_number_value(json_array_get(tarray, j));
-      s.camera = json_string_value(json_object_get(shot, "camera"));
+        s.parameters[3 + j] = (*i)["translation"][j].asDouble();
+      s.camera = (*i)["camera"].asString();
       shots_.push_back(s);
     }
     for (int i = 0; i < shots_.size(); ++i) {
       shot_by_id_[shots_[i].id] = &shots_[i];
     }
+    std::cout << shots_.size() << " shots read." << std::endl;
 
 
     //////////////////////////////////////////////////////////////////
     // Read points
     //////////////////////////////////////////////////////////////////
-    json_t *points = json_object_get(root, "points");
-    const char *point_id;
-    json_t *point;
-    json_object_foreach(points, point_id, point) {
+    Json::Value points = root["points"];
+    for(Json::ValueIterator i = points.begin() ; i != points.end() ; ++i) {
       Point p;
-      p.id = point_id;
-      json_t *coordinates = json_object_get(point, "coordinates");
+      p.id = i.key().asString();
       for (int j = 0; j < 3; ++j)
-        p.parameters[j] = json_number_value(json_array_get(coordinates, j));
+        p.parameters[j] = (*i)["coordinates"][j].asDouble();
       points_.push_back(p);
     }
     for (int i = 0; i < points_.size(); ++i) {
       point_by_id_[points_[i].id] = &points_[i];
     }
-
-    json_decref(root);
+    std::cout << points_.size() << " points read." << std::endl;
 
 
     //////////////////////////////////////////////////////////////////
@@ -191,63 +209,63 @@ class BALProblem {
         observations_.push_back(o);
       }
     }
-
+    std::cout << observations_.size() << " observations read." << std::endl;
 
     return true;
   }
 
   bool SaveJson(const char *dest) {
-    json_t *root = json_object();
+    Json::Value root;
 
     // Cameras.
-    json_t *cameras = json_object();
-    json_object_set(root, "cameras", cameras);
+    Json::Value cameras;
     for (int i = 0; i < cameras_.size(); ++i) {
-      json_t *camera = json_object();
-      // json_array_append(cameras, camera);
-      // json_object_set(camera, "id", json_string(cameras_[i].id.c_str()));
-      json_object_set(cameras, cameras_[i].id.c_str(), camera);
-      json_object_set(camera, "width", json_real(cameras_[i].width));
-      json_object_set(camera, "height", json_real(cameras_[i].height));
-      json_object_set(camera, "focal", json_real(cameras_[i].parameters[0]));
-      json_object_set(camera, "k1", json_real(cameras_[i].parameters[1]));
-      json_object_set(camera, "k2", json_real(cameras_[i].parameters[2]));
+      Json::Value camera;
+      camera["width"] = cameras_[i].width;
+      camera["height"] = cameras_[i].height;
+      camera["focal"] = cameras_[i].parameters[0];
+      camera["k1"] = cameras_[i].parameters[1];
+      camera["k2"] = cameras_[i].parameters[2];
+      cameras[cameras_[i].id] = camera;
     }
+    root["cameras"] = cameras;
 
     // Shots.
-    json_t *shots = json_object();
-    json_object_set(root, "shots", shots);
+    Json::Value shots;
     for (int i = 0; i < shots_.size(); ++i) {
-      json_t *shot = json_object();
-      // json_array_append(shots, shot);
-      // json_object_set(shot, "id", json_string(shots_[i].id.c_str()));
-      json_object_set(shots, shots_[i].id.c_str(), shot);
-      json_object_set(shot, "camera", json_string(shots_[i].camera.c_str()));
-      json_t *Rarray = json_array();
-      json_t *tarray = json_array();
-      json_object_set(shot, "rotation", Rarray);
-      json_object_set(shot, "translation", tarray);
+      Json::Value shot;
+
+      shot["camera"] = shots_[i].camera;
+      Json::Value Rarray(Json::arrayValue);
+      Json::Value tarray(Json::arrayValue);
       for (int j = 0; j < 3; ++j)
-        json_array_append(Rarray, json_real(shots_[i].parameters[j]));
+        Rarray.append(shots_[i].parameters[j]);
       for (int j = 0; j < 3; ++j)
-        json_array_append(tarray, json_real(shots_[i].parameters[3 + j]));
+        tarray.append(shots_[i].parameters[3 + j]);
+      shot["rotation"] = Rarray;
+      shot["translation"] = tarray;
+      shots[shots_[i].id] = shot;
     }
+    root["shots"] = shots;
 
     // Points.
-    json_t *points = json_object();
-    json_object_set(root, "points", points);
+    Json::Value points;
     for (int i = 0; i < points_.size(); ++i) {
-      json_t *point = json_object();
-      // json_array_append(points, point);
-      // json_object_set(point, "id", json_string(points_[i].id.c_str()));
-      json_object_set(points, points_[i].id.c_str(), point);
-      json_t *coordinates = json_array();
-      json_object_set(point, "coordinates", coordinates);
+      Json::Value point;
+      Json::Value coordinates(Json::arrayValue);
       for (int j = 0; j < 3; ++j)
-        json_array_append(coordinates, json_real(points_[i].parameters[j]));
+        coordinates.append(points_[i].parameters[j]);
+      point["coordinates"] = coordinates;
+      points[points_[i].id] = point;
     }
+    root["points"] = points;
 
-    json_dump_file(root, dest, JSON_INDENT(4));
+
+    Json::StyledWriter writer;
+    std::string json = writer.write(root);
+
+    std::ofstream fout(dest);
+    fout << json;
 
     return true;
   }

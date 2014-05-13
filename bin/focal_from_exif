@@ -7,7 +7,7 @@ from labmv import dataset
 import json
 from subprocess import check_output
 
-JHEAD = '/usr/local/bin/jhead'
+JHEAD = '/usr/bin/jhead'
 
 def usage():
     print 'USAGE: %s data_set_path' % sys.argv[0]

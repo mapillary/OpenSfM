@@ -109,8 +109,8 @@ def robust_match(p1, p2, matches, config):
     for l in np.hstack((p1, p2)):
         s += ' '.join(str(i) for i in l) + '\n'
 
-    p = Popen([context.ROBUST_MATCHING, '-threshold', str(config['robust_matching_threshold'])],
-              stdout=PIPE, stdin=PIPE, stderr=PIPE)
+    command = [context.ROBUST_MATCHING, '-threshold', str(config['robust_matching_threshold'])]
+    p = Popen(command, stdout=PIPE, stdin=PIPE, stderr=PIPE)
     res = p.communicate(input=s)[0]
     inliers = [int(i) for i in res.split()]
     return matches[inliers]

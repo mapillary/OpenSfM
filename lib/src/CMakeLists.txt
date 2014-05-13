@@ -1,11 +1,12 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
+cmake_minimum_required(VERSION 2.8)
 
-PROJECT(LABMV C CXX)
+project(labmv C CXX)
 
+set(CMAKE_MODULE_PATH ${labmv_SOURCE_DIR}/cmake)
 
-SET(LIBMV_PATH ../../../libmv CACHE PATH "Path to libmv source")
+set(LIBMV_PATH ../../../libmv CACHE PATH "Path to libmv source")
 
-INCLUDE_DIRECTORIES(
+include_directories(
   .
   ${LIBMV_PATH}/src
   ${LIBMV_PATH}/src/third_party/gtest
@@ -16,11 +17,13 @@ INCLUDE_DIRECTORIES(
   ${LIBMV_PATH}/src/third_party/ceres/include
 )
 
-LINK_DIRECTORIES(${LIBMV_PATH}/build-g++-release/lib)
+link_directories(${LIBMV_PATH}/bin-opt/lib)
 
+find_package(JsonCpp)
+include_directories(${JSONCPP_INCLUDE_DIRS})
 
-ADD_EXECUTABLE(robust_matching robust_matching.cc)
-TARGET_LINK_LIBRARIES(robust_matching
+add_executable(robust_matching robust_matching.cc)
+target_link_libraries(robust_matching
                       multiview
                       numeric
                       pthread
@@ -28,8 +31,8 @@ TARGET_LINK_LIBRARIES(robust_matching
                       glog
                       )
 
-ADD_EXECUTABLE(two_view_reconstruction two_view_reconstruction.cc)
-TARGET_LINK_LIBRARIES(two_view_reconstruction
+add_executable(two_view_reconstruction two_view_reconstruction.cc)
+target_link_libraries(two_view_reconstruction
                       multiview
                       numeric
                       pthread
@@ -37,22 +40,21 @@ TARGET_LINK_LIBRARIES(two_view_reconstruction
                       glog
                       )
 
-ADD_EXECUTABLE(bundle bundle.cc)
-TARGET_LINK_LIBRARIES(bundle
+add_executable(bundle bundle.cc)
+target_link_libraries(bundle
                       ceres_shared
                       pthread
                       gflags
                       glog
-                      jansson
+                      ${JSONCPP_LIBRARIES}
                       )
 
-ADD_EXECUTABLE(bundle_test bundle_test.cc)
-TARGET_LINK_LIBRARIES(bundle_test
+add_executable(bundle_test bundle_test.cc)
+target_link_libraries(bundle_test
                       ceres_shared
                       pthread
                       gflags
                       glog
-                      jansson
+                      ${JSONCPP_LIBRARIES}
                       gtest
                       )
-
