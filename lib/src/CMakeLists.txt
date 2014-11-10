@@ -14,22 +14,15 @@ include_directories(
   ${LIBMV_PATH}/src/third_party/eigen
   ${LIBMV_PATH}/src/third_party/eigen/unsupported
   ${LIBMV_PATH}/src/third_party/glog/src
+  ${LIBMV_PATH}/src/third_party/gflags
   ${LIBMV_PATH}/src/third_party/ceres/include
 )
 
-link_directories(${LIBMV_PATH}/bin-opt/lib)
+link_directories(${LIBMV_PATH}/build/lib)
 
 find_package(JsonCpp)
 include_directories(${JSONCPP_INCLUDE_DIRS})
 
-add_executable(robust_matching robust_matching.cc)
-target_link_libraries(robust_matching
-                      multiview
-                      numeric
-                      pthread
-                      gflags
-                      glog
-                      )
 
 add_executable(two_view_reconstruction two_view_reconstruction.cc)
 target_link_libraries(two_view_reconstruction
@@ -42,7 +35,7 @@ target_link_libraries(two_view_reconstruction
 
 add_executable(bundle bundle.cc)
 target_link_libraries(bundle
-                      ceres_shared
+                      ceres
                       pthread
                       gflags
                       glog
@@ -51,7 +44,7 @@ target_link_libraries(bundle
 
 add_executable(bundle_test bundle_test.cc)
 target_link_libraries(bundle_test
-                      ceres_shared
+                      ceres
                       pthread
                       gflags
                       glog

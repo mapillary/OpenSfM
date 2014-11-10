@@ -29,12 +29,12 @@ for image in images:
     index[image] = cv2.flann_Index()
     index[image].load(f[image], data.sift_index_file(image))
 
+
 def match(imagepair):
     im1, im2 = imagepair
     print 'Matching image', im1, 'with image', im2,
 
     matches = features.match_symmetric(f[im1], index[im1], f[im2], index[im2], data.config)
-    np.savetxt(data.matches_file(im1, im2), matches, "%d")
 
     if args.visual:
         features.plot_matches(data.image_as_array(im1),
@@ -42,14 +42,18 @@ def match(imagepair):
                               p[im1][matches[:,0]],
                               p[im2][matches[:,1]])
 
-    rmatches = features.robust_match(p[im1], p[im2], matches, data.config)
-    np.savetxt(data.robust_matches_file(im1, im2), rmatches, "%d")
-    if args.visual:
-        features.plot_matches(data.image_as_array(im1),
-                              data.image_as_array(im2),
-                              p[im1][rmatches[:,0]],
-                              p[im2][rmatches[:,1]])
-    print "{0} / {1} matches found".format(len(rmatches), len(matches))
+    if len(matches) < 20:
+        print "0 / {0} matches found".format(len(matches))
+    else:
+        rmatches = features.robust_match(p[im1], p[im2], matches, data.config)
+        if len(rmatches) >= 20:
+            np.savetxt(data.robust_matches_file(im1, im2), rmatches, "%d")
+        if args.visual:
+            features.plot_matches(data.image_as_array(im1),
+                                  data.image_as_array(im2),
+                                  p[im1][rmatches[:,0]],
+                                  p[im2][rmatches[:,1]])
+        print "{0} / {1} matches found".format(len(rmatches), len(matches))
 
 from multiprocessing import Pool
 p = Pool(data.config['processes'])

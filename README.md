@@ -8,7 +8,7 @@ Dependencies
 ------------
 * libmv
 * pyopencv
-* jansson
+* jsoncpp
 
 Building
 --------

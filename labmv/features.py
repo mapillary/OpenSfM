@@ -37,31 +37,6 @@ def extract_sift(imagefile, config):
     ps = np.array([(i.pt[0], i.pt[1], i.size, i.angle) for i in points])
     return ps, desc
 
-def extract_sift_old(image, siftfile, config):
-    '''Extracts SIFT features of image and save them in sift
-    '''
-    tmpfile = '{0}.pgm'.format(uuid.uuid4())
-
-    Image.open(image).convert('L').save(tmpfile)
-
-    sift_peak_threshold = config['sift_peak_threshold']
-    while True:
-        print 'Computing sift with threshold {0}'.format(sift_peak_threshold)
-        call([context.SIFT, tmpfile,
-            "--output=%s" % siftfile,
-            "--first-octave=%s" % config['sift_first_octave'],
-            "--peak-thresh=%s" % sift_peak_threshold,
-            "--edge-thresh=%s" % config['sift_edge_threshold'],
-            ])
-        p, f = read_sift(siftfile)
-        print len(p)
-        if len(p) < config['sift_min_frames'] and sift_peak_threshold > 0:
-            sift_peak_threshold = (sift_peak_threshold * 2) / 3
-            print 'reducing threshold'
-        else:
-            print 'done'
-            break
-    os.remove(tmpfile)
 
 def write_sift(points, descriptors, siftfile):
     a = np.hstack((points, descriptors))
@@ -99,20 +74,15 @@ def match_symmetric(fi, indexi, fj, indexj, config):
 def robust_match(p1, p2, matches, config):
     '''Computes robust matches by estimating the Fundamental matrix via RANSAC.
     '''
-    if len(matches) == 0:
+    if len(matches) < 8:
         return np.array([])
 
-    p1 = p1[matches[:, 0]][:, :2]
-    p2 = p2[matches[:, 1]][:, :2]
+    p1 = p1[matches[:, 0]][:, :2].copy()
+    p2 = p2[matches[:, 1]][:, :2].copy()
 
-    s = ''
-    for l in np.hstack((p1, p2)):
-        s += ' '.join(str(i) for i in l) + '\n'
+    F, mask = cv2.findFundamentalMat(p1, p2, cv2.cv.CV_FM_RANSAC, config['robust_matching_threshold'], 0.99)
+    inliers = mask.ravel().nonzero()
 
-    command = [context.ROBUST_MATCHING, '-threshold', str(config['robust_matching_threshold'])]
-    p = Popen(command, stdout=PIPE, stdin=PIPE, stderr=PIPE)
-    res = p.communicate(input=s)[0]
-    inliers = [int(i) for i in res.split()]
     return matches[inliers]
 
 

@@ -13,7 +13,7 @@ import logging
 logging.basicConfig(format='%(asctime)s %(message)s', level=logging.DEBUG)
 
 
-    
+
 def good_track(track, min_length):
     if len(track) < min_length:
         return False
@@ -55,7 +55,7 @@ for im1, im2 in combinations(images, 2):
 
 logging.info('finding connected components')
 tracks = nx.connected_components(g)
-logging.info('Total tracks: %d', len(tracks))
+#logging.info('Total tracks: %d', len(tracks))
 
 tracks = [t for t in tracks if good_track(t, args.minlength)]
 logging.info('Good tracks: %d', len(tracks))
