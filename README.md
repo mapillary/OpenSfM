@@ -2,7 +2,7 @@
 OpenSfM
 =======
 
-SfM library writen in python on top of OpenCV.
+SfM library written in python on top of OpenCV.
 
 Dependencies
 ------------
