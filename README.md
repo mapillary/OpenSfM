@@ -14,9 +14,9 @@ Dependencies
 
 In MacOSX, use
 ```
-  brew install homebrew/science/ceres-solver
-  brew tap cuber/homebrew-jsoncpp
-  brew install jsoncpp
+brew install homebrew/science/ceres-solver
+brew tap cuber/homebrew-jsoncpp
+brew install jsoncpp
 ```
 
 Building
@@ -24,7 +24,7 @@ Building
 1. mkdir build; cd build
 2. cmake ../src
 3. make
-4. pray
+
 
 
 Running
