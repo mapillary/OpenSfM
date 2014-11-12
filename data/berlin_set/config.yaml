@@ -1,0 +1,15 @@
+sift_min_frames: 4000 # If fewer frames are detected, sift_peak_threshold is reduced.
+sift_peak_threshold: 0.05
+sift_edge_threshold: 10
+
+flann_branching: 16
+flann_iterations: 10
+flann_checks: 150
+
+robust_matching_threshold: 3
+five_point_algo_threshold: 5
+
+preemptive_max: 100
+preemptive_threshold: -1
+
+processes: 1
