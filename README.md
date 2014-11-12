@@ -1,8 +1,8 @@
 
-labmv
-=====
+OpenSfM
+=======
 
-Random tests around SfM and python.
+SfM library writen in python on top of OpenCV.
 
 Dependencies
 ------------
