@@ -6,17 +6,20 @@ SfM library written in python on top of OpenCV.
 
 Dependencies
 ------------
+* NumPy
 * OpenCV
 * ceres
 * gflags
 * glog
 * jsoncpp
+* networkx
 
 In MacOSX, use
 ```
 brew install homebrew/science/ceres-solver
 brew tap cuber/homebrew-jsoncpp
 brew install jsoncpp
+sudo pip install -r requirement.txt
 ```
 
 Building
