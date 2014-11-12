@@ -14,8 +14,6 @@ from labmv import features
 parser = argparse.ArgumentParser(description='Match features between all image pairs.')
 parser.add_argument('dataset',
                     help='path to the dataset to be processed')
-parser.add_argument('-v', '--visual', action='store_true',
-                    help='plot results during the process')
 args = parser.parse_args()
 
 
@@ -51,23 +49,12 @@ def match(imagepair):
         matches = features.match_symmetric(f[im1], index[im1], f[im2], index[im2], data.config)
         print 'flann matching time : ', time.time() - t
 
-        if args.visual:
-            features.plot_matches(data.image_as_array(im1),
-                                  data.image_as_array(im2),
-                                  p[im1][matches[:,0]],
-                                  p[im2][matches[:,1]])
-
         if len(matches) < 20:
             print "0 / {0} matches found".format(len(matches))
         else:
             rmatches = features.robust_match(p[im1], p[im2], matches, data.config)
             if len(rmatches) >= 20:
                 np.savetxt(data.robust_matches_file(im1, im2), rmatches, "%d")
-            if args.visual:
-                features.plot_matches(data.image_as_array(im1),
-                                      data.image_as_array(im2),
-                                      p[im1][rmatches[:,0]],
-                                      p[im2][rmatches[:,1]])
             print "{0} / {1} matches found".format(len(rmatches), len(matches))
     else:
         print "Too few preemptive matches / {0} matches found".format(len(matches_pre))
