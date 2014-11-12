@@ -70,7 +70,8 @@ int main(int argc, char** argv) {
     ceres::CostFunction* cost_function = 
         new ceres::AutoDiffCostFunction<SnavelyReprojectionError, 2, 3, 6, 3>(
             new SnavelyReprojectionError(observations[i].coordinates[0],
-                                         observations[i].coordinates[1]));
+                                         observations[i].coordinates[1],
+                                         observations[i].camera->parameters[0]));
 
     problem.AddResidualBlock(cost_function,
                              new TruncatedLoss(9.0),

@@ -287,8 +287,8 @@ class BALProblem {
 // focal length and 2 for radial distortion. The principal point is not modeled
 // (i.e. it is assumed to be located at the image center).
 struct SnavelyReprojectionError {
-  SnavelyReprojectionError(double observed_x, double observed_y)
-      : observed_x(observed_x), observed_y(observed_y) {}
+  SnavelyReprojectionError(double observed_x, double observed_y, double focal=-1)
+      : observed_x(observed_x), observed_y(observed_y), focal_(focal) {}
 
   template <typename T>
   bool operator()(const T* const camera,
@@ -315,7 +315,7 @@ struct SnavelyReprojectionError {
     T distortion = T(1.0) ;// + r2  * (l1 + l2  * r2);
     
     // Compute final projected point position.
-    const T& focal = camera[0];
+    const T& focal = (focal_ > 0.0) ? T(focal_) : camera[0];
     T predicted_x = focal * distortion * xp;
     T predicted_y = focal * distortion * yp;
 
@@ -328,6 +328,7 @@ struct SnavelyReprojectionError {
 
   double observed_x;
   double observed_y;
+  double focal_;
 };
 
 

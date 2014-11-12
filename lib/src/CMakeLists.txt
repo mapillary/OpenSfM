@@ -4,50 +4,52 @@ project(labmv C CXX)
 
 set(CMAKE_MODULE_PATH ${labmv_SOURCE_DIR}/cmake)
 
-set(LIBMV_PATH ../../../libmv CACHE PATH "Path to libmv source")
+include_directories(.)
 
-include_directories(
-  .
-  ${LIBMV_PATH}/src
-  ${LIBMV_PATH}/src/third_party/gtest
-  ${LIBMV_PATH}/src/third_party/gtest/include
-  ${LIBMV_PATH}/src/third_party/eigen
-  ${LIBMV_PATH}/src/third_party/eigen/unsupported
-  ${LIBMV_PATH}/src/third_party/glog/src
-  ${LIBMV_PATH}/src/third_party/gflags
-  ${LIBMV_PATH}/src/third_party/ceres/include
-)
 
-link_directories(${LIBMV_PATH}/build/lib)
-
-find_package(JsonCpp)
+find_package(JsonCpp REQUIRED)
 include_directories(${JSONCPP_INCLUDE_DIRS})
 
+find_package(Eigen REQUIRED)
+include_directories(${EIGEN_INCLUDE_DIRS})
 
-add_executable(two_view_reconstruction two_view_reconstruction.cc)
+find_package(Ceres REQUIRED)
+include_directories(${CERES_INCLUDE_DIR})
+
+find_package(gflags REQUIRED)
+include_directories(${GFLAGS_INCLUDE_DIR})
+
+find_package(glog REQUIRED)
+include_directories(${GLOG_INCLUDE_DIR})
+
+
+add_executable(two_view_reconstruction
+               two_view_reconstruction.cc
+               libmv/multiview/fundamental.cc
+               libmv/multiview/projection.cc
+               libmv/multiview/five_point.cc
+               libmv/multiview/robust_five_point.cc
+               libmv/multiview/triangulation.cc
+               libmv/multiview/conditioning.cc
+               libmv/numeric/numeric.cc
+               libmv/numeric/poly.cc
+              )
 target_link_libraries(two_view_reconstruction
-                      multiview
-                      numeric
-                      pthread
-                      gflags
-                      glog
+                      ${GFLAGS_LIBRARY}
+                      ${GLOG_LIBRARY}
                       )
 
 add_executable(bundle bundle.cc)
 target_link_libraries(bundle
-                      ceres
-                      pthread
-                      gflags
-                      glog
+                      ${CERES_LIBRARIES}
+                      ${GFLAGS_LIBRARY}
+                      ${GLOG_LIBRARY}
                       ${JSONCPP_LIBRARIES}
                       )
 
-add_executable(bundle_test bundle_test.cc)
-target_link_libraries(bundle_test
-                      ceres
-                      pthread
-                      gflags
-                      glog
-                      ${JSONCPP_LIBRARIES}
-                      gtest
-                      )
+#add_executable(bundle_test bundle_test.cc)
+#target_link_libraries(bundle_test
+#                      ${CERES_LIBRARIES}
+#                      ${JSONCPP_LIBRARIES}
+#                      ${GTEST_LIBRARY}
+#                      )

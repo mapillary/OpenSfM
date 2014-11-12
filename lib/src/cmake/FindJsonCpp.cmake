@@ -11,33 +11,26 @@
 
 include(FindPackageHandleStandardArgs)
 
-set(JSONCPP_ROOT_DIR $ENV{JSONCPP_DIR} CACHE PATH "Folder contains Google JSONCPP")
+set(JSONCPP_ROOT_DIR $ENV{JSONCPP_DIR} CACHE PATH "Folder contains JSONCPP")
 
-if(WIN32)
-    find_path(JSONCPP_INCLUDE_DIR json/json.h
-        PATHS ${JSONCPP_ROOT_DIR}/include)
-else()
-    find_path(JSONCPP_INCLUDE_DIR json/json.h
-        PATHS ${JSONCPP_ROOT_DIR} $ENV{CPLUS_INCLUDE_DIR} /usr/include
-        PATH_SUFFIXES jsoncpp)
-    message(${JSONCPP_INCLUDE_DIR})
-endif()
+find_path(JSONCPP_INCLUDE_DIR
+        json/json.h
+    HINTS
+        ${JSONCPP_ROOT_DIR}/include
+        ENV CPLUS_INCLUDE_PATH
+    PATH_SUFFIXES
+        jsoncpp
+)
 
-if(MSVC)
-    find_library(JSONCPP_LIBRARY_RELEASE jsoncpp.lib
-        PATHS ${JSONCPP_ROOT_DIR}
-        PATH_SUFFIXES lib)
-
-    find_library(JSONCPP_LIBRARY_DEBUG jsoncppd.lib
-        PATHS ${JSONCPP_ROOT_DIR}
-        PATH_SUFFIXES lib)
-
-    set(JSONCPP_LIBRARY optimized ${JSONCPP_LIBRARY_RELEASE} debug ${JSONCPP_LIBRARY_DEBUG})
-else()
-    find_library(JSONCPP_LIBRARY libjsoncpp.so
-        PATHS ${JSONCPP_ROOT_DIR} $ENV{LD_LIBRARY_PATH} /usr
-        PATH_SUFFIXES lib lib64)
-endif()
+find_library(JSONCPP_LIBRARY
+    NAMES
+        jsoncpp
+    HINTS
+        ${JSONCPP_ROOT_DIR}
+        ENV LD_LIBRARY_PATH
+    PATH_SUFFIXES
+        lib64 lib
+)
 
 find_package_handle_standard_args(JSONCPP DEFAULT_MSG
     JSONCPP_INCLUDE_DIR JSONCPP_LIBRARY)
