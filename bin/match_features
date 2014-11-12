@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import os.path, sys
+import time
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import numpy as np
@@ -24,38 +25,53 @@ images = data.images()
 print 'Loading features and indexes'
 p, f = {}, {}
 index = {}
+preemptive_ids = {}
 for image in images:
     p[image], f[image] = features.read_sift(data.sift_file(image))
     index[image] = cv2.flann_Index()
     index[image].load(f[image], data.sift_index_file(image))
+    sz = p[image][:,2]
+    order = np.argsort(sz)
+    preemptive_ids[image] = order[-data.config['preemptive_max']:]
 
 
 def match(imagepair):
     im1, im2 = imagepair
     print 'Matching image', im1, 'with image', im2,
 
-    matches = features.match_symmetric(f[im1], index[im1], f[im2], index[im2], data.config)
+    # preemptive matching
+    t = time.time()
+    matches_pre = features.match_lowe_bf(f[im1][preemptive_ids[im1],:],
+                                         f[im2][preemptive_ids[im2],:],
+                                         data.config)
+    print "\nPreemptive matching {0}, time : {1}".format(len(matches_pre), time.time()-t)
 
-    if args.visual:
-        features.plot_matches(data.image_as_array(im1),
-                              data.image_as_array(im2),
-                              p[im1][matches[:,0]],
-                              p[im2][matches[:,1]])
+    if len(matches_pre) > data.config['preemptive_threshold']:
+        t = time.time()
+        matches = features.match_symmetric(f[im1], index[im1], f[im2], index[im2], data.config)
+        print 'flann matching time : ', time.time() - t
 
-    if len(matches) < 20:
-        print "0 / {0} matches found".format(len(matches))
-    else:
-        rmatches = features.robust_match(p[im1], p[im2], matches, data.config)
-        if len(rmatches) >= 20:
-            np.savetxt(data.robust_matches_file(im1, im2), rmatches, "%d")
         if args.visual:
             features.plot_matches(data.image_as_array(im1),
                                   data.image_as_array(im2),
-                                  p[im1][rmatches[:,0]],
-                                  p[im2][rmatches[:,1]])
-        print "{0} / {1} matches found".format(len(rmatches), len(matches))
+                                  p[im1][matches[:,0]],
+                                  p[im2][matches[:,1]])
+
+        if len(matches) < 20:
+            print "0 / {0} matches found".format(len(matches))
+        else:
+            rmatches = features.robust_match(p[im1], p[im2], matches, data.config)
+            if len(rmatches) >= 20:
+                np.savetxt(data.robust_matches_file(im1, im2), rmatches, "%d")
+            if args.visual:
+                features.plot_matches(data.image_as_array(im1),
+                                      data.image_as_array(im2),
+                                      p[im1][rmatches[:,0]],
+                                      p[im2][rmatches[:,1]])
+            print "{0} / {1} matches found".format(len(rmatches), len(matches))
+    else:
+        print "Too few preemptive matches / {0} matches found".format(len(matches_pre))
 
 from multiprocessing import Pool
 p = Pool(data.config['processes'])
 p.map(match, combinations(images, 2))
-
