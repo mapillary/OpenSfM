@@ -1,4 +1,4 @@
-from scipy.linalg import qr
+from numpy.linalg import qr
 import numpy as np
 import random
 import math
@@ -63,7 +63,7 @@ def KRt_from_P(P):
         R = -R
         t = -t
     K /= K[2, 2]                     # normalise K
-    
+
     return K, R, t
 
 
@@ -206,4 +206,3 @@ class TestLinearKernel:
 
     def evaluate(self, model):
         return self.y - model * self.x
-
