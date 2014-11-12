@@ -2,6 +2,13 @@ cmake_minimum_required(VERSION 2.8)
 
 project(labmv C CXX)
 
+
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release CACHE STRING
+       "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel."
+       FORCE)
+endif()
+
 set(CMAKE_MODULE_PATH ${labmv_SOURCE_DIR}/cmake)
 
 include_directories(.)

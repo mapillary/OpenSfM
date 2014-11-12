@@ -24,7 +24,7 @@ find_path(JSONCPP_INCLUDE_DIR
 
 find_library(JSONCPP_LIBRARY
     NAMES
-        jsoncpp
+        jsoncpp json
     HINTS
         ${JSONCPP_ROOT_DIR}
         ENV LD_LIBRARY_PATH

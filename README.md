@@ -6,12 +6,16 @@ Random tests around SfM and python.
 
 Dependencies
 ------------
+* OpenCV
 * ceres
 * gflags
 * glog
-* gtest
-* OpenCV
 * jsoncpp
+
+In MacOSX, use
+  brew install homebrew/science/ceres-solver
+  brew tap cuber/homebrew-jsoncpp
+  brew install jsoncpp
 
 
 Building
