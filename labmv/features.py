@@ -2,8 +2,9 @@
 
 import os, sys
 from subprocess import call, Popen, PIPE
+import time
+
 import numpy as np
-import pylab as pl
 import context
 import json
 import uuid
@@ -71,6 +72,32 @@ def match_symmetric(fi, indexi, fj, indexj, config):
     return np.array(list(matches), dtype=int)
 
 
+def convert_matches_to_vector(matches):
+    '''Convert Dmatch object to matrix form
+    '''
+    matches_vector = np.zeros((len(matches),2),dtype=np.int)
+    k = 0
+    for mm in matches:
+        matches_vector[k,0] = mm.queryIdx
+        matches_vector[k,1] = mm.trainIdx
+        k = k+1
+    return matches_vector
+
+
+def match_lowe_bf(f1,f2,config):
+    '''Bruteforce feature matching
+    '''
+    matcher = cv2.DescriptorMatcher_create('BruteForce')
+    matches = matcher.knnMatch(f1,f2,k=2)
+
+    good_matches = []
+    for m,n in matches:
+        if m.distance < 0.6*n.distance:
+            good_matches.append(m)
+    good_matches = convert_matches_to_vector(good_matches)
+    return np.array(good_matches, dtype=int)
+
+
 def robust_match(p1, p2, matches, config):
     '''Computes robust matches by estimating the Fundamental matrix via RANSAC.
     '''
@@ -135,28 +162,3 @@ def bundle(tracks_file, reconstruction):
 
     with open(dest) as fin:
         return json.load(fin)
-
-
-
-def plot_features(im, p):
-    pl.imshow(im)
-    pl.plot(p[:,0],p[:,1],'ob')
-    pl.show()
-
-
-def plot_matches(im1, im2, p1, p2):
-    h1, w1, c = im1.shape
-    h2, w2, c = im1.shape
-    image = np.zeros((max(h1,h2), w1+w2, 3), dtype=im1.dtype)
-    image[0:h1, 0:w1, :] = im1
-    image[0:h2, w1:(w1+w2), :] = im2
-    
-    pl.imshow(image)
-    for a1, a2 in zip(p1,p2):
-        pl.plot([a1[0], a2[0] + w1], [a1[1], a2[1]], 'c')
-
-    pl.plot(p1[:,0], p1[:,1], 'ob')
-    pl.plot(p2[:,0] + w1, p2[:,1], 'ob')
-    pl.show()
-
-
