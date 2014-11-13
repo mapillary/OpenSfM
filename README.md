@@ -2,7 +2,7 @@
 OpenSfM
 =======
 
-SfM library written in python on top of OpenCV.
+Structure from Motion library written in Python on top of OpenCV.
 
 Dependencies
 ------------
@@ -14,7 +14,7 @@ Dependencies
 * jsoncpp
 * networkx
 
-In MacOSX, use
+On MacOSX, use
 ```
 brew install homebrew/science/ceres-solver
 brew tap cuber/homebrew-jsoncpp
