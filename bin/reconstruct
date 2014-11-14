@@ -289,18 +289,18 @@ if __name__ == "__main__":
     do_retriangulation = False
 
     i = 0
+    prev_num_points = len(reconstruction['points'])
     while True:
         paint_reconstruction_constant(data, graph, reconstruction)
         with open(data.reconstruction_file().replace('json', '%04d.json'%i), 'w') as fout:
             fout.write(json.dumps(reconstruction, indent=4))
             i += 1
         common_tracks = reconstructed_points_for_images(graph, reconstruction)
-        prev_num_points = 0
         if not common_tracks:
             break
         for image, num_tracks in common_tracks:
+            print '-------------------------------------------------------'
             print 'Adding {0} to the reconstruction'.format(image)
-            print reconstruction['cameras']['main_camera']['focal']
             if resect(graph, reconstruction, image, min_inliers=15):
                 print 'Resection succeded'
                 reconstruction = features.bundle(data.tracks_file(), reconstruction)
@@ -309,12 +309,13 @@ if __name__ == "__main__":
                 print 'reprojection_error', reprojection_error(graph, reconstruction)
                 num_points = len(reconstruction['points'])
                 if (num_points > prev_num_points*1.25 and i > 0) and do_retriangulation:
+                    print 'retriangulation'
                     retriangulate(graph, reconstruction)
-                    reconstruction = features.bundle(data.tracks_file(), reconstruction)
-                    prev_num_points = num_points
+                    prev_num_points = len(reconstruction['points'])
                 break
             else:
                 print 'Resection failed'
+
         else:
             print 'Some cameras could be resected'
             break
