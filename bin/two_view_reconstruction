@@ -3,11 +3,11 @@ import os.path, sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import numpy as np
-from labmv.transformations import rotation_from_matrix
+from opensfm.transformations import rotation_from_matrix
 import argparse
 import json
-from labmv import dataset
-from labmv import features
+from opensfm import dataset
+from opensfm import features
 import networkx as nx
 from networkx.algorithms import bipartite
 

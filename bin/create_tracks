@@ -6,8 +6,8 @@ import numpy as np
 from itertools import combinations
 import argparse
 import networkx as nx
-from labmv import dataset
-from labmv import features
+from opensfm import dataset
+from opensfm import features
 import logging
 
 logging.basicConfig(format='%(asctime)s %(message)s', level=logging.DEBUG)

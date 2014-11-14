@@ -7,8 +7,8 @@ import numpy as np
 import cv2
 from itertools import combinations
 import argparse
-from labmv import dataset
-from labmv import features
+from opensfm import dataset
+from opensfm import features
 
 
 parser = argparse.ArgumentParser(description='Match features between all image pairs.')

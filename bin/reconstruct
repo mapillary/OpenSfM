@@ -9,10 +9,10 @@ import argparse
 from collections import defaultdict
 import json
 from itertools import combinations
-from labmv import transformations as tf
-from labmv import dataset
-from labmv import features
-from labmv import multiview
+from opensfm import transformations as tf
+from opensfm import dataset
+from opensfm import features
+from opensfm import multiview
 import networkx as nx
 from networkx.algorithms import bipartite
 

@@ -18,7 +18,6 @@ class DataSet:
 
         for p in [self.exif_path(),
                   self.sift_path(),
-                  self.matches_path(),
                   self.robust_matches_path()]:
             try:
                 os.makedirs(p)

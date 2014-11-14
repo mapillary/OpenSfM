@@ -1,0 +1,7 @@
+Project: libmv
+URL: https://github.com/libmv/libmv
+License: MIT
+Upstream version: https://github.com/paulinus/libmv/commit/ef61fe71e8f5f4cd1b13b266be30b9c92c86e8cc
+Local modifications:
+
+* Strip the library to contain only the files required to compile multiview/robust_five_point.cc

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 
-project(labmv C CXX)
+project(opensfm C CXX)
 
 
 if(NOT CMAKE_BUILD_TYPE)
@@ -9,9 +9,9 @@ if(NOT CMAKE_BUILD_TYPE)
        FORCE)
 endif()
 
-set(CMAKE_MODULE_PATH ${labmv_SOURCE_DIR}/cmake)
+set(CMAKE_MODULE_PATH ${opensfm_SOURCE_DIR}/cmake)
 
-include_directories(.)
+include_directories(. third_party)
 
 
 find_package(JsonCpp REQUIRED)
@@ -32,14 +32,14 @@ include_directories(${GLOG_INCLUDE_DIR})
 
 add_executable(two_view_reconstruction
                two_view_reconstruction.cc
-               libmv/multiview/fundamental.cc
-               libmv/multiview/projection.cc
-               libmv/multiview/five_point.cc
-               libmv/multiview/robust_five_point.cc
-               libmv/multiview/triangulation.cc
-               libmv/multiview/conditioning.cc
-               libmv/numeric/numeric.cc
-               libmv/numeric/poly.cc
+               third_party/libmv/multiview/fundamental.cc
+               third_party/libmv/multiview/projection.cc
+               third_party/libmv/multiview/five_point.cc
+               third_party/libmv/multiview/robust_five_point.cc
+               third_party/libmv/multiview/triangulation.cc
+               third_party/libmv/multiview/conditioning.cc
+               third_party/libmv/numeric/numeric.cc
+               third_party/libmv/numeric/poly.cc
               )
 target_link_libraries(two_view_reconstruction
                       ${GFLAGS_LIBRARY}
