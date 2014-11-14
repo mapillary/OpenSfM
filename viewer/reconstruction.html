@@ -24,7 +24,7 @@
             getData();
 
             function getData() {
-                jQuery.getJSON("/data" + window.location.hash.replace('#',''), function(data) {
+                jQuery.getJSON("/data/" + window.location.hash.replace('#',''), function(data) {
                     reconstruction = data;
                     init();
                     animate();
@@ -157,7 +157,7 @@
                 controls.keys = [65, 83, 68];
                 controls.addEventListener('change', render);
 
-                scene = new THREE.Scene();
+                group = new THREE.Object3D();
 
                 // Points.
                 var particles = new THREE.Geometry();
@@ -176,13 +176,16 @@
                     }
                 }
                 particleSystem = new THREE.ParticleSystem(particles, pMaterial);
-                scene.add(particleSystem);
+                group.add(particleSystem)
 
                 // Cameras.
                 initCameraLines();
                 for (var i = 0; i < camera_lines.length; ++i)
-                    scene.add(camera_lines[i]);
+                    group.add(camera_lines[i]);
 
+                group.rotateZ(Math.PI); // put scene right-side up
+                scene = new THREE.Scene();
+                scene.add(group);
                 addDatGui();
             }
 
