@@ -186,42 +186,63 @@ def angle_between_rays(P1, x1, P2, x2):
     return multiview.vector_angle(v1, v2)
 
 
-def triangulate_shot_features(graph, reconstruction, shot_id):
-    '''Reconstruct as many tracks seen in shot_id as possible.
+def triangulate_track(track, reconstruction, reproj_threshold=3):
+    ''' Triangulate a track
     '''
     P_by_id = {}
-    for track in graph[shot_id]:
-        if track not in reconstruction['points']:
-            Ps = []
-            xs = []
-            for shot in graph[track]:
-                if shot in reconstruction['shots']:
-                    if shot not in P_by_id:
-                        s = reconstruction['shots'][shot]
-                        c = reconstruction['cameras'][s['camera']]
-                        P_by_id[shot] = projection_matrix(c, s)
-                    Ps.append(P_by_id[shot])
-                    xs.append(graph[track][shot]['feature'])
-            if len(Ps) >= 2:
-                max_angle = 0
-                for i, j in combinations(range(len(Ps)), 2):
-                    angle = angle_between_rays(Ps[i], xs[i], Ps[j], xs[j])
-                    max_angle = max(angle, max_angle)
+    if track not in reconstruction['points']:
+        Ps = []
+        xs = []
+        for shot in graph[track]:
+            if shot in reconstruction['shots']:
+                if shot not in P_by_id:
+                    s = reconstruction['shots'][shot]
+                    c = reconstruction['cameras'][s['camera']]
+                    P_by_id[shot] = projection_matrix(c, s)
+                Ps.append(P_by_id[shot])
+                xs.append(graph[track][shot]['feature'])
+        if len(Ps) >= 2:
+            max_angle = 0
+            for i, j in combinations(range(len(Ps)), 2):
+                angle = angle_between_rays(Ps[i], xs[i], Ps[j], xs[j])
+                max_angle = max(angle, max_angle)
 
-                if max_angle > math.radians(2):
-                    X = multiview.triangulate(Ps, xs)
-                    error = 0
-                    Xh = multiview.homogeneous(X)
-                    for P, x in zip(Ps, xs):
-                        xx, yy, zz = P.dot(Xh)
-                        if zz <= 0:
-                            error = 999999999.0
-                        reprojected_x = np.array([xx / zz, yy / zz])
-                        error = max(error, (reprojected_x - x).max())
-                    if error < 3:
-                        reconstruction['points'][track] = {
-                            "coordinates": list(X),
-                        }
+            if max_angle > math.radians(2):
+                X = multiview.triangulate(Ps, xs)
+                error = 0
+                Xh = multiview.homogeneous(X)
+                for P, x in zip(Ps, xs):
+                    xx, yy, zz = P.dot(Xh)
+                    if zz <= 0:
+                        error = 999999999.0
+                    reprojected_x = np.array([xx / zz, yy / zz])
+                    error = max(error, (reprojected_x - x).max())
+                if error < reproj_threshold:
+                    reconstruction['points'][track] = {
+                        "coordinates": list(X),
+                    }
+
+def triangulate_shot_features(graph, reconstruction, shot_id, reproj_threshold=3):
+    '''Reconstruct as many tracks seen in shot_id as possible.
+    '''
+    for track in graph[shot_id]:
+        triangulate_track(track,reconstruction,reproj_threshold=reproj_threshold)
+
+
+def retriangulate(graph, reconstruction):
+    '''Re-triangulate 3D points
+    '''
+    track_nodes, image_nodes = bipartite.sets(graph)
+    for track in track_nodes:
+        if track not in reconstruction['points']:
+            triangulate_track(track, reconstruction, reproj_threshold=10)
+
+    # bundle adjustment
+    reconstruction = features.bundle(data.tracks_file(), reconstruction)
+
+    # filter points with large errors
+    # TODO
+
 
 
 def paint_reconstruction(data, graph, reconstruction):
@@ -265,6 +286,8 @@ if __name__ == "__main__":
     reconstruction = bootstrap_reconstruction(data, graph)
     reconstruction = features.bundle(data.tracks_file(), reconstruction)
 
+    do_retriangulation = False
+
     i = 0
     while True:
         paint_reconstruction_constant(data, graph, reconstruction)
@@ -272,6 +295,7 @@ if __name__ == "__main__":
             fout.write(json.dumps(reconstruction, indent=4))
             i += 1
         common_tracks = reconstructed_points_for_images(graph, reconstruction)
+        prev_num_points = 0
         if not common_tracks:
             break
         for image, num_tracks in common_tracks:
@@ -283,6 +307,11 @@ if __name__ == "__main__":
                 triangulate_shot_features(graph, reconstruction, image)
                 reconstruction = features.bundle(data.tracks_file(), reconstruction)
                 print 'reprojection_error', reprojection_error(graph, reconstruction)
+                num_points = len(reconstruction['points'])
+                if (num_points > prev_num_points*1.25 and i > 0) and do_retriangulation:
+                    retriangulate(graph, reconstruction)
+                    reconstruction = features.bundle(data.tracks_file(), reconstruction)
+                    prev_num_points = num_points
                 break
             else:
                 print 'Resection failed'
@@ -294,8 +323,3 @@ if __name__ == "__main__":
     paint_reconstruction(data, graph, reconstruction)
     with open(data.reconstruction_file(), 'w') as fout:
         fout.write(json.dumps(reconstruction, indent=4))
-
-
-
-
-
