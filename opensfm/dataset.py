@@ -89,7 +89,6 @@ class DataSet:
         """
         with open(self.exif_file(image), 'r') as fin:
             return json.load(fin)
-        return None
 
     def sift_path(self):
         """Return path of SIFT descriptors and FLANN indices directory"""
@@ -147,7 +146,6 @@ class DataSet:
                 g.add_node(track, bipartite=1)
                 g.add_edge(image, track, feature=(float(x), float(y)))
             return g
-        return None
 
     def reconstruction_file(self):
         """Return path of reconstruction file"""
