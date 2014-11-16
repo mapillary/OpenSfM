@@ -2,6 +2,7 @@
 
 import os
 import json
+import errno
 import numpy as np
 import networkx as nx
 import yaml
@@ -21,8 +22,11 @@ class DataSet:
                   self.robust_matches_path()]:
             try:
                 os.makedirs(p)
-            except:
-                pass
+            except os.error as exc:
+                if exc.errno == errno.EEXIST and os.path.isdir(p):
+                    pass
+                else:
+                    raise
 
     def is_image_file(self, file):
         return file.split('.')[-1].lower() in ['jpg', 'jpeg', 'png', 'tif', 'tiff', 'pgm', 'pnm', 'gif']
