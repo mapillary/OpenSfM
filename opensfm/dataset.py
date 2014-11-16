@@ -39,12 +39,13 @@ class DataSet:
                 else:
                     raise
 
-    def is_image_file(self, file):
-        return file.split('.')[-1].lower() in ['jpg', 'jpeg', 'png', 'tif', 'tiff', 'pgm', 'pnm', 'gif']
+    @staticmethod
+    def _is_image_file(filename):
+        return filename.split('.')[-1].lower() in {'jpg', 'jpeg', 'png', 'tif', 'tiff', 'pgm', 'pnm', 'gif'}
 
     def images(self):
         """Return list of file paths of all images in this dataset"""
-        return [i for i in os.listdir(self.image_path()) if self.is_image_file(i)]
+        return [i for i in os.listdir(self.image_path()) if self._is_image_file(i)]
 
     def image_path(self):
         """Return path of images directory"""
