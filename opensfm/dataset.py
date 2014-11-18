@@ -11,7 +11,7 @@ import cv2
 
 class DataSet:
     """
-    Dataset representing directory with images, extracted EXIF, SIFT descriptors, etc.
+    Dataset representing directory with images, extracted EXIF, feature descriptors (SURF, SIFT), etc.
 
     Methods to retrieve *base directory* for data file(s) have suffix ``_path``, methods to retrieve path of specified
     data file have suffix ``_file``.
@@ -29,7 +29,7 @@ class DataSet:
             self.config = yaml.load(fin)
 
         for p in [self.exif_path(),
-                  self.sift_path(),
+                  self.feature_path(),
                   self.robust_matches_path()]:
             try:
                 os.makedirs(p)
@@ -91,23 +91,28 @@ class DataSet:
         with open(self.exif_file(image), 'r') as fin:
             return json.load(fin)
 
-    def sift_path(self):
-        """Return path of SIFT descriptors and FLANN indices directory"""
-        return os.path.join(self.data_path, 'sift')
-
-    def sift_file(self, image):
+    def feature_type(self):
+        """Return the type of local features (e.g. SURF, SIFT)
         """
-        Return path of SIFT file for specified image
+        return self.config.get('feature_type', 'sift').lower()
+
+    def feature_path(self):
+        """Return path of feature descriptors and FLANN indices directory"""
+        return os.path.join(self.data_path, self.feature_type())
+
+    def feature_file(self, image):
+        """
+        Return path of feature file for specified image
         :param image: Image name, with extension (i.e. 123.jpg)
         """
-        return os.path.join(self.sift_path(), image + '.sift')
+        return os.path.join(self.feature_path(), image + '.' + self.feature_type())
 
-    def sift_index_file(self, image):
+    def feature_index_file(self, image):
         """
         Return path of FLANN index file for specified image
         :param image: Image name, with extension (i.e. 123.jpg)
         """
-        return os.path.join(self.sift_path(), image + '.flann')
+        return os.path.join(self.feature_path(), image + '.flann')
 
     def matches_path(self):
         """Return path of matches directory"""
@@ -173,5 +178,3 @@ def common_tracks(g, im1, im2):
     p1 = np.array(p1)
     p2 = np.array(p2)
     return tracks, p1, p2
-
-

@@ -25,9 +25,9 @@ p, f = {}, {}
 index = {}
 preemptive_ids = {}
 for image in images:
-    p[image], f[image] = features.read_sift(data.sift_file(image))
+    p[image], f[image] = features.read_feature(data.feature_file(image))
     index[image] = cv2.flann_Index()
-    index[image].load(f[image], data.sift_index_file(image))
+    index[image].load(f[image], data.feature_index_file(image))
     sz = p[image][:,2]
     order = np.argsort(sz)
     preemptive_ids[image] = order[-data.config['preemptive_max']:]

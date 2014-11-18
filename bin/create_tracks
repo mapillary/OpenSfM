@@ -36,12 +36,12 @@ args = parser.parse_args()
 data = dataset.DataSet(args.dataset)
 images = data.images()
 
-# Read sift features
-logging.info('reading sift features')
-sift = {}
+# Read local features
+logging.info('reading features')
+feature = {}
 for im in images:
-    p1, f1 = features.read_sift(data.sift_file(im))
-    sift[im] = p1[:,:2]
+    p1, f1 = features.read_feature(data.feature_file(im))
+    feature[im] = p1[:,:2]
 
 logging.info('creating features graph')
 g = nx.Graph()
@@ -62,9 +62,8 @@ logging.info('Good tracks: %d', len(tracks))
 
 with open(data.tracks_file(), 'w') as fout:
     for track_id, track in enumerate(tracks):
-        for feature in track:
-            image = feature[0]
-            featureid = feature[1]
-            x, y = sift[image][featureid]
+        for image_feature in track:
+            image = image_feature[0]
+            featureid = image_feature[1]
+            x, y = feature[image][featureid]
             fout.write('%s\t%d\t%d\t%g\t%g\n' % (image, track_id, featureid, x, y))
-
