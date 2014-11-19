@@ -7,11 +7,12 @@ from opensfm import dataset
 import json
 from subprocess import check_output
 
+from opensfm.sensors import sensor_data
 
 def usage():
     print 'USAGE: %s data_set_path' % sys.argv[0]
     sys.exit(0)
-    
+
 
 if len(sys.argv) > 1:
     path = sys.argv[1]
@@ -35,16 +36,29 @@ for image in images:
     size = exif['Resolution'].split('x')
     width, height = [int(i) for i in size]
 
-    if '(35mm equivalent:' in exif['Focal length']:        
+    if '(35mm equivalent:' in exif['Focal length']:
         focal_35 = float(exif['Focal length'].split('(35mm equivalent:')[1].split('mm')[0])
         focal_ratio = focal_35 / 36.0 # 35mm film produces 36x24mm pictures.
     else:
+        model = exif.get('Camera model','none').lower()
+        make = exif.get('Camera make','none').lower()
+        model = model.replace(make,'') # remove possible duplicate 'make' information in 'model' for better matching
+        sensor_string = (make + ' ' + model).lower()
+
         if 'CCD width' in exif:
             sensor_width = float(exif['CCD width'].strip('mm'))
-        elif exif['Camera model'] == 'Nexus 5':
-            sensor_width = 4.54
+        elif sensor_string in sensor_data:
+            sensor_width = sensor_data[sensor_string]
+        else:
+            sensor_width = None
+
         focal = float(exif['Focal length'].split()[0].strip('mm'))
-        focal_ratio = focal / sensor_width
+
+        if sensor_width is not None:
+            focal_ratio = focal / sensor_width
+        else:
+            focal_ratio = 0
+
         focal_35 = 36.0 * focal_ratio
 
     d = {
