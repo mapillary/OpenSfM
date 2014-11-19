@@ -1,0 +1,33 @@
+
+# Params for features
+feature_type: SURF            # Feature type (SURF, SIFT)
+feature_min_frames: 5000      # If fewer frames are detected, sift_peak_threshold/surf_hessian_threshold is reduced.
+feature_process_size: 2048    # Resize the image if its size is larger than specified. Set to -1 for original size
+
+# Params for SIFT
+sift_peak_threshold: 0.1      # Smaller value -> more features
+sift_edge_threshold: 10       # See OpenCV doc
+
+# Params for SURF
+surf_hessian_threshold: 3000  # Smaller value -> more features
+surf_n_octaves: 4             # See OpenCV doc
+surf_n_octavelayers: 2        # See OpenCV doc
+
+# Params for general matching
+lowes_ratio: 0.6              # Ratio test for matches
+
+# Params for FLANN matching
+flann_branching: 16           # See OpenCV doc
+flann_iterations: 10          # See OpenCV doc
+flann_checks: 100             # Smaller -> Faster (but might lose good matches)
+
+# Params for preemptive matching
+preemptive_max: 200           # Number of features to use for preemptive matching
+preemptive_threshold: 4       # If number of matches passes the threshold -> full feature matching
+
+# Params for geometric estimation
+robust_matching_threshold: 3  # Outlier threshold (in pixels) for fundamental matrix estimation
+five_point_algo_threshold: 5  # Outlier threshold (in pixels) for essential matrix estimation
+
+# Other params
+processes: 1                  # Number of threads to use

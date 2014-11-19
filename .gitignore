@@ -1,6 +1,10 @@
 *.pyc
-data
 build
 .DS_Store
-biblio
-*.pgm
+
+# Ignore the data folder, but not the berlin example.
+data/*
+data/berlin/*
+!data/berlin
+!data/berlin/config.yaml
+!data/berlin/images
