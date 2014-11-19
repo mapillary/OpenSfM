@@ -16,7 +16,7 @@ Contents
 --------------------------------------------
 The database contains two json files, 'sensor_data.json' and 'sensor_data_detailed.json'. 
 
-sensor_data.json : A slim version of the database - a dictionary that contains only the camera model and the sensor size in mm. Each item in the dictionary is in form of 'MAKE MODEL: SENSOR_SIZE in mm'. In general, 'MAKE' and 'MODEL' are available in the EXIF of an image. For example, given MAKE='Canon', MODEL='EOS 1000D', on will be able to query the sensor size from the dictionary {"Canon EOS 1000D": 22.2}. 
+sensor_data.json : A slim version of the database - a dictionary that contains only the camera model and the sensor size in mm. Each item in the dictionary is in the form of 'MAKE MODEL: SENSOR_SIZE in mm'. In general, 'MAKE' and 'MODEL' are available in the EXIF of an image. For example, given MAKE='Canon', MODEL='EOS 1000D', one will be able to query the sensor size from the dictionary {"Canon EOS 1000D": 22.2}. 
 
 sensor_data_detailed.json : A detailed version of database that contains more complete information about the sensors.
 
