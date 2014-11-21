@@ -201,13 +201,14 @@ def resect(graph, reconstruction, shot_id, min_inliers=20):
         # Prior on focal length
         R, t, inliers = cv2.solvePnPRansac(X.astype(np.float32), x.astype(np.float32), K, dist)
     else:
-        # Estimate focal length and pose
-        p3d = X.astype(np.float32)
-        p2d = x.astype(np.float32)
-        p2d -= np.array(K[[0,1],2])
-        R, t, f = multiview.p3pf(p2d, p3d)
-        K[0,0], K[1,1] = f, f
-        R, t, inliers = cv2.solvePnPRansac(X.astype(np.float32), x.astype(np.float32), K, dist)
+        pass
+        # # Estimate focal length and pose
+        # p3d = X.astype(np.float32)
+        # p2d = x.astype(np.float32)
+        # p2d -= np.array(K[[0,1],2])
+        # R, t, f = multiview.p3pf(p2d, p3d)
+        # K[0,0], K[1,1] = f, f
+        # R, t, inliers = cv2.solvePnPRansac(X.astype(np.float32), x.astype(np.float32), K, dist)
     if inliers is None:
         print 'Resection no inliers'
         return False
