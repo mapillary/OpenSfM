@@ -17,74 +17,124 @@ import networkx as nx
 from networkx.algorithms import bipartite
 
 
-def best_initial_pair(graph):
-    #TODO(pau): implement H vs F test to choose wiselier
+def best_initial_pair(graph, shots=None, pairs=None):
 
     # Get the image connectivity graph.
     track_nodes, image_nodes = bipartite.sets(graph)
     image_graph = bipartite.weighted_projected_graph(graph, image_nodes)
     best_pair = None
     best_outliers = 0
-    for im1, im2, d in image_graph.edges(data=True):
-        tracks, p1, p2 = dataset.common_tracks(graph, im1, im2)
-        if len(tracks) >= 100:
-            H, inliers = cv2.findHomography(p1, p2, cv2.cv.CV_RANSAC, 5)
-            outliers = len(tracks) - float(inliers.sum())
-            print 'inliers {0} / {1}'.format(inliers.sum(), len(tracks))
-            if outliers > best_outliers:
-                best_outliers = outliers
-                best_pair = (im1, im2)
-                print 'Best inliers {0} / {1}'.format(inliers.sum(), len(tracks))
-    return best_pair
+    best_inliers = 0
+    pairs_ordered = []
+    num_tracks = []
+    if shots is None:
+        shots = image_nodes
+    if pairs is None:
+        for im1, im2, d in image_graph.edges(data=True):
+            if (im1 in shots) and (im2 in shots):
+                tracks, p1, p2 = dataset.common_tracks(graph, im1, im2)
+                if len(tracks) >= 100:
+                    H, inliers = cv2.findHomography(p1, p2, cv2.RANSAC, 8)
+                    outliers = len(tracks) - float(inliers.sum())
+                    outlier_ratio = outliers/float(len(tracks))
+                    if outlier_ratio > 0.3:
+                        pairs_ordered.append((im1,im2))
+                        num_tracks.append(len(tracks))
+                    if len(tracks) > best_inliers:
+                        if outlier_ratio > 0.2 or best_pair is None:
+                            best_pair = im1, im2
+                            print 'Best inliers {0} / {1}'.format(inliers.sum(), len(tracks))
+                            best_inliers = len(tracks)
+        order = np.argsort(-np.array(num_tracks))
+        pairs_ordered = [pairs_ordered[o] for o in order]
+        pairs = pairs_ordered
+    else:
+        pp = []
+        i = 0
+        for p in pairs:
+            if (p[0] in shots) and (p[1] in shots):
+                pp.append([p[0], p[1]])
+                if i == 0:
+                    best_pair = [p[0], p[1]]
+                i+=1
+
+        pairs_ordered = pp
+        pairs = pp
+
+    return best_pair,pairs_ordered
 
 
-def bootstrap_reconstruction(data, graph):
-    im1, im2 = best_initial_pair(graph)
+def bootstrap_reconstruction(data, graph, shots, pairs=None):
+    best_pair, pairs_ordered = best_initial_pair(graph, shots, pairs)
 
-    print 'Matching image', im1, 'with image', im2
-    d1 = data.exif_data(im1)
-    d2 = data.exif_data(im2)
-    tracks, p1, p2 = dataset.common_tracks(graph, im1, im2)
+    good_pair_found = False
+    good_pair = []
 
-    print 'Number of common tracks', len(tracks)
-    R, t, inliers, Xs = features.two_view_reconstruction(p1, p2, d1, d2, data.config)
-    print 'Number of inliers', len(inliers)
+    i = 0
 
-    reconstruction = {
-        "cameras": {
-            "main_camera": {
-                "width": d1["width"],
-                "height": d1["height"],
-                "focal": d1["focal_ratio"] * d1["width"],
-                "exif_focal": d1["focal_ratio"] * d1["width"],
-            },
-        },
+    reconstruction = {}
 
-        "shots" : {
-            im1: {
-                "camera": "main_camera",
-                "rotation": [0, 0, 0],
-                "translation": [0, 0, 0],
-            },
-            im2: {
-                "camera": "main_camera",
-                "rotation": list(cv2.Rodrigues(R)[0].flat),
-                "translation": list(t),
-            },
-        },
+    while (not good_pair_found) and (i < len(pairs_ordered)):
 
-        "points" : {
-        },
-    }
-    triangulate_shot_features(graph, reconstruction, im1)
-    return reconstruction
+        im1, im2 = pairs_ordered[i]
+
+        if (im1 in shots) and (im2 in shots):
+            i+=1
+
+            print 'Initial reconstruction with', im1, 'and', im2
+            d1 = data.exif_data(im1)
+            d2 = data.exif_data(im2)
+            tracks, p1, p2 = dataset.common_tracks(graph, im1, im2)
+
+            print 'Number of common tracks', len(tracks)
+
+            R, t, inliers, Xs = features.two_view_reconstruction(p1, p2, d1, d2, data.config)
+            print 'Number of inliers', len(inliers)
+            reconstruction = {
+                "cameras": {
+                    "main_camera": {
+                        "width": d1["width"],
+                        "height": d1["height"],
+                        "focal": d1["focal_ratio"] * d1["width"],
+                        "exif_focal": d1["focal_ratio"] * d1["width"],
+                    },
+                },
+
+                "shots" : {
+                    im1: {
+                        "camera": "main_camera",
+                        "rotation": [0, 0, 0],
+                        "translation": [0, 0, 0],
+                    },
+                    im2: {
+                        "camera": "main_camera",
+                        "rotation": list(cv2.Rodrigues(R)[0].flat),
+                        "translation": list(t),
+                    },
+                },
+
+                "points" : {
+                },
+            }
+            triangulate_shot_features(graph, reconstruction, im1)
+            print 'Number of reconstructed 3D points :{}'.format(len(reconstruction['points']))
+            if len(reconstruction['points']) > 50:
+                print 'Found initialize good pair', im1 , 'and', im2
+                good_pair_found = True
+                good_pair = [im1, im2]
+            else:
+                print 'Pair', im1, ':', im2, 'fails'
+
+    return reconstruction, good_pair, pairs_ordered
 
 
-def reconstructed_points_for_images(graph, reconstruction):
+def reconstructed_points_for_images(graph, reconstruction, shots=None):
     tracks, images = bipartite.sets(graph)
+    if shots == None:
+        shots = images
     res = []
     for image in images:
-        if image not in reconstruction['shots']:
+        if image not in reconstruction['shots'] and image in shots:
             common_tracks = 0
             for track in graph[image]:
                 if track in reconstruction['points']:
@@ -147,7 +197,17 @@ def resect(graph, reconstruction, shot_id, min_inliers=20):
         return False
     K = K_from_camera(reconstruction['cameras']['main_camera'])
     dist = np.array([0,0,0,0.])
-    R, t, inliers = cv2.solvePnPRansac(X.astype(np.float32), x.astype(np.float32), K, dist)
+    if K[0,0]>0:
+        # Prior on focal length
+        R, t, inliers = cv2.solvePnPRansac(X.astype(np.float32), x.astype(np.float32), K, dist)
+    else:
+        # Estimate focal length and pose
+        p3d = X.astype(np.float32)
+        p2d = x.astype(np.float32)
+        p2d -= np.array(K[[0,1],2])
+        R, t, f = multiview.p3pf(p2d, p3d)
+        K[0,0], K[1,1] = f, f
+        R, t, inliers = cv2.solvePnPRansac(X.astype(np.float32), x.astype(np.float32), K, dist)
     if inliers is None:
         print 'Resection no inliers'
         return False
@@ -163,12 +223,12 @@ def resect(graph, reconstruction, shot_id, min_inliers=20):
         return False
 
 def K_from_camera(camera):
-    f = camera['focal']
+    f = float(camera['focal'])
     w = camera['width']
     h = camera['height']
-    return np.array([[f, 0, w / 2],
-                     [0, f, h / 2],
-                     [0, 0, 1]])
+    return np.array([[f, 0., w / 2],
+                     [0., f, h / 2],
+                     [0., 0., 1.]])
 
 def Rt_from_shot(shot):
     Rt = np.empty((3, 4))
@@ -187,7 +247,7 @@ def angle_between_rays(P1, x1, P2, x2):
     return multiview.vector_angle(v1, v2)
 
 
-def triangulate_track(track, reconstruction, reproj_threshold=3):
+def triangulate_track(track, graph, reconstruction, reproj_threshold=3):
     ''' Triangulate a track
     '''
     P_by_id = {}
@@ -207,7 +267,7 @@ def triangulate_track(track, reconstruction, reproj_threshold=3):
             angle = angle_between_rays(Ps[i], xs[i], Ps[j], xs[j])
             max_angle = max(angle, max_angle)
 
-        if max_angle > math.radians(2):
+        if max_angle > math.radians(2.5):
             X = multiview.triangulate(Ps, xs)
             error = 0
             Xh = multiview.homogeneous(X)
@@ -227,7 +287,7 @@ def triangulate_shot_features(graph, reconstruction, shot_id, reproj_threshold=3
     '''
     for track in graph[shot_id]:
         if track not in reconstruction['points']:
-            triangulate_track(track,reconstruction,reproj_threshold=reproj_threshold)
+            triangulate_track(track, graph, reconstruction,reproj_threshold=reproj_threshold)
 
 
 def retriangulate(graph, reconstruction, config):
@@ -235,15 +295,14 @@ def retriangulate(graph, reconstruction, config):
     '''
     track_nodes, image_nodes = bipartite.sets(graph)
     for track in track_nodes:
-        if track not in reconstruction['points']:
-            triangulate_track(track, reconstruction, reproj_threshold=10)
+        # if track not in reconstruction['points']:
+        triangulate_track(track, reconstruction, reproj_threshold=5)
 
     # bundle adjustment
     reconstruction = features.bundle(data.tracks_file(), reconstruction, config)
 
     # filter points with large reprojection errors
     # TODO
-
 
 
 def paint_reconstruction(data, graph, reconstruction):
@@ -284,44 +343,86 @@ if __name__ == "__main__":
     data = dataset.DataSet(args.dataset)
     graph = data.tracks_graph()
 
-    reconstruction = bootstrap_reconstruction(data, graph)
-    reconstruction = features.bundle(data.tracks_file(), reconstruction, data.config)
+    reconstructions = []
 
-    do_retriangulation = False
+    track_nodes, image_nodes = bipartite.sets(graph)
 
-    i = 0
-    prev_num_points = len(reconstruction['points'])
+    images_remained = image_nodes
+
+    pairs = None
+
+    bundle_interval = data.config.get('bundle_interval',1)
+
     while True:
-        paint_reconstruction_constant(data, graph, reconstruction)
-        with open(data.reconstruction_file().replace('json', '%04d.json'%i), 'w') as fout:
-            fout.write(json.dumps(reconstruction, indent=4))
-            i += 1
-        common_tracks = reconstructed_points_for_images(graph, reconstruction)
-        if not common_tracks:
-            break
-        for image, num_tracks in common_tracks:
-            print '-------------------------------------------------------'
-            print 'Adding {0} to the reconstruction'.format(image)
-            if resect(graph, reconstruction, image, min_inliers=15):
-                print 'Resection succeded'
-                reconstruction = features.bundle(data.tracks_file(), reconstruction, data.config)
-                triangulate_shot_features(graph, reconstruction, image)
-                reconstruction = features.bundle(data.tracks_file(), reconstruction, data.config)
-                print 'reprojection_error', reprojection_error(graph, reconstruction)
-                num_points = len(reconstruction['points'])
-                if (num_points > prev_num_points*1.25 and i > 0) and do_retriangulation:
-                    print 'retriangulation'
-                    retriangulate(graph, reconstruction, data.config)
-                    prev_num_points = len(reconstruction['points'])
-                break
+        images_to_reconstruct = images_remained
+        reconstruction, initial_pair, pairs = bootstrap_reconstruction(data, graph, images_to_reconstruct, pairs)
+        if reconstruction:
+            reconstruction = features.bundle(data.tracks_file(), reconstruction, data.config)
+
+            do_retriangulation = False
+
+            i = 0
+            points = reconstruction.get('points',None)
+            if points is None:
+                prev_num_points = 999999999
             else:
-                print 'Resection failed'
+                prev_num_points = len(points)
+            num_camera_reconstructed = 2
+            images_remained = []
+            while True:
+                # paint_reconstruction_constant(data, graph, reconstruction)
+                with open(data.reconstruction_file().replace('json', '%04d.json'%i), 'w') as fout:
+                    fout.write(json.dumps(reconstruction, indent=4))
+                    i += 1
+                common_tracks = reconstructed_points_for_images(graph, reconstruction, images_to_reconstruct)
+                if not common_tracks:
+                    break
+                for image, num_tracks in common_tracks:
+                    if resect(graph, reconstruction, image, min_inliers=15):
+                        print '-------------------------------------------------------'
+                        print 'Adding {0} to the reconstruction'.format(image)
+                        print 'Resection succeeded'
+                        if (num_camera_reconstructed%bundle_interval == 0):
+                            reconstruction = features.bundle(data.tracks_file(), reconstruction, data.config)
+                        triangulate_shot_features(graph, reconstruction, image, reproj_threshold=5.0)
+                        if (num_camera_reconstructed%bundle_interval == 0):
+                            reconstruction = features.bundle(data.tracks_file(), reconstruction, data.config)
+                        print 'reprojection_error', reprojection_error(graph, reconstruction)
+                        num_points = len(reconstruction['points'])
+                        if (num_points > prev_num_points*1.2 and i > 0) and do_retriangulation:
+                            print 'retriangulation'
+                            retriangulate(graph, reconstruction)
+                            prev_num_points = len(reconstruction['points'])
+                        num_camera_reconstructed += 1
+                        break
+                    else:
+                        # print 'Resection failed'
+                        images_remained.append(image)
+                        pass
+                else:
+                    print 'Some images can not be added'
+                    break
 
+            print 'Painting the reconstruction from {0} cameras'.format(num_camera_reconstructed)
+            if not (num_camera_reconstructed%bundle_interval):
+                reconstruction = features.bundle(data.tracks_file(), reconstruction, data.config)
+            reconstructions.append(reconstruction)
+            paint_reconstruction(data, graph, reconstruction)
         else:
-            print 'Some cameras could be resected'
+            images_remained = list(np.setdiff1d(np.array(images_to_reconstruct), np.array(initial_pair)))
+        print len(images_remained), 'images remained.'
+        # print images_remained
+        if not images_remained or len(images_remained)==len(images_to_reconstruct):
+            # All images are reconstructed or no more partial reconstruction is possible
+            print 'No more images can be reconstructed'
             break
+        with open(data.reconstruction_file(), 'w') as fout:
+            fout.write(json.dumps(reconstructions, indent=4))
 
-    print 'Painting the reconstruction'
-    paint_reconstruction(data, graph, reconstruction)
+    for k, r in enumerate(reconstructions):
+        print 'Reconstruction', k, ':', len(r['shots']), 'images', ',', len(r['points']),'points'
+
+    print len(reconstructions),'partial reconstructions in total.'
+
     with open(data.reconstruction_file(), 'w') as fout:
-        fout.write(json.dumps(reconstruction, indent=4))
+        fout.write(json.dumps(reconstructions, indent=4))
