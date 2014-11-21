@@ -1,8 +1,14 @@
+from subprocess import call, Popen, PIPE
+
+
 from numpy.linalg import qr
 import numpy as np
 import random
 import math
+import cv2
+
 import transformations as tf
+import context
 
 def nullspace(A):
     '''Compute the null space of A.
@@ -206,3 +212,27 @@ class TestLinearKernel:
 
     def evaluate(self, model):
         return self.y - model * self.x
+
+
+def p3pf(p2d, p3d, config=None):
+    '''Command line wrapper for pose estimation and unknown focal length
+        with sampling
+    '''
+    s = ''
+    for l in np.hstack((p2d, p3d)):
+        s += ' '.join(str(i) for i in l) + '\n'
+
+    params = [context.P3PF,' --logtostderr']
+
+    params = map(str, params)
+
+    p = Popen(params, stdout=PIPE, stdin=PIPE, stderr=PIPE)
+    res = p.communicate(input=s)[0]
+
+    res = res.split(None,15)
+    f = float(res[0])
+    t = np.array(res[1:4]).astype(np.float32)
+    R = np.array(res[4:]).astype(np.float32)
+    R = cv2.Rodrigues(R.reshape((3,3)))[0]
+
+    return R, t, f
