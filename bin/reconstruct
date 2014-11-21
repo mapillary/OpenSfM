@@ -95,8 +95,8 @@ def bootstrap_reconstruction(data, graph, shots, pairs=None):
                     "main_camera": {
                         "width": d1["width"],
                         "height": d1["height"],
-                        "focal": d1["focal_ratio"] * d1["width"],
-                        "exif_focal": d1["focal_ratio"] * d1["width"],
+                        "focal": d1['focal_ratio'] * np.max([d1['width'], d1['height']]),
+                        "exif_focal": d1['focal_ratio'] * np.max([d1['width'], d1['height']]),
                     },
                 },
 
