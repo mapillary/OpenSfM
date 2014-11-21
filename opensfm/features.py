@@ -17,7 +17,6 @@ def extract_feature(imagefile, config):
 
     # Resize the image
     sz = np.max(np.array(image.shape[0:2]))
-    print sz
     feature_process_size = config.get('feature_process_size', -1)
     resize_ratio = feature_process_size / float(sz)
     if resize_ratio > 0 and resize_ratio < 1.0:
@@ -156,10 +155,10 @@ def two_view_reconstruction(p1, p2, d1, d2, config):
 
     params = [context.TWO_VIEW_RECONSTRUCTION,
               '-threshold', str(config['five_point_algo_threshold']),
-              '-focal1', d1['focal_ratio'] * d1['width'],
+              '-focal1', d1['focal_ratio'] * np.max([d1['width'], d1['height']]),
               '-width1', d1['width'],
               '-height1', d1['height'],
-              '-focal2', d2['focal_ratio'] * d2['width'],
+              '-focal2', d2['focal_ratio'] * np.max([d2['width'], d2['height']]),
               '-width2', d2['width'],
               '-height2', d2['height']]
     params = map(str, params)
