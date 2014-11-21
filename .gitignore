@@ -1,5 +1,6 @@
 *.pyc
 build
+xcode
 .DS_Store
 
 # Ignore the data folder, but not the berlin example.
