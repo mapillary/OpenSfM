@@ -22,8 +22,16 @@ else:
 
 data = dataset.DataSet(path)
 images = data.images()
+missing_sensors = {}
+
+
+if os.path.exists(data.data_path + '/imagedata.json'):
+    with open(data.data_path + '/imagedata.json', 'rb') as f:
+        exif_database = json.loads(f.read())
 
 for image in images:
+
+
     print 'Extracting focal lengths for image', image
 
     exif_string = check_output(['jhead', data.image_file(image)])
@@ -36,7 +44,7 @@ for image in images:
     size = exif['Resolution'].split('x')
     width, height = [int(i) for i in size]
 
-    if '(35mm equivalent:' in exif['Focal length']:
+    if '(35mm equivalent:' in exif.get('Focal length','none'):
         focal_35 = float(exif['Focal length'].split('(35mm equivalent:')[1].split('mm')[0])
         focal_ratio = focal_35 / 36.0 # 35mm film produces 36x24mm pictures.
     else:
@@ -52,14 +60,39 @@ for image in images:
         else:
             sensor_width = None
 
-        focal = float(exif['Focal length'].split()[0].strip('mm'))
+        if 'Focal length' in exif:
+            focal = float(exif['Focal length'].split()[0].strip('mm'))
+        else:
+            focal = None
 
-        if sensor_width is not None:
+        if sensor_width is not None and focal is not None:
             focal_ratio = focal / sensor_width
         else:
             focal_ratio = 0
 
         focal_35 = 36.0 * focal_ratio
+
+    if focal_ratio == 0:
+        # try reading data from exif database (imagedata.json) if exist
+        exif = exif_database.get(image,None)
+        if exif is not None:
+            model = exif.get('model','none').lower()
+            make = exif.get('make','none').lower()
+            focal = float(exif.get('fmm',0.0))
+            focal_35 = float(exif.get('fmm35',0.0))
+            if not (focal_35 > 0):
+                model = model.replace(make,'') # remove possible duplicate 'make' information in 'model' for better matching
+                sensor_string = (make + ' ' + model).lower()
+                sensor_width = sensor_data.get(sensor_string,None)
+                if sensor_width is not None and focal is not None:
+                    focal_ratio = focal / sensor_width
+                else:
+                    focal_ratio = 0
+                focal_35 = 36.0 * focal_ratio
+            else:
+                focal_ratio = focal_35 / 36.0
+    if focal_ratio == 0:
+        missing_sensors[sensor_string] = 1
 
     d = {
             'width': width,
@@ -70,3 +103,6 @@ for image in images:
 
     with open(data.exif_file(image), 'w') as fout:
         fout.write(json.dumps(d, indent=4))
+
+    with open(data.data_path+'missing_sensor.json', 'w') as fout:
+        fout.write(json.dumps(missing_sensors, indent=4))
