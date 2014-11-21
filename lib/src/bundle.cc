@@ -7,20 +7,29 @@
 #include "bundle.h"
 
 
+DEFINE_double(exif_focal_sd, 0.01, "The standard deviation of the difference between the real focal and the EXIF focal");
+DEFINE_string(input, "", "The initial reconstruction file");
+DEFINE_string(output, "", "The bundle adjusted reconstruction file");
+DEFINE_string(tracks, "", "The tracks.csv file with the correspondence information");
+
+
 int main(int argc, char** argv) {
   google::InitGoogleLogging(argv[0]);
-  if (argc != 4) {
-    std::cerr << "usage: simple_bundle_adjuster <tracks> <input reconstruction> <output reconstruction>\n";
+  google::ParseCommandLineFlags(&argc, &argv, true);
+
+  if (!FLAGS_input.size() || !FLAGS_output.size() || !FLAGS_tracks.size() ) {
+    std::cerr << "usage: simple_bundle_adjuster --tracks <tracks> --input <input reconstruction> --output <output reconstruction>\n";
     return 1;
   }
 
   BALProblem bal_problem;
-  if (!bal_problem.LoadJson(argv[1], argv[2])) {
-    std::cerr << "ERROR: unable to open files " << argv[1] << " and " << argv[2] << "\n";
+  if (!bal_problem.LoadJson(FLAGS_tracks.c_str(), FLAGS_input.c_str())) {
+    std::cerr << "ERROR: unable to open files " << FLAGS_tracks << " and " << FLAGS_input << "\n";
     return 1;
   }
 
   const Observation* observations = bal_problem.observations();
+  const Camera* cameras = bal_problem.cameras();
 
   // Create residuals for each observation in the bundle adjustment problem. The
   // parameters for cameras and points are added automatically.
@@ -33,14 +42,24 @@ int main(int argc, char** argv) {
     ceres::CostFunction* cost_function = 
         new ceres::AutoDiffCostFunction<SnavelyReprojectionError, 2, 3, 6, 3>(
             new SnavelyReprojectionError(observations[i].coordinates[0],
-                                         observations[i].coordinates[1],
-                                         observations[i].camera->parameters[0]));
+                                         observations[i].coordinates[1]));
 
     problem.AddResidualBlock(cost_function,
                              new TruncatedLoss(9.0),
                              observations[i].camera->parameters,
                              observations[i].shot->parameters,
                              observations[i].point->parameters);
+  }
+
+  for (int i = 0; i < bal_problem.num_cameras(); ++i) {
+    double exif_focal_sd_in_pixels = FLAGS_exif_focal_sd * cameras[i].width;
+    ceres::CostFunction* cost_function = 
+        new ceres::AutoDiffCostFunction<GaussianPriorError, 1, 3>(
+            new GaussianPriorError(cameras[i].exif_focal, exif_focal_sd_in_pixels));
+
+    problem.AddResidualBlock(cost_function,
+                             NULL,
+                             observations[i].camera->parameters);
   }
 
   // Make Ceres automatically detect the bundle structure. Note that the
@@ -54,7 +73,7 @@ int main(int argc, char** argv) {
   ceres::Solve(options, &problem, &summary);
   std::cout << summary.BriefReport() << "\n";
 
-  bal_problem.SaveJson(argv[3]);
+  bal_problem.SaveJson(FLAGS_output.c_str());
   return 0;
 }
 

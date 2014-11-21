@@ -56,6 +56,7 @@ def bootstrap_reconstruction(data, graph):
                 "width": d1["width"],
                 "height": d1["height"],
                 "focal": d1["focal_ratio"] * d1["width"],
+                "exif_focal": d1["focal_ratio"] * d1["width"],
             },
         },
 
@@ -229,7 +230,7 @@ def triangulate_shot_features(graph, reconstruction, shot_id, reproj_threshold=3
             triangulate_track(track,reconstruction,reproj_threshold=reproj_threshold)
 
 
-def retriangulate(graph, reconstruction):
+def retriangulate(graph, reconstruction, config):
     '''Re-triangulate 3D points
     '''
     track_nodes, image_nodes = bipartite.sets(graph)
@@ -238,7 +239,7 @@ def retriangulate(graph, reconstruction):
             triangulate_track(track, reconstruction, reproj_threshold=10)
 
     # bundle adjustment
-    reconstruction = features.bundle(data.tracks_file(), reconstruction)
+    reconstruction = features.bundle(data.tracks_file(), reconstruction, config)
 
     # filter points with large reprojection errors
     # TODO
@@ -284,7 +285,7 @@ if __name__ == "__main__":
     graph = data.tracks_graph()
 
     reconstruction = bootstrap_reconstruction(data, graph)
-    reconstruction = features.bundle(data.tracks_file(), reconstruction)
+    reconstruction = features.bundle(data.tracks_file(), reconstruction, data.config)
 
     do_retriangulation = False
 
@@ -303,14 +304,14 @@ if __name__ == "__main__":
             print 'Adding {0} to the reconstruction'.format(image)
             if resect(graph, reconstruction, image, min_inliers=15):
                 print 'Resection succeded'
-                reconstruction = features.bundle(data.tracks_file(), reconstruction)
+                reconstruction = features.bundle(data.tracks_file(), reconstruction, data.config)
                 triangulate_shot_features(graph, reconstruction, image)
-                reconstruction = features.bundle(data.tracks_file(), reconstruction)
+                reconstruction = features.bundle(data.tracks_file(), reconstruction, data.config)
                 print 'reprojection_error', reprojection_error(graph, reconstruction)
                 num_points = len(reconstruction['points'])
                 if (num_points > prev_num_points*1.25 and i > 0) and do_retriangulation:
                     print 'retriangulation'
-                    retriangulate(graph, reconstruction)
+                    retriangulate(graph, reconstruction, data.config)
                     prev_num_points = len(reconstruction['points'])
                 break
             else:

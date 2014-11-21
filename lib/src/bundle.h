@@ -42,6 +42,7 @@ static bool FileContents(const char *filename, std::string *file_contents) {
 struct Camera {
   double parameters[3];
   double width, height;
+  double exif_focal;
   std::string id;
 };
 
@@ -70,6 +71,8 @@ class BALProblem {
 
   int num_observations() const { return observations_.size(); }
   const Observation* observations() const { return &observations_[0]; }
+  int num_cameras() const { return cameras_.size(); }
+  const Camera* cameras() const { return &cameras_[0]; }
 
 
   bool LoadJson(const char *tracks, const char *reconstruction) {
@@ -100,6 +103,7 @@ class BALProblem {
       c.parameters[2] = (*i)["k2"].asDouble();
       c.height = (*i)["height"].asDouble();
       c.width = (*i)["width"].asDouble();
+      c.exif_focal = (*i)["exif_focal"].asDouble();
       cameras_.push_back(c);
     }
     for (int i = 0; i < cameras_.size(); ++i) {
@@ -184,6 +188,7 @@ class BALProblem {
     Json::Value cameras;
     for (int i = 0; i < cameras_.size(); ++i) {
       Json::Value camera;
+      camera["exif_focal"] = cameras_[i].exif_focal;
       camera["width"] = cameras_[i].width;
       camera["height"] = cameras_[i].height;
       camera["focal"] = cameras_[i].parameters[0];
@@ -292,6 +297,19 @@ struct SnavelyReprojectionError {
   double observed_x;
   double observed_y;
   double focal_;
+};
+
+struct GaussianPriorError {
+  GaussianPriorError(double estimate, double std_deviation)
+      : estimate_(estimate), scale_(1.0 / std_deviation / sqrt(2)) {}
+
+  template <typename T>
+  bool operator()(const T* const parameter, T* residuals) const {
+    residuals[0] = T(scale_) * (*parameter - T(estimate_));
+    return true;
+  }
+  double estimate_;
+  double scale_;
 };
 
 

@@ -46,7 +46,7 @@ target_link_libraries(two_view_reconstruction
                       ${GLOG_LIBRARY}
                       )
 
-add_executable(bundle bundle.cc)
+add_executable(bundle bundle.cc bundle.h)
 target_link_libraries(bundle
                       ${CERES_LIBRARIES}
                       ${GFLAGS_LIBRARY}

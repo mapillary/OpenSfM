@@ -183,16 +183,23 @@ def two_view_reconstruction(p1, p2, d1, d2, config):
     return R, t, inliers, Xs
 
 
-def bundle(tracks_file, reconstruction):
+def bundle(tracks_file, reconstruction, config):
     '''Extracts features of image and save them
     '''
     source = "/tmp/bundle_source.json"
     dest = "/tmp/bundle_dest.json"
 
+    print 'Focal before bundle', reconstruction['cameras']['main_camera']['focal'] 
     with open(source, 'w') as fout:
         fout.write(json.dumps(reconstruction, indent=4))
 
-    call([context.BUNDLE, tracks_file, source, dest])
+    call([context.BUNDLE,
+        '--exif_focal_sd', str(config.get('exif_focal_sd', 999)),
+        '--tracks', tracks_file,
+        '--input', source,
+        '--output', dest])
 
     with open(dest) as fin:
-        return json.load(fin)
+        result = json.load(fin)
+        print 'Focal after bundle', result['cameras']['main_camera']['focal'] 
+        return result
