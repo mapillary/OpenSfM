@@ -182,6 +182,22 @@ def reprojection_error(graph, reconstruction):
     return np.median(errors)
 
 
+def reprojection_error_track(track, graph, reconstruction):
+    errors = []
+    if track in reconstruction['points']:
+        for shot_id in graph[track]:
+            observation = graph[shot_id][track]['feature']
+            shot = reconstruction['shots'][shot_id]
+            camera = reconstruction['cameras'][shot['camera']]
+            point = reconstruction['points'][track]
+            errors.append(single_reprojection_error(camera, shot, point, observation))
+            error = np.max(errors)
+    else:
+        error = 999999999.
+    return error
+
+
+
 def resect(graph, reconstruction, shot_id, min_inliers=20):
     '''Add a shot to the reconstruction.
     '''
@@ -297,13 +313,20 @@ def retriangulate(graph, reconstruction, config):
     track_nodes, image_nodes = bipartite.sets(graph)
     for track in track_nodes:
         # if track not in reconstruction['points']:
-        triangulate_track(track, reconstruction, reproj_threshold=5)
+        triangulate_track(track, graph, reconstruction, reproj_threshold=5)
 
     # bundle adjustment
     reconstruction = features.bundle(data.tracks_file(), reconstruction, config)
 
     # filter points with large reprojection errors
-    # TODO
+    track_to_delete = []
+    for track in reconstruction['points']:
+        error = reprojection_error_track(track, graph, reconstruction)
+        if error > 3.:
+            track_to_delete.append(track)
+    print 'Removing {0} points after retriangulation.'.format(len(track_to_delete))
+    for t in track_to_delete:
+        del reconstruction['points'][t]
 
 
 def paint_reconstruction(data, graph, reconstruction):
@@ -392,7 +415,7 @@ if __name__ == "__main__":
                         num_points = len(reconstruction['points'])
                         if (num_points > prev_num_points*1.2 and i > 0) and do_retriangulation:
                             print 'retriangulation'
-                            retriangulate(graph, reconstruction)
+                            retriangulate(graph, reconstruction, data.config)
                             prev_num_points = len(reconstruction['points'])
                         num_camera_reconstructed += 1
                         break
