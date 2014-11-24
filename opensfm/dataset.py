@@ -44,7 +44,7 @@ class DataSet:
         return filename.split('.')[-1].lower() in {'jpg', 'jpeg', 'png', 'tif', 'tiff', 'pgm', 'pnm', 'gif'}
 
     def images(self):
-        """Return list of file paths of all images in this dataset"""
+        """Return list of file names of all images in this dataset"""
         return [i for i in os.listdir(self.image_path()) if self._is_image_file(i)]
 
     def image_path(self):
@@ -156,6 +156,39 @@ class DataSet:
     def reconstruction_file(self):
         """Return path of reconstruction file"""
         return os.path.join(self.data_path, 'reconstruction.json')
+
+    def invent_reference_lla(self):
+        lat, lon, alt = 0.0, 0.0, 0.0
+        wlat, wlon, walt = 0.0, 0.0, 0.0
+        for image in self.images():
+            d = self.exif_data(image)
+            if 'gps' in d:
+                w = 1.0 / d['gps'].get('dop', 15)
+                lat += w * d['gps']['latitude']
+                lon += w * d['gps']['longitude']
+                wlat += w
+                wlon += w
+                if 'altitude' in d['gps']:
+                    alt += w * d['gps']['altitude']
+                    walt += w
+        if wlat: lat /= wlat
+        if wlon: lon /= wlon
+        if walt: alt /= walt
+        self.set_reference_lla(lat, lon, alt)
+
+    def reference_lla_path(self):
+        return os.path.join(self.data_path, 'reference_lla.json')
+
+    def set_reference_lla(self, lat, lon, alt):
+        with open(self.reference_lla_path(), 'w') as fout:
+            json.dump({'latitude': lat,
+                       'longitude': lon,
+                       'altitude': alt}, fout)
+
+    def reference_lla(self):
+        with open(self.reference_lla_path()) as fin:
+            d = json.load(fin)
+            return d['latitude'], d['longitude'], d['altitude']
 
 
 def common_tracks(g, im1, im2):

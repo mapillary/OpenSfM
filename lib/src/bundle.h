@@ -48,6 +48,8 @@ struct Camera {
 
 struct Shot {
   double parameters[6];
+  double gps_translation[3];
+  double gps_dop;
   std::string camera;
   std::string id;
 };
@@ -123,6 +125,9 @@ class BALProblem {
         s.parameters[j] = (*i)["rotation"][j].asDouble();
       for (int j = 0; j < 3; ++j)
         s.parameters[3 + j] = (*i)["translation"][j].asDouble();
+      for (int j = 0; j < 3; ++j)
+        s.gps_translation[j] = (*i)["gps_translation"][j].asDouble();
+      s.gps_dop = (*i)["gps_dop"].asDouble();
       s.camera = (*i)["camera"].asString();
       shots_.push_back(s);
     }
@@ -206,12 +211,17 @@ class BALProblem {
       shot["camera"] = shots_[i].camera;
       Json::Value Rarray(Json::arrayValue);
       Json::Value tarray(Json::arrayValue);
+      Json::Value gpstarray(Json::arrayValue);
       for (int j = 0; j < 3; ++j)
         Rarray.append(shots_[i].parameters[j]);
       for (int j = 0; j < 3; ++j)
         tarray.append(shots_[i].parameters[3 + j]);
+      for (int j = 0; j < 3; ++j)
+        gpstarray.append(shots_[i].gps_translation[j]);
       shot["rotation"] = Rarray;
       shot["translation"] = tarray;
+      shot["gps_translation"] = gpstarray;
+      shot["gps_dop"] = shots_[i].gps_dop;
       shots[shots_[i].id] = shot;
     }
     root["shots"] = shots;

@@ -13,6 +13,7 @@ from opensfm import transformations as tf
 from opensfm import dataset
 from opensfm import features
 from opensfm import multiview
+from opensfm import geo
 import networkx as nx
 from networkx.algorithms import bipartite
 
@@ -62,6 +63,22 @@ def best_initial_pair(graph, shots=None, pairs=None):
         pairs = pp
 
     return best_pair,pairs_ordered
+
+
+def add_gps_translation(data, reconstruction, image):
+    d = data.exif_data(image)
+    reflla = data.reference_lla()
+    if 'gps' in d:
+        lat = d['gps']['latitude']
+        lon = d['gps']['longitude']
+        alt = d['gps'].get('altitude', 0)
+        x, y, z = geo.topocentric_from_lla(lat, lon, alt, *reflla)
+        reconstruction['shots'][image]['gps_translation'] = [x, y, z]
+        reconstruction['shots'][image]['gps_dop'] = d['gps'].get('dop', 15.0)
+    else:
+        reconstruction['shots'][image]['gps_translation'] = [0.0, 0.0, 0.0]
+        reconstruction['shots'][image]['gps_dop'] = 999999.0
+    print reconstruction['shots'][image]
 
 
 def bootstrap_reconstruction(data, graph, shots, pairs=None):
@@ -116,6 +133,8 @@ def bootstrap_reconstruction(data, graph, shots, pairs=None):
                 "points" : {
                 },
             }
+            add_gps_translation(data, reconstruction, im1)
+            add_gps_translation(data, reconstruction, im2)
             triangulate_shot_features(graph, reconstruction, im1)
             print 'Number of reconstructed 3D points :{}'.format(len(reconstruction['points']))
             if len(reconstruction['points']) > 50:
@@ -126,6 +145,7 @@ def bootstrap_reconstruction(data, graph, shots, pairs=None):
                 print 'Pair', im1, ':', im2, 'fails'
 
     return reconstruction, good_pair, pairs_ordered
+
 
 
 def reconstructed_points_for_images(graph, reconstruction, shots=None):
@@ -198,7 +218,7 @@ def reprojection_error_track(track, graph, reconstruction):
 
 
 
-def resect(graph, reconstruction, shot_id, min_inliers=20):
+def resect(data, graph, reconstruction, shot_id, min_inliers=20):
     '''Add a shot to the reconstruction.
     '''
     xs = []
@@ -235,6 +255,7 @@ def resect(graph, reconstruction, shot_id, min_inliers=20):
             "rotation": list(R.flat),
             "translation": list(t.flat),
         }
+        add_gps_translation(data, reconstruction, shot_id)
         return True
     else:
         return False
@@ -365,6 +386,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     data = dataset.DataSet(args.dataset)
+    data.invent_reference_lla()
     graph = data.tracks_graph()
 
     reconstructions = []
@@ -394,7 +416,7 @@ if __name__ == "__main__":
             num_camera_reconstructed = 2
             images_remained = []
             while True:
-                # paint_reconstruction_constant(data, graph, reconstruction)
+                paint_reconstruction_constant(data, graph, reconstruction)
                 with open(data.reconstruction_file().replace('json', '%04d.json'%i), 'w') as fout:
                     fout.write(json.dumps(reconstruction, indent=4))
                     i += 1
@@ -402,7 +424,7 @@ if __name__ == "__main__":
                 if not common_tracks:
                     break
                 for image, num_tracks in common_tracks:
-                    if resect(graph, reconstruction, image, min_inliers=15):
+                    if resect(data, graph, reconstruction, image, min_inliers=15):
                         print '-------------------------------------------------------'
                         print 'Adding {0} to the reconstruction'.format(image)
                         print 'Resection succeeded'

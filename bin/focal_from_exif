@@ -5,6 +5,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 import os, sys
 from opensfm import dataset
 import json
+import exifread
 from subprocess import check_output
 
 from opensfm.sensors import sensor_data
@@ -20,6 +21,17 @@ else:
     usage()
 
 
+def eval_frac(value):
+    return float(value.num) / float(value.den)
+
+def gps_to_decimal(values, reference):
+    sign = 1 if reference in 'NE' else -1
+    degrees = eval_frac(values[0])
+    minutes = eval_frac(values[1])
+    seconds = eval_frac(values[2])
+    return sign * (degrees + minutes / 60 + seconds / 3600)
+
+
 data = dataset.DataSet(path)
 images = data.images()
 missing_sensors = {}
@@ -31,9 +43,9 @@ if os.path.exists(data.data_path + '/imagedata.json'):
 
 for image in images:
 
-
     print 'Extracting focal lengths for image', image
 
+    # TODO(pau): replace jhead with exifdata.
     exif_string = check_output(['jhead', data.image_file(image)])
     exif = {}
     for line in exif_string.splitlines():
@@ -100,6 +112,23 @@ for image in images:
             'focal_ratio': focal_ratio,
             'focal_35mm_equiv': focal_35,
         }
+
+    # GPS
+    with open(data.image_file(image)) as f:
+        tags = exifread.process_file(f)
+        if 'GPS GPSLatitude' in tags:
+            lat = gps_to_decimal(tags['GPS GPSLatitude'].values,
+                                 tags['GPS GPSLatitudeRef'].values)
+            lon = gps_to_decimal(tags['GPS GPSLongitude'].values,
+                                 tags['GPS GPSLongitudeRef'].values)
+            d['gps'] = {}
+            d['gps']['latitude'] = lat
+            d['gps']['longitude'] = lon
+            if 'GPS GPSAltitude' in tags:
+                d['gps']['altitude'] = eval_frac(tags['GPS GPSAltitude'].values[0])
+            if 'GPS GPSDOP' in tags:
+                d['gps']['dop'] = eval_frac(tags['GPS GPSDOP'].values[0])
+
 
     with open(data.exif_file(image), 'w') as fout:
         fout.write(json.dumps(d, indent=4))
