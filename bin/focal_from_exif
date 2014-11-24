@@ -2,13 +2,13 @@
 import os.path, sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-import os, sys
-from opensfm import dataset
 import json
 import exifread
-from subprocess import check_output
+import numpy as np
 
 from opensfm.sensors import sensor_data
+from opensfm import dataset
+
 
 def usage():
     print 'USAGE: %s data_set_path' % sys.argv[0]
@@ -35,45 +35,52 @@ def gps_to_decimal(values, reference):
 data = dataset.DataSet(path)
 images = data.images()
 missing_sensors = {}
+camera_models = {}
 
 
 if os.path.exists(data.data_path + '/imagedata.json'):
     with open(data.data_path + '/imagedata.json', 'rb') as f:
         exif_database = json.loads(f.read())
+else:
+    exif_database = {}
 
 for image in images:
 
     print 'Extracting focal lengths for image', image
+    with open(data.image_file(image)) as f:
+        tags = exifread.process_file(f, details=False)
 
-    # TODO(pau): replace jhead with exifdata.
-    exif_string = check_output(['jhead', data.image_file(image)])
-    exif = {}
-    for line in exif_string.splitlines():
-        words = line.split(':', 1)
-        if len(words) == 2:
-            exif[words[0].strip()] = words[1].strip()
+    # Image Width and Image Height
+    width, height = (int(tags['EXIF ExifImageWidth'].values[0]),
+                    int(tags['EXIF ExifImageLength'].values[0]) )
 
-    size = exif['Resolution'].split('x')
-    width, height = [int(i) for i in size]
+    # Camera make and model
+    if 'EXIF LensMake' in tags:
+        make = str(tags['EXIF LensMake'].values)
+    else:
+        make = 'unknown'
+    if 'EXIF LensModel' in tags:
+        model = str(tags['EXIF LensModel'].values)
+    else:
+        model = 'unknown'
 
-    if '(35mm equivalent:' in exif.get('Focal length','none'):
-        focal_35 = float(exif['Focal length'].split('(35mm equivalent:')[1].split('mm')[0])
+    if make != 'unknown':
+        model = model.replace(make,'') # remove possible duplicate 'make' information in 'model' for better matching
+    sensor_string = (make + ' ' + model).lower()
+
+    if 'EXIF FocalLengthIn35mmFilm' in tags:
+        focal_35 = float((tags['EXIF FocalLengthIn35mmFilm'].values[0]))
         focal_ratio = focal_35 / 36.0 # 35mm film produces 36x24mm pictures.
     else:
-        model = exif.get('Camera model','none').lower()
-        make = exif.get('Camera make','none').lower()
-        model = model.replace(make,'') # remove possible duplicate 'make' information in 'model' for better matching
-        sensor_string = (make + ' ' + model).lower()
-
         if 'CCD width' in exif:
-            sensor_width = float(exif['CCD width'].strip('mm'))
+            sensor_width = float(exif['EXIF CCDWidth'].values[0])
         elif sensor_string in sensor_data:
             sensor_width = sensor_data[sensor_string]
         else:
             sensor_width = None
 
-        if 'Focal length' in exif:
-            focal = float(exif['Focal length'].split()[0].strip('mm'))
+        if 'EXIF FocalLength' in exif:
+            focal = float(eval_frac(exif['EXIF FocalLength'].values))
         else:
             focal = None
 
@@ -88,8 +95,8 @@ for image in images:
         # try reading data from exif database (imagedata.json) if exist
         exif = exif_database.get(image,None)
         if exif is not None:
-            model = exif.get('model','none').lower()
-            make = exif.get('make','none').lower()
+            model = exif.get('model','unknown').lower()
+            make = exif.get('make','unknown').lower()
             focal = float(exif.get('fmm',0.0))
             focal_35 = float(exif.get('fmm35',0.0))
             if not (focal_35 > 0):
@@ -103,6 +110,7 @@ for image in images:
                 focal_35 = 36.0 * focal_ratio
             else:
                 focal_ratio = focal_35 / 36.0
+
     if focal_ratio == 0:
         missing_sensors[sensor_string] = 1
 
@@ -111,27 +119,39 @@ for image in images:
             'height': height,
             'focal_ratio': focal_ratio,
             'focal_35mm_equiv': focal_35,
+            'camera': sensor_string
         }
 
     # GPS
-    with open(data.image_file(image)) as f:
-        tags = exifread.process_file(f)
-        if 'GPS GPSLatitude' in tags:
-            lat = gps_to_decimal(tags['GPS GPSLatitude'].values,
-                                 tags['GPS GPSLatitudeRef'].values)
-            lon = gps_to_decimal(tags['GPS GPSLongitude'].values,
-                                 tags['GPS GPSLongitudeRef'].values)
-            d['gps'] = {}
-            d['gps']['latitude'] = lat
-            d['gps']['longitude'] = lon
-            if 'GPS GPSAltitude' in tags:
-                d['gps']['altitude'] = eval_frac(tags['GPS GPSAltitude'].values[0])
-            if 'GPS GPSDOP' in tags:
-                d['gps']['dop'] = eval_frac(tags['GPS GPSDOP'].values[0])
+    if 'GPS GPSLatitude' in tags:
+        lat = gps_to_decimal(tags['GPS GPSLatitude'].values,
+                             tags['GPS GPSLatitudeRef'].values)
+        lon = gps_to_decimal(tags['GPS GPSLongitude'].values,
+                             tags['GPS GPSLongitudeRef'].values)
+        d['gps'] = {}
+        d['gps']['latitude'] = lat
+        d['gps']['longitude'] = lon
+        if 'GPS GPSAltitude' in tags:
+            d['gps']['altitude'] = eval_frac(tags['GPS GPSAltitude'].values[0])
+        if 'GPS GPSDOP' in tags:
+            d['gps']['dop'] = eval_frac(tags['GPS GPSDOP'].values[0])
+
+    if sensor_string not in camera_models:
+        camera_models[sensor_string] = {
+                'width': width,
+                'height': height,
+                'focal_ratio': focal_ratio,
+                'focal_35mm_equiv': focal_35,
+                "focal": d['focal_ratio'] * np.max([d['width'], d['height']]),
+                "exif_focal": d['focal_ratio'] * np.max([d['width'], d['height']])
+            }
 
 
     with open(data.exif_file(image), 'w') as fout:
         fout.write(json.dumps(d, indent=4))
 
-    with open(data.data_path+'missing_sensor.json', 'w') as fout:
-        fout.write(json.dumps(missing_sensors, indent=4))
+with open(data.data_path+'missing_sensor.json', 'w') as fout:
+    fout.write(json.dumps(missing_sensors, indent=4))
+
+with open(data.camera_model_file(), 'w') as fout:
+    fout.write(json.dumps(camera_models, indent=4))

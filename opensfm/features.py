@@ -188,7 +188,7 @@ def bundle(tracks_file, reconstruction, config):
     source = "/tmp/bundle_source.json"
     dest = "/tmp/bundle_dest.json"
 
-    print 'Focal before bundle', reconstruction['cameras']['main_camera']['focal'] 
+    # print 'Focal before bundle', reconstruction['cameras']['main_camera']['focal']
     with open(source, 'w') as fout:
         fout.write(json.dumps(reconstruction, indent=4))
 
@@ -200,5 +200,5 @@ def bundle(tracks_file, reconstruction, config):
 
     with open(dest) as fin:
         result = json.load(fin)
-        print 'Focal after bundle', result['cameras']['main_camera']['focal'] 
+        # print 'Focal after bundle', result['cameras']['main_camera']['focal']
         return result

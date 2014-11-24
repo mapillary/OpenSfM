@@ -78,7 +78,6 @@ def add_gps_translation(data, reconstruction, image):
     else:
         reconstruction['shots'][image]['gps_translation'] = [0.0, 0.0, 0.0]
         reconstruction['shots'][image]['gps_dop'] = 999999.0
-    print reconstruction['shots'][image]
 
 
 def bootstrap_reconstruction(data, graph, shots, pairs=None):
@@ -90,6 +89,8 @@ def bootstrap_reconstruction(data, graph, shots, pairs=None):
     i = 0
 
     reconstruction = {}
+
+    cameras = data.camera_model_data()
 
     while (not good_pair_found) and (i < len(pairs_ordered)):
 
@@ -108,23 +109,16 @@ def bootstrap_reconstruction(data, graph, shots, pairs=None):
             R, t, inliers, Xs = features.two_view_reconstruction(p1, p2, d1, d2, data.config)
             print 'Number of inliers', len(inliers)
             reconstruction = {
-                "cameras": {
-                    "main_camera": {
-                        "width": d1["width"],
-                        "height": d1["height"],
-                        "focal": d1['focal_ratio'] * np.max([d1['width'], d1['height']]),
-                        "exif_focal": d1['focal_ratio'] * np.max([d1['width'], d1['height']]),
-                    },
-                },
+                "cameras": cameras,
 
                 "shots" : {
                     im1: {
-                        "camera": "main_camera",
+                        "camera": str(d1['camera']),
                         "rotation": [0, 0, 0],
                         "translation": [0, 0, 0],
                     },
                     im2: {
-                        "camera": "main_camera",
+                        "camera": str(d2['camera']),
                         "rotation": list(cv2.Rodrigues(R)[0].flat),
                         "translation": list(t),
                     },
@@ -231,7 +225,9 @@ def resect(data, graph, reconstruction, shot_id, min_inliers=20):
     X = np.array(Xs)
     if len(x) < 5:
         return False
-    K = K_from_camera(reconstruction['cameras']['main_camera'])
+    exif = data.exif_data(shot_id)
+    camera_model = exif['camera']
+    K = K_from_camera(reconstruction['cameras'][camera_model])
     dist = np.array([0,0,0,0.])
     if K[0,0]>0:
         # Prior on focal length
@@ -251,7 +247,7 @@ def resect(data, graph, reconstruction, shot_id, min_inliers=20):
     print 'Resection inliers:', len(inliers), '/', len(x)
     if len(inliers) >= min_inliers:
         reconstruction['shots'][shot_id] = {
-            "camera": "main_camera",
+            "camera": camera_model,
             "rotation": list(R.flat),
             "translation": list(t.flat),
         }
@@ -428,8 +424,10 @@ if __name__ == "__main__":
                         print '-------------------------------------------------------'
                         print 'Adding {0} to the reconstruction'.format(image)
                         print 'Resection succeeded'
+
                         if (num_camera_reconstructed%bundle_interval == 0):
                             reconstruction = features.bundle(data.tracks_file(), reconstruction, data.config)
+
                         triangulate_shot_features(graph, reconstruction, image, reproj_threshold=5.0)
                         if (num_camera_reconstructed%bundle_interval == 0):
                             reconstruction = features.bundle(data.tracks_file(), reconstruction, data.config)
@@ -440,7 +438,8 @@ if __name__ == "__main__":
                             retriangulate(graph, reconstruction, data.config)
                             prev_num_points = len(reconstruction['points'])
                         num_camera_reconstructed += 1
-                        break
+                        images_to_reconstruct = list(np.setdiff1d(np.array(images_to_reconstruct), [image]))
+                        # break
                     else:
                         # print 'Resection failed'
                         images_remained.append(image)
@@ -449,15 +448,19 @@ if __name__ == "__main__":
                     print 'Some images can not be added'
                     break
 
+
+                if (num_camera_reconstructed%bundle_interval):
+                    reconstruction = features.bundle(data.tracks_file(), reconstruction, data.config)
+
             print 'Painting the reconstruction from {0} cameras'.format(num_camera_reconstructed)
-            if not (num_camera_reconstructed%bundle_interval):
-                reconstruction = features.bundle(data.tracks_file(), reconstruction, data.config)
+
             reconstructions.append(reconstruction)
             paint_reconstruction(data, graph, reconstruction)
         else:
             images_remained = list(np.setdiff1d(np.array(images_to_reconstruct), np.array(initial_pair)))
+
         print len(images_remained), 'images remained.'
-        # print images_remained
+
         if not images_remained or len(images_remained)==len(images_to_reconstruct):
             # All images are reconstructed or no more partial reconstruction is possible
             print 'No more images can be reconstructed'

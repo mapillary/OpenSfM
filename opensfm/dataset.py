@@ -189,6 +189,16 @@ class DataSet:
         with open(self.reference_lla_path()) as fin:
             d = json.load(fin)
             return d['latitude'], d['longitude'], d['altitude']
+    def camera_model_data(self):
+        """
+        Return camera model data
+        """
+        with open(self.camera_model_file(), 'r') as fin:
+            return json.load(fin)
+
+    def camera_model_file(self):
+        """Return path of camera model file"""
+        return os.path.join(self.data_path, 'camera_models.json')
 
 
 def common_tracks(g, im1, im2):
