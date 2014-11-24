@@ -84,13 +84,15 @@
                 var gui = new dat.GUI();
 
                 var f1 = gui.addFolder('Points');
-                f1.add(pMaterial, 'size', 0, 0.5);
+                f1.add(pMaterial, 'size', 0, 0.5)
+                    .onChange(render);
                 f1.open();
                 var f2 = gui.addFolder('Cameras');
                 f2.add(cameraParams, 'size', 0, 2)
                     .onChange(function(value) {
-                    for (var r = 0; r < reconstructions.length; ++r)
-                        updateCameraLines(reconstructions[r]);
+                        for (var r = 0; r < reconstructions.length; ++r)
+                            updateCameraLines(reconstructions[r]);
+                        render();
                     });
                 f2.open();
                 var f3 = gui.addFolder('Reconstructions')
@@ -103,6 +105,7 @@
                                 return function (value) {
                                     reconstruction_groups[rr].traverse(
                                         function (object) { object.visible = value; } );
+                                    render()
                                 }
                             })(r)
                         );
@@ -235,7 +238,6 @@
             function animate() {
                 requestAnimationFrame(animate);
                 controls.update();
-                render();
             }
 
             function render() {
