@@ -5,9 +5,11 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 import json
 import exifread
 import numpy as np
+from cv2 import imread
 
 from opensfm.sensors import sensor_data
 from opensfm import dataset
+
 
 
 def usage():
@@ -49,10 +51,13 @@ for image in images:
     print 'Extracting focal lengths for image', image
     with open(data.image_file(image)) as f:
         tags = exifread.process_file(f, details=False)
-
     # Image Width and Image Height
-    width, height = (int(tags['EXIF ExifImageWidth'].values[0]),
-                    int(tags['EXIF ExifImageLength'].values[0]) )
+    if 'EXIF ExifImageWidth' in tags and 'EXIF ExifImageLength' in tags:
+        width, height = (int(tags['EXIF ExifImageWidth'].values[0]),
+                        int(tags['EXIF ExifImageLength'].values[0]) )
+    else:
+        sz = imread(data.image_file(image)).shape
+        width, height = sz[1], sz[0]
 
     # Camera make and model
     if 'EXIF LensMake' in tags:
@@ -72,14 +77,14 @@ for image in images:
         focal_35 = float((tags['EXIF FocalLengthIn35mmFilm'].values[0]))
         focal_ratio = focal_35 / 36.0 # 35mm film produces 36x24mm pictures.
     else:
-        if 'CCD width' in exif:
+        if 'CCD width' in tags:
             sensor_width = float(exif['EXIF CCDWidth'].values[0])
         elif sensor_string in sensor_data:
             sensor_width = sensor_data[sensor_string]
         else:
             sensor_width = None
 
-        if 'EXIF FocalLength' in exif:
+        if 'EXIF FocalLength' in tags:
             focal = float(eval_frac(exif['EXIF FocalLength'].values))
         else:
             focal = None
@@ -91,6 +96,7 @@ for image in images:
 
         focal_35 = 36.0 * focal_ratio
 
+
     if focal_ratio == 0:
         # try reading data from exif database (imagedata.json) if exist
         exif = exif_database.get(image,None)
@@ -99,9 +105,9 @@ for image in images:
             make = exif.get('make','unknown').lower()
             focal = float(exif.get('fmm',0.0))
             focal_35 = float(exif.get('fmm35',0.0))
+            sensor_string = (make + ' ' + model).lower()
             if not (focal_35 > 0):
                 model = model.replace(make,'') # remove possible duplicate 'make' information in 'model' for better matching
-                sensor_string = (make + ' ' + model).lower()
                 sensor_width = sensor_data.get(sensor_string,None)
                 if sensor_width is not None and focal is not None:
                     focal_ratio = focal / sensor_width
@@ -145,7 +151,6 @@ for image in images:
                 "focal": d['focal_ratio'] * np.max([d['width'], d['height']]),
                 "exif_focal": d['focal_ratio'] * np.max([d['width'], d['height']])
             }
-
 
     with open(data.exif_file(image), 'w') as fout:
         fout.write(json.dumps(d, indent=4))
