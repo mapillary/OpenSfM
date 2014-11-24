@@ -28,12 +28,12 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  const Observation* observations = bal_problem.observations();
-  const Camera* cameras = bal_problem.cameras();
 
   // Create residuals for each observation in the bundle adjustment problem. The
   // parameters for cameras and points are added automatically.
   ceres::Problem problem;
+
+  const Observation* observations = bal_problem.observations();
   for (int i = 0; i < bal_problem.num_observations(); ++i) {
     // Each Residual block takes a point and a camera as input and outputs a 2
     // dimensional residual. Internally, the cost function stores the observed
@@ -51,15 +51,30 @@ int main(int argc, char** argv) {
                              observations[i].point->parameters);
   }
 
+  Camera* cameras = bal_problem.cameras();
   for (int i = 0; i < bal_problem.num_cameras(); ++i) {
     double exif_focal_sd_in_pixels = FLAGS_exif_focal_sd * cameras[i].width;
     ceres::CostFunction* cost_function = 
-        new ceres::AutoDiffCostFunction<GaussianPriorError, 1, 3>(
-            new GaussianPriorError(cameras[i].exif_focal, exif_focal_sd_in_pixels));
+        new ceres::AutoDiffCostFunction<FocalPriorError, 1, 3>(
+            new FocalPriorError(cameras[i].exif_focal, exif_focal_sd_in_pixels));
 
     problem.AddResidualBlock(cost_function,
                              NULL,
-                             observations[i].camera->parameters);
+                             cameras[i].parameters);
+  }
+
+  Shot* shots = bal_problem.shots();
+  for (int i = 0; i < bal_problem.num_shots(); ++i) {
+    ceres::CostFunction* cost_function = 
+        new ceres::AutoDiffCostFunction<GPSPriorError, 3, 6>(
+            new GPSPriorError(shots[i].gps_position[0],
+                              shots[i].gps_position[1],
+                              shots[i].gps_position[2],
+                              shots[i].gps_dop));
+
+    problem.AddResidualBlock(cost_function,
+                             NULL,
+                             shots[i].parameters);
   }
 
   // Make Ceres automatically detect the bundle structure. Note that the

@@ -48,7 +48,7 @@ struct Camera {
 
 struct Shot {
   double parameters[6];
-  double gps_translation[3];
+  double gps_position[3];
   double gps_dop;
   std::string camera;
   std::string id;
@@ -72,9 +72,11 @@ class BALProblem {
   ~BALProblem() {}
 
   int num_observations() const { return observations_.size(); }
-  const Observation* observations() const { return &observations_[0]; }
+  Observation* observations() { return &observations_[0]; }
   int num_cameras() const { return cameras_.size(); }
-  const Camera* cameras() const { return &cameras_[0]; }
+  Camera* cameras() { return &cameras_[0]; }
+  int num_shots() const { return shots_.size(); }
+  Shot* shots() { return &shots_[0]; }
 
 
   bool LoadJson(const char *tracks, const char *reconstruction) {
@@ -126,7 +128,7 @@ class BALProblem {
       for (int j = 0; j < 3; ++j)
         s.parameters[3 + j] = (*i)["translation"][j].asDouble();
       for (int j = 0; j < 3; ++j)
-        s.gps_translation[j] = (*i)["gps_translation"][j].asDouble();
+        s.gps_position[j] = (*i)["gps_position"][j].asDouble();
       s.gps_dop = (*i)["gps_dop"].asDouble();
       s.camera = (*i)["camera"].asString();
       shots_.push_back(s);
@@ -217,10 +219,10 @@ class BALProblem {
       for (int j = 0; j < 3; ++j)
         tarray.append(shots_[i].parameters[3 + j]);
       for (int j = 0; j < 3; ++j)
-        gpstarray.append(shots_[i].gps_translation[j]);
+        gpstarray.append(shots_[i].gps_position[j]);
       shot["rotation"] = Rarray;
       shot["translation"] = tarray;
-      shot["gps_translation"] = gpstarray;
+      shot["gps_position"] = gpstarray;
       shot["gps_dop"] = shots_[i].gps_dop;
       shots[shots_[i].id] = shot;
     }
@@ -266,7 +268,10 @@ class BALProblem {
 // (i.e. it is assumed to be located at the image center).
 struct SnavelyReprojectionError {
   SnavelyReprojectionError(double observed_x, double observed_y, double focal=-1)
-      : observed_x(observed_x), observed_y(observed_y), focal_(focal) {}
+      : observed_x_(observed_x)
+      , observed_y_(observed_y)
+      , focal_(focal)
+  {}
 
   template <typename T>
   bool operator()(const T* const camera,
@@ -298,27 +303,54 @@ struct SnavelyReprojectionError {
     T predicted_y = focal * distortion * yp;
 
     // The error is the difference between the predicted and observed position.
-    residuals[0] = predicted_x - T(observed_x);
-    residuals[1] = predicted_y - T(observed_y);
+    residuals[0] = predicted_x - T(observed_x_);
+    residuals[1] = predicted_y - T(observed_y_);
 
     return true;
   }
 
-  double observed_x;
-  double observed_y;
+  double observed_x_;
+  double observed_y_;
   double focal_;
 };
 
-struct GaussianPriorError {
-  GaussianPriorError(double estimate, double std_deviation)
-      : estimate_(estimate), scale_(1.0 / std_deviation / sqrt(2)) {}
+
+struct FocalPriorError {
+  FocalPriorError(double estimate, double std_deviation)
+      : estimate_(estimate)
+      , scale_(1.0 / std_deviation / sqrt(2))
+  {}
 
   template <typename T>
-  bool operator()(const T* const parameter, T* residuals) const {
-    residuals[0] = T(scale_) * (*parameter - T(estimate_));
+  bool operator()(const T* const focal, T* residuals) const {
+    residuals[0] = T(scale_) * (*focal - T(estimate_));
     return true;
   }
+
   double estimate_;
+  double scale_;
+};
+
+
+struct GPSPriorError {
+  GPSPriorError(double x, double y, double z, double std_deviation)
+      : x_(x), y_(y), z_(z)
+      , scale_(1.0 / std_deviation / sqrt(2))
+  {}
+
+  template <typename T>
+  bool operator()(const T* const shot, T* residuals) const {
+    // shot[0,1,2] are the angle-axis rotation.
+    T p[3];
+    ceres::AngleAxisRotatePoint(shot, shot + 3, p);
+
+    residuals[0] = T(scale_) * (-p[0] - T(x_));
+    residuals[1] = T(scale_) * (-p[1] - T(y_));
+    residuals[2] = T(scale_) * (-p[2] - T(z_));
+    return true;
+  }
+
+  double x_, y_, z_;
   double scale_;
 };
 

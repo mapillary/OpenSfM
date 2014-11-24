@@ -65,7 +65,7 @@ def best_initial_pair(graph, shots=None, pairs=None):
     return best_pair,pairs_ordered
 
 
-def add_gps_translation(data, reconstruction, image):
+def add_gps_position(data, reconstruction, image):
     d = data.exif_data(image)
     reflla = data.reference_lla()
     if 'gps' in d:
@@ -73,10 +73,10 @@ def add_gps_translation(data, reconstruction, image):
         lon = d['gps']['longitude']
         alt = d['gps'].get('altitude', 0)
         x, y, z = geo.topocentric_from_lla(lat, lon, alt, *reflla)
-        reconstruction['shots'][image]['gps_translation'] = [x, y, z]
+        reconstruction['shots'][image]['gps_position'] = [x, y, z]
         reconstruction['shots'][image]['gps_dop'] = d['gps'].get('dop', 15.0)
     else:
-        reconstruction['shots'][image]['gps_translation'] = [0.0, 0.0, 0.0]
+        reconstruction['shots'][image]['gps_position'] = [0.0, 0.0, 0.0]
         reconstruction['shots'][image]['gps_dop'] = 999999.0
 
 
@@ -127,8 +127,8 @@ def bootstrap_reconstruction(data, graph, shots, pairs=None):
                 "points" : {
                 },
             }
-            add_gps_translation(data, reconstruction, im1)
-            add_gps_translation(data, reconstruction, im2)
+            add_gps_position(data, reconstruction, im1)
+            add_gps_position(data, reconstruction, im2)
             triangulate_shot_features(graph, reconstruction, im1)
             print 'Number of reconstructed 3D points :{}'.format(len(reconstruction['points']))
             if len(reconstruction['points']) > 50:
@@ -251,7 +251,7 @@ def resect(data, graph, reconstruction, shot_id, min_inliers=20):
             "rotation": list(R.flat),
             "translation": list(t.flat),
         }
-        add_gps_translation(data, reconstruction, shot_id)
+        add_gps_position(data, reconstruction, shot_id)
         return True
     else:
         return False
