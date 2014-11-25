@@ -473,7 +473,7 @@ if __name__ == "__main__":
                             retriangulate(graph, reconstruction, data.config)
                             prev_num_points = len(reconstruction['points'])
                         num_camera_reconstructed += 1
-                        images_to_reconstruct = list(np.setdiff1d(np.array(images_to_reconstruct), [image]))
+                        images_to_reconstruct = list(np.setdiff1d(images_to_reconstruct, [image] ))
                         # break
                     else:
                         # print 'Resection failed'
@@ -492,7 +492,7 @@ if __name__ == "__main__":
             reconstructions.append(reconstruction)
             paint_reconstruction(data, graph, reconstruction)
         else:
-            images_remained = list(np.setdiff1d(np.array(images_to_reconstruct), np.array(initial_pair)))
+            images_remained = list(np.setdiff1d(images_to_reconstruct, list(initial_pair) ))
 
         print len(images_remained), 'images remained.'
 
