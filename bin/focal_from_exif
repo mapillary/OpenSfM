@@ -103,6 +103,10 @@ for image in images:
         if exif is not None:
             model = exif.get('model','unknown').lower()
             make = exif.get('make','unknown').lower()
+
+            if make != 'unknown':
+                model = model.replace(make+' ','') # remove possible duplicate 'make' information in 'model' for better matching
+
             focal = float(exif.get('fmm',0.0))
             focal_35 = float(exif.get('fmm35',0.0))
             sensor_string = (make + ' ' + model).lower()
