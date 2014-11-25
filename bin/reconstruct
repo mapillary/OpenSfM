@@ -345,6 +345,41 @@ def retriangulate(graph, reconstruction, config):
     for t in track_to_delete:
         del reconstruction['points'][t]
 
+def optical_center(shot):
+    R = cv2.Rodrigues(np.array(shot['rotation'], dtype=float))[0]
+    t = shot['translation']
+    return -R.T.dot(t)
+
+def align_reconstruction(reconstruction):
+    if len(reconstruction['shots']) < 3: return
+    # Compute similarity Xp = s A X + b
+    X, Xp = [], []
+    for shot in reconstruction['shots'].values():
+        X.append(optical_center(shot))
+        Xp.append(shot['gps_position'])
+    X = np.array(X)
+    Xp = np.array(Xp)
+    T = tf.superimposition_matrix(X.T, Xp.T, scale=True)
+
+    A, b = T[:3,:3], T[:3,3]
+    s = np.linalg.det(A)**(1./3)
+    A /= s
+
+    # Align points.
+    for point in reconstruction['points'].values():
+        Xp = s * A.dot(point['coordinates']) + b
+        point['coordinates'] = list(Xp)
+
+    # Align cameras.
+    for shot in reconstruction['shots'].values():
+        R = cv2.Rodrigues(np.array(shot['rotation']))[0]
+        t = np.array(shot['translation'])
+        Rp = R.dot(A.T)
+        tp = -Rp.dot(b) + s * t
+        shot['rotation'] = list(cv2.Rodrigues(Rp)[0].flat)
+        shot['translation'] = list(tp)
+
+
 
 def paint_reconstruction(data, graph, reconstruction):
     to_paint = defaultdict(list)
@@ -473,5 +508,8 @@ if __name__ == "__main__":
 
     print len(reconstructions),'partial reconstructions in total.'
 
+    for reconstruction in reconstructions:
+        print 'aligning'
+        align_reconstruction(reconstruction)
     with open(data.reconstruction_file(), 'w') as fout:
         fout.write(json.dumps(reconstructions, indent=4))

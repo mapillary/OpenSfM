@@ -1,4 +1,4 @@
 networkx==1.8.1
 PyYAML==3.11
-numpy==1.6.2
+numpy
 exifread==1.4.1
