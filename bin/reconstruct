@@ -350,7 +350,8 @@ def optical_center(shot):
     t = shot['translation']
     return -R.T.dot(t)
 
-def align_reconstruction(reconstruction):
+
+def align_reconstruction_naive(reconstruction):
     if len(reconstruction['shots']) < 3: return
     # Compute similarity Xp = s A X + b
     X, Xp = [], []
@@ -379,6 +380,50 @@ def align_reconstruction(reconstruction):
         shot['rotation'] = list(cv2.Rodrigues(Rp)[0].flat)
         shot['translation'] = list(tp)
 
+def align_reconstruction(reconstruction):
+    # Compute similarity Xp = s A X + b
+    X, Xp = [], []
+    vx, vy = [], []
+    for shot in reconstruction['shots'].values():
+        X.append(optical_center(shot))
+        Xp.append(shot['gps_position'])
+        R = cv2.Rodrigues(np.array(shot['rotation']))[0]
+        # TODO(pau): make this dependent of EXIF orientation tag.
+        vx.append(R.T[:,0])   # Direction of cameras' X axis.
+        vy.append(-R.T[:,1])  # Direction of cameras' Y axis.
+    X = np.array(X)
+    Xp = np.array(Xp)
+    print vx
+
+    # Estimate ground plane.    
+    p = multiview.fit_plane(X, vx, vy)
+    Rplane = multiview.plane_horizontalling_rotation(p)
+    
+    # Estimate 2d similarity to align to GPS
+    X = Rplane.dot(X.T)
+    T = tf.affine_matrix_from_points(X[:2], Xp.T[:2], shear=False)
+
+    s = np.linalg.det(T[:2,:2])**(1./2)
+    A = np.eye(3)
+    A[:2,:2] = T[:2,:2] / s
+    b = np.zeros(3)
+    b[:2] = T[:2,2]
+    A = A.dot(Rplane)
+
+    # Align points.
+    for point in reconstruction['points'].values():
+        Xp = s * A.dot(point['coordinates']) + b
+        point['coordinates'] = list(Xp)
+
+    # Align cameras.
+    for shot in reconstruction['shots'].values():
+        R = cv2.Rodrigues(np.array(shot['rotation']))[0]
+        t = np.array(shot['translation'])
+        Rp = R.dot(A.T)
+        tp = -Rp.dot(b) + s * t
+        shot['rotation'] = list(cv2.Rodrigues(Rp)[0].flat)
+        shot['translation'] = list(tp)
+ 
 
 
 def paint_reconstruction(data, graph, reconstruction):

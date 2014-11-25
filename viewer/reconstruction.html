@@ -266,7 +266,26 @@
                 var line = new THREE.Line(linegeo, lineMaterial, THREE.LinePieces);
                 scene_group.add(line);
 
-//                scene_group.rotateZ(Math.PI); // put scene right-side up
+                scene_group.rotateY(Math.PI); // put scene right-side up
+                // Ground grid
+                {
+                    var linegeo = new THREE.Geometry();
+                    var N = 20;
+                    var scale = 2;
+                    for (var i = 0; i <= 2 * N; ++i) {
+                        linegeo.vertices.push(
+                            new THREE.Vector3(scale * (i - N), scale * (-N), -2),
+                            new THREE.Vector3(scale * (i - N), scale * (N), -2),
+                            new THREE.Vector3(scale * (-N), scale * (i - N), -2),
+                            new THREE.Vector3(scale * ( N), scale * (i - N), -2)
+                        );
+                    }
+                    var lineMaterial = new THREE.LineBasicMaterial({color: 0x555555});
+                    var line = new THREE.Line(linegeo, lineMaterial, THREE.LinePieces);
+                    scene_group.add(line);
+                }
+
+
                 scene = new THREE.Scene();
                 scene.add(scene_group);
                 addDatGui();

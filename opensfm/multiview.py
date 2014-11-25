@@ -25,6 +25,11 @@ def homogeneous(x):
     s = x.shape[:-1] + (1,)
     return np.hstack((x, np.ones(s)))
 
+def homogeneous_vec(x):
+    '''Add a column of zeros to x.
+    '''
+    s = x.shape[:-1] + (1,)
+    return np.hstack((x, np.zeros(s)))
 
 def euclidean(x):
     '''Divide by last column and drop it.
@@ -236,3 +241,54 @@ def p3pf(p2d, p3d, config=None):
     R = cv2.Rodrigues(R.reshape((3,3)))[0]
 
     return R, t, f
+
+
+def fit_plane(points, vectors, verticals):
+    '''Estimate a plane fron on-plane points and vectors.
+
+    >>> x = [[0,0,0], [1,0,0], [0,1,0]]
+    >>> p = fit_plane(x, None, None)
+    >>> np.allclose(p, [0,0,1,0]) or np.allclose(p, [0,0,-1,0])
+    True
+    >>> x = [[0,0,0], [0,1,0]]
+    >>> v = [[1,0,0]]
+    >>> p = fit_plane(x, v, None)
+    >>> np.allclose(p, [0,0,1,0]) or np.allclose(p, [0,0,-1,0])
+    True
+    >>> vert = [[0,0,1]]
+    >>> p = fit_plane(x, v, vert)
+    >>> np.allclose(p, [0,0,1,0])
+    True
+    '''
+    # (x 1) p = 0
+    # (v 0) p = 0
+    x = homogeneous(np.array(points))
+    if vectors:
+        v = homogeneous_vec(np.array(vectors))
+        A = np.vstack((x, v))
+    else:
+        A = x
+    s, p = nullspace(A)
+
+    # Use verticals to decide the sign of p
+    if verticals:
+        d = 0
+        for vertical in verticals:
+            d += p[:3].dot(vertical)
+        p *= np.sign(d)
+
+    return p
+
+def plane_horizontalling_rotation(p):
+    '''Compute a rotation that brings p to z=0
+
+    >>> p = [1.,2.,3.]
+    >>> R = plane_horizontalling_rotation(p)
+    >>> np.allclose(R.dot(p), [0,0,np.linalg.norm(p)])
+    True
+    '''
+    v0 = p[:3]
+    v1 = [0,0,1.0]
+    return tf.rotation_matrix(tf.angle_between_vectors(v0, v1),
+                              tf.vector_product(v0, v1)
+                              )[:3,:3]
