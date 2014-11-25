@@ -77,15 +77,15 @@ for image in images:
         focal_35 = float((tags['EXIF FocalLengthIn35mmFilm'].values[0]))
         focal_ratio = focal_35 / 36.0 # 35mm film produces 36x24mm pictures.
     else:
-        if 'CCD width' in tags:
-            sensor_width = float(exif['EXIF CCDWidth'].values[0])
+        if 'EXIF CCD width' in tags:
+            sensor_width = float(tags['EXIF CCDWidth'].values[0])
         elif sensor_string in sensor_data:
             sensor_width = sensor_data[sensor_string]
         else:
             sensor_width = None
 
         if 'EXIF FocalLength' in tags:
-            focal = float(eval_frac(exif['EXIF FocalLength'].values))
+            focal = float(eval_frac(tags['EXIF FocalLength'].values[0]))
         else:
             focal = None
 
