@@ -1,11 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import os, sys
-from subprocess import call, Popen, PIPE
 import time
-
 import numpy as np
-import context
 import json
 import uuid
 import cv2
@@ -145,61 +142,3 @@ def robust_match(p1, p2, matches, config):
 
     return matches[inliers]
 
-
-def two_view_reconstruction(p1, p2, d1, d2, config):
-    '''Computes a two view reconstruction from a set of matches.
-    '''
-    s = ''
-    for l in np.hstack((p1, p2)):
-        s += ' '.join(str(i) for i in l) + '\n'
-
-    params = [context.TWO_VIEW_RECONSTRUCTION,
-              '-threshold', str(config['five_point_algo_threshold']),
-              '-focal1', d1['focal_ratio'] * np.max([d1['width'], d1['height']]),
-              '-width1', d1['width'],
-              '-height1', d1['height'],
-              '-focal2', d2['focal_ratio'] * np.max([d2['width'], d2['height']]),
-              '-width2', d2['width'],
-              '-height2', d2['height']]
-    params = map(str, params)
-
-    p = Popen(params, stdout=PIPE, stdin=PIPE, stderr=PIPE)
-    res = p.communicate(input=s)[0]
-    if not res:
-        return None, None, None, None
-    res = res.split(None, 9 + 3)
-    Rt_res = map(float, res[:-1])
-    inliers_res = res[-1]
-    R = np.array(Rt_res[:9]).reshape(3,3)
-    t = np.array(Rt_res[9:])
-
-    inliers = []
-    Xs = []
-    for line in inliers_res.splitlines():
-        words = line.split()
-        inliers.append(int(words[0]))
-        Xs.append(map(float, words[1:]))
-
-    return R, t, inliers, Xs
-
-
-def bundle(tracks_file, reconstruction, config):
-    '''Extracts features of image and save them
-    '''
-    source = "/tmp/bundle_source.json"
-    dest = "/tmp/bundle_dest.json"
-
-    # print 'Focal before bundle', reconstruction['cameras']['main_camera']['focal']
-    with open(source, 'w') as fout:
-        fout.write(json.dumps(reconstruction, indent=4))
-
-    call([context.BUNDLE,
-        '--exif_focal_sd', str(config.get('exif_focal_sd', 999)),
-        '--tracks', tracks_file,
-        '--input', source,
-        '--output', dest])
-
-    with open(dest) as fin:
-        result = json.load(fin)
-        # print 'Focal after bundle', result['cameras']['main_camera']['focal']
-        return result

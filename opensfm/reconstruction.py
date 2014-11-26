@@ -2,16 +2,40 @@
 
 from collections import defaultdict
 from itertools import combinations
+from subprocess import call, Popen, PIPE
 import numpy as np
 import cv2
 import json
 import networkx as nx
 from networkx.algorithms import bipartite
+from opensfm import context
 from opensfm import transformations as tf
 from opensfm import dataset
 from opensfm import features
 from opensfm import multiview
 from opensfm import geo
+
+
+def bundle(tracks_file, reconstruction, config):
+    '''Extracts features of image and save them
+    '''
+    source = "/tmp/bundle_source.json"
+    dest = "/tmp/bundle_dest.json"
+
+    # print 'Focal before bundle', reconstruction['cameras']['main_camera']['focal']
+    with open(source, 'w') as fout:
+        fout.write(json.dumps(reconstruction, indent=4))
+
+    call([context.BUNDLE,
+        '--exif_focal_sd', str(config.get('exif_focal_sd', 999)),
+        '--tracks', tracks_file,
+        '--input', source,
+        '--output', dest])
+
+    with open(dest) as fin:
+        result = json.load(fin)
+        # print 'Focal after bundle', result['cameras']['main_camera']['focal']
+        return result
 
 
 def pairwise_reconstructability(common_tracks, homography_inliers):
@@ -67,7 +91,7 @@ def bootstrap_reconstruction(data, graph, im1, im2):
     tracks, p1, p2 = dataset.common_tracks(graph, im1, im2)
     print 'Number of common tracks', len(tracks)
 
-    R, t, inliers, Xs = features.two_view_reconstruction(p1, p2, d1, d2, data.config)
+    R, t, inliers, Xs = multiview.two_view_reconstruction(p1, p2, d1, d2, data.config)
     if inliers:
         print 'Number of inliers', len(inliers)
         reconstruction = {
@@ -293,7 +317,7 @@ def retriangulate(graph, reconstruction, config):
         triangulate_track(track, graph, reconstruction, reproj_threshold=5)
 
     # bundle adjustment
-    reconstruction = features.bundle(data.tracks_file(), reconstruction, config)
+    reconstruction = bundle(data.tracks_file(), reconstruction, config)
 
     # filter points with large reprojection errors
     track_to_delete = []
@@ -421,7 +445,7 @@ def paint_reconstruction_constant(data, graph, reconstruction):
 def grow_reconstruction(data, graph, reconstruction, images):
     bundle_interval = data.config.get('bundle_interval', 1)
 
-    reconstruction = features.bundle(data.tracks_file(), reconstruction, data.config)
+    reconstruction = bundle(data.tracks_file(), reconstruction, data.config)
     do_retriangulation = False
     prev_num_points = len(reconstruction['points'])
 
@@ -442,12 +466,12 @@ def grow_reconstruction(data, graph, reconstruction, images):
                 images.remove(image)
 
                 if len(reconstruction['shots']) % bundle_interval == 0:
-                    reconstruction = features.bundle(data.tracks_file(), reconstruction, data.config)
+                    reconstruction = bundle(data.tracks_file(), reconstruction, data.config)
 
                 triangulate_shot_features(graph, reconstruction, image, reproj_threshold=5.0)
 
                 if len(reconstruction['shots']) % bundle_interval == 0:
-                    reconstruction = features.bundle(data.tracks_file(), reconstruction, data.config)
+                    reconstruction = bundle(data.tracks_file(), reconstruction, data.config)
 
                 print 'Reprojection Error:', reprojection_error(graph, reconstruction)
 

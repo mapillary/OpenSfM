@@ -1,14 +1,14 @@
+# -*- coding: utf-8 -*-
+
 from subprocess import call, Popen, PIPE
-
-
-from numpy.linalg import qr
 import numpy as np
+from numpy.linalg import qr
 import random
 import math
 import cv2
+from opensfm import transformations as tf
+from opensfm import context
 
-import transformations as tf
-import context
 
 def nullspace(A):
     '''Compute the null space of A.
@@ -219,28 +219,41 @@ class TestLinearKernel:
         return self.y - model * self.x
 
 
-def p3pf(p2d, p3d, config=None):
-    '''Command line wrapper for pose estimation and unknown focal length
-        with sampling
+def two_view_reconstruction(p1, p2, d1, d2, config):
+    '''Computes a two view reconstruction from a set of matches.
     '''
     s = ''
-    for l in np.hstack((p2d, p3d)):
+    for l in np.hstack((p1, p2)):
         s += ' '.join(str(i) for i in l) + '\n'
 
-    params = [context.P3PF,' --logtostderr']
-
+    params = [context.TWO_VIEW_RECONSTRUCTION,
+              '-threshold', str(config['five_point_algo_threshold']),
+              '-focal1', d1['focal_ratio'] * np.max([d1['width'], d1['height']]),
+              '-width1', d1['width'],
+              '-height1', d1['height'],
+              '-focal2', d2['focal_ratio'] * np.max([d2['width'], d2['height']]),
+              '-width2', d2['width'],
+              '-height2', d2['height']]
     params = map(str, params)
 
     p = Popen(params, stdout=PIPE, stdin=PIPE, stderr=PIPE)
     res = p.communicate(input=s)[0]
+    if not res:
+        return None, None, None, None
+    res = res.split(None, 9 + 3)
+    Rt_res = map(float, res[:-1])
+    inliers_res = res[-1]
+    R = np.array(Rt_res[:9]).reshape(3,3)
+    t = np.array(Rt_res[9:])
 
-    res = res.split(None,15)
-    f = float(res[0])
-    t = np.array(res[1:4]).astype(np.float32)
-    R = np.array(res[4:]).astype(np.float32)
-    R = cv2.Rodrigues(R.reshape((3,3)))[0]
+    inliers = []
+    Xs = []
+    for line in inliers_res.splitlines():
+        words = line.split()
+        inliers.append(int(words[0]))
+        Xs.append(map(float, words[1:]))
 
-    return R, t, f
+    return R, t, inliers, Xs
 
 
 def fit_plane(points, vectors, verticals):
