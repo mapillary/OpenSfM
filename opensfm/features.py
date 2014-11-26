@@ -165,7 +165,8 @@ def two_view_reconstruction(p1, p2, d1, d2, config):
 
     p = Popen(params, stdout=PIPE, stdin=PIPE, stderr=PIPE)
     res = p.communicate(input=s)[0]
-
+    if not res:
+        return None, None, None, None
     res = res.split(None, 9 + 3)
     Rt_res = map(float, res[:-1])
     inliers_res = res[-1]

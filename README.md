@@ -9,9 +9,8 @@ Dependencies
 * OpenCV
 * libmv (included)
 * ceres
-* jsoncpp
 * jhead
-* NumPy, networkx, PyYAML
+* NumPy, networkx, PyYAML, exifread
 
 On MacOSX, use
 
@@ -35,7 +34,6 @@ Then:
     brew install homebrew/science/ceres-solver
     brew tap cuber/homebrew-jsoncpp
     brew install jsoncpp
-    brew install jhead
     sudo pip install -r requirements.txt
 
 

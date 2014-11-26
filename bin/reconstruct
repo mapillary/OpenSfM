@@ -85,11 +85,8 @@ def bootstrap_reconstruction(data, graph, shots, pairs=None):
 
     good_pair_found = False
     good_pair = []
-
     i = 0
-
     reconstruction = {}
-
     cameras = data.camera_model_data()
 
     while (not good_pair_found) and (i < len(pairs_ordered)):
@@ -107,36 +104,37 @@ def bootstrap_reconstruction(data, graph, shots, pairs=None):
             print 'Number of common tracks', len(tracks)
 
             R, t, inliers, Xs = features.two_view_reconstruction(p1, p2, d1, d2, data.config)
-            print 'Number of inliers', len(inliers)
-            reconstruction = {
-                "cameras": cameras,
+            if inliers:
+                print 'Number of inliers', len(inliers)
+                reconstruction = {
+                    "cameras": cameras,
 
-                "shots" : {
-                    im1: {
-                        "camera": str(d1['camera']),
-                        "rotation": [0, 0, 0],
-                        "translation": [0, 0, 0],
+                    "shots" : {
+                        im1: {
+                            "camera": str(d1['camera']),
+                            "rotation": [0, 0, 0],
+                            "translation": [0, 0, 0],
+                        },
+                        im2: {
+                            "camera": str(d2['camera']),
+                            "rotation": list(cv2.Rodrigues(R)[0].flat),
+                            "translation": list(t),
+                        },
                     },
-                    im2: {
-                        "camera": str(d2['camera']),
-                        "rotation": list(cv2.Rodrigues(R)[0].flat),
-                        "translation": list(t),
-                    },
-                },
 
-                "points" : {
-                },
-            }
-            add_gps_position(data, reconstruction, im1)
-            add_gps_position(data, reconstruction, im2)
-            triangulate_shot_features(graph, reconstruction, im1)
-            print 'Number of reconstructed 3D points :{}'.format(len(reconstruction['points']))
-            if len(reconstruction['points']) > 50:
-                print 'Found initialize good pair', im1 , 'and', im2
-                good_pair_found = True
-                good_pair = [im1, im2]
-            else:
-                print 'Pair', im1, ':', im2, 'fails'
+                    "points" : {
+                    },
+                }
+                add_gps_position(data, reconstruction, im1)
+                add_gps_position(data, reconstruction, im2)
+                triangulate_shot_features(graph, reconstruction, im1)
+                print 'Number of reconstructed 3D points :{}'.format(len(reconstruction['points']))
+                if len(reconstruction['points']) > 50:
+                    print 'Found initialize good pair', im1 , 'and', im2
+                    good_pair_found = True
+                    good_pair = [im1, im2]
+                else:
+                    print 'Pair', im1, ':', im2, 'fails'
 
     return reconstruction, good_pair, pairs_ordered
 
@@ -536,28 +534,24 @@ if __name__ == "__main__":
                     reconstruction = features.bundle(data.tracks_file(), reconstruction, data.config)
 
             print 'Painting the reconstruction from {0} cameras'.format(num_camera_reconstructed)
-
-            reconstructions.append(reconstruction)
             paint_reconstruction(data, graph, reconstruction)
+            reconstructions.append(reconstruction)
         else:
             images_remained = list(np.setdiff1d(images_to_reconstruct, list(initial_pair) ))
 
         print len(images_remained), 'images remained.'
 
+        align_reconstruction(reconstruction)
+        with open(data.reconstruction_file(), 'w') as fout:
+            fout.write(json.dumps(reconstructions, indent=4))
+
         if not images_remained or len(images_remained)==len(images_to_reconstruct):
             # All images are reconstructed or no more partial reconstruction is possible
             print 'No more images can be reconstructed'
             break
-        with open(data.reconstruction_file(), 'w') as fout:
-            fout.write(json.dumps(reconstructions, indent=4))
+        print 'aligning'
 
     for k, r in enumerate(reconstructions):
         print 'Reconstruction', k, ':', len(r['shots']), 'images', ',', len(r['points']),'points'
 
     print len(reconstructions),'partial reconstructions in total.'
-
-    print 'aligning'
-    for reconstruction in reconstructions:
-        align_reconstruction(reconstruction)
-    with open(data.reconstruction_file(), 'w') as fout:
-        fout.write(json.dumps(reconstructions, indent=4))
