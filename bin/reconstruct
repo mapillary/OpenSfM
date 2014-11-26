@@ -392,10 +392,10 @@ def align_reconstruction(reconstruction):
     X = np.array(X)
     Xp = np.array(Xp)
 
-    # Estimate ground plane.    
+    # Estimate ground plane.
     p = multiview.fit_plane(X, vx, vy)
     Rplane = multiview.plane_horizontalling_rotation(p)
-    
+
     # Estimate 2d similarity to align to GPS
     X = Rplane.dot(X.T).T
     T = tf.affine_matrix_from_points(X.T[:2], Xp.T[:2], shear=False) # 2D transform
@@ -424,7 +424,7 @@ def align_reconstruction(reconstruction):
         tp = -Rp.dot(b) + s * t
         shot['rotation'] = list(cv2.Rodrigues(Rp)[0].flat)
         shot['translation'] = list(tp)
- 
+
 
 
 def paint_reconstruction(data, graph, reconstruction):
@@ -520,7 +520,7 @@ if __name__ == "__main__":
                             prev_num_points = len(reconstruction['points'])
                         num_camera_reconstructed += 1
                         images_to_reconstruct = list(np.setdiff1d(images_to_reconstruct, [image] ))
-                        # break
+                        break
                     else:
                         # print 'Resection failed'
                         images_remained.append(image)
