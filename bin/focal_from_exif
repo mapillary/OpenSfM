@@ -61,16 +61,21 @@ for image in images:
 
     # Camera make and model
     if 'EXIF LensMake' in tags:
-        make = str(tags['EXIF LensMake'].values)
+        make = tags['EXIF LensMake'].values
+    elif 'Image Make' in tags:
+        make = tags['Image Make'].values
     else:
         make = 'unknown'
+
     if 'EXIF LensModel' in tags:
-        model = str(tags['EXIF LensModel'].values)
+        model = tags['EXIF LensModel'].values
+    elif 'Image Model' in tags:
+        model = tags['Image Model'].values
     else:
         model = 'unknown'
 
     if make != 'unknown':
-        model = model.replace(make,'') # remove possible duplicate 'make' information in 'model' for better matching
+        model = model.replace(make,'').strip() # remove possible duplicate 'make' information in 'model' for better matching
     sensor_string = (make + ' ' + model).lower()
 
     if 'EXIF FocalLengthIn35mmFilm' in tags:
