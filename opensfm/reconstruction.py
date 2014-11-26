@@ -100,8 +100,8 @@ def bootstrap_reconstruction(data, graph, im1, im2):
             "shots" : {
                 im1: {
                     "camera": str(d1['camera']),
-                    "rotation": [0, 0, 0],
-                    "translation": [0, 0, 0],
+                    "rotation": [0.0, 0.0, 0.0],
+                    "translation": [0.0, 0.0, 0.0],
                 },
                 im2: {
                     "camera": str(d2['camera']),
@@ -384,6 +384,8 @@ def align_reconstruction(reconstruction):
 
     # Estimate 2d similarity to align to GPS
     X = Rplane.dot(X.T).T
+    if Xp.std(axis=0).max() < 0.01: # All GPS points are the same
+        Xp[0,0] += 1.0 # Shift one point arbitrarly to avoid degeneracy    
     T = tf.affine_matrix_from_points(X.T[:2], Xp.T[:2], shear=False) # 2D transform
 
     s = np.linalg.det(T[:2,:2])**(1./2)
@@ -444,6 +446,8 @@ def paint_reconstruction_constant(data, graph, reconstruction):
 
 def grow_reconstruction(data, graph, reconstruction, images):
     bundle_interval = data.config.get('bundle_interval', 1)
+    print 'Aligning'
+    align_reconstruction(reconstruction)
 
     reconstruction = bundle(data.tracks_file(), reconstruction, data.config)
     do_retriangulation = False
@@ -487,10 +491,10 @@ def grow_reconstruction(data, graph, reconstruction, images):
             print 'Some images can not be added'
             break
 
-    print 'Painting the reconstruction from {0} cameras'.format(len(reconstruction['shots']))
-    paint_reconstruction(data, graph, reconstruction)
     print 'Aligning'
     align_reconstruction(reconstruction)
+    print 'Painting the reconstruction from {0} cameras'.format(len(reconstruction['shots']))
+    paint_reconstruction(data, graph, reconstruction)
     print 'Done.'
     return reconstruction
 

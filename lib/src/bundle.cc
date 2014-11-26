@@ -63,19 +63,19 @@ int main(int argc, char** argv) {
                              cameras[i].parameters);
   }
 
-  Shot* shots = bal_problem.shots();
-  for (int i = 0; i < bal_problem.num_shots(); ++i) {
-    ceres::CostFunction* cost_function = 
-        new ceres::AutoDiffCostFunction<GPSPriorError, 3, 6>(
-            new GPSPriorError(shots[i].gps_position[0],
-                              shots[i].gps_position[1],
-                              shots[i].gps_position[2],
-                              shots[i].gps_dop));
+  // Shot* shots = bal_problem.shots();
+  // for (int i = 0; i < bal_problem.num_shots(); ++i) {
+  //   ceres::CostFunction* cost_function = 
+  //       new ceres::AutoDiffCostFunction<GPSPriorError, 3, 6>(
+  //           new GPSPriorError(shots[i].gps_position[0],
+  //                             shots[i].gps_position[1],
+  //                             shots[i].gps_position[2],
+  //                             shots[i].gps_dop));
 
-    problem.AddResidualBlock(cost_function,
-                             NULL,
-                             shots[i].parameters);
-  }
+  //   problem.AddResidualBlock(cost_function,
+  //                            NULL,
+  //                            shots[i].parameters);
+  // }
 
   // Make Ceres automatically detect the bundle structure. Note that the
   // standard solver, SPARSE_NORMAL_CHOLESKY, also works fine but it is slower

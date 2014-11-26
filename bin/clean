@@ -3,8 +3,11 @@
 trash=$1/trash/`date -u +"%Y-%m-%dT%H:%M:%SZ"`
 mkdir -p $trash
 rm -rf trash/*
+
 mv -vf $1/reconstruction*.json $trash
 mv -vf $1/exif $trash
 mv -vf $1/robust_matches $trash
 mv -vf $1/sift $trash
 mv -vf $1/surf $trash
+mv -vf $1/camera_models.json $trash
+mv -vf $1/reference_lla.json $trash
