@@ -174,7 +174,7 @@ class DataSet:
         if wlat: lat /= wlat
         if wlon: lon /= wlon
         if walt: alt /= walt
-        self.set_reference_lla(lat, lon, alt)
+        self.set_reference_lla(lat, lon, 0) # Set altitude manually.
 
     def reference_lla_path(self):
         return os.path.join(self.data_path, 'reference_lla.json')
