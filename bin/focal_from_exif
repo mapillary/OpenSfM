@@ -150,6 +150,17 @@ for image in images:
             d['gps']['altitude'] = eval_frac(tags['GPS GPSAltitude'].values[0])
         if 'GPS GPSDOP' in tags:
             d['gps']['dop'] = eval_frac(tags['GPS GPSDOP'].values[0])
+    elif exif_database:
+        # Check whether gps is provided in a json file (imagedata.json)
+        if image in exif_database:
+            exif = exif_database[image]
+            d['gps'] = {}
+            d['gps']['latitude'] = exif.get('lat', 0.0)
+            d['gps']['longitude'] = exif.get('lon', 0.0)
+            d['gps']['altitude'] = exif.get('altitude', 0.0)
+            d['gps']['dop'] = exif.get('gps_accuracy', -1)
+            if d['gps']['dop'] < 0:
+                del d['gps']['dop']
 
     if sensor_string not in camera_models:
         camera_models[sensor_string] = {
