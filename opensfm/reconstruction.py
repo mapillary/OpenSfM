@@ -120,7 +120,7 @@ def bootstrap_reconstruction(data, graph, im1, im2):
         if len(reconstruction['points']) > 50:
             print 'Found initialize good pair', im1 , 'and', im2
             return reconstruction
-    
+
     print 'Pair', im1, ':', im2, 'fails'
     return None
 
@@ -182,18 +182,20 @@ def reprojection_error(graph, reconstruction):
 
 def reprojection_error_track(track, graph, reconstruction):
     errors = []
+    error = 999999999.
     if track in reconstruction['points']:
         for shot_id in graph[track]:
             observation = graph[shot_id][track]['feature']
-            shot = reconstruction['shots'][shot_id]
-            camera = reconstruction['cameras'][shot['camera']]
-            point = reconstruction['points'][track]
-            errors.append(single_reprojection_error(camera, shot, point, observation))
+            if shot_id in reconstruction['shots']:
+                shot = reconstruction['shots'][shot_id]
+                camera = reconstruction['cameras'][shot['camera']]
+                point = reconstruction['points'][track]
+                errors.append(single_reprojection_error(camera, shot, point, observation))
+        if errors:
             error = np.max(errors)
     else:
         error = 999999999.
     return error
-
 
 
 def resect(data, graph, reconstruction, shot_id, min_inliers=20):
@@ -308,7 +310,7 @@ def triangulate_shot_features(graph, reconstruction, shot_id, reproj_threshold=3
             triangulate_track(track, graph, reconstruction,reproj_threshold=reproj_threshold)
 
 
-def retriangulate(graph, reconstruction, config):
+def retriangulate(track_file, graph, reconstruction, config):
     '''Re-triangulate 3D points
     '''
     track_nodes, image_nodes = bipartite.sets(graph)
@@ -317,7 +319,7 @@ def retriangulate(graph, reconstruction, config):
         triangulate_track(track, graph, reconstruction, reproj_threshold=5)
 
     # bundle adjustment
-    reconstruction = bundle(data.tracks_file(), reconstruction, config)
+    reconstruction = bundle(track_file, reconstruction, config)
 
     # filter points with large reprojection errors
     track_to_delete = []
@@ -385,7 +387,7 @@ def align_reconstruction(reconstruction):
     # Estimate 2d similarity to align to GPS
     X = Rplane.dot(X.T).T
     if Xp.std(axis=0).max() < 0.01: # All GPS points are the same
-        Xp[0,0] += 1.0 # Shift one point arbitrarly to avoid degeneracy    
+        Xp[0,0] += 1.0 # Shift one point arbitrarly to avoid degeneracy
     T = tf.affine_matrix_from_points(X.T[:2], Xp.T[:2], shear=False) # 2D transform
 
     s = np.linalg.det(T[:2,:2])**(1./2)
@@ -450,7 +452,9 @@ def grow_reconstruction(data, graph, reconstruction, images):
     align_reconstruction(reconstruction)
 
     reconstruction = bundle(data.tracks_file(), reconstruction, data.config)
-    do_retriangulation = False
+    retriangulation = data.config.get('retriangulation', False)
+    retriangulation_ratio = data.config.get('retriangulation_ratio', 1.25)
+
     prev_num_points = len(reconstruction['points'])
 
     while True:
@@ -480,9 +484,9 @@ def grow_reconstruction(data, graph, reconstruction, images):
                 print 'Reprojection Error:', reprojection_error(graph, reconstruction)
 
                 num_points = len(reconstruction['points'])
-                if do_retriangulation and num_points > prev_num_points * 1.2 and i > 0:
+                if retriangulation and num_points > prev_num_points * retriangulation_ratio:
                     print 'Re-triangulating'
-                    retriangulate(graph, reconstruction, data.config)
+                    retriangulate(data.tracks_file(), graph, reconstruction, data.config)
                     prev_num_points = len(reconstruction['points'])
                     print '  Reprojection Error:', reprojection_error(graph, reconstruction)
 
@@ -521,6 +525,3 @@ def incremental_reconstruction(data):
         print 'Reconstruction', k, ':', len(r['shots']), 'images', ',', len(r['points']),'points'
 
     print len(reconstructions), 'partial reconstructions in total.'
-
-
-
