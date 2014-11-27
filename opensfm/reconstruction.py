@@ -117,7 +117,7 @@ def bootstrap_reconstruction(data, graph, im1, im2):
         add_gps_position(data, reconstruction, im2)
         triangulate_shot_features(graph, reconstruction, im1)
         print 'Number of reconstructed 3D points :{}'.format(len(reconstruction['points']))
-        if len(reconstruction['points']) > 50:
+        if len(reconstruction['points']) > 50:  #TODO(pau) set up a parameter for this
             print 'Found initialize good pair', im1 , 'and', im2
             return reconstruction
 
@@ -367,7 +367,6 @@ def align_reconstruction_naive(reconstruction):
         shot['translation'] = list(tp)
 
 def align_reconstruction(reconstruction):
-    # Compute similarity Xp = s A X + b
     X, Xp = [], []
     vx, vy = [], []
     for shot in reconstruction['shots'].values():
@@ -386,10 +385,13 @@ def align_reconstruction(reconstruction):
 
     # Estimate 2d similarity to align to GPS
     X = Rplane.dot(X.T).T
-    if Xp.std(axis=0).max() < 0.01: # All GPS points are the same
-        Xp[0,0] += 1.0 # Shift one point arbitrarly to avoid degeneracy
-    T = tf.affine_matrix_from_points(X.T[:2], Xp.T[:2], shear=False) # 2D transform
+    if Xp.std(axis=0).max() < 0.01: # All GPS points are the same.
+        T = np.eye(3)               # Just translate there. Scale and orientation, remain arbitrary.
+        T[:2, 2] = Xp.mean(axis=0)[:2] - X.mean(axis=0)[:2]
+    else:
+        T = tf.affine_matrix_from_points(X.T[:2], Xp.T[:2], shear=False)
 
+    # Compute similarity Xp = s A X + b
     s = np.linalg.det(T[:2,:2])**(1./2)
     A = np.eye(3)
     if s < 1e-10:
@@ -448,17 +450,13 @@ def paint_reconstruction_constant(data, graph, reconstruction):
 
 def grow_reconstruction(data, graph, reconstruction, images):
     bundle_interval = data.config.get('bundle_interval', 1)
-    print 'Aligning'
-    align_reconstruction(reconstruction)
-
-    reconstruction = bundle(data.tracks_file(), reconstruction, data.config)
     retriangulation = data.config.get('retriangulation', False)
     retriangulation_ratio = data.config.get('retriangulation_ratio', 1.25)
 
+    reconstruction = bundle(data.tracks_file(), reconstruction, data.config)
     prev_num_points = len(reconstruction['points'])
-
     while True:
-        if False:
+        if False:  # TODO(pau): set up a parameter for this.
             paint_reconstruction_constant(data, graph, reconstruction)
             fname = data.reconstruction_file().replace('json', '%04d.json' % len(reconstruction['shots']))
             with open(fname, 'w') as fout:
