@@ -3,26 +3,80 @@
     <head>
         <title>Reconstruction Viewer</title>
         <meta charset="utf-8">
+        <style>
+            body {
+                margin: 0px;
+            }
+        </style>
     </head>
     <body>
-        <div id="ThreeJS" style="position: absolute; left:0px; top:0px"></div>
+        <div id="ThreeJS" target="_blank"></div>
 
         <script src="js/jquery.js"></script>
         <script src="js/three.js"></script>
+        <script src="js/OrbitControls.js"></script>
         <script src="js/TrackballControls.js"></script>
         <script src="js/dat.gui.js"></script>
 
         <script>
-            var camera, controls, scene, renderer;
+            var container, camera, controls, scene, renderer;
             var particleSystem;
             var pMaterial;
             var reconstructions;
             var reconstruction_visibles = [];
             var reconstruction_groups = [];
-            var cameraParams = { size: 1 };
             var camera_lines = {};
+            var gps_lines = [];
+
+            var options = {
+              drawGPS: false,
+              cameraSize: 1,
+              pointSize: 0.4
+            };
 
             getData();
+
+            function addDatGui(){
+                var gui = new dat.GUI();
+
+                var f1 = gui.addFolder('Options');
+                f1.add(options, 'pointSize', 0, 4)
+                    .onChange(function(value) {
+                        pMaterial.size = value;
+                        render();
+                    });
+                f1.add(options, 'cameraSize', 0, 2)
+                    .onChange(function(value) {
+                        for (var r = 0; r < reconstructions.length; ++r)
+                            updateCameraLines(reconstructions[r]);
+                        render();
+                    });
+                f1.add(options, 'drawGPS')
+                    .onChange(function(value) {
+                        for (var i = 0; i < gps_lines.length; ++i) {
+                            gps_lines[i].visible = value;
+                        }
+                        render();
+                    });
+                f1.open();
+
+                var f3 = gui.addFolder('Reconstructions')
+                reconstruction_visibles = [];
+                for (var r = 0; r < reconstructions.length; ++r) {
+                    reconstruction_visibles[r] = true;
+                    f3.add(reconstruction_visibles, r, true)
+                        .onChange(
+                            (function(rr) {
+                                return function (value) {
+                                    reconstruction_groups[rr].traverse(
+                                        function (object) { object.visible = value; } );
+                                    render()
+                                }
+                            })(r)
+                        );
+                }
+                f3.open();
+            }
 
             function getData() {
                 jQuery.getJSON("/data/" + window.location.hash.replace('#',''), function(data) {
@@ -79,39 +133,6 @@
                 return rotate(xct, angleaxis);
             }
 
-            function addDatGui(){
-                var gui = new dat.GUI();
-
-                var f1 = gui.addFolder('Points');
-                f1.add(pMaterial, 'size', 0, 4)
-                    .onChange(render);
-                f1.open();
-                var f2 = gui.addFolder('Cameras');
-                f2.add(cameraParams, 'size', 0, 2)
-                    .onChange(function(value) {
-                        for (var r = 0; r < reconstructions.length; ++r)
-                            updateCameraLines(reconstructions[r]);
-                        render();
-                    });
-                f2.open();
-                var f3 = gui.addFolder('Reconstructions')
-                reconstruction_visibles = [];
-                for (var r = 0; r < reconstructions.length; ++r) {
-                    reconstruction_visibles[r] = true;
-                    f3.add(reconstruction_visibles, r, true)
-                        .onChange(
-                            (function(rr) {
-                                return function (value) {
-                                    reconstruction_groups[rr].traverse(
-                                        function (object) { object.visible = value; } );
-                                    render()
-                                }
-                            })(r)
-                        );
-                }
-                f3.open();
-            }
-
             function initCameraLines(reconstruction) {
                 var lines = []
                 for (var shot_id in reconstruction.shots) {
@@ -130,10 +151,10 @@
                 var shot = reconstruction.shots[shot_id];
                 var cam = reconstruction.cameras[shot.camera];
                 var ocenter = opticalCenter(shot);
-                var top_left = pixelToVertex(cam, shot, 0, 0, cameraParams.size);
-                var top_right = pixelToVertex(cam, shot, cam.width, 0, cameraParams.size);
-                var bottom_right = pixelToVertex(cam, shot, cam.width, cam.height, cameraParams.size);
-                var bottom_left = pixelToVertex(cam, shot, 0, cam.height, cameraParams.size);
+                var top_left = pixelToVertex(cam, shot, 0, 0, options.cameraSize);
+                var top_right = pixelToVertex(cam, shot, cam.width, 0, options.cameraSize);
+                var bottom_right = pixelToVertex(cam, shot, cam.width, cam.height, options.cameraSize);
+                var bottom_left = pixelToVertex(cam, shot, 0, cam.height, options.cameraSize);
                 var linegeo = new THREE.Geometry();
                 linegeo.vertices.push(ocenter);
                 linegeo.vertices.push(top_left);
@@ -169,26 +190,20 @@
                 renderer.setSize(window.innerWidth, window.innerHeight);
                 renderer.setClearColor( 0x202020, 1);
 
-                var container = document.getElementById( 'ThreeJS' );
+                container = document.getElementById( 'ThreeJS' );
                 container.appendChild(renderer.domElement);
-                window.addEventListener('resize', onWindowResize, false);
-
-                // Trackball.
+ 
                 camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 1000);
-                camera.position.z = -20;
-                controls = new THREE.TrackballControls(camera, renderer.domElement);
-                controls.rotateSpeed = 1.0;
-                controls.zoomSpeed = 1.2;
-                controls.panSpeed = 0.8;
-                controls.noZoom = false;
-                controls.noPan = false;
-                controls.staticMoving = true;
-                controls.dynamicDampingFactor = 0.3;
-                controls.keys = [65, 83, 68];
+                camera.position.z = -50;
+
+                controls = new THREE.OrbitControls(camera, renderer.domElement);
                 controls.addEventListener('change', render);
 
+                window.addEventListener('resize', onWindowResize, false);
+
+
                 var scene_group = new THREE.Object3D();
-                pMaterial = new THREE.ParticleBasicMaterial({
+                pMaterial = new THREE.PointCloudMaterial({
                       size: 0.3,
                       vertexColors: true,
                     });
@@ -209,7 +224,7 @@
                             particles.colors.push(color);
                         }
                     }
-                    particleSystem = new THREE.ParticleSystem(particles, pMaterial);
+                    particleSystem = new THREE.PointCloud(particles, pMaterial);
                     group.add(particleSystem)
 
                     // Cameras.
@@ -232,11 +247,11 @@
                             );
                             var lineMaterial = new THREE.LineBasicMaterial({ color: 0xff00ff });
                             var line = new THREE.Line(linegeo, lineMaterial, THREE.LinePieces);
+                            line.visible = options.drawGPS;
                             group.add(line);
+                            gps_lines.push(line);
                         }
                     }
-
-
 
                     scene_group.add(group);
                 }
@@ -266,7 +281,6 @@
                 var line = new THREE.Line(linegeo, lineMaterial, THREE.LinePieces);
                 scene_group.add(line);
 
-                scene_group.rotateY(Math.PI); // put scene right-side up
                 // Ground grid
                 {
                     var linegeo = new THREE.Geometry();
@@ -275,7 +289,7 @@
                     for (var i = 0; i <= 2 * N; ++i) {
                         linegeo.vertices.push(
                             new THREE.Vector3(scale * (i - N), scale * (-N), -2),
-                            new THREE.Vector3(scale * (i - N), scale * (N), -2),
+                            new THREE.Vector3(scale * (i - N), scale * ( N), -2),
                             new THREE.Vector3(scale * (-N), scale * (i - N), -2),
                             new THREE.Vector3(scale * ( N), scale * (i - N), -2)
                         );
@@ -285,17 +299,19 @@
                     scene_group.add(line);
                 }
 
+                scene_group.rotateX(-Math.PI / 2); // put scene right-side up
 
                 scene = new THREE.Scene();
                 scene.add(scene_group);
+
                 addDatGui();
+                render();
             }
 
             function onWindowResize() {
                 camera.aspect = window.innerWidth / window.innerHeight;
                 camera.updateProjectionMatrix();
                 renderer.setSize(window.innerWidth, window.innerHeight);
-                controls.handleResize();
                 render();
             }
 
