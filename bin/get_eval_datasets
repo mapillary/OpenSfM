@@ -4,12 +4,15 @@ mkdir -p eval/datasets
 pushd eval/datasets
 
 curl -O http://cvlabwww.epfl.ch/data/multiview/data/castle/castle_images.tar.gz
-tar xzf castle_images.tar.gz
+tar xf castle_images.tar.gz
 
 curl -O http://cvlabwww.epfl.ch/data/multiview/data/fountain/fountain_images.tar.gz
-tar xzf fountain_images.tar.gz
+tar xf fountain_images.tar.gz
 
 curl -O http://cvlabwww.epfl.ch/data/multiview/data/herzjesu/herzjesu_images.tar.gz
-tar xzf herzjesu_images.tar.gz
+tar xf herzjesu_images.tar.gz
+
+curl -O http://www.cs.cornell.edu/~snavely/bundler/distr/bundler-v0.4-source.tar.gz
+tar xf bundler-v0.4-source.tar.gz
 
 popd

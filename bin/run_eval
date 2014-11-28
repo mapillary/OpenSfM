@@ -1,18 +1,32 @@
 #!/usr/bin/env bash
 
-if [ "$#" -eq 1 ]; then
+if [ "$#" -eq 0 ]; then
     folder=eval/runs/`date -u +"%Y-%m-%dT%H:%M:%SZ"`
 fi
-if [ "$#" -eq 2 ]; then
+if [ "$#" -eq 1 ]; then
     folder=$1
 fi
 
+###########################
+# Create evaluation folders
 mkdir -p $folder
 
+# Bundler examples
+for i in ET kermit; do
+    mkdir -p $folder/$i
+    ln -s ../../../datasets/bundler-v0.4-source/examples/$i $folder/$i/images
+done
+# Strecha datasets
 for i in castle fountain herzjesu; do
     mkdir -p $folder/$i
     ln -s ../../../datasets/$i $folder/$i/images
+done
+
+###########################
+# Run all for all datasets
+for i in `ls $folder`; do
     cp config.yaml $folder/$i
     bin/run_all $folder/$i
-    python -c "import urllib; print '<a href=\"/viewer/reconstruction.html#{0}\">$i</a><br>'.format(urllib.quote('../$folder/$i/reconstruction.json'))" >> $folder/index.html
+    python -c "import urllib; print '<a href=\"/viewer/reconstruction.html#../{0}/reconstruction.json\">$i</a><br>'.format(urllib.quote('$folder/$i'))" >> $folder/index.html
 done
+
