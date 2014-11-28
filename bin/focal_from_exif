@@ -175,7 +175,7 @@ for image in images:
     with open(data.exif_file(image), 'w') as fout:
         fout.write(json.dumps(d, indent=4))
 
-with open(data.data_path+'missing_sensor.json', 'w') as fout:
+with open(data.data_path+'/missing_sensor.json', 'w') as fout:
     fout.write(json.dumps(missing_sensors, indent=4))
 
 with open(data.camera_model_file(), 'w') as fout:

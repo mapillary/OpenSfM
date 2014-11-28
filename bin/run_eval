@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+if [ "$#" -eq 1 ]; then
+    folder=eval/runs/`date -u +"%Y-%m-%dT%H:%M:%SZ"`
+fi
+if [ "$#" -eq 2 ]; then
+    folder=$1
+fi
+
+mkdir -p $folder
+
+for i in castle fountain herzjesu; do
+    mkdir -p $folder/$i
+    ln -s ../../../datasets/$i $folder/$i/images
+    cp config.yaml $folder/$i
+    bin/run_all $folder/$i
+    python -c "import urllib; print '<a href=\"/viewer/reconstruction.html#{0}\">$i</a><br>'.format(urllib.quote('../$folder/$i/reconstruction.json'))" >> $folder/index.html
+done
