@@ -7,10 +7,29 @@
             body {
                 margin: 0px;
             }
+            #info {
+                position: absolute;
+                top: 0px;
+                left: 10px;
+                background-color: #000;
+            }
+            #image {
+                width: 320px;
+                height: 240px;
+            }
+            #text {
+                text-align: center;
+                font-family: sans-serif;
+                color: #FFF;
+            }
         </style>
     </head>
     <body>
         <div id="ThreeJS" target="_blank"></div>
+        <div id="info">
+            <img id="image">
+            <div id="text"></div>
+        </div>
 
         <script src="js/jquery.js"></script>
         <script src="js/three.js"></script>
@@ -20,18 +39,23 @@
 
         <script>
             var container, camera, controls, scene, renderer;
-            var particleSystem;
-            var pMaterial;
+            var mouse = new THREE.Vector2();
+            var currentIntersected, raycaster, parentTransform, sphereInter;
+            var selectedCamera;
+            var scene_group;
+            var pointCloudMaterial;
             var reconstructions;
             var reconstruction_visibles = [];
             var reconstruction_groups = [];
-            var camera_lines = {};
+            var camera_lines = [];
             var gps_lines = [];
 
             var options = {
-              drawGPS: false,
-              cameraSize: 1,
-              pointSize: 0.4
+                drawGPS: false,
+                cameraSize: 1,
+                pointSize: 0.4,
+                cameraColor: new THREE.Color(0xFFFFFF),
+                selectedCameraColor: new THREE.Color(0xFFFF88)
             };
 
             getData();
@@ -42,7 +66,7 @@
                 var f1 = gui.addFolder('Options');
                 f1.add(options, 'pointSize', 0, 4)
                     .onChange(function(value) {
-                        pMaterial.size = value;
+                        pointCloudMaterial.size = value;
                         render();
                     });
                 f1.add(options, 'cameraSize', 0, 2)
@@ -137,14 +161,23 @@
                 var lines = []
                 for (var shot_id in reconstruction.shots) {
                     if (reconstruction.shots.hasOwnProperty(shot_id)) {
-                        var lineMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, size: 0.1 })
+                        var lineMaterial = new THREE.LineBasicMaterial({size: 0.1 })
+                        lineMaterial.color = options.cameraColor;
                         var linegeo = cameraLineGeo(reconstruction, shot_id);
                         var line = new THREE.Line(linegeo, lineMaterial, THREE.LinePieces);
+                        line.shot_id = shot_id;
                         lines.push(line);
-                        camera_lines[shot_id] = line;
                     }
                 }
                 return lines;
+            }
+
+            function updateCameraLines(reconstruction) {
+                for (var i = 0; i < camera_lines.length; ++i) {
+                    var linegeo = cameraLineGeo(reconstruction, camera_lines[i].shot_id);
+                    camera_lines[i].geometry.vertices = linegeo.vertices;
+                    camera_lines[i].geometry.verticesNeedUpdate = true;
+                }
             }
 
             function cameraLineGeo(reconstruction, shot_id) {
@@ -175,17 +208,11 @@
                 return linegeo;
             }
 
-            function updateCameraLines(reconstruction) {
-                for (var shot_id in reconstruction.shots) {
-                    if (reconstruction.shots.hasOwnProperty(shot_id)) {
-                        var linegeo = cameraLineGeo(reconstruction, shot_id);
-                        camera_lines[shot_id].geometry.vertices = linegeo.vertices;
-                        camera_lines[shot_id].geometry.verticesNeedUpdate = true;
-                    }
-                }
-            }
 
             function init() {
+                raycaster = new THREE.Raycaster();
+                raycaster.precision = 0.2;
+
                 renderer = new THREE.WebGLRenderer();
                 renderer.setSize(window.innerWidth, window.innerHeight);
                 renderer.setClearColor( 0x202020, 1);
@@ -200,10 +227,11 @@
                 controls.addEventListener('change', render);
 
                 window.addEventListener('resize', onWindowResize, false);
+                renderer.domElement.addEventListener('mousemove', onDocumentMouseMove, false);
+                renderer.domElement.addEventListener('mousedown', onDocumentMouseDown, false);
 
-
-                var scene_group = new THREE.Object3D();
-                pMaterial = new THREE.PointCloudMaterial({
+                scene_group = new THREE.Object3D();
+                pointCloudMaterial = new THREE.PointCloudMaterial({
                       size: 0.3,
                       vertexColors: true,
                     });
@@ -213,24 +241,24 @@
                     var group = reconstruction_groups[r];
 
                     // Points.
-                    var particles = new THREE.Geometry();
+                    var points = new THREE.Geometry();
                     for (var point_id in reconstruction.points) {
                         if (reconstruction.points.hasOwnProperty(point_id)) {
                             var p = reconstruction.points[point_id].coordinates;
                             var c = reconstruction.points[point_id].color;
                             var color = new THREE.Color();
                             color.setRGB(c[0] / 255., c[1] / 255., c[2] / 255.)
-                            particles.vertices.push(new THREE.Vector3(p[0], p[1], p[2]));
-                            particles.colors.push(color);
+                            points.vertices.push(new THREE.Vector3(p[0], p[1], p[2]));
+                            points.colors.push(color);
                         }
                     }
-                    particleSystem = new THREE.PointCloud(particles, pMaterial);
-                    group.add(particleSystem)
+                    group.add(new THREE.PointCloud(points, pointCloudMaterial))
 
                     // Cameras.
                     var lines = initCameraLines(reconstruction);
                     for (var i = 0; i < lines.length; ++i) {
                         group.add(lines[i]);
+                        camera_lines.push(lines[i]);
                     }
 
                     // GPS positions
@@ -288,10 +316,10 @@
                     var scale = 2;
                     for (var i = 0; i <= 2 * N; ++i) {
                         linegeo.vertices.push(
-                            new THREE.Vector3(scale * (i - N), scale * (-N), -2),
-                            new THREE.Vector3(scale * (i - N), scale * ( N), -2),
-                            new THREE.Vector3(scale * (-N), scale * (i - N), -2),
-                            new THREE.Vector3(scale * ( N), scale * (i - N), -2)
+                            new THREE.Vector3(scale * (i - N), scale * (-N), 0),
+                            new THREE.Vector3(scale * (i - N), scale * ( N), 0),
+                            new THREE.Vector3(scale * (-N), scale * (i - N), 0),
+                            new THREE.Vector3(scale * ( N), scale * (i - N), 0)
                         );
                     }
                     var lineMaterial = new THREE.LineBasicMaterial({color: 0x555555});
@@ -304,6 +332,12 @@
                 scene = new THREE.Scene();
                 scene.add(scene_group);
 
+                var geometry = new THREE.SphereGeometry(1);
+                var material = new THREE.MeshBasicMaterial( { color: 0xff0000 } );
+                sphereInter = new THREE.Mesh( geometry, material );
+                sphereInter.visible = false;
+                scene.add(sphereInter);
+
                 addDatGui();
                 render();
             }
@@ -315,13 +349,49 @@
                 render();
             }
 
+            function onDocumentMouseMove(event) {
+                event.preventDefault();
+                mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
+                render();
+            }
+
+            function onDocumentMouseDown(event) {
+                if (currentIntersected !== undefined) {
+                    if (selectedCamera !== undefined) {
+                        selectedCamera.material.linewidth = 1;
+                        selectedCamera.material.color = options.cameraColor;
+                    }
+                    selectedCamera = currentIntersected;
+                    selectedCamera.material.linewidth = 5;
+                    selectedCamera.material.color = options.selectedCameraColor;
+                    var image = document.getElementById('image');
+                    image.src = window.location.hash.replace('#','').replace('reconstruction.json', 'images/'+selectedCamera.shot_id)
+                    var text = document.getElementById('text');
+                    text.innerHTML = selectedCamera.shot_id;
+                    render();
+                }
+            }
+
             function animate() {
                 requestAnimationFrame(animate);
                 controls.update();
             }
 
             function render() {
-                renderer.render( scene, camera );
+                //find intersections
+                var vector = new THREE.Vector3(mouse.x, mouse.y, 1).unproject(camera);
+                raycaster.set(camera.position, vector.sub(camera.position).normalize());
+                var intersects = raycaster.intersectObjects(camera_lines, true);
+                if (intersects.length > 0) {
+                    currentIntersected = intersects[0].object;
+                    sphereInter.visible = true;
+                    sphereInter.position.copy(intersects[0].point);
+                } else {
+                    currentIntersected = undefined;
+                    sphereInter.visible = false;
+                }
+                renderer.render(scene, camera);
             }
 
         </script>
