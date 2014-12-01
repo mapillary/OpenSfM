@@ -1,32 +1,63 @@
-#!/usr/bin/env bash
+#!/usr/bin/env python
 
-if [ "$#" -eq 0 ]; then
-    folder=eval/runs/`date -u +"%Y-%m-%dT%H:%M:%SZ"`
-fi
-if [ "$#" -eq 1 ]; then
-    folder=$1
-fi
+import datetime
+import sys, os
+from subprocess import call
+import urllib
+import json
+from opensfm import dataset
+from opensfm import reconstruction
 
-###########################
-# Create evaluation folders
-mkdir -p $folder
 
-# Bundler examples
-for i in ET kermit; do
-    mkdir -p $folder/$i
-    ln -s ../../../datasets/bundler-v0.4-source/examples/$i $folder/$i/images
-done
-# Strecha datasets
-for i in castle fountain herzjesu; do
-    mkdir -p $folder/$i
-    ln -s ../../../datasets/$i $folder/$i/images
-done
+def run_dataset(run_root, name):
+    folder = run_root + '/' + name
+    call(['cp', 'config.yaml', folder])
+    call(['bin/run_all', folder])
 
-###########################
-# Run all for all datasets
-for i in `ls $folder`; do
-    cp config.yaml $folder/$i
-    bin/run_all $folder/$i
-    python -c "import urllib; print '<a href=\"/viewer/reconstruction.html#../{0}/reconstruction.json\">$i</a><br>'.format(urllib.quote('$folder/$i'))" >> $folder/index.html
-done
+    with open(run_root + '/index.html', 'a') as fout:
+        s = '''
+<a href="/viewer/reconstruction.html#../{0}/reconstruction.json">{1}</a><br>
+'''.format(urllib.quote(folder), name)
+        fout.write(s)
+
+def eval_strecha_dataset(run_root, name):
+    exif = {
+        "camera": "canon eos d60",
+        "focal_ratio": 0.881057268722467, 
+        "focal_35mm_equiv": 31.718061674008812, 
+    }
+    folder = run_root + '/' + name
+    source = '../../../datasets/{0}/urd'.format(name)
+    call(['mkdir', '-p', folder])
+    call(['ln', '-s',  source, folder + '/images'])
+    with open(folder + '/exif_overrides.json', 'w') as fout:
+        d = { '%04d.png'%i: exif for i in range(30)}
+        json.dump(d, fout, indent=4)
+
+    run_dataset(run_root, name)
+
+
+if __name__ == '__main__':
+    if len(sys.argv) == 2:
+        run_root = sys.argv[1]
+    else:
+        run_root = 'eval/runs/' + datetime.datetime.now().isoformat()
+
+    # Create evaluation folders
+    call(['mkdir', '-p', run_root])
+
+    # Bundler examples
+    # for i in ['ET', 'kermit']:
+    #     a = run_root + '/' + i
+    #     call(['mkdir', '-p', a])
+    #     call(['ln', '-s',  '../../../datasets/bundler-v0.4-source/examples/' + i, a + '/images'])
+
+    # Strecha datasets
+    for name in ['fountain_dense',
+                 'herzjesu_dense',
+                 'castle_entry_dense',
+                 'castle_dense',
+                 'herzjesu_dense_large',
+                 'castle_dense_large']:
+        eval_strecha_dataset(run_root, name)
 
