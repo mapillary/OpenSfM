@@ -4,6 +4,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 import json
 import exifread
+import time
 import numpy as np
 from cv2 import imread
 
@@ -15,13 +16,6 @@ from opensfm import dataset
 def usage():
     print 'USAGE: %s data_set_path' % sys.argv[0]
     sys.exit(0)
-
-
-if len(sys.argv) > 1:
-    path = sys.argv[1]
-else:
-    usage()
-
 
 def eval_frac(value):
     return float(value.num) / float(value.den)
@@ -65,6 +59,12 @@ def sensor_string(make, model):
     return (make.strip() + ' ' + model.strip()).lower()
 
 
+if len(sys.argv) > 1:
+    path = sys.argv[1]
+else:
+    usage()
+
+start = time.time()
 data = dataset.DataSet(path)
 images = data.images()
 missing_sensors = {}
@@ -189,3 +189,8 @@ with open(data.data_path+'/missing_sensor.json', 'w') as fout:
 
 with open(data.camera_model_file(), 'w') as fout:
     fout.write(json.dumps(camera_models, indent=4))
+
+end = time.time()
+with open(data.profile_log(), 'a') as fout:
+    fout.write('focal_from_exif: {0}\n'.format(end - start))
+

@@ -200,6 +200,10 @@ class DataSet:
         """Return path of camera model file"""
         return os.path.join(self.data_path, 'camera_models.json')
 
+    def profile_log(self):
+        "Filename where to write timings."
+        return os.path.join(self.data_path, 'profile.log')
+
 
 def common_tracks(g, im1, im2):
     """

@@ -60,5 +60,9 @@ def match(imagepair):
         print "Too few preemptive matches / {0} matches found".format(len(matches_pre))
 
 from multiprocessing import Pool
+start = time.time()
 p = Pool(data.config['processes'])
 p.map(match, combinations(images, 2))
+end = time.time()
+with open(data.profile_log(), 'a') as fout:
+    fout.write('match_features: {0}\n'.format(end - start))
