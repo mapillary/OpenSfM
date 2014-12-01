@@ -82,11 +82,17 @@ def focal_length_rms(rgt, r):
 
 def eval_reconstruction(name, rgt, r):
     align_reconstructions(rgt, r)
+    f = focal_length_rms(rgt, r)
+    o = optical_center_rms(rgt, r)
     print '#####################################################################'
     print '# Evaluation for', name
-    print '#   Focal lenght RMS error:', focal_length_rms(rgt, r)
-    print '#   Optical center RMS error:', optical_center_rms(rgt, r)
+    print '#   Focal lenght RMS error:', f
+    print '#   Optical center RMS error:', o
     print '#####################################################################'
+    return {
+        "focal_length_rms": f,
+        "optical_center_rms": o,
+    }
 
 
 def load_strecha_gt_projections(run_root, name):
@@ -128,7 +134,7 @@ def eval_strecha_dataset(run_root, name):
     with open(folder+'/reconstruction.json') as fin:
         r = json.load(fin)[0]
     rgt = load_strecha_gt_projections(run_root, name)
-    eval_reconstruction(name, rgt, r)
+    return eval_reconstruction(name, rgt, r)
 
 
 if __name__ == '__main__':
@@ -147,6 +153,7 @@ if __name__ == '__main__':
     #     call(['ln', '-s',  '../../../datasets/bundler-v0.4-source/examples/' + i, a + '/images'])
 
     # Strecha datasets
+    results = {}
     for name in [
                  'fountain_dense',
                  'herzjesu_dense',
@@ -155,5 +162,8 @@ if __name__ == '__main__':
                  'herzjesu_dense_large',
                  'castle_dense_large',
                  ]:
-        eval_strecha_dataset(run_root, name)
+        results[name] = eval_strecha_dataset(run_root, name)
+
+    with open(run_root + '/results.json', 'w') as fout:
+        json.dump(results, fout, indent=4)
 
