@@ -123,7 +123,7 @@ def eval_strecha_dataset(run_root, name):
         d = { '%04d.png'%i: exif for i in range(30)}
         json.dump(d, fout, indent=4)
 
-    #run_dataset(run_root, name)
+    run_dataset(run_root, name)
 
     with open(folder+'/reconstruction.json') as fin:
         r = json.load(fin)[0]
