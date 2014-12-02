@@ -23,10 +23,10 @@ include_directories(${EIGEN_INCLUDE_DIRS})
 find_package(Ceres REQUIRED)
 include_directories(${CERES_INCLUDE_DIR})
 
-find_package(gflags REQUIRED)
+find_package(Gflags REQUIRED)
 include_directories(${GFLAGS_INCLUDE_DIR})
 
-find_package(glog REQUIRED)
+find_package(Glog REQUIRED)
 include_directories(${GLOG_INCLUDE_DIR})
 
 
