@@ -27,6 +27,7 @@ index = {}
 preemptive_ids = {}
 exifs = {}
 for image in images:
+    print 'loading keypoints', len(p), '/', len(images)
     p[image], f[image] = features.read_feature(data.feature_file(image))
     index[image] = cv2.flann_Index()
     index[image].load(f[image], data.feature_index_file(image))
@@ -63,10 +64,10 @@ def match(imagepair):
                                              f[im2][preemptive_ids[im2],:],
                                              data.config)
         num_matches_pre = len(matches_pre)
+        print "Preemptive matching {0}, time : {1}".format(num_matches_pre, time.time()-t)
     else:
         num_matches_pre = 0
 
-        print "Preemptive matching {0}, time : {1}".format(num_matches_pre, time.time()-t)
 
     detailed_match = False
 
