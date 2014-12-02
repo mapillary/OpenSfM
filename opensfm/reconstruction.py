@@ -337,6 +337,29 @@ def optical_center(shot):
     return -R.T.dot(t)
 
 
+def apply_similarity(reconstruction, s, A, b):
+    """Apply a similarity (y = s A x + t) to a reconstruction.
+    
+    :param reconstruction: The reconstruction to transform.
+    :param s: The scale (a scalar)
+    :param A: The rotation matrix (3x3)
+    :param b: The translation vector (3)
+    """
+    # Align points.
+    for point in reconstruction['points'].values():
+        Xp = s * A.dot(point['coordinates']) + b
+        point['coordinates'] = list(Xp)
+
+    # Align cameras.
+    for shot in reconstruction['shots'].values():
+        R = cv2.Rodrigues(np.array(shot['rotation']))[0]
+        t = np.array(shot['translation'])
+        Rp = R.dot(A.T)
+        tp = -Rp.dot(b) + s * t
+        shot['rotation'] = list(cv2.Rodrigues(Rp)[0].flat)
+        shot['translation'] = list(tp)
+
+
 def align_reconstruction_naive(reconstruction):
     if len(reconstruction['shots']) < 3: return
     # Compute similarity Xp = s A X + b
@@ -352,19 +375,7 @@ def align_reconstruction_naive(reconstruction):
     s = np.linalg.det(A)**(1./3)
     A /= s
 
-    # Align points.
-    for point in reconstruction['points'].values():
-        Xp = s * A.dot(point['coordinates']) + b
-        point['coordinates'] = list(Xp)
-
-    # Align cameras.
-    for shot in reconstruction['shots'].values():
-        R = cv2.Rodrigues(np.array(shot['rotation']))[0]
-        t = np.array(shot['translation'])
-        Rp = R.dot(A.T)
-        tp = -Rp.dot(b) + s * t
-        shot['rotation'] = list(cv2.Rodrigues(Rp)[0].flat)
-        shot['translation'] = list(tp)
+    apply_similarity(reconstruction, s, A, b)
 
 def align_reconstruction(reconstruction):
     X, Xp = [], []
@@ -403,20 +414,7 @@ def align_reconstruction(reconstruction):
                   T[1,2],
                   Xp[:,2].mean() - s * X[:,2].mean()])  # vertical alignment
 
-    # Align points.
-    for point in reconstruction['points'].values():
-        Xp = s * A.dot(point['coordinates']) + b
-        point['coordinates'] = list(Xp)
-
-    # Align cameras.
-    for shot in reconstruction['shots'].values():
-        R = cv2.Rodrigues(np.array(shot['rotation']))[0]
-        t = np.array(shot['translation'])
-        Rp = R.dot(A.T)
-        tp = -Rp.dot(b) + s * t
-        shot['rotation'] = list(cv2.Rodrigues(Rp)[0].flat)
-        shot['translation'] = list(tp)
-
+    apply_similarity(reconstruction, s, A, b)
 
 
 def paint_reconstruction(data, graph, reconstruction):
