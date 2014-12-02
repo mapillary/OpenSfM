@@ -53,4 +53,4 @@ An example dataset is available at data/berlin.
 2. put config.yaml at `data/DATASET_NAME/config.yaml`
 3. run `bin/run_all DATASET_NAME`
 4. start a http server with `python -m SimpleHTTPServer`
-5. browse `http://localhost:8000/viewer/reconstruction.html#DATASET_NAME/reconstruction.json`
+5. browse `http://localhost:8000/viewer/reconstruction.html#/data/DATASET_NAME/reconstruction.json`
