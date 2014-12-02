@@ -9,6 +9,7 @@ from itertools import combinations
 import argparse
 from opensfm import dataset
 from opensfm import features
+from opensfm import geo
 
 
 parser = argparse.ArgumentParser(description='Match features between all image pairs.')
@@ -20,44 +21,75 @@ args = parser.parse_args()
 data = dataset.DataSet(args.dataset)
 images = data.images()
 
-print 'Loading features and indexes'
+print 'Loading features, indexes and exif data'
 p, f = {}, {}
 index = {}
 preemptive_ids = {}
+exifs = {}
 for image in images:
     p[image], f[image] = features.read_feature(data.feature_file(image))
     index[image] = cv2.flann_Index()
     index[image].load(f[image], data.feature_index_file(image))
     sz = p[image][:,2]
     order = np.argsort(sz)
-    preemptive_ids[image] = order[-data.config['preemptive_max']:]
+    preemptive_ids[image] = order[-data.config.get('preemptive_max', 200):]
+    exifs[image] = data.exif_data(image)
 
 
 def match(imagepair):
     im1, im2 = imagepair
-    print 'Matching image', im1, 'with image', im2,
+    print 'Matching image', im1, 'with image', im2
+
+    matching_gps_distance = data.config.get('matching_gps_distance', 0)
+    preemptive_matching_gps_distance = data.config.get('preemptive_matching_gps_distance', 300)
+    robust_matching_min_match = data.config.get('robust_matching_min_match', 20)
+    preemptive_threshold = data.config.get('preemptive_threshold', 1)
+
+    # gps distance
+    distance = 0
+    if im1 in exifs and im2 in exifs:
+        gps1 = exifs[im1].get('gps',{})
+        gps2 = exifs[im2].get('gps',{})
+        if gps1 and gps2:
+            lon1, lat1 = gps1['longitude'], gps1['latitude']
+            lon2, lat2 = gps2['longitude'], gps2['latitude']
+            distance = geo.gps_distance([lon1,lat1], [lon2, lat2])
 
     # preemptive matching
-    t = time.time()
-    matches_pre = features.match_lowe_bf(f[im1][preemptive_ids[im1],:],
-                                         f[im2][preemptive_ids[im2],:],
-                                         data.config)
-    print "\nPreemptive matching {0}, time : {1}".format(len(matches_pre), time.time()-t)
+    if distance < preemptive_matching_gps_distance:
+        t = time.time()
 
-    if len(matches_pre) > data.config['preemptive_threshold']:
+        matches_pre = features.match_lowe_bf(f[im1][preemptive_ids[im1],:],
+                                             f[im2][preemptive_ids[im2],:],
+                                             data.config)
+        num_matches_pre = len(matches_pre)
+    else:
+        num_matches_pre = 0
+
+        print "Preemptive matching {0}, time : {1}".format(num_matches_pre, time.time()-t)
+
+    detailed_match = False
+
+    if (num_matches_pre >= preemptive_threshold and
+        distance < matching_gps_distance ) :
+        detailed_match = True
+    elif len(matches_pre) >= robust_matching_min_match:
+        detailed_match = True
+
+    if detailed_match:
         t = time.time()
         matches = features.match_symmetric(f[im1], index[im1], f[im2], index[im2], data.config)
         print 'flann matching time : ', time.time() - t
 
-        if len(matches) < 20:
+        if len(matches) < robust_matching_min_match:
             print "0 / {0} matches found".format(len(matches))
         else:
             rmatches = features.robust_match(p[im1], p[im2], matches, data.config)
-            if len(rmatches) >= 20:
+            if len(rmatches) >= robust_matching_min_match:
                 np.savetxt(data.robust_matches_file(im1, im2), rmatches, "%d")
             print "{0} / {1} matches found".format(len(rmatches), len(matches))
     else:
-        print "Too few preemptive matches / {0} matches found".format(len(matches_pre))
+        print "Too few preemptive matches / {0} matches found".format(num_matches_pre)
 
 from multiprocessing import Pool
 start = time.time()
