@@ -68,16 +68,7 @@ def match(imagepair):
     else:
         num_matches_pre = 0
 
-
-    detailed_match = False
-
-    if (num_matches_pre >= preemptive_threshold and
-        distance < matching_gps_distance ) :
-        detailed_match = True
-    elif len(matches_pre) >= robust_matching_min_match:
-        detailed_match = True
-
-    if detailed_match:
+    if num_matches_pre >= preemptive_threshold:
         t = time.time()
         matches = features.match_symmetric(f[im1], index[im1], f[im2], index[im2], data.config)
         print 'flann matching time : ', time.time() - t
