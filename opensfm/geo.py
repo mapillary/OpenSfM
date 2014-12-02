@@ -108,12 +108,14 @@ def lla_from_topocentric(x, y, z, reflat, reflon, refalt):
     return lla_from_ecef(ex, ey, ez)
 
 
+def gps_distance(lonlat_1, lonlat_2):
 
+    '''
+    Distance between two (lat,lon) pairs.
+    '''
+    x1, y1, z1 = ecef_from_lla(lonlat_1[0], lonlat_1[1], 0.)
+    x2, y2, z2 = ecef_from_lla(lonlat_2[0], lonlat_2[1], 0.)
 
+    dis = np.sqrt((x1-x2)**2 + (y1-y2)**2 + (z1-z2)**2)
 
-
-
-
-
-
-
+    return dis
