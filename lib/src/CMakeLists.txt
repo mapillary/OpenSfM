@@ -62,6 +62,7 @@ target_link_libraries(bundle
                       ${GFLAGS_LIBRARY}
                       ${GLOG_LIBRARY}
                       ${JSONCPP_LIBRARIES}
+                      ${LAPACK_LIBRARIES}
                       )
 
 #add_executable(bundle_test bundle_test.cc)
