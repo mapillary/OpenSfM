@@ -13,9 +13,9 @@ def extract_feature(imagefile, config):
     image = cv2.imread(imagefile)
 
     # Resize the image
-    sz = np.max(np.array(image.shape[0:2]))
+    sz = np.array(image.shape[0:2])
     feature_process_size = config.get('feature_process_size', -1)
-    resize_ratio = feature_process_size / float(sz)
+    resize_ratio = feature_process_size / float(np.max(sz))
     if resize_ratio > 0 and resize_ratio < 1.0:
         image = cv2.resize(image, dsize=(0,0), fx=resize_ratio, fy=resize_ratio)
     else:
@@ -66,6 +66,15 @@ def extract_feature(imagefile, config):
 
     points, desc = descriptor.compute(image, points)
     ps = np.array([(i.pt[0]/resize_ratio, i.pt[1]/resize_ratio, i.size/resize_ratio, i.angle) for i in points])
+    masks = np.array(config.get('masks',[]))
+    for mask in masks:
+        mask = [mask[0]*sz[0], mask[1]*sz[1], mask[2]*sz[0], mask[3]*sz[1]]
+        ids  = np.invert ( (ps[:,1] > mask[0]) *
+                           (ps[:,1] < mask[2]) *
+                           (ps[:,0] > mask[1]) *
+                           (ps[:,0] < mask[3]) )
+        ps = ps[ids,:]
+        desc = desc[ids,:]
     return ps, desc
 
 
@@ -141,4 +150,3 @@ def robust_match(p1, p2, matches, config):
     inliers = mask.ravel().nonzero()
 
     return matches[inliers]
-
