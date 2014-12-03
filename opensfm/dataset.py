@@ -105,7 +105,7 @@ class DataSet:
         Return path of feature file for specified image
         :param image: Image name, with extension (i.e. 123.jpg)
         """
-        return os.path.join(self.feature_path(), image + '.' + self.feature_type() + '.npy')
+        return os.path.join(self.feature_path(), image + '.' + self.feature_type() + '.npz')
 
     def feature_index_file(self, image):
         """

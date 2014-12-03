@@ -1,11 +1,11 @@
 
 # Params for features
-feature_type: SURF            # Feature type (SURF, SIFT)
+feature_type: SIFT            # Feature type (SURF, SIFT)
 feature_min_frames: 5000      # If fewer frames are detected, sift_peak_threshold/surf_hessian_threshold is reduced.
 feature_process_size: 2048    # Resize the image if its size is larger than specified. Set to -1 for original size
 
 # Params for SIFT
-sift_peak_threshold: 0.1      # Smaller value -> more features
+sift_peak_threshold: 0.04     # Smaller value -> more features
 sift_edge_threshold: 10       # See OpenCV doc
 
 # Params for SURF

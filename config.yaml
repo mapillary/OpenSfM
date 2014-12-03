@@ -1,10 +1,11 @@
+
 # Params for features
-feature_type: SURF            # Feature type (SURF, SIFT)
+feature_type: SIFT            # Feature type (SURF, SIFT)
 feature_min_frames: 5000      # If fewer frames are detected, sift_peak_threshold/surf_hessian_threshold is reduced.
 feature_process_size: 2048    # Resize the image if its size is larger than specified. Set to -1 for original size
 
 # Params for SIFT
-sift_peak_threshold: 0.1      # Smaller value -> more features
+sift_peak_threshold: 0.04     # Smaller value -> more features
 sift_edge_threshold: 10       # See OpenCV doc
 
 # Params for SURF
@@ -23,16 +24,10 @@ flann_checks: 100             # Smaller -> Faster (but might lose good matches)
 # Params for preemptive matching
 preemptive_max: 200           # Number of features to use for preemptive matching
 preemptive_threshold: 4       # If number of matches passes the threshold -> full feature matching
-preemptive_matching_gps_distance: 300 # Maximum gps distance between two images for preemptive matching
-
-# Params for gps filtering for matching
-matching_gps_distance: 150    # Maximum gps distance betwen two images for matching
 
 # Params for geometric estimation
 robust_matching_threshold: 3  # Outlier threshold (in pixels) for fundamental matrix estimation
 five_point_algo_threshold: 5  # Outlier threshold (in pixels) for essential matrix estimation
-robust_matching_min_match: 20 # Minimum number of matches to be considered as an edge in the match grph
-
 
 # Params for bundle adjustment
 exif_focal_sd: 0.01            # The standard deviation of the diff between the focal length and the exif focal length in width units.

@@ -79,12 +79,13 @@ def extract_feature(imagefile, config):
 
 
 def write_feature(points, descriptors,featurefile):
-    a = np.hstack((points, descriptors)).astype(np.float32)
-    np.save(featurefile, a)
+    np.savez(featurefile,
+             points=points.astype(np.float32),
+             descriptors=descriptors.astype(np.float32))
 
 def read_feature(featurefile):
     s = np.load(featurefile)
-    return s[:,:4].copy(), s[:,4:].copy()
+    return s['points'], s['descriptors']
 
 
 def build_flann_index(f, index_file, config):
