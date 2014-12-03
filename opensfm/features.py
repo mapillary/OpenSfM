@@ -79,11 +79,11 @@ def extract_feature(imagefile, config):
 
 
 def write_feature(points, descriptors,featurefile):
-    a = np.hstack((points, descriptors))
-    s = np.savetxt(featurefile, a, fmt='%g')
+    a = np.hstack((points, descriptors)).astype(np.float32)
+    np.save(featurefile, a)
 
 def read_feature(featurefile):
-    s = np.loadtxt(featurefile, dtype=np.float32)
+    s = np.load(featurefile)
     return s[:,:4].copy(), s[:,4:].copy()
 
 

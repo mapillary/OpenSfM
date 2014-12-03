@@ -26,8 +26,10 @@ p, f = {}, {}
 index = {}
 preemptive_ids = {}
 exifs = {}
+print 'loading keypoints for {0} images'.format(len(images))
 for image in images:
-    print 'loading keypoints', len(p), '/', len(images)
+    sys.stdout.write('.')
+    sys.stdout.flush()
     p[image], f[image] = features.read_feature(data.feature_file(image))
     index[image] = cv2.flann_Index()
     index[image].load(f[image], data.feature_index_file(image))
@@ -35,6 +37,7 @@ for image in images:
     order = np.argsort(sz)
     preemptive_ids[image] = order[-data.config.get('preemptive_max', 200):]
     exifs[image] = data.exif_data(image)
+print
 
 
 def match(imagepair):
