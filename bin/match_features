@@ -3,6 +3,7 @@ import os.path, sys
 import time
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+from multiprocessing import Pool
 import numpy as np
 import cv2
 from itertools import combinations
@@ -12,45 +13,11 @@ from opensfm import features
 from opensfm import geo
 
 
-parser = argparse.ArgumentParser(description='Match features between all image pairs.')
-parser.add_argument('dataset',
-                    help='path to the dataset to be processed')
-args = parser.parse_args()
-
-
-data = dataset.DataSet(args.dataset)
-images = data.images()
-
-matching_preload_feature = data.config.get('matching_preload_feature', True)
-
-print 'Loading features, indexes and exif data'
-p, f = {}, {}
-index = {}
-preemptive_ids = {}
-exifs = {}
-print 'loading keypoints for {0} images'.format(len(images))
-p_pre, f_pre = {}, {}
-for image in images:
-    sys.stdout.write('.')
-    sys.stdout.flush()
-    if matching_preload_feature:
-        p[image], f[image] = features.read_feature(data.feature_file(image))
-        index[image] = cv2.flann_Index()
-        index[image].load(f[image], data.feature_index_file(image))
-        sz = p[image][:,2]
-        order = np.argsort(sz)
-        preemptive_ids[image] = order[-data.config.get('preemptive_max', 200):]
-    else:
-        p_pre[image], f_pre[image] = features.read_feature(data.preemptive_feature_file(image))
-    exifs[image] = data.exif_data(image)
-
-
 def match(imagepair):
     im1, im2 = imagepair
     print 'Matching image', im1, 'with image', im2
 
-    matching_gps_distance = data.config.get('matching_gps_distance', 0)
-    preemptive_matching_gps_distance = data.config.get('preemptive_matching_gps_distance', 300)
+    matching_gps_distance = data.config.get('matching_gps_distance', 9999999)
     robust_matching_min_match = data.config.get('robust_matching_min_match', 20)
     preemptive_threshold = data.config.get('preemptive_threshold', 1)
 
@@ -63,53 +30,60 @@ def match(imagepair):
             lon1, lat1 = gps1['longitude'], gps1['latitude']
             lon2, lat2 = gps2['longitude'], gps2['latitude']
             distance = geo.gps_distance([lon1,lat1], [lon2, lat2])
+    if distance > matching_gps_distance:
+        print "Discarding based on GPS distance {0} > {1}".format(distance, matching_gps_distance)
+        return
 
     # preemptive matching
-    if distance < matching_gps_distance:
-        t = time.time()
-        if matching_preload_feature:
-            f1 = f[im1][preemptive_ids[im1],:]
-            f2 = f[im2][preemptive_ids[im2],:]
-        else:
-            f1 = f_pre[im1]
-            f2 = f_pre[im2]
-        matches_pre = features.match_lowe_bf(f1, f2, data.config)
-        num_matches_pre = len(matches_pre)
-        print "Preemptive matching {0}, time : {1}".format(num_matches_pre, time.time()-t)
-    else:
-        num_matches_pre = 0
+    t = time.time()
+    matches_pre = features.match_lowe_bf(f_pre[im1], f_pre[im2], data.config)
+    print "Preemptive matching {0}, time: {1}s".format(len(matches_pre), time.time()-t)
+    if len(matches_pre) < preemptive_threshold:
+        print "Discarding based of preemptive matches {0} < {1}".format(len(matches_pre), preemptive_threshold)
+        return
 
-    if num_matches_pre >= preemptive_threshold:
-        t = time.time()
-        if matching_preload_feature:
-            f1, f2 = f[im1], f[im2]
-            i1, i2 = index[im1], index[im2]
-            p1, p2 = p[im1], p[im2]
-        else:
-            p1, f1 = features.read_feature(data.feature_file(im1))
-            i1 = cv2.flann_Index()
-            i1.load(f1, data.feature_index_file(im1))
-            p2, f2 = features.read_feature(data.feature_file(im2))
-            i2 = cv2.flann_Index()
-            i2.load(f2, data.feature_index_file(im2))
+    # symetric matching
+    t = time.time()
+    p1, f1 = features.read_feature(data.feature_file(im1))
+    i1 = cv2.flann_Index()
+    i1.load(f1, data.feature_index_file(im1))
+    p2, f2 = features.read_feature(data.feature_file(im2))
+    i2 = cv2.flann_Index()
+    i2.load(f2, data.feature_index_file(im2))
+    matches = features.match_symmetric(f1, i1, f2, i2, data.config)
+    if len(matches) < robust_matching_min_match:
+        return
 
-        matches = features.match_symmetric(f1, i1, f2, i2, data.config)
-        print 'flann matching time : ', time.time() - t
+    # robust matching
+    rmatches = features.robust_match(p1, p2, matches, data.config)
+    if len(rmatches) < robust_matching_min_match:
+        return
 
-        if len(matches) < robust_matching_min_match:
-            print "0 / {0} matches found".format(len(matches))
-        else:
-            rmatches = features.robust_match(p1, p2, matches, data.config)
-            if len(rmatches) >= robust_matching_min_match:
-                np.savetxt(data.robust_matches_file(im1, im2), rmatches, "%d")
-            print "{0} / {1} matches found".format(len(rmatches), len(matches))
-    else:
-        print "Too few preemptive matches / {0} matches found".format(num_matches_pre)
+    np.savetxt(data.robust_matches_file(im1, im2), rmatches, "%d")
+    print "Full matching {0} / {1}, time: {2}s".format(len(rmatches), len(matches), time.time() - t)
 
-from multiprocessing import Pool
-start = time.time()
-p = Pool(data.config['processes'])
-p.map(match, combinations(images, 2))
-end = time.time()
-with open(data.profile_log(), 'a') as fout:
-    fout.write('match_features: {0}\n'.format(end - start))
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Match features between all image pairs.')
+    parser.add_argument('dataset', help='path to the dataset to be processed')
+    args = parser.parse_args()
+
+    data = dataset.DataSet(args.dataset)
+    images = data.images()
+
+    print 'Loading preemptive data'
+    exifs = {}
+    p_pre, f_pre = {}, {}
+    for image in images:
+        sys.stdout.write('.')
+        sys.stdout.flush()
+        p_pre[image], f_pre[image] = features.read_feature(data.preemptive_feature_file(image))
+        exifs[image] = data.exif_data(image)
+
+    start = time.time()
+    p = Pool(data.config['processes'])
+    p.map(match, combinations(images, 2))
+    end = time.time()
+    with open(data.profile_log(), 'a') as fout:
+        fout.write('match_features: {0}\n'.format(end - start))

@@ -13,6 +13,12 @@ surf_hessian_threshold: 3000  # Smaller value -> more features
 surf_n_octaves: 4             # See OpenCV doc
 surf_n_octavelayers: 2        # See OpenCV doc
 
+# Masks for regions that will be ignore for feature extraction
+# List of bounding boxes specified as the ratio with respect to the height and width
+# [top_left_x, top_left_y, bottom_right_x, bottom_right_y] where x, y refer to
+# vertical/horizontal dimension of an image
+# masks: [[0.96, 0.0, 1.0, 0.15], [0,0.95,0.05,1]]
+
 # Params for general matching
 lowes_ratio: 0.6              # Ratio test for matches
 
@@ -24,13 +30,18 @@ flann_checks: 100             # Smaller -> Faster (but might lose good matches)
 # Params for preemptive matching
 preemptive_max: 200           # Number of features to use for preemptive matching
 preemptive_threshold: 4       # If number of matches passes the threshold -> full feature matching
+preemptive_matching_gps_distance: 300 # Maximum gps distance between two images for preemptive matching
+
+# Params for matching
+matching_gps_distance: 150    # Maximum gps distance between two images for matching
 
 # Params for geometric estimation
 robust_matching_threshold: 3  # Outlier threshold (in pixels) for fundamental matrix estimation
 five_point_algo_threshold: 5  # Outlier threshold (in pixels) for essential matrix estimation
+robust_matching_min_match: 20 # Minimum number of matches to be considered as an edge in the match grph
 
 # Params for bundle adjustment
-exif_focal_sd: 0.01            # The standard deviation of the diff between the focal length and the exif focal length in width units.
+exif_focal_sd: 0.01           # The standard deviation of the diff between the focal length and the exif focal length in width units.
 
 # Other params
 processes: 1                  # Number of threads to use
