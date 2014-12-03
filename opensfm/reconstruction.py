@@ -3,6 +3,7 @@
 from collections import defaultdict
 from itertools import combinations
 from subprocess import call, Popen, PIPE
+import datetime
 import numpy as np
 import cv2
 import json
@@ -456,9 +457,10 @@ def grow_reconstruction(data, graph, reconstruction, images):
     while True:
         if False:  # TODO(pau): set up a parameter for this.
             paint_reconstruction_constant(data, graph, reconstruction)
-            fname = data.reconstruction_file().replace('json', '%04d.json' % len(reconstruction['shots']))
+            fname = data.reconstruction_file() + datetime.datetime.now().isoformat().replace(':', '_')
             with open(fname, 'w') as fout:
                 fout.write(json.dumps(reconstruction, indent=4))
+    
 
         common_tracks = reconstructed_points_for_images(graph, reconstruction, images)
         if not common_tracks:
@@ -477,6 +479,9 @@ def grow_reconstruction(data, graph, reconstruction, images):
                 if len(reconstruction['shots']) % bundle_interval == 0:
                     reconstruction = bundle(data.tracks_file(), reconstruction, data.config)
 
+                print 'Aligning'
+                align_reconstruction(reconstruction)
+
                 print 'Reprojection Error:', reprojection_error(graph, reconstruction)
 
                 num_points = len(reconstruction['points'])
@@ -491,8 +496,6 @@ def grow_reconstruction(data, graph, reconstruction, images):
             print 'Some images can not be added'
             break
 
-    print 'Aligning'
-    align_reconstruction(reconstruction)
     print 'Painting the reconstruction from {0} cameras'.format(len(reconstruction['shots']))
     paint_reconstruction(data, graph, reconstruction)
     print 'Done.'
