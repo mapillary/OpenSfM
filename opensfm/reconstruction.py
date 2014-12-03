@@ -27,7 +27,7 @@ def bundle(tracks_file, reconstruction, config):
 
     # print 'Focal before bundle', reconstruction['cameras']['main_camera']['focal']
     with open(source, 'w') as fout:
-        fout.write(json.dumps(reconstruction, indent=4))
+        fout.write(json.dumps(reconstruction))
 
     call([context.BUNDLE,
         '--exif_focal_sd', str(config.get('exif_focal_sd', 999)),
@@ -505,7 +505,7 @@ def grow_reconstruction(data, graph, reconstruction, images, image_graph):
             paint_reconstruction_constant(data, graph, reconstruction)
             fname = data.reconstruction_file() + datetime.datetime.now().isoformat().replace(':', '_')
             with open(fname, 'w') as fout:
-                fout.write(json.dumps(reconstruction, indent=4))
+                fout.write(json.dumps(reconstruction))
 
 
         common_tracks = reconstructed_points_for_images(graph, reconstruction, images)
@@ -568,7 +568,7 @@ def incremental_reconstruction(data):
                 reconstruction = grow_reconstruction(data, graph, reconstruction, remaining_images, image_graph)
                 reconstructions.append(reconstruction)
                 with open(data.reconstruction_file(), 'w') as fout:
-                    fout.write(json.dumps(reconstructions, indent=4))
+                    fout.write(json.dumps(reconstructions))
 
     for k, r in enumerate(reconstructions):
         print 'Reconstruction', k, ':', len(r['shots']), 'images', ',', len(r['points']),'points'
