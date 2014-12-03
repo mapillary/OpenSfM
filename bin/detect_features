@@ -4,6 +4,9 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 import os, sys
 import time
+
+import numpy as np
+
 from opensfm import dataset
 from opensfm import features
 
@@ -23,11 +26,18 @@ images = data.images()
 
 def detect(image):
     print 'Extracting', data.feature_type().upper(), 'features for image', image
-    if not os.path.isfile(data.feature_index_file(image)):
+    if not os.path.isfile(data.feature_index_file(image)) or 1:
         p1, f1 = features.extract_feature(data.image_file(image), data.config)
         features.write_feature(p1, f1, data.feature_file(image))
         print len(f1), 'points found. Building index...'
         features.build_flann_index(f1, data.feature_index_file(image), data.config)
+        if data.config.get('save_preemptive_feature', True):
+            sz = p1[:,2]
+            order = np.argsort(sz)
+            preemptive_ids = order[-data.config.get('preemptive_max', 200):]
+            f1_pre = f1[preemptive_ids,:]
+            p1_pre = p1[preemptive_ids,:]
+            features.write_feature(p1_pre, f1_pre, data.preemptive_feature_file(image))
 
 
 from multiprocessing import Pool

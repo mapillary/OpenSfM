@@ -114,6 +114,14 @@ class DataSet:
         """
         return os.path.join(self.feature_path(), image + '.flann')
 
+    def preemptive_feature_file(self, image):
+        """
+        Return path of preemptive feature file (a short list of the full feature file)
+        for specified image
+        :param image: Image name, with extension (i.e. 123.jpg)
+        """
+        return os.path.join(self.feature_path(), image + '_preemptive.' + self.feature_type() + '.npz')
+
     def matches_path(self):
         """Return path of matches directory"""
         return os.path.join(self.data_path, 'matches')
@@ -189,6 +197,7 @@ class DataSet:
         with open(self.reference_lla_path()) as fin:
             d = json.load(fin)
             return d['latitude'], d['longitude'], d['altitude']
+
     def camera_model_data(self):
         """
         Return camera model data

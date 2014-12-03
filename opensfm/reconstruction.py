@@ -4,11 +4,13 @@ from collections import defaultdict
 from itertools import combinations
 from subprocess import call, Popen, PIPE
 import datetime
+
 import numpy as np
 import cv2
 import json
 import networkx as nx
 from networkx.algorithms import bipartite
+
 from opensfm import context
 from opensfm import transformations as tf
 from opensfm import dataset
@@ -199,7 +201,7 @@ def reprojection_error_track(track, graph, reconstruction):
     return error
 
 
-def resect(data, graph, reconstruction, shot_id, min_inliers=20):
+def resect(data, graph, reconstruction, shot_id, min_inliers=20, reproj_threshold=8.0):
     '''Add a shot to the reconstruction.
     '''
     xs = []
@@ -218,7 +220,7 @@ def resect(data, graph, reconstruction, shot_id, min_inliers=20):
     dist = np.array([0,0,0,0.])
     if K[0,0]>0:
         # Prior on focal length
-        R, t, inliers = cv2.solvePnPRansac(X.astype(np.float32), x.astype(np.float32), K, dist)
+        R, t, inliers = cv2.solvePnPRansac(X.astype(np.float32), x.astype(np.float32), K, dist, reprojectionError=reproj_threshold)
     else:
         pass
         # # Estimate focal length and pose
@@ -268,27 +270,40 @@ def angle_between_rays(P1, x1, P2, x2):
     return multiview.vector_angle(v1, v2)
 
 
-def triangulate_track(track, graph, reconstruction, reproj_threshold=3):
+def triangulate_track(track, graph, reconstruction, reproj_threshold=3, cams=None):
     ''' Triangulate a track
     '''
     P_by_id = {}
-    Ps = []
-    xs = []
-    for shot in graph[track]:
+    Ps, Ps_initial = [], []
+    xs, xs_initial = [], []
+    if cams is None:
+        cams = graph[track]
+
+    for shot in cams:
         if shot in reconstruction['shots']:
             if shot not in P_by_id:
                 s = reconstruction['shots'][shot]
                 c = reconstruction['cameras'][s['camera']]
                 P_by_id[shot] = projection_matrix(c, s)
-            Ps.append(P_by_id[shot])
-            xs.append(graph[track][shot]['feature'])
-    if len(Ps) >= 2:
+            Ps_initial.append(P_by_id[shot])
+            xs_initial.append(graph[track][shot]['feature'])
+    ray_angle_threshold = 2.0
+    valid_set = []
+    if len(Ps_initial) >= 2:
         max_angle = 0
-        for i, j in combinations(range(len(Ps)), 2):
-            angle = angle_between_rays(Ps[i], xs[i], Ps[j], xs[j])
+        for i, j in combinations(range(len(Ps_initial)), 2):
+            angle = angle_between_rays(
+                    Ps_initial[i], xs_initial[i], Ps_initial[j], xs_initial[j])
+            if 1:
+                if i not in valid_set:
+                    valid_set.append(i)
+                if j not in valid_set:
+                    valid_set.append(j)
             max_angle = max(angle, max_angle)
-
-        if max_angle > np.radians(2.5):
+        if max_angle > np.radians(ray_angle_threshold):
+            for k in valid_set:
+                Ps.append(Ps_initial[k])
+                xs.append(xs_initial[k])
             X = multiview.triangulate(Ps, xs)
             error = 0
             Xh = multiview.homogeneous(X)
@@ -303,6 +318,7 @@ def triangulate_track(track, graph, reconstruction, reproj_threshold=3):
                     "coordinates": list(X),
                 }
 
+
 def triangulate_shot_features(graph, reconstruction, shot_id, reproj_threshold=3):
     '''Reconstruct as many tracks seen in shot_id as possible.
     '''
@@ -311,26 +327,45 @@ def triangulate_shot_features(graph, reconstruction, shot_id, reproj_threshold=3
             triangulate_track(track, graph, reconstruction,reproj_threshold=reproj_threshold)
 
 
-def retriangulate(track_file, graph, reconstruction, config):
+def retriangulate(track_file, graph, reconstruction, image_graph, config,):
     '''Re-triangulate 3D points
     '''
     track_nodes, image_nodes = bipartite.sets(graph)
-    for track in track_nodes:
-        # if track not in reconstruction['points']:
-        triangulate_track(track, graph, reconstruction, reproj_threshold=5)
+    shots = reconstruction['shots']
+    points = reconstruction['points']
+    points_added = 0
+    tracks_added = []
+    points_before = len(points)
+    for im1, im2, d in image_graph.edges(data=True):
+        if (im1 in shots) and (im2 in shots):
+            tracks, p1, p2 = dataset.common_tracks(graph, im1, im2)
+            # find already reconstructed tracks
+            diff = np.setdiff1d(tracks, points.keys())
+            reconstruct_ratio = 1 - len(diff)/float(len(tracks))
+            if reconstruct_ratio < 0.3:
+                for track in diff:
+                    if track not in tracks_added:
+                        triangulate_track(track, graph, reconstruction, reproj_threshold=10.0)
+                        points_added += 1
+                        tracks_added.append(track)
 
     # bundle adjustment
     reconstruction = bundle(track_file, reconstruction, config)
 
     # filter points with large reprojection errors
     track_to_delete = []
-    for track in reconstruction['points']:
+    for track in tracks_added:
         error = reprojection_error_track(track, graph, reconstruction)
         if error > 3.:
             track_to_delete.append(track)
-    print 'Removing {0} points after retriangulation.'.format(len(track_to_delete))
+    print 'Add {0} points after retriangulation.'.format(len(reconstruction['points']) - points_before)
     for t in track_to_delete:
-        del reconstruction['points'][t]
+        if t in reconstruction['points']:
+            del reconstruction['points'][t]
+
+    # bundle adjustment
+    reconstruction = bundle(track_file, reconstruction, config)
+
 
 def optical_center(shot):
     R = cv2.Rodrigues(np.array(shot['rotation'], dtype=float))[0]
@@ -340,7 +375,7 @@ def optical_center(shot):
 
 def apply_similarity(reconstruction, s, A, b):
     """Apply a similarity (y = s A x + t) to a reconstruction.
-    
+
     :param reconstruction: The reconstruction to transform.
     :param s: The scale (a scalar)
     :param A: The rotation matrix (3x3)
@@ -447,26 +482,36 @@ def paint_reconstruction_constant(data, graph, reconstruction):
         reconstruction['points'][track]['color'] = [200, 180, 255]
 
 
-def grow_reconstruction(data, graph, reconstruction, images):
+def grow_reconstruction(data, graph, reconstruction, images, image_graph):
     bundle_interval = data.config.get('bundle_interval', 1)
     retriangulation = data.config.get('retriangulation', False)
     retriangulation_ratio = data.config.get('retriangulation_ratio', 1.25)
 
     reconstruction = bundle(data.tracks_file(), reconstruction, data.config)
     prev_num_points = len(reconstruction['points'])
+
+    num_shots_reconstructed = len(reconstruction['shots'])
+
+    resection_reproj_threshold = 8.0
+    triangulation_reproj_threshold = 5.0
+
     while True:
         if False:  # TODO(pau): set up a parameter for this.
             paint_reconstruction_constant(data, graph, reconstruction)
             fname = data.reconstruction_file() + datetime.datetime.now().isoformat().replace(':', '_')
             with open(fname, 'w') as fout:
                 fout.write(json.dumps(reconstruction, indent=4))
-    
+
 
         common_tracks = reconstructed_points_for_images(graph, reconstruction, images)
         if not common_tracks:
             break
+
+        if num_shots_reconstructed > 10:
+            resection_reproj_threshold = 5.0
+            triangulation_reproj_threshold = 5.0
         for image, num_tracks in common_tracks:
-            if resect(data, graph, reconstruction, image, min_inliers=15):
+            if resect(data, graph, reconstruction, image, min_inliers=15, reproj_threshold=resection_reproj_threshold):
                 print '-------------------------------------------------------'
                 print 'Adding {0} to the reconstruction'.format(image)
                 images.remove(image)
@@ -474,7 +519,7 @@ def grow_reconstruction(data, graph, reconstruction, images):
                 if len(reconstruction['shots']) % bundle_interval == 0:
                     reconstruction = bundle(data.tracks_file(), reconstruction, data.config)
 
-                triangulate_shot_features(graph, reconstruction, image, reproj_threshold=5.0)
+                triangulate_shot_features(graph, reconstruction, image, reproj_threshold=triangulation_reproj_threshold)
 
                 if len(reconstruction['shots']) % bundle_interval == 0:
                     reconstruction = bundle(data.tracks_file(), reconstruction, data.config)
@@ -487,7 +532,7 @@ def grow_reconstruction(data, graph, reconstruction, images):
                 num_points = len(reconstruction['points'])
                 if retriangulation and num_points > prev_num_points * retriangulation_ratio:
                     print 'Re-triangulating'
-                    retriangulate(data.tracks_file(), graph, reconstruction, data.config)
+                    retriangulate(data.tracks_file(), graph, reconstruction, image_graph, data.config)
                     prev_num_points = len(reconstruction['points'])
                     print '  Reprojection Error:', reprojection_error(graph, reconstruction)
 
@@ -506,7 +551,7 @@ def incremental_reconstruction(data):
     graph = data.tracks_graph()
     tracks, images = bipartite.sets(graph)
     remaining_images = set(images)
-
+    image_graph = bipartite.weighted_projected_graph(graph, images)
     reconstructions = []
     pairs = compute_image_pairs(graph)
     for im1, im2 in pairs:
@@ -515,7 +560,7 @@ def incremental_reconstruction(data):
             if reconstruction:
                 remaining_images.remove(im1)
                 remaining_images.remove(im2)
-                reconstruction = grow_reconstruction(data, graph, reconstruction, remaining_images)
+                reconstruction = grow_reconstruction(data, graph, reconstruction, remaining_images, image_graph)
                 reconstructions.append(reconstruction)
                 with open(data.reconstruction_file(), 'w') as fout:
                     fout.write(json.dumps(reconstructions, indent=4))
