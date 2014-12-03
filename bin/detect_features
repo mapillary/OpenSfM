@@ -23,10 +23,11 @@ images = data.images()
 
 def detect(image):
     print 'Extracting', data.feature_type().upper(), 'features for image', image
-    p1, f1 = features.extract_feature(data.image_file(image), data.config)
-    features.write_feature(p1, f1, data.feature_file(image))
-    print len(f1), 'points found. Building index...'
-    features.build_flann_index(f1, data.feature_index_file(image), data.config)
+    if not os.path.isfile(data.feature_index_file(image)):
+        p1, f1 = features.extract_feature(data.image_file(image), data.config)
+        features.write_feature(p1, f1, data.feature_file(image))
+        print len(f1), 'points found. Building index...'
+        features.build_flann_index(f1, data.feature_index_file(image), data.config)
 
 
 from multiprocessing import Pool
