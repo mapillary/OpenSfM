@@ -264,36 +264,37 @@ def projection_matrix(camera, shot):
     Rt = Rt_from_shot(shot)
     return np.dot(K, Rt)
 
-def angle_between_rays(P1, x1, P2, x2):
-    v1 = multiview.pixel_direction(P1[:,:3], x1)
-    v2 = multiview.pixel_direction(P2[:,:3], x2)
+def angle_between_rays(KR11, x1, KR12, x2):
+    v1 = KR11.dot([x1[0], x1[1], 1])
+    v2 = KR12.dot([x2[0], x2[1], 1])
     return multiview.vector_angle(v1, v2)
 
 
-def triangulate_track(track, graph, reconstruction, reproj_threshold=3, cams=None):
+def triangulate_track(track, graph, reconstruction, P_by_id, KR1_by_id, reproj_threshold=3):
     ''' Triangulate a track
     '''
-    P_by_id = {}
-    Ps, Ps_initial = [], []
+    Ps, Ps_initial, KR1_initial = [], [], []
     xs, xs_initial = [], []
-    if cams is None:
-        cams = graph[track]
 
-    for shot in cams:
+    for shot in graph[track]:
         if shot in reconstruction['shots']:
             if shot not in P_by_id:
                 s = reconstruction['shots'][shot]
                 c = reconstruction['cameras'][s['camera']]
-                P_by_id[shot] = projection_matrix(c, s)
+                P = projection_matrix(c, s)
+                P_by_id[shot] = P
+                KR1_by_id[shot] = np.linalg.inv(P[:,:3])
             Ps_initial.append(P_by_id[shot])
             xs_initial.append(graph[track][shot]['feature'])
+            KR1_initial.append(KR1_by_id[shot])
+
     ray_angle_threshold = 2.0
     valid_set = []
     if len(Ps_initial) >= 2:
         max_angle = 0
         for i, j in combinations(range(len(Ps_initial)), 2):
             angle = angle_between_rays(
-                    Ps_initial[i], xs_initial[i], Ps_initial[j], xs_initial[j])
+                    KR1_initial[i], xs_initial[i], KR1_initial[j], xs_initial[j])
             if 1:
                 if i not in valid_set:
                     valid_set.append(i)
@@ -322,14 +323,18 @@ def triangulate_track(track, graph, reconstruction, reproj_threshold=3, cams=Non
 def triangulate_shot_features(graph, reconstruction, shot_id, reproj_threshold=3):
     '''Reconstruct as many tracks seen in shot_id as possible.
     '''
+    P_by_id = {}
+    KR1_by_id = {}
     for track in graph[shot_id]:
         if track not in reconstruction['points']:
-            triangulate_track(track, graph, reconstruction,reproj_threshold=reproj_threshold)
+            triangulate_track(track, graph, reconstruction, P_by_id, KR1_by_id, reproj_threshold=reproj_threshold)
 
 
 def retriangulate(track_file, graph, reconstruction, image_graph, config):
     '''Re-triangulate 3D points
     '''
+    P_by_id = {}
+    KR1_by_id = {}
     track_nodes, image_nodes = bipartite.sets(graph)
     shots = reconstruction['shots']
     points = reconstruction['points']
@@ -345,7 +350,7 @@ def retriangulate(track_file, graph, reconstruction, image_graph, config):
             if reconstruct_ratio < 0.3:
                 for track in diff:
                     if track not in tracks_added:
-                        triangulate_track(track, graph, reconstruction, reproj_threshold=10.0)
+                        triangulate_track(track, graph, reconstruction, P_by_id, KR1_by_id, reproj_threshold=10.0)
                         points_added += 1
                         tracks_added.append(track)
 

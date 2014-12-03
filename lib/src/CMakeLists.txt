@@ -37,7 +37,6 @@ include_directories(${EIGEN_INCLUDE_DIRS})
 
 find_package(Ceres REQUIRED)
 include_directories(${CERES_INCLUDE_DIR})
-message("ceres deps: ${CERES_LIRBRARY_DEPENDENCIES}")
 
 find_package(Gflags REQUIRED)
 include_directories(${GFLAGS_INCLUDE_DIR})
