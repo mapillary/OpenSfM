@@ -327,7 +327,7 @@ def triangulate_shot_features(graph, reconstruction, shot_id, reproj_threshold=3
             triangulate_track(track, graph, reconstruction,reproj_threshold=reproj_threshold)
 
 
-def retriangulate(track_file, graph, reconstruction, image_graph, config,):
+def retriangulate(track_file, graph, reconstruction, image_graph, config):
     '''Re-triangulate 3D points
     '''
     track_nodes, image_nodes = bipartite.sets(graph)
