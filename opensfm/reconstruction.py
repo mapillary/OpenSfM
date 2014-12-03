@@ -532,7 +532,6 @@ def grow_reconstruction(data, graph, reconstruction, images, image_graph):
                 print 'Aligning'
                 align_reconstruction(reconstruction)
 
-                print 'Reprojection Error:', reprojection_error(graph, reconstruction)
 
                 num_points = len(reconstruction['points'])
                 if retriangulation and num_points > prev_num_points * retriangulation_ratio:
@@ -546,6 +545,7 @@ def grow_reconstruction(data, graph, reconstruction, images, image_graph):
             print 'Some images can not be added'
             break
 
+    print 'Reprojection Error:', reprojection_error(graph, reconstruction)
     print 'Painting the reconstruction from {0} cameras'.format(len(reconstruction['shots']))
     paint_reconstruction(data, graph, reconstruction)
     print 'Done.'
