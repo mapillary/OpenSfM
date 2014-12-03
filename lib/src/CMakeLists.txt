@@ -24,6 +24,11 @@ if (LAPACK_FOUND)
   include_directories(${LAPACK_INCLUDE_DIRS})
 endif()
 
+find_package(SuiteSparse)
+if (SUITESPARSE_FOUND)
+  include_directories(${SUITESPARSE_INCLUDE_DIRS})
+endif()
+
 find_package(JsonCpp REQUIRED)
 include_directories(${JSONCPP_INCLUDE_DIRS})
 
@@ -32,6 +37,7 @@ include_directories(${EIGEN_INCLUDE_DIRS})
 
 find_package(Ceres REQUIRED)
 include_directories(${CERES_INCLUDE_DIR})
+message("ceres deps: ${CERES_LIRBRARY_DEPENDENCIES}")
 
 find_package(Gflags REQUIRED)
 include_directories(${GFLAGS_INCLUDE_DIR})
@@ -63,6 +69,7 @@ target_link_libraries(bundle
                       ${GLOG_LIBRARY}
                       ${JSONCPP_LIBRARIES}
                       ${LAPACK_LIBRARIES}
+                      ${SUITESPARSE_LIBRARIES}
                       )
 
 #add_executable(bundle_test bundle_test.cc)
