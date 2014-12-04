@@ -121,9 +121,9 @@ def bootstrap_reconstruction(data, graph, im1, im2):
         }
         add_gps_position(data, reconstruction, im1)
         add_gps_position(data, reconstruction, im2)
-        triangulate_shot_features(graph, reconstruction, im1)
+        triangulate_shot_features(graph, reconstruction, im1, data.config.get('triangulation_threshold', 3.0))
         print 'Number of reconstructed 3D points :{}'.format(len(reconstruction['points']))
-        if len(reconstruction['points']) > data.config.get('min_five_point_algo_inliers', 50):
+        if len(reconstruction['points']) > data.config.get('five_point_algo_min_inliers', 50):
             print 'Found initialize good pair', im1 , 'and', im2
             return reconstruction
 
@@ -204,7 +204,7 @@ def reprojection_error_track(track, graph, reconstruction):
     return error
 
 
-def resect(data, graph, reconstruction, shot_id, min_inliers=20, reproj_threshold=8.0):
+def resect(data, graph, reconstruction, shot_id):
     '''Add a shot to the reconstruction.
     '''
     xs = []
@@ -221,23 +221,16 @@ def resect(data, graph, reconstruction, shot_id, min_inliers=20, reproj_threshol
     camera_model = exif['camera']
     K = K_from_camera(reconstruction['cameras'][camera_model])
     dist = np.array([0,0,0,0.])
-    if K[0,0]>0:
-        # Prior on focal length
-        R, t, inliers = cv2.solvePnPRansac(X.astype(np.float32), x.astype(np.float32), K, dist, reprojectionError=reproj_threshold)
-    else:
-        pass
-        # # Estimate focal length and pose
-        # p3d = X.astype(np.float32)
-        # p2d = x.astype(np.float32)
-        # p2d -= np.array(K[[0,1],2])
-        # R, t, f = multiview.p3pf(p2d, p3d)
-        # K[0,0], K[1,1] = f, f
-        # R, t, inliers = cv2.solvePnPRansac(X.astype(np.float32), x.astype(np.float32), K, dist)
+
+    # Prior on focal length
+    R, t, inliers = cv2.solvePnPRansac(X.astype(np.float32), x.astype(np.float32), K, dist,
+        reprojectionError=data.config.get('resection_threshold', 5.0))
+
     if inliers is None:
         print 'Resection no inliers'
         return False
     print 'Resection inliers:', len(inliers), '/', len(x)
-    if len(inliers) >= min_inliers:
+    if len(inliers) >= data.config.get('resection_min_inliers', 10):
         reconstruction['shots'][shot_id] = {
             "camera": camera_model,
             "rotation": list(R.flat),
@@ -273,7 +266,7 @@ def angle_between_rays(KR11, x1, KR12, x2):
     return multiview.vector_angle(v1, v2)
 
 
-def triangulate_track(track, graph, reconstruction, P_by_id, KR1_by_id, reproj_threshold=3):
+def triangulate_track(track, graph, reconstruction, P_by_id, KR1_by_id, reproj_threshold):
     ''' Triangulate a track
     '''
     Ps, Ps_initial, KR1_initial = [], [], []
@@ -323,14 +316,14 @@ def triangulate_track(track, graph, reconstruction, P_by_id, KR1_by_id, reproj_t
                 }
 
 
-def triangulate_shot_features(graph, reconstruction, shot_id, reproj_threshold=3):
+def triangulate_shot_features(graph, reconstruction, shot_id, reproj_threshold):
     '''Reconstruct as many tracks seen in shot_id as possible.
     '''
     P_by_id = {}
     KR1_by_id = {}
     for track in graph[shot_id]:
         if track not in reconstruction['points']:
-            triangulate_track(track, graph, reconstruction, P_by_id, KR1_by_id, reproj_threshold=reproj_threshold)
+            triangulate_track(track, graph, reconstruction, P_by_id, KR1_by_id, reproj_threshold)
 
 
 def retriangulate(track_file, graph, reconstruction, image_graph, config):
@@ -500,9 +493,6 @@ def grow_reconstruction(data, graph, reconstruction, images, image_graph):
 
     num_shots_reconstructed = len(reconstruction['shots'])
 
-    resection_reproj_threshold = 8.0
-    triangulation_reproj_threshold = 5.0
-
     while True:
         if data.config.get('save_partial_reconstructions', False):
             paint_reconstruction_constant(data, graph, reconstruction)
@@ -515,11 +505,8 @@ def grow_reconstruction(data, graph, reconstruction, images, image_graph):
         if not common_tracks:
             break
 
-        if num_shots_reconstructed > 10:
-            resection_reproj_threshold = 5.0
-            triangulation_reproj_threshold = 5.0
         for image, num_tracks in common_tracks:
-            if resect(data, graph, reconstruction, image, min_inliers=15, reproj_threshold=resection_reproj_threshold):
+            if resect(data, graph, reconstruction, image):
                 print '-------------------------------------------------------'
                 print 'Adding {0} to the reconstruction'.format(image)
                 images.remove(image)
@@ -527,7 +514,7 @@ def grow_reconstruction(data, graph, reconstruction, images, image_graph):
                 if len(reconstruction['shots']) % bundle_interval == 0:
                     reconstruction = bundle(data.tracks_file(), reconstruction, data.config)
 
-                triangulate_shot_features(graph, reconstruction, image, reproj_threshold=triangulation_reproj_threshold)
+                triangulate_shot_features(graph, reconstruction, image, data.config.get('triangulation_threshold', 3.0))
 
                 if len(reconstruction['shots']) % bundle_interval == 0:
                     reconstruction = bundle(data.tracks_file(), reconstruction, data.config)

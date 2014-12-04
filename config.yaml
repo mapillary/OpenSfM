@@ -37,7 +37,10 @@ preemptive_matching_gps_distance: 300 # Maximum gps distance between two images 
 robust_matching_threshold: 3          # Outlier threshold (in pixels) for fundamental matrix estimation
 robust_matching_min_match: 20         # Minimum number of matches to be considered as an edge in the match grph
 five_point_algo_threshold: 5          # Outlier threshold (in pixels) for essential matrix estimation
-min_five_point_algo_inliers: 50       # Minimum number of inliers for considering a two view reconstruction valid.
+five_point_algo_min_inliers: 20       # Minimum number of inliers for considering a two view reconstruction valid.
+triangulation_threshold: 5            # Outlier threshold (in pixels) for accepting a triangulated point.
+resection_threshold: 5                # Outlier threshold (in pixels) for camera resection.
+resection_min_inliers: 10             # Minimum number of resection inliers to accept it.
 
 # Params for track creation
 min_track_length: 2           # Minimum number of features/images per track
