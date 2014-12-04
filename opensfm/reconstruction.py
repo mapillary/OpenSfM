@@ -124,7 +124,10 @@ def bootstrap_reconstruction(data, graph, im1, im2):
         }
         add_gps_position(data, reconstruction, im1)
         add_gps_position(data, reconstruction, im2)
-        triangulate_shot_features(graph, reconstruction, im1, data.config.get('triangulation_threshold', 3.0))
+        triangulate_shot_features(
+                    graph, reconstruction, im1,
+                    data.config.get('triangulation_threshold', 3.0),
+                    data.config.get('triangulation_min_ray_angle', 2.0))
         print 'Number of reconstructed 3D points :{}'.format(len(reconstruction['points']))
         if len(reconstruction['points']) > data.config.get('five_point_algo_min_inliers', 50):
             print 'Found initialize good pair', im1 , 'and', im2
@@ -269,7 +272,7 @@ def angle_between_rays(KR11, x1, KR12, x2):
     return multiview.vector_angle(v1, v2)
 
 
-def triangulate_track(track, graph, reconstruction, P_by_id, KR1_by_id, reproj_threshold):
+def triangulate_track(track, graph, reconstruction, P_by_id, KR1_by_id, reproj_threshold, min_ray_angle=2.0):
     ''' Triangulate a track
     '''
     Ps, Ps_initial, KR1_initial = [], [], []
@@ -287,7 +290,6 @@ def triangulate_track(track, graph, reconstruction, P_by_id, KR1_by_id, reproj_t
             xs_initial.append(graph[track][shot]['feature'])
             KR1_initial.append(KR1_by_id[shot])
 
-    ray_angle_threshold = 2.0
     valid_set = []
     if len(Ps_initial) >= 2:
         max_angle = 0
@@ -300,7 +302,7 @@ def triangulate_track(track, graph, reconstruction, P_by_id, KR1_by_id, reproj_t
                 if j not in valid_set:
                     valid_set.append(j)
             max_angle = max(angle, max_angle)
-        if max_angle > np.radians(ray_angle_threshold):
+        if max_angle > np.radians(min_ray_angle):
             for k in valid_set:
                 Ps.append(Ps_initial[k])
                 xs.append(xs_initial[k])
@@ -319,14 +321,14 @@ def triangulate_track(track, graph, reconstruction, P_by_id, KR1_by_id, reproj_t
                 }
 
 
-def triangulate_shot_features(graph, reconstruction, shot_id, reproj_threshold):
+def triangulate_shot_features(graph, reconstruction, shot_id, reproj_threshold, min_ray_angle):
     '''Reconstruct as many tracks seen in shot_id as possible.
     '''
     P_by_id = {}
     KR1_by_id = {}
     for track in graph[shot_id]:
         if track not in reconstruction['points']:
-            triangulate_track(track, graph, reconstruction, P_by_id, KR1_by_id, reproj_threshold)
+            triangulate_track(track, graph, reconstruction, P_by_id, KR1_by_id, reproj_threshold, min_ray_angle)
 
 
 def retriangulate(track_file, graph, reconstruction, image_graph, config):
@@ -544,7 +546,10 @@ def grow_reconstruction(data, graph, reconstruction, images, image_graph):
                 if len(reconstruction['shots']) % bundle_interval == 0:
                     reconstruction = bundle(data.tracks_file(), reconstruction, data.config)
 
-                triangulate_shot_features(graph, reconstruction, image, data.config.get('triangulation_threshold', 3.0))
+                triangulate_shot_features(
+                                graph, reconstruction, image,
+                                data.config.get('triangulation_threshold', 3.0),
+                                data.config.get('triangulation_min_ray_angle', 2.0))
 
                 if len(reconstruction['shots']) % bundle_interval == 0:
                     reconstruction = bundle(data.tracks_file(), reconstruction, data.config)
@@ -558,16 +563,15 @@ def grow_reconstruction(data, graph, reconstruction, images, image_graph):
                     prev_num_points = len(reconstruction['points'])
                     print '  Reprojection Error:', reprojection_error(graph, reconstruction)
 
-                if True:
+                if data.config.get('bundle_outlier_threshold',3.5) > 0:
                     track_outlier = []
                     for track in reconstruction['points']:
                         error = reprojection_error_track(track, graph, reconstruction)
-                        if error > 3.5:
+                        if error > data.config.get('bundle_outlier_threshold',3.5):
                             track_outlier.append(track)
-                        print error
                     for track in track_outlier:
                         del reconstruction['points'][track]
-                    print '---------- Remove {0} outliers --------------'.format(len(track_outlier))
+                    print 'Remove {0} outliers'.format(len(track_outlier))
 
                 break
 
