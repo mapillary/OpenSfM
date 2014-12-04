@@ -72,18 +72,21 @@ def compute_image_pairs(graph):
 
 
 def add_gps_position(data, reconstruction, image):
-    d = data.exif_data(image)
+    exif = data.exif_data(image)
     reflla = data.reference_lla()
-    if 'gps' in d:
-        lat = d['gps']['latitude']
-        lon = d['gps']['longitude']
-        alt = 2.0 #d['gps'].get('altitude', 0)
+    if 'gps' in exif:
+        lat = exif['gps']['latitude']
+        lon = exif['gps']['longitude']
+        alt = 2.0 #exif['gps'].get('altitude', 0)
         x, y, z = geo.topocentric_from_lla(lat, lon, alt, *reflla)
         reconstruction['shots'][image]['gps_position'] = [x, y, z]
-        reconstruction['shots'][image]['gps_dop'] = d['gps'].get('dop', 15.0)
+        reconstruction['shots'][image]['gps_dop'] = exif['gps'].get('dop', 15.0)
     else:
         reconstruction['shots'][image]['gps_position'] = [0.0, 0.0, 0.0]
         reconstruction['shots'][image]['gps_dop'] = 999999.0
+
+    if 'orientation' in exif:
+        reconstruction['shots'][image]['exif_orientation'] = exif['orientation']
 
 
 def bootstrap_reconstruction(data, graph, im1, im2):
@@ -414,6 +417,32 @@ def align_reconstruction_naive(reconstruction):
 
     apply_similarity(reconstruction, s, A, b)
 
+def get_horitzontal_and_vertical_directions(R, orientation):
+    '''Get orientation vectors from camera rotation matrix and orientation tag.
+
+    Return a 3D vector pointing to the positive X direction of the image,
+    and another pointing to the positive Y direction (down) of the image.
+    '''
+    # See http://sylvana.net/jpegcrop/exif_orientation.html
+    if orientation == 1:
+        return  R[0, :],  R[1, :]
+    if orientation == 2:
+        return -R[0, :],  R[1, :]
+    if orientation == 3:
+        return  R[0, :], -R[1, :]
+    if orientation == 4:
+        return -R[0, :], -R[1, :]
+    if orientation == 5:
+        return  R[1, :],  R[0, :]
+    if orientation == 6:
+        return  R[1, :], -R[0, :]
+    if orientation == 7:
+        return -R[1, :], -R[0, :]
+    if orientation == 8:
+        return -R[1, :],  R[0, :]
+    print 'ERROR unknown orientation', orientation
+
+
 def align_reconstruction(reconstruction):
     X, Xp = [], []
     vx, vy = [], []
@@ -422,8 +451,9 @@ def align_reconstruction(reconstruction):
         Xp.append(shot['gps_position'])
         R = cv2.Rodrigues(np.array(shot['rotation']))[0]
         # TODO(pau): make this dependent of EXIF orientation tag.
-        vx.append(R.T[:,0])   # Direction of cameras' X axis.
-        vy.append(-R.T[:,1])  # Direction of cameras' Y axis.
+        x, y = get_horitzontal_and_vertical_directions(R, shot['exif_orientation'])
+        vx.append(x)
+        vy.append(-y)
     X = np.array(X)
     Xp = np.array(Xp)
 

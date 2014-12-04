@@ -88,6 +88,7 @@ for image in images:
 
     with open(data.image_file(image)) as f:
         tags = exifread.process_file(f, details=False)
+
     # Image Width and Image Height
     if 'EXIF ExifImageWidth' in tags and 'EXIF ExifImageLength' in tags:
         width, height = (int(tags['EXIF ExifImageWidth'].values[0]),
@@ -139,7 +140,8 @@ for image in images:
             'height': height,
             'focal_ratio': focal_ratio,
             'focal_35mm_equiv': focal_35,
-            'camera': sensor_string(make, model)
+            'camera': sensor_string(make, model),
+            'orientation': tags.get('Image Orientation').values[0],
         }
 
     # GPS

@@ -50,6 +50,7 @@ struct Shot {
   double parameters[6];
   double gps_position[3];
   double gps_dop;
+  int exif_orientation;
   std::string camera;
   std::string id;
 };
@@ -129,6 +130,7 @@ class BALProblem {
       for (int j = 0; j < 3; ++j)
         s.gps_position[j] = (*i)["gps_position"][j].asDouble();
       s.gps_dop = (*i)["gps_dop"].asDouble();
+      s.exif_orientation = (*i)["exif_orientation"].asInt();
       s.camera = (*i)["camera"].asString();
       shots_.push_back(s);
     }
@@ -225,6 +227,7 @@ class BALProblem {
       shot["translation"] = tarray;
       shot["gps_position"] = gpstarray;
       shot["gps_dop"] = shots_[i].gps_dop;
+      shot["exif_orientation"] = shots_[i].exif_orientation;
       shots[shots_[i].id] = shot;
     }
     root["shots"] = shots;
