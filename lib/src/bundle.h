@@ -113,7 +113,6 @@ class BALProblem {
     for (int i = 0; i < cameras_.size(); ++i) {
       camera_by_id_[cameras_[i].id] = &cameras_[i];
     }
-    std::cout << cameras_.size() << " cameras read." << std::endl;
 
 
     //////////////////////////////////////////////////////////////////
@@ -136,7 +135,6 @@ class BALProblem {
     for (int i = 0; i < shots_.size(); ++i) {
       shot_by_id_[shots_[i].id] = &shots_[i];
     }
-    std::cout << shots_.size() << " shots read." << std::endl;
 
 
     //////////////////////////////////////////////////////////////////
@@ -153,7 +151,6 @@ class BALProblem {
     for (int i = 0; i < points_.size(); ++i) {
       point_by_id_[points_[i].id] = &points_[i];
     }
-    std::cout << points_.size() << " points read." << std::endl;
 
 
     //////////////////////////////////////////////////////////////////
@@ -183,7 +180,11 @@ class BALProblem {
         observations_.push_back(o);
       }
     }
-    std::cout << observations_.size() << " observations read." << std::endl;
+
+    std::cout << "Bundle starts " << cameras_.size() << "cameras " 
+              << shots_.size() << "shots "
+              << points_.size() << "points "
+              << observations_.size() << "observations" << std::endl;
 
     return true;
   }
