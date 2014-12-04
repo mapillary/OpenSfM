@@ -27,7 +27,6 @@ def bundle(tracks_file, reconstruction, config):
     f = tempfile.NamedTemporaryFile(delete=False)
     f.close()
     source = f.name
-    print source
     f = tempfile.NamedTemporaryFile(delete=False)
     f.close()
     dest = f.name
