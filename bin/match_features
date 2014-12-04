@@ -14,8 +14,8 @@ from opensfm import geo
 
 
 def match(imagepair):
-    im1, im2 = imagepair
-    print 'Matching image', im1, 'with image', im2
+    im1, im2, i, n = imagepair
+    print 'Matching image', im1, 'with image', im2, ' - ', i, '/', n, ' - ', 100 * i / n, '%'
 
     matching_gps_distance = data.config.get('matching_gps_distance', 9999999)
     robust_matching_min_match = data.config.get('robust_matching_min_match', 20)
@@ -62,6 +62,11 @@ def match(imagepair):
     np.savetxt(data.robust_matches_file(im1, im2), rmatches, "%d")
     print "Full matching {0} / {1}, time: {2}s".format(len(rmatches), len(matches), time.time() - t)
 
+def image_pairs(images):
+    l = len(images)
+    n = l * (l - 1) / 2
+    for i, (a, b) in enumerate(combinations(images, 2)):
+        yield a, b, i, n
 
 
 if __name__ == "__main__":
@@ -83,7 +88,7 @@ if __name__ == "__main__":
 
     start = time.time()
     p = Pool(data.config['processes'])
-    p.map(match, combinations(images, 2))
+    p.map(match, image_pairs(images))
     end = time.time()
     with open(data.profile_log(), 'a') as fout:
         fout.write('match_features: {0}\n'.format(end - start))
