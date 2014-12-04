@@ -27,20 +27,24 @@ flann_branching: 16           # See OpenCV doc
 flann_iterations: 10          # See OpenCV doc
 flann_checks: 100             # Smaller -> Faster (but might lose good matches)
 
-# Params for preemptive matching
-preemptive_max: 200           # Number of features to use for preemptive matching
-preemptive_threshold: 4       # If number of matches passes the threshold -> full feature matching
+# Params for preemtive matching
+matching_gps_distance: 150            # Maximum gps distance between two images for matching
+preemptive_max: 200                   # Number of features to use for preemptive matching
+preemptive_threshold: 4               # If number of matches passes the threshold -> full feature matching
 preemptive_matching_gps_distance: 300 # Maximum gps distance between two images for preemptive matching
 
-# Params for matching
-matching_gps_distance: 150    # Maximum gps distance between two images for matching
-
 # Params for geometric estimation
-robust_matching_threshold: 3  # Outlier threshold (in pixels) for fundamental matrix estimation
-five_point_algo_threshold: 5  # Outlier threshold (in pixels) for essential matrix estimation
-robust_matching_min_match: 20 # Minimum number of matches to be considered as an edge in the match grph
+robust_matching_threshold: 3          # Outlier threshold (in pixels) for fundamental matrix estimation
+robust_matching_min_match: 20         # Minimum number of matches to be considered as an edge in the match grph
+five_point_algo_threshold: 5          # Outlier threshold (in pixels) for essential matrix estimation
+min_five_point_algo_inliers: 50       # Minimum number of inliers for considering a two view reconstruction valid.
+
+# Params for track creation
+min_track_length: 2           # Minimum number of features/images per track
 
 # Params for bundle adjustment
+loss_function: TruncatedLoss  # Loss function for the ceres problem (see: http://ceres-solver.org/modeling.html#lossfunction)
+loss_function_threshold: 5.0  # Usually cost is quadratic for smaller residuals and sub-quadratic above.
 exif_focal_sd: 0.01           # The standard deviation of the diff between the focal length and the exif focal length in width units.
 
 # Other params

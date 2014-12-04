@@ -30,10 +30,13 @@ def bundle(tracks_file, reconstruction, config):
         fout.write(json.dumps(reconstruction))
 
     call([context.BUNDLE,
-        '--exif_focal_sd', str(config.get('exif_focal_sd', 999)),
         '--tracks', tracks_file,
         '--input', source,
-        '--output', dest])
+        '--output', dest,
+        '--loss_function', config.get('loss_function', 'TruncatedLoss'),
+        '--loss_function_threshold', str(config.get('loss_function_threshold', 3.0)),
+        '--exif_focal_sd', str(config.get('exif_focal_sd', 999)),
+        ])
 
     with open(dest) as fin:
         result = json.load(fin)
@@ -120,7 +123,7 @@ def bootstrap_reconstruction(data, graph, im1, im2):
         add_gps_position(data, reconstruction, im2)
         triangulate_shot_features(graph, reconstruction, im1)
         print 'Number of reconstructed 3D points :{}'.format(len(reconstruction['points']))
-        if len(reconstruction['points']) > 50:  #TODO(pau) set up a parameter for this
+        if len(reconstruction['points']) > data.config.get('min_five_point_algo_inliers', 50):
             print 'Found initialize good pair', im1 , 'and', im2
             return reconstruction
 
@@ -501,7 +504,7 @@ def grow_reconstruction(data, graph, reconstruction, images, image_graph):
     triangulation_reproj_threshold = 5.0
 
     while True:
-        if False:  # TODO(pau): set up a parameter for this.
+        if data.config.get('save_partial_reconstructions', False):
             paint_reconstruction_constant(data, graph, reconstruction)
             fname = data.reconstruction_file() + datetime.datetime.now().isoformat().replace(':', '_')
             with open(fname, 'w') as fout:

@@ -357,16 +357,16 @@ struct GPSPriorError {
 
 class TruncatedLoss : public ceres::LossFunction {
  public:
-  explicit TruncatedLoss(double t2)
-    : t2_(t2) {
-    CHECK_GT(t2, 0.0);
+  explicit TruncatedLoss(double t)
+    : t2_(t*t) {
+    CHECK_GT(t, 0.0);
   }
 
   virtual void Evaluate(double s, double rho[3]) const {
     if (s >= t2_) {
       // Outlier.
       rho[0] = t2_;
-      rho[1] = 0.000001;
+      rho[1] = std::numeric_limits<double>::min();
       rho[2] = 0.0;
     } else {
       // Inlier.
