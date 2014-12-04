@@ -135,13 +135,18 @@ for image in images:
     if focal_ratio == 0:
         missing_sensors[sensor_string(make, model)] = 1
 
+    if 'Image Orientation' in tags:
+        orientation = tags.get('Image Orientation').values[0]
+    else:
+        orientation = 1
+
     d = {
             'width': width,
             'height': height,
             'focal_ratio': focal_ratio,
             'focal_35mm_equiv': focal_35,
             'camera': sensor_string(make, model),
-            'orientation': tags.get('Image Orientation').values[0],
+            'orientation': orientation
         }
 
     # GPS
@@ -195,4 +200,3 @@ with open(data.camera_model_file(), 'w') as fout:
 end = time.time()
 with open(data.profile_log(), 'a') as fout:
     fout.write('focal_from_exif: {0}\n'.format(end - start))
-
