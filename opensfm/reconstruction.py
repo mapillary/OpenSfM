@@ -85,8 +85,7 @@ def add_gps_position(data, reconstruction, image):
         reconstruction['shots'][image]['gps_position'] = [0.0, 0.0, 0.0]
         reconstruction['shots'][image]['gps_dop'] = 999999.0
 
-    if 'orientation' in exif:
-        reconstruction['shots'][image]['exif_orientation'] = exif['orientation']
+    reconstruction['shots'][image]['exif_orientation'] = exif.get('orientation', 1)
 
 
 def bootstrap_reconstruction(data, graph, im1, im2):
@@ -422,65 +421,62 @@ def align_reconstruction_naive(reconstruction):
 def get_horitzontal_and_vertical_directions(R, orientation):
     '''Get orientation vectors from camera rotation matrix and orientation tag.
 
-    Return a 3D vector pointing to the positive X direction of the image,
-    and another pointing to the positive Y direction (down) of the image.
+    Return a 3D vectors pointing to the positive XYZ directions of the image.
+    X points to the right, Y to the bottom, Z to the front.
     '''
     # See http://sylvana.net/jpegcrop/exif_orientation.html
     if orientation == 1:
-        return  R[0, :],  R[1, :]
+        return  R[0, :],  R[1, :],  R[2, :]
     if orientation == 2:
-        return -R[0, :],  R[1, :]
+        return -R[0, :],  R[1, :], -R[2, :]
     if orientation == 3:
-        return  R[0, :], -R[1, :]
+        return -R[0, :], -R[1, :],  R[2, :]
     if orientation == 4:
-        return -R[0, :], -R[1, :]
+        return  R[0, :], -R[1, :],  R[2, :]
     if orientation == 5:
-        return  R[1, :],  R[0, :]
+        return  R[1, :],  R[0, :], -R[2, :]
     if orientation == 6:
-        return  R[1, :], -R[0, :]
+        return  R[1, :], -R[0, :],  R[2, :]
     if orientation == 7:
-        return -R[1, :], -R[0, :]
+        return -R[1, :], -R[0, :], -R[2, :]
     if orientation == 8:
-        return -R[1, :],  R[0, :]
+        return -R[1, :],  R[0, :],  R[2, :]
     print 'ERROR unknown orientation', orientation
 
 
 def align_reconstruction(reconstruction):
     X, Xp = [], []
-    vx, vy = [], []
+    onplane, verticals = [], []
     for shot in reconstruction['shots'].values():
         X.append(optical_center(shot))
         Xp.append(shot['gps_position'])
         R = cv2.Rodrigues(np.array(shot['rotation']))[0]
-        x, y = get_horitzontal_and_vertical_directions(R, shot['exif_orientation'])
-        vx.append(x)
-        vy.append(-y)
+        x, y, z = get_horitzontal_and_vertical_directions(R, shot['exif_orientation'])
+        onplane.append(x)
+        onplane.append(z)
+        verticals.append(-y)
     X = np.array(X)
     Xp = np.array(Xp)
 
     # Estimate ground plane.
-    p = multiview.fit_plane(X, vx, vy)
+    p = multiview.fit_plane(X - X.mean(axis=0), onplane, verticals)
     Rplane = multiview.plane_horizontalling_rotation(p)
+    X = Rplane.dot(X.T).T
 
     # Estimate 2d similarity to align to GPS
-    X = Rplane.dot(X.T).T
     if len(X) < 2 or Xp.std(axis=0).max() < 0.01:  # All GPS points are the same.
-        T = np.eye(3)               # Just translate there. Scale and orientation, remain arbitrary.
-        T[:2, 2] = Xp.mean(axis=0)[:2] - X.mean(axis=0)[:2]
+        s = 1
+        A = Rplane
+        b = Xp.mean(axis=0) - X.mean(axis=0)
     else:
         T = tf.affine_matrix_from_points(X.T[:2], Xp.T[:2], shear=False)
-
-    # Compute similarity Xp = s A X + b
-    s = np.linalg.det(T[:2,:2])**(1./2)
-    A = np.eye(3)
-    if s < 1e-10:
-        s = 1
-    else:
+        s = np.linalg.det(T[:2,:2])**(1./2)
+        A = np.eye(3)
         A[:2,:2] = T[:2,:2] / s
-    A = A.dot(Rplane)
-    b = np.array([T[0,2],
-                  T[1,2],
-                  Xp[:,2].mean() - s * X[:,2].mean()])  # vertical alignment
+        A = A.dot(Rplane)
+        b = np.array([T[0,2],
+                      T[1,2],
+                      Xp[:,2].mean() - s * X[:,2].mean()])  # vertical alignment
 
     apply_similarity(reconstruction, s, A, b)
 
