@@ -558,18 +558,18 @@ def grow_reconstruction(data, graph, reconstruction, images, image_graph):
                     prev_num_points = len(reconstruction['points'])
                     print '  Reprojection Error:', reprojection_error(graph, reconstruction)
 
-                break
-
                 if True:
                     track_outlier = []
                     for track in reconstruction['points']:
                         error = reprojection_error_track(track, graph, reconstruction)
                         if error > 3.5:
-                            # del reconstruction['points'][track]
                             track_outlier.append(track)
+                        print error
                     for track in track_outlier:
                         del reconstruction['points'][track]
                     print '---------- Remove {0} outliers --------------'.format(len(track_outlier))
+
+                break
 
         else:
             print 'Some images can not be added'
