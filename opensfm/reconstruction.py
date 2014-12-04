@@ -2,7 +2,9 @@
 
 from collections import defaultdict
 from itertools import combinations
+import os
 from subprocess import call, Popen, PIPE
+import tempfile
 import datetime
 
 import numpy as np
@@ -22,10 +24,14 @@ from opensfm import geo
 def bundle(tracks_file, reconstruction, config):
     '''Extracts features of image and save them
     '''
-    source = "/tmp/bundle_source.json"
-    dest = "/tmp/bundle_dest.json"
+    f = tempfile.NamedTemporaryFile(delete=False)
+    f.close()
+    source = f.name
+    print source
+    f = tempfile.NamedTemporaryFile(delete=False)
+    f.close()
+    dest = f.name
 
-    # print 'Focal before bundle', reconstruction['cameras']['main_camera']['focal']
     with open(source, 'w') as fout:
         fout.write(json.dumps(reconstruction))
 
@@ -40,8 +46,10 @@ def bundle(tracks_file, reconstruction, config):
 
     with open(dest) as fin:
         result = json.load(fin)
-        # print 'Focal after bundle', result['cameras']['main_camera']['focal']
-        return result
+
+    os.remove(source)
+    os.remove(dest)
+    return result
 
 
 def pairwise_reconstructability(common_tracks, homography_inliers):
