@@ -450,7 +450,6 @@ def align_reconstruction(reconstruction):
         X.append(optical_center(shot))
         Xp.append(shot['gps_position'])
         R = cv2.Rodrigues(np.array(shot['rotation']))[0]
-        # TODO(pau): make this dependent of EXIF orientation tag.
         x, y = get_horitzontal_and_vertical_directions(R, shot['exif_orientation'])
         vx.append(x)
         vy.append(-y)
@@ -463,7 +462,7 @@ def align_reconstruction(reconstruction):
 
     # Estimate 2d similarity to align to GPS
     X = Rplane.dot(X.T).T
-    if Xp.std(axis=0).max() < 0.01: # All GPS points are the same.
+    if len(X) < 2 or Xp.std(axis=0).max() < 0.01:  # All GPS points are the same.
         T = np.eye(3)               # Just translate there. Scale and orientation, remain arbitrary.
         T[:2, 2] = Xp.mean(axis=0)[:2] - X.mean(axis=0)[:2]
     else:
@@ -519,8 +518,9 @@ def grow_reconstruction(data, graph, reconstruction, images, image_graph):
     retriangulation_ratio = data.config.get('retriangulation_ratio', 1.25)
 
     reconstruction = bundle(data.tracks_file(), reconstruction, data.config)
-    prev_num_points = len(reconstruction['points'])
+    align_reconstruction(reconstruction)
 
+    prev_num_points = len(reconstruction['points'])
     num_shots_reconstructed = len(reconstruction['shots'])
 
     while True:
@@ -549,9 +549,7 @@ def grow_reconstruction(data, graph, reconstruction, images, image_graph):
                 if len(reconstruction['shots']) % bundle_interval == 0:
                     reconstruction = bundle(data.tracks_file(), reconstruction, data.config)
 
-                print 'Aligning'
                 align_reconstruction(reconstruction)
-
 
                 num_points = len(reconstruction['points'])
                 if retriangulation and num_points > prev_num_points * retriangulation_ratio:
