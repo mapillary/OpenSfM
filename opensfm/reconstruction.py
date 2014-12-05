@@ -144,13 +144,10 @@ def bootstrap_reconstruction(data, graph, im1, im2):
 
 
 
-def reconstructed_points_for_images(graph, reconstruction, shots=None):
-    tracks, images = bipartite.sets(graph)
-    if shots == None:
-        shots = images
+def reconstructed_points_for_images(graph, reconstruction, images):
     res = []
     for image in images:
-        if image not in reconstruction['shots'] and image in shots:
+        if image not in reconstruction['shots']:
             common_tracks = 0
             for track in graph[image]:
                 if track in reconstruction['points']:
