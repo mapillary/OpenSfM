@@ -497,16 +497,17 @@ def merge_two_reconstructions(r1, r2, threshold=1):
 
         T, inliers = multiview.fit_similarity_transform(p1, p2, max_iterations=1000, threshold=threshold)
 
-        s, A, b = multiview.decompose_similarity_transform(T)
-        r1p = r1
-
-        apply_similarity(r1p, s, A, b)
-        r = r2
-        r['shots'].update(r1p['shots'])
-        r['points'].update(r1p['points'])
-        align_reconstruction(r)
-
-        return [r]
+        if len(inliers) >= 10:
+            s, A, b = multiview.decompose_similarity_transform(T)
+            r1p = r1
+            apply_similarity(r1p, s, A, b)
+            r = r2
+            r['shots'].update(r1p['shots'])
+            r['points'].update(r1p['points'])
+            align_reconstruction(r)
+            return [r]
+        else:
+            return [r1, r2]
     else:
         return [r1, r2]
 
