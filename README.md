@@ -8,7 +8,6 @@ Dependencies
 ------------
 * [OpenCV][]
 * [Ceres Solver][]
-* [jhead][]
 * [JsonCpp][]
 * [NumPy][], networkx, PyYAML, exifread
 
@@ -50,10 +49,9 @@ Then:
  
         sudo make install
 
- 3. [JsonCpp][] and [jhead][] - Install through apt-get:
+ 3. [JsonCpp][] - Install through apt-get:
 
         sudo apt-get install libjsoncpp-dev
-        sudo apt-get install jhead
 
  4. [NumPy][], networkx, PyYaml, exifread - Install [pip](https://pypi.python.org/pypi/pip) and then run the following from the root of the project:
 
@@ -83,4 +81,3 @@ An example dataset is available at data/berlin.
 [NumPy]: http://www.numpy.org/ (Scientific computing with Python)
 [Ceres solver]: http://ceres-solver.org/ (Library for solving complicated nonlinear least squares problems)
 [JsonCpp]: https://github.com/open-source-parsers/jsoncpp (C++ library that allows manipulating JSON values)
-[jhead]: http://www.sentex.net/~mwandel/jhead/ (Exif Jpeg header manipulation tool)
