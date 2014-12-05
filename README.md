@@ -44,28 +44,18 @@ Then:
 
 ### Installing dependencies on Ubuntu
 
- 1. [OpenCV][] - Install by following the steps in the Ubuntu OpenCV  [installation guide](https://help.ubuntu.com/community/OpenCV). An alternative instruction tested for Ubuntu 10.04 can be found at [OpenCV Docs](http://docs.opencv.org/doc/tutorials/introduction/linux_install/linux_install.html). OpenCV requires [Git](http://git-scm.com/), [GCC](https://gcc.gnu.org/) and [CMake](http://www.cmake.org/) among other things.
+ 1. [OpenCV][] - Install by following the steps in the Ubuntu OpenCV  [installation guide](https://help.ubuntu.com/community/OpenCV). An alternative instruction tested for Ubuntu 10.04 can be found at [OpenCV Docs](http://docs.opencv.org/doc/tutorials/introduction/linux_install/linux_install.html). OpenCV requires [GCC](https://gcc.gnu.org/) and [CMake](http://www.cmake.org/) among other things.
 
- 2. [Ceres solver][] - Install the Ceres solver dependencies:
+ 2. [Ceres solver][] - Install the needed dependencies (download [Google Flags](https://launchpad.net/ubuntu/+source/gflags) and [Google Log](https://launchpad.net/ubuntu/+source/google-glog) and include [SuiteSparce](http://faculty.cse.tamu.edu/davis/suitesparse.html)) and build Ceres according the [documentation](http://ceres-solver.org/building.html). Install Ceres from the ceres-bin directory after `make` by:
+ 
+        sudo make install
 
-        sudo apt-get install libatlas-base-dev libeigen3-dev python-gflags libgoogle-glog-dev 
-
-     Then download the [latest stable](http://ceres-solver.org/building.html) Ceres solver, unpack it and run the following commands:
-
-        cd ceres-solver-x.x.x
-        mkdir build 
-        cd build  
-        cmake ..
-        make
-        sudo make install 
-
- 3. [JsonCPP][], [jhead][] and [SuiteSparse](http://faculty.cse.tamu.edu/davis/suitesparse.html) - Install through apt-get:
+ 3. [JsonCpp][] and [jhead][] - Install through apt-get:
 
         sudo apt-get install libjsoncpp-dev
         sudo apt-get install jhead
-        sudo apt-get install libsuitesparse-dev
 
- 4. [NumPy][], networkx, PyYaml, exifread: Install [pip](https://pypi.python.org/pypi/pip) and then run the following:
+ 4. [NumPy][], networkx, PyYaml, exifread - Install [pip](https://pypi.python.org/pypi/pip) and then run the following from the root of the project:
 
         sudo pip install -r requirements.txt
 
