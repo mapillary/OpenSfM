@@ -53,7 +53,7 @@
             var options = {
                 drawGPS: false,
                 cameraSize: 1,
-                pointSize: 0.7,
+                pointSize: 0.5,
                 cameraColor: new THREE.Color(0xFFFFFF),
                 selectedCameraColor: new THREE.Color(0xFFFF88),
                 reconstruction_visibles: {},
@@ -81,15 +81,16 @@
                 var gui = new dat.GUI();
 
                 var f1 = gui.addFolder('Options');
-                f1.add(options, 'pointSize', 0, 4)
+                f1.add(options, 'pointSize', 0, 2)
                     .onChange(function(value) {
                         pointCloudMaterial.size = value;
                         render();
                     });
                 f1.add(options, 'cameraSize', 0, 2)
                     .onChange(function(value) {
-                        for (var r = 0; r < reconstructions.length; ++r)
+                        for (var r = 0; r < reconstructions.length; ++r) {
                             updateCameraLines(reconstructions[r]);
+                        }
                         render();
                     });
                 f1.add(options, 'drawGPS')
@@ -183,6 +184,7 @@
                         lineMaterial.color = options.cameraColor;
                         var linegeo = cameraLineGeo(reconstruction, shot_id);
                         var line = new THREE.Line(linegeo, lineMaterial, THREE.LinePieces);
+                        line.reconstruction = reconstruction;
                         line.shot_id = shot_id;
                         lines.push(line);
                     }
@@ -190,9 +192,9 @@
                 return lines;
             }
 
-            function updateCameraLines(reconstruction) {
+            function updateCameraLines() {
                 for (var i = 0; i < camera_lines.length; ++i) {
-                    var linegeo = cameraLineGeo(reconstruction, camera_lines[i].shot_id);
+                    var linegeo = cameraLineGeo(camera_lines[i].reconstruction, camera_lines[i].shot_id);
                     camera_lines[i].geometry.vertices = linegeo.vertices;
                     camera_lines[i].geometry.verticesNeedUpdate = true;
                 }
@@ -353,7 +355,7 @@
                 scene = new THREE.Scene();
                 scene.add(scene_group);
 
-                var geometry = new THREE.SphereGeometry(.5);
+                var geometry = new THREE.SphereGeometry(.3);
                 var material = new THREE.MeshBasicMaterial( { color: 0xff0000 } );
                 sphereInter = new THREE.Mesh( geometry, material );
                 sphereInter.visible = false;
@@ -395,9 +397,8 @@
             function onDocumentMouseDown(event) {
                 if (currentIntersected !== undefined) {
                     if (event.button === THREE.MOUSE.RIGHT) {
-                        var shot_id = currentIntersected.shot_id;
-                        var r = reconstruction_of_shot(reconstructions, shot_id);
-                        var shot = r['shots'][shot_id];
+                        var r = currentIntersected.reconstruction;
+                        var shot = r['shots'][currentIntersected.shot_id];
                         var cam = r['cameras'][shot.camera];
                         controls.goto_shot(cam, shot);
                     }
