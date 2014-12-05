@@ -65,7 +65,6 @@
                             break;
                         }
                     }
-                    console.log(someone);
                     for (var r = 0; r < reconstructions.length; ++r) {
                         options.reconstruction_visibles[r] = !someone;
                         reconstruction_groups[r].traverse(function (object) {
@@ -432,7 +431,6 @@
                 sphereInter.visible = false;
 
                 for (var i = 0; i < intersects.length; ++i) {
-                    console.log(intersects[i].distance);
                     if (intersects[i].distance > 3 * options.cameraSize
                         && intersects[i].object.visible) {
                         currentIntersected = intersects[i].object;

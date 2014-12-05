@@ -35,6 +35,11 @@ THREE.OrbitControls = function ( object, domElement ) {
 	// and where it pans with respect to.
 	this.target = new THREE.Vector3();
 
+	this.animationTarget = new THREE.Vector3();
+	this.animationPosition = new THREE.Vector3();
+	this.animationPosition.copy(object.position);
+	this.animationSpeed = 0.1;
+
 	// This option actually enables dollying in and out; left as "zoom" for
 	// backwards compatibility
 	this.noZoom = false;
@@ -167,9 +172,8 @@ THREE.OrbitControls = function ( object, domElement ) {
 		scale *= dollyScale;
 	};
 
-	this.update = function () {
-		var position = this.object.position;
-		offset.copy( position ).sub( this.target );
+	this.updateAnimationTargetsMouse = function () {
+		offset.copy( this.animationPosition ).sub( this.animationTarget );
 
 		// Rotate
 		var theta = Math.atan2( offset.y, offset.x );
@@ -183,21 +187,27 @@ THREE.OrbitControls = function ( object, domElement ) {
 		radius = Math.max( this.minDistance, Math.min( this.maxDistance, radius ) );
 		
 		// Move
-		this.target.add( pan );
+		this.animationTarget.add( pan );
 
 		// Compute new camera position
 		offset.x = radius * Math.sin( phi ) * Math.cos( theta );
 		offset.y = radius * Math.sin( phi ) * Math.sin( theta );
 		offset.z = radius * Math.cos( phi );
-		position.copy( this.target ).add( offset );
-
-		this.object.lookAt( this.target );
+		this.animationPosition.copy( this.animationTarget ).add( offset );
 
 		// Reset deltas
 		thetaDelta = 0;
 		phiDelta = 0;
 		scale = 1;
 		pan.set( 0, 0, 0 );
+	};
+
+	this.update = function () {
+		this.updateAnimationTargetsMouse();
+
+		this.target.lerp(this.animationTarget, this.animationSpeed);
+		this.object.position.lerp(this.animationPosition, this.animationSpeed);
+		this.object.lookAt(this.target);
 
 		// update condition is:
 		// min(camera displacement, camera rotation in radians)^2 > EPS
@@ -213,23 +223,9 @@ THREE.OrbitControls = function ( object, domElement ) {
 	};
 
 	this.goto_shot = function(cam, shot) {
-		this.object.position.copy(opticalCenter(shot));
+		this.animationPosition.copy(opticalCenter(shot));
 		var offset = pixelToVertex(cam, shot, cam.width/2, cam.height/2, 20);
-		this.target.copy(offset);
-		this.object.lookAt(this.target);
-
-		// update condition is:
-		// min(camera displacement, camera rotation in radians)^2 > EPS
-		// using small-angle approximation cos(x/2) = 1 - x^2 / 8
-		if ( lastPosition.distanceToSquared( this.object.position ) > EPS
-		    || 8 * (1 - lastQuaternion.dot(this.object.quaternion)) > EPS ) {
-
-			this.dispatchEvent( changeEvent );
-
-			lastPosition.copy( this.object.position );
-			lastQuaternion.copy (this.object.quaternion );
-		}
-
+		this.animationTarget.copy(offset);
 	};
 
 
