@@ -612,6 +612,7 @@ def incremental_reconstruction(data):
                 remaining_images.remove(im2)
                 reconstruction = grow_reconstruction(data, graph, reconstruction, remaining_images, image_graph)
                 reconstructions.append(reconstruction)
+                reconstructions = sorted(reconstructions, key=lambda x: -len(x['shots']))
                 with open(data.reconstruction_file(), 'w') as fout:
                     fout.write(json.dumps(reconstructions))
 
