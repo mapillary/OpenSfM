@@ -6,11 +6,15 @@ Structure from Motion library written in Python on top of OpenCV.
 
 Dependencies
 ------------
-* OpenCV
-* libmv (included)
-* ceres
-* jhead
-* NumPy, networkx, PyYAML, exifread
+* [OpenCV][]
+* [Ceres Solver][]
+* [jhead][]
+* [JsonCpp][]
+* [NumPy][], networkx, PyYAML, exifread
+
+### Dependencies included in source
+
+ * Parts of [libmv](https://github.com/libmv/libmv).
 
 ### Installing dependencies on MacOSX
 
