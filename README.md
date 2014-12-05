@@ -12,7 +12,9 @@ Dependencies
 * jhead
 * NumPy, networkx, PyYAML, exifread
 
-On MacOSX, use
+### Installing dependencies on MacOSX
+
+Use
 
     brew tap homebrew/science
     brew info opencv
@@ -36,6 +38,32 @@ Then:
     brew install jsoncpp
     sudo pip install -r requirements.txt
 
+### Installing dependencies on Ubuntu
+
+ 1. [OpenCV][] - Install by following the steps in the Ubuntu OpenCV  [installation guide](https://help.ubuntu.com/community/OpenCV). An alternative instruction tested for Ubuntu 10.04 can be found at [OpenCV Docs](http://docs.opencv.org/doc/tutorials/introduction/linux_install/linux_install.html). OpenCV requires [Git](http://git-scm.com/), [GCC](https://gcc.gnu.org/) and [CMake](http://www.cmake.org/) among other things.
+
+ 2. [Ceres solver][] - Install the Ceres solver dependencies:
+
+        sudo apt-get install libatlas-base-dev libeigen3-dev python-gflags libgoogle-glog-dev 
+
+     Then download the [latest stable](http://ceres-solver.org/building.html) Ceres solver, unpack it and run the following commands:
+
+        cd ceres-solver-x.x.x
+        mkdir build 
+        cd build  
+        cmake ..
+        make
+        sudo make install 
+
+ 3. [JsonCPP][], [jhead][] and [SuiteSparse](http://faculty.cse.tamu.edu/davis/suitesparse.html) - Install through apt-get:
+
+        sudo apt-get install libjsoncpp-dev
+        sudo apt-get install jhead
+        sudo apt-get install libsuitesparse-dev
+
+ 4. [NumPy][], networkx, PyYaml, exifread: Install [pip](https://pypi.python.org/pypi/pip) and then run the following:
+
+        sudo pip install -r requirements.txt
 
 
 Building
@@ -54,3 +82,11 @@ An example dataset is available at data/berlin.
 3. run `bin/run_all DATASET_NAME`
 4. start a http server with `python -m SimpleHTTPServer`
 5. browse `http://localhost:8000/viewer/reconstruction.html#/data/DATASET_NAME/reconstruction.json`
+
+
+
+[OpenCV]: http://opencv.org/ (Computer vision and machine learning software library)
+[NumPy]: http://www.numpy.org/ (Scientific computing with Python)
+[Ceres solver]: http://ceres-solver.org/ (Library for solving complicated nonlinear least squares problems)
+[JsonCpp]: https://github.com/open-source-parsers/jsoncpp (C++ library that allows manipulating JSON values)
+[jhead]: http://www.sentex.net/~mwandel/jhead/ (Exif Jpeg header manipulation tool)
