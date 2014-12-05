@@ -55,7 +55,25 @@
                 cameraSize: 1,
                 pointSize: 0.4,
                 cameraColor: new THREE.Color(0xFFFFFF),
-                selectedCameraColor: new THREE.Color(0xFFFF88)
+                selectedCameraColor: new THREE.Color(0xFFFF88),
+                reconstruction_visibles: {},
+                allNone: function () {
+                    var someone = false;
+                    for (var r = 0; r < reconstructions.length; ++r) {
+                        if (options.reconstruction_visibles[r]) {
+                            someone = true;
+                            break;
+                        }
+                    }
+                    console.log(someone);
+                    for (var r = 0; r < reconstructions.length; ++r) {
+                        options.reconstruction_visibles[r] = !someone;
+                        reconstruction_groups[r].traverse(function (object) {
+                            object.visible = !someone;
+                        });
+                    }
+                    render();
+                }
             };
 
             getData();
@@ -85,19 +103,20 @@
                 f1.open();
 
                 var f3 = gui.addFolder('Reconstructions')
-                reconstruction_visibles = [];
+                f3.add(options, 'allNone');
+                options.reconstruction_visibles = [];
                 for (var r = 0; r < reconstructions.length; ++r) {
-                    reconstruction_visibles[r] = true;
-                    f3.add(reconstruction_visibles, r, true)
+                    options.reconstruction_visibles[r] = true;
+                    f3.add(options.reconstruction_visibles, r, true)
                         .onChange(
                             (function(rr) {
                                 return function (value) {
                                     reconstruction_groups[rr].traverse(
                                         function (object) { object.visible = value; } );
-                                    render()
+                                    render();
                                 }
                             })(r)
-                        );
+                        ).listen();
                 }
                 f3.open();
             }
