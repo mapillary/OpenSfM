@@ -6,13 +6,19 @@ Structure from Motion library written in Python on top of OpenCV.
 
 Dependencies
 ------------
-* OpenCV
-* libmv (included)
-* ceres
-* jhead
-* NumPy, networkx, PyYAML, exifread
+* [OpenCV][]
+* [Ceres Solver][]
+* [jhead][]
+* [JsonCpp][]
+* [NumPy][], networkx, PyYAML, exifread
 
-On MacOSX, use
+### Dependencies included in source
+
+ * Parts of [libmv](https://github.com/libmv/libmv).
+
+### Installing dependencies on MacOSX
+
+Use
 
     brew tap homebrew/science
     brew info opencv
@@ -36,6 +42,22 @@ Then:
     brew install jsoncpp
     sudo pip install -r requirements.txt
 
+### Installing dependencies on Ubuntu
+
+ 1. [OpenCV][] - Install by following the steps in the Ubuntu OpenCV  [installation guide](https://help.ubuntu.com/community/OpenCV). An alternative instruction tested for Ubuntu 10.04 can be found at [OpenCV Docs](http://docs.opencv.org/doc/tutorials/introduction/linux_install/linux_install.html). OpenCV requires [GCC](https://gcc.gnu.org/) and [CMake](http://www.cmake.org/) among other things.
+
+ 2. [Ceres solver][] - Install the needed dependencies (download [Google Flags](https://launchpad.net/ubuntu/+source/gflags) and [Google Log](https://launchpad.net/ubuntu/+source/google-glog) and include [SuiteSparce](http://faculty.cse.tamu.edu/davis/suitesparse.html)) and build Ceres according the [documentation](http://ceres-solver.org/building.html). Install Ceres from the ceres-bin directory after `make` by:
+ 
+        sudo make install
+
+ 3. [JsonCpp][] and [jhead][] - Install through apt-get:
+
+        sudo apt-get install libjsoncpp-dev
+        sudo apt-get install jhead
+
+ 4. [NumPy][], networkx, PyYaml, exifread - Install [pip](https://pypi.python.org/pypi/pip) and then run the following from the root of the project:
+
+        sudo pip install -r requirements.txt
 
 
 Building
@@ -49,8 +71,16 @@ Running
 -------
 An example dataset is available at data/berlin.
 
-1. put some images in `data/DATASET_NAME/images/`
-2. put config.yaml at `data/DATASET_NAME/config.yaml`
-3. run `bin/run_all DATASET_NAME`
-4. start a http server with `python -m SimpleHTTPServer`
-5. browse `http://localhost:8000/viewer/reconstruction.html#/data/DATASET_NAME/reconstruction.json`
+ 1. Put some images in `data/DATASET_NAME/images/`
+ 2. Put config.yaml at `data/DATASET_NAME/config.yaml`
+ 3. Go to the root of the project and run `bin/run_all data/DATASET_NAME`
+ 4. Start an http server from the root with `python -m SimpleHTTPServer`
+ 5. Browse `http://localhost:8000/viewer/reconstruction.html#/data/DATASET_NAME/reconstruction.json`.
+
+
+
+[OpenCV]: http://opencv.org/ (Computer vision and machine learning software library)
+[NumPy]: http://www.numpy.org/ (Scientific computing with Python)
+[Ceres solver]: http://ceres-solver.org/ (Library for solving complicated nonlinear least squares problems)
+[JsonCpp]: https://github.com/open-source-parsers/jsoncpp (C++ library that allows manipulating JSON values)
+[jhead]: http://www.sentex.net/~mwandel/jhead/ (Exif Jpeg header manipulation tool)
