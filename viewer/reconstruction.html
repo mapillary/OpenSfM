@@ -53,7 +53,7 @@
             var options = {
                 drawGPS: false,
                 cameraSize: 1,
-                pointSize: 0.4,
+                pointSize: 0.7,
                 cameraColor: new THREE.Color(0xFFFFFF),
                 selectedCameraColor: new THREE.Color(0xFFFF88),
                 reconstruction_visibles: {},
@@ -240,7 +240,10 @@
                 container.appendChild(renderer.domElement);
  
                 camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 1000);
-                camera.position.z = -50;
+                camera.position.x = 50;
+                camera.position.y = 50;
+                camera.position.z = 50;
+                camera.up = new THREE.Vector3(0,0,1);
 
                 controls = new THREE.OrbitControls(camera, renderer.domElement);
                 controls.addEventListener('change', render);
@@ -251,7 +254,7 @@
 
                 scene_group = new THREE.Object3D();
                 pointCloudMaterial = new THREE.PointCloudMaterial({
-                      size: 0.3,
+                      size: options.pointSize,
                       vertexColors: true,
                     });
                 for (var r = 0; r < reconstructions.length; ++r) {
@@ -346,12 +349,12 @@
                     scene_group.add(line);
                 }
 
-                scene_group.rotateX(-Math.PI / 2); // put scene right-side up
+              //  scene_group.rotateX(-Math.PI / 2); // put scene right-side up
 
                 scene = new THREE.Scene();
                 scene.add(scene_group);
 
-                var geometry = new THREE.SphereGeometry(1);
+                var geometry = new THREE.SphereGeometry(.5);
                 var material = new THREE.MeshBasicMaterial( { color: 0xff0000 } );
                 sphereInter = new THREE.Mesh( geometry, material );
                 sphereInter.visible = false;
@@ -375,20 +378,43 @@
                 render();
             }
 
+            function imageURL(shot_id) {
+                var hash = window.location.hash.replace('#','');
+                var slash = hash.lastIndexOf('/');
+                return hash.substring(0, slash) + '/images/' + shot_id;
+            }
+
+            function reconstruction_of_shot(reconstructions, shot_id) {
+                for (var r = 0; r < reconstructions.length; ++r) {
+                    if (shot_id in reconstructions[r]['shots']) {
+                        return reconstructions[r];
+                    }
+                }
+                return undefined;
+            }
+
             function onDocumentMouseDown(event) {
                 if (currentIntersected !== undefined) {
-                    if (selectedCamera !== undefined) {
-                        selectedCamera.material.linewidth = 1;
-                        selectedCamera.material.color = options.cameraColor;
+                    if (event.button === THREE.MOUSE.RIGHT) {
+                        var shot_id = currentIntersected.shot_id;
+                        var r = reconstruction_of_shot(reconstructions, shot_id);
+                        var shot = r['shots'][shot_id];
+                        var cam = r['cameras'][shot.camera];
+                        controls.goto_shot(cam, shot);
+                    } else if (event.button === THREE.MOUSE.LEFT) {   
+                        if (selectedCamera !== undefined) {
+                            selectedCamera.material.linewidth = 1;
+                            selectedCamera.material.color = options.cameraColor;
+                        }
+                        selectedCamera = currentIntersected;
+                        selectedCamera.material.linewidth = 5;
+                        selectedCamera.material.color = options.selectedCameraColor;
+                        var image = document.getElementById('image');
+                        image.src = imageURL(selectedCamera.shot_id);
+                        var text = document.getElementById('text');
+                        text.innerHTML = selectedCamera.shot_id;
+                        render();
                     }
-                    selectedCamera = currentIntersected;
-                    selectedCamera.material.linewidth = 5;
-                    selectedCamera.material.color = options.selectedCameraColor;
-                    var image = document.getElementById('image');
-                    image.src = window.location.hash.replace('#','').replace('reconstruction.json', 'images/'+selectedCamera.shot_id)
-                    var text = document.getElementById('text');
-                    text.innerHTML = selectedCamera.shot_id;
-                    render();
                 }
             }
 
@@ -398,18 +424,25 @@
             }
 
             function render() {
-                //find intersections
+                // Handle camera selection.
                 var vector = new THREE.Vector3(mouse.x, mouse.y, 1).unproject(camera);
                 raycaster.set(camera.position, vector.sub(camera.position).normalize());
                 var intersects = raycaster.intersectObjects(camera_lines, true);
-                if (intersects.length > 0) {
-                    currentIntersected = intersects[0].object;
-                    sphereInter.visible = true;
-                    sphereInter.position.copy(intersects[0].point);
-                } else {
-                    currentIntersected = undefined;
-                    sphereInter.visible = false;
+                currentIntersected = undefined;
+                sphereInter.visible = false;
+
+                for (var i = 0; i < intersects.length; ++i) {
+                    console.log(intersects[i].distance);
+                    if (intersects[i].distance > 3 * options.cameraSize
+                        && intersects[i].object.visible) {
+                        currentIntersected = intersects[i].object;
+                        sphereInter.visible = true;
+                        sphereInter.position.copy(intersects[i].point);
+                        break;
+                    }
                 }
+
+                // Render.
                 renderer.render(scene, camera);
             }
 
