@@ -6,6 +6,7 @@ import os
 from subprocess import call, Popen, PIPE
 import tempfile
 import datetime
+from itertools import combinations
 
 import numpy as np
 import cv2
@@ -49,6 +50,7 @@ def bundle(tracks_file, reconstruction, config):
     os.remove(source)
     os.remove(dest)
     return result
+
 
 
 def pairwise_reconstructability(common_tracks, homography_inliers):
@@ -229,13 +231,13 @@ def resect(data, graph, reconstruction, shot_id):
 
     # Prior on focal length
     R, t, inliers = cv2.solvePnPRansac(X.astype(np.float32), x.astype(np.float32), K, dist,
-        reprojectionError=data.config.get('resection_threshold', 5.0))
+        reprojectionError=data.config.get('resection_threshold', 8.0))
 
     if inliers is None:
         print 'Resection no inliers'
         return False
     print 'Resection inliers:', len(inliers), '/', len(x)
-    if len(inliers) >= data.config.get('resection_min_inliers', 10):
+    if len(inliers) >= data.config.get('resection_min_inliers', 15):
         reconstruction['shots'][shot_id] = {
             "camera": camera_model,
             "rotation": list(R.flat),
@@ -349,7 +351,7 @@ def retriangulate(track_file, graph, reconstruction, image_graph, config):
             if reconstruct_ratio < 0.3:
                 for track in diff:
                     if track not in tracks_added:
-                        triangulate_track(track, graph, reconstruction, P_by_id, KR1_by_id, reproj_threshold=10.0)
+                        triangulate_track(track, graph, reconstruction, P_by_id, KR1_by_id, reproj_threshold=5.0)
                         points_added += 1
                         tracks_added.append(track)
 
@@ -480,6 +482,69 @@ def align_reconstruction(reconstruction):
     apply_similarity(reconstruction, s, A, b)
 
 
+def merge_two_reconstructions(r1, r2, threshold=1):
+    ''' Merge two reconstructions with common tracks
+    '''
+    t1, t2 = r1['points'], r2['points']
+    common_tracks = list(set(t1) & set(t2))
+
+    # print 'Number of common tracks between two reconstructions: {0}'.format(len(common_tracks))
+    if len(common_tracks) > 6:
+
+        # Estimate similarity transform
+        p1 = np.array([t1[t]['coordinates'] for t in common_tracks])
+        p2 = np.array([t2[t]['coordinates'] for t in common_tracks])
+
+        T, inliers = multiview.fit_similarity_transform(p1, p2, max_iterations=1000, threshold=threshold)
+
+        s, A, b = multiview.decompose_similarity_transform(T)
+        r1p = r1
+
+        apply_similarity(r1p, s, A, b)
+        r = r2
+        r['shots'].update(r1p['shots'])
+        r['points'].update(r1p['points'])
+        align_reconstruction(r)
+
+        return [r]
+    else:
+        return [r1, r2]
+
+
+def merge_reconstructions(reconstructions):
+    ''' Greedily merge reconstructions with common tracks
+    '''
+    num_reconstruction = len(reconstructions)
+    ids_reconstructions = np.arange(num_reconstruction)
+    remaining_reconstruction = ids_reconstructions
+    reconstructions_merged = []
+    num_merge = 0
+    pairs = []
+
+    for (i, j) in combinations(ids_reconstructions, 2):
+        if (i in remaining_reconstruction) and (j in remaining_reconstruction):
+            r = merge_two_reconstructions(reconstructions[i], reconstructions[j])
+            if len(r) == 1:
+                remaining_reconstruction = list(set(remaining_reconstruction) - set([i, j]))
+                for k in remaining_reconstruction:
+                    rr = merge_two_reconstructions(r[0], reconstructions[k])
+                    if len(r) == 2:
+                        break
+                    else:
+                        r = rr
+                        remaining_reconstruction = list(set(remaining_reconstruction) - set([k]))
+                reconstructions_merged.append(r[0])
+                num_merge += 1
+
+
+    for k in remaining_reconstruction:
+        reconstructions_merged.append(reconstructions[k])
+
+    print 'Merged {0} reconstructions.'.format(num_merge)
+
+    return reconstructions_merged
+
+
 def paint_reconstruction(data, graph, reconstruction):
     to_paint = defaultdict(list)
     to_paint_track = defaultdict(list)
@@ -515,9 +580,10 @@ def grow_reconstruction(data, graph, reconstruction, images, image_graph):
     retriangulation_ratio = data.config.get('retriangulation_ratio', 1.25)
 
     reconstruction = bundle(data.tracks_file(), reconstruction, data.config)
-    align_reconstruction(reconstruction)
+    # align_reconstruction(reconstruction)
 
     prev_num_points = len(reconstruction['points'])
+
     num_shots_reconstructed = len(reconstruction['shots'])
 
     while True:
@@ -533,6 +599,7 @@ def grow_reconstruction(data, graph, reconstruction, images, image_graph):
             break
 
         for image, num_tracks in common_tracks:
+
             if resect(data, graph, reconstruction, image):
                 print '-------------------------------------------------------'
                 print 'Adding {0} to the reconstruction'.format(image)
@@ -549,7 +616,7 @@ def grow_reconstruction(data, graph, reconstruction, images, image_graph):
                 if len(reconstruction['shots']) % bundle_interval == 0:
                     reconstruction = bundle(data.tracks_file(), reconstruction, data.config)
 
-                align_reconstruction(reconstruction)
+                # align_reconstruction(reconstruction)
 
                 num_points = len(reconstruction['points'])
                 if retriangulation and num_points > prev_num_points * retriangulation_ratio:
@@ -573,6 +640,9 @@ def grow_reconstruction(data, graph, reconstruction, images, image_graph):
         else:
             print 'Some images can not be added'
             break
+
+
+    align_reconstruction(reconstruction)
 
     print 'Reprojection Error:', reprojection_error(graph, reconstruction)
     print 'Painting the reconstruction from {0} cameras'.format(len(reconstruction['shots']))
