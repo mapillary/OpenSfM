@@ -59,11 +59,9 @@ def pairwise_reconstructability(common_tracks, homography_inliers):
     else:
         return 0
 
-def compute_image_pairs(graph):
+def compute_image_pairs(graph, image_graph):
     '''All matched image pairs sorted by reconstructability.
     '''
-    track_nodes, image_nodes = bipartite.sets(graph)
-    image_graph = bipartite.weighted_projected_graph(graph, image_nodes)
     pairs = []
     score = []
     for im1, im2, d in image_graph.edges(data=True):
@@ -181,17 +179,15 @@ def single_reprojection_error(camera, shot, point, observation):
 
 
 def reprojection_error(graph, reconstruction):
-    tracks, shots = bipartite.sets(graph)
     errors = []
-    for shot_id in shots:
-        if shot_id in reconstruction['shots']:
-            for track_id in graph[shot_id]:
-                if track_id in reconstruction['points']:
-                    observation = graph[shot_id][track_id]['feature']
-                    shot = reconstruction['shots'][shot_id]
-                    camera = reconstruction['cameras'][shot['camera']]
-                    point = reconstruction['points'][track_id]
-                    errors.append(single_reprojection_error(camera, shot, point, observation))
+    for shot_id in reconstruction['shots']:
+        for track_id in graph[shot_id]:
+            if track_id in reconstruction['points']:
+                observation = graph[shot_id][track_id]['feature']
+                shot = reconstruction['shots'][shot_id]
+                camera = reconstruction['cameras'][shot['camera']]
+                point = reconstruction['points'][track_id]
+                errors.append(single_reprojection_error(camera, shot, point, observation))
     return np.median(errors)
 
 
@@ -339,7 +335,6 @@ def retriangulate(track_file, graph, reconstruction, image_graph, config):
     '''
     P_by_id = {}
     KR1_by_id = {}
-    track_nodes, image_nodes = bipartite.sets(graph)
     shots = reconstruction['shots']
     points = reconstruction['points']
     points_added = 0
@@ -608,7 +603,7 @@ def incremental_reconstruction(data):
     print 'nonfisheye images', len(remaining_images)
     image_graph = bipartite.weighted_projected_graph(graph, images)
     reconstructions = []
-    pairs = compute_image_pairs(graph)
+    pairs = compute_image_pairs(graph, image_graph)
     for im1, im2 in pairs:
         if im1 in remaining_images and im2 in remaining_images:
             reconstruction = bootstrap_reconstruction(data, graph, im1, im2)
