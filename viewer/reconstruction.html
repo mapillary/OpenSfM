@@ -400,7 +400,9 @@
                         var shot = r['shots'][shot_id];
                         var cam = r['cameras'][shot.camera];
                         controls.goto_shot(cam, shot);
-                    } else if (event.button === THREE.MOUSE.LEFT) {   
+                    }
+
+                    if (event.button === THREE.MOUSE.LEFT || event.button === THREE.MOUSE.RIGHT) {   
                         if (selectedCamera !== undefined) {
                             selectedCamera.material.linewidth = 1;
                             selectedCamera.material.color = options.cameraColor;
