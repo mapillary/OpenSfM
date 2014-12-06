@@ -273,10 +273,10 @@ def angle_between_rays(KR11, x1, KR12, x2):
     return multiview.vector_angle(v1, v2)
 
 
-def triangulate_track(track, graph, reconstruction, P_by_id, KR1_by_id, reproj_threshold, min_ray_angle=2.0):
+def triangulate_track(track, graph, reconstruction, P_by_id, KR1_by_id, Kinv_by_id, reproj_threshold, min_ray_angle=2.0):
     ''' Triangulate a track
     '''
-    Ps, Ps_initial, KR1_initial = [], [], []
+    Ps, Ps_initial, KR1_initial, Kinv_initial = [], [], [], []
     xs, xs_initial = [], []
 
     for shot in graph[track]:
@@ -287,10 +287,11 @@ def triangulate_track(track, graph, reconstruction, P_by_id, KR1_by_id, reproj_t
                 P = projection_matrix(c, s)
                 P_by_id[shot] = P
                 KR1_by_id[shot] = np.linalg.inv(P[:,:3])
+                Kinv_by_id[shot] = np.linalg.inv(K_from_camera(c))
             Ps_initial.append(P_by_id[shot])
             xs_initial.append(graph[track][shot]['feature'])
             KR1_initial.append(KR1_by_id[shot])
-
+            Kinv_initial.append(Kinv_by_id[shot])
     valid_set = []
     if len(Ps_initial) >= 2:
         max_angle = 0
@@ -305,8 +306,9 @@ def triangulate_track(track, graph, reconstruction, P_by_id, KR1_by_id, reproj_t
             max_angle = max(angle, max_angle)
         if max_angle > np.radians(min_ray_angle):
             for k in valid_set:
-                Ps.append(Ps_initial[k])
-                xs.append(xs_initial[k])
+                Ps.append(np.dot(Kinv_initial[k], Ps_initial[k] ))
+                xx = np.dot(Kinv_initial[k][:2,:], multiview.homogeneous(np.array(xs_initial[k])))
+                xs.append(xx[0:2])
             X = multiview.triangulate(Ps, xs)
             error = 0
             Xh = multiview.homogeneous(X)
@@ -327,9 +329,11 @@ def triangulate_shot_features(graph, reconstruction, shot_id, reproj_threshold, 
     '''
     P_by_id = {}
     KR1_by_id = {}
+    Kinv_by_id = {}
+
     for track in graph[shot_id]:
         if track not in reconstruction['points']:
-            triangulate_track(track, graph, reconstruction, P_by_id, KR1_by_id, reproj_threshold, min_ray_angle)
+            triangulate_track(track, graph, reconstruction, P_by_id, KR1_by_id, Kinv_by_id, reproj_threshold, min_ray_angle)
 
 
 def retriangulate(track_file, graph, reconstruction, image_graph, config):
