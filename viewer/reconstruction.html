@@ -42,6 +42,7 @@
             var mouse = new THREE.Vector2();
             var currentIntersected, raycaster, parentTransform, sphereInter;
             var selectedCamera;
+            var imagePlane, imageTexture, imageMaterial;
             var scene_group;
             var pointCloudMaterial;
             var reconstructions;
@@ -54,6 +55,7 @@
                 drawGPS: false,
                 cameraSize: 1,
                 pointSize: 0.5,
+                imagePlaneSize: 200,
                 cameraColor: new THREE.Color(0xFFFFFF),
                 selectedCameraColor: new THREE.Color(0xFFFF88),
                 reconstruction_visibles: {},
@@ -228,6 +230,46 @@
                 return linegeo;
             }
 
+            function imagePlaneGeo(reconstruction, shot_id) {
+                var shot = reconstruction.shots[shot_id];
+                var cam = reconstruction.cameras[shot.camera];
+                var top_left = pixelToVertex(cam, shot, 0, 0, options.imagePlaneSize);
+                var top_right = pixelToVertex(cam, shot, cam.width, 0, options.imagePlaneSize);
+                var bottom_right = pixelToVertex(cam, shot, cam.width, cam.height, options.imagePlaneSize);
+                var bottom_left = pixelToVertex(cam, shot, 0, cam.height, options.imagePlaneSize);
+
+                var geometry = new THREE.Geometry();
+                geometry.vertices.push(
+                    top_left,
+                    bottom_left,
+                    bottom_right,
+                    top_right
+                );
+                geometry.faces.push(
+                    new THREE.Face3(0, 1, 3),
+                    new THREE.Face3(1, 2, 3)
+                );
+                geometry.faceVertexUvs[0].push([
+                    new THREE.Vector2(0, 1),
+                    new THREE.Vector2(0, 0),
+                    new THREE.Vector2(1, 1)
+                ],[
+                    new THREE.Vector2(0, 0),
+                    new THREE.Vector2(1, 0),
+                    new THREE.Vector2(1, 1)
+                ]);
+
+                geometry.computeFaceNormals();
+
+                // geometry.faces.push(new THREE.Face3(0, 1, 3)); // counter-clockwise winding order
+                // geometry.faces.push(new THREE.Face3(1, 2, 3));
+                //geometry.computeBoundingSphere();
+//geometry.computeFaceNormals();
+                geometry.computeVertexNormals();
+
+                return geometry;
+            }
+
 
             function init() {
                 raycaster = new THREE.Raycaster();
@@ -306,6 +348,15 @@
 
                     scene_group.add(group);
                 }
+
+
+                // Image plane
+                imageTexture = THREE.ImageUtils.loadTexture(imageURL(shot_id));
+                imageMaterial = new THREE.MeshBasicMaterial({ map : imageTexture });
+                imagePlane = new THREE.Mesh(imagePlaneGeo(reconstruction, shot_id), imageMaterial);
+                scene_group.add(imagePlane);
+
+
 
                 // Axis
                 var linegeo = new THREE.Geometry();
@@ -397,9 +448,14 @@
             function onDocumentMouseDown(event) {
                 if (currentIntersected !== undefined) {
                     if (event.button === THREE.MOUSE.RIGHT) {
+                        var shot_id = currentIntersected.shot_id;
                         var r = currentIntersected.reconstruction;
-                        var shot = r['shots'][currentIntersected.shot_id];
+                        var shot = r['shots'][shot_id];
                         var cam = r['cameras'][shot.camera];
+                        var image_url = imageURL(shot_id);
+                        imageMaterial.map = THREE.ImageUtils.loadTexture(image_url, null, render);
+                        var geo = imagePlaneGeo(r, shot_id);
+                        imagePlane.geometry = geo;
                         controls.goto_shot(cam, shot);
                     }
 
@@ -411,8 +467,9 @@
                         selectedCamera = currentIntersected;
                         selectedCamera.material.linewidth = 5;
                         selectedCamera.material.color = options.selectedCameraColor;
-                        var image = document.getElementById('image');
-                        image.src = imageURL(selectedCamera.shot_id);
+                        var image_tag = document.getElementById('image');
+                        var image_url = imageURL(selectedCamera.shot_id);
+                        image_tag.src = image_url;
                         var text = document.getElementById('text');
                         text.innerHTML = selectedCamera.shot_id;
                         render();
