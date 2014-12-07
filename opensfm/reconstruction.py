@@ -341,6 +341,7 @@ def retriangulate(track_file, graph, reconstruction, image_graph, config):
     '''
     P_by_id = {}
     KR1_by_id = {}
+    Kinv_by_id = {}
     shots = reconstruction['shots']
     points = reconstruction['points']
     points_added = 0
@@ -355,7 +356,7 @@ def retriangulate(track_file, graph, reconstruction, image_graph, config):
             if reconstruct_ratio < 0.3:
                 for track in diff:
                     if track not in tracks_added:
-                        triangulate_track(track, graph, reconstruction, P_by_id, KR1_by_id, reproj_threshold=5.0)
+                        triangulate_track(track, graph, reconstruction, P_by_id, KR1_by_id, Kinv_by_id, reproj_threshold=8.0)
                         points_added += 1
                         tracks_added.append(track)
 
