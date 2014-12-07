@@ -540,7 +540,7 @@
                         var turn = currentDir.angleTo(dir);
                         var drift = motionDir.angleTo(new THREE.Vector3(motion.x, motion.y, 0));
                         var d = currentPosition.distanceTo(oc);
-                        if (Math.abs(turn) < 0.4 && Math.abs(drift) < 0.4 && d > 0.01 && d < 20) {
+                        if (Math.abs(turn) < 0.5 && Math.abs(drift) < 0.5 && d > 0.01 && d < 20) {
                             if (d < mind) {
                                 mind = d;
                                 closest_line = line;
