@@ -53,6 +53,29 @@ def compute_focal(focal_35, focal, sensor_width, sensor_string):
             focal_ratio = 0
     return focal_35, focal_ratio
 
+
+def extract_distortion(make, model, fmm35):
+    if 'gopro' in make.lower():
+        if fmm35==20:
+            # GoPro Hero 3, 7MP medium
+            ## calibration
+            d = np.array([-0.37, 0.28, 0, 0, 0])
+        elif fmm35==15:
+            # GoPro Hero 3, 7MP wide
+            # calibration
+            d = np.array([-0.32, 0.24, 0, 0, 0])
+        elif fmm35==23:
+            # GoPro Hero 2, 5MP medium
+            d = np.array([-0.38, 0.24, 0, 0, 0])
+        elif fmm35==16:
+            # GoPro Hero 2, 5MP wide
+            d = np.array([-0.39, 0.22, 0, 0, 0])
+        else:
+            raise ValueError("Unsupported f value.")
+
+        return list(d)
+
+
 def sensor_string(make, model):
     if make != 'unknown':
         model = model.replace(make, '') # remove possible duplicate 'make' information in 'model' for better matching
@@ -187,6 +210,10 @@ for image in images:
                 "focal": d['focal_ratio'] * np.max([d['width'], d['height']]),
                 "exif_focal": d['focal_ratio'] * np.max([d['width'], d['height']])
             }
+
+    distortion = extract_distortion(make, model, focal_35)
+    if distortion is not None:
+        camera_models[d['camera']].update({'k1': distortion[0], 'k2': distortion[1]})
 
     with open(data.exif_file(image), 'w') as fout:
         fout.write(json.dumps(d, indent=4))
