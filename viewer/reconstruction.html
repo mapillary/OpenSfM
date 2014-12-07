@@ -55,7 +55,7 @@
                 drawGPS: false,
                 cameraSize: 1,
                 pointSize: 0.5,
-                imagePlaneSize: 200,
+                imagePlaneSize: 50,
                 imagePlaneOpacity: 0.9,
                 cameraColor: new THREE.Color(0xFFFFFF),
                 hoverCameraColor: new THREE.Color(0xFF8888),
@@ -163,6 +163,13 @@
                 var Rt = rotate(shot.translation, angleaxis);
                 Rt.negate();
                 return Rt;
+            }
+
+            function viewingDirection(shot) {
+                var angleaxis = [-shot.rotation[0],
+                                 -shot.rotation[1],
+                                 -shot.rotation[2]];
+                return rotate([0,0,1], angleaxis);
             }
 
             function pixelToVertex(cam, shot, u, v, scale) {
@@ -303,6 +310,7 @@
                 window.addEventListener('resize', onWindowResize, false);
                 renderer.domElement.addEventListener('mousemove', onDocumentMouseMove, false);
                 renderer.domElement.addEventListener('mousedown', onDocumentMouseDown, false);
+                window.addEventListener( 'keydown', onKeyDown, false );
 
                 scene_group = new THREE.Object3D();
                 pointCloudMaterial = new THREE.PointCloudMaterial({
@@ -442,7 +450,7 @@
             function imageURL(shot_id) {
                 var hash = window.location.hash.replace('#','');
                 var slash = hash.lastIndexOf('/');
-                return hash.substring(0, slash) + '/images/' + shot_id;
+                return hash.substring(0, slash) + '/images320/' + shot_id;
             }
 
             function reconstruction_of_shot(reconstructions, shot_id) {
@@ -454,33 +462,99 @@
                 return undefined;
             }
 
+            function setSelectedCamera(cameraObject) {
+                var r = cameraObject.reconstruction;
+                var shot_id = cameraObject.shot_id;
+                var shot = r['shots'][shot_id];
+                var image_url = imageURL(shot_id);
+                if (selectedCamera !== undefined) {
+                    selectedCamera.material.linewidth = 1;
+                    selectedCamera.material.color = options.cameraColor;
+                }
+                selectedCamera = cameraObject;
+                selectedCamera.material.linewidth = 5;
+                selectedCamera.material.color = options.selectedCameraColor;
+                var image_tag = document.getElementById('image');
+                image_tag.src = image_url;
+                var text = document.getElementById('text');
+                text.innerHTML = shot_id;
+            }
+
+            function setImagePlaneCamera(cameraObject) {
+                var r = cameraObject.reconstruction;
+                var shot_id = cameraObject.shot_id;
+                var shot = r['shots'][shot_id];
+                var cam = r['cameras'][shot['camera']];
+                var image_url = imageURL(shot_id);
+                if (selectedCamera !== cameraObject) {
+                    setSelectedCamera(cameraObject);
+                }
+                imagePlaneCamera = cameraObject;
+                imageMaterial.map = THREE.ImageUtils.loadTexture(image_url, null, render);
+                imagePlane.geometry = imagePlaneGeo(r, shot_id);
+                controls.goto_shot(cam, shot);
+            }
+
             function onDocumentMouseDown(event) {
                 if (hoverCamera !== undefined) {
-                    var r = hoverCamera.reconstruction;
-                    var shot_id = hoverCamera.shot_id;
-                    var shot = r['shots'][shot_id];
-                    var cam = r['cameras'][shot.camera];
-                    var image_url = imageURL(shot_id);
 
                     if (selectedCamera !== hoverCamera) {
-                        if (selectedCamera !== undefined) {
-                            selectedCamera.material.linewidth = 1;
-                            selectedCamera.material.color = options.cameraColor;
-                        }
-                        selectedCamera = hoverCamera;
-                        selectedCamera.material.linewidth = 5;
-                        selectedCamera.material.color = options.selectedCameraColor;
-                        var image_tag = document.getElementById('image');
-                        image_tag.src = image_url;
-                        var text = document.getElementById('text');
-                        text.innerHTML = shot_id;
+                        setSelectedCamera(hoverCamera);
                     } else {
-                        imagePlaneCamera = selectedCamera;
-                        imageMaterial.map = THREE.ImageUtils.loadTexture(image_url, null, render);
-                        imagePlane.geometry = imagePlaneGeo(r, shot_id);
-                        controls.goto_shot(cam, shot);
+                        setImagePlaneCamera(selectedCamera);
                     }
                     render();                        
+                }
+            }
+
+            function findClosestCamera(keyCode) {
+                var currentPosition = controls.animationPosition;
+                var currentTarget = controls.animationTarget;
+                var currentDir = currentTarget.clone().sub(currentPosition);
+                var motionDir = undefined;
+                switch (keyCode) {
+                    case 37: // left arrow
+                        motionDir = new THREE.Vector3(-currentDir.y, currentDir.x, 0);
+                        break;
+                    case 38: // up arrow
+                        motionDir = new THREE.Vector3(currentDir.x, currentDir.y, 0);
+                        break;
+                    case 39: // right arrow
+                        motionDir = new THREE.Vector3(currentDir.y, -currentDir.x, 0);
+                        break;
+                    case 40: // down arrow 
+                        motionDir = new THREE.Vector3(-currentDir.x, -currentDir.y, 0);
+                        break;
+                }
+                var mind = 999999999999;
+                var closest_line = undefined;
+                if (motionDir !== undefined) {
+                    for (var i = 0; i < camera_lines.length; ++i) {
+                        var line = camera_lines[i];
+                        var r = line.reconstruction;
+                        var shot_id = line.shot_id;
+                        var shot = r['shots'][shot_id];
+                        var oc = opticalCenter(shot);
+                        var dir = viewingDirection(shot);
+                        var motion = oc.clone().sub(currentPosition);
+                        var turn = currentDir.angleTo(dir);
+                        var drift = motionDir.angleTo(new THREE.Vector3(motion.x, motion.y, 0));
+                        var d = currentPosition.distanceTo(oc);
+                        if (Math.abs(turn) < 0.4 && Math.abs(drift) < 0.4 && d > 0.01 && d < 20) {
+                            if (d < mind) {
+                                mind = d;
+                                closest_line = line;
+                            }
+                        }
+                    }
+                }
+                return closest_line;
+            }
+
+            function onKeyDown(event) {
+                var line = findClosestCamera(event.keyCode);
+                if (line !== undefined) {
+                    setImagePlaneCamera(line);
                 }
             }
 
