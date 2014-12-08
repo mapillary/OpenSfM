@@ -8,6 +8,7 @@ from multiprocessing import Pool
 import numpy as np
 from opensfm import dataset
 from opensfm import features
+from opensfm import multiview
 
 def usage():
     print 'USAGE: %s data_set_path' % sys.argv[0]
@@ -17,6 +18,10 @@ def detect(image):
     print 'Extracting', data.feature_type().upper(), 'features for image', image
     if not os.path.isfile(data.feature_index_file(image)):
         p_unsorted, f_unsorted = features.extract_feature(data.image_file(image), data.config)
+        camera = data.exif_data(image)
+        if 'gopro' in camera['camera'].lower():
+            camera['focal'] = camera['focal_ratio']* np.max([camera['height'], camera['width']])
+            p_unsorted[:,0:2] = multiview.undistort_points(camera, p_unsorted[:,0:2].T).T
         size = p_unsorted[:, 2]
         order = np.argsort(size)
         f_sorted = f_unsorted[order, :]
