@@ -42,7 +42,8 @@
             var mouse = new THREE.Vector2();
             var hoverCamera, raycaster, parentTransform, sphereInter;
             var selectedCamera;
-            var imagePlane, imageTexture, imageMaterial, imagePlaneCamera;
+            var imagePlane, imageMaterial, imagePlaneCamera;
+            var imagePlaneOld, imageMaterialOld, imagePlaneCameraOld;
             var scene_group;
             var pointCloudMaterial;
             var reconstructions;
@@ -53,10 +54,10 @@
 
             var options = {
                 drawGPS: false,
-                cameraSize: 1,
-                pointSize: 0.5,
+                cameraSize: 0.5,
+                pointSize: 0.3,
                 imagePlaneSize: 50,
-                imagePlaneOpacity: 0.9,
+                imagePlaneOpacity: 1,
                 cameraColor: new THREE.Color(0xFFFFFF),
                 hoverCameraColor: new THREE.Color(0xFF8888),
                 selectedCameraColor: new THREE.Color(0xFFFF88),
@@ -99,9 +100,10 @@
                     });
                 f1.add(options, 'imagePlaneSize', 1, 200)
                     .onChange(function(value) {
-                        var r = imagePlaneCamera.reconstruction;
-                        var shot_id = imagePlaneCamera.shot_id;
-                        imagePlane.geometry = imagePlaneGeo(r, shot_id);
+                        options.imagePlaneSize *= 1.5;
+                        imagePlane.geometry = imagePlaneGeo(imagePlaneCameraOld.reconstruction, imagePlaneCameraOld.shot_id);
+                        options.imagePlaneSize /= 1.5;
+                        imagePlane.geometry = imagePlaneGeo(imagePlaneCamera.reconstruction, imagePlaneCamera.shot_id);
                         render();
                     });
                 f1.add(options, 'drawGPS')
@@ -368,10 +370,31 @@
 
 
                 // Image plane
-                imageTexture = THREE.ImageUtils.loadTexture(imageURL(shot_id));
-                imageMaterial = new THREE.MeshBasicMaterial({ map : imageTexture, transparent: true, opacity: options.imagePlaneOpacity });
-                imagePlane = new THREE.Mesh(imagePlaneGeo(reconstruction, shot_id), imageMaterial);
+                imagePlaneCamera = camera_lines[0];
+                var imageTexture = THREE.ImageUtils.loadTexture(imageURL(shot_id));
+                imageMaterial = new THREE.MeshBasicMaterial({
+                    map : imageTexture,
+                    transparent: true,
+                    opacity: options.imagePlaneOpacity
+                });
+                imagePlane = new THREE.Mesh(imagePlaneGeo(imagePlaneCamera.reconstruction,
+                                                          imagePlaneCamera.shot_id),
+                                            imageMaterial);
+                imagePlane.visible = false;
                 scene_group.add(imagePlane);
+
+                imagePlaneCameraOld = camera_lines[0];
+                var imageTextureOld = THREE.ImageUtils.loadTexture(imageURL(shot_id));
+                imageMaterialOld = new THREE.MeshBasicMaterial({
+                    map : imageTextureOld,
+                    transparent: true,
+                    opacity: options.imagePlaneOpacity
+                });
+                imagePlaneOld = new THREE.Mesh(imagePlaneGeo(imagePlaneCameraOld.reconstruction,
+                                                             imagePlaneCameraOld.shot_id),
+                                               imageMaterialOld);
+                imagePlaneOld.visible = false;
+                scene_group.add(imagePlaneOld);
 
 
 
@@ -489,9 +512,21 @@
                 if (selectedCamera !== cameraObject) {
                     setSelectedCamera(cameraObject);
                 }
+
+                if (imagePlaneCamera !== undefined) {
+                    imagePlaneCameraOld = imagePlaneCamera;
+                    imageMaterialOld.map = imageMaterial.map;
+                    options.imagePlaneSize *= 1.5;
+                    imagePlaneOld.geometry = imagePlaneGeo(imagePlaneCameraOld.reconstruction, imagePlaneCameraOld.shot_id);
+                    options.imagePlaneSize /= 1.5;
+                    options.imagePlaneOpacity = 1;
+                    imagePlaneOld.visible = true;
+                }
+
                 imagePlaneCamera = cameraObject;
                 imageMaterial.map = THREE.ImageUtils.loadTexture(image_url, null, render);
                 imagePlane.geometry = imagePlaneGeo(r, shot_id);
+                imagePlane.visible = true;
                 controls.goto_shot(cam, shot);
             }
 
@@ -560,6 +595,9 @@
 
             function animate() {
                 requestAnimationFrame(animate);
+                imageMaterial.opacity = 1 - options.imagePlaneOpacity;
+                imageMaterialOld.opacity = options.imagePlaneOpacity;
+                options.imagePlaneOpacity *= 0.9;
                 controls.update();
             }
 
