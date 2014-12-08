@@ -161,7 +161,9 @@ def rotate(angleaxis, point):
     return R.dot(np.array(point))
 
 
-def single_reprojection_error(camera, shot, point, observation):
+def reproject(camera, shot, point):
+    ''' Reproject 3D point onto image plane given a camera
+    '''
     p = rotate(shot['rotation'], point['coordinates'])
     p += shot['translation']
     xp = p[0] / p[2]
@@ -169,15 +171,23 @@ def single_reprojection_error(camera, shot, point, observation):
 
     l1 = camera.get('k1', 0.0)
     l2 = camera.get('k2', 0.0)
-    r2 = xp * xp + yp * yp;
+    r2 = xp * xp + yp * yp
     distortion = 1.0 + r2  * (l1 + l2  * r2)
 
-    predicted_x = camera['focal'] * distortion * xp + camera['width'] / 2
-    predicted_y = camera['focal'] * distortion * yp + camera['height'] / 2
+    x_reproject = camera['focal'] * distortion * xp + camera['width'] / 2
+    y_reproject = camera['focal'] * distortion * yp + camera['height'] / 2
 
-    rx = predicted_x - observation[0]
-    ry = predicted_y - observation[1]
-    return np.sqrt(rx * rx + ry * ry)
+    return np.array([x_reproject, y_reproject])
+
+def single_reprojection_error(camera, shot, point, observation):
+    ''' Reprojection error of a single points
+    '''
+
+    point_reprojected = reproject(camera, shot, point)
+
+    err = point_reprojected - observation
+
+    return np.linalg.norm(err)
 
 
 def reprojection_error(graph, reconstruction):
@@ -675,6 +685,7 @@ def incremental_reconstruction(data):
     graph = data.tracks_graph()
     tracks, images = bipartite.sets(graph)
     remaining_images = set(nonfisheye_cameras(data, images))
+    remaining_images = images
     print 'images', len(images)
     print 'nonfisheye images', len(remaining_images)
     image_graph = bipartite.weighted_projected_graph(graph, images)
