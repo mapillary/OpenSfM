@@ -236,7 +236,7 @@ def resect(data, graph, reconstruction, shot_id):
         return False
     exif = data.exif_data(shot_id)
     camera_model = exif['camera']
-    K = K_from_camera(reconstruction['cameras'][camera_model])
+    K = multiview.K_from_camera(reconstruction['cameras'][camera_model])
     dist = np.array([0,0,0,0.])
 
     # Prior on focal length
@@ -258,13 +258,6 @@ def resect(data, graph, reconstruction, shot_id):
     else:
         return False
 
-def K_from_camera(camera):
-    f = float(camera['focal'])
-    w = camera['width']
-    h = camera['height']
-    return np.array([[f, 0., w / 2],
-                     [0., f, h / 2],
-                     [0., 0., 1.]])
 
 def Rt_from_shot(shot):
     Rt = np.empty((3, 4))
@@ -273,7 +266,7 @@ def Rt_from_shot(shot):
     return Rt
 
 def projection_matrix(camera, shot):
-    K = K_from_camera(camera)
+    K = multiview.K_from_camera(camera)
     Rt = Rt_from_shot(shot)
     return np.dot(K, Rt)
 
@@ -297,7 +290,7 @@ def triangulate_track(track, graph, reconstruction, P_by_id, KR1_by_id, Kinv_by_
                 P = projection_matrix(c, s)
                 P_by_id[shot] = P
                 KR1_by_id[shot] = np.linalg.inv(P[:,:3])
-                Kinv_by_id[shot] = np.linalg.inv(K_from_camera(c))
+                Kinv_by_id[shot] = np.linalg.inv(multiview.K_from_camera(c))
             Ps_initial.append(P_by_id[shot])
             xs_initial.append(graph[track][shot]['feature'])
             KR1_initial.append(KR1_by_id[shot])
@@ -576,6 +569,7 @@ def paint_reconstruction(data, graph, reconstruction):
         features = np.array(to_paint[shot]).astype(int)
         tracks = to_paint_track[shot]
         im = data.image_as_array(shot)
+
         colors = im[features[:,1], features[:,0]]
         for track, color in zip(tracks, colors):
             track_colors[track] += color
@@ -685,7 +679,6 @@ def incremental_reconstruction(data):
     graph = data.tracks_graph()
     tracks, images = bipartite.sets(graph)
     remaining_images = set(nonfisheye_cameras(data, images))
-    remaining_images = images
     print 'images', len(images)
     print 'nonfisheye images', len(remaining_images)
     image_graph = bipartite.weighted_projected_graph(graph, images)
