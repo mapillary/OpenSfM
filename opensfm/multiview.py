@@ -352,3 +352,19 @@ def fit_similarity_transform(p1, p2, max_iterations=1000, threshold=1):
         best_T = tf.affine_matrix_from_points(p1[inliers,:].T, p2[inliers,:].T, shear=False)
 
     return best_T, inliers
+
+
+def undistort_points(camera, points):
+    ''' Undistort image points with radial distortion
+    '''
+    xp, yp = points[0, :], points[1, :]
+    f, px, py = camera['focal'], camera['width']/2, camera['height']/2
+    xn, yn = (xp-px)/f, (yp-py)/f
+    l1 = camera.get('k1', 0.0)
+    l2 = camera.get('k2', 0.0)
+    r2 = xn * xn + yn * yn
+    distortion = 1.0 + r2  * (l1 + l2  * r2)
+    xp_undistort = f * (xn / distortion) + px
+    yp_undistort = f * (yn / distortion) + py
+    
+    return np.array([xp_undistort, yp_undistort])
