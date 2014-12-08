@@ -214,6 +214,7 @@ for image in images:
     distortion = extract_distortion(make, model, focal_35)
     if distortion is not None:
         camera_models[d['camera']].update({'k1': distortion[0], 'k2': distortion[1]})
+        d.update({'k1': distortion[0], 'k2': distortion[1]})
 
     with open(data.exif_file(image), 'w') as fout:
         fout.write(json.dumps(d, indent=4))
