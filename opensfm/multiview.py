@@ -9,7 +9,6 @@ import cv2
 from opensfm import transformations as tf
 from opensfm import context
 
-
 def nullspace(A):
     '''Compute the null space of A.
 
@@ -354,17 +353,27 @@ def fit_similarity_transform(p1, p2, max_iterations=1000, threshold=1):
     return best_T, inliers
 
 
+def K_from_camera(camera):
+    f = float(camera['focal'])
+    w = camera['width']
+    h = camera['height']
+    return np.array([[f, 0., w / 2],
+                     [0., f, h / 2],
+                     [0., 0., 1.]])
+
 def undistort_points(camera, points):
-    ''' Undistort image points with radial distortion
+    ''' Undistort image points (2 x N array) with radial distortion
     '''
-    xp, yp = points[0, :], points[1, :]
-    f, px, py = camera['focal'], camera['width']/2, camera['height']/2
-    xn, yn = (xp-px)/f, (yp-py)/f
-    l1 = camera.get('k1', 0.0)
-    l2 = camera.get('k2', 0.0)
-    r2 = xn * xn + yn * yn
-    distortion = 1.0 + r2  * (l1 + l2  * r2)
-    xp_undistort = f * (xn / distortion) + px
-    yp_undistort = f * (yn / distortion) + py
-    
-    return np.array([xp_undistort, yp_undistort])
+
+    num_point = points.shape[1]
+
+    points = points.T.reshape((num_point, 1, 2)).astype(np.float32)
+
+    distortion = np.array([camera['k1'], camera['k2'], 0., 0.])
+
+    K = K_from_camera(camera)
+    points_undistort = cv2.undistortPoints(points, K_from_camera(camera), distortion)
+    points_undistort = points_undistort.reshape((num_point, 2))
+    points_undistort = np.dot(K[0:2,:], homogeneous(points_undistort).T )
+
+    return points_undistort
