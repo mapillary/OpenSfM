@@ -631,7 +631,9 @@
                 nextPosition = currentPosition.clone().add(motionDir.clone().multiplyScalar(moveSpeed/scale))
                 nextTarget = nextPosition.clone().add(currentDir.clone().multiplyScalar(moveSpeed/scale))
 
-                var mind = 999999999999;
+                var min_d = 999999999999;
+                var min_turn = min_d;
+                var min_drift = min_d;
                 var closest_line = undefined;
                 if (motionDir !== undefined) {
                     var id = 0
@@ -651,9 +653,15 @@
                         var rid = reconstruction_id_of_shot(reconstructions, shot_id)
                         var visible = options.reconstruction_visibles[rid]
                         if (Math.abs(turn) < 0.5 && Math.abs(drift) < 0.5 && d > 0.01 && d < 20 && visible ) {
-                            if (d < mind) {
-                                mind = d;
+                            if (d < min_d) {
+                                min_d = d;
                                 closest_line = line;
+                            }
+                            if (d < 8) {
+                                if (Math.abs(turn) < min_turn){
+                                    min_turn = Math.abs(turn);
+                                    closest_line = line;
+                                }
                             }
                         }
                         // detect panoramas and show all images
@@ -671,7 +679,7 @@
             function onKeyDown(event) {
                 var line = findClosestCamera(event.keyCode);
                 if (line !== undefined) {
-                    setImagePlaneCamera(line, false);
+                    setImagePlaneCamera(line, true);
                 }
                 else {
                     controls.goto(nextPosition, nextTarget)
