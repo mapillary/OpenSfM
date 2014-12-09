@@ -91,7 +91,7 @@ def read_feature(featurefile):
 def build_flann_index(f, index_file, config):
     flann_params = dict(algorithm=2,
                         branching=config['flann_branching'],
-                        terations=config['flann_iterations'])
+                        iterations=config['flann_iterations'])
     index = cv2.flann_Index(f, flann_params)
     index.save(index_file)
 
