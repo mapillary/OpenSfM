@@ -472,6 +472,7 @@
                     side: THREE.DoubleSide,
                     transparent: true,
                     opacity: 1.0,
+                    depthWrite: false,
                     uniforms: {
                         projectorMat: {
                              type: 'm4',
@@ -503,6 +504,7 @@
                         side: THREE.DoubleSide,
                         transparent: true,
                         opacity: 0.5,
+                        depthWrite: false,
                         uniforms: {
                             projectorMat: {
                                  type: 'm4',
@@ -685,7 +687,7 @@
                         imagePlaneCameraOld = imagePlaneCamera;
                         if (useMesh){
                             imageMaterialOld.uniforms.projectorTex.value = imageMaterial.uniforms.projectorTex.value;
-                            imageMaterialOld.uniforms.projectorMat.value = imageMaterial.uniforms.projectorTex.value
+                            imageMaterialOld.uniforms.projectorMat.value = imageMaterial.uniforms.projectorMat.value
                         }
                         else{
                             imageMaterialOld.map = imageMaterial.map;
@@ -694,7 +696,7 @@
                         imagePlaneOld.geometry = imagePlaneGeo(imagePlaneCameraOld.reconstruction, imagePlaneCameraOld.shot_id);
                         options.imagePlaneSize /= 1.5;
                         options.imagePlaneOpacity = 1;
-                        imagePlaneOld.visible = false;
+                        imagePlaneOld.visible = true;
                     }
 
                     imagePlaneCamera = cameraObject;
