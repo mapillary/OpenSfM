@@ -86,7 +86,7 @@
             var selectedCamera;
             var imagePlane, imageMaterial, imagePlaneCamera;
             var imagePlaneOld, imageMaterialOld, imagePlaneCameraOld;
-            var scene_group;
+            var scene_group, grid_group;
             var pointCloudMaterial;
             var reconstructions;
             var reconstruction_visibles = [];
@@ -107,10 +107,12 @@
 
 
             var options = {
-                drawGPS: false,
                 cameraSize: 0.5,
                 pointSize: 0.3,
                 imagePlaneSize: 50,
+                showThumbnail: true,
+                drawGrid: true,
+                drawGPS: false,
                 imagePlaneOpacity: 1,
                 cameraColor: new THREE.Color(0xFFFFFF),
                 hoverCameraColor: new THREE.Color(0xFF8888),
@@ -160,6 +162,15 @@
                         imagePlane.geometry = imagePlaneGeo(imagePlaneCamera.reconstruction, imagePlaneCamera.shot_id);
                         render();
                     });
+                f1.add(options, 'showThumbnail')
+                    .onChange(function(value) {
+                        $('#info').css('visibility', value ? 'visible' : 'hidden');
+                    });
+                f1.add(options, 'drawGrid')
+                    .onChange(function(value) {
+                        grid_group.visible = value;
+                        render();
+                    });
                 f1.add(options, 'drawGPS')
                     .onChange(function(value) {
                         for (var i = 0; i < gps_lines.length; ++i) {
@@ -185,7 +196,7 @@
                             })(r)
                         ).listen();
                 }
-                f3.open();
+                f3.close();
             }
 
             function getData() {
@@ -557,6 +568,7 @@
                 // }
 
                 // Axis
+                grid_group = new THREE.Object3D();
                 var linegeo = new THREE.Geometry();
                 linegeo.vertices = [
                     new THREE.Vector3(0, 0, 0),
@@ -579,7 +591,7 @@
                     vertexColors: THREE.VertexColors
                 });
                 var line = new THREE.Line(linegeo, lineMaterial, THREE.LinePieces);
-                scene_group.add(line);
+                grid_group.add(line);
 
                 // Ground grid
                 {
@@ -596,8 +608,9 @@
                     }
                     var lineMaterial = new THREE.LineBasicMaterial({color: 0x555555});
                     var line = new THREE.Line(linegeo, lineMaterial, THREE.LinePieces);
-                    scene_group.add(line);
+                    grid_group.add(line);
                 }
+                scene_group.add(grid_group);
 
               //  scene_group.rotateX(-Math.PI / 2); // put scene right-side up
 
@@ -851,7 +864,7 @@
                 imageMaterialOld.opacity = options.imagePlaneOpacity;
                 if (useMesh) {
                     imageMaterial.uniforms.opacity.value = 1 - options.imagePlaneOpacity;
-                    imageMaterialOld.uniforms.opacity.value = options.imagePlaneOpacity;
+                    imageMaterialOld.uniforms.opacity.value = 1;//options.imagePlaneOpacity;
                 }
                 options.imagePlaneOpacity *= 0.90;
                 controls.update();
