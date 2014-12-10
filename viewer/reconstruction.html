@@ -385,12 +385,12 @@
 
                 renderer = new THREE.WebGLRenderer();
                 renderer.setSize(window.innerWidth, window.innerHeight);
-                renderer.setClearColor( 0x202020, 1.0);
+                renderer.setClearColor( 0x202020, 0.0);
 
                 container = document.getElementById( 'ThreeJS' );
                 container.appendChild(renderer.domElement);
 
-                camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.3, 1000);
+                camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.3, 1000);
                 camera.position.x = 50;
                 camera.position.y = 50;
                 camera.position.z = 50;
@@ -757,16 +757,16 @@
                 var turnAngle = undefined
                 switch (keyCode) {
                     case 37: // left arrow
-                        // motionDir = new THREE.Vector3(-currentDir.y, currentDir.x, 0);
-                        motionDir = new THREE.Vector3(0, 0, 0);
+                        motionDir = new THREE.Vector3(-currentDir.y, currentDir.x, 0);
+                        // motionDir = new THREE.Vector3(0, 0, 0);
                         turnAngle = turnSpeed
                         break;
                     case 38: // up arrow
                         motionDir = new THREE.Vector3(currentDir.x, currentDir.y, 0);
                         break;
                     case 39: // right arrow
-                        // motionDir = new THREE.Vector3(currentDir.y, -currentDir.x, 0);
-                        motionDir = new THREE.Vector3(0, 0, 0);
+                        motionDir = new THREE.Vector3(currentDir.y, -currentDir.x, 0);
+                        // motionDir = new THREE.Vector3(0, 0, 0);
                         turnAngle = -turnSpeed
                         break;
                     case 40: // down arrow
@@ -774,21 +774,9 @@
                         break;
                 }
 
-                if (keyCode==38 || keyCode==40) {
-                    var scale = Math.sqrt(currentDir.y*currentDir.y +  currentDir.x*currentDir.x)
-                    nextPosition = currentPosition.clone().add(motionDir.clone().multiplyScalar(moveSpeed/scale))
-                    nextTarget = nextPosition.clone().add(currentDir.clone().multiplyScalar(moveSpeed/scale))
-                }
-
-                if (keyCode==37 || keyCode==39) {
-                    var scale = Math.sqrt(currentDir.y*currentDir.y +  currentDir.x*currentDir.x)
-                    var currentDirOnGround = new THREE.Vector3(currentDir.x, currentDir.y, 0)
-                    var nextDir = currentDirOnGround.clone().multiplyScalar(1/scale)
-                    var axis = new THREE.Vector3(0, 0, 1)
-                    nextDir.applyAxisAngle(axis, turnAngle)
-                    nextPosition = currentPosition.clone()
-                    nextTarget = nextPosition.clone().add(nextDir)
-                }
+                var scale = Math.sqrt(currentDir.y*currentDir.y +  currentDir.x*currentDir.x)
+                nextPosition = currentPosition.clone().add(motionDir.clone().multiplyScalar(moveSpeed/scale))
+                nextTarget = nextPosition.clone().add(currentDir.clone().multiplyScalar(moveSpeed/scale))
 
 
                 var min_d = 999999999999;
@@ -809,9 +797,6 @@
                         var motion = oc.clone().sub(currentPosition);
                         var turn = currentDir.angleTo(dir);
                         var drift = motionDir.angleTo(new THREE.Vector3(motion.x, motion.y, 0));
-                        if (keyCode==37 || keyCode==39){
-                            drift = 0
-                        }
                         var d = currentPosition.distanceTo(oc);
                         var rid = reconstruction_id_of_shot(reconstructions, shot_id)
                         var visible = options.reconstruction_visibles[rid]
@@ -868,7 +853,7 @@
                     imageMaterial.uniforms.opacity.value = 1 - options.imagePlaneOpacity;
                     imageMaterialOld.uniforms.opacity.value = options.imagePlaneOpacity;
                 }
-                options.imagePlaneOpacity *= 0.9;
+                options.imagePlaneOpacity *= 0.90;
                 controls.update();
             }
 
