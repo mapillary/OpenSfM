@@ -36,10 +36,10 @@
         <script src="js/OrbitControls.js"></script>
         <script src="js/TrackballControls.js"></script>
         <script src="js/dat.gui.js"></script>
-  
+
         <!-- Shaders -->
         <script type="x-shader/x-vertex" id="vertexshader">
-            
+
             // switch on high precision floats
             #ifdef GL_ES
             precision highp float;
@@ -55,27 +55,31 @@
                 vRstq = projectorMat * vec4(position, 1.0);
                 gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
             }
-            
+
         </script>
-        
+
         <script type="x-shader/x-fragment" id="fragmentshader">
-        
+
             #ifdef GL_ES
             precision highp float;
             #endif
-            
+
             varying vec4 vRstq;
             varying vec2 vUv;
             uniform sampler2D projectorTex;
+            uniform float opacity;
 
             void main()
             {
                 float x = vRstq.x / vRstq.w + 0.5;
                 float y = vRstq.y / vRstq.w + 0.5;
-                gl_FragColor = texture2D(projectorTex, vec2(x, y));
+                vec4 baseColor = texture2D(projectorTex, vec2(x, y));
+                baseColor.a = opacity;
+                gl_FragColor = baseColor;
+                // gl_FragColor = texture2D(projectorTex, vec2(x, y), 0.1);
                 // gl_FragColor = vec4(gl_FragCoord.xy / 1000., 0, 1);
             }
-        
+
         </script>
 
         <script>
@@ -101,6 +105,7 @@
             var nextPosition;
             var moveSpeed = 0.2
             var previousShot = undefined
+            var useMesh = false
 
 
             var options = {
@@ -461,16 +466,19 @@
                 }
 
 
-                // Image plane                
+                // Image plane
                 imagePlaneCamera = camera_lines[0];
                 var shot = imagePlaneCamera.reconstruction.shots[imagePlaneCamera.shot_id];
                 var cam = imagePlaneCamera.reconstruction.cameras[shot.camera];
                 var imageTexture = THREE.ImageUtils.loadTexture(imageURL(shot_id));
+                if ('vertices' in shot){
+                    useMesh = true;
+                }
                 imageMaterial = new THREE.ShaderMaterial({
                     // map: imageTexture,
                     side: THREE.DoubleSide,
-                    // transparent: true,
-                    opacity: options.imagePlaneOpacity,
+                    transparent: true,
+                    opacity: 1.0,
                     uniforms: {
                         projectorMat: {
                              type: 'm4',
@@ -479,6 +487,10 @@
                         projectorTex: {
                             type: 't',
                             value: imageTexture
+                        },
+                        opacity: {
+                            type: 'f',
+                            value: options.imagePlaneOpacity
                         }
                     },
                     vertexShader:   $('#vertexshader').text(),
@@ -492,16 +504,46 @@
 
                 imagePlaneCameraOld = camera_lines[0];
                 var imageTextureOld = THREE.ImageUtils.loadTexture(imageURL(shot_id));
-                imageMaterialOld = new THREE.MeshBasicMaterial({
-                    map : imageTextureOld,
-                    side: THREE.DoubleSide,
-                    transparent: true,
-                    opacity: options.imagePlaneOpacity
-                });
-                imagePlaneOld = new THREE.Mesh(imagePlaneGeo(imagePlaneCameraOld.reconstruction,
-                                                             imagePlaneCameraOld.shot_id),
-                                               imageMaterialOld);
-                imagePlaneOld.visible = false;
+                if (useMesh){
+                    imageMaterialOld = new THREE.ShaderMaterial({
+                        // map: imageTexture,
+                        side: THREE.DoubleSide,
+                        transparent: true,
+                        opacity: 0.5,
+                        uniforms: {
+                            projectorMat: {
+                                 type: 'm4',
+                                 value: projectorCameraMatrix(cam, shot)
+                            },
+                            projectorTex: {
+                                type: 't',
+                                value: imageTextureOld
+                            },
+                            opacity: {
+                                type: 'f',
+                                value: options.imagePlaneOpacity
+                            }
+                        },
+                        vertexShader:   $('#vertexshader').text(),
+                        fragmentShader: $('#fragmentshader').text()
+                    });
+                    imagePlaneOld = new THREE.Mesh(imagePlaneGeo(imagePlaneCameraOld.reconstruction,
+                                                              imagePlaneCameraOld.shot_id),
+                                                imageMaterialOld);
+                    imagePlaneOld.visible = false;
+                }
+                else {
+                    imageMaterialOld = new THREE.MeshBasicMaterial({
+                        map : imageTextureOld,
+                        side: THREE.DoubleSide,
+                        transparent: true,
+                        opacity: options.imagePlaneOpacity
+                    });
+                    imagePlaneOld = new THREE.Mesh(imagePlaneGeo(imagePlaneCameraOld.reconstruction,
+                                                                 imagePlaneCameraOld.shot_id),
+                                                   imageMaterialOld);
+                    imagePlaneOld.visible = false;
+                }
                 scene_group.add(imagePlaneOld);
 
                 // for (var i=0; i < num_preview_plane; ++i) {
@@ -648,7 +690,13 @@
 
                     if (imagePlaneCamera !== undefined) {
                         imagePlaneCameraOld = imagePlaneCamera;
-                        imageMaterialOld.map = imageMaterial.map;
+                        if (useMesh){
+                            imageMaterialOld.uniforms.projectorTex.value = imageMaterial.uniforms.projectorTex.value;
+                            imageMaterialOld.uniforms.projectorMat.value = imageMaterial.uniforms.projectorTex.value
+                        }
+                        else{
+                            imageMaterialOld.map = imageMaterial.map;
+                        }
                         options.imagePlaneSize *= 1.5;
                         imagePlaneOld.geometry = imagePlaneGeo(imagePlaneCameraOld.reconstruction, imagePlaneCameraOld.shot_id);
                         options.imagePlaneSize /= 1.5;
@@ -788,6 +836,10 @@
                 requestAnimationFrame(animate);
                 imageMaterial.opacity = 1 - options.imagePlaneOpacity;
                 imageMaterialOld.opacity = options.imagePlaneOpacity;
+                if (useMesh) {
+                    imageMaterial.uniforms.opacity.value = 1 - options.imagePlaneOpacity;
+                    imageMaterialOld.uniforms.opacity.value = options.imagePlaneOpacity;
+                }
                 options.imagePlaneOpacity *= 0.9;
                 controls.update();
             }
