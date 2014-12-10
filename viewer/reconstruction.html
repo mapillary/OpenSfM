@@ -104,6 +104,7 @@
             var nextTarget;
             var nextPosition;
             var moveSpeed = 0.2
+            var turnSpeed = 0.1
             var previousShot = undefined
             var useMesh = false
 
@@ -759,23 +760,42 @@
                 var currentTarget = controls.animationTarget;
                 var currentDir = currentTarget.clone().sub(currentPosition);
                 var motionDir = undefined;
+                var turnAngle = undefined
                 switch (keyCode) {
                     case 37: // left arrow
-                        motionDir = new THREE.Vector3(-currentDir.y, currentDir.x, 0);
+                        // motionDir = new THREE.Vector3(-currentDir.y, currentDir.x, 0);
+                        motionDir = new THREE.Vector3(0, 0, 0);
+                        turnAngle = turnSpeed
                         break;
                     case 38: // up arrow
                         motionDir = new THREE.Vector3(currentDir.x, currentDir.y, 0);
                         break;
                     case 39: // right arrow
-                        motionDir = new THREE.Vector3(currentDir.y, -currentDir.x, 0);
+                        // motionDir = new THREE.Vector3(currentDir.y, -currentDir.x, 0);
+                        motionDir = new THREE.Vector3(0, 0, 0);
+                        turnAngle = -turnSpeed
                         break;
                     case 40: // down arrow
                         motionDir = new THREE.Vector3(-currentDir.x, -currentDir.y, 0);
                         break;
                 }
-                var scale = Math.sqrt(currentDir.y*currentDir.y +  currentDir.x*currentDir.x)
-                nextPosition = currentPosition.clone().add(motionDir.clone().multiplyScalar(moveSpeed/scale))
-                nextTarget = nextPosition.clone().add(currentDir.clone().multiplyScalar(moveSpeed/scale))
+
+                if (keyCode==38 || keyCode==40) {
+                    var scale = Math.sqrt(currentDir.y*currentDir.y +  currentDir.x*currentDir.x)
+                    nextPosition = currentPosition.clone().add(motionDir.clone().multiplyScalar(moveSpeed/scale))
+                    nextTarget = nextPosition.clone().add(currentDir.clone().multiplyScalar(moveSpeed/scale))
+                }
+
+                if (keyCode==37 || keyCode==39) {
+                    var scale = Math.sqrt(currentDir.y*currentDir.y +  currentDir.x*currentDir.x)
+                    var currentDirOnGround = new THREE.Vector3(currentDir.x, currentDir.y, 0)
+                    var nextDir = currentDirOnGround.clone().multiplyScalar(1/scale)
+                    var axis = new THREE.Vector3(0, 0, 1)
+                    nextDir.applyAxisAngle(axis, turnAngle)
+                    nextPosition = currentPosition.clone()
+                    nextTarget = nextPosition.clone().add(nextDir)
+                }
+
 
                 var min_d = 999999999999;
                 var min_turn = min_d;
@@ -795,20 +815,34 @@
                         var motion = oc.clone().sub(currentPosition);
                         var turn = currentDir.angleTo(dir);
                         var drift = motionDir.angleTo(new THREE.Vector3(motion.x, motion.y, 0));
+                        if (keyCode==37 || keyCode==39){
+                            drift = 0
+                        }
                         var d = currentPosition.distanceTo(oc);
                         var rid = reconstruction_id_of_shot(reconstructions, shot_id)
                         var visible = options.reconstruction_visibles[rid]
-                        if (Math.abs(turn) < 0.5 && Math.abs(drift) < 0.5 && d > 0.01 && d < 20 && visible ) {
-                            if (d < min_d) {
-                                min_d = d;
-                                closest_line = line;
+                        if (drift !==0 ) {
+                            if (Math.abs(turn) < 0.5 && Math.abs(drift) < 0.5 && d > 0.01 && d < 20 && visible ) {
+                                if (d < min_d) {
+                                    min_d = d;
+                                    closest_line = line;
+                                }
+                                if (d < 8) {
+                                    if (Math.abs(turn) < min_turn){
+                                        min_turn = Math.abs(turn);
+                                        closest_line = line;
+                                    }
+                                }
                             }
-                            if (d < 8) {
+                        }
+                        else {
+                            if (Math.abs(turn) < 0.5 && d > 0.01 && d < 1.0 && visible){
                                 if (Math.abs(turn) < min_turn){
                                     min_turn = Math.abs(turn);
                                     closest_line = line;
                                 }
                             }
+
                         }
                         // detect panoramas and show all images
                         // if (Math.abs(turn) > 0.05 && d < 1 && visible) {
