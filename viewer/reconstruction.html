@@ -82,7 +82,7 @@
         <script>
             var container, camera, controls, scene, renderer;
             var mouse = new THREE.Vector2();
-            var hoverCamera, raycaster, parentTransform, sphereInter;
+            var hoverCamera, raycaster, parentTransform;
             var selectedCamera;
             var imagePlane, imageMaterial, imagePlaneCamera;
             var imagePlaneOld, imageMaterialOld, imagePlaneCameraOld;
@@ -612,16 +612,8 @@
                 }
                 scene_group.add(grid_group);
 
-              //  scene_group.rotateX(-Math.PI / 2); // put scene right-side up
-
                 scene = new THREE.Scene();
                 scene.add(scene_group);
-
-                var geometry = new THREE.SphereGeometry(.3);
-                var material = new THREE.MeshBasicMaterial( { color: 0xff0000 } );
-                sphereInter = new THREE.Mesh( geometry, material );
-                sphereInter.visible = false;
-                scene.add(sphereInter);
 
                 addDatGui();
                 render();
