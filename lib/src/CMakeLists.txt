@@ -44,6 +44,7 @@ include_directories(${GFLAGS_INCLUDE_DIR})
 find_package(Glog REQUIRED)
 include_directories(${GLOG_INCLUDE_DIR})
 
+find_package(OpenCV REQUIRED)
 
 add_executable(two_view_reconstruction
                two_view_reconstruction.cc
@@ -77,3 +78,25 @@ target_link_libraries(bundle
 #                      ${JSONCPP_LIBRARIES}
 #                      ${GTEST_LIBRARY}
 #                      )
+
+
+# AKAZE libraries
+include_directories("third_party/akaze/lib/")
+
+set(AKAZE_SRCS
+    third_party/akaze/lib/AKAZEConfig.h
+    third_party/akaze/lib/AKAZE.h
+    third_party/akaze/lib/AKAZE.cpp
+    third_party/akaze/lib/fed.h
+    third_party/akaze/lib/fed.cpp
+    third_party/akaze/lib/nldiffusion_functions.h
+    third_party/akaze/lib/nldiffusion_functions.cpp
+    third_party/akaze/lib/utils.h
+    third_party/akaze/lib/utils.cpp)
+
+add_library(AKAZE_LIB ${AKAZE_SRCS})
+target_link_libraries(AKAZE_LIB ${OpenCV_LIBS})
+
+add_executable(akaze
+               akaze.cpp)
+target_link_libraries(akaze AKAZE_LIB)
