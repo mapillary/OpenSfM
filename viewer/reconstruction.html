@@ -376,7 +376,7 @@
                 rotation.setPosition(translation);
                 var dx = cam.width / cam.focal;
                 var dy = cam.height / cam.focal;
-                var projection = new THREE.Matrix4().makeFrustum(-dx, +dx, -dy, +dy, 1, 1000);
+                var projection = new THREE.Matrix4().makeFrustum(-dx, +dx, +dy, -dy, -1, -1000);
                 return projection.multiply(rotation);
             }
 
@@ -657,7 +657,6 @@
                     }
 
                     imagePlaneCamera = cameraObject;
-                    //imageMaterial.map = THREE.ImageUtils.loadTexture(image_url, null, render);
                     imageMaterial.uniforms.projectorTex.value = THREE.ImageUtils.loadTexture(image_url, null, render);
                     imageMaterial.uniforms.projectorMat.value = projectorCameraMatrix(cam, shot)
                     imagePlane.geometry = imagePlaneGeo(r, shot_id);
