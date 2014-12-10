@@ -46,12 +46,10 @@
             #endif
 
             varying vec4 vRstq;
-            varying vec2 vUv;
             uniform mat4 projectorMat;
 
             void main()
             {
-                vUv = uv;
                 vRstq = projectorMat * vec4(position, 1.0);
                 gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
             }
@@ -65,7 +63,6 @@
             #endif
 
             varying vec4 vRstq;
-            varying vec2 vUv;
             uniform sampler2D projectorTex;
             uniform float opacity;
 
@@ -326,11 +323,6 @@
                         var v2 = shot['faces'][i][2];
 
                         geometry.faces.push(new THREE.Face3(v0, v1, v2));
-                        geometry.faceVertexUvs[0].push([
-                            new THREE.Vector2(shot['uvs'][v0][0], shot['uvs'][v0][1]),
-                            new THREE.Vector2(shot['uvs'][v1][0], shot['uvs'][v1][1]),
-                            new THREE.Vector2(shot['uvs'][v2][0], shot['uvs'][v2][1])
-                        ]);
                     }
 
                    // geometry.computeFaceNormals();
@@ -398,7 +390,7 @@
                 container = document.getElementById( 'ThreeJS' );
                 container.appendChild(renderer.domElement);
 
-                camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.3, 1000);
+                camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.3, 1000);
                 camera.position.x = 50;
                 camera.position.y = 50;
                 camera.position.z = 50;

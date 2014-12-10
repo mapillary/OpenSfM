@@ -5,6 +5,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 import argparse
 import time
 import json
+import numpy as np
 import scipy.spatial
 from opensfm import dataset
 from opensfm import reconstruction
@@ -27,8 +28,8 @@ if __name__ == "__main__":
             if shot_id not in graph:
                 continue
             cam = r['cameras'][shot['camera']]
-            vertices = []
-            pixels = []
+            pixels = [[0,0], [0, cam['height']], [cam['width'], cam['height']], [cam['width'], 0]]
+            vertices = [None for i in range(4)]
             for track_id, edge in graph[shot_id].items():
                 if track_id in r['points']:
                     point = r['points'][track_id]
@@ -37,11 +38,22 @@ if __name__ == "__main__":
                     pixels.append(pixel.tolist())
 
             tri = scipy.spatial.Delaunay(pixels)
+
+            sums = [0.,0.,0.,0.]
+            depths = [0.,0.,0.,0.]
+            for t in tri.simplices:
+                for i in range(4):
+                    if i in t:
+                        for j in t:
+                            if j >= 4:
+                                depths[i] += reconstruction.camera_coordinates(cam, shot, vertices[j])[2]
+                                sums[i] += 1
+            for i in range(4):
+                vertices[i] = reconstruction.back_project(cam, shot, pixels[i], depths[i] / sums[i]).tolist()
+
             faces = tri.simplices.tolist()
-            uvs = [(x / cam['width'], 1.0 - y / cam['height']) for x,y in pixels]
             r['shots'][shot_id]['vertices'] = vertices
             r['shots'][shot_id]['faces'] = faces
-            r['shots'][shot_id]['uvs'] = uvs
 
     with open(data.reconstruction_file() + '.meshed', 'w') as fout:
         fout.write(json.dumps(reconstructions, indent=4))

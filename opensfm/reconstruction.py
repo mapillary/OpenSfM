@@ -160,6 +160,19 @@ def rotate(angleaxis, point):
     R = cv2.Rodrigues(np.array(angleaxis, dtype=float))[0]
     return R.dot(np.array(point))
 
+def camera_coordinates(camera, shot, point):
+    p = rotate(shot['rotation'], point)
+    p += shot['translation']
+    return p
+
+def back_project(camera, shot, pixel, depth):
+    K = multiview.K_from_camera(camera)
+    R = cv2.Rodrigues(np.array(shot['rotation'], dtype=float))[0]
+    t = shot['translation']
+    A = K.dot(R)
+    b = depth * np.array([pixel[0], pixel[1], 1]) - K.dot(t)
+    return np.linalg.solve(A, b)
+
 
 def reproject(camera, shot, point):
     ''' Reproject 3D point onto image plane given a camera
