@@ -68,7 +68,7 @@ def extract_feature(imagefile, config):
                 print 'done'
                 break
     elif feature_type == 'AKAZE':
-        threshold = config.get('akaze_threshold', 0.005)
+        threshold = config.get('akaze_dthreshold', 0.005)
         while True:
             print 'Computing AKAZE with threshold {0}'.format(threshold)
             t = time.time()
@@ -127,7 +127,7 @@ def akaze_feature(imagefile, config):
             points, desc = features[:,:-dim_feature], features[:,-dim_feature:]
             try:
                 # TODO (Yubin), better check for the feature format
-                desc = desc.astype(np.int8)
+                desc = desc.astype(np.uint8)
             except ValueError:
                 desc = desc.astype(np.float)
 
@@ -136,10 +136,15 @@ def akaze_feature(imagefile, config):
             points, desc = [], []
     return points, desc
 
-def write_feature(points, descriptors, featurefile):
+def write_feature(points, descriptors, featurefile, config={}):
+    if config.get('feature_type') == 'AKAZE' and config.get('akaze_descriptor') >= 4:
+        feature_data_type = np.uint8
+    else:
+        feature_data_type = np.float32
+
     np.savez(featurefile,
              points=points.astype(np.float32),
-             descriptors=descriptors.astype(np.float32))
+             descriptors=descriptors.astype(feature_data_type))
 
 def read_feature(featurefile):
     s = np.load(featurefile)
@@ -166,10 +171,16 @@ def match_lowe(index, f2, config):
 
 
 def match_symmetric(fi, indexi, fj, indexj, config):
-    matches_ij = [(a,b) for a,b in match_lowe(indexi, fj, config)]
-    matches_ji = [(b,a) for a,b in match_lowe(indexj, fi, config)]
+    if config['feature_type'] != 'AKAZE':
+        matches_ij = [(a,b) for a,b in match_lowe(indexi, fj, config)]
+        matches_ji = [(b,a) for a,b in match_lowe(indexj, fi, config)]
+    else:
+        matches_ij = [(a,b) for a,b in match_lowe_bf(fi, fj, config)]
+        matches_ji = [(b,a) for a,b in match_lowe_bf(fj, fi, config)]
+
     matches = set(matches_ij).intersection(set(matches_ji))
     return np.array(list(matches), dtype=int)
+
 
 def convert_matches_to_vector(matches):
     '''Convert Dmatch object to matrix form
@@ -183,11 +194,11 @@ def convert_matches_to_vector(matches):
     return matches_vector
 
 
-def match_lowe_bf(f1,f2,config):
+def match_lowe_bf(f1, f2, config):
     '''Bruteforce feature matching
     '''
-    matcher = cv2.DescriptorMatcher_create('BruteForce')
-    matches = matcher.knnMatch(f1,f2,k=2)
+    matcher = cv2.DescriptorMatcher_create(config.get('matcher_type', 'BruteForce'))
+    matches = matcher.knnMatch(f1, f2, k=2)
 
     good_matches = []
     for m,n in matches:
