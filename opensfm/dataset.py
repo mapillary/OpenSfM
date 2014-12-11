@@ -11,7 +11,7 @@ import cv2
 
 class DataSet:
     """
-    Dataset representing directory with images, extracted EXIF, feature descriptors (SURF, SIFT), etc.
+    Dataset representing directory with images, extracted , feature descriptors (SURF, SIFT), etc.
 
     Methods to retrieve *base directory* for data file(s) have suffix ``_path``, methods to retrieve path of specified
     data file have suffix ``_file``.
@@ -92,13 +92,35 @@ class DataSet:
             return json.load(fin)
 
     def feature_type(self):
-        """Return the type of local features (e.g. SURF, SIFT)
+        """Return the type of local features (e.g. AKAZE, SURF, SIFT)
         """
         return self.config.get('feature_type', 'sift').lower()
 
+    def descriptor_type(self):
+        """Return the type of the descriptor (if exists)
+        """
+        if self.feature_type() == 'akaze':
+            descriptor_type = self.config.get('akaze_descriptor_type', 5)
+            if descriptor_type == 0:
+                descriptor_type_str = 'surf_upright'
+            elif descriptor_type == 1:
+                descriptor_type_str = 'surf'
+            elif descriptor_type == 2:
+                descriptor_type_str = 'msurf_upright'
+            elif descriptor_type == 3:
+                descriptor_type_str = 'msurf'
+            elif descriptor_type == 4:
+                descriptor_type_str = 'mldb_upright'
+            elif descriptor_type == 5:
+                descriptor_type_str = 'mldb'
+            return descriptor_type_str
+        else:
+            return ''
+
     def feature_path(self):
         """Return path of feature descriptors and FLANN indices directory"""
-        return os.path.join(self.data_path, self.feature_type())
+        feature_path = self.feature_type()
+        return os.path.join(self.data_path, self.feature_type()+'_'+self.descriptor_type())
 
     def feature_file(self, image):
         """
@@ -133,6 +155,16 @@ class DataSet:
         :param image2: Image name, with extension (i.e. 123.jpg)
         """
         return os.path.join(self.matches_path(), '%s_%s_matches.csv' % (image1, image2))
+
+    def matcher_type(self):
+        """Return the type of matcher
+        """
+        matcher_type = self.config.get('matcher_type', 'BruteForce')
+        if self.feature_type() == 'akaze' and (self.config.get('akaze_descriptor', 5) >= 4):
+             matcher_type = 'BruteForce-Hamming'
+        print matcher_type
+        self.config['matcher_type'] = matcher_type
+        return matcher_type # BruteForce, BruteForce-L1, BruteForce-Hamming
 
     def robust_matches_path(self):
         """Return path of robust matches directory"""
