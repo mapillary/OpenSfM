@@ -67,9 +67,28 @@ def extract_feature(imagefile, config):
             else:
                 print 'done'
                 break
+    elif feature_type == 'AKAZE':
+        threshold = config.get('akaze_threshold', 0.005)
+        while True:
+            print 'Computing AKAZE with threshold {0}'.format(threshold)
+            t = time.time()
+            config['akaze_dthreshold'] = threshold
+            points, desc = akaze_feature(imagefile, config)
+            print 'Found {0} points in {1}s'.format( len(points), time.time()-t )
+            if len(points) < config['feature_min_frames'] and threshold > 0.00001:
+                threshold = (threshold * 2) / 3
+                print 'reducing threshold'
+            else:
+                print 'done'
+                break
+    else:
+        ValueError('Unknown feature type (must be SURF, SIFT or AKAZE)')
 
-    points, desc = descriptor.compute(image, points)
-    ps = np.array([(i.pt[0]/resize_ratio, i.pt[1]/resize_ratio, i.size/resize_ratio, i.angle) for i in points])
+    if feature_type == 'SIFT' or feature_type == 'SURF':
+        points, desc = descriptor.compute(image, points)
+        ps = np.array([(i.pt[0]/resize_ratio, i.pt[1]/resize_ratio, i.size/resize_ratio, i.angle) for i in points])
+    else:
+        ps = points
     masks = np.array(config.get('masks',[]))
     for mask in masks:
         mask = [mask[0]*sz[0], mask[1]*sz[1], mask[2]*sz[0], mask[3]*sz[1]]
@@ -89,18 +108,32 @@ def akaze_feature(imagefile, config):
     featurefile = f.name
     call([context.AKAZE,
           imagefile,
-          "--output", featurefile
+          "--output", featurefile,
+          "--dthreshold", str(config.get('akaze_dthreshold', 0.005)),
+          "--omax", str(config.get('akaze_omax', 4)),
+          "--min_dthreshold", str(config.get('akaze_min_dthreshold', 0.00001)),
+          "--descriptor", str(config.get('akaze_descriptor', 5)),
+          "--descriptor_size", str(config.get('akaze_descriptor_size', 0)),
+          "--descriptor_channels", str(config.get('akaze_descriptor_channels', 3))
         ])
     with open(featurefile, 'rb') as fout:
         lines = fout.readlines()
         num_feature = int(lines[1])
         dim_feature = int(lines[0])
-        lines = ''.join(lines[2:])
-        lines = lines.replace('\n',' ')[:-1].split(' ')
-        features = np.array(lines).reshape((num_feature, -1))
-        points, desc = features[:,0:5], features[:,5:]
-        desc = desc.astype(np.int8)
-        points = points.astype(np.float)
+        if num_feature > 0:
+            lines = ''.join(lines[2:])
+            lines = lines.replace('\n',' ')[:-1].split(' ')
+            features = np.array(lines).reshape((num_feature, -1))
+            points, desc = features[:,:-dim_feature], features[:,-dim_feature:]
+            try:
+                # TODO (Yubin), better check for the feature format
+                desc = desc.astype(np.int8)
+            except ValueError:
+                desc = desc.astype(np.float)
+
+            points = points.astype(np.float)
+        else:
+            points, desc = [], []
     return points, desc
 
 def write_feature(points, descriptors, featurefile):
@@ -114,6 +147,7 @@ def read_feature(featurefile):
 
 
 def build_flann_index(f, index_file, config):
+    f = f.astype(np.float32)
     flann_params = dict(algorithm=2,
                         branching=config['flann_branching'],
                         iterations=config['flann_iterations'])
@@ -122,6 +156,7 @@ def build_flann_index(f, index_file, config):
 
 
 def match_lowe(index, f2, config):
+    f2 = f2.astype(np.float32)
     search_params = dict(checks=config['flann_checks'])
     results, dists = index.knnSearch(f2, 2, params=search_params)
 
@@ -135,7 +170,6 @@ def match_symmetric(fi, indexi, fj, indexj, config):
     matches_ji = [(b,a) for a,b in match_lowe(indexj, fi, config)]
     matches = set(matches_ij).intersection(set(matches_ji))
     return np.array(list(matches), dtype=int)
-
 
 def convert_matches_to_vector(matches):
     '''Convert Dmatch object to matrix form
