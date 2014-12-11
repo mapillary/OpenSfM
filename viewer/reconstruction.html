@@ -22,6 +22,12 @@
                 font-family: sans-serif;
                 color: #FFF;
             }
+            #navigation {
+                position: absolute;
+                top: 0px;
+                left: 10px;
+                background-color: #AAA;
+            }
         </style>
     </head>
     <body>
@@ -29,6 +35,38 @@
         <div id="info">
             <img id="image">
             <div id="text"></div>
+        </div>
+        <div id="navigation">
+            <table>
+                <tr>
+                    <td>
+                    </td>
+                    <td id="nav-forward">
+                        Forward
+                    </td>
+                    <td>
+                    </td>
+                </tr>
+                <tr>
+                    <td id="nav-left">
+                        Left
+                    </td>
+                    <td>
+                    </td>
+                    <td id="nav-right">
+                        Right
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                    </td>
+                    <td id="nav-backward">
+                        Backward
+                    </td>
+                    <td>
+                    </td>
+                </tr>
+            </table>
         </div>
 
         <script src="js/jquery.js"></script>
@@ -98,11 +136,11 @@
             var imagePlaneCameras = [];
             var imageMaterials = [];
             var num_preview_plane = 5;
-            var nextTarget;
-            var nextPosition;
             var moveSpeed = 0.2;
             var turnSpeed = 0.1;
             var previousShot = undefined;
+            var validMoves;
+
 
 
             var options = {
@@ -643,7 +681,7 @@
                 text.innerHTML = shot_id;
             }
 
-            function setImagePlaneCamera(cameraObject, transition) {
+            function setImagePlaneCamera(cameraObject) {
                 var r = cameraObject.reconstruction;
                 var shot_id = cameraObject.shot_id;
                 var shot = r['shots'][shot_id];
@@ -672,12 +710,7 @@
                     imagePlane.geometry = imagePlaneGeo(r, shot_id);
                     imagePlane.visible = true;
                 }
-                if (transition) {
-                    controls.goto_shot(cam, shot);
-                }
-                else {
-                    controls.goto(nextPosition, nextTarget)
-                }
+                controls.goto_shot(cam, shot);
             }
 
             function setImagePlaneCameraList(cameraObject, id) {
@@ -715,101 +748,100 @@
                 }
             }
 
-            function findClosestCamera(keyCode) {
-                // hideImagePlanesList()
+            function computeValidMoves() {
                 var currentPosition = controls.animationPosition;
                 var currentTarget = controls.animationTarget;
                 var currentDir = currentTarget.clone().sub(currentPosition);
-                var motionDir = undefined;
-                var turnAngle = undefined
-                switch (keyCode) {
-                    case 37: // left arrow
-                        motionDir = new THREE.Vector3(-currentDir.y, currentDir.x, 0);
-                        // motionDir = new THREE.Vector3(0, 0, 0);
-                        turnAngle = turnSpeed
-                        break;
-                    case 38: // up arrow
-                        motionDir = new THREE.Vector3(currentDir.x, currentDir.y, 0);
-                        break;
-                    case 39: // right arrow
-                        motionDir = new THREE.Vector3(currentDir.y, -currentDir.x, 0);
-                        // motionDir = new THREE.Vector3(0, 0, 0);
-                        turnAngle = -turnSpeed
-                        break;
-                    case 40: // down arrow
-                        motionDir = new THREE.Vector3(-currentDir.x, -currentDir.y, 0);
-                        break;
+                var turnAngle = undefined;
+
+                var wantedMotionDirs = {
+                    STEP_LEFT: new THREE.Vector3(-currentDir.y, currentDir.x, 0),
+                    STEP_RIGHT: new THREE.Vector3(currentDir.y, -currentDir.x, 0),
+                    STEP_FORWARD: new THREE.Vector3(currentDir.x, currentDir.y, 0),
+                    STEP_BACKWARD: new THREE.Vector3(-currentDir.x, -currentDir.y, 0),
                 }
 
-                var scale = Math.sqrt(currentDir.y*currentDir.y +  currentDir.x*currentDir.x)
-                nextPosition = currentPosition.clone().add(motionDir.clone().multiplyScalar(moveSpeed/scale))
-                nextTarget = nextPosition.clone().add(currentDir.clone().multiplyScalar(moveSpeed/scale))
+                var min_d = {};
+                var closest_line = {};
+                for (var k in wantedMotionDirs) {
+                    if (wantedMotionDirs.hasOwnProperty(k)) {
+                        min_d[k] = 999999999999;
+                        closest_line[k] = undefined;
+                    }
+                }
 
+                for (var i = 0; i < camera_lines.length; ++i) {
+                    var line = camera_lines[i];
+                    var r = line.reconstruction;
+                    var shot_id = line.shot_id;
+                    var shot = r['shots'][shot_id];
+                    var oc = opticalCenter(shot);
+                    var dir = viewingDirection(shot);
+                    var motion = oc.clone().sub(currentPosition);
+                    var turn = currentDir.angleTo(dir);
+                    var d = currentPosition.distanceTo(oc);
+                    var rid = reconstruction_id_of_shot(reconstructions, shot_id);
+                    var visible = options.reconstruction_visibles[rid];
 
-                var min_d = 999999999999;
-                var min_turn = min_d;
-                var min_drift = min_d;
-                var closest_line = undefined;
-                if (motionDir !== undefined) {
-                    var id = 0
-                    var currentPosition = nextPosition.clone()
-                    var currentTarget = nextTarget.clone()
-                    for (var i = 0; i < camera_lines.length; ++i) {
-                        var line = camera_lines[i];
-                        var r = line.reconstruction;
-                        var shot_id = line.shot_id;
-                        var shot = r['shots'][shot_id];
-                        var oc = opticalCenter(shot);
-                        var dir = viewingDirection(shot);
-                        var motion = oc.clone().sub(currentPosition);
-                        var turn = currentDir.angleTo(dir);
-                        var drift = motionDir.angleTo(new THREE.Vector3(motion.x, motion.y, 0));
-                        var d = currentPosition.distanceTo(oc);
-                        var rid = reconstruction_id_of_shot(reconstructions, shot_id)
-                        var visible = options.reconstruction_visibles[rid]
-                        if (drift !==0 ) {
+                    for (var k in wantedMotionDirs) {
+                        if (wantedMotionDirs.hasOwnProperty(k)) {
+                            var drift = wantedMotionDirs[k].angleTo(new THREE.Vector3(motion.x, motion.y, 0));
                             if (Math.abs(turn) < 0.5 && Math.abs(drift) < 0.5 && d > 0.01 && d < 20 && visible ) {
-                                if (d < min_d) {
-                                    min_d = d;
-                                    closest_line = line;
-                                }
-                                if (d < 8) {
-                                    if (Math.abs(turn) < min_turn){
-                                        min_turn = Math.abs(turn);
-                                        closest_line = line;
-                                    }
+                                if (d < min_d[k]) {
+                                    min_d[k] = d;
+                                    closest_line[k] = line;
                                 }
                             }
                         }
-                        else {
-                            if (Math.abs(turn) < 0.5 && d > 0.01 && d < 1.0 && visible){
-                                if (Math.abs(turn) < min_turn){
-                                    min_turn = Math.abs(turn);
-                                    closest_line = line;
-                                }
-                            }
-
-                        }
-                        // detect panoramas and show all images
-                        // if (Math.abs(turn) > 0.05 && d < 1 && visible) {
-                        //     if (id < num_preview_plane) {
-                        //         setImagePlaneCameraList(line, id)
-                        //         id += 1
-                        //     }
-                        // }
                     }
                 }
                 return closest_line;
             }
 
             function onKeyDown(event) {
-                var line = findClosestCamera(event.keyCode);
+                var line = undefined;
+                switch (event.keyCode) {
+                    case 37: // left arrow
+                        line = validMoves['STEP_LEFT'];
+                        break;
+                    case 38: // up arrow
+                        line = validMoves['STEP_FORWARD'];
+                        break;
+                    case 39: // right arrow
+                        line = validMoves['STEP_RIGHT'];
+                        break;
+                    case 40: // down arrow
+                        line = validMoves['STEP_BACKWARD'];
+                        break;
+                }
+
                 if (line !== undefined) {
                     setImagePlaneCamera(line, true);
                 }
-                else {
-                    controls.goto(nextPosition, nextTarget)
+            }
+
+            function preloadValidMoves() {
+                for (var k in validMoves) {
+                    if (validMoves.hasOwnProperty(k)) {
+                        var line = validMoves[k];
+                        if (line !== undefined) {
+                            var shot_id = line.shot_id;
+                            var image_url = imageURL(shot_id);
+                            THREE.ImageUtils.loadTexture(image_url);
+                        }
+                    }
                 }
+            }
+
+            function updateValidMovesWidget() {
+                $('#nav-left').css('visibility',
+                    (validMoves.STEP_LEFT === undefined) ? 'hidden':'visible');
+                $('#nav-right').css('visibility',
+                    (validMoves.STEP_RIGHT === undefined) ? 'hidden':'visible');
+                $('#nav-forward').css('visibility',
+                    (validMoves.STEP_FORWARD === undefined) ? 'hidden':'visible');
+                $('#nav-backward').css('visibility',
+                    (validMoves.STEP_BACKWARD === undefined) ? 'hidden':'visible');
             }
 
             function animate() {
@@ -821,6 +853,10 @@
             }
 
             function render() {
+                validMoves = computeValidMoves();
+                updateValidMovesWidget();
+                preloadValidMoves();
+
                 // Handle camera selection.
                 if (hoverCamera !== undefined && hoverCamera !== selectedCamera) {
                     hoverCamera.material.linewidth = 1;
