@@ -69,6 +69,7 @@ def extract_feature(imagefile, config):
                 break
     elif feature_type == 'AKAZE':
         threshold = config.get('akaze_dthreshold', 0.005)
+        config['akaze_resize_ratio'] = resize_ratio
         while True:
             print 'Computing AKAZE with threshold {0}'.format(threshold)
             t = time.time()
@@ -114,7 +115,8 @@ def akaze_feature(imagefile, config):
           "--min_dthreshold", str(config.get('akaze_min_dthreshold', 0.00001)),
           "--descriptor", str(config.get('akaze_descriptor', 5)),
           "--descriptor_size", str(config.get('akaze_descriptor_size', 0)),
-          "--descriptor_channels", str(config.get('akaze_descriptor_channels', 3))
+          "--descriptor_channels", str(config.get('akaze_descriptor_channels', 3)),
+          "--resize_ratio", str(config.get('akaze_resize_ratio', 1.0))
         ])
     with open(featurefile, 'rb') as fout:
         lines = fout.readlines()

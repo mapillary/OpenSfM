@@ -19,7 +19,7 @@ using namespace std;
  * @param kpts_path Path for the file where the keypoints where be stored
  */
 int parse_input_options(AKAZEOptions& options, std::string& img_path,
-                        std::string& kpts_path, int argc, char *argv[]);
+                        std::string& kpts_path, float& resize_ratio, int argc, char *argv[]);
 
 /* ************************************************************************* */
 int main(int argc, char *argv[]) {
@@ -27,12 +27,13 @@ int main(int argc, char *argv[]) {
   // Variables
   AKAZEOptions options;
   string img_path, kpts_path;
+  float resize_ratio = 1.0;
 
   // Variable for computation times.
   double t1 = 0.0, t2 = 0.0, tdet = 0.0, tdesc = 0.0;
 
   // Parse the input command line options
-  if (parse_input_options(options, img_path, kpts_path, argc, argv))
+  if (parse_input_options(options, img_path, kpts_path, resize_ratio, argc, argv))
     return -1;
 
   if (options.verbosity) {
@@ -49,11 +50,13 @@ int main(int argc, char *argv[]) {
 
   // Convert the image to float to extract features
   cv::Mat img_32;
-  img.convertTo(img_32, CV_32F, 1.0/255.0, 0);
+  cv::Mat img_resize;
+  cv::resize(img, img_resize, cv::Size(), resize_ratio, resize_ratio);
+  img_resize.convertTo(img_32, CV_32F, 1.0/255.0, 0);
 
   // Don't forget to specify image dimensions in AKAZE's options
-  options.img_width = img.cols;
-  options.img_height = img.rows;
+  options.img_width = img_resize.cols;
+  options.img_height = img_resize.rows;
 
   // Extract features
   libAKAZE::AKAZE evolution(options);
@@ -72,11 +75,12 @@ int main(int argc, char *argv[]) {
   t2 = cv::getTickCount();
   tdesc = 1000.0*(t2-t1) / cv::getTickFrequency();
 
-  // Summarize the computation times.
-  // evolution.Show_Computation_Times();
-  // cout << "Number of points: " << kpts.size() << endl;
-  // cout << "Time Detector: " << tdet << " ms" << endl;
-  // cout << "Time Descriptor: " << tdesc << " ms" << endl;
+  // Scale the interest point coordinate with respect to resize_ratio
+  for (int i = 0; i < (int) kpts.size(); ++i){
+      kpts[i].pt.x /= resize_ratio;
+      kpts[i].pt.y /= resize_ratio;
+      kpts[i].size /= resize_ratio;
+  }
 
   // Save keypoints in ASCII format
   if (!kpts_path.empty())
@@ -86,7 +90,7 @@ int main(int argc, char *argv[]) {
 
 /* ************************************************************************* */
 int parse_input_options(AKAZEOptions& options, std::string& img_path,
-                        std::string& kpts_path, int argc, char *argv[]) {
+                        std::string& kpts_path, float& resize_ratio, int argc, char *argv[]) {
 
   // If there is only one argument return
   if (argc == 1) {
@@ -214,6 +218,16 @@ int parse_input_options(AKAZEOptions& options, std::string& img_path,
         }
         else {
           options.save_scale_space = (bool)atoi(argv[i]);
+        }
+      }
+      else if (!strcmp(argv[i],"--resize_ratio")) {
+        i = i+1;
+        if (i >= argc) {
+          cerr << "Error introducing input options!!" << endl;
+          return -1;
+        }
+        else {
+          resize_ratio = atof(argv[i]);
         }
       }
       else if (!strcmp(argv[i],"--verbose")) {
