@@ -39,29 +39,32 @@
         <div id="navigation">
             <table>
                 <tr>
-                    <td>
+                    <td id="nav-turn-left">
+                        turn left
                     </td>
                     <td id="nav-forward">
-                        Forward
+                        forward
                     </td>
-                    <td>
+                    <td id="nav-turn-right">
+                        turn right
                     </td>
                 </tr>
                 <tr>
                     <td id="nav-left">
-                        Left
+                        left
                     </td>
-                    <td>
+                    <td id="nav-u-turn">
+                        u turn
                     </td>
                     <td id="nav-right">
-                        Right
+                        right
                     </td>
                 </tr>
                 <tr>
                     <td>
                     </td>
                     <td id="nav-backward">
-                        Backward
+                        backward
                     </td>
                     <td>
                     </td>
@@ -140,7 +143,6 @@
             var turnSpeed = 0.1;
             var previousShot = undefined;
             var validMoves;
-
 
 
             var options = {
@@ -748,6 +750,13 @@
                 }
             }
 
+            function angleBetweenVector2(x1, y1, x2, y2) {
+                var a = Math.atan2(y2, x2) - Math.atan2(y1, x1);
+                if (a > Math.PI) return a - 2 * Math.PI;
+                else if (a < -Math.PI) return a + 2 * Math.PI;
+                else return a;
+            }
+
             function computeValidMoves() {
                 var currentPosition = controls.animationPosition;
                 var currentTarget = controls.animationTarget;
@@ -759,6 +768,19 @@
                     STEP_RIGHT: new THREE.Vector3(currentDir.y, -currentDir.x, 0),
                     STEP_FORWARD: new THREE.Vector3(currentDir.x, currentDir.y, 0),
                     STEP_BACKWARD: new THREE.Vector3(-currentDir.x, -currentDir.y, 0),
+                    TURN_LEFT: new THREE.Vector3(0, 0, 0),
+                    TURN_RIGHT: new THREE.Vector3(0, 0, 0),
+                    TURN_U: new THREE.Vector3(0, 0, 0)
+                }
+
+                var wantedDirs = {
+                    STEP_LEFT: new THREE.Vector3(currentDir.x, currentDir.y, 0),
+                    STEP_RIGHT: new THREE.Vector3(currentDir.x, currentDir.y, 0),
+                    STEP_FORWARD: new THREE.Vector3(currentDir.x, currentDir.y, 0),
+                    STEP_BACKWARD: new THREE.Vector3(currentDir.x, currentDir.y, 0),
+                    TURN_LEFT: new THREE.Vector3(-currentDir.y, currentDir.x, 0),
+                    TURN_RIGHT: new THREE.Vector3(currentDir.y, -currentDir.x, 0),
+                    TURN_U: new THREE.Vector3(-currentDir.x, -currentDir.y, 0)
                 }
 
                 var min_d = {};
@@ -778,18 +800,28 @@
                     var oc = opticalCenter(shot);
                     var dir = viewingDirection(shot);
                     var motion = oc.clone().sub(currentPosition);
-                    var turn = currentDir.angleTo(dir);
                     var d = currentPosition.distanceTo(oc);
                     var rid = reconstruction_id_of_shot(reconstructions, shot_id);
                     var visible = options.reconstruction_visibles[rid];
+                    if (!visible) continue;
 
                     for (var k in wantedMotionDirs) {
                         if (wantedMotionDirs.hasOwnProperty(k)) {
+                            var turn = angleBetweenVector2(wantedDirs[k].x, wantedDirs[k].y, dir.x, dir.y);
                             var drift = wantedMotionDirs[k].angleTo(new THREE.Vector3(motion.x, motion.y, 0));
-                            if (Math.abs(turn) < 0.5 && Math.abs(drift) < 0.5 && d > 0.01 && d < 20 && visible ) {
-                                if (d < min_d[k]) {
-                                    min_d[k] = d;
-                                    closest_line[k] = line;
+                            if (k.lastIndexOf('STEP', 0) === 0) {
+                                if (Math.abs(turn) < 0.5 && Math.abs(drift) < 0.5 && d > 0.01 && d < 20) {
+                                    if (d < min_d[k]) {
+                                        min_d[k] = d;
+                                        closest_line[k] = line;
+                                    }
+                                }
+                            } else if (k.lastIndexOf('TURN', 0) === 0) {
+                                if (Math.abs(turn) < 0.5 && d < 20) {
+                                    if (d < min_d[k]) {
+                                        min_d[k] = d;
+                                        closest_line[k] = line;
+                                    }
                                 }
                             }
                         }
@@ -799,19 +831,33 @@
             }
 
             function onKeyDown(event) {
+                console.log(event);
                 var line = undefined;
                 switch (event.keyCode) {
                     case 37: // left arrow
-                        line = validMoves['STEP_LEFT'];
+                        if (event.shiftKey) {
+                            console.log('TURN_LEFT');
+                            line = validMoves['TURN_LEFT'];
+                        } else {
+                            line = validMoves['STEP_LEFT'];
+                        }
                         break;
                     case 38: // up arrow
                         line = validMoves['STEP_FORWARD'];
                         break;
                     case 39: // right arrow
-                        line = validMoves['STEP_RIGHT'];
+                        if (event.shiftKey) {
+                            line = validMoves['TURN_RIGHT'];
+                        } else {
+                            line = validMoves['STEP_RIGHT'];
+                        }
                         break;
                     case 40: // down arrow
-                        line = validMoves['STEP_BACKWARD'];
+                        if (event.shiftKey) {
+                            line = validMoves['TURN_U'];
+                        } else {
+                            line = validMoves['STEP_BACKWARD'];
+                        }
                         break;
                 }
 
@@ -842,6 +888,12 @@
                     (validMoves.STEP_FORWARD === undefined) ? 'hidden':'visible');
                 $('#nav-backward').css('visibility',
                     (validMoves.STEP_BACKWARD === undefined) ? 'hidden':'visible');
+                $('#nav-turn-left').css('visibility',
+                    (validMoves.TURN_LEFT === undefined) ? 'hidden':'visible');
+                $('#nav-turn-right').css('visibility',
+                    (validMoves.TURN_RIGHT === undefined) ? 'hidden':'visible');
+                $('#nav-u-turn').css('visibility',
+                    (validMoves.TURN_U === undefined) ? 'hidden':'visible');
             }
 
             function animate() {
