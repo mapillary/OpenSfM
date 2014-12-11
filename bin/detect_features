@@ -18,7 +18,7 @@ def detect(image):
     print 'Extracting', data.feature_type().upper(), 'features for image', image
     if not os.path.isfile(data.feature_index_file(image)):
         p_unsorted, f_unsorted = features.extract_feature(data.image_file(image), data.config)
-        camera = data.exif_data(image)
+        # camera = data.exif_data(image)
         # if 'gopro' in camera['camera'].lower():
         #     camera['focal'] = camera['focal_ratio']* np.max([camera['height'], camera['width']])
         #     p_unsorted[:,0:2] = multiview.undistort_points(camera, p_unsorted[:,0:2].T).T
@@ -28,8 +28,8 @@ def detect(image):
         p_sorted = p_unsorted[order, :]
         p_pre = p_sorted[-preemptive_max:]
         f_pre = f_sorted[-preemptive_max:]
-        features.write_feature(p_sorted, f_sorted, data.feature_file(image))
-        features.write_feature(p_pre, f_pre, data.preemptive_feature_file(image))
+        features.write_feature(p_sorted, f_sorted, data.feature_file(image), data.config)
+        features.write_feature(p_pre, f_pre, data.preemptive_feature_file(image), data.config)
         features.build_flann_index(f_sorted, data.feature_index_file(image), data.config)
 
 if __name__ == "__main__":
