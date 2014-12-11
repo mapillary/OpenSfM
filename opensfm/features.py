@@ -1,11 +1,15 @@
 # -*- coding: utf-8 -*-
 
 import os, sys
+import tempfile
 import time
+from subprocess import call
 import numpy as np
 import json
 import uuid
 import cv2
+
+import context
 
 
 def extract_feature(imagefile, config):
@@ -77,8 +81,29 @@ def extract_feature(imagefile, config):
         desc = desc[ids,:]
     return ps, desc
 
+def akaze_feature(imagefile, config):
+    ''' Extract AKAZE interest points and descriptors
+    '''
+    f = tempfile.NamedTemporaryFile(delete=False)
+    f.close()
+    featurefile = f.name
+    call([context.AKAZE,
+          imagefile,
+          "--output", featurefile
+        ])
+    with open(featurefile, 'rb') as fout:
+        lines = fout.readlines()
+        num_feature = int(lines[1])
+        dim_feature = int(lines[0])
+        lines = ''.join(lines[2:])
+        lines = lines.replace('\n',' ')[:-1].split(' ')
+        features = np.array(lines).reshape((num_feature, -1))
+        points, desc = features[:,0:5], features[:,5:]
+        desc = desc.astype(np.int8)
+        points = points.astype(np.float)
+    return points, desc
 
-def write_feature(points, descriptors,featurefile):
+def write_feature(points, descriptors, featurefile):
     np.savez(featurefile,
              points=points.astype(np.float32),
              descriptors=descriptors.astype(np.float32))
@@ -132,7 +157,7 @@ def match_lowe_bf(f1,f2,config):
 
     good_matches = []
     for m,n in matches:
-        if m.distance < 0.6*n.distance:
+        if m.distance < config.get('lowes_ratio', 0.6)*n.distance:
             good_matches.append(m)
     good_matches = convert_matches_to_vector(good_matches)
     return np.array(good_matches, dtype=int)
