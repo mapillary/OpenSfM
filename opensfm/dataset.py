@@ -162,7 +162,6 @@ class DataSet:
         matcher_type = self.config.get('matcher_type', 'BruteForce')
         if self.feature_type() == 'akaze' and (self.config.get('akaze_descriptor', 5) >= 4):
              matcher_type = 'BruteForce-Hamming'
-        print matcher_type
         self.config['matcher_type'] = matcher_type
         return matcher_type # BruteForce, BruteForce-L1, BruteForce-Hamming
 
