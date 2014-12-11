@@ -304,6 +304,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 
 		document.addEventListener( 'mousemove', onMouseMove, false );
 		document.addEventListener( 'mouseup', onMouseUp, false );
+		document.addEventListener( 'keydown', onKeyDown, false );
 		scope.dispatchEvent( startEvent );
 	}
 

@@ -114,8 +114,6 @@
                 vec4 baseColor = texture2D(projectorTex, vec2(x, y));
                 baseColor.a = opacity;
                 gl_FragColor = baseColor;
-                // gl_FragColor = texture2D(projectorTex, vec2(x, y), 0.1);
-                // gl_FragColor = vec4(gl_FragCoord.xy / 1000., 0, 1);
             }
 
         </script>
@@ -143,11 +141,13 @@
             var turnSpeed = 0.1;
             var previousShot = undefined;
             var validMoves;
+            var movingMode = 'orbit';
+            var savedOptions = {};
 
 
             var options = {
-                cameraSize: 0.5,
-                pointSize: 0.3,
+                cameraSize: 0.9,
+                pointSize: 0.7,
                 imagePlaneSize: 50,
                 showThumbnail: true,
                 drawGrid: true,
@@ -182,17 +182,11 @@
 
                 var f1 = gui.addFolder('Options');
                 f1.add(options, 'pointSize', 0, 2)
-                    .onChange(function(value) {
-                        pointCloudMaterial.size = value;
-                        render();
-                    });
+                    .listen()
+                    .onChange(setPointSize);
                 f1.add(options, 'cameraSize', 0, 2)
-                    .onChange(function(value) {
-                        for (var r = 0; r < reconstructions.length; ++r) {
-                            updateCameraLines(reconstructions[r]);
-                        }
-                        render();
-                    });
+                    .listen()
+                    .onChange(setCameraSize);
                 f1.add(options, 'imagePlaneSize', 1, 200)
                     .onChange(function(value) {
                         options.imagePlaneSize *= 1.5;
@@ -202,14 +196,11 @@
                         render();
                     });
                 f1.add(options, 'showThumbnail')
-                    .onChange(function(value) {
-                        $('#info').css('visibility', value ? 'visible' : 'hidden');
-                    });
+                    .listen()
+                    .onChange(setShowThumbnail);
                 f1.add(options, 'drawGrid')
-                    .onChange(function(value) {
-                        grid_group.visible = value;
-                        render();
-                    });
+                    .listen()
+                    .onChange(setDrawGrid);
                 f1.add(options, 'drawGPS')
                     .onChange(function(value) {
                         for (var i = 0; i < gps_lines.length; ++i) {
@@ -236,6 +227,65 @@
                         ).listen();
                 }
                 f3.close();
+            }
+
+            function setPointSize(value) {
+                options.pointSize = value;
+                pointCloudMaterial.size = value;
+                render();
+            }
+
+            function setCameraSize(value) {
+                options.cameraSize = value;
+                for (var r = 0; r < reconstructions.length; ++r) {
+                    updateCameraLines(reconstructions[r]);
+                }
+                render();
+            }
+
+            function setShowThumbnail(value) {
+                options.showThumbnail = value;
+                $('#info').css('visibility', value ? 'visible' : 'hidden');
+            }
+
+            function setDrawGrid(value) {
+                options.drawGrid = value;
+                grid_group.visible = value;
+                render();
+            }
+
+            function setMovingMode(mode) {
+                if (mode != movingMode) {
+                    movingMode = mode;
+                    if (mode == 'orbit') {
+                        setPointSize(savedOptions.pointSize);
+                        setCameraSize(savedOptions.cameraSize);
+                        setShowThumbnail(savedOptions.showThumbnail);
+                        setDrawGrid(savedOptions.drawGrid);
+                        controls.noRotate = false;
+                        controls.noLookAround = false;
+                        controls.noPan = false;
+                        controls.noZoom = false;
+                        controls.noKeys = false;
+                        controls.animationPosition.z += 10;
+                        imagePlane.visible = false;
+                        imagePlaneOld.visible = false;
+                    } else if (mode == 'walk') {
+                        savedOptions.pointSize = options.pointSize;
+                        savedOptions.cameraSize = options.cameraSize;
+                        savedOptions.showThumbnail = options.showThumbnail;
+                        savedOptions.drawGrid = options.drawGrid;
+                        setPointSize(0);
+                        setCameraSize(0.3);
+                        setShowThumbnail(false);
+                        setDrawGrid(false);
+                        controls.noRotate = true;
+                        controls.noLookAround = true;
+                        controls.noPan = true;
+                        controls.noZoom = true;
+                        controls.noKeys = true;
+                    }
+                }
             }
 
             function getData() {
@@ -712,6 +762,7 @@
                     imagePlane.geometry = imagePlaneGeo(r, shot_id);
                     imagePlane.visible = true;
                 }
+                setMovingMode('walk');
                 controls.goto_shot(cam, shot);
             }
 
@@ -817,7 +868,7 @@
                                     }
                                 }
                             } else if (k.lastIndexOf('TURN', 0) === 0) {
-                                if (Math.abs(turn) < 0.5 && d < 20) {
+                                if (Math.abs(turn) < 0.7 && d < 15) {
                                     if (d < min_d[k]) {
                                         min_d[k] = d;
                                         closest_line[k] = line;
@@ -831,38 +882,41 @@
             }
 
             function onKeyDown(event) {
-                console.log(event);
-                var line = undefined;
-                switch (event.keyCode) {
-                    case 37: // left arrow
-                        if (event.shiftKey) {
-                            console.log('TURN_LEFT');
-                            line = validMoves['TURN_LEFT'];
-                        } else {
-                            line = validMoves['STEP_LEFT'];
-                        }
-                        break;
-                    case 38: // up arrow
-                        line = validMoves['STEP_FORWARD'];
-                        break;
-                    case 39: // right arrow
-                        if (event.shiftKey) {
-                            line = validMoves['TURN_RIGHT'];
-                        } else {
-                            line = validMoves['STEP_RIGHT'];
-                        }
-                        break;
-                    case 40: // down arrow
-                        if (event.shiftKey) {
-                            line = validMoves['TURN_U'];
-                        } else {
-                            line = validMoves['STEP_BACKWARD'];
-                        }
-                        break;
-                }
+                if (movingMode == 'walk') {
+                    var line = undefined;
+                    switch (event.keyCode) {
+                        case 37: // left arrow
+                            if (event.shiftKey) {
+                                line = validMoves['TURN_LEFT'];
+                            } else {
+                                line = validMoves['STEP_LEFT'];
+                            }
+                            break;
+                        case 38: // up arrow
+                            line = validMoves['STEP_FORWARD'];
+                            break;
+                        case 39: // right arrow
+                            if (event.shiftKey) {
+                                line = validMoves['TURN_RIGHT'];
+                            } else {
+                                line = validMoves['STEP_RIGHT'];
+                            }
+                            break;
+                        case 40: // down arrow
+                            if (event.shiftKey) {
+                                line = validMoves['TURN_U'];
+                            } else {
+                                line = validMoves['STEP_BACKWARD'];
+                            }
+                            break;
+                        case 27:
+                            setMovingMode('orbit');
+                            break;
+                    }
 
-                if (line !== undefined) {
-                    setImagePlaneCamera(line, true);
+                    if (line !== undefined) {
+                        setImagePlaneCamera(line, true);
+                    }
                 }
             }
 
