@@ -6,7 +6,7 @@
 #include <string>
 #include <json/json.h>
 
-extern "C" { 
+extern "C" {
 #include <string.h>
 }
 
@@ -172,7 +172,7 @@ class BALProblem {
 
       if (n != 5) break;
 
-      if (shot_by_id_.count(shot_id) && point_by_id_.count(point_id)) { 
+      if (shot_by_id_.count(shot_id) && point_by_id_.count(point_id)) {
         Observation o;
         o.shot = shot_by_id_[shot_id];
         o.camera = camera_by_id_[o.shot->camera];
@@ -183,10 +183,10 @@ class BALProblem {
       }
     }
 
-    std::cout << "Bundle starts " << cameras_.size() << "cameras " 
-              << shots_.size() << "shots "
-              << points_.size() << "points "
-              << observations_.size() << "observations" << std::endl;
+    std::cout << "Bundle starts " << cameras_.size() << " cameras, "
+              << shots_.size() << " shots, "
+              << points_.size() << " points, "
+              << observations_.size() << " observations" << std::endl;
 
     return true;
   }
@@ -300,7 +300,7 @@ struct SnavelyReprojectionError {
     const T& l2 = camera[2];
     T r2 = xp * xp + yp * yp;
     T distortion = T(1.0) ;// + r2  * (l1 + l2  * r2);
-    
+
     // Compute final projected point position.
     const T& focal = (focal_ > 0.0) ? T(focal_) : camera[0];
     T predicted_x = focal * distortion * xp;
