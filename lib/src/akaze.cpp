@@ -1,24 +1,8 @@
 //=============================================================================
-//
-// akaze_features.cpp
-// Authors: Pablo F. Alcantarilla (1), Jesus Nuevo (2)
-// Institutions: Toshiba Research Europe Ltd (1)
-//               TrueVision Solutions (2)
-// Date: 07/10/2014
-// Email: pablofdezalc@gmail.com
-//
-// AKAZE Features Copyright 2014, Pablo F. Alcantarilla, Jesus Nuevo
-// All Rights Reserved
-// See LICENSE for the license information
+// AKAZE feature extraction script
+// Modified based on akaze_features.cpp authored by Pablo F. Alcantarilla (1), Jesus Nuevo (2)
+// See third_party/akaze/LICENSE for the license information
 //=============================================================================
-
-/**
- * @file akaze_features.cpp
- * @brief Main program for detecting and computing binary descriptors in an
- * accelerated nonlinear scale space
- * @date Oct 07, 2014
- * @author Pablo F. Alcantarilla, Jesus Nuevo
- */
 
 #include "AKAZE.h"
 
@@ -89,22 +73,15 @@ int main(int argc, char *argv[]) {
   tdesc = 1000.0*(t2-t1) / cv::getTickFrequency();
 
   // Summarize the computation times.
-  evolution.Show_Computation_Times();
-
-  cout << "Number of points: " << kpts.size() << endl;
-  cout << "Time Detector: " << tdet << " ms" << endl;
-  cout << "Time Descriptor: " << tdesc << " ms" << endl;
+  // evolution.Show_Computation_Times();
+  // cout << "Number of points: " << kpts.size() << endl;
+  // cout << "Time Detector: " << tdet << " ms" << endl;
+  // cout << "Time Descriptor: " << tdesc << " ms" << endl;
 
   // Save keypoints in ASCII format
   if (!kpts_path.empty())
     save_keypoints(kpts_path, kpts, desc, true);
 
-  // Check out the result visually
-  cv::Mat img_rgb = cv::Mat(cv::Size(img.cols, img.rows), CV_8UC3);
-  cvtColor(img,img_rgb, cv::COLOR_GRAY2BGR);
-  draw_keypoints(img_rgb, kpts);
-  cv::imshow(img_path, img_rgb);
-  cv::waitKey(0);
 }
 
 /* ************************************************************************* */
@@ -240,7 +217,7 @@ int parse_input_options(AKAZEOptions& options, std::string& img_path,
         }
       }
       else if (!strcmp(argv[i],"--verbose")) {
-        options.verbosity = true;
+        options.verbosity = false;
       }
       else if (!strcmp(argv[i],"--output")) {
         options.save_keypoints = true;
