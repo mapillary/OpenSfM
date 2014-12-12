@@ -332,7 +332,7 @@
 
                 urlParams = {};
                 while (match = search.exec(hash))
-                   urlParams[decode(match[1])] = decode(match[2]);                
+                   urlParams[decode(match[1])] = decode(match[2]);
             }
 
             function getData() {
@@ -889,6 +889,7 @@
 
                 var min_d = {};
                 var closest_line = {};
+                var turn_threshold;
                 for (var k in wantedMotionDirs) {
                     if (wantedMotionDirs.hasOwnProperty(k)) {
                         min_d[k] = 999999999999;
@@ -916,7 +917,8 @@
                             var driftBA = driftAB - turn;
                             var drift = Math.max(driftAB, driftBA);
                             if (k.lastIndexOf('STEP', 0) === 0) {
-                                if (Math.abs(turn) < 0.5 && Math.abs(drift) < 0.5 && d > 0.01 && d < 20) {
+                                turn_threshold = (k === 'STEP_FORWARD')? 0.25 : 0.5
+                                if (Math.abs(turn) < turn_threshold && Math.abs(drift) < 0.5 && d > 0.01 && d < 20) {
                                     if (d < min_d[k]) {
                                         min_d[k] = d;
                                         closest_line[k] = line;
