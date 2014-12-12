@@ -120,7 +120,9 @@ class DataSet:
     def feature_path(self):
         """Return path of feature descriptors and FLANN indices directory"""
         feature_path = self.feature_type()
-        return os.path.join(self.data_path, self.feature_type()+'_'+self.descriptor_type())
+        if len(self.descriptor_type()) > 0:
+            feature_path += '_' + self.descriptor_type()
+        return os.path.join(self.data_path, feature_path)
 
     def feature_file(self, image):
         """
