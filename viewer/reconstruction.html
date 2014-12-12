@@ -178,6 +178,7 @@
                 hoverCameraColor: new THREE.Color(0xFF8888),
                 selectedCameraColor: new THREE.Color(0xFFFF88),
                 reconstruction_visibles: {},
+                options: '320',
                 allNone: function () {
                     var someone = false;
                     for (var r = 0; r < reconstructions.length; ++r) {
@@ -216,6 +217,7 @@
                         imagePlane.geometry = imagePlaneGeo(imagePlaneCamera.reconstruction, imagePlaneCamera.shot_id);
                         render();
                     });
+                f1.add(options, 'resolution', [ '320', '640' ] );
                 f1.add(options, 'showThumbnail')
                     .listen()
                     .onChange(setShowThumbnail);
@@ -230,6 +232,7 @@
                         render();
                     });
                 f1.open();
+
 
                 var f3 = gui.addFolder('Reconstructions')
                 f3.add(options, 'allNone');
@@ -317,7 +320,7 @@
             function imageURL(shot_id) {
                 var url = urlParams.file;
                 var slash = url.lastIndexOf('/');
-                return url.substring(0, slash) + '/images/' + shot_id;
+                return url.substring(0, slash) + '/images'+options.resolution+'/' + shot_id;
             }
 
             function parseUrl() {
@@ -334,6 +337,8 @@
 
             function getData() {
                 parseUrl();
+
+                if ('res' in urlParams) options.resolution = urlParams.res;
 
                 jQuery.getJSON(urlParams.file, function(data) {
                     if ('cameras' in data) {
