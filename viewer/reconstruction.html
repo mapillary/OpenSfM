@@ -301,7 +301,7 @@
                         savedOptions.showThumbnail = options.showThumbnail;
                         savedOptions.drawGrid = options.drawGrid;
                         setPointSize(0);
-                        setCameraSize(0.2);
+                        setCameraSize(0);
                         setShowThumbnail(false);
                         setDrawGrid(false);
                         controls.noRotate = true;
@@ -832,16 +832,13 @@
             }
 
             function onDocumentMouseDown(event) {
+                window.focus();
                 if (hoverCamera !== undefined) {
-
                     if (selectedCamera !== hoverCamera) {
                         setSelectedCamera(hoverCamera);
                     } else {
                         setImagePlaneCamera(selectedCamera);
                     }
-
-                    // hideImagePlanesList()
-
                     render();
                 }
             }
