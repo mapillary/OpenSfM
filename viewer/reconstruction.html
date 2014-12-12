@@ -27,6 +27,9 @@
                 top: 0px;
                 left: 10px;
                 background-color: #AAA;
+                display: none;
+                font-family: sans-serif;
+                font-size: 30px;
             }
         </style>
     </head>
@@ -40,33 +43,50 @@
             <table>
                 <tr>
                     <td id="nav-turn-left">
-                        turn left
+                        <button onclick="walkOneStep('TURN_LEFT')">
+                            &#8624;
+                        </button>
                     </td>
                     <td id="nav-forward">
-                        forward
+                        <button onclick="walkOneStep('STEP_FORWARD')">
+                            &#8593;
+                        </button>
                     </td>
                     <td id="nav-turn-right">
-                        turn right
+                        <button onclick="walkOneStep('TURN_RIGHT')">
+                            &#8625;
+                        </button>
                     </td>
                 </tr>
                 <tr>
                     <td id="nav-left">
-                        left
+                        <button onclick="walkOneStep('STEP_LEFT')">
+                            &#8592;
+                        </button>
                     </td>
                     <td id="nav-u-turn">
-                        u turn
+                        <button onclick="walkOneStep('TURN_U')">
+                            &#8630;
+                        </button>
                     </td>
                     <td id="nav-right">
-                        right
+                        <button onclick="walkOneStep('STEP_RIGHT')">
+                            &#8594;
+                        </button>
                     </td>
                 </tr>
                 <tr>
                     <td>
                     </td>
                     <td id="nav-backward">
-                        backward
+                        <button onclick="walkOneStep('STEP_BACKWARD')">
+                            &#8595;
+                        </button>
                     </td>
                     <td>
+                        <button onclick="setMovingMode('orbit')">
+                            fly
+                        </button>
                     </td>
                 </tr>
             </table>
@@ -270,6 +290,7 @@
                         controls.animationPosition.z += 10;
                         imagePlane.visible = false;
                         imagePlaneOld.visible = false;
+                        $('#navigation').hide();
                     } else if (mode == 'walk') {
                         savedOptions.pointSize = options.pointSize;
                         savedOptions.cameraSize = options.cameraSize;
@@ -284,6 +305,7 @@
                         controls.noPan = true;
                         controls.noZoom = true;
                         controls.noKeys = true;
+                        $('#navigation').show();
                     }
                 }
             }
@@ -881,41 +903,52 @@
                 return closest_line;
             }
 
+            function walkOneStep(motion_type) {
+                var line = validMoves[motion_type];
+                if (line !== undefined) {
+                    setImagePlaneCamera(line, true);
+                }
+            }
+
             function onKeyDown(event) {
                 if (movingMode == 'walk') {
-                    var line = undefined;
+                    var validKey = true;
+
                     switch (event.keyCode) {
                         case 37: // left arrow
                             if (event.shiftKey) {
-                                line = validMoves['TURN_LEFT'];
+                                walkOneStep('TURN_LEFT');
                             } else {
-                                line = validMoves['STEP_LEFT'];
+                                walkOneStep('STEP_LEFT');
                             }
                             break;
                         case 38: // up arrow
-                            line = validMoves['STEP_FORWARD'];
+                            walkOneStep('STEP_FORWARD');
                             break;
                         case 39: // right arrow
                             if (event.shiftKey) {
-                                line = validMoves['TURN_RIGHT'];
+                                walkOneStep('TURN_RIGHT');
                             } else {
-                                line = validMoves['STEP_RIGHT'];
+                                walkOneStep('STEP_RIGHT');
                             }
                             break;
                         case 40: // down arrow
                             if (event.shiftKey) {
-                                line = validMoves['TURN_U'];
+                                walkOneStep('TURN_U');
                             } else {
-                                line = validMoves['STEP_BACKWARD'];
+                                walkOneStep('STEP_BACKWARD');
                             }
                             break;
-                        case 27:
+                        case 27: // ESC
                             setMovingMode('orbit');
+                            break;
+                        default:
+                            validKey = false;
                             break;
                     }
 
-                    if (line !== undefined) {
-                        setImagePlaneCamera(line, true);
+                    if (validKey) {
+                        event.preventDefault();
                     }
                 }
             }

@@ -430,8 +430,8 @@ THREE.OrbitControls = function ( object, domElement ) {
 
 		if ( scope.enabled === false || scope.noKeys === true || scope.noPan === true ) return;
 
+		var validKey = true;
 		switch ( event.keyCode ) {
-
 			case scope.keys.UP:
 				scope.pan( 0, scope.keyPanSpeed );
 				scope.update();
@@ -451,9 +451,11 @@ THREE.OrbitControls = function ( object, domElement ) {
 				scope.pan( - scope.keyPanSpeed, 0 );
 				scope.update();
 				break;
-
+			default:
+				validKey = false;
+				break;
 		}
-
+		if (validKey) event.preventDefault();
 	}
 
 	function touchstart( event ) {
