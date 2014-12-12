@@ -14,19 +14,19 @@
                 background-color: #000;
             }
             #image {
-                width: 320px;
-                height: 240px;
+                width: 160px;
+                height: 120px;
             }
             #text {
                 text-align: center;
                 font-family: sans-serif;
+                font-size: 10px;
                 color: #FFF;
             }
             #navigation {
                 position: absolute;
                 top: 0px;
                 left: 10px;
-                background-color: #AAA;
                 display: none;
                 font-family: sans-serif;
                 font-size: 30px;
@@ -247,6 +247,8 @@
                         ).listen();
                 }
                 f3.close();
+
+                gui.close();
             }
 
             function setPointSize(value) {
@@ -288,6 +290,7 @@
                         controls.noZoom = false;
                         controls.noKeys = false;
                         controls.animationPosition.z += 10;
+                        controls.dollyOut(4);
                         imagePlane.visible = false;
                         imagePlaneOld.visible = false;
                         $('#navigation').hide();
@@ -297,7 +300,7 @@
                         savedOptions.showThumbnail = options.showThumbnail;
                         savedOptions.drawGrid = options.drawGrid;
                         setPointSize(0);
-                        setCameraSize(0.3);
+                        setCameraSize(0.2);
                         setShowThumbnail(false);
                         setDrawGrid(false);
                         controls.noRotate = true;
