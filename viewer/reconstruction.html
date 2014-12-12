@@ -139,6 +139,7 @@
         </script>
 
         <script>
+            var urlParams;
             var container, camera, controls, scene, renderer;
             var mouse = new THREE.Vector2();
             var hoverCamera, raycaster, parentTransform;
@@ -313,8 +314,28 @@
                 }
             }
 
+            function imageURL(shot_id) {
+                var url = urlParams.file;
+                var slash = url.lastIndexOf('/');
+                return url.substring(0, slash) + '/images/' + shot_id;
+            }
+
+            function parseUrl() {
+                var match,
+                    pl     = /\+/g,  // Regex for replacing addition symbol with a space
+                    search = /([^&=]+)=?([^&]*)/g,
+                    decode = function (s) { return decodeURIComponent(s.replace(pl, " ")); },
+                    hash  = window.location.hash.substring(1);
+
+                urlParams = {};
+                while (match = search.exec(hash))
+                   urlParams[decode(match[1])] = decode(match[2]);                
+            }
+
             function getData() {
-                jQuery.getJSON(window.location.hash.replace('#',''), function(data) {
+                parseUrl();
+
+                jQuery.getJSON(urlParams.file, function(data) {
                     if ('cameras' in data) {
                         reconstructions = [data];
                     } else {
@@ -699,6 +720,17 @@
                 scene.add(scene_group);
 
                 addDatGui();
+
+
+                if ('img' in urlParams) {
+                    for (var i = 0; i < camera_lines.length; ++i) {
+                        if (camera_lines[i].shot_id.indexOf(urlParams.img) > -1) {
+                            setImagePlaneCamera(camera_lines[i]);
+                            break;
+                        }
+                    }
+                }
+
                 render();
             }
 
@@ -714,12 +746,6 @@
                 mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
                 mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
                 render();
-            }
-
-            function imageURL(shot_id) {
-                var hash = window.location.hash.replace('#','');
-                var slash = hash.lastIndexOf('/');
-                return hash.substring(0, slash) + '/images/' + shot_id;
             }
 
             function reconstruction_of_shot(reconstructions, shot_id) {
@@ -811,7 +837,7 @@
                     if (selectedCamera !== hoverCamera) {
                         setSelectedCamera(hoverCamera);
                     } else {
-                        setImagePlaneCamera(selectedCamera, true);
+                        setImagePlaneCamera(selectedCamera);
                     }
 
                     // hideImagePlanesList()
@@ -909,7 +935,7 @@
             function walkOneStep(motion_type) {
                 var line = validMoves[motion_type];
                 if (line !== undefined) {
-                    setImagePlaneCamera(line, true);
+                    setImagePlaneCamera(line);
                 }
             }
 
