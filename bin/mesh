@@ -12,7 +12,7 @@ from opensfm import reconstruction
 
 if __name__ == "__main__":
     start = time.time()
-    parser = argparse.ArgumentParser(description='Compute reconstruction')
+    parser = argparse.ArgumentParser(description='Add delaunay mesh to the reconstruction')
     parser.add_argument('dataset',
                         help='path to the dataset to be processed')
     args = parser.parse_args()
