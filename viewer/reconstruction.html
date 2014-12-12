@@ -907,7 +907,9 @@
                     for (var k in wantedMotionDirs) {
                         if (wantedMotionDirs.hasOwnProperty(k)) {
                             var turn = angleBetweenVector2(wantedDirs[k].x, wantedDirs[k].y, dir.x, dir.y);
-                            var drift = wantedMotionDirs[k].angleTo(new THREE.Vector3(motion.x, motion.y, 0));
+                            var driftAB = angleBetweenVector2(wantedMotionDirs[k].x, wantedMotionDirs[k].y, motion.x, motion.y);
+                            var driftBA = driftAB - turn;
+                            var drift = Math.min(driftAB, driftBA);
                             if (k.lastIndexOf('STEP', 0) === 0) {
                                 if (Math.abs(turn) < 0.5 && Math.abs(drift) < 0.5 && d > 0.01 && d < 20) {
                                     if (d < min_d[k]) {
