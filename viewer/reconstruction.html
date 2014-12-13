@@ -12,6 +12,7 @@
                 top: 0px;
                 left: 10px;
                 background-color: #000;
+                visibility: hidden;
             }
             #image {
                 width: 160px;
@@ -776,6 +777,9 @@
                 var shot_id = cameraObject.shot_id;
                 var shot = r['shots'][shot_id];
                 var image_url = imageURL(shot_id);
+                if (jQuery.isEmptyObject(savedOptions)) {
+                    setShowThumbnail(true)
+                }
                 if (selectedCamera !== undefined) {
                     selectedCamera.material.linewidth = 1;
                     selectedCamera.material.color = options.cameraColor;
