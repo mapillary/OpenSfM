@@ -42,14 +42,14 @@ def match(imagepair):
         print "Discarding based of preemptive matches {0} < {1}".format(len(matches_pre), preemptive_threshold)
         return
 
-    # symetric matching
+    # symmetric matching
     t = time.time()
     p1, f1 = features.read_feature(data.feature_file(im1))
-    i1 = cv2.flann_Index()
-    i1.load(f1.astype(np.float32), data.feature_index_file(im1))
+    i1 = features.load_flann_index(f1, data.feature_index_file(im1))
+
     p2, f2 = features.read_feature(data.feature_file(im2))
-    i2 = cv2.flann_Index()
-    i2.load(f2.astype(np.float32), data.feature_index_file(im2))
+    i2 = features.load_flann_index(f2, data.feature_index_file(im2))
+
     matches = features.match_symmetric(f1, i1, f2, i2, data.config)
     if len(matches) < robust_matching_min_match:
         return
