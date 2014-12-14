@@ -153,14 +153,24 @@ def read_feature(featurefile):
     return s['points'], s['descriptors']
 
 
-def build_flann_index(f, index_file, config):
-    f = f.astype(np.float32)
+def build_flann_index(features, index_file, config):
+    if features.dtype.type is not np.float32:
+        features = features.astype(np.float32)
+
     flann_params = dict(algorithm=2,
                         branching=config['flann_branching'],
                         iterations=config['flann_iterations'])
-    index = cv2.flann_Index(f, flann_params)
+    index = cv2.flann_Index(features, flann_params)
     index.save(index_file)
 
+def load_flann_index(features, index_file):
+    if features.dtype.type is not np.float32:
+        features = features.astype(np.float32)
+
+    index = cv2.flann_Index()
+    index.load(features, index_file)
+
+    return index
 
 def match_lowe(index, f2, config):
     f2 = f2.astype(np.float32)
