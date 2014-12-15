@@ -742,6 +742,10 @@
                     }
                 }
 
+                if (camera_lines.length < 50) {
+                    preloadAllImages();
+                }
+
                 render();
             }
 
@@ -993,6 +997,15 @@
                     if (validKey) {
                         event.preventDefault();
                     }
+                }
+            }
+
+            function preloadAllImages() {
+                for (var i = 0; i < camera_lines.length; ++i) {
+                    var shot_id = camera_lines[i].shot_id;
+                    var image_url = imageURL(shot_id);
+                    var temp_img = new Image();
+                    temp_img.src = image_url;
                 }
             }
 
