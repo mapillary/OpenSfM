@@ -527,6 +527,7 @@
                 renderer = new THREE.WebGLRenderer();
                 renderer.setSize(window.innerWidth, window.innerHeight);
                 renderer.setClearColor( 0x202020, 0.0);
+                renderer.sortObjects = false;
 
                 container = document.getElementById( 'ThreeJS' );
                 container.appendChild(renderer.domElement);
@@ -608,10 +609,8 @@
                 var cam = imagePlaneCamera.reconstruction.cameras[shot.camera];
                 var imageTexture = THREE.ImageUtils.loadTexture(imageURL(shot_id));
                 imageMaterial = new THREE.ShaderMaterial({
-                    // map: imageTexture,
                     side: THREE.DoubleSide,
                     transparent: true,
-                    opacity: 1.0,
                     depthWrite: false,
                     uniforms: {
                         projectorMat: {
@@ -634,7 +633,6 @@
                                                           imagePlaneCamera.shot_id),
                                             imageMaterial);
                 imagePlane.visible = false;
-                scene_group.add(imagePlane);
 
                 imagePlaneCameraOld = camera_lines[0];
                 var imageTextureOld = THREE.ImageUtils.loadTexture(imageURL(shot_id));
@@ -643,7 +641,6 @@
                     // map: imageTexture,
                     side: THREE.DoubleSide,
                     transparent: true,
-                    opacity: 0.5,
                     depthWrite: false,
                     uniforms: {
                         projectorMat: {
@@ -667,6 +664,7 @@
                                             imageMaterialOld);
                 imagePlaneOld.visible = false;
 
+                scene_group.add(imagePlane);
                 scene_group.add(imagePlaneOld);
 
                 // for (var i=0; i < num_preview_plane; ++i) {
@@ -842,7 +840,6 @@
 
                 imagePlaneCameras[id] = cameraObject;
                 imageMaterials[id].map = THREE.ImageUtils.loadTexture(image_url, null, render);
-                imageMaterials[id].opacity = 1.0
                 imagePlanes[id].geometry = imagePlaneGeo(r, shot_id);
                 imagePlanes[id].visible = true;
             }
