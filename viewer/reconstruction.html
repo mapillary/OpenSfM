@@ -179,7 +179,7 @@
                 hoverCameraColor: new THREE.Color(0xFF8888),
                 selectedCameraColor: new THREE.Color(0xFFFF88),
                 reconstruction_visibles: {},
-                options: '320',
+                resolution: 'original',
                 allNone: function () {
                     var someone = false;
                     for (var r = 0; r < reconstructions.length; ++r) {
@@ -218,7 +218,7 @@
                         imagePlane.geometry = imagePlaneGeo(imagePlaneCamera.reconstruction, imagePlaneCamera.shot_id);
                         render();
                     });
-                f1.add(options, 'resolution', [ '320', '640' ] );
+                f1.add(options, 'resolution', [ '320', '640', 'original' ] );
                 f1.add(options, 'showThumbnail')
                     .listen()
                     .onChange(setShowThumbnail);
@@ -321,7 +321,8 @@
             function imageURL(shot_id) {
                 var url = urlParams.file;
                 var slash = url.lastIndexOf('/');
-                return url.substring(0, slash) + '/images'+options.resolution+'/' + shot_id;
+                var imagePath = '/images' + options.resolution.replace('original', '')
+                return url.substring(0, slash) + imagePath +'/' + shot_id;
             }
 
             function parseUrl() {
