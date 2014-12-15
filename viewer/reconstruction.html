@@ -152,6 +152,7 @@
             var reconstructions;
             var reconstruction_visibles = [];
             var reconstruction_groups = [];
+            var point_clouds = [];
             var camera_lines = [];
             var gps_lines = [];
             var imagePlanes = [];
@@ -259,6 +260,9 @@
             function setPointSize(value) {
                 options.pointSize = value;
                 pointCloudMaterial.size = value;
+                for (var i = 0; i < point_clouds.length; ++i) {
+                    point_clouds[i].visible = (value > 0);
+                }
                 render();
             }
 
@@ -563,7 +567,9 @@
                             points.colors.push(color);
                         }
                     }
-                    group.add(new THREE.PointCloud(points, pointCloudMaterial))
+                    var point_cloud = new THREE.PointCloud(points, pointCloudMaterial);
+                    point_clouds.push(point_cloud);
+                    group.add(point_cloud);
 
                     // Cameras.
                     var lines = initCameraLines(reconstruction);
