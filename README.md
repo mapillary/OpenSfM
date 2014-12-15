@@ -9,6 +9,7 @@ Dependencies
 * [OpenCV][]
 * [Ceres Solver][]
 * [JsonCpp][]
+* [SciPy][]
 * [NumPy][], networkx, PyYAML, exifread
 
 ### Dependencies included in source
@@ -45,7 +46,7 @@ Then:
 
  1. [OpenCV][] - Install by following the steps in the Ubuntu OpenCV  [installation guide](https://help.ubuntu.com/community/OpenCV). An alternative instruction tested for Ubuntu 10.04 can be found at [OpenCV Docs](http://docs.opencv.org/doc/tutorials/introduction/linux_install/linux_install.html). OpenCV requires [GCC](https://gcc.gnu.org/) and [CMake](http://www.cmake.org/) among other things.
 
- 2. [Ceres solver][] - Install the needed dependencies (download [Google Flags](https://launchpad.net/ubuntu/+source/gflags) and [Google Log](https://launchpad.net/ubuntu/+source/google-glog) and include [SuiteSparce](http://faculty.cse.tamu.edu/davis/suitesparse.html)) and build Ceres according the [documentation](http://ceres-solver.org/building.html). Install Ceres from the ceres-bin directory after `make` by:
+ 2. [Ceres solver][] - Install the needed dependencies (download [Google Flags](https://launchpad.net/ubuntu/+source/gflags) and [Google Log](https://launchpad.net/ubuntu/+source/google-glog) and include [SuiteSparse](http://faculty.cse.tamu.edu/davis/suitesparse.html)) and build Ceres according the [documentation](http://ceres-solver.org/building.html). Install Ceres from the ceres-bin directory after `make` by:
  
         sudo make install
 
@@ -57,6 +58,10 @@ Then:
 
         sudo pip install -r requirements.txt
 
+ 5. [SciPy][] - Install [gfortran](https://gcc.gnu.org/wiki/GFortran) through apt-get and then install [SciPy][] with:
+
+        sudo apt-get install gfortran
+        sudo pip install scipy
 
 Building
 --------
@@ -79,5 +84,6 @@ An example dataset is available at data/berlin.
 
 [OpenCV]: http://opencv.org/ (Computer vision and machine learning software library)
 [NumPy]: http://www.numpy.org/ (Scientific computing with Python)
+[SciPy]: http://www.scipy.org/ (Fundamental library for scientific computing)
 [Ceres solver]: http://ceres-solver.org/ (Library for solving complicated nonlinear least squares problems)
 [JsonCpp]: https://github.com/open-source-parsers/jsoncpp (C++ library that allows manipulating JSON values)
