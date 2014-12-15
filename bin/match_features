@@ -15,7 +15,7 @@ from opensfm import geo
 
 def match(imagepair):
     im1, im2, i, n = imagepair
-    print 'Matching image', im1, 'with image', im2, ' - ', i, '/', n, ' - ', 100 * i / n, '%'
+    print 'Matching', data.config.get('feature_type').upper(), 'for image', im1, 'with image', im2, ' - ', i, '/', n, ' - ', 100 * i / n, '%'
 
     matching_gps_distance = data.config.get('matching_gps_distance', 9999999)
     robust_matching_min_match = data.config.get('robust_matching_min_match', 20)
@@ -36,7 +36,10 @@ def match(imagepair):
 
     # preemptive matching
     t = time.time()
+    lowes_ratio = data.config.get('lowes_ratio', 0.6)
+    data.config['lowes_ratio'] = data.config.get('preemptive_lowes_ratio', 0.6)
     matches_pre = features.match_lowe_bf(f_pre[im1], f_pre[im2], data.config)
+    data.config['lowes_ratio'] = lowes_ratio
     print "Preemptive matching {0}, time: {1}s".format(len(matches_pre), time.time()-t)
     if len(matches_pre) < preemptive_threshold:
         print "Discarding based of preemptive matches {0} < {1}".format(len(matches_pre), preemptive_threshold)
@@ -53,11 +56,15 @@ def match(imagepair):
     matches = features.match_symmetric(f1, i1, f2, i2, data.config)
     if len(matches) < robust_matching_min_match:
         return
+    print 'Full feature matching time of {0} - {2} : {1}s'.format(len(f1), time.time() - t, len(f2))
+
 
     # robust matching
+    t_robust_matching = time.time()
     rmatches = features.robust_match(p1, p2, matches, data.config)
     if len(rmatches) < robust_matching_min_match:
         return
+    print 'Robust matching time : {0}s'.format(time.time() - t_robust_matching)
 
     np.savetxt(data.robust_matches_file(im1, im2), rmatches, "%d")
     print "Full matching {0} / {1}, time: {2}s".format(len(rmatches), len(matches), time.time() - t)
@@ -85,6 +92,9 @@ if __name__ == "__main__":
         sys.stdout.write('.')
         sys.stdout.flush()
         p_pre[image], f_pre[image] = features.read_feature(data.preemptive_feature_file(image))
+        preemptive_max = min(data.config.get('preemptive_max', p_pre[image].shape[0]), p_pre[image].shape[0])
+        p_pre[image] = p_pre[image][:preemptive_max,:]
+        f_pre[image] = f_pre[image][:preemptive_max,:]
         if not os.path.exists(data.exif_path()):
             exifs[image] = data.exif_data(image)
         else:

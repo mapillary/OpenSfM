@@ -131,7 +131,7 @@ def akaze_feature(imagefile, config):
                 # TODO (Yubin), better check for the feature format
                 desc = desc.astype(np.uint8)
             except ValueError:
-                desc = desc.astype(np.float)
+                desc = desc.astype(np.float32)
 
             points = points.astype(np.float)
         else:
@@ -154,26 +154,32 @@ def read_feature(featurefile):
 
 
 def build_flann_index(features, index_file, config):
-    if features.dtype.type is not np.float32:
-        features = features.astype(np.float32)
+    FLANN_INDEX_LINEAR          = 0
+    FLANN_INDEX_KDTREE          = 1
+    FLANN_INDEX_KMEANS          = 2
+    FLANN_INDEX_COMPOSITE       = 3
+    FLANN_INDEX_KDTREE_SINGLE   = 4
+    FLANN_INDEX_HIERARCHICAL    = 5
+    FLANN_INDEX_LSH             = 6
 
-    flann_params = dict(algorithm=2,
+    if features.dtype.type is np.float32:
+        FLANN_INDEX_METHOD = FLANN_INDEX_KMEANS
+    else:
+        FLANN_INDEX_METHOD = FLANN_INDEX_LSH
+
+    flann_params = dict(algorithm=FLANN_INDEX_METHOD,
                         branching=config['flann_branching'],
                         iterations=config['flann_iterations'])
     index = cv2.flann_Index(features, flann_params)
     index.save(index_file)
 
 def load_flann_index(features, index_file):
-    if features.dtype.type is not np.float32:
-        features = features.astype(np.float32)
-
     index = cv2.flann_Index()
     index.load(features, index_file)
 
     return index
 
 def match_lowe(index, f2, config):
-    f2 = f2.astype(np.float32)
     search_params = dict(checks=config['flann_checks'])
     results, dists = index.knnSearch(f2, 2, params=search_params)
 
@@ -183,7 +189,7 @@ def match_lowe(index, f2, config):
 
 
 def match_symmetric(fi, indexi, fj, indexj, config):
-    if config['feature_type'] != 'AKAZE':
+    if config.get('matcher_type', 'FLANN'):
         matches_ij = [(a,b) for a,b in match_lowe(indexi, fj, config)]
         matches_ji = [(b,a) for a,b in match_lowe(indexj, fi, config)]
     else:
@@ -210,8 +216,7 @@ def match_lowe_bf(f1, f2, config):
     '''Bruteforce feature matching
     '''
     matcher = cv2.DescriptorMatcher_create(config.get('matcher_type', 'BruteForce'))
-    matches = matcher.knnMatch(f1, f2, k=2)
-
+    matches = matcher.knnMatch(f1, f2, k=2 )
     good_matches = []
     for m,n in matches:
         if m.distance < config.get('lowes_ratio', 0.6)*n.distance:
