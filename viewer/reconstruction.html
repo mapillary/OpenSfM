@@ -12,15 +12,25 @@
                 top: 0px;
                 left: 10px;
                 background-color: #000;
+                visibility: hidden;
             }
             #image {
-                width: 320px;
-                height: 240px;
+                width: 160px;
+                height: 120px;
             }
             #text {
                 text-align: center;
                 font-family: sans-serif;
+                font-size: 10px;
                 color: #FFF;
+            }
+            #navigation {
+                position: absolute;
+                top: 0px;
+                left: 10px;
+                display: none;
+                font-family: sans-serif;
+                font-size: 30px;
             }
         </style>
     </head>
@@ -30,6 +40,58 @@
             <img id="image">
             <div id="text"></div>
         </div>
+        <div id="navigation">
+            <table>
+                <tr>
+                    <td id="nav-turn-left">
+                        <button onclick="walkOneStep('TURN_LEFT')">
+                            &#8624;
+                        </button>
+                    </td>
+                    <td id="nav-forward">
+                        <button onclick="walkOneStep('STEP_FORWARD')">
+                            &#8593;
+                        </button>
+                    </td>
+                    <td id="nav-turn-right">
+                        <button onclick="walkOneStep('TURN_RIGHT')">
+                            &#8625;
+                        </button>
+                    </td>
+                </tr>
+                <tr>
+                    <td id="nav-left">
+                        <button onclick="walkOneStep('STEP_LEFT')">
+                            &#8592;
+                        </button>
+                    </td>
+                    <td id="nav-u-turn">
+                        <button onclick="walkOneStep('TURN_U')">
+                            &#8630;
+                        </button>
+                    </td>
+                    <td id="nav-right">
+                        <button onclick="walkOneStep('STEP_RIGHT')">
+                            &#8594;
+                        </button>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                    </td>
+                    <td id="nav-backward">
+                        <button onclick="walkOneStep('STEP_BACKWARD')">
+                            &#8595;
+                        </button>
+                    </td>
+                    <td>
+                        <button onclick="setMovingMode('orbit')">
+                            fly
+                        </button>
+                    </td>
+                </tr>
+            </table>
+        </div>
 
         <script src="js/jquery.js"></script>
         <script src="js/three.js"></script>
@@ -37,14 +99,55 @@
         <script src="js/TrackballControls.js"></script>
         <script src="js/dat.gui.js"></script>
 
+        <!-- Shaders -->
+        <script type="x-shader/x-vertex" id="vertexshader">
+
+            // switch on high precision floats
+            #ifdef GL_ES
+            precision highp float;
+            #endif
+
+            varying vec4 vRstq;
+            uniform mat4 projectorMat;
+
+            void main()
+            {
+                vRstq = projectorMat * vec4(position, 1.0);
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
+            }
+
+        </script>
+
+        <script type="x-shader/x-fragment" id="fragmentshader">
+
+            #ifdef GL_ES
+            precision highp float;
+            #endif
+
+            varying vec4 vRstq;
+            uniform sampler2D projectorTex;
+            uniform float opacity;
+
+            void main()
+            {
+                float x = vRstq.x / vRstq.w + 0.5;
+                float y = vRstq.y / vRstq.w + 0.5;
+                vec4 baseColor = texture2D(projectorTex, vec2(x, y));
+                baseColor.a = opacity;
+                gl_FragColor = baseColor;
+            }
+
+        </script>
+
         <script>
+            var urlParams;
             var container, camera, controls, scene, renderer;
             var mouse = new THREE.Vector2();
-            var hoverCamera, raycaster, parentTransform, sphereInter;
+            var hoverCamera, raycaster, parentTransform;
             var selectedCamera;
             var imagePlane, imageMaterial, imagePlaneCamera;
             var imagePlaneOld, imageMaterialOld, imagePlaneCameraOld;
-            var scene_group;
+            var scene_group, grid_group;
             var pointCloudMaterial;
             var reconstructions;
             var reconstruction_visibles = [];
@@ -56,22 +159,27 @@
             var imagePlaneCameras = [];
             var imageMaterials = [];
             var num_preview_plane = 5;
-            var nextTarget;
-            var nextPosition;
-            var moveSpeed = 0.2
-            var previousShot = undefined
+            var moveSpeed = 0.2;
+            var turnSpeed = 0.1;
+            var previousShot = undefined;
+            var validMoves;
+            var movingMode = 'orbit';
+            var savedOptions = {};
 
 
             var options = {
-                drawGPS: false,
-                cameraSize: 0.5,
-                pointSize: 0.3,
+                cameraSize: 0.9,
+                pointSize: 0.7,
                 imagePlaneSize: 50,
+                showThumbnail: true,
+                drawGrid: true,
+                drawGPS: false,
                 imagePlaneOpacity: 1,
                 cameraColor: new THREE.Color(0xFFFFFF),
                 hoverCameraColor: new THREE.Color(0xFF8888),
                 selectedCameraColor: new THREE.Color(0xFFFF88),
                 reconstruction_visibles: {},
+                options: '320',
                 allNone: function () {
                     var someone = false;
                     for (var r = 0; r < reconstructions.length; ++r) {
@@ -97,17 +205,11 @@
 
                 var f1 = gui.addFolder('Options');
                 f1.add(options, 'pointSize', 0, 2)
-                    .onChange(function(value) {
-                        pointCloudMaterial.size = value;
-                        render();
-                    });
+                    .listen()
+                    .onChange(setPointSize);
                 f1.add(options, 'cameraSize', 0, 2)
-                    .onChange(function(value) {
-                        for (var r = 0; r < reconstructions.length; ++r) {
-                            updateCameraLines(reconstructions[r]);
-                        }
-                        render();
-                    });
+                    .listen()
+                    .onChange(setCameraSize);
                 f1.add(options, 'imagePlaneSize', 1, 200)
                     .onChange(function(value) {
                         options.imagePlaneSize *= 1.5;
@@ -116,6 +218,13 @@
                         imagePlane.geometry = imagePlaneGeo(imagePlaneCamera.reconstruction, imagePlaneCamera.shot_id);
                         render();
                     });
+                f1.add(options, 'resolution', [ '320', '640' ] );
+                f1.add(options, 'showThumbnail')
+                    .listen()
+                    .onChange(setShowThumbnail);
+                f1.add(options, 'drawGrid')
+                    .listen()
+                    .onChange(setDrawGrid);
                 f1.add(options, 'drawGPS')
                     .onChange(function(value) {
                         for (var i = 0; i < gps_lines.length; ++i) {
@@ -124,6 +233,7 @@
                         render();
                     });
                 f1.open();
+
 
                 var f3 = gui.addFolder('Reconstructions')
                 f3.add(options, 'allNone');
@@ -141,11 +251,97 @@
                             })(r)
                         ).listen();
                 }
-                f3.open();
+                f3.close();
+
+                gui.close();
+            }
+
+            function setPointSize(value) {
+                options.pointSize = value;
+                pointCloudMaterial.size = value;
+                render();
+            }
+
+            function setCameraSize(value) {
+                options.cameraSize = value;
+                for (var r = 0; r < reconstructions.length; ++r) {
+                    updateCameraLines(reconstructions[r]);
+                }
+                render();
+            }
+
+            function setShowThumbnail(value) {
+                options.showThumbnail = value;
+                $('#info').css('visibility', value ? 'visible' : 'hidden');
+            }
+
+            function setDrawGrid(value) {
+                options.drawGrid = value;
+                grid_group.visible = value;
+                render();
+            }
+
+            function setMovingMode(mode) {
+                if (mode != movingMode) {
+                    movingMode = mode;
+                    if (mode == 'orbit') {
+                        setPointSize(savedOptions.pointSize);
+                        setCameraSize(savedOptions.cameraSize);
+                        setShowThumbnail(savedOptions.showThumbnail);
+                        setDrawGrid(savedOptions.drawGrid);
+                        controls.noRotate = false;
+                        controls.noLookAround = false;
+                        controls.noPan = false;
+                        controls.noZoom = false;
+                        controls.noKeys = false;
+                        controls.animationPosition.z += 10;
+                        controls.dollyOut(4);
+                        imagePlane.visible = false;
+                        imagePlaneOld.visible = false;
+                        $('#navigation').hide();
+                    } else if (mode == 'walk') {
+                        savedOptions.pointSize = options.pointSize;
+                        savedOptions.cameraSize = options.cameraSize;
+                        savedOptions.showThumbnail = options.showThumbnail;
+                        savedOptions.drawGrid = options.drawGrid;
+                        setPointSize(0);
+                        setCameraSize(0);
+                        setShowThumbnail(false);
+                        setDrawGrid(false);
+                        controls.noRotate = true;
+                        controls.noLookAround = true;
+                        controls.noPan = true;
+                        controls.noZoom = true;
+                        controls.noKeys = true;
+                        $('#navigation').show();
+                    }
+                }
+            }
+
+            function imageURL(shot_id) {
+                var url = urlParams.file;
+                var slash = url.lastIndexOf('/');
+                return url.substring(0, slash) + '/images'+options.resolution+'/' + shot_id;
+            }
+
+            function parseUrl() {
+                var match,
+                    pl     = /\+/g,  // Regex for replacing addition symbol with a space
+                    search = /([^&=]+)=?([^&]*)/g,
+                    decode = function (s) { return decodeURIComponent(s.replace(pl, " ")); },
+                    hash  = window.location.hash.substring(1);
+
+                urlParams = {};
+                while (match = search.exec(hash))
+                   urlParams[decode(match[1])] = decode(match[2]);
             }
 
             function getData() {
-                jQuery.getJSON(window.location.hash.replace('#',''), function(data) {
+                parseUrl();
+
+                if ('res' in urlParams) options.resolution = urlParams.res;
+
+                jQuery.getJSON(urlParams.file, function(data) {
                     if ('cameras' in data) {
                         reconstructions = [data];
                     } else {
@@ -261,41 +457,61 @@
             function imagePlaneGeo(reconstruction, shot_id) {
                 var shot = reconstruction.shots[shot_id];
                 var cam = reconstruction.cameras[shot.camera];
-                var top_left = pixelToVertex(cam, shot, 0, 0, options.imagePlaneSize);
-                var top_right = pixelToVertex(cam, shot, cam.width, 0, options.imagePlaneSize);
-                var bottom_right = pixelToVertex(cam, shot, cam.width, cam.height, options.imagePlaneSize);
-                var bottom_left = pixelToVertex(cam, shot, 0, cam.height, options.imagePlaneSize);
-
                 var geometry = new THREE.Geometry();
-                geometry.vertices.push(
-                    top_left,
-                    bottom_left,
-                    bottom_right,
-                    top_right
-                );
-                geometry.faces.push(
-                    new THREE.Face3(0, 1, 3),
-                    new THREE.Face3(1, 2, 3)
-                );
-                geometry.faceVertexUvs[0].push([
-                    new THREE.Vector2(0, 1),
-                    new THREE.Vector2(0, 0),
-                    new THREE.Vector2(1, 1)
-                ],[
-                    new THREE.Vector2(0, 0),
-                    new THREE.Vector2(1, 0),
-                    new THREE.Vector2(1, 1)
-                ]);
 
-                geometry.computeFaceNormals();
+                if ('vertices' in shot) {
+                    for (var i = 0; i < shot['vertices'].length; ++i) {
+                        geometry.vertices.push(
+                            new THREE.Vector3(
+                                shot['vertices'][i][0],
+                                shot['vertices'][i][1],
+                                shot['vertices'][i][2]
+                            )
+                        );
+                    }
+                    for (var i = 0; i < shot['faces'].length; ++i) {
+                        var v0 = shot['faces'][i][0];
+                        var v1 = shot['faces'][i][1];
+                        var v2 = shot['faces'][i][2];
 
-                // geometry.faces.push(new THREE.Face3(0, 1, 3)); // counter-clockwise winding order
-                // geometry.faces.push(new THREE.Face3(1, 2, 3));
-                //geometry.computeBoundingSphere();
-                //geometry.computeFaceNormals();
-                geometry.computeVertexNormals();
+                        geometry.faces.push(new THREE.Face3(v0, v1, v2));
+                    }
+                } else {
+                    var top_left = pixelToVertex(cam, shot, 0, 0, options.imagePlaneSize);
+                    var top_right = pixelToVertex(cam, shot, cam.width, 0, options.imagePlaneSize);
+                    var bottom_right = pixelToVertex(cam, shot, cam.width, cam.height, options.imagePlaneSize);
+                    var bottom_left = pixelToVertex(cam, shot, 0, cam.height, options.imagePlaneSize);
+
+                    geometry.vertices.push(
+                        top_left,
+                        bottom_left,
+                        bottom_right,
+                        top_right
+                    );
+                    geometry.faces.push(
+                        new THREE.Face3(0, 1, 3),
+                        new THREE.Face3(1, 2, 3)
+                    );
+                }
 
                 return geometry;
+            }
+
+            function projectorCameraMatrix(cam, shot) {
+                var angleaxis = shot.rotation;
+                var axis = new THREE.Vector3(angleaxis[0],
+                                             angleaxis[1],
+                                             angleaxis[2]);
+                var angle = axis.length();
+                axis.normalize();
+                var rotation = new THREE.Matrix4().makeRotationAxis(axis, angle);
+                var t = shot.translation;
+                var translation = new THREE.Vector3(t[0], t[1], t[2]);
+                rotation.setPosition(translation);
+                var dx = cam.width / cam.focal;
+                var dy = cam.height / cam.focal;
+                var projection = new THREE.Matrix4().makeFrustum(-dx, +dx, +dy, -dy, -1, -1000);
+                return projection.multiply(rotation);
             }
 
 
@@ -305,12 +521,12 @@
 
                 renderer = new THREE.WebGLRenderer();
                 renderer.setSize(window.innerWidth, window.innerHeight);
-                renderer.setClearColor( 0x202020, 1.0);
+                renderer.setClearColor( 0x202020, 0.0);
 
                 container = document.getElementById( 'ThreeJS' );
                 container.appendChild(renderer.domElement);
 
-                camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.3, 1000);
+                camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.3, 1000);
                 camera.position.x = 50;
                 camera.position.y = 50;
                 camera.position.z = 50;
@@ -380,13 +596,32 @@
 
 
                 // Image plane
-                previousShot = camera_lines[0].shot_id
                 imagePlaneCamera = camera_lines[0];
+                var shot = imagePlaneCamera.reconstruction.shots[imagePlaneCamera.shot_id];
+                var cam = imagePlaneCamera.reconstruction.cameras[shot.camera];
                 var imageTexture = THREE.ImageUtils.loadTexture(imageURL(shot_id));
-                imageMaterial = new THREE.MeshBasicMaterial({
-                    map : imageTexture,
+                imageMaterial = new THREE.ShaderMaterial({
+                    // map: imageTexture,
+                    side: THREE.DoubleSide,
                     transparent: true,
-                    opacity: options.imagePlaneOpacity
+                    opacity: 1.0,
+                    depthWrite: false,
+                    uniforms: {
+                        projectorMat: {
+                             type: 'm4',
+                             value: projectorCameraMatrix(cam, shot)
+                        },
+                        projectorTex: {
+                            type: 't',
+                            value: imageTexture
+                        },
+                        opacity: {
+                            type: 'f',
+                            value: options.imagePlaneOpacity
+                        }
+                    },
+                    vertexShader:   $('#vertexshader').text(),
+                    fragmentShader: $('#fragmentshader').text()
                 });
                 imagePlane = new THREE.Mesh(imagePlaneGeo(imagePlaneCamera.reconstruction,
                                                           imagePlaneCamera.shot_id),
@@ -396,15 +631,35 @@
 
                 imagePlaneCameraOld = camera_lines[0];
                 var imageTextureOld = THREE.ImageUtils.loadTexture(imageURL(shot_id));
-                imageMaterialOld = new THREE.MeshBasicMaterial({
-                    map : imageTextureOld,
+
+                imageMaterialOld = new THREE.ShaderMaterial({
+                    // map: imageTexture,
+                    side: THREE.DoubleSide,
                     transparent: true,
-                    opacity: options.imagePlaneOpacity
+                    opacity: 0.5,
+                    depthWrite: false,
+                    uniforms: {
+                        projectorMat: {
+                             type: 'm4',
+                             value: projectorCameraMatrix(cam, shot)
+                        },
+                        projectorTex: {
+                            type: 't',
+                            value: imageTextureOld
+                        },
+                        opacity: {
+                            type: 'f',
+                            value: options.imagePlaneOpacity
+                        }
+                    },
+                    vertexShader:   $('#vertexshader').text(),
+                    fragmentShader: $('#fragmentshader').text()
                 });
                 imagePlaneOld = new THREE.Mesh(imagePlaneGeo(imagePlaneCameraOld.reconstruction,
-                                                             imagePlaneCameraOld.shot_id),
-                                               imageMaterialOld);
+                                                          imagePlaneCameraOld.shot_id),
+                                            imageMaterialOld);
                 imagePlaneOld.visible = false;
+
                 scene_group.add(imagePlaneOld);
 
                 // for (var i=0; i < num_preview_plane; ++i) {
@@ -423,6 +678,7 @@
                 // }
 
                 // Axis
+                grid_group = new THREE.Object3D();
                 var linegeo = new THREE.Geometry();
                 linegeo.vertices = [
                     new THREE.Vector3(0, 0, 0),
@@ -445,7 +701,7 @@
                     vertexColors: THREE.VertexColors
                 });
                 var line = new THREE.Line(linegeo, lineMaterial, THREE.LinePieces);
-                scene_group.add(line);
+                grid_group.add(line);
 
                 // Ground grid
                 {
@@ -462,21 +718,25 @@
                     }
                     var lineMaterial = new THREE.LineBasicMaterial({color: 0x555555});
                     var line = new THREE.Line(linegeo, lineMaterial, THREE.LinePieces);
-                    scene_group.add(line);
+                    grid_group.add(line);
                 }
-
-              //  scene_group.rotateX(-Math.PI / 2); // put scene right-side up
+                scene_group.add(grid_group);
 
                 scene = new THREE.Scene();
                 scene.add(scene_group);
 
-                var geometry = new THREE.SphereGeometry(.3);
-                var material = new THREE.MeshBasicMaterial( { color: 0xff0000 } );
-                sphereInter = new THREE.Mesh( geometry, material );
-                sphereInter.visible = false;
-                scene.add(sphereInter);
-
                 addDatGui();
+
+
+                if ('img' in urlParams) {
+                    for (var i = 0; i < camera_lines.length; ++i) {
+                        if (camera_lines[i].shot_id.indexOf(urlParams.img) > -1) {
+                            setImagePlaneCamera(camera_lines[i]);
+                            break;
+                        }
+                    }
+                }
+
                 render();
             }
 
@@ -492,12 +752,6 @@
                 mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
                 mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
                 render();
-            }
-
-            function imageURL(shot_id) {
-                var hash = window.location.hash.replace('#','');
-                var slash = hash.lastIndexOf('/');
-                return hash.substring(0, slash) + '/images/' + shot_id;
             }
 
             function reconstruction_of_shot(reconstructions, shot_id) {
@@ -523,6 +777,9 @@
                 var shot_id = cameraObject.shot_id;
                 var shot = r['shots'][shot_id];
                 var image_url = imageURL(shot_id);
+                if (jQuery.isEmptyObject(savedOptions)) {
+                    setShowThumbnail(true)
+                }
                 if (selectedCamera !== undefined) {
                     selectedCamera.material.linewidth = 1;
                     selectedCamera.material.color = options.cameraColor;
@@ -536,7 +793,7 @@
                 text.innerHTML = shot_id;
             }
 
-            function setImagePlaneCamera(cameraObject, transition) {
+            function setImagePlaneCamera(cameraObject) {
                 var r = cameraObject.reconstruction;
                 var shot_id = cameraObject.shot_id;
                 var shot = r['shots'][shot_id];
@@ -551,25 +808,22 @@
 
                     if (imagePlaneCamera !== undefined) {
                         imagePlaneCameraOld = imagePlaneCamera;
-                        imageMaterialOld.map = imageMaterial.map;
-                        options.imagePlaneSize *= 1.5;
+                        imageMaterialOld.uniforms.projectorTex.value = imageMaterial.uniforms.projectorTex.value;
+                        imageMaterialOld.uniforms.projectorMat.value = imageMaterial.uniforms.projectorMat.value;
+
                         imagePlaneOld.geometry = imagePlaneGeo(imagePlaneCameraOld.reconstruction, imagePlaneCameraOld.shot_id);
-                        options.imagePlaneSize /= 1.5;
                         options.imagePlaneOpacity = 1;
                         imagePlaneOld.visible = true;
                     }
 
                     imagePlaneCamera = cameraObject;
-                    imageMaterial.map = THREE.ImageUtils.loadTexture(image_url, null, render);
+                    imageMaterial.uniforms.projectorTex.value = THREE.ImageUtils.loadTexture(image_url, null, render);
+                    imageMaterial.uniforms.projectorMat.value = projectorCameraMatrix(cam, shot)
                     imagePlane.geometry = imagePlaneGeo(r, shot_id);
                     imagePlane.visible = true;
                 }
-                if (transition) {
-                    controls.goto_shot(cam, shot);
-                }
-                else {
-                    controls.goto(nextPosition, nextTarget)
-                }
+                setMovingMode('walk');
+                controls.goto_shot(cam, shot);
             }
 
             function setImagePlaneCameraList(cameraObject, id) {
@@ -587,16 +841,13 @@
             }
 
             function onDocumentMouseDown(event) {
+                window.focus();
                 if (hoverCamera !== undefined) {
-
                     if (selectedCamera !== hoverCamera) {
                         setSelectedCamera(hoverCamera);
                     } else {
-                        setImagePlaneCamera(selectedCamera, true);
+                        setImagePlaneCamera(selectedCamera);
                     }
-
-                    // hideImagePlanesList()
-
                     render();
                 }
             }
@@ -607,94 +858,184 @@
                 }
             }
 
-            function findClosestCamera(keyCode) {
-                // hideImagePlanesList()
+            function angleBetweenVector2(x1, y1, x2, y2) {
+                var a = Math.atan2(y2, x2) - Math.atan2(y1, x1);
+                if (a > Math.PI) return a - 2 * Math.PI;
+                else if (a < -Math.PI) return a + 2 * Math.PI;
+                else return a;
+            }
+
+            function computeValidMoves() {
                 var currentPosition = controls.animationPosition;
                 var currentTarget = controls.animationTarget;
                 var currentDir = currentTarget.clone().sub(currentPosition);
-                var motionDir = undefined;
-                switch (keyCode) {
-                    case 37: // left arrow
-                        motionDir = new THREE.Vector3(-currentDir.y, currentDir.x, 0);
-                        break;
-                    case 38: // up arrow
-                        motionDir = new THREE.Vector3(currentDir.x, currentDir.y, 0);
-                        break;
-                    case 39: // right arrow
-                        motionDir = new THREE.Vector3(currentDir.y, -currentDir.x, 0);
-                        break;
-                    case 40: // down arrow
-                        motionDir = new THREE.Vector3(-currentDir.x, -currentDir.y, 0);
-                        break;
-                }
-                var scale = Math.sqrt(currentDir.y*currentDir.y +  currentDir.x*currentDir.x)
-                nextPosition = currentPosition.clone().add(motionDir.clone().multiplyScalar(moveSpeed/scale))
-                nextTarget = nextPosition.clone().add(currentDir.clone().multiplyScalar(moveSpeed/scale))
+                var turnAngle = undefined;
 
-                var min_d = 999999999999;
-                var min_turn = min_d;
-                var min_drift = min_d;
-                var closest_line = undefined;
-                if (motionDir !== undefined) {
-                    var id = 0
-                    var currentPosition = nextPosition.clone()
-                    var currentTarget = nextTarget.clone()
-                    for (var i = 0; i < camera_lines.length; ++i) {
-                        var line = camera_lines[i];
-                        var r = line.reconstruction;
-                        var shot_id = line.shot_id;
-                        var shot = r['shots'][shot_id];
-                        var oc = opticalCenter(shot);
-                        var dir = viewingDirection(shot);
-                        var motion = oc.clone().sub(currentPosition);
-                        var turn = currentDir.angleTo(dir);
-                        var drift = motionDir.angleTo(new THREE.Vector3(motion.x, motion.y, 0));
-                        var d = currentPosition.distanceTo(oc);
-                        var rid = reconstruction_id_of_shot(reconstructions, shot_id)
-                        var visible = options.reconstruction_visibles[rid]
-                        if (Math.abs(turn) < 0.5 && Math.abs(drift) < 0.5 && d > 0.01 && d < 20 && visible ) {
-                            if (d < min_d) {
-                                min_d = d;
-                                closest_line = line;
-                            }
-                            if (d < 8) {
-                                if (Math.abs(turn) < min_turn){
-                                    min_turn = Math.abs(turn);
-                                    closest_line = line;
+                var wantedMotionDirs = {
+                    STEP_LEFT: new THREE.Vector3(-currentDir.y, currentDir.x, 0),
+                    STEP_RIGHT: new THREE.Vector3(currentDir.y, -currentDir.x, 0),
+                    STEP_FORWARD: new THREE.Vector3(currentDir.x, currentDir.y, 0),
+                    STEP_BACKWARD: new THREE.Vector3(-currentDir.x, -currentDir.y, 0),
+                    TURN_LEFT: new THREE.Vector3(0, 0, 0),
+                    TURN_RIGHT: new THREE.Vector3(0, 0, 0),
+                    TURN_U: new THREE.Vector3(0, 0, 0)
+                }
+
+                var wantedDirs = {
+                    STEP_LEFT: new THREE.Vector3(currentDir.x, currentDir.y, 0),
+                    STEP_RIGHT: new THREE.Vector3(currentDir.x, currentDir.y, 0),
+                    STEP_FORWARD: new THREE.Vector3(currentDir.x, currentDir.y, 0),
+                    STEP_BACKWARD: new THREE.Vector3(currentDir.x, currentDir.y, 0),
+                    TURN_LEFT: new THREE.Vector3(-currentDir.y, currentDir.x, 0),
+                    TURN_RIGHT: new THREE.Vector3(currentDir.y, -currentDir.x, 0),
+                    TURN_U: new THREE.Vector3(-currentDir.x, -currentDir.y, 0)
+                }
+
+                var min_d = {};
+                var closest_line = {};
+                var turn_threshold;
+                for (var k in wantedMotionDirs) {
+                    if (wantedMotionDirs.hasOwnProperty(k)) {
+                        min_d[k] = 999999999999;
+                        closest_line[k] = undefined;
+                    }
+                }
+
+                for (var i = 0; i < camera_lines.length; ++i) {
+                    var line = camera_lines[i];
+                    var r = line.reconstruction;
+                    var shot_id = line.shot_id;
+                    var shot = r['shots'][shot_id];
+                    var oc = opticalCenter(shot);
+                    var dir = viewingDirection(shot);
+                    var motion = oc.clone().sub(currentPosition);
+                    var d = currentPosition.distanceTo(oc);
+                    var rid = reconstruction_id_of_shot(reconstructions, shot_id);
+                    var visible = options.reconstruction_visibles[rid];
+                    if (!visible) continue;
+
+                    for (var k in wantedMotionDirs) {
+                        if (wantedMotionDirs.hasOwnProperty(k)) {
+                            var turn = angleBetweenVector2(wantedDirs[k].x, wantedDirs[k].y, dir.x, dir.y);
+                            var driftAB = angleBetweenVector2(wantedMotionDirs[k].x, wantedMotionDirs[k].y, motion.x, motion.y);
+                            var driftBA = driftAB - turn;
+                            var drift = Math.max(driftAB, driftBA);
+                            if (k.lastIndexOf('STEP', 0) === 0) {
+                                turn_threshold = (k === 'STEP_FORWARD')? 0.25 : 0.5
+                                if (Math.abs(turn) < turn_threshold && Math.abs(drift) < 0.5 && d > 0.01 && d < 20) {
+                                    if (d < min_d[k]) {
+                                        min_d[k] = d;
+                                        closest_line[k] = line;
+                                    }
+                                }
+                            } else if (k.lastIndexOf('TURN', 0) === 0) {
+                                if (Math.abs(turn) < 0.7 && d < 15) {
+                                    if (d < min_d[k]) {
+                                        min_d[k] = d;
+                                        closest_line[k] = line;
+                                    }
                                 }
                             }
                         }
-                        // detect panoramas and show all images
-                        // if (Math.abs(turn) > 0.05 && d < 1 && visible) {
-                        //     if (id < num_preview_plane) {
-                        //         setImagePlaneCameraList(line, id)
-                        //         id += 1
-                        //     }
-                        // }
                     }
                 }
                 return closest_line;
             }
 
-            function onKeyDown(event) {
-                var line = findClosestCamera(event.keyCode);
+            function walkOneStep(motion_type) {
+                var line = validMoves[motion_type];
                 if (line !== undefined) {
-                    setImagePlaneCamera(line, true);
+                    setImagePlaneCamera(line);
                 }
-                else {
-                    controls.goto(nextPosition, nextTarget)
+            }
+
+            function onKeyDown(event) {
+                if (movingMode == 'walk') {
+                    var validKey = true;
+
+                    switch (event.keyCode) {
+                        case 37: // left arrow
+                            if (event.shiftKey) {
+                                walkOneStep('TURN_LEFT');
+                            } else {
+                                walkOneStep('STEP_LEFT');
+                            }
+                            break;
+                        case 38: // up arrow
+                            walkOneStep('STEP_FORWARD');
+                            break;
+                        case 39: // right arrow
+                            if (event.shiftKey) {
+                                walkOneStep('TURN_RIGHT');
+                            } else {
+                                walkOneStep('STEP_RIGHT');
+                            }
+                            break;
+                        case 40: // down arrow
+                            if (event.shiftKey) {
+                                walkOneStep('TURN_U');
+                            } else {
+                                walkOneStep('STEP_BACKWARD');
+                            }
+                            break;
+                        case 27: // ESC
+                            setMovingMode('orbit');
+                            break;
+                        default:
+                            validKey = false;
+                            break;
+                    }
+
+                    if (validKey) {
+                        event.preventDefault();
+                    }
                 }
+            }
+
+            function preloadValidMoves() {
+                for (var k in validMoves) {
+                    if (validMoves.hasOwnProperty(k)) {
+                        var line = validMoves[k];
+                        if (line !== undefined) {
+                            var shot_id = line.shot_id;
+                            var image_url = imageURL(shot_id);
+                            var temp_img = new Image();
+                            temp_img.src = image_url;
+                        }
+                    }
+                }
+            }
+
+            function updateValidMovesWidget() {
+                $('#nav-left').css('visibility',
+                    (validMoves.STEP_LEFT === undefined) ? 'hidden':'visible');
+                $('#nav-right').css('visibility',
+                    (validMoves.STEP_RIGHT === undefined) ? 'hidden':'visible');
+                $('#nav-forward').css('visibility',
+                    (validMoves.STEP_FORWARD === undefined) ? 'hidden':'visible');
+                $('#nav-backward').css('visibility',
+                    (validMoves.STEP_BACKWARD === undefined) ? 'hidden':'visible');
+                $('#nav-turn-left').css('visibility',
+                    (validMoves.TURN_LEFT === undefined) ? 'hidden':'visible');
+                $('#nav-turn-right').css('visibility',
+                    (validMoves.TURN_RIGHT === undefined) ? 'hidden':'visible');
+                $('#nav-u-turn').css('visibility',
+                    (validMoves.TURN_U === undefined) ? 'hidden':'visible');
             }
 
             function animate() {
                 requestAnimationFrame(animate);
-                imageMaterial.opacity = 1 - options.imagePlaneOpacity;
-                imageMaterialOld.opacity = options.imagePlaneOpacity;
-                options.imagePlaneOpacity *= 0.9;
+                imageMaterial.uniforms.opacity.value = 1 - options.imagePlaneOpacity;
+                imageMaterialOld.uniforms.opacity.value = 1;//options.imagePlaneOpacity;
+                options.imagePlaneOpacity *= 0.90;
                 controls.update();
             }
 
             function render() {
+                validMoves = computeValidMoves();
+                updateValidMovesWidget();
+                preloadValidMoves();
+
                 // Handle camera selection.
                 if (hoverCamera !== undefined && hoverCamera !== selectedCamera) {
                     hoverCamera.material.linewidth = 1;
