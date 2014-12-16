@@ -165,8 +165,12 @@
             var previousShot = undefined;
             var validMoves;
             var movingMode = 'orbit';
-            var savedOptions = {};
-
+            var savedOptions = {
+                cameraSize: 0,
+                pointSize: 0,
+                showThumbnail: false,
+                drawGrid: false,
+            };
 
             var options = {
                 cameraSize: 0.9,
@@ -289,10 +293,7 @@
                 if (mode != movingMode) {
                     movingMode = mode;
                     if (mode == 'orbit') {
-                        setPointSize(savedOptions.pointSize);
-                        setCameraSize(savedOptions.cameraSize);
-                        setShowThumbnail(savedOptions.showThumbnail);
-                        setDrawGrid(savedOptions.drawGrid);
+                        swapOptions();
                         controls.noRotate = false;
                         controls.noLookAround = false;
                         controls.noPan = false;
@@ -304,14 +305,7 @@
                         imagePlaneOld.visible = false;
                         $('#navigation').hide();
                     } else if (mode == 'walk') {
-                        savedOptions.pointSize = options.pointSize;
-                        savedOptions.cameraSize = options.cameraSize;
-                        savedOptions.showThumbnail = options.showThumbnail;
-                        savedOptions.drawGrid = options.drawGrid;
-                        setPointSize(0);
-                        setCameraSize(0);
-                        setShowThumbnail(false);
-                        setDrawGrid(false);
+                        swapOptions();
                         controls.noRotate = true;
                         controls.noLookAround = true;
                         controls.noPan = true;
@@ -320,6 +314,25 @@
                         $('#navigation').show();
                     }
                 }
+            }
+
+            function swapOptions() {
+                var tmpOptions = {
+                    pointSize: savedOptions.pointSize,
+                    cameraSize: savedOptions.cameraSize,
+                    showThumbnail: savedOptions.showThumbnail,
+                    drawGrid: savedOptions.drawGrid
+                };
+
+                savedOptions.pointSize = options.pointSize;
+                savedOptions.cameraSize = options.cameraSize;
+                savedOptions.showThumbnail = options.showThumbnail;
+                savedOptions.drawGrid = options.drawGrid;
+
+                setPointSize(tmpOptions.pointSize);
+                setCameraSize(tmpOptions.cameraSize);
+                setShowThumbnail(tmpOptions.showThumbnail);
+                setDrawGrid(tmpOptions.drawGrid);
             }
 
             function imageURL(shot_id) {
@@ -1077,7 +1090,6 @@
                 // Render.
                 renderer.render(scene, camera);
             }
-
         </script>
 
     </body>
