@@ -750,6 +750,7 @@
                     for (var i = 0; i < camera_lines.length; ++i) {
                         if (camera_lines[i].shot_id.indexOf(urlParams.img) > -1) {
                             setImagePlaneCamera(camera_lines[i]);
+                            setShowThumbnail(true);
                             break;
                         }
                     }
@@ -799,9 +800,6 @@
                 var shot_id = cameraObject.shot_id;
                 var shot = r['shots'][shot_id];
                 var image_url = imageURL(shot_id);
-                if (jQuery.isEmptyObject(savedOptions)) {
-                    setShowThumbnail(true)
-                }
                 if (selectedCamera !== undefined) {
                     selectedCamera.material.linewidth = 1;
                     selectedCamera.material.color = options.cameraColor;
