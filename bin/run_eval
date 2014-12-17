@@ -21,7 +21,7 @@ def run_dataset(run_root, name):
 
     with open(run_root + '/index.html', 'a') as fout:
         s = '''
-<a href="/viewer/reconstruction.html#../{0}/reconstruction.json">{1}</a><br>
+<a href="/viewer/reconstruction.html#file=../{0}/reconstruction.json">{1}</a><br>
 '''.format(urllib.quote(folder), name)
         fout.write(s)
 

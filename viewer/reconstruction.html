@@ -180,6 +180,7 @@
                 showThumbnail: true,
                 drawGrid: true,
                 drawGPS: false,
+                animationSpeed: 0.1,
                 imagePlaneOpacity: 1,
                 cameraColor: new THREE.Color(0xFFFFFF),
                 hoverCameraColor: new THREE.Color(0xFF8888),
@@ -223,6 +224,10 @@
                         options.imagePlaneSize /= 1.5;
                         imagePlane.geometry = imagePlaneGeo(imagePlaneCamera.reconstruction, imagePlaneCamera.shot_id);
                         render();
+                    });
+                f1.add(options, 'animationSpeed', 0, 0.2)
+                    .onChange(function(value) {
+                        controls.animationSpeed = value;
                     });
                 f1.add(options, 'resolution', [ '320', '640', 'original' ] );
                 f1.add(options, 'showThumbnail')
@@ -1071,7 +1076,7 @@
                 requestAnimationFrame(animate);
                 imageMaterial.uniforms.opacity.value = 1 - options.imagePlaneOpacity;
                 imageMaterialOld.uniforms.opacity.value = 1;//options.imagePlaneOpacity;
-                options.imagePlaneOpacity *= 0.90;
+                options.imagePlaneOpacity *= 1 - options.animationSpeed;
                 controls.update();
             }
 
