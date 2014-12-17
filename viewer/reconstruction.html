@@ -745,12 +745,12 @@
 
                 addDatGui();
 
-
+                setShowThumbnail(true);
                 if ('img' in urlParams) {
                     for (var i = 0; i < camera_lines.length; ++i) {
                         if (camera_lines[i].shot_id.indexOf(urlParams.img) > -1) {
                             setImagePlaneCamera(camera_lines[i]);
-                            setShowThumbnail(true);
+                            setShowThumbnail(false);
                             break;
                         }
                     }
