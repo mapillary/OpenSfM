@@ -189,7 +189,7 @@ def match_lowe(index, f2, config):
 
 
 def match_symmetric(fi, indexi, fj, indexj, config):
-    if config.get('matcher_type', 'FLANN'):
+    if config.get('matcher_type', 'FLANN') == 'FLANN':
         matches_ij = [(a,b) for a,b in match_lowe(indexi, fj, config)]
         matches_ji = [(b,a) for a,b in match_lowe(indexj, fi, config)]
     else:
@@ -215,7 +215,12 @@ def convert_matches_to_vector(matches):
 def match_lowe_bf(f1, f2, config):
     '''Bruteforce feature matching
     '''
-    matcher = cv2.DescriptorMatcher_create(config.get('matcher_type', 'BruteForce'))
+    assert(f1.dtype.type==f2.dtype.type)
+    if (f1.dtype.type == np.uint8):
+        matcher_type = 'BruteForce-Hamming'
+    else:
+        matcher_type = 'BruteForce'
+    matcher = cv2.DescriptorMatcher_create(matcher_type)
     matches = matcher.knnMatch(f1, f2, k=2 )
     good_matches = []
     for m,n in matches:
