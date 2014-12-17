@@ -293,6 +293,7 @@
                 if (mode != movingMode) {
                     movingMode = mode;
                     if (mode == 'orbit') {
+                        resetWalkMode();
                         swapOptions();
                         controls.noRotate = false;
                         controls.noLookAround = false;
@@ -314,6 +315,10 @@
                         $('#navigation').show();
                     }
                 }
+            }
+
+            function resetWalkMode() {
+                previousShot = undefined;
             }
 
             function swapOptions() {
