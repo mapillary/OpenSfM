@@ -170,6 +170,7 @@
                 pointSize: 0,
                 showThumbnail: false,
                 drawGrid: false,
+                drawGPS: false
             };
 
             var options = {
@@ -231,12 +232,8 @@
                     .listen()
                     .onChange(setDrawGrid);
                 f1.add(options, 'drawGPS')
-                    .onChange(function(value) {
-                        for (var i = 0; i < gps_lines.length; ++i) {
-                            gps_lines[i].visible = value;
-                        }
-                        render();
-                    });
+                    .listen()
+                    .onChange(setDrawGPS);
                 f1.open();
 
 
@@ -289,6 +286,14 @@
                 render();
             }
 
+            function setDrawGPS(value) {
+                options.drawGPS = value;
+                for (var i = 0; i < gps_lines.length; ++i) {
+                    gps_lines[i].visible = value;
+                }
+                render();
+            }
+
             function setMovingMode(mode) {
                 if (mode != movingMode) {
                     movingMode = mode;
@@ -326,18 +331,21 @@
                     pointSize: savedOptions.pointSize,
                     cameraSize: savedOptions.cameraSize,
                     showThumbnail: savedOptions.showThumbnail,
-                    drawGrid: savedOptions.drawGrid
+                    drawGrid: savedOptions.drawGrid,
+                    drawGPS: savedOptions.drawGPS
                 };
 
                 savedOptions.pointSize = options.pointSize;
                 savedOptions.cameraSize = options.cameraSize;
                 savedOptions.showThumbnail = options.showThumbnail;
                 savedOptions.drawGrid = options.drawGrid;
+                savedOptions.drawGPS = options.drawGPS;
 
                 setPointSize(tmpOptions.pointSize);
                 setCameraSize(tmpOptions.cameraSize);
                 setShowThumbnail(tmpOptions.showThumbnail);
                 setDrawGrid(tmpOptions.drawGrid);
+                setDrawGPS(tmpOptions.drawGPS);
             }
 
             function imageURL(shot_id) {
