@@ -633,7 +633,7 @@
                 imagePlaneCamera = camera_lines[0];
                 var shot = imagePlaneCamera.reconstruction.shots[imagePlaneCamera.shot_id];
                 var cam = imagePlaneCamera.reconstruction.cameras[shot.camera];
-                var imageTexture = THREE.ImageUtils.loadTexture(imageURL(shot_id));
+                var imageTexture = THREE.ImageUtils.loadTexture(imageURL(imagePlaneCamera.shot_id));
                 imageMaterial = new THREE.ShaderMaterial({
                     side: THREE.DoubleSide,
                     transparent: true,
@@ -661,7 +661,7 @@
                 imagePlane.visible = false;
 
                 imagePlaneCameraOld = camera_lines[0];
-                var imageTextureOld = THREE.ImageUtils.loadTexture(imageURL(shot_id));
+                var imageTextureOld = THREE.ImageUtils.loadTexture(imageURL(imagePlaneCameraOld.shot_id));
 
                 imageMaterialOld = new THREE.ShaderMaterial({
                     // map: imageTexture,
