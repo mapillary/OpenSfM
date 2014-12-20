@@ -293,6 +293,7 @@
                 if (mode != movingMode) {
                     movingMode = mode;
                     if (mode == 'orbit') {
+                        resetWalkMode();
                         swapOptions();
                         controls.noRotate = false;
                         controls.noLookAround = false;
@@ -314,6 +315,10 @@
                         $('#navigation').show();
                     }
                 }
+            }
+
+            function resetWalkMode() {
+                previousShot = undefined;
             }
 
             function swapOptions() {
@@ -827,11 +832,14 @@
                     }
 
                     if (imagePlaneCamera !== undefined) {
-                        imagePlaneCameraOld = imagePlaneCamera;
-                        imageMaterialOld.uniforms.projectorTex.value = imageMaterial.uniforms.projectorTex.value;
-                        imageMaterialOld.uniforms.projectorMat.value = imageMaterial.uniforms.projectorMat.value;
+                        if (imagePlaneCameraOld === undefined || imagePlaneCamera.shot_id !== cameraObject.shot_id) {
+                            imagePlaneCameraOld = imagePlaneCamera;
+                            imageMaterialOld.uniforms.projectorTex.value = imageMaterial.uniforms.projectorTex.value;
+                            imageMaterialOld.uniforms.projectorMat.value = imageMaterial.uniforms.projectorMat.value;
 
-                        imagePlaneOld.geometry = imagePlaneGeo(imagePlaneCameraOld.reconstruction, imagePlaneCameraOld.shot_id);
+                            imagePlaneOld.geometry = imagePlaneGeo(imagePlaneCameraOld.reconstruction, imagePlaneCameraOld.shot_id);
+                        }
+
                         options.imagePlaneOpacity = 1;
                         imagePlaneOld.visible = true;
                     }
