@@ -7,6 +7,16 @@
             body {
                 margin: 0px;
             }
+            #loading {
+               position: absolute;
+               top: 50%;
+               left: 50%;
+               width: 508px;
+               height: 381px;
+               margin-top: -190px; /* Half the height */
+               margin-left: -254px; /* Half the width */
+            }
+
             #info {
                 position: absolute;
                 top: 0px;
@@ -36,6 +46,9 @@
     </head>
     <body>
         <div id="ThreeJS" target="_blank"></div>
+        <div id="loading">
+            <img src="http://jimpunk.net/Loading/wp-content/uploads/loading1.gif">
+        </div>
         <div id="info">
             <img id="image">
             <div id="text"></div>
@@ -383,6 +396,7 @@
                     } else {
                         reconstructions = data;
                     }
+                    $('#loading').remove();
                     init();
                     animate();
                 });
