@@ -686,11 +686,19 @@ def nonfisheye_cameras(data, images):
             res.append(image)
     return res
 
+def tracks_and_images(graph):
+    tracks, images = [], []
+    for n in graph.nodes(data=True):
+        if n[1]['bipartite'] == 0:
+            images.append(n[0])
+        else:
+            tracks.append(n[0])
+    return tracks, images
 
 def incremental_reconstruction(data):
     data.invent_reference_lla()
     graph = data.tracks_graph()
-    tracks, images = bipartite.sets(graph)
+    tracks, images = tracks_and_images(graph)
     remaining_images = set(nonfisheye_cameras(data, images))
     print 'images', len(images)
     print 'nonfisheye images', len(remaining_images)
