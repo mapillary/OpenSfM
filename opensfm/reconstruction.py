@@ -639,7 +639,7 @@ def grow_reconstruction(data, graph, reconstruction, images, image_graph):
                 if len(reconstruction['shots']) % bundle_interval == 0:
                     reconstruction = bundle(data.tracks_file(), reconstruction, data.config)
 
-                # align_reconstruction(reconstruction)
+                align_reconstruction(reconstruction)
 
                 num_points = len(reconstruction['points'])
                 if retriangulation and num_points > prev_num_points * retriangulation_ratio:

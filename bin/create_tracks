@@ -41,13 +41,14 @@ for im in images:
 
 logging.info('creating features graph')
 g = nx.Graph()
-for im1, im2 in combinations(images, 2):
-    try:
-        matches = np.genfromtxt(data.robust_matches_file(im1, im2), dtype=int)
-        for f1, f2 in matches:
-            g.add_edge((im1, f1),  (im2, f2))
-    except IOError:
-        pass
+for im1 in images:
+    for im2 in images:
+        try:
+            matches = np.genfromtxt(data.robust_matches_file(im1, im2), dtype=int)
+            for f1, f2 in matches:
+                g.add_edge((im1, f1),  (im2, f2))
+        except IOError:
+            pass
 
 logging.info('finding connected components')
 tracks = nx.connected_components(g)
