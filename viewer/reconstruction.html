@@ -799,9 +799,9 @@
                     for (var i = 0; i < camera_lines.length; ++i) {
                         if (camera_lines[i].shot_id.indexOf(urlParams.img) > -1) {
                             var initialCamera = camera_lines[i];
-                            setImagePlaneCamera(initialCamera);
                             setMovingMode('walk');
-                            goToShot(initialCamera.reconstruction, initialCamera.shot_id);
+                            setImagePlaneCamera(initialCamera);
+                            navigateToShot(initialCamera);
                             break;
                         }
                     }
@@ -886,7 +886,7 @@
                             imagePlaneOld.geometry = imagePlaneGeo(imagePlaneCameraOld.reconstruction, imagePlaneCameraOld.shot_id);
                         }
 
-                        if (movingMode !== 'orbit' || options.showImagePlane !== true) {
+                        if (movingMode === 'walk') {
                             options.imagePlaneOpacity = 1;
                         }
                     }
@@ -918,16 +918,17 @@
                         setSelectedCamera(hoverCamera);
                         setImagePlaneCamera(hoverCamera);
                     } else {
-                        setImagePlaneCamera(selectedCamera);
                         setMovingMode('walk');
-                        goToShot(selectedCamera.reconstruction, selectedCamera.shot_id);
+                        setImagePlaneCamera(selectedCamera);
+                        navigateToShot(selectedCamera);
                     }
                     render();
                 }
             }
 
-            function goToShot(reconstruction, shot_id) {
-                var shot = reconstruction['shots'][shot_id];
+            function navigateToShot(camera) {
+                var reconstruction = camera.reconstruction;
+                var shot = reconstruction['shots'][camera.shot_id];
                 var cam = reconstruction['cameras'][shot['camera']];
                 controls.goto_shot(cam, shot);
             }
@@ -1026,7 +1027,7 @@
                 var line = validMoves[motion_type];
                 if (line !== undefined) {
                     setImagePlaneCamera(line);
-                    goToShot(line.reconstruction, selectedCamera.shot_id);
+                    navigateToShot(line);
                 }
             }
 
