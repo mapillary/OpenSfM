@@ -182,6 +182,7 @@
                 cameraSize: 0,
                 pointSize: 0,
                 showThumbnail: false,
+                showImagePlane: true,
                 drawGrid: false,
                 drawGPS: false
             };
@@ -191,6 +192,7 @@
                 pointSize: 0.7,
                 imagePlaneSize: 50,
                 showThumbnail: true,
+                showImagePlane: false,
                 drawGrid: true,
                 drawGPS: false,
                 animationSpeed: 0.1,
@@ -249,6 +251,9 @@
                 f1.add(options, 'drawGrid')
                     .listen()
                     .onChange(setDrawGrid);
+                f1.add(options, 'showImagePlane')
+                    .listen()
+                    .onChange(setShowImagePlane);
                 f1.add(options, 'drawGPS')
                     .listen()
                     .onChange(setDrawGPS);
@@ -298,6 +303,13 @@
                 $('#info').css('visibility', value ? 'visible' : 'hidden');
             }
 
+            function setShowImagePlane(value) {
+                options.showImagePlane = value;
+                imagePlane.visible = value;
+                imagePlaneOld.visible = value;
+                render();
+            }
+
             function setDrawGrid(value) {
                 options.drawGrid = value;
                 grid_group.visible = value;
@@ -325,8 +337,6 @@
                         controls.noKeys = false;
                         controls.animationPosition.z += 10;
                         controls.dollyOut(4);
-                        imagePlane.visible = false;
-                        imagePlaneOld.visible = false;
                         $('#navigation').hide();
                     } else if (mode == 'walk') {
                         swapOptions();
@@ -349,6 +359,7 @@
                     pointSize: savedOptions.pointSize,
                     cameraSize: savedOptions.cameraSize,
                     showThumbnail: savedOptions.showThumbnail,
+                    showImagePlane: savedOptions.showImagePlane,
                     drawGrid: savedOptions.drawGrid,
                     drawGPS: savedOptions.drawGPS
                 };
@@ -356,12 +367,14 @@
                 savedOptions.pointSize = options.pointSize;
                 savedOptions.cameraSize = options.cameraSize;
                 savedOptions.showThumbnail = options.showThumbnail;
+                savedOptions.showImagePlane = options.showImagePlane;
                 savedOptions.drawGrid = options.drawGrid;
                 savedOptions.drawGPS = options.drawGPS;
 
                 setPointSize(tmpOptions.pointSize);
                 setCameraSize(tmpOptions.cameraSize);
                 setShowThumbnail(tmpOptions.showThumbnail);
+                setShowImagePlane(tmpOptions.showImagePlane);
                 setDrawGrid(tmpOptions.drawGrid);
                 setDrawGPS(tmpOptions.drawGPS);
             }
@@ -681,7 +694,7 @@
                 imagePlane = new THREE.Mesh(imagePlaneGeo(imagePlaneCamera.reconstruction,
                                                           imagePlaneCamera.shot_id),
                                             imageMaterial);
-                imagePlane.visible = false;
+                imagePlane.visible = options.showImagePlane;
 
                 imagePlaneCameraOld = camera_lines[0];
                 var imageTextureOld = THREE.ImageUtils.loadTexture(imageURL(imagePlaneCameraOld.shot_id));
@@ -711,7 +724,7 @@
                 imagePlaneOld = new THREE.Mesh(imagePlaneGeo(imagePlaneCameraOld.reconstruction,
                                                           imagePlaneCameraOld.shot_id),
                                             imageMaterialOld);
-                imagePlaneOld.visible = false;
+                imagePlaneOld.visible = options.showImagePlane;
 
                 scene_group.add(imagePlane);
                 scene_group.add(imagePlaneOld);
@@ -785,8 +798,10 @@
                 if ('img' in urlParams) {
                     for (var i = 0; i < camera_lines.length; ++i) {
                         if (camera_lines[i].shot_id.indexOf(urlParams.img) > -1) {
-                            setImagePlaneCamera(camera_lines[i]);
-                            setShowThumbnail(false);
+                            var initialCamera = camera_lines[i];
+                            setImagePlaneCamera(initialCamera);
+                            setMovingMode('walk');
+                            goToShot(initialCamera.reconstruction, initialCamera.shot_id);
                             break;
                         }
                     }
@@ -871,18 +886,16 @@
                             imagePlaneOld.geometry = imagePlaneGeo(imagePlaneCameraOld.reconstruction, imagePlaneCameraOld.shot_id);
                         }
 
-                        options.imagePlaneOpacity = 1;
-                        imagePlaneOld.visible = true;
+                        if (movingMode !== 'orbit' || options.showImagePlane !== true) {
+                            options.imagePlaneOpacity = 1;
+                        }
                     }
 
                     imagePlaneCamera = cameraObject;
                     imageMaterial.uniforms.projectorTex.value = THREE.ImageUtils.loadTexture(image_url, null, render);
                     imageMaterial.uniforms.projectorMat.value = projectorCameraMatrix(cam, shot)
                     imagePlane.geometry = imagePlaneGeo(r, shot_id);
-                    imagePlane.visible = true;
                 }
-                setMovingMode('walk');
-                controls.goto_shot(cam, shot);
             }
 
             function setImagePlaneCameraList(cameraObject, id) {
@@ -903,11 +916,20 @@
                 if (hoverCamera !== undefined) {
                     if (selectedCamera !== hoverCamera) {
                         setSelectedCamera(hoverCamera);
+                        setImagePlaneCamera(hoverCamera);
                     } else {
                         setImagePlaneCamera(selectedCamera);
+                        setMovingMode('walk');
+                        goToShot(selectedCamera.reconstruction, selectedCamera.shot_id);
                     }
                     render();
                 }
+            }
+
+            function goToShot(reconstruction, shot_id) {
+                var shot = reconstruction['shots'][shot_id];
+                var cam = reconstruction['cameras'][shot['camera']];
+                controls.goto_shot(cam, shot);
             }
 
             function hideImagePlanesList(){
@@ -1004,6 +1026,7 @@
                 var line = validMoves[motion_type];
                 if (line !== undefined) {
                     setImagePlaneCamera(line);
+                    goToShot(line.reconstruction, selectedCamera.shot_id);
                 }
             }
 
