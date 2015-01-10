@@ -95,7 +95,7 @@ if __name__ == "__main__":
         preemptive_max = min(data.config.get('preemptive_max', p_pre[image].shape[0]), p_pre[image].shape[0])
         p_pre[image] = p_pre[image][:preemptive_max,:]
         f_pre[image] = f_pre[image][:preemptive_max,:]
-        if not os.path.exists(data.exif_path()):
+        if os.path.exists(data.exif_path()):
             exifs[image] = data.exif_data(image)
         else:
             exifs[image] = {}
