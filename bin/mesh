@@ -28,7 +28,9 @@ if __name__ == "__main__":
             if shot_id not in graph:
                 continue
             cam = r['cameras'][shot['camera']]
-            pixels = [[0,0], [0, cam['height']], [cam['width'], cam['height']], [cam['width'], 0]]
+            dx = float(cam['width']) / 2 / max(cam['width'], cam['height'])
+            dy = float(cam['height']) / 2 / max(cam['width'], cam['height'])
+            pixels = [[-dx, -dy], [-dx, dy], [dx, dy], [dx, -dy]]
             vertices = [None for i in range(4)]
             for track_id, edge in graph[shot_id].items():
                 if track_id in r['points']:
