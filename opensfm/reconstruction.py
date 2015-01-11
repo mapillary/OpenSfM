@@ -579,11 +579,11 @@ def paint_reconstruction(data, graph, reconstruction):
     track_sum = {track: 0 for track in reconstruction['points']}
 
     for shot in to_paint:
-        features = np.array(to_paint[shot]).astype(int)
+        points = np.array(to_paint[shot])
         tracks = to_paint_track[shot]
         im = data.image_as_array(shot)
-
-        colors = im[features[:,1], features[:,0]]
+        pixels = features.denormalized_image_coordinates(points, im.shape[1], im.shape[0]).astype(int)
+        colors = im[pixels[:,1], pixels[:,0]]
         for track, color in zip(tracks, colors):
             track_colors[track] += color
             track_sum[track] += 1
