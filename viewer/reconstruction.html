@@ -433,12 +433,12 @@
             function pixelToVertex(cam, shot, u, v, scale) {
                 // Projection model:
                 // xc = R * x + t
-                // u = focal * xc / zc + width / 2
-                // v = focal * yc / zc + height / 2
+                // u = focal * xc / zc
+                // v = focal * yc / zc
 
                 var zc = scale;
-                var xc = (u - cam.width / 2) / cam.focal * zc;
-                var yc = (v - cam.height / 2) / cam.focal * zc;
+                var xc = u / cam.focal * zc;
+                var yc = v / cam.focal * zc;
 
                 var xct = [xc - shot.translation[0],
                            yc - shot.translation[1],
@@ -480,10 +480,12 @@
                 var shot = reconstruction.shots[shot_id];
                 var cam = reconstruction.cameras[shot.camera];
                 var ocenter = opticalCenter(shot);
-                var top_left = pixelToVertex(cam, shot, 0, 0, options.cameraSize);
-                var top_right = pixelToVertex(cam, shot, cam.width, 0, options.cameraSize);
-                var bottom_right = pixelToVertex(cam, shot, cam.width, cam.height, options.cameraSize);
-                var bottom_left = pixelToVertex(cam, shot, 0, cam.height, options.cameraSize);
+                var dx = cam.width / 2.0 / Math.max(cam.width, cam.height);
+                var dy = cam.height / 2.0 / Math.max(cam.width, cam.height);
+                var top_left     = pixelToVertex(cam, shot, -dx, -dy, options.cameraSize);
+                var top_right    = pixelToVertex(cam, shot,  dx, -dy, options.cameraSize);
+                var bottom_right = pixelToVertex(cam, shot,  dx,  dy, options.cameraSize);
+                var bottom_left  = pixelToVertex(cam, shot, -dx,  dy, options.cameraSize);
                 var linegeo = new THREE.Geometry();
                 linegeo.vertices.push(ocenter);
                 linegeo.vertices.push(top_left);
