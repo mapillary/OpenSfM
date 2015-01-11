@@ -11,95 +11,123 @@ import cv2
 
 import context
 
-
-def extract_feature(imagefile, config):
-
-    image = cv2.imread(imagefile)
-
-    # Resize the image
-    sz = np.array(image.shape[0:2])
+def resized_image(image, config):
     feature_process_size = config.get('feature_process_size', -1)
-    resize_ratio = feature_process_size / float(np.max(sz))
-    if resize_ratio > 0 and resize_ratio < 1.0:
-        image = cv2.resize(image, dsize=(0,0), fx=resize_ratio, fy=resize_ratio)
+    size = np.array(image.shape[0:2])
+    if 0 < feature_process_size < size.max():
+        new_size = size * feature_process_size / size.max()
+        return cv2.resize(image, dsize=(new_size[1], new_size[0]))
     else:
-        resize_ratio = 1.0
+        return image
 
-    feature_type = config.get('feature_type','SIFT').upper()
-    detector = cv2.FeatureDetector_create(feature_type)
-    descriptor = cv2.DescriptorExtractor_create(feature_type)
+def normalized_image_coordinates(pixel_coords, width, height):
+    size = max(width, height)
+    p = np.empty((len(pixel_coords), 2))
+    p[:, 0] = (pixel_coords[:, 0] + 0.5 - width / 2.0) / size
+    p[:, 1] = (pixel_coords[:, 1] + 0.5 - height / 2.0) / size
+    return p
 
-    if feature_type == 'SIFT':
-        detector.setDouble('edgeThreshold', config['sift_edge_threshold'])
-        sift_peak_threshold = float(config['sift_peak_threshold'])
-    elif feature_type == 'SURF':
-        surf_hessian_threshold = config.get('surf_hessian_threshold',3000)
-        surf_n_octaves = config.get('surf_n_octaves',4)
-        surf_n_octaveLayers = config.get('surf_n_octavelayers',2)
-        surf_upright = config.get('surf_upright',0)
-        detector.setDouble('hessianThreshold', surf_hessian_threshold)
-        detector.setDouble('nOctaves', surf_n_octaves)
-        detector.setDouble('nOctaveLayers', surf_n_octaveLayers)
-        detector.setInt('upright', surf_upright)
+def denormalized_image_coordinates(norm_coords, width, height):
+    size = max(width, height)
+    p = np.empty((len(norm_coords), 2))
+    p[:, 0] = norm_coords[:, 0] * size - 0.5 + width / 2.0
+    p[:, 1] = norm_coords[:, 1] * size - 0.5 + height / 2.0
+    return p
 
-    if feature_type == 'SIFT':
-        while True:
-            print 'Computing sift with threshold {0}'.format(sift_peak_threshold)
-            detector.setDouble("contrastThreshold", sift_peak_threshold) #default: 0.04
-            points = detector.detect(image)
-            print 'Found {0} points'.format(len(points))
-            if len(points) < config['feature_min_frames'] and sift_peak_threshold > 0.0001:
-                sift_peak_threshold = (sift_peak_threshold * 2) / 3
-                print 'reducing threshold'
-            else:
-                print 'done'
-                break
-    elif feature_type == 'SURF':
-        while True:
-            print 'Computing surf with threshold {0}'.format(surf_hessian_threshold)
-            t = time.time()
-            detector.setDouble("hessianThreshold", surf_hessian_threshold) #default: 0.04
-            points = detector.detect(image)
-            print 'Found {0} points in {1}s'.format( len(points), time.time()-t )
-            if len(points) < config['feature_min_frames'] and surf_hessian_threshold > 0.0001:
-                surf_hessian_threshold = (surf_hessian_threshold * 2) / 3
-                print 'reducing threshold'
-            else:
-                print 'done'
-                break
-    elif feature_type == 'AKAZE':
-        threshold = config.get('akaze_dthreshold', 0.005)
-        config['akaze_resize_ratio'] = resize_ratio
-        while True:
-            print 'Computing AKAZE with threshold {0}'.format(threshold)
-            t = time.time()
-            config['akaze_dthreshold'] = threshold
-            points, desc = akaze_feature(imagefile, config)
-            print 'Found {0} points in {1}s'.format( len(points), time.time()-t )
-            if len(points) < config['feature_min_frames'] and threshold > 0.00001:
-                threshold = (threshold * 2) / 3
-                print 'reducing threshold'
-            else:
-                print 'done'
-                break
-    else:
-        ValueError('Unknown feature type (must be SURF, SIFT or AKAZE)')
-
-    if feature_type == 'SIFT' or feature_type == 'SURF':
-        points, desc = descriptor.compute(image, points)
-        ps = np.array([(i.pt[0]/resize_ratio, i.pt[1]/resize_ratio, i.size/resize_ratio, i.angle) for i in points])
-    else:
-        ps = points
+def mask_and_normalize_features(points, desc, width, height, config):
     masks = np.array(config.get('masks',[]))
     for mask in masks:
-        mask = [mask[0]*sz[0], mask[1]*sz[1], mask[2]*sz[0], mask[3]*sz[1]]
-        ids  = np.invert ( (ps[:,1] > mask[0]) *
-                           (ps[:,1] < mask[2]) *
-                           (ps[:,0] > mask[1]) *
-                           (ps[:,0] < mask[3]) )
-        ps = ps[ids,:]
-        desc = desc[ids,:]
-    return ps, desc
+        mask = [mask[0]*height, mask[1]*width, mask[2]*height, mask[3]*width]
+        ids  = np.invert ( (points[:,1] > mask[0]) *
+                           (points[:,1] < mask[2]) *
+                           (points[:,0] > mask[1]) *
+                           (points[:,0] < mask[3]) )
+        points = points[ids]
+        desc = desc[ids]
+    points[:, :2] = normalized_image_coordinates(points[:, :2], width, height)
+    return points, desc
+
+def extract_features_sift(imagefile, config):
+    image = resized_image(cv2.imread(imagefile), config)
+
+    detector = cv2.FeatureDetector_create('SIFT')
+    descriptor = cv2.DescriptorExtractor_create('SIFT')
+    detector.setDouble('edgeThreshold', config['sift_edge_threshold'])
+    sift_peak_threshold = float(config['sift_peak_threshold'])
+    while True:
+        print 'Computing sift with threshold {0}'.format(sift_peak_threshold)
+        detector.setDouble("contrastThreshold", sift_peak_threshold)
+        points = detector.detect(image)
+        print 'Found {0} points'.format(len(points))
+        if len(points) < config['feature_min_frames'] and sift_peak_threshold > 0.0001:
+            sift_peak_threshold = (sift_peak_threshold * 2) / 3
+            print 'reducing threshold'
+        else:
+            print 'done'
+            break
+
+    points, desc = descriptor.compute(image, points)
+    points = np.array([(i.pt[0], i.pt[1], i.size, i.angle) for i in points])
+    return mask_and_normalize_features(points, desc, image.shape[1], image.shape[0], config)
+
+
+def extract_features_surf(imagefile, config):
+    image = resized_image(cv2.imread(imagefile), config)
+
+    detector = cv2.FeatureDetector_create('SURF')
+    descriptor = cv2.DescriptorExtractor_create('SURF')
+    surf_hessian_threshold = config.get('surf_hessian_threshold', 3000)
+    detector.setDouble('hessianThreshold', surf_hessian_threshold)
+    detector.setDouble('nOctaves', config.get('surf_n_octaves', 4))
+    detector.setDouble('nOctaveLayers', config.get('surf_n_octavelayers', 2))
+    detector.setInt('upright', config.get('surf_upright',0))
+    while True:
+        print 'Computing surf with threshold {0}'.format(surf_hessian_threshold)
+        t = time.time()
+        detector.setDouble("hessianThreshold", surf_hessian_threshold) #default: 0.04
+        points = detector.detect(image)
+        print 'Found {0} points in {1}s'.format( len(points), time.time()-t )
+        if len(points) < config['feature_min_frames'] and surf_hessian_threshold > 0.0001:
+            surf_hessian_threshold = (surf_hessian_threshold * 2) / 3
+            print 'reducing threshold'
+        else:
+            print 'done'
+            break
+
+    points, desc = descriptor.compute(image, points)
+    points = np.array([(i.pt[0], i.pt[1], i.size, i.angle) for i in points])
+    return mask_and_normalize_features(points, desc, image.shape[1], image.shape[0], config)
+
+
+def extract_features_akaze(imagefile, config):
+    threshold = config.get('akaze_dthreshold', 0.005)
+    while True:
+        print 'Computing AKAZE with threshold {0}'.format(threshold)
+        t = time.time()
+        config['akaze_dthreshold'] = threshold
+        points, desc = akaze_feature(imagefile, config)
+        print 'Found {0} points in {1}s'.format( len(points), time.time()-t )
+        if len(points) < config['feature_min_frames'] and threshold > 0.00001:
+            threshold = (threshold * 2) / 3
+            print 'reducing threshold'
+        else:
+            print 'done'
+            break
+
+    image = cv2.imread(imagefile)
+    return mask_and_normalize_features(points, desc, image.shape[1], image.shape[0], config)
+
+
+def extract_feature(imagefile, config):
+    feature_type = config.get('feature_type','SIFT').upper()
+    if feature_type == 'SIFT':
+        return extract_features_sift(imagefile, config)
+    elif feature_type == 'SURF':
+        return extract_features_surf(imagefile, config)
+    elif feature_type == 'AKAZE':
+        return extract_features_akaze(imagefile, config)
+    else:
+        raise ValueError('Unknown feature type (must be SURF, SIFT or AKAZE)')
 
 def akaze_feature(imagefile, config):
     ''' Extract AKAZE interest points and descriptors
@@ -116,7 +144,7 @@ def akaze_feature(imagefile, config):
           "--descriptor", str(config.get('akaze_descriptor', 5)),
           "--descriptor_size", str(config.get('akaze_descriptor_size', 0)),
           "--descriptor_channels", str(config.get('akaze_descriptor_channels', 3)),
-          "--resize_ratio", str(config.get('akaze_resize_ratio', 1.0))
+          "--process_size", str(config.get('feature_process_size', -1))
         ])
     with open(featurefile, 'rb') as fout:
         lines = fout.readlines()
@@ -138,7 +166,7 @@ def akaze_feature(imagefile, config):
             points, desc = [], []
     return points, desc
 
-def write_feature(points, descriptors, featurefile, config={}):
+def write_features(points, descriptors, featurefile, config={}):
     if config.get('feature_type') == 'AKAZE' and config.get('akaze_descriptor') >= 4:
         feature_data_type = np.uint8
     else:
@@ -148,7 +176,7 @@ def write_feature(points, descriptors, featurefile, config={}):
              points=points.astype(np.float32),
              descriptors=descriptors.astype(feature_data_type))
 
-def read_feature(featurefile):
+def read_features(featurefile):
     s = np.load(featurefile)
     return s['points'], s['descriptors']
 

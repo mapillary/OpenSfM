@@ -235,12 +235,8 @@ def two_view_reconstruction(p1, p2, d1, d2, config):
 
     params = [context.TWO_VIEW_RECONSTRUCTION,
               '-threshold', str(config['five_point_algo_threshold']),
-              '-focal1', d1['focal_ratio'] * np.max([d1['width'], d1['height']]),
-              '-width1', d1['width'],
-              '-height1', d1['height'],
-              '-focal2', d2['focal_ratio'] * np.max([d2['width'], d2['height']]),
-              '-width2', d2['width'],
-              '-height2', d2['height']]
+              '-focal1', d1['focal_ratio'],
+              '-focal2', d2['focal_ratio']]
     params = map(str, params)
 
     p = Popen(params, stdout=PIPE, stdin=PIPE, stderr=PIPE)
@@ -355,10 +351,8 @@ def fit_similarity_transform(p1, p2, max_iterations=1000, threshold=1):
 
 def K_from_camera(camera):
     f = float(camera['focal'])
-    w = camera['width']
-    h = camera['height']
-    return np.array([[f, 0., w / 2],
-                     [0., f, h / 2],
+    return np.array([[f, 0., 0.],
+                     [0., f, 0.],
                      [0., 0., 1.]])
 
 def undistort_points(camera, points):

@@ -30,11 +30,7 @@
 
 DEFINE_double(threshold, 0.01, "Max inlier error as a portion of the image width.");
 DEFINE_double(focal1, 1, "Focal length for the first camera.");
-DEFINE_double(width1, 640, "Image width of the first image.");
-DEFINE_double(height1, 480, "Image height of the first image.");
 DEFINE_double(focal2, 1, "Focal length for the second camera.");
-DEFINE_double(width2, 640, "Image width of the second image.");
-DEFINE_double(height2, 480, "Image height of the second image.");
 
 using namespace libmv;
 
@@ -64,11 +60,11 @@ int main(int argc, char **argv) {
 
   // Create calibration matrices.
   Mat3 K1, K2;
-  K1 << FLAGS_focal1, 0, FLAGS_width1 / 2,
-        0, FLAGS_focal1, FLAGS_height1 / 2,
+  K1 << FLAGS_focal1, 0, 0,
+        0, FLAGS_focal1, 0,
         0, 0, 1;
-  K2 << FLAGS_focal2, 0, FLAGS_width2 / 2,
-        0, FLAGS_focal2, FLAGS_height2 / 2,
+  K2 << FLAGS_focal2, 0, 0,
+        0, FLAGS_focal2, 0,
         0, 0, 1;
 
   // Compute Essential matrix.

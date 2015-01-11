@@ -1,11 +1,11 @@
 
 # Params for features
-feature_type: AKAZE            # Feature type (SURF, SIFT)
-feature_min_frames: 10000      # If fewer frames are detected, sift_peak_threshold/surf_hessian_threshold is reduced.
+feature_type: SIFT            # Feature type (SURF, SIFT)
+feature_min_frames: 0         # If fewer frames are detected, sift_peak_threshold/surf_hessian_threshold is reduced.
 feature_process_size: 2048    # Resize the image if its size is larger than specified. Set to -1 for original size
 
 # Params for SIFT
-sift_peak_threshold: 0.04     # Smaller value -> more features
+sift_peak_threshold: 0.1     # Smaller value -> more features
 sift_edge_threshold: 10       # See OpenCV doc
 
 # Params for SURF
@@ -13,10 +13,10 @@ surf_hessian_threshold: 3000  # Smaller value -> more features
 surf_n_octaves: 4             # See OpenCV doc
 surf_n_octavelayers: 2        # See OpenCV doc
 
-# Params for AKAZE
+# Params for AKAZE (See detials in lib/src/third_party/akaze/AKAZEConfig.h)
 akaze_omax: 4                 # Maximum octave evolution of the image 2^sigma (coarsest scale sigma units)
-akaze_dthreshold: 0.01       # Detector response threshold to accept point
-akaze_min_dthreshold: 0.0001 # Minimum detector threshold to accept a point
+akaze_dthreshold: 0.005       # Detector response threshold to accept point
+akaze_min_dthreshold: 0.0001  # Minimum detector threshold to accept a point
 akaze_descriptor: 5           # Feature type
 akaze_descriptor_size: 0      # Size of the descriptor in bits. 0->Full size
 akaze_descriptor_channels: 3  # Number of feature channels (1,2,3)
@@ -29,34 +29,38 @@ akaze_descriptor_channels: 3  # Number of feature channels (1,2,3)
 
 # Params for general matching
 lowes_ratio: 0.8              # Ratio test for matches
+preemptive_lowes_ratio: 0.6   # Ratio test for preemptive matches
+matcher_type: FLANN           # FLANN or BRUTEFORCE
 
 # Params for FLANN matching
 flann_branching: 16           # See OpenCV doc
 flann_iterations: 10          # See OpenCV doc
-flann_checks: 100             # Smaller -> Faster (but might lose good matches)
+flann_checks: 200             # Smaller -> Faster (but might lose good matches)
 
 # Params for preemtive matching
 matching_gps_distance: 150            # Maximum gps distance between two images for matching
 preemptive_max: 200                   # Number of features to use for preemptive matching
-preemptive_threshold: 1               # If number of matches passes the threshold -> full feature matching
+preemptive_threshold: 2               # If number of matches passes the threshold -> full feature matching
 preemptive_matching_gps_distance: 300 # Maximum gps distance between two images for preemptive matching
 
 # Params for geometric estimation
-robust_matching_threshold: 3          # Outlier threshold (in pixels) for fundamental matrix estimation
+robust_matching_threshold: 0.006      # Outlier threshold for fundamental matrix estimation as portion of image width
 robust_matching_min_match: 20         # Minimum number of matches to be considered as an edge in the match grph
-five_point_algo_threshold: 5          # Outlier threshold (in pixels) for essential matrix estimation
+five_point_algo_threshold: 0.006      # Outlier threshold (in pixels) for essential matrix estimation
 five_point_algo_min_inliers: 20       # Minimum number of inliers for considering a two view reconstruction valid.
-triangulation_threshold: 5            # Outlier threshold (in pixels) for accepting a triangulated point.
-resection_threshold: 5                # Outlier threshold (in pixels) for camera resection.
+triangulation_threshold: 0.006        # Outlier threshold (in pixels) for accepting a triangulated point.
+resection_threshold: 0.008            # Outlier threshold (in pixels) for camera resection.
 resection_min_inliers: 10             # Minimum number of resection inliers to accept it.
 
 # Params for track creation
 min_track_length: 2           # Minimum number of features/images per track
 
 # Params for bundle adjustment
-loss_function: TruncatedLoss  # Loss function for the ceres problem (see: http://ceres-solver.org/modeling.html#lossfunction)
-loss_function_threshold: 5.0  # Usually cost is quadratic for smaller residuals and sub-quadratic above.
-exif_focal_sd: 0.01           # The standard deviation of the diff between the focal length and the exif focal length in width units.
+loss_function: TruncatedLoss    # Loss function for the ceres problem (see: http://ceres-solver.org/modeling.html#lossfunction)
+loss_function_threshold: 0.004  # Usually cost is quadratic for smaller residuals and sub-quadratic above.
+exif_focal_sd: 0.01             # The standard deviation of the diff between the focal length and the exif focal length in width units.
+bundle_interval: 1            # bundle adjustment after adding 'bundle_interval' cameras
+bundle_outlier_threshold: 0.008
 
 # Other params
 processes: 1                  # Number of threads to use

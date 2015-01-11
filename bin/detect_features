@@ -33,8 +33,8 @@ def detect(image):
         p_sorted = p_unsorted[order, :]
         p_pre = p_sorted[-preemptive_max:]
         f_pre = f_sorted[-preemptive_max:]
-        features.write_feature(p_sorted, f_sorted, data.feature_file(image), data.config)
-        features.write_feature(p_pre, f_pre, data.preemptive_feature_file(image), data.config)
+        features.write_features(p_sorted, f_sorted, data.feature_file(image), data.config)
+        features.write_features(p_pre, f_pre, data.preemptive_feature_file(image), data.config)
         features.build_flann_index(f_sorted, data.feature_index_file(image), data.config)
 
 if __name__ == "__main__":

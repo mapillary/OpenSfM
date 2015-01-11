@@ -177,8 +177,8 @@ class BALProblem {
         o.shot = shot_by_id_[shot_id];
         o.camera = camera_by_id_[o.shot->camera];
         o.point = point_by_id_[point_id];
-        o.coordinates[0] = x - o.camera->width / 2;
-        o.coordinates[1] = y - o.camera->height / 2;
+        o.coordinates[0] = x;
+        o.coordinates[1] = y;
         observations_.push_back(o);
       }
     }

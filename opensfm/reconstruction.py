@@ -61,7 +61,7 @@ def pairwise_reconstructability(common_tracks, homography_inliers):
     else:
         return 0
 
-def compute_image_pairs(graph, image_graph):
+def compute_image_pairs(graph, image_graph, config):
     '''All matched image pairs sorted by reconstructability.
     '''
     pairs = []
@@ -69,7 +69,7 @@ def compute_image_pairs(graph, image_graph):
     for im1, im2, d in image_graph.edges(data=True):
         tracks, p1, p2 = dataset.common_tracks(graph, im1, im2)
         if len(tracks) >= 100:
-            H, inliers = cv2.findHomography(p1, p2, cv2.RANSAC, 8)
+            H, inliers = cv2.findHomography(p1, p2, cv2.RANSAC, config.get('homography_threshold', 0.006))
             r = pairwise_reconstructability(len(tracks), inliers.sum())
             if r > 0:
                 pairs.append((im1,im2))
@@ -187,8 +187,8 @@ def reproject(camera, shot, point):
     r2 = xp * xp + yp * yp
     distortion = 1.0 + r2  * (l1 + l2  * r2)
 
-    x_reproject = camera['focal'] * distortion * xp + camera['width'] / 2
-    y_reproject = camera['focal'] * distortion * yp + camera['height'] / 2
+    x_reproject = camera['focal'] * distortion * xp
+    y_reproject = camera['focal'] * distortion * yp
 
     return np.array([x_reproject, y_reproject])
 
@@ -603,7 +603,7 @@ def grow_reconstruction(data, graph, reconstruction, images, image_graph):
     retriangulation_ratio = data.config.get('retriangulation_ratio', 1.25)
 
     reconstruction = bundle(data.tracks_file(), reconstruction, data.config)
-    # align_reconstruction(reconstruction)
+    align_reconstruction(reconstruction)
 
     prev_num_points = len(reconstruction['points'])
 
@@ -704,7 +704,7 @@ def incremental_reconstruction(data):
     print 'nonfisheye images', len(remaining_images)
     image_graph = bipartite.weighted_projected_graph(graph, images)
     reconstructions = []
-    pairs = compute_image_pairs(graph, image_graph)
+    pairs = compute_image_pairs(graph, image_graph, data.config)
     for im1, im2 in pairs:
         if im1 in remaining_images and im2 in remaining_images:
             reconstruction = bootstrap_reconstruction(data, graph, im1, im2)

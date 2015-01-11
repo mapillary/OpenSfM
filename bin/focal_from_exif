@@ -207,8 +207,8 @@ for image in images:
                 'height': d['height'],
                 'focal_ratio': d['focal_ratio'],
                 'focal_35mm_equiv': d['focal_35mm_equiv'],
-                "focal": d['focal_ratio'] * np.max([d['width'], d['height']]),
-                "exif_focal": d['focal_ratio'] * np.max([d['width'], d['height']])
+                "focal": d['focal_ratio'],
+                "exif_focal": d['focal_ratio']
             }
 
     distortion = extract_distortion(make, model, focal_35)
