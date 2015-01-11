@@ -337,6 +337,8 @@
                         controls.noKeys = false;
                         controls.animationPosition.z += 10;
                         controls.dollyOut(4);
+                        imageMaterial.depthWrite = true;
+                        imageMaterialOld.depthWrite = true;
                         $('#navigation').hide();
                     } else if (mode == 'walk') {
                         swapOptions();
@@ -345,6 +347,8 @@
                         controls.noPan = true;
                         controls.noZoom = true;
                         controls.noKeys = true;
+                        imageMaterial.depthWrite = false;
+                        imageMaterialOld.depthWrite = false;
                         $('#navigation').show();
                     }
                 }
