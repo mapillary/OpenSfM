@@ -529,10 +529,12 @@
                         geometry.faces.push(new THREE.Face3(v0, v1, v2));
                     }
                 } else {
-                    var top_left = pixelToVertex(cam, shot, 0, 0, options.imagePlaneSize);
-                    var top_right = pixelToVertex(cam, shot, cam.width, 0, options.imagePlaneSize);
-                    var bottom_right = pixelToVertex(cam, shot, cam.width, cam.height, options.imagePlaneSize);
-                    var bottom_left = pixelToVertex(cam, shot, 0, cam.height, options.imagePlaneSize);
+                    var dx = cam.width / 2.0 / Math.max(cam.width, cam.height);
+                    var dy = cam.height / 2.0 / Math.max(cam.width, cam.height);
+                    var top_left     = pixelToVertex(cam, shot, -dx, -dy, options.imagePlaneSize);
+                    var top_right    = pixelToVertex(cam, shot,  dx, -dy, options.imagePlaneSize);
+                    var bottom_right = pixelToVertex(cam, shot,  dx,  dy, options.imagePlaneSize);
+                    var bottom_left  = pixelToVertex(cam, shot, -dx,  dy, options.imagePlaneSize);
 
                     geometry.vertices.push(
                         top_left,
@@ -560,8 +562,8 @@
                 var t = shot.translation;
                 var translation = new THREE.Vector3(t[0], t[1], t[2]);
                 rotation.setPosition(translation);
-                var dx = cam.width / cam.focal;
-                var dy = cam.height / cam.focal;
+                var dx = cam.width / Math.max(cam.width, cam.height) / cam.focal;
+                var dy = cam.height / Math.max(cam.width, cam.height) / cam.focal;
                 var projection = new THREE.Matrix4().makeFrustum(-dx, +dx, +dy, -dy, -1, -1000);
                 return projection.multiply(rotation);
             }

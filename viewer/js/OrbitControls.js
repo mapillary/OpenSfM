@@ -257,7 +257,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 
 	this.goto_shot = function(cam, shot) {
 		this.animationPosition.copy(opticalCenter(shot));
-		var offset = pixelToVertex(cam, shot, cam.width/2, cam.height/2, 20);
+		var offset = pixelToVertex(cam, shot, 0, 0, 20);
 		this.animationTarget.copy(offset);
 	};
 
