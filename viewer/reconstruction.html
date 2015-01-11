@@ -306,7 +306,11 @@
             function setShowImagePlane(value) {
                 options.showImagePlane = value;
                 imagePlane.visible = value;
-                imagePlaneOld.visible = value;
+                if (movingMode === 'walk') {
+                    imagePlaneOld.visible = value;
+                } else {
+                    imagePlaneOld.visible = false;
+                }
                 render();
             }
 
