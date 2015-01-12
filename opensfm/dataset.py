@@ -184,7 +184,7 @@ class DataSet:
         """Return path of tracks file"""
         return os.path.join(self.data_path, 'tracks.csv')
 
-    def tracks_graph(self):
+    def tracks_graph(self, images=None):
         """Return graph (networkx data structure) of tracks"""
         with open(self.tracks_file()) as fin:
             g = nx.Graph()
@@ -192,7 +192,7 @@ class DataSet:
                 image, track, observation, x, y = line.split('\t')
                 g.add_node(image, bipartite=0)
                 g.add_node(track, bipartite=1)
-                g.add_edge(image, track, feature=(float(x), float(y)))
+                g.add_edge(image, track, feature=(float(x), float(y), int(observation)))
             return g
 
     def reconstruction_file(self):
@@ -262,8 +262,8 @@ def common_tracks(g, im1, im2):
     tracks, p1, p2 = [], [], []
     for track in t1:
         if track in t2:
-            p1.append(t1[track]['feature'])
-            p2.append(t2[track]['feature'])
+            p1.append(t1[track]['feature'][0:2])
+            p2.append(t2[track]['feature'][0:2])
             tracks.append(track)
     p1 = np.array(p1)
     p2 = np.array(p2)
