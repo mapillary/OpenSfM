@@ -8,6 +8,16 @@ import networkx as nx
 import yaml
 import cv2
 
+def mkdir_p(path):
+    '''Make a directory including parent directories.
+    '''
+    try:
+        os.makedirs(path)
+    except os.error as exc:
+        if exc.errno == errno.EEXIST and os.path.isdir(path):
+            pass
+        else:
+            raise
 
 class DataSet:
     """
@@ -31,13 +41,7 @@ class DataSet:
         for p in [self.exif_path(),
                   self.feature_path(),
                   self.robust_matches_path()]:
-            try:
-                os.makedirs(p)
-            except os.error as exc:
-                if exc.errno == errno.EEXIST and os.path.isdir(p):
-                    pass
-                else:
-                    raise
+            mkdir_p(p)
 
     @staticmethod
     def _is_image_file(filename):

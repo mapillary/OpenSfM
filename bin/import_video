@@ -1,0 +1,76 @@
+#!/usr/bin/env python
+import os.path, sys
+import time
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from subprocess import Popen, PIPE
+
+import numpy as np
+import cv2
+import argparse
+import gpxpy
+import datetime
+import dateutil.parser
+from opensfm import dataset
+from opensfm import geo
+from opensfm import geotag_from_gpx
+
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Parse gpx file and exctact video frames.')
+    parser.add_argument('--gpx', help='path to the gpx file')
+    parser.add_argument('--video', help='path to the video file')
+    parser.add_argument('--output', help='path to the image output folder', default='.')
+    parser.add_argument('--dx', help='minimal distance between key frames (in meters)', default=5)
+    parser.add_argument('--dt', help='minimal time offset between key frames (in seconds)', default=2)
+    parser.add_argument('--start_time',
+        help='time of the first frame of the video (in ISO8601 format, example {0})'.format(
+            datetime.datetime.now().isoformat()))
+    args = parser.parse_args()
+    min_dx = float(args.dx)
+    min_dt = datetime.timedelta(seconds=float(args.dt))
+        
+
+    # Sample GPX points.
+    points = geotag_from_gpx.get_lat_lon_time(args.gpx)
+    key_points = [points[0]]
+    for p in points:
+        dx = geo.gps_distance(key_points[-1][1:3], p[1:3])
+        dt = p[0] - key_points[-1][0]
+        if dx > min_dx and dt > min_dt:
+            key_points.append(p)
+    print len(points), len(key_points)
+
+
+    # Extract video frames.
+    dataset.mkdir_p(args.output)
+    if args.start_time:
+        video_start_time = dateutil.parser.parse(args.start_time)
+    else:
+        try:
+            exifdate = Popen(['exiftool', '-CreateDate', args.video], stdout=PIPE).stdout.read()
+            datestr = ' '.join(exifdate.split()[-2:])
+            video_start_time = datetime.datetime.strptime(datestr,'%Y:%m:%d %H:%M:%S')
+            print video_start_time
+        except:
+            print 'Video recording timestamp not found. Using first GPS point time.'
+    video_start_time = key_points[0][0]
+
+    cap = cv2.VideoCapture(args.video)
+    for p in key_points:
+        dt = (p[0] - video_start_time).total_seconds()
+        cap.set(cv2.cv.CV_CAP_PROP_POS_MSEC, int(dt * 1000))
+        ret, frame = cap.read()
+
+        filepath = os.path.join(args.output, p[0].isoformat() + '.jpg')
+        cv2.imwrite(filepath, frame)
+        geotag_from_gpx.add_exif_using_timestamp(filepath, points, timestamp=p[0])
+
+        # Display the resulting frame
+        cv2.imshow('frame', frame)
+        if cv2.waitKey(1) & 0xFF == 27:
+            break
+
+    # When everything done, release the capture
+    cap.release()
+    cv2.destroyAllWindows()
