@@ -2,6 +2,7 @@
 
 import sys
 import os
+import shutil
 import gpxpy
 import datetime
 import pyexiv2
@@ -147,11 +148,14 @@ def to_deg(value, loc):
 
 
 
-def add_gps_to_exif(filename, lat, lon, bearing, elevation):
+def add_gps_to_exif(filename, lat, lon, bearing, elevation, updated_filename=None):
     '''
     Given lat, lon, bearing, elevation, write to EXIF
     '''
     # TODO: use this within add_exif_using_timestamp
+    if updated_filename is not None:
+        shutil.copy2(filename, updated_filename)
+        filename = updated_filename
 
     metadata = pyexiv2.ImageMetadata(filename)
     metadata.read()
@@ -228,6 +232,7 @@ def add_exif_using_timestamp(filename, points, offset_time=0, timestamp=None):
             metadata["Exif.GPSInfo.GPSAltitudeRef"] = '0' if elevation >= 0 else '1'
 
         metadata.write()
+
         print("Added geodata to: {0} ({1}, {2}, {3}), altitude {4}".format(filename, lat, lon, bearing, elevation))
     except ValueError, e:
         print("Skipping {0}: {1}".format(filename, e))
