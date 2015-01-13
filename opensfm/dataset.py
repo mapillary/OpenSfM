@@ -203,10 +203,11 @@ class DataSet:
         """Return path of reconstruction file"""
         return os.path.join(self.data_path, 'reconstruction.json')
 
-    def invent_reference_lla(self):
+    def invent_reference_lla(self, images=None):
         lat, lon, alt = 0.0, 0.0, 0.0
         wlat, wlon, walt = 0.0, 0.0, 0.0
-        for image in self.images():
+        if images is None: images = self.images()
+        for image in images:
             d = self.exif_data(image)
             if 'gps' in d:
                 w = 1.0 / d['gps'].get('dop', 15)
@@ -221,6 +222,7 @@ class DataSet:
         if wlon: lon /= wlon
         if walt: alt /= walt
         self.set_reference_lla(lat, lon, 0) # Set altitude manually.
+        return {'latitude': lat, 'longitude': lon, 'altitude': alt}
 
     def reference_lla_path(self):
         return os.path.join(self.data_path, 'reference_lla.json')
