@@ -503,6 +503,30 @@ def align_reconstruction(reconstruction):
     apply_similarity(reconstruction, s, A, b)
 
 
+def register_reconstruction_with_gps(reconstruction, reference):
+    """
+    register reconstrution with gps positions and compass angles
+    """
+    shots = reconstruction['shots']
+    for shot_id, shot in shots.iteritems():
+        gps = {}
+        topo = optical_center(shot)
+        lat, lon, alt = geo.lla_from_topocentric(topo[0], topo[1], topo[2],
+                                reference['latitude'], reference['longitude'], reference['altitude'])
+
+        # find direction
+        shot['translation'][2] -= 1
+        topo2 = optical_center(shot)
+        dz = topo2 - topo
+        angle = np.rad2deg(np.arctan2(dz[0], dz[1]))
+        reconstruction['shots'][shot_id]['gps'] = {
+                                            'lon': lon,
+                                            'lat': lat,
+                                            'altitude': alt,
+                                            'direction': angle
+                                      }
+
+
 def merge_two_reconstructions(r1, r2, threshold=1):
     ''' Merge two reconstructions with common tracks
     '''
@@ -715,7 +739,7 @@ def incremental_reconstruction(data):
                 reconstructions.append(reconstruction)
                 reconstructions = sorted(reconstructions, key=lambda x: -len(x['shots']))
                 with open(data.reconstruction_file(), 'w') as fout:
-                    fout.write(json.dumps(reconstructions))
+                    fout.write(json.dumps(reconstructions, indent=4))
 
     for k, r in enumerate(reconstructions):
         print 'Reconstruction', k, ':', len(r['shots']), 'images', ',', len(r['points']),'points'
