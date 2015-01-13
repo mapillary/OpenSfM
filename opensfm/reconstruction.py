@@ -40,7 +40,7 @@ def bundle(tracks_file, reconstruction, config):
         '--input', source,
         '--output', dest,
         '--loss_function', config.get('loss_function', 'TruncatedLoss'),
-        '--loss_function_threshold', str(config.get('loss_function_threshold', 3.0)),
+        '--loss_function_threshold', str(config.get('loss_function_threshold', 0.004)),
         '--exif_focal_sd', str(config.get('exif_focal_sd', 999)),
         ])
 
@@ -69,7 +69,7 @@ def compute_image_pairs(graph, image_graph, config):
     for im1, im2, d in image_graph.edges(data=True):
         tracks, p1, p2 = dataset.common_tracks(graph, im1, im2)
         if len(tracks) >= 100:
-            H, inliers = cv2.findHomography(p1, p2, cv2.RANSAC, config.get('homography_threshold', 0.006))
+            H, inliers = cv2.findHomography(p1, p2, cv2.RANSAC, config.get('homography_threshold', 0.004))
             r = pairwise_reconstructability(len(tracks), inliers.sum())
             if r > 0:
                 pairs.append((im1,im2))
@@ -132,7 +132,7 @@ def bootstrap_reconstruction(data, graph, im1, im2):
         add_gps_position(data, reconstruction, im2)
         triangulate_shot_features(
                     graph, reconstruction, im1,
-                    data.config.get('triangulation_threshold', 3.0),
+                    data.config.get('triangulation_threshold', 0.004),
                     data.config.get('triangulation_min_ray_angle', 2.0))
         print 'Number of reconstructed 3D points :{}'.format(len(reconstruction['points']))
         if len(reconstruction['points']) > data.config.get('five_point_algo_min_inliers', 50):
@@ -254,12 +254,12 @@ def resect(data, graph, reconstruction, shot_id):
 
     # Prior on focal length
     R, t, inliers = cv2.solvePnPRansac(X.astype(np.float32), x.astype(np.float32), K, dist,
-        reprojectionError=data.config.get('resection_threshold', 8.0))
+        reprojectionError=data.config.get('resection_threshold', 0.004))
 
     if inliers is None:
-        print 'Resection no inliers'
+        print 'Resection', shot_id, 'no inliers'
         return False
-    print 'Resection inliers:', len(inliers), '/', len(x)
+    print 'Resection', shot_id, 'inliers:', len(inliers), '/', len(x)
     if len(inliers) >= data.config.get('resection_min_inliers', 15):
         reconstruction['shots'][shot_id] = {
             "camera": camera_model,
@@ -633,7 +633,7 @@ def grow_reconstruction(data, graph, reconstruction, images, image_graph):
 
                 triangulate_shot_features(
                                 graph, reconstruction, image,
-                                data.config.get('triangulation_threshold', 3.0),
+                                data.config.get('triangulation_threshold', 0.004),
                                 data.config.get('triangulation_min_ray_angle', 2.0))
 
                 if len(reconstruction['shots']) % bundle_interval == 0:
@@ -648,11 +648,11 @@ def grow_reconstruction(data, graph, reconstruction, images, image_graph):
                     prev_num_points = len(reconstruction['points'])
                     print '  Reprojection Error:', reprojection_error(graph, reconstruction)
 
-                if data.config.get('bundle_outlier_threshold',3.5) > 0:
+                if data.config.get('bundle_outlier_threshold', 0.008) > 0:
                     track_outlier = []
                     for track in reconstruction['points']:
                         error = reprojection_error_track(track, graph, reconstruction)
-                        if error > data.config.get('bundle_outlier_threshold',3.5):
+                        if error > data.config.get('bundle_outlier_threshold', 0.008):
                             track_outlier.append(track)
                     for track in track_outlier:
                         del reconstruction['points'][track]
