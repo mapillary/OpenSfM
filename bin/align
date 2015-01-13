@@ -1,0 +1,51 @@
+#!/usr/bin/env python
+import os.path, sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+import argparse
+
+import json
+import numpy as np
+
+import opensfm.reconstruction as rc
+import opensfm.io as io
+from opensfm import dataset
+from opensfm import exif
+from opensfm.geotag_from_gpx import add_gps_to_exif
+
+
+parser = argparse.ArgumentParser(description='Aligning with GPS and Writing overwritten GPS to file')
+parser.add_argument('dataset',
+                    help='path to the dataset to be processed')
+args = parser.parse_args()
+
+data_path = args.dataset
+
+
+# handle GPS data
+data = dataset.DataSet(data_path) # assumes that the images is in data_path/'images'
+images = data.images()
+exif_data = {}
+for image in images:
+    if not os.path.exists(data.exif_file(image)):
+        dexif = exif.EXIF(data.image_file(image))
+        exif_data[image] = dexif.extract_exif()
+        with open(data.exif_file(image), 'w') as fout:
+            fout.write(json.dumps(exif_data[image]))
+
+with open(data.reconstruction_file(), 'rb') as fin:
+    reconstructions = json.loads(fin.read())
+
+for reconstruction in reconstructions:
+    # alignment
+    for image in images:
+        rc.add_gps_position(data, reconstruction, image)
+    rc.align_reconstruction(reconstruction)
+
+    # convert to lla
+    reference = data.invent_reference_lla(list(reconstruction['shots'].keys()))
+    rc.register_reconstruction_with_gps(reconstruction, reference)
+
+with open(data.reconstruction_file(), 'wb') as fout:
+    fout.write(json.dumps(reconstructions))
+
+
