@@ -146,6 +146,43 @@ def to_deg(value, loc):
     return (deg, mint, sec, loc_value)
 
 
+
+def add_gps_to_exif(filename, lat, lon, bearing, elevation):
+    '''
+    Given lat, lon, bearing, elevation, write to EXIF
+    '''
+    # TODO: use this within add_exif_using_timestamp
+
+    metadata = pyexiv2.ImageMetadata(filename)
+    metadata.read()
+    lat_deg = to_deg(lat, ["S", "N"])
+    lon_deg = to_deg(lon, ["W", "E"])
+
+    # convert decimal coordinates into degrees, minutes and seconds as fractions for EXIF
+    exiv_lat = (make_fraction(lat_deg[0],1), make_fraction(int(lat_deg[1]),1), make_fraction(int(lat_deg[2]*1000000),1000000))
+    exiv_lon = (make_fraction(lon_deg[0],1), make_fraction(int(lon_deg[1]),1), make_fraction(int(lon_deg[2]*1000000),1000000))
+
+    # convert direction into fraction
+    exiv_bearing = make_fraction(int(bearing*100),100)
+
+    # add to exif
+    metadata["Exif.GPSInfo.GPSLatitude"] = exiv_lat
+    metadata["Exif.GPSInfo.GPSLatitudeRef"] = lat_deg[3]
+    metadata["Exif.GPSInfo.GPSLongitude"] = exiv_lon
+    metadata["Exif.GPSInfo.GPSLongitudeRef"] = lon_deg[3]
+    metadata["Exif.Image.GPSTag"] = 654
+    metadata["Exif.GPSInfo.GPSMapDatum"] = "WGS-84"
+    metadata["Exif.GPSInfo.GPSVersionID"] = '2 0 0 0'
+    metadata["Exif.GPSInfo.GPSImgDirection"] = exiv_bearing
+    metadata["Exif.GPSInfo.GPSImgDirectionRef"] = "T"
+
+    if elevation is not None:
+        exiv_elevation = make_fraction(int(elevation*10),10)
+        metadata["Exif.GPSInfo.GPSAltitude"] = exiv_elevation
+        metadata["Exif.GPSInfo.GPSAltitudeRef"] = '0' if elevation >= 0 else '1'
+    metadata.write()
+
+
 def add_exif_using_timestamp(filename, points, offset_time=0, timestamp=None):
     '''
     Find lat, lon and bearing of filename and write to EXIF.
@@ -155,7 +192,7 @@ def add_exif_using_timestamp(filename, points, offset_time=0, timestamp=None):
     metadata.read()
     if timestamp:
         metadata['Exif.Photo.DateTimeOriginal'] = timestamp
-    
+
     t = metadata['Exif.Photo.DateTimeOriginal'].value
 
     # subtract offset in s beween gpx time and exif time
@@ -184,7 +221,7 @@ def add_exif_using_timestamp(filename, points, offset_time=0, timestamp=None):
         metadata["Exif.GPSInfo.GPSVersionID"] = '2 0 0 0'
         metadata["Exif.GPSInfo.GPSImgDirection"] = exiv_bearing
         metadata["Exif.GPSInfo.GPSImgDirectionRef"] = "T"
-        
+
         if elevation is not None:
             exiv_elevation = make_fraction(int(elevation*10),10)
             metadata["Exif.GPSInfo.GPSAltitude"] = exiv_elevation
