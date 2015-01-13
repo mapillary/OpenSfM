@@ -1,0 +1,69 @@
+#!/usr/bin/env python
+
+import argparse
+import matplotlib.pyplot as pl
+import networkx as nx
+import numpy as np
+from networkx.algorithms import bipartite
+from itertools import combinations
+
+from opensfm import dataset
+from opensfm import features
+from opensfm import reconstruction
+
+
+def plot_matches(im1, im2, p1, p2):
+    h1, w1, c = im1.shape
+    h2, w2, c = im2.shape
+    image = np.zeros((max(h1,h2), w1+w2, 3), dtype=im1.dtype)
+    image[0:h1, 0:w1, :] = im1
+    image[0:h2, w1:(w1+w2), :] = im2
+    
+    p1 = features.denormalized_image_coordinates(p1, w1, h1)
+    p2 = features.denormalized_image_coordinates(p2, w2, h2)
+    pl.imshow(image)
+    for a, b in zip(p1, p2):
+        pl.plot([a[0], b[0] + w1], [a[1], b[1]], 'c')
+
+    pl.plot(p1[:,0], p1[:,1], 'ob')
+    pl.plot(p2[:,0] + w1, p2[:,1], 'ob')
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Compute reconstruction')
+    parser.add_argument('dataset',
+                        help='path to the dataset to be processed')
+    parser.add_argument('--image',
+                        help='name of the image to show')
+    parser.add_argument('--graph',
+                        help='display image graph',
+                        action='store_true')
+    args = parser.parse_args()
+
+    data = dataset.DataSet(args.dataset)
+    graph = data.tracks_graph()
+    tracks, images = reconstruction.tracks_and_images(graph)
+    image_graph = bipartite.weighted_projected_graph(graph, images)
+    
+    if args.graph:
+        weights = [i[2]['weight'] for i in image_graph.edges(data=True)]
+
+        nx.draw_graphviz(image_graph, edge_color = weights, edge_cmap=pl.get_cmap('Blues'), edge_vmin=0, edge_vmax=200)
+        pl.axis('off')
+        pl.show()
+
+    if args.image:
+        im1 = args.image
+        i = 0
+        for im2 in images:
+            t, p1, p2 = dataset.common_tracks(graph, im1, im2)
+            if len(t) >= 10:
+                pl.figure()
+                plot_matches(data.image_as_array(im1), data.image_as_array(im2), p1, p2)
+                i += 1
+                if i >= 10:
+                    i = 0
+                    pl.show()
+
+
+
