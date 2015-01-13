@@ -681,7 +681,7 @@
                 imageMaterial = new THREE.ShaderMaterial({
                     side: THREE.DoubleSide,
                     transparent: true,
-                    depthWrite: false,
+                    depthWrite: true,
                     uniforms: {
                         projectorMat: {
                              type: 'm4',
@@ -711,7 +711,7 @@
                     // map: imageTexture,
                     side: THREE.DoubleSide,
                     transparent: true,
-                    depthWrite: false,
+                    depthWrite: true,
                     uniforms: {
                         projectorMat: {
                              type: 'm4',
