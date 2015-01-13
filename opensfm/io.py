@@ -38,7 +38,7 @@ def export_bundler(reconstruction, track_graph, bundle_file, list_file, ordered_
                 R, t = shot['rotation'], shot['translation']
                 R = cv2.Rodrigues(np.array(R))[0]
                 if convert_coorindate:
-                    R[3:] = -R[3:]
+                    R[1], R[2] = -R[1], -R[2]
                     t[1], t[2] = -t[1], -t[2]
 
                 for i in xrange(3): lines.append(' '.join(list(map(str, R[i]))))
@@ -84,7 +84,7 @@ def import_bundler(bundle_file, list_file, track_file, reconstruction_file=None,
     # read image list
     with open(list_file, 'rb') as fin:
         image_list = fin.readlines()
-        ordered_shots = [im.rstrip('\n').split(' ')[0] for im in image_list]
+        ordered_shots = [os.path.basename(im.rstrip('\n').split(' ')[0]) for im in image_list]
         image_path = os.path.dirname(image_list[0].rstrip('\n').split(' ')[0])
 
     reconstruction = {}
@@ -123,6 +123,7 @@ def import_bundler(bundle_file, list_file, track_file, reconstruction_file=None,
 
         if convert_coorindate:
             R[3:] = -R[3:]
+            R = cv2.Rodrigues(R.reshape(3, 3))[0].flatten(0)
             t[1:] = -t[1:]
 
         reconstruction['shots'][shot_key] = {
@@ -130,7 +131,6 @@ def import_bundler(bundle_file, list_file, track_file, reconstruction_file=None,
                                         'rotation': list(R),
                                         'translation': list(t)
                                      }
-
         offset += 5
 
     # tracks
@@ -139,11 +139,14 @@ def import_bundler(bundle_file, list_file, track_file, reconstruction_file=None,
         coordinates = lines[offset].rstrip('\n').split(' ')
         color = lines[offset+1].rstrip('\n').split(' ')
         reconstruction['points'][i] = {
-                                        'coordinates': coordinates,
-                                        'color': color
+                                        'coordinates': map(float, coordinates),
+                                        'color': map(int, color)
                                       }
-        view_line = lines[offset+2]
-        num_view, view_list = int(view_line[0]), view_line[2:].rstrip('\n').split(' ')
+        view_line = lines[offset+2].rstrip('\n').split(' ')
+
+        # num_view, view_list = int(view_line[0]), view_line[1:].rstrip('\n').split(' ')
+        num_view, view_list = int(view_line[0]), view_line[1:]
+
         for k in xrange(num_view):
             shot_key = ordered_shots[int(view_list[4*k])]
             camera_name = reconstruction['shots'][shot_key]['camera']
@@ -164,6 +167,6 @@ def import_bundler(bundle_file, list_file, track_file, reconstruction_file=None,
     # save reconstruction
     if reconstruction_file is not None:
         with open(reconstruction_file, 'wb') as fout:
-            fout.write(json.dumps(reconstruction, indent=4))
+            fout.write(json.dumps([reconstruction], indent=4))
     return reconstruction
 
