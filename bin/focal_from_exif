@@ -64,7 +64,7 @@ for image in images:
             model = exif_image.get('model', 'unknown')
             make = exif_image.get('make', 'unknown')
             sensor_string = exif.sensor_string(make, model)
-            fmm35, fmm = exif_image.get('fmm35', 0), exif_image.get('fmm', 0)
+            fmm35, fmm = float(exif_image.get('fmm35', 0)), float(exif_image.get('fmm', 0))
             focal_35, focal_ratio = exif.compute_focal(
                 fmm35,
                 fmm,
@@ -92,10 +92,10 @@ for image in images:
         # Check whether gps is provided in a json file (imagedata.json)
         exif_image = exif_database[image]
         d['gps'] = {}
-        d['gps']['latitude'] = exif_image.get('lat', 0.0)
-        d['gps']['longitude'] = exif_image.get('lon', 0.0)
-        d['gps']['altitude'] = exif_image.get('altitude', 0.0)
-        d['gps']['dop'] = exif_image.get('gps_accuracy', -1)
+        d['gps']['latitude'] = float(exif_image.get('lat', 0.0))
+        d['gps']['longitude'] = float(exif_image.get('lon', 0.0))
+        d['gps']['altitude'] = float(exif_image.get('altitude', 0.0))
+        d['gps']['dop'] = float(exif_image.get('gps_accuracy', -1))
         if d['gps']['dop'] < 0:
             del d['gps']['dop']
 
