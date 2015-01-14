@@ -10,77 +10,12 @@ from cv2 import imread
 
 from opensfm.sensors import sensor_data
 from opensfm import dataset
-
+from opensfm import exif
 
 
 def usage():
     print 'USAGE: %s data_set_path' % sys.argv[0]
     sys.exit(0)
-
-def eval_frac(value):
-    return float(value.num) / float(value.den)
-
-def gps_to_decimal(values, reference):
-    sign = 1 if reference in 'NE' else -1
-    degrees = eval_frac(values[0])
-    minutes = eval_frac(values[1])
-    seconds = eval_frac(values[2])
-    return sign * (degrees + minutes / 60 + seconds / 3600)
-
-def get_float_tag(tags, key):
-    if key in tags:
-        return float(tags[key].values[0])
-    else:
-        return None
-
-def get_frac_tag(tags, key):
-    if key in tags:
-        return eval_frac(tags[key].values[0])
-    else:
-        return None
-
-def compute_focal(focal_35, focal, sensor_width, sensor_string):
-    if focal_35 > 0:
-        focal_ratio = focal_35 / 36.0 # 35mm film produces 36x24mm pictures.
-    else:
-        if not sensor_width:
-            sensor_width = sensor_data.get(sensor_string, None)
-        if sensor_width and focal:
-            focal_ratio = focal / sensor_width
-            focal_35 = 36.0 * focal_ratio
-        else:
-            focal_35 = 0
-            focal_ratio = 0
-    return focal_35, focal_ratio
-
-
-def extract_distortion(make, model, fmm35):
-    if 'gopro' in make.lower():
-        if fmm35==20:
-            # GoPro Hero 3, 7MP medium
-            ## calibration
-            d = np.array([-0.37, 0.28, 0, 0, 0])
-        elif fmm35==15:
-            # GoPro Hero 3, 7MP wide
-            # calibration
-            d = np.array([-0.32, 0.24, 0, 0, 0])
-        elif fmm35==23:
-            # GoPro Hero 2, 5MP medium
-            d = np.array([-0.38, 0.24, 0, 0, 0])
-        elif fmm35==16:
-            # GoPro Hero 2, 5MP wide
-            d = np.array([-0.39, 0.22, 0, 0, 0])
-        else:
-            raise ValueError("Unsupported f value.")
-
-        return list(d)
-
-
-def sensor_string(make, model):
-    if make != 'unknown':
-        model = model.replace(make, '') # remove possible duplicate 'make' information in 'model' for better matching
-    return (make.strip() + ' ' + model.strip()).lower()
-
 
 if len(sys.argv) > 1:
     path = sys.argv[1]
@@ -109,99 +44,69 @@ else:
 for image in images:
     print 'Extracting focal lengths for image', image
 
-    with open(data.image_file(image)) as f:
-        tags = exifread.process_file(f, details=False)
+    # EXIF data in Image
+    exif_data = exif.EXIF(data.image_file(image))
 
-    # Image Width and Image Height
-    if 'EXIF ExifImageWidth' in tags and 'EXIF ExifImageLength' in tags:
-        width, height = (int(tags['EXIF ExifImageWidth'].values[0]),
-                        int(tags['EXIF ExifImageLength'].values[0]) )
-    else:
-        sz = imread(data.image_file(image)).shape
-        width, height = sz[1], sz[0]
+    # Image Height and Image Width
+    width, height = exif_data.extract_image_size()
 
-    # Camera make and model
-    if 'EXIF LensMake' in tags:
-        make = tags['EXIF LensMake'].values
-    elif 'Image Make' in tags:
-        make = tags['Image Make'].values
-    else:
-        make = 'unknown'
+    # Make and Model
+    make, model = exif_data.extract_make(), exif_data.extract_model()
+    sensor_string = exif.sensor_string(make, model)
 
-    if 'EXIF LensModel' in tags:
-        model = tags['EXIF LensModel'].values
-    elif 'Image Model' in tags:
-        model = tags['Image Model'].values
-    else:
-        model = 'unknown'
-
-    focal_35, focal_ratio = compute_focal(
-        get_float_tag(tags, 'EXIF FocalLengthIn35mmFilm'),
-        get_frac_tag(tags, 'EXIF FocalLength'),
-        get_frac_tag(tags, 'EXIF CCD width'),
-        sensor_string(make, model))
-
+    # Focal
+    focal_35, focal_ratio = exif_data.extract_focal()
 
     if focal_ratio == 0:
         # try reading data from exif database (imagedata.json) if exist
-        exif = exif_database.get(image)
-        if exif:
-            model = exif.get('model', 'unknown')
-            make = exif.get('make', 'unknown')
-            focal_35, focal_ratio = compute_focal(
-                exif.get('fmm35'),
-                exif.get('fmm'),
+        exif_image = exif_database.get(image)
+        if exif_image:
+            model = exif_image.get('model', 'unknown')
+            make = exif_image.get('make', 'unknown')
+            sensor_string = exif.sensor_string(make, model)
+            fmm35, fmm = exif_image.get('fmm35', 0), exif_image.get('fmm', 0)
+            focal_35, focal_ratio = exif.compute_focal(
+                fmm35,
+                fmm,
                 None,
-                sensor_string(make, model)
+                sensor_string
             )
 
     if focal_ratio == 0:
-        missing_sensors[sensor_string(make, model)] = 1
+        missing_sensors[exif.sensor_string(make, model)] = 1
 
-    if 'Image Orientation' in tags:
-        orientation = tags.get('Image Orientation').values[0]
-    else:
-        orientation = 1
+    orientation = exif_data.extract_orientation()
 
     d = {
             'width': width,
             'height': height,
             'focal_ratio': focal_ratio,
             'focal_35mm_equiv': focal_35,
-            'camera': sensor_string(make, model),
+            'camera': sensor_string,
             'orientation': orientation
         }
 
     # GPS
-    if 'GPS GPSLatitude' in tags:
-        lat = gps_to_decimal(tags['GPS GPSLatitude'].values,
-                             tags['GPS GPSLatitudeRef'].values)
-        lon = gps_to_decimal(tags['GPS GPSLongitude'].values,
-                             tags['GPS GPSLongitudeRef'].values)
-        d['gps'] = {}
-        d['gps']['latitude'] = lat
-        d['gps']['longitude'] = lon
-        if 'GPS GPSAltitude' in tags:
-            d['gps']['altitude'] = eval_frac(tags['GPS GPSAltitude'].values[0])
-        if 'GPS GPSDOP' in tags:
-            d['gps']['dop'] = eval_frac(tags['GPS GPSDOP'].values[0])
-    elif exif_database:
+    geo = exif_data.extract_geo()
+    if exif_database.get(image, {}):
         # Check whether gps is provided in a json file (imagedata.json)
-        if image in exif_database:
-            exif = exif_database[image]
-            d['gps'] = {}
-            d['gps']['latitude'] = exif.get('lat', 0.0)
-            d['gps']['longitude'] = exif.get('lon', 0.0)
-            d['gps']['altitude'] = exif.get('altitude', 0.0)
-            d['gps']['dop'] = exif.get('gps_accuracy', -1)
-            if d['gps']['dop'] < 0:
-                del d['gps']['dop']
+        exif_image = exif_database[image]
+        d['gps'] = {}
+        d['gps']['latitude'] = exif_image.get('lat', 0.0)
+        d['gps']['longitude'] = exif_image.get('lon', 0.0)
+        d['gps']['altitude'] = exif_image.get('altitude', 0.0)
+        d['gps']['dop'] = exif_image.get('gps_accuracy', -1)
+        if d['gps']['dop'] < 0:
+            del d['gps']['dop']
+
+    elif 'latitude' in geo and 'longitude' in geo:
+        d['gps'] = geo
 
     if image in exif_overrides:
         for key, value in exif_overrides[image].items():
             d[key] = value
 
-    if sensor_string(make, model) not in camera_models:
+    if sensor_string not in camera_models:
         camera_models[d['camera']] = {
                 'width': d['width'],
                 'height': d['height'],
@@ -211,7 +116,7 @@ for image in images:
                 "exif_focal": d['focal_ratio']
             }
 
-    distortion = extract_distortion(make, model, focal_35)
+    distortion = exif_data.extract_distortion()
     if distortion is not None:
         camera_models[d['camera']].update({'k1': distortion[0], 'k2': distortion[1]})
         d.update({'k1': distortion[0], 'k2': distortion[1]})
