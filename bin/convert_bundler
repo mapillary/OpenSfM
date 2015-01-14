@@ -30,8 +30,10 @@ if __name__ == "__main__":
     # converting reconstruction from bundler to OpenSfM reconstruction
     list_file = os.path.join(data_path, 'list.txt')
     bundle_file = os.path.join(data_path, 'bundle.out')
-    track_file = os.path.join(data_path,'tracks.csv')
-    reconstruction_file = os.path.join(data_path, 'reconstruction.json')
-    io.import_bundler(data_path, bundle_file, list_file, track_file, reconstruction_file)
+    if os.path.exists(bundle_file) and os.path.exists(list_file):
+        print 'Converting output from Bundler to OpenSfM'
+        track_file = os.path.join(data_path,'tracks.csv')
+        reconstruction_file = os.path.join(data_path, 'reconstruction.json')
+        io.import_bundler(data_path, bundle_file, list_file, track_file, reconstruction_file)
 
 
