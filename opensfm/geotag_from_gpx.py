@@ -181,7 +181,7 @@ def add_gps_to_exif(filename, lat, lon, bearing, elevation, updated_filename=Non
     metadata["Exif.GPSInfo.GPSImgDirectionRef"] = "T"
 
     if elevation is not None:
-        exiv_elevation = make_fraction(int(elevation*10),10)
+        exiv_elevation = make_fraction(int(abs(elevation)*100),100)
         metadata["Exif.GPSInfo.GPSAltitude"] = exiv_elevation
         metadata["Exif.GPSInfo.GPSAltitudeRef"] = '0' if elevation >= 0 else '1'
     metadata.write()
@@ -227,7 +227,7 @@ def add_exif_using_timestamp(filename, points, offset_time=0, timestamp=None):
         metadata["Exif.GPSInfo.GPSImgDirectionRef"] = "T"
 
         if elevation is not None:
-            exiv_elevation = make_fraction(int(elevation*10),10)
+            exiv_elevation = make_fraction(int(abs(elevation)*100),100)
             metadata["Exif.GPSInfo.GPSAltitude"] = exiv_elevation
             metadata["Exif.GPSInfo.GPSAltitudeRef"] = '0' if elevation >= 0 else '1'
 
