@@ -34,9 +34,15 @@ class DataSet:
         :param data_path: Path to directory containing dataset
         """
         self.data_path = data_path
+        self.image_path_set = None
 
-        with open(os.path.join(self.data_path, 'config.yaml')) as fin:
-            self.config = yaml.load(fin)
+        config_file = os.path.join(self.data_path, 'config.yaml')
+
+        if os.path.exists(config_file):
+            with open(os.path.join(self.data_path, 'config.yaml')) as fin:
+                self.config = yaml.load(fin)
+        else:
+            self.config = {}
 
         for p in [self.exif_path(),
                   self.feature_path(),
@@ -53,7 +59,12 @@ class DataSet:
 
     def image_path(self):
         """Return path of images directory"""
-        return os.path.join(self.data_path, 'images')
+        sub_path = 'images' if self.image_path_set is None else self.image_path_set
+        return os.path.join(self.data_path, sub_path)
+
+    def set_image_path(self, set_path):
+        """Set image sub-path (instead of 'images')"""
+        self.image_path_set = set_path
 
     def image_file(self, image):
         """
@@ -234,7 +245,7 @@ class DataSet:
                        'altitude': alt}, fout)
 
     def reference_lla(self):
-        with open(self.reference_lla_path()) as fin:
+        with open(self.reference_lla_path(), 'r') as fin:
             d = json.load(fin)
             return d['latitude'], d['longitude'], d['altitude']
 
