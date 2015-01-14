@@ -4,7 +4,6 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 import json
 import exifread
-import time
 import numpy as np
 from cv2 import imread
 
@@ -47,7 +46,6 @@ def compute_focal(focal_35, focal, sensor_width, sensor_string):
             focal_ratio = 0
     return focal_35, focal_ratio
 
-
 def get_distortion(make, model, fmm35):
     if 'gopro' in make.lower():
         if fmm35==20:
@@ -68,6 +66,8 @@ def get_distortion(make, model, fmm35):
             raise ValueError("Unsupported f value.")
 
         return list(d)
+    else:
+        return [0., 0., 0., 0., 0.]
 
 
 def sensor_string(make, model):
@@ -89,7 +89,7 @@ class EXIF:
             width, height = (int(self.tags['EXIF ExifImageWidth'].values[0]),
                             int(self.tags['EXIF ExifImageLength'].values[0]) )
         else:
-            sz = imread(data.image_file(image)).shape
+            sz = imread(self.image_file).shape
             width, height = sz[1], sz[0]
         return width, height
 
@@ -130,7 +130,7 @@ class EXIF:
 
     def extract_distortion(self):
         make, model = self.extract_make(), self.extract_model()
-        fmm35, fratio = self.exract_focal()
+        fmm35, fratio = self.extract_focal()
         distortion = get_distortion(make, model, fmm35)
         return distortion[0], distortion[1]
 
@@ -141,7 +141,7 @@ class EXIF:
             lon = gps_to_decimal(self.tags['GPS GPSLongitude'].values,
                                  self.tags['GPS GPSLongitudeRef'].values)
         else:
-            lon, lat = 0, 0
+            lon, lat = None, None
         return lon, lat
 
     def extract_altitude(self):
@@ -158,15 +158,29 @@ class EXIF:
             dop = None
         return dop
 
+    def extract_geo(self):
+        altitude = self.extract_altitude()
+        dop = self.extract_dop()
+        lon, lat = self.extract_lon_lat()
+        d = {}
+
+        if lon is not None and lat is not None:
+            d['latitude'] = lat
+            d['longitude'] = lon
+        if altitude is not None:
+            d['altitude'] = altitude
+        if dop is not None:
+            d['dop'] = dop
+
+        return d
+
     def extract_exif(self):
 
         width, height = self.extract_image_size()
         focal_35, focal_ratio = self.extract_focal()
         make, model = self.extract_make(), self.extract_model()
         orientation = self.extract_orientation()
-        altitude = self.extract_altitude()
-        dop = self.extract_dop()
-        lon, lat = self.extract_lon_lat()
+        geo = self.extract_geo()
         d = {
                 'width': width,
                 'height': height,
@@ -176,14 +190,7 @@ class EXIF:
                 'orientation': orientation
             }
         # GPS
-        if lon is not None and lat is not None:
-            d['gps'] = {}
-            d['gps']['latitude'] = lat
-            d['gps']['longitude'] = lon
-        if altitude is not None:
-            d['gps']['altitude'] = altitude
-        if dop is not None:
-            d['gps']['dop'] = dop
+        d['gps'] = geo
 
         return d
 
