@@ -73,7 +73,7 @@ def export_bundler(reconstruction, track_graph, bundle_file, list_file, ordered_
     with open(list_file, 'wb') as fout:
         fout.writelines('\n'.join(map(str, ordered_shots) ))
 
-def import_bundler(bundle_file, list_file, track_file, reconstruction_file=None, convert_coorindate=True):
+def import_bundler(data_path, bundle_file, list_file, track_file, reconstruction_file=None, convert_coorindate=True):
     """
     Return a reconstruction dict and a track graph file (track.csv) compatible with OpenSfM from a Bundler output
     """
@@ -85,7 +85,6 @@ def import_bundler(bundle_file, list_file, track_file, reconstruction_file=None,
     with open(list_file, 'rb') as fin:
         image_list = fin.readlines()
         ordered_shots = [os.path.basename(im.rstrip('\n').split(' ')[0]) for im in image_list]
-        image_path = os.path.dirname(image_list[0].rstrip('\n').split(' ')[0])
 
     reconstruction = {}
     track_graph = {}
@@ -106,14 +105,17 @@ def import_bundler(bundle_file, list_file, track_file, reconstruction_file=None,
     # cameras
     if ordered_shots is None: ordered_shots = np.arange(num_shot)
     for i in xrange(num_shot):
-        # Creating a model for each shot for now. TODO: create mdoel based on exif
+        # Creating a model for each shot for now.
+        # TODO: create mdoel based on exif
         shot_key = ordered_shots[i]
         f, k1, k2 = map(float, lines[offset].rstrip('\n').split(' '))
         camera_name = 'camera_' + str(i)
-        im = cv2.imread(os.path.join(image_path, shot_key))
+        im = cv2.imread(os.path.join(data_path, shot_key))
         height, width = im.shape[0:2]
         f = float(f)/max(height, width)
         reconstruction['cameras'][camera_name] = {'focal': f, 'k1': k1, 'k2': k2, 'width': width, 'height': height}
+
+        # Shots
         rline = []
         for k in xrange(3): rline += lines[offset+1+k].rstrip('\n').split(' ')
         R = ' '.join(rline)
