@@ -23,6 +23,7 @@ data_path = args.dataset
 
 # handle GPS data
 data = dataset.DataSet(data_path) # assumes that the images is in data_path/'images'
+if os.path.exists(os.path.join(data_path, 'bundle.out')): data.set_image_path('')
 images = data.images()
 exif_data = {}
 for image in images:
@@ -35,14 +36,21 @@ for image in images:
 with open(data.reconstruction_file(), 'rb') as fin:
     reconstructions = json.loads(fin.read())
 
+# reference for conversion
+if not os.path.exists(data.reference_lla_path()):
+    reference = data.invent_reference_lla()
+else:
+    with open(data.reference_lla_path(), 'rb') as fin:
+        reference = json.loads(fin.read())
+
+# alignment
 for reconstruction in reconstructions:
-    # alignment
     for image in images:
         rc.add_gps_position(data, reconstruction, image)
     rc.align_reconstruction(reconstruction)
 
     # convert to lla
-    reference = data.invent_reference_lla(list(reconstruction['shots'].keys()))
+    # reference = data.invent_reference_lla(list(reconstruction['shots'].keys()))
     rc.register_reconstruction_with_gps(reconstruction, reference)
 
 with open(data.reconstruction_file(), 'wb') as fout:

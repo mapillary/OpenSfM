@@ -19,6 +19,7 @@ args = parser.parse_args()
 data_path = args.dataset
 
 data = dataset.DataSet(data_path) # assumes that the images is in data_path/'images'
+if os.path.exists(os.path.join(data_path, 'bundle.out')): data.set_image_path('')
 
 overwrite_original = data.config.get('overwrite_original', False)
 updated_image_path = os.path.join(data.data_path, 'images_updated')
