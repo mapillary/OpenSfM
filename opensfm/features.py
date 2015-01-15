@@ -67,6 +67,7 @@ def extract_features_sift(imagefile, config):
             break
 
     points, desc = descriptor.compute(image, points)
+    if config.get('feature_root', False): desc = np.sqrt(desc)
     points = np.array([(i.pt[0], i.pt[1], i.size, i.angle) for i in points])
     return mask_and_normalize_features(points, desc, image.shape[1], image.shape[0], config)
 
@@ -95,6 +96,7 @@ def extract_features_surf(imagefile, config):
             break
 
     points, desc = descriptor.compute(image, points)
+    if config.get('feature_root', False): desc = np.sqrt(desc)
     points = np.array([(i.pt[0], i.pt[1], i.size, i.angle) for i in points])
     return mask_and_normalize_features(points, desc, image.shape[1], image.shape[0], config)
 
@@ -210,7 +212,6 @@ def load_flann_index(features, index_file):
 def match_lowe(index, f2, config):
     search_params = dict(checks=config['flann_checks'])
     results, dists = index.knnSearch(f2, 2, params=search_params)
-
     good = dists[:, 0] < config.get('lowes_ratio', 0.6) * dists[:, 1]
     matches = zip(results[good, 0], good.nonzero()[0])
     return np.array(matches, dtype=int)
