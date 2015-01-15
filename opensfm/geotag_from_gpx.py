@@ -148,7 +148,7 @@ def to_deg(value, loc):
 
 
 
-def add_gps_to_exif(filename, lat, lon, bearing, elevation, updated_filename=None):
+def add_gps_to_exif(filename, lat, lon, bearing, elevation, updated_filename=None, remove_image_description=True):
     '''
     Given lat, lon, bearing, elevation, write to EXIF
     '''
@@ -179,6 +179,7 @@ def add_gps_to_exif(filename, lat, lon, bearing, elevation, updated_filename=Non
     metadata["Exif.GPSInfo.GPSVersionID"] = '2 0 0 0'
     metadata["Exif.GPSInfo.GPSImgDirection"] = exiv_bearing
     metadata["Exif.GPSInfo.GPSImgDirectionRef"] = "T"
+    if remove_image_description: metadata["Exif.Image.ImageDescription"] = []
 
     if elevation is not None:
         exiv_elevation = make_fraction(int(abs(elevation)*100),100)
