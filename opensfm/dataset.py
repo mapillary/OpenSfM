@@ -59,8 +59,10 @@ class DataSet:
 
     def image_path(self):
         """Return path of images directory"""
-        sub_path = 'images' if self.image_path_set is None else self.image_path_set
-        return os.path.join(self.data_path, sub_path)
+        if self.image_path_set is None:
+            return os.path.join(self.data_path, 'images')
+        else:
+            return self.image_path_set
 
     def set_image_path(self, set_path):
         """Set image sub-path (instead of 'images')"""
