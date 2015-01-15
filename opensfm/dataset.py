@@ -135,6 +135,7 @@ class DataSet:
     def feature_path(self):
         """Return path of feature descriptors and FLANN indices directory"""
         feature_path = self.feature_type()
+        if self.config.get('feature_root', False): feature_path = 'root_' + feature_path
         if len(self.descriptor_type()) > 0:
             feature_path += '_' + self.descriptor_type()
         return os.path.join(self.data_path, feature_path)
