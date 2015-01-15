@@ -109,30 +109,34 @@ def import_bundler(data_path, bundle_file, list_file, track_file, reconstruction
         # TODO: create mdoel based on exif
         shot_key = ordered_shots[i]
         f, k1, k2 = map(float, lines[offset].rstrip('\n').split(' '))
-        camera_name = 'camera_' + str(i)
-        im = cv2.imread(os.path.join(data_path, shot_key))
-        height, width = im.shape[0:2]
-        f = float(f)/max(height, width)
-        reconstruction['cameras'][camera_name] = {'focal': f, 'k1': k1, 'k2': k2, 'width': width, 'height': height}
 
-        # Shots
-        rline = []
-        for k in xrange(3): rline += lines[offset+1+k].rstrip('\n').split(' ')
-        R = ' '.join(rline)
-        t = lines[offset+4].rstrip('\n').split(' ')
-        R = np.array(map(float, R.split()))
-        t = np.array(map(float, t))
+        if f > 0:
+            camera_name = 'camera_' + str(i)
+            im = cv2.imread(os.path.join(data_path, shot_key))
+            height, width = im.shape[0:2]
+            f = float(f)/max(height, width)
+            reconstruction['cameras'][camera_name] = {'focal': f, 'k1': k1, 'k2': k2, 'width': width, 'height': height}
 
-        if convert_coorindate:
-            R[3:] = -R[3:]
-            R = cv2.Rodrigues(R.reshape(3, 3))[0].flatten(0)
-            t[1:] = -t[1:]
+            # Shots
+            rline = []
+            for k in xrange(3): rline += lines[offset+1+k].rstrip('\n').split(' ')
+            R = ' '.join(rline)
+            t = lines[offset+4].rstrip('\n').split(' ')
+            R = np.array(map(float, R.split()))
+            t = np.array(map(float, t))
 
-        reconstruction['shots'][shot_key] = {
-                                        'camera' : camera_name,
-                                        'rotation': list(R),
-                                        'translation': list(t)
-                                     }
+            if convert_coorindate:
+                R[3:] = -R[3:]
+                R = cv2.Rodrigues(R.reshape(3, 3))[0].flatten(0)
+                t[1:] = -t[1:]
+
+            reconstruction['shots'][shot_key] = {
+                                            'camera' : camera_name,
+                                            'rotation': list(R),
+                                            'translation': list(t)
+                                         }
+        else:
+            print 'ignore failed image', shot_key
         offset += 5
 
     # tracks

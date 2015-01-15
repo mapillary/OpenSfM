@@ -10,16 +10,17 @@ import pyexiv2
 from opensfm import dataset
 from opensfm.geotag_from_gpx import add_gps_to_exif
 
-parser = argparse.ArgumentParser(description='Write updated geotag information to image file')
-parser.add_argument('dataset',
-                    help='path to the dataset to be processed')
+parser = argparse.ArgumentParser(description='Write updated geotag information to image files')
+parser.add_argument('dataset', help='path to the dataset to be processed')
+parser.add_argument('--image_path', help='path to images', default='')
 args = parser.parse_args()
 
 # This script assumes that the reconstruction contains aligned gps, altitude and direction information about the images (after bin/align data_path)
 data_path = args.dataset
 
+
 data = dataset.DataSet(data_path) # assumes that the images is in data_path/'images'
-if os.path.exists(os.path.join(data_path, 'bundle.out')): data.set_image_path('')
+if args.image_path: data.set_image_path(args.image_path)
 
 overwrite_original = data.config.get('overwrite_original', False)
 updated_image_path = os.path.join(data.data_path, 'images_updated')
@@ -31,7 +32,7 @@ with open(data.reconstruction_file(), 'r') as fin:
 
 for reconstruction in reconstructions:
     # write updated gps/compass to the image file
-    for image in data.images():
+    for image in reconstruction['shots'].keys():
         image_path = data.image_file(image)
         new_image_path = None if overwrite_original else os.path.join(updated_image_path, image)
         gps = reconstruction['shots'][image]['gps']

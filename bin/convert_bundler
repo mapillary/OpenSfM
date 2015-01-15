@@ -20,15 +20,6 @@ if __name__ == "__main__":
     # Assume that bundle.out, list.txt and all the images are in datapath
     data_path = args.dataset
 
-    ## create symbolic links to images in data_path from data_path/'images'/
-    # data = dataset.DataSet(data_path)
-    # data.set_image_path('')
-    # image_path = os.path.join(data_path, 'images')
-    # if not os.path.exists(image_path):
-    #     os.makedirs(image_path)
-    # for image in data.images():
-    #     os.symlink(os.path.join(data_path, image), os.path.join(image_path, image))
-
     # converting reconstruction from bundler to OpenSfM reconstruction
     if args.list:
         list_file = args.list
@@ -44,6 +35,6 @@ if __name__ == "__main__":
         reconstruction_file = os.path.join(data_path, 'reconstruction.json')
         io.import_bundler(data_path, bundle_file, list_file, track_file, reconstruction_file)
     else:
-        print 'Can find list.txt or bundle.out.'
+        print 'Cannot find list.txt or bundle.out.'
 
 

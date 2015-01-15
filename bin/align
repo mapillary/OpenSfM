@@ -14,16 +14,17 @@ from opensfm.geotag_from_gpx import add_gps_to_exif
 
 
 parser = argparse.ArgumentParser(description='Aligning with GPS and Writing overwritten GPS to file')
-parser.add_argument('dataset',
-                    help='path to the dataset to be processed')
+parser.add_argument('dataset', help='path to the dataset to be processed')
+parser.add_argument('--image_path', help='path to images', default='')
+
 args = parser.parse_args()
 
 data_path = args.dataset
 
-
 # handle GPS data
 data = dataset.DataSet(data_path) # assumes that the images is in data_path/'images'
-if os.path.exists(os.path.join(data_path, 'bundle.out')): data.set_image_path('')
+if args.image_path: data.set_image_path(args.image_path)
+
 images = data.images()
 exif_data = {}
 for image in images:
@@ -45,7 +46,7 @@ else:
 
 # alignment
 for reconstruction in reconstructions:
-    for image in images:
+    for image in reconstruction['shots'].keys():
         rc.add_gps_position(data, reconstruction, image)
     rc.align_reconstruction(reconstruction)
 
@@ -53,7 +54,5 @@ for reconstruction in reconstructions:
     # reference = data.invent_reference_lla(list(reconstruction['shots'].keys()))
     rc.register_reconstruction_with_gps(reconstruction, reference)
 
-with open(data.reconstruction_file(), 'wb') as fout:
-    fout.write(json.dumps(reconstructions))
 
 
