@@ -1,0 +1,37 @@
+#!/usr/bin/env python
+import os.path, sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+import argparse
+
+import cv2
+import json
+import numpy as np
+
+import opensfm.dataset as dataset
+import opensfm.io as io
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Convert OpenSfM reconstructions to Bundler output format')
+    parser.add_argument('dataset', help='path to the dataset to be processed')
+    parser.add_argument('--list_path', help='path to the list.txt file')
+    parser.add_argument('--bundle_path', help='path to the bundle.out file')
+    args = parser.parse_args()
+
+    # Assume that bundle.out, list.txt and all the images are in datapath
+    data_path = args.dataset
+
+    # converting reconstruction from bundler to OpenSfM reconstruction
+    if args.list_path:
+        list_file_path = args.list_path
+    else:
+        list_file_path = data_path
+    if args.bundle_path:
+        bundle_file_path = args.bundle_path
+    else:
+        bundle_file_path = data_path
+    data = dataset.DataSet(args.dataset)
+    images = data.images()
+    with open(data.reconstruction_file(), 'rb') as f:
+        reconstructions = json.loads(f.read())
+    track_graph = data.tracks_graph()
+    io.export_bundler(reconstructions, track_graph, bundle_file_path, list_file_path)

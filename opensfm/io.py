@@ -10,13 +10,16 @@ import dataset
 # (TODO): ensure the image order from OpenSfM is the same as Bundler
 # (TODO): ensure the coordinate systems are consistent
 
-def export_bundler(reconstruction, track_graph, bundle_file, list_file, ordered_shots=None, convert_coorindate=True, normalized_coordindate=True):
+def export_bundler(reconstructions, track_graph, bundle_file_path, list_file_path, convert_coorindate=True, normalized_coordindate=True):
     """
     Generate a reconstruction file that is consistent with Bundler's format
     """
-    lines = []
 
-    with open(bundle_file, 'wb') as fout:
+    if not os.path.exists(bundle_file_path): os.makedirs(bundle_file_path)
+    if not os.path.exists(list_file_path): os.makedirs(list_file_path)
+
+    for j, reconstruction in enumerate(reconstructions):
+        lines = []
         points = reconstruction['points']
         shots = reconstruction['shots']
         cameras = reconstruction['cameras']
@@ -24,29 +27,24 @@ def export_bundler(reconstruction, track_graph, bundle_file, list_file, ordered_
         num_shot = len(shots)
         shot_ids = list(shots.keys())
         lines.append(' '.join(map(str, [num_shot, num_point])))
-        if ordered_shots is None: ordered_shots = shot_ids
-        shots_order = {key: i for i, key in enumerate(ordered_shots)}
+        shots_order = {key: i for i, key in enumerate(shot_ids)}
 
         # cameras
-        for shot_id in ordered_shots:
-            shot = shots.get(shot_id, None)
-            if shot is not None:
-                camera = cameras[shot['camera']]
-                scale = max(camera['width'], camera['height'])
-                focal = camera['focal'] if normalized_coordindate else camera['focal']*scale
-                lines.append(' '.join(map(str, [camera['focal'], camera['k1'], camera['k2']])))
-                R, t = shot['rotation'], shot['translation']
-                R = cv2.Rodrigues(np.array(R))[0]
-                if convert_coorindate:
-                    R[1], R[2] = -R[1], -R[2]
-                    t[1], t[2] = -t[1], -t[2]
+        for shot_id in shot_ids:
+            shot = shots[shot_id]
+            camera = cameras[shot['camera']]
+            scale = max(camera['width'], camera['height'])
+            focal = camera['focal'] if normalized_coordindate else camera['focal']*scale
+            lines.append(' '.join(map(str, [camera['focal'], camera['k1'], camera['k2']])))
+            R, t = shot['rotation'], shot['translation']
+            R = cv2.Rodrigues(np.array(R))[0]
+            if convert_coorindate:
+                R[1], R[2] = -R[1], -R[2]
+                t[1], t[2] = -t[1], -t[2]
 
-                for i in xrange(3): lines.append(' '.join(list(map(str, R[i]))))
-                t = ' '.join(map(str, t))
-                lines.append(t)
-            else:
-                # add 5 lines of 3x0
-                for i in xrange(5): lines.append(' '.join(map(str,[0, 0, 0])))
+            for i in xrange(3): lines.append(' '.join(list(map(str, R[i]))))
+            t = ' '.join(map(str, t))
+            lines.append(t)
 
         # tracks
         for point_id, point in points.iteritems():
@@ -57,21 +55,25 @@ def export_bundler(reconstruction, track_graph, bundle_file, list_file, ordered_
             lines.append(' '.join(map(str, color)))
             view_line = [str(len(view_list))]
             for shot_key, view in view_list.iteritems():
-                v = view['feature']
-                shot_index = shots_order[shot_key]
-                if normalized_coordindate:
-                    camera = shots[shot_key]['camera']
-                    scale = max(cameras[camera]['width'], cameras[camera]['height'])
-                    x = v[0]*scale
-                    y = -v[1]*scale
-                view_line.append(' '.join(map(str, [shot_index, v[2], x, y])))
+                if shot_key in shot_ids:
+                    v = view['feature']
+                    shot_index = shots_order[shot_key]
+                    if normalized_coordindate:
+                        camera = shots[shot_key]['camera']
+                        scale = max(cameras[camera]['width'], cameras[camera]['height'])
+                        x = v[0]*scale
+                        y = -v[1]*scale
+                    view_line.append(' '.join(map(str, [shot_index, view['feature_id'], x, y])))
 
             lines.append(' '.join(view_line))
 
-        fout.writelines('\n'.join(lines))
+        bundle_file =os.path.join(bundle_file_path, 'bundle_r'+str(j).zfill(3)+'.out')
+        with open(bundle_file, 'wb') as fout:
+            fout.writelines('\n'.join(lines))
 
-    with open(list_file, 'wb') as fout:
-        fout.writelines('\n'.join(map(str, ordered_shots) ))
+        list_file =os.path.join(list_file_path, 'list_r'+str(j).zfill(3)+'.out')
+        with open(list_file, 'wb') as fout:
+            fout.writelines('\n'.join(map(str, shot_ids)))
 
 def import_bundler(data_path, bundle_file, list_file, track_file, reconstruction_file=None, convert_coorindate=True):
     """
