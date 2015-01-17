@@ -27,13 +27,22 @@ def viewing_direction(shot):
     t = np.array([0, 0, 1])
     return R.T.dot(t)
 
+def vector2_angle(x1, y1, x2, y2):
+    angle = np.arctan2(y1, x1) - np.arctan2(y2, x2)
+    if angle > np.pi:
+        return angle - 2 * np.pi
+    elif angle < -np.pi:
+        return angle + 2 * np.pi
+    else:
+        return angle
+
 def create_optical_center_graph(reconstruction):
 
     optical_centers = []
     viewing_directions = []
     shot_ids = []
 
-    for shot_id in reconstruction['shots']:
+    for shot_id in sorted(reconstruction['shots'].keys()):
         shot = reconstruction['shots'][shot_id]
         optical_centers.append(optical_center(shot))
         viewing_directions.append(viewing_direction(shot))
@@ -46,7 +55,14 @@ def create_optical_center_graph(reconstruction):
 
     turn_threshold = 0.25
     min_distance = 0.01
-    max_distance = 20
+    max_distance = 3
+
+    directions = {
+        'forward': [0, 0],
+        'backward': [np.pi, 0],
+        'left': [-np.pi / 2, 0],
+        'right': [np.pi / 2, 0]
+     }
 
     graph = nx.DiGraph()
 
@@ -56,17 +72,27 @@ def create_optical_center_graph(reconstruction):
         oc = optical_centers[i]
         vd = viewing_directions[i]
 
+        # Order potential optical centers according to shortest distance
         potential = np.where((min_distance < distances) & (distances < max_distance))[0]
         ordered_indices = potential[np.argsort(distances[potential])]
-
         motions = optical_centers[ordered_indices] - oc
+        viewings = viewing_directions[ordered_indices]
 
-        turn = np.array([dist.cosine(vd, motion) for motion in motions])
-        turn_indices = np.where(turn < turn_threshold)[0]
+        motion_angles = np.array([vector2_angle(vd[0], vd[1], motion[0], motion[1]) for motion in motions], float)
+        viewing_angle_differences = np.array([vector2_angle(vd[0], vd[1], viewing[0], viewing[1]) for viewing in viewings], float)
 
-        if len(turn_indices) > 0:
-            forward_index = ordered_indices[turn_indices[0]]
-            graph.add_edge(shot_ids[i], shot_ids[forward_index], weight=distances[forward_index])
+        for key in directions:
+            # Make sure the angle difference is less than Pi
+            ma_diff = np.abs(motion_angles - directions[key][0])
+            ma_diff = np.min(np.vstack((ma_diff, 2*np.pi - ma_diff)).T, 1)
+            va_diff = np.abs(viewing_angle_differences - directions[key][1])
+            va_diff = np.min(np.vstack((va_diff, 2*np.pi - va_diff)).T, 1)
+
+            direction_indices = np.where((ma_diff < turn_threshold) & (va_diff < turn_threshold))[0]
+
+            if len(direction_indices) > 0:
+                direction_index = ordered_indices[direction_indices[0]]
+                graph.add_edge(shot_ids[i], shot_ids[direction_index], weight=distances[direction_index], direction=key)
 
     return graph
 
