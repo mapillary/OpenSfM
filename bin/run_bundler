@@ -1,0 +1,96 @@
+#!/usr/bin/env python
+import os.path, sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+import argparse
+
+import cv2
+import json
+import numpy as np
+
+from opensfm import dataset
+from opensfm import io
+from opensfm import features
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Runs Bundler on an OpenSfM dataset')
+    parser.add_argument('dataset', help='path to the dataset to be processed')
+    parser.add_argument('--bundler_dir', help='folder where to put bundler files')
+    parser.add_argument('--bundler_command', help='path to the bundler executable')
+    args = parser.parse_args()
+
+    if args.bundler_dir:
+        bundler_path = args.bundler_dir
+    else:
+        bundler_path = os.path.join(args.dataset, 'bundler')
+    dataset.mkdir_p(bundler_path)
+
+    data = dataset.DataSet(args.dataset)
+
+    # Create list.txt
+    lines = []
+    images = data.images()
+    for image in images:
+        exif = data.exif_data(image)
+        focalpx = exif['focal_ratio'] * max(exif['width'], exif['height'])
+        abspath = os.path.abspath(data.image_file(image))
+        relpath = os.path.relpath(abspath, bundler_path)
+        lines.append('{0} 0 {1}'.format(relpath, focalpx))
+
+    list_file = os.path.join(bundler_path, 'list.txt')
+    with open(list_file, 'w') as fout:
+        fout.write('\n'.join(lines) + '\n')
+
+    # Create keys
+    key_dir = os.path.join(bundler_path, 'keys')
+    dataset.mkdir_p(key_dir)
+    fmt = '%f ' * 4 + '\n' + ('%d ' * 20 + '\n') * 6 + '%d ' * 8
+    for image in images:
+        exif = data.exif_data(image)
+        p, f = features.read_features(data.feature_file(image))
+        p[:,:2] = features.denormalized_image_coordinates(p[:,:2], exif['width'], exif['height'])
+        p[:,-3::-1] = p[:,:2]
+        keys_file = os.path.join(key_dir, os.path.splitext(image)[0] + '.key')
+        with open(keys_file, 'w') as fout:
+            fout.write('{0} {1}\n'.format(*f.shape))
+            np.savetxt(fout, np.hstack((p,f)), fmt=fmt)
+
+    # Create matches
+    match_file = os.path.join(bundler_path, 'matches.init.txt')
+    with open(match_file, 'w') as fout:
+        for i in range(len(images)):
+            for j in range(i + 1, len(images)):
+                matches = None
+                if os.path.isfile(data.robust_matches_file(images[i], images[j])):
+                    matches = np.genfromtxt(data.robust_matches_file(images[i], images[j]), dtype=int)
+                elif os.path.isfile(data.robust_matches_file(images[i], images[j])):
+                    matches = np.genfromtxt(data.robust_matches_file(images[i], images[j]), dtype=int)[:,::-1]
+                if matches is not None:
+                    fout.write('{0} {1}\n'.format(i, j))
+                    fout.write('{0}\n'.format(len(matches)))
+                    np.savetxt(fout, matches, fmt='%d')
+
+    # Create options.txt
+    dataset.mkdir_p(os.path.join(bundler_path, 'bundle'))
+    options = []
+    options.append('--key_dir keys')
+    options.append('--match_table matches.init.txt')
+    options.append('--output bundle.out')
+    options.append('--output_all bundle_')
+    options.append('--output_dir bundle')
+    options.append('--variable_focal_length')
+    options.append('--use_focal_estimate')
+    options.append('--constrain_focal')
+    options.append('--constrain_focal_weight 0.01')
+    options.append('--estimate_distortion')
+    options.append('--run_bundle')
+    options_file = os.path.join(bundler_path, 'options.txt')
+    with open(options_file, 'w') as fout:
+        fout.write('\n'.join(options))
+
+    # Run Bundler
+    bundler_command = os.path.abspath(args.bundler_command)
+    current_path = os.getcwd()
+    os.chdir(bundler_path)
+    os.system(bundler_command + ' list.txt --options_file options.txt > bundle.log')
+    os.chdir(current_path)
+
