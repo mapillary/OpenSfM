@@ -1,0 +1,9 @@
+Project: VLFeat
+URL: http://www.vlfeat.org/
+License: BSD
+Version: 0.9.20 2015-01-14
+Authors and contributors: See README.akaze
+Local modifications:
+
+* Strip the library to contain only relevant source files.
+
