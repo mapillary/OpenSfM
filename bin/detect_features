@@ -48,8 +48,13 @@ if __name__ == "__main__":
     preemptive_max = data.config.get('preemptive_max', 200)
 
     start = time.time()
-    p = Pool(data.config['processes'])
-    p.map(detect, images)
+    processes = data.config['processes']
+    if processes == 1:
+        for image in images:
+            detect(image)
+    else:
+        p = Pool(processes)
+        p.map(detect, images)
     end = time.time()
     with open(data.profile_log(), 'a') as fout:
         fout.write('detect_features: {0}\n'.format(end - start))

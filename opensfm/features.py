@@ -10,6 +10,7 @@ import uuid
 import cv2
 
 import context
+import csfm
 
 def resized_image(image, config):
     feature_process_size = config.get('feature_process_size', -1)
@@ -119,6 +120,16 @@ def extract_features_akaze(imagefile, config):
     image = cv2.imread(imagefile)
     return mask_and_normalize_features(points, desc, image.shape[1], image.shape[0], config)
 
+def extract_features_hahog(imagefile, config):
+    image = resized_image(cv2.imread(imagefile, cv2.CV_LOAD_IMAGE_GRAYSCALE), config)
+    t = time.time()
+    points, desc = csfm.hahog(image.astype(np.float32),
+                              peak_threshold = config.get('hahog_peak_threshold', 200),
+                              edge_threshold = config.get('hahog_edge_threshold', 10000))
+    print 'Found {0} points in {1}s'.format( len(points), time.time()-t )
+    if config.get('feature_root', False): desc = np.sqrt(desc)
+    return mask_and_normalize_features(points, desc, image.shape[1], image.shape[0], config)
+
 
 def extract_feature(imagefile, config):
     feature_type = config.get('feature_type','SIFT').upper()
@@ -128,8 +139,10 @@ def extract_feature(imagefile, config):
         return extract_features_surf(imagefile, config)
     elif feature_type == 'AKAZE':
         return extract_features_akaze(imagefile, config)
+    elif feature_type == 'HAHOG':
+        return extract_features_hahog(imagefile, config)
     else:
-        raise ValueError('Unknown feature type (must be SURF, SIFT or AKAZE)')
+        raise ValueError('Unknown feature type (must be SURF, SIFT, AKAZE or HAHOG)')
 
 def akaze_feature(imagefile, config):
     ''' Extract AKAZE interest points and descriptors
