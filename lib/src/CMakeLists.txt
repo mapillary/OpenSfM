@@ -100,3 +100,42 @@ target_link_libraries(AKAZE_LIB ${OpenCV_LIBS})
 add_executable(akaze
                akaze.cpp)
 target_link_libraries(akaze AKAZE_LIB)
+
+
+# VLFeat lib
+include_directories("third_party/vlfeat")
+file(GLOB VLFEAT_SRCS third_party/vlfeat/vl/*.c third_party/vlfeat/vl/*.h)
+add_definitions(-DVL_DISABLE_AVX)
+add_library(vl ${VLFEAT_SRCS})
+
+
+# Python wrapper
+find_package(OpenCV REQUIRED)
+include_directories(${OpenCV_INCLUDE_DIRS})
+
+find_package(Boost COMPONENTS python)
+include_directories(${Boost_INCLUDE_DIRS})
+
+find_package(PythonLibs REQUIRED)
+include_directories(${PYTHON_INCLUDE_DIRS})
+
+find_package(NumPy REQUIRED)
+include_directories(${NUMPY_INCLUDE_DIRS})
+message(${NUMPY_VERSION})
+message(${NUMPY_INCLUDE_DIRS})
+
+add_library(csfm SHARED csfm.cc)
+target_link_libraries(csfm
+                      ${Boost_LIBRARIES}
+                      ${PYTHON_LIBRARIES}
+                      ${OpenCV_LIBS}
+                      ${GFLAGS_LIBRARY}
+                      ${GLOG_LIBRARY}
+                      vl
+)
+set_target_properties(csfm PROPERTIES
+    PREFIX ""
+    SUFFIX ".so"
+    LIBRARY_OUTPUT_DIRECTORY "${opensfm_SOURCE_DIR}/../../opensfm"
+)
+
