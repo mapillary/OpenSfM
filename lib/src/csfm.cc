@@ -16,5 +16,9 @@ BOOST_PYTHON_MODULE(csfm) {
   import_array();
 
   // Add regular functions to the module.
-  def("hahog", csfm::hahog);
+  def("hahog", csfm::hahog,
+      (arg("peak_threshold") = 100,
+       arg("edge_threshold") = 10000
+      )
+  );
 }

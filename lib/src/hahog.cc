@@ -12,7 +12,9 @@ extern "C" {
 
 namespace csfm {
 
-bp::object hahog(PyObject *image) {
+bp::object hahog(PyObject *image,
+                 float peak_threshold,
+                 float edge_threshold) {
   PyArrayContiguousView<float> im((PyArrayObject *)image);
 
   if (im.valid()) {
@@ -20,12 +22,12 @@ bp::object hahog(PyObject *image) {
     VlCovDet * covdet = vl_covdet_new(VL_COVDET_METHOD_HESSIAN_LAPLACE);
     // set various parameters (optional)
     vl_covdet_set_first_octave(covdet, 0);
-    //vl_covdet_set_octave_resolution(covdet, octaveResolution) ;
-    //vl_covdet_set_peak_threshold(covdet, peakThreshold) ;
-    //vl_covdet_set_edge_threshold(covdet, edgeThreshold) ;
+    //vl_covdet_set_octave_resolution(covdet, octaveResolution);
+    vl_covdet_set_peak_threshold(covdet, peak_threshold);
+    vl_covdet_set_edge_threshold(covdet, edge_threshold);
 
     // process the image and run the detector
-    vl_covdet_put_image(covdet, im.data(), im.shape(0), im.shape(1));
+    vl_covdet_put_image(covdet, im.data(), im.shape(1), im.shape(0));
     vl_covdet_detect(covdet);
   
     // compute the affine shape of the features (optional)
