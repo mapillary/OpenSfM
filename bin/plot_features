@@ -1,0 +1,39 @@
+#!/usr/bin/env python
+
+import argparse
+import matplotlib.pyplot as pl
+import networkx as nx
+import numpy as np
+from networkx.algorithms import bipartite
+from itertools import combinations
+
+from opensfm import dataset
+from opensfm import features
+from opensfm import reconstruction
+
+
+def plot_features(image, points):
+    h, w, c = image.shape
+    p = features.denormalized_image_coordinates(points, w, h)
+    pl.imshow(image)
+    pl.plot(p[:,0], p[:,1], 'ob')
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Compute reconstruction')
+    parser.add_argument('dataset',
+                        help='path to the dataset to be processed')
+    parser.add_argument('--image',
+                        help='name of the image to show')
+    args = parser.parse_args()
+
+    data = dataset.DataSet(args.dataset)
+    
+    if not args.image:
+        for image in data.images():
+            points, desc = features.read_features(data.feature_file(image))
+            plot_features(data.image_as_array(image), points)
+            pl.show()
+
+
+
