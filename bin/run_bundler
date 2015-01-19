@@ -12,7 +12,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Runs Bundler on an OpenSfM dataset')
     parser.add_argument('dataset', help='path to the dataset to be processed')
     parser.add_argument('--bundler_dir', help='folder where to put bundler files')
-    parser.add_argument('--bundler_command', help='path to the bundler executable')
+    parser.add_argument('--bundler_bin_path', help='path to the directory containing the bundler executable')
     args = parser.parse_args()
 
     if args.bundler_dir:
@@ -53,18 +53,24 @@ if __name__ == "__main__":
 
     # Create matches
     match_file = os.path.join(bundler_path, 'matches.init.txt')
-    with open(match_file, 'w') as fout:
-        for i in range(len(images)):
-            for j in range(i + 1, len(images)):
-                matches = None
-                if os.path.isfile(data.robust_matches_file(images[i], images[j])):
-                    matches = np.genfromtxt(data.robust_matches_file(images[i], images[j]), dtype=int)
-                elif os.path.isfile(data.robust_matches_file(images[i], images[j])):
-                    matches = np.genfromtxt(data.robust_matches_file(images[i], images[j]), dtype=int)[:,::-1]
-                if matches is not None:
-                    fout.write('{0} {1}\n'.format(i, j))
-                    fout.write('{0}\n'.format(len(matches)))
-                    np.savetxt(fout, matches, fmt='%d')
+    if data.config.get('use_bundler_matching'):
+        current_path = os.getcwd()
+        os.chdir(bundler_path)
+        os.system(os.path.join(bundler_command, 'KeyMatchFull') + ' list.txt ' + match_file + ' > KeyMatchFull.log')
+        os.chdir(current_path)
+    else:
+        with open(match_file, 'w') as fout:
+            for i in range(len(images)):
+                for j in range(i + 1, len(images)):
+                    matches = None
+                    if os.path.isfile(data.robust_matches_file(images[i], images[j])):
+                        matches = np.genfromtxt(data.robust_matches_file(images[i], images[j]), dtype=int)
+                    elif os.path.isfile(data.robust_matches_file(images[i], images[j])):
+                        matches = np.genfromtxt(data.robust_matches_file(images[i], images[j]), dtype=int)[:,::-1]
+                    if matches is not None:
+                        fout.write('{0} {1}\n'.format(i, j))
+                        fout.write('{0}\n'.format(len(matches)))
+                        np.savetxt(fout, matches, fmt='%d')
 
     # Create options.txt
     dataset.mkdir_p(os.path.join(bundler_path, 'bundle'))
@@ -80,6 +86,10 @@ if __name__ == "__main__":
     options.append('--constrain_focal_weight 0.01')
     options.append('--estimate_distortion')
     options.append('--run_bundle')
+    for k in data.config:
+        if k.startswith('bundler_'):
+            options.append('--{0} {1}'.format(k[8:], data.config[k]))
+
     options_file = os.path.join(bundler_path, 'options.txt')
     with open(options_file, 'w') as fout:
         fout.write('\n'.join(options))
@@ -88,6 +98,6 @@ if __name__ == "__main__":
     bundler_command = os.path.abspath(args.bundler_command)
     current_path = os.getcwd()
     os.chdir(bundler_path)
-    os.system(bundler_command + ' list.txt --options_file options.txt > bundle.log')
+    os.system(os.path.join(bundler_command, 'bundler') + ' list.txt --options_file options.txt > bundle.log')
     os.chdir(current_path)
 
