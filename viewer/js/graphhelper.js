@@ -11,6 +11,7 @@ var GraphHelper = (function () {
         this.intervalTime = intervalTime;
         this.intervalToken = undefined;
         this.path = undefined;
+        this.currentIndex = 0;
         this.started = false;
     }
 
@@ -51,6 +52,10 @@ var GraphHelper = (function () {
             return undefined;
         }
 
+        var path = journeyGraph.nodes.sort();
+
+        return path;
+
         return journeyGraph.nodes.sort();
     }
 
@@ -60,17 +65,17 @@ var GraphHelper = (function () {
      * @param {Number} to
      */
     GraphHelper.prototype.startJourney = function (from, to) {
-        if (this.started) {
+        if (this.started === true) {
             return;
         }
 
-        this.started = true;
         var _this = this;
 
         this.path = this.shortestPath(from, to);
         if (this.path === undefined) {
             return;
         }
+        this.started = true;
 
         this.currentIndex = 0;
         var a = this.path[this.currentIndex]
@@ -82,13 +87,13 @@ var GraphHelper = (function () {
             return _this.onMove();
         }, this.intervalTime);
     }
-
+    
     /**
      * Callback function for interval.
      */
     GraphHelper.prototype.onMove = function () {
         this.currentIndex++;
-        if (this.currentIndex >= this.path.length) {
+        if (this.started !== true || this.currentIndex >= this.path.length) {
             this.stopJourney();
             return;
         }
