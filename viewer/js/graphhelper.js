@@ -15,6 +15,17 @@ var GraphHelper = (function () {
         this.started = false;
     }
 
+    // Private callback function for setInterval.
+    var onMove = function(self) {
+        self.currentIndex++;
+        if (self.started !== true || self.currentIndex >= self.path.length) {
+            self.stopJourney();
+            return;
+        }
+
+        self.navigationAction(self.path[self.currentIndex]);
+    }
+
     /**
      * Sets the interval time.
      */
@@ -55,8 +66,6 @@ var GraphHelper = (function () {
         var path = journeyGraph.nodes.sort();
 
         return path;
-
-        return journeyGraph.nodes.sort();
     }
 
     /**
@@ -69,36 +78,18 @@ var GraphHelper = (function () {
             return;
         }
 
-        var _this = this;
-
         this.path = this.shortestPath(from, to);
         if (this.path === undefined) {
             return;
         }
+
         this.started = true;
-
         this.currentIndex = 0;
-        var a = this.path[this.currentIndex]
-
         this.initialAction('walk');
         this.navigationAction(this.path[this.currentIndex])
 
-        this.intervalToken = window.setInterval(function () {
-            return _this.onMove();
-        }, this.intervalTime);
-    }
-    
-    /**
-     * Callback function for interval.
-     */
-    GraphHelper.prototype.onMove = function () {
-        this.currentIndex++;
-        if (this.started !== true || this.currentIndex >= this.path.length) {
-            this.stopJourney();
-            return;
-        }
-
-        this.navigationAction(this.path[this.currentIndex]);
+        var _this = this;
+        this.intervalToken = window.setInterval(function () { onMove(_this); }, this.intervalTime);
     }
 
     /**
