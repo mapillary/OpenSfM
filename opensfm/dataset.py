@@ -111,7 +111,9 @@ class DataSet:
     def feature_type(self):
         """Return the type of local features (e.g. AKAZE, SURF, SIFT)
         """
-        return self.config.get('feature_type', 'sift').lower()
+        feature_name = self.config.get('feature_type', 'sift').lower()
+        if self.config.get('feature_root', False): feature_name = 'root_' + feature_name
+        return feature_name
 
     def descriptor_type(self):
         """Return the type of the descriptor (if exists)
@@ -137,7 +139,6 @@ class DataSet:
     def feature_path(self):
         """Return path of feature descriptors and FLANN indices directory"""
         feature_path = self.feature_type()
-        if self.config.get('feature_root', False): feature_path = 'root_' + feature_path
         if len(self.descriptor_type()) > 0:
             feature_path += '_' + self.descriptor_type()
         return os.path.join(self.data_path, feature_path)
@@ -154,7 +155,7 @@ class DataSet:
         Return path of FLANN index file for specified image
         :param image: Image name, with extension (i.e. 123.jpg)
         """
-        return os.path.join(self.feature_path(), image + '.flann')
+        return os.path.join(self.feature_path(), image + '.' + self.feature_type() + '.flann')
 
     def preemptive_feature_file(self, image):
         """
