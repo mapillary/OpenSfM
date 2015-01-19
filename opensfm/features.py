@@ -215,6 +215,7 @@ def build_flann_index(features, index_file, config):
                         iterations=config['flann_iterations'])
     index = cv2.flann_Index(features, flann_params)
     index.save(index_file)
+    return index
 
 def load_flann_index(features, index_file):
     index = cv2.flann_Index()
