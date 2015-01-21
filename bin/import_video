@@ -13,6 +13,7 @@ import dateutil.parser
 from opensfm import dataset
 from opensfm import geo
 from opensfm import geotag_from_gpx
+from opensfm import io
 
 
 def gpx_lerp(alpha, a, b):
@@ -25,7 +26,7 @@ def gpx_lerp(alpha, a, b):
     alt = (1 - alpha) * a[3] + alpha * b[3]
     return t, lat, lon, alt
 
-def import_video_with_gpx(video_file, gpx_file, output_path, min_dx, dt=None, start_time=None, visual=False):
+def import_video_with_gpx(video_file, gpx_file, output_path, min_dx, max_dx = 10, dt=None, start_time=None, visual=False):
     ''' Return a list of images with gps tags that sampled from video and gpx
     '''
     time_based = dt is not None
@@ -100,12 +101,14 @@ if __name__ == "__main__":
     parser.add_argument('--video', help='path to the video file')
     parser.add_argument('--output', help='path to the image output folder', default='.')
     parser.add_argument('--dx', help='distance between key frames (in meters)', default=5)
+    parser.add_argument('--max_dx', help='distance between key frames (in meters)', default=20)
     parser.add_argument('--dt', help='time offset between key frames (in seconds)')
     parser.add_argument('--start_time',
         help='time of the first frame of the video (in ISO8601 format, example {0})'.format(
             datetime.datetime.now().isoformat()))
     args = parser.parse_args()
     min_dx = float(args.dx)
+    max_dx = float(args.max_dx)
 
     dt = args.dt
     if dt is not None: dt = float(dt)
@@ -115,4 +118,4 @@ if __name__ == "__main__":
     start_time = args.start_time
     gpx_file = args.gpx
 
-    import_video_with_gpx(video_file, gpx_file, output_path, min_dx, dt, start_time)
+    import_video_with_gpx(video_file, gpx_file, output_path, min_dx, max_dx, dt, start_time)
