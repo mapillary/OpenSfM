@@ -104,6 +104,7 @@ def extract_features_surf(imagefile, config):
 
 def extract_features_akaze(imagefile, config):
     threshold = config.get('akaze_dthreshold', 0.005)
+    original_threshold = threshold
     while True:
         print 'Computing AKAZE with threshold {0}'.format(threshold)
         t = time.time()
@@ -116,7 +117,7 @@ def extract_features_akaze(imagefile, config):
         else:
             print 'done'
             break
-
+    config['akaze_dthreshold'] = original_threshold
     image = cv2.imread(imagefile)
     return mask_and_normalize_features(points, desc, image.shape[1], image.shape[0], config)
 
