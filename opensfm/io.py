@@ -252,17 +252,18 @@ def import_video_with_gpx(video_file, gpx_file, output_path, min_dx, max_dx=10, 
         dt = (p - video_start_time).total_seconds()
         cap.set(cv2.cv.CV_CAP_PROP_POS_MSEC, int(dt * 1000))
         ret, frame = cap.read()
-        filepath = os.path.join(output_path, p.isoformat() + '.jpg')
-        cv2.imwrite(filepath, frame)
-        geotag_from_gpx.add_exif_using_timestamp(filepath, points, timestamp=p)
+        if ret:
+            filepath = os.path.join(output_path, p.isoformat() + '.jpg')
+            cv2.imwrite(filepath, frame)
+            geotag_from_gpx.add_exif_using_timestamp(filepath, points, timestamp=p)
 
-        if visual:
-            # Display the resulting frame
-            resize_ratio = float(max_display_size) / max(frame.shape[0], frame.shape[1])
-            frame = cv2.resize(frame, dsize=(0, 0), fx=resize_ratio, fy=resize_ratio)
-            cv2.imshow('frame', frame)
-            if cv2.waitKey(1) & 0xFF == 27:
-                break
+            if visual:
+                # Display the resulting frame
+                resize_ratio = float(max_display_size) / max(frame.shape[0], frame.shape[1])
+                frame = cv2.resize(frame, dsize=(0, 0), fx=resize_ratio, fy=resize_ratio)
+                cv2.imshow('frame', frame)
+                if cv2.waitKey(1) & 0xFF == 27:
+                    break
 
     # When everything done, release the capture
     cap.release()
