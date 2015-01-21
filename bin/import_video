@@ -74,6 +74,20 @@ def import_video_with_gpx(video_file, gpx_file, output_path, min_dx, max_dx = 10
             video_start_time = key_points[0][0]
     print "Video starts at", video_start_time
 
+    # Get Video rotation
+    rotation = Popen(['exiftool', '-Rotation', video_file], stdout=PIPE).stdout.read()
+    if rotation:
+        rotation = float(rotation.split(':')[1])
+        if rotation == 0:
+            orientation = 1
+        elif rotation == 90:
+            orientation = 6
+        elif rotation == 180:
+            orientation = 3
+        elif rotation == 270:
+            orientation = 8
+    else:
+        orientation = 1
 
     # Grab video frames.
     cap = cv2.VideoCapture(video_file)
@@ -82,16 +96,17 @@ def import_video_with_gpx(video_file, gpx_file, output_path, min_dx, max_dx = 10
         if dt > 0:
             cap.set(cv2.cv.CV_CAP_PROP_POS_MSEC, int(dt * 1000))
             ret, frame = cap.read()
-            print 'Grabbing frame for time', p[0]
-            filepath = os.path.join(output_path, p[0].isoformat() + '.jpg')
-            cv2.imwrite(filepath, frame)
-            geotag_from_gpx.add_exif_using_timestamp(filepath, points, timestamp=p[0])
+            if ret:
+                print 'Grabbing frame for time', p[0]
+                filepath = os.path.join(output_path, p[0].isoformat() + '.jpg')
+                cv2.imwrite(filepath, frame)
+                geotag_from_gpx.add_exif_using_timestamp(filepath, points, timestamp=p[0], orientation=orientation)
 
-            # Display the resulting frame
-            if visual:
-                cv2.imshow('frame', frame)
-                if cv2.waitKey(1) & 0xFF == 27:
-                    break
+                # Display the resulting frame
+                if visual:
+                    cv2.imshow('frame', frame)
+                    if cv2.waitKey(1) & 0xFF == 27:
+                        break
     cap.release()
     if visual:
         cv2.destroyAllWindows()
