@@ -226,6 +226,7 @@ def add_exif_using_timestamp(filename, points, offset_time=0, timestamp=None):
         metadata["Exif.GPSInfo.GPSVersionID"] = '2 0 0 0'
         metadata["Exif.GPSInfo.GPSImgDirection"] = exiv_bearing
         metadata["Exif.GPSInfo.GPSImgDirectionRef"] = "T"
+        metadata["Exif.Image.Orientation"] = 1
 
         if elevation is not None:
             exiv_elevation = make_fraction(int(abs(elevation)*100),100)
