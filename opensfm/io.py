@@ -189,13 +189,21 @@ def import_video_with_gpx(video_file, gpx_file, output_path, min_dx, max_dx=10, 
     # Sample GPX points.
     points = geotag_from_gpx.get_lat_lon_time(gpx_file)
 
-    exifdate = Popen(['exiftool', '-CreateDate', video_file], stdout=PIPE).stdout.read()
-    duration = Popen(['exiftool', '-MediaDuration', video_file], stdout=PIPE).stdout.read()
-    datestr = ' '.join(exifdate.split()[-2:])
-    video_start_time = datetime.datetime.strptime(datestr,'%Y:%m:%d %H:%M:%S')
-    duration = map(int, duration.split()[-1].split(':'))
-    video_duration = datetime.timedelta(hours=duration[0],minutes=duration[1],seconds=duration[2])
-    video_end_time = video_start_time + video_duration
+    # Rotation
+    rotation = Popen(['exiftool', '-Rotation', video_file], stdout=PIPE).stdout.read()
+
+    if rotation:
+        rotation = float(rotation.split(':')[1])
+        if rotation == 0:
+            orientation = 1
+        elif rotation == 90:
+            orientation = 6
+        elif rotation == 180:
+            orientation = 3
+        elif rotation == 270:
+            orientation = 8
+    else:
+        orientation = 1
 
     if start_time:
         video_start_time = dateutil.parser.parse(start_time)
@@ -205,9 +213,12 @@ def import_video_with_gpx(video_file, gpx_file, output_path, min_dx, max_dx=10, 
             duration = Popen(['exiftool', '-MediaDuration', video_file], stdout=PIPE).stdout.read()
             datestr = ' '.join(exifdate.split()[-2:])
             video_start_time = datetime.datetime.strptime(datestr,'%Y:%m:%d %H:%M:%S')
-            duration = map(int, duration.split()[-1].split(':'))
-            video_duration = datetime.timedelta(hours=duration[0],minutes=duration[1],seconds=duration[2])
-            video_end_time = video_start_time + video_duration
+            if duration:
+                duration = map(int, duration.split()[-1].split(':'))
+                video_duration = datetime.timedelta(hours=duration[0],minutes=duration[1],seconds=duration[2])
+                video_end_time = video_start_time + video_duration
+            else:
+                video_end_time = points[-1][0]
         except:
             print 'Video recording timestamp not found. Using first GPS point time.'
             video_start_time = points[0][0]
@@ -255,7 +266,7 @@ def import_video_with_gpx(video_file, gpx_file, output_path, min_dx, max_dx=10, 
         if ret:
             filepath = os.path.join(output_path, p.isoformat() + '.jpg')
             cv2.imwrite(filepath, frame)
-            geotag_from_gpx.add_exif_using_timestamp(filepath, points, timestamp=p)
+            geotag_from_gpx.add_exif_using_timestamp(filepath, points, timestamp=p, orientation=orientation)
 
             if visual:
                 # Display the resulting frame
