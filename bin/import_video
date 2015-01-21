@@ -25,26 +25,15 @@ def gpx_lerp(alpha, a, b):
     alt = (1 - alpha) * a[3] + alpha * b[3]
     return t, lat, lon, alt
 
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Parse gpx file and exctact video frames.')
-    parser.add_argument('--gpx', help='path to the gpx file')
-    parser.add_argument('--video', help='path to the video file')
-    parser.add_argument('--output', help='path to the image output folder', default='.')
-    parser.add_argument('--dx', help='distance between key frames (in meters)', default=5)
-    parser.add_argument('--dt', help='time offset between key frames (in seconds)')
-    parser.add_argument('--start_time',
-        help='time of the first frame of the video (in ISO8601 format, example {0})'.format(
-            datetime.datetime.now().isoformat()))
-    args = parser.parse_args()
-    min_dx = float(args.dx)
-    time_based = args.dt is not None
+def import_video_with_gpx(video_file, gpx_file, output_path, min_dx, dt=None, start_time=None, visual=False):
+    ''' Return a list of images with gps tags that sampled from video and gpx
+    '''
+    time_based = dt is not None
     if time_based:
-        min_dt = datetime.timedelta(seconds=float(args.dt))
-        
+        min_dt = datetime.timedelta(seconds=float(dt))
 
     # Sample GPX points.
-    points = geotag_from_gpx.get_lat_lon_time(args.gpx)
+    points = geotag_from_gpx.get_lat_lon_time(gpx_file)
     key_points = [points[0]]
     a = points[0]
     for i in range(1, len(points)):
@@ -68,11 +57,10 @@ if __name__ == "__main__":
             else:
                 a = b
 
-
     # Check video start time.
-    dataset.mkdir_p(args.output)
-    if args.start_time:
-        video_start_time = dateutil.parser.parse(args.start_time)
+    dataset.mkdir_p(output_path)
+    if start_time:
+        video_start_time = dateutil.parser.parse(start_time)
     else:
         try:
             exifdate = Popen(['exiftool', '-CreateDate', args.video], stdout=PIPE).stdout.read()
@@ -85,23 +73,46 @@ if __name__ == "__main__":
 
 
     # Grab video frames.
-    cap = cv2.VideoCapture(args.video)
+    cap = cv2.VideoCapture(video_file)
     for p in key_points:
         dt = (p[0] - video_start_time).total_seconds()
-        cap.set(cv2.cv.CV_CAP_PROP_POS_MSEC, int(dt * 1000))
-        ret, frame = cap.read()
-        if ret:
+        if dt > 0:
+            cap.set(cv2.cv.CV_CAP_PROP_POS_MSEC, int(dt * 1000))
+            ret, frame = cap.read()
             print 'Grabbing frame for time', p[0]
-            filepath = os.path.join(args.output, p[0].isoformat() + '.jpg')
+            filepath = os.path.join(output_path, p[0].isoformat() + '.jpg')
             cv2.imwrite(filepath, frame)
             geotag_from_gpx.add_exif_using_timestamp(filepath, points, timestamp=p[0])
 
             # Display the resulting frame
-            cv2.imshow('frame', frame)
-            if cv2.waitKey(1) & 0xFF == 27:
-                break
-        else:
-            print 'Could not grab frame for time', p[0]
-
+            if visual:
+                cv2.imshow('frame', frame)
+                if cv2.waitKey(1) & 0xFF == 27:
+                    break
     cap.release()
-    cv2.destroyAllWindows()
+    if visual:
+        cv2.destroyAllWindows()
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Parse gpx file and exctact video frames.')
+    parser.add_argument('--gpx', help='path to the gpx file')
+    parser.add_argument('--video', help='path to the video file')
+    parser.add_argument('--output', help='path to the image output folder', default='.')
+    parser.add_argument('--dx', help='distance between key frames (in meters)', default=5)
+    parser.add_argument('--dt', help='time offset between key frames (in seconds)')
+    parser.add_argument('--start_time',
+        help='time of the first frame of the video (in ISO8601 format, example {0})'.format(
+            datetime.datetime.now().isoformat()))
+    args = parser.parse_args()
+    min_dx = float(args.dx)
+
+    dt = args.dt
+    if dt is not None: dt = float(dt)
+
+    video_file = args.video
+    output_path = args.output
+    start_time = args.start_time
+    gpx_file = args.gpx
+
+    import_video_with_gpx(video_file, gpx_file, output_path, min_dx, dt, start_time)
