@@ -1,15 +1,10 @@
 import os
 import argparse
-from subprocess import Popen, PIPE
-import datetime
-
 import cv2
 import json
 import numpy as np
 
 import dataset
-import geotag_from_gpx
-import geo
 
 
 # (TODO): ensure the image order from OpenSfM is the same as Bundler
@@ -182,102 +177,4 @@ def import_bundler(data_path, bundle_file, list_file, track_file, reconstruction
         with open(reconstruction_file, 'wb') as fout:
             fout.write(json.dumps([reconstruction], indent=4))
     return reconstruction
-
-
-def import_video_with_gpx(video_file, gpx_file, output_path, min_dx, max_dx=10, min_dt=None, start_time=None, visual=False):
-
-    # Sample GPX points.
-    points = geotag_from_gpx.get_lat_lon_time(gpx_file)
-
-    # Rotation
-    rotation = Popen(['exiftool', '-Rotation', video_file], stdout=PIPE).stdout.read()
-
-    if rotation:
-        rotation = float(rotation.split(':')[1])
-        if rotation == 0:
-            orientation = 1
-        elif rotation == 90:
-            orientation = 6
-        elif rotation == 180:
-            orientation = 3
-        elif rotation == 270:
-            orientation = 8
-    else:
-        orientation = 1
-
-    if start_time:
-        video_start_time = dateutil.parser.parse(start_time)
-    else:
-        try:
-            exifdate = Popen(['exiftool', '-CreateDate', video_file], stdout=PIPE).stdout.read()
-            duration = Popen(['exiftool', '-MediaDuration', video_file], stdout=PIPE).stdout.read()
-            datestr = ' '.join(exifdate.split()[-2:])
-            video_start_time = datetime.datetime.strptime(datestr,'%Y:%m:%d %H:%M:%S')
-            if duration:
-                duration = map(int, duration.split()[-1].split(':'))
-                video_duration = datetime.timedelta(hours=duration[0],minutes=duration[1],seconds=duration[2])
-                video_end_time = video_start_time + video_duration
-            else:
-                video_end_time = points[-1][0]
-        except:
-            print 'Video recording timestamp not found. Using first GPS point time.'
-            video_start_time = points[0][0]
-            video_end_time = points[-1][0]
-
-    print 'Video starts at:', video_start_time
-
-    key_time = []
-    last_end_point = None
-
-    for k, p in enumerate(points[1:]):
-        if ((p[0] - video_start_time).total_seconds() >= 0 and
-            (p[0] - video_end_time).total_seconds() <= 0):
-            if last_end_point is None:
-                last_end_point = p
-
-            # distance between two neighboring points
-            dx = geo.gps_distance(p[1:3], last_end_point[1:3])
-
-            # time interval between two neighboring point
-            dt = p[0] - last_end_point[0]
-
-            if dx > max_dx:
-                # if the distance is larger than max_dx, interpolate
-                n = int((dx/max_dx))
-                t_interval = dt//n
-                key_time += [p[0] + i*t_interval for i in xrange(n)]
-                last_end_point = p
-            elif dx > min_dx:
-                key_time += [p[0]]
-                last_end_point = p
-
-            last_end_point = p
-
-    print 'Total number of sampled points {0}'.format(len(key_time))
-
-    # Extract video frames.
-    dataset.mkdir_p(output_path)
-
-    cap = cv2.VideoCapture(video_file)
-    for p in key_time:
-        dt = (p - video_start_time).total_seconds()
-        cap.set(cv2.cv.CV_CAP_PROP_POS_MSEC, int(dt * 1000))
-        ret, frame = cap.read()
-        if ret:
-            filepath = os.path.join(output_path, p.isoformat() + '.jpg')
-            cv2.imwrite(filepath, frame)
-            geotag_from_gpx.add_exif_using_timestamp(filepath, points, timestamp=p, orientation=orientation)
-
-            if visual:
-                # Display the resulting frame
-                resize_ratio = float(max_display_size) / max(frame.shape[0], frame.shape[1])
-                frame = cv2.resize(frame, dsize=(0, 0), fx=resize_ratio, fy=resize_ratio)
-                cv2.imshow('frame', frame)
-                if cv2.waitKey(1) & 0xFF == 27:
-                    break
-
-    # When everything done, release the capture
-    cap.release()
-    if visual:
-        cv2.destroyAllWindows()
 

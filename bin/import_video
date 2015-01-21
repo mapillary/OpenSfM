@@ -1,115 +1,12 @@
 #!/usr/bin/env python
 import os.path, sys
-import time
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from subprocess import Popen, PIPE
 
 import numpy as np
-import cv2
 import argparse
-import gpxpy
 import datetime
-import dateutil.parser
-from opensfm import dataset
-from opensfm import geo
-from opensfm import geotag_from_gpx
-from opensfm import io
 
-
-def gpx_lerp(alpha, a, b):
-    '''Interpolate gpx point as (1 - alpha) * a + alpha * b
-    '''
-    dt = alpha * (b[0] - a[0]).total_seconds()
-    t = a[0] + datetime.timedelta(seconds=dt)
-    lat = (1 - alpha) * a[1] + alpha * b[1]
-    lon = (1 - alpha) * a[2] + alpha * b[2]
-    alt = (1 - alpha) * a[3] + alpha * b[3]
-    return t, lat, lon, alt
-
-def time_distance(a, b):
-    return (b[0] - a[0]).total_seconds()
-
-def space_distance(a, b):
-    return geo.gps_distance(a[1:3], b[1:3])
-
-def import_video_with_gpx(video_file, gpx_file, output_path, min_dx, max_dx = 10, dt=None, start_time=None, visual=False):
-    ''' Return a list of images with gps tags that sampled from video and gpx
-    '''
-
-    # Sample GPX points.
-    if dt is not None:
-        min_dx = float(dt)
-        print "Sampling GPX file every {0} seconds".format(min_dx)
-        distance = time_distance
-    else:
-        print "Sampling GPX file every {0} meters".format(min_dx)
-        distance = space_distance
-
-    points = geotag_from_gpx.get_lat_lon_time(gpx_file)
-    key_points = [points[0]]
-    a = points[0]
-    for i in range(1, len(points)):
-        a, b = points[i - 1], points[i]
-        dx_b = distance(key_points[-1], b)
-        while min_dx and dx_b >= min_dx:
-            dx_a = distance(key_points[-1], a)
-            alpha = (min_dx - dx_a) / distance(a, b)
-            a = gpx_lerp(alpha, a, b)
-            key_points.append(a)
-            assert np.fabs(min_dx - distance(key_points[-2], key_points[-1])) < 1.0
-            dx_b = distance(key_points[-1], b)
-    print len(key_points), "sampled key points"
-
-    # Check video start time.
-    dataset.mkdir_p(output_path)
-    if start_time:
-        video_start_time = dateutil.parser.parse(start_time)
-    else:
-        try:
-            exifdate = Popen(['exiftool', '-CreateDate', args.video], stdout=PIPE).stdout.read()
-            datestr = ' '.join(exifdate.split()[-2:])
-            video_start_time = datetime.datetime.strptime(datestr,'%Y:%m:%d %H:%M:%S')
-        except:
-            print 'Video recording timestamp not found. Using first GPS point time.'
-            video_start_time = key_points[0][0]
-    print "Video starts at", video_start_time
-
-    # Get Video rotation
-    rotation = Popen(['exiftool', '-Rotation', video_file], stdout=PIPE).stdout.read()
-    if rotation:
-        rotation = float(rotation.split(':')[1])
-        if rotation == 0:
-            orientation = 1
-        elif rotation == 90:
-            orientation = 6
-        elif rotation == 180:
-            orientation = 3
-        elif rotation == 270:
-            orientation = 8
-    else:
-        orientation = 1
-
-    # Grab video frames.
-    cap = cv2.VideoCapture(video_file)
-    for p in key_points:
-        dt = (p[0] - video_start_time).total_seconds()
-        if dt > 0:
-            cap.set(cv2.cv.CV_CAP_PROP_POS_MSEC, int(dt * 1000))
-            ret, frame = cap.read()
-            if ret:
-                print 'Grabbing frame for time', p[0]
-                filepath = os.path.join(output_path, p[0].isoformat() + '.jpg')
-                cv2.imwrite(filepath, frame)
-                geotag_from_gpx.add_exif_using_timestamp(filepath, points, timestamp=p[0], orientation=orientation)
-
-                # Display the resulting frame
-                if visual:
-                    cv2.imshow('frame', frame)
-                    if cv2.waitKey(1) & 0xFF == 27:
-                        break
-    cap.release()
-    if visual:
-        cv2.destroyAllWindows()
+from opensfm import video
 
 
 if __name__ == "__main__":
@@ -118,21 +15,18 @@ if __name__ == "__main__":
     parser.add_argument('--video', help='path to the video file')
     parser.add_argument('--output', help='path to the image output folder', default='.')
     parser.add_argument('--dx', help='distance between key frames (in meters)', default=5)
-    parser.add_argument('--max_dx', help='distance between key frames (in meters)', default=20)
     parser.add_argument('--dt', help='time offset between key frames (in seconds)')
     parser.add_argument('--start_time',
         help='time of the first frame of the video (in ISO8601 format, example {0})'.format(
             datetime.datetime.now().isoformat()))
     args = parser.parse_args()
-    min_dx = float(args.dx)
-    max_dx = float(args.max_dx)
-
+    
+    dx = float(args.dx)
     dt = args.dt
     if dt is not None: dt = float(dt)
-
     video_file = args.video
     output_path = args.output
     start_time = args.start_time
     gpx_file = args.gpx
 
-    import_video_with_gpx(video_file, gpx_file, output_path, min_dx, max_dx, dt, start_time)
+    video.import_video_with_gpx(video_file, gpx_file, output_path, dx, dt, start_time)
