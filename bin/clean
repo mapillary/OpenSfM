@@ -10,6 +10,7 @@ mv -vf $1/robust_matches $trash
 mv -vf $1/sift $trash
 mv -vf $1/surf $trash
 mv -vf $1/akaze* $trash
+mv -vf $1/hahog $trash
 mv -vf $1/camera_models.json $trash
 mv -vf $1/reference_lla.json $trash
 mv -vf $1/profile.log $trash

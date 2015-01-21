@@ -25,6 +25,9 @@ if __name__ == "__main__":
                         help='path to the dataset to be processed')
     parser.add_argument('--image',
                         help='name of the image to show')
+    parser.add_argument('--save_figs',
+                        help='save figures istead of showing them',
+                        action='store_true')
     args = parser.parse_args()
 
     data = dataset.DataSet(args.dataset)
@@ -32,8 +35,15 @@ if __name__ == "__main__":
     if not args.image:
         for image in data.images():
             points, desc = features.read_features(data.feature_file(image))
+            print "ploting {0} points".format(len(points))
+            pl.figure()
             plot_features(data.image_as_array(image), points)
-            pl.show()
+            if args.save_figs:
+                p = args.dataset + '/plot_features'
+                dataset.mkdir_p(p)
+                pl.savefig(p + '/' + image)
+            else:
+                pl.show()
 
 
 

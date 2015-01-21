@@ -38,6 +38,9 @@ if __name__ == "__main__":
     parser.add_argument('--graph',
                         help='display image graph',
                         action='store_true')
+    parser.add_argument('--save_figs',
+                        help='save figures istead of showing them',
+                        action='store_true')
     args = parser.parse_args()
 
     data = dataset.DataSet(args.dataset)
@@ -53,17 +56,26 @@ if __name__ == "__main__":
         pl.show()
 
     if args.image:
-        im1 = args.image
-        i = 0
+        toplot = [args.image]
+    else:
+        toplot = images
+
+    i = 0
+    for im1 in toplot:
         for im2 in images:
             t, p1, p2 = dataset.common_tracks(graph, im1, im2)
             if len(t) >= 10:
-                pl.figure()
+                pl.figure(figsize=(20, 10))
                 plot_matches(data.image_as_array(im1), data.image_as_array(im2), p1, p2)
                 i += 1
-                if i >= 10:
-                    i = 0
-                    pl.show()
+                if args.save_figs:
+                    p = args.dataset + '/plot_tracks'
+                    dataset.mkdir_p(p)
+                    pl.savefig(p + '/' + im1 + '_' + im2 + '.jpg', dpi=100)
+                else:
+                    if i >= 10:
+                        i = 0
+                        pl.show()
 
 
 
