@@ -123,9 +123,9 @@ def extract_features_akaze(imagefile, config):
 def extract_features_hahog(imagefile, config):
     image = resized_image(cv2.imread(imagefile, cv2.CV_LOAD_IMAGE_GRAYSCALE), config)
     t = time.time()
-    points, desc = csfm.hahog(image.astype(np.float32),
-                              peak_threshold = config.get('hahog_peak_threshold', 200),
-                              edge_threshold = config.get('hahog_edge_threshold', 10000))
+    points, desc = csfm.hahog(image.astype(np.float32) / 255, # VlFeat expects pixel values between 0, 1
+                              peak_threshold = config.get('hahog_peak_threshold', 0.003),
+                              edge_threshold = config.get('hahog_edge_threshold', 10))
     print 'Found {0} points in {1}s'.format( len(points), time.time()-t )
     if config.get('feature_root', False): desc = np.sqrt(desc)
     return mask_and_normalize_features(points, desc, image.shape[1], image.shape[0], config)
