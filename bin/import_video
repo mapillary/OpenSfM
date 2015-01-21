@@ -26,37 +26,39 @@ def gpx_lerp(alpha, a, b):
     alt = (1 - alpha) * a[3] + alpha * b[3]
     return t, lat, lon, alt
 
+def time_distance(a, b):
+    return (b[0] - a[0]).total_seconds()
+
+def space_distance(a, b):
+    return geo.gps_distance(a[1:3], b[1:3])
+
 def import_video_with_gpx(video_file, gpx_file, output_path, min_dx, max_dx = 10, dt=None, start_time=None, visual=False):
     ''' Return a list of images with gps tags that sampled from video and gpx
     '''
-    time_based = dt is not None
-    if time_based:
-        min_dt = datetime.timedelta(seconds=float(dt))
 
     # Sample GPX points.
+    if dt is not None:
+        min_dx = float(dt)
+        print "Sampling GPX file every {0} seconds".format(min_dx)
+        distance = time_distance
+    else:
+        print "Sampling GPX file every {0} meters".format(min_dx)
+        distance = space_distance
+
     points = geotag_from_gpx.get_lat_lon_time(gpx_file)
     key_points = [points[0]]
     a = points[0]
     for i in range(1, len(points)):
-        b = points[i]
-        dx_b = geo.gps_distance(key_points[-1][1:3], b[1:3])
-        dt_b = b[0] - key_points[-1][0]
-        if time_based:
-            if dt_b >= min_dt and dx_b >= min_dx:
-                dt_a = a[0] - key_points[-1][0]
-                alpha = (min_dt - dt_a).total_seconds() / (b[0] - a[0]).total_seconds()
-                a = gpx_lerp(alpha, a, b)
-                key_points.append(a)
-            else:
-                a = b
-        else:
-            if min_dx and dx_b >= min_dx:
-                dx_a = geo.gps_distance(key_points[-1][1:3], a[1:3])
-                alpha = (min_dx - dx_a) / geo.gps_distance(a[1:3], b[1:3])
-                a = gpx_lerp(alpha, a, b)
-                key_points.append(a)
-            else:
-                a = b
+        a, b = points[i - 1], points[i]
+        dx_b = distance(key_points[-1], b)
+        while min_dx and dx_b >= min_dx:
+            dx_a = distance(key_points[-1], a)
+            alpha = (min_dx - dx_a) / distance(a, b)
+            a = gpx_lerp(alpha, a, b)
+            key_points.append(a)
+            assert np.fabs(min_dx - distance(key_points[-2], key_points[-1])) < 1.0
+            dx_b = distance(key_points[-1], b)
+    print len(key_points), "sampled key points"
 
     # Check video start time.
     dataset.mkdir_p(output_path)
