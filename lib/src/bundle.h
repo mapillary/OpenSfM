@@ -36,235 +36,31 @@ static bool FileContents(const char *filename, std::string *file_contents) {
   return true;
 }
 
-
-
-
-struct Camera {
-  double parameters[3];
-  double width, height;
-  double exif_focal;
-  std::string id;
-};
-
-struct Shot {
-  double parameters[6];
-  double gps_position[3];
-  double gps_dop;
-  int exif_orientation;
-  std::string camera;
-  std::string id;
-};
-
-struct Point {
-  double parameters[3];
-  std::string id;
-};
-
-struct Observation {
-  double coordinates[2];
-  Camera *camera;
-  Shot *shot;
-  Point *point;
-};
-
-// Read and write the BA problem from a json file.
-class BALProblem {
+class TruncatedLoss : public ceres::LossFunction {
  public:
-  ~BALProblem() {}
-
-  int num_observations() const { return observations_.size(); }
-  Observation* observations() { return &observations_[0]; }
-  int num_cameras() const { return cameras_.size(); }
-  Camera* cameras() { return &cameras_[0]; }
-  int num_shots() const { return shots_.size(); }
-  Shot* shots() { return &shots_[0]; }
-
-
-  bool LoadJson(const char *tracks, const char *reconstruction) {
-
-    std::string file_contents;
-    FileContents(reconstruction, &file_contents);
-
-    Json::Value root;   // will contains the root value after parsing.
-    Json::Reader reader;
-    bool parsingSuccessful = reader.parse(file_contents, root);
-    if (!parsingSuccessful) {
-      // report to the user the failure and their locations in the document.
-      std::cout  << "Failed to parse json\n"
-                 << reader.getFormatedErrorMessages();
-      return false;
-    }
-
-
-    //////////////////////////////////////////////////////////////////
-    // Read cameras
-    //////////////////////////////////////////////////////////////////
-    Json::Value cameras = root["cameras"];
-    for(Json::ValueIterator i = cameras.begin() ; i != cameras.end() ; ++i) {
-      Camera c;
-      c.id = i.key().asString();
-      c.parameters[0] = (*i)["focal"].asDouble();
-      c.parameters[1] = (*i)["k1"].asDouble();
-      c.parameters[2] = (*i)["k2"].asDouble();
-      c.height = (*i)["height"].asDouble();
-      c.width = (*i)["width"].asDouble();
-      c.exif_focal = (*i)["exif_focal"].asDouble();
-      cameras_.push_back(c);
-    }
-    for (int i = 0; i < cameras_.size(); ++i) {
-      camera_by_id_[cameras_[i].id] = &cameras_[i];
-    }
-
-
-    //////////////////////////////////////////////////////////////////
-    // Read shots
-    //////////////////////////////////////////////////////////////////
-    Json::Value shots = root["shots"];
-    for(Json::ValueIterator i = shots.begin() ; i != shots.end() ; ++i) {
-      Shot s;
-      s.id = i.key().asString();
-      for (int j = 0; j < 3; ++j)
-        s.parameters[j] = (*i)["rotation"][j].asDouble();
-      for (int j = 0; j < 3; ++j)
-        s.parameters[3 + j] = (*i)["translation"][j].asDouble();
-      for (int j = 0; j < 3; ++j)
-        s.gps_position[j] = (*i)["gps_position"][j].asDouble();
-      s.gps_dop = (*i)["gps_dop"].asDouble();
-      s.exif_orientation = (*i)["exif_orientation"].asInt();
-      s.camera = (*i)["camera"].asString();
-      shots_.push_back(s);
-    }
-    for (int i = 0; i < shots_.size(); ++i) {
-      shot_by_id_[shots_[i].id] = &shots_[i];
-    }
-
-
-    //////////////////////////////////////////////////////////////////
-    // Read points
-    //////////////////////////////////////////////////////////////////
-    Json::Value points = root["points"];
-    for(Json::ValueIterator i = points.begin() ; i != points.end() ; ++i) {
-      Point p;
-      p.id = i.key().asString();
-      for (int j = 0; j < 3; ++j)
-        p.parameters[j] = (*i)["coordinates"][j].asDouble();
-      points_.push_back(p);
-    }
-    for (int i = 0; i < points_.size(); ++i) {
-      point_by_id_[points_[i].id] = &points_[i];
-    }
-
-
-    //////////////////////////////////////////////////////////////////
-    // Read observations
-    //////////////////////////////////////////////////////////////////
-    FILE* fptr = fopen(tracks, "r");
-    if (fptr == NULL) {
-      return false;
-    };
-
-    while (true) {
-      char shot_id[1000];
-      char point_id[1000];
-      int oid;
-      double x, y;
-      int n = fscanf(fptr, "%[^\t]\t%[^\t]\t%d\t%lg\t%lg\n", shot_id, point_id, &oid, &x, &y);
-
-      if (n != 5) break;
-
-      if (shot_by_id_.count(shot_id) && point_by_id_.count(point_id)) {
-        Observation o;
-        o.shot = shot_by_id_[shot_id];
-        o.camera = camera_by_id_[o.shot->camera];
-        o.point = point_by_id_[point_id];
-        o.coordinates[0] = x;
-        o.coordinates[1] = y;
-        observations_.push_back(o);
-      }
-    }
-
-    std::cout << "Bundle starts " << cameras_.size() << " cameras, "
-              << shots_.size() << " shots, "
-              << points_.size() << " points, "
-              << observations_.size() << " observations" << std::endl;
-
-    return true;
+  explicit TruncatedLoss(double t)
+    : t2_(t*t) {
+    CHECK_GT(t, 0.0);
   }
 
-  bool SaveJson(const char *dest) {
-    Json::Value root;
-
-    // Cameras.
-    Json::Value cameras;
-    for (int i = 0; i < cameras_.size(); ++i) {
-      Json::Value camera;
-      camera["exif_focal"] = cameras_[i].exif_focal;
-      camera["width"] = cameras_[i].width;
-      camera["height"] = cameras_[i].height;
-      camera["focal"] = cameras_[i].parameters[0];
-      camera["k1"] = cameras_[i].parameters[1];
-      camera["k2"] = cameras_[i].parameters[2];
-      cameras[cameras_[i].id] = camera;
+  virtual void Evaluate(double s, double rho[3]) const {
+    if (s >= t2_) {
+      // Outlier.
+      rho[0] = t2_;
+      rho[1] = std::numeric_limits<double>::min();
+      rho[2] = 0.0;
+    } else {
+      // Inlier.
+      rho[0] = s;
+      rho[1] = 1.0;
+      rho[2] = 0.0;
     }
-    root["cameras"] = cameras;
-
-    // Shots.
-    Json::Value shots;
-    for (int i = 0; i < shots_.size(); ++i) {
-      Json::Value shot;
-
-      shot["camera"] = shots_[i].camera;
-      Json::Value Rarray(Json::arrayValue);
-      Json::Value tarray(Json::arrayValue);
-      Json::Value gpstarray(Json::arrayValue);
-      for (int j = 0; j < 3; ++j)
-        Rarray.append(shots_[i].parameters[j]);
-      for (int j = 0; j < 3; ++j)
-        tarray.append(shots_[i].parameters[3 + j]);
-      for (int j = 0; j < 3; ++j)
-        gpstarray.append(shots_[i].gps_position[j]);
-      shot["rotation"] = Rarray;
-      shot["translation"] = tarray;
-      shot["gps_position"] = gpstarray;
-      shot["gps_dop"] = shots_[i].gps_dop;
-      shot["exif_orientation"] = shots_[i].exif_orientation;
-      shots[shots_[i].id] = shot;
-    }
-    root["shots"] = shots;
-
-    // Points.
-    Json::Value points;
-    for (int i = 0; i < points_.size(); ++i) {
-      Json::Value point;
-      Json::Value coordinates(Json::arrayValue);
-      for (int j = 0; j < 3; ++j)
-        coordinates.append(points_[i].parameters[j]);
-      point["coordinates"] = coordinates;
-      points[points_[i].id] = point;
-    }
-    root["points"] = points;
-
-
-    Json::StyledWriter writer;
-    std::string json = writer.write(root);
-
-    std::ofstream fout(dest);
-    fout << json;
-
-    return true;
   }
-
 
  private:
-  std::vector<Camera> cameras_;
-  std::vector<Shot> shots_;
-  std::vector<Point> points_;
-  std::vector<Observation> observations_;
-
-  std::map<std::string, Camera *> camera_by_id_;
-  std::map<std::string, Shot *> shot_by_id_;
-  std::map<std::string, Point *> point_by_id_;
+  const double t2_;
 };
+
 
 // Templated pinhole camera model for used with Ceres.  The camera is
 // parameterized using 9 parameters: 3 for rotation, 3 for translation, 1 for
@@ -359,27 +155,366 @@ struct GPSPriorError {
 };
 
 
-class TruncatedLoss : public ceres::LossFunction {
+
+struct Camera {
+  double parameters[3];
+  double width, height;
+  double exif_focal;
+  std::string id;
+};
+
+struct Shot {
+  double parameters[6];
+  double gps_position[3];
+  double gps_dop;
+  int exif_orientation;
+  std::string camera;
+  std::string id;
+};
+
+struct Point {
+  double parameters[3];
+  std::string id;
+};
+
+struct Observation {
+  double coordinates[2];
+  Camera *camera;
+  Shot *shot;
+  Point *point;
+};
+
+// Read and write the BA problem from a json file.
+class BundleAdjuster {
  public:
-  explicit TruncatedLoss(double t)
-    : t2_(t*t) {
-    CHECK_GT(t, 0.0);
+  ~BundleAdjuster() {}
+
+  int num_observations() const { return observations_.size(); }
+  int num_cameras() const { return cameras_.size(); }
+  int num_shots() const { return shots_.size(); }
+
+  void AddCamera(
+      const std::string &id,
+      double focal,
+      double k1,
+      double k2,
+      double width,
+      double height,
+      double exif_focal) {
+    Camera c;   
+    c.id = id;
+    c.parameters[0] = focal;
+    c.parameters[1] = k1;
+    c.parameters[2] = k2;
+    c.height = height;
+    c.width = width;
+    c.exif_focal = exif_focal;
+    cameras_[id] = c;
   }
 
-  virtual void Evaluate(double s, double rho[3]) const {
-    if (s >= t2_) {
-      // Outlier.
-      rho[0] = t2_;
-      rho[1] = std::numeric_limits<double>::min();
-      rho[2] = 0.0;
-    } else {
-      // Inlier.
-      rho[0] = s;
-      rho[1] = 1.0;
-      rho[2] = 0.0;
+  void AddShot(
+      const std::string id,
+      const std::string camera,
+      double rx,
+      double ry,
+      double rz,
+      double tx,
+      double ty,
+      double tz,
+      double gpsx,
+      double gpsy,
+      double gpsz,
+      double gps_dop) {
+    Shot s;
+    s.id = id;
+    s.camera = camera;
+    s.parameters[0] = rx;
+    s.parameters[1] = ry;
+    s.parameters[2] = rz;
+    s.parameters[3] = tx;
+    s.parameters[4] = ty;
+    s.parameters[5] = tz;
+    s.gps_position[0] = gpsx;
+    s.gps_position[1] = gpsy;
+    s.gps_position[2] = gpsz;
+    s.gps_dop = gps_dop;
+    shots_[id] = s;
+  }
+
+  void AddPoint(
+      const std::string id,
+      double x,
+      double y,
+      double z) {
+    Point p;
+    p.id = id;
+    p.parameters[0] = x;
+    p.parameters[1] = y;
+    p.parameters[2] = z;
+    points_[id] = p;
+  }
+
+  void SetLossFunction(const std::string &function_name,
+                       double threshold) {
+    loss_function_ = function_name;
+    loss_function_threshold_ = threshold;
+  }
+
+  void SetFocalPriorSD(double sd) {
+    focal_prior_sd_ = sd;
+  }
+
+
+  bool LoadJson(const char *tracks, const char *reconstruction) {
+
+    std::string file_contents;
+    FileContents(reconstruction, &file_contents);
+
+    Json::Value root;   // will contains the root value after parsing.
+    Json::Reader reader;
+    bool parsingSuccessful = reader.parse(file_contents, root);
+    if (!parsingSuccessful) {
+      // report to the user the failure and their locations in the document.
+      std::cout  << "Failed to parse json\n"
+                 << reader.getFormatedErrorMessages();
+      return false;
     }
+
+
+    //////////////////////////////////////////////////////////////////
+    // Read cameras
+    //////////////////////////////////////////////////////////////////
+    Json::Value cameras = root["cameras"];
+    for(Json::ValueIterator i = cameras.begin(); i != cameras.end(); ++i) {
+      AddCamera(
+          i.key().asString(),
+          (*i)["focal"].asDouble(),
+          (*i)["k1"].asDouble(),
+          (*i)["k2"].asDouble(),
+          (*i)["height"].asDouble(),
+          (*i)["width"].asDouble(),
+          (*i)["exif_focal"].asDouble()
+      );
+    }
+
+
+    //////////////////////////////////////////////////////////////////
+    // Read shots
+    //////////////////////////////////////////////////////////////////
+    Json::Value shots = root["shots"];
+    for(Json::ValueIterator i = shots.begin(); i != shots.end(); ++i) {
+      AddShot(
+          i.key().asString(),
+          (*i)["camera"].asString(),
+          (*i)["rotation"][0].asDouble(),
+          (*i)["rotation"][1].asDouble(),
+          (*i)["rotation"][2].asDouble(),
+          (*i)["translation"][0].asDouble(),
+          (*i)["translation"][1].asDouble(),
+          (*i)["translation"][2].asDouble(),
+          (*i)["gps_position"][0].asDouble(),
+          (*i)["gps_position"][1].asDouble(),
+          (*i)["gps_position"][2].asDouble(),
+          (*i)["gps_dop"].asDouble()
+      );
+      shots_[i.key().asString()].exif_orientation = (*i)["exif_orientation"].asInt();
+    }
+
+
+    //////////////////////////////////////////////////////////////////
+    // Read points
+    //////////////////////////////////////////////////////////////////
+    Json::Value points = root["points"];
+    for(Json::ValueIterator i = points.begin(); i != points.end(); ++i) {
+      AddPoint(
+          i.key().asString(),
+          (*i)["coordinates"][0].asDouble(),
+          (*i)["coordinates"][1].asDouble(),
+          (*i)["coordinates"][2].asDouble()
+      );
+    }
+
+
+    //////////////////////////////////////////////////////////////////
+    // Read observations
+    //////////////////////////////////////////////////////////////////
+    FILE* fptr = fopen(tracks, "r");
+    if (fptr == NULL) {
+      return false;
+    };
+
+    while (true) {
+      char shot_id[1000];
+      char point_id[1000];
+      int oid;
+      double x, y;
+      int n = fscanf(fptr, "%[^\t]\t%[^\t]\t%d\t%lg\t%lg\n", shot_id, point_id, &oid, &x, &y);
+
+      if (n != 5) break;
+
+      if (shots_.count(shot_id) && points_.count(point_id)) {
+        Observation o;
+        o.shot = &shots_[shot_id];
+        o.camera = &cameras_[o.shot->camera];
+        o.point = &points_[point_id];
+        o.coordinates[0] = x;
+        o.coordinates[1] = y;
+        observations_.push_back(o);
+      }
+    }
+
+    std::cout << "Bundle starts " << cameras_.size() << " cameras, "
+              << shots_.size() << " shots, "
+              << points_.size() << " points, "
+              << observations_.size() << " observations" << std::endl;
+
+    return true;
+  }
+
+  bool SaveJson(const char *dest) {
+    Json::Value root;
+
+    // Cameras.
+    Json::Value cameras;
+    for (auto &i : cameras_) {
+      Json::Value camera;
+      camera["exif_focal"] = i.second.exif_focal;
+      camera["width"] = i.second.width;
+      camera["height"] = i.second.height;
+      camera["focal"] = i.second.parameters[0];
+      camera["k1"] = i.second.parameters[1];
+      camera["k2"] = i.second.parameters[2];
+      cameras[i.second.id] = camera;
+    }
+    root["cameras"] = cameras;
+
+    // Shots.
+    Json::Value shots;
+    for (auto &i : shots_) {
+      Json::Value shot;
+
+      shot["camera"] = i.second.camera;
+      Json::Value Rarray(Json::arrayValue);
+      Json::Value tarray(Json::arrayValue);
+      Json::Value gpstarray(Json::arrayValue);
+      for (int j = 0; j < 3; ++j)
+        Rarray.append(i.second.parameters[j]);
+      for (int j = 0; j < 3; ++j)
+        tarray.append(i.second.parameters[3 + j]);
+      for (int j = 0; j < 3; ++j)
+        gpstarray.append(i.second.gps_position[j]);
+      shot["rotation"] = Rarray;
+      shot["translation"] = tarray;
+      shot["gps_position"] = gpstarray;
+      shot["gps_dop"] = i.second.gps_dop;
+      shot["exif_orientation"] = i.second.exif_orientation;
+      shots[i.second.id] = shot;
+    }
+    root["shots"] = shots;
+
+    // Points.
+    Json::Value points;
+    for (auto &i : points_) {
+      Json::Value point;
+      Json::Value coordinates(Json::arrayValue);
+      for (int j = 0; j < 3; ++j)
+        coordinates.append(i.second.parameters[j]);
+      point["coordinates"] = coordinates;
+      points[i.second.id] = point;
+    }
+    root["points"] = points;
+
+
+    Json::StyledWriter writer;
+    std::string json = writer.write(root);
+
+    std::ofstream fout(dest);
+    fout << json;
+
+    return true;
+  }
+
+
+  void run() {
+    ceres::LossFunction *loss;
+    if (loss_function_.compare("TruncatedLoss") == 0) {
+      loss = new TruncatedLoss(loss_function_threshold_);
+    } else if (loss_function_.compare("TrivialLoss") == 0) {
+      loss = new ceres::TrivialLoss();
+    } else if (loss_function_.compare("HuberLoss") == 0) {
+      loss = new ceres::HuberLoss(loss_function_threshold_);
+    } else if (loss_function_.compare("SoftLOneLoss") == 0) {
+      loss = new ceres::SoftLOneLoss(loss_function_threshold_);
+    } else if (loss_function_.compare("CauchyLoss") == 0) {
+      loss = new ceres::CauchyLoss(loss_function_threshold_);
+    } else if (loss_function_.compare("ArctanLoss") == 0) {
+      loss = new ceres::ArctanLoss(loss_function_threshold_);
+    }
+
+    // Create residuals for each observation in the bundle adjustment problem. The
+    // parameters for cameras and points are added automatically.
+    ceres::Problem problem;
+
+    for (int i = 0; i < observations_.size(); ++i) {
+      // Each Residual block takes a point and a camera as input and outputs a 2
+      // dimensional residual. Internally, the cost function stores the observed
+      // image location and compares the reprojection against the observation.
+
+      ceres::CostFunction* cost_function = 
+          new ceres::AutoDiffCostFunction<SnavelyReprojectionError, 2, 3, 6, 3>(
+              new SnavelyReprojectionError(observations_[i].coordinates[0],
+                                           observations_[i].coordinates[1]));
+
+      problem.AddResidualBlock(cost_function,
+                               loss,
+                               observations_[i].camera->parameters,
+                               observations_[i].shot->parameters,
+                               observations_[i].point->parameters);
+    }
+
+    for (auto &i : cameras_) {
+      double exif_focal_sd_in_pixels = focal_prior_sd_ * i.second.width;
+      ceres::CostFunction* cost_function = 
+          new ceres::AutoDiffCostFunction<FocalPriorError, 1, 3>(
+              new FocalPriorError(i.second.exif_focal, exif_focal_sd_in_pixels));
+
+      problem.AddResidualBlock(cost_function,
+                               NULL,
+                               i.second.parameters);
+    }
+
+    // for (auto &i : shots_) {
+    //   ceres::CostFunction* cost_function = 
+    //       new ceres::AutoDiffCostFunction<GPSPriorError, 3, 6>(
+    //           new GPSPriorError(i.second.gps_position[0],
+    //                             i.second.gps_position[1],
+    //                             i.second.gps_position[2],
+    //                             i.second.gps_dop));
+
+    //   problem.AddResidualBlock(cost_function,
+    //                            NULL,
+    //                            i.second.parameters);
+    // }
+
+    ceres::Solver::Options options;
+    options.linear_solver_type = ceres::SPARSE_SCHUR;
+    options.num_threads = 8;
+    options.num_linear_solver_threads = 8;
+
+    ceres::Solver::Summary summary;
+    ceres::Solve(options, &problem, &summary);
+    std::cout << summary.BriefReport() << "\n";
   }
 
  private:
-  const double t2_;
+  std::map<std::string, Camera> cameras_;
+  std::map<std::string, Shot> shots_;
+  std::map<std::string, Point> points_;
+  std::vector<Observation> observations_;
+
+  std::string loss_function_;
+  double loss_function_threshold_;
+  double focal_prior_sd_;
 };
+
+

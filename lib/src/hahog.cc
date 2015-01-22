@@ -83,9 +83,9 @@ bp::object hahog(PyObject *image,
     vl_sift_delete(sift);
 
     bp::list retn;
-    npy_intp points_shape[2] = {numFeatures, 6};
+    npy_intp points_shape[2] = {npy_intp(numFeatures), 6};
     retn.append(bpn_array_from_data(2, points_shape, &points[0]));
-    npy_intp desc_shape[2] = {numFeatures, dimension};
+    npy_intp desc_shape[2] = {npy_intp(numFeatures), npy_intp(dimension)};
     retn.append(bpn_array_from_data(2, desc_shape, &desc[0]));
     return retn;
   }

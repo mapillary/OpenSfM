@@ -8,6 +8,7 @@ namespace csfm {
 bp::object hahog(PyObject *image,
                  float peak_threshold,
                  float edge_threshold);
+
 }
 
 #endif // __HAHOG_H__
