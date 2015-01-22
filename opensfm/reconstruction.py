@@ -706,7 +706,7 @@ def nonfisheye_cameras(data, images):
     res = []
     for image in images:
         exif = data.exif_data(image)
-        if exif['camera'] not in fisheye:
+        if exif['camera'] not in fisheye and 1 <= exif['orientation'] <= 8:
             res.append(image)
     return res
 
