@@ -21,6 +21,14 @@ def resized_image(image, config):
     else:
         return image
 
+def root_feature(desc, l2_normalization=False):
+    if l2_normalization:
+        s2 = np.linalg.norm(desc, axis=1)
+        desc = (desc.T/s2).T
+    s = np.sum(desc, 1)
+    desc = np.sqrt(desc.T/s).T
+    return desc
+
 def normalized_image_coordinates(pixel_coords, width, height):
     size = max(width, height)
     p = np.empty((len(pixel_coords), 2))
@@ -66,9 +74,8 @@ def extract_features_sift(imagefile, config):
         else:
             print 'done'
             break
-
     points, desc = descriptor.compute(image, points)
-    if config.get('feature_root', False): desc = np.sqrt(desc)
+    if config.get('feature_root', False): desc = root_feature(desc)
     points = np.array([(i.pt[0], i.pt[1], i.size, i.angle) for i in points])
     return mask_and_normalize_features(points, desc, image.shape[1], image.shape[0], config)
 
@@ -97,7 +104,7 @@ def extract_features_surf(imagefile, config):
             break
 
     points, desc = descriptor.compute(image, points)
-    if config.get('feature_root', False): desc = np.sqrt(desc)
+    # if config.get('feature_root', False): desc = root_feature(desc)
     points = np.array([(i.pt[0], i.pt[1], i.size, i.angle) for i in points])
     return mask_and_normalize_features(points, desc, image.shape[1], image.shape[0], config)
 
@@ -110,6 +117,7 @@ def extract_features_akaze(imagefile, config):
         t = time.time()
         config['akaze_dthreshold'] = threshold
         points, desc = akaze_feature(imagefile, config)
+
         print 'Found {0} points in {1}s'.format( len(points), time.time()-t )
         if len(points) < config['feature_min_frames'] and threshold > 0.00001:
             threshold = (threshold * 2) / 3
@@ -128,7 +136,7 @@ def extract_features_hahog(imagefile, config):
                               peak_threshold = config.get('hahog_peak_threshold', 0.003),
                               edge_threshold = config.get('hahog_edge_threshold', 10))
     print 'Found {0} points in {1}s'.format( len(points), time.time()-t )
-    if config.get('feature_root', False): desc = np.sqrt(desc)
+    if config.get('feature_root', False): desc = root_feature(desc)
     return mask_and_normalize_features(points, desc, image.shape[1], image.shape[0], config)
 
 
