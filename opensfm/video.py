@@ -102,21 +102,20 @@ def import_video_with_gpx(video_file, gpx_file, output_path, dx, dt=None, start_
         video_start_time = dateutil.parser.parse(start_time)
     else:
         try:
-            exifdate = Popen(['exiftool', '-CreateDate', video_file], stdout=PIPE).stdout.read()
-            duration = Popen(['exiftool', '-MediaDuration', video_file], stdout=PIPE).stdout.read()
-            datestr = ' '.join(exifdate.split()[-2:])
-            video_start_time = datetime.datetime.strptime(datestr,'%Y:%m:%d %H:%M:%S')
-            if duration:
-                duration = map(int, duration.split()[-1].split(':'))
-                video_duration = datetime.timedelta(hours=duration[0],minutes=duration[1],seconds=duration[2])
-                video_end_time = video_start_time + video_duration
-            else:
-                video_end_time = points[-1][0]
+            exifdate = Popen(['exiftool', '-CreateDate', '-b', video_file], stdout=PIPE).stdout.read()
+            video_start_time = datetime.datetime.strptime(exifdate,'%Y:%m:%d %H:%M:%S')
         except:
             print 'Video recording timestamp not found. Using first GPS point time.'
             video_start_time = points[0][0]
+        try:
+            duration = Popen(['exiftool', '-MediaDuration', '-b', video_file], stdout=PIPE).stdout.read()
+            video_duration = float(duration)
+            video_end_time = video_start_time + datetime.timedelta(seconds=video_duration)
+        except:
+            print 'Video end time not found. Using last GPS point time.'
             video_end_time = points[-1][0]
 
+    print 'GPS track starts at:', points[0][0]
     print 'Video starts at:', video_start_time
 
     # Extract video frames.
