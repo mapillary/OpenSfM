@@ -10,6 +10,7 @@ from itertools import combinations
 from opensfm import dataset
 from opensfm import features
 from opensfm import reconstruction
+from opensfm import io
 
 
 def plot_matches(im1, im2, p1, p2):
@@ -18,7 +19,7 @@ def plot_matches(im1, im2, p1, p2):
     image = np.zeros((max(h1,h2), w1+w2, 3), dtype=im1.dtype)
     image[0:h1, 0:w1, :] = im1
     image[0:h2, w1:(w1+w2), :] = im2
-    
+
     p1 = features.denormalized_image_coordinates(p1, w1, h1)
     p2 = features.denormalized_image_coordinates(p2, w2, h2)
     pl.imshow(image)
@@ -47,7 +48,7 @@ if __name__ == "__main__":
     graph = data.tracks_graph()
     tracks, images = reconstruction.tracks_and_images(graph)
     image_graph = bipartite.weighted_projected_graph(graph, images)
-    
+
     if args.graph:
         weights = [i[2]['weight'] for i in image_graph.edges(data=True)]
 
@@ -70,7 +71,7 @@ if __name__ == "__main__":
                 i += 1
                 if args.save_figs:
                     p = args.dataset + '/plot_tracks'
-                    dataset.mkdir_p(p)
+                    io.mkdir_p(p)
                     pl.savefig(p + '/' + im1 + '_' + im2 + '.jpg', dpi=100)
                 else:
                     if i >= 10:

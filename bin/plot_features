@@ -10,6 +10,7 @@ from itertools import combinations
 from opensfm import dataset
 from opensfm import features
 from opensfm import reconstruction
+from opensfm import io
 
 
 def plot_features(image, points):
@@ -31,7 +32,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     data = dataset.DataSet(args.dataset)
-    
+
     if not args.image:
         for image in data.images():
             points, desc = features.read_features(data.feature_file(image))
@@ -40,7 +41,7 @@ if __name__ == "__main__":
             plot_features(data.image_as_array(image), points)
             if args.save_figs:
                 p = args.dataset + '/plot_features'
-                dataset.mkdir_p(p)
+                io.mkdir_p(p)
                 pl.savefig(p + '/' + image)
             else:
                 pl.show()

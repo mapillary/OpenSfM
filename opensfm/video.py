@@ -6,6 +6,7 @@ import cv2
 import geotag_from_gpx
 import geo
 import dataset
+import io
 
 
 def video_orientation(video_file):
@@ -52,7 +53,7 @@ def import_video_with_gpx(video_file, gpx_file, output_path, dx, dt=None, start_
     print 'Video starts at:', video_start_time
 
     # Extract video frames.
-    dataset.mkdir_p(output_path)
+    io.mkdir_p(output_path)
     key_points = geotag_from_gpx.sample_gpx(points, dx, dt)
 
     cap = cv2.VideoCapture(video_file)

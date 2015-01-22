@@ -3,8 +3,7 @@ import argparse
 import cv2
 import json
 import numpy as np
-
-import dataset
+import errno
 
 
 # (TODO): ensure the image order from OpenSfM is the same as Bundler
@@ -177,4 +176,16 @@ def import_bundler(data_path, bundle_file, list_file, track_file, reconstruction
         with open(reconstruction_file, 'wb') as fout:
             fout.write(json.dumps([reconstruction], indent=4))
     return reconstruction
+
+
+def mkdir_p(path):
+    '''Make a directory including parent directories.
+    '''
+    try:
+        os.makedirs(path)
+    except os.error as exc:
+        if exc.errno == errno.EEXIST and os.path.isdir(path):
+            pass
+        else:
+            raise
 
