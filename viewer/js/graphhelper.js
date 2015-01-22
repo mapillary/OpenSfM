@@ -1,3 +1,86 @@
+var Dijkstra = (function () {
+
+    function Dijkstra(graph) {
+        this.graph = graph;
+    }
+
+    var keyValueSorter = function(t1, t2) {
+        return parseFloat(t1[1]) - parseFloat(t2[1]);
+    }
+
+    Dijkstra.prototype.shortestPath = function (source, target, weight) {
+        if (source === target) {
+            return [source];
+        }
+
+        var touchedNodes = {};
+        var previous = {};
+        var distances = {};
+        var visited = {};
+
+        touchedNodes[source] = 0;
+        previous[source] = undefined;
+        distances[source] = 0;
+
+        while (touchedNodes) {
+            var touchedDists = [];
+            for (var key in touchedNodes) {
+                if (Object.prototype.hasOwnProperty.call(touchedNodes, key)) {
+                    touchedDists.push([ key, touchedNodes[key]])
+                }
+            }
+
+            touchedDists.sort(keyValueSorter);
+
+            var shortestDist = touchedDists[0];
+            var previousNode = shortestDist[0];
+            var dist = shortestDist[1];
+
+            visited[previousNode] = true;
+            delete touchedNodes[previousNode];
+
+            if (previousNode === target) {
+                break;
+            }
+
+            var nodeEdges = this.graph.edges[previousNode] || {};
+
+            for (var node in nodeEdges) {
+                if (Object.prototype.hasOwnProperty.call(nodeEdges, node)) {
+                    var edge = nodeEdges[node];
+
+                    if (Object.prototype.hasOwnProperty.call(visited, node)) {
+                        continue;
+                    }
+
+                    var touchedNode = node;
+                    var distance = edge[weight];
+
+                    var totalDistance = distances[previousNode] + distance;
+
+                    if (!distances[touchedNode] || totalDistance < distances[touchedNode])
+                    {
+                        distances[touchedNode] = totalDistance;
+                        previous[touchedNode] = previousNode;
+                        touchedNodes[touchedNode] = totalDistance;
+                    }
+                }
+            }
+        }
+
+        var reversePath = [];
+        var element = target;
+        while (element !== undefined) {
+            reversePath.push(element);
+            element = previous[element];
+        }
+
+        return reversePath.reverse();
+    }
+
+    return Dijkstra;
+})();
+
 var GraphHelper = (function () {
 
     /**
@@ -63,7 +146,8 @@ var GraphHelper = (function () {
             return undefined;
         }
 
-        var path = journeyGraph.nodes.sort();
+        var dijkstra = new Dijkstra(journeyGraph);
+        var path = dijkstra.shortestPath(from, to, 'weight');
 
         return path;
     }
