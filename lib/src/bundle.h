@@ -154,34 +154,76 @@ struct GPSPriorError {
   double scale_;
 };
 
+enum {
+  BA_CAMERA_FOCAL,
+  BA_CAMERA_K1,
+  BA_CAMERA_K2,
+  BA_CAMERA_NUM_PARAMS
+};
 
-
-struct Camera {
-  double parameters[3];
+struct BACamera {
+  double parameters[BA_CAMERA_NUM_PARAMS];
   double width, height;
   double exif_focal;
   std::string id;
+
+  double GetFocal() { return parameters[BA_CAMERA_FOCAL]; }
+  double GetK1() { return parameters[BA_CAMERA_K1]; }
+  double GetK2() { return parameters[BA_CAMERA_K2]; }
+  void SetFocal(double v) { parameters[BA_CAMERA_FOCAL] = v; }
+  void SetK1(double v) { parameters[BA_CAMERA_K1] = v; }
+  void SetK2(double v) { parameters[BA_CAMERA_K2] = v; }
 };
 
-struct Shot {
-  double parameters[6];
-  double gps_position[3];
+enum {
+  BA_SHOT_RX,
+  BA_SHOT_RY,
+  BA_SHOT_RZ,
+  BA_SHOT_TX,
+  BA_SHOT_TY,
+  BA_SHOT_TZ,
+  BA_SHOT_NUM_PARAMS
+};
+
+struct BAShot {
+  double parameters[BA_SHOT_NUM_PARAMS];
+  double gps_x, gps_y, gps_z;
   double gps_dop;
   int exif_orientation;
   std::string camera;
   std::string id;
+
+  double GetRX() { return parameters[BA_SHOT_RX]; }
+  double GetRY() { return parameters[BA_SHOT_RY]; }
+  double GetRZ() { return parameters[BA_SHOT_RZ]; }
+  double GetTX() { return parameters[BA_SHOT_TX]; }
+  double GetTY() { return parameters[BA_SHOT_TY]; }
+  double GetTZ() { return parameters[BA_SHOT_TZ]; }
+  void SetRX(double v) { parameters[BA_SHOT_RX] = v; }
+  void SetRY(double v) { parameters[BA_SHOT_RY] = v; }
+  void SetRZ(double v) { parameters[BA_SHOT_RZ] = v; }
+  void SetTX(double v) { parameters[BA_SHOT_TX] = v; }
+  void SetTY(double v) { parameters[BA_SHOT_TY] = v; }
+  void SetTZ(double v) { parameters[BA_SHOT_TZ] = v; }
 };
 
-struct Point {
-  double parameters[3];
+struct BAPoint {
+  double coordinates[3];
   std::string id;
+
+  double GetX() { return coordinates[0]; }
+  double GetY() { return coordinates[1]; }
+  double GetZ() { return coordinates[2]; }
+  void SetX(double v) { coordinates[0] = v; }
+  void SetY(double v) { coordinates[1] = v; }
+  void SetZ(double v) { coordinates[2] = v; }
 };
 
-struct Observation {
+struct BAObservation {
   double coordinates[2];
-  Camera *camera;
-  Shot *shot;
-  Point *point;
+  BACamera *camera;
+  BAShot *shot;
+  BAPoint *point;
 };
 
 // Read and write the BA problem from a json file.
@@ -189,9 +231,17 @@ class BundleAdjuster {
  public:
   ~BundleAdjuster() {}
 
-  int num_observations() const { return observations_.size(); }
-  int num_cameras() const { return cameras_.size(); }
-  int num_shots() const { return shots_.size(); }
+  BACamera GetCamera(std::string &id) {
+    return cameras_[id];
+  }
+
+  BAShot GetShot(std::string &id) {
+    return shots_[id];
+  }
+
+  BAPoint GetPoint(std::string &id) {
+    return points_[id];
+  }
 
   void AddCamera(
       const std::string &id,
@@ -201,11 +251,11 @@ class BundleAdjuster {
       double width,
       double height,
       double exif_focal) {
-    Camera c;   
+    BACamera c;   
     c.id = id;
-    c.parameters[0] = focal;
-    c.parameters[1] = k1;
-    c.parameters[2] = k2;
+    c.parameters[BA_CAMERA_FOCAL] = focal;
+    c.parameters[BA_CAMERA_K1] = k1;
+    c.parameters[BA_CAMERA_K2] = k2;
     c.height = height;
     c.width = width;
     c.exif_focal = exif_focal;
@@ -213,8 +263,8 @@ class BundleAdjuster {
   }
 
   void AddShot(
-      const std::string id,
-      const std::string camera,
+      const std::string &id,
+      const std::string &camera,
       double rx,
       double ry,
       double rz,
@@ -225,33 +275,47 @@ class BundleAdjuster {
       double gpsy,
       double gpsz,
       double gps_dop) {
-    Shot s;
+    BAShot s;
     s.id = id;
     s.camera = camera;
-    s.parameters[0] = rx;
-    s.parameters[1] = ry;
-    s.parameters[2] = rz;
-    s.parameters[3] = tx;
-    s.parameters[4] = ty;
-    s.parameters[5] = tz;
-    s.gps_position[0] = gpsx;
-    s.gps_position[1] = gpsy;
-    s.gps_position[2] = gpsz;
+    s.parameters[BA_SHOT_RX] = rx;
+    s.parameters[BA_SHOT_RY] = ry;
+    s.parameters[BA_SHOT_RZ] = rz;
+    s.parameters[BA_SHOT_TX] = tx;
+    s.parameters[BA_SHOT_TY] = ty;
+    s.parameters[BA_SHOT_TZ] = tz;
+    s.gps_x = gpsx;
+    s.gps_y = gpsy;
+    s.gps_z = gpsz;
     s.gps_dop = gps_dop;
     shots_[id] = s;
   }
 
   void AddPoint(
-      const std::string id,
+      const std::string &id,
       double x,
       double y,
       double z) {
-    Point p;
+    BAPoint p;
     p.id = id;
-    p.parameters[0] = x;
-    p.parameters[1] = y;
-    p.parameters[2] = z;
+    p.coordinates[0] = x;
+    p.coordinates[1] = y;
+    p.coordinates[2] = z;
     points_[id] = p;
+  }
+
+  void AddObservation(
+      const std::string &shot,
+      const std::string &point,
+      double x,
+      double y) {
+    BAObservation o;
+    o.shot = &shots_[shot];
+    o.camera = &cameras_[o.shot->camera];
+    o.point = &points_[point];
+    o.coordinates[0] = x;
+    o.coordinates[1] = y;
+    observations_.push_back(o);
   }
 
   void SetLossFunction(const std::string &function_name,
@@ -353,13 +417,7 @@ class BundleAdjuster {
       if (n != 5) break;
 
       if (shots_.count(shot_id) && points_.count(point_id)) {
-        Observation o;
-        o.shot = &shots_[shot_id];
-        o.camera = &cameras_[o.shot->camera];
-        o.point = &points_[point_id];
-        o.coordinates[0] = x;
-        o.coordinates[1] = y;
-        observations_.push_back(o);
+        AddObservation(shot_id, point_id, x, y);
       }
     }
 
@@ -401,8 +459,9 @@ class BundleAdjuster {
         Rarray.append(i.second.parameters[j]);
       for (int j = 0; j < 3; ++j)
         tarray.append(i.second.parameters[3 + j]);
-      for (int j = 0; j < 3; ++j)
-        gpstarray.append(i.second.gps_position[j]);
+      gpstarray.append(i.second.gps_x);
+      gpstarray.append(i.second.gps_y);
+      gpstarray.append(i.second.gps_z);
       shot["rotation"] = Rarray;
       shot["translation"] = tarray;
       shot["gps_position"] = gpstarray;
@@ -418,7 +477,7 @@ class BundleAdjuster {
       Json::Value point;
       Json::Value coordinates(Json::arrayValue);
       for (int j = 0; j < 3; ++j)
-        coordinates.append(i.second.parameters[j]);
+        coordinates.append(i.second.coordinates[j]);
       point["coordinates"] = coordinates;
       points[i.second.id] = point;
     }
@@ -435,7 +494,7 @@ class BundleAdjuster {
   }
 
 
-  void run() {
+  void Run() {
     ceres::LossFunction *loss;
     if (loss_function_.compare("TruncatedLoss") == 0) {
       loss = new TruncatedLoss(loss_function_threshold_);
@@ -469,7 +528,7 @@ class BundleAdjuster {
                                loss,
                                observations_[i].camera->parameters,
                                observations_[i].shot->parameters,
-                               observations_[i].point->parameters);
+                               observations_[i].point->coordinates);
     }
 
     for (auto &i : cameras_) {
@@ -507,10 +566,10 @@ class BundleAdjuster {
   }
 
  private:
-  std::map<std::string, Camera> cameras_;
-  std::map<std::string, Shot> shots_;
-  std::map<std::string, Point> points_;
-  std::vector<Observation> observations_;
+  std::map<std::string, BACamera> cameras_;
+  std::map<std::string, BAShot> shots_;
+  std::map<std::string, BAPoint> points_;
+  std::vector<BAObservation> observations_;
 
   std::string loss_function_;
   double loss_function_threshold_;

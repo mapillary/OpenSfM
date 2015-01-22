@@ -37,7 +37,7 @@ int main(int argc, char** argv) {
   
   clock_t start_solving = clock();
 
-  ba.run();
+  ba.Run();
 
   clock_t start_writing = clock();
 

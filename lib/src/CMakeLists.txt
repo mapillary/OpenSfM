@@ -134,6 +134,10 @@ target_link_libraries(csfm
                       ${OpenCV_LIBS}
                       ${GFLAGS_LIBRARY}
                       ${GLOG_LIBRARY}
+                      ${CERES_LIBRARIES}
+                      ${JSONCPP_LIBRARIES}
+                      ${LAPACK_LIBRARIES}
+                      ${SUITESPARSE_LIBRARIES}
                       vl
 )
 set_target_properties(csfm PROPERTIES
