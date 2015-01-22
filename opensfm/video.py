@@ -20,6 +20,34 @@ def gpx_lerp(alpha, a, b):
     alt = (1 - alpha) * a[3] + alpha * b[3]
     return t, lat, lon, alt
 
+def segment_sphere_intersection(A, B, C, r):
+    '''Intersect the segment AB and the sphere (C,r).
+
+    Assumes A is inside the sphere and B is outside.
+    Return the ratio between the length of AI and the length
+    of AB, where I is the intersection.
+    '''
+    AB = np.array(B) - np.array(A)
+    CA = np.array(A) - np.array(C)
+    a = AB.dot(AB)
+    b = 2 * AB.dot(CA)
+    c = CA.dot(CA) - r**2
+    d = max(0, b**2 - 4 * a * c)
+    return (-b + np.sqrt(d)) / (2 * a)
+
+def space_next_point(a, b, last, dx):
+    A = geo.ecef_from_lla(a[1], a[2], 0.)
+    B = geo.ecef_from_lla(b[1], b[2], 0.)
+    C = geo.ecef_from_lla(last[1], last[2], 0.)
+    alpha = segment_sphere_intersection(A, B, C, dx)
+    return gpx_lerp(alpha, a, b)
+
+def time_next_point(a, b, last, dt):
+    da = (a[0] - last[0]).total_seconds()
+    db = (b[0] - last[0]).total_seconds()
+    alpha = (dt - da) / (db - da)
+    return gpx_lerp(alpha, a, b)
+
 def time_distance(a, b):
     return (b[0] - a[0]).total_seconds()
 
@@ -31,9 +59,11 @@ def sample_gpx(points, dx, dt=None):
         dx = float(dt)
         print "Sampling GPX file every {0} seconds".format(dx)
         distance = time_distance
+        next_point = time_next_point
     else:
         print "Sampling GPX file every {0} meters".format(dx)
         distance = space_distance
+        next_point = space_next_point
 
     key_points = [points[0]]
     a = points[0]
@@ -41,11 +71,9 @@ def sample_gpx(points, dx, dt=None):
         a, b = points[i - 1], points[i]
         dx_b = distance(key_points[-1], b)
         while dx and dx_b >= dx:
-            dx_a = distance(key_points[-1], a)
-            alpha = (dx - dx_a) / distance(a, b)
-            a = gpx_lerp(alpha, a, b)
+            a = next_point(a, b, key_points[-1], dx)
             key_points.append(a)
-            assert np.fabs(dx - distance(key_points[-2], key_points[-1])) < 1.0
+            assert np.fabs(dx - distance(key_points[-2], key_points[-1])) < 0.1
             dx_b = distance(key_points[-1], b)
     print len(key_points), "points sampled"
     return key_points
