@@ -5,10 +5,13 @@ import os
 import shutil
 import gpxpy
 import datetime
-import pyexiv2
 import math
 import time
+import geo
+import pyexiv2
 from pyexiv2.utils import make_fraction
+import json
+import numpy as np
 
 
 '''
@@ -126,9 +129,6 @@ def interpolate_lat_lon(points, t):
 
     return lat, lon, bearing, ele
 
-
-
-
 def to_deg(value, loc):
     '''
     Convert decimal position to degrees.
@@ -146,6 +146,74 @@ def to_deg(value, loc):
     sec = round((t1 - mint)* 60, 6)
     return (deg, mint, sec, loc_value)
 
+
+def gpx_lerp(alpha, a, b):
+    '''Interpolate gpx point as (1 - alpha) * a + alpha * b
+    '''
+    dt = alpha * (b[0] - a[0]).total_seconds()
+    t = a[0] + datetime.timedelta(seconds=dt)
+    lat = (1 - alpha) * a[1] + alpha * b[1]
+    lon = (1 - alpha) * a[2] + alpha * b[2]
+    alt = (1 - alpha) * a[3] + alpha * b[3]
+    return t, lat, lon, alt
+
+def segment_sphere_intersection(A, B, C, r):
+    '''Intersect the segment AB and the sphere (C,r).
+
+    Assumes A is inside the sphere and B is outside.
+    Return the ratio between the length of AI and the length
+    of AB, where I is the intersection.
+    '''
+    AB = np.array(B) - np.array(A)
+    CA = np.array(A) - np.array(C)
+    a = AB.dot(AB)
+    b = 2 * AB.dot(CA)
+    c = CA.dot(CA) - r**2
+    d = max(0, b**2 - 4 * a * c)
+    return (-b + np.sqrt(d)) / (2 * a)
+
+def space_next_point(a, b, last, dx):
+    A = geo.ecef_from_lla(a[1], a[2], 0.)
+    B = geo.ecef_from_lla(b[1], b[2], 0.)
+    C = geo.ecef_from_lla(last[1], last[2], 0.)
+    alpha = segment_sphere_intersection(A, B, C, dx)
+    return gpx_lerp(alpha, a, b)
+
+def time_next_point(a, b, last, dt):
+    da = (a[0] - last[0]).total_seconds()
+    db = (b[0] - last[0]).total_seconds()
+    alpha = (dt - da) / (db - da)
+    return gpx_lerp(alpha, a, b)
+
+def time_distance(a, b):
+    return (b[0] - a[0]).total_seconds()
+
+def space_distance(a, b):
+    return geo.gps_distance(a[1:3], b[1:3])
+
+def sample_gpx(points, dx, dt=None):
+    if dt is not None:
+        dx = float(dt)
+        print "Sampling GPX file every {0} seconds".format(dx)
+        distance = time_distance
+        next_point = time_next_point
+    else:
+        print "Sampling GPX file every {0} meters".format(dx)
+        distance = space_distance
+        next_point = space_next_point
+
+    key_points = [points[0]]
+    a = points[0]
+    for i in range(1, len(points)):
+        a, b = points[i - 1], points[i]
+        dx_b = distance(key_points[-1], b)
+        while dx and dx_b >= dx:
+            a = next_point(a, b, key_points[-1], dx)
+            key_points.append(a)
+            assert np.fabs(dx - distance(key_points[-2], key_points[-1])) < 0.1
+            dx_b = distance(key_points[-1], b)
+    print len(key_points), "points sampled"
+    return key_points
 
 
 def add_gps_to_exif(filename, lat, lon, bearing, elevation, updated_filename=None, remove_image_description=True):
@@ -188,7 +256,7 @@ def add_gps_to_exif(filename, lat, lon, bearing, elevation, updated_filename=Non
     metadata.write()
 
 
-def add_exif_using_timestamp(filename, points, offset_time=0, timestamp=None, orientation=1):
+def add_exif_using_timestamp(filename, points, offset_time=0, timestamp=None, orientation=1, image_description=None):
     '''
     Find lat, lon and bearing of filename and write to EXIF.
     '''
@@ -214,7 +282,7 @@ def add_exif_using_timestamp(filename, points, offset_time=0, timestamp=None, or
         exiv_lon = (make_fraction(lon_deg[0],1), make_fraction(int(lon_deg[1]),1), make_fraction(int(lon_deg[2]*1000000),1000000))
 
         # convert direction into fraction
-        exiv_bearing = make_fraction(int(bearing*100),100)
+        exiv_bearing = make_fraction(int(bearing*1000),1000)
 
         # add to exif
         metadata["Exif.GPSInfo.GPSLatitude"] = exiv_lat
@@ -227,6 +295,8 @@ def add_exif_using_timestamp(filename, points, offset_time=0, timestamp=None, or
         metadata["Exif.GPSInfo.GPSImgDirection"] = exiv_bearing
         metadata["Exif.GPSInfo.GPSImgDirectionRef"] = "T"
         metadata["Exif.Image.Orientation"] = orientation
+        if image_description is not None:
+            metadata["Exif.Image.ImageDescription"] = image_description
 
         if elevation is not None:
             exiv_elevation = make_fraction(int(abs(elevation)*100),100)
@@ -238,8 +308,6 @@ def add_exif_using_timestamp(filename, points, offset_time=0, timestamp=None, or
         print("Added geodata to: {0} ({1}, {2}, {3}), altitude {4}".format(filename, lat, lon, bearing, elevation))
     except ValueError, e:
         print("Skipping {0}: {1}".format(filename, e))
-
-
 
 
 if __name__ == '__main__':
