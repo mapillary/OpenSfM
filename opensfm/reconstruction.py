@@ -11,6 +11,7 @@ from itertools import combinations
 import numpy as np
 import cv2
 import json
+import time
 import networkx as nx
 from networkx.algorithms import bipartite
 
@@ -53,6 +54,8 @@ def bundle_old(tracks_file, reconstruction, config):
 def bundle(graph, reconstruction, config):
     '''Bundle adjust a reconstruction.
     '''
+
+    start = time.time()
     ba = csfm.BundleAdjuster()
     for k, v in reconstruction['cameras'].items():
         ba.add_camera(
@@ -86,7 +89,11 @@ def bundle(graph, reconstruction, config):
                          config.get('loss_function_threshold', 0.004));
     ba.set_focal_prior_sd(config.get('exif_focal_sd', 999));
 
+    setup = time.time()
+
     ba.run()
+
+    run = time.time()
 
     for k, v in reconstruction['cameras'].items():
         c = ba.get_camera(str(k))
@@ -102,6 +109,10 @@ def bundle(graph, reconstruction, config):
     for k, v in reconstruction['points'].items():
         p = ba.get_point(str(k))
         v['coordinates'] = [p.x, p.y, p.z]
+
+    teardown = time.time()
+
+    print 'setup/run/teardown {0}/{1}/{2}'.format(setup - start, run - setup, teardown - run)
 
 
 
