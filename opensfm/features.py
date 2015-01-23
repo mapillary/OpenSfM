@@ -29,6 +29,26 @@ def root_feature(desc, l2_normalization=False):
     desc = np.sqrt(desc.T/s).T
     return desc
 
+def root_feature_surf(desc, l2_normalization=False, partial=False):
+    """
+    Experimental square root mapping of surf-like feature, only work for 64-dim surf now
+    """
+    if desc.shape[1] == 64:
+        if l2_normalization:
+            s2 = np.linalg.norm(desc, axis=1)
+            desc = (desc.T/s2).T
+        if partial:
+            ii = np.array([i for i in xrange(64) if (i%4==2 or i%4==3)])
+        else:
+            ii = np.arange(64)
+        desc_sub = np.abs(desc[:, ii])
+        desc_sub_sign = np.sign(desc[:, ii])
+        # s_sub = np.sum(desc_sub, 1)  # This partial normalization gives slightly better results for AKAZE surf
+        s_sub = np.sum(np.abs(desc), 1)
+        desc_sub = np.sqrt(desc_sub.T/s_sub).T
+        desc[:, ii] = desc_sub*desc_sub_sign
+    return desc
+
 def normalized_image_coordinates(pixel_coords, width, height):
     size = max(width, height)
     p = np.empty((len(pixel_coords), 2))
@@ -104,7 +124,7 @@ def extract_features_surf(imagefile, config):
             break
 
     points, desc = descriptor.compute(image, points)
-    # if config.get('feature_root', False): desc = root_feature(desc)
+    if config.get('feature_root', False): desc = root_feature_surf(desc, partial=True)
     points = np.array([(i.pt[0], i.pt[1], i.size, i.angle) for i in points])
     return mask_and_normalize_features(points, desc, image.shape[1], image.shape[0], config)
 
@@ -126,6 +146,12 @@ def extract_features_akaze(imagefile, config):
             print 'done'
             break
     config['akaze_dthreshold'] = original_threshold
+    akaze_descriptor = config.get('akaze_descriptor', 5)
+    if akaze_descriptor < 4 and config.get('feature_root', False):
+        if akaze_descriptor == 0 and akaze_descriptor == 2
+            desc = root_feature_surf(desc, partial=True)
+        else:
+            desc = root_feature_surf(desc, partial=False)
     image = cv2.imread(imagefile)
     return mask_and_normalize_features(points, desc, image.shape[1], image.shape[0], config)
 
@@ -184,7 +210,6 @@ def akaze_feature(imagefile, config):
                 desc = desc.astype(np.uint8)
             except ValueError:
                 desc = desc.astype(np.float32)
-
             points = points.astype(np.float)
         else:
             points, desc = [], []
