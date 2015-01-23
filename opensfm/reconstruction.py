@@ -20,11 +20,10 @@ from opensfm import dataset
 from opensfm import features
 from opensfm import multiview
 from opensfm import geo
+from opensfm import csfm
 
 
-def bundle(tracks_file, reconstruction, config):
-    '''Extracts features of image and save them
-    '''
+def bundle_old(tracks_file, reconstruction, config):
     f = tempfile.NamedTemporaryFile(delete=False)
     f.close()
     source = f.name
@@ -50,6 +49,59 @@ def bundle(tracks_file, reconstruction, config):
     os.remove(source)
     os.remove(dest)
     return result
+
+def bundle(graph, reconstruction, config):
+    '''Bundle adjust a reconstruction.
+    '''
+    ba = csfm.BundleAdjuster()
+    for k, v in reconstruction['cameras'].items():
+        ba.add_camera(
+            str(k),
+            v['focal'], v['k1'], v['k2'],
+            v['width'], v['height'],
+            v['exif_focal']
+        )
+
+    for k, v in reconstruction['shots'].items():
+        r = v['rotation']
+        t = v['translation']
+        g = v['gps_position']
+        ba.add_shot(
+            str(k), str(v['camera']),
+            r[0], r[1], r[2],
+            t[0], t[1], t[2],
+            g[0], g[1], g[2],
+            v['gps_dop']
+        )
+
+    for k, v in reconstruction['points'].items():
+        ba.add_point(str(k), *v['coordinates'])
+
+    for shot in reconstruction['shots']:
+        for track in graph[shot]:
+            if track in reconstruction['points']:
+                ba.add_observation(str(shot), str(track), *graph[shot][track]['feature'])
+
+    ba.set_loss_function(config.get('loss_function', 'TruncatedLoss'),
+                         config.get('loss_function_threshold', 0.004));
+    ba.set_focal_prior_sd(config.get('exif_focal_sd', 999));
+
+    ba.run()
+
+    for k, v in reconstruction['cameras'].items():
+        c = ba.get_camera(str(k))
+        v['focal'] = c.focal
+        v['k1'] = c.k1
+        v['k2'] = c.k2
+
+    for k, v in reconstruction['shots'].items():
+        s = ba.get_shot(str(k))
+        v['rotation'] = [s.rx, s.ry, s.rz]
+        v['translation'] = [s.tx, s.ty, s.tz]
+        
+    for k, v in reconstruction['points'].items():
+        p = ba.get_point(str(k))
+        v['coordinates'] = [p.x, p.y, p.z]
 
 
 
@@ -377,7 +429,7 @@ def retriangulate(track_file, graph, reconstruction, image_graph, config):
                         tracks_added.append(track)
 
     # bundle adjustment
-    reconstruction = bundle(track_file, reconstruction, config)
+    bundle(graph, reconstruction, config)
 
     # filter points with large reprojection errors
     track_to_delete = []
@@ -391,7 +443,7 @@ def retriangulate(track_file, graph, reconstruction, image_graph, config):
             del reconstruction['points'][t]
 
     # bundle adjustment
-    reconstruction = bundle(track_file, reconstruction, config)
+    bundle(graph, reconstruction, config)
 
 
 def optical_center(shot):
@@ -626,7 +678,7 @@ def grow_reconstruction(data, graph, reconstruction, images, image_graph):
     retriangulation = data.config.get('retriangulation', False)
     retriangulation_ratio = data.config.get('retriangulation_ratio', 1.25)
 
-    reconstruction = bundle(data.tracks_file(), reconstruction, data.config)
+    bundle(graph, reconstruction, data.config)
     align_reconstruction(reconstruction)
 
     prev_num_points = len(reconstruction['points'])
@@ -653,7 +705,7 @@ def grow_reconstruction(data, graph, reconstruction, images, image_graph):
                 images.remove(image)
 
                 if len(reconstruction['shots']) % bundle_interval == 0:
-                    reconstruction = bundle(data.tracks_file(), reconstruction, data.config)
+                    bundle(graph, reconstruction, data.config)
 
                 triangulate_shot_features(
                                 graph, reconstruction, image,
@@ -661,7 +713,7 @@ def grow_reconstruction(data, graph, reconstruction, images, image_graph):
                                 data.config.get('triangulation_min_ray_angle', 2.0))
 
                 if len(reconstruction['shots']) % bundle_interval == 0:
-                    reconstruction = bundle(data.tracks_file(), reconstruction, data.config)
+                    bundle(graph, reconstruction, data.config)
 
                 align_reconstruction(reconstruction)
 

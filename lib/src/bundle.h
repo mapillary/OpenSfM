@@ -231,15 +231,15 @@ class BundleAdjuster {
  public:
   ~BundleAdjuster() {}
 
-  BACamera GetCamera(std::string &id) {
+  BACamera GetCamera(const std::string &id) {
     return cameras_[id];
   }
 
-  BAShot GetShot(std::string &id) {
+  BAShot GetShot(const std::string &id) {
     return shots_[id];
   }
 
-  BAPoint GetPoint(std::string &id) {
+  BAPoint GetPoint(const std::string &id) {
     return points_[id];
   }
 

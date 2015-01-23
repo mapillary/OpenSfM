@@ -13,6 +13,8 @@
 
 BOOST_PYTHON_MODULE(csfm) {
   using namespace boost::python;
+  
+  google::InitGoogleLogging("csfm");
   boost::python::numeric::array::set_module_and_type("numpy", "ndarray");
   import_array();
 
