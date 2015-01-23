@@ -15,7 +15,7 @@ from opensfm import geo
 
 def match(imagepair):
     im1, im2, i, n = imagepair
-    print 'Matching', data.config.get('feature_type').upper(), 'for image', im1, 'with image', im2, ' - ', i, '/', n, ' - ', 100 * i / n, '%'
+    print 'Matching', data.feature_type().upper(), 'for image', im1, 'with image', im2, ' - ', i, '/', n, ' - ', 100 * i / n, '%'
 
     matching_gps_distance = data.config.get('matching_gps_distance', 9999999)
     robust_matching_min_match = data.config.get('robust_matching_min_match', 20)
