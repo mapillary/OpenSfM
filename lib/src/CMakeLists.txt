@@ -49,6 +49,8 @@ include_directories(${GLOG_INCLUDE_DIR})
 
 find_package(OpenCV REQUIRED)
 
+
+# Two view reconstruction
 add_executable(two_view_reconstruction
                two_view_reconstruction.cc
                third_party/libmv/multiview/fundamental.cc
@@ -64,23 +66,6 @@ target_link_libraries(two_view_reconstruction
                       ${GFLAGS_LIBRARY}
                       ${GLOG_LIBRARY}
                       )
-
-add_executable(bundle bundle.cc bundle.h)
-target_link_libraries(bundle
-                      ${CERES_LIBRARIES}
-                      ${GFLAGS_LIBRARY}
-                      ${GLOG_LIBRARY}
-                      ${JSONCPP_LIBRARIES}
-                      ${LAPACK_LIBRARIES}
-                      ${SUITESPARSE_LIBRARIES}
-                      )
-
-#add_executable(bundle_test bundle_test.cc)
-#target_link_libraries(bundle_test
-#                      ${CERES_LIBRARIES}
-#                      ${JSONCPP_LIBRARIES}
-#                      ${GTEST_LIBRARY}
-#                      )
 
 
 # AKAZE libraries
