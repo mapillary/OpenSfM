@@ -148,7 +148,7 @@ def extract_features_akaze(imagefile, config):
     config['akaze_dthreshold'] = original_threshold
     akaze_descriptor = config.get('akaze_descriptor', 5)
     if akaze_descriptor < 4 and config.get('feature_root', False):
-        if akaze_descriptor == 0 and akaze_descriptor == 2
+        if akaze_descriptor == 0 and akaze_descriptor == 2:
             desc = root_feature_surf(desc, partial=True)
         else:
             desc = root_feature_surf(desc, partial=False)
