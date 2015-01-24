@@ -278,13 +278,16 @@ def fit_plane(points, vectors, verticals):
     '''
     # (x 1) p = 0
     # (v 0) p = 0
-    x = homogeneous(np.array(points))
+    points = np.array(points)
+    s = 1. / points.std()           # Normalize the scale to improve conditioning.
+    x = homogeneous(s * points)
     if vectors:
-        v = homogeneous_vec(np.array(vectors))
+        v = homogeneous_vec(s * np.array(vectors))
         A = np.vstack((x, v))
     else:
         A = x
-    s, p = nullspace(A)
+    _, p = nullspace(A)
+    p[3] /= s
 
     # Use verticals to decide the sign of p
     if verticals:
