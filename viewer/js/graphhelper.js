@@ -111,7 +111,7 @@ var GraphHelper = (function () {
         this.navigationAction = navigationAction;
         this.initialAction = initialAction;
         this.intervalTime = intervalTime;
-        this.intervalToken = undefined;
+        this.timeoutToken = undefined;
         this.path = undefined;
         this.currentIndex = 0;
         this.started = false;
@@ -119,13 +119,22 @@ var GraphHelper = (function () {
 
     // Private callback function for setInterval.
     var onMove = function(self) {
+        var pathLength = self.path.length;
         self.currentIndex++;
-        if (self.started !== true || self.currentIndex >= self.path.length) {
+
+        if (self.started !== true || self.currentIndex >= pathLength) {
             self.stopJourney();
             return;
         }
 
         self.navigationAction(self.path[self.currentIndex]);
+
+        if (self.currentIndex === pathLength - 1) {
+            self.stopJourney();
+            return;
+        }
+
+        self.timeoutToken = window.setTimeout(function () { onMove(self); }, self.intervalTime);
     }
 
     /**
@@ -152,7 +161,7 @@ var GraphHelper = (function () {
     GraphHelper.prototype.shortestPath = function (from, to) {
         var journeyGraph = undefined;
         for (var k in this.graphs) {
-            if (this.graphs.hasOwnProperty(k)) {
+            if (Object.prototype.hasOwnProperty.call(this.graphs, k)) {
                 // Ensure that both nodes exist in the graph.
                 if (this.graphs[k].nodes.indexOf(from) > -1 &&
                     this.graphs[k].nodes.indexOf(to) > -1) {
@@ -193,19 +202,19 @@ var GraphHelper = (function () {
         this.navigationAction(this.path[this.currentIndex])
 
         var _this = this;
-        this.intervalToken = window.setInterval(function () { onMove(_this); }, this.intervalTime);
+        this.timeoutToken = window.setTimeout(function () { onMove(_this); }, this.intervalTime);
     }
 
     /**
      * Stops an ongoing journey between two nodes in a graph.
      */
     GraphHelper.prototype.stopJourney = function () {
-        if (this.intervalToken === undefined) {
+        if (this.timeoutToken === undefined) {
             return;
         }
 
-        window.clearInterval(this.intervalToken);
-        this.intervalToken = undefined;
+        window.clearTimeout(this.timeoutToken);
+        this.timeoutToken = undefined;
         this.currentIndex = 0;
         this.path = undefined;
 
