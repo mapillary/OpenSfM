@@ -1,13 +1,26 @@
 var Dijkstra = (function () {
 
+     /**
+     * A class for calculations on graphs using Dijkstra's algorithm.
+     * @constructor
+     */
     function Dijkstra(graph) {
         this.graph = graph;
     }
 
-    var keyValueSorter = function(t1, t2) {
-        return parseFloat(t1[1]) - parseFloat(t2[1]);
+    // Private sort delegate for ordering key value pairs arranged
+    // as an array of two items like [key, value].
+    var keyValueSorter = function(kv1, kv2) {
+        return parseFloat(kv1[1]) - parseFloat(kv2[1]);
     }
 
+     /**
+     * Calculate the shortest path between two nodes in a graph using
+     * Dijkstra's Algorithm.
+     * @param {String} source
+     * @param {String} target
+     * @return {Array} An array of node names corresponding to the path
+     */
     Dijkstra.prototype.shortestPath = function (source, target, weight) {
         if (source === target) {
             return [source];
@@ -23,51 +36,57 @@ var Dijkstra = (function () {
         distances[source] = 0;
 
         while (touchedNodes) {
-            var touchedDists = [];
+
+            var touched = [];
             for (var key in touchedNodes) {
                 if (Object.prototype.hasOwnProperty.call(touchedNodes, key)) {
-                    touchedDists.push([ key, touchedNodes[key]])
+                    touched.push([key, touchedNodes[key]])
                 }
             }
 
-            touchedDists.sort(keyValueSorter);
+            // Select the unvisited node with smallest distance and mark it as current node.
+            touched.sort(keyValueSorter);
+            var currentNode = touched[0][0];
 
-            var shortestDist = touchedDists[0];
-            var previousNode = shortestDist[0];
-            var dist = shortestDist[1];
+            visited[currentNode] = true;
+            delete touchedNodes[currentNode];
 
-            visited[previousNode] = true;
-            delete touchedNodes[previousNode];
-
-            if (previousNode === target) {
+            // Return if we have reached the target.
+            if (currentNode === target) {
                 break;
             }
 
-            var nodeEdges = this.graph.edges[previousNode] || {};
+            var currentEdges = this.graph.edges[currentNode] || {};
 
-            for (var node in nodeEdges) {
-                if (Object.prototype.hasOwnProperty.call(nodeEdges, node)) {
-                    var edge = nodeEdges[node];
+            for (var node in currentEdges) {
+                if (Object.prototype.hasOwnProperty.call(currentEdges, node)) {
 
+                    // Do not process already visited nodes.
                     if (Object.prototype.hasOwnProperty.call(visited, node)) {
                         continue;
                     }
 
-                    var touchedNode = node;
-                    var distance = edge[weight];
+                    // Calculate the total distance from the source to the node of
+                    // the current edge.
+                    var distance = currentEdges[node][weight];
+                    var totalDistance = distances[currentNode] + distance;
 
-                    var totalDistance = distances[previousNode] + distance;
-
-                    if (!distances[touchedNode] || totalDistance < distances[touchedNode])
+                    if (!distances[node] || totalDistance < distances[node])
                     {
-                        distances[touchedNode] = totalDistance;
-                        previous[touchedNode] = previousNode;
-                        touchedNodes[touchedNode] = totalDistance;
+                        distances[node] = totalDistance;
+                        touchedNodes[node] = totalDistance;
+                        previous[node] = currentNode;
                     }
                 }
             }
         }
 
+        // No path to the target was found.
+        if (previous[target] === undefined) {
+            return null;
+        }
+
+        // Retrieve a path from the dictionary of previous nodes and reverse it.
         var reversePath = [];
         var element = target;
         while (element !== undefined) {
@@ -117,7 +136,8 @@ var GraphHelper = (function () {
     }
 
      /**
-     * Gets a value indicating whether a journey is started.
+     * Gets a value indicating whether a journey is ongoing.
+     * @return {Boolean} A value indicating whether a journey is ongoing.
      */
     GraphHelper.prototype.getIsStarted = function() {
         return this.started;
@@ -125,8 +145,8 @@ var GraphHelper = (function () {
 
     /**
      * Calculate the shortest path between two nodes in a graph.
-     * @param {Number} from
-     * @param {Number} to
+     * @param {String} from
+     * @param {String} to
      * @return {Array} An array of node names corresponding to the path
      */
     GraphHelper.prototype.shortestPath = function (from, to) {
