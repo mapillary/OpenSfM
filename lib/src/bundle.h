@@ -95,7 +95,7 @@ struct SnavelyReprojectionError {
     const T& l1 = camera[1];
     const T& l2 = camera[2];
     T r2 = xp * xp + yp * yp;
-    T distortion = T(1.0) ;// + r2  * (l1 + l2  * r2);
+    T distortion = T(1.0) + r2  * (l1 + l2  * r2);
 
     // Compute final projected point position.
     const T& focal = (focal_ > 0.0) ? T(focal_) : camera[0];
