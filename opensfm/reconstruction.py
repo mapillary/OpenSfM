@@ -502,17 +502,35 @@ def get_horitzontal_and_vertical_directions(R, orientation):
     print 'ERROR unknown orientation', orientation
 
 
-def align_reconstruction(reconstruction):
+def align_reconstruction(reconstruction, config):
+    align_method = config.get('align_method', 'orientation_prior')
+    if align_method == 'orientation_prior':
+        return align_reconstruction_orientation_prior(reconstruction, config)
+    elif align_method == 'naive':
+        return align_reconstruction_naive(reconstruction)
+
+
+def align_reconstruction_orientation_prior(reconstruction, config):
     X, Xp = [], []
+    orientation_type = config.get('align_orientation_prior', 'horizontal')
     onplane, verticals = [], []
     for shot in reconstruction['shots'].values():
         X.append(optical_center(shot))
         Xp.append(shot['gps_position'])
         R = cv2.Rodrigues(np.array(shot['rotation']))[0]
         x, y, z = get_horitzontal_and_vertical_directions(R, shot['exif_orientation'])
-        onplane.append(x)
-        onplane.append(z)
-        verticals.append(-y)
+        if orientation_type == 'no_roll':
+            onplane.append(x)
+            verticals.append(-y)            
+        elif orientation_type == 'horizontal':
+            onplane.append(x)
+            onplane.append(z)
+            verticals.append(-y)
+        elif orientation_type == 'vertical':
+            onplane.append(x)
+            onplane.append(y)
+            verticals.append(-z)
+
     X = np.array(X)
     Xp = np.array(Xp)
 
@@ -523,7 +541,7 @@ def align_reconstruction(reconstruction):
 
     # Estimate 2d similarity to align to GPS
     if len(X) < 2 or Xp.std(axis=0).max() < 0.01:  # All GPS points are the same.
-        s = 1
+        s = len(X) / X.std(axis=0).max()           # Set the arbitrary scale proportional to the number of cameras.
         A = Rplane
         b = Xp.mean(axis=0) - X.mean(axis=0)
     else:
@@ -563,7 +581,7 @@ def register_reconstruction_with_gps(reconstruction, reference):
                                       }
 
 
-def merge_two_reconstructions(r1, r2, threshold=1):
+def merge_two_reconstructions(r1, r2, config, threshold=1):
     ''' Merge two reconstructions with common tracks
     '''
     t1, t2 = r1['points'], r2['points']
@@ -585,7 +603,7 @@ def merge_two_reconstructions(r1, r2, threshold=1):
             r = r2
             r['shots'].update(r1p['shots'])
             r['points'].update(r1p['points'])
-            align_reconstruction(r)
+            align_reconstruction(r, config)
             return [r]
         else:
             return [r1, r2]
@@ -593,7 +611,7 @@ def merge_two_reconstructions(r1, r2, threshold=1):
         return [r1, r2]
 
 
-def merge_reconstructions(reconstructions):
+def merge_reconstructions(reconstructions, config):
     ''' Greedily merge reconstructions with common tracks
     '''
     num_reconstruction = len(reconstructions)
@@ -605,11 +623,11 @@ def merge_reconstructions(reconstructions):
 
     for (i, j) in combinations(ids_reconstructions, 2):
         if (i in remaining_reconstruction) and (j in remaining_reconstruction):
-            r = merge_two_reconstructions(reconstructions[i], reconstructions[j])
+            r = merge_two_reconstructions(reconstructions[i], reconstructions[j], config)
             if len(r) == 1:
                 remaining_reconstruction = list(set(remaining_reconstruction) - set([i, j]))
                 for k in remaining_reconstruction:
-                    rr = merge_two_reconstructions(r[0], reconstructions[k])
+                    rr = merge_two_reconstructions(r[0], reconstructions[k], config)
                     if len(r) == 2:
                         break
                     else:
@@ -663,7 +681,7 @@ def grow_reconstruction(data, graph, reconstruction, images, image_graph):
     retriangulation_ratio = data.config.get('retriangulation_ratio', 1.25)
 
     bundle(graph, reconstruction, data.config)
-    align_reconstruction(reconstruction)
+    align_reconstruction(reconstruction, data.config)
 
     prev_num_points = len(reconstruction['points'])
 
@@ -699,7 +717,7 @@ def grow_reconstruction(data, graph, reconstruction, images, image_graph):
                 if len(reconstruction['shots']) % bundle_interval == 0:
                     bundle(graph, reconstruction, data.config)
 
-                align_reconstruction(reconstruction)
+                align_reconstruction(reconstruction, data.config)
 
                 num_points = len(reconstruction['points'])
                 if retriangulation and num_points > prev_num_points * retriangulation_ratio:
@@ -725,7 +743,7 @@ def grow_reconstruction(data, graph, reconstruction, images, image_graph):
             break
 
 
-    align_reconstruction(reconstruction)
+    align_reconstruction(reconstruction, data.config)
 
     print 'Reprojection Error:', reprojection_error(graph, reconstruction)
     print 'Painting the reconstruction from {0} cameras'.format(len(reconstruction['shots']))

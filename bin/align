@@ -48,11 +48,14 @@ else:
 for reconstruction in reconstructions:
     for image in reconstruction['shots'].keys():
         rc.add_gps_position(data, reconstruction, image)
-    rc.align_reconstruction(reconstruction)
+    rc.align_reconstruction(reconstruction, data.config)
 
     # convert to lla
     # reference = data.invent_reference_lla(list(reconstruction['shots'].keys()))
     rc.register_reconstruction_with_gps(reconstruction, reference)
+
+with open(data.reconstruction_file()+'.aligned', 'wb') as fout:
+    fout.write(json.dumps(reconstructions, indent=4))
 
 
 
