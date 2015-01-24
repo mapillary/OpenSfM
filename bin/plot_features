@@ -42,7 +42,8 @@ if __name__ == "__main__":
             if args.save_figs:
                 p = args.dataset + '/plot_features'
                 io.mkdir_p(p)
-                pl.savefig(p + '/' + image)
+                pl.savefig(p + '/' + image + '.jpg')
+                pl.close()
             else:
                 pl.show()
 
