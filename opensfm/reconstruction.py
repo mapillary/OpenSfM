@@ -24,33 +24,6 @@ from opensfm import geo
 from opensfm import csfm
 
 
-def bundle_old(tracks_file, reconstruction, config):
-    f = tempfile.NamedTemporaryFile(delete=False)
-    f.close()
-    source = f.name
-    f = tempfile.NamedTemporaryFile(delete=False)
-    f.close()
-    dest = f.name
-
-    with open(source, 'w') as fout:
-        fout.write(json.dumps(reconstruction))
-
-    call([context.BUNDLE,
-        '--tracks', tracks_file,
-        '--input', source,
-        '--output', dest,
-        '--loss_function', config.get('loss_function', 'TruncatedLoss'),
-        '--loss_function_threshold', str(config.get('loss_function_threshold', 0.004)),
-        '--exif_focal_sd', str(config.get('exif_focal_sd', 999)),
-        ])
-
-    with open(dest) as fin:
-        result = json.load(fin)
-
-    os.remove(source)
-    os.remove(dest)
-    return result
-
 def bundle(graph, reconstruction, config):
     '''Bundle adjust a reconstruction.
     '''
