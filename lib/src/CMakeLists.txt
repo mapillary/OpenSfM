@@ -13,8 +13,8 @@ set(CMAKE_MODULE_PATH ${opensfm_SOURCE_DIR}/cmake)
 
 include_directories(. third_party)
 
-# c++11
-list(APPEND CMAKE_CXX_FLAGS "-std=c++0x")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -std=c++0x")
 
 find_package(OpenMP)
 if (OPENMP_FOUND)
