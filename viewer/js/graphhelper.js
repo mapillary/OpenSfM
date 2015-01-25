@@ -35,13 +35,17 @@ var Dijkstra = (function () {
         previous[source] = undefined;
         distances[source] = 0;
 
-        while (touchedNodes) {
-
+        while (true) {
             var touched = [];
             for (var key in touchedNodes) {
                 if (Object.prototype.hasOwnProperty.call(touchedNodes, key)) {
                     touched.push([key, touchedNodes[key]])
                 }
+            }
+
+            // Stop if none of the unvisited nodes can be reached.
+            if (!touched.length) {
+                break;
             }
 
             // Select the unvisited node with smallest distance and mark it as current node.
@@ -106,11 +110,12 @@ var GraphHelper = (function () {
      * A graph helper.
      * @constructor
      */
-    function GraphHelper(data, navigationAction, initialAction, intervalTime) {
+    function GraphHelper(data, navigationAction, initialAction, intervalTime, usePenalty) {
         this.graphs = data;
         this.navigationAction = navigationAction;
         this.initialAction = initialAction;
         this.intervalTime = intervalTime;
+        this.usePenalty = usePenalty;
         this.timeoutToken = undefined;
         this.path = undefined;
         this.currentIndex = 0;
@@ -135,6 +140,36 @@ var GraphHelper = (function () {
         }
 
         self.timeoutToken = window.setTimeout(function () { onMove(self); }, self.intervalTime);
+    }
+
+    var getPenaltyGraph = function(graph, edgesKey, weightKey, originalWeightKey, penaltyKey, penaltyValue, penalty) {
+
+        var penaltyGraph = {};
+        penaltyGraph[edgesKey] = {};
+
+        for (var k in graph[edgesKey]) {
+            if (Object.prototype.hasOwnProperty.call(graph[edgesKey], k)) {
+
+                penaltyGraph[edgesKey][k] = {};
+                var edges = graph[edgesKey][k];
+
+                for (var m in edges) {
+                    if (Object.prototype.hasOwnProperty.call(edges, m)) {
+                        penaltyGraph[edgesKey][k][m] = {};
+                        if (edges[m][penaltyKey] === penaltyValue) {
+                            penaltyGraph[edgesKey][k][m][weightKey] = edges[m][weightKey] + penalty;
+                        }
+                        else {
+                            penaltyGraph[edgesKey][k][m][weightKey] = edges[m][weightKey];
+                        }
+
+                        penaltyGraph[edgesKey][k][m][originalWeightKey] = edges[m][weightKey];
+                    }
+                }
+            }
+        }
+
+        return penaltyGraph;
     }
 
     /**
@@ -173,6 +208,10 @@ var GraphHelper = (function () {
 
         if (journeyGraph === undefined) {
             return undefined;
+        }
+
+        if (this.usePenalty === true) {
+            journeyGraph = getPenaltyGraph(journeyGraph, 'edges', 'weight', 'distance', 'direction', 'step_backward', 20);
         }
 
         var dijkstra = new Dijkstra(journeyGraph);
