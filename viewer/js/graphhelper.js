@@ -142,6 +142,8 @@ var GraphHelper = (function () {
         self.timeoutToken = window.setTimeout(function () { onMove(self); }, self.intervalTime);
     }
 
+    // Private function for creating a graph with a penalty for a certain property with
+    // a certain value.
     var getPenaltyGraph = function(graph, edgesKey, weightKey, originalWeightKey, penaltyKey, penaltyValue, penalty) {
 
         var penaltyGraph = {};
@@ -156,6 +158,9 @@ var GraphHelper = (function () {
                 for (var m in edges) {
                     if (Object.prototype.hasOwnProperty.call(edges, m)) {
                         penaltyGraph[edgesKey][k][m] = {};
+
+                        // Add penalty to weight if the value of the penalty key corresponds
+                        // to the specified penalty value.
                         if (edges[m][penaltyKey] === penaltyValue) {
                             penaltyGraph[edgesKey][k][m][weightKey] = edges[m][weightKey] + penalty;
                         }
@@ -231,7 +236,7 @@ var GraphHelper = (function () {
         }
 
         this.path = this.shortestPath(from, to);
-        if (this.path === undefined) {
+        if (this.path === null) {
             return;
         }
 
