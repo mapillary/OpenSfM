@@ -43,17 +43,18 @@ def angle_diff(v, angle):
     diff = np.min(np.vstack((diff, 2*np.pi - diff)), 0)
     return diff
 
-def create_optical_center_graph(reconstruction):
+def create_optical_center_graph(reconstructions):
 
     optical_centers = []
     viewing_directions = []
     shot_ids = []
 
-    for shot_id in sorted(reconstruction['shots'].keys()):
-        shot = reconstruction['shots'][shot_id]
-        optical_centers.append(optical_center(shot))
-        viewing_directions.append(viewing_direction(shot))
-        shot_ids.append(shot_id)
+    for reconstruction in reconstructions:
+        for shot_id in sorted(reconstruction['shots'].keys()):
+            shot = reconstruction['shots'][shot_id]
+            optical_centers.append(optical_center(shot))
+            viewing_directions.append(viewing_direction(shot))
+            shot_ids.append(shot_id)
 
     optical_centers = np.vstack(optical_centers)
     viewing_directions = np.vstack(viewing_directions)
@@ -65,17 +66,20 @@ def create_optical_center_graph(reconstruction):
     step_threshold = 0.25
     turn_threshold = 0.7
 
+    direction = 'direction'
+    threshold = 'threshold'
+
     step_directions = {
-        'step_forward': 0,
-        'step_backward': np.pi,
-        'step_left': -np.pi / 2,
-        'step_right': np.pi / 2
+        'step_forward': {direction: 0, threshold: step_threshold},
+        'step_backward': {direction: np.pi, threshold: 2*step_threshold},
+        'step_left': {direction: -np.pi / 2, threshold: 2*step_threshold},
+        'step_right': {direction: np.pi / 2, threshold: 2*step_threshold}
     }
 
     turn_directions = {
-        'turn_left': -np.pi / 2,
-        'turn_right': np.pi / 2,
-        'turn_u': np.pi
+        'turn_left': {direction: -np.pi / 2, threshold: turn_threshold},
+        'turn_right': {direction: np.pi / 2, threshold: turn_threshold},
+        'turn_u': {direction: np.pi, threshold: turn_threshold}
     }
 
     graph = nx.DiGraph()
@@ -96,16 +100,18 @@ def create_optical_center_graph(reconstruction):
         viewing_angle_differences = np.array([vector2_angle(vd[0], vd[1], viewing[0], viewing[1]) for viewing in viewings], float)
 
         for key in step_directions:
-            ma_diff = angle_diff(motion_angles, step_directions[key])
-            step_indices = np.where((ma_diff < step_threshold) & (np.abs(viewing_angle_differences) < step_threshold))[0]
+            step_direction = step_directions[key]
+            ma_diff = angle_diff(motion_angles, step_direction[direction])
+            step_indices = np.where((ma_diff < step_direction[threshold]) & (np.abs(viewing_angle_differences) < step_direction[threshold]))[0]
 
             if len(step_indices) > 0:
                 step_index = ordered_indices[step_indices[0]]
                 graph.add_edge(shot_ids[i], shot_ids[step_index], weight=distances[step_index], direction=key)
 
         for key in turn_directions:
-            va_diff = angle_diff(viewing_angle_differences, turn_directions[key])
-            turn_indices = np.where((va_diff < turn_threshold))[0]
+            turn_direction = turn_directions[key]
+            va_diff = angle_diff(viewing_angle_differences, turn_direction[direction])
+            turn_indices = np.where((va_diff < turn_direction[threshold]))[0]
 
             if len(turn_indices) > 0:
                 turn_index = ordered_indices[turn_indices[0]]
@@ -121,26 +127,25 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     data = dataset.DataSet(args.dataset)
-    reconstructions = load_reconstructions(data)
+    recs = load_reconstructions(data)
     directed_graphs = []
 
-    for r in reconstructions:
-        rec_graph = create_optical_center_graph(r)
-        directed_graph = {
-            'edges': {},
-            'nodes': list(rec_graph.node)
-        }
+    rec_graph = create_optical_center_graph(recs)
+    directed_graph = {
+        'edges': {},
+        'nodes': list(rec_graph.node)
+    }
 
-        for edge in rec_graph.edge:
-            directed_graph['edges'][edge] = rec_graph.edge[edge]
+    for edge in rec_graph.edge:
+        directed_graph['edges'][edge] = rec_graph.edge[edge]
 
-        directed_graphs.append(directed_graph)
+    directed_graphs.append(directed_graph)
 
     with open(data.directed_graph(), 'w') as fout:
         fout.write(json.dumps(directed_graphs))
 
     end = time.time()
     with open(data.profile_log(), 'a') as fout:
-        fout.write('reconstruction graphs: {0}\n'.format(end - start))
+        fout.write('Directed graphs: {0}\n'.format(end - start))
 
 
