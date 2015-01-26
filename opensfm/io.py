@@ -82,10 +82,22 @@ def import_bundler(data_path, bundle_file, list_file, track_file, reconstruction
         # camera model
         # image width/height for denormalizing coordinates, principle point
 
-    # read image list
+    # Init OpenSfM working folder.
+    mkdir_p(data_path)
+
+    # Copy image list.
+    list_dir = os.path.dirname(list_file)
     with open(list_file, 'rb') as fin:
-        image_list = fin.readlines()
-        ordered_shots = [os.path.basename(im.rstrip('\n').split(' ')[0]) for im in image_list]
+        lines = fin.read().splitlines()
+    ordered_shots = []
+    image_list = []
+    for line in lines:
+        image_path = os.path.join(list_dir, line.split()[0])
+        rel_to_data = os.path.relpath(image_path, data_path)
+        image_list.append(rel_to_data)
+        ordered_shots.append(os.path.basename(image_path))
+    with open(os.path.join(data_path, 'image_list.txt'), 'w') as fout:
+        fout.write('\n'.join(image_list) + '\n')
 
     reconstruction = {}
     track_graph = {}
@@ -104,7 +116,6 @@ def import_bundler(data_path, bundle_file, list_file, track_file, reconstruction
     offset += 1
 
     # cameras
-    if ordered_shots is None: ordered_shots = np.arange(num_shot)
     for i in xrange(num_shot):
         # Creating a model for each shot for now.
         # TODO: create mdoel based on exif
@@ -113,7 +124,7 @@ def import_bundler(data_path, bundle_file, list_file, track_file, reconstruction
 
         if f > 0:
             camera_name = 'camera_' + str(i)
-            im = cv2.imread(os.path.join(data_path, shot_key))
+            im = cv2.imread(os.path.join(data_path, image_list[i]))
             height, width = im.shape[0:2]
             f = float(f)/max(height, width)
             reconstruction['cameras'][camera_name] = {'focal': f, 'k1': k1, 'k2': k2, 'width': width, 'height': height}

@@ -1,4 +1,6 @@
-networkx==1.8.1
-PyYAML==3.11
+networkx
+PyYAML
 numpy
-exifread==1.4.1
+exifread
+gpxpy
+pyexif2
