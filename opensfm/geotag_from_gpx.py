@@ -39,7 +39,7 @@ def utc_to_localtime(utc_time):
     return utc_time - utc_offset_timedelta
 
 
-def get_lat_lon_time(gpx_file):
+def get_lat_lon_time(gpx_file, gpx_time='utc'):
     '''
     Read location and time stamps from a track in a GPX file.
 
@@ -55,7 +55,8 @@ def get_lat_lon_time(gpx_file):
     for track in gpx.tracks:
         for segment in track.segments:
             for point in segment.points:
-                points.append( (utc_to_localtime(point.time), point.latitude, point.longitude, point.elevation) )
+                ptime = utc_to_localtime(point.time) if gpx_time=='utc' else point.time
+                points.append( (ptime, point.latitude, point.longitude, point.elevation) )
 
     # sort by time just in case
     points.sort()
