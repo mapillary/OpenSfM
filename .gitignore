@@ -1,4 +1,5 @@
 *.pyc
+*.so
 build
 xcode
 .DS_Store

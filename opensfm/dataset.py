@@ -25,50 +25,66 @@ class DataSet:
         :param data_path: Path to directory containing dataset
         """
         self.data_path = data_path
-        self.image_path_set = None
 
+        # Load configuration.
         config_file = os.path.join(self.data_path, 'config.yaml')
-
-        if os.path.exists(config_file):
-            with open(os.path.join(self.data_path, 'config.yaml')) as fin:
+        if os.path.isfile(config_file):
+            with open(config_file) as fin:
                 self.config = yaml.load(fin)
         else:
             self.config = {}
 
+        # Load list of images.
+        image_list_file = os.path.join(self.data_path, 'image_list.txt')
+        if os.path.isfile(image_list_file):
+            with open(image_list_file) as fin:
+                lines = fin.read().splitlines()
+            self.set_image_list(lines)
+        else:
+            self.set_image_path(os.path.join(self.data_path, 'images'))
+
+        # Create output folders.
         for p in [self.exif_path(),
                   self.feature_path(),
                   self.robust_matches_path()]:
             io.mkdir_p(p)
 
-    @staticmethod
-    def _is_image_file(filename):
-        return filename.split('.')[-1].lower() in {'jpg', 'jpeg', 'png', 'tif', 'tiff', 'pgm', 'pnm', 'gif'}
-
     def images(self):
         """Return list of file names of all images in this dataset"""
-        return [i for i in os.listdir(self.image_path()) if self._is_image_file(i)]
-
-    def image_path(self):
-        """Return path of images directory"""
-        if self.image_path_set is None:
-            return os.path.join(self.data_path, 'images')
-        else:
-            return self.image_path_set
-
-    def set_image_path(self, set_path):
-        """Set image sub-path (instead of 'images')"""
-        self.image_path_set = set_path
+        return self.image_list
 
     def image_file(self, image):
         """
         Return path of image with given name
         :param image: Image file name (**with extension**)
         """
-        return os.path.join(self.image_path(), image)
+        return self.image_files[image]
 
     def image_as_array(self, image):
         """Return image pixels as 3-dimensional OpenCV matrix (R G B order)"""
         return cv2.imread(self.image_file(image))[:,:,::-1]  # Turn BGR to RGB
+
+    @staticmethod
+    def _is_image_file(filename):
+        return filename.split('.')[-1].lower() in {'jpg', 'jpeg', 'png', 'tif', 'tiff', 'pgm', 'pnm', 'gif'}
+
+    def set_image_path(self, path):
+        """Set image path and find the all images in there"""
+        self.image_list = []
+        self.image_files = {}
+        for name in os.listdir(path):
+            if self._is_image_file(name):
+                self.image_list.append(name)
+                self.image_files[name] = os.path.join(path, name)
+
+    def set_image_list(self, image_list):
+            self.image_list = []
+            self.image_files = {}
+            for line in image_list:
+                path = os.path.join(self.data_path, line)
+                name = os.path.basename(path)
+                self.image_list.append(name)
+                self.image_files[name] = path
 
     def exif_path(self):
         """Return path of extracted exif directory"""
