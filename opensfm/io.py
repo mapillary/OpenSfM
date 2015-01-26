@@ -169,11 +169,11 @@ def import_bundler(data_path, bundle_file, list_file, track_file, reconstruction
             shot_key = ordered_shots[int(view_list[4*k])]
             camera_name = reconstruction['shots'][shot_key]['camera']
             scale = max(reconstruction['cameras'][camera_name]['width'], reconstruction['cameras'][camera_name]['height'])
-            v = ' '.join([ view_list[4*k],
+            v = '\t'.join([ shot_key,
                      str(i),
                   view_list[4*k + 1],
                   str(float(view_list[4*k + 2])/scale),
-                  str(float(view_list[4*k + 3])/scale)
+                  str(-float(view_list[4*k + 3])/scale)
                 ])
             track_lines.append(v)
         offset += 3

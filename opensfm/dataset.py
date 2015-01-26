@@ -72,10 +72,11 @@ class DataSet:
         """Set image path and find the all images in there"""
         self.image_list = []
         self.image_files = {}
-        for name in os.listdir(path):
-            if self._is_image_file(name):
-                self.image_list.append(name)
-                self.image_files[name] = os.path.join(path, name)
+        if os.path.exists(path):
+            for name in os.listdir(path):
+                if self._is_image_file(name):
+                    self.image_list.append(name)
+                    self.image_files[name] = os.path.join(path, name)
 
     def set_image_list(self, image_list):
             self.image_list = []
