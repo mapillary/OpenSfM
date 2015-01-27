@@ -369,6 +369,19 @@ var JourneyWrapper = (function ($) {
     }
 
     /**
+     * Stops a journey.
+     */
+    JourneyWrapper.prototype.stop = function () {
+        if (this.initialized !== true){
+            return;
+        }
+
+        if (this.journey.isStarted() === true) {
+            this.journey.stop();
+        }
+    }
+
+    /**
      * Toggles the journey state between started and stopped.
      */
     JourneyWrapper.prototype.toggleJourney = function () {
