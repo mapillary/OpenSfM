@@ -50,7 +50,7 @@ def create_optical_center_graph(reconstructions):
     shot_ids = []
 
     for reconstruction in reconstructions:
-        for shot_id in sorted(reconstruction['shots'].keys()):
+        for shot_id in reconstruction['shots'].keys():
             shot = reconstruction['shots'][shot_id]
             optical_centers.append(optical_center(shot))
             viewing_directions.append(viewing_direction(shot))
