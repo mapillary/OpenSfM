@@ -267,3 +267,92 @@ var GraphHelper = (function () {
 
     return GraphHelper;
 })();
+
+var JourneyHelper = (function () {
+
+    function JourneyHelper() {
+        this.initialized = false;
+        this.graphHelper = undefined;
+        this.destination = undefined;
+    }
+
+    var move = function (shot_id) {
+        var camera = undefined;
+        for (var i = 0; i < camera_lines.length; ++i) {
+            if (camera_lines[i].shot_id === shot_id) {
+                camera = camera_lines[i];
+            }
+        }
+
+        if (camera === undefined) {
+            return;
+        }
+
+        setImagePlaneCamera(camera);
+        navigateToShot(camera);
+    }
+
+    var getInterval = function() {
+        var interval = undefined;
+        if (controls.animationSpeed === 0) {
+            interval = 3 * 1000;
+        }
+        else {
+            interval = 1000 * (3 - 10 * (controls.animationSpeed));
+        }
+
+        return interval;
+     }
+
+    JourneyHelper.prototype.initialize = function() {
+        if ('graph' in urlParams && 'dest' in urlParams) {
+
+            this.destination = urlParams.dest;
+            var _this = this;
+
+            jQuery.getJSON(urlParams.graph, function(data) {
+
+                _this.graphHelper =
+                    new GraphHelper(
+                        data,
+                        move,
+                        setMovingMode,
+                        getInterval(),
+                        true);
+
+                _this.initialized = true;
+                $('#journeyButton').show();
+
+                if ('img' in urlParams && selectedCamera !== undefined) {
+                    _this.toggleJourney();
+                }
+            });
+        }
+    }
+
+    JourneyHelper.prototype.toggleJourney = function() {
+
+        if (this.initialized !== true){
+            return;
+        }
+
+        if (this.graphHelper.getIsStarted() === true) {
+            this.graphHelper.stopJourney();
+            $('#journeyButton').html('Go');
+            return;
+        }
+
+        if (selectedCamera === undefined) {
+            return;
+        }
+
+        this.graphHelper.setIntervalTime(getInterval());
+        this.graphHelper.startJourney(selectedCamera.shot_id, this.destination);
+        $('#journeyButton').html('||');
+    }
+
+    return JourneyHelper;
+})();
+
+var journeyHelper = new JourneyHelper();
+
