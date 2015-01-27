@@ -280,7 +280,6 @@ var Journey = (function () {
 
 var JourneyWrapper = (function ($) {
 
-
     /**
      * A journey wrapper.
      * @constructor
