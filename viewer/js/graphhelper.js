@@ -110,11 +110,12 @@ var GraphHelper = (function () {
      * A graph helper.
      * @constructor
      */
-    function GraphHelper(data, navigationAction, initialAction, intervalTime, usePenalty) {
-        this.graphs = data;
-        this.navigationAction = navigationAction;
-        this.initialAction = initialAction;
+    function GraphHelper(graphs, intervalTime, navigationAction, startAction, stopAction, usePenalty) {
+        this.graphs = graphs;
         this.intervalTime = intervalTime;
+        this.navigationAction = navigationAction;
+        this.startAction = startAction;
+        this.stopAction = stopAction;
         this.usePenalty = usePenalty;
         this.timeoutToken = undefined;
         this.path = undefined;
@@ -242,7 +243,7 @@ var GraphHelper = (function () {
 
         this.started = true;
         this.currentIndex = 0;
-        this.initialAction('walk');
+        this.startAction();
         this.navigationAction(this.path[this.currentIndex])
 
         var _this = this;
@@ -262,13 +263,15 @@ var GraphHelper = (function () {
         this.currentIndex = 0;
         this.path = undefined;
 
+        this.stopAction();
+
         this.started = false;
     }
 
     return GraphHelper;
 })();
 
-var JourneyHelper = (function () {
+var JourneyHelper = (function ($) {
 
     function JourneyHelper() {
         this.initialized = false;
@@ -276,7 +279,19 @@ var JourneyHelper = (function () {
         this.destination = undefined;
     }
 
-    var move = function (shot_id) {
+    var getInterval = function () {
+        var interval = undefined;
+        if (controls.animationSpeed === 0) {
+            interval = 3 * 1000;
+        }
+        else {
+            interval = 1000 * (3 - 10 * (controls.animationSpeed));
+        }
+
+        return interval;
+    }
+
+    var navigation = function (shot_id) {
         var camera = undefined;
         for (var i = 0; i < camera_lines.length; ++i) {
             if (camera_lines[i].shot_id === shot_id) {
@@ -292,19 +307,16 @@ var JourneyHelper = (function () {
         navigateToShot(camera);
     }
 
-    var getInterval = function() {
-        var interval = undefined;
-        if (controls.animationSpeed === 0) {
-            interval = 3 * 1000;
-        }
-        else {
-            interval = 1000 * (3 - 10 * (controls.animationSpeed));
-        }
+    var start = function () {
+        setMovingMode('walk');
+        $('#journeyButton').html('X');
+    }
 
-        return interval;
-     }
+    var stop = function () {
+        $('#journeyButton').html('Go');
+    }
 
-    JourneyHelper.prototype.initialize = function() {
+    JourneyHelper.prototype.initialize = function () {
         if ('graph' in urlParams && 'dest' in urlParams) {
 
             this.destination = urlParams.dest;
@@ -315,9 +327,10 @@ var JourneyHelper = (function () {
                 _this.graphHelper =
                     new GraphHelper(
                         data,
-                        move,
-                        setMovingMode,
                         getInterval(),
+                        navigation,
+                        start,
+                        stop,
                         true);
 
                 _this.initialized = true;
@@ -330,15 +343,22 @@ var JourneyHelper = (function () {
         }
     }
 
-    JourneyHelper.prototype.toggleJourney = function() {
+    JourneyHelper.prototype.updateInterval = function () {
+        if (this.initialized !== true){
+            return;
+        }
 
+        var interval = getInterval();
+        this.graphHelper.setIntervalTime(interval);
+    }
+
+    JourneyHelper.prototype.toggleJourney = function () {
         if (this.initialized !== true){
             return;
         }
 
         if (this.graphHelper.getIsStarted() === true) {
             this.graphHelper.stopJourney();
-            $('#journeyButton').html('Go');
             return;
         }
 
@@ -348,11 +368,10 @@ var JourneyHelper = (function () {
 
         this.graphHelper.setIntervalTime(getInterval());
         this.graphHelper.startJourney(selectedCamera.shot_id, this.destination);
-        $('#journeyButton').html('||');
     }
 
     return JourneyHelper;
-})();
+})(jQuery);
 
 var journeyHelper = new JourneyHelper();
 
