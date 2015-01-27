@@ -107,8 +107,14 @@ var Dijkstra = (function () {
 var Journey = (function () {
 
     /**
-     * A graph helper.
+     * A journey.
      * @constructor
+     * @param {String} graphs A list of graphs.
+     * @param {String} intervalTime The maximum time between navigation.
+     * @param {String} navigationAction The action to execute on navigation.
+     * @param {String} startAction The action to run when starting a journey.
+     * @param {String} stopAction The action to run when stopping a journey.
+     * @param {String} usePenalty Boolean indicating if a penalty should be used.
      */
     function Journey(graphs, intervalTime, navigationAction, startAction, stopAction, usePenalty) {
         this.graphs = graphs;
@@ -180,6 +186,7 @@ var Journey = (function () {
 
     /**
      * Sets the interval time.
+     * @param {Integer} intervalTime
      */
     Journey.prototype.updateInterval = function (intervalTime) {
         this.intervalTime = intervalTime;
@@ -273,6 +280,11 @@ var Journey = (function () {
 
 var JourneyWrapper = (function ($) {
 
+
+    /**
+     * A journey wrapper.
+     * @constructor
+     */
     function JourneyWrapper() {
         this.initialized = false;
         this.journey = undefined;
@@ -316,6 +328,9 @@ var JourneyWrapper = (function ($) {
         $('#journeyButton').html('Go');
     }
 
+    /**
+     * Initializes a journey wrapper.
+     */
     JourneyWrapper.prototype.initialize = function () {
         if ('graph' in urlParams && 'dest' in urlParams) {
 
@@ -343,6 +358,9 @@ var JourneyWrapper = (function ($) {
         }
     }
 
+    /**
+     * Updates the interval.
+     */
     JourneyWrapper.prototype.updateInterval = function () {
         if (this.initialized !== true){
             return;
@@ -351,6 +369,9 @@ var JourneyWrapper = (function ($) {
         this.journey.updateInterval(getInterval());
     }
 
+    /**
+     * Toggles the journey state between started and stopped.
+     */
     JourneyWrapper.prototype.toggleJourney = function () {
         if (this.initialized !== true){
             return;
