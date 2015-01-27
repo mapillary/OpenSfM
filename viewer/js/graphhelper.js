@@ -104,13 +104,13 @@ var Dijkstra = (function () {
     return Dijkstra;
 })();
 
-var GraphHelper = (function () {
+var Journey = (function () {
 
     /**
      * A graph helper.
      * @constructor
      */
-    function GraphHelper(graphs, intervalTime, navigationAction, startAction, stopAction, usePenalty) {
+    function Journey(graphs, intervalTime, navigationAction, startAction, stopAction, usePenalty) {
         this.graphs = graphs;
         this.intervalTime = intervalTime;
         this.navigationAction = navigationAction;
@@ -129,14 +129,14 @@ var GraphHelper = (function () {
         self.currentIndex++;
 
         if (self.started !== true || self.currentIndex >= pathLength) {
-            self.stopJourney();
+            self.stop();
             return;
         }
 
         self.navigationAction(self.path[self.currentIndex]);
 
         if (self.currentIndex === pathLength - 1) {
-            self.stopJourney();
+            self.stop();
             return;
         }
 
@@ -181,7 +181,7 @@ var GraphHelper = (function () {
     /**
      * Sets the interval time.
      */
-    GraphHelper.prototype.setIntervalTime = function (intervalTime) {
+    Journey.prototype.updateInterval = function (intervalTime) {
         this.intervalTime = intervalTime;
     }
 
@@ -189,7 +189,7 @@ var GraphHelper = (function () {
      * Gets a value indicating whether a journey is ongoing.
      * @return {Boolean} A value indicating whether a journey is ongoing.
      */
-    GraphHelper.prototype.getIsStarted = function() {
+    Journey.prototype.isStarted = function() {
         return this.started;
     }
 
@@ -199,7 +199,7 @@ var GraphHelper = (function () {
      * @param {String} to
      * @return {Array} An array of node names corresponding to the path
      */
-    GraphHelper.prototype.shortestPath = function (from, to) {
+    Journey.prototype.shortestPath = function (from, to) {
         var journeyGraph = undefined;
         for (var k in this.graphs) {
             if (Object.prototype.hasOwnProperty.call(this.graphs, k)) {
@@ -231,7 +231,7 @@ var GraphHelper = (function () {
      * @param {Number} from
      * @param {Number} to
      */
-    GraphHelper.prototype.startJourney = function (from, to) {
+    Journey.prototype.start = function (from, to) {
         if (this.started === true) {
             return;
         }
@@ -253,7 +253,7 @@ var GraphHelper = (function () {
     /**
      * Stops an ongoing journey between two nodes in a graph.
      */
-    GraphHelper.prototype.stopJourney = function () {
+    Journey.prototype.stop = function () {
         if (this.timeoutToken === undefined) {
             return;
         }
@@ -268,14 +268,14 @@ var GraphHelper = (function () {
         this.started = false;
     }
 
-    return GraphHelper;
+    return Journey;
 })();
 
-var JourneyHelper = (function ($) {
+var JourneyWrapper = (function ($) {
 
-    function JourneyHelper() {
+    function JourneyWrapper() {
         this.initialized = false;
-        this.graphHelper = undefined;
+        this.journey = undefined;
         this.destination = undefined;
     }
 
@@ -285,7 +285,7 @@ var JourneyHelper = (function ($) {
             interval = 3 * 1000;
         }
         else {
-            interval = 1000 * (3 - 10 * (controls.animationSpeed));
+            interval = (3 - 10 * (controls.animationSpeed)) * 1000;
         }
 
         return interval;
@@ -316,7 +316,7 @@ var JourneyHelper = (function ($) {
         $('#journeyButton').html('Go');
     }
 
-    JourneyHelper.prototype.initialize = function () {
+    JourneyWrapper.prototype.initialize = function () {
         if ('graph' in urlParams && 'dest' in urlParams) {
 
             this.destination = urlParams.dest;
@@ -324,8 +324,8 @@ var JourneyHelper = (function ($) {
 
             jQuery.getJSON(urlParams.graph, function(data) {
 
-                _this.graphHelper =
-                    new GraphHelper(
+                _this.journey =
+                    new Journey(
                         data,
                         getInterval(),
                         navigation,
@@ -343,22 +343,21 @@ var JourneyHelper = (function ($) {
         }
     }
 
-    JourneyHelper.prototype.updateInterval = function () {
+    JourneyWrapper.prototype.updateInterval = function () {
         if (this.initialized !== true){
             return;
         }
 
-        var interval = getInterval();
-        this.graphHelper.setIntervalTime(interval);
+        this.journey.updateInterval(getInterval());
     }
 
-    JourneyHelper.prototype.toggleJourney = function () {
+    JourneyWrapper.prototype.toggleJourney = function () {
         if (this.initialized !== true){
             return;
         }
 
-        if (this.graphHelper.getIsStarted() === true) {
-            this.graphHelper.stopJourney();
+        if (this.journey.isStarted() === true) {
+            this.journey.stop();
             return;
         }
 
@@ -366,12 +365,12 @@ var JourneyHelper = (function ($) {
             return;
         }
 
-        this.graphHelper.setIntervalTime(getInterval());
-        this.graphHelper.startJourney(selectedCamera.shot_id, this.destination);
+        this.journey.updateInterval(getInterval());
+        this.journey.start(selectedCamera.shot_id, this.destination);
     }
 
-    return JourneyHelper;
+    return JourneyWrapper;
 })(jQuery);
 
-var journeyHelper = new JourneyHelper();
+var journeyWrapper = new JourneyWrapper();
 
