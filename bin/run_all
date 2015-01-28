@@ -2,8 +2,9 @@
 
 set -e
 
-bin/focal_from_exif $1
-bin/detect_features $1
-bin/match_features $1
-bin/create_tracks $1
-bin/reconstruct $1
+DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+$DIR/focal_from_exif $1
+$DIR/detect_features $1
+$DIR/match_features $1
+$DIR/create_tracks $1
+$DIR/reconstruct $1
