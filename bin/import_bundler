@@ -17,25 +17,21 @@ if __name__ == "__main__":
     parser.add_argument('--bundleout', help='the bundle.out file')
     args = parser.parse_args()
 
-    # Assume that bundle.out, list.txt and all the images are in datapath
-    data_path = args.dataset
-
-    # converting reconstruction from bundler to OpenSfM reconstruction
     if args.list:
         list_file = args.list
     else:
-        list_file = os.path.join(data_path, 'list.txt')
-    if args.bundleout:
-        bundle_file = args.bundleout
-    else:
-        bundle_file = os.path.join(data_path, 'bundle.out')
-    if os.path.exists(bundle_file) and os.path.exists(list_file):
+        list_file = 'list.txt'
+
+    if not args.bundleout:
+        print "No bundle.out given.  Importing only the list of images list.txt."
+
+    if os.path.exists(list_file):
         print 'Converting output from Bundler to OpenSfM'
-        data = dataset.DataSet(data_path)
+        data = dataset.DataSet(args.dataset)
         tracks_file = data.tracks_file()
         reconstruction_file = data.reconstruction_file()
-        io.import_bundler(data_path, bundle_file, list_file, tracks_file, reconstruction_file)
+        io.import_bundler(args.dataset, args.bundleout, list_file, tracks_file, reconstruction_file)
     else:
-        print 'Cannot find list.txt or bundle.out.'
+        print 'Cannot find list.txt'
 
 

@@ -99,8 +99,9 @@ def import_bundler(data_path, bundle_file, list_file, track_file, reconstruction
     with open(os.path.join(data_path, 'image_list.txt'), 'w') as fout:
         fout.write('\n'.join(image_list) + '\n')
 
-    reconstruction = {}
-    track_graph = {}
+    # Check for bundle_file
+    if not bundle_file or not os.path.isfile(bundle_file):
+        return None
 
     with open(bundle_file, 'rb') as fin:
         lines = fin.readlines()
@@ -108,12 +109,14 @@ def import_bundler(data_path, bundle_file, list_file, track_file, reconstruction
 
     # header
     num_shot, num_point = map(int, lines[offset].split(' '))
+    offset += 1
 
     # initialization
+    reconstruction = {}
     reconstruction['cameras'] = {}
     reconstruction['shots'] = {}
     reconstruction['points'] = {}
-    offset += 1
+    track_graph = {}
 
     # cameras
     for i in xrange(num_shot):
