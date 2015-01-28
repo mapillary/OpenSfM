@@ -234,7 +234,7 @@ def two_view_reconstruction(p1, p2, d1, d2, config):
         s += ' '.join(str(i) for i in l) + '\n'
 
     params = [context.TWO_VIEW_RECONSTRUCTION,
-              '-threshold', str(config['five_point_algo_threshold']),
+              '-threshold', str(config.get('five_point_algo_threshold', 0.006)),
               '-focal1', d1['focal_ratio'],
               '-focal2', d2['focal_ratio']]
     params = map(str, params)

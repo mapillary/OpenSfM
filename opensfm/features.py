@@ -81,14 +81,14 @@ def extract_features_sift(imagefile, config):
 
     detector = cv2.FeatureDetector_create('SIFT')
     descriptor = cv2.DescriptorExtractor_create('SIFT')
-    detector.setDouble('edgeThreshold', config['sift_edge_threshold'])
-    sift_peak_threshold = float(config['sift_peak_threshold'])
+    detector.setDouble('edgeThreshold', config.get('sift_edge_threshold', 10))
+    sift_peak_threshold = float(config.get('sift_peak_threshold', 0.01))
     while True:
         print 'Computing sift with threshold {0}'.format(sift_peak_threshold)
         detector.setDouble("contrastThreshold", sift_peak_threshold)
         points = detector.detect(image)
         print 'Found {0} points'.format(len(points))
-        if len(points) < config['feature_min_frames'] and sift_peak_threshold > 0.0001:
+        if len(points) < config.get('feature_min_frames', 0) and sift_peak_threshold > 0.0001:
             sift_peak_threshold = (sift_peak_threshold * 2) / 3
             print 'reducing threshold'
         else:
@@ -116,7 +116,7 @@ def extract_features_surf(imagefile, config):
         detector.setDouble("hessianThreshold", surf_hessian_threshold) #default: 0.04
         points = detector.detect(image)
         print 'Found {0} points in {1}s'.format( len(points), time.time()-t )
-        if len(points) < config['feature_min_frames'] and surf_hessian_threshold > 0.0001:
+        if len(points) < config.get('feature_min_frames', 0) and surf_hessian_threshold > 0.0001:
             surf_hessian_threshold = (surf_hessian_threshold * 2) / 3
             print 'reducing threshold'
         else:
@@ -139,7 +139,7 @@ def extract_features_akaze(imagefile, config):
         points, desc = akaze_feature(imagefile, config)
 
         print 'Found {0} points in {1}s'.format( len(points), time.time()-t )
-        if len(points) < config['feature_min_frames'] and threshold > 0.00001:
+        if len(points) < config.get('feature_min_frames', 0) and threshold > 0.00001:
             threshold = (threshold * 2) / 3
             print 'reducing threshold'
         else:
@@ -245,8 +245,8 @@ def build_flann_index(features, index_file, config):
         FLANN_INDEX_METHOD = FLANN_INDEX_LSH
 
     flann_params = dict(algorithm=FLANN_INDEX_METHOD,
-                        branching=config['flann_branching'],
-                        iterations=config['flann_iterations'])
+                        branching=config.get('flann_branching', 16),
+                        iterations=config.get('flann_iterations', 20))
     index = cv2.flann_Index(features, flann_params)
     index.save(index_file)
     return index
@@ -258,7 +258,7 @@ def load_flann_index(features, index_file):
     return index
 
 def match_lowe(index, f2, config):
-    search_params = dict(checks=config['flann_checks'])
+    search_params = dict(checks=config.get('flann_checks', 200))
     results, dists = index.knnSearch(f2, 2, params=search_params)
     good = dists[:, 0] < config.get('lowes_ratio', 0.6) * dists[:, 1]
     matches = zip(results[good, 0], good.nonzero()[0])
@@ -316,7 +316,7 @@ def robust_match(p1, p2, matches, config):
     p1 = p1[matches[:, 0]][:, :2].copy()
     p2 = p2[matches[:, 1]][:, :2].copy()
 
-    F, mask = cv2.findFundamentalMat(p1, p2, cv2.cv.CV_FM_RANSAC, config['robust_matching_threshold'], 0.99)
+    F, mask = cv2.findFundamentalMat(p1, p2, cv2.cv.CV_FM_RANSAC, config.get('robust_matching_threshold', 0.006), 0.99)
     inliers = mask.ravel().nonzero()
 
     return matches[inliers]

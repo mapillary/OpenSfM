@@ -101,7 +101,7 @@ if __name__ == "__main__":
             exifs[image] = {}
 
     start = time.time()
-    p = Pool(data.config['processes'])
+    p = Pool(data.config.get('processes',1))
     p.map(match, image_pairs(images))
     end = time.time()
     with open(data.profile_log(), 'a') as fout:
