@@ -54,7 +54,7 @@ for reconstruction in reconstructions:
     # reference = data.invent_reference_lla(list(reconstruction['shots'].keys()))
     rc.register_reconstruction_with_gps(reconstruction, reference)
 
-with open(data.reconstruction_file()+'.aligned', 'wb') as fout:
+with open(data.reconstruction_file(), 'wb') as fout:
     fout.write(json.dumps(reconstructions, indent=4))
 
 
