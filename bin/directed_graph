@@ -36,12 +36,29 @@ def vector2_angle(x1, y1, x2, y2):
     else:
         return angle
 
-def angle_diff(v, angle):
-    diff = np.abs(v - angle)
+def angle_diff(a1, a2):
+    diff = np.abs(a1 - a2)
 
-    # Make sure the angle difference is less than Pi
+    # Ensure that the angle difference is less than Pi
     diff = np.min(np.vstack((diff, 2*np.pi - diff)), 0)
     return diff
+
+def get_direction_turns_and_motion_angles(min_distance, max_distance, distances, position, direction, positions, directions):
+
+    # Order positions within interval according to shortest distance
+    position_indices = np.where((min_distance < distances) & (distances < max_distance))[0]
+    ordered_indices = position_indices[np.argsort(distances[position_indices])]
+
+    motions = positions[ordered_indices] - position
+    motion_angles = np.array(
+        [vector2_angle(direction[0], direction[1], motion[0], motion[1]) for motion in motions],
+        float)
+    direction_turns = np.array(
+        [vector2_angle(direction[0], direction[1], other_direction[0], other_direction[1])
+         for other_direction in directions[ordered_indices]],
+        float)
+
+    return ordered_indices, direction_turns, motion_angles
 
 def create_optical_center_graph(reconstructions):
 
@@ -62,24 +79,28 @@ def create_optical_center_graph(reconstructions):
     D = dist.squareform(dist.pdist(optical_centers))
 
     min_distance = 0.01
-    max_distance = 20
-    step_threshold = 0.25
-    turn_threshold = 0.7
+    step_max_distance = 20
+    step_viewing_threshold = 0.25
+    step_drift_threshold = 0.5
+
+    turn_max_distance = 15
+    turn_viewing_threshold = 0.7
 
     direction = 'direction'
-    threshold = 'threshold'
+    viewing = 'viewing'
+    drift = 'drift'
 
-    step_directions = {
-        'step_forward': {direction: 0, threshold: step_threshold},
-        'step_backward': {direction: np.pi, threshold: 2*step_threshold},
-        'step_left': {direction: -np.pi / 2, threshold: 2*step_threshold},
-        'step_right': {direction: np.pi / 2, threshold: 2*step_threshold}
+    steps = {
+        'step_forward': {direction: 0, viewing: step_viewing_threshold, drift: step_drift_threshold},
+        'step_backward': {direction: np.pi, viewing: 2 * step_viewing_threshold, drift: step_drift_threshold},
+        'step_left': {direction: -np.pi / 2, viewing: 2 * step_viewing_threshold, drift: step_drift_threshold},
+        'step_right': {direction: np.pi / 2, viewing: 2 * step_viewing_threshold, drift: step_drift_threshold}
     }
 
-    turn_directions = {
-        'turn_left': {direction: -np.pi / 2, threshold: turn_threshold},
-        'turn_right': {direction: np.pi / 2, threshold: turn_threshold},
-        'turn_u': {direction: np.pi, threshold: turn_threshold}
+    turns = {
+        'turn_left': {direction: -np.pi / 2, viewing: turn_viewing_threshold},
+        'turn_right': {direction: np.pi / 2, viewing: turn_viewing_threshold},
+        'turn_u': {direction: np.pi, viewing: turn_viewing_threshold}
     }
 
     graph = nx.DiGraph()
@@ -90,28 +111,29 @@ def create_optical_center_graph(reconstructions):
         oc = optical_centers[i]
         vd = viewing_directions[i]
 
-        # Order potential optical centers according to shortest distance
-        potential = np.where((min_distance < distances) & (distances < max_distance))[0]
-        ordered_indices = potential[np.argsort(distances[potential])]
-        motions = optical_centers[ordered_indices] - oc
-        viewings = viewing_directions[ordered_indices]
+        ordered_indices, viewing_turns, motion_angles = get_direction_turns_and_motion_angles(
+            min_distance, step_max_distance, distances, oc, vd, optical_centers, viewing_directions
+        )
 
-        motion_angles = np.array([vector2_angle(vd[0], vd[1], motion[0], motion[1]) for motion in motions], float)
-        viewing_angle_differences = np.array([vector2_angle(vd[0], vd[1], viewing[0], viewing[1]) for viewing in viewings], float)
+        for key in steps:
+            step = steps[key]
+            motion_drift = angle_diff(motion_angles, step[direction])
+            motion_drift = np.max(np.abs(np.vstack((motion_drift - viewing_turns, viewing_turns))), 0)
 
-        for key in step_directions:
-            step_direction = step_directions[key]
-            ma_diff = angle_diff(motion_angles, step_direction[direction])
-            step_indices = np.where((ma_diff < step_direction[threshold]) & (np.abs(viewing_angle_differences) < step_direction[threshold]))[0]
+            step_indices = np.where((motion_drift < step[drift]) & (np.abs(viewing_turns) < step[viewing]))[0]
 
             if len(step_indices) > 0:
                 step_index = ordered_indices[step_indices[0]]
                 graph.add_edge(shot_ids[i], shot_ids[step_index], weight=distances[step_index], direction=key)
 
-        for key in turn_directions:
-            turn_direction = turn_directions[key]
-            va_diff = angle_diff(viewing_angle_differences, turn_direction[direction])
-            turn_indices = np.where((va_diff < turn_direction[threshold]))[0]
+        ordered_indices, viewing_turns, motion_angles = get_direction_turns_and_motion_angles(
+            min_distance, turn_max_distance, distances, oc, vd, optical_centers, viewing_directions
+        )
+
+        for key in turns:
+            turn = turns[key]
+            viewing_diff = angle_diff(viewing_turns, turn[direction])
+            turn_indices = np.where((viewing_diff < turn[viewing]))[0]
 
             if len(turn_indices) > 0:
                 turn_index = ordered_indices[turn_indices[0]]
