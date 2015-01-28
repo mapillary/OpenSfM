@@ -15,7 +15,6 @@ if __name__ == "__main__":
     parser.add_argument('dataset', help='path to the dataset to be processed')
     parser.add_argument('--list', help='the list.txt file')
     parser.add_argument('--bundleout', help='the bundle.out file')
-    parser.add_argument('--images', help='the path to images')
     args = parser.parse_args()
 
     # Assume that bundle.out, list.txt and all the images are in datapath
@@ -33,8 +32,6 @@ if __name__ == "__main__":
     if os.path.exists(bundle_file) and os.path.exists(list_file):
         print 'Converting output from Bundler to OpenSfM'
         data = dataset.DataSet(data_path)
-        if args.image:
-            data.set_image_path(args.image)
         tracks_file = data.tracks_file()
         reconstruction_file = data.reconstruction_file()
         io.import_bundler(data_path, bundle_file, list_file, tracks_file, reconstruction_file)
