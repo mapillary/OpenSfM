@@ -6,28 +6,28 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 import argparse
 import time
 import json
-import cv2
 import numpy as np
 import scipy.spatial.distance as dist
 import networkx as nx
 
-from opensfm import dataset
+from opensfm import dataset, reconstruction
+
 
 def load_reconstructions(data):
     with open(data.reconstruction_file()) as fin:
         return json.load(fin)
 
-def optical_center(shot):
-    R = cv2.Rodrigues(np.array(shot['rotation'], dtype=float))[0]
-    t = shot['translation']
-    return -R.T.dot(t)
-
-def viewing_direction(shot):
-    R = cv2.Rodrigues(np.array(shot['rotation'], dtype=float))[0]
-    t = np.array([0, 0, 1])
-    return R.T.dot(t)
 
 def vector2_angle(x1, y1, x2, y2):
+    """ Calculates the angle between two vectors on the plane.
+
+    :param x1: The x coordinate for the first vector
+    :param y1: The y coordinate for the first vector
+    :param x2: The x coordinate for the second vector
+    :param y2: The y coordinate for the second vector
+    :return: The angle between the vectors
+    """
+
     angle = np.arctan2(y1, x1) - np.arctan2(y2, x2)
     if angle > np.pi:
         return angle - 2 * np.pi
@@ -36,12 +36,20 @@ def vector2_angle(x1, y1, x2, y2):
     else:
         return angle
 
+
 def angle_diff(a1, a2):
+    """ Calculates the difference between two angles.
+
+    :param a1: The first angle
+    :param a2: The second angle
+    :return: The absolute difference between the angles
+    """
+
     diff = np.abs(a1 - a2)
 
     # Ensure that the angle difference is less than Pi
-    diff = np.min(np.vstack((diff, 2*np.pi - diff)), 0)
-    return diff
+    return np.min(np.vstack((diff, 2*np.pi - diff)), 0)
+
 
 def get_direction_turns_and_motion_angles(min_distance, max_distance, distances, position, direction, positions, directions):
 
@@ -60,17 +68,18 @@ def get_direction_turns_and_motion_angles(min_distance, max_distance, distances,
 
     return ordered_indices, direction_turns, motion_angles
 
+
 def create_optical_center_graph(reconstructions):
 
     optical_centers = []
     viewing_directions = []
     shot_ids = []
 
-    for reconstruction in reconstructions:
-        for shot_id in reconstruction['shots'].keys():
-            shot = reconstruction['shots'][shot_id]
-            optical_centers.append(optical_center(shot))
-            viewing_directions.append(viewing_direction(shot))
+    for r in reconstructions:
+        for shot_id in r['shots'].keys():
+            shot = r['shots'][shot_id]
+            optical_centers.append(reconstruction.optical_center(shot))
+            viewing_directions.append(reconstruction.viewing_direction(shot))
             shot_ids.append(shot_id)
 
     optical_centers = np.vstack(optical_centers)
@@ -118,7 +127,7 @@ def create_optical_center_graph(reconstructions):
         for key in steps:
             step = steps[key]
             motion_drift = angle_diff(motion_angles, step[direction])
-            motion_drift = np.max(np.abs(np.vstack((motion_drift - viewing_turns, viewing_turns))), 0)
+            motion_drift = np.max(np.abs(np.vstack((motion_drift - viewing_turns, motion_drift))), 0)
 
             step_indices = np.where((motion_drift < step[drift]) & (np.abs(viewing_turns) < step[viewing]))[0]
 
@@ -140,6 +149,7 @@ def create_optical_center_graph(reconstructions):
                 graph.add_edge(shot_ids[i], shot_ids[turn_index], weight=distances[turn_index], direction=key)
 
     return graph
+
 
 if __name__ == "__main__":
     start = time.time()
