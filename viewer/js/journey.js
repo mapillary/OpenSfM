@@ -4,24 +4,24 @@ var Dijkstra = (function () {
      * A class for calculations on graphs using Dijkstra's algorithm.
      * @constructor
      */
-    function Dijkstra(graph) {
-        this.graph = graph;
+    function Dijkstra() {
     }
 
     // Private sort delegate for ordering key value pairs arranged
     // as an array of two items like [key, value].
-    var keyValueSorter = function(kv1, kv2) {
+    var keyValueSorter = function (kv1, kv2) {
         return parseFloat(kv1[1]) - parseFloat(kv2[1]);
     }
 
      /**
      * Calculate the shortest path between two nodes in a graph using
      * Dijkstra's Algorithm.
+     * @param {Object} graph
      * @param {String} source
      * @param {String} target
      * @return {Array} An array of node names corresponding to the path
      */
-    Dijkstra.prototype.shortestPath = function (source, target, weight) {
+    Dijkstra.prototype.shortestPath = function (graph, source, target, weight) {
         if (source === target) {
             return [source];
         }
@@ -60,7 +60,7 @@ var Dijkstra = (function () {
                 break;
             }
 
-            var currentEdges = this.graph.edges[currentNode] || {};
+            var currentEdges = graph.edges[currentNode] || {};
 
             for (var node in currentEdges) {
                 if (Object.prototype.hasOwnProperty.call(currentEdges, node)) {
@@ -127,10 +127,11 @@ var Journey = (function () {
         this.path = undefined;
         this.currentIndex = 0;
         this.started = false;
+        this.dijkstra = new Dijkstra();
     }
 
     // Private callback function for setInterval.
-    var onMove = function(self) {
+    var onMove = function (self) {
         var pathLength = self.path.length;
         self.currentIndex++;
 
@@ -151,33 +152,36 @@ var Journey = (function () {
 
     // Private function for creating a graph with a penalty for a certain property with
     // a certain value.
-    var getPenaltyGraph = function(graph, edgesKey, weightKey, originalWeightKey, penaltyKey, penaltyValue, penalty) {
+    var getPenaltyGraph = function (graph, edgesKey, weightKey, originalWeightKey, penaltyKey, penaltyValue, penalty) {
 
         var penaltyGraph = {};
         penaltyGraph[edgesKey] = {};
 
         for (var k in graph[edgesKey]) {
-            if (Object.prototype.hasOwnProperty.call(graph[edgesKey], k)) {
+            if (!Object.prototype.hasOwnProperty.call(graph[edgesKey], k)) {
+                continue;
+            }
 
-                penaltyGraph[edgesKey][k] = {};
-                var edges = graph[edgesKey][k];
+            penaltyGraph[edgesKey][k] = {};
+            var edges = graph[edgesKey][k];
 
-                for (var m in edges) {
-                    if (Object.prototype.hasOwnProperty.call(edges, m)) {
-                        penaltyGraph[edgesKey][k][m] = {};
-
-                        // Add penalty to weight if the value of the penalty key corresponds
-                        // to the specified penalty value.
-                        if (edges[m][penaltyKey] === penaltyValue) {
-                            penaltyGraph[edgesKey][k][m][weightKey] = edges[m][weightKey] + penalty;
-                        }
-                        else {
-                            penaltyGraph[edgesKey][k][m][weightKey] = edges[m][weightKey];
-                        }
-
-                        penaltyGraph[edgesKey][k][m][originalWeightKey] = edges[m][weightKey];
-                    }
+            for (var m in edges) {
+                if (!Object.prototype.hasOwnProperty.call(edges, m)) {
+                    continue;
                 }
+
+                penaltyGraph[edgesKey][k][m] = {};
+
+                // Add penalty to weight if the value of the penalty key corresponds
+                // to the specified penalty value.
+                if (edges[m][penaltyKey] === penaltyValue) {
+                    penaltyGraph[edgesKey][k][m][weightKey] = edges[m][weightKey] + penalty;
+                }
+                else {
+                    penaltyGraph[edgesKey][k][m][weightKey] = edges[m][weightKey];
+                }
+
+                penaltyGraph[edgesKey][k][m][originalWeightKey] = edges[m][weightKey];
             }
         }
 
@@ -196,7 +200,7 @@ var Journey = (function () {
      * Gets a value indicating whether a journey is ongoing.
      * @return {Boolean} A value indicating whether a journey is ongoing.
      */
-    Journey.prototype.isStarted = function() {
+    Journey.prototype.isStarted = function () {
         return this.started;
     }
 
@@ -227,8 +231,7 @@ var Journey = (function () {
             journeyGraph = getPenaltyGraph(journeyGraph, 'edges', 'weight', 'distance', 'direction', 'step_backward', 20);
         }
 
-        var dijkstra = new Dijkstra(journeyGraph);
-        var path = dijkstra.shortestPath(from, to, 'weight');
+        var path = this.dijkstra.shortestPath(journeyGraph, from, to, 'weight');
 
         return path;
     }
@@ -336,7 +339,7 @@ var JourneyWrapper = (function ($) {
             this.destination = urlParams.dest;
             var _this = this;
 
-            jQuery.getJSON(urlParams.graph, function(data) {
+            $.getJSON(urlParams.graph, function(data) {
 
                 _this.journey =
                     new Journey(
