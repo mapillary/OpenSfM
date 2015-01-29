@@ -158,8 +158,8 @@ var Journey = (function () {
 
         var currentInterval =
             getInterval(
-                self.graphs[self.graphIndex].edges[self.path[self.currentIndex]],
-                self.path[self.currentIndex + 1],
+                self.graphs[self.graphIndex].edges[self.path[self.currentIndex - 1]],
+                self.path[self.currentIndex],
                 self.intervalTime);
 
         self.timeoutToken = window.setTimeout(function () { onNavigation(self); }, currentInterval);
