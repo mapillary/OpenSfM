@@ -310,6 +310,7 @@ var JourneyWrapper = (function ($) {
 
     /**
      * A journey wrapper.
+     * The journey wrapper uses global objects declared in the reconstruction script.
      * @constructor
      */
     function JourneyWrapper() {
@@ -318,18 +319,21 @@ var JourneyWrapper = (function ($) {
         this.destination = undefined;
     }
 
+    // Private function for calculating the desired maximum interval.
     var getInterval = function () {
         var interval = undefined;
         if (controls.animationSpeed === 0) {
-            interval = 3 * 1000;
+            interval = 4 * 1000;
         }
         else {
-            interval = (3 - 10 * (controls.animationSpeed)) * 1000;
+            interval = (4 - 15 * (controls.animationSpeed)) * 1000;
         }
 
         return interval;
     }
 
+    // Private function for navigation action of journey. Retrieves a camera,
+    // creates its image plane and navigates to it.
     var navigation = function (shot_id) {
         var camera = undefined;
         for (var i = 0; i < camera_lines.length; ++i) {
@@ -346,11 +350,13 @@ var JourneyWrapper = (function ($) {
         navigateToShot(camera);
     }
 
+    // Private function for start action of journey.
     var start = function () {
         setMovingMode('walk');
         $('#journeyButton').html('X');
     }
 
+    // Private function for stop action of journey.
     var stop = function () {
         $('#journeyButton').html('Go');
     }
