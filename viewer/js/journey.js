@@ -125,13 +125,22 @@ var Journey = (function () {
         this.usePenalty = usePenalty;
         this.timeoutToken = undefined;
         this.path = undefined;
+        this.graphIndex = undefined;
         this.currentIndex = 0;
         this.started = false;
         this.dijkstra = new Dijkstra();
     }
 
+    // Private function for calculating the interval value.The max distance of an edge is
+    // 20. The interval is the fraction of the max distance multiplied by the current
+    // interval time. A smallest value is defined to avoid too fast navigation..
+    var getInterval = function (edges, node, intervalTime) {
+        var distance = edges[node].weight;
+        return Math.max((distance / 20) * intervalTime, 0.4 * 1000);
+    }
+
     // Private callback function for setInterval.
-    var onMove = function (self) {
+    var onNavigation = function (self) {
         var pathLength = self.path.length;
         self.currentIndex++;
 
@@ -147,41 +156,44 @@ var Journey = (function () {
             return;
         }
 
-        self.timeoutToken = window.setTimeout(function () { onMove(self); }, self.intervalTime);
+        var currentInterval =
+            getInterval(
+                self.graphs[self.graphIndex].edges[self.path[self.currentIndex]],
+                self.path[self.currentIndex + 1],
+                self.intervalTime);
+
+        self.timeoutToken = window.setTimeout(function () { onNavigation(self); }, currentInterval);
     }
 
     // Private function for creating a graph with a penalty for a certain property with
     // a certain value.
-    var getPenaltyGraph = function (graph, edgesKey, weightKey, originalWeightKey, penaltyKey, penaltyValue, penalty) {
+    var getPenaltyGraph = function (graph, weightKey, penaltyKey, penaltyValue, penalty) {
 
-        var penaltyGraph = {};
-        penaltyGraph[edgesKey] = {};
+        var penaltyGraph = { edges: {} };
 
-        for (var k in graph[edgesKey]) {
-            if (!Object.prototype.hasOwnProperty.call(graph[edgesKey], k)) {
+        for (var k in graph.edges) {
+            if (!Object.prototype.hasOwnProperty.call(graph.edges, k)) {
                 continue;
             }
 
-            penaltyGraph[edgesKey][k] = {};
-            var edges = graph[edgesKey][k];
+            penaltyGraph.edges[k] = {};
+            var edges = graph.edges[k];
 
             for (var m in edges) {
                 if (!Object.prototype.hasOwnProperty.call(edges, m)) {
                     continue;
                 }
 
-                penaltyGraph[edgesKey][k][m] = {};
+                penaltyGraph.edges[k][m] = {};
 
                 // Add penalty to weight if the value of the penalty key corresponds
                 // to the specified penalty value.
                 if (edges[m][penaltyKey] === penaltyValue) {
-                    penaltyGraph[edgesKey][k][m][weightKey] = edges[m][weightKey] + penalty;
+                    penaltyGraph.edges[k][m][weightKey] = edges[m][weightKey] + penalty;
                 }
                 else {
-                    penaltyGraph[edgesKey][k][m][weightKey] = edges[m][weightKey];
+                    penaltyGraph.edges[k][m][weightKey] = edges[m][weightKey];
                 }
-
-                penaltyGraph[edgesKey][k][m][originalWeightKey] = edges[m][weightKey];
             }
         }
 
@@ -211,29 +223,28 @@ var Journey = (function () {
      * @return {Array} An array of node names corresponding to the path
      */
     Journey.prototype.shortestPath = function (from, to) {
-        var journeyGraph = undefined;
-        for (var k in this.graphs) {
-            if (Object.prototype.hasOwnProperty.call(this.graphs, k)) {
-                // Ensure that both nodes exist in the graph.
-                if (this.graphs[k].nodes.indexOf(from) > -1 &&
-                    this.graphs[k].nodes.indexOf(to) > -1) {
-                    journeyGraph = this.graphs[k];
-                    break;
-                }
+        var index = undefined;
+        for (var i = 0; i < this.graphs.length; i++) {
+            // Ensure that both nodes exist in the graph.
+            if (this.graphs[i].nodes.indexOf(from) > -1 &&
+                this.graphs[i].nodes.indexOf(to) > -1) {
+                index = i;
+                break;
             }
         }
 
-        if (journeyGraph === undefined) {
-            return undefined;
+        if (index === undefined) {
+            return null;
         }
 
+        var journeyGraph = this.graphs[index];
         if (this.usePenalty === true) {
-            journeyGraph = getPenaltyGraph(journeyGraph, 'edges', 'weight', 'distance', 'direction', 'step_backward', 20);
+            journeyGraph = getPenaltyGraph(journeyGraph, 'weight', 'direction', 'step_backward', 20);
         }
 
         var path = this.dijkstra.shortestPath(journeyGraph, from, to, 'weight');
 
-        return path;
+        return { path: path, index: index };
     }
 
     /**
@@ -246,25 +257,33 @@ var Journey = (function () {
             return;
         }
 
-        this.path = this.shortestPath(from, to);
-        if (this.path === null) {
+        var result = this.shortestPath(from, to);
+        if (result === null || result.path.length <= 1) {
             return;
         }
 
         this.started = true;
+        this.path = result.path;
+        this.graphIndex = result.index;
         this.currentIndex = 0;
         this.startAction();
         this.navigationAction(this.path[this.currentIndex])
 
+        var currentInterval =
+            getInterval(
+                this.graphs[this.graphIndex].edges[this.path[this.currentIndex]],
+                this.path[this.currentIndex + 1],
+                this.intervalTime);
+
         var _this = this;
-        this.timeoutToken = window.setTimeout(function () { onMove(_this); }, this.intervalTime);
+        this.timeoutToken = window.setTimeout(function () { onNavigation(_this); }, currentInterval);
     }
 
     /**
      * Stops an ongoing journey between two nodes in a graph.
      */
     Journey.prototype.stop = function () {
-        if (this.timeoutToken === undefined) {
+        if (this.timeoutToken === undefined || this.started === false) {
             return;
         }
 
@@ -272,6 +291,7 @@ var Journey = (function () {
         this.timeoutToken = undefined;
         this.currentIndex = 0;
         this.path = undefined;
+        this.graphIndex = undefined;
 
         this.stopAction();
 
