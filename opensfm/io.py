@@ -9,7 +9,7 @@ import errno
 # (TODO): ensure the image order from OpenSfM is the same as Bundler
 # (TODO): ensure the coordinate systems are consistent
 
-def export_bundler(reconstructions, track_graph, bundle_file_path, list_file_path, convert_coorindate=True, normalized_coordindate=True):
+def export_bundler(image_list, reconstructions, track_graph, bundle_file_path, list_file_path):
     """
     Generate a reconstruction file that is consistent with Bundler's format
     """
@@ -19,27 +19,31 @@ def export_bundler(reconstructions, track_graph, bundle_file_path, list_file_pat
 
     for j, reconstruction in enumerate(reconstructions):
         lines = []
+        lines.append("# Bundle file v0.3")
         points = reconstruction['points']
         shots = reconstruction['shots']
         cameras = reconstruction['cameras']
         num_point = len(points)
         num_shot = len(shots)
-        shot_ids = list(shots.keys())
         lines.append(' '.join(map(str, [num_shot, num_point])))
-        shots_order = {key: i for i, key in enumerate(shot_ids)}
+        shots_order = {key: i for i, key in enumerate(image_list)}
 
         # cameras
-        for shot_id in shot_ids:
-            shot = shots[shot_id]
-            camera = cameras[shot['camera']]
-            scale = max(camera['width'], camera['height'])
-            focal = camera['focal'] if normalized_coordindate else camera['focal']*scale
-            lines.append(' '.join(map(str, [camera['focal'], camera['k1'], camera['k2']])))
-            R, t = shot['rotation'], shot['translation']
-            R = cv2.Rodrigues(np.array(R))[0]
-            if convert_coorindate:
-                R[1], R[2] = -R[1], -R[2]
+        for shot_id in image_list:
+            if shot_id in shots:
+                shot = shots[shot_id]
+                camera = cameras[shot['camera']]
+                scale = max(camera['width'], camera['height'])
+                focal = camera['focal'] * scale
+                k1 = camera['k1'] * scale**2
+                k2 = camera['k2'] * scale**4
+                lines.append(' '.join(map(str, [focal, k1, k2])))
+                R, t = shot['rotation'], shot['translation']
+                R = cv2.Rodrigues(np.array(R))[0]
+                R[1], R[2] = -R[1], -R[2]  # Reverse y and z
                 t[1], t[2] = -t[1], -t[2]
+            else:
+                R, t = np.zeros((3,3)), np.zeros(3)
 
             for i in xrange(3): lines.append(' '.join(list(map(str, R[i]))))
             t = ' '.join(map(str, t))
@@ -54,27 +58,26 @@ def export_bundler(reconstructions, track_graph, bundle_file_path, list_file_pat
             lines.append(' '.join(map(str, color)))
             view_line = [str(len(view_list))]
             for shot_key, view in view_list.iteritems():
-                if shot_key in shot_ids:
+                if shot_key in shots.keys():
                     v = view['feature']
                     shot_index = shots_order[shot_key]
-                    if normalized_coordindate:
-                        camera = shots[shot_key]['camera']
-                        scale = max(cameras[camera]['width'], cameras[camera]['height'])
-                        x = v[0]*scale
-                        y = -v[1]*scale
+                    camera = shots[shot_key]['camera']
+                    scale = max(cameras[camera]['width'], cameras[camera]['height'])
+                    x = v[0] * scale
+                    y = -v[1] * scale
                     view_line.append(' '.join(map(str, [shot_index, view['feature_id'], x, y])))
 
             lines.append(' '.join(view_line))
 
         bundle_file =os.path.join(bundle_file_path, 'bundle_r'+str(j).zfill(3)+'.out')
         with open(bundle_file, 'wb') as fout:
-            fout.writelines('\n'.join(lines))
+            fout.writelines('\n'.join(lines) + '\n')
 
         list_file =os.path.join(list_file_path, 'list_r'+str(j).zfill(3)+'.out')
         with open(list_file, 'wb') as fout:
-            fout.writelines('\n'.join(map(str, shot_ids)))
+            fout.writelines('\n'.join(map(str, image_list)))
 
-def import_bundler(data_path, bundle_file, list_file, track_file, reconstruction_file=None, convert_coorindate=True):
+def import_bundler(data_path, bundle_file, list_file, track_file, reconstruction_file=None):
     """
     Return a reconstruction dict and a track graph file (track.csv) compatible with OpenSfM from a Bundler output
     """
@@ -123,31 +126,32 @@ def import_bundler(data_path, bundle_file, list_file, track_file, reconstruction
         # Creating a model for each shot for now.
         # TODO: create mdoel based on exif
         shot_key = ordered_shots[i]
-        f, k1, k2 = map(float, lines[offset].rstrip('\n').split(' '))
+        focal, k1, k2 = map(float, lines[offset].rstrip('\n').split(' '))
 
-        if f > 0:
+        if focal > 0:
             camera_name = 'camera_' + str(i)
             im = cv2.imread(os.path.join(data_path, image_list[i]))
             height, width = im.shape[0:2]
-            f = float(f)/max(height, width)
-            reconstruction['cameras'][camera_name] = {'focal': f, 'k1': k1, 'k2': k2, 'width': width, 'height': height}
+            scale = float(max(height, width))
+            focal = focal / scale
+            k1 = k1 / scale**2
+            k2 = k2 / scale**4
+            reconstruction['cameras'][camera_name] = {'focal': focal, 'k1': k1, 'k2': k2, 'width': width, 'height': height}
 
             # Shots
             rline = []
             for k in xrange(3): rline += lines[offset+1+k].rstrip('\n').split(' ')
             R = ' '.join(rline)
             t = lines[offset+4].rstrip('\n').split(' ')
-            R = np.array(map(float, R.split()))
+            R = np.array(map(float, R.split())).reshape(3,3)
             t = np.array(map(float, t))
 
-            if convert_coorindate:
-                R[3:] = -R[3:]
-                R = cv2.Rodrigues(R.reshape(3, 3))[0].flatten(0)
-                t[1:] = -t[1:]
+            R[1], R[2] = -R[1], -R[2]  # Reverse y and z
+            t[1], t[2] = -t[1], -t[2]
 
             reconstruction['shots'][shot_key] = {
                                             'camera' : camera_name,
-                                            'rotation': list(R),
+                                            'rotation': list(cv2.Rodrigues(R)[0].flatten(0)),
                                             'translation': list(t)
                                          }
         else:
