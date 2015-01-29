@@ -40,15 +40,17 @@ def vector2_angle(x1, y1, x2, y2):
 def angle_diff(a1, a2):
     """ Calculates the difference between two angles.
 
-    :param a1: The first angle
-    :param a2: The second angle
-    :return: The absolute difference between the angles
+    :param a1: Array of angles
+    :param a2: The angle to subtract
+    :return: The difference between the angles
     """
 
-    diff = np.abs(a1 - a2)
+    angles = a1 - a2
 
-    # Ensure that the angle difference is less than Pi
-    return np.min(np.vstack((diff, 2*np.pi - diff)), 0)
+    angles[angles > np.pi] -= 2 * np.pi
+    angles[angles < -np.pi] += 2 * np.pi
+
+    return angles
 
 
 def get_direction_turns_and_motion_angles(min_distance, max_distance, distances, position, direction, positions, directions):
@@ -127,7 +129,7 @@ def create_optical_center_graph(reconstructions):
         for key in steps:
             step = steps[key]
             motion_drift = angle_diff(motion_angles, step[direction])
-            motion_drift = np.max(np.abs(np.vstack((motion_drift - viewing_turns, motion_drift))), 0)
+            motion_drift = np.max(np.vstack((np.abs(motion_drift - viewing_turns), np.abs(motion_drift))), 0)
 
             step_indices = np.where((motion_drift < step[drift]) & (np.abs(viewing_turns) < step[viewing]))[0]
 
@@ -141,7 +143,7 @@ def create_optical_center_graph(reconstructions):
 
         for key in turns:
             turn = turns[key]
-            viewing_diff = angle_diff(viewing_turns, turn[direction])
+            viewing_diff = np.abs(angle_diff(viewing_turns, turn[direction]))
             turn_indices = np.where((viewing_diff < turn[viewing]))[0]
 
             if len(turn_indices) > 0:
