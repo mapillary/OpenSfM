@@ -136,7 +136,7 @@ var Journey = (function () {
     // interval time. A smallest value is defined to avoid too fast navigation..
     var getInterval = function (edges, node, intervalTime) {
         var distance = edges[node].weight;
-        return Math.max((distance / 20) * intervalTime, 0.4 * 1000);
+        return Math.max((distance / 20) * intervalTime, 0.5 * 1000);
     }
 
     // Private callback function for setInterval.
@@ -167,7 +167,7 @@ var Journey = (function () {
 
     // Private function for creating a graph with a penalty for a certain property with
     // a certain value.
-    var getPenaltyGraph = function (graph, weightKey, penaltyKey, penaltyValue, penalty) {
+    var getPenaltyGraph = function (graph, weightKey, penaltyKey, penalties) {
 
         var penaltyGraph = { edges: {} };
 
@@ -188,8 +188,8 @@ var Journey = (function () {
 
                 // Add penalty to weight if the value of the penalty key corresponds
                 // to the specified penalty value.
-                if (edges[m][penaltyKey] === penaltyValue) {
-                    penaltyGraph.edges[k][m][weightKey] = edges[m][weightKey] + penalty;
+                if (edges[m][penaltyKey] in penalties) {
+                    penaltyGraph.edges[k][m][weightKey] = edges[m][weightKey] + penalties[edges[m][penaltyKey]];
                 }
                 else {
                     penaltyGraph.edges[k][m][weightKey] = edges[m][weightKey];
@@ -239,7 +239,12 @@ var Journey = (function () {
 
         var journeyGraph = this.graphs[index];
         if (this.usePenalty === true) {
-            journeyGraph = getPenaltyGraph(journeyGraph, 'weight', 'direction', 'step_backward', 20);
+            journeyGraph =
+                getPenaltyGraph(
+                    journeyGraph,
+                    'weight',
+                    'direction',
+                    { step_backward: 30, turn_u: 15 });
         }
 
         var path = this.dijkstra.shortestPath(journeyGraph, from, to, 'weight');
