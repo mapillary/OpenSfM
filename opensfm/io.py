@@ -35,8 +35,8 @@ def export_bundler(image_list, reconstructions, track_graph, bundle_file_path, l
                 camera = cameras[shot['camera']]
                 scale = max(camera['width'], camera['height'])
                 focal = camera['focal'] * scale
-                k1 = camera['k1'] * scale**2
-                k2 = camera['k2'] * scale**4
+                k1 = camera['k1']
+                k2 = camera['k2']
                 lines.append(' '.join(map(str, [focal, k1, k2])))
                 R, t = shot['rotation'], shot['translation']
                 R = cv2.Rodrigues(np.array(R))[0]
@@ -134,8 +134,6 @@ def import_bundler(data_path, bundle_file, list_file, track_file, reconstruction
             height, width = im.shape[0:2]
             scale = float(max(height, width))
             focal = focal / scale
-            k1 = k1 / scale**2
-            k2 = k2 / scale**4
             reconstruction['cameras'][camera_name] = {'focal': focal, 'k1': k1, 'k2': k2, 'width': width, 'height': height}
 
             # Shots
