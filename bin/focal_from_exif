@@ -48,7 +48,10 @@ for image in images:
     exif_data = exif.EXIF(data.image_file(image))
 
     # Image Height and Image Width
-    width, height = exif_data.extract_image_size()
+    if data.config.get('use_exif_size', True):
+        width, height = exif_data.extract_image_size()
+    else:
+        height, width = imread(data.image_file(image)).shape[:2]
 
     # Make and Model
     make, model = exif_data.extract_make(), exif_data.extract_model()
