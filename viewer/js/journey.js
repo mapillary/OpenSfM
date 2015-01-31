@@ -111,17 +111,19 @@ var Journey = (function () {
      * @constructor
      * @param {String} graphs A list of graphs.
      * @param {String} intervalTime The maximum time between navigation.
-     * @param {String} navigationAction The action to execute on navigation.
-     * @param {String} startAction The action to run when starting a journey.
-     * @param {String} stopAction The action to run when stopping a journey.
-     * @param {String} usePenalty Boolean indicating if a penalty should be used.
+     * @param {Function} navigationAction The action to execute on navigation.
+     * @param {Function} startAction The action to run when starting a journey.
+     * @param {Function} stopAction The action to run when stopping a journey.
+     * @param {Function} preloadAction The action to run when stopping a journey.
+     * @param {Boolean} usePenalty Value indicating if a penalty should be used.
      */
-    function Journey(graphs, intervalTime, navigationAction, startAction, stopAction, usePenalty) {
+    function Journey(graphs, intervalTime, navigationAction, startAction, stopAction, preloadAction, usePenalty) {
         this.graphs = graphs;
         this.intervalTime = intervalTime;
         this.navigationAction = navigationAction;
         this.startAction = startAction;
         this.stopAction = stopAction;
+        this.preloadAction = preloadAction;
         this.usePenalty = usePenalty;
         this.timeoutToken = undefined;
         this.path = undefined;
@@ -136,7 +138,7 @@ var Journey = (function () {
     // interval time. A smallest value is defined to avoid too fast navigation..
     var getInterval = function (edges, node, intervalTime) {
         var distance = edges[node].weight;
-        return Math.max((distance / 20) * intervalTime, 0.5 * 1000);
+        return Math.max((distance / 20) * intervalTime, 0.7 * 1000);
     }
 
     // Private callback function for setInterval.
@@ -154,6 +156,10 @@ var Journey = (function () {
         if (self.currentIndex === pathLength - 1) {
             self.stop();
             return;
+        }
+
+        if (self.currentIndex + 10 <= pathLength - 1) {
+            self.preloadAction([self.path[self.currentIndex + 10]]);
         }
 
         var currentInterval =
@@ -273,6 +279,7 @@ var Journey = (function () {
         this.currentIndex = 0;
         this.startAction();
         this.navigationAction(this.path[this.currentIndex])
+        this.preloadAction(this.path.slice(1, Math.min(10, this.path.length)))
 
         var currentInterval =
             getInterval(
@@ -350,6 +357,13 @@ var JourneyWrapper = (function ($) {
         navigateToShot(camera);
     }
 
+    var preload = function (shot_ids) {
+        for (var i = 0; i < shot_ids.length; i++) {
+            var tempImg = new Image();
+            tempImg.src = imageURL(shot_ids[i]);
+        }
+    }
+
     // Private function for start action of journey.
     var start = function () {
         setMovingMode('walk');
@@ -379,6 +393,7 @@ var JourneyWrapper = (function ($) {
                         navigation,
                         start,
                         stop,
+                        preload,
                         true);
 
                 _this.initialized = true;
