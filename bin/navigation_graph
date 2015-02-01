@@ -86,7 +86,7 @@ def get_direction_turns_and_motion_angles(min_distance, max_distance, distances,
     return ordered_indices, direction_turns, motion_angles
 
 
-def create_optical_center_graph(reconstructions):
+def create_optical_center_graph(reconstructions, config):
 
     optical_centers = []
     viewing_directions = []
@@ -104,20 +104,22 @@ def create_optical_center_graph(reconstructions):
 
     D = dist.squareform(dist.pdist(optical_centers))
 
-    min_distance = 0.01
-    step_max_distance = 20
-    step_viewing_threshold = 0.25
-    step_drift_threshold = 0.5
+    min_distance = config.get('nav_min_distance', 0.01)
 
-    turn_max_distance = 15
-    turn_viewing_threshold = 0.7
+    step_max_distance = config.get('nav_step_max_distance', 20)
+    step_forward_viewing_threshold = config.get('nav_step_forward_view_threshold', 0.25)
+    step_viewing_threshold = config.get('nav_step_view_threshold', 0.5)
+    step_drift_threshold = config.get('nav_step_drift_threshold', 0.5)
+
+    turn_max_distance = config.get('nav_turn_max_distance', 15)
+    turn_viewing_threshold = config.get('nav_turn_view_threshold', 0.7)
 
     direction = 'direction'
     viewing = 'viewing'
     drift = 'drift'
 
     steps = {
-        'step_forward': {direction: 0, viewing: step_viewing_threshold, drift: step_drift_threshold},
+        'step_forward': {direction: 0, viewing: step_forward_viewing_threshold, drift: step_drift_threshold},
         'step_backward': {direction: np.pi, viewing: 2 * step_viewing_threshold, drift: step_drift_threshold},
         'step_left': {direction: -np.pi / 2, viewing: 2 * step_viewing_threshold, drift: step_drift_threshold},
         'step_right': {direction: np.pi / 2, viewing: 2 * step_viewing_threshold, drift: step_drift_threshold}
@@ -179,7 +181,7 @@ if __name__ == "__main__":
     recs = load_reconstructions(data)
     navigation_graphs = []
 
-    rec_graph = create_optical_center_graph(recs)
+    rec_graph = create_optical_center_graph(recs, data.config)
     navigation_graph = {
         'edges': {},
         'nodes': list(rec_graph.node)
