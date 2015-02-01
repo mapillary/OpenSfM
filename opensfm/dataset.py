@@ -295,9 +295,9 @@ class DataSet:
         "Filename where to write timings."
         return os.path.join(self.data_path, 'profile.log')
 
-    def directed_graph(self):
-        "Return the path of the directed graph."
-        return os.path.join(self.data_path, 'directed_graph.json')
+    def navigation_graph(self):
+        "Return the path of the navigation graph."
+        return os.path.join(self.data_path, 'navigation_graph.json')
 
 
 

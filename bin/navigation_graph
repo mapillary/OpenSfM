@@ -155,31 +155,31 @@ def create_optical_center_graph(reconstructions):
 
 if __name__ == "__main__":
     start = time.time()
-    parser = argparse.ArgumentParser(description='Compute directed graph from reconstruction')
+    parser = argparse.ArgumentParser(description='Compute navigation graph from reconstruction')
     parser.add_argument('dataset',
                         help='path to the dataset to be processed')
     args = parser.parse_args()
 
     data = dataset.DataSet(args.dataset)
     recs = load_reconstructions(data)
-    directed_graphs = []
+    navigation_graphs = []
 
     rec_graph = create_optical_center_graph(recs)
-    directed_graph = {
+    navigation_graph = {
         'edges': {},
         'nodes': list(rec_graph.node)
     }
 
     for edge in rec_graph.edge:
-        directed_graph['edges'][edge] = rec_graph.edge[edge]
+        navigation_graph['edges'][edge] = rec_graph.edge[edge]
 
-    directed_graphs.append(directed_graph)
+    navigation_graphs.append(navigation_graph)
 
-    with open(data.directed_graph(), 'w') as fout:
-        fout.write(json.dumps(directed_graphs))
+    with open(data.navigation_graph(), 'w') as fout:
+        fout.write(json.dumps(navigation_graphs))
 
     end = time.time()
     with open(data.profile_log(), 'a') as fout:
-        fout.write('Directed graphs: {0}\n'.format(end - start))
+        fout.write('Navigation graphs: {0}\n'.format(end - start))
 
 

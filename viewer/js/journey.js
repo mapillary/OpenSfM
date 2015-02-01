@@ -379,7 +379,7 @@ var JourneyWrapper = (function ($) {
      * Initializes a journey wrapper.
      */
     JourneyWrapper.prototype.initialize = function () {
-        if ('graph' in urlParams && 'dest' in urlParams) {
+        if ('nav' in urlParams && 'dest' in urlParams) {
 
             this.destination = urlParams.dest;
             var _this = this;
