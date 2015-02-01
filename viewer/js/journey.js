@@ -357,6 +357,7 @@ var JourneyWrapper = (function ($) {
         navigateToShot(camera);
     }
 
+    // Private function for preloading images.
     var preload = function (shot_ids) {
         for (var i = 0; i < shot_ids.length; i++) {
             var tempImg = new Image();

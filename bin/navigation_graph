@@ -54,6 +54,21 @@ def angle_diff(a1, a2):
 
 
 def get_direction_turns_and_motion_angles(min_distance, max_distance, distances, position, direction, positions, directions):
+    """ Retrieves the indices for the positions within a distance from the position in the
+        interval between the minimum distance and the maximum distance.
+        Also calculates the direction change and the difference in motion with respect to the direction for
+        the retrieved positions.
+
+    :param min_distance: Float specifying the minimum distance to the position.
+    :param max_distance: Float specifying the maximum distance to the position.
+    :param distances: The distances for the other positions to the position.
+    :param position: The position.
+    :param direction: The direction for the position.
+    :param position: All positions.
+    :param directions: All directions.
+    :return: The indices of the positions in the specified interval. The direction turns in radians in the plane and the
+             motion turns in radians in the plane with respect to the direction.
+    """
 
     # Order positions within interval according to shortest distance
     position_indices = np.where((min_distance < distances) & (distances < max_distance))[0]
