@@ -24,7 +24,7 @@ def export_bundler(image_list, reconstructions, track_graph, bundle_file_path, l
         shots = reconstruction['shots']
         cameras = reconstruction['cameras']
         num_point = len(points)
-        num_shot = len(shots)
+        num_shot = len(image_list)
         lines.append(' '.join(map(str, [num_shot, num_point])))
         shots_order = {key: i for i, key in enumerate(image_list)}
 
@@ -37,17 +37,18 @@ def export_bundler(image_list, reconstructions, track_graph, bundle_file_path, l
                 focal = camera['focal'] * scale
                 k1 = camera['k1']
                 k2 = camera['k2']
-                lines.append(' '.join(map(str, [focal, k1, k2])))
                 R, t = shot['rotation'], shot['translation']
                 R = cv2.Rodrigues(np.array(R))[0]
                 R[1], R[2] = -R[1], -R[2]  # Reverse y and z
                 t[1], t[2] = -t[1], -t[2]
+                lines.append(' '.join(map(str, [focal, k1, k2])))
+                for i in xrange(3): lines.append(' '.join(list(map(str, R[i]))))
+                t = ' '.join(map(str, t))
+                lines.append(t)
             else:
-                R, t = np.zeros((3,3)), np.zeros(3)
+                for i in range(5):
+                    lines.append("0 0 0")
 
-            for i in xrange(3): lines.append(' '.join(list(map(str, R[i]))))
-            t = ' '.join(map(str, t))
-            lines.append(t)
 
         # tracks
         for point_id, point in points.iteritems():
@@ -56,7 +57,7 @@ def export_bundler(image_list, reconstructions, track_graph, bundle_file_path, l
             view_list = track_graph[point_id]
             lines.append(' '.join(map(str, coord)))
             lines.append(' '.join(map(str, color)))
-            view_line = [str(len(view_list))]
+            view_line = []
             for shot_key, view in view_list.iteritems():
                 if shot_key in shots.keys():
                     v = view['feature']
@@ -67,7 +68,7 @@ def export_bundler(image_list, reconstructions, track_graph, bundle_file_path, l
                     y = -v[1] * scale
                     view_line.append(' '.join(map(str, [shot_index, view['feature_id'], x, y])))
 
-            lines.append(' '.join(view_line))
+            lines.append(str(len(view_line)) + ' ' + ' '.join(view_line))
 
         bundle_file =os.path.join(bundle_file_path, 'bundle_r'+str(j).zfill(3)+'.out')
         with open(bundle_file, 'wb') as fout:
