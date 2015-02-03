@@ -51,7 +51,7 @@ bp::object TwoViewReconstruction(PyObject *x1_object,
 
   LOG(INFO) << "Num inliers: " << inliers.size();
 
-  if (inliers.size() < 5) exit(0);
+  if (inliers.size() < 5) return bp::object();
 
   // Compute R and t.
   Mat3 R;
@@ -62,6 +62,7 @@ bp::object TwoViewReconstruction(PyObject *x1_object,
                                        K2, x2.col(a),
                                        &R, &t);
 
+  // Convert results to numpy arrays.
   Eigen::Matrix<double, 3, 3, Eigen::RowMajor> R_row_major = R;
 
   bp::list retn;
