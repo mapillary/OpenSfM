@@ -15,7 +15,6 @@ import time
 import networkx as nx
 from networkx.algorithms import bipartite
 
-from opensfm import context
 from opensfm import transformations as tf
 from opensfm import dataset
 from opensfm import features
@@ -142,8 +141,11 @@ def bootstrap_reconstruction(data, graph, im1, im2):
     tracks, p1, p2 = dataset.common_tracks(graph, im1, im2)
     print 'Number of common tracks', len(tracks)
 
-    R, t, inliers, Xs = multiview.two_view_reconstruction(p1, p2, d1, d2, data.config)
-    if inliers:
+    f1 = d1['focal_ratio']
+    f2 = d2['focal_ratio']
+    threshold = data.config.get('five_point_algo_threshold', 0.006)
+    R, t, inliers = csfm.two_view_reconstruction(p1, p2, f1, f2, threshold)
+    if len(inliers):
         print 'Number of inliers', len(inliers)
         reconstruction = {
             "cameras": cameras,

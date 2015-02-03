@@ -7,7 +7,6 @@ import random
 import math
 import cv2
 from opensfm import transformations as tf
-from opensfm import context
 
 def nullspace(A):
     '''Compute the null space of A.
@@ -224,39 +223,6 @@ class TestLinearKernel:
 
     def evaluate(self, model):
         return self.y - model * self.x
-
-
-def two_view_reconstruction(p1, p2, d1, d2, config):
-    '''Computes a two view reconstruction from a set of matches.
-    '''
-    s = ''
-    for l in np.hstack((p1, p2)):
-        s += ' '.join(str(i) for i in l) + '\n'
-
-    params = [context.TWO_VIEW_RECONSTRUCTION,
-              '-threshold', str(config.get('five_point_algo_threshold', 0.006)),
-              '-focal1', d1['focal_ratio'],
-              '-focal2', d2['focal_ratio']]
-    params = map(str, params)
-
-    p = Popen(params, stdout=PIPE, stdin=PIPE, stderr=PIPE)
-    res = p.communicate(input=s)[0]
-    if not res:
-        return None, None, None, None
-    res = res.split(None, 9 + 3)
-    Rt_res = map(float, res[:-1])
-    inliers_res = res[-1]
-    R = np.array(Rt_res[:9]).reshape(3,3)
-    t = np.array(Rt_res[9:])
-
-    inliers = []
-    Xs = []
-    for line in inliers_res.splitlines():
-        words = line.split()
-        inliers.append(int(words[0]))
-        Xs.append(map(float, words[1:]))
-
-    return R, t, inliers, Xs
 
 
 def fit_plane(points, vectors, verticals):
