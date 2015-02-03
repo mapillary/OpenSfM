@@ -24,10 +24,8 @@ def detect(image):
         # if 'gopro' in camera['camera'].lower():
         #     camera['focal'] = camera['focal_ratio']* np.max([camera['height'], camera['width']])
         #     p_unsorted[:,0:2] = multiview.undistort_points(camera, p_unsorted[:,0:2].T).T
-        if data.feature_type() == 'akaze':
-            size = -p_unsorted[:, 2] # for AKAZE, this column is 1/(size^2)
-        else:
-            size = p_unsorted[:, 2]
+        
+        size = p_unsorted[:, 2]
         order = np.argsort(size)
         f_sorted = f_unsorted[order, :]
         p_sorted = p_unsorted[order, :]

@@ -196,7 +196,7 @@ def extract_feature(imagefile, config):
 
 
 def write_features(points, descriptors, featurefile, config={}):
-    if config.get('feature_type') == 'AKAZE' and config.get('akaze_descriptor') >= 4:
+    if config.get('feature_type') == 'AKAZE' and config.get('akaze_descriptor') in ['MLDB_UPRIGHT', 'MLDB']:
         feature_data_type = np.uint8
     else:
         feature_data_type = np.float32
