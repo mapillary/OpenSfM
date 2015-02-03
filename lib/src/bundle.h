@@ -15,27 +15,6 @@ extern "C" {
 #include "ceres/loss_function.h"
 
 
-
-// Return a newly allocated char array with the file contents.
-static bool FileContents(const char *filename, std::string *file_contents) {
-  std::ifstream file_stream;
-  file_stream.open(filename, std::ios::binary );
-
-  if (!file_stream.good()) return false;
-
-  // get length of file:
-  file_stream.seekg(0, std::ios::end);
-  int file_length = file_stream.tellg();
-  file_stream.seekg(0, std::ios::beg);
-
-  // read data as a block:
-  file_contents->resize(file_length);
-  file_stream.read(&(*file_contents)[0], file_length);
-  file_stream.close();
-
-  return true;
-}
-
 class TruncatedLoss : public ceres::LossFunction {
  public:
   explicit TruncatedLoss(double t)
