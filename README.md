@@ -8,13 +8,13 @@ Dependencies
 ------------
 * [OpenCV][]
 * [Ceres Solver][]
-* [JsonCpp][]
-* [SciPy][]
-* [NumPy][], networkx, PyYAML, exifread
+* [boost-python][]
+* [NumPy][], [SciPy][], networkx, PyYAML, exifread
 
 ### Dependencies included in source
 
  * Parts of [libmv](https://github.com/libmv/libmv).
+ * [VLFeat](http://www.vlfeat.org/).
 
 ### Installing dependencies on MacOSX
 
@@ -38,8 +38,7 @@ Run these commands and OpenCV will be added to python site packages load path.
 Then:
 
     brew install homebrew/science/ceres-solver
-    brew tap cuber/homebrew-jsoncpp
-    brew install jsoncpp
+    brew install boost
     sudo pip install -r requirements.txt
 
 ### Installing dependencies on Ubuntu
@@ -50,9 +49,9 @@ Then:
  
         sudo make install
 
- 3. [JsonCpp][] - Install through apt-get:
+ 3. [Boost Python][] - Install through apt-get:
 
-        sudo apt-get install libjsoncpp-dev
+        sudo apt-get install libboost-python    -dev
 
  4. [NumPy][], networkx, PyYaml, exifread - Install [pip](https://pypi.python.org/pypi/pip) and then run the following from the root of the project:
 

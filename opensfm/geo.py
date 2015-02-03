@@ -11,7 +11,7 @@ def ecef_from_lla(lat, lon, alt):
     Compute ECEF XYZ from latitude, longitude and altitude.
 
     All using the WGS94 model.
-    Altitude is the distance to the WGS94 ellipsoide.
+    Altitude is the distance to the WGS94 ellipsoid.
     Check results here http://www.oc.nps.edu/oc2902w/coord/llhxyz.htm
 
     >>> lat, lon, alt = 10, 20, 30
