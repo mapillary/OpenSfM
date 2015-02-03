@@ -142,7 +142,8 @@ def extract_features_akaze(imagefile, config):
 
     options = csfm.AKAZEOptions()
     options.omax = config.get('akaze_omax', 4)
-    options.descriptor = akaze_descriptor_type(config.get('akaze_descriptor', 'MSURF'))
+    akaze_descriptor_name = config.get('akaze_descriptor', 'MSURF')
+    options.descriptor = akaze_descriptor_type(akaze_descriptor_name)
     options.descriptor_size = config.get('akaze_descriptor_size', 0)
     options.descriptor_channels = config.get('akaze_descriptor_channels', 3)
     options.process_size = config.get('feature_process_size', -1)
@@ -161,11 +162,10 @@ def extract_features_akaze(imagefile, config):
             print 'done'
             break
 
-    akaze_descriptor = config.get('akaze_descriptor', 5)
-    if akaze_descriptor < 4 and config.get('feature_root', False):
-        if akaze_descriptor == 0 and akaze_descriptor == 2:
+    if config.get('feature_root', False):
+        if akaze_descriptor_name in ["SURF_UPRIGHT", "MSURF_UPRIGHT"]:
             desc = root_feature_surf(desc, partial=True)
-        else:
+        elif akaze_descriptor_name in ["SURF", "MSURF"]:
             desc = root_feature_surf(desc, partial=False)
     image = cv2.imread(imagefile)
     return mask_and_normalize_features(points, desc, image.shape[1], image.shape[0], config)
