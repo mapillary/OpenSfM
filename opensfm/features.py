@@ -129,15 +129,31 @@ def extract_features_surf(imagefile, config):
     return mask_and_normalize_features(points, desc, image.shape[1], image.shape[0], config)
 
 
+def akaze_descriptor_type(name):
+    d = csfm.AkazeDescriptorType.__dict__
+    if name in d:
+        return d[name]
+    else:
+        print 'Wrong akaze descriptor type'
+        return d['MSURF']
+
+
 def extract_features_akaze(imagefile, config):
-    threshold = config.get('akaze_dthreshold', 0.005)
-    original_threshold = threshold
+    image = resized_image(cv2.imread(imagefile), config)
+
+    options = csfm.AKAZEOptions()
+    options.omax = config.get('akaze_omax', 4)
+    options.descriptor = akaze_descriptor_type(config.get('akaze_descriptor', 'MSURF'))
+    options.descriptor_size = config.get('akaze_descriptor_size', 0)
+    options.descriptor_channels = config.get('akaze_descriptor_channels', 3)
+    options.process_size = config.get('feature_process_size', -1)
+
+    threshold = config.get('akaze_dthreshold', 0.001)
     while True:
         print 'Computing AKAZE with threshold {0}'.format(threshold)
         t = time.time()
-        config['akaze_dthreshold'] = threshold
-        points, desc = akaze_feature(imagefile, config)
-
+        options.dthreshold = threshold
+        points, desc = csfm.akaze(image, options)
         print 'Found {0} points in {1}s'.format( len(points), time.time()-t )
         if len(points) < config.get('feature_min_frames', 0) and threshold > 0.00001:
             threshold = (threshold * 2) / 3
@@ -145,7 +161,7 @@ def extract_features_akaze(imagefile, config):
         else:
             print 'done'
             break
-    config['akaze_dthreshold'] = original_threshold
+
     akaze_descriptor = config.get('akaze_descriptor', 5)
     if akaze_descriptor < 4 and config.get('feature_root', False):
         if akaze_descriptor == 0 and akaze_descriptor == 2:
@@ -179,41 +195,6 @@ def extract_feature(imagefile, config):
     else:
         raise ValueError('Unknown feature type (must be SURF, SIFT, AKAZE or HAHOG)')
 
-def akaze_feature(imagefile, config):
-    ''' Extract AKAZE interest points and descriptors
-    '''
-    f = tempfile.NamedTemporaryFile(delete=False)
-    f.close()
-    featurefile = f.name
-    call([context.AKAZE,
-          imagefile,
-          "--output", featurefile,
-          "--dthreshold", str(config.get('akaze_dthreshold', 0.005)),
-          "--omax", str(config.get('akaze_omax', 4)),
-          "--min_dthreshold", str(config.get('akaze_min_dthreshold', 0.00001)),
-          "--descriptor", str(config.get('akaze_descriptor', 5)),
-          "--descriptor_size", str(config.get('akaze_descriptor_size', 0)),
-          "--descriptor_channels", str(config.get('akaze_descriptor_channels', 3)),
-          "--process_size", str(config.get('feature_process_size', -1))
-        ])
-    with open(featurefile, 'rb') as fout:
-        lines = fout.readlines()
-        num_feature = int(lines[1])
-        dim_feature = int(lines[0])
-        if num_feature > 0:
-            lines = ''.join(lines[2:])
-            lines = lines.replace('\n',' ')[:-1].split(' ')
-            features = np.array(lines).reshape((num_feature, -1))
-            points, desc = features[:,:-dim_feature], features[:,-dim_feature:]
-            try:
-                # TODO (Yubin), better check for the feature format
-                desc = desc.astype(np.uint8)
-            except ValueError:
-                desc = desc.astype(np.float32)
-            points = points.astype(np.float)
-        else:
-            points, desc = [], []
-    return points, desc
 
 def write_features(points, descriptors, featurefile, config={}):
     if config.get('feature_type') == 'AKAZE' and config.get('akaze_descriptor') >= 4:

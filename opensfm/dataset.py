@@ -127,20 +127,7 @@ class DataSet:
         """Return the type of the descriptor (if exists)
         """
         if self.feature_type() == 'akaze':
-            descriptor_type = self.config.get('akaze_descriptor', 5)
-            if descriptor_type == 0:
-                descriptor_type_str = 'surf_upright'
-            elif descriptor_type == 1:
-                descriptor_type_str = 'surf'
-            elif descriptor_type == 2:
-                descriptor_type_str = 'msurf_upright'
-            elif descriptor_type == 3:
-                descriptor_type_str = 'msurf'
-            elif descriptor_type == 4:
-                descriptor_type_str = 'mldb_upright'
-            elif descriptor_type == 5:
-                descriptor_type_str = 'mldb'
-            return descriptor_type_str
+            return self.config.get('akaze_descriptor', '')
         else:
             return ''
 

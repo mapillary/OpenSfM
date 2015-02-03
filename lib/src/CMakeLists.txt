@@ -124,6 +124,7 @@ target_link_libraries(csfm
                       ${SUITESPARSE_LIBRARIES}
                       vl
                       libmv
+                      AKAZE_LIB
 )
 set_target_properties(csfm PROPERTIES
     PREFIX ""
