@@ -167,7 +167,7 @@ def extract_features_akaze(imagefile, config):
             desc = root_feature_surf(desc, partial=True)
         elif akaze_descriptor_name in ["SURF", "MSURF"]:
             desc = root_feature_surf(desc, partial=False)
-
+    points = points.astype(float)
     return mask_and_normalize_features(points, desc, image.shape[1], image.shape[0], config)
 
 def extract_features_hahog(imagefile, config):
