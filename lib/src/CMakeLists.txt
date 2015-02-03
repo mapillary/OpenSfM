@@ -2,24 +2,23 @@ cmake_minimum_required(VERSION 2.8)
 
 project(opensfm C CXX)
 
-
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release CACHE STRING
-       "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel."
-       FORCE)
+      "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel."
+      FORCE)
 endif()
 
 set(CMAKE_MODULE_PATH ${opensfm_SOURCE_DIR}/cmake)
 
-include_directories(. third_party)
-
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -std=c++0x")
 
+
+# Find dependencies.
 find_package(OpenMP)
 if (OPENMP_FOUND)
-    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+  set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+  set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif()
 
 find_package(LAPACK)
@@ -49,50 +48,6 @@ include_directories(${GLOG_INCLUDE_DIR})
 
 find_package(OpenCV REQUIRED)
 
-
-# Two view reconstruction
-add_library(libmv
-               third_party/libmv/multiview/fundamental.cc
-               third_party/libmv/multiview/projection.cc
-               third_party/libmv/multiview/five_point.cc
-               third_party/libmv/multiview/robust_five_point.cc
-               third_party/libmv/multiview/triangulation.cc
-               third_party/libmv/multiview/conditioning.cc
-               third_party/libmv/numeric/numeric.cc
-               third_party/libmv/numeric/poly.cc
-              )
-target_link_libraries(libmv
-                      ${GFLAGS_LIBRARY}
-                      ${GLOG_LIBRARY}
-                      )
-
-
-# AKAZE libraries
-include_directories("third_party/akaze/lib/")
-
-set(AKAZE_SRCS
-    third_party/akaze/lib/AKAZEConfig.h
-    third_party/akaze/lib/AKAZE.h
-    third_party/akaze/lib/AKAZE.cpp
-    third_party/akaze/lib/fed.h
-    third_party/akaze/lib/fed.cpp
-    third_party/akaze/lib/nldiffusion_functions.h
-    third_party/akaze/lib/nldiffusion_functions.cpp
-    third_party/akaze/lib/utils.h
-    third_party/akaze/lib/utils.cpp)
-
-add_library(AKAZE_LIB ${AKAZE_SRCS})
-target_link_libraries(AKAZE_LIB ${OpenCV_LIBS})
-
-
-# VLFeat lib
-include_directories("third_party/vlfeat")
-file(GLOB VLFEAT_SRCS third_party/vlfeat/vl/*.c third_party/vlfeat/vl/*.h)
-add_definitions(-DVL_DISABLE_AVX)
-add_library(vl ${VLFEAT_SRCS})
-
-
-# Python wrapper
 find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 
@@ -104,23 +59,65 @@ include_directories(${PYTHON_INCLUDE_DIRS})
 
 find_package(NumPy REQUIRED)
 include_directories(${NUMPY_INCLUDE_DIRS})
-message(${NUMPY_VERSION})
-message(${NUMPY_INCLUDE_DIRS})
 
+
+# Libmv
+include_directories(third_party)
+add_library(mv
+    third_party/libmv/multiview/fundamental.cc
+    third_party/libmv/multiview/projection.cc
+    third_party/libmv/multiview/five_point.cc
+    third_party/libmv/multiview/robust_five_point.cc
+    third_party/libmv/multiview/triangulation.cc
+    third_party/libmv/multiview/conditioning.cc
+    third_party/libmv/numeric/numeric.cc
+    third_party/libmv/numeric/poly.cc
+)
+target_link_libraries(mv
+    ${GFLAGS_LIBRARY}
+    ${GLOG_LIBRARY}
+)
+
+
+# Akave
+include_directories(third_party/akaze/lib/)
+set(AKAZE_SRCS
+    third_party/akaze/lib/AKAZEConfig.h
+    third_party/akaze/lib/AKAZE.h
+    third_party/akaze/lib/AKAZE.cpp
+    third_party/akaze/lib/fed.h
+    third_party/akaze/lib/fed.cpp
+    third_party/akaze/lib/nldiffusion_functions.h
+    third_party/akaze/lib/nldiffusion_functions.cpp
+    third_party/akaze/lib/utils.h
+    third_party/akaze/lib/utils.cpp
+)
+add_library(akaze ${AKAZE_SRCS})
+target_link_libraries(akaze ${OpenCV_LIBS})
+
+
+# VLFeat
+include_directories(third_party/vlfeat)
+file(GLOB VLFEAT_SRCS third_party/vlfeat/vl/*.c third_party/vlfeat/vl/*.h)
+add_definitions(-DVL_DISABLE_AVX)
+add_library(vl ${VLFEAT_SRCS})
+
+
+# Python wrapper
 add_library(csfm SHARED csfm.cc)
 target_link_libraries(csfm
-                      ${Boost_LIBRARIES}
-                      ${PYTHON_LIBRARIES}
-                      ${OpenCV_LIBS}
-                      ${GFLAGS_LIBRARY}
-                      ${GLOG_LIBRARY}
-                      ${CERES_LIBRARIES}
-                      ${JSONCPP_LIBRARIES}
-                      ${LAPACK_LIBRARIES}
-                      ${SUITESPARSE_LIBRARIES}
-                      vl
-                      libmv
-                      AKAZE_LIB
+    ${Boost_LIBRARIES}
+    ${PYTHON_LIBRARIES}
+    ${OpenCV_LIBS}
+    ${GFLAGS_LIBRARY}
+    ${GLOG_LIBRARY}
+    ${CERES_LIBRARIES}
+    ${JSONCPP_LIBRARIES}
+    ${LAPACK_LIBRARIES}
+    ${SUITESPARSE_LIBRARIES}
+    vl
+    mv
+    akaze
 )
 set_target_properties(csfm PROPERTIES
     PREFIX ""
