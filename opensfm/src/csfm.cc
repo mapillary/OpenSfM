@@ -1,4 +1,3 @@
-#include <Python.h> // This must be included before anything else. See http://bugs.python.org/issue10910
 #include <boost/python.hpp>
 #include <iostream>
 #include <vector>

@@ -1,7 +1,6 @@
 #ifndef __TYPES_H__
 #define __TYPES_H__
 
-#include <Python.h> // This must be included before anything else. See http://bugs.python.org/issue10910
 #include <boost/python.hpp>
 #include <vector>
 #include <iostream>
