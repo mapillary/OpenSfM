@@ -138,7 +138,7 @@ def akaze_descriptor_type(name):
 
 
 def extract_features_akaze(imagefile, config):
-    image = resized_image(cv2.imread(imagefile), config)
+    image = resized_image(cv2.imread(imagefile, cv2.IMREAD_GRAYSCALE), config)
 
     options = csfm.AKAZEOptions()
     options.omax = config.get('akaze_omax', 4)
@@ -167,7 +167,7 @@ def extract_features_akaze(imagefile, config):
             desc = root_feature_surf(desc, partial=True)
         elif akaze_descriptor_name in ["SURF", "MSURF"]:
             desc = root_feature_surf(desc, partial=False)
-    image = cv2.imread(imagefile)
+
     return mask_and_normalize_features(points, desc, image.shape[1], image.shape[0], config)
 
 def extract_features_hahog(imagefile, config):
