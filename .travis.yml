@@ -1,0 +1,6 @@
+language: python
+python:
+  - "2.7"
+script:
+  - python setup.py build_clib
+  - python setup.py build_ext --inline
