@@ -3,4 +3,3 @@ PyYAML
 numpy
 exifread
 gpxpy
-pyexif2

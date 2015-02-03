@@ -2,7 +2,8 @@ language: python
 python:
   - "2.7"
 install:
-  - pip install -r requirements.txt --allow-external
+  - sudo apt-get install python-opencv libopencv-dev libgoogle-glog-dev libatlas-base-dev libeigen3-dev libsuitesparse-dev libboost-python-dev python-pyexiv2
+  - pip install -r requirements.txt
 script:
   - python setup.py build_clib
   - python setup.py build_ext --inline

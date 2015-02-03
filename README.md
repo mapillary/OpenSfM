@@ -7,7 +7,7 @@ Structure from Motion library written in Python on top of OpenCV.
 
 * [OpenCV][]
 * [Ceres Solver][]
-* [boost-python][]
+* [Boost Python][]
 * [NumPy][], [SciPy][], networkx, PyYAML, exifread
 
 ### Installing dependencies on MacOSX
@@ -74,4 +74,4 @@ An example dataset is available at `data/berlin`.
 [NumPy]: http://www.numpy.org/ (Scientific computing with Python)
 [SciPy]: http://www.scipy.org/ (Fundamental library for scientific computing)
 [Ceres solver]: http://ceres-solver.org/ (Library for solving complicated nonlinear least squares problems)
-[boost-python]: http://www.boost.org/
+[Boost Python]: http://www.boost.org/
