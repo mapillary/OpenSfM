@@ -9,7 +9,6 @@ import json
 import uuid
 import cv2
 
-import context
 import csfm
 
 def resized_image(image, config):

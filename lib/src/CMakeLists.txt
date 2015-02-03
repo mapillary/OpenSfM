@@ -84,10 +84,6 @@ set(AKAZE_SRCS
 add_library(AKAZE_LIB ${AKAZE_SRCS})
 target_link_libraries(AKAZE_LIB ${OpenCV_LIBS})
 
-add_executable(akaze
-               akaze.cpp)
-target_link_libraries(akaze AKAZE_LIB)
-
 
 # VLFeat lib
 include_directories("third_party/vlfeat")

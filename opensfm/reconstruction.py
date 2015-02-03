@@ -15,7 +15,6 @@ import time
 import networkx as nx
 from networkx.algorithms import bipartite
 
-from opensfm import context
 from opensfm import transformations as tf
 from opensfm import dataset
 from opensfm import features

@@ -7,7 +7,6 @@ import random
 import math
 import cv2
 from opensfm import transformations as tf
-from opensfm import context
 
 def nullspace(A):
     '''Compute the null space of A.
