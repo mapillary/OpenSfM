@@ -41,19 +41,19 @@ boost_python_libraries = ['boost_python']
 libraries.extend(boost_python_libraries)
 
 # Akaze
-akaze_include_dir = 'lib/src/third_party/akaze/lib'
+akaze_include_dir = 'opensfm/src/third_party/akaze/lib'
 akaze_sources = [
-    'lib/src/third_party/akaze/lib/AKAZE.cpp',
-    'lib/src/third_party/akaze/lib/fed.cpp',
-    'lib/src/third_party/akaze/lib/nldiffusion_functions.cpp',
-    'lib/src/third_party/akaze/lib/utils.cpp',
+    'opensfm/src/third_party/akaze/lib/AKAZE.cpp',
+    'opensfm/src/third_party/akaze/lib/fed.cpp',
+    'opensfm/src/third_party/akaze/lib/nldiffusion_functions.cpp',
+    'opensfm/src/third_party/akaze/lib/utils.cpp',
 ]
 akaze_depends = [
-    'lib/src/third_party/akaze/lib/AKAZEConfig.h',
-    'lib/src/third_party/akaze/lib/AKAZE.h',
-    'lib/src/third_party/akaze/lib/fed.h',
-    'lib/src/third_party/akaze/lib/nldiffusion_functions.h',
-    'lib/src/third_party/akaze/lib/utils.h',
+    'opensfm/src/third_party/akaze/lib/AKAZEConfig.h',
+    'opensfm/src/third_party/akaze/lib/AKAZE.h',
+    'opensfm/src/third_party/akaze/lib/fed.h',
+    'opensfm/src/third_party/akaze/lib/nldiffusion_functions.h',
+    'opensfm/src/third_party/akaze/lib/utils.h',
 ]
 akaze_library = ('akaze', {
     'sources': akaze_sources,
@@ -62,16 +62,16 @@ akaze_library = ('akaze', {
 })
 
 # libmv
-libmv_include_dir = 'lib/src/third_party'
+libmv_include_dir = 'opensfm/src/third_party'
 libmv_sources = [
-    'lib/src/third_party/libmv/multiview/fundamental.cc',
-    'lib/src/third_party/libmv/multiview/projection.cc',
-    'lib/src/third_party/libmv/multiview/five_point.cc',
-    'lib/src/third_party/libmv/multiview/robust_five_point.cc',
-    'lib/src/third_party/libmv/multiview/triangulation.cc',
-    'lib/src/third_party/libmv/multiview/conditioning.cc',
-    'lib/src/third_party/libmv/numeric/numeric.cc',
-    'lib/src/third_party/libmv/numeric/poly.cc',
+    'opensfm/src/third_party/libmv/multiview/fundamental.cc',
+    'opensfm/src/third_party/libmv/multiview/projection.cc',
+    'opensfm/src/third_party/libmv/multiview/five_point.cc',
+    'opensfm/src/third_party/libmv/multiview/robust_five_point.cc',
+    'opensfm/src/third_party/libmv/multiview/triangulation.cc',
+    'opensfm/src/third_party/libmv/multiview/conditioning.cc',
+    'opensfm/src/third_party/libmv/numeric/numeric.cc',
+    'opensfm/src/third_party/libmv/numeric/poly.cc',
 ]
 libmv_library = ('mv', {
     'sources': libmv_sources,
@@ -79,9 +79,9 @@ libmv_library = ('mv', {
 })
 
 # VLFeat
-vlfeat_include_dir = 'lib/src/third_party/vlfeat'
-vlfeat_sources = glob.glob('lib/src/third_party/vlfeat/vl/*.c')
-vlfeat_depends = glob.glob('lib/src/third_party/vlfeat/vl/*.h')
+vlfeat_include_dir = 'opensfm/src/third_party/vlfeat'
+vlfeat_sources = glob.glob('opensfm/src/third_party/vlfeat/vl/*.c')
+vlfeat_depends = glob.glob('opensfm/src/third_party/vlfeat/vl/*.h')
 vlfeat_library = ('vl', {
     'sources': vlfeat_sources,
     'depends': vlfeat_depends,
@@ -90,7 +90,7 @@ vlfeat_library = ('vl', {
 
 csfm_extension = Extension(
     'opensfm.csfm',
-    sources=['lib/src/csfm.cc'],
+    sources=['opensfm/src/csfm.cc'],
     depends=['bundle.h'],
     include_dirs=[
         np.get_include(),

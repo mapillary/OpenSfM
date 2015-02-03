@@ -3,43 +3,27 @@ OpenSfM
 
 Structure from Motion library written in Python on top of OpenCV.
 
+## Dependencies
 
-Dependencies
-------------
 * [OpenCV][]
 * [Ceres Solver][]
 * [boost-python][]
 * [NumPy][], [SciPy][], networkx, PyYAML, exifread
-
-### Dependencies included in source
-
- * Parts of [libmv](https://github.com/libmv/libmv).
- * [VLFeat](http://www.vlfeat.org/).
 
 ### Installing dependencies on MacOSX
 
 Use
 
     brew tap homebrew/science
-    brew info opencv
-    
-It will show information about opencv package. To install, usually `brew install opencv` is sufficient, but to enable import from python modules, you should read 'Caveats' section saying:
-
-        ==> Caveats
-        Python modules have been installed and Homebrew's site-packages is not
-        in your Python sys.path, so you will not be able to import the modules
-        this formula installed. If you plan to develop with these modules,
-        please run:
-          mkdir -p /Users/someuser/Library/Python/2.7/lib/python/site-packages
-          echo 'import site; site.addsitedir("/usr/local/lib/python2.7/site-packages")' >> /Users/someuser/Library/Python/2.7/lib/python/site-packages/homebrew.pth
-
-Run these commands and OpenCV will be added to python site packages load path.
-
-Then:
-
+    brew install opencv
     brew install homebrew/science/ceres-solver
     brew install boost
     sudo pip install -r requirements.txt
+
+Be sure to update your `PYTHONPATH` to include `/usr/local/lib/python2.7/site-packages` where OpenCV has been installed:
+
+    export PYTHONPATH=/usr/local/lib/python2.7/site-packages:$PYTHONPATH
+
 
 ### Installing dependencies on Ubuntu
 
@@ -47,42 +31,47 @@ Then:
 
  2. [Ceres solver][] - Install the needed dependencies (download [Google Flags](https://launchpad.net/ubuntu/+source/gflags) and [Google Log](https://launchpad.net/ubuntu/+source/google-glog) and include [SuiteSparse](http://faculty.cse.tamu.edu/davis/suitesparse.html)) and build Ceres according the [documentation](http://ceres-solver.org/building.html). Install Ceres from the ceres-bin directory after `make` by:
  
-        sudo make install
+    sudo make install
 
  3. [Boost Python][] - Install through apt-get:
 
-        sudo apt-get install libboost-python    -dev
+    sudo apt-get install libboost-python-dev
 
  4. [NumPy][], networkx, PyYaml, exifread - Install [pip](https://pypi.python.org/pypi/pip) and then run the following from the root of the project:
 
-        sudo pip install -r requirements.txt
+    sudo pip install -r requirements.txt
 
  5. [SciPy][] - Install [gfortran](https://gcc.gnu.org/wiki/GFortran) through apt-get and then install [SciPy][] with:
 
-        sudo apt-get install gfortran
-        sudo pip install scipy
-
-Building
---------
-1. `cd lib; mkdir build; cd build`
-2. `cmake ../src`
-3. `make`
+    sudo apt-get install gfortran
+    sudo pip install scipy
 
 
-Running
--------
-An example dataset is available at data/berlin.
+## Building inplace using setup.py
+
+    python setup.py build_clib
+    python setup.py build_ext --inplace
+
+## Building using CMake
+
+    mkdir build
+    cd build
+    cmake ../opensfm/src
+    make
+
+## Running
+
+An example dataset is available at `data/berlin`.
 
  1. Put some images in `data/DATASET_NAME/images/`
- 2. Put config.yaml at `data/DATASET_NAME/config.yaml`
+ 2. Put config.yaml in `data/DATASET_NAME/config.yaml`
  3. Go to the root of the project and run `bin/run_all data/DATASET_NAME`
  4. Start an http server from the root with `python -m SimpleHTTPServer`
  5. Browse `http://localhost:8000/viewer/reconstruction.html#file=/data/DATASET_NAME/reconstruction.json`.
-
 
 
 [OpenCV]: http://opencv.org/ (Computer vision and machine learning software library)
 [NumPy]: http://www.numpy.org/ (Scientific computing with Python)
 [SciPy]: http://www.scipy.org/ (Fundamental library for scientific computing)
 [Ceres solver]: http://ceres-solver.org/ (Library for solving complicated nonlinear least squares problems)
-[JsonCpp]: https://github.com/open-source-parsers/jsoncpp (C++ library that allows manipulating JSON values)
+[boost-python]: http://www.boost.org/
