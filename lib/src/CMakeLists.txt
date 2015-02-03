@@ -67,6 +67,22 @@ target_link_libraries(two_view_reconstruction
                       ${GLOG_LIBRARY}
                       )
 
+# Two view reconstruction
+add_library(libmv
+               third_party/libmv/multiview/fundamental.cc
+               third_party/libmv/multiview/projection.cc
+               third_party/libmv/multiview/five_point.cc
+               third_party/libmv/multiview/robust_five_point.cc
+               third_party/libmv/multiview/triangulation.cc
+               third_party/libmv/multiview/conditioning.cc
+               third_party/libmv/numeric/numeric.cc
+               third_party/libmv/numeric/poly.cc
+              )
+target_link_libraries(libmv
+                      ${GFLAGS_LIBRARY}
+                      ${GLOG_LIBRARY}
+                      )
+
 
 # AKAZE libraries
 include_directories("third_party/akaze/lib/")
@@ -124,6 +140,7 @@ target_link_libraries(csfm
                       ${LAPACK_LIBRARIES}
                       ${SUITESPARSE_LIBRARIES}
                       vl
+                      libmv
 )
 set_target_properties(csfm PROPERTIES
     PREFIX ""

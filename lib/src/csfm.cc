@@ -8,6 +8,7 @@
 
 #include "types.h"
 #include "hahog.cc"
+#include "tvr.cc"
 #include "bundle.h"
 
 
@@ -23,6 +24,8 @@ BOOST_PYTHON_MODULE(csfm) {
        arg("edge_threshold") = 10
       )
   );
+
+  def("two_view_reconstruction", csfm::TwoViewReconstruction);
 
   class_<BundleAdjuster>("BundleAdjuster")
     .def("run", &BundleAdjuster::Run)
