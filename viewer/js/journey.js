@@ -385,7 +385,7 @@ var JourneyWrapper = (function ($) {
             this.destination = urlParams.dest;
             var _this = this;
 
-            $.getJSON(urlParams.graph, function(data) {
+            $.getJSON(urlParams.nav, function(data) {
 
                 _this.journey =
                     new Journey(
