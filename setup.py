@@ -5,7 +5,10 @@ import numpy as np
 import os
 import glob
 
-default_include_dirs = ['/usr/include']
+default_include_dirs = [
+    '/usr/local/include',
+    '/usr/include',
+]
 
 cplus_include_path = os.getenv('CPLUS_INCLUDE_PATH', '')
 if cplus_include_path:
@@ -27,7 +30,6 @@ def find_include(name, hints, path_suffixes=[]):
 
 libraries = []
 library_dirs = ['/usr/local/lib']
-
 
 # Eigen
 eigen_include_dir = find_include('Eigen/Core', [], ['eigen3'])
@@ -88,6 +90,7 @@ vlfeat_library = ('vl', {
     'macros': [('VL_DISABLE_AVX', '1')],
 })
 
+# cSfM
 csfm_extension = Extension(
     'opensfm.csfm',
     sources=['opensfm/src/csfm.cc'],
