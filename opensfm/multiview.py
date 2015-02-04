@@ -7,6 +7,7 @@ import random
 import math
 import cv2
 from opensfm import transformations as tf
+from opensfm import csfm
 
 def nullspace(A):
     '''Compute the null space of A.
@@ -340,3 +341,73 @@ def undistort_points(camera, points):
     points_undistort = np.dot(K[0:2,:], homogeneous(points_undistort).T )
 
     return points_undistort
+
+
+
+def two_view_reconstruction(p1, p2, f1, f2, threshold):
+    assert len(p1) == len(p2)
+    assert len(p1) >= 5
+    npoints = len(p1)
+    
+    # Run 5-point algorithm.
+    R, t, inliers = csfm.two_view_reconstruction(p1, p2, f1, f2, threshold)
+    
+    K1 = np.array([[f1, 0, 0], [0, f1, 0], [0, 0, 1.]])
+    K2 = np.array([[f2, 0, 0], [0, f2, 0], [0, 0, 1.]])
+
+    old_inliers = np.zeros(npoints)
+    for it in range(10):
+        # Triangulate Features.
+        P1 = P_from_KRt(K1, np.eye(3), np.zeros(3))
+        P2 = P_from_KRt(K2, R, t)
+        Ps = [P1, P2]
+        Xs = []
+        inliers = []
+        for x1, x2 in zip(p1, p2):
+            X = triangulate(Ps, [x1, x2])
+            Xs.append(X)
+            P1X = P1.dot(homogeneous(X))
+            P2X = P2.dot(homogeneous(X))
+            e1 = np.linalg.norm(x1 - euclidean(P1X))
+            e2 = np.linalg.norm(x2 - euclidean(P2X))
+            inliers.append(e1 < threshold and e2 < threshold and P1X[2] > 0 and P2X[2] > 0)
+        inliers = np.array(inliers)
+
+        inlier_changes = np.count_nonzero(inliers - old_inliers)
+        old_inliers = inliers.copy()
+        if inlier_changes < npoints * 0.05:
+            break
+
+        # Refine R, t
+        ba = csfm.BundleAdjuster()
+        ba.add_camera('c1', f1, 0, 0, f1, True)
+        ba.add_camera('c2', f2, 0, 0, f2, True)
+        ba.add_shot('s1', 'c1', 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, True)
+        r = cv2.Rodrigues(R)[0].ravel()
+        ba.add_shot('s2', 'c2', r[0], r[1], r[2], t[0], t[1], t[2], 0, 0, 0, 1, False)
+        for i in xrange(npoints):
+            if inliers[i]:
+                X = Xs[i]
+                ba.add_point(str(i), X[0], X[1], X[2], False)
+                ba.add_observation('s1', str(i), p1[i][0], p1[i][1])
+                ba.add_observation('s2', str(i), p2[i][0], p2[i][1])
+
+        ba.set_loss_function('TruncatedLoss', threshold);
+        ba.run()
+        s = ba.get_shot('s2')
+        R = cv2.Rodrigues((s.rx, s.ry, s.rz))[0]
+        t = np.array([s.tx, s.ty, s.tz])
+
+    return R, t, np.nonzero(inliers)
+
+
+
+
+
+
+
+
+
+
+
+
