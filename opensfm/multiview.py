@@ -396,7 +396,8 @@ def two_view_reconstruction(p1, p2, f1, f2, threshold):
         ba.run()
         s = ba.get_shot('s2')
         R = cv2.Rodrigues((s.rx, s.ry, s.rz))[0]
-        t = np.array([s.tx, s.ty, s.tz])
+        t = np.array((s.tx, s.ty, s.tz))
+        t /= np.linalg.norm(t)
 
     return R, t, np.nonzero(inliers)
 
