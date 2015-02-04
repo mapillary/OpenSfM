@@ -142,6 +142,7 @@ enum {
 
 struct BACamera {
   double parameters[BA_CAMERA_NUM_PARAMS];
+  bool constant;
   double exif_focal;
   std::string id;
 
@@ -165,6 +166,7 @@ enum {
 
 struct BAShot {
   double parameters[BA_SHOT_NUM_PARAMS];
+  bool constant;
   double gps_x, gps_y, gps_z;
   double gps_dop;
   int exif_orientation;
@@ -187,6 +189,7 @@ struct BAShot {
 
 struct BAPoint {
   double coordinates[3];
+  bool constant;
   std::string id;
 
   double GetX() { return coordinates[0]; }
@@ -233,12 +236,14 @@ class BundleAdjuster {
       double focal,
       double k1,
       double k2,
-      double exif_focal) {
+      double exif_focal,
+      bool constant) {
     BACamera c;   
     c.id = id;
     c.parameters[BA_CAMERA_FOCAL] = focal;
     c.parameters[BA_CAMERA_K1] = k1;
     c.parameters[BA_CAMERA_K2] = k2;
+    c.constant = constant;
     c.exif_focal = exif_focal;
     cameras_[id] = c;
   }
@@ -255,7 +260,8 @@ class BundleAdjuster {
       double gpsx,
       double gpsy,
       double gpsz,
-      double gps_dop) {
+      double gps_dop,
+      bool constant) {
     BAShot s;
     s.id = id;
     s.camera = camera;
@@ -265,6 +271,7 @@ class BundleAdjuster {
     s.parameters[BA_SHOT_TX] = tx;
     s.parameters[BA_SHOT_TY] = ty;
     s.parameters[BA_SHOT_TZ] = tz;
+    s.constant = constant;
     s.gps_x = gpsx;
     s.gps_y = gpsy;
     s.gps_z = gpsz;
@@ -276,12 +283,14 @@ class BundleAdjuster {
       const std::string &id,
       double x,
       double y,
-      double z) {
+      double z,
+      bool constant) {
     BAPoint p;
     p.id = id;
     p.coordinates[0] = x;
     p.coordinates[1] = y;
     p.coordinates[2] = z;
+    p.constant = constant;
     points_[id] = p;
   }
 
@@ -374,6 +383,24 @@ class BundleAdjuster {
     //                            i.second.parameters);
     // }
 
+    // Set constant parameter blocks.
+    for (auto &i : cameras_) {
+      if (i.second.constant) {
+        problem.SetParameterBlockConstant(i.second.parameters);
+      }
+    }
+    for (auto &i : shots_) {
+      if (i.second.constant) {
+        problem.SetParameterBlockConstant(i.second.parameters);
+      }
+    }
+    for (auto &i : points_) {
+      if (i.second.constant) {
+        problem.SetParameterBlockConstant(i.second.coordinates);
+      }
+    }
+
+    // Solve
     ceres::Solver::Options options;
     options.linear_solver_type = ceres::SPARSE_SCHUR;
     options.num_threads = 8;

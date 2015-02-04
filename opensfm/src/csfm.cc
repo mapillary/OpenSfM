@@ -81,6 +81,7 @@ BOOST_PYTHON_MODULE(csfm) {
     .add_property("focal", &BACamera::GetFocal, &BACamera::SetFocal)
     .add_property("k1", &BACamera::GetK1, &BACamera::SetK1)
     .add_property("k2", &BACamera::GetK2, &BACamera::SetK2)
+    .def_readwrite("constant", &BACamera::constant)
     .def_readwrite("exif_focal", &BACamera::exif_focal)
     .def_readwrite("id", &BACamera::id)
   ;
@@ -92,6 +93,7 @@ BOOST_PYTHON_MODULE(csfm) {
     .add_property("tx", &BAShot::GetTX, &BAShot::SetTX)
     .add_property("ty", &BAShot::GetTY, &BAShot::SetTY)
     .add_property("tz", &BAShot::GetTZ, &BAShot::SetTZ)
+    .def_readwrite("constant", &BAShot::constant)
     .def_readwrite("gps_x", &BAShot::gps_x)
     .def_readwrite("gps_y", &BAShot::gps_y)
     .def_readwrite("gps_z", &BAShot::gps_z)
@@ -104,6 +106,7 @@ BOOST_PYTHON_MODULE(csfm) {
     .add_property("x", &BAPoint::GetX, &BAPoint::SetX)
     .add_property("y", &BAPoint::GetY, &BAPoint::SetY)
     .add_property("z", &BAPoint::GetZ, &BAPoint::SetZ)
+    .def_readwrite("constant", &BAPoint::constant)
     .def_readwrite("id", &BAPoint::id)
   ;
 }

@@ -30,11 +30,8 @@ def bundle(graph, reconstruction, config):
     start = time.time()
     ba = csfm.BundleAdjuster()
     for k, v in reconstruction['cameras'].items():
-        ba.add_camera(
-            str(k),
-            v['focal'], v['k1'], v['k2'],
-            v['exif_focal']
-        )
+        ba.add_camera(str(k), v['focal'], v['k1'], v['k2'],
+            v['exif_focal'], False)
 
     for k, v in reconstruction['shots'].items():
         r = v['rotation']
@@ -45,11 +42,12 @@ def bundle(graph, reconstruction, config):
             r[0], r[1], r[2],
             t[0], t[1], t[2],
             g[0], g[1], g[2],
-            v['gps_dop']
+            v['gps_dop'], False
         )
 
     for k, v in reconstruction['points'].items():
-        ba.add_point(str(k), *v['coordinates'])
+        x = v['coordinates']
+        ba.add_point(str(k), x[0], x[1], x[2], False)
 
     for shot in reconstruction['shots']:
         for track in graph[shot]:
