@@ -75,6 +75,8 @@ BOOST_PYTHON_MODULE(csfm) {
     .def("set_loss_function", &BundleAdjuster::SetLossFunction)
     .def("set_reprojection_error_sd", &BundleAdjuster::SetReprojectionErrorSD)
     .def("set_focal_prior_sd", &BundleAdjuster::SetFocalPriorSD)
+    .def("brief_report", &BundleAdjuster::BriefReport)
+    .def("full_report", &BundleAdjuster::FullReport)
   ;
 
   class_<BACamera>("BACamera")

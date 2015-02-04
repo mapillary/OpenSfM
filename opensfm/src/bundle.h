@@ -406,9 +406,14 @@ class BundleAdjuster {
     options.num_threads = 8;
     options.num_linear_solver_threads = 8;
 
-    ceres::Solver::Summary summary;
-    ceres::Solve(options, &problem, &summary);
-    std::cout << summary.BriefReport() << "\n";
+    ceres::Solve(options, &problem, &last_run_summary_);
+  }
+
+  std::string BriefReport() {
+    return last_run_summary_.BriefReport();
+  }
+  std::string FullReport() {
+    return last_run_summary_.FullReport();
   }
 
  private:
@@ -421,6 +426,8 @@ class BundleAdjuster {
   double loss_function_threshold_;
   double reprojection_error_sd_;
   double focal_prior_sd_;
+
+  ceres::Solver::Summary last_run_summary_;
 };
 
 
