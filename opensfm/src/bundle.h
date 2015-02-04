@@ -46,10 +46,10 @@ class TruncatedLoss : public ceres::LossFunction {
 // focal length and 2 for radial distortion. The principal point is not modeled
 // (i.e. it is assumed to be located at the image center).
 struct SnavelyReprojectionError {
-  SnavelyReprojectionError(double observed_x, double observed_y, double focal=-1)
+  SnavelyReprojectionError(double observed_x, double observed_y, double std_deviation)
       : observed_x_(observed_x)
       , observed_y_(observed_y)
-      , focal_(focal)
+      , scale_(1.0 / std_deviation / sqrt(2))
   {}
 
   template <typename T>
@@ -77,20 +77,20 @@ struct SnavelyReprojectionError {
     T distortion = T(1.0) + r2  * (l1 + l2  * r2);
 
     // Compute final projected point position.
-    const T& focal = (focal_ > 0.0) ? T(focal_) : camera[0];
+    const T& focal = camera[0];
     T predicted_x = focal * distortion * xp;
     T predicted_y = focal * distortion * yp;
 
     // The error is the difference between the predicted and observed position.
-    residuals[0] = predicted_x - T(observed_x_);
-    residuals[1] = predicted_y - T(observed_y_);
+    residuals[0] = T(scale_) * (predicted_x - T(observed_x_));
+    residuals[1] = T(scale_) * (predicted_y - T(observed_y_));
 
     return true;
   }
 
   double observed_x_;
   double observed_y_;
-  double focal_;
+  double scale_;
 };
 
 
@@ -204,10 +204,17 @@ struct BAObservation {
   BAPoint *point;
 };
 
-// Read and write the BA problem from a json file.
+// A bundle adjustment class for optimizing the problem
+//
+//    sum_p ( reprojection_error(p) / reprojection_error_sd )^2 / 2
+//  + sum_c ( (focal - focal_prior) / focal_prior_sd )^2 / 2
+//
 class BundleAdjuster {
  public:
-  ~BundleAdjuster() {}
+  ~BundleAdjuster() {
+    reprojection_error_sd_ = 0.01;
+    focal_prior_sd_ = 0.1;
+  }
 
   BACamera GetCamera(const std::string &id) {
     return cameras_[id];
@@ -298,6 +305,10 @@ class BundleAdjuster {
     loss_function_threshold_ = threshold;
   }
 
+  void SetReprojectionErrorSD(double sd) {
+    reprojection_error_sd_ = sd;
+  }
+
   void SetFocalPriorSD(double sd) {
     focal_prior_sd_ = sd;
   }
@@ -330,7 +341,8 @@ class BundleAdjuster {
       ceres::CostFunction* cost_function = 
           new ceres::AutoDiffCostFunction<SnavelyReprojectionError, 2, 3, 6, 3>(
               new SnavelyReprojectionError(observations_[i].coordinates[0],
-                                           observations_[i].coordinates[1]));
+                                           observations_[i].coordinates[1],
+                                           reprojection_error_sd_));
 
       problem.AddResidualBlock(cost_function,
                                loss,
@@ -380,6 +392,7 @@ class BundleAdjuster {
 
   std::string loss_function_;
   double loss_function_threshold_;
+  double reprojection_error_sd_;
   double focal_prior_sd_;
 };
 

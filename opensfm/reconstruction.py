@@ -58,6 +58,7 @@ def bundle(graph, reconstruction, config):
 
     ba.set_loss_function(config.get('loss_function', 'TruncatedLoss'),
                          config.get('loss_function_threshold', 0.004));
+    ba.set_reprojection_error_sd(config.get('reprojection_error_sd', 0.01))
     ba.set_focal_prior_sd(config.get('exif_focal_sd', 999));
 
     setup = time.time()
