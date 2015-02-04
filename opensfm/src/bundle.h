@@ -80,7 +80,6 @@ struct SnavelyReprojectionError {
     const T& focal = camera[0];
     T predicted_x = focal * distortion * xp;
     T predicted_y = focal * distortion * yp;
-
     // The error is the difference between the predicted and observed position.
     residuals[0] = T(scale_) * (predicted_x - T(observed_x_));
     residuals[1] = T(scale_) * (predicted_y - T(observed_y_));
@@ -214,10 +213,12 @@ struct BAObservation {
 //
 class BundleAdjuster {
  public:
-  ~BundleAdjuster() {
-    reprojection_error_sd_ = 0.01;
-    focal_prior_sd_ = 0.1;
+  BundleAdjuster() {
+    reprojection_error_sd_ = 1;
+    focal_prior_sd_ = 1;
   }
+
+  virtual ~BundleAdjuster() {}
 
   BACamera GetCamera(const std::string &id) {
     return cameras_[id];
@@ -346,7 +347,6 @@ class BundleAdjuster {
       // Each Residual block takes a point and a camera as input and outputs a 2
       // dimensional residual. Internally, the cost function stores the observed
       // image location and compares the reprojection against the observation.
-
       ceres::CostFunction* cost_function = 
           new ceres::AutoDiffCostFunction<SnavelyReprojectionError, 2, 3, 6, 3>(
               new SnavelyReprojectionError(observations_[i].coordinates[0],
