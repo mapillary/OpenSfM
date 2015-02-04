@@ -198,6 +198,22 @@ class DataSet:
         """Return path of tracks file"""
         return os.path.join(self.data_path, 'tracks.csv')
 
+    def track_graph_list(self):
+        """Return graph as a list"""
+        track_list = []
+        images = self.images()
+        image_inv = {}
+        for i, im in enumerate(images):
+            image_inv[im] = int(i)
+        with open(self.tracks_file()) as fin:
+            for line in fin:
+                image, track_id, observation, x, y = line.split('\t')
+                if int(track_id) >= len(track_list):
+                    track_list.append([])
+                track_list[int(track_id)].append([image_inv[image], int(observation)])
+                # track_list[int(track_id)].append([int(observation), image_inv[image]])
+        return track_list
+
     def tracks_graph(self, images=None):
         """Return graph (networkx data structure) of tracks"""
         with open(self.tracks_file()) as fin:
@@ -258,6 +274,22 @@ class DataSet:
     def camera_model_file(self):
         """Return path of camera model file"""
         return os.path.join(self.data_path, 'camera_models.json')
+
+    def epipolar_path(self):
+        return os.path.join(self.data_path, 'epipolar_geometries')
+
+    def epipolar_file(self, im1, im2):
+        return os.path.join(self.epipolar_path(), '%s_%s_epipolar.npz' % (im1, im2))
+
+    def save_epipolar(self, im1, im2, R, t):
+        np.savez(self.epipolar_file(im1, im2), R=R, t=t)
+
+    def load_epipolar(self, im1, im2):
+        try:
+            s = np.load(self.epipolar_file(im1, im2))
+        except IOError:
+            return None, None
+        return s['R'], s['t']
 
     def profile_log(self):
         "Filename where to write timings."
