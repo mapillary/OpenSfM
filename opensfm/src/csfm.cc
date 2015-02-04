@@ -80,8 +80,6 @@ BOOST_PYTHON_MODULE(csfm) {
     .add_property("focal", &BACamera::GetFocal, &BACamera::SetFocal)
     .add_property("k1", &BACamera::GetK1, &BACamera::SetK1)
     .add_property("k2", &BACamera::GetK2, &BACamera::SetK2)
-    .def_readwrite("width", &BACamera::width)
-    .def_readwrite("height", &BACamera::height)
     .def_readwrite("exif_focal", &BACamera::exif_focal)
     .def_readwrite("id", &BACamera::id)
   ;

@@ -142,7 +142,6 @@ enum {
 
 struct BACamera {
   double parameters[BA_CAMERA_NUM_PARAMS];
-  double width, height;
   double exif_focal;
   std::string id;
 
@@ -227,16 +226,12 @@ class BundleAdjuster {
       double focal,
       double k1,
       double k2,
-      double width,
-      double height,
       double exif_focal) {
     BACamera c;   
     c.id = id;
     c.parameters[BA_CAMERA_FOCAL] = focal;
     c.parameters[BA_CAMERA_K1] = k1;
     c.parameters[BA_CAMERA_K2] = k2;
-    c.height = height;
-    c.width = width;
     c.exif_focal = exif_focal;
     cameras_[id] = c;
   }
@@ -345,10 +340,9 @@ class BundleAdjuster {
     }
 
     for (auto &i : cameras_) {
-      double exif_focal_sd_in_pixels = focal_prior_sd_ * i.second.width;
       ceres::CostFunction* cost_function = 
           new ceres::AutoDiffCostFunction<FocalPriorError, 1, 3>(
-              new FocalPriorError(i.second.exif_focal, exif_focal_sd_in_pixels));
+              new FocalPriorError(i.second.exif_focal, focal_prior_sd_));
 
       problem.AddResidualBlock(cost_function,
                                NULL,

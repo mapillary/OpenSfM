@@ -33,7 +33,6 @@ def bundle(graph, reconstruction, config):
         ba.add_camera(
             str(k),
             v['focal'], v['k1'], v['k2'],
-            v['width'], v['height'],
             v['exif_focal']
         )
 
