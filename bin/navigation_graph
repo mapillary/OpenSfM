@@ -1,0 +1,202 @@
+#!/usr/bin/env python
+
+import os.path, sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+import argparse
+import time
+import json
+import numpy as np
+import scipy.spatial.distance as dist
+import networkx as nx
+
+from opensfm import dataset, reconstruction
+
+
+def load_reconstructions(data):
+    with open(data.reconstruction_file()) as fin:
+        return json.load(fin)
+
+
+def vector2_angle(x1, y1, x2, y2):
+    """ Calculates the angle between two vectors on the plane.
+
+    :param x1: The x coordinate for the first vector
+    :param y1: The y coordinate for the first vector
+    :param x2: The x coordinate for the second vector
+    :param y2: The y coordinate for the second vector
+    :return: The angle between the vectors
+    """
+
+    angle = np.arctan2(y1, x1) - np.arctan2(y2, x2)
+    if angle > np.pi:
+        return angle - 2 * np.pi
+    elif angle < -np.pi:
+        return angle + 2 * np.pi
+    else:
+        return angle
+
+
+def angle_diff(a1, a2):
+    """ Calculates the difference between two angles.
+
+    :param a1: Array of angles
+    :param a2: The angle to subtract
+    :return: The difference between the angles
+    """
+
+    angles = a1 - a2
+
+    angles[angles > np.pi] -= 2 * np.pi
+    angles[angles < -np.pi] += 2 * np.pi
+
+    return angles
+
+
+def get_direction_turns_and_motion_angles(min_distance, max_distance, distances, position, direction, positions, directions):
+    """ Retrieves the indices for the positions within a distance from the position in the
+        interval between the minimum distance and the maximum distance.
+        Also calculates the direction change and the difference in motion with respect to the direction for
+        the retrieved positions.
+
+    :param min_distance: Float specifying the minimum distance to the position.
+    :param max_distance: Float specifying the maximum distance to the position.
+    :param distances: The distances for the other positions to the position.
+    :param position: The position.
+    :param direction: The direction for the position.
+    :param position: All positions.
+    :param directions: All directions.
+    :return: The indices of the positions in the specified interval. The direction turns in radians in the plane and the
+             motion turns in radians in the plane with respect to the direction.
+    """
+
+    # Order positions within interval according to shortest distance
+    position_indices = np.where((min_distance < distances) & (distances < max_distance))[0]
+    ordered_indices = position_indices[np.argsort(distances[position_indices])]
+
+    motions = positions[ordered_indices] - position
+    motion_angles = np.array(
+        [vector2_angle(direction[0], direction[1], motion[0], motion[1]) for motion in motions],
+        float)
+    direction_turns = np.array(
+        [vector2_angle(direction[0], direction[1], other_direction[0], other_direction[1])
+         for other_direction in directions[ordered_indices]],
+        float)
+
+    return ordered_indices, direction_turns, motion_angles
+
+
+def create_optical_center_graph(reconstructions, config):
+
+    optical_centers = []
+    viewing_directions = []
+    shot_ids = []
+
+    for r in reconstructions:
+        for shot_id in r['shots'].keys():
+            shot = r['shots'][shot_id]
+            optical_centers.append(reconstruction.optical_center(shot))
+            viewing_directions.append(reconstruction.viewing_direction(shot))
+            shot_ids.append(shot_id)
+
+    optical_centers = np.vstack(optical_centers)
+    viewing_directions = np.vstack(viewing_directions)
+
+    D = dist.squareform(dist.pdist(optical_centers))
+
+    min_distance = config.get('nav_min_distance', 0.01)
+
+    step_max_distance = config.get('nav_step_max_distance', 20)
+    step_forward_viewing_threshold = config.get('nav_step_forward_view_threshold', 0.25)
+    step_viewing_threshold = config.get('nav_step_view_threshold', 0.5)
+    step_drift_threshold = config.get('nav_step_drift_threshold', 0.5)
+
+    turn_max_distance = config.get('nav_turn_max_distance', 15)
+    turn_viewing_threshold = config.get('nav_turn_view_threshold', 0.7)
+
+    direction = 'direction'
+    viewing = 'viewing'
+    drift = 'drift'
+
+    steps = {
+        'step_forward': {direction: 0, viewing: step_forward_viewing_threshold, drift: step_drift_threshold},
+        'step_backward': {direction: np.pi, viewing: 2 * step_viewing_threshold, drift: step_drift_threshold},
+        'step_left': {direction: -np.pi / 2, viewing: 2 * step_viewing_threshold, drift: step_drift_threshold},
+        'step_right': {direction: np.pi / 2, viewing: 2 * step_viewing_threshold, drift: step_drift_threshold}
+    }
+
+    turns = {
+        'turn_left': {direction: -np.pi / 2, viewing: turn_viewing_threshold},
+        'turn_right': {direction: np.pi / 2, viewing: turn_viewing_threshold},
+        'turn_u': {direction: np.pi, viewing: turn_viewing_threshold}
+    }
+
+    graph = nx.DiGraph()
+
+    for i in range(0, D.shape[0]):
+
+        distances = D[i, :]
+        oc = optical_centers[i]
+        vd = viewing_directions[i]
+
+        ordered_indices, viewing_turns, motion_angles = get_direction_turns_and_motion_angles(
+            min_distance, step_max_distance, distances, oc, vd, optical_centers, viewing_directions
+        )
+
+        for key in steps:
+            step = steps[key]
+            motion_drift = angle_diff(motion_angles, step[direction])
+            motion_drift = np.max(np.vstack((np.abs(motion_drift - viewing_turns), np.abs(motion_drift))), 0)
+
+            step_indices = np.where((motion_drift < step[drift]) & (np.abs(viewing_turns) < step[viewing]))[0]
+
+            if len(step_indices) > 0:
+                step_index = ordered_indices[step_indices[0]]
+                graph.add_edge(shot_ids[i], shot_ids[step_index], weight=distances[step_index], direction=key)
+
+        ordered_indices, viewing_turns, motion_angles = get_direction_turns_and_motion_angles(
+            min_distance, turn_max_distance, distances, oc, vd, optical_centers, viewing_directions
+        )
+
+        for key in turns:
+            turn = turns[key]
+            viewing_diff = np.abs(angle_diff(viewing_turns, turn[direction]))
+            turn_indices = np.where((viewing_diff < turn[viewing]))[0]
+
+            if len(turn_indices) > 0:
+                turn_index = ordered_indices[turn_indices[0]]
+                graph.add_edge(shot_ids[i], shot_ids[turn_index], weight=distances[turn_index], direction=key)
+
+    return graph
+
+
+if __name__ == "__main__":
+    start = time.time()
+    parser = argparse.ArgumentParser(description='Compute navigation graph from reconstruction')
+    parser.add_argument('dataset',
+                        help='path to the dataset to be processed')
+    args = parser.parse_args()
+
+    data = dataset.DataSet(args.dataset)
+    recs = load_reconstructions(data)
+    navigation_graphs = []
+
+    rec_graph = create_optical_center_graph(recs, data.config)
+    navigation_graph = {
+        'edges': {},
+        'nodes': list(rec_graph.node)
+    }
+
+    for edge in rec_graph.edge:
+        navigation_graph['edges'][edge] = rec_graph.edge[edge]
+
+    navigation_graphs.append(navigation_graph)
+
+    with open(data.navigation_graph(), 'w') as fout:
+        fout.write(json.dumps(navigation_graphs))
+
+    end = time.time()
+    with open(data.profile_log(), 'a') as fout:
+        fout.write('Navigation graphs: {0}\n'.format(end - start))
+
+

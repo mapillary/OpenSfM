@@ -295,6 +295,11 @@ class DataSet:
         "Filename where to write timings."
         return os.path.join(self.data_path, 'profile.log')
 
+    def navigation_graph(self):
+        "Return the path of the navigation graph."
+        return os.path.join(self.data_path, 'navigation_graph.json')
+
+
 
 def common_tracks(g, im1, im2):
     """

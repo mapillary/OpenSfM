@@ -437,6 +437,17 @@ def optical_center(shot):
     return -R.T.dot(t)
 
 
+def viewing_direction(shot):
+    """ Calculates the viewing direction for a shot.
+
+    :param shot: The shot.
+    :return: The viewing direction.
+    """
+    R = cv2.Rodrigues(np.array(shot['rotation'], dtype=float))[0]
+    t = np.array([0, 0, 1])
+    return R.T.dot(t)
+
+
 def apply_similarity(reconstruction, s, A, b):
     """Apply a similarity (y = s A x + t) to a reconstruction.
 
