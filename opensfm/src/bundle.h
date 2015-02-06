@@ -4,7 +4,6 @@
 #include <fstream>
 #include <map>
 #include <string>
-#include <json/json.h>
 
 extern "C" {
 #include <string.h>
