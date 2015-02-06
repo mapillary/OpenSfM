@@ -76,7 +76,7 @@ def bundle(graph, reconstruction, config):
         s = ba.get_shot(str(k))
         v['rotation'] = [s.rx, s.ry, s.rz]
         v['translation'] = [s.tx, s.ty, s.tz]
-        
+
     for k, v in reconstruction['points'].items():
         p = ba.get_point(str(k))
         v['coordinates'] = [p.x, p.y, p.z]
@@ -409,7 +409,7 @@ def retriangulate(track_file, graph, reconstruction, image_graph, config):
             if reconstruct_ratio < 0.3:
                 for track in diff:
                     if track not in tracks_added:
-                        triangulate_track(track, graph, reconstruction, P_by_id, KR1_by_id, Kinv_by_id, reproj_threshold=8.0)
+                        triangulate_track(track, graph, reconstruction, P_by_id, KR1_by_id, Kinv_by_id, reproj_threshold=0.006)
                         points_added += 1
                         tracks_added.append(track)
 
@@ -420,7 +420,7 @@ def retriangulate(track_file, graph, reconstruction, image_graph, config):
     track_to_delete = []
     for track in tracks_added:
         error = reprojection_error_track(track, graph, reconstruction)
-        if error > 3.:
+        if error > config.get('triangulation_threshold', 0.004):
             track_to_delete.append(track)
     print 'Add {0} points after retriangulation.'.format(len(reconstruction['points']) - points_before)
     for t in track_to_delete:
@@ -430,6 +430,21 @@ def retriangulate(track_file, graph, reconstruction, image_graph, config):
     # bundle adjustment
     bundle(graph, reconstruction, config)
 
+
+def retriangulate_all(track_file, graph, reconstruction, image_graph, config):
+    '''
+    Retrianguate all points
+    '''
+    triangulation_threshold = config.get('retriangulation_threshold', 0.004)
+    min_ray_angle = config.get('triangulation_min_ray_angle', 2.0)
+    P_by_id = {}
+    KR1_by_id = {}
+    Kinv_by_id = {}
+    tracks, images = tracks_and_images(graph)
+    for track in tracks:
+        triangulate_track(track, graph, reconstruction, P_by_id, KR1_by_id, Kinv_by_id, triangulation_threshold, min_ray_angle)
+    # bundle adjustment
+    bundle(graph, reconstruction, config)
 
 def optical_center(shot):
     R = cv2.Rodrigues(np.array(shot['rotation'], dtype=float))[0]
@@ -533,7 +548,7 @@ def align_reconstruction_orientation_prior(reconstruction, config):
         x, y, z = get_horitzontal_and_vertical_directions(R, shot['exif_orientation'])
         if orientation_type == 'no_roll':
             onplane.append(x)
-            verticals.append(-y)            
+            verticals.append(-y)
         elif orientation_type == 'horizontal':
             onplane.append(x)
             onplane.append(z)
@@ -734,7 +749,7 @@ def grow_reconstruction(data, graph, reconstruction, images, image_graph):
                 num_points = len(reconstruction['points'])
                 if retriangulation and num_points > prev_num_points * retriangulation_ratio:
                     print 'Re-triangulating'
-                    retriangulate(data.tracks_file(), graph, reconstruction, image_graph, data.config)
+                    retriangulate_all(data.tracks_file(), graph, reconstruction, image_graph, data.config)
                     prev_num_points = len(reconstruction['points'])
                     print '  Reprojection Error:', reprojection_error(graph, reconstruction)
 
