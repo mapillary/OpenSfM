@@ -31,9 +31,6 @@ if (SUITESPARSE_FOUND)
   include_directories(${SUITESPARSE_INCLUDE_DIRS})
 endif()
 
-find_package(JsonCpp REQUIRED)
-include_directories(${JSONCPP_INCLUDE_DIRS})
-
 find_package(Eigen REQUIRED)
 include_directories(${EIGEN_INCLUDE_DIRS})
 
@@ -45,8 +42,6 @@ include_directories(${GFLAGS_INCLUDE_DIR})
 
 find_package(Glog REQUIRED)
 include_directories(${GLOG_INCLUDE_DIR})
-
-find_package(OpenCV REQUIRED)
 
 find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
@@ -79,7 +74,7 @@ target_link_libraries(mv
 )
 
 
-# Akave
+# Akaze
 include_directories(third_party/akaze/lib/)
 set(AKAZE_SRCS
     third_party/akaze/lib/AKAZEConfig.h
@@ -112,7 +107,6 @@ target_link_libraries(csfm
     ${GFLAGS_LIBRARY}
     ${GLOG_LIBRARY}
     ${CERES_LIBRARIES}
-    ${JSONCPP_LIBRARIES}
     ${LAPACK_LIBRARIES}
     ${SUITESPARSE_LIBRARIES}
     vl
@@ -122,6 +116,6 @@ target_link_libraries(csfm
 set_target_properties(csfm PROPERTIES
     PREFIX ""
     SUFFIX ".so"
-    LIBRARY_OUTPUT_DIRECTORY "${opensfm_SOURCE_DIR}/../../opensfm"
+    LIBRARY_OUTPUT_DIRECTORY "${opensfm_SOURCE_DIR}/.."
 )
 
