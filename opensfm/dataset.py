@@ -211,7 +211,6 @@ class DataSet:
                 if int(track_id) >= len(track_list):
                     track_list.append([])
                 track_list[int(track_id)].append([image_inv[image], int(observation)])
-                # track_list[int(track_id)].append([int(observation), image_inv[image]])
         return track_list
 
     def tracks_graph(self, images=None):
@@ -281,15 +280,15 @@ class DataSet:
     def epipolar_file(self, im1, im2):
         return os.path.join(self.epipolar_path(), '%s_%s_epipolar.npz' % (im1, im2))
 
-    def save_epipolar(self, im1, im2, R, t):
-        np.savez(self.epipolar_file(im1, im2), R=R, t=t)
+    def save_epipolar(self, im1, im2, R, t, X=[], inliers=[]):
+        np.savez(self.epipolar_file(im1, im2), R=R, t=t, X=X, inliers=inliers)
 
     def load_epipolar(self, im1, im2):
         try:
             s = np.load(self.epipolar_file(im1, im2))
         except IOError:
-            return None, None
-        return s['R'], s['t']
+            return None, None, None, None
+        return s['R'], s['t'], s['X'], s['inliers']
 
     def profile_log(self):
         "Filename where to write timings."

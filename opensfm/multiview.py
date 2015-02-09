@@ -342,16 +342,14 @@ def undistort_points(camera, points):
 
     return points_undistort
 
-
-
 def two_view_reconstruction(p1, p2, f1, f2, threshold):
     assert len(p1) == len(p2)
     assert len(p1) >= 5
     npoints = len(p1)
-    
+
     # Run 5-point algorithm.
     R, t, inliers = csfm.two_view_reconstruction(p1, p2, f1, f2, threshold)
-    
+
     K1 = np.array([[f1, 0, 0], [0, f1, 0], [0, 0, 1.]])
     K2 = np.array([[f2, 0, 0], [0, f2, 0], [0, 0, 1.]])
 
@@ -372,6 +370,7 @@ def two_view_reconstruction(p1, p2, f1, f2, threshold):
             e2 = np.linalg.norm(x2 - euclidean(P2X))
             inliers.append(e1 < threshold and e2 < threshold and P1X[2] > 0 and P2X[2] > 0)
         inliers = np.array(inliers)
+        Xs = np.array(Xs)
 
         inlier_changes = np.count_nonzero(inliers - old_inliers)
         old_inliers = inliers.copy()
@@ -399,7 +398,7 @@ def two_view_reconstruction(p1, p2, f1, f2, threshold):
         t = np.array((s.tx, s.ty, s.tz))
         t /= np.linalg.norm(t)
 
-    return R, t, np.nonzero(inliers)
+    return R, t, Xs, np.nonzero(inliers)[0]
 
 
 
