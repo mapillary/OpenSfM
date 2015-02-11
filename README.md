@@ -29,22 +29,22 @@ Be sure to update your `PYTHONPATH` to include `/usr/local/lib/python2.7/site-pa
 
  1. [OpenCV][] - Install by following the steps in the Ubuntu OpenCV  [installation guide](https://help.ubuntu.com/community/OpenCV). An alternative instruction tested for Ubuntu 10.04 can be found at [OpenCV Docs](http://docs.opencv.org/doc/tutorials/introduction/linux_install/linux_install.html). OpenCV requires [GCC](https://gcc.gnu.org/) and [CMake](http://www.cmake.org/) among other things.
 
- 2. [Ceres solver][] - Install the needed dependencies (download [Google Flags](https://launchpad.net/ubuntu/+source/gflags) and [Google Log](https://launchpad.net/ubuntu/+source/google-glog) and include [SuiteSparse](http://faculty.cse.tamu.edu/davis/suitesparse.html)) and build Ceres according the [documentation](http://ceres-solver.org/building.html). Install Ceres from the ceres-bin directory after `make` by:
+ 2. [Ceres solver][] - Build Ceres according the [documentation](http://ceres-solver.org/building.html). Make sure to read the Linux note, follow the shared library instructions and compile Ceres with the -fPIC option. Install Ceres from the ceres-bin directory after `make` by:
  
-    sudo make install
+        sudo make install
 
  3. [Boost Python][] - Install through apt-get:
 
-    sudo apt-get install libboost-python-dev
+        sudo apt-get install libboost-python-dev
 
  4. [NumPy][], networkx, PyYaml, exifread - Install [pip](https://pypi.python.org/pypi/pip) and then run the following from the root of the project:
 
-    sudo pip install -r requirements.txt
+        sudo pip install -r requirements.txt
 
  5. [SciPy][] - Install [gfortran](https://gcc.gnu.org/wiki/GFortran) through apt-get and then install [SciPy][] with:
 
-    sudo apt-get install gfortran
-    sudo pip install scipy
+        sudo apt-get install gfortran
+        sudo pip install scipy
 
 
 ## Building inplace using setup.py
