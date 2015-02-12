@@ -50,35 +50,37 @@ if __name__ == "__main__":
     image_graph = bipartite.weighted_projected_graph(graph, images)
 
     if args.graph:
+        # Plot graph
         weights = [i[2]['weight'] for i in image_graph.edges(data=True)]
 
         nx.draw_graphviz(image_graph, edge_color = weights, edge_cmap=pl.get_cmap('Blues'), edge_vmin=0, edge_vmax=200)
         pl.axis('off')
         pl.show()
-
-    if args.image:
-        toplot = [args.image]
     else:
-        toplot = images
+        # Plot matches between images
+        if args.image:
+            toplot = [args.image]
+        else:
+            toplot = images
 
-    i = 0
-    for im1 in toplot:
-        for im2 in images:
-            if im1 != im2:
-                t, p1, p2 = dataset.common_tracks(graph, im1, im2)
-                if len(t) >= 10:
-                    pl.figure(figsize=(20, 10))
-                    plot_matches(data.image_as_array(im1), data.image_as_array(im2), p1, p2)
-                    i += 1
-                    if args.save_figs:
-                        p = args.dataset + '/plot_tracks'
-                        io.mkdir_p(p)
-                        pl.savefig(p + '/' + im1 + '_' + im2 + '.jpg', dpi=100)
-                        pl.close()
-                    else:
-                        if i >= 10:
-                            i = 0
-                            pl.show()
+        i = 0
+        for im1 in toplot:
+            for im2 in images:
+                if im1 != im2:
+                    t, p1, p2 = dataset.common_tracks(graph, im1, im2)
+                    if len(t) >= 10:
+                        pl.figure(figsize=(20, 10))
+                        plot_matches(data.image_as_array(im1), data.image_as_array(im2), p1, p2)
+                        i += 1
+                        if args.save_figs:
+                            p = args.dataset + '/plot_tracks'
+                            io.mkdir_p(p)
+                            pl.savefig(p + '/' + im1 + '_' + im2 + '.jpg', dpi=100)
+                            pl.close()
+                        else:
+                            if i >= 10:
+                                i = 0
+                                pl.show()
 
 
 

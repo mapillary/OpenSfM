@@ -36,54 +36,77 @@ if __name__ == "__main__":
                         help='path to the dataset to be processed')
     parser.add_argument('--image',
                         help='name of the image to show')
+    parser.add_argument('--graph',
+                        help='display image graph',
+                        action='store_true')
     parser.add_argument('--save_figs',
                         help='save figures istead of showing them',
                         action='store_true')
     args = parser.parse_args()
 
     data = dataset.DataSet(args.dataset)
-    graph = data.tracks_graph()
-    tracks, images = reconstruction.tracks_and_images(graph)
-    image_graph = bipartite.weighted_projected_graph(graph, images)
+    images = data.images()
 
+    if args.graph:
+        # Plot graph
+        graph = nx.Graph()
 
-    if args.image:
-        toplot = [args.image]
-    else:
-        toplot = images
-
-
-    i = 0
-    for im1 in toplot:
-        for im2 in images:
-            if im1 != im2:
-                try:
-                    matches = np.genfromtxt(data.robust_matches_file(im1, im2), dtype=int)
-                except:
+        for im1 in images:
+            for im2 in images:
+                if im1 != im2:
                     try:
-                        matches = np.genfromtxt(data.robust_matches_file(im2, im1), dtype=int)
-                        matches = matches[:,[1,0]]
+                        matches = np.genfromtxt(data.robust_matches_file(im1, im2), dtype=int)
                     except:
-                        continue
-                print 'plotting matches between', im1, im2
+                        try:
+                            matches = np.genfromtxt(data.robust_matches_file(im2, im1), dtype=int)
+                            matches = matches[:,[1,0]]
+                        except:
+                            continue
+                    graph.add_edge(im1, im2, weight=len(matches))
 
-                p1, f1 = features.read_features(data.feature_file(im1))
-                p2, f2 = features.read_features(data.feature_file(im2))
-                p1 = p1[matches[:,0]]
-                p2 = p2[matches[:,1]]
+        weights = [i[2]['weight'] for i in graph.edges(data=True)]
 
-                pl.figure(figsize=(20, 10))
-                plot_matches(data.image_as_array(im1), data.image_as_array(im2), p1, p2)
-                i += 1
-                if args.save_figs:
-                    p = args.dataset + '/plot_tracks'
-                    io.mkdir_p(p)
-                    pl.savefig(p + '/' + im1 + '_' + im2 + '.jpg', dpi=100)
-                    pl.close()
-                else:
-                    if i >= 10:
-                        i = 0
-                        pl.show()
+        nx.draw_graphviz(graph, edge_color = weights, edge_cmap=pl.get_cmap('Blues'), edge_vmin=0, edge_vmax=200)
+        pl.axis('off')
+        pl.show()
+    else:
+        # Plot matches between images
+        if args.image:
+            toplot = [args.image]
+        else:
+            toplot = images
+
+        i = 0
+        for im1 in toplot:
+            for im2 in images:
+                if im1 != im2:
+                    try:
+                        matches = np.genfromtxt(data.robust_matches_file(im1, im2), dtype=int)
+                    except:
+                        try:
+                            matches = np.genfromtxt(data.robust_matches_file(im2, im1), dtype=int)
+                            matches = matches[:,[1,0]]
+                        except:
+                            continue
+                    print 'plotting matches between', im1, im2
+
+                    p1, f1 = features.read_features(data.feature_file(im1))
+                    p2, f2 = features.read_features(data.feature_file(im2))
+                    p1 = p1[matches[:,0]]
+                    p2 = p2[matches[:,1]]
+
+                    pl.figure(figsize=(20, 10))
+                    plot_matches(data.image_as_array(im1), data.image_as_array(im2), p1, p2)
+                    i += 1
+                    if args.save_figs:
+                        p = args.dataset + '/plot_tracks'
+                        io.mkdir_p(p)
+                        pl.savefig(p + '/' + im1 + '_' + im2 + '.jpg', dpi=100)
+                        pl.close()
+                    else:
+                        if i >= 10:
+                            i = 0
+                            pl.show()
 
 
 
