@@ -213,9 +213,11 @@ class DataSet:
                 track_list[int(track_id)].append([image_inv[image], int(observation)])
         return track_list
 
-    def tracks_graph(self, images=None):
+    def tracks_graph(self, images=None, tracks_file=None):
         """Return graph (networkx data structure) of tracks"""
-        with open(self.tracks_file()) as fin:
+        if tracks_file is None:
+            tracks_file = self.tracks_file()
+        with open(tracks_file) as fin:
             g = nx.Graph()
             for line in fin:
                 image, track, observation, x, y = line.split('\t')
@@ -297,7 +299,6 @@ class DataSet:
     def navigation_graph(self):
         "Return the path of the navigation graph."
         return os.path.join(self.data_path, 'navigation_graph.json')
-
 
 
 def common_tracks(g, im1, im2):
