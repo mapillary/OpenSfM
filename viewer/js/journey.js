@@ -324,6 +324,8 @@ var JourneyWrapper = (function ($) {
         this.initialized = false;
         this.journey = undefined;
         this.destination = undefined;
+        this.shots = undefined;
+        this.line = undefined;
     }
 
     // Private function for calculating the desired maximum interval.
@@ -376,11 +378,54 @@ var JourneyWrapper = (function ($) {
         $('#journeyButton').html('Go');
     }
 
+    // Private function converting shot dictionary with rotations and translations
+    // values to shot dictionary with optical centers and viewing directions.
+    var convertShots = function (shots) {
+        var result = {};
+
+        for (var shot_id in shots) {
+            if (!Object.prototype.hasOwnProperty.call(shots, shot_id)) {
+                continue;
+            }
+
+            var oc = opticalCenter(shots[shot_id]);
+            var vd = viewingDirection(shots[shot_id]);
+
+            result[shot_id] = { 'oc': oc, 'vd': vd };
+        }
+
+        return result;
+    }
+
+    // Private function creating a line geometry based on the optical centers
+    // of the shots defined in the path.
+    var createLineGeometry = function (shots, path) {
+        var material = new THREE.LineBasicMaterial({
+            color: 0xffff88,
+            linewidth: 5
+        });
+
+        var geometry = new THREE.Geometry();
+
+        for (var i = 0; i < path.length; i++) {
+            var shot_id = path[i];
+            var oc = shots[shot_id]['oc'];
+            geometry.vertices.push(new THREE.Vector3(oc.x, oc.y, oc.z));
+        }
+
+        return new THREE.Line(geometry, material);
+    }
+
     /**
      * Initializes a journey wrapper.
+     * @param {shots} Dictionary of shots with rotation and translation arrays.
      */
-    JourneyWrapper.prototype.initialize = function () {
+    JourneyWrapper.prototype.initialize = function (shots) {
         if ('nav' in urlParams && 'dest' in urlParams) {
+
+            if (shots !== undefined) {
+                this.shots = convertShots(shots);
+            }
 
             this.destination = urlParams.dest;
             var _this = this;
@@ -404,6 +449,39 @@ var JourneyWrapper = (function ($) {
                     _this.toggleJourney();
                 }
             });
+        }
+    }
+
+    /**
+     * Shows the shortest path in the scene.
+     */
+    JourneyWrapper.prototype.showPath = function () {
+        if (this.initialized !== true || selectedCamera === undefined || this.shots === undefined){
+            return;
+        }
+
+        this.hidePath();
+
+        var path = this.journey.shortestPath(selectedCamera.shot_id, this.destination).path;
+        this.line = createLineGeometry(this.shots, path);
+        this.line.name = "shortestPath"
+        scene.add(this.line);
+        render();
+    }
+
+    /**
+     * Hides the shortest path from the scene.
+     */
+    JourneyWrapper.prototype.hidePath = function () {
+        if (this.initialized !== true || this.line === undefined){
+            return;
+        }
+
+        if (this.line !== undefined) {
+            var sceneLine = scene.getObjectByName(this.line.name);
+            scene.remove(sceneLine);
+            this.line = undefined;
+            render();
         }
     }
 
