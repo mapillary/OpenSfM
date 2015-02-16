@@ -386,6 +386,23 @@ var JourneyWrapper = (function ($) {
         navigateToShot(camera);
     }
 
+    // Private function which retrieves a camera and
+    // creates its image plane.
+    var setImagePlane = function (shot_id) {
+        var camera = undefined;
+        for (var i = 0; i < camera_lines.length; ++i) {
+            if (camera_lines[i].shot_id === shot_id) {
+                camera = camera_lines[i];
+            }
+        }
+
+        if (camera === undefined) {
+            return;
+        }
+
+        setImagePlaneCamera(camera);
+    }
+
     // Private function for preloading images.
     var preload = function (shot_ids) {
         for (var i = 0; i < shot_ids.length; i++) {
@@ -520,18 +537,111 @@ var JourneyWrapper = (function ($) {
      * Updates the interval.
      */
     JourneyWrapper.prototype.updateInterval = function () {
-        if (this.initialized !== true){
+        if (this.initialized !== true) {
             return;
         }
 
         this.journey.updateInterval(getInterval());
     }
 
+    JourneyWrapper.prototype.smoothStart = function () {
+        if (this.initialized !== true) {
+            return;
+        }
+
+        var path = this.journey.shortestPath(selectedCamera.shot_id, this.destination).path;
+
+        if (path.length < 1) {
+            return;
+        }
+
+        var lineGeometry = createLineGeometry(this.shots, path);
+        this.path = path;
+        this.lineSegmentCurve = lineGeometry.lineCurve;
+        var camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.3, 1000);
+
+        var pos = this.lineSegmentCurve.getPointAt(0);
+
+        camera.position.x = pos.x;
+        camera.position.y = pos.y;
+        camera.position.z = pos.z;
+        camera.up = new THREE.Vector3(0,0,1);
+
+        scene.add(camera)
+
+        this.camera = camera;
+
+        preload(this.path.slice(1, Math.min(10, this.path.length)));
+        this.smoothJourneyStarted = true;
+        this.startTime = Date.now();
+        this.currentIndex = 0;
+        setImagePlane(this.path[1]);
+    }
+
+    JourneyWrapper.prototype.render = function () {
+        if (this.smoothJourneyStarted !== true) {
+            return false;
+        }
+
+        if (this.currentIndex + 10 <= this.path.length - 1) {
+            preload([this.path[this.currentIndex + 10]]);
+        }
+
+        var a = 1;
+        var path = this.path;
+        var lineSegmentCurve = this.lineSegmentCurve;
+        var length = lineSegmentCurve.getLength();
+        var interval = getInterval();
+        var time = Date.now();
+        var elapsed = time - this.startTime;
+
+        var totalTime = 2 * interval * length / 20;
+
+        var u = Math.min(elapsed / totalTime, 1);
+
+        if (elapsed / totalTime > 1) {
+            this.smoothJourneyStarted = false;
+            return true;
+        }
+
+        var t = lineSegmentCurve.getUtoTmapping(u);
+        var point = (path.length - 1) * t;
+
+        var intPoint = Math.floor(point);
+        var weight = point - intPoint;
+
+        if (intPoint > this.currentIndex && intPoint < this.path.length) {
+            this.currentIndex = intPoint;
+            setImagePlane(this.path[this.currentIndex + 1]);
+        }
+
+        var shot_id1 = path[intPoint];
+        var vd1 = this.shots[shot_id1]['vd'].normalize();
+
+        var shot_id2 = path[intPoint + 1];
+        var vd2 = this.shots[shot_id2]['vd'].normalize();
+
+        var line3 = new THREE.Line3(vd1, vd2);
+        var direction = line3.at(weight).normalize();
+
+        var position = lineSegmentCurve.getPointAt(u);
+
+        var lookAt = new THREE.Vector3();
+        lookAt.addVectors(position, direction);
+
+        this.camera.position.copy(position);
+        this.camera.lookAt(lookAt);
+
+        renderer.render(scene, this.camera);
+
+        return true;
+    }
+
     /**
      * Stops a journey.
      */
     JourneyWrapper.prototype.stop = function () {
-        if (this.initialized !== true){
+        if (this.initialized !== true) {
             return;
         }
 
@@ -544,7 +654,7 @@ var JourneyWrapper = (function ($) {
      * Toggles the journey state between started and stopped.
      */
     JourneyWrapper.prototype.toggleJourney = function () {
-        if (this.initialized !== true){
+        if (this.initialized !== true) {
             return;
         }
 
