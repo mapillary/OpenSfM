@@ -551,25 +551,26 @@ var JourneyWrapper = (function ($) {
 
         var path = this.journey.shortestPath(selectedCamera.shot_id, this.destination).path;
 
-        if (path.length < 1) {
+        if (path.length <= 1) {
             return;
         }
 
         var lineGeometry = createLineGeometry(this.shots, path);
         this.path = path;
         this.lineSegmentCurve = lineGeometry.lineCurve;
-        var camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.3, 1000);
 
         var pos = this.lineSegmentCurve.getPointAt(0);
+        camera.position.copy(pos);
 
-        camera.position.x = pos.x;
-        camera.position.y = pos.y;
-        camera.position.z = pos.z;
-        camera.up = new THREE.Vector3(0,0,1);
+        var shot_id1 = path[0];
+        var vd1 = this.shots[shot_id1]['vd'].normalize();
 
-        scene.add(camera)
+        var lookAt = new THREE.Vector3();
+        lookAt.addVectors(pos, vd1);
 
-        this.camera = camera;
+        camera.lookAt(lookAt);
+
+        controls.adjustAnimationToObject();
 
         preload(this.path.slice(1, Math.min(10, this.path.length)));
         this.smoothJourneyStarted = true;
@@ -580,14 +581,13 @@ var JourneyWrapper = (function ($) {
 
     JourneyWrapper.prototype.render = function () {
         if (this.smoothJourneyStarted !== true) {
-            return false;
+            return;
         }
 
         if (this.currentIndex + 10 <= this.path.length - 1) {
             preload([this.path[this.currentIndex + 10]]);
         }
 
-        var a = 1;
         var path = this.path;
         var lineSegmentCurve = this.lineSegmentCurve;
         var length = lineSegmentCurve.getLength();
@@ -598,11 +598,6 @@ var JourneyWrapper = (function ($) {
         var totalTime = 2 * interval * length / 20;
 
         var u = Math.min(elapsed / totalTime, 1);
-
-        if (elapsed / totalTime > 1) {
-            this.smoothJourneyStarted = false;
-            return true;
-        }
 
         var t = lineSegmentCurve.getUtoTmapping(u);
         var point = (path.length - 1) * t;
@@ -618,7 +613,7 @@ var JourneyWrapper = (function ($) {
         var shot_id1 = path[intPoint];
         var vd1 = this.shots[shot_id1]['vd'].normalize();
 
-        var shot_id2 = path[intPoint + 1];
+        var shot_id2 = path[Math.min(intPoint + 1, this.path.length - 1)];
         var vd2 = this.shots[shot_id2]['vd'].normalize();
 
         var line3 = new THREE.Line3(vd1, vd2);
@@ -629,12 +624,14 @@ var JourneyWrapper = (function ($) {
         var lookAt = new THREE.Vector3();
         lookAt.addVectors(position, direction);
 
-        this.camera.position.copy(position);
-        this.camera.lookAt(lookAt);
+        camera.position.copy(position);
+        camera.lookAt(lookAt);
 
-        renderer.render(scene, this.camera);
+        controls.adjustAnimationToObject();
 
-        return true;
+        if (elapsed / totalTime > 1) {
+            this.smoothJourneyStarted = false;
+        }
     }
 
     /**

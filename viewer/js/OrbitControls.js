@@ -240,6 +240,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 
 		this.target.lerp(this.animationTarget, this.animationSpeed);
 		this.object.position.lerp(this.animationPosition, this.animationSpeed);
+
 		this.object.lookAt(this.target);
 
 		// update condition is:
@@ -254,6 +255,19 @@ THREE.OrbitControls = function ( object, domElement ) {
 			lastQuaternion.copy (this.object.quaternion );
 		}
 	};
+
+	this.adjustAnimationToObject = function () {
+	    this.animationPosition.copy(this.object.position.multiplyScalar(1.01));
+
+	    var direction = new THREE.Vector3(0, 0, -1);
+	    direction.applyQuaternion(object.quaternion).normalize();
+
+	    var target = new THREE.Vector3();
+	    target.addVectors(this.object.position, direction);
+
+        this.target.copy(this.animationTarget);
+		this.animationTarget.copy(target);
+	}
 
 	this.goto_shot = function(cam, shot) {
 		this.animationPosition.copy(opticalCenter(shot));
