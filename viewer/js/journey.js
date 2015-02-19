@@ -334,7 +334,7 @@ var Journey = (function () {
     return Journey;
 })();
 
-LineSegmentCurve = THREE.Curve.create(
+LinearCurve = THREE.Curve.create(
 
 	function (points) {
 
@@ -479,9 +479,9 @@ var JourneyWrapper = (function ($) {
         }
 
         var line = new THREE.Line(geometry, material);
-        var lineCurve = new LineSegmentCurve(geometry.vertices);
+        var linearCurve = new LinearCurve(geometry.vertices);
 
-        return { 'line': line, 'lineCurve': lineCurve}
+        return { 'line': line, 'linearCurve': linearCurve}
     }
 
     /**
@@ -578,9 +578,9 @@ var JourneyWrapper = (function ($) {
 
         var lineGeometry = createLineGeometry(this.shots, path);
         this.path = path;
-        this.lineSegmentCurve = lineGeometry.lineCurve;
+        this.linearCurve = lineGeometry.linearCurve;
 
-        var pos = this.lineSegmentCurve.getPointAt(0);
+        var pos = this.linearCurve.getPointAt(0);
         camera.position.copy(pos);
 
         var shot_id1 = path[0];
@@ -610,8 +610,8 @@ var JourneyWrapper = (function ($) {
         }
 
         var path = this.path;
-        var lineSegmentCurve = this.lineSegmentCurve;
-        var length = lineSegmentCurve.getLength();
+        var linearCurve = this.linearCurve;
+        var length = linearCurve.getLength();
         var interval = getInterval();
         var time = Date.now();
         var elapsed = time - this.startTime;
@@ -620,7 +620,7 @@ var JourneyWrapper = (function ($) {
 
         var u = Math.min(elapsed / totalTime, 1);
 
-        var t = lineSegmentCurve.getUtoTmapping(u);
+        var t = linearCurve.getUtoTmapping(u);
         var point = (path.length - 1) * t;
 
         var intPoint = Math.floor(point);
@@ -640,7 +640,7 @@ var JourneyWrapper = (function ($) {
         var line3 = new THREE.Line3(vd1, vd2);
         var direction = line3.at(weight).normalize();
 
-        var position = lineSegmentCurve.getPointAt(u);
+        var position = linearCurve.getPointAt(u);
 
         var lookAt = new THREE.Vector3();
         lookAt.addVectors(position, direction);
