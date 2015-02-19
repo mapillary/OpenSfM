@@ -106,6 +106,12 @@ var Dijkstra = (function () {
 
 var JourneyBase = (function () {
 
+    /**
+     * A journey base.
+     * @constructor
+     * @param {String} graphs A list of graphs.
+     * @param {Boolean} usePenalty Value indicating if a penalty should be used.
+     */
     function JourneyBase(graphs, usePenalty) {
         this.graphs = graphs;
         this.usePenalty = usePenalty;
