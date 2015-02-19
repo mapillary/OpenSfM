@@ -104,6 +104,97 @@ var Dijkstra = (function () {
     return Dijkstra;
 })();
 
+var JourneyBase = (function () {
+
+    function JourneyBase(graphs, usePenalty) {
+        this.graphs = graphs;
+        this.usePenalty = usePenalty;
+        this.started = false;
+        this.dijkstra = new Dijkstra();
+    }
+
+    // Private function for creating a graph with a penalty for a certain property with
+    // a certain value.
+    var getPenaltyGraph = function (graph, weightKey, penaltyKey, penalties) {
+
+        var penaltyGraph = { edges: {} };
+
+        for (var k in graph.edges) {
+            if (!Object.prototype.hasOwnProperty.call(graph.edges, k)) {
+                continue;
+            }
+
+            penaltyGraph.edges[k] = {};
+            var edges = graph.edges[k];
+
+            for (var m in edges) {
+                if (!Object.prototype.hasOwnProperty.call(edges, m)) {
+                    continue;
+                }
+
+                penaltyGraph.edges[k][m] = {};
+
+                // Add penalty to weight if the value of the penalty key corresponds
+                // to the specified penalty value.
+                if (edges[m][penaltyKey] in penalties) {
+                    penaltyGraph.edges[k][m][weightKey] = edges[m][weightKey] + penalties[edges[m][penaltyKey]];
+                }
+                else {
+                    penaltyGraph.edges[k][m][weightKey] = edges[m][weightKey];
+                }
+            }
+        }
+
+        return penaltyGraph;
+    }
+
+     /**
+     * Calculate the shortest path between two nodes in a graph.
+     * @param {String} from
+     * @param {String} to
+     * @return {Array} An array of node names corresponding to the path
+     */
+    JourneyBase.prototype.shortestPath = function (from, to) {
+        var index = undefined;
+        for (var i = 0; i < this.graphs.length; i++) {
+            // Ensure that both nodes exist in the graph.
+            if (this.graphs[i].nodes.indexOf(from) > -1 &&
+                this.graphs[i].nodes.indexOf(to) > -1) {
+                index = i;
+                break;
+            }
+        }
+
+        if (index === undefined) {
+            return null;
+        }
+
+        var journeyGraph = this.graphs[index];
+        if (this.usePenalty === true) {
+            journeyGraph =
+                getPenaltyGraph(
+                    journeyGraph,
+                    'weight',
+                    'direction',
+                    { step_backward: 30, turn_u: 15 });
+        }
+
+        var path = this.dijkstra.shortestPath(journeyGraph, from, to, 'weight');
+
+        return { path: path, index: index };
+    }
+
+    /**
+     * Gets a value indicating whether a journey is ongoing.
+     * @return {Boolean} A value indicating whether a journey is ongoing.
+     */
+    JourneyBase.prototype.isStarted = function () {
+        return this.started;
+    }
+
+    return JourneyBase;
+})();
+
 var Journey = (function () {
 
     /**
@@ -118,20 +209,23 @@ var Journey = (function () {
      * @param {Boolean} usePenalty Value indicating if a penalty should be used.
      */
     function Journey(graphs, intervalTime, navigationAction, startAction, stopAction, preloadAction, usePenalty) {
-        this.graphs = graphs;
+
+        JourneyBase.apply(this, [graphs, usePenalty]);
+
         this.intervalTime = intervalTime;
         this.navigationAction = navigationAction;
         this.startAction = startAction;
         this.stopAction = stopAction;
         this.preloadAction = preloadAction;
-        this.usePenalty = usePenalty;
         this.timeoutToken = undefined;
         this.path = undefined;
         this.graphIndex = undefined;
         this.currentIndex = 0;
-        this.started = false;
-        this.dijkstra = new Dijkstra();
     }
+
+    // Inheriting from JourneyBase
+    Journey.prototype = Object.create(JourneyBase.prototype);
+    Journey.prototype.constructor = Journey;
 
     // Private function for calculating the interval value.The max distance of an edge is
     // 20. The interval is the fraction of the max distance multiplied by the current
@@ -171,91 +265,12 @@ var Journey = (function () {
         self.timeoutToken = window.setTimeout(function () { onNavigation(self); }, currentInterval);
     }
 
-    // Private function for creating a graph with a penalty for a certain property with
-    // a certain value.
-    var getPenaltyGraph = function (graph, weightKey, penaltyKey, penalties) {
-
-        var penaltyGraph = { edges: {} };
-
-        for (var k in graph.edges) {
-            if (!Object.prototype.hasOwnProperty.call(graph.edges, k)) {
-                continue;
-            }
-
-            penaltyGraph.edges[k] = {};
-            var edges = graph.edges[k];
-
-            for (var m in edges) {
-                if (!Object.prototype.hasOwnProperty.call(edges, m)) {
-                    continue;
-                }
-
-                penaltyGraph.edges[k][m] = {};
-
-                // Add penalty to weight if the value of the penalty key corresponds
-                // to the specified penalty value.
-                if (edges[m][penaltyKey] in penalties) {
-                    penaltyGraph.edges[k][m][weightKey] = edges[m][weightKey] + penalties[edges[m][penaltyKey]];
-                }
-                else {
-                    penaltyGraph.edges[k][m][weightKey] = edges[m][weightKey];
-                }
-            }
-        }
-
-        return penaltyGraph;
-    }
-
     /**
      * Sets the interval time.
      * @param {Integer} intervalTime
      */
     Journey.prototype.updateInterval = function (intervalTime) {
         this.intervalTime = intervalTime;
-    }
-
-     /**
-     * Gets a value indicating whether a journey is ongoing.
-     * @return {Boolean} A value indicating whether a journey is ongoing.
-     */
-    Journey.prototype.isStarted = function () {
-        return this.started;
-    }
-
-    /**
-     * Calculate the shortest path between two nodes in a graph.
-     * @param {String} from
-     * @param {String} to
-     * @return {Array} An array of node names corresponding to the path
-     */
-    Journey.prototype.shortestPath = function (from, to) {
-        var index = undefined;
-        for (var i = 0; i < this.graphs.length; i++) {
-            // Ensure that both nodes exist in the graph.
-            if (this.graphs[i].nodes.indexOf(from) > -1 &&
-                this.graphs[i].nodes.indexOf(to) > -1) {
-                index = i;
-                break;
-            }
-        }
-
-        if (index === undefined) {
-            return null;
-        }
-
-        var journeyGraph = this.graphs[index];
-        if (this.usePenalty === true) {
-            journeyGraph =
-                getPenaltyGraph(
-                    journeyGraph,
-                    'weight',
-                    'direction',
-                    { step_backward: 30, turn_u: 15 });
-        }
-
-        var path = this.dijkstra.shortestPath(journeyGraph, from, to, 'weight');
-
-        return { path: path, index: index };
     }
 
     /**
