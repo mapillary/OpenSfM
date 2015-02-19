@@ -334,6 +334,26 @@ var Journey = (function () {
     return Journey;
 })();
 
+var SmoothJourney = (function () {
+
+    /**
+     * A smooth journey.
+     * @constructor
+     * @param {String} graphs A list of graphs.
+     * @param {Boolean} usePenalty Value indicating if a penalty should be used.
+     */
+    function SmoothJourney(graphs, usePenalty) {
+
+        JourneyBase.apply(this, [graphs, usePenalty]);
+    }
+
+    // Inheriting from JourneyBase
+    SmoothJourney.prototype = Object.create(JourneyBase.prototype);
+    SmoothJourney.prototype.constructor = SmoothJourney;
+
+    return SmoothJourney;
+})();
+
 LinearCurve = THREE.Curve.create(
 
 	function (points) {
