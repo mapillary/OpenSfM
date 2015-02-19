@@ -217,13 +217,16 @@ class DataSet:
         """Return graph (networkx data structure) of tracks"""
         if tracks_file is None:
             tracks_file = self.tracks_file()
+        if images is None:
+            images = self.images()
         with open(tracks_file) as fin:
             g = nx.Graph()
             for line in fin:
                 image, track, observation, x, y = line.split('\t')
-                g.add_node(image, bipartite=0)
-                g.add_node(track, bipartite=1)
-                g.add_edge(image, track, feature=(float(x), float(y)), feature_id=int(observation))
+                if image in images:
+                    g.add_node(image, bipartite=0)
+                    g.add_node(track, bipartite=1)
+                    g.add_edge(image, track, feature=(float(x), float(y)), feature_id=int(observation))
             return g
 
     def reconstruction_file(self):
