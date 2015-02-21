@@ -137,9 +137,11 @@ var JourneyBase = (function () {
      * @param {String} graphs A list of graphs.
      * @param {Boolean} usePenalty Value indicating if a penalty should be used.
      */
-    function JourneyBase(graphs, usePenalty) {
+    function JourneyBase(graphs, intervalTime, usePenalty) {
         this.graphs = graphs;
+        this.intervalTime = intervalTime;
         this.usePenalty = usePenalty;
+
         this.started = false;
         this.dijkstra = new Dijkstra();
     }
@@ -177,6 +179,14 @@ var JourneyBase = (function () {
         }
 
         return penaltyGraph;
+    }
+
+    /**
+     * Sets the interval time.
+     * @param {Integer} intervalTime
+     */
+    JourneyBase.prototype.updateInterval = function (intervalTime) {
+        this.intervalTime = intervalTime;
     }
 
      /**
@@ -241,9 +251,8 @@ var Journey = (function () {
      */
     function Journey(graphs, intervalTime, navigationAction, startAction, stopAction, preloadAction, usePenalty) {
 
-        JourneyBase.apply(this, [graphs, usePenalty]);
+        JourneyBase.apply(this, [graphs, intervalTime, usePenalty]);
 
-        this.intervalTime = intervalTime;
         this.navigationAction = navigationAction;
         this.startAction = startAction;
         this.stopAction = stopAction;
@@ -294,14 +303,6 @@ var Journey = (function () {
                 self.intervalTime);
 
         self.timeoutToken = window.setTimeout(function () { onNavigation(self); }, currentInterval);
-    }
-
-    /**
-     * Sets the interval time.
-     * @param {Integer} intervalTime
-     */
-    Journey.prototype.updateInterval = function (intervalTime) {
-        this.intervalTime = intervalTime;
     }
 
     /**
@@ -367,9 +368,9 @@ var SmoothJourney = (function () {
      * @param {String} graphs A list of graphs.
      * @param {Boolean} usePenalty Value indicating if a penalty should be used.
      */
-    function SmoothJourney(graphs, shots, navigationAction, nodeAction, startAction, stopAction, preloadAction, usePenalty) {
+    function SmoothJourney(graphs, intervalTime, shots, navigationAction, nodeAction, startAction, stopAction, preloadAction, usePenalty) {
 
-        JourneyBase.apply(this, [graphs, usePenalty]);
+        JourneyBase.apply(this, [graphs, intervalTime, usePenalty]);
 
         this.shots = shots;
         this.navigationAction = navigationAction;
@@ -378,8 +379,9 @@ var SmoothJourney = (function () {
         this.stopAction = stopAction;
         this.preloadAction = preloadAction;
 
-        this.startTime = undefined;
+        this.previousTime = undefined;
         this.currentIndex = 0;
+        this.u = 0;
         this.path = undefined;
         this.linearCurve = undefined;
     }
@@ -435,7 +437,8 @@ var SmoothJourney = (function () {
         var vd = this.shots[shot_id]['vd'].normalize();
         var lookAt = new THREE.Vector3().addVectors(position, vd);
 
-        this.startTime = Date.now();
+        this.previousTime = Date.now();
+        this.u = 0;
         this.currentIndex = 0;
 
         this.startAction();
@@ -453,15 +456,14 @@ var SmoothJourney = (function () {
             preloadAction([this.path[this.currentIndex + 10]]);
         }
 
-        var length = this.linearCurve.getLength();
-        var interval = 3000;
-        var time = Date.now();
-        var elapsed = time - this.startTime;
+        var currentTime = Date.now();
+        var elapsed = currentTime - this.previousTime;
+        this.previousTime = currentTime;
+        var totalTime = 2 * this.intervalTime * this.linearCurve.getLength() / 20;
 
-        var totalTime = 2 * interval * length / 20;
+        this.u = Math.min(this.u + (elapsed / totalTime), 1);
 
-        var u = Math.min(elapsed / totalTime, 1);
-        var t = this.linearCurve.getUtoTmapping(u);
+        var t = this.linearCurve.getUtoTmapping(this.u);
         var point = (this.path.length - 1) * t;
         var intPoint = Math.floor(point);
         var weight = point - intPoint;
@@ -471,7 +473,7 @@ var SmoothJourney = (function () {
             this.nodeAction(this.path[this.currentIndex + 1]);
         }
 
-        var position = this.linearCurve.getPointAt(u);
+        var position = this.linearCurve.getPoint(t);
 
         var shot_id1 = this.path[intPoint];
         var vd1 = this.shots[shot_id1]['vd'].normalize();
@@ -484,19 +486,21 @@ var SmoothJourney = (function () {
 
         this.navigationAction(position, lookAt);
 
-        if (elapsed / totalTime >= 1) {
+        if (this.u >= 1) {
             this.stop();
         }
     }
 
     SmoothJourney.prototype.stop = function () {
-        if (this.startTime === undefined || this.started === false) {
+        if (this.previousTime === undefined || this.started === false) {
             return;
         }
 
         this.path = undefined;
         this.linearCurve = undefined;
+        this.previousTime = undefined;
         this.currentIndex = 0;
+        this.u = 0;
 
         this.stopAction();
 
@@ -533,9 +537,8 @@ var JourneyWrapper = (function ($) {
         return interval;
     }
 
-    // Private function for navigation action of journey. Retrieves a camera,
-    // creates its image plane and navigates to it.
-    var navigation = function (shot_id) {
+    // Private function for retrieving a camera based on the id.
+    var getCamera = function (shot_id) {
         var camera = undefined;
         for (var i = 0; i < camera_lines.length; ++i) {
             if (camera_lines[i].shot_id === shot_id) {
@@ -543,7 +546,14 @@ var JourneyWrapper = (function ($) {
             }
         }
 
-        if (camera === undefined) {
+        return camera === undefined ? null : camera;
+    }
+
+    // Private function for navigation action of journey. Retrieves a camera,
+    // creates its image plane and navigates to it.
+    var navigation = function (shot_id) {
+        var camera = getCamera(shot_id);
+        if (camera === null) {
             return;
         }
 
@@ -554,14 +564,8 @@ var JourneyWrapper = (function ($) {
     // Private function which retrieves a camera and
     // creates its image plane.
     var setImagePlane = function (shot_id) {
-        var camera = undefined;
-        for (var i = 0; i < camera_lines.length; ++i) {
-            if (camera_lines[i].shot_id === shot_id) {
-                camera = camera_lines[i];
-            }
-        }
-
-        if (camera === undefined) {
+        var camera = getCamera(shot_id);
+        if (camera === null) {
             return;
         }
 
@@ -606,6 +610,8 @@ var JourneyWrapper = (function ($) {
         return result;
     }
 
+    // Private function for setting the position and direction of the camera
+    // used fot the smooth navigation movement.
     var smoothNavigation = function (position, lookAt) {
         camera.position.copy(position);
         camera.lookAt(lookAt);
@@ -637,6 +643,7 @@ var JourneyWrapper = (function ($) {
                 _this.smoothJourney =
                     new SmoothJourney(
                         data,
+                        getInterval(),
                         convertShots(shots),
                         smoothNavigation,
                         setImagePlane,
@@ -706,6 +713,7 @@ var JourneyWrapper = (function ($) {
         }
 
         this.journey.updateInterval(getInterval());
+        this.smoothJourney.updateInterval(getInterval());
     }
 
     /**
