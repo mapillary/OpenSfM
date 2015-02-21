@@ -107,6 +107,8 @@ if __name__ == "__main__":
                         if i >= 10:
                             i = 0
                             pl.show()
+        if not args.save_figs:
+            pl.show()
 
 
 
