@@ -104,6 +104,31 @@ var Dijkstra = (function () {
     return Dijkstra;
 })();
 
+var LinearCurve = THREE.Curve.create(
+
+	function (points) {
+
+		this.points = (points == undefined) ? [] : points;
+	},
+
+	function (t) {
+
+		var points = this.points;
+		var point = (points.length - 1) * t;
+
+		var intPoint = Math.floor(point);
+		var weight = point - intPoint;
+
+		var point1 = points[intPoint];
+		var point2 = points[intPoint > points.length - 2 ? points.length - 1 : intPoint + 1];
+
+		var vector = new THREE.Vector3();
+		vector.copy(point1).lerp(point2, weight);
+
+		return vector;
+	}
+);
+
 var JourneyBase = (function () {
 
     /**
@@ -342,44 +367,151 @@ var SmoothJourney = (function () {
      * @param {String} graphs A list of graphs.
      * @param {Boolean} usePenalty Value indicating if a penalty should be used.
      */
-    function SmoothJourney(graphs, usePenalty) {
+    function SmoothJourney(graphs, shots, navigationAction, nodeAction, startAction, stopAction, preloadAction, usePenalty) {
 
         JourneyBase.apply(this, [graphs, usePenalty]);
+
+        this.shots = shots;
+        this.navigationAction = navigationAction;
+        this.nodeAction = nodeAction;
+        this.startAction = startAction;
+        this.stopAction = stopAction;
+        this.preloadAction = preloadAction;
+
+        this.startTime = undefined;
+        this.currentIndex = 0;
+        this.path = undefined;
+        this.linearCurve = undefined;
     }
 
     // Inheriting from JourneyBase
     SmoothJourney.prototype = Object.create(JourneyBase.prototype);
     SmoothJourney.prototype.constructor = SmoothJourney;
 
+    var getLineGeometry = function (shots, path) {
+        var geometry = new THREE.Geometry();
+
+        for (var i = 0; i < path.length; i++) {
+            var shot_id = path[i];
+            var oc = shots[shot_id]['oc'];
+            geometry.vertices.push(new THREE.Vector3(oc.x, oc.y, oc.z));
+        }
+
+        return geometry;
+    }
+
+    /**
+     * Creates a line geometry based on the optical centers of the nodes in the path
+     * between the specified nodes.
+     * @param {String} from Name of the start node.
+     * @param {String} to Name of the end node.
+     */
+    SmoothJourney.prototype.getLineGeometry = function (from, to) {
+
+        var result = this.shortestPath(from, to);
+        if (result === null || result.path.length <= 1) {
+            return null;
+        }
+
+        return getLineGeometry(this.shots, result.path);
+    }
+
+    SmoothJourney.prototype.start = function (from, to) {
+        if (this.started === true) {
+            return;
+        }
+
+        var result = this.shortestPath(from, to);
+        if (result === null || result.path.length <= 1) {
+            return;
+        }
+
+        this.started = true;
+        this.path = result.path;
+        this.linearCurve = new LinearCurve(getLineGeometry(this.shots, this.path).vertices);
+
+        var position = this.linearCurve.getPointAt(0);
+        var shot_id = this.path[0];
+        var vd = this.shots[shot_id]['vd'].normalize();
+        var lookAt = new THREE.Vector3().addVectors(position, vd);
+
+        this.startTime = Date.now();
+        this.currentIndex = 0;
+
+        this.startAction();
+        this.preloadAction(this.path.slice(1, Math.min(10, this.path.length)));
+        this.nodeAction(this.path[this.currentIndex + 1]);
+        this.navigationAction(position, lookAt);
+    }
+
+    SmoothJourney.prototype.move = function () {
+        if (this.started !== true) {
+            return;
+        }
+
+        if (this.currentIndex + 10 <= this.path.length - 1) {
+            preloadAction([this.path[this.currentIndex + 10]]);
+        }
+
+        var path = this.path;
+        var linearCurve = this.linearCurve;
+        var length = linearCurve.getLength();
+        var interval = 3000;
+        var time = Date.now();
+        var elapsed = time - this.startTime;
+
+        var totalTime = 2 * interval * length / 20;
+
+        var u = Math.min(elapsed / totalTime, 1);
+
+        var t = linearCurve.getUtoTmapping(u);
+        var point = (path.length - 1) * t;
+
+        var intPoint = Math.floor(point);
+        var weight = point - intPoint;
+
+        if (intPoint > this.currentIndex && intPoint < this.path.length) {
+            this.currentIndex = intPoint;
+            this.nodeAction(this.path[this.currentIndex + 1]);
+        }
+
+        var shot_id1 = path[intPoint];
+        var vd1 = this.shots[shot_id1]['vd'].normalize();
+
+        var shot_id2 = path[Math.min(intPoint + 1, this.path.length - 1)];
+        var vd2 = this.shots[shot_id2]['vd'].normalize();
+
+        var line3 = new THREE.Line3(vd1, vd2);
+        var direction = line3.at(weight).normalize();
+
+        var position = linearCurve.getPointAt(u);
+
+        var lookAt = new THREE.Vector3();
+        lookAt.addVectors(position, direction);
+
+        this.navigationAction(position, lookAt);
+
+        if (elapsed / totalTime > 1) {
+            this.started = false;
+        }
+    }
+
+    SmoothJourney.prototype.stop = function () {
+        if (this.startTime === undefined || this.started === false) {
+            return;
+        }
+
+        this.path = undefined;
+        this.linearCurve = undefined;
+        this.currentIndex = 0;
+
+        this.stopAction();
+
+        this.started = false;
+    }
+
     return SmoothJourney;
 })();
-
-LinearCurve = THREE.Curve.create(
-
-	function (points) {
-
-		this.points = (points == undefined) ? [] : points;
-
-	},
-
-	function (t) {
-
-		var points = this.points;
-		var point = (points.length - 1) * t;
-
-		var intPoint = Math.floor(point);
-		var weight = point - intPoint;
-
-		var point1 = points[intPoint];
-		var point2 = points[intPoint > points.length - 2 ? points.length - 1 : intPoint + 1 ];
-
-		var vector = new THREE.Vector3();
-		vector.copy(point1).lerp(point2, weight);
-
-		return vector;
-
-	}
-);
 
 var JourneyWrapper = (function ($) {
 
@@ -392,7 +524,6 @@ var JourneyWrapper = (function ($) {
         this.initialized = false;
         this.journey = undefined;
         this.destination = undefined;
-        this.shots = undefined;
         this.line = undefined;
     }
 
@@ -482,26 +613,10 @@ var JourneyWrapper = (function ($) {
         return result;
     }
 
-    // Private function creating a line geometry based on the optical centers
-    // of the shots defined in the path.
-    var createLineGeometry = function (shots, path) {
-        var material = new THREE.LineBasicMaterial({
-            color: 0xffff88,
-            linewidth: 5
-        });
-
-        var geometry = new THREE.Geometry();
-
-        for (var i = 0; i < path.length; i++) {
-            var shot_id = path[i];
-            var oc = shots[shot_id]['oc'];
-            geometry.vertices.push(new THREE.Vector3(oc.x, oc.y, oc.z));
-        }
-
-        var line = new THREE.Line(geometry, material);
-        var linearCurve = new LinearCurve(geometry.vertices);
-
-        return { 'line': line, 'linearCurve': linearCurve}
+    var smoothNavigation = function (position, lookAt) {
+        camera.position.copy(position);
+        camera.lookAt(lookAt);
+        controls.adjustAnimationToObject();
     }
 
     /**
@@ -510,10 +625,6 @@ var JourneyWrapper = (function ($) {
      */
     JourneyWrapper.prototype.initialize = function (shots) {
         if ('nav' in urlParams && 'dest' in urlParams) {
-
-            if (shots !== undefined) {
-                this.shots = convertShots(shots);
-            }
 
             this.destination = urlParams.dest;
             var _this = this;
@@ -527,6 +638,17 @@ var JourneyWrapper = (function ($) {
                         navigation,
                         start,
                         stop,
+                        preload,
+                        true);
+
+                _this.smoothJourney =
+                    new SmoothJourney(
+                        data,
+                        convertShots(shots),
+                        smoothNavigation,
+                        setImagePlane,
+                        function () {},
+                        function () {},
                         preload,
                         true);
 
@@ -544,15 +666,23 @@ var JourneyWrapper = (function ($) {
      * Shows the shortest path in the scene.
      */
     JourneyWrapper.prototype.showPath = function () {
-        if (this.initialized !== true || selectedCamera === undefined || this.shots === undefined){
+        if (this.initialized !== true || selectedCamera === undefined){
             return;
         }
 
         this.hidePath();
 
-        var path = this.journey.shortestPath(selectedCamera.shot_id, this.destination).path;
-        var lineGeometry = createLineGeometry(this.shots, path);
-        this.line = lineGeometry.line;
+        var geometry = this.smoothJourney.getLineGeometry(selectedCamera.shot_id, this.destination);
+        if (geometry === null) {
+            return;
+        }
+
+        var material = new THREE.LineBasicMaterial({
+            color: 0xffff88,
+            linewidth: 5
+        });
+
+        this.line = new THREE.Line(geometry, material);
         this.line.name = "shortestPath"
         scene.add(this.line);
         render();
@@ -585,94 +715,41 @@ var JourneyWrapper = (function ($) {
         this.journey.updateInterval(getInterval());
     }
 
+    /**
+     * Starts a smooth journey.
+     */
     JourneyWrapper.prototype.smoothStart = function () {
         if (this.initialized !== true) {
             return;
         }
 
-        var path = this.journey.shortestPath(selectedCamera.shot_id, this.destination).path;
-
-        if (path.length <= 1) {
-            return;
+        if (this.smoothJourney.isStarted() === false) {
+            this.smoothJourney.start(selectedCamera.shot_id, this.destination);
         }
-
-        var lineGeometry = createLineGeometry(this.shots, path);
-        this.path = path;
-        this.linearCurve = lineGeometry.linearCurve;
-
-        var pos = this.linearCurve.getPointAt(0);
-        camera.position.copy(pos);
-
-        var shot_id1 = path[0];
-        var vd1 = this.shots[shot_id1]['vd'].normalize();
-
-        var lookAt = new THREE.Vector3();
-        lookAt.addVectors(pos, vd1);
-
-        camera.lookAt(lookAt);
-
-        controls.adjustAnimationToObject();
-
-        preload(this.path.slice(1, Math.min(10, this.path.length)));
-        this.smoothJourneyStarted = true;
-        this.startTime = Date.now();
-        this.currentIndex = 0;
-        setImagePlane(this.path[1]);
     }
 
-    JourneyWrapper.prototype.render = function () {
-        if (this.smoothJourneyStarted !== true) {
+    /**
+     * Stops a smooth journey.
+     */
+    JourneyWrapper.prototype.smoothStop = function () {
+        if (this.initialized !== true) {
             return;
         }
 
-        if (this.currentIndex + 10 <= this.path.length - 1) {
-            preload([this.path[this.currentIndex + 10]]);
+        if (this.smoothJourney.isStarted() === true) {
+            this.smoothJourney.stop();
+        }
+    }
+
+    /**
+     * Renders a smooth journey.
+     */
+    JourneyWrapper.prototype.render = function () {
+        if (this.initialized !== true) {
+            return;
         }
 
-        var path = this.path;
-        var linearCurve = this.linearCurve;
-        var length = linearCurve.getLength();
-        var interval = getInterval();
-        var time = Date.now();
-        var elapsed = time - this.startTime;
-
-        var totalTime = 2 * interval * length / 20;
-
-        var u = Math.min(elapsed / totalTime, 1);
-
-        var t = linearCurve.getUtoTmapping(u);
-        var point = (path.length - 1) * t;
-
-        var intPoint = Math.floor(point);
-        var weight = point - intPoint;
-
-        if (intPoint > this.currentIndex && intPoint < this.path.length) {
-            this.currentIndex = intPoint;
-            setImagePlane(this.path[this.currentIndex + 1]);
-        }
-
-        var shot_id1 = path[intPoint];
-        var vd1 = this.shots[shot_id1]['vd'].normalize();
-
-        var shot_id2 = path[Math.min(intPoint + 1, this.path.length - 1)];
-        var vd2 = this.shots[shot_id2]['vd'].normalize();
-
-        var line3 = new THREE.Line3(vd1, vd2);
-        var direction = line3.at(weight).normalize();
-
-        var position = linearCurve.getPointAt(u);
-
-        var lookAt = new THREE.Vector3();
-        lookAt.addVectors(position, direction);
-
-        camera.position.copy(position);
-        camera.lookAt(lookAt);
-
-        controls.adjustAnimationToObject();
-
-        if (elapsed / totalTime > 1) {
-            this.smoothJourneyStarted = false;
-        }
+        this.smoothJourney.move();
     }
 
     /**
