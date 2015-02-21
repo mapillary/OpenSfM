@@ -388,12 +388,12 @@ var SmoothJourney = (function () {
     SmoothJourney.prototype = Object.create(JourneyBase.prototype);
     SmoothJourney.prototype.constructor = SmoothJourney;
 
-    var getLineGeometry = function (shots, path) {
+    var getLineGeometry = function (shots, path, property) {
         var geometry = new THREE.Geometry();
 
         for (var i = 0; i < path.length; i++) {
             var shot_id = path[i];
-            var oc = shots[shot_id]['oc'];
+            var oc = shots[shot_id][property];
             geometry.vertices.push(new THREE.Vector3(oc.x, oc.y, oc.z));
         }
 
@@ -413,7 +413,7 @@ var SmoothJourney = (function () {
             return null;
         }
 
-        return getLineGeometry(this.shots, result.path);
+        return getLineGeometry(this.shots, result.path, 'oc');
     }
 
     SmoothJourney.prototype.start = function (from, to) {
@@ -428,7 +428,7 @@ var SmoothJourney = (function () {
 
         this.started = true;
         this.path = result.path;
-        this.linearCurve = new LinearCurve(getLineGeometry(this.shots, this.path).vertices);
+        this.linearCurve = new LinearCurve(getLineGeometry(this.shots, this.path, 'oc').vertices);
 
         var position = this.linearCurve.getPointAt(0);
         var shot_id = this.path[0];
@@ -453,9 +453,7 @@ var SmoothJourney = (function () {
             preloadAction([this.path[this.currentIndex + 10]]);
         }
 
-        var path = this.path;
-        var linearCurve = this.linearCurve;
-        var length = linearCurve.getLength();
+        var length = this.linearCurve.getLength();
         var interval = 3000;
         var time = Date.now();
         var elapsed = time - this.startTime;
@@ -463,10 +461,8 @@ var SmoothJourney = (function () {
         var totalTime = 2 * interval * length / 20;
 
         var u = Math.min(elapsed / totalTime, 1);
-
-        var t = linearCurve.getUtoTmapping(u);
-        var point = (path.length - 1) * t;
-
+        var t = this.linearCurve.getUtoTmapping(u);
+        var point = (this.path.length - 1) * t;
         var intPoint = Math.floor(point);
         var weight = point - intPoint;
 
@@ -475,24 +471,21 @@ var SmoothJourney = (function () {
             this.nodeAction(this.path[this.currentIndex + 1]);
         }
 
-        var shot_id1 = path[intPoint];
+        var position = this.linearCurve.getPointAt(u);
+
+        var shot_id1 = this.path[intPoint];
         var vd1 = this.shots[shot_id1]['vd'].normalize();
 
-        var shot_id2 = path[Math.min(intPoint + 1, this.path.length - 1)];
+        var shot_id2 = this.path[Math.min(intPoint + 1, this.path.length - 1)];
         var vd2 = this.shots[shot_id2]['vd'].normalize();
 
-        var line3 = new THREE.Line3(vd1, vd2);
-        var direction = line3.at(weight).normalize();
-
-        var position = linearCurve.getPointAt(u);
-
-        var lookAt = new THREE.Vector3();
-        lookAt.addVectors(position, direction);
+        var direction = new THREE.Vector3().copy(vd1).lerp(vd2, weight);
+        var lookAt = new THREE.Vector3().addVectors(position, direction);
 
         this.navigationAction(position, lookAt);
 
-        if (elapsed / totalTime > 1) {
-            this.started = false;
+        if (elapsed / totalTime >= 1) {
+            this.stop();
         }
     }
 
@@ -647,8 +640,8 @@ var JourneyWrapper = (function ($) {
                         convertShots(shots),
                         smoothNavigation,
                         setImagePlane,
-                        function () {},
-                        function () {},
+                        start,
+                        stop,
                         preload,
                         true);
 
