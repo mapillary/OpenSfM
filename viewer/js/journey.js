@@ -751,6 +751,18 @@ var JourneyWrapper = (function ($) {
     }
 
     /**
+     * Updated the camera aspect and projection based on the window size.
+     */
+    JourneyWrapper.prototype.onWindowResize = function () {
+        if (this.initialized !== true) {
+            return;
+        }
+
+        this.camera.aspect = window.innerWidth / window.innerHeight;
+        this.camera.updateProjectionMatrix();
+    }
+
+    /**
      * Starts a smooth journey.
      */
     JourneyWrapper.prototype.smoothStart = function () {
