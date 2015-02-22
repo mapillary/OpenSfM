@@ -368,7 +368,17 @@ var SmoothJourney = (function () {
      * @param {String} graphs A list of graphs.
      * @param {Boolean} usePenalty Value indicating if a penalty should be used.
      */
-    function SmoothJourney(graphs, intervalTime, shots, navigationAction, nodeAction, startAction, stopAction, preloadAction, usePenalty) {
+    function SmoothJourney(
+        graphs,
+        intervalTime,
+        shots,
+        navigationAction,
+        nodeAction,
+        startAction,
+        stopAction,
+        continuationAction,
+        preloadAction,
+        usePenalty) {
 
         JourneyBase.apply(this, [graphs, intervalTime, usePenalty]);
 
@@ -377,6 +387,7 @@ var SmoothJourney = (function () {
         this.nodeAction = nodeAction;
         this.startAction = startAction;
         this.stopAction = stopAction;
+        this.continuationAction = continuationAction;
         this.preloadAction = preloadAction;
 
         this.previousTime = undefined;
@@ -491,16 +502,23 @@ var SmoothJourney = (function () {
         return true;
     }
 
-    SmoothJourney.prototype.stop = function () {
+    SmoothJourney.prototype.stop = function (continuation) {
         if (this.previousTime === undefined || this.started === false) {
             return;
         }
+
+        var nextIndex = Math.min(this.currentIndex + 1, this.path.length - 1);
+        var nextNode = this.path[nextIndex];
 
         this.path = undefined;
         this.linearCurve = undefined;
         this.previousTime = undefined;
         this.currentIndex = 0;
         this.u = 0;
+
+        if (continuation === true) {
+            this.continuationAction(nextNode);
+        }
 
         this.stopAction();
 
@@ -624,6 +642,11 @@ var JourneyWrapper = (function ($) {
         controls.goto(position, target);
     }
 
+    var continuation = function (shot_id) {
+        var camera = getCamera(shot_id);
+        navigateToShot(camera);
+    }
+
     /**
      * Initializes a journey wrapper.
      * @param {shots} Dictionary of shots with rotation and translation arrays.
@@ -659,6 +682,7 @@ var JourneyWrapper = (function ($) {
                         setImagePlane,
                         start,
                         stop,
+                        continuation,
                         preload,
                         true);
 
@@ -748,7 +772,7 @@ var JourneyWrapper = (function ($) {
         }
 
         if (this.smoothJourney.isStarted() === true) {
-            this.smoothJourney.stop();
+            this.smoothJourney.stop(false);
         }
     }
 
@@ -761,7 +785,7 @@ var JourneyWrapper = (function ($) {
         }
 
         if (this.smoothJourney.isStarted() === true) {
-            this.smoothJourney.stop();
+            this.smoothJourney.stop(true);
             return;
         }
 
