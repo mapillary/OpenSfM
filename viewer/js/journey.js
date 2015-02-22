@@ -415,7 +415,7 @@ var SmoothJourney = (function () {
             return null;
         }
 
-        return getLineGeometry(this.shots, result.path, 'oc');
+        return getLineGeometry(this.shots, result.path, 'position');
     }
 
     SmoothJourney.prototype.start = function (from, to) {
@@ -430,12 +430,11 @@ var SmoothJourney = (function () {
 
         this.started = true;
         this.path = result.path;
-        this.linearCurve = new LinearCurve(getLineGeometry(this.shots, this.path, 'oc').vertices);
+        this.linearCurve = new LinearCurve(getLineGeometry(this.shots, this.path, 'position').vertices);
 
         var position = this.linearCurve.getPointAt(0);
         var shot_id = this.path[0];
-        var vd = this.shots[shot_id]['vd'].normalize();
-        var lookAt = new THREE.Vector3().addVectors(position, vd);
+        var target = this.shots[shot_id]['target'];
 
         this.previousTime = Date.now();
         this.u = 0;
@@ -444,12 +443,12 @@ var SmoothJourney = (function () {
         this.startAction();
         this.preloadAction(this.path.slice(1, Math.min(10, this.path.length)));
         this.nodeAction(this.path[this.currentIndex + 1]);
-        this.navigationAction(position, lookAt);
+        this.navigationAction(position, target);
     }
 
     SmoothJourney.prototype.move = function () {
         if (this.started !== true) {
-            return;
+            return false;
         }
 
         if (this.currentIndex + 10 <= this.path.length - 1) {
@@ -476,19 +475,20 @@ var SmoothJourney = (function () {
         var position = this.linearCurve.getPoint(t);
 
         var shot_id1 = this.path[intPoint];
-        var vd1 = this.shots[shot_id1]['vd'].normalize();
+        var vd1 = this.shots[shot_id1]['target'];
 
         var shot_id2 = this.path[Math.min(intPoint + 1, this.path.length - 1)];
-        var vd2 = this.shots[shot_id2]['vd'].normalize();
+        var vd2 = this.shots[shot_id2]['target'];
 
-        var direction = new THREE.Vector3().copy(vd1).lerp(vd2, weight);
-        var lookAt = new THREE.Vector3().addVectors(position, direction);
+        var target = new THREE.Vector3().copy(vd1).lerp(vd2, weight);
 
-        this.navigationAction(position, lookAt);
+        this.navigationAction(position, target);
 
         if (this.u >= 1) {
             this.stop();
         }
+
+        return true;
     }
 
     SmoothJourney.prototype.stop = function () {
@@ -522,6 +522,7 @@ var JourneyWrapper = (function ($) {
         this.journey = undefined;
         this.destination = undefined;
         this.line = undefined;
+        this.camera = undefined;
     }
 
     // Private function for calculating the desired maximum interval.
@@ -601,10 +602,15 @@ var JourneyWrapper = (function ($) {
                 continue;
             }
 
-            var oc = opticalCenter(shots[shot_id]);
-            var vd = viewingDirection(shots[shot_id]);
+            var shot = shots[shot_id];
 
-            result[shot_id] = { 'oc': oc, 'vd': vd };
+            var position = opticalCenter(shot);
+
+            var camera = getCamera(shot_id);
+            var cam = camera.reconstruction['cameras'][shot['camera']];
+            var target = pixelToVertex(cam, shot, 0, 0, 20);
+
+            result[shot_id] = { 'position': position, 'target': target };
         }
 
         return result;
@@ -612,10 +618,10 @@ var JourneyWrapper = (function ($) {
 
     // Private function for setting the position and direction of the camera
     // used fot the smooth navigation movement.
-    var smoothNavigation = function (position, lookAt) {
-        camera.position.copy(position);
-        camera.lookAt(lookAt);
-        controls.adjustAnimationToObject();
+    var smoothNavigation = function (self, position, target) {
+        self.camera.position.copy(position);
+        self.camera.lookAt(target);
+        controls.goto(position, target);
     }
 
     /**
@@ -626,6 +632,10 @@ var JourneyWrapper = (function ($) {
         if ('nav' in urlParams && 'dest' in urlParams) {
 
             this.destination = urlParams.dest;
+            this.camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.3, 1000);
+            this.camera.name = 'smoothJourneyCamera';
+            scene.add(this.camera);
+
             var _this = this;
 
             $.getJSON(urlParams.nav, function(data) {
@@ -645,7 +655,7 @@ var JourneyWrapper = (function ($) {
                         data,
                         getInterval(),
                         convertShots(shots),
-                        smoothNavigation,
+                        function (position, target) { smoothNavigation(_this, position, target); },
                         setImagePlane,
                         start,
                         stop,
@@ -683,7 +693,7 @@ var JourneyWrapper = (function ($) {
         });
 
         this.line = new THREE.Line(geometry, material);
-        this.line.name = "shortestPath"
+        this.line.name = 'shortestPath'
         scene.add(this.line);
         render();
     }
@@ -771,7 +781,12 @@ var JourneyWrapper = (function ($) {
             return;
         }
 
-        this.smoothJourney.move();
+        var renderSmoothCamera = this.smoothJourney.move();
+        if (renderSmoothCamera === true) {
+            renderer.render(scene, this.camera);
+        }
+
+        return renderSmoothCamera;
     }
 
     /**

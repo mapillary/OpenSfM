@@ -255,19 +255,6 @@ THREE.OrbitControls = function ( object, domElement ) {
 		}
 	};
 
-	this.adjustAnimationToObject = function () {
-	    this.animationPosition.copy(this.object.position.multiplyScalar(1.01));
-
-	    var direction = new THREE.Vector3(0, 0, -1);
-	    direction.applyQuaternion(object.quaternion).normalize();
-
-	    var target = new THREE.Vector3();
-	    target.addVectors(this.object.position, direction);
-
-        this.target.copy(this.animationTarget);
-		this.animationTarget.copy(target);
-	}
-
 	this.goto_shot = function(cam, shot) {
 		this.animationPosition.copy(opticalCenter(shot));
 		var offset = pixelToVertex(cam, shot, 0, 0, 20);
