@@ -240,7 +240,6 @@ THREE.OrbitControls = function ( object, domElement ) {
 
 		this.target.lerp(this.animationTarget, this.animationSpeed);
 		this.object.position.lerp(this.animationPosition, this.animationSpeed);
-
 		this.object.lookAt(this.target);
 
 		// update condition is:

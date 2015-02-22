@@ -743,9 +743,30 @@ var JourneyWrapper = (function ($) {
     }
 
     /**
+     * Toggles the smooth journey state between started and stopped.
+     */
+    JourneyWrapper.prototype.smoothToggle = function () {
+        if (this.initialized !== true) {
+            return;
+        }
+
+        if (this.smoothJourney.isStarted() === true) {
+            this.smoothJourney.stop();
+            return;
+        }
+
+        if (selectedCamera === undefined) {
+            return;
+        }
+
+        this.smoothJourney.updateInterval(getInterval());
+        this.smoothJourney.start(selectedCamera.shot_id, this.destination);
+    }
+
+    /**
      * Renders a smooth journey.
      */
-    JourneyWrapper.prototype.render = function () {
+    JourneyWrapper.prototype.smoothRender = function () {
         if (this.initialized !== true) {
             return;
         }
