@@ -246,7 +246,7 @@ def fit_plane(points, vectors, verticals):
     # (x 1) p = 0
     # (v 0) p = 0
     points = np.array(points)
-    s = 1. / points.std()           # Normalize the scale to improve conditioning.
+    s = 1. / max(1e-8, points.std())           # Normalize the scale to improve conditioning.
     x = homogeneous(s * points)
     if vectors:
         v = homogeneous_vec(s * np.array(vectors))

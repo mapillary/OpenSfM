@@ -567,8 +567,10 @@ def align_reconstruction_orientation_prior(reconstruction, config):
     X = Rplane.dot(X.T).T
 
     # Estimate 2d similarity to align to GPS
-    if len(X) < 2 or Xp.std(axis=0).max() < 0.01:  # All GPS points are the same.
-        s = len(X) / X.std(axis=0).max()           # Set the arbitrary scale proportional to the number of cameras.
+    if (len(X) < 2 or
+           X.std(axis=0).max() < 1e-8 or     # All points are the same.
+           Xp.std(axis=0).max() < 0.01):      # All GPS points are the same.
+        s = len(X) / max(1e-8, X.std(axis=0).max())           # Set the arbitrary scale proportional to the number of cameras.
         A = Rplane
         b = Xp.mean(axis=0) - X.mean(axis=0)
     else:
