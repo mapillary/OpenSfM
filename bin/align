@@ -32,13 +32,11 @@ data = dataset.DataSet(data_path) # assumes that the images is in data_path/'ima
 if args.image_path: data.set_image_path(args.image_path)
 
 images = data.images()
-exif_data = {}
 for image in images:
-    if not os.path.exists(data.exif_file(image)):
+    if not data.load_exif(image)):
         dexif = exif.EXIF(data.load_image(image))
-        exif_data[image] = dexif.extract_exif()
-        with open(data.exif_file(image), 'w') as fout:
-            fout.write(json.dumps(exif_data[image]))
+        exif_data = dexif.extract_exif()
+        data.save_exif(image, exif_data)
 
 with open(data.reconstruction_file(), 'rb') as fin:
     reconstructions = json.loads(fin.read())

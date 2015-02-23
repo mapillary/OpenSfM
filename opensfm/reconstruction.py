@@ -113,7 +113,7 @@ def compute_image_pairs(graph, image_graph, config):
 
 
 def add_gps_position(data, reconstruction, image):
-    exif = data.exif_data(image)
+    exif = data.load_exif(image)
     reflla = data.reference_lla()
     if 'gps' in exif:
         lat = exif['gps']['latitude']
@@ -133,8 +133,8 @@ def bootstrap_reconstruction(data, graph, im1, im2):
     '''Starts a reconstruction using two shots.
     '''
     print 'Initial reconstruction with', im1, 'and', im2
-    d1 = data.exif_data(im1)
-    d2 = data.exif_data(im2)
+    d1 = data.load_exif(im1)
+    d2 = data.load_exif(im2)
     cameras = data.camera_model_data()
 
     tracks, p1, p2 = dataset.common_tracks(graph, im1, im2)
@@ -284,7 +284,7 @@ def resect(data, graph, reconstruction, shot_id):
     X = np.array(Xs)
     if len(x) < 5:
         return False
-    exif = data.exif_data(shot_id)
+    exif = data.load_exif(shot_id)
     camera_model = exif['camera']
     K = multiview.K_from_camera(reconstruction['cameras'][camera_model])
     dist = np.array([0,0,0,0.])
@@ -788,7 +788,7 @@ def nonfisheye_cameras(data, images):
     ]
     res = []
     for image in images:
-        exif = data.exif_data(image)
+        exif = data.load_exif(image)
         if exif['camera'] not in fisheye and 1 <= exif['orientation'] <= 8:
             res.append(image)
     return res

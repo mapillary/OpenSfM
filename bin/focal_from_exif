@@ -124,8 +124,7 @@ for image in images:
         camera_models[d['camera']].update({'k1': distortion[0], 'k2': distortion[1]})
         d.update({'k1': distortion[0], 'k2': distortion[1]})
 
-    with open(data.exif_file(image), 'w') as fout:
-        fout.write(json.dumps(d, indent=4))
+    data.save_exif(image, d)
 
 with open(data.data_path+'/missing_sensor.json', 'w') as fout:
     fout.write(json.dumps(missing_sensors, indent=4))

@@ -44,7 +44,7 @@ class DataSet:
             self.set_image_path(os.path.join(self.data_path, 'images'))
 
         # Create output folders.
-        for p in [self.exif_path(),
+        for p in [self.__exif_path(),
                   self.feature_path(),
                   self.robust_matches_path()]:
             io.mkdir_p(p)
@@ -93,18 +93,18 @@ class DataSet:
                 self.image_list.append(name)
                 self.image_files[name] = path
 
-    def exif_path(self):
+    def __exif_path(self):
         """Return path of extracted exif directory"""
         return os.path.join(self.data_path, 'exif')
 
-    def exif_file(self, image):
+    def __exif_file(self, image):
         """
         Return path of exif information for given image
         :param image: Image name, with extension (i.e. 123.jpg)
         """
-        return os.path.join(self.exif_path(), image + '.exif')
+        return os.path.join(self.__exif_path(), image + '.exif')
 
-    def exif_data(self, image):
+    def load_exif(self, image):
         """
         Return extracted exif information, as dictionary, usually with fields:
 
@@ -119,8 +119,12 @@ class DataSet:
 
         :param image: Image name, with extension (i.e. 123.jpg)
         """
-        with open(self.exif_file(image), 'r') as fin:
+        with open(self.__exif_file(image), 'r') as fin:
             return json.load(fin)
+
+    def save_exif(self, image, data):
+        with open(self.__exif_file(image), 'w') as fout:
+            fout.write(json.dumps(data, indent=4))
 
     def feature_type(self):
         """Return the type of local features (e.g. AKAZE, SURF, SIFT)
@@ -244,7 +248,7 @@ class DataSet:
         wlat, wlon, walt = 0.0, 0.0, 0.0
         if images is None: images = self.images()
         for image in images:
-            d = self.exif_data(image)
+            d = self.load_exif(image)
             if 'gps' in d:
                 w = 1.0 / d['gps'].get('dop', 15)
                 lat += w * d['gps']['latitude']
