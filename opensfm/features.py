@@ -75,9 +75,7 @@ def mask_and_normalize_features(points, desc, width, height, config):
     points[:, :2] = normalized_image_coordinates(points[:, :2], width, height)
     return points, desc
 
-def extract_features_sift(imagefile, config):
-    image = resized_image(cv2.imread(imagefile), config)
-
+def extract_features_sift(image, config):
     detector = cv2.FeatureDetector_create('SIFT')
     descriptor = cv2.DescriptorExtractor_create('SIFT')
     detector.setDouble('edgeThreshold', config.get('sift_edge_threshold', 10))
@@ -99,9 +97,7 @@ def extract_features_sift(imagefile, config):
     return mask_and_normalize_features(points, desc, image.shape[1], image.shape[0], config)
 
 
-def extract_features_surf(imagefile, config):
-    image = resized_image(cv2.imread(imagefile), config)
-
+def extract_features_surf(image, config):
     detector = cv2.FeatureDetector_create('SURF')
     descriptor = cv2.DescriptorExtractor_create('SURF')
     surf_hessian_threshold = config.get('surf_hessian_threshold', 3000)
@@ -137,9 +133,7 @@ def akaze_descriptor_type(name):
         return d['MSURF']
 
 
-def extract_features_akaze(imagefile, config):
-    image = resized_image(cv2.imread(imagefile, cv2.IMREAD_GRAYSCALE), config)
-
+def extract_features_akaze(image, config):
     options = csfm.AKAZEOptions()
     options.omax = config.get('akaze_omax', 4)
     akaze_descriptor_name = config.get('akaze_descriptor', 'MSURF')
@@ -170,8 +164,7 @@ def extract_features_akaze(imagefile, config):
     points = points.astype(float)
     return mask_and_normalize_features(points, desc, image.shape[1], image.shape[0], config)
 
-def extract_features_hahog(imagefile, config):
-    image = resized_image(cv2.imread(imagefile, cv2.CV_LOAD_IMAGE_GRAYSCALE), config)
+def extract_features_hahog(image, config):
     t = time.time()
     points, desc = csfm.hahog(image.astype(np.float32) / 255, # VlFeat expects pixel values between 0, 1
                               peak_threshold = config.get('hahog_peak_threshold', 0.003),
@@ -181,16 +174,16 @@ def extract_features_hahog(imagefile, config):
     return mask_and_normalize_features(points, desc, image.shape[1], image.shape[0], config)
 
 
-def extract_feature(imagefile, config):
+def extract_feature(image, config):
     feature_type = config.get('feature_type','SIFT').upper()
     if feature_type == 'SIFT':
-        return extract_features_sift(imagefile, config)
+        return extract_features_sift(image, config)
     elif feature_type == 'SURF':
-        return extract_features_surf(imagefile, config)
+        return extract_features_surf(image, config)
     elif feature_type == 'AKAZE':
-        return extract_features_akaze(imagefile, config)
+        return extract_features_akaze(image, config)
     elif feature_type == 'HAHOG':
-        return extract_features_hahog(imagefile, config)
+        return extract_features_hahog(image, config)
     else:
         raise ValueError('Unknown feature type (must be SURF, SIFT, AKAZE or HAHOG)')
 

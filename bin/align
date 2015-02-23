@@ -35,7 +35,7 @@ images = data.images()
 exif_data = {}
 for image in images:
     if not os.path.exists(data.exif_file(image)):
-        dexif = exif.EXIF(data.image_file(image))
+        dexif = exif.EXIF(data.load_image(image))
         exif_data[image] = dexif.extract_exif()
         with open(data.exif_file(image), 'w') as fout:
             fout.write(json.dumps(exif_data[image]))

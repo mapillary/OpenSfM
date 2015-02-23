@@ -45,13 +45,13 @@ for image in images:
     print 'Extracting focal lengths for image', image
 
     # EXIF data in Image
-    exif_data = exif.EXIF(data.image_file(image))
+    exif_data = exif.EXIF(data.load_image(image))
 
     # Image Height and Image Width
     if data.config.get('use_exif_size', True):
         width, height = exif_data.extract_image_size()
     else:
-        height, width = imread(data.image_file(image)).shape[:2]
+        height, width = data.image_as_array(image).shape[:2]
 
     # Make and Model
     make, model = exif_data.extract_make(), exif_data.extract_model()

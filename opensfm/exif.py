@@ -78,10 +78,8 @@ def sensor_string(make, model):
 
 class EXIF:
 
-    def __init__(self, image_file):
-        with open(image_file) as f:
-            self.tags = exifread.process_file(f, details=False)
-        self.image_file = image_file
+    def __init__(self, fileobj):
+        self.tags = exifread.process_file(fileobj, details=False)
 
     def extract_image_size(self):
         # Image Width and Image Height
@@ -89,8 +87,7 @@ class EXIF:
             width, height = (int(self.tags['EXIF ExifImageWidth'].values[0]),
                             int(self.tags['EXIF ExifImageLength'].values[0]) )
         else:
-            sz = imread(self.image_file).shape
-            width, height = sz[1], sz[0]
+            width, height = -1, -1
         return width, height
 
     def extract_make(self):

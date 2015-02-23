@@ -53,19 +53,25 @@ class DataSet:
         """Return list of file names of all images in this dataset"""
         return self.image_list
 
-    def image_file(self, image):
+    def __image_file(self, image):
         """
         Return path of image with given name
         :param image: Image file name (**with extension**)
         """
         return self.image_files[image]
 
-    def image_as_array(self, image):
+    def load_image(self, image):
+        return open(self.__image_file(image))
+
+    def image_as_array(self, image, grayscale=False):
         """Return image pixels as 3-dimensional OpenCV matrix (R G B order)"""
-        return cv2.imread(self.image_file(image))[:,:,::-1]  # Turn BGR to RGB
+        if grayscale:
+            return cv2.imread(self.__image_file(image), cv2.IMREAD_GRAYSCALE)
+        else:
+            return cv2.imread(self.__image_file(image))[:,:,::-1]  # Turn BGR to RGB
 
     @staticmethod
-    def _is_image_file(filename):
+    def __is_image_file(filename):
         return filename.split('.')[-1].lower() in {'jpg', 'jpeg', 'png', 'tif', 'tiff', 'pgm', 'pnm', 'gif'}
 
     def set_image_path(self, path):
@@ -74,7 +80,7 @@ class DataSet:
         self.image_files = {}
         if os.path.exists(path):
             for name in os.listdir(path):
-                if self._is_image_file(name):
+                if self.__is_image_file(name):
                     self.image_list.append(name)
                     self.image_files[name] = os.path.join(path, name)
 
