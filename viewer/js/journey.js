@@ -395,6 +395,7 @@ var SmoothJourney = (function () {
         this.u = 0;
         this.path = undefined;
         this.linearCurve = undefined;
+        this.intervalToken = undefined;
     }
 
     // Inheriting from JourneyBase
@@ -455,15 +456,18 @@ var SmoothJourney = (function () {
         this.preloadAction(this.path.slice(1, Math.min(10, this.path.length)));
         this.nodeAction(this.path[this.currentIndex + 1]);
         this.navigationAction(position, target);
+
+        _this = this;
+        this.intervalToken = window.setInterval(function () { _this.move.call(_this); }, 1000/60);
     }
 
     SmoothJourney.prototype.move = function () {
         if (this.started !== true) {
-            return false;
+            return;
         }
 
         if (this.currentIndex + 10 <= this.path.length - 1) {
-            preloadAction([this.path[this.currentIndex + 10]]);
+            this.preloadAction([this.path[this.currentIndex + 10]]);
         }
 
         var currentTime = Date.now();
@@ -498,14 +502,15 @@ var SmoothJourney = (function () {
         if (this.u >= 1) {
             this.stop();
         }
-
-        return true;
     }
 
     SmoothJourney.prototype.stop = function (continuation) {
-        if (this.previousTime === undefined || this.started === false) {
+        if (this.intervalToken === undefined || this.started === false) {
             return;
         }
+
+        window.clearInterval(this.intervalToken);
+        this.intervalToken = undefined;
 
         var nextIndex = Math.min(this.currentIndex + 1, this.path.length - 1);
         var nextNode = this.path[nextIndex];
@@ -634,11 +639,9 @@ var JourneyWrapper = (function ($) {
         return result;
     }
 
-    // Private function for setting the position and direction of the camera
-    // used fot the smooth navigation movement.
-    var smoothNavigation = function (self, position, target) {
-        self.camera.position.copy(position);
-        self.camera.lookAt(target);
+    // Private function for setting the position and direction of the orbit controls camera
+    // used for the smooth navigation movement.
+    var smoothNavigation = function (position, target) {
         controls.goto(position, target);
     }
 
@@ -655,10 +658,6 @@ var JourneyWrapper = (function ($) {
         if ('nav' in urlParams && 'dest' in urlParams) {
 
             this.destination = urlParams.dest;
-            this.camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.3, 1000);
-            this.camera.name = 'smoothJourneyCamera';
-            scene.add(this.camera);
-
             var _this = this;
 
             $.getJSON(urlParams.nav, function(data) {
@@ -678,7 +677,7 @@ var JourneyWrapper = (function ($) {
                         data,
                         getInterval(),
                         convertShots(shots),
-                        function (position, target) { smoothNavigation(_this, position, target); },
+                        smoothNavigation,
                         setImagePlane,
                         start,
                         stop,
@@ -690,7 +689,7 @@ var JourneyWrapper = (function ($) {
                 $('#journeyButton').show();
 
                 if ('img' in urlParams && selectedCamera !== undefined) {
-                    _this.toggleJourney();
+                    _this.smoothToggle();
                 }
             });
         }
@@ -751,18 +750,6 @@ var JourneyWrapper = (function ($) {
     }
 
     /**
-     * Updated the camera aspect and projection based on the window size.
-     */
-    JourneyWrapper.prototype.onWindowResize = function () {
-        if (this.initialized !== true) {
-            return;
-        }
-
-        this.camera.aspect = window.innerWidth / window.innerHeight;
-        this.camera.updateProjectionMatrix();
-    }
-
-    /**
      * Starts a smooth journey.
      */
     JourneyWrapper.prototype.smoothStart = function () {
@@ -807,22 +794,6 @@ var JourneyWrapper = (function ($) {
 
         this.smoothJourney.updateInterval(getInterval());
         this.smoothJourney.start(selectedCamera.shot_id, this.destination);
-    }
-
-    /**
-     * Renders a smooth journey.
-     */
-    JourneyWrapper.prototype.smoothRender = function () {
-        if (this.initialized !== true) {
-            return;
-        }
-
-        var renderSmoothCamera = this.smoothJourney.move();
-        if (renderSmoothCamera === true) {
-            renderer.render(scene, this.camera);
-        }
-
-        return renderSmoothCamera;
     }
 
     /**
