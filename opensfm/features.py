@@ -188,20 +188,6 @@ def extract_feature(image, config):
         raise ValueError('Unknown feature type (must be SURF, SIFT, AKAZE or HAHOG)')
 
 
-def write_features(points, descriptors, featurefile, config={}):
-    if config.get('feature_type') == 'AKAZE' and config.get('akaze_descriptor') in ['MLDB_UPRIGHT', 'MLDB']:
-        feature_data_type = np.uint8
-    else:
-        feature_data_type = np.float32
-
-    np.savez(featurefile,
-             points=points.astype(np.float32),
-             descriptors=descriptors.astype(feature_data_type))
-
-def read_features(featurefile):
-    s = np.load(featurefile)
-    return s['points'], s['descriptors']
-
 
 def build_flann_index(features, index_file, config):
     FLANN_INDEX_LINEAR          = 0

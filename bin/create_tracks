@@ -36,7 +36,7 @@ images = data.images()
 logging.info('reading features')
 feature = {}
 for im in images:
-    p1, f1 = features.read_features(data.feature_file(im))
+    p1, f1 = data.load_features(im)
     feature[im] = p1[:,:2]
 
 logging.info('creating features graph')

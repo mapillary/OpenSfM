@@ -148,12 +148,29 @@ class DataSet:
             feature_path += '_' + self.descriptor_type()
         return os.path.join(self.data_path, feature_path)
 
-    def feature_file(self, image):
+    def __feature_file(self, image):
         """
         Return path of feature file for specified image
         :param image: Image name, with extension (i.e. 123.jpg)
         """
         return os.path.join(self.feature_path(), image + '.' + self.feature_type() + '.npz')
+
+    def __save_features(self, filepath, image, points, descriptors):
+        if (self.config.get('feature_type') == 'AKAZE' and
+                self.config.get('akaze_descriptor') in ['MLDB_UPRIGHT', 'MLDB']):
+            feature_data_type = np.uint8
+        else:
+            feature_data_type = np.float32
+        np.savez(filepath,
+                 points=points.astype(np.float32),
+                 descriptors=descriptors.astype(feature_data_type))
+
+    def load_features(self, image):
+        s = np.load(self.__feature_file(image))
+        return s['points'], s['descriptors']
+
+    def save_features(self, image, points, descriptors):
+        self.__save_features(self.__feature_file(image), image, points, descriptors)
 
     def feature_index_file(self, image):
         """
@@ -162,13 +179,21 @@ class DataSet:
         """
         return os.path.join(self.feature_path(), image + '.' + self.feature_type() + '.flann')
 
-    def preemptive_feature_file(self, image):
+    def __preemptive_features_file(self, image):
         """
         Return path of preemptive feature file (a short list of the full feature file)
         for specified image
         :param image: Image name, with extension (i.e. 123.jpg)
         """
         return os.path.join(self.feature_path(), image + '_preemptive.' + self.feature_type() + '.npz')
+
+    def load_preemtive_features(self, image):
+        s = np.load(self.__preemptive_features_file(image))
+        return s['points'], s['descriptors']
+
+    def save_preemptive_features(self, image, points, descriptors):
+        self.__save_features(self.__preemptive_features_file(image), image, points, descriptors)
+
 
     def matches_path(self):
         """Return path of matches directory"""
