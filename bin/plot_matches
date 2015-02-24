@@ -55,10 +55,10 @@ if __name__ == "__main__":
             for im2 in images:
                 if im1 != im2:
                     try:
-                        matches = np.genfromtxt(data.robust_matches_file(im1, im2), dtype=int)
+                        matches = data.load_matches(im1, im2)
                     except:
                         try:
-                            matches = np.genfromtxt(data.robust_matches_file(im2, im1), dtype=int)
+                            matches = data.load_matches(im2, im1)
                             matches = matches[:,[1,0]]
                         except:
                             continue
@@ -81,10 +81,10 @@ if __name__ == "__main__":
             for im2 in images:
                 if im1 != im2:
                     try:
-                        matches = np.genfromtxt(data.robust_matches_file(im1, im2), dtype=int)
+                        matches = data.load_matches(im1, im2)
                     except:
                         try:
-                            matches = np.genfromtxt(data.robust_matches_file(im2, im1), dtype=int)
+                            matches = data.load_matches(im2, im1)
                             matches = matches[:,[1,0]]
                         except:
                             continue

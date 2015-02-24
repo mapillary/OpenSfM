@@ -45,8 +45,8 @@ class DataSet:
 
         # Create output folders.
         for p in [self.__exif_path(),
-                  self.feature_path(),
-                  self.robust_matches_path()]:
+                  self.__feature_path(),
+                  self.__robust_matches_path()]:
             io.mkdir_p(p)
 
     def images(self):
@@ -141,19 +141,19 @@ class DataSet:
         else:
             return ''
 
-    def feature_path(self):
+    def __feature_path(self):
         """Return path of feature descriptors and FLANN indices directory"""
-        feature_path = self.feature_type()
+        __feature_path = self.feature_type()
         if len(self.descriptor_type()) > 0:
-            feature_path += '_' + self.descriptor_type()
-        return os.path.join(self.data_path, feature_path)
+            __feature_path += '_' + self.descriptor_type()
+        return os.path.join(self.data_path, __feature_path)
 
     def __feature_file(self, image):
         """
         Return path of feature file for specified image
         :param image: Image name, with extension (i.e. 123.jpg)
         """
-        return os.path.join(self.feature_path(), image + '.' + self.feature_type() + '.npz')
+        return os.path.join(self.__feature_path(), image + '.' + self.feature_type() + '.npz')
 
     def __save_features(self, filepath, image, points, descriptors):
         if (self.config.get('feature_type') == 'AKAZE' and
@@ -177,7 +177,7 @@ class DataSet:
         Return path of FLANN index file for specified image
         :param image: Image name, with extension (i.e. 123.jpg)
         """
-        return os.path.join(self.feature_path(), image + '.' + self.feature_type() + '.flann')
+        return os.path.join(self.__feature_path(), image + '.' + self.feature_type() + '.flann')
 
     def __preemptive_features_file(self, image):
         """
@@ -185,7 +185,7 @@ class DataSet:
         for specified image
         :param image: Image name, with extension (i.e. 123.jpg)
         """
-        return os.path.join(self.feature_path(), image + '_preemptive.' + self.feature_type() + '.npz')
+        return os.path.join(self.__feature_path(), image + '_preemptive.' + self.feature_type() + '.npz')
 
     def load_preemtive_features(self, image):
         s = np.load(self.__preemptive_features_file(image))
@@ -194,18 +194,6 @@ class DataSet:
     def save_preemptive_features(self, image, points, descriptors):
         self.__save_features(self.__preemptive_features_file(image), image, points, descriptors)
 
-
-    def matches_path(self):
-        """Return path of matches directory"""
-        return os.path.join(self.data_path, 'matches')
-
-    def matches_file(self, image1, image2):
-        """
-        Return path of matches file for pair of specified images
-        :param image1: Image name, with extension (i.e. 123.jpg)
-        :param image2: Image name, with extension (i.e. 123.jpg)
-        """
-        return os.path.join(self.matches_path(), '%s_%s_matches.csv' % (image1, image2))
 
     def matcher_type(self):
         """Return the type of matcher
@@ -217,17 +205,24 @@ class DataSet:
             self.config['matcher_type'] = matcher_type
         return matcher_type # BruteForce, BruteForce-L1, BruteForce-Hamming
 
-    def robust_matches_path(self):
+
+    def __robust_matches_path(self):
         """Return path of robust matches directory"""
         return os.path.join(self.data_path, 'robust_matches')
 
-    def robust_matches_file(self, image1, image2):
+    def __matches_file(self, image1, image2):
         """
         Return path of *robust* matches file for pair of specified images
         :param image1: Image name, with extension (i.e. 123.jpg)
         :param image2: Image name, with extension (i.e. 123.jpg)
         """
-        return os.path.join(self.robust_matches_path(), '%s_%s_matches.csv' % (image1, image2))
+        return os.path.join(self.__robust_matches_path(), '%s_%s_matches.csv' % (image1, image2))
+
+    def load_matches(self, image1, image2):
+        return np.genfromtxt(self.__matches_file(image1, image2), dtype=int)
+
+    def save_matches(self, image1, image2, matches):
+        np.savetxt(self.__matches_file(image1, image2), matches, "%d")
 
     def tracks_file(self):
         """Return path of tracks file"""

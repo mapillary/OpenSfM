@@ -44,7 +44,7 @@ g = nx.Graph()
 for im1 in images:
     for im2 in images:
         try:
-            matches = np.genfromtxt(data.robust_matches_file(im1, im2), dtype=int)
+            matches = data.load_matches(im1, im2)
             for f1, f2 in matches:
                 g.add_edge((im1, f1),  (im2, f2))
         except IOError:

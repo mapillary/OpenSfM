@@ -63,14 +63,16 @@ if __name__ == "__main__":
             for i in range(len(images)):
                 for j in range(i + 1, len(images)):
                     matches = None
-                    if os.path.isfile(data.robust_matches_file(images[i], images[j])):
-                        matches = np.genfromtxt(data.robust_matches_file(images[i], images[j]), dtype=int)
-                    elif os.path.isfile(data.robust_matches_file(images[i], images[j])):
-                        matches = np.genfromtxt(data.robust_matches_file(images[i], images[j]), dtype=int)[:,::-1]
-                    if matches is not None:
-                        fout.write('{0} {1}\n'.format(i, j))
-                        fout.write('{0}\n'.format(len(matches)))
-                        np.savetxt(fout, matches, fmt='%d')
+                     try:
+                        matches = data.load_matches(images[i], images[j])
+                    except:
+                        try:
+                            matches = data.load_matches(images[j], images[i])[:,::-1]
+                        except:
+                            continue
+                    fout.write('{0} {1}\n'.format(i, j))
+                    fout.write('{0}\n'.format(len(matches)))
+                    np.savetxt(fout, matches, fmt='%d')
 
     # Create options.txt
     io.mkdir_p(os.path.join(bundler_path, 'bundle'))
