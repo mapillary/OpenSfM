@@ -322,12 +322,12 @@ class DataSet:
 
     def load_camera_models(self):
         """Return camera models data"""
-        with open(self.__camera_model_file(), 'r') as fin:
+        with open(self.__camera_models_file(), 'r') as fin:
             return json.load(fin)
 
     def save_camera_models(self, camera_models):
         """Save camera models data"""
-        with open(self.__camera_model_file(), 'w') as fout:
+        with open(self.__camera_models_file(), 'w') as fout:
             fout.write(json.dumps(camera_models, indent=4))
 
 

@@ -114,7 +114,7 @@ def compute_image_pairs(graph, image_graph, config):
 
 def add_gps_position(data, reconstruction, image):
     exif = data.load_exif(image)
-    reflla = data.reference_lla()
+    reflla = data.load_reference_lla()
     if 'gps' in exif:
         lat = exif['gps']['latitude']
         lon = exif['gps']['longitude']
