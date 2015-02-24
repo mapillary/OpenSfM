@@ -188,8 +188,7 @@ if __name__ == "__main__":
 
     navigation_graphs.append(navigation_graph)
 
-    with open(data.navigation_graph(), 'w') as fout:
-        fout.write(json.dumps(navigation_graphs))
+    data.save_navigation_graph(navigation_graphs)
 
     end = time.time()
     with open(data.profile_log(), 'a') as fout:

@@ -352,9 +352,13 @@ class DataSet:
         "Filename where to write timings."
         return os.path.join(self.data_path, 'profile.log')
 
-    def navigation_graph(self):
+    def __navigation_graph_file(self):
         "Return the path of the navigation graph."
         return os.path.join(self.data_path, 'navigation_graph.json')
+
+    def save_navigation_graph(self, navigation_graph):
+        with open(data.__navigation_graph_file(), 'w') as fout:
+            fout.write(json.dumps(navigation_graphs))
 
 
 def common_tracks(g, im1, im2):
