@@ -282,6 +282,9 @@ class DataSet:
         with open(self.__reconstruction_file(filename), 'w') as fout:
             fout.write(json.dumps(reconstruction, indent=indent))
 
+    def __reference_lla_path(self):
+        return os.path.join(self.data_path, 'reference_lla.json')
+
     def invent_reference_lla(self, images=None):
         lat, lon, alt = 0.0, 0.0, 0.0
         wlat, wlon, walt = 0.0, 0.0, 0.0
@@ -300,33 +303,33 @@ class DataSet:
         if wlat: lat /= wlat
         if wlon: lon /= wlon
         if walt: alt /= walt
-        self.set_reference_lla(lat, lon, 0) # Set altitude manually.
-        return {'latitude': lat, 'longitude': lon, 'altitude': alt}
+        reference = {'latitude': lat, 'longitude': lon, 'altitude': 0}  # Set altitude manually.
+        self.save_reference_lla(reference)
+        return reference
 
-    def reference_lla_path(self):
-        return os.path.join(self.data_path, 'reference_lla.json')
+    def save_reference_lla(self, reference):
+        with open(self.__reference_lla_path(), 'w') as fout:
+            json.dump(reference, fout)
 
-    def set_reference_lla(self, lat, lon, alt):
-        with open(self.reference_lla_path(), 'w') as fout:
-            json.dump({'latitude': lat,
-                       'longitude': lon,
-                       'altitude': alt}, fout)
-
-    def reference_lla(self):
-        with open(self.reference_lla_path(), 'r') as fin:
+    def load_reference_lla(self):
+        with open(self.__reference_lla_path(), 'r') as fin:
             d = json.load(fin)
             return d['latitude'], d['longitude'], d['altitude']
 
-    def camera_model_data(self):
-        """
-        Return camera model data
-        """
-        with open(self.camera_model_file(), 'r') as fin:
-            return json.load(fin)
-
-    def camera_model_file(self):
+    def __camera_models_file(self):
         """Return path of camera model file"""
         return os.path.join(self.data_path, 'camera_models.json')
+
+    def load_camera_models(self):
+        """Return camera models data"""
+        with open(self.__camera_model_file(), 'r') as fin:
+            return json.load(fin)
+
+    def save_camera_models(self, camera_models):
+        """Save camera models data"""
+        with open(self.__camera_model_file(), 'w') as fout:
+            fout.write(json.dumps(camera_models, indent=4))
+
 
     def epipolar_path(self):
         return os.path.join(self.data_path, 'epipolar_geometries')

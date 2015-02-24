@@ -129,8 +129,7 @@ for image in images:
 with open(data.data_path+'/missing_sensor.json', 'w') as fout:
     fout.write(json.dumps(missing_sensors, indent=4))
 
-with open(data.camera_model_file(), 'w') as fout:
-    fout.write(json.dumps(camera_models, indent=4))
+data.save_camera_models(camera_models)
 
 end = time.time()
 with open(data.profile_log(), 'a') as fout:

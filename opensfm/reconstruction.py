@@ -135,7 +135,7 @@ def bootstrap_reconstruction(data, graph, im1, im2):
     print 'Initial reconstruction with', im1, 'and', im2
     d1 = data.load_exif(im1)
     d2 = data.load_exif(im2)
-    cameras = data.camera_model_data()
+    cameras = data.load_camera_models()
 
     tracks, p1, p2 = dataset.common_tracks(graph, im1, im2)
     print 'Number of common tracks', len(tracks)

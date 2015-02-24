@@ -41,11 +41,10 @@ for image in images:
 reconstructions = data.load_reconstruction()
 
 # reference for conversion
-if not os.path.exists(data.reference_lla_path()):
+try:
+    reference = data.load_reference_lla()
+except:
     reference = data.invent_reference_lla()
-else:
-    with open(data.reference_lla_path(), 'rb') as fin:
-        reference = json.loads(fin.read())
 
 # alignment
 for reconstruction in reconstructions:
