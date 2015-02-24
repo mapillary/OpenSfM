@@ -18,7 +18,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     data = dataset.DataSet(args.dataset)
-    graph = data.tracks_graph()
+    graph = data.load_tracks_graph()
     
     with open(data.reconstruction_file()) as fin:
         reconstructions = json.load(fin)

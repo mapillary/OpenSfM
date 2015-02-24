@@ -56,10 +56,14 @@ tracks = nx.connected_components(g)
 tracks = [t for t in tracks if good_track(t, data.config.get('min_track_length', 2))]
 logging.info('Good tracks: %d', len(tracks))
 
-with open(data.tracks_file(), 'w') as fout:
-    for track_id, track in enumerate(tracks):
-        for image_feature in track:
-            image = image_feature[0]
-            featureid = image_feature[1]
-            x, y = feature[image][featureid]
-            fout.write('%s\t%d\t%d\t%g\t%g\n' % (image, track_id, featureid, x, y))
+tracks_graph = nx.Graph()
+for track_id, track in enumerate(tracks):
+    for image_feature in track:
+        image = image_feature[0]
+        featureid = image_feature[1]
+        x, y = feature[image][featureid]
+        tracks_graph.add_node(image, bipartite=0)
+        tracks_graph.add_node(track_id, bipartite=1)
+        tracks_graph.add_edge(image, track_id, feature=(x,y), feature_id=featureid)
+
+data.save_tracks_graph(tracks_graph)

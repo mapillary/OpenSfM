@@ -33,5 +33,5 @@ if __name__ == "__main__":
     images = data.images()
     with open(data.reconstruction_file(), 'rb') as f:
         reconstructions = json.loads(f.read())
-    track_graph = data.tracks_graph()
+    track_graph = data.load_tracks_graph()
     io.export_bundler(data.images(), reconstructions, track_graph, bundle_file_path, list_file_path)

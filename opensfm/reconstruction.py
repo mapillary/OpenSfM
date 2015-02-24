@@ -389,7 +389,7 @@ def triangulate_shot_features(graph, reconstruction, shot_id, reproj_threshold, 
             triangulate_track(track, graph, reconstruction, P_by_id, KR1_by_id, Kinv_by_id, reproj_threshold, min_ray_angle)
 
 
-def retriangulate(track_file, graph, reconstruction, image_graph, config):
+def retriangulate(graph, reconstruction, image_graph, config):
     '''Re-triangulate 3D points
     '''
     P_by_id = {}
@@ -431,7 +431,7 @@ def retriangulate(track_file, graph, reconstruction, image_graph, config):
     bundle(graph, reconstruction, config)
 
 
-def retriangulate_all(track_file, graph, reconstruction, image_graph, config):
+def retriangulate_all(graph, reconstruction, image_graph, config):
     '''
     Retrianguate all points
     '''
@@ -751,7 +751,7 @@ def grow_reconstruction(data, graph, reconstruction, images, image_graph):
                 num_points = len(reconstruction['points'])
                 if retriangulation and num_points > prev_num_points * retriangulation_ratio:
                     print 'Re-triangulating'
-                    retriangulate_all(data.tracks_file(), graph, reconstruction, image_graph, data.config)
+                    retriangulate_all(graph, reconstruction, image_graph, data.config)
                     prev_num_points = len(reconstruction['points'])
                     print '  Reprojection Error:', reprojection_error(graph, reconstruction)
 
@@ -804,7 +804,7 @@ def tracks_and_images(graph):
 
 def incremental_reconstruction(data):
     data.invent_reference_lla()
-    graph = data.tracks_graph()
+    graph = data.load_tracks_graph()
     tracks, images = tracks_and_images(graph)
     remaining_images = set(nonfisheye_cameras(data, images))
     print 'images', len(images)

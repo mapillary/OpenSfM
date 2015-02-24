@@ -45,7 +45,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     data = dataset.DataSet(args.dataset)
-    graph = data.tracks_graph()
+    graph = data.load_tracks_graph()
     tracks, images = reconstruction.tracks_and_images(graph)
     image_graph = bipartite.weighted_projected_graph(graph, images)
 

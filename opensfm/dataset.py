@@ -224,18 +224,18 @@ class DataSet:
     def save_matches(self, image1, image2, matches):
         np.savetxt(self.__matches_file(image1, image2), matches, "%d")
 
-    def tracks_file(self):
+    def __tracks_graph_file(self):
         """Return path of tracks file"""
         return os.path.join(self.data_path, 'tracks.csv')
 
-    def track_graph_list(self):
-        """Return graph as a list"""
+    def load_tracks_graph_as_list(self):
+        """Return tranks graph as a list of edges"""
         track_list = []
         images = self.images()
         image_inv = {}
         for i, im in enumerate(images):
             image_inv[im] = int(i)
-        with open(self.tracks_file()) as fin:
+        with open(self.__tracks_graph_file()) as fin:
             for line in fin:
                 image, track_id, observation, x, y = line.split('\t')
                 if int(track_id) >= len(track_list):
@@ -243,10 +243,10 @@ class DataSet:
                 track_list[int(track_id)].append([image_inv[image], int(observation)])
         return track_list
 
-    def tracks_graph(self, images=None, tracks_file=None):
+    def load_tracks_graph(self, images=None, tracks_file=None):
         """Return graph (networkx data structure) of tracks"""
         if tracks_file is None:
-            tracks_file = self.tracks_file()
+            tracks_file = self.__tracks_graph_file()
         if images is None:
             images = self.images()
         with open(tracks_file) as fin:
@@ -258,6 +258,16 @@ class DataSet:
                     g.add_node(track, bipartite=1)
                     g.add_edge(image, track, feature=(float(x), float(y)), feature_id=int(observation))
             return g
+
+    def save_tracks_graph(self, graph):
+        with open(self.__tracks_graph_file(), 'w') as fout:
+            for node, data in graph.nodes(data=True):
+                if data['bipartite'] == 0:
+                    image = node
+                    for track, data in graph[image].items():
+                        x, y = data['feature']
+                        fid = data['feature_id']
+                        fout.write('%s\t%d\t%d\t%g\t%g\n' % (image, track, fid, x, y))
 
     def reconstruction_file(self):
         """Return path of reconstruction file"""

@@ -28,7 +28,7 @@ if __name__ == "__main__":
     if os.path.exists(list_file):
         print 'Converting output from Bundler to OpenSfM'
         data = dataset.DataSet(args.dataset)
-        tracks_file = data.tracks_file()
+        tracks_file = data.__tracks_graph_file()
         reconstruction_file = data.reconstruction_file()
         io.import_bundler(args.dataset, args.bundleout, list_file, tracks_file, reconstruction_file)
     else:
