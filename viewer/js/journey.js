@@ -135,10 +135,13 @@ var JourneyBase = (function () {
      * A journey base.
      * @constructor
      * @param {String} graphs A list of graphs.
+     * @param {String} shots Dictionary of shots with positions and targets.
+     * @param {String} intervalTime The interval for navigation.
      * @param {Boolean} usePenalty Value indicating if a penalty should be used.
      */
-    function JourneyBase(graphs, intervalTime, usePenalty) {
+    function JourneyBase(graphs, shots, intervalTime, usePenalty) {
         this.graphs = graphs;
+        this.shots = shots;
         this.intervalTime = intervalTime;
         this.usePenalty = usePenalty;
 
@@ -226,11 +229,61 @@ var JourneyBase = (function () {
     }
 
     /**
+     * Creates a line geometry based on the property of the nodes in the path.
+     * @param {Array} path Nodes to create geometry from.
+     * @param {String} property Name of the shot property to use.
+     */
+    JourneyBase.prototype.getPathLineGeometry = function (path, property) {
+        var geometry = new THREE.Geometry();
+
+        for (var i = 0; i < path.length; i++) {
+            var shot_id = path[i];
+            var vertex = this.shots[shot_id][property];
+            geometry.vertices.push(new THREE.Vector3(vertex.x, vertex.y, vertex.z));
+        }
+
+        return geometry;
+    }
+
+    /**
+     * Creates a line geometry based on the optical centers of the nodes in the
+     * shortest path between the specified nodes.
+     * @param {String} from Name of the start node.
+     * @param {String} to Name of the end node.
+     */
+    JourneyBase.prototype.getLineGeometry = function (from, to) {
+
+        var result = this.shortestPath(from, to);
+        if (result === null || result.path.length <= 1) {
+            return null;
+        }
+
+        return this.getPathLineGeometry(result.path, 'position');
+    }
+
+    /**
      * Gets a value indicating whether a journey is ongoing.
      * @return {Boolean} A value indicating whether a journey is ongoing.
      */
     JourneyBase.prototype.isStarted = function () {
         return this.started;
+    }
+
+    /**
+     * Virtual base class method to overwrite and implement in subclasses.
+     * @param {Number} from
+     * @param {Number} to
+     */
+    JourneyBase.prototype.start = function (from, to) {
+        console.log( "Warning, start() not implemented!" );
+    }
+
+    /**
+     * Virtual base class method to overwrite and implement in subclasses.
+     * @param {Boolean} continuation Indicates if a continuation action should be invoked.
+     */
+    JourneyBase.prototype.stop = function (continuation) {
+        console.log( "Warning, stop() not implemented!" );
     }
 
     return JourneyBase;
@@ -249,9 +302,17 @@ var Journey = (function () {
      * @param {Function} preloadAction The action to run when stopping a journey.
      * @param {Boolean} usePenalty Value indicating if a penalty should be used.
      */
-    function Journey(graphs, intervalTime, navigationAction, startAction, stopAction, preloadAction, usePenalty) {
+    function Journey(
+        graphs,
+        shots,
+        intervalTime,
+        navigationAction,
+        startAction,
+        stopAction,
+        preloadAction,
+        usePenalty) {
 
-        JourneyBase.apply(this, [graphs, intervalTime, usePenalty]);
+        JourneyBase.apply(this, [graphs, shots, intervalTime, usePenalty]);
 
         this.navigationAction = navigationAction;
         this.startAction = startAction;
@@ -341,7 +402,7 @@ var Journey = (function () {
     /**
      * Stops an ongoing journey between two nodes in a graph.
      */
-    Journey.prototype.stop = function () {
+    Journey.prototype.stop = function (continuation) {
         if (this.timeoutToken === undefined || this.started === false) {
             return;
         }
@@ -370,8 +431,8 @@ var SmoothJourney = (function () {
      */
     function SmoothJourney(
         graphs,
-        intervalTime,
         shots,
+        intervalTime,
         navigationAction,
         nodeAction,
         startAction,
@@ -380,9 +441,8 @@ var SmoothJourney = (function () {
         preloadAction,
         usePenalty) {
 
-        JourneyBase.apply(this, [graphs, intervalTime, usePenalty]);
+        JourneyBase.apply(this, [graphs, shots, intervalTime, usePenalty]);
 
-        this.shots = shots;
         this.navigationAction = navigationAction;
         this.nodeAction = nodeAction;
         this.startAction = startAction;
@@ -447,34 +507,6 @@ var SmoothJourney = (function () {
         }
     }
 
-    var getLineGeometry = function (shots, path, property) {
-        var geometry = new THREE.Geometry();
-
-        for (var i = 0; i < path.length; i++) {
-            var shot_id = path[i];
-            var oc = shots[shot_id][property];
-            geometry.vertices.push(new THREE.Vector3(oc.x, oc.y, oc.z));
-        }
-
-        return geometry;
-    }
-
-    /**
-     * Creates a line geometry based on the optical centers of the nodes in the path
-     * between the specified nodes.
-     * @param {String} from Name of the start node.
-     * @param {String} to Name of the end node.
-     */
-    SmoothJourney.prototype.getLineGeometry = function (from, to) {
-
-        var result = this.shortestPath(from, to);
-        if (result === null || result.path.length <= 1) {
-            return null;
-        }
-
-        return getLineGeometry(this.shots, result.path, 'position');
-    }
-
     SmoothJourney.prototype.start = function (from, to) {
         if (this.started === true) {
             return;
@@ -487,7 +519,7 @@ var SmoothJourney = (function () {
 
         this.started = true;
         this.path = result.path;
-        this.linearCurve = new LinearCurve(getLineGeometry(this.shots, this.path, 'position').vertices);
+        this.linearCurve = new LinearCurve(this.getPathLineGeometry(this.path, 'position').vertices);
 
         var position = this.linearCurve.getPointAt(0);
         var shot_id = this.path[0];
@@ -547,7 +579,6 @@ var JourneyWrapper = (function ($) {
         this.journey = undefined;
         this.destination = undefined;
         this.line = undefined;
-        this.camera = undefined;
     }
 
     // Private function for calculating the desired maximum interval.
@@ -665,36 +696,81 @@ var JourneyWrapper = (function ($) {
             $.getJSON(urlParams.nav, function(data) {
 
                 _this.journey =
-                    new Journey(
-                        data,
-                        getInterval(),
-                        navigation,
-                        start,
-                        stop,
-                        preload,
-                        true);
-
-                _this.smoothJourney =
-                    new SmoothJourney(
-                        data,
-                        getInterval(),
-                        convertShots(shots),
-                        smoothNavigation,
-                        setImagePlane,
-                        start,
-                        stop,
-                        continuation,
-                        preload,
-                        true);
+                    'jou' in urlParams && urlParams.jou === 'basic' ?
+                        new Journey(
+                            data,
+                            convertShots(shots),
+                            getInterval(),
+                            navigation,
+                            start,
+                            stop,
+                            preload,
+                            true) :
+                        new SmoothJourney(
+                            data,
+                            convertShots(shots),
+                            getInterval(),
+                            smoothNavigation,
+                            setImagePlane,
+                            start,
+                            stop,
+                            continuation,
+                            preload,
+                            true);
 
                 _this.initialized = true;
                 $('#journeyButton').show();
 
                 if ('img' in urlParams && selectedCamera !== undefined) {
-                    _this.smoothToggle();
+                    _this.toggle();
                 }
             });
         }
+    }
+
+    /**
+     * Updates the interval.
+     */
+    JourneyWrapper.prototype.updateInterval = function () {
+        if (this.initialized !== true) {
+            return;
+        }
+
+        this.journey.updateInterval(getInterval());
+    }
+
+    /**
+     * Stops a journey.
+     */
+    JourneyWrapper.prototype.stop = function () {
+        if (this.initialized !== true) {
+            return;
+        }
+
+        if (this.journey.isStarted() === true) {
+            this.journey.stop(false);
+        }
+    }
+
+    /**
+     * Toggles the journey state between started and stopped.
+     */
+    JourneyWrapper.prototype.toggle = function () {
+        if (this.initialized !== true) {
+            return;
+        }
+
+        if (this.journey.isStarted() === true) {
+            this.journey.stop(true);
+            return;
+        }
+
+        if (selectedCamera === undefined) {
+            return;
+        }
+
+        this.journey.updateInterval(getInterval());
+        this.journey.start(selectedCamera.shot_id, this.destination);
     }
 
     /**
@@ -707,7 +783,7 @@ var JourneyWrapper = (function ($) {
 
         this.hidePath();
 
-        var geometry = this.smoothJourney.getLineGeometry(selectedCamera.shot_id, this.destination);
+        var geometry = this.journey.getLineGeometry(selectedCamera.shot_id, this.destination);
         if (geometry === null) {
             return;
         }
@@ -737,99 +813,6 @@ var JourneyWrapper = (function ($) {
             this.line = undefined;
             render();
         }
-    }
-
-    /**
-     * Updates the interval.
-     */
-    JourneyWrapper.prototype.updateInterval = function () {
-        if (this.initialized !== true) {
-            return;
-        }
-
-        this.journey.updateInterval(getInterval());
-        this.smoothJourney.updateInterval(getInterval());
-    }
-
-    /**
-     * Starts a smooth journey.
-     */
-    JourneyWrapper.prototype.smoothStart = function () {
-        if (this.initialized !== true) {
-            return;
-        }
-
-        if (this.smoothJourney.isStarted() === false) {
-            this.smoothJourney.start(selectedCamera.shot_id, this.destination);
-        }
-    }
-
-    /**
-     * Stops a smooth journey.
-     */
-    JourneyWrapper.prototype.smoothStop = function () {
-        if (this.initialized !== true) {
-            return;
-        }
-
-        if (this.smoothJourney.isStarted() === true) {
-            this.smoothJourney.stop(false);
-        }
-    }
-
-    /**
-     * Toggles the smooth journey state between started and stopped.
-     */
-    JourneyWrapper.prototype.smoothToggle = function () {
-        if (this.initialized !== true) {
-            return;
-        }
-
-        if (this.smoothJourney.isStarted() === true) {
-            this.smoothJourney.stop(true);
-            return;
-        }
-
-        if (selectedCamera === undefined) {
-            return;
-        }
-
-        this.smoothJourney.updateInterval(getInterval());
-        this.smoothJourney.start(selectedCamera.shot_id, this.destination);
-    }
-
-    /**
-     * Stops a journey.
-     */
-    JourneyWrapper.prototype.stop = function () {
-        if (this.initialized !== true) {
-            return;
-        }
-
-        if (this.journey.isStarted() === true) {
-            this.journey.stop();
-        }
-    }
-
-    /**
-     * Toggles the journey state between started and stopped.
-     */
-    JourneyWrapper.prototype.toggleJourney = function () {
-        if (this.initialized !== true) {
-            return;
-        }
-
-        if (this.journey.isStarted() === true) {
-            this.journey.stop();
-            return;
-        }
-
-        if (selectedCamera === undefined) {
-            return;
-        }
-
-        this.journey.updateInterval(getInterval());
-        this.journey.start(selectedCamera.shot_id, this.destination);
     }
 
     return JourneyWrapper;
