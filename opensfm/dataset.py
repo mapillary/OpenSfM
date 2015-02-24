@@ -269,9 +269,18 @@ class DataSet:
                         fid = data['feature_id']
                         fout.write('%s\t%d\t%d\t%g\t%g\n' % (image, track, fid, x, y))
 
-    def reconstruction_file(self):
+    def __reconstruction_file(self, filename):
         """Return path of reconstruction file"""
-        return os.path.join(self.data_path, 'reconstruction.json')
+        return os.path.join(self.data_path, filename or 'reconstruction.json')
+
+    def load_reconstruction(self, filename=None):
+        with open(self.__reconstruction_file(filename)) as fin:
+            reconstructions = json.load(fin)
+        return reconstructions
+
+    def save_reconstruction(self, reconstruction, filename=None, indent=4):
+        with open(self.__reconstruction_file(filename), 'w') as fout:
+            fout.write(json.dumps(reconstruction, indent=indent))
 
     def invent_reference_lla(self, images=None):
         lat, lon, alt = 0.0, 0.0, 0.0

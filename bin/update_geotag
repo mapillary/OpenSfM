@@ -43,8 +43,7 @@ updated_image_path = os.path.join(data.data_path, 'images_updated_geotag')
 if not args.overwrite_originals and not os.path.exists(updated_image_path):
     os.makedirs(updated_image_path)
 
-with open(data.reconstruction_file(), 'r') as fin:
-    reconstructions = json.loads(fin.read())
+reconstructions = data.load_reconstruction()
 
 for reconstruction in reconstructions:
     # write updated gps/compass to the image file

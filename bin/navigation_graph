@@ -13,10 +13,6 @@ import networkx as nx
 from opensfm import dataset, reconstruction
 
 
-def load_reconstructions(data):
-    with open(data.reconstruction_file()) as fin:
-        return json.load(fin)
-
 
 def vector2_angle(x1, y1, x2, y2):
     """ Calculates the angle between two vectors on the plane.
@@ -178,7 +174,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     data = dataset.DataSet(args.dataset)
-    recs = load_reconstructions(data)
+    recs = data.load_reconstruction()
     navigation_graphs = []
 
     rec_graph = create_optical_center_graph(recs, data.config)

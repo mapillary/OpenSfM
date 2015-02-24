@@ -719,10 +719,8 @@ def grow_reconstruction(data, graph, reconstruction, images, image_graph):
     while True:
         if data.config.get('save_partial_reconstructions', False):
             paint_reconstruction_constant(data, graph, reconstruction)
-            fname = data.reconstruction_file() + datetime.datetime.now().isoformat().replace(':', '_')
-            with open(fname, 'w') as fout:
-                fout.write(json.dumps(reconstruction))
-
+            data.save_reconstruction(reconstruction, 'reconstruction.{}.json'.format(
+                datetime.datetime.now().isoformat().replace(':', '_')))
 
         common_tracks = reconstructed_points_for_images(graph, reconstruction, images)
         if not common_tracks:
@@ -821,8 +819,7 @@ def incremental_reconstruction(data):
                 reconstruction = grow_reconstruction(data, graph, reconstruction, remaining_images, image_graph)
                 reconstructions.append(reconstruction)
                 reconstructions = sorted(reconstructions, key=lambda x: -len(x['shots']))
-                with open(data.reconstruction_file(), 'w') as fout:
-                    fout.write(json.dumps(reconstructions, indent=4))
+                data.save_reconstruction(reconstructions)
 
     for k, r in enumerate(reconstructions):
         print 'Reconstruction', k, ':', len(r['shots']), 'images', ',', len(r['points']),'points'

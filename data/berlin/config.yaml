@@ -62,5 +62,7 @@ exif_focal_sd: 0.01             # The standard deviation of the diff between the
 bundle_interval: 1            # bundle adjustment after adding 'bundle_interval' cameras
 bundle_outlier_threshold: 0.006
 
+save_partial_reconstructions: yes
+
 # Other params
 processes: 1                  # Number of threads to use

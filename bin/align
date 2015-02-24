@@ -38,8 +38,7 @@ for image in images:
         exif_data = dexif.extract_exif()
         data.save_exif(image, exif_data)
 
-with open(data.reconstruction_file(), 'rb') as fin:
-    reconstructions = json.loads(fin.read())
+reconstructions = data.load_reconstruction()
 
 # reference for conversion
 if not os.path.exists(data.reference_lla_path()):
@@ -58,9 +57,7 @@ for reconstruction in reconstructions:
     # reference = data.invent_reference_lla(list(reconstruction['shots'].keys()))
     rc.register_reconstruction_with_gps(reconstruction, reference)
 
-output_file = args.output or data.reconstruction_file()
-with open(output_file, 'wb') as fout:
-    fout.write(json.dumps(reconstructions, indent=4))
+data.save_reconstruction(reconstructions, filename=args.output)
 
 
 

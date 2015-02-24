@@ -19,9 +19,7 @@ if __name__ == "__main__":
 
     data = dataset.DataSet(args.dataset)
     graph = data.load_tracks_graph()
-    
-    with open(data.reconstruction_file()) as fin:
-        reconstructions = json.load(fin)
+    reconstructions = data.load_reconstruction()
 
     for r in reconstructions:
         for shot_id, shot in r['shots'].items():
@@ -57,8 +55,7 @@ if __name__ == "__main__":
             r['shots'][shot_id]['vertices'] = vertices
             r['shots'][shot_id]['faces'] = faces
 
-    with open(data.reconstruction_file() + '.meshed', 'w') as fout:
-        fout.write(json.dumps(reconstructions, indent=4))
+    data.save_reconstruction(reconstructions, filename='reconstruction.meshed.json')
 
     end = time.time()
     with open(data.profile_log(), 'a') as fout:
