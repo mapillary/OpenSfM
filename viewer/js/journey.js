@@ -402,6 +402,51 @@ var SmoothJourney = (function () {
     SmoothJourney.prototype = Object.create(JourneyBase.prototype);
     SmoothJourney.prototype.constructor = SmoothJourney;
 
+    // Private function for calculating the current position and target based
+    // on the elapsed time, interval and the curve.
+    var move = function () {
+        if (this.started !== true) {
+            return;
+        }
+
+        if (this.currentIndex + 10 <= this.path.length - 1) {
+            this.preloadAction([this.path[this.currentIndex + 10]]);
+        }
+
+        var currentTime = Date.now();
+        var elapsed = currentTime - this.previousTime;
+        this.previousTime = currentTime;
+        var totalTime = this.intervalTime * this.linearCurve.getLength() / 15;
+
+        this.u = Math.min(this.u + (elapsed / totalTime), 1);
+
+        var t = this.linearCurve.getUtoTmapping(this.u);
+        var point = (this.path.length - 1) * t;
+        var intPoint = Math.floor(point);
+        var weight = point - intPoint;
+
+        if (intPoint > this.currentIndex && intPoint < this.path.length) {
+            this.currentIndex = intPoint;
+            this.nodeAction(this.path[this.currentIndex + 1]);
+        }
+
+        var position = this.linearCurve.getPoint(t);
+
+        var shot_id1 = this.path[intPoint];
+        var vd1 = this.shots[shot_id1]['target'];
+
+        var shot_id2 = this.path[Math.min(intPoint + 1, this.path.length - 1)];
+        var vd2 = this.shots[shot_id2]['target'];
+
+        var target = new THREE.Vector3().copy(vd1).lerp(vd2, weight);
+
+        this.navigationAction(position, target);
+
+        if (this.u >= 1) {
+            this.stop();
+        }
+    }
+
     var getLineGeometry = function (shots, path, property) {
         var geometry = new THREE.Geometry();
 
@@ -458,50 +503,7 @@ var SmoothJourney = (function () {
         this.navigationAction(position, target);
 
         _this = this;
-        this.intervalToken = window.setInterval(function () { _this.move.call(_this); }, 1000/60);
-    }
-
-    SmoothJourney.prototype.move = function () {
-        if (this.started !== true) {
-            return;
-        }
-
-        if (this.currentIndex + 10 <= this.path.length - 1) {
-            this.preloadAction([this.path[this.currentIndex + 10]]);
-        }
-
-        var currentTime = Date.now();
-        var elapsed = currentTime - this.previousTime;
-        this.previousTime = currentTime;
-        var totalTime = 2 * this.intervalTime * this.linearCurve.getLength() / 20;
-
-        this.u = Math.min(this.u + (elapsed / totalTime), 1);
-
-        var t = this.linearCurve.getUtoTmapping(this.u);
-        var point = (this.path.length - 1) * t;
-        var intPoint = Math.floor(point);
-        var weight = point - intPoint;
-
-        if (intPoint > this.currentIndex && intPoint < this.path.length) {
-            this.currentIndex = intPoint;
-            this.nodeAction(this.path[this.currentIndex + 1]);
-        }
-
-        var position = this.linearCurve.getPoint(t);
-
-        var shot_id1 = this.path[intPoint];
-        var vd1 = this.shots[shot_id1]['target'];
-
-        var shot_id2 = this.path[Math.min(intPoint + 1, this.path.length - 1)];
-        var vd2 = this.shots[shot_id2]['target'];
-
-        var target = new THREE.Vector3().copy(vd1).lerp(vd2, weight);
-
-        this.navigationAction(position, target);
-
-        if (this.u >= 1) {
-            this.stop();
-        }
+        this.intervalToken = window.setInterval(function () { move.call(_this); }, 1000/60);
     }
 
     SmoothJourney.prototype.stop = function (continuation) {
