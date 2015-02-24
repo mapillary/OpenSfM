@@ -16,7 +16,7 @@ def usage():
 
 def detect(image):
     print 'Extracting', data.feature_type().upper(), 'features for image', image
-    if not os.path.isfile(data.feature_index_file(image)):
+    if not data.feature_index_exists(image):
         p_unsorted, f_unsorted = features.extract_feature(data.image_as_array(image, grayscale=True), data.config)
         if len(p_unsorted) == 0:
             return
@@ -33,7 +33,8 @@ def detect(image):
         f_pre = f_sorted[-preemptive_max:]
         data.save_features(image, p_sorted, f_sorted)
         data.save_preemptive_features(image, p_pre, f_pre)
-        features.build_flann_index(f_sorted, data.feature_index_file(image), data.config)
+        index = features.build_flann_index(f_sorted, data.config)
+        data.save_feature_index(image, index)
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:

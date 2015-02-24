@@ -172,12 +172,23 @@ class DataSet:
     def save_features(self, image, points, descriptors):
         self.__save_features(self.__feature_file(image), image, points, descriptors)
 
-    def feature_index_file(self, image):
+    def feature_index_exists(self, image):
+        return os.path.isfile(self.__feature_index_file(image))
+
+    def __feature_index_file(self, image):
         """
         Return path of FLANN index file for specified image
         :param image: Image name, with extension (i.e. 123.jpg)
         """
         return os.path.join(self.__feature_path(), image + '.' + self.feature_type() + '.flann')
+
+    def load_feature_index(self, image, features):
+        index = cv2.flann_Index()
+        index.load(features, self.__feature_index_file(image))
+        return index
+
+    def save_feature_index(self, image, index):
+        index.save(self.__feature_index_file(image))
 
     def __preemptive_features_file(self, image):
         """

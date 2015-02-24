@@ -48,10 +48,10 @@ def match(imagepair):
     # symmetric matching
     t = time.time()
     p1, f1 = data.load_features(im1)
-    i1 = features.load_flann_index(f1, data.feature_index_file(im1))
+    i1 = data.load_feature_index(im1, f1)
 
     p2, f2 = data.load_features(im2)
-    i2 = features.load_flann_index(f2, data.feature_index_file(im2))
+    i2 = data.load_feature_index(im2, f2)
 
     matches = features.match_symmetric(f1, i1, f2, i2, data.config)
     if len(matches) < robust_matching_min_match:

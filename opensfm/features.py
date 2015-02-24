@@ -82,9 +82,10 @@ def extract_features_sift(image, config):
     sift_peak_threshold = float(config.get('sift_peak_threshold', 0.01))
     while True:
         print 'Computing sift with threshold {0}'.format(sift_peak_threshold)
+        t = time.time()
         detector.setDouble("contrastThreshold", sift_peak_threshold)
         points = detector.detect(image)
-        print 'Found {0} points'.format(len(points))
+        print 'Found {0} points in {1}s'.format( len(points), time.time()-t )
         if len(points) < config.get('feature_min_frames', 0) and sift_peak_threshold > 0.0001:
             sift_peak_threshold = (sift_peak_threshold * 2) / 3
             print 'reducing threshold'
@@ -189,7 +190,7 @@ def extract_feature(image, config):
 
 
 
-def build_flann_index(features, index_file, config):
+def build_flann_index(features, config):
     FLANN_INDEX_LINEAR          = 0
     FLANN_INDEX_KDTREE          = 1
     FLANN_INDEX_KMEANS          = 2
@@ -207,14 +208,8 @@ def build_flann_index(features, index_file, config):
                         branching=config.get('flann_branching', 16),
                         iterations=config.get('flann_iterations', 20))
     index = cv2.flann_Index(features, flann_params)
-    index.save(index_file)
     return index
 
-def load_flann_index(features, index_file):
-    index = cv2.flann_Index()
-    index.load(features, index_file)
-
-    return index
 
 def match_lowe(index, f2, config):
     search_params = dict(checks=config.get('flann_checks', 200))
