@@ -331,18 +331,19 @@ class DataSet:
             fout.write(json.dumps(camera_models, indent=4))
 
 
-    def epipolar_path(self):
+    def __epipolar_path(self):
         return os.path.join(self.data_path, 'epipolar_geometries')
 
-    def epipolar_file(self, im1, im2):
-        return os.path.join(self.epipolar_path(), '%s_%s_epipolar.npz' % (im1, im2))
+    def __epipolar_file(self, im1, im2):
+        return os.path.join(self.__epipolar_path(), '%s_%s_epipolar.npz' % (im1, im2))
 
     def save_epipolar(self, im1, im2, R, t, X=[], inliers=[]):
-        np.savez(self.epipolar_file(im1, im2), R=R, t=t, X=X, inliers=inliers)
+        io.mkdir_p(self.__epipolar_path())
+        np.savez(self.__epipolar_file(im1, im2), R=R, t=t, X=X, inliers=inliers)
 
     def load_epipolar(self, im1, im2):
         try:
-            s = np.load(self.epipolar_file(im1, im2))
+            s = np.load(self.__epipolar_file(im1, im2))
         except IOError:
             return None, None, None, None
         return s['R'], s['t'], s['X'], s['inliers']
