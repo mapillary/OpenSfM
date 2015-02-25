@@ -719,10 +719,15 @@ var JourneyWrapper = (function ($) {
                             true);
 
                 _this.initialized = true;
+
+                options.showPath = false;
                 $('#journeyButton').show();
 
                 if ('img' in urlParams && selectedCamera !== undefined) {
                     _this.toggle();
+                }
+                else {
+                    _this.addShowPathController();
                 }
             });
         }
@@ -813,6 +818,38 @@ var JourneyWrapper = (function ($) {
             this.line = undefined;
             render();
         }
+    }
+
+    JourneyWrapper.prototype.addShowPathController = function () {
+        if (this.initialized !== true || this.showPathController !== undefined){
+            return;
+        }
+
+        _this = this;
+        this.showPathController = f1.add(options, 'showPath')
+            .listen()
+            .onChange(function () {
+                if (options.showPath === true && selectedCamera !== undefined) {
+                    _this.showPath();
+                }
+                else {
+                    _this.hidePath();
+                }
+            });
+
+        if (options.showPath === true) {
+            this.showPath();
+        }
+    }
+
+    JourneyWrapper.prototype.removeShowPathController = function () {
+        if (this.initialized !== true || this.showPathController === undefined){
+            return;
+        }
+
+        this.hidePath();
+        f1.remove(this.showPathController);
+        this.showPathController = undefined;
     }
 
     return JourneyWrapper;
