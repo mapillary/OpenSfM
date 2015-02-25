@@ -94,7 +94,7 @@
                 </tr>
                 <tr>
                     <td>
-                        <button id="journeyButton" onclick="journeyWrapper.toggleJourney()">
+                        <button id="journeyButton" onclick="invokeJourneyWrapper(function () { journeyWrapper.toggle(); });">
                             Go
                         </button>
                     </td>
@@ -161,6 +161,7 @@
 
         <script>
             var urlParams;
+            var f1;
             var container, camera, controls, scene, renderer;
             var mouse = new THREE.Vector2();
             var hoverCamera, raycaster, parentTransform;
@@ -232,7 +233,7 @@
             function addDatGui(){
                 var gui = new dat.GUI();
 
-                var f1 = gui.addFolder('Options');
+                f1 = gui.addFolder('Options');
                 f1.add(options, 'pointSize', 0, 2)
                     .listen()
                     .onChange(setPointSize);
@@ -340,7 +341,7 @@
                 if (mode != movingMode) {
                     movingMode = mode;
                     if (mode == 'orbit') {
-                        invokeJourneyWrapper(function () { journeyWrapper.stop(); });
+                        invokeJourneyWrapper(function () { journeyWrapper.stop(); journeyWrapper.addShowPathController(); });
                         resetWalkMode();
                         swapOptions();
                         controls.noRotate = false;
@@ -354,6 +355,7 @@
                         imageMaterialOld.depthWrite = true;
                         $('#navigation').hide();
                     } else if (mode == 'walk') {
+                        invokeJourneyWrapper(function () { journeyWrapper.removeShowPathController(); });
                         swapOptions();
                         controls.noRotate = true;
                         controls.noLookAround = true;
@@ -436,7 +438,15 @@
                     init();
                     animate();
 
-                    invokeJourneyWrapper(function () { journeyWrapper.initialize(); });
+                    invokeJourneyWrapper(function () {
+                        var shots = {};
+                        for (var r = 0; r < reconstructions.length; ++r) {
+                            var newShots = reconstructions[r].shots;
+                            shots = $.extend(shots, newShots);
+                        }
+
+                        journeyWrapper.initialize(shots);
+                    });
                 });
             }
 
@@ -889,6 +899,12 @@
                 image_tag.src = image_url;
                 var text = document.getElementById('text');
                 text.innerHTML = shot_id;
+
+                invokeJourneyWrapper(function () {
+                    if (movingMode === 'orbit' && options.showPath === true) {
+                        journeyWrapper.showPath();
+                    }
+                });
             }
 
             function setImagePlaneCamera(cameraObject) {
@@ -1093,7 +1109,7 @@
                             setMovingMode('orbit');
                             break;
                         case 83: // S
-                            invokeJourneyWrapper(function () { journeyWrapper.toggleJourney(); });
+                            invokeJourneyWrapper(function () { journeyWrapper.toggle(); });
                         default:
                             validKey = false;
                             break;
