@@ -294,8 +294,10 @@ var Journey = (function () {
     /**
      * A journey.
      * @constructor
-     * @param {String} graphs A list of graphs.
-     * @param {String} intervalTime The maximum time between navigation.
+     * @extends {JourneyBase}
+     * @param {Array} graphs A list of graphs.
+     * @param {Object} shots Dictionary of shots.
+     * @param {Number} intervalTime The maximum time between navigation.
      * @param {Function} navigationAction The action to execute on navigation.
      * @param {Function} startAction The action to run when starting a journey.
      * @param {Function} stopAction The action to run when stopping a journey.
@@ -426,7 +428,16 @@ var SmoothJourney = (function () {
     /**
      * A smooth journey.
      * @constructor
-     * @param {String} graphs A list of graphs.
+     * @extends {JourneyBase}
+     * @param {Array} graphs A list of graphs.
+     * @param {Object} shots Dictionary of shots.
+     * @param {Number} intervalTime The maximum time between navigation.
+     * @param {Function} navigationAction The action to execute on navigation.
+     * @param {Function} nodeAction The action to execute when a node should be displayed.
+     * @param {Function} startAction The action to run when starting a journey.
+     * @param {Function} stopAction The action to run when stopping a journey.
+     * @param {Function} continuationAction The action to execute when the journey is stopped for smooth stopping.
+     * @param {Function} preloadAction The action to run when stopping a journey.
      * @param {Boolean} usePenalty Value indicating if a penalty should be used.
      */
     function SmoothJourney(
@@ -507,6 +518,11 @@ var SmoothJourney = (function () {
         }
     }
 
+    /**
+     * Starts a smooth journey between two nodes in a graph.
+     * @param {Number} from Start node.
+     * @param {Number} to End node.
+     */
     SmoothJourney.prototype.start = function (from, to) {
         if (this.started === true) {
             return;
@@ -538,6 +554,10 @@ var SmoothJourney = (function () {
         this.intervalToken = window.setInterval(function () { move.call(_this); }, 1000/60);
     }
 
+    /**
+     * Stops a smooth journey.
+     * @param {Boolean} continuation Specifying if the continuation action should be invoked.
+     */
     SmoothJourney.prototype.stop = function (continuation) {
         if (this.intervalToken === undefined || this.started === false) {
             return;
@@ -678,6 +698,7 @@ var JourneyWrapper = (function ($) {
         controls.goto(position, target);
     }
 
+    // Private function for continuing the movement to the next node when a journey is stopped.
     var continuation = function (shot_id) {
         var camera = getCamera(shot_id);
         navigateToShot(camera);
@@ -820,6 +841,9 @@ var JourneyWrapper = (function ($) {
         }
     }
 
+    /**
+     * Adds a show path checkbox to the options.
+     */
     JourneyWrapper.prototype.addShowPathController = function () {
         if (this.initialized !== true || this.showPathController !== undefined){
             return;
@@ -842,6 +866,9 @@ var JourneyWrapper = (function ($) {
         }
     }
 
+    /**
+     * Removes the show path checkbox from the options.
+     */
     JourneyWrapper.prototype.removeShowPathController = function () {
         if (this.initialized !== true || this.showPathController === undefined){
             return;
