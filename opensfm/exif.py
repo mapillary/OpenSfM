@@ -76,6 +76,48 @@ def sensor_string(make, model):
     return (make.strip() + ' ' + model.strip()).lower()
 
 
+def extract_exif_from_dict(exif_image):
+    model = exif_image.get('model', 'unknown')
+    make = exif_image.get('make', 'unknown')
+    sensor = sensor_string(make, model)
+    fmm35, fmm = float(exif_image.get('fmm35', 0)), float(exif_image.get('fmm', 0))
+    focal_35, focal_ratio = compute_focal(fmm35, fmm, None, sensor)
+    orientation = exif_image.get('orientation', 1)
+    k1 = exif_image.get('k1', 0)
+    k2 = exif_image.get('k2', 0)
+    width, height = exif_image.get('width', -1), exif_image.get('height', -1)
+    # gps
+    geo = {}
+    geo['latitude'] = float(exif_image.get('lat', 0.0))
+    geo['longitude'] = float(exif_image.get('lon', 0.0))
+    geo['altitude'] = float(exif_image.get('altitude', 0.0))
+    geo['dop'] = float(exif_image.get('gps_accuracy', -1))
+    if geo['dop'] < 0:
+        del geo['dop']
+
+    d = {
+        'width': width,
+        'height': height,
+        'focal_ratio': focal_ratio,
+        'focal_35mm_equiv': focal_35,
+        'camera': sensor,
+        'orientation': orientation,
+        'k1': k1,
+        'k2': k2,
+        'gps': geo
+    }
+    return d
+
+def extract_exif_from_file(fileobj):
+    if type(fileobj) is str or unicode:
+        with open(fileobj) as f:
+            exif_data = EXIF(f)
+    else:
+        exif_data = EXIF(fileobj)
+
+    d = exif_data.extract_exif()
+    return d
+
 class EXIF:
 
     def __init__(self, fileobj):
@@ -168,7 +210,6 @@ class EXIF:
             d['altitude'] = altitude
         if dop is not None:
             d['dop'] = dop
-
         return d
 
     def extract_exif(self):
@@ -178,17 +219,19 @@ class EXIF:
         make, model = self.extract_make(), self.extract_model()
         orientation = self.extract_orientation()
         geo = self.extract_geo()
+        distortion = self.extract_distortion()
         d = {
                 'width': width,
                 'height': height,
                 'focal_ratio': focal_ratio,
                 'focal_35mm_equiv': focal_35,
                 'camera': sensor_string(make, model),
-                'orientation': orientation
+                'orientation': orientation,
+                'k1': distortion[0],
+                'k2': distortion[1]
             }
         # GPS
         d['gps'] = geo
-
         return d
 
 
