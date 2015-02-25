@@ -19,7 +19,7 @@ class DataSet:
     """
     def __init__(self, data_path):
         """
-        Create dataset instance. Empty directories (for EXIF, robust matches, etc) will be created if they don't exist
+        Create dataset instance. Empty directories (for EXIF, matches, etc) will be created if they don't exist
         already.
 
         :param data_path: Path to directory containing dataset
@@ -46,7 +46,7 @@ class DataSet:
         # Create output folders.
         for p in [self.__exif_path(),
                   self.__feature_path(),
-                  self.__robust_matches_path()]:
+                  self.__matches_path()]:
             io.mkdir_p(p)
 
     def images(self):
@@ -217,17 +217,17 @@ class DataSet:
         return matcher_type # BruteForce, BruteForce-L1, BruteForce-Hamming
 
 
-    def __robust_matches_path(self):
-        """Return path of robust matches directory"""
+    def __matches_path(self):
+        """Return path of matches directory"""
         return os.path.join(self.data_path, 'robust_matches')
 
     def __matches_file(self, image1, image2):
         """
-        Return path of *robust* matches file for pair of specified images
+        Return path of matches file for pair of specified images
         :param image1: Image name, with extension (i.e. 123.jpg)
         :param image2: Image name, with extension (i.e. 123.jpg)
         """
-        return os.path.join(self.__robust_matches_path(), '%s_%s_matches.csv' % (image1, image2))
+        return os.path.join(self.__matches_path(), '%s_%s_matches.csv' % (image1, image2))
 
     def load_matches(self, image1, image2):
         return np.genfromtxt(self.__matches_file(image1, image2), dtype=int)
