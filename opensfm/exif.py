@@ -109,7 +109,7 @@ def extract_exif_from_dict(exif_image):
     return d
 
 def extract_exif_from_file(fileobj):
-    if type(fileobj) is str or unicode:
+    if isinstance(fileobj, (str, unicode)):
         with open(fileobj) as f:
             exif_data = EXIF(f)
     else:

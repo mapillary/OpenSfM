@@ -10,6 +10,7 @@ from itertools import combinations
 import argparse
 from opensfm import dataset
 from opensfm import features
+from opensfm import matching
 from opensfm import geo
 
 
@@ -38,7 +39,7 @@ def match(imagepair):
     t = time.time()
     lowes_ratio = data.config.get('lowes_ratio', 0.6)
     data.config['lowes_ratio'] = data.config.get('preemptive_lowes_ratio', 0.6)
-    matches_pre = features.match_lowe_bf(f_pre[im1], f_pre[im2], data.config)
+    matches_pre = matching.match_lowe_bf(f_pre[im1], f_pre[im2], data.config)
     data.config['lowes_ratio'] = lowes_ratio
     print "Preemptive matching {0}, time: {1}s".format(len(matches_pre), time.time()-t)
     if len(matches_pre) < preemptive_threshold:
@@ -53,7 +54,7 @@ def match(imagepair):
     p2, f2 = data.load_features(im2)
     i2 = data.load_feature_index(im2, f2)
 
-    matches = features.match_symmetric(f1, i1, f2, i2, data.config)
+    matches = matching.match_symmetric(f1, i1, f2, i2, data.config)
     if len(matches) < robust_matching_min_match:
         return
     print 'Full feature matching time of {0} - {2} : {1}s'.format(len(f1), time.time() - t, len(f2))
@@ -61,7 +62,7 @@ def match(imagepair):
 
     # robust matching
     t_robust_matching = time.time()
-    rmatches = features.robust_match(p1, p2, matches, data.config)
+    rmatches = matching.robust_match(p1, p2, matches, data.config)
     if len(rmatches) < robust_matching_min_match:
         return
     print 'Robust matching time : {0}s'.format(time.time() - t_robust_matching)
