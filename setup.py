@@ -2,6 +2,7 @@
 
 from distutils.core import setup, Extension
 import numpy as np
+import sys
 import os
 import glob
 
@@ -91,6 +92,10 @@ vlfeat_library = ('vl', {
 })
 
 # cSfM
+csfm_extra_compile_args = ['-std=c++11']
+if sys.platform.startswith('darwin'):
+    csfm_extra_compile_args.extend(['-stdlib=libc++', '-mmacosx-version-min=10.7'])
+
 csfm_extension = Extension(
     'opensfm.csfm',
     sources=['opensfm/src/csfm.cc'],
@@ -104,7 +109,7 @@ csfm_extension = Extension(
     ],
     libraries=libraries,
     library_dirs = library_dirs,
-    extra_compile_args=['-std=c++11'],
+    extra_compile_args=csfm_extra_compile_args,
 )
 
 setup(
