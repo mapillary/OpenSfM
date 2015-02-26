@@ -229,6 +229,9 @@ class DataSet:
         """
         return os.path.join(self.__matches_path(), '%s_%s_matches.csv' % (image1, image2))
 
+    def matches_exists(self, im1, im2):
+        return os.path.isfile(self.__matches_file(im1, im2))
+
     def load_matches(self, image1, image2):
         return np.genfromtxt(self.__matches_file(image1, image2), dtype=int)
 
