@@ -39,12 +39,22 @@ eigen_include_dir = find_include('Eigen/Core', [], ['eigen3'])
 ceres_libraries = ['ceres', 'glog', 'gflags']
 libraries.extend(ceres_libraries)
 
+if sys.platform.startswith('linux'):
+    # SuiteSparse
+    suitesparse_libraries = ['spqr', 'cholmod', 'ccolamd', 'camd', 'colamd', 'amd', 'lapack', 'f77blas', 'atlas', 'f77blas', 'atlas', 'suitesparseconfig', 'rt',]
+    libraries.extend(suitesparse_libraries)
+
+    # Lapack
+    lapack_libraries = ['lapack', 'f77blas', 'atlas',]
+    libraries.extend(lapack_libraries)
+
 # Boost Python
 boost_python_libraries = ['boost_python']
 libraries.extend(boost_python_libraries)
 
 # OpenCV
-opencv_libraries = ['opencv_ml','opencv_legacy','opencv_imgproc','opencv_highgui','opencv_flann','opencv_core','opencv_contrib']
+opencv_libraries = ['opencv_videostab', 'opencv_video', 'opencv_ts', 'opencv_superres', 'opencv_stitching', 'opencv_photo', 'opencv_ocl', 'opencv_objdetect', 'opencv_nonfree', 'opencv_ml', 'opencv_legacy', 'opencv_imgproc', 'opencv_highgui', 'opencv_gpu', 'opencv_flann', 'opencv_features2d', 'opencv_core', 'opencv_contrib', 'opencv_calib3d']
+
 libraries.extend(opencv_libraries)
 
 # Akaze
@@ -97,8 +107,12 @@ vlfeat_library = ('vl', {
 
 # cSfM
 csfm_extra_compile_args = ['-std=c++11']
+csfm_extra_link_args = []
 if sys.platform.startswith('darwin'):
     csfm_extra_compile_args.extend(['-stdlib=libc++', '-mmacosx-version-min=10.7'])
+elif sys.platform.startswith('linux'):
+    csfm_extra_compile_args.extend(['-fopenmp'])
+    csfm_extra_link_args.extend(['-fopenmp'])
 
 csfm_extension = Extension(
     'opensfm.csfm',
@@ -114,6 +128,7 @@ csfm_extension = Extension(
     libraries=libraries,
     library_dirs = library_dirs,
     extra_compile_args=csfm_extra_compile_args,
+    extra_link_args=csfm_extra_link_args,
 )
 
 setup(
