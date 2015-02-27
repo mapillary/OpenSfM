@@ -47,17 +47,10 @@ Be sure to update your `PYTHONPATH` to include `/usr/local/lib/python2.7/site-pa
         sudo pip install scipy
 
 
-## Building inplace using setup.py
+## Building
 
-    python setup.py build_clib
-    python setup.py build_ext --inplace
+    python setup.py build
 
-## Building using CMake
-
-    mkdir build
-    cd build
-    cmake ../opensfm/src
-    make
 
 ## Running
 
