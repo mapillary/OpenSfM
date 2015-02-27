@@ -13,16 +13,18 @@ from opensfm.reconstruction import *
 
 
 
-### Prepare OpenSfM output for dense reconstruction with PMVS 
+### Prepare OpenSfM output for dense reconstruction with PMVS
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Convert output from OpenSfM to PMVS')
     parser.add_argument('dataset', help='path to the dataset to be processed')
-    parser.add_argument('output', help='output pmvs directory')
+    parser.add_argument('--output', help='output pmvs directory')
     args = parser.parse_args()
 
     data = dataset.DataSet(args.dataset)
     base_output_path = args.output
+    if base_output_path is None:
+        base_output_path = os.path.join(os.path.dirname(args.dataset), 'pmvs')
     print "Converting dataset [%s] to PMVS dir [%s]" % (data.data_path, base_output_path)
 
     io.mkdir_p(base_output_path)
@@ -33,7 +35,7 @@ if __name__ == "__main__":
     image_graph = bipartite.weighted_projected_graph(graph, images)
 
     reconstructions = data.load_reconstruction()
-    for h, reconstruction in enumerate(reconstructions): 
+    for h, reconstruction in enumerate(reconstructions):
         print "Reconstruction", h
         output_path = os.path.join(base_output_path, "recon%d" % h)
         io.mkdir_p(output_path)
@@ -87,13 +89,13 @@ if __name__ == "__main__":
                     for c in r:
                         f.write("%f " % c)
                     f.write("\n")
-            
-                
+
+
 
             #### radially undistort image and copy to visualize/%08d.jpg
             orig_image = os.path.abspath(data.image_files[image]) #why is dataset.__image_file() method private?
             new_image = os.path.join(output_path, "visualize", base + ".jpg")
-            
+
             im = cv2.imread(orig_image)
             camera_matrix = np.identity(3)
             camera_matrix[0][0] = camera["width"]*camera["focal"]
