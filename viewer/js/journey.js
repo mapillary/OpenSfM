@@ -16,9 +16,10 @@ var Dijkstra = (function () {
      /**
      * Calculate the shortest path between two nodes in a graph using
      * Dijkstra's Algorithm.
-     * @param {Object} graph
-     * @param {String} source
-     * @param {String} target
+     * @param {Object} graph The graph with nodes and weights used for calculation.
+     * @param {String} source The name of the source node.
+     * @param {String} target The name of the target node.
+     * @param {String} weight The name of the weight property.
      * @return {Array} An array of node names corresponding to the path
      */
     Dijkstra.prototype.shortestPath = function (graph, source, target, weight) {
