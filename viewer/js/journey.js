@@ -229,11 +229,11 @@ var JourneyBase = (function () {
     }
 
     /**
-     * Creates a line geometry based on the property of the nodes in the path.
+     * Creates a geometry based on an existing property of the nodes in the path.
      * @param {Array} path Nodes to create geometry from.
      * @param {String} property Name of the shot property to use.
      */
-    JourneyBase.prototype.getPathLineGeometry = function (path, property) {
+    JourneyBase.prototype.getGeometry = function (path, property) {
         var geometry = new THREE.Geometry();
 
         for (var i = 0; i < path.length; i++) {
@@ -246,19 +246,19 @@ var JourneyBase = (function () {
     }
 
     /**
-     * Creates a line geometry based on the optical centers of the nodes in the
+     * Creates a geometry based on the positions of the nodes in the
      * shortest path between the specified nodes.
      * @param {String} from Name of the start node.
      * @param {String} to Name of the end node.
      */
-    JourneyBase.prototype.getLineGeometry = function (from, to) {
+    JourneyBase.prototype.getPathGeometry = function (from, to) {
 
         var result = this.shortestPath(from, to);
         if (result === null || result.path.length <= 1) {
             return null;
         }
 
-        return this.getPathLineGeometry(result.path, 'position');
+        return this.getGeometry(result.path, 'position');
     }
 
     /**
@@ -535,7 +535,7 @@ var SmoothJourney = (function () {
 
         this.started = true;
         this.path = result.path;
-        this.linearCurve = new LinearCurve(this.getPathLineGeometry(this.path, 'position').vertices);
+        this.linearCurve = new LinearCurve(this.getGeometry(this.path, 'position').vertices);
 
         var position = this.linearCurve.getPointAt(0);
         var shot_id = this.path[0];
@@ -809,7 +809,7 @@ var JourneyWrapper = (function ($) {
 
         this.hidePath();
 
-        var geometry = this.journey.getLineGeometry(selectedCamera.shot_id, this.destination);
+        var geometry = this.journey.getPathGeometry(selectedCamera.shot_id, this.destination);
         if (geometry === null) {
             return;
         }
