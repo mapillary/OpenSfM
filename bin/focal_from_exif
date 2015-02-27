@@ -28,13 +28,6 @@ images = data.images()
 missing_sensors = {}
 camera_models = {}
 
-
-if os.path.exists(data.data_path + '/imagedata.json'):
-    with open(data.data_path + '/imagedata.json', 'rb') as f:
-        exif_database = json.loads(f.read())
-else:
-    exif_database = {}
-
 if os.path.exists(data.data_path + '/exif_overrides.json'):
     with open(data.data_path + '/exif_overrides.json', 'rb') as f:
         exif_overrides = json.loads(f.read())
@@ -45,90 +38,31 @@ for image in images:
     print 'Extracting focal lengths for image', image
 
     # EXIF data in Image
-    exif_data = exif.EXIF(data.load_image(image))
+    d = exif.extract_exif_from_file(data.load_image(image))
 
     # Image Height and Image Width
-    if data.config.get('use_exif_size', True):
-        width, height = exif_data.extract_image_size()
-    else:
+    if not data.config.get('use_exif_size', True) or 1:
         height, width = data.image_as_array(image).shape[:2]
+        d['height']  = height
+        d['width'] = width
 
-    # Make and Model
-    make, model = exif_data.extract_make(), exif_data.extract_model()
-    sensor_string = exif.sensor_string(make, model)
+    data.save_exif(image, d)
 
-    # Focal
-    focal_35, focal_ratio = exif_data.extract_focal()
-
-    if focal_ratio == 0:
-        # try reading data from exif database (imagedata.json) if exist
-        exif_image = exif_database.get(image)
-        if exif_image:
-            model = exif_image.get('model', 'unknown')
-            make = exif_image.get('make', 'unknown')
-            sensor_string = exif.sensor_string(make, model)
-            fmm35, fmm = float(exif_image.get('fmm35', 0)), float(exif_image.get('fmm', 0))
-            focal_35, focal_ratio = exif.compute_focal(
-                fmm35,
-                fmm,
-                None,
-                sensor_string
-            )
-
-    if focal_ratio == 0:
-        missing_sensors[exif.sensor_string(make, model)] = 1
-
-    orientation = exif_data.extract_orientation()
-
-    d = {
-            'width': width,
-            'height': height,
-            'focal_ratio': focal_ratio,
-            'focal_35mm_equiv': focal_35,
-            'camera': sensor_string,
-            'orientation': orientation
-        }
-
-    # GPS
-    geo = exif_data.extract_geo()
-    if exif_database.get(image, {}):
-        # Check whether gps is provided in a json file (imagedata.json)
-        exif_image = exif_database[image]
-        d['gps'] = {}
-        d['gps']['latitude'] = float(exif_image.get('lat', 0.0))
-        d['gps']['longitude'] = float(exif_image.get('lon', 0.0))
-        d['gps']['altitude'] = float(exif_image.get('altitude', 0.0))
-        d['gps']['dop'] = float(exif_image.get('gps_accuracy', -1))
-        if d['gps']['dop'] < 0:
-            del d['gps']['dop']
-
-    elif 'latitude' in geo and 'longitude' in geo:
-        d['gps'] = geo
-
-    if image in exif_overrides:
-        for key, value in exif_overrides[image].items():
-            d[key] = value
-
-    if sensor_string not in camera_models:
+# camera models
+camera_models = {}
+for image in data.images():
+    d = data.load_exif(image)
+    if d['camera'] not in camera_models:
         camera_models[d['camera']] = {
                 'width': d['width'],
                 'height': d['height'],
                 'focal_ratio': d['focal_ratio'],
                 'focal_35mm_equiv': d['focal_35mm_equiv'],
                 "focal": d['focal_ratio'],
-                "exif_focal": d['focal_ratio']
+                "exif_focal": d['focal_ratio'],
+                "k1": d.get('k1', 0.),
+                "k2": d.get('k2', 0.)
             }
-
-    distortion = exif_data.extract_distortion()
-    if distortion is not None:
-        camera_models[d['camera']].update({'k1': distortion[0], 'k2': distortion[1]})
-        d.update({'k1': distortion[0], 'k2': distortion[1]})
-
-    data.save_exif(image, d)
-
-with open(data.data_path+'/missing_sensor.json', 'w') as fout:
-    fout.write(json.dumps(missing_sensors, indent=4))
-
 data.save_camera_models(camera_models)
 
 end = time.time()
