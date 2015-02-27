@@ -673,16 +673,18 @@
                             var ocenter = opticalCenter(shot);
                             var gps = shot.gps_position;
 
-                            var linegeo = new THREE.Geometry();
-                            linegeo.vertices.push(
-                                ocenter,
-                                new THREE.Vector3(gps[0], gps[1], gps[2])
-                            );
-                            var lineMaterial = new THREE.LineBasicMaterial({ color: 0xff00ff });
-                            var line = new THREE.Line(linegeo, lineMaterial, THREE.LinePieces);
-                            line.visible = options.drawGPS;
-                            group.add(line);
-                            gps_lines.push(line);
+                            if (gps){
+                                var linegeo = new THREE.Geometry();
+                                linegeo.vertices.push(
+                                    ocenter,
+                                    new THREE.Vector3(gps[0], gps[1], gps[2])
+                                );
+                                var lineMaterial = new THREE.LineBasicMaterial({ color: 0xff00ff });
+                                var line = new THREE.Line(linegeo, lineMaterial, THREE.LinePieces);
+                                line.visible = options.drawGPS;
+                                group.add(line);
+                                gps_lines.push(line);
+                            }
                         }
                     }
 
