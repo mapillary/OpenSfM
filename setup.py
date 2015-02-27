@@ -43,6 +43,10 @@ libraries.extend(ceres_libraries)
 boost_python_libraries = ['boost_python']
 libraries.extend(boost_python_libraries)
 
+# OpenCV
+opencv_libraries = ['opencv_ml','opencv_legacy','opencv_imgproc','opencv_highgui','opencv_flann','opencv_core','opencv_contrib']
+libraries.extend(opencv_libraries)
+
 # Akaze
 akaze_include_dir = 'opensfm/src/third_party/akaze/lib'
 akaze_sources = [
