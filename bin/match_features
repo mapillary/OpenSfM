@@ -12,6 +12,7 @@ from opensfm import dataset
 from opensfm import features
 from opensfm import matching
 from opensfm import geo
+from opensfm import matching
 
 
 def match(imagepair):
