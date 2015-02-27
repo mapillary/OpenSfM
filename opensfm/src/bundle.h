@@ -12,6 +12,7 @@ extern "C" {
 #include "ceres/ceres.h"
 #include "ceres/rotation.h"
 #include "ceres/loss_function.h"
+#include "ceres/covariance.h"
 
 
 class TruncatedLoss : public ceres::LossFunction {
@@ -164,6 +165,7 @@ enum {
 
 struct BAShot {
   double parameters[BA_SHOT_NUM_PARAMS];
+  double covariance[BA_SHOT_NUM_PARAMS * BA_SHOT_NUM_PARAMS];
   bool constant;
   double gps_x, gps_y, gps_z;
   double gps_dop;
@@ -338,10 +340,7 @@ class BundleAdjuster {
       loss = new ceres::ArctanLoss(loss_function_threshold_);
     }
 
-    // Create residuals for each observation in the bundle adjustment problem. The
-    // parameters for cameras and points are added automatically.
     ceres::Problem problem;
-
     for (int i = 0; i < observations_.size(); ++i) {
       // Each Residual block takes a point and a camera as input and outputs a 2
       // dimensional residual. Internally, the cost function stores the observed
@@ -406,7 +405,30 @@ class BundleAdjuster {
     options.num_linear_solver_threads = 8;
 
     ceres::Solve(options, &problem, &last_run_summary_);
+
+    bool compute_covariance = true;
+    if (compute_covariance) {
+      ComuteCovariance(&problem);
+    }
   }
+
+  void ComuteCovariance(ceres::Problem *problem) {
+    ceres::Covariance::Options options;
+    ceres::Covariance covariance(options);
+
+    std::vector<std::pair<const double*, const double*> > covariance_blocks;
+    for (auto &i : shots_) {
+      covariance_blocks.push_back(std::make_pair(i.second.parameters, i.second.parameters));
+    }
+
+    CHECK(covariance.Compute(covariance_blocks, problem));
+
+    for (auto &i : shots_) {
+      covariance.GetCovarianceBlock(i.second.parameters, i.second.parameters, i.second.covariance);
+    }
+  }
+
+
 
   std::string BriefReport() {
     return last_run_summary_.BriefReport();
