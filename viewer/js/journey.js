@@ -489,6 +489,7 @@ var SmoothJourney = (function () {
 
         var currentTime = Date.now();
 
+        // Pause movement if the interval time is infinity.
         if (!isFinite(this.intervalTime)) {
             this.previousTime = currentTime;
             return;
@@ -504,6 +505,7 @@ var SmoothJourney = (function () {
 
         this.u = Math.min(this.u + (elapsed / totalTime), 1);
 
+        // Retrieve t from the linear curve to calculate weight and index.
         var t = this.linearCurve.getUtoTmapping(this.u);
         var point = (this.path.length - 1) * t;
         var intPoint = Math.floor(point);
@@ -516,6 +518,7 @@ var SmoothJourney = (function () {
 
         var position = this.linearCurve.getPoint(t);
 
+        // Calculate the target by linear interpolation between shot targets.
         var shot_id1 = this.path[intPoint];
         var vd1 = this.shots[shot_id1]['target'];
 
