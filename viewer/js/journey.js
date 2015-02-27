@@ -348,6 +348,11 @@ var Journey = (function () {
             return;
         }
 
+        if (!isFinite(self.intervalTime)) {
+            self.timeoutToken = window.setTimeout(function () { onNavigation(self); }, 1000);
+            return;
+        }
+
         self.navigationAction(self.path[self.currentIndex]);
 
         if (self.currentIndex === pathLength - 1) {
@@ -391,11 +396,12 @@ var Journey = (function () {
         this.navigationAction(this.path[this.currentIndex])
         this.preloadAction(this.path.slice(1, Math.min(10, this.path.length)))
 
-        var currentInterval =
+        var currentInterval = isFinite(this.intervalTime) ?
             getInterval(
                 this.graphs[this.graphIndex].edges[this.path[this.currentIndex]],
                 this.path[this.currentIndex + 1],
-                this.intervalTime);
+                this.intervalTime) :
+            1000;
 
         var _this = this;
         this.timeoutToken = window.setTimeout(function () { onNavigation(_this); }, currentInterval);
@@ -480,11 +486,17 @@ var SmoothJourney = (function () {
             return;
         }
 
+        var currentTime = Date.now();
+
+        if (!isFinite(this.intervalTime)) {
+            this.previousTime = currentTime;
+            return;
+        }
+
         if (this.currentIndex + 10 <= this.path.length - 1) {
             this.preloadAction([this.path[this.currentIndex + 10]]);
         }
 
-        var currentTime = Date.now();
         var elapsed = currentTime - this.previousTime;
         this.previousTime = currentTime;
         var totalTime = this.intervalTime * this.linearCurve.getLength() / 15;
@@ -605,10 +617,10 @@ var JourneyWrapper = (function ($) {
     var getInterval = function () {
         var interval = undefined;
         if (controls.animationSpeed === 0) {
-            interval = 4 * 1000;
+            interval = Infinity;
         }
         else {
-            interval = (4 - 15 * (controls.animationSpeed)) * 1000;
+            interval = (4 - 15 * controls.animationSpeed) * 1000;
         }
 
         return interval;
