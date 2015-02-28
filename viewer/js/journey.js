@@ -685,7 +685,13 @@ var JourneyWrapper = (function ($) {
 
     // Private function converting shot dictionary with rotations and translations
     // values to shot dictionary with optical centers and viewing directions.
-    var convertShots = function (shots) {
+    var convertShots = function () {
+        var shots = {};
+        for (var r = 0; r < reconstructions.length; ++r) {
+            var newShots = reconstructions[r].shots;
+            shots = $.extend(shots, newShots);
+        }
+
         var result = {};
 
         for (var shot_id in shots) {
@@ -818,7 +824,10 @@ var JourneyWrapper = (function ($) {
      * Shows the shortest path in the scene.
      */
     JourneyWrapper.prototype.showPath = function () {
-        if (this.initialized !== true || selectedCamera === undefined){
+        if (this.initialized !== true
+            || selectedCamera === undefined
+            || movingMode !== 'orbit'
+            || options.showPath !== true){
             return;
         }
 

@@ -438,15 +438,7 @@
                     init();
                     animate();
 
-                    invokeJourneyWrapper(function () {
-                        var shots = {};
-                        for (var r = 0; r < reconstructions.length; ++r) {
-                            var newShots = reconstructions[r].shots;
-                            shots = $.extend(shots, newShots);
-                        }
-
-                        journeyWrapper.initialize(shots);
-                    });
+                    invokeJourneyWrapper(function () { journeyWrapper.initialize(); });
                 });
             }
 
@@ -900,11 +892,7 @@
                 var text = document.getElementById('text');
                 text.innerHTML = shot_id;
 
-                invokeJourneyWrapper(function () {
-                    if (movingMode === 'orbit' && options.showPath === true) {
-                        journeyWrapper.showPath();
-                    }
-                });
+                invokeJourneyWrapper(function () { journeyWrapper.showPath(); });
             }
 
             function setImagePlaneCamera(cameraObject) {
