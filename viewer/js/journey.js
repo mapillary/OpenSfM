@@ -331,26 +331,31 @@ var Journey = (function () {
     Journey.prototype = Object.create(JourneyBase.prototype);
     Journey.prototype.constructor = Journey;
 
-    // Private function for calculating the interval value.The max distance of an edge is
-    // 20. The interval is the fraction of the max distance multiplied by the current
-    // interval time. A smallest value is defined to avoid too fast navigation..
+    // Private function for calculating the interval value. The max distance of an edge is
+    // 20. The interval is the weight multiplied with the desired interval time for one unit.
+    // A smallest value is defined to avoid too fast navigation..
     var getInterval = function (edges, node, intervalTime) {
         var distance = edges[node].weight;
-        return Math.max((distance / 20) * intervalTime, 0.7 * 1000);
+        return Math.max(distance * intervalTime, 0.7 * 1000);
     }
 
     // Private callback function for setInterval.
     var onNavigation = function (self) {
-        var pathLength = self.path.length;
-        self.currentIndex++;
-
-        if (self.started !== true || self.currentIndex >= pathLength) {
+        if (self.started !== true) {
             self.stop();
             return;
         }
 
         if (!isFinite(self.intervalTime)) {
-            self.timeoutToken = window.setTimeout(function () { onNavigation(self); }, 1000);
+            self.timeoutToken = window.setTimeout(function () { onNavigation(self); }, 500);
+            return;
+        }
+
+        var pathLength = self.path.length;
+        self.currentIndex++;
+
+        if (self.currentIndex >= pathLength) {
+            self.stop();
             return;
         }
 
@@ -397,15 +402,8 @@ var Journey = (function () {
         this.navigationAction(this.path[this.currentIndex])
         this.preloadAction(this.path.slice(1, Math.min(10, this.path.length)))
 
-        var currentInterval = isFinite(this.intervalTime) ?
-            getInterval(
-                this.graphs[this.graphIndex].edges[this.path[this.currentIndex]],
-                this.path[this.currentIndex + 1],
-                this.intervalTime) :
-            1000;
-
         var _this = this;
-        this.timeoutToken = window.setTimeout(function () { onNavigation(_this); }, currentInterval);
+        this.timeoutToken = window.setTimeout(function () { onNavigation(_this); }, 500);
     }
 
     /**
@@ -501,7 +499,7 @@ var SmoothJourney = (function () {
 
         var elapsed = currentTime - this.previousTime;
         this.previousTime = currentTime;
-        var totalTime = this.intervalTime * this.linearCurve.getLength() / 15;
+        var totalTime = this.intervalTime * this.linearCurve.getLength();
 
         this.u = Math.min(this.u + (elapsed / totalTime), 1);
 
@@ -617,14 +615,15 @@ var JourneyWrapper = (function ($) {
         this.line = undefined;
     }
 
-    // Private function for calculating the desired maximum interval.
+    // Private function for calculating the desired time for moving one unit.
     var getInterval = function () {
         var interval = undefined;
         if (controls.animationSpeed === 0) {
             interval = Infinity;
         }
         else {
-            interval = (4 - 15 * controls.animationSpeed) * 1000;
+            // Calculate the time it should take to cover the distance of one unit during navigation.
+            interval = (-2.8 + 1.7 / Math.sqrt(controls.animationSpeed)) * 1000 / 20;
         }
 
         return interval;
@@ -711,7 +710,7 @@ var JourneyWrapper = (function ($) {
     // Private function for setting the position and direction of the orbit controls camera
     // used for the smooth navigation movement.
     var smoothNavigation = function (position, target) {
-        controls.goto(position, target);
+        controls.gotoForced(position, target);
     }
 
     // Private function for continuing the movement to the next node when a journey is stopped.
