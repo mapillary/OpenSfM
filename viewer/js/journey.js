@@ -366,8 +366,8 @@ var Journey = (function () {
             return;
         }
 
-        if (self.currentIndex + 10 <= pathLength - 1) {
-            self.preloadAction([self.path[self.currentIndex + 10]]);
+        if (self.currentIndex + 50 <= pathLength - 1) {
+            self.preloadAction([self.path[self.currentIndex + 50]]);
         }
 
         var currentInterval =
@@ -400,7 +400,7 @@ var Journey = (function () {
         this.currentIndex = 0;
         this.startAction();
         this.navigationAction(this.path[this.currentIndex])
-        this.preloadAction(this.path.slice(1, Math.min(10, this.path.length)))
+        this.preloadAction(this.path.slice(1, Math.min(50, this.path.length)))
 
         var _this = this;
         this.timeoutToken = window.setTimeout(function () { onNavigation(_this); }, 500);
@@ -493,8 +493,8 @@ var SmoothJourney = (function () {
             return;
         }
 
-        if (this.currentIndex + 10 <= this.path.length - 1) {
-            this.preloadAction([this.path[this.currentIndex + 10]]);
+        if (this.currentIndex + 50 <= this.path.length - 1) {
+            this.preloadAction([this.path[this.currentIndex + 50]]);
         }
 
         var elapsed = currentTime - this.previousTime;
@@ -560,7 +560,7 @@ var SmoothJourney = (function () {
         this.currentIndex = 0;
 
         this.startAction();
-        this.preloadAction(this.path.slice(1, Math.min(10, this.path.length)));
+        this.preloadAction(this.path.slice(1, Math.min(50, this.path.length)));
         this.nodeAction(this.path[this.currentIndex + 1]);
         this.navigationAction(position, target);
 
@@ -716,7 +716,7 @@ var JourneyWrapper = (function ($) {
     // Private function for setting the position and direction of the orbit controls camera
     // used for the smooth navigation movement.
     var smoothNavigation = function (position, target) {
-        controls.gotoForced(position, target);
+        controls.goto(position, target);
     }
 
     // Private function for continuing the movement to the next node when a journey is stopped.
@@ -766,7 +766,7 @@ var JourneyWrapper = (function ($) {
                 $('#journeyButton').show();
 
                 if ('img' in urlParams && selectedCamera !== undefined) {
-                    _this.toggle();
+                    window.setTimeout(function () { _this.toggle(); }, 700)
                 }
                 else {
                     _this.addShowPathController();

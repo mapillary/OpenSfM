@@ -255,15 +255,6 @@ THREE.OrbitControls = function ( object, domElement ) {
 		}
 	};
 
-	this.gotoForced = function (position, target) {
-	    this.animationPosition.copy(position);
-		this.animationTarget.copy(target);
-
-		this.target.lerp(this.animationTarget, 0.2);
-		this.object.position.lerp(this.animationPosition, 0.2);
-		this.object.lookAt(this.target);
-	}
-
 	this.goto_shot = function(cam, shot) {
 		this.animationPosition.copy(opticalCenter(shot));
 		var offset = pixelToVertex(cam, shot, 0, 0, 20);
