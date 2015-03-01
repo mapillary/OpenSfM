@@ -419,7 +419,7 @@
 
             function invokeJourneyWrapper(action) {
                 if (typeof journeyWrapper != "undefined") {
-                    action();
+                    return action();
                 }
             }
 
@@ -1160,7 +1160,9 @@
             function render() {
                 validMoves = computeValidMoves();
                 updateValidMovesWidget();
-                preloadValidMoves();
+                if (invokeJourneyWrapper(function () { return journeyWrapper.isStarted(); }) !== true) {
+                    preloadValidMoves();
+                }
 
                 // Handle camera selection.
                 if (hoverCamera !== undefined && hoverCamera !== selectedCamera) {

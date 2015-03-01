@@ -147,6 +147,7 @@ var JourneyBase = (function () {
         this.usePenalty = usePenalty;
 
         this.started = false;
+        this.preCount = 15;
         this.dijkstra = new Dijkstra();
     }
 
@@ -366,8 +367,8 @@ var Journey = (function () {
             return;
         }
 
-        if (self.currentIndex + 50 <= pathLength - 1) {
-            self.preloadAction([self.path[self.currentIndex + 50]]);
+        if (self.currentIndex + self.preCount <= pathLength - 1) {
+            self.preloadAction([self.path[self.currentIndex + self.preCount]]);
         }
 
         var currentInterval =
@@ -396,11 +397,12 @@ var Journey = (function () {
 
         this.started = true;
         this.path = result.path;
+        this.preloadAction(this.path.slice(1, Math.min(this.preCount, this.path.length)));
+
         this.graphIndex = result.index;
         this.currentIndex = 0;
         this.startAction();
-        this.navigationAction(this.path[this.currentIndex])
-        this.preloadAction(this.path.slice(1, Math.min(50, this.path.length)))
+        this.navigationAction(this.path[this.currentIndex]);
 
         var _this = this;
         this.timeoutToken = window.setTimeout(function () { onNavigation(_this); }, 500);
@@ -493,10 +495,6 @@ var SmoothJourney = (function () {
             return;
         }
 
-        if (this.currentIndex + 50 <= this.path.length - 1) {
-            this.preloadAction([this.path[this.currentIndex + 50]]);
-        }
-
         var elapsed = currentTime - this.previousTime;
         this.previousTime = currentTime;
         var totalTime = this.intervalTime * this.linearCurve.getLength();
@@ -511,6 +509,14 @@ var SmoothJourney = (function () {
 
         if (intPoint > this.currentIndex && intPoint < this.path.length) {
             this.currentIndex = intPoint;
+
+            var startIndex = Math.min(2 + this.currentIndex * 3, this.currentIndex + this.preCount);
+            var endIndex = Math.min(5 + this.currentIndex * 3, this.currentIndex + this.preCount + 1);
+
+            if (endIndex <= this.path.length) {
+                this.preloadAction(this.path.slice(startIndex, endIndex));
+            }
+
             this.nodeAction(this.path[this.currentIndex + 1]);
         }
 
@@ -549,6 +555,10 @@ var SmoothJourney = (function () {
 
         this.started = true;
         this.path = result.path;
+        var startIndex = Math.min(2, this.path.length - 1);
+        var endIndex = Math.min(5, this.path.length);
+        this.preloadAction(this.path.slice(startIndex, endIndex));
+
         this.linearCurve = new LinearCurve(this.getGeometry(this.path, 'position').vertices);
 
         var position = this.linearCurve.getPointAt(0);
@@ -560,7 +570,7 @@ var SmoothJourney = (function () {
         this.currentIndex = 0;
 
         this.startAction();
-        this.preloadAction(this.path.slice(1, Math.min(50, this.path.length)));
+
         this.nodeAction(this.path[this.currentIndex + 1]);
         this.navigationAction(position, target);
 
@@ -623,7 +633,7 @@ var JourneyWrapper = (function ($) {
         }
         else {
             // Calculate the time it should take to cover the distance of one unit during navigation.
-            interval = (-2.8 + 1.7 / Math.sqrt(controls.animationSpeed)) * 1000 / 20;
+            interval = (-2.4 + 1.7 / Math.sqrt(controls.animationSpeed)) * 1000 / 20;
         }
 
         return interval;
@@ -773,6 +783,18 @@ var JourneyWrapper = (function ($) {
                 }
             });
         }
+    }
+
+    /**
+     * Gets a value indicating whether a journey is ongoing.
+     * @return {Boolean} A value indicating whether a journey is ongoing.
+     */
+    JourneyWrapper.prototype.isStarted = function () {
+        if (this.initialized !== true) {
+            return false;
+        }
+
+        return this.journey.isStarted();
     }
 
     /**
