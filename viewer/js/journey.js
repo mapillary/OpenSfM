@@ -222,7 +222,14 @@ var JourneyBase = (function () {
                     journeyGraph,
                     'weight',
                     'direction',
-                    { step_backward: 30, turn_u: 15 });
+                    {
+                        step_backward: 30,
+                        turn_u: 15,
+                        turn_left: 3,
+                        turn_right: 3,
+                        step_left: 1,
+                        step_right: 1
+                    });
         }
 
         var path = this.dijkstra.shortestPath(journeyGraph, from, to, 'weight');
