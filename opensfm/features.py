@@ -177,6 +177,7 @@ def extract_features_hahog(image, config):
 
 def extract_feature(image, config):
     feature_type = config.get('feature_type','SIFT').upper()
+    image = resized_image(image, config)
     if feature_type == 'SIFT':
         return extract_features_sift(image, config)
     elif feature_type == 'SURF':
