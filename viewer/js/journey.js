@@ -479,7 +479,8 @@ var SmoothJourney = (function () {
         this.currentIndex = 0;
         this.u = 0;
         this.path = undefined;
-        this.linearCurve = undefined;
+        this.positionCurve = undefined;
+        this.targetCurve = undefined;
         this.intervalToken = undefined;
     }
 
@@ -504,18 +505,16 @@ var SmoothJourney = (function () {
 
         var elapsed = currentTime - this.previousTime;
         this.previousTime = currentTime;
-        var totalTime = this.intervalTime * this.linearCurve.getLength();
+        var totalTime = this.intervalTime * this.positionCurve.getLength();
 
         this.u = Math.min(this.u + (elapsed / totalTime), 1);
 
-        // Retrieve t from the linear curve to calculate weight and index.
-        var t = this.linearCurve.getUtoTmapping(this.u);
-        var point = (this.path.length - 1) * t;
-        var intPoint = Math.floor(point);
-        var weight = point - intPoint;
+        // Retrieve t from the position curve to calculate index.
+        var t = this.positionCurve.getUtoTmapping(this.u);
+        var index = Math.floor((this.path.length - 1) * t);
 
-        if (intPoint > this.currentIndex && intPoint < this.path.length) {
-            this.currentIndex = intPoint;
+        if (index > this.currentIndex && index < this.path.length) {
+            this.currentIndex = index;
 
             var startIndex = Math.min(2 + this.currentIndex * 3, this.currentIndex + this.preCount);
             var endIndex = Math.min(5 + this.currentIndex * 3, this.currentIndex + this.preCount + 1);
@@ -527,16 +526,8 @@ var SmoothJourney = (function () {
             this.nodeAction(this.path[this.currentIndex + 1]);
         }
 
-        var position = this.linearCurve.getPoint(t);
-
-        // Calculate the target by linear interpolation between shot targets.
-        var shot_id1 = this.path[intPoint];
-        var vd1 = this.shots[shot_id1]['target'];
-
-        var shot_id2 = this.path[Math.min(intPoint + 1, this.path.length - 1)];
-        var vd2 = this.shots[shot_id2]['target'];
-
-        var target = new THREE.Vector3().copy(vd1).lerp(vd2, weight);
+        var position = this.positionCurve.getPoint(t);
+        var target = this.targetCurve.getPoint(t);
 
         this.navigationAction(position, target);
 
@@ -562,15 +553,13 @@ var SmoothJourney = (function () {
 
         this.started = true;
         this.path = result.path;
+
         var startIndex = Math.min(2, this.path.length - 1);
         var endIndex = Math.min(5, this.path.length);
         this.preloadAction(this.path.slice(startIndex, endIndex));
 
-        this.linearCurve = new LinearCurve(this.getGeometry(this.path, 'position').vertices);
-
-        var position = this.linearCurve.getPointAt(0);
-        var shot_id = this.path[0];
-        var target = this.shots[shot_id]['target'];
+        this.positionCurve = new LinearCurve(this.getGeometry(this.path, 'position').vertices);
+        this.targetCurve = new LinearCurve(this.getGeometry(this.path, 'target').vertices);
 
         this.previousTime = Date.now();
         this.u = 0;
@@ -579,6 +568,10 @@ var SmoothJourney = (function () {
         this.startAction();
 
         this.nodeAction(this.path[this.currentIndex + 1]);
+
+        var position = this.positionCurve.getPointAt(0);
+        var target = this.targetCurve.getPointAt(0);
+
         this.navigationAction(position, target);
 
         _this = this;
@@ -601,7 +594,8 @@ var SmoothJourney = (function () {
         var nextNode = this.path[nextIndex];
 
         this.path = undefined;
-        this.linearCurve = undefined;
+        this.positionCurve = undefined;
+        this.targetCurve = undefined;
         this.previousTime = undefined;
         this.currentIndex = 0;
         this.u = 0;
