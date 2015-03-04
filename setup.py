@@ -32,5 +32,7 @@ setup(
     author='Mapillary',
     license='BSD',
     packages=['opensfm'],
-    package_data={'opensfm': ['csfm.so']},
+    package_data={
+        'opensfm': ['csfm.so', 'data/sensor_data.json']
+    },
 )
