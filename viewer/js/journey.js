@@ -452,6 +452,7 @@ var SmoothJourney = (function () {
      * @param {Function} stopAction The action to run when stopping a journey.
      * @param {Function} continuationAction The action to execute when the journey is stopped for smooth stopping.
      * @param {Function} preloadAction The action to run when stopping a journey.
+     * @param {Type} curveType The type of the curve used for movement. Must inherit from THREE.Curve.
      * @param {Boolean} usePenalty Value indicating if a penalty should be used.
      */
     function SmoothJourney(
@@ -464,6 +465,7 @@ var SmoothJourney = (function () {
         stopAction,
         continuationAction,
         preloadAction,
+        curveType,
         usePenalty) {
 
         JourneyBase.apply(this, [graphs, shots, intervalTime, usePenalty]);
@@ -474,6 +476,7 @@ var SmoothJourney = (function () {
         this.stopAction = stopAction;
         this.continuationAction = continuationAction;
         this.preloadAction = preloadAction;
+        this.curveType = curveType;
 
         this.previousTime = undefined;
         this.currentIndex = 0;
@@ -558,8 +561,11 @@ var SmoothJourney = (function () {
         var endIndex = Math.min(5, this.path.length);
         this.preloadAction(this.path.slice(startIndex, endIndex));
 
-        this.positionCurve = new LinearCurve(this.getGeometry(this.path, 'position').vertices);
-        this.targetCurve = new LinearCurve(this.getGeometry(this.path, 'target').vertices);
+        var positions = this.getGeometry(this.path, 'position').vertices;
+        var targets = this.getGeometry(this.path, 'target').vertices;
+
+        this.positionCurve = new (Function.prototype.bind.apply(this.curveType, [null, positions]));
+        this.targetCurve = new (Function.prototype.bind.apply(this.curveType, [null, targets]));
 
         this.previousTime = Date.now();
         this.u = 0;
@@ -769,6 +775,7 @@ var JourneyWrapper = (function ($) {
                             stop,
                             continuation,
                             preload,
+                            LinearCurve,
                             true);
 
                 _this.initialized = true;
