@@ -35,9 +35,10 @@ if __name__ == "__main__":
 
     if not args.image:
         for image in data.images():
-            points, desc = data.load_featurs(image)
+            points, desc = data.load_features(image)
             print "ploting {0} points".format(len(points))
             pl.figure()
+            pl.title('Image: ' + image + ', features: ' + str(len(points)))
             plot_features(data.image_as_array(image), points)
             if args.save_figs:
                 p = args.dataset + '/plot_features'
