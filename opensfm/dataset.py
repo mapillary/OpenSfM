@@ -370,8 +370,8 @@ class DataSet:
         "Return the path of the navigation graph."
         return os.path.join(self.data_path, 'navigation_graph.json')
 
-    def save_navigation_graph(self, navigation_graph):
-        with open(data.__navigation_graph_file(), 'w') as fout:
+    def save_navigation_graph(self, navigation_graphs):
+        with open(self.__navigation_graph_file(), 'w') as fout:
             fout.write(json.dumps(navigation_graphs))
 
 
