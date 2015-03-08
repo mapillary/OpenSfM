@@ -16,9 +16,10 @@ var Dijkstra = (function () {
      /**
      * Calculate the shortest path between two nodes in a graph using
      * Dijkstra's Algorithm.
-     * @param {Object} graph
-     * @param {String} source
-     * @param {String} target
+     * @param {Object} graph The graph with nodes and weights used for calculation.
+     * @param {String} source The name of the source node.
+     * @param {String} target The name of the target node.
+     * @param {String} weight The name of the weight property.
      * @return {Array} An array of node names corresponding to the path
      */
     Dijkstra.prototype.shortestPath = function (graph, source, target, weight) {
@@ -104,71 +105,50 @@ var Dijkstra = (function () {
     return Dijkstra;
 })();
 
-var Journey = (function () {
+var LinearCurve = THREE.Curve.create(
+
+	function (points) {
+
+		this.points = (points == undefined) ? [] : points;
+	},
+
+	function (t) {
+
+		var points = this.points;
+		var point = (points.length - 1) * t;
+
+		var intPoint = Math.floor(point);
+		var weight = point - intPoint;
+
+		var point1 = points[intPoint];
+		var point2 = points[intPoint > points.length - 2 ? points.length - 1 : intPoint + 1];
+
+		var vector = new THREE.Vector3();
+		vector.copy(point1).lerp(point2, weight);
+
+		return vector;
+	}
+);
+
+var JourneyBase = (function () {
 
     /**
-     * A journey.
+     * A journey base.
      * @constructor
      * @param {String} graphs A list of graphs.
-     * @param {String} intervalTime The maximum time between navigation.
-     * @param {Function} navigationAction The action to execute on navigation.
-     * @param {Function} startAction The action to run when starting a journey.
-     * @param {Function} stopAction The action to run when stopping a journey.
-     * @param {Function} preloadAction The action to run when stopping a journey.
+     * @param {String} shots Dictionary of shots with positions and targets.
+     * @param {String} intervalTime The interval for navigation.
      * @param {Boolean} usePenalty Value indicating if a penalty should be used.
      */
-    function Journey(graphs, intervalTime, navigationAction, startAction, stopAction, preloadAction, usePenalty) {
+    function JourneyBase(graphs, shots, intervalTime, usePenalty) {
         this.graphs = graphs;
+        this.shots = shots;
         this.intervalTime = intervalTime;
-        this.navigationAction = navigationAction;
-        this.startAction = startAction;
-        this.stopAction = stopAction;
-        this.preloadAction = preloadAction;
         this.usePenalty = usePenalty;
-        this.timeoutToken = undefined;
-        this.path = undefined;
-        this.graphIndex = undefined;
-        this.currentIndex = 0;
+
         this.started = false;
+        this.preCount = 15;
         this.dijkstra = new Dijkstra();
-    }
-
-    // Private function for calculating the interval value.The max distance of an edge is
-    // 20. The interval is the fraction of the max distance multiplied by the current
-    // interval time. A smallest value is defined to avoid too fast navigation..
-    var getInterval = function (edges, node, intervalTime) {
-        var distance = edges[node].weight;
-        return Math.max((distance / 20) * intervalTime, 0.7 * 1000);
-    }
-
-    // Private callback function for setInterval.
-    var onNavigation = function (self) {
-        var pathLength = self.path.length;
-        self.currentIndex++;
-
-        if (self.started !== true || self.currentIndex >= pathLength) {
-            self.stop();
-            return;
-        }
-
-        self.navigationAction(self.path[self.currentIndex]);
-
-        if (self.currentIndex === pathLength - 1) {
-            self.stop();
-            return;
-        }
-
-        if (self.currentIndex + 10 <= pathLength - 1) {
-            self.preloadAction([self.path[self.currentIndex + 10]]);
-        }
-
-        var currentInterval =
-            getInterval(
-                self.graphs[self.graphIndex].edges[self.path[self.currentIndex - 1]],
-                self.path[self.currentIndex],
-                self.intervalTime);
-
-        self.timeoutToken = window.setTimeout(function () { onNavigation(self); }, currentInterval);
     }
 
     // Private function for creating a graph with a penalty for a certain property with
@@ -210,25 +190,17 @@ var Journey = (function () {
      * Sets the interval time.
      * @param {Integer} intervalTime
      */
-    Journey.prototype.updateInterval = function (intervalTime) {
+    JourneyBase.prototype.updateInterval = function (intervalTime) {
         this.intervalTime = intervalTime;
     }
 
      /**
-     * Gets a value indicating whether a journey is ongoing.
-     * @return {Boolean} A value indicating whether a journey is ongoing.
-     */
-    Journey.prototype.isStarted = function () {
-        return this.started;
-    }
-
-    /**
      * Calculate the shortest path between two nodes in a graph.
      * @param {String} from
      * @param {String} to
      * @return {Array} An array of node names corresponding to the path
      */
-    Journey.prototype.shortestPath = function (from, to) {
+    JourneyBase.prototype.shortestPath = function (from, to) {
         var index = undefined;
         for (var i = 0; i < this.graphs.length; i++) {
             // Ensure that both nodes exist in the graph.
@@ -250,12 +222,169 @@ var Journey = (function () {
                     journeyGraph,
                     'weight',
                     'direction',
-                    { step_backward: 30, turn_u: 15 });
+                    {
+                        step_backward: 30,
+                        turn_u: 15,
+                        turn_left: 3,
+                        turn_right: 3,
+                        step_left: 1,
+                        step_right: 1
+                    });
         }
 
         var path = this.dijkstra.shortestPath(journeyGraph, from, to, 'weight');
 
         return { path: path, index: index };
+    }
+
+    /**
+     * Creates a geometry based on an existing property of the nodes in the path.
+     * @param {Array} path Nodes to create geometry from.
+     * @param {String} property Name of the shot property to use.
+     */
+    JourneyBase.prototype.getGeometry = function (path, property) {
+        var geometry = new THREE.Geometry();
+
+        for (var i = 0; i < path.length; i++) {
+            var shot_id = path[i];
+            var vertex = this.shots[shot_id][property];
+            geometry.vertices.push(new THREE.Vector3(vertex.x, vertex.y, vertex.z));
+        }
+
+        return geometry;
+    }
+
+    /**
+     * Creates a geometry based on the positions of the nodes in the
+     * shortest path between the specified nodes.
+     * @param {String} from Name of the start node.
+     * @param {String} to Name of the end node.
+     */
+    JourneyBase.prototype.getPathGeometry = function (from, to) {
+
+        var result = this.shortestPath(from, to);
+        if (result === null || result.path.length <= 1) {
+            return null;
+        }
+
+        return this.getGeometry(result.path, 'position');
+    }
+
+    /**
+     * Gets a value indicating whether a journey is ongoing.
+     * @return {Boolean} A value indicating whether a journey is ongoing.
+     */
+    JourneyBase.prototype.isStarted = function () {
+        return this.started;
+    }
+
+    /**
+     * Virtual base class method to overwrite and implement in subclasses.
+     * @param {Number} from
+     * @param {Number} to
+     */
+    JourneyBase.prototype.start = function (from, to) {
+        console.log( "Warning, start() not implemented!" );
+    }
+
+    /**
+     * Virtual base class method to overwrite and implement in subclasses.
+     * @param {Boolean} continuation Indicates if a continuation action should be invoked.
+     */
+    JourneyBase.prototype.stop = function (continuation) {
+        console.log( "Warning, stop() not implemented!" );
+    }
+
+    return JourneyBase;
+})();
+
+var Journey = (function () {
+
+    /**
+     * A journey.
+     * @constructor
+     * @extends {JourneyBase}
+     * @param {Array} graphs A list of graphs.
+     * @param {Object} shots Dictionary of shots.
+     * @param {Number} intervalTime The maximum time between navigation.
+     * @param {Function} navigationAction The action to execute on navigation.
+     * @param {Function} startAction The action to run when starting a journey.
+     * @param {Function} stopAction The action to run when stopping a journey.
+     * @param {Function} preloadAction The action to run when stopping a journey.
+     * @param {Boolean} usePenalty Value indicating if a penalty should be used.
+     */
+    function Journey(
+        graphs,
+        shots,
+        intervalTime,
+        navigationAction,
+        startAction,
+        stopAction,
+        preloadAction,
+        usePenalty) {
+
+        JourneyBase.apply(this, [graphs, shots, intervalTime, usePenalty]);
+
+        this.navigationAction = navigationAction;
+        this.startAction = startAction;
+        this.stopAction = stopAction;
+        this.preloadAction = preloadAction;
+        this.timeoutToken = undefined;
+        this.path = undefined;
+        this.graphIndex = undefined;
+        this.currentIndex = 0;
+    }
+
+    // Inheriting from JourneyBase
+    Journey.prototype = Object.create(JourneyBase.prototype);
+    Journey.prototype.constructor = Journey;
+
+    // Private function for calculating the interval value. The max distance of an edge is
+    // 20. The interval is the weight multiplied with the desired interval time for one unit.
+    // A smallest value is defined to avoid too fast navigation..
+    var getInterval = function (edges, node, intervalTime) {
+        var distance = edges[node].weight;
+        return Math.max(distance * intervalTime, 0.7 * 1000);
+    }
+
+    // Private callback function for setInterval.
+    var onNavigation = function (self) {
+        if (self.started !== true) {
+            self.stop();
+            return;
+        }
+
+        if (!isFinite(self.intervalTime)) {
+            self.timeoutToken = window.setTimeout(function () { onNavigation(self); }, 500);
+            return;
+        }
+
+        var pathLength = self.path.length;
+        self.currentIndex++;
+
+        if (self.currentIndex >= pathLength) {
+            self.stop();
+            return;
+        }
+
+        self.navigationAction(self.path[self.currentIndex]);
+
+        if (self.currentIndex === pathLength - 1) {
+            self.stop();
+            return;
+        }
+
+        if (self.currentIndex + self.preCount <= pathLength - 1) {
+            self.preloadAction([self.path[self.currentIndex + self.preCount]]);
+        }
+
+        var currentInterval =
+            getInterval(
+                self.graphs[self.graphIndex].edges[self.path[self.currentIndex - 1]],
+                self.path[self.currentIndex],
+                self.intervalTime);
+
+        self.timeoutToken = window.setTimeout(function () { onNavigation(self); }, currentInterval);
     }
 
     /**
@@ -275,26 +404,21 @@ var Journey = (function () {
 
         this.started = true;
         this.path = result.path;
+        this.preloadAction(this.path.slice(1, Math.min(this.preCount, this.path.length)));
+
         this.graphIndex = result.index;
         this.currentIndex = 0;
         this.startAction();
-        this.navigationAction(this.path[this.currentIndex])
-        this.preloadAction(this.path.slice(1, Math.min(10, this.path.length)))
-
-        var currentInterval =
-            getInterval(
-                this.graphs[this.graphIndex].edges[this.path[this.currentIndex]],
-                this.path[this.currentIndex + 1],
-                this.intervalTime);
+        this.navigationAction(this.path[this.currentIndex]);
 
         var _this = this;
-        this.timeoutToken = window.setTimeout(function () { onNavigation(_this); }, currentInterval);
+        this.timeoutToken = window.setTimeout(function () { onNavigation(_this); }, 500);
     }
 
     /**
      * Stops an ongoing journey between two nodes in a graph.
      */
-    Journey.prototype.stop = function () {
+    Journey.prototype.stop = function (continuation) {
         if (this.timeoutToken === undefined || this.started === false) {
             return;
         }
@@ -313,6 +437,187 @@ var Journey = (function () {
     return Journey;
 })();
 
+var SmoothJourney = (function () {
+
+    /**
+     * A smooth journey.
+     * @constructor
+     * @extends {JourneyBase}
+     * @param {Array} graphs A list of graphs.
+     * @param {Object} shots Dictionary of shots.
+     * @param {Number} intervalTime The maximum time between navigation.
+     * @param {Function} navigationAction The action to execute on navigation.
+     * @param {Function} nodeAction The action to execute when a node should be displayed.
+     * @param {Function} startAction The action to run when starting a journey.
+     * @param {Function} stopAction The action to run when stopping a journey.
+     * @param {Function} continuationAction The action to execute when the journey is stopped for smooth stopping.
+     * @param {Function} preloadAction The action to run when stopping a journey.
+     * @param {Boolean} usePenalty Value indicating if a penalty should be used.
+     */
+    function SmoothJourney(
+        graphs,
+        shots,
+        intervalTime,
+        navigationAction,
+        nodeAction,
+        startAction,
+        stopAction,
+        continuationAction,
+        preloadAction,
+        usePenalty) {
+
+        JourneyBase.apply(this, [graphs, shots, intervalTime, usePenalty]);
+
+        this.navigationAction = navigationAction;
+        this.nodeAction = nodeAction;
+        this.startAction = startAction;
+        this.stopAction = stopAction;
+        this.continuationAction = continuationAction;
+        this.preloadAction = preloadAction;
+
+        this.previousTime = undefined;
+        this.currentIndex = 0;
+        this.u = 0;
+        this.path = undefined;
+        this.linearCurve = undefined;
+        this.intervalToken = undefined;
+    }
+
+    // Inheriting from JourneyBase
+    SmoothJourney.prototype = Object.create(JourneyBase.prototype);
+    SmoothJourney.prototype.constructor = SmoothJourney;
+
+    // Private function for calculating the current position and target based
+    // on the elapsed time, interval and the curve.
+    var move = function () {
+        if (this.started !== true) {
+            return;
+        }
+
+        var currentTime = Date.now();
+
+        // Pause movement if the interval time is infinity.
+        if (!isFinite(this.intervalTime)) {
+            this.previousTime = currentTime;
+            return;
+        }
+
+        var elapsed = currentTime - this.previousTime;
+        this.previousTime = currentTime;
+        var totalTime = this.intervalTime * this.linearCurve.getLength();
+
+        this.u = Math.min(this.u + (elapsed / totalTime), 1);
+
+        // Retrieve t from the linear curve to calculate weight and index.
+        var t = this.linearCurve.getUtoTmapping(this.u);
+        var point = (this.path.length - 1) * t;
+        var intPoint = Math.floor(point);
+        var weight = point - intPoint;
+
+        if (intPoint > this.currentIndex && intPoint < this.path.length) {
+            this.currentIndex = intPoint;
+
+            var startIndex = Math.min(2 + this.currentIndex * 3, this.currentIndex + this.preCount);
+            var endIndex = Math.min(5 + this.currentIndex * 3, this.currentIndex + this.preCount + 1);
+
+            if (endIndex <= this.path.length) {
+                this.preloadAction(this.path.slice(startIndex, endIndex));
+            }
+
+            this.nodeAction(this.path[this.currentIndex + 1]);
+        }
+
+        var position = this.linearCurve.getPoint(t);
+
+        // Calculate the target by linear interpolation between shot targets.
+        var shot_id1 = this.path[intPoint];
+        var vd1 = this.shots[shot_id1]['target'];
+
+        var shot_id2 = this.path[Math.min(intPoint + 1, this.path.length - 1)];
+        var vd2 = this.shots[shot_id2]['target'];
+
+        var target = new THREE.Vector3().copy(vd1).lerp(vd2, weight);
+
+        this.navigationAction(position, target);
+
+        if (this.u >= 1) {
+            this.stop();
+        }
+    }
+
+    /**
+     * Starts a smooth journey between two nodes in a graph.
+     * @param {Number} from Start node.
+     * @param {Number} to End node.
+     */
+    SmoothJourney.prototype.start = function (from, to) {
+        if (this.started === true) {
+            return;
+        }
+
+        var result = this.shortestPath(from, to);
+        if (result === null || result.path.length <= 1) {
+            return;
+        }
+
+        this.started = true;
+        this.path = result.path;
+        var startIndex = Math.min(2, this.path.length - 1);
+        var endIndex = Math.min(5, this.path.length);
+        this.preloadAction(this.path.slice(startIndex, endIndex));
+
+        this.linearCurve = new LinearCurve(this.getGeometry(this.path, 'position').vertices);
+
+        var position = this.linearCurve.getPointAt(0);
+        var shot_id = this.path[0];
+        var target = this.shots[shot_id]['target'];
+
+        this.previousTime = Date.now();
+        this.u = 0;
+        this.currentIndex = 0;
+
+        this.startAction();
+
+        this.nodeAction(this.path[this.currentIndex + 1]);
+        this.navigationAction(position, target);
+
+        _this = this;
+        this.intervalToken = window.setInterval(function () { move.call(_this); }, 1000/60);
+    }
+
+    /**
+     * Stops a smooth journey.
+     * @param {Boolean} continuation Specifying if the continuation action should be invoked.
+     */
+    SmoothJourney.prototype.stop = function (continuation) {
+        if (this.intervalToken === undefined || this.started === false) {
+            return;
+        }
+
+        window.clearInterval(this.intervalToken);
+        this.intervalToken = undefined;
+
+        var nextIndex = Math.min(this.currentIndex + 1, this.path.length - 1);
+        var nextNode = this.path[nextIndex];
+
+        this.path = undefined;
+        this.linearCurve = undefined;
+        this.previousTime = undefined;
+        this.currentIndex = 0;
+        this.u = 0;
+
+        if (continuation === true) {
+            this.continuationAction(nextNode);
+        }
+
+        this.stopAction();
+
+        this.started = false;
+    }
+
+    return SmoothJourney;
+})();
+
 var JourneyWrapper = (function ($) {
 
     /**
@@ -324,24 +629,25 @@ var JourneyWrapper = (function ($) {
         this.initialized = false;
         this.journey = undefined;
         this.destination = undefined;
+        this.line = undefined;
     }
 
-    // Private function for calculating the desired maximum interval.
+    // Private function for calculating the desired time for moving one unit.
     var getInterval = function () {
         var interval = undefined;
         if (controls.animationSpeed === 0) {
-            interval = 4 * 1000;
+            interval = Infinity;
         }
         else {
-            interval = (4 - 15 * (controls.animationSpeed)) * 1000;
+            // Calculate the time it should take to cover the distance of one unit during navigation.
+            interval = (-2.4 + 1.7 / Math.sqrt(controls.animationSpeed)) * 1000 / 20;
         }
 
         return interval;
     }
 
-    // Private function for navigation action of journey. Retrieves a camera,
-    // creates its image plane and navigates to it.
-    var navigation = function (shot_id) {
+    // Private function for retrieving a camera based on the id.
+    var getCamera = function (shot_id) {
         var camera = undefined;
         for (var i = 0; i < camera_lines.length; ++i) {
             if (camera_lines[i].shot_id === shot_id) {
@@ -349,12 +655,30 @@ var JourneyWrapper = (function ($) {
             }
         }
 
-        if (camera === undefined) {
+        return camera === undefined ? null : camera;
+    }
+
+    // Private function for navigation action of journey. Retrieves a camera,
+    // creates its image plane and navigates to it.
+    var navigation = function (shot_id) {
+        var camera = getCamera(shot_id);
+        if (camera === null) {
             return;
         }
 
         setImagePlaneCamera(camera);
         navigateToShot(camera);
+    }
+
+    // Private function which retrieves a camera and
+    // creates its image plane.
+    var setImagePlane = function (shot_id) {
+        var camera = getCamera(shot_id);
+        if (camera === null) {
+            return;
+        }
+
+        setImagePlaneCamera(camera);
     }
 
     // Private function for preloading images.
@@ -376,10 +700,53 @@ var JourneyWrapper = (function ($) {
         $('#journeyButton').html('Go');
     }
 
+    // Private function converting shot dictionary with rotations and translations
+    // values to shot dictionary with optical centers and viewing directions.
+    var convertShots = function () {
+        var shots = {};
+        for (var r = 0; r < reconstructions.length; ++r) {
+            var newShots = reconstructions[r].shots;
+            shots = $.extend(shots, newShots);
+        }
+
+        var result = {};
+
+        for (var shot_id in shots) {
+            if (!Object.prototype.hasOwnProperty.call(shots, shot_id)) {
+                continue;
+            }
+
+            var shot = shots[shot_id];
+
+            var position = opticalCenter(shot);
+
+            var camera = getCamera(shot_id);
+            var cam = camera.reconstruction['cameras'][shot['camera']];
+            var target = pixelToVertex(cam, shot, 0, 0, 20);
+
+            result[shot_id] = { 'position': position, 'target': target };
+        }
+
+        return result;
+    }
+
+    // Private function for setting the position and direction of the orbit controls camera
+    // used for the smooth navigation movement.
+    var smoothNavigation = function (position, target) {
+        controls.goto(position, target);
+    }
+
+    // Private function for continuing the movement to the next node when a journey is stopped.
+    var continuation = function (shot_id) {
+        var camera = getCamera(shot_id);
+        navigateToShot(camera);
+    }
+
     /**
      * Initializes a journey wrapper.
+     * @param {shots} Dictionary of shots with rotation and translation arrays.
      */
-    JourneyWrapper.prototype.initialize = function () {
+    JourneyWrapper.prototype.initialize = function (shots) {
         if ('nav' in urlParams && 'dest' in urlParams) {
 
             this.destination = urlParams.dest;
@@ -388,30 +755,60 @@ var JourneyWrapper = (function ($) {
             $.getJSON(urlParams.nav, function(data) {
 
                 _this.journey =
-                    new Journey(
-                        data,
-                        getInterval(),
-                        navigation,
-                        start,
-                        stop,
-                        preload,
-                        true);
+                    'jou' in urlParams && urlParams.jou === 'basic' ?
+                        new Journey(
+                            data,
+                            convertShots(shots),
+                            getInterval(),
+                            navigation,
+                            start,
+                            stop,
+                            preload,
+                            true) :
+                        new SmoothJourney(
+                            data,
+                            convertShots(shots),
+                            getInterval(),
+                            smoothNavigation,
+                            setImagePlane,
+                            start,
+                            stop,
+                            continuation,
+                            preload,
+                            true);
 
                 _this.initialized = true;
+
+                options.showPath = false;
                 $('#journeyButton').show();
 
                 if ('img' in urlParams && selectedCamera !== undefined) {
-                    _this.toggleJourney();
+                    window.setTimeout(function () { _this.toggle(); }, 700)
+                }
+                else {
+                    _this.addShowPathController();
                 }
             });
         }
     }
 
     /**
+     * Gets a value indicating whether a journey is ongoing.
+     * @return {Boolean} A value indicating whether a journey is ongoing.
+     */
+    JourneyWrapper.prototype.isStarted = function () {
+        if (this.initialized !== true) {
+            return false;
+        }
+
+        return this.journey.isStarted();
+    }
+
+    /**
      * Updates the interval.
      */
     JourneyWrapper.prototype.updateInterval = function () {
-        if (this.initialized !== true){
+        if (this.initialized !== true) {
             return;
         }
 
@@ -422,25 +819,25 @@ var JourneyWrapper = (function ($) {
      * Stops a journey.
      */
     JourneyWrapper.prototype.stop = function () {
-        if (this.initialized !== true){
+        if (this.initialized !== true) {
             return;
         }
 
         if (this.journey.isStarted() === true) {
-            this.journey.stop();
+            this.journey.stop(false);
         }
     }
 
     /**
      * Toggles the journey state between started and stopped.
      */
-    JourneyWrapper.prototype.toggleJourney = function () {
-        if (this.initialized !== true){
+    JourneyWrapper.prototype.toggle = function () {
+        if (this.initialized !== true) {
             return;
         }
 
         if (this.journey.isStarted() === true) {
-            this.journey.stop();
+            this.journey.stop(true);
             return;
         }
 
@@ -450,6 +847,89 @@ var JourneyWrapper = (function ($) {
 
         this.journey.updateInterval(getInterval());
         this.journey.start(selectedCamera.shot_id, this.destination);
+    }
+
+    /**
+     * Shows the shortest path in the scene.
+     */
+    JourneyWrapper.prototype.showPath = function () {
+        if (this.initialized !== true
+            || selectedCamera === undefined
+            || movingMode !== 'orbit'
+            || options.showPath !== true){
+            return;
+        }
+
+        this.hidePath();
+
+        var geometry = this.journey.getPathGeometry(selectedCamera.shot_id, this.destination);
+        if (geometry === null) {
+            return;
+        }
+
+        var material = new THREE.LineBasicMaterial({
+            color: 0xffff88,
+            linewidth: 5
+        });
+
+        this.line = new THREE.Line(geometry, material);
+        this.line.name = 'shortestPath'
+        scene.add(this.line);
+        render();
+    }
+
+    /**
+     * Hides the shortest path from the scene.
+     */
+    JourneyWrapper.prototype.hidePath = function () {
+        if (this.initialized !== true || this.line === undefined){
+            return;
+        }
+
+        if (this.line !== undefined) {
+            var sceneLine = scene.getObjectByName(this.line.name);
+            scene.remove(sceneLine);
+            this.line = undefined;
+            render();
+        }
+    }
+
+    /**
+     * Adds a show path checkbox to the options.
+     */
+    JourneyWrapper.prototype.addShowPathController = function () {
+        if (this.initialized !== true || this.showPathController !== undefined){
+            return;
+        }
+
+        _this = this;
+        this.showPathController = f1.add(options, 'showPath')
+            .listen()
+            .onChange(function () {
+                if (options.showPath === true && selectedCamera !== undefined) {
+                    _this.showPath();
+                }
+                else {
+                    _this.hidePath();
+                }
+            });
+
+        if (options.showPath === true) {
+            this.showPath();
+        }
+    }
+
+    /**
+     * Removes the show path checkbox from the options.
+     */
+    JourneyWrapper.prototype.removeShowPathController = function () {
+        if (this.initialized !== true || this.showPathController === undefined){
+            return;
+        }
+
+        this.hidePath();
+        f1.remove(this.showPathController);
+        this.showPathController = undefined;
     }
 
     return JourneyWrapper;
