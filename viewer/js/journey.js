@@ -615,6 +615,24 @@ var SmoothJourney = (function () {
         this.started = false;
     }
 
+    /**
+     * Sets the curve type for a smooth journey.
+     * @param {Boolean} continuation Specifying if the continuation action should be invoked.
+     */
+    SmoothJourney.prototype.setCurveType = function (curveType) {
+        this.curveType = curveType;
+
+        if (this.started === false) {
+            return;
+        }
+
+        var positions = this.getGeometry(this.path, 'position').vertices;
+        var targets = this.getGeometry(this.path, 'target').vertices;
+
+        this.positionCurve = new (Function.prototype.bind.apply(this.curveType, [null, positions]));
+        this.targetCurve = new (Function.prototype.bind.apply(this.curveType, [null, targets]));
+    }
+
     return SmoothJourney;
 })();
 
@@ -630,6 +648,7 @@ var JourneyWrapper = (function ($) {
         this.journey = undefined;
         this.destination = undefined;
         this.line = undefined;
+        this.curveType = undefined;
     }
 
     // Private function for calculating the desired time for moving one unit.
@@ -750,6 +769,7 @@ var JourneyWrapper = (function ($) {
         if ('nav' in urlParams && 'dest' in urlParams) {
 
             this.destination = urlParams.dest;
+            this.curveType = THREE.SplineCurve3;
             var _this = this;
 
             $.getJSON(urlParams.nav, function(data) {
@@ -775,12 +795,30 @@ var JourneyWrapper = (function ($) {
                             stop,
                             continuation,
                             preload,
-                            LinearCurve,
+                            _this.curveType,
                             true);
 
                 _this.initialized = true;
 
                 options.showPath = false;
+                options.curveType = 'Spline';
+                f1.add(options, 'curveType', ['Spline', 'Linear'])
+                    .onChange(function (value) {
+                        var curveType;
+                        switch (value) {
+                            case 'Spline':
+                                curveType = THREE.SplineCurve3;
+                                break;
+                            case 'Linear':
+                                curveType = LinearCurve;
+                                break;
+                            default:
+                                curveType = THREE.SplineCurve3;
+                        }
+
+                        _this.setCurveType(curveType);
+                    });
+
                 $('#journeyButton').show();
 
                 if ('img' in urlParams && selectedCamera !== undefined) {
@@ -863,17 +901,23 @@ var JourneyWrapper = (function ($) {
 
         this.hidePath();
 
-        var geometry = this.journey.getPathGeometry(selectedCamera.shot_id, this.destination);
-        if (geometry === null) {
+        var pathGeometry = this.journey.getPathGeometry(selectedCamera.shot_id, this.destination);
+        if (pathGeometry === null) {
             return;
         }
+
+        var curve = new (Function.prototype.bind.apply(this.curveType, [null, pathGeometry.vertices]));
+        var length = curve.getLength();
+        var nbrOfPoints = length * 5;
+        var curveGeometry = new THREE.Geometry();
+        curveGeometry.vertices = curve.getPoints(nbrOfPoints);
 
         var material = new THREE.LineBasicMaterial({
             color: 0xffff88,
             linewidth: 5
         });
 
-        this.line = new THREE.Line(geometry, material);
+        this.line = new THREE.Line(curveGeometry, material);
         this.line.name = 'shortestPath'
         scene.add(this.line);
         render();
@@ -892,6 +936,26 @@ var JourneyWrapper = (function ($) {
             scene.remove(sceneLine);
             this.line = undefined;
             render();
+        }
+    }
+
+    /**
+     * Sets the curve type of a journey
+     * @param {Type} curveType The type of the curve used for movement. Must inherit from THREE.Curve.
+     */
+    JourneyWrapper.prototype.setCurveType = function (curveType) {
+        if (this.initialized !== true) {
+            return;
+        }
+
+        this.curveType = curveType;
+
+        if (this.journey instanceof SmoothJourney) {
+            this.journey.setCurveType(curveType);
+        }
+
+        if (options.showPath === true) {
+            this.showPath();
         }
     }
 
