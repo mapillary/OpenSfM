@@ -144,6 +144,10 @@ def extract_features_akaze(image, config):
     options.process_size = config.get('feature_process_size', -1)
 
     threshold = config.get('akaze_dthreshold', 0.001)
+
+    if len(image.shape)==3:
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
     while True:
         print 'Computing AKAZE with threshold {0}'.format(threshold)
         t = time.time()
