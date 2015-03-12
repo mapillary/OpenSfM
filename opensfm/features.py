@@ -145,9 +145,6 @@ def extract_features_akaze(image, config):
 
     threshold = config.get('akaze_dthreshold', 0.001)
 
-    if len(image.shape)==3:
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
     while True:
         print 'Computing AKAZE with threshold {0}'.format(threshold)
         t = time.time()
@@ -180,8 +177,11 @@ def extract_features_hahog(image, config):
 
 
 def extract_feature(image, config):
-    feature_type = config.get('feature_type','SIFT').upper()
+    if len(image.shape)==3:
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     image = resized_image(image, config)
+
+    feature_type = config.get('feature_type','SIFT').upper()
     if feature_type == 'SIFT':
         return extract_features_sift(image, config)
     elif feature_type == 'SURF':
