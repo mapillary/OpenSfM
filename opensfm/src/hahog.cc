@@ -7,6 +7,7 @@
 extern "C" {
   #include "vl/covdet.h"
   #include "vl/sift.h"
+  #include <time.h>
 }
 
 
@@ -14,26 +15,41 @@ namespace csfm {
 
 bp::object hahog(PyObject *image,
                  float peak_threshold,
-                 float edge_threshold) {
+                 float edge_threshold,
+                 int target_num_features,
+                 bool use_adaptive_suppression) {
   PyArrayContiguousView<float> im((PyArrayObject *)image);
 
   if (im.valid()) {
+    clock_t t_start = clock();
     // create a detector object
-    VlCovDet * covdet = vl_covdet_new(VL_COVDET_METHOD_HESSIAN_LAPLACE);
+    VlCovDet * covdet = vl_covdet_new(VL_COVDET_METHOD_HESSIAN);
     // set various parameters (optional)
     vl_covdet_set_first_octave(covdet, 0);
     //vl_covdet_set_octave_resolution(covdet, octaveResolution);
     vl_covdet_set_peak_threshold(covdet, peak_threshold);
     vl_covdet_set_edge_threshold(covdet, edge_threshold);
+    vl_covdet_set_target_num_features(covdet, target_num_features);
+    vl_covdet_set_use_adaptive_suppression(covdet, use_adaptive_suppression);
 
     // process the image and run the detector
     vl_covdet_put_image(covdet, im.data(), im.shape(1), im.shape(0));
+
+    clock_t t_scalespace = clock();
+
     vl_covdet_detect(covdet);
   
+    clock_t t_detect = clock();
+
     // compute the affine shape of the features (optional)
-    vl_covdet_extract_affine_shape(covdet);
+    //vl_covdet_extract_affine_shape(covdet);
+    
+    clock_t t_affine = clock();
+
     // compute the orientation of the features (optional)
     vl_covdet_extract_orientations(covdet);
+
+    clock_t t_orient = clock();
     
     // get feature descriptors
     vl_size numFeatures = vl_covdet_get_num_features(covdet);
@@ -81,6 +97,13 @@ bp::object hahog(PyObject *image,
 
     }
     vl_sift_delete(sift);
+
+    clock_t t_description = clock();
+    std::cout << "t_scalespace " << float(t_scalespace - t_start)/CLOCKS_PER_SEC << "\n";
+    std::cout << "t_detect " << float(t_detect - t_scalespace)/CLOCKS_PER_SEC << "\n";
+    std::cout << "t_affine " << float(t_affine - t_detect)/CLOCKS_PER_SEC << "\n";
+    std::cout << "t_orient " << float(t_orient - t_affine)/CLOCKS_PER_SEC << "\n";
+    std::cout << "description " << float(t_description - t_orient)/CLOCKS_PER_SEC << "\n";
 
     bp::list retn;
     npy_intp points_shape[2] = {npy_intp(numFeatures), 6};

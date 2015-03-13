@@ -57,7 +57,9 @@ BOOST_PYTHON_MODULE(csfm) {
 
   def("hahog", csfm::hahog,
       (boost::python::arg("peak_threshold") = 0.003,
-       boost::python::arg("edge_threshold") = 10
+       boost::python::arg("edge_threshold") = 10,
+       boost::python::arg("target_num_features") = 0,
+       boost::python::arg("use_adaptive_suppression") = false
       )
   );
 
