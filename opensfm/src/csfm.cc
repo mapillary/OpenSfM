@@ -41,6 +41,7 @@ BOOST_PYTHON_MODULE(csfm) {
     .def_readwrite("diffusivity", &AKAZEOptions::diffusivity)
     .def_readwrite("dthreshold", &AKAZEOptions::dthreshold)
     .def_readwrite("min_dthreshold", &AKAZEOptions::min_dthreshold)
+    .def_readwrite("target_num_features", &AKAZEOptions::target_num_features)
     .def_readwrite("descriptor", &AKAZEOptions::descriptor)
     .def_readwrite("descriptor_size", &AKAZEOptions::descriptor_size)
     .def_readwrite("descriptor_channels", &AKAZEOptions::descriptor_channels)

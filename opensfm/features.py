@@ -142,21 +142,13 @@ def extract_features_akaze(image, config):
     options.descriptor_size = config.get('akaze_descriptor_size', 0)
     options.descriptor_channels = config.get('akaze_descriptor_channels', 3)
     options.process_size = config.get('feature_process_size', -1)
+    options.dthreshold = config.get('akaze_dthreshold', 0.001)
+    options.target_num_features = config.get('feature_min_frames', 0)
 
-    threshold = config.get('akaze_dthreshold', 0.001)
-
-    while True:
-        print 'Computing AKAZE with threshold {0}'.format(threshold)
-        t = time.time()
-        options.dthreshold = threshold
-        points, desc = csfm.akaze(image, options)
-        print 'Found {0} points in {1}s'.format( len(points), time.time()-t )
-        if len(points) < config.get('feature_min_frames', 0) and threshold > 0.00001:
-            threshold = (threshold * 2) / 3
-            print 'reducing threshold'
-        else:
-            print 'done'
-            break
+    print 'Computing AKAZE with threshold {0}'.format(options.dthreshold)
+    t = time.time()
+    points, desc = csfm.akaze(image, options)
+    print 'Found {0} points in {1}s'.format( len(points), time.time()-t )
 
     if config.get('feature_root', False):
         if akaze_descriptor_name in ["SURF_UPRIGHT", "MSURF_UPRIGHT"]:

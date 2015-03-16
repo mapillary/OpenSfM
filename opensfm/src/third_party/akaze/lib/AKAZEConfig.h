@@ -90,6 +90,7 @@ struct AKAZEOptions {
     nsublevels = 4;
     dthreshold = 0.001f;
     min_dthreshold = 0.00001f;
+    target_num_features = 0;
 
     diffusivity = PM_G2;
     descriptor = MLDB;
@@ -119,6 +120,7 @@ struct AKAZEOptions {
 
   float dthreshold;               ///< Detector response threshold to accept point
   float min_dthreshold;           ///< Minimum detector threshold to accept a point
+  int target_num_features;        ///< Number of features to extract
 
   DESCRIPTOR_TYPE descriptor;     ///< Type of descriptor
   int descriptor_size;            ///< Size of the descriptor in bits. 0->Full size

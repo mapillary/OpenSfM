@@ -240,6 +240,13 @@ void AKAZE::Compute_Determinant_Hessian_Response() {
   }
 }
 
+static int compareKeyPointResponse(const cv::KeyPoint &a,
+                                   const cv::KeyPoint &b) {
+  float fa = a.response;
+  float fb = b.response;
+  return (fb > fa) - (fb < fa) ;
+}
+
 /* ************************************************************************* */
 void AKAZE::Find_Scale_Space_Extrema(std::vector<cv::KeyPoint>& kpts) {
 
@@ -373,6 +380,14 @@ void AKAZE::Find_Scale_Space_Extrema(std::vector<cv::KeyPoint>& kpts) {
     if (is_repeated == false)
       kpts.push_back(point);
   }
+
+  // Keep only the k-best keypoints
+  int num_features_before = kpts.size();
+  if (options_.target_num_features != 0 && options_.target_num_features < kpts.size()) {
+    std::sort (kpts.begin(), kpts.end(), compareKeyPointResponse);
+    kpts.resize(options_.target_num_features);
+  }
+  std::cout << "Keeping " << kpts.size() << " out of " << num_features_before << "\n";
 
   t2 = cv::getTickCount();
   timing_.extrema = 1000.0*(t2-t1) / cv::getTickFrequency();
