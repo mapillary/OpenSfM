@@ -247,6 +247,13 @@ static int compareKeyPointResponse(const cv::KeyPoint &a,
   return (fb > fa) - (fb < fa) ;
 }
 
+static int compareKeyPointRadius(const std::pair<size_t, float> &a,
+                                 const std::pair<size_t, float> &b) {
+  float fa = a.second;
+  float fb = b.second;
+  return (fb > fa) - (fb < fa) ;
+}
+
 /* ************************************************************************* */
 void AKAZE::Find_Scale_Space_Extrema(std::vector<cv::KeyPoint>& kpts) {
 
@@ -384,8 +391,37 @@ void AKAZE::Find_Scale_Space_Extrema(std::vector<cv::KeyPoint>& kpts) {
   // Keep only the k-best keypoints
   int num_features_before = kpts.size();
   if (options_.target_num_features != 0 && options_.target_num_features < kpts.size()) {
-    std::sort (kpts.begin(), kpts.end(), compareKeyPointResponse);
-    kpts.resize(options_.target_num_features);
+    if (options_.use_adaptive_suppression) {
+      // Adaptive suppression
+      std::vector<std::pair<size_t, float> > radiuses(kpts.size());
+
+      for (size_t i = 0; i < kpts.size(); ++i) {
+        float radius = 99999999999;
+        for (size_t j = 0; j < kpts.size(); ++j) {
+          if (kpts[i].response < kpts[j].response) {
+            float dx_ = kpts[j].pt.x - kpts[i].pt.x;
+            float dy_ = kpts[j].pt.y - kpts[i].pt.y;
+            float sigma_ = kpts[j].size;
+            float radius_ = dx_ * dx_ + dy_ * dy_;  // TODO(pau) use sigma to compute a 3d radius
+            if (radius_ < radius) {
+              radius = radius_;
+            }
+          }
+        }
+        radiuses[i] = std::make_pair(i, radius);
+      }
+      std::sort(radiuses.begin(), radiuses.end(), compareKeyPointRadius);
+
+      std::vector<cv::KeyPoint> good_kpts(options_.target_num_features);
+      for (size_t i = 0; i < options_.target_num_features; ++i) {
+        good_kpts[i] = kpts[radiuses[i].first];
+      }
+      kpts.swap(good_kpts);
+    } else {
+      // Non-adapting suppression: keep k best response.
+      std::sort(kpts.begin(), kpts.end(), compareKeyPointResponse);
+      kpts.resize(options_.target_num_features);      
+    }
   }
   std::cout << "Keeping " << kpts.size() << " out of " << num_features_before << "\n";
 

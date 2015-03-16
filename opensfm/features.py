@@ -144,6 +144,7 @@ def extract_features_akaze(image, config):
     options.process_size = config.get('feature_process_size', -1)
     options.dthreshold = config.get('akaze_dthreshold', 0.001)
     options.target_num_features = config.get('feature_min_frames', 0)
+    options.use_adaptive_suppression = config.get('feature_use_adaptive_suppression', False)
 
     print 'Computing AKAZE with threshold {0}'.format(options.dthreshold)
     t = time.time()
