@@ -256,6 +256,9 @@ def fit_plane(points, vectors, verticals):
     _, p = nullspace(A)
     p[3] /= s
 
+    if np.allclose(p[:3], [0,0,0]):
+        return np.array([0.0, 0.0, 1.0, 0])
+
     # Use verticals to decide the sign of p
     if verticals:
         d = 0
@@ -276,9 +279,13 @@ def plane_horizontalling_rotation(p):
     '''
     v0 = p[:3]
     v1 = [0,0,1.0]
-    return tf.rotation_matrix(tf.angle_between_vectors(v0, v1),
-                              tf.vector_product(v0, v1)
-                              )[:3,:3]
+    angle = tf.angle_between_vectors(v0, v1)
+    if angle > 0:
+        return tf.rotation_matrix(angle,
+                                  tf.vector_product(v0, v1)
+                                  )[:3,:3]
+    else:
+        return np.eye(3)
 
 
 def fit_similarity_transform(p1, p2, max_iterations=1000, threshold=1):
