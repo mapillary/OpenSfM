@@ -103,6 +103,7 @@ struct AKAZEOptions {
     kcontrast = 0.001f;
     kcontrast_percentile = 0.7f;
     kcontrast_nbins = 300;
+    use_isotropic_diffusion = false;
 
     save_scale_space = false;
     save_keypoints = false;
@@ -122,7 +123,7 @@ struct AKAZEOptions {
   float dthreshold;               ///< Detector response threshold to accept point
   float min_dthreshold;           ///< Minimum detector threshold to accept a point
   int target_num_features;        ///< Number of features to extract
-  bool use_adaptive_suppression;      ///< Use adaptive suppression when selecting features
+  bool use_adaptive_suppression;  ///< Use adaptive suppression when selecting features
 
   DESCRIPTOR_TYPE descriptor;     ///< Type of descriptor
   int descriptor_size;            ///< Size of the descriptor in bits. 0->Full size
@@ -132,6 +133,7 @@ struct AKAZEOptions {
   float kcontrast;                ///< The contrast factor parameter
   float kcontrast_percentile;     ///< Percentile level for the contrast factor
   size_t kcontrast_nbins;         ///< Number of bins for the contrast factor histogram
+  bool use_isotropic_diffusion;   ///< Use isotropic diffusion instead of Perona-Malik
 
   bool save_scale_space;          ///< Set to true for saving the scale space images
   bool save_keypoints;            ///< Set to true for saving the detected keypoints and descriptors

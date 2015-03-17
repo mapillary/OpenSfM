@@ -50,6 +50,7 @@ BOOST_PYTHON_MODULE(csfm) {
     .def_readwrite("kcontrast", &AKAZEOptions::kcontrast)
     .def_readwrite("kcontrast_percentile", &AKAZEOptions::kcontrast_percentile)
     .def_readwrite("kcontrast_nbins", &AKAZEOptions::kcontrast_nbins)
+    .def_readwrite("use_isotropic_diffusion", &AKAZEOptions::use_isotropic_diffusion)
     .def_readwrite("save_scale_space", &AKAZEOptions::save_scale_space)
     .def_readwrite("save_keypoints", &AKAZEOptions::save_keypoints)
     .def_readwrite("verbosity", &AKAZEOptions::verbosity)

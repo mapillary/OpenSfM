@@ -143,6 +143,8 @@ def extract_features_akaze(image, config):
     options.descriptor_channels = config.get('akaze_descriptor_channels', 3)
     options.process_size = config.get('feature_process_size', -1)
     options.dthreshold = config.get('akaze_dthreshold', 0.001)
+    options.kcontrast_percentile = config.get('akaze_kcontrast_percentile', 0.7)
+    options.use_isotropic_diffusion = config.get('akaze_use_isotropic_diffusion', False)
     options.target_num_features = config.get('feature_min_frames', 0)
     options.use_adaptive_suppression = config.get('feature_use_adaptive_suppression', False)
 

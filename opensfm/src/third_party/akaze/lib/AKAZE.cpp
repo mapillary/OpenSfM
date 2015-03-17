@@ -139,22 +139,29 @@ int AKAZE::Create_Nonlinear_Scale_Space(const cv::Mat& img) {
     image_derivatives_scharr(evolution_[i].Lsmooth, evolution_[i].Lx, 1, 0);
     image_derivatives_scharr(evolution_[i].Lsmooth, evolution_[i].Ly, 0, 1);
 
-    // Compute the conductivity equation
-    switch (options_.diffusivity) {
-      case PM_G1:
-        pm_g1(evolution_[i].Lx, evolution_[i].Ly, evolution_[i].Lflow, options_.kcontrast);
-      break;
-      case PM_G2:
-        pm_g2(evolution_[i].Lx, evolution_[i].Ly, evolution_[i].Lflow, options_.kcontrast);
-      break;
-      case WEICKERT:
-        weickert_diffusivity(evolution_[i].Lx, evolution_[i].Ly, evolution_[i].Lflow, options_.kcontrast);
-      break;
-      case CHARBONNIER:
-        charbonnier_diffusivity(evolution_[i].Lx, evolution_[i].Ly, evolution_[i].Lflow, options_.kcontrast);
-      break;
-      default:
-        cerr << "Diffusivity: " << options_.diffusivity << " is not supported" << endl;
+    if (options_.use_isotropic_diffusion) {
+      float dt = evolution_[i].etime - evolution_[i-1].etime;
+      float dsigma = sqrt(2 * dt);
+      float ratio = pow(2.0f,(float)evolution_[i].octave);
+      gaussian_2D_convolution(evolution_[i].Lt, evolution_[i].Lt, 0, 0, dsigma / ratio);
+    } else {
+      // Compute the conductivity equation
+      switch (options_.diffusivity) {
+        case PM_G1:
+          pm_g1(evolution_[i].Lx, evolution_[i].Ly, evolution_[i].Lflow, options_.kcontrast);
+        break;
+        case PM_G2:
+          pm_g2(evolution_[i].Lx, evolution_[i].Ly, evolution_[i].Lflow, options_.kcontrast);
+        break;
+        case WEICKERT:
+          weickert_diffusivity(evolution_[i].Lx, evolution_[i].Ly, evolution_[i].Lflow, options_.kcontrast);
+        break;
+        case CHARBONNIER:
+          charbonnier_diffusivity(evolution_[i].Lx, evolution_[i].Ly, evolution_[i].Lflow, options_.kcontrast);
+        break;
+        default:
+          cerr << "Diffusivity: " << options_.diffusivity << " is not supported" << endl;
+      }
     }
 
     // Perform FED n inner steps
