@@ -102,7 +102,7 @@ def compute_image_pairs(graph, image_graph, config):
     score = []
     for im1, im2, d in image_graph.edges(data=True):
         tracks, p1, p2 = dataset.common_tracks(graph, im1, im2)
-        if len(tracks) >= 100:
+        if len(tracks) >= 50:
             H, inliers = cv2.findHomography(p1, p2, cv2.RANSAC, config.get('homography_threshold', 0.004))
             r = pairwise_reconstructability(len(tracks), inliers.sum())
             if r > 0:
