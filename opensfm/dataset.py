@@ -305,15 +305,14 @@ class DataSet:
         if images is None: images = self.images()
         for image in images:
             d = self.load_exif(image)
-            if 'gps' in d:
+            if 'gps' in d and 'altitude' in d['gps'] and 'longitude' in d['gps']:
                 w = 1.0 / d['gps'].get('dop', 15)
                 lat += w * d['gps']['latitude']
                 lon += w * d['gps']['longitude']
                 wlat += w
                 wlon += w
-                if 'altitude' in d['gps']:
-                    alt += w * d['gps']['altitude']
-                    walt += w
+                alt += w * d['gps']['altitude']
+                walt += w
         if wlat: lat /= wlat
         if wlon: lon /= wlon
         if walt: alt /= walt
