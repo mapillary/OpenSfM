@@ -2128,6 +2128,16 @@ vl_covdet_detect (VlCovDet * self)
   printf("laplacian scale %f\n", (float)(clock() - t)/CLOCKS_PER_SEC);
   t = clock();
 
+  if (self->targetNumFeatures != 0 && !self->useAdaptiveSuppression) {
+    // Keep only 1.5 x targetNumFeatures for speeding-up duplicate detection
+    int to_keep = 3 * self->targetNumFeatures / 2;
+    if (self->numFeatures > to_keep) {
+      qsort(self->features, self->numFeatures, sizeof(VlCovDetFeature), _vl_compare_scores);
+      self->numFeatures = to_keep;
+    }
+    printf("keeping %lld features before duplicate suppression\n", self->numFeatures);
+  }
+
   if (self->nonExtremaSuppression) {
     vl_index i, j ;
     double tol = self->nonExtremaSuppression ;
@@ -2161,7 +2171,7 @@ vl_covdet_detect (VlCovDet * self)
         self->features[j++] = feature ;
       }
     }
-    printf("before duplicate supression %lld  after %lld\n", self->numFeatures, j);
+    printf("before duplicate suppression %lld  after %lld\n", self->numFeatures, j);
     self->numFeatures = j ;
   }
 
