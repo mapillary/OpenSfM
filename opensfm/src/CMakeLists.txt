@@ -49,7 +49,11 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 find_package(Boost COMPONENTS python)
 include_directories(${Boost_INCLUDE_DIRS})
 
+<<<<<<< HEAD
 find_package(PythonLibs 2.7 REQUIRED)
+=======
+find_package(PythonLibs REQUIRED)
+>>>>>>> upstream/master
 include_directories(${PYTHON_INCLUDE_DIRS})
 
 find_package(NumPy REQUIRED)

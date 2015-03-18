@@ -1,9 +1,17 @@
 
 # Params for features
+<<<<<<< HEAD
 feature_type: SIFT            # Feature type (AKAZE, SURF, SIFT)
 feature_root: 0               # If 1, apply square root mapping to features
 feature_min_frames: 0         # If fewer frames are detected, sift_peak_threshold/surf_hessian_threshold is reduced.
 feature_process_size: 2048    # Resize the image if its size is larger than specified. Set to -1 for original size
+=======
+feature_type: HAHOG            # Feature type (AKAZE, SURF, SIFT)
+feature_root: 0               # If 1, apply square root mapping to features
+feature_min_frames: 2000         # If fewer frames are detected, sift_peak_threshold/surf_hessian_threshold is reduced.
+feature_process_size: 2048    # Resize the image if its size is larger than specified. Set to -1 for original size
+feature_use_adaptive_suppression: no
+>>>>>>> upstream/master
 
 # Params for SIFT
 sift_peak_threshold: 0.1     # Smaller value -> more features
@@ -21,6 +29,13 @@ akaze_descriptor: MSURF       # Feature type
 akaze_descriptor_size: 0      # Size of the descriptor in bits. 0->Full size
 akaze_descriptor_channels: 3  # Number of feature channels (1,2,3)
 
+<<<<<<< HEAD
+=======
+# Params for HAHOG
+hahog_peak_threshold: 0.001
+hahog_edge_threshold: 10
+
+>>>>>>> upstream/master
 # Masks for regions that will be ignore for feature extraction
 # List of bounding boxes specified as the ratio with respect to the height and width
 # [top_left_x, top_left_y, bottom_right_x, bottom_right_y] where x, y refer to

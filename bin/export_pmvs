@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 #!/usr/bin/env python2
+=======
+#!/usr/bin/env python
+>>>>>>> upstream/master
 import os.path, sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import argparse
@@ -25,7 +29,11 @@ if __name__ == "__main__":
     base_output_path = args.output
     if base_output_path is None:
         base_output_path = os.path.join(os.path.dirname(args.dataset), 'pmvs')
+<<<<<<< HEAD
     print "Converting dataset [%s] to PMVS dir [%s/pmvs_recon%%d]" % (data.data_path, base_output_path)
+=======
+    print "Converting dataset [%s] to PMVS dir [%s]" % (data.data_path, base_output_path)
+>>>>>>> upstream/master
 
     io.mkdir_p(base_output_path)
 
@@ -37,7 +45,11 @@ if __name__ == "__main__":
     reconstructions = data.load_reconstruction()
     for h, reconstruction in enumerate(reconstructions):
         print "Reconstruction", h
+<<<<<<< HEAD
         output_path = os.path.join(base_output_path, "pmvs_recon%d" % h)
+=======
+        output_path = os.path.join(base_output_path, "recon%d" % h)
+>>>>>>> upstream/master
         io.mkdir_p(output_path)
         io.mkdir_p(os.path.join(output_path, "visualize"))
         io.mkdir_p(os.path.join(output_path, "txt"))

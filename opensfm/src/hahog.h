@@ -7,7 +7,13 @@ namespace csfm {
 
 bp::object hahog(PyObject *image,
                  float peak_threshold,
+<<<<<<< HEAD
                  float edge_threshold);
+=======
+                 float edge_threshold,
+                 int target_num_features,
+                 bool use_adaptive_suppression);
+>>>>>>> upstream/master
 
 }
 
