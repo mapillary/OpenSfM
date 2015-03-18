@@ -102,7 +102,7 @@ def compute_image_pairs(graph, image_graph, config):
     score = []
     for im1, im2, d in image_graph.edges(data=True):
         tracks, p1, p2 = dataset.common_tracks(graph, im1, im2)
-        if len(tracks) >= 100:
+        if len(tracks) >= 50:
             H, inliers = cv2.findHomography(p1, p2, cv2.RANSAC, config.get('homography_threshold', 0.004))
             r = pairwise_reconstructability(len(tracks), inliers.sum())
             if r > 0:
@@ -115,7 +115,7 @@ def compute_image_pairs(graph, image_graph, config):
 def add_gps_position(data, reconstruction, image):
     exif = data.load_exif(image)
     reflla = data.load_reference_lla()
-    if 'gps' in exif:
+    if 'gps' in exif and 'latitude' in exif['gps'] and 'longitude' in exif['gps']:
         lat = exif['gps']['latitude']
         lon = exif['gps']['longitude']
         alt = 2.0 #exif['gps'].get('altitude', 0)
