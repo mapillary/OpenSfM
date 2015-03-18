@@ -11,13 +11,22 @@
 #include "akaze.cc"
 #include "bundle.h"
 
+#if (PY_VERSION_HEX < 0x03000000)
+static void numpy_import_array_wrapper()
+#else
+static int* numpy_import_array_wrapper()
+#endif
+{
+  /* Initialise numpy API and use 2/3 compatible return */
+  import_array();
+}
 
 BOOST_PYTHON_MODULE(csfm) {
   using namespace boost::python;
   
   google::InitGoogleLogging("csfm");
   boost::python::numeric::array::set_module_and_type("numpy", "ndarray");
-  import_array();
+  numpy_import_array_wrapper();
 
 
   enum_<DESCRIPTOR_TYPE>("AkazeDescriptorType")
