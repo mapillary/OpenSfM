@@ -32,17 +32,10 @@
 
 namespace libmv {
 
-<<<<<<< HEAD
-#ifndef gflags
-namespace gflags=google
-#endif
-
-=======
->>>>>>> upstream/master
 inline void Init(const char *usage, int *argc, char ***argv) {
   google::InitGoogleLogging((*argv)[0]);
-  google::SetUsageMessage(std::string(usage));
-  google::ParseCommandLineFlags(argc, argv, true);
+  gflags::SetUsageMessage(std::string(usage));
+  gflags::ParseCommandLineFlags(argc, argv, true);
 }
 
 }  // namespace libmv

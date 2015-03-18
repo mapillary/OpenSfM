@@ -944,10 +944,7 @@ $\ell_{(\kappa\sigma)^2}$ and $\ell_{\sigma^2}$.
 
 #include "covdet.h"
 #include <string.h>
-<<<<<<< HEAD
-=======
 #include <time.h>
->>>>>>> upstream/master
 
 /** @brief Reallocate buffer
  ** @param buffer
@@ -1464,11 +1461,8 @@ struct _VlCovDet
   double peakThreshold ;     /**< peak threshold. */
   double edgeThreshold ;     /**< edge threshold. */
   double lapPeakThreshold;   /**< peak threshold for Laplacian scale selection. */
-<<<<<<< HEAD
-=======
   vl_size targetNumFeatures ;/**< number of features to keep after adaptive non-extrema suppresion. */
   vl_bool useAdaptiveSuppression ;   /**< use adaptive non-maximal suppression rather than keeping the bests scores */
->>>>>>> upstream/master
   vl_size octaveResolution ; /**< resolution of each octave. */
   vl_index firstOctave ;     /**< index of the first octave. */
 
@@ -1541,11 +1535,8 @@ vl_covdet_new (VlCovDetMethod method)
     default:
       assert(0) ;
   }
-<<<<<<< HEAD
-=======
   self->targetNumFeatures = 0 ;
   self->useAdaptiveSuppression = 0 ;
->>>>>>> upstream/master
 
   self->nonExtremaSuppression = 0.5 ;
   self->features = NULL ;
@@ -1920,8 +1911,6 @@ _vl_dog_response (float * dog,
   }
 }
 
-<<<<<<< HEAD
-=======
 
 static int
 _vl_compare_radius (const void * a,
@@ -1942,7 +1931,6 @@ _vl_compare_scores (const void * a,
 //return (fa > fb) - (fa < fb) ;
 }
 
->>>>>>> upstream/master
 /* ---------------------------------------------------------------- */
 /*                                                  Detect features */
 /* ---------------------------------------------------------------- */
@@ -1970,11 +1958,8 @@ vl_covdet_detect (VlCovDet * self)
   /* clear previous detections if any */
   self->numFeatures = 0 ;
 
-<<<<<<< HEAD
-=======
   clock_t t = clock();
 
->>>>>>> upstream/master
   /* prepare buffers ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
   cgeom = geom ;
   if (self->method == VL_COVDET_METHOD_DOG) {
@@ -2029,12 +2014,8 @@ vl_covdet_detect (VlCovDet * self)
       }
     }
   }
-<<<<<<< HEAD
-
-=======
   printf("cornerness %f\n", (float)(clock() - t)/CLOCKS_PER_SEC);
   t = clock();
->>>>>>> upstream/master
   /* find and refine local maxima ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
   {
     vl_index * extrema = NULL ;
@@ -2131,12 +2112,9 @@ vl_covdet_detect (VlCovDet * self)
     if (extrema) { vl_free(extrema) ; extrema = 0 ; }
   }
 
-<<<<<<< HEAD
-=======
   printf("detection %f\n", (float)(clock() - t)/CLOCKS_PER_SEC);
   t = clock();
 
->>>>>>> upstream/master
   /* Laplacian scale selection for certain methods */
   switch (self->method) {
     case VL_COVDET_METHOD_HARRIS_LAPLACE :
@@ -2147,12 +2125,9 @@ vl_covdet_detect (VlCovDet * self)
       break ;
   }
 
-<<<<<<< HEAD
-=======
   printf("laplacian scale %f\n", (float)(clock() - t)/CLOCKS_PER_SEC);
   t = clock();
 
->>>>>>> upstream/master
   if (self->nonExtremaSuppression) {
     vl_index i, j ;
     double tol = self->nonExtremaSuppression ;
@@ -2186,11 +2161,6 @@ vl_covdet_detect (VlCovDet * self)
         self->features[j++] = feature ;
       }
     }
-<<<<<<< HEAD
-    self->numFeatures = j ;
-  }
-
-=======
     printf("before duplicate supression %lld  after %lld\n", self->numFeatures, j);
     self->numFeatures = j ;
   }
@@ -2236,7 +2206,6 @@ vl_covdet_detect (VlCovDet * self)
   printf("nonExtremaSuppression %f\n", (float)(clock() - t)/CLOCKS_PER_SEC);
   t = clock();
 
->>>>>>> upstream/master
   if (levelxx) vl_free(levelxx) ;
   if (levelyy) vl_free(levelyy) ;
   if (levelxy) vl_free(levelxy) ;
@@ -2988,10 +2957,7 @@ vl_covdet_extract_orientations (VlCovDet * self)
       oriented->frame.a22 = - A[1] * r2 + A[3] * r1 ;
     }
   }
-<<<<<<< HEAD
-=======
   printf("before %lld  after %lld\n", numFeatures, vl_covdet_get_num_features(self));
->>>>>>> upstream/master
 }
 
 /* ---------------------------------------------------------------- */
@@ -3331,8 +3297,6 @@ vl_covdet_set_laplacian_peak_threshold (VlCovDet * self, double peakThreshold)
   self->lapPeakThreshold = peakThreshold ;
 }
 
-<<<<<<< HEAD
-=======
 void
 vl_covdet_set_target_num_features (VlCovDet * self, vl_size target)
 {
@@ -3346,7 +3310,6 @@ vl_covdet_set_use_adaptive_suppression (VlCovDet * self, vl_bool target)
   self->useAdaptiveSuppression = target ;
 }
 
->>>>>>> upstream/master
 /* ---------------------------------------------------------------- */
 /** @brief Get the index of the first octave
  ** @param self object.

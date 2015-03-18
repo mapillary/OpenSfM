@@ -28,11 +28,8 @@ bp::object akaze(PyObject *image,
   cv::Mat desc;
   evolution.Compute_Descriptors(kpts, desc);
 
-<<<<<<< HEAD
-=======
   evolution.Show_Computation_Times();
 
->>>>>>> upstream/master
   // Convert to numpy.
   cv::Mat keys(kpts.size(), 4, CV_32F);
   for (int i = 0; i < (int) kpts.size(); ++i) {

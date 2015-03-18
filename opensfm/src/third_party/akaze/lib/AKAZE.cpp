@@ -139,24 +139,6 @@ int AKAZE::Create_Nonlinear_Scale_Space(const cv::Mat& img) {
     image_derivatives_scharr(evolution_[i].Lsmooth, evolution_[i].Lx, 1, 0);
     image_derivatives_scharr(evolution_[i].Lsmooth, evolution_[i].Ly, 0, 1);
 
-<<<<<<< HEAD
-    // Compute the conductivity equation
-    switch (options_.diffusivity) {
-      case PM_G1:
-        pm_g1(evolution_[i].Lx, evolution_[i].Ly, evolution_[i].Lflow, options_.kcontrast);
-      break;
-      case PM_G2:
-        pm_g2(evolution_[i].Lx, evolution_[i].Ly, evolution_[i].Lflow, options_.kcontrast);
-      break;
-      case WEICKERT:
-        weickert_diffusivity(evolution_[i].Lx, evolution_[i].Ly, evolution_[i].Lflow, options_.kcontrast);
-      break;
-      case CHARBONNIER:
-        charbonnier_diffusivity(evolution_[i].Lx, evolution_[i].Ly, evolution_[i].Lflow, options_.kcontrast);
-      break;
-      default:
-        cerr << "Diffusivity: " << options_.diffusivity << " is not supported" << endl;
-=======
     if (options_.use_isotropic_diffusion) {
       float dt = evolution_[i].etime - evolution_[i-1].etime;
       float dsigma = sqrt(2 * dt);
@@ -180,7 +162,6 @@ int AKAZE::Create_Nonlinear_Scale_Space(const cv::Mat& img) {
         default:
           cerr << "Diffusivity: " << options_.diffusivity << " is not supported" << endl;
       }
->>>>>>> upstream/master
     }
 
     // Perform FED n inner steps
@@ -266,8 +247,6 @@ void AKAZE::Compute_Determinant_Hessian_Response() {
   }
 }
 
-<<<<<<< HEAD
-=======
 static int compareKeyPointResponse(const cv::KeyPoint &a,
                                    const cv::KeyPoint &b) {
   float fa = a.response;
@@ -282,7 +261,6 @@ static int compareKeyPointRadius(const std::pair<size_t, float> &a,
   return (fb > fa) - (fb < fa) ;
 }
 
->>>>>>> upstream/master
 /* ************************************************************************* */
 void AKAZE::Find_Scale_Space_Extrema(std::vector<cv::KeyPoint>& kpts) {
 
@@ -417,8 +395,6 @@ void AKAZE::Find_Scale_Space_Extrema(std::vector<cv::KeyPoint>& kpts) {
       kpts.push_back(point);
   }
 
-<<<<<<< HEAD
-=======
   // Keep only the k-best keypoints
   int num_features_before = kpts.size();
   if (options_.target_num_features != 0 && options_.target_num_features < kpts.size()) {
@@ -456,7 +432,6 @@ void AKAZE::Find_Scale_Space_Extrema(std::vector<cv::KeyPoint>& kpts) {
   }
   std::cout << "Keeping " << kpts.size() << " out of " << num_features_before << "\n";
 
->>>>>>> upstream/master
   t2 = cv::getTickCount();
   timing_.extrema = 1000.0*(t2-t1) / cv::getTickFrequency();
 }
