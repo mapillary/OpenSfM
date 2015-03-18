@@ -168,8 +168,15 @@ def extract_features_hahog(image, config):
                               edge_threshold = config.get('hahog_edge_threshold', 10),
                               target_num_features = config.get('feature_min_frames', 0),
                               use_adaptive_suppression = config.get('feature_use_adaptive_suppression', False))
+
+    if config.get('feature_root', False):
+        desc = root_feature(desc)
+
+    if config.get('hahog_normalize_to_uchar', False):
+        scale = 512.0 / np.sqrt((desc**2).sum(axis=1))
+        desc = (scale[:, np.newaxis] * desc).clip(0, 255).round()
+
     print 'Found {0} points in {1}s'.format( len(points), time.time()-t )
-    if config.get('feature_root', False): desc = root_feature(desc)
     return mask_and_normalize_features(points, desc, image.shape[1], image.shape[0], config)
 
 
