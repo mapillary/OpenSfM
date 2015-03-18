@@ -49,7 +49,7 @@ Be sure to update your `PYTHONPATH` to include `/usr/local/lib/python2.7/site-pa
 
 ## Building
 
-    python2 setup.py build
+    python setup.py build
 
 
 ## Running
