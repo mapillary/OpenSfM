@@ -170,11 +170,13 @@ def extract_features_hahog(image, config):
                               use_adaptive_suppression = config.get('feature_use_adaptive_suppression', False))
 
     if config.get('feature_root', False):
-        desc = root_feature(desc)
+        desc = np.sqrt(desc)
+        uchar_scaling = 362  # x * 512 < 256  =>  sqrt(x) * 362 < 256
+    else:
+        uchar_scaling = 512
 
     if config.get('hahog_normalize_to_uchar', False):
-        scale = 512.0 / np.sqrt((desc**2).sum(axis=1))
-        desc = (scale[:, np.newaxis] * desc).clip(0, 255).round()
+        desc = (uchar_scaling * desc).clip(0, 255).round()
 
     print 'Found {0} points in {1}s'.format( len(points), time.time()-t )
     return mask_and_normalize_features(points, desc, image.shape[1], image.shape[0], config)
