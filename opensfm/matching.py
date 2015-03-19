@@ -6,7 +6,8 @@ import cv2
 def match_lowe(index, f2, config):
     search_params = dict(checks=config.get('flann_checks', 200))
     results, dists = index.knnSearch(f2, 2, params=search_params)
-    good = dists[:, 0] < config.get('lowes_ratio', 0.6) * dists[:, 1]
+    squared_ratio = config.get('lowes_ratio', 0.6)**2  # Flann returns squared L2 distances
+    good = dists[:, 0] < squared_ratio * dists[:, 1]
     matches = zip(results[good, 0], good.nonzero()[0])
     return np.array(matches, dtype=int)
 
