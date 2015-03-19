@@ -13074,7 +13074,7 @@
         "Sensor res. (width)": 2592.0, 
         "Sensor": "1/4\" (~ 3.20 x 2.40 mm)", 
         "Sensor res. (height)": 1456.0
-    },
+    }, 
     "Olympus ": {
         "Sensor height (mm)": 2.4, 
         "Sensor width (mm)": 3.2, 
@@ -23609,13 +23609,6 @@
         "Sensor res. (width)": 3995.0, 
         "Sensor": "1/2.33\" (~ 6.08 x 4.56 mm)", 
         "Sensor res. (height)": 3004.0
-    },
-    "MiOne": {
-        "Sensor height (mm)": 2.16, 
-        "Sensor width (mm)": 2.37, 
-        "Sensor res. (width)": 3264.0, 
-        "Sensor": "1/5\" (~ 2.37 x 2.16 mm)", 
-        "Sensor res. (height)": 2448.0
     }, 
     "Sony Cybershot DSC T1": {
         "Sensor height (mm)": 4.43, 

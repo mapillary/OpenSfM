@@ -97,6 +97,7 @@ bp::object hahog(PyObject *image,
 
     }
     vl_sift_delete(sift);
+    vl_covdet_delete(covdet);
 
     clock_t t_description = clock();
     std::cout << "t_scalespace " << float(t_scalespace - t_start)/CLOCKS_PER_SEC << "\n";

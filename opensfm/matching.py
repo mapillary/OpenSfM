@@ -44,11 +44,15 @@ def match_lowe_bf(f1, f2, config):
     else:
         matcher_type = 'BruteForce'
     matcher = cv2.DescriptorMatcher_create(matcher_type)
-    matches = matcher.knnMatch(f1, f2, k=2 )
+    matches = matcher.knnMatch(f1, f2, k=2)
+    
+    ratio = config.get('lowes_ratio', 0.6)
     good_matches = []
-    for m,n in matches:
-        if m.distance < config.get('lowes_ratio', 0.6)*n.distance:
-            good_matches.append(m)
+    for match in matches:
+        if match and len(match) == 2:
+            m, n = match
+            if m.distance < ratio * n.distance:
+                good_matches.append(m)
     good_matches = convert_matches_to_vector(good_matches)
     return np.array(good_matches, dtype=int)
 
