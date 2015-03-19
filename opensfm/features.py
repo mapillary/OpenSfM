@@ -179,6 +179,14 @@ def extract_features_hahog(image, config):
     print 'Found {0} points in {1}s'.format( len(points), time.time()-t )
     return mask_and_normalize_features(points, desc, image.shape[1], image.shape[0], config)
 
+def extract_features_dsift(image, config):
+    t = time.time()
+    points, desc = csfm.dsift(image.astype(np.float32) / 255, # VlFeat expects pixel values between 0, 1
+                              step = config.get('dsift_step', 5),
+                              bin_size = config.get('dsift_bin_size', 5))
+    print 'Found {0} points in {1}s'.format( len(points), time.time()-t )
+    if config.get('feature_root', False): desc = root_feature(desc)
+    return mask_and_normalize_features(points, desc, image.shape[1], image.shape[0], config)
 
 def extract_feature(image, config):
     if len(image.shape)==3:
@@ -194,8 +202,10 @@ def extract_feature(image, config):
         return extract_features_akaze(image, config)
     elif feature_type == 'HAHOG':
         return extract_features_hahog(image, config)
+    elif feature_type == 'DSIFT':
+        return extract_features_dsift(image, config)
     else:
-        raise ValueError('Unknown feature type (must be SURF, SIFT, AKAZE or HAHOG)')
+        raise ValueError('Unknown feature type (must be SURF, SIFT, AKAZE, HAHOG or DSIFT)')
 
 
 

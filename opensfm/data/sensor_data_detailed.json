@@ -13068,6 +13068,13 @@
         "Sensor": "8.64 x 6 mm", 
         "Sensor res. (height)": 5357.0
     }, 
+    "Lumia 630 Dual SIM": {
+        "Sensor height (mm)": 2.4, 
+        "Sensor width (mm)": 3.2, 
+        "Sensor res. (width)": 2592.0, 
+        "Sensor": "1/4\" (~ 3.20 x 2.40 mm)", 
+        "Sensor res. (height)": 1456.0
+    }, 
     "Olympus ": {
         "Sensor height (mm)": 2.4, 
         "Sensor width (mm)": 3.2, 

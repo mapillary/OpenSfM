@@ -9,6 +9,7 @@
 #include "hahog.cc"
 #include "multiview.cc"
 #include "akaze.cc"
+#include "dsift.cc"
 #include "bundle.h"
 
 #if (PY_VERSION_HEX < 0x03000000)
@@ -72,6 +73,12 @@ BOOST_PYTHON_MODULE(csfm) {
        boost::python::arg("edge_threshold") = 10,
        boost::python::arg("target_num_features") = 0,
        boost::python::arg("use_adaptive_suppression") = false
+      )
+  );
+
+  def("dsift", csfm::dsift,
+      (boost::python::arg("step") = 5,
+       boost::python::arg("bin_size") = 5
       )
   );
 

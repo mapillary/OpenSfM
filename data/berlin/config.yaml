@@ -26,6 +26,10 @@ akaze_descriptor_channels: 3  # Number of feature channels (1,2,3)
 hahog_peak_threshold: 0.001
 hahog_edge_threshold: 10
 
+# Params for DSIFT
+dsift_step: 7
+dsift_bin_size: 7
+
 # Masks for regions that will be ignore for feature extraction
 # List of bounding boxes specified as the ratio with respect to the height and width
 # [top_left_x, top_left_y, bottom_right_x, bottom_right_y] where x, y refer to

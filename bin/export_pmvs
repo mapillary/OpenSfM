@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 import os.path, sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import argparse
@@ -37,7 +37,7 @@ if __name__ == "__main__":
     reconstructions = data.load_reconstruction()
     for h, reconstruction in enumerate(reconstructions):
         print "Reconstruction", h
-        output_path = os.path.join(base_output_path, "recon%d" % h)
+        output_path = os.path.join(base_output_path, "pmvs_recon%d" % h)
         io.mkdir_p(output_path)
         io.mkdir_p(os.path.join(output_path, "visualize"))
         io.mkdir_p(os.path.join(output_path, "txt"))
