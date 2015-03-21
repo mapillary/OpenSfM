@@ -9,7 +9,8 @@ from opensfm import features
 from opensfm import matching
 from opensfm import io
 
-def plot_matches(sub, im1, im2, p1, p2, line_color, point_color):
+
+def plot_matches(plot, im1, im2, p1, p2, line_format='c', point_format='ob'):
     h1, w1, c = im1.shape
     h2, w2, c = im2.shape
     image = np.zeros((max(h1,h2), w1+w2, 3), dtype=im1.dtype)
@@ -18,43 +19,27 @@ def plot_matches(sub, im1, im2, p1, p2, line_color, point_color):
 
     p1 = features.denormalized_image_coordinates(p1, w1, h1)
     p2 = features.denormalized_image_coordinates(p2, w2, h2)
-    pl.imshow(image)
+    plot.imshow(image)
     for a, b in zip(p1, p2):
-        pl.plot([a[0], b[0] + w1], [a[1], b[1]], line_color)
+        plot.plot([a[0], b[0] + w1], [a[1], b[1]], line_format)
 
-    sub.plot(p1[:,0], p1[:,1], point_color)
-    sub.plot(p2[:,0] + w1, p2[:,1], point_color)
+    plot.plot(p1[:,0], p1[:,1], point_format)
+    plot.plot(p2[:,0] + w1, p2[:,1], point_format)
 
-def plot_sub(fig, rows, columns, index, title, im1, im2, p1, p2, line_color, point_color, data):
-    sub = fig.add_subplot(rows, columns, index)
-    sub.axis('off')
-    sub.text(0.5, 0.9,
-             title,
-             horizontalalignment='center',
-             fontsize=12,
-             transform = sub.transAxes)
 
-    plot_matches(sub, data.image_as_array(im1), data.image_as_array(im2), p1, p2, line_color, point_color)
+def plot_sub(figure, rows, columns, index, title, im1, im2, p1, p2, line_format, point_format, data):
+    subplot = figure.add_subplot(rows, columns, index)
+    subplot.axis('off')
+    subplot.text(0.5, 0.9,
+                 title,
+                 horizontalalignment='center',
+                 fontsize=12,
+                 transform = subplot.transAxes)
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Plot inlier and outlier matches between images')
-    parser.add_argument('dataset',
-                        help='path to the data set to be processed')
-    parser.add_argument('image1',
-                        help='name of the first image to show')
-    parser.add_argument('image2',
-                        help='name of the second image to show')
-    parser.add_argument('--save_figs',
-                        help='save figures instead of showing them',
-                        action='store_true')
+    plot_matches(subplot, data.image_as_array(im1), data.image_as_array(im2), p1, p2, line_format, point_format)
 
-    args = parser.parse_args()
-    data = dataset.DataSet(args.dataset)
-    images = data.images()
 
-    im1 = args.image1
-    im2 = args.image2
-
+def plot_symmetric_matches(im1, im2, data, save_figs=False):
     p1, f1 = data.load_features(im1)
     i1 = data.load_feature_index(im1, f1)
 
@@ -92,8 +77,8 @@ if __name__ == "__main__":
     for match in symmetric_matches:
 
         found = False
-        for rmatch in robust_matches:
-            if np.array_equal(match, rmatch):
+        for robust_match in robust_matches:
+            if np.array_equal(match, robust_match):
                 found = True
                 break
 
@@ -112,10 +97,29 @@ if __name__ == "__main__":
 
     pl.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=0.96, wspace=0, hspace=0)
 
-    if args.save_figs:
+    if save_figs:
         p = args.dataset + '/plot_inliers'
         io.mkdir_p(p)
         pl.savefig(p + '/' + im1 + '_' + im2 + '.jpg', dpi=100)
         pl.close()
     else:
         pl.show()
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Plot inlier and outlier matches between images')
+    parser.add_argument('dataset',
+                        help='path to the data set to be processed')
+    parser.add_argument('image1',
+                        help='name of the first image to show')
+    parser.add_argument('image2',
+                        help='name of the second image to show')
+    parser.add_argument('--save_figs',
+                        help='save figures instead of showing them',
+                        action='store_true')
+
+    args = parser.parse_args()
+    data_set = dataset.DataSet(args.dataset)
+
+    plot_symmetric_matches(args.image1, args.image2, data_set, args.save_figs)
+
