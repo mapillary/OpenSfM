@@ -95,12 +95,13 @@ def plot_symmetric_matches(im1, im2, data, save_figs=False):
              'r', 'om',
              data)
 
-    pl.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=0.96, wspace=0, hspace=0)
+    fig.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=0.96, wspace=0, hspace=0)
 
     if save_figs:
         p = args.dataset + '/plot_inliers'
         io.mkdir_p(p)
-        pl.savefig(p + '/' + im1 + '_' + im2 + '.jpg', dpi=100)
+        fig.set_size_inches(12, 12)
+        fig.savefig(p + '/' + im1 + '_' + im2 + '.jpg', dpi=100)
         pl.close()
     else:
         pl.show()
