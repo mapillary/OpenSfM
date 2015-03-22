@@ -8,18 +8,23 @@ from opensfm import dataset
 from opensfm import features
 from opensfm import matching
 from opensfm import io
+from opensfm import csfm
 
 
-def plot_matches(plot, im1, im2, p1, p2, line_format='c', point_format='ob'):
+def show_images(plot, im1, im2):
     h1, w1, c = im1.shape
     h2, w2, c = im2.shape
     image = np.zeros((max(h1,h2), w1+w2, 3), dtype=im1.dtype)
     image[0:h1, 0:w1, :] = im1
     image[0:h2, w1:(w1+w2), :] = im2
+    plot.imshow(image)
 
+
+def plot_matches(plot, im1, im2, p1, p2, line_format='c', point_format='ob'):
+    h1, w1, c = im1.shape
+    h2, w2, c = im2.shape
     p1 = features.denormalized_image_coordinates(p1, w1, h1)
     p2 = features.denormalized_image_coordinates(p2, w2, h2)
-    plot.imshow(image)
     for a, b in zip(p1, p2):
         plot.plot([a[0], b[0] + w1], [a[1], b[1]], line_format)
 
@@ -27,7 +32,7 @@ def plot_matches(plot, im1, im2, p1, p2, line_format='c', point_format='ob'):
     plot.plot(p2[:,0] + w1, p2[:,1], point_format)
 
 
-def plot_sub(figure, rows, columns, index, title, im1, im2, p1, p2, line_format, point_format, data):
+def create_subplot(figure, rows, columns, index, title):
     subplot = figure.add_subplot(rows, columns, index)
     subplot.axis('off')
     subplot.text(0.5, 0.9,
@@ -36,7 +41,19 @@ def plot_sub(figure, rows, columns, index, title, im1, im2, p1, p2, line_format,
                  fontsize=12,
                  transform = subplot.transAxes)
 
-    plot_matches(subplot, data.image_as_array(im1), data.image_as_array(im2), p1, p2, line_format, point_format)
+    return subplot
+
+
+def plot_sub(figure, rows, columns, index, title, im1, im2, p1, p2, line_format, point_format, data):
+    subplot = create_subplot(figure, rows, columns, index, title)
+
+    im1_array = data.image_as_array(im1)
+    im2_array = data.image_as_array(im2)
+
+    show_images(subplot, im1_array, im2_array)
+    plot_matches(subplot, im1_array, im2_array, p1, p2, line_format, point_format)
+
+    return subplot
 
 
 def plot_symmetric_matches(im1, im2, data, save_figs=False):
@@ -101,7 +118,106 @@ def plot_symmetric_matches(im1, im2, data, save_figs=False):
         p = args.dataset + '/plot_inliers'
         io.mkdir_p(p)
         fig.set_size_inches(12, 12)
-        fig.savefig(p + '/' + im1 + '_' + im2 + '.jpg', dpi=100)
+        fig.savefig(p + '/' + im1 + '_' + im2 + '_matches.jpg', dpi=100)
+        pl.close()
+    else:
+        pl.show()
+
+
+def plot_tracks(im1, im2, data, save_figs=False):
+    graph = data.load_tracks_graph()
+
+    p1, features1 = data.load_features(im1)
+    p2, features2 = data.load_features(im2)
+    p1 = np.array(p1[:, :2], np.float64)
+    p2 = np.array(p2[:, :2], np.float64)
+
+    if data_set.matches_exists(im1, im2):
+        robust_matches = data_set.load_matches(im1, im2)
+    elif data_set.matches_exists(im2, im1):
+        loaded_matches = data_set.load_matches(im2, im1)
+        robust_matches = loaded_matches[:, [1, 0]]
+    else:
+        robust_matches = np.empty((0,2), int)
+
+    t1, t2 = graph[im1], graph[im2]
+
+    track_matches = []
+    for track in t1:
+        if track in t2:
+            track_matches.append(np.array([t1[track]['feature_id'], t2[track]['feature_id']]))
+
+    track_matches = np.array(track_matches)
+
+    if track_matches.shape[0] < 8:
+        print 'Not enough tracks: ' + str(track_matches.shape[0])
+        return
+
+    track_points1 = p1[track_matches[:,0]]
+    track_points2 = p2[track_matches[:,1]]
+
+    fig = pl.figure(figsize=(20, 10))
+    fig.suptitle('Tracks: ' + im1 + ' - ' + im2, fontsize=14, fontweight='bold')
+
+    non_robust_tracks = np.empty((0,2), int)
+    for match in track_matches:
+
+        found = False
+        for robust_match in robust_matches:
+            if np.array_equal(match, robust_match):
+                found = True
+                break
+
+        if not found:
+            non_robust_tracks = np.vstack((non_robust_tracks, match))
+
+    non_robust_tracks1 = p1[non_robust_tracks[:,0]]
+    non_robust_tracks2 = p2[non_robust_tracks[:,1]]
+
+    im1_array = data.image_as_array(im1)
+    im2_array = data.image_as_array(im2)
+
+    tracks_subplot = plot_sub(fig, 2, 1, 1,
+             'Common tracks: ' + str(track_matches.shape[0]) + '. Robust match tracks: ' +
+             str(robust_matches.shape[0]) + '. Non robust match tracks: ' + str(non_robust_tracks.shape[0]),
+             im1, im2,
+             track_points1, track_points2,
+             'c', 'ob',
+             data_set)
+    plot_matches(tracks_subplot, im1_array, im2_array, non_robust_tracks1, non_robust_tracks2, 'r', 'om')
+
+    f1 = data_set.load_exif(im1)['focal_ratio']
+    f2 = data_set.load_exif(im2)['focal_ratio']
+
+    threshold = data_set.config.get('five_point_algo_threshold', 0.006)
+    R, t, inliers = csfm.two_view_reconstruction(track_points1, track_points2, f1, f2, threshold)
+
+    inliers1 = track_points1[inliers, :]
+    inliers2 = track_points2[inliers, :]
+
+    mask = np.ones(track_points1.shape[0],dtype=bool)
+    mask[inliers] = False
+    outliers1 = track_points1[mask]
+    outliers2 = track_points2[mask]
+
+    im1_array = data.image_as_array(im1)
+    im2_array = data.image_as_array(im2)
+
+    subplot3 = plot_sub(fig, 2, 1, 2,
+             'Inliers in CSfM two view reconstruction: ' + str(len(inliers)) + '. Outliers: ' + str(mask.sum()),
+             im1, im2,
+             inliers1, inliers2,
+             'c', 'ob',
+             data_set)
+    plot_matches(subplot3, im1_array, im2_array, outliers1, outliers2, 'r', 'om')
+
+    fig.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=0.96, wspace=0, hspace=0)
+
+    if save_figs:
+        p = args.dataset + '/plot_inliers'
+        io.mkdir_p(p)
+        fig.set_size_inches(12, 12)
+        fig.savefig(p + '/' + im1 + '_' + im2 + '_tracks.jpg', dpi=100)
         pl.close()
     else:
         pl.show()
@@ -123,4 +239,13 @@ if __name__ == "__main__":
     data_set = dataset.DataSet(args.dataset)
 
     plot_symmetric_matches(args.image1, args.image2, data_set, args.save_figs)
+    plot_tracks(args.image1, args.image2, data_set, args.save_figs)
+
+
+
+
+
+
+
+
 
