@@ -3,6 +3,7 @@
 import argparse
 import matplotlib.pyplot as pl
 import numpy as np
+import cv2
 
 from opensfm import dataset
 from opensfm import features
@@ -83,8 +84,10 @@ def plot_symmetric_matches(im1, im2, data, save_figs=False):
     r_matches1 = p1[robust_matches[:,0]]
     r_matches2 = p2[robust_matches[:,1]]
 
+    threshold = data.config.get('robust_matching_threshold', 0.006)
     plot_sub(fig, 3, 1, 2,
-             'Number of robust matching inliers: ' + str(robust_matches.shape[0]),
+             'Number of robust matching inliers: ' + str(robust_matches.shape[0]) +
+             '. Threshold: ' + '%.4f' % threshold,
              im1, im2,
              r_matches1, r_matches2,
              'g', 'oy',
@@ -106,7 +109,8 @@ def plot_symmetric_matches(im1, im2, data, save_figs=False):
     outliers2 = p2[outliers[:,1]]
 
     plot_sub(fig, 3, 1, 3,
-             'Number of robust matching outliers: ' + str(outliers.shape[0]),
+             'Number of robust matching outliers: ' + str(outliers.shape[0]) +
+             '. Threshold: ' + '%.4f' % threshold,
              im1, im2,
              outliers1, outliers2,
              'r', 'om',
@@ -115,7 +119,7 @@ def plot_symmetric_matches(im1, im2, data, save_figs=False):
     fig.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=0.96, wspace=0, hspace=0)
 
     if save_figs:
-        p = args.dataset + '/plot_inliers'
+        p = data.data_path + '/plot_inliers'
         io.mkdir_p(p)
         fig.set_size_inches(12, 12)
         fig.savefig(p + '/' + im1 + '_' + im2 + '_matches.jpg', dpi=100)
@@ -132,10 +136,10 @@ def plot_tracks(im1, im2, data, save_figs=False):
     p1 = np.array(p1[:, :2], np.float64)
     p2 = np.array(p2[:, :2], np.float64)
 
-    if data_set.matches_exists(im1, im2):
-        robust_matches = data_set.load_matches(im1, im2)
-    elif data_set.matches_exists(im2, im1):
-        loaded_matches = data_set.load_matches(im2, im1)
+    if data.matches_exists(im1, im2):
+        robust_matches = data.load_matches(im1, im2)
+    elif data.matches_exists(im2, im1):
+        loaded_matches = data.load_matches(im2, im1)
         robust_matches = loaded_matches[:, [1, 0]]
     else:
         robust_matches = np.empty((0,2), int)
@@ -177,44 +181,68 @@ def plot_tracks(im1, im2, data, save_figs=False):
     im1_array = data.image_as_array(im1)
     im2_array = data.image_as_array(im2)
 
-    tracks_subplot = plot_sub(fig, 2, 1, 1,
+    tracks_subplot = plot_sub(fig, 3, 1, 1,
              'Common tracks: ' + str(track_matches.shape[0]) + '. Robust match tracks: ' +
              str(robust_matches.shape[0]) + '. Non robust match tracks: ' + str(non_robust_tracks.shape[0]),
              im1, im2,
              track_points1, track_points2,
              'c', 'ob',
-             data_set)
-    plot_matches(tracks_subplot, im1_array, im2_array, non_robust_tracks1, non_robust_tracks2, 'r', 'om')
+             data)
+    plot_matches(tracks_subplot, im1_array, im2_array, non_robust_tracks1, non_robust_tracks2, 'g', 'oy')
 
-    f1 = data_set.load_exif(im1)['focal_ratio']
-    f2 = data_set.load_exif(im2)['focal_ratio']
+    # Plot inliers and outliers from OpenCV find homography
+    threshold_h = data.config.get('homography_threshold', 0.004)
+    H, inliers_h = cv2.findHomography(track_points1, track_points2, cv2.RANSAC, threshold_h)
 
-    threshold = data_set.config.get('five_point_algo_threshold', 0.006)
-    R, t, inliers = csfm.two_view_reconstruction(track_points1, track_points2, f1, f2, threshold)
+    inliers_h = np.array(np.squeeze(inliers_h), np.bool)
 
-    inliers1 = track_points1[inliers, :]
-    inliers2 = track_points2[inliers, :]
+    inliers_h1 = track_points1[inliers_h, :]
+    inliers_h2 = track_points2[inliers_h, :]
 
-    mask = np.ones(track_points1.shape[0],dtype=bool)
-    mask[inliers] = False
-    outliers1 = track_points1[mask]
-    outliers2 = track_points2[mask]
+    outliers_h1 = track_points1[~inliers_h, :]
+    outliers_h2 = track_points2[~inliers_h, :]
 
     im1_array = data.image_as_array(im1)
     im2_array = data.image_as_array(im2)
 
-    subplot3 = plot_sub(fig, 2, 1, 2,
-             'Inliers in CSfM two view reconstruction: ' + str(len(inliers)) + '. Outliers: ' + str(mask.sum()),
+    subplot3 = plot_sub(fig, 3, 1, 2,
+             'OpenCV find homography inliers: ' + str(inliers_h.sum()) + '. Outliers: ' + str((~inliers_h).sum()) +
+             '. Outlier ratio: ' + '%.3f' % (float((~inliers_h).sum()) / track_matches.shape[0]) +
+             '. Threshold: ' + '%.4f' % threshold_h,
              im1, im2,
-             inliers1, inliers2,
-             'c', 'ob',
-             data_set)
-    plot_matches(subplot3, im1_array, im2_array, outliers1, outliers2, 'r', 'om')
+             outliers_h1, outliers_h2,
+             'r', 'om',
+             data)
+    plot_matches(subplot3, im1_array, im2_array, inliers_h1, inliers_h2, 'c', 'ob')
+
+    # Plot inliers and outliers from csfm two view reconstruction
+    f1 = data.load_exif(im1)['focal_ratio']
+    f2 = data.load_exif(im2)['focal_ratio']
+
+    threshold_t = data.config.get('five_point_algo_threshold', 0.006)
+    R, t, inliers_t = csfm.two_view_reconstruction(track_points1, track_points2, f1, f2, threshold_t)
+
+    inliers_t1 = track_points1[inliers_t, :]
+    inliers_t2 = track_points2[inliers_t, :]
+
+    mask = np.ones(track_points1.shape[0],dtype=bool)
+    mask[inliers_t] = False
+    outliers_t1 = track_points1[mask, :]
+    outliers_t2 = track_points2[mask, :]
+
+    subplot3 = plot_sub(fig, 3, 1, 3,
+             'CSfM two view reconstruction inliers: ' + str(len(inliers_t)) + '. Outliers: ' + str(mask.sum()) +
+              '. Threshold: ' + '%.4f' % threshold_t,
+             im1, im2,
+             outliers_t1, outliers_t2,
+             'r', 'om',
+             data)
+    plot_matches(subplot3, im1_array, im2_array, inliers_t1, inliers_t2, 'c', 'ob')
 
     fig.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=0.96, wspace=0, hspace=0)
 
     if save_figs:
-        p = args.dataset + '/plot_inliers'
+        p = data.data_path + '/plot_inliers'
         io.mkdir_p(p)
         fig.set_size_inches(12, 12)
         fig.savefig(p + '/' + im1 + '_' + im2 + '_tracks.jpg', dpi=100)
