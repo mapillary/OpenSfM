@@ -340,9 +340,9 @@ void MotionFromEssential(const Mat3 &E,
 int MotionFromEssentialChooseSolution(const std::vector<Mat3> &Rs,
                                       const std::vector<Vec3> &ts,
                                       const Mat3 &K1,
-                                      const Vec2 &x1,
+                                      const Mat &x1,
                                       const Mat3 &K2,
-                                      const Vec2 &x2) {
+                                      const Mat &x2) {
   DCHECK_EQ(4, Rs.size());
   DCHECK_EQ(4, ts.size());
 
@@ -352,27 +352,33 @@ int MotionFromEssentialChooseSolution(const std::vector<Mat3> &Rs,
   R1.setIdentity();
   t1.setZero();
   P_From_KRt(K1, R1, t1, &P1);
+  int best_num_points_in_front = 0;
+  int best_solution = -1;
   for (int i = 0; i < 4; ++i) {
     const Mat3 &R2 = Rs[i];
     const Vec3 &t2 = ts[i];
     P_From_KRt(K2, R2, t2, &P2);
-    Vec3 X;
-    TriangulateDLT(P1, x1, P2, x2, &X);
-    double d1 = Depth(R1, t1, X);
-    double d2 = Depth(R2, t2, X);
-    // Test if point is front to the two cameras.
-    if (d1 > 0 && d2 > 0) {
-      return i;
+    int num_points_in_front = 0;
+    for (int j = 0; j < x1.cols(); ++j) {
+      Vec3 X;
+      TriangulateDLT(P1, x1.col(j), P2, x2.col(j), &X);
+      if (Depth(R1, t1, X) > 0 && Depth(R2, t2, X) > 0) {
+        num_points_in_front++;
+      }
+    }
+    if (num_points_in_front > best_num_points_in_front) {
+      best_num_points_in_front = num_points_in_front;
+      best_solution = i;
     }
   }
-  return -1;
+  return best_solution;
 }
 
 bool MotionFromEssentialAndCorrespondence(const Mat3 &E,
                                           const Mat3 &K1,
-                                          const Vec2 &x1,
+                                          const Mat &x1,
                                           const Mat3 &K2,
-                                          const Vec2 &x2,
+                                          const Mat &x2,
                                           Mat3 *R,
                                           Vec3 *t) {
   std::vector<Mat3> Rs;

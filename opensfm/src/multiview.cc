@@ -57,9 +57,15 @@ bp::object TwoViewReconstruction(PyObject *x1_object,
   Mat3 R;
   Vec3 t;
   int a = inliers[inliers.size() / 2];  // Choose a random inlier.
+  Mat x1inliers(2, inliers.size());
+  Mat x2inliers(2, inliers.size());
+  for (int i = 0; i < inliers.size(); ++i) {
+    x1inliers.col(i) = x1.col(inliers[i]);
+    x2inliers.col(i) = x2.col(inliers[i]);
+  }
   MotionFromEssentialAndCorrespondence(E,
-                                       K1, x1.col(a),
-                                       K2, x2.col(a),
+                                       K1, x1inliers,
+                                       K2, x2inliers,
                                        &R, &t);
 
   // Convert results to numpy arrays.

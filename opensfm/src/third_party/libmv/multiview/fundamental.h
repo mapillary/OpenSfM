@@ -127,15 +127,15 @@ void MotionFromEssential(const Mat3 &E,
 int MotionFromEssentialChooseSolution(const std::vector<Mat3> &Rs,
                                       const std::vector<Vec3> &ts,
                                       const Mat3 &K1,
-                                      const Vec2 &x1,
+                                      const Mat &x1,
                                       const Mat3 &K2,
-                                      const Vec2 &x2);
+                                      const Mat &x2);
 
 bool MotionFromEssentialAndCorrespondence(const Mat3 &E,
                                           const Mat3 &K1,
-                                          const Vec2 &x1,
+                                          const Mat &x1,
                                           const Mat3 &K2,
-                                          const Vec2 &x2,
+                                          const Mat &x2,
                                           Mat3 *R,
                                           Vec3 *t);
 
