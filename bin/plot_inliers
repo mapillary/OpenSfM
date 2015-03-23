@@ -59,7 +59,7 @@ def plot_symmetric_matches(im1, im2, data, save_figs=False):
     im1_array = data.image_as_array(im1)
     im2_array = data.image_as_array(im2)
 
-    fig = pl.figure(figsize=(20, 10))
+    fig = pl.figure(figsize=(12, 12))
     fig.suptitle('Matches: ' + im1 + ' - ' + im2, fontsize=14, fontweight='bold')
 
     # Calculate symmetric matches and plot.
@@ -122,7 +122,6 @@ def plot_symmetric_matches(im1, im2, data, save_figs=False):
     if save_figs:
         p = data.data_path + '/plot_inliers'
         io.mkdir_p(p)
-        fig.set_size_inches(12, 12)
         fig.savefig(p + '/' + im1 + '_' + im2 + '_matches.jpg', dpi=100)
         pl.close()
     else:
@@ -134,7 +133,7 @@ def plot_tracks(im1, im2, data, save_figs=False):
     im1_array = data.image_as_array(im1)
     im2_array = data.image_as_array(im2)
 
-    fig = pl.figure(figsize=(20, 10))
+    fig = pl.figure(figsize=(12, 12))
     fig.suptitle('Tracks: ' + im1 + ' - ' + im2, fontsize=14, fontweight='bold')
 
     # Retrieve tracks and robust matches from file and plot tracks corresponding to
@@ -242,7 +241,6 @@ def plot_tracks(im1, im2, data, save_figs=False):
     if save_figs:
         p = data.data_path + '/plot_inliers'
         io.mkdir_p(p)
-        fig.set_size_inches(12, 12)
         fig.savefig(p + '/' + im1 + '_' + im2 + '_tracks.jpg', dpi=100)
         pl.close()
     else:
