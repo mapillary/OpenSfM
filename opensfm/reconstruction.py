@@ -86,7 +86,6 @@ def bundle(graph, reconstruction, config):
     print 'setup/run/teardown {0}/{1}/{2}'.format(setup - start, run - setup, teardown - run)
 
 
-
 def pairwise_reconstructability(common_tracks, homography_inliers):
     outliers = common_tracks - homography_inliers
     outlier_ratio = float(outliers) / common_tracks
@@ -143,7 +142,11 @@ def bootstrap_reconstruction(data, graph, im1, im2):
     f1 = d1['focal_ratio']
     f2 = d2['focal_ratio']
     threshold = data.config.get('five_point_algo_threshold', 0.006)
-    R, t, inliers = csfm.two_view_reconstruction(p1, p2, f1, f2, threshold)
+    ret = csfm.two_view_reconstruction(p1, p2, f1, f2, threshold)
+    if ret is not None:
+        R, t, inliers = ret
+    else:
+        return None
     if len(inliers):
         print 'Number of inliers', len(inliers)
         reconstruction = {
