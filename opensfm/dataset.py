@@ -156,8 +156,10 @@ class DataSet:
         return os.path.join(self.__feature_path(), image + '.' + self.feature_type() + '.npz')
 
     def __save_features(self, filepath, image, points, descriptors):
-        if (self.config.get('feature_type') == 'AKAZE' and
-                self.config.get('akaze_descriptor') in ['MLDB_UPRIGHT', 'MLDB']):
+        feature_type = self.config.get('feature_type')
+        if ((feature_type == 'AKAZE' and self.config.get('akaze_descriptor') in ['MLDB_UPRIGHT', 'MLDB']) or
+            (feature_type == 'HAHOG' and self.config.get('hahog_normalize_to_uchar', False)) or
+            (feature_type == 'SIFT')):
             feature_data_type = np.uint8
         else:
             feature_data_type = np.float32
@@ -166,8 +168,14 @@ class DataSet:
                  descriptors=descriptors.astype(feature_data_type))
 
     def load_features(self, image):
+        feature_type = self.config.get('feature_type')
         s = np.load(self.__feature_file(image))
-        return s['points'], s['descriptors']
+        if (feature_type == 'HAHOG' and self.config.get('hahog_normalize_to_uchar', False) or
+            feature_type == 'SIFT'):
+            descriptors = s['descriptors'].astype(np.float32)
+        else:
+            descriptors = s['descriptors']
+        return s['points'], descriptors
 
     def save_features(self, image, points, descriptors):
         self.__save_features(self.__feature_file(image), image, points, descriptors)
