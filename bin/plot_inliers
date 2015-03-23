@@ -54,7 +54,7 @@ def plot_sub(figure, rows, columns, index, title, im1, im2, p1, p2, line_format,
     return subplot
 
 
-def plot_symmetric_matches(im1, im2, data, save_figs=False):
+def create_matches_figure(im1, im2, data, save_figs=False):
 
     im1_array = data.image_as_array(im1)
     im2_array = data.image_as_array(im2)
@@ -128,7 +128,7 @@ def plot_symmetric_matches(im1, im2, data, save_figs=False):
         pl.show()
 
 
-def plot_tracks(im1, im2, data, save_figs=False):
+def create_tracks_figure(im1, im2, data, save_figs=False):
 
     im1_array = data.image_as_array(im1)
     im2_array = data.image_as_array(im2)
@@ -262,8 +262,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     data_set = dataset.DataSet(args.dataset)
 
-    plot_symmetric_matches(args.image1, args.image2, data_set, args.save_figs)
-    plot_tracks(args.image1, args.image2, data_set, args.save_figs)
+    create_matches_figure(args.image1, args.image2, data_set, args.save_figs)
+    create_tracks_figure(args.image1, args.image2, data_set, args.save_figs)
 
 
 
