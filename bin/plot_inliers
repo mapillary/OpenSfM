@@ -71,6 +71,10 @@ def create_matches_figure(im1, im2, data, save_figs=False):
 
     symmetric_matches = matching.match_symmetric(f1, i1, f2, i2, data.config)
 
+    if symmetric_matches.shape[0] < 8:
+        print 'Not enough matches for eight point algorithm: ' + str(symmetric_matches.shape[0])
+        return
+
     s_matches1 = p1[symmetric_matches[:,0]]
     s_matches2 = p2[symmetric_matches[:,1]]
 
@@ -162,8 +166,8 @@ def create_tracks_figure(im1, im2, data, save_figs=False):
 
     track_matches = np.array(track_matches)
 
-    if track_matches.shape[0] < 8:
-        print 'Not enough tracks: ' + str(track_matches.shape[0])
+    if track_matches.shape[0] < 5:
+        print 'Not enough tracks for five point algorithm: ' + str(track_matches.shape[0])
         return
 
     track_points1 = p1[track_matches[:,0]]
