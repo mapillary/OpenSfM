@@ -34,11 +34,20 @@ if os.path.exists(data.data_path + '/exif_overrides.json'):
 else:
     exif_overrides = {}
 
+if os.path.exists(os.path.join(data.data_path, 'image_data.json')):
+    with open(os.path.join(data.data_path, 'image_data.json'), 'rb') as f:
+        exif_dict = json.loads(f.read())
+else:
+    exif_dict = {}
+
 for image in images:
     print 'Extracting focal lengths for image', image
 
-    # EXIF data in Image
-    d = exif.extract_exif_from_file(data.load_image(image))
+    if exif_dict:
+        d = exif.extract_exif_from_dict(exif_dict.get(image, {}))
+    else:
+        # EXIF data in Image
+        d = exif.extract_exif_from_file(data.load_image(image))
 
     # Image Height and Image Width
     if not data.config.get('use_exif_size', True):
