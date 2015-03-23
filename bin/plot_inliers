@@ -234,10 +234,10 @@ def plot_tracks(im1, im2, data, save_figs=False):
              'CSfM two view reconstruction inliers: ' + str(len(inliers_t)) + '. Outliers: ' + str(mask.sum()) +
               '. Threshold: ' + '%.4f' % threshold_t,
              im1, im2,
-             outliers_t1, outliers_t2,
-             'r', 'om',
+             inliers_t1, inliers_t2,
+             'c', 'ob',
              data)
-    plot_matches(subplot3, im1_array, im2_array, inliers_t1, inliers_t2, 'c', 'ob')
+    plot_matches(subplot3, im1_array, im2_array, outliers_t1, outliers_t2, 'r', 'om')
 
     fig.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=0.96, wspace=0, hspace=0)
 
