@@ -1153,7 +1153,10 @@
                 requestAnimationFrame(animate);
                 imageMaterial.uniforms.opacity.value = 1 - options.imagePlaneOpacity;
                 imageMaterialOld.uniforms.opacity.value = 1;//options.imagePlaneOpacity;
-                options.imagePlaneOpacity *= 1 - options.animationSpeed;
+                if (invokeJourneyWrapper(function () { return journeyWrapper.isStarted() && journeyWrapper.isSmooth(); }) !== true) {
+                    options.imagePlaneOpacity *= 1 - options.animationSpeed;
+                }
+
                 controls.update();
             }
 

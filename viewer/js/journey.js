@@ -514,7 +514,8 @@ var SmoothJourney = (function () {
 
         // Retrieve t from the position curve to calculate index.
         var t = this.positionCurve.getUtoTmapping(this.u);
-        var index = Math.floor((this.path.length - 1) * t);
+        var point = (this.path.length - 1) * t;
+        var index = Math.floor(point);
 
         if (index > this.currentIndex && index < this.path.length) {
             this.currentIndex = index;
@@ -532,10 +533,13 @@ var SmoothJourney = (function () {
         var position = this.positionCurve.getPoint(t);
         var target = this.targetCurve.getPoint(t);
 
-        this.navigationAction(position, target);
+        // Do not reset the weight after reaching the last node.
+        var weight = this.u >= 1 ? 1 : point - index;
+
+        this.navigationAction(position, target, weight);
 
         if (this.u >= 1) {
-            this.stop();
+            this.stop(false);
         }
     }
 
@@ -578,7 +582,7 @@ var SmoothJourney = (function () {
         var position = this.positionCurve.getPointAt(0);
         var target = this.targetCurve.getPointAt(0);
 
-        this.navigationAction(position, target);
+        this.navigationAction(position, target, 0);
 
         _this = this;
         this.intervalToken = window.setInterval(function () { move.call(_this); }, 1000/60);
@@ -751,8 +755,9 @@ var JourneyWrapper = (function ($) {
 
     // Private function for setting the position and direction of the orbit controls camera
     // used for the smooth navigation movement.
-    var smoothNavigation = function (position, target) {
+    var smoothNavigation = function (position, target, weight) {
         controls.goto(position, target);
+        options.imagePlaneOpacity = 1 - weight;
     }
 
     // Private function for continuing the movement to the next node when a journey is stopped.
@@ -841,6 +846,18 @@ var JourneyWrapper = (function ($) {
         }
 
         return this.journey.isStarted();
+    }
+
+       /**
+     * Gets a value indicating whether a journey type is smooth.
+     * @return {Boolean} A value indicating whether a journey type is smooth.
+     */
+    JourneyWrapper.prototype.isSmooth = function () {
+        if (this.initialized !== true) {
+            return false;
+        }
+
+        return this.journey instanceof SmoothJourney
     }
 
     /**
@@ -950,7 +967,7 @@ var JourneyWrapper = (function ($) {
 
         this.curveType = curveType;
 
-        if (this.journey instanceof SmoothJourney) {
+        if (this.isSmooth()) {
             this.journey.setCurveType(curveType);
         }
 
