@@ -234,7 +234,7 @@ var JourneyBase = (function () {
 
         var path = this.dijkstra.shortestPath(journeyGraph, from, to, 'weight');
 
-        return { path: path, index: index };
+        return path === null ? null : { path: path, index: index };
     }
 
     /**
