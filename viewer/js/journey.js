@@ -452,6 +452,7 @@ var SmoothJourney = (function () {
      * @param {Function} stopAction The action to run when stopping a journey.
      * @param {Function} continuationAction The action to execute when the journey is stopped for smooth stopping.
      * @param {Function} preloadAction The action to run when stopping a journey.
+     * @param {Function} weightFunction A function that maps a value between in [0. 1] to another value in [0, 1],
      * @param {Type} curveType The type of the curve used for movement. Must inherit from THREE.Curve.
      * @param {Boolean} usePenalty Value indicating if a penalty should be used.
      */
@@ -465,6 +466,7 @@ var SmoothJourney = (function () {
         stopAction,
         continuationAction,
         preloadAction,
+        weightFunction,
         curveType,
         usePenalty) {
 
@@ -476,6 +478,7 @@ var SmoothJourney = (function () {
         this.stopAction = stopAction;
         this.continuationAction = continuationAction;
         this.preloadAction = preloadAction;
+        this.weightFunction = weightFunction;
         this.curveType = curveType;
 
         this.previousTime = undefined;
@@ -536,7 +539,7 @@ var SmoothJourney = (function () {
         // Do not reset the weight after reaching the last node.
         var weight = this.u >= 1 ? 1 : point - index;
 
-        this.navigationAction(position, target, weight);
+        this.navigationAction(position, target, this.weightFunction(weight));
 
         if (this.u >= 1) {
             this.stop(false);
@@ -766,6 +769,11 @@ var JourneyWrapper = (function ($) {
         navigateToShot(camera);
     }
 
+    // Private function for mapping the weight in [0, 1] to another weight in [0, 1].
+    var weightFunction = function (weight) {
+        return weight;
+    }
+
     /**
      * Initializes a journey wrapper.
      * @param {shots} Dictionary of shots with rotation and translation arrays.
@@ -800,6 +808,7 @@ var JourneyWrapper = (function ($) {
                             stop,
                             continuation,
                             preload,
+                            weightFunction,
                             _this.curveType,
                             true);
 
