@@ -23,7 +23,7 @@ from opensfm import geo
 from opensfm import csfm
 
 
-def bundle(graph, reconstruction, config):
+def bundle(graph, reconstruction, config, fix_cameras=False):
     '''Bundle adjust a reconstruction.
     '''
 
@@ -31,7 +31,7 @@ def bundle(graph, reconstruction, config):
     ba = csfm.BundleAdjuster()
     for k, v in reconstruction['cameras'].items():
         ba.add_camera(str(k), v['focal'], v['k1'], v['k2'],
-            v['exif_focal'], False)
+            v['exif_focal'], fix_cameras)
 
     for k, v in reconstruction['shots'].items():
         r = v['rotation']
