@@ -235,16 +235,16 @@ class DataSet:
         :param image1: Image name, with extension (i.e. 123.jpg)
         :param image2: Image name, with extension (i.e. 123.jpg)
         """
-        return os.path.join(self.__matches_path(), '%s_%s_matches.csv' % (image1, image2))
+        return os.path.join(self.__matches_path(), '%s_%s_matches.npz' % (image1, image2))
 
     def matches_exists(self, im1, im2):
         return os.path.isfile(self.__matches_file(im1, im2))
 
     def load_matches(self, image1, image2):
-        return np.genfromtxt(self.__matches_file(image1, image2), dtype=int)
+        return np.load(self.__matches_file(image1, image2))['matches']
 
     def save_matches(self, image1, image2, matches):
-        np.savetxt(self.__matches_file(image1, image2), matches, "%d")
+        np.savez(self.__matches_file(image1, image2), matches=matches.astype(np.int32))
 
     def __tracks_graph_file(self):
         """Return path of tracks file"""
