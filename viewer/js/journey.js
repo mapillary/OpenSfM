@@ -271,6 +271,19 @@ var JourneyBase = (function () {
     }
 
     /**
+     * Retrieves the edge weight for an edge between two adjacent nodes.
+     * @param {Integer} graphIndex The index of the graph.
+     * @param {String} from The name of the node for which the edge starts.
+     * @param {String} to The name of the node for which the edge ends.
+     */
+    JourneyBase.prototype.getEdgeWeight = function(graphIndex, from, to) {
+        var graph = this.graphs[this.graphIndex];
+        var edges = graph.edges[from];
+        var edge = edges[to];
+        return edge.weight;
+    }
+
+    /**
      * Gets a value indicating whether a journey is ongoing.
      * @return {Boolean} A value indicating whether a journey is ongoing.
      */
@@ -485,6 +498,7 @@ var SmoothJourney = (function () {
         this.currentIndex = 0;
         this.u = 0;
         this.path = undefined;
+        this.graphIndex = undefined;
         this.positionCurve = undefined;
         this.targetCurve = undefined;
         this.intervalToken = undefined;
@@ -520,7 +534,7 @@ var SmoothJourney = (function () {
         var point = (this.path.length - 1) * t;
         var index = Math.floor(point);
 
-        if (index > this.currentIndex && index < this.path.length) {
+        if (index > this.currentIndex && index < this.path.length - 1) {
             this.currentIndex = index;
 
             var startIndex = Math.min(2 + this.currentIndex * 3, this.currentIndex + this.preCount);
@@ -538,8 +552,9 @@ var SmoothJourney = (function () {
 
         // Do not reset the weight after reaching the last node.
         var weight = this.u >= 1 ? 1 : point - index;
+        var edgeLength = this.getEdgeWeight(this.graphIndex, this.path[this.currentIndex], this.path[this.currentIndex + 1]);
 
-        this.navigationAction(position, target, this.weightFunction(weight));
+        this.navigationAction(position, target, this.weightFunction(weight, edgeLength));
 
         if (this.u >= 1) {
             this.stop(false);
@@ -563,6 +578,7 @@ var SmoothJourney = (function () {
 
         this.started = true;
         this.path = result.path;
+        this.graphIndex = result.index;
 
         var startIndex = Math.min(2, this.path.length - 1);
         var endIndex = Math.min(5, this.path.length);
@@ -585,7 +601,8 @@ var SmoothJourney = (function () {
         var position = this.positionCurve.getPointAt(0);
         var target = this.targetCurve.getPointAt(0);
 
-        this.navigationAction(position, target, 0);
+        var edgeLength = this.getEdgeWeight(this.graphIndex, this.path[this.currentIndex], this.path[this.currentIndex + 1]);
+        this.navigationAction(position, target, 0, edgeLength);
 
         _this = this;
         this.intervalToken = window.setInterval(function () { move.call(_this); }, 1000/60);
@@ -607,6 +624,7 @@ var SmoothJourney = (function () {
         var nextNode = this.path[nextIndex];
 
         this.path = undefined;
+        this.graphIndex = undefined;
         this.positionCurve = undefined;
         this.targetCurve = undefined;
         this.previousTime = undefined;
@@ -770,7 +788,7 @@ var JourneyWrapper = (function ($) {
     }
 
     // Private function for mapping the weight in [0, 1] to another weight in [0, 1].
-    var weightFunction = function (weight) {
+    var weightFunction = function (weight, length) {
         return weight;
     }
 
