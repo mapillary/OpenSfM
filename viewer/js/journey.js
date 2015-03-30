@@ -642,7 +642,7 @@ var SmoothJourney = (function () {
 
     /**
      * Sets the curve type for a smooth journey.
-     * @param {Boolean} continuation Specifying if the continuation action should be invoked.
+     * @param {Type} curveType The type of the curve used for movement. Must inherit from THREE.Curve.
      */
     SmoothJourney.prototype.setCurveType = function (curveType) {
         this.curveType = curveType;
