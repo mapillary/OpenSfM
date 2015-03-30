@@ -601,8 +601,7 @@ var SmoothJourney = (function () {
         var position = this.positionCurve.getPointAt(0);
         var target = this.targetCurve.getPointAt(0);
 
-        var edgeLength = this.getEdgeWeight(this.graphIndex, this.path[this.currentIndex], this.path[this.currentIndex + 1]);
-        this.navigationAction(position, target, 0, edgeLength);
+        this.navigationAction(position, target, 0);
 
         _this = this;
         this.intervalToken = window.setInterval(function () { move.call(_this); }, 1000/60);
@@ -789,7 +788,13 @@ var JourneyWrapper = (function ($) {
 
     // Private function for mapping the weight in [0, 1] to another weight in [0, 1].
     var weightFunction = function (weight, length) {
-        return weight;
+        var transitionLength = 4;
+        var lowerBound = Math.max((length - transitionLength) / (2 * length), 0);
+        var upperBound = Math.min((length + transitionLength) / (2 * length), 1);
+
+        var result = (weight - lowerBound) / (upperBound - lowerBound);
+
+        return Math.min(Math.max(result, 0), 1);
     }
 
     /**
