@@ -49,7 +49,15 @@ def angle_diff(a1, a2):
     return angles
 
 
-def get_direction_turns_and_motion_angles(min_distance, max_distance, distances, position, direction, positions, directions):
+def get_direction_turns_and_motion_angles(
+        min_distance,
+        max_distance,
+        preferred_distance,
+        distances,
+        position,
+        direction,
+        positions,
+        directions):
     """ Retrieves the indices for the positions within a distance from the position in the
         interval between the minimum distance and the maximum distance.
         Also calculates the direction change and the difference in motion with respect to the direction for
@@ -57,6 +65,7 @@ def get_direction_turns_and_motion_angles(min_distance, max_distance, distances,
 
     :param min_distance: Float specifying the minimum distance to the position.
     :param max_distance: Float specifying the maximum distance to the position.
+    :param preferred_distance: Float specifying the preferred distance to the position.
     :param distances: The distances for the other positions to the position.
     :param position: The position.
     :param direction: The direction for the position.
@@ -68,7 +77,8 @@ def get_direction_turns_and_motion_angles(min_distance, max_distance, distances,
 
     # Order positions within interval according to shortest distance
     position_indices = np.where((min_distance < distances) & (distances < max_distance))[0]
-    ordered_indices = position_indices[np.argsort(distances[position_indices])]
+    preferred_distances = np.abs(distances[position_indices] - preferred_distance)
+    ordered_indices = position_indices[np.argsort(preferred_distances)]
 
     motions = positions[ordered_indices] - position
     motion_angles = np.array(
@@ -101,6 +111,7 @@ def create_optical_center_graph(reconstructions, config):
     D = dist.squareform(dist.pdist(optical_centers))
 
     min_distance = config.get('nav_min_distance', 0.01)
+    step_pref_distance = config.get('nav_step_pref_distance', 0)
 
     step_max_distance = config.get('nav_step_max_distance', 20)
     step_forward_viewing_threshold = config.get('nav_step_forward_view_threshold', 0.25)
@@ -136,7 +147,7 @@ def create_optical_center_graph(reconstructions, config):
         vd = viewing_directions[i]
 
         ordered_indices, viewing_turns, motion_angles = get_direction_turns_and_motion_angles(
-            min_distance, step_max_distance, distances, oc, vd, optical_centers, viewing_directions
+            min_distance, step_max_distance, step_pref_distance, distances, oc, vd, optical_centers, viewing_directions
         )
 
         for key in steps:
@@ -151,7 +162,7 @@ def create_optical_center_graph(reconstructions, config):
                 graph.add_edge(shot_ids[i], shot_ids[step_index], weight=distances[step_index], direction=key)
 
         ordered_indices, viewing_turns, motion_angles = get_direction_turns_and_motion_angles(
-            min_distance, turn_max_distance, distances, oc, vd, optical_centers, viewing_directions
+            min_distance, turn_max_distance, 0, distances, oc, vd, optical_centers, viewing_directions
         )
 
         for key in turns:
