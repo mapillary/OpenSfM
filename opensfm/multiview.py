@@ -176,10 +176,13 @@ def ransac(kernel, threshold):
     max_iterations = 10000
     best_error = float('inf')
     best_model = None
-    best_inliers = None
+    best_inliers = []
     i = 0
     while i < max_iterations:
-        samples = random.sample(xrange(kernel.num_samples()),
+        try:
+            samples = kernel.sampling()
+        except AttributeError:
+            samples = random.sample(xrange(kernel.num_samples()),
                                 kernel.required_samples)
         models = kernel.fit(samples)
         for model in models:
@@ -191,7 +194,7 @@ def ransac(kernel, threshold):
                 best_model = model
                 best_inliers = inliers
                 max_iterations = min(max_iterations,
-                    ransac_max_iterations(kernel, best_inliers, 0.01))
+                    ransac_max_iterations(kernel, best_inliers, 0.00001))
         i += 1
     return best_model, best_inliers, best_error
 
@@ -225,6 +228,44 @@ class TestLinearKernel:
     def evaluate(self, model):
         return self.y - model * self.x
 
+class PlaneKernel:
+    '''
+    A kernel for estimating plane from on-plane points and vectors
+    '''
+
+    def __init__(self, points, vectors, verticals):
+        self.points = points
+        self.vectors = vectors
+        self.verticals = verticals
+        self.required_samples = 3
+
+    def num_samples(self):
+        return len(self.points)
+
+    def sampling(self):
+        samples = {}
+        if self.vectors:
+            samples['points'] = self.points[random.sample(xrange(len(self.points)), 2),:]
+            samples['vectors'] = [self.vectors[i] for i in random.sample(xrange(len(self.vectors)), 1)]
+        else:
+            samples['points'] = self.points[:,random.sample(xrange(len(self.points)), 3)]
+            samples['vectors'] = None
+        return samples
+
+    def fit(self, samples):
+        model = fit_plane(samples['points'], samples['vectors'], self.verticals)
+        return [model]
+
+    def evaluate(self, model):
+        # only evaluate on points
+        return np.abs(model.T.dot(homogeneous(self.points).T))/((np.linalg.norm(model[0:3]))+1e-10)
+
+def fit_plane_ransac(points, vectors, verticals, point_threshold=1, vector_threshold=5):
+    kernel = PlaneKernel(points - points.mean(axis=0), vectors, verticals)
+    p, inliers, error = ransac(kernel, point_threshold)
+    points_inliers = points[inliers,:]
+    p = fit_plane(points_inliers - points_inliers.mean(axis=0), vectors, verticals)
+    return p, inliers, error
 
 def fit_plane(points, vectors, verticals):
     '''Estimate a plane fron on-plane points and vectors.
@@ -265,7 +306,6 @@ def fit_plane(points, vectors, verticals):
         for vertical in verticals:
             d += p[:3].dot(vertical)
         p *= np.sign(d)
-
     return p
 
 
