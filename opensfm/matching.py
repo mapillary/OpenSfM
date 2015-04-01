@@ -46,7 +46,7 @@ def match_lowe_bf(f1, f2, config):
         matcher_type = 'BruteForce'
     matcher = cv2.DescriptorMatcher_create(matcher_type)
     matches = matcher.knnMatch(f1, f2, k=2)
-    
+
     ratio = config.get('lowes_ratio', 0.6)
     good_matches = []
     for match in matches:
@@ -67,7 +67,7 @@ def robust_match(p1, p2, matches, config):
     p1 = p1[matches[:, 0]][:, :2].copy()
     p2 = p2[matches[:, 1]][:, :2].copy()
 
-    F, mask = cv2.findFundamentalMat(p1, p2, cv2.cv.CV_FM_RANSAC, config.get('robust_matching_threshold', 0.006), 0.99)
+    F, mask = cv2.findFundamentalMat(p1, p2, cv2.cv.CV_FM_RANSAC, config.get('robust_matching_threshold', 0.006), 0.9999)
     inliers = mask.ravel().nonzero()
 
     return matches[inliers]
