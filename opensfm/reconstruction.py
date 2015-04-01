@@ -605,6 +605,7 @@ def register_reconstruction_with_gps(reconstruction, reference):
         topo2 = optical_center(shot)
         dz = topo2 - topo
         angle = np.rad2deg(np.arctan2(dz[0], dz[1]))
+        angle = (angle+360) % 360
         reconstruction['shots'][shot_id]['gps'] = {
                                             'lon': lon,
                                             'lat': lat,
