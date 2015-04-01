@@ -12,7 +12,6 @@ import networkx as nx
 from opensfm import dataset, reconstruction
 
 
-
 def vector2_angle(x1, y1, x2, y2):
     """ Calculates the angle between two vectors on the plane.
 
@@ -48,6 +47,50 @@ def angle_diff(a1, a2):
     return angles
 
 
+def get_vertical_angles(V):
+    return [get_vertical_angle(v) for v in V]
+
+
+def get_vertical_angle(v):
+    xy_plane_normal = np.array([0, 0, 1], np.float64)
+    vertical_dir_angle = np.arcsin(np.dot(xy_plane_normal, v) / np.linalg.norm(v))
+
+    return vertical_dir_angle
+
+
+def get_possible_positions(min_distance, max_distance, distances):
+    """ Retrieves the indices for the positions within a distance from the position in the
+        interval between the minimum distance and the maximum distance.
+    :param min_distance: Float specifying the minimum distance to the position.
+    :param max_distance: Float specifying the maximum distance to the position.
+    :param distances: The distances for the other positions to the position.
+    :return: The indices of the positions within the interval [min_distance, max_distance].
+    """
+    return np.where((min_distance < distances) & (distances < max_distance))[0]
+
+
+def get_direction_changes(direction, directions):
+    """ Calculates the direction change between the direction and the other directions.
+    :param direction: The direction.
+    :param directions: The other directions.
+    :returns The direction changes in radians in the XY-plane.
+    """
+    direction_changes = np.array(
+        [vector2_angle(direction[0], direction[1], other_direction[0], other_direction[1])
+            for other_direction in directions],
+        np.float64)
+
+    return direction_changes
+
+
+def get_vertical_direction_diffs(direction, directions):
+    vertical_dir_angle = get_vertical_angle(direction)
+    vertical_dir_angles = get_vertical_angles(directions)
+    vertical_dir_diffs = angle_diff(vertical_dir_angles, vertical_dir_angle)
+
+    return vertical_dir_diffs
+
+
 def get_direction_turns_and_motion_angles(
         min_distance,
         max_distance,
@@ -68,37 +111,22 @@ def get_direction_turns_and_motion_angles(
     :param distances: The distances for the other positions to the position.
     :param position: The position.
     :param direction: The direction for the position.
-    :param position: All positions.
+    :param positions: All positions.
     :param directions: All directions.
     :return: The indices of the positions in the specified interval. The direction turns in radians in the plane and the
              motion turns in radians in the plane with respect to the direction.
     """
 
     # Order positions within interval according to shortest distance
-    position_indices = np.where((min_distance < distances) & (distances < max_distance))[0]
+    position_indices = get_possible_positions(min_distance, max_distance, distances)
     preferred_distances = np.abs(distances[position_indices] - preferred_distance)
     ordered_indices = position_indices[np.argsort(preferred_distances)]
 
     motions = positions[ordered_indices] - position
-    motion_angles = np.array(
-        [vector2_angle(direction[0], direction[1], motion[0], motion[1]) for motion in motions],
-        float)
-    direction_turns = np.array(
-        [vector2_angle(direction[0], direction[1], other_direction[0], other_direction[1])
-        for other_direction in directions[ordered_indices]],
-        float)
-
-    xy_plane_normal = np.array([0, 0, 1], np.float64)
-    vertical_dir_angle = np.arcsin(np.dot(xy_plane_normal, direction) / np.linalg.norm(direction))
-    vertical_dirs = [np.dot(xy_plane_normal, direction) / np.linalg.norm(direction)
-                     for direction in directions[ordered_indices]]
-    vertical_dir_angles = np.arcsin(vertical_dirs)
-    vertical_dir_diffs = angle_diff(vertical_dir_angles, vertical_dir_angle)
-
-    vertical_motions = [np.dot(xy_plane_normal, motion) / np.linalg.norm(motion)
-                        for motion in motions]
-    vertical_motion_angles = np.arcsin(vertical_motions)
-    vertical_motion_diffs = angle_diff(vertical_motion_angles, vertical_dir_angle)
+    motion_angles = get_direction_changes(direction, motions)
+    direction_turns = get_direction_changes(direction, directions[ordered_indices])
+    vertical_dir_diffs = get_vertical_direction_diffs(direction, directions[ordered_indices])
+    vertical_motion_diffs = get_vertical_direction_diffs(direction, motions)
 
     return ordered_indices, direction_turns, motion_angles, vertical_dir_diffs, vertical_motion_diffs
 
