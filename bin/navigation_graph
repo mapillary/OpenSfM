@@ -5,7 +5,6 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 import argparse
 import time
-import json
 import numpy as np
 import scipy.spatial.distance as dist
 import networkx as nx
@@ -86,10 +85,22 @@ def get_direction_turns_and_motion_angles(
         float)
     direction_turns = np.array(
         [vector2_angle(direction[0], direction[1], other_direction[0], other_direction[1])
-         for other_direction in directions[ordered_indices]],
+        for other_direction in directions[ordered_indices]],
         float)
 
-    return ordered_indices, direction_turns, motion_angles
+    xy_plane_normal = np.array([0, 0, 1], np.float64)
+    vertical_dir_angle = np.arcsin(np.dot(xy_plane_normal, direction) / np.linalg.norm(direction))
+    vertical_dirs = [np.dot(xy_plane_normal, direction) / np.linalg.norm(direction)
+                     for direction in directions[ordered_indices]]
+    vertical_dir_angles = np.arcsin(vertical_dirs)
+    vertical_dir_diffs = angle_diff(vertical_dir_angles, vertical_dir_angle)
+
+    vertical_motions = [np.dot(xy_plane_normal, motion) / np.linalg.norm(motion)
+                        for motion in motions]
+    vertical_motion_angles = np.arcsin(vertical_motions)
+    vertical_motion_diffs = angle_diff(vertical_motion_angles, vertical_dir_angle)
+
+    return ordered_indices, direction_turns, motion_angles, vertical_dir_diffs, vertical_motion_diffs
 
 
 def create_optical_center_graph(reconstructions, config):
@@ -146,8 +157,16 @@ def create_optical_center_graph(reconstructions, config):
         oc = optical_centers[i]
         vd = viewing_directions[i]
 
-        ordered_indices, viewing_turns, motion_angles = get_direction_turns_and_motion_angles(
-            min_distance, step_max_distance, step_pref_distance, distances, oc, vd, optical_centers, viewing_directions
+        ordered_indices, viewing_turns, motion_angles, vertical_dir_diffs, vertical_motion_diffs = \
+            get_direction_turns_and_motion_angles(
+                min_distance,
+                step_max_distance,
+                step_pref_distance,
+                distances,
+                oc,
+                vd,
+                optical_centers,
+                viewing_directions
         )
 
         for key in steps:
@@ -155,20 +174,33 @@ def create_optical_center_graph(reconstructions, config):
             motion_drift = angle_diff(motion_angles, step[direction])
             motion_drift = np.max(np.vstack((np.abs(motion_drift - viewing_turns), np.abs(motion_drift))), 0)
 
-            step_indices = np.where((motion_drift < step[drift]) & (np.abs(viewing_turns) < step[viewing]))[0]
+            step_indices = np.where((motion_drift < step[drift])
+                                    & (np.abs(viewing_turns) < step[viewing])
+                                    & (np.abs(vertical_motion_diffs) < 0.5)
+                                    & (np.abs(vertical_dir_diffs) < 0.5))[0]
 
             if len(step_indices) > 0:
                 step_index = ordered_indices[step_indices[0]]
                 graph.add_edge(shot_ids[i], shot_ids[step_index], weight=distances[step_index], direction=key)
 
-        ordered_indices, viewing_turns, motion_angles = get_direction_turns_and_motion_angles(
-            min_distance, turn_max_distance, 0, distances, oc, vd, optical_centers, viewing_directions
+        ordered_indices, viewing_turns, motion_angles, vertical_dir_diffs, vertical_motion_diffs = \
+            get_direction_turns_and_motion_angles(
+                min_distance,
+                turn_max_distance,
+                0,
+                distances,
+                oc,
+                vd,
+                optical_centers,
+                viewing_directions
         )
 
         for key in turns:
             turn = turns[key]
             viewing_diff = np.abs(angle_diff(viewing_turns, turn[direction]))
-            turn_indices = np.where((viewing_diff < turn[viewing]))[0]
+            turn_indices = np.where((viewing_diff < turn[viewing])
+                                    & (np.abs(vertical_motion_diffs) < 0.5)
+                                    & (np.abs(vertical_dir_diffs) < 0.5))[0]
 
             if len(turn_indices) > 0:
                 turn_index = ordered_indices[turn_indices[0]]
