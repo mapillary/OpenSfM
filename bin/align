@@ -22,6 +22,8 @@ parser.add_argument('--output',
         ' By default, the original reconstruction is overwritten')
 parser.add_argument('--image_path',
     help='path to images')
+parser.add_argument('--reconstruction_file',
+    help='path to images')
 
 args = parser.parse_args()
 
@@ -33,18 +35,24 @@ if args.image_path: data.set_image_path(args.image_path)
 
 images = data.images()
 for image in images:
-    if not data.load_exif(image)):
+    if not data.load_exif(image):
         dexif = exif.EXIF(data.load_image(image))
         exif_data = dexif.extract_exif()
         data.save_exif(image, exif_data)
 
-reconstructions = data.load_reconstruction()
+if args.reconstruction_file is None:
+    reconstructions = data.load_reconstruction()
+else:
+    with open(args.reconstruction_file) as f:
+        reconstructions = json.loads(f.read())
 
 # reference for conversion
 try:
-    reference = data.load_reference_lla()
+    r = data.load_reference_lla()
+    reference = {'latitude': r[0], 'longitude': r[1], 'altitude': r[2]}
 except:
     reference = data.invent_reference_lla()
+
 
 # alignment
 for reconstruction in reconstructions:
