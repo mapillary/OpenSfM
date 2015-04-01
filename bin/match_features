@@ -92,7 +92,11 @@ if __name__ == "__main__":
     for image in images:
         sys.stdout.write('.')
         sys.stdout.flush()
-        p_pre[image], f_pre[image] = data.load_preemtive_features(image)
+        try:
+            p_pre[image], f_pre[image] = data.load_preemtive_features(image)
+        except IOError:
+            p, f = data.load_features(image)
+            p_pre[image], f_pre[image] = p, f
         preemptive_max = min(data.config.get('preemptive_max', p_pre[image].shape[0]), p_pre[image].shape[0])
         p_pre[image] = p_pre[image][:preemptive_max,:]
         f_pre[image] = f_pre[image][:preemptive_max,:]
