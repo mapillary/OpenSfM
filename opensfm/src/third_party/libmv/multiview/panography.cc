@@ -55,7 +55,7 @@ static bool Build_Minimal2Point_PolynomialFactor(
   P[0] = b1*b2*a12*a12-a1*a2*b12*b12;
   P[1] = -2*a1*a2*b12+2*a12*b1*b2+b1*a12*a12+b2*a12*a12-a1*b12*b12-a2*b12*b12;
   P[2] = b1*b2-a1*a2-2*a1*b12-2*a2*b12+2*a12*b1+2*a12*b2+a12*a12-b12*b12;
-  P[3] = b1+b2-2*b12-a1-a2+2*a12; 
+  P[3] = b1+b2-2*b12-a1-a2+2*a12;
 
   // If P[3] equal to 0 we get ill conditionned data
   return (P[3] != 0.0);

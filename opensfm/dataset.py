@@ -167,6 +167,9 @@ class DataSet:
                  points=points.astype(np.float32),
                  descriptors=descriptors.astype(feature_data_type))
 
+    def features_exist(self, image):
+        return os.path.isfile(self.__feature_file(image))
+
     def load_features(self, image):
         feature_type = self.config.get('feature_type')
         s = np.load(self.__feature_file(image))
