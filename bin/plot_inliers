@@ -21,16 +21,25 @@ def show_images(plot, im1, im2):
     plot.imshow(image)
 
 
+def plot_points(plot, im1, im2, p1, p2, point_format1='ob', point_format2='ob'):
+    h1, w1, c = im1.shape
+    h2, w2, c = im2.shape
+    p1d = features.denormalized_image_coordinates(p1, w1, h1)
+    p2d = features.denormalized_image_coordinates(p2, w2, h2)
+
+    plot.plot(p1d[:,0], p1d[:,1], point_format1)
+    plot.plot(p2d[:,0] + w1, p2d[:,1], point_format2)
+
+
 def plot_matches(plot, im1, im2, p1, p2, line_format='c', point_format='ob'):
     h1, w1, c = im1.shape
     h2, w2, c = im2.shape
-    p1 = features.denormalized_image_coordinates(p1, w1, h1)
-    p2 = features.denormalized_image_coordinates(p2, w2, h2)
-    for a, b in zip(p1, p2):
+    p1d = features.denormalized_image_coordinates(p1, w1, h1)
+    p2d = features.denormalized_image_coordinates(p2, w2, h2)
+    for a, b in zip(p1d, p2d):
         plot.plot([a[0], b[0] + w1], [a[1], b[1]], line_format)
 
-    plot.plot(p1[:,0], p1[:,1], point_format)
-    plot.plot(p2[:,0] + w1, p2[:,1], point_format)
+    plot_points(plot, im1, im2, p1, p2, point_format, point_format)
 
 
 def create_subplot(figure, rows, columns, index, title):
@@ -45,7 +54,16 @@ def create_subplot(figure, rows, columns, index, title):
     return subplot
 
 
-def plot_sub(figure, rows, columns, index, title, im1, im2, p1, p2, line_format, point_format):
+def plot_points_sub(figure, rows, columns, index, title, im1, im2, p1, p2, point_format1, point_format2):
+    subplot = create_subplot(figure, rows, columns, index, title)
+
+    show_images(subplot, im1, im2)
+    plot_points(subplot, im1, im2, p1, p2, point_format1, point_format2)
+
+    return subplot
+
+
+def plot_matches_sub(figure, rows, columns, index, title, im1, im2, p1, p2, line_format, point_format):
     subplot = create_subplot(figure, rows, columns, index, title)
 
     show_images(subplot, im1, im2)
@@ -59,7 +77,7 @@ def create_matches_figure(im1, im2, data, save_figs=False):
     im1_array = data.image_as_array(im1)
     im2_array = data.image_as_array(im2)
 
-    fig = pl.figure(figsize=(12, 12))
+    fig = pl.figure(figsize=(12, 18))
 
     fig.suptitle('Matches ({0}): {1} - {2}'.format(data.feature_type().upper(), im1, im2),
                  fontsize=14, fontweight='bold')
@@ -77,11 +95,14 @@ def create_matches_figure(im1, im2, data, save_figs=False):
         print 'Not enough matches for eight point algorithm: ' + str(symmetric_matches.shape[0])
         return
 
+    features_title = 'Features: {0} - {1}, {2} - {3}'.format(im1, p1.shape[0], im2, p2.shape[0])
+    plot_points_sub(fig, 4, 1, 1, features_title, im1_array, im2_array, p1, p2, 'ob', 'om')
+
     s_matches1 = p1[symmetric_matches[:,0]]
     s_matches2 = p2[symmetric_matches[:,1]]
 
-    plot_sub(fig, 3, 1, 1,
-             'Number of symmetric matches: {0}'.format(symmetric_matches.shape[0]),
+    plot_matches_sub(fig, 4, 1, 2,
+             'Symmetric matches: {0}'.format(symmetric_matches.shape[0]),
              im1_array, im2_array,
              s_matches1, s_matches2,
              'c', 'ob')
@@ -93,8 +114,8 @@ def create_matches_figure(im1, im2, data, save_figs=False):
     r_matches2 = p2[robust_matches[:,1]]
 
     threshold = data.config.get('robust_matching_threshold', 0.006)
-    plot_sub(fig, 3, 1, 2,
-             'Number of robust matching inliers (RANSAC 8 point algorithm): {0}. Threshold: {1:.4f}'.format(
+    plot_matches_sub(fig, 4, 1, 3,
+             'Robust matching inliers (RANSAC 8 point algorithm): {0}. Threshold: {1:.4f}'.format(
                  robust_matches.shape[0], threshold),
              im1_array, im2_array,
              r_matches1, r_matches2,
@@ -116,13 +137,13 @@ def create_matches_figure(im1, im2, data, save_figs=False):
     outliers1 = p1[outliers[:,0]]
     outliers2 = p2[outliers[:,1]]
 
-    plot_sub(fig, 3, 1, 3,
-             'Number of robust matching outliers: {0}. Threshold: {1:.4f}'.format(outliers.shape[0], threshold),
+    plot_matches_sub(fig, 4, 1, 4,
+             'Robust matching outliers: {0}. Threshold: {1:.4f}'.format(outliers.shape[0], threshold),
              im1_array, im2_array,
              outliers1, outliers2,
              'r', 'om')
 
-    fig.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=0.96, wspace=0, hspace=0)
+    fig.subplots_adjust(left=0.01, bottom=0.01, right=0.95, top=0.96, wspace=0, hspace=0)
 
     if save_figs:
         p = data.data_path + '/plot_inliers'
@@ -190,13 +211,13 @@ def create_tracks_figure(im1, im2, data, save_figs=False):
     non_robust_tracks1 = p1[non_robust_tracks[:,0]]
     non_robust_tracks2 = p2[non_robust_tracks[:,1]]
 
-    title = 'Common tracks: {0}. Robust match tracks: {1} / {2}. Non robust match tracks: {3}'.format(
+    tracks_title = 'Common tracks: {0}. Robust match tracks: {1} / {2}. Non robust match tracks: {3}'.format(
         track_matches.shape[0],
         track_matches.shape[0] - non_robust_tracks.shape[0],
         robust_matches.shape[0],
         non_robust_tracks.shape[0])
 
-    tracks_subplot = plot_sub(fig, 3, 1, 1, title, im1_array, im2_array, track_points1, track_points2, 'c', 'ob')
+    tracks_subplot = plot_matches_sub(fig, 3, 1, 1, tracks_title, im1_array, im2_array, track_points1, track_points2, 'c', 'ob')
     plot_matches(tracks_subplot, im1_array, im2_array, non_robust_tracks1, non_robust_tracks2, 'g', 'oy')
 
     # Plot inliers and outliers of the tracks from OpenCV find homography.
@@ -211,11 +232,11 @@ def create_tracks_figure(im1, im2, data, save_figs=False):
     outliers_h1 = track_points1[~inliers_h, :]
     outliers_h2 = track_points2[~inliers_h, :]
 
-    title_h = 'OpenCV find homography inliers: {0}. Outliers: {1}. Outlier ratio: {2:.3f}. Threshold: {3:.4f}'.format(
+    h_title = 'OpenCV find homography inliers: {0}. Outliers: {1}. Outlier ratio: {2:.3f}. Threshold: {3:.4f}'.format(
         inliers_h.sum(), (~inliers_h).sum(), float((~inliers_h).sum()) / track_matches.shape[0], threshold_h)
 
-    homography_subplot = plot_sub(fig, 3, 1, 2, title_h, im1_array, im2_array, outliers_h1, outliers_h2, 'r', 'om')
-    plot_matches(homography_subplot, im1_array, im2_array, inliers_h1, inliers_h2, 'c', 'ob')
+    h_subplot = plot_matches_sub(fig, 3, 1, 2, h_title, im1_array, im2_array, outliers_h1, outliers_h2, 'r', 'om')
+    plot_matches(h_subplot, im1_array, im2_array, inliers_h1, inliers_h2, 'c', 'ob')
 
     # Plot inliers and outliers of the tracks from csfm two view reconstruction.
     f1 = data.load_exif(im1)['focal_ratio']
@@ -232,13 +253,13 @@ def create_tracks_figure(im1, im2, data, save_figs=False):
     outliers_t1 = track_points1[outliers_t, :]
     outliers_t2 = track_points2[outliers_t, :]
 
-    title_t = 'CSfM two view reconstruction inliers: {0}. Outliers: {1}. Threshold: {2:.4f}'.format(
+    t_title = 'CSfM two view reconstruction inliers: {0}. Outliers: {1}. Threshold: {2:.4f}'.format(
         len(inliers_t), outliers_t.sum(), threshold_t)
 
-    two_view_subplot = plot_sub(fig, 3, 1, 3, title_t, im1_array, im2_array, inliers_t1, inliers_t2, 'c', 'ob')
-    plot_matches(two_view_subplot , im1_array, im2_array, outliers_t1, outliers_t2, 'r', 'om')
+    t_subplot = plot_matches_sub(fig, 3, 1, 3, t_title, im1_array, im2_array, inliers_t1, inliers_t2, 'c', 'ob')
+    plot_matches(t_subplot , im1_array, im2_array, outliers_t1, outliers_t2, 'r', 'om')
 
-    fig.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=0.96, wspace=0, hspace=0)
+    fig.subplots_adjust(left=0.01, bottom=0.01, right=0.95, top=0.96, wspace=0, hspace=0)
 
     if save_figs:
         p = data.data_path + '/plot_inliers'
