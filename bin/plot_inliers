@@ -127,7 +127,7 @@ def create_matches_figure(im1, im2, data, save_figs=False):
     if save_figs:
         p = data.data_path + '/plot_inliers'
         io.mkdir_p(p)
-        fig.savefig(p + '/' + im1 + '_' + im2 + '_matches.jpg', dpi=100)
+        fig.savefig(p + '/' + im1 + '_' + im2 + '_' + data.feature_type() + '_matches.jpg', dpi=100)
         pl.close()
     else:
         pl.show()
@@ -243,7 +243,7 @@ def create_tracks_figure(im1, im2, data, save_figs=False):
     if save_figs:
         p = data.data_path + '/plot_inliers'
         io.mkdir_p(p)
-        fig.savefig(p + '/' + im1 + '_' + im2 + '_tracks.jpg', dpi=100)
+        fig.savefig(p + '/' + im1 + '_' + im2 + '_' + data.feature_type() + '_tracks.jpg', dpi=100)
         pl.close()
     else:
         pl.show()
