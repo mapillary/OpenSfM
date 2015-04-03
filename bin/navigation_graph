@@ -48,10 +48,18 @@ def angle_diff(a1, a2):
 
 
 def get_vertical_angles(V):
+    """ Calculates the angle between vectors and the XY-plane.
+    :param V: Array of 3-dimensional vectors.
+    :return: The angle between the vectors and the XY-plane in radians.
+    """
     return [get_vertical_angle(v) for v in V]
 
 
 def get_vertical_angle(v):
+    """ Calculates the angle between a vector and the XY-plane.
+    :param v: A 3-dimensional vector.
+    :return: The angle between the vector and the XY-plane in radians.
+    """
     xy_plane_normal = np.array([0, 0, 1], np.float64)
     vertical_dir_angle = np.arcsin(np.dot(xy_plane_normal, v) / np.linalg.norm(v))
 
@@ -70,10 +78,10 @@ def get_possible_positions(min_distance, max_distance, distances):
 
 
 def get_direction_changes(direction, directions):
-    """ Calculates the direction change between the direction and the other directions.
+    """ Calculates the direction change parallel to the XY-plane between the direction and the other directions.
     :param direction: The direction.
     :param directions: The other directions.
-    :returns The direction changes in radians in the XY-plane.
+    :returns The direction changes parallel to the XY-plane in radians.
     """
     direction_changes = np.array(
         [vector2_angle(direction[0], direction[1], other_direction[0], other_direction[1])
@@ -84,6 +92,11 @@ def get_direction_changes(direction, directions):
 
 
 def get_vertical_direction_diffs(direction, directions):
+    """ Calculates the vertical direction differences between the direction and the other directions.
+    :param direction: The direction.
+    :param directions: The other directions.
+    :returns The direction changes perpendicular to the XY-plane in radians.
+    """
     vertical_dir_angle = get_vertical_angle(direction)
     vertical_dir_angles = get_vertical_angles(directions)
     vertical_dir_diffs = angle_diff(vertical_dir_angles, vertical_dir_angle)
