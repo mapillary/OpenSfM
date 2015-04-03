@@ -1,0 +1,290 @@
+#!/usr/bin/env python
+
+import argparse
+import matplotlib.pyplot as pl
+import numpy as np
+import cv2
+
+from opensfm import dataset
+from opensfm import features
+from opensfm import matching
+from opensfm import io
+from opensfm import csfm
+
+
+def show_images(plot, im1, im2):
+    h1, w1, c = im1.shape
+    h2, w2, c = im2.shape
+    image = np.zeros((max(h1, h2), w1+w2, 3), dtype=im1.dtype)
+    image[0:h1, 0:w1, :] = im1
+    image[0:h2, w1:(w1+w2), :] = im2
+    plot.imshow(image)
+
+
+def plot_points(plot, im1, im2, p1, p2, point_format1='ob', point_format2='ob'):
+    h1, w1, c = im1.shape
+    h2, w2, c = im2.shape
+    p1d = features.denormalized_image_coordinates(p1, w1, h1)
+    p2d = features.denormalized_image_coordinates(p2, w2, h2)
+
+    plot.plot(p1d[:, 0], p1d[:, 1], point_format1)
+    plot.plot(p2d[:, 0] + w1, p2d[:, 1], point_format2)
+
+
+def plot_matches(plot, im1, im2, p1, p2, line_format='c', point_format='ob'):
+    h1, w1, c = im1.shape
+    h2, w2, c = im2.shape
+    p1d = features.denormalized_image_coordinates(p1, w1, h1)
+    p2d = features.denormalized_image_coordinates(p2, w2, h2)
+    for a, b in zip(p1d, p2d):
+        plot.plot([a[0], b[0] + w1], [a[1], b[1]], line_format)
+
+    plot_points(plot, im1, im2, p1, p2, point_format, point_format)
+
+
+def create_subplot(figure, rows, columns, index, title):
+    subplot = figure.add_subplot(rows, columns, index)
+    subplot.axis('off')
+    subplot.text(0.5, 0.9,
+                 title,
+                 horizontalalignment='center',
+                 fontsize=12,
+                 transform=subplot.transAxes)
+
+    return subplot
+
+
+def plot_points_sub(figure, rows, columns, index, title, im1, im2, p1, p2, point_format1, point_format2):
+    subplot = create_subplot(figure, rows, columns, index, title)
+
+    show_images(subplot, im1, im2)
+    plot_points(subplot, im1, im2, p1, p2, point_format1, point_format2)
+
+    return subplot
+
+
+def plot_matches_sub(figure, rows, columns, index, title, im1, im2, p1, p2, line_format, point_format):
+    subplot = create_subplot(figure, rows, columns, index, title)
+
+    show_images(subplot, im1, im2)
+    plot_matches(subplot, im1, im2, p1, p2, line_format, point_format)
+
+    return subplot
+
+
+def create_matches_figure(im1, im2, data, save_figs=False):
+
+    im1_array = data.image_as_array(im1)
+    im2_array = data.image_as_array(im2)
+
+    fig = pl.figure(figsize=(12, 18))
+
+    fig.suptitle('Matches ({0}): {1} - {2}'.format(data.feature_type().upper(), im1, im2),
+                 fontsize=14, fontweight='bold')
+
+    # Calculate symmetric matches and plot.
+    p1, f1 = data.load_features(im1)
+    i1 = data.load_feature_index(im1, f1)
+
+    p2, f2 = data.load_features(im2)
+    i2 = data.load_feature_index(im2, f2)
+
+    symmetric_matches = matching.match_symmetric(f1, i1, f2, i2, data.config)
+
+    if symmetric_matches.shape[0] < 8:
+        print 'Not enough matches for eight point algorithm: ' + str(symmetric_matches.shape[0])
+        return
+
+    features_title = 'Features: {0} - {1}, {2} - {3}'.format(im1, p1.shape[0], im2, p2.shape[0])
+    plot_points_sub(fig, 4, 1, 1, features_title, im1_array, im2_array, p1, p2, 'ob', 'om')
+
+    s_matches1 = p1[symmetric_matches[:, 0]]
+    s_matches2 = p2[symmetric_matches[:, 1]]
+
+    plot_matches_sub(fig, 4, 1, 2,
+                     'Symmetric matches: {0}'.format(symmetric_matches.shape[0]),
+                     im1_array, im2_array,
+                     s_matches1, s_matches2,
+                     'c', 'ob')
+
+    # Calculate robust matches and plot inliers.
+    robust_matches = matching.robust_match(p1, p2, symmetric_matches, data.config)
+
+    r_matches1 = p1[robust_matches[:, 0]]
+    r_matches2 = p2[robust_matches[:, 1]]
+
+    threshold = data.config.get('robust_matching_threshold', 0.006)
+    plot_matches_sub(fig, 4, 1, 3,
+                     'Robust matching inliers (RANSAC 8 point algorithm): {0}. Threshold: {1:.4f}'.format(
+                         robust_matches.shape[0], threshold),
+                     im1_array, im2_array,
+                     r_matches1, r_matches2,
+                     'g', 'oy')
+
+    # Retrieve and plot robust match outliers.
+    outliers = np.empty((0, 2), int)
+    for match in symmetric_matches:
+
+        found = False
+        for robust_match in robust_matches:
+            if np.array_equal(match, robust_match):
+                found = True
+                break
+
+        if not found:
+            outliers = np.vstack((outliers, match))
+
+    outliers1 = p1[outliers[:, 0]]
+    outliers2 = p2[outliers[:, 1]]
+
+    plot_matches_sub(fig, 4, 1, 4,
+                     'Robust matching outliers: {0}. Threshold: {1:.4f}'.format(outliers.shape[0], threshold),
+                     im1_array, im2_array,
+                     outliers1, outliers2,
+                     'r', 'om')
+
+    fig.subplots_adjust(left=0.01, bottom=0.01, right=0.95, top=0.96, wspace=0, hspace=0)
+
+    if save_figs:
+        p = data.data_path + '/plot_inliers'
+        io.mkdir_p(p)
+        fig.savefig(p + '/' + im1 + '_' + im2 + '_' + data.feature_type() + '_matches.jpg', dpi=100)
+        pl.close()
+    else:
+        pl.show()
+
+
+def create_tracks_figure(im1, im2, data, save_figs=False):
+
+    im1_array = data.image_as_array(im1)
+    im2_array = data.image_as_array(im2)
+
+    fig = pl.figure(figsize=(12, 12))
+    fig.suptitle('Tracks ({0}): {1} - {2}'.format(data.feature_type().upper(), im1, im2),
+                 fontsize=14, fontweight='bold')
+
+    # Retrieve tracks and robust matches from file and plot tracks corresponding to
+    # robust matches and tracks not corresponding to robust matches in different colors.
+    graph = data.load_tracks_graph()
+
+    p1, features1 = data.load_features(im1)
+    p2, features2 = data.load_features(im2)
+    p1 = np.array(p1[:, :2], np.float64)
+    p2 = np.array(p2[:, :2], np.float64)
+
+    if data.matches_exists(im1, im2):
+        robust_matches = data.load_matches(im1, im2)
+    elif data.matches_exists(im2, im1):
+        loaded_matches = data.load_matches(im2, im1)
+        robust_matches = loaded_matches[:, [1, 0]]
+    else:
+        robust_matches = np.empty((0, 2), int)
+
+    t1, t2 = graph[im1], graph[im2]
+
+    track_matches = []
+    for track in t1:
+        if track in t2:
+            track_matches.append(np.array([t1[track]['feature_id'], t2[track]['feature_id']]))
+
+    track_matches = np.array(track_matches)
+
+    if track_matches.shape[0] < 5:
+        print 'Not enough tracks for five point algorithm: ' + str(track_matches.shape[0])
+        return
+
+    track_points1 = p1[track_matches[:, 0]]
+    track_points2 = p2[track_matches[:, 1]]
+
+    non_robust_tracks = np.empty((0, 2), int)
+    for match in track_matches:
+
+        found = False
+        for robust_match in robust_matches:
+            if np.array_equal(match, robust_match):
+                found = True
+                break
+
+        if not found:
+            non_robust_tracks = np.vstack((non_robust_tracks, match))
+
+    non_robust_tracks1 = p1[non_robust_tracks[:, 0]]
+    non_robust_tracks2 = p2[non_robust_tracks[:, 1]]
+
+    tracks_title = 'Common tracks: {0}. Robust match tracks: {1} / {2}. Non robust match tracks: {3}'.format(
+        track_matches.shape[0],
+        track_matches.shape[0] - non_robust_tracks.shape[0],
+        robust_matches.shape[0],
+        non_robust_tracks.shape[0])
+
+    tracks_subplot = plot_matches_sub(
+        fig, 3, 1, 1, tracks_title, im1_array, im2_array, track_points1, track_points2, 'c', 'ob')
+    plot_matches(tracks_subplot, im1_array, im2_array, non_robust_tracks1, non_robust_tracks2, 'g', 'oy')
+
+    # Plot inliers and outliers of the tracks from OpenCV find homography.
+    threshold_h = data.config.get('homography_threshold', 0.004)
+    H, inliers_h = cv2.findHomography(track_points1, track_points2, cv2.RANSAC, threshold_h)
+
+    inliers_h = np.array(np.squeeze(inliers_h), np.bool)
+
+    inliers_h1 = track_points1[inliers_h, :]
+    inliers_h2 = track_points2[inliers_h, :]
+
+    outliers_h1 = track_points1[~inliers_h, :]
+    outliers_h2 = track_points2[~inliers_h, :]
+
+    h_title = 'OpenCV find homography inliers: {0}. Outliers: {1}. Outlier ratio: {2:.3f}. Threshold: {3:.4f}'.format(
+        inliers_h.sum(), (~inliers_h).sum(), float((~inliers_h).sum()) / track_matches.shape[0], threshold_h)
+
+    h_subplot = plot_matches_sub(fig, 3, 1, 2, h_title, im1_array, im2_array, outliers_h1, outliers_h2, 'r', 'om')
+    plot_matches(h_subplot, im1_array, im2_array, inliers_h1, inliers_h2, 'c', 'ob')
+
+    # Plot inliers and outliers of the tracks from csfm two view reconstruction.
+    f1 = data.load_exif(im1)['focal_ratio']
+    f2 = data.load_exif(im2)['focal_ratio']
+
+    threshold_t = data.config.get('five_point_algo_threshold', 0.006)
+    R, t, inliers_t = csfm.two_view_reconstruction(track_points1, track_points2, f1, f2, threshold_t)
+
+    inliers_t1 = track_points1[inliers_t, :]
+    inliers_t2 = track_points2[inliers_t, :]
+
+    outliers_t = np.ones(track_points1.shape[0], dtype=bool)
+    outliers_t[inliers_t] = False
+    outliers_t1 = track_points1[outliers_t, :]
+    outliers_t2 = track_points2[outliers_t, :]
+
+    t_title = 'CSfM two view reconstruction inliers: {0}. Outliers: {1}. Threshold: {2:.4f}'.format(
+        len(inliers_t), outliers_t.sum(), threshold_t)
+
+    t_subplot = plot_matches_sub(fig, 3, 1, 3, t_title, im1_array, im2_array, inliers_t1, inliers_t2, 'c', 'ob')
+    plot_matches(t_subplot, im1_array, im2_array, outliers_t1, outliers_t2, 'r', 'om')
+
+    fig.subplots_adjust(left=0.01, bottom=0.01, right=0.95, top=0.96, wspace=0, hspace=0)
+
+    if save_figs:
+        p = data.data_path + '/plot_inliers'
+        io.mkdir_p(p)
+        fig.savefig(p + '/' + im1 + '_' + im2 + '_' + data.feature_type() + '_tracks.jpg', dpi=100)
+        pl.close()
+    else:
+        pl.show()
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Plot inlier and outlier matches between images')
+    parser.add_argument('dataset',
+                        help='path to the data set to be processed')
+    parser.add_argument('image1',
+                        help='name of the first image to show')
+    parser.add_argument('image2',
+                        help='name of the second image to show')
+    parser.add_argument('--save_figs',
+                        help='save figures instead of showing them',
+                        action='store_true')
+
+    args = parser.parse_args()
+    data_set = dataset.DataSet(args.dataset)
+
+    create_matches_figure(args.image1, args.image2, data_set, args.save_figs)
+    create_tracks_figure(args.image1, args.image2, data_set, args.save_figs)
