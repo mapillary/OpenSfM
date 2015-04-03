@@ -233,18 +233,20 @@ class PlaneKernel:
     A kernel for estimating plane from on-plane points and vectors
     '''
 
-    def __init__(self, points, vectors, verticals):
+    def __init__(self, points, vectors, verticals, point_threshold=1.0, vector_threshold=5.0):
         self.points = points
         self.vectors = vectors
         self.verticals = verticals
         self.required_samples = 3
+        self.point_threshold = point_threshold
+        self.vector_threshold = vector_threshold
 
     def num_samples(self):
         return len(self.points)
 
     def sampling(self):
         samples = {}
-        if self.vectors:
+        if len(self.vectors)>0:
             samples['points'] = self.points[random.sample(xrange(len(self.points)), 2),:]
             samples['vectors'] = [self.vectors[i] for i in random.sample(xrange(len(self.vectors)), 1)]
         else:
@@ -258,13 +260,27 @@ class PlaneKernel:
 
     def evaluate(self, model):
         # only evaluate on points
-        return np.abs(model.T.dot(homogeneous(self.points).T))/((np.linalg.norm(model[0:3]))+1e-10)
+        normal = model[0:3]
+        normal_norm = np.linalg.norm(normal)+1e-10
+        point_error = np.abs(model.T.dot(homogeneous(self.points).T))/normal_norm
+        vectors = np.array(self.vectors)
+        vector_norm = np.sum(vectors*vectors, axis=1)
+        vectors = (vectors.T / vector_norm).T
+        vector_error = abs(np.rad2deg(abs(np.arccos(vectors.dot(normal)/normal_norm)))-90)
+        vector_error[vector_error<self.vector_threshold] = 0.0
+        vector_error[vector_error>=self.vector_threshold] = self.point_threshold+0.1
+        point_error[point_error<self.point_threshold] = 0.0
+        point_error[point_error>=self.point_threshold] = self.point_threshold+0.1
+        errors = np.hstack((point_error, vector_error))
+        return errors
 
-def fit_plane_ransac(points, vectors, verticals, point_threshold=1, vector_threshold=5):
-    kernel = PlaneKernel(points - points.mean(axis=0), vectors, verticals)
+def fit_plane_ransac(points, vectors, verticals, point_threshold=2.0, vector_threshold=5.0):
+    kernel = PlaneKernel(points - points.mean(axis=0), vectors, verticals, point_threshold, vector_threshold)
     p, inliers, error = ransac(kernel, point_threshold)
-    points_inliers = points[inliers,:]
-    p = fit_plane(points_inliers - points_inliers.mean(axis=0), vectors, verticals)
+    num_point = points.shape[0]
+    points_inliers = points[inliers[inliers<num_point],:]
+    vectors_inliers = [vectors[i-num_point] for i in inliers[inliers>=num_point]]
+    p = fit_plane(points_inliers - points_inliers.mean(axis=0), vectors_inliers, verticals)
     return p, inliers, error
 
 def fit_plane(points, vectors, verticals):
