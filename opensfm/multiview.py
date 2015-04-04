@@ -274,7 +274,8 @@ class PlaneKernel:
         errors = np.hstack((point_error, vector_error))
         return errors
 
-def fit_plane_ransac(points, vectors, verticals, point_threshold=2.0, vector_threshold=5.0):
+def fit_plane_ransac(points, vectors, verticals, point_threshold=1.2, vector_threshold=5.0):
+    vectors = [v/math.pi*180.0 for v in vectors]
     kernel = PlaneKernel(points - points.mean(axis=0), vectors, verticals, point_threshold, vector_threshold)
     p, inliers, error = ransac(kernel, point_threshold)
     num_point = points.shape[0]
