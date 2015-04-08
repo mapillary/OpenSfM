@@ -170,20 +170,29 @@ struct SnavelyReprojectionError {
 };
 
 
-struct FocalPriorError {
-  FocalPriorError(double estimate, double std_deviation)
-      : log_estimate_(log(estimate))
-      , scale_(1.0 / std_deviation)
+struct InternalParametersPriorError {
+  InternalParametersPriorError(double focal_estimate,
+                               double focal_std_deviation,
+                               double k1_std_deviation,
+                               double k2_std_deviation)
+      : log_focal_estimate_(log(focal_estimate))
+      , focal_scale_(1.0 / focal_std_deviation)
+      , k1_scale_(1.0 / k1_std_deviation)
+      , k2_scale_(1.0 / k2_std_deviation)
   {}
 
   template <typename T>
   bool operator()(const T* const parameters, T* residuals) const {
-    residuals[0] = T(scale_) * (log(parameters[BA_CAMERA_FOCAL]) - T(log_estimate_));
+    residuals[0] = T(focal_scale_) * (log(parameters[BA_CAMERA_FOCAL]) - T(log_focal_estimate_));
+    residuals[1] = T(k1_scale_) * parameters[BA_CAMERA_K1];
+    residuals[2] = T(k2_scale_) * parameters[BA_CAMERA_K2];
     return true;
   }
 
-  double log_estimate_;
-  double scale_;
+  double log_focal_estimate_;
+  double focal_scale_;
+  double k1_scale_;
+  double k2_scale_;
 };
 
 
@@ -222,6 +231,8 @@ class BundleAdjuster {
     loss_function_threshold_ = 1;
     reprojection_error_sd_ = 1;
     focal_prior_sd_ = 1;
+    k1_sd_ = 1;
+    k2_sd_ = 1;
   }
 
   virtual ~BundleAdjuster() {}
@@ -325,8 +336,10 @@ class BundleAdjuster {
     reprojection_error_sd_ = sd;
   }
 
-  void SetFocalPriorSD(double sd) {
-    focal_prior_sd_ = sd;
+  void SetInternalParametersPriorSD(double focal_sd, double k1_sd, double k2_sd) {
+    focal_prior_sd_ = focal_sd;
+    k1_sd_ = k1_sd;
+    k2_sd_ = k2_sd;
   }
 
   void Run() {
@@ -365,8 +378,8 @@ class BundleAdjuster {
 
     for (auto &i : cameras_) {
       ceres::CostFunction* cost_function = 
-          new ceres::AutoDiffCostFunction<FocalPriorError, 1, 3>(
-              new FocalPriorError(i.second.exif_focal, focal_prior_sd_));
+          new ceres::AutoDiffCostFunction<InternalParametersPriorError, 3, 3>(
+              new InternalParametersPriorError(i.second.exif_focal, focal_prior_sd_, k1_sd_, k2_sd_));
 
       problem.AddResidualBlock(cost_function,
                                NULL,
@@ -452,6 +465,8 @@ class BundleAdjuster {
   double loss_function_threshold_;
   double reprojection_error_sd_;
   double focal_prior_sd_;
+  double k1_sd_;
+  double k2_sd_;
 
   ceres::Solver::Summary last_run_summary_;
 };
