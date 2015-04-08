@@ -196,6 +196,18 @@ struct InternalParametersPriorError {
 };
 
 
+struct UnitTranslationPriorError {
+  UnitTranslationPriorError() {}
+
+  template <typename T>
+  bool operator()(const T* const shot, T* residuals) const {
+    const T* const t = shot + 3;
+    residuals[0] = log(t[0] * t[0] + t[1] * t[1] + t[2] * t[2]);
+    return true;
+  }
+};
+
+
 struct GPSPriorError {
   GPSPriorError(double x, double y, double z, double std_deviation)
       : x_(x), y_(y), z_(z)
@@ -227,6 +239,7 @@ struct GPSPriorError {
 class BundleAdjuster {
  public:
   BundleAdjuster() {
+    unit_translation_shot_ = NULL;
     loss_function_ = "TrivialLoss";
     loss_function_threshold_ = 1;
     reprojection_error_sd_ = 1;
@@ -326,6 +339,16 @@ class BundleAdjuster {
     observations_.push_back(o);
   }
 
+  void SetOriginShot(const std::string &shot_id) {
+    BAShot *shot = &shots_[shot_id];
+    for (int i = 0; i < 6; ++i) shot->parameters[0] = 0;
+    shot->constant = true;
+  }
+
+  void SetUnitTranslationShot(const std::string &shot_id) {
+    unit_translation_shot_ = &shots_[shot_id];
+  }
+
   void SetLossFunction(const std::string &function_name,
                        double threshold) {
     loss_function_ = function_name;
@@ -359,6 +382,8 @@ class BundleAdjuster {
     }
 
     ceres::Problem problem;
+
+    // Add reprojection error blocks
     for (int i = 0; i < observations_.size(); ++i) {
       // Each Residual block takes a point and a camera as input and outputs a 2
       // dimensional residual. Internally, the cost function stores the observed
@@ -376,6 +401,7 @@ class BundleAdjuster {
                                observations_[i].point->coordinates);
     }
 
+    // Add internal parameter priors blocks
     for (auto &i : cameras_) {
       ceres::CostFunction* cost_function = 
           new ceres::AutoDiffCostFunction<InternalParametersPriorError, 3, 3>(
@@ -384,6 +410,17 @@ class BundleAdjuster {
       problem.AddResidualBlock(cost_function,
                                NULL,
                                i.second.parameters);
+    }
+
+    // Add unit translation block
+    if (unit_translation_shot_) {
+      ceres::CostFunction* cost_function = 
+          new ceres::AutoDiffCostFunction<UnitTranslationPriorError, 1, 6>(
+              new UnitTranslationPriorError());
+
+      problem.AddResidualBlock(cost_function,
+                               NULL,
+                               unit_translation_shot_->parameters);      
     }
 
     // for (auto &i : shots_) {
@@ -460,6 +497,8 @@ class BundleAdjuster {
   std::map<std::string, BAShot> shots_;
   std::map<std::string, BAPoint> points_;
   std::vector<BAObservation> observations_;
+
+  BAShot *unit_translation_shot_;
 
   std::string loss_function_;
   double loss_function_threshold_;
