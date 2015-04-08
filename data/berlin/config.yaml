@@ -62,9 +62,10 @@ min_track_length: 2           # Minimum number of features/images per track
 
 # Params for bundle adjustment
 loss_function: TruncatedLoss    # Loss function for the ceres problem (see: http://ceres-solver.org/modeling.html#lossfunction)
-loss_function_threshold: 0.004  # Usually cost is quadratic for smaller residuals and sub-quadratic above.
-exif_focal_sd: 0.01             # The standard deviation of the diff between the focal length and the exif focal length in width units.
-bundle_interval: 1            # bundle adjustment after adding 'bundle_interval' cameras
+loss_function_threshold: 1      # Threshold on the squared residuals.  Usually cost is quadratic for smaller residuals and sub-quadratic above.
+reprojection_error_sd: 0.004    # The startard deviation of the reprojection error
+exif_focal_sd: 0.01             # The standard deviation of the exif focal length in log-scale
+bundle_interval: 1              # bundle adjustment after adding 'bundle_interval' cameras
 bundle_outlier_threshold: 0.006
 
 save_partial_reconstructions: yes

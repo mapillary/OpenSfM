@@ -15,122 +15,6 @@ extern "C" {
 #include "ceres/covariance.h"
 
 
-class TruncatedLoss : public ceres::LossFunction {
- public:
-  explicit TruncatedLoss(double t)
-    : t2_(t*t) {
-    CHECK_GT(t, 0.0);
-  }
-
-  virtual void Evaluate(double s, double rho[3]) const {
-    if (s >= t2_) {
-      // Outlier.
-      rho[0] = t2_;
-      rho[1] = std::numeric_limits<double>::min();
-      rho[2] = 0.0;
-    } else {
-      // Inlier.
-      rho[0] = s;
-      rho[1] = 1.0;
-      rho[2] = 0.0;
-    }
-  }
-
- private:
-  const double t2_;
-};
-
-
-// Templated pinhole camera model for used with Ceres.  The camera is
-// parameterized using 9 parameters: 3 for rotation, 3 for translation, 1 for
-// focal length and 2 for radial distortion. The principal point is not modeled
-// (i.e. it is assumed to be located at the image center).
-struct SnavelyReprojectionError {
-  SnavelyReprojectionError(double observed_x, double observed_y, double std_deviation)
-      : observed_x_(observed_x)
-      , observed_y_(observed_y)
-      , scale_(1.0 / std_deviation / sqrt(2))
-  {}
-
-  template <typename T>
-  bool operator()(const T* const camera,
-                  const T* const shot,
-                  const T* const point,
-                  T* residuals) const {
-    // shot[0,1,2] are the angle-axis rotation.
-    T p[3];
-    ceres::AngleAxisRotatePoint(shot, point, p);
-
-    // shot[3,4,5] are the translation.
-    p[0] += shot[3];
-    p[1] += shot[4];
-    p[2] += shot[5];
-
-    // Project.
-    T xp = p[0] / p[2];
-    T yp = p[1] / p[2];
-
-    // Apply second and fourth order radial distortion.
-    const T& l1 = camera[1];
-    const T& l2 = camera[2];
-    T r2 = xp * xp + yp * yp;
-    T distortion = T(1.0) + r2  * (l1 + l2  * r2);
-
-    // Compute final projected point position.
-    const T& focal = camera[0];
-    T predicted_x = focal * distortion * xp;
-    T predicted_y = focal * distortion * yp;
-    // The error is the difference between the predicted and observed position.
-    residuals[0] = T(scale_) * (predicted_x - T(observed_x_));
-    residuals[1] = T(scale_) * (predicted_y - T(observed_y_));
-
-    return true;
-  }
-
-  double observed_x_;
-  double observed_y_;
-  double scale_;
-};
-
-
-struct FocalPriorError {
-  FocalPriorError(double estimate, double std_deviation)
-      : estimate_(estimate)
-      , scale_(1.0 / std_deviation / sqrt(2))
-  {}
-
-  template <typename T>
-  bool operator()(const T* const focal, T* residuals) const {
-    residuals[0] = T(scale_) * (*focal - T(estimate_));
-    return true;
-  }
-
-  double estimate_;
-  double scale_;
-};
-
-
-struct GPSPriorError {
-  GPSPriorError(double x, double y, double z, double std_deviation)
-      : x_(x), y_(y), z_(z)
-      , scale_(1.0 / std_deviation / sqrt(2))
-  {}
-
-  template <typename T>
-  bool operator()(const T* const shot, T* residuals) const {
-    // shot[0,1,2] are the angle-axis rotation.
-    T p[3];
-    ceres::AngleAxisRotatePoint(shot, shot + 3, p);
-
-    residuals[0] = T(scale_) * (-p[0] - T(x_));
-    residuals[1] = T(scale_) * (-p[1] - T(y_));
-    residuals[2] = T(scale_) * (-p[2] - T(z_));
-    return true;
-  }
-
-  double x_, y_, z_;
-  double scale_;
-};
 
 enum {
   BA_CAMERA_FOCAL,
@@ -207,14 +91,135 @@ struct BAObservation {
   BAPoint *point;
 };
 
+
+class TruncatedLoss : public ceres::LossFunction {
+ public:
+  explicit TruncatedLoss(double t)
+    : t2_(t*t) {
+    CHECK_GT(t, 0.0);
+  }
+
+  virtual void Evaluate(double s, double rho[3]) const {
+    if (s >= t2_) {
+      // Outlier.
+      rho[0] = t2_;
+      rho[1] = std::numeric_limits<double>::min();
+      rho[2] = 0.0;
+    } else {
+      // Inlier.
+      rho[0] = s;
+      rho[1] = 1.0;
+      rho[2] = 0.0;
+    }
+  }
+
+ private:
+  const double t2_;
+};
+
+
+// Templated pinhole camera model for used with Ceres.  The camera is
+// parameterized using 9 parameters: 3 for rotation, 3 for translation, 1 for
+// focal length and 2 for radial distortion. The principal point is not modeled
+// (i.e. it is assumed to be located at the image center).
+struct SnavelyReprojectionError {
+  SnavelyReprojectionError(double observed_x, double observed_y, double std_deviation)
+      : observed_x_(observed_x)
+      , observed_y_(observed_y)
+      , scale_(1.0 / std_deviation)
+  {}
+
+  template <typename T>
+  bool operator()(const T* const camera,
+                  const T* const shot,
+                  const T* const point,
+                  T* residuals) const {
+    // shot[0,1,2] are the angle-axis rotation.
+    T p[3];
+    ceres::AngleAxisRotatePoint(shot, point, p);
+
+    // shot[3,4,5] are the translation.
+    p[0] += shot[3];
+    p[1] += shot[4];
+    p[2] += shot[5];
+
+    // Project.
+    T xp = p[0] / p[2];
+    T yp = p[1] / p[2];
+
+    // Apply second and fourth order radial distortion.
+    const T& l1 = camera[1];
+    const T& l2 = camera[2];
+    T r2 = xp * xp + yp * yp;
+    T distortion = T(1.0) + r2  * (l1 + l2  * r2);
+
+    // Compute final projected point position.
+    const T& focal = camera[0];
+    T predicted_x = focal * distortion * xp;
+    T predicted_y = focal * distortion * yp;
+    // The error is the difference between the predicted and observed position.
+    residuals[0] = T(scale_) * (predicted_x - T(observed_x_));
+    residuals[1] = T(scale_) * (predicted_y - T(observed_y_));
+
+    return true;
+  }
+
+  double observed_x_;
+  double observed_y_;
+  double scale_;
+};
+
+
+struct FocalPriorError {
+  FocalPriorError(double estimate, double std_deviation)
+      : log_estimate_(log(estimate))
+      , scale_(1.0 / std_deviation)
+  {}
+
+  template <typename T>
+  bool operator()(const T* const parameters, T* residuals) const {
+    residuals[0] = T(scale_) * (log(parameters[BA_CAMERA_FOCAL]) - T(log_estimate_));
+    return true;
+  }
+
+  double log_estimate_;
+  double scale_;
+};
+
+
+struct GPSPriorError {
+  GPSPriorError(double x, double y, double z, double std_deviation)
+      : x_(x), y_(y), z_(z)
+      , scale_(1.0 / std_deviation)
+  {}
+
+  template <typename T>
+  bool operator()(const T* const shot, T* residuals) const {
+    // shot[0,1,2] are the angle-axis rotation.
+    T p[3];
+    ceres::AngleAxisRotatePoint(shot, shot + 3, p);
+
+    residuals[0] = T(scale_) * (-p[0] - T(x_));
+    residuals[1] = T(scale_) * (-p[1] - T(y_));
+    residuals[2] = T(scale_) * (-p[2] - T(z_));
+    return true;
+  }
+
+  double x_, y_, z_;
+  double scale_;
+};
+
+
 // A bundle adjustment class for optimizing the problem
 //
-//    sum_p ( reprojection_error(p) / reprojection_error_sd )^2 / 2
-//  + sum_c ( (focal - focal_prior) / focal_prior_sd )^2 / 2
+//    sum_p ( reprojection_error(p) / reprojection_error_sd )^2
+//  + sum_c ( (focal - focal_prior) / focal_prior_sd )^2
 //
 class BundleAdjuster {
  public:
   BundleAdjuster() {
+    loss_function_ = "TrivialLoss";
+    loss_function_threshold_ = 1;
     reprojection_error_sd_ = 1;
     focal_prior_sd_ = 1;
   }
@@ -406,7 +411,7 @@ class BundleAdjuster {
 
     ceres::Solve(options, &problem, &last_run_summary_);
 
-    bool compute_covariance = true;
+    bool compute_covariance = false;
     if (compute_covariance) {
       ComuteCovariance(&problem);
     }
