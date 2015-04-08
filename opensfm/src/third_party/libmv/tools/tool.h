@@ -30,9 +30,9 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
-#ifndef gflags
-namespace gflags=google;
-#endif
+namespace gflags {
+  using namespace google;
+}
 
 namespace libmv {
 
