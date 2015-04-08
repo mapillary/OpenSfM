@@ -11,13 +11,22 @@
 #include "akaze.cc"
 #include "bundle.h"
 
+#if (PY_VERSION_HEX < 0x03000000)
+static void numpy_import_array_wrapper()
+#else
+static int* numpy_import_array_wrapper()
+#endif
+{
+  /* Initialise numpy API and use 2/3 compatible return */
+  import_array();
+}
 
 BOOST_PYTHON_MODULE(csfm) {
   using namespace boost::python;
   
   google::InitGoogleLogging("csfm");
   boost::python::numeric::array::set_module_and_type("numpy", "ndarray");
-  import_array();
+  numpy_import_array_wrapper();
 
 
   enum_<DESCRIPTOR_TYPE>("AkazeDescriptorType")
@@ -41,6 +50,8 @@ BOOST_PYTHON_MODULE(csfm) {
     .def_readwrite("diffusivity", &AKAZEOptions::diffusivity)
     .def_readwrite("dthreshold", &AKAZEOptions::dthreshold)
     .def_readwrite("min_dthreshold", &AKAZEOptions::min_dthreshold)
+    .def_readwrite("target_num_features", &AKAZEOptions::target_num_features)
+    .def_readwrite("use_adaptive_suppression", &AKAZEOptions::use_adaptive_suppression)
     .def_readwrite("descriptor", &AKAZEOptions::descriptor)
     .def_readwrite("descriptor_size", &AKAZEOptions::descriptor_size)
     .def_readwrite("descriptor_channels", &AKAZEOptions::descriptor_channels)
@@ -48,6 +59,7 @@ BOOST_PYTHON_MODULE(csfm) {
     .def_readwrite("kcontrast", &AKAZEOptions::kcontrast)
     .def_readwrite("kcontrast_percentile", &AKAZEOptions::kcontrast_percentile)
     .def_readwrite("kcontrast_nbins", &AKAZEOptions::kcontrast_nbins)
+    .def_readwrite("use_isotropic_diffusion", &AKAZEOptions::use_isotropic_diffusion)
     .def_readwrite("save_scale_space", &AKAZEOptions::save_scale_space)
     .def_readwrite("save_keypoints", &AKAZEOptions::save_keypoints)
     .def_readwrite("verbosity", &AKAZEOptions::verbosity)
@@ -57,11 +69,14 @@ BOOST_PYTHON_MODULE(csfm) {
 
   def("hahog", csfm::hahog,
       (boost::python::arg("peak_threshold") = 0.003,
-       boost::python::arg("edge_threshold") = 10
+       boost::python::arg("edge_threshold") = 10,
+       boost::python::arg("target_num_features") = 0,
+       boost::python::arg("use_adaptive_suppression") = false
       )
   );
 
   def("two_view_reconstruction", csfm::TwoViewReconstruction);
+  def("homography_2points_robust", csfm::Homography2pointsRobust);
 
   class_<BundleAdjuster>("BundleAdjuster")
     .def("run", &BundleAdjuster::Run)

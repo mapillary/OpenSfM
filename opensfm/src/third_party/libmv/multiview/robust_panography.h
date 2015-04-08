@@ -1,4 +1,4 @@
-// Copyright (c) 2009 libmv authors.
+// Copyright (c) 2007, 2008 libmv authors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -17,31 +17,24 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
-//
-// Libmv specific init for tools. In particular, get logging and flags set up.
 
+#ifndef LIBMV_MULTIVIEW_PANOGRAPHY_ROBUST_H_
+#define LIBMV_MULTIVIEW_PANOGRAPHY_ROBUST_H_
 
-#ifndef LIBMV_TOOLS_TOOL_H_
-#define LIBMV_TOOLS_TOOL_H_
-
-#include <cstdio>
-#include <string>
-
-#include <gflags/gflags.h>
-#include <glog/logging.h>
-
-#ifndef gflags
-namespace gflags=google;
-#endif
+#include "libmv/base/vector.h"
+#include "libmv/numeric/numeric.h"
 
 namespace libmv {
 
-inline void Init(const char *usage, int *argc, char ***argv) {
-  google::InitGoogleLogging((*argv)[0]);
-  gflags::SetUsageMessage(std::string(usage));
-  gflags::ParseCommandLineFlags(argc, argv, true);
-}
 
-}  // namespace libmv
+double HomographyFromCorrespondance2pointsRobust(const Mat &x1,
+                                                 const Mat &x2,
+                                                 double max_error,
+                                                 Mat3 *H,
+                                                 vector<int> *inliers = NULL,
+                                                 double alarm_rate = 1e-2);
 
-#endif  // ifndef LIBMV_TOOLS_TOOL_H_
+
+} // namespace libmv
+
+#endif  // LIBMV_MULTIVIEW_PANOGRAPHY_ROBUST_H_

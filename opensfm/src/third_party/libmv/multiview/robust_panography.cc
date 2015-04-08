@@ -1,4 +1,4 @@
-// Copyright (c) 2009 libmv authors.
+// Copyright (c) 2007, 2008 libmv authors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -17,31 +17,31 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
-//
-// Libmv specific init for tools. In particular, get logging and flags set up.
 
-
-#ifndef LIBMV_TOOLS_TOOL_H_
-#define LIBMV_TOOLS_TOOL_H_
-
-#include <cstdio>
-#include <string>
-
-#include <gflags/gflags.h>
-#include <glog/logging.h>
-
-#ifndef gflags
-namespace gflags=google;
-#endif
+#include "libmv/multiview/panography_kernel.h"
+#include "libmv/multiview/robust_estimation.h"
+#include "libmv/multiview/robust_panography.h"
+#include "libmv/numeric/numeric.h"
 
 namespace libmv {
 
-inline void Init(const char *usage, int *argc, char ***argv) {
-  google::InitGoogleLogging((*argv)[0]);
-  gflags::SetUsageMessage(std::string(usage));
-  gflags::ParseCommandLineFlags(argc, argv, true);
+double HomographyFromCorrespondance2pointsRobust(const Mat &x1,
+                                                 const Mat &x2,
+                                                 double max_error,
+                                                 Mat3 *H,
+                                                 vector<int> *inliers,
+                                                 double alarm_rate) {
+  // The threshold is on the squared errors in one image.
+  double threshold = Square(max_error);
+  double best_score = HUGE_VAL;
+  panography::kernel::UnnormalizedKernel kernel(x1, x2);
+  MLEScorer<panography::kernel::UnnormalizedKernel> scorer(threshold);
+  *H = Estimate(kernel, scorer, inliers, 
+                    &best_score, alarm_rate);
+  if (best_score == HUGE_VAL)
+    return HUGE_VAL;
+  else
+    return std::sqrt(best_score);  
 }
 
 }  // namespace libmv
-
-#endif  // ifndef LIBMV_TOOLS_TOOL_H_

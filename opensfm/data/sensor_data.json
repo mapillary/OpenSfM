@@ -80,10 +80,13 @@
     "Apple iPhone 6 Plus": 4.89,
     "Apple iPhone3": 4.74,
     "Apple iPhone4": 4.57,
+    "Apple iPhone3,1": 4.74,
     "Apple iPhone4,1": 4.57,
     "Apple iPhone4S": 4.57,
     "Apple iPhone5,1": 4.57,
     "Apple iPhone5,2": 4.57,
+    "Apple iPhone5,3": 4.57,
+    "Apple iPhone5,4": 4.57,
     "Apple iPhone6": 4.89,
     "Apple iPhone6,2": 4.89,
     "BenQ AC100": 6.16,
@@ -3630,5 +3633,13 @@
     "Yakumo Mega Image X": 7.11,
     "Yakumo Mega Image XL": 4.23,
     "Yakumo Mega Image XS": 6.4,
-    "Google Nexus S": 3.9
+    "Google Nexus S": 3.9,
+    "HUAWEI HUAWEI P6-U06": 4.8,
+    "oneplu A000": 4.8,
+    "SAMSUNG GT-I9300": 4.53,
+    "SAMSUNG GT-I9195": 4.54,
+    "LG Electronics LG-D390n": 4.8,
+    "Sony Xperia Z1": 6.17,
+    "Apple iPhone7,2": 6.1,
+    "LG Electronics LG-D855": 4.8
 }

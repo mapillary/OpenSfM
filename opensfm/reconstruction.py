@@ -23,7 +23,7 @@ from opensfm import geo
 from opensfm import csfm
 
 
-def bundle(graph, reconstruction, config):
+def bundle(graph, reconstruction, config, fix_cameras=False):
     '''Bundle adjust a reconstruction.
     '''
 
@@ -31,7 +31,7 @@ def bundle(graph, reconstruction, config):
     ba = csfm.BundleAdjuster()
     for k, v in reconstruction['cameras'].items():
         ba.add_camera(str(k), v['focal'], v['k1'], v['k2'],
-            v['exif_focal'], False)
+            v['exif_focal'], fix_cameras)
 
     for k, v in reconstruction['shots'].items():
         r = v['rotation']
@@ -86,7 +86,6 @@ def bundle(graph, reconstruction, config):
     print 'setup/run/teardown {0}/{1}/{2}'.format(setup - start, run - setup, teardown - run)
 
 
-
 def pairwise_reconstructability(common_tracks, homography_inliers):
     outliers = common_tracks - homography_inliers
     outlier_ratio = float(outliers) / common_tracks
@@ -102,7 +101,7 @@ def compute_image_pairs(graph, image_graph, config):
     score = []
     for im1, im2, d in image_graph.edges(data=True):
         tracks, p1, p2 = dataset.common_tracks(graph, im1, im2)
-        if len(tracks) >= 100:
+        if len(tracks) >= 50:
             H, inliers = cv2.findHomography(p1, p2, cv2.RANSAC, config.get('homography_threshold', 0.004))
             r = pairwise_reconstructability(len(tracks), inliers.sum())
             if r > 0:
@@ -115,7 +114,7 @@ def compute_image_pairs(graph, image_graph, config):
 def add_gps_position(data, reconstruction, image):
     exif = data.load_exif(image)
     reflla = data.load_reference_lla()
-    if 'gps' in exif:
+    if 'gps' in exif and 'latitude' in exif['gps'] and 'longitude' in exif['gps']:
         lat = exif['gps']['latitude']
         lon = exif['gps']['longitude']
         alt = 2.0 #exif['gps'].get('altitude', 0)
@@ -143,7 +142,11 @@ def bootstrap_reconstruction(data, graph, im1, im2):
     f1 = d1['focal_ratio']
     f2 = d2['focal_ratio']
     threshold = data.config.get('five_point_algo_threshold', 0.006)
-    R, t, inliers = csfm.two_view_reconstruction(p1, p2, f1, f2, threshold)
+    ret = csfm.two_view_reconstruction(p1, p2, f1, f2, threshold)
+    if ret is not None:
+        R, t, inliers = ret
+    else:
+        return None
     if len(inliers):
         print 'Number of inliers', len(inliers)
         reconstruction = {
@@ -602,6 +605,7 @@ def register_reconstruction_with_gps(reconstruction, reference):
         topo2 = optical_center(shot)
         dz = topo2 - topo
         angle = np.rad2deg(np.arctan2(dz[0], dz[1]))
+        angle = (angle+360) % 360
         reconstruction['shots'][shot_id]['gps'] = {
                                             'lon': lon,
                                             'lat': lat,

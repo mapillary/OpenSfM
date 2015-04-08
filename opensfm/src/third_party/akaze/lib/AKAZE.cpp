@@ -139,22 +139,29 @@ int AKAZE::Create_Nonlinear_Scale_Space(const cv::Mat& img) {
     image_derivatives_scharr(evolution_[i].Lsmooth, evolution_[i].Lx, 1, 0);
     image_derivatives_scharr(evolution_[i].Lsmooth, evolution_[i].Ly, 0, 1);
 
-    // Compute the conductivity equation
-    switch (options_.diffusivity) {
-      case PM_G1:
-        pm_g1(evolution_[i].Lx, evolution_[i].Ly, evolution_[i].Lflow, options_.kcontrast);
-      break;
-      case PM_G2:
-        pm_g2(evolution_[i].Lx, evolution_[i].Ly, evolution_[i].Lflow, options_.kcontrast);
-      break;
-      case WEICKERT:
-        weickert_diffusivity(evolution_[i].Lx, evolution_[i].Ly, evolution_[i].Lflow, options_.kcontrast);
-      break;
-      case CHARBONNIER:
-        charbonnier_diffusivity(evolution_[i].Lx, evolution_[i].Ly, evolution_[i].Lflow, options_.kcontrast);
-      break;
-      default:
-        cerr << "Diffusivity: " << options_.diffusivity << " is not supported" << endl;
+    if (options_.use_isotropic_diffusion) {
+      float dt = evolution_[i].etime - evolution_[i-1].etime;
+      float dsigma = sqrt(2 * dt);
+      float ratio = pow(2.0f,(float)evolution_[i].octave);
+      gaussian_2D_convolution(evolution_[i].Lt, evolution_[i].Lt, 0, 0, dsigma / ratio);
+    } else {
+      // Compute the conductivity equation
+      switch (options_.diffusivity) {
+        case PM_G1:
+          pm_g1(evolution_[i].Lx, evolution_[i].Ly, evolution_[i].Lflow, options_.kcontrast);
+        break;
+        case PM_G2:
+          pm_g2(evolution_[i].Lx, evolution_[i].Ly, evolution_[i].Lflow, options_.kcontrast);
+        break;
+        case WEICKERT:
+          weickert_diffusivity(evolution_[i].Lx, evolution_[i].Ly, evolution_[i].Lflow, options_.kcontrast);
+        break;
+        case CHARBONNIER:
+          charbonnier_diffusivity(evolution_[i].Lx, evolution_[i].Ly, evolution_[i].Lflow, options_.kcontrast);
+        break;
+        default:
+          cerr << "Diffusivity: " << options_.diffusivity << " is not supported" << endl;
+      }
     }
 
     // Perform FED n inner steps
@@ -238,6 +245,20 @@ void AKAZE::Compute_Determinant_Hessian_Response() {
         ldet[jx] = lxx[jx]*lyy[jx]-lxy[jx]*lxy[jx];
     }
   }
+}
+
+static int compareKeyPointResponse(const cv::KeyPoint &a,
+                                   const cv::KeyPoint &b) {
+  float fa = a.response;
+  float fb = b.response;
+  return (fb > fa) - (fb < fa) ;
+}
+
+static int compareKeyPointRadius(const std::pair<size_t, float> &a,
+                                 const std::pair<size_t, float> &b) {
+  float fa = a.second;
+  float fb = b.second;
+  return (fb > fa) - (fb < fa) ;
 }
 
 /* ************************************************************************* */
@@ -373,6 +394,43 @@ void AKAZE::Find_Scale_Space_Extrema(std::vector<cv::KeyPoint>& kpts) {
     if (is_repeated == false)
       kpts.push_back(point);
   }
+
+  // Keep only the k-best keypoints
+  int num_features_before = kpts.size();
+  if (options_.target_num_features != 0 && options_.target_num_features < kpts.size()) {
+    if (options_.use_adaptive_suppression) {
+      // Adaptive suppression
+      std::vector<std::pair<size_t, float> > radiuses(kpts.size());
+
+      for (size_t i = 0; i < kpts.size(); ++i) {
+        float radius = 99999999999;
+        for (size_t j = 0; j < kpts.size(); ++j) {
+          if (kpts[i].response < kpts[j].response) {
+            float dx_ = kpts[j].pt.x - kpts[i].pt.x;
+            float dy_ = kpts[j].pt.y - kpts[i].pt.y;
+            float sigma_ = kpts[j].size;
+            float radius_ = dx_ * dx_ + dy_ * dy_;  // TODO(pau) use sigma to compute a 3d radius
+            if (radius_ < radius) {
+              radius = radius_;
+            }
+          }
+        }
+        radiuses[i] = std::make_pair(i, radius);
+      }
+      std::sort(radiuses.begin(), radiuses.end(), compareKeyPointRadius);
+
+      std::vector<cv::KeyPoint> good_kpts(options_.target_num_features);
+      for (size_t i = 0; i < options_.target_num_features; ++i) {
+        good_kpts[i] = kpts[radiuses[i].first];
+      }
+      kpts.swap(good_kpts);
+    } else {
+      // Non-adapting suppression: keep k best response.
+      std::sort(kpts.begin(), kpts.end(), compareKeyPointResponse);
+      kpts.resize(options_.target_num_features);      
+    }
+  }
+  std::cout << "Keeping " << kpts.size() << " out of " << num_features_before << "\n";
 
   t2 = cv::getTickCount();
   timing_.extrema = 1000.0*(t2-t1) / cv::getTickFrequency();

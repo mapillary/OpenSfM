@@ -6,7 +6,8 @@ import cv2
 def match_lowe(index, f2, config):
     search_params = dict(checks=config.get('flann_checks', 200))
     results, dists = index.knnSearch(f2, 2, params=search_params)
-    good = dists[:, 0] < config.get('lowes_ratio', 0.6) * dists[:, 1]
+    squared_ratio = config.get('lowes_ratio', 0.6)**2  # Flann returns squared L2 distances
+    good = dists[:, 0] < squared_ratio * dists[:, 1]
     matches = zip(results[good, 0], good.nonzero()[0])
     return np.array(matches, dtype=int)
 
@@ -44,11 +45,15 @@ def match_lowe_bf(f1, f2, config):
     else:
         matcher_type = 'BruteForce'
     matcher = cv2.DescriptorMatcher_create(matcher_type)
-    matches = matcher.knnMatch(f1, f2, k=2 )
+    matches = matcher.knnMatch(f1, f2, k=2)
+
+    ratio = config.get('lowes_ratio', 0.6)
     good_matches = []
-    for m,n in matches:
-        if m.distance < config.get('lowes_ratio', 0.6)*n.distance:
-            good_matches.append(m)
+    for match in matches:
+        if match and len(match) == 2:
+            m, n = match
+            if m.distance < ratio * n.distance:
+                good_matches.append(m)
     good_matches = convert_matches_to_vector(good_matches)
     return np.array(good_matches, dtype=int)
 
@@ -62,7 +67,7 @@ def robust_match(p1, p2, matches, config):
     p1 = p1[matches[:, 0]][:, :2].copy()
     p2 = p2[matches[:, 1]][:, :2].copy()
 
-    F, mask = cv2.findFundamentalMat(p1, p2, cv2.cv.CV_FM_RANSAC, config.get('robust_matching_threshold', 0.006), 0.99)
+    F, mask = cv2.findFundamentalMat(p1, p2, cv2.cv.CV_FM_RANSAC, config.get('robust_matching_threshold', 0.006), 0.9999)
     inliers = mask.ravel().nonzero()
 
     return matches[inliers]

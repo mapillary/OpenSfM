@@ -94,7 +94,7 @@
                 </tr>
                 <tr>
                     <td>
-                        <button id="journeyButton" onclick="journeyWrapper.toggleJourney()">
+                        <button id="journeyButton" onclick="invokeJourneyWrapper(function () { journeyWrapper.toggle(); });">
                             Go
                         </button>
                     </td>
@@ -161,6 +161,7 @@
 
         <script>
             var urlParams;
+            var f1;
             var container, camera, controls, scene, renderer;
             var mouse = new THREE.Vector2();
             var hoverCamera, raycaster, parentTransform;
@@ -232,7 +233,7 @@
             function addDatGui(){
                 var gui = new dat.GUI();
 
-                var f1 = gui.addFolder('Options');
+                f1 = gui.addFolder('Options');
                 f1.add(options, 'pointSize', 0, 2)
                     .listen()
                     .onChange(setPointSize);
@@ -340,7 +341,7 @@
                 if (mode != movingMode) {
                     movingMode = mode;
                     if (mode == 'orbit') {
-                        invokeJourneyWrapper(function () { journeyWrapper.stop(); });
+                        invokeJourneyWrapper(function () { journeyWrapper.stop(); journeyWrapper.addShowPathController(); });
                         resetWalkMode();
                         swapOptions();
                         controls.noRotate = false;
@@ -354,6 +355,7 @@
                         imageMaterialOld.depthWrite = true;
                         $('#navigation').hide();
                     } else if (mode == 'walk') {
+                        invokeJourneyWrapper(function () { journeyWrapper.removeShowPathController(); });
                         swapOptions();
                         controls.noRotate = true;
                         controls.noLookAround = true;
@@ -417,7 +419,7 @@
 
             function invokeJourneyWrapper(action) {
                 if (typeof journeyWrapper != "undefined") {
-                    action();
+                    return action();
                 }
             }
 
@@ -673,16 +675,18 @@
                             var ocenter = opticalCenter(shot);
                             var gps = shot.gps_position;
 
-                            var linegeo = new THREE.Geometry();
-                            linegeo.vertices.push(
-                                ocenter,
-                                new THREE.Vector3(gps[0], gps[1], gps[2])
-                            );
-                            var lineMaterial = new THREE.LineBasicMaterial({ color: 0xff00ff });
-                            var line = new THREE.Line(linegeo, lineMaterial, THREE.LinePieces);
-                            line.visible = options.drawGPS;
-                            group.add(line);
-                            gps_lines.push(line);
+                            if (gps){
+                                var linegeo = new THREE.Geometry();
+                                linegeo.vertices.push(
+                                    ocenter,
+                                    new THREE.Vector3(gps[0], gps[1], gps[2])
+                                );
+                                var lineMaterial = new THREE.LineBasicMaterial({ color: 0xff00ff });
+                                var line = new THREE.Line(linegeo, lineMaterial, THREE.LinePieces);
+                                line.visible = options.drawGPS;
+                                group.add(line);
+                                gps_lines.push(line);
+                            }
                         }
                     }
 
@@ -887,6 +891,8 @@
                 image_tag.src = image_url;
                 var text = document.getElementById('text');
                 text.innerHTML = shot_id;
+
+                invokeJourneyWrapper(function () { journeyWrapper.showPath(); });
             }
 
             function setImagePlaneCamera(cameraObject) {
@@ -1091,7 +1097,7 @@
                             setMovingMode('orbit');
                             break;
                         case 83: // S
-                            invokeJourneyWrapper(function () { journeyWrapper.toggleJourney(); });
+                            invokeJourneyWrapper(function () { journeyWrapper.toggle(); });
                         default:
                             validKey = false;
                             break;
@@ -1154,7 +1160,9 @@
             function render() {
                 validMoves = computeValidMoves();
                 updateValidMovesWidget();
-                preloadValidMoves();
+                if (invokeJourneyWrapper(function () { return journeyWrapper.isStarted(); }) !== true) {
+                    preloadValidMoves();
+                }
 
                 // Handle camera selection.
                 if (hoverCamera !== undefined && hoverCamera !== selectedCamera) {

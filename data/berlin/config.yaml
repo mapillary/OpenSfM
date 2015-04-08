@@ -2,8 +2,9 @@
 # Params for features
 feature_type: SIFT            # Feature type (AKAZE, SURF, SIFT)
 feature_root: 0               # If 1, apply square root mapping to features
-feature_min_frames: 0         # If fewer frames are detected, sift_peak_threshold/surf_hessian_threshold is reduced.
+feature_min_frames: 2000         # If fewer frames are detected, sift_peak_threshold/surf_hessian_threshold is reduced.
 feature_process_size: 2048    # Resize the image if its size is larger than specified. Set to -1 for original size
+feature_use_adaptive_suppression: no
 
 # Params for SIFT
 sift_peak_threshold: 0.1     # Smaller value -> more features
@@ -20,6 +21,10 @@ akaze_dthreshold: 0.001       # Detector response threshold to accept point
 akaze_descriptor: MSURF       # Feature type
 akaze_descriptor_size: 0      # Size of the descriptor in bits. 0->Full size
 akaze_descriptor_channels: 3  # Number of feature channels (1,2,3)
+
+# Params for HAHOG
+hahog_peak_threshold: 0.001
+hahog_edge_threshold: 10
 
 # Masks for regions that will be ignore for feature extraction
 # List of bounding boxes specified as the ratio with respect to the height and width
@@ -40,7 +45,7 @@ flann_checks: 200             # Smaller -> Faster (but might lose good matches)
 # Params for preemtive matching
 matching_gps_distance: 150            # Maximum gps distance between two images for matching
 preemptive_max: 200                   # Number of features to use for preemptive matching
-preemptive_threshold: 1               # If number of matches passes the threshold -> full feature matching
+preemptive_threshold: 0               # If number of matches passes the threshold -> full feature matching
 preemptive_matching_gps_distance: 300 # Maximum gps distance between two images for preemptive matching
 
 # Params for geometric estimation

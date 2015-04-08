@@ -29,7 +29,7 @@ Be sure to update your `PYTHONPATH` to include `/usr/local/lib/python2.7/site-pa
 
  1. [OpenCV][] - Install by following the steps in the Ubuntu OpenCV  [installation guide](https://help.ubuntu.com/community/OpenCV). An alternative instruction tested for Ubuntu 10.04 can be found at [OpenCV Docs](http://docs.opencv.org/doc/tutorials/introduction/linux_install/linux_install.html). OpenCV requires [GCC](https://gcc.gnu.org/) and [CMake](http://www.cmake.org/) among other things.
 
- 2. [Ceres solver][] - Build Ceres according the [documentation](http://ceres-solver.org/building.html). Make sure to read the Linux note, follow the shared library instructions and compile Ceres with the -fPIC option. Install Ceres from the ceres-bin directory after `make` by:
+ 2. [Ceres solver][] - Build Ceres according the [documentation](http://ceres-solver.org/building.html). Make sure to read the Linux note, follow the **shared library** instructions and compile Ceres with the -fPIC option. Install Ceres from the ceres-bin directory after `make` by:
  
         sudo make install
 
@@ -47,17 +47,10 @@ Be sure to update your `PYTHONPATH` to include `/usr/local/lib/python2.7/site-pa
         sudo pip install scipy
 
 
-## Building inplace using setup.py
+## Building
 
-    python setup.py build_clib
-    python setup.py build_ext --inplace
+    python setup.py build
 
-## Building using CMake
-
-    mkdir build
-    cd build
-    cmake ../opensfm/src
-    make
 
 ## Running
 

@@ -142,20 +142,16 @@ def extract_features_akaze(image, config):
     options.descriptor_size = config.get('akaze_descriptor_size', 0)
     options.descriptor_channels = config.get('akaze_descriptor_channels', 3)
     options.process_size = config.get('feature_process_size', -1)
+    options.dthreshold = config.get('akaze_dthreshold', 0.001)
+    options.kcontrast_percentile = config.get('akaze_kcontrast_percentile', 0.7)
+    options.use_isotropic_diffusion = config.get('akaze_use_isotropic_diffusion', False)
+    options.target_num_features = config.get('feature_min_frames', 0)
+    options.use_adaptive_suppression = config.get('feature_use_adaptive_suppression', False)
 
-    threshold = config.get('akaze_dthreshold', 0.001)
-    while True:
-        print 'Computing AKAZE with threshold {0}'.format(threshold)
-        t = time.time()
-        options.dthreshold = threshold
-        points, desc = csfm.akaze(image, options)
-        print 'Found {0} points in {1}s'.format( len(points), time.time()-t )
-        if len(points) < config.get('feature_min_frames', 0) and threshold > 0.00001:
-            threshold = (threshold * 2) / 3
-            print 'reducing threshold'
-        else:
-            print 'done'
-            break
+    print 'Computing AKAZE with threshold {0}'.format(options.dthreshold)
+    t = time.time()
+    points, desc = csfm.akaze(image, options)
+    print 'Found {0} points in {1}s'.format( len(points), time.time()-t )
 
     if config.get('feature_root', False):
         if akaze_descriptor_name in ["SURF_UPRIGHT", "MSURF_UPRIGHT"]:
@@ -169,13 +165,28 @@ def extract_features_hahog(image, config):
     t = time.time()
     points, desc = csfm.hahog(image.astype(np.float32) / 255, # VlFeat expects pixel values between 0, 1
                               peak_threshold = config.get('hahog_peak_threshold', 0.003),
-                              edge_threshold = config.get('hahog_edge_threshold', 10))
+                              edge_threshold = config.get('hahog_edge_threshold', 10),
+                              target_num_features = config.get('feature_min_frames', 0),
+                              use_adaptive_suppression = config.get('feature_use_adaptive_suppression', False))
+
+    if config.get('feature_root', False):
+        desc = np.sqrt(desc)
+        uchar_scaling = 362  # x * 512 < 256  =>  sqrt(x) * 362 < 256
+    else:
+        uchar_scaling = 512
+
+    if config.get('hahog_normalize_to_uchar', False):
+        desc = (uchar_scaling * desc).clip(0, 255).round()
+
     print 'Found {0} points in {1}s'.format( len(points), time.time()-t )
-    if config.get('feature_root', False): desc = root_feature(desc)
     return mask_and_normalize_features(points, desc, image.shape[1], image.shape[0], config)
 
 
 def extract_feature(image, config):
+    if len(image.shape)==3:
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    image = resized_image(image, config)
+
     feature_type = config.get('feature_type','SIFT').upper()
     if feature_type == 'SIFT':
         return extract_features_sift(image, config)

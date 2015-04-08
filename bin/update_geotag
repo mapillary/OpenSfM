@@ -30,6 +30,8 @@ parser.add_argument('--overwrite_originals',
     action='store_true')
 parser.add_argument('--image_path',
     help='path to images')
+parser.add_argument('--reconstruction_file',
+    help='path to images')
 args = parser.parse_args()
 
 # This script assumes that the reconstruction contains aligned gps, altitude and direction information about the images (after bin/align data_path)
@@ -43,14 +45,18 @@ updated_image_path = os.path.join(data.data_path, 'images_updated_geotag')
 if not args.overwrite_originals and not os.path.exists(updated_image_path):
     os.makedirs(updated_image_path)
 
-reconstructions = data.load_reconstruction()
+if args.reconstruction_file is None:
+    reconstructions = data.load_reconstruction()
+else:
+    with open(args.reconstruction_file) as f:
+        reconstructions = json.loads(f.read())
 
 for reconstruction in reconstructions:
     # write updated gps/compass to the image file
     for image in reconstruction['shots'].keys():
-        image_path = data.image_file(image)
+        image_path = data.image_files[image]
         new_image_path = None if args.overwrite_originals else os.path.join(updated_image_path, image)
         gps = reconstruction['shots'][image]['gps']
-        add_gps_to_exif(image_path, gps['lat'], gps['lon'], gps['altitude'], gps['direction'], new_image_path)
+        add_gps_to_exif(image_path, gps['lat'], gps['lon'], gps['direction'], gps['altitude'], new_image_path)
 
 

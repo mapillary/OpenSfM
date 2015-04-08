@@ -65,6 +65,9 @@ add_library(mv
     third_party/libmv/multiview/robust_five_point.cc
     third_party/libmv/multiview/triangulation.cc
     third_party/libmv/multiview/conditioning.cc
+    third_party/libmv/multiview/panography.cc
+    third_party/libmv/multiview/panography_kernel.cc
+    third_party/libmv/multiview/robust_panography.cc
     third_party/libmv/numeric/numeric.cc
     third_party/libmv/numeric/poly.cc
 )

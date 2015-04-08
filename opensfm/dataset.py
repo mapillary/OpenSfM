@@ -156,8 +156,10 @@ class DataSet:
         return os.path.join(self.__feature_path(), image + '.' + self.feature_type() + '.npz')
 
     def __save_features(self, filepath, image, points, descriptors):
-        if (self.config.get('feature_type') == 'AKAZE' and
-                self.config.get('akaze_descriptor') in ['MLDB_UPRIGHT', 'MLDB']):
+        feature_type = self.config.get('feature_type')
+        if ((feature_type == 'AKAZE' and self.config.get('akaze_descriptor') in ['MLDB_UPRIGHT', 'MLDB']) or
+            (feature_type == 'HAHOG' and self.config.get('hahog_normalize_to_uchar', False)) or
+            (feature_type == 'SIFT')):
             feature_data_type = np.uint8
         else:
             feature_data_type = np.float32
@@ -165,9 +167,18 @@ class DataSet:
                  points=points.astype(np.float32),
                  descriptors=descriptors.astype(feature_data_type))
 
+    def features_exist(self, image):
+        return os.path.isfile(self.__feature_file(image))
+
     def load_features(self, image):
+        feature_type = self.config.get('feature_type')
         s = np.load(self.__feature_file(image))
-        return s['points'], s['descriptors']
+        if (feature_type == 'HAHOG' and self.config.get('hahog_normalize_to_uchar', False) or
+            feature_type == 'SIFT'):
+            descriptors = s['descriptors'].astype(np.float32)
+        else:
+            descriptors = s['descriptors']
+        return s['points'], descriptors
 
     def save_features(self, image, points, descriptors):
         self.__save_features(self.__feature_file(image), image, points, descriptors)
@@ -227,16 +238,16 @@ class DataSet:
         :param image1: Image name, with extension (i.e. 123.jpg)
         :param image2: Image name, with extension (i.e. 123.jpg)
         """
-        return os.path.join(self.__matches_path(), '%s_%s_matches.csv' % (image1, image2))
+        return os.path.join(self.__matches_path(), '%s_%s_matches.npz' % (image1, image2))
 
     def matches_exists(self, im1, im2):
         return os.path.isfile(self.__matches_file(im1, im2))
 
     def load_matches(self, image1, image2):
-        return np.genfromtxt(self.__matches_file(image1, image2), dtype=int)
+        return np.load(self.__matches_file(image1, image2))['matches']
 
     def save_matches(self, image1, image2, matches):
-        np.savetxt(self.__matches_file(image1, image2), matches, "%d")
+        np.savez(self.__matches_file(image1, image2), matches=matches.astype(np.int32))
 
     def __tracks_graph_file(self):
         """Return path of tracks file"""
@@ -305,7 +316,7 @@ class DataSet:
         if images is None: images = self.images()
         for image in images:
             d = self.load_exif(image)
-            if 'gps' in d:
+            if 'gps' in d and 'latitude' in d['gps'] and 'longitude' in d['gps']:
                 w = 1.0 / d['gps'].get('dop', 15)
                 lat += w * d['gps']['latitude']
                 lon += w * d['gps']['longitude']
@@ -370,8 +381,8 @@ class DataSet:
         "Return the path of the navigation graph."
         return os.path.join(self.data_path, 'navigation_graph.json')
 
-    def save_navigation_graph(self, navigation_graph):
-        with open(data.__navigation_graph_file(), 'w') as fout:
+    def save_navigation_graph(self, navigation_graphs):
+        with open(self.__navigation_graph_file(), 'w') as fout:
             fout.write(json.dumps(navigation_graphs))
 
 

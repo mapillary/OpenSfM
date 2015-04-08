@@ -17,31 +17,38 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
-//
-// Libmv specific init for tools. In particular, get logging and flags set up.
 
+#ifndef LIBMV_MULTIVIEW_PANOGRAPHY_KERNEL_H
+#define LIBMV_MULTIVIEW_PANOGRAPHY_KERNEL_H
 
-#ifndef LIBMV_TOOLS_TOOL_H_
-#define LIBMV_TOOLS_TOOL_H_
-
-#include <cstdio>
-#include <string>
-
-#include <gflags/gflags.h>
-#include <glog/logging.h>
-
-#ifndef gflags
-namespace gflags=google;
-#endif
+#include "libmv/base/vector.h"
+#include "libmv/multiview/conditioning.h"
+#include "libmv/multiview/projection.h"
+#include "libmv/multiview/two_view_kernel.h"
+#include "libmv/multiview/homography_error.h"
+#include "libmv/numeric/numeric.h"
 
 namespace libmv {
+namespace panography {
+namespace kernel {
 
-inline void Init(const char *usage, int *argc, char ***argv) {
-  google::InitGoogleLogging((*argv)[0]);
-  gflags::SetUsageMessage(std::string(usage));
-  gflags::ParseCommandLineFlags(argc, argv, true);
-}
+struct TwoPointSolver {
+  enum { MINIMUM_SAMPLES = 2 };
+  static void Solve(const Mat &x1, const Mat &x2, vector<Mat3> *Hs);
+};
 
+typedef two_view::kernel::Kernel<
+    TwoPointSolver, homography::homography2D::AsymmetricError, Mat3>
+  UnnormalizedKernel;
+
+typedef two_view::kernel::Kernel<
+        two_view::kernel::NormalizedSolver<TwoPointSolver, UnnormalizerI>,
+        homography::homography2D::AsymmetricError,
+        Mat3>
+  Kernel;
+
+}  // namespace kernel
+}  // namespace panography
 }  // namespace libmv
 
-#endif  // ifndef LIBMV_TOOLS_TOOL_H_
+#endif  // LIBMV_MULTIVIEW_PANOGRAPHY_KERNEL_H

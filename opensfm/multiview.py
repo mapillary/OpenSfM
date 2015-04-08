@@ -176,10 +176,13 @@ def ransac(kernel, threshold):
     max_iterations = 10000
     best_error = float('inf')
     best_model = None
-    best_inliers = None
+    best_inliers = []
     i = 0
     while i < max_iterations:
-        samples = random.sample(xrange(kernel.num_samples()),
+        try:
+            samples = kernel.sampling()
+        except AttributeError:
+            samples = random.sample(xrange(kernel.num_samples()),
                                 kernel.required_samples)
         models = kernel.fit(samples)
         for model in models:
@@ -191,7 +194,7 @@ def ransac(kernel, threshold):
                 best_model = model
                 best_inliers = inliers
                 max_iterations = min(max_iterations,
-                    ransac_max_iterations(kernel, best_inliers, 0.01))
+                    ransac_max_iterations(kernel, best_inliers, 0.00001))
         i += 1
     return best_model, best_inliers, best_error
 
@@ -225,6 +228,61 @@ class TestLinearKernel:
     def evaluate(self, model):
         return self.y - model * self.x
 
+class PlaneKernel:
+    '''
+    A kernel for estimating plane from on-plane points and vectors
+    '''
+
+    def __init__(self, points, vectors, verticals, point_threshold=1.0, vector_threshold=5.0):
+        self.points = points
+        self.vectors = vectors
+        self.verticals = verticals
+        self.required_samples = 3
+        self.point_threshold = point_threshold
+        self.vector_threshold = vector_threshold
+
+    def num_samples(self):
+        return len(self.points)
+
+    def sampling(self):
+        samples = {}
+        if len(self.vectors)>0:
+            samples['points'] = self.points[random.sample(xrange(len(self.points)), 2),:]
+            samples['vectors'] = [self.vectors[i] for i in random.sample(xrange(len(self.vectors)), 1)]
+        else:
+            samples['points'] = self.points[:,random.sample(xrange(len(self.points)), 3)]
+            samples['vectors'] = None
+        return samples
+
+    def fit(self, samples):
+        model = fit_plane(samples['points'], samples['vectors'], self.verticals)
+        return [model]
+
+    def evaluate(self, model):
+        # only evaluate on points
+        normal = model[0:3]
+        normal_norm = np.linalg.norm(normal)+1e-10
+        point_error = np.abs(model.T.dot(homogeneous(self.points).T))/normal_norm
+        vectors = np.array(self.vectors)
+        vector_norm = np.sum(vectors*vectors, axis=1)
+        vectors = (vectors.T / vector_norm).T
+        vector_error = abs(np.rad2deg(abs(np.arccos(vectors.dot(normal)/normal_norm)))-90)
+        vector_error[vector_error<self.vector_threshold] = 0.0
+        vector_error[vector_error>=self.vector_threshold] = self.point_threshold+0.1
+        point_error[point_error<self.point_threshold] = 0.0
+        point_error[point_error>=self.point_threshold] = self.point_threshold+0.1
+        errors = np.hstack((point_error, vector_error))
+        return errors
+
+def fit_plane_ransac(points, vectors, verticals, point_threshold=1.2, vector_threshold=5.0):
+    vectors = [v/math.pi*180.0 for v in vectors]
+    kernel = PlaneKernel(points - points.mean(axis=0), vectors, verticals, point_threshold, vector_threshold)
+    p, inliers, error = ransac(kernel, point_threshold)
+    num_point = points.shape[0]
+    points_inliers = points[inliers[inliers<num_point],:]
+    vectors_inliers = [vectors[i-num_point] for i in inliers[inliers>=num_point]]
+    p = fit_plane(points_inliers - points_inliers.mean(axis=0), vectors_inliers, verticals)
+    return p, inliers, error
 
 def fit_plane(points, vectors, verticals):
     '''Estimate a plane fron on-plane points and vectors.
@@ -256,13 +314,15 @@ def fit_plane(points, vectors, verticals):
     _, p = nullspace(A)
     p[3] /= s
 
+    if np.allclose(p[:3], [0,0,0]):
+        return np.array([0.0, 0.0, 1.0, 0])
+
     # Use verticals to decide the sign of p
     if verticals:
         d = 0
         for vertical in verticals:
             d += p[:3].dot(vertical)
         p *= np.sign(d)
-
     return p
 
 
@@ -276,9 +336,13 @@ def plane_horizontalling_rotation(p):
     '''
     v0 = p[:3]
     v1 = [0,0,1.0]
-    return tf.rotation_matrix(tf.angle_between_vectors(v0, v1),
-                              tf.vector_product(v0, v1)
-                              )[:3,:3]
+    angle = tf.angle_between_vectors(v0, v1)
+    if angle > 0:
+        return tf.rotation_matrix(angle,
+                                  tf.vector_product(v0, v1)
+                                  )[:3,:3]
+    else:
+        return np.eye(3)
 
 
 def fit_similarity_transform(p1, p2, max_iterations=1000, threshold=1):
@@ -348,55 +412,60 @@ def two_view_reconstruction(p1, p2, f1, f2, threshold):
     npoints = len(p1)
 
     # Run 5-point algorithm.
-    R, t, inliers = csfm.two_view_reconstruction(p1, p2, f1, f2, threshold)
+    res = csfm.two_view_reconstruction(p1, p2, f1, f2, threshold)
 
-    K1 = np.array([[f1, 0, 0], [0, f1, 0], [0, 0, 1.]])
-    K2 = np.array([[f2, 0, 0], [0, f2, 0], [0, 0, 1.]])
+    if res:
+        R, t, inliers = res
 
-    old_inliers = np.zeros(npoints)
-    for it in range(10):
-        # Triangulate Features.
-        P1 = P_from_KRt(K1, np.eye(3), np.zeros(3))
-        P2 = P_from_KRt(K2, R, t)
-        Ps = [P1, P2]
-        Xs = []
-        inliers = []
-        for x1, x2 in zip(p1, p2):
-            X = triangulate(Ps, [x1, x2])
-            Xs.append(X)
-            P1X = P1.dot(homogeneous(X))
-            P2X = P2.dot(homogeneous(X))
-            e1 = np.linalg.norm(x1 - euclidean(P1X))
-            e2 = np.linalg.norm(x2 - euclidean(P2X))
-            inliers.append(e1 < threshold and e2 < threshold and P1X[2] > 0 and P2X[2] > 0)
-        inliers = np.array(inliers)
-        Xs = np.array(Xs)
+        K1 = np.array([[f1, 0, 0], [0, f1, 0], [0, 0, 1.]])
+        K2 = np.array([[f2, 0, 0], [0, f2, 0], [0, 0, 1.]])
 
-        inlier_changes = np.count_nonzero(inliers - old_inliers)
-        old_inliers = inliers.copy()
-        if inlier_changes < npoints * 0.05:
-            break
+        old_inliers = np.zeros(npoints)
+        for it in range(10):
+            # Triangulate Features.
+            P1 = P_from_KRt(K1, np.eye(3), np.zeros(3))
+            P2 = P_from_KRt(K2, R, t)
+            Ps = [P1, P2]
+            Xs = []
+            inliers = []
+            for x1, x2 in zip(p1, p2):
+                X = triangulate(Ps, [x1, x2])
+                Xs.append(X)
+                P1X = P1.dot(homogeneous(X))
+                P2X = P2.dot(homogeneous(X))
+                e1 = np.linalg.norm(x1 - euclidean(P1X))
+                e2 = np.linalg.norm(x2 - euclidean(P2X))
+                inliers.append(e1 < threshold and e2 < threshold and P1X[2] > 0 and P2X[2] > 0)
+            inliers = np.array(inliers)
+            Xs = np.array(Xs)
 
-        # Refine R, t
-        ba = csfm.BundleAdjuster()
-        ba.add_camera('c1', f1, 0, 0, f1, True)
-        ba.add_camera('c2', f2, 0, 0, f2, True)
-        ba.add_shot('s1', 'c1', 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, True)
-        r = cv2.Rodrigues(R)[0].ravel()
-        ba.add_shot('s2', 'c2', r[0], r[1], r[2], t[0], t[1], t[2], 0, 0, 0, 1, False)
-        for i in xrange(npoints):
-            if inliers[i]:
-                X = Xs[i]
-                ba.add_point(str(i), X[0], X[1], X[2], False)
-                ba.add_observation('s1', str(i), p1[i][0], p1[i][1])
-                ba.add_observation('s2', str(i), p2[i][0], p2[i][1])
+            inlier_changes = np.count_nonzero(inliers - old_inliers)
+            old_inliers = inliers.copy()
+            if inlier_changes < npoints * 0.05:
+                break
 
-        ba.set_loss_function('TruncatedLoss', threshold);
-        ba.run()
-        s = ba.get_shot('s2')
-        R = cv2.Rodrigues((s.rx, s.ry, s.rz))[0]
-        t = np.array((s.tx, s.ty, s.tz))
-        t /= np.linalg.norm(t)
+            # Refine R, t
+            ba = csfm.BundleAdjuster()
+            ba.add_camera('c1', f1, 0, 0, f1, True)
+            ba.add_camera('c2', f2, 0, 0, f2, True)
+            ba.add_shot('s1', 'c1', 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, True)
+            r = cv2.Rodrigues(R)[0].ravel()
+            ba.add_shot('s2', 'c2', r[0], r[1], r[2], t[0], t[1], t[2], 0, 0, 0, 1, False)
+            for i in xrange(npoints):
+                if inliers[i]:
+                    X = Xs[i]
+                    ba.add_point(str(i), X[0], X[1], X[2], False)
+                    ba.add_observation('s1', str(i), p1[i][0], p1[i][1])
+                    ba.add_observation('s2', str(i), p2[i][0], p2[i][1])
+
+            ba.set_loss_function('TruncatedLoss', threshold);
+            ba.run()
+            s = ba.get_shot('s2')
+            R = cv2.Rodrigues((s.rx, s.ry, s.rz))[0]
+            t = np.array((s.tx, s.ty, s.tz))
+            t /= np.linalg.norm(t)
+    else:
+        return None
 
     return R, t, Xs, np.nonzero(inliers)[0]
 

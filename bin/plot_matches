@@ -88,6 +88,8 @@ if __name__ == "__main__":
                             matches = matches[:,[1,0]]
                         except:
                             continue
+                    if len(matches) == 0:
+                        continue
                     print 'plotting matches between', im1, im2
 
                     p1, f1 = data.load_features(im1)
@@ -96,6 +98,7 @@ if __name__ == "__main__":
                     p2 = p2[matches[:,1]]
 
                     pl.figure(figsize=(20, 10))
+                    pl.title('Images: ' + im1 + ' - ' + im2 + ', matches: ' + str(matches.shape[0]))
                     plot_matches(data.image_as_array(im1), data.image_as_array(im2), p1, p2)
                     i += 1
                     if args.save_figs:
@@ -107,7 +110,8 @@ if __name__ == "__main__":
                         if i >= 10:
                             i = 0
                             pl.show()
-        if not args.save_figs:
+
+        if not args.save_figs and i > 0:
             pl.show()
 
 
