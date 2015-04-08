@@ -8,6 +8,7 @@ import time
 import numpy as np
 import scipy.spatial.distance as dist
 import networkx as nx
+import cv2
 
 from opensfm import dataset, reconstruction
 
@@ -104,6 +105,18 @@ def get_vertical_direction_diffs(direction, directions):
     return vertical_dir_diffs
 
 
+def get_rotations(rotation_matrix, rotation_matrices):
+
+    theta = []
+
+    for R in rotation_matrices:
+        R_between = np.dot(R.T, rotation_matrix)
+        r_between, J = cv2.Rodrigues(R_between)
+        theta.append(np.linalg.norm(r_between))
+
+    return np.array(theta)
+
+
 def get_direction_turns_and_motion_angles(
         min_distance,
         max_distance,
@@ -111,8 +124,10 @@ def get_direction_turns_and_motion_angles(
         distances,
         position,
         direction,
+        rotation_matrix,
         positions,
-        directions):
+        directions,
+        rotation_matrices):
     """ Retrieves the indices for the positions within a distance from the position in the
         interval between the minimum distance and the maximum distance.
         Also calculates the direction change and the difference in motion with respect to the direction for
@@ -124,10 +139,13 @@ def get_direction_turns_and_motion_angles(
     :param distances: The distances for the other positions to the position.
     :param position: The position.
     :param direction: The direction for the position.
+    :param rotation_matrix: The rotation matrix.
     :param positions: All positions.
     :param directions: All directions.
+    :param rotation_matrices: The rotation matrices.
     :return: The indices of the positions in the specified interval. The direction turns in radians in the plane and the
-             motion turns in radians in the plane with respect to the direction.
+             motion turns in radians in the plane with respect to the direction. The vertical direction and motion
+             changes. The rotations.
     """
 
     # Order positions within interval according to shortest distance
@@ -140,14 +158,16 @@ def get_direction_turns_and_motion_angles(
     direction_turns = get_direction_changes(direction, directions[ordered_indices])
     vertical_dir_diffs = get_vertical_direction_diffs(direction, directions[ordered_indices])
     vertical_motion_diffs = get_vertical_direction_diffs(direction, motions)
+    rotations = get_rotations(rotation_matrix, rotation_matrices[ordered_indices])
 
-    return ordered_indices, direction_turns, motion_angles, vertical_dir_diffs, vertical_motion_diffs
+    return ordered_indices, direction_turns, motion_angles, vertical_dir_diffs, vertical_motion_diffs, rotations
 
 
 def create_optical_center_graph(reconstructions, config):
 
     optical_centers = []
     viewing_directions = []
+    rotation_matrices = []
     shot_ids = []
 
     for r in reconstructions:
@@ -155,10 +175,12 @@ def create_optical_center_graph(reconstructions, config):
             shot = r['shots'][shot_id]
             optical_centers.append(reconstruction.optical_center(shot))
             viewing_directions.append(reconstruction.viewing_direction(shot))
+            rotation_matrices.append(cv2.Rodrigues(np.array(shot['rotation'], dtype=float))[0])
             shot_ids.append(shot_id)
 
     optical_centers = np.vstack(optical_centers)
     viewing_directions = np.vstack(viewing_directions)
+    rotation_matrices = np.array(rotation_matrices)
 
     D = dist.squareform(dist.pdist(optical_centers))
 
@@ -197,8 +219,9 @@ def create_optical_center_graph(reconstructions, config):
         distances = D[i, :]
         oc = optical_centers[i]
         vd = viewing_directions[i]
+        rm = rotation_matrices[i]
 
-        ordered_indices, viewing_turns, motion_angles, vertical_dir_diffs, vertical_motion_diffs = \
+        ordered_indices, viewing_turns, motion_angles, vertical_dir_diffs, vertical_motion_diffs, rotations = \
             get_direction_turns_and_motion_angles(
                 min_distance,
                 step_max_distance,
@@ -206,8 +229,10 @@ def create_optical_center_graph(reconstructions, config):
                 distances,
                 oc,
                 vd,
+                rm,
                 optical_centers,
-                viewing_directions
+                viewing_directions,
+                rotation_matrices
         )
 
         for key in steps:
@@ -218,13 +243,14 @@ def create_optical_center_graph(reconstructions, config):
             step_indices = np.where((motion_drift < step[drift])
                                     & (np.abs(viewing_turns) < step[viewing])
                                     & (np.abs(vertical_motion_diffs) < 0.5)
-                                    & (np.abs(vertical_dir_diffs) < 0.5))[0]
+                                    & (np.abs(vertical_dir_diffs) < 0.5)
+                                    & (rotations < 0.5))[0]
 
             if len(step_indices) > 0:
                 step_index = ordered_indices[step_indices[0]]
                 graph.add_edge(shot_ids[i], shot_ids[step_index], weight=distances[step_index], direction=key)
 
-        ordered_indices, viewing_turns, motion_angles, vertical_dir_diffs, vertical_motion_diffs = \
+        ordered_indices, viewing_turns, motion_angles, vertical_dir_diffs, vertical_motion_diffs, rotations = \
             get_direction_turns_and_motion_angles(
                 min_distance,
                 turn_max_distance,
@@ -232,8 +258,10 @@ def create_optical_center_graph(reconstructions, config):
                 distances,
                 oc,
                 vd,
+                rm,
                 optical_centers,
-                viewing_directions
+                viewing_directions,
+                rotation_matrices
         )
 
         for key in turns:
