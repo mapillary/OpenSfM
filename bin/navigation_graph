@@ -250,9 +250,9 @@ def create_optical_center_graph(reconstructions, config):
             step_indices = np.where((dists < step_max_distance)
                                     & (motion_drift < step[drift])
                                     & (np.abs(direction_turns) < step[viewing])
-                                    & (np.abs(vertical_motion_diffs) < 0.5)
-                                    & (np.abs(vertical_dir_diffs) < 0.5)
-                                    & (rotations < 0.5))[0]
+                                    & (np.abs(vertical_motion_diffs) < np.pi/9)
+                                    & (np.abs(vertical_dir_diffs) < np.pi/9)
+                                    & (rotations < np.pi/6))[0]
 
             step_indices = ordered_indices[np.in1d(ordered_indices, step_indices)]
 
@@ -260,29 +260,19 @@ def create_optical_center_graph(reconstructions, config):
                 step_index = position_indices[step_indices[0]]
                 graph.add_edge(shot_ids[i], shot_ids[step_index], weight=distances[step_index], direction=key)
 
-        ordered_indices, viewing_turns, motion_angles, vertical_dir_diffs, vertical_motion_diffs, rotations = \
-            get_direction_turns_and_motion_angles(
-                min_distance,
-                turn_max_distance,
-                0,
-                distances,
-                oc,
-                vd,
-                rm,
-                optical_centers,
-                viewing_directions,
-                rotation_matrices
-        )
-
         for key in turns:
             turn = turns[key]
-            viewing_diff = np.abs(angle_diff(viewing_turns, turn[direction]))
-            turn_indices = np.where((viewing_diff < turn[viewing])
-                                    & (np.abs(vertical_motion_diffs) < 0.5)
-                                    & (np.abs(vertical_dir_diffs) < 0.5))[0]
+            viewing_diff = np.abs(angle_diff(direction_turns, turn[direction]))
+            turn_indices = np.where((dists < turn_max_distance)
+                                    & (viewing_diff < turn[viewing])
+                                    & (np.abs(vertical_motion_diffs) < np.pi/9)
+                                    & (np.abs(vertical_dir_diffs) < np.pi/9))[0]
+
+            ordered_indices = np.argsort(dists)
+            turn_indices = ordered_indices[np.in1d(ordered_indices, turn_indices)]
 
             if len(turn_indices) > 0:
-                turn_index = ordered_indices[turn_indices[0]]
+                turn_index = position_indices[turn_indices[0]]
                 graph.add_edge(shot_ids[i], shot_ids[turn_index], weight=distances[turn_index], direction=key)
 
     return graph
