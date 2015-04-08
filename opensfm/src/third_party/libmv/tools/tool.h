@@ -30,11 +30,11 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
-namespace libmv {
-
 #ifndef gflags
 namespace gflags=google;
 #endif
+
+namespace libmv {
 
 inline void Init(const char *usage, int *argc, char ***argv) {
   google::InitGoogleLogging((*argv)[0]);
