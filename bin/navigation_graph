@@ -122,52 +122,6 @@ def get_rotations(R, Rs):
     return np.array(theta)
 
 
-def get_direction_turns_and_motion_angles(
-        min_distance,
-        max_distance,
-        preferred_distance,
-        distances,
-        position,
-        direction,
-        rotation_matrix,
-        positions,
-        directions,
-        rotation_matrices):
-    """ Retrieves the indices for the positions within a distance from the position in the
-        interval between the minimum distance and the maximum distance.
-        Also calculates the direction change and the difference in motion with respect to the direction for
-        the retrieved positions.
-
-    :param min_distance: Float specifying the minimum distance to the position.
-    :param max_distance: Float specifying the maximum distance to the position.
-    :param preferred_distance: Float specifying the preferred distance to the position.
-    :param distances: The distances for the other positions to the position.
-    :param position: The position.
-    :param direction: The direction for the position.
-    :param rotation_matrix: The rotation matrix.
-    :param positions: All positions.
-    :param directions: All directions.
-    :param rotation_matrices: The rotation matrices.
-    :return: The indices of the positions in the specified interval. The direction turns in radians in the plane and the
-             motion turns in radians in the plane with respect to the direction. The vertical direction and motion
-             changes. The rotations.
-    """
-
-    # Order positions within interval according to shortest distance
-    position_indices = get_positions_indices(min_distance, max_distance, distances)
-    preferred_distances = np.abs(distances[position_indices] - preferred_distance)
-    ordered_indices = position_indices[np.argsort(preferred_distances)]
-
-    motions = positions[ordered_indices] - position
-    motion_angles = get_direction_changes(direction, motions)
-    direction_turns = get_direction_changes(direction, directions[ordered_indices])
-    vertical_dir_diffs = get_vertical_direction_diffs(direction, directions[ordered_indices])
-    vertical_motion_diffs = get_vertical_direction_diffs(direction, motions)
-    rotations = get_rotations(rotation_matrix, rotation_matrices[ordered_indices])
-
-    return ordered_indices, direction_turns, motion_angles, vertical_dir_diffs, vertical_motion_diffs, rotations
-
-
 def create_optical_center_graph(reconstructions, config):
     """ Creates a directed graph with edges between nodes in the reconstruction.
     :param reconstructions: An array of reconstructions.
@@ -256,7 +210,7 @@ def create_optical_center_graph(reconstructions, config):
 
             # Calculate simple penalty function to promote preferred distance and small rotation as
             # well as small motion difference with respect to viewing direction.
-            motion_diffs = np.sqrt(np.square(motion_angles) + np.square(vertical_motion_diffs))
+            motion_diffs = np.sqrt(np.square(motion_drift) + np.square(vertical_motion_diffs))
             penalty = distances_to_pref + 16 * rotations + 8 * motion_diffs
             ordered_indices = np.argsort(penalty)
 
