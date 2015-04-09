@@ -277,7 +277,7 @@ var JourneyBase = (function () {
      * @param {String} to The name of the node for which the edge ends.
      */
     JourneyBase.prototype.getEdgeWeight = function(graphIndex, from, to) {
-        var graph = this.graphs[this.graphIndex];
+        var graph = this.graphs[graphIndex];
         var edges = graph.edges[from];
         var edge = edges[to];
         return edge.weight;
