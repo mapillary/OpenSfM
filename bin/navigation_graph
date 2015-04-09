@@ -169,6 +169,13 @@ def get_direction_turns_and_motion_angles(
 
 
 def create_optical_center_graph(reconstructions, config):
+    """ Creates a directed graph with edges between nodes in the reconstruction.
+    :param reconstructions: An array of reconstructions.
+    :param config: A DataSet configuration.
+    :return: A directed graph based on the optical centers of the reconstruction with edges seven types of
+             directions: step forward, step backward, step left, step right, u-turn, turn left and turn right.
+             The edge weights correspond to the distances between the selected nodes.
+    """
 
     optical_centers = []
     viewing_directions = []
@@ -226,12 +233,16 @@ def create_optical_center_graph(reconstructions, config):
         vd = viewing_directions[i]
         rm = rotation_matrices[i]
 
+        # Retrieve indices for optical centers in [min_distance, max_distance] interval.
         position_indices = get_positions_indices(min_distance, np.max([step_max_distance, turn_max_distance]), distances)
 
-        dists = distances[position_indices]
-        distances_to_pref = np.abs(dists - step_pref_distance)
+        position_distances = distances[position_indices]
+        distances_to_pref = np.abs(position_distances - step_pref_distance)
 
+        # Calculate motions
         motions = optical_centers[position_indices] - oc
+
+        # Retrieve movement properties for possible nodes with respect to current node.
         motion_angles = get_direction_changes(vd, motions)
         direction_turns = get_direction_changes(vd, viewing_directions[position_indices])
         vertical_dir_diffs = get_vertical_direction_diffs(vd, viewing_directions[position_indices])
@@ -243,11 +254,14 @@ def create_optical_center_graph(reconstructions, config):
             motion_drift = angle_diff(motion_angles, step[direction])
             motion_drift = np.max(np.vstack((np.abs(motion_drift - direction_turns), np.abs(motion_drift))), 0)
 
+            # Calculate simple penalty function to promote preferred distance and small rotation as
+            # well as small motion difference with respect to viewing direction.
             motion_diffs = np.sqrt(np.square(motion_angles) + np.square(vertical_motion_diffs))
             penalty = distances_to_pref + 16 * rotations + 8 * motion_diffs
             ordered_indices = np.argsort(penalty)
 
-            step_indices = np.where((dists < step_max_distance)
+            # Get possible nodes based on thresholds for current step kind.
+            step_indices = np.where((position_distances < step_max_distance)
                                     & (motion_drift < step[drift])
                                     & (np.abs(direction_turns) < step[viewing])
                                     & (np.abs(vertical_motion_diffs) < np.pi/9)
@@ -257,21 +271,25 @@ def create_optical_center_graph(reconstructions, config):
             step_indices = ordered_indices[np.in1d(ordered_indices, step_indices)]
 
             if len(step_indices) > 0:
+                # Add edge for node with smallest penalty.
                 step_index = position_indices[step_indices[0]]
                 graph.add_edge(shot_ids[i], shot_ids[step_index], weight=distances[step_index], direction=key)
 
         for key in turns:
             turn = turns[key]
             viewing_diff = np.abs(angle_diff(direction_turns, turn[direction]))
-            turn_indices = np.where((dists < turn_max_distance)
+
+            # Get possible nodes based on thresholds for current turn kind.
+            turn_indices = np.where((position_distances < turn_max_distance)
                                     & (viewing_diff < turn[viewing])
                                     & (np.abs(vertical_motion_diffs) < np.pi/9)
                                     & (np.abs(vertical_dir_diffs) < np.pi/9))[0]
 
-            ordered_indices = np.argsort(dists)
+            ordered_indices = np.argsort(position_distances)
             turn_indices = ordered_indices[np.in1d(ordered_indices, turn_indices)]
 
             if len(turn_indices) > 0:
+                # Add edge for node with smallest distance.
                 turn_index = position_indices[turn_indices[0]]
                 graph.add_edge(shot_ids[i], shot_ids[turn_index], weight=distances[turn_index], direction=key)
 
