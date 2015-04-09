@@ -69,6 +69,7 @@ struct BAShot {
   void SetTX(double v) { parameters[BA_SHOT_TX] = v; }
   void SetTY(double v) { parameters[BA_SHOT_TY] = v; }
   void SetTZ(double v) { parameters[BA_SHOT_TZ] = v; }
+  double GetCovariance(int i, int j) { return covariance[i * BA_SHOT_NUM_PARAMS + j]; }
 };
 
 struct BAPoint {
@@ -484,13 +485,6 @@ class BundleAdjuster {
 
     for (auto &i : shots_) {
       covariance.GetCovarianceBlock(i.second.parameters, i.second.parameters, i.second.covariance);
-
-      for (int a = 0; a < 6; ++ a) {
-        for (int b = 0; b < 6; ++ b) {
-          std::cout << i.second.covariance[6 * a + b] << "  ";
-        }
-        std::cout << "\n";
-      }
     }
   }
 
