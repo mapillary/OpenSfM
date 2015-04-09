@@ -92,6 +92,7 @@ BOOST_PYTHON_MODULE(csfm) {
     .def("set_loss_function", &BundleAdjuster::SetLossFunction)
     .def("set_reprojection_error_sd", &BundleAdjuster::SetReprojectionErrorSD)
     .def("set_internal_parameters_prior_sd", &BundleAdjuster::SetInternalParametersPriorSD)
+    .def("set_compute_covariances", &BundleAdjuster::SetComputeCovariances)
     .def("brief_report", &BundleAdjuster::BriefReport)
     .def("full_report", &BundleAdjuster::FullReport)
   ;

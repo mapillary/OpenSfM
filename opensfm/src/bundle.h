@@ -246,6 +246,7 @@ class BundleAdjuster {
     focal_prior_sd_ = 1;
     k1_sd_ = 1;
     k2_sd_ = 1;
+    compute_covariances_ = false;
   }
 
   virtual ~BundleAdjuster() {}
@@ -365,6 +366,10 @@ class BundleAdjuster {
     k2_sd_ = k2_sd;
   }
 
+  void SetComputeCovariances(bool v) {
+    compute_covariances_ = v;
+  }
+
   void Run() {
     ceres::LossFunction *loss;
     if (loss_function_.compare("TruncatedLoss") == 0) {
@@ -461,13 +466,12 @@ class BundleAdjuster {
 
     ceres::Solve(options, &problem, &last_run_summary_);
 
-    bool compute_covariance = false;
-    if (compute_covariance) {
-      ComuteCovariance(&problem);
+    if (compute_covariances_) {
+      ComuteCovariances(&problem);
     }
   }
 
-  void ComuteCovariance(ceres::Problem *problem) {
+  void ComuteCovariances(ceres::Problem *problem) {
     ceres::Covariance::Options options;
     ceres::Covariance covariance(options);
 
@@ -480,6 +484,13 @@ class BundleAdjuster {
 
     for (auto &i : shots_) {
       covariance.GetCovarianceBlock(i.second.parameters, i.second.parameters, i.second.covariance);
+
+      for (int a = 0; a < 6; ++ a) {
+        for (int b = 0; b < 6; ++ b) {
+          std::cout << i.second.covariance[6 * a + b] << "  ";
+        }
+        std::cout << "\n";
+      }
     }
   }
 
@@ -506,6 +517,8 @@ class BundleAdjuster {
   double focal_prior_sd_;
   double k1_sd_;
   double k2_sd_;
+  bool compute_covariances_;
+
 
   ceres::Solver::Summary last_run_summary_;
 };

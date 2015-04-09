@@ -54,7 +54,7 @@ def bundle(graph, reconstruction, config, fix_cameras=False):
             if track in reconstruction['points']:
                 ba.add_observation(str(shot), str(track), *graph[shot][track]['feature'])
 
-    ba.set_loss_function(config.get('loss_function', 'TruncatedLoss'),
+    ba.set_loss_function(config.get('loss_function', 'SoftLOneLoss'),
                          config.get('loss_function_threshold', 1))
     ba.set_reprojection_error_sd(config.get('reprojection_error_sd', 0.004))
     ba.set_internal_parameters_prior_sd(config.get('exif_focal_sd', 0.01),
