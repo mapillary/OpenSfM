@@ -235,13 +235,18 @@ def create_optical_center_graph(reconstructions, config):
             turn = turns[key]
             viewing_diff = np.abs(angle_diff(direction_turns, turn[direction]))
 
+            # Calculate simple penalty function to promote preferred distance
+            # and motion difference with respect to turn direction.
+            motion_diffs = np.abs(angle_diff(motion_angles, turn[direction]))
+            penalty = distances_to_pref + 8 * motion_diffs
+            ordered_indices = np.argsort(penalty)
+
             # Get possible nodes based on thresholds for current turn kind.
             turn_indices = np.where((position_distances < turn_max_distance)
                                     & (viewing_diff < turn[viewing])
                                     & (np.abs(vertical_motion_diffs) < np.pi/9)
                                     & (np.abs(vertical_dir_diffs) < np.pi/9))[0]
 
-            ordered_indices = np.argsort(position_distances)
             turn_indices = ordered_indices[np.in1d(ordered_indices, turn_indices)]
 
             if len(turn_indices) > 0:
