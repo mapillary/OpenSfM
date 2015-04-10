@@ -152,6 +152,64 @@ var Dijkstra = (function () {
     return Dijkstra;
 })();
 
+var GraphHelper = (function () {
+
+    /**
+     * A class with helper functions for graphs.
+     * @constructor
+     */
+    function GraphHelper() {
+    }
+
+    /**
+     * Retrieves a graph with edges of a certain type.
+     * @param {Object} graph The graph with nodes and weights used for calculation.
+     * @param {String} type The name of the edge type.
+     * @return {Array} A graph where all edges are of the specified type.
+     */
+    GraphHelper.prototype.getTypeGraphs = function(graphs, type) {
+        var typeGraphs = [];
+
+        for (var i = 0; i < graphs.length; i++) {
+            var graph = graphs[i];
+            var typeGraph = { nodes: graph.nodes, edges: {} };
+
+            for (var k in graph.edges) {
+                if (!Object.prototype.hasOwnProperty.call(graph.edges, k)) {
+                    continue;
+                }
+
+                typeGraph.edges[k] = {};
+                var edges = graph.edges[k][type];
+
+                for (var m in edges) {
+                    if (!Object.prototype.hasOwnProperty.call(edges, m)) {
+                        continue;
+                    }
+
+                    typeGraph.edges[k][m] = {};
+
+                    edge_properties = edges[m];
+
+                    for (var ep in edge_properties) {
+                        if (!Object.prototype.hasOwnProperty.call(edge_properties, ep)) {
+                            continue;
+                        }
+
+                        typeGraph.edges[k][m][ep] = edge_properties[ep];
+                    }
+                }
+            }
+
+            typeGraphs.push(typeGraph);
+        }
+
+        return typeGraphs;
+    }
+
+    return GraphHelper;
+})();
+
 var LinearCurve = THREE.Curve.create(
 
 	function (points) {
@@ -233,39 +291,6 @@ var JourneyBase = (function () {
         return penaltyGraph;
     }
 
-    var getTypeGraph = function(graph, type) {
-        var typeGraph = { edges: {} };
-
-        for (var k in graph.edges) {
-            if (!Object.prototype.hasOwnProperty.call(graph.edges, k)) {
-                continue;
-            }
-
-            typeGraph.edges[k] = {};
-            var edges = graph.edges[k][type];
-
-            for (var m in edges) {
-                if (!Object.prototype.hasOwnProperty.call(edges, m)) {
-                    continue;
-                }
-
-                typeGraph.edges[k][m] = {};
-
-                edge_properties = edges[m];
-
-                for (var ep in edge_properties) {
-                    if (!Object.prototype.hasOwnProperty.call(edge_properties, ep)) {
-                        continue;
-                    }
-
-                    typeGraph.edges[k][m][ep] = edge_properties[ep];
-                }
-            }
-        }
-
-        return typeGraph;
-    }
-
     /**
      * Sets the interval time.
      * @param {Integer} intervalTime
@@ -295,7 +320,7 @@ var JourneyBase = (function () {
             return null;
         }
 
-        var journeyGraph = getTypeGraph(this.graphs[index], 'pref');
+        var journeyGraph = this.graphs[index];
         if (this.usePenalty === true) {
             journeyGraph =
                 getPenaltyGraph(
@@ -358,20 +383,9 @@ var JourneyBase = (function () {
      */
     JourneyBase.prototype.getEdgeWeight = function(graphIndex, from, to) {
         var graph = this.graphs[graphIndex];
-        var types = graph.edges[from];
-
-        for (var t in types) {
-            if (!Object.prototype.hasOwnProperty.call(types, t)) {
-                return;
-            }
-
-            edges = types[t];
-
-            if (Object.prototype.hasOwnProperty.call(edges, to)) {
-                var edge = edges[to];
-                return edge.weight;
-            }
-        }
+        var edges = graph.edges[from];
+        var edge = edges[to];
+        return edge.weight;
     }
 
     /**
@@ -764,6 +778,8 @@ var JourneyWrapper = (function ($) {
         this.destination = undefined;
         this.line = undefined;
         this.curveType = undefined;
+
+        this.graphHelper = new GraphHelper();
     }
 
     // Private function for calculating the desired time for moving one unit.
@@ -901,10 +917,12 @@ var JourneyWrapper = (function ($) {
 
             $.getJSON(urlParams.nav, function(data) {
 
+                var graphs = _this.graphHelper.getTypeGraphs(data, 'pref');
+
                 _this.journey =
                     'jou' in urlParams && urlParams.jou === 'basic' ?
                         new Journey(
-                            data,
+                            graphs,
                             convertShots(shots),
                             getInterval(),
                             navigation,
@@ -913,7 +931,7 @@ var JourneyWrapper = (function ($) {
                             preload,
                             true) :
                         new SmoothJourney(
-                            data,
+                            graphs,
                             convertShots(shots),
                             getInterval(),
                             smoothNavigation,
@@ -1141,4 +1159,3 @@ var JourneyWrapper = (function ($) {
 })(jQuery);
 
 var journeyWrapper = new JourneyWrapper();
-
