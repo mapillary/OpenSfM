@@ -14,19 +14,16 @@ var Dijkstra = (function () {
     }
 
      /**
-     * Calculate the shortest path between two nodes in a graph using
-     * Dijkstra's Algorithm.
+     * Private function for running Dijkstra's Algorithm until an evaluation function decides to stop.
      * @param {Object} graph The graph with nodes and weights used for calculation.
      * @param {String} source The name of the source node.
-     * @param {String} target The name of the target node.
      * @param {String} weight The name of the weight property.
-     * @return {Array} An array of node names corresponding to the path
+     * @param {Function} evaluationFunc Function taking the current node and current distance as parameters
+     *                   and returns true if the algorithm should finish.
+     * @return {Object} An object with properties for the visited nodes, the previous nodes and the distances from
+     *                  the source node.
      */
-    Dijkstra.prototype.shortestPath = function (graph, source, target, weight) {
-        if (source === target) {
-            return [source];
-        }
-
+    var dijkstra = function(graph, source, weight, evaluationFunc) {
         var touchedNodes = {};
         var previous = {};
         var distances = {};
@@ -52,12 +49,13 @@ var Dijkstra = (function () {
             // Select the unvisited node with smallest distance and mark it as current node.
             touched.sort(keyValueSorter);
             var currentNode = touched[0][0];
+            var currentDistance = touched[0][1]
 
             visited[currentNode] = true;
             delete touchedNodes[currentNode];
 
-            // Return if we have reached the target.
-            if (currentNode === target) {
+            // Return if the evaluation of the current position returns true..
+            if (evaluationFunc(currentNode, currentDistance)) {
                 break;
             }
 
@@ -86,8 +84,31 @@ var Dijkstra = (function () {
             }
         }
 
+        return { visited: visited, distances: distances, previous: previous }
+    }
+
+     /**
+     * Calculate the shortest path between two nodes in a graph using
+     * Dijkstra's Algorithm.
+     * @param {Object} graph The graph with nodes and weights used for calculation.
+     * @param {String} source The name of the source node.
+     * @param {String} target The name of the target node.
+     * @param {String} weight The name of the weight property.
+     * @return {Array} An array of node names corresponding to the path
+     */
+    Dijkstra.prototype.shortestPath = function (graph, source, target, weight) {
+        if (source === target) {
+            return [source];
+        }
+
+        var evaluationFunc = function (currentNode, currentDistance) {
+            return currentNode === target;
+        };
+
+        var result = dijkstra(graph, source, weight, evaluationFunc);
+
         // No path to the target was found.
-        if (previous[target] === undefined) {
+        if (result.previous[target] === undefined) {
             return null;
         }
 
@@ -96,10 +117,36 @@ var Dijkstra = (function () {
         var element = target;
         while (element !== undefined) {
             reversePath.push(element);
-            element = previous[element];
+            element = result.previous[element];
         }
 
         return reversePath.reverse();
+    }
+
+    /**
+     * Retrieve all other nodes within a distance from a source node based on the edge weights.
+     * @param {Object} graph The graph with nodes and weights used for calculation.
+     * @param {String} source The name of the source node.
+     * @param {String} weight The name of the weight property.
+     * @param {Number} distance The maximum distance between nodes.
+     * @return {Array} An array of node names corresponding to nodes within a distance
+                       from the source node.
+     */
+    Dijkstra.prototype.nodesWithinDistance = function (graph, source, distance, weight) {
+        var evaluationFunc = function (currentNode, currentDistance) {
+            return currentDistance >= distance;
+        };
+
+        var result = dijkstra(graph, source, weight, evaluationFunc);
+
+        var nodes = [];
+        for (var node in result.visited) {
+            if (Object.prototype.hasOwnProperty.call(result.visited, node)) {
+                nodes.push(node);
+            }
+        }
+
+        return nodes;
     }
 
     return Dijkstra;
