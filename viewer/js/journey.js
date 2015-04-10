@@ -167,7 +167,7 @@ var GraphHelper = (function () {
      * @param {String} type The name of the edge type.
      * @return {Array} A graph where all edges are of the specified type.
      */
-    GraphHelper.prototype.getTypeGraphs = function(graphs, type) {
+    GraphHelper.prototype.getTypeGraphs = function (graphs, type) {
         var typeGraphs = [];
 
         for (var i = 0; i < graphs.length; i++) {
@@ -205,6 +205,46 @@ var GraphHelper = (function () {
         }
 
         return typeGraphs;
+    }
+
+    /**
+     * Creates a graph with a penalty for certain properties with certain values.
+     * @param {Object} graph The graph with nodes and weights used for calculation.
+     * @param {String} type The name of the weight key.
+     * @param {String} type The name of the penalty key.
+     * @param {Dictionary} penalties Dictionary of penalty keys with respective penalty amount.
+     */
+    GraphHelper.prototype.getPenaltyGraph = function (graph, weightKey, penaltyKey, penalties) {
+
+        var penaltyGraph = { edges: {} };
+
+        for (var k in graph.edges) {
+            if (!Object.prototype.hasOwnProperty.call(graph.edges, k)) {
+                continue;
+            }
+
+            penaltyGraph.edges[k] = {};
+            var edges = graph.edges[k];
+
+            for (var m in edges) {
+                if (!Object.prototype.hasOwnProperty.call(edges, m)) {
+                    continue;
+                }
+
+                penaltyGraph.edges[k][m] = {};
+
+                // Add penalty to weight if the value of the penalty key corresponds
+                // to the specified penalty value.
+                if (edges[m][penaltyKey] in penalties) {
+                    penaltyGraph.edges[k][m][weightKey] = edges[m][weightKey] + penalties[edges[m][penaltyKey]];
+                }
+                else {
+                    penaltyGraph.edges[k][m][weightKey] = edges[m][weightKey];
+                }
+            }
+        }
+
+        return penaltyGraph;
     }
 
     return GraphHelper;
@@ -254,41 +294,7 @@ var JourneyBase = (function () {
         this.started = false;
         this.preCount = 15;
         this.dijkstra = new Dijkstra();
-    }
-
-    // Private function for creating a graph with a penalty for a certain property with
-    // a certain value.
-    var getPenaltyGraph = function (graph, weightKey, penaltyKey, penalties) {
-
-        var penaltyGraph = { edges: {} };
-
-        for (var k in graph.edges) {
-            if (!Object.prototype.hasOwnProperty.call(graph.edges, k)) {
-                continue;
-            }
-
-            penaltyGraph.edges[k] = {};
-            var edges = graph.edges[k];
-
-            for (var m in edges) {
-                if (!Object.prototype.hasOwnProperty.call(edges, m)) {
-                    continue;
-                }
-
-                penaltyGraph.edges[k][m] = {};
-
-                // Add penalty to weight if the value of the penalty key corresponds
-                // to the specified penalty value.
-                if (edges[m][penaltyKey] in penalties) {
-                    penaltyGraph.edges[k][m][weightKey] = edges[m][weightKey] + penalties[edges[m][penaltyKey]];
-                }
-                else {
-                    penaltyGraph.edges[k][m][weightKey] = edges[m][weightKey];
-                }
-            }
-        }
-
-        return penaltyGraph;
+        this.graphHelper = new GraphHelper();
     }
 
     /**
@@ -323,7 +329,7 @@ var JourneyBase = (function () {
         var journeyGraph = this.graphs[index];
         if (this.usePenalty === true) {
             journeyGraph =
-                getPenaltyGraph(
+                this.graphHelper.getPenaltyGraph(
                     journeyGraph,
                     'weight',
                     'direction',
