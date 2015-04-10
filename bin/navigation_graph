@@ -164,6 +164,7 @@ def create_optical_center_graph(reconstructions, config):
     turn_u_viewing_threshold = np.pi / 2 - turn_viewing_threshold
 
     direction = 'direction'
+    motion = 'motion'
     viewing = 'viewing'
     drift = 'drift'
 
@@ -175,9 +176,9 @@ def create_optical_center_graph(reconstructions, config):
     }
 
     turns = {
-        'turn_left': {direction: -np.pi / 2, viewing: turn_viewing_threshold},
-        'turn_right': {direction: np.pi / 2, viewing: turn_viewing_threshold},
-        'turn_u': {direction: np.pi, viewing: turn_u_viewing_threshold}
+        'turn_left': {direction: -np.pi / 2, motion: -np.pi / 4, viewing: turn_viewing_threshold},
+        'turn_right': {direction: np.pi / 2, motion: np.pi / 4, viewing: turn_viewing_threshold},
+        'turn_u': {direction: np.pi, motion: np.nan, viewing: turn_u_viewing_threshold}
     }
 
     graph = nx.DiGraph()
@@ -236,8 +237,9 @@ def create_optical_center_graph(reconstructions, config):
             viewing_diff = np.abs(angle_diff(direction_turns, turn[direction]))
 
             # Calculate simple penalty function to promote preferred distance
-            # and motion difference with respect to turn direction.
-            motion_diffs = np.abs(angle_diff(motion_angles, turn[direction]))
+            # and motion difference with respect to preferred turn motion.
+            motion_diffs = np.zeros(motion_angles.shape, dtype=np.float64) if np.isnan(turn[motion]) else \
+                np.abs(angle_diff(motion_angles, turn[motion]))
             penalty = distances_to_pref + 8 * motion_diffs
             ordered_indices = np.argsort(penalty)
 
