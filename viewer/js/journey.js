@@ -159,6 +159,40 @@ var GraphHelper = (function () {
      * @constructor
      */
     function GraphHelper() {
+        this.dijkstra = new Dijkstra();
+    }
+
+    var getTypeGraph = function (graph, type) {
+        var typeGraph = { nodes: graph.nodes, edges: {} };
+
+        for (var k in graph.edges) {
+            if (!Object.prototype.hasOwnProperty.call(graph.edges, k)) {
+                continue;
+            }
+
+            typeGraph.edges[k] = {};
+            var edges = graph.edges[k][type];
+
+            for (var m in edges) {
+                if (!Object.prototype.hasOwnProperty.call(edges, m)) {
+                    continue;
+                }
+
+                typeGraph.edges[k][m] = {};
+
+                edge_properties = edges[m];
+
+                for (var ep in edge_properties) {
+                    if (!Object.prototype.hasOwnProperty.call(edge_properties, ep)) {
+                        continue;
+                    }
+
+                    typeGraph.edges[k][m][ep] = edge_properties[ep];
+                }
+            }
+        }
+
+        return typeGraph;
     }
 
     /**
@@ -171,40 +205,43 @@ var GraphHelper = (function () {
         var typeGraphs = [];
 
         for (var i = 0; i < graphs.length; i++) {
-            var graph = graphs[i];
-            var typeGraph = { nodes: graph.nodes, edges: {} };
-
-            for (var k in graph.edges) {
-                if (!Object.prototype.hasOwnProperty.call(graph.edges, k)) {
-                    continue;
-                }
-
-                typeGraph.edges[k] = {};
-                var edges = graph.edges[k][type];
-
-                for (var m in edges) {
-                    if (!Object.prototype.hasOwnProperty.call(edges, m)) {
-                        continue;
-                    }
-
-                    typeGraph.edges[k][m] = {};
-
-                    edge_properties = edges[m];
-
-                    for (var ep in edge_properties) {
-                        if (!Object.prototype.hasOwnProperty.call(edge_properties, ep)) {
-                            continue;
-                        }
-
-                        typeGraph.edges[k][m][ep] = edge_properties[ep];
-                    }
-                }
-            }
-
+            var typeGraph = getTypeGraph(graphs[i], type)
             typeGraphs.push(typeGraph);
         }
 
         return typeGraphs;
+    }
+
+    /**
+     * Retrieves a graph with edges of a default type. The default type edges are overridden by
+     * edges of the override type for nodes within a threshold distance from a target node.
+     * @param {Object} graph The graph with nodes and weights used for calculation.
+     * @param {String} defaultType The name of the default edge type.
+     * @param {String} overrideType The name of the override edge type.
+     * @param {String} target The name of the override target node from which the other override nodes are retrieved..
+     * @return {Array} A graph where all edges are of the specified type.
+     */
+    GraphHelper.prototype.mergeTypeGraphs = function (graphs, defaultType, overrideType, target, distance) {
+        var mergedGraphs = [];
+
+        for (var i = 0; i < graphs.length; i++) {
+            var graph = graphs[i];
+            var mergedGraph = getTypeGraph(graph, defaultType);
+
+            if (graph.nodes.indexOf(target) > -1) {
+                var overrideGraph = getTypeGraph(graph, overrideType);
+                var overrideNodes = this.dijkstra.nodesWithinDistance(overrideGraph, target, distance, 'weight');
+
+                for (var i = 0; i < overrideNodes.length; i++) {
+                    overrideNode = overrideNodes[i];
+                    mergedGraph.edges[overrideNode] = graph.edges[overrideNode][overrideType];
+                }
+            }
+
+            mergedGraphs.push(mergedGraph);
+        }
+
+        return mergedGraphs;
     }
 
     /**
@@ -923,7 +960,7 @@ var JourneyWrapper = (function ($) {
 
             $.getJSON(urlParams.nav, function(data) {
 
-                var graphs = _this.graphHelper.getTypeGraphs(data, 'pref');
+                var graphs = _this.graphHelper.mergeTypeGraphs(data, 'pref', 'pos', _this.destination, 10)
 
                 _this.journey =
                     'jou' in urlParams && urlParams.jou === 'basic' ?
