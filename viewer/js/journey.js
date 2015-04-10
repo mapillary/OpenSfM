@@ -233,6 +233,39 @@ var JourneyBase = (function () {
         return penaltyGraph;
     }
 
+    var getTypeGraph = function(graph, type) {
+        var typeGraph = { edges: {} };
+
+        for (var k in graph.edges) {
+            if (!Object.prototype.hasOwnProperty.call(graph.edges, k)) {
+                continue;
+            }
+
+            typeGraph.edges[k] = {};
+            var edges = graph.edges[k][type];
+
+            for (var m in edges) {
+                if (!Object.prototype.hasOwnProperty.call(edges, m)) {
+                    continue;
+                }
+
+                typeGraph.edges[k][m] = {};
+
+                edge_properties = edges[m];
+
+                for (var ep in edge_properties) {
+                    if (!Object.prototype.hasOwnProperty.call(edge_properties, ep)) {
+                        continue;
+                    }
+
+                    typeGraph.edges[k][m][ep] = edge_properties[ep];
+                }
+            }
+        }
+
+        return typeGraph;
+    }
+
     /**
      * Sets the interval time.
      * @param {Integer} intervalTime
@@ -262,7 +295,7 @@ var JourneyBase = (function () {
             return null;
         }
 
-        var journeyGraph = this.graphs[index];
+        var journeyGraph = getTypeGraph(this.graphs[index], 'pref');
         if (this.usePenalty === true) {
             journeyGraph =
                 getPenaltyGraph(
@@ -325,9 +358,20 @@ var JourneyBase = (function () {
      */
     JourneyBase.prototype.getEdgeWeight = function(graphIndex, from, to) {
         var graph = this.graphs[graphIndex];
-        var edges = graph.edges[from];
-        var edge = edges[to];
-        return edge.weight;
+        var types = graph.edges[from];
+
+        for (var t in types) {
+            if (!Object.prototype.hasOwnProperty.call(types, t)) {
+                return;
+            }
+
+            edges = types[t];
+
+            if (Object.prototype.hasOwnProperty.call(edges, to)) {
+                var edge = edges[to];
+                return edge.weight;
+            }
+        }
     }
 
     /**
