@@ -98,6 +98,12 @@ struct BARotationPrior {
   double std_deviation;
 };
 
+struct BATranslationPrior {
+  BAShot *shot;
+  double translation[3];
+  double std_deviation;
+};
+
 struct BAPointPositionPrior {
   BAPoint *point;
   double position[3];
@@ -241,6 +247,23 @@ struct RotationPriorError {
   double scale_;
 };
 
+struct TranslationPriorError {
+  TranslationPriorError(double *translation_prior, double std_deviation)
+      : translation_prior_(translation_prior)
+      , scale_(1.0 / std_deviation)
+  {}
+
+  template <typename T>
+  bool operator()(const T* const parameters, T* residuals) const {
+    residuals[0] = T(scale_) * (T(translation_prior_[0]) - parameters[BA_SHOT_TX]);
+    residuals[1] = T(scale_) * (T(translation_prior_[1]) - parameters[BA_SHOT_TY]);
+    residuals[2] = T(scale_) * (T(translation_prior_[2]) - parameters[BA_SHOT_TZ]);
+    return true;
+  }
+
+  double *translation_prior_;
+  double scale_;
+};
 
 struct UnitTranslationPriorError {
   UnitTranslationPriorError() {}
@@ -420,6 +443,21 @@ class BundleAdjuster {
     rotation_priors_.push_back(p);
   }
 
+  void AddTranslationPrior(
+      const std::string &shot_id,
+      double tx,
+      double ty,
+      double tz,
+      double std_deviation) {
+    BATranslationPrior p;
+    p.shot = &shots_[shot_id];
+    p.translation[0] = tx;
+    p.translation[1] = ty;
+    p.translation[2] = tz;
+    p.std_deviation = std_deviation;
+    translation_priors_.push_back(p);
+  }
+
   void AddPointPositionPrior(
       const std::string &point_id,
       double x,
@@ -512,6 +550,18 @@ class BundleAdjuster {
       problem.AddResidualBlock(cost_function,
                                NULL,
                                rotation_priors_[i].shot->parameters);
+    }
+
+    // Add translation priors
+    for (int i = 0; i < translation_priors_.size(); ++i) {
+      ceres::CostFunction* cost_function = 
+          new ceres::AutoDiffCostFunction<TranslationPriorError, 3, 6>(
+              new TranslationPriorError(translation_priors_[i].translation,
+                                        translation_priors_[i].std_deviation));
+
+      problem.AddResidualBlock(cost_function,
+                               NULL,
+                               translation_priors_[i].shot->parameters);
     }
 
     // Add point position priors
@@ -624,6 +674,7 @@ class BundleAdjuster {
 
   std::vector<BAObservation> observations_;
   std::vector<BARotationPrior> rotation_priors_;
+  std::vector<BATranslationPrior> translation_priors_;
   std::vector<BAPointPositionPrior> point_position_priors_;
 
   BAShot *unit_translation_shot_;
