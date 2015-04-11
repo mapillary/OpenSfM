@@ -424,11 +424,11 @@ var JourneyBase = (function () {
      * @param {String} from The name of the node for which the edge starts.
      * @param {String} to The name of the node for which the edge ends.
      */
-    JourneyBase.prototype.getEdgeWeight = function(graphIndex, from, to) {
+    JourneyBase.prototype.getEdge = function(graphIndex, from, to) {
         var graph = this.graphs[graphIndex];
         var edges = graph.edges[from];
         var edge = edges[to];
-        return edge.weight;
+        return edge;
     }
 
     /**
@@ -680,8 +680,9 @@ var SmoothJourney = (function () {
         var previousPoint = (this.path.length - 1) * this.t;
         var previousIndex = Math.floor(previousPoint);
         var previousWeight = this.u >= 1 ? 1 : previousPoint - previousIndex;
+        var previousEdge = this.getEdge(this.graphIndex, this.path[this.currentIndex], this.path[this.currentIndex + 1]);
 
-        var speedCoefficient = this.speedFunction(previousWeight);
+        var speedCoefficient = this.speedFunction(previousWeight, previousEdge);
         elapsed = speedCoefficient * elapsed;
 
         this.previousTime = currentTime;
@@ -712,9 +713,9 @@ var SmoothJourney = (function () {
 
         // Do not reset the weight after reaching the last node.
         var weight = this.u >= 1 ? 1 : point - index;
-        var edgeLength = this.getEdgeWeight(this.graphIndex, this.path[this.currentIndex], this.path[this.currentIndex + 1]);
+        var edge = this.getEdge(this.graphIndex, this.path[this.currentIndex], this.path[this.currentIndex + 1]);
 
-        this.navigationAction(position, target, this.weightFunction(weight, edgeLength));
+        this.navigationAction(position, target, this.weightFunction(weight, edge));
 
         if (this.u >= 1) {
             this.stop(false);
@@ -951,8 +952,8 @@ var JourneyWrapper = (function ($) {
     }
 
     // Private function for mapping the weight in [0, 1] to another weight in [0, 1].
-    var weightFunction = function (weight, length) {
-        var transitionLength = 4;
+    var weightFunction = function (weight, edge) {
+        var transitionLength = ['step_left', 'step_right'].indexOf(edge.direction) > -1 ? edge.weight : 4;
         var lowerBound = Math.max((length - transitionLength) / (2 * length), 0);
         var upperBound = Math.min((length + transitionLength) / (2 * length), 1);
 
@@ -962,8 +963,10 @@ var JourneyWrapper = (function ($) {
     }
 
     // Private function for determining the speed based on the position between nodes.
-    var speedFunction = function (weight) {
-        var k = 1 + 1.5 * Math.abs(0.35 - Math.min(Math.abs(weight - 0.65), 0.35));
+    var speedFunction = function (weight, edge) {
+        var length = ['step_left', 'step_right'].indexOf(edge.direction) > -1 ? 0 : edge.weight;
+        var fraction = Math.min(Math.max(length - 2, 0), 2) / 2;
+        var k = 1 + fraction * 1.5 * Math.abs(0.35 - Math.min(Math.abs(weight - 0.65), 0.35));
         return k;
     }
 
