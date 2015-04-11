@@ -250,6 +250,7 @@ var GraphHelper = (function () {
      * @param {String} type The name of the weight key.
      * @param {String} type The name of the penalty key.
      * @param {Dictionary} penalties Dictionary of penalty keys with respective penalty amount.
+     * @return {Object} A graph with edge weights as sum of original weight and specified penalty.
      */
     GraphHelper.prototype.getPenaltyGraph = function (graph, weightKey, penaltyKey, penalties) {
 
@@ -282,6 +283,19 @@ var GraphHelper = (function () {
         }
 
         return penaltyGraph;
+    }
+
+    /**
+     * Retrieves the directed edge between a start node and an adjacent end node.
+     * @param {Integer} graph The graph.
+     * @param {String} from The name of the node for which the edge starts.
+     * @param {String} to The name of the node for which the edge ends.
+     * @return {Dictionary} The edge properties.
+     */
+    GraphHelper.prototype.getEdgeProperties = function(graph, from, to) {
+        var nodeEdges = graph.edges[from];
+        var edgeProperties = nodeEdges[to];
+        return edgeProperties;
     }
 
     return GraphHelper;
@@ -389,6 +403,7 @@ var JourneyBase = (function () {
      * Creates a geometry based on an existing property of the nodes in the path.
      * @param {Array} path Nodes to create geometry from.
      * @param {String} property Name of the shot property to use.
+     * @return {THREE.Geometry} A geometry for the path.
      */
     JourneyBase.prototype.getGeometry = function (path, property) {
         var geometry = new THREE.Geometry();
@@ -407,6 +422,7 @@ var JourneyBase = (function () {
      * shortest path between the specified nodes.
      * @param {String} from Name of the start node.
      * @param {String} to Name of the end node.
+     * @return {THREE.Geometry} A geometry for the shortest path between the nodes.
      */
     JourneyBase.prototype.getPathGeometry = function (from, to) {
 
@@ -419,16 +435,14 @@ var JourneyBase = (function () {
     }
 
     /**
-     * Retrieves the edge weight for an edge between two adjacent nodes.
+     * Retrieves the directed edge between a start node and an adjacent end node.
      * @param {Integer} graphIndex The index of the graph.
      * @param {String} from The name of the node for which the edge starts.
      * @param {String} to The name of the node for which the edge ends.
+     * @return {Dictionary} The edge properties.
      */
     JourneyBase.prototype.getEdge = function(graphIndex, from, to) {
-        var graph = this.graphs[graphIndex];
-        var edges = graph.edges[from];
-        var edge = edges[to];
-        return edge;
+        return this.graphHelper.getEdgeProperties(this.graphs[graphIndex], from, to);
     }
 
     /**
