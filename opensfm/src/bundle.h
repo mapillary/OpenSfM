@@ -98,6 +98,12 @@ struct BARotationPrior {
   double std_deviation;
 };
 
+struct BAPointPositionPrior {
+  BAPoint *point;
+  double position[3];
+  double std_deviation;
+};
+
 class TruncatedLoss : public ceres::LossFunction {
  public:
   explicit TruncatedLoss(double t)
@@ -248,6 +254,25 @@ struct UnitTranslationPriorError {
 };
 
 
+struct PointPositionPriorError {
+  PointPositionPriorError(double *position, double std_deviation)
+      : position_(position)
+      , scale_(1.0 / std_deviation)
+  {}
+
+  template <typename T>
+  bool operator()(const T* const p, T* residuals) const {
+    residuals[0] = T(scale_) * (p[0] - T(position_[0]));
+    residuals[1] = T(scale_) * (p[1] - T(position_[1]));
+    residuals[2] = T(scale_) * (p[2] - T(position_[2]));
+    return true;
+  }
+
+  double *position_;
+  double scale_;
+};
+
+
 struct GPSPriorError {
   GPSPriorError(double x, double y, double z, double std_deviation)
       : x_(x), y_(y), z_(z)
@@ -395,6 +420,22 @@ class BundleAdjuster {
     rotation_priors_.push_back(p);
   }
 
+  void AddPointPositionPrior(
+      const std::string &point_id,
+      double x,
+      double y,
+      double z,
+      double std_deviation) {
+    BAPointPositionPrior p;
+    p.point = &points_[point_id];
+    p.position[0] = x;
+    p.position[1] = y;
+    p.position[2] = z;
+    p.std_deviation = std_deviation;
+    point_position_priors_.push_back(p);
+  }
+
+
   void SetOriginShot(const std::string &shot_id) {
     BAShot *shot = &shots_[shot_id];
     for (int i = 0; i < 6; ++i) shot->parameters[0] = 0;
@@ -473,6 +514,19 @@ class BundleAdjuster {
                                rotation_priors_[i].shot->parameters);
     }
 
+    // Add point position priors
+    for (int i = 0; i < point_position_priors_.size(); ++i) {
+      ceres::CostFunction* cost_function = 
+          new ceres::AutoDiffCostFunction<PointPositionPriorError, 3, 3>(
+              new PointPositionPriorError(point_position_priors_[i].position,
+                                          point_position_priors_[i].std_deviation));
+
+      problem.AddResidualBlock(cost_function,
+                               NULL,
+                               point_position_priors_[i].point->coordinates);
+    }
+
+
     // Add internal parameter priors blocks
     for (auto &i : cameras_) {
       ceres::CostFunction* cost_function = 
@@ -534,11 +588,11 @@ class BundleAdjuster {
     ceres::Solve(options, &problem, &last_run_summary_);
 
     if (compute_covariances_) {
-      ComuteCovariances(&problem);
+      ComputeCovariances(&problem);
     }
   }
 
-  void ComuteCovariances(ceres::Problem *problem) {
+  void ComputeCovariances(ceres::Problem *problem) {
     ceres::Covariance::Options options;
     ceres::Covariance covariance(options);
 
@@ -570,6 +624,7 @@ class BundleAdjuster {
 
   std::vector<BAObservation> observations_;
   std::vector<BARotationPrior> rotation_priors_;
+  std::vector<BAPointPositionPrior> point_position_priors_;
 
   BAShot *unit_translation_shot_;
 
