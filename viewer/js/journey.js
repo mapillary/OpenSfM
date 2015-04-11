@@ -614,6 +614,7 @@ var SmoothJourney = (function () {
      * @param {Function} continuationAction The action to execute when the journey is stopped for smooth stopping.
      * @param {Function} preloadAction The action to run when stopping a journey.
      * @param {Function} weightFunction A function that maps a value between in [0. 1] to another value in [0, 1],
+     * @param {Function} speedFunction Function returning speed coefficient based on the current position between nodes.
      * @param {Type} curveType The type of the curve used for movement. Must inherit from THREE.Curve.
      * @param {Boolean} usePenalty Value indicating if a penalty should be used.
      */
@@ -628,6 +629,7 @@ var SmoothJourney = (function () {
         continuationAction,
         preloadAction,
         weightFunction,
+        speedFunction,
         curveType,
         usePenalty) {
 
@@ -640,11 +642,13 @@ var SmoothJourney = (function () {
         this.continuationAction = continuationAction;
         this.preloadAction = preloadAction;
         this.weightFunction = weightFunction;
+        this.speedFunction = speedFunction;
         this.curveType = curveType;
 
         this.previousTime = undefined;
         this.currentIndex = 0;
         this.u = 0;
+        this.t = 0;
         this.path = undefined;
         this.graphIndex = undefined;
         this.positionCurve = undefined;
@@ -672,14 +676,22 @@ var SmoothJourney = (function () {
         }
 
         var elapsed = currentTime - this.previousTime;
+
+        var previousPoint = (this.path.length - 1) * this.t;
+        var previousIndex = Math.floor(previousPoint);
+        var previousWeight = this.u >= 1 ? 1 : previousPoint - previousIndex;
+
+        var speedCoefficient = this.speedFunction(previousWeight);
+        elapsed = speedCoefficient * elapsed;
+
         this.previousTime = currentTime;
         var totalTime = this.intervalTime * this.positionCurve.getLength();
 
         this.u = Math.min(this.u + (elapsed / totalTime), 1);
 
         // Retrieve t from the position curve to calculate index.
-        var t = this.positionCurve.getUtoTmapping(this.u);
-        var point = (this.path.length - 1) * t;
+        this.t = this.positionCurve.getUtoTmapping(this.u);
+        var point = (this.path.length - 1) * this.t;
         var index = Math.floor(point);
 
         if (index > this.currentIndex && index < this.path.length - 1) {
@@ -695,8 +707,8 @@ var SmoothJourney = (function () {
             this.nodeAction(this.path[this.currentIndex + 1]);
         }
 
-        var position = this.positionCurve.getPoint(t);
-        var target = this.targetCurve.getPoint(t);
+        var position = this.positionCurve.getPoint(this.t);
+        var target = this.targetCurve.getPoint(this.t);
 
         // Do not reset the weight after reaching the last node.
         var weight = this.u >= 1 ? 1 : point - index;
@@ -740,6 +752,7 @@ var SmoothJourney = (function () {
 
         this.previousTime = Date.now();
         this.u = 0;
+        this.t = 0;
         this.currentIndex = 0;
 
         this.startAction();
@@ -777,6 +790,7 @@ var SmoothJourney = (function () {
         this.previousTime = undefined;
         this.currentIndex = 0;
         this.u = 0;
+        this.t = 0;
 
         if (continuation === true) {
             this.continuationAction(nextNode);
@@ -947,6 +961,12 @@ var JourneyWrapper = (function ($) {
         return Math.min(Math.max(result, 0), 1);
     }
 
+    // Private function for determining the speed based on the position between nodes.
+    var speedFunction = function (weight) {
+        var k = 1 + 1.5 * Math.abs(0.35 - Math.min(Math.abs(weight - 0.65), 0.35));
+        return k;
+    }
+
     /**
      * Initializes a journey wrapper.
      * @param {shots} Dictionary of shots with rotation and translation arrays.
@@ -984,6 +1004,7 @@ var JourneyWrapper = (function ($) {
                             continuation,
                             preload,
                             weightFunction,
+                            speedFunction,
                             _this.curveType,
                             true);
 
