@@ -22,25 +22,18 @@ def show_images(plot, im1, im2):
     plot.imshow(image)
 
 
-def show_image(plot, im1):
-    plot.imshow(im1)
-
-
-def plot_points(plot, im1, im2, p1, p2, point_format1='ob', point_format2='ob'):
+def plot_points(plot, im1, p1, point_format1='ob', im2=None, p2=None, point_format2='ob'):
     h1, w1, c = im1.shape
-    h2, w2, c = im2.shape
     p1d = features.denormalized_image_coordinates(p1, w1, h1)
+    plot.plot(p1d[:, 0], p1d[:, 1], point_format1)
+
+    if im2 is None or p2 is None:
+        return
+
+    h2, w2, c = im2.shape
     p2d = features.denormalized_image_coordinates(p2, w2, h2)
 
-    plot.plot(p1d[:, 0], p1d[:, 1], point_format1)
     plot.plot(p2d[:, 0] + w1, p2d[:, 1], point_format2)
-
-
-def plot_point(plot, im, p, point_format='ob'):
-    h, w, c = im.shape
-    pd = features.denormalized_image_coordinates(p, w, h)
-
-    plot.plot(pd[:, 0], pd[:, 1], point_format)
 
 
 def plot_matches(plot, im1, im2, p1, p2, line_format='c', point_format='ob'):
@@ -51,7 +44,7 @@ def plot_matches(plot, im1, im2, p1, p2, line_format='c', point_format='ob'):
     for a, b in zip(p1d, p2d):
         plot.plot([a[0], b[0] + w1], [a[1], b[1]], line_format)
 
-    plot_points(plot, im1, im2, p1, p2, point_format, point_format)
+    plot_points(plot, im1, p1, point_format, im2, p2, point_format)
 
 
 def create_subplot(figure, rows, columns, index, title, width):
@@ -71,7 +64,7 @@ def plot_points_sub(figure, rows, columns, index, title, im1, im2, p1, p2, point
     subplot = create_subplot(figure, rows, columns, index, title, im1.shape[1] + im2.shape[1])
 
     show_images(subplot, im1, im2)
-    plot_points(subplot, im1, im2, p1, p2, point_format1, point_format2)
+    plot_points(subplot, im1, p1, point_format1, im2, p2, point_format2)
 
     return subplot
 
@@ -380,11 +373,11 @@ def create_complete_reconstruction_figure(im, data, save_figs=False):
 
     title = 'Tracks: {0}. Reconstructed points: {1}. Triangulation and reprojection error removals: {2}'.format(
         tracks.shape[0], rec_tracks.shape[0], tracks.shape[0] - rec_tracks.shape[0])
-    sub = create_subplot(fig, 1, 1, 1, title, im_array.shape[1])
-    show_image(sub, im_array)
-    plot_point(sub, im_array, track_points, 'or')
-    plot_point(sub, im_array, rec_track_points, 'ob')
-    plot_point(sub, im_array, reprojected_points, '+w')
+    rec_plot = create_subplot(fig, 1, 1, 1, title, im_array.shape[1])
+    rec_plot.imshow(im_array)
+    plot_points(rec_plot, im_array, track_points, 'or')
+    plot_points(rec_plot, im_array, rec_track_points, 'ob')
+    plot_points(rec_plot, im_array, reprojected_points, '+w')
 
     fig.subplots_adjust(left=0.01, bottom=0, right=0.99, top=0.97, wspace=0, hspace=0)
 
