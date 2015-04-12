@@ -258,35 +258,57 @@ def create_tracks_figure(im1, im2, data, save_figs=False):
 
     reconstruction = reconstruct.bootstrap_reconstruction(data, graph, im1, im2)
 
-    robust_rec_tracks = []
-    non_robust_rec_tracks = []
-    for track in reconstruction['points']:
-        track = int(track)
-        if track in non_robust_tracks[:, 2]:
-            non_robust_track = np.squeeze(np.array(non_robust_tracks[non_robust_tracks[:, 2] == track]))
-            non_robust_rec_tracks.append(non_robust_track)
-        else:
-            robust_track = np.squeeze(np.array(track_matches[track_matches[:, 2] == track]))
-            robust_rec_tracks.append(robust_track)
+    if reconstruction:
+        robust_rec_tracks = []
+        non_robust_rec_tracks = []
+        for track in reconstruction['points']:
+            track = int(track)
+            if track in non_robust_tracks[:, 2]:
+                non_robust_track = np.squeeze(np.array(non_robust_tracks[non_robust_tracks[:, 2] == track]))
+                non_robust_rec_tracks.append(non_robust_track)
+            else:
+                robust_track = np.squeeze(np.array(track_matches[track_matches[:, 2] == track]))
+                robust_rec_tracks.append(robust_track)
 
-    robust_rec_tracks = np.array(robust_rec_tracks)
-    non_robust_rec_tracks = np.array(non_robust_rec_tracks)
+        failed_rec_tracks = []
+        for track in track_matches:
+            if not str(track[2]) in reconstruction['points']:
+                failed_rec_tracks.append(track)
 
-    robust_rec_points1 = p1[robust_rec_tracks[:, 0]]
-    robust_rec_points2 = p2[robust_rec_tracks[:, 1]]
+        robust_rec_tracks = np.array(robust_rec_tracks)
+        non_robust_rec_tracks = np.array(non_robust_rec_tracks)
+        failed_rec_tracks = np.array(failed_rec_tracks)
 
-    non_robust_rec_points1 = p1[non_robust_rec_tracks[:, 0]]
-    non_robust_rec_points2 = p2[non_robust_rec_tracks[:, 1]]
+        robust_rec_points1 = p1[robust_rec_tracks[:, 0]]
+        robust_rec_points2 = p2[robust_rec_tracks[:, 1]]
 
-    rec_title = 'Reconstructed 3D points: {0}. Robust {1}. Non robust: {2}. Failed: {3}'.format(
-        len(reconstruction['points']),
-        robust_rec_tracks.shape[0],
-        non_robust_rec_tracks.shape[0],
-        track_matches.shape[0] - (robust_rec_tracks.shape[0] + non_robust_rec_tracks.shape[0]))
+        non_robust_rec_points1 = p1[non_robust_rec_tracks[:, 0]]
+        non_robust_rec_points2 = p2[non_robust_rec_tracks[:, 1]]
 
-    rec_plot = plot_matches_sub(
-        fig, 2, 2, 4, rec_title, im1_array, im2_array, robust_rec_points1, robust_rec_points2, 'c', 'ob')
-    plot_matches(rec_plot, im1_array, im2_array, non_robust_rec_points1, non_robust_rec_points2, 'g', 'oy')
+        failed_rec_points1 = p1[failed_rec_tracks[:, 0]]
+        failed_rec_points2 = p2[failed_rec_tracks[:, 1]]
+
+        rec_title = \
+            'Reconstructed 3D points: {0}. Robust {1}. Non robust: {2}. Failed: {3}. '.format(
+                len(reconstruction['points']),
+                robust_rec_tracks.shape[0],
+                non_robust_rec_tracks.shape[0],
+                failed_rec_tracks.shape[0]) + \
+            'Triangulation threshold: {0:.4f}. Min ray angle: {1}.'.format(
+                data.config.get('triangulation_threshold', 0.004),
+                data.config.get('triangulation_min_ray_angle', 2.0))
+
+        rec_plot = plot_matches_sub(
+            fig, 2, 2, 4, rec_title, im1_array, im2_array, robust_rec_points1, robust_rec_points2, 'c', 'ob')
+        plot_matches(rec_plot, im1_array, im2_array, non_robust_rec_points1, non_robust_rec_points2, 'g', 'oy')
+        plot_matches(rec_plot, im1_array, im2_array, failed_rec_points1, failed_rec_points2, 'r', 'om')
+    else:
+        failed_title = \
+            'Reconstruction failed. Less than {0} points. Triangulation threshold: {1:.4f}. Min ray angle: {2}. '.format(
+                data.config.get('five_point_algo_min_inliers', 50),
+                data.config.get('triangulation_threshold', 0.004),
+                data.config.get('triangulation_min_ray_angle', 2.0))
+        create_subplot(fig, 2, 2, 4, failed_title, 100)
 
     fig.subplots_adjust(left=0.01, bottom=0, right=0.99, top=0.97, wspace=0.04, hspace=0)
 
