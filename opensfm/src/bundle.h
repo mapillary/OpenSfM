@@ -335,6 +335,7 @@ class BundleAdjuster {
     k1_sd_ = 1;
     k2_sd_ = 1;
     compute_covariances_ = false;
+    covariance_estimation_valid_ = false;
   }
 
   virtual ~BundleAdjuster() {}
@@ -504,6 +505,10 @@ class BundleAdjuster {
     compute_covariances_ = v;
   }
 
+  bool GetCovarianceEstimationValid() {
+    return covariance_estimation_valid_;
+  }
+
   void Run() {
     ceres::LossFunction *loss;
     if (loss_function_.compare("TruncatedLoss") == 0) {
@@ -651,10 +656,28 @@ class BundleAdjuster {
       covariance_blocks.push_back(std::make_pair(i.second.parameters, i.second.parameters));
     }
 
-    CHECK(covariance.Compute(covariance_blocks, problem));
+    bool worked = covariance.Compute(covariance_blocks, problem);
 
-    for (auto &i : shots_) {
-      covariance.GetCovarianceBlock(i.second.parameters, i.second.parameters, i.second.covariance);
+    if (worked) {
+      for (auto &i : shots_) {
+        covariance_estimation_valid_ = true;
+        covariance.GetCovarianceBlock(i.second.parameters, i.second.parameters, i.second.covariance);
+      }
+    } else { // If covariance estimation failed, use a default value
+      for (auto &i : shots_) {
+        covariance_estimation_valid_ = false;
+        for (int k = 0; k < 6 * 6; ++k) {
+          i.second.covariance[k] = 0.0;
+        }
+        double default_rotation_variance = 1e-5;
+        double default_translation_variance = 1e-2;
+        i.second.covariance[6 * 0 + 0] = default_rotation_variance;
+        i.second.covariance[6 * 1 + 1] = default_rotation_variance;
+        i.second.covariance[6 * 2 + 2] = default_rotation_variance;
+        i.second.covariance[6 * 3 + 3] = default_translation_variance;
+        i.second.covariance[6 * 4 + 4] = default_translation_variance;
+        i.second.covariance[6 * 5 + 5] = default_translation_variance;
+      }
     }
   }
 
@@ -686,6 +709,7 @@ class BundleAdjuster {
   double k1_sd_;
   double k2_sd_;
   bool compute_covariances_;
+  bool covariance_estimation_valid_;
 
 
   ceres::Solver::Summary last_run_summary_;
