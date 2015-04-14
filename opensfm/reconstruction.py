@@ -341,11 +341,18 @@ def angle_between_rays(KR11, x1, KR12, x2):
     if cos >= 1.0: return 0.0
     else: return math.acos(cos)
 
+def angle_between_vectors(u, v):
+    cos = (u[0] * v[0] + u[1] * v[1] + u[2] * v[2]) / math.sqrt(
+        (u[0] * u[0] + u[1] * u[1] + u[2] * u[2]) * (v[0] * v[0] + v[1] * v[1] + v[2] * v[2]))
+    if cos >= 1.0: return 0.0
+    else: return math.acos(cos)
 
-def triangulate_track(track, graph, reconstruction, P_by_id, KR1_by_id, UNUSED, reproj_threshold, min_ray_angle=2.0):
+
+def triangulate_track(track, graph, reconstruction, P_by_id, KR1_by_id, UNUSED, reproj_threshold, min_ray_angle_degrees=2.0):
     ''' Triangulate a track
     '''
-    Ps, KR1s, xs = [], [], []
+    min_ray_angle = np.radians(min_ray_angle_degrees)
+    Ps, KR1s, xs, vs = [], [], [], []
 
     for shot in graph[track]:
         if shot in reconstruction['shots']:
@@ -356,16 +363,24 @@ def triangulate_track(track, graph, reconstruction, P_by_id, KR1_by_id, UNUSED, 
                 P_by_id[shot] = P
                 KR1_by_id[shot] = np.linalg.inv(P[:,:3])
             Ps.append(P_by_id[shot])
-            xs.append(graph[track][shot]['feature'])
-            KR1s.append(KR1_by_id[shot])
-    if len(Ps) >= 2:
-        max_angle = 0
-        for i, j in combinations(range(len(Ps)), 2):
-            angle = angle_between_rays(
-                    KR1s[i], xs[i], KR1s[j], xs[j])
-            max_angle = max(angle, max_angle)
+            x = graph[track][shot]['feature']
+            xs.append(x)
+            A = KR1_by_id[shot]
+            KR1s.append(A)
+            v0 = A[0,0] * x[0] + A[0,1] * x[1] + A[0,2]
+            v1 = A[1,0] * x[0] + A[1,1] * x[1] + A[1,2]
+            v2 = A[2,0] * x[0] + A[2,1] * x[1] + A[2,2]
+            vs.append([v0, v1, v2])
 
-        if max_angle > np.radians(min_ray_angle):
+    if len(Ps) >= 2:
+        angle_ok = False
+        for i, j in combinations(range(len(Ps)), 2):
+            angle = angle_between_vectors(vs[i], vs[j])
+            if angle > min_ray_angle:
+                angle_ok = True
+                break
+
+        if angle_ok:
             X = multiview.triangulate(Ps, xs)
             error = 0
             for P, x in zip(Ps, xs):
