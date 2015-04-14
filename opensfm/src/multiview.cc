@@ -127,16 +127,37 @@ bp::object Homography2pointsRobust(PyObject *x1_object,
 }
 
 
-bp::object Triangulate(const bp::list &Ps,
-                       const bp::list &xs,
-                       double min_angle,
-                       double threshold) {
+bp::object Triangulate(const bp::list &Ps_list,
+                       const bp::list &xs_list,
+                       double threshold,
+                       double min_angle) {
 
+  int n = bp::len(Ps_list);
+  libmv::vector<Eigen::Matrix<double, 3, 4> > Ps_vector;
+  Eigen::Matrix<double, 2, Eigen::Dynamic> xs_eigen(2, n);
+  for (int i = 0; i < n; ++i) {
+    bp::object oP = Ps_list[i];
+    bp::object ox = xs_list[i];
 
-  // TODO(pau): port libmv code to n images here.
-  
-  bp::list retn;
-  return retn; 
+    PyArrayContiguousView<double> P_array(oP);
+    PyArrayContiguousView<double> x_array(ox);
+
+    Eigen::Map<const libmv::Mat> P(P_array.data(), 4, 3);
+    Eigen::Map<const libmv::Mat> x(x_array.data(), 2, 1);
+
+    Ps_vector.push_back(P.transpose());
+    xs_eigen(0, i) = x(0);
+    xs_eigen(1, i) = x(1);
+  }
+
+  Eigen::Matrix<double, 4, 1> X;
+  libmv::NViewTriangulateAlgebraic(xs_eigen, Ps_vector, &X);
+
+  Eigen::Matrix<double, 3, 1> Xe;
+  Xe << X(0) / X(3), X(1) / X(3), X(2) / X(3);
+
+  npy_intp Xe_shape[1] = {3};
+  return bpn_array_from_data(1, Xe_shape, Xe.data());
 }
 
 }
