@@ -12,6 +12,7 @@ import numpy as np
 import cv2
 import json
 import time
+import math
 import networkx as nx
 from networkx.algorithms import bipartite
 
@@ -325,10 +326,20 @@ def projection_matrix(camera, shot):
     Rt = Rt_from_shot(shot)
     return np.dot(K, Rt)
 
+
 def angle_between_rays(KR11, x1, KR12, x2):
-    v1 = KR11.dot([x1[0], x1[1], 1])
-    v2 = KR12.dot([x2[0], x2[1], 1])
-    return multiview.vector_angle(v1, v2)
+    u0 = KR11[0,0] * x1[0] + KR11[0,1] * x1[1] + KR11[0,2]
+    u1 = KR11[1,0] * x1[0] + KR11[1,1] * x1[1] + KR11[1,2]
+    u2 = KR11[2,0] * x1[0] + KR11[2,1] * x1[1] + KR11[2,2]
+
+    v0 = KR12[0,0] * x2[0] + KR12[0,1] * x2[1] + KR12[0,2]
+    v1 = KR12[1,0] * x2[0] + KR12[1,1] * x2[1] + KR12[1,2]
+    v2 = KR12[2,0] * x2[0] + KR12[2,1] * x2[1] + KR12[2,2]
+
+    cos = (u0 * v0 + u1 * v1 + u2 * v2) / math.sqrt(
+        (u0 * u0 + u1 * u1 + u2 * u2) * (v0 * v0 + v1 * v1 + v2 * v2))
+    if cos >= 1.0: return 0.0
+    else: return math.acos(cos)
 
 
 def triangulate_track(track, graph, reconstruction, P_by_id, KR1_by_id, Kinv_by_id, reproj_threshold, min_ray_angle=2.0):
