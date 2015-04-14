@@ -104,8 +104,6 @@ add_library(vl ${VLFEAT_SRCS})
 # Python wrapper
 add_library(csfm SHARED csfm.cc)
 target_link_libraries(csfm
-    ${Boost_LIBRARIES}
-    ${PYTHON_LIBRARIES}
     ${OpenCV_LIBS}
     ${GFLAGS_LIBRARY}
     ${GLOG_LIBRARY}
@@ -121,4 +119,14 @@ set_target_properties(csfm PROPERTIES
     SUFFIX ".so"
     LIBRARY_OUTPUT_DIRECTORY "${opensfm_SOURCE_DIR}/.."
 )
-
+if(APPLE)
+    set_target_properties(csfm PROPERTIES
+        LINK_FLAGS "-undefined dynamic_lookup"
+    )
+    target_link_libraries(csfm "${Boost_LIBRARY_DIR}/libboost_python.a")
+else()
+    target_link_libraries(csfm
+        ${Boost_LIBRARIES}
+        ${PYTHON_LIBRARIES}
+    )
+endif()
