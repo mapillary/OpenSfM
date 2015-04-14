@@ -342,11 +342,10 @@ def angle_between_rays(KR11, x1, KR12, x2):
     else: return math.acos(cos)
 
 
-def triangulate_track(track, graph, reconstruction, P_by_id, KR1_by_id, Kinv_by_id, reproj_threshold, min_ray_angle=2.0):
+def triangulate_track(track, graph, reconstruction, P_by_id, KR1_by_id, UNUSED, reproj_threshold, min_ray_angle=2.0):
     ''' Triangulate a track
     '''
-    Ps, Ps_initial, KR1_initial, Kinv_initial = [], [], [], []
-    xs, xs_initial = [], []
+    Ps, KR1s, xs = [], [], []
 
     for shot in graph[track]:
         if shot in reconstruction['shots']:
@@ -356,33 +355,21 @@ def triangulate_track(track, graph, reconstruction, P_by_id, KR1_by_id, Kinv_by_
                 P = projection_matrix(c, s)
                 P_by_id[shot] = P
                 KR1_by_id[shot] = np.linalg.inv(P[:,:3])
-                Kinv_by_id[shot] = np.linalg.inv(multiview.K_from_camera(c))
-            Ps_initial.append(P_by_id[shot])
-            xs_initial.append(graph[track][shot]['feature'])
-            KR1_initial.append(KR1_by_id[shot])
-            Kinv_initial.append(Kinv_by_id[shot])
-    valid_set = []
-    if len(Ps_initial) >= 2:
+            Ps.append(P_by_id[shot])
+            xs.append(graph[track][shot]['feature'])
+            KR1s.append(KR1_by_id[shot])
+    if len(Ps) >= 2:
         max_angle = 0
-        for i, j in combinations(range(len(Ps_initial)), 2):
+        for i, j in combinations(range(len(Ps)), 2):
             angle = angle_between_rays(
-                    KR1_initial[i], xs_initial[i], KR1_initial[j], xs_initial[j])
-            if 1:
-                if i not in valid_set:
-                    valid_set.append(i)
-                if j not in valid_set:
-                    valid_set.append(j)
+                    KR1s[i], xs[i], KR1s[j], xs[j])
             max_angle = max(angle, max_angle)
+
         if max_angle > np.radians(min_ray_angle):
-            for k in valid_set:
-                Ps.append(np.dot(Kinv_initial[k], Ps_initial[k] ))
-                xx = np.dot(Kinv_initial[k][:2,:], multiview.homogeneous(np.array(xs_initial[k])))
-                xs.append(xx[0:2])
             X = multiview.triangulate(Ps, xs)
             error = 0
-            Xh = multiview.homogeneous(X)
             for P, x in zip(Ps, xs):
-                xx, yy, zz = P.dot(Xh)
+                xx, yy, zz = P.dot([X[0], X[1], X[2], 1])
                 if zz <= 0:
                     error = 999999999.0
                 reprojected_x = np.array([xx / zz, yy / zz])
