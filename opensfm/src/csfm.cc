@@ -77,6 +77,7 @@ BOOST_PYTHON_MODULE(csfm) {
 
   def("two_view_reconstruction", csfm::TwoViewReconstruction);
   def("homography_2points_robust", csfm::Homography2pointsRobust);
+  def("triangulate", csfm::Triangulate);
 
   class_<BundleAdjuster>("BundleAdjuster")
     .def("run", &BundleAdjuster::Run)

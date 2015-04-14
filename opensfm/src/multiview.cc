@@ -83,6 +83,7 @@ bp::object TwoViewReconstruction(PyObject *x1_object,
   return retn;
 }
 
+
 bp::object Homography2pointsRobust(PyObject *x1_object,
                                    PyObject *x2_object,
                                    double threshold) {
@@ -123,6 +124,19 @@ bp::object Homography2pointsRobust(PyObject *x1_object,
   retn.append(bpn_array_from_data(1, inliers_shape, &inliers[0]));
 
   return retn;
+}
+
+
+bp::object Triangulate(const bp::list &Ps,
+                       const bp::list &xs,
+                       double min_angle,
+                       double threshold) {
+
+
+  // TODO(pau): port libmv code to n images here.
+  
+  bp::list retn;
+  return retn; 
 }
 
 }
