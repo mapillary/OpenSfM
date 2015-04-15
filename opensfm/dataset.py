@@ -155,7 +155,7 @@ class DataSet:
         """
         return os.path.join(self.__feature_path(), image + '.' + self.feature_type() + '.npz')
 
-    def __save_features(self, filepath, image, points, descriptors):
+    def __save_features(self, filepath, image, points, descriptors, colors=None):
         feature_type = self.config.get('feature_type')
         if ((feature_type == 'AKAZE' and self.config.get('akaze_descriptor') in ['MLDB_UPRIGHT', 'MLDB']) or
             (feature_type == 'HAHOG' and self.config.get('hahog_normalize_to_uchar', False)) or
@@ -165,7 +165,8 @@ class DataSet:
             feature_data_type = np.float32
         np.savez(filepath,
                  points=points.astype(np.float32),
-                 descriptors=descriptors.astype(feature_data_type))
+                 descriptors=descriptors.astype(feature_data_type),
+                 colors=colors)
 
     def features_exist(self, image):
         return os.path.isfile(self.__feature_file(image))
@@ -180,8 +181,8 @@ class DataSet:
             descriptors = s['descriptors']
         return s['points'], descriptors
 
-    def save_features(self, image, points, descriptors):
-        self.__save_features(self.__feature_file(image), image, points, descriptors)
+    def save_features(self, image, points, descriptors, colors):
+        self.__save_features(self.__feature_file(image), image, points, descriptors, colors)
 
     def feature_index_exists(self, image):
         return os.path.isfile(self.__feature_index_file(image))
