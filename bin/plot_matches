@@ -92,8 +92,8 @@ if __name__ == "__main__":
                         continue
                     print 'plotting matches between', im1, im2
 
-                    p1, f1 = data.load_features(im1)
-                    p2, f2 = data.load_features(im2)
+                    p1, f1, c1 = data.load_features(im1)
+                    p2, f2, c2 = data.load_features(im2)
                     p1 = p1[matches[:,0]]
                     p2 = p2[matches[:,1]]
 

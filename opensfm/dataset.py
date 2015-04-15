@@ -179,7 +179,7 @@ class DataSet:
             descriptors = s['descriptors'].astype(np.float32)
         else:
             descriptors = s['descriptors']
-        return s['points'], descriptors
+        return s['points'], descriptors, s['colors']
 
     def save_features(self, image, points, descriptors, colors):
         self.__save_features(self.__feature_file(image), image, points, descriptors, colors)

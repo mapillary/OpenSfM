@@ -48,10 +48,10 @@ def match(imagepair):
 
     # symmetric matching
     t = time.time()
-    p1, f1 = data.load_features(im1)
+    p1, f1, c1 = data.load_features(im1)
     i1 = data.load_feature_index(im1, f1)
 
-    p2, f2 = data.load_features(im2)
+    p2, f2, c2 = data.load_features(im2)
     i2 = data.load_feature_index(im2, f2)
 
     matches = matching.match_symmetric(f1, i1, f2, i2, data.config)
@@ -95,7 +95,7 @@ if __name__ == "__main__":
         try:
             p_pre[image], f_pre[image] = data.load_preemtive_features(image)
         except IOError:
-            p, f = data.load_features(image)
+            p, f, c = data.load_features(image)
             p_pre[image], f_pre[image] = p, f
         preemptive_max = min(data.config.get('preemptive_max', p_pre[image].shape[0]), p_pre[image].shape[0])
         p_pre[image] = p_pre[image][:preemptive_max,:]

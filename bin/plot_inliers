@@ -83,10 +83,10 @@ def create_matches_figure(im1, im2, data, save_figs=False):
                  fontsize=14, fontweight='bold')
 
     # Calculate symmetric matches and plot.
-    p1, f1 = data.load_features(im1)
+    p1, f1, c1 = data.load_features(im1)
     i1 = data.load_feature_index(im1, f1)
 
-    p2, f2 = data.load_features(im2)
+    p2, f2, c2 = data.load_features(im2)
     i2 = data.load_feature_index(im2, f2)
 
     symmetric_matches = matching.match_symmetric(f1, i1, f2, i2, data.config)
@@ -167,8 +167,8 @@ def create_tracks_figure(im1, im2, data, save_figs=False):
     # robust matches and tracks not corresponding to robust matches in different colors.
     graph = data.load_tracks_graph()
 
-    p1, features1 = data.load_features(im1)
-    p2, features2 = data.load_features(im2)
+    p1, features1, c1 = data.load_features(im1)
+    p2, features2, c2 = data.load_features(im2)
     p1 = np.array(p1[:, :2], np.float64)
     p2 = np.array(p2[:, :2], np.float64)
 
