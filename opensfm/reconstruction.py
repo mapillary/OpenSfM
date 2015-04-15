@@ -348,53 +348,6 @@ def angle_between_vectors(u, v):
     else: return math.acos(cos)
 
 
-def triangulate_track_numpy(track, graph, reconstruction, P_by_id, KR1_by_id, UNUSED, reproj_threshold, min_ray_angle_degrees=2.0):
-    ''' Triangulate a track
-    '''
-    min_ray_angle = np.radians(min_ray_angle_degrees)
-    Ps, KR1s, xs, vs = [], [], [], []
-
-    for shot in graph[track]:
-        if shot in reconstruction['shots']:
-            if shot not in P_by_id:
-                s = reconstruction['shots'][shot]
-                c = reconstruction['cameras'][s['camera']]
-                P = projection_matrix(c, s)
-                P_by_id[shot] = P
-                KR1_by_id[shot] = np.linalg.inv(P[:,:3])
-            Ps.append(P_by_id[shot])
-            x = graph[track][shot]['feature']
-            xs.append(x)
-            A = KR1_by_id[shot]
-            KR1s.append(A)
-            v0 = A[0,0] * x[0] + A[0,1] * x[1] + A[0,2]
-            v1 = A[1,0] * x[0] + A[1,1] * x[1] + A[1,2]
-            v2 = A[2,0] * x[0] + A[2,1] * x[1] + A[2,2]
-            vs.append([v0, v1, v2])
-
-    if len(Ps) >= 2:
-        angle_ok = False
-        for i, j in combinations(range(len(Ps)), 2):
-            angle = angle_between_vectors(vs[i], vs[j])
-            if angle > min_ray_angle:
-                angle_ok = True
-                break
-
-        if angle_ok:
-            X = multiview.triangulate(Ps, xs)
-            error = 0
-            for P, x in zip(Ps, xs):
-                xx, yy, zz = P.dot([X[0], X[1], X[2], 1])
-                if zz <= 0:
-                    error = 999999999.0
-                    break
-                reprojected_x = np.array([xx / zz, yy / zz])
-                error = max(error, (reprojected_x - x).max())
-            if error < reproj_threshold:
-                reconstruction['points'][track] = {
-                    "coordinates": list(X),
-                }
-
 def triangulate_track(track, graph, reconstruction, P_by_id, KR1_by_id, UNUSED, reproj_threshold, min_ray_angle_degrees=2.0):
     ''' Triangulate a track
     '''
@@ -423,12 +376,60 @@ def triangulate_track(track, graph, reconstruction, P_by_id, KR1_by_id, UNUSED, 
         angle_ok = False
         for i, j in combinations(range(len(Ps)), 2):
             angle = angle_between_vectors(vs[i], vs[j])
-            if angle > min_ray_angle:
-                angle_ok = True
-                break
+            print angle, i, j,'python'
+            angle_ok = True
+            # if angle > min_ray_angle:
+            #     angle_ok = True
+            #     break
 
         if angle_ok:
-            X = csfm.triangulate(Ps, xs, reproj_threshold, min_ray_angle)
+            X = multiview.triangulate(Ps, xs)
+            XX = csfm.triangulate(Ps, xs, reproj_threshold, min_ray_angle)
+            error = 0
+            for P, x in zip(Ps, xs):
+                xx, yy, zz = P.dot([X[0], X[1], X[2], 1])
+                if zz <= 0:
+                    error = 999999999.0
+                    break
+                reprojected_x = np.array([xx / zz, yy / zz])
+                error = max(error, (reprojected_x - x).max())
+            if error < reproj_threshold:
+                reconstruction['points'][track] = {
+                    "coordinates": list(X),
+                }
+
+def triangulate(Ps, xs, reproj_threshold, min_ray_angle):
+    '''
+    >>> P1 = np.eye(3,4)
+    >>> P2 = np.eye(3,4)
+    >>> P2[0,3] = -1
+    >>> x1 = np.array([0.0, 0.0])
+    >>> x2 = np.array([-1.0, 0.0])
+    >>> triangulate([P1, P2], [x1, x2], 1.0, np.radians(46.0))
+    >>> triangulate([P1, P2], [x1, x1], 1.0, np.radians(2.0))
+    '''
+    return csfm.triangulate(Ps, xs, reproj_threshold, min_ray_angle)
+
+def triangulate_track_C(track, graph, reconstruction, P_by_id, UNUSED1, UNUSED2, reproj_threshold, min_ray_angle_degrees=2.0):
+    ''' Triangulate a track
+    '''
+    min_ray_angle = np.radians(min_ray_angle_degrees)
+    Ps, KR1s, xs, vs = [], [], [], []
+
+    for shot in graph[track]:
+        if shot in reconstruction['shots']:
+            if shot not in P_by_id:
+                s = reconstruction['shots'][shot]
+                c = reconstruction['cameras'][s['camera']]
+                P = projection_matrix(c, s)
+                P_by_id[shot] = P
+            Ps.append(P_by_id[shot])
+            x = graph[track][shot]['feature']
+            xs.append(np.array(x))
+
+    if len(Ps) >= 2:
+        X = csfm.triangulate(Ps, xs, reproj_threshold, min_ray_angle)
+        if X is not None:
             error = 0
             for P, x in zip(Ps, xs):
                 xx, yy, zz = P.dot([X[0], X[1], X[2], 1])

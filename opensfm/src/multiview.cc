@@ -126,6 +126,13 @@ bp::object Homography2pointsRobust(PyObject *x1_object,
   return retn;
 }
 
+double AngleBetweenVectors(const Eigen::Vector3d &u,
+                           const Eigen::Vector3d &v) {
+    double c = (u.dot(v))
+               / sqrt(u.dot(u) * v.dot(v));
+    if (c >= 1.0) return 0.0;
+    else return acos(c);
+}
 
 bp::object Triangulate(const bp::list &Ps_list,
                        const bp::list &xs_list,
@@ -133,8 +140,10 @@ bp::object Triangulate(const bp::list &Ps_list,
                        double min_angle) {
 
   int n = bp::len(Ps_list);
-  libmv::vector<Eigen::Matrix<double, 3, 4> > Ps_vector;
-  Eigen::Matrix<double, 2, Eigen::Dynamic> xs_eigen(2, n);
+  libmv::vector<Eigen::Matrix<double, 3, 4> > Ps;
+  Eigen::Matrix<double, 2, Eigen::Dynamic> xs(2, n);
+  Eigen::MatrixXd vs(3, n);
+  bool angle_ok = false;
   for (int i = 0; i < n; ++i) {
     bp::object oP = Ps_list[i];
     bp::object ox = xs_list[i];
@@ -145,13 +154,38 @@ bp::object Triangulate(const bp::list &Ps_list,
     Eigen::Map<const libmv::Mat> P(P_array.data(), 4, 3);
     Eigen::Map<const libmv::Mat> x(x_array.data(), 2, 1);
 
-    Ps_vector.push_back(P.transpose());
-    xs_eigen(0, i) = x(0);
-    xs_eigen(1, i) = x(1);
+    Ps.push_back(P.transpose());
+    xs.col(i) = x.col(0);
+
+    // Check angle between rays
+    if (!angle_ok) {
+      Eigen::Vector3d xh;
+      xh << x(0,0), x(1,0), 1;
+//      Eigen::Vector3d v = P.block<3,3>(0,0).householderQr().solve(xh);
+      Eigen::Vector3d v = P.block<3,3>(0,0).inverse() * xh;
+      vs.col(i) << v(0), v(1), v(2);
+
+      for (int j = 0; j < i; ++j) {
+        Eigen::Vector3d a, b;
+        a << vs(0, i), vs(1, i), vs(2, i);
+        b << vs(0, j), vs(1, j), vs(2, j);
+        double angle = AngleBetweenVectors(a, b);
+std::cout << angle << " " << i << " " << j << std::endl;
+        if (angle >= min_angle) {
+          angle_ok = true;
+        } else {
+          std::cout << "small angle" << std::endl;
+        }
+      }
+    }
   }
+  if (!angle_ok)
+          std::cout << "All angles small" << std::endl;
+
+  if (!angle_ok) return bp::object();
 
   Eigen::Matrix<double, 4, 1> X;
-  libmv::NViewTriangulateAlgebraic(xs_eigen, Ps_vector, &X);
+  libmv::NViewTriangulateAlgebraic(xs, Ps, &X);
 
   Eigen::Matrix<double, 3, 1> Xe;
   Xe << X(0) / X(3), X(1) / X(3), X(2) / X(3);
