@@ -35,9 +35,11 @@ images = data.images()
 # Read local features
 logging.info('reading features')
 feature = {}
+colors = {}
 for im in images:
-    p1, f1, c1 = data.load_features(im)
-    feature[im] = p1[:,:2]
+    p, f, c = data.load_features(im)
+    feature[im] = p[:,:2]
+    colors[im] = c
 
 logging.info('creating features graph')
 g = nx.Graph()
@@ -62,8 +64,9 @@ for track_id, track in enumerate(tracks):
         image = image_feature[0]
         featureid = image_feature[1]
         x, y = feature[image][featureid]
+        r, g, b = colors[image][featureid]
         tracks_graph.add_node(image, bipartite=0)
         tracks_graph.add_node(track_id, bipartite=1)
-        tracks_graph.add_edge(image, track_id, feature=(x,y), feature_id=featureid)
+        tracks_graph.add_edge(image, track_id, feature=(x,y), feature_id=featureid, feature_color=(r,g,b))
 
 data.save_tracks_graph(tracks_graph)

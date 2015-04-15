@@ -694,29 +694,8 @@ def merge_reconstructions(reconstructions, config):
 
 
 def paint_reconstruction(data, graph, reconstruction):
-    to_paint = defaultdict(list)
-    to_paint_track = defaultdict(list)
     for track in reconstruction['points']:
-        for shot in graph[track]:
-            to_paint[shot].append(graph[track][shot]['feature'])
-            to_paint_track[shot].append(track)
-
-    track_colors = {track: np.zeros(3) for track in reconstruction['points']}
-    track_sum = {track: 0 for track in reconstruction['points']}
-
-    for shot in to_paint:
-        points = np.array(to_paint[shot])
-        tracks = to_paint_track[shot]
-        im = data.image_as_array(shot)
-        pixels = features.denormalized_image_coordinates(points, im.shape[1], im.shape[0]).astype(int)
-        colors = im[pixels[:,1], pixels[:,0]]
-        for track, color in zip(tracks, colors):
-            track_colors[track] += color
-            track_sum[track] += 1
-
-    for track in reconstruction['points']:
-        c = track_colors[track] / track_sum[track]
-        reconstruction['points'][track]['color'] = list(c)
+        reconstruction['points'][track]['color'] = graph[track].values()[0]['feature_color']
 
 def paint_reconstruction_constant(data, graph, reconstruction):
     for track in reconstruction['points']:

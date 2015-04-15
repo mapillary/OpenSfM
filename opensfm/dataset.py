@@ -278,11 +278,14 @@ class DataSet:
         with open(tracks_file) as fin:
             g = nx.Graph()
             for line in fin:
-                image, track, observation, x, y = line.split('\t')
+                image, track, observation, x, y, R, G, B = line.split('\t')
                 if image in images:
                     g.add_node(image, bipartite=0)
                     g.add_node(track, bipartite=1)
-                    g.add_edge(image, track, feature=(float(x), float(y)), feature_id=int(observation))
+                    g.add_edge(image, track,
+                        feature=(float(x), float(y)),
+                        feature_id=int(observation),
+                        feature_color=(int(R), int(G), int(B)))
             return g
 
     def save_tracks_graph(self, graph):
@@ -293,7 +296,8 @@ class DataSet:
                     for track, data in graph[image].items():
                         x, y = data['feature']
                         fid = data['feature_id']
-                        fout.write('%s\t%d\t%d\t%g\t%g\n' % (image, track, fid, x, y))
+                        r, g, b = data['feature_color']
+                        fout.write('%s\t%d\t%d\t%g\t%g\t%d\t%d\t%d\n' % (image, track, fid, x, y, r, g, b))
 
     def __reconstruction_file(self, filename):
         """Return path of reconstruction file"""
