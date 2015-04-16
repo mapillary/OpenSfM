@@ -104,7 +104,9 @@ def extract_exif_from_dict(exif_image):
         'orientation': orientation,
         'k1': k1,
         'k2': k2,
-        'gps': geo
+        'gps': geo,
+        'make': make,
+        'model': model
     }
     return d
 
@@ -228,7 +230,9 @@ class EXIF:
                 'camera': sensor_string(make, model),
                 'orientation': orientation,
                 'k1': distortion[0],
-                'k2': distortion[1]
+                'k2': distortion[1],
+                'make': make,
+                'model': model
             }
         # GPS
         d['gps'] = geo
