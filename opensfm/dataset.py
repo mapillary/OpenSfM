@@ -3,6 +3,8 @@
 import os
 import json
 import errno
+import pickle
+import gzip
 import numpy as np
 import networkx as nx
 import yaml
@@ -231,24 +233,34 @@ class DataSet:
 
     def __matches_path(self):
         """Return path of matches directory"""
-        return os.path.join(self.data_path, 'robust_matches')
+        return os.path.join(self.data_path, 'matches')
 
-    def __matches_file(self, image1, image2):
-        """
-        Return path of matches file for pair of specified images
-        :param image1: Image name, with extension (i.e. 123.jpg)
-        :param image2: Image name, with extension (i.e. 123.jpg)
-        """
-        return os.path.join(self.__matches_path(), '%s_%s_matches.npz' % (image1, image2))
+    def __matches_file(self, image):
+        """File for matches for an image"""
+        return os.path.join(self.__matches_path(), '{}_matches.pkl.gz'.format(image))
 
-    def matches_exists(self, im1, im2):
-        return os.path.isfile(self.__matches_file(im1, im2))
+    def matches_exists(self, image):
+        return os.path.isfile(self.__matches_file(image))
 
-    def load_matches(self, image1, image2):
-        return np.load(self.__matches_file(image1, image2))['matches']
+    def load_matches(self, image):
+        with gzip.open(self.__matches_file(image), 'rb') as fin:
+            matches = pickle.load(fin)
+        return matches
 
-    def save_matches(self, image1, image2, matches):
-        np.savez(self.__matches_file(image1, image2), matches=matches.astype(np.int32))
+    def save_matches(self, image, matches):
+        with gzip.open(self.__matches_file(image), 'wb') as fout:
+            pickle.dump(matches, fout)
+
+    def find_matches(self, im1, im2):
+        if self.matches_exists(im1):
+            im1_matches = self.load_matches(im1)
+            if im2 in im1_matches:
+                return im1_matches[im2]
+        if self.matches_exists(im2):
+            im2_matches = self.load_matches(im2)
+            if im1 in im2_matches:
+                return im2_matches[im1][:, [1, 0]]
+        return None
 
     def __tracks_graph_file(self):
         """Return path of tracks file"""

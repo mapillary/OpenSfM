@@ -54,14 +54,7 @@ if __name__ == "__main__":
         for im1 in images:
             for im2 in images:
                 if im1 != im2:
-                    try:
-                        matches = data.load_matches(im1, im2)
-                    except:
-                        try:
-                            matches = data.load_matches(im2, im1)
-                            matches = matches[:,[1,0]]
-                        except:
-                            continue
+                    matches = data.find_matches(im1, im2)
                     graph.add_edge(im1, im2, weight=len(matches))
 
         weights = [i[2]['weight'] for i in graph.edges(data=True)]
@@ -80,14 +73,7 @@ if __name__ == "__main__":
         for im1 in toplot:
             for im2 in images:
                 if im1 != im2:
-                    try:
-                        matches = data.load_matches(im1, im2)
-                    except:
-                        try:
-                            matches = data.load_matches(im2, im1)
-                            matches = matches[:,[1,0]]
-                        except:
-                            continue
+                    matches = data.find_matches(im1, im2)
                     if len(matches) == 0:
                         continue
                     print 'plotting matches between', im1, im2

@@ -172,13 +172,7 @@ def create_tracks_figure(im1, im2, data, save_figs=False):
     p1 = np.array(p1[:, :2], np.float64)
     p2 = np.array(p2[:, :2], np.float64)
 
-    if data.matches_exists(im1, im2):
-        robust_matches = data.load_matches(im1, im2)
-    elif data.matches_exists(im2, im1):
-        loaded_matches = data.load_matches(im2, im1)
-        robust_matches = loaded_matches[:, [1, 0]]
-    else:
-        robust_matches = np.empty((0, 2), int)
+    robust_matches = data.find_matches(im1, im2) or np.empty((0, 2), int)
 
     t1, t2 = graph[im1], graph[im2]
 

@@ -62,14 +62,9 @@ if __name__ == "__main__":
         with open(match_file, 'w') as fout:
             for i in range(len(images)):
                 for j in range(i + 1, len(images)):
-                    matches = None
-                     try:
-                        matches = data.load_matches(images[i], images[j])
-                    except:
-                        try:
-                            matches = data.load_matches(images[j], images[i])[:,::-1]
-                        except:
-                            continue
+                    matches = data.find_matches(images[i], images[j])
+                    if not len(matches):
+                        continue
                     fout.write('{0} {1}\n'.format(i, j))
                     fout.write('{0}\n'.format(len(matches)))
                     np.savetxt(fout, matches, fmt='%d')
