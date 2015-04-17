@@ -334,13 +334,14 @@ var JourneyBase = (function () {
      * @param {String} graphs A list of graphs.
      * @param {String} shots Dictionary of shots with positions and targets.
      * @param {String} intervalTime The interval for navigation.
-     * @param {Boolean} usePenalty Value indicating if a penalty should be used.
+     * @param {Object} penalty Object specifying a weight key, penalty key and a dictionary of penalty keys values
+                        with penalty amounts.
      */
-    function JourneyBase(graphs, shots, intervalTime, usePenalty) {
+    function JourneyBase(graphs, shots, intervalTime, penalty) {
         this.graphs = graphs;
         this.shots = shots;
         this.intervalTime = intervalTime;
-        this.usePenalty = usePenalty;
+        this.penalty = penalty;
 
         this.started = false;
         this.preCount = 15;
@@ -378,20 +379,13 @@ var JourneyBase = (function () {
         }
 
         var journeyGraph = this.graphs[index];
-        if (this.usePenalty === true) {
+        if (this.penalty) {
             journeyGraph =
                 this.graphHelper.getPenaltyGraph(
                     journeyGraph,
-                    'weight',
-                    'direction',
-                    {
-                        step_backward: 30,
-                        turn_u: 15,
-                        turn_left: 3,
-                        turn_right: 3,
-                        step_left: 1,
-                        step_right: 1
-                    });
+                    this.penalty.weightKey,
+                    this.penalty.penaltyKey,
+                    this.penalty.values);
         }
 
         var path = this.dijkstra.shortestPath(journeyGraph, from, to, 'weight');
@@ -486,7 +480,8 @@ var Journey = (function () {
      * @param {Function} startAction The action to run when starting a journey.
      * @param {Function} stopAction The action to run when stopping a journey.
      * @param {Function} preloadAction The action to run when stopping a journey.
-     * @param {Boolean} usePenalty Value indicating if a penalty should be used.
+     * @param {Object} penalty Object specifying a weight key, penalty key and a dictionary of penalty keys values
+                       with penalty amounts.
      */
     function Journey(
         graphs,
@@ -496,9 +491,9 @@ var Journey = (function () {
         startAction,
         stopAction,
         preloadAction,
-        usePenalty) {
+        penalty) {
 
-        JourneyBase.apply(this, [graphs, shots, intervalTime, usePenalty]);
+        JourneyBase.apply(this, [graphs, shots, intervalTime, penalty]);
 
         this.navigationAction = navigationAction;
         this.startAction = startAction;
@@ -630,7 +625,8 @@ var SmoothJourney = (function () {
      * @param {Function} weightFunction A function that maps a value between in [0. 1] to another value in [0, 1],
      * @param {Function} speedFunction Function returning speed coefficient based on the current position between nodes.
      * @param {Type} curveType The type of the curve used for movement. Must inherit from THREE.Curve.
-     * @param {Boolean} usePenalty Value indicating if a penalty should be used.
+     * @param {Object} penalty Object specifying a weight key, penalty key and a dictionary of penalty keys values
+                       with penalty amounts.
      */
     function SmoothJourney(
         graphs,
@@ -645,9 +641,9 @@ var SmoothJourney = (function () {
         weightFunction,
         speedFunction,
         curveType,
-        usePenalty) {
+        penalty) {
 
-        JourneyBase.apply(this, [graphs, shots, intervalTime, usePenalty]);
+        JourneyBase.apply(this, [graphs, shots, intervalTime, penalty]);
 
         this.navigationAction = navigationAction;
         this.nodeAction = nodeAction;
@@ -995,6 +991,19 @@ var JourneyWrapper = (function ($) {
             this.curveType = THREE.SplineCurve3;
             var _this = this;
 
+            var penalty = {
+                weightKey: 'weight',
+                penaltyKey: 'direction',
+                values: {
+                    step_backward: 30,
+                    turn_u: 15,
+                    turn_left: 3,
+                    turn_right: 3,
+                    step_left: 1,
+                    step_right: 1
+                }
+            };
+
             $.getJSON(urlParams.nav, function(data) {
 
                 var graphs = _this.graphHelper.mergeTypeGraphs(data, 'pref', 'pos', _this.destination, 10)
@@ -1009,7 +1018,7 @@ var JourneyWrapper = (function ($) {
                             start,
                             stop,
                             preload,
-                            true) :
+                            penalty) :
                         new SmoothJourney(
                             graphs,
                             convertShots(shots),
@@ -1023,7 +1032,7 @@ var JourneyWrapper = (function ($) {
                             weightFunction,
                             speedFunction,
                             _this.curveType,
-                            true);
+                            penalty);
 
                 _this.initialized = true;
 
