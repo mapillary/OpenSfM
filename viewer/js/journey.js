@@ -689,10 +689,10 @@ var SmoothJourney = (function () {
 
         var previousPoint = (this.path.length - 1) * this.t;
         var previousIndex = Math.floor(previousPoint);
-        var previousWeight = this.u >= 1 ? 1 : previousPoint - previousIndex;
+        var previousFraction = this.u >= 1 ? 1 : previousPoint - previousIndex;
         var previousEdge = this.getEdge(this.graphIndex, this.path[this.currentIndex], this.path[this.currentIndex + 1]);
 
-        var speedCoefficient = this.speedFunction(previousWeight, previousEdge);
+        var speedCoefficient = this.speedFunction(previousFraction, previousEdge);
         elapsed = speedCoefficient * elapsed;
 
         this.previousTime = currentTime;
@@ -722,10 +722,10 @@ var SmoothJourney = (function () {
         var target = this.targetCurve.getPoint(this.t);
 
         // Do not reset the weight after reaching the last node.
-        var weight = this.u >= 1 ? 1 : point - index;
+        var fraction = this.u >= 1 ? 1 : point - index;
         var edge = this.getEdge(this.graphIndex, this.path[this.currentIndex], this.path[this.currentIndex + 1]);
 
-        this.navigationAction(position, target, this.weightFunction(weight, edge));
+        this.navigationAction(position, target, this.weightFunction(fraction, edge));
 
         if (this.u >= 1) {
             this.stop(false);
@@ -939,9 +939,9 @@ var JourneyWrapper = (function ($) {
 
     // Private function for setting the position and direction of the orbit controls camera
     // used for the smooth navigation movement as well as controlling the image plane opacity.
-    var smoothNavigation = function (position, target, weight) {
+    var smoothNavigation = function (position, target, fraction) {
         controls.goto(position, target);
-        options.imagePlaneOpacity = 1 - weight;
+        options.imagePlaneOpacity = 1 - fraction;
     }
 
     // Private function which retrieves a camera and creates its image plane.
@@ -960,23 +960,23 @@ var JourneyWrapper = (function ($) {
         navigateToShot(camera);
     }
 
-    // Private function for mapping the weight in [0, 1] to another weight in [0, 1].
-    var weightFunction = function (weight, edge) {
+    // Private function for mapping the fraction in [0, 1] to another fraction in [0, 1] based on the edge.
+    var fractionMap = function (fraction, edge) {
         var transitionLength = ['step_left', 'step_right'].indexOf(edge.direction) > -1 ? edge.weight : 4;
         var lowerBound = Math.max((length - transitionLength) / (2 * length), 0);
         var upperBound = Math.min((length + transitionLength) / (2 * length), 1);
 
-        var result = (weight - lowerBound) / (upperBound - lowerBound);
+        var result = (fraction - lowerBound) / (upperBound - lowerBound);
 
         return Math.min(Math.max(result, 0), 1);
     }
 
-    // Private function for determining the speed based on the position between nodes.
-    var speedFunction = function (weight, edge) {
+    // Private function for determining the speed based on the position between nodes based on the edge.
+    var speedFunction = function (fraction, edge) {
         var length = ['step_left', 'step_right'].indexOf(edge.direction) > -1 ? 0 : edge.weight;
-        var fraction = Math.min(Math.max(length - 2, 0), 2) / 2;
-        var k = 1 + fraction * 1.5 * Math.abs(0.35 - Math.min(Math.abs(weight - 0.65), 0.35));
-        return k;
+        var coefficient = Math.min(Math.max(length - 2, 0), 2) / 2;
+        var speed = 1 + coefficient * 1.5 * Math.abs(0.35 - Math.min(Math.abs(fraction - 0.65), 0.35));
+        return speed;
     }
 
     /**
@@ -1028,7 +1028,7 @@ var JourneyWrapper = (function ($) {
                             stop,
                             smoothContinuation,
                             preload,
-                            weightFunction,
+                            fractionMap,
                             speedFunction,
                             _this.curveType,
                             penalty);
