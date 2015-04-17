@@ -553,7 +553,7 @@ def apply_similarity(reconstruction, s, A, b):
         shot['translation'] = list(tp)
 
 
-def align_reconstruction_naive(reconstruction):
+def align_reconstruction_naive_similarity(reconstruction):
     if len(reconstruction['shots']) < 3: return
     # Compute similarity Xp = s A X + b
     X, Xp = [], []
@@ -567,8 +567,8 @@ def align_reconstruction_naive(reconstruction):
     A, b = T[:3,:3], T[:3,3]
     s = np.linalg.det(A)**(1./3)
     A /= s
+    return s, A, b
 
-    apply_similarity(reconstruction, s, A, b)
 
 def get_horitzontal_and_vertical_directions(R, orientation):
     '''Get orientation vectors from camera rotation matrix and orientation tag.
@@ -597,14 +597,18 @@ def get_horitzontal_and_vertical_directions(R, orientation):
 
 
 def align_reconstruction(reconstruction, config):
+    s, A, b = align_reconstruction_similarity(reconstruction, config)
+    apply_similarity(reconstruction, s, A, b)
+
+def align_reconstruction_similarity(reconstruction, config):
     align_method = config.get('align_method', 'orientation_prior')
     if align_method == 'orientation_prior':
-        return align_reconstruction_orientation_prior(reconstruction, config)
+        return align_reconstruction_orientation_prior_similarity(reconstruction, config)
     elif align_method == 'naive':
-        return align_reconstruction_naive(reconstruction)
+        return align_reconstruction_naive_similarity(reconstruction)
 
 
-def align_reconstruction_orientation_prior(reconstruction, config):
+def align_reconstruction_orientation_prior_similarity(reconstruction, config):
     X, Xp = [], []
     orientation_type = config.get('align_orientation_prior', 'horizontal')
     onplane, verticals = [], []
@@ -649,8 +653,7 @@ def align_reconstruction_orientation_prior(reconstruction, config):
         b = np.array([T[0,2],
                       T[1,2],
                       Xp[:,2].mean() - s * X[:,2].mean()])  # vertical alignment
-
-    apply_similarity(reconstruction, s, A, b)
+    return s, A, b
 
 
 def register_reconstruction_with_gps(reconstruction, reference):
@@ -743,29 +746,8 @@ def merge_reconstructions(reconstructions, config):
 
 
 def paint_reconstruction(data, graph, reconstruction):
-    to_paint = defaultdict(list)
-    to_paint_track = defaultdict(list)
     for track in reconstruction['points']:
-        for shot in graph[track]:
-            to_paint[shot].append(graph[track][shot]['feature'])
-            to_paint_track[shot].append(track)
-
-    track_colors = {track: np.zeros(3) for track in reconstruction['points']}
-    track_sum = {track: 0 for track in reconstruction['points']}
-
-    for shot in to_paint:
-        points = np.array(to_paint[shot])
-        tracks = to_paint_track[shot]
-        im = data.image_as_array(shot)
-        pixels = features.denormalized_image_coordinates(points, im.shape[1], im.shape[0]).astype(int)
-        colors = im[pixels[:,1], pixels[:,0]]
-        for track, color in zip(tracks, colors):
-            track_colors[track] += color
-            track_sum[track] += 1
-
-    for track in reconstruction['points']:
-        c = track_colors[track] / track_sum[track]
-        reconstruction['points'][track]['color'] = list(c)
+        reconstruction['points'][track]['color'] = graph[track].values()[0]['feature_color']
 
 def paint_reconstruction_constant(data, graph, reconstruction):
     for track in reconstruction['points']:

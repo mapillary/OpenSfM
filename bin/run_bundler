@@ -43,7 +43,7 @@ if __name__ == "__main__":
     fmt = '%f ' * 4 + '\n' + ('%d ' * 20 + '\n') * 6 + '%d ' * 8
     for image in images:
         exif = data.load_exif(image)
-        p, f = data.load_features(image)
+        p, f, c = data.load_features(image)
         p[:,:2] = features.denormalized_image_coordinates(p[:,:2], exif['width'], exif['height'])
         p[:,-3::-1] = p[:,:2]
         keys_file = os.path.join(key_dir, os.path.splitext(image)[0] + '.key')
@@ -62,14 +62,9 @@ if __name__ == "__main__":
         with open(match_file, 'w') as fout:
             for i in range(len(images)):
                 for j in range(i + 1, len(images)):
-                    matches = None
-                     try:
-                        matches = data.load_matches(images[i], images[j])
-                    except:
-                        try:
-                            matches = data.load_matches(images[j], images[i])[:,::-1]
-                        except:
-                            continue
+                    matches = data.find_matches(images[i], images[j])
+                    if not len(matches):
+                        continue
                     fout.write('{0} {1}\n'.format(i, j))
                     fout.write('{0}\n'.format(len(matches)))
                     np.savetxt(fout, matches, fmt='%d')

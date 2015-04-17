@@ -527,6 +527,26 @@ class BundleAdjuster {
 
     ceres::Problem problem;
 
+    // Init parameter blocks.
+    for (auto &i : cameras_) {
+      if (i.second.constant) {
+        problem.AddParameterBlock(i.second.parameters, BA_CAMERA_NUM_PARAMS);
+        problem.SetParameterBlockConstant(i.second.parameters);
+      }
+    }
+    for (auto &i : shots_) {
+      if (i.second.constant) {
+        problem.AddParameterBlock(i.second.parameters, BA_SHOT_NUM_PARAMS);
+        problem.SetParameterBlockConstant(i.second.parameters);
+      }
+    }
+    for (auto &i : points_) {
+      if (i.second.constant) {
+        problem.AddParameterBlock(i.second.coordinates, 3);
+        problem.SetParameterBlockConstant(i.second.coordinates);
+      }
+    }
+
     // Add reprojection error blocks
     for (int i = 0; i < observations_.size(); ++i) {
       // Each Residual block takes a point and a camera as input and outputs a 2
@@ -617,22 +637,6 @@ class BundleAdjuster {
     //                            i.second.parameters);
     // }
 
-    // Set constant parameter blocks.
-    for (auto &i : cameras_) {
-      if (i.second.constant) {
-        problem.SetParameterBlockConstant(i.second.parameters);
-      }
-    }
-    for (auto &i : shots_) {
-      if (i.second.constant) {
-        problem.SetParameterBlockConstant(i.second.parameters);
-      }
-    }
-    for (auto &i : points_) {
-      if (i.second.constant) {
-        problem.SetParameterBlockConstant(i.second.coordinates);
-      }
-    }
 
     // Solve
     ceres::Solver::Options options;
