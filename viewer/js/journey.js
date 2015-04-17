@@ -864,60 +864,6 @@ var JourneyWrapper = (function ($) {
         return interval;
     }
 
-    // Private function for retrieving a camera based on the id.
-    var getCamera = function (shot_id) {
-        var camera = undefined;
-        for (var i = 0; i < camera_lines.length; ++i) {
-            if (camera_lines[i].shot_id === shot_id) {
-                camera = camera_lines[i];
-            }
-        }
-
-        return camera === undefined ? null : camera;
-    }
-
-    // Private function for navigation action of journey. Retrieves a camera,
-    // creates its image plane and navigates to it.
-    var navigation = function (shot_id) {
-        var camera = getCamera(shot_id);
-        if (camera === null) {
-            return;
-        }
-
-        setImagePlaneCamera(camera);
-        navigateToShot(camera);
-    }
-
-    // Private function which retrieves a camera and
-    // creates its image plane.
-    var setImagePlane = function (shot_id) {
-        var camera = getCamera(shot_id);
-        if (camera === null) {
-            return;
-        }
-
-        setImagePlaneCamera(camera);
-    }
-
-    // Private function for preloading images.
-    var preload = function (shot_ids) {
-        for (var i = 0; i < shot_ids.length; i++) {
-            var tempImg = new Image();
-            tempImg.src = imageURL(shot_ids[i]);
-        }
-    }
-
-    // Private function for start action of journey.
-    var start = function () {
-        setMovingMode('walk');
-        $('#journeyButton').html('X');
-    }
-
-    // Private function for stop action of journey.
-    var stop = function () {
-        $('#journeyButton').html('Go');
-    }
-
     // Private function converting shot dictionary with rotations and translations
     // values to shot dictionary with optical centers and viewing directions.
     var convertShots = function () {
@@ -948,15 +894,68 @@ var JourneyWrapper = (function ($) {
         return result;
     }
 
+    // Private function for start action of journey.
+    var start = function () {
+        setMovingMode('walk');
+        $('#journeyButton').html('X');
+    }
+
+    // Private function for stop action of journey.
+    var stop = function () {
+        $('#journeyButton').html('Go');
+    }
+
+    // Private function for preloading images.
+    var preload = function (shot_ids) {
+        for (var i = 0; i < shot_ids.length; i++) {
+            var tempImg = new Image();
+            tempImg.src = imageURL(shot_ids[i]);
+        }
+    }
+
+    // Private function for retrieving a camera based on the id.
+    var getCamera = function (shot_id) {
+        var camera = undefined;
+        for (var i = 0; i < camera_lines.length; ++i) {
+            if (camera_lines[i].shot_id === shot_id) {
+                camera = camera_lines[i];
+            }
+        }
+
+        return camera === undefined ? null : camera;
+    }
+
+    // Private function for navigation action of journey. Retrieves a camera,
+    // creates its image plane and navigates to it.
+    var navigation = function (shot_id) {
+        var camera = getCamera(shot_id);
+        if (camera === null) {
+            return;
+        }
+
+        setImagePlaneCamera(camera);
+        navigateToShot(camera);
+    }
+
     // Private function for setting the position and direction of the orbit controls camera
-    // used for the smooth navigation movement.
+    // used for the smooth navigation movement as well as controlling the image plane opacity.
     var smoothNavigation = function (position, target, weight) {
         controls.goto(position, target);
         options.imagePlaneOpacity = 1 - weight;
     }
 
+    // Private function which retrieves a camera and creates its image plane.
+    var smoothNodeAction = function (shot_id) {
+        var camera = getCamera(shot_id);
+        if (camera === null) {
+            return;
+        }
+
+        setImagePlaneCamera(camera);
+    }
+
     // Private function for continuing the movement to the next node when a journey is stopped.
-    var continuation = function (shot_id) {
+    var smoothContinuation = function (shot_id) {
         var camera = getCamera(shot_id);
         navigateToShot(camera);
     }
@@ -1024,10 +1023,10 @@ var JourneyWrapper = (function ($) {
                             convertShots(shots),
                             getInterval(),
                             smoothNavigation,
-                            setImagePlane,
+                            smoothNodeAction,
                             start,
                             stop,
-                            continuation,
+                            smoothContinuation,
                             preload,
                             weightFunction,
                             speedFunction,
