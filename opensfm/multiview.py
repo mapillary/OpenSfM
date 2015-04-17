@@ -173,7 +173,7 @@ def ransac(kernel, threshold):
     >>> ransac(kernel, 0.1)
     (2.0, array([0, 1]), 0.10000000000000001)
     '''
-    max_iterations = 10000
+    max_iterations = 1000
     best_error = float('inf')
     best_model = None
     best_inliers = []
@@ -194,7 +194,7 @@ def ransac(kernel, threshold):
                 best_model = model
                 best_inliers = inliers
                 max_iterations = min(max_iterations,
-                    ransac_max_iterations(kernel, best_inliers, 0.0001))
+                    ransac_max_iterations(kernel, best_inliers, 0.01))
         i += 1
     return best_model, best_inliers, best_error
 

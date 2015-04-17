@@ -3,6 +3,8 @@
 import os
 import json
 import errno
+import pickle
+import gzip
 import numpy as np
 import networkx as nx
 import yaml
@@ -155,7 +157,7 @@ class DataSet:
         """
         return os.path.join(self.__feature_path(), image + '.' + self.feature_type() + '.npz')
 
-    def __save_features(self, filepath, image, points, descriptors):
+    def __save_features(self, filepath, image, points, descriptors, colors=None):
         feature_type = self.config.get('feature_type')
         if ((feature_type == 'AKAZE' and self.config.get('akaze_descriptor') in ['MLDB_UPRIGHT', 'MLDB']) or
             (feature_type == 'HAHOG' and self.config.get('hahog_normalize_to_uchar', False)) or
@@ -165,7 +167,8 @@ class DataSet:
             feature_data_type = np.float32
         np.savez(filepath,
                  points=points.astype(np.float32),
-                 descriptors=descriptors.astype(feature_data_type))
+                 descriptors=descriptors.astype(feature_data_type),
+                 colors=colors)
 
     def features_exist(self, image):
         return os.path.isfile(self.__feature_file(image))
@@ -178,10 +181,10 @@ class DataSet:
             descriptors = s['descriptors'].astype(np.float32)
         else:
             descriptors = s['descriptors']
-        return s['points'], descriptors
+        return s['points'], descriptors, s['colors']
 
-    def save_features(self, image, points, descriptors):
-        self.__save_features(self.__feature_file(image), image, points, descriptors)
+    def save_features(self, image, points, descriptors, colors):
+        self.__save_features(self.__feature_file(image), image, points, descriptors, colors)
 
     def feature_index_exists(self, image):
         return os.path.isfile(self.__feature_index_file(image))
@@ -230,24 +233,34 @@ class DataSet:
 
     def __matches_path(self):
         """Return path of matches directory"""
-        return os.path.join(self.data_path, 'robust_matches')
+        return os.path.join(self.data_path, 'matches')
 
-    def __matches_file(self, image1, image2):
-        """
-        Return path of matches file for pair of specified images
-        :param image1: Image name, with extension (i.e. 123.jpg)
-        :param image2: Image name, with extension (i.e. 123.jpg)
-        """
-        return os.path.join(self.__matches_path(), '%s_%s_matches.npz' % (image1, image2))
+    def __matches_file(self, image):
+        """File for matches for an image"""
+        return os.path.join(self.__matches_path(), '{}_matches.pkl.gz'.format(image))
 
-    def matches_exists(self, im1, im2):
-        return os.path.isfile(self.__matches_file(im1, im2))
+    def matches_exists(self, image):
+        return os.path.isfile(self.__matches_file(image))
 
-    def load_matches(self, image1, image2):
-        return np.load(self.__matches_file(image1, image2))['matches']
+    def load_matches(self, image):
+        with gzip.open(self.__matches_file(image), 'rb') as fin:
+            matches = pickle.load(fin)
+        return matches
 
-    def save_matches(self, image1, image2, matches):
-        np.savez(self.__matches_file(image1, image2), matches=matches.astype(np.int32))
+    def save_matches(self, image, matches):
+        with gzip.open(self.__matches_file(image), 'wb') as fout:
+            pickle.dump(matches, fout)
+
+    def find_matches(self, im1, im2):
+        if self.matches_exists(im1):
+            im1_matches = self.load_matches(im1)
+            if im2 in im1_matches:
+                return im1_matches[im2]
+        if self.matches_exists(im2):
+            im2_matches = self.load_matches(im2)
+            if im1 in im2_matches:
+                return im2_matches[im1][:, [1, 0]]
+        return None
 
     def __tracks_graph_file(self):
         """Return path of tracks file"""
@@ -277,11 +290,14 @@ class DataSet:
         with open(tracks_file) as fin:
             g = nx.Graph()
             for line in fin:
-                image, track, observation, x, y = line.split('\t')
+                image, track, observation, x, y, R, G, B = line.split('\t')
                 if image in images:
                     g.add_node(image, bipartite=0)
                     g.add_node(track, bipartite=1)
-                    g.add_edge(image, track, feature=(float(x), float(y)), feature_id=int(observation))
+                    g.add_edge(image, track,
+                        feature=(float(x), float(y)),
+                        feature_id=int(observation),
+                        feature_color=(int(R), int(G), int(B)))
             return g
 
     def save_tracks_graph(self, graph):
@@ -292,7 +308,8 @@ class DataSet:
                     for track, data in graph[image].items():
                         x, y = data['feature']
                         fid = data['feature_id']
-                        fout.write('%s\t%d\t%d\t%g\t%g\n' % (image, track, fid, x, y))
+                        r, g, b = data['feature_color']
+                        fout.write('%s\t%d\t%d\t%g\t%g\t%d\t%d\t%d\n' % (image, track, fid, x, y, r, g, b))
 
     def __reconstruction_file(self, filename):
         """Return path of reconstruction file"""

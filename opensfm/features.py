@@ -95,8 +95,7 @@ def extract_features_sift(image, config):
     points, desc = descriptor.compute(image, points)
     if config.get('feature_root', False): desc = root_feature(desc)
     points = np.array([(i.pt[0], i.pt[1], i.size, i.angle) for i in points])
-    return mask_and_normalize_features(points, desc, image.shape[1], image.shape[0], config)
-
+    return points, desc
 
 def extract_features_surf(image, config):
     detector = cv2.FeatureDetector_create('SURF')
@@ -122,8 +121,7 @@ def extract_features_surf(image, config):
     points, desc = descriptor.compute(image, points)
     if config.get('feature_root', False): desc = root_feature_surf(desc, partial=True)
     points = np.array([(i.pt[0], i.pt[1], i.size, i.angle) for i in points])
-    return mask_and_normalize_features(points, desc, image.shape[1], image.shape[0], config)
-
+    return points, desc
 
 def akaze_descriptor_type(name):
     d = csfm.AkazeDescriptorType.__dict__
@@ -132,7 +130,6 @@ def akaze_descriptor_type(name):
     else:
         print 'Wrong akaze descriptor type'
         return d['MSURF']
-
 
 def extract_features_akaze(image, config):
     options = csfm.AKAZEOptions()
@@ -159,7 +156,7 @@ def extract_features_akaze(image, config):
         elif akaze_descriptor_name in ["SURF", "MSURF"]:
             desc = root_feature_surf(desc, partial=False)
     points = points.astype(float)
-    return mask_and_normalize_features(points, desc, image.shape[1], image.shape[0], config)
+    return points, desc
 
 def extract_features_hahog(image, config):
     t = time.time()
@@ -179,26 +176,31 @@ def extract_features_hahog(image, config):
         desc = (uchar_scaling * desc).clip(0, 255).round()
 
     print 'Found {0} points in {1}s'.format( len(points), time.time()-t )
-    return mask_and_normalize_features(points, desc, image.shape[1], image.shape[0], config)
+    return points, desc
 
-
-def extract_feature(image, config):
-    if len(image.shape)==3:
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    image = resized_image(image, config)
+def extract_features(color_image, config):
+    assert len(color_image.shape) == 3
+    color_image = resized_image(color_image, config)
+    image = cv2.cvtColor(color_image, cv2.COLOR_BGR2GRAY)
 
     feature_type = config.get('feature_type','SIFT').upper()
     if feature_type == 'SIFT':
-        return extract_features_sift(image, config)
+        points, desc = extract_features_sift(image, config)
     elif feature_type == 'SURF':
-        return extract_features_surf(image, config)
+        points, desc = extract_features_surf(image, config)
     elif feature_type == 'AKAZE':
-        return extract_features_akaze(image, config)
+        points, desc = extract_features_akaze(image, config)
     elif feature_type == 'HAHOG':
-        return extract_features_hahog(image, config)
+        points, desc = extract_features_hahog(image, config)
     else:
         raise ValueError('Unknown feature type (must be SURF, SIFT, AKAZE or HAHOG)')
 
+    xs = points[:,0].round().astype(int)
+    ys = points[:,1].round().astype(int)
+    colors = color_image[ys, xs]
+    points, desc = mask_and_normalize_features(points, desc, image.shape[1], image.shape[0], config)
+
+    return points, desc, colors
 
 
 def build_flann_index(features, config):

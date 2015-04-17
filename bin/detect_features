@@ -17,7 +17,7 @@ def usage():
 def detect(image):
     print 'Extracting', data.feature_type().upper(), 'features for image', image
     if not data.feature_index_exists(image):
-        p_unsorted, f_unsorted = features.extract_feature(data.image_as_array(image, grayscale=True), data.config)
+        p_unsorted, f_unsorted, c_unsorted = features.extract_features(data.image_as_array(image), data.config)
         if len(p_unsorted) == 0:
             return
         # camera = data.load_exif(image)
@@ -27,11 +27,12 @@ def detect(image):
         
         size = p_unsorted[:, 2]
         order = np.argsort(size)
-        f_sorted = f_unsorted[order, :]
         p_sorted = p_unsorted[order, :]
+        f_sorted = f_unsorted[order, :]
+        c_sorted = c_unsorted[order, :]
         p_pre = p_sorted[-preemptive_max:]
         f_pre = f_sorted[-preemptive_max:]
-        data.save_features(image, p_sorted, f_sorted)
+        data.save_features(image, p_sorted, f_sorted, c_sorted)
         data.save_preemptive_features(image, p_pre, f_pre)
         index = features.build_flann_index(f_sorted, data.config)
         data.save_feature_index(image, index)

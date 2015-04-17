@@ -20,6 +20,10 @@ akaze_descriptor: MSURF       # Feature type
 akaze_descriptor_size: 0      # Size of the descriptor in bits. 0->Full size
 akaze_descriptor_channels: 3  # Number of feature channels (1,2,3)
 
+# Params for HAHOG
+hahog_peak_threshold: 0.001
+hahog_edge_threshold: 10
+
 # Masks for regions that will be ignore for feature extraction
 # List of bounding boxes specified as the ratio with respect to the height and width
 # [top_left_x, top_left_y, bottom_right_x, bottom_right_y] where x, y refer to
@@ -39,36 +43,32 @@ flann_checks: 200             # Smaller -> Faster (but might lose good matches)
 # Params for preemtive matching
 matching_gps_distance: 150            # Maximum gps distance between two images for matching
 preemptive_max: 200                   # Number of features to use for preemptive matching
-preemptive_threshold: 2               # If number of matches passes the threshold -> full feature matching
+preemptive_threshold: 0               # If number of matches passes the threshold -> full feature matching
 preemptive_matching_gps_distance: 300 # Maximum gps distance between two images for preemptive matching
 
 # Params for geometric estimation
-robust_matching_threshold: 0.006      # Outlier threshold for fundamental matrix estimation as portion of image width
+robust_matching_threshold: 0.004      # Outlier threshold for fundamental matrix estimation as portion of image width
 robust_matching_min_match: 20         # Minimum number of matches to be considered as an edge in the match grph
-five_point_algo_threshold: 0.006      # Outlier threshold (in pixels) for essential matrix estimation
+five_point_algo_threshold: 0.004      # Outlier threshold (in pixels) for essential matrix estimation
 five_point_algo_min_inliers: 20       # Minimum number of inliers for considering a two view reconstruction valid.
 triangulation_threshold: 0.006        # Outlier threshold (in pixels) for accepting a triangulated point.
-resection_threshold: 0.008            # Outlier threshold (in pixels) for camera resection.
+resection_threshold: 0.004            # Outlier threshold (in pixels) for camera resection.
 resection_min_inliers: 10             # Minimum number of resection inliers to accept it.
 
 # Params for track creation
 min_track_length: 2           # Minimum number of features/images per track
 
 # Params for bundle adjustment
-loss_function: TruncatedLoss    # Loss function for the ceres problem (see: http://ceres-solver.org/modeling.html#lossfunction)
-loss_function_threshold: 0.004  # Usually cost is quadratic for smaller residuals and sub-quadratic above.
-exif_focal_sd: 0.01             # The standard deviation of the diff between the focal length and the exif focal length in width units.
-bundle_interval: 1            # bundle adjustment after adding 'bundle_interval' cameras
-bundle_outlier_threshold: 0.008
+loss_function: SoftLOneLoss    # Loss function for the ceres problem (see: http://ceres-solver.org/modeling.html#lossfunction)
+loss_function_threshold: 1      # Threshold on the squared residuals.  Usually cost is quadratic for smaller residuals and sub-quadratic above.
+reprojection_error_sd: 0.004    # The startard deviation of the reprojection error
+exif_focal_sd: 0.01             # The standard deviation of the exif focal length in log-scale
+radial_distorsion_k1_sd: 0.01   # The standard deviation of the first radial distortion parameter (mean assumed to be 0)
+radial_distorsion_k2_sd: 0.01   # The standard deviation of the second radial distortion parameter (mean assumed to be 0)
+bundle_interval: 1              # bundle adjustment after adding 'bundle_interval' cameras
+bundle_outlier_threshold: 0.006
 
-# Params for navigation graph
-nav_min_distance: 0.01                # Minimum distance for a possible edge between two nodes
-nav_step_max_distance: 20             # Maximum distance for a possible step edge between two nodes
-nav_step_forward_view_threshold: 0.25 # Maximum difference of angles in radians between viewing directions for forward steps
-nav_step_view_threshold: 0.5          # Maximum difference of angles in radians between viewing directions for other steps
-nav_step_drift_threshold: 0.5         # Maximum motion drift with respect to step directions for steps in radians
-nav_turn_max_distance: 15             # Maixmum distance for a possible turn edge between two nodes
-nav_turn_view_threshold: 0.7          # Maximum difference of angles in radians with respect to turn directions 
+save_partial_reconstructions: yes
 
 # Other params
 processes: 1                  # Number of threads to use

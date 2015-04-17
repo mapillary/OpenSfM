@@ -12,6 +12,7 @@ import numpy as np
 import cv2
 import json
 import time
+import math
 import networkx as nx
 from networkx.algorithms import bipartite
 
@@ -54,10 +55,12 @@ def bundle(graph, reconstruction, config, fix_cameras=False):
             if track in reconstruction['points']:
                 ba.add_observation(str(shot), str(track), *graph[shot][track]['feature'])
 
-    ba.set_loss_function(config.get('loss_function', 'TruncatedLoss'),
-                         config.get('loss_function_threshold', 0.004));
-    ba.set_reprojection_error_sd(config.get('reprojection_error_sd', 1))
-    ba.set_focal_prior_sd(config.get('exif_focal_sd', 999));
+    ba.set_loss_function(config.get('loss_function', 'SoftLOneLoss'),
+                         config.get('loss_function_threshold', 1))
+    ba.set_reprojection_error_sd(config.get('reprojection_error_sd', 0.004))
+    ba.set_internal_parameters_prior_sd(config.get('exif_focal_sd', 0.01),
+                                        config.get('radial_distorsion_k1_sd', 0.01),
+                                        config.get('radial_distorsion_k2_sd', 0.01))
 
     setup = time.time()
 
@@ -323,17 +326,33 @@ def projection_matrix(camera, shot):
     Rt = Rt_from_shot(shot)
     return np.dot(K, Rt)
 
+
 def angle_between_rays(KR11, x1, KR12, x2):
-    v1 = KR11.dot([x1[0], x1[1], 1])
-    v2 = KR12.dot([x2[0], x2[1], 1])
-    return multiview.vector_angle(v1, v2)
+    u0 = KR11[0,0] * x1[0] + KR11[0,1] * x1[1] + KR11[0,2]
+    u1 = KR11[1,0] * x1[0] + KR11[1,1] * x1[1] + KR11[1,2]
+    u2 = KR11[2,0] * x1[0] + KR11[2,1] * x1[1] + KR11[2,2]
+
+    v0 = KR12[0,0] * x2[0] + KR12[0,1] * x2[1] + KR12[0,2]
+    v1 = KR12[1,0] * x2[0] + KR12[1,1] * x2[1] + KR12[1,2]
+    v2 = KR12[2,0] * x2[0] + KR12[2,1] * x2[1] + KR12[2,2]
+
+    cos = (u0 * v0 + u1 * v1 + u2 * v2) / math.sqrt(
+        (u0 * u0 + u1 * u1 + u2 * u2) * (v0 * v0 + v1 * v1 + v2 * v2))
+    if cos >= 1.0: return 0.0
+    else: return math.acos(cos)
+
+def angle_between_vectors(u, v):
+    cos = (u[0] * v[0] + u[1] * v[1] + u[2] * v[2]) / math.sqrt(
+        (u[0] * u[0] + u[1] * u[1] + u[2] * u[2]) * (v[0] * v[0] + v[1] * v[1] + v[2] * v[2]))
+    if cos >= 1.0: return 0.0
+    else: return math.acos(cos)
 
 
-def triangulate_track(track, graph, reconstruction, P_by_id, KR1_by_id, Kinv_by_id, reproj_threshold, min_ray_angle=2.0):
+def triangulate_track(track, graph, reconstruction, P_by_id, KR1_by_id, UNUSED, reproj_threshold, min_ray_angle_degrees=2.0):
     ''' Triangulate a track
     '''
-    Ps, Ps_initial, KR1_initial, Kinv_initial = [], [], [], []
-    xs, xs_initial = [], []
+    min_ray_angle = np.radians(min_ray_angle_degrees)
+    Ps, KR1s, xs, vs = [], [], [], []
 
     for shot in graph[track]:
         if shot in reconstruction['shots']:
@@ -343,33 +362,29 @@ def triangulate_track(track, graph, reconstruction, P_by_id, KR1_by_id, Kinv_by_
                 P = projection_matrix(c, s)
                 P_by_id[shot] = P
                 KR1_by_id[shot] = np.linalg.inv(P[:,:3])
-                Kinv_by_id[shot] = np.linalg.inv(multiview.K_from_camera(c))
-            Ps_initial.append(P_by_id[shot])
-            xs_initial.append(graph[track][shot]['feature'])
-            KR1_initial.append(KR1_by_id[shot])
-            Kinv_initial.append(Kinv_by_id[shot])
-    valid_set = []
-    if len(Ps_initial) >= 2:
-        max_angle = 0
-        for i, j in combinations(range(len(Ps_initial)), 2):
-            angle = angle_between_rays(
-                    KR1_initial[i], xs_initial[i], KR1_initial[j], xs_initial[j])
-            if 1:
-                if i not in valid_set:
-                    valid_set.append(i)
-                if j not in valid_set:
-                    valid_set.append(j)
-            max_angle = max(angle, max_angle)
-        if max_angle > np.radians(min_ray_angle):
-            for k in valid_set:
-                Ps.append(np.dot(Kinv_initial[k], Ps_initial[k] ))
-                xx = np.dot(Kinv_initial[k][:2,:], multiview.homogeneous(np.array(xs_initial[k])))
-                xs.append(xx[0:2])
+            Ps.append(P_by_id[shot])
+            x = graph[track][shot]['feature']
+            xs.append(x)
+            A = KR1_by_id[shot]
+            KR1s.append(A)
+            v0 = A[0,0] * x[0] + A[0,1] * x[1] + A[0,2]
+            v1 = A[1,0] * x[0] + A[1,1] * x[1] + A[1,2]
+            v2 = A[2,0] * x[0] + A[2,1] * x[1] + A[2,2]
+            vs.append([v0, v1, v2])
+
+    if len(Ps) >= 2:
+        angle_ok = False
+        for i, j in combinations(range(len(Ps)), 2):
+            angle = angle_between_vectors(vs[i], vs[j])
+            if angle > min_ray_angle:
+                angle_ok = True
+                break
+
+        if angle_ok:
             X = multiview.triangulate(Ps, xs)
             error = 0
-            Xh = multiview.homogeneous(X)
             for P, x in zip(Ps, xs):
-                xx, yy, zz = P.dot(Xh)
+                xx, yy, zz = P.dot([X[0], X[1], X[2], 1])
                 if zz <= 0:
                     error = 999999999.0
                 reprojected_x = np.array([xx / zz, yy / zz])
@@ -679,29 +694,8 @@ def merge_reconstructions(reconstructions, config):
 
 
 def paint_reconstruction(data, graph, reconstruction):
-    to_paint = defaultdict(list)
-    to_paint_track = defaultdict(list)
     for track in reconstruction['points']:
-        for shot in graph[track]:
-            to_paint[shot].append(graph[track][shot]['feature'])
-            to_paint_track[shot].append(track)
-
-    track_colors = {track: np.zeros(3) for track in reconstruction['points']}
-    track_sum = {track: 0 for track in reconstruction['points']}
-
-    for shot in to_paint:
-        points = np.array(to_paint[shot])
-        tracks = to_paint_track[shot]
-        im = data.image_as_array(shot)
-        pixels = features.denormalized_image_coordinates(points, im.shape[1], im.shape[0]).astype(int)
-        colors = im[pixels[:,1], pixels[:,0]]
-        for track, color in zip(tracks, colors):
-            track_colors[track] += color
-            track_sum[track] += 1
-
-    for track in reconstruction['points']:
-        c = track_colors[track] / track_sum[track]
-        reconstruction['points'][track]['color'] = list(c)
+        reconstruction['points'][track]['color'] = graph[track].values()[0]['feature_color']
 
 def paint_reconstruction_constant(data, graph, reconstruction):
     for track in reconstruction['points']:
