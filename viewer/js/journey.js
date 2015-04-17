@@ -622,7 +622,6 @@ var SmoothJourney = (function () {
      * @param {Function} stopAction The action to run when stopping a journey.
      * @param {Function} continuationAction The action to execute when the journey is stopped for smooth stopping.
      * @param {Function} preloadAction The action to run when stopping a journey.
-     * @param {Function} weightFunction A function that maps a value between in [0. 1] to another value in [0, 1],
      * @param {Function} speedFunction Function returning speed coefficient based on the current position between nodes.
      * @param {Type} curveType The type of the curve used for movement. Must inherit from THREE.Curve.
      * @param {Object} penalty Object specifying a weight key, penalty key and a dictionary of penalty keys values
@@ -638,7 +637,6 @@ var SmoothJourney = (function () {
         stopAction,
         continuationAction,
         preloadAction,
-        weightFunction,
         speedFunction,
         curveType,
         penalty) {
@@ -651,7 +649,6 @@ var SmoothJourney = (function () {
         this.stopAction = stopAction;
         this.continuationAction = continuationAction;
         this.preloadAction = preloadAction;
-        this.weightFunction = weightFunction;
         this.speedFunction = speedFunction;
         this.curveType = curveType;
 
@@ -725,7 +722,7 @@ var SmoothJourney = (function () {
         var fraction = this.u >= 1 ? 1 : point - index;
         var edge = this.getEdge(this.graphIndex, this.path[this.currentIndex], this.path[this.currentIndex + 1]);
 
-        this.navigationAction(position, target, this.weightFunction(fraction, edge));
+        this.navigationAction(position, target, fraction, edge);
 
         if (this.u >= 1) {
             this.stop(false);
@@ -773,7 +770,8 @@ var SmoothJourney = (function () {
         var position = this.positionCurve.getPointAt(0);
         var target = this.targetCurve.getPointAt(0);
 
-        this.navigationAction(position, target, 0);
+        var edge = this.getEdge(this.graphIndex, this.path[this.currentIndex], this.path[this.currentIndex + 1]);
+        this.navigationAction(position, target, 0, edge);
 
         _this = this;
         this.intervalToken = window.setInterval(function () { move.call(_this); }, 1000/60);
@@ -939,9 +937,9 @@ var JourneyWrapper = (function ($) {
 
     // Private function for setting the position and direction of the orbit controls camera
     // used for the smooth navigation movement as well as controlling the image plane opacity.
-    var smoothNavigation = function (position, target, fraction) {
+    var smoothNavigation = function (position, target, fraction, edge) {
         controls.goto(position, target);
-        options.imagePlaneOpacity = 1 - fraction;
+        options.imagePlaneOpacity = 1 - mapFraction(fraction, edge);
     }
 
     // Private function which retrieves a camera and creates its image plane.
@@ -961,7 +959,8 @@ var JourneyWrapper = (function ($) {
     }
 
     // Private function for mapping the fraction in [0, 1] to another fraction in [0, 1] based on the edge.
-    var fractionMap = function (fraction, edge) {
+    var mapFraction = function (fraction, edge) {
+        var length = edge.weight;
         var transitionLength = ['step_left', 'step_right'].indexOf(edge.direction) > -1 ? edge.weight : 4;
         var lowerBound = Math.max((length - transitionLength) / (2 * length), 0);
         var upperBound = Math.min((length + transitionLength) / (2 * length), 1);
@@ -1028,7 +1027,6 @@ var JourneyWrapper = (function ($) {
                             stop,
                             smoothContinuation,
                             preload,
-                            fractionMap,
                             speedFunction,
                             _this.curveType,
                             penalty);
