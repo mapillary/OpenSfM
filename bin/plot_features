@@ -13,11 +13,17 @@ from opensfm import reconstruction
 from opensfm import io
 
 
-def plot_features(image, points):
-    h, w, c = image.shape
+def plot_features(image, points, colors, plot_colors):
+    h, w, d = image.shape
     p = features.denormalized_image_coordinates(points, w, h)
     pl.imshow(image)
-    pl.plot(p[:,0], p[:,1], 'ob')
+
+    if plot_colors:
+        c = colors.astype(float) / 255.
+    else:
+        c = 'b'
+
+    pl.scatter(p[:,0], p[:,1], c=c)
 
 
 if __name__ == "__main__":
@@ -26,6 +32,9 @@ if __name__ == "__main__":
                         help='path to the dataset to be processed')
     parser.add_argument('--image',
                         help='name of the image to show')
+    parser.add_argument('--plot_colors',
+                        help='plot features color',
+                        action='store_true')
     parser.add_argument('--save_figs',
                         help='save figures istead of showing them',
                         action='store_true')
@@ -39,7 +48,7 @@ if __name__ == "__main__":
             print "ploting {0} points".format(len(points))
             pl.figure()
             pl.title('Image: ' + image + ', features: ' + str(len(points)))
-            plot_features(data.image_as_array(image), points)
+            plot_features(data.image_as_array(image), points, colors, args.plot_colors)
             if args.save_figs:
                 p = args.dataset + '/plot_features'
                 io.mkdir_p(p)

@@ -62,7 +62,7 @@ def denormalized_image_coordinates(norm_coords, width, height):
     p[:, 1] = norm_coords[:, 1] * size - 0.5 + height / 2.0
     return p
 
-def mask_and_normalize_features(points, desc, width, height, config):
+def mask_and_normalize_features(points, desc, colors, width, height, config):
     masks = np.array(config.get('masks',[]))
     for mask in masks:
         mask = [mask[0]*height, mask[1]*width, mask[2]*height, mask[3]*width]
@@ -72,8 +72,9 @@ def mask_and_normalize_features(points, desc, width, height, config):
                            (points[:,0] < mask[3]) )
         points = points[ids]
         desc = desc[ids]
+        colors = colors[ids]
     points[:, :2] = normalized_image_coordinates(points[:, :2], width, height)
-    return points, desc
+    return points, desc, colors
 
 def extract_features_sift(image, config):
     detector = cv2.FeatureDetector_create('SIFT')
@@ -198,9 +199,8 @@ def extract_features(color_image, config):
     xs = points[:,0].round().astype(int)
     ys = points[:,1].round().astype(int)
     colors = color_image[ys, xs]
-    points, desc = mask_and_normalize_features(points, desc, image.shape[1], image.shape[0], config)
 
-    return points, desc, colors
+    return mask_and_normalize_features(points, desc, colors, image.shape[1], image.shape[0], config)
 
 
 def build_flann_index(features, config):
