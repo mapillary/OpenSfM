@@ -1,6 +1,11 @@
 import numpy as np
 import json
 import cv2
+import networkx as nx
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # pairwise matches
 def match_lowe(index, f2, config):
@@ -71,3 +76,39 @@ def robust_match(p1, p2, matches, config):
     inliers = mask.ravel().nonzero()
 
     return matches[inliers]
+
+
+def good_track(track, min_length):
+    if len(track) < min_length:
+        return False
+    images = [f[0] for f in track]
+    if len(images) != len(set(images)):
+        return False
+    return True
+
+
+def create_tracks_graph(features, colors, matches, config):
+    logging.info('creating features graph')
+    g = nx.Graph()
+    for im1, im2 in matches:
+        for f1, f2 in matches[im1, im2]:
+            g.add_edge((im1, f1),  (im2, f2))
+
+    logging.info('finding connected components')
+    tracks = nx.connected_components(g)
+
+    tracks = [t for t in tracks if good_track(t, config.get('min_track_length', 2))]
+    logging.info('Good tracks: %d', len(tracks))
+
+    tracks_graph = nx.Graph()
+    for track_id, track in enumerate(tracks):
+        for image_feature in track:
+            image = image_feature[0]
+            featureid = image_feature[1]
+            x, y = features[image][featureid]
+            r, g, b = colors[image][featureid]
+            tracks_graph.add_node(image, bipartite=0)
+            tracks_graph.add_node(str(track_id), bipartite=1)
+            tracks_graph.add_edge(image, str(track_id), feature=(x,y), feature_id=featureid, feature_color=(r,g,b))
+    return tracks_graph
+
