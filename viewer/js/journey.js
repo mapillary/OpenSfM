@@ -162,6 +162,7 @@ var GraphHelper = (function () {
         this.dijkstra = new Dijkstra();
     }
 
+    // Private function for getting a graph with edges of a type.
     var getTypeGraph = function (graph, type) {
         var typeGraph = { nodes: graph.nodes, edges: {} };
 
@@ -364,7 +365,7 @@ var JourneyBase = (function () {
      * @return {Array} An array of node names corresponding to the path
      */
     JourneyBase.prototype.shortestPath = function (from, to) {
-        var index = undefined;
+        var index = null;
         for (var i = 0; i < this.graphs.length; i++) {
             // Ensure that both nodes exist in the graph.
             if (this.graphs[i].nodes.indexOf(from) > -1 &&
@@ -374,7 +375,7 @@ var JourneyBase = (function () {
             }
         }
 
-        if (index === undefined) {
+        if (index === null) {
             return null;
         }
 
@@ -499,10 +500,10 @@ var Journey = (function () {
         this.startAction = startAction;
         this.stopAction = stopAction;
         this.preloadAction = preloadAction;
-        this.timeoutToken = undefined;
-        this.path = undefined;
-        this.graphIndex = undefined;
-        this.currentIndex = 0;
+        this.graphIndex = null;
+        this.path = null;
+        this.timeoutToken = null;
+        this.currentIndex = null;
     }
 
     // Inheriting from JourneyBase
@@ -589,15 +590,16 @@ var Journey = (function () {
      * Stops an ongoing journey between two nodes in a graph.
      */
     Journey.prototype.stop = function (continuation) {
-        if (this.timeoutToken === undefined || this.started === false) {
+        if (this.timeoutToken === null || this.started === false) {
             return;
         }
 
         window.clearTimeout(this.timeoutToken);
-        this.timeoutToken = undefined;
-        this.currentIndex = 0;
-        this.path = undefined;
-        this.graphIndex = undefined;
+
+        this.graphIndex = null;
+        this.path = null;
+        this.timeoutToken = null;
+        this.currentIndex = null;
 
         this.stopAction();
 
@@ -652,15 +654,15 @@ var SmoothJourney = (function () {
         this.speedFunction = speedFunction;
         this.curveType = curveType;
 
-        this.previousTime = undefined;
-        this.currentIndex = 0;
-        this.u = 0;
-        this.t = 0;
-        this.path = undefined;
-        this.graphIndex = undefined;
-        this.positionCurve = undefined;
-        this.targetCurve = undefined;
-        this.intervalToken = undefined;
+        this.graphIndex = null;
+        this.path = null;
+        this.positionCurve = null;
+        this.targetCurve = null;
+        this.intervalToken = null;
+        this.previousTime = null;
+        this.currentIndex = null;
+        this.u = null;
+        this.t = null;
     }
 
     // Inheriting from JourneyBase
@@ -782,24 +784,24 @@ var SmoothJourney = (function () {
      * @param {Boolean} continuation Specifying if the continuation action should be invoked.
      */
     SmoothJourney.prototype.stop = function (continuation) {
-        if (this.intervalToken === undefined || this.started === false) {
+        if (this.intervalToken === null || this.started === false) {
             return;
         }
 
         window.clearInterval(this.intervalToken);
-        this.intervalToken = undefined;
+        this.intervalToken = null;
 
         var nextIndex = Math.min(this.currentIndex + 1, this.path.length - 1);
         var nextNode = this.path[nextIndex];
 
-        this.path = undefined;
-        this.graphIndex = undefined;
-        this.positionCurve = undefined;
-        this.targetCurve = undefined;
-        this.previousTime = undefined;
-        this.currentIndex = 0;
-        this.u = 0;
-        this.t = 0;
+        this.graphIndex = null;
+        this.path = null;
+        this.positionCurve = null;
+        this.targetCurve = null;
+        this.previousTime = null;
+        this.currentIndex = null;
+        this.u = null;
+        this.t = null;
 
         if (continuation === true) {
             this.continuationAction(nextNode);
@@ -840,17 +842,18 @@ var JourneyWrapper = (function ($) {
      */
     function JourneyWrapper() {
         this.initialized = false;
-        this.journey = undefined;
-        this.destination = undefined;
-        this.line = undefined;
-        this.curveType = undefined;
+        this.journey = null;
+        this.destination = null;
+        this.line = null;
+        this.curveType = null;
+        this.showPathController = null;
 
         this.graphHelper = new GraphHelper();
     }
 
     // Private function for calculating the desired time for moving one unit.
     var getInterval = function () {
-        var interval = undefined;
+        var interval = null;
         if (controls.animationSpeed === 0) {
             interval = Infinity;
         }
@@ -913,14 +916,14 @@ var JourneyWrapper = (function ($) {
 
     // Private function for retrieving a camera based on the id.
     var getCamera = function (shot_id) {
-        var camera = undefined;
+        var camera = null;
         for (var i = 0; i < camera_lines.length; ++i) {
             if (camera_lines[i].shot_id === shot_id) {
                 camera = camera_lines[i];
             }
         }
 
-        return camera === undefined ? null : camera;
+        return camera;
     }
 
     // Private function for navigation action of journey. Retrieves a camera,
@@ -1190,14 +1193,14 @@ var JourneyWrapper = (function ($) {
      * Hides the shortest path from the scene.
      */
     JourneyWrapper.prototype.hidePath = function () {
-        if (this.initialized !== true || this.line === undefined){
+        if (this.initialized !== true || this.line === null){
             return;
         }
 
-        if (this.line !== undefined) {
+        if (this.line !== null) {
             var sceneLine = scene.getObjectByName(this.line.name);
             scene.remove(sceneLine);
-            this.line = undefined;
+            this.line = null;
             render();
         }
     }
@@ -1226,7 +1229,7 @@ var JourneyWrapper = (function ($) {
      * Adds a show path checkbox to the options.
      */
     JourneyWrapper.prototype.addShowPathController = function () {
-        if (this.initialized !== true || this.showPathController !== undefined){
+        if (this.initialized !== true || this.showPathController !== null){
             return;
         }
 
@@ -1251,13 +1254,13 @@ var JourneyWrapper = (function ($) {
      * Removes the show path checkbox from the options.
      */
     JourneyWrapper.prototype.removeShowPathController = function () {
-        if (this.initialized !== true || this.showPathController === undefined){
+        if (this.initialized !== true || this.showPathController === null){
             return;
         }
 
         this.hidePath();
         f1.remove(this.showPathController);
-        this.showPathController = undefined;
+        this.showPathController = null;
     }
 
     return JourneyWrapper;
