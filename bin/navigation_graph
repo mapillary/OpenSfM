@@ -151,17 +151,25 @@ def create_optical_center_graph(reconstructions, config):
     D = dist.squareform(dist.pdist(optical_centers))
 
     min_distance = config.get('nav_min_distance', 0.01)
-    step_pref_distance = config.get('nav_step_pref_distance', 0)
-
+    step_pref_distance = config.get('nav_step_pref_distance', 6)
     step_max_distance = config.get('nav_step_max_distance', 20)
-    step_forward_viewing_threshold = np.min([config.get('nav_step_forward_view_threshold', np.pi / 12), np.pi / 2])
-    step_viewing_threshold = np.min([config.get('nav_step_view_threshold', np.pi / 6), np.pi / 2])
-    step_drift_threshold = np.min([config.get('nav_step_drift_threshold', np.pi / 5), np.pi / 2])
-    step_right_left_threshold = np.pi / 2 - step_drift_threshold
-
     turn_max_distance = config.get('nav_turn_max_distance', 15)
-    turn_viewing_threshold = np.min([config.get('nav_turn_view_threshold', 2*np.pi/9), np.pi/2])
-    turn_u_viewing_threshold = np.pi / 2 - turn_viewing_threshold
+
+    max_threshold = np.empty(4)
+    max_threshold.fill(90)
+    thresholds = np.radians(np.minimum([config.get('nav_step_forward_view_threshold', 15),
+                                        config.get('nav_step_view_threshold', 30),
+                                        config.get('nav_step_drift_threshold', 36),
+                                        config.get('nav_turn_view_threshold', 40)],
+                            max_threshold))
+
+    step_forward_viewing_threshold = thresholds[0]
+    step_viewing_threshold = thresholds[1]
+    step_drift_threshold = thresholds[2]
+    step_right_left_threshold = np.min(np.pi / 2 - step_drift_threshold, np.pi / 4)
+
+    turn_viewing_threshold = thresholds[3]
+    turn_u_viewing_threshold = np.min(np.pi / 2 - turn_viewing_threshold, np.pi / 4)
 
     direction = 'direction'
     motion = 'motion'
