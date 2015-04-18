@@ -259,8 +259,9 @@ class DataSet:
         if self.matches_exists(im2):
             im2_matches = self.load_matches(im2)
             if im1 in im2_matches:
-                return im2_matches[im1][:, [1, 0]]
-        return None
+                if len(im2_matches[im1]):
+                    return im2_matches[im1][:, [1, 0]]
+        return []
 
     def __tracks_graph_file(self):
         """Return path of tracks file"""
