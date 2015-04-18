@@ -961,7 +961,7 @@ var JourneyWrapper = (function ($) {
     // Private function for mapping the fraction in [0, 1] to another fraction in [0, 1] based on the edge.
     var mapFraction = function (fraction, edge) {
         var length = edge.weight;
-        var transitionLength = ['step_left', 'step_right'].indexOf(edge.direction) > -1 ? edge.weight : 4;
+        var transitionLength = ['step_forward', 'step_backward'].indexOf(edge.direction) > -1 ? 4 : edge.weight;
         var lowerBound = Math.max((length - transitionLength) / (2 * length), 0);
         var upperBound = Math.min((length + transitionLength) / (2 * length), 1);
 
@@ -970,12 +970,30 @@ var JourneyWrapper = (function ($) {
         return Math.min(Math.max(result, 0), 1);
     }
 
-    // Private function for determining the speed based on the position between nodes based on the edge.
+    // Private function for determining the speed for the position between nodes based on the edge.
     var speedFunction = function (fraction, edge) {
-        var length = ['step_left', 'step_right'].indexOf(edge.direction) > -1 ? 0 : edge.weight;
-        var coefficient = Math.min(Math.max(length - 2, 0), 2) / 2;
-        var speed = 1 + coefficient * 1.5 * Math.abs(0.35 - Math.min(Math.abs(fraction - 0.65), 0.35));
-        return speed;
+        var general = 1;
+        var increase = 0;
+
+        switch (edge.direction) {
+            case 'turn_left':
+            case 'turn_right':
+                general = edge.weight / Math.max(edge.weight, 6);
+                break;
+            case 'turn_u':
+                general = edge.weight / Math.max(edge.weight, 8);
+                break;
+            case 'step_forward':
+            case 'step_backward':
+                // Speed increase by a maximum of 0.35 multiplied by coefficient based on edge weight.
+                var k = Math.min(Math.max(edge.weight - 2, 0), 2) * 3 / 4;
+                increase = k * Math.abs(0.35 - Math.min(Math.abs(fraction - 0.65), 0.35));
+                break;
+            default:
+                break;
+        }
+
+        return general * (1 + increase);
     }
 
     /**
