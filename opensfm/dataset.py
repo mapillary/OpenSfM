@@ -181,7 +181,7 @@ class DataSet:
             descriptors = s['descriptors'].astype(np.float32)
         else:
             descriptors = s['descriptors']
-        return s['points'], descriptors, s['colors']
+        return s['points'], descriptors, s['colors'].astype(float)
 
     def save_features(self, image, points, descriptors, colors):
         self.__save_features(self.__feature_file(image), image, points, descriptors, colors)
@@ -298,7 +298,7 @@ class DataSet:
                     g.add_edge(image, track,
                         feature=(float(x), float(y)),
                         feature_id=int(observation),
-                        feature_color=(int(R), int(G), int(B)))
+                        feature_color=(float(R), float(G), float(B)))
             return g
 
     def save_tracks_graph(self, graph):
