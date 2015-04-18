@@ -519,43 +519,44 @@ var Journey = (function () {
     }
 
     // Private callback function for setInterval.
-    var onNavigation = function (self) {
-        if (self.started !== true) {
-            self.stop();
+    var navigation = function () {
+        if (this.started !== true) {
+            this.stop();
             return;
         }
 
-        if (!isFinite(self.intervalTime)) {
-            self.timeoutToken = window.setTimeout(function () { onNavigation(self); }, 500);
+        var _this = this;
+        if (!isFinite(this.intervalTime)) {
+            this.timeoutToken = window.setTimeout(function () { navigation.call(_this); }, 500);
             return;
         }
 
-        var pathLength = self.path.length;
-        self.currentIndex++;
+        var pathLength = this.path.length;
+        this.currentIndex++;
 
-        if (self.currentIndex >= pathLength) {
-            self.stop();
+        if (this.currentIndex >= pathLength) {
+            this.stop();
             return;
         }
 
-        self.navigationAction(self.path[self.currentIndex]);
+        this.navigationAction(this.path[this.currentIndex]);
 
-        if (self.currentIndex === pathLength - 1) {
-            self.stop();
+        if (this.currentIndex === pathLength - 1) {
+            this.stop();
             return;
         }
 
-        if (self.currentIndex + self.preCount <= pathLength - 1) {
-            self.preloadAction([self.path[self.currentIndex + self.preCount]]);
+        if (this.currentIndex + this.preCount <= pathLength - 1) {
+            this.preloadAction([this.path[this.currentIndex + this.preCount]]);
         }
 
         var currentInterval =
             getInterval(
-                self.graphs[self.graphIndex].edges[self.path[self.currentIndex - 1]],
-                self.path[self.currentIndex],
-                self.intervalTime);
+                this.graphs[this.graphIndex].edges[this.path[this.currentIndex - 1]],
+                this.path[this.currentIndex],
+                this.intervalTime);
 
-        self.timeoutToken = window.setTimeout(function () { onNavigation(self); }, currentInterval);
+        this.timeoutToken = window.setTimeout(function () { navigation.call(_this); }, currentInterval);
     }
 
     /**
@@ -583,7 +584,7 @@ var Journey = (function () {
         this.navigationAction(this.path[this.currentIndex]);
 
         var _this = this;
-        this.timeoutToken = window.setTimeout(function () { onNavigation(_this); }, 500);
+        this.timeoutToken = window.setTimeout(function () { navigation.call(_this); }, 500);
     }
 
     /**
