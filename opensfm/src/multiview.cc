@@ -161,8 +161,7 @@ bp::object Triangulate(const bp::list &Ps_list,
     if (!angle_ok) {
       Eigen::Vector3d xh;
       xh << x(0,0), x(1,0), 1;
-//      Eigen::Vector3d v = P.block<3,3>(0,0).householderQr().solve(xh);
-      Eigen::Vector3d v = P.block<3,3>(0,0).inverse() * xh;
+      Eigen::Vector3d v = P.block<3,3>(0,0).transpose().inverse() * xh;
       vs.col(i) << v(0), v(1), v(2);
 
       for (int j = 0; j < i; ++j) {
@@ -170,17 +169,12 @@ bp::object Triangulate(const bp::list &Ps_list,
         a << vs(0, i), vs(1, i), vs(2, i);
         b << vs(0, j), vs(1, j), vs(2, j);
         double angle = AngleBetweenVectors(a, b);
-std::cout << angle << " " << i << " " << j << std::endl;
         if (angle >= min_angle) {
           angle_ok = true;
-        } else {
-          std::cout << "small angle" << std::endl;
         }
       }
     }
   }
-  if (!angle_ok)
-          std::cout << "All angles small" << std::endl;
 
   if (!angle_ok) return bp::object();
 
