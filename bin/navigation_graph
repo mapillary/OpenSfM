@@ -155,21 +155,22 @@ def create_optical_center_graph(reconstructions, config):
     step_max_distance = config.get('nav_step_max_distance', 20)
     turn_max_distance = config.get('nav_turn_max_distance', 15)
 
-    max_threshold = np.empty(4)
-    max_threshold.fill(90)
     thresholds = np.radians(np.minimum([config.get('nav_step_forward_view_threshold', 15),
                                         config.get('nav_step_view_threshold', 30),
                                         config.get('nav_step_drift_threshold', 36),
-                                        config.get('nav_turn_view_threshold', 40)],
-                            max_threshold))
+                                        config.get('nav_turn_view_threshold', 40),
+                                        config.get('nav_vertical_threshold', 20),
+                                        config.get('nav_rotation_threshold', 30)],
+                                       [45, 45, 90, 45, 90, 45]))
 
     step_forward_viewing_threshold = thresholds[0]
     step_viewing_threshold = thresholds[1]
     step_drift_threshold = thresholds[2]
-    step_right_left_threshold = np.min(np.pi / 2 - step_drift_threshold, np.pi / 4)
-
     turn_viewing_threshold = thresholds[3]
-    turn_u_viewing_threshold = np.min(np.pi / 2 - turn_viewing_threshold, np.pi / 4)
+    vertical_threshold = thresholds[4]
+    rotation_threshold = thresholds[5]
+
+    step_right_left_threshold = np.min(np.pi / 2 - step_drift_threshold, np.pi / 4)
 
     direction = 'direction'
     motion = 'motion'
@@ -186,11 +187,10 @@ def create_optical_center_graph(reconstructions, config):
     turns = {
         'turn_left': {direction: -np.pi / 2, motion: -np.pi / 4, viewing: turn_viewing_threshold},
         'turn_right': {direction: np.pi / 2, motion: np.pi / 4, viewing: turn_viewing_threshold},
-        'turn_u': {direction: np.pi, motion: np.nan, viewing: turn_u_viewing_threshold}
+        'turn_u': {direction: np.pi, motion: np.nan, viewing: turn_viewing_threshold}
     }
 
     graph = nx.MultiDiGraph()
-
 
     for i in range(0, D.shape[0]):
 
@@ -233,9 +233,9 @@ def create_optical_center_graph(reconstructions, config):
             step_indices = np.where((position_distances < step_max_distance)
                                     & (motion_drift < step[drift])
                                     & (np.abs(direction_turns) < step[viewing])
-                                    & (np.abs(vertical_motion_diffs) < np.pi/9)
-                                    & (np.abs(vertical_dir_diffs) < np.pi/9)
-                                    & (rotations < np.pi/6))[0]
+                                    & (np.abs(vertical_motion_diffs) < vertical_threshold)
+                                    & (np.abs(vertical_dir_diffs) < vertical_threshold)
+                                    & (rotations < rotation_threshold))[0]
 
             pref_step_indices = ordered_pref_indices[np.in1d(ordered_pref_indices, step_indices)]
             pos_step_indices = ordered_pos_indices[np.in1d(ordered_pos_indices, step_indices)]
@@ -252,8 +252,9 @@ def create_optical_center_graph(reconstructions, config):
         for key in turns:
             turn = turns[key]
             viewing_diff = np.abs(angle_diff(direction_turns, turn[direction]))
-            motion_diffs = np.zeros(motion_angles.shape, dtype=np.float64) if np.isnan(turn[motion]) else \
-                np.abs(angle_diff(motion_angles, turn[motion]))
+            motion_diffs = np.zeros(motion_angles.shape, dtype=np.float64) \
+                if np.isnan(turn[motion]) \
+                else np.abs(angle_diff(motion_angles, turn[motion]))
 
             # Calculate simple penalty function to promote preferred distance
             # and motion difference with respect to preferred turn motion.
@@ -266,8 +267,8 @@ def create_optical_center_graph(reconstructions, config):
             # Get possible nodes based on thresholds for current turn kind.
             turn_indices = np.where((position_distances < turn_max_distance)
                                     & (viewing_diff < turn[viewing])
-                                    & (np.abs(vertical_motion_diffs) < np.pi/9)
-                                    & (np.abs(vertical_dir_diffs) < np.pi/9))[0]
+                                    & (np.abs(vertical_motion_diffs) < vertical_threshold)
+                                    & (np.abs(vertical_dir_diffs) < vertical_threshold))[0]
 
             pref_turn_indices = ordered_pref_indices[np.in1d(ordered_pref_indices, turn_indices)]
             pos_turn_indices = ordered_pos_indices[np.in1d(ordered_pos_indices, turn_indices)]
