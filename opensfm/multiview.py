@@ -429,13 +429,13 @@ def two_view_reconstruction(p1, p2, f1, f2, threshold):
             Xs = []
             inliers = []
             for x1, x2 in zip(p1, p2):
-                X = triangulate(Ps, [x1, x2])
-                Xs.append(X)
-                P1X = P1.dot(homogeneous(X))
-                P2X = P2.dot(homogeneous(X))
-                e1 = np.linalg.norm(x1 - euclidean(P1X))
-                e2 = np.linalg.norm(x2 - euclidean(P2X))
-                inliers.append(e1 < threshold and e2 < threshold and P1X[2] > 0 and P2X[2] > 0)
+                X = csfm.triangulate(Ps, [x1, x2], threshold, -1.0)
+                if X is not None:
+                    Xs.append(X)
+                    inliers.append(True)
+                else:
+                    Xs.append([0,0,0])
+                    inliers.append(False)
             inliers = np.array(inliers)
             Xs = np.array(Xs)
 

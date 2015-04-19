@@ -184,6 +184,20 @@ bp::object Triangulate(const bp::list &Ps_list,
   Eigen::Matrix<double, 3, 1> Xe;
   Xe << X(0) / X(3), X(1) / X(3), X(2) / X(3);
 
+  for (int i = 0; i < n; ++i) {
+    Eigen::Vector3d x_reproj = Ps[i] * X;
+
+    if (x_reproj(2) <= 0) {
+      return bp::object();  
+    }
+
+    double dx = xs(0, i) - x_reproj(0) / x_reproj(2);
+    double dy = xs(1, i) - x_reproj(1) / x_reproj(2);
+    if (dx * dx + dy * dy > threshold * threshold) {
+      return bp::object();
+    }
+  }
+
   npy_intp Xe_shape[1] = {3};
   return bpn_array_from_data(1, Xe_shape, Xe.data());
 }

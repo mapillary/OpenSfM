@@ -348,7 +348,7 @@ def angle_between_vectors(u, v):
     else: return math.acos(cos)
 
 
-def triangulate_track(track, graph, reconstruction, P_by_id, KR1_by_id, UNUSED, reproj_threshold, min_ray_angle_degrees=2.0):
+def triangulate_track_python(track, graph, reconstruction, P_by_id, KR1_by_id, UNUSED, reproj_threshold, min_ray_angle_degrees=2.0):
     ''' Triangulate a track
     '''
     min_ray_angle = np.radians(min_ray_angle_degrees)
@@ -410,7 +410,7 @@ def triangulate(Ps, xs, reproj_threshold, min_ray_angle):
     '''
     return csfm.triangulate(Ps, xs, reproj_threshold, min_ray_angle)
 
-def triangulate_track_C(track, graph, reconstruction, P_by_id, UNUSED1, UNUSED2, reproj_threshold, min_ray_angle_degrees=2.0):
+def triangulate_track(track, graph, reconstruction, P_by_id, UNUSED1, UNUSED2, reproj_threshold, min_ray_angle_degrees=2.0):
     ''' Triangulate a track
     '''
     min_ray_angle = np.radians(min_ray_angle_degrees)
@@ -430,18 +430,9 @@ def triangulate_track_C(track, graph, reconstruction, P_by_id, UNUSED1, UNUSED2,
     if len(Ps) >= 2:
         X = csfm.triangulate(Ps, xs, reproj_threshold, min_ray_angle)
         if X is not None:
-            error = 0
-            for P, x in zip(Ps, xs):
-                xx, yy, zz = P.dot([X[0], X[1], X[2], 1])
-                if zz <= 0:
-                    error = 999999999.0
-                    break
-                reprojected_x = np.array([xx / zz, yy / zz])
-                error = max(error, (reprojected_x - x).max())
-            if error < reproj_threshold:
-                reconstruction['points'][track] = {
-                    "coordinates": list(X),
-                }
+            reconstruction['points'][track] = {
+                "coordinates": list(X),
+            }
 
 
 def triangulate_shot_features(graph, reconstruction, shot_id, reproj_threshold, min_ray_angle):
