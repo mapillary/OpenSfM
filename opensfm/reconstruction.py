@@ -327,28 +327,7 @@ def projection_matrix(camera, shot):
     return np.dot(K, Rt)
 
 
-def angle_between_rays(KR11, x1, KR12, x2):
-    u0 = KR11[0,0] * x1[0] + KR11[0,1] * x1[1] + KR11[0,2]
-    u1 = KR11[1,0] * x1[0] + KR11[1,1] * x1[1] + KR11[1,2]
-    u2 = KR11[2,0] * x1[0] + KR11[2,1] * x1[1] + KR11[2,2]
-
-    v0 = KR12[0,0] * x2[0] + KR12[0,1] * x2[1] + KR12[0,2]
-    v1 = KR12[1,0] * x2[0] + KR12[1,1] * x2[1] + KR12[1,2]
-    v2 = KR12[2,0] * x2[0] + KR12[2,1] * x2[1] + KR12[2,2]
-
-    cos = (u0 * v0 + u1 * v1 + u2 * v2) / math.sqrt(
-        (u0 * u0 + u1 * u1 + u2 * u2) * (v0 * v0 + v1 * v1 + v2 * v2))
-    if cos >= 1.0: return 0.0
-    else: return math.acos(cos)
-
-def angle_between_vectors(u, v):
-    cos = (u[0] * v[0] + u[1] * v[1] + u[2] * v[2]) / math.sqrt(
-        (u[0] * u[0] + u[1] * u[1] + u[2] * u[2]) * (v[0] * v[0] + v[1] * v[1] + v[2] * v[2]))
-    if cos >= 1.0: return 0.0
-    else: return math.acos(cos)
-
-
-def triangulate_track(track, graph, reconstruction, P_by_id, KR1_by_id, UNUSED, reproj_threshold, min_ray_angle_degrees=2.0):
+def triangulate_track(track, graph, reconstruction, P_by_id, UNUSED1, UNUSED2, reproj_threshold, min_ray_angle_degrees=2.0):
     ''' Triangulate a track
     '''
     min_ray_angle = np.radians(min_ray_angle_degrees)
@@ -361,38 +340,16 @@ def triangulate_track(track, graph, reconstruction, P_by_id, KR1_by_id, UNUSED, 
                 c = reconstruction['cameras'][s['camera']]
                 P = projection_matrix(c, s)
                 P_by_id[shot] = P
-                KR1_by_id[shot] = np.linalg.inv(P[:,:3])
             Ps.append(P_by_id[shot])
             x = graph[track][shot]['feature']
-            xs.append(x)
-            A = KR1_by_id[shot]
-            KR1s.append(A)
-            v0 = A[0,0] * x[0] + A[0,1] * x[1] + A[0,2]
-            v1 = A[1,0] * x[0] + A[1,1] * x[1] + A[1,2]
-            v2 = A[2,0] * x[0] + A[2,1] * x[1] + A[2,2]
-            vs.append([v0, v1, v2])
+            xs.append(np.array(x))
 
     if len(Ps) >= 2:
-        angle_ok = False
-        for i, j in combinations(range(len(Ps)), 2):
-            angle = angle_between_vectors(vs[i], vs[j])
-            if angle > min_ray_angle:
-                angle_ok = True
-                break
-
-        if angle_ok:
-            X = multiview.triangulate(Ps, xs)
-            error = 0
-            for P, x in zip(Ps, xs):
-                xx, yy, zz = P.dot([X[0], X[1], X[2], 1])
-                if zz <= 0:
-                    error = 999999999.0
-                reprojected_x = np.array([xx / zz, yy / zz])
-                error = max(error, (reprojected_x - x).max())
-            if error < reproj_threshold:
-                reconstruction['points'][track] = {
-                    "coordinates": list(X),
-                }
+        X = csfm.triangulate(Ps, xs, reproj_threshold, min_ray_angle)
+        if X is not None:
+            reconstruction['points'][track] = {
+                "coordinates": list(X),
+            }
 
 
 def triangulate_shot_features(graph, reconstruction, shot_id, reproj_threshold, min_ray_angle):

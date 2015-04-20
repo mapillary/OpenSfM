@@ -61,6 +61,10 @@ class PyArrayContiguousView {
     init((PyArrayObject *)array.ptr());
   }
 
+  PyArrayContiguousView(bp::object object) {
+    init((PyArrayObject *)object.ptr());
+  }
+
   PyArrayContiguousView(PyArrayObject *object) {
     init(object);
   }

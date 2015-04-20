@@ -83,6 +83,7 @@ bp::object TwoViewReconstruction(PyObject *x1_object,
   return retn;
 }
 
+
 bp::object Homography2pointsRobust(PyObject *x1_object,
                                    PyObject *x2_object,
                                    double threshold) {
@@ -123,6 +124,80 @@ bp::object Homography2pointsRobust(PyObject *x1_object,
   retn.append(bpn_array_from_data(1, inliers_shape, &inliers[0]));
 
   return retn;
+}
+
+double AngleBetweenVectors(const Eigen::Vector3d &u,
+                           const Eigen::Vector3d &v) {
+    double c = (u.dot(v))
+               / sqrt(u.dot(u) * v.dot(v));
+    if (c >= 1.0) return 0.0;
+    else return acos(c);
+}
+
+bp::object Triangulate(const bp::list &Ps_list,
+                       const bp::list &xs_list,
+                       double threshold,
+                       double min_angle) {
+
+  int n = bp::len(Ps_list);
+  libmv::vector<Eigen::Matrix<double, 3, 4> > Ps;
+  Eigen::Matrix<double, 2, Eigen::Dynamic> xs(2, n);
+  Eigen::MatrixXd vs(3, n);
+  bool angle_ok = false;
+  for (int i = 0; i < n; ++i) {
+    bp::object oP = Ps_list[i];
+    bp::object ox = xs_list[i];
+
+    PyArrayContiguousView<double> P_array(oP);
+    PyArrayContiguousView<double> x_array(ox);
+
+    Eigen::Map<const libmv::Mat> P(P_array.data(), 4, 3);
+    Eigen::Map<const libmv::Mat> x(x_array.data(), 2, 1);
+
+    Ps.push_back(P.transpose());
+    xs.col(i) = x.col(0);
+
+    // Check angle between rays
+    if (!angle_ok) {
+      Eigen::Vector3d xh;
+      xh << x(0,0), x(1,0), 1;
+      Eigen::Vector3d v = P.block<3,3>(0,0).transpose().inverse() * xh;
+      vs.col(i) << v(0), v(1), v(2);
+
+      for (int j = 0; j < i; ++j) {
+        Eigen::Vector3d a, b;
+        a << vs(0, i), vs(1, i), vs(2, i);
+        b << vs(0, j), vs(1, j), vs(2, j);
+        double angle = AngleBetweenVectors(a, b);
+        if (angle >= min_angle) {
+          angle_ok = true;
+        }
+      }
+    }
+  }
+
+  if (!angle_ok) return bp::object();
+
+  Eigen::Matrix<double, 4, 1> X;
+  libmv::NViewTriangulateAlgebraic(xs, Ps, &X);
+  X /= X(3);
+
+  for (int i = 0; i < n; ++i) {
+    Eigen::Vector3d x_reproj = Ps[i] * X;
+
+    if (x_reproj(2) <= 0) {
+      return bp::object();  
+    }
+
+    double dx = xs(0, i) - x_reproj(0) / x_reproj(2);
+    double dy = xs(1, i) - x_reproj(1) / x_reproj(2);
+    if (dx * dx + dy * dy > threshold * threshold) {
+      return bp::object();
+    }
+  }
+
+  npy_intp Xe_shape[1] = {3};
+  return bpn_array_from_data(1, Xe_shape, X.data());
 }
 
 }
