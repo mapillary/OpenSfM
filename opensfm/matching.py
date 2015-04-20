@@ -109,6 +109,6 @@ def create_tracks_graph(features, colors, matches, config):
             r, g, b = colors[image][featureid]
             tracks_graph.add_node(image, bipartite=0)
             tracks_graph.add_node(str(track_id), bipartite=1)
-            tracks_graph.add_edge(image, str(track_id), feature=(x,y), feature_id=featureid, feature_color=(r,g,b))
+            tracks_graph.add_edge(image, str(track_id), feature=(x,y), feature_id=featureid, feature_color=(float(r),float(g),float(b)))
     return tracks_graph
 
