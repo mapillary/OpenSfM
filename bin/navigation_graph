@@ -5,13 +5,12 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 import argparse
 import time
-import json
 import numpy as np
 import scipy.spatial.distance as dist
 import networkx as nx
+import cv2
 
 from opensfm import dataset, reconstruction
-
 
 
 def vector2_angle(x1, y1, x2, y2):
@@ -49,43 +48,92 @@ def angle_diff(a1, a2):
     return angles
 
 
-def get_direction_turns_and_motion_angles(min_distance, max_distance, distances, position, direction, positions, directions):
+def get_vertical_angles(V):
+    """ Calculates the angle between vectors and the XY-plane.
+    :param V: Array of 3-dimensional vectors.
+    :return: The angle between the vectors and the XY-plane in radians.
+    """
+    return [get_vertical_angle(v) for v in V]
+
+
+def get_vertical_angle(v):
+    """ Calculates the angle between a vector and the XY-plane.
+    :param v: A 3-dimensional vector.
+    :return: The angle between the vector and the XY-plane in radians.
+    """
+    xy_plane_normal = np.array([0, 0, 1], np.float64)
+    vertical_dir_angle = np.arcsin(np.dot(xy_plane_normal, v) / np.linalg.norm(v))
+
+    return vertical_dir_angle
+
+
+def get_positions_indices(min_distance, max_distance, distances):
     """ Retrieves the indices for the positions within a distance from the position in the
         interval between the minimum distance and the maximum distance.
-        Also calculates the direction change and the difference in motion with respect to the direction for
-        the retrieved positions.
-
     :param min_distance: Float specifying the minimum distance to the position.
     :param max_distance: Float specifying the maximum distance to the position.
     :param distances: The distances for the other positions to the position.
-    :param position: The position.
-    :param direction: The direction for the position.
-    :param position: All positions.
-    :param directions: All directions.
-    :return: The indices of the positions in the specified interval. The direction turns in radians in the plane and the
-             motion turns in radians in the plane with respect to the direction.
+    :return: The indices of the positions within the interval [min_distance, max_distance].
     """
+    return np.where((min_distance < distances) & (distances < max_distance))[0]
 
-    # Order positions within interval according to shortest distance
-    position_indices = np.where((min_distance < distances) & (distances < max_distance))[0]
-    ordered_indices = position_indices[np.argsort(distances[position_indices])]
 
-    motions = positions[ordered_indices] - position
-    motion_angles = np.array(
-        [vector2_angle(direction[0], direction[1], motion[0], motion[1]) for motion in motions],
-        float)
-    direction_turns = np.array(
+def get_direction_changes(direction, directions):
+    """ Calculates the direction change parallel to the XY-plane between the direction and the other directions.
+    :param direction: The direction.
+    :param directions: The other directions.
+    :returns The direction changes parallel to the XY-plane in radians.
+    """
+    direction_changes = np.array(
         [vector2_angle(direction[0], direction[1], other_direction[0], other_direction[1])
-         for other_direction in directions[ordered_indices]],
-        float)
+            for other_direction in directions],
+        np.float64)
 
-    return ordered_indices, direction_turns, motion_angles
+    return direction_changes
+
+
+def get_vertical_direction_diffs(direction, directions):
+    """ Calculates the vertical direction differences between the direction and the other directions.
+    :param direction: The direction.
+    :param directions: The other directions.
+    :returns The direction changes perpendicular to the XY-plane in radians.
+    """
+    vertical_dir_angle = get_vertical_angle(direction)
+    vertical_dir_angles = get_vertical_angles(directions)
+    vertical_dir_diffs = angle_diff(vertical_dir_angles, vertical_dir_angle)
+
+    return vertical_dir_diffs
+
+
+def get_rotations(R, Rs):
+    """ Calculates the rotation angle between a rotation matrix and a list of other rotation matrices.
+    :param R: Rotation matrix
+    :param Rs: Other rotation matrices.
+    :return: The angle theta of the axis-angle representation of the rotation between the matrices.
+    """
+    theta = []
+    RT = R.T
+
+    for Ri in Rs:
+        R_between = np.dot(RT, Ri)
+        r_between, J = cv2.Rodrigues(R_between)
+        theta.append(np.linalg.norm(r_between))
+
+    return np.array(theta)
 
 
 def create_optical_center_graph(reconstructions, config):
+    """ Creates a directed graph with edges between nodes in the reconstruction.
+    :param reconstructions: An array of reconstructions.
+    :param config: A DataSet configuration.
+    :return: A directed graph based on the optical centers of the reconstruction with edges seven types of
+             directions: step forward, step backward, step left, step right, u-turn, turn left and turn right.
+             The edge weights correspond to the distances between the selected nodes.
+    """
 
     optical_centers = []
     viewing_directions = []
+    rotation_matrices = []
     shot_ids = []
 
     for r in reconstructions:
@@ -93,75 +141,146 @@ def create_optical_center_graph(reconstructions, config):
             shot = r['shots'][shot_id]
             optical_centers.append(reconstruction.optical_center(shot))
             viewing_directions.append(reconstruction.viewing_direction(shot))
+            rotation_matrices.append(cv2.Rodrigues(np.array(shot['rotation'], dtype=float))[0])
             shot_ids.append(shot_id)
 
     optical_centers = np.vstack(optical_centers)
     viewing_directions = np.vstack(viewing_directions)
+    rotation_matrices = np.array(rotation_matrices)
 
     D = dist.squareform(dist.pdist(optical_centers))
 
     min_distance = config.get('nav_min_distance', 0.01)
-
+    step_pref_distance = config.get('nav_step_pref_distance', 6)
     step_max_distance = config.get('nav_step_max_distance', 20)
-    step_forward_viewing_threshold = config.get('nav_step_forward_view_threshold', 0.25)
-    step_viewing_threshold = config.get('nav_step_view_threshold', 0.5)
-    step_drift_threshold = config.get('nav_step_drift_threshold', 0.5)
-
     turn_max_distance = config.get('nav_turn_max_distance', 15)
-    turn_viewing_threshold = config.get('nav_turn_view_threshold', 0.7)
+
+    thresholds = np.radians(np.minimum([config.get('nav_step_forward_view_threshold', 15),
+                                        config.get('nav_step_view_threshold', 30),
+                                        config.get('nav_step_drift_threshold', 36),
+                                        config.get('nav_turn_view_threshold', 40),
+                                        config.get('nav_vertical_threshold', 20),
+                                        config.get('nav_rotation_threshold', 30)],
+                                       [45, 45, 90, 45, 90, 45]))
+
+    step_forward_viewing_threshold = thresholds[0]
+    step_viewing_threshold = thresholds[1]
+    step_drift_threshold = thresholds[2]
+    turn_viewing_threshold = thresholds[3]
+    vertical_threshold = thresholds[4]
+    rotation_threshold = thresholds[5]
+
+    step_right_left_threshold = np.min(np.pi / 2 - step_drift_threshold, np.pi / 4)
 
     direction = 'direction'
+    motion = 'motion'
     viewing = 'viewing'
     drift = 'drift'
 
     steps = {
         'step_forward': {direction: 0, viewing: step_forward_viewing_threshold, drift: step_drift_threshold},
-        'step_backward': {direction: np.pi, viewing: 2 * step_viewing_threshold, drift: step_drift_threshold},
-        'step_left': {direction: -np.pi / 2, viewing: 2 * step_viewing_threshold, drift: step_drift_threshold},
-        'step_right': {direction: np.pi / 2, viewing: 2 * step_viewing_threshold, drift: step_drift_threshold}
+        'step_backward': {direction: np.pi, viewing: step_viewing_threshold, drift: step_drift_threshold},
+        'step_left': {direction: -np.pi / 2, viewing: step_viewing_threshold, drift: step_right_left_threshold},
+        'step_right': {direction: np.pi / 2, viewing: step_viewing_threshold, drift: step_right_left_threshold}
     }
 
     turns = {
-        'turn_left': {direction: -np.pi / 2, viewing: turn_viewing_threshold},
-        'turn_right': {direction: np.pi / 2, viewing: turn_viewing_threshold},
-        'turn_u': {direction: np.pi, viewing: turn_viewing_threshold}
+        'turn_left': {direction: -np.pi / 2, motion: -np.pi / 4, viewing: turn_viewing_threshold},
+        'turn_right': {direction: np.pi / 2, motion: np.pi / 4, viewing: turn_viewing_threshold},
+        'turn_u': {direction: np.pi, motion: np.nan, viewing: turn_viewing_threshold}
     }
 
-    graph = nx.DiGraph()
+    graph = nx.MultiDiGraph()
 
     for i in range(0, D.shape[0]):
 
         distances = D[i, :]
         oc = optical_centers[i]
         vd = viewing_directions[i]
+        rm = rotation_matrices[i]
 
-        ordered_indices, viewing_turns, motion_angles = get_direction_turns_and_motion_angles(
-            min_distance, step_max_distance, distances, oc, vd, optical_centers, viewing_directions
-        )
+        # Retrieve indices for optical centers in [min_distance, max_distance] interval.
+        position_indices = get_positions_indices(min_distance, np.max([step_max_distance, turn_max_distance]), distances)
+
+        position_distances = distances[position_indices]
+        distances_to_pref = np.abs(position_distances - step_pref_distance)
+
+        # Calculate motions
+        motions = optical_centers[position_indices] - oc
+
+        # Retrieve movement properties for possible nodes with respect to current node.
+        motion_angles = get_direction_changes(vd, motions)
+        direction_turns = get_direction_changes(vd, viewing_directions[position_indices])
+        vertical_dir_diffs = get_vertical_direction_diffs(vd, viewing_directions[position_indices])
+        vertical_motion_diffs = get_vertical_direction_diffs(vd, motions)
+        rotations = get_rotations(rm, rotation_matrices[position_indices])
 
         for key in steps:
             step = steps[key]
             motion_drift = angle_diff(motion_angles, step[direction])
-            motion_drift = np.max(np.vstack((np.abs(motion_drift - viewing_turns), np.abs(motion_drift))), 0)
+            motion_drift = np.max(np.vstack((np.abs(motion_drift - direction_turns), np.abs(motion_drift))), 0)
+            motion_diffs = np.sqrt(np.square(motion_drift) + np.square(vertical_motion_diffs))
 
-            step_indices = np.where((motion_drift < step[drift]) & (np.abs(viewing_turns) < step[viewing]))[0]
+            # Calculate simple penalty function to promote preferred distance and small rotation as
+            # well as small motion difference with respect to viewing direction.
+            pref_penalty = distances_to_pref + 16 * rotations + 8 * motion_diffs
+            ordered_pref_indices = np.argsort(pref_penalty)
+
+            pos_penalty = position_distances + 16 * rotations + 8 * motion_diffs
+            ordered_pos_indices = np.argsort(pos_penalty)
+
+            # Get possible nodes based on thresholds for current step kind.
+            step_indices = np.where((position_distances < step_max_distance)
+                                    & (motion_drift < step[drift])
+                                    & (np.abs(direction_turns) < step[viewing])
+                                    & (np.abs(vertical_motion_diffs) < vertical_threshold)
+                                    & (np.abs(vertical_dir_diffs) < vertical_threshold)
+                                    & (rotations < rotation_threshold))[0]
+
+            pref_step_indices = ordered_pref_indices[np.in1d(ordered_pref_indices, step_indices)]
+            pos_step_indices = ordered_pos_indices[np.in1d(ordered_pos_indices, step_indices)]
 
             if len(step_indices) > 0:
-                step_index = ordered_indices[step_indices[0]]
-                graph.add_edge(shot_ids[i], shot_ids[step_index], weight=distances[step_index], direction=key)
+                # Add edge for node with smallest pref penalty.
+                step_index = position_indices[pref_step_indices[0]]
+                graph.add_edge(shot_ids[i], shot_ids[step_index], weight=distances[step_index], direction=key, type='pref')
 
-        ordered_indices, viewing_turns, motion_angles = get_direction_turns_and_motion_angles(
-            min_distance, turn_max_distance, distances, oc, vd, optical_centers, viewing_directions
-        )
+                # Add edge for node with smallest pos penalty.
+                step_index = position_indices[pos_step_indices[0]]
+                graph.add_edge(shot_ids[i], shot_ids[step_index], weight=distances[step_index], direction=key, type='pos')
 
         for key in turns:
             turn = turns[key]
-            viewing_diff = np.abs(angle_diff(viewing_turns, turn[direction]))
-            turn_indices = np.where((viewing_diff < turn[viewing]))[0]
+            viewing_diff = np.abs(angle_diff(direction_turns, turn[direction]))
+            motion_diffs = np.zeros(motion_angles.shape, dtype=np.float64) \
+                if np.isnan(turn[motion]) \
+                else np.abs(angle_diff(motion_angles, turn[motion]))
+
+            # Calculate simple penalty function to promote preferred distance
+            # and motion difference with respect to preferred turn motion.
+            pref_penalty = distances_to_pref + 8 * motion_diffs
+            ordered_pref_indices = np.argsort(pref_penalty)
+
+            pos_penalty = position_distances + 8 * motion_diffs
+            ordered_pos_indices = np.argsort(pos_penalty)
+
+            # Get possible nodes based on thresholds for current turn kind.
+            turn_indices = np.where((position_distances < turn_max_distance)
+                                    & (viewing_diff < turn[viewing])
+                                    & (np.abs(vertical_motion_diffs) < vertical_threshold)
+                                    & (np.abs(vertical_dir_diffs) < vertical_threshold))[0]
+
+            pref_turn_indices = ordered_pref_indices[np.in1d(ordered_pref_indices, turn_indices)]
+            pos_turn_indices = ordered_pos_indices[np.in1d(ordered_pos_indices, turn_indices)]
 
             if len(turn_indices) > 0:
-                turn_index = ordered_indices[turn_indices[0]]
-                graph.add_edge(shot_ids[i], shot_ids[turn_index], weight=distances[turn_index], direction=key)
+                # Add edge for node with smallest pref penalty.
+                turn_index = position_indices[pref_turn_indices[0]]
+                graph.add_edge(shot_ids[i], shot_ids[turn_index], weight=distances[turn_index], direction=key, type='pref')
+
+                # Add edge for node with smallest pos penalty.
+                turn_index = position_indices[pos_turn_indices[0]]
+                graph.add_edge(shot_ids[i], shot_ids[turn_index], weight=distances[turn_index], direction=key, type='pos')
 
     return graph
 
@@ -183,8 +302,20 @@ if __name__ == "__main__":
         'nodes': list(rec_graph.node)
     }
 
-    for edge in rec_graph.edge:
-        navigation_graph['edges'][edge] = rec_graph.edge[edge]
+    for source in rec_graph.edge:
+        navigation_graph['edges'][source] = {'pos': {}, 'pref': {}}
+        targets = rec_graph.edge[source]
+
+        for target in targets:
+            target_edges = targets[target]
+
+            for target_edge in target_edges:
+                edge_properties = target_edges[target_edge]
+                type = edge_properties['type']
+
+                navigation_graph['edges'][source][type][target] = \
+                    {'weight': edge_properties['weight'],
+                    'direction': edge_properties['direction']}
 
     navigation_graphs.append(navigation_graph)
 

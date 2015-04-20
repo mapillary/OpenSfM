@@ -14,19 +14,16 @@ var Dijkstra = (function () {
     }
 
      /**
-     * Calculate the shortest path between two nodes in a graph using
-     * Dijkstra's Algorithm.
+     * Private function for running Dijkstra's Algorithm until an evaluation function decides to stop.
      * @param {Object} graph The graph with nodes and weights used for calculation.
      * @param {String} source The name of the source node.
-     * @param {String} target The name of the target node.
      * @param {String} weight The name of the weight property.
-     * @return {Array} An array of node names corresponding to the path
+     * @param {Function} evaluationFunc Function taking the current node and current distance as parameters
+     *                   and returns true if the algorithm should finish.
+     * @return {Object} An object with properties for the visited nodes, the previous nodes and the distances from
+     *                  the source node.
      */
-    Dijkstra.prototype.shortestPath = function (graph, source, target, weight) {
-        if (source === target) {
-            return [source];
-        }
-
+    var dijkstra = function(graph, source, weight, evaluationFunc) {
         var touchedNodes = {};
         var previous = {};
         var distances = {};
@@ -52,12 +49,13 @@ var Dijkstra = (function () {
             // Select the unvisited node with smallest distance and mark it as current node.
             touched.sort(keyValueSorter);
             var currentNode = touched[0][0];
+            var currentDistance = touched[0][1]
 
             visited[currentNode] = true;
             delete touchedNodes[currentNode];
 
-            // Return if we have reached the target.
-            if (currentNode === target) {
+            // Return if the evaluation of the current position returns true..
+            if (evaluationFunc(currentNode, currentDistance)) {
                 break;
             }
 
@@ -86,8 +84,31 @@ var Dijkstra = (function () {
             }
         }
 
+        return { visited: visited, distances: distances, previous: previous }
+    }
+
+     /**
+     * Calculate the shortest path between two nodes in a graph using
+     * Dijkstra's Algorithm.
+     * @param {Object} graph The graph with nodes and weights used for calculation.
+     * @param {String} source The name of the source node.
+     * @param {String} target The name of the target node.
+     * @param {String} weight The name of the weight property.
+     * @return {Array} An array of node names corresponding to the path
+     */
+    Dijkstra.prototype.shortestPath = function (graph, source, target, weight) {
+        if (source === target) {
+            return [source];
+        }
+
+        var evaluationFunc = function (currentNode, currentDistance) {
+            return currentNode === target;
+        };
+
+        var result = dijkstra(graph, source, weight, evaluationFunc);
+
         // No path to the target was found.
-        if (previous[target] === undefined) {
+        if (result.previous[target] === undefined) {
             return null;
         }
 
@@ -96,13 +117,189 @@ var Dijkstra = (function () {
         var element = target;
         while (element !== undefined) {
             reversePath.push(element);
-            element = previous[element];
+            element = result.previous[element];
         }
 
         return reversePath.reverse();
     }
 
+    /**
+     * Retrieve all other nodes within a distance from a source node based on the edge weights.
+     * @param {Object} graph The graph with nodes and weights used for calculation.
+     * @param {String} source The name of the source node.
+     * @param {String} weight The name of the weight property.
+     * @param {Number} distance The maximum distance between nodes.
+     * @return {Array} An array of node names corresponding to nodes within a distance
+                       from the source node.
+     */
+    Dijkstra.prototype.nodesWithinDistance = function (graph, source, distance, weight) {
+        var evaluationFunc = function (currentNode, currentDistance) {
+            return currentDistance >= distance;
+        };
+
+        var result = dijkstra(graph, source, weight, evaluationFunc);
+
+        var nodes = [];
+        for (var node in result.visited) {
+            if (Object.prototype.hasOwnProperty.call(result.visited, node)) {
+                nodes.push(node);
+            }
+        }
+
+        return nodes;
+    }
+
     return Dijkstra;
+})();
+
+var GraphHelper = (function () {
+
+    /**
+     * A class with helper functions for graphs.
+     * @constructor
+     */
+    function GraphHelper() {
+        this.dijkstra = new Dijkstra();
+    }
+
+    // Private function for getting a graph with edges of a type.
+    var getTypeGraph = function (graph, type) {
+        var typeGraph = { nodes: graph.nodes, edges: {} };
+
+        for (var k in graph.edges) {
+            if (!Object.prototype.hasOwnProperty.call(graph.edges, k)) {
+                continue;
+            }
+
+            typeGraph.edges[k] = {};
+            var edges = graph.edges[k][type];
+
+            for (var m in edges) {
+                if (!Object.prototype.hasOwnProperty.call(edges, m)) {
+                    continue;
+                }
+
+                typeGraph.edges[k][m] = {};
+
+                edge_properties = edges[m];
+
+                for (var ep in edge_properties) {
+                    if (!Object.prototype.hasOwnProperty.call(edge_properties, ep)) {
+                        continue;
+                    }
+
+                    typeGraph.edges[k][m][ep] = edge_properties[ep];
+                }
+            }
+        }
+
+        return typeGraph;
+    }
+
+    /**
+     * Retrieves a graph with edges of a certain type.
+     * @param {Object} graph The graph with nodes and weights used for calculation.
+     * @param {String} type The name of the edge type.
+     * @return {Array} A graph where all edges are of the specified type.
+     */
+    GraphHelper.prototype.getTypeGraphs = function (graphs, type) {
+        var typeGraphs = [];
+
+        for (var i = 0; i < graphs.length; i++) {
+            var typeGraph = getTypeGraph(graphs[i], type)
+            typeGraphs.push(typeGraph);
+        }
+
+        return typeGraphs;
+    }
+
+    /**
+     * Retrieves a graph with edges of a default type. The default type edges are overridden by
+     * edges of the override type for nodes within a threshold distance from a target node.
+     * @param {Object} graph The graph with nodes and weights used for calculation.
+     * @param {String} defaultType The name of the default edge type.
+     * @param {String} overrideType The name of the override edge type.
+     * @param {String} target The name of the override target node from which the other override nodes are retrieved..
+     * @return {Array} A graph where all edges are of the specified type.
+     */
+    GraphHelper.prototype.mergeTypeGraphs = function (graphs, defaultType, overrideType, target, distance) {
+        var mergedGraphs = [];
+
+        for (var i = 0; i < graphs.length; i++) {
+            var graph = graphs[i];
+            var mergedGraph = getTypeGraph(graph, defaultType);
+
+            if (graph.nodes.indexOf(target) > -1) {
+                var overrideGraph = getTypeGraph(graph, overrideType);
+                var overrideNodes = this.dijkstra.nodesWithinDistance(overrideGraph, target, distance, 'weight');
+
+                for (var i = 0; i < overrideNodes.length; i++) {
+                    overrideNode = overrideNodes[i];
+                    mergedGraph.edges[overrideNode] = graph.edges[overrideNode][overrideType];
+                }
+            }
+
+            mergedGraphs.push(mergedGraph);
+        }
+
+        return mergedGraphs;
+    }
+
+    /**
+     * Creates a graph with a penalty for certain properties with certain values.
+     * @param {Object} graph The graph with nodes and weights used for calculation.
+     * @param {String} type The name of the weight key.
+     * @param {String} type The name of the penalty key.
+     * @param {Dictionary} penalties Dictionary of penalty keys with respective penalty amount.
+     * @return {Object} A graph with edge weights as sum of original weight and specified penalty.
+     */
+    GraphHelper.prototype.getPenaltyGraph = function (graph, weightKey, penaltyKey, penalties) {
+
+        var penaltyGraph = { edges: {} };
+
+        for (var k in graph.edges) {
+            if (!Object.prototype.hasOwnProperty.call(graph.edges, k)) {
+                continue;
+            }
+
+            penaltyGraph.edges[k] = {};
+            var edges = graph.edges[k];
+
+            for (var m in edges) {
+                if (!Object.prototype.hasOwnProperty.call(edges, m)) {
+                    continue;
+                }
+
+                penaltyGraph.edges[k][m] = {};
+
+                // Add penalty to weight if the value of the penalty key corresponds
+                // to the specified penalty value.
+                if (edges[m][penaltyKey] in penalties) {
+                    penaltyGraph.edges[k][m][weightKey] = edges[m][weightKey] + penalties[edges[m][penaltyKey]];
+                }
+                else {
+                    penaltyGraph.edges[k][m][weightKey] = edges[m][weightKey];
+                }
+            }
+        }
+
+        return penaltyGraph;
+    }
+
+    /**
+     * Retrieves the directed edge between a start node and an adjacent end node.
+     * @param {Integer} graph The graph.
+     * @param {String} from The name of the node for which the edge starts.
+     * @param {String} to The name of the node for which the edge ends.
+     * @return {Dictionary} The edge properties.
+     */
+    GraphHelper.prototype.getEdgeProperties = function(graph, from, to) {
+        var nodeEdges = graph.edges[from];
+        var edgeProperties = nodeEdges[to];
+        return edgeProperties;
+    }
+
+    return GraphHelper;
 })();
 
 var LinearCurve = THREE.Curve.create(
@@ -138,52 +335,19 @@ var JourneyBase = (function () {
      * @param {String} graphs A list of graphs.
      * @param {String} shots Dictionary of shots with positions and targets.
      * @param {String} intervalTime The interval for navigation.
-     * @param {Boolean} usePenalty Value indicating if a penalty should be used.
+     * @param {Object} penalty Object specifying a weight key, penalty key and a dictionary of penalty keys values
+                        with penalty amounts.
      */
-    function JourneyBase(graphs, shots, intervalTime, usePenalty) {
+    function JourneyBase(graphs, shots, intervalTime, penalty) {
         this.graphs = graphs;
         this.shots = shots;
         this.intervalTime = intervalTime;
-        this.usePenalty = usePenalty;
+        this.penalty = penalty;
 
         this.started = false;
         this.preCount = 15;
         this.dijkstra = new Dijkstra();
-    }
-
-    // Private function for creating a graph with a penalty for a certain property with
-    // a certain value.
-    var getPenaltyGraph = function (graph, weightKey, penaltyKey, penalties) {
-
-        var penaltyGraph = { edges: {} };
-
-        for (var k in graph.edges) {
-            if (!Object.prototype.hasOwnProperty.call(graph.edges, k)) {
-                continue;
-            }
-
-            penaltyGraph.edges[k] = {};
-            var edges = graph.edges[k];
-
-            for (var m in edges) {
-                if (!Object.prototype.hasOwnProperty.call(edges, m)) {
-                    continue;
-                }
-
-                penaltyGraph.edges[k][m] = {};
-
-                // Add penalty to weight if the value of the penalty key corresponds
-                // to the specified penalty value.
-                if (edges[m][penaltyKey] in penalties) {
-                    penaltyGraph.edges[k][m][weightKey] = edges[m][weightKey] + penalties[edges[m][penaltyKey]];
-                }
-                else {
-                    penaltyGraph.edges[k][m][weightKey] = edges[m][weightKey];
-                }
-            }
-        }
-
-        return penaltyGraph;
+        this.graphHelper = new GraphHelper();
     }
 
     /**
@@ -201,7 +365,7 @@ var JourneyBase = (function () {
      * @return {Array} An array of node names corresponding to the path
      */
     JourneyBase.prototype.shortestPath = function (from, to) {
-        var index = undefined;
+        var index = null;
         for (var i = 0; i < this.graphs.length; i++) {
             // Ensure that both nodes exist in the graph.
             if (this.graphs[i].nodes.indexOf(from) > -1 &&
@@ -211,36 +375,30 @@ var JourneyBase = (function () {
             }
         }
 
-        if (index === undefined) {
+        if (index === null) {
             return null;
         }
 
         var journeyGraph = this.graphs[index];
-        if (this.usePenalty === true) {
+        if (this.penalty) {
             journeyGraph =
-                getPenaltyGraph(
+                this.graphHelper.getPenaltyGraph(
                     journeyGraph,
-                    'weight',
-                    'direction',
-                    {
-                        step_backward: 30,
-                        turn_u: 15,
-                        turn_left: 3,
-                        turn_right: 3,
-                        step_left: 1,
-                        step_right: 1
-                    });
+                    this.penalty.weightKey,
+                    this.penalty.penaltyKey,
+                    this.penalty.values);
         }
 
         var path = this.dijkstra.shortestPath(journeyGraph, from, to, 'weight');
 
-        return { path: path, index: index };
+        return path === null ? null : { path: path, index: index };
     }
 
     /**
      * Creates a geometry based on an existing property of the nodes in the path.
      * @param {Array} path Nodes to create geometry from.
      * @param {String} property Name of the shot property to use.
+     * @return {THREE.Geometry} A geometry for the path.
      */
     JourneyBase.prototype.getGeometry = function (path, property) {
         var geometry = new THREE.Geometry();
@@ -259,6 +417,7 @@ var JourneyBase = (function () {
      * shortest path between the specified nodes.
      * @param {String} from Name of the start node.
      * @param {String} to Name of the end node.
+     * @return {THREE.Geometry} A geometry for the shortest path between the nodes.
      */
     JourneyBase.prototype.getPathGeometry = function (from, to) {
 
@@ -268,6 +427,17 @@ var JourneyBase = (function () {
         }
 
         return this.getGeometry(result.path, 'position');
+    }
+
+    /**
+     * Retrieves the directed edge between a start node and an adjacent end node.
+     * @param {Integer} graphIndex The index of the graph.
+     * @param {String} from The name of the node for which the edge starts.
+     * @param {String} to The name of the node for which the edge ends.
+     * @return {Dictionary} The edge properties.
+     */
+    JourneyBase.prototype.getEdge = function(graphIndex, from, to) {
+        return this.graphHelper.getEdgeProperties(this.graphs[graphIndex], from, to);
     }
 
     /**
@@ -311,7 +481,8 @@ var Journey = (function () {
      * @param {Function} startAction The action to run when starting a journey.
      * @param {Function} stopAction The action to run when stopping a journey.
      * @param {Function} preloadAction The action to run when stopping a journey.
-     * @param {Boolean} usePenalty Value indicating if a penalty should be used.
+     * @param {Object} penalty Object specifying a weight key, penalty key and a dictionary of penalty keys values
+                       with penalty amounts.
      */
     function Journey(
         graphs,
@@ -321,18 +492,18 @@ var Journey = (function () {
         startAction,
         stopAction,
         preloadAction,
-        usePenalty) {
+        penalty) {
 
-        JourneyBase.apply(this, [graphs, shots, intervalTime, usePenalty]);
+        JourneyBase.apply(this, [graphs, shots, intervalTime, penalty]);
 
         this.navigationAction = navigationAction;
         this.startAction = startAction;
         this.stopAction = stopAction;
         this.preloadAction = preloadAction;
-        this.timeoutToken = undefined;
-        this.path = undefined;
-        this.graphIndex = undefined;
-        this.currentIndex = 0;
+        this.graphIndex = null;
+        this.path = null;
+        this.timeoutToken = null;
+        this.currentIndex = null;
     }
 
     // Inheriting from JourneyBase
@@ -348,43 +519,44 @@ var Journey = (function () {
     }
 
     // Private callback function for setInterval.
-    var onNavigation = function (self) {
-        if (self.started !== true) {
-            self.stop();
+    var navigation = function () {
+        if (this.started !== true) {
+            this.stop();
             return;
         }
 
-        if (!isFinite(self.intervalTime)) {
-            self.timeoutToken = window.setTimeout(function () { onNavigation(self); }, 500);
+        var _this = this;
+        if (!isFinite(this.intervalTime)) {
+            this.timeoutToken = window.setTimeout(function () { navigation.call(_this); }, 500);
             return;
         }
 
-        var pathLength = self.path.length;
-        self.currentIndex++;
+        var pathLength = this.path.length;
+        this.currentIndex++;
 
-        if (self.currentIndex >= pathLength) {
-            self.stop();
+        if (this.currentIndex >= pathLength) {
+            this.stop();
             return;
         }
 
-        self.navigationAction(self.path[self.currentIndex]);
+        this.navigationAction(this.path[this.currentIndex]);
 
-        if (self.currentIndex === pathLength - 1) {
-            self.stop();
+        if (this.currentIndex === pathLength - 1) {
+            this.stop();
             return;
         }
 
-        if (self.currentIndex + self.preCount <= pathLength - 1) {
-            self.preloadAction([self.path[self.currentIndex + self.preCount]]);
+        if (this.currentIndex + this.preCount <= pathLength - 1) {
+            this.preloadAction([this.path[this.currentIndex + this.preCount]]);
         }
 
         var currentInterval =
             getInterval(
-                self.graphs[self.graphIndex].edges[self.path[self.currentIndex - 1]],
-                self.path[self.currentIndex],
-                self.intervalTime);
+                this.graphs[this.graphIndex].edges[this.path[this.currentIndex - 1]],
+                this.path[this.currentIndex],
+                this.intervalTime);
 
-        self.timeoutToken = window.setTimeout(function () { onNavigation(self); }, currentInterval);
+        this.timeoutToken = window.setTimeout(function () { navigation.call(_this); }, currentInterval);
     }
 
     /**
@@ -412,22 +584,23 @@ var Journey = (function () {
         this.navigationAction(this.path[this.currentIndex]);
 
         var _this = this;
-        this.timeoutToken = window.setTimeout(function () { onNavigation(_this); }, 500);
+        this.timeoutToken = window.setTimeout(function () { navigation.call(_this); }, 500);
     }
 
     /**
      * Stops an ongoing journey between two nodes in a graph.
      */
     Journey.prototype.stop = function (continuation) {
-        if (this.timeoutToken === undefined || this.started === false) {
+        if (this.timeoutToken === null || this.started === false) {
             return;
         }
 
         window.clearTimeout(this.timeoutToken);
-        this.timeoutToken = undefined;
-        this.currentIndex = 0;
-        this.path = undefined;
-        this.graphIndex = undefined;
+
+        this.graphIndex = null;
+        this.path = null;
+        this.timeoutToken = null;
+        this.currentIndex = null;
 
         this.stopAction();
 
@@ -452,7 +625,10 @@ var SmoothJourney = (function () {
      * @param {Function} stopAction The action to run when stopping a journey.
      * @param {Function} continuationAction The action to execute when the journey is stopped for smooth stopping.
      * @param {Function} preloadAction The action to run when stopping a journey.
-     * @param {Boolean} usePenalty Value indicating if a penalty should be used.
+     * @param {Function} speedFunction Function returning speed coefficient based on the current position between nodes.
+     * @param {Type} curveType The type of the curve used for movement. Must inherit from THREE.Curve.
+     * @param {Object} penalty Object specifying a weight key, penalty key and a dictionary of penalty keys values
+                       with penalty amounts.
      */
     function SmoothJourney(
         graphs,
@@ -464,9 +640,11 @@ var SmoothJourney = (function () {
         stopAction,
         continuationAction,
         preloadAction,
-        usePenalty) {
+        speedFunction,
+        curveType,
+        penalty) {
 
-        JourneyBase.apply(this, [graphs, shots, intervalTime, usePenalty]);
+        JourneyBase.apply(this, [graphs, shots, intervalTime, penalty]);
 
         this.navigationAction = navigationAction;
         this.nodeAction = nodeAction;
@@ -474,13 +652,18 @@ var SmoothJourney = (function () {
         this.stopAction = stopAction;
         this.continuationAction = continuationAction;
         this.preloadAction = preloadAction;
+        this.speedFunction = speedFunction;
+        this.curveType = curveType;
 
-        this.previousTime = undefined;
-        this.currentIndex = 0;
-        this.u = 0;
-        this.path = undefined;
-        this.linearCurve = undefined;
-        this.intervalToken = undefined;
+        this.graphIndex = null;
+        this.path = null;
+        this.positionCurve = null;
+        this.targetCurve = null;
+        this.intervalToken = null;
+        this.previousTime = null;
+        this.currentIndex = null;
+        this.u = null;
+        this.t = null;
     }
 
     // Inheriting from JourneyBase
@@ -503,19 +686,27 @@ var SmoothJourney = (function () {
         }
 
         var elapsed = currentTime - this.previousTime;
+
+        var previousPoint = (this.path.length - 1) * this.t;
+        var previousIndex = Math.floor(previousPoint);
+        var previousFraction = this.u >= 1 ? 1 : previousPoint - previousIndex;
+        var previousEdge = this.getEdge(this.graphIndex, this.path[this.currentIndex], this.path[this.currentIndex + 1]);
+
+        var speedCoefficient = this.speedFunction(previousFraction, previousEdge);
+        elapsed = speedCoefficient * elapsed;
+
         this.previousTime = currentTime;
-        var totalTime = this.intervalTime * this.linearCurve.getLength();
+        var totalTime = this.intervalTime * this.positionCurve.getLength();
 
         this.u = Math.min(this.u + (elapsed / totalTime), 1);
 
-        // Retrieve t from the linear curve to calculate weight and index.
-        var t = this.linearCurve.getUtoTmapping(this.u);
-        var point = (this.path.length - 1) * t;
-        var intPoint = Math.floor(point);
-        var weight = point - intPoint;
+        // Retrieve t from the position curve to calculate index.
+        this.t = this.positionCurve.getUtoTmapping(this.u);
+        var point = (this.path.length - 1) * this.t;
+        var index = Math.floor(point);
 
-        if (intPoint > this.currentIndex && intPoint < this.path.length) {
-            this.currentIndex = intPoint;
+        if (index > this.currentIndex && index < this.path.length - 1) {
+            this.currentIndex = index;
 
             var startIndex = Math.min(2 + this.currentIndex * 3, this.currentIndex + this.preCount);
             var endIndex = Math.min(5 + this.currentIndex * 3, this.currentIndex + this.preCount + 1);
@@ -527,21 +718,17 @@ var SmoothJourney = (function () {
             this.nodeAction(this.path[this.currentIndex + 1]);
         }
 
-        var position = this.linearCurve.getPoint(t);
+        var position = this.positionCurve.getPoint(this.t);
+        var target = this.targetCurve.getPoint(this.t);
 
-        // Calculate the target by linear interpolation between shot targets.
-        var shot_id1 = this.path[intPoint];
-        var vd1 = this.shots[shot_id1]['target'];
+        // Do not reset the weight after reaching the last node.
+        var fraction = this.u >= 1 ? 1 : point - index;
+        var edge = this.getEdge(this.graphIndex, this.path[this.currentIndex], this.path[this.currentIndex + 1]);
 
-        var shot_id2 = this.path[Math.min(intPoint + 1, this.path.length - 1)];
-        var vd2 = this.shots[shot_id2]['target'];
-
-        var target = new THREE.Vector3().copy(vd1).lerp(vd2, weight);
-
-        this.navigationAction(position, target);
+        this.navigationAction(position, target, fraction, edge);
 
         if (this.u >= 1) {
-            this.stop();
+            this.stop(false);
         }
     }
 
@@ -562,24 +749,32 @@ var SmoothJourney = (function () {
 
         this.started = true;
         this.path = result.path;
+        this.graphIndex = result.index;
+
         var startIndex = Math.min(2, this.path.length - 1);
         var endIndex = Math.min(5, this.path.length);
         this.preloadAction(this.path.slice(startIndex, endIndex));
 
-        this.linearCurve = new LinearCurve(this.getGeometry(this.path, 'position').vertices);
+        var positions = this.getGeometry(this.path, 'position').vertices;
+        var targets = this.getGeometry(this.path, 'target').vertices;
 
-        var position = this.linearCurve.getPointAt(0);
-        var shot_id = this.path[0];
-        var target = this.shots[shot_id]['target'];
+        this.positionCurve = new (Function.prototype.bind.apply(this.curveType, [null, positions]));
+        this.targetCurve = new (Function.prototype.bind.apply(this.curveType, [null, targets]));
 
         this.previousTime = Date.now();
         this.u = 0;
+        this.t = 0;
         this.currentIndex = 0;
 
         this.startAction();
 
         this.nodeAction(this.path[this.currentIndex + 1]);
-        this.navigationAction(position, target);
+
+        var position = this.positionCurve.getPointAt(0);
+        var target = this.targetCurve.getPointAt(0);
+
+        var edge = this.getEdge(this.graphIndex, this.path[this.currentIndex], this.path[this.currentIndex + 1]);
+        this.navigationAction(position, target, 0, edge);
 
         _this = this;
         this.intervalToken = window.setInterval(function () { move.call(_this); }, 1000/60);
@@ -590,21 +785,24 @@ var SmoothJourney = (function () {
      * @param {Boolean} continuation Specifying if the continuation action should be invoked.
      */
     SmoothJourney.prototype.stop = function (continuation) {
-        if (this.intervalToken === undefined || this.started === false) {
+        if (this.intervalToken === null || this.started === false) {
             return;
         }
 
         window.clearInterval(this.intervalToken);
-        this.intervalToken = undefined;
+        this.intervalToken = null;
 
         var nextIndex = Math.min(this.currentIndex + 1, this.path.length - 1);
         var nextNode = this.path[nextIndex];
 
-        this.path = undefined;
-        this.linearCurve = undefined;
-        this.previousTime = undefined;
-        this.currentIndex = 0;
-        this.u = 0;
+        this.graphIndex = null;
+        this.path = null;
+        this.positionCurve = null;
+        this.targetCurve = null;
+        this.previousTime = null;
+        this.currentIndex = null;
+        this.u = null;
+        this.t = null;
 
         if (continuation === true) {
             this.continuationAction(nextNode);
@@ -613,6 +811,24 @@ var SmoothJourney = (function () {
         this.stopAction();
 
         this.started = false;
+    }
+
+    /**
+     * Sets the curve type for a smooth journey.
+     * @param {Type} curveType The type of the curve used for movement. Must inherit from THREE.Curve.
+     */
+    SmoothJourney.prototype.setCurveType = function (curveType) {
+        this.curveType = curveType;
+
+        if (this.started === false) {
+            return;
+        }
+
+        var positions = this.getGeometry(this.path, 'position').vertices;
+        var targets = this.getGeometry(this.path, 'target').vertices;
+
+        this.positionCurve = new (Function.prototype.bind.apply(this.curveType, [null, positions]));
+        this.targetCurve = new (Function.prototype.bind.apply(this.curveType, [null, targets]));
     }
 
     return SmoothJourney;
@@ -627,14 +843,18 @@ var JourneyWrapper = (function ($) {
      */
     function JourneyWrapper() {
         this.initialized = false;
-        this.journey = undefined;
-        this.destination = undefined;
-        this.line = undefined;
+        this.journey = null;
+        this.destination = null;
+        this.line = null;
+        this.curveType = null;
+        this.showPathController = null;
+
+        this.graphHelper = new GraphHelper();
     }
 
     // Private function for calculating the desired time for moving one unit.
     var getInterval = function () {
-        var interval = undefined;
+        var interval = null;
         if (controls.animationSpeed === 0) {
             interval = Infinity;
         }
@@ -644,60 +864,6 @@ var JourneyWrapper = (function ($) {
         }
 
         return interval;
-    }
-
-    // Private function for retrieving a camera based on the id.
-    var getCamera = function (shot_id) {
-        var camera = undefined;
-        for (var i = 0; i < camera_lines.length; ++i) {
-            if (camera_lines[i].shot_id === shot_id) {
-                camera = camera_lines[i];
-            }
-        }
-
-        return camera === undefined ? null : camera;
-    }
-
-    // Private function for navigation action of journey. Retrieves a camera,
-    // creates its image plane and navigates to it.
-    var navigation = function (shot_id) {
-        var camera = getCamera(shot_id);
-        if (camera === null) {
-            return;
-        }
-
-        setImagePlaneCamera(camera);
-        navigateToShot(camera);
-    }
-
-    // Private function which retrieves a camera and
-    // creates its image plane.
-    var setImagePlane = function (shot_id) {
-        var camera = getCamera(shot_id);
-        if (camera === null) {
-            return;
-        }
-
-        setImagePlaneCamera(camera);
-    }
-
-    // Private function for preloading images.
-    var preload = function (shot_ids) {
-        for (var i = 0; i < shot_ids.length; i++) {
-            var tempImg = new Image();
-            tempImg.src = imageURL(shot_ids[i]);
-        }
-    }
-
-    // Private function for start action of journey.
-    var start = function () {
-        setMovingMode('walk');
-        $('#journeyButton').html('X');
-    }
-
-    // Private function for stop action of journey.
-    var stop = function () {
-        $('#journeyButton').html('Go');
     }
 
     // Private function converting shot dictionary with rotations and translations
@@ -730,16 +896,108 @@ var JourneyWrapper = (function ($) {
         return result;
     }
 
+    // Private function for start action of journey.
+    var start = function () {
+        setMovingMode('walk');
+        $('#journeyButton').html('X');
+    }
+
+    // Private function for stop action of journey.
+    var stop = function () {
+        $('#journeyButton').html('Go');
+    }
+
+    // Private function for preloading images.
+    var preload = function (shot_ids) {
+        for (var i = 0; i < shot_ids.length; i++) {
+            var tempImg = new Image();
+            tempImg.src = imageURL(shot_ids[i]);
+        }
+    }
+
+    // Private function for retrieving a camera based on the id.
+    var getCamera = function (shot_id) {
+        var camera = null;
+        for (var i = 0; i < camera_lines.length; ++i) {
+            if (camera_lines[i].shot_id === shot_id) {
+                camera = camera_lines[i];
+            }
+        }
+
+        return camera;
+    }
+
+    // Private function for navigation action of journey. Retrieves a camera,
+    // creates its image plane and navigates to it.
+    var navigation = function (shot_id) {
+        var camera = getCamera(shot_id);
+        if (camera === null) {
+            return;
+        }
+
+        setImagePlaneCamera(camera);
+        navigateToShot(camera);
+    }
+
     // Private function for setting the position and direction of the orbit controls camera
-    // used for the smooth navigation movement.
-    var smoothNavigation = function (position, target) {
+    // used for the smooth navigation movement as well as controlling the image plane opacity.
+    var smoothNavigation = function (position, target, fraction, edge) {
         controls.goto(position, target);
+        options.imagePlaneOpacity = 1 - mapFraction(fraction, edge);
+    }
+
+    // Private function which retrieves a camera and creates its image plane.
+    var smoothNodeAction = function (shot_id) {
+        var camera = getCamera(shot_id);
+        if (camera === null) {
+            return;
+        }
+
+        setImagePlaneCamera(camera);
     }
 
     // Private function for continuing the movement to the next node when a journey is stopped.
-    var continuation = function (shot_id) {
+    var smoothContinuation = function (shot_id) {
         var camera = getCamera(shot_id);
         navigateToShot(camera);
+    }
+
+    // Private function for mapping the fraction in [0, 1] to another fraction in [0, 1] based on the edge.
+    var mapFraction = function (fraction, edge) {
+        var length = edge.weight;
+        var transitionLength = ['step_forward', 'step_backward'].indexOf(edge.direction) > -1 ? 4 : edge.weight;
+        var lowerBound = Math.max((length - transitionLength) / (2 * length), 0);
+        var upperBound = Math.min((length + transitionLength) / (2 * length), 1);
+
+        var result = (fraction - lowerBound) / (upperBound - lowerBound);
+
+        return Math.min(Math.max(result, 0), 1);
+    }
+
+    // Private function for determining the speed for the position between nodes based on the edge.
+    var speedFunction = function (fraction, edge) {
+        var general = 1;
+        var increase = 0;
+
+        switch (edge.direction) {
+            case 'turn_left':
+            case 'turn_right':
+                general = edge.weight / Math.max(edge.weight, 6);
+                break;
+            case 'turn_u':
+                general = edge.weight / Math.max(edge.weight, 8);
+                break;
+            case 'step_forward':
+            case 'step_backward':
+                // Speed increase by a maximum of 0.35 multiplied by coefficient based on edge weight.
+                var k = Math.min(Math.max(edge.weight - 2, 0), 2) * 3 / 4;
+                increase = k * Math.abs(0.35 - Math.min(Math.abs(fraction - 0.65), 0.35));
+                break;
+            default:
+                break;
+        }
+
+        return general * (1 + increase);
     }
 
     /**
@@ -750,36 +1008,72 @@ var JourneyWrapper = (function ($) {
         if ('nav' in urlParams && 'dest' in urlParams) {
 
             this.destination = urlParams.dest;
+            this.curveType = THREE.SplineCurve3;
             var _this = this;
 
+            var penalty = {
+                weightKey: 'weight',
+                penaltyKey: 'direction',
+                values: {
+                    step_backward: 30,
+                    turn_u: 15,
+                    turn_left: 3,
+                    turn_right: 3,
+                    step_left: 1,
+                    step_right: 1
+                }
+            };
+
             $.getJSON(urlParams.nav, function(data) {
+
+                var graphs = _this.graphHelper.mergeTypeGraphs(data, 'pref', 'pos', _this.destination, 10)
 
                 _this.journey =
                     'jou' in urlParams && urlParams.jou === 'basic' ?
                         new Journey(
-                            data,
+                            graphs,
                             convertShots(shots),
                             getInterval(),
                             navigation,
                             start,
                             stop,
                             preload,
-                            true) :
+                            penalty) :
                         new SmoothJourney(
-                            data,
+                            graphs,
                             convertShots(shots),
                             getInterval(),
                             smoothNavigation,
-                            setImagePlane,
+                            smoothNodeAction,
                             start,
                             stop,
-                            continuation,
+                            smoothContinuation,
                             preload,
-                            true);
+                            speedFunction,
+                            _this.curveType,
+                            penalty);
 
                 _this.initialized = true;
 
                 options.showPath = false;
+                options.curveType = 'Spline';
+                f1.add(options, 'curveType', ['Spline', 'Linear'])
+                    .onChange(function (value) {
+                        var curveType;
+                        switch (value) {
+                            case 'Spline':
+                                curveType = THREE.SplineCurve3;
+                                break;
+                            case 'Linear':
+                                curveType = LinearCurve;
+                                break;
+                            default:
+                                curveType = THREE.SplineCurve3;
+                        }
+
+                        _this.setCurveType(curveType);
+                    });
+
                 $('#journeyButton').show();
 
                 if ('img' in urlParams && selectedCamera !== undefined) {
@@ -802,6 +1096,18 @@ var JourneyWrapper = (function ($) {
         }
 
         return this.journey.isStarted();
+    }
+
+       /**
+     * Gets a value indicating whether a journey type is smooth.
+     * @return {Boolean} A value indicating whether a journey type is smooth.
+     */
+    JourneyWrapper.prototype.isSmooth = function () {
+        if (this.initialized !== true) {
+            return false;
+        }
+
+        return this.journey instanceof SmoothJourney
     }
 
     /**
@@ -862,17 +1168,23 @@ var JourneyWrapper = (function ($) {
 
         this.hidePath();
 
-        var geometry = this.journey.getPathGeometry(selectedCamera.shot_id, this.destination);
-        if (geometry === null) {
+        var pathGeometry = this.journey.getPathGeometry(selectedCamera.shot_id, this.destination);
+        if (pathGeometry === null) {
             return;
         }
+
+        var curve = new (Function.prototype.bind.apply(this.curveType, [null, pathGeometry.vertices]));
+        var length = curve.getLength();
+        var nbrOfPoints = length * 5;
+        var curveGeometry = new THREE.Geometry();
+        curveGeometry.vertices = curve.getPoints(nbrOfPoints);
 
         var material = new THREE.LineBasicMaterial({
             color: 0xffff88,
             linewidth: 5
         });
 
-        this.line = new THREE.Line(geometry, material);
+        this.line = new THREE.Line(curveGeometry, material);
         this.line.name = 'shortestPath'
         scene.add(this.line);
         render();
@@ -882,15 +1194,35 @@ var JourneyWrapper = (function ($) {
      * Hides the shortest path from the scene.
      */
     JourneyWrapper.prototype.hidePath = function () {
-        if (this.initialized !== true || this.line === undefined){
+        if (this.initialized !== true || this.line === null){
             return;
         }
 
-        if (this.line !== undefined) {
+        if (this.line !== null) {
             var sceneLine = scene.getObjectByName(this.line.name);
             scene.remove(sceneLine);
-            this.line = undefined;
+            this.line = null;
             render();
+        }
+    }
+
+    /**
+     * Sets the curve type of a journey
+     * @param {Type} curveType The type of the curve used for movement. Must inherit from THREE.Curve.
+     */
+    JourneyWrapper.prototype.setCurveType = function (curveType) {
+        if (this.initialized !== true) {
+            return;
+        }
+
+        this.curveType = curveType;
+
+        if (this.isSmooth()) {
+            this.journey.setCurveType(curveType);
+        }
+
+        if (options.showPath === true) {
+            this.showPath();
         }
     }
 
@@ -898,7 +1230,7 @@ var JourneyWrapper = (function ($) {
      * Adds a show path checkbox to the options.
      */
     JourneyWrapper.prototype.addShowPathController = function () {
-        if (this.initialized !== true || this.showPathController !== undefined){
+        if (this.initialized !== true || this.showPathController !== null){
             return;
         }
 
@@ -923,17 +1255,16 @@ var JourneyWrapper = (function ($) {
      * Removes the show path checkbox from the options.
      */
     JourneyWrapper.prototype.removeShowPathController = function () {
-        if (this.initialized !== true || this.showPathController === undefined){
+        if (this.initialized !== true || this.showPathController === null){
             return;
         }
 
         this.hidePath();
         f1.remove(this.showPathController);
-        this.showPathController = undefined;
+        this.showPathController = null;
     }
 
     return JourneyWrapper;
 })(jQuery);
 
 var journeyWrapper = new JourneyWrapper();
-
