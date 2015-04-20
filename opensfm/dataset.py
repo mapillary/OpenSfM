@@ -310,7 +310,7 @@ class DataSet:
                         x, y = data['feature']
                         fid = data['feature_id']
                         r, g, b = data['feature_color']
-                        fout.write('%s\t%d\t%d\t%g\t%g\t%d\t%d\t%d\n' % (image, track, fid, x, y, r, g, b))
+                        fout.write('%s\t%s\t%d\t%g\t%g\t%g\t%g\t%g\n' % (str(image), str(track), fid, x, y, r, g, b))
 
     def __reconstruction_file(self, filename):
         """Return path of reconstruction file"""
