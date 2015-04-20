@@ -180,9 +180,7 @@ bp::object Triangulate(const bp::list &Ps_list,
 
   Eigen::Matrix<double, 4, 1> X;
   libmv::NViewTriangulateAlgebraic(xs, Ps, &X);
-
-  Eigen::Matrix<double, 3, 1> Xe;
-  Xe << X(0) / X(3), X(1) / X(3), X(2) / X(3);
+  X /= X(3);
 
   for (int i = 0; i < n; ++i) {
     Eigen::Vector3d x_reproj = Ps[i] * X;
@@ -199,7 +197,7 @@ bp::object Triangulate(const bp::list &Ps_list,
   }
 
   npy_intp Xe_shape[1] = {3};
-  return bpn_array_from_data(1, Xe_shape, Xe.data());
+  return bpn_array_from_data(1, Xe_shape, X.data());
 }
 
 }

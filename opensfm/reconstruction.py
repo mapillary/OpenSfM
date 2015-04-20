@@ -376,11 +376,9 @@ def triangulate_track_python(track, graph, reconstruction, P_by_id, KR1_by_id, U
         angle_ok = False
         for i, j in combinations(range(len(Ps)), 2):
             angle = angle_between_vectors(vs[i], vs[j])
-            print angle, i, j,'python'
-            angle_ok = True
-            # if angle > min_ray_angle:
-            #     angle_ok = True
-            #     break
+            if angle > min_ray_angle:
+                angle_ok = True
+                break
 
         if angle_ok:
             X = multiview.triangulate(Ps, xs)
@@ -392,7 +390,7 @@ def triangulate_track_python(track, graph, reconstruction, P_by_id, KR1_by_id, U
                     error = 999999999.0
                     break
                 reprojected_x = np.array([xx / zz, yy / zz])
-                error = max(error, (reprojected_x - x).max())
+                error = max(error, np.fabs(reprojected_x - x).max())
             if error < reproj_threshold:
                 reconstruction['points'][track] = {
                     "coordinates": list(X),
