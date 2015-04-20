@@ -32,7 +32,7 @@ def bundle(graph, reconstruction, config, fix_cameras=False):
     ba = csfm.BundleAdjuster()
     for k, v in reconstruction['cameras'].items():
         ba.add_camera(str(k), v['focal'], v['k1'], v['k2'],
-            v['exif_focal'], fix_cameras)
+            v['focal_prior'], fix_cameras)
 
     for k, v in reconstruction['shots'].items():
         r = v['rotation']
@@ -142,8 +142,8 @@ def bootstrap_reconstruction(data, graph, im1, im2):
     tracks, p1, p2 = dataset.common_tracks(graph, im1, im2)
     print 'Number of common tracks', len(tracks)
 
-    f1 = d1['focal_ratio']
-    f2 = d2['focal_ratio']
+    f1 = d1['focal_prior']
+    f2 = d2['focal_prior']
     threshold = data.config.get('five_point_algo_threshold', 0.006)
     ret = csfm.two_view_reconstruction(p1, p2, f1, f2, threshold)
     if ret is not None:

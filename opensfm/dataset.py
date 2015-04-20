@@ -115,8 +115,7 @@ class DataSet:
         ================  =====  ===================================
         width             int    Width of image, in pixels
         height            int    Height of image, in pixels
-        focal_ratio       float  Focal length (real) / sensor width
-        focal_35mm_equiv  float  Focal length in 35 mm equivalent
+        focal_prior       float  Focal length (real) / sensor width
         ================  =====  ===================================
 
         :param image: Image name, with extension (i.e. 123.jpg)

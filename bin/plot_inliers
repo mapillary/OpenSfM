@@ -234,8 +234,8 @@ def create_tracks_figure(im1, im2, data, save_figs=False):
     plot_matches(h_subplot, im1_array, im2_array, inliers_h1, inliers_h2, 'c', 'ob')
 
     # Plot inliers and outliers of the tracks from csfm two view reconstruction.
-    f1 = data.load_exif(im1)['focal_ratio']
-    f2 = data.load_exif(im2)['focal_ratio']
+    f1 = data.load_exif(im1)['focal_prior']
+    f2 = data.load_exif(im2)['focal_prior']
 
     threshold_t = data.config.get('five_point_algo_threshold', 0.006)
     R, t, inliers_t = csfm.two_view_reconstruction(track_points1, track_points2, f1, f2, threshold_t)

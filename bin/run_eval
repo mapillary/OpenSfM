@@ -105,8 +105,7 @@ def load_strecha_gt_projections(run_root, name):
 def eval_strecha_dataset(run_root, name):
     exif = {
         "camera": "canon eos d60",
-        "focal_ratio": 0.881057268722467, 
-        "focal_35mm_equiv": 31.718061674008812, 
+        "focal_prior": 0.881057268722467, 
     }
     folder = run_root + '/' + name
     source = '../../../datasets/{0}/urd'.format(name)

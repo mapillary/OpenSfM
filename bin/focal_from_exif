@@ -65,10 +65,8 @@ for image in data.images():
         camera_models[d['camera']] = {
                 'width': d['width'],
                 'height': d['height'],
-                'focal_ratio': d['focal_ratio'],
-                'focal_35mm_equiv': d['focal_35mm_equiv'],
-                "focal": d['focal_ratio'],
-                "exif_focal": d['focal_ratio'],
+                "focal": d['focal_prior'],
+                "focal_prior": d['focal_prior'],
                 "k1": d.get('k1', 0.),
                 "k2": d.get('k2', 0.)
             }

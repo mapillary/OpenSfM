@@ -26,7 +26,7 @@ enum {
 struct BACamera {
   double parameters[BA_CAMERA_NUM_PARAMS];
   bool constant;
-  double exif_focal;
+  double focal_prior;
   std::string id;
 
   double GetFocal() { return parameters[BA_CAMERA_FOCAL]; }
@@ -357,7 +357,7 @@ class BundleAdjuster {
       double focal,
       double k1,
       double k2,
-      double exif_focal,
+      double focal_prior,
       bool constant) {
     BACamera c;   
     c.id = id;
@@ -365,7 +365,7 @@ class BundleAdjuster {
     c.parameters[BA_CAMERA_K1] = k1;
     c.parameters[BA_CAMERA_K2] = k2;
     c.constant = constant;
-    c.exif_focal = exif_focal;
+    c.focal_prior = focal_prior;
     cameras_[id] = c;
   }
 
@@ -606,7 +606,7 @@ class BundleAdjuster {
     for (auto &i : cameras_) {
       ceres::CostFunction* cost_function = 
           new ceres::AutoDiffCostFunction<InternalParametersPriorError, 3, 3>(
-              new InternalParametersPriorError(i.second.exif_focal, focal_prior_sd_, k1_sd_, k2_sd_));
+              new InternalParametersPriorError(i.second.focal_prior, focal_prior_sd_, k1_sd_, k2_sd_));
 
       problem.AddResidualBlock(cost_function,
                                NULL,

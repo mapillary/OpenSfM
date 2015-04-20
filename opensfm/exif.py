@@ -98,8 +98,7 @@ def extract_exif_from_dict(exif_image):
     d = {
         'width': width,
         'height': height,
-        'focal_ratio': focal_ratio,
-        'focal_35mm_equiv': focal_35,
+        'focal_prior': focal_ratio,
         'camera': sensor,
         'orientation': orientation,
         'k1': k1,
@@ -225,8 +224,7 @@ class EXIF:
         d = {
                 'width': width,
                 'height': height,
-                'focal_ratio': focal_ratio,
-                'focal_35mm_equiv': focal_35,
+                'focal_prior': focal_ratio,
                 'camera': sensor_string(make, model),
                 'orientation': orientation,
                 'k1': distortion[0],

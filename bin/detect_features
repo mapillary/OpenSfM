@@ -20,10 +20,6 @@ def detect(image):
         p_unsorted, f_unsorted, c_unsorted = features.extract_features(data.image_as_array(image), data.config)
         if len(p_unsorted) == 0:
             return
-        # camera = data.load_exif(image)
-        # if 'gopro' in camera['camera'].lower():
-        #     camera['focal'] = camera['focal_ratio']* np.max([camera['height'], camera['width']])
-        #     p_unsorted[:,0:2] = multiview.undistort_points(camera, p_unsorted[:,0:2].T).T
         
         size = p_unsorted[:, 2]
         order = np.argsort(size)
