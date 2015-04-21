@@ -69,6 +69,45 @@ def plot_points_sub(figure, rows, columns, index, title, im1, im2, p1, p2, point
     return subplot
 
 
+def reproject_tracks(im, tracks, reconstruction):
+    p = []
+    for track in tracks:
+        shot = reconstruction['shots'][im]
+        camera = reconstruction['cameras'][shot['camera']]
+        point = reconstruction['points'][str(track)]
+
+        p.append(reconstruct.reproject(camera, shot, point))
+
+    return np.array(p)
+
+
+def find_reconstruction(images, data):
+    reconstructions = data.load_reconstruction()
+    reconstruction = None
+
+    for r in reconstructions:
+        found = True
+        for im in images:
+            if im not in r['shots']:
+                found = False
+                break
+
+        if found:
+            reconstruction = r
+            break
+
+    return reconstruction
+
+
+def reconstruction_tracks(tracks, reconstruction):
+    r_tracks = []
+    for track in tracks:
+        if str(track[0]) in reconstruction['points']:
+            r_tracks.append(track)
+
+    return np.array(r_tracks)
+
+
 def plot_matches_sub(figure, rows, columns, index, title, im1, im2, p1, p2, line_format, point_format):
     subplot = create_subplot(figure, rows, columns, index, title, im1.shape[1] + im2.shape[1])
 
@@ -346,7 +385,7 @@ def create_reconstruction_figure(im1, im2, data, save_figs=False):
     track_matches = []
     for track in t1:
         if track in t2:
-            track_matches.append(np.array([t1[track]['feature_id'], t2[track]['feature_id'], int(track)]))
+            track_matches.append(np.array([int(track), t1[track]['feature_id'], t2[track]['feature_id']]))
 
     track_matches = np.array(track_matches)
 
@@ -354,27 +393,16 @@ def create_reconstruction_figure(im1, im2, data, save_figs=False):
         print 'No tracks to plot.'
         return
 
-    track_points1 = p1[track_matches[:, 0]]
-    track_points2 = p2[track_matches[:, 1]]
+    track_points1 = p1[track_matches[:, 1]]
+    track_points2 = p2[track_matches[:, 2]]
 
-    reconstructions = data.load_reconstruction()
-    reconstruction = None
-
-    for rec in reconstructions:
-        if im1 in rec['shots'] and im2 in rec['shots']:
-            reconstruction = rec
-
+    reconstruction = find_reconstruction([im1, im2], data)
     if reconstruction is None:
         print '{0} and {1} does not exist in a common reconstruction.'.format(im1, im2)
 
-    rec_tracks = []
-    for track in track_matches:
-        if str(track[2]) in rec['points']:
-            rec_tracks.append(track)
-
-    rec_tracks = np.array(rec_tracks)
-    rec_track_points1 = p1[rec_tracks[:, 0]]
-    rec_track_points2 = p2[rec_tracks[:, 1]]
+    rec_tracks = reconstruction_tracks(track_matches, reconstruction)
+    rec_track_points1 = p1[rec_tracks[:, 1]]
+    rec_track_points2 = p2[rec_tracks[:, 2]]
 
     title = 'Common tracks: {0}. Reconstructed points: {1}. Triangulation and reprojection error removals: {2}'.format(
         track_matches.shape[0], rec_tracks.shape[0], track_matches.shape[0] - rec_tracks.shape[0])
@@ -382,32 +410,15 @@ def create_reconstruction_figure(im1, im2, data, save_figs=False):
     t_subplot = plot_matches_sub(fig, 2, 1, 1, title, im1_array, im2_array, track_points1, track_points2, 'r', 'om')
     plot_matches(t_subplot, im1_array, im2_array, rec_track_points1, rec_track_points2, 'c', 'ob')
 
-    reprojected_points1 = []
-    for track in rec_tracks:
-        shot = reconstruction['shots'][im1]
-        camera = reconstruction['cameras'][shot['camera']]
-        point = reconstruction['points'][str(track[2])]
-
-        reprojected_points1.append(reconstruct.reproject(camera, shot, point))
-
-    reprojected_points1 = np.array(reprojected_points1)
-
-    reprojected_points2 = []
-    for track in rec_tracks:
-        shot = reconstruction['shots'][im2]
-        camera = reconstruction['cameras'][shot['camera']]
-        point = reconstruction['points'][str(track[2])]
-
-        reprojected_points2.append(reconstruct.reproject(camera, shot, point))
-
-    reprojected_points2 = np.array(reprojected_points2)
+    rp1 = reproject_tracks(im1, rec_tracks[:, 0], reconstruction)
+    rp2 = reproject_tracks(im2, rec_tracks[:, 0], reconstruction)
 
     title = 'Common tracks: {0}. Reconstructed points: {1}. Triangulation and reprojection error removals: {2}'.format(
         track_matches.shape[0], rec_tracks.shape[0], track_matches.shape[0] - rec_tracks.shape[0])
 
     rec_plot = plot_points_sub(fig, 2, 1, 2, title, im1_array, im2_array, track_points1, track_points2, 'or', 'or')
     plot_points(rec_plot, im1_array, rec_track_points1, 'ob', im2_array, rec_track_points2, 'ob')
-    plot_points(rec_plot, im1_array, reprojected_points1, '+w', im2_array, reprojected_points2, '+w')
+    plot_points(rec_plot, im1_array, rp1, '+w', im2_array, rp2, '+w')
 
 
     fig.subplots_adjust(left=0.01, bottom=0, right=0.99, top=0.97, wspace=0, hspace=0)
@@ -428,13 +439,7 @@ def create_complete_reconstruction_figure(im, data, save_figs=False):
     fig.suptitle('Reprojected reconstructed 3D points ({0}): {1}'.format(data.feature_type().upper(), im),
                  fontsize=14, fontweight='bold')
 
-    reconstructions = data.load_reconstruction()
-    reconstruction = None
-
-    for rec in reconstructions:
-        if im in rec['shots']:
-            reconstruction = rec
-
+    reconstruction = find_reconstruction([im], data)
     if reconstruction is None:
         print '{0} does not exist in a reconstruction.'.format(im)
 
@@ -447,28 +452,15 @@ def create_complete_reconstruction_figure(im, data, save_figs=False):
 
     tracks = []
     for track in im_tracks:
-        tracks.append(np.array([im_tracks[track]['feature_id'], int(track)]))
+        tracks.append(np.array([int(track), im_tracks[track]['feature_id']]))
 
     tracks = np.array(tracks)
-    track_points = p[tracks[:, 0]]
+    track_points = p[tracks[:, 1]]
 
-    rec_tracks = []
-    for track in rec['points']:
-        if track in im_tracks:
-            rec_tracks.append(np.array([im_tracks[str(track)]['feature_id'], int(track)]))
+    rec_tracks = reconstruction_tracks(tracks, reconstruction)
+    rec_track_points = p[rec_tracks[:, 1]]
 
-    rec_tracks = np.array(rec_tracks)
-    rec_track_points = p[rec_tracks[:, 0]]
-
-    reprojected_points = []
-    for track in rec_tracks:
-        shot = reconstruction['shots'][im]
-        camera = reconstruction['cameras'][shot['camera']]
-        point = reconstruction['points'][str(track[1])]
-
-        reprojected_points.append(reconstruct.reproject(camera, shot, point))
-
-    reprojected_points = np.array(reprojected_points)
+    rp = reproject_tracks(im, rec_tracks[:, 0], reconstruction)
 
     title = 'Tracks: {0}. Reconstructed points: {1}. Triangulation and reprojection error removals: {2}'.format(
         tracks.shape[0], rec_tracks.shape[0], tracks.shape[0] - rec_tracks.shape[0])
@@ -476,7 +468,7 @@ def create_complete_reconstruction_figure(im, data, save_figs=False):
     rec_plot.imshow(im_array)
     plot_points(rec_plot, im_array, track_points, 'or')
     plot_points(rec_plot, im_array, rec_track_points, 'ob')
-    plot_points(rec_plot, im_array, reprojected_points, '+w')
+    plot_points(rec_plot, im_array, rp, '+w')
 
     fig.subplots_adjust(left=0.01, bottom=0, right=0.99, top=0.97, wspace=0, hspace=0)
 
