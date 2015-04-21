@@ -205,7 +205,7 @@ def create_matches_figure(im1, im2, data, save_figs=False):
                      'g', 'oy')
 
     # Retrieve and plot robust match outliers.
-    outliers = np.empty((0, 2), int)
+    outliers = []
     for match in symmetric_matches:
 
         found = False
@@ -215,7 +215,9 @@ def create_matches_figure(im1, im2, data, save_figs=False):
                 break
 
         if not found:
-            outliers = np.vstack((outliers, match))
+            outliers.append(match)
+
+    outliers = np.array(outliers) if len(outliers) else np.empty((0, 2), int)
 
     outliers1 = p1[outliers[:, 0]]
     outliers2 = p2[outliers[:, 1]]
@@ -254,7 +256,7 @@ def create_tracks_figure(im1, im2, data, save_figs=False):
     track_points1 = p1[tracks[:, 1]]
     track_points2 = p2[tracks[:, 2]]
 
-    non_robust_tracks = np.empty((0, 3), int)
+    non_robust_tracks = []
     for match in tracks:
 
         found = False
@@ -264,8 +266,9 @@ def create_tracks_figure(im1, im2, data, save_figs=False):
                 break
 
         if not found:
-            non_robust_tracks = np.vstack((non_robust_tracks, match))
+            non_robust_tracks.append(match)
 
+    non_robust_tracks = np.array(non_robust_tracks) if len(non_robust_tracks) else np.empty((0, 3), int)
     non_robust_tracks1 = p1[non_robust_tracks[:, 1]]
     non_robust_tracks2 = p2[non_robust_tracks[:, 2]]
 
@@ -322,21 +325,25 @@ def create_tracks_figure(im1, im2, data, save_figs=False):
     reconstruction = reconstruct.bootstrap_reconstruction(data, data.load_tracks_graph(), im1, im2)
 
     if reconstruction:
-        robust_rec_tracks = np.empty((0, 3), int)
-        non_robust_rec_tracks = np.empty((0, 3), int)
+        robust_rec_tracks = []
+        non_robust_rec_tracks = []
         for track in reconstruction['points']:
             track = int(track)
             if track in non_robust_tracks[:, 0]:
                 non_robust_track = np.squeeze(np.array(non_robust_tracks[non_robust_tracks[:, 0] == track]))
-                non_robust_rec_tracks = np.vstack((non_robust_rec_tracks, non_robust_track))
+                non_robust_rec_tracks.append(non_robust_track)
             else:
                 robust_track = np.squeeze(np.array(tracks[tracks[:, 0] == track]))
-                robust_rec_tracks = np.vstack((robust_rec_tracks, robust_track))
+                robust_rec_tracks.append(robust_track)
 
-        failed_rec_tracks = np.empty((0, 3), int)
+        failed_rec_tracks = []
         for track in tracks:
             if not str(track[0]) in reconstruction['points']:
-                failed_rec_tracks = np.vstack((failed_rec_tracks, track))
+                failed_rec_tracks.append(track)
+
+        robust_rec_tracks = np.array(robust_rec_tracks) if len(robust_rec_tracks) else np.empty((0, 3), int)
+        non_robust_rec_tracks = np.array(non_robust_rec_tracks) if len(non_robust_rec_tracks) else np.empty((0, 3), int)
+        failed_rec_tracks = np.array(failed_rec_tracks) if len(failed_rec_tracks) else np.empty((0, 3), int)
 
         robust_rec_points1 = p1[robust_rec_tracks[:, 1]]
         robust_rec_points2 = p2[robust_rec_tracks[:, 2]]
