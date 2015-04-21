@@ -69,6 +69,15 @@ def plot_points_sub(figure, rows, columns, index, title, im1, im2, p1, p2, point
     return subplot
 
 
+def plot_matches_sub(figure, rows, columns, index, title, im1, im2, p1, p2, line_format, point_format):
+    subplot = create_subplot(figure, rows, columns, index, title, im1.shape[1] + im2.shape[1])
+
+    show_images(subplot, im1, im2)
+    plot_matches(subplot, im1, im2, p1, p2, line_format, point_format)
+
+    return subplot
+
+
 def reproject_tracks(im, tracks, reconstruction):
     p = []
     for track in tracks:
@@ -108,13 +117,16 @@ def reconstruction_tracks(tracks, reconstruction):
     return np.array(r_tracks)
 
 
-def plot_matches_sub(figure, rows, columns, index, title, im1, im2, p1, p2, line_format, point_format):
-    subplot = create_subplot(figure, rows, columns, index, title, im1.shape[1] + im2.shape[1])
+def display_figure(figure, save_figs, data=None, file_name=''):
+    figure.subplots_adjust(left=0.01, bottom=0, right=0.99, top=0.97, wspace=0.04, hspace=0)
 
-    show_images(subplot, im1, im2)
-    plot_matches(subplot, im1, im2, p1, p2, line_format, point_format)
-
-    return subplot
+    if save_figs:
+        p = data.data_path + '/plot_inliers'
+        io.mkdir_p(p)
+        figure.savefig(p + '/' + file_name, dpi=100)
+        pl.close()
+    else:
+        pl.show()
 
 
 def create_matches_figure(im1, im2, data, save_figs=False):
@@ -188,15 +200,7 @@ def create_matches_figure(im1, im2, data, save_figs=False):
                      outliers1, outliers2,
                      'r', 'om')
 
-    fig.subplots_adjust(left=0.01, bottom=0, right=0.99, top=0.97, wspace=0.04, hspace=0)
-
-    if save_figs:
-        p = data.data_path + '/plot_inliers'
-        io.mkdir_p(p)
-        fig.savefig(p + '/' + im1 + '_' + im2 + '_' + data.feature_type() + '_matches.jpg', dpi=100)
-        pl.close()
-    else:
-        pl.show()
+    display_figure(fig, save_figs, data, '{0}_{1}_{2}_matches.jpg'.format(im1, im2, data.feature_type()))
 
 
 def create_tracks_figure(im1, im2, data, save_figs=False):
@@ -352,15 +356,7 @@ def create_tracks_figure(im1, im2, data, save_figs=False):
                 data.config.get('triangulation_min_ray_angle', 2.0))
         create_subplot(fig, 2, 2, 4, failed_title, 100)
 
-    fig.subplots_adjust(left=0.01, bottom=0, right=0.99, top=0.97, wspace=0.04, hspace=0)
-
-    if save_figs:
-        p = data.data_path + '/plot_inliers'
-        io.mkdir_p(p)
-        fig.savefig(p + '/' + im1 + '_' + im2 + '_' + data.feature_type() + '_tracks.jpg', dpi=100)
-        pl.close()
-    else:
-        pl.show()
+    display_figure(fig, save_figs, data, '{0}_{1}_{2}_tracks.jpg'.format(im1, im2, data.feature_type()))
 
 
 def create_reconstruction_figure(im1, im2, data, save_figs=False):
@@ -420,16 +416,7 @@ def create_reconstruction_figure(im1, im2, data, save_figs=False):
     plot_points(rec_plot, im1_array, rec_track_points1, 'ob', im2_array, rec_track_points2, 'ob')
     plot_points(rec_plot, im1_array, rp1, '+w', im2_array, rp2, '+w')
 
-
-    fig.subplots_adjust(left=0.01, bottom=0, right=0.99, top=0.97, wspace=0, hspace=0)
-
-    if save_figs:
-        p = data.data_path + '/plot_inliers'
-        io.mkdir_p(p)
-        fig.savefig(p + '/' + im1 + '_' + im2 + '_' + data.feature_type() + '_reconstruction.jpg', dpi=100)
-        pl.close()
-    else:
-        pl.show()
+    display_figure(fig, save_figs, data, '{0}_{1}_{2}_reconstruction.jpg'.format(im1, im2, data.feature_type()))
 
 
 def create_complete_reconstruction_figure(im, data, save_figs=False):
@@ -470,15 +457,7 @@ def create_complete_reconstruction_figure(im, data, save_figs=False):
     plot_points(rec_plot, im_array, rec_track_points, 'ob')
     plot_points(rec_plot, im_array, rp, '+w')
 
-    fig.subplots_adjust(left=0.01, bottom=0, right=0.99, top=0.97, wspace=0, hspace=0)
-
-    if save_figs:
-        p = data.data_path + '/plot_inliers'
-        io.mkdir_p(p)
-        fig.savefig(p + '/' + im + '_' + data.feature_type() + '_complete_rec.jpg', dpi=100)
-        pl.close()
-    else:
-        pl.show()
+    display_figure(fig, save_figs, data, '{0}_{1}_complete_rec.jpg'.format(im, data.feature_type()))
 
 
 if __name__ == "__main__":
