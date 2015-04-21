@@ -23,7 +23,11 @@ if __name__ == "__main__":
     reconstructions = data.load_reconstruction()
 
     for i, r in enumerate(reconstructions):
-        reconstructions[i] = mesh.triangle_mesh(r, graph, data)
+        for shot_id, shot in r['shots'].iteritems():
+            if shot_id in graph:
+                vertices, faces = mesh.triangle_mesh(shot_id, r, graph, data)
+                shot['vertices'] = vertices
+                shot['faces'] = faces
 
     data.save_reconstruction(reconstructions, filename='reconstruction.meshed.json')
 
