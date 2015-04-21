@@ -129,15 +129,18 @@ def display_figure(figure, save_figs, data=None, file_name=''):
         pl.show()
 
 
+def load_points(im, data):
+    p, f, c = data.load_features(im)
+    return np.array(p[:, :2], np.float64)
+
+
 def create_matches_figure(im1, im2, data, save_figs=False):
+    fig = pl.figure(figsize=(24, 12))
+    fig.suptitle('Matches ({0}): {1} - {2}'.format(data.feature_type().upper(), im1, im2),
+                 fontsize=14, fontweight='bold')
 
     im1_array = data.image_as_array(im1)
     im2_array = data.image_as_array(im2)
-
-    fig = pl.figure(figsize=(24, 12))
-
-    fig.suptitle('Matches ({0}): {1} - {2}'.format(data.feature_type().upper(), im1, im2),
-                 fontsize=14, fontweight='bold')
 
     # Calculate symmetric matches and plot.
     p1, f1, c1 = data.load_features(im1)
@@ -204,27 +207,23 @@ def create_matches_figure(im1, im2, data, save_figs=False):
 
 
 def create_tracks_figure(im1, im2, data, save_figs=False):
-
-    im1_array = data.image_as_array(im1)
-    im2_array = data.image_as_array(im2)
-
     fig = pl.figure(figsize=(24, 12))
     fig.suptitle('Tracks ({0}): {1} - {2}'.format(data.feature_type().upper(), im1, im2),
                  fontsize=14, fontweight='bold')
 
+    im1_array = data.image_as_array(im1)
+    im2_array = data.image_as_array(im2)
+
+    p1 = load_points(im1, data)
+    p2 = load_points(im2, data)
+
     # Retrieve tracks and robust matches from file and plot tracks corresponding to
     # robust matches and tracks not corresponding to robust matches in different colors.
-    graph = data.load_tracks_graph()
-
-    p1, features1, c1 = data.load_features(im1)
-    p2, features2, c2 = data.load_features(im2)
-    p1 = np.array(p1[:, :2], np.float64)
-    p2 = np.array(p2[:, :2], np.float64)
-
     robust_matches = data.find_matches(im1, im2)
     if not len(robust_matches):
         robust_matches = np.empty((0, 2), int)
 
+    graph = data.load_tracks_graph()
     t1, t2 = graph[im1], graph[im2]
 
     track_matches = []
@@ -360,22 +359,17 @@ def create_tracks_figure(im1, im2, data, save_figs=False):
 
 
 def create_reconstruction_figure(im1, im2, data, save_figs=False):
-    im1_array = data.image_as_array(im1)
-    im2_array = data.image_as_array(im2)
-
     fig = pl.figure(figsize=(18, 18))
     fig.suptitle('Reconstruction ({0}): {1} - {2}'.format(data.feature_type().upper(), im1, im2),
                  fontsize=18, fontweight='bold')
 
-    # Retrieve tracks and robust matches from file and plot tracks corresponding to
-    # robust matches and tracks not corresponding to robust matches in different colors.
+    im1_array = data.image_as_array(im1)
+    im2_array = data.image_as_array(im2)
+
+    p1 = load_points(im1, data)
+    p2 = load_points(im2, data)
+
     graph = data.load_tracks_graph()
-
-    p1, f1, c1 = data.load_features(im1)
-    p2, f2, c2 = data.load_features(im2)
-    p1 = np.array(p1[:, :2], np.float64)
-    p2 = np.array(p2[:, :2], np.float64)
-
     t1, t2 = graph[im1], graph[im2]
 
     track_matches = []
@@ -420,8 +414,6 @@ def create_reconstruction_figure(im1, im2, data, save_figs=False):
 
 
 def create_complete_reconstruction_figure(im, data, save_figs=False):
-    im_array = data.image_as_array(im)
-
     fig = pl.figure(figsize=(12, 9))
     fig.suptitle('Reprojected reconstructed 3D points ({0}): {1}'.format(data.feature_type().upper(), im),
                  fontsize=14, fontweight='bold')
@@ -430,11 +422,10 @@ def create_complete_reconstruction_figure(im, data, save_figs=False):
     if reconstruction is None:
         print '{0} does not exist in a reconstruction.'.format(im)
 
+    im_array = data.image_as_array(im)
+    p = load_points(im, data)
+
     graph = data.load_tracks_graph()
-
-    p, f, c = data.load_features(im)
-    p = np.array(p[:, :2], np.float64)
-
     im_tracks = graph[im]
 
     tracks = []
