@@ -169,6 +169,30 @@ def load_tracks(im, data):
     return np.array(tracks) if len(tracks) else np.empty((0, 2), int)
 
 
+def non_matches(a1, a2, map_function):
+    """ Retrieves the row arrays in a1 that does not have an equal row array in a2.
+    :param a1: Numpy array of arrays.
+    :param a2: Numpy array of arrays.
+    :param map_function: Function mapping the array a1 to another array..
+    :return: The mapped rows in a1 that does not correspond to any row in a2.
+    """
+    nm = []
+
+    for arr1 in a1:
+        found = False
+        for arr2 in a2:
+            if np.array_equal(map_function(arr1), arr2):
+                found = True
+                break
+
+        if not found:
+            nm.append(arr1)
+
+    nm = np.array(nm) if len(nm) else np.empty((0, a1.shape[1]), int)
+
+    return nm
+
+
 def create_matches_figure(im1, im2, data, save_figs=False):
     fig = pl.figure(figsize=(24, 12))
     fig.suptitle('Matches ({0}): {1} - {2}'.format(data.feature_type().upper(), im1, im2),
@@ -216,21 +240,7 @@ def create_matches_figure(im1, im2, data, save_figs=False):
                      r_matches1, r_matches2,
                      'g', 'oy')
 
-    # Retrieve and plot robust match outliers.
-    outliers = []
-    for match in symmetric_matches:
-
-        found = False
-        for robust_match in robust_matches:
-            if np.array_equal(match, robust_match):
-                found = True
-                break
-
-        if not found:
-            outliers.append(match)
-
-    outliers = np.array(outliers) if len(outliers) else np.empty((0, 2), int)
-
+    outliers = non_matches(symmetric_matches, robust_matches, lambda a: a)
     outliers1 = p1[outliers[:, 0]]
     outliers2 = p2[outliers[:, 1]]
 
@@ -268,19 +278,7 @@ def create_tracks_figure(im1, im2, data, save_figs=False):
     track_points1 = p1[tracks[:, 1]]
     track_points2 = p2[tracks[:, 2]]
 
-    non_robust_tracks = []
-    for match in tracks:
-
-        found = False
-        for robust_match in robust_matches:
-            if np.array_equal(match[1:], robust_match):
-                found = True
-                break
-
-        if not found:
-            non_robust_tracks.append(match)
-
-    non_robust_tracks = np.array(non_robust_tracks) if len(non_robust_tracks) else np.empty((0, 3), int)
+    non_robust_tracks = non_matches(tracks, robust_matches, lambda a: a[1:])
     non_robust_tracks1 = p1[non_robust_tracks[:, 1]]
     non_robust_tracks2 = p2[non_robust_tracks[:, 2]]
 
