@@ -178,7 +178,9 @@ def create_tracks_figure(im1, im2, data, save_figs=False):
     p1 = np.array(p1[:, :2], np.float64)
     p2 = np.array(p2[:, :2], np.float64)
 
-    robust_matches = data.find_matches(im1, im2) or np.empty((0, 2), int)
+    robust_matches = data.find_matches(im1, im2)
+    if not len(robust_matches):
+        robust_matches = np.empty((0, 2), int)
 
     t1, t2 = graph[im1], graph[im2]
 
@@ -322,6 +324,103 @@ def create_tracks_figure(im1, im2, data, save_figs=False):
         pl.show()
 
 
+def create_reconstruction_figure(im1, im2, data, save_figs=False):
+    im1_array = data.image_as_array(im1)
+    im2_array = data.image_as_array(im2)
+
+    fig = pl.figure(figsize=(18, 18))
+    fig.suptitle('Reconstruction ({0}): {1} - {2}'.format(data.feature_type().upper(), im1, im2),
+                 fontsize=18, fontweight='bold')
+
+    # Retrieve tracks and robust matches from file and plot tracks corresponding to
+    # robust matches and tracks not corresponding to robust matches in different colors.
+    graph = data.load_tracks_graph()
+
+    p1, f1, c1 = data.load_features(im1)
+    p2, f2, c2 = data.load_features(im2)
+    p1 = np.array(p1[:, :2], np.float64)
+    p2 = np.array(p2[:, :2], np.float64)
+
+    t1, t2 = graph[im1], graph[im2]
+
+    track_matches = []
+    for track in t1:
+        if track in t2:
+            track_matches.append(np.array([t1[track]['feature_id'], t2[track]['feature_id'], int(track)]))
+
+    track_matches = np.array(track_matches)
+
+    if track_matches.shape[0] < 1:
+        print 'No tracks to plot.'
+        return
+
+    track_points1 = p1[track_matches[:, 0]]
+    track_points2 = p2[track_matches[:, 1]]
+
+    reconstructions = data.load_reconstruction()
+    reconstruction = None
+
+    for rec in reconstructions:
+        if im1 in rec['shots'] and im2 in rec['shots']:
+            reconstruction = rec
+
+    if reconstruction is None:
+        print '{0} and {1} does not exist in a common reconstruction.'.format(im1, im2)
+
+    rec_tracks = []
+    for track in track_matches:
+        if str(track[2]) in rec['points']:
+            rec_tracks.append(track)
+
+    rec_tracks = np.array(rec_tracks)
+    rec_track_points1 = p1[rec_tracks[:, 0]]
+    rec_track_points2 = p2[rec_tracks[:, 1]]
+
+    title = 'Common tracks: {0}. Reconstructed points: {1}. Triangulation and reprojection error removals: {2}'.format(
+        track_matches.shape[0], rec_tracks.shape[0], track_matches.shape[0] - rec_tracks.shape[0])
+
+    t_subplot = plot_matches_sub(fig, 2, 1, 1, title, im1_array, im2_array, track_points1, track_points2, 'r', 'om')
+    plot_matches(t_subplot, im1_array, im2_array, rec_track_points1, rec_track_points2, 'c', 'ob')
+
+    reprojected_points1 = []
+    for track in rec_tracks:
+        shot = reconstruction['shots'][im1]
+        camera = reconstruction['cameras'][shot['camera']]
+        point = reconstruction['points'][str(track[2])]
+
+        reprojected_points1.append(reconstruct.reproject(camera, shot, point))
+
+    reprojected_points1 = np.array(reprojected_points1)
+
+    reprojected_points2 = []
+    for track in rec_tracks:
+        shot = reconstruction['shots'][im2]
+        camera = reconstruction['cameras'][shot['camera']]
+        point = reconstruction['points'][str(track[2])]
+
+        reprojected_points2.append(reconstruct.reproject(camera, shot, point))
+
+    reprojected_points2 = np.array(reprojected_points2)
+
+    title = 'Common tracks: {0}. Reconstructed points: {1}. Triangulation and reprojection error removals: {2}'.format(
+        track_matches.shape[0], rec_tracks.shape[0], track_matches.shape[0] - rec_tracks.shape[0])
+
+    rec_plot = plot_points_sub(fig, 2, 1, 2, title, im1_array, im2_array, track_points1, track_points2, 'or', 'or')
+    plot_points(rec_plot, im1_array, rec_track_points1, 'ob', im2_array, rec_track_points2, 'ob')
+    plot_points(rec_plot, im1_array, reprojected_points1, '+w', im2_array, reprojected_points2, '+w')
+
+
+    fig.subplots_adjust(left=0.01, bottom=0, right=0.99, top=0.97, wspace=0, hspace=0)
+
+    if save_figs:
+        p = data.data_path + '/plot_inliers'
+        io.mkdir_p(p)
+        fig.savefig(p + '/' + im1 + '_' + im2 + '_' + data.feature_type() + '_reconstruction.jpg', dpi=100)
+        pl.close()
+    else:
+        pl.show()
+
+
 def create_complete_reconstruction_figure(im, data, save_figs=False):
     im_array = data.image_as_array(im)
 
@@ -341,7 +440,7 @@ def create_complete_reconstruction_figure(im, data, save_figs=False):
 
     graph = data.load_tracks_graph()
 
-    p, f = data.load_features(im)
+    p, f, c = data.load_features(im)
     p = np.array(p[:, :2], np.float64)
 
     im_tracks = graph[im]
@@ -410,6 +509,7 @@ if __name__ == "__main__":
 
     create_matches_figure(args.image1, args.image2, data_set, args.save_figs)
     create_tracks_figure(args.image1, args.image2, data_set, args.save_figs)
+    create_reconstruction_figure(args.image1, args.image2, data_set, args.save_figs)
 
     if args.plot_all:
         create_complete_reconstruction_figure(args.image1, data_set, args.save_figs)
