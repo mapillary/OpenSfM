@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+import os
+import sys
+
 import argparse
 import matplotlib.pyplot as pl
 import numpy as np
@@ -11,6 +14,15 @@ from opensfm import matching
 from opensfm import io
 from opensfm import csfm
 import opensfm.reconstruction as reconstruct
+
+
+def redirect_print():
+    f = open(os.devnull, 'w')
+    sys.stdout = f
+
+
+def reset_print():
+    sys.stdout = sys.__stdout__
 
 
 def show_images(plot, im1, im2):
@@ -322,7 +334,9 @@ def create_tracks_figure(im1, im2, data, save_figs=False):
     plot_matches(t_subplot, im1_array, im2_array, outliers_t1, outliers_t2, 'r', 'om')
 
     # Plot successfully reconstructed and failed 3D points
+    redirect_print()
     reconstruction = reconstruct.bootstrap_reconstruction(data, data.load_tracks_graph(), im1, im2)
+    reset_print()
 
     if reconstruction:
         robust_rec_tracks = []
