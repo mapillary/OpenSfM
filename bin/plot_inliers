@@ -17,12 +17,15 @@ import opensfm.reconstruction as reconstruct
 
 
 def redirect_print():
+    reset = sys.stdout
     f = open(os.devnull, 'w')
     sys.stdout = f
 
+    return reset
 
-def reset_print():
-    sys.stdout = sys.__stdout__
+
+def reset_print(f):
+    sys.stdout = f
 
 
 def show_images(plot, im1, im2):
@@ -214,14 +217,14 @@ def create_matches_figure(im1, im2, data, save_figs=False):
         print 'Not enough matches for eight point algorithm: ' + str(symmetric_matches.shape[0])
         return
 
-    features_title = 'Features: {0} - {1}, {2} - {3}'.format(im1, p1.shape[0], im2, p2.shape[0])
+    features_title = 'Features (loaded): {0} - {1}, {2} - {3}'.format(im1, p1.shape[0], im2, p2.shape[0])
     plot_points_sub(fig, 2, 2, 1, features_title, im1_array, im2_array, p1, p2, 'ob', 'om')
 
     s_matches1 = p1[symmetric_matches[:, 0]]
     s_matches2 = p2[symmetric_matches[:, 1]]
 
     plot_matches_sub(fig, 2, 2, 3,
-                     'Symmetric matches: {0}'.format(symmetric_matches.shape[0]),
+                     'Symmetric matches (calculated): {0}'.format(symmetric_matches.shape[0]),
                      im1_array, im2_array,
                      s_matches1, s_matches2,
                      'c', 'ob')
@@ -234,7 +237,7 @@ def create_matches_figure(im1, im2, data, save_figs=False):
 
     threshold = data.config.get('robust_matching_threshold', 0.006)
     plot_matches_sub(fig, 2, 2, 2,
-                     'Robust matching inliers (RANSAC 8 point algorithm): {0}. Threshold: {1:.4f}'.format(
+                     'Robust matching inliers (calculated with RANSAC 8 point algorithm): {0}. Threshold: {1:.4f}'.format(
                          robust_matches.shape[0], threshold),
                      im1_array, im2_array,
                      r_matches1, r_matches2,
@@ -245,7 +248,7 @@ def create_matches_figure(im1, im2, data, save_figs=False):
     outliers2 = p2[outliers[:, 1]]
 
     plot_matches_sub(fig, 2, 2, 4,
-                     'Robust matching outliers: {0}. Threshold: {1:.4f}'.format(outliers.shape[0], threshold),
+                     'Robust matching outliers (calculated): {0}. Threshold: {1:.4f}'.format(outliers.shape[0], threshold),
                      im1_array, im2_array,
                      outliers1, outliers2,
                      'r', 'om')
@@ -282,7 +285,7 @@ def create_tracks_figure(im1, im2, data, save_figs=False):
     non_robust_tracks1 = p1[non_robust_tracks[:, 1]]
     non_robust_tracks2 = p2[non_robust_tracks[:, 2]]
 
-    tracks_title = 'Common tracks: {0}. Robust match tracks: {1} / {2}. Non robust match tracks: {3}'.format(
+    tracks_title = 'Common tracks (loaded): {0}. Robust match tracks: {1} / {2}. Non robust match tracks: {3}'.format(
         tracks.shape[0],
         tracks.shape[0] - non_robust_tracks.shape[0],
         robust_matches.shape[0],
@@ -304,7 +307,7 @@ def create_tracks_figure(im1, im2, data, save_figs=False):
     outliers_h1 = track_points1[~inliers_h, :]
     outliers_h2 = track_points2[~inliers_h, :]
 
-    h_title = 'OpenCV find homography inliers: {0}. Outliers: {1}. Outlier ratio: {2:.3f}. Threshold: {3:.4f}'.format(
+    h_title = 'OpenCV find homography inliers (calculated): {0}. Outliers: {1}. Outlier ratio: {2:.3f}. Threshold: {3:.4f}'.format(
         inliers_h.sum(), (~inliers_h).sum(), float((~inliers_h).sum()) / tracks.shape[0], threshold_h)
 
     h_subplot = plot_matches_sub(fig, 2, 2, 3, h_title, im1_array, im2_array, outliers_h1, outliers_h2, 'r', 'om')
@@ -325,16 +328,16 @@ def create_tracks_figure(im1, im2, data, save_figs=False):
     outliers_t1 = track_points1[outliers_t, :]
     outliers_t2 = track_points2[outliers_t, :]
 
-    t_title = 'CSfM two view reconstruction inliers: {0}. Outliers: {1}. Threshold: {2:.4f}'.format(
+    t_title = 'CSfM two view reconstruction inliers (calculated): {0}. Outliers: {1}. Threshold: {2:.4f}'.format(
         len(inliers_t), outliers_t.sum(), threshold_t)
 
     t_subplot = plot_matches_sub(fig, 2, 2, 2, t_title, im1_array, im2_array, inliers_t1, inliers_t2, 'c', 'ob')
     plot_matches(t_subplot, im1_array, im2_array, outliers_t1, outliers_t2, 'r', 'om')
 
     # Plot successfully reconstructed and failed 3D points
-    redirect_print()
+    stdout_reset = redirect_print()
     reconstruction = reconstruct.bootstrap_reconstruction(data, data.load_tracks_graph(), im1, im2)
-    reset_print()
+    reset_print(stdout_reset)
 
     if reconstruction:
         robust_rec_tracks = []
@@ -367,7 +370,7 @@ def create_tracks_figure(im1, im2, data, save_figs=False):
         failed_rec_points2 = p2[failed_rec_tracks[:, 2]]
 
         rec_title = \
-            'Reconstructed 3D points: {0}. Robust {1}. Non robust: {2}. Failed: {3}. '.format(
+            'Reconstructed 3D points (calculated): {0}. Robust {1}. Non robust: {2}. Failed: {3}. '.format(
                 len(reconstruction['points']),
                 robust_rec_tracks.shape[0],
                 non_robust_rec_tracks.shape[0],
@@ -382,7 +385,8 @@ def create_tracks_figure(im1, im2, data, save_figs=False):
         plot_matches(rec_plot, im1_array, im2_array, failed_rec_points1, failed_rec_points2, 'r', 'om')
     else:
         failed_title = \
-            'Reconstruction failed. Less than {0} points. Triangulation threshold: {1:.4f}. Min ray angle: {2}. '.format(
+            'Reconstruction failed. Less than {0} points. Triangulation threshold: {1:.4f}. Min ray angle: {2}. '\
+            .format(
                 data.config.get('five_point_algo_min_inliers', 50),
                 data.config.get('triangulation_threshold', 0.004),
                 data.config.get('triangulation_min_ray_angle', 2.0))
@@ -393,7 +397,7 @@ def create_tracks_figure(im1, im2, data, save_figs=False):
 
 def create_reconstruction_figure(im1, im2, data, save_figs=False):
     fig = pl.figure(figsize=(18, 18))
-    fig.suptitle('Reconstruction ({0}): {1} - {2}'.format(data.feature_type().upper(), im1, im2),
+    fig.suptitle('Reprojected reconstructed 3D points ({0}): {1} - {2}'.format(data.feature_type().upper(), im1, im2),
                  fontsize=18, fontweight='bold')
 
     im1_array = data.image_as_array(im1)
@@ -418,8 +422,9 @@ def create_reconstruction_figure(im1, im2, data, save_figs=False):
     rec_track_points1 = p1[rec_tracks[:, 1]]
     rec_track_points2 = p2[rec_tracks[:, 2]]
 
-    title = 'Common tracks: {0}. Reconstructed points: {1}. Triangulation and reprojection error removals: {2}'.format(
-        tracks.shape[0], rec_tracks.shape[0], tracks.shape[0] - rec_tracks.shape[0])
+    title = \
+        'Common tracks: {0}. Reconstructed points: {1}. Triangulation and reprojection error removals: {2}. All loaded.'\
+        .format(tracks.shape[0], rec_tracks.shape[0], tracks.shape[0] - rec_tracks.shape[0])
 
     t_subplot = plot_matches_sub(fig, 2, 1, 1, title, im1_array, im2_array, track_points1, track_points2, 'r', 'om')
     plot_matches(t_subplot, im1_array, im2_array, rec_track_points1, rec_track_points2, 'c', 'ob')
@@ -427,8 +432,8 @@ def create_reconstruction_figure(im1, im2, data, save_figs=False):
     rp1 = reproject_tracks(im1, rec_tracks[:, 0], reconstruction)
     rp2 = reproject_tracks(im2, rec_tracks[:, 0], reconstruction)
 
-    title = 'Common tracks: {0}. Reconstructed points: {1}. Triangulation and reprojection error removals: {2}'.format(
-        tracks.shape[0], rec_tracks.shape[0], tracks.shape[0] - rec_tracks.shape[0])
+    title = 'Common tracks (loaded): {0}. Reprojected points (calculated): {1}. Triangulation and reprojection error removals: {2}'\
+        .format(tracks.shape[0], rec_tracks.shape[0], tracks.shape[0] - rec_tracks.shape[0])
 
     rec_plot = plot_points_sub(fig, 2, 1, 2, title, im1_array, im2_array, track_points1, track_points2, 'or', 'or')
     plot_points(rec_plot, im1_array, rec_track_points1, 'ob', im2_array, rec_track_points2, 'ob')
@@ -461,8 +466,9 @@ def create_complete_reconstruction_figure(im, data, save_figs=False):
 
     rp = reproject_tracks(im, rec_tracks[:, 0], reconstruction)
 
-    title = 'Tracks: {0}. Reconstructed points: {1}. Triangulation and reprojection error removals: {2}'.format(
-        tracks.shape[0], rec_tracks.shape[0], tracks.shape[0] - rec_tracks.shape[0])
+    title = 'All tracks (loaded): {0}. Reprojected points (calculated): {1}. Triangulation and reprojection error removals: {2}'\
+        .format(tracks.shape[0], rec_tracks.shape[0], tracks.shape[0] - rec_tracks.shape[0])
+
     rec_plot = create_subplot(fig, 1, 1, 1, title, im_array.shape[1])
     rec_plot.imshow(im_array)
     plot_points(rec_plot, im_array, track_points, 'or')
@@ -488,15 +494,15 @@ if __name__ == "__main__":
                         action='store_true')
 
     args = parser.parse_args()
-    d = dataset.DataSet(args.dataset)
-    i1 = args.image1
-    i2 = args.image2
+    ds = dataset.DataSet(args.dataset)
+    image1 = args.image1
+    image2 = args.image2
     save = args.save_figs
 
-    create_matches_figure(i1, i2, d, save)
-    create_tracks_figure(i1, i2, d, save)
-    create_reconstruction_figure(i1, i2, d, save)
+    create_matches_figure(image1, image2, ds, save)
+    create_tracks_figure(image1, image2, ds, save)
+    create_reconstruction_figure(image1, image2, ds, save)
 
     if args.plot_all:
-        create_complete_reconstruction_figure(i1, d, save)
-        create_complete_reconstruction_figure(i2, d, save)
+        create_complete_reconstruction_figure(image1, ds, save)
+        create_complete_reconstruction_figure(image2, ds, save)
