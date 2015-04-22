@@ -406,13 +406,19 @@ def undistort_points(camera, points):
 
     return points_undistort
 
+def two_view_reconstruction_run_csfm(p1, p2, f1, f2, threshold):
+    return csfm.two_view_reconstruction(p1, p2, f1, f2, threshold)
+
+def two_view_reconstruction_run_bundle(ba):
+    return ba.run()
+
 def two_view_reconstruction(p1, p2, f1, f2, threshold):
     assert len(p1) == len(p2)
     assert len(p1) >= 5
     npoints = len(p1)
 
     # Run 5-point algorithm.
-    res = csfm.two_view_reconstruction(p1, p2, f1, f2, threshold)
+    res = two_view_reconstruction_run_csfm(p1, p2, f1, f2, threshold)
 
     if res:
         R, t, inliers = res
@@ -459,7 +465,7 @@ def two_view_reconstruction(p1, p2, f1, f2, threshold):
                     ba.add_observation('s2', str(i), p2[i][0], p2[i][1])
 
             ba.set_loss_function('TruncatedLoss', threshold);
-            ba.run()
+            two_view_reconstruction_run_bundle(ba)
             s = ba.get_shot('s2')
             R = cv2.Rodrigues((s.rx, s.ry, s.rz))[0]
             t = np.array((s.tx, s.ty, s.tz))
