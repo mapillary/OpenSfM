@@ -117,6 +117,22 @@ def reproject_tracks(im, tracks, reconstruction):
     return np.array(p) if len(p) else np.empty((0, 2), int)
 
 
+def triangulate_tracks(tracks, reconstruction, data):
+    graph = data.load_tracks_graph()
+    points = []
+
+    for track in tracks:
+        reconstruct.triangulate_track(str(track), graph, reconstruction, {}, {}, {},
+                                      reproj_threshold=1, min_ray_angle_degrees=0)
+        if str(track) in reconstruction['points']:
+            point = reconstruction['points'][str(track)]
+        else:
+            point = None
+        points.append(point)
+
+    return points
+
+
 def find_reconstruction(images, data):
     reconstructions = data.load_reconstruction()
     reconstruction = None
@@ -137,11 +153,18 @@ def find_reconstruction(images, data):
 
 def reconstruction_tracks(tracks, reconstruction):
     r_tracks = []
+    n_tracks = []
+
     for track in tracks:
         if str(track[0]) in reconstruction['points']:
             r_tracks.append(track)
+        else:
+            n_tracks.append(track)
 
-    return np.array(r_tracks) if len(r_tracks) else np.empty((0, tracks.shape[1]), int)
+    r_tracks = np.array(r_tracks) if len(r_tracks) else np.empty((0, tracks.shape[1]), int)
+    n_tracks = np.array(n_tracks) if len(n_tracks) else np.empty((0, tracks.shape[1]), int)
+
+    return r_tracks, n_tracks
 
 
 def load_points(im, data):
@@ -307,8 +330,10 @@ def create_tracks_figure(im1, im2, data, save_figs=False):
     outliers_h1 = track_points1[~inliers_h, :]
     outliers_h2 = track_points2[~inliers_h, :]
 
-    h_title = 'OpenCV find homography inliers (calculated): {0}. Outliers: {1}. Outlier ratio: {2:.3f}. Threshold: {3:.4f}'.format(
-        inliers_h.sum(), (~inliers_h).sum(), float((~inliers_h).sum()) / tracks.shape[0], threshold_h)
+    h_title = \
+        'OpenCV find homography inliers (calculated): {0}. Outliers: {1}. Outlier ratio: {2:.3f}. Threshold: {3:.4f}'\
+        .format(
+            inliers_h.sum(), (~inliers_h).sum(), float((~inliers_h).sum()) / tracks.shape[0], threshold_h)
 
     h_subplot = plot_matches_sub(fig, 2, 2, 3, h_title, im1_array, im2_array, outliers_h1, outliers_h2, 'r', 'om')
     plot_matches(h_subplot, im1_array, im2_array, inliers_h1, inliers_h2, 'c', 'ob')
@@ -418,7 +443,7 @@ def create_reconstruction_figure(im1, im2, data, save_figs=False):
     if reconstruction is None:
         print '{0} and {1} does not exist in a common reconstruction.'.format(im1, im2)
 
-    rec_tracks = reconstruction_tracks(tracks, reconstruction)
+    rec_tracks = reconstruction_tracks(tracks, reconstruction)[0]
     rec_track_points1 = p1[rec_tracks[:, 1]]
     rec_track_points2 = p2[rec_tracks[:, 2]]
 
@@ -443,7 +468,7 @@ def create_reconstruction_figure(im1, im2, data, save_figs=False):
 
 
 def create_complete_reconstruction_figure(im, data, save_figs=False):
-    fig = pl.figure(figsize=(12, 9))
+    fig = pl.figure(figsize=(18, 9))
     fig.suptitle('Reprojected reconstructed 3D points ({0}): {1}'.format(data.feature_type().upper(), im),
                  fontsize=14, fontweight='bold')
 
@@ -459,21 +484,29 @@ def create_complete_reconstruction_figure(im, data, save_figs=False):
         print 'No tracks for exist for {0}.'.format(im)
         return
 
-    track_points = p[tracks[:, 1]]
-
-    rec_tracks = reconstruction_tracks(tracks, reconstruction)
+    rec_tracks, non_rec_tracks = reconstruction_tracks(tracks, reconstruction)
     rec_track_points = p[rec_tracks[:, 1]]
+    non_rec_track_points = p[non_rec_tracks[:, 1]]
 
     rp = reproject_tracks(im, rec_tracks[:, 0], reconstruction)
+    triangulate_tracks(non_rec_tracks[:, 0], reconstruction, data)
+    nrp = reproject_tracks(im, non_rec_tracks[:, 0], reconstruction)
 
-    title = 'All tracks (loaded): {0}. Reprojected points (calculated): {1}. Triangulation and reprojection error removals: {2}'\
-        .format(tracks.shape[0], rec_tracks.shape[0], tracks.shape[0] - rec_tracks.shape[0])
+    title = 'All tracks (loaded): {0}. Reprojected points (calculated): {1}'\
+        .format(tracks.shape[0], rec_tracks.shape[0])
 
-    rec_plot = create_subplot(fig, 1, 1, 1, title, im_array.shape[1])
+    rec_plot = create_subplot(fig, 1, 2, 1, title, im_array.shape[1])
     rec_plot.imshow(im_array)
-    plot_points(rec_plot, im_array, track_points, 'or')
     plot_points(rec_plot, im_array, rec_track_points, 'ob')
     plot_points(rec_plot, im_array, rp, '+w')
+
+    title = 'Triangulation and reprojection error removals reprojected: {0}'\
+        .format(non_rec_tracks.shape[0])
+
+    non_rec_plot = create_subplot(fig, 1, 2, 2, title, im_array.shape[1])
+    non_rec_plot.imshow(im_array)
+    plot_points(non_rec_plot, im_array, non_rec_track_points, 'or')
+    plot_points(non_rec_plot, im_array, nrp, '+w')
 
     display_figure(fig, save_figs, data, '{0}_{1}_complete_rec.jpg'.format(im, data.feature_type()))
 
