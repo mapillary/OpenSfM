@@ -188,13 +188,16 @@ def load_tracks(im, graph):
     return np.array(tracks) if len(tracks) else np.empty((0, 2), int)
 
 
-def non_matches(a1, a2, map_function):
-    """ Retrieves the row arrays in a1 that does not have an equal row array in a2.
+def matches(a1, a2, map_function):
+    """ Retrieves the row arrays in a1 that has an equal row array in a2 and the row arrays in a1 that
+         does not have an equal row array in a2.
     :param a1: Numpy array of arrays.
     :param a2: Numpy array of arrays.
     :param map_function: Function mapping the array a1 to another array..
-    :return: The mapped rows in a1 that does not correspond to any row in a2.
+    :return: An array with the mapped rows in a1 that correspond to any row in a2 as well as an array with
+             the mapped rows in a1 that do not correspond with an array in a2.
     """
+    m = []
     nm = []
 
     for arr1 in a1:
@@ -206,10 +209,13 @@ def non_matches(a1, a2, map_function):
 
         if not found:
             nm.append(arr1)
+        else:
+            m.append(arr1)
 
+    m = np.array(m) if len(m) else np.empty((0, a1.shape[1]), int)
     nm = np.array(nm) if len(nm) else np.empty((0, a1.shape[1]), int)
 
-    return nm
+    return m, nm
 
 
 def create_matches_figure(im1, im2, data, save_figs=False):
@@ -259,7 +265,7 @@ def create_matches_figure(im1, im2, data, save_figs=False):
                      r_matches1, r_matches2,
                      'g', 'oy')
 
-    outliers = non_matches(symmetric_matches, robust_matches, lambda a: a)
+    outliers = matches(symmetric_matches, robust_matches, lambda a: a)[1]
     outliers1 = p1[outliers[:, 0]]
     outliers2 = p2[outliers[:, 1]]
 
@@ -298,7 +304,7 @@ def create_tracks_figure(im1, im2, data, save_figs=False):
     track_points1 = p1[tracks[:, 1]]
     track_points2 = p2[tracks[:, 2]]
 
-    non_robust_tracks = non_matches(tracks, robust_matches, lambda a: a[1:])
+    robust_tracks, non_robust_tracks = matches(tracks, robust_matches, lambda a: a[1:])
     non_robust_tracks1 = p1[non_robust_tracks[:, 1]]
     non_robust_tracks2 = p2[non_robust_tracks[:, 2]]
 
@@ -359,25 +365,9 @@ def create_tracks_figure(im1, im2, data, save_figs=False):
     reset_print(stdout_reset)
 
     if reconstruction:
-        robust_rec_tracks = []
-        non_robust_rec_tracks = []
-        for track in reconstruction['points']:
-            track = int(track)
-            if track in non_robust_tracks[:, 0]:
-                non_robust_track = np.squeeze(np.array(non_robust_tracks[non_robust_tracks[:, 0] == track]))
-                non_robust_rec_tracks.append(non_robust_track)
-            else:
-                robust_track = np.squeeze(np.array(tracks[tracks[:, 0] == track]))
-                robust_rec_tracks.append(robust_track)
-
-        failed_rec_tracks = []
-        for track in tracks:
-            if not str(track[0]) in reconstruction['points']:
-                failed_rec_tracks.append(track)
-
-        robust_rec_tracks = np.array(robust_rec_tracks) if len(robust_rec_tracks) else np.empty((0, 3), int)
-        non_robust_rec_tracks = np.array(non_robust_rec_tracks) if len(non_robust_rec_tracks) else np.empty((0, 3), int)
-        failed_rec_tracks = np.array(failed_rec_tracks) if len(failed_rec_tracks) else np.empty((0, 3), int)
+        robust_rec_tracks, failed_robust = reconstruction_tracks(robust_tracks, reconstruction)
+        non_robust_rec_tracks, failed_non_robust = reconstruction_tracks(non_robust_tracks, reconstruction)
+        failed_rec_tracks = np.vstack((failed_robust, failed_non_robust))
 
         robust_rec_points1 = p1[robust_rec_tracks[:, 1]]
         robust_rec_points2 = p2[robust_rec_tracks[:, 2]]
