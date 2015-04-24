@@ -119,18 +119,15 @@ def reproject_tracks(im, tracks, reconstruction):
 
 def triangulate_tracks(tracks, reconstruction, data):
     graph = data.load_tracks_graph()
-    points = []
+    succeeded = []
 
     for track in tracks:
-        reconstruct.triangulate_track(str(track), graph, reconstruction, {}, {}, {},
-                                      reproj_threshold=1, min_ray_angle_degrees=0)
-        if str(track) in reconstruction['points']:
-            point = reconstruction['points'][str(track)]
-        else:
-            point = None
-        points.append(point)
+        # Triangulate with 1 as threshold to avoid excluding tracks because of error.
+        reconstruct.triangulate_track(str(track), graph, reconstruction, {}, {}, {}, 1,
+                                      data.config.get('triangulation_min_ray_angle', 2.0))
+        succeeded.append(True) if str(track) in reconstruction['points'] else succeeded.append(False)
 
-    return points
+    return np.array(succeeded)
 
 
 def find_reconstruction(images, data):
@@ -486,13 +483,10 @@ def create_complete_reconstruction_figure(im, data, save_figs=False):
 
     rec_tracks, non_rec_tracks = reconstruction_tracks(tracks, reconstruction)
     rec_track_points = p[rec_tracks[:, 1]]
-    non_rec_track_points = p[non_rec_tracks[:, 1]]
 
     rp = reproject_tracks(im, rec_tracks[:, 0], reconstruction)
-    triangulate_tracks(non_rec_tracks[:, 0], reconstruction, data)
-    nrp = reproject_tracks(im, non_rec_tracks[:, 0], reconstruction)
 
-    title = 'All tracks (loaded): {0}. Reprojected points (calculated): {1}'\
+    title = 'Tracks: {0}. Included tracks (loaded): {1} with reprojected points (calculated).'\
         .format(tracks.shape[0], rec_tracks.shape[0])
 
     rec_plot = create_subplot(fig, 1, 2, 1, title, im_array.shape[1])
@@ -500,13 +494,21 @@ def create_complete_reconstruction_figure(im, data, save_figs=False):
     plot_points(rec_plot, im_array, rec_track_points, 'ob')
     plot_points(rec_plot, im_array, rp, '+w')
 
-    title = 'Triangulation and reprojection error removals reprojected: {0}'\
-        .format(non_rec_tracks.shape[0])
+    succeeded = triangulate_tracks(non_rec_tracks[:, 0], reconstruction, data)
+    reprojected = reproject_tracks(im, non_rec_tracks[succeeded, 0], reconstruction)
+
+    triangulated_points = p[non_rec_tracks[succeeded, 1]]
+    excluded_points = p[non_rec_tracks[~succeeded, 1]]
+
+    title = 'Rejected tracks: {0}. Re-triangulated: {1}. Re-triangulation min ray angle ({2} deg) removals: {3}.'\
+        .format(non_rec_tracks.shape[0], succeeded.sum(),
+                data.config.get('triangulation_min_ray_angle', 2.0), (~succeeded).sum())
 
     non_rec_plot = create_subplot(fig, 1, 2, 2, title, im_array.shape[1])
     non_rec_plot.imshow(im_array)
-    plot_points(non_rec_plot, im_array, non_rec_track_points, 'or')
-    plot_points(non_rec_plot, im_array, nrp, '+w')
+    plot_points(non_rec_plot, im_array, triangulated_points, 'om')
+    plot_points(non_rec_plot, im_array, excluded_points, 'or')
+    plot_points(non_rec_plot, im_array, reprojected, '+w')
 
     display_figure(fig, save_figs, data, '{0}_{1}_complete_rec.jpg'.format(im, data.feature_type()))
 
