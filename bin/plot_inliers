@@ -431,33 +431,48 @@ def create_reconstruction_figure(im1, im2, data, save_figs=False):
         print 'No tracks to plot.'
         return
 
-    track_points1 = p1[tracks[:, 1]]
-    track_points2 = p2[tracks[:, 2]]
-
     reconstruction = find_reconstruction([im1, im2], data)
     if reconstruction is None:
         print '{0} and {1} does not exist in a common reconstruction.'.format(im1, im2)
 
-    rec_tracks = reconstruction_tracks(tracks, reconstruction)[0]
+    rec_tracks, non_rec_tracks = reconstruction_tracks(tracks, reconstruction)
     rec_track_points1 = p1[rec_tracks[:, 1]]
     rec_track_points2 = p2[rec_tracks[:, 2]]
+    non_rec_track_points1 = p1[non_rec_tracks[:, 1]]
+    non_rec_track_points2 = p2[non_rec_tracks[:, 2]]
 
     title = \
         'Common tracks: {0}. Reconstructed points: {1}. Triangulation and reprojection error removals: {2}. All loaded.'\
         .format(tracks.shape[0], rec_tracks.shape[0], tracks.shape[0] - rec_tracks.shape[0])
 
-    t_subplot = plot_matches_sub(fig, 2, 1, 1, title, im1_array, im2_array, track_points1, track_points2, 'r', 'om')
-    plot_matches(t_subplot, im1_array, im2_array, rec_track_points1, rec_track_points2, 'c', 'ob')
+    t_subplot = \
+        plot_matches_sub(fig, 2, 1, 1, title, im1_array, im2_array, rec_track_points1, rec_track_points2, 'c', 'ob')
+    plot_matches(t_subplot, im1_array, im2_array, non_rec_track_points1, non_rec_track_points2, 'r', 'om')
 
     rp1 = reproject_tracks(im1, rec_tracks[:, 0], reconstruction)
     rp2 = reproject_tracks(im2, rec_tracks[:, 0], reconstruction)
 
-    title = 'Common tracks (loaded): {0}. Reprojected points (calculated): {1}. Triangulation and reprojection error removals: {2}'\
-        .format(tracks.shape[0], rec_tracks.shape[0], tracks.shape[0] - rec_tracks.shape[0])
+    min_ray_angle = data.config.get('triangulation_min_ray_angle', 2.0)
+    succeeded = triangulate_tracks(non_rec_tracks[:, 0], reconstruction, graph, min_ray_angle)
+    reprojected1 = reproject_tracks(im1, non_rec_tracks[succeeded, 0], reconstruction)
+    reprojected2 = reproject_tracks(im2, non_rec_tracks[succeeded, 0], reconstruction)
 
-    rec_plot = plot_points_sub(fig, 2, 1, 2, title, im1_array, im2_array, track_points1, track_points2, 'or', 'or')
-    plot_points(rec_plot, im1_array, rec_track_points1, 'ob', im2_array, rec_track_points2, 'ob')
+    triangulated_points1 = p1[non_rec_tracks[succeeded, 1]]
+    triangulated_points2 = p2[non_rec_tracks[succeeded, 2]]
+    excluded_points1 = p1[non_rec_tracks[~succeeded, 1]]
+    excluded_points2 = p2[non_rec_tracks[~succeeded, 2]]
+
+    title = 'Common tracks (loaded): {0}. Reprojected points (calculated): {1}.\n'\
+        .format(tracks.shape[0], rec_tracks.shape[0]) + \
+            'Rejected tracks: {0}. Re-triangulated: {1}. Re-triangulation min ray angle ({2} deg) removals: {3}.'\
+        .format(non_rec_tracks.shape[0], succeeded.sum(), min_ray_angle, (~succeeded).sum())
+
+    rec_plot = \
+        plot_points_sub(fig, 2, 1, 2, title, im1_array, im2_array, rec_track_points1, rec_track_points2, 'ob', 'ob')
     plot_points(rec_plot, im1_array, rp1, '+w', im2_array, rp2, '+w')
+    plot_points(rec_plot, im1_array, triangulated_points1, 'om', im2_array, triangulated_points2, 'om')
+    plot_points(rec_plot, im1_array, reprojected1, '+w', im2_array, reprojected2, '+w')
+    plot_points(rec_plot, im1_array, excluded_points1, 'or', im2_array, excluded_points2, 'or')
 
     display_figure(fig, save_figs, data, '{0}_{1}_{2}_reconstruction.jpg'.format(im1, im2, data.feature_type()))
 
