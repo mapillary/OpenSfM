@@ -117,14 +117,12 @@ def reproject_tracks(im, tracks, reconstruction):
     return np.array(p) if len(p) else np.empty((0, 2), int)
 
 
-def triangulate_tracks(tracks, reconstruction, data):
-    graph = data.load_tracks_graph()
+def triangulate_tracks(tracks, reconstruction, graph, min_ray_angle):
     succeeded = []
 
     for track in tracks:
-        # Triangulate with 1 as threshold to avoid excluding tracks because of error.
-        reconstruct.triangulate_track(str(track), graph, reconstruction, {}, {}, {}, 1,
-                                      data.config.get('triangulation_min_ray_angle', 2.0))
+        # Triangulate with 1 as reprojection threshold to avoid excluding tracks because of error.
+        reconstruct.triangulate_track(str(track), graph, reconstruction, {}, {}, {}, 1, min_ray_angle)
         succeeded.append(True) if str(track) in reconstruction['points'] else succeeded.append(False)
 
     return np.array(succeeded)
@@ -169,10 +167,9 @@ def load_points(im, data):
     return np.array(p[:, :2], np.float64)
 
 
-def load_common_tracks(im1, im2, data):
-    graph = data.load_tracks_graph()
+def load_common_tracks(im1, im2, graph):
     t1, t2 = graph[im1], graph[im2]
-    tc, p1, p2 = dataset.common_tracks(data.load_tracks_graph(), im1, im2)
+    tc, p1, p2 = dataset.common_tracks(graph, im1, im2)
 
     common_tracks = []
     for t in tc:
@@ -181,8 +178,7 @@ def load_common_tracks(im1, im2, data):
     return np.array(common_tracks) if len(common_tracks) else np.empty((0, 3), int)
 
 
-def load_tracks(im, data):
-    graph = data.load_tracks_graph()
+def load_tracks(im, graph):
     tn = graph[im]
 
     tracks = []
@@ -292,7 +288,8 @@ def create_tracks_figure(im1, im2, data, save_figs=False):
     robust_matches = data.find_matches(im1, im2)
     robust_matches = np.array(robust_matches) if len(robust_matches) else np.empty((0, 2), int)
 
-    tracks = load_common_tracks(im1, im2, data)
+    graph = data.load_tracks_graph()
+    tracks = load_common_tracks(im1, im2, graph)
 
     if tracks.shape[0] < 5:
         print 'Not enough tracks for five point algorithm: ' + str(tracks.shape[0])
@@ -358,7 +355,7 @@ def create_tracks_figure(im1, im2, data, save_figs=False):
 
     # Plot successfully reconstructed and failed 3D points
     stdout_reset = redirect_print()
-    reconstruction = reconstruct.bootstrap_reconstruction(data, data.load_tracks_graph(), im1, im2)
+    reconstruction = reconstruct.bootstrap_reconstruction(data, graph, im1, im2)
     reset_print(stdout_reset)
 
     if reconstruction:
@@ -428,7 +425,8 @@ def create_reconstruction_figure(im1, im2, data, save_figs=False):
     p1 = load_points(im1, data)
     p2 = load_points(im2, data)
 
-    tracks = load_common_tracks(im1, im2, data)
+    graph = data.load_tracks_graph()
+    tracks = load_common_tracks(im1, im2, graph)
     if tracks.shape[0] < 1:
         print 'No tracks to plot.'
         return
@@ -476,7 +474,8 @@ def create_complete_reconstruction_figure(im, data, save_figs=False):
     im_array = data.image_as_array(im)
     p = load_points(im, data)
 
-    tracks = load_tracks(im, data)
+    graph = data.load_tracks_graph()
+    tracks = load_tracks(im, graph)
     if tracks.shape[0] < 1:
         print 'No tracks for exist for {0}.'.format(im)
         return
@@ -494,15 +493,15 @@ def create_complete_reconstruction_figure(im, data, save_figs=False):
     plot_points(rec_plot, im_array, rec_track_points, 'ob')
     plot_points(rec_plot, im_array, rp, '+w')
 
-    succeeded = triangulate_tracks(non_rec_tracks[:, 0], reconstruction, data)
+    min_ray_angle = data.config.get('triangulation_min_ray_angle', 2.0)
+    succeeded = triangulate_tracks(non_rec_tracks[:, 0], reconstruction, graph, min_ray_angle)
     reprojected = reproject_tracks(im, non_rec_tracks[succeeded, 0], reconstruction)
 
     triangulated_points = p[non_rec_tracks[succeeded, 1]]
     excluded_points = p[non_rec_tracks[~succeeded, 1]]
 
     title = 'Rejected tracks: {0}. Re-triangulated: {1}. Re-triangulation min ray angle ({2} deg) removals: {3}.'\
-        .format(non_rec_tracks.shape[0], succeeded.sum(),
-                data.config.get('triangulation_min_ray_angle', 2.0), (~succeeded).sum())
+        .format(non_rec_tracks.shape[0], succeeded.sum(), min_ray_angle, (~succeeded).sum())
 
     non_rec_plot = create_subplot(fig, 1, 2, 2, title, im_array.shape[1])
     non_rec_plot.imshow(im_array)
