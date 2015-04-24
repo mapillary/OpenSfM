@@ -305,7 +305,7 @@ def create_tracks_figure(im1, im2, data, save_figs=False):
     non_robust_tracks1 = p1[non_robust_tracks[:, 1]]
     non_robust_tracks2 = p2[non_robust_tracks[:, 2]]
 
-    tracks_title = 'Common tracks (loaded): {0}. Robust match tracks: {1} / {2}. Non robust match tracks: {3}'.format(
+    tracks_title = 'Common tracks (loaded): {0}. Robust match tracks: {1} / {2}. Linked tracks: {3}'.format(
         tracks.shape[0],
         tracks.shape[0] - non_robust_tracks.shape[0],
         robust_matches.shape[0],
@@ -392,7 +392,7 @@ def create_tracks_figure(im1, im2, data, save_figs=False):
         failed_rec_points2 = p2[failed_rec_tracks[:, 2]]
 
         rec_title = \
-            'Reconstructed 3D points (calculated): {0}. Robust {1}. Non robust: {2}. Failed: {3}. '.format(
+            'Reconstructed 3D points (calculated): {0}. Robust {1}. Linked: {2}. Failed: {3}. '.format(
                 len(reconstruction['points']),
                 robust_rec_tracks.shape[0],
                 non_robust_rec_tracks.shape[0],
