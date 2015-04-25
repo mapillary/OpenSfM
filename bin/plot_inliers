@@ -17,6 +17,10 @@ import opensfm.reconstruction as reconstruct
 
 
 def redirect_print():
+    """ Redirects the sys.stdout to the null device.
+
+    :return: The previous value of sys.stdout.
+    """
     reset = sys.stdout
     f = open(os.devnull, 'w')
     sys.stdout = f
@@ -25,10 +29,15 @@ def redirect_print():
 
 
 def reset_print(f):
+    """ Sets the sys.stdout device.
+
+    :param f: The device.
+    """
     sys.stdout = f
 
 
 def show_images(plot, im1, im2):
+    """ Shows the images in the supplied subplot. """
     h1, w1, c = im1.shape
     h2, w2, c = im2.shape
     image = np.zeros((max(h1, h2), w1+w2, 3), dtype=im1.dtype)
@@ -38,6 +47,7 @@ def show_images(plot, im1, im2):
 
 
 def plot_points(plot, im1, p1, point_format1='ob', im2=None, p2=None, point_format2='ob'):
+    """ Plots the points in the supplied subplot. """
     h1, w1, c = im1.shape
     p1d = features.denormalized_image_coordinates(p1, w1, h1)
     plot.plot(p1d[:, 0], p1d[:, 1], point_format1)
@@ -52,6 +62,7 @@ def plot_points(plot, im1, p1, point_format1='ob', im2=None, p2=None, point_form
 
 
 def plot_matches(plot, im1, im2, p1, p2, line_format='c', point_format='ob'):
+    """ Plots the matches in the supplied subplot. """
     h1, w1, c = im1.shape
     h2, w2, c = im2.shape
     p1d = features.denormalized_image_coordinates(p1, w1, h1)
@@ -63,6 +74,7 @@ def plot_matches(plot, im1, im2, p1, p2, line_format='c', point_format='ob'):
 
 
 def create_subplot(figure, rows, columns, index, title, width):
+    """ Creates a subplot with the supplied width. """
     subplot = figure.add_subplot(rows, columns, index)
     subplot.axis('off')
     pl.xlim(0, width)
@@ -76,6 +88,7 @@ def create_subplot(figure, rows, columns, index, title, width):
 
 
 def plot_points_sub(figure, rows, columns, index, title, im1, im2, p1, p2, point_format1, point_format2):
+    """ Creates a subplot with the images and plots the points in each image. """
     subplot = create_subplot(figure, rows, columns, index, title, im1.shape[1] + im2.shape[1])
 
     show_images(subplot, im1, im2)
@@ -85,6 +98,7 @@ def plot_points_sub(figure, rows, columns, index, title, im1, im2, p1, p2, point
 
 
 def plot_matches_sub(figure, rows, columns, index, title, im1, im2, p1, p2, line_format, point_format):
+    """ Creates a subplot with the images and plots the points as matches. """
     subplot = create_subplot(figure, rows, columns, index, title, im1.shape[1] + im2.shape[1])
 
     show_images(subplot, im1, im2)
@@ -94,6 +108,7 @@ def plot_matches_sub(figure, rows, columns, index, title, im1, im2, p1, p2, line
 
 
 def display_figure(figure, save_figs, data=None, file_name=''):
+    """ Displays or saves a figure. """
     figure.subplots_adjust(left=0.01, bottom=0, right=0.99, top=0.97, wspace=0.04, hspace=0)
 
     if save_figs:
@@ -106,6 +121,13 @@ def display_figure(figure, save_figs, data=None, file_name=''):
 
 
 def reproject_tracks(im, tracks, reconstruction):
+    """ Reprojects the 3D points for a list of tracks for an image based on the reconstruction.
+
+    :param im: The name of the image.
+    :param tracks: Array of tracks that exist in the reconstruction.
+    :param: reconstruction: A Reconstruction.
+    :return: An array of reprojected track points where each row contains x and y values.
+    """
     p = []
     for track in tracks:
         shot = reconstruction['shots'][im]
@@ -118,6 +140,14 @@ def reproject_tracks(im, tracks, reconstruction):
 
 
 def triangulate_tracks(tracks, reconstruction, graph, min_ray_angle):
+    """ Triangulates a list of tracks.
+
+    :param tracks: The array of tracks.
+    :param reconstruction: The reconstruction.
+    :param: graph, The tracks graph.
+    :param: min_ray_angle: The minimum ray angle difference for a triangulation to be considered valid.
+    :return: An array of booleans determining if each track was successfully triangulated or not.
+    """
     succeeded = []
 
     for track in tracks:
@@ -129,6 +159,12 @@ def triangulate_tracks(tracks, reconstruction, graph, min_ray_angle):
 
 
 def find_reconstruction(images, data):
+    """ Finds a reconstruction in which all images exist.
+
+    :param images: List of image names.
+    :param data: The data set.
+    :return: The reconstruction that contains all images. None if no reconstruction was found.
+    """
     reconstructions = data.load_reconstruction()
     reconstruction = None
 
@@ -147,6 +183,14 @@ def find_reconstruction(images, data):
 
 
 def reconstruction_tracks(tracks, reconstruction):
+    """ Gets the set of tracks in a list of tracks that exist in a reconstruction as well as the ones that does not
+        belong to the reconstruction.
+
+    :param tracks: The list of tracks.
+    :param reconstruction: The reconstruction.
+    :return: An array with the rows containing the track arrays that existed in the reconstruction. Another array
+             with the rows containing the track arrays that did not belong to the reconstruction
+    """
     r_tracks = []
     n_tracks = []
 
@@ -163,11 +207,24 @@ def reconstruction_tracks(tracks, reconstruction):
 
 
 def load_points(im, data):
+    """ Loads the feature points for an image
+
+    :param im: The name of the image.
+    :param data: The data set.
+    :return: An array with rows containing the x and y coordinates for the features in the image.
+    """
     p, f, c = data.load_features(im)
     return np.array(p[:, :2], np.float64)
 
 
 def load_common_tracks(im1, im2, graph):
+    """ Loads the common track ids and corresponding feature ids for two images in a graph.
+
+    :param im1: The name of the first image.
+    :param im2: The name of the second image.
+    :param graph: The track graph.
+    :return: An array with rows containing a track id and the corresponding feature id for the first and second image.
+    """
     t1, t2 = graph[im1], graph[im2]
     tc, p1, p2 = dataset.common_tracks(graph, im1, im2)
 
@@ -179,6 +236,12 @@ def load_common_tracks(im1, im2, graph):
 
 
 def load_tracks(im, graph):
+    """ Loads the track ids and corresponding feature ids for an image in a graph.
+
+    :param im: The name of the image.
+    :param graph: The track graph.
+    :return: An array with rows containing a track id and the corresponding feature id.
+    """
     tn = graph[im]
 
     tracks = []
@@ -190,10 +253,11 @@ def load_tracks(im, graph):
 
 def matches(a1, a2, map_function):
     """ Retrieves the row arrays in a1 that has an equal row array in a2 and the row arrays in a1 that
-         does not have an equal row array in a2.
+        does not have an equal row array in a2.
+
     :param a1: Numpy array of arrays.
     :param a2: Numpy array of arrays.
-    :param map_function: Function mapping the array a1 to another array..
+    :param map_function: Function mapping the array a1 to another array.
     :return: An array with the mapped rows in a1 that correspond to any row in a2 as well as an array with
              the mapped rows in a1 that do not correspond with an array in a2.
     """
