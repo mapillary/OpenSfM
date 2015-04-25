@@ -73,15 +73,16 @@ def plot_matches(plot, im1, im2, p1, p2, line_format='c', point_format='ob'):
     plot_points(plot, im1, p1, point_format, im2, p2, point_format)
 
 
-def create_subplot(figure, rows, columns, index, title, width):
+def create_subplot(figure, rows, columns, index, title, width, height, font_size=12):
     """ Creates a subplot with the supplied width. """
     subplot = figure.add_subplot(rows, columns, index)
     subplot.axis('off')
     pl.xlim(0, width)
-    subplot.text(0.5, 0.9,
+    pl.ylim(height, 0)
+    subplot.text(0.5, 1.04,
                  title,
                  horizontalalignment='center',
-                 fontsize=12,
+                 fontsize=font_size,
                  transform=subplot.transAxes)
 
     return subplot
@@ -89,7 +90,8 @@ def create_subplot(figure, rows, columns, index, title, width):
 
 def plot_points_sub(figure, rows, columns, index, title, im1, im2, p1, p2, point_format1, point_format2):
     """ Creates a subplot with the images and plots the points in each image. """
-    subplot = create_subplot(figure, rows, columns, index, title, im1.shape[1] + im2.shape[1])
+    subplot = create_subplot(figure, rows, columns, index, title,
+                             im1.shape[1] + im2.shape[1], np.max([im1.shape[0], im2.shape[0]]))
 
     show_images(subplot, im1, im2)
     plot_points(subplot, im1, p1, point_format1, im2, p2, point_format2)
@@ -99,7 +101,8 @@ def plot_points_sub(figure, rows, columns, index, title, im1, im2, p1, p2, point
 
 def plot_matches_sub(figure, rows, columns, index, title, im1, im2, p1, p2, line_format, point_format):
     """ Creates a subplot with the images and plots the points as matches. """
-    subplot = create_subplot(figure, rows, columns, index, title, im1.shape[1] + im2.shape[1])
+    subplot = create_subplot(figure, rows, columns, index, title,
+                             im1.shape[1] + im2.shape[1], np.max([im1.shape[0], im2.shape[0]]))
 
     show_images(subplot, im1, im2)
     plot_matches(subplot, im1, im2, p1, p2, line_format, point_format)
@@ -109,7 +112,7 @@ def plot_matches_sub(figure, rows, columns, index, title, im1, im2, p1, p2, line
 
 def display_figure(figure, save_figs, data=None, file_name=''):
     """ Displays or saves a figure. """
-    figure.subplots_adjust(left=0.01, bottom=0, right=0.99, top=0.97, wspace=0.04, hspace=0)
+    figure.subplots_adjust(left=0.01, bottom=0, right=0.99, top=0.96, wspace=0.04, hspace=0)
 
     if save_figs:
         p = data.data_path + '/plot_inliers'
@@ -470,7 +473,7 @@ def create_tracks_figure(im1, im2, data, save_figs=False):
                 data.config.get('five_point_algo_min_inliers', 50),
                 data.config.get('triangulation_threshold', 0.004),
                 data.config.get('triangulation_min_ray_angle', 2.0))
-        create_subplot(fig, 2, 2, 4, failed_title, 100)
+        create_subplot(fig, 2, 2, 4, failed_title, 100, 100)
 
     display_figure(fig, save_figs, data, '{0}_{1}_{2}_tracks.jpg'.format(im1, im2, data.feature_type()))
 
@@ -507,8 +510,12 @@ def create_reconstruction_matches_figure(im1, im2, data, save_figs=False):
         'Common tracks: {0}. Reconstructed points: {1}. Triangulation and reprojection error removals: {2}. All loaded.'\
         .format(tracks.shape[0], rec_tracks.shape[0], tracks.shape[0] - rec_tracks.shape[0])
 
-    t_subplot = \
-        plot_matches_sub(fig, 2, 1, 1, title, im1_array, im2_array, rec_track_points1, rec_track_points2, 'c', 'ob')
+    t_subplot = create_subplot(fig, 2, 1, 1, title,
+                               im1_array.shape[1] + im2_array.shape[1],
+                               np.max([im1_array.shape[0], im2_array.shape[0]]),
+                               15)
+    show_images(t_subplot, im1_array, im2_array)
+    plot_matches(t_subplot, im1_array, im2_array, rec_track_points1, rec_track_points2, 'c', 'ob')
     plot_matches(t_subplot, im1_array, im2_array, non_rec_track_points1, non_rec_track_points2, 'r', 'om')
 
     # Reproject reconstructed tracks. Triangulate rejected tracks and plot min ray angle removals and successfully
@@ -531,8 +538,12 @@ def create_reconstruction_matches_figure(im1, im2, data, save_figs=False):
             'Rejected tracks: {0}. Re-triangulated: {1}. Min ray angle ({2} deg) removals: {3}.'\
         .format(non_rec_tracks.shape[0], succeeded.sum(), min_ray_angle, (~succeeded).sum())
 
-    rec_plot = \
-        plot_points_sub(fig, 2, 1, 2, title, im1_array, im2_array, rec_track_points1, rec_track_points2, 'ob', 'ob')
+    rec_plot = create_subplot(fig, 2, 1, 2, title,
+                              im1_array.shape[1] + im2_array.shape[1],
+                              np.max([im1_array.shape[0], im2_array.shape[0]]),
+                              15)
+    show_images(rec_plot, im1_array, im2_array)
+    plot_points(rec_plot, im1_array, rec_track_points1, 'ob', im2_array, rec_track_points2, 'ob')
     plot_points(rec_plot, im1_array, rp1, '+w', im2_array, rp2, '+w')
     plot_points(rec_plot, im1_array, triangulated_points1, 'om', im2_array, triangulated_points2, 'om')
     plot_points(rec_plot, im1_array, reprojected1, '+w', im2_array, reprojected2, '+w')
@@ -567,7 +578,7 @@ def create_complete_reconstruction_figure(im, data, save_figs=False):
     title = 'Tracks: {0}. Included tracks (loaded): {1} with reprojected points (calculated).'\
         .format(tracks.shape[0], rec_tracks.shape[0])
 
-    rec_plot = create_subplot(fig, 1, 2, 1, title, im_array.shape[1])
+    rec_plot = create_subplot(fig, 1, 2, 1, title, im_array.shape[1], im_array.shape[0])
     rec_plot.imshow(im_array)
     plot_points(rec_plot, im_array, rec_track_points, 'ob')
     plot_points(rec_plot, im_array, rp, '+w')
@@ -582,7 +593,7 @@ def create_complete_reconstruction_figure(im, data, save_figs=False):
     title = 'Rejected tracks: {0}. Re-triangulated: {1}. Min ray angle ({2} deg) removals: {3}.'\
         .format(non_rec_tracks.shape[0], succeeded.sum(), min_ray_angle, (~succeeded).sum())
 
-    non_rec_plot = create_subplot(fig, 1, 2, 2, title, im_array.shape[1])
+    non_rec_plot = create_subplot(fig, 1, 2, 2, title, im_array.shape[1], im_array.shape[0])
     non_rec_plot.imshow(im_array)
     plot_points(non_rec_plot, im_array, triangulated_points, 'om')
     plot_points(non_rec_plot, im_array, excluded_points, 'or')
