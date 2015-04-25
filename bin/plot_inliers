@@ -613,8 +613,8 @@ if __name__ == "__main__":
     parser.add_argument('--save_figs',
                         help='save figures instead of showing them',
                         action='store_true')
-    parser.add_argument('--plot_all',
-                        help='save figures instead of showing them',
+    parser.add_argument('--plot_rec',
+                        help='plots the reconstruction tracks for each image',
                         action='store_true')
 
     args = parser.parse_args()
@@ -623,10 +623,18 @@ if __name__ == "__main__":
     image2 = args.image2
     save = args.save_figs
 
+    print 'Plotting matches for {0} - {1}...'.format(image1, image2)
     create_matches_figure(image1, image2, ds, save)
+
+    print 'Plotting tracks for {0} - {1}...'.format(image1, image2)
     create_tracks_figure(image1, image2, ds, save)
+
+    print 'Plotting reconstruction matches for {0} - {1}...'.format(image1, image2)
     create_reconstruction_matches_figure(image1, image2, ds, save)
 
-    if args.plot_all:
+    if args.plot_rec:
+        print 'Plotting complete reconstruction tracks for {0}...'.format(image1)
         create_complete_reconstruction_figure(image1, ds, save)
+
+        print 'Plotting complete reconstruction tracks for {0}...'.format(image2)
         create_complete_reconstruction_figure(image2, ds, save)
