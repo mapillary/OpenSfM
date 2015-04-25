@@ -1,0 +1,194 @@
+#!/usr/bin/env python
+
+import matplotlib as mpl
+from mpl_toolkits.mplot3d import Axes3D
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.tri as mtri
+import argparse
+
+from opensfm import dataset
+import opensfm.reconstruction as reconstruct
+
+
+def get_line(p, d, l):
+    a = np.linspace(0, l, 100)
+    x = a * d[0] + p[0]
+    y = a * d[1] + p[1]
+    z = a * d[2] + p[2]
+
+    return x, y, z
+
+
+def plot_point(axs, x, color='b'):
+    axs.scatter(x[0], x[1], x[2], c=color)
+
+
+def image_plane_corners(oc, KR1, width, height):
+
+    max = np.max((width, height))
+    dx = width / (2.0 * max)
+    dy = height / (2.0 * max)
+
+    corners = np.array([[-dx, dx, dx, -dx],
+                        [-dy, -dy, dy, dy],
+                        [1, 1, 1, 1]])
+    cs = np.dot(KR1, corners)
+    cs = np.add(np.resize(oc, (3, 1)), cs)
+
+    return cs
+
+
+def plot_image_plane(axs, p,  n, cor=None):
+    principal_point = p + n / np.linalg.norm(n)
+    normal = n / np.linalg.norm(n)
+    d = -principal_point.dot(normal)
+
+    if cor is None:
+        xx, yy = np.meshgrid(np.linspace(principal_point[0] - 2, principal_point[0] + 2, 10),
+                            np.linspace(principal_point[1] - 2, principal_point[1] + 2, 10))
+        zz = (-normal[0] * xx - normal[1] * yy - d) * 1. / normal[2]
+        axs.plot_surface(xx,yy,zz, color='b', alpha=0.2, linewidth=0.2)
+    else:
+        triang = mtri.Triangulation(cor[0, :], cor[1, :])
+        axs.plot_trisurf(triang, cor[2, :], color='b', alpha=0.2, linewidth=0.2)
+
+
+def plot_ray(axs, p, d, l, name, color):
+    x, y, z = get_line(p, d, l)
+    axs.plot(x, y, z, label=name, c=color)
+
+
+def plot_points(axs, oc, vd, dir):
+    # Plot optical center
+    plot_point(axs, oc, 'g')
+
+    # Plot principal point
+    principal_point = vd / np.linalg.norm(vd)
+    plot_point(axs, oc + principal_point, 'g')
+
+    # Plot track image projection
+    projection = np.dot(dir, principal_point)
+    im_plane = dir / projection
+    plot_point(axs, oc + im_plane, 'k')
+
+
+def find_reconstruction(images, data):
+    reconstructions = data.load_reconstruction()
+    reconstruction = None
+
+    for r in reconstructions:
+        found = True
+        for im in images:
+            if im not in r['shots']:
+                found = False
+                break
+
+        if found:
+            reconstruction = r
+            break
+
+    return reconstruction
+
+
+def load_tracks(im, data):
+    graph = data.load_tracks_graph()
+    tn = graph[im]
+
+    tracks = []
+    for t in tn:
+        tracks.append(np.array([int(t), tn[t]['feature_id']]))
+
+    return np.array(tracks) if len(tracks) else np.empty((0, 2), int)
+
+
+def load_points(im, data):
+    p, f, c = data.load_features(im)
+    return np.array(p[:, :2], np.float64)
+
+
+def plot_track(im, t, data):
+    reconstruction = find_reconstruction([im], data)
+    if reconstruction is None:
+        print '{0} does not exist in a reconstruction.'.format(im)
+
+    oc = reconstruct.optical_center(reconstruction['shots'][im])
+    vd = reconstruct.viewing_direction(reconstruction['shots'][im])
+
+    shot = reconstruction['shots'][im]
+    camera = reconstruction['cameras'][shot['camera']]
+    mat_p = reconstruct.projection_matrix(camera, shot)
+
+    KR1 = np.linalg.inv(mat_p[:, :3])
+
+    tracks = load_tracks(im, data)
+    p = load_points(im, data)
+
+    track = np.squeeze(tracks[tracks[:, 0] == t])
+    xh = p[track[1]]
+
+    vs = np.dot(KR1, np.array([xh[0], xh[1], 1]))
+    cs = image_plane_corners(oc, KR1, camera['width'], camera['height'])
+
+    graph = data.load_tracks_graph()
+
+    if str(track) in reconstruction['points']:
+        point = reconstruction['points'][str(track[0])]['coordinates']
+    else:
+        reconstruct.triangulate_track(str(track[0]), graph, reconstruction, {}, {}, {},
+                                      reproj_threshold=1, min_ray_angle_degrees=0)
+        if str(track[0]) in reconstruction['points']:
+            point = reconstruction['points'][str(track[0])]['coordinates']
+        else:
+            point = None
+
+    mpl.rcParams['legend.fontsize'] = 10
+    fig = plt.figure(figsize=(12, 12))
+    ax = fig.gca(projection='3d')
+
+    if point is not None:
+        plot_point(ax, point, 'm')
+
+    plot_image_plane(ax, oc, vd, cs)
+    plot_points(ax, oc, vd, vs)
+
+    # Plot track ray
+    plot_ray(ax, oc, vs, 5, 'track ray', 'c')
+
+    # Plot principal ray
+    plot_ray(ax, oc, vd, 5, 'principal ray', 'g')
+
+    ax.legend()
+
+    max = np.max(np.vstack((oc, point)), axis=0)
+    min = np.min(np.vstack((oc, point)), axis=0)
+
+    diff = np.subtract(max, min)
+
+    k = (np.max(diff) - diff) / 2
+
+    ax.set_xlim(min[0] - 5 - k[0], max[0] + 5 + k[0])
+    ax.set_ylim(min[1] - 5 - k[1], max[1] + 5 + k[1])
+    ax.set_zlim(min[2] - 5 - k[2], max[2] + 5 + k[2])
+
+    fig.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=0.99, wspace=0, hspace=0)
+
+    ax.set_xlabel('X-axis')
+    ax.set_ylabel('Y-axis')
+    ax.set_zlabel('Z-axis')
+
+    plt.show()
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Plot a track in 3D')
+    parser.add_argument('dataset',
+                        help='path to the data set to be processed')
+    parser.add_argument('image',
+                        help='name of the image to show')
+    parser.add_argument('track',
+                        help='name of the track to show')
+
+    args = parser.parse_args()
+
+    plot_track(args.image, int(args.track), dataset.DataSet(args.dataset))
