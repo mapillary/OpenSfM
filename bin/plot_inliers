@@ -226,7 +226,7 @@ def create_matches_figure(im1, im2, data, save_figs=False):
     im1_array = data.image_as_array(im1)
     im2_array = data.image_as_array(im2)
 
-    # Calculate symmetric matches and plot.
+    # Calculate symmetric matches.
     p1, f1, c1 = data.load_features(im1)
     i1 = data.load_feature_index(im1, f1)
 
@@ -239,9 +239,11 @@ def create_matches_figure(im1, im2, data, save_figs=False):
         print 'Not enough matches for eight point algorithm: ' + str(symmetric_matches.shape[0])
         return
 
+    # Plot features
     features_title = 'Features (loaded): {0} - {1}, {2} - {3}'.format(im1, p1.shape[0], im2, p2.shape[0])
     plot_points_sub(fig, 2, 2, 1, features_title, im1_array, im2_array, p1, p2, 'ob', 'om')
 
+     # Plot symmetric matches.
     s_matches1 = p1[symmetric_matches[:, 0]]
     s_matches2 = p2[symmetric_matches[:, 1]]
 
@@ -265,6 +267,7 @@ def create_matches_figure(im1, im2, data, save_figs=False):
                      r_matches1, r_matches2,
                      'g', 'oy')
 
+    # Plot robust matching outliers.
     outliers = matches(symmetric_matches, robust_matches, lambda a: a)[1]
     outliers1 = p1[outliers[:, 0]]
     outliers2 = p2[outliers[:, 1]]
@@ -290,7 +293,7 @@ def create_tracks_figure(im1, im2, data, save_figs=False):
     p2 = load_points(im2, data)
 
     # Retrieve tracks and robust matches from file and plot tracks corresponding to
-    # robust matches and tracks not corresponding to robust matches in different colors.
+    # robust matches and tracks not corresponding to robust matches (linked tracks) in different colors.
     robust_matches = data.find_matches(im1, im2)
     robust_matches = np.array(robust_matches) if len(robust_matches) else np.empty((0, 2), int)
 
@@ -301,24 +304,28 @@ def create_tracks_figure(im1, im2, data, save_figs=False):
         print 'Not enough tracks for five point algorithm: ' + str(tracks.shape[0])
         return
 
-    track_points1 = p1[tracks[:, 1]]
-    track_points2 = p2[tracks[:, 2]]
-
     robust_tracks, non_robust_tracks = matches(tracks, robust_matches, lambda a: a[1:])
-    non_robust_tracks1 = p1[non_robust_tracks[:, 1]]
-    non_robust_tracks2 = p2[non_robust_tracks[:, 2]]
+
+    robust_points1 = p1[robust_tracks[:, 1]]
+    robust_points2 = p2[robust_tracks[:, 2]]
+
+    non_robust_points1 = p1[non_robust_tracks[:, 1]]
+    non_robust_points2 = p2[non_robust_tracks[:, 2]]
 
     tracks_title = 'Common tracks (loaded): {0}. Robust match tracks: {1} / {2}. Linked tracks: {3}'.format(
         tracks.shape[0],
-        tracks.shape[0] - non_robust_tracks.shape[0],
+        robust_tracks.shape[0],
         robust_matches.shape[0],
         non_robust_tracks.shape[0])
 
     tracks_subplot = plot_matches_sub(
-        fig, 2, 2, 1, tracks_title, im1_array, im2_array, track_points1, track_points2, 'c', 'ob')
-    plot_matches(tracks_subplot, im1_array, im2_array, non_robust_tracks1, non_robust_tracks2, 'g', 'oy')
+        fig, 2, 2, 1, tracks_title, im1_array, im2_array, robust_points1, robust_points2, 'c', 'ob')
+    plot_matches(tracks_subplot, im1_array, im2_array, non_robust_points1, non_robust_points2, 'g', 'oy')
 
     # Plot inliers and outliers of the tracks from OpenCV find homography.
+    track_points1 = p1[tracks[:, 1]]
+    track_points2 = p2[tracks[:, 2]]
+
     threshold_h = data.config.get('homography_threshold', 0.004)
     H, inliers_h = cv2.findHomography(track_points1, track_points2, cv2.RANSAC, threshold_h)
 
@@ -359,7 +366,7 @@ def create_tracks_figure(im1, im2, data, save_figs=False):
     t_subplot = plot_matches_sub(fig, 2, 2, 2, t_title, im1_array, im2_array, inliers_t1, inliers_t2, 'c', 'ob')
     plot_matches(t_subplot, im1_array, im2_array, outliers_t1, outliers_t2, 'r', 'om')
 
-    # Plot successfully reconstructed and failed 3D points
+    # Plot successfully reconstructed and failed 3D points by reconstruction bootstrap.
     stdout_reset = redirect_print()
     reconstruction = reconstruct.bootstrap_reconstruction(data, graph, im1, im2)
     reset_print(stdout_reset)
@@ -379,7 +386,7 @@ def create_tracks_figure(im1, im2, data, save_figs=False):
         failed_rec_points2 = p2[failed_rec_tracks[:, 2]]
 
         rec_title = \
-            'Reconstructed 3D points (calculated): {0}. Robust {1}. Linked: {2}. Failed: {3}. '.format(
+            'Reconstructed 3D points (bootstrapped): {0}. Robust {1}. Linked: {2}. Failed: {3}. '.format(
                 len(reconstruction['points']),
                 robust_rec_tracks.shape[0],
                 non_robust_rec_tracks.shape[0],
@@ -394,7 +401,7 @@ def create_tracks_figure(im1, im2, data, save_figs=False):
         plot_matches(rec_plot, im1_array, im2_array, failed_rec_points1, failed_rec_points2, 'r', 'om')
     else:
         failed_title = \
-            'Reconstruction failed. Less than {0} points. Triangulation threshold: {1:.4f}. Min ray angle: {2}. '\
+            'Bootstrap failed. Less than {0} points. Triangulation threshold: {1:.4f}. Min ray angle: {2}.'\
             .format(
                 data.config.get('five_point_algo_min_inliers', 50),
                 data.config.get('triangulation_threshold', 0.004),
@@ -404,8 +411,8 @@ def create_tracks_figure(im1, im2, data, save_figs=False):
     display_figure(fig, save_figs, data, '{0}_{1}_{2}_tracks.jpg'.format(im1, im2, data.feature_type()))
 
 
-def create_reconstruction_figure(im1, im2, data, save_figs=False):
-    fig = pl.figure(figsize=(18, 18))
+def create_reconstruction_matches_figure(im1, im2, data, save_figs=False):
+    fig = pl.figure(figsize=(15, 15))
     fig.suptitle('Reprojected reconstructed 3D points ({0}): {1} - {2}'.format(data.feature_type().upper(), im1, im2),
                  fontsize=18, fontweight='bold')
 
@@ -425,6 +432,7 @@ def create_reconstruction_figure(im1, im2, data, save_figs=False):
     if reconstruction is None:
         print '{0} and {1} does not exist in a common reconstruction.'.format(im1, im2)
 
+    # Retrieve reconstructed tracks and plot as matches. Plot rejected tracks in other color.
     rec_tracks, non_rec_tracks = reconstruction_tracks(tracks, reconstruction)
     rec_track_points1 = p1[rec_tracks[:, 1]]
     rec_track_points2 = p2[rec_tracks[:, 2]]
@@ -439,6 +447,8 @@ def create_reconstruction_figure(im1, im2, data, save_figs=False):
         plot_matches_sub(fig, 2, 1, 1, title, im1_array, im2_array, rec_track_points1, rec_track_points2, 'c', 'ob')
     plot_matches(t_subplot, im1_array, im2_array, non_rec_track_points1, non_rec_track_points2, 'r', 'om')
 
+    # Reproject reconstructed tracks. Triangulate rejected tracks and plot min ray angle removals and successfully
+    # triangulated tracks in different colors.
     rp1 = reproject_tracks(im1, rec_tracks[:, 0], reconstruction)
     rp2 = reproject_tracks(im2, rec_tracks[:, 0], reconstruction)
 
@@ -454,7 +464,7 @@ def create_reconstruction_figure(im1, im2, data, save_figs=False):
 
     title = 'Common tracks (loaded): {0}. Reprojected points (calculated): {1}.\n'\
         .format(tracks.shape[0], rec_tracks.shape[0]) + \
-            'Rejected tracks: {0}. Re-triangulated: {1}. Re-triangulation min ray angle ({2} deg) removals: {3}.'\
+            'Rejected tracks: {0}. Re-triangulated: {1}. Min ray angle ({2} deg) removals: {3}.'\
         .format(non_rec_tracks.shape[0], succeeded.sum(), min_ray_angle, (~succeeded).sum())
 
     rec_plot = \
@@ -505,7 +515,7 @@ def create_complete_reconstruction_figure(im, data, save_figs=False):
     triangulated_points = p[non_rec_tracks[succeeded, 1]]
     excluded_points = p[non_rec_tracks[~succeeded, 1]]
 
-    title = 'Rejected tracks: {0}. Re-triangulated: {1}. Re-triangulation min ray angle ({2} deg) removals: {3}.'\
+    title = 'Rejected tracks: {0}. Re-triangulated: {1}. Min ray angle ({2} deg) removals: {3}.'\
         .format(non_rec_tracks.shape[0], succeeded.sum(), min_ray_angle, (~succeeded).sum())
 
     non_rec_plot = create_subplot(fig, 1, 2, 2, title, im_array.shape[1])
@@ -540,7 +550,7 @@ if __name__ == "__main__":
 
     create_matches_figure(image1, image2, ds, save)
     create_tracks_figure(image1, image2, ds, save)
-    create_reconstruction_figure(image1, image2, ds, save)
+    create_reconstruction_matches_figure(image1, image2, ds, save)
 
     if args.plot_all:
         create_complete_reconstruction_figure(image1, ds, save)
