@@ -123,22 +123,14 @@ def find_reconstruction(images, data):
     return reconstruction
 
 
-def load_track(im, track, data):
-    graph = data.load_tracks_graph()
-    tracks = graph[im]
-
-    return np.array([int(track), tracks[track]['feature_id']]) if track in tracks else None
-
-
 def load_points(im, data):
     p, f, c = data.load_features(im)
     return np.array(p[:, :2], np.float64)
 
 
-def plot_image_track(plot, im, track, reconstruction, point, fraction, data):
-    t = load_track(im, track, data)
+def plot_image_feature(plot, im, feature_id, reconstruction, point, fraction, data):
     p = load_points(im, data)
-    xh = multiview.homogeneous(p[t[1]])
+    xh = multiview.homogeneous(p[feature_id])
 
     shot = reconstruction['shots'][im]
     camera = reconstruction['cameras'][shot['camera']]
@@ -197,7 +189,8 @@ def plot_track(track, data):
 
     ocs = []
     for index, im in enumerate(images):
-        oc = plot_image_track(plot, im, track, reconstruction, point, float(index)/(len(images) - 1), data)
+        fraction = float(index) / (len(images) - 1)
+        oc = plot_image_feature(plot, im, images[im]['feature_id'], reconstruction, point, fraction, data)
         ocs.append(oc)
 
     ocs = np.array(ocs)
