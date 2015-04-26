@@ -12,15 +12,16 @@ from opensfm import multiview
 import opensfm.reconstruction as reconstruct
 
 
-def plot_point(plot, x, color):
+def plot_point(plot, x, color, size=11):
     """ Plots a point.
 
     :param plot: The plot.
     :param x: The point.
     :param color: The color of the point.
+    :param size: The size of the point.
     """
 
-    plot.scatter(x[0], x[1], x[2], c=color, s=10)
+    plot.scatter(x[0], x[1], x[2], c=color, s=size)
 
 
 def plot_ray(plot, p, d, l, color, name=None):
@@ -154,16 +155,16 @@ def plot_image_track(plot, im, track, reconstruction, point, fraction, data):
     plot_plane(plot, cs)
 
     # Plot optical center
-    plot_point(plot, oc, 'r')
+    plot_point(plot, oc, 'yellow')
 
     # Plot principal point
     principal_ray_dir = vd / np.linalg.norm(vd)
-    plot_point(plot, oc + principal_ray_dir, 'g')
+    plot_point(plot, oc + principal_ray_dir, (1., .6, .0))
 
     # Plot track image projection
     projection = np.dot(vs, principal_ray_dir)
     im_plane_intersect = vs / projection
-    plot_point(plot, oc + im_plane_intersect, 'c')
+    plot_point(plot, oc + im_plane_intersect, 'cyan')
 
     ray_length = np.linalg.norm(point - oc) + 5 if point is not None else 5
 
@@ -202,7 +203,7 @@ def plot_track(track, data):
     ocs = np.array(ocs)
 
     if point is not None:
-        plot_point(plot, point, 'k')
+        plot_point(plot, point, 'k', 12)
         points = np.vstack((ocs, point))
     else:
         points = ocs
