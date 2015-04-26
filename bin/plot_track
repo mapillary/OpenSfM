@@ -20,10 +20,10 @@ def plot_point(plot, x, color):
     :param color: The color of the point.
     """
 
-    plot.scatter(x[0], x[1], x[2], c=color)
+    plot.scatter(x[0], x[1], x[2], c=color, s=10)
 
 
-def plot_ray(plot, p, d, l, name, color):
+def plot_ray(plot, p, d, l, color, name=None):
     """ Plots a ray from a point of length l in direction d.
 
     :param plot: The plot.
@@ -63,11 +63,11 @@ def line_points(p, d, l):
         np.resize(p, (p.shape[0], 1)))
 
 
-def image_plane_corners(oc, KR1, width, height):
+def image_plane_corners(oc, KR_inv, width, height):
     """ Calculates corners of an image plane.
 
     :param oc: The optical center.
-    :param KR1: The inverse of the 3 x 3 matrix of the first three columns of the camera matrix P.
+    :param KR_inv: The inverse of the 3 x 3 matrix of the first three columns of the camera matrix P.
     :param width: The width of the camera.
     :param height: The height of the camera.
     :return: Array of coordinates for the coordinates.
@@ -76,9 +76,9 @@ def image_plane_corners(oc, KR1, width, height):
     dx = width / (2.0 * max_dim)
     dy = height / (2.0 * max_dim)
 
-    corners = np.dot(KR1, np.array([[-dx,  dx,  dx, -dx],
-                                    [-dy, -dy,  dy,  dy],
-                                    [ 1,   1,   1,   1]]))
+    corners = np.dot(KR_inv, np.array([[-dx,  dx,  dx, -dx],
+                                       [-dy, -dy,  dy,  dy],
+                                       [ 1,   1,   1,   1]]))
 
     return np.add(np.resize(oc, (3, 1)), corners)
 
@@ -93,21 +93,29 @@ def reconstruction_point(track, reconstruction, graph, min_ray_angle):
         if track in reconstruction['points']:
             point = reconstruction['points'][track]['coordinates']
 
-    return np.array(point)
+    return point
 
 
 def find_reconstruction(images, data):
+    """ Finds the reconstruction containing the most images.
+
+    :param images: The image names.
+    :param data: The data set
+    :return: The reconstruction containing the most images.
+    """
+
     reconstructions = data.load_reconstruction()
     reconstruction = None
 
+    contained = 0
     for r in reconstructions:
-        found = True
+        count = 0
         for im in images:
-            if im not in r['shots']:
-                found = False
-                break
+            if im in r['shots']:
+                count += 1
 
-        if found:
+        if count > contained:
+            contained = count
             reconstruction = r
             break
 
@@ -126,7 +134,7 @@ def load_points(im, data):
     return np.array(p[:, :2], np.float64)
 
 
-def plot_image_track(plot, im, track, reconstruction, point, data):
+def plot_image_track(plot, im, track, reconstruction, point, fraction, data):
     t = load_track(im, track, data)
     p = load_points(im, data)
     xh = multiview.homogeneous(p[t[1]])
@@ -134,13 +142,13 @@ def plot_image_track(plot, im, track, reconstruction, point, data):
     shot = reconstruction['shots'][im]
     camera = reconstruction['cameras'][shot['camera']]
     P = reconstruct.projection_matrix(camera, shot)
-    KR1 = np.linalg.inv(P[:, :3])
+    KR_inv = np.linalg.inv(P[:, :3])
 
-    vs = np.dot(KR1, xh)
+    vs = np.dot(KR_inv, xh)
 
     oc = reconstruct.optical_center(reconstruction['shots'][im])
     vd = reconstruct.viewing_direction(reconstruction['shots'][im])
-    cs = image_plane_corners(oc, KR1, camera['width'], camera['height'])
+    cs = image_plane_corners(oc, KR_inv, camera['width'], camera['height'])
 
     # Plot image plane from image plane corners
     plot_plane(plot, cs)
@@ -160,10 +168,10 @@ def plot_image_track(plot, im, track, reconstruction, point, data):
     ray_length = np.linalg.norm(point - oc) + 5 if point is not None else 5
 
     # Plot track ray
-    plot_ray(plot, oc, vs, ray_length, '{0} track ray'.format(im), 'c')
+    plot_ray(plot, oc, vs, ray_length, (.0, .9 * fraction, .2 + .7 * fraction), '{0} track ray'.format(im))
 
     # Plot principal ray
-    plot_ray(plot, oc, vd, ray_length, '{0} principal ray'.format(im), 'g')
+    plot_ray(plot, oc, vd, ray_length, 'r')
 
     return oc
 
@@ -171,11 +179,15 @@ def plot_image_track(plot, im, track, reconstruction, point, data):
 def plot_track(track, data):
     graph = data.load_tracks_graph()
 
-    images = graph[track]
+    if track not in graph:
+        print 'Track {0} does not exist in the tracks graph.'.format(track)
+        return
 
-    reconstruction = find_reconstruction([key for key in images], data)
+    images = graph[track]
+    reconstruction = find_reconstruction([im for im in images], data)
     if reconstruction is None:
-        print 'All images for the track {0} does not exist in a single reconstruction.'.format(track)
+        print 'No reconstruction for the track {0} contains any of the track images.'.format(track)
+        return
 
     point = reconstruction_point(track, reconstruction, graph, data.config.get('triangulation_min_ray_angle', 2.0))
 
@@ -183,8 +195,8 @@ def plot_track(track, data):
     plot = fig.gca(projection='3d', aspect='equal', xlabel='X-axis', ylabel='Y-axis', zlabel='Z-axis')
 
     ocs = []
-    for im in images:
-        oc = plot_image_track(plot, im, track, reconstruction, point, data)
+    for index, im in enumerate(images):
+        oc = plot_image_track(plot, im, track, reconstruction, point, float(index)/(len(images) - 1), data)
         ocs.append(oc)
 
     ocs = np.array(ocs)
@@ -220,8 +232,8 @@ if __name__ == "__main__":
     parser.add_argument('dataset',
                         help='path to the data set to be processed')
     parser.add_argument('track',
-                        help='name of the track to show')
+                        help='name of the track to show', type=int)
 
     args = parser.parse_args()
 
-    plot_track(args.track, dataset.DataSet(args.dataset))
+    plot_track(str(args.track), dataset.DataSet(args.dataset))
