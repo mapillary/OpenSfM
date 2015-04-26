@@ -13,29 +13,65 @@ import opensfm.reconstruction as reconstruct
 
 
 def plot_point(plot, x, color):
+    """ Plots a point.
+
+    :param plot: The plot.
+    :param x: The point.
+    :param color: The color of the point.
+    """
+
     plot.scatter(x[0], x[1], x[2], c=color)
 
 
 def plot_ray(plot, p, d, l, name, color):
-    x, y, z = get_line(p, d, l)
-    plot.plot(x, y, z, label=name, c=color)
+    """ Plots a ray from a point of length l in direction d.
+
+    :param plot: The plot.
+    :param p: The starting point.
+    :param d: The direction.
+    :param l: The length of the ray.
+    :param name: The name of the ray.
+    :param color: The color of the ray.
+    """
+
+    points = line_points(p, d, l)
+    plot.plot(points[0], points[1], points[2], label=name, c=color)
 
 
-def plot_plane(plot, cor):
-    triangles = mtri.Triangulation(cor[0, :], cor[1, :])
-    plot.plot_trisurf(triangles, cor[2, :], color='b', alpha=0.2, linewidth=0.2)
+def plot_plane(plot, c):
+    """ Plots a plane based on the defined corners.
+
+    :param plot: The plot.
+    :param c: The corners.
+    """
+
+    triangles = mtri.Triangulation(c[0, :], c[1, :])
+    plot.plot_trisurf(triangles, c[2, :], color='b', alpha=0.2, linewidth=0.2)
 
 
-def get_line(p, d, l):
-    a = np.linspace(0, l, 100)
-    x = a * d[0] + p[0]
-    y = a * d[1] + p[1]
-    z = a * d[2] + p[2]
+def line_points(p, d, l):
+    """ Calculates the start and end point for a line.
 
-    return x, y, z
+    :param p: The starting point.
+    :param d: The direction.
+    :param l: The length of the line.
+    :return: Array of coordinates for the line.
+    """
+
+    return np.add(
+        np.multiply(np.resize(np.linspace(0, l, 2), (1, 2)), np.resize(d, (d.shape[0], 1))),
+        np.resize(p, (p.shape[0], 1)))
 
 
 def image_plane_corners(oc, KR1, width, height):
+    """ Calculates corners of an image plane.
+
+    :param oc: The optical center.
+    :param KR1: The inverse of the 3 x 3 matrix of the first three columns of the camera matrix P.
+    :param width: The width of the camera.
+    :param height: The height of the camera.
+    :return: Array of coordinates for the coordinates.
+    """
     max_dim = np.max((width, height))
     dx = width / (2.0 * max_dim)
     dy = height / (2.0 * max_dim)
