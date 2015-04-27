@@ -107,20 +107,24 @@ def find_reconstruction(images, data):
 
     reconstructions = data.load_reconstruction()
     reconstruction = None
+    rec_images = []
 
     contained = 0
     for r in reconstructions:
         count = 0
+        ims = []
         for im in images:
             if im in r['shots']:
+                ims.append(im)
                 count += 1
 
         if count > contained:
             contained = count
             reconstruction = r
+            rec_images = ims
             break
 
-    return reconstruction
+    return reconstruction, rec_images
 
 
 def load_points(im, data):
@@ -177,7 +181,7 @@ def plot_track(track, data):
         return
 
     images = graph[track]
-    reconstruction = find_reconstruction([im for im in images], data)
+    reconstruction, rec_images = find_reconstruction([im for im in images], data)
     if reconstruction is None:
         print 'No reconstruction for the track {0} contains any of the track images.'.format(track)
         return
@@ -187,19 +191,15 @@ def plot_track(track, data):
     fig = plt.figure(figsize=(10, 10))
     plot = fig.gca(projection='3d', aspect='equal', xlabel='X-axis', ylabel='Y-axis', zlabel='Z-axis')
 
-    ocs = []
-    for index, im in enumerate(images):
-        fraction = float(index) / (len(images) - 1)
+    points = []
+    for index, im in enumerate(rec_images):
+        fraction = 1 if len(rec_images) == 1 else float(index) / (len(rec_images) - 1)
         oc = plot_image_feature(plot, im, images[im]['feature_id'], reconstruction, point, fraction, data)
-        ocs.append(oc)
-
-    ocs = np.array(ocs)
+        points.append(oc)
 
     if point is not None:
         plot_point(plot, point, 'k', 12)
-        points = np.vstack((ocs, point))
-    else:
-        points = ocs
+        points.append(point)
 
     # Make sure the plot is metric.
     coord_max = np.max(points, axis=0)
