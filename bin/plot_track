@@ -322,20 +322,32 @@ def plot_epipolar_line(subplot, im1, im2, im1_array, im2_array, f1, f2, reconstr
     plot_points(subplot, im1_array, im2_array, epl1, epl2, point_format1='r', point_format2='r')
 
 
-def plot_epipolar_lines(track, data, save_figs=False):
+def plot_epipolar_lines(track, data, images=[], save_figs=False):
     graph = data.load_tracks_graph()
 
     if track not in graph:
         print 'Track {0} does not exist in the tracks graph.'.format(track)
         return
 
-    images = graph[track]
-    reconstruction, rec_images = find_reconstruction([im for im in images], data)
+    track_ims = graph[track]
+    reconstruction, rec_ims = find_reconstruction([im for im in track_ims], data)
     if reconstruction is None:
         print 'No reconstruction for the track {0} contains any of the track images.'.format(track)
         return
 
-    comb = list(itertools.combinations(sorted(rec_images), 2))
+    for im in images:
+        if not im in rec_ims:
+            print 'Track {0} is not connected to image {1} in the reconstruction.'.format(track, im)
+            return
+
+    rec_ims = sorted(rec_ims)
+    if len(images) == 1:
+        comb = [(images[0], im) for im in rec_ims if im != images[0]]
+    elif len(images) == 2:
+        comb = [(images[0], images[1])]
+    else:
+        comb = list(itertools.combinations(rec_ims, 2))
+
     n = len(comb)
 
     for chunk_index, chunk in enumerate(list(chunks(comb, 4))):
@@ -362,8 +374,8 @@ def plot_epipolar_lines(track, data, save_figs=False):
             subplot = create_subplot(fig, rows, cols, index + 1, '{0} - {1}'.format(im1, im2), w1+w2, h1)
             show_images(subplot, im1_array, im2_array)
 
-            f1 = images[im1]['feature_id']
-            f2 = images[im2]['feature_id']
+            f1 = track_ims[im1]['feature_id']
+            f2 = track_ims[im2]['feature_id']
 
             plot_epipolar_line(subplot, im1, im2, im1_array, im2_array, f1, f2, reconstruction, data)
 
@@ -386,6 +398,10 @@ if __name__ == "__main__":
                         help='path to the data set to be processed')
     parser.add_argument('track',
                         help='name of the track to plot (integer)', type=int)
+    parser.add_argument('--image1',
+                        help='name of image for whose combinations should be plotted for the track')
+    parser.add_argument('--image2',
+                        help='name of image to plot in combination with image1 (only used if image1 is specified)')
     parser.add_argument('--save_figs',
                         help='save epipolar line figures instead of showing them',
                         action='store_true')
@@ -394,5 +410,11 @@ if __name__ == "__main__":
     ds = dataset.DataSet(args.dataset)
     tr = str(args.track)
 
-    plot_epipolar_lines(tr, ds, args.save_figs)
+    arg_ims = []
+    if args.image1:
+        arg_ims.append(args.image1)
+        if args.image2:
+            arg_ims.append(args.image2)
+
+    plot_epipolar_lines(tr, ds, arg_ims, args.save_figs)
     plot_track_ray(tr, ds)
