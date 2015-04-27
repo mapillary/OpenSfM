@@ -10,6 +10,7 @@ import itertools
 
 from opensfm import dataset
 from opensfm import features
+from opensfm import io
 from opensfm import multiview
 import opensfm.reconstruction as reconstruct
 
@@ -205,6 +206,11 @@ def load_points(im, data):
     return np.array(p[:, :2], np.float64)
 
 
+def chunks(l, n):
+    for i in xrange(0, len(l), n):
+        yield l[i:i+n]
+
+
 def plot_image_feature(plot, im, feature_id, reconstruction, point, fraction, data):
     p = load_points(im, data)
     xh = multiview.homogeneous(p[feature_id])
@@ -294,7 +300,29 @@ def plot_track_ray(track, data):
     pl.show()
 
 
-def plot_epipolar_line(track, data):
+def plot_epipolar_line(subplot, im1, im2, im1_array, im2_array, f1, f2, reconstruction, data):
+    p1 = load_points(im1, data)
+    p2 = load_points(im2, data)
+
+    F = fundamental_matrix(im1, im2, reconstruction)
+
+    x1 = p1[f1]
+    x2 = p2[f2]
+
+    l1 = epipolar_line(F.T, x2)
+    l2 = epipolar_line(F, x1)
+
+    epl1 = points_from_line_equation(l1)
+    epl2 = points_from_line_equation(l2)
+
+    plot_points(subplot, im1_array, im2_array,
+                np.resize(np.array(x1), (1, 2)), np.resize(np.array(x2), (1, 2)),
+                point_format1='or', point_format2='or')
+
+    plot_points(subplot, im1_array, im2_array, epl1, epl2, point_format1='r', point_format2='r')
+
+
+def plot_epipolar_lines(track, data, save_figs=False):
     graph = data.load_tracks_graph()
 
     if track not in graph:
@@ -307,43 +335,49 @@ def plot_epipolar_line(track, data):
         print 'No reconstruction for the track {0} contains any of the track images.'.format(track)
         return
 
-    for im1, im2 in itertools.combinations(rec_images, 2):
-        p1 = load_points(im1, data)
-        p2 = load_points(im2, data)
+    comb = list(itertools.combinations(sorted(rec_images), 2))
+    n = len(comb)
 
-        im1_array = data.image_as_array(im1)
-        im2_array = data.image_as_array(im2)
+    for chunk_index, chunk in enumerate(list(chunks(comb, 4))):
+        chunk_size = len(chunk)
+        rows = 2 if chunk_size > 1 else 1
+        cols = 2 if chunk_size > 2 else 1
 
-        h1, w1, c = im1_array.shape
-        h2, w2, c = im2_array.shape
-
-        F = fundamental_matrix(im1, im2, reconstruction)
-
-        x1 = p1[images[im1]['feature_id']]
-        x2 = p2[images[im2]['feature_id']]
-
-        l1 = epipolar_line(F.T, x2)
-        l2 = epipolar_line(F, x1)
-
-        fig = pl.figure(figsize=(12, 6))
+        fig = pl.figure(figsize=(12 * cols, 6 * rows))
         fig.suptitle('Epipolar lines for track {0} ({1})'.format(track, data.feature_type().upper()),
-                 fontsize=14, fontweight='bold')
+                     fontsize=14, fontweight='bold')
 
-        title = '{0} - {1}'.format(im1, im2)
-        subplot = create_subplot(fig, 1, 1, 1, title, w1+w2, h1)
-        show_images(subplot, im1_array, im2_array)
+        for index, ims in enumerate(chunk):
+            im1 = ims[0]
+            im2 = ims[1]
 
-        epl1 = points_from_line_equation(l1)
-        epl2 = points_from_line_equation(l2)
+            print 'Plotting epipolar line for {0} - {1} ({2} / {3})'.format(im1, im2, chunk_index * 4 + index + 1, n)
 
-        point1 = np.resize(np.array(x1), (1, 2))
-        point2 = np.resize(np.array(x2), (1, 2))
+            im1_array = data.image_as_array(im1)
+            im2_array = data.image_as_array(im2)
 
-        plot_points(subplot, im1_array, im2_array, point1, point2, point_format1='or', point_format2='or')
-        plot_points(subplot, im1_array, im2_array, epl1, epl2, point_format1='r', point_format2='r')
+            h1, w1, c = im1_array.shape
+            h2, w2, c = im2_array.shape
 
-        fig.subplots_adjust(left=0.01, bottom=0, right=0.99, top=0.96, wspace=0.04, hspace=0)
-        pl.show()
+            subplot = create_subplot(fig, rows, cols, index + 1, '{0} - {1}'.format(im1, im2), w1+w2, h1)
+            show_images(subplot, im1_array, im2_array)
+
+            f1 = images[im1]['feature_id']
+            f2 = images[im2]['feature_id']
+
+            plot_epipolar_line(subplot, im1, im2, im1_array, im2_array, f1, f2, reconstruction, data)
+
+        fig.subplots_adjust(left=0.01, bottom=0, right=0.99, top=0.92, wspace=0.04, hspace=0.1)
+
+        if save_figs:
+            path = data.data_path + '/plot_track'
+            io.mkdir_p(path)
+            fig.savefig(
+                path + '/' + 'track_{0}_{1}_epipolar_{2}.jpg'.format(track, data.feature_type(), chunk_index + 1),
+                dpi=100)
+            pl.close()
+        else:
+            pl.show()
 
 
 if __name__ == "__main__":
@@ -351,9 +385,14 @@ if __name__ == "__main__":
     parser.add_argument('dataset',
                         help='path to the data set to be processed')
     parser.add_argument('track',
-                        help='name of the track to show', type=int)
+                        help='name of the track to plot (integer)', type=int)
+    parser.add_argument('--save_figs',
+                        help='save epipolar line figures instead of showing them',
+                        action='store_true')
 
     args = parser.parse_args()
+    ds = dataset.DataSet(args.dataset)
+    tr = str(args.track)
 
-    plot_epipolar_line(str(args.track), dataset.DataSet(args.dataset))
-    plot_track_ray(str(args.track), dataset.DataSet(args.dataset))
+    plot_epipolar_lines(tr, ds, args.save_figs)
+    plot_track_ray(tr, ds)
