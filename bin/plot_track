@@ -203,19 +203,13 @@ def find_reconstruction(images, data):
     return reconstruction, rec_images
 
 
-def load_points(im, data):
-    p, f, c = data.load_features(im)
-    return np.array(p[:, :2], np.float64)
-
-
 def chunks(l, n):
     for i in xrange(0, len(l), n):
         yield l[i:i+n]
 
 
-def plot_image_feature(plot, im, feature_id, reconstruction, point, fraction, data):
-    p = load_points(im, data)
-    xh = multiview.homogeneous(p[feature_id])
+def plot_image_feature(plot, im, x, reconstruction, point, fraction, data):
+    xh = multiview.homogeneous(x)
 
     shot = reconstruction['shots'][im]
     camera = reconstruction['cameras'][shot['camera']]
@@ -275,7 +269,7 @@ def plot_track_ray(track, data):
     points = []
     for index, im in enumerate(rec_images):
         fraction = 1 if len(rec_images) == 1 else float(index) / (len(rec_images) - 1)
-        oc = plot_image_feature(plot, im, images[im]['feature_id'], reconstruction, point, fraction, data)
+        oc = plot_image_feature(plot, im, np.array(images[im]['feature']), reconstruction, point, fraction, data)
         points.append(oc)
 
     if point is not None:
