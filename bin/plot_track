@@ -84,7 +84,7 @@ def plot_plane(plot, c):
     """
 
     triangles = mtri.Triangulation(c[0, :], c[1, :])
-    plot.plot_trisurf(triangles, c[2, :], color='b', alpha=0.2, linewidth=0.2)
+    plot.plot_trisurf(triangles, c[2, :], color='b', alpha=0.2, linewidth=0.1)
 
 
 def line_points(p, d, l):
@@ -127,19 +127,20 @@ def camera_matrix(im, reconstruction):
     return reconstruct.projection_matrix(camera, shot)
 
 
-def fundamental_matrix(im1, im2, reconstruction):
-    P1 = camera_matrix(im1, reconstruction)
-    C1 = multiview.homogeneous(reconstruct.optical_center(reconstruction['shots'][im1]))
-    P1_pinv = np.dot(P1.T, np.linalg.inv(np.dot(P1, P1.T)))
+def epipole(Pi, Cj):
+    ei = np.dot(Pi, Cj)
+    return ei / ei[2]
 
-    P2 = camera_matrix(im2, reconstruction)
 
-    e2 = np.dot(P2, C1)
-    e2_mat = np.array([[ 0,     -e2[2],   e2[1]],
-                       [ e2[2],  0,      -e2[0]],
-                       [-e2[1],  e2[0],   0]])
+def fundamental_matrix(P1, P2, C1):
+    P1_pinv = np.linalg.pinv(P1)
 
-    F = np.dot(e2_mat, np.dot(P2, P1_pinv))
+    e2 = epipole(P2, C1)
+    e2_cross = np.array([[ 0,     -e2[2],   e2[1]],
+                         [ e2[2],  0,      -e2[0]],
+                         [-e2[1],  e2[0],   0]])
+
+    F = np.dot(e2_cross, np.dot(P2, P1_pinv))
 
     return F / F[2, 2]
 
@@ -222,8 +223,8 @@ def plot_image_feature(plot, im, feature_id, reconstruction, point, fraction, da
 
     vs = np.dot(KR_inv, xh)
 
-    oc = reconstruct.optical_center(reconstruction['shots'][im])
-    vd = reconstruct.viewing_direction(reconstruction['shots'][im])
+    oc = reconstruct.optical_center(shot)
+    vd = reconstruct.viewing_direction(shot)
     cs = image_plane_corners(oc, KR_inv, camera['width'], camera['height'])
 
     # Plot image plane from image plane corners
@@ -304,7 +305,13 @@ def plot_epipolar_line(subplot, im1, im2, im1_array, im2_array, f1, f2, reconstr
     p1 = load_points(im1, data)
     p2 = load_points(im2, data)
 
-    F = fundamental_matrix(im1, im2, reconstruction)
+    P1 = camera_matrix(im1, reconstruction)
+    P2 = camera_matrix(im2, reconstruction)
+
+    C1 = multiview.homogeneous(reconstruct.optical_center(reconstruction['shots'][im1]))
+    C2 = multiview.homogeneous(reconstruct.optical_center(reconstruction['shots'][im2]))
+
+    F = fundamental_matrix(P1, P2, C1)
 
     x1 = p1[f1]
     x2 = p2[f2]
@@ -312,14 +319,15 @@ def plot_epipolar_line(subplot, im1, im2, im1_array, im2_array, f1, f2, reconstr
     l1 = epipolar_line(F.T, x2)
     l2 = epipolar_line(F, x1)
 
-    epl1 = points_from_line_equation(l1)
-    epl2 = points_from_line_equation(l2)
+    lp1 = points_from_line_equation(l1)
+    lp2 = points_from_line_equation(l2)
 
-    plot_points(subplot, im1_array, im2_array,
-                np.resize(np.array(x1), (1, 2)), np.resize(np.array(x2), (1, 2)),
-                point_format1='or', point_format2='or')
+    e1 = epipole(P1, C2)
+    e2 = epipole(P2, C1)
 
-    plot_points(subplot, im1_array, im2_array, epl1, epl2, point_format1='r', point_format2='r')
+    plot_points(subplot, im1_array, im2_array, np.resize(x1, (1, 2)), np.resize(x2, (1, 2)), 'oc', 'oc')
+    plot_points(subplot, im1_array, im2_array, np.resize(e1[:2], (1, 2)), np.resize(e2[:2], (1, 2)), 'or', 'or')
+    plot_points(subplot, im1_array, im2_array, lp1, lp2, 'r', 'r')
 
 
 def plot_epipolar_lines(track, data, images=[], save_figs=False):
