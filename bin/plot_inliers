@@ -548,8 +548,8 @@ def create_reconstruction_matches_figure(im1, im2, data, save_figs=False):
 
     title = 'Common tracks (loaded): {0}. Reprojected points (calculated): {1}.\n'\
         .format(tracks.shape[0], rec_tracks.shape[0]) + \
-            'Rejected tracks: {0}. Re-triangulated: {1}. Min ray angle ({2} deg) removals: {3}.'\
-        .format(non_rec_tracks.shape[0], succeeded.sum(), min_ray_angle, (~succeeded).sum())
+            'Rejected tracks: {0}. Re-triangulated: {1}. Failed: {2} (behind a camera or min ray angle: {3} deg).'\
+        .format(non_rec_tracks.shape[0], succeeded.sum(), (~succeeded).sum(), min_ray_angle)
 
     rec_plot = create_subplot(fig, 2, 1, 2, title,
                               im1_array.shape[1] + im2_array.shape[1],
@@ -603,8 +603,8 @@ def create_complete_reconstruction_figure(im, data, save_figs=False):
     triangulated_points = p[non_rec_tracks[succeeded, 1]]
     excluded_points = p[non_rec_tracks[~succeeded, 1]]
 
-    title = 'Rejected tracks: {0}. Re-triangulated: {1}. Min ray angle ({2} deg) removals: {3}.'\
-        .format(non_rec_tracks.shape[0], succeeded.sum(), min_ray_angle, (~succeeded).sum())
+    title = 'Rejected tracks: {0}. Re-triangulated: {1}. Failed: {2} (behind a camera or min ray angle: {3} deg).'\
+        .format(non_rec_tracks.shape[0], succeeded.sum(), (~succeeded).sum(), min_ray_angle)
 
     non_rec_plot = create_subplot(fig, 1, 2, 2, title, im_array.shape[1], im_array.shape[0])
     non_rec_plot.imshow(im_array)
