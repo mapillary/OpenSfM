@@ -88,6 +88,16 @@ def create_subplot(figure, rows, columns, index, title, width, height, font_size
     return subplot
 
 
+def create_four_figure(title, single_column):
+    """ Creates a figure for four subplots. """
+    fig = pl.figure(figsize=(12, 21) if single_column else (24, 12))
+    fig.suptitle(title, fontsize=14, fontweight='bold')
+    rows = 4 if single_column else 2
+    cols = 1 if single_column else 2
+
+    return fig, rows, cols
+
+
 def plot_points_sub(figure, rows, columns, index, title, im1, im2, p1, p2, point_format1, point_format2):
     """ Creates a subplot with the images and plots the points in each image. """
     subplot = create_subplot(figure, rows, columns, index, title,
@@ -112,7 +122,12 @@ def plot_matches_sub(figure, rows, columns, index, title, im1, im2, p1, p2, line
 
 def display_figure(figure, save_figs, data=None, file_name=''):
     """ Displays or saves a figure. """
-    figure.subplots_adjust(left=0.01, bottom=0, right=0.99, top=0.96, wspace=0.04, hspace=0)
+    figure.subplots_adjust(left=0.01,
+                           bottom=0,
+                           right=0.99,
+                           top=0.94 if save_figs else 0.91,
+                           wspace=0.04,
+                           hspace=0.14)
 
     if save_figs:
         p = data.data_path + '/plot_inliers'
@@ -285,10 +300,9 @@ def matches(a1, a2, map_function):
     return m, nm
 
 
-def create_matches_figure(im1, im2, data, save_figs=False):
-    fig = pl.figure(figsize=(24, 12))
-    fig.suptitle('Matches ({0}): {1} - {2}'.format(data.feature_type().upper(), im1, im2),
-                 fontsize=14, fontweight='bold')
+def create_matches_figure(im1, im2, data, save_figs=False, single_column=False):
+    fig, rows, cols = \
+        create_four_figure('Tracks ({0}): {1} - {2}'.format(data.feature_type().upper(), im1, im2), single_column)
 
     im1_array = data.image_as_array(im1)
     im2_array = data.image_as_array(im2)
@@ -308,13 +322,13 @@ def create_matches_figure(im1, im2, data, save_figs=False):
 
     # Plot features
     features_title = 'Features (loaded): {0} - {1}, {2} - {3}'.format(im1, p1.shape[0], im2, p2.shape[0])
-    plot_points_sub(fig, 2, 2, 1, features_title, im1_array, im2_array, p1, p2, 'ob', 'om')
+    plot_points_sub(fig, rows, cols, 1, features_title, im1_array, im2_array, p1, p2, 'ob', 'om')
 
      # Plot symmetric matches.
     s_matches1 = p1[symmetric_matches[:, 0]]
     s_matches2 = p2[symmetric_matches[:, 1]]
 
-    plot_matches_sub(fig, 2, 2, 3,
+    plot_matches_sub(fig, rows, cols, 3,
                      'Symmetric matches (calculated): {0}'.format(symmetric_matches.shape[0]),
                      im1_array, im2_array,
                      s_matches1, s_matches2,
@@ -327,9 +341,9 @@ def create_matches_figure(im1, im2, data, save_figs=False):
     r_matches2 = p2[robust_matches[:, 1]]
 
     threshold = data.config.get('robust_matching_threshold', 0.006)
-    plot_matches_sub(fig, 2, 2, 2,
-                     'Robust matching inliers (calculated with RANSAC 8 point algorithm): {0}. Threshold: {1:.4f}'.format(
-                         robust_matches.shape[0], threshold),
+    plot_matches_sub(fig, rows, cols, 2,
+                     'Robust matching inliers (calculated with RANSAC eight point algorithm): {0}. Threshold: {1:.4f}'
+                     .format(robust_matches.shape[0], threshold),
                      im1_array, im2_array,
                      r_matches1, r_matches2,
                      'g', 'oy')
@@ -339,7 +353,7 @@ def create_matches_figure(im1, im2, data, save_figs=False):
     outliers1 = p1[outliers[:, 0]]
     outliers2 = p2[outliers[:, 1]]
 
-    plot_matches_sub(fig, 2, 2, 4,
+    plot_matches_sub(fig, rows, cols, 4,
                      'Robust matching outliers (calculated): {0}. Threshold: {1:.4f}'.format(outliers.shape[0], threshold),
                      im1_array, im2_array,
                      outliers1, outliers2,
@@ -348,10 +362,9 @@ def create_matches_figure(im1, im2, data, save_figs=False):
     display_figure(fig, save_figs, data, '{0}_{1}_{2}_matches.jpg'.format(im1, im2, data.feature_type()))
 
 
-def create_tracks_figure(im1, im2, data, save_figs=False):
-    fig = pl.figure(figsize=(24, 12))
-    fig.suptitle('Tracks ({0}): {1} - {2}'.format(data.feature_type().upper(), im1, im2),
-                 fontsize=14, fontweight='bold')
+def create_tracks_figure(im1, im2, data, save_figs=False, single_column=False):
+    fig, rows, cols = \
+        create_four_figure('Tracks ({0}): {1} - {2}'.format(data.feature_type().upper(), im1, im2), single_column)
 
     im1_array = data.image_as_array(im1)
     im2_array = data.image_as_array(im2)
@@ -386,7 +399,7 @@ def create_tracks_figure(im1, im2, data, save_figs=False):
         non_robust_tracks.shape[0])
 
     tracks_subplot = plot_matches_sub(
-        fig, 2, 2, 1, tracks_title, im1_array, im2_array, robust_points1, robust_points2, 'c', 'ob')
+        fig, rows, cols, 1, tracks_title, im1_array, im2_array, robust_points1, robust_points2, 'c', 'ob')
     plot_matches(tracks_subplot, im1_array, im2_array, non_robust_points1, non_robust_points2, 'g', 'oy')
 
     # Plot inliers and outliers of the tracks from OpenCV find homography.
@@ -409,7 +422,7 @@ def create_tracks_figure(im1, im2, data, save_figs=False):
         .format(
             inliers_h.sum(), (~inliers_h).sum(), float((~inliers_h).sum()) / tracks.shape[0], threshold_h)
 
-    h_subplot = plot_matches_sub(fig, 2, 2, 3, h_title, im1_array, im2_array, outliers_h1, outliers_h2, 'r', 'om')
+    h_subplot = plot_matches_sub(fig, rows, cols, 3, h_title, im1_array, im2_array, outliers_h1, outliers_h2, 'r', 'om')
     plot_matches(h_subplot, im1_array, im2_array, inliers_h1, inliers_h2, 'c', 'ob')
 
     # Plot inliers and outliers of the tracks from csfm two view reconstruction.
@@ -430,7 +443,7 @@ def create_tracks_figure(im1, im2, data, save_figs=False):
     t_title = 'CSfM two view reconstruction inliers (calculated): {0}. Outliers: {1}. Threshold: {2:.4f}'.format(
         len(inliers_t), outliers_t.sum(), threshold_t)
 
-    t_subplot = plot_matches_sub(fig, 2, 2, 2, t_title, im1_array, im2_array, inliers_t1, inliers_t2, 'c', 'ob')
+    t_subplot = plot_matches_sub(fig, rows, cols, 2, t_title, im1_array, im2_array, inliers_t1, inliers_t2, 'c', 'ob')
     plot_matches(t_subplot, im1_array, im2_array, outliers_t1, outliers_t2, 'r', 'om')
 
     # Plot successfully reconstructed and failed 3D points by reconstruction bootstrap.
@@ -463,7 +476,7 @@ def create_tracks_figure(im1, im2, data, save_figs=False):
                 data.config.get('triangulation_min_ray_angle', 2.0))
 
         rec_plot = plot_matches_sub(
-            fig, 2, 2, 4, rec_title, im1_array, im2_array, robust_rec_points1, robust_rec_points2, 'c', 'ob')
+            fig, rows, cols, 4, rec_title, im1_array, im2_array, robust_rec_points1, robust_rec_points2, 'c', 'ob')
         plot_matches(rec_plot, im1_array, im2_array, non_robust_rec_points1, non_robust_rec_points2, 'g', 'oy')
         plot_matches(rec_plot, im1_array, im2_array, failed_rec_points1, failed_rec_points2, 'r', 'om')
     else:
@@ -473,7 +486,7 @@ def create_tracks_figure(im1, im2, data, save_figs=False):
                 data.config.get('five_point_algo_min_inliers', 50),
                 data.config.get('triangulation_threshold', 0.004),
                 data.config.get('triangulation_min_ray_angle', 2.0))
-        create_subplot(fig, 2, 2, 4, failed_title, 100, 100)
+        create_subplot(fig, rows, cols, 4, failed_title, 100, 100)
 
     display_figure(fig, save_figs, data, '{0}_{1}_{2}_tracks.jpg'.format(im1, im2, data.feature_type()))
 
@@ -613,6 +626,9 @@ if __name__ == "__main__":
     parser.add_argument('--save_figs',
                         help='save figures instead of showing them',
                         action='store_true')
+    parser.add_argument('--single_col',
+                        help='show figures in one column',
+                        action='store_true')
     parser.add_argument('--plot_rec',
                         help='plots the reconstruction tracks for each image',
                         action='store_true')
@@ -622,12 +638,13 @@ if __name__ == "__main__":
     image1 = args.image1
     image2 = args.image2
     save = args.save_figs
+    single = args.single_col
 
     print 'Plotting matches for {0} - {1}...'.format(image1, image2)
-    create_matches_figure(image1, image2, ds, save)
+    create_matches_figure(image1, image2, ds, save, single)
 
     print 'Plotting tracks for {0} - {1}...'.format(image1, image2)
-    create_tracks_figure(image1, image2, ds, save)
+    create_tracks_figure(image1, image2, ds, save, single)
 
     print 'Plotting reconstruction matches for {0} - {1}...'.format(image1, image2)
     create_reconstruction_matches_figure(image1, image2, ds, save)
