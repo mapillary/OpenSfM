@@ -48,11 +48,12 @@ def show_images(plot, im1, im2):
 
 def plot_points(plot, im1, p1, point_format1='ob', im2=None, p2=None, point_format2='ob'):
     """ Plots the points in the supplied subplot. """
-    h1, w1, c = im1.shape
-    p1d = features.denormalized_image_coordinates(p1, w1, h1)
-    plot.plot(p1d[:, 0], p1d[:, 1], point_format1)
+    if p1.shape[0] != 0:
+        h1, w1, c = im1.shape
+        p1d = features.denormalized_image_coordinates(p1, w1, h1)
+        plot.plot(p1d[:, 0], p1d[:, 1], point_format1)
 
-    if im2 is None or p2 is None:
+    if im2 is None or p2 is None or p2.shape[0] == 0:
         return
 
     h2, w2, c = im2.shape
@@ -63,6 +64,9 @@ def plot_points(plot, im1, p1, point_format1='ob', im2=None, p2=None, point_form
 
 def plot_matches(plot, im1, im2, p1, p2, line_format='c', point_format='ob'):
     """ Plots the matches in the supplied subplot. """
+    if p1.shape[0] == 0 or p1.shape != p2.shape:
+        return
+
     h1, w1, c = im1.shape
     h2, w2, c = im2.shape
     p1d = features.denormalized_image_coordinates(p1, w1, h1)
@@ -173,7 +177,7 @@ def triangulate_tracks(tracks, reconstruction, graph, min_ray_angle):
         reconstruct.triangulate_track(str(track), graph, reconstruction, {}, {}, {}, 1, min_ray_angle)
         succeeded.append(True) if str(track) in reconstruction['points'] else succeeded.append(False)
 
-    return np.array(succeeded)
+    return np.array(succeeded) if len(succeeded) else np.empty((0, 1), bool)
 
 
 def find_reconstruction(images, data):
