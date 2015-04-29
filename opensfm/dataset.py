@@ -281,35 +281,14 @@ class DataSet:
                 track_list[int(track_id)].append([image_inv[image], int(observation)])
         return track_list
 
-    def load_tracks_graph(self, images=None, tracks_file=None):
+    def load_tracks_graph(self):
         """Return graph (networkx data structure) of tracks"""
-        if tracks_file is None:
-            tracks_file = self.__tracks_graph_file()
-        if images is None:
-            images = self.images()
-        with open(tracks_file) as fin:
-            g = nx.Graph()
-            for line in fin:
-                image, track, observation, x, y, R, G, B = line.split('\t')
-                if image in images:
-                    g.add_node(image, bipartite=0)
-                    g.add_node(track, bipartite=1)
-                    g.add_edge(image, track,
-                        feature=(float(x), float(y)),
-                        feature_id=int(observation),
-                        feature_color=(float(R), float(G), float(B)))
-            return g
+        with open(self.__tracks_graph_file()) as fin:
+            return load_tracks_graph(fin)
 
     def save_tracks_graph(self, graph):
         with open(self.__tracks_graph_file(), 'w') as fout:
-            for node, data in graph.nodes(data=True):
-                if data['bipartite'] == 0:
-                    image = node
-                    for track, data in graph[image].items():
-                        x, y = data['feature']
-                        fid = data['feature_id']
-                        r, g, b = data['feature_color']
-                        fout.write('%s\t%s\t%d\t%g\t%g\t%g\t%g\t%g\n' % (str(image), str(track), fid, x, y, r, g, b))
+            save_tracks_graph(fout, graph)
 
     def __reconstruction_file(self, filename):
         """Return path of reconstruction file"""
@@ -401,6 +380,31 @@ class DataSet:
     def save_navigation_graph(self, navigation_graphs):
         with open(self.__navigation_graph_file(), 'w') as fout:
             fout.write(json.dumps(navigation_graphs))
+
+
+
+def load_tracks_graph(fileobj):
+    g = nx.Graph()
+    for line in fileobj:
+        image, track, observation, x, y, R, G, B = line.split('\t')
+        g.add_node(image, bipartite=0)
+        g.add_node(track, bipartite=1)
+        g.add_edge(image, track,
+            feature=(float(x), float(y)),
+            feature_id=int(observation),
+            feature_color=(float(R), float(G), float(B)))
+    return g
+
+
+def save_tracks_graph(fileobj, graph):
+    for node, data in graph.nodes(data=True):
+        if data['bipartite'] == 0:
+            image = node
+            for track, data in graph[image].items():
+                x, y = data['feature']
+                fid = data['feature_id']
+                r, g, b = data['feature_color']
+                fileobj.write('%s\t%s\t%d\t%g\t%g\t%g\t%g\t%g\n' % (str(image), str(track), fid, x, y, r, g, b))
 
 
 def common_tracks(g, im1, im2):
