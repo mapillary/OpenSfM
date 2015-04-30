@@ -144,9 +144,9 @@ def plot_matches_sub(figure, rows, columns, index, title, im1, im2, p1, p2, line
 def display_figure(figure, save_figs, data=None, file_name=''):
     """ Displays or saves a figure. """
     figure.subplots_adjust(left=0.01,
-                           bottom=0,
+                           bottom=0.01,
                            right=0.99,
-                           top=0.94 if save_figs else 0.91,
+                           top=0.93 if save_figs else 0.91,
                            wspace=0.04,
                            hspace=0.14)
 
@@ -619,10 +619,11 @@ def create_reconstruction_matches_figure(im1, im2, data, save_figs=False):
     display_figure(fig, save_figs, data, '{0}_{1}_{2}_reconstruction.jpg'.format(im1, im2, data.feature_type()))
 
 
-def create_complete_reconstruction_figure(im, data, save_figs=False):
-    fig = pl.figure(figsize=(18, 9))
+def create_complete_reconstruction_figure(im, data, save_figs=False, single_column=False):
+    fig = pl.figure(figsize=(9, 15) if single_column else (18, 9))
     fig.suptitle('Reprojected reconstructed 3D points ({0}): {1}'.format(data.feature_type().upper(), im),
                  fontsize=14, fontweight='bold')
+    fw = FigureWrapper(fig, 2 if single_column else 1, 1 if single_column else 2)
 
     reconstruction = find_reconstruction([im], data)
     if reconstruction is None:
@@ -645,7 +646,7 @@ def create_complete_reconstruction_figure(im, data, save_figs=False):
     rec_title = 'Tracks: {0}. Included tracks (loaded): {1} with reprojected points (calculated).'\
         .format(tracks.shape[0], rec_tracks.shape[0])
 
-    rec_plot = create_subplot(fig, 1, 2, 1, rec_title, im_array.shape[1], im_array.shape[0])
+    rec_plot = create_subplot(fw.figure, fw.rows, fw.cols, 1, rec_title, im_array.shape[1], im_array.shape[0])
     rec_plot.imshow(im_array)
     plot_points(rec_plot, im_array, rec_track_points, 'ob')
     plot_points(rec_plot, im_array, rp, '+w')
@@ -661,7 +662,7 @@ def create_complete_reconstruction_figure(im, data, save_figs=False):
         'Rejected tracks: {0}. Re-triangulated: {1}. Failed: {2} (behind a camera or min ray angle: {3} deg).'\
         .format(non_rec_tracks.shape[0], succeeded.sum(), (~succeeded).sum(), min_ray_angle)
 
-    non_rec_plot = create_subplot(fig, 1, 2, 2, non_rec_title, im_array.shape[1], im_array.shape[0])
+    non_rec_plot = create_subplot(fw.figure, fw.rows, fw.cols, 2, non_rec_title, im_array.shape[1], im_array.shape[0])
     non_rec_plot.imshow(im_array)
     plot_points(non_rec_plot, im_array, triangulated_points, 'om')
     plot_points(non_rec_plot, im_array, excluded_points, 'or')
@@ -706,7 +707,7 @@ if __name__ == "__main__":
 
     if args.plot_rec:
         print 'Plotting complete reconstruction tracks for {0}...'.format(image1)
-        create_complete_reconstruction_figure(image1, ds, save)
+        create_complete_reconstruction_figure(image1, ds, save, single)
 
         print 'Plotting complete reconstruction tracks for {0}...'.format(image2)
-        create_complete_reconstruction_figure(image2, ds, save)
+        create_complete_reconstruction_figure(image2, ds, save, single)
