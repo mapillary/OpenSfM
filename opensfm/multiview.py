@@ -412,13 +412,17 @@ def two_view_reconstruction_run_csfm(p1, p2, f1, f2, threshold):
 def two_view_reconstruction_run_bundle(ba):
     return ba.run()
 
-def two_view_reconstruction(p1, p2, f1, f2, threshold):
+def two_view_reconstruction(p1, p2, f1, f2, threshold, bundle=True):
     assert len(p1) == len(p2)
     assert len(p1) >= 5
     npoints = len(p1)
 
     # Run 5-point algorithm.
     res = two_view_reconstruction_run_csfm(p1, p2, f1, f2, threshold)
+
+    num_iter = 10
+    if not bundle:
+        num_iter = 1
 
     if res:
         R, t, inliers = res
@@ -427,7 +431,7 @@ def two_view_reconstruction(p1, p2, f1, f2, threshold):
         K2 = np.array([[f2, 0, 0], [0, f2, 0], [0, 0, 1.]])
 
         old_inliers = np.zeros(npoints)
-        for it in range(10):
+        for it in range(num_iter):
             # Triangulate Features.
             P1 = P_from_KRt(K1, np.eye(3), np.zeros(3))
             P2 = P_from_KRt(K2, R, t)
@@ -447,29 +451,30 @@ def two_view_reconstruction(p1, p2, f1, f2, threshold):
 
             inlier_changes = np.count_nonzero(inliers - old_inliers)
             old_inliers = inliers.copy()
+
             if inlier_changes < npoints * 0.05:
                 break
+            if bundle:
+                # Refine R, t
+                ba = csfm.BundleAdjuster()
+                ba.add_camera('c1', f1, 0, 0, f1, True)
+                ba.add_camera('c2', f2, 0, 0, f2, True)
+                ba.add_shot('s1', 'c1', 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, True)
+                r = cv2.Rodrigues(R)[0].ravel()
+                ba.add_shot('s2', 'c2', r[0], r[1], r[2], t[0], t[1], t[2], 0, 0, 0, 1, False)
+                for i in xrange(npoints):
+                    if inliers[i]:
+                        X = Xs[i]
+                        ba.add_point(str(i), X[0], X[1], X[2], False)
+                        ba.add_observation('s1', str(i), p1[i][0], p1[i][1])
+                        ba.add_observation('s2', str(i), p2[i][0], p2[i][1])
 
-            # Refine R, t
-            ba = csfm.BundleAdjuster()
-            ba.add_camera('c1', f1, 0, 0, f1, True)
-            ba.add_camera('c2', f2, 0, 0, f2, True)
-            ba.add_shot('s1', 'c1', 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, True)
-            r = cv2.Rodrigues(R)[0].ravel()
-            ba.add_shot('s2', 'c2', r[0], r[1], r[2], t[0], t[1], t[2], 0, 0, 0, 1, False)
-            for i in xrange(npoints):
-                if inliers[i]:
-                    X = Xs[i]
-                    ba.add_point(str(i), X[0], X[1], X[2], False)
-                    ba.add_observation('s1', str(i), p1[i][0], p1[i][1])
-                    ba.add_observation('s2', str(i), p2[i][0], p2[i][1])
-
-            ba.set_loss_function('TruncatedLoss', threshold);
-            two_view_reconstruction_run_bundle(ba)
-            s = ba.get_shot('s2')
-            R = cv2.Rodrigues((s.rx, s.ry, s.rz))[0]
-            t = np.array((s.tx, s.ty, s.tz))
-            t /= np.linalg.norm(t)
+                ba.set_loss_function('TruncatedLoss', threshold);
+                two_view_reconstruction_run_bundle(ba)
+                s = ba.get_shot('s2')
+                R = cv2.Rodrigues((s.rx, s.ry, s.rz))[0]
+                t = np.array((s.tx, s.ty, s.tz))
+                t /= np.linalg.norm(t)
     else:
         return None
 
