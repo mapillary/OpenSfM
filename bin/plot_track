@@ -16,6 +16,7 @@ import opensfm.reconstruction as reconstruct
 
 
 def show_images(plot, im1, im2):
+    """ Shows the images in the supplied subplot. """
     h1, w1, c = im1.shape
     h2, w2, c = im2.shape
     image = np.zeros((max(h1, h2), w1+w2, 3), dtype=im1.dtype)
@@ -25,6 +26,7 @@ def show_images(plot, im1, im2):
 
 
 def plot_points(plot, im1, im2, p1, p2, point_format1='ob', point_format2='ob'):
+    """ Plots the points in the supplied subplot. """
     h1, w1, c = im1.shape
     h2, w2, c = im2.shape
     p1d = features.denormalized_image_coordinates(p1, w1, h1)
@@ -122,17 +124,37 @@ def image_plane_corners(oc, KR_inv, width, height):
 
 
 def camera_matrix(im, reconstruction):
+    """ Retrieves the camera matrix for an image.
+
+    :param im: The image name.
+    :param reconstruction: A reconstruction.
+    :return: The camera matrix.
+    """
     shot = reconstruction['shots'][im]
     camera = reconstruction['cameras'][shot['camera']]
     return reconstruct.projection_matrix(camera, shot)
 
 
 def epipole(Pi, Cj):
+    """ Calculates the epipole for another camera.
+
+    :param Pi: The camera matrix for the first camera.
+    :param Cj: The camera center for the second camera.
+    :return: The epipole of the second camera for the first.
+    """
     ei = np.dot(Pi, Cj)
+
     return ei / ei[2]
 
 
 def fundamental_matrix(P1, P2, C1):
+    """ Calculates the fundamental matrix for two cameras.
+
+    :param P1: The camera matrix for the first camera.
+    :param P2: The camera matrix for the second camera.
+    :param C1: The camera center for the first camera in homogeneous coordinates.
+    :return: The fundamental matrix for the cameras.
+    """
     P1_pinv = np.linalg.pinv(P1)
 
     e2 = epipole(P2, C1)
@@ -142,15 +164,28 @@ def fundamental_matrix(P1, P2, C1):
 
     F = np.dot(e2_cross, np.dot(P2, P1_pinv))
 
-    return F / F[2, 2]
+    return F
 
 
 def epipolar_line(F, x):
-    l = np.dot(F, multiview.homogeneous(x))
-    return l / l[2]
+    """ Calculates the epipolar line for a point in the other image.
+
+    :param F: Fundamental matrix.
+    :param x: Point in other image in homogeneous coordinates.
+    :return: The epipolar line for the point in the other image.
+    """
+    return np.dot(F, x)
 
 
 def line_equation_points(l, x0=-.5, xn=.5, N=2):
+    """ Calculates points on a line.
+
+    :param l: Line equation
+    :param x0: Start x value.
+    :param xn: End x value.
+    :param N: Number of points.
+    :return: An array of points that lie on the line.
+    """
     x = np.linspace(x0, xn, N)
     y = (-l[0] * x - l[2]) / l[1]
 
@@ -161,6 +196,15 @@ def line_equation_points(l, x0=-.5, xn=.5, N=2):
 
 
 def reconstruction_point(track, reconstruction, graph, min_ray_angle):
+    """ Retrieves the 3D point from a reconstruction. If the point for the track does not exist
+        in the reconstruction an attempt is made to triangulate the track.
+
+    :param track: A track.
+    :param reconstruction: A reconstruction.
+    :param graph: A track graph.
+    :param min_ray_angle: Minimum ray angle between track rays for a track to be triangulated.
+    :return:
+    """
     point = None
 
     if track in reconstruction['points']:
@@ -204,6 +248,12 @@ def find_reconstruction(images, data):
 
 
 def chunks(l, n):
+    """ Separates a list in smaller chunks of items.
+
+    :param l: List
+    :param n: Number of items in each chunk
+    :return: Chunks of the specified size.
+    """
     for i in xrange(0, len(l), n):
         yield l[i:i+n]
 
@@ -305,8 +355,8 @@ def plot_epipolar_line(subplot, im1, im2, im1_array, im2_array, x1, x2, reconstr
 
     F = fundamental_matrix(P1, P2, C1)
 
-    l1 = epipolar_line(F.T, x2)
-    l2 = epipolar_line(F, x1)
+    l1 = epipolar_line(F.T, multiview.homogeneous(x2))
+    l2 = epipolar_line(F, multiview.homogeneous(x1))
 
     lp1 = line_equation_points(l1)
     lp2 = line_equation_points(l2)
