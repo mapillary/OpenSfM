@@ -168,7 +168,7 @@ def epipolar_line(F, x):
     return np.dot(F, x)
 
 
-def line_equation_points(l, xy_min=-1., xy_max=1., n=200):
+def line_equation_points(l, xy_min=-1., xy_max=1., n=400):
     """ Calculates points on a line.
 
     :param l: Line equation
@@ -395,6 +395,9 @@ def plot_epipolar_geo(subplot, im1, im2, im1_array, im2_array, x1, x2, reconstru
     lp1d = distort_points(camera1, lp1)
     lp2d = distort_points(camera2, lp2)
 
+    lp1d = lp1d[lp1d[:, 0] < .5]
+    lp2d = lp2d[lp2d[:, 0] > -.5]
+
     e1 = epipole(P1, C2)
     e2 = epipole(P2, C1)
 
@@ -402,9 +405,9 @@ def plot_epipolar_geo(subplot, im1, im2, im1_array, im2_array, x1, x2, reconstru
     e1d = np.array(reconstruct.distort(camera1, e1[0], e1[1]))
     e2d = np.array(reconstruct.distort(camera2, e2[0], e2[1]))
 
-    plot_points(subplot, im1_array, im2_array, np.resize(x1, (1, 2)), np.resize(x2, (1, 2)), 'oc', 'oc')
-    plot_points(subplot, im1_array, im2_array, np.resize(e1d[:2], (1, 2)), np.resize(e2d[:2], (1, 2)), 'or', 'or')
     plot_points(subplot, im1_array, im2_array, lp1d, lp2d, 'r', 'r')
+    plot_points(subplot, im1_array, im2_array, np.resize(e1d[:2], (1, 2)), np.resize(e2d[:2], (1, 2)), 'or', 'or')
+    plot_points(subplot, im1_array, im2_array, np.resize(x1, (1, 2)), np.resize(x2, (1, 2)), 'oc', 'oc')
 
 
 def plot_epipolar_lines(track, data, images=[], save_figs=False, single_column=False):
@@ -435,6 +438,11 @@ def plot_epipolar_lines(track, data, images=[], save_figs=False, single_column=F
 
     n = len(comb)
 
+    # Preload images to avoid loading them multiple times.
+    im_arrays = {}
+    for rec_im in rec_ims:
+        im_arrays[rec_im] = data.image_as_array(rec_im)
+
     for chunk_index, chunk in enumerate(list(chunks(comb, 4))):
         chunk_size = len(chunk)
         rows = chunk_size if single_column else (2 if chunk_size > 1 else 1)
@@ -450,8 +458,8 @@ def plot_epipolar_lines(track, data, images=[], save_figs=False, single_column=F
 
             print 'Plotting epipolar line for {0} - {1} ({2} / {3})'.format(im1, im2, chunk_index * 4 + index + 1, n)
 
-            im1_array = data.image_as_array(im1)
-            im2_array = data.image_as_array(im2)
+            im1_array = im_arrays[im1]
+            im2_array = im_arrays[im2]
 
             h1, w1, c = im1_array.shape
             h2, w2, c = im2_array.shape
