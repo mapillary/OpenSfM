@@ -224,6 +224,24 @@ def back_project(camera, shot, pixel, depth):
     return np.linalg.solve(A, b)
 
 
+def distort(camera, x, y):
+    """ Distorts a point (x, y) using the distortion coefficients of the camera.
+    :param camera: The camera.
+    :param x: The x coordinate.
+    :param y: The y coordinate.
+    :return: The distorted x and y coordinates.
+    """
+    l1 = camera.get('k1', 0.0)
+    l2 = camera.get('k2', 0.0)
+    r2 = x * x + y * y
+    distortion = 1.0 + r2 * (l1 + l2 * r2)
+
+    x_distort = distortion * x
+    y_distort = distortion * y
+
+    return x_distort, y_distort
+
+
 def reproject(camera, shot, point):
     ''' Reproject 3D point onto image plane given a camera
     '''
@@ -232,15 +250,13 @@ def reproject(camera, shot, point):
     xp = p[0] / p[2]
     yp = p[1] / p[2]
 
-    l1 = camera.get('k1', 0.0)
-    l2 = camera.get('k2', 0.0)
-    r2 = xp * xp + yp * yp
-    distortion = 1.0 + r2  * (l1 + l2  * r2)
+    x_unnormalized = camera['focal'] * xp
+    y_unnormalized = camera['focal'] * yp
 
-    x_reproject = camera['focal'] * distortion * xp
-    y_reproject = camera['focal'] * distortion * yp
+    x_reproject, y_reproject = distort(camera, x_unnormalized, y_unnormalized)
 
     return np.array([x_reproject, y_reproject])
+
 
 def single_reprojection_error(camera, shot, point, observation):
     ''' Reprojection error of a single points

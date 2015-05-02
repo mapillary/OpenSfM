@@ -126,18 +126,6 @@ def image_plane_corners(oc, KR_inv, width, height):
     return np.add(np.resize(oc, (3, 1)), corners)
 
 
-def camera_matrix(im, reconstruction):
-    """ Retrieves the camera matrix for an image.
-
-    :param im: The image name.
-    :param reconstruction: A reconstruction.
-    :return: The camera matrix.
-    """
-    shot = reconstruction['shots'][im]
-    camera = reconstruction['cameras'][shot['camera']]
-    return reconstruct.projection_matrix(camera, shot)
-
-
 def epipole(Pi, Cj):
     """ Calculates the epipole for another camera.
 
@@ -180,17 +168,23 @@ def epipolar_line(F, x):
     return np.dot(F, x)
 
 
-def line_equation_points(l, x0=-.5, xn=.5, N=2):
+def line_equation_points(l, xy_min=-1., xy_max=1., n=200):
     """ Calculates points on a line.
 
     :param l: Line equation
-    :param x0: Start x value.
-    :param xn: End x value.
-    :param N: Number of points.
+    :param xy_min: Smallest value.
+    :param xy_max: Largest value.
+    :param n: Number of points.
     :return: An array of points that lie on the line.
     """
-    x = np.linspace(x0, xn, N)
-    y = (-l[0] * x - l[2]) / l[1]
+
+    # Create linear space points along axis with most slope with respect to the other.
+    if abs(l[1]) < 1.e-4 or np.abs(l[0] / l[1]) > 1:
+        y = np.linspace(xy_min, xy_max, n)
+        x = (-l[1] * y - l[2]) / l[0]
+    else:
+        x = np.linspace(xy_min, xy_max, n)
+        y = (-l[0] * x - l[2]) / l[1]
 
     x = np.resize(x, (x.shape[0], 1))
     y = np.resize(y, (y.shape[0], 1))
@@ -250,6 +244,33 @@ def find_reconstruction(images, data):
     return reconstruction, rec_images
 
 
+def distort_points(camera, x):
+    """ Distorts a points using the distortion coefficients of the camera.
+    :param camera: The camera.
+    :param x: The points.
+    :return: Array of distorted points.
+    """
+    result = []
+
+    for point in x:
+        x_distort, y_distort = reconstruct.distort(camera, point[0], point[1])
+        result.append(np.array([x_distort, y_distort]))
+
+    return np.array(result)
+
+
+def shot_camera(im, reconstruction):
+    """ Retrieves the shot and camera for an image in a reconstruction.
+    :param im: The image name.
+    :param reconstruction: The reconstruction.
+    :return: The shot and the camera for the image.
+    """
+    shot = reconstruction['shots'][im]
+    camera = reconstruction['cameras'][shot['camera']]
+
+    return shot, camera
+
+
 def chunks(l, n):
     """ Separates a list in smaller chunks of items.
 
@@ -261,11 +282,10 @@ def chunks(l, n):
         yield l[i:i+n]
 
 
-def plot_image_feature(plot, im, x, reconstruction, point, fraction, data):
+def plot_image_feature(plot, im, x, reconstruction, point, fraction):
     xh = multiview.homogeneous(x)
 
-    shot = reconstruction['shots'][im]
-    camera = reconstruction['cameras'][shot['camera']]
+    shot, camera = shot_camera(im, reconstruction)
     P = reconstruct.projection_matrix(camera, shot)
     KR_inv = np.linalg.inv(P[:, :3])
 
@@ -322,7 +342,7 @@ def plot_track_ray(track, data):
     points = []
     for index, im in enumerate(rec_images):
         fraction = 1 if len(rec_images) == 1 else float(index) / (len(rec_images) - 1)
-        oc = plot_image_feature(plot, im, np.array(images[im]['feature']), reconstruction, point, fraction, data)
+        oc = plot_image_feature(plot, im, np.array(images[im]['feature']), reconstruction, point, fraction)
         points.append(oc)
 
     if point is not None:
@@ -349,27 +369,42 @@ def plot_track_ray(track, data):
     pl.show()
 
 
-def plot_epipolar_line(subplot, im1, im2, im1_array, im2_array, x1, x2, reconstruction):
-    P1 = camera_matrix(im1, reconstruction)
-    P2 = camera_matrix(im2, reconstruction)
+def plot_epipolar_geo(subplot, im1, im2, im1_array, im2_array, x1, x2, reconstruction):
+    shot1, camera1 = shot_camera(im1, reconstruction)
+    shot2, camera2 = shot_camera(im2, reconstruction)
 
-    C1 = multiview.homogeneous(reconstruct.optical_center(reconstruction['shots'][im1]))
-    C2 = multiview.homogeneous(reconstruct.optical_center(reconstruction['shots'][im2]))
+    P1 = reconstruct.projection_matrix(camera1, shot1)
+    P2 = reconstruct.projection_matrix(camera2, shot2)
+
+    C1 = multiview.homogeneous(reconstruct.optical_center(shot1))
+    C2 = multiview.homogeneous(reconstruct.optical_center(shot2))
 
     F = fundamental_matrix(P1, P2, C1)
 
-    l1 = epipolar_line(F.T, multiview.homogeneous(x2))
-    l2 = epipolar_line(F, multiview.homogeneous(x1))
+    # Undistort points before calculating epipolar line.
+    x1u = np.squeeze(multiview.undistort_points(camera1, np.reshape(x1, (2, 1))))
+    x2u = np.squeeze(multiview.undistort_points(camera2, np.reshape(x2, (2, 1))))
+
+    l1 = epipolar_line(F.T, multiview.homogeneous(x2u))
+    l2 = epipolar_line(F, multiview.homogeneous(x1u))
 
     lp1 = line_equation_points(l1)
     lp2 = line_equation_points(l2)
 
+    # Distort epipolar line points to transform them to epipolar curve points.
+    lp1d = distort_points(camera1, lp1)
+    lp2d = distort_points(camera2, lp2)
+
     e1 = epipole(P1, C2)
     e2 = epipole(P2, C1)
 
+    # Distort epipole.
+    e1d = np.array(reconstruct.distort(camera1, e1[0], e1[1]))
+    e2d = np.array(reconstruct.distort(camera2, e2[0], e2[1]))
+
     plot_points(subplot, im1_array, im2_array, np.resize(x1, (1, 2)), np.resize(x2, (1, 2)), 'oc', 'oc')
-    plot_points(subplot, im1_array, im2_array, np.resize(e1[:2], (1, 2)), np.resize(e2[:2], (1, 2)), 'or', 'or')
-    plot_points(subplot, im1_array, im2_array, lp1, lp2, 'r', 'r')
+    plot_points(subplot, im1_array, im2_array, np.resize(e1d[:2], (1, 2)), np.resize(e2d[:2], (1, 2)), 'or', 'or')
+    plot_points(subplot, im1_array, im2_array, lp1d, lp2d, 'r', 'r')
 
 
 def plot_epipolar_lines(track, data, images=[], save_figs=False, single_column=False):
@@ -427,7 +462,7 @@ def plot_epipolar_lines(track, data, images=[], save_figs=False, single_column=F
             x1 = np.array(track_ims[im1]['feature'])
             x2 = np.array(track_ims[im2]['feature'])
 
-            plot_epipolar_line(subplot, im1, im2, im1_array, im2_array, x1, x2, reconstruction)
+            plot_epipolar_geo(subplot, im1, im2, im1_array, im2_array, x1, x2, reconstruction)
 
         fig.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=0.93 if save_figs else 0.91,
                             wspace=0.04, hspace=0.14)
