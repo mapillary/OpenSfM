@@ -321,6 +321,23 @@ def matches(a1, a2, map_function):
     return m, nm
 
 
+def thresholds(im1_array, im2_array, key, default, data):
+    """ Retrieves the threshold value for a config key as well as the corresponding valude in pixels
+        for two image arrays.
+    :param im1_array: First image array.
+    :param im2_array: Second image array.
+    :param key: Threshold config key.
+    :param default: Default threshold value.
+    :param data: Dataset.
+    :return: The threshold config value and the value in pixels for each image.
+    """
+    threshold = data.config.get(key, default)
+    pixel_threshold1 = threshold * np.max(im1_array.shape[:2])
+    pixel_threshold2 = threshold * np.max(im2_array.shape[:2])
+
+    return threshold, pixel_threshold1, pixel_threshold2
+
+
 def create_matches_figure(im1, im2, data, save_figs=False, single_column=False):
     fig, rows, cols = \
         create_four_figure('Tracks ({0}): {1} - {2}'.format(data.feature_type().upper(), im1, im2), single_column)
@@ -361,13 +378,14 @@ def create_matches_figure(im1, im2, data, save_figs=False, single_column=False):
     r_matches1 = p1[robust_matches[:, 0]]
     r_matches2 = p2[robust_matches[:, 1]]
 
-    threshold = data.config.get('robust_matching_threshold', 0.006)
-    plot_matches_sub(fig, rows, cols, 3,
-                     'Robust matching inliers (calculated with RANSAC eight point algorithm): {0}. Threshold: {1}'
-                     .format(robust_matches.shape[0], threshold),
-                     im1_array, im2_array,
-                     r_matches1, r_matches2,
-                     'g', 'oy')
+    threshold, pixels1, pixels2 = thresholds(im1_array, im2_array, 'robust_matching_threshold', 0.006, data)
+    plot_matches_sub(
+        fig, rows, cols, 3,
+        'Robust matching inliers (RANSAC 7-point algorithm, calculated): {0}. Threshold: {1} ({2:.1f} - {3:.1f} pixels)'
+        .format(robust_matches.shape[0], threshold, pixels1, pixels2),
+        im1_array, im2_array,
+        r_matches1, r_matches2,
+        'g', 'oy')
 
     # Plot robust matching outliers.
     outliers = matches(symmetric_matches, robust_matches, lambda a: a)[1]
@@ -375,8 +393,8 @@ def create_matches_figure(im1, im2, data, save_figs=False, single_column=False):
     outliers2 = p2[outliers[:, 1]]
 
     plot_matches_sub(fig, rows, cols, 4,
-                     'Robust matching outliers (calculated): {0}. Threshold: {1}'
-                     .format(outliers.shape[0], threshold),
+                     'Robust matching outliers (calculated): {0}. Threshold: {1} ({2:.1f} - {3:.1f} pixels)'
+                     .format(outliers.shape[0], threshold, pixels1, pixels2),
                      im1_array, im2_array,
                      outliers1, outliers2,
                      'r', 'om')
@@ -408,8 +426,8 @@ def plot_common_tracks(fw, ip, index, p1, p2, tracks, robust_tracks, linked_trac
 def plot_opencv_find_homography(fw, ip, index, tracks, track_points1, track_points2, data):
     """ Plot inliers and outliers of the tracks from OpenCV find homography. """
 
-    threshold_h = data.config.get('homography_threshold', 0.004)
-    H, inliers = cv2.findHomography(track_points1, track_points2, cv2.RANSAC, threshold_h)
+    threshold, pixels1, pixels2 = thresholds(ip.im1_array, ip.im2_array, 'homography_threshold', 0.004, data)
+    H, inliers = cv2.findHomography(track_points1, track_points2, cv2.RANSAC, threshold)
 
     inliers = np.array(np.squeeze(inliers), np.bool)
 
@@ -420,9 +438,9 @@ def plot_opencv_find_homography(fw, ip, index, tracks, track_points1, track_poin
     outliers2 = track_points2[~inliers, :]
 
     title = \
-        'OpenCV find homography inliers (calculated): {0}. Outliers: {1}. Outlier ratio: {2:.3f}. Threshold: {3}'\
-        .format(
-            inliers.sum(), (~inliers).sum(), float((~inliers).sum()) / tracks.shape[0], threshold_h)
+        'OpenCV find homography inliers (calculated): {0}. Outliers: {1}. Outlier ratio: {2:.3f}. Threshold: {3} '\
+        .format(inliers.sum(), (~inliers).sum(), float((~inliers).sum()) / tracks.shape[0], threshold) + \
+        '({0:.1f} - {1:.1f} pixels)'.format(pixels1, pixels2)
 
     subplot = plot_matches_sub(fw.figure, fw.rows, fw.cols, index, title, ip.im1_array, ip.im2_array,
                                outliers1, outliers2, 'r', 'om')
@@ -435,7 +453,7 @@ def plot_two_view_reconstruction(fw, ip, index, track_points1, track_points2, da
     f1 = data.load_exif(ip.im1)['focal_prior']
     f2 = data.load_exif(ip.im2)['focal_prior']
 
-    threshold = data.config.get('five_point_algo_threshold', 0.006)
+    threshold, pixels1, pixels2 = thresholds(ip.im1_array, ip.im2_array, 'five_point_algo_threshold', 0.006, data)
     R, t, cov, inliers = csfm.two_view_reconstruction(track_points1, track_points2, f1, f2, threshold)
 
     inliers1 = track_points1[inliers, :]
@@ -446,8 +464,9 @@ def plot_two_view_reconstruction(fw, ip, index, track_points1, track_points2, da
     outliers1 = track_points1[outliers, :]
     outliers2 = track_points2[outliers, :]
 
-    title = 'CSfM two view reconstruction inliers (calculated): {0}. Outliers: {1}. Threshold: {2}'.format(
-        len(inliers), outliers.sum(), threshold)
+    title = 'CSfM two view reconstruction inliers (calculated): {0}. Outliers: {1}. Threshold: {2} '.format(
+        len(inliers), outliers.sum(), threshold) + \
+        '({0:.1f} - {1:.1f} pixels)'.format(pixels1, pixels2)
 
     subplot = plot_matches_sub(fw.figure, fw.rows, fw.cols, index, title, ip.im1_array, ip.im2_array,
                                inliers1, inliers2, 'c', 'ob')
@@ -460,6 +479,8 @@ def plot_bootstrapped_reconstruction(fw, ip, index, p1, p2, robust_tracks, linke
     print_reset = redirect_print()
     reconstruction = reconstruct.bootstrap_reconstruction(data, graph, ip.im1, ip.im2)
     reset_print(print_reset)
+
+    threshold, pixels1, pixels2 = thresholds(ip.im1_array, ip.im2_array, 'triangulation_threshold', 0.004, data)
 
     if reconstruction:
         robust_rec_tracks, failed_robust = reconstruction_tracks(robust_tracks, reconstruction)
@@ -476,14 +497,13 @@ def plot_bootstrapped_reconstruction(fw, ip, index, p1, p2, robust_tracks, linke
         failed_rec_points2 = p2[failed_rec_tracks[:, 2]]
 
         rec_title = \
-            'Reconstructed 3D points (bootstrapped): {0}. Robust {1}. Linked: {2}. Failed: {3}. '.format(
+            'Bootstrapped 3D points: {0}. Robust {1}. Linked: {2}. Failed: {3}. '.format(
                 len(reconstruction['points']),
                 robust_rec_tracks.shape[0],
                 non_robust_rec_tracks.shape[0],
                 failed_rec_tracks.shape[0]) + \
-            'Triangulation threshold: {0}. Min ray angle: {1}.'.format(
-                data.config.get('triangulation_threshold', 0.004),
-                data.config.get('triangulation_min_ray_angle', 2.0))
+            'Triangulation threshold: {0} ({1:.1f} - {2:.1f} pixels). Min ray angle: {3}.'.format(
+                threshold, pixels1, pixels2, data.config.get('triangulation_min_ray_angle', 2.0))
 
         rec_plot = plot_matches_sub(fw.figure, fw.rows, fw.cols, index, rec_title, ip.im1_array, ip.im2_array,
                                     robust_rec_points1, robust_rec_points2, 'c', 'ob')
@@ -491,11 +511,9 @@ def plot_bootstrapped_reconstruction(fw, ip, index, p1, p2, robust_tracks, linke
         plot_matches(rec_plot, ip.im1_array, ip.im2_array, failed_rec_points1, failed_rec_points2, 'r', 'om')
     else:
         failed_title = \
-            'Bootstrap failed. Less than {0} points. Triangulation threshold: {1}. Min ray angle: {2}.'\
-            .format(
-                data.config.get('five_point_algo_min_inliers', 50),
-                data.config.get('triangulation_threshold', 0.004),
-                data.config.get('triangulation_min_ray_angle', 2.0))
+            'Bootstrap failed. Less than {0} points. Triangulation threshold: {1} ({2:.1f} - {3:.1f} pixels).'.format(
+                data.config.get('five_point_algo_min_inliers', 50), threshold, pixels1, pixels2) +\
+            'Min ray angle: {0}.'.format(data.config.get('triangulation_min_ray_angle', 2.0))
         create_subplot(fw.figure, fw.rows, fw.cols, index, failed_title, 100, 100)
 
 
