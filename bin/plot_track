@@ -90,18 +90,21 @@ def plot_plane(plot, c):
     """
 
     triangles = mtri.Triangulation(c[0, :], c[1, :])
-    plot.plot_trisurf(triangles, c[2, :], color='b', alpha=0.2, linewidth=0.1)
+    plot.plot_trisurf(triangles, c[2, :], color='b', alpha=0.1, linewidth=0., shade=False)
 
 
-def plot_camera_lines(plot, oc, corners):
-    """ Plots camera lines from optical center to image plane corners.
+def plot_camera(plot, oc, c):
+    """ Plots camera lines from optical center to image plane corners as well as the image plane.
     :param plot: The plot.
     :param oc: The optical center.
-    :param corners: The camera plane corners.
+    :param c: The camera plane corners.
     """
-    points = np.array([oc, corners[:, 0], oc, corners[:, 1], oc, corners[:, 2], oc, corners[:, 3], oc])
 
-    plot.plot(points[:, 0], points[:, 1], points[:, 2], c='k', linewidth=1, alpha=0.3)
+    points = np.array([oc, c[:, 0], oc, c[:, 1], oc, c[:, 2], oc, c[:, 3],
+                       c[:, 0], c[:, 1], c[:, 2], c[:, 3]])
+
+    plot.plot(points[:, 0], points[:, 1], points[:, 2], c='k', linewidth=1, alpha=0.25)
+    plot_plane(plot, c)
 
 
 def line_points(p, d, l):
@@ -329,11 +332,8 @@ def plot_image_feature(plot, im, x, reconstruction, point, fraction):
     vd = reconstruct.viewing_direction(shot)
     cs = image_plane_corners(oc, KR_inv, camera['width'], camera['height'])
 
-    # Plot image plane from image plane corners
-    plot_plane(plot, cs)
-
-    # Plot camera lines
-    plot_camera_lines(plot, oc, cs)
+    # Plot camera lines and image plane
+    plot_camera(plot, oc, cs)
 
     # Plot principal point
     principal_ray_dir = vd / np.linalg.norm(vd)
