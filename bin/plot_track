@@ -93,6 +93,17 @@ def plot_plane(plot, c):
     plot.plot_trisurf(triangles, c[2, :], color='b', alpha=0.2, linewidth=0.1)
 
 
+def plot_camera_lines(plot, oc, corners):
+    """ Plots camera lines from optical center to image plane corners.
+    :param plot: The plot.
+    :param oc: The optical center.
+    :param corners: The camera plane corners.
+    """
+    points = np.array([oc, corners[:, 0], oc, corners[:, 1], oc, corners[:, 2], oc, corners[:, 3], oc])
+
+    plot.plot(points[:, 0], points[:, 1], points[:, 2], c='k', linewidth=1, alpha=0.3)
+
+
 def line_points(p, d, l):
     """ Calculates the start and end point for a line.
 
@@ -321,8 +332,8 @@ def plot_image_feature(plot, im, x, reconstruction, point, fraction):
     # Plot image plane from image plane corners
     plot_plane(plot, cs)
 
-    # Plot optical center
-    plot_point(plot, oc, 'yellow')
+    # Plot camera lines
+    plot_camera_lines(plot, oc, cs)
 
     # Plot principal point
     principal_ray_dir = vd / np.linalg.norm(vd)
