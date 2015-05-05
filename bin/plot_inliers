@@ -196,7 +196,7 @@ def reprojection_errors(reprojections, observations, scale):
     """
 
     if not len(reprojections):
-        return np.empty((0, 2), np.float), np.zeros((2,), np.float), np.zeros((2.), np.float), 0, 0
+        return np.empty((0, 2), np.float), np.zeros((2,), np.float), np.zeros((2.), np.float), 0, 0, np.nan
 
     errors = scale * np.subtract(reprojections, observations)
     mean = np.mean(errors, axis=0)
@@ -206,7 +206,10 @@ def reprojection_errors(reprojections, observations, scale):
     min_norm = np.min(errors_norm)
     max_norm = np.max(errors_norm)
 
-    return errors, mean, std, min_norm, max_norm
+    observations_norm = scale * np.linalg.norm(observations, axis=1)
+    corr = np.corrcoef(observations_norm, errors_norm)
+
+    return errors, mean, std, min_norm, max_norm, corr[0, 1]
 
 
 def triangulate_tracks(tracks, reconstruction, graph, min_ray_angle):
@@ -754,8 +757,8 @@ def create_reprojection_error_figure(im, data, save_figs=False, single_column=Fa
     triang_non = p[non_rec_tracks[succeeded, 1]]
 
     scale = np.max(im_array.shape[:2])
-    rec_errors, rec_mean, rec_std, rec_min, rec_max = reprojection_errors(reproj_rec, rec_points, scale)
-    non_errors, non_mean, non_std, non_min, non_max = reprojection_errors(reproj_non, triang_non, scale)
+    rec_errors, rec_mean, rec_std, rec_min, rec_max, rec_corr = reprojection_errors(reproj_rec, rec_points, scale)
+    non_errors, non_mean, non_std, non_min, non_max, non_corr = reprojection_errors(reproj_non, triang_non, scale)
 
     axis_max = np.max(np.abs(np.vstack((rec_errors, non_errors)))) + 1
 
@@ -764,12 +767,14 @@ def create_reprojection_error_figure(im, data, save_figs=False, single_column=Fa
 
     triang_thld = data.config.get('triangulation_threshold', 0.004)
     bundle_thld = data.config.get('bundle_outlier_threshold', 0.008)
-    thld = 'Thold: Triangulation: {0:.1f} ({1}). Bundle outlier: {2:.1f} ({3}).'\
+    thld_title = 'Threshold: Triangulation: {0:.1f} ({1}). Bundle outlier: {2:.1f} ({3}).'\
         .format(scale * triang_thld, triang_thld, scale * bundle_thld, bundle_thld)
+    corr_title = ' Distance to principal point - Error norm correlation: {0:.3f}'
 
     rec_sub = create_subplot(
         fw.figure, fw.rows, fw.cols, 1,
-        title + error_title.format(rec_mean[0], rec_mean[1], rec_std[0], rec_std[1], rec_max, rec_min) + '\n' + thld,
+        title + error_title.format(rec_mean[0], rec_mean[1], rec_std[0], rec_std[1], rec_max, rec_min) + '\n' +
+        thld_title + '\n' + corr_title.format(rec_corr) if rec_corr is not np.nan else '',
         (-axis_max, axis_max), (-axis_max, axis_max),
         aspect='equal', axis=True, grid=True)
 
@@ -781,7 +786,8 @@ def create_reprojection_error_figure(im, data, save_figs=False, single_column=Fa
 
     non_rec_sub = create_subplot(
         fw.figure, fw.rows, fw.cols, 2,
-        title + error_title.format(non_mean[0], non_mean[1], non_std[0], non_std[1], non_max, non_min),
+        title + error_title.format(non_mean[0], non_mean[1], non_std[0], non_std[1], non_max, non_min) +
+        '\n' + corr_title.format(non_corr) if non_corr is not np.nan else '',
         (-axis_max, axis_max), (-axis_max, axis_max),
         aspect='equal', axis=True, grid=True)
 
@@ -789,7 +795,7 @@ def create_reprojection_error_figure(im, data, save_figs=False, single_column=Fa
     non_rec_sub.plot(non_errors[:, 0], non_errors[:, 1], 'om')
 
     display_figure(fig, save_figs, data, '{0}_{1}_error_dist.jpg'.format(im, data.feature_type()),
-                   bottom=0.05, top=0.91 if single_column else 0.86, hspace=0.2)
+                   bottom=0.05, top=0.90 if single_column else 0.85, hspace=0.22)
 
 
 if __name__ == "__main__":
