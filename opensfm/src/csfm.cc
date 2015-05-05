@@ -3,7 +3,7 @@
 #include <vector>
 
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
-#include <numpy/ndarrayobject.h> 
+#include <numpy/ndarrayobject.h>
 
 #include "types.h"
 #include "hahog.cc"
@@ -23,7 +23,7 @@ static int* numpy_import_array_wrapper()
 
 BOOST_PYTHON_MODULE(csfm) {
   using namespace boost::python;
-  
+
   google::InitGoogleLogging("csfm");
   boost::python::numeric::array::set_module_and_type("numpy", "ndarray");
   numpy_import_array_wrapper();
@@ -95,6 +95,7 @@ BOOST_PYTHON_MODULE(csfm) {
     .def("set_unit_translation_shot", &BundleAdjuster::SetUnitTranslationShot)
     .def("set_loss_function", &BundleAdjuster::SetLossFunction)
     .def("set_reprojection_error_sd", &BundleAdjuster::SetReprojectionErrorSD)
+    .def("set_max_num_iterations", &BundleAdjuster::SetMaxNumIterations)
     .def("set_internal_parameters_prior_sd", &BundleAdjuster::SetInternalParametersPriorSD)
     .def("set_compute_covariances", &BundleAdjuster::SetComputeCovariances)
     .def("get_covariance_estimation_valid", &BundleAdjuster::GetCovarianceEstimationValid)
@@ -110,7 +111,7 @@ BOOST_PYTHON_MODULE(csfm) {
     .def_readwrite("focal_prior", &BACamera::focal_prior)
     .def_readwrite("id", &BACamera::id)
   ;
-  
+
   class_<BAShot>("BAShot")
     .add_property("rx", &BAShot::GetRX, &BAShot::SetRX)
     .add_property("ry", &BAShot::GetRY, &BAShot::SetRY)
