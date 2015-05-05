@@ -336,6 +336,7 @@ class BundleAdjuster {
     k2_sd_ = 1;
     compute_covariances_ = false;
     covariance_estimation_valid_ = false;
+    max_num_iterations_ = 50;
   }
 
   virtual ~BundleAdjuster() {}
@@ -359,7 +360,7 @@ class BundleAdjuster {
       double k2,
       double focal_prior,
       bool constant) {
-    BACamera c;   
+    BACamera c;
     c.id = id;
     c.parameters[BA_CAMERA_FOCAL] = focal;
     c.parameters[BA_CAMERA_K1] = k1;
@@ -495,6 +496,10 @@ class BundleAdjuster {
     reprojection_error_sd_ = sd;
   }
 
+  void SetMaxNumIterations(int miter) {
+    max_num_iterations_ = miter;
+  }
+
   void SetInternalParametersPriorSD(double focal_sd, double k1_sd, double k2_sd) {
     focal_prior_sd_ = focal_sd;
     k1_sd_ = k1_sd;
@@ -552,7 +557,7 @@ class BundleAdjuster {
       // Each Residual block takes a point and a camera as input and outputs a 2
       // dimensional residual. Internally, the cost function stores the observed
       // image location and compares the reprojection against the observation.
-      ceres::CostFunction* cost_function = 
+      ceres::CostFunction* cost_function =
           new ceres::AutoDiffCostFunction<SnavelyReprojectionError, 2, 3, 6, 3>(
               new SnavelyReprojectionError(observations_[i].coordinates[0],
                                            observations_[i].coordinates[1],
@@ -567,7 +572,7 @@ class BundleAdjuster {
 
     // Add rotation priors
     for (int i = 0; i < rotation_priors_.size(); ++i) {
-      ceres::CostFunction* cost_function = 
+      ceres::CostFunction* cost_function =
           new ceres::AutoDiffCostFunction<RotationPriorError, 3, 6>(
               new RotationPriorError(rotation_priors_[i].rotation,
                                      rotation_priors_[i].std_deviation));
@@ -579,7 +584,7 @@ class BundleAdjuster {
 
     // Add translation priors
     for (int i = 0; i < translation_priors_.size(); ++i) {
-      ceres::CostFunction* cost_function = 
+      ceres::CostFunction* cost_function =
           new ceres::AutoDiffCostFunction<TranslationPriorError, 3, 6>(
               new TranslationPriorError(translation_priors_[i].translation,
                                         translation_priors_[i].std_deviation));
@@ -591,7 +596,7 @@ class BundleAdjuster {
 
     // Add point position priors
     for (int i = 0; i < point_position_priors_.size(); ++i) {
-      ceres::CostFunction* cost_function = 
+      ceres::CostFunction* cost_function =
           new ceres::AutoDiffCostFunction<PointPositionPriorError, 3, 3>(
               new PointPositionPriorError(point_position_priors_[i].position,
                                           point_position_priors_[i].std_deviation));
@@ -604,7 +609,7 @@ class BundleAdjuster {
 
     // Add internal parameter priors blocks
     for (auto &i : cameras_) {
-      ceres::CostFunction* cost_function = 
+      ceres::CostFunction* cost_function =
           new ceres::AutoDiffCostFunction<InternalParametersPriorError, 3, 3>(
               new InternalParametersPriorError(i.second.focal_prior, focal_prior_sd_, k1_sd_, k2_sd_));
 
@@ -615,17 +620,17 @@ class BundleAdjuster {
 
     // Add unit translation block
     if (unit_translation_shot_) {
-      ceres::CostFunction* cost_function = 
+      ceres::CostFunction* cost_function =
           new ceres::AutoDiffCostFunction<UnitTranslationPriorError, 1, 6>(
               new UnitTranslationPriorError());
 
       problem.AddResidualBlock(cost_function,
                                NULL,
-                               unit_translation_shot_->parameters);      
+                               unit_translation_shot_->parameters);
     }
 
     // for (auto &i : shots_) {
-    //   ceres::CostFunction* cost_function = 
+    //   ceres::CostFunction* cost_function =
     //       new ceres::AutoDiffCostFunction<GPSPriorError, 3, 6>(
     //           new GPSPriorError(i.second.gps_position[0],
     //                             i.second.gps_position[1],
@@ -643,6 +648,7 @@ class BundleAdjuster {
     options.linear_solver_type = ceres::SPARSE_SCHUR;
     options.num_threads = 8;
     options.num_linear_solver_threads = 8;
+    options.max_num_iterations = max_num_iterations_;
 
     ceres::Solve(options, &problem, &last_run_summary_);
 
@@ -714,6 +720,7 @@ class BundleAdjuster {
   double k2_sd_;
   bool compute_covariances_;
   bool covariance_estimation_valid_;
+  int max_num_iterations_;
 
 
   ceres::Solver::Summary last_run_summary_;
