@@ -759,12 +759,17 @@ def create_reprojection_error_figure(im, data, save_figs=False, single_column=Fa
 
     axis_max = np.max(np.abs(np.vstack((rec_errors, non_errors)))) + 1
 
-    title = 'Reconstructed track errors: {0}.'.format(rec_tracks.shape[0])
-    error_title = " Mean: ({0:.1f}, {1:.1f}). Std: ({2:.1f}, {3:.1f}). Max norm: {4:.1f}. Min norm: {5:.1f}."
+    title = 'Reconstructed tracks: {0}. '.format(rec_tracks.shape[0])
+    error_title = "Mean: ({0:.1f}, {1:.1f}). Std: ({2:.1f}, {3:.1f}). Max norm: {4:.1f}. Min norm: {5:.1f}."
+
+    triang_thld = data.config.get('triangulation_threshold', 0.004)
+    bundle_thld = data.config.get('bundle_outlier_threshold', 0.008)
+    thld = 'Thold: Triangulation: {0:.1f} ({1}). Bundle outlier: {2:.1f} ({3}).'\
+        .format(scale * triang_thld, triang_thld, scale * bundle_thld, bundle_thld)
 
     rec_sub = create_subplot(
         fw.figure, fw.rows, fw.cols, 1,
-        title + error_title.format(rec_mean[0], rec_mean[1], rec_std[0], rec_std[1], rec_max, rec_min),
+        title + error_title.format(rec_mean[0], rec_mean[1], rec_std[0], rec_std[1], rec_max, rec_min) + '\n' + thld,
         (-axis_max, axis_max), (-axis_max, axis_max),
         aspect='equal', axis=True, grid=True)
 
@@ -772,7 +777,7 @@ def create_reprojection_error_figure(im, data, save_figs=False, single_column=Fa
     rec_sub.plot(zero, zero, '+k')
     rec_sub.plot(rec_errors[:, 0], rec_errors[:, 1], 'ob')
 
-    title = 'Failed track errors: {0} / {1}.'.format(np.sum(succeeded), non_rec_tracks.shape[0])
+    title = 'Failed tracks: {0} / {1}. '.format(np.sum(succeeded), non_rec_tracks.shape[0])
 
     non_rec_sub = create_subplot(
         fw.figure, fw.rows, fw.cols, 2,
