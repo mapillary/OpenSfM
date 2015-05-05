@@ -130,6 +130,12 @@ def add_gps_position(data, reconstruction, image):
 
     reconstruction['shots'][image]['exif_orientation'] = exif.get('orientation', 1)
 
+    if 'accelerometer' in exif:
+        reconstruction['shots'][image]['accelerometer'] = exif['accelerometer']
+
+    if 'compass' in exif:
+        reconstruction['shots'][image]['compass'] = exif['compass']
+
 
 def bootstrap_reconstruction(data, graph, im1, im2):
     '''Starts a reconstruction using two shots.
