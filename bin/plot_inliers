@@ -760,7 +760,7 @@ def create_reprojection_error_figure(im, data, save_figs=False, single_column=Fa
     rec_errors, rec_mean, rec_std, rec_min, rec_max, rec_corr = reprojection_errors(reproj_rec, rec_points, scale)
     non_errors, non_mean, non_std, non_min, non_max, non_corr = reprojection_errors(reproj_non, triang_non, scale)
 
-    axis_max = np.max(np.abs(np.vstack((rec_errors, non_errors)))) + 1
+    axis_max = 1.05 * np.max(np.abs(np.vstack((rec_errors, non_errors))))
 
     title = 'Reconstructed tracks: {0}. '.format(rec_tracks.shape[0])
     error_title = "Mean: ({0:.1f}, {1:.1f}). Std: ({2:.1f}, {3:.1f}). Max norm: {4:.1f}. Min norm: {5:.1f}."
