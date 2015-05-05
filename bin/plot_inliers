@@ -94,17 +94,25 @@ def plot_matches(plot, im1, im2, p1, p2, line_format='c', point_format='ob'):
     plot_points(plot, im1, p1, point_format, im2, p2, point_format)
 
 
-def create_subplot(figure, rows, columns, index, title, width, height, font_size=12):
-    """ Creates a subplot with the supplied width. """
+def create_subplot(figure, rows, columns, index, title, x_lim, y_lim, font_size=12, axis=False, aspect=None, grid=False):
+    """ Creates a subplot. """
     subplot = figure.add_subplot(rows, columns, index)
-    subplot.axis('off')
-    pl.xlim(0, width)
-    pl.ylim(height, 0)
+    pl.xlim(x_lim[0], x_lim[1])
+    pl.ylim(y_lim[0], y_lim[1])
     subplot.text(0.5, 1.04,
                  title,
                  horizontalalignment='center',
                  fontsize=font_size,
                  transform=subplot.transAxes)
+
+    if not axis:
+        subplot.axis('off')
+
+    if aspect is not None:
+        subplot.set_aspect(aspect)
+
+    if grid:
+        pl.grid(b=True, which='major', color='0.3')
 
     return subplot
 
@@ -122,7 +130,7 @@ def create_four_figure(title, single_column):
 def plot_points_sub(figure, rows, columns, index, title, im1, im2, p1, p2, point_format1, point_format2):
     """ Creates a subplot with the images and plots the points in each image. """
     subplot = create_subplot(figure, rows, columns, index, title,
-                             im1.shape[1] + im2.shape[1], np.max([im1.shape[0], im2.shape[0]]))
+                             (0, im1.shape[1] + im2.shape[1]), (np.max([im1.shape[0], im2.shape[0]]), 0))
 
     show_images(subplot, im1, im2)
     plot_points(subplot, im1, p1, point_format1, im2, p2, point_format2)
@@ -133,7 +141,7 @@ def plot_points_sub(figure, rows, columns, index, title, im1, im2, p1, p2, point
 def plot_matches_sub(figure, rows, columns, index, title, im1, im2, p1, p2, line_format, point_format):
     """ Creates a subplot with the images and plots the points as matches. """
     subplot = create_subplot(figure, rows, columns, index, title,
-                             im1.shape[1] + im2.shape[1], np.max([im1.shape[0], im2.shape[0]]))
+                             (0, im1.shape[1] + im2.shape[1]), (np.max([im1.shape[0], im2.shape[0]]), 0))
 
     show_images(subplot, im1, im2)
     plot_matches(subplot, im1, im2, p1, p2, line_format, point_format)
@@ -141,14 +149,15 @@ def plot_matches_sub(figure, rows, columns, index, title, im1, im2, p1, p2, line
     return subplot
 
 
-def display_figure(figure, save_figs, data=None, file_name=''):
+def display_figure(figure, save_figs, data=None, file_name='',
+                   left=0.01, bottom=0.01, right=0.99, top=0.93, wspace=0.04, hspace=0.14):
     """ Displays or saves a figure. """
-    figure.subplots_adjust(left=0.01,
-                           bottom=0.01,
-                           right=0.99,
-                           top=0.93 if save_figs else 0.91,
-                           wspace=0.04,
-                           hspace=0.14)
+    figure.subplots_adjust(left=left,
+                           bottom=bottom,
+                           right=right,
+                           top=top if save_figs else top - 0.02,
+                           wspace=wspace,
+                           hspace=hspace)
 
     if save_figs:
         p = data.data_path + '/plot_inliers'
@@ -176,6 +185,28 @@ def reproject_tracks(im, tracks, reconstruction):
         p.append(reconstruct.reproject(camera, shot, point))
 
     return np.array(p) if len(p) else np.empty((0, 2), int)
+
+
+def reprojection_errors(reprojections, observations, scale):
+    """ Calculates reprojection errors with respect to observations.
+    :param reprojections: The reprojections.
+    :param observations: The observations.
+    :param scale: The scale for the errors.
+    :return: The scaled errors, mean, standard deviation, minimum error norm and maximum error norm.
+    """
+
+    if not len(reprojections):
+        return np.empty((0, 2), np.float), np.zeros((2,), np.float), np.zeros((2.), np.float), 0, 0
+
+    errors = scale * np.subtract(reprojections, observations)
+    mean = np.mean(errors, axis=0)
+    std = np.std(errors, axis=0)
+
+    errors_norm = np.linalg.norm(errors, axis=1)
+    min_norm = np.min(errors_norm)
+    max_norm = np.max(errors_norm)
+
+    return errors, mean, std, min_norm, max_norm
 
 
 def triangulate_tracks(tracks, reconstruction, graph, min_ray_angle):
@@ -514,7 +545,7 @@ def plot_bootstrapped_reconstruction(fw, ip, index, p1, p2, robust_tracks, linke
             'Bootstrap failed. Less than {0} points. Triangulation threshold: {1} ({2:.1f} - {3:.1f} pixels).'.format(
                 data.config.get('five_point_algo_min_inliers', 50), threshold, pixels1, pixels2) +\
             'Min ray angle: {0}.'.format(data.config.get('triangulation_min_ray_angle', 2.0))
-        create_subplot(fw.figure, fw.rows, fw.cols, index, failed_title, 100, 100)
+        create_subplot(fw.figure, fw.rows, fw.cols, index, failed_title, (0, 100), (0, 100))
 
 
 def create_tracks_figure(im1, im2, data, save_figs=False, single_column=False):
@@ -563,8 +594,8 @@ def plot_reconstructed_tracks(fw, ip, index, p1, p2, tracks, rec_tracks, non_rec
         .format(tracks.shape[0], rec_tracks.shape[0], tracks.shape[0] - rec_tracks.shape[0])
 
     subplot = create_subplot(fw.figure, fw.rows, fw.cols, index, title,
-                             ip.im1_array.shape[1] + ip.im2_array.shape[1],
-                             np.max([ip.im1_array.shape[0], ip.im2_array.shape[0]]),
+                             (0, ip.im1_array.shape[1] + ip.im2_array.shape[1]),
+                             (np.max([ip.im1_array.shape[0], ip.im2_array.shape[0]]), 0),
                              15)
 
     show_images(subplot, ip.im1_array, ip.im2_array)
@@ -597,8 +628,8 @@ def plot_reprojected_tracks(fw, ip, index, p1, p2, tracks, rec_tracks, non_rec_t
         .format(non_rec_tracks.shape[0], succeeded.sum(), (~succeeded).sum(), min_ray_angle)
 
     subplot = create_subplot(fw.figure, fw.rows, fw.cols, index, title,
-                             ip.im1_array.shape[1] + ip.im2_array.shape[1],
-                             np.max([ip.im1_array.shape[0], ip.im2_array.shape[0]]),
+                             (0, ip.im1_array.shape[1] + ip.im2_array.shape[1]),
+                             (np.max([ip.im1_array.shape[0], ip.im2_array.shape[0]]), 0),
                              font_size=15)
     show_images(subplot, ip.im1_array, ip.im2_array)
     plot_points(subplot, ip.im1_array, rec_track_points1, 'ob', ip.im2_array, rec_track_points2, 'ob')
@@ -665,7 +696,7 @@ def create_complete_reconstruction_figure(im, data, save_figs=False, single_colu
     rec_title = 'Tracks: {0}. Included tracks (loaded): {1} with reprojected points (calculated).'\
         .format(tracks.shape[0], rec_tracks.shape[0])
 
-    rec_plot = create_subplot(fw.figure, fw.rows, fw.cols, 1, rec_title, im_array.shape[1], im_array.shape[0])
+    rec_plot = create_subplot(fw.figure, fw.rows, fw.cols, 1, rec_title, (0, im_array.shape[1]), (im_array.shape[0], 0))
     rec_plot.imshow(im_array)
     plot_points(rec_plot, im_array, rec_track_points, 'ob')
     plot_points(rec_plot, im_array, rp, '+w')
@@ -681,7 +712,8 @@ def create_complete_reconstruction_figure(im, data, save_figs=False, single_colu
         'Rejected tracks: {0}. Re-triangulated: {1}. Failed: {2} (behind a camera or min ray angle: {3} deg).'\
         .format(non_rec_tracks.shape[0], succeeded.sum(), (~succeeded).sum(), min_ray_angle)
 
-    non_rec_plot = create_subplot(fw.figure, fw.rows, fw.cols, 2, non_rec_title, im_array.shape[1], im_array.shape[0])
+    non_rec_plot = create_subplot(fw.figure, fw.rows, fw.cols, 2, non_rec_title,
+                                  (0, im_array.shape[1]), (im_array.shape[0], 0))
     non_rec_plot.imshow(im_array)
     plot_points(non_rec_plot, im_array, triangulated_points, 'om')
     plot_points(non_rec_plot, im_array, excluded_points, 'or')
@@ -692,7 +724,7 @@ def create_complete_reconstruction_figure(im, data, save_figs=False, single_colu
 
 def create_reprojection_error_figure(im, data, save_figs=False, single_column=False):
     fig = pl.figure(figsize=(9, 18) if single_column else (18, 9))
-    fig.suptitle('Reprojection error distribution ({0}): {1}'.format(data.feature_type().upper(), im),
+    fig.suptitle('Reprojection error distribution in pixels ({0}): {1}'.format(data.feature_type().upper(), im),
                  fontsize=14, fontweight='bold')
     fw = FigureWrapper(fig, 2 if single_column else 1, 1 if single_column else 2)
 
@@ -711,88 +743,48 @@ def create_reprojection_error_figure(im, data, save_figs=False, single_column=Fa
         return
 
     rec_tracks, non_rec_tracks = reconstruction_tracks(tracks, reconstruction)
-    rec_track_points = p[rec_tracks[:, 1]]
+    rec_points = p[rec_tracks[:, 1]]
 
-    rp = reproject_tracks(im, rec_tracks[:, 0], reconstruction)
-
-    s = np.max(im_array.shape[:2])
-
-    rec_errors = s * np.subtract(rec_track_points, rp)
-    rec_mean_error = np.mean(rec_errors, axis=0)
-    rec_std_error = np.std(rec_errors, axis=0)
-
-    rec_errors_norm = np.linalg.norm(rec_errors, axis=1)
-    rec_min_error = np.min(rec_errors_norm)
-    rec_max_error = np.max(rec_errors_norm)
+    reproj_rec = reproject_tracks(im, rec_tracks[:, 0], reconstruction)
 
     min_ray_angle = data.config.get('triangulation_min_ray_angle', 2.0)
     succeeded = triangulate_tracks(non_rec_tracks[:, 0], reconstruction, graph, min_ray_angle)
-    reprojected = reproject_tracks(im, non_rec_tracks[succeeded, 0], reconstruction)
+    reproj_non = reproject_tracks(im, non_rec_tracks[succeeded, 0], reconstruction)
 
-    triangulated_points = p[non_rec_tracks[succeeded, 1]]
+    triang_non = p[non_rec_tracks[succeeded, 1]]
 
-    non_rec_errors = s * np.subtract(reprojected, triangulated_points)
-    non_rec_mean_error = np.mean(non_rec_errors, axis=0)
-    non_rec_std_error = np.std(non_rec_errors, axis=0)
+    scale = np.max(im_array.shape[:2])
+    rec_errors, rec_mean, rec_std, rec_min, rec_max = reprojection_errors(reproj_rec, rec_points, scale)
+    non_errors, non_mean, non_std, non_min, non_max = reprojection_errors(reproj_non, triang_non, scale)
 
-    non_rec_errors_norm = np.linalg.norm(non_rec_errors, axis=1)
-    non_rec_min_error = np.min(non_rec_errors_norm)
-    non_rec_max_error = np.max(non_rec_errors_norm)
-
-    axis_max = np.max(np.abs(np.vstack((rec_errors, non_rec_errors)))) + 1
-
-    rec_sub = fig.add_subplot(fw.rows, fw.cols, 1)
-    pl.xlim(-axis_max, axis_max)
-    pl.ylim(-axis_max, axis_max)
+    axis_max = np.max(np.abs(np.vstack((rec_errors, non_errors)))) + 1
 
     title = 'Reconstructed track errors: {0}.'.format(rec_tracks.shape[0])
-    error_title = " Mean: ({0:.1f}, {1:.1f}). Std: ({2:.1f}, {3:.1f}). Max dist: {4:.1f}. Min dist: {5:.1f}."
-    rec_sub.text(0.5, 1.04,
-                 title + error_title.format(rec_mean_error[0], rec_mean_error[1], rec_std_error[0], rec_std_error[1],
-                                            rec_max_error, rec_min_error),
-                 horizontalalignment='center',
-                 fontsize=12,
-                 transform=rec_sub.transAxes)
-    rec_sub.set_aspect('equal')
+    error_title = " Mean: ({0:.1f}, {1:.1f}). Std: ({2:.1f}, {3:.1f}). Max norm: {4:.1f}. Min norm: {5:.1f}."
 
-    pl.grid(b=True, which='major', color='0.3')
+    rec_sub = create_subplot(
+        fw.figure, fw.rows, fw.cols, 1,
+        title + error_title.format(rec_mean[0], rec_mean[1], rec_std[0], rec_std[1], rec_max, rec_min),
+        (-axis_max, axis_max), (-axis_max, axis_max),
+        aspect='equal', axis=True, grid=True)
 
-    rec_sub.plot(np.array([0]), np.array([0]), '+k')
+    zero = np.array([0])
+    rec_sub.plot(zero, zero, '+k')
     rec_sub.plot(rec_errors[:, 0], rec_errors[:, 1], 'ob')
 
+    title = 'Failed track errors: {0} / {1}.'.format(np.sum(succeeded), non_rec_tracks.shape[0])
 
-    non_rec_sub = fig.add_subplot(fw.rows, fw.cols, 2)
-    pl.xlim(-axis_max, axis_max)
-    pl.ylim(-axis_max, axis_max)
+    non_rec_sub = create_subplot(
+        fw.figure, fw.rows, fw.cols, 2,
+        title + error_title.format(non_mean[0], non_mean[1], non_std[0], non_std[1], non_max, non_min),
+        (-axis_max, axis_max), (-axis_max, axis_max),
+        aspect='equal', axis=True, grid=True)
 
-    title = 'Failed track errors (re-triangulated): {0} / {1}.'.format(np.sum(succeeded), non_rec_tracks.shape[0])
-    non_rec_sub.text(0.5, 1.04,
-                     title + error_title.format(non_rec_mean_error[0], non_rec_mean_error[1], non_rec_std_error[0],
-                                                non_rec_std_error[1], non_rec_max_error, non_rec_min_error),
-                     horizontalalignment='center',
-                     fontsize=12,
-                     transform=non_rec_sub.transAxes)
-    non_rec_sub.set_aspect('equal')
-    pl.grid(b=True, which='major', color='0.3')
+    non_rec_sub.plot(zero, zero, '+k')
+    non_rec_sub.plot(non_errors[:, 0], non_errors[:, 1], 'om')
 
-    non_rec_sub.plot(np.array([0]), np.array([0]), '+k')
-    non_rec_sub.plot(non_rec_errors[:, 0], non_rec_errors[:, 1], 'om')
-
-    fig.subplots_adjust(left=0.01,
-                        bottom=0.05,
-                        right=0.99,
-                        top=0.88,
-                        wspace=0.04,
-                        hspace=0.14)
-
-    if save_figs:
-        p = data.data_path + '/plot_inliers'
-        io.mkdir_p(p)
-        fig.savefig(p + '/' + '{0}_{1}_error_dist.jpg'.format(im, data.feature_type()), dpi=100)
-        pl.close()
-    else:
-        pl.show()
-
+    display_figure(fig, save_figs, data, '{0}_{1}_error_dist.jpg'.format(im, data.feature_type()),
+                   bottom=0.05, top=0.91 if single_column else 0.86, hspace=0.2)
 
 
 if __name__ == "__main__":
