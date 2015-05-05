@@ -646,6 +646,7 @@ def create_complete_reconstruction_figure(im, data, save_figs=False, single_colu
     reconstruction = find_reconstruction([im], data)
     if reconstruction is None:
         print '{0} does not exist in a reconstruction.'.format(im)
+        return
 
     im_array = data.image_as_array(im)
     p = load_points(im, data)
@@ -689,6 +690,111 @@ def create_complete_reconstruction_figure(im, data, save_figs=False, single_colu
     display_figure(fig, save_figs, data, '{0}_{1}_complete_rec.jpg'.format(im, data.feature_type()))
 
 
+def create_reprojection_error_figure(im, data, save_figs=False, single_column=False):
+    fig = pl.figure(figsize=(9, 18) if single_column else (18, 9))
+    fig.suptitle('Reprojection error distribution ({0}): {1}'.format(data.feature_type().upper(), im),
+                 fontsize=14, fontweight='bold')
+    fw = FigureWrapper(fig, 2 if single_column else 1, 1 if single_column else 2)
+
+    reconstruction = find_reconstruction([im], data)
+    if reconstruction is None:
+        print '{0} does not exist in a reconstruction.'.format(im)
+        return
+
+    im_array = data.image_as_array(im)
+    p = load_points(im, data)
+
+    graph = data.load_tracks_graph()
+    tracks = load_tracks(im, graph)
+    if tracks.shape[0] < 1:
+        print 'No tracks for exist for {0}.'.format(im)
+        return
+
+    rec_tracks, non_rec_tracks = reconstruction_tracks(tracks, reconstruction)
+    rec_track_points = p[rec_tracks[:, 1]]
+
+    rp = reproject_tracks(im, rec_tracks[:, 0], reconstruction)
+
+    s = np.max(im_array.shape[:2])
+
+    rec_errors = s * np.subtract(rec_track_points, rp)
+    rec_mean_error = np.mean(rec_errors, axis=0)
+    rec_std_error = np.std(rec_errors, axis=0)
+
+    rec_errors_norm = np.linalg.norm(rec_errors, axis=1)
+    rec_min_error = np.min(rec_errors_norm)
+    rec_max_error = np.max(rec_errors_norm)
+
+    min_ray_angle = data.config.get('triangulation_min_ray_angle', 2.0)
+    succeeded = triangulate_tracks(non_rec_tracks[:, 0], reconstruction, graph, min_ray_angle)
+    reprojected = reproject_tracks(im, non_rec_tracks[succeeded, 0], reconstruction)
+
+    triangulated_points = p[non_rec_tracks[succeeded, 1]]
+
+    non_rec_errors = s * np.subtract(reprojected, triangulated_points)
+    non_rec_mean_error = np.mean(non_rec_errors, axis=0)
+    non_rec_std_error = np.std(non_rec_errors, axis=0)
+
+    non_rec_errors_norm = np.linalg.norm(non_rec_errors, axis=1)
+    non_rec_min_error = np.min(non_rec_errors_norm)
+    non_rec_max_error = np.max(non_rec_errors_norm)
+
+    axis_max = np.max(np.abs(np.vstack((rec_errors, non_rec_errors)))) + 1
+
+    rec_sub = fig.add_subplot(fw.rows, fw.cols, 1)
+    pl.xlim(-axis_max, axis_max)
+    pl.ylim(-axis_max, axis_max)
+
+    title = 'Reconstructed track errors: {0}.'.format(rec_tracks.shape[0])
+    error_title = " Mean: ({0:.1f}, {1:.1f}). Std: ({2:.1f}, {3:.1f}). Max dist: {4:.1f}. Min dist: {5:.1f}."
+    rec_sub.text(0.5, 1.04,
+                 title + error_title.format(rec_mean_error[0], rec_mean_error[1], rec_std_error[0], rec_std_error[1],
+                                            rec_max_error, rec_min_error),
+                 horizontalalignment='center',
+                 fontsize=12,
+                 transform=rec_sub.transAxes)
+    rec_sub.set_aspect('equal')
+
+    pl.grid(b=True, which='major', color='0.3')
+
+    rec_sub.plot(np.array([0]), np.array([0]), '+k')
+    rec_sub.plot(rec_errors[:, 0], rec_errors[:, 1], 'ob')
+
+
+    non_rec_sub = fig.add_subplot(fw.rows, fw.cols, 2)
+    pl.xlim(-axis_max, axis_max)
+    pl.ylim(-axis_max, axis_max)
+
+    title = 'Failed track errors (re-triangulated): {0} / {1}.'.format(np.sum(succeeded), non_rec_tracks.shape[0])
+    non_rec_sub.text(0.5, 1.04,
+                     title + error_title.format(non_rec_mean_error[0], non_rec_mean_error[1], non_rec_std_error[0],
+                                                non_rec_std_error[1], non_rec_max_error, non_rec_min_error),
+                     horizontalalignment='center',
+                     fontsize=12,
+                     transform=non_rec_sub.transAxes)
+    non_rec_sub.set_aspect('equal')
+    pl.grid(b=True, which='major', color='0.3')
+
+    non_rec_sub.plot(np.array([0]), np.array([0]), '+k')
+    non_rec_sub.plot(non_rec_errors[:, 0], non_rec_errors[:, 1], 'om')
+
+    fig.subplots_adjust(left=0.01,
+                        bottom=0.05,
+                        right=0.99,
+                        top=0.88,
+                        wspace=0.04,
+                        hspace=0.14)
+
+    if save_figs:
+        p = data.data_path + '/plot_inliers'
+        io.mkdir_p(p)
+        fig.savefig(p + '/' + '{0}_{1}_error_dist.jpg'.format(im, data.feature_type()), dpi=100)
+        pl.close()
+    else:
+        pl.show()
+
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Plot inlier and outlier matches between images')
     parser.add_argument('dataset',
@@ -727,5 +833,11 @@ if __name__ == "__main__":
         print 'Plotting complete reconstruction tracks for {0}...'.format(image1)
         create_complete_reconstruction_figure(image1, ds, save, single)
 
+        print 'Plotting reprojection error for {0}...'.format(image1)
+        create_reprojection_error_figure(image1, ds, save, single)
+
         print 'Plotting complete reconstruction tracks for {0}...'.format(image2)
         create_complete_reconstruction_figure(image2, ds, save, single)
+
+        print 'Plotting reprojection error for {0}...'.format(image2)
+        create_reprojection_error_figure(image2, ds, save, single)
