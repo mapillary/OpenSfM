@@ -261,15 +261,18 @@ def reconstruction_point(track, reconstruction, graph, min_ray_angle):
     :return:
     """
     point = None
+    result = 'rejected and failed'
 
     if track in reconstruction['points']:
         point = reconstruction['points'][track]['coordinates']
+        result = 'reconstructed'
     else:
         reconstruct.triangulate_track(track, graph, reconstruction, {}, {}, {}, 1, min_ray_angle)
         if track in reconstruction['points']:
             point = reconstruction['points'][track]['coordinates']
+            result = 'rejected and re-triangulated'
 
-    return point
+    return point, result
 
 
 def find_reconstruction(images, data):
@@ -411,9 +414,11 @@ def plot_track_ray(track, data):
         print 'No reconstruction for the track {0} contains any of the track images.'.format(track)
         return
 
-    point = reconstruction_point(track, reconstruction, graph, data.config.get('triangulation_min_ray_angle', 2.0))
+    point, res = reconstruction_point(track, reconstruction, graph, data.config.get('triangulation_min_ray_angle', 2.0))
 
     fig = pl.figure(figsize=(10, 10))
+    title = 'Track {0} ({1}): {2}'.format(track, data.feature_type().upper(), res)
+    fig.suptitle(title, fontsize=14, fontweight='bold')
     plot = fig.gca(projection='3d', aspect='equal', xlabel='X-axis', ylabel='Y-axis', zlabel='Z-axis')
 
     points = []
@@ -438,7 +443,7 @@ def plot_track_ray(track, data):
     plot.set_ylim(min_lim[1], max_lim[1])
     plot.set_zlim(min_lim[2], max_lim[2])
 
-    fig.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=0.99, wspace=0, hspace=0)
+    fig.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=0.95, wspace=0, hspace=0)
 
     mpl.rcParams['legend.fontsize'] = 10
     plot.legend()
@@ -543,11 +548,12 @@ def plot_epipolar_lines(track, data, images=[], undistort=False, save_figs=False
         rows = chunk_size if single_column else (2 if chunk_size > 1 else 1)
         cols = 1 if single_column else (2 if chunk_size > 2 else 1)
 
+        result = 'reconstructed' if track in reconstruction['points'] else 'rejected'
         epi_type = ('lines' if undistort else 'curves')
-        title = 'Epipolar ' + epi_type + ' on ' + ('un' if undistort else '') + 'distorted images for track {0} ({1})'
+        title = 'Epipolar ' + epi_type + ' on ' + ('un' if undistort else '') + \
+                'distorted images for track {0} ({1}): ' + result
         fig = pl.figure(figsize=(12 * cols, 6 * rows - rows / 3 if rows < 4 else 21))
-        fig.suptitle(title.format(track, data.feature_type().upper()),
-                     fontsize=14, fontweight='bold')
+        fig.suptitle(title.format(track, data.feature_type().upper()), fontsize=14, fontweight='bold')
 
         for index, ims in enumerate(chunk):
             im1 = ims[0]
