@@ -228,7 +228,7 @@ def triangulate_tracks(tracks, reconstruction, graph, min_ray_angle):
         reconstruct.triangulate_track(str(track), graph, reconstruction, {}, {}, {}, 1, min_ray_angle)
         succeeded.append(True) if str(track) in reconstruction['points'] else succeeded.append(False)
 
-    return np.array(succeeded) if len(succeeded) else np.empty((0, 1), bool)
+    return np.array(succeeded) if len(succeeded) else np.empty((0,), bool)
 
 
 def find_reconstruction(images, data):
@@ -374,7 +374,7 @@ def thresholds(im1_array, im2_array, key, default, data):
 
 def create_matches_figure(im1, im2, data, save_figs=False, single_column=False):
     fig, rows, cols = \
-        create_four_figure('Tracks ({0}): {1} - {2}'.format(data.feature_type().upper(), im1, im2), single_column)
+        create_four_figure('Matches ({0}): {1} - {2}'.format(data.feature_type().upper(), im1, im2), single_column)
 
     im1_array = data.image_as_array(im1)
     im2_array = data.image_as_array(im2)
@@ -415,7 +415,7 @@ def create_matches_figure(im1, im2, data, save_figs=False, single_column=False):
     threshold, pixels1, pixels2 = thresholds(im1_array, im2_array, 'robust_matching_threshold', 0.006, data)
     plot_matches_sub(
         fig, rows, cols, 3,
-        'Robust matching inliers (RANSAC 7-point algorithm, calculated): {0}. Threshold: {1} ({2:.1f} - {3:.1f} pixels)'
+        'Robust matching inliers (RANSAC 7-point algorithm, calculated): {0}. Threshold: {1:.2g} ({2:.1f} - {3:.1f} pixels)'
         .format(robust_matches.shape[0], threshold, pixels1, pixels2),
         im1_array, im2_array,
         r_matches1, r_matches2,
@@ -427,7 +427,7 @@ def create_matches_figure(im1, im2, data, save_figs=False, single_column=False):
     outliers2 = p2[outliers[:, 1]]
 
     plot_matches_sub(fig, rows, cols, 4,
-                     'Robust matching outliers (calculated): {0}. Threshold: {1} ({2:.1f} - {3:.1f} pixels)'
+                     'Robust matching outliers (calculated): {0}. Threshold: {1:.2g} ({2:.1f} - {3:.1f} pixels)'
                      .format(outliers.shape[0], threshold, pixels1, pixels2),
                      im1_array, im2_array,
                      outliers1, outliers2,
@@ -472,7 +472,7 @@ def plot_opencv_find_homography(fw, ip, index, tracks, track_points1, track_poin
     outliers2 = track_points2[~inliers, :]
 
     title = \
-        'OpenCV find homography inliers (calculated): {0}. Outliers: {1}. Outlier ratio: {2:.3f}. Threshold: {3} '\
+        'OpenCV find homography inliers (calculated): {0}. Outliers: {1}. Outlier ratio: {2:.3f}. Threshold: {3:.2g} '\
         .format(inliers.sum(), (~inliers).sum(), float((~inliers).sum()) / tracks.shape[0], threshold) + \
         '({0:.1f} - {1:.1f} pixels)'.format(pixels1, pixels2)
 
@@ -498,7 +498,7 @@ def plot_two_view_reconstruction(fw, ip, index, track_points1, track_points2, da
     outliers1 = track_points1[outliers, :]
     outliers2 = track_points2[outliers, :]
 
-    title = 'CSfM two view reconstruction inliers (calculated): {0}. Outliers: {1}. Threshold: {2} '.format(
+    title = 'CSfM two view reconstruction inliers (calculated): {0}. Outliers: {1}. Threshold: {2:.2g} '.format(
         len(inliers), outliers.sum(), threshold) + \
         '({0:.1f} - {1:.1f} pixels)'.format(pixels1, pixels2)
 
@@ -536,7 +536,7 @@ def plot_bootstrapped_reconstruction(fw, ip, index, p1, p2, robust_tracks, linke
                 robust_rec_tracks.shape[0],
                 non_robust_rec_tracks.shape[0],
                 failed_rec_tracks.shape[0]) + \
-            'Triangulation threshold: {0} ({1:.1f} - {2:.1f} pixels). Min ray angle: {3}.'.format(
+            'Triangulation threshold: {0:.2g} ({1:.1f} - {2:.1f} pixels). Min ray angle: {3}.'.format(
                 threshold, pixels1, pixels2, data.config.get('triangulation_min_ray_angle', 2.0))
 
         rec_plot = plot_matches_sub(fw.figure, fw.rows, fw.cols, index, rec_title, ip.im1_array, ip.im2_array,
@@ -545,8 +545,8 @@ def plot_bootstrapped_reconstruction(fw, ip, index, p1, p2, robust_tracks, linke
         plot_matches(rec_plot, ip.im1_array, ip.im2_array, failed_rec_points1, failed_rec_points2, 'r', 'om')
     else:
         failed_title = \
-            'Bootstrap failed. Less than {0} points. Triangulation threshold: {1} ({2:.1f} - {3:.1f} pixels).'.format(
-                data.config.get('five_point_algo_min_inliers', 50), threshold, pixels1, pixels2) +\
+            'Bootstrap failed. Less than {0} points. Triangulation threshold: {1:.2g} ({2:.1f} - {3:.1f} pixels).'\
+            .format(data.config.get('five_point_algo_min_inliers', 50), threshold, pixels1, pixels2) +\
             'Min ray angle: {0}.'.format(data.config.get('triangulation_min_ray_angle', 2.0))
         create_subplot(fw.figure, fw.rows, fw.cols, index, failed_title, (0, 100), (0, 100))
 
@@ -767,7 +767,7 @@ def create_reprojection_error_figure(im, data, save_figs=False, single_column=Fa
 
     triang_thld = data.config.get('triangulation_threshold', 0.004)
     bundle_thld = data.config.get('bundle_outlier_threshold', 0.008)
-    thld_title = 'Threshold: Triangulation: {0:.1f} ({1}). Bundle outlier: {2:.1f} ({3}).'\
+    thld_title = 'Thresholds: Triangulation: {0:.1f} ({1:.2g}). Bundle outlier: {2:.1f} ({3:.2g}).'\
         .format(scale * triang_thld, triang_thld, scale * bundle_thld, bundle_thld)
     corr_title = ' Distance to principal point - Error norm correlation: {0:.3f}'
 
@@ -787,7 +787,7 @@ def create_reprojection_error_figure(im, data, save_figs=False, single_column=Fa
     non_rec_sub = create_subplot(
         fw.figure, fw.rows, fw.cols, 2,
         title + error_title.format(non_mean[0], non_mean[1], non_std[0], non_std[1], non_max, non_min) +
-        '\n' + corr_title.format(non_corr) if non_corr is not np.nan else '',
+        '\n' + (corr_title.format(non_corr) if non_corr is not np.nan else ''),
         (-axis_max, axis_max), (-axis_max, axis_max),
         aspect='equal', axis=True, grid=True)
 
