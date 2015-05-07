@@ -541,7 +541,10 @@ def plot_epipolar_lines(track, data, images=[], undistort=False, save_figs=False
         if undistort:
             camera = shot_camera(rec_im, reconstruction)[1]
             rec_im_array = undistort_image(rec_im_array, camera)
-        im_arrays[rec_im] = rec_im_array
+
+        im_arrays[rec_im] = {}
+        im_arrays[rec_im]['im'] = rec_im_array
+        im_arrays[rec_im]['cam'] = shot_camera(rec_im, reconstruction)[1]
 
     for chunk_index, chunk in enumerate(list(chunks(comb, 4))):
         chunk_size = len(chunk)
@@ -561,8 +564,8 @@ def plot_epipolar_lines(track, data, images=[], undistort=False, save_figs=False
 
             print 'Plotting epipolar geo for {0} - {1} ({2} / {3})'.format(im1, im2, chunk_index * 4 + index + 1, n)
 
-            im1_array = im_arrays[im1]
-            im2_array = im_arrays[im2]
+            im1_array = im_arrays[im1]['im']
+            im2_array = im_arrays[im2]['im']
 
             h1, w1, c = im1_array.shape
             h2, w2, c = im2_array.shape
@@ -575,8 +578,17 @@ def plot_epipolar_lines(track, data, images=[], undistort=False, save_figs=False
 
             d1, d2 = plot_epipolar_geo(subplot, im1, im2, im1_array, im2_array, x1, x2, reconstruction, not undistort)
 
-            title = '{0} - {1}. Pixel distance to epipolar ' + epi_type + ': {2:.1f} ({3:.2g}) - {4:.1f} ({5:.2g})'
-            title = title.format(im1, im2, np.max([h1, w1]) * d1, d1, np.max([h2, w2]) * d2, d2)
+            title = '{0} - {1}. ' +\
+                    'Distortion: (k1: {2:.2g}, k2: {3:.2g}) - (k1: {4:.2g}, k2: {5:.2g}). ' +\
+                    'Pixels to epipolar ' + epi_type + ': {6:.1f} ({7:.2g}) - {8:.1f} ({9:.2g})'
+
+            c1 = im_arrays[im1]['cam']
+            c2 = im_arrays[im2]['cam']
+
+            title = title.format(im1, im2,
+                                 float(c1['k1']), float(c1['k2']), float(c2['k1']), float(c2['k2']),
+                                 np.max([h1, w1]) * d1, d1, np.max([h2, w2]) * d2, d2)
+
             subplot.text(0.5, 1.04, title, horizontalalignment='center', fontsize=12, transform=subplot.transAxes)
 
         fig.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=0.93 if save_figs else 0.91,
