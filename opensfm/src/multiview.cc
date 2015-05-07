@@ -4,6 +4,7 @@
 #include "libmv/multiview/fundamental.h"
 #include "libmv/multiview/projection.h"
 #include "libmv/multiview/nviewtriangulation.h"
+#include "libmv/multiview/robust_pose_known_rotation.h"
 #include "libmv/tools/tool.h"
 #include <iostream>
 #include <fstream>
@@ -186,7 +187,7 @@ bp::object Triangulate(const bp::list &Ps_list,
     Eigen::Vector3d x_reproj = Ps[i] * X;
 
     if (x_reproj(2) <= 0) {
-      return bp::object();  
+      return bp::object();
     }
 
     double dx = xs(0, i) - x_reproj(0) / x_reproj(2);
@@ -200,4 +201,45 @@ bp::object Triangulate(const bp::list &Ps_list,
   return bpn_array_from_data(1, Xe_shape, X.data());
 }
 
+
+bp::object PoseKnownRotationRobust(PyObject *v_object,
+                                   PyObject *X_object,
+                                   double threshold
+                                   ) {
+  using namespace libmv;
+
+  PyArrayContiguousView<double> v_array((PyArrayObject *)v_object);
+  PyArrayContiguousView<double> X_array((PyArrayObject *)X_object);
+
+  assert(v_array.shape(1) == x2_array.shape(1));
+  assert(v_array.shape(0) == 3);
+  assert(X_array.shape(0) == 3);
+
+  int n_point = v_array.shape(1);
+
+  Eigen::Map<const libmv::Mat> v(v_array.data(), n_point, 3);
+  Eigen::Map<const libmv::Mat> X(X_array.data(), n_point, 3);
+
+  // Compute camera center
+  Vec3 c;
+  vector<int> inliers;
+  double error = libmv::PoseKnownRotationRobust(v.transpose(), X.transpose(), threshold, &c, &inliers);
+
+  LOG(INFO) << "Num inliers: " << inliers.size();
+
+  if (inliers.size() < 2) return bp::object();
+
+  // Convert results to numpy arrays.
+  Eigen::Matrix<double, 3, 1> c_row_major;
+  c_row_major << c(0), c(1), c(2);
+
+  bp::list retn;
+  npy_intp c_shape[2] = {3, 1};
+  npy_intp inliers_shape[1] = {inliers.size()};
+  retn.append(bpn_array_from_data(2, c_shape, c_row_major.data()));
+  retn.append(bpn_array_from_data(1, inliers_shape, &inliers[0]));
+  return retn;
 }
+
+}
+
