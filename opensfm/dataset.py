@@ -65,12 +65,9 @@ class DataSet:
     def load_image(self, image):
         return open(self.__image_file(image))
 
-    def image_as_array(self, image, grayscale=False):
-        """Return image pixels as 3-dimensional OpenCV matrix (R G B order)"""
-        if grayscale:
-            return cv2.imread(self.__image_file(image), cv2.IMREAD_GRAYSCALE)
-        else:
-            return cv2.imread(self.__image_file(image))[:,:,::-1]  # Turn BGR to RGB
+    def image_as_array(self, image):
+        """Return image pixels as 3-dimensional numpy array (R G B order)"""
+        return cv2.imread(self.__image_file(image), cv2.CV_LOAD_IMAGE_COLOR)[:,:,::-1]  # Turn BGR to RGB
 
     @staticmethod
     def __is_image_file(filename):
