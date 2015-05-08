@@ -211,32 +211,27 @@ bp::object PoseKnownRotationRobust(PyObject *v_object,
   PyArrayContiguousView<double> v_array((PyArrayObject *)v_object);
   PyArrayContiguousView<double> X_array((PyArrayObject *)X_object);
 
-  assert(v_array.shape(1) == x2_array.shape(1));
-  assert(v_array.shape(0) == 3);
-  assert(X_array.shape(0) == 3);
+  assert(v_array.shape(0) == x2_array.shape(0));
+  assert(v_array.shape(1) == 3);
+  assert(X_array.shape(1) == 3);
 
-  int n_point = v_array.shape(1);
+  int n_point = v_array.shape(0);
 
-  Eigen::Map<const libmv::Mat> v(v_array.data(), n_point, 3);
-  Eigen::Map<const libmv::Mat> X(X_array.data(), n_point, 3);
+  Eigen::Map<const libmv::Mat> v(v_array.data(), 3, n_point);
+  Eigen::Map<const libmv::Mat> X(X_array.data(), 3, n_point);
 
   // Compute camera center
   Vec3 c;
   vector<int> inliers;
-  double error = libmv::PoseKnownRotationRobust(v.transpose(), X.transpose(), threshold, &c, &inliers);
-
-  LOG(INFO) << "Num inliers: " << inliers.size();
+  double error = libmv::PoseKnownRotationRobust(v, X, threshold, &c, &inliers);
 
   if (inliers.size() < 2) return bp::object();
 
   // Convert results to numpy arrays.
-  Eigen::Matrix<double, 3, 1> c_row_major;
-  c_row_major << c(0), c(1), c(2);
-
   bp::list retn;
   npy_intp c_shape[2] = {3, 1};
   npy_intp inliers_shape[1] = {inliers.size()};
-  retn.append(bpn_array_from_data(2, c_shape, c_row_major.data()));
+  retn.append(bpn_array_from_data(2, c_shape, c.data()));
   retn.append(bpn_array_from_data(1, inliers_shape, &inliers[0]));
   return retn;
 }

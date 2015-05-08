@@ -24,24 +24,12 @@ struct PoseKnownRotationKernel {
     Mat3X sampled_v = ExtractColumns(v_, samples);
     Mat3X sampled_X = ExtractColumns(X_, samples);
     Eigen::Matrix<double, 6, 5>  A;
-    for (int i = 0; i < 6; ++i){
-      for (int j =0; j < 5; ++j){
-        A(i, j) = 0.0;
-      }
-    }
-    A(0, 0) = 1.0;
-    A(1, 1) = 1.0;
-    A(2, 2) = 1.0;
-    A(3, 0) = 1.0;
-    A(4, 1) = 1.0;
-    A(5, 2) = 1.0;
-    A(0, 3) = sampled_v(0, 0);
-    A(1, 3) = sampled_v(1, 0);
-    A(2, 3) = sampled_v(2, 0);
-    A(3, 4) = sampled_v(0, 1);
-    A(4, 4) = sampled_v(1, 1);
-    A(5, 4) = sampled_v(2, 1);
-
+    A << 1.0, 0.0, 0.0, sampled_v(0, 0), 0.0,
+         0.0, 1.0, 0.0, sampled_v(1, 0), 0.0,
+         0.0, 0.0, 1.0, sampled_v(2, 0), 0.0,
+         1.0, 0.0, 0.0, 0.0, sampled_v(0, 1),
+         0.0, 1.0, 0.0, 0.0, sampled_v(1, 1),
+         0.0, 0.0, 1.0, 0.0, sampled_v(2, 1);
     Eigen::Matrix<double, 6, 1>  sampled_X_vec;
     sampled_X_vec << sampled_X(0), sampled_X(1), sampled_X(2),
                     sampled_X(3), sampled_X(4), sampled_X(5);
@@ -75,7 +63,7 @@ double PoseKnownRotationRobust(const Mat &v,
                                 Vec3 *c,
                                 vector<int> *inliers) {
   double best_score = HUGE_VAL;
-  double alarm_rate = 1e-2;
+  double alarm_rate =  1.0*1e-2;
   PoseKnownRotationKernel kernel(v, X);
   MLEScorer<PoseKnownRotationKernel> scorer(threshold);
   *c = Estimate(kernel, scorer, inliers,
