@@ -71,7 +71,6 @@ add_library(mv
     third_party/libmv/multiview/robust_panography.cc
     third_party/libmv/numeric/numeric.cc
     third_party/libmv/numeric/poly.cc
-    third_party/libmv/multiview/robust_pose_known_rotation.cc
 )
 target_link_libraries(mv
     ${GFLAGS_LIBRARY}
