@@ -669,9 +669,9 @@ def plot_track_epipolar_geos(track, data, images=[], undistort=False, save_figs=
             re1, re2 = plot_reprojections(
                 subplot, im1, im2, im1_array, im2_array, x1, x2, track, reconstruction, not undistort)
 
-            title = '{0}: Distortion: (k1: {1:.2g}, k2: {2:.2g}). ' + \
-                    'Pixels to epipolar ' + epi_type + ': {3:.1f} ({4:.2g}). ' +\
-                    'Reprojection error: {5:.1f} ({6:.2g}).'
+            t1 = '{0}: Distortion: (k1: {1:.2g}, k2: {2:.2g}). ' + \
+                 'Pixels to epipolar ' + epi_type + ': {3:.1f} ({4:.2g}). '
+            t2 = 'Reprojection error: {0:.1f} ({1:.2g}).'
 
             c1 = im_arrays[im1]['cam']
             c2 = im_arrays[im2]['cam']
@@ -679,10 +679,12 @@ def plot_track_epipolar_geos(track, data, images=[], undistort=False, save_figs=
             s1 = np.max([h1, w1])
             s2 = np.max([h2, w2])
 
-            title = title.format(im1, float(c1['k1']), float(c1['k2']), s1 * d1, d1, s1 * re1, re1) + '\n' +\
-                title.format(im2, float(c2['k1']), float(c2['k2']), s2 * d2, d2, s2 * re2, re2)
+            t = t1.format(im1, float(c1['k1']), float(c1['k2']), s1 * d1, d1) + \
+                (t2.format(s1 * re1, re1) if re1 is not None else '') + '\n' + \
+                t1.format(im2, float(c2['k1']), float(c2['k2']), s2 * d2, d2) + \
+                (t2.format(s2 * re2, re2) if re2 is not None else '')
 
-            subplot.text(0.5, 1.04, title, horizontalalignment='center', fontsize=12, transform=subplot.transAxes)
+            subplot.text(0.5, 1.04, t, horizontalalignment='center', fontsize=12, transform=subplot.transAxes)
 
         fig.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=0.93 if save_figs else 0.91,
                             wspace=0.04, hspace=0.14)
