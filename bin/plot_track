@@ -501,7 +501,40 @@ def plot_epipolar_geo(subplot, im1, im2, im1_array, im2_array, x1, x2, reconstru
 
     plot_points(subplot, im1_array, im2_array, lp1, lp2, 'r', 'r')
     plot_points(subplot, im1_array, im2_array, np.resize(e1[:2], (1, 2)), np.resize(e2[:2], (1, 2)), 'or', 'or')
-    plot_points(subplot, im1_array, im2_array, np.resize(x1u, (1, 2)), np.resize(x2u, (1, 2)), 'oc', 'oc')
+    plot_points(subplot, im1_array, im2_array, np.resize(x1u, (1, 2)), np.resize(x2u, (1, 2)), 'ob', 'ob')
+
+    return d1, d2
+
+
+def plot_reprojections(subplot, im1, im2, im1_array, im2_array, x1, x2, track, reconstruction, distort):
+
+    if track not in reconstruction['points']:
+        return None, None
+
+    shot1, camera1 = shot_camera(im1, reconstruction)
+    shot2, camera2 = shot_camera(im2, reconstruction)
+    point = reconstruction['points'][track]
+
+    if distort:
+        xr1 = reconstruct.reproject(camera1, shot1, point)
+        xr2 = reconstruct.reproject(camera2, shot2, point)
+
+        x1o = x1
+        x2o = x2
+    else:
+        cc1 = reconstruct.camera_coordinates(camera1, shot1, point['coordinates'])
+        cc2 = reconstruct.camera_coordinates(camera2, shot2, point['coordinates'])
+
+        xr1 = camera1['focal'] * cc1[:2] / cc1[2]
+        xr2 = camera2['focal'] * cc2[:2] / cc2[2]
+
+        x1o = np.squeeze(multiview.undistort_points(camera1, np.reshape(x1, (2, 1))))
+        x2o = np.squeeze(multiview.undistort_points(camera2, np.reshape(x2, (2, 1))))
+
+    d1 = np.linalg.norm(xr1 - x1o)
+    d2 = np.linalg.norm(xr2 - x2o)
+
+    plot_points(subplot, im1_array, im2_array, np.resize(xr1, (1, 2)), np.resize(xr2, (1, 2)), '+w', '+w')
 
     return d1, d2
 
@@ -546,15 +579,16 @@ def plot_epipolar_lines(track, data, images=[], undistort=False, save_figs=False
         im_arrays[rec_im]['im'] = rec_im_array
         im_arrays[rec_im]['cam'] = shot_camera(rec_im, reconstruction)[1]
 
+    point, res = reconstruction_point(track, reconstruction, graph, data.config.get('triangulation_min_ray_angle', 2.0))
+
     for chunk_index, chunk in enumerate(list(chunks(comb, 4))):
         chunk_size = len(chunk)
         rows = chunk_size if single_column else (2 if chunk_size > 1 else 1)
         cols = 1 if single_column else (2 if chunk_size > 2 else 1)
 
-        result = 'reconstructed' if track in reconstruction['points'] else 'rejected'
         epi_type = ('lines' if undistort else 'curves')
         title = 'Epipolar ' + epi_type + ' on ' + ('un' if undistort else '') + \
-                'distorted images for track {0} ({1}): ' + result
+                'distorted images for track {0} ({1}): ' + res
         fig = pl.figure(figsize=(12 * cols, 6 * rows - rows / 3 if rows < 4 else 21))
         fig.suptitle(title.format(track, data.feature_type().upper()), fontsize=14, fontweight='bold')
 
@@ -577,17 +611,24 @@ def plot_epipolar_lines(track, data, images=[], undistort=False, save_figs=False
             x2 = np.array(track_ims[im2]['feature'])
 
             d1, d2 = plot_epipolar_geo(subplot, im1, im2, im1_array, im2_array, x1, x2, reconstruction, not undistort)
+            dr1, dr2 = plot_reprojections(
+                subplot, im1, im2, im1_array, im2_array, x1, x2, track, reconstruction, not undistort)
 
             title = '{0} - {1}. ' +\
-                    'Distortion: (k1: {2:.2g}, k2: {3:.2g}) - (k1: {4:.2g}, k2: {5:.2g}). ' +\
-                    'Pixels to epipolar ' + epi_type + ': {6:.1f} ({7:.2g}) - {8:.1f} ({9:.2g})'
+                    'Distortion: (k1: {2:.2g}, k2: {3:.2g}) - (k1: {4:.2g}, k2: {5:.2g}). \n' +\
+                    'Pixels to epipolar ' + epi_type + ': {6:.1f} ({7:.2g}) - {8:.1f} ({9:.2g}). ' +\
+                    ('Pixels to reprojections: {10:.1f} ({11:.2g}) - {12:.1f} ({13:.2g}).' if point is not None else '')
 
             c1 = im_arrays[im1]['cam']
             c2 = im_arrays[im2]['cam']
 
+            s1 = np.max([h1, w1])
+            s2 = np.max([h2, w2])
+
             title = title.format(im1, im2,
                                  float(c1['k1']), float(c1['k2']), float(c2['k1']), float(c2['k2']),
-                                 np.max([h1, w1]) * d1, d1, np.max([h2, w2]) * d2, d2)
+                                 s1 * d1, d1, s2 * d2, d2,
+                                 s1 * dr1, dr1, s2 * dr2, dr2)
 
             subplot.text(0.5, 1.04, title, horizontalalignment='center', fontsize=12, transform=subplot.transAxes)
 
