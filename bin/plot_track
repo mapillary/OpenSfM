@@ -366,6 +366,16 @@ def chunks(l, n):
 
 
 def plot_image_feature(plot, im, x, reconstruction, point, fraction):
+    """ Adds camera lines, image plane, principal ray and track ray to a 3D plot.
+
+    :param plot: Subplot.
+    :param im: Image name.
+    :param x: Feature point coordinates.
+    :param reconstruction: Reconstruction.
+    :param point: Reconstructed 3D point.
+    :param fraction: Fraction of plots that has been created.
+    :return: The optical center of the shot for the image.
+    """
     xh = multiview.homogeneous(x)
 
     shot, camera = shot_camera(im, reconstruction)
@@ -401,7 +411,13 @@ def plot_image_feature(plot, im, x, reconstruction, point, fraction):
     return oc
 
 
-def plot_track_ray(track, data):
+def plot_track_rays(track, data):
+    """ Plots the rays for all images connected to the track.
+
+    :param track: The track name.
+    :param data: Data set.
+    """
+
     graph = data.load_tracks_graph()
 
     if track not in graph:
@@ -452,6 +468,20 @@ def plot_track_ray(track, data):
 
 
 def plot_epipolar_geo(subplot, im1, im2, im1_array, im2_array, x1, x2, reconstruction, distort=True):
+    """ Plots the epipolar lines/curves, epipoles and feature points for an image pair.
+
+    :param subplot: Subplot.
+    :param im1: Image name for first image.
+    :param im2: Image name for second image.
+    :param im1_array: Image array for first image.
+    :param im2_array: Image array for second image.
+    :param x1: Feature point for first image.
+    :param x2: Feature point for second image.
+    :param reconstruction: Reconstruction.
+    :param distort: Bool specifying if the image should be distorted or undistorted. Default is distorted.
+    :return: The distance to the epipolar line/curve for each feature point.
+    """
+
     shot1, camera1 = shot_camera(im1, reconstruction)
     shot2, camera2 = shot_camera(im2, reconstruction)
 
@@ -507,6 +537,20 @@ def plot_epipolar_geo(subplot, im1, im2, im1_array, im2_array, x1, x2, reconstru
 
 
 def plot_reprojections(subplot, im1, im2, im1_array, im2_array, x1, x2, track, reconstruction, distort):
+    """ Plots the reprojections for a track for each image.
+
+    :param subplot: Subplot.
+    :param im1: Image name for first image.
+    :param im2: Image name for second image.
+    :param im1_array: Image array for first image.
+    :param im2_array: Image array for second image.
+    :param x1: Feature point for first image.
+    :param x2: Feature point for second image.
+    :param track: The track name.
+    :param reconstruction: The reconstruction.
+    :param distort: Bool specifying if the image should be distorted or undistorted. Default is distorted.
+    :return: The reprojection errors for each point.
+    """
 
     if track not in reconstruction['points']:
         return None, None
@@ -531,15 +575,26 @@ def plot_reprojections(subplot, im1, im2, im1_array, im2_array, x1, x2, track, r
         x1o = np.squeeze(multiview.undistort_points(camera1, np.reshape(x1, (2, 1))))
         x2o = np.squeeze(multiview.undistort_points(camera2, np.reshape(x2, (2, 1))))
 
-    d1 = np.linalg.norm(xr1 - x1o)
-    d2 = np.linalg.norm(xr2 - x2o)
+    re1 = np.linalg.norm(xr1 - x1o)
+    re2 = np.linalg.norm(xr2 - x2o)
 
     plot_points(subplot, im1_array, im2_array, np.resize(xr1, (1, 2)), np.resize(xr2, (1, 2)), '+w', '+w')
 
-    return d1, d2
+    return re1, re2
 
 
-def plot_epipolar_lines(track, data, images=[], undistort=False, save_figs=False, single_column=False):
+def plot_track_epipolar_geos(track, data, images=[], undistort=False, save_figs=False, single_column=False):
+    """ Plots the epipolar geometry for image pairs connected to the track.
+
+    :param track: The track name.
+    :param data: Data set.
+    :param images: If len(images) ==1: Only image pairs including the image will be plotted.
+                   If len(images) == 2: Only the single image pair of the two images will be plotted.
+    :param undistort: Boolean specifying if images and plotted points should be undistorted.
+    :param save_figs: Boolean specifying if images should be saved to file instead of shown.
+    :param single_column: Boolean specifying if subplots should be placed in a single column.
+    """
+
     graph = data.load_tracks_graph()
 
     if track not in graph:
@@ -611,7 +666,7 @@ def plot_epipolar_lines(track, data, images=[], undistort=False, save_figs=False
             x2 = np.array(track_ims[im2]['feature'])
 
             d1, d2 = plot_epipolar_geo(subplot, im1, im2, im1_array, im2_array, x1, x2, reconstruction, not undistort)
-            dr1, dr2 = plot_reprojections(
+            re1, re2 = plot_reprojections(
                 subplot, im1, im2, im1_array, im2_array, x1, x2, track, reconstruction, not undistort)
 
             title = '{0}: Distortion: (k1: {1:.2g}, k2: {2:.2g}). ' + \
@@ -624,8 +679,8 @@ def plot_epipolar_lines(track, data, images=[], undistort=False, save_figs=False
             s1 = np.max([h1, w1])
             s2 = np.max([h2, w2])
 
-            title = title.format(im1, float(c1['k1']), float(c1['k2']), s1 * d1, d1, s1 * dr1, dr1) + '\n' +\
-                title.format(im2, float(c2['k1']), float(c2['k2']), s2 * d2, d2, s2 * dr2, dr2)
+            title = title.format(im1, float(c1['k1']), float(c1['k2']), s1 * d1, d1, s1 * re1, re1) + '\n' +\
+                title.format(im2, float(c2['k1']), float(c2['k2']), s2 * d2, d2, s2 * re2, re2)
 
             subplot.text(0.5, 1.04, title, horizontalalignment='center', fontsize=12, transform=subplot.transAxes)
 
@@ -674,5 +729,5 @@ if __name__ == "__main__":
         if args.image2:
             arg_ims.append(args.image2)
 
-    plot_epipolar_lines(tr, ds, arg_ims, args.undistort, args.save_figs, args.single_col)
-    plot_track_ray(tr, ds)
+    plot_track_epipolar_geos(tr, ds, arg_ims, args.undistort, args.save_figs, args.single_col)
+    plot_track_rays(tr, ds)
