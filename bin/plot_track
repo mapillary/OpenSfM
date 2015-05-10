@@ -194,7 +194,7 @@ def line_equation_points(l, xy_min=-1., xy_max=1., n=400):
     """
 
     # Create linear space points along axis with most slope with respect to the other.
-    if abs(l[1]) < 1.e-4 or np.abs(l[0] / l[1]) > 1:
+    if np.abs(l[0]) > np.abs(l[1]):
         y = np.linspace(xy_min, xy_max, n)
         x = (-l[1] * y - l[2]) / l[0]
     else:
