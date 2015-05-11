@@ -128,7 +128,7 @@ def add_gps_position(data, reconstruction, image):
         reconstruction['shots'][image]['gps_position'] = [0.0, 0.0, 0.0]
         reconstruction['shots'][image]['gps_dop'] = 999999.0
 
-    reconstruction['shots'][image]['exif_orientation'] = exif.get('orientation', 1)
+    reconstruction['shots'][image]['orientation'] = exif.get('orientation', 1)
 
     if 'accelerometer' in exif:
         reconstruction['shots'][image]['accelerometer'] = exif['accelerometer']
@@ -530,7 +530,7 @@ def align_reconstruction_orientation_prior_similarity(reconstruction, config):
         X.append(optical_center(shot))
         Xp.append(shot['gps_position'])
         R = cv2.Rodrigues(np.array(shot['rotation']))[0]
-        x, y, z = get_horitzontal_and_vertical_directions(R, shot['exif_orientation'])
+        x, y, z = get_horitzontal_and_vertical_directions(R, shot['orientation'])
         if orientation_type == 'no_roll':
             onplane.append(x)
             verticals.append(-y)
