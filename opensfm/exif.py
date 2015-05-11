@@ -76,39 +76,6 @@ def sensor_string(make, model):
     return (make.strip() + ' ' + model.strip()).lower()
 
 
-def extract_exif_from_dict(exif_image):
-    model = exif_image.get('model', 'unknown')
-    make = exif_image.get('make', 'unknown')
-    sensor = sensor_string(make, model)
-    fmm35, fmm = float(exif_image.get('fmm35', 0)), float(exif_image.get('fmm', 0))
-    focal_35, focal_ratio = compute_focal(fmm35, fmm, None, sensor)
-    orientation = exif_image.get('orientation', 1)
-    k1 = exif_image.get('k1', 0)
-    k2 = exif_image.get('k2', 0)
-    width, height = exif_image.get('width', -1), exif_image.get('height', -1)
-    # gps
-    geo = {}
-    geo['latitude'] = float(exif_image.get('lat', 0.0))
-    geo['longitude'] = float(exif_image.get('lon', 0.0))
-    geo['altitude'] = float(exif_image.get('altitude', 0.0))
-    geo['dop'] = float(exif_image.get('gps_accuracy', -1))
-    if geo['dop'] < 0:
-        del geo['dop']
-
-    d = {
-        'width': width,
-        'height': height,
-        'focal_prior': focal_ratio,
-        'camera': sensor,
-        'orientation': orientation,
-        'k1': k1,
-        'k2': k2,
-        'gps': geo,
-        'make': make,
-        'model': model
-    }
-    return d
-
 def extract_exif_from_file(fileobj):
     if isinstance(fileobj, (str, unicode)):
         with open(fileobj) as f:

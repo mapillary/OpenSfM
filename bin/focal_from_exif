@@ -43,11 +43,8 @@ else:
 for image in images:
     print 'Extracting focal lengths for image', image
 
-    if exif_dict:
-        d = exif.extract_exif_from_dict(exif_dict.get(image, {}))
-    else:
-        # EXIF data in Image
-        d = exif.extract_exif_from_file(data.load_image(image))
+    # EXIF data in Image
+    d = exif.extract_exif_from_file(data.load_image(image))
 
     # Image Height and Image Width
     if not data.config.get('use_exif_size', True):
