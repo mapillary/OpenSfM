@@ -48,8 +48,7 @@ else:
 
 # reference for conversion
 try:
-    r = data.load_reference_lla()
-    reference = {'latitude': r[0], 'longitude': r[1], 'altitude': r[2]}
+    reference = data.load_reference_lla()
 except:
     reference = data.invent_reference_lla()
 

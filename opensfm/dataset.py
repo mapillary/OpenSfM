@@ -331,8 +331,7 @@ class DataSet:
 
     def load_reference_lla(self):
         with open(self.__reference_lla_path(), 'r') as fin:
-            d = json.load(fin)
-            return d['latitude'], d['longitude'], d['altitude']
+            return json.load(fin)
 
     def __camera_models_file(self):
         """Return path of camera model file"""

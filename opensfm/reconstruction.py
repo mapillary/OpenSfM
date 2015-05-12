@@ -121,7 +121,8 @@ def add_gps_position(data, reconstruction, image):
         lat = exif['gps']['latitude']
         lon = exif['gps']['longitude']
         alt = 2.0 #exif['gps'].get('altitude', 0)
-        x, y, z = geo.topocentric_from_lla(lat, lon, alt, *reflla)
+        x, y, z = geo.topocentric_from_lla(lat, lon, alt,
+            reflla['latitude'], reflla['longitude'], reflla['altitude'])
         reconstruction['shots'][image]['gps_position'] = [x, y, z]
         reconstruction['shots'][image]['gps_dop'] = exif['gps'].get('dop', 15.0)
     else:
