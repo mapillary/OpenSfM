@@ -358,6 +358,7 @@ def matches(a1, a2, map_function):
 def thresholds(im1_array, im2_array, key, default, data):
     """ Retrieves the threshold value for a config key as well as the corresponding valude in pixels
         for two image arrays.
+        
     :param im1_array: First image array.
     :param im2_array: Second image array.
     :param key: Threshold config key.
@@ -373,6 +374,15 @@ def thresholds(im1_array, im2_array, key, default, data):
 
 
 def create_matches_figure(im1, im2, data, save_figs=False, single_column=False):
+    """ Plots the features, symmetric matches as well as the robust matching inliers and outliers.
+
+    :param im1: Name of the first image.
+    :param im2: Name of the second image.
+    :param data: Data set.
+    :param save_figs: Boolean specifying if figures should be saved to file.
+    :param single_column: Boolean specifying if the subplots should be ordered in a single column.
+    """
+
     fig, rows, cols = \
         create_four_figure('Matches ({0}): {1} - {2}'.format(data.feature_type().upper(), im1, im2), single_column)
 
@@ -552,6 +562,16 @@ def plot_bootstrapped_reconstruction(fw, ip, index, p1, p2, robust_tracks, linke
 
 
 def create_tracks_figure(im1, im2, data, save_figs=False, single_column=False):
+    """ Plots the common tracks as well as the find homography, two view reconstruction and bootstrapped
+        reconstruction inliers and outliers.
+
+    :param im1: Name of the first image.
+    :param im2: Name of the second image.
+    :param data: Data set.
+    :param save_figs: Boolean specifying if figures should be saved to file.
+    :param single_column: Boolean specifying if the subplots should be ordered in a single column.
+    """
+
     fig, rows, cols = \
         create_four_figure('Tracks ({0}): {1} - {2}'.format(data.feature_type().upper(), im1, im2), single_column)
 
@@ -643,6 +663,15 @@ def plot_reprojected_tracks(fw, ip, index, p1, p2, tracks, rec_tracks, non_rec_t
 
 
 def create_reconstruction_matches_figure(im1, im2, data, save_figs=False):
+    """ Plots the track match inliers and outliers in the loaded reconstruction for the two images as
+        well as the reprojections.
+
+    :param im1: Name of the first image.
+    :param im2: Name of the second image.
+    :param data: Data set.
+    :param save_figs: Boolean specifying if figures should be saved to file.
+    """
+
     fig = pl.figure(figsize=(15, 15))
     fig.suptitle('Reprojected reconstructed 3D points ({0}): {1} - {2}'.format(data.feature_type().upper(), im1, im2),
                  fontsize=18, fontweight='bold')
@@ -672,6 +701,14 @@ def create_reconstruction_matches_figure(im1, im2, data, save_figs=False):
 
 
 def create_complete_reconstruction_figure(im, data, save_figs=False, single_column=False):
+    """ Plots the inliers, outliers and their respective reprojections.
+
+    :param im: Image name.
+    :param data: Data set.
+    :param save_figs: Boolean specifying if figures should be saved to file.
+    :param single_column: Boolean specifying if results should be plotted in a single figure.
+    """
+
     fig = pl.figure(figsize=(9, 15) if single_column else (18, 9))
     fig.suptitle('Reprojected reconstructed 3D points ({0}): {1}'.format(data.feature_type().upper(), im),
                  fontsize=14, fontweight='bold')
@@ -726,6 +763,14 @@ def create_complete_reconstruction_figure(im, data, save_figs=False, single_colu
 
 
 def create_reprojection_error_figure(im, data, save_figs=False, single_column=False):
+    """ Plots the reprojection error distribution.
+
+    :param im: Image name.
+    :param data: Data set.
+    :param save_figs: Boolean specifying if figures should be saved to file.
+    :param single_column: Boolean specifying if results should be plotted in a single figure.
+    """
+
     fig = pl.figure(figsize=(9, 18) if single_column else (18, 9))
     fig.suptitle('Reprojection error distribution in pixels ({0}): {1}'.format(data.feature_type().upper(), im),
                  fontsize=14, fontweight='bold')
