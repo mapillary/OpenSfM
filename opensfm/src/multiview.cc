@@ -13,6 +13,7 @@
 #include <fstream>
 #include <string>
 #include "types.h"
+#include "bundle_two_views.h"
 
 namespace csfm {
 
@@ -75,6 +76,27 @@ bp::object TwoViewReconstruction(PyObject *x1_object,
                                        K1, x1inliers,
                                        K2, x2inliers,
                                        &R, &t);
+
+  if (true) {
+    double r[3];
+    ceres::RotationMatrixToAngleAxis(&R(0,0), r);
+    TwoViewBundleAdjuster ba;
+    ba.InitParams(r[0], r[1], r[2], t[0], t[1], t[2], focal1, focal2);
+    for (int i = 0; i < x1.cols(); ++i) {
+      ba.AddObservation(x1(0, i), x1(1, i), x2(0, i), x2(1, i));
+    }
+    ba.Run();
+    std::cout << "before " << r[0] << "," << r[1] << "," << r[2] << "," << t[0] << "," << t[1] << "," << t[2] << "\n";
+    TVBAParams p = ba.GetParams();
+    r[0] = p.GetRX();
+    r[1] = p.GetRY();
+    r[2] = p.GetRZ();
+    t[0] = p.GetTX();
+    t[1] = p.GetTY();
+    t[2] = p.GetTZ();
+    std::cout << "after  " << r[0] << "," << r[1] << "," << r[2] << "," << t[0] << "," << t[1] << "," << t[2] << "\n";
+    ceres::AngleAxisToRotationMatrix(r, &R(0,0));
+  }
 
   // Convert results to numpy arrays.
   Eigen::Matrix<double, 3, 3, Eigen::RowMajor> R_row_major = R;
