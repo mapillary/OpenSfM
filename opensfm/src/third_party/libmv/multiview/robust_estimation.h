@@ -58,7 +58,7 @@ static uint IterationsRequired(int min_samples,
                         double outliers_probability,
                         double inlier_ratio) {
   return static_cast<uint>(
-      log(outliers_probability) / log(1.0 - pow(inlier_ratio, min_samples)));
+      log(outliers_probability) / log(1.0 - pow(std::max(0.1, inlier_ratio), min_samples)));
 }
 
 // 1. The model.

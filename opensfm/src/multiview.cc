@@ -56,7 +56,7 @@ bp::object TwoViewReconstruction(PyObject *x1_object,
   Mat3 E;
   vector<int> inliers;
   FivePointAlgorithmRobust(x1, x2, K1, K2,
-                           threshold, &E, &inliers);
+                           threshold, &E, &inliers, 1e-4);
 
   LOG(INFO) << "Num inliers: " << inliers.size();
 
@@ -85,6 +85,8 @@ bp::object TwoViewReconstruction(PyObject *x1_object,
     for (int i = 0; i < x1.cols(); ++i) {
       ba.AddObservation(x1(0, i), x1(1, i), x2(0, i), x2(1, i));
     }
+    ba.SetReprojectionErrorSD(threshold);
+    ba.SetLossFunction("CauchyLoss", 1);
     ba.Run();
     std::cout << "before " << r[0] << "," << r[1] << "," << r[2] << "," << t[0] << "," << t[1] << "," << t[2] << "\n";
     TVBAParams p = ba.GetParams();
