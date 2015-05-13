@@ -56,8 +56,10 @@ struct SampsonError {
 
     const T x2_F_x1 = ceres::DotProduct(x2, F_x1);
 
-    residuals[0] = x2_F_x1 / ( F_x1[0] * F_x1[0] + F_x1[1] * F_x1[1]
-                             + x2_F[0] * x2_F[0] + x2_F[1] * x2_F[1] );
+    residuals[0] = T(0.5) * x2_F_x1 / ceres::sqrt(
+        F_x1[0] * F_x1[0] + F_x1[1] * F_x1[1] +
+        x2_F[0] * x2_F[0] + x2_F[1] * x2_F[1] );
+
     return true;
   }
 
