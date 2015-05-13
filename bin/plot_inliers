@@ -358,7 +358,7 @@ def matches(a1, a2, map_function):
 def thresholds(im1_array, im2_array, key, default, data):
     """ Retrieves the threshold value for a config key as well as the corresponding valude in pixels
         for two image arrays.
-        
+
     :param im1_array: First image array.
     :param im2_array: Second image array.
     :param key: Threshold config key.
@@ -448,7 +448,18 @@ def create_matches_figure(im1, im2, data, save_figs=False, single_column=False):
 
 def plot_common_tracks(fw, ip, index, p1, p2, tracks, robust_tracks, linked_tracks, robust_matches):
     """ Plot common tracks corresponding to robust matches and tracks not corresponding to robust matches
-        (linked tracks) in different colors. """
+        (linked tracks) in different colors.
+
+    :param fw: Figure wrapper.
+    :param ip: Image pair.
+    :param index: Subplot index.
+    :param p1: Feature points for the first image.
+    :param p2: Feature points for the second image.
+    :param tracks: Common tracks.
+    :param robust_tracks: Tracks corresponding to robust matches.
+    :param linked_tracks: Common tracks linked by other image correspondences.
+    :param robust_matches: Array of feature ids for robust matches.
+    """
 
     robust_points1 = p1[robust_tracks[:, 1]]
     robust_points2 = p2[robust_tracks[:, 2]]
@@ -468,7 +479,17 @@ def plot_common_tracks(fw, ip, index, p1, p2, tracks, robust_tracks, linked_trac
 
 
 def plot_opencv_find_homography(fw, ip, index, tracks, track_points1, track_points2, data):
-    """ Plot inliers and outliers of the tracks from OpenCV find homography. """
+    """ Plot inliers and outliers of the tracks from OpenCV find homography.
+
+    :param fw: Figure wrapper.
+    :param ip: Image pair.
+    :param index: Subplot index.
+    :param tracks: Common tracks.
+    :param track_points1: Feature points corresponding to common tracks for image 1.
+    :param track_points2: Feature points corresponding to common tracks for image 2.
+    :param data: Data set.
+    :return:
+    """
 
     threshold, pixels1, pixels2 = thresholds(ip.im1_array, ip.im2_array, 'homography_threshold', 0.004, data)
     H, inliers = cv2.findHomography(track_points1, track_points2, cv2.RANSAC, threshold)
@@ -492,7 +513,16 @@ def plot_opencv_find_homography(fw, ip, index, tracks, track_points1, track_poin
 
 
 def plot_two_view_reconstruction(fw, ip, index, track_points1, track_points2, data):
-    """ Plot inliers and outliers of the tracks from csfm two view reconstruction. """
+    """ Plot inliers and outliers of the tracks from csfm two view reconstruction.
+
+    :param fw: Figure wrapper.
+    :param ip: Image pair.
+    :param index: Subplot index.
+    :param track_points1: Feature points corresponding to common tracks for image 1.
+    :param track_points2: Feature points corresponding to common tracks for image 2.
+    :param data: Data set.
+    :return:
+    """
 
     f1 = data.load_exif(ip.im1)['focal_prior']
     f2 = data.load_exif(ip.im2)['focal_prior']
@@ -518,7 +548,18 @@ def plot_two_view_reconstruction(fw, ip, index, track_points1, track_points2, da
 
 
 def plot_bootstrapped_reconstruction(fw, ip, index, p1, p2, robust_tracks, linked_tracks, graph, data):
-    """ Plot successfully reconstructed and failed 3D points by reconstruction bootstrap. """
+    """ Plot successfully reconstructed and failed 3D points by bootstrapping a reconstruction.
+
+    :param fw: Figure wrapper.
+    :param ip: Image pair.
+    :param index: Subplot index.
+    :param p1: Feature points for the first image.
+    :param p2: Feature points for the second image.
+    :param robust_tracks: Tracks corresponding to robust matches.
+    :param linked_tracks: Common tracks linked by other image correspondences.
+    :param graph: Tracks graph.
+    :param data: Data set.
+    """
 
     print_reset = redirect_print()
     reconstruction = reconstruct.bootstrap_reconstruction(data, graph, ip.im1, ip.im2)
@@ -605,7 +646,17 @@ def create_tracks_figure(im1, im2, data, save_figs=False, single_column=False):
 
 
 def plot_reconstructed_tracks(fw, ip, index, p1, p2, tracks, rec_tracks, non_rec_tracks):
-    """ Plot reconstructed tracks and rejected tracks as matches in different colors. """
+    """ Plots reconstructed tracks and rejected tracks as matches in different colors.
+
+    :param fw: Figure wrapper.
+    :param ip: Image pair.
+    :param index: Subplot index.
+    :param p1: Feature points for the first image.
+    :param p2: Feature points for the second image.
+    :param tracks: Common tracks.
+    :param rec_tracks: Common tracks included in the reconstruction.
+    :param non_rec_tracks: Common tracks not included in the reconstruction.
+    """
 
     rec_track_points1 = p1[rec_tracks[:, 1]]
     rec_track_points2 = p2[rec_tracks[:, 2]]
@@ -627,7 +678,20 @@ def plot_reconstructed_tracks(fw, ip, index, p1, p2, tracks, rec_tracks, non_rec
 
 
 def plot_reprojected_tracks(fw, ip, index, p1, p2, tracks, rec_tracks, non_rec_tracks, reconstruction, graph, data):
-    """ Reproject tracks and plot. """
+    """ Reprojects tracks included in and excluded from reconstruction and plots reprojections on top of observations.
+
+    :param fw: Figure wrapper.
+    :param ip: Image pair.
+    :param index: Sub plot index.
+    :param p1: Feature points for the first image.
+    :param p2: Feature points for the second image.
+    :param tracks: Common tracks.
+    :param rec_tracks: Common tracks included in the reconstruction.
+    :param non_rec_tracks: Common tracks not included in the reconstruction.
+    :param reconstruction: Reconstruction.
+    :param graph: Tracks graph.
+    :param data: Data set
+    """
 
     rec_track_points1 = p1[rec_tracks[:, 1]]
     rec_track_points2 = p2[rec_tracks[:, 2]]
