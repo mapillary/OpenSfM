@@ -94,6 +94,21 @@ def plot_matches(plot, im1, im2, p1, p2, line_format='c', point_format='ob'):
     plot_points(plot, im1, p1, point_format, im2, p2, point_format)
 
 
+def plot_circle(subplot, diameter, format):
+    """ Plots a circle.
+
+    :param subplot: The subplot.
+    :param diameter: The diameter of the circle.
+    :param format: The circle format.
+    """
+
+    angles = np.linspace(0, 2 * np.pi, 300)
+    x = diameter * np.sin(angles)
+    y = diameter * np.cos(angles)
+
+    subplot.plot(x, y, format)
+
+
 def create_subplot(figure, rows, columns, index, title, x_lim, y_lim, font_size=12, axis=False, aspect=None, grid=False):
     """ Creates a subplot. """
     subplot = figure.add_subplot(rows, columns, index)
@@ -189,6 +204,7 @@ def reproject_tracks(im, tracks, reconstruction):
 
 def reprojection_errors(reprojections, observations, scale):
     """ Calculates reprojection errors with respect to observations.
+
     :param reprojections: The reprojections.
     :param observations: The observations.
     :param scale: The scale for the errors.
@@ -207,9 +223,13 @@ def reprojection_errors(reprojections, observations, scale):
     max_norm = np.max(errors_norm)
 
     observations_norm = scale * np.linalg.norm(observations, axis=1)
-    corr = np.corrcoef(observations_norm, errors_norm)
 
-    return errors, mean, std, min_norm, max_norm, corr[0, 1]
+    if len(observations_norm) > 1:
+        corr = np.corrcoef(observations_norm, errors_norm)[0, 1]
+    else:
+        corr = np.nan
+
+    return errors, mean, std, min_norm, max_norm, corr
 
 
 def triangulate_tracks(tracks, reconstruction, graph, min_ray_angle):
@@ -869,13 +889,13 @@ def create_reprojection_error_figure(im, data, save_figs=False, single_column=Fa
     rec_errors, rec_mean, rec_std, rec_min, rec_max, rec_corr = reprojection_errors(reproj_rec, rec_points, scale)
     non_errors, non_mean, non_std, non_min, non_max, non_corr = reprojection_errors(reproj_non, triang_non, scale)
 
-    axis_max = 1.05 * np.max(np.abs(np.vstack((rec_errors, non_errors))))
+    triang_thld = data.config.get('triangulation_threshold', 0.004)
+    bundle_thld = data.config.get('bundle_outlier_threshold', 0.008)
+    axis_max = np.max(np.abs(np.vstack((rec_errors, non_errors))))
+    axis_max = 1.05 * np.max([axis_max, scale * triang_thld, scale * bundle_thld])
 
     title = 'Reconstructed tracks: {0}. '.format(rec_tracks.shape[0])
     error_title = "Mean: ({0:.1f}, {1:.1f}). Std: ({2:.1f}, {3:.1f}). Max norm: {4:.1f}. Min norm: {5:.1f}."
-
-    triang_thld = data.config.get('triangulation_threshold', 0.004)
-    bundle_thld = data.config.get('bundle_outlier_threshold', 0.008)
     thld_title = 'Thresholds: Triangulation: {0:.1f} ({1:.2g}). Bundle outlier: {2:.1f} ({3:.2g}).'\
         .format(scale * triang_thld, triang_thld, scale * bundle_thld, bundle_thld)
     corr_title = ' Distance to principal point - Error norm correlation: {0:.3f}'
@@ -886,6 +906,9 @@ def create_reprojection_error_figure(im, data, save_figs=False, single_column=Fa
         thld_title + '\n' + corr_title.format(rec_corr) if rec_corr is not np.nan else '',
         (-axis_max, axis_max), (-axis_max, axis_max),
         aspect='equal', axis=True, grid=True)
+
+    plot_circle(rec_sub, scale * triang_thld, 'r')
+    plot_circle(rec_sub, scale * bundle_thld, 'm')
 
     zero = np.array([0])
     rec_sub.plot(zero, zero, '+k')
@@ -900,6 +923,8 @@ def create_reprojection_error_figure(im, data, save_figs=False, single_column=Fa
         (-axis_max, axis_max), (-axis_max, axis_max),
         aspect='equal', axis=True, grid=True)
 
+    plot_circle(non_rec_sub, scale * triang_thld, 'r')
+    plot_circle(non_rec_sub, scale * bundle_thld, 'm')
     non_rec_sub.plot(zero, zero, '+k')
     non_rec_sub.plot(non_errors[:, 0], non_errors[:, 1], 'om')
 
