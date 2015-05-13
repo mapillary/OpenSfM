@@ -431,6 +431,7 @@ def two_view_reconstruction(p1, p2, f1, f2, threshold, bundle=True):
         K2 = np.array([[f2, 0, 0], [0, f2, 0], [0, 0, 1.]])
 
         old_inliers = np.zeros(npoints)
+        errors = [0, 0, 0, 0]
         for it in range(num_iter):
             # Triangulate Features.
             P1 = P_from_KRt(K1, np.eye(3), np.zeros(3))
@@ -439,7 +440,8 @@ def two_view_reconstruction(p1, p2, f1, f2, threshold, bundle=True):
             Xs = []
             inliers = []
             for x1, x2 in zip(p1, p2):
-                X = csfm.triangulate(Ps, [x1, x2], threshold, -1.0)
+                e, X = csfm.triangulate(Ps, [x1, x2], threshold, -1.0)
+                errors[e] += 1
                 if X is not None:
                     Xs.append(X)
                     inliers.append(True)

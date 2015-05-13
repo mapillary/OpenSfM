@@ -163,6 +163,20 @@ double AngleBetweenVectors(const Eigen::Vector3d &u,
     else return acos(c);
 }
 
+enum {
+  TRIANGULATION_OK = 0,
+  TRIANGULATION_BAD_ANGLE,
+  TRIANGULATION_BEHIND_CAMERA,
+  TRIANGULATION_BAD_REPROJECTION
+};
+
+bp::object TriangulateReturn(int error, bp::object value) {
+    bp::list retn;
+    retn.append(int(error));
+    retn.append(value);
+    return retn;
+}
+
 bp::object Triangulate(const bp::list &Ps_list,
                        const bp::list &xs_list,
                        double threshold,
@@ -205,7 +219,9 @@ bp::object Triangulate(const bp::list &Ps_list,
     }
   }
 
-  if (!angle_ok) return bp::object();
+  if (!angle_ok) {
+    return TriangulateReturn(TRIANGULATION_BAD_ANGLE, bp::object());
+  }
 
   Eigen::Matrix<double, 4, 1> X;
   libmv::NViewTriangulateAlgebraic(xs, Ps, &X);
@@ -215,18 +231,19 @@ bp::object Triangulate(const bp::list &Ps_list,
     Eigen::Vector3d x_reproj = Ps[i] * X;
 
     if (x_reproj(2) <= 0) {
-      return bp::object();
+      return TriangulateReturn(TRIANGULATION_BEHIND_CAMERA, bp::object());
     }
 
     double dx = xs(0, i) - x_reproj(0) / x_reproj(2);
     double dy = xs(1, i) - x_reproj(1) / x_reproj(2);
     if (dx * dx + dy * dy > threshold * threshold) {
-      return bp::object();
+     return TriangulateReturn(TRIANGULATION_BAD_REPROJECTION, bp::object());
     }
   }
 
   npy_intp Xe_shape[1] = {3};
-  return bpn_array_from_data(1, Xe_shape, X.data());
+  return TriangulateReturn(TRIANGULATION_OK,
+      bpn_array_from_data(1, Xe_shape, X.data()));
 }
 
 

@@ -352,7 +352,7 @@ def triangulate_track(track, graph, reconstruction, P_by_id, UNUSED1, UNUSED2, r
             xs.append(np.array(x))
 
     if len(Ps) >= 2:
-        X = csfm.triangulate(Ps, xs, reproj_threshold, min_ray_angle)
+        e, X = csfm.triangulate(Ps, xs, reproj_threshold, min_ray_angle)
         if X is not None:
             reconstruction['points'][track] = {
                 "coordinates": list(X),
