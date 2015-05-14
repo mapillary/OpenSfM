@@ -56,9 +56,9 @@ struct SampsonError {
 
     const T x2_F_x1 = ceres::DotProduct(x2, F_x1);
 
-    residuals[0] = T(0.5) * x2_F_x1 / ceres::sqrt(
-        F_x1[0] * F_x1[0] + F_x1[1] * F_x1[1] +
-        x2_F[0] * x2_F[0] + x2_F[1] * x2_F[1] );
+    residuals[0] = T(scale_) * T(0.5) * x2_F_x1
+        / ceres::sqrt(F_x1[0] * F_x1[0] + F_x1[1] * F_x1[1] +
+                      x2_F[0] * x2_F[0] + x2_F[1] * x2_F[1] );
 
     return true;
   }
@@ -70,14 +70,17 @@ struct SampsonError {
 
 
 struct TVBAUnitTranslationPriorError {
-  TVBAUnitTranslationPriorError() {}
+  TVBAUnitTranslationPriorError(double std_deviation)
+      : scale_(1.0 / std_deviation)
+  {}
 
   template <typename T>
   bool operator()(const T* const shot, T* residuals) const {
     const T* const t = shot + TVBA_PARAMS_TX;
-    residuals[0] = log(t[0] * t[0] + t[1] * t[1] + t[2] * t[2]);
+    residuals[0] = T(scale_) * log(t[0] * t[0] + t[1] * t[1] + t[2] * t[2]);
     return true;
   }
+  double scale_;
 };
 
 struct TVBAParams {
@@ -207,7 +210,7 @@ class TwoViewBundleAdjuster {
     // Add unit translation cost
     ceres::CostFunction* cost_function =
         new ceres::AutoDiffCostFunction<TVBAUnitTranslationPriorError, 1, 6>(
-            new TVBAUnitTranslationPriorError());
+            new TVBAUnitTranslationPriorError(reprojection_error_sd_));  // Error will count as much as one match
 
     problem.AddResidualBlock(cost_function,
                              NULL,
