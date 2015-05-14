@@ -90,7 +90,6 @@ bp::object TwoViewReconstruction(PyObject *x1_object,
     ba.SetLossFunction("CauchyLoss", 1);
     ba.SetComputeCovariance(true);
     ba.Run();
-    std::cout << "before " << r[0] << "," << r[1] << "," << r[2] << "," << t[0] << "," << t[1] << "," << t[2] << "\n";
     TVBAParams p = ba.GetParams();
     r[0] = p.GetRX();
     r[1] = p.GetRY();
@@ -103,7 +102,6 @@ bp::object TwoViewReconstruction(PyObject *x1_object,
         covariance[6 * i + j] = p.GetCovariance(i, j);
       }
     }
-    std::cout << "after  " << r[0] << "," << r[1] << "," << r[2] << "," << t[0] << "," << t[1] << "," << t[2] << "\n";
   }
 
   // Convert results to numpy arrays.
@@ -173,7 +171,7 @@ double AngleBetweenVectors(const Eigen::Vector3d &u,
 
 enum {
   TRIANGULATION_OK = 0,
-  TRIANGULATION_BAD_ANGLE,
+  TRIANGULATION_SMALL_ANGLE,
   TRIANGULATION_BEHIND_CAMERA,
   TRIANGULATION_BAD_REPROJECTION
 };
@@ -228,7 +226,7 @@ bp::object Triangulate(const bp::list &Ps_list,
   }
 
   if (!angle_ok) {
-    return TriangulateReturn(TRIANGULATION_BAD_ANGLE, bp::object());
+    return TriangulateReturn(TRIANGULATION_SMALL_ANGLE, bp::object());
   }
 
   Eigen::Matrix<double, 4, 1> X;
