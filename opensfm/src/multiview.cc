@@ -77,9 +77,10 @@ bp::object TwoViewReconstruction(PyObject *x1_object,
                                        K2, x2inliers,
                                        &R, &t);
 
+  double r[3];
+  ceres::RotationMatrixToAngleAxis(&R(0,0), r);
+  double covariance[6 * 6];
   if (true) {
-    double r[3];
-    ceres::RotationMatrixToAngleAxis(&R(0,0), r);
     TwoViewBundleAdjuster ba;
     ba.InitParams(r[0], r[1], r[2], t[0], t[1], t[2], focal1, focal2);
     for (int i = 0; i < x1.cols(); ++i) {
@@ -87,6 +88,7 @@ bp::object TwoViewReconstruction(PyObject *x1_object,
     }
     ba.SetReprojectionErrorSD(threshold);
     ba.SetLossFunction("CauchyLoss", 1);
+    ba.SetComputeCovariance(true);
     ba.Run();
     std::cout << "before " << r[0] << "," << r[1] << "," << r[2] << "," << t[0] << "," << t[1] << "," << t[2] << "\n";
     TVBAParams p = ba.GetParams();
@@ -96,19 +98,23 @@ bp::object TwoViewReconstruction(PyObject *x1_object,
     t[0] = p.GetTX();
     t[1] = p.GetTY();
     t[2] = p.GetTZ();
+    for (int i = 0; i < 6; ++i) {
+      for (int j = 0; j < 6; ++j) {
+        covariance[6 * i + j] = p.GetCovariance(i, j);
+      }
+    }
     std::cout << "after  " << r[0] << "," << r[1] << "," << r[2] << "," << t[0] << "," << t[1] << "," << t[2] << "\n";
-    ceres::AngleAxisToRotationMatrix(r, &R(0,0));
   }
 
   // Convert results to numpy arrays.
-  Eigen::Matrix<double, 3, 3, Eigen::RowMajor> R_row_major = R;
-
   bp::list retn;
-  npy_intp R_shape[2] = {3, 3};
+  npy_intp r_shape[1] = {3};
   npy_intp t_shape[1] = {3};
+  npy_intp covariance_shape[2] = {6, 6};
   npy_intp inliers_shape[1] = {inliers.size()};
-  retn.append(bpn_array_from_data(2, R_shape, R_row_major.data()));
+  retn.append(bpn_array_from_data(1, r_shape, r));
   retn.append(bpn_array_from_data(1, t_shape, t.data()));
+  retn.append(bpn_array_from_data(2, covariance_shape, covariance));
   retn.append(bpn_array_from_data(1, inliers_shape, &inliers[0]));
 
   return retn;

@@ -238,7 +238,7 @@ def create_tracks_figure(im1, im2, data, save_figs=False):
     f2 = data.load_exif(im2)['focal_prior']
 
     threshold_t = data.config.get('five_point_algo_threshold', 0.006)
-    R, t, inliers_t = csfm.two_view_reconstruction(track_points1, track_points2, f1, f2, threshold_t)
+    R, t, cov, inliers_t = csfm.two_view_reconstruction(track_points1, track_points2, f1, f2, threshold_t)
 
     inliers_t1 = track_points1[inliers_t, :]
     inliers_t2 = track_points2[inliers_t, :]

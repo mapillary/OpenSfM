@@ -425,7 +425,9 @@ def two_view_reconstruction(p1, p2, f1, f2, threshold, bundle=True):
         num_iter = 1
 
     if res:
-        R, t, inliers = res
+        r, t, cov, inliers = res
+        print cov
+        R = cv2.Rodrigues(r)[0]
 
         K1 = np.array([[f1, 0, 0], [0, f1, 0], [0, 0, 1.]])
         K2 = np.array([[f2, 0, 0], [0, f2, 0], [0, 0, 1.]])

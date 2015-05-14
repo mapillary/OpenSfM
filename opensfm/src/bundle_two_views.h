@@ -111,7 +111,7 @@ class TwoViewBundleAdjuster {
     loss_function_ = "CauchyLoss";
     loss_function_threshold_ = 1;
     reprojection_error_sd_ = 1;
-    compute_covariances_ = false;
+    compute_covariance_ = false;
     covariance_estimation_valid_ = false;
     max_num_iterations_ = 50;
   }
@@ -167,8 +167,8 @@ class TwoViewBundleAdjuster {
     max_num_iterations_ = miter;
   }
 
-  void SetComputeCovariances(bool v) {
-    compute_covariances_ = v;
+  void SetComputeCovariance(bool v) {
+    compute_covariance_ = v;
   }
 
   bool GetCovarianceEstimationValid() {
@@ -222,7 +222,7 @@ class TwoViewBundleAdjuster {
 
     ceres::Solve(options, &problem, &last_run_summary_);
 
-    if (compute_covariances_) {
+    if (compute_covariance_) {
       ComputeCovariance(&problem);
     }
   }
@@ -269,7 +269,7 @@ class TwoViewBundleAdjuster {
   std::string loss_function_;
   double loss_function_threshold_;
   double reprojection_error_sd_;
-  bool compute_covariances_;
+  bool compute_covariance_;
   bool covariance_estimation_valid_;
   int max_num_iterations_;
 

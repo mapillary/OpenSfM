@@ -154,7 +154,7 @@ def bootstrap_reconstruction(data, graph, im1, im2):
     threshold = data.config.get('five_point_algo_threshold', 0.006)
     ret = csfm.two_view_reconstruction(p1, p2, f1, f2, threshold)
     if ret is not None:
-        R, t, inliers = ret
+        R, t, cov, inliers = ret
     else:
         return None
     if len(inliers):
@@ -170,7 +170,7 @@ def bootstrap_reconstruction(data, graph, im1, im2):
                 },
                 im2: {
                     "camera": str(d2['camera']),
-                    "rotation": list(cv2.Rodrigues(R)[0].flat),
+                    "rotation": list(R),
                     "translation": list(t),
                 },
             },
