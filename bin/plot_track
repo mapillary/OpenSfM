@@ -382,7 +382,8 @@ def plot_image_feature(plot, im, x, reconstruction, point, fraction):
     P = reconstruct.projection_matrix(camera, shot)
     KR_inv = np.linalg.inv(P[:, :3])
 
-    vs = np.dot(KR_inv, xh)
+    # Calculate ray direction
+    rd = np.dot(KR_inv, xh)
 
     oc = reconstruct.optical_center(shot)
     vd = reconstruct.viewing_direction(shot)
@@ -396,14 +397,14 @@ def plot_image_feature(plot, im, x, reconstruction, point, fraction):
     plot_point(plot, oc + principal_ray_dir, (1., .6, .0))
 
     # Plot track image projection
-    projection = np.dot(vs, principal_ray_dir)
-    im_plane_intersect = vs / projection
+    projection = np.dot(rd, principal_ray_dir)
+    im_plane_intersect = rd / projection
     plot_point(plot, oc + im_plane_intersect, 'cyan')
 
     ray_length = np.linalg.norm(point - oc) + 5 if point is not None else 5
 
     # Plot track ray
-    plot_ray(plot, oc, vs, ray_length, (.0, .9 * fraction, .2 + .7 * fraction), '{0} track ray'.format(im))
+    plot_ray(plot, oc, rd, ray_length, (.0, .9 * fraction, .2 + .7 * fraction), '{0} track ray'.format(im))
 
     # Plot principal ray
     plot_ray(plot, oc, vd, ray_length, 'r')
