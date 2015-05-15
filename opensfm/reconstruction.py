@@ -114,7 +114,7 @@ def compute_image_pairs(graph, image_graph, config):
     return [pairs[o] for o in order]
 
 
-def add_gps_position(data, reconstruction, image):
+def add_gps_position(data, shot, image):
     exif = data.load_exif(image)
     reflla = data.load_reference_lla()
     if 'gps' in exif and 'latitude' in exif['gps'] and 'longitude' in exif['gps']:
@@ -123,19 +123,19 @@ def add_gps_position(data, reconstruction, image):
         alt = 2.0 #exif['gps'].get('altitude', 0)
         x, y, z = geo.topocentric_from_lla(lat, lon, alt,
             reflla['latitude'], reflla['longitude'], reflla['altitude'])
-        reconstruction['shots'][image]['gps_position'] = [x, y, z]
-        reconstruction['shots'][image]['gps_dop'] = exif['gps'].get('dop', 15.0)
+        shot['gps_position'] = [x, y, z]
+        shot['gps_dop'] = exif['gps'].get('dop', 15.0)
     else:
-        reconstruction['shots'][image]['gps_position'] = [0.0, 0.0, 0.0]
-        reconstruction['shots'][image]['gps_dop'] = 999999.0
+        shot['gps_position'] = [0.0, 0.0, 0.0]
+        shot['gps_dop'] = 999999.0
 
-    reconstruction['shots'][image]['orientation'] = exif.get('orientation', 1)
+    shot['orientation'] = exif.get('orientation', 1)
 
     if 'accelerometer' in exif:
-        reconstruction['shots'][image]['accelerometer'] = exif['accelerometer']
+        shot['accelerometer'] = exif['accelerometer']
 
     if 'compass' in exif:
-        reconstruction['shots'][image]['compass'] = exif['compass']
+        shot['compass'] = exif['compass']
 
 
 def bootstrap_reconstruction(data, graph, im1, im2):
@@ -178,8 +178,8 @@ def bootstrap_reconstruction(data, graph, im1, im2):
             "points" : {
             },
         }
-        add_gps_position(data, reconstruction, im1)
-        add_gps_position(data, reconstruction, im2)
+        add_gps_position(data, reconstruction['shots'][im1], im1)
+        add_gps_position(data, reconstruction['shots'][im2], im2)
         triangulate_shot_features(
                     graph, reconstruction, im1,
                     data.config.get('triangulation_threshold', 0.004),
@@ -316,7 +316,7 @@ def resect(data, graph, reconstruction, shot_id):
             "rotation": list(R.flat),
             "translation": list(t.flat),
         }
-        add_gps_position(data, reconstruction, shot_id)
+        add_gps_position(data, reconstruction['shots'][shot_id], shot_id)
         return True
     else:
         return False
