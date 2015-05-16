@@ -46,7 +46,7 @@ include_directories(${GLOG_INCLUDE_DIR})
 find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 
-find_package(Boost COMPONENTS python)
+find_package(Boost COMPONENTS python REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 
 set(Python_ADDITIONAL_VERSIONS "2.7")
