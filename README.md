@@ -62,6 +62,11 @@ An example dataset is available at `data/berlin`.
  4. Start an http server from the root with `python -m SimpleHTTPServer`
  5. Browse `http://localhost:8000/viewer/reconstruction.html#file=/data/DATASET_NAME/reconstruction.json`.
 
+Things you can do from there:
+- Use datasets with more images
+- Click twice on an image to see it. Then use arrows to move between images.
+- Run `bin/mesh data/berlin` to build a reconstruction with sparse mesh that will produce smoother transitions from images
+
 
 [OpenCV]: http://opencv.org/ (Computer vision and machine learning software library)
 [NumPy]: http://www.numpy.org/ (Scientific computing with Python)
