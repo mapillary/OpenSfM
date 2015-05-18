@@ -12,6 +12,7 @@ from opensfm.sensors import sensor_data
 from opensfm import dataset
 from opensfm import exif
 
+default_focal_ratio = 0.85
 
 def usage():
     print 'USAGE: %s data_set_path' % sys.argv[0]
@@ -46,6 +47,11 @@ for image in images:
     # EXIF data in Image
     d = exif.extract_exif_from_file(data.load_image(image))
 
+    # Set default focal ratio
+    if not d['focal_prior']:
+        print 'Warning: Missing focal length in EXIF. Using default focal ratio {}'.format(default_focal_ratio)
+        d['focal_prior'] = default_focal_ratio
+
     # Image Height and Image Width
     if not data.config.get('use_exif_size', True):
         height, width = data.image_as_array(image).shape[:2]
@@ -59,6 +65,7 @@ camera_models = {}
 for image in data.images():
     d = data.load_exif(image)
     if d['camera'] not in camera_models:
+
         camera_models[d['camera']] = {
                 'width': d['width'],
                 'height': d['height'],
