@@ -1,10 +1,8 @@
 
 # Params for features
-feature_type: SIFT            # Feature type (AKAZE, SURF, SIFT)
-feature_root: 0               # If 1, apply square root mapping to features
-feature_min_frames: 2000         # If fewer frames are detected, sift_peak_threshold/surf_hessian_threshold is reduced.
+feature_type: SIFT            # Feature type (SURF, SIFT)
+feature_min_frames: 4000      # If fewer frames are detected, sift_peak_threshold/surf_hessian_threshold is reduced.
 feature_process_size: 2048    # Resize the image if its size is larger than specified. Set to -1 for original size
-feature_use_adaptive_suppression: no
 
 # Params for SIFT
 sift_peak_threshold: 0.1     # Smaller value -> more features
