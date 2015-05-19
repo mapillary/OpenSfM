@@ -224,22 +224,23 @@ def back_project(camera, shot, pixel, depth):
     return np.linalg.solve(A, b)
 
 
-def distort(camera, x, y):
-    """ Distorts a point (x, y) using the distortion coefficients of the camera.
+def distort(camera, x_normalized, y_normalized):
+    """ Distorts a normalized point (x, y) with coordinates in focal length units using the
+        distortion coefficients of the camera.
 
     :param camera: The camera.
-    :param x: The x coordinate.
-    :param y: The y coordinate.
-    :return: The distorted x and y coordinates.
+    :param x_normalized: The normalized x coordinate in focal length units.
+    :param y_normalized: The normalized y coordinate in focal length units.
+    :return: The distorted x and y coordinates in focal length units.
     """
 
     k1 = camera.get('k1', 0.0)
     k2 = camera.get('k2', 0.0)
-    r2 = x * x + y * y
+    r2 = x_normalized * x_normalized + y_normalized * y_normalized
     distortion = 1.0 + r2 * (k1 + k2 * r2)
 
-    x_distort = distortion * x
-    y_distort = distortion * y
+    x_distort = distortion * x_normalized
+    y_distort = distortion * y_normalized
 
     return x_distort, y_distort
 
@@ -249,10 +250,13 @@ def reproject(camera, shot, point):
     '''
     p = rotate(shot['rotation'], point['coordinates'])
     p += shot['translation']
-    xp = camera['focal'] * p[0] / p[2]
-    yp = camera['focal'] * p[1] / p[2]
+    xp = p[0] / p[2]
+    yp = p[1] / p[2]
 
-    x_reproject, y_reproject = distort(camera, xp, yp)
+    x_distort, y_distort = distort(camera, xp, yp)
+
+    x_reproject = camera['focal'] * x_distort
+    y_reproject = camera['focal'] * y_distort
 
     return np.array([x_reproject, y_reproject])
 
