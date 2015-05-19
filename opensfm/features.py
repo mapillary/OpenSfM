@@ -80,7 +80,7 @@ def extract_features_sift(image, config):
     detector = cv2.FeatureDetector_create('SIFT')
     descriptor = cv2.DescriptorExtractor_create('SIFT')
     detector.setDouble('edgeThreshold', config.get('sift_edge_threshold', 10))
-    sift_peak_threshold = float(config.get('sift_peak_threshold', 0.01))
+    sift_peak_threshold = float(config.get('sift_peak_threshold', 0.1))
     while True:
         print 'Computing sift with threshold {0}'.format(sift_peak_threshold)
         t = time.time()
