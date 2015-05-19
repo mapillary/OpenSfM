@@ -244,8 +244,8 @@ def approx_distance_to_curve(camera, x, l):
     :return: Approximate distance between the distorted point and the epipolar curve.
     """
     x_line = closest_line_point(x, l)
-    x_curve = np.array(reconstruct.distort(camera, x_line[0], x_line[1]))
-    x_distort = np.array(reconstruct.distort(camera, x[0], x[1]))
+    x_curve = distort_point(camera, x_line)
+    x_distort = distort_point(camera, x)
 
     return np.linalg.norm(np.subtract(x_distort, x_curve))
 
@@ -305,23 +305,45 @@ def find_reconstruction(images, data):
     return reconstruction, rec_images
 
 
-def distort_points(camera, x):
-    """ Distorts a points using the distortion coefficients of the camera.
+def distort_points(camera, xs):
+    """ Distorts undistorted image points using the distortion coefficients of the camera.
     :param camera: The camera.
-    :param x: The points.
-    :return: Array of distorted points.
+    :param xs: Array of undistorted image points.
+    :return: Array of distorted image points.
     """
     result = []
 
-    for point in x:
-        x_distort, y_distort = reconstruct.distort(camera, point[0], point[1])
-        result.append(np.array([x_distort, y_distort]))
+    for x in xs:
+        result.append(distort_point(camera, x))
 
     return np.array(result)
 
 
+def distort_point(camera, x):
+    """ Distorts an undistorted image point. Normalizes the point using the focal length of the
+        camera to get the point coordinates in units of focal length. Distorts the normalized point.
+        Unnormalizes the distorted point coordinates using the focal length.
+
+    :param camera: The camera.
+    :param x: Undistorted image point.
+    :return: Distorted image point.
+    """
+
+    f = camera['focal']
+    x_normalized = x[0] / f
+    y_normalized = x[1] / f
+
+    x_distort, y_distort = reconstruct.distort(camera, x_normalized, y_normalized)
+
+    x_unnormalized = f * x_distort
+    y_unnormalized = f * y_distort
+
+    return np.array([x_unnormalized, y_unnormalized])
+
+
 def undistort_image(im_array, camera):
     """ Undistorts an image using the camera properties.
+
     :param im_array: The image array.
     :param camera: The camera.
     :return: An image with the undistorted pixels.
@@ -504,8 +526,8 @@ def plot_epipolar_geo(subplot, im1, im2, im1_array, im2_array, x1, x2, reconstru
     lp1 = line_equation_points(l1)
     lp2 = line_equation_points(l2)
 
-    e1 = epipole(P1, C2)
-    e2 = epipole(P2, C1)
+    e1 = epipole(P1, C2)[:2]
+    e2 = epipole(P2, C1)[:2]
 
     d1 = distance_to_line(x1u, l1)
     d2 = distance_to_line(x2u, l2)
@@ -516,14 +538,14 @@ def plot_epipolar_geo(subplot, im1, im2, im1_array, im2_array, x1, x2, reconstru
         lp2 = distort_points(camera2, lp2)
 
         # Distort epipole.
-        e1 = np.array(reconstruct.distort(camera1, e1[0], e1[1]))
-        e2 = np.array(reconstruct.distort(camera2, e2[0], e2[1]))
+        e1 = distort_point(camera1, e1)
+        e2 = distort_point(camera2, e2)
 
-        # Calculate approximate distance to curve by just distorting closest line point
+        # Calculate approximate distance to curve by distorting point and closest line point.
         d1 = approx_distance_to_curve(camera1, x1u, l1)
         d2 = approx_distance_to_curve(camera2, x2u, l2)
 
-        # Distort feature points
+        # Distort feature points by setting them to original feature points.
         x1u = x1
         x2u = x2
 
@@ -531,7 +553,7 @@ def plot_epipolar_geo(subplot, im1, im2, im1_array, im2_array, x1, x2, reconstru
     lp2 = lp2[lp2[:, 0] >= -.5]
 
     plot_points(subplot, im1_array, im2_array, lp1, lp2, 'r', 'r')
-    plot_points(subplot, im1_array, im2_array, np.resize(e1[:2], (1, 2)), np.resize(e2[:2], (1, 2)), 'or', 'or')
+    plot_points(subplot, im1_array, im2_array, np.resize(e1, (1, 2)), np.resize(e2, (1, 2)), 'or', 'or')
     plot_points(subplot, im1_array, im2_array, np.resize(x1u, (1, 2)), np.resize(x2u, (1, 2)), 'ob', 'ob')
 
     return d1, d2
