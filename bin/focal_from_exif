@@ -12,7 +12,6 @@ from opensfm.sensors import sensor_data
 from opensfm import dataset
 from opensfm import exif
 
-default_focal_ratio = 0.85
 
 def usage():
     print 'USAGE: %s data_set_path' % sys.argv[0]
@@ -28,6 +27,7 @@ data = dataset.DataSet(path)
 images = data.images()
 missing_sensors = {}
 camera_models = {}
+default_focal_ratio = data.config.get('default_focal_ratio', 0.85)
 
 if os.path.exists(data.data_path + '/exif_overrides.json'):
     with open(data.data_path + '/exif_overrides.json', 'rb') as f:
