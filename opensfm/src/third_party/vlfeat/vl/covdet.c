@@ -1958,8 +1958,6 @@ vl_covdet_detect (VlCovDet * self)
   /* clear previous detections if any */
   self->numFeatures = 0 ;
 
-  clock_t t = clock();
-
   /* prepare buffers ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
   cgeom = geom ;
   if (self->method == VL_COVDET_METHOD_DOG) {
@@ -2014,8 +2012,7 @@ vl_covdet_detect (VlCovDet * self)
       }
     }
   }
-  printf("cornerness %f\n", (float)(clock() - t)/CLOCKS_PER_SEC);
-  t = clock();
+
   /* find and refine local maxima ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
   {
     vl_index * extrema = NULL ;
@@ -2112,9 +2109,6 @@ vl_covdet_detect (VlCovDet * self)
     if (extrema) { vl_free(extrema) ; extrema = 0 ; }
   }
 
-  printf("detection %f\n", (float)(clock() - t)/CLOCKS_PER_SEC);
-  t = clock();
-
   /* Laplacian scale selection for certain methods */
   switch (self->method) {
     case VL_COVDET_METHOD_HARRIS_LAPLACE :
@@ -2125,9 +2119,6 @@ vl_covdet_detect (VlCovDet * self)
       break ;
   }
 
-  printf("laplacian scale %f\n", (float)(clock() - t)/CLOCKS_PER_SEC);
-  t = clock();
-
   if (self->targetNumFeatures != 0 && !self->useAdaptiveSuppression) {
     // Keep only 1.5 x targetNumFeatures for speeding-up duplicate detection
     int to_keep = 3 * self->targetNumFeatures / 2;
@@ -2135,7 +2126,6 @@ vl_covdet_detect (VlCovDet * self)
       qsort(self->features, self->numFeatures, sizeof(VlCovDetFeature), _vl_compare_scores);
       self->numFeatures = to_keep;
     }
-    printf("keeping %lld features before duplicate suppression\n", self->numFeatures);
   }
 
   if (self->nonExtremaSuppression) {
@@ -2171,7 +2161,6 @@ vl_covdet_detect (VlCovDet * self)
         self->features[j++] = feature ;
       }
     }
-    printf("before duplicate suppression %lld  after %lld\n", self->numFeatures, j);
     self->numFeatures = j ;
   }
 
@@ -2202,19 +2191,12 @@ vl_covdet_detect (VlCovDet * self)
       }
       qsort(self->features, self->numFeatures, sizeof(VlCovDetFeature), _vl_compare_radius);
 
-      printf("before adaptive suppression %lld\n", self->numFeatures);
       if (self->numFeatures > self->targetNumFeatures) self->numFeatures = self->targetNumFeatures;
-      printf("after adaptive suppression %lld\n", self->numFeatures);
     } else {
       qsort(self->features, self->numFeatures, sizeof(VlCovDetFeature), _vl_compare_scores);
       if (self->numFeatures > self->targetNumFeatures) self->numFeatures = self->targetNumFeatures;
-      printf("keeping %lld features\n", self->numFeatures);
     }
   }
-
-
-  printf("nonExtremaSuppression %f\n", (float)(clock() - t)/CLOCKS_PER_SEC);
-  t = clock();
 
   if (levelxx) vl_free(levelxx) ;
   if (levelyy) vl_free(levelyy) ;
@@ -2967,7 +2949,6 @@ vl_covdet_extract_orientations (VlCovDet * self)
       oriented->frame.a22 = - A[1] * r2 + A[3] * r1 ;
     }
   }
-  printf("before %lld  after %lld\n", numFeatures, vl_covdet_get_num_features(self));
 }
 
 /* ---------------------------------------------------------------- */

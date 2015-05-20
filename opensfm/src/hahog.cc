@@ -38,19 +38,19 @@ bp::object hahog(PyObject *image,
     clock_t t_scalespace = clock();
 
     vl_covdet_detect(covdet);
-  
+
     clock_t t_detect = clock();
 
     // compute the affine shape of the features (optional)
     //vl_covdet_extract_affine_shape(covdet);
-    
+
     clock_t t_affine = clock();
 
     // compute the orientation of the features (optional)
     vl_covdet_extract_orientations(covdet);
 
     clock_t t_orient = clock();
-    
+
     // get feature descriptors
     vl_size numFeatures = vl_covdet_get_num_features(covdet);
     VlCovDetFeature const *feature = (VlCovDetFeature const *)vl_covdet_get_features(covdet);
@@ -100,11 +100,11 @@ bp::object hahog(PyObject *image,
     vl_covdet_delete(covdet);
 
     clock_t t_description = clock();
-    std::cout << "t_scalespace " << float(t_scalespace - t_start)/CLOCKS_PER_SEC << "\n";
-    std::cout << "t_detect " << float(t_detect - t_scalespace)/CLOCKS_PER_SEC << "\n";
-    std::cout << "t_affine " << float(t_affine - t_detect)/CLOCKS_PER_SEC << "\n";
-    std::cout << "t_orient " << float(t_orient - t_affine)/CLOCKS_PER_SEC << "\n";
-    std::cout << "description " << float(t_description - t_orient)/CLOCKS_PER_SEC << "\n";
+    // std::cout << "t_scalespace " << float(t_scalespace - t_start)/CLOCKS_PER_SEC << "\n";
+    // std::cout << "t_detect " << float(t_detect - t_scalespace)/CLOCKS_PER_SEC << "\n";
+    // std::cout << "t_affine " << float(t_affine - t_detect)/CLOCKS_PER_SEC << "\n";
+    // std::cout << "t_orient " << float(t_orient - t_affine)/CLOCKS_PER_SEC << "\n";
+    // std::cout << "description " << float(t_description - t_orient)/CLOCKS_PER_SEC << "\n";
 
     bp::list retn;
     npy_intp points_shape[2] = {npy_intp(numFeatures), 6};
