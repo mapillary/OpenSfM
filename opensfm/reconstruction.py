@@ -532,7 +532,7 @@ def align_reconstruction_orientation_prior_similarity(reconstruction, config):
         X.append(optical_center(shot))
         Xp.append(shot['gps_position'])
         R = cv2.Rodrigues(np.array(shot['rotation']))[0]
-        x, y, z = get_horitzontal_and_vertical_directions(R, shot['orientation'])
+        x, y, z = get_horitzontal_and_vertical_directions(R, shot.get('orientation'))
         if orientation_type == 'no_roll':
             onplane.append(x)
             verticals.append(-y)
