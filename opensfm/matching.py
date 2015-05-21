@@ -88,17 +88,17 @@ def good_track(track, min_length):
 
 
 def create_tracks_graph(features, colors, matches, config):
-    logging.info('creating features graph')
+    logging.debug('creating features graph')
     g = nx.Graph()
     for im1, im2 in matches:
         for f1, f2 in matches[im1, im2]:
             g.add_edge((im1, f1),  (im2, f2))
 
-    logging.info('finding connected components')
+    logging.debug('finding connected components')
     tracks = nx.connected_components(g)
 
     tracks = [t for t in tracks if good_track(t, config.get('min_track_length', 2))]
-    logging.info('Good tracks: %d', len(tracks))
+    logging.debug('Good tracks: %d', len(tracks))
 
     tracks_graph = nx.Graph()
     for track_id, track in enumerate(tracks):
