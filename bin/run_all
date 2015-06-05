@@ -8,3 +8,4 @@ $DIR/detect_features $1
 $DIR/match_features $1
 $DIR/create_tracks $1
 $DIR/reconstruct $1
+$DIR/mesh $1

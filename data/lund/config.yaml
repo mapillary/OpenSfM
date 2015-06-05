@@ -82,4 +82,4 @@ nav_vertical_threshold: 20            # Maximum vertical angle difference in mot
 nav_rotation_threshold: 30            # Maximum general rotation in degrees between cameras for steps
 
 # Other params
-processes: 1                  # Number of threads to use
+processes: 3                  # Number of threads to use
