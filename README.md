@@ -1,14 +1,17 @@
 OpenSfM
 =======
 
-Structure from Motion library written in Python on top of OpenCV.
+## Overview
+OpenSfM is a Structure from Motion library written in Python on top of [OpenCV][]. The library serves as a processing pipeline for reconstructing camera poses and 3D scenes from multiple images. It consists of basic modules for Structure from Motion (feature detection/matching, minimal solvers) with a focus on building a robust and scalable reconstruction pipeline. It also integrates external sensor (e.g. GPS, accelerometer) measurements for geographical alignment and robustness. A JavaScript viewer is provided to preview the models and debug the pipeline.  
+
+
 
 ## Dependencies
 
 * [OpenCV][]
 * [Ceres Solver][]
 * [Boost Python][]
-* [NumPy][], [SciPy][], networkx, PyYAML, exifread
+* [NumPy][], [SciPy][], [Networkx][], PyYAML, exifread
 
 ### Installing dependencies on MacOSX
 
@@ -73,3 +76,4 @@ Things you can do from there:
 [SciPy]: http://www.scipy.org/ (Fundamental library for scientific computing)
 [Ceres solver]: http://ceres-solver.org/ (Library for solving complicated nonlinear least squares problems)
 [Boost Python]: http://www.boost.org/
+[Networkx]: https://github.com/networkx/networkx
