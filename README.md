@@ -2,8 +2,15 @@ OpenSfM
 =======
 
 ## Overview
-OpenSfM is a Structure from Motion library written in Python on top of [OpenCV][]. The library serves as a processing pipeline for reconstructing camera poses and 3D scenes from multiple images. It consists of basic modules for Structure from Motion (feature detection/matching, minimal solvers) with a focus on building a robust and scalable reconstruction pipeline. It also integrates external sensor (e.g. GPS, accelerometer) measurements for geographical alignment and robustness. A JavaScript viewer is provided to preview the models and debug the pipeline.  
+OpenSfM is a Structure from Motion library written in Python on top of [OpenCV][]. The library serves as a processing pipeline for reconstructing camera poses and 3D scenes from multiple images. It consists of basic modules for Structure from Motion (feature detection/matching, minimal solvers) with a focus on building a robust and scalable reconstruction pipeline. It also integrates external sensor (e.g. GPS, accelerometer) measurements for geographical alignment and robustness. A JavaScript viewer is provided to preview the models and debug the pipeline.
 
+<p align="center">
+  <a href="https://dl.dropboxusercontent.com/u/2801164/public_html/mapillary_blog/navigation/reconstruction.html#file=data/iVioRpbW-oZa0issidL1tg/reconstruction.json.compressed&res=640&img=03PQphaD0hKxVSHwphmobg">
+    <img src="https://dl.dropboxusercontent.com/u/2801164/public_html/opensfm/lund.jpg" />
+  </a>
+</p>
+
+Checkout this [blog post with more demos](http://blog.mapillary.com/update/2014/12/15/sfm-preview.html)
 
 
 ## Dependencies
