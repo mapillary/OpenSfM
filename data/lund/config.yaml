@@ -37,7 +37,7 @@ matcher_type: FLANN           # FLANN or BRUTEFORCE
 # Params for FLANN matching
 flann_branching: 16           # See OpenCV doc
 flann_iterations: 10          # See OpenCV doc
-flann_checks: 150             # Smaller -> Faster (but might lose good matches)
+flann_checks: 200             # Smaller -> Faster (but might lose good matches)
 
 # Params for preemtive matching
 matching_gps_distance: 150            # Maximum gps distance between two images for matching
@@ -67,7 +67,7 @@ radial_distorsion_k2_sd: 0.01   # The standard deviation of the second radial di
 bundle_interval: 1              # bundle adjustment after adding 'bundle_interval' cameras
 bundle_outlier_threshold: 0.006
 
-save_partial_reconstructions: yes
+save_partial_reconstructions: no
 
 # Params for navigation graph
 nav_min_distance: 0.01                # Minimum distance for a possible edge between two nodes
@@ -79,7 +79,7 @@ nav_step_view_threshold: 30           # Maximum difference of angles in degrees 
 nav_step_drift_threshold: 36          # Maximum motion drift with respect to step directions for steps in degrees
 nav_turn_view_threshold: 40           # Maximum difference of angles in degrees with respect to turn directions
 nav_vertical_threshold: 20            # Maximum vertical angle difference in motion and viewving direction in degrees
-nav_rotation_threshold: 30            # Maximum general rotation in degrees between cameras for steps
+nav_rotation_threshold: 30            # Maximum general rotation in degrees between cameras for steps 
 
 # Other params
-processes: 3                  # Number of threads to use
+processes: 1                  # Number of threads to use

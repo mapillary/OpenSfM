@@ -68,7 +68,7 @@ radial_distorsion_k2_sd: 0.01   # The standard deviation of the second radial di
 bundle_interval: 1              # bundle adjustment after adding 'bundle_interval' cameras
 bundle_outlier_threshold: 0.006
 
-save_partial_reconstructions: yes
+save_partial_reconstructions: no
 
 # Params for navigation graph
 nav_min_distance: 0.01                # Minimum distance for a possible edge between two nodes
