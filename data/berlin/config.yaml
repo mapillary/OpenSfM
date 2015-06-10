@@ -1,8 +1,10 @@
 
 # Params for features
-feature_type: SIFT            # Feature type (SURF, SIFT)
+feature_type: HAHOG           # Feature type (AKAZE, SURF, SIFT)
+feature_root: 1               # If 1, apply square root mapping to features
 feature_min_frames: 4000      # If fewer frames are detected, sift_peak_threshold/surf_hessian_threshold is reduced.
 feature_process_size: 2048    # Resize the image if its size is larger than specified. Set to -1 for original size
+feature_use_adaptive_suppression: no
 
 # Params for SIFT
 sift_peak_threshold: 0.1     # Smaller value -> more features
@@ -21,7 +23,7 @@ akaze_descriptor_size: 0      # Size of the descriptor in bits. 0->Full size
 akaze_descriptor_channels: 3  # Number of feature channels (1,2,3)
 
 # Params for HAHOG
-hahog_peak_threshold: 0.001
+hahog_peak_threshold: 0.00001
 hahog_edge_threshold: 10
 
 # Masks for regions that will be ignore for feature extraction
