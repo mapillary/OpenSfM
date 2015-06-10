@@ -27,7 +27,7 @@ Use
     brew tap homebrew/science
     brew install opencv
     brew install homebrew/science/ceres-solver
-    brew install boost
+    brew install boost-python
     sudo pip install -r requirements.txt
 
 Be sure to update your `PYTHONPATH` to include `/usr/local/lib/python2.7/site-packages` where OpenCV has been installed:
