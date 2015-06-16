@@ -75,6 +75,10 @@ def robust_match(p1, p2, matches, config):
     F, mask = cv2.findFundamentalMat(p1, p2, cv2.cv.CV_FM_RANSAC, config.get('robust_matching_threshold', 0.006), 0.9999)
     inliers = mask.ravel().nonzero()
 
+    if F[2,2] == 0.0:
+        print 'ERROR: findFundamentalMat returned a degenerate F matrix'
+        return []
+
     return matches[inliers]
 
 
