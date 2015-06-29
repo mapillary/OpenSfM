@@ -3,13 +3,16 @@
 import os, sys
 import tempfile
 import time
+import logging
 from subprocess import call
 import numpy as np
 import json
 import uuid
 import cv2
-
 import csfm
+
+logger = logging.getLogger(__name__)
+
 
 def resized_image(image, config):
     feature_process_size = config.get('feature_process_size', -1)
@@ -82,16 +85,16 @@ def extract_features_sift(image, config):
     detector.setDouble('edgeThreshold', config.get('sift_edge_threshold', 10))
     sift_peak_threshold = float(config.get('sift_peak_threshold', 0.1))
     while True:
-        print 'Computing sift with threshold {0}'.format(sift_peak_threshold)
+        logger.debug('Computing sift with threshold {0}'.format(sift_peak_threshold))
         t = time.time()
         detector.setDouble("contrastThreshold", sift_peak_threshold)
         points = detector.detect(image)
-        print 'Found {0} points in {1}s'.format( len(points), time.time()-t )
+        logger.debug('Found {0} points in {1}s'.format( len(points), time.time()-t ))
         if len(points) < config.get('feature_min_frames', 0) and sift_peak_threshold > 0.0001:
             sift_peak_threshold = (sift_peak_threshold * 2) / 3
-            print 'reducing threshold'
+            logger.debug('reducing threshold')
         else:
-            print 'done'
+            logger.debug('done')
             break
     points, desc = descriptor.compute(image, points)
     if config.get('feature_root', False): desc = root_feature(desc)
@@ -107,16 +110,16 @@ def extract_features_surf(image, config):
     detector.setDouble('nOctaveLayers', config.get('surf_n_octavelayers', 2))
     detector.setInt('upright', config.get('surf_upright',0))
     while True:
-        print 'Computing surf with threshold {0}'.format(surf_hessian_threshold)
+        logger.debug('Computing surf with threshold {0}'.format(surf_hessian_threshold))
         t = time.time()
         detector.setDouble("hessianThreshold", surf_hessian_threshold) #default: 0.04
         points = detector.detect(image)
-        print 'Found {0} points in {1}s'.format( len(points), time.time()-t )
+        logger.debug('Found {0} points in {1}s'.format( len(points), time.time()-t ))
         if len(points) < config.get('feature_min_frames', 0) and surf_hessian_threshold > 0.0001:
             surf_hessian_threshold = (surf_hessian_threshold * 2) / 3
-            print 'reducing threshold'
+            logger.debug('reducing threshold')
         else:
-            print 'done'
+            logger.debug('done')
             break
 
     points, desc = descriptor.compute(image, points)
@@ -129,7 +132,7 @@ def akaze_descriptor_type(name):
     if name in d:
         return d[name]
     else:
-        print 'Wrong akaze descriptor type'
+        logger.debug('Wrong akaze descriptor type')
         return d['MSURF']
 
 def extract_features_akaze(image, config):
@@ -146,10 +149,10 @@ def extract_features_akaze(image, config):
     options.target_num_features = config.get('feature_min_frames', 0)
     options.use_adaptive_suppression = config.get('feature_use_adaptive_suppression', False)
 
-    print 'Computing AKAZE with threshold {0}'.format(options.dthreshold)
+    logger.debug('Computing AKAZE with threshold {0}'.format(options.dthreshold))
     t = time.time()
     points, desc = csfm.akaze(image, options)
-    print 'Found {0} points in {1}s'.format( len(points), time.time()-t )
+    logger.debug('Found {0} points in {1}s'.format( len(points), time.time()-t ))
 
     if config.get('feature_root', False):
         if akaze_descriptor_name in ["SURF_UPRIGHT", "MSURF_UPRIGHT"]:
@@ -176,7 +179,7 @@ def extract_features_hahog(image, config):
     if config.get('hahog_normalize_to_uchar', False):
         desc = (uchar_scaling * desc).clip(0, 255).round()
 
-    print 'Found {0} points in {1}s'.format( len(points), time.time()-t )
+    logger.debug('Found {0} points in {1}s'.format( len(points), time.time()-t ))
     return points, desc
 
 def extract_features(color_image, config):

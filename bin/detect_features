@@ -4,23 +4,26 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 import os, sys
 import time
+import logging
 from multiprocessing import Pool
 import numpy as np
 from opensfm import dataset
 from opensfm import features
 from opensfm import multiview
 
+logger = logging.getLogger(__name__)
+
 def usage():
     print 'USAGE: %s data_set_path' % sys.argv[0]
     sys.exit(0)
 
 def detect(image):
-    print 'Extracting', data.feature_type().upper(), 'features for image', image
+    logger.info('Extracting {} features for image {}'.format(data.feature_type().upper(), image))
     if not data.feature_index_exists(image):
         p_unsorted, f_unsorted, c_unsorted = features.extract_features(data.image_as_array(image), data.config)
         if len(p_unsorted) == 0:
             return
-        
+
         size = p_unsorted[:, 2]
         order = np.argsort(size)
         p_sorted = p_unsorted[order, :]
@@ -34,6 +37,7 @@ def detect(image):
         data.save_feature_index(image, index)
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG)
     if len(sys.argv) > 1:
         path = sys.argv[1]
     else:
