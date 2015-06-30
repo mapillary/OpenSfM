@@ -137,8 +137,8 @@ def add_gps_position(data, shot, image):
     if 'compass' in exif:
         shot['compass'] = exif['compass']
 
-    if 'captured_at' in exif:
-        shot['captured_at'] = exif['captured_at']
+    if 'capture_time' in exif:
+        shot['capture_time'] = exif['capture_time']
 
 
 def bootstrap_reconstruction(data, graph, im1, im2):

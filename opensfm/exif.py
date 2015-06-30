@@ -3,6 +3,7 @@ import os.path, sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import json
+import datetime
 import exifread
 import numpy as np
 from cv2 import imread
@@ -180,14 +181,27 @@ class EXIF:
             d['dop'] = dop
         return d
 
-    def extract_exif(self):
+    def extract_capture_time(self):
+        time_strings = ["EXIF DateTimeOriginal",
+                        "EXIF DateTimeDigitized",
+                        "Image DateTime"]
+        for ts in time_strings:
+            if ts in self.tags:
+                s = str(self.tags[ts].values)
+                d = datetime.datetime.strptime(s, '%Y:%m:%d %H:%M:%S')
+                timestamp = (d - datetime.datetime(1970,1,1)).total_seconds()   # Assuming d is in UTC
+                return timestamp
+        return 0.0
 
+
+    def extract_exif(self):
         width, height = self.extract_image_size()
         focal_35, focal_ratio = self.extract_focal()
         make, model = self.extract_make(), self.extract_model()
         orientation = self.extract_orientation()
         geo = self.extract_geo()
         distortion = self.extract_distortion()
+        capture_time = self.extract_capture_time()
         d = {
                 'width': width,
                 'height': height,
@@ -197,7 +211,8 @@ class EXIF:
                 'k1': distortion[0],
                 'k2': distortion[1],
                 'make': make,
-                'model': model
+                'model': model,
+                'capture_time': capture_time
             }
         # GPS
         d['gps'] = geo
