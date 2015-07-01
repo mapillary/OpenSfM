@@ -140,6 +140,9 @@ def add_gps_position(data, shot, image):
     if 'capture_time' in exif:
         shot['capture_time'] = exif['capture_time']
 
+    if 'skey' in exif:
+        shot['skey'] = exif['skey']
+
 
 def bootstrap_reconstruction(data, graph, im1, im2):
     '''Starts a reconstruction using two shots.
