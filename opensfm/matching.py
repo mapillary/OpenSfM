@@ -3,6 +3,8 @@ import json
 import cv2
 import networkx as nx
 import logging
+from opensfm.unionfind import UnionFind
+
 
 logger = logging.getLogger(__name__)
 
@@ -92,17 +94,22 @@ def good_track(track, min_length):
 
 
 def create_tracks_graph(features, colors, matches, config):
-    logging.debug('creating features graph')
-    g = nx.Graph()
+    logging.debug('Merging features onto tracks')
+    uf = UnionFind()
     for im1, im2 in matches:
         for f1, f2 in matches[im1, im2]:
-            g.add_edge((im1, f1),  (im2, f2))
+            uf.union((im1, f1), (im2, f2))
 
-    logging.debug('finding connected components')
-    tracks = nx.connected_components(g)
+    sets = {}
+    for i in uf:
+        p = uf[i]
+        if p in sets:
+            sets[p].append(i)
+        else:
+            sets[p] = [i]
 
-    tracks = [t for t in tracks if good_track(t, config.get('min_track_length', 2))]
-    logging.debug('Good tracks: %d', len(tracks))
+    tracks = [t for t in sets.values() if good_track(t, config.get('min_track_length', 2))]
+    logging.debug('Good tracks: {}'.format(len(tracks)))
 
     tracks_graph = nx.Graph()
     for track_id, track in enumerate(tracks):
@@ -114,5 +121,6 @@ def create_tracks_graph(features, colors, matches, config):
             tracks_graph.add_node(image, bipartite=0)
             tracks_graph.add_node(str(track_id), bipartite=1)
             tracks_graph.add_edge(image, str(track_id), feature=(x,y), feature_id=featureid, feature_color=(float(r),float(g),float(b)))
+
     return tracks_graph
 
