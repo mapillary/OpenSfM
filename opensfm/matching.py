@@ -78,7 +78,6 @@ def robust_match(p1, p2, matches, config):
     inliers = mask.ravel().nonzero()
 
     if F[2,2] == 0.0:
-        print 'ERROR: findFundamentalMat returned a degenerate F matrix'
         return []
 
     return matches[inliers]
