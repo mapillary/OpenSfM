@@ -11,6 +11,7 @@ from cv2 import imread
 from opensfm.sensors import sensor_data
 from opensfm import dataset
 from opensfm import exif
+from opensfm import io
 
 
 def usage():
@@ -31,13 +32,13 @@ default_focal_ratio = data.config.get('default_focal_ratio', 0.85)
 
 if os.path.exists(data.data_path + '/exif_overrides.json'):
     with open(data.data_path + '/exif_overrides.json', 'rb') as f:
-        exif_overrides = json.loads(f.read())
+        exif_overrides = io.json_loads(f.read())
 else:
     exif_overrides = {}
 
 if os.path.exists(os.path.join(data.data_path, 'image_data.json')):
     with open(os.path.join(data.data_path, 'image_data.json'), 'rb') as f:
-        exif_dict = json.loads(f.read())
+        exif_dict = io.json_loads(f.read())
 else:
     exif_dict = {}
 

@@ -15,6 +15,7 @@ import numpy as np
 import pyexiv2
 
 from opensfm import dataset
+from opensfm import io
 from opensfm.geotag_from_gpx import add_gps_to_exif
 
 parser = argparse.ArgumentParser(
@@ -49,7 +50,7 @@ if args.reconstruction_file is None:
     reconstructions = data.load_reconstruction()
 else:
     with open(args.reconstruction_file) as f:
-        reconstructions = json.loads(f.read())
+        reconstructions = io.json_loads(f.read())
 
 for reconstruction in reconstructions:
     # write updated gps/compass to the image file

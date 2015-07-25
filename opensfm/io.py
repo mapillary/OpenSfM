@@ -191,7 +191,7 @@ def import_bundler(data_path, bundle_file, list_file, track_file, reconstruction
     # save reconstruction
     if reconstruction_file is not None:
         with open(reconstruction_file, 'wb') as fout:
-            fout.write(json.dumps([reconstruction], indent=4))
+            fout.write(json_dumps([reconstruction]))
     return reconstruction
 
 
@@ -203,3 +203,10 @@ def mkdir_p(path):
     except os.error as exc:
         if exc.errno != errno.EEXIST or not os.path.isdir(path):
             raise
+
+
+def json_dumps(data, indent=4, codec='utf-8'):
+    return json.dumps(data, indent=indent, ensure_ascii=False).encode(codec)
+
+def json_loads(text, codec='utf-8'):
+    return json.loads(text.decode(codec))

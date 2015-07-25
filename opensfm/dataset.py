@@ -122,7 +122,7 @@ class DataSet:
 
     def save_exif(self, image, data):
         with open(self.__exif_file(image), 'w') as fout:
-            fout.write(json.dumps(data, indent=4))
+            fout.write(io.json_dumps(data))
 
     def feature_type(self):
         """Return the type of local features (e.g. AKAZE, SURF, SIFT)
@@ -298,7 +298,7 @@ class DataSet:
 
     def save_reconstruction(self, reconstruction, filename=None, indent=4):
         with open(self.__reconstruction_file(filename), 'w') as fout:
-            fout.write(json.dumps(reconstruction, indent=indent))
+            fout.write(io.json_dumps(reconstruction))
 
     def __reference_lla_path(self):
         return os.path.join(self.data_path, 'reference_lla.json')
@@ -345,7 +345,7 @@ class DataSet:
     def save_camera_models(self, camera_models):
         """Save camera models data"""
         with open(self.__camera_models_file(), 'w') as fout:
-            fout.write(json.dumps(camera_models, indent=4))
+            fout.write(io.json_dumps(camera_models))
 
 
     def __epipolar_path(self):
@@ -375,7 +375,7 @@ class DataSet:
 
     def save_navigation_graph(self, navigation_graphs):
         with open(self.__navigation_graph_file(), 'w') as fout:
-            fout.write(json.dumps(navigation_graphs))
+            fout.write(io.json_dumps(navigation_graphs))
 
 
 

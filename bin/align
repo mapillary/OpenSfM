@@ -10,6 +10,7 @@ import opensfm.reconstruction as rc
 import opensfm.io as io
 from opensfm import dataset
 from opensfm import exif
+from opensfm import io
 from opensfm.geotag_from_gpx import add_gps_to_exif
 
 
@@ -44,7 +45,7 @@ if args.reconstruction_file is None:
     reconstructions = data.load_reconstruction()
 else:
     with open(args.reconstruction_file) as f:
-        reconstructions = json.loads(f.read())
+        reconstructions = io.json_loads(f.read())
 
 # reference for conversion
 try:
