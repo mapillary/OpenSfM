@@ -109,7 +109,10 @@ class EXIF:
             make = self.tags['Image Make'].values
         else:
             make = 'unknown'
-        return make
+        try:
+            return make.decode('utf-8')
+        except UnicodeDecodeError:
+            return 'unknown'
 
     def extract_model(self):
         if 'EXIF LensModel' in self.tags:
@@ -118,7 +121,10 @@ class EXIF:
             model = self.tags['Image Model'].values
         else:
             model = 'unknown'
-        return model
+        try:
+            return model.decode('utf-8')
+        except UnicodeDecodeError:
+            return 'unknown'
 
     def extract_focal(self):
         make, model = self.extract_make(), self.extract_model()
