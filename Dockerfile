@@ -9,24 +9,11 @@ RUN apt-get update && apt-get install -y \
     python-dev python-pip libboost-python-dev \
     python-numpy python-scipy python-yaml \
     libavcodec-dev libavformat-dev libswscale-dev \
-    libpq-dev libjpeg-dev libpng-dev  libtiff-dev \
+    libpq-dev libjpeg-dev libpng-dev libtiff-dev \
+    libopencv-dev python-opencv \
     libgoogle-glog-dev libatlas-base-dev libeigen3-dev libsuitesparse-dev && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-
-
-# Install OpenCV from source
-RUN \
-    mkdir -p /source && cd /source && \
-    git clone git://github.com/Itseez/opencv.git && \
-    cd /source/opencv && \
-    git checkout 2.4.10 && \
-    mkdir build && cd build && \
-    cmake -G "Unix Makefiles" .. && \
-    make && \
-    make install && \
-    cd / && \
-    rm -rf /source/opencv
 
 
 # Install Ceres from source
@@ -50,7 +37,7 @@ RUN \
     cd /source/OpenSfM && \
     pip install -r requirements.txt && \
     python setup.py build && \
-    cd / \
+    cd /
 
 
 # GENERIC
