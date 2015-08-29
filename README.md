@@ -37,24 +37,10 @@ Be sure to update your `PYTHONPATH` to include `/usr/local/lib/python2.7/site-pa
 
 ### Installing dependencies on Ubuntu
 
- 1. [OpenCV][] - Install by following the steps in the Ubuntu OpenCV  [installation guide](https://help.ubuntu.com/community/OpenCV). An alternative instruction tested for Ubuntu 10.04 can be found at [OpenCV Docs](http://docs.opencv.org/doc/tutorials/introduction/linux_install/linux_install.html). OpenCV requires [GCC](https://gcc.gnu.org/) and [CMake](http://www.cmake.org/) among other things.
-
- 2. [Ceres solver][] - Build Ceres according the [documentation](http://ceres-solver.org/building.html). Make sure to read the Linux note, follow the **shared library** instructions and compile Ceres with the -fPIC option. Install Ceres from the ceres-bin directory after `make` by:
- 
-        sudo make install
-
- 3. [Boost Python][] - Install through apt-get:
-
-        sudo apt-get install libboost-python-dev
-
- 4. [NumPy][], networkx, PyYaml, exifread - Install [pip](https://pypi.python.org/pypi/pip) and then run the following from the root of the project:
-
-        sudo pip install -r requirements.txt
-
- 5. [SciPy][] - Install [gfortran](https://gcc.gnu.org/wiki/GFortran) through apt-get and then install [SciPy][] with:
-
-        sudo apt-get install gfortran
-        sudo pip install scipy
+See the [Dockerfile](https://github.com/mapillary/OpenSfM/blob/master/Dockerfile) for the commands to install all dependencies on Ubuntu 14.04.  The steps are
+1. Install [OpenCV][], [Boost Python][], [NumPy][], [SciPy][] using apt-get.
+2. Install python requirements using pip.
+3. [Build and Install](http://ceres-solver.org/building.html) the [Ceres solver][] from its source using the `-fPIC` compilation flag.
 
 
 ## Building
