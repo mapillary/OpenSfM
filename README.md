@@ -38,8 +38,11 @@ Be sure to update your `PYTHONPATH` to include `/usr/local/lib/python2.7/site-pa
 ### Installing dependencies on Ubuntu
 
 See the [Dockerfile](https://github.com/mapillary/OpenSfM/blob/master/Dockerfile) for the commands to install all dependencies on Ubuntu 14.04.  The steps are
+
 1. Install [OpenCV][], [Boost Python][], [NumPy][], [SciPy][] using apt-get.
+
 2. Install python requirements using pip.
+
 3. [Build and Install](http://ceres-solver.org/building.html) the [Ceres solver][] from its source using the `-fPIC` compilation flag.
 
 
