@@ -8,8 +8,6 @@ RUN apt-get update && apt-get install -y \
     git wget \
     python-dev python-pip libboost-python-dev \
     python-numpy python-scipy python-yaml \
-    libavcodec-dev libavformat-dev libswscale-dev \
-    libpq-dev libjpeg-dev libpng-dev libtiff-dev \
     libopencv-dev python-opencv \
     libgoogle-glog-dev libatlas-base-dev libeigen3-dev libsuitesparse-dev && \
     apt-get clean && \
