@@ -44,7 +44,7 @@ flann_checks: 200             # Smaller -> Faster (but might lose good matches)
 
 # Params for preemtive matching
 matching_gps_distance: 150            # Maximum gps distance between two images for matching
-matching_gps_neighbours: 0            # Number of images to match selected by GPS distance. Set to 0 to use no limit
+matching_gps_neighbors: 0             # Number of images to match selected by GPS distance. Set to 0 to use no limit
 preemptive_max: 200                   # Number of features to use for preemptive matching
 preemptive_threshold: 0               # If number of matches passes the threshold -> full feature matching
 preemptive_matching_gps_distance: 300 # Maximum gps distance between two images for preemptive matching
@@ -83,7 +83,7 @@ nav_step_view_threshold: 30           # Maximum difference of angles in degrees 
 nav_step_drift_threshold: 36          # Maximum motion drift with respect to step directions for steps in degrees
 nav_turn_view_threshold: 40           # Maximum difference of angles in degrees with respect to turn directions
 nav_vertical_threshold: 20            # Maximum vertical angle difference in motion and viewving direction in degrees
-nav_rotation_threshold: 30            # Maximum general rotation in degrees between cameras for steps 
+nav_rotation_threshold: 30            # Maximum general rotation in degrees between cameras for steps
 
 # Other params
 processes: 1                  # Number of threads to use
