@@ -64,6 +64,9 @@ Things you can do from there:
 - Click twice on an image to see it. Then use arrows to move between images.
 - Run `bin/mesh data/berlin` to build a reconstruction with sparse mesh that will produce smoother transitions from images
 
+# Thanks to sponsors
+
+- Thank you Jetbrains for supporting the project with free licenses for [IntelliJ Ultimate](https://www.jetbrains.com/idea/). Contact peter at mapillary dot com if you are contributor and need one. Apply your own project [here](https://www.jetbrains.com/eforms/openSourceRequest.action?licenseRequest=ideaOSLPRN)
 
 [OpenCV]: http://opencv.org/ (Computer vision and machine learning software library)
 [NumPy]: http://www.numpy.org/ (Scientific computing with Python)
