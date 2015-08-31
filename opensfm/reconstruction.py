@@ -121,9 +121,9 @@ def add_gps_position(data, shot, image):
         lat = exif['gps']['latitude']
         lon = exif['gps']['longitude']
         if data.config.get('use_altitude_tag', False):
-            alt = 2.0 # Arbitrary constant value that will be used to align the reconstruction
-        else:
             alt = exif['gps'].get('altitude', 2.0)
+        else:
+            alt = 2.0 # Arbitrary constant value that will be used to align the reconstruction
         x, y, z = geo.topocentric_from_lla(lat, lon, alt,
             reflla['latitude'], reflla['longitude'], reflla['altitude'])
         shot['gps_position'] = [x, y, z]
