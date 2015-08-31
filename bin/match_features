@@ -14,71 +14,105 @@ from opensfm import matching
 from opensfm import geo
 
 
+def has_gps_info(exif):
+    return (exif
+        and 'gps' in exif
+        and 'latitude' in exif['gps']
+        and 'longitude' in exif['gps'])
+
+
+def distance_from_exif(exif1, exif2):
+    if has_gps_info(exif1) and has_gps_info(exif2):
+        gps1 = exif1['gps']
+        gps2 = exif2['gps']
+        lon1, lat1 = gps1['longitude'], gps1['latitude']
+        lon2, lat2 = gps2['longitude'], gps2['latitude']
+        return geo.gps_distance([lon1,lat1], [lon2, lat2])
+    else:
+        return 0
+
+
+def match_candidates_from_gps(images, exifs, data):
+    '''Compute candidate matching pairs based on GPS position
+    '''
+    max_distance = data.config.get('matching_gps_distance', 9999999)
+    max_neighbors = data.config.get('matching_gps_neighbors', 0)
+
+    pairs = set()
+    for im1 in images:
+        distances = []
+        for im2 in images:
+            if im1 != im2:
+                d = distance_from_exif(exifs.get(im1), exifs.get(im2))
+                if d <= max_distance:
+                    distances.append((d, im2))
+        if max_neighbors:
+            distances.sort()
+            distances = distances[:max_neighbors]
+        for d, im2 in distances:
+            if im1 < im2:
+                pairs.add((im1, im2))
+            else:
+                pairs.add((im2, im1))
+
+    res = {im: [] for im in images}
+    for im1, im2 in pairs:
+        res[im1].append(im2)
+    return res
+
 
 def match(args):
-    im1, i, n = args
-    print('Matching {}  -  {} / {}'.format(im1, i, n))
+    '''Compute all matches for a single image
+    '''
+    im1, candidates, i, n = args
+    print('Matching {}  -  {} / {}'.format(im1, i + 1, n))
 
-    matching_gps_distance = data.config.get('matching_gps_distance', 9999999)
     robust_matching_min_match = data.config.get('robust_matching_min_match', 20)
     preemptive_threshold = data.config.get('preemptive_threshold', 1)
 
     im1_matches = {}
 
-    for im2 in images:
-        if im2 < im1:
-            # gps distance
-            distance = 0
-            if im1 in exifs and im2 in exifs:
-                gps1 = exifs[im1].get('gps',{})
-                gps2 = exifs[im2].get('gps',{})
-                if gps1 and gps2:
-                    lon1, lat1 = gps1['longitude'], gps1['latitude']
-                    lon2, lat2 = gps2['longitude'], gps2['latitude']
-                    distance = geo.gps_distance([lon1,lat1], [lon2, lat2])
-            if distance > matching_gps_distance:
-                print "Discarding based on GPS distance {0} > {1}".format(distance, matching_gps_distance)
-                continue
+    for im2 in candidates:
+        # preemptive matching
+        t = time.time()
+        lowes_ratio = data.config.get('lowes_ratio', 0.6)
+        data.config['lowes_ratio'] = data.config.get('preemptive_lowes_ratio', 0.6)
+        matches_pre = matching.match_lowe_bf(f_pre[im1], f_pre[im2], data.config)
+        data.config['lowes_ratio'] = lowes_ratio
+        print "Preemptive matching {0}, time: {1}s".format(len(matches_pre), time.time()-t)
+        if len(matches_pre) < preemptive_threshold:
+            print "Discarding based of preemptive matches {0} < {1}".format(len(matches_pre), preemptive_threshold)
+            continue
 
-            # preemptive matching
-            t = time.time()
-            lowes_ratio = data.config.get('lowes_ratio', 0.6)
-            data.config['lowes_ratio'] = data.config.get('preemptive_lowes_ratio', 0.6)
-            matches_pre = matching.match_lowe_bf(f_pre[im1], f_pre[im2], data.config)
-            data.config['lowes_ratio'] = lowes_ratio
-            print "Preemptive matching {0}, time: {1}s".format(len(matches_pre), time.time()-t)
-            if len(matches_pre) < preemptive_threshold:
-                print "Discarding based of preemptive matches {0} < {1}".format(len(matches_pre), preemptive_threshold)
-                continue
+        # symmetric matching
+        t = time.time()
+        p1, f1, c1 = data.load_features(im1)
+        i1 = data.load_feature_index(im1, f1)
 
-            # symmetric matching
-            t = time.time()
-            p1, f1, c1 = data.load_features(im1)
-            i1 = data.load_feature_index(im1, f1)
+        p2, f2, c2 = data.load_features(im2)
+        i2 = data.load_feature_index(im2, f2)
 
-            p2, f2, c2 = data.load_features(im2)
-            i2 = data.load_feature_index(im2, f2)
+        matches = matching.match_symmetric(f1, i1, f2, i2, data.config)
+        if len(matches) < robust_matching_min_match:
+            im1_matches[im2] = []
+            continue
 
-            matches = matching.match_symmetric(f1, i1, f2, i2, data.config)
-            if len(matches) < robust_matching_min_match:
-                im1_matches[im2] = []
-                continue
+        # robust matching
+        t_robust_matching = time.time()
+        rmatches = matching.robust_match(p1, p2, matches, data.config)
+        if len(rmatches) < robust_matching_min_match:
+            im1_matches[im2] = []
+            continue
+        im1_matches[im2] = rmatches
+        print 'Robust matching time : {0}s'.format(time.time() - t_robust_matching)
 
-            # robust matching
-            t_robust_matching = time.time()
-            rmatches = matching.robust_match(p1, p2, matches, data.config)
-            if len(rmatches) < robust_matching_min_match:
-                im1_matches[im2] = []
-                continue
-            im1_matches[im2] = rmatches
-            print 'Robust matching time : {0}s'.format(time.time() - t_robust_matching)
-
-            print "Full matching {0} / {1}, time: {2}s".format(len(rmatches), len(matches), time.time() - t)
+        print "Full matching {0} / {1}, time: {2}s".format(len(rmatches), len(matches), time.time() - t)
     data.save_matches(im1, im1_matches)
 
-def match_arguments(images):
-    for i, im in enumerate(images):
-        yield im, i, len(images)
+
+def match_arguments(pairs):
+    for i, (im, candidates) in enumerate(pairs.items()):
+        yield im, candidates, i, len(pairs)
 
 
 if __name__ == "__main__":
@@ -94,8 +128,6 @@ if __name__ == "__main__":
     exifs = {}
     p_pre, f_pre = {}, {}
     for image in images:
-        sys.stdout.write('.')
-        sys.stdout.flush()
         try:
             p_pre[image], f_pre[image] = data.load_preemtive_features(image)
         except IOError:
@@ -106,9 +138,16 @@ if __name__ == "__main__":
         f_pre[image] = f_pre[image][:preemptive_max,:]
         exifs[image] = data.load_exif(image)
 
+    pairs = match_candidates_from_gps(images, exifs, data)
+
+    num_pairs = 0
+    for im, c in pairs.items():
+        num_pairs += len(c)
+    print('Matching {} image pairs'.format(num_pairs))
+
     start = time.time()
     p = Pool(data.config.get('processes',1))
-    p.map(match, match_arguments(images))
+    p.map(match, match_arguments(pairs))
     end = time.time()
     with open(data.profile_log(), 'a') as fout:
         fout.write('match_features: {0}\n'.format(end - start))
