@@ -3,10 +3,7 @@
 set -e
 
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
-if [ ! -f $1/config.yaml ]; then
-    echo "ERROR: Can't find $1/config.yaml!"
-    exit
-fi
+
 $DIR/focal_from_exif $1
 $DIR/detect_features $1
 $DIR/match_features $1
