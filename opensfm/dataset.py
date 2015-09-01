@@ -7,10 +7,11 @@ import pickle
 import gzip
 import numpy as np
 import networkx as nx
-import yaml
 import cv2
 
-import io
+from opensfm import io
+from opensfm import config
+
 
 class DataSet:
     """
@@ -30,11 +31,7 @@ class DataSet:
 
         # Load configuration.
         config_file = os.path.join(self.data_path, 'config.yaml')
-        if os.path.isfile(config_file):
-            with open(config_file) as fin:
-                self.config = yaml.load(fin)
-        else:
-            self.config = {}
+        self.config = config.load_config(config_file)
 
         # Load list of images.
         image_list_file = os.path.join(self.data_path, 'image_list.txt')
