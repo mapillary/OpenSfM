@@ -680,15 +680,17 @@ def paint_reconstruction_constant(data, graph, reconstruction):
 
 
 def grow_reconstruction(data, graph, reconstruction, images, image_graph):
-    bundle_interval = data.config.get('bundle_interval', 1)
+    bundle_interval = data.config.get('bundle_interval', 0)
+    bundle_new_points_ratio = data.config.get('bundle_new_points_ratio', 0.2)
     retriangulation = data.config.get('retriangulation', False)
     retriangulation_ratio = data.config.get('retriangulation_ratio', 1.25)
 
     bundle(graph, reconstruction, data.config)
     align_reconstruction(reconstruction, data.config)
 
-    prev_num_points = len(reconstruction['points'])
-
+    num_points_last_bundle = len(reconstruction['points'])
+    num_shots_last_bundle = len(reconstruction['shots'])
+    num_points_last_retriangulation = len(reconstruction['points'])
     num_shots_reconstructed = len(reconstruction['shots'])
 
     while True:
@@ -708,35 +710,42 @@ def grow_reconstruction(data, graph, reconstruction, images, image_graph):
                 print 'Adding {0} to the reconstruction'.format(image)
                 images.remove(image)
 
-                if len(reconstruction['shots']) % bundle_interval == 0:
+                if (len(reconstruction['points']) >= num_points_last_bundle * bundle_new_points_ratio
+                    or len(reconstruction['shots']) >= num_shots_last_bundle + bundle_interval):
                     bundle(graph, reconstruction, data.config)
+                    num_points_last_bundle = len(reconstruction['points'])
+                    num_shots_last_bundle = len(reconstruction['shots'])
 
                 triangulate_shot_features(
                                 graph, reconstruction, image,
                                 data.config.get('triangulation_threshold', 0.004),
                                 data.config.get('triangulation_min_ray_angle', 2.0))
 
-                if len(reconstruction['shots']) % bundle_interval == 0:
+                if (len(reconstruction['points']) >= num_points_last_bundle * bundle_new_points_ratio
+                    or len(reconstruction['shots']) >= num_shots_last_bundle + bundle_interval):
                     bundle(graph, reconstruction, data.config)
+                    num_points_last_bundle = len(reconstruction['points'])
+                    num_shots_last_bundle = len(reconstruction['shots'])
 
-                align_reconstruction(reconstruction, data.config)
+                    if data.config.get('bundle_outlier_threshold', 0.008) > 0:
+                        track_outlier = []
+                        for track in reconstruction['points']:
+                            error = reprojection_error_track(track, graph, reconstruction)
+                            if error > data.config.get('bundle_outlier_threshold', 0.008):
+                                track_outlier.append(track)
+                        for track in track_outlier:
+                            del reconstruction['points'][track]
+                        print 'Remove {0} outliers'.format(len(track_outlier))
+
+                    align_reconstruction(reconstruction, data.config)
 
                 num_points = len(reconstruction['points'])
-                if retriangulation and num_points > prev_num_points * retriangulation_ratio:
+                if retriangulation and num_points > num_points_last_retriangulation * retriangulation_ratio:
                     print 'Re-triangulating'
                     retriangulate_all(graph, reconstruction, image_graph, data.config)
-                    prev_num_points = len(reconstruction['points'])
+                    num_points_last_retriangulation = len(reconstruction['points'])
                     print '  Reprojection Error:', reprojection_error(graph, reconstruction)
 
-                if data.config.get('bundle_outlier_threshold', 0.008) > 0:
-                    track_outlier = []
-                    for track in reconstruction['points']:
-                        error = reprojection_error_track(track, graph, reconstruction)
-                        if error > data.config.get('bundle_outlier_threshold', 0.008):
-                            track_outlier.append(track)
-                    for track in track_outlier:
-                        del reconstruction['points'][track]
-                    print 'Remove {0} outliers'.format(len(track_outlier))
 
                 break
 
@@ -745,6 +754,7 @@ def grow_reconstruction(data, graph, reconstruction, images, image_graph):
             break
 
 
+    bundle(graph, reconstruction, data.config)
     align_reconstruction(reconstruction, data.config)
 
     print 'Reprojection Error:', reprojection_error(graph, reconstruction)
