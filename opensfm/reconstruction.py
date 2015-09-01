@@ -437,6 +437,20 @@ def retriangulate_all(graph, reconstruction, image_graph, config):
     # bundle adjustment
     bundle(graph, reconstruction, config)
 
+
+def remove_outliers(graph, reconstruction, config):
+    threshold = config.get('bundle_outlier_threshold', 0.008)
+    if threshold > 0:
+        outliers = []
+        for track in reconstruction['points']:
+            error = reprojection_error_track(track, graph, reconstruction)
+            if error > threshold:
+                outliers.append(track)
+        for track in outliers:
+            del reconstruction['points'][track]
+        print 'Remove {0} outliers'.format(len(outliers))
+
+
 def optical_center(shot):
     R = cv2.Rodrigues(np.array(shot['rotation'], dtype=float))[0]
     t = shot['translation']
@@ -724,20 +738,11 @@ def grow_reconstruction(data, graph, reconstruction, images, image_graph):
                 if (len(reconstruction['points']) >= num_points_last_bundle * bundle_new_points_ratio
                     or len(reconstruction['shots']) >= num_shots_last_bundle + bundle_interval):
                     bundle(graph, reconstruction, data.config)
+                    remove_outliers(graph, reconstruction, data.config)
+                    align_reconstruction(reconstruction, data.config)
                     num_points_last_bundle = len(reconstruction['points'])
                     num_shots_last_bundle = len(reconstruction['shots'])
 
-                    if data.config.get('bundle_outlier_threshold', 0.008) > 0:
-                        track_outlier = []
-                        for track in reconstruction['points']:
-                            error = reprojection_error_track(track, graph, reconstruction)
-                            if error > data.config.get('bundle_outlier_threshold', 0.008):
-                                track_outlier.append(track)
-                        for track in track_outlier:
-                            del reconstruction['points'][track]
-                        print 'Remove {0} outliers'.format(len(track_outlier))
-
-                    align_reconstruction(reconstruction, data.config)
 
                 num_points = len(reconstruction['points'])
                 if retriangulation and num_points > num_points_last_retriangulation * retriangulation_ratio:
