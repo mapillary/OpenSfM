@@ -697,7 +697,7 @@ def paint_reconstruction_constant(data, graph, reconstruction):
 
 def grow_reconstruction(data, graph, reconstruction, images, image_graph):
     bundle_interval = data.config.get('bundle_interval', 0)
-    bundle_new_points_ratio = data.config.get('bundle_new_points_ratio', 0.2)
+    bundle_new_points_ratio = data.config.get('bundle_new_points_ratio', 1.2)
     retriangulation = data.config.get('retriangulation', False)
     retriangulation_ratio = data.config.get('retriangulation_ratio', 1.25)
 

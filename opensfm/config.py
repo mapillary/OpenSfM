@@ -71,6 +71,7 @@ exif_focal_sd: 0.01             # The standard deviation of the exif focal lengt
 radial_distorsion_k1_sd: 0.01   # The standard deviation of the first radial distortion parameter (mean assumed to be 0)
 radial_distorsion_k2_sd: 0.01   # The standard deviation of the second radial distortion parameter (mean assumed to be 0)
 bundle_interval: 1              # bundle adjustment after adding 'bundle_interval' cameras
+bundle_new_points_ratio: 1.2    # bundle when (new points) / (bundled points) > bundle_outlier_threshold
 bundle_outlier_threshold: 0.006
 
 save_partial_reconstructions: no
