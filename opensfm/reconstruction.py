@@ -83,6 +83,7 @@ def bundle(graph, reconstruction, config, fix_cameras=False):
     for k, v in reconstruction['points'].items():
         p = ba.get_point(str(k))
         v['coordinates'] = [p.x, p.y, p.z]
+        v['reprojection_error'] = p.reprojection_error
 
     teardown = time.time()
 
@@ -290,6 +291,7 @@ def reprojection_error_track(track, graph, reconstruction):
             error = np.max(errors)
     else:
         error = 999999999.
+
     return error
 
 
@@ -443,7 +445,7 @@ def remove_outliers(graph, reconstruction, config):
     if threshold > 0:
         outliers = []
         for track in reconstruction['points']:
-            error = reprojection_error_track(track, graph, reconstruction)
+            error = reconstruction['points'][track]['reprojection_error']
             if error > threshold:
                 outliers.append(track)
         for track in outliers:
@@ -718,7 +720,6 @@ def grow_reconstruction(data, graph, reconstruction, images, image_graph):
             break
 
         for image, num_tracks in common_tracks:
-
             if resect(data, graph, reconstruction, image):
                 print '-------------------------------------------------------'
                 print 'Adding {0} to the reconstruction'.format(image)
@@ -751,9 +752,7 @@ def grow_reconstruction(data, graph, reconstruction, images, image_graph):
                     num_points_last_retriangulation = len(reconstruction['points'])
                     print '  Reprojection Error:', reprojection_error(graph, reconstruction)
 
-
                 break
-
         else:
             print 'Some images can not be added'
             break

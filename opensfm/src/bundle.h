@@ -718,7 +718,8 @@ class BundleAdjuster {
           observations_[i].point->coordinates,
           residuals);
       double error = sqrt(residuals[0] * residuals[0] + residuals[1] * residuals[1]);
-      observations_[i].point->reprojection_error += error;
+      observations_[i].point->reprojection_error =
+          std::max(observations_[i].point->reprojection_error, error);
     }
   }
 
