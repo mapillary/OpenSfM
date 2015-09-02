@@ -711,7 +711,7 @@ def grow_reconstruction(data, graph, reconstruction, images, image_graph):
 
     while True:
         if data.config.get('save_partial_reconstructions', False):
-            paint_reconstruction_constant(data, graph, reconstruction)
+            paint_reconstruction(data, graph, reconstruction)
             data.save_reconstruction(reconstruction, 'reconstruction.{}.json'.format(
                 datetime.datetime.now().isoformat().replace(':', '_')))
 
