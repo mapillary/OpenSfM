@@ -75,6 +75,7 @@ struct BAShot {
 struct BAPoint {
   double coordinates[3];
   bool constant;
+  double reprojection_error;
   std::string id;
 
   double GetX() { return coordinates[0]; }
@@ -336,6 +337,7 @@ class BundleAdjuster {
     k2_sd_ = 1;
     compute_covariances_ = false;
     covariance_estimation_valid_ = false;
+    compute_reprojection_errors_ = true;
     max_num_iterations_ = 50;
   }
 
@@ -413,6 +415,7 @@ class BundleAdjuster {
     p.coordinates[1] = y;
     p.coordinates[2] = z;
     p.constant = constant;
+    p.reprojection_error = -1;
     points_[id] = p;
   }
 
@@ -512,6 +515,10 @@ class BundleAdjuster {
 
   bool GetCovarianceEstimationValid() {
     return covariance_estimation_valid_;
+  }
+
+  void SetComputeReprojectionErrors(bool v) {
+    compute_reprojection_errors_ = v;
   }
 
   void Run() {
@@ -655,6 +662,9 @@ class BundleAdjuster {
     if (compute_covariances_) {
       ComputeCovariances(&problem);
     }
+    if (compute_reprojection_errors_) {
+      ComputeReprojectionErrors();
+    }
   }
 
   void ComputeCovariances(ceres::Problem *problem) {
@@ -691,6 +701,26 @@ class BundleAdjuster {
     }
   }
 
+  void ComputeReprojectionErrors() {
+    // Init errors
+    for (auto &i : points_) {
+      i.second.reprojection_error = 0;
+    }
+
+    // Sum over all observations
+    for (int i = 0; i < observations_.size(); ++i) {
+      SnavelyReprojectionError sre(observations_[i].coordinates[0],
+                                   observations_[i].coordinates[1],
+                                   1.0);
+      double residuals[2];
+      sre(observations_[i].camera->parameters,
+          observations_[i].shot->parameters,
+          observations_[i].point->coordinates,
+          residuals);
+      double error = sqrt(residuals[0] * residuals[0] + residuals[1] * residuals[1]);
+      observations_[i].point->reprojection_error += error;
+    }
+  }
 
 
   std::string BriefReport() {
@@ -720,6 +750,7 @@ class BundleAdjuster {
   double k2_sd_;
   bool compute_covariances_;
   bool covariance_estimation_valid_;
+  bool compute_reprojection_errors_;
   int max_num_iterations_;
 
 

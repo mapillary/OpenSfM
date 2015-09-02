@@ -100,6 +100,7 @@ BOOST_PYTHON_MODULE(csfm) {
     .def("set_internal_parameters_prior_sd", &BundleAdjuster::SetInternalParametersPriorSD)
     .def("set_compute_covariances", &BundleAdjuster::SetComputeCovariances)
     .def("get_covariance_estimation_valid", &BundleAdjuster::GetCovarianceEstimationValid)
+    .def("set_compute_reprojection_errors", &BundleAdjuster::SetComputeReprojectionErrors)
     .def("brief_report", &BundleAdjuster::BriefReport)
     .def("full_report", &BundleAdjuster::FullReport)
   ;
@@ -135,6 +136,7 @@ BOOST_PYTHON_MODULE(csfm) {
     .add_property("y", &BAPoint::GetY, &BAPoint::SetY)
     .add_property("z", &BAPoint::GetZ, &BAPoint::SetZ)
     .def_readwrite("constant", &BAPoint::constant)
+    .def_readwrite("reprojection_error", &BAPoint::reprojection_error)
     .def_readwrite("id", &BAPoint::id)
   ;
 }
