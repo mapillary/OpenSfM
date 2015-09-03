@@ -728,6 +728,7 @@ def grow_reconstruction(data, graph, reconstruction, images, image_graph):
                 if (len(reconstruction['points']) >= num_points_last_bundle * bundle_new_points_ratio
                     or len(reconstruction['shots']) >= num_shots_last_bundle + bundle_interval):
                     bundle(graph, reconstruction, data.config)
+                    remove_outliers(graph, reconstruction, data.config)
                     num_points_last_bundle = len(reconstruction['points'])
                     num_shots_last_bundle = len(reconstruction['shots'])
 
