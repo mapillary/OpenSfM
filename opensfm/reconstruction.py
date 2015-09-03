@@ -90,6 +90,49 @@ def bundle(graph, reconstruction, config, fix_cameras=False):
     print 'setup/run/teardown {0}/{1}/{2}'.format(setup - start, run - setup, teardown - run)
 
 
+def bundle_single_view(graph, reconstruction, shot_id, config):
+    '''Bundle adjust a single camera
+    '''
+    ba = csfm.BundleAdjuster()
+    shot = reconstruction['shots'][shot_id]
+    camera_id = shot['camera']
+    camera = reconstruction['cameras'][camera_id]
+
+    ba.add_camera(str(camera_id), camera['focal'], camera['k1'], camera['k2'],
+            camera['focal_prior'], True)
+
+    r = shot['rotation']
+    t = shot['translation']
+    g = shot['gps_position']
+    ba.add_shot(
+        str(shot_id), str(camera_id),
+        r[0], r[1], r[2],
+        t[0], t[1], t[2],
+        g[0], g[1], g[2],
+        shot['gps_dop'], False
+    )
+
+    for track_id in graph[shot_id]:
+        if track_id in reconstruction['points']:
+            track = reconstruction['points'][track_id]
+            x = track['coordinates']
+            ba.add_point(str(track_id), x[0], x[1], x[2], True)
+            ba.add_observation(str(shot_id), str(track_id), *graph[shot_id][track_id]['feature'])
+
+    ba.set_loss_function(config.get('loss_function', 'SoftLOneLoss'),
+                         config.get('loss_function_threshold', 1))
+    ba.set_reprojection_error_sd(config.get('reprojection_error_sd', 0.004))
+    ba.set_internal_parameters_prior_sd(config.get('exif_focal_sd', 0.01),
+                                        config.get('radial_distorsion_k1_sd', 0.01),
+                                        config.get('radial_distorsion_k2_sd', 0.01))
+
+    ba.run()
+
+    s = ba.get_shot(str(shot_id))
+    shot['rotation'] = [s.rx, s.ry, s.rz]
+    shot['translation'] = [s.tx, s.ty, s.tz]
+
+
 def pairwise_reconstructability(common_tracks, homography_inliers):
     outliers = common_tracks - homography_inliers
     outlier_ratio = float(outliers) / common_tracks
@@ -328,6 +371,7 @@ def resect(data, graph, reconstruction, shot_id):
             "translation": list(t.flat),
         }
         add_gps_position(data, reconstruction['shots'][shot_id], shot_id)
+        bundle_single_view(graph, reconstruction, shot_id, data.config)
         return True
     else:
         return False
@@ -724,13 +768,6 @@ def grow_reconstruction(data, graph, reconstruction, images, image_graph):
                 print '-------------------------------------------------------'
                 print 'Adding {0} to the reconstruction'.format(image)
                 images.remove(image)
-
-                if (len(reconstruction['points']) >= num_points_last_bundle * bundle_new_points_ratio
-                    or len(reconstruction['shots']) >= num_shots_last_bundle + bundle_interval):
-                    bundle(graph, reconstruction, data.config)
-                    remove_outliers(graph, reconstruction, data.config)
-                    num_points_last_bundle = len(reconstruction['points'])
-                    num_shots_last_bundle = len(reconstruction['shots'])
 
                 triangulate_shot_features(
                                 graph, reconstruction, image,
