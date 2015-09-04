@@ -339,6 +339,7 @@ class BundleAdjuster {
     covariance_estimation_valid_ = false;
     compute_reprojection_errors_ = true;
     max_num_iterations_ = 50;
+    num_threads_ = 1;
   }
 
   virtual ~BundleAdjuster() {}
@@ -503,6 +504,10 @@ class BundleAdjuster {
     max_num_iterations_ = miter;
   }
 
+  void SetNumThreads(int n) {
+    num_threads_ = n;
+  }
+
   void SetInternalParametersPriorSD(double focal_sd, double k1_sd, double k2_sd) {
     focal_prior_sd_ = focal_sd;
     k1_sd_ = k1_sd;
@@ -653,8 +658,8 @@ class BundleAdjuster {
     // Solve
     ceres::Solver::Options options;
     options.linear_solver_type = ceres::SPARSE_SCHUR;
-    options.num_threads = 8;
-    options.num_linear_solver_threads = 8;
+    options.num_threads = num_threads_;
+    options.num_linear_solver_threads = num_threads_;
     options.max_num_iterations = max_num_iterations_;
 
     ceres::Solve(options, &problem, &last_run_summary_);
@@ -753,6 +758,7 @@ class BundleAdjuster {
   bool covariance_estimation_valid_;
   bool compute_reprojection_errors_;
   int max_num_iterations_;
+  int num_threads_;
 
 
   ceres::Solver::Summary last_run_summary_;

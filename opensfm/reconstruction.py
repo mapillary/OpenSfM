@@ -64,6 +64,7 @@ def bundle(graph, reconstruction, config, fix_cameras=False):
 
     setup = time.time()
 
+    ba.set_num_threads(config['processes'])
     ba.run()
     print ba.brief_report()
 
@@ -126,6 +127,7 @@ def bundle_single_view(graph, reconstruction, shot_id, config):
                                         config.get('radial_distorsion_k1_sd', 0.01),
                                         config.get('radial_distorsion_k2_sd', 0.01))
 
+    ba.set_num_threads(config['processes'])
     ba.run()
 
     s = ba.get_shot(str(shot_id))
