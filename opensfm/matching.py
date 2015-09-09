@@ -1,6 +1,7 @@
 import numpy as np
 import json
 import cv2
+import pyopengv
 import networkx as nx
 import logging
 from opensfm.unionfind import UnionFind
@@ -79,6 +80,52 @@ def robust_match(p1, p2, matches, config):
 
     if F[2,2] == 0.0:
         return []
+
+    return matches[inliers]
+
+
+def bearings_from_pixels(p):
+    lon = p[:, 0] * 2 * np.pi
+    lat = p[:, 1] * 2 * np.pi
+    x = np.cos(lat) * np.sin(lon)
+    y = -np.sin(lat)
+    z = np.cos(lat) * np.cos(lon)
+    return np.column_stack([x, y, z]).astype(float)
+
+def compute_inliers_equirectangular(b1, b2, T):
+    R = T[:, :3]
+    t = T[:, 3]
+    p = pyopengv.triangulation_triangulate(b1, b2, t, R)
+
+    br1 = p.copy()
+    br1 /= np.linalg.norm(br1, axis=1)[:, np.newaxis]
+
+    br2 = R.T.dot((p - t).T).T
+    br2 /= np.linalg.norm(br2, axis=1)[:, np.newaxis]
+
+    ok1 = np.linalg.norm(br1 - b1, axis=1) < 0.01   # TODO(pau): compute angular error and use proper threshold
+    ok2 = np.linalg.norm(br2 - b2, axis=1) < 0.01
+    return ok1 * ok2
+
+
+
+def robust_match_equirectangular(p1, p2, matches, config):
+    '''Computes robust matches by estimating the Essential matrix via RANSAC.
+    '''
+
+    if len(matches) < 8:
+        return np.array([])
+
+    p1 = p1[matches[:, 0]][:, :2].copy()
+    p2 = p2[matches[:, 1]][:, :2].copy()
+    b1 = bearings_from_pixels(p1)
+    b2 = bearings_from_pixels(p2)
+
+    print b1.shape, b1.dtype
+
+    T = pyopengv.relative_pose_ransac(b1, b2, "NISTER", 0.01, 1000)
+
+    inliers = compute_inliers_equirectangular(b1, b2, T)
 
     return matches[inliers]
 

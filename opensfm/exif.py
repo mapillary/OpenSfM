@@ -126,6 +126,12 @@ class EXIF:
         except UnicodeDecodeError:
             return 'unknown'
 
+    def extract_projection_type(self):
+        if 'THETA' in self.tags['Image Model'].values:   # FIXME(pau): exifread does not seem to read the 'Projection Type' tag
+            return "equirectangular"
+        print self.tags
+        return self.tags.get('Projection Type', 'Perspective')
+
     def extract_focal(self):
         make, model = self.extract_make(), self.extract_model()
         focal_35, focal_ratio = compute_focal(
@@ -202,6 +208,7 @@ class EXIF:
 
     def extract_exif(self):
         width, height = self.extract_image_size()
+        projection_type = self.extract_projection_type()
         focal_35, focal_ratio = self.extract_focal()
         make, model = self.extract_make(), self.extract_model()
         orientation = self.extract_orientation()
@@ -211,6 +218,7 @@ class EXIF:
         d = {
                 'width': width,
                 'height': height,
+                'projection_type': projection_type,
                 'focal_prior': focal_ratio,
                 'camera': sensor_string(make, model),
                 'orientation': orientation,
