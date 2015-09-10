@@ -113,6 +113,7 @@ def pixel_direction(KR, x):
     v = np.linalg.solve(KR, [x[0], x[1], 1])
     return v / np.linalg.norm(v)
 
+
 def vector_angle(u, v):
     '''
     >>> u = [ 0.99500417 -0.33333333 -0.09983342]
@@ -124,6 +125,7 @@ def vector_angle(u, v):
     if cos >= 1.0: return 0.0
     else: return math.acos(cos)
 
+
 def decompose_similarity_transform(T):
     ''' Decompose the similarity transform to scale, rotation and translation
     '''
@@ -133,6 +135,7 @@ def decompose_similarity_transform(T):
     s = np.linalg.det(A)**(1./(m-1))
     A /= s
     return s, A, b
+
 
 def triangulate(Ps, xs):
     '''
@@ -536,3 +539,21 @@ def project_to_rotation_matrix(A):
     except np.linalg.linalg.LinAlgError:
         return None
     return u.dot(vt)
+
+
+def pixel_bearings(p, camera):
+    if camera['projection_type'] == 'equirectangular':
+        lon = p[:, 0] * 2 * np.pi
+        lat = p[:, 1] * 2 * np.pi
+        x = np.cos(lat) * np.sin(lon)
+        y = -np.sin(lat)
+        z = np.cos(lat) * np.cos(lon)
+        return np.column_stack([x, y, z]).astype(float)
+    else:
+        up = undistort_points(camera, p)
+        z = np.zeros(u.shape[:1]) + camera['focal']
+        b = np.column_stack([up, z]).astype(float)
+        return b / np.linalg.norm(b, axis=1)[:, np.newaxis]
+
+
+

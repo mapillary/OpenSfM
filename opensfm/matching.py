@@ -121,8 +121,6 @@ def robust_match_equirectangular(p1, p2, matches, config):
     b1 = bearings_from_pixels(p1)
     b2 = bearings_from_pixels(p2)
 
-    print b1.shape, b1.dtype
-
     T = pyopengv.relative_pose_ransac(b1, b2, "NISTER", 0.01, 1000)
 
     inliers = compute_inliers_equirectangular(b1, b2, T)

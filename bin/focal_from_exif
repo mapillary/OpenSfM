@@ -70,6 +70,7 @@ for image in data.images():
         camera_models[d['camera']] = {
                 'width': d['width'],
                 'height': d['height'],
+                'projection_type': d['projection_type'],
                 "focal": d['focal_prior'],
                 "focal_prior": d['focal_prior'],
                 "k1": d.get('k1', 0.),

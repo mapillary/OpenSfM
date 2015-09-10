@@ -10,6 +10,7 @@ from itertools import combinations
 
 import numpy as np
 import cv2
+import pyopengv
 import json
 import time
 import math
@@ -19,6 +20,7 @@ from networkx.algorithms import bipartite
 from opensfm import transformations as tf
 from opensfm import dataset
 from opensfm import features
+from opensfm import matching
 from opensfm import multiview
 from opensfm import geo
 from opensfm import csfm
@@ -193,6 +195,34 @@ def add_gps_position(data, shot, image):
         shot['skey'] = exif['skey']
 
 
+def two_view_reconstruction_equirectangular(p1, p2, threshold):
+    b1 = matching.bearings_from_pixels(p1)
+    b2 = matching.bearings_from_pixels(p2)
+
+    # Note on threshold:
+    # opengv uses angular errors.  If t is the threshold in image coordinates,
+    # and f is the focal length of a camera, then the corresponding angular threshold
+    # at the center of the image is atan(t / f).  When f is 1.0, the angular threshold
+    # is approximatively equal to t
+    T = pyopengv.relative_pose_ransac(b1, b2, "NISTER", threshold, 1000)
+
+    R = T[:, :3]
+    t = T[:, 3]
+    p = pyopengv.triangulation_triangulate(b1, b2, t, R)
+
+    br1 = p.copy()
+    br1 /= np.linalg.norm(br1, axis=1)[:, np.newaxis]
+
+    br2 = R.T.dot((p - t).T).T
+    br2 /= np.linalg.norm(br2, axis=1)[:, np.newaxis]
+
+    ok1 = np.linalg.norm(br1 - b1, axis=1) < threshold
+    ok2 = np.linalg.norm(br2 - b2, axis=1) < threshold
+    inliers = ok1 * ok2
+
+    return cv2.Rodrigues(R.T)[0].ravel(), -R.T.dot(t), None, inliers
+
+
 def bootstrap_reconstruction(data, graph, im1, im2):
     '''Starts a reconstruction using two shots.
     '''
@@ -207,7 +237,11 @@ def bootstrap_reconstruction(data, graph, im1, im2):
     f1 = d1['focal_prior']
     f2 = d2['focal_prior']
     threshold = data.config.get('five_point_algo_threshold', 0.006)
-    ret = csfm.two_view_reconstruction(p1, p2, f1, f2, threshold)
+    if d1['projection_type'] == 'equirectangular' and d2['projection_type'] == 'equirectangular':
+        ret = two_view_reconstruction_equirectangular(p1, p2, threshold)
+        R, t, cov, inliers = ret
+    else:
+        ret = csfm.two_view_reconstruction(p1, p2, f1, f2, threshold)
     if ret is not None:
         R, t, cov, inliers = ret
     else:
@@ -235,6 +269,7 @@ def bootstrap_reconstruction(data, graph, im1, im2):
         }
         add_gps_position(data, reconstruction['shots'][im1], im1)
         add_gps_position(data, reconstruction['shots'][im2], im2)
+
         triangulate_shot_features(
                     graph, reconstruction, im1,
                     data.config.get('triangulation_threshold', 0.004),
@@ -416,16 +451,39 @@ def triangulate_track(track, graph, reconstruction, P_by_id, UNUSED1, UNUSED2, r
             }
 
 
+
+def triangulate_track_equirectangular(track, graph, reconstruction, Rt_by_id, reproj_threshold, min_ray_angle_degrees=2.0):
+    min_ray_angle = np.radians(min_ray_angle_degrees)
+    Rts, bs = [], []
+
+    for shot_id in graph[track]:
+        if shot_id in reconstruction['shots']:
+            shot = reconstruction['shots'][shot_id]
+            camera = reconstruction['cameras'][shot['camera']]
+            if shot_id not in Rt_by_id:
+                Rt_by_id[shot_id] = Rt_from_shot(shot)
+            Rts.append(Rt_by_id[shot_id])
+            x = graph[track][shot_id]['feature']
+            b = multiview.pixel_bearings(np.array([x]), camera)[0]
+            bs.append(b)
+
+    if len(Rts) >= 2:
+        e, X = csfm.triangulate_bearings(Rts, bs, reproj_threshold, min_ray_angle)
+        if X is not None:
+            reconstruction['points'][track] = {
+                "coordinates": list(X),
+            }
+
+
 def triangulate_shot_features(graph, reconstruction, shot_id, reproj_threshold, min_ray_angle):
     '''Reconstruct as many tracks seen in shot_id as possible.
     '''
     P_by_id = {}
-    KR1_by_id = {}
-    Kinv_by_id = {}
 
     for track in graph[shot_id]:
         if track not in reconstruction['points']:
-            triangulate_track(track, graph, reconstruction, P_by_id, KR1_by_id, Kinv_by_id, reproj_threshold, min_ray_angle)
+#            triangulate_track(track, graph, reconstruction, P_by_id, None, None, reproj_threshold, min_ray_angle)
+            triangulate_track_equirectangular(track, graph, reconstruction, P_by_id, reproj_threshold, min_ray_angle)
 
 
 def retriangulate(graph, reconstruction, image_graph, config):
