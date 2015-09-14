@@ -33,7 +33,7 @@ def bundle(graph, reconstruction, config, fix_cameras=False):
     start = time.time()
     ba = csfm.BundleAdjuster()
     for k, v in reconstruction['cameras'].items():
-        ba.add_camera(str(k), v['focal'], v['k1'], v['k2'],
+        ba.add_perspective_camera(str(k), v['focal'], v['k1'], v['k2'],
             v['focal_prior'], fix_cameras)
 
     for k, v in reconstruction['shots'].items():
@@ -73,7 +73,7 @@ def bundle(graph, reconstruction, config, fix_cameras=False):
     run = time.time()
 
     for k, v in reconstruction['cameras'].items():
-        c = ba.get_camera(str(k))
+        c = ba.get_perspective_camera(str(k))
         v['focal'] = c.focal
         v['k1'] = c.k1
         v['k2'] = c.k2
@@ -101,7 +101,7 @@ def bundle_single_view(graph, reconstruction, shot_id, config):
     camera_id = shot['camera']
     camera = reconstruction['cameras'][camera_id]
 
-    ba.add_camera(str(camera_id), camera['focal'], camera['k1'], camera['k2'],
+    ba.add_perspective_camera(str(camera_id), camera['focal'], camera['k1'], camera['k2'],
             camera['focal_prior'], True)
 
     r = shot['rotation']
@@ -449,7 +449,6 @@ def triangulate_track(track, graph, reconstruction, P_by_id, UNUSED1, UNUSED2, r
             reconstruction['points'][track] = {
                 "coordinates": list(X),
             }
-
 
 
 def triangulate_track_equirectangular(track, graph, reconstruction, Rt_by_id, reproj_threshold, min_ray_angle_degrees=2.0):

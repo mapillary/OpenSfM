@@ -81,12 +81,14 @@ BOOST_PYTHON_MODULE(csfm) {
   def("triangulate_bearings", csfm::TriangulateBearings);
   def("pose_known_rotation_robust", csfm::PoseKnownRotationRobust);
 
-  class_<BundleAdjuster>("BundleAdjuster")
+  class_<BundleAdjuster, boost::noncopyable>("BundleAdjuster")
     .def("run", &BundleAdjuster::Run)
-    .def("get_camera", &BundleAdjuster::GetCamera)
+    .def("get_perspective_camera", &BundleAdjuster::GetPerspectiveCamera)
+    .def("get_equirectangular_camera", &BundleAdjuster::GetEquirectangularCamera)
     .def("get_shot", &BundleAdjuster::GetShot)
     .def("get_point", &BundleAdjuster::GetPoint)
-    .def("add_camera", &BundleAdjuster::AddCamera)
+    .def("add_perspective_camera", &BundleAdjuster::AddPerspectiveCamera)
+    .def("add_equirectangular_camera", &BundleAdjuster::AddEquirectangularCamera)
     .def("add_shot", &BundleAdjuster::AddShot)
     .def("add_point", &BundleAdjuster::AddPoint)
     .def("add_observation", &BundleAdjuster::AddObservation)
@@ -107,13 +109,13 @@ BOOST_PYTHON_MODULE(csfm) {
     .def("full_report", &BundleAdjuster::FullReport)
   ;
 
-  class_<BACamera>("BACamera")
-    .add_property("focal", &BACamera::GetFocal, &BACamera::SetFocal)
-    .add_property("k1", &BACamera::GetK1, &BACamera::SetK1)
-    .add_property("k2", &BACamera::GetK2, &BACamera::SetK2)
-    .def_readwrite("constant", &BACamera::constant)
-    .def_readwrite("focal_prior", &BACamera::focal_prior)
-    .def_readwrite("id", &BACamera::id)
+  class_<BAPerspectiveCamera>("BAPerspectiveCamera")
+    .add_property("focal", &BAPerspectiveCamera::GetFocal, &BAPerspectiveCamera::SetFocal)
+    .add_property("k1", &BAPerspectiveCamera::GetK1, &BAPerspectiveCamera::SetK1)
+    .add_property("k2", &BAPerspectiveCamera::GetK2, &BAPerspectiveCamera::SetK2)
+    .def_readwrite("constant", &BAPerspectiveCamera::constant)
+    .def_readwrite("focal_prior", &BAPerspectiveCamera::focal_prior)
+    .def_readwrite("id", &BAPerspectiveCamera::id)
   ;
 
   class_<BAShot>("BAShot")
