@@ -385,32 +385,32 @@ def reprojection_error_track(track, graph, reconstruction):
 def resect(data, graph, reconstruction, shot_id):
     '''Add a shot to the reconstruction.
     '''
-    xs = []
+    exif = data.load_exif(shot_id)
+
+    bs = []
     Xs = []
     for track in graph[shot_id]:
         if track in reconstruction['points']:
-            xs.append(graph[shot_id][track]['feature'])
+            x = graph[track][shot_id]['feature']
+            b = multiview.pixel_bearings(np.array([x]), exif)[0]
+            bs.append(b)
             Xs.append(reconstruction['points'][track]['coordinates'])
-    x = np.array(xs)
-    X = np.array(Xs)
-    if len(x) < 5:
+    bs = np.array(bs)
+    Xs = np.array(Xs)
+    if len(bs) < 5:
         return False
-    exif = data.load_exif(shot_id)
-    camera_model = exif['camera']
-    K = multiview.K_from_camera(reconstruction['cameras'][camera_model])
-    dist = np.array([0,0,0,0.])
 
-    # Prior on focal length
-    R, t, inliers = cv2.solvePnPRansac(X.astype(np.float32), x.astype(np.float32), K, dist,
-        reprojectionError=data.config.get('resection_threshold', 0.004))
+    T = pyopengv.absolute_pose_ransac(bs, Xs, "KNEIP", data.config.get('resection_threshold', 0.004), 1000)
 
-    if inliers is None:
-        print 'Resection', shot_id, 'no inliers'
-        return False
-    print 'Resection', shot_id, 'inliers:', len(inliers), '/', len(x)
-    if len(inliers) >= data.config.get('resection_min_inliers', 15):
+    R = cv2.Rodrigues(T[:, :3].T)[0].ravel()
+    t = -T[:, :3].T.dot(T[:, 3])
+
+    ninliers = 100 #FIXME(pau) count the number of inliers
+
+    print 'Resection', shot_id, 'inliers:', ninliers, '/', len(x)
+    if ninliers >= data.config.get('resection_min_inliers', 15):
         reconstruction['shots'][shot_id] = {
-            "camera": camera_model,
+            "camera": exif['camera'],
             "rotation": list(R.flat),
             "translation": list(t.flat),
         }
