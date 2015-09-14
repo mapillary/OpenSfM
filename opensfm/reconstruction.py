@@ -400,15 +400,22 @@ def resect(data, graph, reconstruction, shot_id):
     if len(bs) < 5:
         return False
 
-    T = pyopengv.absolute_pose_ransac(bs, Xs, "KNEIP", data.config.get('resection_threshold', 0.004), 1000)
+    threshold = data.config.get('resection_threshold', 0.004)
+    T = pyopengv.absolute_pose_ransac(bs, Xs, "KNEIP", threshold, 1000)
 
-    R = cv2.Rodrigues(T[:, :3].T)[0].ravel()
-    t = -T[:, :3].T.dot(T[:, 3])
+    R = T[:, :3]
+    t = T[:, 3]
 
-    ninliers = 100 #FIXME(pau) count the number of inliers
+    reprojected_bs = R.T.dot((Xs - t).T).T
+    reprojected_bs /= np.linalg.norm(reprojected_bs, axis=1)[:, np.newaxis]
 
-    print 'Resection', shot_id, 'inliers:', ninliers, '/', len(x)
+    inliers = np.linalg.norm(reprojected_bs - bs, axis=1) < threshold
+    ninliers = len(inliers) #FIXME(pau) count the number of inliers
+
+    print 'Resection', shot_id, 'inliers:', ninliers, '/', len(bs)
     if ninliers >= data.config.get('resection_min_inliers', 15):
+        R = cv2.Rodrigues(T[:, :3].T)[0].ravel()
+        t = -T[:, :3].T.dot(T[:, 3])
         reconstruction['shots'][shot_id] = {
             "camera": exif['camera'],
             "rotation": list(R.flat),
