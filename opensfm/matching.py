@@ -86,7 +86,7 @@ def robust_match(p1, p2, matches, config):
 
 def bearings_from_pixels(p):
     lon = p[:, 0] * 2 * np.pi
-    lat = p[:, 1] * 2 * np.pi
+    lat = -p[:, 1] * 2 * np.pi
     x = np.cos(lat) * np.sin(lon)
     y = -np.sin(lat)
     z = np.cos(lat) * np.cos(lon)

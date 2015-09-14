@@ -544,7 +544,7 @@ def project_to_rotation_matrix(A):
 def pixel_bearings(p, camera):
     if camera['projection_type'] == 'equirectangular':
         lon = p[:, 0] * 2 * np.pi
-        lat = p[:, 1] * 2 * np.pi
+        lat = -p[:, 1] * 2 * np.pi
         x = np.cos(lat) * np.sin(lon)
         y = -np.sin(lat)
         z = np.cos(lat) * np.cos(lon)

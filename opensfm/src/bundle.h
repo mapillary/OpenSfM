@@ -208,7 +208,7 @@ struct EquirectangularReprojectionError {
       : scale_(1.0 / std_deviation)
   {
     double lon = observed_x * 2 * M_PI;
-    double lat = observed_y * 2 * M_PI;
+    double lat = -observed_y * 2 * M_PI;
     bearing_vector_[0] = cos(lat) * sin(lon);
     bearing_vector_[1] = -sin(lat);
     bearing_vector_[2] = cos(lat) * cos(lon);
