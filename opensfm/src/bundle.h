@@ -203,6 +203,52 @@ struct SnavelyReprojectionError {
   double scale_;
 };
 
+struct EquirectangularReprojectionError {
+  EquirectangularReprojectionError(double observed_x, double observed_y, double std_deviation)
+      : scale_(1.0 / std_deviation)
+  {
+    double lon = observed_x * 2 * M_PI;
+    double lat = observed_y * 2 * M_PI;
+    bearing_vector_[0] = cos(lat) * sin(lon);
+    bearing_vector_[1] = -sin(lat);
+    bearing_vector_[2] = cos(lat) * cos(lon);
+  }
+
+  template <typename T>
+  bool operator()(const T* const shot,
+                  const T* const point,
+                  T* residuals) const {
+    // Position vector in camera coordinates.
+    T p[3];
+
+    // shot[0,1,2] are the angle-axis rotation.
+    ceres::AngleAxisRotatePoint(shot, point, p);
+
+    // shot[3,4,5] are the translation.
+    p[0] += shot[3];
+    p[1] += shot[4];
+    p[2] += shot[5];
+
+    // Project to unit sphere.
+    const T l = sqrt(p[0] * p[0] + p[1] * p[1] + p[2] * p[2]);
+    p[0] /= l;
+    p[1] /= l;
+    p[2] /= l;
+
+    // Difference between projected vector and observed bearing vector
+    // We use the difference between unit vectors as an approximation
+    // to the angle for small angles.
+    residuals[0] = T(scale_) * (p[0] - T(bearing_vector_[0]));
+    residuals[1] = T(scale_) * (p[1] - T(bearing_vector_[1]));
+    residuals[2] = T(scale_) * (p[2] - T(bearing_vector_[2]));
+
+    return true;
+  }
+
+  double bearing_vector_[3];
+  double scale_;
+};
+
 
 struct InternalParametersPriorError {
   InternalParametersPriorError(double focal_estimate,
@@ -585,6 +631,7 @@ class BundleAdjuster {
             break;
           }
           case BA_EQUIRECTANGULAR_CAMERA:
+            // No parameters for now
             break;
         }
       }
@@ -608,9 +655,6 @@ class BundleAdjuster {
         case BA_PERSPECTIVE_CAMERA:
         {
           BAPerspectiveCamera &c = static_cast<BAPerspectiveCamera &>(*observations_[i].camera);
-          // Each Residual block takes a point and a camera as input and outputs a 2
-          // dimensional residual. Internally, the cost function stores the observed
-          // image location and compares the reprojection against the observation.
           ceres::CostFunction* cost_function =
               new ceres::AutoDiffCostFunction<SnavelyReprojectionError, 2, 3, 6, 3>(
                   new SnavelyReprojectionError(observations_[i].coordinates[0],
@@ -625,6 +669,20 @@ class BundleAdjuster {
           break;
         }
         case BA_EQUIRECTANGULAR_CAMERA:
+          {
+            BAEquirectangularCamera &c = static_cast<BAEquirectangularCamera &>(*observations_[i].camera);
+            ceres::CostFunction* cost_function =
+                new ceres::AutoDiffCostFunction<EquirectangularReprojectionError, 3, 6, 3>(
+                    new EquirectangularReprojectionError(observations_[i].coordinates[0],
+                                                         observations_[i].coordinates[1],
+                                                         reprojection_error_sd_));
+
+            problem.AddResidualBlock(cost_function,
+                                     loss,
+                                     observations_[i].shot->parameters,
+                                     observations_[i].point->coordinates);
+            break;
+          }
           break;
       }
     }
@@ -792,7 +850,21 @@ class BundleAdjuster {
           break;
         }
         case BA_EQUIRECTANGULAR_CAMERA:
+        {
+          BAEquirectangularCamera &c = static_cast<BAEquirectangularCamera &>(*observations_[i].camera);
+
+          EquirectangularReprojectionError ere(observations_[i].coordinates[0],
+                                               observations_[i].coordinates[1],
+                                               1.0);
+          double residuals[3];
+          ere(observations_[i].shot->parameters,
+              observations_[i].point->coordinates,
+              residuals);
+          double error = sqrt(residuals[0] * residuals[0] + residuals[1] * residuals[1] + residuals[2] * residuals[2]);
+          observations_[i].point->reprojection_error =
+              std::max(observations_[i].point->reprojection_error, error);
           break;
+        }
       }
     }
   }
