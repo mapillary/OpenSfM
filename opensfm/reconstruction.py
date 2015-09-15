@@ -442,32 +442,7 @@ def projection_matrix(camera, shot):
     return np.dot(K, Rt)
 
 
-def triangulate_track(track, graph, reconstruction, P_by_id, UNUSED1, UNUSED2, reproj_threshold, min_ray_angle_degrees=2.0):
-    ''' Triangulate a track
-    '''
-    min_ray_angle = np.radians(min_ray_angle_degrees)
-    Ps, KR1s, xs, vs = [], [], [], []
-
-    for shot in graph[track]:
-        if shot in reconstruction['shots']:
-            if shot not in P_by_id:
-                s = reconstruction['shots'][shot]
-                c = reconstruction['cameras'][s['camera']]
-                P = projection_matrix(c, s)
-                P_by_id[shot] = P
-            Ps.append(P_by_id[shot])
-            x = graph[track][shot]['feature']
-            xs.append(np.array(x))
-
-    if len(Ps) >= 2:
-        e, X = csfm.triangulate(Ps, xs, reproj_threshold, min_ray_angle)
-        if X is not None:
-            reconstruction['points'][track] = {
-                "coordinates": list(X),
-            }
-
-
-def triangulate_track_equirectangular(track, graph, reconstruction, Rt_by_id, reproj_threshold, min_ray_angle_degrees=2.0):
+def triangulate_track(track, graph, reconstruction, Rt_by_id, reproj_threshold, min_ray_angle_degrees=2.0):
     min_ray_angle = np.radians(min_ray_angle_degrees)
     Rts, bs = [], []
 
@@ -493,20 +468,17 @@ def triangulate_track_equirectangular(track, graph, reconstruction, Rt_by_id, re
 def triangulate_shot_features(graph, reconstruction, shot_id, reproj_threshold, min_ray_angle):
     '''Reconstruct as many tracks seen in shot_id as possible.
     '''
-    P_by_id = {}
+    Rt_by_id = {}
 
     for track in graph[shot_id]:
         if track not in reconstruction['points']:
-#            triangulate_track(track, graph, reconstruction, P_by_id, None, None, reproj_threshold, min_ray_angle)
-            triangulate_track_equirectangular(track, graph, reconstruction, P_by_id, reproj_threshold, min_ray_angle)
+            triangulate_track(track, graph, reconstruction, Rt_by_id, reproj_threshold, min_ray_angle)
 
 
 def retriangulate(graph, reconstruction, image_graph, config):
     '''Re-triangulate 3D points
     '''
-    P_by_id = {}
-    KR1_by_id = {}
-    Kinv_by_id = {}
+    Rt_by_id = {}
     shots = reconstruction['shots']
     points = reconstruction['points']
     points_added = 0
@@ -521,11 +493,10 @@ def retriangulate(graph, reconstruction, image_graph, config):
             if reconstruct_ratio < 0.3:
                 for track in diff:
                     if track not in tracks_added:
-                        triangulate_track(track, graph, reconstruction, P_by_id, KR1_by_id, Kinv_by_id, reproj_threshold=0.006)
+                        triangulate_track(track, graph, reconstruction, Rt_by_id, reproj_threshold, min_ray_angle)
                         points_added += 1
                         tracks_added.append(track)
 
-    # bundle adjustment
     bundle(graph, reconstruction, config)
 
     # filter points with large reprojection errors
@@ -539,23 +510,18 @@ def retriangulate(graph, reconstruction, image_graph, config):
         if t in reconstruction['points']:
             del reconstruction['points'][t]
 
-    # bundle adjustment
     bundle(graph, reconstruction, config)
 
 
 def retriangulate_all(graph, reconstruction, image_graph, config):
-    '''
-    Retrianguate all points
+    '''Retrianguate all points
     '''
     triangulation_threshold = config.get('retriangulation_threshold', 0.004)
     min_ray_angle = config.get('triangulation_min_ray_angle', 2.0)
-    P_by_id = {}
-    KR1_by_id = {}
-    Kinv_by_id = {}
+    Rt_by_id = {}
     tracks, images = tracks_and_images(graph)
     for track in tracks:
-        triangulate_track(track, graph, reconstruction, P_by_id, KR1_by_id, Kinv_by_id, triangulation_threshold, min_ray_angle)
-    # bundle adjustment
+        triangulate_track(track, graph, reconstruction, Rt_by_id, reproj_threshold, min_ray_angle)
     bundle(graph, reconstruction, config)
 
 
