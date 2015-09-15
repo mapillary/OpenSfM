@@ -20,7 +20,6 @@ from networkx.algorithms import bipartite
 from opensfm import transformations as tf
 from opensfm import dataset
 from opensfm import features
-from opensfm import matching
 from opensfm import multiview
 from opensfm import geo
 from opensfm import csfm
@@ -202,9 +201,9 @@ def add_gps_position(data, shot, image):
         shot['skey'] = exif['skey']
 
 
-def two_view_reconstruction_equirectangular(p1, p2, threshold):
-    b1 = matching.bearings_from_pixels(p1)
-    b2 = matching.bearings_from_pixels(p2)
+def two_view_reconstruction_equirectangular(p1, p2, camera1, camera2, threshold):
+    b1 = multiview.pixel_bearings(p1, camera1)
+    b2 = multiview.pixel_bearings(p2, camera2)
 
     # Note on threshold:
     # opengv uses angular errors.  If t is the threshold in image coordinates,
@@ -237,6 +236,8 @@ def bootstrap_reconstruction(data, graph, im1, im2):
     d1 = data.load_exif(im1)
     d2 = data.load_exif(im2)
     cameras = data.load_camera_models()
+    camera1 = cameras[d1['camera']]
+    camera2 = cameras[d2['camera']]
 
     tracks, p1, p2 = dataset.common_tracks(graph, im1, im2)
     print 'Number of common tracks', len(tracks)
@@ -245,7 +246,7 @@ def bootstrap_reconstruction(data, graph, im1, im2):
     f2 = d2['focal_prior']
     threshold = data.config.get('five_point_algo_threshold', 0.006)
     if d1['projection_type'] == 'equirectangular' and d2['projection_type'] == 'equirectangular':
-        ret = two_view_reconstruction_equirectangular(p1, p2, threshold)
+        ret = two_view_reconstruction_equirectangular(p1, p2, camera1, camera2, threshold)
         R, t, cov, inliers = ret
     else:
         ret = csfm.two_view_reconstruction(p1, p2, f1, f2, threshold)
