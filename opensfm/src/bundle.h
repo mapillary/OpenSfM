@@ -726,24 +726,22 @@ class BundleAdjuster {
 
     // Add internal parameter priors blocks
     for (auto &i : cameras_) {
-      if (i.second->constant) {
-        switch (i.second->type()) {
-          case BA_PERSPECTIVE_CAMERA:
-          {
-            BAPerspectiveCamera &c = static_cast<BAPerspectiveCamera &>(*i.second);
+      switch (i.second->type()) {
+        case BA_PERSPECTIVE_CAMERA:
+        {
+          BAPerspectiveCamera &c = static_cast<BAPerspectiveCamera &>(*i.second);
 
-            ceres::CostFunction* cost_function =
-                new ceres::AutoDiffCostFunction<InternalParametersPriorError, 3, 3>(
-                    new InternalParametersPriorError(c.focal_prior, focal_prior_sd_, k1_sd_, k2_sd_));
+          ceres::CostFunction* cost_function =
+              new ceres::AutoDiffCostFunction<InternalParametersPriorError, 3, 3>(
+                  new InternalParametersPriorError(c.focal_prior, focal_prior_sd_, k1_sd_, k2_sd_));
 
-            problem.AddResidualBlock(cost_function,
-                                     NULL,
-                                     c.parameters);
-            break;
-          }
-          case BA_EQUIRECTANGULAR_CAMERA:
-            break;
+          problem.AddResidualBlock(cost_function,
+                                   NULL,
+                                   c.parameters);
+          break;
         }
+        case BA_EQUIRECTANGULAR_CAMERA:
+          break;
       }
     }
 
