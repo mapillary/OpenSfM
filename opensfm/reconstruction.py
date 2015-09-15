@@ -410,7 +410,7 @@ def resect(data, graph, reconstruction, shot_id):
     reprojected_bs /= np.linalg.norm(reprojected_bs, axis=1)[:, np.newaxis]
 
     inliers = np.linalg.norm(reprojected_bs - bs, axis=1) < threshold
-    ninliers = len(inliers) #FIXME(pau) count the number of inliers
+    ninliers = len(inliers)
 
     print 'Resection', shot_id, 'inliers:', ninliers, '/', len(bs)
     if ninliers >= data.config.get('resection_min_inliers', 15):

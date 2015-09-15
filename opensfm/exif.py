@@ -5,6 +5,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 import json
 import datetime
 import exifread
+import xmltodict as x2d
 import numpy as np
 from cv2 import imread
 
@@ -87,10 +88,32 @@ def extract_exif_from_file(fileobj):
     d = exif_data.extract_exif()
     return d
 
+
+
+def get_xmp(fileobj):
+    '''Extracts XMP metadata from and image fileobj
+    '''
+    img_str = str(fileobj.read())
+    xmp_start = img_str.find('<x:xmpmeta')
+    xmp_end = img_str.find('</x:xmpmeta')
+
+    if xmp_start < xmp_end:
+        xmp_str = img_str[xmp_start:xmp_end+12]
+        xdict = x2d.parse(xmp_str)
+        xdict = xdict.get('x:xmpmeta', {})
+        xdict = xdict.get('rdf:RDF', {})
+        xdict = xdict.get('rdf:Description', {})
+        return xdict
+    else:
+        return {}
+
+
 class EXIF:
 
     def __init__(self, fileobj):
         self.tags = exifread.process_file(fileobj, details=False)
+        fileobj.seek(0)
+        self.xmp = get_xmp(fileobj)
 
     def extract_image_size(self):
         # Image Width and Image Height
@@ -127,10 +150,7 @@ class EXIF:
             return 'unknown'
 
     def extract_projection_type(self):
-        if 'THETA' in self.tags['Image Model'].values:   # FIXME(pau): exifread does not seem to read the 'Projection Type' tag
-            return "equirectangular"
-        print self.tags
-        return self.tags.get('Projection Type', 'Perspective')
+        return self.xmp.get('GPano:ProjectionType', 'perspective')
 
     def extract_focal(self):
         make, model = self.extract_make(), self.extract_model()
