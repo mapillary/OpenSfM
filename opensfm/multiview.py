@@ -392,23 +392,6 @@ def K_from_camera(camera):
                      [0., f, 0.],
                      [0., 0., 1.]])
 
-def undistort_points(camera, points):
-    ''' Undistort image points (2 x N array) with radial distortion
-    '''
-
-    num_point = points.shape[1]
-
-    points = points.T.reshape((num_point, 1, 2)).astype(np.float32)
-
-    distortion = np.array([camera['k1'], camera['k2'], 0., 0.])
-
-    K = K_from_camera(camera)
-    points_undistort = cv2.undistortPoints(points, K_from_camera(camera), distortion)
-    points_undistort = points_undistort.reshape((num_point, 2))
-    points_undistort = np.dot(K[0:2,:], homogeneous(points_undistort).T )
-
-    return points_undistort
-
 def two_view_reconstruction_run_csfm(p1, p2, f1, f2, threshold):
     return csfm.two_view_reconstruction(p1, p2, f1, f2, threshold)
 
@@ -550,9 +533,11 @@ def pixel_bearings(p, camera):
         z = np.cos(lat) * np.cos(lon)
         return np.column_stack([x, y, z]).astype(float)
     else:
-        up = undistort_points(camera, p)
-        z = np.zeros(u.shape[:1]) + camera['focal']
-        b = np.column_stack([up, z]).astype(float)
+        points = p.reshape((-1, 1, 2))
+        K = K_from_camera(camera)
+        distortion = np.array([camera['k1'], camera['k2'], 0., 0.])
+        up = cv2.undistortPoints(points, K, distortion).reshape((-1, 2))
+        b = homogeneous(up)
         return b / np.linalg.norm(b, axis=1)[:, np.newaxis]
 
 

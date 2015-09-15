@@ -386,13 +386,15 @@ def resect(data, graph, reconstruction, shot_id):
     '''Add a shot to the reconstruction.
     '''
     exif = data.load_exif(shot_id)
+    camera_id = exif['camera']
+    camera = reconstruction['cameras'][camera_id]
 
     bs = []
     Xs = []
     for track in graph[shot_id]:
         if track in reconstruction['points']:
             x = graph[track][shot_id]['feature']
-            b = multiview.pixel_bearings(np.array([x]), exif)[0]
+            b = multiview.pixel_bearings(np.array([x]), camera)[0]
             bs.append(b)
             Xs.append(reconstruction['points'][track]['coordinates'])
     bs = np.array(bs)
@@ -417,7 +419,7 @@ def resect(data, graph, reconstruction, shot_id):
         R = cv2.Rodrigues(T[:, :3].T)[0].ravel()
         t = -T[:, :3].T.dot(T[:, 3])
         reconstruction['shots'][shot_id] = {
-            "camera": exif['camera'],
+            "camera": camera_id,
             "rotation": list(R.flat),
             "translation": list(t.flat),
         }
