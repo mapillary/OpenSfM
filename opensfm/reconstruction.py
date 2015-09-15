@@ -70,9 +70,9 @@ def bundle(graph, reconstruction, config, fix_cameras=False):
 
     ba.set_num_threads(config['processes'])
     ba.run()
-    print ba.brief_report()
 
     run = time.time()
+    print ba.brief_report()
 
     for k, v in reconstruction['cameras'].items():
         if v['projection_type'] == 'perspective':
@@ -201,7 +201,7 @@ def add_gps_position(data, shot, image):
         shot['skey'] = exif['skey']
 
 
-def two_view_reconstruction_equirectangular(p1, p2, camera1, camera2, threshold):
+def two_view_reconstruction(p1, p2, camera1, camera2, threshold):
     b1 = multiview.pixel_bearings(p1, camera1)
     b2 = multiview.pixel_bearings(p2, camera2)
 
@@ -224,9 +224,9 @@ def two_view_reconstruction_equirectangular(p1, p2, camera1, camera2, threshold)
 
     ok1 = np.linalg.norm(br1 - b1, axis=1) < threshold
     ok2 = np.linalg.norm(br2 - b2, axis=1) < threshold
-    inliers = ok1 * ok2
+    inliers = np.nonzero(ok1 * ok2)[0]
 
-    return cv2.Rodrigues(R.T)[0].ravel(), -R.T.dot(t), None, inliers
+    return cv2.Rodrigues(R.T)[0].ravel(), -R.T.dot(t), inliers
 
 
 def bootstrap_reconstruction(data, graph, im1, im2):
@@ -245,16 +245,8 @@ def bootstrap_reconstruction(data, graph, im1, im2):
     f1 = d1['focal_prior']
     f2 = d2['focal_prior']
     threshold = data.config.get('five_point_algo_threshold', 0.006)
-    if d1['projection_type'] == 'equirectangular' and d2['projection_type'] == 'equirectangular':
-        ret = two_view_reconstruction_equirectangular(p1, p2, camera1, camera2, threshold)
-        R, t, cov, inliers = ret
-    else:
-        ret = csfm.two_view_reconstruction(p1, p2, f1, f2, threshold)
-    if ret is not None:
-        R, t, cov, inliers = ret
-    else:
-        return None
-    if len(inliers):
+    R, t, inliers = two_view_reconstruction(p1, p2, camera1, camera2, threshold)
+    if len(inliers) > 5:
         print 'Number of inliers', len(inliers)
         reconstruction = {
             "cameras": cameras,
@@ -285,6 +277,16 @@ def bootstrap_reconstruction(data, graph, im1, im2):
         print 'Number of reconstructed 3D points :{}'.format(len(reconstruction['points']))
         if len(reconstruction['points']) > data.config.get('five_point_algo_min_inliers', 50):
             print 'Found initialize good pair', im1 , 'and', im2
+
+            print reconstruction['cameras']
+            bundle_single_view(graph, reconstruction, im2, data.config)
+            triangulate_shot_features(
+                            graph, reconstruction, im1,
+                            data.config.get('triangulation_threshold', 0.004),
+                            data.config.get('triangulation_min_ray_angle', 2.0))
+            bundle_single_view(graph, reconstruction, im2, data.config)
+            print reconstruction['cameras']
+
             return reconstruction
 
     print 'Pair', im1, ':', im2, 'fails'
@@ -443,7 +445,7 @@ def projection_matrix(camera, shot):
     return np.dot(K, Rt)
 
 
-def triangulate_track(track, graph, reconstruction, Rt_by_id, reproj_threshold, min_ray_angle_degrees=2.0):
+def triangulate_track(track, graph, reconstruction, Rt_by_id, reproj_threshold, min_ray_angle_degrees):
     min_ray_angle = np.radians(min_ray_angle_degrees)
     Rts, bs = [], []
 
@@ -517,12 +519,12 @@ def retriangulate(graph, reconstruction, image_graph, config):
 def retriangulate_all(graph, reconstruction, image_graph, config):
     '''Retrianguate all points
     '''
-    triangulation_threshold = config.get('retriangulation_threshold', 0.004)
+    threshold = config.get('retriangulation_threshold', 0.004)
     min_ray_angle = config.get('triangulation_min_ray_angle', 2.0)
     Rt_by_id = {}
     tracks, images = tracks_and_images(graph)
     for track in tracks:
-        triangulate_track(track, graph, reconstruction, Rt_by_id, reproj_threshold, min_ray_angle)
+        triangulate_track(track, graph, reconstruction, Rt_by_id, threshold, min_ray_angle)
     bundle(graph, reconstruction, config)
 
 
