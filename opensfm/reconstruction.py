@@ -206,11 +206,10 @@ def two_view_reconstruction(p1, p2, camera1, camera2, threshold):
     b2 = multiview.pixel_bearings(p2, camera2)
 
     # Note on threshold:
-    # opengv uses angular errors.  If t is the threshold in image coordinates,
-    # and f is the focal length of a camera, then the corresponding angular threshold
-    # at the center of the image is atan(t / f).  When f is 1.0, the angular threshold
-    # is approximatively equal to t
-    T = pyopengv.relative_pose_ransac(b1, b2, "NISTER", threshold, 1000)
+    # See opengv doc on thresholds here: http://laurentkneip.github.io/opengv/page_how_to_use.html
+    # Here we arbitrarily assume that the threshold is given for a camera of focal length 1
+    # Also arctan(threshold) \approx threshold since threshold is small
+    T = pyopengv.relative_pose_ransac(b1, b2, "NISTER", 1 - np.cos(threshold), 1000)
 
     R = T[:, :3]
     t = T[:, 3]
@@ -399,7 +398,7 @@ def resect(data, graph, reconstruction, shot_id):
         return False
 
     threshold = data.config.get('resection_threshold', 0.004)
-    T = pyopengv.absolute_pose_ransac(bs, Xs, "KNEIP", threshold, 1000)
+    T = pyopengv.absolute_pose_ransac(bs, Xs, "KNEIP", 1 - np.cos(threshold), 1000)
 
     R = T[:, :3]
     t = T[:, 3]
