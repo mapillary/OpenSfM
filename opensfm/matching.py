@@ -4,6 +4,7 @@ import cv2
 import pyopengv
 import networkx as nx
 import logging
+from opensfm import multiview
 from opensfm.unionfind import UnionFind
 
 
@@ -84,15 +85,7 @@ def robust_match(p1, p2, matches, config):
     return matches[inliers]
 
 
-def bearings_from_pixels(p):
-    lon = p[:, 0] * 2 * np.pi
-    lat = -p[:, 1] * 2 * np.pi
-    x = np.cos(lat) * np.sin(lon)
-    y = -np.sin(lat)
-    z = np.cos(lat) * np.cos(lon)
-    return np.column_stack([x, y, z]).astype(float)
-
-def compute_inliers_equirectangular(b1, b2, T):
+def compute_inliers_bearings(b1, b2, T):
     R = T[:, :3]
     t = T[:, 3]
     p = pyopengv.triangulation_triangulate(b1, b2, t, R)
@@ -108,8 +101,7 @@ def compute_inliers_equirectangular(b1, b2, T):
     return ok1 * ok2
 
 
-
-def robust_match_equirectangular(p1, p2, matches, config):
+def robust_match_calibrated(p1, p2, camera1, camera2, matches, config):
     '''Computes robust matches by estimating the Essential matrix via RANSAC.
     '''
 
@@ -118,12 +110,13 @@ def robust_match_equirectangular(p1, p2, matches, config):
 
     p1 = p1[matches[:, 0]][:, :2].copy()
     p2 = p2[matches[:, 1]][:, :2].copy()
-    b1 = bearings_from_pixels(p1)
-    b2 = bearings_from_pixels(p2)
+    b1 = multiview.pixel_bearings(p1, camera1)
+    b2 = multiview.pixel_bearings(p2, camera2)
 
-    T = pyopengv.relative_pose_ransac(b1, b2, "NISTER", 0.01, 1000)
+    threshold = config['robust_matching_threshold']
+    T = pyopengv.relative_pose_ransac(b1, b2, "NISTER", 1 - np.cos(threshold), 1000)
 
-    inliers = compute_inliers_equirectangular(b1, b2, T)
+    inliers = compute_inliers_bearings(b1, b2, T)
 
     return matches[inliers]
 

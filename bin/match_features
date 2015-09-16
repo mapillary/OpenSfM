@@ -99,12 +99,13 @@ def match(args):
 
         # robust matching
         t_robust_matching = time.time()
+        camera1 = cameras[exifs[im1]['camera']]
+        camera2 = cameras[exifs[im2]['camera']]
         projection_type1 = exifs[im1]['projection_type']
         projection_type2 = exifs[im2]['projection_type']
-        if projection_type1 == 'equirectangular' and projection_type2 == 'equirectangular':
-            rmatches = matching.robust_match_equirectangular(p1, p2, matches, data.config)
-        else:
-            rmatches = matching.robust_match(p1, p2, matches, data.config)
+
+        rmatches = matching.robust_match_calibrated(p1, p2, camera1, camera2, matches, data.config)
+
         if len(rmatches) < robust_matching_min_match:
             im1_matches[im2] = []
             continue
@@ -127,6 +128,7 @@ if __name__ == "__main__":
 
     data = dataset.DataSet(args.dataset)
     images = data.images()
+    cameras = data.load_camera_models()
     matcher_type = data.matcher_type()
 
     print 'Loading preemptive data'
