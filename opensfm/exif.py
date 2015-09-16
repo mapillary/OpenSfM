@@ -103,7 +103,10 @@ def get_xmp(fileobj):
         xdict = xdict.get('x:xmpmeta', {})
         xdict = xdict.get('rdf:RDF', {})
         xdict = xdict.get('rdf:Description', {})
-        return xdict
+        if isinstance(xdict, list):
+            return xdict
+        else:
+            return [xdict]
     else:
         return []
 
