@@ -105,8 +105,14 @@ def get_xmp(fileobj):
         xdict = xdict.get('rdf:Description', {})
         return xdict
     else:
-        return {}
+        return []
 
+def get_gpano_from_xmp(xmp):
+    for i in xmp:
+        for k in i:
+            if 'GPano' in k:
+                return i
+    return {}
 
 class EXIF:
 
@@ -150,7 +156,8 @@ class EXIF:
             return 'unknown'
 
     def extract_projection_type(self):
-        return self.xmp.get('GPano:ProjectionType', 'perspective')
+        gpano = get_gpano_from_xmp(self.xmp)
+        return gpano.get('GPano:ProjectionType', 'perspective')
 
     def extract_focal(self):
         make, model = self.extract_make(), self.extract_model()
