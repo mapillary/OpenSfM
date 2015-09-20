@@ -1,25 +1,18 @@
 # -*- coding: utf-8 -*-
 
-from collections import defaultdict
 from itertools import combinations
 import os
-from subprocess import call, Popen, PIPE
-import tempfile
 import datetime
-from itertools import combinations
 
 import numpy as np
 import cv2
 import pyopengv
-import json
 import time
-import math
 import networkx as nx
 from networkx.algorithms import bipartite
 
 from opensfm import transformations as tf
 from opensfm import dataset
-from opensfm import features
 from opensfm import multiview
 from opensfm import geo
 from opensfm import csfm
@@ -150,6 +143,7 @@ def pairwise_reconstructability(common_tracks, homography_inliers):
         return common_tracks
     else:
         return 0
+
 
 def compute_image_pairs(graph, image_graph, config):
     '''All matched image pairs sorted by reconstructability.
@@ -285,7 +279,6 @@ def bootstrap_reconstruction(data, graph, im1, im2):
     return None
 
 
-
 def reconstructed_points_for_images(graph, reconstruction, images):
     res = []
     for image in images:
@@ -302,10 +295,12 @@ def rotate(angleaxis, point):
     R = cv2.Rodrigues(np.array(angleaxis, dtype=float))[0]
     return R.dot(np.array(point))
 
+
 def camera_coordinates(camera, shot, point):
     p = rotate(shot['rotation'], point)
     p += shot['translation']
     return p
+
 
 def back_project(camera, shot, pixel, depth):
     K = multiview.K_from_camera(camera)
@@ -430,6 +425,7 @@ def Rt_from_shot(shot):
     Rt[:,:3] = cv2.Rodrigues(np.array(shot['rotation'], dtype=float))[0]
     Rt[:, 3] = shot['translation']
     return Rt
+
 
 def projection_matrix(camera, shot):
     K = multiview.K_from_camera(camera)
@@ -582,6 +578,7 @@ def align_reconstruction(reconstruction, config):
     s, A, b = align_reconstruction_similarity(reconstruction, config)
     apply_similarity(reconstruction, s, A, b)
 
+
 def align_reconstruction_similarity(reconstruction, config):
     align_method = config.get('align_method', 'orientation_prior')
     if align_method == 'orientation_prior':
@@ -731,10 +728,6 @@ def paint_reconstruction(data, graph, reconstruction):
     for track in reconstruction['points']:
         reconstruction['points'][track]['color'] = graph[track].values()[0]['feature_color']
 
-def paint_reconstruction_constant(data, graph, reconstruction):
-    for track in reconstruction['points']:
-        reconstruction['points'][track]['color'] = [200, 180, 255]
-
 
 def grow_reconstruction(data, graph, reconstruction, images):
     bundle_interval = data.config.get('bundle_interval', 0)
@@ -816,6 +809,7 @@ def nonfisheye_cameras(data, images):
             res.append(image)
     return res
 
+
 def tracks_and_images(graph):
     tracks, images = [], []
     for n in graph.nodes(data=True):
@@ -824,6 +818,7 @@ def tracks_and_images(graph):
         else:
             tracks.append(n[0])
     return tracks, images
+
 
 def incremental_reconstruction(data):
     data.invent_reference_lla()

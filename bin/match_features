@@ -93,6 +93,7 @@ def match(args):
         i2 = data.load_feature_index(im2, f2)
 
         matches = matching.match_symmetric(f1, i1, f2, i2, data.config)
+        print 'len(matches)', len(matches)
         if len(matches) < robust_matching_min_match:
             im1_matches[im2] = []
             continue

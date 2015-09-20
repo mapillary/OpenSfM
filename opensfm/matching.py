@@ -1,5 +1,4 @@
 import numpy as np
-import json
 import cv2
 import pyopengv
 import networkx as nx
