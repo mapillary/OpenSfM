@@ -66,7 +66,7 @@ def match_lowe_bf(f1, f2, config):
     return np.array(good_matches, dtype=int)
 
 
-def robust_match(p1, p2, matches, config):
+def robust_match_fundamental(p1, p2, matches, config):
     '''Computes robust matches by estimating the Fundamental matrix via RANSAC.
     '''
     if len(matches) < 8:
@@ -118,6 +118,13 @@ def robust_match_calibrated(p1, p2, camera1, camera2, matches, config):
     inliers = compute_inliers_bearings(b1, b2, T)
 
     return matches[inliers]
+
+
+def robust_match(p1, p2, camera1, camera2, matches, config):
+    if camera1['projection_type'] == camera2['projection_type'] == 'perspective':
+        return robust_match_fundamental(p1, p2, matches, config)
+    else:
+        return robust_match_calibrated(p1, p2, camera1, camera2, matches, config)
 
 
 def good_track(track, min_length):

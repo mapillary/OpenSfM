@@ -105,7 +105,7 @@ def match(args):
         projection_type1 = exifs[im1]['projection_type']
         projection_type2 = exifs[im2]['projection_type']
 
-        rmatches = matching.robust_match_calibrated(p1, p2, camera1, camera2, matches, data.config)
+        rmatches = matching.robust_match(p1, p2, camera1, camera2, matches, data.config)
 
         if len(rmatches) < robust_matching_min_match:
             im1_matches[im2] = []
