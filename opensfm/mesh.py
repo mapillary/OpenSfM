@@ -14,6 +14,18 @@ def triangle_mesh(shot_id, r, graph, data):
 
     shot = r['shots'][shot_id]
     cam = r['cameras'][shot['camera']]
+
+    pt = cam.get('projection_type', 'perspective')
+    if pt == 'perspective':
+        return triangle_mesh_perspective(shot_id, r, graph)
+    elif pt == 'equirectangular':
+        return triangle_mesh_equirectangular(shot_id, r, graph)
+
+
+def triangle_mesh_perspective(shot_id, r, graph):
+    shot = r['shots'][shot_id]
+    cam = r['cameras'][shot['camera']]
+
     dx = float(cam['width']) / 2 / max(cam['width'], cam['height'])
     dy = float(cam['height']) / 2 / max(cam['width'], cam['height'])
     pixels = [[-dx, -dy], [-dx, dy], [dx, dy], [dx, -dy]]
@@ -43,5 +55,22 @@ def triangle_mesh(shot_id, r, graph, data):
             d = 50.0
         vertices[i] = reconstruction.back_project(cam, shot, pixels[i], d).tolist()
 
+    faces = tri.simplices.tolist()
+    return vertices, faces
+
+
+def triangle_mesh_equirectangular(shot_id, r, graph):
+    shot = r['shots'][shot_id]
+
+    bearings = []
+    vertices = []
+    for track_id, edge in graph[shot_id].items():
+        if track_id in r['points']:
+            point = r['points'][track_id]['coordinates']
+            vertices.append(point)
+            pixel = point / np.linalg.norm(point)
+            bearings.append(pixel.tolist())
+
+    tri = scipy.spatial.ConvexHull(bearings)
     faces = tri.simplices.tolist()
     return vertices, faces
