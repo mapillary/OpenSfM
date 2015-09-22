@@ -384,7 +384,7 @@ def resect(data, graph, reconstruction, shot_id):
     for track in graph[shot_id]:
         if track in reconstruction['points']:
             x = graph[track][shot_id]['feature']
-            b = multiview.pixel_bearings(np.array([x]), camera)[0]
+            b = multiview.pixel_bearing(x, camera)
             bs.append(b)
             Xs.append(reconstruction['points'][track]['coordinates'])
     bs = np.array(bs)
@@ -445,7 +445,7 @@ def triangulate_track(track, graph, reconstruction, Rt_by_id, reproj_threshold, 
                 Rt_by_id[shot_id] = Rt_from_shot(shot)
             Rts.append(Rt_by_id[shot_id])
             x = graph[track][shot_id]['feature']
-            b = multiview.pixel_bearings(np.array([x]), camera)[0]
+            b = multiview.pixel_bearing(np.array(x), camera)
             bs.append(b)
 
     if len(Rts) >= 2:
