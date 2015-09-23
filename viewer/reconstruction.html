@@ -159,6 +159,50 @@
 
         </script>
 
+        <script type="x-shader/x-vertex" id="vertexshader_equirectangular">
+
+            // switch on high precision floats
+            #ifdef GL_ES
+            precision highp float;
+            #endif
+
+            varying vec4 vRstq;
+            uniform mat4 projectorMat;
+
+            void main()
+            {
+                vRstq = projectorMat * vec4(position, 1.0);
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
+            }
+
+        </script>
+
+        <script type="x-shader/x-fragment" id="fragmentshader_equirectangular">
+
+            #ifdef GL_ES
+            precision highp float;
+            #endif
+
+            #define tau 6.28318530718
+
+            varying vec4 vRstq;
+            uniform sampler2D projectorTex;
+            uniform float opacity;
+
+            void main()
+            {
+                vec3 b = normalize(vRstq.xyz);
+                float lat = -asin(b.y);
+                float lon = atan(b.x, b.z);
+                float x = lon / tau + 0.5;
+                float y = lat / tau * 2.0 + 0.5;
+                vec4 baseColor = texture2D(projectorTex, vec2(x, y));
+                baseColor.a = opacity;
+                gl_FragColor = baseColor;
+            }
+
+        </script>
+
         <script>
             var urlParams;
             var f1;
@@ -357,11 +401,11 @@
                     } else if (mode == 'walk') {
                         invokeJourneyWrapper(function () { journeyWrapper.removeShowPathController(); });
                         swapOptions();
-                        controls.noRotate = true;
-                        controls.noLookAround = true;
-                        controls.noPan = true;
-                        controls.noZoom = true;
-                        controls.noKeys = true;
+                        // controls.noRotate = true;
+                        // controls.noLookAround = true;
+                        // controls.noPan = true;
+                        // controls.noZoom = true;
+                        // controls.noKeys = true;
                         imageMaterial.depthWrite = false;
                         imageMaterialOld.depthWrite = false;
                         $('#navigation').show();
@@ -591,6 +635,20 @@
                 return geometry;
             }
 
+            function imageVertexShader(cam) {
+                if (cam.projection_type == 'equirectangular')
+                    return $('#vertexshader_equirectangular').text();
+                else
+                    return $('#vertexshader').text();
+            }
+
+            function imageFragmentShader(cam) {
+                if (cam.projection_type == 'equirectangular')
+                    return $('#fragmentshader_equirectangular').text();
+                else
+                    return $('#fragmentshader').text();
+            }
+
             function projectorCameraMatrix(cam, shot) {
                 var angleaxis = shot.rotation;
                 var axis = new THREE.Vector3(angleaxis[0],
@@ -602,6 +660,8 @@
                 var t = shot.translation;
                 var translation = new THREE.Vector3(t[0], t[1], t[2]);
                 rotation.setPosition(translation);
+                if (cam.projection_type == 'equirectangular')
+                    return rotation
                 var dx = cam.width / Math.max(cam.width, cam.height) / cam.focal;
                 var dy = cam.height / Math.max(cam.width, cam.height) / cam.focal;
                 var projection = new THREE.Matrix4().makeFrustum(-dx, +dx, +dy, -dy, -1, -1000);
@@ -699,6 +759,7 @@
                 var shot = imagePlaneCamera.reconstruction.shots[imagePlaneCamera.shot_id];
                 var cam = imagePlaneCamera.reconstruction.cameras[shot.camera];
                 var imageTexture = THREE.ImageUtils.loadTexture(imageURL(imagePlaneCamera.shot_id));
+
                 imageMaterial = new THREE.ShaderMaterial({
                     side: THREE.DoubleSide,
                     transparent: true,
@@ -717,8 +778,8 @@
                             value: options.imagePlaneOpacity
                         }
                     },
-                    vertexShader:   $('#vertexshader').text(),
-                    fragmentShader: $('#fragmentshader').text()
+                    vertexShader:   imageVertexShader(cam),
+                    fragmentShader: imageFragmentShader(cam)
                 });
                 imagePlane = new THREE.Mesh(imagePlaneGeo(imagePlaneCamera.reconstruction,
                                                           imagePlaneCamera.shot_id),
@@ -747,8 +808,8 @@
                             value: options.imagePlaneOpacity
                         }
                     },
-                    vertexShader:   $('#vertexshader').text(),
-                    fragmentShader: $('#fragmentshader').text()
+                    vertexShader:   imageVertexShader(cam),
+                    fragmentShader: imageFragmentShader(cam)
                 });
                 imagePlaneOld = new THREE.Mesh(imagePlaneGeo(imagePlaneCameraOld.reconstruction,
                                                           imagePlaneCameraOld.shot_id),
@@ -756,7 +817,7 @@
                 imagePlaneOld.visible = options.showImagePlane;
 
                 scene_group.add(imagePlane);
-                scene_group.add(imagePlaneOld);
+                // scene_group.add(imagePlaneOld);
 
                 // for (var i=0; i < num_preview_plane; ++i) {
                 //     imagePlaneCameras.push(camera_lines[0]);
@@ -945,13 +1006,15 @@
             function onDocumentMouseDown(event) {
                 window.focus();
                 if (hoverCamera !== undefined) {
-                    if (selectedCamera !== hoverCamera) {
-                        setSelectedCamera(hoverCamera);
-                        setImagePlaneCamera(hoverCamera);
-                    } else {
-                        setMovingMode('walk');
-                        setImagePlaneCamera(selectedCamera);
-                        navigateToShot(selectedCamera);
+                    if (movingMode !== 'walk') {
+                        if (selectedCamera !== hoverCamera) {
+                            setSelectedCamera(hoverCamera);
+                            setImagePlaneCamera(hoverCamera);
+                        } else {
+                            setMovingMode('walk');
+                            setImagePlaneCamera(selectedCamera);
+                            navigateToShot(selectedCamera);
+                        }
                     }
                     render();
                 }

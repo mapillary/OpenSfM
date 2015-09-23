@@ -278,6 +278,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 	}
 
 	function onMouseDown( event ) {
+		console.log('onMouseDown '+ scope.enabled + scope.noLookAround)
 		if ( scope.enabled === false ) return;
 		event.preventDefault();
 
@@ -309,6 +310,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 	}
 
 	function onMouseMove( event ) {
+		console.log('onMouseMove')
 
 		if ( scope.enabled === false ) return;
 
@@ -432,15 +434,15 @@ THREE.OrbitControls = function ( object, domElement ) {
 
 		var validKey = true;
 		switch ( event.keyCode ) {
-			case scope.keys.UP:
-				scope.pan( 0, scope.keyPanSpeed );
-				scope.update();
-				break;
+			// case scope.keys.UP:
+			// 	scope.pan( 0, scope.keyPanSpeed );
+			// 	scope.update();
+			// 	break;
 
-			case scope.keys.BOTTOM:
-				scope.pan( 0, - scope.keyPanSpeed );
-				scope.update();
-				break;
+			// case scope.keys.BOTTOM:
+			// 	scope.pan( 0, - scope.keyPanSpeed );
+			// 	scope.update();
+			// 	break;
 
 			case scope.keys.LEFT:
 				scope.pan( scope.keyPanSpeed, 0 );
