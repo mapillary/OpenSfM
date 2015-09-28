@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import json
+import itertools
 import numpy as np
 import scipy.spatial
 from opensfm import dataset
@@ -65,6 +66,14 @@ def triangle_mesh_equirectangular(shot_id, r, graph):
 
     bearings = []
     vertices = []
+
+    # Add vertices to ensure that the camera is inside the convex hull of the points
+    for point in itertools.product([-1, 1], repeat=3): # vertices of a cube
+        bearing = 0.3 * np.array(point) / np.linalg.norm(point)
+        bearings.append(bearing)
+        point = reconstruction.world_coordinates(cam, shot, bearing)
+        vertices.append(point.tolist())
+
     for track_id, edge in graph[shot_id].items():
         if track_id in r['points']:
             point = r['points'][track_id]['coordinates']
