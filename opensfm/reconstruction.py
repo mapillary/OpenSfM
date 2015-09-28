@@ -48,9 +48,10 @@ def bundle(graph, reconstruction, config, fix_cameras=False):
         ba.add_point(str(k), x[0], x[1], x[2], False)
 
     for shot in reconstruction['shots']:
-        for track in graph[shot]:
-            if track in reconstruction['points']:
-                ba.add_observation(str(shot), str(track), *graph[shot][track]['feature'])
+        if shot in graph:
+            for track in graph[shot]:
+                if track in reconstruction['points']:
+                    ba.add_observation(str(shot), str(track), *graph[shot][track]['feature'])
 
     ba.set_loss_function(config.get('loss_function', 'SoftLOneLoss'),
                          config.get('loss_function_threshold', 1))
