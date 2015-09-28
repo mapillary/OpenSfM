@@ -111,6 +111,7 @@ target_link_libraries(csfm
     ${CERES_LIBRARIES}
     ${LAPACK_LIBRARIES}
     ${SUITESPARSE_LIBRARIES}
+    ${Boost_LIBRARIES}
     vl
     mv
     akaze
@@ -124,10 +125,8 @@ if(APPLE)
     set_target_properties(csfm PROPERTIES
         LINK_FLAGS "-undefined dynamic_lookup"
     )
-    target_link_libraries(csfm "${Boost_LIBRARY_DIR}/libboost_python.a")
 else()
     target_link_libraries(csfm
-        ${Boost_LIBRARIES}
         ${PYTHON_LIBRARIES}
     )
 endif()
