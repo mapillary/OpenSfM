@@ -61,6 +61,7 @@ def triangle_mesh_perspective(shot_id, r, graph):
 
 def triangle_mesh_equirectangular(shot_id, r, graph):
     shot = r['shots'][shot_id]
+    cam = r['cameras'][shot['camera']]
 
     bearings = []
     vertices = []
@@ -68,7 +69,8 @@ def triangle_mesh_equirectangular(shot_id, r, graph):
         if track_id in r['points']:
             point = r['points'][track_id]['coordinates']
             vertices.append(point)
-            pixel = point / np.linalg.norm(point)
+            direction = reconstruction.camera_coordinates(cam, shot, point)
+            pixel = direction / np.linalg.norm(direction)
             bearings.append(pixel.tolist())
 
     tri = scipy.spatial.ConvexHull(bearings)
