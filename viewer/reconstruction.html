@@ -974,6 +974,9 @@
                             imagePlaneCameraOld = imagePlaneCamera;
                             imageMaterialOld.uniforms.projectorTex.value = imageMaterial.uniforms.projectorTex.value;
                             imageMaterialOld.uniforms.projectorMat.value = imageMaterial.uniforms.projectorMat.value;
+                            imageMaterialOld.vertexShader = imageMaterial.vertexShader;
+                            imageMaterialOld.fragmentShader = imageMaterial.fragmentShader;
+                            imageMaterialOld.needsUpdate = true;
 
                             imagePlaneOld.geometry = imagePlaneGeo(imagePlaneCameraOld.reconstruction, imagePlaneCameraOld.shot_id);
                         }
@@ -986,6 +989,9 @@
                     imagePlaneCamera = cameraObject;
                     imageMaterial.uniforms.projectorTex.value = THREE.ImageUtils.loadTexture(image_url, null, render);
                     imageMaterial.uniforms.projectorMat.value = projectorCameraMatrix(cam, shot)
+                    imageMaterial.vertexShader = imageVertexShader(cam)
+                    imageMaterial.fragmentShader = imageFragmentShader(cam)
+                    imageMaterial.needsUpdate = true;
                     imagePlane.geometry = imagePlaneGeo(r, shot_id);
                 }
             }
