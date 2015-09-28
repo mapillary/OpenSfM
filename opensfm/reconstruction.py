@@ -469,7 +469,7 @@ def triangulate_shot_features(graph, reconstruction, shot_id, reproj_threshold, 
 def retriangulate(graph, reconstruction, config):
     '''Retrianguate all points
     '''
-    threshold = config.get('retriangulation_threshold', 0.004)
+    threshold = config.get('triangulation_threshold', 0.004)
     min_ray_angle = config.get('triangulation_min_ray_angle', 2.0)
     Rt_by_id = {}
     tracks, images = tracks_and_images(graph)
