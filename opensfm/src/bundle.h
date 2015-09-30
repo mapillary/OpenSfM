@@ -162,6 +162,11 @@ struct SnavelyReprojectionError {
     p[1] += shot[4];
     p[2] += shot[5];
 
+    if (p[2] <= T(0.0)) {
+      residuals[0] = residuals[1] = T(99.0);
+      return true;
+    }
+
     // Project.
     T xp = p[0] / p[2];
     T yp = p[1] / p[2];
