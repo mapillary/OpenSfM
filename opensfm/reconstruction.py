@@ -820,19 +820,6 @@ def grow_reconstruction(data, graph, reconstruction, images):
     return reconstruction
 
 
-def nonfisheye_cameras(data, images):
-    fisheye = [
-        "gopro hero3+ black edition",
-        "gopro hero2",
-    ]
-    res = []
-    for image in images:
-        exif = data.load_exif(image)
-        if exif['camera'] not in fisheye and 1 <= exif['orientation'] <= 8:
-            res.append(image)
-    return res
-
-
 def tracks_and_images(graph):
     tracks, images = [], []
     for n in graph.nodes(data=True):
@@ -847,7 +834,7 @@ def incremental_reconstruction(data):
     data.invent_reference_lla()
     graph = data.load_tracks_graph()
     tracks, images = tracks_and_images(graph)
-    remaining_images = set(nonfisheye_cameras(data, images))
+    remaining_images = set(images)
     print 'images', len(images)
     print 'nonfisheye images', len(remaining_images)
     image_graph = bipartite.weighted_projected_graph(graph, images)
