@@ -204,7 +204,7 @@ def two_view_reconstruction(p1, p2, camera1, camera2, threshold):
     # See opengv doc on thresholds here: http://laurentkneip.github.io/opengv/page_how_to_use.html
     # Here we arbitrarily assume that the threshold is given for a camera of focal length 1
     # Also arctan(threshold) \approx threshold since threshold is small
-    T = pyopengv.relative_pose_ransac(b1, b2, "NISTER", 1 - np.cos(threshold), 1000)
+    T = pyopengv.relative_pose_ransac(b1, b2, "STEWENIUS", 1 - np.cos(threshold), 1000)
 
     R = T[:, :3]
     t = T[:, 3]
