@@ -196,18 +196,7 @@ def add_gps_position(data, shot, image):
         shot['skey'] = exif['skey']
 
 
-def two_view_reconstruction(p1, p2, camera1, camera2, threshold):
-    b1 = multiview.pixel_bearings(p1, camera1)
-    b2 = multiview.pixel_bearings(p2, camera2)
-
-    # Note on threshold:
-    # See opengv doc on thresholds here: http://laurentkneip.github.io/opengv/page_how_to_use.html
-    # Here we arbitrarily assume that the threshold is given for a camera of focal length 1
-    # Also arctan(threshold) \approx threshold since threshold is small
-    T = pyopengv.relative_pose_ransac(b1, b2, "STEWENIUS", 1 - np.cos(threshold), 1000)
-
-    R = T[:, :3]
-    t = T[:, 3]
+def _two_view_reconstruction_inliers(b1, b2, R, t, threshold):
     p = pyopengv.triangulation_triangulate(b1, b2, t, R)
 
     br1 = p.copy()
@@ -218,7 +207,26 @@ def two_view_reconstruction(p1, p2, camera1, camera2, threshold):
 
     ok1 = np.linalg.norm(br1 - b1, axis=1) < threshold
     ok2 = np.linalg.norm(br2 - b2, axis=1) < threshold
-    inliers = np.nonzero(ok1 * ok2)[0]
+    return np.nonzero(ok1 * ok2)[0]
+
+
+def two_view_reconstruction(p1, p2, camera1, camera2, threshold):
+    b1 = multiview.pixel_bearings(p1, camera1)
+    b2 = multiview.pixel_bearings(p2, camera2)
+
+    # Note on threshold:
+    # See opengv doc on thresholds here: http://laurentkneip.github.io/opengv/page_how_to_use.html
+    # Here we arbitrarily assume that the threshold is given for a camera of focal length 1
+    # Also arctan(threshold) \approx threshold since threshold is small
+    T = pyopengv.relative_pose_ransac(b1, b2, "STEWENIUS", 1 - np.cos(threshold), 1000)
+    R = T[:, :3]
+    t = T[:, 3]
+    inliers = _two_view_reconstruction_inliers(b1, b2, R, t, threshold)
+
+    T = pyopengv.relative_pose_optimize_nonlinear(b1[inliers], b2[inliers], t, R)
+    R = T[:, :3]
+    t = T[:, 3]
+    inliers = _two_view_reconstruction_inliers(b1, b2, R, t, threshold)
 
     return cv2.Rodrigues(R.T)[0].ravel(), -R.T.dot(t), inliers
 

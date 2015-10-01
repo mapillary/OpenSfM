@@ -1102,7 +1102,7 @@
                             var driftBA = driftAB - turn;
                             var drift = Math.max(driftAB, driftBA);
                             if (k.lastIndexOf('STEP', 0) === 0) {
-                                turn_threshold = (k === 'STEP_FORWARD')? 0.25 : 0.5
+                                turn_threshold = 0.5
                                 if (Math.abs(turn) < turn_threshold && Math.abs(drift) < 0.5 && d > 0.01 && d < 20) {
                                     if (d < min_d[k]) {
                                         min_d[k] = d;
