@@ -25,10 +25,11 @@ def bundle(graph, reconstruction, config, fix_cameras=False):
     start = time.time()
     ba = csfm.BundleAdjuster()
     for k, v in reconstruction['cameras'].items():
-        if v['projection_type'] == 'perspective':
+        pt = v.get('projection_type', 'perspective')
+        if pt == 'perspective':
             ba.add_perspective_camera(str(k), v['focal'], v['k1'], v['k2'],
                 v['focal_prior'], fix_cameras)
-        elif v['projection_type'] == 'equirectangular':
+        elif pt == 'equirectangular':
             ba.add_equirectangular_camera(str(k))
 
     for k, v in reconstruction['shots'].items():
@@ -69,7 +70,7 @@ def bundle(graph, reconstruction, config, fix_cameras=False):
     print ba.brief_report()
 
     for k, v in reconstruction['cameras'].items():
-        if v['projection_type'] == 'perspective':
+        if v.get('projection_type', 'perspective') == 'perspective':
             c = ba.get_perspective_camera(str(k))
             v['focal'] = c.focal
             v['k1'] = c.k1
@@ -98,10 +99,11 @@ def bundle_single_view(graph, reconstruction, shot_id, config):
     camera_id = shot['camera']
     camera = reconstruction['cameras'][camera_id]
 
-    if camera['projection_type'] == 'perspective':
+    pt = camera.get('projection_type', 'perspective')
+    if pt == 'perspective':
         ba.add_perspective_camera(str(camera_id), camera['focal'], camera['k1'], camera['k2'],
                 camera['focal_prior'], True)
-    elif camera['projection_type'] == 'equirectangular':
+    elif pt == 'equirectangular':
         ba.add_equirectangular_camera(str(camera_id))
 
     r = shot['rotation']

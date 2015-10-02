@@ -121,7 +121,7 @@ def robust_match_calibrated(p1, p2, camera1, camera2, matches, config):
 
 
 def robust_match(p1, p2, camera1, camera2, matches, config):
-    if camera1['projection_type'] == camera2['projection_type'] == 'perspective':
+    if camera1.get('projection_type', 'perspective') == camera2.get('projection_type', 'perspective') == 'perspective':
         return robust_match_fundamental(p1, p2, matches, config)
     else:
         return robust_match_calibrated(p1, p2, camera1, camera2, matches, config)

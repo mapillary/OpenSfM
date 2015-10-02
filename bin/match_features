@@ -102,8 +102,8 @@ def match(args):
         t_robust_matching = time.time()
         camera1 = cameras[exifs[im1]['camera']]
         camera2 = cameras[exifs[im2]['camera']]
-        projection_type1 = exifs[im1]['projection_type']
-        projection_type2 = exifs[im2]['projection_type']
+        projection_type1 = exifs[im1].get('projection_type', 'perspective')
+        projection_type2 = exifs[im2].get('projection_type', 'perspective')
 
         rmatches = matching.robust_match(p1, p2, camera1, camera2, matches, data.config)
 
