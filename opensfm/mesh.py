@@ -19,7 +19,7 @@ def triangle_mesh(shot_id, r, graph, data):
     pt = cam.get('projection_type', 'perspective')
     if pt == 'perspective':
         return triangle_mesh_perspective(shot_id, r, graph)
-    elif pt == 'equirectangular':
+    else:
         return triangle_mesh_equirectangular(shot_id, r, graph)
 
 
