@@ -636,14 +636,14 @@
             }
 
             function imageVertexShader(cam) {
-                if (cam.projection_type == 'equirectangular')
+                if (cam.projection_type == 'equirectangular' || cam.projection_type == 'spherical')
                     return $('#vertexshader_equirectangular').text();
                 else
                     return $('#vertexshader').text();
             }
 
             function imageFragmentShader(cam) {
-                if (cam.projection_type == 'equirectangular')
+                if (cam.projection_type == 'equirectangular' || cam.projection_type == 'spherical')
                     return $('#fragmentshader_equirectangular').text();
                 else
                     return $('#fragmentshader').text();
@@ -660,7 +660,7 @@
                 var t = shot.translation;
                 var translation = new THREE.Vector3(t[0], t[1], t[2]);
                 rotation.setPosition(translation);
-                if (cam.projection_type == 'equirectangular')
+                if (cam.projection_type == 'equirectangular' || cam.projection_type == 'spherical')
                     return rotation
                 var dx = cam.width / Math.max(cam.width, cam.height) / cam.focal;
                 var dy = cam.height / Math.max(cam.width, cam.height) / cam.focal;

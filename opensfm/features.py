@@ -72,7 +72,6 @@ def mask_and_normalize_features(points, desc, colors, width, height, config):
         left = mask['left'] * width
         bottom = mask['bottom'] * height
         right = mask['right'] * width
-        print top, bottom, left, right
         ids  = np.invert ( (points[:,1] > top) *
                            (points[:,1] < bottom) *
                            (points[:,0] > left) *
