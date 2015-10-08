@@ -2,6 +2,9 @@ import os
 import yaml
 
 default_config_yaml = '''
+# Metadata
+use_exif_size: yes
+
 # Params for features
 feature_type: HAHOG           # Feature type (AKAZE, SURF, SIFT)
 feature_root: 1               # If 1, apply square root mapping to features
