@@ -28,11 +28,9 @@ akaze_descriptor_channels: 3  # Number of feature channels (1,2,3)
 hahog_peak_threshold: 0.00001
 hahog_edge_threshold: 10
 
-# Masks for regions that will be ignore for feature extraction
-# List of bounding boxes specified as the ratio with respect to the height and width
-# [top_left_x, top_left_y, bottom_right_x, bottom_right_y] where x, y refer to
-# vertical/horizontal dimension of an image
-# masks: [[0.96, 0.0, 1.0, 0.15], [0,0.95,0.05,1]]
+# Masks for regions that will be ignored for feature extraction
+# List of bounding boxes specified as the ratio to image width and height
+# masks: [{top: 0.96, bottom: 1.0, left: 0.0, right: 0.15}, {top: 0.95, bottom: 1.0, left: 0, right: 0.05}]
 
 # Params for general matching
 lowes_ratio: 0.8              # Ratio test for matches
