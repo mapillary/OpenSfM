@@ -233,6 +233,26 @@ def two_view_reconstruction(p1, p2, camera1, camera2, threshold):
     return cv2.Rodrigues(R.T)[0].ravel(), -R.T.dot(t), inliers
 
 
+def _two_view_reconstruction_rotation_only_inliers(b1, b2, R, threshold):
+    br2 = R.dot(b2.T).T
+    ok = np.linalg.norm(br2 - b1, axis=1) < threshold
+    return np.nonzero(ok)[0]
+
+
+def two_view_reconstruction_rotation_only(p1, p2, camera1, camera2, threshold):
+    b1 = multiview.pixel_bearings(p1, camera1)
+    b2 = multiview.pixel_bearings(p2, camera2)
+    t = np.zeros(3)
+
+    R = pyopengv.relative_pose_ransac_rotation_only(b1, b2, 1 - np.cos(threshold), 1000)
+    inliers = _two_view_reconstruction_rotation_only_inliers(b1, b2, R, threshold)
+
+    # R = pyopengv.relative_pose_rotation_only(b1[inliers], b2[inliers])
+    # inliers = _two_view_reconstruction_rotation_only_inliers(b1, b2, R, threshold)
+
+    return cv2.Rodrigues(R.T)[0].ravel(), inliers
+
+
 def bootstrap_reconstruction(data, graph, im1, im2):
     '''Starts a reconstruction using two shots.
     '''

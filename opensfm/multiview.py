@@ -452,4 +452,3 @@ def pixel_bearings(p, camera):
         return b / np.linalg.norm(b, axis=1)[:, np.newaxis]
 
 
-
