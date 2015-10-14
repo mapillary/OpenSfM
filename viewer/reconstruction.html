@@ -278,7 +278,7 @@
                 var gui = new dat.GUI();
 
                 f1 = gui.addFolder('Options');
-                f1.add(options, 'pointSize', 0, 2)
+                f1.add(options, 'pointSize', 0, 10)
                     .listen()
                     .onChange(setPointSize);
                 f1.add(options, 'cameraSize', 0, 2)
@@ -681,7 +681,7 @@
                 container = document.getElementById( 'ThreeJS' );
                 container.appendChild(renderer.domElement);
 
-                camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.03, 1000);
+                camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.03, 10000);
                 camera.position.x = 50;
                 camera.position.y = 50;
                 camera.position.z = 50;
