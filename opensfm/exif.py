@@ -194,7 +194,10 @@ class EXIF:
         for ts in time_strings:
             if ts in self.tags:
                 s = str(self.tags[ts].values)
-                d = datetime.datetime.strptime(s, '%Y:%m:%d %H:%M:%S')
+                try:
+                    d = datetime.datetime.strptime(s, '%Y:%m:%d %H:%M:%S')
+                except ValueError as e:
+                    continue
                 timestamp = (d - datetime.datetime(1970,1,1)).total_seconds()   # Assuming d is in UTC
                 return timestamp
         return 0.0
