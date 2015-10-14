@@ -5,6 +5,10 @@ import numpy as np
 import scipy.spatial
 from opensfm import dataset
 from opensfm import reconstruction
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 def triangle_mesh(shot_id, r, graph, data):
     '''
@@ -38,7 +42,11 @@ def triangle_mesh_perspective(shot_id, r, graph):
             pixel = reconstruction.reproject(cam, shot, point)
             pixels.append(pixel.tolist())
 
-    tri = scipy.spatial.Delaunay(pixels)
+    try:
+        tri = scipy.spatial.Delaunay(pixels)
+    except Exception as e:
+        logger.error('Delaunay triangulation failed for input: {}'.format(`pixels`))
+        raise e
 
     sums = [0.,0.,0.,0.]
     depths = [0.,0.,0.,0.]
