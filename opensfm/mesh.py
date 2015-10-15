@@ -38,9 +38,10 @@ def triangle_mesh_perspective(shot_id, r, graph):
     for track_id, edge in graph[shot_id].items():
         if track_id in r['points']:
             point = r['points'][track_id]
-            vertices.append(point['coordinates'])
             pixel = reconstruction.reproject(cam, shot, point)
-            pixels.append(pixel.tolist())
+            if -dx <= pixel[0] <= dx and -dy <= pixel[1] <= dy:
+                vertices.append(point['coordinates'])
+                pixels.append(pixel.tolist())
 
     try:
         tri = scipy.spatial.Delaunay(pixels)
