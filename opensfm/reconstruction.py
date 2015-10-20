@@ -359,7 +359,7 @@ def resect(data, graph, reconstruction, shot_id):
     dist = np.array([0,0,0,0.])
 
     # Prior on focal length
-    R, t, inliers = cv2.solvePnPRansac(X.astype(np.float32), x.astype(np.float32), K, dist,
+    R, t, inliers, _ = cv2.solvePnPRansac(X.astype(np.float32), x.astype(np.float32), K, dist,
         reprojectionError=data.config.get('resection_threshold', 0.004))
 
     if inliers is None:
