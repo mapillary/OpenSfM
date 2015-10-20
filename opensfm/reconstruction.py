@@ -271,8 +271,6 @@ def bootstrap_reconstruction(data, graph, im1, im2):
     tracks, p1, p2 = dataset.common_tracks(graph, im1, im2)
     print 'Number of common tracks', len(tracks)
 
-    f1 = d1['focal_prior']
-    f2 = d2['focal_prior']
     threshold = data.config.get('five_point_algo_threshold', 0.006)
     R, t, inliers = two_view_reconstruction(p1, p2, camera1, camera2, threshold)
     if len(inliers) > 5:

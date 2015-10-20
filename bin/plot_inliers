@@ -245,7 +245,7 @@ def triangulate_tracks(tracks, reconstruction, graph, min_ray_angle):
 
     for track in tracks:
         # Triangulate with 1 as reprojection threshold to avoid excluding tracks because of error.
-        reconstruct.triangulate_track(str(track), graph, reconstruction, {}, {}, {}, 1, min_ray_angle)
+        reconstruct.triangulate_track(str(track), graph, reconstruction, {}, 1, min_ray_angle)
         succeeded.append(True) if str(track) in reconstruction['points'] else succeeded.append(False)
 
     return np.array(succeeded) if len(succeeded) else np.empty((0,), bool)
@@ -437,7 +437,10 @@ def create_matches_figure(im1, im2, data, save_figs=False, single_column=False):
                      'c', 'ob')
 
     # Calculate robust matches and plot inliers.
-    robust_matches = matching.robust_match(p1, p2, symmetric_matches, data.config)
+    cameras = data.load_camera_models()
+    camera1 = cameras[data.load_exif(im1)['camera']]
+    camera2 = cameras[data.load_exif(im2)['camera']]
+    robust_matches = matching.robust_match(p1, p2, camera1, camera2, symmetric_matches, data.config)
 
     r_matches1 = p1[robust_matches[:, 0]]
     r_matches2 = p2[robust_matches[:, 1]]
@@ -543,12 +546,12 @@ def plot_two_view_reconstruction(fw, ip, index, track_points1, track_points2, da
     :param data: Data set.
     :return:
     """
-
-    f1 = data.load_exif(ip.im1)['focal_prior']
-    f2 = data.load_exif(ip.im2)['focal_prior']
+    cameras = data.load_camera_models()
+    camera1 = cameras[data.load_exif(ip.im1)['camera']]
+    camera2 = cameras[data.load_exif(ip.im2)['camera']]
 
     threshold, pixels1, pixels2 = thresholds(ip.im1_array, ip.im2_array, 'five_point_algo_threshold', 0.006, data)
-    R, t, cov, inliers = csfm.two_view_reconstruction(track_points1, track_points2, f1, f2, threshold)
+    R, t, inliers = reconstruct.two_view_reconstruction(track_points1, track_points2, camera1, camera2, threshold)
 
     inliers1 = track_points1[inliers, :]
     inliers2 = track_points2[inliers, :]
