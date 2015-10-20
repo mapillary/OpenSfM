@@ -75,11 +75,7 @@ BOOST_PYTHON_MODULE(csfm) {
       )
   );
 
-  def("two_view_reconstruction", csfm::TwoViewReconstruction);
-  def("homography_2points_robust", csfm::Homography2pointsRobust);
-  def("triangulate", csfm::Triangulate);
   def("triangulate_bearings", csfm::TriangulateBearings);
-  def("pose_known_rotation_robust", csfm::PoseKnownRotationRobust);
 
   class_<BundleAdjuster, boost::noncopyable>("BundleAdjuster")
     .def("run", &BundleAdjuster::Run)
