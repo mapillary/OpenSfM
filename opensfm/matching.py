@@ -74,7 +74,9 @@ def robust_match(p1, p2, matches, config):
     p1 = p1[matches[:, 0]][:, :2].copy()
     p2 = p2[matches[:, 1]][:, :2].copy()
 
-    F, mask = cv2.findFundamentalMat(p1, p2, cv2.cv.CV_FM_RANSAC, config.get('robust_matching_threshold', 0.006), 0.9999)
+    from cv2 import __version__
+    flag = cv2.FM_RANSAC if __version__ == '3.0.0-dev' else cv2.cv.CV_FM_RANSAC
+    F, mask = cv2.findFundamentalMat(p1, p2, flag, config.get('robust_matching_threshold', 0.006), 0.9999)
     inliers = mask.ravel().nonzero()
 
     if F[2,2] == 0.0:
