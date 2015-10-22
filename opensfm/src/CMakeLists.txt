@@ -92,7 +92,6 @@ target_link_libraries(csfm
     ${SUITESPARSE_LIBRARIES}
     ${Boost_LIBRARIES}
     vl
-    mv
     akaze
 )
 set_target_properties(csfm PROPERTIES
