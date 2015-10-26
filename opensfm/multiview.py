@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from subprocess import call, Popen, PIPE
 import numpy as np
 from numpy.linalg import qr
 import random
@@ -8,6 +7,7 @@ import math
 import cv2
 from opensfm import transformations as tf
 from opensfm import csfm
+
 
 def nullspace(A):
     '''Compute the null space of A.
@@ -24,11 +24,13 @@ def homogeneous(x):
     s = x.shape[:-1] + (1,)
     return np.hstack((x, np.ones(s)))
 
+
 def homogeneous_vec(x):
     '''Add a column of zeros to x.
     '''
     s = x.shape[:-1] + (1,)
     return np.hstack((x, np.zeros(s)))
+
 
 def euclidean(x):
     '''Divide by last column and drop it.
@@ -43,6 +45,7 @@ def P_from_KRt(K, R, t):
     P[:, :3] = np.dot(K, R)
     P[:, 3] = np.dot(K, t)
     return P
+
 
 def KRt_from_P(P):
     '''Factorize the camera matrix into K,R,t as P = K[R|t].
@@ -99,20 +102,6 @@ def rq(A):
     return R[:,::-1], Q[::-1,:]
 
 
-def pixel_direction(KR, x):
-    '''Find a unit vector v such that x = KR v.
-
-    >>> v = np.array([2, 3, 1])
-    >>> v = v / np.linalg.norm(v)
-    >>> K = [[6, 1, 3], [0, 5, 3], [0, 0, 1]]
-    >>> x = np.dot(K, v)[:2]
-    >>> estimated_v = pixel_direction(K, x)
-    >>> np.allclose(estimated_v, v)
-    True
-    '''
-    v = np.linalg.solve(KR, [x[0], x[1], 1])
-    return v / np.linalg.norm(v)
-
 def vector_angle(u, v):
     '''
     >>> u = [ 0.99500417 -0.33333333 -0.09983342]
@@ -124,6 +113,7 @@ def vector_angle(u, v):
     if cos >= 1.0: return 0.0
     else: return math.acos(cos)
 
+
 def decompose_similarity_transform(T):
     ''' Decompose the similarity transform to scale, rotation and translation
     '''
@@ -133,27 +123,6 @@ def decompose_similarity_transform(T):
     s = np.linalg.det(A)**(1./(m-1))
     A /= s
     return s, A, b
-
-def triangulate(Ps, xs):
-    '''
-    >>> xs = [np.array([ 1, 1]),
-    ...       np.array([-1, 1])]
-    >>> Ps = [np.array([[1, 0, 0, 0],
-    ...                 [0, 1, 0, 0],
-    ...                 [0, 0, 1, 0]]),
-    ...       np.array([[1, 0, 0,-1],
-    ...                 [0, 1, 0, 0],
-    ...                 [0, 0, 1, 0]])]
-    >>> triangulate(Ps, xs)
-    array([ 0.5,  0.5,  0.5])
-    '''
-    # HZ 12.2 pag.312
-    A = np.zeros((2 * len(Ps), 4))
-    for i, (P, x) in enumerate(zip(Ps, xs)):
-        A[2 * i    ] = x[0] * P[2] - P[0]
-        A[2 * i + 1] = x[1] * P[2] - P[1]
-    s, X = nullspace(A)
-    return euclidean(X)
 
 
 def ransac_max_iterations(kernel, inliers, failure_probability):
@@ -228,6 +197,7 @@ class TestLinearKernel:
     def evaluate(self, model):
         return self.y - model * self.x
 
+
 class PlaneKernel:
     '''
     A kernel for estimating plane from on-plane points and vectors
@@ -274,6 +244,7 @@ class PlaneKernel:
         errors = np.hstack((point_error, vector_error))
         return errors
 
+
 def fit_plane_ransac(points, vectors, verticals, point_threshold=1.2, vector_threshold=5.0):
     vectors = [v/math.pi*180.0 for v in vectors]
     kernel = PlaneKernel(points - points.mean(axis=0), vectors, verticals, point_threshold, vector_threshold)
@@ -283,6 +254,7 @@ def fit_plane_ransac(points, vectors, verticals, point_threshold=1.2, vector_thr
     vectors_inliers = [vectors[i-num_point] for i in inliers[inliers>=num_point]]
     p = fit_plane(points_inliers - points_inliers.mean(axis=0), vectors_inliers, verticals)
     return p, inliers, error
+
 
 def fit_plane(points, vectors, verticals):
     '''Estimate a plane fron on-plane points and vectors.
@@ -389,101 +361,6 @@ def K_from_camera(camera):
                      [0., f, 0.],
                      [0., 0., 1.]])
 
-def undistort_points(camera, points):
-    ''' Undistort image points (2 x N array) with radial distortion
-    '''
-
-    num_point = points.shape[1]
-
-    points = points.T.reshape((num_point, 1, 2)).astype(np.float32)
-
-    distortion = np.array([camera['k1'], camera['k2'], 0., 0.])
-
-    K = K_from_camera(camera)
-    points_undistort = cv2.undistortPoints(points, K_from_camera(camera), distortion)
-    points_undistort = points_undistort.reshape((num_point, 2))
-    points_undistort = np.dot(K[0:2,:], homogeneous(points_undistort).T )
-
-    return points_undistort
-
-def two_view_reconstruction_run_csfm(p1, p2, f1, f2, threshold):
-    return csfm.two_view_reconstruction(p1, p2, f1, f2, threshold)
-
-def two_view_reconstruction_run_bundle(ba):
-    return ba.run()
-
-def two_view_reconstruction(p1, p2, f1, f2, threshold, bundle=True):
-    assert len(p1) == len(p2)
-    assert len(p1) >= 5
-    npoints = len(p1)
-
-    # Run 5-point algorithm.
-    res = two_view_reconstruction_run_csfm(p1, p2, f1, f2, threshold)
-
-    num_iter = 10
-    if not bundle:
-        num_iter = 1
-
-    if res:
-        r, t, cov, inliers = res
-        print cov
-        R = cv2.Rodrigues(r)[0]
-
-        K1 = np.array([[f1, 0, 0], [0, f1, 0], [0, 0, 1.]])
-        K2 = np.array([[f2, 0, 0], [0, f2, 0], [0, 0, 1.]])
-
-        old_inliers = np.zeros(npoints)
-        errors = [0, 0, 0, 0]
-        for it in range(num_iter):
-            # Triangulate Features.
-            P1 = P_from_KRt(K1, np.eye(3), np.zeros(3))
-            P2 = P_from_KRt(K2, R, t)
-            Ps = [P1, P2]
-            Xs = []
-            inliers = []
-            for x1, x2 in zip(p1, p2):
-                e, X = csfm.triangulate(Ps, [x1, x2], threshold, -1.0)
-                errors[e] += 1
-                if X is not None:
-                    Xs.append(X)
-                    inliers.append(True)
-                else:
-                    Xs.append([0,0,0])
-                    inliers.append(False)
-            inliers = np.array(inliers)
-            Xs = np.array(Xs)
-
-            inlier_changes = np.count_nonzero(inliers - old_inliers)
-            old_inliers = inliers.copy()
-
-            if inlier_changes < npoints * 0.05:
-                break
-            if bundle:
-                # Refine R, t
-                ba = csfm.BundleAdjuster()
-                ba.add_camera('c1', f1, 0, 0, f1, True)
-                ba.add_camera('c2', f2, 0, 0, f2, True)
-                ba.add_shot('s1', 'c1', 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, True)
-                r = cv2.Rodrigues(R)[0].ravel()
-                ba.add_shot('s2', 'c2', r[0], r[1], r[2], t[0], t[1], t[2], 0, 0, 0, 1, False)
-                for i in xrange(npoints):
-                    if inliers[i]:
-                        X = Xs[i]
-                        ba.add_point(str(i), X[0], X[1], X[2], False)
-                        ba.add_observation('s1', str(i), p1[i][0], p1[i][1])
-                        ba.add_observation('s2', str(i), p2[i][0], p2[i][1])
-
-                ba.set_loss_function('TruncatedLoss', threshold);
-                two_view_reconstruction_run_bundle(ba)
-                s = ba.get_shot('s2')
-                R = cv2.Rodrigues((s.rx, s.ry, s.rz))[0]
-                t = np.array((s.tx, s.ty, s.tz))
-                t /= np.linalg.norm(t)
-    else:
-        return None
-
-    return R, t, Xs, np.nonzero(inliers)[0]
-
 
 def focal_from_homography(H):
     '''
@@ -510,6 +387,7 @@ def focal_from_homography(H):
     focal = np.sqrt(a / b)
     return focal
 
+
 def R_from_homography(H, f1, f2):
     K1 = np.diag([f1, f1, 1])
     K2 = np.diag([f2, f2, 1])
@@ -518,6 +396,7 @@ def R_from_homography(H, f1, f2):
     R = project_to_rotation_matrix(R)
     return R
 
+
 def count_focal_homography_inliers(f1, f2, H, p1, p2, threshold=0.02):
     R = R_from_homography(f1, f2, H)
     if R is None:
@@ -525,10 +404,12 @@ def count_focal_homography_inliers(f1, f2, H, p1, p2, threshold=0.02):
     H = K1.dot(R).dot(K2inv)
     return count_homography_inliers(H, p1, p2, threshold)
 
+
 def count_homography_inliers(H, p1, p2, threshold=0.02):
     p2map = euclidean(H.dot(homogeneous(p1).T).T)
     d = p2 - p2map
     return np.sum((d * d).sum(axis=1) < threshold**2)
+
 
 def project_to_rotation_matrix(A):
     try:
@@ -536,3 +417,38 @@ def project_to_rotation_matrix(A):
     except np.linalg.linalg.LinAlgError:
         return None
     return u.dot(vt)
+
+
+def pixel_bearing(p, camera):
+    if camera.get('projection_type', 'perspective') in ['equirectangular', 'spherical']:
+        lon = p[0] * 2 * np.pi
+        lat = -p[1] * 2 * np.pi
+        x = np.cos(lat) * np.sin(lon)
+        y = -np.sin(lat)
+        z = np.cos(lat) * np.cos(lon)
+        return np.array([x, y, z])
+    else:
+        points = np.asarray(p).reshape((1, 1, 2))
+        K = K_from_camera(camera)
+        distortion = np.array([camera['k1'], camera['k2'], 0., 0.])
+        x, y = cv2.undistortPoints(points, K, distortion).flat
+        l = np.sqrt(x * x + y * y + 1)
+        return np.array([x / l, y / l, 1.0 / l])
+
+def pixel_bearings(p, camera):
+    if camera.get('projection_type', 'perspective') in ['equirectangular', 'spherical']:
+        lon = p[:, 0] * 2 * np.pi
+        lat = -p[:, 1] * 2 * np.pi
+        x = np.cos(lat) * np.sin(lon)
+        y = -np.sin(lat)
+        z = np.cos(lat) * np.cos(lon)
+        return np.column_stack([x, y, z]).astype(float)
+    else:
+        points = p.reshape((-1, 1, 2))
+        K = K_from_camera(camera)
+        distortion = np.array([camera['k1'], camera['k2'], 0., 0.])
+        up = cv2.undistortPoints(points, K, distortion).reshape((-1, 2))
+        b = homogeneous(up)
+        return b / np.linalg.norm(b, axis=1)[:, np.newaxis]
+
+

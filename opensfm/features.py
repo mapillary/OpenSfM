@@ -68,11 +68,14 @@ def denormalized_image_coordinates(norm_coords, width, height):
 def mask_and_normalize_features(points, desc, colors, width, height, config):
     masks = np.array(config.get('masks',[]))
     for mask in masks:
-        mask = [mask[0]*height, mask[1]*width, mask[2]*height, mask[3]*width]
-        ids  = np.invert ( (points[:,1] > mask[0]) *
-                           (points[:,1] < mask[2]) *
-                           (points[:,0] > mask[1]) *
-                           (points[:,0] < mask[3]) )
+        top = mask['top'] * height
+        left = mask['left'] * width
+        bottom = mask['bottom'] * height
+        right = mask['right'] * width
+        ids  = np.invert ( (points[:,1] > top) *
+                           (points[:,1] < bottom) *
+                           (points[:,0] > left) *
+                           (points[:,0] < right) )
         points = points[ids]
         desc = desc[ids]
         colors = colors[ids]

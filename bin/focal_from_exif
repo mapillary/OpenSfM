@@ -54,7 +54,7 @@ for image in images:
         d['focal_prior'] = default_focal_ratio
 
     # Image Height and Image Width
-    if not data.config.get('use_exif_size', True):
+    if not data.config['use_exif_size']:
         height, width = data.image_as_array(image).shape[:2]
         d['height']  = height
         d['width'] = width
@@ -70,6 +70,7 @@ for image in data.images():
         camera_models[d['camera']] = {
                 'width': d['width'],
                 'height': d['height'],
+                'projection_type': d.get('projection_type', 'perspective'),
                 "focal": d['focal_prior'],
                 "focal_prior": d['focal_prior'],
                 "k1": d.get('k1', 0.),

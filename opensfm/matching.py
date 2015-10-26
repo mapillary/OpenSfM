@@ -1,8 +1,9 @@
 import numpy as np
-import json
 import cv2
+import pyopengv
 import networkx as nx
 import logging
+from opensfm import multiview
 from opensfm.unionfind import UnionFind
 
 
@@ -65,7 +66,7 @@ def match_lowe_bf(f1, f2, config):
     return np.array(good_matches, dtype=int)
 
 
-def robust_match(p1, p2, matches, config):
+def robust_match_fundamental(p1, p2, matches, config):
     '''Computes robust matches by estimating the Fundamental matrix via RANSAC.
     '''
     if len(matches) < 8:
@@ -81,6 +82,49 @@ def robust_match(p1, p2, matches, config):
         return []
 
     return matches[inliers]
+
+
+def compute_inliers_bearings(b1, b2, T):
+    R = T[:, :3]
+    t = T[:, 3]
+    p = pyopengv.triangulation_triangulate(b1, b2, t, R)
+
+    br1 = p.copy()
+    br1 /= np.linalg.norm(br1, axis=1)[:, np.newaxis]
+
+    br2 = R.T.dot((p - t).T).T
+    br2 /= np.linalg.norm(br2, axis=1)[:, np.newaxis]
+
+    ok1 = np.linalg.norm(br1 - b1, axis=1) < 0.01   # TODO(pau): compute angular error and use proper threshold
+    ok2 = np.linalg.norm(br2 - b2, axis=1) < 0.01
+    return ok1 * ok2
+
+
+def robust_match_calibrated(p1, p2, camera1, camera2, matches, config):
+    '''Computes robust matches by estimating the Essential matrix via RANSAC.
+    '''
+
+    if len(matches) < 8:
+        return np.array([])
+
+    p1 = p1[matches[:, 0]][:, :2].copy()
+    p2 = p2[matches[:, 1]][:, :2].copy()
+    b1 = multiview.pixel_bearings(p1, camera1)
+    b2 = multiview.pixel_bearings(p2, camera2)
+
+    threshold = config['robust_matching_threshold']
+    T = pyopengv.relative_pose_ransac(b1, b2, "STEWENIUS", 1 - np.cos(threshold), 1000)
+
+    inliers = compute_inliers_bearings(b1, b2, T)
+
+    return matches[inliers]
+
+
+def robust_match(p1, p2, camera1, camera2, matches, config):
+    if camera1.get('projection_type', 'perspective') == camera2.get('projection_type', 'perspective') == 'perspective':
+        return robust_match_fundamental(p1, p2, matches, config)
+    else:
+        return robust_match_calibrated(p1, p2, camera1, camera2, matches, config)
 
 
 def good_track(track, min_length):
