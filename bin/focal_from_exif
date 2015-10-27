@@ -6,6 +6,7 @@ import argparse
 from cv2 import imread
 import exifread
 import json
+import logging
 import numpy as np
 import time
 
@@ -14,6 +15,8 @@ from opensfm import dataset
 from opensfm import exif
 from opensfm import io
 
+
+logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
 
 parser = argparse.ArgumentParser(description="Extract camera information from images' EXIF tags")
 parser.add_argument('dataset', help='the dataset to process')
@@ -24,14 +27,14 @@ start = time.time()
 data = dataset.DataSet(args.dataset)
 
 for image in data.images():
-    print 'Extracting focal lengths for image', image
+    logging.info('Extracting focal lengths for image {}'.format(image))
 
     # EXIF data in Image
     d = exif.extract_exif_from_file(data.load_image(image))
 
     # Set default focal ratio
     if not d['focal_prior']:
-        print 'Warning: Missing focal length in EXIF. Using default focal prior'
+        logging.warning('Missing focal length in EXIF. Using default focal prior')
         d['focal_prior'] = data.config['default_focal_prior']
 
     # Image Height and Image Width
@@ -45,7 +48,6 @@ camera_models = {}
 for image in data.images():
     d = data.load_exif(image)
     if d['camera'] not in camera_models:
-
         camera_models[d['camera']] = {
                 'width': d['width'],
                 'height': d['height'],
