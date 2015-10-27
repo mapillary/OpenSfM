@@ -26,16 +26,12 @@ args = parser.parse_args()
 start = time.time()
 data = dataset.DataSet(args.dataset)
 
+camera_models = {}
 for image in data.images():
     logging.info('Extracting focal lengths for image {}'.format(image))
 
     # EXIF data in Image
     d = exif.extract_exif_from_file(data.load_image(image))
-
-    # Set default focal ratio
-    if not d['focal_prior']:
-        logging.warning('Missing focal length in EXIF. Using default focal prior')
-        d['focal_prior'] = data.config['default_focal_prior']
 
     # Image Height and Image Width
     if not data.config['use_exif_size']:
@@ -43,20 +39,20 @@ for image in data.images():
 
     data.save_exif(image, d)
 
-# Create camera models
-camera_models = {}
-for image in data.images():
-    d = data.load_exif(image)
     if d['camera'] not in camera_models:
+        calib = exif.calibration_prior_from_exif(d, data.config['default_focal_prior'])
+
         camera_models[d['camera']] = {
-                'width': d['width'],
-                'height': d['height'],
-                'projection_type': d.get('projection_type', 'perspective'),
-                "focal": d['focal_prior'],
-                "focal_prior": d['focal_prior'],
-                "k1": d.get('k1', 0.),
-                "k2": d.get('k2', 0.)
-            }
+            'width': d['width'],
+            'height': d['height'],
+            'projection_type': d.get('projection_type', 'perspective'),
+            "focal_prior": calib['focal'],
+            "k1_prior": calib['k1'],
+            "k2_prior": calib['k2'],
+            "focal": calib['focal'],
+            "k1": calib['k1'],
+            "k2": calib['k2'],
+        }
 
 # Override any camera that is specified in the camera models overrides file.
 if data.camera_models_overrides_exists():

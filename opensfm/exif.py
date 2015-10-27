@@ -15,6 +15,7 @@ from opensfm.sensors import sensor_data
 def eval_frac(value):
     return float(value.num) / float(value.den)
 
+
 def gps_to_decimal(values, reference):
     sign = 1 if reference in 'NE' else -1
     degrees = eval_frac(values[0])
@@ -22,17 +23,20 @@ def gps_to_decimal(values, reference):
     seconds = eval_frac(values[2])
     return sign * (degrees + minutes / 60 + seconds / 3600)
 
+
 def get_float_tag(tags, key):
     if key in tags:
         return float(tags[key].values[0])
     else:
         return None
 
+
 def get_frac_tag(tags, key):
     if key in tags:
         return eval_frac(tags[key].values[0])
     else:
         return None
+
 
 def compute_focal(focal_35, focal, sensor_width, sensor_string):
     if focal_35 > 0:
@@ -48,34 +52,25 @@ def compute_focal(focal_35, focal, sensor_width, sensor_string):
             focal_ratio = 0
     return focal_35, focal_ratio
 
-def get_distortion(make, model, fmm35):
-    if 'gopro' in make.lower():
-        if fmm35==20:
-            # GoPro Hero 3, 7MP medium
-            ## calibration
-            d = np.array([-0.37, 0.28, 0, 0, 0])
-        elif fmm35==15:
-            # GoPro Hero 3, 7MP wide
-            # calibration
-            d = np.array([-0.32, 0.24, 0, 0, 0])
-        elif fmm35==23:
-            # GoPro Hero 2, 5MP medium
-            d = np.array([-0.38, 0.24, 0, 0, 0])
-        elif fmm35==16:
-            # GoPro Hero 2, 5MP wide
-            d = np.array([-0.39, 0.22, 0, 0, 0])
-        else:
-            raise ValueError("Unsupported f value.")
-
-        return list(d)
-    else:
-        return [0., 0., 0., 0., 0.]
-
 
 def sensor_string(make, model):
     if make != 'unknown':
         model = model.replace(make, '') # remove possible duplicate 'make' information in 'model' for better matching
     return (make.strip() + ' ' + model.strip()).lower()
+
+
+def camera_id(make, model, width, height, projection_type, focal):
+    if make != 'unknown':
+        model = model.replace(make, '') # remove possible duplicate 'make' information in 'model' for better matching
+    return ' '.join([
+        'V2',
+        make.strip(),
+        model.strip(),
+        str(width),
+        str(height),
+        projection_type,
+        str(focal)[:6],
+    ]).lower()
 
 
 def extract_exif_from_file(fileobj):
@@ -87,7 +82,6 @@ def extract_exif_from_file(fileobj):
 
     d = exif_data.extract_exif()
     return d
-
 
 
 def get_xmp(fileobj):
@@ -109,6 +103,7 @@ def get_xmp(fileobj):
             return [xdict]
     else:
         return []
+
 
 def get_gpano_from_xmp(xmp):
     for i in xmp:
@@ -178,12 +173,6 @@ class EXIF:
             orientation = 1
         return orientation
 
-    def extract_distortion(self):
-        make, model = self.extract_make(), self.extract_model()
-        fmm35, fratio = self.extract_focal()
-        distortion = get_distortion(make, model, fmm35)
-        return distortion[0], distortion[1]
-
     def extract_lon_lat(self):
         if 'GPS GPSLatitude' in self.tags:
             lat = gps_to_decimal(self.tags['GPS GPSLatitude'].values,
@@ -238,7 +227,6 @@ class EXIF:
                 return timestamp
         return 0.0
 
-
     def extract_exif(self):
         width, height = self.extract_image_size()
         projection_type = self.extract_projection_type()
@@ -246,26 +234,59 @@ class EXIF:
         make, model = self.extract_make(), self.extract_model()
         orientation = self.extract_orientation()
         geo = self.extract_geo()
-        distortion = self.extract_distortion()
         capture_time = self.extract_capture_time()
         d = {
-                'width': width,
-                'height': height,
-                'projection_type': projection_type,
-                'focal_prior': focal_ratio,
-                'camera': sensor_string(make, model),
-                'orientation': orientation,
-                'k1': distortion[0],
-                'k2': distortion[1],
-                'make': make,
-                'model': model,
-                'capture_time': capture_time
-            }
-        # GPS
-        d['gps'] = geo
+            'camera': camera_id(make, model, width, height, projection_type, focal_ratio),
+            'make': make,
+            'model': model,
+            'width': width,
+            'height': height,
+            'projection_type': projection_type,
+            'focal_ratio': focal_ratio,
+            'orientation': orientation,
+            'capture_time': capture_time,
+            'gps': geo
+        }
         return d
 
 
+def get_distortion(exif):
+    if 'gopro' in exif['make'].lower():
+        fmm35 = int(round(exif['focal_ratio'] * 36.0))
+        if fmm35 == 20:
+            # GoPro Hero 3, 7MP medium
+            ## calibration
+            return -0.37, 0.28
+        elif fmm35==15:
+            # GoPro Hero 3, 7MP wide
+            # calibration
+            return -0.32, 0.24
+        elif fmm35==23:
+            # GoPro Hero 2, 5MP medium
+            return -0.38, 0.24
+        elif fmm35==16:
+            # GoPro Hero 2, 5MP wide
+            return -0.39, 0.22
+        else:
+            raise ValueError("Unsupported GoPro f value")
+
+    return 0., 0.
+
+
+def calibration_prior_from_exif(exif, default_focal):
+    if exif['projection_type'] == 'perspective':
+        focal = exif['focal_ratio']
+        if focal == 0:
+            logging.warning('Missing focal length in EXIF. Using default focal prior')
+            focal = default_focal
+        k1, k2 = get_distortion(exif)
+        return {
+            "focal": focal,
+            "k1": k1,
+            "k2": k2,
+        }
+    elif exif['projection_type'] in ['equirectangular', 'spherical']:
+        pass
 
 
 
