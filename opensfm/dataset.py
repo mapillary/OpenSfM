@@ -344,6 +344,19 @@ class DataSet:
         with open(self.__camera_models_file(), 'w') as fout:
             fout.write(io.json_dumps(camera_models))
 
+    def __camera_models_overrides_file(self):
+        """Return path of camera model overrides file"""
+        return os.path.join(self.data_path, 'camera_models_overrides.json')
+
+    def camera_models_overrides_exists(self):
+        return os.path.isfile(self.__camera_models_overrides_file())
+
+    def load_camera_models_overrides(self):
+        """Return camera models overrides data"""
+        with open(self.__camera_models_overrides_file(), 'r') as fin:
+            return json.load(fin)
+
+
 
     def __epipolar_path(self):
         return os.path.join(self.data_path, 'epipolar_geometries')

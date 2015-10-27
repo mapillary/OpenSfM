@@ -26,21 +26,9 @@ else:
 start = time.time()
 data = dataset.DataSet(path)
 images = data.images()
-missing_sensors = {}
-camera_models = {}
+
 default_focal_ratio = data.config.get('default_focal_ratio', 0.85)
 
-if os.path.exists(data.data_path + '/exif_overrides.json'):
-    with open(data.data_path + '/exif_overrides.json', 'rb') as f:
-        exif_overrides = io.json_loads(f.read())
-else:
-    exif_overrides = {}
-
-if os.path.exists(os.path.join(data.data_path, 'image_data.json')):
-    with open(os.path.join(data.data_path, 'image_data.json'), 'rb') as f:
-        exif_dict = io.json_loads(f.read())
-else:
-    exif_dict = {}
 
 for image in images:
     print 'Extracting focal lengths for image', image
@@ -76,6 +64,13 @@ for image in data.images():
                 "k1": d.get('k1', 0.),
                 "k2": d.get('k2', 0.)
             }
+
+# Override any camera that is specified in the camera models overrides file.
+if data.camera_models_overrides_exists():
+    camera_models_overrides = data.load_camera_models_overrides()
+    for key, value in camera_models_overrides:
+        camera_models[key] = value
+
 data.save_camera_models(camera_models)
 
 end = time.time()
