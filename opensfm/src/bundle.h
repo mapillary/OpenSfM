@@ -38,6 +38,8 @@ enum {
 struct BAPerspectiveCamera : public BACamera{
   double parameters[BA_CAMERA_NUM_PARAMS];
   double focal_prior;
+  double k1_prior;
+  double k2_prior;
 
   BACameraType type() { return BA_PERSPECTIVE_CAMERA; }
   double GetFocal() { return parameters[BA_CAMERA_FOCAL]; }
@@ -258,25 +260,31 @@ struct EquirectangularReprojectionError {
 struct InternalParametersPriorError {
   InternalParametersPriorError(double focal_estimate,
                                double focal_std_deviation,
+                               double k1_estimate,
                                double k1_std_deviation,
+                               double k2_estimate,
                                double k2_std_deviation)
       : log_focal_estimate_(log(focal_estimate))
       , focal_scale_(1.0 / focal_std_deviation)
+      , k1_estimate_(k1_estimate)
       , k1_scale_(1.0 / k1_std_deviation)
+      , k2_estimate_(k2_estimate)
       , k2_scale_(1.0 / k2_std_deviation)
   {}
 
   template <typename T>
   bool operator()(const T* const parameters, T* residuals) const {
     residuals[0] = T(focal_scale_) * (log(parameters[BA_CAMERA_FOCAL]) - T(log_focal_estimate_));
-    residuals[1] = T(k1_scale_) * parameters[BA_CAMERA_K1];
-    residuals[2] = T(k2_scale_) * parameters[BA_CAMERA_K2];
+    residuals[1] = T(k1_scale_) * (parameters[BA_CAMERA_K1] - T(k1_estimate_));
+    residuals[2] = T(k2_scale_) * (parameters[BA_CAMERA_K2] - T(k2_estimate_));
     return true;
   }
 
   double log_focal_estimate_;
   double focal_scale_;
+  double k1_estimate_;
   double k1_scale_;
+  double k2_estimate_;
   double k2_scale_;
 };
 
@@ -435,6 +443,8 @@ class BundleAdjuster {
       double k1,
       double k2,
       double focal_prior,
+      double k1_prior,
+      double k2_prior,
       bool constant) {
     cameras_[id] = std::unique_ptr<BAPerspectiveCamera>(new BAPerspectiveCamera());
     BAPerspectiveCamera &c = static_cast<BAPerspectiveCamera &>(*cameras_[id]);
@@ -444,6 +454,8 @@ class BundleAdjuster {
     c.parameters[BA_CAMERA_K2] = k2;
     c.constant = constant;
     c.focal_prior = focal_prior;
+    c.k1_prior = k1_prior;
+    c.k2_prior = k2_prior;
   }
 
   void AddEquirectangularCamera(
@@ -738,7 +750,9 @@ class BundleAdjuster {
 
           ceres::CostFunction* cost_function =
               new ceres::AutoDiffCostFunction<InternalParametersPriorError, 3, 3>(
-                  new InternalParametersPriorError(c.focal_prior, focal_prior_sd_, k1_sd_, k2_sd_));
+                  new InternalParametersPriorError(c.focal_prior, focal_prior_sd_,
+                                                   c.k1_prior, k1_sd_,
+                                                   c.k2_prior, k2_sd_));
 
           problem.AddResidualBlock(cost_function,
                                    NULL,

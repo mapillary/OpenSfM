@@ -68,7 +68,7 @@ def camera_id(make, model, width, height, projection_type, focal):
     if make != 'unknown':
         model = model.replace(make, '') # remove possible duplicate 'make' information in 'model' for better matching
     return ' '.join([
-        'V2',
+        'v2',
         make.strip(),
         model.strip(),
         str(width),

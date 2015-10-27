@@ -28,7 +28,8 @@ def bundle(graph, reconstruction, config, fix_cameras=False):
         pt = v.get('projection_type', 'perspective')
         if pt == 'perspective':
             ba.add_perspective_camera(str(k), v['focal'], v['k1'], v['k2'],
-                v['focal_prior'], fix_cameras)
+                    v['focal_prior'], v['k1_prior'], v['k2_prior'], fix_cameras)
+
         elif pt in ['equirectangular', 'spherical']:
             ba.add_equirectangular_camera(str(k))
 
@@ -102,7 +103,7 @@ def bundle_single_view(graph, reconstruction, shot_id, config):
     pt = camera.get('projection_type', 'perspective')
     if pt == 'perspective':
         ba.add_perspective_camera(str(camera_id), camera['focal'], camera['k1'], camera['k2'],
-                camera['focal_prior'], True)
+                camera['focal_prior'], camera['k1_prior'], camera['k2_prior'], True)
     elif pt in ['equirectangular', 'spherical']:
         ba.add_equirectangular_camera(str(camera_id))
 
