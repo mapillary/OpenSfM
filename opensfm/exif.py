@@ -2,14 +2,19 @@
 import os.path, sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-import json
 import datetime
 import exifread
+import json
+import logging
 import xmltodict as x2d
+
 import numpy as np
 from cv2 import imread
 
 from opensfm.sensors import sensor_data
+
+
+logger = logging.getLogger(__name__)
 
 
 def eval_frac(value):
