@@ -4,6 +4,7 @@ import yaml
 default_config_yaml = '''
 # Metadata
 use_exif_size: yes
+default_focal_prior: 0.85
 
 # Params for features
 feature_type: HAHOG           # Feature type (AKAZE, SURF, SIFT)

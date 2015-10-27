@@ -2,11 +2,12 @@
 import os.path, sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-import json
-import exifread
-import time
-import numpy as np
+import argparse
 from cv2 import imread
+import exifread
+import json
+import numpy as np
+import time
 
 from opensfm.sensors import sensor_data
 from opensfm import dataset
@@ -14,23 +15,15 @@ from opensfm import exif
 from opensfm import io
 
 
-def usage():
-    print 'USAGE: %s data_set_path' % sys.argv[0]
-    sys.exit(0)
+parser = argparse.ArgumentParser(description="Extract camera information from images' EXIF tags")
+parser.add_argument('dataset', help='the dataset to process')
+args = parser.parse_args()
 
-if len(sys.argv) > 1:
-    path = sys.argv[1]
-else:
-    usage()
 
 start = time.time()
-data = dataset.DataSet(path)
-images = data.images()
+data = dataset.DataSet(args.dataset)
 
-default_focal_ratio = data.config.get('default_focal_ratio', 0.85)
-
-
-for image in images:
+for image in data.images():
     print 'Extracting focal lengths for image', image
 
     # EXIF data in Image
@@ -38,18 +31,16 @@ for image in images:
 
     # Set default focal ratio
     if not d['focal_prior']:
-        print 'Warning: Missing focal length in EXIF. Using default focal ratio {}'.format(default_focal_ratio)
-        d['focal_prior'] = default_focal_ratio
+        print 'Warning: Missing focal length in EXIF. Using default focal prior'
+        d['focal_prior'] = data.config['default_focal_prior']
 
     # Image Height and Image Width
     if not data.config['use_exif_size']:
-        height, width = data.image_as_array(image).shape[:2]
-        d['height']  = height
-        d['width'] = width
+        d['height'], d['width'] = data.image_as_array(image).shape[:2]
 
     data.save_exif(image, d)
 
-# camera models
+# Create camera models
 camera_models = {}
 for image in data.images():
     d = data.load_exif(image)
