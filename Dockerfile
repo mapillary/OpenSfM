@@ -28,6 +28,19 @@ RUN \
     rm -f /source/ceres-solver-1.10.0.tar.gz
 
 
+# Install opengv from source
+RUN \
+    mkdir -p /source && cd /source && \
+    git clone https://github.com/paulinus/opengv.git && \
+    cd /source/opengv && \
+    git checkout python-wrapper && \
+    mkdir -p build && cd build && \
+    cmake .. -DBUILD_TESTS=OFF -DBUILD_PYTHON=ON && \
+    make install && \
+    cd / && \
+    rm -rf /source/opengv
+
+
 # OpenSfM
 RUN \
     mkdir -p /source && cd /source && \

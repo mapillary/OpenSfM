@@ -93,13 +93,20 @@ def match(args):
         i2 = data.load_feature_index(im2, f2)
 
         matches = matching.match_symmetric(f1, i1, f2, i2, data.config)
+        print 'len(matches)', len(matches)
         if len(matches) < robust_matching_min_match:
             im1_matches[im2] = []
             continue
 
         # robust matching
         t_robust_matching = time.time()
-        rmatches = matching.robust_match(p1, p2, matches, data.config)
+        camera1 = cameras[exifs[im1]['camera']]
+        camera2 = cameras[exifs[im2]['camera']]
+        projection_type1 = exifs[im1].get('projection_type', 'perspective')
+        projection_type2 = exifs[im2].get('projection_type', 'perspective')
+
+        rmatches = matching.robust_match(p1, p2, camera1, camera2, matches, data.config)
+
         if len(rmatches) < robust_matching_min_match:
             im1_matches[im2] = []
             continue
@@ -122,6 +129,7 @@ if __name__ == "__main__":
 
     data = dataset.DataSet(args.dataset)
     images = data.images()
+    cameras = data.load_camera_models()
     matcher_type = data.matcher_type()
 
     print 'Loading preemptive data'

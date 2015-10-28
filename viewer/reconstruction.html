@@ -159,6 +159,50 @@
 
         </script>
 
+        <script type="x-shader/x-vertex" id="vertexshader_equirectangular">
+
+            // switch on high precision floats
+            #ifdef GL_ES
+            precision highp float;
+            #endif
+
+            varying vec4 vRstq;
+            uniform mat4 projectorMat;
+
+            void main()
+            {
+                vRstq = projectorMat * vec4(position, 1.0);
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
+            }
+
+        </script>
+
+        <script type="x-shader/x-fragment" id="fragmentshader_equirectangular">
+
+            #ifdef GL_ES
+            precision highp float;
+            #endif
+
+            #define tau 6.28318530718
+
+            varying vec4 vRstq;
+            uniform sampler2D projectorTex;
+            uniform float opacity;
+
+            void main()
+            {
+                vec3 b = normalize(vRstq.xyz);
+                float lat = -asin(b.y);
+                float lon = atan(b.x, b.z);
+                float x = lon / tau + 0.5;
+                float y = lat / tau * 2.0 + 0.5;
+                vec4 baseColor = texture2D(projectorTex, vec2(x, y));
+                baseColor.a = opacity;
+                gl_FragColor = baseColor;
+            }
+
+        </script>
+
         <script>
             var urlParams;
             var f1;
@@ -234,7 +278,7 @@
                 var gui = new dat.GUI();
 
                 f1 = gui.addFolder('Options');
-                f1.add(options, 'pointSize', 0, 2)
+                f1.add(options, 'pointSize', 0, 10)
                     .listen()
                     .onChange(setPointSize);
                 f1.add(options, 'cameraSize', 0, 2)
@@ -357,11 +401,11 @@
                     } else if (mode == 'walk') {
                         invokeJourneyWrapper(function () { journeyWrapper.removeShowPathController(); });
                         swapOptions();
-                        controls.noRotate = true;
-                        controls.noLookAround = true;
-                        controls.noPan = true;
-                        controls.noZoom = true;
-                        controls.noKeys = true;
+                        // controls.noRotate = true;
+                        // controls.noLookAround = true;
+                        // controls.noPan = true;
+                        // controls.noZoom = true;
+                        // controls.noKeys = true;
                         imageMaterial.depthWrite = false;
                         imageMaterialOld.depthWrite = false;
                         $('#navigation').show();
@@ -549,9 +593,9 @@
             function imagePlaneGeo(reconstruction, shot_id) {
                 var shot = reconstruction.shots[shot_id];
                 var cam = reconstruction.cameras[shot.camera];
-                var geometry = new THREE.Geometry();
 
                 if ('vertices' in shot) {
+                    var geometry = new THREE.Geometry();
                     for (var i = 0; i < shot['vertices'].length; ++i) {
                         geometry.vertices.push(
                             new THREE.Vector3(
@@ -568,27 +612,63 @@
 
                         geometry.faces.push(new THREE.Face3(v0, v1, v2));
                     }
+                    return geometry;
                 } else {
-                    var dx = cam.width / 2.0 / Math.max(cam.width, cam.height);
-                    var dy = cam.height / 2.0 / Math.max(cam.width, cam.height);
-                    var top_left     = pixelToVertex(cam, shot, -dx, -dy, options.imagePlaneSize);
-                    var top_right    = pixelToVertex(cam, shot,  dx, -dy, options.imagePlaneSize);
-                    var bottom_right = pixelToVertex(cam, shot,  dx,  dy, options.imagePlaneSize);
-                    var bottom_left  = pixelToVertex(cam, shot, -dx,  dy, options.imagePlaneSize);
-
-                    geometry.vertices.push(
-                        top_left,
-                        bottom_left,
-                        bottom_right,
-                        top_right
-                    );
-                    geometry.faces.push(
-                        new THREE.Face3(0, 1, 3),
-                        new THREE.Face3(1, 2, 3)
-                    );
+                    if (cam.projection_type == "spherical" || cam.projection_type == "equirectangular") {
+                        return imageSphereGeoFlat(cam, shot);
+                    } else {
+                        return imagePlaneGeoFlat(cam, shot);
+                    }
                 }
+            }
 
+            function imagePlaneGeoFlat(cam, shot) {
+                var geometry = new THREE.Geometry();
+                var dx = cam.width / 2.0 / Math.max(cam.width, cam.height);
+                var dy = cam.height / 2.0 / Math.max(cam.width, cam.height);
+                var top_left     = pixelToVertex(cam, shot, -dx, -dy, options.imagePlaneSize);
+                var top_right    = pixelToVertex(cam, shot,  dx, -dy, options.imagePlaneSize);
+                var bottom_right = pixelToVertex(cam, shot,  dx,  dy, options.imagePlaneSize);
+                var bottom_left  = pixelToVertex(cam, shot, -dx,  dy, options.imagePlaneSize);
+
+                geometry.vertices.push(
+                    top_left,
+                    bottom_left,
+                    bottom_right,
+                    top_right
+                );
+                geometry.faces.push(
+                    new THREE.Face3(0, 1, 3),
+                    new THREE.Face3(1, 2, 3)
+                );
                 return geometry;
+            }
+
+            function imageSphereGeoFlat(cam, shot) {
+                geometry = new THREE.SphereGeometry(
+                    options.imagePlaneSize,
+                    20,
+                    40
+                );
+                console.log(geometry);
+                var center = pixelToVertex(cam, shot, 0, 0, 0);
+                geometry.applyMatrix(new THREE.Matrix4().makeTranslation(center.x, center.y, center.z));
+                return geometry;
+            }
+
+
+            function imageVertexShader(cam) {
+                if (cam.projection_type == 'equirectangular' || cam.projection_type == 'spherical')
+                    return $('#vertexshader_equirectangular').text();
+                else
+                    return $('#vertexshader').text();
+            }
+
+            function imageFragmentShader(cam) {
+                if (cam.projection_type == 'equirectangular' || cam.projection_type == 'spherical')
+                    return $('#fragmentshader_equirectangular').text();
+                else
+                    return $('#fragmentshader').text();
             }
 
             function projectorCameraMatrix(cam, shot) {
@@ -602,6 +682,8 @@
                 var t = shot.translation;
                 var translation = new THREE.Vector3(t[0], t[1], t[2]);
                 rotation.setPosition(translation);
+                if (cam.projection_type == 'equirectangular' || cam.projection_type == 'spherical')
+                    return rotation
                 var dx = cam.width / Math.max(cam.width, cam.height) / cam.focal;
                 var dy = cam.height / Math.max(cam.width, cam.height) / cam.focal;
                 var projection = new THREE.Matrix4().makeFrustum(-dx, +dx, +dy, -dy, -1, -1000);
@@ -621,7 +703,7 @@
                 container = document.getElementById( 'ThreeJS' );
                 container.appendChild(renderer.domElement);
 
-                camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.3, 1000);
+                camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.03, 10000);
                 camera.position.x = 50;
                 camera.position.y = 50;
                 camera.position.z = 50;
@@ -699,6 +781,7 @@
                 var shot = imagePlaneCamera.reconstruction.shots[imagePlaneCamera.shot_id];
                 var cam = imagePlaneCamera.reconstruction.cameras[shot.camera];
                 var imageTexture = THREE.ImageUtils.loadTexture(imageURL(imagePlaneCamera.shot_id));
+
                 imageMaterial = new THREE.ShaderMaterial({
                     side: THREE.DoubleSide,
                     transparent: true,
@@ -717,8 +800,8 @@
                             value: options.imagePlaneOpacity
                         }
                     },
-                    vertexShader:   $('#vertexshader').text(),
-                    fragmentShader: $('#fragmentshader').text()
+                    vertexShader:   imageVertexShader(cam),
+                    fragmentShader: imageFragmentShader(cam)
                 });
                 imagePlane = new THREE.Mesh(imagePlaneGeo(imagePlaneCamera.reconstruction,
                                                           imagePlaneCamera.shot_id),
@@ -747,8 +830,8 @@
                             value: options.imagePlaneOpacity
                         }
                     },
-                    vertexShader:   $('#vertexshader').text(),
-                    fragmentShader: $('#fragmentshader').text()
+                    vertexShader:   imageVertexShader(cam),
+                    fragmentShader: imageFragmentShader(cam)
                 });
                 imagePlaneOld = new THREE.Mesh(imagePlaneGeo(imagePlaneCameraOld.reconstruction,
                                                           imagePlaneCameraOld.shot_id),
@@ -913,6 +996,9 @@
                             imagePlaneCameraOld = imagePlaneCamera;
                             imageMaterialOld.uniforms.projectorTex.value = imageMaterial.uniforms.projectorTex.value;
                             imageMaterialOld.uniforms.projectorMat.value = imageMaterial.uniforms.projectorMat.value;
+                            imageMaterialOld.vertexShader = imageMaterial.vertexShader;
+                            imageMaterialOld.fragmentShader = imageMaterial.fragmentShader;
+                            imageMaterialOld.needsUpdate = true;
 
                             imagePlaneOld.geometry = imagePlaneGeo(imagePlaneCameraOld.reconstruction, imagePlaneCameraOld.shot_id);
                         }
@@ -925,6 +1011,9 @@
                     imagePlaneCamera = cameraObject;
                     imageMaterial.uniforms.projectorTex.value = THREE.ImageUtils.loadTexture(image_url, null, render);
                     imageMaterial.uniforms.projectorMat.value = projectorCameraMatrix(cam, shot)
+                    imageMaterial.vertexShader = imageVertexShader(cam)
+                    imageMaterial.fragmentShader = imageFragmentShader(cam)
+                    imageMaterial.needsUpdate = true;
                     imagePlane.geometry = imagePlaneGeo(r, shot_id);
                 }
             }
@@ -945,13 +1034,15 @@
             function onDocumentMouseDown(event) {
                 window.focus();
                 if (hoverCamera !== undefined) {
-                    if (selectedCamera !== hoverCamera) {
-                        setSelectedCamera(hoverCamera);
-                        setImagePlaneCamera(hoverCamera);
-                    } else {
-                        setMovingMode('walk');
-                        setImagePlaneCamera(selectedCamera);
-                        navigateToShot(selectedCamera);
+                    if (movingMode !== 'walk') {
+                        if (selectedCamera !== hoverCamera) {
+                            setSelectedCamera(hoverCamera);
+                            setImagePlaneCamera(hoverCamera);
+                        } else {
+                            setMovingMode('walk');
+                            setImagePlaneCamera(selectedCamera);
+                            navigateToShot(selectedCamera);
+                        }
                     }
                     render();
                 }
@@ -1033,7 +1124,7 @@
                             var driftBA = driftAB - turn;
                             var drift = Math.max(driftAB, driftBA);
                             if (k.lastIndexOf('STEP', 0) === 0) {
-                                turn_threshold = (k === 'STEP_FORWARD')? 0.25 : 0.5
+                                turn_threshold = 0.5
                                 if (Math.abs(turn) < turn_threshold && Math.abs(drift) < 0.5 && d > 0.01 && d < 20) {
                                     if (d < min_d[k]) {
                                         min_d[k] = d;

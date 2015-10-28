@@ -3,3 +3,4 @@ PyYAML
 numpy
 exifread
 gpxpy
+xmltodict

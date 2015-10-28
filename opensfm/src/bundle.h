@@ -16,6 +16,18 @@ extern "C" {
 
 
 
+enum BACameraType {
+  BA_PERSPECTIVE_CAMERA,
+  BA_EQUIRECTANGULAR_CAMERA
+};
+
+struct BACamera {
+  std::string id;
+  bool constant;
+
+  virtual BACameraType type() = 0;
+};
+
 enum {
   BA_CAMERA_FOCAL,
   BA_CAMERA_K1,
@@ -23,18 +35,21 @@ enum {
   BA_CAMERA_NUM_PARAMS
 };
 
-struct BACamera {
+struct BAPerspectiveCamera : public BACamera{
   double parameters[BA_CAMERA_NUM_PARAMS];
-  bool constant;
   double focal_prior;
-  std::string id;
 
+  BACameraType type() { return BA_PERSPECTIVE_CAMERA; }
   double GetFocal() { return parameters[BA_CAMERA_FOCAL]; }
   double GetK1() { return parameters[BA_CAMERA_K1]; }
   double GetK2() { return parameters[BA_CAMERA_K2]; }
   void SetFocal(double v) { parameters[BA_CAMERA_FOCAL] = v; }
   void SetK1(double v) { parameters[BA_CAMERA_K1] = v; }
   void SetK2(double v) { parameters[BA_CAMERA_K2] = v; }
+};
+
+struct BAEquirectangularCamera : public BACamera {
+  BACameraType type() { return BA_EQUIRECTANGULAR_CAMERA; }
 };
 
 enum {
@@ -193,6 +208,52 @@ struct SnavelyReprojectionError {
   double scale_;
 };
 
+struct EquirectangularReprojectionError {
+  EquirectangularReprojectionError(double observed_x, double observed_y, double std_deviation)
+      : scale_(1.0 / std_deviation)
+  {
+    double lon = observed_x * 2 * M_PI;
+    double lat = -observed_y * 2 * M_PI;
+    bearing_vector_[0] = cos(lat) * sin(lon);
+    bearing_vector_[1] = -sin(lat);
+    bearing_vector_[2] = cos(lat) * cos(lon);
+  }
+
+  template <typename T>
+  bool operator()(const T* const shot,
+                  const T* const point,
+                  T* residuals) const {
+    // Position vector in camera coordinates.
+    T p[3];
+
+    // shot[0,1,2] are the angle-axis rotation.
+    ceres::AngleAxisRotatePoint(shot, point, p);
+
+    // shot[3,4,5] are the translation.
+    p[0] += shot[3];
+    p[1] += shot[4];
+    p[2] += shot[5];
+
+    // Project to unit sphere.
+    const T l = sqrt(p[0] * p[0] + p[1] * p[1] + p[2] * p[2]);
+    p[0] /= l;
+    p[1] /= l;
+    p[2] /= l;
+
+    // Difference between projected vector and observed bearing vector
+    // We use the difference between unit vectors as an approximation
+    // to the angle for small angles.
+    residuals[0] = T(scale_) * (p[0] - T(bearing_vector_[0]));
+    residuals[1] = T(scale_) * (p[1] - T(bearing_vector_[1]));
+    residuals[2] = T(scale_) * (p[2] - T(bearing_vector_[2]));
+
+    return true;
+  }
+
+  double bearing_vector_[3];
+  double scale_;
+};
+
 
 struct InternalParametersPriorError {
   InternalParametersPriorError(double focal_estimate,
@@ -347,10 +408,17 @@ class BundleAdjuster {
     num_threads_ = 1;
   }
 
+  // Disable copy constructor
+  BundleAdjuster(const BundleAdjuster &) = delete;
+
   virtual ~BundleAdjuster() {}
 
-  BACamera GetCamera(const std::string &id) {
-    return cameras_[id];
+  BAPerspectiveCamera GetPerspectiveCamera(const std::string &id) {
+    return *(BAPerspectiveCamera *)cameras_[id].get();
+  }
+
+  BAEquirectangularCamera GetEquirectangularCamera(const std::string &id) {
+    return *(BAEquirectangularCamera *)cameras_[id].get();
   }
 
   BAShot GetShot(const std::string &id) {
@@ -361,21 +429,28 @@ class BundleAdjuster {
     return points_[id];
   }
 
-  void AddCamera(
+  void AddPerspectiveCamera(
       const std::string &id,
       double focal,
       double k1,
       double k2,
       double focal_prior,
       bool constant) {
-    BACamera c;
+    cameras_[id] = std::unique_ptr<BAPerspectiveCamera>(new BAPerspectiveCamera());
+    BAPerspectiveCamera &c = static_cast<BAPerspectiveCamera &>(*cameras_[id]);
     c.id = id;
     c.parameters[BA_CAMERA_FOCAL] = focal;
     c.parameters[BA_CAMERA_K1] = k1;
     c.parameters[BA_CAMERA_K2] = k2;
     c.constant = constant;
     c.focal_prior = focal_prior;
-    cameras_[id] = c;
+  }
+
+  void AddEquirectangularCamera(
+      const std::string &id) {
+    cameras_[id] = std::unique_ptr<BAEquirectangularCamera>(new BAEquirectangularCamera());
+    BAEquirectangularCamera &c = static_cast<BAEquirectangularCamera &>(*cameras_[id]);
+    c.id = id;
   }
 
   void AddShot(
@@ -432,7 +507,7 @@ class BundleAdjuster {
       double y) {
     BAObservation o;
     o.shot = &shots_[shot];
-    o.camera = &cameras_[o.shot->camera];
+    o.camera = cameras_[o.shot->camera].get();
     o.point = &points_[point];
     o.coordinates[0] = x;
     o.coordinates[1] = y;
@@ -551,9 +626,19 @@ class BundleAdjuster {
 
     // Init parameter blocks.
     for (auto &i : cameras_) {
-      if (i.second.constant) {
-        problem.AddParameterBlock(i.second.parameters, BA_CAMERA_NUM_PARAMS);
-        problem.SetParameterBlockConstant(i.second.parameters);
+      if (i.second->constant) {
+        switch (i.second->type()) {
+          case BA_PERSPECTIVE_CAMERA:
+          {
+            BAPerspectiveCamera &c = static_cast<BAPerspectiveCamera &>(*i.second);
+            problem.AddParameterBlock(c.parameters, BA_CAMERA_NUM_PARAMS);
+            problem.SetParameterBlockConstant(c.parameters);
+            break;
+          }
+          case BA_EQUIRECTANGULAR_CAMERA:
+            // No parameters for now
+            break;
+        }
       }
     }
     for (auto &i : shots_) {
@@ -571,20 +656,40 @@ class BundleAdjuster {
 
     // Add reprojection error blocks
     for (int i = 0; i < observations_.size(); ++i) {
-      // Each Residual block takes a point and a camera as input and outputs a 2
-      // dimensional residual. Internally, the cost function stores the observed
-      // image location and compares the reprojection against the observation.
-      ceres::CostFunction* cost_function =
-          new ceres::AutoDiffCostFunction<SnavelyReprojectionError, 2, 3, 6, 3>(
-              new SnavelyReprojectionError(observations_[i].coordinates[0],
-                                           observations_[i].coordinates[1],
-                                           reprojection_error_sd_));
+      switch (observations_[i].camera->type()) {
+        case BA_PERSPECTIVE_CAMERA:
+        {
+          BAPerspectiveCamera &c = static_cast<BAPerspectiveCamera &>(*observations_[i].camera);
+          ceres::CostFunction* cost_function =
+              new ceres::AutoDiffCostFunction<SnavelyReprojectionError, 2, 3, 6, 3>(
+                  new SnavelyReprojectionError(observations_[i].coordinates[0],
+                                               observations_[i].coordinates[1],
+                                               reprojection_error_sd_));
 
-      problem.AddResidualBlock(cost_function,
-                               loss,
-                               observations_[i].camera->parameters,
-                               observations_[i].shot->parameters,
-                               observations_[i].point->coordinates);
+          problem.AddResidualBlock(cost_function,
+                                   loss,
+                                   c.parameters,
+                                   observations_[i].shot->parameters,
+                                   observations_[i].point->coordinates);
+          break;
+        }
+        case BA_EQUIRECTANGULAR_CAMERA:
+          {
+            BAEquirectangularCamera &c = static_cast<BAEquirectangularCamera &>(*observations_[i].camera);
+            ceres::CostFunction* cost_function =
+                new ceres::AutoDiffCostFunction<EquirectangularReprojectionError, 3, 6, 3>(
+                    new EquirectangularReprojectionError(observations_[i].coordinates[0],
+                                                         observations_[i].coordinates[1],
+                                                         reprojection_error_sd_));
+
+            problem.AddResidualBlock(cost_function,
+                                     loss,
+                                     observations_[i].shot->parameters,
+                                     observations_[i].point->coordinates);
+            break;
+          }
+          break;
+      }
     }
 
     // Add rotation priors
@@ -626,13 +731,23 @@ class BundleAdjuster {
 
     // Add internal parameter priors blocks
     for (auto &i : cameras_) {
-      ceres::CostFunction* cost_function =
-          new ceres::AutoDiffCostFunction<InternalParametersPriorError, 3, 3>(
-              new InternalParametersPriorError(i.second.focal_prior, focal_prior_sd_, k1_sd_, k2_sd_));
+      switch (i.second->type()) {
+        case BA_PERSPECTIVE_CAMERA:
+        {
+          BAPerspectiveCamera &c = static_cast<BAPerspectiveCamera &>(*i.second);
 
-      problem.AddResidualBlock(cost_function,
-                               NULL,
-                               i.second.parameters);
+          ceres::CostFunction* cost_function =
+              new ceres::AutoDiffCostFunction<InternalParametersPriorError, 3, 3>(
+                  new InternalParametersPriorError(c.focal_prior, focal_prior_sd_, k1_sd_, k2_sd_));
+
+          problem.AddResidualBlock(cost_function,
+                                   NULL,
+                                   c.parameters);
+          break;
+        }
+        case BA_EQUIRECTANGULAR_CAMERA:
+          break;
+      }
     }
 
     // Add unit translation block
@@ -719,17 +834,41 @@ class BundleAdjuster {
 
     // Sum over all observations
     for (int i = 0; i < observations_.size(); ++i) {
-      SnavelyReprojectionError sre(observations_[i].coordinates[0],
-                                   observations_[i].coordinates[1],
-                                   1.0);
-      double residuals[2];
-      sre(observations_[i].camera->parameters,
-          observations_[i].shot->parameters,
-          observations_[i].point->coordinates,
-          residuals);
-      double error = sqrt(residuals[0] * residuals[0] + residuals[1] * residuals[1]);
-      observations_[i].point->reprojection_error =
-          std::max(observations_[i].point->reprojection_error, error);
+      switch (observations_[i].camera->type()) {
+        case BA_PERSPECTIVE_CAMERA:
+        {
+          BAPerspectiveCamera &c = static_cast<BAPerspectiveCamera &>(*observations_[i].camera);
+
+          SnavelyReprojectionError sre(observations_[i].coordinates[0],
+                                       observations_[i].coordinates[1],
+                                       1.0);
+          double residuals[2];
+          sre(c.parameters,
+              observations_[i].shot->parameters,
+              observations_[i].point->coordinates,
+              residuals);
+          double error = sqrt(residuals[0] * residuals[0] + residuals[1] * residuals[1]);
+          observations_[i].point->reprojection_error =
+              std::max(observations_[i].point->reprojection_error, error);
+          break;
+        }
+        case BA_EQUIRECTANGULAR_CAMERA:
+        {
+          BAEquirectangularCamera &c = static_cast<BAEquirectangularCamera &>(*observations_[i].camera);
+
+          EquirectangularReprojectionError ere(observations_[i].coordinates[0],
+                                               observations_[i].coordinates[1],
+                                               1.0);
+          double residuals[3];
+          ere(observations_[i].shot->parameters,
+              observations_[i].point->coordinates,
+              residuals);
+          double error = sqrt(residuals[0] * residuals[0] + residuals[1] * residuals[1] + residuals[2] * residuals[2]);
+          observations_[i].point->reprojection_error =
+              std::max(observations_[i].point->reprojection_error, error);
+          break;
+        }
+      }
     }
   }
 
@@ -742,7 +881,7 @@ class BundleAdjuster {
   }
 
  private:
-  std::map<std::string, BACamera> cameras_;
+  std::map<std::string, std::unique_ptr<BACamera> > cameras_;
   std::map<std::string, BAShot> shots_;
   std::map<std::string, BAPoint> points_;
 

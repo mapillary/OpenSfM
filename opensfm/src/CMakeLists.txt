@@ -57,27 +57,6 @@ find_package(NumPy REQUIRED)
 include_directories(${NUMPY_INCLUDE_DIRS})
 
 
-# Libmv
-include_directories(third_party)
-add_library(mv
-    third_party/libmv/multiview/fundamental.cc
-    third_party/libmv/multiview/projection.cc
-    third_party/libmv/multiview/five_point.cc
-    third_party/libmv/multiview/robust_five_point.cc
-    third_party/libmv/multiview/triangulation.cc
-    third_party/libmv/multiview/conditioning.cc
-    third_party/libmv/multiview/panography.cc
-    third_party/libmv/multiview/panography_kernel.cc
-    third_party/libmv/multiview/robust_panography.cc
-    third_party/libmv/numeric/numeric.cc
-    third_party/libmv/numeric/poly.cc
-)
-target_link_libraries(mv
-    ${GFLAGS_LIBRARY}
-    ${GLOG_LIBRARY}
-)
-
-
 # Akaze
 include_directories(third_party/akaze/lib/)
 set(AKAZE_SRCS
@@ -113,7 +92,6 @@ target_link_libraries(csfm
     ${SUITESPARSE_LIBRARIES}
     ${Boost_LIBRARIES}
     vl
-    mv
     akaze
 )
 set_target_properties(csfm PROPERTIES

@@ -16,13 +16,14 @@ Checkout this [blog post with more demos](http://blog.mapillary.com/update/2014/
 ## Dependencies
 
 * [OpenCV][]
+* [OpenGV][]
 * [Ceres Solver][]
 * [Boost Python][]
 * [NumPy][], [SciPy][], [Networkx][], PyYAML, exifread
 
 ### Installing dependencies on MacOSX
 
-Use
+Install OpenCV using
 
     brew tap homebrew/science
     brew install opencv
@@ -30,7 +31,15 @@ Use
     brew install boost-python
     sudo pip install -r requirements.txt
 
-Be sure to update your `PYTHONPATH` to include `/usr/local/lib/python2.7/site-packages` where OpenCV has been installed:
+And install OpenGV using
+
+    git clone https://github.com/paulinus/opengv.git
+    mkdir opengv/build
+    cd opengv/build
+    cmake .. -DBUILD_TESTS=OFF -DBUILD_PYTHON=ON
+    make install
+
+Be sure to update your `PYTHONPATH` to include `/usr/local/lib/python2.7/site-packages` where OpenCV and OpenGV have been installed. For example:
 
     export PYTHONPATH=/usr/local/lib/python2.7/site-packages:$PYTHONPATH
 
@@ -41,7 +50,8 @@ See the [Dockerfile](https://github.com/mapillary/OpenSfM/blob/master/Dockerfile
 
  1. Install [OpenCV][], [Boost Python][], [NumPy][], [SciPy][] using apt-get
  2. Install python requirements using pip
- 3. [Build and Install](http://ceres-solver.org/building.html) the [Ceres solver][] from its source using the `-fPIC` compilation flag
+ 3. Clone, build and install [OpenGV][] following the receipt in the Dockerfile
+ 4. [Build and Install](http://ceres-solver.org/building.html) the [Ceres solver][] from its source using the `-fPIC` compilation flag
 
 
 ## Building
@@ -69,6 +79,7 @@ Things you can do from there:
 - Thank you Jetbrains for supporting the project with free licenses for [IntelliJ Ultimate](https://www.jetbrains.com/idea/). Contact peter at mapillary dot com if you are contributor and need one. Apply your own project [here](https://www.jetbrains.com/eforms/openSourceRequest.action?licenseRequest=ideaOSLPRN)
 
 [OpenCV]: http://opencv.org/ (Computer vision and machine learning software library)
+[OpenGV]: http://laurentkneip.github.io/opengv/ (A library for solving calibrated central and non-central geometric vision problems)
 [NumPy]: http://www.numpy.org/ (Scientific computing with Python)
 [SciPy]: http://www.scipy.org/ (Fundamental library for scientific computing)
 [Ceres solver]: http://ceres-solver.org/ (Library for solving complicated nonlinear least squares problems)
