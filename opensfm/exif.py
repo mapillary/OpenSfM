@@ -256,35 +256,37 @@ class EXIF:
 
 
 def get_distortion(exif):
+    focal = exif['focal_ratio']
     if 'gopro' in exif['make'].lower():
-        fmm35 = int(round(exif['focal_ratio'] * 36.0))
+        fmm35 = int(round(focal * 36.0))
         if fmm35 == 20:
             # GoPro Hero 3, 7MP medium
             ## calibration
-            return -0.37, 0.28
+            return focal, -0.37, 0.28
         elif fmm35==15:
             # GoPro Hero 3, 7MP wide
             # calibration
-            return -0.32, 0.24
+            return focal, -0.32, 0.24
         elif fmm35==23:
             # GoPro Hero 2, 5MP medium
-            return -0.38, 0.24
+            return focal, -0.38, 0.24
         elif fmm35==16:
             # GoPro Hero 2, 5MP wide
-            return -0.39, 0.22
+            return focal, -0.39, 0.22
         else:
             raise ValueError("Unsupported GoPro f value")
+    elif 'bullet5s' in exif['make'].lower():
+        return 0.4, -0.32, 0.24
 
-    return 0., 0.
+    return focal, 0., 0.
 
 
 def calibration_prior_from_exif(exif, default_focal):
     if exif['projection_type'] == 'perspective':
-        focal = exif['focal_ratio']
+        focal, k1, k2 = get_distortion(exif)
         if focal == 0:
             logging.warning('Missing focal length in EXIF. Using default focal prior')
             focal = default_focal
-        k1, k2 = get_distortion(exif)
         return {
             "focal": focal,
             "k1": k1,
