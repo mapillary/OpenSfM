@@ -1,5 +1,33 @@
+class Intrinsics(object):
+    def __init__(self):
+        self.fx = None
+        self.fy = None
+        self.fx_prior = None
+        self.fy_prior = None
+        self.cx = None
+        self.cy = None
+        self.height = None
+        self.width = None
+        self.k1 = None
+        self.k2 = None
+
+
+class Extrinsics(object):
+    def __init__(self):
+      self.rotation = None
+      self.translation = None
+
+
+class GpsData(object):
+    def __init__(self):
+      self.orientation = None
+      self.capture_time = None
+      self.gps_dop = None
+      self.gps_position = None
+
+
 class Camera(object):
-    """Defines a camera type.
+    """Defines a physical camera.
 
     Attributes:
         id (int): identification number.
@@ -7,15 +35,19 @@ class Camera(object):
 
     """
 
-    def __init__(self, id, projection_type):
+    def __init__(self, id, projection_type, intrinsics):
         """Defaut constructor
 
         :param id: The identification number.
+        :param description: The camera description.
         :param projection_type: The projection type.
+        :param intrinsics: The intrinsic parameters.
 
         """
         self.id = id
+        self.description = None
         self.projection_type = projection_type
+        self.intrinsics = intrinsics
 
 
 class Shot(object):
@@ -24,24 +56,24 @@ class Shot(object):
     Attributes:
         id (int): identification number.
         camera (Camera): camera.
-        rotation (array): rotation vector
-        translation (array): translation vector
+        extrinsics (Extrinsics): extrinsic parameters
+        gps_data (GpsData): GPS data
 
     """
 
-    def __init__(self, id, camera, rotation, translation):
+    def __init__(self, id, camera, extrinsics, gps_data):
         """Defaut constructor
 
         :param id: The identification number.
         :param camera: The camera.
-        :param rotation: The rotation vector.
-        :param translation: The translation vecto.
+        :param extrinsics: The extrinsic parameters.
+        :param gps_data: The GPS data.
 
         """
         self.id = id
         self.camera = camera
-        self.rotation = rotation
-        self.translation = translation
+        self.extrinsics = extrinsics
+        self.gps_data = gps_data
 
 
 class Point(object):
