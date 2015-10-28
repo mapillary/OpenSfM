@@ -67,22 +67,23 @@ def match(args):
     im1, candidates, i, n = args
     print('Matching {}  -  {} / {}'.format(im1, i + 1, n))
 
-    robust_matching_min_match = data.config.get('robust_matching_min_match', 20)
-    preemptive_threshold = data.config.get('preemptive_threshold', 1)
+    robust_matching_min_match = data.config.['robust_matching_min_match']
+    preemptive_threshold = data.config['preemptive_threshold']
 
     im1_matches = {}
 
     for im2 in candidates:
         # preemptive matching
-        t = time.time()
-        lowes_ratio = data.config.get('lowes_ratio', 0.6)
-        data.config['lowes_ratio'] = data.config.get('preemptive_lowes_ratio', 0.6)
-        matches_pre = matching.match_lowe_bf(f_pre[im1], f_pre[im2], data.config)
-        data.config['lowes_ratio'] = lowes_ratio
-        print "Preemptive matching {0}, time: {1}s".format(len(matches_pre), time.time()-t)
-        if len(matches_pre) < preemptive_threshold:
-            print "Discarding based of preemptive matches {0} < {1}".format(len(matches_pre), preemptive_threshold)
-            continue
+        if preemptive_threshold > 0:
+            t = time.time()
+            lowes_ratio = data.config['lowes_ratio']
+            data.config['lowes_ratio'] = data.config['preemptive_lowes_ratio']
+            matches_pre = matching.match_lowe_bf(f_pre[im1], f_pre[im2], data.config)
+            data.config['lowes_ratio'] = lowes_ratio
+            print "Preemptive matching {0}, time: {1}s".format(len(matches_pre), time.time()-t)
+            if len(matches_pre) < preemptive_threshold:
+                print "Discarding based of preemptive matches {0} < {1}".format(len(matches_pre), preemptive_threshold)
+                continue
 
         # symmetric matching
         t = time.time()
