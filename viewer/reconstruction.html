@@ -147,12 +147,22 @@
             varying vec4 vRstq;
             uniform sampler2D projectorTex;
             uniform float opacity;
+            uniform float focal;
+            uniform float k1;
+            uniform float k2;
+            uniform float scale_x;
+            uniform float scale_y;
 
             void main()
             {
-                float x = vRstq.x / vRstq.w + 0.5;
-                float y = vRstq.y / vRstq.w + 0.5;
-                vec4 baseColor = texture2D(projectorTex, vec2(x, y));
+                float x = vRstq.x / vRstq.z;
+                float y = vRstq.y / vRstq.z;
+                float r2 = x * x + y * y;
+                float d = 1.0 + k1 * r2 + k2 * r2 * r2;
+                float u = scale_x * focal * d * x + 0.5;
+                float v = - scale_y * focal * d * y + 0.5;
+
+                vec4 baseColor = texture2D(projectorTex, vec2(u, v));
                 baseColor.a = opacity;
                 gl_FragColor = baseColor;
             }
@@ -656,6 +666,53 @@
                 return geometry;
             }
 
+            function createImagePlaneMaterial(cam, shot, shot_id) {
+                var imageTexture = THREE.ImageUtils.loadTexture(imageURL(shot_id));
+
+                var material = new THREE.ShaderMaterial({
+                    side: THREE.DoubleSide,
+                    transparent: true,
+                    depthWrite: true,
+                    uniforms: {
+                        projectorMat: {
+                             type: 'm4',
+                             value: projectorCameraMatrix(cam, shot)
+                        },
+                        projectorTex: {
+                            type: 't',
+                            value: imageTexture
+                        },
+                        opacity: {
+                            type: 'f',
+                            value: options.imagePlaneOpacity
+                        },
+                        focal: {
+                            type: 'f',
+                            value: cam.focal
+                        },
+                        k1: {
+                            type: 'f',
+                            value: cam.k1
+                        },
+                        k2: {
+                            type: 'f',
+                            value: cam.k2
+                        },
+                        scale_x: {
+                            type: 'f',
+                            value: Math.max(cam.width, cam.height) / cam.width
+                        },
+                        scale_y: {
+                            type: 'f',
+                            value: Math.max(cam.width, cam.height) / cam.height
+                        }
+                    },
+                    vertexShader:   imageVertexShader(cam),
+                    fragmentShader: imageFragmentShader(cam)
+                });
+
+                return material;
+            }
 
             function imageVertexShader(cam) {
                 if (cam.projection_type == 'equirectangular' || cam.projection_type == 'spherical')
@@ -682,6 +739,9 @@
                 var t = shot.translation;
                 var translation = new THREE.Vector3(t[0], t[1], t[2]);
                 rotation.setPosition(translation);
+
+                return rotation;
+
                 if (cam.projection_type == 'equirectangular' || cam.projection_type == 'spherical')
                     return rotation
                 var dx = cam.width / Math.max(cam.width, cam.height) / cam.focal;
@@ -780,29 +840,8 @@
                 imagePlaneCamera = camera_lines[0];
                 var shot = imagePlaneCamera.reconstruction.shots[imagePlaneCamera.shot_id];
                 var cam = imagePlaneCamera.reconstruction.cameras[shot.camera];
-                var imageTexture = THREE.ImageUtils.loadTexture(imageURL(imagePlaneCamera.shot_id));
 
-                imageMaterial = new THREE.ShaderMaterial({
-                    side: THREE.DoubleSide,
-                    transparent: true,
-                    depthWrite: true,
-                    uniforms: {
-                        projectorMat: {
-                             type: 'm4',
-                             value: projectorCameraMatrix(cam, shot)
-                        },
-                        projectorTex: {
-                            type: 't',
-                            value: imageTexture
-                        },
-                        opacity: {
-                            type: 'f',
-                            value: options.imagePlaneOpacity
-                        }
-                    },
-                    vertexShader:   imageVertexShader(cam),
-                    fragmentShader: imageFragmentShader(cam)
-                });
+                imageMaterial = createImagePlaneMaterial(cam, shot, shot_id);
                 imagePlane = new THREE.Mesh(imagePlaneGeo(imagePlaneCamera.reconstruction,
                                                           imagePlaneCamera.shot_id),
                                             imageMaterial);
@@ -811,50 +850,15 @@
                 imagePlaneCameraOld = camera_lines[0];
                 var imageTextureOld = THREE.ImageUtils.loadTexture(imageURL(imagePlaneCameraOld.shot_id));
 
-                imageMaterialOld = new THREE.ShaderMaterial({
-                    // map: imageTexture,
-                    side: THREE.DoubleSide,
-                    transparent: true,
-                    depthWrite: true,
-                    uniforms: {
-                        projectorMat: {
-                             type: 'm4',
-                             value: projectorCameraMatrix(cam, shot)
-                        },
-                        projectorTex: {
-                            type: 't',
-                            value: imageTextureOld
-                        },
-                        opacity: {
-                            type: 'f',
-                            value: options.imagePlaneOpacity
-                        }
-                    },
-                    vertexShader:   imageVertexShader(cam),
-                    fragmentShader: imageFragmentShader(cam)
-                });
+                imageMaterialOld = createImagePlaneMaterial(cam, shot, shot_id);
                 imagePlaneOld = new THREE.Mesh(imagePlaneGeo(imagePlaneCameraOld.reconstruction,
-                                                          imagePlaneCameraOld.shot_id),
+                                                             imagePlaneCameraOld.shot_id),
                                             imageMaterialOld);
                 imagePlaneOld.visible = options.showImagePlane;
 
                 scene_group.add(imagePlane);
                 scene_group.add(imagePlaneOld);
 
-                // for (var i=0; i < num_preview_plane; ++i) {
-                //     imagePlaneCameras.push(camera_lines[0]);
-                //     var imageTexture = THREE.ImageUtils.loadTexture(imageURL(shot_id));
-                //     imageMaterials.push(new THREE.MeshBasicMaterial({
-                //         map : imageTexture,
-                //         transparent: true,
-                //         opacity: options.imagePlaneOpacity
-                //     }));
-                //     imagePlanes.push(new THREE.Mesh(imagePlaneGeo(imagePlaneCameras[i].reconstruction,
-                //                                               imagePlaneCameras[i].shot_id),
-                //                                 imageMaterials[i]));
-                //     imagePlanes[i].visible = false;
-                //     scene_group.add(imagePlanes[i]);
-                // }
 
                 // Axis
                 grid_group = new THREE.Object3D();
@@ -1011,6 +1015,11 @@
                     imagePlaneCamera = cameraObject;
                     imageMaterial.uniforms.projectorTex.value = THREE.ImageUtils.loadTexture(image_url, null, render);
                     imageMaterial.uniforms.projectorMat.value = projectorCameraMatrix(cam, shot)
+                    imageMaterial.uniforms.focal.value = cam.focal;
+                    imageMaterial.uniforms.k1.value = cam.k1;
+                    imageMaterial.uniforms.k2.value = cam.k2;
+                    imageMaterial.uniforms.scale_x.value = Math.max(cam.width, cam.height) / cam.width;
+                    imageMaterial.uniforms.scale_y.value = Math.max(cam.width, cam.height) / cam.height;
                     imageMaterial.vertexShader = imageVertexShader(cam)
                     imageMaterial.fragmentShader = imageFragmentShader(cam)
                     imageMaterial.needsUpdate = true;
