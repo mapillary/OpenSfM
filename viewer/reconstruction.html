@@ -659,7 +659,6 @@
                     20,
                     40
                 );
-                console.log(geometry);
                 var center = pixelToVertex(cam, shot, 0, 0, 0);
                 geometry.applyMatrix(new THREE.Matrix4().makeTranslation(center.x, center.y, center.z));
                 return geometry;
@@ -842,13 +841,13 @@
 
                 imagePlane = new THREE.Mesh(imagePlaneGeo(imagePlaneCamera.reconstruction,
                                                           imagePlaneCamera.shot_id),
-                                            createImagePlaneMaterial(cam, shot, shot_id));
+                                            createImagePlaneMaterial(cam, shot, imagePlaneCamera.shot_id));
                 imagePlane.visible = options.showImagePlane;
 
                 imagePlaneCameraOld = camera_lines[0];
                 imagePlaneOld = new THREE.Mesh(imagePlaneGeo(imagePlaneCameraOld.reconstruction,
                                                              imagePlaneCameraOld.shot_id),
-                                            createImagePlaneMaterial(cam, shot, shot_id));
+                                            createImagePlaneMaterial(cam, shot, imagePlaneCameraOld.shot_id));
                 imagePlaneOld.visible = options.showImagePlane;
 
                 scene_group.add(imagePlane);
@@ -995,6 +994,11 @@
                             imagePlaneCameraOld = imagePlaneCamera;
                             imagePlaneOld.material.uniforms.projectorTex.value = imagePlane.material.uniforms.projectorTex.value;
                             imagePlaneOld.material.uniforms.projectorMat.value = imagePlane.material.uniforms.projectorMat.value;
+                            imagePlane.material.uniforms.focal.value = imagePlane.material.uniforms.focal.value;
+                            imagePlane.material.uniforms.k1.value = imagePlane.material.uniforms.k1.value;
+                            imagePlane.material.uniforms.k2.value = imagePlane.material.uniforms.k2.value;
+                            imagePlane.material.uniforms.scale_x.value = imagePlane.material.uniforms.scale_x.value;
+                            imagePlane.material.uniforms.scale_y.value = imagePlane.material.uniforms.scale_y.value;
                             imagePlaneOld.material.vertexShader = imagePlane.material.vertexShader;
                             imagePlaneOld.material.fragmentShader = imagePlane.material.fragmentShader;
                             imagePlaneOld.material.needsUpdate = true;
@@ -1247,7 +1251,9 @@
             function animate() {
                 requestAnimationFrame(animate);
                 imagePlane.material.uniforms.opacity.value = 1 - options.imagePlaneOpacity;
-                imagePlaneOld.material.uniforms.opacity.value = 1;
+                if (imagePlaneOld !== undefined) {
+                    imagePlaneOld.material.uniforms.opacity.value = 1;
+                }
                 if (invokeJourneyWrapper(function () { return journeyWrapper.isStarted() && journeyWrapper.isSmooth(); }) !== true) {
                     options.imagePlaneOpacity *= 1 - options.animationSpeed;
                 }
