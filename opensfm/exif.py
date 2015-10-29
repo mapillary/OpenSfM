@@ -265,8 +265,9 @@ def get_distortion(exif):
             return focal, -0.37, 0.28
         elif fmm35==15:
             # GoPro Hero 3, 7MP wide
-            # calibration
-            return focal, -0.32, 0.24
+            # "v2 gopro hero3+ black edition 3000 2250 perspective 0.4166"
+            return 0.466, -0.195, 0.030
+#            return focal, -0.32, 0.24
         elif fmm35==23:
             # GoPro Hero 2, 5MP medium
             return focal, -0.38, 0.24
