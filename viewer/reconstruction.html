@@ -1003,6 +1003,7 @@
                             imagePlaneOld.material.fragmentShader = imagePlane.material.fragmentShader;
                             imagePlaneOld.material.needsUpdate = true;
 
+                            imagePlaneOld.geometry.dispose();
                             imagePlaneOld.geometry = imagePlaneGeo(imagePlaneCameraOld.reconstruction, imagePlaneCameraOld.shot_id);
                         }
 
@@ -1012,16 +1013,9 @@
                     }
 
                     imagePlaneCamera = cameraObject;
-                    imagePlane.material.uniforms.projectorTex.value = THREE.ImageUtils.loadTexture(image_url, null, render);
-                    imagePlane.material.uniforms.projectorMat.value = projectorCameraMatrix(cam, shot)
-                    imagePlane.material.uniforms.focal.value = cam.focal;
-                    imagePlane.material.uniforms.k1.value = cam.k1;
-                    imagePlane.material.uniforms.k2.value = cam.k2;
-                    imagePlane.material.uniforms.scale_x.value = Math.max(cam.width, cam.height) / cam.width;
-                    imagePlane.material.uniforms.scale_y.value = Math.max(cam.width, cam.height) / cam.height;
-                    imagePlane.material.vertexShader = imageVertexShader(cam)
-                    imagePlane.material.fragmentShader = imageFragmentShader(cam)
-                    imagePlane.material.needsUpdate = true;
+                    imagePlane.material.dispose();
+                    imagePlane.geometry.dispose();
+                    imagePlane.material = createImagePlaneMaterial(cam, shot, shot_id);
                     imagePlane.geometry = imagePlaneGeo(r, shot_id);
                 }
             }
