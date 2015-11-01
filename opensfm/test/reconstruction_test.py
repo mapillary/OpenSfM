@@ -84,7 +84,7 @@ def reconstruction_class_initialization_test():
     assert reconstruction.get_camera(camera.id) == camera
     assert reconstruction.get_camera(1) == None
     assert reconstruction.get_shot(shot0.id) == shot0
-    #assert reconstruction.get_shot(shot1.id) == shot1 ## Returns None. Why?!
+    assert reconstruction.get_shot(shot1.id) == shot1
     assert reconstruction.get_shot(2) == None
 
 if __name__ == "__main__":
