@@ -3,17 +3,11 @@ import os.path, sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import argparse
-from cv2 import imread
-import exifread
-import json
 import logging
-import numpy as np
 import time
 
-from opensfm.sensors import sensor_data
 from opensfm import dataset
 from opensfm import exif
-from opensfm import io
 
 
 logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
@@ -21,7 +15,6 @@ logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
 parser = argparse.ArgumentParser(description="Extract camera information from images' EXIF tags")
 parser.add_argument('dataset', help='the dataset to process')
 args = parser.parse_args()
-
 
 start = time.time()
 data = dataset.DataSet(args.dataset)
