@@ -2,12 +2,8 @@ class Intrinsics(object):
     """Defines the internal parameters of a camera.
 
     Attributes:
-        fx (real): focal lenght along the X-axis after reconstruction.
-        fy (real): focal lenght along the Y-axis after reconstruction.
-        fx_prior (real): focal lenght along the X-axis before reconstruction.
-        fy_prior (real): focal lenght along the Y-axis before reconstruction.
-        cx (int): projection center along the X-axis.
-        cy (int): projection center along the Y-axis.
+        focal (real): focal lenght after reconstruction.
+        focal_prior (real): focal lenght before reconstruction.
         height (int): image height.
         widht (int): image width.
         k1 (real): first distortion parameter.
@@ -16,12 +12,11 @@ class Intrinsics(object):
     """
 
     def __init__(self):
-        self.fx = None
-        self.fy = None
-        self.fx_prior = None
-        self.fy_prior = None
-        self.cx = None
-        self.cy = None
+        """Defaut constructor
+
+        """
+        self.focal = None
+        self.focal_prior = None
         self.height = None
         self.width = None
         self.k1 = None
@@ -67,64 +62,51 @@ class GpsData(object):
 class Camera(object):
     """Defines a physical camera.
 
-    A camera is unique defined for its identification number (id), an
-    optional description such brand name (description), the type of
-    projection (projection_type) and its internal calibration parameters
-    (intrinsics).
+    A camera is unique defined for its identification description (id),
+    the type of projection (projection_type) and its internal calibration
+    parameters (intrinsics).
 
     Attributes:
-        id (int): identification number.
-        description (str): description.
+        id (str): camera description.
         projection_type (str): projection type.
         intrinsics (Intrinsics): extrinsic parameters.
 
     """
 
-    def __init__(self, id, projection_type, intrinsics):
+    def __init__(self):
         """Defaut constructor
 
-        :param id: The identification number.
-        :param description: The camera description.
-        :param projection_type: The projection type.
-        :param intrinsics: The intrinsic parameters.
-
         """
-        self.id = id
-        self.description = None
-        self.projection_type = projection_type
-        self.intrinsics = intrinsics
+        self.id = None
+        self.projection_type = None
+        self.intrinsics = None
 
 
 class Shot(object):
     """Defines a shot in a reconstructed scene.
 
-    A shot here is refered as a unique view inside the scene containing its
-    own identification number (id), the used camera with its refined internal
+    A shot here is refered as a unique view inside the scene defined by
+    the image filename (id), the used camera with its refined internal
     parameters (camera), the fully camera pose respect to the scene origin
     frame (extrinsics) and the GPS data obtained in the moment that the picture
     was taken (gps_data).
 
     Attributes:
-        id (int): identification number.
+        id (str): picture filename.
         camera (Camera): camera.
         extrinsics (Extrinsics): extrinsic parameters.
         gps_data (GpsData): GPS data.
 
     """
 
-    def __init__(self, id, camera, extrinsics, gps_data):
+    def __init__(self):
         """Defaut constructor
 
-        :param id: The identification number.
-        :param camera: The camera.
-        :param extrinsics: The extrinsic parameters.
-        :param gps_data: The GPS data.
-
         """
-        self.id = id
-        self.camera = camera
-        self.extrinsics = extrinsics
-        self.gps_data = gps_data
+        self.id = None
+        self.camera = None
+        self.extrinsics = None
+        self.gps_data = None
 
 
 class Point(object):
@@ -132,23 +114,20 @@ class Point(object):
 
     Attributes:
         id (int): identification number.
-        x  (real): coordinate along the X-axis.
-        y  (real): coordinate along the Y-axis.
-        z  (real): coordinate along the Z-axis.
+        color (vector(int)): vector containing the RGB values.
+        coordinates (vector(real)): vector containing the 3D position.
+        reprojection_error (real): the reprojection error.
 
     """
 
-    def __init__(self, id, x, y, z):
-      self.id = id
-      self.x = x
-      self.y = y
-      self.z = z
+    def __init__(self):
+        """Defaut constructor
 
-    def getCoordinates():
-        """Returns the coordinates
-        :return: The coordinates in array format
         """
-        return [self.x, self.y, self.z]
+        self.id = None
+        self.color = None
+        self.coordinates = None
+        self.reprojection_error = None
 
 
 class Reconstruction(object):
@@ -162,9 +141,12 @@ class Reconstruction(object):
     """
 
     def __init__(self):
-      self.cameras = {}
-      self.shots = {}
-      self.points = {}
+        """Defaut constructor
+
+        """
+        self.cameras = {}
+        self.shots = {}
+        self.points = {}
 
     def add_camera(self, camera):
         """Adds a camera in the list
