@@ -278,7 +278,7 @@ def get_distortion(exif):
         else:
             raise ValueError("Unsupported GoPro f value")
     elif 'bullet5s' in make:
-        return 0.4, -0.32, 0.24
+        return 0.57, -0.30, 0.06
     elif 'garmin' == make:
         if 'virb' == model:
             # "v2 garmin virb 4608 3456 perspective 0"
