@@ -71,8 +71,8 @@ def camera_id(make, model, width, height, projection_type, focal):
         'v2',
         make.strip(),
         model.strip(),
-        str(width),
-        str(height),
+        str(int(width)),
+        str(int(height)),
         projection_type,
         str(focal)[:6],
     ]).lower()
@@ -257,7 +257,9 @@ class EXIF:
 
 def get_distortion(exif):
     focal = exif['focal_ratio']
-    if 'gopro' in exif['make'].lower():
+    make = exif['make'].strip().lower()
+    model = exif['model'].strip().lower()
+    if 'gopro' in make:
         fmm35 = int(round(focal * 36.0))
         if fmm35 == 20:
             # GoPro Hero 3, 7MP medium
@@ -267,7 +269,6 @@ def get_distortion(exif):
             # GoPro Hero 3, 7MP wide
             # "v2 gopro hero3+ black edition 3000 2250 perspective 0.4166"
             return 0.466, -0.195, 0.030
-#            return focal, -0.32, 0.24
         elif fmm35==23:
             # GoPro Hero 2, 5MP medium
             return focal, -0.38, 0.24
@@ -276,8 +277,18 @@ def get_distortion(exif):
             return focal, -0.39, 0.22
         else:
             raise ValueError("Unsupported GoPro f value")
-    elif 'bullet5s' in exif['make'].lower():
+    elif 'bullet5s' in make:
         return 0.4, -0.32, 0.24
+    elif 'garmin' == make:
+        if 'virb' == model:
+            # "v2 garmin virb 4608 3456 perspective 0"
+            return 0.5, -0.08, 0.005
+        elif 'virbxe' == model:
+            # "v2 garmin virbxe 3477 1950 perspective 0.3888"
+            # "v2 garmin virbxe 1600 1200 perspective 0.3888"
+            # "v2 garmin virbxe 4000 3000 perspective 0.3888"
+            return 0.466, -0.08, 0.0     # when using camera's undistortion
+            # return 0.466, -0.195, 0.030  # original
 
     return focal, 0., 0.
 
