@@ -29,9 +29,7 @@ class DataSet:
         """
         self.data_path = data_path
 
-        # Load configuration.
-        config_file = os.path.join(self.data_path, 'config.yaml')
-        self.config = config.load_config(config_file)
+        self._load_config()
 
         # Load list of images.
         image_list_file = os.path.join(self.data_path, 'image_list.txt')
@@ -47,6 +45,11 @@ class DataSet:
                   self.__feature_path(),
                   self.__matches_path()]:
             io.mkdir_p(p)
+
+
+    def _load_config(self):
+        config_file = os.path.join(self.data_path, 'config.yaml')
+        self.config = config.load_config(config_file)
 
     def images(self):
         """Return list of file names of all images in this dataset"""
