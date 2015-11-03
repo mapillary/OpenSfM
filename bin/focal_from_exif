@@ -33,7 +33,9 @@ for image in data.images():
     data.save_exif(image, d)
 
     if d['camera'] not in camera_models:
-        calib = exif.calibration_prior_from_exif(d, data.config['default_focal_prior'])
+        calib = (exif.hard_coded_calibration(d)
+            or exif.focal_ratio_calibration(d)
+            or exif.default_calibration(data))
 
         camera_models[d['camera']] = {
             'width': d['width'],

@@ -255,7 +255,7 @@ class EXIF:
         return d
 
 
-def get_distortion(exif):
+def hard_coded_calibration(exif):
     focal = exif['focal_ratio']
     make = exif['make'].strip().lower()
     model = exif['model'].strip().lower()
@@ -264,48 +264,44 @@ def get_distortion(exif):
         if fmm35 == 20:
             # GoPro Hero 3, 7MP medium
             ## calibration
-            return focal, -0.37, 0.28
+            return {'focal': focal, 'k1': -0.37, 'k2': 0.28}
         elif fmm35==15:
             # GoPro Hero 3, 7MP wide
             # "v2 gopro hero3+ black edition 3000 2250 perspective 0.4166"
-            return 0.466, -0.195, 0.030
+            return {'focal': 0.466, 'k1': -0.195, 'k2': 0.030}
         elif fmm35==23:
             # GoPro Hero 2, 5MP medium
-            return focal, -0.38, 0.24
+            return {'focal': focal, 'k1': -0.38, 'k2': 0.24}
         elif fmm35==16:
             # GoPro Hero 2, 5MP wide
-            return focal, -0.39, 0.22
-        else:
-            raise ValueError("Unsupported GoPro f value")
+            return {'focal': focal, 'k1': -0.39, 'k2': 0.22}
     elif 'bullet5s' in make:
-        return 0.57, -0.30, 0.06
+        return {'focal': 0.57, 'k1': -0.30, 'k2': 0.06}
     elif 'garmin' == make:
         if 'virb' == model:
             # "v2 garmin virb 4608 3456 perspective 0"
-            return 0.5, -0.08, 0.005
+            return {'focal': 0.5, 'k1': -0.08, 'k2': 0.005}
         elif 'virbxe' == model:
             # "v2 garmin virbxe 3477 1950 perspective 0.3888"
             # "v2 garmin virbxe 1600 1200 perspective 0.3888"
             # "v2 garmin virbxe 4000 3000 perspective 0.3888"
-            return 0.466, -0.08, 0.0     # when using camera's undistortion
-            # return 0.466, -0.195, 0.030  # original
-
-    return focal, 0., 0.
+            return {'focal': 0.466, 'k1': -0.08, 'k2': 0.0}     # when using camera's undistortion
+            # return {'focal': 0.466, 'k1': -0.195, 'k2'; 0.030}  # original
 
 
-def calibration_prior_from_exif(exif, default_focal):
-    if exif['projection_type'] == 'perspective':
-        focal, k1, k2 = get_distortion(exif)
-        if focal == 0:
-            logging.warning('Missing focal length in EXIF. Using default focal prior')
-            focal = default_focal
+def focal_ratio_calibration(exif):
+    if exif['focal_ratio']:
         return {
-            "focal": focal,
-            "k1": k1,
-            "k2": k2,
+            'focal': exif['focal_ratio'],
+            'k1': 0.0,
+            'k2': 0.0
         }
-    elif exif['projection_type'] in ['equirectangular', 'spherical']:
-        pass
 
 
+def default_calibration(data):
+    return {
+        'focal': data.config['default_focal_prior'],
+        'k1': 0.0,
+        'k2': 0.0
+    }
 
