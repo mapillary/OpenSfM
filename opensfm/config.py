@@ -6,11 +6,13 @@ default_config_yaml = '''
 use_exif_size: yes
 
 # Params for features
-feature_type: HAHOG           # Feature type (AKAZE, SURF, SIFT)
+feature_type: HAHOG           # Feature type (AKAZE, SURF, SIFT, ORB)
 feature_root: 1               # If 1, apply square root mapping to features
 feature_min_frames: 4000      # If fewer frames are detected, sift_peak_threshold/surf_hessian_threshold is reduced.
 feature_process_size: 2048    # Resize the image if its size is larger than specified. Set to -1 for original size
 feature_use_adaptive_suppression: no
+feature_use_gpu: no          # Id yes, tries to use OpenCV ORB cuda version. In addition, only uses one process.
+feature_device_id: 0          # Identification number of the cuda device
 
 # Params for SIFT
 sift_peak_threshold: 0.1     # Smaller value -> more features

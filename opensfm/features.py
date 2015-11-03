@@ -165,6 +165,31 @@ def extract_features_akaze(image, config):
     points = points.astype(float)
     return points, desc
 
+def init_orb_gpu(config):
+    device_id = config.get('feature_device_id', 0)
+    csfm.CUDA_setDevice(device_id)
+    # TODO(edgar): Use data to get ORB initialization values
+    return csfm.OrbGpu()
+
+def extract_features_orb_gpu(image, config, detector):
+    logger.debug('Computing ORB-GPU')
+    t = time.time()
+    points, desc = detector.detectAndCompute(image)
+    logger.debug('Found {0} points in {1}s'.format( len(points), time.time()-t ))
+
+    points = points.astype(float)
+    return points, desc
+
+def extract_features_orb_cpu(image, config):
+    logger.debug('Computing ORB-CPU')
+    t = time.time()
+    #TODO(edgar): use opencv to call orb cpu
+    #points, desc = detector.detectAndCompute(image)
+    logger.debug('Found {0} points in {1}s'.format( len(points), time.time()-t ))
+
+    points = points.astype(float)
+    return points, desc
+
 def extract_features_hahog(image, config):
     t = time.time()
     points, desc = csfm.hahog(image.astype(np.float32) / 255, # VlFeat expects pixel values between 0, 1
@@ -185,7 +210,7 @@ def extract_features_hahog(image, config):
     logger.debug('Found {0} points in {1}s'.format( len(points), time.time()-t ))
     return points, desc
 
-def extract_features(color_image, config):
+def extract_features(color_image, config, detector=None):
     assert len(color_image.shape) == 3
     color_image = resized_image(color_image, config)
     image = cv2.cvtColor(color_image, cv2.COLOR_RGB2GRAY)
@@ -199,13 +224,19 @@ def extract_features(color_image, config):
         points, desc = extract_features_akaze(image, config)
     elif feature_type == 'HAHOG':
         points, desc = extract_features_hahog(image, config)
+    elif feature_type == 'ORB':
+        if config.get('feature_use_gpu', False):
+            points, desc = extract_features_orb_gpu(image, config, detector)
+        else:
+            raise ValueError('ORB CPU: Not yet implemented!') 
+            #points, desc = extract_features_orb_cpu(image, config)
     else:
-        raise ValueError('Unknown feature type (must be SURF, SIFT, AKAZE or HAHOG)')
+        raise ValueError('Unknown feature type (must be SURF, SIFT, AKAZE, HAHOG or ORB)')
 
     xs = points[:,0].round().astype(int)
     ys = points[:,1].round().astype(int)
     colors = color_image[ys, xs]
-
+    
     return mask_and_normalize_features(points, desc, colors, image.shape[1], image.shape[0], config)
 
 
