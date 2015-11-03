@@ -226,5 +226,9 @@ def build_flann_index(features, config):
     flann_params = dict(algorithm=FLANN_INDEX_METHOD,
                         branching=config.get('flann_branching', 16),
                         iterations=config.get('flann_iterations', 20))
-    index = cv2.flann_Index(features, flann_params)
+    from cv2 import __version__
+    if __version__ == '3.0.0-dev':
+        index = cv2.flann.Index(features, flann_params)
+    else:
+        index = cv2.flann_Index(features, flann_params)
     return index
