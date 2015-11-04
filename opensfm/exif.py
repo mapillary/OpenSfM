@@ -287,7 +287,9 @@ def hard_coded_calibration(exif):
             # "v2 garmin virbxe 4000 3000 perspective 0.3888"
             return {'focal': 0.466, 'k1': -0.08, 'k2': 0.0}     # when using camera's undistortion
             # return {'focal': 0.466, 'k1': -0.195, 'k2'; 0.030}  # original
-
+    elif 'drift' == make:
+        if 'ghost s' == model:
+            return {"focal": 0.47, "k1": -0.22, "k2": 0.03}
 
 def focal_ratio_calibration(exif):
     if exif['focal_ratio']:
