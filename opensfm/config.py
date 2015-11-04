@@ -11,8 +11,8 @@ feature_root: 1               # If 1, apply square root mapping to features
 feature_min_frames: 4000      # If fewer frames are detected, sift_peak_threshold/surf_hessian_threshold is reduced.
 feature_process_size: 2048    # Resize the image if its size is larger than specified. Set to -1 for original size
 feature_use_adaptive_suppression: no
-feature_use_gpu: no          # Id yes, tries to use OpenCV ORB cuda version. In addition, only uses one process.
-feature_device_id: 0          # Identification number of the cuda device
+feature_use_gpu: no           # Id yes, tries to use OpenCV ORB cuda version. In addition, only uses one process.
+feature_device_id: 0          # Identification number of the cuda deviceto use
 
 # Params for SIFT
 sift_peak_threshold: 0.1     # Smaller value -> more features
@@ -33,6 +33,18 @@ akaze_descriptor_channels: 3  # Number of feature channels (1,2,3)
 # Params for HAHOG
 hahog_peak_threshold: 0.00001
 hahog_edge_threshold: 10
+
+# Params for ORB (See OpenCV doc)
+orb_nfeatures: 10000          # The maximum number of features to retain.
+orb_scaleFactor: 1.2          # Pyramid decimation ratio, greater than 1.
+orb_nlevel: 8                 # The number of pyramid levels.
+orb_edgeThreshold: 31         # This is size of the border where the features are not detected
+orb_firstLevel: 0             # It should be 0 in the current implementation. 
+orb_WTA_K: 2                  # The number of points that produce each element of the oriented BRIEF descriptor.
+orb_scoreType: 0              # 0 (HARRIS_SCORE), 1 (FAST_SCORE), 32 (kBytes)
+orb_patchSize: 31             # Size of the patch used by the oriented BRIEF descriptor.
+orb_fastThreshold: 20         # Threshold used in case that uses FAST corner detection.
+orb_blurForDescription: no    # If yes, image will be blurred before descriptors calculation
 
 # Masks for regions that will be ignored for feature extraction
 # List of bounding boxes specified as the ratio to image width and height

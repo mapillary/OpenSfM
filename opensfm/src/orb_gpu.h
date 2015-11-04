@@ -30,17 +30,36 @@ bool CUDA_setDevice(const int device_id) {
 class OrbGpu
 {
 public:
-  OrbGpu() {
+  OrbGpu(const int nfeatures, 
+         const float scaleFactor, 
+         const int nlevels,
+         const int edgeThreshold,
+         const int firstLevel,
+         const int WTA_K,
+         const int scoreType,
+         const int patchSize,
+         const int fastThreshold,
+         const bool blurForDescriptor) {
 
     std::cout << "Loading ORB-GPU ..." << std::endl;
 
     // Instantiate ORB GPU object
-    orb_ = cv::cuda::ORB::create(
-      50000, 1.2f, 8, 31, 0, 2, 0, 31, 20, false);
+    orb_ = cv::cuda::ORB::create(nfeatures,
+                                 scaleFactor,
+                                 nlevels,
+                                 edgeThreshold,
+                                 firstLevel,
+                                 WTA_K,
+                                 scoreType, 
+                                 patchSize, 
+                                 fastThreshold,
+                                 blurForDescriptor);
 
     std::cout << "Loading ORB-GPU ... [OK]" << std::endl;
 
   }
+
+  //OrbGpu(const OrbGpu &);
   
   bp::object detectAndCompute(PyObject *image);
 

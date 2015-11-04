@@ -165,10 +165,26 @@ def extract_features_akaze(image, config):
     points = points.astype(float)
     return points, desc
 
+def init_orb_gpu(config, feature_use_gpu):
+    device_id = config.get('feature_device_id', 0)
+    if feature_use_gpu and csfm.have_cuda and csfm.CUDA_setDevice(device_id):
+        return csfm.OrbGpu(nfeatures = config.get('orb_nfeatures', 500),
+                           scaleFactor = config.get('orb_scaleFactor', 1.2), 
+                           nlevels = config.get('orb_nlevels', 8),
+                           edgeThreshold = config.get('orb_edgeThreshold', 31),
+                           firstLevel = config.get('orb_firstLevel', 0),
+                           WTA_K = config.get('orb_WTA_K', 2),
+                           scoreType = config.get('orb_scoreType', 0),
+                           patchSize = config.get('orb_patchSize', 31),
+                           fastThreshold = config.get('orb_fastThreshold', 20),
+                           blurForDescriptor = config.get('orb_blurForDescriptor', False))
+    else:
+       return None
+
 def extract_features_orb_gpu(image, config, detector):
     logger.debug('Computing ORB-GPU')
     t = time.time()
-    points, desc = detector.detectAndCompute(image)
+    points, desc = detector.detect_and_compute(image)
     logger.debug('Found {0} points in {1}s'.format( len(points), time.time()-t ))
 
     points = points.astype(float)
@@ -178,7 +194,7 @@ def extract_features_orb_cpu(image, config):
     logger.debug('Computing ORB-CPU')
     t = time.time()
     detector = cv2.ORB_create()
-    #TODO(edgar): check obtained error
+    #TODO(edgar): investigate obtained error
     # got weird error: OpenCV Error: Assertion failed (The data should normally be NULL!) in allocate
     points, desc = detector.detectAndCompute(image, None)
     logger.debug('Found {0} points in {1}s'.format( len(points), time.time()-t ))

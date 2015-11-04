@@ -10,21 +10,12 @@ import numpy as np
 from opensfm import dataset
 from opensfm import features
 from opensfm import multiview
-from opensfm import csfm
 
 logger = logging.getLogger(__name__)
 
 def usage():
     print 'USAGE: %s data_set_path' % sys.argv[0]
     sys.exit(0)
-
-def init_orb_gpu(config, feature_use_gpu):
-    device_id = config.get('feature_device_id', 0)
-    if feature_use_gpu and csfm.have_cuda and csfm.CUDA_setDevice(device_id):
-        orb = csfm.OrbGpu()
-    else:
-        orb = None
-    return orb
 
 def detect(image, detector=None):
     logger.info('Extracting {} features for image {}'.format(data.feature_type().upper(), image))
@@ -59,11 +50,11 @@ if __name__ == "__main__":
 
     # Try to initialize orb gpu if it's posible
     feature_use_gpu = data.config.get('feature_use_gpu', False)
-    orb_gpu = init_orb_gpu(data.config, feature_use_gpu)
+    orb_gpu = features.init_orb_gpu(data.config, feature_use_gpu)
 
     start = time.time()
     processes = data.config.get('processes', 1)
-    if processes == 1 or feature_use_gpu:
+    if processes == 1 or feature_use_gpu and orb_gpu is not None:
         for image in images:
             detect(image, detector=orb_gpu)
 
