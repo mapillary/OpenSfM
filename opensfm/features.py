@@ -165,12 +165,6 @@ def extract_features_akaze(image, config):
     points = points.astype(float)
     return points, desc
 
-def init_orb_gpu(config):
-    device_id = config.get('feature_device_id', 0)
-    csfm.CUDA_setDevice(device_id)
-    # TODO(edgar): Use data to get ORB initialization values
-    return csfm.OrbGpu()
-
 def extract_features_orb_gpu(image, config, detector):
     logger.debug('Computing ORB-GPU')
     t = time.time()
@@ -183,8 +177,10 @@ def extract_features_orb_gpu(image, config, detector):
 def extract_features_orb_cpu(image, config):
     logger.debug('Computing ORB-CPU')
     t = time.time()
-    #TODO(edgar): use opencv to call orb cpu
-    #points, desc = detector.detectAndCompute(image)
+    detector = cv2.ORB_create()
+    #TODO(edgar): check obtained error
+    # got weird error: OpenCV Error: Assertion failed (The data should normally be NULL!) in allocate
+    points, desc = detector.detectAndCompute(image, None)
     logger.debug('Found {0} points in {1}s'.format( len(points), time.time()-t ))
 
     points = points.astype(float)
@@ -215,23 +211,23 @@ def extract_features(color_image, config, detector=None):
     color_image = resized_image(color_image, config)
     image = cv2.cvtColor(color_image, cv2.COLOR_RGB2GRAY)
 
-    feature_type = config.get('feature_type','SIFT').upper()
-    if feature_type == 'SIFT':
-        points, desc = extract_features_sift(image, config)
-    elif feature_type == 'SURF':
-        points, desc = extract_features_surf(image, config)
-    elif feature_type == 'AKAZE':
-        points, desc = extract_features_akaze(image, config)
-    elif feature_type == 'HAHOG':
-        points, desc = extract_features_hahog(image, config)
-    elif feature_type == 'ORB':
-        if config.get('feature_use_gpu', False):
-            points, desc = extract_features_orb_gpu(image, config, detector)
-        else:
-            raise ValueError('ORB CPU: Not yet implemented!') 
-            #points, desc = extract_features_orb_cpu(image, config)
+    if config.get('feature_use_gpu', False):
+        points, desc = extract_features_orb_gpu(image, config, detector)
     else:
-        raise ValueError('Unknown feature type (must be SURF, SIFT, AKAZE, HAHOG or ORB)')
+        feature_type = config.get('feature_type','SIFT').upper()
+        if feature_type == 'SIFT':
+            points, desc = extract_features_sift(image, config)
+        elif feature_type == 'SURF':
+            points, desc = extract_features_surf(image, config)
+        elif feature_type == 'AKAZE':
+            points, desc = extract_features_akaze(image, config)
+        elif feature_type == 'HAHOG':
+            points, desc = extract_features_hahog(image, config)
+        elif feature_type == 'ORB':
+            #points, desc = extract_features_orb_cpu(image, config)
+            raise ValueError('Not yet implemented!')
+        else:
+            raise ValueError('Unknown feature type (must be SURF, SIFT, AKAZE, HAHOG or ORB)')
 
     xs = points[:,0].round().astype(int)
     ys = points[:,1].round().astype(int)

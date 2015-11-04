@@ -9,8 +9,11 @@
 #include "hahog.cc"
 #include "multiview.cc"
 #include "akaze.cc"
-#include "orb_gpu.h"
 #include "bundle.h"
+
+#ifdef HAVE_CUDA
+#include "orb_gpu.h"
+#endif
 
 #if (PY_VERSION_HEX < 0x03000000)
 static void numpy_import_array_wrapper()
@@ -68,22 +71,6 @@ BOOST_PYTHON_MODULE(csfm) {
 
   def("akaze", csfm::akaze);
   
-  def("CUDA_setDevice", csfm::CUDA_setDevice);
-  def("CUDA_getCudaEnabledDeviceCount", csfm::CUDA_getCudaEnabledDeviceCount);
-  def("CUDA_printShortCudaDeviceInfo", csfm::CUDA_printShortCudaDeviceInfo);
-
-  class_<csfm::OrbGpu>("OrbGpu")
-    .def("detectAndCompute", &csfm::OrbGpu::detectAndCompute)
-  ;
-
-  def("hahog", csfm::hahog,
-      (boost::python::arg("peak_threshold") = 0.003,
-       boost::python::arg("edge_threshold") = 10,
-       boost::python::arg("target_num_features") = 0,
-       boost::python::arg("use_adaptive_suppression") = false
-      )
-  );
-
   def("triangulate_bearings", csfm::TriangulateBearings);
 
   class_<BundleAdjuster, boost::noncopyable>("BundleAdjuster")
@@ -148,4 +135,25 @@ BOOST_PYTHON_MODULE(csfm) {
     .def_readwrite("reprojection_error", &BAPoint::reprojection_error)
     .def_readwrite("id", &BAPoint::id)
   ;
+
+  def("have_cuda", csfm::haveCuda);
+
+#ifdef HAVE_CUDA
+  def("CUDA_setDevice", csfm::CUDA_setDevice);
+  def("CUDA_getCudaEnabledDeviceCount", csfm::CUDA_getCudaEnabledDeviceCount);
+  def("CUDA_printShortCudaDeviceInfo", csfm::CUDA_printShortCudaDeviceInfo);
+
+  class_<csfm::OrbGpu>("OrbGpu")
+    .def("detectAndCompute", &csfm::OrbGpu::detectAndCompute)
+  ;
+
+  def("hahog", csfm::hahog,
+      (boost::python::arg("peak_threshold") = 0.003,
+       boost::python::arg("edge_threshold") = 10,
+       boost::python::arg("target_num_features") = 0,
+       boost::python::arg("use_adaptive_suppression") = false
+      )
+  );
+#endif
+
 }
