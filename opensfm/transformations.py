@@ -298,7 +298,7 @@ def rotation_matrix(angle, direction, point=None):
     >>> R = rotation_matrix(math.pi/2, [0, 0, 1], [1, 0, 0])
     >>> numpy.allclose(numpy.dot(R, [0, 0, 0, 1]), [1, -1, 0, 1])
     True
-    >>> angle = (random.random() - 0.5) * (2*math.pi)
+    >>> angle = (numpy.random.random() - 0.5) * (2*math.pi)
     >>> direc = numpy.random.random(3) - 0.5
     >>> point = numpy.random.random(3) - 0.5
     >>> R0 = rotation_matrix(angle, direc, point)
@@ -339,7 +339,7 @@ def rotation_matrix(angle, direction, point=None):
 def rotation_from_matrix(matrix):
     """Return rotation angle and axis from rotation matrix.
 
-    >>> angle = (random.random() - 0.5) * (2*math.pi)
+    >>> angle = (numpy.random.random() - 0.5) * (2*math.pi)
     >>> direc = numpy.random.random(3) - 0.5
     >>> point = numpy.random.random(3) - 0.5
     >>> R0 = rotation_matrix(angle, direc, point)
@@ -386,7 +386,7 @@ def scale_matrix(factor, origin=None, direction=None):
     >>> S = scale_matrix(-1.234)
     >>> numpy.allclose(numpy.dot(S, v)[:3], -1.234*v[:3])
     True
-    >>> factor = random.random() * 10 - 5
+    >>> factor = numpy.random.random() * 10 - 5
     >>> origin = numpy.random.random(3) - 0.5
     >>> direct = numpy.random.random(3) - 0.5
     >>> S = scale_matrix(factor, origin)
@@ -413,7 +413,7 @@ def scale_matrix(factor, origin=None, direction=None):
 def scale_from_matrix(matrix):
     """Return scaling factor, origin and direction from scaling matrix.
 
-    >>> factor = random.random() * 10 - 5
+    >>> factor = numpy.random.random() * 10 - 5
     >>> origin = numpy.random.random(3) - 0.5
     >>> direct = numpy.random.random(3) - 0.5
     >>> S0 = scale_matrix(factor, origin)
@@ -649,7 +649,7 @@ def shear_matrix(angle, direction, point, normal):
     given by the angle of P-P'-P", where P' is the orthogonal projection
     of P onto the shear plane.
 
-    >>> angle = (random.random() - 0.5) * 4*math.pi
+    >>> angle = (numpy.random.random() - 0.5) * 4*math.pi
     >>> direct = numpy.random.random(3) - 0.5
     >>> point = numpy.random.random(3) - 0.5
     >>> normal = numpy.cross(direct, numpy.random.random(3))
@@ -672,7 +672,7 @@ def shear_matrix(angle, direction, point, normal):
 def shear_from_matrix(matrix):
     """Return shear angle, direction and plane from shear matrix.
 
-    >>> angle = (random.random() - 0.5) * 4*math.pi
+    >>> angle = (numpy.random.random() - 0.5) * 4*math.pi
     >>> direct = numpy.random.random(3) - 0.5
     >>> point = numpy.random.random(3) - 0.5
     >>> normal = numpy.cross(direct, numpy.random.random(3))
@@ -899,6 +899,7 @@ def affine_matrix_from_points(v0, v1, shear=True, scale=True, usesvd=True):
     The returned matrix performs rotation, translation and uniform scaling
     (if specified).
 
+    >>> numpy.set_printoptions(precision=5, suppress=True)
     >>> v0 = [[0, 1031, 1031, 0], [0, 0, 1600, 1600]]
     >>> v1 = [[675, 826, 826, 677], [55, 52, 281, 277]]
     >>> affine_matrix_from_points(v0, v1)
@@ -907,7 +908,7 @@ def affine_matrix_from_points(v0, v1, shear=True, scale=True, usesvd=True):
            [   0.     ,    0.     ,    1.     ]])
     >>> T = translation_matrix(numpy.random.random(3)-0.5)
     >>> R = random_rotation_matrix(numpy.random.random(3))
-    >>> S = scale_matrix(random.random())
+    >>> S = scale_matrix(numpy.random.random())
     >>> M = concatenate_matrices(T, R, S)
     >>> v0 = (numpy.random.rand(4, 100) - 0.5) * 20
     >>> v0[3] = 1
@@ -1015,7 +1016,7 @@ def superimposition_matrix(v0, v1, scale=False, usesvd=True):
     >>> M = superimposition_matrix(v0, v1)
     >>> numpy.allclose(v1, numpy.dot(M, v0))
     True
-    >>> S = scale_matrix(random.random())
+    >>> S = scale_matrix(numpy.random.random())
     >>> T = translation_matrix(numpy.random.random(3)-0.5)
     >>> M = concatenate_matrices(T, R, S)
     >>> v1 = numpy.dot(M, v0)
