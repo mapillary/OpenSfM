@@ -86,19 +86,19 @@ bp::object OrbGpu::detectAndCompute(PyObject *image) {
   orb_->convert(kpts_gpu, kpts_cpu);
 
   // Convert to numpy.
-  cv::Mat keys(kpts_cpu.size(), 4, CV_32F);
-  for (int i = 0; i < (int) kpts_cpu.size(); ++i) {
-    keys.at<float>(i, 0) = kpts_cpu[i].pt.x;
-    keys.at<float>(i, 1) = kpts_cpu[i].pt.y;
-    keys.at<float>(i, 2) = kpts_cpu[i].size;
-    keys.at<float>(i, 3) = kpts_cpu[i].angle;
+  cv::Mat keys(kpts_cpu.size(), 4, CV_8U);
+  for (size_t i = 0; i < kpts_cpu.size(); ++i) {
+    keys.at<uchar>(i, 0) = kpts_cpu[i].pt.x;
+    keys.at<uchar>(i, 1) = kpts_cpu[i].pt.y;
+    keys.at<uchar>(i, 2) = kpts_cpu[i].size;
+    keys.at<uchar>(i, 3) = kpts_cpu[i].angle;
   }
 
   bp::list retn;
   npy_intp keys_shape[2] = {keys.rows, keys.cols};
-  retn.append(bpn_array_from_data(2, keys_shape, keys.ptr<float>(0)));
+  retn.append(bpn_array_from_data(2, keys_shape, keys.ptr<uchar>(0)));
   npy_intp desc_shape[2] = {desc_cpu.rows, desc_cpu.cols};
-  retn.append(bpn_array_from_data(2, desc_shape, desc_cpu.ptr<float>(0)));
+  retn.append(bpn_array_from_data(2, desc_shape, desc_cpu.ptr<uchar>(0)));
   return retn;
 }
 

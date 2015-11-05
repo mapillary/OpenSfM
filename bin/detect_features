@@ -33,9 +33,8 @@ def detect(image, detector=None):
         f_pre = f_sorted[-preemptive_max:]
         data.save_features(image, p_sorted, f_sorted, c_sorted)
         data.save_preemptive_features(image, p_pre, f_pre)
-        # got (seg fault)
-        #index = features.build_flann_index(f_sorted, data.config)
-        #data.save_feature_index(image, index)
+        index = features.build_flann_index(f_sorted, data.config)
+        data.save_feature_index(image, index)
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
