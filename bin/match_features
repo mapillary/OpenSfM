@@ -89,7 +89,7 @@ def match(args):
         t = time.time()
         p1, f1, c1 = data.load_features(im1)
         i1 = data.load_feature_index(im1, f1)
-
+        
         p2, f2, c2 = data.load_features(im2)
         i2 = data.load_feature_index(im2, f2)
 
