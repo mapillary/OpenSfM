@@ -6,6 +6,7 @@ xcode
 # Ignore generated files
 /build
 /cmake_build
+.cache
 
 # Ignore the data folder, but not the berlin example.
 data/*
