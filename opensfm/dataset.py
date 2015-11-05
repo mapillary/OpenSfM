@@ -194,6 +194,8 @@ class DataSet:
     def load_feature_index(self, image, features):
         from cv2 import __version__
         index = cv2.flann.Index() if __version__ == '3.0.0-dev' else cv2.flann_Index()
+        if self.feature_type() == 'root_orb':
+            features = features.astype(np.uint8)
         index.load(features, self.__feature_index_file(image))
         return index
 

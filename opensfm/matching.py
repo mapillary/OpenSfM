@@ -12,6 +12,8 @@ logger = logging.getLogger(__name__)
 
 # pairwise matches
 def match_lowe(index, f2, config):
+    if config.get('feature_type') == 'ORB':
+        f2=f2.astype(np.uint8)
     search_params = dict(checks=config.get('flann_checks', 200))
     results, dists = index.knnSearch(f2, 2, params=search_params)
     squared_ratio = config.get('lowes_ratio', 0.6)**2  # Flann returns squared L2 distances
