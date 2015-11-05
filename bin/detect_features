@@ -48,11 +48,11 @@ if __name__ == "__main__":
     preemptive_max = data.config.get('preemptive_max', 200)
 
     # Try to initialize orb gpu if it's posible
-    feature_use_gpu = data.config.get('feature_use_gpu', False)
-    orb_gpu = features.init_orb_gpu(data.config, feature_use_gpu)
+    orb_gpu = features.init_orb_gpu(data.config)
 
     start = time.time()
     processes = data.config.get('processes', 1)
+    feature_use_gpu = data.config.get('feature_use_gpu', False)
     if processes == 1 or feature_use_gpu and orb_gpu is not None:
         for image in images:
             detect(image, detector=orb_gpu)

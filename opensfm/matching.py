@@ -52,8 +52,12 @@ def match_lowe_bf(f1, f2, config):
         matcher_type = 'BruteForce-Hamming'
     else:
         matcher_type = 'BruteForce'
+   
     matcher = cv2.DescriptorMatcher_create(matcher_type)
     matches = matcher.knnMatch(f1, f2, k=2)
+
+    #matcher = cv2.BFMatcher(cv2.NORM_HAMMING)
+    #matches = matcher.knnMatch(f1, f2, k=2)
 
     ratio = config.get('lowes_ratio', 0.6)
     good_matches = []

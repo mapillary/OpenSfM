@@ -165,19 +165,23 @@ def extract_features_akaze(image, config):
     points = points.astype(float)
     return points, desc
 
-def init_orb_gpu(config, feature_use_gpu):
+def init_orb_gpu(config):
+    feature_type = config.get('feature_type')
     device_id = config.get('feature_device_id', 0)
-    if feature_use_gpu and csfm.have_cuda and csfm.CUDA_setDevice(device_id):
-        return csfm.OrbGpu(nfeatures = config.get('orb_nfeatures', 500),
-                           scaleFactor = config.get('orb_scaleFactor', 1.2), 
-                           nlevels = config.get('orb_nlevels', 8),
-                           edgeThreshold = config.get('orb_edgeThreshold', 31),
-                           firstLevel = config.get('orb_firstLevel', 0),
-                           WTA_K = config.get('orb_WTA_K', 2),
-                           scoreType = config.get('orb_scoreType', 0),
-                           patchSize = config.get('orb_patchSize', 31),
-                           fastThreshold = config.get('orb_fastThreshold', 20),
-                           blurForDescriptor = config.get('orb_blurForDescriptor', False))
+    feature_use_gpu = config.get('feature_use_gpu', False)
+    
+    if feature_type == 'ORB' and feature_use_gpu and csfm.have_cuda:
+        if csfm.CUDA_setDevice(device_id):
+            return csfm.OrbGpu(nfeatures = config.get('orb_nfeatures', 500),
+                               scaleFactor = config.get('orb_scaleFactor', 1.2), 
+                               nlevels = config.get('orb_nlevels', 8),
+                               edgeThreshold = config.get('orb_edgeThreshold', 31),
+                               firstLevel = config.get('orb_firstLevel', 0),
+                               WTA_K = config.get('orb_WTA_K', 2),
+                               scoreType = config.get('orb_scoreType', 0),
+                               patchSize = config.get('orb_patchSize', 31),
+                               fastThreshold = config.get('orb_fastThreshold', 20),
+                               blurForDescriptor = config.get('orb_blurForDescriptor', False))
     else:
        return None
 
@@ -227,23 +231,23 @@ def extract_features(color_image, config, detector=None):
     color_image = resized_image(color_image, config)
     image = cv2.cvtColor(color_image, cv2.COLOR_RGB2GRAY)
 
-    if config.get('feature_use_gpu', False):
-        points, desc = extract_features_orb_gpu(image, config, detector)
-    else:
-        feature_type = config.get('feature_type','SIFT').upper()
-        if feature_type == 'SIFT':
-            points, desc = extract_features_sift(image, config)
-        elif feature_type == 'SURF':
-            points, desc = extract_features_surf(image, config)
-        elif feature_type == 'AKAZE':
-            points, desc = extract_features_akaze(image, config)
-        elif feature_type == 'HAHOG':
-            points, desc = extract_features_hahog(image, config)
-        elif feature_type == 'ORB':
+    feature_type = config.get('feature_type','SIFT').upper()
+    if feature_type == 'SIFT':
+        points, desc = extract_features_sift(image, config)
+    elif feature_type == 'SURF':
+        points, desc = extract_features_surf(image, config)
+    elif feature_type == 'AKAZE':
+        points, desc = extract_features_akaze(image, config)
+    elif feature_type == 'HAHOG':
+        points, desc = extract_features_hahog(image, config)
+    elif feature_type == 'ORB':
+        if config.get('feature_use_gpu', False):
+            points, desc = extract_features_orb_gpu(image, config, detector)
+        else:
             #points, desc = extract_features_orb_cpu(image, config)
             raise ValueError('Not yet implemented!')
-        else:
-            raise ValueError('Unknown feature type (must be SURF, SIFT, AKAZE, HAHOG or ORB)')
+    else:
+        raise ValueError('Unknown feature type (must be SURF, SIFT, AKAZE, HAHOG or ORB)')
 
     xs = points[:,0].round().astype(int)
     ys = points[:,1].round().astype(int)
