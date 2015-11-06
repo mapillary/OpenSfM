@@ -596,6 +596,24 @@ def align_reconstruction_naive_similarity(reconstruction):
     return s, A, b
 
 
+def align_reconstruction_sensors_similarity(reconstruction):
+    # Compute similarity Xp = s A X + b
+    X, Xp = [], []
+    for shot in reconstruction['shots'].values():
+        X.append(optical_center(shot))
+        # X.append(optical_center(shot) + scale * R[2, :])
+        Xp.append(shot['gps_position'])
+        # Xp.append(shot['gps_position'] + scale * compass_orientation_vector)
+    X = np.array(X)
+    Xp = np.array(Xp)
+    T = tf.superimposition_matrix(X.T, Xp.T, scale=True)
+
+    A, b = T[:3,:3], T[:3,3]
+    s = np.linalg.det(A)**(1./3)
+    A /= s
+    return s, A, b
+
+
 def get_horitzontal_and_vertical_directions(R, orientation):
     '''Get orientation vectors from camera rotation matrix and orientation tag.
 
@@ -629,6 +647,7 @@ def align_reconstruction(reconstruction, config):
 
 
 def align_reconstruction_similarity(reconstruction, config):
+    return align_reconstruction_sensors_similarity(reconstruction)
     align_method = config.get('align_method', 'orientation_prior')
     if align_method == 'orientation_prior':
         return align_reconstruction_orientation_prior_similarity(reconstruction, config)
