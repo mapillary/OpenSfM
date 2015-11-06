@@ -11,7 +11,7 @@ import uuid
 import cv2
 import csfm
 
-from opensfm import config
+from opensfm import context
 
 logger = logging.getLogger(__name__)
 
@@ -228,7 +228,7 @@ def build_flann_index(features, config):
     flann_params = dict(algorithm=FLANN_INDEX_METHOD,
                         branching=config.get('flann_branching', 16),
                         iterations=config.get('flann_iterations', 20))
-    if config.get_opencv_version() >= 3:
+    if context.OPENCV3:
         index = cv2.flann.Index(features, flann_params)
     else:
         index = cv2.flann_Index(features, flann_params)

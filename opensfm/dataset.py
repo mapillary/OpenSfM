@@ -11,7 +11,7 @@ import cv2
 
 from opensfm import io
 from opensfm import config
-
+from opensfm import context
 
 class DataSet:
     """
@@ -67,7 +67,7 @@ class DataSet:
 
     def image_as_array(self, image):
         """Return image pixels as 3-dimensional numpy array (R G B order)"""
-        flag = cv2.IMREAD_COLOR if config.get_opencv_version() >= 3 else cv2.CV_LOAD_IMAGE_COLOR
+        flag = cv2.IMREAD_COLOR if context.OPENCV3 else cv2.CV_LOAD_IMAGE_COLOR
         return cv2.imread(self.__image_file(image), flag)[:,:,::-1]  # Turn BGR to RGB
 
     @staticmethod
@@ -194,7 +194,7 @@ class DataSet:
         return os.path.join(self.__feature_path(), image + '.' + self.feature_type() + '.flann')
 
     def load_feature_index(self, image, features):
-        index = cv2.flann.Index() if config.get_opencv_version() >= 3 else cv2.flann_Index()
+        index = cv2.flann.Index() if context.OPENCV3 else cv2.flann_Index()
         index.load(features, self.__feature_index_file(image))
         return index
 

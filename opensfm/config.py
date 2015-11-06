@@ -1,8 +1,6 @@
 import os
 import yaml
 
-from cv2 import __version__
-
 default_config_yaml = '''
 # Metadata
 use_exif_size: yes
@@ -124,8 +122,3 @@ def load_config(filepath):
                 config[k] = v
 
     return config
-
-def get_opencv_version():
-    '''Return installed OpenCV version number
-    '''
-    return int(__version__.split('.')[0])
