@@ -4,4 +4,3 @@
 # For example:
 matching_gps_neighbors: 4     # Number of images to match selected by GPS distance. Set to 0 to use no limit
 processes: 4                  # Number of threads to use
-align_method: naive
