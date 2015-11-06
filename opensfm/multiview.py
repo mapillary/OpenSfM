@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 
-import numpy as np
-from numpy.linalg import qr
-import random
 import math
+import random
+
+import numpy as np
 import cv2
+
 from opensfm import transformations as tf
 from opensfm import csfm
 
@@ -91,12 +92,14 @@ def rq(A):
     ...               [0, 4, 5],
     ...               [0, 0, 1]])
     >>> r, q = rq(R.dot(Q))
-    >>> np.allclose(r, R)
+    >>> np.allclose(r.dot(q), R.dot(Q))
     True
-    >>> np.allclose(q, Q)
+    >>> np.allclose(abs(np.linalg.det(q)), 1.0)
+    True
+    >>> np.allclose(r[1,0], 0) and np.allclose(r[2,0], 0) and np.allclose(r[2,1], 0)
     True
     '''
-    Q, R = qr(np.flipud(A).T)
+    Q, R = np.linalg.qr(np.flipud(A).T)
     R = np.flipud(R.T)
     Q = Q.T
     return R[:,::-1], Q[::-1,:]
@@ -363,8 +366,8 @@ def K_from_camera(camera):
 
 
 def focal_from_homography(H):
-    '''
-    Solve for w = H w H^t, with w = diag(a, a, b)
+    '''Solve for w = H w H^t, with w = diag(a, a, b)
+
     >>> K = np.diag([0.8, 0.8, 1])
     >>> R = cv2.Rodrigues(np.array([0.3, 0, 0]))[0]
     >>> H = K.dot(R).dot(np.linalg.inv(K))
@@ -382,8 +385,6 @@ def focal_from_homography(H):
         [H[2,0] * H[2,0] + H[2,1] * H[2,1]    , H[2,2] * H[2,2] - 1],
     ])
     _, (a,b) = nullspace(A)
-    if a <= 0 or b <= 0:
-        return 1.0
     focal = np.sqrt(a / b)
     return focal
 

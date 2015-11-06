@@ -6,6 +6,7 @@ from cv2 import __version__
 default_config_yaml = '''
 # Metadata
 use_exif_size: yes
+default_focal_prior: 0.85
 
 # Params for features
 feature_type: HAHOG           # Feature type (AKAZE, SURF, SIFT)
@@ -63,6 +64,8 @@ triangulation_threshold: 0.006        # Outlier threshold (in pixels) for accept
 triangulation_min_ray_angle: 1.0
 resection_threshold: 0.004            # Outlier threshold (in pixels) for camera resection.
 resection_min_inliers: 10             # Minimum number of resection inliers to accept it.
+retriangulation: no
+retriangulation_ratio: 1.25
 
 # Params for track creation
 min_track_length: 2             # Minimum number of features/images per track

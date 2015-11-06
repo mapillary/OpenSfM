@@ -1,6 +1,7 @@
-networkx
-PyYAML
-numpy
 exifread
 gpxpy
+networkx
+numpy
+pytest
+PyYAML
 xmltodict

@@ -147,12 +147,22 @@
             varying vec4 vRstq;
             uniform sampler2D projectorTex;
             uniform float opacity;
+            uniform float focal;
+            uniform float k1;
+            uniform float k2;
+            uniform float scale_x;
+            uniform float scale_y;
 
             void main()
             {
-                float x = vRstq.x / vRstq.w + 0.5;
-                float y = vRstq.y / vRstq.w + 0.5;
-                vec4 baseColor = texture2D(projectorTex, vec2(x, y));
+                float x = vRstq.x / vRstq.z;
+                float y = vRstq.y / vRstq.z;
+                float r2 = x * x + y * y;
+                float d = 1.0 + k1 * r2 + k2 * r2 * r2;
+                float u = scale_x * focal * d * x + 0.5;
+                float v = - scale_y * focal * d * y + 0.5;
+
+                vec4 baseColor = texture2D(projectorTex, vec2(u, v));
                 baseColor.a = opacity;
                 gl_FragColor = baseColor;
             }
@@ -210,8 +220,8 @@
             var mouse = new THREE.Vector2();
             var hoverCamera, raycaster, parentTransform;
             var selectedCamera;
-            var imagePlane, imageMaterial, imagePlaneCamera;
-            var imagePlaneOld, imageMaterialOld, imagePlaneCameraOld;
+            var imagePlane, imagePlaneCamera;
+            var imagePlaneOld, imagePlaneCameraOld;
             var scene_group, grid_group;
             var pointCloudMaterial;
             var reconstructions;
@@ -221,7 +231,6 @@
             var camera_lines = [];
             var gps_lines = [];
             var imagePlanes = [];
-            var imageMaterial = [];
             var imagePlaneCameras = [];
             var imageMaterials = [];
             var num_preview_plane = 5;
@@ -395,8 +404,8 @@
                         controls.noKeys = false;
                         controls.animationPosition.z += 10;
                         controls.dollyOut(4);
-                        imageMaterial.depthWrite = true;
-                        imageMaterialOld.depthWrite = true;
+                        imagePlane.material.depthWrite = true;
+                        imagePlaneOld.material.depthWrite = true;
                         $('#navigation').hide();
                     } else if (mode == 'walk') {
                         invokeJourneyWrapper(function () { journeyWrapper.removeShowPathController(); });
@@ -406,8 +415,8 @@
                         // controls.noPan = true;
                         // controls.noZoom = true;
                         // controls.noKeys = true;
-                        imageMaterial.depthWrite = false;
-                        imageMaterialOld.depthWrite = false;
+                        imagePlane.material.depthWrite = false;
+                        imagePlaneOld.material.depthWrite = false;
                         $('#navigation').show();
                     }
                 }
@@ -650,12 +659,58 @@
                     20,
                     40
                 );
-                console.log(geometry);
                 var center = pixelToVertex(cam, shot, 0, 0, 0);
                 geometry.applyMatrix(new THREE.Matrix4().makeTranslation(center.x, center.y, center.z));
                 return geometry;
             }
 
+            function createImagePlaneMaterial(cam, shot, shot_id) {
+                var imageTexture = THREE.ImageUtils.loadTexture(imageURL(shot_id));
+
+                var material = new THREE.ShaderMaterial({
+                    side: THREE.DoubleSide,
+                    transparent: true,
+                    depthWrite: true,
+                    uniforms: {
+                        projectorMat: {
+                             type: 'm4',
+                             value: projectorCameraMatrix(cam, shot)
+                        },
+                        projectorTex: {
+                            type: 't',
+                            value: imageTexture
+                        },
+                        opacity: {
+                            type: 'f',
+                            value: options.imagePlaneOpacity
+                        },
+                        focal: {
+                            type: 'f',
+                            value: cam.focal
+                        },
+                        k1: {
+                            type: 'f',
+                            value: cam.k1
+                        },
+                        k2: {
+                            type: 'f',
+                            value: cam.k2
+                        },
+                        scale_x: {
+                            type: 'f',
+                            value: Math.max(cam.width, cam.height) / cam.width
+                        },
+                        scale_y: {
+                            type: 'f',
+                            value: Math.max(cam.width, cam.height) / cam.height
+                        }
+                    },
+                    vertexShader:   imageVertexShader(cam),
+                    fragmentShader: imageFragmentShader(cam)
+                });
+
+                return material;
+            }
 
             function imageVertexShader(cam) {
                 if (cam.projection_type == 'equirectangular' || cam.projection_type == 'spherical')
@@ -682,6 +737,9 @@
                 var t = shot.translation;
                 var translation = new THREE.Vector3(t[0], t[1], t[2]);
                 rotation.setPosition(translation);
+
+                return rotation;
+
                 if (cam.projection_type == 'equirectangular' || cam.projection_type == 'spherical')
                     return rotation
                 var dx = cam.width / Math.max(cam.width, cam.height) / cam.focal;
@@ -780,81 +838,21 @@
                 imagePlaneCamera = camera_lines[0];
                 var shot = imagePlaneCamera.reconstruction.shots[imagePlaneCamera.shot_id];
                 var cam = imagePlaneCamera.reconstruction.cameras[shot.camera];
-                var imageTexture = THREE.ImageUtils.loadTexture(imageURL(imagePlaneCamera.shot_id));
 
-                imageMaterial = new THREE.ShaderMaterial({
-                    side: THREE.DoubleSide,
-                    transparent: true,
-                    depthWrite: true,
-                    uniforms: {
-                        projectorMat: {
-                             type: 'm4',
-                             value: projectorCameraMatrix(cam, shot)
-                        },
-                        projectorTex: {
-                            type: 't',
-                            value: imageTexture
-                        },
-                        opacity: {
-                            type: 'f',
-                            value: options.imagePlaneOpacity
-                        }
-                    },
-                    vertexShader:   imageVertexShader(cam),
-                    fragmentShader: imageFragmentShader(cam)
-                });
                 imagePlane = new THREE.Mesh(imagePlaneGeo(imagePlaneCamera.reconstruction,
                                                           imagePlaneCamera.shot_id),
-                                            imageMaterial);
+                                            createImagePlaneMaterial(cam, shot, imagePlaneCamera.shot_id));
                 imagePlane.visible = options.showImagePlane;
 
                 imagePlaneCameraOld = camera_lines[0];
-                var imageTextureOld = THREE.ImageUtils.loadTexture(imageURL(imagePlaneCameraOld.shot_id));
-
-                imageMaterialOld = new THREE.ShaderMaterial({
-                    // map: imageTexture,
-                    side: THREE.DoubleSide,
-                    transparent: true,
-                    depthWrite: true,
-                    uniforms: {
-                        projectorMat: {
-                             type: 'm4',
-                             value: projectorCameraMatrix(cam, shot)
-                        },
-                        projectorTex: {
-                            type: 't',
-                            value: imageTextureOld
-                        },
-                        opacity: {
-                            type: 'f',
-                            value: options.imagePlaneOpacity
-                        }
-                    },
-                    vertexShader:   imageVertexShader(cam),
-                    fragmentShader: imageFragmentShader(cam)
-                });
                 imagePlaneOld = new THREE.Mesh(imagePlaneGeo(imagePlaneCameraOld.reconstruction,
-                                                          imagePlaneCameraOld.shot_id),
-                                            imageMaterialOld);
+                                                             imagePlaneCameraOld.shot_id),
+                                            createImagePlaneMaterial(cam, shot, imagePlaneCameraOld.shot_id));
                 imagePlaneOld.visible = options.showImagePlane;
 
                 scene_group.add(imagePlane);
                 scene_group.add(imagePlaneOld);
 
-                // for (var i=0; i < num_preview_plane; ++i) {
-                //     imagePlaneCameras.push(camera_lines[0]);
-                //     var imageTexture = THREE.ImageUtils.loadTexture(imageURL(shot_id));
-                //     imageMaterials.push(new THREE.MeshBasicMaterial({
-                //         map : imageTexture,
-                //         transparent: true,
-                //         opacity: options.imagePlaneOpacity
-                //     }));
-                //     imagePlanes.push(new THREE.Mesh(imagePlaneGeo(imagePlaneCameras[i].reconstruction,
-                //                                               imagePlaneCameras[i].shot_id),
-                //                                 imageMaterials[i]));
-                //     imagePlanes[i].visible = false;
-                //     scene_group.add(imagePlanes[i]);
-                // }
 
                 // Axis
                 grid_group = new THREE.Object3D();
@@ -994,12 +992,18 @@
                     if (imagePlaneCamera !== undefined) {
                         if (imagePlaneCameraOld === undefined || imagePlaneCamera.shot_id !== cameraObject.shot_id) {
                             imagePlaneCameraOld = imagePlaneCamera;
-                            imageMaterialOld.uniforms.projectorTex.value = imageMaterial.uniforms.projectorTex.value;
-                            imageMaterialOld.uniforms.projectorMat.value = imageMaterial.uniforms.projectorMat.value;
-                            imageMaterialOld.vertexShader = imageMaterial.vertexShader;
-                            imageMaterialOld.fragmentShader = imageMaterial.fragmentShader;
-                            imageMaterialOld.needsUpdate = true;
+                            imagePlaneOld.material.uniforms.projectorTex.value = imagePlane.material.uniforms.projectorTex.value;
+                            imagePlaneOld.material.uniforms.projectorMat.value = imagePlane.material.uniforms.projectorMat.value;
+                            imagePlane.material.uniforms.focal.value = imagePlane.material.uniforms.focal.value;
+                            imagePlane.material.uniforms.k1.value = imagePlane.material.uniforms.k1.value;
+                            imagePlane.material.uniforms.k2.value = imagePlane.material.uniforms.k2.value;
+                            imagePlane.material.uniforms.scale_x.value = imagePlane.material.uniforms.scale_x.value;
+                            imagePlane.material.uniforms.scale_y.value = imagePlane.material.uniforms.scale_y.value;
+                            imagePlaneOld.material.vertexShader = imagePlane.material.vertexShader;
+                            imagePlaneOld.material.fragmentShader = imagePlane.material.fragmentShader;
+                            imagePlaneOld.material.needsUpdate = true;
 
+                            imagePlaneOld.geometry.dispose();
                             imagePlaneOld.geometry = imagePlaneGeo(imagePlaneCameraOld.reconstruction, imagePlaneCameraOld.shot_id);
                         }
 
@@ -1009,11 +1013,9 @@
                     }
 
                     imagePlaneCamera = cameraObject;
-                    imageMaterial.uniforms.projectorTex.value = THREE.ImageUtils.loadTexture(image_url, null, render);
-                    imageMaterial.uniforms.projectorMat.value = projectorCameraMatrix(cam, shot)
-                    imageMaterial.vertexShader = imageVertexShader(cam)
-                    imageMaterial.fragmentShader = imageFragmentShader(cam)
-                    imageMaterial.needsUpdate = true;
+                    imagePlane.material.dispose();
+                    imagePlane.geometry.dispose();
+                    imagePlane.material = createImagePlaneMaterial(cam, shot, shot_id);
                     imagePlane.geometry = imagePlaneGeo(r, shot_id);
                 }
             }
@@ -1242,8 +1244,10 @@
 
             function animate() {
                 requestAnimationFrame(animate);
-                imageMaterial.uniforms.opacity.value = 1 - options.imagePlaneOpacity;
-                imageMaterialOld.uniforms.opacity.value = 1;//options.imagePlaneOpacity;
+                imagePlane.material.uniforms.opacity.value = 1 - options.imagePlaneOpacity;
+                if (imagePlaneOld !== undefined) {
+                    imagePlaneOld.material.uniforms.opacity.value = 1;
+                }
                 if (invokeJourneyWrapper(function () { return journeyWrapper.isStarted() && journeyWrapper.isSmooth(); }) !== true) {
                     options.imagePlaneOpacity *= 1 - options.animationSpeed;
                 }

@@ -1,9 +1,12 @@
+sudo: required
+
 language: python
-python:
-  - "2.7"
-install:
-  - sudo apt-get install python-opencv libopencv-dev libgoogle-glog-dev libatlas-base-dev libeigen3-dev libsuitesparse-dev libboost-python-dev python-pyexiv2
-  - pip install -r requirements.txt
+
+services:
+  - docker
+
+before_install:
+  - docker build -t mapillary/opensfm .
+
 script:
-  - python setup.py build_clib
-  - python setup.py build_ext --inline
+  - docker run mapillary/opensfm /bin/sh -c "cd /source/OpenSfM; py.test"

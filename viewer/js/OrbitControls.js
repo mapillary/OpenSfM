@@ -278,7 +278,6 @@ THREE.OrbitControls = function ( object, domElement ) {
 	}
 
 	function onMouseDown( event ) {
-		console.log('onMouseDown '+ scope.enabled + scope.noLookAround)
 		if ( scope.enabled === false ) return;
 		event.preventDefault();
 
@@ -310,7 +309,6 @@ THREE.OrbitControls = function ( object, domElement ) {
 	}
 
 	function onMouseMove( event ) {
-		console.log('onMouseMove')
 
 		if ( scope.enabled === false ) return;
 

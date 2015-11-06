@@ -29,9 +29,7 @@ class DataSet:
         """
         self.data_path = data_path
 
-        # Load configuration.
-        config_file = os.path.join(self.data_path, 'config.yaml')
-        self.config = config.load_config(config_file)
+        self._load_config()
 
         # Load list of images.
         image_list_file = os.path.join(self.data_path, 'image_list.txt')
@@ -47,6 +45,11 @@ class DataSet:
                   self.__feature_path(),
                   self.__matches_path()]:
             io.mkdir_p(p)
+
+
+    def _load_config(self):
+        config_file = os.path.join(self.data_path, 'config.yaml')
+        self.config = config.load_config(config_file)
 
     def images(self):
         """Return list of file names of all images in this dataset"""
@@ -344,6 +347,19 @@ class DataSet:
         """Save camera models data"""
         with open(self.__camera_models_file(), 'w') as fout:
             fout.write(io.json_dumps(camera_models))
+
+    def __camera_models_overrides_file(self):
+        """Return path of camera model overrides file"""
+        return os.path.join(self.data_path, 'camera_models_overrides.json')
+
+    def camera_models_overrides_exists(self):
+        return os.path.isfile(self.__camera_models_overrides_file())
+
+    def load_camera_models_overrides(self):
+        """Return camera models overrides data"""
+        with open(self.__camera_models_overrides_file(), 'r') as fin:
+            return json.load(fin)
+
 
 
     def __epipolar_path(self):
