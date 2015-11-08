@@ -5,7 +5,6 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 from multiprocessing import Pool
 import numpy as np
-import cv2
 from itertools import combinations
 import argparse
 from opensfm import dataset
