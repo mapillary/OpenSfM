@@ -11,6 +11,7 @@ import cv2
 
 from opensfm import io
 from opensfm import config
+from opensfm import context
 
 
 class DataSet:
@@ -67,7 +68,8 @@ class DataSet:
 
     def image_as_array(self, image):
         """Return image pixels as 3-dimensional numpy array (R G B order)"""
-        return cv2.imread(self.__image_file(image), cv2.CV_LOAD_IMAGE_COLOR)[:,:,::-1]  # Turn BGR to RGB
+        IMREAD_COLOR = cv2.IMREAD_COLOR if context.OPENCV3 else cv2.CV_LOAD_IMAGE_COLOR
+        return cv2.imread(self.__image_file(image), IMREAD_COLOR)[:,:,::-1]  # Turn BGR to RGB
 
     @staticmethod
     def __is_image_file(filename):
