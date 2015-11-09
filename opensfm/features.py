@@ -109,17 +109,29 @@ def extract_features_sift(image, config):
     return points, desc
 
 def extract_features_surf(image, config):
-    detector = cv2.FeatureDetector_create('SURF')
-    descriptor = cv2.DescriptorExtractor_create('SURF')
     surf_hessian_threshold = config.get('surf_hessian_threshold', 3000)
-    detector.setDouble('hessianThreshold', surf_hessian_threshold)
-    detector.setDouble('nOctaves', config.get('surf_n_octaves', 4))
-    detector.setDouble('nOctaveLayers', config.get('surf_n_octavelayers', 2))
-    detector.setInt('upright', config.get('surf_upright',0))
+    if context.OPENCV3:
+        detector = cv2.xfeatures2d.SURF_create()
+        descriptor = detector
+        detector.setHessianThreshold(surf_hessian_threshold)
+        detector.setNOctaves(config.get('surf_n_octaves', 4))
+        detector.setNOctaveLayers(config.get('surf_n_octavelayers', 2))
+        detector.setUpright(config.get('surf_upright', 0))
+    else:
+        detector = cv2.FeatureDetector_create('SURF')
+        descriptor = cv2.DescriptorExtractor_create('SURF')
+        detector.setDouble('hessianThreshold', surf_hessian_threshold)
+        detector.setDouble('nOctaves', config.get('surf_n_octaves', 4))
+        detector.setDouble('nOctaveLayers', config.get('surf_n_octavelayers', 2))
+        detector.setInt('upright', config.get('surf_upright', 0))
+
     while True:
         logger.debug('Computing surf with threshold {0}'.format(surf_hessian_threshold))
         t = time.time()
-        detector.setDouble("hessianThreshold", surf_hessian_threshold) #default: 0.04
+        if context.OPENCV3:
+            detector.setHessianThreshold(surf_hessian_threshold)
+        else:
+            detector.setDouble("hessianThreshold", surf_hessian_threshold)  # default: 0.04
         points = detector.detect(image)
         logger.debug('Found {0} points in {1}s'.format( len(points), time.time()-t ))
         if len(points) < config.get('feature_min_frames', 0) and surf_hessian_threshold > 0.0001:
