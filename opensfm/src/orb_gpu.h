@@ -74,29 +74,27 @@ bp::object OrbGpu::detectAndCompute(PyObject *image) {
 
   const cv::cuda::GpuMat d_img(img);
 
+  cv::cuda::GpuMat desc_gpu;
   std::vector<cv::KeyPoint> kpts_cpu;
-  cv::cuda::GpuMat kpts_gpu, desc_gpu;
 
   // Detect ORB keypoints and extract descriptors on image
-  orb_->detectAndComputeAsync(
-    d_img, cv::cuda::GpuMat(), kpts_gpu, desc_gpu);
-  
+  orb_->detectAndCompute(d_img, cv::cuda::GpuMat(), kpts_cpu, desc_gpu);
+
   // GPU -> CPU
   cv::Mat desc_cpu(desc_gpu);
-  orb_->convert(kpts_gpu, kpts_cpu);
 
   // Convert to numpy.
-  cv::Mat keys(kpts_cpu.size(), 4, CV_8U);
+  cv::Mat keys(kpts_cpu.size(), 4, CV_32F);
   for (size_t i = 0; i < kpts_cpu.size(); ++i) {
-    keys.at<uchar>(i, 0) = kpts_cpu[i].pt.x;
-    keys.at<uchar>(i, 1) = kpts_cpu[i].pt.y;
-    keys.at<uchar>(i, 2) = kpts_cpu[i].size;
-    keys.at<uchar>(i, 3) = kpts_cpu[i].angle;
+    keys.at<float>(i, 0) = kpts_cpu[i].pt.x;
+    keys.at<float>(i, 1) = kpts_cpu[i].pt.y;
+    keys.at<float>(i, 2) = kpts_cpu[i].size;
+    keys.at<float>(i, 3) = kpts_cpu[i].angle;
   }
 
   bp::list retn;
   npy_intp keys_shape[2] = {keys.rows, keys.cols};
-  retn.append(bpn_array_from_data(2, keys_shape, keys.ptr<uchar>(0)));
+  retn.append(bpn_array_from_data(2, keys_shape, keys.ptr<float>(0)));
   npy_intp desc_shape[2] = {desc_cpu.rows, desc_cpu.cols};
   retn.append(bpn_array_from_data(2, desc_shape, desc_cpu.ptr<uchar>(0)));
   return retn;
