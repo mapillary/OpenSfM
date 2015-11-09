@@ -3,7 +3,9 @@ import cv2
 import pyopengv
 import networkx as nx
 import logging
+
 from opensfm import multiview
+from opensfm import context
 from opensfm.unionfind import UnionFind
 
 
@@ -75,7 +77,8 @@ def robust_match_fundamental(p1, p2, matches, config):
     p1 = p1[matches[:, 0]][:, :2].copy()
     p2 = p2[matches[:, 1]][:, :2].copy()
 
-    F, mask = cv2.findFundamentalMat(p1, p2, cv2.cv.CV_FM_RANSAC, config.get('robust_matching_threshold', 0.006), 0.9999)
+    flag = cv2.FM_RANSAC if context.OPENCV3 else cv2.cv.CV_FM_RANSAC
+    F, mask = cv2.findFundamentalMat(p1, p2, flag, config.get('robust_matching_threshold', 0.006), 0.9999)
     inliers = mask.ravel().nonzero()
 
     if F[2,2] == 0.0:

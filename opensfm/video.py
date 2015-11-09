@@ -8,6 +8,8 @@ import geo
 import dataset
 import io
 
+from opensfm import context
+
 
 def video_orientation(video_file):
     # Rotation
@@ -61,7 +63,8 @@ def import_video_with_gpx(video_file, gpx_file, output_path, dx, dt=None, start_
     for p in key_points:
         dt = (p[0] - video_start_time).total_seconds()
         if dt > 0:
-            cap.set(cv2.cv.CV_CAP_PROP_POS_MSEC, int(dt * 1000))
+            flag = cv2.CAP_PROP_POS_MSEC if context.OPENCV3 else cv2.cv.CV_CAP_PROP_POS_MSEC
+            cap.set(flag, int(dt * 1000))
             ret, frame = cap.read()
             if ret:
                 print 'Grabbing frame for time', p[0]
