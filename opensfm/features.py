@@ -87,14 +87,26 @@ def mask_and_normalize_features(points, desc, colors, width, height, config):
     return points, desc, colors
 
 def extract_features_sift(image, config):
-    detector = cv2.FeatureDetector_create('SIFT')
-    descriptor = cv2.DescriptorExtractor_create('SIFT')
-    detector.setDouble('edgeThreshold', config.get('sift_edge_threshold', 10))
+    sift_edge_threshold = config.get('sift_edge_threshold', 10)
     sift_peak_threshold = float(config.get('sift_peak_threshold', 0.1))
+    if context.OPENCV3:
+        detector = cv2.xfeatures2d.SIFT_create(
+            edgeThreshold=sift_edge_threshold,
+            contrastThreshold=sift_peak_threshold)
+        descriptor = detector
+    else:
+        detector = cv2.FeatureDetector_create('SIFT')
+        descriptor = cv2.DescriptorExtractor_create('SIFT')
+        detector.setDouble('edgeThreshold', sift_edge_threshold)
     while True:
         logger.debug('Computing sift with threshold {0}'.format(sift_peak_threshold))
         t = time.time()
-        detector.setDouble("contrastThreshold", sift_peak_threshold)
+        if context.OPENCV3:
+            detector = cv2.xfeatures2d.SIFT_create(
+                edgeThreshold=sift_edge_threshold,
+                contrastThreshold=sift_peak_threshold)
+        else:
+            detector.setDouble("contrastThreshold", sift_peak_threshold)
         points = detector.detect(image)
         logger.debug('Found {0} points in {1}s'.format( len(points), time.time()-t ))
         if len(points) < config.get('feature_min_frames', 0) and sift_peak_threshold > 0.0001:
