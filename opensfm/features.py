@@ -90,9 +90,14 @@ def extract_features_sift(image, config):
     sift_edge_threshold = config.get('sift_edge_threshold', 10)
     sift_peak_threshold = float(config.get('sift_peak_threshold', 0.1))
     if context.OPENCV3:
-        detector = cv2.xfeatures2d.SIFT_create(
-            edgeThreshold=sift_edge_threshold,
-            contrastThreshold=sift_peak_threshold)
+        try:
+            detector = cv2.xfeatures2d.SIFT_create(
+                edgeThreshold=sift_edge_threshold,
+                contrastThreshold=sift_peak_threshold)
+        except AttributeError as ae:
+            if "no attribute 'xfeatures2d'" in ae.message:
+                logger.error('OpenCV Contrib modules are required to extract SIFT features')
+            raise
         descriptor = detector
     else:
         detector = cv2.FeatureDetector_create('SIFT')
@@ -123,7 +128,12 @@ def extract_features_sift(image, config):
 def extract_features_surf(image, config):
     surf_hessian_threshold = config.get('surf_hessian_threshold', 3000)
     if context.OPENCV3:
-        detector = cv2.xfeatures2d.SURF_create()
+        try:
+            detector = cv2.xfeatures2d.SURF_create()
+        except AttributeError as ae:
+            if "no attribute 'xfeatures2d'" in ae.message:
+                logger.error('OpenCV Contrib modules are required to extract SURF features')
+            raise
         descriptor = detector
         detector.setHessianThreshold(surf_hessian_threshold)
         detector.setNOctaves(config.get('surf_n_octaves', 4))
