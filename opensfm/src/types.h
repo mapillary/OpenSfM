@@ -56,6 +56,17 @@ bp::object bpn_array_from_vector(const std::vector<T> &v) {
   return bpn_array_from_data(1, shape, data);
 }
 
+template<class T>
+bp::list std_vector_to_py_list(const std::vector<T>& v)
+{
+  typename std::vector<T>::const_iterator iter;
+  bp::list list;
+  for (iter = v.begin(); iter != v.end(); ++iter) {
+    list.append(*iter);
+  }
+  return list;
+}
+
 template<typename T>
 class PyArrayContiguousView {
  public:

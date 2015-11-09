@@ -3,6 +3,8 @@ import cv2
 import pyopengv
 import networkx as nx
 import logging
+import csfm
+
 from opensfm import multiview
 from opensfm.unionfind import UnionFind
 
@@ -12,9 +14,8 @@ logger = logging.getLogger(__name__)
 
 # pairwise matches
 def match_lowe(index, f2, config):
-    if config.get('feature_type') == 'ORB':
-        f2=f2.astype(np.uint8)
     search_params = dict(checks=config.get('flann_checks', 200))
+    f2 = f2.astype(np.uint8) if config.get('feature_type') == 'ORB' else f2
     results, dists = index.knnSearch(f2, 2, params=search_params)
     squared_ratio = config.get('lowes_ratio', 0.6)**2  # Flann returns squared L2 distances
     good = dists[:, 0] < squared_ratio * dists[:, 1]
@@ -55,11 +56,13 @@ def match_lowe_bf(f1, f2, config):
     else:
         matcher_type = 'BruteForce'
    
-    matcher = cv2.DescriptorMatcher_create(matcher_type)
-    matches = matcher.knnMatch(f1, f2, k=2)
-
-    #matcher = cv2.BFMatcher(cv2.NORM_HAMMING)
+    # If CPU
+    #matcher = cv2.DescriptorMatcher_create(matcher_type)
     #matches = matcher.knnMatch(f1, f2, k=2)
+
+    # If GPU
+    matcher = csfm.BFMatcherGpu(6)
+    matches = matcher.knnMatch(f1, f2, 2)
 
     ratio = config.get('lowes_ratio', 0.6)
     good_matches = []

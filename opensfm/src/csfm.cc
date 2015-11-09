@@ -13,6 +13,7 @@
 
 #ifdef HAVE_CUDA
 #include "orb_gpu.h"
+#include "bfm_gpu.h"
 #endif
 
 #if (PY_VERSION_HEX < 0x03000000)
@@ -153,20 +154,35 @@ BOOST_PYTHON_MODULE(csfm) {
   def("CUDA_printShortCudaDeviceInfo", csfm::CUDA_printShortCudaDeviceInfo);
 
   class_<csfm::OrbGpu>("OrbGpu", 
-    init<int, float, int, int, int, int, int, int, int, bool>((
-      boost::python::arg("nfeatures") = 500,
-      boost::python::arg("scaleFactor") = 1.2,
-      boost::python::arg("nlevels") = 8,
-      boost::python::arg("edgeThreshold") = 31,
-      boost::python::arg("firstLevel") = 0,
-      boost::python::arg("WTA_K") = 2,
-      boost::python::arg("scoreType") = 0,
-      boost::python::arg("patchSize") = 31,
-      boost::python::arg("fastThreshold") = 20,
-      boost::python::arg("blurForDescriptor") = false)))
+    init<int, float, int, int, int, int, int, int, int, bool>(
+      (boost::python::arg("nfeatures") = 500,
+       boost::python::arg("scaleFactor") = 1.2,
+       boost::python::arg("nlevels") = 8,
+       boost::python::arg("edgeThreshold") = 31,
+       boost::python::arg("firstLevel") = 0,
+       boost::python::arg("WTA_K") = 2,
+       boost::python::arg("scoreType") = 0,
+       boost::python::arg("patchSize") = 31,
+       boost::python::arg("fastThreshold") = 20,
+       boost::python::arg("blurForDescriptor") = false
+      )
+    ))
 
     .def("detect_and_compute", &csfm::OrbGpu::detectAndCompute)
   ;
+
+  class_<csfm::BFMatcherGpu>("BFMatcherGpu", init<int>(
+    (boost::python::arg("normType") = 4))) // NORM_L1 = 2, NORM_L2 = 4, NORM_HAMMING = 6
+
+    .def("knnMatch", &csfm::BFMatcherGpu::knnMatch)
+  ;
+
+  /*class_<csfm::DMatch>("DMatch")
+    .def_readwrite("distance", &csfm::DMatch::distance)
+    .def_readwrite("imgIdx", &csfm::DMatch::imgIdx)
+    .def_readwrite("queryIdx", &csfm::DMatch::queryIdx)
+    .def_readwrite("trainIdx", &csfm::DMatch::trainIdx)
+  ;*/
 
 #endif
 
