@@ -40,13 +40,6 @@ class DataSet:
         else:
             self.set_image_path(os.path.join(self.data_path, 'images'))
 
-        # Create output folders.
-        for p in [self.__exif_path(),
-                  self.__feature_path(),
-                  self.__matches_path()]:
-            io.mkdir_p(p)
-
-
     def _load_config(self):
         config_file = os.path.join(self.data_path, 'config.yaml')
         self.config = config.load_config(config_file)
@@ -121,6 +114,7 @@ class DataSet:
             return json.load(fin)
 
     def save_exif(self, image, data):
+        io.mkdir_p(self.__exif_path())
         with open(self.__exif_file(image), 'w') as fout:
             fout.write(io.json_dumps(data))
 
@@ -154,6 +148,7 @@ class DataSet:
         return os.path.join(self.__feature_path(), image + '.' + self.feature_type() + '.npz')
 
     def __save_features(self, filepath, image, points, descriptors, colors=None):
+        io.mkdir_p(self.__feature_path())
         feature_type = self.config.get('feature_type')
         if ((feature_type == 'AKAZE' and self.config.get('akaze_descriptor') in ['MLDB_UPRIGHT', 'MLDB']) or
             (feature_type == 'HAHOG' and self.config.get('hahog_normalize_to_uchar', False))):
@@ -242,6 +237,7 @@ class DataSet:
         return matches
 
     def save_matches(self, image, matches):
+        io.mkdir_p(self.__matches_path())
         with gzip.open(self.__matches_file(image), 'wb') as fout:
             pickle.dump(matches, fout)
 
