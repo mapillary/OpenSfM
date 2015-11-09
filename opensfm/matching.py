@@ -12,6 +12,8 @@ logger = logging.getLogger(__name__)
 
 # pairwise matches
 def match_lowe(index, f2, config):
+    if config.get('feature_type') == 'ORB':
+        f2=f2.astype(np.uint8)
     search_params = dict(checks=config.get('flann_checks', 200))
     results, dists = index.knnSearch(f2, 2, params=search_params)
     squared_ratio = config.get('lowes_ratio', 0.6)**2  # Flann returns squared L2 distances
@@ -52,8 +54,12 @@ def match_lowe_bf(f1, f2, config):
         matcher_type = 'BruteForce-Hamming'
     else:
         matcher_type = 'BruteForce'
+   
     matcher = cv2.DescriptorMatcher_create(matcher_type)
     matches = matcher.knnMatch(f1, f2, k=2)
+
+    #matcher = cv2.BFMatcher(cv2.NORM_HAMMING)
+    #matches = matcher.knnMatch(f1, f2, k=2)
 
     ratio = config.get('lowes_ratio', 0.6)
     good_matches = []
@@ -75,7 +81,9 @@ def robust_match_fundamental(p1, p2, matches, config):
     p1 = p1[matches[:, 0]][:, :2].copy()
     p2 = p2[matches[:, 1]][:, :2].copy()
 
-    F, mask = cv2.findFundamentalMat(p1, p2, cv2.cv.CV_FM_RANSAC, config.get('robust_matching_threshold', 0.006), 0.9999)
+    from cv2 import __version__
+    flag = cv2.FM_RANSAC if __version__ == '3.0.0-dev' else cv2.cv.CV_FM_RANSAC
+    F, mask = cv2.findFundamentalMat(p1, p2, flag, config.get('robust_matching_threshold', 0.006), 0.9999)
     inliers = mask.ravel().nonzero()
 
     if F[2,2] == 0.0:

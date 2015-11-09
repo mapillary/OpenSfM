@@ -17,10 +17,10 @@ def usage():
     print 'USAGE: %s data_set_path' % sys.argv[0]
     sys.exit(0)
 
-def detect(image):
+def detect(image, detector=None):
     logger.info('Extracting {} features for image {}'.format(data.feature_type().upper(), image))
     if not data.feature_index_exists(image):
-        p_unsorted, f_unsorted, c_unsorted = features.extract_features(data.image_as_array(image), data.config)
+        p_unsorted, f_unsorted, c_unsorted = features.extract_features(data.image_as_array(image), data.config, detector=detector)
         if len(p_unsorted) == 0:
             return
 
@@ -47,11 +47,16 @@ if __name__ == "__main__":
     images = data.images()
     preemptive_max = data.config.get('preemptive_max', 200)
 
+    # Try to initialize orb gpu if it's posible
+    orb_gpu = features.init_orb_gpu(data.config)
+
     start = time.time()
     processes = data.config.get('processes', 1)
-    if processes == 1:
+    feature_use_gpu = data.config.get('feature_use_gpu', False)
+    if processes == 1 or feature_use_gpu and orb_gpu is not None:
         for image in images:
-            detect(image)
+            detect(image, detector=orb_gpu)
+
     else:
         p = Pool(processes)
         p.map(detect, images)

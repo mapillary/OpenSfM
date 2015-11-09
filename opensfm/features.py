@@ -165,6 +165,47 @@ def extract_features_akaze(image, config):
     points = points.astype(float)
     return points, desc
 
+def init_orb_gpu(config):
+    feature_type = config.get('feature_type')
+    device_id = config.get('feature_device_id', 0)
+    feature_use_gpu = config.get('feature_use_gpu', False)
+    
+    if feature_type == 'ORB' and feature_use_gpu and csfm.have_cuda:
+        if csfm.CUDA_setDevice(device_id):
+            return csfm.OrbGpu(nfeatures = config.get('orb_nfeatures', 500),
+                               scaleFactor = config.get('orb_scaleFactor', 1.2), 
+                               nlevels = config.get('orb_nlevels', 8),
+                               edgeThreshold = config.get('orb_edgeThreshold', 31),
+                               firstLevel = config.get('orb_firstLevel', 0),
+                               WTA_K = config.get('orb_WTA_K', 2),
+                               scoreType = config.get('orb_scoreType', 0),
+                               patchSize = config.get('orb_patchSize', 31),
+                               fastThreshold = config.get('orb_fastThreshold', 20),
+                               blurForDescriptor = config.get('orb_blurForDescriptor', False))
+    else:
+       return None
+
+def extract_features_orb_gpu(image, config, detector):
+    logger.debug('Computing ORB-GPU')
+    t = time.time()
+    points, desc = detector.detect_and_compute(image)
+    logger.debug('Found {0} points in {1}s'.format( len(points), time.time()-t ))
+
+    points = points.astype(float)
+    return points, desc
+
+def extract_features_orb_cpu(image, config):
+    logger.debug('Computing ORB-CPU')
+    t = time.time()
+    detector = cv2.ORB_create()
+    #TODO(edgar): investigate obtained error
+    # got weird error: OpenCV Error: Assertion failed (The data should normally be NULL!) in allocate
+    points, desc = detector.detectAndCompute(image, None)
+    logger.debug('Found {0} points in {1}s'.format( len(points), time.time()-t ))
+
+    points = points.astype(float)
+    return points, desc
+
 def extract_features_hahog(image, config):
     t = time.time()
     points, desc = csfm.hahog(image.astype(np.float32) / 255, # VlFeat expects pixel values between 0, 1
@@ -185,7 +226,7 @@ def extract_features_hahog(image, config):
     logger.debug('Found {0} points in {1}s'.format( len(points), time.time()-t ))
     return points, desc
 
-def extract_features(color_image, config):
+def extract_features(color_image, config, detector=None):
     assert len(color_image.shape) == 3
     color_image = resized_image(color_image, config)
     image = cv2.cvtColor(color_image, cv2.COLOR_RGB2GRAY)
@@ -199,13 +240,19 @@ def extract_features(color_image, config):
         points, desc = extract_features_akaze(image, config)
     elif feature_type == 'HAHOG':
         points, desc = extract_features_hahog(image, config)
+    elif feature_type == 'ORB':
+        if config.get('feature_use_gpu', False):
+            points, desc = extract_features_orb_gpu(image, config, detector)
+        else:
+            #points, desc = extract_features_orb_cpu(image, config)
+            raise ValueError('Not yet implemented!')
     else:
-        raise ValueError('Unknown feature type (must be SURF, SIFT, AKAZE or HAHOG)')
+        raise ValueError('Unknown feature type (must be SURF, SIFT, AKAZE, HAHOG or ORB)')
 
     xs = points[:,0].round().astype(int)
     ys = points[:,1].round().astype(int)
     colors = color_image[ys, xs]
-
+    
     return mask_and_normalize_features(points, desc, colors, image.shape[1], image.shape[0], config)
 
 
@@ -226,5 +273,9 @@ def build_flann_index(features, config):
     flann_params = dict(algorithm=FLANN_INDEX_METHOD,
                         branching=config.get('flann_branching', 16),
                         iterations=config.get('flann_iterations', 20))
-    index = cv2.flann_Index(features, flann_params)
+    from cv2 import __version__
+    if __version__ == '3.0.0-dev':
+        index = cv2.flann.Index(features, flann_params)
+    else:
+        index = cv2.flann_Index(features, flann_params)
     return index

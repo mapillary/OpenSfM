@@ -11,6 +11,10 @@
 #include "akaze.cc"
 #include "bundle.h"
 
+#ifdef HAVE_CUDA
+#include "orb_gpu.h"
+#endif
+
 #if (PY_VERSION_HEX < 0x03000000)
 static void numpy_import_array_wrapper()
 #else
@@ -68,11 +72,11 @@ BOOST_PYTHON_MODULE(csfm) {
   def("akaze", csfm::akaze);
 
   def("hahog", csfm::hahog,
-      (boost::python::arg("peak_threshold") = 0.003,
-       boost::python::arg("edge_threshold") = 10,
-       boost::python::arg("target_num_features") = 0,
-       boost::python::arg("use_adaptive_suppression") = false
-      )
+    (boost::python::arg("peak_threshold") = 0.003,
+     boost::python::arg("edge_threshold") = 10,
+     boost::python::arg("target_num_features") = 0,
+     boost::python::arg("use_adaptive_suppression") = false
+    )
   );
 
   def("triangulate_bearings", csfm::TriangulateBearings);
@@ -139,4 +143,31 @@ BOOST_PYTHON_MODULE(csfm) {
     .def_readwrite("reprojection_error", &BAPoint::reprojection_error)
     .def_readwrite("id", &BAPoint::id)
   ;
+
+  def("have_cuda", csfm::haveCuda);
+
+#ifdef HAVE_CUDA
+  
+  def("CUDA_setDevice", csfm::CUDA_setDevice);
+  def("CUDA_getCudaEnabledDeviceCount", csfm::CUDA_getCudaEnabledDeviceCount);
+  def("CUDA_printShortCudaDeviceInfo", csfm::CUDA_printShortCudaDeviceInfo);
+
+  class_<csfm::OrbGpu>("OrbGpu", 
+    init<int, float, int, int, int, int, int, int, int, bool>((
+      boost::python::arg("nfeatures") = 500,
+      boost::python::arg("scaleFactor") = 1.2,
+      boost::python::arg("nlevels") = 8,
+      boost::python::arg("edgeThreshold") = 31,
+      boost::python::arg("firstLevel") = 0,
+      boost::python::arg("WTA_K") = 2,
+      boost::python::arg("scoreType") = 0,
+      boost::python::arg("patchSize") = 31,
+      boost::python::arg("fastThreshold") = 20,
+      boost::python::arg("blurForDescriptor") = false)))
+
+    .def("detect_and_compute", &csfm::OrbGpu::detectAndCompute)
+  ;
+
+#endif
+
 }

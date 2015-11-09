@@ -8,6 +8,8 @@
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include <numpy/ndarrayobject.h> 
 
+#include <opencv2/cvconfig.h>
+
 namespace csfm {
 
 namespace bp = boost::python;
@@ -102,6 +104,14 @@ class PyArrayContiguousView {
 
   PyArrayObject *contiguous_;
 };
+
+bool haveCuda() {
+#ifdef HAVE_CUDA
+  return true;
+#else
+  return false;
+#endif
+}
 
 }
 

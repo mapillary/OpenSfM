@@ -73,7 +73,6 @@ set(AKAZE_SRCS
 add_library(akaze ${AKAZE_SRCS})
 target_link_libraries(akaze ${OpenCV_LIBS})
 
-
 # VLFeat
 include_directories(third_party/vlfeat)
 file(GLOB VLFEAT_SRCS third_party/vlfeat/vl/*.c third_party/vlfeat/vl/*.h)
