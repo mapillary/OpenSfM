@@ -3,5 +3,6 @@ gpxpy
 networkx
 numpy
 pytest
+python-dateutil
 PyYAML
 xmltodict

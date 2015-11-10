@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y \
     cmake \
     git wget \
     python-dev python-pip libboost-python-dev \
-    python-numpy python-scipy python-yaml \
+    python-numpy python-scipy python-yaml python-pyexiv2 \
     libopencv-dev python-opencv \
     libgoogle-glog-dev libatlas-base-dev libeigen3-dev libsuitesparse-dev && \
     apt-get clean && \
