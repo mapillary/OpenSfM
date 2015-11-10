@@ -47,8 +47,7 @@ RUN \
     git clone https://github.com/mapillary/OpenSfM.git && \
     cd /source/OpenSfM && \
     pip install -r requirements.txt && \
-    python setup.py build && \
-    cd /
+    python setup.py build
 
 
 # GENERIC
