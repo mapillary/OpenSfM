@@ -54,6 +54,10 @@ See the [Dockerfile](https://github.com/mapillary/OpenSfM/blob/master/Dockerfile
  3. Clone, build and install [OpenGV][] following the receipt in the Dockerfile
  4. [Build and Install](http://ceres-solver.org/building.html) the [Ceres solver][] from its source using the `-fPIC` compilation flag
 
+#### Install note
+
+When running OpenSfM on top of [OpenCV][] 3.0 the [OpenCV Contrib][] modules are required for extracting SIFT or SURF features.
+
 
 ## Building
 
@@ -80,6 +84,7 @@ Things you can do from there:
 - Thank you Jetbrains for supporting the project with free licenses for [IntelliJ Ultimate](https://www.jetbrains.com/idea/). Contact peter at mapillary dot com if you are contributor and need one. Apply your own project [here](https://www.jetbrains.com/eforms/openSourceRequest.action?licenseRequest=ideaOSLPRN)
 
 [OpenCV]: http://opencv.org/ (Computer vision and machine learning software library)
+[OpenCV Contrib]: https://github.com/itseez/opencv_contrib (Non free and unstable OpenCV modules)
 [OpenGV]: http://laurentkneip.github.io/opengv/ (A library for solving calibrated central and non-central geometric vision problems)
 [NumPy]: http://www.numpy.org/ (Scientific computing with Python)
 [SciPy]: http://www.scipy.org/ (Fundamental library for scientific computing)

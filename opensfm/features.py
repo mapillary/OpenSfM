@@ -13,6 +13,7 @@ import csfm
 
 from opensfm import context
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -85,14 +86,31 @@ def mask_and_normalize_features(points, desc, colors, width, height, config):
     return points, desc, colors
 
 def extract_features_sift(image, config):
-    detector = cv2.FeatureDetector_create('SIFT')
-    descriptor = cv2.DescriptorExtractor_create('SIFT')
-    detector.setDouble('edgeThreshold', config.get('sift_edge_threshold', 10))
+    sift_edge_threshold = config.get('sift_edge_threshold', 10)
     sift_peak_threshold = float(config.get('sift_peak_threshold', 0.1))
+    if context.OPENCV3:
+        try:
+            detector = cv2.xfeatures2d.SIFT_create(
+                edgeThreshold=sift_edge_threshold,
+                contrastThreshold=sift_peak_threshold)
+        except AttributeError as ae:
+            if "no attribute 'xfeatures2d'" in ae.message:
+                logger.error('OpenCV Contrib modules are required to extract SIFT features')
+            raise
+        descriptor = detector
+    else:
+        detector = cv2.FeatureDetector_create('SIFT')
+        descriptor = cv2.DescriptorExtractor_create('SIFT')
+        detector.setDouble('edgeThreshold', sift_edge_threshold)
     while True:
         logger.debug('Computing sift with threshold {0}'.format(sift_peak_threshold))
         t = time.time()
-        detector.setDouble("contrastThreshold", sift_peak_threshold)
+        if context.OPENCV3:
+            detector = cv2.xfeatures2d.SIFT_create(
+                edgeThreshold=sift_edge_threshold,
+                contrastThreshold=sift_peak_threshold)
+        else:
+            detector.setDouble("contrastThreshold", sift_peak_threshold)
         points = detector.detect(image)
         logger.debug('Found {0} points in {1}s'.format( len(points), time.time()-t ))
         if len(points) < config.get('feature_min_frames', 0) and sift_peak_threshold > 0.0001:
@@ -107,17 +125,34 @@ def extract_features_sift(image, config):
     return points, desc
 
 def extract_features_surf(image, config):
-    detector = cv2.FeatureDetector_create('SURF')
-    descriptor = cv2.DescriptorExtractor_create('SURF')
     surf_hessian_threshold = config.get('surf_hessian_threshold', 3000)
-    detector.setDouble('hessianThreshold', surf_hessian_threshold)
-    detector.setDouble('nOctaves', config.get('surf_n_octaves', 4))
-    detector.setDouble('nOctaveLayers', config.get('surf_n_octavelayers', 2))
-    detector.setInt('upright', config.get('surf_upright',0))
+    if context.OPENCV3:
+        try:
+            detector = cv2.xfeatures2d.SURF_create()
+        except AttributeError as ae:
+            if "no attribute 'xfeatures2d'" in ae.message:
+                logger.error('OpenCV Contrib modules are required to extract SURF features')
+            raise
+        descriptor = detector
+        detector.setHessianThreshold(surf_hessian_threshold)
+        detector.setNOctaves(config.get('surf_n_octaves', 4))
+        detector.setNOctaveLayers(config.get('surf_n_octavelayers', 2))
+        detector.setUpright(config.get('surf_upright', 0))
+    else:
+        detector = cv2.FeatureDetector_create('SURF')
+        descriptor = cv2.DescriptorExtractor_create('SURF')
+        detector.setDouble('hessianThreshold', surf_hessian_threshold)
+        detector.setDouble('nOctaves', config.get('surf_n_octaves', 4))
+        detector.setDouble('nOctaveLayers', config.get('surf_n_octavelayers', 2))
+        detector.setInt('upright', config.get('surf_upright', 0))
+
     while True:
         logger.debug('Computing surf with threshold {0}'.format(surf_hessian_threshold))
         t = time.time()
-        detector.setDouble("hessianThreshold", surf_hessian_threshold) #default: 0.04
+        if context.OPENCV3:
+            detector.setHessianThreshold(surf_hessian_threshold)
+        else:
+            detector.setDouble("hessianThreshold", surf_hessian_threshold)  # default: 0.04
         points = detector.detect(image)
         logger.debug('Found {0} points in {1}s'.format( len(points), time.time()-t ))
         if len(points) < config.get('feature_min_frames', 0) and surf_hessian_threshold > 0.0001:
@@ -228,8 +263,6 @@ def build_flann_index(features, config):
     flann_params = dict(algorithm=FLANN_INDEX_METHOD,
                         branching=config.get('flann_branching', 16),
                         iterations=config.get('flann_iterations', 20))
-    if context.OPENCV3:
-        index = cv2.flann.Index(features, flann_params)
-    else:
-        index = cv2.flann_Index(features, flann_params)
-    return index
+
+    flann_Index = cv2.flann.Index if context.OPENCV3 else cv2.flann_Index
+    return flann_Index(features, flann_params)
