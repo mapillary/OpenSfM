@@ -31,24 +31,36 @@ def distance_from_exif(exif1, exif2):
         return 0
 
 
-def match_candidates_from_gps(images, exifs, data):
-    '''Compute candidate matching pairs based on GPS position
+def timediff_from_exif(exif1, exif2):
+    return np.fabs(exif1['capture_time'] - exif2['capture_time'])
+
+
+def match_candidates_from_metadata(images, exifs, data):
+    '''Compute candidate matching pairs based on GPS and capture time
     '''
-    max_distance = data.config.get('matching_gps_distance', 9999999)
-    max_neighbors = data.config.get('matching_gps_neighbors', 0)
+    max_distance = data.config['matching_gps_distance']
+    max_neighbors = data.config['matching_gps_neighbors']
+    max_time_neighbors = data.config['matching_time_neighbors']
 
     pairs = set()
     for im1 in images:
         distances = []
+        timediffs = []
         for im2 in images:
             if im1 != im2:
-                d = distance_from_exif(exifs.get(im1), exifs.get(im2))
-                if d <= max_distance:
-                    distances.append((d, im2))
-        if max_neighbors:
-            distances.sort()
+                dx = distance_from_exif(exifs[im1], exifs[im2])
+                dt = timediff_from_exif(exifs[im1], exifs[im2])
+                if dx <= max_distance:
+                    distances.append((dx, im2))
+                    timediffs.append((dt, im2))
+        distances.sort()
+        timediffs.sort()
+
+        if max_neighbors or max_time_neighbors:
             distances = distances[:max_neighbors]
-        for d, im2 in distances:
+            timediffs = timediffs[:max_time_neighbors]
+
+        for d, im2 in distances + timediffs:
             if im1 < im2:
                 pairs.add((im1, im2))
             else:
@@ -146,7 +158,7 @@ if __name__ == "__main__":
             f_pre[image] = f_pre[image][:preemptive_max,:]
 
     exifs = { im: data.load_exif(im) for im in images }
-    pairs = match_candidates_from_gps(images, exifs, data)
+    pairs = match_candidates_from_metadata(images, exifs, data)
 
     num_pairs = 0
     for im, c in pairs.items():

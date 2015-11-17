@@ -1,5 +1,6 @@
 # Metadata
 use_exif_size: yes
+default_focal_prior: 0.85
 
 # Params for features
 feature_type: HAHOG           # Feature type (AKAZE, SURF, SIFT)
@@ -45,6 +46,7 @@ flann_checks: 200             # Smaller -> Faster (but might lose good matches)
 # Params for preemtive matching
 matching_gps_distance: 150            # Maximum gps distance between two images for matching
 matching_gps_neighbors: 0             # Number of images to match selected by GPS distance. Set to 0 to use no limit
+matching_time_neighbors: 0            # Number of images to match selected by time taken. Set to 0 to use no limit
 preemptive_max: 200                   # Number of features to use for preemptive matching
 preemptive_threshold: 0               # If number of matches passes the threshold -> full feature matching
 
@@ -57,6 +59,8 @@ triangulation_threshold: 0.006        # Outlier threshold (in pixels) for accept
 triangulation_min_ray_angle: 1.0
 resection_threshold: 0.004            # Outlier threshold (in pixels) for camera resection.
 resection_min_inliers: 10             # Minimum number of resection inliers to accept it.
+retriangulation: no
+retriangulation_ratio: 1.25
 
 # Params for track creation
 min_track_length: 2             # Minimum number of features/images per track
