@@ -61,7 +61,6 @@ if __name__ == "__main__":
                 if weight > 0 and adj_image in shot_index:
                     adj_indices.append(shot_index[adj_image])
 
-
             num_covisible = len(adj_indices)
             fvis.write("%d " % i)
             fvis.write("%d " % num_covisible)
@@ -69,17 +68,16 @@ if __name__ == "__main__":
                 fvis.write("%d " % ai)
             fvis.write("\n")
 
-
             #### write camera projection matrix to txt/%08d.txt
             camera = reconstruction['cameras'][shot['camera']]
 
-            focal = camera["focal"]
             w = camera["width"]
             h = camera["height"]
+            f = camera["focal"] * max(w, h)
 
             # build that projection matrix that PMVS actually accepts!
             Rt = Rt_from_shot(shot)
-            K = np.matrix([[focal*w, 0, 0.5*w], [0, focal*h, 0.5*h], [0, 0, 1.0]])
+            K = np.matrix([[f, 0, 0.5 * (w - 1)], [0, f, 0.5 * (h - 1)], [0, 0, 1.0]])
             P = K*Rt
 
             new_txt = os.path.join(output_path, "txt", base + ".txt")
@@ -90,21 +88,14 @@ if __name__ == "__main__":
                         f.write("%f " % c)
                     f.write("\n")
 
-
-
             #### radially undistort image and copy to visualize/%08d.jpg
             orig_image = os.path.abspath(data.image_files[image]) #why is dataset.__image_file() method private?
             new_image = os.path.join(output_path, "visualize", base + ".jpg")
 
             im = cv2.imread(orig_image)
-            camera_matrix = np.identity(3)
-            camera_matrix[0][0] = camera["width"]*camera["focal"]
-            camera_matrix[1][1] = camera["width"]*camera["focal"]
-            camera_matrix[0][2] = camera["width"]/2.0
-            camera_matrix[1][2] = camera["height"]/2.0
             k1 = camera["k1"]
             k2 = camera["k2"]
-            im = cv2.undistort(im, camera_matrix, np.array([k1, k2, 0, 0]))
+            im = cv2.undistort(im, K, np.array([k1, k2, 0, 0]))
             cv2.imwrite(new_image, im)
 
         fvis.close()
@@ -123,5 +114,3 @@ if __name__ == "__main__":
             f.write("sequence -1\n")
             f.write("timages -1 0 %d\n" % len(shot_index))
             f.write("oimages 0\n");
-
-
