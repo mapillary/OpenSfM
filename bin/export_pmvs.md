@@ -93,12 +93,14 @@ These are the files that `export_pmvs` generates for PMVS from OpenSfM output. M
 
 From the root OpenSfM directory, run:
 
-    bin/export_pmvs data/<dataset>/ <output directory>
+    bin/export_pmvs <path_to_dataset>
 
 There will be an individual pmvs directory for each separate reconstruction. 
 
 To perform the PMVS point cloud reconstruction, run: 
 
-    ./pmvs2 ~/mydataset/recon0/ pmvs_options.txt 
+    ./pmvs2 <path_to_dataset>/pmvs/recon0/ pmvs_options.txt 
 
-This will generate files in `models/` including a `pmvs_options.txt.ply`
+This will generate files in `<path_to_dataset>/pmvs/recon0/models/` including a `pmvs_options.txt.ply`
+
+**Important:** note that the trailing `/` in `recon0/` is needed.  Otherwise PMVS will fail to find the options file and will give an `Unrecognizable option` warning.
