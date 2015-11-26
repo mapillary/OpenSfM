@@ -31,9 +31,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     data = dataset.DataSet(args.dataset)
-    base_output_path = args.output
-    if base_output_path is None:
-        base_output_path = os.path.join(os.path.dirname(args.dataset), 'pmvs')
+    if args.output:
+        base_output_path = args.output
+    else:
+        base_output_path = os.path.join(data.data_path, 'pmvs')
+
     print "Converting dataset [%s] to PMVS dir [%s]" % (data.data_path, base_output_path)
 
     io.mkdir_p(base_output_path)
