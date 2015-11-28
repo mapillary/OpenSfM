@@ -29,7 +29,7 @@ reconstruction = {
 
 """
 
-def reconstruction_class_initialization_test():
+def test_reconstruction_class_initialization():
 
     # Instantiate Reconstruction
     reconstruction = Reconstruction()
@@ -88,4 +88,4 @@ def reconstruction_class_initialization_test():
     assert reconstruction.get_shot(2) == None
 
 if __name__ == "__main__":
-    reconstruction_class_initialization_test()
+    test_reconstruction_class_initialization()

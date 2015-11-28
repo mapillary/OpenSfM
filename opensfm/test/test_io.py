@@ -1,8 +1,10 @@
+import os.path, sys
+
 from opensfm import io
 
-filename = 'reconstruction_berlin.json'
+filename = os.path.join(os.path.dirname(__file__), 'reconstruction_berlin.json')
 
-def import_opensfm_test():
+def test_import_opensfm():
 
     reconstructions = io.import_opensfm(filename)
 
@@ -12,4 +14,4 @@ def import_opensfm_test():
     assert len(reconstructions[0].points) == 1588
 
 if __name__ == "__main__":
-    import_opensfm_test()
+    test_import_opensfm()
