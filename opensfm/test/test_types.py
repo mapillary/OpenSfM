@@ -44,10 +44,11 @@ def test_reconstruction_class_initialization():
     intrinsics.width = 3264
 
     # Instantiate camera
-    projection_type = 'equirectangular'
 
-    camera = Camera(0, projection_type, intrinsics)
-    camera.description = 'apple iphone 4s back camera 4.28mm f/2.4'
+    camera = Camera()
+    camera.id = 'apple iphone 4s back camera 4.28mm f/2.4'
+    camera.projection_type = 'equirectangular'
+    camera.intrinsics = intrinsics
 
     # Instantiate GPS data
     gps_data = GpsData()
@@ -64,13 +65,22 @@ def test_reconstruction_class_initialization():
     extrinsics0.rotation =[0.0, 0.0, 0.0]
     extrinsics0.translation = [0.0, 0.0, 0.0]
 
-    shot0 = Shot(0, camera, extrinsics0, gps_data)
+    shot0 = Shot()
+    shot0.id = 0
+    shot0.camera = camera
+    shot0.extrinsics = extrinsics0
+    shot0.gps_data = gps_data
+
 
     extrinsics1 = Extrinsics()
     extrinsics1.rotation =[0.0, 0.0, 0.0]
     extrinsics1.translation = [-1.0, 0.0, 0.0]
 
-    shot1 = Shot(1, camera, extrinsics1, gps_data)
+    shot1 = Shot()
+    shot1.id = 1
+    shot1.camera = camera
+    shot1.extrinsics = extrinsics1
+    shot1.gps_data = gps_data
 
     # Add info to current reconstruction
     reconstruction.add_camera(camera)
