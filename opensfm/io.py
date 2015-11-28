@@ -5,6 +5,7 @@ import json
 import numpy as np
 import errno
 
+from opensfm.types import *
 
 # (TODO): ensure the image order from OpenSfM is the same as Bundler
 # (TODO): ensure the coordinate systems are consistent
@@ -193,6 +194,82 @@ def import_bundler(data_path, bundle_file, list_file, track_file, reconstruction
         with open(reconstruction_file, 'wb') as fout:
             fout.write(json_dumps([reconstruction]))
     return reconstruction
+
+
+def import_opensfm(data_path):
+    """
+    Return a reconstruction object that is consistent with OpenSfM's format
+    """
+    with open(data_path) as data_file:
+        reconstructions_ = json.loads(data_file.read())
+
+    reconstructions = []
+
+    for r in reconstructions_:
+
+        reconstruction = Reconstruction()
+
+        cameras = r["cameras"]
+        shots = r["shots"]
+        points = r["points"]
+
+        # Extract cameras
+
+        for id in cameras:
+
+            intrinsics = Intrinsics()
+            intrinsics.focal = cameras[id]["focal"]
+            intrinsics.focal_prior = cameras[id]["focal_prior"]
+            intrinsics.height = cameras[id]["height"]
+            intrinsics.width = cameras[id]["width"]
+            intrinsics.k1 = cameras[id]["k1"]
+            intrinsics.k2 = cameras[id]["k1"]
+
+            camera = Camera()
+            camera.id = id
+            camera.intrinsics = intrinsics
+            camera.projection_type = cameras[id]["projection_type"]
+
+            reconstruction.add_camera(camera)
+
+        # Extract shots
+
+        for id in shots:
+
+            extrinsics = Extrinsics()
+            extrinsics.rotation = shots[id]["rotation"]
+            extrinsics.translation = shots[id]["translation"]
+
+            gps_data = GpsData()
+            gps_data.orientation = shots[id]["orientation"]
+            gps_data.capture_time = shots[id]["capture_time"]
+            gps_data.gps_dop = shots[id]["gps_dop"]
+            gps_data.gps_position = shots[id]["gps_position"]
+
+            shot = Shot()
+            shot.id = id
+            shot.gps_data = gps_data
+            shot.extrinsics = extrinsics
+            shot.camera = reconstruction.get_camera(shots[id]["camera"])
+
+            reconstruction.add_shot(shot)
+
+        # Extract points
+
+        for id in points:
+
+            point = Point()
+            point.id = id
+            point.color = points[id]["color"]
+            point.coordinates = points[id]["coordinates"]
+            point.reprojection_error = points[id]["reprojection_error"]
+
+            reconstruction.add_point(point)
+
+        # Add new reconstruction
+        reconstructions.append(reconstruction)
+
+    return reconstructions
 
 
 def mkdir_p(path):

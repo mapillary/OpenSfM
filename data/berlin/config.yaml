@@ -2,4 +2,4 @@
 # OpenSfM will use the default parameters from opensfm/config.py
 # Set here any parameter that you want to override for this dataset
 # For example:
-processes: 4                  # Number of threads to use
+processes: 8                  # Number of threads to use
