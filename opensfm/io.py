@@ -196,80 +196,93 @@ def import_bundler(data_path, bundle_file, list_file, track_file, reconstruction
     return reconstruction
 
 
-def import_opensfm(data_path):
+def camera_from_json(key, obj):
     """
-    Return a reconstruction object that is consistent with OpenSfM's format
+    Read camera from a json object
     """
-    with open(data_path) as data_file:
-        reconstructions_ = json.loads(data_file.read())
+    if obj['projection_type'] == 'perspective':
+        intrinsics = Intrinsics()
+        intrinsics.width = obj['width']
+        intrinsics.height = obj['height']
+        intrinsics.focal = obj['focal']
+        intrinsics.k1 = obj['k1']
+        intrinsics.k2 = obj['k2']
+        intrinsics.focal_prior = obj['focal_prior']
+        intrinsics.k1_prior = obj.get('k1_prior', 0.0)
+        intrinsics.k2_prior = obj.get('k2_prior', 0.0)
+    else:
+        intrinsics = None
 
-    reconstructions = []
+    camera = Camera()
+    camera.id = key
+    camera.intrinsics = intrinsics
+    camera.projection_type = obj['projection_type']
+    return camera
 
-    for r in reconstructions_:
 
-        reconstruction = Reconstruction()
+def shot_from_json(key, obj, cameras):
+    """
+    Read shot from a json object
+    """
+    extrinsics = Extrinsics()
+    extrinsics.rotation = obj["rotation"]
+    extrinsics.translation = obj["translation"]
 
-        cameras = r["cameras"]
-        shots = r["shots"]
-        points = r["points"]
+    gps_data = GpsData()
+    gps_data.orientation = obj["orientation"]
+    gps_data.capture_time = obj["capture_time"]
+    gps_data.gps_dop = obj["gps_dop"]
+    gps_data.gps_position = obj["gps_position"]
 
-        # Extract cameras
+    shot = Shot()
+    shot.id = key
+    shot.gps_data = gps_data
+    shot.extrinsics = extrinsics
+    shot.camera = cameras[obj["camera"]]
+    return shot
 
-        for id in cameras:
 
-            intrinsics = Intrinsics()
-            intrinsics.focal = cameras[id]["focal"]
-            intrinsics.focal_prior = cameras[id]["focal_prior"]
-            intrinsics.height = cameras[id]["height"]
-            intrinsics.width = cameras[id]["width"]
-            intrinsics.k1 = cameras[id]["k1"]
-            intrinsics.k2 = cameras[id]["k1"]
+def point_from_json(key, obj):
+    """
+    Read a point from a json object
+    """
+    point = Point()
+    point.id = key
+    point.color = obj["color"]
+    point.coordinates = obj["coordinates"]
+    point.reprojection_error = obj["reprojection_error"]
+    return point
 
-            camera = Camera()
-            camera.id = id
-            camera.intrinsics = intrinsics
-            camera.projection_type = cameras[id]["projection_type"]
 
-            reconstruction.add_camera(camera)
+def reconstruction_from_json(obj):
+    """
+    Read a reconstruction from a json object
+    """
+    reconstruction = Reconstruction()
 
-        # Extract shots
+    # Extract cameras
+    for key, value in obj['cameras'].iteritems():
+        camera = camera_from_json(key, value)
+        reconstruction.add_camera(camera)
 
-        for id in shots:
+    # Extract shots
+    for key, value in obj['shots'].iteritems():
+        shot = shot_from_json(key, value, reconstruction.cameras)
+        reconstruction.add_shot(shot)
 
-            extrinsics = Extrinsics()
-            extrinsics.rotation = shots[id]["rotation"]
-            extrinsics.translation = shots[id]["translation"]
+    # Extract points
+    for key, value in obj['points'].iteritems():
+        point = point_from_json(key, value)
+        reconstruction.add_point(point)
 
-            gps_data = GpsData()
-            gps_data.orientation = shots[id]["orientation"]
-            gps_data.capture_time = shots[id]["capture_time"]
-            gps_data.gps_dop = shots[id]["gps_dop"]
-            gps_data.gps_position = shots[id]["gps_position"]
+    return reconstruction
 
-            shot = Shot()
-            shot.id = id
-            shot.gps_data = gps_data
-            shot.extrinsics = extrinsics
-            shot.camera = reconstruction.get_camera(shots[id]["camera"])
 
-            reconstruction.add_shot(shot)
-
-        # Extract points
-
-        for id in points:
-
-            point = Point()
-            point.id = id
-            point.color = points[id]["color"]
-            point.coordinates = points[id]["coordinates"]
-            point.reprojection_error = points[id]["reprojection_error"]
-
-            reconstruction.add_point(point)
-
-        # Add new reconstruction
-        reconstructions.append(reconstruction)
-
-    return reconstructions
+def reconstructions_from_json(obj):
+    """
+    Read all reconstructions from a json object
+    """
+    return [reconstruction_from_json(i) for i in obj]
 
 
 def mkdir_p(path):

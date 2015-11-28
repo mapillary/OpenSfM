@@ -2,12 +2,14 @@ class Intrinsics(object):
     """Defines the internal parameters of a camera.
 
     Attributes:
-        focal (real): focal lenght after reconstruction.
-        focal_prior (real): focal lenght before reconstruction.
-        height (int): image height.
         widht (int): image width.
-        k1 (real): first distortion parameter.
-        k2 (real): second distortion parameter.
+        height (int): image height.
+        focal (real): estimated focal lenght.
+        k1 (real): estimated first distortion parameter.
+        k2 (real): estimated second distortion parameter.
+        focal_prior (real): prior focal lenght.
+        k1_prior (real): prior first distortion parameter.
+        k2_prior (real): prior second distortion parameter.
 
     """
 
@@ -15,12 +17,14 @@ class Intrinsics(object):
         """Defaut constructor
 
         """
-        self.focal = None
-        self.focal_prior = None
-        self.height = None
         self.width = None
+        self.height = None
+        self.focal = None
         self.k1 = None
         self.k2 = None
+        self.focal_prior = None
+        self.k1_prior = None
+        self.k2_prior = None
 
 
 class Extrinsics(object):
@@ -134,7 +138,7 @@ class Reconstruction(object):
     """Defines the reconstructed scene.
 
     Attributes:
-      cameras (Dict(Camera): List of cameras.
+      cameras (Dict(Camera)): List of cameras.
       shots   (Dict(Shot)): List of reconstructed shots.
       points  (Dict(Point)): List of reconstructed points.
 
