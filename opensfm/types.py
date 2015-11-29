@@ -42,8 +42,8 @@ class Extrinsics(object):
     """
 
     def __init__(self):
-      self.rotation = None
-      self.translation = None
+        self.rotation = None
+        self.translation = None
 
 
 class GpsData(object):
@@ -57,10 +57,10 @@ class GpsData(object):
 
     """
     def __init__(self):
-      self.orientation = None
-      self.capture_time = None
-      self.gps_dop = None
-      self.gps_position = None
+        self.orientation = None
+        self.capture_time = None
+        self.gps_dop = None
+        self.gps_position = None
 
 
 class Camera(object):

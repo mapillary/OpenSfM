@@ -297,5 +297,6 @@ def mkdir_p(path):
 def json_dumps(data, indent=4, codec='utf-8'):
     return json.dumps(data, indent=indent, ensure_ascii=False).encode(codec)
 
+
 def json_loads(text, codec='utf-8'):
     return json.loads(text.decode(codec))
