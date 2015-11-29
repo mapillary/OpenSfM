@@ -1,11 +1,10 @@
 import os
-import argparse
 import cv2
 import json
 import numpy as np
 import errno
 
-from opensfm.types import *
+from opensfm import types
 
 # (TODO): ensure the image order from OpenSfM is the same as Bundler
 # (TODO): ensure the coordinate systems are consistent
@@ -201,7 +200,7 @@ def camera_from_json(key, obj):
     Read camera from a json object
     """
     if obj['projection_type'] == 'perspective':
-        intrinsics = Intrinsics()
+        intrinsics = types.Intrinsics()
         intrinsics.width = obj['width']
         intrinsics.height = obj['height']
         intrinsics.focal = obj['focal']
@@ -213,7 +212,7 @@ def camera_from_json(key, obj):
     else:
         intrinsics = None
 
-    camera = Camera()
+    camera = types.Camera()
     camera.id = key
     camera.intrinsics = intrinsics
     camera.projection_type = obj['projection_type']
@@ -224,17 +223,17 @@ def shot_from_json(key, obj, cameras):
     """
     Read shot from a json object
     """
-    extrinsics = Extrinsics()
+    extrinsics = types.Extrinsics()
     extrinsics.rotation = obj["rotation"]
     extrinsics.translation = obj["translation"]
 
-    gps_data = GpsData()
+    gps_data = types.GpsData()
     gps_data.orientation = obj["orientation"]
     gps_data.capture_time = obj["capture_time"]
     gps_data.gps_dop = obj["gps_dop"]
     gps_data.gps_position = obj["gps_position"]
 
-    shot = Shot()
+    shot = types.Shot()
     shot.id = key
     shot.gps_data = gps_data
     shot.extrinsics = extrinsics
@@ -246,7 +245,7 @@ def point_from_json(key, obj):
     """
     Read a point from a json object
     """
-    point = Point()
+    point = types.Point()
     point.id = key
     point.color = obj["color"]
     point.coordinates = obj["coordinates"]
@@ -258,7 +257,7 @@ def reconstruction_from_json(obj):
     """
     Read a reconstruction from a json object
     """
-    reconstruction = Reconstruction()
+    reconstruction = types.Reconstruction()
 
     # Extract cameras
     for key, value in obj['cameras'].iteritems():
