@@ -41,9 +41,13 @@ if __name__ == "__main__":
     io.mkdir_p(base_output_path)
 
     # load tracks for vis.dat
-    graph = data.load_tracks_graph()
-    tracks, images = tracks_and_images(graph)
-    image_graph = bipartite.weighted_projected_graph(graph, images)
+    try:
+        graph = data.load_tracks_graph()
+        tracks, images = tracks_and_images(graph)
+        image_graph = bipartite.weighted_projected_graph(graph, images)
+        use_vis_data = True
+    except IOError:
+        use_vis_data = False
 
     reconstructions = data.load_reconstruction()
     for h, reconstruction in enumerate(reconstructions):
@@ -66,18 +70,19 @@ if __name__ == "__main__":
             print "Image:", image, base
 
             #### vis.dat for this image
-            adj_indices = []
-            for adj_image in image_graph[image]:
-                weight = image_graph[image][adj_image]["weight"]
-                if weight > 0 and adj_image in shot_index:
-                    adj_indices.append(shot_index[adj_image])
+            if use_vis_data:
+                adj_indices = []
+                for adj_image in image_graph[image]:
+                    weight = image_graph[image][adj_image]["weight"]
+                    if weight > 0 and adj_image in shot_index:
+                        adj_indices.append(shot_index[adj_image])
 
-            num_covisible = len(adj_indices)
-            fvis.write("%d " % i)
-            fvis.write("%d " % num_covisible)
-            for ai in adj_indices:
-                fvis.write("%d " % ai)
-            fvis.write("\n")
+                num_covisible = len(adj_indices)
+                fvis.write("%d " % i)
+                fvis.write("%d " % num_covisible)
+                for ai in adj_indices:
+                    fvis.write("%d " % ai)
+                fvis.write("\n")
 
             #### radially undistort the original image
             original_image = data.image_as_array(image)[:,:,::-1]
@@ -116,7 +121,7 @@ if __name__ == "__main__":
             f.write("CPU 8\n")
             f.write("setEdge 0\n")
             f.write("useBound 0\n")
-            f.write("useVisData 1\n")
+            f.write("useVisData {}\n".format(int(use_vis_data)))
             f.write("sequence -1\n")
             f.write("timages -1 0 %d\n" % len(shot_index))
             f.write("oimages 0\n");
