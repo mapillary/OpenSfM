@@ -52,7 +52,7 @@ for image in data.images():
 # Override any camera that is specified in the camera models overrides file.
 if data.camera_models_overrides_exists():
     camera_models_overrides = data.load_camera_models_overrides()
-    for key, value in camera_models_overrides:
+    for key, value in camera_models_overrides.items():
         camera_models[key] = value
 
 data.save_camera_models(camera_models)
