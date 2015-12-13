@@ -27,8 +27,8 @@ class Intrinsics(object):
         self.k2_prior = None
 
 
-class Extrinsics(object):
-    """Defines the extrinsics parameters of a camera.
+class Pose(object):
+    """Defines the pose parameters of a camera.
 
     The extrinsic parameters are defined by a 3x1 rotation vector which
     maps the camera rotation respect to the origin frame (rotation) and
@@ -92,13 +92,13 @@ class Shot(object):
     A shot here is refered as a unique view inside the scene defined by
     the image filename (id), the used camera with its refined internal
     parameters (camera), the fully camera pose respect to the scene origin
-    frame (extrinsics) and the GPS data obtained in the moment that the picture
+    frame (pose) and the GPS data obtained in the moment that the picture
     was taken (gps_data).
 
     Attributes:
         id (str): picture filename.
         camera (Camera): camera.
-        extrinsics (Extrinsics): extrinsic parameters.
+        pose (Pose): extrinsic parameters.
         gps_data (GpsData): GPS data.
 
     """
@@ -109,7 +109,7 @@ class Shot(object):
         """
         self.id = None
         self.camera = None
-        self.extrinsics = None
+        self.pose = None
         self.gps_data = None
 
 

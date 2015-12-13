@@ -336,7 +336,8 @@ class DataSet:
     def load_camera_models(self):
         """Return camera models data"""
         with open(self.__camera_models_file(), 'r') as fin:
-            return json.load(fin)
+            obj = json.load(fin)
+            return io.cameras_from_json(obj)
 
     def save_camera_models(self, camera_models):
         """Save camera models data"""

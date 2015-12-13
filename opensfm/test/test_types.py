@@ -60,24 +60,24 @@ def test_reconstruction_class_initialization():
                              1.2042133903991235]
 
     # Instantiate shots
-    extrinsics0 = types.Extrinsics()
-    extrinsics0.rotation = [0.0, 0.0, 0.0]
-    extrinsics0.translation = [0.0, 0.0, 0.0]
+    pose0 = types.Pose()
+    pose0.rotation = [0.0, 0.0, 0.0]
+    pose0.translation = [0.0, 0.0, 0.0]
 
     shot0 = types.Shot()
     shot0.id = 0
     shot0.camera = camera
-    shot0.extrinsics = extrinsics0
+    shot0.pose = pose0
     shot0.gps_data = gps_data
 
-    extrinsics1 = types.Extrinsics()
-    extrinsics1.rotation = [0.0, 0.0, 0.0]
-    extrinsics1.translation = [-1.0, 0.0, 0.0]
+    pose1 = types.Pose()
+    pose1.rotation = [0.0, 0.0, 0.0]
+    pose1.translation = [-1.0, 0.0, 0.0]
 
     shot1 = types.Shot()
     shot1.id = 1
     shot1.camera = camera
-    shot1.extrinsics = extrinsics1
+    shot1.pose = pose1
     shot1.gps_data = gps_data
 
     # Add info to current reconstruction

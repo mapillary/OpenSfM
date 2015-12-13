@@ -223,9 +223,9 @@ def shot_from_json(key, obj, cameras):
     """
     Read shot from a json object
     """
-    extrinsics = types.Extrinsics()
-    extrinsics.rotation = obj["rotation"]
-    extrinsics.translation = obj["translation"]
+    pose = types.Pose()
+    pose.rotation = obj["rotation"]
+    pose.translation = obj["translation"]
 
     gps_data = types.GpsData()
     gps_data.orientation = obj["orientation"]
@@ -236,7 +236,7 @@ def shot_from_json(key, obj, cameras):
     shot = types.Shot()
     shot.id = key
     shot.gps_data = gps_data
-    shot.extrinsics = extrinsics
+    shot.pose = pose
     shot.camera = cameras[obj["camera"]]
     return shot
 
@@ -282,6 +282,16 @@ def reconstructions_from_json(obj):
     Read all reconstructions from a json object
     """
     return [reconstruction_from_json(i) for i in obj]
+
+
+def cameras_from_json(obj):
+    """
+    Read cameras from a json object
+    """
+    cameras = {}
+    for key, value in obj.iteritems():
+        cameras[key] = camera_from_json(key, value)
+    return cameras
 
 
 def mkdir_p(path):
