@@ -1,30 +1,3 @@
-class Intrinsics(object):
-    """Defines the internal parameters of a camera.
-
-    Attributes:
-        widht (int): image width.
-        height (int): image height.
-        focal (real): estimated focal lenght.
-        k1 (real): estimated first distortion parameter.
-        k2 (real): estimated second distortion parameter.
-        focal_prior (real): prior focal lenght.
-        k1_prior (real): prior first distortion parameter.
-        k2_prior (real): prior second distortion parameter.
-
-    """
-
-    def __init__(self):
-        """Defaut constructor
-
-        """
-        self.width = None
-        self.height = None
-        self.focal = None
-        self.k1 = None
-        self.k2 = None
-        self.focal_prior = None
-        self.k1_prior = None
-        self.k2_prior = None
 
 
 class Pose(object):
@@ -64,16 +37,32 @@ class GpsData(object):
 
 
 class Camera(object):
-    """Defines a physical camera.
+    """Abstract camera class.
 
     A camera is unique defined for its identification description (id),
-    the type of projection (projection_type) and its internal calibration
-    parameters (intrinsics).
+    the projection type (projection_type) and its internal calibration
+    parameters, which depend on the particular Camera sub-class.
 
     Attributes:
         id (str): camera description.
         projection_type (str): projection type.
-        intrinsics (Intrinsics): extrinsic parameters.
+
+    """
+    pass
+
+
+class PerspectiveCamera(Camera):
+    """Defines a perspective camera.
+
+    Attributes:
+        widht (int): image width.
+        height (int): image height.
+        focal (real): estimated focal lenght.
+        k1 (real): estimated first distortion parameter.
+        k2 (real): estimated second distortion parameter.
+        focal_prior (real): prior focal lenght.
+        k1_prior (real): prior first distortion parameter.
+        k2_prior (real): prior second distortion parameter.
 
     """
 
@@ -82,8 +71,15 @@ class Camera(object):
 
         """
         self.id = None
-        self.projection_type = None
-        self.intrinsics = None
+        self.projection_type = 'perspective'
+        self.width = None
+        self.height = None
+        self.focal = None
+        self.k1 = None
+        self.k2 = None
+        self.focal_prior = None
+        self.k1_prior = None
+        self.k2_prior = None
 
 
 class Shot(object):

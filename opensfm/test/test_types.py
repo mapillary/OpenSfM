@@ -35,20 +35,13 @@ def test_reconstruction_class_initialization():
     reconstruction = types.Reconstruction()
 
     # Instantiate camera instrinsics
-    intrinsics = types.Intrinsics()
-    intrinsics.fx_prior = 0.9722222222222222
-    intrinsics.fy_prior = 0.9722222222222222
-    intrinsics.k1 = 0.006094395128698237
-    intrinsics.k2 = -0.0004952058188617129
-    intrinsics.height = 2448
-    intrinsics.width = 3264
-
-    # Instantiate camera
-
-    camera = types.Camera()
+    camera = types.PerspectiveCamera()
     camera.id = 'apple iphone 4s back camera 4.28mm f/2.4'
-    camera.projection_type = 'equirectangular'
-    camera.intrinsics = intrinsics
+    camera.focal = 0.9722222222222222
+    camera.k1 = 0.006094395128698237
+    camera.k2 = -0.0004952058188617129
+    camera.height = 2448
+    camera.width = 3264
 
     # Instantiate GPS data
     gps_data = types.GpsData()

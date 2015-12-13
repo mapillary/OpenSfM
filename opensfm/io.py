@@ -200,23 +200,19 @@ def camera_from_json(key, obj):
     Read camera from a json object
     """
     if obj['projection_type'] == 'perspective':
-        intrinsics = types.Intrinsics()
-        intrinsics.width = obj['width']
-        intrinsics.height = obj['height']
-        intrinsics.focal = obj['focal']
-        intrinsics.k1 = obj['k1']
-        intrinsics.k2 = obj['k2']
-        intrinsics.focal_prior = obj['focal_prior']
-        intrinsics.k1_prior = obj.get('k1_prior', 0.0)
-        intrinsics.k2_prior = obj.get('k2_prior', 0.0)
+        camera = types.PerspectiveCamera()
+        camera.id = key
+        camera.width = obj['width']
+        camera.height = obj['height']
+        camera.focal = obj['focal']
+        camera.k1 = obj['k1']
+        camera.k2 = obj['k2']
+        camera.focal_prior = obj['focal_prior']
+        camera.k1_prior = obj.get('k1_prior', 0.0)
+        camera.k2_prior = obj.get('k2_prior', 0.0)
+        return camera
     else:
-        intrinsics = None
-
-    camera = types.Camera()
-    camera.id = key
-    camera.intrinsics = intrinsics
-    camera.projection_type = obj['projection_type']
-    return camera
+        raise NotImplementedError
 
 
 def shot_from_json(key, obj, cameras):
