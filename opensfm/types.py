@@ -1,3 +1,5 @@
+import numpy as np
+import cv2
 
 
 class Pose(object):
@@ -17,6 +19,18 @@ class Pose(object):
     def __init__(self):
         self.rotation = None
         self.translation = None
+
+    def transform(self, point):
+        """
+        Transforms a point from world coordinates to this pose coordinates.
+        """
+        return self.get_rotation_matrix().dot(point) + self.translation
+
+    def get_rotation_matrix(self):
+        """
+        Get rotation as a 3x3 matrix.
+        """
+        return cv2.Rodrigues(np.array(self.rotation, dtype=float))[0]
 
 
 class GpsData(object):
@@ -81,6 +95,39 @@ class PerspectiveCamera(Camera):
         self.k1_prior = None
         self.k2_prior = None
 
+    def project(self, point):
+        """
+        Projects a 3D point in camera coordinates to the image plane.
+        """
+        # Normalized image coordinates
+        xn = point[0] / point[2]
+        yn = point[1] / point[2]
+
+        # Radial distortion
+        r2 = xn * xn + yn * yn
+        distortion = 1.0 + r2 * (self.k1 + self.k2 * r2)
+
+        return np.array([self.focal * distortion * xn,
+                         self.focal * distortion * yn])
+
+    def pixel_bearing(self, pixel):
+        """
+        Unit vector pointing to the pixel viewing direction.
+        """
+        point = np.asarray(pixel).reshape((1, 1, 2))
+        distortion = np.array([self.k1, self.k2, 0., 0.])
+        x, y = cv2.undistortPoints(point, self.get_K(), distortion).flat
+        l = np.sqrt(x * x + y * y + 1.0)
+        return np.array([x / l, y / l, 1.0 / l])
+
+    def get_K(self):
+        """
+        The calibration matrix.
+        """
+        return np.array([[self.focal, 0., 0.],
+                         [0., self.focal, 0.],
+                         [0., 0., 1.]])
+
 
 class Shot(object):
     """Defines a shot in a reconstructed scene.
@@ -107,6 +154,13 @@ class Shot(object):
         self.camera = None
         self.pose = None
         self.gps_data = None
+
+    def project(self, point):
+        """
+        Project a 3D point to the image plane.
+        """
+        camera_point = self.pose.transform(point)
+        return self.camera.project(camera_point)
 
 
 class Point(object):
