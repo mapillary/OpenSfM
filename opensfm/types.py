@@ -30,7 +30,33 @@ class Pose(object):
         """
         Get rotation as a 3x3 matrix.
         """
-        return cv2.Rodrigues(np.array(self.rotation, dtype=float))[0]
+        return cv2.Rodrigues(self.rotation)[0]
+
+    def set_rotation_matrix(self, rotation_matrix):
+        """
+        Set rotation as a 3x3 matrix.
+        """
+        R = np.array(rotation_matrix, dtype=float)
+        self.rotation = cv2.Rodrigues(R)[0].ravel()
+
+    def get_origin(self):
+        """
+        The origin of the pose in world coordinates
+        """
+        return -self.get_rotation_matrix().T.dot(self.translation)
+
+    def set_origin(self, origin):
+        """
+        Set the origin of the pose in world coordinates
+
+        >>> pose = Pose()
+        >>> pose.rotation = np.array([0., 1., 2.])
+        >>> origin = [1., 2., 3.]
+        >>> pose.set_origin(origin)
+        >>> np.allclose(origin, pose.get_origin())
+        True
+        """
+        self.translation = -self.get_rotation_matrix().dot(origin)
 
 
 class GpsData(object):

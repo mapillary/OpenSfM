@@ -1,6 +1,5 @@
 import networkx as nx
 import numpy as np
-import cv2
 
 from opensfm import types
 
@@ -16,25 +15,20 @@ def camera_pose(position, lookat, up):
     >>> position = [1.0, 2.0, 3.0]
     >>> lookat = [0., 10.0, 2.0]
     >>> up = [0.0, 0.0, 1.0]
-    >>> R, t = camera_pose(position, lookat, up)
-    >>> o = -np.dot(R.T, t)
-    >>> np.allclose(o, position)
+    >>> pose = camera_pose(position, lookat, up)
+    >>> np.allclose(pose.get_origin(), position)
     True
-    >>> d = normalized(np.dot(R, lookat) + t)
+    >>> d = normalized(pose.transform(lookat))
     >>> np.allclose(d, [0, 0, 1])
     True
     '''
     ez = normalized(np.array(lookat) - np.array(position))
     ex = normalized(np.cross(ez, up))
     ey = normalized(np.cross(ez, ex))
-    R = np.array([ex, ey, ez])
-    t = -R.dot(position)
-    return R, t
-
-
-def add_noise(noise_level, clean_point):
-    noisy_point = clean_point + np.random.uniform(-noise_level, noise_level, 3)
-    return normalized(noisy_point)
+    pose = types.Pose()
+    pose.set_rotation_matrix([ex, ey, ez])
+    pose.set_origin(position)
+    return pose
 
 
 class CubeDataset:
@@ -61,16 +55,11 @@ class CubeDataset:
             position = [alpha, -5.0, 0.5]
             lookat = [1.0 - alpha, alpha, alpha]
             up = [alpha * 0.2, alpha * 0.2, 1.0]
-            R, t = camera_pose(position, lookat, up)
-
-            pose = types.Pose()
-            pose.rotation = cv2.Rodrigues(R)[0].ravel()
-            pose.translation = t
 
             shot = types.Shot()
             shot.id = str(i)
             shot.camera = self.cameras[shot.id]
-            shot.pose = pose
+            shot.pose = camera_pose(position, lookat, up)
             self.shots[shot.id] = shot
 
         points = np.random.rand(num_points, 3)
