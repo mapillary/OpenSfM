@@ -36,12 +36,18 @@ class CubeDataset:
     Dataset of cameras looking at point in a cube
 
     >>> d = CubeDataset(3, 10, 0.1, 0.3)
+    >>> len(d.cameras)
+    3
+    >>> len(d.shots)
+    3
+    >>> len(d.points)
+    10
     '''
     def __init__(self, num_cameras, num_points, noise, outlier_fraction):
         self.cameras = {}
         for i in range(num_cameras):
             camera = types.PerspectiveCamera()
-            camera.id = str(i)
+            camera.id = 'camera' + str(i)
             camera.focal = 0.9
             camera.k1 = -0.1
             camera.k2 = 0.01
@@ -57,13 +63,13 @@ class CubeDataset:
             up = [alpha * 0.2, alpha * 0.2, 1.0]
 
             shot = types.Shot()
-            shot.id = str(i)
-            shot.camera = self.cameras[shot.id]
+            shot.id = 'shot' + str(i)
+            shot.camera = self.cameras['camera' + str(i)]
             shot.pose = camera_pose(position, lookat, up)
             self.shots[shot.id] = shot
 
         points = np.random.rand(num_points, 3)
-        self.points = {str(i): p for p in points}
+        self.points = {'point' + str(i): p for i, p in enumerate(points)}
 
         g = nx.Graph()
         for shot_id, shot in self.shots.iteritems():
