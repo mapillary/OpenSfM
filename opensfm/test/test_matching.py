@@ -11,9 +11,14 @@ def test_robust_match():
     p2 = np.array([v['feature'] for k, v in d.tracks['shot1'].iteritems()])
     camera1 = d.shots['shot0'].camera
     camera2 = d.shots['shot1'].camera
-    matches = np.array([(i, i) for i in range(len(p1))])
+    num_points = len(p1)
+    inlier_matches = np.array([(i, i) for i in range(num_points)])
+    outlier_matches = np.random.randint(num_points, size=(num_points / 2, 2))
+    matches = np.concatenate((inlier_matches, outlier_matches))
     config = opensfm.config.default_config()
-    opensfm.matching.robust_match(p1, p2, camera1, camera2, matches, config)
+    rmatches = opensfm.matching.robust_match(p1, p2, camera1, camera2, matches,
+                                             config)
+    assert num_points <= len(rmatches) <= len(matches)
 
 
 if __name__ == "__main__":
