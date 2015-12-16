@@ -23,36 +23,36 @@ def bundle(graph, reconstruction, config, fix_cameras=False):
 
     start = time.time()
     ba = csfm.BundleAdjuster()
-    for k, v in reconstruction['cameras'].items():
-        pt = v.get('projection_type', 'perspective')
-        if pt == 'perspective':
-            ba.add_perspective_camera(str(k), v['focal'], v['k1'], v['k2'],
-                    v['focal_prior'], v.get('k1_prior', 0.0), v.get('k2_prior', 0.0), fix_cameras)
+    for camera in reconstruction.cameras.values():
+        if camera.projection_type == 'perspective':
+            ba.add_perspective_camera(
+                str(camera.id), camera.focal, camera.k1, camera.k2,
+                camera.focal_prior, camera.k1_prior, camera.k2_prior, fix_cameras)
 
-        elif pt in ['equirectangular', 'spherical']:
-            ba.add_equirectangular_camera(str(k))
+        elif camera.projection_type in ['equirectangular', 'spherical']:
+            ba.add_equirectangular_camera(str(camera.id))
 
-    for k, v in reconstruction['shots'].items():
-        r = v['rotation']
-        t = v['translation']
-        g = v['gps_position']
+    for shot in reconstruction.shots.values():
+        r = shot.pose.rotation
+        t = shot.pose.translation
+        g = shot.metadata.gps_position
         ba.add_shot(
-            str(k), str(v['camera']),
+            str(shot.id), str(shot.camera.id),
             r[0], r[1], r[2],
             t[0], t[1], t[2],
             g[0], g[1], g[2],
-            v['gps_dop'], False
+            shot.metadata.gps_dop, False
         )
 
-    for k, v in reconstruction['points'].items():
-        x = v['coordinates']
-        ba.add_point(str(k), x[0], x[1], x[2], False)
+    for point in reconstruction.points.values():
+        x = point.coordinates
+        ba.add_point(str(point.id), x[0], x[1], x[2], False)
 
-    for shot in reconstruction['shots']:
-        if shot in graph:
-            for track in graph[shot]:
-                if track in reconstruction['points']:
-                    ba.add_observation(str(shot), str(track), *graph[shot][track]['feature'])
+    for shot_id in reconstruction.shots:
+        if shot_id in graph:
+            for track in graph[shot_id]:
+                if track in reconstruction.points:
+                    ba.add_observation(str(shot_id), str(track), *graph[shot_id][track]['feature'])
 
     ba.set_loss_function(config.get('loss_function', 'SoftLOneLoss'),
                          config.get('loss_function_threshold', 1))
@@ -69,22 +69,22 @@ def bundle(graph, reconstruction, config, fix_cameras=False):
     run = time.time()
     print ba.brief_report()
 
-    for k, v in reconstruction['cameras'].items():
-        if v.get('projection_type', 'perspective') == 'perspective':
-            c = ba.get_perspective_camera(str(k))
-            v['focal'] = c.focal
-            v['k1'] = c.k1
-            v['k2'] = c.k2
+    for camera in reconstruction.cameras.values():
+        if camera.projection_type == 'perspective':
+            c = ba.get_perspective_camera(str(camera.id))
+            camera.focal = c.focal
+            camera.k1 = c.k1
+            camera.k2 = c.k2
 
-    for k, v in reconstruction['shots'].items():
-        s = ba.get_shot(str(k))
-        v['rotation'] = [s.rx, s.ry, s.rz]
-        v['translation'] = [s.tx, s.ty, s.tz]
+    for shot in reconstruction.shots.values():
+        s = ba.get_shot(str(shot.id))
+        shot.pose.rotation = [s.rx, s.ry, s.rz]
+        shot.pose.translation = [s.tx, s.ty, s.tz]
 
-    for k, v in reconstruction['points'].items():
-        p = ba.get_point(str(k))
-        v['coordinates'] = [p.x, p.y, p.z]
-        v['reprojection_error'] = p.reprojection_error
+    for point in reconstruction.points.values():
+        p = ba.get_point(str(point.id))
+        point.coordinates = [p.x, p.y, p.z]
+        point.reprojection_error = p.reprojection_error
 
     teardown = time.time()
 
@@ -134,8 +134,8 @@ def bundle_single_view(graph, reconstruction, shot_id, config):
     ba.run()
 
     s = ba.get_shot(str(shot_id))
-    shot.rotation = [s.rx, s.ry, s.rz]
-    shot.translation = [s.tx, s.ty, s.tz]
+    shot.pose.rotation = [s.rx, s.ry, s.rz]
+    shot.pose.translation = [s.tx, s.ty, s.tz]
 
 
 def pairwise_reconstructability(common_tracks, homography_inliers):
