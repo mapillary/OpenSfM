@@ -19,8 +19,8 @@ class Pose(object):
     """
 
     def __init__(self):
-        self.rotation = None
-        self.translation = None
+        self.rotation = np.zeros(3)
+        self.translation = np.zeros(3)
 
     def transform(self, point):
         """

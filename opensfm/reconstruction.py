@@ -1,21 +1,20 @@
 # -*- coding: utf-8 -*-
 
 from itertools import combinations
-import os
 import datetime
 
 import numpy as np
 import cv2
 import pyopengv
 import time
-import networkx as nx
 from networkx.algorithms import bipartite
 
-from opensfm import transformations as tf
-from opensfm import dataset
-from opensfm import multiview
-from opensfm import geo
 from opensfm import csfm
+from opensfm import dataset
+from opensfm import geo
+from opensfm import multiview
+from opensfm import transformations as tf
+from opensfm import types
 
 
 def bundle(graph, reconstruction, config, fix_cameras=False):
@@ -166,7 +165,8 @@ def compute_image_pairs(graph, image_graph, config):
     return [pairs[o] for o in order]
 
 
-def add_gps_position(data, shot, image):
+def get_image_metadata(data, image):
+    metadata = types.ShotMetadata()
     exif = data.load_exif(image)
     reflla = data.load_reference_lla()
     if 'gps' in exif and 'latitude' in exif['gps'] and 'longitude' in exif['gps']:
@@ -178,25 +178,27 @@ def add_gps_position(data, shot, image):
             alt = 2.0 # Arbitrary constant value that will be used to align the reconstruction
         x, y, z = geo.topocentric_from_lla(lat, lon, alt,
             reflla['latitude'], reflla['longitude'], reflla['altitude'])
-        shot['gps_position'] = [x, y, z]
-        shot['gps_dop'] = exif['gps'].get('dop', 15.0)
+        metadata.gps_position = [x, y, z]
+        metadata.gps_dop = exif['gps'].get('dop', 15.0)
     else:
-        shot['gps_position'] = [0.0, 0.0, 0.0]
-        shot['gps_dop'] = 999999.0
+        metadata.gps_position = [0.0, 0.0, 0.0]
+        metadata.gps_dop = 999999.0
 
-    shot['orientation'] = exif.get('orientation', 1)
+    metadata.orientation = exif.get('orientation', 1)
 
     if 'accelerometer' in exif:
-        shot['accelerometer'] = exif['accelerometer']
+        metadata.accelerometer = exif['accelerometer']
 
     if 'compass' in exif:
-        shot['compass'] = exif['compass']
+        metadata.compass = exif['compass']
 
     if 'capture_time' in exif:
-        shot['capture_time'] = exif['capture_time']
+        metadata.capture_time = exif['capture_time']
 
     if 'skey' in exif:
-        shot['skey'] = exif['skey']
+        metadata.skey = exif['skey']
+
+    return metadata
 
 
 def _two_view_reconstruction_inliers(b1, b2, R, t, threshold):
@@ -219,8 +221,8 @@ def run_relative_pose_optimize_nonlinear(b1, b2, t, R):
     return pyopengv.relative_pose_optimize_nonlinear(b1, b2, t, R)
 
 def two_view_reconstruction(p1, p2, camera1, camera2, threshold):
-    b1 = multiview.pixel_bearings(p1, camera1)
-    b2 = multiview.pixel_bearings(p2, camera2)
+    b1 = camera1.pixel_bearings(p1)
+    b2 = camera2.pixel_bearings(p2)
 
     # Note on threshold:
     # See opengv doc on thresholds here: http://laurentkneip.github.io/opengv/page_how_to_use.html
@@ -276,27 +278,24 @@ def bootstrap_reconstruction(data, graph, im1, im2):
     R, t, inliers = two_view_reconstruction(p1, p2, camera1, camera2, threshold)
     if len(inliers) > 5:
         print 'Number of inliers', len(inliers)
-        reconstruction = {
-            "cameras": cameras,
+        reconstruction = types.Reconstruction()
+        reconstruction.cameras = cameras
 
-            "shots" : {
-                im1: {
-                    "camera": str(d1['camera']),
-                    "rotation": [0.0, 0.0, 0.0],
-                    "translation": [0.0, 0.0, 0.0],
-                },
-                im2: {
-                    "camera": str(d2['camera']),
-                    "rotation": list(R),
-                    "translation": list(t),
-                },
-            },
+        shot1 = types.Shot()
+        shot1.id = im1
+        shot1.camera = cameras[str(d1['camera'])]
+        shot1.pose = types.Pose()
+        shot1.metadata = get_image_metadata(data, im1)
+        reconstruction.add_shot(shot1)
 
-            "points" : {
-            },
-        }
-        add_gps_position(data, reconstruction['shots'][im1], im1)
-        add_gps_position(data, reconstruction['shots'][im2], im2)
+        shot2 = types.Shot()
+        shot2.id = im1
+        shot2.camera = cameras[str(d1['camera'])]
+        shot2.pose = types.Pose()
+        shot2.pose.rotation = R
+        shot2.pose.translation = t
+        shot2.metadata = get_image_metadata(data, im2)
+        reconstruction.add_shot(shot2)
 
         triangulate_shot_features(
                     graph, reconstruction, im1,
@@ -462,7 +461,7 @@ def resect(data, graph, reconstruction, shot_id):
             "rotation": list(R.flat),
             "translation": list(t.flat),
         }
-        add_gps_position(data, reconstruction['shots'][shot_id], shot_id)
+        get_image_metadata(data, reconstruction['shots'][shot_id], shot_id)
         bundle_single_view(graph, reconstruction, shot_id, data.config)
         return True
     else:
