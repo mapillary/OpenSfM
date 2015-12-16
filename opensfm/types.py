@@ -1,6 +1,8 @@
 import numpy as np
 import cv2
 
+from opensfm import multiview
+
 
 class Pose(object):
     """Defines the pose parameters of a camera.
@@ -145,6 +147,18 @@ class PerspectiveCamera(Camera):
         x, y = cv2.undistortPoints(point, self.get_K(), distortion).flat
         l = np.sqrt(x * x + y * y + 1.0)
         return np.array([x / l, y / l, 1.0 / l])
+
+    def pixel_bearings(self, pixels):
+        """
+        Unit vector pointing to the pixel viewing directions.
+        """
+        points = pixels.reshape((-1, 1, 2))
+        distortion = np.array([self.k1, self.k2, 0., 0.])
+        up = cv2.undistortPoints(points, self.get_K(), distortion).reshape((-1, 2))
+        x = up[:, 0]
+        y = up[:, 1]
+        l = np.sqrt(x * x + y * y + 1.0)
+        return np.column_stack((x / l, y / l, 1.0 / l))
 
     def get_K(self):
         """

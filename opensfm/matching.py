@@ -112,8 +112,8 @@ def robust_match_calibrated(p1, p2, camera1, camera2, matches, config):
 
     p1 = p1[matches[:, 0]][:, :2].copy()
     p2 = p2[matches[:, 1]][:, :2].copy()
-    b1 = multiview.pixel_bearings(p1, camera1)
-    b2 = multiview.pixel_bearings(p2, camera2)
+    b1 = camera1.pixel_bearings(p1)
+    b2 = camera2.pixel_bearings(p2)
 
     threshold = config['robust_matching_threshold']
     T = pyopengv.relative_pose_ransac(b1, b2, "STEWENIUS", 1 - np.cos(threshold), 1000)
@@ -124,9 +124,10 @@ def robust_match_calibrated(p1, p2, camera1, camera2, matches, config):
 
 
 def robust_match(p1, p2, camera1, camera2, matches, config):
-    if (camera1.get('projection_type', 'perspective') == 'perspective'
-            and camera2.get('projection_type', 'perspective') == 'perspective'
-            and camera1.get('k1', 0.0) == 0.0):
+    if (camera1.projection_type == 'perspective'
+            and camera1.k1 == 0.0
+            and camera2.projection_type == 'perspective'
+            and camera2.k1 == 0.0):
         return robust_match_fundamental(p1, p2, matches, config)
     else:
         return robust_match_calibrated(p1, p2, camera1, camera2, matches, config)
