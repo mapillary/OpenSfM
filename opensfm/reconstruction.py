@@ -315,10 +315,10 @@ def bootstrap_reconstruction(data, graph, im1, im2):
 def reconstructed_points_for_images(graph, reconstruction, images):
     res = []
     for image in images:
-        if image not in reconstruction['shots']:
+        if image not in reconstruction.shots:
             common_tracks = 0
             for track in graph[image]:
-                if track in reconstruction['points']:
+                if track in reconstruction.points:
                     common_tracks += 1
             res.append((image, common_tracks))
     return sorted(res, key=lambda x: -x[1])
@@ -358,45 +358,23 @@ def back_project(camera, shot, pixel, depth):
     return np.linalg.solve(A, b)
 
 
-def reproject(camera, shot, point):
-    ''' Reproject 3D point onto image plane given a camera
-    '''
-    p = rotate(shot['rotation'], point['coordinates'])
-    p += shot['translation']
-    xp = p[0] / p[2]
-    yp = p[1] / p[2]
-
-    l1 = camera.get('k1', 0.0)
-    l2 = camera.get('k2', 0.0)
-    r2 = xp * xp + yp * yp
-    distortion = 1.0 + r2  * (l1 + l2  * r2)
-
-    x_reproject = camera['focal'] * distortion * xp
-    y_reproject = camera['focal'] * distortion * yp
-
-    return np.array([x_reproject, y_reproject])
-
-def single_reprojection_error(camera, shot, point, observation):
+def single_reprojection_error(shot, point, observation):
     ''' Reprojection error of a single points
     '''
-
-    point_reprojected = reproject(camera, shot, point)
-
+    point_reprojected = shot.project(point.coordinates)
     err = point_reprojected - observation
-
     return np.linalg.norm(err)
 
 
 def reprojection_error(graph, reconstruction):
     errors = []
-    for shot_id in reconstruction['shots']:
+    for shot_id in reconstruction.shots:
         for track_id in graph[shot_id]:
-            if track_id in reconstruction['points']:
+            if track_id in reconstruction.points:
                 observation = graph[shot_id][track_id]['feature']
-                shot = reconstruction['shots'][shot_id]
-                camera = reconstruction['cameras'][shot['camera']]
-                point = reconstruction['points'][track_id]
-                errors.append(single_reprojection_error(camera, shot, point, observation))
+                shot = reconstruction.shots[shot_id]
+                point = reconstruction.points[track_id]
+                errors.append(single_reprojection_error(shot, point, observation))
     return np.median(errors)
 
 
@@ -516,8 +494,8 @@ def remove_outliers(graph, reconstruction, config):
     threshold = config.get('bundle_outlier_threshold', 0.008)
     if threshold > 0:
         outliers = []
-        for track in reconstruction['points']:
-            error = reconstruction['points'][track]['reprojection_error']
+        for track in reconstruction.points:
+            error = reconstruction.points[track].reprojection_error
             if error > threshold:
                 outliers.append(track)
         for track in outliers:
@@ -744,7 +722,6 @@ def merge_reconstructions(reconstructions, config):
                 reconstructions_merged.append(r[0])
                 num_merge += 1
 
-
     for k in remaining_reconstruction:
         reconstructions_merged.append(reconstructions[k])
 
@@ -754,8 +731,8 @@ def merge_reconstructions(reconstructions, config):
 
 
 def paint_reconstruction(data, graph, reconstruction):
-    for track in reconstruction['points']:
-        reconstruction['points'][track]['color'] = graph[track].values()[0]['feature_color']
+    for k, point in reconstruction.points.iteritems():
+        point.color = graph[k].values()[0]['feature_color']
 
 
 def grow_reconstruction(data, graph, reconstruction, images):
@@ -767,10 +744,10 @@ def grow_reconstruction(data, graph, reconstruction, images):
     bundle(graph, reconstruction, data.config)
     align_reconstruction(reconstruction, data.config)
 
-    num_points_last_bundle = len(reconstruction['points'])
-    num_shots_last_bundle = len(reconstruction['shots'])
-    num_points_last_retriangulation = len(reconstruction['points'])
-    num_shots_reconstructed = len(reconstruction['shots'])
+    num_points_last_bundle = len(reconstruction.points)
+    num_shots_last_bundle = len(reconstruction.shots)
+    num_points_last_retriangulation = len(reconstruction.points)
+    num_shots_reconstructed = len(reconstruction.shots)
 
     while True:
         if data.config.get('save_partial_reconstructions', False):
@@ -789,25 +766,24 @@ def grow_reconstruction(data, graph, reconstruction, images):
                 images.remove(image)
 
                 triangulate_shot_features(
-                                graph, reconstruction, image,
-                                data.config.get('triangulation_threshold', 0.004),
-                                data.config.get('triangulation_min_ray_angle', 2.0))
+                    graph, reconstruction, image,
+                    data.config.get('triangulation_threshold', 0.004),
+                    data.config.get('triangulation_min_ray_angle', 2.0))
 
-                if (len(reconstruction['points']) >= num_points_last_bundle * bundle_new_points_ratio
-                    or len(reconstruction['shots']) >= num_shots_last_bundle + bundle_interval):
+                if (len(reconstruction.points) >= num_points_last_bundle * bundle_new_points_ratio
+                        or len(reconstruction.shots) >= num_shots_last_bundle + bundle_interval):
                     bundle(graph, reconstruction, data.config)
                     remove_outliers(graph, reconstruction, data.config)
                     align_reconstruction(reconstruction, data.config)
-                    num_points_last_bundle = len(reconstruction['points'])
-                    num_shots_last_bundle = len(reconstruction['shots'])
+                    num_points_last_bundle = len(reconstruction.points)
+                    num_shots_last_bundle = len(reconstruction.shots)
 
-
-                num_points = len(reconstruction['points'])
+                num_points = len(reconstruction.points)
                 if retriangulation and num_points > num_points_last_retriangulation * retriangulation_ratio:
                     print 'Re-triangulating'
                     retriangulate(graph, reconstruction, data.config)
                     bundle(graph, reconstruction, data.config)
-                    num_points_last_retriangulation = len(reconstruction['points'])
+                    num_points_last_retriangulation = len(reconstruction.points)
                     print '  Reprojection Error:', reprojection_error(graph, reconstruction)
 
                 break
@@ -815,12 +791,11 @@ def grow_reconstruction(data, graph, reconstruction, images):
             print 'Some images can not be added'
             break
 
-
     bundle(graph, reconstruction, data.config)
     align_reconstruction(reconstruction, data.config)
 
     print 'Reprojection Error:', reprojection_error(graph, reconstruction)
-    print 'Painting the reconstruction from {0} cameras'.format(len(reconstruction['shots']))
+    print 'Painting the reconstruction from {0} cameras'.format(len(reconstruction.shots))
     paint_reconstruction(data, graph, reconstruction)
     print 'Done.'
     return reconstruction
@@ -854,10 +829,10 @@ def incremental_reconstruction(data):
                 remaining_images.remove(im2)
                 reconstruction = grow_reconstruction(data, graph, reconstruction, remaining_images)
                 reconstructions.append(reconstruction)
-                reconstructions = sorted(reconstructions, key=lambda x: -len(x['shots']))
+                reconstructions = sorted(reconstructions, key=lambda x: -len(x.shots))
                 data.save_reconstruction(reconstructions)
 
     for k, r in enumerate(reconstructions):
-        print 'Reconstruction', k, ':', len(r['shots']), 'images', ',', len(r['points']),'points'
+        print 'Reconstruction', k, ':', len(r['shots']), 'images', ',', len(r.points),'points'
 
     print len(reconstructions), 'partial reconstructions in total.'
