@@ -57,7 +57,7 @@ except:
 # alignment
 for reconstruction in reconstructions:
     for image in reconstruction['shots'].keys():
-        rc.add_gps_position(data, reconstruction['shots'][image], image)
+        rc.add_gps_position(data, reconstruction['shots'][image], image)  #TODO(pau): replace with get_image_metadata
     rc.align_reconstruction(reconstruction, data.config)
 
     # convert to lla

@@ -96,7 +96,7 @@ if __name__ == "__main__":
             #### write camera projection matrix to txt/%08d.txt
             resized_h, resized_w = resized_image.shape[:2]
             resized_K = opencv_calibration_matrix(resized_w, resized_h, camera['focal'])
-            Rt = Rt_from_shot(shot)
+            Rt = Rt_from_shot(shot)  # TODO(pau) replace with shot.get_Rt()
             P = resized_K * Rt
 
             new_txt = os.path.join(output_path, "txt", base + ".txt")

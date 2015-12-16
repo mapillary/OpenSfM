@@ -289,8 +289,8 @@ def bootstrap_reconstruction(data, graph, im1, im2):
         reconstruction.add_shot(shot1)
 
         shot2 = types.Shot()
-        shot2.id = im1
-        shot2.camera = cameras[str(d1['camera'])]
+        shot2.id = im2
+        shot2.camera = cameras[str(d2['camera'])]
         shot2.pose = types.Pose()
         shot2.pose.rotation = R
         shot2.pose.translation = t
@@ -301,8 +301,8 @@ def bootstrap_reconstruction(data, graph, im1, im2):
                     graph, reconstruction, im1,
                     data.config.get('triangulation_threshold', 0.004),
                     data.config.get('triangulation_min_ray_angle', 2.0))
-        print 'Number of reconstructed 3D points :{}'.format(len(reconstruction['points']))
-        if len(reconstruction['points']) > data.config.get('five_point_algo_min_inliers', 50):
+        print 'Number of reconstructed 3D points :{}'.format(len(reconstruction.points))
+        if len(reconstruction.points) > data.config.get('five_point_algo_min_inliers', 50):
             print 'Found initialize good pair', im1 , 'and', im2
             bundle_single_view(graph, reconstruction, im2, data.config)
             retriangulate(graph, reconstruction, data.config)
@@ -468,40 +468,27 @@ def resect(data, graph, reconstruction, shot_id):
         return False
 
 
-def Rt_from_shot(shot):
-    Rt = np.empty((3, 4))
-    Rt[:,:3] = cv2.Rodrigues(np.array(shot['rotation'], dtype=float))[0]
-    Rt[:, 3] = shot['translation']
-    return Rt
-
-
-def projection_matrix(camera, shot):
-    K = multiview.K_from_camera(camera)
-    Rt = Rt_from_shot(shot)
-    return np.dot(K, Rt)
-
-
 def triangulate_track(track, graph, reconstruction, Rt_by_id, reproj_threshold, min_ray_angle_degrees):
     min_ray_angle = np.radians(min_ray_angle_degrees)
     Rts, bs = [], []
 
     for shot_id in graph[track]:
-        if shot_id in reconstruction['shots']:
-            shot = reconstruction['shots'][shot_id]
-            camera = reconstruction['cameras'][shot['camera']]
+        if shot_id in reconstruction.shots:
+            shot = reconstruction.shots[shot_id]
             if shot_id not in Rt_by_id:
-                Rt_by_id[shot_id] = Rt_from_shot(shot)
+                Rt_by_id[shot_id] = shot.pose.get_Rt()
             Rts.append(Rt_by_id[shot_id])
             x = graph[track][shot_id]['feature']
-            b = multiview.pixel_bearing(np.array(x), camera)
+            b = shot.camera.pixel_bearing(np.array(x))
             bs.append(b)
 
     if len(Rts) >= 2:
         e, X = csfm.triangulate_bearings(Rts, bs, reproj_threshold, min_ray_angle)
         if X is not None:
-            reconstruction['points'][track] = {
-                "coordinates": list(X),
-            }
+            point = types.Point()
+            point.id = track
+            point.coordinates = X
+            reconstruction.add_point(point)
 
 
 def triangulate_shot_features(graph, reconstruction, shot_id, reproj_threshold, min_ray_angle):
@@ -510,7 +497,7 @@ def triangulate_shot_features(graph, reconstruction, shot_id, reproj_threshold, 
     Rt_by_id = {}
 
     for track in graph[shot_id]:
-        if track not in reconstruction['points']:
+        if track not in reconstruction.points:
             triangulate_track(track, graph, reconstruction, Rt_by_id, reproj_threshold, min_ray_angle)
 
 

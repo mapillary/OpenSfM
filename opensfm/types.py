@@ -60,6 +60,16 @@ class Pose(object):
         """
         self.translation = -self.get_rotation_matrix().dot(origin)
 
+    def get_Rt(self):
+        """
+        Get pose as a 3x4 matrix (R|t)
+        """
+        Rt = np.empty((3, 4))
+        Rt[:,:3] = self.get_rotation_matrix()
+        Rt[:, 3] = self.translation
+        return Rt
+
+
 
 class ShotMetadata(object):
     """Defines GPS data from a taken picture.
