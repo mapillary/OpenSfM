@@ -524,12 +524,6 @@ def remove_outliers(graph, reconstruction, config):
         print 'Remove {0} outliers'.format(len(outliers))
 
 
-def optical_center(shot):
-    R = cv2.Rodrigues(np.array(shot['rotation'], dtype=float))[0]
-    t = shot['translation']
-    return -R.T.dot(t)
-
-
 def viewing_direction(shot):
     """ Calculates the viewing direction for a shot.
 
@@ -550,27 +544,27 @@ def apply_similarity(reconstruction, s, A, b):
     :param b: The translation vector (3)
     """
     # Align points.
-    for point in reconstruction['points'].values():
-        Xp = s * A.dot(point['coordinates']) + b
-        point['coordinates'] = list(Xp)
+    for point in reconstruction.points.values():
+        Xp = s * A.dot(point.coordinates) + b
+        point.coordinates = Xp
 
     # Align cameras.
-    for shot in reconstruction['shots'].values():
-        R = cv2.Rodrigues(np.array(shot['rotation']))[0]
-        t = np.array(shot['translation'])
+    for shot in reconstruction.shots.values():
+        R = shot.pose.get_rotation_matrix()
+        t = np.array(shot.pose.translation)
         Rp = R.dot(A.T)
         tp = -Rp.dot(b) + s * t
-        shot['rotation'] = list(cv2.Rodrigues(Rp)[0].flat)
-        shot['translation'] = list(tp)
+        shot.pose.set_rotation_matrix(Rp)
+        shot.pose.translation = list(tp)
 
 
 def align_reconstruction_naive_similarity(reconstruction):
-    if len(reconstruction['shots']) < 3: return
+    if len(reconstruction.shots) < 3: return
     # Compute similarity Xp = s A X + b
     X, Xp = [], []
-    for shot in reconstruction['shots'].values():
-        X.append(optical_center(shot))
-        Xp.append(shot['gps_position'])
+    for shot in reconstruction.shots.values():
+        X.append(shot.pose.get_origin())
+        Xp.append(shot.metadata.gps_position)
     X = np.array(X)
     Xp = np.array(Xp)
     T = tf.superimposition_matrix(X.T, Xp.T, scale=True)
@@ -625,11 +619,11 @@ def align_reconstruction_orientation_prior_similarity(reconstruction, config):
     X, Xp = [], []
     orientation_type = config.get('align_orientation_prior', 'horizontal')
     onplane, verticals = [], []
-    for shot in reconstruction['shots'].values():
-        X.append(optical_center(shot))
-        Xp.append(shot['gps_position'])
-        R = cv2.Rodrigues(np.array(shot['rotation']))[0]
-        x, y, z = get_horitzontal_and_vertical_directions(R, shot.get('orientation'))
+    for shot in reconstruction.shots.values():
+        X.append(shot.pose.get_origin())
+        Xp.append(shot.metadata.gps_position)
+        R = shot.pose.get_rotation_matrix()
+        x, y, z = get_horitzontal_and_vertical_directions(R, shot.metadata.orientation)
         if orientation_type == 'no_roll':
             onplane.append(x)
             verticals.append(-y)
@@ -676,13 +670,13 @@ def register_reconstruction_with_gps(reconstruction, reference):
     shots = reconstruction['shots']
     for shot_id, shot in shots.iteritems():
         gps = {}
-        topo = optical_center(shot)
+        topo = shot.pose.get_origin()
         lat, lon, alt = geo.lla_from_topocentric(topo[0], topo[1], topo[2],
                                 reference['latitude'], reference['longitude'], reference['altitude'])
 
         # find direction
         shot['translation'][2] -= 1
-        topo2 = optical_center(shot)
+        topo2 = shot.pose.get_origin()
         dz = topo2 - topo
         angle = np.rad2deg(np.arctan2(dz[0], dz[1]))
         angle = (angle+360) % 360
