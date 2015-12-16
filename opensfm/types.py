@@ -61,11 +61,11 @@ class Pose(object):
         self.translation = -self.get_rotation_matrix().dot(origin)
 
 
-class GpsData(object):
+class ShotMetadata(object):
     """Defines GPS data from a taken picture.
 
     Attributes:
-        orientation (int): the orientation.
+        orientation (int): the exif orientation tag (1-8).
         capture_time (real): the capture time.
         gps_dop (real): the GPS dop.
         gps_position (vector): the GPS position.
@@ -76,6 +76,10 @@ class GpsData(object):
         self.capture_time = None
         self.gps_dop = None
         self.gps_position = None
+        self.accelerometer = None
+        self.compass = None
+        self.capture_time = None
+        self.skey = None
 
 
 class Camera(object):
@@ -176,13 +180,13 @@ class Shot(object):
     the image filename (id), the used camera with its refined internal
     parameters (camera), the fully camera pose respect to the scene origin
     frame (pose) and the GPS data obtained in the moment that the picture
-    was taken (gps_data).
+    was taken (metadata).
 
     Attributes:
         id (str): picture filename.
         camera (Camera): camera.
         pose (Pose): extrinsic parameters.
-        gps_data (GpsData): GPS data.
+        metadata (ShotMetadata): GPS, compass, capture time, etc.
 
     """
 
@@ -193,7 +197,7 @@ class Shot(object):
         self.id = None
         self.camera = None
         self.pose = None
-        self.gps_data = None
+        self.metadata = None
 
     def project(self, point):
         """

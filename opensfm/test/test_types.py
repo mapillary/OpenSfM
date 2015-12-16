@@ -46,11 +46,11 @@ def test_reconstruction_class_initialization():
     camera.width = 3264
 
     # Instantiate GPS data
-    gps_data = types.GpsData()
-    gps_data.orientation = 1
-    gps_data.capture_time = 0.0
-    gps_data.gps_dop = 5.0
-    gps_data.gps_position = [1.0815875281451939,
+    metadata = types.ShotMetadata()
+    metadata.orientation = 1
+    metadata.capture_time = 0.0
+    metadata.gps_dop = 5.0
+    metadata.gps_position = [1.0815875281451939,
                              -0.96510451436708888,
                              1.2042133903991235]
 
@@ -63,7 +63,7 @@ def test_reconstruction_class_initialization():
     shot0.id = 0
     shot0.camera = camera
     shot0.pose = pose0
-    shot0.gps_data = gps_data
+    shot0.metadata = metadata
 
     pose1 = types.Pose()
     pose1.rotation = [0.0, 0.0, 0.0]
@@ -73,7 +73,7 @@ def test_reconstruction_class_initialization():
     shot1.id = 1
     shot1.camera = camera
     shot1.pose = pose1
-    shot1.gps_data = gps_data
+    shot1.metadata = metadata
 
     # Add info to current reconstruction
     reconstruction.add_camera(camera)

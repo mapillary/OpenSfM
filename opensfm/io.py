@@ -223,15 +223,15 @@ def shot_from_json(key, obj, cameras):
     pose.rotation = obj["rotation"]
     pose.translation = obj["translation"]
 
-    gps_data = types.GpsData()
-    gps_data.orientation = obj["orientation"]
-    gps_data.capture_time = obj["capture_time"]
-    gps_data.gps_dop = obj["gps_dop"]
-    gps_data.gps_position = obj["gps_position"]
+    metadata = types.ShotMetadata()
+    metadata.orientation = obj["orientation"]
+    metadata.capture_time = obj["capture_time"]
+    metadata.gps_dop = obj["gps_dop"]
+    metadata.gps_position = obj["gps_position"]
 
     shot = types.Shot()
     shot.id = key
-    shot.gps_data = gps_data
+    shot.metadata = metadata
     shot.pose = pose
     shot.camera = cameras[obj["camera"]]
     return shot
