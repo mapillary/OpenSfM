@@ -423,17 +423,16 @@ def resect(data, graph, reconstruction, shot_id):
     '''Add a shot to the reconstruction.
     '''
     exif = data.load_exif(shot_id)
-    camera_id = exif['camera']
-    camera = reconstruction['cameras'][camera_id]
+    camera = reconstruction.cameras[exif['camera']]
 
     bs = []
     Xs = []
     for track in graph[shot_id]:
-        if track in reconstruction['points']:
+        if track in reconstruction.points:
             x = graph[track][shot_id]['feature']
-            b = multiview.pixel_bearing(x, camera)
+            b = camera.pixel_bearing(x)
             bs.append(b)
-            Xs.append(reconstruction['points'][track]['coordinates'])
+            Xs.append(reconstruction.points[track].coordinates)
     bs = np.array(bs)
     Xs = np.array(Xs)
     if len(bs) < 5:
@@ -453,14 +452,16 @@ def resect(data, graph, reconstruction, shot_id):
 
     print 'Resection', shot_id, 'inliers:', ninliers, '/', len(bs)
     if ninliers >= data.config.get('resection_min_inliers', 15):
-        R = cv2.Rodrigues(T[:, :3].T)[0].ravel()
-        t = -T[:, :3].T.dot(T[:, 3])
-        reconstruction['shots'][shot_id] = {
-            "camera": camera_id,
-            "rotation": list(R.flat),
-            "translation": list(t.flat),
-        }
-        get_image_metadata(data, reconstruction['shots'][shot_id], shot_id)
+        R = T[:, :3].T
+        t = -R.dot(T[:, 3])
+        shot = types.Shot()
+        shot.id = shot_id
+        shot.camera = camera
+        shot.pose = types.Pose()
+        shot.pose.set_rotation_matrix(R)
+        shot.pose.translation = t
+        shot.metadata = get_image_metadata(data, shot_id)
+        reconstruction.add_shot(shot)
         bundle_single_view(graph, reconstruction, shot_id, data.config)
         return True
     else:

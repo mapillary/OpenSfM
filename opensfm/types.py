@@ -32,7 +32,7 @@ class Pose(object):
         """
         Get rotation as a 3x3 matrix.
         """
-        return cv2.Rodrigues(self.rotation)[0]
+        return cv2.Rodrigues(np.asarray(self.rotation))[0]
 
     def set_rotation_matrix(self, rotation_matrix):
         """
