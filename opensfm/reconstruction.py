@@ -95,32 +95,31 @@ def bundle_single_view(graph, reconstruction, shot_id, config):
     '''Bundle adjust a single camera
     '''
     ba = csfm.BundleAdjuster()
-    shot = reconstruction['shots'][shot_id]
-    camera_id = shot['camera']
-    camera = reconstruction['cameras'][camera_id]
+    shot = reconstruction.shots[shot_id]
+    camera = shot.camera
 
-    pt = camera.get('projection_type', 'perspective')
-    if pt == 'perspective':
-        ba.add_perspective_camera(str(camera_id), camera['focal'], camera['k1'], camera['k2'],
-                camera['focal_prior'], camera.get('k1_prior', 0.0), camera.get('k2_prior', 0.0), True)
-    elif pt in ['equirectangular', 'spherical']:
-        ba.add_equirectangular_camera(str(camera_id))
+    if camera.projection_type == 'perspective':
+        ba.add_perspective_camera(
+            str(camera.id), camera.focal, camera.k1, camera.k2,
+            camera.focal_prior, camera.k1_prior, camera.k2_prior, True)
+    elif camera.projection_type in ['equirectangular', 'spherical']:
+        ba.add_equirectangular_camera(str(camera.id))
 
-    r = shot['rotation']
-    t = shot['translation']
-    g = shot['gps_position']
+    r = shot.pose.rotation
+    t = shot.pose.translation
+    g = shot.metadata.gps_position
     ba.add_shot(
-        str(shot_id), str(camera_id),
+        str(shot_id), str(camera.id),
         r[0], r[1], r[2],
         t[0], t[1], t[2],
         g[0], g[1], g[2],
-        shot['gps_dop'], False
+        shot.metadata.gps_dop, False
     )
 
     for track_id in graph[shot_id]:
-        if track_id in reconstruction['points']:
-            track = reconstruction['points'][track_id]
-            x = track['coordinates']
+        if track_id in reconstruction.points:
+            track = reconstruction.points[track_id]
+            x = track.coordinates
             ba.add_point(str(track_id), x[0], x[1], x[2], True)
             ba.add_observation(str(shot_id), str(track_id), *graph[shot_id][track_id]['feature'])
 
@@ -135,8 +134,8 @@ def bundle_single_view(graph, reconstruction, shot_id, config):
     ba.run()
 
     s = ba.get_shot(str(shot_id))
-    shot['rotation'] = [s.rx, s.ry, s.rz]
-    shot['translation'] = [s.tx, s.ty, s.tz]
+    shot.rotation = [s.rx, s.ry, s.rz]
+    shot.translation = [s.tx, s.ty, s.tz]
 
 
 def pairwise_reconstructability(common_tracks, homography_inliers):
