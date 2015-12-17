@@ -233,6 +233,7 @@ class Shot(object):
         self.camera = None
         self.pose = None
         self.metadata = None
+        self.mesh = None
 
     def project(self, point):
         """

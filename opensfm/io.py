@@ -339,6 +339,9 @@ def shot_to_json(shot):
         obj['compass'] = shot.metadata.compass
     if shot.metadata.skey is not None:
         obj['skey'] = shot.metadata.skey
+    if shot.mesh is not None:
+        obj['vertices'] = shot.mesh.vertices
+        obj['faces'] = shot.mesh.faces
     return obj
 
 
