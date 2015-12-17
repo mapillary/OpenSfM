@@ -289,12 +289,12 @@ class DataSet:
 
     def load_reconstruction(self, filename=None):
         with open(self.__reconstruction_file(filename)) as fin:
-            reconstructions = json.load(fin)
+            reconstructions = io.reconstructions_from_json(json.load(fin))
         return reconstructions
 
     def save_reconstruction(self, reconstruction, filename=None, indent=4):
         with open(self.__reconstruction_file(filename), 'w') as fout:
-            fout.write(io.json_dumps(reconstruction))
+            fout.write(io.json_dumps(io.reconstructions_to_json(reconstruction)))
 
     def __reference_lla_path(self):
         return os.path.join(self.data_path, 'reference_lla.json')

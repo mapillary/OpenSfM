@@ -290,6 +290,101 @@ def cameras_from_json(obj):
     return cameras
 
 
+def camera_to_json(camera):
+    """
+    Write camera to a json object
+    """
+    if camera.projection_type == 'perspective':
+        return {
+            'projection_type': camera.projection_type,
+            'width': camera.width,
+            'height': camera.height,
+            'focal': camera.focal,
+            'k1': camera.k1,
+            'k2': camera.k2,
+            'focal_prior': camera.focal_prior,
+            'k1_prior': camera.k1_prior,
+            'k2_prior': camera.k2_prior
+        }
+    elif camera.projection_type in ['equirectangular', 'spherical']:
+        return {
+            'projection_type': camera.projection_type,
+            'width': camera.width,
+            'height': camera.height
+        }
+    else:
+        raise NotImplementedError
+
+
+def shot_to_json(shot):
+    """
+    Write shot to a json object
+    """
+    obj = {
+        'rotation': list(shot.pose.rotation),
+        'translation': list(shot.pose.translation),
+        'camera': shot.camera.id
+    }
+    if shot.metadata.orientation is not None:
+        obj['orientation'] = shot.metadata.orientation
+    if shot.metadata.capture_time is not None:
+        obj['capture_time'] = shot.metadata.capture_time
+    if shot.metadata.gps_dop is not None:
+        obj['gps_dop'] = shot.metadata.gps_dop
+    if shot.metadata.gps_position is not None:
+        obj['gps_position'] = shot.metadata.gps_position
+    if shot.metadata.accelerometer is not None:
+        obj['accelerometer'] = shot.metadata.accelerometer
+    if shot.metadata.compass is not None:
+        obj['compass'] = shot.metadata.compass
+    if shot.metadata.skey is not None:
+        obj['skey'] = shot.metadata.skey
+    return obj
+
+
+def point_to_json(point):
+    """
+    Write a point to a json object
+    """
+    return {
+        'color': list(point.color),
+        'coordinates': list(point.coordinates),
+        'reprojection_error': point.reprojection_error
+    }
+
+
+def reconstruction_to_json(reconstruction):
+    """
+    Write a reconstruction to a json object
+    """
+    obj = {
+        "cameras": {},
+        "shots": {},
+        "points": {}
+    }
+
+    # Extract cameras
+    for camera in reconstruction.cameras.values():
+        obj['cameras'][camera.id] = camera_to_json(camera)
+
+    # Extract shots
+    for shot in reconstruction.shots.values():
+        obj['shots'][shot.id] = shot_to_json(shot)
+
+    # Extract points
+    for point in reconstruction.points.values():
+        obj['points'][point.id] = point_to_json(point)
+
+    return obj
+
+
+def reconstructions_to_json(reconstructions):
+    """
+    Write all reconstructions to a json object
+    """
+    return [reconstruction_to_json(i) for i in reconstructions]
+
+
 def mkdir_p(path):
     '''Make a directory including parent directories.
     '''

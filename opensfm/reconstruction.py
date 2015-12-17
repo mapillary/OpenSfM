@@ -833,6 +833,6 @@ def incremental_reconstruction(data):
                 data.save_reconstruction(reconstructions)
 
     for k, r in enumerate(reconstructions):
-        print 'Reconstruction', k, ':', len(r['shots']), 'images', ',', len(r.points),'points'
+        print 'Reconstruction', k, ':', len(r.shots), 'images', ',', len(r.points),'points'
 
     print len(reconstructions), 'partial reconstructions in total.'

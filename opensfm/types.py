@@ -83,7 +83,6 @@ class ShotMetadata(object):
     """
     def __init__(self):
         self.orientation = None
-        self.capture_time = None
         self.gps_dop = None
         self.gps_position = None
         self.accelerometer = None
