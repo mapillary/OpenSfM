@@ -324,40 +324,6 @@ def reconstructed_points_for_images(graph, reconstruction, images):
     return sorted(res, key=lambda x: -x[1])
 
 
-def rotate(angleaxis, point):
-    R = cv2.Rodrigues(np.array(angleaxis, dtype=float))[0]
-    return R.dot(np.array(point))
-
-
-def camera_coordinates(camera, shot, point):
-    '''Camera coordinates of point given in world coordinates
-
-    >>> shot = { 'rotation': [1., 2., 3.], 'translation': [4., 5., 6.] }
-    >>> point = [7., 8., 9.]
-    >>> cpoint = camera_coordinates(None, shot, point)
-    >>> wpoint = world_coordinates(None, shot, cpoint)
-    >>> np.allclose(point, wpoint)
-    True
-    '''
-    return rotate(shot['rotation'], point) + shot['translation']
-
-
-def world_coordinates(camera, shot, camera_coordinates_point):
-    '''World coordinates of a point given in camera coordinates
-    '''
-    r = -np.array(shot['rotation'])
-    return rotate(r, camera_coordinates_point - np.array(shot['translation']) )
-
-
-def back_project(camera, shot, pixel, depth):
-    K = multiview.K_from_camera(camera)
-    R = cv2.Rodrigues(np.array(shot['rotation'], dtype=float))[0]
-    t = shot['translation']
-    A = K.dot(R)
-    b = depth * np.array([pixel[0], pixel[1], 1]) - K.dot(t)
-    return np.linalg.solve(A, b)
-
-
 def single_reprojection_error(shot, point, observation):
     ''' Reprojection error of a single points
     '''

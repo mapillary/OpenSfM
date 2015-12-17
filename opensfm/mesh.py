@@ -14,33 +14,33 @@ def triangle_mesh(shot_id, r, graph, data):
     '''
     Create triangle meshes in a list
     '''
-    if 'shots' not in r or shot_id not in r['shots'] or shot_id not in graph:
+    if shot_id not in r.shots or shot_id not in graph:
         return [], []
 
-    shot = r['shots'][shot_id]
-    cam = r['cameras'][shot['camera']]
+    shot = r.shots[shot_id]
 
-    pt = cam.get('projection_type', 'perspective')
-    if pt == 'perspective':
+    if shot.camera.projection_type == 'perspective':
         return triangle_mesh_perspective(shot_id, r, graph)
-    else:
+    elif shot.camera.projection_type in ['equirectangular', 'spherical']:
         return triangle_mesh_equirectangular(shot_id, r, graph)
+    else:
+        raise NotImplementedError
 
 
 def triangle_mesh_perspective(shot_id, r, graph):
-    shot = r['shots'][shot_id]
-    cam = r['cameras'][shot['camera']]
+    shot = r.shots[shot_id]
+    cam = shot.camera
 
-    dx = float(cam['width']) / 2 / max(cam['width'], cam['height'])
-    dy = float(cam['height']) / 2 / max(cam['width'], cam['height'])
+    dx = float(cam.width) / 2 / max(cam.width, cam.height)
+    dy = float(cam.height) / 2 / max(cam.width, cam.height)
     pixels = [[-dx, -dy], [-dx, dy], [dx, dy], [dx, -dy]]
     vertices = [None for i in range(4)]
     for track_id, edge in graph[shot_id].items():
-        if track_id in r['points']:
-            point = r['points'][track_id]
-            pixel = reconstruction.reproject(cam, shot, point)
+        if track_id in r.points:
+            point = r.points[track_id]
+            pixel = shot.project(point.coordinates)
             if -dx <= pixel[0] <= dx and -dy <= pixel[1] <= dy:
-                vertices.append(point['coordinates'])
+                vertices.append(point.coordinates)
                 pixels.append(pixel.tolist())
 
     try:
@@ -56,22 +56,23 @@ def triangle_mesh_perspective(shot_id, r, graph):
             if i in t:
                 for j in t:
                     if j >= 4:
-                        depths[i] += reconstruction.camera_coordinates(cam, shot, vertices[j])[2]
+                        depths[i] += shot.pose.transform(vertices[j])[2]
                         sums[i] += 1
     for i in range(4):
         if sums[i] > 0:
             d = depths[i] / sums[i]
         else:
             d = 50.0
-        vertices[i] = reconstruction.back_project(cam, shot, pixels[i], d).tolist()
+        vertices[i] = shot.back_project(pixels[i], d).tolist()
 
     faces = tri.simplices.tolist()
     return vertices, faces
 
 
 def triangle_mesh_equirectangular(shot_id, r, graph):
-    shot = r['shots'][shot_id]
-    cam = r['cameras'][shot['camera']]
+    # TODO(pau) this needs to be addapted to use reconstruction objects
+    shot = r.shots[shot_id]
+    cam = shot.camera
 
     bearings = []
     vertices = []
@@ -80,14 +81,14 @@ def triangle_mesh_equirectangular(shot_id, r, graph):
     for point in itertools.product([-1, 1], repeat=3): # vertices of a cube
         bearing = 0.3 * np.array(point) / np.linalg.norm(point)
         bearings.append(bearing)
-        point = reconstruction.world_coordinates(cam, shot, bearing)
+        point = shot.pose.transform_inverse(bearing)
         vertices.append(point.tolist())
 
     for track_id, edge in graph[shot_id].items():
-        if track_id in r['points']:
-            point = r['points'][track_id]['coordinates']
+        if track_id in r.points:
+            point = r.points[track_id].coordinates
             vertices.append(point)
-            direction = reconstruction.camera_coordinates(cam, shot, point)
+            direction = shot.pose.transform(point)
             pixel = direction / np.linalg.norm(direction)
             bearings.append(pixel.tolist())
 

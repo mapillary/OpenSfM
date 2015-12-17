@@ -4,12 +4,12 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 import argparse
 import time
-import json
-import numpy as np
-import scipy.spatial
+
+
 from opensfm import dataset
-from opensfm import reconstruction
 from opensfm import mesh
+from opensfm import types
+
 
 if __name__ == "__main__":
     start = time.time()
@@ -23,11 +23,12 @@ if __name__ == "__main__":
     reconstructions = data.load_reconstruction()
 
     for i, r in enumerate(reconstructions):
-        for shot_id, shot in r['shots'].iteritems():
+        for shot_id, shot in r.shots.iteritems():
             if shot_id in graph:
                 vertices, faces = mesh.triangle_mesh(shot_id, r, graph, data)
-                shot['vertices'] = vertices
-                shot['faces'] = faces
+                shot.mesh = types.ShotMesh()
+                shot.mesh.vertices = vertices
+                shot.mesh.faces = faces
 
     data.save_reconstruction(reconstructions, filename='reconstruction.meshed.json')
 

@@ -28,6 +28,12 @@ class Pose(object):
         """
         return self.get_rotation_matrix().dot(point) + self.translation
 
+    def transform_inverse(self, point):
+        """
+        Transforms a point from this pose coordinates to world coordinates.
+        """
+        return self.get_rotation_matrix().T.dot(point - self.translation)
+
     def get_rotation_matrix(self):
         """
         Get rotation as a 3x3 matrix.
@@ -65,10 +71,9 @@ class Pose(object):
         Get pose as a 3x4 matrix (R|t)
         """
         Rt = np.empty((3, 4))
-        Rt[:,:3] = self.get_rotation_matrix()
+        Rt[:, :3] = self.get_rotation_matrix()
         Rt[:, 3] = self.translation
         return Rt
-
 
 
 class ShotMetadata(object):
@@ -89,6 +94,18 @@ class ShotMetadata(object):
         self.compass = None
         self.capture_time = None
         self.skey = None
+
+
+class ShotMesh(object):
+    """Triangular mesh of points visible in a shot
+
+    Attributes:
+        vertices: (list of vectors) mesh vertices
+        faces: (list of triplets) triangles' topology
+    """
+    def __init__(self):
+        self.vertices = None
+        self.faces = None
 
 
 class Camera(object):
@@ -167,11 +184,20 @@ class PerspectiveCamera(Camera):
         """
         points = pixels.reshape((-1, 1, 2))
         distortion = np.array([self.k1, self.k2, 0., 0.])
-        up = cv2.undistortPoints(points, self.get_K(), distortion).reshape((-1, 2))
+        up = cv2.undistortPoints(points, self.get_K(), distortion)
+        up = up.reshape((-1, 2))
         x = up[:, 0]
         y = up[:, 1]
         l = np.sqrt(x * x + y * y + 1.0)
         return np.column_stack((x / l, y / l, 1.0 / l))
+
+    def back_project(self, pixel, depth):
+        """
+        Projects a pixel to a fronto-parallel plane at a given depth.
+        """
+        bearing = self.pixel_bearing(pixel)
+        scale = depth / bearing[2]
+        return scale * bearing
 
     def get_K(self):
         """
@@ -214,6 +240,15 @@ class Shot(object):
         """
         camera_point = self.pose.transform(point)
         return self.camera.project(camera_point)
+
+    def back_project(self, pixel, depth):
+        """
+        Projects a pixel to a fronto-parallel plane at a given depth.
+
+        The plane is defined by z = depth in the shot reference frame.
+        """
+        point_in_cam_coords = self.camera.back_project(pixel, depth)
+        return self.pose.transform_inverse(point_in_cam_coords)
 
 
 class Point(object):
