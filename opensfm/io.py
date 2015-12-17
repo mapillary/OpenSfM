@@ -211,6 +211,12 @@ def camera_from_json(key, obj):
         camera.k1_prior = obj.get('k1_prior', 0.0)
         camera.k2_prior = obj.get('k2_prior', 0.0)
         return camera
+    elif obj['projection_type'] in ['equirectangular', 'spherical']:
+        camera = types.SphericalCamera()
+        camera.id = key
+        camera.width = obj['width']
+        camera.height = obj['height']
+        return camera
     else:
         raise NotImplementedError
 
@@ -224,10 +230,10 @@ def shot_from_json(key, obj, cameras):
     pose.translation = obj["translation"]
 
     metadata = types.ShotMetadata()
-    metadata.orientation = obj["orientation"]
-    metadata.capture_time = obj["capture_time"]
-    metadata.gps_dop = obj["gps_dop"]
-    metadata.gps_position = obj["gps_position"]
+    metadata.orientation = obj.get("orientation")
+    metadata.capture_time = obj.get("capture_time")
+    metadata.gps_dop = obj.get("gps_dop")
+    metadata.gps_position = obj.get("gps_position")
 
     shot = types.Shot()
     shot.id = key
