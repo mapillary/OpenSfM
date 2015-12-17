@@ -1,5 +1,7 @@
 import numpy as np
 import networkx as nx
+
+from opensfm import io
 import opensfm.reconstruction
 
 
@@ -11,7 +13,7 @@ def test_triangulate_track_equirectangular():
     graph.add_edge('im1', '1', feature=(0,0))
     graph.add_edge('im2', '1', feature=(-0.1, 0))
 
-    reconstruction = {
+    reconstruction = io.reconstruction_from_json({
         "cameras": {
             "theta": {
                 "projection_type": "equirectangular"
@@ -33,7 +35,7 @@ def test_triangulate_track_equirectangular():
 
         "points" : {
         },
-    }
+    })
 
     opensfm.reconstruction.triangulate_track(
         '1', graph, reconstruction, {}, 0.01, 2.0)
