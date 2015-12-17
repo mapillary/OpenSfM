@@ -213,11 +213,14 @@ def _two_view_reconstruction_inliers(b1, b2, R, t, threshold):
     ok2 = np.linalg.norm(br2 - b2, axis=1) < threshold
     return np.nonzero(ok1 * ok2)[0]
 
+
 def run_relative_pose_ransac(b1, b2, method, threshold, iterations):
     return pyopengv.relative_pose_ransac(b1, b2, method, threshold, iterations)
 
+
 def run_relative_pose_optimize_nonlinear(b1, b2, t, R):
     return pyopengv.relative_pose_optimize_nonlinear(b1, b2, t, R)
+
 
 def two_view_reconstruction(p1, p2, camera1, camera2, threshold):
     b1 = camera1.pixel_bearings(p1)
@@ -247,8 +250,8 @@ def _two_view_reconstruction_rotation_only_inliers(b1, b2, R, threshold):
 
 
 def two_view_reconstruction_rotation_only(p1, p2, camera1, camera2, threshold):
-    b1 = multiview.pixel_bearings(p1, camera1)
-    b2 = multiview.pixel_bearings(p2, camera2)
+    b1 = camera1.pixel_bearings(p1)
+    b2 = camera2.pixel_bearings(p2)
     t = np.zeros(3)
 
     R = pyopengv.relative_pose_ransac_rotation_only(b1, b2, 1 - np.cos(threshold), 1000)

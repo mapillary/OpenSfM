@@ -418,38 +418,3 @@ def project_to_rotation_matrix(A):
     except np.linalg.linalg.LinAlgError:
         return None
     return u.dot(vt)
-
-
-def pixel_bearing(p, camera):
-    if camera.get('projection_type', 'perspective') in ['equirectangular', 'spherical']:
-        lon = p[0] * 2 * np.pi
-        lat = -p[1] * 2 * np.pi
-        x = np.cos(lat) * np.sin(lon)
-        y = -np.sin(lat)
-        z = np.cos(lat) * np.cos(lon)
-        return np.array([x, y, z])
-    else:
-        points = np.asarray(p).reshape((1, 1, 2))
-        K = K_from_camera(camera)
-        distortion = np.array([camera['k1'], camera['k2'], 0., 0.])
-        x, y = cv2.undistortPoints(points, K, distortion).flat
-        l = np.sqrt(x * x + y * y + 1)
-        return np.array([x / l, y / l, 1.0 / l])
-
-def pixel_bearings(p, camera):
-    if camera.get('projection_type', 'perspective') in ['equirectangular', 'spherical']:
-        lon = p[:, 0] * 2 * np.pi
-        lat = -p[:, 1] * 2 * np.pi
-        x = np.cos(lat) * np.sin(lon)
-        y = -np.sin(lat)
-        z = np.cos(lat) * np.cos(lon)
-        return np.column_stack([x, y, z]).astype(float)
-    else:
-        points = p.reshape((-1, 1, 2))
-        K = K_from_camera(camera)
-        distortion = np.array([camera['k1'], camera['k2'], 0., 0.])
-        up = cv2.undistortPoints(points, K, distortion).reshape((-1, 2))
-        b = homogeneous(up)
-        return b / np.linalg.norm(b, axis=1)[:, np.newaxis]
-
-
