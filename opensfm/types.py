@@ -208,6 +208,56 @@ class PerspectiveCamera(Camera):
                          [0., 0., 1.]])
 
 
+class SphericalCamera(Camera):
+    """A spherical camera generating equirectangular projections.
+
+    Attributes:
+        widht (int): image width.
+        height (int): image height.
+
+    """
+
+    def __init__(self):
+        """Defaut constructor
+
+        """
+        self.id = None
+        self.projection_type = 'equirectangular'
+        self.width = None
+        self.height = None
+
+    def project(self, point):
+        """
+        Projects a 3D point in camera coordinates to the image plane.
+        """
+        x, y, z = point
+        lon = np.arctan2(x, z)
+        lat = np.arctan2(-y, np.sqrt(x**2 + z**2))
+        return np.array([lon / (2 * np.pi), -lat / (2 * np.pi)])
+
+    def pixel_bearing(self, pixel):
+        """
+        Unit vector pointing to the pixel viewing direction.
+        """
+        lon = pixel[0] * 2 * np.pi
+        lat = -pixel[1] * 2 * np.pi
+        x = np.cos(lat) * np.sin(lon)
+        y = -np.sin(lat)
+        z = np.cos(lat) * np.cos(lon)
+        return np.array([x, y, z])
+
+    def pixel_bearings(self, pixels):
+        """
+        Unit vector pointing to the pixel viewing directions.
+        """
+        lon = pixels[:, 0] * 2 * np.pi
+        lat = -pixels[:, 1] * 2 * np.pi
+        x = np.cos(lat) * np.sin(lon)
+        y = -np.sin(lat)
+        z = np.cos(lat) * np.cos(lon)
+        return np.column_stack([x, y, z]).astype(float)
+
+
 class Shot(object):
     """Defines a shot in a reconstructed scene.
 

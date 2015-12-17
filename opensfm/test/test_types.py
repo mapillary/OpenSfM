@@ -93,7 +93,7 @@ def test_reconstruction_class_initialization():
 
 def test_perspective_camera_projection():
     """
-    Test projection--backprojection loop
+    Test perspectiive projection--backprojection loop
     """
     camera = types.PerspectiveCamera()
     camera.width = 800
@@ -101,6 +101,19 @@ def test_perspective_camera_projection():
     camera.focal = 0.6
     camera.k1 = -0.1
     camera.k2 = 0.01
+    pixel = [0.1, 0.2]
+    bearing = camera.pixel_bearing(pixel)
+    projected = camera.project(bearing)
+    assert np.allclose(pixel, projected)
+
+
+def test_spherical_camera_projection():
+    """
+    Test spherical projection--backprojection loop
+    """
+    camera = types.SphericalCamera()
+    camera.width = 800
+    camera.height = 600
     pixel = [0.1, 0.2]
     bearing = camera.pixel_bearing(pixel)
     projected = camera.project(bearing)
