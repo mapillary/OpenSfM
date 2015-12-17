@@ -344,25 +344,6 @@ def reprojection_error(graph, reconstruction):
     return np.median(errors)
 
 
-def reprojection_error_track(track, graph, reconstruction):
-    errors = []
-    error = 999999999.
-    if track in reconstruction['points']:
-        for shot_id in graph[track]:
-            observation = graph[shot_id][track]['feature']
-            if shot_id in reconstruction['shots']:
-                shot = reconstruction['shots'][shot_id]
-                camera = reconstruction['cameras'][shot['camera']]
-                point = reconstruction['points'][track]
-                errors.append(single_reprojection_error(camera, shot, point, observation))
-        if errors:
-            error = np.max(errors)
-    else:
-        error = 999999999.
-
-    return error
-
-
 def resect(data, graph, reconstruction, shot_id):
     '''Add a shot to the reconstruction.
     '''
@@ -465,7 +446,7 @@ def remove_outliers(graph, reconstruction, config):
             if error > threshold:
                 outliers.append(track)
         for track in outliers:
-            del reconstruction['points'][track]
+            del reconstruction.points[track]
         print 'Remove {0} outliers'.format(len(outliers))
 
 
@@ -636,15 +617,15 @@ def register_reconstruction_with_gps(reconstruction, reference):
 def merge_two_reconstructions(r1, r2, config, threshold=1):
     ''' Merge two reconstructions with common tracks
     '''
-    t1, t2 = r1['points'], r2['points']
+    t1, t2 = r1.points, r2.points
     common_tracks = list(set(t1) & set(t2))
 
     # print 'Number of common tracks between two reconstructions: {0}'.format(len(common_tracks))
     if len(common_tracks) > 6:
 
         # Estimate similarity transform
-        p1 = np.array([t1[t]['coordinates'] for t in common_tracks])
-        p2 = np.array([t2[t]['coordinates'] for t in common_tracks])
+        p1 = np.array([t1[t].coordinates for t in common_tracks])
+        p2 = np.array([t2[t].coordinates for t in common_tracks])
 
         T, inliers = multiview.fit_similarity_transform(p1, p2, max_iterations=1000, threshold=threshold)
 
@@ -653,8 +634,8 @@ def merge_two_reconstructions(r1, r2, config, threshold=1):
             r1p = r1
             apply_similarity(r1p, s, A, b)
             r = r2
-            r['shots'].update(r1p['shots'])
-            r['points'].update(r1p['points'])
+            r.shots.update(r1p.shots)
+            r.points.update(r1p.points)
             align_reconstruction(r, config)
             return [r]
         else:
