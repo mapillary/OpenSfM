@@ -10,37 +10,33 @@ import os, sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import argparse
 
-import json
-import numpy as np
-import pyexiv2
-
 from opensfm import dataset
 from opensfm import io
 from opensfm.geotag_from_gpx import add_gps_to_exif
+import opensfm.reconstruction as rc
 
 parser = argparse.ArgumentParser(
     description='Write updated geotag information to image files.'
-        ' It requires a reconstruction with updated GPS positions.'
-        ' This can be obtained by running the bin/align script.')
-parser.add_argument('dataset',
+    ' It requires a reconstruction with updated GPS positions.'
+    ' This can be obtained by running the bin/align script.')
+parser.add_argument(
+    'dataset',
     help='path to the dataset to be processed')
-parser.add_argument('--overwrite_originals',
+parser.add_argument(
+    '--overwrite_originals',
     help='write geotag back to the original images.'
-    ' By default, the updated images are written in dataset/images_updated_geotag'
+    ' By default, the images are written in dataset/images_updated_geotag'
     ' and the original images are not overwritten.',
     action='store_true')
-parser.add_argument('--image_path',
-    help='path to images')
-parser.add_argument('--reconstruction_file',
-    help='path to images')
+parser.add_argument(
+    '--reconstruction_file',
+    help='reconstruction containing image positions')
 args = parser.parse_args()
 
-# This script assumes that the reconstruction contains aligned gps, altitude and direction information about the images (after bin/align data_path)
 data_path = args.dataset
 
-
-data = dataset.DataSet(data_path) # assumes that the images is in data_path/'images'
-if args.image_path: data.set_image_path(args.image_path)
+data = dataset.DataSet(data_path)
+reference = data.load_reference_lla()
 
 updated_image_path = os.path.join(data.data_path, 'images_updated_geotag')
 if not args.overwrite_originals and not os.path.exists(updated_image_path):
@@ -54,10 +50,12 @@ else:
 
 for reconstruction in reconstructions:
     # write updated gps/compass to the image file
-    for image in reconstruction['shots'].keys():
+    for image in reconstruction.shots:
         image_path = data.image_files[image]
-        new_image_path = None if args.overwrite_originals else os.path.join(updated_image_path, image)
-        gps = reconstruction['shots'][image]['gps']
-        add_gps_to_exif(image_path, gps['lat'], gps['lon'], gps['direction'], gps['altitude'], new_image_path)
-
-
+        if args.overwrite_originals:
+            new_image_path = None
+        else:
+            new_image_path = os.path.join(updated_image_path, image)
+        lat, lon, alt, compass = rc.shot_lla_and_compass(
+            reconstruction.shots[image], reference)
+        add_gps_to_exif(image_path, lat, lon, compass, alt, new_image_path)

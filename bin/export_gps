@@ -29,7 +29,6 @@ for reconstruction in reconstructions:
     for shot in reconstruction.shots.values():
         lla = rc.shot_lla_and_compass(shot, reference)
         rows.append([shot.id, ] + map(str, lla))
-        shot.metadata = rc.get_image_metadata(data, shot.id)
 rows.sort()
 rows.insert(0, ['image', 'latitude', 'longitude', 'altitude', 'compass_angle'])
 tsv = '\n'.join(['\t'.join(row) for row in rows])
