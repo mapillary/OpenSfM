@@ -10,8 +10,8 @@ import time
 from networkx.algorithms import bipartite
 
 from opensfm import csfm
-from opensfm import dataset
 from opensfm import geo
+from opensfm import matching
 from opensfm import multiview
 from opensfm import transformations as tf
 from opensfm import types
@@ -153,7 +153,7 @@ def compute_image_pairs(graph, image_graph, config):
     pairs = []
     score = []
     for im1, im2, d in image_graph.edges(data=True):
-        tracks, p1, p2 = dataset.common_tracks(graph, im1, im2)
+        tracks, p1, p2 = matching.common_tracks(graph, im1, im2)
         if len(tracks) >= 50:
             H, inliers = cv2.findHomography(p1, p2, cv2.RANSAC, config.get('homography_threshold', 0.004))
             r = pairwise_reconstructability(len(tracks), inliers.sum())
@@ -273,7 +273,7 @@ def bootstrap_reconstruction(data, graph, im1, im2):
     camera1 = cameras[d1['camera']]
     camera2 = cameras[d2['camera']]
 
-    tracks, p1, p2 = dataset.common_tracks(graph, im1, im2)
+    tracks, p1, p2 = matching.common_tracks(graph, im1, im2)
     print 'Number of common tracks', len(tracks)
 
     threshold = data.config.get('five_point_algo_threshold', 0.006)

@@ -410,26 +410,5 @@ def save_tracks_graph(fileobj, graph):
                 x, y = data['feature']
                 fid = data['feature_id']
                 r, g, b = data['feature_color']
-                fileobj.write('%s\t%s\t%d\t%g\t%g\t%g\t%g\t%g\n' % (str(image), str(track), fid, x, y, r, g, b))
-
-
-def common_tracks(g, im1, im2):
-    """
-    Return the list of tracks observed in both images
-    :param g: Graph structure (networkx) as returned by :method:`DataSet.tracks_graph`
-    :param im1: Image name, with extension (i.e. 123.jpg)
-    :param im2: Image name, with extension (i.e. 123.jpg)
-    :return: tuple: track, feature from first image, feature from second image
-    """
-    # TODO: return value is unclear
-    # TODO: maybe make as method of DataSet?
-    t1, t2 = g[im1], g[im2]
-    tracks, p1, p2 = [], [], []
-    for track in t1:
-        if track in t2:
-            p1.append(t1[track]['feature'])
-            p2.append(t2[track]['feature'])
-            tracks.append(track)
-    p1 = np.array(p1)
-    p2 = np.array(p2)
-    return tracks, p1, p2
+                fileobj.write('%s\t%s\t%d\t%g\t%g\t%g\t%g\t%g\n' % (
+                    str(image), str(track), fid, x, y, r, g, b))

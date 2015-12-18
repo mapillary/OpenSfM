@@ -67,7 +67,7 @@ if __name__ == "__main__":
         for im1 in toplot:
             for im2 in images:
                 if im1 != im2:
-                    t, p1, p2 = dataset.common_tracks(graph, im1, im2)
+                    t, p1, p2 = matching.common_tracks(graph, im1, im2)
                     if len(t) >= 10:
                         pl.figure(figsize=(20, 10))
                         pl.title('Images: ' + im1 + ' - ' + im2 + ', matches: ' + str(len(t)))

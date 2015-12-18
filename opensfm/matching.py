@@ -173,3 +173,23 @@ def create_tracks_graph(features, colors, matches, config):
 
     return tracks_graph
 
+
+def common_tracks(g, im1, im2):
+    """
+    Return the list of tracks observed in both images
+    :param g: Graph structure (networkx) as returned by :method:`DataSet.tracks_graph`
+    :param im1: Image name, with extension (i.e. 123.jpg)
+    :param im2: Image name, with extension (i.e. 123.jpg)
+    :return: tuple: track, feature from first image, feature from second image
+    """
+    t1, t2 = g[im1], g[im2]
+    tracks, p1, p2 = [], [], []
+    for track in t1:
+        if track in t2:
+            p1.append(t1[track]['feature'])
+            p2.append(t2[track]['feature'])
+            tracks.append(track)
+    p1 = np.array(p1)
+    p2 = np.array(p2)
+    return tracks, p1, p2
+

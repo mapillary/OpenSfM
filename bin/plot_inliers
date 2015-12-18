@@ -319,7 +319,7 @@ def load_common_tracks(im1, im2, graph):
     :return: An array with rows containing a track id and the corresponding feature id for the first and second image.
     """
     t1, t2 = graph[im1], graph[im2]
-    tc, p1, p2 = dataset.common_tracks(graph, im1, im2)
+    tc, p1, p2 = matching.common_tracks(graph, im1, im2)
 
     common_tracks = []
     for t in tc:
