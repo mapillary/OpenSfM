@@ -1,23 +1,25 @@
 #!/usr/bin/env python
 import os.path, sys
-import time
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from multiprocessing import Pool
-import numpy as np
-from itertools import combinations
 import argparse
+from itertools import combinations
+from multiprocessing import Pool
+import time
+
+import numpy as np
+
 from opensfm import dataset
 from opensfm import features
-from opensfm import matching
 from opensfm import geo
+from opensfm import matching
 
 
 def has_gps_info(exif):
     return (exif
-        and 'gps' in exif
-        and 'latitude' in exif['gps']
-        and 'longitude' in exif['gps'])
+            and 'gps' in exif
+            and 'latitude' in exif['gps']
+            and 'longitude' in exif['gps'])
 
 
 def distance_from_exif(exif1, exif2):
@@ -26,7 +28,7 @@ def distance_from_exif(exif1, exif2):
         gps2 = exif2['gps']
         lon1, lat1 = gps1['longitude'], gps1['latitude']
         lon2, lat2 = gps2['longitude'], gps2['latitude']
-        return geo.gps_distance([lon1,lat1], [lon2, lat2])
+        return geo.gps_distance([lon1, lat1], [lon2, lat2])
     else:
         return 0
 
@@ -167,7 +169,7 @@ if __name__ == "__main__":
 
     start = time.time()
     args = match_arguments(pairs)
-    processes = data.config.get('processes',1)
+    processes = data.config.get('processes', 1)
     if processes == 1:
         for arg in args:
             match(arg)

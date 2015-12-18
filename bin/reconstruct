@@ -4,8 +4,10 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 import argparse
 import time
+
 from opensfm import dataset
 from opensfm import reconstruction
+
 
 if __name__ == "__main__":
     start = time.time()
