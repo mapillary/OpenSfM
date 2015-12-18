@@ -301,6 +301,15 @@ class Shot(object):
         point_in_cam_coords = self.camera.back_project(pixel, depth)
         return self.pose.transform_inverse(point_in_cam_coords)
 
+    def viewing_direction(self):
+        """
+        The viewing direction of the shot.
+
+        That is the positive camera Z axis in world coordinates
+        """
+        return self.pose.get_rotation_matrix().T.dot([0, 0, 1])
+
+
 
 class Point(object):
     """Defines a 3D point.

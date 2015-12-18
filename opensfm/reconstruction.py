@@ -453,17 +453,6 @@ def remove_outliers(graph, reconstruction, config):
         print 'Remove {0} outliers'.format(len(outliers))
 
 
-def viewing_direction(shot):
-    """ Calculates the viewing direction for a shot.
-
-    :param shot: The shot.
-    :return: The viewing direction.
-    """
-    R = cv2.Rodrigues(np.array(shot['rotation'], dtype=float))[0]
-    t = np.array([0, 0, 1])
-    return R.T.dot(t)
-
-
 def apply_similarity(reconstruction, s, A, b):
     """Apply a similarity (y = s A x + t) to a reconstruction.
 
@@ -592,29 +581,19 @@ def align_reconstruction_orientation_prior_similarity(reconstruction, config):
     return s, A, b
 
 
-def register_reconstruction_with_gps(reconstruction, reference):
+def shot_lla_and_compass(shot, reference):
     """
-    register reconstrution with gps positions and compass angles
+    Lat, lon, alt and compass of the reconstructed shot position
     """
-    shots = reconstruction['shots']
-    for shot_id, shot in shots.iteritems():
-        gps = {}
-        topo = shot.pose.get_origin()
-        lat, lon, alt = geo.lla_from_topocentric(topo[0], topo[1], topo[2],
-                                reference['latitude'], reference['longitude'], reference['altitude'])
+    topo = shot.pose.get_origin()
+    lat, lon, alt = geo.lla_from_topocentric(
+        topo[0], topo[1], topo[2],
+        reference['latitude'], reference['longitude'], reference['altitude'])
 
-        # find direction
-        shot['translation'][2] -= 1
-        topo2 = shot.pose.get_origin()
-        dz = topo2 - topo
-        angle = np.rad2deg(np.arctan2(dz[0], dz[1]))
-        angle = (angle+360) % 360
-        reconstruction['shots'][shot_id]['gps'] = {
-                                            'lon': lon,
-                                            'lat': lat,
-                                            'altitude': alt,
-                                            'direction': angle
-                                      }
+    dz = shot.viewing_direction()
+    angle = np.rad2deg(np.arctan2(dz[0], dz[1]))
+    angle = (angle + 360) % 360
+    return lat, lon, alt, angle
 
 
 def merge_two_reconstructions(r1, r2, config, threshold=1):
