@@ -210,7 +210,6 @@ class DataSet:
     def save_preemptive_features(self, image, points, descriptors):
         self.__save_features(self.__preemptive_features_file(image), image, points, descriptors)
 
-
     def matcher_type(self):
         """Return the type of matcher
         """
@@ -220,7 +219,6 @@ class DataSet:
                  matcher_type = 'BruteForce-Hamming'
             self.config['matcher_type'] = matcher_type
         return matcher_type # BruteForce, BruteForce-L1, BruteForce-Hamming
-
 
     def __matches_path(self):
         """Return path of matches directory"""
@@ -342,7 +340,8 @@ class DataSet:
     def save_camera_models(self, camera_models):
         """Save camera models data"""
         with open(self.__camera_models_file(), 'w') as fout:
-            fout.write(io.json_dumps(camera_models))
+            obj = io.cameras_to_json(camera_models)
+            fout.write(io.json_dumps(obj))
 
     def __camera_models_overrides_file(self):
         """Return path of camera model overrides file"""
@@ -354,9 +353,8 @@ class DataSet:
     def load_camera_models_overrides(self):
         """Return camera models overrides data"""
         with open(self.__camera_models_overrides_file(), 'r') as fin:
-            return json.load(fin)
-
-
+            obj = json.load(fin)
+            return io.cameras_from_json(obj)
 
     def __epipolar_path(self):
         return os.path.join(self.data_path, 'epipolar_geometries')
@@ -388,14 +386,14 @@ class DataSet:
             fout.write(io.json_dumps(navigation_graphs))
 
 
-
 def load_tracks_graph(fileobj):
     g = nx.Graph()
     for line in fileobj:
         image, track, observation, x, y, R, G, B = line.split('\t')
         g.add_node(image, bipartite=0)
         g.add_node(track, bipartite=1)
-        g.add_edge(image, track,
+        g.add_edge(
+            image, track,
             feature=(float(x), float(y)),
             feature_id=int(observation),
             feature_color=(float(R), float(G), float(B)))

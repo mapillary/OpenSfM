@@ -8,11 +8,13 @@ import time
 
 from opensfm import dataset
 from opensfm import exif
+from opensfm import types
 
 
 logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
 
-parser = argparse.ArgumentParser(description="Extract camera information from images' EXIF tags")
+parser = argparse.ArgumentParser(
+    description="Extract camera information from images' EXIF tags")
 parser.add_argument('dataset', help='the dataset to process')
 args = parser.parse_args()
 
@@ -27,27 +29,36 @@ for image in data.images():
     d = exif.extract_exif_from_file(data.load_image(image))
 
     # Image Height and Image Width
-    if not data.config['use_exif_size']:
+    if d['width'] <= 0 or not data.config['use_exif_size']:
         d['height'], d['width'] = data.image_as_array(image).shape[:2]
 
     data.save_exif(image, d)
 
     if d['camera'] not in camera_models:
-        calib = (exif.hard_coded_calibration(d)
-            or exif.focal_ratio_calibration(d)
-            or exif.default_calibration(data))
-
-        camera_models[d['camera']] = {
-            'width': d['width'],
-            'height': d['height'],
-            'projection_type': d.get('projection_type', 'perspective'),
-            "focal_prior": calib['focal'],
-            "k1_prior": calib['k1'],
-            "k2_prior": calib['k2'],
-            "focal": calib['focal'],
-            "k1": calib['k1'],
-            "k2": calib['k2'],
-        }
+        pt = d.get('projection_type', 'perspective')
+        if pt == 'perspective':
+            calib = (exif.hard_coded_calibration(d)
+                     or exif.focal_ratio_calibration(d)
+                     or exif.default_calibration(data))
+            camera = types.PerspectiveCamera()
+            camera.id = d['camera']
+            camera.width = d['width']
+            camera.height = d['height']
+            camera.projection_type = d.get('projection_type', 'perspective')
+            camera.focal = calib['focal']
+            camera.k1 = calib['k1']
+            camera.k2 = calib['k2']
+            camera.focal_prior = calib['focal']
+            camera.k1_prior = calib['k1']
+            camera.k2_prior = calib['k2']
+        elif pt in ['equirectangular', 'spherical']:
+            camera = types.SphericalCamera()
+            camera.id = d['camera']
+            camera.width = d['width']
+            camera.height = d['height']
+        else:
+            raise ValueError("Unknown projection type: {}".format(pt))
+        camera_models[d['camera']] = camera
 
 # Override any camera that is specified in the camera models overrides file.
 if data.camera_models_overrides_exists():

@@ -394,6 +394,16 @@ def reconstructions_to_json(reconstructions):
     return [reconstruction_to_json(i) for i in reconstructions]
 
 
+def cameras_to_json(cameras):
+    """
+    Write cameras to a json object
+    """
+    obj = {}
+    for camera in cameras.values():
+        obj[camera.id] = camera_to_json(camera)
+    return obj
+
+
 def mkdir_p(path):
     '''Make a directory including parent directories.
     '''
