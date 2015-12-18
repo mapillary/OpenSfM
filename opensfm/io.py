@@ -205,11 +205,11 @@ def camera_from_json(key, obj):
         camera.width = obj['width']
         camera.height = obj['height']
         camera.focal = obj['focal']
-        camera.k1 = obj['k1']
-        camera.k2 = obj['k2']
-        camera.focal_prior = obj['focal_prior']
-        camera.k1_prior = obj.get('k1_prior', 0.0)
-        camera.k2_prior = obj.get('k2_prior', 0.0)
+        camera.k1 = obj.get('k1', 0.0)
+        camera.k2 = obj.get('k2', 0.0)
+        camera.focal_prior = obj.get('focal_prior', camera.focal)
+        camera.k1_prior = obj.get('k1_prior', camera.k1)
+        camera.k2_prior = obj.get('k2_prior', camera.k2)
         return camera
     elif obj['projection_type'] in ['equirectangular', 'spherical']:
         camera = types.SphericalCamera()

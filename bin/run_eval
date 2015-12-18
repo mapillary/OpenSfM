@@ -16,7 +16,6 @@ from opensfm import transformations as tf
 
 def run_dataset(run_root, name):
     folder = run_root + '/' + name
-    call(['cp', 'config.yaml', folder])
     call(['bin/run_all', folder])
 
     with open(run_root + '/index.html', 'a') as fout:
@@ -24,6 +23,7 @@ def run_dataset(run_root, name):
 <a href="/viewer/reconstruction.html#file=../{0}/reconstruction.json">{1}</a><br>
 '''.format(urllib.quote(folder), name)
         fout.write(s)
+
 
 def align_reconstructions(rgt, r):
     if len(r['shots']) < 3: return
@@ -44,6 +44,7 @@ def align_reconstructions(rgt, r):
     A /= s
     reconstruction.apply_similarity(r, s, A, b)
 
+
 def optical_center_rms(rgt, r):
     X = []
     Xp = []
@@ -53,6 +54,7 @@ def optical_center_rms(rgt, r):
     X = np.array(X)
     Xp = np.array(Xp)
     return np.sqrt(((X - Xp)**2).sum() / len(X))
+
 
 def focal_length_rms(rgt, r):
     f = []
@@ -64,7 +66,6 @@ def focal_length_rms(rgt, r):
     f = np.array(f)
     fp = np.array(fp)
     return np.sqrt(((f - fp)**2).sum() / len(f))
-   
 
 
 def eval_reconstruction(name, rgt, r):
@@ -100,24 +101,28 @@ def load_strecha_gt_projections(run_root, name):
                 'rotation': list(cv2.Rodrigues(R)[0].flat),
                 'translation': list(t.flat)
             }
-    return r    
+    return r
+
 
 def eval_strecha_dataset(run_root, name):
-    exif = {
-        "camera": "canon eos d60",
-        "focal_prior": 0.881057268722467, 
-    }
     folder = run_root + '/' + name
     source = '../../../datasets/{0}/urd'.format(name)
     call(['mkdir', '-p', folder])
-    call(['ln', '-s',  source, folder + '/images'])
-    with open(folder + '/exif_overrides.json', 'w') as fout:
-        d = { '%04d.png'%i: exif for i in range(30)}
+    call(['ln', '-s', source, folder + '/images'])
+    with open(folder + '/camera_models_overrides.json', 'w') as fout:
+        d = {
+            "all": {
+                "projection_type": "perspective",
+                "width": 3072,
+                "height": 2048,
+                "focal": 0.881057268722467,
+            }
+        }
         json.dump(d, fout, indent=4)
 
     run_dataset(run_root, name)
 
-    with open(folder+'/reconstruction.json') as fin:
+    with open(folder + '/reconstruction.json') as fin:
         r = json.load(fin)[0]
     rgt = load_strecha_gt_projections(run_root, name)
     return eval_reconstruction(name, rgt, r)

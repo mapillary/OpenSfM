@@ -3,6 +3,7 @@ import os.path, sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import argparse
+import copy
 import logging
 import time
 
@@ -62,10 +63,14 @@ for image in data.images():
 
 # Override any camera that is specified in the camera models overrides file.
 if data.camera_models_overrides_exists():
-    camera_models_overrides = data.load_camera_models_overrides()
-    for key, value in camera_models_overrides:
-        camera_models[key] = value
-
+    overrides = data.load_camera_models_overrides()
+    if "all" in overrides:
+        for key in camera_models:
+            camera_models[key] = copy.copy(overrides["all"])
+            camera_models[key].id = key
+    else:
+        for key, value in overrides:
+            camera_models[key] = value
 data.save_camera_models(camera_models)
 
 end = time.time()
