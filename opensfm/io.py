@@ -116,31 +116,25 @@ def import_bundler(data_path, bundle_file, list_file, track_file,
     offset += 1
 
     # initialization
-    reconstruction = {}
-    reconstruction['cameras'] = {}
-    reconstruction['shots'] = {}
-    reconstruction['points'] = {}
+    reconstruction = types.Reconstruction()
 
     # cameras
     for i in xrange(num_shot):
-        # Creating a model for each shot for now.
-        # TODO: create mdoel based on exif
+        # Creating a model for each shot.
         shot_key = ordered_shots[i]
         focal, k1, k2 = map(float, lines[offset].rstrip('\n').split(' '))
 
         if focal > 0:
-            camera_name = 'camera_' + str(i)
             im = cv2.imread(os.path.join(data_path, image_list[i]))
             height, width = im.shape[0:2]
-            scale = float(max(height, width))
-            focal = focal / scale
-            reconstruction['cameras'][camera_name] = {
-                'focal': focal,
-                'k1': k1,
-                'k2': k2,
-                'width': width,
-                'height': height
-            }
+            camera = types.PerspectiveCamera()
+            camera.id = 'camera_' + str(i)
+            camera.width = width
+            camera.height = height
+            camera.focal = focal / max(width, height)
+            camera.k1 = k1
+            camera.k2 = k2
+            reconstruction.add_camera(camera)
 
             # Shots
             rline = []
@@ -150,15 +144,16 @@ def import_bundler(data_path, bundle_file, list_file, track_file,
             t = lines[offset + 4].rstrip('\n').split(' ')
             R = np.array(map(float, R.split())).reshape(3, 3)
             t = np.array(map(float, t))
-
             R[1], R[2] = -R[1], -R[2]  # Reverse y and z
             t[1], t[2] = -t[1], -t[2]
 
-            reconstruction['shots'][shot_key] = {
-                'camera': camera_name,
-                'rotation': list(cv2.Rodrigues(R)[0].flatten(0)),
-                'translation': list(t)
-            }
+            shot = types.Shot()
+            shot.id = shot_key
+            shot.camera = camera
+            shot.pose = types.Pose()
+            shot.pose.set_rotation_matrix(R)
+            shot.pose.translation = t
+            reconstruction.add_shot(shot)
         else:
             print 'ignore failed image', shot_key
         offset += 5
@@ -168,26 +163,30 @@ def import_bundler(data_path, bundle_file, list_file, track_file,
     for i in xrange(num_point):
         coordinates = lines[offset].rstrip('\n').split(' ')
         color = lines[offset + 1].rstrip('\n').split(' ')
-        reconstruction['points'][i] = {
-            'coordinates': map(float, coordinates),
-            'color': map(int, color)
-        }
+        point = types.Point()
+        point.id = i
+        point.coordinates = map(float, coordinates)
+        point.color = map(int, color)
+        reconstruction.add_point(point)
+
         view_line = lines[offset + 2].rstrip('\n').split(' ')
 
         num_view, view_list = int(view_line[0]), view_line[1:]
 
         for k in xrange(num_view):
             shot_key = ordered_shots[int(view_list[4 * k])]
-            camera_name = reconstruction['shots'][shot_key]['camera']
-            scale = max(reconstruction['cameras'][camera_name]['width'],
-                        reconstruction['cameras'][camera_name]['height'])
-            v = '\t'.join([
+            camera = reconstruction.shots[shot_key].camera
+            scale = max(camera.width, camera.height)
+            v = '{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}'.format(
                 shot_key,
-                str(i),
+                i,
                 view_list[4 * k + 1],
-                str(float(view_list[4 * k + 2]) / scale),
-                str(-float(view_list[4 * k + 3]) / scale)
-            ])
+                float(view_list[4 * k + 2]) / scale,
+                -float(view_list[4 * k + 3]) / scale,
+                point.color[0],
+                point.color[1],
+                point.color[2]
+            )
             track_lines.append(v)
         offset += 3
 
@@ -198,7 +197,8 @@ def import_bundler(data_path, bundle_file, list_file, track_file,
     # save reconstruction
     if reconstruction_file is not None:
         with open(reconstruction_file, 'wb') as fout:
-            fout.write(json_dumps([reconstruction]))
+            obj = reconstructions_to_json([reconstruction])
+            fout.write(json_dumps(obj))
     return reconstruction
 
 
@@ -338,20 +338,21 @@ def shot_to_json(shot):
         'translation': list(shot.pose.translation),
         'camera': shot.camera.id
     }
-    if shot.metadata.orientation is not None:
-        obj['orientation'] = shot.metadata.orientation
-    if shot.metadata.capture_time is not None:
-        obj['capture_time'] = shot.metadata.capture_time
-    if shot.metadata.gps_dop is not None:
-        obj['gps_dop'] = shot.metadata.gps_dop
-    if shot.metadata.gps_position is not None:
-        obj['gps_position'] = shot.metadata.gps_position
-    if shot.metadata.accelerometer is not None:
-        obj['accelerometer'] = shot.metadata.accelerometer
-    if shot.metadata.compass is not None:
-        obj['compass'] = shot.metadata.compass
-    if shot.metadata.skey is not None:
-        obj['skey'] = shot.metadata.skey
+    if shot.metadata is not None:
+        if shot.metadata.orientation is not None:
+            obj['orientation'] = shot.metadata.orientation
+        if shot.metadata.capture_time is not None:
+            obj['capture_time'] = shot.metadata.capture_time
+        if shot.metadata.gps_dop is not None:
+            obj['gps_dop'] = shot.metadata.gps_dop
+        if shot.metadata.gps_position is not None:
+            obj['gps_position'] = shot.metadata.gps_position
+        if shot.metadata.accelerometer is not None:
+            obj['accelerometer'] = shot.metadata.accelerometer
+        if shot.metadata.compass is not None:
+            obj['compass'] = shot.metadata.compass
+        if shot.metadata.skey is not None:
+            obj['skey'] = shot.metadata.skey
     if shot.mesh is not None:
         obj['vertices'] = shot.mesh.vertices
         obj['faces'] = shot.mesh.faces
