@@ -1,17 +1,18 @@
 #!/usr/bin/env python
-
 import sys, os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 import datetime
+import json
 from subprocess import call
 import urllib
-import json
+
 import numpy as np
-import cv2
+
 from opensfm import dataset
-from opensfm import multiview
 from opensfm import reconstruction
 from opensfm import transformations as tf
+from opensfm import types
 
 
 def run_dataset(run_root, name):
@@ -26,21 +27,22 @@ def run_dataset(run_root, name):
 
 
 def align_reconstructions(rgt, r):
-    if len(r['shots']) < 3: return
+    if len(r.shots) < 3:
+        return
     # Compute similarity Xp = s A X + b
     X, Xp = [], []
-    for key in rgt['shots']:
-        if key in r['shots']:
-            X.append(reconstruction.optical_center(r['shots'][key]))
-            Xp.append(reconstruction.optical_center(rgt['shots'][key]))
+    for key in rgt.shots:
+        if key in r.shots:
+            X.append(r.shots[key].pose.get_origin())
+            Xp.append(rgt.shots[key].pose.get_origin())
         else:
             print 'Shot {0} missing.'.format(key)
     X = np.array(X)
     Xp = np.array(Xp)
     T = tf.superimposition_matrix(X.T, Xp.T, scale=True)
 
-    A, b = T[:3,:3], T[:3,3]
-    s = np.linalg.det(A)**(1./3)
+    A, b = T[:3, :3], T[:3, 3]
+    s = np.linalg.det(A)**(1. / 3)
     A /= s
     reconstruction.apply_similarity(r, s, A, b)
 
@@ -48,9 +50,10 @@ def align_reconstructions(rgt, r):
 def optical_center_rms(rgt, r):
     X = []
     Xp = []
-    for key in r['shots']:
-        X.append(reconstruction.optical_center(r['shots'][key]))
-        Xp.append(reconstruction.optical_center(rgt['shots'][key]))
+    for key in rgt.shots:
+        if key in r.shots:
+            X.append(r.shots[key].pose.get_origin())
+            Xp.append(rgt.shots[key].pose.get_origin())
     X = np.array(X)
     Xp = np.array(Xp)
     return np.sqrt(((X - Xp)**2).sum() / len(X))
@@ -59,10 +62,9 @@ def optical_center_rms(rgt, r):
 def focal_length_rms(rgt, r):
     f = []
     fp = []
-    for key in r['shots']:
-        cam = r['shots'][key]['camera']
-        f.append(r['cameras'][cam]['focal'])
-        fp.append(rgt['cameras'][cam]['focal'])
+    for key in r.shots:
+        f.append(r.shots[key].camera.focal)
+        fp.append(rgt.shots[key].camera.focal)
     f = np.array(f)
     fp = np.array(fp)
     return np.sqrt(((f - fp)**2).sum() / len(f))
@@ -83,24 +85,40 @@ def eval_reconstruction(name, rgt, r):
     }
 
 
+def load_strecha_camera(filename):
+    words = open(filename).read().split()
+    K = np.array(map(float, words[:9])).reshape(3, 3)
+    R = np.array(map(float, words[12:21])).reshape(3, 3)
+    t = np.array(map(float, words[21:24]))
+    width, height = map(int, words[24:26])
+    return K, R, t, width, height
+
+
 def load_strecha_gt_projections(run_root, name):
     source = 'eval/datasets/{0}/urd'.format(name)
-    r = {
-        'cameras': {},
-        'shots': {},
-    }
-    for i in os.listdir(source):
-        if i.endswith('.png'):
-            P = np.loadtxt(source + '/' + i + '.P')
-            K, R, t = multiview.KRt_from_P(P)
-            r['cameras']['canon eos d60'] = {
-                'focal': K[0,0]
-            }
-            r['shots'][i] = {
-                'camera': 'canon eos d60',
-                'rotation': list(cv2.Rodrigues(R)[0].flat),
-                'translation': list(t.flat)
-            }
+    r = types.Reconstruction()
+    images = [i for i in os.listdir(source) if i.endswith('.png')]
+
+    filename = source + '/' + images[0] + '.camera'
+    K, R, t, width, height = load_strecha_camera(filename)
+    camera = types.PerspectiveCamera()
+    camera.id = 'canon eos d60'
+    camera.width = width
+    camera.height = height
+    camera.focal = K[0, 0] / width
+    camera.focal_prior = camera.focal
+    r.add_camera(camera)
+
+    for i in images:
+        filename = source + '/' + i + '.camera'
+        K, R, t, width, height = load_strecha_camera(filename)
+        shot = types.Shot()
+        shot.id = i
+        shot.camera = camera
+        shot.pose = types.Pose()
+        shot.pose.set_rotation_matrix(R)
+        shot.pose.translation = t
+        r.add_shot(shot)
     return r
 
 
@@ -122,8 +140,8 @@ def eval_strecha_dataset(run_root, name):
 
     run_dataset(run_root, name)
 
-    with open(folder + '/reconstruction.json') as fin:
-        r = json.load(fin)[0]
+    data = dataset.DataSet(folder)
+    r = data.load_reconstruction()[0]
     rgt = load_strecha_gt_projections(run_root, name)
     return eval_reconstruction(name, rgt, r)
 
@@ -137,16 +155,9 @@ if __name__ == '__main__':
     # Create evaluation folders
     call(['mkdir', '-p', run_root])
 
-    # Bundler examples
-    # for i in ['ET', 'kermit']:
-    #     a = run_root + '/' + i
-    #     call(['mkdir', '-p', a])
-    #     call(['ln', '-s',  '../../../datasets/bundler-v0.4-source/examples/' + i, a + '/images'])
-
     # Strecha datasets
     results = {}
-    for name in [
-                 'fountain_dense',
+    for name in ['fountain_dense',
                  'herzjesu_dense',
                  'castle_entry_dense',
                  'castle_dense',
@@ -157,4 +168,3 @@ if __name__ == '__main__':
 
     with open(run_root + '/results.json', 'w') as fout:
         json.dump(results, fout, indent=4)
-
