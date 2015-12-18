@@ -5,12 +5,13 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 import argparse
 import time
+
+import cv2
+import networkx as nx
 import numpy as np
 import scipy.spatial.distance as dist
-import networkx as nx
-import cv2
 
-from opensfm import dataset, reconstruction
+from opensfm import dataset
 
 
 def vector2_angle(x1, y1, x2, y2):
@@ -137,12 +138,11 @@ def create_optical_center_graph(reconstructions, config):
     shot_ids = []
 
     for r in reconstructions:
-        for shot_id in r['shots'].keys():
-            shot = r['shots'][shot_id]
-            optical_centers.append(reconstruction.optical_center(shot))
-            viewing_directions.append(reconstruction.viewing_direction(shot))
-            rotation_matrices.append(cv2.Rodrigues(np.array(shot['rotation'], dtype=float))[0])
-            shot_ids.append(shot_id)
+        for shot in r.shots.values():
+            optical_centers.append(shot.pose.get_origin())
+            viewing_directions.append(shot.viewing_direction())
+            rotation_matrices.append(shot.pose.get_rotation_matrix())
+            shot_ids.append(shot.id)
 
     optical_centers = np.vstack(optical_centers)
     viewing_directions = np.vstack(viewing_directions)
@@ -315,7 +315,7 @@ if __name__ == "__main__":
 
                 navigation_graph['edges'][source][type][target] = \
                     {'weight': edge_properties['weight'],
-                    'direction': edge_properties['direction']}
+                     'direction': edge_properties['direction']}
 
     navigation_graphs.append(navigation_graph)
 
@@ -324,5 +324,3 @@ if __name__ == "__main__":
     end = time.time()
     with open(data.profile_log(), 'a') as fout:
         fout.write('Navigation graphs: {0}\n'.format(end - start))
-
-
