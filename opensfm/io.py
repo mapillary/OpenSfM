@@ -247,6 +247,12 @@ def shot_from_json(key, obj, cameras):
     shot.metadata = metadata
     shot.pose = pose
     shot.camera = cameras[obj["camera"]]
+
+    if 'scale' in obj:
+        shot.scale = obj['scale']
+    if 'covariance' in obj:
+        shot.covariance = np.array(obj['covariance'])
+
     return shot
 
 
@@ -282,6 +288,19 @@ def reconstruction_from_json(obj):
     for key, value in obj['points'].iteritems():
         point = point_from_json(key, value)
         reconstruction.add_point(point)
+
+    # Extract pano_shots
+    if 'pano_shots' in obj:
+        reconstruction.pano_shots = {}
+        for key, value in obj['pano_shots'].iteritems():
+            shot = shot_from_json(key, value, reconstruction.cameras)
+            reconstruction.pano_shots[shot.id] = shot
+
+    # Extract main and unit shots
+    if 'main_shot' in obj:
+        reconstruction.main_shot = obj['main_shot']
+    if 'unit_shot' in obj:
+        reconstruction.unit_shot = obj['unit_shot']
 
     return reconstruction
 
@@ -356,6 +375,10 @@ def shot_to_json(shot):
     if shot.mesh is not None:
         obj['vertices'] = shot.mesh.vertices
         obj['faces'] = shot.mesh.faces
+    if hasattr(shot, 'scale'):
+        obj['scale'] = shot.scale
+    if hasattr(shot, 'covariance'):
+        obj['covariance'] = shot.covariance.tolist()
     return obj
 
 
@@ -391,6 +414,18 @@ def reconstruction_to_json(reconstruction):
     # Extract points
     for point in reconstruction.points.values():
         obj['points'][point.id] = point_to_json(point)
+
+    # Extract pano_shots
+    if hasattr(reconstruction, 'pano_shots'):
+        obj['pano_shots'] = {}
+        for shot in reconstruction.pano_shots.values():
+            obj['pano_shots'][shot.id] = shot_to_json(shot)
+
+    # Extract main and unit shots
+    if hasattr(reconstruction, 'main_shot'):
+        obj['main_shot'] = reconstruction.main_shot
+    if hasattr(reconstruction, 'unit_shot'):
+        obj['unit_shot'] = reconstruction.unit_shot
 
     return obj
 
