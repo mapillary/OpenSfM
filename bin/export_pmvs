@@ -4,13 +4,13 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 import argparse
 
 import cv2
-import json
+from networkx.algorithms import bipartite
 import numpy as np
 
-import opensfm.dataset as dataset
+from opensfm import dataset
 from opensfm import features
-import opensfm.io as io
-from opensfm.reconstruction import *
+from opensfm import io
+from opensfm import reconstruction as rc
 
 
 def opencv_calibration_matrix(width, height, focal):
@@ -22,10 +22,11 @@ def opencv_calibration_matrix(width, height, focal):
                       [0, 0, 1.0]])
 
 
-### Prepare OpenSfM output for dense reconstruction with PMVS
+# Prepare OpenSfM output for dense reconstruction with PMVS
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Convert output from OpenSfM to PMVS')
+    parser = argparse.ArgumentParser(
+        description='Convert output from OpenSfM to PMVS')
     parser.add_argument('dataset', help='path to the dataset to be processed')
     parser.add_argument('--output', help='output pmvs directory')
     args = parser.parse_args()
@@ -36,13 +37,14 @@ if __name__ == "__main__":
     else:
         base_output_path = os.path.join(data.data_path, 'pmvs')
 
-    print "Converting dataset [%s] to PMVS dir [%s]" % (data.data_path, base_output_path)
+    print "Converting dataset [%s] to PMVS dir [%s]" % (
+        data.data_path, base_output_path)
 
     io.mkdir_p(base_output_path)
 
     # load tracks for vis.dat
     graph = data.load_tracks_graph()
-    tracks, images = tracks_and_images(graph)
+    tracks, images = rc.tracks_and_images(graph)
     image_graph = bipartite.weighted_projected_graph(graph, images)
 
     reconstructions = data.load_reconstruction()
@@ -54,18 +56,18 @@ if __name__ == "__main__":
         io.mkdir_p(os.path.join(output_path, "txt"))
         io.mkdir_p(os.path.join(output_path, "models"))
 
-        shot_index = { image: i for i, image in enumerate(reconstruction["shots"]) }
+        shot_index = {image: i for i, image in enumerate(reconstruction.shots)}
 
         fvis = open(os.path.join(output_path, "vis.dat"), "w")
         fvis.write("VISDATA\n")
         fvis.write("%d\n" % len(shot_index))
 
         for image, i in shot_index.items():
-            shot = reconstruction["shots"][image]
+            shot = reconstruction.shots[image]
             base = "%08d" % i
             print "Image:", image, base
 
-            #### vis.dat for this image
+            # vis.dat for this image
             adj_indices = []
             for adj_image in image_graph[image]:
                 weight = image_graph[image][adj_image]["weight"]
@@ -79,25 +81,23 @@ if __name__ == "__main__":
                 fvis.write("%d " % ai)
             fvis.write("\n")
 
-            #### radially undistort the original image
-            original_image = data.image_as_array(image)[:,:,::-1]
-            camera = reconstruction['cameras'][shot['camera']]
+            # radially undistort the original image
+            original_image = data.image_as_array(image)[:, :, ::-1]
+            camera = shot.camera
             original_h, original_w = original_image.shape[:2]
-            K = opencv_calibration_matrix(original_w, original_h, camera['focal'])
-            k1 = camera["k1"]
-            k2 = camera["k2"]
-            undistorted_image = cv2.undistort(original_image, K, np.array([k1, k2, 0, 0]))
+            K = opencv_calibration_matrix(original_w, original_h, camera.focal)
+            distortion = np.array([camera.k1, camera.k2, 0, 0])
+            undistorted_image = cv2.undistort(original_image, K, distortion)
 
-            #### resize and save the undistorted to visualize/%08d.jpg
+            # resize and save the undistorted to visualize/%08d.jpg
             resized_image = features.resized_image(undistorted_image, data.config)
             new_image_path = os.path.join(output_path, "visualize", base + ".jpg")
             cv2.imwrite(new_image_path, resized_image)
 
-            #### write camera projection matrix to txt/%08d.txt
+            # write camera projection matrix to txt/%08d.txt
             resized_h, resized_w = resized_image.shape[:2]
-            resized_K = opencv_calibration_matrix(resized_w, resized_h, camera['focal'])
-            Rt = Rt_from_shot(shot)  # TODO(pau) replace with shot.get_Rt()
-            P = resized_K * Rt
+            resized_K = opencv_calibration_matrix(resized_w, resized_h, camera.focal)
+            P = resized_K * shot.pose.get_Rt()
 
             new_txt = os.path.join(output_path, "txt", base + ".txt")
             with open(new_txt, "w") as f:
@@ -106,7 +106,7 @@ if __name__ == "__main__":
 
         fvis.close()
 
-        ### options.txt
+        # options.txt
         with open(os.path.join(output_path, "pmvs_options.txt"), "w") as f:
             f.write("level 1\n")
             f.write("csize 2\n")
@@ -119,4 +119,4 @@ if __name__ == "__main__":
             f.write("useVisData 1\n")
             f.write("sequence -1\n")
             f.write("timages -1 0 %d\n" % len(shot_index))
-            f.write("oimages 0\n");
+            f.write("oimages 0\n")
