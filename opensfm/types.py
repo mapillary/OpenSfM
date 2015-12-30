@@ -316,8 +316,8 @@ class Point(object):
 
     Attributes:
         id (int): identification number.
-        color (vector(int)): vector containing the RGB values.
-        coordinates (vector(real)): vector containing the 3D position.
+        color (list(int)): list containing the RGB values.
+        coordinates (list(real)): list containing the 3D position.
         reprojection_error (real): the reprojection error.
 
     """

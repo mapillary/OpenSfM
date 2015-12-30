@@ -415,7 +415,7 @@ def triangulate_track(track, graph, reconstruction, Rt_by_id, reproj_threshold, 
         if X is not None:
             point = types.Point()
             point.id = track
-            point.coordinates = X
+            point.coordinates = X.tolist()
             reconstruction.add_point(point)
 
 
@@ -464,7 +464,7 @@ def apply_similarity(reconstruction, s, A, b):
     # Align points.
     for point in reconstruction.points.values():
         Xp = s * A.dot(point.coordinates) + b
-        point.coordinates = Xp
+        point.coordinates = Xp.tolist()
 
     # Align cameras.
     for shot in reconstruction.shots.values():

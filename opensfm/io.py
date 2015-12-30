@@ -252,6 +252,8 @@ def shot_from_json(key, obj, cameras):
         shot.scale = obj['scale']
     if 'covariance' in obj:
         shot.covariance = np.array(obj['covariance'])
+    if 'merge_cc' in obj:
+        shot.merge_cc = obj['merge_cc']
 
     return shot
 
@@ -379,6 +381,8 @@ def shot_to_json(shot):
         obj['scale'] = shot.scale
     if hasattr(shot, 'covariance'):
         obj['covariance'] = shot.covariance.tolist()
+    if hasattr(shot, 'merge_cc'):
+        obj['merge_cc'] = shot.merge_cc
     return obj
 
 
