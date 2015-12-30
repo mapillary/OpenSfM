@@ -206,11 +206,12 @@ def camera_from_json(key, obj):
     """
     Read camera from a json object
     """
-    if obj['projection_type'] == 'perspective':
+    pt = obj.get('projection_type', 'perspective')
+    if pt == 'perspective':
         camera = types.PerspectiveCamera()
         camera.id = key
-        camera.width = obj['width']
-        camera.height = obj['height']
+        camera.width = obj.get('width', 0)
+        camera.height = obj.get('height', 0)
         camera.focal = obj['focal']
         camera.k1 = obj.get('k1', 0.0)
         camera.k2 = obj.get('k2', 0.0)
@@ -218,7 +219,7 @@ def camera_from_json(key, obj):
         camera.k1_prior = obj.get('k1_prior', camera.k1)
         camera.k2_prior = obj.get('k2_prior', camera.k2)
         return camera
-    elif obj['projection_type'] in ['equirectangular', 'spherical']:
+    elif pt in ['equirectangular', 'spherical']:
         camera = types.SphericalCamera()
         camera.id = key
         camera.width = obj['width']
@@ -287,9 +288,10 @@ def reconstruction_from_json(obj):
         reconstruction.add_shot(shot)
 
     # Extract points
-    for key, value in obj['points'].iteritems():
-        point = point_from_json(key, value)
-        reconstruction.add_point(point)
+    if 'points' in obj:
+        for key, value in obj['points'].iteritems():
+            point = point_from_json(key, value)
+            reconstruction.add_point(point)
 
     # Extract pano_shots
     if 'pano_shots' in obj:
