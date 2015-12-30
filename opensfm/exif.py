@@ -1,17 +1,10 @@
-#!/usr/bin/env python
-import os.path, sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
 import datetime
 import exifread
-import json
 import logging
 import xmltodict as x2d
 
-import numpy as np
-from cv2 import imread
-
 from opensfm.sensors import sensor_data
+from opensfm import types
 
 
 logger = logging.getLogger(__name__)
@@ -45,7 +38,7 @@ def get_frac_tag(tags, key):
 
 def compute_focal(focal_35, focal, sensor_width, sensor_string):
     if focal_35 > 0:
-        focal_ratio = focal_35 / 36.0 # 35mm film produces 36x24mm pictures.
+        focal_ratio = focal_35 / 36.0  # 35mm film produces 36x24mm pictures.
     else:
         if not sensor_width:
             sensor_width = sensor_data.get(sensor_string, None)
@@ -60,13 +53,15 @@ def compute_focal(focal_35, focal, sensor_width, sensor_string):
 
 def sensor_string(make, model):
     if make != 'unknown':
-        model = model.replace(make, '') # remove possible duplicate 'make' information in 'model' for better matching
+        # remove duplicate 'make' information in 'model'
+        model = model.replace(make, '')
     return (make.strip() + ' ' + model.strip()).lower()
 
 
 def camera_id(make, model, width, height, projection_type, focal):
     if make != 'unknown':
-        model = model.replace(make, '') # remove possible duplicate 'make' information in 'model' for better matching
+        # remove duplicate 'make' information in 'model'
+        model = model.replace(make, '')
     return ' '.join([
         'v2',
         make.strip(),
@@ -97,7 +92,7 @@ def get_xmp(fileobj):
     xmp_end = img_str.find('</x:xmpmeta')
 
     if xmp_start < xmp_end:
-        xmp_str = img_str[xmp_start:xmp_end+12]
+        xmp_str = img_str[xmp_start:xmp_end + 12]
         xdict = x2d.parse(xmp_str)
         xdict = xdict.get('x:xmpmeta', {})
         xdict = xdict.get('rdf:RDF', {})
@@ -117,6 +112,7 @@ def get_gpano_from_xmp(xmp):
                 return i
     return {}
 
+
 class EXIF:
 
     def __init__(self, fileobj):
@@ -126,9 +122,10 @@ class EXIF:
 
     def extract_image_size(self):
         # Image Width and Image Height
-        if 'EXIF ExifImageWidth' in self.tags and 'EXIF ExifImageLength' in self.tags:
+        if ('EXIF ExifImageWidth' in self.tags and
+                'EXIF ExifImageLength' in self.tags):
             width, height = (int(self.tags['EXIF ExifImageWidth'].values[0]),
-                            int(self.tags['EXIF ExifImageLength'].values[0]) )
+                             int(self.tags['EXIF ExifImageLength'].values[0]))
         else:
             width, height = -1, -1
         return width, height
@@ -226,9 +223,9 @@ class EXIF:
                 s = str(self.tags[ts].values)
                 try:
                     d = datetime.datetime.strptime(s, '%Y:%m:%d %H:%M:%S')
-                except ValueError as e:
+                except ValueError:
                     continue
-                timestamp = (d - datetime.datetime(1970,1,1)).total_seconds()   # Assuming d is in UTC
+                timestamp = (d - datetime.datetime(1970, 1, 1)).total_seconds()   # Assuming d is in UTC
                 return timestamp
         return 0.0
 
@@ -263,16 +260,15 @@ def hard_coded_calibration(exif):
         fmm35 = int(round(focal * 36.0))
         if fmm35 == 20:
             # GoPro Hero 3, 7MP medium
-            ## calibration
             return {'focal': focal, 'k1': -0.37, 'k2': 0.28}
-        elif fmm35==15:
+        elif fmm35 == 15:
             # GoPro Hero 3, 7MP wide
             # "v2 gopro hero3+ black edition 3000 2250 perspective 0.4166"
             return {'focal': 0.466, 'k1': -0.195, 'k2': 0.030}
-        elif fmm35==23:
+        elif fmm35 == 23:
             # GoPro Hero 2, 5MP medium
             return {'focal': focal, 'k1': -0.38, 'k2': 0.24}
-        elif fmm35==16:
+        elif fmm35 == 16:
             # GoPro Hero 2, 5MP wide
             return {'focal': focal, 'k1': -0.39, 'k2': 0.22}
     elif 'bullet5s' in make:
@@ -291,6 +287,7 @@ def hard_coded_calibration(exif):
         if 'ghost s' == model:
             return {"focal": 0.47, "k1": -0.22, "k2": 0.03}
 
+
 def focal_ratio_calibration(exif):
     if exif['focal_ratio']:
         return {
@@ -307,3 +304,33 @@ def default_calibration(data):
         'k2': 0.0
     }
 
+
+def camera_from_exif_metadata(metadata, data):
+    '''
+    Create a camera object from exif metadata
+    '''
+    pt = metadata.get('projection_type', 'perspective')
+    if pt == 'perspective':
+        calib = (hard_coded_calibration(metadata)
+                 or focal_ratio_calibration(metadata)
+                 or default_calibration(data))
+        camera = types.PerspectiveCamera()
+        camera.id = metadata['camera']
+        camera.width = metadata['width']
+        camera.height = metadata['height']
+        camera.projection_type = metadata.get('projection_type', 'perspective')
+        camera.focal = calib['focal']
+        camera.k1 = calib['k1']
+        camera.k2 = calib['k2']
+        camera.focal_prior = calib['focal']
+        camera.k1_prior = calib['k1']
+        camera.k2_prior = calib['k2']
+        return camera
+    elif pt in ['equirectangular', 'spherical']:
+        camera = types.SphericalCamera()
+        camera.id = metadata['camera']
+        camera.width = metadata['width']
+        camera.height = metadata['height']
+        return camera
+    else:
+        raise ValueError("Unknown projection type: {}".format(pt))

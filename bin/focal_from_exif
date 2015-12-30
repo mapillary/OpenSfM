@@ -36,29 +36,7 @@ for image in data.images():
     data.save_exif(image, d)
 
     if d['camera'] not in camera_models:
-        pt = d.get('projection_type', 'perspective')
-        if pt == 'perspective':
-            calib = (exif.hard_coded_calibration(d)
-                     or exif.focal_ratio_calibration(d)
-                     or exif.default_calibration(data))
-            camera = types.PerspectiveCamera()
-            camera.id = d['camera']
-            camera.width = d['width']
-            camera.height = d['height']
-            camera.projection_type = d.get('projection_type', 'perspective')
-            camera.focal = calib['focal']
-            camera.k1 = calib['k1']
-            camera.k2 = calib['k2']
-            camera.focal_prior = calib['focal']
-            camera.k1_prior = calib['k1']
-            camera.k2_prior = calib['k2']
-        elif pt in ['equirectangular', 'spherical']:
-            camera = types.SphericalCamera()
-            camera.id = d['camera']
-            camera.width = d['width']
-            camera.height = d['height']
-        else:
-            raise ValueError("Unknown projection type: {}".format(pt))
+        camera = exif.camera_from_exif_metadata(d, data)
         camera_models[d['camera']] = camera
 
 # Override any camera that is specified in the camera models overrides file.
