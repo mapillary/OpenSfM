@@ -12,7 +12,7 @@ from opensfm import commands
 logging.basicConfig(format='%(asctime)s %(message)s', level=logging.DEBUG)
 
 
-# create the top-level parser
+# Create the top-level parser
 parser = argparse.ArgumentParser()
 subparsers = parser.add_subparsers(
     help='Command to run', dest='command', metavar='command')

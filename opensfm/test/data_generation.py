@@ -1,7 +1,10 @@
+import os
+
 import networkx as nx
 import numpy as np
 
 from opensfm import types
+import opensfm.dataset
 
 
 def normalized(x):
@@ -80,3 +83,10 @@ class CubeDataset:
                 g.add_edge(shot_id, point_id, feature=feature,
                            feature_id=point_id, feature_color=(0, 0, 0))
         self.tracks = g
+
+
+def create_berlin_test_folder(tmpdir):
+    path = str(tmpdir.mkdir('berlin'))
+    os.symlink(os.path.abspath('data/berlin/images'),
+               os.path.join(path, 'images'))
+    return opensfm.dataset.DataSet(path)

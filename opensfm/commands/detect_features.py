@@ -26,8 +26,8 @@ class Command:
         start = time.time()
         processes = data.config.get('processes', 1)
         if processes == 1:
-            for image in images:
-                detect(arguments)
+            for arg in arguments:
+                detect(arg)
         else:
             p = Pool(processes)
             p.map(detect, arguments)
