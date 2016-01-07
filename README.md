@@ -35,9 +35,10 @@ Install OpenCV using
 And install OpenGV using
 
     git clone https://github.com/paulinus/opengv.git
+    cd opengv
     git checkout python-wrapper
-    mkdir opengv/build
-    cd opengv/build
+    mkdir build
+    cd build
     cmake .. -DBUILD_TESTS=OFF -DBUILD_PYTHON=ON
     make install
 
