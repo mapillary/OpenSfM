@@ -267,7 +267,8 @@ def point_from_json(key, obj):
     point.id = key
     point.color = obj["color"]
     point.coordinates = obj["coordinates"]
-    point.reprojection_error = obj["reprojection_error"]
+    if "reprojection_error" in obj:
+        point.reprojection_error = obj["reprojection_error"]
     return point
 
 

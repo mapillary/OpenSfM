@@ -310,7 +310,6 @@ class Shot(object):
         return self.pose.get_rotation_matrix().T.dot([0, 0, 1])
 
 
-
 class Point(object):
     """Defines a 3D point.
 
