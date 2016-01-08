@@ -235,7 +235,8 @@ def shot_from_json(key, obj, cameras):
     """
     pose = types.Pose()
     pose.rotation = obj["rotation"]
-    pose.translation = obj["translation"]
+    if "translation" in obj:
+        pose.translation = obj["translation"]
 
     metadata = types.ShotMetadata()
     metadata.orientation = obj.get("orientation")
