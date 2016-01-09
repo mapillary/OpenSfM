@@ -5,6 +5,7 @@ import match_features
 import create_tracks
 import reconstruct
 import mesh
+import export_ply
 
 opensfm_commands = [
     extract_metadata,
@@ -13,4 +14,5 @@ opensfm_commands = [
     create_tracks,
     reconstruct,
     mesh,
+    export_ply,
 ]

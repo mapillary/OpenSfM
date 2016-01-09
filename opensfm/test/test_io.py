@@ -19,5 +19,9 @@ def test_reconstructions_from_json():
     assert len(reconstructions[0].points) == 1588
 
 
-if __name__ == "__main__":
-    test_reconstructions_from_json()
+def test_reconstruction_to_ply():
+    with open(filename) as fin:
+        obj = json.loads(fin.read())
+    reconstructions = io.reconstructions_from_json(obj)
+    ply = io.reconstruction_to_ply(reconstructions[0])
+    assert len(ply.splitlines()) > len(reconstructions[0].points)

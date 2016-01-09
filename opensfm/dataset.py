@@ -385,6 +385,15 @@ class DataSet:
         with open(self.__navigation_graph_file(), 'w') as fout:
             fout.write(io.json_dumps(navigation_graphs))
 
+    def __ply_file(self):
+        return os.path.join(self.data_path, 'reconstruction.ply')
+
+    def save_ply(self, reconstruction):
+        """Save a reconstruction in PLY format"""
+        ply = io.reconstruction_to_ply(reconstruction)
+        with open(self.__ply_file(), 'w') as fout:
+            fout.write(ply)
+
 
 def load_tracks_graph(fileobj):
     g = nx.Graph()
