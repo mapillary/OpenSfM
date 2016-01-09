@@ -248,7 +248,7 @@ def shot_from_json(key, obj, cameras):
     shot.id = key
     shot.metadata = metadata
     shot.pose = pose
-    shot.camera = cameras[obj["camera"]]
+    shot.camera = cameras.get(obj["camera"])
 
     if 'scale' in obj:
         shot.scale = obj['scale']
