@@ -182,7 +182,7 @@ class PerspectiveCamera(Camera):
         """
         Unit vector pointing to the pixel viewing directions.
         """
-        points = pixels.reshape((-1, 1, 2))
+        points = pixels.reshape((-1, 1, 2)).astype(np.float64)
         distortion = np.array([self.k1, self.k2, 0., 0.])
         up = cv2.undistortPoints(points, self.get_K(), distortion)
         up = up.reshape((-1, 2))
