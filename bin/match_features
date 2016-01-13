@@ -45,7 +45,7 @@ def match_candidates_from_metadata(images, exifs, data):
     max_neighbors = data.config['matching_gps_neighbors']
     max_time_neighbors = data.config['matching_time_neighbors']
 
-    if not all(map(has_gps_info, exifs)) and max_neighbors != 0:
+    if not all(map(has_gps_info, exifs.values())) and max_neighbors != 0:
         logger.warn("Not all images have GPS info. "
                     "Disabling matching_gps_neighbors.")
         max_neighbors = 0
