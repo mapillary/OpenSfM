@@ -1,0 +1,41 @@
+#!/usr/bin/env python
+import os.path, sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+import argparse
+
+from opensfm import dataset
+import opensfm.reconstruction as rc
+
+
+parser = argparse.ArgumentParser(
+    description="Export GPS position of the reconstructed camera positions.")
+parser.add_argument(
+    'dataset',
+    help='path to the dataset to be processed')
+parser.add_argument(
+    '--output',
+    help='the produced TSV file. Will print results on screen if ommited')
+args = parser.parse_args()
+
+# Load data
+data = dataset.DataSet(args.dataset)
+reference = data.load_reference_lla()
+reconstructions = data.load_reconstruction()
+
+# Compute lat, lon
+rows = []
+for reconstruction in reconstructions:
+    for shot in reconstruction.shots.values():
+        lla = rc.shot_lla_and_compass(shot, reference)
+        rows.append([shot.id, ] + map(str, lla))
+rows.sort()
+rows.insert(0, ['image', 'latitude', 'longitude', 'altitude', 'compass_angle'])
+tsv = '\n'.join(['\t'.join(row) for row in rows])
+
+# Write results
+if args.output:
+    with open(args.output, 'w') as fout:
+        fout.write(tsv)
+else:
+    print(tsv)

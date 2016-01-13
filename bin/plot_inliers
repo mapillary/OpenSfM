@@ -193,11 +193,9 @@ def reproject_tracks(im, tracks, reconstruction):
     """
     p = []
     for track in tracks:
-        shot = reconstruction['shots'][im]
-        camera = reconstruction['cameras'][shot['camera']]
-        point = reconstruction['points'][str(track)]
-
-        p.append(reconstruct.reproject(camera, shot, point))
+        shot = reconstruction.shots[im]
+        point = reconstruction.points[str(track)]
+        p.append(shot.project(point.coordinates))
 
     return np.array(p) if len(p) else np.empty((0, 2), int)
 
@@ -246,7 +244,7 @@ def triangulate_tracks(tracks, reconstruction, graph, min_ray_angle):
     for track in tracks:
         # Triangulate with 1 as reprojection threshold to avoid excluding tracks because of error.
         reconstruct.triangulate_track(str(track), graph, reconstruction, {}, 1, min_ray_angle)
-        succeeded.append(True) if str(track) in reconstruction['points'] else succeeded.append(False)
+        succeeded.append(True) if str(track) in reconstruction.points else succeeded.append(False)
 
     return np.array(succeeded) if len(succeeded) else np.empty((0,), bool)
 
@@ -264,7 +262,7 @@ def find_reconstruction(images, data):
     for r in reconstructions:
         found = True
         for im in images:
-            if im not in r['shots']:
+            if im not in r.shots:
                 found = False
                 break
 
@@ -288,7 +286,7 @@ def reconstruction_tracks(tracks, reconstruction):
     n_tracks = []
 
     for track in tracks:
-        if str(track[0]) in reconstruction['points']:
+        if str(track[0]) in reconstruction.points:
             r_tracks.append(track)
         else:
             n_tracks.append(track)
@@ -319,7 +317,7 @@ def load_common_tracks(im1, im2, graph):
     :return: An array with rows containing a track id and the corresponding feature id for the first and second image.
     """
     t1, t2 = graph[im1], graph[im2]
-    tc, p1, p2 = dataset.common_tracks(graph, im1, im2)
+    tc, p1, p2 = matching.common_tracks(graph, im1, im2)
 
     common_tracks = []
     for t in tc:
@@ -606,7 +604,7 @@ def plot_bootstrapped_reconstruction(fw, ip, index, p1, p2, robust_tracks, linke
 
         rec_title = \
             'Bootstrapped 3D points: {0}. Robust {1}. Linked: {2}. Failed: {3}. '.format(
-                len(reconstruction['points']),
+                len(reconstruction.points),
                 robust_rec_tracks.shape[0],
                 non_robust_rec_tracks.shape[0],
                 failed_rec_tracks.shape[0]) + \

@@ -528,10 +528,10 @@
                 // xc = R * x + t
                 // u = focal * xc / zc
                 // v = focal * yc / zc
-
+                var focal = cam.focal || 0.3;
                 var zc = scale;
-                var xc = u / cam.focal * zc;
-                var yc = v / cam.focal * zc;
+                var xc = u / focal * zc;
+                var yc = v / focal * zc;
 
                 var xct = [xc - shot.translation[0],
                            yc - shot.translation[1],

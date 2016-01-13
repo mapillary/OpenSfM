@@ -2,14 +2,12 @@ import os
 from subprocess import Popen, PIPE
 import datetime
 import dateutil.parser
+
 import cv2
-import geotag_from_gpx
-import geo
-import dataset
-import io
-from opensfm import context
 
 from opensfm import context
+from opensfm import geotag_from_gpx
+from opensfm import io
 
 
 def video_orientation(video_file):
@@ -28,6 +26,7 @@ def video_orientation(video_file):
     else:
         orientation = 1
     return orientation
+
 
 def import_video_with_gpx(video_file, gpx_file, output_path, dx, dt=None, start_time=None, visual=False, image_description=None):
 

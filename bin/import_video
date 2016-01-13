@@ -20,7 +20,7 @@ if __name__ == "__main__":
         help='time of the first frame of the video (in ISO8601 format, example {0})'.format(
             datetime.datetime.now().isoformat()))
     args = parser.parse_args()
-    
+
     dx = float(args.dx)
     dt = args.dt
     if dt is not None: dt = float(dt)

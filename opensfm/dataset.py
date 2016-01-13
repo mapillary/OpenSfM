@@ -210,7 +210,6 @@ class DataSet:
     def save_preemptive_features(self, image, points, descriptors):
         self.__save_features(self.__preemptive_features_file(image), image, points, descriptors)
 
-
     def matcher_type(self):
         """Return the type of matcher
         """
@@ -220,7 +219,6 @@ class DataSet:
                  matcher_type = 'BruteForce-Hamming'
             self.config['matcher_type'] = matcher_type
         return matcher_type # BruteForce, BruteForce-L1, BruteForce-Hamming
-
 
     def __matches_path(self):
         """Return path of matches directory"""
@@ -289,12 +287,12 @@ class DataSet:
 
     def load_reconstruction(self, filename=None):
         with open(self.__reconstruction_file(filename)) as fin:
-            reconstructions = json.load(fin)
+            reconstructions = io.reconstructions_from_json(json.load(fin))
         return reconstructions
 
     def save_reconstruction(self, reconstruction, filename=None, indent=4):
         with open(self.__reconstruction_file(filename), 'w') as fout:
-            fout.write(io.json_dumps(reconstruction))
+            fout.write(io.json_dumps(io.reconstructions_to_json(reconstruction)))
 
     def __reference_lla_path(self):
         return os.path.join(self.data_path, 'reference_lla.json')
@@ -336,12 +334,14 @@ class DataSet:
     def load_camera_models(self):
         """Return camera models data"""
         with open(self.__camera_models_file(), 'r') as fin:
-            return json.load(fin)
+            obj = json.load(fin)
+            return io.cameras_from_json(obj)
 
     def save_camera_models(self, camera_models):
         """Save camera models data"""
         with open(self.__camera_models_file(), 'w') as fout:
-            fout.write(io.json_dumps(camera_models))
+            obj = io.cameras_to_json(camera_models)
+            fout.write(io.json_dumps(obj))
 
     def __camera_models_overrides_file(self):
         """Return path of camera model overrides file"""
@@ -353,9 +353,8 @@ class DataSet:
     def load_camera_models_overrides(self):
         """Return camera models overrides data"""
         with open(self.__camera_models_overrides_file(), 'r') as fin:
-            return json.load(fin)
-
-
+            obj = json.load(fin)
+            return io.cameras_from_json(obj)
 
     def __epipolar_path(self):
         return os.path.join(self.data_path, 'epipolar_geometries')
@@ -386,6 +385,14 @@ class DataSet:
         with open(self.__navigation_graph_file(), 'w') as fout:
             fout.write(io.json_dumps(navigation_graphs))
 
+    def __ply_file(self):
+        return os.path.join(self.data_path, 'reconstruction.ply')
+
+    def save_ply(self, reconstruction):
+        """Save a reconstruction in PLY format"""
+        ply = io.reconstruction_to_ply(reconstruction)
+        with open(self.__ply_file(), 'w') as fout:
+            fout.write(ply)
 
 
 def load_tracks_graph(fileobj):
@@ -394,7 +401,8 @@ def load_tracks_graph(fileobj):
         image, track, observation, x, y, R, G, B = line.split('\t')
         g.add_node(image, bipartite=0)
         g.add_node(track, bipartite=1)
-        g.add_edge(image, track,
+        g.add_edge(
+            image, track,
             feature=(float(x), float(y)),
             feature_id=int(observation),
             feature_color=(float(R), float(G), float(B)))
@@ -409,26 +417,5 @@ def save_tracks_graph(fileobj, graph):
                 x, y = data['feature']
                 fid = data['feature_id']
                 r, g, b = data['feature_color']
-                fileobj.write('%s\t%s\t%d\t%g\t%g\t%g\t%g\t%g\n' % (str(image), str(track), fid, x, y, r, g, b))
-
-
-def common_tracks(g, im1, im2):
-    """
-    Return the list of tracks observed in both images
-    :param g: Graph structure (networkx) as returned by :method:`DataSet.tracks_graph`
-    :param im1: Image name, with extension (i.e. 123.jpg)
-    :param im2: Image name, with extension (i.e. 123.jpg)
-    :return: tuple: track, feature from first image, feature from second image
-    """
-    # TODO: return value is unclear
-    # TODO: maybe make as method of DataSet?
-    t1, t2 = g[im1], g[im2]
-    tracks, p1, p2 = [], [], []
-    for track in t1:
-        if track in t2:
-            p1.append(t1[track]['feature'])
-            p2.append(t2[track]['feature'])
-            tracks.append(track)
-    p1 = np.array(p1)
-    p2 = np.array(p2)
-    return tracks, p1, p2
+                fileobj.write('%s\t%s\t%d\t%g\t%g\t%g\t%g\t%g\n' % (
+                    str(image), str(track), fid, x, y, r, g, b))
