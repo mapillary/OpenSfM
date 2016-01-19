@@ -247,18 +247,18 @@ void AKAZE::Compute_Determinant_Hessian_Response() {
   }
 }
 
-static int compareKeyPointResponse(const cv::KeyPoint &a,
+static bool compareKeyPointResponse(const cv::KeyPoint &a,
                                    const cv::KeyPoint &b) {
   float fa = a.response;
   float fb = b.response;
-  return (fb > fa) - (fb < fa) ;
+  return fa < fb;
 }
 
-static int compareKeyPointRadius(const std::pair<size_t, float> &a,
+static bool compareKeyPointRadius(const std::pair<size_t, float> &a,
                                  const std::pair<size_t, float> &b) {
   float fa = a.second;
   float fb = b.second;
-  return (fb > fa) - (fb < fa) ;
+  return fa < fb;
 }
 
 /* ************************************************************************* */
