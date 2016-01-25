@@ -169,10 +169,11 @@ class EXIF:
         return focal_35, focal_ratio
 
     def extract_orientation(self):
+        orientation = 1
         if 'Image Orientation' in self.tags:
-            orientation = self.tags.get('Image Orientation').values[0]
-        else:
-            orientation = 1
+            value = self.tags.get('Image Orientation').values[0]
+            if type(value) == int:
+                orientation = value
         return orientation
 
     def extract_ref_lon_lat(self):
