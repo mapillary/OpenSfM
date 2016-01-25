@@ -175,12 +175,22 @@ class EXIF:
             orientation = 1
         return orientation
 
+    def extract_ref_lon_lat(self):
+        if 'GPS GPSLatitudeRef' in self.tags:
+            reflat = self.tags['GPS GPSLatitudeRef'].values
+        else:
+            reflat = 'N'
+        if 'GPS GPSLongitudeRef' in self.tags:
+            reflon = self.tags['GPS GPSLongitudeRef'].values
+        else:
+            reflon = 'E'
+        return reflon, reflat
+
     def extract_lon_lat(self):
         if 'GPS GPSLatitude' in self.tags:
-            lat = gps_to_decimal(self.tags['GPS GPSLatitude'].values,
-                                 self.tags['GPS GPSLatitudeRef'].values)
-            lon = gps_to_decimal(self.tags['GPS GPSLongitude'].values,
-                                 self.tags['GPS GPSLongitudeRef'].values)
+            reflon, reflat = self.extract_ref_lon_lat()
+            lat = gps_to_decimal(self.tags['GPS GPSLatitude'].values, reflat)
+            lon = gps_to_decimal(self.tags['GPS GPSLongitude'].values, reflon)
         else:
             lon, lat = None, None
         return lon, lat
