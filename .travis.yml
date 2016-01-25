@@ -10,3 +10,7 @@ before_install:
 
 script:
   - docker run mapillary/opensfm /bin/sh -c "cd /source/OpenSfM; py.test"
+
+notifications:
+  slack:
+    secure: MjK+uBKIU1WY9K1xWF800I5pJIRkA6aRDGVuttkNp51ObMGaRZptDOd+FKc8IoYfKBTJaFGbnb3UcgKwmS0SLaT/9eKEboa87sUIY7ub3K3k3ropU2IGG+VgbFpmRkpTDYbnR9TRRzPDKJoOuZAYnULam/QaBu9oA1b5DMDRVyo=
