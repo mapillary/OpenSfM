@@ -143,7 +143,7 @@ def good_track(track, min_length):
 
 
 def create_tracks_graph(features, colors, matches, config):
-    logging.debug('Merging features onto tracks')
+    logger.debug('Merging features onto tracks')
     uf = UnionFind()
     for im1, im2 in matches:
         for f1, f2 in matches[im1, im2]:
@@ -158,7 +158,7 @@ def create_tracks_graph(features, colors, matches, config):
             sets[p] = [i]
 
     tracks = [t for t in sets.values() if good_track(t, config.get('min_track_length', 2))]
-    logging.debug('Good tracks: {}'.format(len(tracks)))
+    logger.debug('Good tracks: {}'.format(len(tracks)))
 
     tracks_graph = nx.Graph()
     for track_id, track in enumerate(tracks):
