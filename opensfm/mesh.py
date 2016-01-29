@@ -1,10 +1,7 @@
 #!/usr/bin/env python
-import json
 import itertools
 import numpy as np
 import scipy.spatial
-from opensfm import dataset
-from opensfm import reconstruction
 import logging
 
 logger = logging.getLogger(__name__)
@@ -46,11 +43,12 @@ def triangle_mesh_perspective(shot_id, r, graph):
     try:
         tri = scipy.spatial.Delaunay(pixels)
     except Exception as e:
-        logger.error('Delaunay triangulation failed for input: {}'.format(`pixels`))
+        logger.error('Delaunay triangulation failed for input: {}'.format(
+            repr(pixels)))
         raise e
 
-    sums = [0.,0.,0.,0.]
-    depths = [0.,0.,0.,0.]
+    sums = [0., 0., 0., 0.]
+    depths = [0., 0., 0., 0.]
     for t in tri.simplices:
         for i in range(4):
             if i in t:
@@ -70,15 +68,14 @@ def triangle_mesh_perspective(shot_id, r, graph):
 
 
 def triangle_mesh_equirectangular(shot_id, r, graph):
-    # TODO(pau) this needs to be addapted to use reconstruction objects
     shot = r.shots[shot_id]
-    cam = shot.camera
 
     bearings = []
     vertices = []
 
-    # Add vertices to ensure that the camera is inside the convex hull of the points
-    for point in itertools.product([-1, 1], repeat=3): # vertices of a cube
+    # Add vertices to ensure that the camera is inside the convex hull
+    # of the points
+    for point in itertools.product([-1, 1], repeat=3):  # vertices of a cube
         bearing = 0.3 * np.array(point) / np.linalg.norm(point)
         bearings.append(bearing)
         point = shot.pose.transform_inverse(bearing)
