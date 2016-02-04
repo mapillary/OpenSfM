@@ -31,5 +31,10 @@ if __name__ == "__main__":
     data = dataset.DataSet(args.dataset)
     images = data.images()
     reconstructions = data.load_reconstruction()
-    track_graph = data.load_tracks_graph()
+
+    try:
+        track_graph = data.load_tracks_graph()
+    except IOError:
+        track_graph = {}
+
     io.export_bundler(data.images(), reconstructions, track_graph, bundle_file_path, list_file_path)
