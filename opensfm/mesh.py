@@ -61,17 +61,26 @@ def triangle_mesh_perspective(shot_id, r, graph):
             d = depths[i] / sums[i]
         else:
             d = 50.0
-        vertices[i] = shot.back_project(pixels[i], d).tolist()
-        # Check re-projection
-        rp = shot.project(vertices[i])
-        if not np.allclose(pixels[i], rp, rtol=0.05, atol=0.05):
-            logger.error(
-                "Wrong Reprojection: {} != {}\n"
-                "focal {}, k1 {}, k2 {}".format(
-                    pixels[i], rp, cam.focal, cam.k1, cam.k2))
+        vertices[i] = back_project_no_distortion(shot, pixels[i], d).tolist()
+        # # Check re-projection
+        # rp = shot.project(vertices[i])
+        # if not np.allclose(pixels[i], rp, rtol=0.05, atol=0.05):
+        #     logger.error(
+        #         "Wrong Reprojection: {} != {}\n"
+        #         "focal {}, k1 {}, k2 {}".format(
+        #             pixels[i], rp, cam.focal, cam.k1, cam.k2))
 
     faces = tri.simplices.tolist()
     return vertices, faces
+
+
+def back_project_no_distortion(shot, pixel, depth):
+    '''
+    Back-project a pixel of a perspective camera ignoring its radial distortion
+    '''
+    p = np.array([pixel[0], pixel[1], shot.camera.focal])
+    p *= depth / p[2]
+    return shot.pose.transform_inverse(p)
 
 
 def triangle_mesh_equirectangular(shot_id, r, graph):
