@@ -448,19 +448,20 @@ def import_bundler(data_path, bundle_file, list_file, track_file,
 
         for k in xrange(num_view):
             shot_key = ordered_shots[int(view_list[4 * k])]
-            camera = reconstruction.shots[shot_key].camera
-            scale = max(camera.width, camera.height)
-            v = '{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}'.format(
-                shot_key,
-                i,
-                view_list[4 * k + 1],
-                float(view_list[4 * k + 2]) / scale,
-                -float(view_list[4 * k + 3]) / scale,
-                point.color[0],
-                point.color[1],
-                point.color[2]
-            )
-            track_lines.append(v)
+            if shot_key in reconstruction.shots:
+                camera = reconstruction.shots[shot_key].camera
+                scale = max(camera.width, camera.height)
+                v = '{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}'.format(
+                    shot_key,
+                    i,
+                    view_list[4 * k + 1],
+                    float(view_list[4 * k + 2]) / scale,
+                    -float(view_list[4 * k + 3]) / scale,
+                    point.color[0],
+                    point.color[1],
+                    point.color[2]
+                )
+                track_lines.append(v)
         offset += 3
 
     # save track file
