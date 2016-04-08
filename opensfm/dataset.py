@@ -118,7 +118,7 @@ class DataSet:
     def save_exif(self, image, data):
         io.mkdir_p(self.__exif_path())
         with open(self.__exif_file(image), 'w') as fout:
-            fout.write(io.json_dumps(data))
+            io.json_dump(data, fout)
 
     def feature_type(self):
         """Return the type of local features (e.g. AKAZE, SURF, SIFT)
@@ -292,7 +292,7 @@ class DataSet:
 
     def save_reconstruction(self, reconstruction, filename=None, indent=4):
         with open(self.__reconstruction_file(filename), 'w') as fout:
-            fout.write(io.json_dumps(io.reconstructions_to_json(reconstruction)))
+            io.json_dump(io.reconstructions_to_json(reconstruction), fout)
 
     def __reference_lla_path(self):
         return os.path.join(self.data_path, 'reference_lla.json')
@@ -341,7 +341,7 @@ class DataSet:
         """Save camera models data"""
         with open(self.__camera_models_file(), 'w') as fout:
             obj = io.cameras_to_json(camera_models)
-            fout.write(io.json_dumps(obj))
+            io.json_dump(obj, fout)
 
     def __camera_models_overrides_file(self):
         """Return path of camera model overrides file"""
@@ -383,7 +383,7 @@ class DataSet:
 
     def save_navigation_graph(self, navigation_graphs):
         with open(self.__navigation_graph_file(), 'w') as fout:
-            fout.write(io.json_dumps(navigation_graphs))
+            io.json_dump(navigation_graphs, fout)
 
     def __ply_file(self):
         return os.path.join(self.data_path, 'reconstruction.ply')

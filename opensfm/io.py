@@ -270,8 +270,8 @@ def mkdir_p(path):
             raise
 
 
-def json_dumps(data, indent=4, codec='utf-8'):
-    return json.dumps(data, indent=indent, ensure_ascii=False).encode(codec)
+def json_dump(data, fout, indent=4, codec='utf-8'):
+    return json.dump(data, fout, indent=indent, ensure_ascii=False, encoding=codec)
 
 
 def json_loads(text, codec='utf-8'):
@@ -472,7 +472,7 @@ def import_bundler(data_path, bundle_file, list_file, track_file,
     if reconstruction_file is not None:
         with open(reconstruction_file, 'wb') as fout:
             obj = reconstructions_to_json([reconstruction])
-            fout.write(json_dumps(obj))
+            json_dump(obj, fout)
     return reconstruction
 
 
