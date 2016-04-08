@@ -62,13 +62,6 @@ def triangle_mesh_perspective(shot_id, r, graph):
         else:
             d = 50.0
         vertices[i] = back_project_no_distortion(shot, pixels[i], d).tolist()
-        # # Check re-projection
-        # rp = shot.project(vertices[i])
-        # if not np.allclose(pixels[i], rp, rtol=0.05, atol=0.05):
-        #     logger.error(
-        #         "Wrong Reprojection: {} != {}\n"
-        #         "focal {}, k1 {}, k2 {}".format(
-        #             pixels[i], rp, cam.focal, cam.k1, cam.k2))
 
     faces = tri.simplices.tolist()
     return vertices, faces
