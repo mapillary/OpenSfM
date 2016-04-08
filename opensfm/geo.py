@@ -10,8 +10,8 @@ def ecef_from_lla(lat, lon, alt):
     '''
     Compute ECEF XYZ from latitude, longitude and altitude.
 
-    All using the WGS94 model.
-    Altitude is the distance to the WGS94 ellipsoid.
+    All using the WGS84 model.
+    Altitude is the distance to the WGS84 ellipsoid.
     Check results here http://www.oc.nps.edu/oc2902w/coord/llhxyz.htm
 
     >>> lat, lon, alt = 10, 20, 30
@@ -34,8 +34,8 @@ def lla_from_ecef(x, y, z):
     '''
     Compute latitude, longitude and altitude from ECEF XYZ.
 
-    All using the WGS94 model.
-    Altitude is the distance to the WGS94 ellipsoid.
+    All using the WGS84 model.
+    Altitude is the distance to the WGS84 ellipsoid.
     '''
     a = WGS84_a
     b = WGS84_b
@@ -47,7 +47,7 @@ def lla_from_ecef(x, y, z):
     lat = np.arctan2(z + eb**2 * b * np.sin(theta)**3,
                      p - ea**2 * a * np.cos(theta)**3)
     N = a / np.sqrt(1 - ea**2 * np.sin(lat)**2)
-    alt = p / np.cos(lat) - N;
+    alt = p / np.cos(lat) - N
     return np.degrees(lat), np.degrees(lon), alt
 
 
@@ -58,8 +58,31 @@ def ecef_from_topocentric_transform(lat, lon, alt):
     The topocentric reference frame is a metric one with the origin
     at the given (lat, lon, alt) position, with the X axis heading east,
     the Y axis heading north and the Z axis vertical to the ellipsoid.
+    >>> a = ecef_from_topocentric_transform(30, 20, 10)
+    >>> b = ecef_from_topocentric_transform_finite_diff(30, 20, 10)
+    >>> np.allclose(a, b)
+    True
     '''
-    eps = 1e-6
+    x, y, z = ecef_from_lla(lat, lon, alt)
+    sa = np.sin(np.radians(lat))
+    ca = np.cos(np.radians(lat))
+    so = np.sin(np.radians(lon))
+    co = np.cos(np.radians(lon))
+    return np.array([[- so, - sa * co, ca * co, x],
+                     [  co, - sa * so, ca * so, y],
+                     [   0,        ca,      sa, z],
+                     [   0,         0,       0, 1]])
+
+
+def ecef_from_topocentric_transform_finite_diff(lat, lon, alt):
+    '''
+    Transformation from a topocentric frame at reference position to ECEF.
+
+    The topocentric reference frame is a metric one with the origin
+    at the given (lat, lon, alt) position, with the X axis heading east,
+    the Y axis heading north and the Z axis vertical to the ellipsoid.
+    '''
+    eps = 1e-2
     x, y, z = ecef_from_lla(lat, lon, alt)
     v1 = (np.array(ecef_from_lla(lat, lon + eps, alt))
         - np.array(ecef_from_lla(lat, lon - eps, alt))) / 2 / eps
