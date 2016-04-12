@@ -454,7 +454,7 @@ def remove_outliers(graph, reconstruction, config):
 
 
 def apply_similarity(reconstruction, s, A, b):
-    """Apply a similarity (y = s A x + t) to a reconstruction.
+    """Apply a similarity (y = s A x + b) to a reconstruction.
 
     :param reconstruction: The reconstruction to transform.
     :param s: The scale (a scalar)
@@ -477,7 +477,8 @@ def apply_similarity(reconstruction, s, A, b):
 
 
 def align_reconstruction_naive_similarity(reconstruction):
-    if len(reconstruction.shots) < 3: return
+    if len(reconstruction.shots) < 3:
+        return
     # Compute similarity Xp = s A X + b
     X, Xp = [], []
     for shot in reconstruction.shots.values():
@@ -487,8 +488,8 @@ def align_reconstruction_naive_similarity(reconstruction):
     Xp = np.array(Xp)
     T = tf.superimposition_matrix(X.T, Xp.T, scale=True)
 
-    A, b = T[:3,:3], T[:3,3]
-    s = np.linalg.det(A)**(1./3)
+    A, b = T[:3, :3], T[:3, 3]
+    s = np.linalg.det(A)**(1. / 3)
     A /= s
     return s, A, b
 
