@@ -377,14 +377,14 @@ def focal_from_homography(H):
     '''
     H = H / np.linalg.det(H)**(1.0 / 3.0)
     A = np.array([
-        [H[0,0] * H[0,0] + H[0,1] * H[0,1] - 1, H[0,2] * H[0,2]    ],
-        [H[0,0] * H[1,0] + H[0,1] * H[1,1]    , H[0,2] * H[1,2]    ],
-        [H[0,0] * H[2,0] + H[0,1] * H[2,1]    , H[0,2] * H[2,2]    ],
-        [H[1,0] * H[1,0] + H[1,1] * H[1,1] - 1, H[1,2] * H[1,2]    ],
-        [H[1,0] * H[2,0] + H[1,1] * H[2,1]    , H[1,2] * H[2,2]    ],
-        [H[2,0] * H[2,0] + H[2,1] * H[2,1]    , H[2,2] * H[2,2] - 1],
+        [H[0, 0] * H[0, 0] + H[0, 1] * H[0, 1] - 1, H[0, 2] * H[0, 2]],
+        [H[0, 0] * H[1, 0] + H[0, 1] * H[1, 1], H[0, 2] * H[1, 2]],
+        [H[0, 0] * H[2, 0] + H[0, 1] * H[2, 1], H[0, 2] * H[2, 2]],
+        [H[1, 0] * H[1, 0] + H[1, 1] * H[1, 1] - 1, H[1, 2] * H[1, 2]],
+        [H[1, 0] * H[2, 0] + H[1, 1] * H[2, 1], H[1, 2] * H[2, 2]],
+        [H[2, 0] * H[2, 0] + H[2, 1] * H[2, 1], H[2, 2] * H[2, 2] - 1],
     ])
-    _, (a,b) = nullspace(A)
+    _, (a, b) = nullspace(A)
     focal = np.sqrt(a / b)
     return focal
 
@@ -396,20 +396,6 @@ def R_from_homography(H, f1, f2):
     R = K2inv.dot(H).dot(K1)
     R = project_to_rotation_matrix(R)
     return R
-
-
-def count_focal_homography_inliers(f1, f2, H, p1, p2, threshold=0.02):
-    R = R_from_homography(f1, f2, H)
-    if R is None:
-        return 0
-    H = K1.dot(R).dot(K2inv)
-    return count_homography_inliers(H, p1, p2, threshold)
-
-
-def count_homography_inliers(H, p1, p2, threshold=0.02):
-    p2map = euclidean(H.dot(homogeneous(p1).T).T)
-    d = p2 - p2map
-    return np.sum((d * d).sum(axis=1) < threshold**2)
 
 
 def project_to_rotation_matrix(A):
