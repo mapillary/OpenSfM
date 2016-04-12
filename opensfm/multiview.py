@@ -404,3 +404,45 @@ def project_to_rotation_matrix(A):
     except np.linalg.linalg.LinAlgError:
         return None
     return u.dot(vt)
+
+
+def camera_up_vector(rotation_matrix):
+    """Unit vector pointing to zenit in camera coords.
+
+    :param rotation: camera pose rotation
+    """
+    return rotation_matrix[:, 2]
+
+
+def camera_compass_angle(rotation_matrix):
+    """Compass angle of a camera
+
+    Angle between world's Y axis and camera's Z axis projected
+    onto the XY world plane.
+
+    :param rotation: camera pose rotation
+    """
+    z = rotation_matrix[2, :]  # Camera's Z axis in world coordinates
+    angle = np.arctan2(z[0], z[1])
+    return np.degrees(angle)
+
+
+def rotation_matrix_from_up_vector_and_compass(up_vector, compass_angle):
+    """Camera rotation given up_vector and compass.
+
+    >>> d = [1, 2, 3]
+    >>> angle = -123
+    >>> R = rotation_matrix_from_up_vector_and_compass(d, angle)
+    >>> up = camera_up_vector(R)
+    >>> np.allclose(d / np.linalg.norm(d), up)
+    True
+    >>> np.allclose(camera_compass_angle(R), angle)
+    True
+    """
+    r3 = np.array(up_vector) / np.linalg.norm(up_vector)
+    ez = np.array([0.0, 0.0, 1.0])
+    r2 = ez - np.dot(ez, r3) * r3
+    r1 = np.cross(r2, r3)
+
+    compass_rotation = cv2.Rodrigues(np.radians([0.0, 0.0, compass_angle]))[0]
+    return np.column_stack([r1, r2, r3]).dot(compass_rotation)
