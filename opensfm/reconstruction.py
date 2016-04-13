@@ -502,23 +502,23 @@ def get_horitzontal_and_vertical_directions(R, orientation):
     '''
     # See http://sylvana.net/jpegcrop/exif_orientation.html
     if orientation == 1:
-        return  R[0, :],  R[1, :],  R[2, :]
+        return R[0, :], R[1, :], R[2, :]
     if orientation == 2:
-        return -R[0, :],  R[1, :], -R[2, :]
+        return -R[0, :], R[1, :], -R[2, :]
     if orientation == 3:
-        return -R[0, :], -R[1, :],  R[2, :]
+        return -R[0, :], -R[1, :], R[2, :]
     if orientation == 4:
-        return  R[0, :], -R[1, :],  R[2, :]
+        return R[0, :], -R[1, :], R[2, :]
     if orientation == 5:
-        return  R[1, :],  R[0, :], -R[2, :]
+        return R[1, :], R[0, :], -R[2, :]
     if orientation == 6:
-        return  R[1, :], -R[0, :],  R[2, :]
+        return -R[1, :], R[0, :], R[2, :]
     if orientation == 7:
         return -R[1, :], -R[0, :], -R[2, :]
     if orientation == 8:
-        return -R[1, :],  R[0, :],  R[2, :]
+        return R[1, :], -R[0, :], R[2, :]
     print 'ERROR unknown orientation {0} - Assuming orientation 1 instead.'.format(orientation)
-    return  R[0, :],  R[1, :],  R[2, :]
+    return R[0, :], R[1, :], R[2, :]
 
 
 def align_reconstruction(reconstruction, config):
