@@ -433,6 +433,8 @@ def rotation_matrix_from_up_vector_and_compass(up_vector, compass_angle):
     >>> d = [1, 2, 3]
     >>> angle = -123
     >>> R = rotation_matrix_from_up_vector_and_compass(d, angle)
+    >>> np.allclose(np.linalg.det(R), 1.0)
+    True
     >>> up = camera_up_vector(R)
     >>> np.allclose(d / np.linalg.norm(d), up)
     True
@@ -442,6 +444,7 @@ def rotation_matrix_from_up_vector_and_compass(up_vector, compass_angle):
     r3 = np.array(up_vector) / np.linalg.norm(up_vector)
     ez = np.array([0.0, 0.0, 1.0])
     r2 = ez - np.dot(ez, r3) * r3
+    r2 /= np.linalg.norm(r2)
     r1 = np.cross(r2, r3)
 
     compass_rotation = cv2.Rodrigues(np.radians([0.0, 0.0, compass_angle]))[0]
