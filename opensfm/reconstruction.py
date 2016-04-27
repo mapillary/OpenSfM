@@ -408,9 +408,10 @@ class TrackTriangulator:
         self.reconstruction = reconstruction
         self.origins = {}
         self.rotation_inverses = {}
+        self.Rts = {}
 
     def triangulate(self, track, reproj_threshold, min_ray_angle_degrees):
-        """Triangulate a track and adds the point to the reconstruction."""
+        """Triangulate track and add point to reconstruction."""
         os, bs = [], []
         for shot_id in self.graph[track]:
             if shot_id in self.reconstruction.shots:
@@ -422,8 +423,28 @@ class TrackTriangulator:
                 bs.append(r.dot(b))
 
         if len(os) >= 2:
-            e, X = csfm.triangulate_bearings2(
+            e, X = csfm.triangulate_bearings_midpoint(
                 os, bs, reproj_threshold, np.radians(min_ray_angle_degrees))
+            if X is not None:
+                point = types.Point()
+                point.id = track
+                point.coordinates = X.tolist()
+                self.reconstruction.add_point(point)
+
+    def triangulate_dlt(self, track, reproj_threshold, min_ray_angle_degrees):
+        """Triangulate track using DLT and add point to reconstruction."""
+        Rts, bs = [], []
+        for shot_id in self.graph[track]:
+            if shot_id in self.reconstruction.shots:
+                shot = self.reconstruction.shots[shot_id]
+                Rts.append(self._shot_Rt(shot))
+                x = self.graph[track][shot_id]['feature']
+                b = shot.camera.pixel_bearing(np.array(x))
+                bs.append(b)
+
+        if len(Rts) >= 2:
+            e, X = csfm.triangulate_bearings_dlt(
+                Rts, bs, reproj_threshold, np.radians(min_ray_angle_degrees))
             if X is not None:
                 point = types.Point()
                 point.id = track
@@ -444,6 +465,14 @@ class TrackTriangulator:
         else:
             r = shot.pose.get_rotation_matrix().T
             self.rotation_inverses[shot.id] = r
+            return r
+
+    def _shot_Rt(self, shot):
+        if shot.id in self.Rts:
+            return self.Rts[shot.id]
+        else:
+            r = shot.pose.get_Rt()
+            self.Rts[shot.id] = r
             return r
 
 

@@ -39,7 +39,7 @@ bp::object TriangulateReturn(int error, bp::object value) {
 }
 
 
-Eigen::Vector4d TriangulateBearingsDLT(
+Eigen::Vector4d TriangulateBearingsDLTSolve(
     const Eigen::Matrix<double, 3, Eigen::Dynamic> &bs,
     const vector_mat34 &Rts) {
   int nviews = bs.cols();
@@ -62,10 +62,10 @@ Eigen::Vector4d TriangulateBearingsDLT(
 }
 
 
-bp::object TriangulateBearings(const bp::list &Rts_list,
-                       const bp::list &bs_list,
-                       double threshold,
-                       double min_angle) {
+bp::object TriangulateBearingsDLT(const bp::list &Rts_list,
+                                  const bp::list &bs_list,
+                                  double threshold,
+                                  double min_angle) {
 
   int n = bp::len(Rts_list);
   vector_mat34 Rts;
@@ -108,7 +108,7 @@ bp::object TriangulateBearings(const bp::list &Rts_list,
     return TriangulateReturn(TRIANGULATION_SMALL_ANGLE, bp::object());
   }
 
-  Eigen::Vector4d X = TriangulateBearingsDLT(bs, Rts);
+  Eigen::Vector4d X = TriangulateBearingsDLTSolve(bs, Rts);
   X /= X(3);
 
   for (int i = 0; i < n; ++i) {
@@ -133,7 +133,7 @@ bp::object TriangulateBearings(const bp::list &Rts_list,
 //   Srikumar Ramalingam, Suresh K. Lodha and Peter Sturm
 //   "A generic structure-from-motion framework"
 //   CVIU 2006
-Eigen::Vector3d TriangulateBearingsMidpoint(
+Eigen::Vector3d TriangulateBearingsMidpointSolve(
     const Eigen::Matrix<double, 3, Eigen::Dynamic> &os,
     const Eigen::Matrix<double, 3, Eigen::Dynamic> &bs) {
   int nviews = bs.cols();
@@ -156,10 +156,10 @@ Eigen::Vector3d TriangulateBearingsMidpoint(
 }
 
 
-bp::object TriangulateBearings2(const bp::list &os_list,
-                                const bp::list &bs_list,
-                                double threshold,
-                                double min_angle) {
+bp::object TriangulateBearingsMidpoint(const bp::list &os_list,
+                                       const bp::list &bs_list,
+                                       double threshold,
+                                       double min_angle) {
   int n = bp::len(os_list);
 
   // Build Eigen matrices
@@ -168,8 +168,8 @@ bp::object TriangulateBearings2(const bp::list &os_list,
   for (int i = 0; i < n; ++i) {
     PyArrayContiguousView<double> o_array(os_list[i]);
     PyArrayContiguousView<double> b_array(bs_list[i]);
-    double *o = o_array.data();
-    double *b = b_array.data();
+    const double *o = o_array.data();
+    const double *b = b_array.data();
     os.col(i) <<  o[0], o[1], o[2];
     bs.col(i) <<  b[0], b[1], b[2];
   }
@@ -194,7 +194,7 @@ bp::object TriangulateBearings2(const bp::list &os_list,
   }
 
   // Triangulate
-  Eigen::Vector3d X = TriangulateBearingsMidpoint(os, bs);
+  Eigen::Vector3d X = TriangulateBearingsMidpointSolve(os, bs);
 
   // Check reprojection error
   for (int i = 0; i < n; ++i) {
