@@ -396,48 +396,75 @@ def resect(data, graph, reconstruction, shot_id):
         return False
 
 
-def triangulate_track(track, graph, reconstruction, Rt_by_id, reproj_threshold, min_ray_angle_degrees):
-    min_ray_angle = np.radians(min_ray_angle_degrees)
-    Rts, bs = [], []
+class TrackTriangulator:
+    """Triangulate tracks in a reconstruction.
 
-    for shot_id in graph[track]:
-        if shot_id in reconstruction.shots:
-            shot = reconstruction.shots[shot_id]
-            if shot_id not in Rt_by_id:
-                Rt_by_id[shot_id] = shot.pose.get_Rt()
-            Rts.append(Rt_by_id[shot_id])
-            x = graph[track][shot_id]['feature']
-            b = shot.camera.pixel_bearing(np.array(x))
-            bs.append(b)
+    Caches shot origin and rotation matrix
+    """
 
-    if len(Rts) >= 2:
-        e, X = csfm.triangulate_bearings(Rts, bs, reproj_threshold, min_ray_angle)
-        if X is not None:
-            point = types.Point()
-            point.id = track
-            point.coordinates = X.tolist()
-            reconstruction.add_point(point)
+    def __init__(self, graph, reconstruction):
+        """Build a triangulator for a specific reconstruction."""
+        self.graph = graph
+        self.reconstruction = reconstruction
+        self.origins = {}
+        self.rotation_inverses = {}
+
+    def triangulate(self, track, reproj_threshold, min_ray_angle_degrees):
+        """Triangulate a track and adds the point to the reconstruction."""
+        os, bs = [], []
+        for shot_id in self.graph[track]:
+            if shot_id in self.reconstruction.shots:
+                shot = self.reconstruction.shots[shot_id]
+                os.append(self._shot_origin(shot))
+                x = self.graph[track][shot_id]['feature']
+                b = shot.camera.pixel_bearing(np.array(x))
+                r = self._shot_rotation_inverse(shot)
+                bs.append(r.dot(b))
+
+        if len(os) >= 2:
+            e, X = csfm.triangulate_bearings2(
+                os, bs, reproj_threshold, np.radians(min_ray_angle_degrees))
+            if X is not None:
+                point = types.Point()
+                point.id = track
+                point.coordinates = X.tolist()
+                self.reconstruction.add_point(point)
+
+    def _shot_origin(self, shot):
+        if shot.id in self.origins:
+            return self.origins[shot.id]
+        else:
+            o = shot.pose.get_origin()
+            self.origins[shot.id] = o
+            return o
+
+    def _shot_rotation_inverse(self, shot):
+        if shot.id in self.rotation_inverses:
+            return self.rotation_inverses[shot.id]
+        else:
+            r = shot.pose.get_rotation_matrix().T
+            self.rotation_inverses[shot.id] = r
+            return r
 
 
-def triangulate_shot_features(graph, reconstruction, shot_id, reproj_threshold, min_ray_angle):
-    '''Reconstruct as many tracks seen in shot_id as possible.
-    '''
-    Rt_by_id = {}
+def triangulate_shot_features(graph, reconstruction, shot_id, reproj_threshold,
+                              min_ray_angle):
+    """Reconstruct as many tracks seen in shot_id as possible."""
+    triangulator = TrackTriangulator(graph, reconstruction)
 
     for track in graph[shot_id]:
         if track not in reconstruction.points:
-            triangulate_track(track, graph, reconstruction, Rt_by_id, reproj_threshold, min_ray_angle)
+            triangulator.triangulate(track, reproj_threshold, min_ray_angle)
 
 
 def retriangulate(graph, reconstruction, config):
-    '''Retrianguate all points
-    '''
+    """Retrianguate all points"""
     threshold = config.get('triangulation_threshold', 0.004)
     min_ray_angle = config.get('triangulation_min_ray_angle', 2.0)
-    Rt_by_id = {}
+    triangulator = TrackTriangulator(graph, reconstruction)
     tracks, images = tracks_and_images(graph)
     for track in tracks:
-        triangulate_track(track, graph, reconstruction, Rt_by_id, threshold, min_ray_angle)
+        triangulator.triangulate(track, threshold, min_ray_angle)
 
 
 def remove_outliers(graph, reconstruction, config):
