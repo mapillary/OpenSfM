@@ -76,6 +76,7 @@ BOOST_PYTHON_MODULE(csfm) {
   );
 
   def("triangulate_bearings", csfm::TriangulateBearings);
+  def("triangulate_bearings2", csfm::TriangulateBearings2);
 
   class_<BundleAdjuster, boost::noncopyable>("BundleAdjuster")
     .def("run", &BundleAdjuster::Run)

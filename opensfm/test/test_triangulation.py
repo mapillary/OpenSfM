@@ -46,5 +46,19 @@ def test_triangulate_track_equirectangular():
     assert np.allclose(p, [0, 0, 1.3763819204711])
 
 
-if __name__ == "__main__":
-    test_triangulate_track_equirectangular()
+def unit_vector(x):
+    return np.array(x) / np.linalg.norm(x)
+
+
+def test_triangulate_bearings():
+    o1 = np.array([0.0, 0, 0])
+    b1 = unit_vector([0.0, 0, 1])
+    o2 = np.array([1.0, 0, 0])
+    b2 = unit_vector([-1.0, 0, 1])
+    max_reprojection = 0.01
+    min_ray_angle = np.radians(2.0)
+    res, X = opensfm.csfm.triangulate_bearings2(
+        [o1, o2], [b1, b2], max_reprojection, min_ray_angle)
+
+    assert np.allclose(X, [0, 0, 1.0])
+    assert res == 0

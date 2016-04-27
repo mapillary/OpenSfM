@@ -128,5 +128,90 @@ bp::object TriangulateBearings(const bp::list &Rts_list,
 }
 
 
+// Point minimizing the squared distance to all rays
+// Closed for solution from
+//   Srikumar Ramalingam, Suresh K. Lodha and Peter Sturm
+//   "A generic structure-from-motion framework"
+//   CVIU 2006
+Eigen::Vector3d TriangulateBearingsMidpoint(
+    const Eigen::Matrix<double, 3, Eigen::Dynamic> &os,
+    const Eigen::Matrix<double, 3, Eigen::Dynamic> &bs) {
+  int nviews = bs.cols();
+  assert(nviews == Rts.size());
+  assert(nviews >= 2);
+
+  Eigen::Matrix3d BBt;
+  Eigen::Vector3d BBtA, A;
+  BBt.setZero();
+  BBtA.setZero();
+  A.setZero();
+  for (int i = 0; i < nviews; ++i) {
+    BBt += bs.col(i) * bs.col(i).transpose();
+    BBtA += bs.col(i) * bs.col(i).transpose() * os.col(i);
+    A += os.col(i);
+  }
+  Eigen::Matrix3d Cinv = (nviews * Eigen::Matrix3d::Identity() - BBt).inverse();
+
+  return (Eigen::Matrix3d::Identity() + BBt * Cinv) * A / nviews - Cinv * BBtA;
+}
+
+
+bp::object TriangulateBearings2(const bp::list &os_list,
+                                const bp::list &bs_list,
+                                double threshold,
+                                double min_angle) {
+  int n = bp::len(os_list);
+
+  // Build Eigen matrices
+  Eigen::Matrix<double, 3, Eigen::Dynamic> os(3, n);
+  Eigen::Matrix<double, 3, Eigen::Dynamic> bs(3, n);
+  for (int i = 0; i < n; ++i) {
+    PyArrayContiguousView<double> o_array(os_list[i]);
+    PyArrayContiguousView<double> b_array(bs_list[i]);
+    double *o = o_array.data();
+    double *b = b_array.data();
+    os.col(i) <<  o[0], o[1], o[2];
+    bs.col(i) <<  b[0], b[1], b[2];
+  }
+
+  // Check angle between rays
+  bool angle_ok = false;
+  for (int i = 0; i < n; ++i) {
+    if (!angle_ok) {
+      for (int j = 0; j < i; ++j) {
+        Eigen::Vector3d a, b;
+        a << bs(0, i), bs(1, i), bs(2, i);
+        b << bs(0, j), bs(1, j), bs(2, j);
+        double angle = AngleBetweenVectors(a, b);
+        if (angle >= min_angle) {
+          angle_ok = true;
+        }
+      }
+    }
+  }
+  if (!angle_ok) {
+    return TriangulateReturn(TRIANGULATION_SMALL_ANGLE, bp::object());
+  }
+
+  // Triangulate
+  Eigen::Vector3d X = TriangulateBearingsMidpoint(os, bs);
+
+  // Check reprojection error
+  for (int i = 0; i < n; ++i) {
+    Eigen::Vector3d x_reproj = X - os.col(i);
+    Eigen::Vector3d b = bs.col(i);
+
+    double error = AngleBetweenVectors(x_reproj, b);
+    if (error > threshold) {
+     return TriangulateReturn(TRIANGULATION_BAD_REPROJECTION, bp::object());
+    }
+  }
+
+  npy_intp Xe_shape[1] = {3};
+  return TriangulateReturn(TRIANGULATION_OK,
+                           bpn_array_from_data(1, Xe_shape, X.data()));
+}
+
+
 }
 
