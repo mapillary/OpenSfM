@@ -33,7 +33,6 @@ RUN \
     mkdir -p /source && cd /source && \
     git clone https://github.com/paulinus/opengv.git && \
     cd /source/opengv && \
-    git checkout python-wrapper && \
     mkdir -p build && cd build && \
     cmake .. -DBUILD_TESTS=OFF -DBUILD_PYTHON=ON && \
     make install && \
