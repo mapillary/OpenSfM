@@ -118,3 +118,13 @@ def test_spherical_camera_projection():
     bearing = camera.pixel_bearing(pixel)
     projected = camera.project(bearing)
     assert np.allclose(pixel, projected)
+
+
+def test_pose_inverse():
+    p = types.Pose()
+    p.rotation = [1, 2, 3]
+    p.translation = [4, 5, 6]
+    inverse = p.inverse()
+    identity = p.compose(inverse)
+    assert np.allclose(identity.rotation, [0, 0, 0])
+    assert np.allclose(identity.translation, [0, 0, 0])

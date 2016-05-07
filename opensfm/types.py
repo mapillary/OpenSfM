@@ -31,7 +31,7 @@ class Pose(object):
 
     def get_rotation_matrix(self):
         """Get rotation as a 3x3 matrix."""
-        return cv2.Rodrigues(np.asarray(self.rotation))[0]
+        return cv2.Rodrigues(np.asarray(self.rotation, dtype=float))[0]
 
     def set_rotation_matrix(self, rotation_matrix):
         """Set rotation as a 3x3 matrix."""
@@ -60,6 +60,28 @@ class Pose(object):
         Rt[:, :3] = self.get_rotation_matrix()
         Rt[:, 3] = self.translation
         return Rt
+
+    def compose(self, other):
+        """Get the composition of this pose with another.
+
+        composed = self * other
+        """
+        selfR = self.get_rotation_matrix()
+        otherR = other.get_rotation_matrix()
+        R = np.dot(selfR, otherR)
+        t = selfR.dot(other.translation) + self.translation
+        res = Pose()
+        res.set_rotation_matrix(R)
+        res.translation = t
+        return res
+
+    def inverse(self):
+        """Get the inverse of this pose."""
+        inverse = Pose()
+        R = self.get_rotation_matrix()
+        inverse.set_rotation_matrix(R.T)
+        inverse.translation = -R.T.dot(self.translation)
+        return inverse
 
 
 class ShotMetadata(object):
