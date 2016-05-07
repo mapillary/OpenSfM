@@ -293,9 +293,7 @@ def bootstrap_reconstruction(data, graph, im1, im2):
         shot2 = types.Shot()
         shot2.id = im2
         shot2.camera = cameras[str(d2['camera'])]
-        shot2.pose = types.Pose()
-        shot2.pose.rotation = R
-        shot2.pose.translation = t
+        shot2.pose = types.Pose(R, t)
         shot2.metadata = get_image_metadata(data, im2)
         reconstruction.add_shot(shot2)
 

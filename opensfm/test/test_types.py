@@ -55,9 +55,7 @@ def test_reconstruction_class_initialization():
                              1.2042133903991235]
 
     # Instantiate shots
-    pose0 = types.Pose()
-    pose0.rotation = [0.0, 0.0, 0.0]
-    pose0.translation = [0.0, 0.0, 0.0]
+    pose0 = types.Pose([0.0, 0.0, 0.0], [0.0, 0.0, 0.0])
 
     shot0 = types.Shot()
     shot0.id = 0
@@ -65,9 +63,7 @@ def test_reconstruction_class_initialization():
     shot0.pose = pose0
     shot0.metadata = metadata
 
-    pose1 = types.Pose()
-    pose1.rotation = [0.0, 0.0, 0.0]
-    pose1.translation = [-1.0, 0.0, 0.0]
+    pose1 = types.Pose([0.0, 0.0, 0.0], [-1.0, 0.0, 0.0])
 
     shot1 = types.Shot()
     shot1.id = 1
@@ -92,9 +88,7 @@ def test_reconstruction_class_initialization():
 
 
 def test_perspective_camera_projection():
-    """
-    Test perspectiive projection--backprojection loop
-    """
+    """Test perspectiive projection--backprojection loop."""
     camera = types.PerspectiveCamera()
     camera.width = 800
     camera.height = 600
@@ -108,9 +102,7 @@ def test_perspective_camera_projection():
 
 
 def test_spherical_camera_projection():
-    """
-    Test spherical projection--backprojection loop
-    """
+    """Test spherical projection--backprojection loop."""
     camera = types.SphericalCamera()
     camera.width = 800
     camera.height = 600
@@ -120,10 +112,19 @@ def test_spherical_camera_projection():
     assert np.allclose(pixel, projected)
 
 
+def test_pose_properties():
+    """Test pose constructor, getters and setters."""
+    p = types.Pose([1, 2, 3], [4, 5, 6])
+    assert np.allclose(p.rotation, [1, 2, 3])
+    assert type(p.rotation) == np.ndarray
+    assert p.rotation.dtype == float
+    assert np.allclose(p.translation, [4, 5, 6])
+    assert type(p.translation) == np.ndarray
+    assert p.translation.dtype == float
+
+
 def test_pose_inverse():
-    p = types.Pose()
-    p.rotation = [1, 2, 3]
-    p.translation = [4, 5, 6]
+    p = types.Pose([1, 2, 3], [4, 5, 6])
     inverse = p.inverse()
     identity = p.compose(inverse)
     assert np.allclose(identity.rotation, [0, 0, 0])

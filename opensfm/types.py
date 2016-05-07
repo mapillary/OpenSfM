@@ -17,9 +17,27 @@ class Pose(object):
         translation (vector): the rotation vector.
     """
 
-    def __init__(self):
-        self.rotation = np.zeros(3)
-        self.translation = np.zeros(3)
+    def __init__(self, rotation=np.zeros(3), translation=np.zeros(3)):
+        self.rotation = rotation
+        self.translation = translation
+
+    @property
+    def rotation(self):
+        """Rotation in angle-axis format."""
+        return self._rotation
+
+    @rotation.setter
+    def rotation(self, value):
+        self._rotation = np.asarray(value, dtype=float)
+
+    @property
+    def translation(self):
+        """Translation vector."""
+        return self._translation
+
+    @translation.setter
+    def translation(self, value):
+        self._translation = np.asarray(value, dtype=float)
 
     def transform(self, point):
         """Transform a point from world to this pose coordinates."""
@@ -31,7 +49,7 @@ class Pose(object):
 
     def get_rotation_matrix(self):
         """Get rotation as a 3x3 matrix."""
-        return cv2.Rodrigues(np.asarray(self.rotation, dtype=float))[0]
+        return cv2.Rodrigues(self.rotation)[0]
 
     def set_rotation_matrix(self, rotation_matrix):
         """Set rotation as a 3x3 matrix."""
