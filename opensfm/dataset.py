@@ -377,6 +377,22 @@ class DataSet:
         with open(self.__ply_file(), 'w') as fout:
             fout.write(ply)
 
+    def __ground_control_points_file(self):
+        return os.path.join(self.data_path, 'gcp_list.txt')
+
+    def ground_control_points_exist(self):
+        return os.path.isfile(self.__ground_control_points_file())
+
+    def load_ground_control_points(self):
+        """Load ground control points.
+
+        It uses reference_lla to convert the coordinates
+        to topocentric reference frame.
+        """
+        with open(self.__ground_control_points_file()) as fin:
+            return io.read_ground_control_points_list(
+                fin, self.load_reference_lla())
+
 
 def load_tracks_graph(fileobj):
     g = nx.Graph()

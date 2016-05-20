@@ -326,6 +326,23 @@ class Point(object):
         self.reprojection_error = None
 
 
+class GroundControlPoint(object):
+    """A ground control point observation.
+
+    Attributes:
+        lla: latitue, longitude and altitude
+        coordinates: x, y, z coordinates in topocentric reference frame
+        shot_id: the shot where the point is observed
+        shot_coordinates: 2d coordinates of the observation
+    """
+
+    def __init__(self):
+        self.lla = None
+        self.coordinates = None
+        self.shot_id = None
+        self.shot_coordinates = None
+
+
 class Reconstruction(object):
     """Defines the reconstructed scene.
 

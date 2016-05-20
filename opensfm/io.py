@@ -4,6 +4,7 @@ import json
 import numpy as np
 import errno
 
+from opensfm import geo
 from opensfm import types
 
 
@@ -258,6 +259,36 @@ def cameras_to_json(cameras):
     for camera in cameras.values():
         obj[camera.id] = camera_to_json(camera)
     return obj
+
+
+def _read_ground_control_points_list_line(line, reference_lla):
+    words = line.split()
+    lat, lon, alt, pixel_x, pixel_y = map(float, words[:5])
+    shot_id = words[5]
+    x, y, z = geo.topocentric_from_lla(
+        lat, lon, alt,
+        reference_lla['latitude'],
+        reference_lla['longitude'],
+        reference_lla['altitude'])
+
+    point = types.GroundControlPoint()
+    point.lla = np.array([lat, lon, alt])
+    point.coordinates = np.array([x, y, z])
+    point.shot_id = shot_id
+    point.shot_coordinates = np.array([pixel_x, pixel_y])
+    return point
+
+
+def read_ground_control_points_list(fileobj, reference_lla):
+    """Read a ground control point list file.
+
+    It requires the points to be in the WGS84 lat, lon, alt format.
+    """
+    lines = fileobj.readlines()
+    assert lines[0].strip() == 'WGS84'
+    points = [_read_ground_control_points_list_line(line, reference_lla)
+              for line in lines[1:]]
+    return points
 
 
 def mkdir_p(path):
