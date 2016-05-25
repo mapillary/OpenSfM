@@ -545,7 +545,7 @@ def merge_two_reconstructions(r1, r2, config, threshold=1):
             r = r2
             r.shots.update(r1p.shots)
             r.points.update(r1p.points)
-            align.align_reconstruction(r, config)
+            align.align_reconstruction(r, None, config)
             return [r]
         else:
             return [r1, r2]
@@ -591,14 +591,14 @@ def paint_reconstruction(data, graph, reconstruction):
         point.color = graph[k].values()[0]['feature_color']
 
 
-def grow_reconstruction(data, graph, reconstruction, images):
+def grow_reconstruction(data, graph, reconstruction, images, gcp):
     bundle_interval = data.config.get('bundle_interval', 0)
     bundle_new_points_ratio = data.config.get('bundle_new_points_ratio', 1.2)
     retriangulation = data.config.get('retriangulation', False)
     retriangulation_ratio = data.config.get('retriangulation_ratio', 1.25)
 
     bundle(graph, reconstruction, data.config)
-    align.align_reconstruction(reconstruction, data.config)
+    align.align_reconstruction(reconstruction, gcp, data.config)
 
     num_points_last_bundle = len(reconstruction.points)
     num_shots_last_bundle = len(reconstruction.shots)
@@ -630,7 +630,7 @@ def grow_reconstruction(data, graph, reconstruction, images):
                         or len(reconstruction.shots) >= num_shots_last_bundle + bundle_interval):
                     bundle(graph, reconstruction, data.config)
                     remove_outliers(graph, reconstruction, data.config)
-                    align.align_reconstruction(reconstruction, data.config)
+                    align.align_reconstruction(reconstruction, gcp, data.config)
                     num_points_last_bundle = len(reconstruction.points)
                     num_shots_last_bundle = len(reconstruction.shots)
 
@@ -648,7 +648,7 @@ def grow_reconstruction(data, graph, reconstruction, images):
             break
 
     bundle(graph, reconstruction, data.config)
-    align.align_reconstruction(reconstruction, data.config)
+    align.align_reconstruction(reconstruction, gcp, data.config)
 
     print 'Reprojection Error:', reprojection_error(graph, reconstruction)
     print 'Painting the reconstruction from {0} cameras'.format(len(reconstruction.shots))
@@ -672,6 +672,9 @@ def incremental_reconstruction(data):
     graph = data.load_tracks_graph()
     tracks, images = tracks_and_images(graph)
     remaining_images = set(images)
+    gcp = None
+    if data.ground_control_points_exist():
+        gcp = data.load_ground_control_points()
     print 'images', len(images)
     print 'nonfisheye images', len(remaining_images)
     image_graph = bipartite.weighted_projected_graph(graph, images)
@@ -683,7 +686,8 @@ def incremental_reconstruction(data):
             if reconstruction:
                 remaining_images.remove(im1)
                 remaining_images.remove(im2)
-                reconstruction = grow_reconstruction(data, graph, reconstruction, remaining_images)
+                reconstruction = grow_reconstruction(
+                    data, graph, reconstruction, remaining_images, gcp)
                 reconstructions.append(reconstruction)
                 reconstructions = sorted(reconstructions, key=lambda x: -len(x.shots))
                 data.save_reconstruction(reconstructions)

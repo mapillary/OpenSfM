@@ -271,12 +271,12 @@ def _read_ground_control_points_list_line(line, reference_lla):
         reference_lla['longitude'],
         reference_lla['altitude'])
 
-    point = types.GroundControlPoint()
-    point.lla = np.array([lat, lon, alt])
-    point.coordinates = np.array([x, y, z])
-    point.shot_id = shot_id
-    point.shot_coordinates = np.array([pixel_x, pixel_y])
-    return point
+    o = types.GroundControlPointObsevation()
+    o.lla = np.array([lat, lon, alt])
+    o.coordinates = np.array([x, y, z])
+    o.shot_id = shot_id
+    o.shot_coordinates = np.array([pixel_x, pixel_y])
+    return o
 
 
 def read_ground_control_points_list(fileobj, reference_lla):

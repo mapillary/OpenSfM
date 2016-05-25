@@ -326,10 +326,11 @@ class Point(object):
         self.reprojection_error = None
 
 
-class GroundControlPoint(object):
+class GroundControlPointObservation(object):
     """A ground control point observation.
 
     Attributes:
+        id: identification of the
         lla: latitue, longitude and altitude
         coordinates: x, y, z coordinates in topocentric reference frame
         shot_id: the shot where the point is observed

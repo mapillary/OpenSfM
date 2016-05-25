@@ -1,9 +1,20 @@
 """Tools to align a reconstruction to GPS and GCP data."""
 
+from collections import defaultdict
+
 import numpy as np
 
+from opensfm import csfm
 from opensfm import multiview
 from opensfm import transformations as tf
+
+
+def align_reconstruction(reconstruction, gcp, config):
+    """Align a reconstruction with GPS and GCP data."""
+    res = align_reconstruction_similarity(reconstruction, gcp, config)
+    if res:
+        s, A, b = res
+        apply_similarity(reconstruction, s, A, b)
 
 
 def apply_similarity(reconstruction, s, A, b):
@@ -29,14 +40,41 @@ def apply_similarity(reconstruction, s, A, b):
         shot.pose.translation = list(tp)
 
 
-def align_reconstruction_naive_similarity(reconstruction):
-    if len(reconstruction.shots) < 3:
-        return
-    # Compute similarity Xp = s A X + b
+def align_reconstruction_similarity(reconstruction, gcp, config):
+    """Align reconstruction with GPS and GCP data.
+
+    Config parameter `align_method` can be used to choose the alignment method.
+    Accepted values are
+     - navie: does a direct 3D-3D fit
+     - orientation_prior: assumes a particular camera orientation
+    """
+    align_method = config.get('align_method', 'orientation_prior')
+    if align_method == 'orientation_prior':
+        return align_reconstruction_orientation_prior_similarity(
+            reconstruction, config)
+    elif align_method == 'naive':
+        return align_reconstruction_naive_similarity(reconstruction, gcp)
+
+
+def align_reconstruction_naive_similarity(reconstruction, gcp):
+    """Align with GPS and GCP data using direct 3D-3D matches."""
     X, Xp = [], []
+
+    # Get Ground Control Point correspondences
+    if gcp:
+        triangulated, measured = triangulate_all_gcp(reconstruction, gcp)
+        X.extend(triangulated)
+        Xp.extend(measured)
+
+    # Get camera center correspondences
     for shot in reconstruction.shots.values():
         X.append(shot.pose.get_origin())
         Xp.append(shot.metadata.gps_position)
+
+    if len(X) < 3:
+        return
+
+    # Compute similarity Xp = s A X + b
     X = np.array(X)
     Xp = np.array(Xp)
     T = tf.superimposition_matrix(X.T, Xp.T, scale=True)
@@ -47,48 +85,21 @@ def align_reconstruction_naive_similarity(reconstruction):
     return s, A, b
 
 
-def get_horizontal_and_vertical_directions(R, orientation):
-    """Get orientation vectors from camera rotation matrix and orientation tag.
-
-    Return a 3D vectors pointing to the positive XYZ directions of the image.
-    X points to the right, Y to the bottom, Z to the front.
-    """
-    # See http://sylvana.net/jpegcrop/exif_orientation.html
-    if orientation == 1:
-        return R[0, :], R[1, :], R[2, :]
-    if orientation == 2:
-        return -R[0, :], R[1, :], -R[2, :]
-    if orientation == 3:
-        return -R[0, :], -R[1, :], R[2, :]
-    if orientation == 4:
-        return R[0, :], -R[1, :], R[2, :]
-    if orientation == 5:
-        return R[1, :], R[0, :], -R[2, :]
-    if orientation == 6:
-        return -R[1, :], R[0, :], R[2, :]
-    if orientation == 7:
-        return -R[1, :], -R[0, :], -R[2, :]
-    if orientation == 8:
-        return R[1, :], -R[0, :], R[2, :]
-    print 'ERROR unknown orientation {0}. Using 1 instead'.format(orientation)
-    return R[0, :], R[1, :], R[2, :]
-
-
-def align_reconstruction(reconstruction, config):
-    s, A, b = align_reconstruction_similarity(reconstruction, config)
-    apply_similarity(reconstruction, s, A, b)
-
-
-def align_reconstruction_similarity(reconstruction, config):
-    align_method = config.get('align_method', 'orientation_prior')
-    if align_method == 'orientation_prior':
-        return align_reconstruction_orientation_prior_similarity(
-            reconstruction, config)
-    elif align_method == 'naive':
-        return align_reconstruction_naive_similarity(reconstruction)
-
-
 def align_reconstruction_orientation_prior_similarity(reconstruction, config):
+    """Align with GPS data assuming particular a camera orientation.
+
+    In some cases, using 3D-3D matches directly fails to find proper
+    orientation of the world.  That happends mainly when all cameras lie
+    close to a straigh line.
+
+    In such cases, we can impose a particular orientation of the cameras
+    to improve the orientation of the alignment.  The config parameter
+    `align_orientation_prior` can be used to specify such orientation.
+    Accepted values are:
+     - no_roll: assumes horizon is horizontal on the images
+     - horizontal: assumes cameras are looking towards the horizon
+     - vertical: assumes cameras are looking down towards the ground
+    """
     X, Xp = [], []
     orientation_type = config.get('align_orientation_prior', 'horizontal')
     onplane, verticals = [], []
@@ -138,3 +149,66 @@ def align_reconstruction_orientation_prior_similarity(reconstruction, config):
             Xp[:, 2].mean() - s * X[:, 2].mean()  # vertical alignment
         ])
     return s, A, b
+
+
+def get_horizontal_and_vertical_directions(R, orientation):
+    """Get orientation vectors from camera rotation matrix and orientation tag.
+
+    Return a 3D vectors pointing to the positive XYZ directions of the image.
+    X points to the right, Y to the bottom, Z to the front.
+    """
+    # See http://sylvana.net/jpegcrop/exif_orientation.html
+    if orientation == 1:
+        return R[0, :], R[1, :], R[2, :]
+    if orientation == 2:
+        return -R[0, :], R[1, :], -R[2, :]
+    if orientation == 3:
+        return -R[0, :], -R[1, :], R[2, :]
+    if orientation == 4:
+        return R[0, :], -R[1, :], R[2, :]
+    if orientation == 5:
+        return R[1, :], R[0, :], -R[2, :]
+    if orientation == 6:
+        return -R[1, :], R[0, :], R[2, :]
+    if orientation == 7:
+        return -R[1, :], -R[0, :], -R[2, :]
+    if orientation == 8:
+        return R[1, :], -R[0, :], R[2, :]
+    print 'ERROR unknown orientation {0}. Using 1 instead'.format(orientation)
+    return R[0, :], R[1, :], R[2, :]
+
+
+def triangulate_single_gcp(reconstruction, observations):
+    """Triangulate one Ground Control Point."""
+    reproj_threshold = 0.004
+    min_ray_angle_degrees = 2.0
+
+    os, bs = [], []
+    for o in observations:
+        if o.shot_id in reconstruction.shots:
+            shot = reconstruction.shots[o.shot_id]
+            os.append(shot.pose.get_origin())
+            b = shot.camera.pixel_bearing(np.asarray(o.shot_coordinates))
+            r = shot.pose.get_rotation_matrix().T
+            bs.append(r.dot(b))
+
+    if len(os) >= 2:
+        e, X = csfm.triangulate_bearings_midpoint(
+            os, bs, reproj_threshold, np.radians(min_ray_angle_degrees))
+        return X
+
+
+def triangulate_all_gcp(reconstruction, gcp_observations):
+    """Group and triangulate Ground Control Points seen in 2+ images."""
+    groups = defaultdict(list)
+    for o in gcp_observations:
+        groups[tuple(o.lla)].append(o)
+
+    triangulated, measured = [], []
+    for key, observations in groups.values():
+        x = triangulate_single_gcp(reconstruction, observations)
+        if x is not None:
+            triangulated.append(x)
+            measured.append(observations[0].coordinates)
+
+    return triangulated, measured
