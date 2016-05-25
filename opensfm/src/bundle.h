@@ -128,6 +128,13 @@ struct BAPointPositionPrior {
   double std_deviation;
 };
 
+struct BAGroundControlPointObservation {
+  BACamera *camera;
+  BAShot *shot;
+  double coordinates3d[3];
+  double coordinates2d[2];
+};
+
 class TruncatedLoss : public ceres::LossFunction {
  public:
   explicit TruncatedLoss(double t)
@@ -154,12 +161,39 @@ class TruncatedLoss : public ceres::LossFunction {
 };
 
 
-// Templated pinhole camera model for used with Ceres.  The camera is
-// parameterized using 9 parameters: 3 for rotation, 3 for translation, 1 for
-// focal length and 2 for radial distortion. The principal point is not modeled
-// (i.e. it is assumed to be located at the image center).
-struct SnavelyReprojectionError {
-  SnavelyReprojectionError(double observed_x, double observed_y, double std_deviation)
+template <typename T>
+void WorldToCameraCoordinates(const T* const shot,
+                              const T world_point[3],
+                              T camera_point[3]) {
+  ceres::AngleAxisRotatePoint(shot, world_point, camera_point);
+  camera_point[0] += shot[3];
+  camera_point[1] += shot[4];
+  camera_point[2] += shot[5];
+}
+
+
+template <typename T>
+void PerspectiveProject(const T* const camera,
+                        const T point[3],
+                        T projection[2]) {
+  T xp = point[0] / point[2];
+  T yp = point[1] / point[2];
+
+  // Apply second and fourth order radial distortion.
+  const T& l1 = camera[1];
+  const T& l2 = camera[2];
+  T r2 = xp * xp + yp * yp;
+  T distortion = T(1.0) + r2  * (l1 + l2  * r2);
+
+  // Compute final projected point position.
+  const T& focal = camera[0];
+  projection[0] = focal * distortion * xp;
+  projection[1] = focal * distortion * yp;
+}
+
+
+struct PerspectiveReprojectionError {
+  PerspectiveReprojectionError(double observed_x, double observed_y, double std_deviation)
       : observed_x_(observed_x)
       , observed_y_(observed_y)
       , scale_(1.0 / std_deviation)
@@ -253,6 +287,50 @@ struct EquirectangularReprojectionError {
   }
 
   double bearing_vector_[3];
+  double scale_;
+};
+
+
+struct GCPPerspectiveProjectionError {
+  GCPPerspectiveProjectionError(
+    double world_x, double world_y, double world_z,
+    double observed_x, double observed_y, double std_deviation)
+      : world_x_(world_x)
+      , world_y_(world_y)
+      , world_z_(world_z)
+      , observed_x_(observed_x)
+      , observed_y_(observed_y)
+      , scale_(1.0 / std_deviation)
+  {}
+
+  template <typename T>
+  bool operator()(const T* const camera,
+                  const T* const shot,
+                  T* residuals) const {
+    T world_point[3] = { T(world_x_), T(world_y_), T(world_z_) };
+    T camera_point[3];
+    WorldToCameraCoordinates(shot, world_point, camera_point);
+
+    if (camera_point[2] <= T(0.0)) {
+      residuals[0] = residuals[1] = T(99.0);
+      return true;
+    }
+
+    T predicted[2];
+    PerspectiveProject(camera, camera_point, predicted);
+
+    // The error is the difference between the predicted and observed position.
+    residuals[0] = T(scale_) * (predicted[0] - T(observed_x_));
+    residuals[1] = T(scale_) * (predicted[1] - T(observed_y_));
+
+    return true;
+  }
+
+  double world_x_;
+  double world_y_;
+  double world_z_;
+  double observed_x_;
+  double observed_y_;
   double scale_;
 };
 
@@ -571,6 +649,24 @@ class BundleAdjuster {
     point_position_priors_.push_back(p);
   }
 
+  void AddGroundControlPointObservation(
+      const std::string &shot,
+      const std::string &point,
+      double x3d,
+      double y3d,
+      double z3d,
+      double x2d,
+      double y2d) {
+    BAGroundControlPointObservation o;
+    o.shot = &shots_[shot];
+    o.camera = cameras_[o.shot->camera].get();
+    o.coordinates3d[0] = x3d;
+    o.coordinates3d[1] = y3d;
+    o.coordinates3d[2] = z3d;
+    o.coordinates2d[0] = x2d;
+    o.coordinates2d[1] = y2d;
+    gcp_observations_.push_back(o);
+  }
 
   void SetOriginShot(const std::string &shot_id) {
     BAShot *shot = &shots_[shot_id];
@@ -673,10 +769,10 @@ class BundleAdjuster {
         {
           BAPerspectiveCamera &c = static_cast<BAPerspectiveCamera &>(*observations_[i].camera);
           ceres::CostFunction* cost_function =
-              new ceres::AutoDiffCostFunction<SnavelyReprojectionError, 2, 3, 6, 3>(
-                  new SnavelyReprojectionError(observations_[i].coordinates[0],
-                                               observations_[i].coordinates[1],
-                                               reprojection_error_sd_));
+              new ceres::AutoDiffCostFunction<PerspectiveReprojectionError, 2, 3, 6, 3>(
+                  new PerspectiveReprojectionError(observations_[i].coordinates[0],
+                                                   observations_[i].coordinates[1],
+                                                   reprojection_error_sd_));
 
           problem.AddResidualBlock(cost_function,
                                    loss,
@@ -738,6 +834,32 @@ class BundleAdjuster {
       problem.AddResidualBlock(cost_function,
                                NULL,
                                point_position_priors_[i].point->coordinates);
+    }
+
+    // Add ground control point observations
+    for (auto observation : gcp_observations_) {
+      switch (observation.camera->type()) {
+        case BA_PERSPECTIVE_CAMERA:
+        {
+          BAPerspectiveCamera &c = static_cast<BAPerspectiveCamera &>(*observation.camera);
+          ceres::CostFunction* cost_function =
+              new ceres::AutoDiffCostFunction<GCPPerspectiveProjectionError, 2, 3, 6>(
+                  new GCPPerspectiveProjectionError(observation.coordinates3d[0],
+                                                    observation.coordinates3d[1],
+                                                    observation.coordinates3d[2],
+                                                    observation.coordinates2d[0],
+                                                    observation.coordinates2d[1],
+                                                    reprojection_error_sd_));
+          problem.AddResidualBlock(cost_function,
+                                   NULL,
+                                   c.parameters,
+                                   observation.shot->parameters);
+          break;
+        }
+        case BA_EQUIRECTANGULAR_CAMERA:
+          std::cout << "GCP not implemented for spherical cameras\n";
+          break;
+      }
     }
 
 
@@ -853,11 +975,11 @@ class BundleAdjuster {
         {
           BAPerspectiveCamera &c = static_cast<BAPerspectiveCamera &>(*observations_[i].camera);
 
-          SnavelyReprojectionError sre(observations_[i].coordinates[0],
-                                       observations_[i].coordinates[1],
-                                       1.0);
+          PerspectiveReprojectionError pre(observations_[i].coordinates[0],
+                                           observations_[i].coordinates[1],
+                                           1.0);
           double residuals[2];
-          sre(c.parameters,
+          pre(c.parameters,
               observations_[i].shot->parameters,
               observations_[i].point->coordinates,
               residuals);
@@ -903,6 +1025,7 @@ class BundleAdjuster {
   std::vector<BARotationPrior> rotation_priors_;
   std::vector<BATranslationPrior> translation_priors_;
   std::vector<BAPointPositionPrior> point_position_priors_;
+  std::vector<BAGroundControlPointObservation> gcp_observations_;
 
   BAShot *unit_translation_shot_;
 
