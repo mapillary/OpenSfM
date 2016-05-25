@@ -165,10 +165,10 @@ template <typename T>
 void WorldToCameraCoordinates(const T* const shot,
                               const T world_point[3],
                               T camera_point[3]) {
-  ceres::AngleAxisRotatePoint(shot, world_point, camera_point);
-  camera_point[0] += shot[3];
-  camera_point[1] += shot[4];
-  camera_point[2] += shot[5];
+  ceres::AngleAxisRotatePoint(shot + BA_SHOT_RX, world_point, camera_point);
+  camera_point[0] += shot[BA_SHOT_TX];
+  camera_point[1] += shot[BA_SHOT_TY];
+  camera_point[2] += shot[BA_SHOT_TZ];
 }
 
 
@@ -180,13 +180,13 @@ void PerspectiveProject(const T* const camera,
   T yp = point[1] / point[2];
 
   // Apply second and fourth order radial distortion.
-  const T& l1 = camera[1];
-  const T& l2 = camera[2];
+  const T& l1 = camera[BA_CAMERA_K1];
+  const T& l2 = camera[BA_CAMERA_K2];
   T r2 = xp * xp + yp * yp;
-  T distortion = T(1.0) + r2  * (l1 + l2  * r2);
+  T distortion = T(1.0) + r2  * (l1 + r2 * l2);
 
   // Compute final projected point position.
-  const T& focal = camera[0];
+  const T& focal = camera[BA_CAMERA_FOCAL];
   projection[0] = focal * distortion * xp;
   projection[1] = focal * distortion * yp;
 }
@@ -204,37 +204,20 @@ struct PerspectiveReprojectionError {
                   const T* const shot,
                   const T* const point,
                   T* residuals) const {
-    // shot[0,1,2] are the angle-axis rotation.
-    T p[3];
-    ceres::AngleAxisRotatePoint(shot, point, p);
+    T camera_point[3];
+    WorldToCameraCoordinates(shot, point, camera_point);
 
-    // shot[3,4,5] are the translation.
-    p[0] += shot[3];
-    p[1] += shot[4];
-    p[2] += shot[5];
-
-    if (p[2] <= T(0.0)) {
+    if (camera_point[2] <= T(0.0)) {
       residuals[0] = residuals[1] = T(99.0);
       return true;
     }
 
-    // Project.
-    T xp = p[0] / p[2];
-    T yp = p[1] / p[2];
+    T predicted[2];
+    PerspectiveProject(camera, camera_point, predicted);
 
-    // Apply second and fourth order radial distortion.
-    const T& l1 = camera[1];
-    const T& l2 = camera[2];
-    T r2 = xp * xp + yp * yp;
-    T distortion = T(1.0) + r2  * (l1 + l2  * r2);
-
-    // Compute final projected point position.
-    const T& focal = camera[0];
-    T predicted_x = focal * distortion * xp;
-    T predicted_y = focal * distortion * yp;
     // The error is the difference between the predicted and observed position.
-    residuals[0] = T(scale_) * (predicted_x - T(observed_x_));
-    residuals[1] = T(scale_) * (predicted_y - T(observed_y_));
+    residuals[0] = T(scale_) * (predicted[0] - T(observed_x_));
+    residuals[1] = T(scale_) * (predicted[1] - T(observed_y_));
 
     return true;
   }
@@ -261,14 +244,7 @@ struct EquirectangularReprojectionError {
                   T* residuals) const {
     // Position vector in camera coordinates.
     T p[3];
-
-    // shot[0,1,2] are the angle-axis rotation.
-    ceres::AngleAxisRotatePoint(shot, point, p);
-
-    // shot[3,4,5] are the translation.
-    p[0] += shot[3];
-    p[1] += shot[4];
-    p[2] += shot[5];
+    WorldToCameraCoordinates(shot, point, p);
 
     // Project to unit sphere.
     const T l = sqrt(p[0] * p[0] + p[1] * p[1] + p[2] * p[2]);
