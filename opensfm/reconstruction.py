@@ -675,8 +675,6 @@ def incremental_reconstruction(data):
     gcp = None
     if data.ground_control_points_exist():
         gcp = data.load_ground_control_points()
-    print 'images', len(images)
-    print 'nonfisheye images', len(remaining_images)
     image_graph = bipartite.weighted_projected_graph(graph, images)
     reconstructions = []
     pairs = compute_image_pairs(graph, image_graph, data.config)

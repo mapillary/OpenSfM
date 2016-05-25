@@ -389,9 +389,11 @@ class DataSet:
         It uses reference_lla to convert the coordinates
         to topocentric reference frame.
         """
+        exif = {image: self.load_exif(image) for image in self.images()}
+
         with open(self.__ground_control_points_file()) as fin:
             return io.read_ground_control_points_list(
-                fin, self.load_reference_lla())
+                fin, self.load_reference_lla(), exif)
 
 
 def load_tracks_graph(fileobj):
