@@ -613,33 +613,46 @@ def paint_reconstruction(data, graph, reconstruction):
 
 class ShouldBundle:
     """Helper to keep track of when to run bundle."""
+
     def __init__(self, data, reconstruction):
-        self.bundle_interval = data.config.get('bundle_interval', 0)
-        self.bundle_new_points_ratio = data.config.get(
-            'bundle_new_points_ratio', 1.2)
+        self.interval = data.config.get('bundle_interval', 0)
+        self.new_points_ratio = data.config.get('bundle_new_points_ratio', 1.2)
         self.done(reconstruction)
 
     def should(self, reconstruction):
-        max_points = self.num_points_last_bundle * self.bundle_new_points_ratio
-        max_shots = self.num_shots_last_bundle + self.bundle_interval
+        max_points = self.num_points_last * self.new_points_ratio
+        max_shots = self.num_shots_last + self.interval
         return (len(reconstruction.points) >= max_points or
                 len(reconstruction.shots) >= max_shots)
 
     def done(self, reconstruction):
-        self.num_points_last_bundle = len(reconstruction.points)
-        self.num_shots_last_bundle = len(reconstruction.shots)
+        self.num_points_last = len(reconstruction.points)
+        self.num_shots_last = len(reconstruction.shots)
+
+
+class ShouldRetriangulate:
+    """Helper to keep track of when to re-triangulate."""
+
+    def __init__(self, data, reconstruction):
+        self.active = data.config.get('retriangulation', False)
+        self.ratio = data.config.get('retriangulation_ratio', 1.25)
+        self.done(reconstruction)
+
+    def should(self, reconstruction):
+        max_points = self.num_points_last * self.ratio
+        return self.active and len(reconstruction.points) > max_points
+
+    def done(self, reconstruction):
+        self.num_points_last = len(reconstruction.points)
 
 
 def grow_reconstruction(data, graph, reconstruction, images, gcp):
     """Incrementally add shots to an initial reconstruction."""
-    retriangulation = data.config.get('retriangulation', False)
-    retriangulation_ratio = data.config.get('retriangulation_ratio', 1.25)
-
     bundle(graph, reconstruction, data.config)
     align.align_reconstruction(reconstruction, gcp, data.config)
 
     should_bundle = ShouldBundle(data, reconstruction)
-    num_points_last_retriangulation = len(reconstruction.points)
+    should_retriangulate = ShouldRetriangulate(data, reconstruction)
 
     while True:
         if data.config.get('save_partial_reconstructions', False):
@@ -664,19 +677,18 @@ def grow_reconstruction(data, graph, reconstruction, images, gcp):
                     data.config.get('triangulation_threshold', 0.004),
                     data.config.get('triangulation_min_ray_angle', 2.0))
 
-                if should_bundle.should():
+                if should_bundle.should(reconstruction):
                     bundle(graph, reconstruction, data.config)
                     remove_outliers(graph, reconstruction, data.config)
                     align.align_reconstruction(reconstruction, gcp,
                                                data.config)
-                    should_bundle.done()
+                    should_bundle.done(reconstruction)
 
-                num_points = len(reconstruction.points)
-                if retriangulation and num_points > num_points_last_retriangulation * retriangulation_ratio:
+                if should_retriangulate.should(reconstruction):
                     logger.info("Re-triangulating")
                     retriangulate(graph, reconstruction, data.config)
                     bundle(graph, reconstruction, data.config)
-                    num_points_last_retriangulation = len(reconstruction.points)
+                    should_retriangulate.done(reconstruction)
                 break
         else:
             logger.info("Some images can not be added")
