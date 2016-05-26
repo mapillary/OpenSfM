@@ -310,6 +310,52 @@ struct GCPPerspectiveProjectionError {
   double scale_;
 };
 
+struct GCPEquirectangularProjectionError {
+  GCPEquirectangularProjectionError(
+    double world_x, double world_y, double world_z,
+    double observed_x, double observed_y, double std_deviation)
+      : world_x_(world_x)
+      , world_y_(world_y)
+      , world_z_(world_z)
+      , scale_(1.0 / std_deviation)
+  {
+    double lon = observed_x * 2 * M_PI;
+    double lat = -observed_y * 2 * M_PI;
+    bearing_vector_[0] = cos(lat) * sin(lon);
+    bearing_vector_[1] = -sin(lat);
+    bearing_vector_[2] = cos(lat) * cos(lon);
+  }
+
+  template <typename T>
+  bool operator()(const T* const shot,
+                  T* residuals) const {
+    // Position vector in camera coordinates.
+    T world_point[3] = { T(world_x_), T(world_y_), T(world_z_) };
+    T p[3];
+    WorldToCameraCoordinates(shot, world_point, p);
+
+    // Project to unit sphere.
+    const T l = sqrt(p[0] * p[0] + p[1] * p[1] + p[2] * p[2]);
+    p[0] /= l;
+    p[1] /= l;
+    p[2] /= l;
+
+    // Difference between projected vector and observed bearing vector
+    // We use the difference between unit vectors as an approximation
+    // to the angle for small angles.
+    residuals[0] = T(scale_) * (p[0] - T(bearing_vector_[0]));
+    residuals[1] = T(scale_) * (p[1] - T(bearing_vector_[1]));
+    residuals[2] = T(scale_) * (p[2] - T(bearing_vector_[2]));
+
+    return true;
+  }
+
+  double world_x_;
+  double world_y_;
+  double world_z_;
+  double bearing_vector_[3];
+  double scale_;
+};
 
 struct InternalParametersPriorError {
   InternalParametersPriorError(double focal_estimate,
@@ -758,21 +804,20 @@ class BundleAdjuster {
           break;
         }
         case BA_EQUIRECTANGULAR_CAMERA:
-          {
-            BAEquirectangularCamera &c = static_cast<BAEquirectangularCamera &>(*observations_[i].camera);
-            ceres::CostFunction* cost_function =
-                new ceres::AutoDiffCostFunction<EquirectangularReprojectionError, 3, 6, 3>(
-                    new EquirectangularReprojectionError(observations_[i].coordinates[0],
-                                                         observations_[i].coordinates[1],
-                                                         reprojection_error_sd_));
+        {
+          BAEquirectangularCamera &c = static_cast<BAEquirectangularCamera &>(*observations_[i].camera);
+          ceres::CostFunction* cost_function =
+              new ceres::AutoDiffCostFunction<EquirectangularReprojectionError, 3, 6, 3>(
+                  new EquirectangularReprojectionError(observations_[i].coordinates[0],
+                                                       observations_[i].coordinates[1],
+                                                       reprojection_error_sd_));
 
-            problem.AddResidualBlock(cost_function,
-                                     loss,
-                                     observations_[i].shot->parameters,
-                                     observations_[i].point->coordinates);
-            break;
-          }
+          problem.AddResidualBlock(cost_function,
+                                   loss,
+                                   observations_[i].shot->parameters,
+                                   observations_[i].point->coordinates);
           break;
+        }
       }
     }
 
@@ -833,8 +878,21 @@ class BundleAdjuster {
           break;
         }
         case BA_EQUIRECTANGULAR_CAMERA:
-          std::cout << "GCP not implemented for spherical cameras\n";
+        {
+          ceres::CostFunction* cost_function =
+              new ceres::AutoDiffCostFunction<GCPEquirectangularProjectionError, 3, 6>(
+                  new GCPEquirectangularProjectionError(observation.coordinates3d[0],
+                                                        observation.coordinates3d[1],
+                                                        observation.coordinates3d[2],
+                                                        observation.coordinates2d[0],
+                                                        observation.coordinates2d[1],
+                                                        reprojection_error_sd_));
+
+          problem.AddResidualBlock(cost_function,
+                                   NULL,
+                                   observation.shot->parameters);
           break;
+        }
       }
     }
 
