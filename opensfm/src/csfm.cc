@@ -124,10 +124,6 @@ BOOST_PYTHON_MODULE(csfm) {
     .add_property("tz", &BAShot::GetTZ, &BAShot::SetTZ)
     .def("get_covariance", &BAShot::GetCovariance)
     .def_readwrite("constant", &BAShot::constant)
-    .def_readwrite("gps_x", &BAShot::gps_x)
-    .def_readwrite("gps_y", &BAShot::gps_y)
-    .def_readwrite("gps_z", &BAShot::gps_z)
-    .def_readwrite("gps_dop", &BAShot::gps_dop)
     .def_readwrite("camera", &BAShot::camera)
     .def_readwrite("id", &BAShot::id)
   ;

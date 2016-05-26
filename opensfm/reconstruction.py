@@ -41,8 +41,7 @@ def bundle(graph, reconstruction, config, fix_cameras=False):
             str(shot.id), str(shot.camera.id),
             r[0], r[1], r[2],
             t[0], t[1], t[2],
-            g[0], g[1], g[2],
-            shot.metadata.gps_dop, False
+            False
         )
 
     for point in reconstruction.points.values():
@@ -113,8 +112,7 @@ def bundle_single_view(graph, reconstruction, shot_id, config):
         str(shot_id), str(camera.id),
         r[0], r[1], r[2],
         t[0], t[1], t[2],
-        g[0], g[1], g[2],
-        shot.metadata.gps_dop, False
+        False
     )
 
     for track_id in graph[shot_id]:

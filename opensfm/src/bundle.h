@@ -68,8 +68,6 @@ struct BAShot {
   double parameters[BA_SHOT_NUM_PARAMS];
   double covariance[BA_SHOT_NUM_PARAMS * BA_SHOT_NUM_PARAMS];
   bool constant;
-  double gps_x, gps_y, gps_z;
-  double gps_dop;
   int exif_orientation;
   std::string camera;
   std::string id;
@@ -497,29 +495,6 @@ struct PointPositionPriorError {
 };
 
 
-struct GPSPriorError {
-  GPSPriorError(double x, double y, double z, double std_deviation)
-      : x_(x), y_(y), z_(z)
-      , scale_(1.0 / std_deviation)
-  {}
-
-  template <typename T>
-  bool operator()(const T* const shot, T* residuals) const {
-    // shot[0,1,2] are the angle-axis rotation.
-    T p[3];
-    ceres::AngleAxisRotatePoint(shot, shot + 3, p);
-
-    residuals[0] = T(scale_) * (-p[0] - T(x_));
-    residuals[1] = T(scale_) * (-p[1] - T(y_));
-    residuals[2] = T(scale_) * (-p[2] - T(z_));
-    return true;
-  }
-
-  double x_, y_, z_;
-  double scale_;
-};
-
-
 // A bundle adjustment class for optimizing the problem
 //
 //    sum_p ( reprojection_error(p) / reprojection_error_sd )^2
@@ -600,10 +575,6 @@ class BundleAdjuster {
       double tx,
       double ty,
       double tz,
-      double gpsx,
-      double gpsy,
-      double gpsz,
-      double gps_dop,
       bool constant) {
     BAShot s;
     s.id = id;
@@ -615,10 +586,6 @@ class BundleAdjuster {
     s.parameters[BA_SHOT_TY] = ty;
     s.parameters[BA_SHOT_TZ] = tz;
     s.constant = constant;
-    s.gps_x = gpsx;
-    s.gps_y = gpsy;
-    s.gps_z = gpsz;
-    s.gps_dop = gps_dop;
     shots_[id] = s;
   }
 
@@ -978,20 +945,6 @@ class BundleAdjuster {
                                NULL,
                                unit_translation_shot_->parameters);
     }
-
-    // for (auto &i : shots_) {
-    //   ceres::CostFunction* cost_function =
-    //       new ceres::AutoDiffCostFunction<GPSPriorError, 3, 6>(
-    //           new GPSPriorError(i.second.gps_position[0],
-    //                             i.second.gps_position[1],
-    //                             i.second.gps_position[2],
-    //                             i.second.gps_dop));
-
-    //   problem.AddResidualBlock(cost_function,
-    //                            NULL,
-    //                            i.second.parameters);
-    // }
-
 
     // Solve
     ceres::Solver::Options options;
