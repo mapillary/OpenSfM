@@ -785,76 +785,73 @@ class BundleAdjuster {
     }
 
     // Add reprojection error blocks
-    for (int i = 0; i < observations_.size(); ++i) {
-      switch (observations_[i].camera->type()) {
+    for (auto observation : observations_) {
+      switch (observation.camera->type()) {
         case BA_PERSPECTIVE_CAMERA:
         {
-          BAPerspectiveCamera &c = static_cast<BAPerspectiveCamera &>(*observations_[i].camera);
+          BAPerspectiveCamera &c = static_cast<BAPerspectiveCamera &>(*observation.camera);
           ceres::CostFunction* cost_function =
               new ceres::AutoDiffCostFunction<PerspectiveReprojectionError, 2, 3, 6, 3>(
-                  new PerspectiveReprojectionError(observations_[i].coordinates[0],
-                                                   observations_[i].coordinates[1],
+                  new PerspectiveReprojectionError(observation.coordinates[0],
+                                                   observation.coordinates[1],
                                                    reprojection_error_sd_));
 
           problem.AddResidualBlock(cost_function,
                                    loss,
                                    c.parameters,
-                                   observations_[i].shot->parameters,
-                                   observations_[i].point->coordinates);
+                                   observation.shot->parameters,
+                                   observation.point->coordinates);
           break;
         }
         case BA_EQUIRECTANGULAR_CAMERA:
         {
-          BAEquirectangularCamera &c = static_cast<BAEquirectangularCamera &>(*observations_[i].camera);
+          BAEquirectangularCamera &c = static_cast<BAEquirectangularCamera &>(*observation.camera);
           ceres::CostFunction* cost_function =
               new ceres::AutoDiffCostFunction<EquirectangularReprojectionError, 3, 6, 3>(
-                  new EquirectangularReprojectionError(observations_[i].coordinates[0],
-                                                       observations_[i].coordinates[1],
+                  new EquirectangularReprojectionError(observation.coordinates[0],
+                                                       observation.coordinates[1],
                                                        reprojection_error_sd_));
 
           problem.AddResidualBlock(cost_function,
                                    loss,
-                                   observations_[i].shot->parameters,
-                                   observations_[i].point->coordinates);
+                                   observation.shot->parameters,
+                                   observation.point->coordinates);
           break;
         }
       }
     }
 
     // Add rotation priors
-    for (int i = 0; i < rotation_priors_.size(); ++i) {
+    for (auto rp : rotation_priors_) {
       ceres::CostFunction* cost_function =
           new ceres::AutoDiffCostFunction<RotationPriorError, 3, 6>(
-              new RotationPriorError(rotation_priors_[i].rotation,
-                                     rotation_priors_[i].std_deviation));
+              new RotationPriorError(rp.rotation, rp.std_deviation));
 
       problem.AddResidualBlock(cost_function,
                                NULL,
-                               rotation_priors_[i].shot->parameters);
+                               rp.shot->parameters);
     }
 
     // Add translation priors
-    for (int i = 0; i < translation_priors_.size(); ++i) {
+    for (auto tp : translation_priors_) {
       ceres::CostFunction* cost_function =
           new ceres::AutoDiffCostFunction<TranslationPriorError, 3, 6>(
-              new TranslationPriorError(translation_priors_[i].translation,
-                                        translation_priors_[i].std_deviation));
+              new TranslationPriorError(tp.translation, tp.std_deviation));
 
       problem.AddResidualBlock(cost_function,
                                NULL,
-                               translation_priors_[i].shot->parameters);
+                               tp.shot->parameters);
     }
 
     // Add point position priors
-    for (int i = 0; i < point_position_priors_.size(); ++i) {
+    for (auto pp : point_position_priors_) {
       ceres::CostFunction* cost_function =
           new ceres::AutoDiffCostFunction<PointPositionPriorError, 3, 3>(
-              new PointPositionPriorError(point_position_priors_[i].position,
-                                          point_position_priors_[i].std_deviation));
+              new PointPositionPriorError(pp.position, pp.std_deviation));
 
       problem.AddResidualBlock(cost_function,
                                NULL,
-                               point_position_priors_[i].point->coordinates);
+                               pp.point->coordinates);
     }
 
     // Add ground control point observations
@@ -895,7 +892,6 @@ class BundleAdjuster {
         }
       }
     }
-
 
     // Add internal parameter priors blocks
     for (auto &i : cameras_) {
@@ -1042,7 +1038,6 @@ class BundleAdjuster {
     }
   }
 
-
   std::string BriefReport() {
     return last_run_summary_.BriefReport();
   }
@@ -1075,8 +1070,5 @@ class BundleAdjuster {
   int max_num_iterations_;
   int num_threads_;
 
-
   ceres::Solver::Summary last_run_summary_;
 };
-
-
