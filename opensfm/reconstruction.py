@@ -328,26 +328,6 @@ def reconstructed_points_for_images(graph, reconstruction, images):
     return sorted(res, key=lambda x: -x[1])
 
 
-def single_reprojection_error(shot, point, observation):
-    ''' Reprojection error of a single points
-    '''
-    point_reprojected = shot.project(point.coordinates)
-    err = point_reprojected - observation
-    return np.linalg.norm(err)
-
-
-def reprojection_error(graph, reconstruction):
-    errors = []
-    for shot_id in reconstruction.shots:
-        for track_id in graph[shot_id]:
-            if track_id in reconstruction.points:
-                observation = graph[shot_id][track_id]['feature']
-                shot = reconstruction.shots[shot_id]
-                point = reconstruction.points[track_id]
-                errors.append(single_reprojection_error(shot, point, observation))
-    return np.median(errors)
-
-
 def resect(data, graph, reconstruction, shot_id):
     '''Add a shot to the reconstruction.
     '''
