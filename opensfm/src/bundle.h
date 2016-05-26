@@ -122,6 +122,12 @@ struct BATranslationPrior {
   double std_deviation;
 };
 
+struct BAPositionPrior {
+  BAShot *shot;
+  double position[3];
+  double std_deviation;
+};
+
 struct BAPointPositionPrior {
   BAPoint *point;
   double position[3];
@@ -396,9 +402,9 @@ struct RotationPriorError {
   {}
 
   template <typename T>
-  bool operator()(const T* const parameters, T* residuals) const {
+  bool operator()(const T* const shot, T* residuals) const {
     // Get rotation and translation values.
-    const T* const R = parameters + BA_SHOT_RX;
+    const T* const R = shot + BA_SHOT_RX;
     T Rpt[3] = { -T(R_prior_[0]),
                  -T(R_prior_[1]),
                  -T(R_prior_[2]) };
@@ -429,14 +435,35 @@ struct TranslationPriorError {
   {}
 
   template <typename T>
-  bool operator()(const T* const parameters, T* residuals) const {
-    residuals[0] = T(scale_) * (T(translation_prior_[0]) - parameters[BA_SHOT_TX]);
-    residuals[1] = T(scale_) * (T(translation_prior_[1]) - parameters[BA_SHOT_TY]);
-    residuals[2] = T(scale_) * (T(translation_prior_[2]) - parameters[BA_SHOT_TZ]);
+  bool operator()(const T* const shot, T* residuals) const {
+    residuals[0] = T(scale_) * (T(translation_prior_[0]) - shot[BA_SHOT_TX]);
+    residuals[1] = T(scale_) * (T(translation_prior_[1]) - shot[BA_SHOT_TY]);
+    residuals[2] = T(scale_) * (T(translation_prior_[2]) - shot[BA_SHOT_TZ]);
     return true;
   }
 
   double *translation_prior_;
+  double scale_;
+};
+
+struct PositionPriorError {
+  PositionPriorError(double *position_prior, double std_deviation)
+      : position_prior_(position_prior)
+      , scale_(1.0 / std_deviation)
+  {}
+
+  template <typename T>
+  bool operator()(const T* const shot, T* residuals) const {
+    T p[3];
+    ceres::AngleAxisRotatePoint(shot + BA_SHOT_RX, shot + BA_SHOT_TX, p);
+
+    residuals[0] = T(scale_) * (p[0] + T(position_prior_[0]));
+    residuals[1] = T(scale_) * (p[1] + T(position_prior_[1]));
+    residuals[2] = T(scale_) * (p[2] + T(position_prior_[2]));
+    return true;
+  }
+
+  double *position_prior_;
   double scale_;
 };
 
@@ -450,7 +477,6 @@ struct UnitTranslationPriorError {
     return true;
   }
 };
-
 
 struct PointPositionPriorError {
   PointPositionPriorError(double *position, double std_deviation)
@@ -656,6 +682,21 @@ class BundleAdjuster {
     translation_priors_.push_back(p);
   }
 
+  void AddPositionPrior(
+      const std::string &shot_id,
+      double x,
+      double y,
+      double z,
+      double std_deviation) {
+    BAPositionPrior p;
+    p.shot = &shots_[shot_id];
+    p.position[0] = x;
+    p.position[1] = y;
+    p.position[2] = z;
+    p.std_deviation = std_deviation;
+    position_priors_.push_back(p);
+  }
+
   void AddPointPositionPrior(
       const std::string &point_id,
       double x,
@@ -841,6 +882,17 @@ class BundleAdjuster {
       problem.AddResidualBlock(cost_function,
                                NULL,
                                tp.shot->parameters);
+    }
+
+    // Add position priors
+    for (auto pp : position_priors_) {
+      ceres::CostFunction* cost_function =
+          new ceres::AutoDiffCostFunction<PositionPriorError, 3, 6>(
+              new PositionPriorError(pp.position, pp.std_deviation));
+
+      problem.AddResidualBlock(cost_function,
+                               NULL,
+                               pp.shot->parameters);
     }
 
     // Add point position priors
@@ -1053,6 +1105,7 @@ class BundleAdjuster {
   std::vector<BAObservation> observations_;
   std::vector<BARotationPrior> rotation_priors_;
   std::vector<BATranslationPrior> translation_priors_;
+  std::vector<BAPositionPrior> position_priors_;
   std::vector<BAPointPositionPrior> point_position_priors_;
   std::vector<BAGroundControlPointObservation> gcp_observations_;
 
