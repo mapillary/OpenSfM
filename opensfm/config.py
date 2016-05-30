@@ -86,6 +86,7 @@ save_partial_reconstructions: no
 use_altitude_tag: no                  # Use or ignore EXIF altitude tag
 align_method: orientation_prior       # orientation_prior or naive
 align_orientation_prior: horizontal   # horizontal, vertical or no_roll
+bundle_use_gps: no                    # Enforce GPS position in bundle adjustment
 
 # Params for navigation graph
 nav_min_distance: 0.01                # Minimum distance for a possible edge between two nodes

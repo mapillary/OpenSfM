@@ -39,7 +39,6 @@ def bundle(graph, reconstruction, config, fix_cameras=False):
     for shot in reconstruction.shots.values():
         r = shot.pose.rotation
         t = shot.pose.translation
-        g = shot.metadata.gps_position
         ba.add_shot(
             str(shot.id), str(shot.camera.id),
             r[0], r[1], r[2],
@@ -57,6 +56,12 @@ def bundle(graph, reconstruction, config, fix_cameras=False):
                 if track in reconstruction.points:
                     ba.add_observation(str(shot_id), str(track),
                                        *graph[shot_id][track]['feature'])
+
+    if config['bundle_use_gps']:
+        for shot in reconstruction.shots.values():
+            g = shot.metadata.gps_position
+            ba.add_position_prior(shot.id, g[0], g[1], g[2],
+                                  shot.metadata.gps_dop)
 
     ba.set_loss_function(config.get('loss_function', 'SoftLOneLoss'),
                          config.get('loss_function_threshold', 1))
@@ -112,9 +117,8 @@ def bundle_single_view(graph, reconstruction, shot_id, config):
 
     r = shot.pose.rotation
     t = shot.pose.translation
-    g = shot.metadata.gps_position
     ba.add_shot(
-        str(shot_id), str(camera.id),
+        str(shot.id), str(camera.id),
         r[0], r[1], r[2],
         t[0], t[1], t[2],
         False
@@ -127,6 +131,11 @@ def bundle_single_view(graph, reconstruction, shot_id, config):
             ba.add_point(str(track_id), x[0], x[1], x[2], True)
             ba.add_observation(str(shot_id), str(track_id),
                                *graph[shot_id][track_id]['feature'])
+
+    if config['bundle_use_gps']:
+        g = shot.metadata.gps_position
+        ba.add_position_prior(shot.id, g[0], g[1], g[2],
+                              shot.metadata.gps_dop)
 
     ba.set_loss_function(config.get('loss_function', 'SoftLOneLoss'),
                          config.get('loss_function_threshold', 1))

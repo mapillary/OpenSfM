@@ -440,8 +440,9 @@ struct PositionPriorError {
 
   template <typename T>
   bool operator()(const T* const shot, T* residuals) const {
+    T Rt[3] = { -shot[BA_SHOT_RX], -shot[BA_SHOT_RY], -shot[BA_SHOT_RZ] };
     T p[3];
-    ceres::AngleAxisRotatePoint(shot + BA_SHOT_RX, shot + BA_SHOT_TX, p);
+    ceres::AngleAxisRotatePoint(Rt, shot + BA_SHOT_TX, p);
 
     residuals[0] = T(scale_) * (p[0] + T(position_prior_[0]));
     residuals[1] = T(scale_) * (p[1] + T(position_prior_[1]));
@@ -781,7 +782,7 @@ class BundleAdjuster {
     }
 
     // Add reprojection error blocks
-    for (auto observation : observations_) {
+    for (auto &observation : observations_) {
       switch (observation.camera->type()) {
         case BA_PERSPECTIVE_CAMERA:
         {
@@ -818,7 +819,7 @@ class BundleAdjuster {
     }
 
     // Add rotation priors
-    for (auto rp : rotation_priors_) {
+    for (auto &rp : rotation_priors_) {
       ceres::CostFunction* cost_function =
           new ceres::AutoDiffCostFunction<RotationPriorError, 3, 6>(
               new RotationPriorError(rp.rotation, rp.std_deviation));
@@ -829,7 +830,7 @@ class BundleAdjuster {
     }
 
     // Add translation priors
-    for (auto tp : translation_priors_) {
+    for (auto &tp : translation_priors_) {
       ceres::CostFunction* cost_function =
           new ceres::AutoDiffCostFunction<TranslationPriorError, 3, 6>(
               new TranslationPriorError(tp.translation, tp.std_deviation));
@@ -840,7 +841,7 @@ class BundleAdjuster {
     }
 
     // Add position priors
-    for (auto pp : position_priors_) {
+    for (auto &pp : position_priors_) {
       ceres::CostFunction* cost_function =
           new ceres::AutoDiffCostFunction<PositionPriorError, 3, 6>(
               new PositionPriorError(pp.position, pp.std_deviation));
@@ -851,7 +852,7 @@ class BundleAdjuster {
     }
 
     // Add point position priors
-    for (auto pp : point_position_priors_) {
+    for (auto &pp : point_position_priors_) {
       ceres::CostFunction* cost_function =
           new ceres::AutoDiffCostFunction<PointPositionPriorError, 3, 3>(
               new PointPositionPriorError(pp.position, pp.std_deviation));
@@ -862,7 +863,7 @@ class BundleAdjuster {
     }
 
     // Add ground control point observations
-    for (auto observation : gcp_observations_) {
+    for (auto &observation : gcp_observations_) {
       switch (observation.camera->type()) {
         case BA_PERSPECTIVE_CAMERA:
         {
