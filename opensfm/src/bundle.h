@@ -273,13 +273,9 @@ struct EquirectangularReprojectionError {
 
 struct GCPPerspectiveProjectionError {
   GCPPerspectiveProjectionError(
-    double world_x, double world_y, double world_z,
-    double observed_x, double observed_y, double std_deviation)
-      : world_x_(world_x)
-      , world_y_(world_y)
-      , world_z_(world_z)
-      , observed_x_(observed_x)
-      , observed_y_(observed_y)
+    double world[3], double observed[2], double std_deviation)
+      : world_(world)
+      , observed_(observed)
       , scale_(1.0 / std_deviation)
   {}
 
@@ -287,7 +283,7 @@ struct GCPPerspectiveProjectionError {
   bool operator()(const T* const camera,
                   const T* const shot,
                   T* residuals) const {
-    T world_point[3] = { T(world_x_), T(world_y_), T(world_z_) };
+    T world_point[3] = { T(world_[0]), T(world_[1]), T(world_[2]) };
     T camera_point[3];
     WorldToCameraCoordinates(shot, world_point, camera_point);
 
@@ -300,31 +296,25 @@ struct GCPPerspectiveProjectionError {
     PerspectiveProject(camera, camera_point, predicted);
 
     // The error is the difference between the predicted and observed position.
-    residuals[0] = T(scale_) * (predicted[0] - T(observed_x_));
-    residuals[1] = T(scale_) * (predicted[1] - T(observed_y_));
+    residuals[0] = T(scale_) * (predicted[0] - T(observed_[0]));
+    residuals[1] = T(scale_) * (predicted[1] - T(observed_[1]));
 
     return true;
   }
 
-  double world_x_;
-  double world_y_;
-  double world_z_;
-  double observed_x_;
-  double observed_y_;
+  double *world_;
+  double *observed_;
   double scale_;
 };
 
 struct GCPEquirectangularProjectionError {
   GCPEquirectangularProjectionError(
-    double world_x, double world_y, double world_z,
-    double observed_x, double observed_y, double std_deviation)
-      : world_x_(world_x)
-      , world_y_(world_y)
-      , world_z_(world_z)
+    double world[3], double observed[2], double std_deviation)
+      : world_(world)
       , scale_(1.0 / std_deviation)
   {
-    double lon = observed_x * 2 * M_PI;
-    double lat = -observed_y * 2 * M_PI;
+    double lon = observed[0] * 2 * M_PI;
+    double lat = -observed[1] * 2 * M_PI;
     bearing_vector_[0] = cos(lat) * sin(lon);
     bearing_vector_[1] = -sin(lat);
     bearing_vector_[2] = cos(lat) * cos(lon);
@@ -334,7 +324,7 @@ struct GCPEquirectangularProjectionError {
   bool operator()(const T* const shot,
                   T* residuals) const {
     // Position vector in camera coordinates.
-    T world_point[3] = { T(world_x_), T(world_y_), T(world_z_) };
+    T world_point[3] = { T(world_[0]), T(world_[1]), T(world_[2]) };
     T p[3];
     WorldToCameraCoordinates(shot, world_point, p);
 
@@ -354,9 +344,7 @@ struct GCPEquirectangularProjectionError {
     return true;
   }
 
-  double world_x_;
-  double world_y_;
-  double world_z_;
+  double *world_;
   double bearing_vector_[3];
   double scale_;
 };
@@ -881,11 +869,8 @@ class BundleAdjuster {
           BAPerspectiveCamera &c = static_cast<BAPerspectiveCamera &>(*observation.camera);
           ceres::CostFunction* cost_function =
               new ceres::AutoDiffCostFunction<GCPPerspectiveProjectionError, 2, 3, 6>(
-                  new GCPPerspectiveProjectionError(observation.coordinates3d[0],
-                                                    observation.coordinates3d[1],
-                                                    observation.coordinates3d[2],
-                                                    observation.coordinates2d[0],
-                                                    observation.coordinates2d[1],
+                  new GCPPerspectiveProjectionError(observation.coordinates3d,
+                                                    observation.coordinates2d,
                                                     reprojection_error_sd_));
           problem.AddResidualBlock(cost_function,
                                    NULL,
@@ -897,11 +882,8 @@ class BundleAdjuster {
         {
           ceres::CostFunction* cost_function =
               new ceres::AutoDiffCostFunction<GCPEquirectangularProjectionError, 3, 6>(
-                  new GCPEquirectangularProjectionError(observation.coordinates3d[0],
-                                                        observation.coordinates3d[1],
-                                                        observation.coordinates3d[2],
-                                                        observation.coordinates2d[0],
-                                                        observation.coordinates2d[1],
+                  new GCPEquirectangularProjectionError(observation.coordinates3d,
+                                                        observation.coordinates2d,
                                                         reprojection_error_sd_));
 
           problem.AddResidualBlock(cost_function,
