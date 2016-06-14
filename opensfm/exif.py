@@ -265,10 +265,10 @@ class EXIF:
 
 def hard_coded_calibration(exif):
     focal = exif['focal_ratio']
+    fmm35 = int(round(focal * 36.0))
     make = exif['make'].strip().lower()
     model = exif['model'].strip().lower()
     if 'gopro' in make:
-        fmm35 = int(round(focal * 36.0))
         if fmm35 == 20:
             # GoPro Hero 3, 7MP medium
             return {'focal': focal, 'k1': -0.37, 'k2': 0.28}
@@ -292,11 +292,15 @@ def hard_coded_calibration(exif):
             # "v2 garmin virbxe 3477 1950 perspective 0.3888"
             # "v2 garmin virbxe 1600 1200 perspective 0.3888"
             # "v2 garmin virbxe 4000 3000 perspective 0.3888"
-            return {'focal': 0.466, 'k1': -0.08, 'k2': 0.0}     # when using camera's undistortion
-            # return {'focal': 0.466, 'k1': -0.195, 'k2'; 0.030}  # original
+            # Calibration when using camera's undistortion
+            return {'focal': 0.466, 'k1': -0.08, 'k2': 0.0}
+            # Calibration when not using camera's undistortion
+            # return {'focal': 0.466, 'k1': -0.195, 'k2'; 0.030}
     elif 'drift' == make:
         if 'ghost s' == model:
-            return {"focal": 0.47, "k1": -0.22, "k2": 0.03}
+            return {'focal': 0.47, 'k1': -0.22, 'k2': 0.03}
+    elif 'xiaoyi' in make:
+        return {'focal': 0.5, 'k1': -0.19, 'k2': 0.028}
 
 
 def focal_ratio_calibration(exif):
