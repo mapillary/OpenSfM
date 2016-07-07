@@ -63,7 +63,7 @@ def bundle(graph, reconstruction, gcp, config, fix_cameras=False):
             ba.add_position_prior(shot.id, g[0], g[1], g[2],
                                   shot.metadata.gps_dop)
 
-    if config['bundle_use_gcp']:
+    if config['bundle_use_gcp'] and gcp:
         for observation in gcp:
             if observation.shot_id in reconstruction.shots:
                 ba.add_ground_control_point_observation(
@@ -668,7 +668,7 @@ class ShouldRetriangulate:
 
 def grow_reconstruction(data, graph, reconstruction, images, gcp):
     """Incrementally add shots to an initial reconstruction."""
-    bundle(graph, reconstruction, gcp, data.config)
+    bundle(graph, reconstruction, None, data.config)
     align.align_reconstruction(reconstruction, gcp, data.config)
 
     should_bundle = ShouldBundle(data, reconstruction)
@@ -698,7 +698,7 @@ def grow_reconstruction(data, graph, reconstruction, images, gcp):
                     data.config.get('triangulation_min_ray_angle', 2.0))
 
                 if should_bundle.should(reconstruction):
-                    bundle(graph, reconstruction, gcp, data.config)
+                    bundle(graph, reconstruction, None, data.config)
                     remove_outliers(graph, reconstruction, data.config)
                     align.align_reconstruction(reconstruction, gcp,
                                                data.config)
@@ -707,7 +707,7 @@ def grow_reconstruction(data, graph, reconstruction, images, gcp):
                 if should_retriangulate.should(reconstruction):
                     logger.info("Re-triangulating")
                     retriangulate(graph, reconstruction, data.config)
-                    bundle(graph, reconstruction, gcp, data.config)
+                    bundle(graph, reconstruction, None, data.config)
                     should_retriangulate.done(reconstruction)
                 break
         else:
