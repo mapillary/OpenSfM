@@ -482,10 +482,29 @@ def reconstruction_to_ply(reconstruction):
     '''
     Export reconstruction points as a PLY string
     '''
-    lines = [
+    vertices = []
+
+    for point in reconstruction.points.values():
+        p, c = point.coordinates, point.color
+        s = "{} {} {} {} {} {}".format(
+            p[0], p[1], p[2], int(c[0]), int(c[1]), int(c[2]))
+        vertices.append(s)
+
+    for shot in reconstruction.shots.values():
+        o = shot.pose.get_origin()
+        R = shot.pose.get_rotation_matrix()
+        for axis in range(3):
+            c = 255 * np.eye(3)[axis]
+            for depth in np.linspace(0, 1, 10):
+                p = o + depth * R[axis]
+                s = "{} {} {} {} {} {}".format(
+                    p[0], p[1], p[2], int(c[0]), int(c[1]), int(c[2]))
+                vertices.append(s)
+
+    header = [
         "ply",
         "format ascii 1.0",
-        "element vertex {}".format(len(reconstruction.points)),
+        "element vertex {}".format(len(vertices)),
         "property float x",
         "property float y",
         "property float z",
@@ -495,10 +514,4 @@ def reconstruction_to_ply(reconstruction):
         "end_header",
     ]
 
-    for point in reconstruction.points.values():
-        p, c = point.coordinates, point.color
-        s = "{} {} {} {} {} {}".format(
-            p[0], p[1], p[2], int(c[0]), int(c[1]), int(c[2]))
-        lines.append(s)
-
-    return '\n'.join(lines)
+    return '\n'.join(header + vertices)
