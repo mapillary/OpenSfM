@@ -93,6 +93,7 @@ BOOST_PYTHON_MODULE(csfm) {
     .def("add_translation_prior", &BundleAdjuster::AddTranslationPrior)
     .def("add_position_prior", &BundleAdjuster::AddPositionPrior)
     .def("add_point_position_prior", &BundleAdjuster::AddPointPositionPrior)
+    .def("add_ground_control_point_observation", &BundleAdjuster::AddGroundControlPointObservation)
     .def("set_origin_shot", &BundleAdjuster::SetOriginShot)
     .def("set_unit_translation_shot", &BundleAdjuster::SetUnitTranslationShot)
     .def("set_loss_function", &BundleAdjuster::SetLossFunction)

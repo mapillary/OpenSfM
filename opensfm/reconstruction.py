@@ -22,7 +22,7 @@ from opensfm import types
 logger = logging.getLogger(__name__)
 
 
-def bundle(graph, reconstruction, config, fix_cameras=False):
+def bundle(graph, reconstruction, gcp, config, fix_cameras=False):
     """Bundle adjust a reconstruction."""
     start = time.time()
     ba = csfm.BundleAdjuster()
@@ -62,6 +62,17 @@ def bundle(graph, reconstruction, config, fix_cameras=False):
             g = shot.metadata.gps_position
             ba.add_position_prior(shot.id, g[0], g[1], g[2],
                                   shot.metadata.gps_dop)
+
+    if config['bundle_use_gcp']:
+        for observation in gcp:
+            if observation.shot_id in reconstruction.shots:
+                ba.add_ground_control_point_observation(
+                    observation.shot_id,
+                    observation.coordinates[0],
+                    observation.coordinates[1],
+                    observation.coordinates[2],
+                    observation.shot_coordinates[0],
+                    observation.shot_coordinates[1])
 
     ba.set_loss_function(config.get('loss_function', 'SoftLOneLoss'),
                          config.get('loss_function_threshold', 1))
@@ -657,7 +668,7 @@ class ShouldRetriangulate:
 
 def grow_reconstruction(data, graph, reconstruction, images, gcp):
     """Incrementally add shots to an initial reconstruction."""
-    bundle(graph, reconstruction, data.config)
+    bundle(graph, reconstruction, gcp, data.config)
     align.align_reconstruction(reconstruction, gcp, data.config)
 
     should_bundle = ShouldBundle(data, reconstruction)
@@ -687,7 +698,7 @@ def grow_reconstruction(data, graph, reconstruction, images, gcp):
                     data.config.get('triangulation_min_ray_angle', 2.0))
 
                 if should_bundle.should(reconstruction):
-                    bundle(graph, reconstruction, data.config)
+                    bundle(graph, reconstruction, gcp, data.config)
                     remove_outliers(graph, reconstruction, data.config)
                     align.align_reconstruction(reconstruction, gcp,
                                                data.config)
@@ -696,7 +707,7 @@ def grow_reconstruction(data, graph, reconstruction, images, gcp):
                 if should_retriangulate.should(reconstruction):
                     logger.info("Re-triangulating")
                     retriangulate(graph, reconstruction, data.config)
-                    bundle(graph, reconstruction, data.config)
+                    bundle(graph, reconstruction, gcp, data.config)
                     should_retriangulate.done(reconstruction)
                 break
         else:
@@ -705,7 +716,7 @@ def grow_reconstruction(data, graph, reconstruction, images, gcp):
 
     logger.info("-------------------------------------------------------")
 
-    bundle(graph, reconstruction, data.config)
+    bundle(graph, reconstruction, gcp, data.config)
     align.align_reconstruction(reconstruction, gcp, data.config)
     paint_reconstruction(data, graph, reconstruction)
     return reconstruction

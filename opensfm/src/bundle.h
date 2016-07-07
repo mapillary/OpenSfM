@@ -670,7 +670,6 @@ class BundleAdjuster {
 
   void AddGroundControlPointObservation(
       const std::string &shot,
-      const std::string &point,
       double x3d,
       double y3d,
       double z3d,
