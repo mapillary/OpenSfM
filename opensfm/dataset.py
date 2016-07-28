@@ -64,6 +64,22 @@ class DataSet:
         IMREAD_COLOR = cv2.IMREAD_COLOR if context.OPENCV3 else cv2.CV_LOAD_IMAGE_COLOR
         return cv2.imread(self.__image_file(image), IMREAD_COLOR)[:,:,::-1]  # Turn BGR to RGB
 
+    def _undistorted_image_path(self):
+        return os.path.join(self.data_path, 'undistorted')
+
+    def _undistorted_image_file(self, image):
+        """Path of undistorted version of an image."""
+        return os.path.join(self._undistorted_image_path(), image)
+
+    def undistorted_image_as_array(self, image):
+        """Undistorted image pixels as 3-dimensional numpy array (R G B order)"""
+        IMREAD_COLOR = cv2.IMREAD_COLOR if context.OPENCV3 else cv2.CV_LOAD_IMAGE_COLOR
+        return cv2.imread(self._undistorted_image_file(image), IMREAD_COLOR)[:,:,::-1]  # Turn BGR to RGB
+
+    def save_undistorted_image(self, image, array):
+        io.mkdir_p(self._undistorted_image_path())
+        cv2.imwrite(self._undistorted_image_file(image), array[:, :, ::-1])
+
     @staticmethod
     def __is_image_file(filename):
         return filename.split('.')[-1].lower() in {'jpg', 'jpeg', 'png', 'tif', 'tiff', 'pgm', 'pnm', 'gif'}

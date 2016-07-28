@@ -6,6 +6,7 @@ import create_tracks
 import reconstruct
 import mesh
 import export_ply
+import export_openmvs
 
 opensfm_commands = [
     extract_metadata,
@@ -15,4 +16,5 @@ opensfm_commands = [
     reconstruct,
     mesh,
     export_ply,
+    export_openmvs,
 ]

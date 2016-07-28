@@ -10,6 +10,7 @@
 #include "multiview.cc"
 #include "akaze.cc"
 #include "bundle.h"
+#include "openmvs_exporter.h"
 
 #if (PY_VERSION_HEX < 0x03000000)
 static void numpy_import_array_wrapper()
@@ -139,5 +140,12 @@ BOOST_PYTHON_MODULE(csfm) {
     .def_readwrite("constant", &BAPoint::constant)
     .def_readwrite("reprojection_error", &BAPoint::reprojection_error)
     .def_readwrite("id", &BAPoint::id)
+  ;
+
+  class_<csfm::OpenMVSExporter>("OpenMVSExporter")
+    .def("add_camera", &csfm::OpenMVSExporter::AddCamera)
+    .def("add_shot", &csfm::OpenMVSExporter::AddShot)
+    .def("add_point", &csfm::OpenMVSExporter::AddPoint)
+    .def("export", &csfm::OpenMVSExporter::Export)
   ;
 }
