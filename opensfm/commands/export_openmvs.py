@@ -6,6 +6,7 @@ import numpy as np
 
 from opensfm import csfm
 from opensfm import dataset
+from opensfm import io
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +54,8 @@ class Command:
             coordinates = np.array(point.coordinates, dtype=np.float64)
             exporter.add_point(coordinates, shots)
 
-        exporter.export(data.data_path + '/openmvs_scene.mvs')
+        io.mkdir_p(data.data_path + '/openmvs')
+        exporter.export(data.data_path + '/openmvs/scene.mvs')
 
     def undistort_images(self, reconstruction, data):
         for shot in reconstruction.shots.values():
