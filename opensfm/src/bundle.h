@@ -68,8 +68,6 @@ struct BAShot {
   double parameters[BA_SHOT_NUM_PARAMS];
   double covariance[BA_SHOT_NUM_PARAMS * BA_SHOT_NUM_PARAMS];
   bool constant;
-  double gps_x, gps_y, gps_z;
-  double gps_dop;
   int exif_orientation;
   std::string camera;
   std::string id;
@@ -122,10 +120,23 @@ struct BATranslationPrior {
   double std_deviation;
 };
 
+struct BAPositionPrior {
+  BAShot *shot;
+  double position[3];
+  double std_deviation;
+};
+
 struct BAPointPositionPrior {
   BAPoint *point;
   double position[3];
   double std_deviation;
+};
+
+struct BAGroundControlPointObservation {
+  BACamera *camera;
+  BAShot *shot;
+  double coordinates3d[3];
+  double coordinates2d[2];
 };
 
 class TruncatedLoss : public ceres::LossFunction {
@@ -154,12 +165,39 @@ class TruncatedLoss : public ceres::LossFunction {
 };
 
 
-// Templated pinhole camera model for used with Ceres.  The camera is
-// parameterized using 9 parameters: 3 for rotation, 3 for translation, 1 for
-// focal length and 2 for radial distortion. The principal point is not modeled
-// (i.e. it is assumed to be located at the image center).
-struct SnavelyReprojectionError {
-  SnavelyReprojectionError(double observed_x, double observed_y, double std_deviation)
+template <typename T>
+void WorldToCameraCoordinates(const T* const shot,
+                              const T world_point[3],
+                              T camera_point[3]) {
+  ceres::AngleAxisRotatePoint(shot + BA_SHOT_RX, world_point, camera_point);
+  camera_point[0] += shot[BA_SHOT_TX];
+  camera_point[1] += shot[BA_SHOT_TY];
+  camera_point[2] += shot[BA_SHOT_TZ];
+}
+
+
+template <typename T>
+void PerspectiveProject(const T* const camera,
+                        const T point[3],
+                        T projection[2]) {
+  T xp = point[0] / point[2];
+  T yp = point[1] / point[2];
+
+  // Apply second and fourth order radial distortion.
+  const T& l1 = camera[BA_CAMERA_K1];
+  const T& l2 = camera[BA_CAMERA_K2];
+  T r2 = xp * xp + yp * yp;
+  T distortion = T(1.0) + r2  * (l1 + r2 * l2);
+
+  // Compute final projected point position.
+  const T& focal = camera[BA_CAMERA_FOCAL];
+  projection[0] = focal * distortion * xp;
+  projection[1] = focal * distortion * yp;
+}
+
+
+struct PerspectiveReprojectionError {
+  PerspectiveReprojectionError(double observed_x, double observed_y, double std_deviation)
       : observed_x_(observed_x)
       , observed_y_(observed_y)
       , scale_(1.0 / std_deviation)
@@ -170,37 +208,20 @@ struct SnavelyReprojectionError {
                   const T* const shot,
                   const T* const point,
                   T* residuals) const {
-    // shot[0,1,2] are the angle-axis rotation.
-    T p[3];
-    ceres::AngleAxisRotatePoint(shot, point, p);
+    T camera_point[3];
+    WorldToCameraCoordinates(shot, point, camera_point);
 
-    // shot[3,4,5] are the translation.
-    p[0] += shot[3];
-    p[1] += shot[4];
-    p[2] += shot[5];
-
-    if (p[2] <= T(0.0)) {
+    if (camera_point[2] <= T(0.0)) {
       residuals[0] = residuals[1] = T(99.0);
       return true;
     }
 
-    // Project.
-    T xp = p[0] / p[2];
-    T yp = p[1] / p[2];
+    T predicted[2];
+    PerspectiveProject(camera, camera_point, predicted);
 
-    // Apply second and fourth order radial distortion.
-    const T& l1 = camera[1];
-    const T& l2 = camera[2];
-    T r2 = xp * xp + yp * yp;
-    T distortion = T(1.0) + r2  * (l1 + l2  * r2);
-
-    // Compute final projected point position.
-    const T& focal = camera[0];
-    T predicted_x = focal * distortion * xp;
-    T predicted_y = focal * distortion * yp;
     // The error is the difference between the predicted and observed position.
-    residuals[0] = T(scale_) * (predicted_x - T(observed_x_));
-    residuals[1] = T(scale_) * (predicted_y - T(observed_y_));
+    residuals[0] = T(scale_) * (predicted[0] - T(observed_x_));
+    residuals[1] = T(scale_) * (predicted[1] - T(observed_y_));
 
     return true;
   }
@@ -227,14 +248,7 @@ struct EquirectangularReprojectionError {
                   T* residuals) const {
     // Position vector in camera coordinates.
     T p[3];
-
-    // shot[0,1,2] are the angle-axis rotation.
-    ceres::AngleAxisRotatePoint(shot, point, p);
-
-    // shot[3,4,5] are the translation.
-    p[0] += shot[3];
-    p[1] += shot[4];
-    p[2] += shot[5];
+    WorldToCameraCoordinates(shot, point, p);
 
     // Project to unit sphere.
     const T l = sqrt(p[0] * p[0] + p[1] * p[1] + p[2] * p[2]);
@@ -256,6 +270,84 @@ struct EquirectangularReprojectionError {
   double scale_;
 };
 
+
+struct GCPPerspectiveProjectionError {
+  GCPPerspectiveProjectionError(
+    double world[3], double observed[2], double std_deviation)
+      : world_(world)
+      , observed_(observed)
+      , scale_(1.0 / std_deviation)
+  {}
+
+  template <typename T>
+  bool operator()(const T* const camera,
+                  const T* const shot,
+                  T* residuals) const {
+    T world_point[3] = { T(world_[0]), T(world_[1]), T(world_[2]) };
+    T camera_point[3];
+    WorldToCameraCoordinates(shot, world_point, camera_point);
+
+    if (camera_point[2] <= T(0.0)) {
+      residuals[0] = residuals[1] = T(99.0);
+      return true;
+    }
+
+    T predicted[2];
+    PerspectiveProject(camera, camera_point, predicted);
+
+    // The error is the difference between the predicted and observed position.
+    residuals[0] = T(scale_) * (predicted[0] - T(observed_[0]));
+    residuals[1] = T(scale_) * (predicted[1] - T(observed_[1]));
+
+    return true;
+  }
+
+  double *world_;
+  double *observed_;
+  double scale_;
+};
+
+struct GCPEquirectangularProjectionError {
+  GCPEquirectangularProjectionError(
+    double world[3], double observed[2], double std_deviation)
+      : world_(world)
+      , scale_(1.0 / std_deviation)
+  {
+    double lon = observed[0] * 2 * M_PI;
+    double lat = -observed[1] * 2 * M_PI;
+    bearing_vector_[0] = cos(lat) * sin(lon);
+    bearing_vector_[1] = -sin(lat);
+    bearing_vector_[2] = cos(lat) * cos(lon);
+  }
+
+  template <typename T>
+  bool operator()(const T* const shot,
+                  T* residuals) const {
+    // Position vector in camera coordinates.
+    T world_point[3] = { T(world_[0]), T(world_[1]), T(world_[2]) };
+    T p[3];
+    WorldToCameraCoordinates(shot, world_point, p);
+
+    // Project to unit sphere.
+    const T l = sqrt(p[0] * p[0] + p[1] * p[1] + p[2] * p[2]);
+    p[0] /= l;
+    p[1] /= l;
+    p[2] /= l;
+
+    // Difference between projected vector and observed bearing vector
+    // We use the difference between unit vectors as an approximation
+    // to the angle for small angles.
+    residuals[0] = T(scale_) * (p[0] - T(bearing_vector_[0]));
+    residuals[1] = T(scale_) * (p[1] - T(bearing_vector_[1]));
+    residuals[2] = T(scale_) * (p[2] - T(bearing_vector_[2]));
+
+    return true;
+  }
+
+  double *world_;
+  double bearing_vector_[3];
+  double scale_;
+};
 
 struct InternalParametersPriorError {
   InternalParametersPriorError(double focal_estimate,
@@ -296,9 +388,9 @@ struct RotationPriorError {
   {}
 
   template <typename T>
-  bool operator()(const T* const parameters, T* residuals) const {
+  bool operator()(const T* const shot, T* residuals) const {
     // Get rotation and translation values.
-    const T* const R = parameters + BA_SHOT_RX;
+    const T* const R = shot + BA_SHOT_RX;
     T Rpt[3] = { -T(R_prior_[0]),
                  -T(R_prior_[1]),
                  -T(R_prior_[2]) };
@@ -329,14 +421,36 @@ struct TranslationPriorError {
   {}
 
   template <typename T>
-  bool operator()(const T* const parameters, T* residuals) const {
-    residuals[0] = T(scale_) * (T(translation_prior_[0]) - parameters[BA_SHOT_TX]);
-    residuals[1] = T(scale_) * (T(translation_prior_[1]) - parameters[BA_SHOT_TY]);
-    residuals[2] = T(scale_) * (T(translation_prior_[2]) - parameters[BA_SHOT_TZ]);
+  bool operator()(const T* const shot, T* residuals) const {
+    residuals[0] = T(scale_) * (T(translation_prior_[0]) - shot[BA_SHOT_TX]);
+    residuals[1] = T(scale_) * (T(translation_prior_[1]) - shot[BA_SHOT_TY]);
+    residuals[2] = T(scale_) * (T(translation_prior_[2]) - shot[BA_SHOT_TZ]);
     return true;
   }
 
   double *translation_prior_;
+  double scale_;
+};
+
+struct PositionPriorError {
+  PositionPriorError(double *position_prior, double std_deviation)
+      : position_prior_(position_prior)
+      , scale_(1.0 / std_deviation)
+  {}
+
+  template <typename T>
+  bool operator()(const T* const shot, T* residuals) const {
+    T Rt[3] = { -shot[BA_SHOT_RX], -shot[BA_SHOT_RY], -shot[BA_SHOT_RZ] };
+    T p[3];
+    ceres::AngleAxisRotatePoint(Rt, shot + BA_SHOT_TX, p);
+
+    residuals[0] = T(scale_) * (p[0] + T(position_prior_[0]));
+    residuals[1] = T(scale_) * (p[1] + T(position_prior_[1]));
+    residuals[2] = T(scale_) * (p[2] + T(position_prior_[2]));
+    return true;
+  }
+
+  double *position_prior_;
   double scale_;
 };
 
@@ -350,7 +464,6 @@ struct UnitTranslationPriorError {
     return true;
   }
 };
-
 
 struct PointPositionPriorError {
   PointPositionPriorError(double *position, double std_deviation)
@@ -367,29 +480,6 @@ struct PointPositionPriorError {
   }
 
   double *position_;
-  double scale_;
-};
-
-
-struct GPSPriorError {
-  GPSPriorError(double x, double y, double z, double std_deviation)
-      : x_(x), y_(y), z_(z)
-      , scale_(1.0 / std_deviation)
-  {}
-
-  template <typename T>
-  bool operator()(const T* const shot, T* residuals) const {
-    // shot[0,1,2] are the angle-axis rotation.
-    T p[3];
-    ceres::AngleAxisRotatePoint(shot, shot + 3, p);
-
-    residuals[0] = T(scale_) * (-p[0] - T(x_));
-    residuals[1] = T(scale_) * (-p[1] - T(y_));
-    residuals[2] = T(scale_) * (-p[2] - T(z_));
-    return true;
-  }
-
-  double x_, y_, z_;
   double scale_;
 };
 
@@ -474,10 +564,6 @@ class BundleAdjuster {
       double tx,
       double ty,
       double tz,
-      double gpsx,
-      double gpsy,
-      double gpsz,
-      double gps_dop,
       bool constant) {
     BAShot s;
     s.id = id;
@@ -489,10 +575,6 @@ class BundleAdjuster {
     s.parameters[BA_SHOT_TY] = ty;
     s.parameters[BA_SHOT_TZ] = tz;
     s.constant = constant;
-    s.gps_x = gpsx;
-    s.gps_y = gpsy;
-    s.gps_z = gpsz;
-    s.gps_dop = gps_dop;
     shots_[id] = s;
   }
 
@@ -556,6 +638,21 @@ class BundleAdjuster {
     translation_priors_.push_back(p);
   }
 
+  void AddPositionPrior(
+      const std::string &shot_id,
+      double x,
+      double y,
+      double z,
+      double std_deviation) {
+    BAPositionPrior p;
+    p.shot = &shots_[shot_id];
+    p.position[0] = x;
+    p.position[1] = y;
+    p.position[2] = z;
+    p.std_deviation = std_deviation;
+    position_priors_.push_back(p);
+  }
+
   void AddPointPositionPrior(
       const std::string &point_id,
       double x,
@@ -571,6 +668,23 @@ class BundleAdjuster {
     point_position_priors_.push_back(p);
   }
 
+  void AddGroundControlPointObservation(
+      const std::string &shot,
+      double x3d,
+      double y3d,
+      double z3d,
+      double x2d,
+      double y2d) {
+    BAGroundControlPointObservation o;
+    o.shot = &shots_[shot];
+    o.camera = cameras_[o.shot->camera].get();
+    o.coordinates3d[0] = x3d;
+    o.coordinates3d[1] = y3d;
+    o.coordinates3d[2] = z3d;
+    o.coordinates2d[0] = x2d;
+    o.coordinates2d[1] = y2d;
+    gcp_observations_.push_back(o);
+  }
 
   void SetOriginShot(const std::string &shot_id) {
     BAShot *shot = &shots_[shot_id];
@@ -667,79 +781,118 @@ class BundleAdjuster {
     }
 
     // Add reprojection error blocks
-    for (int i = 0; i < observations_.size(); ++i) {
-      switch (observations_[i].camera->type()) {
+    for (auto &observation : observations_) {
+      switch (observation.camera->type()) {
         case BA_PERSPECTIVE_CAMERA:
         {
-          BAPerspectiveCamera &c = static_cast<BAPerspectiveCamera &>(*observations_[i].camera);
+          BAPerspectiveCamera &c = static_cast<BAPerspectiveCamera &>(*observation.camera);
           ceres::CostFunction* cost_function =
-              new ceres::AutoDiffCostFunction<SnavelyReprojectionError, 2, 3, 6, 3>(
-                  new SnavelyReprojectionError(observations_[i].coordinates[0],
-                                               observations_[i].coordinates[1],
-                                               reprojection_error_sd_));
+              new ceres::AutoDiffCostFunction<PerspectiveReprojectionError, 2, 3, 6, 3>(
+                  new PerspectiveReprojectionError(observation.coordinates[0],
+                                                   observation.coordinates[1],
+                                                   reprojection_error_sd_));
 
           problem.AddResidualBlock(cost_function,
                                    loss,
                                    c.parameters,
-                                   observations_[i].shot->parameters,
-                                   observations_[i].point->coordinates);
+                                   observation.shot->parameters,
+                                   observation.point->coordinates);
           break;
         }
         case BA_EQUIRECTANGULAR_CAMERA:
-          {
-            BAEquirectangularCamera &c = static_cast<BAEquirectangularCamera &>(*observations_[i].camera);
-            ceres::CostFunction* cost_function =
-                new ceres::AutoDiffCostFunction<EquirectangularReprojectionError, 3, 6, 3>(
-                    new EquirectangularReprojectionError(observations_[i].coordinates[0],
-                                                         observations_[i].coordinates[1],
-                                                         reprojection_error_sd_));
+        {
+          BAEquirectangularCamera &c = static_cast<BAEquirectangularCamera &>(*observation.camera);
+          ceres::CostFunction* cost_function =
+              new ceres::AutoDiffCostFunction<EquirectangularReprojectionError, 3, 6, 3>(
+                  new EquirectangularReprojectionError(observation.coordinates[0],
+                                                       observation.coordinates[1],
+                                                       reprojection_error_sd_));
 
-            problem.AddResidualBlock(cost_function,
-                                     loss,
-                                     observations_[i].shot->parameters,
-                                     observations_[i].point->coordinates);
-            break;
-          }
+          problem.AddResidualBlock(cost_function,
+                                   loss,
+                                   observation.shot->parameters,
+                                   observation.point->coordinates);
           break;
+        }
       }
     }
 
     // Add rotation priors
-    for (int i = 0; i < rotation_priors_.size(); ++i) {
+    for (auto &rp : rotation_priors_) {
       ceres::CostFunction* cost_function =
           new ceres::AutoDiffCostFunction<RotationPriorError, 3, 6>(
-              new RotationPriorError(rotation_priors_[i].rotation,
-                                     rotation_priors_[i].std_deviation));
+              new RotationPriorError(rp.rotation, rp.std_deviation));
 
       problem.AddResidualBlock(cost_function,
                                NULL,
-                               rotation_priors_[i].shot->parameters);
+                               rp.shot->parameters);
     }
 
     // Add translation priors
-    for (int i = 0; i < translation_priors_.size(); ++i) {
+    for (auto &tp : translation_priors_) {
       ceres::CostFunction* cost_function =
           new ceres::AutoDiffCostFunction<TranslationPriorError, 3, 6>(
-              new TranslationPriorError(translation_priors_[i].translation,
-                                        translation_priors_[i].std_deviation));
+              new TranslationPriorError(tp.translation, tp.std_deviation));
 
       problem.AddResidualBlock(cost_function,
                                NULL,
-                               translation_priors_[i].shot->parameters);
+                               tp.shot->parameters);
+    }
+
+    // Add position priors
+    for (auto &pp : position_priors_) {
+      ceres::CostFunction* cost_function =
+          new ceres::AutoDiffCostFunction<PositionPriorError, 3, 6>(
+              new PositionPriorError(pp.position, pp.std_deviation));
+
+      problem.AddResidualBlock(cost_function,
+                               NULL,
+                               pp.shot->parameters);
     }
 
     // Add point position priors
-    for (int i = 0; i < point_position_priors_.size(); ++i) {
+    for (auto &pp : point_position_priors_) {
       ceres::CostFunction* cost_function =
           new ceres::AutoDiffCostFunction<PointPositionPriorError, 3, 3>(
-              new PointPositionPriorError(point_position_priors_[i].position,
-                                          point_position_priors_[i].std_deviation));
+              new PointPositionPriorError(pp.position, pp.std_deviation));
 
       problem.AddResidualBlock(cost_function,
                                NULL,
-                               point_position_priors_[i].point->coordinates);
+                               pp.point->coordinates);
     }
 
+    // Add ground control point observations
+    for (auto &observation : gcp_observations_) {
+      switch (observation.camera->type()) {
+        case BA_PERSPECTIVE_CAMERA:
+        {
+          BAPerspectiveCamera &c = static_cast<BAPerspectiveCamera &>(*observation.camera);
+          ceres::CostFunction* cost_function =
+              new ceres::AutoDiffCostFunction<GCPPerspectiveProjectionError, 2, 3, 6>(
+                  new GCPPerspectiveProjectionError(observation.coordinates3d,
+                                                    observation.coordinates2d,
+                                                    reprojection_error_sd_));
+          problem.AddResidualBlock(cost_function,
+                                   NULL,
+                                   c.parameters,
+                                   observation.shot->parameters);
+          break;
+        }
+        case BA_EQUIRECTANGULAR_CAMERA:
+        {
+          ceres::CostFunction* cost_function =
+              new ceres::AutoDiffCostFunction<GCPEquirectangularProjectionError, 3, 6>(
+                  new GCPEquirectangularProjectionError(observation.coordinates3d,
+                                                        observation.coordinates2d,
+                                                        reprojection_error_sd_));
+
+          problem.AddResidualBlock(cost_function,
+                                   NULL,
+                                   observation.shot->parameters);
+          break;
+        }
+      }
+    }
 
     // Add internal parameter priors blocks
     for (auto &i : cameras_) {
@@ -774,20 +927,6 @@ class BundleAdjuster {
                                NULL,
                                unit_translation_shot_->parameters);
     }
-
-    // for (auto &i : shots_) {
-    //   ceres::CostFunction* cost_function =
-    //       new ceres::AutoDiffCostFunction<GPSPriorError, 3, 6>(
-    //           new GPSPriorError(i.second.gps_position[0],
-    //                             i.second.gps_position[1],
-    //                             i.second.gps_position[2],
-    //                             i.second.gps_dop));
-
-    //   problem.AddResidualBlock(cost_function,
-    //                            NULL,
-    //                            i.second.parameters);
-    // }
-
 
     // Solve
     ceres::Solver::Options options;
@@ -853,11 +992,11 @@ class BundleAdjuster {
         {
           BAPerspectiveCamera &c = static_cast<BAPerspectiveCamera &>(*observations_[i].camera);
 
-          SnavelyReprojectionError sre(observations_[i].coordinates[0],
-                                       observations_[i].coordinates[1],
-                                       1.0);
+          PerspectiveReprojectionError pre(observations_[i].coordinates[0],
+                                           observations_[i].coordinates[1],
+                                           1.0);
           double residuals[2];
-          sre(c.parameters,
+          pre(c.parameters,
               observations_[i].shot->parameters,
               observations_[i].point->coordinates,
               residuals);
@@ -886,7 +1025,6 @@ class BundleAdjuster {
     }
   }
 
-
   std::string BriefReport() {
     return last_run_summary_.BriefReport();
   }
@@ -902,7 +1040,9 @@ class BundleAdjuster {
   std::vector<BAObservation> observations_;
   std::vector<BARotationPrior> rotation_priors_;
   std::vector<BATranslationPrior> translation_priors_;
+  std::vector<BAPositionPrior> position_priors_;
   std::vector<BAPointPositionPrior> point_position_priors_;
+  std::vector<BAGroundControlPointObservation> gcp_observations_;
 
   BAShot *unit_translation_shot_;
 
@@ -918,8 +1058,5 @@ class BundleAdjuster {
   int max_num_iterations_;
   int num_threads_;
 
-
   ceres::Solver::Summary last_run_summary_;
 };
-
-
