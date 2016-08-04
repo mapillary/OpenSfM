@@ -6,3 +6,4 @@ pytest
 python-dateutil
 PyYAML
 xmltodict
+pyproj

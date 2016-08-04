@@ -1,8 +1,10 @@
-import os
-import cv2
-import json
-import numpy as np
 import errno
+import json
+import os
+
+import cv2
+import numpy as np
+import pyproj
 
 from opensfm import features
 from opensfm import geo
@@ -262,24 +264,63 @@ def cameras_to_json(cameras):
     return obj
 
 
-def _read_ground_control_points_list_line(line, reference_lla, exif):
+def _read_ground_control_points_list_line(line, projection, reference_lla, exif):
     words = line.split()
-    lat, lon, alt, pixel_x, pixel_y = map(float, words[:5])
+    easting, northing, alt, pixel_x, pixel_y = map(float, words[:5])
     shot_id = words[5]
+
+    # Convert 3D coordinates
+    if projection is not None:
+        lon, lat = projection(easting, northing, inverse=True)
+    else:
+        lon, lat = easting, northing
     x, y, z = geo.topocentric_from_lla(
         lat, lon, alt,
         reference_lla['latitude'],
         reference_lla['longitude'],
         reference_lla['altitude'])
+
+    # Convert 2D coordinates
     d = exif[shot_id]
+    coordinates = features.normalized_image_coordinates(
+        np.array([[pixel_x, pixel_y]]), d['width'], d['height'])[0]
 
     o = types.GroundControlPointObservation()
     o.lla = np.array([lat, lon, alt])
     o.coordinates = np.array([x, y, z])
     o.shot_id = shot_id
-    o.shot_coordinates = features.normalized_image_coordinates(
-        np.array([[pixel_x, pixel_y]]), d['width'], d['height'])[0]
+    o.shot_coordinates = coordinates
     return o
+
+
+def _parse_utm_projection_string(line):
+    """Convert strings like 'WGS84 UTM 32N' to a proj4 definition."""
+    words = line.lower().split()
+    assert len(words) == 3
+    zone = line.split()[2].upper()
+    if zone[-1] == 'N':
+        zone_number = int(zone[:-1])
+        zone_hemisphere = 'north'
+    elif zone[-1] == 'S':
+        zone_number = int(zone['-1'])
+        zone_hemisphere = 'south'
+    else:
+        zone_number = int(zone)
+        zone_hemisphere = 'north'
+    s = '+proj=utm +zone={} +{} +ellps=WGS84 +datum=WGS84 +units=m +no_defs'
+    return s.format(zone_number, zone_hemisphere)
+
+
+def _parse_projection(line):
+    """Build a proj4 from the GCP format line."""
+    if line.strip() == 'WGS84':
+        return None
+    elif line.upper().startswith('WGS84 UTM'):
+        return pyproj.Proj(_parse_utm_projection_string(line))
+    elif '+proj' in line:
+        return pyproj.Proj(line)
+    else:
+        raise ValueError("Un-supported geo system definition: {}".format(line))
 
 
 def read_ground_control_points_list(fileobj, reference_lla, exif):
@@ -288,8 +329,8 @@ def read_ground_control_points_list(fileobj, reference_lla, exif):
     It requires the points to be in the WGS84 lat, lon, alt format.
     """
     lines = fileobj.readlines()
-    assert lines[0].strip() == 'WGS84'
-    points = [_read_ground_control_points_list_line(line, reference_lla, exif)
+    projection = _parse_projection(lines[0])
+    points = [_read_ground_control_points_list_line(line, projection, reference_lla, exif)
               for line in lines[1:]]
     return points
 
