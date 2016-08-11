@@ -7,6 +7,7 @@ import reconstruct
 import mesh
 import export_ply
 import export_openmvs
+import compute_depthmaps
 
 opensfm_commands = [
     extract_metadata,
@@ -17,4 +18,5 @@ opensfm_commands = [
     mesh,
     export_ply,
     export_openmvs,
+    compute_depthmaps,
 ]

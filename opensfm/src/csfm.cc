@@ -11,6 +11,7 @@
 #include "akaze.cc"
 #include "bundle.h"
 #include "openmvs_exporter.h"
+#include "depthmap.cc"
 
 #if (PY_VERSION_HEX < 0x03000000)
 static void numpy_import_array_wrapper()
@@ -145,5 +146,10 @@ BOOST_PYTHON_MODULE(csfm) {
     .def("add_shot", &csfm::OpenMVSExporter::AddShot)
     .def("add_point", &csfm::OpenMVSExporter::AddPoint)
     .def("export", &csfm::OpenMVSExporter::Export)
+  ;
+
+  class_<csfm::DepthmapEstimator>("DepthmapEstimator")
+    .def("add_view", &csfm::DepthmapEstimator::AddView)
+    .def("compute", &csfm::DepthmapEstimator::Compute)
   ;
 }
