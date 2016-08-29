@@ -148,8 +148,8 @@ BOOST_PYTHON_MODULE(csfm) {
     .def("export", &csfm::OpenMVSExporter::Export)
   ;
 
-  class_<csfm::DepthmapEstimator>("DepthmapEstimator")
-    .def("add_view", &csfm::DepthmapEstimator::AddView)
-    .def("compute", &csfm::DepthmapEstimator::Compute)
+  class_<csfm::DepthmapEstimatorWrapper>("DepthmapEstimator")
+    .def("add_view", &csfm::DepthmapEstimatorWrapper::AddView)
+    .def("compute", &csfm::DepthmapEstimatorWrapper::Compute)
   ;
 }

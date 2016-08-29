@@ -18,10 +18,11 @@ def compute_depthmap(data, reconstruction, shot_id):
         color_image = data.image_as_array(shot_id)
         images[sid] = cv2.cvtColor(color_image, cv2.COLOR_RGB2GRAY)
         de.add_view(K, R, t, images[sid])
-    de.compute(str(shot_id))
+    de.compute()
 
 
 def find_neighboring_images(shot_id, reconstruction, num_neighbors=5):
+    """Find closest images."""
     shot = reconstruction.shots[shot_id]
     others = reconstruction.shots.values()
     distances = [distance_between_shots(shot, other) for other in others]

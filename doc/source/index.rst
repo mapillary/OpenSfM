@@ -11,6 +11,7 @@ test contents:
    :maxdepth: 2
 
    test
+   dense
 
 
 Indices and tables
