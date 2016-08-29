@@ -18,9 +18,6 @@ class DepthmapEstimator {
     Ks_.emplace_back(K);
     Rs_.emplace_back(R);
     ts_.emplace_back(t);
-    cv::Matx34d Rt;
-    cv::hconcat(R, t, Rt);
-    Ps_.emplace_back(K * Rt);
 
     images_.emplace_back(cv::Mat(height, width, CV_8U, (void *)pimage));
   }
@@ -34,6 +31,7 @@ class DepthmapEstimator {
     float max_depth = 10;
 
     for (int i = 0; i < best_depth.rows; ++i) {
+      std::cout << "i " << i << "\n";
       for (int j = 0; j < best_depth.cols; ++j) {
         for (int d = 0; d < num_depth_tests; ++d) {
           float depth = min_depth + d * (max_depth - min_depth) / (num_depth_tests - 1);
@@ -43,7 +41,6 @@ class DepthmapEstimator {
             best_depth.at<float>(i, j) = depth;
           }
         }
-        return;
       }
     }
   }
@@ -82,7 +79,6 @@ class DepthmapEstimator {
   std::vector<cv::Matx33d> Ks_;
   std::vector<cv::Matx33d> Rs_;
   std::vector<cv::Matx31d> ts_;
-  std::vector<cv::Matx34d> Ps_;
 };
 
 
