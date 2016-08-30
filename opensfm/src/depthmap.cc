@@ -12,14 +12,10 @@ class DepthmapEstimator {
                const unsigned char *pimage,
                int width,
                int height) {
-    cv::Matx33d K(pK);
-    cv::Matx33d R(pR);
-    cv::Matx31d t(pt);
-    Ks_.emplace_back(K);
-    Rs_.emplace_back(R);
-    ts_.emplace_back(t);
-
-    images_.emplace_back(cv::Mat(height, width, CV_8U, (void *)pimage));
+    Ks_.emplace_back(pK);
+    Rs_.emplace_back(pR);
+    ts_.emplace_back(pt);
+    images_.emplace_back(height, width, CV_8U, (void *)pimage);
   }
 
   void Compute() {
