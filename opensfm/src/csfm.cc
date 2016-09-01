@@ -150,6 +150,7 @@ BOOST_PYTHON_MODULE(csfm) {
 
   class_<csfm::DepthmapEstimatorWrapper>("DepthmapEstimator")
     .def("add_view", &csfm::DepthmapEstimatorWrapper::AddView)
+    .def("set_depth_range", &csfm::DepthmapEstimatorWrapper::SetDepthRange)
     .def("compute", &csfm::DepthmapEstimatorWrapper::Compute)
   ;
 }

@@ -7,7 +7,11 @@ namespace csfm {
 class DepthmapEstimator {
  public:
   DepthmapEstimator()
-   : patch_size(7) {}
+   : patch_size_(7)
+   , min_depth_(0)
+   , max_depth_(0)
+   , num_depth_planes_(50)
+   {}
 
   void AddView(const double *pK,
                const double *pR,
@@ -21,20 +25,22 @@ class DepthmapEstimator {
     images_.emplace_back(height, width, CV_8U, (void *)pimage);
   }
 
+  void SetDepthRange(double min_depth, double max_depth, int num_depth_planes) {
+    min_depth_ = min_depth;
+    max_depth_ = max_depth;
+    num_depth_planes_ = num_depth_planes;
+  }
+
   void Compute(cv::Mat *best_depth, cv::Mat *best_score) {
     *best_depth = cv::Mat(images_[0].rows, images_[0].cols, CV_32F, 0.0f);
     *best_score = cv::Mat(images_[0].rows, images_[0].cols, CV_32F, -1.0f);
 
-    int num_depth_tests = 10;
-    float min_depth = 1;
-    float max_depth = 10;
-    int hpz = (patch_size - 1) / 2;
-
+    int hpz = (patch_size_ - 1) / 2;
     for (int i = hpz; i < best_depth->rows - hpz; ++i) {
       std::cout << "i " << i << "\n";
       for (int j = hpz; j < best_depth->cols - hpz; ++j) {
-        for (int d = 0; d < num_depth_tests; ++d) {
-          float depth = min_depth + d * (max_depth - min_depth) / (num_depth_tests - 1);
+        for (int d = 0; d < num_depth_planes_; ++d) {
+          float depth = min_depth_ + d * (max_depth_ - min_depth_) / (num_depth_planes_ - 1);
           float score = ComputePlaneScore(i, j, depth);
           if (score > best_score->at<float>(i, j)) {
             best_score->at<float>(i, j) = score;
@@ -60,9 +66,9 @@ class DepthmapEstimator {
     cv::Matx33d H = PlaneInducedHomography(Ks_[0], Rs_[0], ts_[0],
                                            Ks_[other], Rs_[other], ts_[other],
                                            cv::Matx31d(0, 0, -1 / depth));
-    int hpz = (patch_size - 1) / 2;
-    float patch1[patch_size * patch_size];
-    float patch2[patch_size * patch_size];
+    int hpz = (patch_size_ - 1) / 2;
+    float patch1[patch_size_ * patch_size_];
+    float patch2[patch_size_ * patch_size_];
     int counter = 0;
     for (int u = -hpz; u <= hpz; ++u) {
       for (int v = -hpz; v <= hpz; ++v) {
@@ -73,7 +79,7 @@ class DepthmapEstimator {
         counter++;
       }
     }
-    return NormalizedCrossCorrelation(patch1, patch2, patch_size * patch_size);
+    return NormalizedCrossCorrelation(patch1, patch2, patch_size_ * patch_size_);
   }
 
   float LinearInterpolation(const cv::Mat &image, float y, float x) {
@@ -143,7 +149,9 @@ class DepthmapEstimator {
   std::vector<cv::Matx33d> Ks_;
   std::vector<cv::Matx33d> Rs_;
   std::vector<cv::Matx31d> ts_;
-  int patch_size;
+  int patch_size_;
+  double min_depth_, max_depth_;
+  int num_depth_planes_;
 };
 
 
@@ -159,6 +167,10 @@ class DepthmapEstimatorWrapper {
     PyArrayContiguousView<unsigned char> image_view((PyArrayObject *)image);
     de_.AddView(K_view.data(), R_view.data(), t_view.data(),
                 image_view.data(), image_view.shape(1), image_view.shape(0));
+  }
+
+  void SetDepthRange(double min_depth, double max_depth, int num_depth_planes) {
+    de_.SetDepthRange(min_depth, max_depth, num_depth_planes);
   }
 
   bp::object Compute() {

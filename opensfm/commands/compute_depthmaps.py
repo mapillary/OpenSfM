@@ -16,7 +16,8 @@ class Command:
     def run(self, args):
         data = dataset.DataSet(args.dataset)
         reconstructions = data.load_reconstruction()
+        graph = data.load_tracks_graph()
 
         for reconstruction in reconstructions:
             for shot_id in reconstruction.shots:
-                dense.compute_depthmap(data, reconstruction, shot_id)
+                dense.compute_depthmap(data, graph, reconstruction, shot_id)
