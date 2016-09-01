@@ -1,8 +1,72 @@
 
-#include "types.h"
+#include  <opencv2/opencv.hpp>
 
 
 namespace csfm {
+
+
+float LinearInterpolation(const cv::Mat &image, float y, float x) {
+  int ix = int(x);
+  int iy = int(y);
+  if (ix < 0 || ix + 1 >= image.cols || iy < 0 || iy + 1 >= image.rows) {
+    return 0.0f;
+  }
+  float dx = x - ix;
+  float dy = y - iy;
+  float im00 = image.at<unsigned char>(iy, ix);
+  float im01 = image.at<unsigned char>(iy, ix + 1);
+  float im10 = image.at<unsigned char>(iy + 1, ix);
+  float im11 = image.at<unsigned char>(iy + 1, ix + 1);
+  float im0 = (1 - dx) * im00 + dx * im01;
+  float im1 = (1 - dx) * im10 + dx * im11;
+  return (1 - dy) * im0 + dy * im1;
+}
+
+float NormalizedCrossCorrelation(float *x, float *y, int n) {
+  float sumx = 0;
+  float sumy = 0;
+  for (int i = 0; i < n; ++i) {
+    sumx += x[i];
+    sumy += y[i];
+  }
+  float meanx = sumx / n;
+  float meany = sumy / n;
+
+  float sumx2 = 0;
+  float sumy2 = 0;
+  for (int i = 0; i < n; ++i) {
+    sumx2 += (x[i] - meanx) * (x[i] - meanx);
+    sumy2 += (y[i] - meany) * (y[i] - meany);
+  }
+  float varx =  sumx2 / n;
+  float vary =  sumy2 / n;
+
+  float correlation = 0;
+  for (int i = 0; i < n; ++i) {
+    correlation += (x[i] - meanx) * (y[i] - meany) / sqrt(varx * vary + 1e-10);
+  }
+  return correlation / n;
+}
+
+void ApplyHomography(const cv::Matx33d &H,
+                     float x1, float y1,
+                     float *x2, float *y2) {
+  float w = H(2, 0) * x1 + H(2, 1) * y1 + H(2, 2);
+  *x2 = (H(0, 0) * x1 + H(0, 1) * y1 + H(0, 2)) / w;
+  *y2 = (H(1, 0) * x1 + H(1, 1) * y1 + H(1, 2)) / w;
+}
+
+cv::Matx33d PlaneInducedHomography(const cv::Matx33d K1,
+                                   const cv::Matx33d R1,
+                                   const cv::Matx31d t1,
+                                   const cv::Matx33d K2,
+                                   const cv::Matx33d R2,
+                                   const cv::Matx31d t2,
+                                   const cv::Matx31d v) {
+  cv::Matx33d R2R1 = R2 * R1.t();
+  return K2 * (R2R1 + (R2R1 * t1 - t2) * v.t()) * K1.inv();
+}
+
 
 class DepthmapEstimator {
  public:
@@ -82,68 +146,6 @@ class DepthmapEstimator {
     return NormalizedCrossCorrelation(patch1, patch2, patch_size_ * patch_size_);
   }
 
-  float LinearInterpolation(const cv::Mat &image, float y, float x) {
-    int ix = int(x);
-    int iy = int(y);
-    if (ix < 0 || ix + 1 >= image.cols || iy < 0 || iy + 1 >= image.rows) {
-      return 0.0f;
-    }
-    float dx = x - ix;
-    float dy = y - iy;
-    float im00 = image.at<unsigned char>(iy, ix);
-    float im01 = image.at<unsigned char>(iy, ix + 1);
-    float im10 = image.at<unsigned char>(iy + 1, ix);
-    float im11 = image.at<unsigned char>(iy + 1, ix + 1);
-    float im0 = (1 - dx) * im00 + dx * im01;
-    float im1 = (1 - dx) * im10 + dx * im11;
-    return (1 - dy) * im0 + dy * im1;
-  }
-
-  float NormalizedCrossCorrelation(float *x, float *y, int n) {
-    float sumx = 0;
-    float sumy = 0;
-    for (int i = 0; i < n; ++i) {
-      sumx += x[i];
-      sumy += y[i];
-    }
-    float meanx = sumx / n;
-    float meany = sumy / n;
-
-    float sumx2 = 0;
-    float sumy2 = 0;
-    for (int i = 0; i < n; ++i) {
-      sumx2 += (x[i] - meanx) * (x[i] - meanx);
-      sumy2 += (y[i] - meany) * (y[i] - meany);
-    }
-    float varx =  sumx2 / n;
-    float vary =  sumy2 / n;
-
-    float correlation = 0;
-    for (int i = 0; i < n; ++i) {
-      correlation += (x[i] - meanx) * (y[i] - meany) / sqrt(varx * vary + 1e-10);
-    }
-    return correlation / n;
-  }
-
-  void ApplyHomography(const cv::Matx33d &H,
-                       float x1, float y1,
-                       float *x2, float *y2) {
-    float w = H(2, 0) * x1 + H(2, 1) * y1 + H(2, 2);
-    *x2 = (H(0, 0) * x1 + H(0, 1) * y1 + H(0, 2)) / w;
-    *y2 = (H(1, 0) * x1 + H(1, 1) * y1 + H(1, 2)) / w;
-  }
-
-  cv::Matx33d PlaneInducedHomography(const cv::Matx33d K1,
-                                     const cv::Matx33d R1,
-                                     const cv::Matx31d t1,
-                                     const cv::Matx33d K2,
-                                     const cv::Matx33d R2,
-                                     const cv::Matx31d t2,
-                                     const cv::Matx31d v) {
-    cv::Matx33d R2R1 = R2 * R1.t();
-    return K2 * (R2R1 + (R2R1 * t1 - t2) * v.t()) * K1.inv();
-  }
-
  private:
   std::vector<cv::Mat> images_;
   std::vector<cv::Matx33d> Ks_;
@@ -152,40 +154,6 @@ class DepthmapEstimator {
   int patch_size_;
   double min_depth_, max_depth_;
   int num_depth_planes_;
-};
-
-
-class DepthmapEstimatorWrapper {
- public:
-  void AddView(PyObject *K,
-               PyObject *R,
-               PyObject *t,
-               PyObject *image) {
-    PyArrayContiguousView<double> K_view((PyArrayObject *)K);
-    PyArrayContiguousView<double> R_view((PyArrayObject *)R);
-    PyArrayContiguousView<double> t_view((PyArrayObject *)t);
-    PyArrayContiguousView<unsigned char> image_view((PyArrayObject *)image);
-    de_.AddView(K_view.data(), R_view.data(), t_view.data(),
-                image_view.data(), image_view.shape(1), image_view.shape(0));
-  }
-
-  void SetDepthRange(double min_depth, double max_depth, int num_depth_planes) {
-    de_.SetDepthRange(min_depth, max_depth, num_depth_planes);
-  }
-
-  bp::object Compute() {
-    cv::Mat best_depth, best_score;
-    de_.Compute(&best_depth, &best_score);
-
-    bp::list retn;
-    npy_intp shape[2] = {best_depth.rows, best_depth.cols};
-    retn.append(bpn_array_from_data(2, shape, best_depth.ptr<float>(0)));
-    retn.append(bpn_array_from_data(2, shape, best_score.ptr<float>(0)));
-    return retn;
-  }
-
- private:
-  DepthmapEstimator de_;
 };
 
 

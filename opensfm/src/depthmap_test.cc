@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-
+#include "depthmap.cc"
 
 namespace {
 

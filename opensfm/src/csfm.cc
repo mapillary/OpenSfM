@@ -11,7 +11,7 @@
 #include "akaze.cc"
 #include "bundle.h"
 #include "openmvs_exporter.h"
-#include "depthmap.cc"
+#include "depthmap_wrapper.cc"
 
 #if (PY_VERSION_HEX < 0x03000000)
 static void numpy_import_array_wrapper()
