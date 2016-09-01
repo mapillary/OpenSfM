@@ -6,6 +6,9 @@ namespace csfm {
 
 class DepthmapEstimator {
  public:
+  DepthmapEstimator()
+   : patch_size(7) {}
+
   void AddView(const double *pK,
                const double *pR,
                const double *pt,
@@ -25,10 +28,11 @@ class DepthmapEstimator {
     int num_depth_tests = 10;
     float min_depth = 1;
     float max_depth = 10;
+    int hpz = (patch_size - 1) / 2;
 
-    for (int i = 0; i < best_depth.rows; ++i) {
+    for (int i = hpz; i < best_depth.rows - hpz; ++i) {
       std::cout << "i " << i << "\n";
-      for (int j = 0; j < best_depth.cols; ++j) {
+      for (int j = hpz; j < best_depth.cols - hpz; ++j) {
         for (int d = 0; d < num_depth_tests; ++d) {
           float depth = min_depth + d * (max_depth - min_depth) / (num_depth_tests - 1);
           float score = ComputePlaneScore(i, j, depth);
@@ -56,8 +60,6 @@ class DepthmapEstimator {
     cv::Matx33d H = PlaneInducedHomography(Ks_[0], Rs_[0], ts_[0],
                                            Ks_[other], Rs_[other], ts_[other],
                                            cv::Matx31d(0, 0, -1 / depth));
-
-    int patch_size = 7;
     int hpz = (patch_size - 1) / 2;
     float patch1[patch_size * patch_size];
     float patch2[patch_size * patch_size];
@@ -77,6 +79,9 @@ class DepthmapEstimator {
   float LinearInterpolation(const cv::Mat &image, float y, float x) {
     int ix = int(x);
     int iy = int(y);
+    if (ix < 0 || ix + 1 >= image.cols || iy < 0 || iy + 1 >= image.rows) {
+      return 0.0f;
+    }
     float dx = x - ix;
     float dy = y - iy;
     float im00 = image.at<unsigned char>(iy, ix);
@@ -134,6 +139,7 @@ class DepthmapEstimator {
   std::vector<cv::Matx33d> Ks_;
   std::vector<cv::Matx33d> Rs_;
   std::vector<cv::Matx31d> ts_;
+  int patch_size;
 };
 
 
