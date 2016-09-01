@@ -21,24 +21,24 @@ class DepthmapEstimator {
     images_.emplace_back(height, width, CV_8U, (void *)pimage);
   }
 
-  void Compute() {
-    cv::Mat best_depth(images_[0].rows, images_[0].cols, CV_32F, 0.0f);
-    cv::Mat best_score(images_[0].rows, images_[0].cols, CV_32F, -1.0f);
+  void Compute(cv::Mat *best_depth, cv::Mat *best_score) {
+    *best_depth = cv::Mat(images_[0].rows, images_[0].cols, CV_32F, 0.0f);
+    *best_score = cv::Mat(images_[0].rows, images_[0].cols, CV_32F, -1.0f);
 
     int num_depth_tests = 10;
     float min_depth = 1;
     float max_depth = 10;
     int hpz = (patch_size - 1) / 2;
 
-    for (int i = hpz; i < best_depth.rows - hpz; ++i) {
+    for (int i = hpz; i < best_depth->rows - hpz; ++i) {
       std::cout << "i " << i << "\n";
-      for (int j = hpz; j < best_depth.cols - hpz; ++j) {
+      for (int j = hpz; j < best_depth->cols - hpz; ++j) {
         for (int d = 0; d < num_depth_tests; ++d) {
           float depth = min_depth + d * (max_depth - min_depth) / (num_depth_tests - 1);
           float score = ComputePlaneScore(i, j, depth);
-          if (score > best_score.at<float>(i, j)) {
-            best_score.at<float>(i, j) = score;
-            best_depth.at<float>(i, j) = depth;
+          if (score > best_score->at<float>(i, j)) {
+            best_score->at<float>(i, j) = score;
+            best_depth->at<float>(i, j) = depth;
           }
         }
       }
@@ -157,8 +157,15 @@ class DepthmapEstimatorWrapper {
                 image_view.data(), image_view.shape(1), image_view.shape(0));
   }
 
-  void Compute() {
-    de_.Compute();
+  bp::object Compute() {
+    cv::Mat best_depth, best_score;
+    de_.Compute(&best_depth, &best_score);
+
+    bp::list retn;
+    npy_intp shape[2] = {best_depth.rows, best_depth.cols};
+    retn.append(bpn_array_from_data(2, shape, best_depth.ptr<float>(0)));
+    retn.append(bpn_array_from_data(2, shape, best_score.ptr<float>(0)));
+    return retn;
   }
 
  private:

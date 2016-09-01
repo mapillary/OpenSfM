@@ -13,13 +13,22 @@ def compute_depthmap(data, reconstruction, shot_id):
         shot = reconstruction.shots[sid]
         assert shot.camera.projection_type == 'perspective'
         color_image = data.image_as_array(shot_id)
-        images[sid] = cv2.cvtColor(color_image, cv2.COLOR_RGB2GRAY)
-        height, width = images[sid].shape
+        gray_image = cv2.cvtColor(color_image, cv2.COLOR_RGB2GRAY)
+        original_height, original_width = gray_image.shape
+        width = 320
+        height = 320 * original_height / original_width
+        images[sid] = cv2.resize(gray_image, (width, height))
         K = shot.camera.get_K_in_pixel_coordinates(width, height)
         R = shot.pose.get_rotation_matrix()
         t = shot.pose.translation
         de.add_view(K, R, t, images[sid])
-    de.compute()
+    depth, score = de.compute()
+
+    import matplotlib.pyplot as pl
+    pl.imshow(depth)
+    pl.show()
+
+    print depth
 
 
 def find_neighboring_images(shot_id, reconstruction, num_neighbors=5):
