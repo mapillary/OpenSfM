@@ -12,11 +12,12 @@ def compute_depthmap(data, reconstruction, shot_id):
     for sid in neighbors:
         shot = reconstruction.shots[sid]
         assert shot.camera.projection_type == 'perspective'
-        K = shot.camera.get_K()
-        R = shot.pose.get_rotation_matrix()
-        t = shot.pose.translation
         color_image = data.image_as_array(shot_id)
         images[sid] = cv2.cvtColor(color_image, cv2.COLOR_RGB2GRAY)
+        height, width = images[sid].shape
+        K = shot.camera.get_K_in_pixel_coordinates(width, height)
+        R = shot.pose.get_rotation_matrix()
+        t = shot.pose.translation
         de.add_view(K, R, t, images[sid])
     de.compute()
 
