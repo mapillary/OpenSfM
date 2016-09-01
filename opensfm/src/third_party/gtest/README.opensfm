@@ -1,0 +1,6 @@
+Project: gtest
+License: BSD
+Version: The minified one from ceres-solver
+Local modifications:
+
+* Copied the single file versions of the library from `ceres-solver/internal/ceres`

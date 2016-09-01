@@ -108,3 +108,36 @@ else()
         ${PYTHON_LIBRARIES}
     )
 endif()
+
+
+# Tests
+option(OPENSFM_BUILD_TESTS "Build OpenSfM unit tests." on)
+
+if (OPENSFM_BUILD_TESTS)
+  enable_testing()
+  include_directories(third_party/gtest)
+  add_definitions(-DCERES_GFLAGS_NAMESPACE=gflags)
+
+  add_library(gtest
+              third_party/gtest/gmock_gtest_all.cc
+              third_party/gtest/gmock_main.cc)
+
+  add_library(testing_main testing_main.cc)
+  target_link_libraries(testing_main
+                        ${GFLAGS_LIBRARY}
+                        ${GLOG_LIBRARY}
+                        gtest)
+
+  macro (OPENSFM_TEST NAME EXTRA_LIBS)
+    add_executable(${NAME}_test ${NAME}_test.cc)
+    target_link_libraries(${NAME}_test
+                          ${EXTRA_LIBS} # Extra libs MUST be first.
+                          ${GFLAGS_LIBRARY}
+                          ${GLOG_LIBRARY}
+                          gtest
+                          testing_main)
+    add_test(${NAME}_test ${NAME}_test)
+  endmacro ()
+
+  opensfm_test(depthmap csfm)
+endif()
