@@ -95,24 +95,28 @@ class DepthmapEstimator {
 
   float NormalizedCrossCorrelation(float *x, float *y, int n) {
     float sumx = 0;
-    float sumx2 = 0;
     float sumy = 0;
-    float sumy2 = 0;
     for (int i = 0; i < n; ++i) {
       sumx += x[i];
-      sumx2 += x[i] * x[i];
       sumy += y[i];
-      sumy2 += y[i] * y[i];
     }
     float meanx = sumx / n;
-    float varx =  sumx2 / n - meanx * meanx; // E(x^2) - E(x)^2
     float meany = sumy / n;
-    float vary =  sumy2 / n - meany * meany;
+
+    float sumx2 = 0;
+    float sumy2 = 0;
+    for (int i = 0; i < n; ++i) {
+      sumx2 += (x[i] - meanx) * (x[i] - meanx);
+      sumy2 += (y[i] - meany) * (y[i] - meany);
+    }
+    float varx =  sumx2 / n;
+    float vary =  sumy2 / n;
+
     float correlation = 0;
     for (int i = 0; i < n; ++i) {
-      correlation += (x[i] - meanx) * (y[i] - meany) / sqrt(varx * vary);
+      correlation += (x[i] - meanx) * (y[i] - meany) / sqrt(varx * vary + 1e-10);
     }
-    return correlation;
+    return correlation / n;
   }
 
   void ApplyHomography(const cv::Matx33d &H,
