@@ -1,3 +1,4 @@
+
 import cv2
 import numpy as np
 
@@ -5,31 +6,19 @@ from opensfm import csfm
 
 
 def compute_depthmap(data, graph, reconstruction, shot_id):
-    neighbors = find_neighboring_images(shot_id, reconstruction)
-    print shot_id, neighbors
-    de = csfm.DepthmapEstimator()
-    images = {}
-    for sid in neighbors:
-        shot = reconstruction.shots[sid]
-        assert shot.camera.projection_type == 'perspective'
-        color_image = data.undistorted_image_as_array(sid)
-        gray_image = cv2.cvtColor(color_image, cv2.COLOR_RGB2GRAY)
-        original_height, original_width = gray_image.shape
-        width = 160
-        height = width * original_height / original_width
-        images[sid] = cv2.resize(gray_image, (width, height))
-        K = shot.camera.get_K_in_pixel_coordinates(width, height)
-        R = shot.pose.get_rotation_matrix()
-        t = shot.pose.translation
-        de.add_view(K, R, t, images[sid])
+    """Compute depthmap for a single shot."""
     shot = reconstruction.shots[shot_id]
+    neighbors = find_neighboring_images(shot, reconstruction)
     min_depth, max_depth = compute_depth_range(graph, reconstruction, shot)
+
+    de = csfm.DepthmapEstimator()
+    images = add_views_to_depth_estimator(data, reconstruction, neighbors, de)
     de.set_depth_range(min_depth, max_depth, 100)
     depth, score = de.compute()
 
     import matplotlib.pyplot as plt
     plt.subplot(1, 3, 1)
-    plt.imshow(images[shot_id])
+    plt.imshow(data.image_as_array(shot_id))
     plt.colorbar()
     plt.subplot(1, 3, 2)
     plt.imshow(depth)
@@ -38,6 +27,26 @@ def compute_depthmap(data, graph, reconstruction, shot_id):
     plt.imshow(score)
     plt.colorbar()
     plt.show()
+
+
+def add_views_to_depth_estimator(data, reconstruction, neighbors, de):
+    """Add neighboring views to the DepthmapEstimator."""
+    images = {}
+    for neighbor in neighbors:
+        shot = reconstruction.shots[neighbor]
+        assert shot.camera.projection_type == 'perspective'
+        color_image = data.undistorted_image_as_array(shot.id)
+        gray_image = cv2.cvtColor(color_image, cv2.COLOR_RGB2GRAY)
+        original_height, original_width = gray_image.shape
+        width = 160
+        height = width * original_height / original_width
+        image = cv2.resize(gray_image, (width, height))
+        K = shot.camera.get_K_in_pixel_coordinates(width, height)
+        R = shot.pose.get_rotation_matrix()
+        t = shot.pose.translation
+        de.add_view(K, R, t, image)
+        images[shot.id] = image
+    return images
 
 
 def compute_depth_range(graph, reconstruction, shot):
@@ -53,9 +62,8 @@ def compute_depth_range(graph, reconstruction, shot):
     return min_depth * 0.9, max_depth * 1.1
 
 
-def find_neighboring_images(shot_id, reconstruction, num_neighbors=5):
+def find_neighboring_images(shot, reconstruction, num_neighbors=5):
     """Find closest images."""
-    shot = reconstruction.shots[shot_id]
     others = reconstruction.shots.values()
     distances = [distance_between_shots(shot, other) for other in others]
     pairs = sorted(zip(distances, others))
