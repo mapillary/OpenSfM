@@ -104,7 +104,7 @@ class DepthmapEstimator {
       std::cout << "i " << i << "\n";
       for (int j = hpz; j < best_depth->cols - hpz; ++j) {
         for (int d = 0; d < num_depth_planes_; ++d) {
-          float depth = min_depth_ + d * (max_depth_ - min_depth_) / (num_depth_planes_ - 1);
+          float depth = 1 / (1 / min_depth_ + d * (1 / max_depth_ - 1 / min_depth_) / (num_depth_planes_ - 1));
           float score = ComputePlaneScore(i, j, depth);
           if (score > best_score->at<float>(i, j)) {
             best_score->at<float>(i, j) = score;

@@ -50,7 +50,7 @@ def compute_depth_range(graph, reconstruction, shot):
             depths.append(z)
     min_depth = np.percentile(depths, 10)
     max_depth = np.percentile(depths, 90)
-    return min_depth, max_depth
+    return min_depth * 0.9, max_depth * 1.1
 
 
 def find_neighboring_images(shot_id, reconstruction, num_neighbors=5):
