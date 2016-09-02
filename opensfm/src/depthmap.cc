@@ -86,7 +86,7 @@ class DepthmapEstimator {
     Ks_.emplace_back(pK);
     Rs_.emplace_back(pR);
     ts_.emplace_back(pt);
-    images_.emplace_back(height, width, CV_8U, (void *)pimage);
+    images_.emplace_back(cv::Mat(height, width, CV_8U, (void *)pimage).clone());
   }
 
   void SetDepthRange(double min_depth, double max_depth, int num_depth_planes) {

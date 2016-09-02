@@ -12,7 +12,7 @@ def compute_depthmap(data, graph, reconstruction, shot_id):
     min_depth, max_depth = compute_depth_range(graph, reconstruction, shot)
 
     de = csfm.DepthmapEstimator()
-    images = add_views_to_depth_estimator(data, reconstruction, neighbors, de)
+    add_views_to_depth_estimator(data, reconstruction, neighbors, de)
     de.set_depth_range(min_depth, max_depth, 100)
     depth, score = de.compute()
 
@@ -31,7 +31,6 @@ def compute_depthmap(data, graph, reconstruction, shot_id):
 
 def add_views_to_depth_estimator(data, reconstruction, neighbors, de):
     """Add neighboring views to the DepthmapEstimator."""
-    images = {}
     for neighbor in neighbors:
         shot = reconstruction.shots[neighbor]
         assert shot.camera.projection_type == 'perspective'
@@ -45,8 +44,6 @@ def add_views_to_depth_estimator(data, reconstruction, neighbors, de):
         R = shot.pose.get_rotation_matrix()
         t = shot.pose.translation
         de.add_view(K, R, t, image)
-        images[shot.id] = image
-    return images
 
 
 def compute_depth_range(graph, reconstruction, shot):
