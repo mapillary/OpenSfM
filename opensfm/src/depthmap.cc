@@ -49,9 +49,9 @@ float NormalizedCrossCorrelation(float *x, float *y, int n) {
 }
 
 void ApplyHomography(const cv::Matx33d &H,
-                     float x1, float y1,
-                     float *x2, float *y2) {
-  float w = H(2, 0) * x1 + H(2, 1) * y1 + H(2, 2);
+                     double x1, double y1,
+                     double *x2, double *y2) {
+  double w = H(2, 0) * x1 + H(2, 1) * y1 + H(2, 2);
   *x2 = (H(0, 0) * x1 + H(0, 1) * y1 + H(0, 2)) / w;
   *y2 = (H(1, 0) * x1 + H(1, 1) * y1 + H(1, 2)) / w;
 }
@@ -137,7 +137,7 @@ class DepthmapEstimator {
     for (int u = -hpz; u <= hpz; ++u) {
       for (int v = -hpz; v <= hpz; ++v) {
         patch1[counter] = images_[0].at<unsigned char>(i + u, j + v);
-        float x2, y2;
+        double x2, y2;
         ApplyHomography(H, j + v, i + u, &x2, &y2);
         patch2[counter] = LinearInterpolation(images_[other], y2, x2);
         counter++;

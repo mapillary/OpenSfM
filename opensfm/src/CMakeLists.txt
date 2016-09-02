@@ -139,5 +139,5 @@ if (OPENSFM_BUILD_TESTS)
     add_test(${NAME}_test ${NAME}_test)
   endmacro ()
 
-  opensfm_test(depthmap "")
+  opensfm_test(depthmap ${OpenCV_LIBS})
 endif()
