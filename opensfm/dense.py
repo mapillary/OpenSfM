@@ -12,7 +12,7 @@ def compute_depthmap(data, graph, reconstruction, shot_id):
     for sid in neighbors:
         shot = reconstruction.shots[sid]
         assert shot.camera.projection_type == 'perspective'
-        color_image = data.undistorted_image_as_array(shot_id)
+        color_image = data.undistorted_image_as_array(sid)
         gray_image = cv2.cvtColor(color_image, cv2.COLOR_RGB2GRAY)
         original_height, original_width = gray_image.shape
         width = 160
