@@ -16,6 +16,14 @@ def compute_depthmap(data, graph, reconstruction, shot_id):
     de.set_depth_range(min_depth, max_depth, 100)
     depth, score = de.compute_patch_match()
 
+    # Save and display results
+    data.save_depthmap(shot_id, depth)
+    image = data.image_as_array(shot.id)
+    image = cv2.resize(image, (depth.shape[1], depth.shape[0]))
+    ply = depthmap_to_ply(shot, depth, image)
+    with open(data._depthmap_ply_file(shot_id), 'w') as fout:
+        fout.write(ply)
+
     import matplotlib.pyplot as plt
     plt.subplot(1, 3, 1)
     plt.imshow(data.image_as_array(shot_id))
@@ -72,3 +80,34 @@ def distance_between_shots(shot, other):
     o2 = other.pose.get_origin()
     l = o2 - o1
     return np.sqrt(np.sum(l**2))
+
+
+def depthmap_to_ply(shot, depth, image):
+    """Export depthmap points as a PLY string"""
+    from opensfm import features
+    vertices = []
+    height, width = depth.shape
+    for i in range(height):
+        for j in range(width):
+            pixel = features.normalized_image_coordinates(
+                np.array([[j, i]]), width, height)[0]
+            p = shot.back_project(pixel, depth[i, j])
+            c = image[i, j]
+            s = "{} {} {} {} {} {}".format(
+                p[0], p[1], p[2], c[0], c[1], c[2])
+            vertices.append(s)
+
+    header = [
+        "ply",
+        "format ascii 1.0",
+        "element vertex {}".format(len(vertices)),
+        "property float x",
+        "property float y",
+        "property float z",
+        "property uchar diffuse_red",
+        "property uchar diffuse_green",
+        "property uchar diffuse_blue",
+        "end_header",
+    ]
+
+    return '\n'.join(header + vertices)

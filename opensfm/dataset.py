@@ -80,6 +80,20 @@ class DataSet:
         io.mkdir_p(self._undistorted_image_path())
         cv2.imwrite(self._undistorted_image_file(image), array[:, :, ::-1])
 
+    def _depthmap_path(self):
+        return os.path.join(self.data_path, 'depthmaps')
+
+    def _depthmap_file(self, image):
+        """Path to the depthmap file"""
+        return os.path.join(self._depthmap_path(), image)
+
+    def save_depthmap(self, image, array):
+        io.mkdir_p(self._depthmap_path())
+        cv2.imwrite(self._depthmap_file(image), array)
+
+    def _depthmap_ply_file(self, image):
+        return self._depthmap_file(image) + '.ply'
+
     @staticmethod
     def __is_image_file(filename):
         return filename.split('.')[-1].lower() in {'jpg', 'jpeg', 'png', 'tif', 'tiff', 'pgm', 'pnm', 'gif'}
