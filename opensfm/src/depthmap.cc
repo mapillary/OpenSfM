@@ -95,7 +95,7 @@ class DepthmapEstimator {
     num_depth_planes_ = num_depth_planes;
   }
 
-  void Compute(cv::Mat *best_depth, cv::Mat *best_score) {
+  void ComputeBruteForce(cv::Mat *best_depth, cv::Mat *best_score) {
     *best_depth = cv::Mat(images_[0].rows, images_[0].cols, CV_32F, 0.0f);
     *best_score = cv::Mat(images_[0].rows, images_[0].cols, CV_32F, -1.0f);
 
@@ -111,6 +111,61 @@ class DepthmapEstimator {
             best_depth->at<float>(i, j) = depth;
           }
         }
+      }
+    }
+  }
+
+  void ComputePatchMatch(cv::Mat *best_depth, cv::Mat *best_score) {
+    *best_depth = cv::Mat(images_[0].rows, images_[0].cols, CV_32F, 0.0f);
+    *best_score = cv::Mat(images_[0].rows, images_[0].cols, CV_32F, -1.0f);
+
+    for (int i = 0; i < 3; ++i) {
+      std::cout << "PatchMatchForwardPass " << i << "\n";
+      PatchMatchForwardPass(best_depth, best_score);
+      std::cout << "PatchMatchBackwardPass " << i << "\n";
+      PatchMatchBackwardPass(best_depth, best_score);
+    }
+  }
+
+  void PatchMatchForwardPass(cv::Mat *best_depth, cv::Mat *best_score) {
+    int neighbors[4][2] = {{-1, -1}, {-1, 0}, {-1, 1}, {0, -1}};
+    int hpz = (patch_size_ - 1) / 2;
+    for (int i = hpz; i < best_depth->rows - hpz; ++i) {
+      for (int j = hpz; j < best_depth->cols - hpz; ++j) {
+        PatchMatchUpdatePixel(best_depth, best_score, i, j, neighbors);
+      }
+    }
+  }
+
+  void PatchMatchBackwardPass(cv::Mat *best_depth, cv::Mat *best_score) {
+    int neighbors[4][2] = {{0, 1}, {1, -1}, {1, 0}, {1, 1}};
+    int hpz = (patch_size_ - 1) / 2;
+    for (int i = best_depth->rows - hpz - 1; i >= hpz; --i) {
+      for (int j = best_depth->cols - hpz - 1; j >= hpz; --j) {
+        PatchMatchUpdatePixel(best_depth, best_score, i, j, neighbors);
+      }
+    }
+  }
+
+  void PatchMatchUpdatePixel(cv::Mat *best_depth, cv::Mat *best_score,
+                             int i, int j,
+                             int neighbors[4][2]) {
+    const int num_neighbors = 4;
+    const int num_random = 4;
+    const int num_candidates = num_neighbors + num_random;
+    float candidate_depths[num_candidates];
+    for (int k = 0; k < num_neighbors; ++k) {
+      candidate_depths[k] = best_depth->at<float>(i + neighbors[k][0], j + neighbors[k][1]);
+    }
+    for (int k = 0; k < num_random; ++k) {
+      candidate_depths[num_neighbors + k] = 1 / (1 / min_depth_ + rand() * (1 / max_depth_ - 1 / min_depth_) / RAND_MAX);
+    }
+    for (int c = 0; c < num_candidates; ++c) {
+      float depth = candidate_depths[c];
+      float score = ComputePlaneScore(i, j, depth);
+      if (score > best_score->at<float>(i, j)) {
+        best_score->at<float>(i, j) = score;
+        best_depth->at<float>(i, j) = depth;
       }
     }
   }

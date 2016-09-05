@@ -14,7 +14,7 @@ def compute_depthmap(data, graph, reconstruction, shot_id):
     de = csfm.DepthmapEstimator()
     add_views_to_depth_estimator(data, reconstruction, neighbors, de)
     de.set_depth_range(min_depth, max_depth, 100)
-    depth, score = de.compute()
+    depth, score = de.compute_patch_match()
 
     import matplotlib.pyplot as plt
     plt.subplot(1, 3, 1)
@@ -37,7 +37,7 @@ def add_views_to_depth_estimator(data, reconstruction, neighbors, de):
         color_image = data.undistorted_image_as_array(shot.id)
         gray_image = cv2.cvtColor(color_image, cv2.COLOR_RGB2GRAY)
         original_height, original_width = gray_image.shape
-        width = 160
+        width = 640
         height = width * original_height / original_width
         image = cv2.resize(gray_image, (width, height))
         K = shot.camera.get_K_in_pixel_coordinates(width, height)

@@ -22,7 +22,7 @@ The coordinates of a plane in world and camera coordinates are related by
 
 .. math::
 
-   \pi_c = \begin{pmatrix} R & t \\ 0 & 1 \end{pmatrix} \pi_c
+   \pi_w = \begin{pmatrix} R & t \\ 0 & 1 \end{pmatrix} \pi_c
 
 
 Plane-induced homography

@@ -23,9 +23,20 @@ class DepthmapEstimatorWrapper {
     de_.SetDepthRange(min_depth, max_depth, num_depth_planes);
   }
 
-  bp::object Compute() {
+  bp::object ComputePatchMatch() {
     cv::Mat best_depth, best_score;
-    de_.Compute(&best_depth, &best_score);
+    de_.ComputePatchMatch(&best_depth, &best_score);
+
+    bp::list retn;
+    npy_intp shape[2] = {best_depth.rows, best_depth.cols};
+    retn.append(bpn_array_from_data(2, shape, best_depth.ptr<float>(0)));
+    retn.append(bpn_array_from_data(2, shape, best_score.ptr<float>(0)));
+    return retn;
+  }
+
+  bp::object ComputeBruteForce() {
+    cv::Mat best_depth, best_score;
+    de_.ComputeBruteForce(&best_depth, &best_score);
 
     bp::list retn;
     npy_intp shape[2] = {best_depth.rows, best_depth.cols};
