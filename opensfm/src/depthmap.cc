@@ -105,7 +105,7 @@ class DepthmapEstimator {
       for (int j = hpz; j < best_depth->cols - hpz; ++j) {
         for (int d = 0; d < num_depth_planes_; ++d) {
           float depth = 1 / (1 / min_depth_ + d * (1 / max_depth_ - 1 / min_depth_) / (num_depth_planes_ - 1));
-          float score = ComputePlaneScore(i, j, depth);
+          float score = ComputePlaneScore(i, j, 0, 0, -1 / depth);
           if (score > best_score->at<float>(i, j)) {
             best_score->at<float>(i, j) = score;
             best_depth->at<float>(i, j) = depth;
@@ -162,7 +162,7 @@ class DepthmapEstimator {
     }
     for (int c = 0; c < num_candidates; ++c) {
       float depth = candidate_depths[c];
-      float score = ComputePlaneScore(i, j, depth);
+      float score = ComputePlaneScore(i, j, 0, 0, -1 / depth);
       if (score > best_score->at<float>(i, j)) {
         best_score->at<float>(i, j) = score;
         best_depth->at<float>(i, j) = depth;
@@ -170,10 +170,10 @@ class DepthmapEstimator {
     }
   }
 
-  float ComputePlaneScore(int i, int j, float depth) {
+  float ComputePlaneScore(int i, int j, float a, float b, float c) {
     float best_score = -1.0f;
     for (int other = 1; other < images_.size(); ++other) {
-      float score = ComputePlaneImageScore(i, j, depth, other);
+      float score = ComputePlaneImageScore(i, j, a, b, c, other);
       if (score > best_score) {
         best_score = score;
       }
@@ -181,10 +181,12 @@ class DepthmapEstimator {
     return best_score;
   }
 
-  float ComputePlaneImageScore(int i, int j, float depth, int other) {
+  float ComputePlaneImageScore(int i, int j,
+                               float a, float b, float c,
+                               int other) {
     cv::Matx33d H = PlaneInducedHomography(Ks_[0], Rs_[0], ts_[0],
                                            Ks_[other], Rs_[other], ts_[other],
-                                           cv::Matx31d(0, 0, -1 / depth));
+                                           cv::Matx31d(a, b, c));
     int hpz = (patch_size_ - 1) / 2;
     float patch1[patch_size_ * patch_size_];
     float patch2[patch_size_ * patch_size_];
