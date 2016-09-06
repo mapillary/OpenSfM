@@ -4,6 +4,42 @@ Dense Matching Notes
 ====================
 
 
+Backprojection at a given depth
+-------------------------------
+
+The backprojection of a pixel :math:`q = (q_x, q_y, 1)^T` at depth :math:`d` in camera coordinates is
+
+.. math::
+
+   X = d K^{-1} q
+
+Backprojection to a plane
+-------------------------
+
+The backprojection of a pixel :math:`q = (q_x, q_y, 1)^T` on to the plane :math:`\pi = (v^T, 1)` is
+
+.. math::
+   X = \frac{-K^{-1} q}{v^T K^{-1} q}
+
+and has depth
+
+.. math::
+   d = \frac{-1}{v^T K^{-1} q}
+
+
+
+Plane given point and normal
+----------------------------
+
+The plane
+
+.. math::
+
+   \pi = \left( \frac{-n}{n\cdot X}, 1 \right)
+
+Contains the point :math:`X` and has normal :math:`n`
+
+
 Plane of constant depth
 -----------------------
 
