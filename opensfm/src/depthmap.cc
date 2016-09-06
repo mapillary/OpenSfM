@@ -73,6 +73,23 @@ float DepthOfPlaneBackprojection(double x, double y,
   return -1.0f / (plane.t() * K.inv() * cv::Vec3d(x, y, 1))(0);
 }
 
+cv::Vec3f PlaneFromDepthAndNormal(float x, float y,
+                                  const cv::Matx33d &K,
+                                  float depth,
+                                  const cv::Vec3f &normal) {
+  cv::Vec3f point = depth * K.inv() * cv::Vec3d(x, y, 1);
+  return -normal / normal.dot(point);
+}
+
+// Random non-normalized normal pointing towards the camera.
+cv::Vec3f RandomNormal() {
+  return cv::Vec3f(
+      -1.0f + rand() * 2.0f / RAND_MAX,
+      -1.0f + rand() * 2.0f / RAND_MAX,
+      -1.0f
+  );
+}
+
 
 class DepthmapEstimator {
  public:
@@ -101,8 +118,9 @@ class DepthmapEstimator {
     num_depth_planes_ = num_depth_planes;
   }
 
-  void ComputeBruteForce(cv::Mat *best_depth, cv::Mat *best_score) {
+  void ComputeBruteForce(cv::Mat *best_depth, cv::Mat *best_plane, cv::Mat *best_score) {
     *best_depth = cv::Mat(images_[0].rows, images_[0].cols, CV_32F, 0.0f);
+    *best_plane = cv::Mat(images_[0].rows, images_[0].cols, CV_32FC3, 0.0f);
     *best_score = cv::Mat(images_[0].rows, images_[0].cols, CV_32F, -1.0f);
 
     int hpz = (patch_size_ - 1) / 2;
@@ -111,9 +129,12 @@ class DepthmapEstimator {
       for (int j = hpz; j < best_depth->cols - hpz; ++j) {
         for (int d = 0; d < num_depth_planes_; ++d) {
           float depth = 1 / (1 / min_depth_ + d * (1 / max_depth_ - 1 / min_depth_) / (num_depth_planes_ - 1));
-          float score = ComputePlaneScore(i, j, cv::Vec3f(0, 0, -1 / depth));
+          cv::Vec3f normal(0, 0, -1);
+          cv::Vec3f plane = PlaneFromDepthAndNormal(i, j, Ks_[0], depth, normal);
+          float score = ComputePlaneScore(i, j, plane);
           if (score > best_score->at<float>(i, j)) {
             best_score->at<float>(i, j) = score;
+            best_plane->at<cv::Vec3f>(i, j) = plane;
             best_depth->at<float>(i, j) = depth;
           }
         }
@@ -121,16 +142,16 @@ class DepthmapEstimator {
     }
   }
 
-  void ComputePatchMatch(cv::Mat *best_depth, cv::Mat *best_score) {
+  void ComputePatchMatch(cv::Mat *best_depth, cv::Mat *best_plane, cv::Mat *best_score) {
     *best_depth = cv::Mat(images_[0].rows, images_[0].cols, CV_32F, 0.0f);
-    cv::Mat best_plane = cv::Mat(images_[0].rows, images_[0].cols, CV_32FC3, 0.0f);
+    *best_plane = cv::Mat(images_[0].rows, images_[0].cols, CV_32FC3, 0.0f);
     *best_score = cv::Mat(images_[0].rows, images_[0].cols, CV_32F, -1.0f);
 
     for (int i = 0; i < 3; ++i) {
       std::cout << "PatchMatchForwardPass " << i << "\n";
-      PatchMatchForwardPass(best_depth, &best_plane, best_score);
+      PatchMatchForwardPass(best_depth, best_plane, best_score);
       std::cout << "PatchMatchBackwardPass " << i << "\n";
-      PatchMatchBackwardPass(best_depth, &best_plane, best_score);
+      PatchMatchBackwardPass(best_depth, best_plane, best_score);
     }
   }
 

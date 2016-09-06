@@ -3,6 +3,9 @@
 
 namespace {
 
+using namespace csfm;
+
+
 TEST(PlaneInducedHomography, ParallelCameras) {
   cv::Matx33d K1(600, 0, 300, 0, 400, 200, 0, 0, 1);
   cv::Matx33d R1;
@@ -25,12 +28,23 @@ TEST(PlaneInducedHomography, ParallelCameras) {
   double x2 = p2(0) / p2(2), y2 = p2(1) / p2(2);
 
   // Warp point via plane homography.
-  cv::Matx33d H = csfm::PlaneInducedHomography(K1, R1, t1, K2, R2, t2, v);
+  cv::Matx33d H = PlaneInducedHomography(K1, R1, t1, K2, R2, t2, v);
   double x2_mapped, y2_mapped;
-  csfm::ApplyHomography(H, x1, y1, &x2_mapped, &y2_mapped);
+  ApplyHomography(H, x1, y1, &x2_mapped, &y2_mapped);
 
-  EXPECT_NEAR(x2, x2_mapped, 10e-8);
-  EXPECT_NEAR(y2, y2_mapped, 10e-8);
+  EXPECT_NEAR(x2, x2_mapped, 1e-8);
+  EXPECT_NEAR(y2, y2_mapped, 1e-8);
 }
+
+
+TEST(DepthOfPlaneBackprojection, DepthNormalPlaneLoop) {
+  cv::Matx33d K(600, 0, 300, 0, 400, 200, 0, 0, 1);
+  float depth = 3;
+  cv::Vec3f normal = RandomNormal();
+  cv::Vec3f plane = PlaneFromDepthAndNormal(20, 30, K, depth, normal);
+  float backprojected_depth = DepthOfPlaneBackprojection(20, 30, K, plane);
+  EXPECT_NEAR(depth, backprojected_depth, 1e-8);
+}
+
 
 }  // namespace

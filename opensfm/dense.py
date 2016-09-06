@@ -14,7 +14,8 @@ def compute_depthmap(data, graph, reconstruction, shot_id):
     de = csfm.DepthmapEstimator()
     add_views_to_depth_estimator(data, reconstruction, neighbors, de)
     de.set_depth_range(min_depth, max_depth, 100)
-    depth, score = de.compute_patch_match()
+    depth, plane, score = de.compute_brute_force()
+    # depth, score = de.compute_patch_match()
 
     # Save and display results
     data.save_depthmap(shot_id, depth)

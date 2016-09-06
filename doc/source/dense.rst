@@ -35,7 +35,7 @@ The plane
 
 .. math::
 
-   \pi = \left( \frac{-n}{n\cdot X}, 1 \right)
+   \pi = \left( \frac{-n^T}{n^T X}, 1 \right)
 
 Contains the point :math:`X` and has normal :math:`n`
 

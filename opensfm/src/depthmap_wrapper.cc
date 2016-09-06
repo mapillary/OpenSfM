@@ -24,24 +24,26 @@ class DepthmapEstimatorWrapper {
   }
 
   bp::object ComputePatchMatch() {
-    cv::Mat best_depth, best_score;
-    de_.ComputePatchMatch(&best_depth, &best_score);
-
-    bp::list retn;
-    npy_intp shape[2] = {best_depth.rows, best_depth.cols};
-    retn.append(bpn_array_from_data(2, shape, best_depth.ptr<float>(0)));
-    retn.append(bpn_array_from_data(2, shape, best_score.ptr<float>(0)));
-    return retn;
+    cv::Mat depth, plane, score;
+    de_.ComputePatchMatch(&depth, &plane, &score);
+    return ComputeReturnValues(depth, plane, score);
   }
 
   bp::object ComputeBruteForce() {
-    cv::Mat best_depth, best_score;
-    de_.ComputeBruteForce(&best_depth, &best_score);
+    cv::Mat depth, plane, score;
+    de_.ComputeBruteForce(&depth, &plane, &score);
+    return ComputeReturnValues(depth, plane, score);
+  }
 
+  bp::object ComputeReturnValues(const cv::Mat &depth,
+                                 const cv::Mat &plane,
+                                 const cv::Mat &score) {
     bp::list retn;
-    npy_intp shape[2] = {best_depth.rows, best_depth.cols};
-    retn.append(bpn_array_from_data(2, shape, best_depth.ptr<float>(0)));
-    retn.append(bpn_array_from_data(2, shape, best_score.ptr<float>(0)));
+    npy_intp shape[2] = {depth.rows, depth.cols};
+    npy_intp plane_shape[3] = {depth.rows, depth.cols, 3};
+    retn.append(bpn_array_from_data(2, shape, depth.ptr<float>(0)));
+    retn.append(bpn_array_from_data(3, plane_shape, plane.ptr<float>(0)));
+    retn.append(bpn_array_from_data(2, shape, score.ptr<float>(0)));
     return retn;
   }
 
