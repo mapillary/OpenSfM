@@ -121,7 +121,7 @@ class DepthmapEstimator {
   void ComputeBruteForce(cv::Mat *best_depth, cv::Mat *best_plane, cv::Mat *best_score) {
     *best_depth = cv::Mat(images_[0].rows, images_[0].cols, CV_32F, 0.0f);
     *best_plane = cv::Mat(images_[0].rows, images_[0].cols, CV_32FC3, 0.0f);
-    *best_score = cv::Mat(images_[0].rows, images_[0].cols, CV_32F, -1.0f);
+    *best_score = cv::Mat(images_[0].rows, images_[0].cols, CV_32F, 0.0f);
 
     int hpz = (patch_size_ - 1) / 2;
     for (int i = hpz; i < best_depth->rows - hpz; ++i) {
@@ -130,7 +130,7 @@ class DepthmapEstimator {
         for (int d = 0; d < num_depth_planes_; ++d) {
           float depth = 1 / (1 / min_depth_ + d * (1 / max_depth_ - 1 / min_depth_) / (num_depth_planes_ - 1));
           cv::Vec3f normal(0, 0, -1);
-          cv::Vec3f plane = PlaneFromDepthAndNormal(i, j, Ks_[0], depth, normal);
+          cv::Vec3f plane = PlaneFromDepthAndNormal(j, i, Ks_[0], depth, normal);
           float score = ComputePlaneScore(i, j, plane);
           if (score > best_score->at<float>(i, j)) {
             best_score->at<float>(i, j) = score;
@@ -145,7 +145,7 @@ class DepthmapEstimator {
   void ComputePatchMatch(cv::Mat *best_depth, cv::Mat *best_plane, cv::Mat *best_score) {
     *best_depth = cv::Mat(images_[0].rows, images_[0].cols, CV_32F, 0.0f);
     *best_plane = cv::Mat(images_[0].rows, images_[0].cols, CV_32FC3, 0.0f);
-    *best_score = cv::Mat(images_[0].rows, images_[0].cols, CV_32F, -1.0f);
+    *best_score = cv::Mat(images_[0].rows, images_[0].cols, CV_32F, 0.0f);
 
     for (int i = 0; i < 3; ++i) {
       std::cout << "PatchMatchForwardPass " << i << "\n";
@@ -187,8 +187,8 @@ class DepthmapEstimator {
     }
     for (int k = 0; k < num_random; ++k) {
       float depth = 1 / (1 / min_depth_ + rand() * (1 / max_depth_ - 1 / min_depth_) / RAND_MAX);
-//      float normal = XXX
-      candidate_planes[num_neighbors + k] = cv::Vec3f(0, 0, -1 / depth);
+      cv::Vec3f normal = RandomNormal();
+      candidate_planes[num_neighbors + k] = PlaneFromDepthAndNormal(j, i, Ks_[0], depth, normal);
     }
     for (int c = 0; c < num_candidates; ++c) {
       const cv::Vec3f &plane = candidate_planes[c];
@@ -196,7 +196,7 @@ class DepthmapEstimator {
       if (score > best_score->at<float>(i, j)) {
         best_score->at<float>(i, j) = score;
         best_plane->at<cv::Vec3f>(i, j) = plane;
-        best_depth->at<float>(i, j) = DepthOfPlaneBackprojection(i, j, Ks_[0], plane);
+        best_depth->at<float>(i, j) = DepthOfPlaneBackprojection(j, i, Ks_[0], plane);
       }
     }
   }

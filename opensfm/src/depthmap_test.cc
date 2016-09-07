@@ -17,8 +17,11 @@ TEST(PlaneInducedHomography, ParallelCameras) {
   cv::Rodrigues(cv::Matx31d(0.1, 0.2, 0.3), R2);
   cv::Matx31d t2(-0.3, -0.1, 0.2);
 
-  cv::Matx31d v(0, 0, -1);                            // plane z = 1
-  cv::Matx31d p_in_camera_coordinates(0.1, 0.2, 1);   // a point in the plane
+  cv::Matx31d v(0.5, 0.7, -1);                                    // a plane z
+  cv::Matx31d p_in_camera_coordinates(-1 - v(2), -1 - v(2), 1);   // a point in the plane
+
+  EXPECT_NEAR(v.dot(p_in_camera_coordinates) + 1, 0.0, 1e-6);
+
   cv::Matx31d p = R1.t() * (p_in_camera_coordinates - t1);
 
   // Compute point projections in image 1 and 2.
@@ -43,7 +46,7 @@ TEST(DepthOfPlaneBackprojection, DepthNormalPlaneLoop) {
   cv::Vec3f normal = RandomNormal();
   cv::Vec3f plane = PlaneFromDepthAndNormal(20, 30, K, depth, normal);
   float backprojected_depth = DepthOfPlaneBackprojection(20, 30, K, plane);
-  EXPECT_NEAR(depth, backprojected_depth, 1e-8);
+  EXPECT_NEAR(depth, backprojected_depth, 1e-6);
 }
 
 

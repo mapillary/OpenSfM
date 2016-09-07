@@ -14,8 +14,8 @@ def compute_depthmap(data, graph, reconstruction, shot_id):
     de = csfm.DepthmapEstimator()
     add_views_to_depth_estimator(data, reconstruction, neighbors, de)
     de.set_depth_range(min_depth, max_depth, 100)
-    depth, plane, score = de.compute_brute_force()
-    # depth, score = de.compute_patch_match()
+    # depth, plane, score = de.compute_brute_force()
+    depth, plane, score = de.compute_patch_match()
 
     # Save and display results
     data.save_depthmap(shot_id, depth)
@@ -25,14 +25,17 @@ def compute_depthmap(data, graph, reconstruction, shot_id):
     with open(data._depthmap_ply_file(shot_id), 'w') as fout:
         fout.write(ply)
 
+    print plane.shape
+
     import matplotlib.pyplot as plt
-    plt.subplot(1, 3, 1)
+    plt.subplot(2, 2, 1)
     plt.imshow(data.image_as_array(shot_id))
-    plt.colorbar()
-    plt.subplot(1, 3, 2)
+    plt.subplot(2, 2, 2)
+    plt.imshow(color_plane_normals(plane))
+    plt.subplot(2, 2, 3)
     plt.imshow(depth)
     plt.colorbar()
-    plt.subplot(1, 3, 3)
+    plt.subplot(2, 2, 4)
     plt.imshow(score)
     plt.colorbar()
     plt.show()
@@ -112,3 +115,9 @@ def depthmap_to_ply(shot, depth, image):
     ]
 
     return '\n'.join(header + vertices)
+
+
+def color_plane_normals(plane):
+    l = np.linalg.norm(plane, axis=2)
+    normal = -plane / l[..., np.newaxis]
+    return ((normal + 1) * 128).astype(np.uint8)
