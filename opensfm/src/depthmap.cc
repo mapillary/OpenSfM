@@ -1,5 +1,5 @@
 
-#include  <opencv2/opencv.hpp>
+#include <opencv2/opencv.hpp>
 
 
 namespace csfm {
@@ -70,7 +70,8 @@ cv::Matx33d PlaneInducedHomography(const cv::Matx33d K1,
 float DepthOfPlaneBackprojection(double x, double y,
                                  const cv::Matx33d &K,
                                  const cv::Vec3d &plane) {
-  return -1.0f / (plane.t() * K.inv() * cv::Vec3d(x, y, 1))(0);
+  float denom  = -(plane.t() * K.inv() * cv::Vec3d(x, y, 1))(0);
+  return 1.0f / std::max(1e-6f, denom);
 }
 
 cv::Vec3f PlaneFromDepthAndNormal(float x, float y,
@@ -78,7 +79,8 @@ cv::Vec3f PlaneFromDepthAndNormal(float x, float y,
                                   float depth,
                                   const cv::Vec3f &normal) {
   cv::Vec3f point = depth * K.inv() * cv::Vec3d(x, y, 1);
-  return -normal / normal.dot(point);
+  float denom = -normal.dot(point);
+  return normal / std::max(1e-6f, denom);
 }
 
 // Random non-normalized normal pointing towards the camera.

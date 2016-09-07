@@ -16,6 +16,7 @@ def compute_depthmap(data, graph, reconstruction, shot_id):
     de.set_depth_range(min_depth, max_depth, 100)
     # depth, plane, score = de.compute_brute_force()
     depth, plane, score = de.compute_patch_match()
+    depth = depth.clip(0, max_depth)
 
     # Save and display results
     data.save_depthmap(shot_id, depth)
@@ -24,8 +25,6 @@ def compute_depthmap(data, graph, reconstruction, shot_id):
     ply = depthmap_to_ply(shot, depth, image)
     with open(data._depthmap_ply_file(shot_id), 'w') as fout:
         fout.write(ply)
-
-    print plane.shape
 
     import matplotlib.pyplot as plt
     plt.subplot(2, 2, 1)
@@ -119,5 +118,7 @@ def depthmap_to_ply(shot, depth, image):
 
 def color_plane_normals(plane):
     l = np.linalg.norm(plane, axis=2)
-    normal = -plane / l[..., np.newaxis]
+    normal = plane / l[..., np.newaxis]
+    normal[..., 1] *= -1  # Reverse Y because it points down
+    normal[..., 2] *= -1  # Reverse Z because starndard colormap does so
     return ((normal + 1) * 128).astype(np.uint8)
