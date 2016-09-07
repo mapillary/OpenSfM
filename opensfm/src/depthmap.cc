@@ -83,13 +83,8 @@ cv::Vec3f PlaneFromDepthAndNormal(float x, float y,
   return normal / std::max(1e-6f, denom);
 }
 
-// Random non-normalized normal pointing towards the camera.
-cv::Vec3f RandomNormal() {
-  return cv::Vec3f(
-      -1.0f + rand() * 2.0f / RAND_MAX,
-      -1.0f + rand() * 2.0f / RAND_MAX,
-      -1.0f
-  );
+float UniformRand(float a, float b) {
+  return a + (b - a) * float(rand()) / RAND_MAX;
 }
 
 
@@ -144,11 +139,25 @@ class DepthmapEstimator {
     *best_plane = cv::Mat(images_[0].rows, images_[0].cols, CV_32FC3, 0.0f);
     *best_score = cv::Mat(images_[0].rows, images_[0].cols, CV_32F, 0.0f);
 
+    RandomInitialization(best_depth, best_plane);
+
     for (int i = 0; i < 3; ++i) {
       std::cout << "PatchMatchForwardPass " << i << "\n";
       PatchMatchForwardPass(best_depth, best_plane, best_score);
       std::cout << "PatchMatchBackwardPass " << i << "\n";
       PatchMatchBackwardPass(best_depth, best_plane, best_score);
+    }
+  }
+
+  void RandomInitialization(cv::Mat *best_depth, cv::Mat * best_plane) {
+    int hpz = (patch_size_ - 1) / 2;
+    for (int i = hpz; i < best_depth->rows - hpz; ++i) {
+      for (int j = hpz; j < best_depth->cols - hpz; ++j) {
+        float depth = UniformRand(min_depth_, max_depth_);
+        cv::Vec3f normal(UniformRand(-1, 1), UniformRand(-1, 1), -1);
+        best_depth->at<float>(i, j) = depth;
+        best_plane->at<cv::Vec3f>(i, j) = PlaneFromDepthAndNormal(j, i, Ks_[0], depth, normal);
+      }
     }
   }
 
@@ -182,11 +191,23 @@ class DepthmapEstimator {
     }
 
     // Check random planes.
-    for (int k = 0; k < 4; ++k) {
-      float depth = 1 / (1 / min_depth_ + rand() * (1 / max_depth_ - 1 / min_depth_) / RAND_MAX);
-      cv::Vec3f normal = RandomNormal();
+    float depth_range = (1 / max_depth_ - 1 / min_depth_) / 2;
+    float normal_range = 0.5;
+    for (int k = 0; k < 6; ++k) {
+      float current_depth = best_depth->at<float>(i, j);
+      float depth_delta = UniformRand(-depth_range, depth_range);
+      float depth = 1 / (1 / current_depth + UniformRand(-depth_range, depth_range));
+
+      cv::Vec3f current_plane = best_plane->at<cv::Vec3f>(i, j);
+      cv::Vec3f normal(-current_plane(0) / current_plane(2) + UniformRand(-normal_range, normal_range),
+                       -current_plane(1) / current_plane(2) + UniformRand(-normal_range, normal_range),
+                       -1.0f);
+
       cv::Vec3f plane = PlaneFromDepthAndNormal(j, i, Ks_[0], depth, normal);
       CheckPlaneCandidate(best_depth, best_plane, best_score, i, j, plane);
+
+      depth_range *= 0.5;
+      normal_range *= 0.5;
     }
   }
 
