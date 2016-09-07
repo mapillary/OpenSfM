@@ -133,12 +133,7 @@ class DepthmapEstimator {
           float depth = 1 / (1 / min_depth_ + d * (1 / max_depth_ - 1 / min_depth_) / (num_depth_planes_ - 1));
           cv::Vec3f normal(0, 0, -1);
           cv::Vec3f plane = PlaneFromDepthAndNormal(j, i, Ks_[0], depth, normal);
-          float score = ComputePlaneScore(i, j, plane);
-          if (score > best_score->at<float>(i, j)) {
-            best_score->at<float>(i, j) = score;
-            best_plane->at<cv::Vec3f>(i, j) = plane;
-            best_depth->at<float>(i, j) = depth;
-          }
+          CheckPlaneCandidate(best_depth, best_plane, best_score, i, j, plane);
         }
       }
     }
@@ -180,26 +175,28 @@ class DepthmapEstimator {
   void PatchMatchUpdatePixel(cv::Mat *best_depth, cv::Mat *best_plane, cv::Mat *best_score,
                              int i, int j,
                              int neighbors[4][2]) {
-    const int num_neighbors = 4;
-    const int num_random = 4;
-    const int num_candidates = num_neighbors + num_random;
-    cv::Vec3f candidate_planes[num_candidates];
-    for (int k = 0; k < num_neighbors; ++k) {
-      candidate_planes[k] = best_plane->at<cv::Vec3f>(i + neighbors[k][0], j + neighbors[k][1]);
+    // Check neighbor's planes.
+    for (int k = 0; k < 4; ++k) {
+      cv::Vec3f plane = best_plane->at<cv::Vec3f>(i + neighbors[k][0], j + neighbors[k][1]);
+      CheckPlaneCandidate(best_depth, best_plane, best_score, i, j, plane);
     }
-    for (int k = 0; k < num_random; ++k) {
+
+    // Check random planes.
+    for (int k = 0; k < 4; ++k) {
       float depth = 1 / (1 / min_depth_ + rand() * (1 / max_depth_ - 1 / min_depth_) / RAND_MAX);
       cv::Vec3f normal = RandomNormal();
-      candidate_planes[num_neighbors + k] = PlaneFromDepthAndNormal(j, i, Ks_[0], depth, normal);
+      cv::Vec3f plane = PlaneFromDepthAndNormal(j, i, Ks_[0], depth, normal);
+      CheckPlaneCandidate(best_depth, best_plane, best_score, i, j, plane);
     }
-    for (int c = 0; c < num_candidates; ++c) {
-      const cv::Vec3f &plane = candidate_planes[c];
-      float score = ComputePlaneScore(i, j, plane);
-      if (score > best_score->at<float>(i, j)) {
-        best_score->at<float>(i, j) = score;
-        best_plane->at<cv::Vec3f>(i, j) = plane;
-        best_depth->at<float>(i, j) = DepthOfPlaneBackprojection(j, i, Ks_[0], plane);
-      }
+  }
+
+  void CheckPlaneCandidate(cv::Mat *best_depth, cv::Mat *best_plane, cv::Mat *best_score,
+                           int i, int j, const cv::Vec3f &plane) {
+    float score = ComputePlaneScore(i, j, plane);
+    if (score > best_score->at<float>(i, j)) {
+      best_score->at<float>(i, j) = score;
+      best_plane->at<cv::Vec3f>(i, j) = plane;
+      best_depth->at<float>(i, j) = DepthOfPlaneBackprojection(j, i, Ks_[0], plane);
     }
   }
 
