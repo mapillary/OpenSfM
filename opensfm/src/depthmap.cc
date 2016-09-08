@@ -5,6 +5,7 @@
 namespace csfm {
 
 
+template<typename T>
 float LinearInterpolation(const cv::Mat &image, float y, float x) {
   int ix = int(x);
   int iy = int(y);
@@ -13,10 +14,10 @@ float LinearInterpolation(const cv::Mat &image, float y, float x) {
   }
   float dx = x - ix;
   float dy = y - iy;
-  float im00 = image.at<unsigned char>(iy, ix);
-  float im01 = image.at<unsigned char>(iy, ix + 1);
-  float im10 = image.at<unsigned char>(iy + 1, ix);
-  float im11 = image.at<unsigned char>(iy + 1, ix + 1);
+  float im00 = image.at<T>(iy, ix);
+  float im01 = image.at<T>(iy, ix + 1);
+  float im10 = image.at<T>(iy + 1, ix);
+  float im11 = image.at<T>(iy + 1, ix + 1);
   float im0 = (1 - dx) * im00 + dx * im01;
   float im1 = (1 - dx) * im10 + dx * im11;
   return (1 - dy) * im0 + dy * im1;
@@ -261,7 +262,7 @@ class DepthmapEstimator {
         patch1[counter] = images_[0].at<unsigned char>(i + u, j + v);
         double x2, y2;
         ApplyHomography(H, j + v, i + u, &x2, &y2);
-        patch2[counter] = LinearInterpolation(images_[other], y2, x2);
+        patch2[counter] = LinearInterpolation<unsigned char>(images_[other], y2, x2);
         counter++;
       }
     }
@@ -276,6 +277,57 @@ class DepthmapEstimator {
   int patch_size_;
   double min_depth_, max_depth_;
   int num_depth_planes_;
+};
+
+
+class DepthmapCleaner {
+ public:
+  DepthmapCleaner() {}
+
+  void AddView(const double *pK,
+               const double *pR,
+               const double *pt,
+               const float *pdepth,
+               int width,
+               int height) {
+    Ks_.emplace_back(pK);
+    Rs_.emplace_back(pR);
+    ts_.emplace_back(pt);
+    depths_.emplace_back(cv::Mat(height, width, CV_32F, (void *)pdepth).clone());
+  }
+
+  void Clean(cv::Mat *clean_depth) {
+    *clean_depth = cv::Mat(depths_[0].rows, depths_[0].cols, CV_32F, 0.0f);
+
+    for (int i = 0; i < depths_[0].rows; ++i) {
+      for (int j = 0; j < depths_[0].cols; ++j) {
+        float depth = depths_[0].at<float>(i, j);
+        cv::Vec3f point = Backproject(i, j, depth, Ks_[0], Rs_[0], ts_[0]);
+        int inliers = 0;
+        for (int other = 1; other < depths_.size(); ++other) {
+          cv::Vec3d reprojection = Project(point, Ks_[other], Rs_[other], ts_[other]);
+          float u = reprojection(0) / reprojection(2);
+          float v = reprojection(1) / reprojection(2);
+          float depth_at_reprojection = LinearInterpolation<float>(depths_[other], v, u);
+          float ratio = depth_at_reprojection / reprojection(2);
+          if (fabs(depth_at_reprojection - reprojection(2)) / reprojection(2) < 0.1) {
+            inliers++;
+          }
+        }
+        if (inliers >= 1) {
+          clean_depth->at<float>(i, j) = depths_[0].at<float>(i, j);
+        } else {
+          clean_depth->at<float>(i, j) = 0;
+        }
+      }
+    }
+  }
+
+ private:
+  std::vector<cv::Mat> depths_;
+  std::vector<cv::Matx33d> Ks_;
+  std::vector<cv::Matx33d> Rs_;
+  std::vector<cv::Vec3d> ts_;
 };
 
 

@@ -5,9 +5,24 @@ import numpy as np
 from opensfm import csfm
 
 
-def compute_depthmap(data, graph, reconstruction, shot_id):
+def compute_depthmaps(data, graph, reconstruction):
+    """Compute and refine depthmaps for all shots."""
+    depths = {}
+    planes = {}
+    scores = {}
+    for shot in reconstruction.shots.values():
+        depth, plane, score = compute_depthmap(data, graph, reconstruction, shot)
+        depths[shot.id] = depth
+        planes[shot.id] = plane
+        scores[shot.id] = score
+
+    for shot in reconstruction.shots.values():
+        clean_depthmap(data, graph, reconstruction, shot,
+                       depths, planes, scores)
+
+
+def compute_depthmap(data, graph, reconstruction, shot):
     """Compute depthmap for a single shot."""
-    shot = reconstruction.shots[shot_id]
     neighbors = find_neighboring_images(shot, reconstruction)
     min_depth, max_depth = compute_depth_range(graph, reconstruction, shot)
 
@@ -16,14 +31,14 @@ def compute_depthmap(data, graph, reconstruction, shot_id):
     de.set_depth_range(min_depth, max_depth, 100)
     # depth, plane, score = de.compute_brute_force()
     depth, plane, score = de.compute_patch_match()
-    depth = depth.clip(0, max_depth)
+    depth = depth.clip(0, max_depth) * (score > 0.5)
 
     # Save and display results
-    data.save_depthmap(shot_id, depth)
+    data.save_depthmap(shot.id, depth)
     image = data.undistorted_image_as_array(shot.id)
     image = cv2.resize(image, (depth.shape[1], depth.shape[0]))
     ply = depthmap_to_ply(shot, depth, image)
-    with open(data._depthmap_ply_file(shot_id), 'w') as fout:
+    with open(data._depthmap_ply_file(shot.id), 'w') as fout:
         fout.write(ply)
 
     import matplotlib.pyplot as plt
@@ -38,6 +53,24 @@ def compute_depthmap(data, graph, reconstruction, shot_id):
     plt.imshow(score)
     plt.colorbar()
     plt.show()
+    return depth, plane, score
+
+
+def clean_depthmap(data, graph, reconstruction, shot, depths, planes, scores):
+    neighbors = find_neighboring_images(shot, reconstruction, num_neighbors=5)
+    dc = csfm.DepthmapCleaner()
+    add_views_to_depth_cleaner(reconstruction, depths, neighbors, dc)
+    depth = dc.clean()
+
+    import matplotlib.pyplot as plt
+    plt.subplot(2, 2, 1)
+    plt.imshow(depths[shot.id])
+    plt.colorbar()
+    plt.subplot(2, 2, 2)
+    plt.imshow(depth)
+    plt.colorbar()
+    plt.show(block=True)
+    return depth
 
 
 def add_views_to_depth_estimator(data, reconstruction, neighbors, de):
@@ -55,6 +88,19 @@ def add_views_to_depth_estimator(data, reconstruction, neighbors, de):
         R = shot.pose.get_rotation_matrix()
         t = shot.pose.translation
         de.add_view(K, R, t, image)
+
+
+def add_views_to_depth_cleaner(reconstruction, depths, neighbors, dc):
+    for neighbor in neighbors:
+        shot = reconstruction.shots[neighbor]
+        depth = depths[neighbor]
+        height, width = depth.shape
+        K = shot.camera.get_K_in_pixel_coordinates(width, height)
+        R = shot.pose.get_rotation_matrix()
+        t = shot.pose.translation
+        dc.add_view(K, R, t, depth)
+
+
 
 
 def compute_depth_range(graph, reconstruction, shot):

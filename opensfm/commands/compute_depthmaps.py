@@ -18,6 +18,4 @@ class Command:
         reconstructions = data.load_reconstruction()
         graph = data.load_tracks_graph()
 
-        for reconstruction in reconstructions:
-            for shot_id in reconstruction.shots:
-                dense.compute_depthmap(data, graph, reconstruction, shot_id)
+        dense.compute_depthmaps(data, graph, reconstructions[0])

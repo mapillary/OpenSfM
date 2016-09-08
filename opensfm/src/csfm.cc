@@ -154,4 +154,9 @@ BOOST_PYTHON_MODULE(csfm) {
     .def("compute_patch_match", &csfm::DepthmapEstimatorWrapper::ComputePatchMatch)
     .def("compute_brute_force", &csfm::DepthmapEstimatorWrapper::ComputeBruteForce)
   ;
+
+  class_<csfm::DepthmapCleanerWrapper>("DepthmapCleaner")
+    .def("add_view", &csfm::DepthmapCleanerWrapper::AddView)
+    .def("clean", &csfm::DepthmapCleanerWrapper::Clean)
+  ;
 }
