@@ -21,7 +21,7 @@ bp::object hahog(PyObject *image,
   PyArrayContiguousView<float> im((PyArrayObject *)image);
 
   if (im.valid()) {
-    clock_t t_start = clock();
+    //clock_t t_start = clock();
     // create a detector object
     VlCovDet * covdet = vl_covdet_new(VL_COVDET_METHOD_HESSIAN);
     // set various parameters (optional)
@@ -35,21 +35,21 @@ bp::object hahog(PyObject *image,
     // process the image and run the detector
     vl_covdet_put_image(covdet, im.data(), im.shape(1), im.shape(0));
 
-    clock_t t_scalespace = clock();
+    //clock_t t_scalespace = clock();
 
     vl_covdet_detect(covdet);
 
-    clock_t t_detect = clock();
+    //clock_t t_detect = clock();
 
     // compute the affine shape of the features (optional)
     //vl_covdet_extract_affine_shape(covdet);
 
-    clock_t t_affine = clock();
+    //clock_t t_affine = clock();
 
     // compute the orientation of the features (optional)
     vl_covdet_extract_orientations(covdet);
 
-    clock_t t_orient = clock();
+    //clock_t t_orient = clock();
 
     // get feature descriptors
     vl_size numFeatures = vl_covdet_get_num_features(covdet);
@@ -99,7 +99,7 @@ bp::object hahog(PyObject *image,
     vl_sift_delete(sift);
     vl_covdet_delete(covdet);
 
-    clock_t t_description = clock();
+    // clock_t t_description = clock();
     // std::cout << "t_scalespace " << float(t_scalespace - t_start)/CLOCKS_PER_SEC << "\n";
     // std::cout << "t_detect " << float(t_detect - t_scalespace)/CLOCKS_PER_SEC << "\n";
     // std::cout << "t_affine " << float(t_affine - t_detect)/CLOCKS_PER_SEC << "\n";

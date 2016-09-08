@@ -210,7 +210,6 @@ class DepthmapEstimator {
     float normal_range = 0.5;
     for (int k = 0; k < 6; ++k) {
       float current_depth = best_depth->at<float>(i, j);
-      float depth_delta = UniformRand(-depth_range, depth_range);
       float depth = 1 / (1 / current_depth + UniformRand(-depth_range, depth_range));
 
       cv::Vec3f current_plane = best_plane->at<cv::Vec3f>(i, j);
@@ -309,7 +308,6 @@ class DepthmapCleaner {
           float u = reprojection(0) / reprojection(2);
           float v = reprojection(1) / reprojection(2);
           float depth_at_reprojection = LinearInterpolation<float>(depths_[other], v, u);
-          float ratio = depth_at_reprojection / reprojection(2);
           if (fabs(depth_at_reprojection - reprojection(2)) / reprojection(2) < 0.1) {
             inliers++;
           }
