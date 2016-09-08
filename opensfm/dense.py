@@ -20,7 +20,7 @@ def compute_depthmap(data, graph, reconstruction, shot_id):
 
     # Save and display results
     data.save_depthmap(shot_id, depth)
-    image = data.image_as_array(shot.id)
+    image = data.undistorted_image_as_array(shot.id)
     image = cv2.resize(image, (depth.shape[1], depth.shape[0]))
     ply = depthmap_to_ply(shot, depth, image)
     with open(data._depthmap_ply_file(shot_id), 'w') as fout:
@@ -28,7 +28,7 @@ def compute_depthmap(data, graph, reconstruction, shot_id):
 
     import matplotlib.pyplot as plt
     plt.subplot(2, 2, 1)
-    plt.imshow(data.image_as_array(shot_id))
+    plt.imshow(image)
     plt.subplot(2, 2, 2)
     plt.imshow(color_plane_normals(plane))
     plt.subplot(2, 2, 3)
