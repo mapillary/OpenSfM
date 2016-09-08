@@ -301,14 +301,14 @@ class DepthmapCleaner {
     for (int i = 0; i < depths_[0].rows; ++i) {
       for (int j = 0; j < depths_[0].cols; ++j) {
         float depth = depths_[0].at<float>(i, j);
-        cv::Vec3f point = Backproject(i, j, depth, Ks_[0], Rs_[0], ts_[0]);
+        cv::Vec3f point = Backproject(j, i, depth, Ks_[0], Rs_[0], ts_[0]);
         int inliers = 0;
         for (int other = 1; other < depths_.size(); ++other) {
           cv::Vec3d reprojection = Project(point, Ks_[other], Rs_[other], ts_[other]);
           float u = reprojection(0) / reprojection(2);
           float v = reprojection(1) / reprojection(2);
           float depth_at_reprojection = LinearInterpolation<float>(depths_[other], v, u);
-          if (fabs(depth_at_reprojection - reprojection(2)) / reprojection(2) < 0.1) {
+          if (fabs(depth_at_reprojection - reprojection(2)) / reprojection(2) < 0.01) {
             inliers++;
           }
         }
