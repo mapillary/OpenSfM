@@ -58,13 +58,27 @@ void ApplyHomography(const cv::Matx33d &H,
 
 cv::Matx33d PlaneInducedHomography(const cv::Matx33d K1,
                                    const cv::Matx33d R1,
-                                   const cv::Matx31d t1,
+                                   const cv::Vec3d t1,
                                    const cv::Matx33d K2,
                                    const cv::Matx33d R2,
-                                   const cv::Matx31d t2,
-                                   const cv::Matx31d v) {
+                                   const cv::Vec3d t2,
+                                   const cv::Vec3d v) {
   cv::Matx33d R2R1 = R2 * R1.t();
   return K2 * (R2R1 + (R2R1 * t1 - t2) * v.t()) * K1.inv();
+}
+
+cv::Vec3d Project(cv::Vec3d x,
+                  const cv::Matx33d &K,
+                  const cv::Matx33d &R,
+                  const cv::Vec3d &t) {
+  return K * (R * x + t);
+}
+
+cv::Vec3d Backproject(double x, double y, double depth,
+                      const cv::Matx33d &K,
+                      const cv::Matx33d &R,
+                      const cv::Vec3d &t) {
+  return R.t() * (depth * K.inv() * cv::Vec3d(x, y, 1) - t);
 }
 
 float DepthOfPlaneBackprojection(double x, double y,
@@ -258,7 +272,7 @@ class DepthmapEstimator {
   std::vector<cv::Mat> images_;
   std::vector<cv::Matx33d> Ks_;
   std::vector<cv::Matx33d> Rs_;
-  std::vector<cv::Matx31d> ts_;
+  std::vector<cv::Vec3d> ts_;
   int patch_size_;
   double min_depth_, max_depth_;
   int num_depth_planes_;
