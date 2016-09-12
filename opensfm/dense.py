@@ -62,6 +62,13 @@ def clean_depthmap(data, graph, reconstruction, shot, depths, planes, scores):
     add_views_to_depth_cleaner(reconstruction, depths, neighbors, dc)
     depth = dc.clean()
 
+    # Save and display results
+    image = data.undistorted_image_as_array(shot.id)
+    image = cv2.resize(image, (depth.shape[1], depth.shape[0]))
+    ply = depthmap_to_ply(shot, depth, image)
+    with open(data._depthmap_ply_file(shot.id).replace('ply', 'clean.ply'), 'w') as fout:
+        fout.write(ply)
+
     import matplotlib.pyplot as plt
     plt.subplot(2, 2, 1)
     plt.imshow(depths[shot.id])
@@ -99,8 +106,6 @@ def add_views_to_depth_cleaner(reconstruction, depths, neighbors, dc):
         R = shot.pose.get_rotation_matrix()
         t = shot.pose.translation
         dc.add_view(K, R, t, depth)
-
-
 
 
 def compute_depth_range(graph, reconstruction, shot):
