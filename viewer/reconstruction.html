@@ -666,6 +666,7 @@
 
             function createImagePlaneMaterial(cam, shot, shot_id) {
                 var imageTexture = THREE.ImageUtils.loadTexture(imageURL(shot_id));
+                imageTexture.minFilter = THREE.LinearFilter;
 
                 var material = new THREE.ShaderMaterial({
                     side: THREE.DoubleSide,
@@ -1029,6 +1030,7 @@
 
                 imagePlaneCameras[id] = cameraObject;
                 imageMaterials[id].map = THREE.ImageUtils.loadTexture(image_url, null, render);
+                imageMaterials[id].map.minFilter = THREE.LinearFilter;
                 imagePlanes[id].geometry = imagePlaneGeo(r, shot_id);
                 imagePlanes[id].visible = true;
             }
