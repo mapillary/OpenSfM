@@ -25212,5 +25212,12 @@
         "Sensor res. (width)": 2031.0, 
         "Sensor": "1/2\" (~ 6.4 x 4.8 mm)", 
         "Sensor res. (height)": 1527.0
+    }, 
+    "GITUP GIT2": {
+        "Sensor height (mm)": 4.662, 
+        "Sensor width (mm)": 6.216, 
+        "Sensor res. (width)": 4608, 
+        "Sensor": "1/2.3", 
+        "Sensor res. (height)": 3456
     }
 }
