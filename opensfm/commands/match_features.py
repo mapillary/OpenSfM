@@ -79,12 +79,20 @@ def has_gps_info(exif):
 
 
 def distance_from_exif(exif1, exif2):
+    """Compute distance between images based on exif metadata.
+
+    >>> exif1 = {'gps': {'latitude': 50.0663888889, 'longitude': 5.714722222}}
+    >>> exif2 = {'gps': {'latitude': 58.6438888889, 'longitude': 3.070000000}}
+    >>> d = distance_from_exif(exif1, exif2)
+    >>> abs(d - 968998) < 1
+    True
+    """
     if has_gps_info(exif1) and has_gps_info(exif2):
         gps1 = exif1['gps']
         gps2 = exif2['gps']
-        lon1, lat1 = gps1['longitude'], gps1['latitude']
-        lon2, lat2 = gps2['longitude'], gps2['latitude']
-        return geo.gps_distance([lon1, lat1], [lon2, lat2])
+        latlon1 = gps1['latitude'], gps1['longitude']
+        latlon2 = gps2['latitude'], gps2['longitude']
+        return geo.gps_distance(latlon1, latlon2)
     else:
         return 0
 
