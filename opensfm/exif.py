@@ -226,17 +226,18 @@ class EXIF:
         return d
 
     def extract_capture_time(self):
-        time_strings = ["EXIF DateTimeOriginal",
-                        "EXIF DateTimeDigitized",
-                        "Image DateTime"]
+        time_strings = [('EXIF DateTimeOriginal', 'EXIF SubSecTimeOriginal'),
+                        ('EXIF DateTimeDigitized', 'EXIF SubSecTimeDigitized'),
+                        ('Image DateTime', 'EXIF SubSecTime')]
         for ts in time_strings:
-            if ts in self.tags:
-                s = str(self.tags[ts].values)
+            if ts[0] in self.tags:
+                s = str(self.tags[ts[0]].values)
                 try:
                     d = datetime.datetime.strptime(s, '%Y:%m:%d %H:%M:%S')
                 except ValueError:
                     continue
                 timestamp = (d - datetime.datetime(1970, 1, 1)).total_seconds()   # Assuming d is in UTC
+                timestamp += int(str(self.tags.get(ts[1], 0))) / 1000.0;
                 return timestamp
         return 0.0
 
