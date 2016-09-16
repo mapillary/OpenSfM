@@ -5,9 +5,10 @@ import match_features
 import create_tracks
 import reconstruct
 import mesh
+import undistort
+import compute_depthmaps
 import export_ply
 import export_openmvs
-import compute_depthmaps
 
 opensfm_commands = [
     extract_metadata,
@@ -16,7 +17,8 @@ opensfm_commands = [
     create_tracks,
     reconstruct,
     mesh,
+    undistort,
+    compute_depthmaps,
     export_ply,
     export_openmvs,
-    compute_depthmaps,
 ]
