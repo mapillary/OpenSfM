@@ -177,7 +177,7 @@ class DepthmapEstimator {
   }
 
   void PatchMatchForwardPass(cv::Mat *best_depth, cv::Mat *best_plane, cv::Mat *best_score) {
-    int neighbors[4][2] = {{-1, -1}, {-1, 0}, {-1, 1}, {0, -1}};
+    int neighbors[2][2] = {{-1, 0}, {0, -1}};
     int hpz = (patch_size_ - 1) / 2;
     for (int i = hpz; i < best_depth->rows - hpz; ++i) {
       for (int j = hpz; j < best_depth->cols - hpz; ++j) {
@@ -187,7 +187,7 @@ class DepthmapEstimator {
   }
 
   void PatchMatchBackwardPass(cv::Mat *best_depth, cv::Mat *best_plane, cv::Mat *best_score) {
-    int neighbors[4][2] = {{0, 1}, {1, -1}, {1, 0}, {1, 1}};
+    int neighbors[2][2] = {{0, 1}, {1, 0}};
     int hpz = (patch_size_ - 1) / 2;
     for (int i = best_depth->rows - hpz - 1; i >= hpz; --i) {
       for (int j = best_depth->cols - hpz - 1; j >= hpz; --j) {
@@ -198,15 +198,15 @@ class DepthmapEstimator {
 
   void PatchMatchUpdatePixel(cv::Mat *best_depth, cv::Mat *best_plane, cv::Mat *best_score,
                              int i, int j,
-                             int neighbors[4][2]) {
+                             int neighbors[2][2]) {
     // Check neighbor's planes.
-    for (int k = 0; k < 4; ++k) {
+    for (int k = 0; k < 2; ++k) {
       cv::Vec3f plane = best_plane->at<cv::Vec3f>(i + neighbors[k][0], j + neighbors[k][1]);
       CheckPlaneCandidate(best_depth, best_plane, best_score, i, j, plane);
     }
 
     // Check random planes.
-    float depth_range = (1 / max_depth_ - 1 / min_depth_) / 2;
+    float depth_range = (1 / max_depth_ - 1 / min_depth_) / 20;
     float normal_range = 0.5;
     for (int k = 0; k < 6; ++k) {
       float current_depth = best_depth->at<float>(i, j);
