@@ -83,16 +83,35 @@ class DataSet:
     def _depthmap_path(self):
         return os.path.join(self.data_path, 'depthmaps')
 
-    def _depthmap_file(self, image):
+    def _depthmap_file(self, image, suffix):
         """Path to the depthmap file"""
-        return os.path.join(self._depthmap_path(), image)
+        return os.path.join(self._depthmap_path(), image + '.' + suffix)
 
-    def save_depthmap(self, image, array):
+    def raw_depthmap_exists(self, image):
+        return os.path.isfile(self._depthmap_file(image, 'raw.npz'))
+
+    def save_raw_depthmap(self, image, depth, plane, score):
         io.mkdir_p(self._depthmap_path())
-        cv2.imwrite(self._depthmap_file(image), array)
+        filepath = self._depthmap_file(image, 'raw.npz')
+        np.savez(filepath, depth=depth, plane=plane, score=score)
+        cv2.imwrite(filepath + '.png', depth)
 
-    def _depthmap_ply_file(self, image):
-        return self._depthmap_file(image) + '.ply'
+    def load_raw_depthmap(self, image):
+        o = np.load(self._depthmap_file(image, 'raw.npz'))
+        return o['depth'], o['plane'], o['score']
+
+    def clean_depthmap_exists(self, image):
+        return os.path.isfile(self._depthmap_file(image, 'clean.npz'))
+
+    def save_clean_depthmap(self, image, depth, plane, score):
+        io.mkdir_p(self._depthmap_path())
+        filepath = self._depthmap_file(image, 'clean.npz')
+        np.savez(filepath, depth=depth, plane=plane, score=score)
+        cv2.imwrite(filepath + '.png', depth)
+
+    def load_clean_depthmap(self, image):
+        o = np.load(self._depthmap_file(image, 'clean.npz'))
+        return o['depth'], o['plane'], o['score']
 
     @staticmethod
     def __is_image_file(filename):

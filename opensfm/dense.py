@@ -24,6 +24,9 @@ def compute_depthmaps(data, graph, reconstruction):
 def compute_depthmap(data, graph, reconstruction, shot):
     """Compute depthmap for a single shot."""
     neighbors = find_neighboring_images(shot, reconstruction)
+    if data.raw_depthmap_exists(shot.id):
+        return data.load_raw_depthmap(shot.id)
+
     min_depth, max_depth = compute_depth_range(graph, reconstruction, shot)
 
     de = csfm.DepthmapEstimator()
@@ -31,14 +34,14 @@ def compute_depthmap(data, graph, reconstruction, shot):
     de.set_depth_range(min_depth, max_depth, 100)
     # depth, plane, score = de.compute_brute_force()
     depth, plane, score = de.compute_patch_match()
-    depth = depth.clip(0, max_depth) * (score > 0.5)
+    depth = depth * (depth < max_depth) * (score > 0.5)
 
     # Save and display results
-    data.save_depthmap(shot.id, depth)
+    data.save_raw_depthmap(shot.id, depth, plane, score)
     image = data.undistorted_image_as_array(shot.id)
     image = cv2.resize(image, (depth.shape[1], depth.shape[0]))
     ply = depthmap_to_ply(shot, depth, image)
-    with open(data._depthmap_ply_file(shot.id), 'w') as fout:
+    with open(data._depthmap_file(shot.id, 'raw.npz.ply'), 'w') as fout:
         fout.write(ply)
 
     import matplotlib.pyplot as plt
@@ -63,10 +66,11 @@ def clean_depthmap(data, graph, reconstruction, shot, depths, planes, scores):
     depth = dc.clean()
 
     # Save and display results
+    data.save_clean_depthmap(shot.id, depth, planes[shot.id], scores[shot.id])
     image = data.undistorted_image_as_array(shot.id)
     image = cv2.resize(image, (depth.shape[1], depth.shape[0]))
     ply = depthmap_to_ply(shot, depth, image)
-    with open(data._depthmap_ply_file(shot.id).replace('ply', 'clean.ply'), 'w') as fout:
+    with open(data._depthmap_file(shot.id, 'clean.npz.ply'), 'w') as fout:
         fout.write(ply)
 
     import matplotlib.pyplot as plt
