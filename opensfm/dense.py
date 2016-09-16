@@ -39,7 +39,7 @@ def compute_depthmap(data, graph, reconstruction, shot):
     # Save and display results
     data.save_raw_depthmap(shot.id, depth, plane, score)
     image = data.undistorted_image_as_array(shot.id)
-    image = cv2.resize(image, (depth.shape[1], depth.shape[0]))
+    image = scale_down_image(image, depth.shape[1], depth.shape[0])
     ply = depthmap_to_ply(shot, depth, image)
     with open(data._depthmap_file(shot.id, 'raw.npz.ply'), 'w') as fout:
         fout.write(ply)
@@ -68,7 +68,7 @@ def clean_depthmap(data, graph, reconstruction, shot, depths, planes, scores):
     # Save and display results
     data.save_clean_depthmap(shot.id, depth, planes[shot.id], scores[shot.id])
     image = data.undistorted_image_as_array(shot.id)
-    image = cv2.resize(image, (depth.shape[1], depth.shape[0]))
+    image = scale_down_image(image, depth.shape[1], depth.shape[0])
     ply = depthmap_to_ply(shot, depth, image)
     with open(data._depthmap_file(shot.id, 'clean.npz.ply'), 'w') as fout:
         fout.write(ply)
@@ -94,7 +94,7 @@ def add_views_to_depth_estimator(data, reconstruction, neighbors, de):
         original_height, original_width = gray_image.shape
         width = 640
         height = width * original_height / original_width
-        image = cv2.resize(gray_image, (width, height))
+        image = scale_down_image(gray_image, width, height)
         K = shot.camera.get_K_in_pixel_coordinates(width, height)
         R = shot.pose.get_rotation_matrix()
         t = shot.pose.translation
@@ -138,6 +138,12 @@ def distance_between_shots(shot, other):
     o2 = other.pose.get_origin()
     l = o2 - o1
     return np.sqrt(np.sum(l**2))
+
+
+def scale_down_image(image, width, height):
+    width = min(width, image.shape[1])
+    height = min(height, image.shape[0])
+    return cv2.resize(image, (width, height), interpolation=cv2.INTER_AREA)
 
 
 def depthmap_to_ply(shot, depth, image):
