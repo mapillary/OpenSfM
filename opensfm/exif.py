@@ -303,6 +303,8 @@ def hard_coded_calibration(exif):
         return {'focal': 0.5, 'k1': -0.19, 'k2': 0.028}
     elif 'geo' == make and 'frames' == model:
         return {'focal': 0.5, 'k1': -0.24, 'k2': 0.04}
+    elif 'sony' == make and 'hdr-as200v' == model:
+        return {'focal': 0.55, 'k1': -0.30, 'k2': 0.08}
 
 
 def focal_ratio_calibration(exif):
