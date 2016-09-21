@@ -203,9 +203,9 @@ def depthmap_to_ply(shot, depth, image):
 def point_cloud_to_ply(points, normals, colors):
     """Export depthmap points as a PLY string"""
     vertices = []
-    for p, c in zip(points, colors):
-        s = "{} {} {} {} {} {}".format(
-            p[0], p[1], p[2], int(c[0]), int(c[1]), int(c[2]))
+    for p, n, c in zip(points, normals, colors):
+        s = "{} {} {} {} {} {} {} {} {}".format(
+            p[0], p[1], p[2], n[0], n[1], n[2], int(c[0]), int(c[1]), int(c[2]))
         vertices.append(s)
 
     header = [
@@ -215,6 +215,9 @@ def point_cloud_to_ply(points, normals, colors):
         "property float x",
         "property float y",
         "property float z",
+        "property float nx",
+        "property float ny",
+        "property float nz",
         "property uchar diffuse_red",
         "property uchar diffuse_green",
         "property uchar diffuse_blue",
@@ -228,5 +231,5 @@ def color_plane_normals(plane):
     l = np.linalg.norm(plane, axis=2)
     normal = plane / l[..., np.newaxis]
     normal[..., 1] *= -1  # Reverse Y because it points down
-    normal[..., 2] *= -1  # Reverse Z because starndard colormap does so
+    normal[..., 2] *= -1  # Reverse Z because standard colormap does so
     return ((normal + 1) * 128).astype(np.uint8)

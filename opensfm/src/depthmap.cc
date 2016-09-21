@@ -384,12 +384,13 @@ class DepthmapMerger {
           continue;
         }
         cv::Vec3f point = Backproject(j, i, depth, K, R, t);
+        cv::Vec3f normal = R.t() * cv::normalize(planes.at<cv::Vec3f>(i, j));
         merged_points->push_back(point[0]);
         merged_points->push_back(point[1]);
         merged_points->push_back(point[2]);
-        merged_normals->push_back(200);
-        merged_normals->push_back(200);
-        merged_normals->push_back(200);
+        merged_normals->push_back(normal[0]);
+        merged_normals->push_back(normal[1]);
+        merged_normals->push_back(normal[2]);
         merged_colors->push_back(color[0]);
         merged_colors->push_back(color[1]);
         merged_colors->push_back(color[2]);
