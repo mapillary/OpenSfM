@@ -21,6 +21,8 @@ def compute_depthmaps(data, graph, reconstruction):
         clean_depths[shot.id] = clean_depthmap(
             data, graph, reconstruction, shot, depths, planes, scores)
 
+    merge_depthmaps(data, reconstruction, clean_depths, planes)
+
 
 def compute_depthmap(data, graph, reconstruction, shot):
     """Compute depthmap for a single shot."""
@@ -86,6 +88,23 @@ def clean_depthmap(data, graph, reconstruction, shot, depths, planes, scores):
     plt.colorbar()
     plt.show(block=True)
     return depth
+
+
+def merge_depthmaps(data, reconstruction, clean_depths, planes):
+    dm = csfm.DepthmapMerger()
+    for shot_id, depth in clean_depths.items():
+        shot = reconstruction.shots[shot_id]
+        color_image = data.undistorted_image_as_array(shot.id)
+        height, width = depth.shape
+        image = scale_down_image(color_image, width, height)
+        K = shot.camera.get_K_in_pixel_coordinates(width, height)
+        R = shot.pose.get_rotation_matrix()
+        t = shot.pose.translation
+        dm.add_view(K, R, t, depth, planes[shot.id], image)
+    points, normals, colors = dm.merge()
+    ply = point_cloud_to_ply(points, normals, colors)
+    with open(data._depthmap_path() + '/merged.ply', 'w') as fout:
+        fout.write(ply)
 
 
 def add_views_to_depth_estimator(data, reconstruction, neighbors, de):
@@ -164,6 +183,30 @@ def depthmap_to_ply(shot, depth, image):
             s = "{} {} {} {} {} {}".format(
                 p[0], p[1], p[2], c[0], c[1], c[2])
             vertices.append(s)
+
+    header = [
+        "ply",
+        "format ascii 1.0",
+        "element vertex {}".format(len(vertices)),
+        "property float x",
+        "property float y",
+        "property float z",
+        "property uchar diffuse_red",
+        "property uchar diffuse_green",
+        "property uchar diffuse_blue",
+        "end_header",
+    ]
+
+    return '\n'.join(header + vertices)
+
+
+def point_cloud_to_ply(points, normals, colors):
+    """Export depthmap points as a PLY string"""
+    vertices = []
+    for p, c in zip(points, colors):
+        s = "{} {} {} {} {} {}".format(
+            p[0], p[1], p[2], int(c[0]), int(c[1]), int(c[2]))
+        vertices.append(s)
 
     header = [
         "ply",

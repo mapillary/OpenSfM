@@ -159,4 +159,9 @@ BOOST_PYTHON_MODULE(csfm) {
     .def("add_view", &csfm::DepthmapCleanerWrapper::AddView)
     .def("clean", &csfm::DepthmapCleanerWrapper::Clean)
   ;
+
+  class_<csfm::DepthmapMergerWrapper>("DepthmapMerger")
+    .def("add_view", &csfm::DepthmapMergerWrapper::AddView)
+    .def("merge", &csfm::DepthmapMergerWrapper::Merge)
+  ;
 }

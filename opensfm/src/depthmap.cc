@@ -329,5 +329,84 @@ class DepthmapCleaner {
 };
 
 
+class DepthmapMerger {
+ public:
+  DepthmapMerger() {}
+
+  void AddView(const double *pK,
+               const double *pR,
+               const double *pt,
+               const float *pdepth,
+               const float *pplane,
+               const unsigned char *pcolor,
+               int width,
+               int height) {
+    Ks_.emplace_back(pK);
+    Rs_.emplace_back(pR);
+    ts_.emplace_back(pt);
+    depths_.emplace_back(cv::Mat(height, width, CV_32F, (void *)pdepth).clone());
+    planes_.emplace_back(cv::Mat(height, width, CV_32FC3, (void *)pplane).clone());
+    colors_.emplace_back(cv::Mat(height, width, CV_8UC3, (void *)pcolor).clone());
+  }
+
+  void Merge(std::vector<float> *merged_points,
+             std::vector<float> *merged_normals,
+             std::vector<unsigned char> *merged_colors) {
+    merged_points->clear();
+    merged_normals->clear();
+    merged_colors->clear();
+
+    for (int i = 0; i < depths_.size(); ++i) {
+      // Prune depthmap
+    }
+
+    for (int i = 0; i < depths_.size(); ++i) {
+      CollectDepthmapPoints(depths_[i], planes_[i], colors_[i],
+                            Ks_[i], Rs_[i], ts_[i],
+                            merged_points, merged_normals, merged_colors);
+    }
+  }
+
+  void CollectDepthmapPoints(const cv::Mat &depths,
+                             const cv::Mat &planes,
+                             const cv::Mat &colors,
+                             const cv::Matx33d &K,
+                             const cv::Matx33d &R,
+                             const cv::Vec3d &t,
+                             std::vector<float> *merged_points,
+                             std::vector<float> *merged_normals,
+                             std::vector<unsigned char> *merged_colors) {
+    for (int i = 0; i < depths.rows; ++i) {
+      for (int j = 0; j < depths.cols; ++j) {
+        float depth = depths.at<float>(i, j);
+        cv::Vec3b color = colors.at<cv::Vec3b>(i, j);
+        if (depth <= 0) {
+          continue;
+        }
+        cv::Vec3f point = Backproject(j, i, depth, K, R, t);
+        merged_points->push_back(point[0]);
+        merged_points->push_back(point[1]);
+        merged_points->push_back(point[2]);
+        merged_normals->push_back(200);
+        merged_normals->push_back(200);
+        merged_normals->push_back(200);
+        merged_colors->push_back(color[0]);
+        merged_colors->push_back(color[1]);
+        merged_colors->push_back(color[2]);
+      }
+    }
+  }
+
+ private:
+  std::vector<cv::Mat> depths_;
+  std::vector<cv::Mat> planes_;
+  std::vector<cv::Mat> colors_;
+  std::vector<cv::Matx33d> Ks_;
+  std::vector<cv::Matx33d> Rs_;
+  std::vector<cv::Vec3d> ts_;
+};
+
+
+
 }
 
