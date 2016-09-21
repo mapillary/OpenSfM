@@ -16,17 +16,18 @@ def compute_depthmaps(data, graph, reconstruction):
         planes[shot.id] = plane
         scores[shot.id] = score
 
+    clean_depths = {}
     for shot in reconstruction.shots.values():
-        clean_depthmap(data, graph, reconstruction, shot,
-                       depths, planes, scores)
+        clean_depths[shot.id] = clean_depthmap(
+            data, graph, reconstruction, shot, depths, planes, scores)
 
 
 def compute_depthmap(data, graph, reconstruction, shot):
     """Compute depthmap for a single shot."""
-    neighbors = find_neighboring_images(shot, reconstruction)
     if data.raw_depthmap_exists(shot.id):
         return data.load_raw_depthmap(shot.id)
 
+    neighbors = find_neighboring_images(shot, reconstruction)
     min_depth, max_depth = compute_depth_range(graph, reconstruction, shot)
 
     de = csfm.DepthmapEstimator()
@@ -60,6 +61,9 @@ def compute_depthmap(data, graph, reconstruction, shot):
 
 
 def clean_depthmap(data, graph, reconstruction, shot, depths, planes, scores):
+    if data.clean_depthmap_exists(shot.id):
+        return data.load_clean_depthmap(shot.id)[0]
+
     neighbors = find_neighboring_images(shot, reconstruction, num_neighbors=5)
     dc = csfm.DepthmapCleaner()
     add_views_to_depth_cleaner(reconstruction, depths, neighbors, dc)
