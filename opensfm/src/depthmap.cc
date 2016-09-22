@@ -339,11 +339,13 @@ class DepthmapMerger {
                const float *pdepth,
                const float *pplane,
                const unsigned char *pcolor,
+               const std::vector<int> neighbors,
                int width,
                int height) {
     Ks_.emplace_back(pK);
     Rs_.emplace_back(pR);
     ts_.emplace_back(pt);
+    neighbors_.emplace_back(neighbors);
     depths_.emplace_back(cv::Mat(height, width, CV_32F, (void *)pdepth).clone());
     planes_.emplace_back(cv::Mat(height, width, CV_32FC3, (void *)pplane).clone());
     colors_.emplace_back(cv::Mat(height, width, CV_8UC3, (void *)pcolor).clone());
@@ -402,6 +404,7 @@ class DepthmapMerger {
   std::vector<cv::Mat> depths_;
   std::vector<cv::Mat> planes_;
   std::vector<cv::Mat> colors_;
+  std::vector<std::vector<int> > neighbors_;
   std::vector<cv::Matx33d> Ks_;
   std::vector<cv::Matx33d> Rs_;
   std::vector<cv::Vec3d> ts_;

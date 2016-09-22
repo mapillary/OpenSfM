@@ -84,15 +84,21 @@ class DepthmapMergerWrapper {
                PyObject *t,
                PyObject *depth,
                PyObject *normal,
-               PyObject *color) {
+               PyObject *color,
+               bp::object neighbors) {
     PyArrayContiguousView<double> K_view((PyArrayObject *)K);
     PyArrayContiguousView<double> R_view((PyArrayObject *)R);
     PyArrayContiguousView<double> t_view((PyArrayObject *)t);
     PyArrayContiguousView<float> depth_view((PyArrayObject *)depth);
     PyArrayContiguousView<float> plane_view((PyArrayObject *)normal);
     PyArrayContiguousView<unsigned char> color_view((PyArrayObject *)color);
+    std::vector<int> neighbors_vector;
+    for (int i = 0; i < bp::len(neighbors); ++i) {
+      neighbors_vector.push_back(bp::extract<int>(neighbors[i]));
+    }
     dm_.AddView(K_view.data(), R_view.data(), t_view.data(),
                 depth_view.data(), plane_view.data(), color_view.data(),
+                neighbors_vector,
                 depth_view.shape(1), depth_view.shape(0));
   }
 

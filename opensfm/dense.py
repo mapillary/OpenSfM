@@ -92,15 +92,20 @@ def clean_depthmap(data, graph, reconstruction, shot, depths, planes, scores):
 
 def merge_depthmaps(data, reconstruction, clean_depths, planes):
     dm = csfm.DepthmapMerger()
-    for shot_id, depth in clean_depths.items():
+    shot_ids = clean_depths.keys()
+    indices = {k: i for i, k in enumerate(shot_ids)}
+    for shot_id in shot_ids:
+        depth = clean_depths[shot_id]
         shot = reconstruction.shots[shot_id]
+        neighbors = find_neighboring_images(shot, reconstruction, num_neighbors=5)
+        neighbors_indices = [indices[n] for n in neighbors]
         color_image = data.undistorted_image_as_array(shot.id)
         height, width = depth.shape
         image = scale_down_image(color_image, width, height)
         K = shot.camera.get_K_in_pixel_coordinates(width, height)
         R = shot.pose.get_rotation_matrix()
         t = shot.pose.translation
-        dm.add_view(K, R, t, depth, planes[shot.id], image)
+        dm.add_view(K, R, t, depth, planes[shot.id], image, neighbors_indices)
     points, normals, colors = dm.merge()
     ply = point_cloud_to_ply(points, normals, colors)
     with open(data._depthmap_path() + '/merged.ply', 'w') as fout:
