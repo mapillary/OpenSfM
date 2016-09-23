@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 
 from opensfm import csfm
+from opensfm import matching
 
 
 def compute_depthmaps(data, graph, reconstruction):
@@ -29,7 +30,7 @@ def compute_depthmap(data, graph, reconstruction, shot):
     if data.raw_depthmap_exists(shot.id):
         return data.load_raw_depthmap(shot.id)
 
-    neighbors = find_neighboring_images(shot, reconstruction)
+    neighbors = find_neighboring_images(shot, graph, reconstruction)
     min_depth, max_depth = compute_depth_range(graph, reconstruction, shot)
 
     de = csfm.DepthmapEstimator()
@@ -66,7 +67,7 @@ def clean_depthmap(data, graph, reconstruction, shot, depths, planes, scores):
     if data.clean_depthmap_exists(shot.id):
         return data.load_clean_depthmap(shot.id)[0]
 
-    neighbors = find_neighboring_images(shot, reconstruction, num_neighbors=5)
+    neighbors = find_neighboring_images(shot, graph, reconstruction)
     dc = csfm.DepthmapCleaner()
     add_views_to_depth_cleaner(reconstruction, depths, neighbors, dc)
     depth = dc.clean()
@@ -153,12 +154,35 @@ def compute_depth_range(graph, reconstruction, shot):
     return min_depth * 0.9, max_depth * 1.1
 
 
-def find_neighboring_images(shot, reconstruction, num_neighbors=5):
-    """Find closest images."""
-    others = reconstruction.shots.values()
-    distances = [distance_between_shots(shot, other) for other in others]
-    pairs = sorted(zip(distances, others))
-    return [s.id for d, s in pairs[:num_neighbors]]
+def find_neighboring_images(shot, graph, reconstruction, num_neighbors=5):
+    """Find neighbouring images based on common tracks."""
+    theta_min = np.pi / 60
+    theta_max = np.pi / 6
+    ns = []
+    C1 = shot.pose.get_origin()
+    others = (s for s in reconstruction.shots.values() if s.id != shot.id)
+    for other in others:
+        score = 0
+        C2 = other.pose.get_origin()
+        tracks, p1s, p2s = matching.common_tracks(graph, shot.id, other.id)
+        for track in tracks:
+            if track in reconstruction.points:
+                p = np.array(reconstruction.points[track].coordinates)
+                theta = angle_between_points(p, C1, C2)
+                if theta > theta_min and theta < theta_max:
+                    score += 1
+
+        if (score > 20):
+            ns.append((other, score))
+
+    ns.sort(key=lambda ns: ns[1], reverse=True)
+    return [shot.id] + [n.id for n, s in ns[:num_neighbors]]
+
+
+def angle_between_points(origin, p1, p2):
+    a = p1 - origin
+    b = p2 - origin
+    return np.arccos(a.dot(b) / (np.linalg.norm(a) * np.linalg.norm(b)))
 
 
 def distance_between_shots(shot, other):
