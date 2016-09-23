@@ -22,7 +22,7 @@ def compute_depthmaps(data, graph, reconstruction):
         clean_depths[shot.id] = clean_depthmap(
             data, graph, reconstruction, shot, depths, planes, scores)
 
-    merge_depthmaps(data, reconstruction, clean_depths, planes)
+    merge_depthmaps(data, graph, reconstruction, clean_depths, planes)
 
 
 def compute_depthmap(data, graph, reconstruction, shot):
@@ -91,14 +91,14 @@ def clean_depthmap(data, graph, reconstruction, shot, depths, planes, scores):
     return depth
 
 
-def merge_depthmaps(data, reconstruction, clean_depths, planes):
+def merge_depthmaps(data, graph, reconstruction, clean_depths, planes):
     dm = csfm.DepthmapMerger()
     shot_ids = clean_depths.keys()
     indices = {k: i for i, k in enumerate(shot_ids)}
     for shot_id in shot_ids:
         depth = clean_depths[shot_id]
         shot = reconstruction.shots[shot_id]
-        neighbors = find_neighboring_images(shot, reconstruction, num_neighbors=5)
+        neighbors = find_neighboring_images(shot, graph, reconstruction)
         neighbors_indices = [indices[n] for n in neighbors]
         color_image = data.undistorted_image_as_array(shot.id)
         height, width = depth.shape
