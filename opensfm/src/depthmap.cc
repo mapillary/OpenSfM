@@ -4,6 +4,9 @@
 
 namespace csfm {
 
+bool IsInsideImage(const cv::Mat &image, int i, int j) {
+  return i >= 0 && i < image.rows && j >= 0 && j < image.cols;
+}
 
 template<typename T>
 float LinearInterpolation(const cv::Mat &image, float y, float x) {
@@ -304,7 +307,7 @@ class DepthmapCleaner {
         cv::Vec3f point = Backproject(j, i, depth, Ks_[0], Rs_[0], ts_[0]);
         int inliers = 0;
         for (int other = 1; other < depths_.size(); ++other) {
-          cv::Vec3d reprojection = Project(point, Ks_[other], Rs_[other], ts_[other]);
+          cv::Vec3f reprojection = Project(point, Ks_[other], Rs_[other], ts_[other]);
           float u = reprojection(0) / reprojection(2);
           float v = reprojection(1) / reprojection(2);
           float depth_at_reprojection = LinearInterpolation<float>(depths_[other], v, u);
@@ -359,13 +362,39 @@ class DepthmapMerger {
     merged_colors->clear();
 
     for (int i = 0; i < depths_.size(); ++i) {
-      // Prune depthmap
+      PruneDepthmap(i);
     }
 
     for (int i = 0; i < depths_.size(); ++i) {
       CollectDepthmapPoints(depths_[i], planes_[i], colors_[i],
                             Ks_[i], Rs_[i], ts_[i],
                             merged_points, merged_normals, merged_colors);
+    }
+  }
+
+  void PruneDepthmap(int view) {
+    for (int i = 0; i < depths_[view].rows; ++i) {
+      for (int j = 0; j < depths_[view].cols; ++j) {
+        float depth = depths_[view].at<float>(i, j);
+        if (depth <= 0) {
+          continue;
+        }
+        cv::Vec3f point = Backproject(j, i, depth,
+                                      Ks_[view], Rs_[view], ts_[view]);
+        for (int other = 0; other < neighbors_[view].size(); ++other) {
+          cv::Vec3d reprojection = Project(point, Ks_[other], Rs_[other], ts_[other]);
+          float iu = int(reprojection(0) / reprojection(2) + 0.5f);
+          float iv = int(reprojection(1) / reprojection(2) + 0.5f);
+          if (!IsInsideImage(depths_[other], iv, iu)) {
+            continue;
+          }
+          float depth_at_reprojection = depths_[other].at<float>(iv, iu);
+          float depth_of_point = reprojection(2);
+          if (depth_of_point - depth_at_reprojection < 0.01 * depth_at_reprojection) {
+            depths_[other].at<float>(iv, iu) = 0.0f;
+          }
+        }
+      }
     }
   }
 
