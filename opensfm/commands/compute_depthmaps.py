@@ -12,9 +12,13 @@ class Command:
 
     def add_arguments(self, parser):
         parser.add_argument('dataset', help='dataset to process')
+        parser.add_argument('--interactive',
+                            help='plot results as they are being computed',
+                            action='store_true')
 
     def run(self, args):
         data = dataset.DataSet(args.dataset)
+        data.config['interactive'] = args.interactive
         reconstructions = data.load_reconstruction()
         graph = data.load_tracks_graph()
 

@@ -140,7 +140,6 @@ class DepthmapEstimator {
 
     int hpz = (patch_size_ - 1) / 2;
     for (int i = hpz; i < best_depth->rows - hpz; ++i) {
-      std::cout << "i " << i << "\n";
       for (int j = hpz; j < best_depth->cols - hpz; ++j) {
         for (int d = 0; d < num_depth_planes_; ++d) {
           float depth = 1 / (1 / min_depth_ + d * (1 / max_depth_ - 1 / min_depth_) / (num_depth_planes_ - 1));
@@ -160,9 +159,7 @@ class DepthmapEstimator {
     RandomInitialization(best_depth, best_plane);
 
     for (int i = 0; i < 3; ++i) {
-      std::cout << "PatchMatchForwardPass " << i << "\n";
       PatchMatchForwardPass(best_depth, best_plane, best_score);
-      std::cout << "PatchMatchBackwardPass " << i << "\n";
       PatchMatchBackwardPass(best_depth, best_plane, best_score);
     }
   }

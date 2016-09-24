@@ -1,9 +1,14 @@
 
+import logging
+
 import cv2
 import numpy as np
 
 from opensfm import csfm
 from opensfm import matching
+
+
+logger = logging.getLogger(__name__)
 
 
 def compute_depthmaps(data, graph, reconstruction):
@@ -12,6 +17,7 @@ def compute_depthmaps(data, graph, reconstruction):
     planes = {}
     scores = {}
     for shot in reconstruction.shots.values():
+        logger.info("Computing depthmap for image {}".format(shot.id))
         depth, plane, score = compute_depthmap(data, graph, reconstruction, shot)
         depths[shot.id] = depth
         planes[shot.id] = plane
@@ -19,6 +25,7 @@ def compute_depthmaps(data, graph, reconstruction):
 
     clean_depths = {}
     for shot in reconstruction.shots.values():
+        logger.info("Cleaning depthmap for image {}".format(shot.id))
         clean_depths[shot.id] = clean_depthmap(
             data, graph, reconstruction, shot, depths, planes, scores)
 
@@ -48,18 +55,20 @@ def compute_depthmap(data, graph, reconstruction, shot):
     with open(data._depthmap_file(shot.id, 'raw.npz.ply'), 'w') as fout:
         fout.write(ply)
 
-    import matplotlib.pyplot as plt
-    plt.subplot(2, 2, 1)
-    plt.imshow(image)
-    plt.subplot(2, 2, 2)
-    plt.imshow(color_plane_normals(plane))
-    plt.subplot(2, 2, 3)
-    plt.imshow(depth)
-    plt.colorbar()
-    plt.subplot(2, 2, 4)
-    plt.imshow(score)
-    plt.colorbar()
-    plt.show()
+    if data.config.get('interactive'):
+        import matplotlib.pyplot as plt
+        plt.subplot(2, 2, 1)
+        plt.imshow(image)
+        plt.subplot(2, 2, 2)
+        plt.imshow(color_plane_normals(plane))
+        plt.subplot(2, 2, 3)
+        plt.imshow(depth)
+        plt.colorbar()
+        plt.subplot(2, 2, 4)
+        plt.imshow(score)
+        plt.colorbar()
+        plt.show()
+
     return depth, plane, score
 
 
@@ -80,14 +89,16 @@ def clean_depthmap(data, graph, reconstruction, shot, depths, planes, scores):
     with open(data._depthmap_file(shot.id, 'clean.npz.ply'), 'w') as fout:
         fout.write(ply)
 
-    import matplotlib.pyplot as plt
-    plt.subplot(2, 2, 1)
-    plt.imshow(depths[shot.id])
-    plt.colorbar()
-    plt.subplot(2, 2, 2)
-    plt.imshow(depth)
-    plt.colorbar()
-    plt.show(block=True)
+    if data.config.get('interactive'):
+        import matplotlib.pyplot as plt
+        plt.subplot(2, 2, 1)
+        plt.imshow(depths[shot.id])
+        plt.colorbar()
+        plt.subplot(2, 2, 2)
+        plt.imshow(depth)
+        plt.colorbar()
+        plt.show()
+
     return depth
 
 
