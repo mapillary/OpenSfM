@@ -379,8 +379,7 @@ class DepthmapMerger {
         if (depth <= 0) {
           continue;
         }
-        cv::Vec3f point = Backproject(j, i, depth,
-                                      Ks_[view], Rs_[view], ts_[view]);
+        cv::Vec3f point = Backproject(j, i, depth, Ks_[view], Rs_[view], ts_[view]);
         for (int other = 0; other < neighbors_[view].size(); ++other) {
           cv::Vec3d reprojection = Project(point, Ks_[other], Rs_[other], ts_[other]);
           float iu = int(reprojection(0) / reprojection(2) + 0.5f);
@@ -390,7 +389,7 @@ class DepthmapMerger {
           }
           float depth_at_reprojection = depths_[other].at<float>(iv, iu);
           float depth_of_point = reprojection(2);
-          if (depth_of_point - depth_at_reprojection < 0.01 * depth_at_reprojection) {
+          if (depth_at_reprojection > 0.99 * depth_of_point) {
             depths_[other].at<float>(iv, iu) = 0.0f;
           }
         }
