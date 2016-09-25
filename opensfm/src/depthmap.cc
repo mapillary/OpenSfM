@@ -377,7 +377,8 @@ class DepthmapMerger {
           continue;
         }
         cv::Vec3f point = Backproject(j, i, depth, Ks_[view], Rs_[view], ts_[view]);
-        for (int other = 0; other < neighbors_[view].size(); ++other) {
+        for (int k = 1; k < neighbors_[view].size(); ++k) {
+          int other = neighbors_[view][k];
           cv::Vec3d reprojection = Project(point, Ks_[other], Rs_[other], ts_[other]);
           float iu = int(reprojection(0) / reprojection(2) + 0.5f);
           float iv = int(reprojection(1) / reprojection(2) + 0.5f);
