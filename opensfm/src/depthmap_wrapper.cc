@@ -23,6 +23,10 @@ class DepthmapEstimatorWrapper {
     de_.SetDepthRange(min_depth, max_depth, num_depth_planes);
   }
 
+  void SetPatchMatchIterations(int n) {
+    de_.SetPatchMatchIterations(n);
+  }
+
   bp::object ComputePatchMatch() {
     cv::Mat depth, plane, score;
     de_.ComputePatchMatch(&depth, &plane, &score);
@@ -54,6 +58,14 @@ class DepthmapEstimatorWrapper {
 
 class DepthmapCleanerWrapper {
  public:
+  void SetSameDepthThreshold(float t) {
+    dc_.SetSameDepthThreshold(t);
+  }
+
+  void SetMinConsistentViews(int n) {
+    dc_.SetMinConsistentViews(n);
+  }
+
   void AddView(PyObject *K,
                PyObject *R,
                PyObject *t,
@@ -79,6 +91,10 @@ class DepthmapCleanerWrapper {
 
 class DepthmapMergerWrapper {
  public:
+  void SetSameDepthThreshold(float t) {
+    dm_.SetSameDepthThreshold(t);
+  }
+
   void AddView(PyObject *K,
                PyObject *R,
                PyObject *t,

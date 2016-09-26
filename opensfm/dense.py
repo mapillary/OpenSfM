@@ -49,10 +49,12 @@ def compute_depthmap(data, graph, reconstruction, neighbors, shot):
     min_depth, max_depth = compute_depth_range(graph, reconstruction, shot)
 
     de = csfm.DepthmapEstimator()
-    add_views_to_depth_estimator(data, reconstruction, neighbors[shot.id], de)
     de.set_depth_range(min_depth, max_depth, 100)
+    de.set_patchmatch_iterations(data.config['depthmap_patchmatch_iterations'])
+    add_views_to_depth_estimator(data, reconstruction, neighbors[shot.id], de)
     depth, plane, score = de.compute_patch_match()
-    depth = depth * (depth < max_depth) * (score > 0.5)
+    good_score = score > data.config['depthmap_min_correlation_score']
+    depth = depth * (depth < max_depth) * good_score
 
     # Save and display results
     data.save_raw_depthmap(shot.id, depth, plane, score)
@@ -85,6 +87,8 @@ def clean_depthmap(data, graph, reconstruction, neighbors, shot,
         return data.load_clean_depthmap(shot.id)[0]
 
     dc = csfm.DepthmapCleaner()
+    dc.set_same_depth_threshold(data.config['depthmap_same_depth_threshold'])
+    dc.set_min_consistent_views(data.config['depthmap_min_consistent_views'])
     add_views_to_depth_cleaner(reconstruction, depths, neighbors[shot.id], dc)
     depth = dc.clean()
 
@@ -112,6 +116,7 @@ def clean_depthmap(data, graph, reconstruction, neighbors, shot,
 def merge_depthmaps(data, graph, reconstruction, neighbors,
                     clean_depths, planes):
     dm = csfm.DepthmapMerger()
+    dm.set_same_depth_threshold(data.config['depthmap_same_depth_threshold'])
     shot_ids = clean_depths.keys()
     indices = {k: i for i, k in enumerate(shot_ids)}
     for shot_id in shot_ids:

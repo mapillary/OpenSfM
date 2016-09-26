@@ -109,11 +109,12 @@ float UniformRand(float a, float b) {
 class DepthmapEstimator {
  public:
   DepthmapEstimator()
-   : patch_size_(7)
-   , min_depth_(0)
-   , max_depth_(0)
-   , num_depth_planes_(50)
-   {}
+    : patch_size_(7)
+    , min_depth_(0)
+    , max_depth_(0)
+    , num_depth_planes_(50)
+    , patchmatch_iterations_(3)
+  {}
 
   void AddView(const double *pK,
                const double *pR,
@@ -131,6 +132,10 @@ class DepthmapEstimator {
     min_depth_ = min_depth;
     max_depth_ = max_depth;
     num_depth_planes_ = num_depth_planes;
+  }
+
+  void SetPatchMatchIterations(int n) {
+    patchmatch_iterations_ = n;
   }
 
   void ComputeBruteForce(cv::Mat *best_depth, cv::Mat *best_plane, cv::Mat *best_score) {
@@ -158,7 +163,7 @@ class DepthmapEstimator {
 
     RandomInitialization(best_depth, best_plane);
 
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < patchmatch_iterations_; ++i) {
       PatchMatchForwardPass(best_depth, best_plane, best_score);
       PatchMatchBackwardPass(best_depth, best_plane, best_score);
     }
@@ -276,12 +281,24 @@ class DepthmapEstimator {
   int patch_size_;
   double min_depth_, max_depth_;
   int num_depth_planes_;
+  int patchmatch_iterations_;
 };
 
 
 class DepthmapCleaner {
  public:
-  DepthmapCleaner() {}
+  DepthmapCleaner()
+    : same_depth_threshold_(0.01)
+    , min_consistent_views_(2)
+  {}
+
+  void SetSameDepthThreshold(float t) {
+    same_depth_threshold_ = t;
+  }
+
+  void SetMinConsistentViews(int n) {
+    min_consistent_views_ = n;
+  }
 
   void AddView(const double *pK,
                const double *pR,
@@ -302,17 +319,18 @@ class DepthmapCleaner {
       for (int j = 0; j < depths_[0].cols; ++j) {
         float depth = depths_[0].at<float>(i, j);
         cv::Vec3f point = Backproject(j, i, depth, Ks_[0], Rs_[0], ts_[0]);
-        int inliers = 0;
+        int consistent_views = 1;
         for (int other = 1; other < depths_.size(); ++other) {
           cv::Vec3f reprojection = Project(point, Ks_[other], Rs_[other], ts_[other]);
           float u = reprojection(0) / reprojection(2);
           float v = reprojection(1) / reprojection(2);
+          float depth_of_point = reprojection(2);
           float depth_at_reprojection = LinearInterpolation<float>(depths_[other], v, u);
-          if (fabs(depth_at_reprojection - reprojection(2)) / reprojection(2) < 0.01) {
-            inliers++;
+          if (fabs(depth_at_reprojection - depth_of_point) < depth_of_point * same_depth_threshold_) {
+            consistent_views++;
           }
         }
-        if (inliers >= 1) {
+        if (consistent_views >= min_consistent_views_) {
           clean_depth->at<float>(i, j) = depths_[0].at<float>(i, j);
         } else {
           clean_depth->at<float>(i, j) = 0;
@@ -326,12 +344,20 @@ class DepthmapCleaner {
   std::vector<cv::Matx33d> Ks_;
   std::vector<cv::Matx33d> Rs_;
   std::vector<cv::Vec3d> ts_;
+  float same_depth_threshold_;
+  int min_consistent_views_;
 };
 
 
 class DepthmapMerger {
  public:
-  DepthmapMerger() {}
+  DepthmapMerger()
+    : same_depth_threshold_(0.01)
+  {}
+
+  void SetSameDepthThreshold(float t) {
+    same_depth_threshold_ = t;
+  }
 
   void AddView(const double *pK,
                const double *pR,
@@ -382,12 +408,12 @@ class DepthmapMerger {
           cv::Vec3d reprojection = Project(point, Ks_[other], Rs_[other], ts_[other]);
           float iu = int(reprojection(0) / reprojection(2) + 0.5f);
           float iv = int(reprojection(1) / reprojection(2) + 0.5f);
+          float depth_of_point = reprojection(2);
           if (!IsInsideImage(depths_[other], iv, iu)) {
             continue;
           }
           float depth_at_reprojection = depths_[other].at<float>(iv, iu);
-          float depth_of_point = reprojection(2);
-          if (depth_at_reprojection > 0.99 * depth_of_point) {
+          if (depth_at_reprojection > (1 - same_depth_threshold_) * depth_of_point) {
             depths_[other].at<float>(iv, iu) = 0.0f;
           }
         }
@@ -434,6 +460,7 @@ class DepthmapMerger {
   std::vector<cv::Matx33d> Ks_;
   std::vector<cv::Matx33d> Rs_;
   std::vector<cv::Vec3d> ts_;
+  float same_depth_threshold_;
 };
 
 
