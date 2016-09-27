@@ -3,13 +3,14 @@
 
 import datetime
 import logging
-from itertools import combinations
+from itertools import combinations, groupby
 
 import numpy as np
 import cv2
 import pyopengv
 import time
 from networkx.algorithms import bipartite
+from multiprocessing import Pool
 
 from opensfm import align
 from opensfm import csfm
@@ -176,19 +177,34 @@ def pairwise_reconstructability(common_tracks, homography_inliers):
 
 def compute_image_pairs(graph, image_graph, config):
     """All matched image pairs sorted by reconstructability."""
-    pairs = []
-    score = []
-    for im1, im2, d in image_graph.edges(data=True):
-        tracks, p1, p2 = matching.common_tracks(graph, im1, im2)
-        if len(tracks) >= 50:
-            H, inliers = cv2.findHomography(
-                p1, p2, cv2.RANSAC, config.get('homography_threshold', 0.004))
-            r = pairwise_reconstructability(len(tracks), inliers.sum())
-            if r > 0:
-                pairs.append((im1, im2))
-                score.append(r)
+    args = _pair_reconstructability_arguments(graph, image_graph, config)
+    processes = config.get('processes', 1)
+    if processes == 1:
+        result = map(_compute_pair_reconstructability, args)
+    else:
+        p = Pool(processes)
+        result = p.map(_compute_pair_reconstructability, args)
+    pairs = [(im1, im2) for im1, im2, r in result if r > 0]
+    score = [r for im1, im2, r in result if r > 0]
     order = np.argsort(-np.array(score))
     return [pairs[o] for o in order]
+
+
+def _pair_reconstructability_arguments(graph, image_graph, config):
+    homography_threshold = config.get('homography_threshold', 0.004)
+    return [(homography_threshold, im1, im2, d, matching.common_tracks(graph, im1, im2)) 
+            for im1, im2, d in image_graph.edges(data=True)]
+
+
+def _compute_pair_reconstructability(args):
+    homography_threshold, im1, im2, d, common_tracks = args
+    tracks, p1, p2 = common_tracks
+    r = 0
+    if len(tracks) >= 50:
+        H, inliers = cv2.findHomography(
+            p1, p2, cv2.RANSAC, homography_threshold)
+        r = pairwise_reconstructability(len(tracks), inliers.sum())
+    return (im1, im2, r)
 
 
 def get_image_metadata(data, image):
@@ -735,6 +751,7 @@ def tracks_and_images(graph):
 
 def incremental_reconstruction(data):
     """Run the entire incremental reconstruction pipeline."""
+    logger.info("Starting incremental reconstruction")
     data.invent_reference_lla()
     graph = data.load_tracks_graph()
     tracks, images = tracks_and_images(graph)
