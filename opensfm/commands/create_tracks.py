@@ -1,4 +1,5 @@
 import logging
+import time
 
 from opensfm import dataset
 from opensfm import matching
@@ -14,6 +15,7 @@ class Command:
         parser.add_argument('dataset', help='dataset to process')
 
     def run(self, args):
+        start = time.time()
         data = dataset.DataSet(args.dataset)
         images = data.images()
 
@@ -39,3 +41,7 @@ class Command:
         tracks_graph = matching.create_tracks_graph(features, colors, matches,
                                                     data.config)
         data.save_tracks_graph(tracks_graph)
+
+        end = time.time()
+        with open(data.profile_log(), 'a') as fout:
+            fout.write('create_tracks: {0}\n'.format(end - start))
