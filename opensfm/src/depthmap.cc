@@ -71,6 +71,14 @@ cv::Matx33d PlaneInducedHomography(const cv::Matx33d K1,
   return K2 * (R2R1 + (R2R1 * t1 - t2) * v.t()) * K1.inv();
 }
 
+cv::Matx33d PlaneInducedHomographyBaked(const cv::Matx33d K1inv,
+                                        const cv::Matx33d Q2,
+                                        const cv::Vec3d a2,
+                                        const cv::Matx33d K2,
+                                        const cv::Vec3d v) {
+  return K2 * (Q2 + a2 * v.t()) * K1inv;
+}
+
 cv::Vec3d Project(cv::Vec3d x,
                   const cv::Matx33d &K,
                   const cv::Matx33d &R,
@@ -125,6 +133,9 @@ class DepthmapEstimator {
     Ks_.emplace_back(pK);
     Rs_.emplace_back(pR);
     ts_.emplace_back(pt);
+    Kinvs_.emplace_back(Ks_.back().inv());
+    Qs_.emplace_back(Rs_.back() * Rs_.front().t());
+    as_.emplace_back(Qs_.back() * ts_.front() - ts_.back());
     images_.emplace_back(cv::Mat(height, width, CV_8U, (void *)pimage).clone());
   }
 
@@ -254,9 +265,8 @@ class DepthmapEstimator {
   float ComputePlaneImageScore(int i, int j,
                                const cv::Vec3f &plane,
                                int other) {
-    cv::Matx33d H = PlaneInducedHomography(Ks_[0], Rs_[0], ts_[0],
-                                           Ks_[other], Rs_[other], ts_[other],
-                                           plane);
+    cv::Matx33d H = PlaneInducedHomographyBaked(
+        Kinvs_[0], Qs_[other], as_[other], Ks_[other], plane);
     int hpz = (patch_size_ - 1) / 2;
     float patch1[patch_size_ * patch_size_];
     float patch2[patch_size_ * patch_size_];
@@ -278,6 +288,9 @@ class DepthmapEstimator {
   std::vector<cv::Matx33d> Ks_;
   std::vector<cv::Matx33d> Rs_;
   std::vector<cv::Vec3d> ts_;
+  std::vector<cv::Matx33d> Kinvs_;
+  std::vector<cv::Matx33d> Qs_;
+  std::vector<cv::Vec3d> as_;
   int patch_size_;
   double min_depth_, max_depth_;
   int num_depth_planes_;

@@ -70,4 +70,16 @@ Given a plane in camera coordinates :math:`\pi_c = (v^T 1)` the homography from 
 
    H = K_2 [R_2 R_1^T + (R_2 R_1^T t_1 - t_2) v^T] K_1^{-1}
 
+We can pre-compute
+
+.. math::
+
+   Q_{12} &= R_2 R_1^T \\
+   a_{12} &= R_2 R_1^T t_1 - t_2
+
+and then we have
+
+.. math::
+
+   H = K_2 [Q_{12} + a_{12} v^T] K_1^{-1}
 
