@@ -204,8 +204,8 @@ def find_neighboring_images(shot, graph, reconstruction, num_neighbors=5):
 
 
 def angle_between_points(origin, p1, p2):
-    a = p1 - origin
-    b = p2 - origin
+    a = np.asarray(p1) - origin
+    b = np.asarray(p2) - origin
     return np.arccos(a.dot(b) / (np.linalg.norm(a) * np.linalg.norm(b)))
 
 
@@ -224,18 +224,22 @@ def scale_down_image(image, width, height):
 
 def depthmap_to_ply(shot, depth, image):
     """Export depthmap points as a PLY string"""
-    from opensfm import features
-    vertices = []
     height, width = depth.shape
-    for i in range(height):
-        for j in range(width):
-            pixel = features.normalized_image_coordinates(
-                np.array([[j, i]]), width, height)[0]
-            p = shot.back_project(pixel, depth[i, j])
-            c = image[i, j]
-            s = "{} {} {} {} {} {}".format(
-                p[0], p[1], p[2], c[0], c[1], c[2])
-            vertices.append(s)
+
+    K = shot.camera.get_K_in_pixel_coordinates(width, height)
+    R = shot.pose.get_rotation_matrix()
+    t = shot.pose.translation
+
+    y, x = np.mgrid[:height, :width]
+    v = np.vstack((x.ravel(), y.ravel(), np.ones(width * height)))
+    camera_coords = depth.reshape((1, -1)) * np.linalg.inv(K).dot(v)
+    points = R.T.dot(camera_coords - t.reshape(3, 1))
+    print points
+
+    vertices = []
+    for p, c in zip(points.T, image.reshape(-1, 3)):
+        s = "{} {} {} {} {} {}".format(p[0], p[1], p[2], c[0], c[1], c[2])
+        vertices.append(s)
 
     header = [
         "ply",

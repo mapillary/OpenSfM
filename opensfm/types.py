@@ -233,9 +233,9 @@ class PerspectiveCamera(Camera):
         w = width or self.width
         h = height or self.height
         f = self.focal * max(w, h)
-        return np.matrix([[f, 0, 0.5 * (w - 1)],
-                          [0, f, 0.5 * (h - 1)],
-                          [0, 0, 1.0]])
+        return np.array([[f, 0, 0.5 * (w - 1)],
+                         [0, f, 0.5 * (h - 1)],
+                         [0, 0, 1.0]])
 
 
 class SphericalCamera(Camera):
