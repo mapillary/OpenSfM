@@ -225,16 +225,13 @@ def scale_down_image(image, width, height):
 def depthmap_to_ply(shot, depth, image):
     """Export depthmap points as a PLY string"""
     height, width = depth.shape
-
     K = shot.camera.get_K_in_pixel_coordinates(width, height)
     R = shot.pose.get_rotation_matrix()
     t = shot.pose.translation
-
     y, x = np.mgrid[:height, :width]
     v = np.vstack((x.ravel(), y.ravel(), np.ones(width * height)))
     camera_coords = depth.reshape((1, -1)) * np.linalg.inv(K).dot(v)
     points = R.T.dot(camera_coords - t.reshape(3, 1))
-    print points
 
     vertices = []
     for p, c in zip(points.T, image.reshape(-1, 3)):

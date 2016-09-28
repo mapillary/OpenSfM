@@ -52,10 +52,10 @@ float NormalizedCrossCorrelation(float *x, float *y, int n) {
   return correlation / n;
 }
 
-void ApplyHomography(const cv::Matx33d &H,
-                     double x1, double y1,
-                     double *x2, double *y2) {
-  double w = H(2, 0) * x1 + H(2, 1) * y1 + H(2, 2);
+void ApplyHomography(const cv::Matx33f &H,
+                     float x1, float y1,
+                     float *x2, float *y2) {
+  float w = H(2, 0) * x1 + H(2, 1) * y1 + H(2, 2);
   *x2 = (H(0, 0) * x1 + H(0, 1) * y1 + H(0, 2)) / w;
   *y2 = (H(1, 0) * x1 + H(1, 1) * y1 + H(1, 2)) / w;
 }
@@ -71,7 +71,7 @@ cv::Matx33d PlaneInducedHomography(const cv::Matx33d K1,
   return K2 * (R2R1 + (R2R1 * t1 - t2) * v.t()) * K1.inv();
 }
 
-cv::Matx33d PlaneInducedHomographyBaked(const cv::Matx33d K1inv,
+cv::Matx33f PlaneInducedHomographyBaked(const cv::Matx33d K1inv,
                                         const cv::Matx33d Q2,
                                         const cv::Vec3d a2,
                                         const cv::Matx33d K2,
@@ -265,7 +265,7 @@ class DepthmapEstimator {
   float ComputePlaneImageScore(int i, int j,
                                const cv::Vec3f &plane,
                                int other) {
-    cv::Matx33d H = PlaneInducedHomographyBaked(
+    cv::Matx33f H = PlaneInducedHomographyBaked(
         Kinvs_[0], Qs_[other], as_[other], Ks_[other], plane);
     int hpz = (patch_size_ - 1) / 2;
     float patch1[patch_size_ * patch_size_];
@@ -274,7 +274,7 @@ class DepthmapEstimator {
     for (int u = -hpz; u <= hpz; ++u) {
       for (int v = -hpz; v <= hpz; ++v) {
         patch1[counter] = images_[0].at<unsigned char>(i + u, j + v);
-        double x2, y2;
+        float x2, y2;
         ApplyHomography(H, j + v, i + u, &x2, &y2);
         patch2[counter] = LinearInterpolation<unsigned char>(images_[other], y2, x2);
         counter++;
