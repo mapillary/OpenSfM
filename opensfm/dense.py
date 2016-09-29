@@ -258,7 +258,7 @@ def point_cloud_to_ply(points, normals, colors):
     """Export depthmap points as a PLY string"""
     vertices = []
     for p, n, c in zip(points, normals, colors):
-        s = "{} {} {} {} {} {} {} {} {}".format(
+        s = "{:.4f} {:.4f} {:.4f} {:.3f} {:.3f} {:.3f} {} {} {}".format(
             p[0], p[1], p[2], n[0], n[1], n[2], int(c[0]), int(c[1]), int(c[2]))
         vertices.append(s)
 
