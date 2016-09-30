@@ -27,7 +27,7 @@ class Command:
             q = tf.quaternion_from_matrix(shot.pose.get_rotation_matrix())
             o = shot.pose.get_origin()
             words = [
-                'images/' + shot.id,
+                'undistorted/' + shot.id,
                 shot.camera.focal * max(shot.camera.width, shot.camera.height),
                 q[0], q[1], q[2], q[3],
                 o[0], o[1], o[2],
