@@ -9,6 +9,7 @@ import undistort
 import compute_depthmaps
 import export_ply
 import export_openmvs
+import export_visualsfm
 
 opensfm_commands = [
     extract_metadata,
@@ -21,4 +22,5 @@ opensfm_commands = [
     compute_depthmaps,
     export_ply,
     export_openmvs,
+    export_visualsfm,
 ]
