@@ -23,6 +23,8 @@ def compute_depthmaps(data, graph, reconstruction):
     planes = {}
     scores = {}
     for shot in reconstruction.shots.values():
+        if len(neighbors[shot.id]) <= 1:
+            continue
         logger.info("Computing depthmap for image {}".format(shot.id))
         depth, plane, score = compute_depthmap(data, graph, reconstruction,
                                                neighbors, shot)
@@ -32,6 +34,8 @@ def compute_depthmaps(data, graph, reconstruction):
 
     clean_depths = {}
     for shot in reconstruction.shots.values():
+        if shot.id not in depths:
+            continue
         logger.info("Cleaning depthmap for image {}".format(shot.id))
         clean_depths[shot.id] = clean_depthmap(
             data, graph, reconstruction, neighbors,
