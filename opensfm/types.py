@@ -221,6 +221,22 @@ class PerspectiveCamera(Camera):
                          [0., self.focal, 0.],
                          [0., 0., 1.]])
 
+    def get_K_in_pixel_coordinates(self, width=None, height=None):
+        """The calibration matrix that maps to pixel coordinates.
+
+        Coordinates (0,0) correspond to the center of the top-left pixel,
+        and (width - 1, height - 1) to the center of bottom-right pixel.
+
+        You can optionally pass the width and height of the image, in case
+        you are using a resized versior of the original image.
+        """
+        w = width or self.width
+        h = height or self.height
+        f = self.focal * max(w, h)
+        return np.array([[f, 0, 0.5 * (w - 1)],
+                         [0, f, 0.5 * (h - 1)],
+                         [0, 0, 1.0]])
+
 
 class SphericalCamera(Camera):
     """A spherical camera generating equirectangular projections.

@@ -101,6 +101,16 @@ nav_turn_view_threshold: 40           # Maximum difference of angles in degrees 
 nav_vertical_threshold: 20            # Maximum vertical angle difference in motion and viewving direction in degrees
 nav_rotation_threshold: 30            # Maximum general rotation in degrees between cameras for steps
 
+# Params for depth estimation
+depthmap_resolution: 640              # Resolution of the depth maps
+depthmap_num_neighbors: 10            # Number of neighboring views
+depthmap_num_matching_views: 2        # Number of neighboring views used for each depthmaps
+depthmap_patchmatch_iterations: 3     # Number of PatchMatch iterations to run
+depthmap_min_correlation_score: 0.7   # Minimum correlation score to accept a depth value
+depthmap_same_depth_threshold: 0.005  # Threshold to measure depth closeness
+depthmap_min_consistent_views: 3      # Min number of views that should reconstruct a point for it to be valid
+depthmap_save_debug_files: no         # Save debug files with partial reconstruction results
+
 # Other params
 processes: 1                  # Number of threads to use
 '''

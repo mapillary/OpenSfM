@@ -1,7 +1,6 @@
 import logging
 import os
 
-import cv2
 import numpy as np
 
 from opensfm import csfm
@@ -24,7 +23,6 @@ class Command:
         graph = data.load_tracks_graph()
 
         if reconstructions:
-            self.undistort_images(reconstructions[0], data)
             self.export(reconstructions[0], graph, data)
 
     def export(self, reconstruction, graph, data):
@@ -56,30 +54,3 @@ class Command:
 
         io.mkdir_p(data.data_path + '/openmvs')
         exporter.export(data.data_path + '/openmvs/scene.mvs')
-
-    def undistort_images(self, reconstruction, data):
-        for shot in reconstruction.shots.values():
-            if shot.camera.projection_type == 'perspective':
-                image = data.image_as_array(shot.id)
-                undistorted = undistort_image(image, shot)
-                data.save_undistorted_image(shot.id, undistorted)
-
-
-def undistort_image(image, shot):
-    """Remove radial distortion from a perspective image."""
-    camera = shot.camera
-    height, width = image.shape[:2]
-    K = opencv_calibration_matrix(width, height, camera.focal)
-    distortion = np.array([camera.k1, camera.k2, 0, 0])
-    return cv2.undistort(image, K, distortion)
-
-
-def opencv_calibration_matrix(width, height, focal):
-    """Calibration matrix as used by OpenCV and PMVS.
-
-    Duplicated with bin.export_openmvs.opencv_calibration_matrix
-    """
-    f = focal * max(width, height)
-    return np.matrix([[f, 0, 0.5 * (width - 1)],
-                      [0, f, 0.5 * (height - 1)],
-                      [0, 0, 1.0]])

@@ -11,6 +11,7 @@
 #include "akaze.cc"
 #include "bundle.h"
 #include "openmvs_exporter.h"
+#include "depthmap_wrapper.cc"
 
 #if (PY_VERSION_HEX < 0x03000000)
 static void numpy_import_array_wrapper()
@@ -145,5 +146,26 @@ BOOST_PYTHON_MODULE(csfm) {
     .def("add_shot", &csfm::OpenMVSExporter::AddShot)
     .def("add_point", &csfm::OpenMVSExporter::AddPoint)
     .def("export", &csfm::OpenMVSExporter::Export)
+  ;
+
+  class_<csfm::DepthmapEstimatorWrapper>("DepthmapEstimator")
+    .def("set_depth_range", &csfm::DepthmapEstimatorWrapper::SetDepthRange)
+    .def("set_patchmatch_iterations", &csfm::DepthmapEstimatorWrapper::SetPatchMatchIterations)
+    .def("add_view", &csfm::DepthmapEstimatorWrapper::AddView)
+    .def("compute_patch_match", &csfm::DepthmapEstimatorWrapper::ComputePatchMatch)
+    .def("compute_brute_force", &csfm::DepthmapEstimatorWrapper::ComputeBruteForce)
+  ;
+
+  class_<csfm::DepthmapCleanerWrapper>("DepthmapCleaner")
+    .def("set_same_depth_threshold", &csfm::DepthmapCleanerWrapper::SetSameDepthThreshold)
+    .def("set_min_consistent_views", &csfm::DepthmapCleanerWrapper::SetMinConsistentViews)
+    .def("add_view", &csfm::DepthmapCleanerWrapper::AddView)
+    .def("clean", &csfm::DepthmapCleanerWrapper::Clean)
+  ;
+
+  class_<csfm::DepthmapMergerWrapper>("DepthmapMerger")
+    .def("set_same_depth_threshold", &csfm::DepthmapMergerWrapper::SetSameDepthThreshold)
+    .def("add_view", &csfm::DepthmapMergerWrapper::AddView)
+    .def("merge", &csfm::DepthmapMergerWrapper::Merge)
   ;
 }

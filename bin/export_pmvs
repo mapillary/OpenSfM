@@ -13,15 +13,6 @@ from opensfm import io
 from opensfm import reconstruction as rc
 
 
-def opencv_calibration_matrix(width, height, focal):
-    '''Calibration matrix as used by OpenCV and PMVS
-    '''
-    f = focal * max(width, height)
-    return np.matrix([[f, 0, 0.5 * (width - 1)],
-                      [0, f, 0.5 * (height - 1)],
-                      [0, 0, 1.0]])
-
-
 # Prepare OpenSfM output for dense reconstruction with PMVS
 
 if __name__ == "__main__":
@@ -90,7 +81,7 @@ if __name__ == "__main__":
             original_image = data.image_as_array(image)[:, :, ::-1]
             camera = shot.camera
             original_h, original_w = original_image.shape[:2]
-            K = opencv_calibration_matrix(original_w, original_h, camera.focal)
+            K = camera.get_K_in_pixel_coordinates(original_w, original_h)
             distortion = np.array([camera.k1, camera.k2, 0, 0])
             undistorted_image = cv2.undistort(original_image, K, distortion)
 
@@ -101,8 +92,8 @@ if __name__ == "__main__":
 
             # write camera projection matrix to txt/%08d.txt
             resized_h, resized_w = resized_image.shape[:2]
-            resized_K = opencv_calibration_matrix(resized_w, resized_h, camera.focal)
-            P = resized_K * shot.pose.get_Rt()
+            resized_K = camera.get_K_in_pixel_coordinates(resized_w, resized_h)
+            P = resized_K.dot(shot.pose.get_Rt())
 
             new_txt = os.path.join(output_path, "txt", base + ".txt")
             with open(new_txt, "w") as f:
