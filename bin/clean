@@ -17,3 +17,4 @@ mv -vf $1/reference_lla.json $trash
 mv -vf $1/profile.log $trash
 mv -vf $1/navigation_graph.json $trash
 mv -vf $1/plot_inliers $trash
+mv -vf $1/depthmaps $trash

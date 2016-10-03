@@ -109,6 +109,7 @@ depthmap_patchmatch_iterations: 3     # Number of PatchMatch iterations to run
 depthmap_min_correlation_score: 0.7   # Minimum correlation score to accept a depth value
 depthmap_same_depth_threshold: 0.005  # Threshold to measure depth closeness
 depthmap_min_consistent_views: 3      # Min number of views that should reconstruct a point for it to be valid
+depthmap_save_debug_files: no         # Save debug files with partial reconstruction results
 
 # Other params
 processes: 1                  # Number of threads to use

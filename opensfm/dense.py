@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 def compute_depthmaps(data, graph, reconstruction):
     """Compute and refine depthmaps for all shots."""
+    logger.info('Computing neighbors')
     neighbors = {}
     num_neighbors = data.config['depthmap_num_neighbors']
     for shot in reconstruction.shots.values():
@@ -62,11 +63,13 @@ def compute_depthmap(data, graph, reconstruction, neighbors, shot):
 
     # Save and display results
     data.save_raw_depthmap(shot.id, depth, plane, score)
-    image = data.undistorted_image_as_array(shot.id)
-    image = scale_down_image(image, depth.shape[1], depth.shape[0])
-    ply = depthmap_to_ply(shot, depth, image)
-    with open(data._depthmap_file(shot.id, 'raw.npz.ply'), 'w') as fout:
-        fout.write(ply)
+
+    if data.config['depthmap_save_debug_files']:
+        image = data.undistorted_image_as_array(shot.id)
+        image = scale_down_image(image, depth.shape[1], depth.shape[0])
+        ply = depthmap_to_ply(shot, depth, image)
+        with open(data._depthmap_file(shot.id, 'raw.npz.ply'), 'w') as fout:
+            fout.write(ply)
 
     if data.config.get('interactive'):
         import matplotlib.pyplot as plt
@@ -98,11 +101,13 @@ def clean_depthmap(data, graph, reconstruction, neighbors, shot,
 
     # Save and display results
     data.save_clean_depthmap(shot.id, depth, planes[shot.id], scores[shot.id])
-    image = data.undistorted_image_as_array(shot.id)
-    image = scale_down_image(image, depth.shape[1], depth.shape[0])
-    ply = depthmap_to_ply(shot, depth, image)
-    with open(data._depthmap_file(shot.id, 'clean.npz.ply'), 'w') as fout:
-        fout.write(ply)
+
+    if data.config['depthmap_save_debug_files']:
+        image = data.undistorted_image_as_array(shot.id)
+        image = scale_down_image(image, depth.shape[1], depth.shape[0])
+        ply = depthmap_to_ply(shot, depth, image)
+        with open(data._depthmap_file(shot.id, 'clean.npz.ply'), 'w') as fout:
+            fout.write(ply)
 
     if data.config.get('interactive'):
         import matplotlib.pyplot as plt

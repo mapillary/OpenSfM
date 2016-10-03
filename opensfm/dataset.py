@@ -94,7 +94,6 @@ class DataSet:
         io.mkdir_p(self._depthmap_path())
         filepath = self._depthmap_file(image, 'raw.npz')
         np.savez(filepath, depth=depth, plane=plane, score=score)
-        cv2.imwrite(filepath + '.png', depth)
 
     def load_raw_depthmap(self, image):
         o = np.load(self._depthmap_file(image, 'raw.npz'))
@@ -107,7 +106,6 @@ class DataSet:
         io.mkdir_p(self._depthmap_path())
         filepath = self._depthmap_file(image, 'clean.npz')
         np.savez(filepath, depth=depth, plane=plane, score=score)
-        cv2.imwrite(filepath + '.png', depth)
 
     def load_clean_depthmap(self, image):
         o = np.load(self._depthmap_file(image, 'clean.npz'))
