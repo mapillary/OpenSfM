@@ -116,7 +116,7 @@ option(OPENSFM_BUILD_TESTS "Build OpenSfM unit tests." on)
 if (OPENSFM_BUILD_TESTS)
   enable_testing()
   include_directories(third_party/gtest)
-  add_definitions(-DCERES_GFLAGS_NAMESPACE=gflags)
+  add_definitions(-DCERES_GFLAGS_NAMESPACE=${GFLAGS_NAMESPACE})
 
   add_library(gtest
               third_party/gtest/gmock_gtest_all.cc
