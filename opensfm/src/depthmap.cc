@@ -443,6 +443,7 @@ class DepthmapMerger {
                              std::vector<float> *merged_points,
                              std::vector<float> *merged_normals,
                              std::vector<unsigned char> *merged_colors) {
+    cv::Matx33f Rinv = R.t();
     for (int i = 0; i < depths.rows; ++i) {
       for (int j = 0; j < depths.cols; ++j) {
         float depth = depths.at<float>(i, j);
@@ -451,7 +452,7 @@ class DepthmapMerger {
           continue;
         }
         cv::Vec3f point = Backproject(j, i, depth, K, R, t);
-        cv::Vec3f normal = R.t() * cv::normalize(planes.at<cv::Vec3f>(i, j));
+        cv::Vec3f normal = Rinv * cv::normalize(planes.at<cv::Vec3f>(i, j));
         merged_points->push_back(point[0]);
         merged_points->push_back(point[1]);
         merged_points->push_back(point[2]);
