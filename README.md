@@ -34,6 +34,7 @@ Install OpenCV using
 
 And install OpenGV using
 
+    brew install eigen
     git clone https://github.com/paulinus/opengv.git
     cd opengv
     mkdir build
