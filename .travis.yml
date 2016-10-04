@@ -9,7 +9,7 @@ before_install:
   - docker build -t mapillary/opensfm .
 
 script:
-  - docker run mapillary/opensfm /bin/sh -c "cd /source/OpenSfM; py.test"
+  - docker run mapillary/opensfm /bin/sh -c "py.test"
 
 notifications:
   slack:

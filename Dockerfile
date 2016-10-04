@@ -2,16 +2,28 @@ FROM ubuntu:14.04
 
 
 # Install apt-getable dependencies
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    cmake \
-    git wget \
-    python-dev python-pip libboost-python-dev \
-    python-numpy python-scipy python-yaml python-pyexiv2 \
-    libopencv-dev python-opencv \
-    libgoogle-glog-dev libatlas-base-dev libeigen3-dev libsuitesparse-dev && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+RUN apt-get update \
+    && apt-get install -y \
+        build-essential \
+        cmake \
+        git \
+        libatlas-base-dev \
+        libboost-python-dev \
+        libeigen3-dev \
+        libgoogle-glog-dev \
+        libopencv-dev \
+        libsuitesparse-dev \
+        python-dev \
+        python-numpy \
+        python-opencv \
+        python-pip \
+        python-pyexiv2 \
+        python-pyproj \
+        python-scipy \
+        python-yaml \
+        wget \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 
 # Install Ceres from source
@@ -41,13 +53,11 @@ RUN \
 
 
 # OpenSfM
-RUN \
-    mkdir -p /source && cd /source && \
-    git clone https://github.com/mapillary/OpenSfM.git && \
-    cd /source/OpenSfM && \
-    pip install -r requirements.txt && \
+RUN mkdir -p /source/cacacaaah
+
+COPY . /source/OpenSfM
+
+WORKDIR /source/OpenSfM
+
+RUN pip install -r requirements.txt && \
     python setup.py build
-
-
-# GENERIC
-WORKDIR /

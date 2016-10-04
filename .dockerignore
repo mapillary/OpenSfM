@@ -1,4 +1,22 @@
-Dockerfile
-data
-build
-cmake-build
+# Ignore everything
+*
+
+# Pick what to include
+!bin
+!data/berlin/config.yaml
+!data/berlin/gcp_list.txt
+!data/berlin/images
+!doc
+!opensfm
+!requirements.txt
+!setup.cfg
+!setup.py
+!viewer
+
+# Picking exceptions
+doc/build
+*/*.so
+*/*.pyc
+*/*/*.pyc
+*/__pycache__
+*/*/__pycache__
