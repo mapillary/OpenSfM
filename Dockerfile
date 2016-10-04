@@ -53,8 +53,6 @@ RUN \
 
 
 # OpenSfM
-RUN mkdir -p /source/cacacaaah
-
 COPY . /source/OpenSfM
 
 WORKDIR /source/OpenSfM
