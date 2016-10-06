@@ -93,7 +93,7 @@ class DataSet:
     def save_raw_depthmap(self, image, depth, plane, score):
         io.mkdir_p(self._depthmap_path())
         filepath = self._depthmap_file(image, 'raw.npz')
-        np.savez(filepath, depth=depth, plane=plane, score=score)
+        np.savez_compressed(filepath, depth=depth, plane=plane, score=score)
 
     def load_raw_depthmap(self, image):
         o = np.load(self._depthmap_file(image, 'raw.npz'))
@@ -105,7 +105,7 @@ class DataSet:
     def save_clean_depthmap(self, image, depth, plane, score):
         io.mkdir_p(self._depthmap_path())
         filepath = self._depthmap_file(image, 'clean.npz')
-        np.savez(filepath, depth=depth, plane=plane, score=score)
+        np.savez_compressed(filepath, depth=depth, plane=plane, score=score)
 
     def load_clean_depthmap(self, image):
         o = np.load(self._depthmap_file(image, 'clean.npz'))
@@ -204,7 +204,7 @@ class DataSet:
             feature_data_type = np.uint8
         else:
             feature_data_type = np.float32
-        np.savez(filepath,
+        np.savez_compressed(filepath,
                  points=points.astype(np.float32),
                  descriptors=descriptors.astype(feature_data_type),
                  colors=colors)
