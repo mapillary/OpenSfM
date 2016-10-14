@@ -1,5 +1,6 @@
 
 import logging
+from multiprocessing import Pool
 
 import cv2
 import numpy as np
@@ -14,31 +15,49 @@ logger = logging.getLogger(__name__)
 def compute_depthmaps(data, graph, reconstruction):
     """Compute and refine depthmaps for all shots."""
     logger.info('Computing neighbors')
-    neighbors = {}
+    processes = data.config.get('processes', 1)
     num_neighbors = data.config['depthmap_num_neighbors']
+
+    neighbors = {}
     for shot in reconstruction.shots.values():
         neighbors[shot.id] = find_neighboring_images(
             shot, graph, reconstruction, num_neighbors)
 
+    arguments = []
     for shot in reconstruction.shots.values():
         if len(neighbors[shot.id]) <= 1:
             continue
-        logger.info("Computing depthmap for image {}".format(shot.id))
-        compute_depthmap(data, graph, reconstruction, neighbors, shot)
+        arguments.append((data, graph, reconstruction, neighbors, shot))
+    parallel_run(compute_depthmap, arguments, processes)
 
+    arguments = []
     for shot in reconstruction.shots.values():
         if len(neighbors[shot.id]) <= 1:
             continue
-        logger.info("Cleaning depthmap for image {}".format(shot.id))
-        clean_depthmap(data, graph, reconstruction, neighbors, shot)
+        arguments.append((data, graph, reconstruction, neighbors, shot))
+    parallel_run(clean_depthmap, arguments, processes)
 
     merge_depthmaps(data, graph, reconstruction, neighbors)
 
 
-def compute_depthmap(data, graph, reconstruction, neighbors, shot):
+def parallel_run(function, arguments, num_processes):
+    """Run function for all arguments using multiple processes."""
+    num_processes = min(num_processes, len(arguments))
+    if num_processes == 1:
+        return [function(arg) for arg in arguments]
+    else:
+        p = Pool(num_processes)
+        return p.map(function, arguments)
+
+
+def compute_depthmap(arguments):
     """Compute depthmap for a single shot."""
+    data, graph, reconstruction, neighbors, shot = arguments
+
     if data.raw_depthmap_exists(shot.id):
+        logger.info("Using precomputed raw depthmap {}".format(shot.id))
         return
+    logger.info("Computing depthmap for image {}".format(shot.id))
 
     min_depth, max_depth = compute_depth_range(graph, reconstruction, shot)
 
@@ -75,9 +94,14 @@ def compute_depthmap(data, graph, reconstruction, neighbors, shot):
         plt.show()
 
 
-def clean_depthmap(data, graph, reconstruction, neighbors, shot):
+def clean_depthmap(arguments):
+    """Clean depthmap by checking consistency with neighbors."""
+    data, graph, reconstruction, neighbors, shot = arguments
+
     if data.clean_depthmap_exists(shot.id):
+        logger.info("Using precomputed clean depthmap {}".format(shot.id))
         return
+    logger.info("Cleaning depthmap for image {}".format(shot.id))
 
     dc = csfm.DepthmapCleaner()
     dc.set_same_depth_threshold(data.config['depthmap_same_depth_threshold'])
@@ -108,6 +132,9 @@ def clean_depthmap(data, graph, reconstruction, neighbors, shot):
 
 
 def merge_depthmaps(data, graph, reconstruction, neighbors):
+    """Merge depthmaps into a single point cloud."""
+    logger.info("Merging depthmaps")
+
     # Load clean depthmaps.
     depths, planes = {}, {}
     for sid in neighbors:
