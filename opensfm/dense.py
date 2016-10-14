@@ -1,5 +1,7 @@
 
+from functools import partial
 import logging
+from multiprocessing import Pool
 
 import cv2
 import numpy as np
@@ -13,34 +15,35 @@ logger = logging.getLogger(__name__)
 
 def compute_depthmaps(data, graph, reconstruction):
     """Compute and refine depthmaps for all shots."""
+    pool = Pool(data.config.get('processes', 1))
+
     logger.info('Computing neighbors')
     neighbors = {}
     num_neighbors = data.config['depthmap_num_neighbors']
-    for shot in reconstruction.shots.values():
-        neighbors[shot.id] = find_neighboring_images(
-            shot, graph, reconstruction, num_neighbors)
+
+    neighboring_images = pool.map(partial(find_neighboring_images, graph, reconstruction, num_neighbors), reconstruction.shots.values())
+    for (shot_id, neighboring_image) in zip(map(lambda shot: shot.id, shots), neighboring_images):
+        neighbors[shot_id] = neighboring_image
 
     depths = {}
     planes = {}
     scores = {}
-    for shot in reconstruction.shots.values():
-        if len(neighbors[shot.id]) <= 1:
-            continue
-        logger.info("Computing depthmap for image {}".format(shot.id))
-        depth, plane, score = compute_depthmap(data, graph, reconstruction,
-                                               neighbors, shot)
-        depths[shot.id] = depth
-        planes[shot.id] = plane
-        scores[shot.id] = score
+
+    shots = filter(lambda shot: len(neighbors[shot.id]) > 1, reconstruction.shots.values())
+    depthmaps = pool.map(partial(compute_depthmap, data, graph, reconstruction, neighbors), shots)
+
+    for (shot_id, (depth, plane, score)) in zip(map(lambda shot: shot.id, shots), depthmaps):
+        depths[shot_id] = depth
+        planes[shot_id] = plane
+        scores[shot_id] = score
 
     clean_depths = {}
-    for shot in reconstruction.shots.values():
-        if shot.id not in depths:
-            continue
-        logger.info("Cleaning depthmap for image {}".format(shot.id))
-        clean_depths[shot.id] = clean_depthmap(
-            data, graph, reconstruction, neighbors,
-            shot, depths, planes, scores)
+
+    shots = filter(lambda shot: shot.id in depths, reconstruction.shots.values())
+    clean_depthmaps = pool.map(partial(clean_depthmap, data, graph, reconstruction, neighbors, depths, planes, scores), shots)
+
+    for (shot_id, cleaned_depthmap) in zip(map(lambda shot: shot.id, shots), clean_depthmaps):
+        clean_depths[shot_id] = cleaned_depthmap
 
     merge_depthmaps(data, graph, reconstruction, neighbors,
                     clean_depths, planes)
@@ -48,6 +51,8 @@ def compute_depthmaps(data, graph, reconstruction):
 
 def compute_depthmap(data, graph, reconstruction, neighbors, shot):
     """Compute depthmap for a single shot."""
+    logger.info("Computing depthmap for image {}".format(shot.id))
+
     if data.raw_depthmap_exists(shot.id):
         return data.load_raw_depthmap(shot.id)
 
@@ -88,8 +93,10 @@ def compute_depthmap(data, graph, reconstruction, neighbors, shot):
     return depth, plane, score
 
 
-def clean_depthmap(data, graph, reconstruction, neighbors, shot,
-                   depths, planes, scores):
+def clean_depthmap(data, graph, reconstruction, neighbors, depths,
+                   planes, scores, shot):
+    logger.info("Cleaning depthmap for image {}".format(shot.id))
+
     if data.clean_depthmap_exists(shot.id):
         return data.load_clean_depthmap(shot.id)[0]
 
@@ -187,7 +194,7 @@ def compute_depth_range(graph, reconstruction, shot):
     return min_depth * 0.9, max_depth * 1.1
 
 
-def find_neighboring_images(shot, graph, reconstruction, num_neighbors=5):
+def find_neighboring_images(graph, reconstruction, shot, num_neighbors=5):
     """Find neighbouring images based on common tracks."""
     theta_min = np.pi / 60
     theta_max = np.pi / 6
