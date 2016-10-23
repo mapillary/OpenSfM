@@ -175,9 +175,9 @@ def pairwise_reconstructability(common_tracks, homography_inliers):
         return 0
 
 
-def compute_image_pairs(graph, image_graph, config):
+def compute_image_pairs(track_dict, config):
     """All matched image pairs sorted by reconstructability."""
-    args = _pair_reconstructability_arguments(graph, image_graph, config)
+    args = _pair_reconstructability_arguments(track_dict, config)
     processes = config.get('processes', 1)
     if processes == 1:
         result = map(_compute_pair_reconstructability, args)
@@ -190,20 +190,16 @@ def compute_image_pairs(graph, image_graph, config):
     return [pairs[o] for o in order]
 
 
-def _pair_reconstructability_arguments(graph, image_graph, config):
+def _pair_reconstructability_arguments(track_dict, config):
     homography_threshold = config.get('homography_threshold', 0.004)
-    return [(homography_threshold, im1, im2, d, matching.common_tracks(graph, im1, im2)) 
-            for im1, im2, d in image_graph.edges(data=True)]
+    return [(homography_threshold,) + k + track_dict[k] for k in track_dict]
 
 
 def _compute_pair_reconstructability(args):
-    homography_threshold, im1, im2, d, common_tracks = args
-    tracks, p1, p2 = common_tracks
-    r = 0
-    if len(tracks) >= 50:
-        H, inliers = cv2.findHomography(
-            p1, p2, cv2.RANSAC, homography_threshold)
-        r = pairwise_reconstructability(len(tracks), inliers.sum())
+    homography_threshold, im1, im2, tracks, p1, p2 = args
+    H, inliers = cv2.findHomography(
+        p1, p2, cv2.RANSAC, homography_threshold)
+    r = pairwise_reconstructability(len(tracks), inliers.sum())
     return (im1, im2, r)
 
 
@@ -330,7 +326,7 @@ def two_view_reconstruction_rotation_only(p1, p2, camera1, camera2, threshold):
     return cv2.Rodrigues(R.T)[0].ravel(), inliers
 
 
-def bootstrap_reconstruction(data, graph, im1, im2):
+def bootstrap_reconstruction(data, graph, im1, im2, tracks, p1, p2):
     """Start a reconstruction using two shots."""
     logger.info("Starting reconstruction with {} and {}".format(im1, im2))
     d1 = data.load_exif(im1)
@@ -339,7 +335,6 @@ def bootstrap_reconstruction(data, graph, im1, im2):
     camera1 = cameras[d1['camera']]
     camera2 = cameras[d2['camera']]
 
-    tracks, p1, p2 = matching.common_tracks(graph, im1, im2)
     logger.info("Common tracks: {}".format(len(tracks)))
 
     thresh = data.config.get('five_point_algo_threshold', 0.006)
@@ -759,12 +754,14 @@ def incremental_reconstruction(data):
     gcp = None
     if data.ground_control_points_exist():
         gcp = data.load_ground_control_points()
-    image_graph = bipartite.weighted_projected_graph(graph, images)
+    track_dict = matching.all_common_tracks(graph, tracks)
     reconstructions = []
-    pairs = compute_image_pairs(graph, image_graph, data.config)
-    for im1, im2 in pairs:
+    pairs = compute_image_pairs(track_dict, data.config)
+    for k in pairs:
+        im1, im2 = k
         if im1 in remaining_images and im2 in remaining_images:
-            reconstruction = bootstrap_reconstruction(data, graph, im1, im2)
+            tracks, p1, p2 = track_dict[k]
+            reconstruction = bootstrap_reconstruction(data, graph, im1, im2, tracks, p1, p2)
             if reconstruction:
                 remaining_images.remove(im1)
                 remaining_images.remove(im2)
