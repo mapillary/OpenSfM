@@ -539,7 +539,7 @@ def retriangulate(graph, reconstruction, config):
     threshold = config.get('triangulation_threshold', 0.004)
     min_ray_angle = config.get('triangulation_min_ray_angle', 2.0)
     triangulator = TrackTriangulator(graph, reconstruction)
-    tracks, images = tracks_and_images(graph)
+    tracks, images = matching.tracks_and_images(graph)
     for track in tracks:
         triangulator.triangulate(track, threshold, min_ray_angle)
 
@@ -732,23 +732,12 @@ def grow_reconstruction(data, graph, reconstruction, images, gcp):
     return reconstruction
 
 
-def tracks_and_images(graph):
-    """List of tracks and images in the graph."""
-    tracks, images = [], []
-    for n in graph.nodes(data=True):
-        if n[1]['bipartite'] == 0:
-            images.append(n[0])
-        else:
-            tracks.append(n[0])
-    return tracks, images
-
-
 def incremental_reconstruction(data):
     """Run the entire incremental reconstruction pipeline."""
     logger.info("Starting incremental reconstruction")
     data.invent_reference_lla()
     graph = data.load_tracks_graph()
-    tracks, images = tracks_and_images(graph)
+    tracks, images = matching.tracks_and_images(graph)
     remaining_images = set(images)
     gcp = None
     if data.ground_control_points_exist():

@@ -17,11 +17,13 @@ def compute_depthmaps(data, graph, reconstruction):
     logger.info('Computing neighbors')
     processes = data.config.get('processes', 1)
     num_neighbors = data.config['depthmap_num_neighbors']
+    tracks, _ = matching.tracks_and_images(graph)
+    common_tracks = matching.all_common_tracks(graph, tracks, include_features=False)
 
     neighbors = {}
     for shot in reconstruction.shots.values():
         neighbors[shot.id] = find_neighboring_images(
-            shot, graph, reconstruction, num_neighbors)
+            shot, common_tracks, reconstruction, num_neighbors)
 
     arguments = []
     for shot in reconstruction.shots.values():
@@ -206,7 +208,7 @@ def compute_depth_range(graph, reconstruction, shot):
     return min_depth * 0.9, max_depth * 1.1
 
 
-def find_neighboring_images(shot, graph, reconstruction, num_neighbors=5):
+def find_neighboring_images(shot, common_tracks, reconstruction, num_neighbors=5):
     """Find neighbouring images based on common tracks."""
     theta_min = np.pi / 60
     theta_max = np.pi / 6
@@ -216,7 +218,7 @@ def find_neighboring_images(shot, graph, reconstruction, num_neighbors=5):
     for other in others:
         score = 0
         C2 = other.pose.get_origin()
-        tracks, p1s, p2s = matching.common_tracks(graph, shot.id, other.id)
+        tracks = common_tracks.get((shot.id, other.id), [])
         for track in tracks:
             if track in reconstruction.points:
                 p = np.array(reconstruction.points[track].coordinates)

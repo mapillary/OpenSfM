@@ -7,7 +7,6 @@ from collections import defaultdict
 from itertools import combinations
 
 from opensfm import context
-from opensfm import multiview
 from opensfm.unionfind import UnionFind
 
 
@@ -171,9 +170,24 @@ def create_tracks_graph(features, colors, matches, config):
             r, g, b = colors[image][featureid]
             tracks_graph.add_node(image, bipartite=0)
             tracks_graph.add_node(str(track_id), bipartite=1)
-            tracks_graph.add_edge(image, str(track_id), feature=(x,y), feature_id=featureid, feature_color=(float(r),float(g),float(b)))
+            tracks_graph.add_edge(image,
+                                  str(track_id),
+                                  feature=(x, y),
+                                  feature_id=featureid,
+                                  feature_color=(float(r), float(g), float(b)))
 
     return tracks_graph
+
+
+def tracks_and_images(graph):
+    """List of tracks and images in the graph."""
+    tracks, images = [], []
+    for n in graph.nodes(data=True):
+        if n[1]['bipartite'] == 0:
+            images.append(n[0])
+        else:
+            tracks.append(n[0])
+    return tracks, images
 
 
 def common_tracks(g, im1, im2):
@@ -220,5 +234,5 @@ def all_common_tracks(graph, tracks, include_features=True, min_common=50):
             p2 = np.array([t2[tr]['feature'] for tr in v])
             common_tracks[k] = (v, p1, p2)
         else:
-            common_tracks[k] = (v,)
+            common_tracks[k] = v
     return common_tracks
