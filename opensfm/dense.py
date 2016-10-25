@@ -150,7 +150,7 @@ def merge_depthmaps(data, graph, reconstruction, neighbors):
     for shot_id in shot_ids:
         depth = depths[shot_id]
         shot = reconstruction.shots[shot_id]
-        neighbors_indices = [indices[n] for n in neighbors[shot.id]]
+        neighbors_indices = [indices[n] for n in neighbors[shot.id] if n in indices]
         color_image = data.undistorted_image_as_array(shot.id)
         height, width = depth.shape
         image = scale_down_image(color_image, width, height)
@@ -187,6 +187,8 @@ def add_views_to_depth_estimator(data, reconstruction, neighbors, de):
 def add_views_to_depth_cleaner(data, reconstruction, neighbors, dc):
     for neighbor in neighbors:
         shot = reconstruction.shots[neighbor]
+        if not data.raw_depthmap_exists(shot.id):
+            continue
         depth, plane, score = data.load_raw_depthmap(shot.id)
         height, width = depth.shape
         K = shot.camera.get_K_in_pixel_coordinates(width, height)
