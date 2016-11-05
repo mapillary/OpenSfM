@@ -172,7 +172,7 @@ class DepthmapEstimator {
     *best_plane = cv::Mat(images_[0].rows, images_[0].cols, CV_32FC3, 0.0f);
     *best_score = cv::Mat(images_[0].rows, images_[0].cols, CV_32F, 0.0f);
 
-    RandomInitialization(best_depth, best_plane);
+    RandomInitialization(best_depth, best_plane, best_score);
 
     for (int i = 0; i < patchmatch_iterations_; ++i) {
       PatchMatchForwardPass(best_depth, best_plane, best_score);
@@ -180,14 +180,17 @@ class DepthmapEstimator {
     }
   }
 
-  void RandomInitialization(cv::Mat *best_depth, cv::Mat * best_plane) {
+  void RandomInitialization(cv::Mat *best_depth, cv::Mat *best_plane, cv::Mat *best_score) {
     int hpz = (patch_size_ - 1) / 2;
     for (int i = hpz; i < best_depth->rows - hpz; ++i) {
       for (int j = hpz; j < best_depth->cols - hpz; ++j) {
         float depth = UniformRand(min_depth_, max_depth_);
         cv::Vec3f normal(UniformRand(-1, 1), UniformRand(-1, 1), -1);
+        cv::Vec3f plane = PlaneFromDepthAndNormal(j, i, Ks_[0], depth, normal);
+        float score = ComputePlaneScore(i, j, plane);
         best_depth->at<float>(i, j) = depth;
-        best_plane->at<cv::Vec3f>(i, j) = PlaneFromDepthAndNormal(j, i, Ks_[0], depth, normal);
+        best_plane->at<cv::Vec3f>(i, j) = plane;
+        best_score->at<float>(i, j) = score;
       }
     }
   }
