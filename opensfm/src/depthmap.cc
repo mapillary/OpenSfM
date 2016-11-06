@@ -26,6 +26,20 @@ float LinearInterpolation(const cv::Mat &image, float y, float x) {
   return (1 - dy) * im0 + dy * im1;
 }
 
+float Variance(float *x, int n) {
+  float sum = 0;
+  for (int i = 0; i < n; ++i) {
+    sum += x[i];
+  }
+  float mean = sum / n;
+
+  float sum2 = 0;
+  for (int i = 0; i < n; ++i) {
+    sum2 += (x[i] - mean) * (x[i] - mean);
+  }
+  return sum2 / n;
+}
+
 float NormalizedCrossCorrelation(float *x, float *y, int n) {
   float sumx = 0;
   float sumy = 0;
@@ -122,6 +136,7 @@ class DepthmapEstimator {
     , max_depth_(0)
     , num_depth_planes_(50)
     , patchmatch_iterations_(3)
+    , min_patch_variance_(5 * 5)
   {}
 
   void AddView(const double *pK,
@@ -149,6 +164,10 @@ class DepthmapEstimator {
     patchmatch_iterations_ = n;
   }
 
+  void SetMinPatchSD(float sd) {
+    min_patch_variance_ = sd * sd;
+  }
+
   void ComputeBruteForce(cv::Mat *best_depth, cv::Mat *best_plane, cv::Mat *best_score) {
     *best_depth = cv::Mat(images_[0].rows, images_[0].cols, CV_32F, 0.0f);
     *best_plane = cv::Mat(images_[0].rows, images_[0].cols, CV_32FC3, 0.0f);
@@ -173,6 +192,7 @@ class DepthmapEstimator {
     *best_score = cv::Mat(images_[0].rows, images_[0].cols, CV_32F, 0.0f);
 
     RandomInitialization(best_depth, best_plane, best_score);
+    ComputeIgnoreMask(best_depth, best_plane, best_score);
 
     for (int i = 0; i < patchmatch_iterations_; ++i) {
       PatchMatchForwardPass(best_depth, best_plane, best_score);
@@ -194,6 +214,33 @@ class DepthmapEstimator {
       }
     }
   }
+
+  void ComputeIgnoreMask(cv::Mat *best_depth, cv::Mat *best_plane, cv::Mat *best_score) {
+    int hpz = (patch_size_ - 1) / 2;
+    for (int i = hpz; i < best_depth->rows - hpz; ++i) {
+      for (int j = hpz; j < best_depth->cols - hpz; ++j) {
+        float variance = PatchVariance(i, j);
+        if (variance < min_patch_variance_) {
+          best_depth->at<float>(i, j) = 0;
+          best_plane->at<cv::Vec3f>(i, j) = cv::Vec3f(0, 0, 0);
+          best_score->at<float>(i, j) = 0;
+        }
+      }
+    }
+  }
+
+  float PatchVariance(int i, int j) {
+    float patch[patch_size_ * patch_size_];
+    int hpz = (patch_size_ - 1) / 2;
+    int counter = 0;
+    for (int u = -hpz; u <= hpz; ++u) {
+      for (int v = -hpz; v <= hpz; ++v) {
+        patch[counter++] = images_[0].at<unsigned char>(i + u, j + v);
+      }
+    }
+    return Variance(patch, patch_size_ * patch_size_);
+  }
+
 
   void PatchMatchForwardPass(cv::Mat *best_depth, cv::Mat *best_plane, cv::Mat *best_score) {
     int neighbors[2][2] = {{-1, 0}, {0, -1}};
@@ -218,6 +265,11 @@ class DepthmapEstimator {
   void PatchMatchUpdatePixel(cv::Mat *best_depth, cv::Mat *best_plane, cv::Mat *best_score,
                              int i, int j,
                              int neighbors[2][2]) {
+    // Ignore pixels with depth == 0.
+    if (best_depth->at<float>(i, j) == 0.0f) {
+      return;
+    }
+
     // Check neighbor's planes.
     for (int k = 0; k < 2; ++k) {
       cv::Vec3f plane = best_plane->at<cv::Vec3f>(i + neighbors[k][0], j + neighbors[k][1]);
@@ -298,6 +350,7 @@ class DepthmapEstimator {
   double min_depth_, max_depth_;
   int num_depth_planes_;
   int patchmatch_iterations_;
+  float min_patch_variance_;
 };
 
 

@@ -151,6 +151,7 @@ BOOST_PYTHON_MODULE(csfm) {
   class_<csfm::DepthmapEstimatorWrapper>("DepthmapEstimator")
     .def("set_depth_range", &csfm::DepthmapEstimatorWrapper::SetDepthRange)
     .def("set_patchmatch_iterations", &csfm::DepthmapEstimatorWrapper::SetPatchMatchIterations)
+    .def("set_min_patch_sd", &csfm::DepthmapEstimatorWrapper::SetMinPatchSD)
     .def("add_view", &csfm::DepthmapEstimatorWrapper::AddView)
     .def("compute_patch_match", &csfm::DepthmapEstimatorWrapper::ComputePatchMatch)
     .def("compute_brute_force", &csfm::DepthmapEstimatorWrapper::ComputeBruteForce)

@@ -27,6 +27,10 @@ class DepthmapEstimatorWrapper {
     de_.SetPatchMatchIterations(n);
   }
 
+  void SetMinPatchSD(float sd) {
+    de_.SetMinPatchSD(sd);
+  }
+
   bp::object ComputePatchMatch() {
     cv::Mat depth, plane, score;
     de_.ComputePatchMatch(&depth, &plane, &score);
