@@ -163,9 +163,9 @@ def create_tracks_graph(features, colors, matches, config):
 
     tracks_graph = nx.Graph()
     for track_id, track in enumerate(tracks):
-        for image_feature in track:
-            image = image_feature[0]
-            featureid = image_feature[1]
+        for image, featureid in track:
+            if image not in features:
+                continue
             x, y = features[image][featureid]
             r, g, b = colors[image][featureid]
             tracks_graph.add_node(image, bipartite=0)
