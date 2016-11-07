@@ -69,7 +69,7 @@ class DataSet:
 
     def _undistorted_image_file(self, image):
         """Path of undistorted version of an image."""
-        return os.path.join(self._undistorted_image_path(), image)
+        return os.path.join(self._undistorted_image_path(), image + '.jpg')
 
     def undistorted_image_as_array(self, image):
         """Undistorted image pixels as 3-dimensional numpy array (R G B order)"""
