@@ -221,7 +221,7 @@ def find_neighboring_images(shot, common_tracks, reconstruction, num_neighbors=5
     for other in others:
         score = 0
         C2 = other.pose.get_origin()
-        tracks = common_tracks.get((shot.id, other.id), [])
+        tracks = common_tracks.get(tuple(sorted([shot.id, other.id])), [])
         for track in tracks:
             if track in reconstruction.points:
                 p = np.array(reconstruction.points[track].coordinates)
