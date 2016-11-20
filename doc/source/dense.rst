@@ -83,3 +83,33 @@ and then we have
 
    H = K_2 [Q_{12} + a_{12} v^T] K_1^{-1}
 
+
+Local, affine approximation of an homography
+--------------------------------------------
+
+The homography mapping defined by matrix :math:`H` is
+
+.. math::
+
+   f(x, y) = \begin{pmatrix} u / w \\
+                             v / w \end{pmatrix}
+where
+
+.. math::
+   u &= H_1 (x, y, 1)^T \\
+   v &= H_2 (x, y, 1)^T \\
+   w &= H_3 (x, y, 1)^T
+
+.. math:
+
+   Df(x, y) = \frac{1}{w^2}
+      \begin{pmatrix}
+         H_{11} w - u H_{31}  &  H_{12} w - u H_{32} \\
+         H_{21} w - v H_{31}  &  H_{22} w - v H_{32}
+      \end{pmatrix}
+
+.. math:
+
+   f(x, y) = f(x_0, y_0) + Df(x_0, y_0)(x - x_0, y - y_0)^T
+
+
