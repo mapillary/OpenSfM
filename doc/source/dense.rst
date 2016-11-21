@@ -106,14 +106,14 @@ The differential is then
 
    Df(x, y) = \frac{1}{w^2}
       \begin{pmatrix}
-         H_{11} w - u H_{31}  &  H_{12} w - u H_{32} \\
-         H_{21} w - v H_{31}  &  H_{22} w - v H_{32}
+         H_{11} w - H_{31} u  &  H_{12} w - H_{32} u \\
+         H_{21} w - H_{31} v  &  H_{22} w - H_{32} v
       \end{pmatrix}
 
 And the linear approximation around :math:`(x_0, y_0)` is
 
 .. math::
 
-   f(x, y) = f(x_0, y_0) + Df(x_0, y_0)(x - x_0, y - y_0)^T
+   f(x_0 + dx, y_0 + dy) = f(x_0, y_0) + Df(x_0, y_0)(dx, dy)^T
 
 

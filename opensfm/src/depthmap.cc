@@ -325,7 +325,7 @@ class DepthmapEstimator {
     return best_score;
   }
 
-  float ComputePlaneImageScore(int i, int j,
+  float ComputePlaneImageScoreOld(int i, int j,
                                const cv::Vec3f &plane,
                                int other) {
     cv::Matx33f H = PlaneInducedHomographyBaked(
@@ -334,41 +334,42 @@ class DepthmapEstimator {
     NCCEstimator ncc;
     for (int u = -hpz; u <= hpz; ++u) {
       for (int v = -hpz; v <= hpz; ++v) {
-        double im1 = images_[0].at<unsigned char>(i + u, j + v);
+        float im1 = images_[0].at<unsigned char>(i + u, j + v);
         float x2, y2;
         ApplyHomography(H, j + v, i + u, &x2, &y2);
-        double im2 = LinearInterpolation<unsigned char>(images_[other], y2, x2);
+        float im2 = LinearInterpolation<unsigned char>(images_[other], y2, x2);
         ncc.Push(im1, im2);
       }
     }
     return ncc.Get();
   }
 
-  float ComputePlaneImageScoreAffine(int i, int j,
+  float ComputePlaneImageScore(int i, int j,
                                const cv::Vec3f &plane,
                                int other) {
     cv::Matx33f H = PlaneInducedHomographyBaked(
         Kinvs_[0], Qs_[other], as_[other], Ks_[other], plane);
     int hpz = (patch_size_ - 1) / 2;
+
+    float u = H(0, 0) * j + H(0, 1) * i + H(0, 2);
+    float v = H(1, 0) * j + H(1, 1) * i + H(1, 2);
+    float w = H(2, 0) * j + H(2, 1) * i + H(2, 2);
+
+    float dfdx_x = (H(0, 0) * w - H(2, 0) * u) / (w * w);
+    float dfdx_y = (H(1, 0) * w - H(2, 0) * v) / (w * w);
+    float dfdy_x = (H(0, 1) * w - H(2, 1) * u) / (w * w);
+    float dfdy_y = (H(1, 1) * w - H(2, 1) * v) / (w * w);
+
+    float Hx0 = u / w;
+    float Hy0 = v / w;
+
     NCCEstimator ncc;
-
-    float u0 = H(0, 0) * j + H(0, 1) * i + H(0, 2);
-    float v0 = H(1, 0) * j + H(1, 1) * i + H(1, 2);
-    float w0 = H(2, 0) * j + H(2, 1) * i + H(2, 2);
-    float Hx0 = u0 / w0;
-    float Hy0 = v0 / w0;
-
-    float dfdx_x = (H(0, 0) * w0 - u0 * H(2, 0)) / (w0 * w0);
-    float dfdx_y = (H(1, 0) * w0 - v0 * H(2, 0)) / (w0 * w0);
-    float dfdy_x = (H(0, 1) * w0 - u0 * H(2, 1)) / (w0 * w0);
-    float dfdy_y = (H(1, 1) * w0 - v0 * H(2, 1)) / (w0 * w0);
-
-    for (int u = -hpz; u <= hpz; ++u) {
-      for (int v = -hpz; v <= hpz; ++v) {
-        double im1 = images_[0].at<unsigned char>(i + u, j + v);
-        float x2 = Hx0 + u * dfdx_x + v * dfdy_x;
-        float y2 = Hy0 + u * dfdx_y + v * dfdy_y;
-        double im2 = LinearInterpolation<unsigned char>(images_[other], y2, x2);
+    for (int dy = -hpz; dy <= hpz; ++dy) {
+      for (int dx = -hpz; dx <= hpz; ++dx) {
+        float im1 = images_[0].at<unsigned char>(i + dy, j + dx);
+        float x2 = Hx0 + dfdx_x * dx + dfdy_x * dy;
+        float y2 = Hy0 + dfdx_y * dx + dfdy_y * dy;
+        float im2 = LinearInterpolation<unsigned char>(images_[other], y2, x2);
         ncc.Push(im1, im2);
       }
     }
