@@ -63,4 +63,12 @@ TEST(Backproject, Reprojection) {
   EXPECT_NEAR(reprojection(1) / reprojection(2), v, 1e-6);
 }
 
+TEST(NCCEstimator, Simple) {
+  NCCEstimator ncc;
+  ncc.Push(1, 1);
+  ncc.Push(2, 2);
+  ncc.Push(3, 3);
+  EXPECT_NEAR(ncc.Get(), 1.0, 1e-6);
+}
+
 }  // namespace

@@ -100,7 +100,9 @@ where
    v &= H_2 (x, y, 1)^T \\
    w &= H_3 (x, y, 1)^T
 
-.. math:
+The differential is then
+
+.. math::
 
    Df(x, y) = \frac{1}{w^2}
       \begin{pmatrix}
@@ -108,7 +110,9 @@ where
          H_{21} w - v H_{31}  &  H_{22} w - v H_{32}
       \end{pmatrix}
 
-.. math:
+And the linear approximation around :math:`(x_0, y_0)` is
+
+.. math::
 
    f(x, y) = f(x_0, y_0) + Df(x_0, y_0)(x - x_0, y - y_0)^T
 
