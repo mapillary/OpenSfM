@@ -135,7 +135,6 @@ float UniformRand(float a, float b) {
   return a + (b - a) * float(rand()) / RAND_MAX;
 }
 
-
 class DepthmapEstimator {
  public:
   DepthmapEstimator()
@@ -145,6 +144,8 @@ class DepthmapEstimator {
     , num_depth_planes_(50)
     , patchmatch_iterations_(3)
     , min_patch_variance_(5 * 5)
+    , rng_{std::random_device{}()}
+    , uni_(0, 0)
   {}
 
   void AddView(const double *pK,
@@ -160,6 +161,10 @@ class DepthmapEstimator {
     Qs_.emplace_back(Rs_.back() * Rs_.front().t());
     as_.emplace_back(Qs_.back() * ts_.front() - ts_.back());
     images_.emplace_back(cv::Mat(height, width, CV_8U, (void *)pimage).clone());
+    std::size_t size = images_.size();
+    int a = (size > 1) ? 1 : 0;
+    int b = (size > 1) ? size - 1 : 0;
+    uni_.param(std::uniform_int_distribution<int>::param_type(a, b));
   }
 
   void SetDepthRange(double min_depth, double max_depth, int num_depth_planes) {
@@ -180,7 +185,7 @@ class DepthmapEstimator {
     *best_depth = cv::Mat(images_[0].rows, images_[0].cols, CV_32F, 0.0f);
     *best_plane = cv::Mat(images_[0].rows, images_[0].cols, CV_32FC3, 0.0f);
     *best_score = cv::Mat(images_[0].rows, images_[0].cols, CV_32F, 0.0f);
-    *best_nbour = cv::Mat(images_[0].rows, images_[0].cols, CV_8U, cv::Scalar(0));
+    *best_nbour = cv::Mat(images_[0].rows, images_[0].cols, CV_32S, cv::Scalar(0));
 
     int hpz = (patch_size_ - 1) / 2;
     for (int i = hpz; i < best_depth->rows - hpz; ++i) {
@@ -199,7 +204,7 @@ class DepthmapEstimator {
     *best_depth = cv::Mat(images_[0].rows, images_[0].cols, CV_32F, 0.0f);
     *best_plane = cv::Mat(images_[0].rows, images_[0].cols, CV_32FC3, 0.0f);
     *best_score = cv::Mat(images_[0].rows, images_[0].cols, CV_32F, 0.0f);
-    *best_nbour = cv::Mat(images_[0].rows, images_[0].cols, CV_8U, cv::Scalar(0));
+    *best_nbour = cv::Mat(images_[0].rows, images_[0].cols, CV_32S, cv::Scalar(0));
 
     RandomInitialization(best_depth, best_plane, best_score, best_nbour);
     ComputeIgnoreMask(best_depth, best_plane, best_score, best_nbour);
@@ -217,11 +222,12 @@ class DepthmapEstimator {
         float depth = UniformRand(min_depth_, max_depth_);
         cv::Vec3f normal(UniformRand(-1, 1), UniformRand(-1, 1), -1);
         cv::Vec3f plane = PlaneFromDepthAndNormal(j, i, Ks_[0], depth, normal);
-        std::pair<float, unsigned char> score = ComputePlaneScore(i, j, plane);
+        int other = uni_(rng_);
+        float score = ComputePlaneImageScore(i, j, plane, other);
         best_depth->at<float>(i, j) = depth;
         best_plane->at<cv::Vec3f>(i, j) = plane;
-        best_score->at<float>(i, j) = score.first;
-        best_nbour->at<unsigned char>(i, j) = score.second;
+        best_score->at<float>(i, j) = score;
+        best_nbour->at<int>(i, j) = other;
       }
     }
   }
@@ -235,7 +241,7 @@ class DepthmapEstimator {
           best_depth->at<float>(i, j) = 0;
           best_plane->at<cv::Vec3f>(i, j) = cv::Vec3f(0, 0, 0);
           best_score->at<float>(i, j) = 0;
-          best_nbour->at<unsigned char>(i, j) = 0;
+          best_nbour->at<int>(i, j) = 0;
         }
       }
     }
@@ -310,23 +316,23 @@ class DepthmapEstimator {
 
   void CheckPlaneCandidate(cv::Mat *best_depth, cv::Mat *best_plane, cv::Mat *best_score, cv::Mat *best_nbour,
                            int i, int j, const cv::Vec3f &plane) {
-    std::pair<float, unsigned char> score = ComputePlaneScore(i, j, plane);
+    std::pair<float, int> score = ComputePlaneScore(i, j, plane);
     if (score.first > best_score->at<float>(i, j)) {
       best_score->at<float>(i, j) = score.first;
       best_plane->at<cv::Vec3f>(i, j) = plane;
       best_depth->at<float>(i, j) = DepthOfPlaneBackprojection(j, i, Ks_[0], plane);
-      best_nbour->at<unsigned char>(i, j) = score.second;
+      best_nbour->at<int>(i, j) = score.second;
     }
   }
 
-  std::pair<float, unsigned char> ComputePlaneScore(int i, int j, const cv::Vec3f &plane) {
+  std::pair<float, int> ComputePlaneScore(int i, int j, const cv::Vec3f &plane) {
     float best_score = -1.0f;
-    unsigned char best_nbour = 0;
-    for (std::size_t other = 1; other < images_.size(); ++other) {
+    int best_nbour = 0;
+    for (int other = 1; other < images_.size(); ++other) {
       float score = ComputePlaneImageScore(i, j, plane, other);
       if (score > best_score) {
         best_score = score;
-        best_nbour = static_cast<unsigned char>(other);
+        best_nbour = other;
       }
     }
     return std::make_pair(best_score, best_nbour);
@@ -397,6 +403,8 @@ class DepthmapEstimator {
   int num_depth_planes_;
   int patchmatch_iterations_;
   float min_patch_variance_;
+  std::mt19937 rng_;
+  std::uniform_int_distribution<int> uni_;
 };
 
 

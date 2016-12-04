@@ -53,7 +53,7 @@ class DepthmapEstimatorWrapper {
     retn.append(bpn_array_from_data(2, shape, depth.ptr<float>(0)));
     retn.append(bpn_array_from_data(3, plane_shape, plane.ptr<float>(0)));
     retn.append(bpn_array_from_data(2, shape, score.ptr<float>(0)));
-    retn.append(bpn_array_from_data(2, shape, nbour.ptr<unsigned char>(0)));
+    retn.append(bpn_array_from_data(2, shape, nbour.ptr<int>(0)));
     return retn;
   }
 
