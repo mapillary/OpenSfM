@@ -176,10 +176,11 @@ class DepthmapEstimator {
     min_patch_variance_ = sd * sd;
   }
 
-  void ComputeBruteForce(cv::Mat *best_depth, cv::Mat *best_plane, cv::Mat *best_score) {
+  void ComputeBruteForce(cv::Mat *best_depth, cv::Mat *best_plane, cv::Mat *best_score, cv::Mat *best_nbour) {
     *best_depth = cv::Mat(images_[0].rows, images_[0].cols, CV_32F, 0.0f);
     *best_plane = cv::Mat(images_[0].rows, images_[0].cols, CV_32FC3, 0.0f);
     *best_score = cv::Mat(images_[0].rows, images_[0].cols, CV_32F, 0.0f);
+    *best_nbour = cv::Mat(images_[0].rows, images_[0].cols, CV_8U, cv::Scalar(0));
 
     int hpz = (patch_size_ - 1) / 2;
     for (int i = hpz; i < best_depth->rows - hpz; ++i) {
@@ -188,42 +189,44 @@ class DepthmapEstimator {
           float depth = 1 / (1 / min_depth_ + d * (1 / max_depth_ - 1 / min_depth_) / (num_depth_planes_ - 1));
           cv::Vec3f normal(0, 0, -1);
           cv::Vec3f plane = PlaneFromDepthAndNormal(j, i, Ks_[0], depth, normal);
-          CheckPlaneCandidate(best_depth, best_plane, best_score, i, j, plane);
+          CheckPlaneCandidate(best_depth, best_plane, best_score, best_nbour, i, j, plane);
         }
       }
     }
   }
 
-  void ComputePatchMatch(cv::Mat *best_depth, cv::Mat *best_plane, cv::Mat *best_score) {
+  void ComputePatchMatch(cv::Mat *best_depth, cv::Mat *best_plane, cv::Mat *best_score, cv::Mat *best_nbour) {
     *best_depth = cv::Mat(images_[0].rows, images_[0].cols, CV_32F, 0.0f);
     *best_plane = cv::Mat(images_[0].rows, images_[0].cols, CV_32FC3, 0.0f);
     *best_score = cv::Mat(images_[0].rows, images_[0].cols, CV_32F, 0.0f);
+    *best_nbour = cv::Mat(images_[0].rows, images_[0].cols, CV_8U, cv::Scalar(0));
 
-    RandomInitialization(best_depth, best_plane, best_score);
-    ComputeIgnoreMask(best_depth, best_plane, best_score);
+    RandomInitialization(best_depth, best_plane, best_score, best_nbour);
+    ComputeIgnoreMask(best_depth, best_plane, best_score, best_nbour);
 
     for (int i = 0; i < patchmatch_iterations_; ++i) {
-      PatchMatchForwardPass(best_depth, best_plane, best_score);
-      PatchMatchBackwardPass(best_depth, best_plane, best_score);
+      PatchMatchForwardPass(best_depth, best_plane, best_score, best_nbour);
+      PatchMatchBackwardPass(best_depth, best_plane, best_score, best_nbour);
     }
   }
 
-  void RandomInitialization(cv::Mat *best_depth, cv::Mat *best_plane, cv::Mat *best_score) {
+  void RandomInitialization(cv::Mat *best_depth, cv::Mat *best_plane, cv::Mat *best_score, cv::Mat *best_nbour) {
     int hpz = (patch_size_ - 1) / 2;
     for (int i = hpz; i < best_depth->rows - hpz; ++i) {
       for (int j = hpz; j < best_depth->cols - hpz; ++j) {
         float depth = UniformRand(min_depth_, max_depth_);
         cv::Vec3f normal(UniformRand(-1, 1), UniformRand(-1, 1), -1);
         cv::Vec3f plane = PlaneFromDepthAndNormal(j, i, Ks_[0], depth, normal);
-        float score = ComputePlaneScore(i, j, plane);
+        std::pair<float, unsigned char> score = ComputePlaneScore(i, j, plane);
         best_depth->at<float>(i, j) = depth;
         best_plane->at<cv::Vec3f>(i, j) = plane;
-        best_score->at<float>(i, j) = score;
+        best_score->at<float>(i, j) = score.first;
+        best_nbour->at<unsigned char>(i, j) = score.second;
       }
     }
   }
 
-  void ComputeIgnoreMask(cv::Mat *best_depth, cv::Mat *best_plane, cv::Mat *best_score) {
+  void ComputeIgnoreMask(cv::Mat *best_depth, cv::Mat *best_plane, cv::Mat *best_score, cv::Mat *best_nbour) {
     int hpz = (patch_size_ - 1) / 2;
     for (int i = hpz; i < best_depth->rows - hpz; ++i) {
       for (int j = hpz; j < best_depth->cols - hpz; ++j) {
@@ -232,6 +235,7 @@ class DepthmapEstimator {
           best_depth->at<float>(i, j) = 0;
           best_plane->at<cv::Vec3f>(i, j) = cv::Vec3f(0, 0, 0);
           best_score->at<float>(i, j) = 0;
+          best_nbour->at<unsigned char>(i, j) = 0;
         }
       }
     }
@@ -250,27 +254,27 @@ class DepthmapEstimator {
   }
 
 
-  void PatchMatchForwardPass(cv::Mat *best_depth, cv::Mat *best_plane, cv::Mat *best_score) {
+  void PatchMatchForwardPass(cv::Mat *best_depth, cv::Mat *best_plane, cv::Mat *best_score, cv::Mat *best_nbour) {
     int neighbors[2][2] = {{-1, 0}, {0, -1}};
     int hpz = (patch_size_ - 1) / 2;
     for (int i = hpz; i < best_depth->rows - hpz; ++i) {
       for (int j = hpz; j < best_depth->cols - hpz; ++j) {
-        PatchMatchUpdatePixel(best_depth, best_plane, best_score, i, j, neighbors);
+        PatchMatchUpdatePixel(best_depth, best_plane, best_score, best_nbour, i, j, neighbors);
       }
     }
   }
 
-  void PatchMatchBackwardPass(cv::Mat *best_depth, cv::Mat *best_plane, cv::Mat *best_score) {
+  void PatchMatchBackwardPass(cv::Mat *best_depth, cv::Mat *best_plane, cv::Mat *best_score, cv::Mat *best_nbour) {
     int neighbors[2][2] = {{0, 1}, {1, 0}};
     int hpz = (patch_size_ - 1) / 2;
     for (int i = best_depth->rows - hpz - 1; i >= hpz; --i) {
       for (int j = best_depth->cols - hpz - 1; j >= hpz; --j) {
-        PatchMatchUpdatePixel(best_depth, best_plane, best_score, i, j, neighbors);
+        PatchMatchUpdatePixel(best_depth, best_plane, best_score, best_nbour, i, j, neighbors);
       }
     }
   }
 
-  void PatchMatchUpdatePixel(cv::Mat *best_depth, cv::Mat *best_plane, cv::Mat *best_score,
+  void PatchMatchUpdatePixel(cv::Mat *best_depth, cv::Mat *best_plane, cv::Mat *best_score, cv::Mat *best_nbour,
                              int i, int j,
                              int neighbors[2][2]) {
     // Ignore pixels with depth == 0.
@@ -281,7 +285,7 @@ class DepthmapEstimator {
     // Check neighbor's planes.
     for (int k = 0; k < 2; ++k) {
       cv::Vec3f plane = best_plane->at<cv::Vec3f>(i + neighbors[k][0], j + neighbors[k][1]);
-      CheckPlaneCandidate(best_depth, best_plane, best_score, i, j, plane);
+      CheckPlaneCandidate(best_depth, best_plane, best_score, best_nbour, i, j, plane);
     }
 
     // Check random planes.
@@ -297,32 +301,35 @@ class DepthmapEstimator {
                        -1.0f);
 
       cv::Vec3f plane = PlaneFromDepthAndNormal(j, i, Ks_[0], depth, normal);
-      CheckPlaneCandidate(best_depth, best_plane, best_score, i, j, plane);
+      CheckPlaneCandidate(best_depth, best_plane, best_score, best_nbour, i, j, plane);
 
       depth_range *= 0.5;
       normal_range *= 0.5;
     }
   }
 
-  void CheckPlaneCandidate(cv::Mat *best_depth, cv::Mat *best_plane, cv::Mat *best_score,
+  void CheckPlaneCandidate(cv::Mat *best_depth, cv::Mat *best_plane, cv::Mat *best_score, cv::Mat *best_nbour,
                            int i, int j, const cv::Vec3f &plane) {
-    float score = ComputePlaneScore(i, j, plane);
-    if (score > best_score->at<float>(i, j)) {
-      best_score->at<float>(i, j) = score;
+    std::pair<float, unsigned char> score = ComputePlaneScore(i, j, plane);
+    if (score.first > best_score->at<float>(i, j)) {
+      best_score->at<float>(i, j) = score.first;
       best_plane->at<cv::Vec3f>(i, j) = plane;
       best_depth->at<float>(i, j) = DepthOfPlaneBackprojection(j, i, Ks_[0], plane);
+      best_nbour->at<unsigned char>(i, j) = score.second;
     }
   }
 
-  float ComputePlaneScore(int i, int j, const cv::Vec3f &plane) {
+  std::pair<float, unsigned char> ComputePlaneScore(int i, int j, const cv::Vec3f &plane) {
     float best_score = -1.0f;
-    for (int other = 1; other < images_.size(); ++other) {
+    unsigned char best_nbour = 0;
+    for (std::size_t other = 1; other < images_.size(); ++other) {
       float score = ComputePlaneImageScore(i, j, plane, other);
       if (score > best_score) {
         best_score = score;
+        best_nbour = static_cast<unsigned char>(other);
       }
     }
-    return best_score;
+    return std::make_pair(best_score, best_nbour);
   }
 
   float ComputePlaneImageScoreUnoptimized(int i, int j,

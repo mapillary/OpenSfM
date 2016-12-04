@@ -67,7 +67,7 @@ def compute_depthmap(arguments):
     de.set_patchmatch_iterations(data.config['depthmap_patchmatch_iterations'])
     de.set_min_patch_sd(data.config['depthmap_min_patch_sd'])
     add_views_to_depth_estimator(data, reconstruction, neighbors[shot.id], de)
-    depth, plane, score = de.compute_patch_match()
+    depth, plane, score, nbour = de.compute_patch_match()
     good_score = score > data.config['depthmap_min_correlation_score']
     depth = depth * (depth < max_depth) * good_score
 
@@ -83,15 +83,20 @@ def compute_depthmap(arguments):
 
     if data.config.get('interactive'):
         import matplotlib.pyplot as plt
-        plt.subplot(2, 2, 1)
+        plt.figure()
+        plt.suptitle("Shot: " + shot.id + ", neighbors: " + ', '.join(neighbors[shot.id][1:]))
+        plt.subplot(2, 3, 1)
         plt.imshow(image)
-        plt.subplot(2, 2, 2)
+        plt.subplot(2, 3, 2)
         plt.imshow(color_plane_normals(plane))
-        plt.subplot(2, 2, 3)
+        plt.subplot(2, 3, 3)
         plt.imshow(depth)
         plt.colorbar()
-        plt.subplot(2, 2, 4)
+        plt.subplot(2, 3, 4)
         plt.imshow(score)
+        plt.colorbar()
+        plt.subplot(2, 3, 5)
+        plt.imshow(nbour)
         plt.colorbar()
         plt.show()
 
@@ -124,6 +129,8 @@ def clean_depthmap(arguments):
 
     if data.config.get('interactive'):
         import matplotlib.pyplot as plt
+        plt.figure()
+        plt.suptitle("Shot: " + shot.id)
         plt.subplot(2, 2, 1)
         plt.imshow(raw_depth)
         plt.colorbar()
