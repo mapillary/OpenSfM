@@ -291,12 +291,18 @@ class DepthmapEstimator {
     // Check neighbor's planes.
     for (int k = 0; k < 2; ++k) {
       cv::Vec3f plane = best_plane->at<cv::Vec3f>(i + neighbors[k][0], j + neighbors[k][1]);
-      CheckPlaneCandidate(best_depth, best_plane, best_score, best_nbour, i, j, plane);
+      int nbour = best_nbour->at<int>(i + neighbors[k][0], j + neighbors[k][1]);
+      if (nbour == 0) {
+        continue;
+      }
+
+      CheckPlaneCandidate(best_depth, best_plane, best_score, best_nbour, i, j, plane, nbour);
     }
 
     // Check random planes.
     float depth_range = (1 / max_depth_ - 1 / min_depth_) / 20;
     float normal_range = 0.5;
+    int current_nbour = best_nbour->at<int>(i, j);
     for (int k = 0; k < 6; ++k) {
       float current_depth = best_depth->at<float>(i, j);
       float depth = 1 / (1 / current_depth + UniformRand(-depth_range, depth_range));
@@ -307,11 +313,24 @@ class DepthmapEstimator {
                        -1.0f);
 
       cv::Vec3f plane = PlaneFromDepthAndNormal(j, i, Ks_[0], depth, normal);
-      CheckPlaneCandidate(best_depth, best_plane, best_score, best_nbour, i, j, plane);
+      CheckPlaneCandidate(best_depth, best_plane, best_score, best_nbour, i, j, plane, current_nbour);
 
       depth_range *= 0.5;
       normal_range *= 0.5;
     }
+
+    if (images_.size() <= 2) {
+      return;
+    }
+
+    // TODO: handle excluding current neighbour index correctly when drawing from uniform integer distribution
+    int other_nbour = uni_(rng_);
+    while (other_nbour == current_nbour) {
+      other_nbour = uni_(rng_);
+    }
+
+    cv::Vec3f plane = best_plane->at<cv::Vec3f>(i, j);
+    CheckPlaneCandidate(best_depth, best_plane, best_score, best_nbour, i, j, plane, other_nbour);
   }
 
   void CheckPlaneCandidate(cv::Mat *best_depth, cv::Mat *best_plane, cv::Mat *best_score, cv::Mat *best_nbour,
@@ -322,6 +341,17 @@ class DepthmapEstimator {
       best_plane->at<cv::Vec3f>(i, j) = plane;
       best_depth->at<float>(i, j) = DepthOfPlaneBackprojection(j, i, Ks_[0], plane);
       best_nbour->at<int>(i, j) = score.second;
+    }
+  }
+
+  void CheckPlaneCandidate(cv::Mat *best_depth, cv::Mat *best_plane, cv::Mat *best_score, cv::Mat *best_nbour,
+                           int i, int j, const cv::Vec3f &plane, int nbour) {
+    float score = ComputePlaneImageScore(i, j, plane, nbour);
+    if (score > best_score->at<float>(i, j)) {
+      best_score->at<float>(i, j) = score;
+      best_plane->at<cv::Vec3f>(i, j) = plane;
+      best_depth->at<float>(i, j) = DepthOfPlaneBackprojection(j, i, Ks_[0], plane);
+      best_nbour->at<int>(i, j) = nbour;
     }
   }
 
