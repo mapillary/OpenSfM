@@ -22,12 +22,13 @@ class Command:
         data = dataset.DataSet(args.dataset)
         reconstructions = data.load_reconstruction()
         graph = data.load_tracks_graph()
-        data.save_undistorted_tracks_graph(graph)
 
         if reconstructions:
-            self.undistort_images(reconstructions[0], data)
+            self.undistort_images(graph, reconstructions[0], data)
 
-    def undistort_images(self, reconstruction, data):
+        data.save_undistorted_tracks_graph(graph)
+
+    def undistort_images(self, graph, reconstruction, data):
         urec = types.Reconstruction()
         urec.points = reconstruction.points
 
@@ -49,6 +50,8 @@ class Command:
                         image, shot, subshot)
                     data.save_undistorted_image(subshot.id, undistorted)
 
+                    add_subshot_tracks(graph, shot, subshot)
+
         data.save_undistorted_reconstruction([urec])
 
 
@@ -69,10 +72,7 @@ def perspective_views_of_a_panorama(spherical_shot):
     camera.height = 640
     camera.focal = 0.5
     camera.focal_prior = camera.focal
-    camera.k1 = 0.0
-    camera.k1_prior = camera.k1
-    camera.k2 = 0.0
-    camera.k2_prior = camera.k2
+    camera.k1 = camera.k1_prior = camera.k2 = camera.k2_prior = 0.0
 
     names = ['front', 'left', 'back', 'right', 'top', 'bottom']
     rotations = [
@@ -141,3 +141,31 @@ def render_perspective_view_of_a_panorama(image, panoshot, perspectiveshot):
         plt.show()
 
     return colors
+
+
+def add_subshot_tracks(graph, panoshot, perspectiveshot):
+    """Add edges betwene subshots and visible tracks."""
+    graph.add_node(perspectiveshot.id, bipartite=0)
+    for track in graph[panoshot.id]:
+        edge = graph[panoshot.id][track]
+        feature = edge['feature']
+        bearing = panoshot.camera.pixel_bearing(feature)
+        rotation = np.dot(perspectiveshot.pose.get_rotation_matrix(),
+                          panoshot.pose.get_rotation_matrix().T)
+
+        rotated_bearing = np.dot(bearing, rotation.T)
+        if rotated_bearing[2] <= 0:
+            continue
+
+        perspective_feature = perspectiveshot.camera.project(rotated_bearing)
+        if (perspective_feature[0] < -0.5 or
+                perspective_feature[0] > 0.5 or
+                perspective_feature[1] < -0.5 or
+                perspective_feature[1] > 0.5):
+            continue
+
+        graph.add_edge(perspectiveshot.id,
+                       track,
+                       feature=perspective_feature,
+                       feature_id=edge['feature_id'],
+                       feature_color=edge['feature_color'])
