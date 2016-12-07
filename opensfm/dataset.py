@@ -300,33 +300,24 @@ class DataSet:
                     return im2_matches[im1][:, [1, 0]]
         return []
 
-    def __tracks_graph_file(self):
+    def __tracks_graph_file(self, filename=None):
         """Return path of tracks file"""
-        return os.path.join(self.data_path, 'tracks.csv')
+        return os.path.join(self.data_path, filename or 'tracks.csv')
 
-    def load_tracks_graph_as_list(self):
-        """Return tranks graph as a list of edges"""
-        track_list = []
-        images = self.images()
-        image_inv = {}
-        for i, im in enumerate(images):
-            image_inv[im] = int(i)
-        with open(self.__tracks_graph_file()) as fin:
-            for line in fin:
-                image, track_id, observation, x, y = line.split('\t')
-                if int(track_id) >= len(track_list):
-                    track_list.append([])
-                track_list[int(track_id)].append([image_inv[image], int(observation)])
-        return track_list
-
-    def load_tracks_graph(self):
+    def load_tracks_graph(self, filename=None):
         """Return graph (networkx data structure) of tracks"""
-        with open(self.__tracks_graph_file()) as fin:
+        with open(self.__tracks_graph_file(filename)) as fin:
             return load_tracks_graph(fin)
 
-    def save_tracks_graph(self, graph):
-        with open(self.__tracks_graph_file(), 'w') as fout:
+    def save_tracks_graph(self, graph, filename=None):
+        with open(self.__tracks_graph_file(filename), 'w') as fout:
             save_tracks_graph(fout, graph)
+
+    def load_undistorted_tracks_graph(self):
+        return self.load_tracks_graph('undistorted_tracks.csv')
+
+    def save_undistorted_tracks_graph(self, graph):
+        return self.save_tracks_graph(graph, 'undistorted_tracks.csv')
 
     def __reconstruction_file(self, filename):
         """Return path of reconstruction file"""
@@ -337,9 +328,17 @@ class DataSet:
             reconstructions = io.reconstructions_from_json(json.load(fin))
         return reconstructions
 
-    def save_reconstruction(self, reconstruction, filename=None, indent=4):
+    def save_reconstruction(self, reconstruction, filename=None):
         with open(self.__reconstruction_file(filename), 'w') as fout:
             io.json_dump(io.reconstructions_to_json(reconstruction), fout)
+
+    def load_undistorted_reconstruction(self):
+        return self.load_reconstruction(
+            filename='undistorted_reconstruction.json')
+
+    def save_undistorted_reconstruction(self, reconstruction):
+        return self.save_reconstruction(
+            reconstruction, filename='undistorted_reconstruction.json')
 
     def __reference_lla_path(self):
         return os.path.join(self.data_path, 'reference_lla.json')
