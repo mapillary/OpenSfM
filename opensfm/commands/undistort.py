@@ -41,7 +41,8 @@ class Command:
                 undistorted = undistort_image(image, shot)
                 data.save_undistorted_image(shot.id, undistorted)
             elif shot.camera.projection_type in ['equirectangular', 'spherical']:
-                image = data.image_as_array(shot.id)
+                original = data.image_as_array(shot.id)
+                image = cv2.resize(original, (2048, 1024), interpolation=cv2.INTER_AREA)
                 shots = perspective_views_of_a_panorama(shot)
                 for subshot in shots:
                     urec.add_camera(subshot.camera)
@@ -125,21 +126,13 @@ def render_perspective_view_of_a_panorama(image, panoshot, perspectiveshot):
 
     src_pixels_denormalized = features.denormalized_image_coordinates(
         src_pixels,
-        panoshot.camera.width,
-        panoshot.camera.height)
+        image.shape[1],
+        image.shape[0])
 
     # Sample color
     colors = image[src_pixels_denormalized[:, 1].astype(int),
                    src_pixels_denormalized[:, 0].astype(int)]
     colors.shape = dst_shape + (-1,)
-
-    if False:
-        import matplotlib.pyplot as plt
-        plt.imshow(image)
-        plt.show()
-        plt.imshow(colors)
-        plt.show()
-
     return colors
 
 
