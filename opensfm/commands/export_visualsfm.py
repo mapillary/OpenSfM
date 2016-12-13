@@ -1,4 +1,5 @@
 import logging
+import os
 
 from opensfm import dataset
 from opensfm import transformations as tf
@@ -27,7 +28,7 @@ class Command:
             q = tf.quaternion_from_matrix(shot.pose.get_rotation_matrix())
             o = shot.pose.get_origin()
             words = [
-                'undistorted/' + shot.id,
+                self.image_path(shot.id, data),
                 shot.camera.focal * max(shot.camera.width, shot.camera.height),
                 q[0], q[1], q[2], q[3],
                 o[0], o[1], o[2],
@@ -38,3 +39,8 @@ class Command:
 
         with open(data.data_path + '/reconstruction.nvm', 'w') as fout:
             fout.write('\n'.join(lines))
+
+    def image_path(self, image, data):
+        """Path to the undistorted image relative to the dataset path."""
+        path = data._undistorted_image_file(image)
+        return os.path.relpath(path, data.data_path)
