@@ -589,4 +589,4 @@ def reconstruction_to_ply(reconstruction):
         "end_header",
     ]
 
-    return '\n'.join(header + vertices)
+    return '\n'.join(header + vertices + [''])

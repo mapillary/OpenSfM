@@ -284,7 +284,7 @@ def depthmap_to_ply(shot, depth, image):
         "end_header",
     ]
 
-    return '\n'.join(header + vertices)
+    return '\n'.join(header + vertices + [''])
 
 
 def point_cloud_to_ply(points, normals, colors):
@@ -311,7 +311,7 @@ def point_cloud_to_ply(points, normals, colors):
         "end_header",
     ]
 
-    return '\n'.join(header + vertices)
+    return '\n'.join(header + vertices + [''])
 
 
 def color_plane_normals(plane):
