@@ -40,31 +40,39 @@ float Variance(float *x, int n) {
   return sum2 / n;
 }
 
-float NormalizedCrossCorrelation(float *x, float *y, int n) {
-  float sumx = 0;
-  float sumy = 0;
-  for (int i = 0; i < n; ++i) {
-    sumx += x[i];
-    sumy += y[i];
-  }
-  float meanx = sumx / n;
-  float meany = sumy / n;
+class NCCEstimator {
+ public:
+  NCCEstimator()
+    : sumx_(0), sumy_(0)
+    , sumxx_(0), sumyy_(0), sumxy_(0)
+    , sumw_(0)
+  {}
 
-  float sumx2 = 0;
-  float sumy2 = 0;
-  for (int i = 0; i < n; ++i) {
-    sumx2 += (x[i] - meanx) * (x[i] - meanx);
-    sumy2 += (y[i] - meany) * (y[i] - meany);
+  void Push(float x, float y) {
+    sumx_ += x;
+    sumy_ += y;
+    sumxx_ += x * x;
+    sumyy_ += y * y;
+    sumxy_ += x * y;
+    sumw_ += 1;
   }
-  float varx =  sumx2 / n;
-  float vary =  sumy2 / n;
 
-  float correlation = 0;
-  for (int i = 0; i < n; ++i) {
-    correlation += (x[i] - meanx) * (y[i] - meany) / sqrt(varx * vary + 1e-10);
+  float Get() {
+    float meanx = sumx_ / sumw_;
+    float meany = sumy_ / sumw_;
+    float meanxx = sumxx_ / sumw_;
+    float meanyy = sumyy_ / sumw_;
+    float meanxy = sumxy_ / sumw_;
+    float varx = meanxx - meanx * meanx;
+    float vary = meanyy - meany * meany;
+    return (meanxy - meanx * meany) / sqrt(varx * vary + 1e-10);
   }
-  return correlation / n;
-}
+
+ private:
+  float sumx_, sumy_;
+  float sumxx_, sumyy_, sumxy_;
+  float sumw_;
+};
 
 void ApplyHomography(const cv::Matx33f &H,
                      float x1, float y1,
@@ -317,26 +325,57 @@ class DepthmapEstimator {
     return best_score;
   }
 
+  float ComputePlaneImageScoreUnoptimized(int i, int j,
+                                          const cv::Vec3f &plane,
+                                          int other) {
+    cv::Matx33f H = PlaneInducedHomographyBaked(
+        Kinvs_[0], Qs_[other], as_[other], Ks_[other], plane);
+    int hpz = (patch_size_ - 1) / 2;
+    NCCEstimator ncc;
+    for (int u = -hpz; u <= hpz; ++u) {
+      for (int v = -hpz; v <= hpz; ++v) {
+        float im1 = images_[0].at<unsigned char>(i + u, j + v);
+        float x2, y2;
+        ApplyHomography(H, j + v, i + u, &x2, &y2);
+        float im2 = LinearInterpolation<unsigned char>(images_[other], y2, x2);
+        ncc.Push(im1, im2);
+      }
+    }
+    return ncc.Get();
+  }
+
   float ComputePlaneImageScore(int i, int j,
                                const cv::Vec3f &plane,
                                int other) {
     cv::Matx33f H = PlaneInducedHomographyBaked(
         Kinvs_[0], Qs_[other], as_[other], Ks_[other], plane);
     int hpz = (patch_size_ - 1) / 2;
-    float patch1[patch_size_ * patch_size_];
-    float patch2[patch_size_ * patch_size_];
-    int counter = 0;
-    for (int u = -hpz; u <= hpz; ++u) {
-      for (int v = -hpz; v <= hpz; ++v) {
-        patch1[counter] = images_[0].at<unsigned char>(i + u, j + v);
-        float x2, y2;
-        ApplyHomography(H, j + v, i + u, &x2, &y2);
-        patch2[counter] = LinearInterpolation<unsigned char>(images_[other], y2, x2);
-        counter++;
+
+    float u = H(0, 0) * j + H(0, 1) * i + H(0, 2);
+    float v = H(1, 0) * j + H(1, 1) * i + H(1, 2);
+    float w = H(2, 0) * j + H(2, 1) * i + H(2, 2);
+
+    float dfdx_x = (H(0, 0) * w - H(2, 0) * u) / (w * w);
+    float dfdx_y = (H(1, 0) * w - H(2, 0) * v) / (w * w);
+    float dfdy_x = (H(0, 1) * w - H(2, 1) * u) / (w * w);
+    float dfdy_y = (H(1, 1) * w - H(2, 1) * v) / (w * w);
+
+    float Hx0 = u / w;
+    float Hy0 = v / w;
+
+    NCCEstimator ncc;
+    for (int dy = -hpz; dy <= hpz; ++dy) {
+      for (int dx = -hpz; dx <= hpz; ++dx) {
+        float im1 = images_[0].at<unsigned char>(i + dy, j + dx);
+        float x2 = Hx0 + dfdx_x * dx + dfdy_x * dy;
+        float y2 = Hy0 + dfdx_y * dx + dfdy_y * dy;
+        float im2 = LinearInterpolation<unsigned char>(images_[other], y2, x2);
+        ncc.Push(im1, im2);
       }
     }
-    return NormalizedCrossCorrelation(patch1, patch2, patch_size_ * patch_size_);
+    return ncc.Get();
   }
+
 
  private:
   std::vector<cv::Mat> images_;

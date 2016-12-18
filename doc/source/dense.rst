@@ -84,6 +84,39 @@ and then we have
    H = K_2 [Q_{12} + a_{12} v^T] K_1^{-1}
 
 
+Local, affine approximation of an homography
+--------------------------------------------
+
+The homography mapping defined by matrix :math:`H` is
+
+.. math::
+
+   f(x, y) = \begin{pmatrix} u / w \\
+                             v / w \end{pmatrix}
+where
+
+.. math::
+   u &= H_1 (x, y, 1)^T \\
+   v &= H_2 (x, y, 1)^T \\
+   w &= H_3 (x, y, 1)^T
+
+The differential is then
+
+.. math::
+
+   Df(x, y) = \frac{1}{w^2}
+      \begin{pmatrix}
+         H_{11} w - H_{31} u  &  H_{12} w - H_{32} u \\
+         H_{21} w - H_{31} v  &  H_{22} w - H_{32} v
+      \end{pmatrix}
+
+And the linear approximation around :math:`(x_0, y_0)` is
+
+.. math::
+
+   f(x_0 + dx, y_0 + dy) = f(x_0, y_0) + Df(x_0, y_0)(dx, dy)^T
+
+
 Undistortion
 ------------
 
