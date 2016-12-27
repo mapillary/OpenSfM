@@ -10,7 +10,11 @@ test contents:
 .. toctree::
    :maxdepth: 2
 
-   test
+   building
+   using
+   dataset
+   geometry
+   api
    dense
 
 
