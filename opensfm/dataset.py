@@ -41,6 +41,15 @@ class DataSet:
         else:
             self.set_image_path(os.path.join(self.data_path, 'images'))
 
+        # Load list of masks if they exist.
+        mask_list_file = os.path.join(self.data_path, 'mask_list.txt')
+        if os.path.isfile(mask_list_file):
+            with open(mask_list_file) as fin:
+                lines = fin.read().splitlines()
+            self.set_mask_list(lines)
+        else:
+            self.set_mask_path(os.path.join(self.data_path, 'masks'))
+
     def _load_config(self):
         config_file = os.path.join(self.data_path, 'config.yaml')
         self.config = config.load_config(config_file)
@@ -79,6 +88,10 @@ class DataSet:
     def save_undistorted_image(self, image, array):
         io.mkdir_p(self._undistorted_image_path())
         cv2.imwrite(self._undistorted_image_file(image), array[:, :, ::-1])
+
+    def masks(self):
+        """Return list of file names of all masks in this dataset"""
+        return self.mask_list
 
     def _depthmap_path(self):
         return os.path.join(self.data_path, 'depthmaps')
@@ -133,6 +146,31 @@ class DataSet:
                 name = os.path.basename(path)
                 self.image_list.append(name)
                 self.image_files[name] = path
+
+    @staticmethod
+    def __is_mask_file(filename):
+        return filename.split('.')[-1].lower() in {'xml'}
+
+    def set_mask_path(self, path):
+        """Set mask path and find the all mask in there"""
+        self.mask_list = []
+        self.mask_files = {}
+        if os.path.exists(path):
+            for name in os.listdir(path):
+                if self.__is_mask_file(name):
+                    short_name = name.split('.')[0]
+                    self.mask_list.append(short_name)
+                    self.mask_files[short_name] = os.path.join(path, name)
+
+    def set_mask_list(self, mask_list):
+            self.mask_list = []
+            self.mask_files = {}
+            for line in mask_list:
+                path = os.path.join(self.data_path, line)
+                name = os.path.basename(path)
+                short_name = name.split('.')[0]
+                self.mask_list.append(short_name)
+                self.mask_files[short_name] = path
 
     def __exif_path(self):
         """Return path of extracted exif directory"""
