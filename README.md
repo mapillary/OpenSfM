@@ -79,7 +79,7 @@ An example dataset is available at `data/berlin`.
 Things you can do from there:
 - Use datasets with more images
 - Click twice on an image to see it. Then use arrows to move between images.
-- Run `bin/mesh data/berlin` to build a reconstruction with sparse mesh that will produce smoother transitions from images
+
 
 # Thanks to sponsors
 
