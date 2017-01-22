@@ -164,6 +164,113 @@ def bundle_single_view(graph, reconstruction, shot_id, config):
     shot.pose.translation = [s.tx, s.ty, s.tz]
 
 
+def bundle_local(graph, reconstruction, gcp, central_shot_id, config):
+    """Bundle adjust the local neighborhood of a shot."""
+    start = time.time()
+
+    interior, boundary = shot_neighborhood(graph, reconstruction, central_shot_id, 2)
+    print('interior {} boundary {} other {}'.format(len(interior), len(boundary),
+          len(reconstruction.shots) - len(interior) - len(boundary)))
+    point_ids = set()
+    for shot_id in interior:
+        if shot_id in graph:
+            for track in graph[shot_id]:
+                if track in reconstruction.points:
+                    point_ids.add(track)
+
+    ba = csfm.BundleAdjuster()
+    for camera in reconstruction.cameras.values():
+        if camera.projection_type == 'perspective':
+            ba.add_perspective_camera(
+                str(camera.id), camera.focal, camera.k1, camera.k2,
+                camera.focal_prior, camera.k1_prior, camera.k2_prior,
+                True)
+
+        elif camera.projection_type in ['equirectangular', 'spherical']:
+            ba.add_equirectangular_camera(str(camera.id))
+
+    for shot_id in interior | boundary:
+        shot = reconstruction.shots[shot_id]
+        r = shot.pose.rotation
+        t = shot.pose.translation
+        ba.add_shot(
+            str(shot.id), str(shot.camera.id),
+            r[0], r[1], r[2],
+            t[0], t[1], t[2],
+            shot.id in boundary
+        )
+
+    for point_id in point_ids:
+        point = reconstruction.points[point_id]
+        x = point.coordinates
+        ba.add_point(str(point.id), x[0], x[1], x[2], False)
+
+    for shot_id in interior | boundary:
+        if shot_id in graph:
+            for track in graph[shot_id]:
+                if track in reconstruction.points:
+                    ba.add_observation(str(shot_id), str(track),
+                                       *graph[shot_id][track]['feature'])
+
+    if config['bundle_use_gps']:
+        for shot_id in interior:
+            shot = reconstruction.shots[shot_id]
+            g = shot.metadata.gps_position
+            ba.add_position_prior(shot.id, g[0], g[1], g[2],
+                                  shot.metadata.gps_dop)
+
+    if config['bundle_use_gcp'] and gcp:
+        for observation in gcp:
+            if observation.shot_id in interior:
+                ba.add_ground_control_point_observation(
+                    observation.shot_id,
+                    observation.coordinates[0],
+                    observation.coordinates[1],
+                    observation.coordinates[2],
+                    observation.shot_coordinates[0],
+                    observation.shot_coordinates[1])
+
+    ba.set_loss_function(config.get('loss_function', 'SoftLOneLoss'),
+                         config.get('loss_function_threshold', 1))
+    ba.set_reprojection_error_sd(config.get('reprojection_error_sd', 0.004))
+    ba.set_internal_parameters_prior_sd(
+        config.get('exif_focal_sd', 0.01),
+        config.get('radial_distorsion_k1_sd', 0.01),
+        config.get('radial_distorsion_k2_sd', 0.01))
+
+    setup = time.time()
+
+    ba.set_num_threads(config['processes'])
+    ba.run()
+
+    run = time.time()
+    logger.debug(ba.brief_report())
+
+    for camera in reconstruction.cameras.values():
+        if camera.projection_type == 'perspective':
+            c = ba.get_perspective_camera(str(camera.id))
+            camera.focal = c.focal
+            camera.k1 = c.k1
+            camera.k2 = c.k2
+
+    for shot_id in interior:
+        shot = reconstruction.shots[shot_id]
+        s = ba.get_shot(str(shot.id))
+        shot.pose.rotation = [s.rx, s.ry, s.rz]
+        shot.pose.translation = [s.tx, s.ty, s.tz]
+
+    for point in point_ids:
+        point = reconstruction.points[point]
+        p = ba.get_point(str(point.id))
+        point.coordinates = [p.x, p.y, p.z]
+        point.reprojection_error = p.reprojection_error
+
+    teardown = time.time()
+
+    logger.debug('Local bundle setup/run/teardown {0}/{1}/{2}'.format(
+        setup - start, run - setup, teardown - run))
+
+
 def shot_neighborhood(graph, reconstruction, central_shot_id, radius):
     """Reconstructed shots near a given shot.
 
@@ -749,6 +856,8 @@ def grow_reconstruction(data, graph, reconstruction, images, gcp):
                     align.align_reconstruction(reconstruction, gcp,
                                                data.config)
                     should_bundle.done(reconstruction)
+                else:
+                    bundle_local(graph, reconstruction, None, image, data.config)
 
                 if should_retriangulate.should(reconstruction):
                     logger.info("Re-triangulating")
