@@ -164,6 +164,42 @@ def bundle_single_view(graph, reconstruction, shot_id, config):
     shot.pose.translation = [s.tx, s.ty, s.tz]
 
 
+def shot_neighborhood(graph, reconstruction, central_shot_id, radius):
+    """Reconstructed shots near a given shot.
+
+    Returns:
+        a tuple with interior and boundary:
+        - interior: the list of shots at distance smaller than radius
+        - boundary: shots at distance radius
+
+    Central shot is at distance 0.  Shots at distance n + 1 share at least
+    one point with shots at distance n.
+    """
+    interior = set()
+    boundary = set([central_shot_id])
+    for distance in range(radius):
+        new_boundary = set()
+        for shot_id in boundary:
+            neighbors = shot_direct_neighbors(graph, reconstruction, shot_id)
+            for neighbor in neighbors:
+                if neighbor not in boundary and neighbor not in interior:
+                    new_boundary.add(neighbor)
+        interior.update(boundary)
+        boundary = new_boundary
+    return interior, boundary
+
+
+def shot_direct_neighbors(graph, reconstruction, shot_id):
+    """Reconstructed shots sharing reconstructed points with a given shot."""
+    neighbors = set()
+    for track_id in graph[shot_id]:
+        if track_id in reconstruction.points:
+            for neighbor in graph[track_id]:
+                if neighbor in reconstruction.shots:
+                    neighbors.add(neighbor)
+    return neighbors
+
+
 def pairwise_reconstructability(common_tracks, homography_inliers):
     """Likeliness of an image pair giving a good initial reconstruction."""
     outliers = common_tracks - homography_inliers
