@@ -108,6 +108,7 @@ def match_candidates_from_metadata(images, exifs, data):
     max_distance = data.config['matching_gps_distance']
     max_neighbors = data.config['matching_gps_neighbors']
     max_time_neighbors = data.config['matching_time_neighbors']
+    max_order_neighbors = data.config['matching_order_neighbors']
 
     if not all(map(has_gps_info, exifs.values())) and max_neighbors != 0:
         logger.warn("Not all images have GPS info. "
@@ -115,24 +116,30 @@ def match_candidates_from_metadata(images, exifs, data):
         max_neighbors = 0
 
     pairs = set()
-    for im1 in images:
+    images.sort()
+    for index1, im1 in enumerate(images):
         distances = []
         timediffs = []
-        for im2 in images:
+        indexdiffs = []
+        for index2, im2 in enumerate(images):
             if im1 != im2:
                 dx = distance_from_exif(exifs[im1], exifs[im2])
                 dt = timediff_from_exif(exifs[im1], exifs[im2])
+                di = abs(index1 - index2)
                 if dx <= max_distance:
                     distances.append((dx, im2))
                     timediffs.append((dt, im2))
+                    indexdiffs.append((di, im2))
         distances.sort()
         timediffs.sort()
+        indexdiffs.sort()
 
-        if max_neighbors or max_time_neighbors:
+        if max_neighbors or max_time_neighbors or max_order_neighbors:
             distances = distances[:max_neighbors]
             timediffs = timediffs[:max_time_neighbors]
+            indexdiffs = indexdiffs[:max_order_neighbors]
 
-        for d, im2 in distances + timediffs:
+        for d, im2 in distances + timediffs + indexdiffs:
             if im1 < im2:
                 pairs.add((im1, im2))
             else:
