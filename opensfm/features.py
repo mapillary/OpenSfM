@@ -85,8 +85,6 @@ def mask_and_normalize_features(points, desc, colors, width, height, config, mas
 
     # We get the relevant image mask
     if mask_path is not None:
-        maskname = mask_path[:-3]
-
         mask = cv2.imread(mask_path)
         mask_height, mask_width, _ = mask.shape
         if (mask_height, mask_width) != (height, width):

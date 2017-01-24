@@ -129,7 +129,7 @@ class DataSet:
         return filename.split('.')[-1].lower() in {'jpg', 'jpeg', 'png', 'tif', 'tiff', 'pgm', 'pnm', 'gif'}
 
     def set_image_path(self, path):
-        """Set image path and find the all images in there"""
+        """Set image path and find all images in there"""
         self.image_list = []
         self.image_files = {}
         if os.path.exists(path):
@@ -152,15 +152,14 @@ class DataSet:
         return DataSet.__is_image_file(filename)
 
     def set_mask_path(self, path):
-        """Set mask path and find the all mask in there"""
+        """Set mask path and find all masks in there"""
         self.mask_list = []
         self.mask_files = {}
         if os.path.exists(path):
             for name in os.listdir(path):
                 if self.__is_mask_file(name):
-                    short_name = name.split('.')[0]
-                    self.mask_list.append(short_name)
-                    self.mask_files[short_name] = os.path.join(path, name)
+                    self.mask_list.append(name)
+                    self.mask_files[name] = os.path.join(path, name)
 
     def set_mask_list(self, mask_list):
             self.mask_list = []
@@ -168,9 +167,8 @@ class DataSet:
             for line in mask_list:
                 path = os.path.join(self.data_path, line)
                 name = os.path.basename(path)
-                short_name = name.split('.')[0]
-                self.mask_list.append(short_name)
-                self.mask_files[short_name] = path
+                self.mask_list.append(name)
+                self.mask_files[name] = path
 
     def __exif_path(self):
         """Return path of extracted exif directory"""

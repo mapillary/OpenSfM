@@ -41,13 +41,14 @@ def detect(args):
     logger.info('Extracting {} features for image {}'.format(
         data.feature_type().upper(), image))
 
-    mask_path = None
-    mask_name = image.split('.')[0] + 'mask'
+    mask_name = image
     if mask_name in data.masks():
         mask_path = data.mask_files[mask_name]
         logger.info('Found mask {} to apply'.format(
             mask_name
         ))
+    else:
+        mask_path = None
 
     if not data.feature_index_exists(image):
         preemptive_max = data.config.get('preemptive_max', 200)
