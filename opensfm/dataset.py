@@ -149,7 +149,7 @@ class DataSet:
 
     @staticmethod
     def __is_mask_file(filename):
-        return filename.split('.')[-1].lower() in {'xml'}
+        return DataSet.__is_image_file(filename)
 
     def set_mask_path(self, path):
         """Set mask path and find the all mask in there"""

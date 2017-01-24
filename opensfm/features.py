@@ -85,12 +85,13 @@ def mask_and_normalize_features(points, desc, colors, width, height, config, mas
 
     # We get the relevant image mask
     if mask_path is not None:
-        test = cv2.FileStorage(mask_path, cv2.FILE_STORAGE_READ)
-        node = test.getFirstTopLevelNode()
-        mask = node.mat()
-        if mask.shape != (height, width):
+        maskname = mask_path[:-3]
+
+        mask = cv2.imread(mask_path)
+        mask_height, mask_width, _ = mask.shape
+        if (mask_height, mask_width) != (height, width):
             raise TypeError("Given mask does not match image dimensions")
-        ids = np.array([mask[int(point[1]), int(point[0])] != 0 for point in points])
+        ids = np.array([mask[int(point[1]), int(point[0]), 0] == 0 for point in points])
         points = points[ids]
         desc = desc[ids]
         colors = colors[ids]
