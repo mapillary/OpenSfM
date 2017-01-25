@@ -42,8 +42,10 @@ class Command:
                 data.save_undistorted_image(shot.id, undistorted)
             elif shot.camera.projection_type in ['equirectangular', 'spherical']:
                 original = data.image_as_array(shot.id)
-                image = cv2.resize(original, (2048, 1024), interpolation=cv2.INTER_AREA)
-                shots = perspective_views_of_a_panorama(shot)
+                width = int(data.config['depthmap_resolution'])
+                height = width / 2
+                image = cv2.resize(original, (width, height), interpolation=cv2.INTER_AREA)
+                shots = perspective_views_of_a_panorama(shot, width)
                 for subshot in shots:
                     urec.add_camera(subshot.camera)
                     urec.add_shot(subshot)
@@ -65,12 +67,12 @@ def undistort_image(image, shot):
     return cv2.undistort(image, K, distortion)
 
 
-def perspective_views_of_a_panorama(spherical_shot):
+def perspective_views_of_a_panorama(spherical_shot, width):
     """Create 6 perspective views of a panorama."""
     camera = types.PerspectiveCamera()
     camera.id = 'perspective_panorama_camera'
-    camera.width = 640
-    camera.height = 640
+    camera.width = width
+    camera.height = width
     camera.focal = 0.5
     camera.focal_prior = camera.focal
     camera.k1 = camera.k1_prior = camera.k2 = camera.k2_prior = 0.0
@@ -125,13 +127,13 @@ def render_perspective_view_of_a_panorama(image, panoshot, perspectiveshot):
     src_pixels = np.column_stack([src_x.ravel(), src_y.ravel()])
 
     src_pixels_denormalized = features.denormalized_image_coordinates(
-        src_pixels,
-        image.shape[1],
-        image.shape[0])
+        src_pixels, image.shape[1], image.shape[0])
 
     # Sample color
-    colors = image[src_pixels_denormalized[:, 1].astype(int),
-                   src_pixels_denormalized[:, 0].astype(int)]
+    colors = cv2.remap(image,
+                       src_pixels_denormalized[:, 0].astype(np.float32),
+                       src_pixels_denormalized[:, 1].astype(np.float32),
+                       cv2.INTER_LINEAR)
     colors.shape = dst_shape + (-1,)
     return colors
 
