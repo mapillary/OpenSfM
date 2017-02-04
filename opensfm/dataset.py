@@ -61,8 +61,7 @@ class DataSet:
 
     def image_as_array(self, image):
         """Return image pixels as 3-dimensional numpy array (R G B order)"""
-        IMREAD_COLOR = cv2.IMREAD_COLOR if context.OPENCV3 else cv2.CV_LOAD_IMAGE_COLOR
-        return cv2.imread(self.__image_file(image), IMREAD_COLOR)[:,:,::-1]  # Turn BGR to RGB
+        return io.imread(self.__image_file(image))
 
     def _undistorted_image_path(self):
         return os.path.join(self.data_path, 'undistorted')
@@ -73,8 +72,7 @@ class DataSet:
 
     def undistorted_image_as_array(self, image):
         """Undistorted image pixels as 3-dimensional numpy array (R G B order)"""
-        IMREAD_COLOR = cv2.IMREAD_COLOR if context.OPENCV3 else cv2.CV_LOAD_IMAGE_COLOR
-        return cv2.imread(self._undistorted_image_file(image), IMREAD_COLOR)[:,:,::-1]  # Turn BGR to RGB
+        return io.imread(self._undistorted_image_file(image))
 
     def save_undistorted_image(self, image, array):
         io.mkdir_p(self._undistorted_image_path())

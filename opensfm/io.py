@@ -9,6 +9,7 @@ import pyproj
 from opensfm import features
 from opensfm import geo
 from opensfm import types
+from opensfm import context
 
 
 def camera_from_json(key, obj):
@@ -353,6 +354,16 @@ def json_loads(text, codec='utf-8'):
     return json.loads(text.decode(codec))
 
 
+def imread(filename):
+    """Load image as an RGB array ignoring EXIF orientation."""
+    if context.OPENCV3:
+        flags = cv2.IMREAD_COLOR | cv2.IMREAD_IGNORE_ORIENTATION
+    else:
+        flags = cv2.CV_LOAD_IMAGE_COLOR
+    bgr = cv2.imread(filename, flags)
+    return bgr[:, :, ::-1]  # Turn BGR to RGB
+
+
 # Bundler
 
 def export_bundler(image_list, reconstructions, track_graph, bundle_file_path,
@@ -473,7 +484,7 @@ def import_bundler(data_path, bundle_file, list_file, track_file,
         focal, k1, k2 = map(float, lines[offset].rstrip('\n').split(' '))
 
         if focal > 0:
-            im = cv2.imread(os.path.join(data_path, image_list[i]))
+            im = imread(os.path.join(data_path, image_list[i]))
             height, width = im.shape[0:2]
             camera = types.PerspectiveCamera()
             camera.id = 'camera_' + str(i)
