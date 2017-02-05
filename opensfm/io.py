@@ -17,7 +17,7 @@ def camera_from_json(key, obj):
     Read camera from a json object
     """
     pt = obj.get('projection_type', 'perspective')
-    if pt == 'perspective':
+    if pt in ['perspective', 'fisheye']:
         camera = types.PerspectiveCamera()
         camera.id = key
         camera.width = obj.get('width', 0)
@@ -142,7 +142,7 @@ def camera_to_json(camera):
     """
     Write camera to a json object
     """
-    if camera.projection_type == 'perspective':
+    if camera.projection_type in ['perspective', 'fisheye']:
         return {
             'projection_type': camera.projection_type,
             'width': camera.width,
