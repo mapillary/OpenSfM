@@ -88,7 +88,7 @@ def mask_and_normalize_features(points, desc, colors, width, height, config, mas
         mask_height, mask_width, _ = mask.shape
         if (mask_height, mask_width) != (height, width):
             raise TypeError("Given mask does not match image dimensions")
-        ids = np.array([mask[int(point[1]), int(point[0]), 0] == 0 for point in points])
+        ids = np.array([mask[int(point[1]), int(point[0]), 0] != 0 for point in points])
         points = points[ids]
         desc = desc[ids]
         colors = colors[ids]
