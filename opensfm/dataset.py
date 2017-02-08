@@ -93,6 +93,16 @@ class DataSet:
         """Return list of file names of all masks in this dataset"""
         return self.mask_list
 
+    def mask_as_array(self, image):
+        """Given an image, returns the associated mask as an array if it exists, otherwise returns None"""
+        mask_name = image
+        if mask_name in self.masks():
+            mask_path = self.mask_files[mask_name]
+            mask = cv2.imread(mask_path)
+        else:
+            mask = None
+        return mask
+
     def _depthmap_path(self):
         return os.path.join(self.data_path, 'depthmaps')
 

@@ -68,7 +68,7 @@ def denormalized_image_coordinates(norm_coords, width, height):
     p[:, 1] = norm_coords[:, 1] * size - 0.5 + height / 2.0
     return p
 
-def mask_and_normalize_features(points, desc, colors, width, height, config, mask_path=None):
+def mask_and_normalize_features(points, desc, colors, width, height, config, mask=None):
     masks = np.array(config.get('masks',[]))
     for mask in masks:
         top = mask['top'] * height
@@ -84,8 +84,7 @@ def mask_and_normalize_features(points, desc, colors, width, height, config, mas
         colors = colors[ids]
 
     # We get the relevant image mask
-    if mask_path is not None:
-        mask = cv2.imread(mask_path)
+    if mask is not None:
         mask_height, mask_width, _ = mask.shape
         if (mask_height, mask_width) != (height, width):
             raise TypeError("Given mask does not match image dimensions")
@@ -234,7 +233,7 @@ def extract_features_hahog(image, config):
     logger.debug('Found {0} points in {1}s'.format( len(points), time.time()-t ))
     return points, desc
 
-def extract_features(color_image, config, mask_path=None):
+def extract_features(color_image, config, mask=None):
     assert len(color_image.shape) == 3
     color_image = resized_image(color_image, config)
     image = cv2.cvtColor(color_image, cv2.COLOR_RGB2GRAY)
@@ -255,7 +254,7 @@ def extract_features(color_image, config, mask_path=None):
     ys = points[:,1].round().astype(int)
     colors = color_image[ys, xs]
 
-    return mask_and_normalize_features(points, desc, colors, image.shape[1], image.shape[0], config, mask_path)
+    return mask_and_normalize_features(points, desc, colors, image.shape[1], image.shape[0], config, mask)
 
 
 def build_flann_index(features, config):

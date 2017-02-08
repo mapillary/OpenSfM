@@ -41,19 +41,13 @@ def detect(args):
     logger.info('Extracting {} features for image {}'.format(
         data.feature_type().upper(), image))
 
-    mask_name = image
-    if mask_name in data.masks():
-        mask_path = data.mask_files[mask_name]
-        logger.info('Found mask {} to apply'.format(
-            mask_name
-        ))
-    else:
-        mask_path = None
-
     if not data.feature_index_exists(image):
+        mask = data.mask_as_array(image)
+        if mask is not None:
+            logger.info('Found mask to apply for image {}'.format(image))
         preemptive_max = data.config.get('preemptive_max', 200)
         p_unsorted, f_unsorted, c_unsorted = features.extract_features(
-            data.image_as_array(image), data.config, mask_path)
+            data.image_as_array(image), data.config, mask)
         if len(p_unsorted) == 0:
             return
 
