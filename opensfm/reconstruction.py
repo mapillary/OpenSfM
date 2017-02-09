@@ -688,7 +688,7 @@ def grow_reconstruction(data, graph, reconstruction, images, gcp):
         if data.config.get('save_partial_reconstructions', False):
             paint_reconstruction(data, graph, reconstruction)
             data.save_reconstruction(
-                reconstruction, 'reconstruction.{}.json'.format(
+                [reconstruction], 'reconstruction.{}.json'.format(
                     datetime.datetime.now().isoformat().replace(':', '_')))
 
         common_tracks = reconstructed_points_for_images(graph, reconstruction,
