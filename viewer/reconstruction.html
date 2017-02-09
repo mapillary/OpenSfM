@@ -169,20 +169,38 @@
 
         </script>
 
-        <script type="x-shader/x-vertex" id="vertexshader_equirectangular">
+        <script type="x-shader/x-fragment" id="fragmentshader_fisheye">
 
-            // switch on high precision floats
             #ifdef GL_ES
             precision highp float;
             #endif
 
             varying vec4 vRstq;
-            uniform mat4 projectorMat;
+            uniform sampler2D projectorTex;
+            uniform float opacity;
+            uniform float focal;
+            uniform float k1;
+            uniform float k2;
+            uniform float scale_x;
+            uniform float scale_y;
 
             void main()
             {
-                vRstq = projectorMat * vec4(position, 1.0);
-                gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
+                float x = vRstq.x;
+                float y = vRstq.y;
+                float z = vRstq.z;
+
+                float l = sqrt(x * x + y * y);
+                float theta = atan(l, z);
+                float theta_d = theta * (1.0 + theta * (k1 + theta * k2));
+                float s = focal * theta_d / l;
+
+                float u = scale_x * s * x + 0.5;
+                float v = -scale_y * s * y + 0.5;
+
+                vec4 baseColor = texture2D(projectorTex, vec2(u, v));
+                baseColor.a = opacity;
+                gl_FragColor = baseColor;
             }
 
         </script>
@@ -714,15 +732,14 @@
             }
 
             function imageVertexShader(cam) {
-                if (cam.projection_type == 'equirectangular' || cam.projection_type == 'spherical')
-                    return $('#vertexshader_equirectangular').text();
-                else
-                    return $('#vertexshader').text();
+                return $('#vertexshader').text();
             }
 
             function imageFragmentShader(cam) {
                 if (cam.projection_type == 'equirectangular' || cam.projection_type == 'spherical')
                     return $('#fragmentshader_equirectangular').text();
+                else if (cam.projection_type == 'fisheye')
+                    return $('#fragmentshader_fisheye').text();
                 else
                     return $('#fragmentshader').text();
             }
