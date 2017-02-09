@@ -270,7 +270,7 @@ class FisheyeCamera(Camera):
         x, y, z = point
         l = np.sqrt(x**2 + y**2)
         theta = np.arctan2(l, z)
-        theta_d = theta * (1.0 + theta * (self.k1 + theta * self.k2))
+        theta_d = theta * (1.0 + theta**2 * (self.k1 + theta**2 * self.k2))
         s = self.focal * theta_d / l
         return np.array([s * x, s * y])
 

@@ -260,7 +260,8 @@ void FisheyeProject(const T* const camera,
 
   T l = sqrt(x * x + y * y);
   T theta = atan2(l, z);
-  T theta_d = theta * (T(1.0) + theta * (k1 + theta * k2));
+  T theta2 = theta * theta;
+  T theta_d = theta * (T(1.0) + theta2 * (k1 + theta2 * k2));
   T s = focal * theta_d / l;
 
   projection[0] = s * x;
