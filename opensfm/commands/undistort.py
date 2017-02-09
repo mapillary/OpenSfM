@@ -40,6 +40,13 @@ class Command:
                 image = data.image_as_array(shot.id)
                 undistorted = undistort_image(image, shot)
                 data.save_undistorted_image(shot.id, undistorted)
+            elif shot.camera.projection_type == 'fisheye':
+                urec.add_camera(shot.camera)
+                urec.add_shot(shot)
+
+                image = data.image_as_array(shot.id)
+                undistorted = undistort_fisheye_image(image, shot)
+                data.save_undistorted_image(shot.id, undistorted)
             elif shot.camera.projection_type in ['equirectangular', 'spherical']:
                 original = data.image_as_array(shot.id)
                 width = int(data.config['depthmap_resolution'])
@@ -65,6 +72,15 @@ def undistort_image(image, shot):
     K = camera.get_K_in_pixel_coordinates(width, height)
     distortion = np.array([camera.k1, camera.k2, 0, 0])
     return cv2.undistort(image, K, distortion)
+
+
+def undistort_fisheye_image(image, shot):
+    """Remove radial distortion from a perspective image."""
+    camera = shot.camera
+    height, width = image.shape[:2]
+    K = camera.get_K_in_pixel_coordinates(width, height)
+    distortion = np.array([camera.k1, camera.k2, 0, 0])
+    return cv2.fisheye.undistortImage(image, K, distortion, K)
 
 
 def perspective_views_of_a_panorama(spherical_shot, width):
