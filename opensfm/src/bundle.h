@@ -57,7 +57,7 @@ struct BAFisheyeCamera : public BACamera{
   double k1_prior;
   double k2_prior;
 
-  BACameraType type() { return BA_PERSPECTIVE_CAMERA; }
+  BACameraType type() { return BA_FISHEYE_CAMERA; }
   double GetFocal() { return parameters[BA_CAMERA_FOCAL]; }
   double GetK1() { return parameters[BA_CAMERA_K1]; }
   double GetK2() { return parameters[BA_CAMERA_K2]; }
