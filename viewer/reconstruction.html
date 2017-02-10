@@ -192,7 +192,8 @@
 
                 float l = sqrt(x * x + y * y);
                 float theta = atan(l, z);
-                float theta_d = theta * (1.0 + theta * (k1 + theta * k2));
+                float theta2 = theta * theta;
+                float theta_d = theta * (1.0 + theta2 * (k1 + theta2 * k2));
                 float s = focal * theta_d / l;
 
                 float u = scale_x * s * x + 0.5;
