@@ -34,19 +34,20 @@ class Command:
 
         for shot in reconstruction.shots.values():
             if shot.camera.projection_type == 'perspective':
+                image = data.image_as_array(shot.id)
+                undistorted = undistort_image(image, shot.camera)
+                data.save_undistorted_image(shot.id, undistorted)
+
                 urec.add_camera(shot.camera)
                 urec.add_shot(shot)
-
-                image = data.image_as_array(shot.id)
-                undistorted = undistort_image(image, shot)
-                data.save_undistorted_image(shot.id, undistorted)
             elif shot.camera.projection_type == 'fisheye':
+                image = data.image_as_array(shot.id)
+                undistorted = undistort_fisheye_image(image, shot.camera)
+                data.save_undistorted_image(shot.id, undistorted)
+
+                shot.camera = perspective_camera_from_fisheye(shot.camera)
                 urec.add_camera(shot.camera)
                 urec.add_shot(shot)
-
-                image = data.image_as_array(shot.id)
-                undistorted = undistort_fisheye_image(image, shot)
-                data.save_undistorted_image(shot.id, undistorted)
             elif shot.camera.projection_type in ['equirectangular', 'spherical']:
                 original = data.image_as_array(shot.id)
                 width = int(data.config['depthmap_resolution'])
@@ -65,22 +66,32 @@ class Command:
         data.save_undistorted_reconstruction([urec])
 
 
-def undistort_image(image, shot):
+def undistort_image(image, camera):
     """Remove radial distortion from a perspective image."""
-    camera = shot.camera
     height, width = image.shape[:2]
     K = camera.get_K_in_pixel_coordinates(width, height)
     distortion = np.array([camera.k1, camera.k2, 0, 0])
     return cv2.undistort(image, K, distortion)
 
 
-def undistort_fisheye_image(image, shot):
+def undistort_fisheye_image(image, camera):
     """Remove radial distortion from a perspective image."""
-    camera = shot.camera
     height, width = image.shape[:2]
     K = camera.get_K_in_pixel_coordinates(width, height)
     distortion = np.array([camera.k1, camera.k2, 0, 0])
     return cv2.fisheye.undistortImage(image, K, distortion, K)
+
+
+def perspective_camera_from_fisheye(fisheye):
+    """Create a perspective camera from a fisheye."""
+    camera = types.PerspectiveCamera()
+    camera.id = fisheye.id
+    camera.width = fisheye.width
+    camera.height = fisheye.height
+    camera.focal = fisheye.focal
+    camera.focal_prior = fisheye.focal_prior
+    camera.k1 = camera.k1_prior = camera.k2 = camera.k2_prior = 0.0
+    return camera
 
 
 def perspective_views_of_a_panorama(spherical_shot, width):
@@ -155,7 +166,7 @@ def render_perspective_view_of_a_panorama(image, panoshot, perspectiveshot):
 
 
 def add_subshot_tracks(graph, panoshot, perspectiveshot):
-    """Add edges betwene subshots and visible tracks."""
+    """Add edges between subshots and visible tracks."""
     graph.add_node(perspectiveshot.id, bipartite=0)
     for track in graph[panoshot.id]:
         edge = graph[panoshot.id][track]
