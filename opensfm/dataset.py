@@ -93,7 +93,7 @@ class DataSet:
 
     def mask_as_array(self, image):
         """Given an image, returns the associated mask as an array if it exists, otherwise returns None"""
-        mask_name = image
+        mask_name = image + '.png'
         if mask_name in self.masks():
             mask_path = self.mask_files[mask_name]
             mask = cv2.imread(mask_path)
