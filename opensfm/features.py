@@ -68,24 +68,12 @@ def denormalized_image_coordinates(norm_coords, width, height):
     p[:, 1] = norm_coords[:, 1] * size - 0.5 + height / 2.0
     return p
 
-def mask_and_normalize_features(points, desc, colors, width, height, config, image_mask=None):
-    masks = np.array(config.get('masks',[]))
-    for mask in masks:
-        top = mask['top'] * height
-        left = mask['left'] * width
-        bottom = mask['bottom'] * height
-        right = mask['right'] * width
-        ids  = np.invert ( (points[:,1] > top) *
-                           (points[:,1] < bottom) *
-                           (points[:,0] > left) *
-                           (points[:,0] < right) )
-        points = points[ids]
-        desc = desc[ids]
-        colors = colors[ids]
 
-    # We now compare with the image mask for this specific image if it exists
-    if image_mask is not None:
-        ids = np.array([_in_mask(point, width, height, image_mask) for point in points])
+def mask_and_normalize_features(points, desc, colors, width, height, mask=None):
+    """Remove features outside the mask and normalize image coordinates."""
+
+    if mask is not None:
+        ids = np.array([_in_mask(point, width, height, mask) for point in points])
         points = points[ids]
         desc = desc[ids]
         colors = colors[ids]
@@ -259,7 +247,7 @@ def extract_features(color_image, config, mask=None):
     ys = points[:,1].round().astype(int)
     colors = color_image[ys, xs]
 
-    return mask_and_normalize_features(points, desc, colors, image.shape[1], image.shape[0], config, mask)
+    return mask_and_normalize_features(points, desc, colors, image.shape[1], image.shape[0], mask)
 
 
 def build_flann_index(features, config):
