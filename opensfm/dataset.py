@@ -97,6 +97,8 @@ class DataSet:
         if mask_name in self.masks():
             mask_path = self.mask_files[mask_name]
             mask = cv2.imread(mask_path)
+            if len(mask.shape) == 3:
+                mask = mask.max(axis=2)
         else:
             mask = None
         return mask
