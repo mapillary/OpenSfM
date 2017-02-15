@@ -85,16 +85,21 @@ def mask_and_normalize_features(points, desc, colors, width, height, config, ima
 
     # We now compare with the image mask for this specific image if it exists
     if image_mask is not None:
-        if (image_mask_height, image_mask_width) != (height, width):
-            raise TypeError("Given mask does not match image dimensions")
-        ids = np.array([image_mask[int(point[1]), int(point[0]), 0] != 0 for point in points])
-        image_mask_height, image_mask_width = image_mask.shape
+        ids = np.array([_in_mask(point, width, height, image_mask) for point in points])
         points = points[ids]
         desc = desc[ids]
         colors = colors[ids]
 
     points[:, :2] = normalized_image_coordinates(points[:, :2], width, height)
     return points, desc, colors
+
+
+def _in_mask(point, width, height, mask):
+    """Check if a point is inside a binary mask."""
+    u = mask.shape[1] * (point[0] + 0.5) / width
+    v = mask.shape[0] * (point[1] + 0.5) / height
+    return mask[int(v), int(u)] != 0
+
 
 def extract_features_sift(image, config):
     sift_edge_threshold = config.get('sift_edge_threshold', 10)
