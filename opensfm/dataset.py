@@ -41,6 +41,15 @@ class DataSet:
         else:
             self.set_image_path(os.path.join(self.data_path, 'images'))
 
+        # Load list of masks if they exist.
+        mask_list_file = os.path.join(self.data_path, 'mask_list.txt')
+        if os.path.isfile(mask_list_file):
+            with open(mask_list_file) as fin:
+                lines = fin.read().splitlines()
+            self.set_mask_list(lines)
+        else:
+            self.set_mask_path(os.path.join(self.data_path, 'masks'))
+
     def _load_config(self):
         config_file = os.path.join(self.data_path, 'config.yaml')
         self.config = config.load_config(config_file)
@@ -78,6 +87,20 @@ class DataSet:
         io.mkdir_p(self._undistorted_image_path())
         cv2.imwrite(self._undistorted_image_file(image), array[:, :, ::-1])
 
+    def masks(self):
+        """Return list of file names of all masks in this dataset"""
+        return self.mask_list
+
+    def mask_as_array(self, image):
+        """Given an image, returns the associated mask as an array if it exists, otherwise returns None"""
+        mask_name = image
+        if mask_name in self.masks():
+            mask_path = self.mask_files[mask_name]
+            mask = cv2.imread(mask_path)
+        else:
+            mask = None
+        return mask
+
     def _depthmap_path(self):
         return os.path.join(self.data_path, 'depthmaps')
 
@@ -114,7 +137,7 @@ class DataSet:
         return filename.split('.')[-1].lower() in {'jpg', 'jpeg', 'png', 'tif', 'tiff', 'pgm', 'pnm', 'gif'}
 
     def set_image_path(self, path):
-        """Set image path and find the all images in there"""
+        """Set image path and find all images in there"""
         self.image_list = []
         self.image_files = {}
         if os.path.exists(path):
@@ -131,6 +154,29 @@ class DataSet:
                 name = os.path.basename(path)
                 self.image_list.append(name)
                 self.image_files[name] = path
+
+    @staticmethod
+    def __is_mask_file(filename):
+        return DataSet.__is_image_file(filename)
+
+    def set_mask_path(self, path):
+        """Set mask path and find all masks in there"""
+        self.mask_list = []
+        self.mask_files = {}
+        if os.path.exists(path):
+            for name in os.listdir(path):
+                if self.__is_mask_file(name):
+                    self.mask_list.append(name)
+                    self.mask_files[name] = os.path.join(path, name)
+
+    def set_mask_list(self, mask_list):
+            self.mask_list = []
+            self.mask_files = {}
+            for line in mask_list:
+                path = os.path.join(self.data_path, line)
+                name = os.path.basename(path)
+                self.mask_list.append(name)
+                self.mask_files[name] = path
 
     def __exif_path(self):
         """Return path of extracted exif directory"""

@@ -68,7 +68,7 @@ def denormalized_image_coordinates(norm_coords, width, height):
     p[:, 1] = norm_coords[:, 1] * size - 0.5 + height / 2.0
     return p
 
-def mask_and_normalize_features(points, desc, colors, width, height, config):
+def mask_and_normalize_features(points, desc, colors, width, height, config, image_mask=None):
     masks = np.array(config.get('masks',[]))
     for mask in masks:
         top = mask['top'] * height
@@ -82,6 +82,17 @@ def mask_and_normalize_features(points, desc, colors, width, height, config):
         points = points[ids]
         desc = desc[ids]
         colors = colors[ids]
+
+    # We now compare with the image mask for this specific image if it exists
+    if image_mask is not None:
+        image_mask_height, image_mask_width, _ = image_mask.shape
+        if (image_mask_height, image_mask_width) != (height, width):
+            raise TypeError("Given mask does not match image dimensions")
+        ids = np.array([image_mask[int(point[1]), int(point[0]), 0] != 0 for point in points])
+        points = points[ids]
+        desc = desc[ids]
+        colors = colors[ids]
+
     points[:, :2] = normalized_image_coordinates(points[:, :2], width, height)
     return points, desc, colors
 
@@ -222,7 +233,7 @@ def extract_features_hahog(image, config):
     logger.debug('Found {0} points in {1}s'.format( len(points), time.time()-t ))
     return points, desc
 
-def extract_features(color_image, config):
+def extract_features(color_image, config, mask=None):
     assert len(color_image.shape) == 3
     color_image = resized_image(color_image, config)
     image = cv2.cvtColor(color_image, cv2.COLOR_RGB2GRAY)
@@ -243,7 +254,7 @@ def extract_features(color_image, config):
     ys = points[:,1].round().astype(int)
     colors = color_image[ys, xs]
 
-    return mask_and_normalize_features(points, desc, colors, image.shape[1], image.shape[0], config)
+    return mask_and_normalize_features(points, desc, colors, image.shape[1], image.shape[0], config, mask)
 
 
 def build_flann_index(features, config):
