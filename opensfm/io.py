@@ -1,5 +1,6 @@
 import errno
 import json
+import logging
 import os
 
 import cv2
@@ -10,6 +11,9 @@ from opensfm import features
 from opensfm import geo
 from opensfm import types
 from opensfm import context
+
+
+logger = logging.getLogger(__name__)
 
 
 def camera_from_json(key, obj):
@@ -357,7 +361,14 @@ def json_loads(text, codec='utf-8'):
 def imread(filename):
     """Load image as an RGB array ignoring EXIF orientation."""
     if context.OPENCV3:
-        flags = cv2.IMREAD_COLOR | cv2.IMREAD_IGNORE_ORIENTATION
+        flags = cv2.IMREAD_COLOR
+        try:
+            flags |= cv2.IMREAD_IGNORE_ORIENTATION
+        except AttributeError:
+            logger.warning(
+                "OpenCV version {} does not support loading images without "
+                "rotating them according to EXIF. Please upgrade OpenCV to "
+                "version 3.2 or newer.".format(cv2.__version__))
     else:
         flags = cv2.CV_LOAD_IMAGE_COLOR
     bgr = cv2.imread(filename, flags)
