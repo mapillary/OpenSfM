@@ -374,9 +374,9 @@ class DataSet:
             reconstructions = io.reconstructions_from_json(json.load(fin))
         return reconstructions
 
-    def save_reconstruction(self, reconstruction, filename=None):
+    def save_reconstruction(self, reconstruction, filename=None, minify=False):
         with open(self.__reconstruction_file(filename), 'w') as fout:
-            io.json_dump(io.reconstructions_to_json(reconstruction), fout)
+            io.json_dump(io.reconstructions_to_json(reconstruction), fout, minify)
 
     def load_undistorted_reconstruction(self):
         return self.load_reconstruction(

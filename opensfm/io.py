@@ -346,8 +346,12 @@ def mkdir_p(path):
             raise
 
 
-def json_dump(data, fout, indent=4, codec='utf-8'):
-    return json.dump(data, fout, indent=indent, ensure_ascii=False, encoding=codec)
+def json_dump(data, fout, minify=False, codec='utf-8'):
+    if minify:
+        indent, separators = None, (',',':')
+    else:
+        indent, separators = 4, None
+    return json.dump(data, fout, indent=indent, ensure_ascii=False, encoding=codec, separators=separators)
 
 
 def json_loads(text, codec='utf-8'):
