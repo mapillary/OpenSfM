@@ -33,6 +33,18 @@ def camera_from_json(key, obj):
         camera.k1_prior = obj.get('k1_prior', camera.k1)
         camera.k2_prior = obj.get('k2_prior', camera.k2)
         return camera
+    elif pt == 'fisheye':
+        camera = types.FisheyeCamera()
+        camera.id = key
+        camera.width = obj.get('width', 0)
+        camera.height = obj.get('height', 0)
+        camera.focal = obj['focal']
+        camera.k1 = obj.get('k1', 0.0)
+        camera.k2 = obj.get('k2', 0.0)
+        camera.focal_prior = obj.get('focal_prior', camera.focal)
+        camera.k1_prior = obj.get('k1_prior', camera.k1)
+        camera.k2_prior = obj.get('k2_prior', camera.k2)
+        return camera
     elif pt in ['equirectangular', 'spherical']:
         camera = types.SphericalCamera()
         camera.id = key
@@ -147,6 +159,18 @@ def camera_to_json(camera):
     Write camera to a json object
     """
     if camera.projection_type == 'perspective':
+        return {
+            'projection_type': camera.projection_type,
+            'width': camera.width,
+            'height': camera.height,
+            'focal': camera.focal,
+            'k1': camera.k1,
+            'k2': camera.k2,
+            'focal_prior': camera.focal_prior,
+            'k1_prior': camera.k1_prior,
+            'k2_prior': camera.k2_prior
+        }
+    elif camera.projection_type == 'fisheye':
         return {
             'projection_type': camera.projection_type,
             'width': camera.width,

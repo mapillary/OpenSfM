@@ -18,6 +18,7 @@ extern "C" {
 
 enum BACameraType {
   BA_PERSPECTIVE_CAMERA,
+  BA_FISHEYE_CAMERA,
   BA_EQUIRECTANGULAR_CAMERA
 };
 
@@ -42,6 +43,21 @@ struct BAPerspectiveCamera : public BACamera{
   double k2_prior;
 
   BACameraType type() { return BA_PERSPECTIVE_CAMERA; }
+  double GetFocal() { return parameters[BA_CAMERA_FOCAL]; }
+  double GetK1() { return parameters[BA_CAMERA_K1]; }
+  double GetK2() { return parameters[BA_CAMERA_K2]; }
+  void SetFocal(double v) { parameters[BA_CAMERA_FOCAL] = v; }
+  void SetK1(double v) { parameters[BA_CAMERA_K1] = v; }
+  void SetK2(double v) { parameters[BA_CAMERA_K2] = v; }
+};
+
+struct BAFisheyeCamera : public BACamera{
+  double parameters[BA_CAMERA_NUM_PARAMS];
+  double focal_prior;
+  double k1_prior;
+  double k2_prior;
+
+  BACameraType type() { return BA_FISHEYE_CAMERA; }
   double GetFocal() { return parameters[BA_CAMERA_FOCAL]; }
   double GetK1() { return parameters[BA_CAMERA_K1]; }
   double GetK2() { return parameters[BA_CAMERA_K2]; }
@@ -218,6 +234,63 @@ struct PerspectiveReprojectionError {
 
     T predicted[2];
     PerspectiveProject(camera, camera_point, predicted);
+
+    // The error is the difference between the predicted and observed position.
+    residuals[0] = T(scale_) * (predicted[0] - T(observed_x_));
+    residuals[1] = T(scale_) * (predicted[1] - T(observed_y_));
+
+    return true;
+  }
+
+  double observed_x_;
+  double observed_y_;
+  double scale_;
+};
+
+template <typename T>
+void FisheyeProject(const T* const camera,
+                    const T point[3],
+                    T projection[2]) {
+  const T& focal = camera[BA_CAMERA_FOCAL];
+  const T& k1 = camera[BA_CAMERA_K1];
+  const T& k2 = camera[BA_CAMERA_K2];
+  const T &x = point[0];
+  const T &y = point[1];
+  const T &z = point[2];
+
+  T l = sqrt(x * x + y * y);
+  T theta = atan2(l, z);
+  T theta2 = theta * theta;
+  T theta_d = theta * (T(1.0) + theta2 * (k1 + theta2 * k2));
+  T s = focal * theta_d / l;
+
+  projection[0] = s * x;
+  projection[1] = s * y;
+}
+
+
+struct FisheyeReprojectionError {
+  FisheyeReprojectionError(double observed_x, double observed_y, double std_deviation)
+      : observed_x_(observed_x)
+      , observed_y_(observed_y)
+      , scale_(1.0 / std_deviation)
+  {}
+
+  template <typename T>
+  bool operator()(const T* const camera,
+                  const T* const shot,
+                  const T* const point,
+                  T* residuals) const {
+    T camera_point[3];
+    WorldToCameraCoordinates(shot, point, camera_point);
+
+    if (camera_point[2] <= T(0.0)) {
+      residuals[0] = residuals[1] = T(99.0);
+      return true;
+    }
+
+    T predicted[2];
+    FisheyeProject(camera, camera_point, predicted);
 
     // The error is the difference between the predicted and observed position.
     residuals[0] = T(scale_) * (predicted[0] - T(observed_x_));
@@ -515,6 +588,10 @@ class BundleAdjuster {
     return *(BAPerspectiveCamera *)cameras_[id].get();
   }
 
+  BAFisheyeCamera GetFisheyeCamera(const std::string &id) {
+    return *(BAFisheyeCamera *)cameras_[id].get();
+  }
+
   BAEquirectangularCamera GetEquirectangularCamera(const std::string &id) {
     return *(BAEquirectangularCamera *)cameras_[id].get();
   }
@@ -538,6 +615,27 @@ class BundleAdjuster {
       bool constant) {
     cameras_[id] = std::unique_ptr<BAPerspectiveCamera>(new BAPerspectiveCamera());
     BAPerspectiveCamera &c = static_cast<BAPerspectiveCamera &>(*cameras_[id]);
+    c.id = id;
+    c.parameters[BA_CAMERA_FOCAL] = focal;
+    c.parameters[BA_CAMERA_K1] = k1;
+    c.parameters[BA_CAMERA_K2] = k2;
+    c.constant = constant;
+    c.focal_prior = focal_prior;
+    c.k1_prior = k1_prior;
+    c.k2_prior = k2_prior;
+  }
+
+  void AddFisheyeCamera(
+      const std::string &id,
+      double focal,
+      double k1,
+      double k2,
+      double focal_prior,
+      double k1_prior,
+      double k2_prior,
+      bool constant) {
+    cameras_[id] = std::unique_ptr<BAFisheyeCamera>(new BAFisheyeCamera());
+    BAFisheyeCamera &c = static_cast<BAFisheyeCamera &>(*cameras_[id]);
     c.id = id;
     c.parameters[BA_CAMERA_FOCAL] = focal;
     c.parameters[BA_CAMERA_K1] = k1;
@@ -761,6 +859,13 @@ class BundleAdjuster {
             problem.SetParameterBlockConstant(c.parameters);
             break;
           }
+          case BA_FISHEYE_CAMERA:
+          {
+            BAFisheyeCamera &c = static_cast<BAFisheyeCamera &>(*i.second);
+            problem.AddParameterBlock(c.parameters, BA_CAMERA_NUM_PARAMS);
+            problem.SetParameterBlockConstant(c.parameters);
+            break;
+          }
           case BA_EQUIRECTANGULAR_CAMERA:
             // No parameters for now
             break;
@@ -791,6 +896,22 @@ class BundleAdjuster {
                   new PerspectiveReprojectionError(observation.coordinates[0],
                                                    observation.coordinates[1],
                                                    reprojection_error_sd_));
+
+          problem.AddResidualBlock(cost_function,
+                                   loss,
+                                   c.parameters,
+                                   observation.shot->parameters,
+                                   observation.point->coordinates);
+          break;
+        }
+        case BA_FISHEYE_CAMERA:
+        {
+          BAFisheyeCamera &c = static_cast<BAFisheyeCamera &>(*observation.camera);
+          ceres::CostFunction* cost_function =
+              new ceres::AutoDiffCostFunction<FisheyeReprojectionError, 2, 3, 6, 3>(
+                  new FisheyeReprojectionError(observation.coordinates[0],
+                                               observation.coordinates[1],
+                                               reprojection_error_sd_));
 
           problem.AddResidualBlock(cost_function,
                                    loss,
@@ -878,6 +999,11 @@ class BundleAdjuster {
                                    observation.shot->parameters);
           break;
         }
+        case BA_FISHEYE_CAMERA:
+        {
+          std::cerr << "NotImplemented: GCP for fisheye cameras\n";
+          break;
+        }
         case BA_EQUIRECTANGULAR_CAMERA:
         {
           ceres::CostFunction* cost_function =
@@ -900,6 +1026,21 @@ class BundleAdjuster {
         case BA_PERSPECTIVE_CAMERA:
         {
           BAPerspectiveCamera &c = static_cast<BAPerspectiveCamera &>(*i.second);
+
+          ceres::CostFunction* cost_function =
+              new ceres::AutoDiffCostFunction<InternalParametersPriorError, 3, 3>(
+                  new InternalParametersPriorError(c.focal_prior, focal_prior_sd_,
+                                                   c.k1_prior, k1_sd_,
+                                                   c.k2_prior, k2_sd_));
+
+          problem.AddResidualBlock(cost_function,
+                                   NULL,
+                                   c.parameters);
+          break;
+        }
+        case BA_FISHEYE_CAMERA:
+        {
+          BAFisheyeCamera &c = static_cast<BAFisheyeCamera &>(*i.second);
 
           ceres::CostFunction* cost_function =
               new ceres::AutoDiffCostFunction<InternalParametersPriorError, 3, 3>(
@@ -995,6 +1136,23 @@ class BundleAdjuster {
           PerspectiveReprojectionError pre(observations_[i].coordinates[0],
                                            observations_[i].coordinates[1],
                                            1.0);
+          double residuals[2];
+          pre(c.parameters,
+              observations_[i].shot->parameters,
+              observations_[i].point->coordinates,
+              residuals);
+          double error = sqrt(residuals[0] * residuals[0] + residuals[1] * residuals[1]);
+          observations_[i].point->reprojection_error =
+              std::max(observations_[i].point->reprojection_error, error);
+          break;
+        }
+        case BA_FISHEYE_CAMERA:
+        {
+          BAFisheyeCamera &c = static_cast<BAFisheyeCamera &>(*observations_[i].camera);
+
+          FisheyeReprojectionError pre(observations_[i].coordinates[0],
+                                       observations_[i].coordinates[1],
+                                       1.0);
           double residuals[2];
           pre(c.parameters,
               observations_[i].shot->parameters,

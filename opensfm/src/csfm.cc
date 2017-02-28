@@ -83,10 +83,12 @@ BOOST_PYTHON_MODULE(csfm) {
   class_<BundleAdjuster, boost::noncopyable>("BundleAdjuster")
     .def("run", &BundleAdjuster::Run)
     .def("get_perspective_camera", &BundleAdjuster::GetPerspectiveCamera)
+    .def("get_fisheye_camera", &BundleAdjuster::GetFisheyeCamera)
     .def("get_equirectangular_camera", &BundleAdjuster::GetEquirectangularCamera)
     .def("get_shot", &BundleAdjuster::GetShot)
     .def("get_point", &BundleAdjuster::GetPoint)
     .def("add_perspective_camera", &BundleAdjuster::AddPerspectiveCamera)
+    .def("add_fisheye_camera", &BundleAdjuster::AddFisheyeCamera)
     .def("add_equirectangular_camera", &BundleAdjuster::AddEquirectangularCamera)
     .def("add_shot", &BundleAdjuster::AddShot)
     .def("add_point", &BundleAdjuster::AddPoint)
@@ -117,6 +119,15 @@ BOOST_PYTHON_MODULE(csfm) {
     .def_readwrite("constant", &BAPerspectiveCamera::constant)
     .def_readwrite("focal_prior", &BAPerspectiveCamera::focal_prior)
     .def_readwrite("id", &BAPerspectiveCamera::id)
+  ;
+
+  class_<BAFisheyeCamera>("BAFisheyeCamera")
+    .add_property("focal", &BAFisheyeCamera::GetFocal, &BAFisheyeCamera::SetFocal)
+    .add_property("k1", &BAFisheyeCamera::GetK1, &BAFisheyeCamera::SetK1)
+    .add_property("k2", &BAFisheyeCamera::GetK2, &BAFisheyeCamera::SetK2)
+    .def_readwrite("constant", &BAFisheyeCamera::constant)
+    .def_readwrite("focal_prior", &BAFisheyeCamera::focal_prior)
+    .def_readwrite("id", &BAFisheyeCamera::id)
   ;
 
   class_<BAShot>("BAShot")
