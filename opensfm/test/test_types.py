@@ -1,5 +1,6 @@
 import numpy as np
 
+from opensfm import context
 from opensfm import types
 
 """
@@ -103,6 +104,8 @@ def test_perspective_camera_projection():
 
 def test_fisheye_camera_projection():
     """Test fisheye projection--backprojection loop."""
+    if not context.OPENCV3:
+        return
     camera = types.FisheyeCamera()
     camera.width = 800
     camera.height = 600
