@@ -235,8 +235,6 @@ def extract_features_hahog(image, config):
 def extract_features(color_image, config, mask=None):
     assert len(color_image.shape) == 3
     color_image = resized_image(color_image, config)
-    cv2.imshow('color_image', color_image)
-    cv2.waitKey(0)
     image = cv2.cvtColor(color_image, cv2.COLOR_RGB2GRAY)
 
     feature_type = config.get('feature_type','SIFT').upper()
