@@ -1,13 +1,8 @@
-# -*- coding: utf-8 -*-
+"""Tools to extract features."""
 
-import os, sys
-import tempfile
 import time
 import logging
-from subprocess import call
 import numpy as np
-import json
-import uuid
 import cv2
 import csfm
 
@@ -18,13 +13,16 @@ logger = logging.getLogger(__name__)
 
 
 def resized_image(image, config):
-    feature_process_size = config.get('feature_process_size', -1)
-    size = np.array(image.shape[0:2])
-    if 0 < feature_process_size < size.max():
-        new_size = size * feature_process_size / size.max()
-        return cv2.resize(image, dsize=(new_size[1], new_size[0]), interpolation=cv2.INTER_AREA)
+    """Resize image to feature_process_size."""
+    max_size = config.get('feature_process_size', -1)
+    h, w, _ = image.shape
+    size = max(w, h)
+    if 0 < max_size < size:
+        dsize = w * max_size / size, h * max_size / size
+        return cv2.resize(image, dsize=dsize, interpolation=cv2.INTER_AREA)
     else:
         return image
+
 
 def root_feature(desc, l2_normalization=False):
     if l2_normalization:
@@ -33,6 +31,7 @@ def root_feature(desc, l2_normalization=False):
     s = np.sum(desc, 1)
     desc = np.sqrt(desc.T/s).T
     return desc
+
 
 def root_feature_surf(desc, l2_normalization=False, partial=False):
     """
@@ -54,12 +53,14 @@ def root_feature_surf(desc, l2_normalization=False, partial=False):
         desc[:, ii] = desc_sub*desc_sub_sign
     return desc
 
+
 def normalized_image_coordinates(pixel_coords, width, height):
     size = max(width, height)
     p = np.empty((len(pixel_coords), 2))
     p[:, 0] = (pixel_coords[:, 0] + 0.5 - width / 2.0) / size
     p[:, 1] = (pixel_coords[:, 1] + 0.5 - height / 2.0) / size
     return p
+
 
 def denormalized_image_coordinates(norm_coords, width, height):
     size = max(width, height)
@@ -128,6 +129,7 @@ def extract_features_sift(image, config):
     points = np.array([(i.pt[0], i.pt[1], i.size, i.angle) for i in points])
     return points, desc
 
+
 def extract_features_surf(image, config):
     surf_hessian_threshold = config.get('surf_hessian_threshold', 3000)
     if context.OPENCV3:
@@ -171,6 +173,7 @@ def extract_features_surf(image, config):
     points = np.array([(i.pt[0], i.pt[1], i.size, i.angle) for i in points])
     return points, desc
 
+
 def akaze_descriptor_type(name):
     d = csfm.AkazeDescriptorType.__dict__
     if name in d:
@@ -178,6 +181,7 @@ def akaze_descriptor_type(name):
     else:
         logger.debug('Wrong akaze descriptor type')
         return d['MSURF']
+
 
 def extract_features_akaze(image, config):
     options = csfm.AKAZEOptions()
@@ -206,6 +210,7 @@ def extract_features_akaze(image, config):
     points = points.astype(float)
     return points, desc
 
+
 def extract_features_hahog(image, config):
     t = time.time()
     points, desc = csfm.hahog(image.astype(np.float32) / 255, # VlFeat expects pixel values between 0, 1
@@ -226,9 +231,12 @@ def extract_features_hahog(image, config):
     logger.debug('Found {0} points in {1}s'.format( len(points), time.time()-t ))
     return points, desc
 
+
 def extract_features(color_image, config, mask=None):
     assert len(color_image.shape) == 3
     color_image = resized_image(color_image, config)
+    cv2.imshow('color_image', color_image)
+    cv2.waitKey(0)
     image = cv2.cvtColor(color_image, cv2.COLOR_RGB2GRAY)
 
     feature_type = config.get('feature_type','SIFT').upper()
