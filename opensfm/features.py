@@ -22,7 +22,7 @@ def resized_image(image, config):
     size = np.array(image.shape[0:2])
     if 0 < feature_process_size < size.max():
         new_size = size * feature_process_size / size.max()
-        return cv2.resize(image, dsize=(new_size[1], new_size[0]))
+        return cv2.resize(image, dsize=(new_size[1], new_size[0]), interpolation=cv2.INTER_AREA)
     else:
         return image
 
