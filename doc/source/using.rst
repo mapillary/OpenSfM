@@ -114,3 +114,6 @@ Configuration
 -------------
 
 TODO explain config.yaml and the available parameters
+
+
+.. include:: gcp.rst
