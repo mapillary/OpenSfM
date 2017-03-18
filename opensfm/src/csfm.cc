@@ -1,8 +1,6 @@
 #include <boost/python.hpp>
 #include <iostream>
-#include <utility>
 #include <vector>
-#include <random>
 
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include <numpy/ndarrayobject.h>
