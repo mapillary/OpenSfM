@@ -297,7 +297,7 @@ class DepthmapEstimator {
         continue;
       }
 
-      CheckPlaneCandidate(best_depth, best_plane, best_score, best_nbour, i, j, plane, nbour);
+      CheckPlaneImageCandidate(best_depth, best_plane, best_score, best_nbour, i, j, plane, nbour);
     }
 
     // Check random planes.
@@ -314,7 +314,7 @@ class DepthmapEstimator {
                        -1.0f);
 
       cv::Vec3f plane = PlaneFromDepthAndNormal(j, i, Ks_[0], depth, normal);
-      CheckPlaneCandidate(best_depth, best_plane, best_score, best_nbour, i, j, plane, current_nbour);
+      CheckPlaneImageCandidate(best_depth, best_plane, best_score, best_nbour, i, j, plane, current_nbour);
 
       depth_range *= 0.5;
       normal_range *= 0.5;
@@ -324,14 +324,13 @@ class DepthmapEstimator {
       return;
     }
 
-    // TODO: handle excluding current neighbour index correctly when drawing from uniform integer distribution
     int other_nbour = uni_(rng_);
     while (other_nbour == current_nbour) {
       other_nbour = uni_(rng_);
     }
 
     cv::Vec3f plane = best_plane->at<cv::Vec3f>(i, j);
-    CheckPlaneCandidate(best_depth, best_plane, best_score, best_nbour, i, j, plane, other_nbour);
+    CheckPlaneImageCandidate(best_depth, best_plane, best_score, best_nbour, i, j, plane, other_nbour);
   }
 
   void CheckPlaneCandidate(cv::Mat *best_depth, cv::Mat *best_plane, cv::Mat *best_score, cv::Mat *best_nbour,
@@ -345,8 +344,8 @@ class DepthmapEstimator {
     }
   }
 
-  void CheckPlaneCandidate(cv::Mat *best_depth, cv::Mat *best_plane, cv::Mat *best_score, cv::Mat *best_nbour,
-                           int i, int j, const cv::Vec3f &plane, int nbour) {
+  void CheckPlaneImageCandidate(cv::Mat *best_depth, cv::Mat *best_plane, cv::Mat *best_score, cv::Mat *best_nbour,
+                                int i, int j, const cv::Vec3f &plane, int nbour) {
     float score = ComputePlaneImageScore(i, j, plane, nbour);
     if (score > best_score->at<float>(i, j)) {
       best_score->at<float>(i, j) = score;
