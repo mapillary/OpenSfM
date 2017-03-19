@@ -72,7 +72,7 @@ def compute_depthmap(arguments):
     depth = depth * (depth < max_depth) * good_score
 
     # Save and display results
-    data.save_raw_depthmap(shot.id, depth, plane, score)
+    data.save_raw_depthmap(shot.id, depth, plane, score, nbour, neighbors[shot.id][1:])
 
     if data.config['depthmap_save_debug_files']:
         image = data.undistorted_image_as_array(shot.id)
@@ -117,7 +117,7 @@ def clean_depthmap(arguments):
     depth = dc.clean()
 
     # Save and display results
-    raw_depth, raw_plane, raw_score = data.load_raw_depthmap(shot.id)
+    raw_depth, raw_plane, raw_score, raw_nbour, nbours = data.load_raw_depthmap(shot.id)
     data.save_clean_depthmap(shot.id, depth, raw_plane, raw_score)
 
     if data.config['depthmap_save_debug_files']:
@@ -197,7 +197,7 @@ def add_views_to_depth_cleaner(data, reconstruction, neighbors, dc):
         shot = reconstruction.shots[neighbor]
         if not data.raw_depthmap_exists(shot.id):
             continue
-        depth, plane, score = data.load_raw_depthmap(shot.id)
+        depth, plane, score, nbour, nbours = data.load_raw_depthmap(shot.id)
         height, width = depth.shape
         K = shot.camera.get_K_in_pixel_coordinates(width, height)
         R = shot.pose.get_rotation_matrix()

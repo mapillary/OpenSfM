@@ -113,14 +113,14 @@ class DataSet:
     def raw_depthmap_exists(self, image):
         return os.path.isfile(self._depthmap_file(image, 'raw.npz'))
 
-    def save_raw_depthmap(self, image, depth, plane, score):
+    def save_raw_depthmap(self, image, depth, plane, score, nbour, nbours):
         io.mkdir_p(self._depthmap_path())
         filepath = self._depthmap_file(image, 'raw.npz')
-        np.savez_compressed(filepath, depth=depth, plane=plane, score=score)
+        np.savez_compressed(filepath, depth=depth, plane=plane, score=score, nbour=nbour, nbours=nbours)
 
     def load_raw_depthmap(self, image):
         o = np.load(self._depthmap_file(image, 'raw.npz'))
-        return o['depth'], o['plane'], o['score']
+        return o['depth'], o['plane'], o['score'], o['nbour'], o['nbours']
 
     def clean_depthmap_exists(self, image):
         return os.path.isfile(self._depthmap_file(image, 'clean.npz'))
