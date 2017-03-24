@@ -303,16 +303,6 @@ class DataSet:
     def save_preemptive_features(self, image, points, descriptors):
         self.__save_features(self.__preemptive_features_file(image), image, points, descriptors)
 
-    def matcher_type(self):
-        """Return the type of matcher
-        """
-        matcher_type = self.config.get('matcher_type', 'BruteForce')
-        if 'BruteForce' in matcher_type:
-            if self.feature_type() == 'akaze' and (self.config.get('akaze_descriptor', 5) >= 4):
-                 matcher_type = 'BruteForce-Hamming'
-            self.config['matcher_type'] = matcher_type
-        return matcher_type # BruteForce, BruteForce-L1, BruteForce-Hamming
-
     def __matches_path(self):
         """Return path of matches directory"""
         return os.path.join(self.data_path, 'matches')

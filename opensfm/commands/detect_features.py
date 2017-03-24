@@ -60,5 +60,7 @@ def detect(args):
         f_pre = f_sorted[-preemptive_max:]
         data.save_features(image, p_sorted, f_sorted, c_sorted)
         data.save_preemptive_features(image, p_pre, f_pre)
-        index = features.build_flann_index(f_sorted, data.config)
-        data.save_feature_index(image, index)
+
+        if data.config.get('matcher_type', 'FLANN') == 'FLANN':
+            index = features.build_flann_index(f_sorted, data.config)
+            data.save_feature_index(image, index)
