@@ -30,7 +30,6 @@ Install OpenCV using
     brew install opencv
     brew install homebrew/science/ceres-solver
     brew install boost-python
-    sudo pip install -r requirements.txt
 
 And install OpenGV using
 
@@ -63,6 +62,11 @@ When running OpenSfM on top of [OpenCV][] 3.0 the [OpenCV Contrib][] modules are
 
 ## Building
 
+    sudo pip install virtualenv
+    virtualenv .
+    source bin/activate
+    pip install -r requirements.txt
+    pip install scipy==0.19.0
     python setup.py build
 
 
