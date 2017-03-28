@@ -2,6 +2,7 @@ exifread
 gpxpy
 networkx
 numpy
+scipy
 pytest
 python-dateutil
 PyYAML
