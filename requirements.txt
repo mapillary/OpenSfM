@@ -1,10 +1,10 @@
 exifread==2.1.2
 gpxpy==1.1.2
 networkx==1.11
-numpy==1.12.1
+numpy
 pytest==3.0.7
 python-dateutil==2.6.0
 pyproj==1.9.5.1
 PyYAML==3.12
-scipy==0.19.0
+scipy
 xmltodict==0.10.2
