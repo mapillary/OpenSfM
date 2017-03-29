@@ -2,8 +2,9 @@ exifread
 gpxpy
 networkx
 numpy
+pyproj
 pytest
 python-dateutil
 PyYAML
+scipy
 xmltodict
-pyproj
