@@ -56,18 +56,26 @@ def parallel_run(function, arguments, num_processes):
 def compute_depthmap(arguments):
     """Compute depthmap for a single shot."""
     data, reconstruction, neighbors, min_depth, max_depth, shot = arguments
+    method = data.config['depthmap_method']
 
     if data.raw_depthmap_exists(shot.id):
         logger.info("Using precomputed raw depthmap {}".format(shot.id))
         return
-    logger.info("Computing depthmap for image {}".format(shot.id))
+    logger.info("Computing depthmap for image {0} with {1}".format(shot.id, method))
 
     de = csfm.DepthmapEstimator()
     de.set_depth_range(min_depth, max_depth, 100)
     de.set_patchmatch_iterations(data.config['depthmap_patchmatch_iterations'])
     de.set_min_patch_sd(data.config['depthmap_min_patch_sd'])
     add_views_to_depth_estimator(data, reconstruction, neighbors[shot.id], de)
-    depth, plane, score, nghbr = de.compute_patch_match()
+
+    if (method == 'BRUTE_FORCE'):
+        depth, plane, score, nghbr = de.compute_brute_force()
+    elif (method == 'PATCH_MATCH_SAMPLE'):
+        depth, plane, score, nghbr = de.compute_patch_match_sample()
+    else:
+        depth, plane, score, nghbr = de.compute_patch_match()
+
     good_score = score > data.config['depthmap_min_correlation_score']
     depth = depth * (depth < max_depth) * good_score
 

@@ -99,6 +99,7 @@ nav_vertical_threshold: 20            # Maximum vertical angle difference in mot
 nav_rotation_threshold: 30            # Maximum general rotation in degrees between cameras for steps
 
 # Params for depth estimation
+depthmap_method: PATCH_MATCH          # Raw depthmap computationg algorithm (PATCH_MATCH, BRUTE_FORCE, PATCH_MATCH_SAMPLE)
 depthmap_resolution: 640              # Resolution of the depth maps
 depthmap_num_neighbors: 10            # Number of neighboring views
 depthmap_num_matching_views: 2        # Number of neighboring views used for each depthmaps
