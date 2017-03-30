@@ -165,6 +165,7 @@ BOOST_PYTHON_MODULE(csfm) {
     .def("set_min_patch_sd", &csfm::DepthmapEstimatorWrapper::SetMinPatchSD)
     .def("add_view", &csfm::DepthmapEstimatorWrapper::AddView)
     .def("compute_patch_match", &csfm::DepthmapEstimatorWrapper::ComputePatchMatch)
+    .def("compute_patch_match_sample", &csfm::DepthmapEstimatorWrapper::ComputePatchMatchSample)
     .def("compute_brute_force", &csfm::DepthmapEstimatorWrapper::ComputeBruteForce)
   ;
 

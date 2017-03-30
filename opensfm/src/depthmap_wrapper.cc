@@ -37,6 +37,12 @@ class DepthmapEstimatorWrapper {
     return ComputeReturnValues(depth, plane, score, nghbr);
   }
 
+  bp::object ComputePatchMatchSample() {
+    cv::Mat depth, plane, score, nghbr;
+    de_.ComputePatchMatchSample(&depth, &plane, &score, &nghbr);
+    return ComputeReturnValues(depth, plane, score, nghbr);
+  }
+
   bp::object ComputeBruteForce() {
     cv::Mat depth, plane, score, nghbr;
     de_.ComputeBruteForce(&depth, &plane, &score, &nghbr);
