@@ -67,12 +67,12 @@ def compute_depthmap(arguments):
     de.set_patchmatch_iterations(data.config['depthmap_patchmatch_iterations'])
     de.set_min_patch_sd(data.config['depthmap_min_patch_sd'])
     add_views_to_depth_estimator(data, reconstruction, neighbors[shot.id], de)
-    depth, plane, score, nbour = de.compute_patch_match()
+    depth, plane, score, nghbr = de.compute_patch_match()
     good_score = score > data.config['depthmap_min_correlation_score']
     depth = depth * (depth < max_depth) * good_score
 
     # Save and display results
-    data.save_raw_depthmap(shot.id, depth, plane, score, nbour, neighbors[shot.id][1:])
+    data.save_raw_depthmap(shot.id, depth, plane, score, nghbr, neighbors[shot.id][1:])
 
     if data.config['depthmap_save_debug_files']:
         image = data.undistorted_image_as_array(shot.id)
@@ -96,7 +96,7 @@ def compute_depthmap(arguments):
         plt.imshow(score)
         plt.colorbar()
         plt.subplot(2, 3, 5)
-        plt.imshow(nbour)
+        plt.imshow(nghbr)
         plt.colorbar()
         plt.show()
 
@@ -117,7 +117,7 @@ def clean_depthmap(arguments):
     depth = dc.clean()
 
     # Save and display results
-    raw_depth, raw_plane, raw_score, raw_nbour, nbours = data.load_raw_depthmap(shot.id)
+    raw_depth, raw_plane, raw_score, raw_nghbr, nghbrs = data.load_raw_depthmap(shot.id)
     data.save_clean_depthmap(shot.id, depth, raw_plane, raw_score)
 
     if data.config['depthmap_save_debug_files']:
@@ -197,7 +197,7 @@ def add_views_to_depth_cleaner(data, reconstruction, neighbors, dc):
         shot = reconstruction.shots[neighbor]
         if not data.raw_depthmap_exists(shot.id):
             continue
-        depth, plane, score, nbour, nbours = data.load_raw_depthmap(shot.id)
+        depth, plane, score, nghbr, nghbrs = data.load_raw_depthmap(shot.id)
         height, width = depth.shape
         K = shot.camera.get_K_in_pixel_coordinates(width, height)
         R = shot.pose.get_rotation_matrix()
@@ -219,7 +219,7 @@ def compute_depth_range(graph, reconstruction, shot):
 
 
 def find_neighboring_images(shot, common_tracks, reconstruction, num_neighbors=5):
-    """Find neighbouring images based on common tracks."""
+    """Find neighboring images based on common tracks."""
     theta_min = np.pi / 60
     theta_max = np.pi / 6
     ns = []

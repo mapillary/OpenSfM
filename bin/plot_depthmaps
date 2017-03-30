@@ -9,7 +9,7 @@ from opensfm import dataset
 from opensfm import io
 
 
-def plot_depthmap(im, title, depth, plane, score, nbour):
+def plot_depthmap(im, title, depth, plane, score, nghbr):
         ax = pl.subplot2grid((2, 3), (0, 0), rowspan=2)
         ax_title = ax.set_title(title)
         ax_title.set_y(1.05)
@@ -25,9 +25,9 @@ def plot_depthmap(im, title, depth, plane, score, nbour):
         pl.imshow(score)
         pl.colorbar()
         ax = pl.subplot(2, 3, 5)
-        ax_title = ax.set_title("Neighbour")
+        ax_title = ax.set_title("Neighbor")
         ax_title.set_y(1.08)
-        pl.imshow(nbour)
+        pl.imshow(nghbr)
         pl.colorbar()
         ax = pl.subplot(2, 3, 6)
         ax_title = ax.set_title("Plane normal")
@@ -58,13 +58,13 @@ if __name__ == "__main__":
 
     images = [args.image] if args.image else data.images()
     for image in images:
-            depth, plane, score, nbour, nbours = data.load_raw_depthmap(image)
+            depth, plane, score, nghbr, nghbrs = data.load_raw_depthmap(image)
 
             print "Plotting depthmap for {0}".format(image)
             pl.close("all")
             pl.figure(figsize=(30, 16), dpi=90, facecolor='w', edgecolor='k')
-            title = "Shot: " + image + "\n" + "\n".join(wrap("Neighbors: " + ', '.join(nbours), 80))
-            plot_depthmap(data.image_as_array(image), title, depth, plane, score, nbour)
+            title = "Shot: " + image + "\n" + "\n".join(wrap("Neighbors: " + ', '.join(nghbrs), 80))
+            plot_depthmap(data.image_as_array(image), title, depth, plane, score, nghbr)
             pl.tight_layout()
 
             if args.save_figs:
