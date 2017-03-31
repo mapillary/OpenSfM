@@ -243,10 +243,7 @@ class DepthmapEstimator {
           int nghbr;
           ComputePlaneScore(i, j, plane, score, nghbr);
         }
-        best_depth->at<float>(i, j) = depth;
-        best_plane->at<cv::Vec3f>(i, j) = plane;
-        best_score->at<float>(i, j) = score;
-        best_nghbr->at<int>(i, j) = nghbr;
+        AssignPixel(best_depth, best_plane, best_score, best_nghbr, i, j, depth, plane, score, nghbr);
       }
     }
   }
@@ -257,10 +254,7 @@ class DepthmapEstimator {
       for (int j = hpz; j < best_depth->cols - hpz; ++j) {
         float variance = PatchVariance(i, j);
         if (variance < min_patch_variance_) {
-          best_depth->at<float>(i, j) = 0;
-          best_plane->at<cv::Vec3f>(i, j) = cv::Vec3f(0, 0, 0);
-          best_score->at<float>(i, j) = 0;
-          best_nghbr->at<int>(i, j) = 0;
+          AssignPixel(best_depth, best_plane, best_score, best_nghbr, i, j, 0.0f, cv::Vec3f(0, 0, 0), 0.0f, 0);
         }
       }
     }
@@ -374,10 +368,8 @@ class DepthmapEstimator {
     int nghbr;
     ComputePlaneScore(i, j, plane, score, nghbr);
     if (score > best_score->at<float>(i, j)) {
-      best_score->at<float>(i, j) = score;
-      best_plane->at<cv::Vec3f>(i, j) = plane;
-      best_depth->at<float>(i, j) = DepthOfPlaneBackprojection(j, i, Ks_[0], plane);
-      best_nghbr->at<int>(i, j) = nghbr;
+      float depth = DepthOfPlaneBackprojection(j, i, Ks_[0], plane);
+      AssignPixel(best_depth, best_plane, best_score, best_nghbr, i, j, depth, plane, score, nghbr);
     }
   }
 
@@ -385,11 +377,17 @@ class DepthmapEstimator {
                                 int i, int j, const cv::Vec3f &plane, int nghbr) {
     float score = ComputePlaneImageScore(i, j, plane, nghbr);
     if (score > best_score->at<float>(i, j)) {
-      best_score->at<float>(i, j) = score;
-      best_plane->at<cv::Vec3f>(i, j) = plane;
-      best_depth->at<float>(i, j) = DepthOfPlaneBackprojection(j, i, Ks_[0], plane);
-      best_nghbr->at<int>(i, j) = nghbr;
+      float depth = DepthOfPlaneBackprojection(j, i, Ks_[0], plane);
+      AssignPixel(best_depth, best_plane, best_score, best_nghbr, i, j, depth, plane, score, nghbr);
     }
+  }
+
+  void AssignPixel(cv::Mat *best_depth, cv::Mat *best_plane, cv::Mat *best_score, cv::Mat *best_nghbr,
+                   int i, int j, const float depth, const cv::Vec3f &plane, const float score, const int nghbr) {
+      best_depth->at<float>(i, j) = depth;
+      best_plane->at<cv::Vec3f>(i, j) = plane;
+      best_score->at<float>(i, j) = score;
+      best_nghbr->at<int>(i, j) = nghbr;
   }
 
   void ComputePlaneScore(int i, int j, const cv::Vec3f &plane, float &score, int &nghbr) {
