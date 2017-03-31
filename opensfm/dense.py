@@ -71,10 +71,13 @@ def compute_depthmap(arguments):
 
     if (method == 'BRUTE_FORCE'):
         depth, plane, score, nghbr = de.compute_brute_force()
+    elif (method == 'PATCH_MATCH'):
+        depth, plane, score, nghbr = de.compute_patch_match()
     elif (method == 'PATCH_MATCH_SAMPLE'):
         depth, plane, score, nghbr = de.compute_patch_match_sample()
     else:
-        depth, plane, score, nghbr = de.compute_patch_match()
+        raise ValueError('Unknown depthmap method type ' \
+            '(must be BRUTE_FORCE, PATCH_MATCH or PATCH_MATCH_SAMPLE)')
 
     good_score = score > data.config['depthmap_min_correlation_score']
     depth = depth * (depth < max_depth) * good_score

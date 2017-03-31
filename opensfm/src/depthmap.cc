@@ -199,12 +199,12 @@ class DepthmapEstimator {
 
   void ComputePatchMatch(cv::Mat *best_depth, cv::Mat *best_plane, cv::Mat *best_score, cv::Mat *best_nghbr) {
     AssignMatrices(best_depth, best_plane, best_score, best_nghbr);
-    RandomInitialization(best_depth, best_plane, best_score, best_nghbr);
+    RandomInitialization(best_depth, best_plane, best_score, best_nghbr, false);
     ComputeIgnoreMask(best_depth, best_plane, best_score, best_nghbr);
 
     for (int i = 0; i < patchmatch_iterations_; ++i) {
-      PatchMatchForwardPass(best_depth, best_plane, best_score, best_nghbr);
-      PatchMatchBackwardPass(best_depth, best_plane, best_score, best_nghbr);
+      PatchMatchForwardPass(best_depth, best_plane, best_score, best_nghbr, false);
+      PatchMatchBackwardPass(best_depth, best_plane, best_score, best_nghbr, false);
     }
   }
 
@@ -226,7 +226,7 @@ class DepthmapEstimator {
     *best_nghbr = cv::Mat(images_[0].rows, images_[0].cols, CV_32S, cv::Scalar(0));
   }
 
-  void RandomInitialization(cv::Mat *best_depth, cv::Mat *best_plane, cv::Mat *best_score, cv::Mat *best_nghbr, bool sample = false) {
+  void RandomInitialization(cv::Mat *best_depth, cv::Mat *best_plane, cv::Mat *best_score, cv::Mat *best_nghbr, bool sample) {
     int hpz = (patch_size_ - 1) / 2;
     for (int i = hpz; i < best_depth->rows - hpz; ++i) {
       for (int j = hpz; j < best_depth->cols - hpz; ++j) {
@@ -280,31 +280,31 @@ class DepthmapEstimator {
 
 
   void PatchMatchForwardPass(cv::Mat *best_depth, cv::Mat *best_plane, cv::Mat *best_score, cv::Mat *best_nghbr,
-                             bool sample = false) {
-    int neighbors[2][2] = {{-1, 0}, {0, -1}};
+                             bool sample) {
+    int adjacent[2][2] = {{-1, 0}, {0, -1}};
     int hpz = (patch_size_ - 1) / 2;
     for (int i = hpz; i < best_depth->rows - hpz; ++i) {
       for (int j = hpz; j < best_depth->cols - hpz; ++j) {
-        PatchMatchUpdatePixel(best_depth, best_plane, best_score, best_nghbr, i, j, neighbors, sample);
+        PatchMatchUpdatePixel(best_depth, best_plane, best_score, best_nghbr, i, j, adjacent, sample);
       }
     }
   }
 
   void PatchMatchBackwardPass(cv::Mat *best_depth, cv::Mat *best_plane, cv::Mat *best_score, cv::Mat *best_nghbr,
-                              bool sample = false) {
-    int neighbors[2][2] = {{0, 1}, {1, 0}};
+                              bool sample) {
+    int adjacent[2][2] = {{0, 1}, {1, 0}};
     int hpz = (patch_size_ - 1) / 2;
     for (int i = best_depth->rows - hpz - 1; i >= hpz; --i) {
       for (int j = best_depth->cols - hpz - 1; j >= hpz; --j) {
-        PatchMatchUpdatePixel(best_depth, best_plane, best_score, best_nghbr, i, j, neighbors, sample);
+        PatchMatchUpdatePixel(best_depth, best_plane, best_score, best_nghbr, i, j, adjacent, sample);
       }
     }
   }
 
   void PatchMatchUpdatePixel(cv::Mat *best_depth, cv::Mat *best_plane, cv::Mat *best_score, cv::Mat *best_nghbr,
                              int i, int j,
-                             int neighbors[2][2],
-                             bool sample = false) {
+                             int adjacent[2][2],
+                             bool sample) {
     // Ignore pixels with depth == 0.
     if (best_depth->at<float>(i, j) == 0.0f) {
       return;
@@ -312,15 +312,18 @@ class DepthmapEstimator {
 
     // Check neighbors and their planes for adjacent pixels.
     for (int k = 0; k < 2; ++k) {
+      int i_adjacent = i + adjacent[k][0];
+      int j_adjacent = j + adjacent[k][1];
+
       // Do not propagate ignored adjacent pixels.
-      if (best_depth->at<float>(i + neighbors[k][0], j + neighbors[k][1]) == 0.0f) {
+      if (best_depth->at<float>(i_adjacent, j_adjacent) == 0.0f) {
         continue;
       }
 
-      cv::Vec3f plane = best_plane->at<cv::Vec3f>(i + neighbors[k][0], j + neighbors[k][1]);
+      cv::Vec3f plane = best_plane->at<cv::Vec3f>(i_adjacent, j_adjacent);
 
       if (sample) {
-        int nghbr = best_nghbr->at<int>(i + neighbors[k][0], j + neighbors[k][1]);
+        int nghbr = best_nghbr->at<int>(i_adjacent, j_adjacent);
         CheckPlaneImageCandidate(best_depth, best_plane, best_score, best_nghbr, i, j, plane, nghbr);
       } else {
         CheckPlaneCandidate(best_depth, best_plane, best_score, best_nghbr, i, j, plane);
