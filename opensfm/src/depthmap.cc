@@ -1,5 +1,4 @@
 #include <random>
-#include <utility>
 
 #include <opencv2/opencv.hpp>
 
@@ -240,9 +239,9 @@ class DepthmapEstimator {
           nghbr = uni_(rng_);
           score = ComputePlaneImageScore(i, j, plane, nghbr);
         } else {
-          std::pair<float, int> result = ComputePlaneScore(i, j, plane);
-          nghbr = result.second;
-          score = result.first;
+          float score;
+          int nghbr;
+          ComputePlaneScore(i, j, plane, score, nghbr);
         }
         best_depth->at<float>(i, j) = depth;
         best_plane->at<cv::Vec3f>(i, j) = plane;
@@ -297,7 +296,7 @@ class DepthmapEstimator {
     int hpz = (patch_size_ - 1) / 2;
     for (int i = best_depth->rows - hpz - 1; i >= hpz; --i) {
       for (int j = best_depth->cols - hpz - 1; j >= hpz; --j) {
-        PatchMatchUpdatePixel(best_depth, best_plane, best_score, best_nghbr, i, j, neighbors);
+        PatchMatchUpdatePixel(best_depth, best_plane, best_score, best_nghbr, i, j, neighbors, sample);
       }
     }
   }
@@ -368,12 +367,14 @@ class DepthmapEstimator {
 
   void CheckPlaneCandidate(cv::Mat *best_depth, cv::Mat *best_plane, cv::Mat *best_score, cv::Mat *best_nghbr,
                            int i, int j, const cv::Vec3f &plane) {
-    std::pair<float, int> score = ComputePlaneScore(i, j, plane);
-    if (score.first > best_score->at<float>(i, j)) {
-      best_score->at<float>(i, j) = score.first;
+    float score;
+    int nghbr;
+    ComputePlaneScore(i, j, plane, score, nghbr);
+    if (score > best_score->at<float>(i, j)) {
+      best_score->at<float>(i, j) = score;
       best_plane->at<cv::Vec3f>(i, j) = plane;
       best_depth->at<float>(i, j) = DepthOfPlaneBackprojection(j, i, Ks_[0], plane);
-      best_nghbr->at<int>(i, j) = score.second;
+      best_nghbr->at<int>(i, j) = nghbr;
     }
   }
 
@@ -388,17 +389,16 @@ class DepthmapEstimator {
     }
   }
 
-  std::pair<float, int> ComputePlaneScore(int i, int j, const cv::Vec3f &plane) {
-    float best_score = -1.0f;
-    int best_nghbr = 0;
+  void ComputePlaneScore(int i, int j, const cv::Vec3f &plane, float &score, int &nghbr) {
+    score = -1.0f;
+    nghbr = 0;
     for (int other = 1; other < images_.size(); ++other) {
-      float score = ComputePlaneImageScore(i, j, plane, other);
-      if (score > best_score) {
-        best_score = score;
-        best_nghbr = other;
+      float image_score = ComputePlaneImageScore(i, j, plane, other);
+      if (image_score > score) {
+        score = image_score;
+        nghbr = other;
       }
     }
-    return std::make_pair(best_score, best_nghbr);
   }
 
   float ComputePlaneImageScoreUnoptimized(int i, int j,
