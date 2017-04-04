@@ -239,9 +239,7 @@ class DepthmapEstimator {
           nghbr = uni_(rng_);
           score = ComputePlaneImageScore(i, j, plane, nghbr);
         } else {
-          float score;
-          int nghbr;
-          ComputePlaneScore(i, j, plane, score, nghbr);
+          ComputePlaneScore(i, j, plane, &score, &nghbr);
         }
         AssignPixel(best_depth, best_plane, best_score, best_nghbr, i, j, depth, plane, score, nghbr);
       }
@@ -366,7 +364,7 @@ class DepthmapEstimator {
                            int i, int j, const cv::Vec3f &plane) {
     float score;
     int nghbr;
-    ComputePlaneScore(i, j, plane, score, nghbr);
+    ComputePlaneScore(i, j, plane, &score, &nghbr);
     if (score > best_score->at<float>(i, j)) {
       float depth = DepthOfPlaneBackprojection(j, i, Ks_[0], plane);
       AssignPixel(best_depth, best_plane, best_score, best_nghbr, i, j, depth, plane, score, nghbr);
@@ -390,14 +388,14 @@ class DepthmapEstimator {
       best_nghbr->at<int>(i, j) = nghbr;
   }
 
-  void ComputePlaneScore(int i, int j, const cv::Vec3f &plane, float &score, int &nghbr) {
-    score = -1.0f;
-    nghbr = 0;
+  void ComputePlaneScore(int i, int j, const cv::Vec3f &plane, float *score, int *nghbr) {
+    *score = -1.0f;
+    *nghbr = 0;
     for (int other = 1; other < images_.size(); ++other) {
       float image_score = ComputePlaneImageScore(i, j, plane, other);
-      if (image_score > score) {
-        score = image_score;
-        nghbr = other;
+      if (image_score > *score) {
+        *score = image_score;
+        *nghbr = other;
       }
     }
   }
