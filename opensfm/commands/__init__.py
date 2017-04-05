@@ -10,6 +10,7 @@ import compute_depthmaps
 import export_ply
 import export_openmvs
 import export_visualsfm
+import create_submodels
 
 opensfm_commands = [
     extract_metadata,
@@ -23,4 +24,5 @@ opensfm_commands = [
     export_ply,
     export_openmvs,
     export_visualsfm,
+    create_submodels,
 ]
