@@ -1,0 +1,44 @@
+#!/usr/bin/env python
+
+import argparse
+
+import matplotlib
+import numpy as np
+
+from opensfm import io
+from opensfm.commands.create_submodels import MetaDataSet
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Plot matches between images')
+    parser.add_argument('dataset',
+                        help='path to the dataset to be processed')
+    parser.add_argument('--save-figs',
+                        help='save figures istead of showing them',
+                        action='store_true')
+    args = parser.parse_args()
+
+    meta_data = MetaDataSet(args.dataset)
+
+    fig = pl.figure(figsize=(20, 15))
+    fig.suptitle('GPS positions', fontsize=18)
+
+    lonLats = []
+    for image, lon, lat in meta_data.images_with_gps():
+        lonLats.append([lon, lat])
+
+    lonLats = np.array(lonLats)
+
+    ax = fig.add_subplot(111)
+    ax.set_aspect(1)
+    pl.xlabel('Longitude', fontsize=16)
+    pl.ylabel('Latitude', fontsize=16)
+    ax.plot(lonLats[:, 0], lonLats[:, 1], 'xr')
+
+    if args.save_figs:
+        p = args.dataset + '/plot_gps'
+        io.mkdir_p(p)
+        pl.savefig(p + '/gps.png', dpi=100)
+        pl.close()
+    else:
+        pl.show()

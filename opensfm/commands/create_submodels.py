@@ -20,11 +20,14 @@ class Command:
         data = dataset.DataSet(args.dataset)
         meta_data = MetaDataSet(args.dataset)
 
-        for image in data.images():
-            exif_data = EXIF(data.load_image(image))
-            lon, lat = exif_data.extract_lon_lat()
+        if not meta_data.image_list_exists():
+            ills = []
+            for image in data.images():
+                exif_data = EXIF(data.load_image(image))
+                lon, lat = exif_data.extract_lon_lat()
+                ills.append((image, lon, lat))
 
-            meta_data.add_image_to_list(image, lon, lat)
+            meta_data.create_image_list(ills)
 
 
 class MetaDataSet():
@@ -37,14 +40,9 @@ class MetaDataSet():
         self.data_path = data_path
 
         self.__submodels_folder_name = 'submodels'
-
         self.__image_list_file_name = 'image_list_with_gps.csv'
 
         io.mkdir_p(self.__submodels_path())
-        if not os.path.isfile(self.__image_list_path()):
-            with open(self.__image_list_path(), 'wb') as f_out:
-                w = self.__create_csv_writer(f_out)
-                w.writerow(['name', 'lon', 'lat'])
 
     def __submodels_path(self):
         return os.path.join(self.data_path, self.__submodels_folder_name)
@@ -52,10 +50,26 @@ class MetaDataSet():
     def __image_list_path(self):
         return os.path.join(self.__submodels_path(), self.__image_list_file_name)
 
-    def __create_csv_writer(self, f):
-        return csv.writer(f, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+    def __create_csv_writer(self, csvfile):
+        return csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
 
-    def add_image_to_list(self, image, lon, lat):
-        with open(self.__image_list_path(), 'a') as f_out:
-            w = self.__create_csv_writer(f_out)
-            w.writerow([image, lon, lat])
+    def image_list_exists(self):
+        return os.path.isfile(self.__image_list_path())
+
+    def create_image_list(self, ills):
+        with open(self.__image_list_path(), 'a') as csvfile:
+            w = self.__create_csv_writer(csvfile)
+
+            for image, lon, lat in ills:
+                w.writerow([image, lon, lat])
+
+    def images_with_gps(self):
+        with open(self.__image_list_path(), 'r') as csvfile:
+            image_reader = csv.reader(
+                csvfile,
+                delimiter=',',
+                quotechar='"',
+                quoting=csv.QUOTE_MINIMAL)
+
+            for image, lon, lat in image_reader:
+                yield image, float(lon), float(lat)
