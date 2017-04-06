@@ -46,13 +46,13 @@ class Command:
         positions = np.array(positions, np.float32)
         images = np.array(images).reshape((len(images), 1))
 
-        criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
-        flags = cv2.KMEANS_RANDOM_CENTERS
-
         K = float(images.shape[0]) / cluster_size
         K = int(np.ceil(K))
 
-        labels, centers = cv2.kmeans(positions, K, None, criteria, 10, flags)[1:]
+        criteria = (cv2.TERM_CRITERIA_MAX_ITER, 20, 1.0)
+        flags = cv2.KMEANS_RANDOM_CENTERS
+
+        labels, centers = cv2.kmeans(positions, K, None, criteria, 5, flags)[1:]
 
         meta_data.save_clusters(images, positions, labels, centers)
 
