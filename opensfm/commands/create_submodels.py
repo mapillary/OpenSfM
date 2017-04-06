@@ -1,5 +1,7 @@
 import csv
+import cv2
 import logging
+import numpy as np
 import os.path
 
 from opensfm import dataset
@@ -15,11 +17,16 @@ class Command:
 
     def add_arguments(self, parser):
         parser.add_argument('dataset', help='dataset to process')
+        parser.add_argument('cluster_size', type=int, help='the average cluster size')
 
     def run(self, args):
         data = dataset.DataSet(args.dataset)
         meta_data = MetaDataSet(args.dataset)
 
+        self._create_image_list(data, meta_data)
+        self._cluster_images(meta_data, args.cluster_size)
+
+    def _create_image_list(self, data, meta_data):
         if not meta_data.image_list_exists():
             ills = []
             for image in data.images():
@@ -28,6 +35,26 @@ class Command:
                 ills.append((image, lon, lat))
 
             meta_data.create_image_list(ills)
+
+    def _cluster_images(self, meta_data, cluster_size):
+        images = []
+        positions = []
+        for image, lon, lat in meta_data.images_with_gps():
+            images.append(image)
+            positions.append([lon, lat])
+
+        positions = np.array(positions, np.float32)
+        images = np.array(images).reshape((len(images), 1))
+
+        criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
+        flags = cv2.KMEANS_RANDOM_CENTERS
+
+        K = float(images.shape[0]) / cluster_size
+        K = int(np.ceil(K))
+
+        labels, centers = cv2.kmeans(positions, K, None, criteria, 10, flags)[1:]
+
+        meta_data.save_clusters(images, positions, labels, centers)
 
 
 class MetaDataSet():
@@ -41,6 +68,7 @@ class MetaDataSet():
 
         self.__submodels_folder_name = 'submodels'
         self.__image_list_file_name = 'image_list_with_gps.csv'
+        self.__clusters_file_name = 'clusters.npz'
 
         io.mkdir_p(self.__submodels_path())
 
@@ -50,6 +78,9 @@ class MetaDataSet():
     def __image_list_path(self):
         return os.path.join(self.__submodels_path(), self.__image_list_file_name)
 
+    def __clusters_path(self):
+        return os.path.join(self.__submodels_path(), self.__clusters_file_name)
+
     def __create_csv_writer(self, csvfile):
         return csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
 
@@ -57,7 +88,7 @@ class MetaDataSet():
         return os.path.isfile(self.__image_list_path())
 
     def create_image_list(self, ills):
-        with open(self.__image_list_path(), 'a') as csvfile:
+        with open(self.__image_list_path(), 'w') as csvfile:
             w = self.__create_csv_writer(csvfile)
 
             for image, lon, lat in ills:
@@ -73,3 +104,18 @@ class MetaDataSet():
 
             for image, lon, lat in image_reader:
                 yield image, float(lon), float(lat)
+
+    def save_clusters(self, images, positions, labels, centers):
+        filepath = self.__clusters_path()
+        np.savez_compressed(
+            filepath,
+            images=images,
+            positions=positions,
+            labels=labels,
+            centers=centers)
+
+    def load_clusters(self):
+        c = np.load(self.__clusters_path())
+        return c['images'], c['positions'], c['labels'], c['centers']
+
+
