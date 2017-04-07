@@ -5,7 +5,6 @@ import numpy as np
 import os.path
 
 from opensfm import dataset
-from opensfm.exif import EXIF
 from opensfm import io
 
 logger = logging.getLogger(__name__)
@@ -30,8 +29,9 @@ class Command:
         if not meta_data.image_list_exists():
             ills = []
             for image in data.images():
-                exif_data = EXIF(data.load_image(image))
-                lon, lat = exif_data.extract_lon_lat()
+                exif = data.load_exif(image)
+                lon = exif['gps']['longitude']
+                lat = exif['gps']['latitude']
                 ills.append((image, lon, lat))
 
             meta_data.create_image_list(ills)
