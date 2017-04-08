@@ -450,22 +450,23 @@ def export_bundler(image_list, reconstructions, track_graph, bundle_file_path,
         for point_id, point in points.iteritems():
             coord = point.coordinates
             color = map(int, point.color)
-            view_list = track_graph[point_id]
-            lines.append(' '.join(map(str, coord)))
-            lines.append(' '.join(map(str, color)))
-            view_line = []
-            for shot_key, view in view_list.iteritems():
-                if shot_key in shots.keys():
-                    v = view['feature']
-                    shot_index = shots_order[shot_key]
-                    camera = shots[shot_key].camera
-                    scale = max(camera.width, camera.height)
-                    x = v[0] * scale
-                    y = -v[1] * scale
-                    view_line.append(' '.join(
-                        map(str, [shot_index, view['feature_id'], x, y])))
+            if point_id in track_graph:
+                view_list = track_graph[point_id]
+                lines.append(' '.join(map(str, coord)))
+                lines.append(' '.join(map(str, color)))
+                view_line = []
+                for shot_key, view in view_list.iteritems():
+                    if shot_key in shots.keys():
+                        v = view['feature']
+                        shot_index = shots_order[shot_key]
+                        camera = shots[shot_key].camera
+                        scale = max(camera.width, camera.height)
+                        x = v[0] * scale
+                        y = -v[1] * scale
+                        view_line.append(' '.join(
+                            map(str, [shot_index, view['feature_id'], x, y])))
 
-            lines.append(str(len(view_line)) + ' ' + ' '.join(view_line))
+                lines.append(str(len(view_line)) + ' ' + ' '.join(view_line))
 
         bundle_file = os.path.join(bundle_file_path,
                                    'bundle_r' + str(j).zfill(3) + '.out')
