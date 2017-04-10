@@ -3,8 +3,10 @@ import cv2
 import logging
 import numpy as np
 import os.path
+import scipy.spatial as spatial
 
 from opensfm import dataset
+from opensfm import geo
 from opensfm import io
 
 logger = logging.getLogger(__name__)
@@ -24,6 +26,7 @@ class Command:
 
         self._create_image_list(data, meta_data)
         self._cluster_images(meta_data, args.cluster_size)
+        self._create_clusters_with_neighbors(meta_data)
 
     def _create_image_list(self, data, meta_data):
         if not meta_data.image_list_exists():
@@ -56,6 +59,39 @@ class Command:
 
         meta_data.save_clusters(images, positions, labels, centers)
 
+    def _create_clusters_with_neighbors(self, meta_data, max_distance=30):
+        images, positions, labels, centers = meta_data.load_clusters()
+
+        reference = np.mean(positions, 0)
+
+        topocentrics = []
+        for position in positions:
+            x, y, z = geo.topocentric_from_lla(
+                position[0],
+                position[1],
+                0,
+                reference[0],
+                reference[1],
+                0)
+
+            topocentrics.append([x, y])
+
+        topocentrics = np.array(topocentrics)
+        topo_tree = spatial.cKDTree(topocentrics)
+
+        clusters = []
+        for label in np.arange(centers.shape[0]):
+            cluster_indices = np.where(labels.ravel() == label)[0]
+
+            neighbors = []
+            for i in cluster_indices:
+                neighbors.extend(topo_tree.query_ball_point(topocentrics[i], max_distance))
+
+            cluster = np.union1d(cluster_indices, neighbors)
+            clusters.append(list(np.take(images, cluster)))
+
+        meta_data.save_clusters_with_neighbors(clusters)
+
 
 class MetaDataSet():
     def __init__(self, data_path):
@@ -69,6 +105,7 @@ class MetaDataSet():
         self.__submodels_folder_name = 'submodels'
         self.__image_list_file_name = 'image_list_with_gps.csv'
         self.__clusters_file_name = 'clusters.npz'
+        self.__clusters_with_neighbors_file_name = 'clusters_with_neighbors.npz'
 
         io.mkdir_p(self.__submodels_path())
 
@@ -80,6 +117,9 @@ class MetaDataSet():
 
     def __clusters_path(self):
         return os.path.join(self.__submodels_path(), self.__clusters_file_name)
+
+    def __clusters_with_neighbors_path(self):
+        return os.path.join(self.__submodels_path(), self.__clusters_with_neighbors_file_name)
 
     def __create_csv_writer(self, csvfile):
         return csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
@@ -118,4 +158,12 @@ class MetaDataSet():
         c = np.load(self.__clusters_path())
         return c['images'], c['positions'], c['labels'], c['centers']
 
+    def save_clusters_with_neighbors(self, clusters):
+        filepath = self.__clusters_with_neighbors_path()
+        np.savez_compressed(
+            filepath,
+            clusters=clusters)
 
+    def load_clusters_with_neighbors(self):
+        c = np.load(self.__clusters_with_neighbors_path())
+        return c['clusters']
