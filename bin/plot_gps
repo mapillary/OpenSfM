@@ -11,16 +11,16 @@ from opensfm.commands.create_submodels import MetaDataSet
 def set_axes_limits(samples):
     min = np.amin(positions, 0)
     max = np.amax(positions, 0)
-    dist_x = max[0] - min[0]
-    dist_y = max[1] - min[1]
+    dist_x = max[1] - min[1]
+    dist_y = max[0] - min[0]
 
-    pl.xlim(min[0] - dist_x / 20, max[0] + dist_x / 20)
-    pl.ylim(min[1] - dist_y / 20, max[1] + dist_y / 20)
+    pl.xlim(min[1] - dist_x / 20, max[1] + dist_x / 20)
+    pl.ylim(min[0] - dist_y / 20, max[0] + dist_y / 20)
 
 
 def plot_clusters(ax, positions, labels, centers):
-    ax.plot(centers[:, 0], centers[:, 1], 'xk')
-    ax.scatter(positions[:, 0], positions[:, 1], c=labels, lw=0, s=30)
+    ax.plot(centers[:, 1], centers[:, 0], 'xk')
+    ax.scatter(positions[:, 1], positions[:, 0], c=labels, lw=0, s=30)
 
 
 if __name__ == "__main__":
@@ -56,7 +56,7 @@ if __name__ == "__main__":
 
         positions = np.array(positions)
 
-        ax.plot(positions[:, 0], positions[:, 1], 'or')
+        ax.plot(positions[:, 1], positions[:, 0], 'or')
         set_axes_limits(positions)
 
 

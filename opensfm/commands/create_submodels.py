@@ -33,18 +33,18 @@ class Command:
             ills = []
             for image in data.images():
                 exif = data.load_exif(image)
-                lon = exif['gps']['longitude']
                 lat = exif['gps']['latitude']
-                ills.append((image, lon, lat))
+                lon = exif['gps']['longitude']
+                ills.append((image, lat, lon))
 
             meta_data.create_image_list(ills)
 
     def _cluster_images(self, meta_data, cluster_size):
         images = []
         positions = []
-        for image, lon, lat in meta_data.images_with_gps():
+        for image, lat, lon in meta_data.images_with_gps():
             images.append(image)
-            positions.append([lon, lat])
+            positions.append([lat, lon])
 
         positions = np.array(positions, np.float32)
         images = np.array(images).reshape((len(images), 1))
@@ -131,8 +131,8 @@ class MetaDataSet():
         with open(self.__image_list_path(), 'w') as csvfile:
             w = self.__create_csv_writer(csvfile)
 
-            for image, lon, lat in ills:
-                w.writerow([image, lon, lat])
+            for image, lat, lon in ills:
+                w.writerow([image, lat, lon])
 
     def images_with_gps(self):
         with open(self.__image_list_path(), 'r') as csvfile:
@@ -142,8 +142,8 @@ class MetaDataSet():
                 quotechar='"',
                 quoting=csv.QUOTE_MINIMAL)
 
-            for image, lon, lat in image_reader:
-                yield image, float(lon), float(lat)
+            for image, lat, lon in image_reader:
+                yield image, float(lat), float(lon)
 
     def save_clusters(self, images, positions, labels, centers):
         filepath = self.__clusters_path()
