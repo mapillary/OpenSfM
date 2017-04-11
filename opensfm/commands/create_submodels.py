@@ -195,7 +195,7 @@ class MetaDataSet():
             image_list_path = os.path.join(submodel_path, "image_list.txt")
             with open(image_list_path, 'w') as txtfile:
                 for image in cluster:
-                    txtfile.write(image + "\n")
+                    txtfile.write("images/{}\n".format(image))
 
             # copy config.yaml if exists
             config_file_path = os.path.join(self.data_path, 'config.yaml')
