@@ -5,8 +5,9 @@ import numpy as np
 import os
 import os.path
 import scipy.spatial as spatial
-from shutil import copyfile
+import shutil
 
+from opensfm import context
 from opensfm import dataset
 from opensfm import geo
 from opensfm import io
@@ -29,18 +30,18 @@ class Command:
         self._create_image_list(data, meta_data)
         self._cluster_images(meta_data, args.cluster_size)
         self._create_clusters_with_neighbors(meta_data)
+        self._remove_submodel_structure(meta_data)
         self._create_sub_model_structure(meta_data)
 
     def _create_image_list(self, data, meta_data):
-        if not meta_data.image_list_exists():
-            ills = []
-            for image in data.images():
-                exif = data.load_exif(image)
-                lat = exif['gps']['latitude']
-                lon = exif['gps']['longitude']
-                ills.append((image, lat, lon))
+        ills = []
+        for image in data.images():
+            exif = data.load_exif(image)
+            lat = exif['gps']['latitude']
+            lon = exif['gps']['longitude']
+            ills.append((image, lat, lon))
 
-            meta_data.create_image_list(ills)
+        meta_data.create_image_list(ills)
 
     def _cluster_images(self, meta_data, cluster_size):
         images = []
@@ -58,7 +59,7 @@ class Command:
         criteria = (cv2.TERM_CRITERIA_MAX_ITER, 20, 1.0)
         flags = cv2.KMEANS_RANDOM_CENTERS
 
-        labels, centers = cv2.kmeans(positions, K, None, criteria, 5, flags)[1:]
+        labels, centers = kmeans(positions, K, criteria, 5, flags)[1:]
 
         meta_data.save_clusters(images, positions, labels, centers)
 
@@ -95,10 +96,20 @@ class Command:
 
         meta_data.save_clusters_with_neighbors(clusters)
 
+    def _remove_submodel_structure(self, meta_data):
+        meta_data.remove_submodels()
+
     def _create_sub_model_structure(self, meta_data):
         clusters = meta_data.load_clusters_with_neighbors()
 
         meta_data.create_submodels(clusters)
+
+
+def kmeans(samples, nclusters, criteria, attempts, flags):
+    if context.OPENCV3:
+        return cv2.kmeans(samples, nclusters, None, criteria, attempts, flags)
+    else:
+        return cv2.kmeans(samples, nclusters, criteria, attempts, flags)
 
 
 class MetaDataSet():
@@ -110,52 +121,53 @@ class MetaDataSet():
         """
         self.data_path = data_path
 
-        self.__submodels_dir_name = 'submodels'
-        self.__image_list_file_name = 'image_list_with_gps.csv'
-        self.__clusters_file_name = 'clusters.npz'
-        self.__clusters_with_neighbors_file_name = 'clusters_with_neighbors.npz'
+        self._submodels_dir_name = 'submodels'
+        self._image_list_file_name = 'image_list_with_gps.tsv'
+        self._clusters_file_name = 'clusters.npz'
+        self._clusters_with_neighbors_file_name = 'clusters_with_neighbors.npz'
 
-        io.mkdir_p(self.__submodels_path())
+        io.mkdir_p(self._submodels_path())
 
-    def __submodels_path(self):
-        return os.path.join(self.data_path, self.__submodels_dir_name)
+    def _submodels_path(self):
+        return os.path.join(self.data_path, self._submodels_dir_name)
 
-    def __image_list_path(self):
-        return os.path.join(self.__submodels_path(), self.__image_list_file_name)
+    def _image_list_path(self):
+        return os.path.join(self._submodels_path(), self._image_list_file_name)
 
-    def __clusters_path(self):
-        return os.path.join(self.__submodels_path(), self.__clusters_file_name)
+    def _clusters_path(self):
+        return os.path.join(self._submodels_path(), self._clusters_file_name)
 
-    def __clusters_with_neighbors_path(self):
-        return os.path.join(self.__submodels_path(), self.__clusters_with_neighbors_file_name)
+    def _clusters_with_neighbors_path(self):
+        return os.path.join(self._submodels_path(), self._clusters_with_neighbors_file_name)
 
-    def __create_csv_writer(self, csvfile):
-        return csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+    def _create_csv_writer(self, csvfile):
+        return csv.writer(csvfile, delimiter='\t', quotechar='"', quoting=csv.QUOTE_MINIMAL)
 
     def _create_symlink(self, base_path, dir_name):
-        images_link_path = os.path.join(base_path, dir_name)
-        if os.path.exists(images_link_path):
-            os.unlink(images_link_path)
+        link_path = os.path.join(base_path, dir_name)
+
+        if os.path.islink(link_path):
+            os.unlink(link_path)
 
         os.symlink(
             os.path.relpath(os.path.join(self.data_path, dir_name), base_path),
-            os.path.join(images_link_path))
+            os.path.join(link_path))
 
     def image_list_exists(self):
-        return os.path.isfile(self.__image_list_path())
+        return os.path.isfile(self._image_list_path())
 
     def create_image_list(self, ills):
-        with open(self.__image_list_path(), 'w') as csvfile:
-            w = self.__create_csv_writer(csvfile)
+        with open(self._image_list_path(), 'w') as csvfile:
+            w = self._create_csv_writer(csvfile)
 
             for image, lat, lon in ills:
                 w.writerow([image, lat, lon])
 
     def images_with_gps(self):
-        with open(self.__image_list_path(), 'r') as csvfile:
+        with open(self._image_list_path(), 'r') as csvfile:
             image_reader = csv.reader(
                 csvfile,
-                delimiter=',',
+                delimiter='\t',
                 quotechar='"',
                 quoting=csv.QUOTE_MINIMAL)
 
@@ -163,7 +175,7 @@ class MetaDataSet():
                 yield image, float(lat), float(lon)
 
     def save_clusters(self, images, positions, labels, centers):
-        filepath = self.__clusters_path()
+        filepath = self._clusters_path()
         np.savez_compressed(
             filepath,
             images=images,
@@ -172,23 +184,29 @@ class MetaDataSet():
             centers=centers)
 
     def load_clusters(self):
-        c = np.load(self.__clusters_path())
+        c = np.load(self._clusters_path())
         return c['images'], c['positions'], c['labels'], c['centers']
 
     def save_clusters_with_neighbors(self, clusters):
-        filepath = self.__clusters_with_neighbors_path()
+        filepath = self._clusters_with_neighbors_path()
         np.savez_compressed(
             filepath,
             clusters=clusters)
 
     def load_clusters_with_neighbors(self):
-        c = np.load(self.__clusters_with_neighbors_path())
+        c = np.load(self._clusters_with_neighbors_path())
         return c['clusters']
+
+    def remove_submodels(self):
+        sm = self._submodels_path()
+        paths = [os.path.join(sm, o) for o in os.listdir(sm) if os.path.isdir(os.path.join(sm, o))]
+        for path in paths:
+            shutil.rmtree(path)
 
     def create_submodels(self, clusters):
         for i, cluster in enumerate(clusters):
             # create sub model dir
-            submodel_path = os.path.join(self.__submodels_path(), "submodel" + str(i))
+            submodel_path = os.path.join(self._submodels_path(), "submodel" + str(i))
             io.mkdir_p(submodel_path)
 
             # create image list file
@@ -200,9 +218,10 @@ class MetaDataSet():
             # copy config.yaml if exists
             config_file_path = os.path.join(self.data_path, 'config.yaml')
             if os.path.exists(config_file_path):
-                copyfile(config_file_path, os.path.join(submodel_path, 'config.yaml'))
+                shutil.copyfile(config_file_path, os.path.join(submodel_path, 'config.yaml'))
 
             # create symlinks to metadata dirs
+            self._create_symlink(submodel_path, "camera_models.json")
             self._create_symlink(submodel_path, "images")
             self._create_symlink(submodel_path, "exif")
             self._create_symlink(submodel_path, "features")
