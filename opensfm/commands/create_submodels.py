@@ -17,11 +17,14 @@ logger = logging.getLogger(__name__)
 
 class Command:
     name = 'create_submodels'
-    help = "Split the dataset into smaller submodels"
+    help = 'Split the dataset into smaller submodels'
 
     def add_arguments(self, parser):
         parser.add_argument('dataset', help='dataset to process')
-        parser.add_argument('cluster_size', type=int, help='the average cluster size')
+        parser.add_argument('--cluster-size', type=int, default=50,
+                            help='the average cluster size')
+        parser.add_argument('--nghbr-dist', type=int, default=30,
+                            help='the max distance in meters to a neighbor for it to be included in the cluster')
 
     def run(self, args):
         data = dataset.DataSet(args.dataset)
@@ -29,7 +32,7 @@ class Command:
 
         self._create_image_list(data, meta_data)
         self._cluster_images(meta_data, args.cluster_size)
-        self._create_clusters_with_neighbors(meta_data)
+        self._create_clusters_with_neighbors(meta_data, args.nghbr_dist)
         self._remove_submodel_structure(meta_data)
         self._create_sub_model_structure(meta_data)
 
@@ -63,7 +66,7 @@ class Command:
 
         meta_data.save_clusters(images, positions, labels, centers)
 
-    def _create_clusters_with_neighbors(self, meta_data, max_distance=30):
+    def _create_clusters_with_neighbors(self, meta_data, max_distance):
         images, positions, labels, centers = meta_data.load_clusters()
 
         reference = np.mean(positions, 0)
@@ -114,11 +117,11 @@ def kmeans(samples, nclusters, criteria, attempts, flags):
 
 class MetaDataSet():
     def __init__(self, data_path):
-        """
+        '''
         Create meta dataset instance for large scale reconstruction.
 
         :param data_path: Path to directory containing meta dataset
-        """
+        '''
         self.data_path = data_path
 
         self._submodels_dir_name = 'submodels'
@@ -206,14 +209,14 @@ class MetaDataSet():
     def create_submodels(self, clusters):
         for i, cluster in enumerate(clusters):
             # create sub model dir
-            submodel_path = os.path.join(self._submodels_path(), "submodel" + str(i))
+            submodel_path = os.path.join(self._submodels_path(), 'submodel{}'.format(i))
             io.mkdir_p(submodel_path)
 
             # create image list file
-            image_list_path = os.path.join(submodel_path, "image_list.txt")
+            image_list_path = os.path.join(submodel_path, 'image_list.txt')
             with open(image_list_path, 'w') as txtfile:
                 for image in cluster:
-                    txtfile.write("images/{}\n".format(image))
+                    txtfile.write('images/{}\n'.format(image))
 
             # copy config.yaml if exists
             config_file_path = os.path.join(self.data_path, 'config.yaml')
@@ -221,8 +224,8 @@ class MetaDataSet():
                 shutil.copyfile(config_file_path, os.path.join(submodel_path, 'config.yaml'))
 
             # create symlinks to metadata dirs
-            self._create_symlink(submodel_path, "camera_models.json")
-            self._create_symlink(submodel_path, "images")
-            self._create_symlink(submodel_path, "exif")
-            self._create_symlink(submodel_path, "features")
-            self._create_symlink(submodel_path, "matches")
+            self._create_symlink(submodel_path, 'camera_models.json')
+            self._create_symlink(submodel_path, 'images')
+            self._create_symlink(submodel_path, 'exif')
+            self._create_symlink(submodel_path, 'features')
+            self._create_symlink(submodel_path, 'matches')
