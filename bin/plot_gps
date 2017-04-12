@@ -23,14 +23,15 @@ def plot_clusters(ax, positions, labels, centers):
     ax.scatter(positions[:, 1], positions[:, 0], c=labels, lw=0, s=30)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Plot matches between images')
     parser.add_argument('dataset',
                         help='path to the dataset to be processed')
-    parser.add_argument('--clusters',
+    parser.add_argument('-m', '--mode',
                         help='plot images clusters in different colors',
-                        action='store_true')
-    parser.add_argument('--save-figs',
+                        default='positions',
+                        choices=['clusters', 'neighbors', 'positions'])
+    parser.add_argument('-s', '--save-figs',
                         help='save figures istead of showing them',
                         action='store_true')
     args = parser.parse_args()
@@ -45,26 +46,46 @@ if __name__ == "__main__":
     pl.xlabel('Longitude', fontsize=16)
     pl.ylabel('Latitude', fontsize=16)
 
-    if args.clusters:
+    if args.mode == 'clusters':
         positions, labels, centers = meta_data.load_clusters()[1:]
         plot_clusters(ax, positions, labels, centers)
         set_axes_limits(positions)
-    else:
+    elif args.mode == 'neighbors':
+        positionMap = {}
+        for image, lat, lon in meta_data.images_with_gps():
+            positionMap[image] = [lat, lon]
+
+        colors = []
+        markers = []
         positions = []
-        for image, lon, lat in meta_data.images_with_gps():
-            positions.append([lon, lat])
+        color_types = ['r', 'g', 'm', 'c', 'y', 'b']
+        marker_types = ['o', '+', 'x', '*']
+        for index, cluster in enumerate(meta_data.load_clusters_with_neighbors()):
+            for image in cluster:
+                colors.append(color_types[index % 6])
+                markers.append(marker_types[index % 4])
+                positions.append(positionMap[image])
+
+        positions = np.array(positions)
+
+        for p, c, m in zip(positions, colors, markers):
+            ax.plot(p[1], p[0], '{}{}'.format(c, m))
+
+        set_axes_limits(positions)
+    elif args.mode == 'positions':
+        positions = []
+        for image, lat, lon in meta_data.images_with_gps():
+            positions.append([lat, lon])
 
         positions = np.array(positions)
 
         ax.plot(positions[:, 1], positions[:, 0], 'or')
         set_axes_limits(positions)
 
-
     if args.save_figs:
-        p = args.dataset + '/plot_gps'
-        io.mkdir_p(p)
-        filename = 'clusters.png' if args.clusters else  'positions.png'
-        pl.savefig(p + '/' + filename, dpi=100)
+        plot_path = '{}/plot_gps'.format(args.dataset)
+        io.mkdir_p(plot_path)
+        pl.savefig('{}/{}.png'.format(plot_path, args.mode), dpi=100)
         pl.close()
     else:
         pl.show()
