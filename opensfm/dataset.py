@@ -220,27 +220,16 @@ class DataSet:
         if self.config.get('feature_root', False): feature_name = 'root_' + feature_name
         return feature_name
 
-    def descriptor_type(self):
-        """Return the type of the descriptor (if exists)
-        """
-        if self.feature_type() == 'akaze':
-            return self.config.get('akaze_descriptor', '')
-        else:
-            return ''
-
     def __feature_path(self):
         """Return path of feature descriptors and FLANN indices directory"""
-        __feature_path = self.feature_type()
-        if len(self.descriptor_type()) > 0:
-            __feature_path += '_' + self.descriptor_type()
-        return os.path.join(self.data_path, __feature_path)
+        return os.path.join(self.data_path, "features")
 
     def __feature_file(self, image):
         """
         Return path of feature file for specified image
         :param image: Image name, with extension (i.e. 123.jpg)
         """
-        return os.path.join(self.__feature_path(), image + '.' + self.feature_type() + '.npz')
+        return os.path.join(self.__feature_path(), image + '.npz')
 
     def __save_features(self, filepath, image, points, descriptors, colors=None):
         io.mkdir_p(self.__feature_path())
@@ -278,7 +267,7 @@ class DataSet:
         Return path of FLANN index file for specified image
         :param image: Image name, with extension (i.e. 123.jpg)
         """
-        return os.path.join(self.__feature_path(), image + '.' + self.feature_type() + '.flann')
+        return os.path.join(self.__feature_path(), image + '.flann')
 
     def load_feature_index(self, image, features):
         index = cv2.flann.Index() if context.OPENCV3 else cv2.flann_Index()
@@ -294,7 +283,7 @@ class DataSet:
         for specified image
         :param image: Image name, with extension (i.e. 123.jpg)
         """
-        return os.path.join(self.__feature_path(), image + '_preemptive.' + self.feature_type() + '.npz')
+        return os.path.join(self.__feature_path(), image + '_preemptive' + '.npz')
 
     def load_preemtive_features(self, image):
         s = np.load(self.__preemptive_features_file(image))
