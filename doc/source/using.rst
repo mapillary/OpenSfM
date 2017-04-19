@@ -79,35 +79,89 @@ Here is the usage page of ``bin/opensfm``, which lists the available commands
 
 extract_metadata
 ````````````````
-TODO
+
+This commands extracts EXIF metadata from the images an stores them in the ``exif`` folder and the ``camera_models.json`` file.
+
+The following data is extracted for each image:
+
+- ``width`` and ``height``: image size in pixels
+
+- ``gps`` ``latitude``, ``longitude``, ``altitude`` and ``dop``: The GPS coordinates of the camera at capture time and the corresponding Degree Of Precission).  This is used to geolocate the reconstruction.
+
+- ``capture_time``: The capture time. Used to choose candidate matching images when the option ``matching_time_neighbors`` is set.
+
+- ``camera orientation``: The EXIF orientation tag (see this `exif orientation documentation`_).  Used to orient the reconstruction straigh up.
+
+- ``projection_type``: The camera projection type.  It is extracted from the GPano_ metadata and used to determine which projection to use for each camera.  Supported types are `perspective`, `equirectangular` and `fisheye`.
+
+- ``focal_ratio``: The focal length provided by the EXIF metadata divided by the sensor width. This is used as initialization and prior for the camera focal length parameter.
+
+- ``make`` and ``model``: The camera make and model.  Used to build the camera ID.
+
+- ``camera``: The camera ID string. Used to identify a camera. When multiple images have the same camera ID string, they will be assumed to be taken with the same camera and will share its parameters.
+
+
+Once the metadata for all images has been extracted, a list of camera models is created and stored in ``camera_models.json``.  A camera is created for each diferent camera ID string found on the images.
+
+For each camera the following data is stored:
+
+- ``width`` and ``height``: image size in pixels
+- ``projection_type``:  the camera projection type
+- ``focal``:  The initial estimation of the focal length (as a multiple of the sensor width).
+- ``k1`` and ``k2``:  The initial estimation of the radial distortion parameters. Only used for `perspective` and `fisheye` projection models.
+- ``focal_prior``: The focal length prior.  The final estimated focal length will be forced to be similar to it.
+- ``k1_prior`` and ``k2_prior``:  The radial distortion parameters prior.
+
+
+Providing your own camera parameters
+''''''''''''''''''''''''''''''''''''
+
+By default, the camera parameters are taken from the EXIF metadata but it is also possible to override the default parameters.  To do so, place a file named ``camera_models_override.json`` in the project folder.  This file should have the same structure as ``camera_models.json``.  When running the ``extract_metadata`` command, the parameters of any camera present in the ``camera_models_overrides.json`` file will be copied to ``camera_models.json`` overriding the default ones.
+
+Simplest way to create the ``camera_models_overrides.json`` file is to rename ``camera_models.json`` and modify the parameters.  You will need to rerun the ``extract_metadata`` command after that.
+
+
+.. _`exif orientation documentation`: http://sylvana.net/jpegcrop/exif_orientation.html
+.. _GPano: TODO(pau): link to Google Pano metadata documentation
+
 
 detect_features
 ```````````````
-TODO
+This command detect feature points in the images and stores them in the `feature` folder.
+
 
 match_features
 ``````````````
-TODO
+This command matches feature points between images and stores them in the `matches` folder.  It first determines the list of image pairs to run, and then run the matching process for each pair to find corresponding feature points.
+
+Since there are a lot of possible image pairs, the process can be very slow.  It can be speeded up by restricting the list of pairs to match.  The pairs can be restricted by GPS distance, capture time or file name order.
+
 
 create_tracks
 `````````````
-TODO
+This command links the matches between pairs of images to build feature point tracks.  The tracks are stored in the `tracks.csv` file.  A track is a set of feature points from different images that have been recognized to correspond to the same pysical point.
+
 
 reconstruct
 ```````````
-TODO
+This command runs the incremental reconstruction process.  The goal of the reconstruction process is to find the 3D position of tracks (the `structure`) together with the position of the cameras (the `motion`).  The computed reconstruction is stored in the ``reconstruction.json`` file.
+
 
 mesh
 ````
-TODO
+This process computes a rough triangular mesh of the scene seen by each images.  Such mesh is used for simulating smooth motions between images in the web viewer.  The reconstruction with the mesh added is stored in ``reconstruction.meshed.json`` file.
+
+Note that the only difference between ``reconstruction.json`` and ``reconstruction.meshed.json`` is that the later contains the triangular meshes.  If you don't need that, you only need the former file and there's no need to run this command.
+
 
 undistort
 `````````
-TODO
+This command creates undistorted version of the reconstruction, tracks and images.  The undistorted version can later be used for computing depth maps.
+
 
 compute_depthmaps
 `````````````````
-TODO
+This commands computes a dense point cloud of the scene by computing and merging depthmaps.  It requires an undistorted reconstructions.  The resulting depthmaps are stored in the ``depthmaps`` folder and the merged point cloud is stored in ``depthmaps/merged.ply``
 
 
 Configuration

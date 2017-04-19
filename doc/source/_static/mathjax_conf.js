@@ -1,6 +1,6 @@
 MathJax.Hub.Config({
    "HTML-CSS": {
         availableFonts: ["TeX"],
-        scale: 90
+        scale: 100
    }
 });

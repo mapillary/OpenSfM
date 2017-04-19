@@ -3,10 +3,6 @@
 OpenSfM
 =======
 
-Only tests here for now.
-
-test contents:
-
 .. toctree::
    :maxdepth: 2
 
