@@ -18,6 +18,12 @@ def set_axes_limits(samples):
     pl.ylim(min[0] - dist_y / 20, max[0] + dist_y / 20)
 
 
+def set_gps_labels(fig):
+    fig.suptitle('GPS positions', fontsize=18)
+    pl.xlabel('Longitude', fontsize=16)
+    pl.ylabel('Latitude', fontsize=16)
+
+
 def plot_clusters(ax, positions, labels, centers=None):
     if centers is not None:
         ax.plot(centers[:, 1], centers[:, 0], 'xk')
@@ -42,20 +48,17 @@ if __name__ == '__main__':
     meta_data = MetaDataSet(args.dataset)
 
     fig = pl.figure(figsize=(20, 15))
-    fig.suptitle('GPS positions', fontsize=18)
-
-    ax = fig.add_subplot(111)
-    ax.set_aspect(1)
-    pl.xlabel('Longitude', fontsize=16)
-    pl.ylabel('Latitude', fontsize=16)
 
     if args.mode == 'clusters' or args.mode == 'centers':
         positions, labels, centers = meta_data.load_clusters()[1:]
         if args.mode == 'clusters':
             centers = None
 
+        ax = fig.add_subplot(111)
+        ax.set_aspect(1)
         plot_clusters(ax, positions, labels, centers)
         set_axes_limits(positions)
+        set_gps_labels(fig)
     elif args.mode == 'neighbors':
         positionMap = {}
         for image, lat, lon in meta_data.images_with_gps():
@@ -74,10 +77,13 @@ if __name__ == '__main__':
 
         positions = np.array(positions)
 
+        ax = fig.add_subplot(111)
+        ax.set_aspect(1)
         for p, c, m in zip(positions, colors, markers):
             ax.plot(p[1], p[0], '{}{}'.format(c, m))
 
         set_axes_limits(positions)
+        set_gps_labels(fig)
     elif args.mode == 'positions':
         positions = []
         for image, lat, lon in meta_data.images_with_gps():
@@ -85,17 +91,31 @@ if __name__ == '__main__':
 
         positions = np.array(positions)
 
+        ax = fig.add_subplot(111)
+        ax.set_aspect(1)
         ax.plot(positions[:, 1], positions[:, 0], 'or')
         set_axes_limits(positions)
+        set_gps_labels(fig)
     elif args.mode == 'hist':
         labels = meta_data.load_clusters()[2]
-        count = np.bincount(labels.ravel())
-        range_max = np.max(count) + 1
+        cl_count = np.bincount(labels.ravel())
+        nb_count = []
+        for cluster in meta_data.load_clusters_with_neighbors():
+            nb_count.append(len(cluster))
+
+        range_max = np.max(np.append(cl_count, nb_count)) + 1
         num_bins = np.min([range_max, 50])
 
-        ax.hist(count, bins=num_bins, range=(0, range_max))
-        fig.tight_layout()
         fig.suptitle('Cluster sizes', fontsize=18)
+        ax = fig.add_subplot(211)
+        ax.hist(cl_count, bins=num_bins, range=(0, range_max))
+        ax.set_title("K-means clusters", fontsize=18)
+        pl.xlabel('Cluster size', fontsize=16)
+        pl.ylabel('Number of clusters', fontsize=16)
+
+        ax = fig.add_subplot(212)
+        ax.hist(nb_count, bins=num_bins, range=(0, range_max), color='r')
+        ax.set_title("Clusters with added neighbors", fontsize=18)
         pl.xlabel('Cluster size', fontsize=16)
         pl.ylabel('Number of clusters', fontsize=16)
 
