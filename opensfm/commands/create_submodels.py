@@ -40,6 +40,12 @@ class Command:
         ills = []
         for image in data.images():
             exif = data.load_exif(image)
+            if 'gps' not in exif or \
+                'latitude' not in exif['gps'] or \
+                'longitude' not in exif['gps']:
+                logger.info('Skipping {} because of missing GPS'.format(image))
+                continue
+
             lat = exif['gps']['latitude']
             lon = exif['gps']['longitude']
             ills.append((image, lat, lon))
@@ -59,10 +65,10 @@ class Command:
         K = float(images.shape[0]) / cluster_size
         K = int(np.ceil(K))
 
-        criteria = (cv2.TERM_CRITERIA_MAX_ITER, 20, 1.0)
-        flags = cv2.KMEANS_RANDOM_CENTERS
+        criteria = (cv2.TERM_CRITERIA_MAX_ITER, 100, 1.0)
+        flags = cv2.KMEANS_PP_CENTERS
 
-        labels, centers = kmeans(positions, K, criteria, 5, flags)[1:]
+        labels, centers = kmeans(positions, K, criteria, 20, flags)[1:]
 
         meta_data.save_clusters(images, positions, labels, centers)
 
