@@ -18,9 +18,12 @@ def set_axes_limits(samples):
     pl.ylim(min[0] - dist_y / 20, max[0] + dist_y / 20)
 
 
-def plot_clusters(ax, positions, labels, centers):
-    ax.plot(centers[:, 1], centers[:, 0], 'xk')
-    ax.scatter(positions[:, 1], positions[:, 0], c=labels, lw=0, s=30)
+def plot_clusters(ax, positions, labels, centers=None):
+    if centers is not None:
+        ax.plot(centers[:, 1], centers[:, 0], 'xk')
+
+    s = np.max([2, 30 * (1 - positions.shape[0] / 100000.)])
+    ax.scatter(positions[:, 1], positions[:, 0], c=labels, lw=0, s=s)
 
 
 if __name__ == '__main__':
@@ -30,7 +33,7 @@ if __name__ == '__main__':
     parser.add_argument('-m', '--mode',
                         help='plot images clusters in different colors',
                         default='positions',
-                        choices=['clusters', 'neighbors', 'positions'])
+                        choices=['clusters', 'centers', 'neighbors', 'positions', 'hist'])
     parser.add_argument('-s', '--save-figs',
                         help='save figures istead of showing them',
                         action='store_true')
@@ -46,8 +49,11 @@ if __name__ == '__main__':
     pl.xlabel('Longitude', fontsize=16)
     pl.ylabel('Latitude', fontsize=16)
 
-    if args.mode == 'clusters':
+    if args.mode == 'clusters' or args.mode == 'centers':
         positions, labels, centers = meta_data.load_clusters()[1:]
+        if args.mode == 'clusters':
+            centers = None
+
         plot_clusters(ax, positions, labels, centers)
         set_axes_limits(positions)
     elif args.mode == 'neighbors':
@@ -81,6 +87,17 @@ if __name__ == '__main__':
 
         ax.plot(positions[:, 1], positions[:, 0], 'or')
         set_axes_limits(positions)
+    elif args.mode == 'hist':
+        labels = meta_data.load_clusters()[2]
+        count = np.bincount(labels.ravel())
+        range_max = np.max(count) + 1
+        num_bins = np.min([range_max, 50])
+
+        ax.hist(count, bins=num_bins, range=(0, range_max))
+        fig.tight_layout()
+        fig.suptitle('Cluster sizes', fontsize=18)
+        pl.xlabel('Cluster size', fontsize=16)
+        pl.ylabel('Number of clusters', fontsize=16)
 
     if args.save_figs:
         plot_path = '{}/plot_gps'.format(args.dataset)
