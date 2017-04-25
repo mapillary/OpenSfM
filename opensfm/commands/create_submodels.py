@@ -238,3 +238,8 @@ class MetaDataSet():
             for symlink_path in ['camera_models.json', 'reference_lla.json',
                                  'images', 'exif', 'root_hahog', 'matches']:
                 self._create_symlink(submodel_path, symlink_path)
+
+    def get_submodel_paths(self):
+        return [os.path.join(self._submodels_path(), d) \
+            for d in os.listdir(self._submodels_path()) \
+            if os.path.isdir(os.path.join(self._submodels_path(), d))]
