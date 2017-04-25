@@ -409,6 +409,9 @@ class DataSet:
         with open(self.__reference_lla_path(), 'r') as fin:
             return json.load(fin)
 
+    def reference_lla_exists(self):
+        return os.path.isfile(self.__reference_lla_path())
+
     def __camera_models_file(self):
         """Return path of camera model file"""
         return os.path.join(self.data_path, 'camera_models.json')

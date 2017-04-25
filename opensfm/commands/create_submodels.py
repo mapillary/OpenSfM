@@ -21,15 +21,16 @@ class Command:
 
     def add_arguments(self, parser):
         parser.add_argument('dataset', help='dataset to process')
-        parser.add_argument('--cluster-size', type=int, default=50,
+        parser.add_argument('-s', '--cluster-size', type=int, default=50,
                             help='the average cluster size')
-        parser.add_argument('--nghbr-dist', type=int, default=30,
+        parser.add_argument('-d', '--nghbr-dist', type=int, default=30,
                             help='the max distance in meters to a neighbor for it to be included in the cluster')
 
     def run(self, args):
         data = dataset.DataSet(args.dataset)
         meta_data = MetaDataSet(args.dataset)
 
+        self._create_reference_lla(data)
         self._create_image_list(data, meta_data)
         self._cluster_images(meta_data, args.cluster_size)
         self._create_clusters_with_neighbors(meta_data, args.nghbr_dist)
@@ -105,6 +106,9 @@ class Command:
 
         meta_data.save_clusters_with_neighbors(clusters)
 
+    def _create_reference_lla(self, data):
+        data.invent_reference_lla()
+
     def _remove_submodel_structure(self, meta_data):
         meta_data.remove_submodels()
 
@@ -112,6 +116,7 @@ class Command:
         clusters = meta_data.load_clusters_with_neighbors()
 
         meta_data.create_submodels(clusters)
+
 
 
 def kmeans(samples, nclusters, criteria, attempts, flags):
@@ -215,7 +220,7 @@ class MetaDataSet():
     def create_submodels(self, clusters):
         for i, cluster in enumerate(clusters):
             # create sub model dir
-            submodel_path = os.path.join(self._submodels_path(), 'submodel{}'.format(i))
+            submodel_path = os.path.join(self._submodels_path(), 'submodel{}'.format(i + 1))
             io.mkdir_p(submodel_path)
 
             # create image list file
@@ -229,9 +234,7 @@ class MetaDataSet():
             if os.path.exists(config_file_path):
                 shutil.copyfile(config_file_path, os.path.join(submodel_path, 'config.yaml'))
 
-            # create symlinks to metadata dirs
-            self._create_symlink(submodel_path, 'camera_models.json')
-            self._create_symlink(submodel_path, 'images')
-            self._create_symlink(submodel_path, 'exif')
-            self._create_symlink(submodel_path, 'features')
-            self._create_symlink(submodel_path, 'matches')
+            # create symlinks to metadata files
+            for symlink_path in ['camera_models.json', 'reference_lla.json',
+                                 'images', 'exif', 'root_hahog', 'matches']:
+                self._create_symlink(submodel_path, symlink_path)

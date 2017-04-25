@@ -748,7 +748,9 @@ def grow_reconstruction(data, graph, reconstruction, images, gcp):
 def incremental_reconstruction(data):
     """Run the entire incremental reconstruction pipeline."""
     logger.info("Starting incremental reconstruction")
-    data.invent_reference_lla()
+    if not data.reference_lla_exists():
+        data.invent_reference_lla()
+
     graph = data.load_tracks_graph()
     tracks, images = matching.tracks_and_images(graph)
     remaining_images = set(images)
