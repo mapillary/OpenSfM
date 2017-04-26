@@ -12,6 +12,7 @@
 #include "bundle.h"
 #include "openmvs_exporter.h"
 #include "depthmap_wrapper.cc"
+#include "reconstruction_alignment.h"
 
 #if (PY_VERSION_HEX < 0x03000000)
 static void numpy_import_array_wrapper()
