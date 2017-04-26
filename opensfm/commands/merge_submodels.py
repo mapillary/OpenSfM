@@ -16,41 +16,36 @@ class Command:
     def run(self, args):
         meta_data = metadataset.MetaDataSet(args.dataset)
 
-        reconstructions = self.load_reconstructions(meta_data)
-        transformations = self.merge_reconstructions(reconstructions)
-        reconstructions = self.apply_transformations(reconstructions, transformations)
-        self.save_aligned_reconstructions(reconstructions, meta_data)
+        reconstruction_shots = self.load_reconstruction_shots(meta_data)
+        transformations = self.merge_reconstructions(reconstruction_shots)
+        self.apply_transformations(transformations)
 
-    def load_reconstructions(self, meta_data):
-        reconstructions = {}
+    def load_reconstruction_shots(self, meta_data):
+        reconstruction_shots = {}
         for submodel_path in meta_data.get_submodel_paths():
             data = dataset.DataSet(submodel_path)
             reconstruction = data.load_reconstruction()
 
             for index, partial_reconstruction in enumerate(reconstruction):
-                reconstructions[(submodel_path, index)] = partial_reconstruction
+                reconstruction_shots[(submodel_path, index)] = partial_reconstruction.shots
 
-        return reconstructions
+        return reconstruction_shots
 
-    def merge_reconstructions(self, reconstructions):
+    def merge_reconstructions(self, reconstruction_shots):
         transformations = {}
-        for key in reconstructions:
+        for key in reconstruction_shots:
             transformations[key] = (1, np.eye(3), np.zeros(3))
 
         return transformations
 
-    def apply_transformations(self, reconstructions, transformations):
-        aligned_reconstructions = {}
-        for key, reconstruction in reconstructions.iteritems():
-            s, A, b = transformations[key]
-            align.apply_similarity(reconstruction, s, A, b)
-            aligned_reconstructions[key] = reconstruction
-
-        return aligned_reconstructions
-
-    def save_aligned_reconstructions(self, aligned_reconstructions, meta_data):
-        reconstruction_groups = itertools.groupby(aligned_reconstructions.keys(), lambda k: k[0])
-        for submodel_path, submodel_keys in reconstruction_groups:
+    def apply_transformations(self, transformations):
+        submodels = itertools.groupby(transformations.keys(), lambda key: key[0])
+        for submodel_path, keys in submodels:
             data = dataset.DataSet(submodel_path)
-            reconstruction = [aligned_reconstructions[key] for key in submodel_keys]
+            reconstruction = data.load_reconstruction()
+            for key in keys:
+                partial_reconstruction = reconstruction[key[1]]
+                s, A, b = transformations[key]
+                align.apply_similarity(partial_reconstruction, s, A, b)
+
             data.save_reconstruction(reconstruction, 'reconstruction.aligned.json')
