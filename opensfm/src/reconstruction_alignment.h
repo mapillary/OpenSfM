@@ -168,14 +168,14 @@ struct RARelativeMotionError {
     r[1] = Rai_Ra_Rit[1];
     r[2] = Rai_Ra_Rit[2];
 
-    // Compute translation residual: tai - sa * ti - Ri Ra^t ta
+    // Compute translation residual: tai - sa * ti + Ri Ra^t ta
     T Rat_ta[3], Ri_Rat_ta[3];
     ceres::AngleAxisRotatePoint(Rat, ta, Rat_ta);
     ceres::AngleAxisRotatePoint(Ri, Rat_ta, Ri_Rat_ta);
 
-    r[3] = tai[0] - scale_a[0] * ti[0] - Ri_Rat_ta[0];
-    r[4] = tai[1] - scale_a[0] * ti[1] - Ri_Rat_ta[1];
-    r[5] = tai[2] - scale_a[0] * ti[2] - Ri_Rat_ta[2];
+    r[3] = tai[0] - scale_a[0] * ti[0] + Ri_Rat_ta[0];
+    r[4] = tai[1] - scale_a[0] * ti[1] + Ri_Rat_ta[1];
+    r[5] = tai[2] - scale_a[0] * ti[2] + Ri_Rat_ta[2];
 
     for (int i = 0; i < 6; ++i) {
       residuals[i] = T(0);
@@ -309,14 +309,12 @@ class ReconstructionAlignment {
     }
 
     for (auto &i : reconstructions_) {
+      problem.AddParameterBlock(i.second.parameters, RA_RECONSTRUCTION_NUM_PARAMS);
       if (i.second.constant) {
-        problem.AddParameterBlock(i.second.parameters, RA_RECONSTRUCTION_NUM_PARAMS);
         problem.SetParameterBlockConstant(i.second.parameters);
       } else {
-        problem.AddParameterBlock(i.second.parameters, RA_RECONSTRUCTION_NUM_PARAMS);
-        double *scale = i.second.parameters + RA_RECONSTRUCTION_SCALE;
-        problem.SetParameterLowerBound(scale, 0, 0.0);
-        problem.SetParameterUpperBound(scale, 0, std::numeric_limits<double>::max());
+        problem.SetParameterLowerBound(i.second.parameters, RA_RECONSTRUCTION_SCALE, 0.0);
+        problem.SetParameterUpperBound(i.second.parameters, RA_RECONSTRUCTION_SCALE, std::numeric_limits<double>::max());
       }
     }
 
@@ -324,7 +322,7 @@ class ReconstructionAlignment {
     ceres::LossFunction *loss = new ceres::CauchyLoss(1.0);
     for (auto &rp: relative_motions_) {
       ceres::CostFunction* cost_function =
-          new ceres::AutoDiffCostFunction<RARelativeMotionError, 7, 6, 6>(
+          new ceres::AutoDiffCostFunction<RARelativeMotionError, 6, 7, 6>(
               new RARelativeMotionError(rp.parameters, rp.scale_matrix));
 
       problem.AddResidualBlock(cost_function,
