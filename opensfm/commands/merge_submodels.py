@@ -2,11 +2,12 @@ import itertools
 import numpy as np
 import cv2
 
-import create_submodels as metadataset
 from opensfm import align
 from opensfm import dataset
 from opensfm import csfm
 from opensfm import types
+from opensfm.large import metadataset
+from opensfm.large import tools
 
 
 class Command:
@@ -58,7 +59,7 @@ class Command:
                     added_shots.add(shot_id)
 
                 covariance = np.diag([1e-5, 1e-5, 1e-5, 1e-2, 1e-2, 1e-2])
-                sm = scale_matrix(covariance)
+                sm = tools.scale_matrix(covariance)
                 rmc = csfm.RARelativeMotionConstraint(
                     reconstruction_name, shot_name, R[0], R[1], R[2], t[0], t[1], t[2])
 
@@ -95,14 +96,3 @@ class Command:
 
     def _encode_reconstruction_name(self, key):
         return str(key[0]) + "_index" + str(key[1])
-
-
-def scale_matrix(covariance):
-    try:
-        L = np.linalg.cholesky(covariance)
-    except Exception as e:
-        logger.error('Could not compute Cholesky of covariance matrix {}'.format(covariance))
-        d = np.diag(np.diag(covariance).clip(1e-8, None))
-        L = np.linalg.cholesky(d)
-
-    return np.linalg.inv(L)
