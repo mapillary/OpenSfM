@@ -98,7 +98,7 @@ class MetaDataSet():
         for path in paths:
             shutil.rmtree(path)
 
-    def create_submodels(self, clusters):
+    def create_submodels(self, clusters, no_symlinks=False):
         for i, cluster in enumerate(clusters):
             # create sub model dir
             submodel_path = os.path.join(self._submodels_path(), 'submodel{}'.format(i + 1))
@@ -108,17 +108,23 @@ class MetaDataSet():
             image_list_path = os.path.join(submodel_path, 'image_list.txt')
             with open(image_list_path, 'w') as txtfile:
                 for image in cluster:
-                    txtfile.write('images/{}\n'.format(image))
+                    images_path = '../../images/{}\n' if no_symlinks else 'images/{}\n'
+                    txtfile.write(images_path.format(image))
 
             # copy config.yaml if exists
             config_file_path = os.path.join(self.data_path, 'config.yaml')
             if os.path.exists(config_file_path):
                 shutil.copyfile(config_file_path, os.path.join(submodel_path, 'config.yaml'))
 
-            # create symlinks to metadata files
-            for symlink_path in ['camera_models.json', 'reference_lla.json',
-                                 'images', 'exif', 'root_hahog', 'matches']:
-                self._create_symlink(submodel_path, symlink_path)
+            if no_symlinks:
+                reference_file_path = os.path.join(self.data_path, 'reference_lla.json')
+                if os.path.exists(reference_file_path):
+                    shutil.copyfile(reference_file_path, os.path.join(submodel_path, 'reference_lla.json'))
+            else:
+                # create symlinks to metadata files
+                for symlink_path in ['camera_models.json', 'reference_lla.json',
+                                    'images', 'exif', 'root_hahog', 'matches']:
+                    self._create_symlink(submodel_path, symlink_path)
 
     def get_submodel_paths(self):
         return [os.path.join(self._submodels_path(), d) \

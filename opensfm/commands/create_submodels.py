@@ -19,6 +19,10 @@ class Command:
         parser.add_argument('-d', '--dist', type=int, default=30,
                             help='the max distance in meters to a neighbor ' \
                             'for it to be included in the cluster')
+        parser.add_argument('-n', '--no-symlinks',
+                            action='store_true',
+                            help='Do not create any symlinks, ' \
+                            'every submodels needs to run complete pipeline')
 
     def run(self, args):
         data = dataset.DataSet(args.dataset)
@@ -32,7 +36,7 @@ class Command:
         self._add_cluster_neighbors(meta_data, args.dist)
 
         meta_data.create_submodels(
-            meta_data.load_clusters_with_neighbors())
+            meta_data.load_clusters_with_neighbors(), args.no_symlinks)
 
     def _create_image_list(self, data, meta_data):
         ills = []
