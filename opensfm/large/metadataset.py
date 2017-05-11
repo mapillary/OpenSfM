@@ -4,7 +4,9 @@ import os
 import os.path
 import shutil
 
+from opensfm import config
 from opensfm import io
+from opensfm.dataset import DataSet
 
 
 class MetaDataSet():
@@ -16,7 +18,9 @@ class MetaDataSet():
         '''
         self.data_path = data_path
 
-        self._submodels_dir_name = 'submodels'
+        config_file = os.path.join(self.data_path, 'config.yaml')
+        self.config = config.load_config(config_file)
+
         self._image_list_file_name = 'image_list_with_gps.tsv'
         self._clusters_file_name = 'clusters.npz'
         self._clusters_with_neighbors_file_name = 'clusters_with_neighbors.npz'
@@ -24,7 +28,7 @@ class MetaDataSet():
         io.mkdir_p(self._submodels_path())
 
     def _submodels_path(self):
-        return os.path.join(self.data_path, self._submodels_dir_name)
+        return os.path.join(self.data_path, self.config['submodels_relpath'])
 
     def _image_list_path(self):
         return os.path.join(self._submodels_path(), self._image_list_file_name)
@@ -99,17 +103,19 @@ class MetaDataSet():
             shutil.rmtree(path)
 
     def create_submodels(self, clusters, no_symlinks=False):
+        data = DataSet(self.data_path)
         for i, cluster in enumerate(clusters):
             # create sub model dir
-            submodel_path = os.path.join(self._submodels_path(), 'submodel{}'.format(i + 1))
+            template = self.config['submodel_relpath_template']
+            submodel_path = os.path.join(self.data_path, template % i)
             io.mkdir_p(submodel_path)
 
             # create image list file
             image_list_path = os.path.join(submodel_path, 'image_list.txt')
             with open(image_list_path, 'w') as txtfile:
                 for image in cluster:
-                    images_path = '../../images/{}\n' if no_symlinks else 'images/{}\n'
-                    txtfile.write(images_path.format(image))
+                    images_path = os.path.relpath(data.image_files[image], submodel_path)
+                    txtfile.write(images_path.format(image) + "\n")
 
             # copy config.yaml if exists
             config_file_path = os.path.join(self.data_path, 'config.yaml')
@@ -123,10 +129,16 @@ class MetaDataSet():
             else:
                 # create symlinks to metadata files
                 for symlink_path in ['camera_models.json', 'reference_lla.json',
-                                    'images', 'exif', 'root_hahog', 'matches']:
+                                     'exif', 'root_hahog', 'matches']:
                     self._create_symlink(submodel_path, symlink_path)
 
     def get_submodel_paths(self):
-        return [os.path.join(self._submodels_path(), d) \
-            for d in os.listdir(self._submodels_path()) \
-            if os.path.isdir(os.path.join(self._submodels_path(), d))]
+        template = self.config['submodel_relpath_template']
+        submodel_paths = []
+        for i in range(999999):
+            submodel_path = os.path.join(self.data_path, template % i)
+            if os.path.isdir(submodel_path):
+                submodel_paths.append(submodel_path)
+            else:
+                break
+        return submodel_paths
