@@ -313,7 +313,7 @@ class ReconstructionAlignment {
       if (i.second.constant) {
         problem.SetParameterBlockConstant(i.second.parameters);
       } else {
-        problem.SetParameterLowerBound(i.second.parameters, RA_RECONSTRUCTION_SCALE, 0.0);
+        problem.SetParameterLowerBound(i.second.parameters, RA_RECONSTRUCTION_SCALE, 0.1);
         problem.SetParameterUpperBound(i.second.parameters, RA_RECONSTRUCTION_SCALE, std::numeric_limits<double>::max());
       }
     }
