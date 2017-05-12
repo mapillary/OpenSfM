@@ -61,6 +61,34 @@ Alternatively, we can work on the rotation and translation together and minimize
 
 
 
+Aligning camera centers instead of translations
+-----------------------------------------------
+
+Aligning the translation vectors as done above has the problem that when rotations are not aligned the cameras may end up in different positions even if the translations vectors are the same.  An alternative approach that does not have such problem is to minimize the distance between the optical centers.
+
+Let the optical center of camera :math:`i` be
+
+.. math::
+  o_i = -R_i^t t_i
+
+and the optical center of camera :math:`i` in the reconstruction :math:`a` be
+
+.. math::
+  o_{ai} = -R_{ai}^t t_{ai}
+
+We want them to align after applying :math:`H_a` so we have
+
+.. math::
+  s_a R_a o_i + t_a = o_ai
+
+which we can enforce by minimizing
+
+.. math::
+  \left\| s_a R_a o_i + t_a - o_{ai} \right\|^2_{\Sigma_{o_{ai}}}
+
+
+
+
 Camera position prior
 ---------------------
 
