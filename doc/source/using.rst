@@ -10,7 +10,7 @@ Quickstart
 
 An example dataset is available at ``data/berlin``.  You can reconstruct it using by running
 ::
-    bin/run_all data/berlin
+    bin/opensfm_run_all data/berlin
 
 This will run the entire SfM pipeline and produce the file ``data/berlin/reconstruction.meshed.json`` as output. To visualize the result you can start a HTTP server running
 ::

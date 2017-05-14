@@ -17,7 +17,7 @@ from opensfm import types
 
 def run_dataset(run_root, name):
     folder = run_root + '/' + name
-    call(['bin/run_all', folder])
+    call(['bin/opensfm_run_all', folder])
 
     with open(run_root + '/index.html', 'a') as fout:
         s = '''
