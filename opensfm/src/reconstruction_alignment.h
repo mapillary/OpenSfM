@@ -143,7 +143,6 @@ struct RARelativeMotionError {
     const T* const Ri = shot_i + RA_SHOT_RX;
     const T* const Ra = reconstruction_a + RA_RECONSTRUCTION_RX;
     T Rit[3] = { -Ri[0], -Ri[1], -Ri[2] };
-    T Rat[3] = { -Ra[0], -Ra[1], -Ra[2] };
     const T* const ti = shot_i + RA_SHOT_TX;
     const T* const ta = reconstruction_a + RA_RECONSTRUCTION_TX;
     const T* const scale_a = reconstruction_a + RA_RECONSTRUCTION_SCALE;
@@ -153,6 +152,7 @@ struct RARelativeMotionError {
     T tai[3] = { T(Rtai_[RA_SHOT_TX]),
                  T(Rtai_[RA_SHOT_TY]),
                  T(Rtai_[RA_SHOT_TZ]) };
+    T Rait[3] = { -Rai[0], -Rai[1], -Rai[2] };
 
     // Compute rotation residual: log( Rai Ra Ri^t )
     T qRai[4], qRa[4], qRit[4], qRa_Rit[4], qRai_Ra_Rit[4];
@@ -168,14 +168,15 @@ struct RARelativeMotionError {
     r[1] = Rai_Ra_Rit[1];
     r[2] = Rai_Ra_Rit[2];
 
-    // Compute translation residual: tai - sa * ti + Ri Ra^t ta
-    T Rat_ta[3], Ri_Rat_ta[3];
-    ceres::AngleAxisRotatePoint(Rat, ta, Rat_ta);
-    ceres::AngleAxisRotatePoint(Ri, Rat_ta, Ri_Rat_ta);
+    // Compute translation residual: Rai^t tai - sa Ra Ri^t ti + ta
+    T Rait_tai[3], Rit_ti[3], Ra_Rit_ti[3];
+    ceres::AngleAxisRotatePoint(Rait, tai, Rait_tai);
+    ceres::AngleAxisRotatePoint(Rit, ti, Rit_ti);
+    ceres::AngleAxisRotatePoint(Ra, Rit_ti, Ra_Rit_ti);
 
-    r[3] = tai[0] - scale_a[0] * ti[0] + Ri_Rat_ta[0];
-    r[4] = tai[1] - scale_a[0] * ti[1] + Ri_Rat_ta[1];
-    r[5] = tai[2] - scale_a[0] * ti[2] + Ri_Rat_ta[2];
+    r[3] = Rait_tai[0] - scale_a[0] * Ra_Rit_ti[0] + ta[0];
+    r[4] = Rait_tai[1] - scale_a[0] * Ra_Rit_ti[1] + ta[1];
+    r[5] = Rait_tai[2] - scale_a[0] * Ra_Rit_ti[2] + ta[2];
 
     for (int i = 0; i < 6; ++i) {
       residuals[i] = T(0);
