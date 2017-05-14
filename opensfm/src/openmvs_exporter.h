@@ -73,7 +73,7 @@ class OpenMVSExporter {
   }
 
   void Export(std::string filename) {
-    ARCHIVE::SerializeSave(scene_, filename);
+    MVS::ARCHIVE::SerializeSave(scene_, filename);
   }
 
  private:
