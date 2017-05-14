@@ -66,7 +66,7 @@ class DataSet:
         return self.image_files[image]
 
     def load_image(self, image):
-        return open(self.__image_file(image))
+        return open(self.__image_file(image), 'rb')
 
     def image_as_array(self, image):
         """Return image pixels as 3-dimensional numpy array (R G B order)"""
@@ -205,12 +205,12 @@ class DataSet:
 
         :param image: Image name, with extension (i.e. 123.jpg)
         """
-        with open(self.__exif_file(image), 'r') as fin:
+        with open(self.__exif_file(image), 'rb') as fin:
             return json.load(fin)
 
     def save_exif(self, image, data):
         io.mkdir_p(self.__exif_path())
-        with open(self.__exif_file(image), 'w') as fout:
+        with open(self.__exif_file(image), 'wb') as fout:
             io.json_dump(data, fout)
 
     def feature_type(self):
