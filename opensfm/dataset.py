@@ -359,6 +359,9 @@ class DataSet:
         """Return path of reconstruction file"""
         return os.path.join(self.data_path, filename or 'reconstruction.json')
 
+    def reconstruction_exists(self, filename=None):
+        return os.path.isfile(self.__reconstruction_file(filename))
+
     def load_reconstruction(self, filename=None):
         with open(self.__reconstruction_file(filename)) as fin:
             reconstructions = io.reconstructions_from_json(json.load(fin))

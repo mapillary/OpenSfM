@@ -24,6 +24,9 @@ class Command:
         reconstruction_shots = {}
         for submodel_path in meta_data.get_submodel_paths():
             data = dataset.DataSet(submodel_path)
+            if not data.reconstruction_exists():
+                continue
+
             reconstruction = data.load_reconstruction()
 
             for index, partial_reconstruction in enumerate(reconstruction):
@@ -35,6 +38,9 @@ class Command:
         submodels = itertools.groupby(transformations.keys(), lambda key: key[0])
         for submodel_path, keys in submodels:
             data = dataset.DataSet(submodel_path)
+            if not data.reconstruction_exists():
+                continue
+
             reconstruction = data.load_reconstruction()
             for key in keys:
                 partial_reconstruction = reconstruction[key[1]]
