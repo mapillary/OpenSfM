@@ -168,7 +168,7 @@ struct RARelativeMotionError {
     r[1] = Rai_Ra_Rit[1];
     r[2] = Rai_Ra_Rit[2];
 
-    // Compute translation residual: Rai^t tai - sa Ra Ri^t ti + ta
+    // Compute optical center residual: Rai^t tai - sa Ra Ri^t ti + ta
     T Rait_tai[3], Rit_ti[3], Ra_Rit_ti[3];
     ceres::AngleAxisRotatePoint(Rait, tai, Rait_tai);
     ceres::AngleAxisRotatePoint(Rit, ti, Rit_ti);
