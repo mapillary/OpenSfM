@@ -50,7 +50,7 @@ class Command:
                 urec.add_shot(shot)
             elif shot.camera.projection_type in ['equirectangular', 'spherical']:
                 original = data.image_as_array(shot.id)
-                width = int(data.config['depthmap_resolution'])
+                width = 4 * int(data.config['depthmap_resolution'])
                 height = width / 2
                 image = cv2.resize(original, (width, height), interpolation=cv2.INTER_AREA)
                 shots = perspective_views_of_a_panorama(shot, width)
