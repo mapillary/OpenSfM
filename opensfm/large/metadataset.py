@@ -30,6 +30,16 @@ class MetaDataSet():
     def _submodels_path(self):
         return os.path.join(self.data_path, self.config['submodels_relpath'])
 
+    def _submodel_path(self, i):
+        """Path to submodel i folder."""
+        template = self.config['submodel_relpath_template']
+        return os.path.join(self.data_path, template % i)
+
+    def _submodel_images_path(self, i):
+        """Path to submodel i images folder."""
+        template = self.config['submodel_images_relpath_template']
+        return os.path.join(self.data_path, template % i)
+
     def _image_list_path(self):
         return os.path.join(self._submodels_path(), self._image_list_file_name)
 
@@ -105,16 +115,20 @@ class MetaDataSet():
     def create_submodels(self, clusters, no_symlinks=False):
         data = DataSet(self.data_path)
         for i, cluster in enumerate(clusters):
-            # create sub model dir
-            template = self.config['submodel_relpath_template']
-            submodel_path = os.path.join(self.data_path, template % i)
+            # create sub model dirs
+            submodel_path = self._submodel_path(i)
+            submodel_images_path = self._submodel_images_path(i)
             io.mkdir_p(submodel_path)
+            io.mkdir_p(submodel_images_path)
 
-            # create image list file
+            # link images and create image list file
             image_list_path = os.path.join(submodel_path, 'image_list.txt')
             with open(image_list_path, 'w') as txtfile:
                 for image in cluster:
-                    images_path = os.path.relpath(data.image_files[image], submodel_path)
+                    src = data.image_files[image]
+                    dst = os.path.join(submodel_images_path, image)
+                    os.symlink(src, dst)
+                    images_path = os.path.relpath(dst, submodel_path)
                     txtfile.write(images_path.format(image) + "\n")
 
             # copy config.yaml if exists
@@ -133,10 +147,9 @@ class MetaDataSet():
                     self._create_symlink(submodel_path, symlink_path)
 
     def get_submodel_paths(self):
-        template = self.config['submodel_relpath_template']
         submodel_paths = []
         for i in range(999999):
-            submodel_path = os.path.join(self.data_path, template % i)
+            submodel_path = self._submodel_path(i)
             if os.path.isdir(submodel_path):
                 submodel_paths.append(submodel_path)
             else:

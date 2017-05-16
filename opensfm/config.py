@@ -114,8 +114,9 @@ depthmap_save_debug_files: no         # Save debug files with partial reconstruc
 processes: 1                  # Number of threads to use
 
 # Params for submodel split and merge
-submodels_relpath: "submodels"                        # Relative path to the submodels directory
-submodel_relpath_template: "submodels/submodel_%04d"   # Template to generate the relative path to a submodel directory
+submodels_relpath: "submodels"                                      # Relative path to the submodels directory
+submodel_relpath_template: "submodels/submodel_%04d"                # Template to generate the relative path to a submodel directory
+submodel_images_relpath_template: "submodels/submodel_%04d/images"  # Template to generate the relative path to a submodel images directory
 '''
 
 
