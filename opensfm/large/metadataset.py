@@ -127,9 +127,10 @@ class MetaDataSet():
                 for image in cluster:
                     src = data.image_files[image]
                     dst = os.path.join(submodel_images_path, image)
-                    os.symlink(src, dst)
-                    images_path = os.path.relpath(dst, submodel_path)
-                    txtfile.write(images_path.format(image) + "\n")
+                    if not os.path.isfile(dst):
+                        os.symlink(src, dst)
+                    dst_relpath = os.path.relpath(dst, submodel_path)
+                    txtfile.write(dst_relpath + "\n")
 
             # copy config.yaml if exists
             config_file_path = os.path.join(self.data_path, 'config.yaml')
