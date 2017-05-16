@@ -79,12 +79,17 @@ and the optical center of camera :math:`i` in the reconstruction :math:`a` be
 We want them to align after applying :math:`H_a` so we have
 
 .. math::
-  s_a R_a o_i + t_a = o_ai
+  s_a R_a o_i + t_a = o_{ai}
 
 which we can enforce by minimizing
 
 .. math::
   \left\| s_a R_a o_i + t_a - o_{ai} \right\|^2_{\Sigma_{o_{ai}}}
+
+which it can be written in terms of Rs and ts as
+
+.. math::
+  \left\| R_{ai}^t t_{ai} - s_a R_a R_i^t t_i + t_a \right\|^2_{\Sigma_{o_{ai}}}
 
 
 
