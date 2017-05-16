@@ -7,7 +7,7 @@ from opensfm.large import tools
 
 
 class Command:
-    name = 'merge_submodels'
+    name = 'align_submodels'
     help = 'Align submodel reconstructions'
 
     def add_arguments(self, parser):

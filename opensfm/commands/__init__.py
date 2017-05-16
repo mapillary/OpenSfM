@@ -11,7 +11,7 @@ import export_ply
 import export_openmvs
 import export_visualsfm
 import create_submodels
-import merge_submodels
+import align_submodels
 
 opensfm_commands = [
     extract_metadata,
@@ -26,5 +26,5 @@ opensfm_commands = [
     export_openmvs,
     export_visualsfm,
     create_submodels,
-    merge_submodels,
+    align_submodels,
 ]
