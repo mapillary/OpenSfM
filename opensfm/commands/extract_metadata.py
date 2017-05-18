@@ -20,9 +20,14 @@ class Command:
     def run(self, args):
         start = time.time()
         data = dataset.DataSet(args.dataset)
-
-        camera_models = {}
-        for image in data.images():
+        # Try not to recreate exif files that already exist
+        try:
+            camera_models = data.load_camera_models()
+            images = data.images_requiring_exif_files()
+        except IOError:
+            camera_models = {}
+            images = data.images()
+        for image in images:
             logging.info('Extracting focal lengths for image {}'.format(image))
 
             # EXIF data in Image

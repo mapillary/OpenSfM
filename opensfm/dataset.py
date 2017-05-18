@@ -191,6 +191,10 @@ class DataSet:
         """
         return os.path.join(self.__exif_path(), image + '.exif')
 
+    def images_requiring_exif_files(self):
+        """ Return all images that we don't already have exif files for"""
+        return set(image for image in self.images() if not os.path.isfile(self.__exif_file(image)))
+
     def load_exif(self, image):
         """
         Return extracted exif information, as dictionary, usually with fields:
