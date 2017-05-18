@@ -79,8 +79,12 @@ def has_gps_info(exif):
             'longitude' in exif['gps'])
 
 
-def match_candidates_by_distance(images, exifs, reference, max_neighbors, max_distance):
-    """Find candidate matching pairs by GPS distance."""
+def match_candidates_by_distance(images, exifs, reference, max_neighbors, max_distance,
+                                 data):
+    """
+    Find candidate matching pairs by GPS distance.
+    Only computes pairs where the first image of the pair does not already have a matches file
+    """
     if max_neighbors <= 0 and max_distance <= 0:
         return set()
     max_neighbors = max_neighbors or 99999999
@@ -98,6 +102,8 @@ def match_candidates_by_distance(images, exifs, reference, max_neighbors, max_di
 
     pairs = set()
     for i, image in enumerate(images):
+        if data.matches_exists(image):
+            continue
         distances, neighbors = tree.query(
             points[i], k=k, distance_upper_bound=max_distance)
         for j in neighbors:
@@ -106,8 +112,11 @@ def match_candidates_by_distance(images, exifs, reference, max_neighbors, max_di
     return pairs
 
 
-def match_candidates_by_time(images, exifs, max_neighbors):
-    """Find candidate matching pairs by time difference."""
+def match_candidates_by_time(images, exifs, max_neighbors, data):
+    """
+    Find candidate matching pairs by time difference.
+    Only computes pairs where the first image of the pair does not already have a matches file
+    """
     if max_neighbors <= 0:
         return set()
     k = min(len(images), max_neighbors + 1)
@@ -120,6 +129,8 @@ def match_candidates_by_time(images, exifs, max_neighbors):
 
     pairs = set()
     for i, image in enumerate(images):
+        if data.matches_exists(image):
+            continue
         distances, neighbors = tree.query(times[i], k=k)
         for j in neighbors:
             if i != j and j < len(images):
@@ -127,14 +138,18 @@ def match_candidates_by_time(images, exifs, max_neighbors):
     return pairs
 
 
-def match_candidates_by_order(images, exifs, max_neighbors):
-    """Find candidate matching pairs by sequence order."""
+def match_candidates_by_order(images, max_neighbors, data):
+    """
+    Find candidate matching pairs by sequence order.
+    Only computes pairs where the first image of the pair does not already have a matches file"""
     if max_neighbors <= 0:
         return set()
     n = (max_neighbors + 1) / 2
 
     pairs = set()
     for i, image in enumerate(images):
+        if data.matches_exists(image):
+            continue
         a = max(0, i - n)
         b = min(len(images), i + n)
         for j in range(a, b):
@@ -144,7 +159,10 @@ def match_candidates_by_order(images, exifs, max_neighbors):
 
 
 def match_candidates_from_metadata(images, exifs, data):
-    """Compute candidate matching pairs"""
+    """
+    Compute candidate matching pairs based on GPS, capture time and order of images
+    Only computes pairs where the first image of the pair does not already have a matches file
+    """
     max_distance = data.config['matching_gps_distance']
     gps_neighbors = data.config['matching_gps_neighbors']
     time_neighbors = data.config['matching_time_neighbors']
@@ -163,14 +181,19 @@ def match_candidates_from_metadata(images, exifs, data):
     images.sort()
 
     d = match_candidates_by_distance(images, exifs, reference,
-                                     gps_neighbors, max_distance)
-    t = match_candidates_by_time(images, exifs, time_neighbors)
-    o = match_candidates_by_order(images, exifs, order_neighbors)
+                                     gps_neighbors, max_distance, data)
+    t = match_candidates_by_time(images, exifs, time_neighbors, data)
+    o = match_candidates_by_order(images, order_neighbors, data)
     pairs = d | t | o
+
 
     res = {im: [] for im in images}
     for im1, im2 in pairs:
-        res[im1].append(im2)
+        if not data.matches_exists(im1):
+            res[im1].append(im2)
+        else:
+            assert not data.matches_exists(im2)
+            res[im2].append(im1)
     return res
 
 
@@ -182,6 +205,9 @@ def match_arguments(pairs, ctx):
 def match(args):
     """Compute all matches for a single image"""
     im1, candidates, i, n, ctx = args
+    if ctx.data.matches_exists(im1):
+        assert(len(candidates) == 0)
+        return
     logger.info('Matching {}  -  {} / {}'.format(im1, i + 1, n))
 
     config = ctx.data.config
