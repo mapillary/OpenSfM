@@ -133,3 +133,18 @@ def test_two_reconstructions():
     assert np.allclose(get_reconstruction_origin(rec_b), [2, 0, 0], atol=1e-6)
     assert np.allclose(rec_a.scale, 1)
     assert np.allclose(rec_b.scale, 1)
+
+
+def test_common_points():
+    """Two reconstructions, two common points"""
+    ra = csfm.ReconstructionAlignment()
+    ra.add_reconstruction('a', 0, 0, 0, 0, 0, 0, 1, True)
+    ra.add_reconstruction('b', 0, 0, 0, 0, 0, 0, 1, False)
+    ra.add_common_point_constraint('a', 0, 0, 0, 'b', -1, 0, 0, 1.0)
+    ra.add_common_point_constraint('a', 1, 0, 0, 'b', 0, 0, 0, 1.0)
+
+    ra.run()
+    rec_b = ra.get_reconstruction('b')
+
+    o_b = get_reconstruction_origin(rec_b)
+    assert np.allclose(o_b, [1, 0, 0], atol=1e-6)

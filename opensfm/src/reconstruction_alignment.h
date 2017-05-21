@@ -126,6 +126,14 @@ struct RAAbsolutePositionConstraint {
   double std_deviation;
 };
 
+struct RACommonPointConstraint {
+  RAReconstruction *reconstruction_a;
+  double point_a[3];
+  RAReconstruction *reconstruction_b;
+  double point_b[3];
+  double std_deviation;
+};
+
 
 struct RARelativeMotionError {
   RARelativeMotionError(double *Rtai, double *scale_matrix)
@@ -220,6 +228,51 @@ struct RAAbsolutePositionError {
   double scale_;
 };
 
+struct RACommonPointError {
+  RACommonPointError(double *pai, double *pbi, double std_deviation)
+      : pai_(pai)
+      , pbi_(pbi)
+      , scale_(1.0 / std_deviation)
+  {}
+
+  template <typename T>
+  bool operator()(const T* const reconstruction_a,
+                  const T* const reconstruction_b,
+                  T* residuals) const {
+    T transformed_pai[3];
+    transform_point(reconstruction_a, pai_, transformed_pai);
+
+    T transformed_pbi[3];
+    transform_point(reconstruction_b, pbi_, transformed_pbi);
+
+    residuals[0] = T(scale_) * (transformed_pai[0] - transformed_pbi[0]);
+    residuals[1] = T(scale_) * (transformed_pai[1] - transformed_pbi[1]);
+    residuals[2] = T(scale_) * (transformed_pai[2] - transformed_pbi[2]);
+
+    return true;
+  }
+
+  template <typename T>
+  void transform_point(const T* const reconstruction,
+                       double *point,
+                       T *transformed) const {
+    const T* const R = reconstruction + RA_RECONSTRUCTION_RX;
+    const T* const t = reconstruction + RA_RECONSTRUCTION_TX;
+    const T &scale = reconstruction[RA_RECONSTRUCTION_SCALE];
+    T p_t_s[3] = {
+        (T(point[0]) - t[0]) / scale,
+        (T(point[1]) - t[1]) / scale,
+        (T(point[2]) - t[2]) / scale
+    };
+    T Rt[3] = { -R[0], -R[1], -R[2] };
+    ceres::AngleAxisRotatePoint(Rt, p_t_s, transformed);
+  }
+
+  double *pai_;
+  double *pbi_;
+  double scale_;
+};
+
 
 class ReconstructionAlignment {
  public:
@@ -297,6 +350,25 @@ class ReconstructionAlignment {
     absolute_positions_.push_back(a);
   }
 
+  void AddCommonPointConstraint(
+    const std::string &reconstruction_a_id,
+    double xa, double ya, double za,
+    const std::string &reconstruction_b_id,
+    double xb, double yb, double zb,
+    double std_deviation) {
+    RACommonPointConstraint c;
+    c.reconstruction_a = &reconstructions_[reconstruction_a_id];
+    c.point_a[0] = xa;
+    c.point_a[1] = ya;
+    c.point_a[2] = za;
+    c.reconstruction_b = &reconstructions_[reconstruction_b_id];
+    c.point_b[0] = xb;
+    c.point_b[1] = yb;
+    c.point_b[2] = zb;
+    c.std_deviation = std_deviation;
+    common_points_.push_back(c);
+  }
+
   void Run() {
 
     ceres::Problem problem;
@@ -343,6 +415,18 @@ class ReconstructionAlignment {
                                a.shot->parameters);
     }
 
+    // Add common point errors
+    for (auto &a: common_points_) {
+      ceres::CostFunction* cost_function =
+          new ceres::AutoDiffCostFunction<RACommonPointError, 3, 7, 7>(
+              new RACommonPointError(a.point_a, a.point_b, a.std_deviation));
+
+      problem.AddResidualBlock(cost_function,
+                               NULL,
+                               a.reconstruction_a->parameters,
+                               a.reconstruction_b->parameters);
+    }
+
     // Solve
     ceres::Solver::Options options;
     options.linear_solver_type = ceres::SPARSE_NORMAL_CHOLESKY;
@@ -366,6 +450,7 @@ class ReconstructionAlignment {
   std::map<std::string, RAShot> shots_;
   std::vector<RARelativeMotionConstraint> relative_motions_;
   std::vector<RAAbsolutePositionConstraint> absolute_positions_;
+  std::vector<RACommonPointConstraint> common_points_;
 
   ceres::Solver::Summary last_run_summary_;
 };

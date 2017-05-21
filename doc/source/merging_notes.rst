@@ -108,3 +108,19 @@ If camera :math:`i` is not part of the optimization parameters we can add the sa
   \left\| g_i + (R_{ai} R_a)^t (R_{ai} t_a + t_{ai}) / s_a \right\|^2_{\Sigma_{g_i}}
 
 
+Common point constraint
+-----------------------
+
+When a point is present in more than one reconstruction we want the multiple reconstructions of the point to align.  There are several ways to do that.  One is to add a constraint for every pair of reconstructions.
+
+Let :math:`p_{ai}` and :math:`p_{bi}` be point :math:`i` in reconstructions :math:`a` and :math:`b` respectively.
+
+We want to align once mapped to the global reference frame.  That is
+
+.. math::
+   s_a^{-1} R_a^t (p_{ai} - t_a) = s_b^{-1} R_b^t (p_{bi} - t_b)
+
+So we can minimize the difference
+
+.. math::
+   \|s_a^{-1} R_a^t (p_{ai} - t_a) - s_b^{-1} R_b^t (p_{bi} - t_b)\|_{\Sigma_p}
