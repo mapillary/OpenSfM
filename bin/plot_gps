@@ -5,6 +5,7 @@ import matplotlib.pyplot as pl
 import numpy as np
 
 from opensfm import io
+from opensfm.dataset import DataSet
 from opensfm.large.metadataset import MetaDataSet
 
 
@@ -39,7 +40,7 @@ if __name__ == '__main__':
     parser.add_argument('-m', '--mode',
                         help='plot images clusters in different colors',
                         default='positions',
-                        choices=['clusters', 'centers', 'neighbors', 'positions', 'hist'])
+                        choices=['clusters', 'centers', 'neighbors', 'positions', 'hist', 'submodels'])
     parser.add_argument('-s', '--save-figs',
                         help='save figures istead of showing them',
                         action='store_true')
@@ -118,6 +119,41 @@ if __name__ == '__main__':
         ax.set_title("Clusters with added neighbors", fontsize=18)
         pl.xlabel('Cluster size', fontsize=16)
         pl.ylabel('Number of clusters', fontsize=16)
+    elif args.mode == 'submodels':
+        positionMap = {}
+        for im, lat, lon in meta_data.images_with_gps():
+            positionMap[im] = [lat, lon]
+
+        ax = fig.add_subplot(111)
+        ax.set_aspect(1)
+
+        colors = []
+        markers = []
+        positions = []
+        color_types = ['r', 'g', 'm', 'c', 'y', 'b']
+        marker_types = ['o', '+', 'x', '*']
+        for index, submodel_path in enumerate(meta_data.get_submodel_paths()):
+            data = DataSet(submodel_path)
+            cluster_positions = []
+            for im in data.images():
+                colors.append(color_types[index % 6])
+                markers.append(marker_types[index % 4])
+                positions.append(positionMap[im])
+                cluster_positions.append(positionMap[im])
+
+            cluster_center = np.mean(np.array(cluster_positions), axis=0)
+
+            ax.plot(cluster_center[1], cluster_center[0], 'xk')
+            ax.annotate(submodel_path, (cluster_center[1], cluster_center[0]))
+
+        positions = np.array(positions)
+
+        for p, c, m in zip(positions, colors, markers):
+            ax.plot(p[1], p[0], '{}{}'.format(c, m))
+
+        set_axes_limits(positions)
+        set_gps_labels(fig)
+
 
     if args.save_figs:
         plot_path = '{}/plot_gps'.format(args.dataset)
