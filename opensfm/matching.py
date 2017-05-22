@@ -142,10 +142,14 @@ def good_track(track, min_length):
         return False
     return True
 
-
-def create_tracks_graph(features, colors, matches, config):
+def create_tracks_graph(features, colors, matches, config, data):
     logger.debug('Merging features onto tracks')
-    uf = UnionFind()
+
+    try:
+        uf = data.load_unionfind_file()
+    except IOError:
+        uf = UnionFind()
+
     for im1, im2 in matches:
         for f1, f2 in matches[im1, im2]:
             uf.union((im1, f1), (im2, f2))
@@ -157,6 +161,8 @@ def create_tracks_graph(features, colors, matches, config):
             sets[p].append(i)
         else:
             sets[p] = [i]
+
+    data.save_unionfind_file(uf)
 
     tracks = [t for t in sets.values() if good_track(t, config.get('min_track_length', 2))]
     logger.debug('Good tracks: {}'.format(len(tracks)))
