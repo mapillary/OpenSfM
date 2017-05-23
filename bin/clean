@@ -15,3 +15,4 @@ mv -vf $1/navigation_graph.json $trash
 mv -vf $1/plot_inliers $trash
 mv -vf $1/depthmaps $trash
 mv -vf $1/tracks.csv $trash
+mv -vf $1/track_sets.pkl $trash

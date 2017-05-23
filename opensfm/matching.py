@@ -146,9 +146,11 @@ def create_tracks_graph(features, colors, matches, config, data):
     logger.debug('Merging features onto tracks')
 
     try:
-        uf = data.load_unionfind_file()
+        uf, track_ids, max_id = data.load_track_sets_file()
     except IOError:
         uf = UnionFind()
+        track_ids = {}
+        max_id = 0
 
     for im1, im2 in matches:
         for f1, f2 in matches[im1, im2]:
@@ -161,14 +163,17 @@ def create_tracks_graph(features, colors, matches, config, data):
             sets[p].append(i)
         else:
             sets[p] = [i]
+            if p not in track_ids:
+                track_ids[p] = max_id
+                max_id += 1
 
-    data.save_unionfind_file(uf)
-
-    tracks = [t for t in sets.values() if good_track(t, config.get('min_track_length', 2))]
+    track_sets = (uf, track_ids, max_id)
+    data.save_track_sets_file(track_sets)
+    tracks = [(track_ids[track_name], t) for track_name, t in sets.iteritems() if good_track(t, config.get('min_track_length', 2))]
     logger.debug('Good tracks: {}'.format(len(tracks)))
 
     tracks_graph = nx.Graph()
-    for track_id, track in enumerate(tracks):
+    for track_id, track in tracks:
         for image, featureid in track:
             if image not in features:
                 continue

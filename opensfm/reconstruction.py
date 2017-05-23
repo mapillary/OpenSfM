@@ -905,13 +905,32 @@ def incremental_reconstruction(data):
         data.invent_reference_lla()
 
     graph = data.load_tracks_graph()
+
+    try:
+        existing_reconstructions = data.load_reconstruction()
+        # we remove any points that were in the previous reconstruction but are no longer in our graph
+        for reconstruction in existing_reconstructions:
+            reconstruction.points = {k: point for k, point in reconstruction.points.iteritems() if k in graph}
+    except IOError:
+        existing_reconstructions = []
+
+    reconstructed_images = set(image for reconstruction in existing_reconstructions for image in reconstruction.shots.keys())
+
     tracks, images = matching.tracks_and_images(graph)
-    remaining_images = set(images)
+    remaining_images = set(images) - reconstructed_images
     gcp = None
     if data.ground_control_points_exist():
         gcp = data.load_ground_control_points()
-    common_tracks = matching.all_common_tracks(graph, tracks)
+
     reconstructions = []
+    for reconstruction in existing_reconstructions:
+        grow_reconstruction(data, graph, reconstruction, remaining_images, gcp)
+        reconstructions.append(reconstruction)
+        reconstructions = sorted(reconstructions,
+                                 key=lambda x: -len(x.shots))
+        data.save_reconstruction(reconstructions)
+
+    common_tracks = matching.all_common_tracks(graph, tracks)
     pairs = compute_image_pairs(common_tracks, data.config)
     for im1, im2 in pairs:
         if im1 in remaining_images and im2 in remaining_images:
