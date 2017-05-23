@@ -232,7 +232,7 @@ struct RACommonPointError {
   RACommonPointError(double *pai, double *pbi, double std_deviation)
       : pai_(pai)
       , pbi_(pbi)
-      , scale_(1.0 / std_deviation)
+      , inv_std_(1.0 / std_deviation)
   {}
 
   template <typename T>
@@ -245,9 +245,12 @@ struct RACommonPointError {
     T transformed_pbi[3];
     transform_point(reconstruction_b, pbi_, transformed_pbi);
 
-    residuals[0] = T(scale_) * (transformed_pai[0] - transformed_pbi[0]);
-    residuals[1] = T(scale_) * (transformed_pai[1] - transformed_pbi[1]);
-    residuals[2] = T(scale_) * (transformed_pai[2] - transformed_pbi[2]);
+    T scale_factor = reconstruction_a[RA_RECONSTRUCTION_SCALE] + \
+                     reconstruction_b[RA_RECONSTRUCTION_SCALE];
+
+    residuals[0] = T(inv_std_) * scale_factor * (transformed_pai[0] - transformed_pbi[0]);
+    residuals[1] = T(inv_std_) * scale_factor * (transformed_pai[1] - transformed_pbi[1]);
+    residuals[2] = T(inv_std_) * scale_factor * (transformed_pai[2] - transformed_pbi[2]);
 
     return true;
   }
@@ -270,7 +273,7 @@ struct RACommonPointError {
 
   double *pai_;
   double *pbi_;
-  double scale_;
+  double inv_std_;
 };
 
 
