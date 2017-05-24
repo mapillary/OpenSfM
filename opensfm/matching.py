@@ -221,15 +221,22 @@ def common_tracks(g, im1, im2):
     return tracks, p1, p2
 
 
-def all_common_tracks(graph, tracks, include_features=True, min_common=50):
+def all_common_tracks(graph, tracks, include_features=True, min_common=50, remaining_images=None):
     """
     Returns a dictionary mapping image pairs to the list of tracks observed in both images
     :param graph: Graph structure (networkx) as returned by :method:`DataSet.tracks_graph`
     :param tracks: list of track identifiers
     :param include_features: whether to include the features from the images
     :param min_common: the minimum number of tracks the two images need to have in common
+    :param remaining_images: if not none, only find pairs from within this list
     :return: tuple: im1, im2 -> tuple: tracks, features from first image, features from second image
     """
+    if remaining_images is not None:
+        # We just look at the subgraph comprising of remaining images, and tracks that pass through them
+        tracks = {track for imagename in remaining_images for track in graph[imagename]}
+        filtered_nodes = set(remaining_images).union(tracks)
+        graph = graph.subgraph(filtered_nodes)
+
     track_dict = defaultdict(list)
     for tr in tracks:
         track_images = sorted(graph[tr].keys())

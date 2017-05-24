@@ -930,7 +930,11 @@ def incremental_reconstruction(data):
                                  key=lambda x: -len(x.shots))
         data.save_reconstruction(reconstructions)
 
-    common_tracks = matching.all_common_tracks(graph, tracks)
+    if len(reconstructed_images) != 0:
+        common_tracks = matching.all_common_tracks(graph, tracks, remaining_images=remaining_images)
+    else:
+        # Filtering the graph is slow, so don't pass remaining_images if all images are remaining
+        common_tracks = matching.all_common_tracks(graph, tracks)
     pairs = compute_image_pairs(common_tracks, data.config)
     for im1, im2 in pairs:
         if im1 in remaining_images and im2 in remaining_images:
