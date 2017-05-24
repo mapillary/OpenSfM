@@ -1,13 +1,23 @@
 import cv2
+import itertools
 import logging
+import networkx as nx
 import numpy as np
 import scipy.spatial as spatial
 
+from collections import namedtuple
+from networkx.algorithms import bipartite
+
+from opensfm import align
 from opensfm import context
 from opensfm import csfm
+from opensfm import dataset
 from opensfm import geo
 
 logger = logging.getLogger(__name__)
+
+
+PartialReconstruction = namedtuple("PartialReconstruction", ["submodel_path", "index"])
 
 
 def kmeans(samples, nclusters, max_iter=100, attempts=20):
@@ -75,11 +85,11 @@ def invert_similarity(s, A, b):
     return s_inv, A_inv, b_inv
 
 
-def align_reconstructions(reconstruction_shots):
-    def encode_reconstruction_name(key):
-        return str(key[0]) + "_index" + str(key[1])
+def encode_reconstruction_name(key):
+    return str(key.submodel_path) + "_index" + str(key.index)
 
-    ra = csfm.ReconstructionAlignment()
+
+def add_camera_constraints(ra, reconstruction_shots):
     added_shots = set()
     for key in reconstruction_shots:
         shots = reconstruction_shots[key]
@@ -113,6 +123,27 @@ def align_reconstructions(reconstruction_shots):
 
             ra.add_relative_motion_constraint(rmc)
 
+
+def load_reconstruction_shots(meta_data):
+    reconstruction_shots = {}
+    for submodel_path in meta_data.get_submodel_paths():
+        data = dataset.DataSet(submodel_path)
+        if not data.reconstruction_exists():
+            continue
+
+        reconstruction = data.load_reconstruction()
+        for index, partial_reconstruction in enumerate(reconstruction):
+            key = PartialReconstruction(submodel_path, index)
+            reconstruction_shots[key] = partial_reconstruction.shots
+
+    return reconstruction_shots
+
+
+def align_reconstructions(reconstruction_shots):
+    ra = csfm.ReconstructionAlignment()
+
+    add_camera_constraints(ra, reconstruction_shots)
+
     ra.run()
 
     transformations = {}
@@ -125,3 +156,19 @@ def align_reconstructions(reconstruction_shots):
         transformations[key] = invert_similarity(s, A, b)
 
     return transformations
+
+
+def apply_transformations(transformations):
+    submodels = itertools.groupby(transformations.keys(), lambda key: key.submodel_path)
+    for submodel_path, keys in submodels:
+        data = dataset.DataSet(submodel_path)
+        if not data.reconstruction_exists():
+            continue
+
+        reconstruction = data.load_reconstruction()
+        for key in keys:
+            partial_reconstruction = reconstruction[key.index]
+            s, A, b = transformations[key]
+            align.apply_similarity(partial_reconstruction, s, A, b)
+
+        data.save_reconstruction(reconstruction, 'reconstruction.aligned.json')
