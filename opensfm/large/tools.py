@@ -63,6 +63,30 @@ def add_cluster_neighbors(positions, labels, centers, max_distance):
     return clusters
 
 
+def connected_reconstructions(reconstruction_shots):
+    g = nx.Graph()
+    for r in reconstruction_shots:
+        g.add_node(r, bipartite=0)
+        for shot_id in reconstruction_shots[r]:
+            g.add_node(shot_id, bipartite=1)
+            g.add_edge(r, shot_id)
+
+    p = bipartite.projected_graph(g, reconstruction_shots.keys())
+
+    return p.edges()
+
+
+def corresponding_tracks(tracks1, tracks2):
+    features1 = {tracks1[t1]["feature_id"]: t1 for t1 in tracks1}
+    corresponding_tracks = []
+    for t2 in tracks2:
+        feature_id = tracks2[t2]["feature_id"]
+        if feature_id in features1:
+            corresponding_tracks.append((features1[feature_id], t2))
+
+    return corresponding_tracks
+
+
 def scale_matrix(covariance):
     try:
         L = np.linalg.cholesky(covariance)
@@ -124,6 +148,39 @@ def add_camera_constraints(ra, reconstruction_shots):
             ra.add_relative_motion_constraint(rmc)
 
 
+def add_point_constraints(ra, reconstruction_shots):
+    connections = connected_reconstructions(reconstruction_shots)
+    for connection in connections:
+        d1 = dataset.DataSet(connection[0].submodel_path)
+        d2 = dataset.DataSet(connection[1].submodel_path)
+
+        r1 = d1.load_reconstruction()[connection[0].index]
+        r2 = d2.load_reconstruction()[connection[1].index]
+
+        common_ims = set(r1.shots.keys()).intersection(r2.shots.keys())
+
+        g1 = d1.load_tracks_graph()
+        g2 = d2.load_tracks_graph()
+
+        rec_name1 = encode_reconstruction_name(connection[0])
+        rec_name2 = encode_reconstruction_name(connection[1])
+
+        common_tracks = set()
+        for im in common_ims:
+            for t1, t2 in corresponding_tracks(g1[im], g2[im]):
+                if t1 in r1.points and t2 in r2.points:
+                    common_tracks.add((t1, t2))
+
+        for t1, t2 in common_tracks:
+            c1 = r1.points[t1].coordinates
+            c2 = r2.points[t2].coordinates
+
+            ra.add_common_point_constraint(
+                rec_name1, c1[0], c1[1], c1[2],
+                rec_name2, c2[0], c2[1], c2[2],
+                1e-1)
+
+
 def load_reconstruction_shots(meta_data):
     reconstruction_shots = {}
     for submodel_path in meta_data.get_submodel_paths():
@@ -143,6 +200,7 @@ def align_reconstructions(reconstruction_shots):
     ra = csfm.ReconstructionAlignment()
 
     add_camera_constraints(ra, reconstruction_shots)
+    add_point_constraints(ra, reconstruction_shots)
 
     ra.run()
 
