@@ -419,13 +419,14 @@ class ReconstructionAlignment {
     }
 
     // Add common point errors
+    ceres::LossFunction *l1_loss = new ceres::SoftLOneLoss(1.0);
     for (auto &a: common_points_) {
       ceres::CostFunction* cost_function =
           new ceres::AutoDiffCostFunction<RACommonPointError, 3, 7, 7>(
               new RACommonPointError(a.point_a, a.point_b, a.std_deviation));
 
       problem.AddResidualBlock(cost_function,
-                               loss,
+                               l1_loss,
                                a.reconstruction_a->parameters,
                                a.reconstruction_b->parameters);
     }
