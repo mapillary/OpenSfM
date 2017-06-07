@@ -425,7 +425,7 @@ class ReconstructionAlignment {
               new RACommonPointError(a.point_a, a.point_b, a.std_deviation));
 
       problem.AddResidualBlock(cost_function,
-                               NULL,
+                               loss,
                                a.reconstruction_a->parameters,
                                a.reconstruction_b->parameters);
     }
