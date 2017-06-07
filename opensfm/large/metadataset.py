@@ -144,7 +144,7 @@ class MetaDataSet():
             else:
                 # create symlinks to metadata files
                 for symlink_path in ['camera_models.json', 'reference_lla.json',
-                                     'exif', 'root_hahog', 'matches']:
+                                     'exif', 'features', 'matches']:
                     self._create_symlink(submodel_path, symlink_path)
 
     def get_submodel_paths(self):
