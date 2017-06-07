@@ -14,19 +14,20 @@ File format
 ```````````
 GCPs can be specified by adding a text file named ``gcp_list.txt`` at the root folder of the dataset. The format of the file should be as follows.
 
-  - The first line should contain the name of the projection used for the geo coordinates.
+- The first line should contain the name of the projection used for the geo coordinates.
 
-  - The following lines should con should contain the data for each ground control point observation. One per line and in the format
-    ::
+- The following lines should con should contain the data for each ground control point observation. One per line and in the format::
+
       <geo_x> <geo_y> <geo_z> <im_x> <im_y> <image_name>
-    Where ``<geo_x> <geo_y> <geo_z>`` are the geospatial coordinates of the GCP and ``<im_x> <im_y>`` are the pixel coordinates where the GCP is observed.
+
+  Where ``<geo_x> <geo_y> <geo_z>`` are the geospatial coordinates of the GCP and ``<im_x> <im_y>`` are the pixel coordinates where the GCP is observed.
 
 
 Supported projections
 `````````````````````
 The geospatial coordinates can be specified in one the following formats.
 
-- WGS84: This is the standard latitude, longitude coordinates used by most GPS devices. In this case, ``<geo_x> = longitude``, ``<geo_y> = latitude`` and ``<geo_z> = altitude``
+- `WGS84`_: This is the standard latitude, longitude coordinates used by most GPS devices. In this case, ``<geo_x> = longitude``, ``<geo_y> = latitude`` and ``<geo_z> = altitude``
 
 - `UTM`_: UTM projections can be specified using a string projection string such as ``WGS84 UTM 32N``, where 32 is the region and N is . In this case, ``<geo_x> = E``, ``<geo_y> = N`` and ``<geo_z> = altitude``
 
@@ -38,12 +39,11 @@ The geospatial coordinates can be specified in one the following formats.
 
 Example
 ```````
-::
+This file defines 2 GCP whose coordinates are specified in the WGS84 standard. The first one is observed in both ``01.jpg`` and ``02.jpg``, while the second one is only observed in ``01.jpg`` ::
 
   WGS84
   13.400740745 52.519134104 12.0792090446 2335.0 1416.7 01.jpg
   13.400740745 52.519134104 12.0792090446 2639.1 938.0 02.jpg
   13.400502446 52.519251158 16.7021233002 766.0 1133.1 01.jpg
 
-This file defines 2 GCP whose coordinates are specified in the WGS84 standard. The first one is observed in both ``01.jpg`` and ``02.jpg``, while the second one is only observed in ``01.jpg``
 

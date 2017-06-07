@@ -31,7 +31,10 @@ def get_float_tag(tags, key):
 
 def get_frac_tag(tags, key):
     if key in tags:
-        return eval_frac(tags[key].values[0])
+        try:
+            return eval_frac(tags[key].values[0])
+        except ZeroDivisionError:
+            return None
     else:
         return None
 
