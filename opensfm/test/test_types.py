@@ -1,5 +1,6 @@
 import numpy as np
 
+from opensfm import context
 from opensfm import types
 
 """
@@ -90,6 +91,22 @@ def test_reconstruction_class_initialization():
 def test_perspective_camera_projection():
     """Test perspectiive projection--backprojection loop."""
     camera = types.PerspectiveCamera()
+    camera.width = 800
+    camera.height = 600
+    camera.focal = 0.6
+    camera.k1 = -0.1
+    camera.k2 = 0.01
+    pixel = [0.1, 0.2]
+    bearing = camera.pixel_bearing(pixel)
+    projected = camera.project(bearing)
+    assert np.allclose(pixel, projected)
+
+
+def test_fisheye_camera_projection():
+    """Test fisheye projection--backprojection loop."""
+    if not context.OPENCV3:
+        return
+    camera = types.FisheyeCamera()
     camera.width = 800
     camera.height = 600
     camera.focal = 0.6

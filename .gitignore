@@ -16,3 +16,6 @@ data/berlin/*
 !data/berlin/images
 
 eval
+
+# Ignore virtualenv files
+env/*

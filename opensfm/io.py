@@ -1,5 +1,6 @@
 import errno
 import json
+import logging
 import os
 
 import cv2
@@ -9,6 +10,10 @@ import pyproj
 from opensfm import features
 from opensfm import geo
 from opensfm import types
+from opensfm import context
+
+
+logger = logging.getLogger(__name__)
 
 
 def camera_from_json(key, obj):
@@ -18,6 +23,18 @@ def camera_from_json(key, obj):
     pt = obj.get('projection_type', 'perspective')
     if pt == 'perspective':
         camera = types.PerspectiveCamera()
+        camera.id = key
+        camera.width = obj.get('width', 0)
+        camera.height = obj.get('height', 0)
+        camera.focal = obj['focal']
+        camera.k1 = obj.get('k1', 0.0)
+        camera.k2 = obj.get('k2', 0.0)
+        camera.focal_prior = obj.get('focal_prior', camera.focal)
+        camera.k1_prior = obj.get('k1_prior', camera.k1)
+        camera.k2_prior = obj.get('k2_prior', camera.k2)
+        return camera
+    elif pt == 'fisheye':
+        camera = types.FisheyeCamera()
         camera.id = key
         camera.width = obj.get('width', 0)
         camera.height = obj.get('height', 0)
@@ -142,6 +159,18 @@ def camera_to_json(camera):
     Write camera to a json object
     """
     if camera.projection_type == 'perspective':
+        return {
+            'projection_type': camera.projection_type,
+            'width': camera.width,
+            'height': camera.height,
+            'focal': camera.focal,
+            'k1': camera.k1,
+            'k2': camera.k2,
+            'focal_prior': camera.focal_prior,
+            'k1_prior': camera.k1_prior,
+            'k2_prior': camera.k2_prior
+        }
+    elif camera.projection_type == 'fisheye':
         return {
             'projection_type': camera.projection_type,
             'width': camera.width,
@@ -345,12 +374,33 @@ def mkdir_p(path):
             raise
 
 
-def json_dump(data, fout, indent=4, codec='utf-8'):
-    return json.dump(data, fout, indent=indent, ensure_ascii=False, encoding=codec)
+def json_dump(data, fout, minify=False, codec='utf-8'):
+    if minify:
+        indent, separators = None, (',',':')
+    else:
+        indent, separators = 4, None
+    return json.dump(data, fout, indent=indent, ensure_ascii=False, encoding=codec, separators=separators)
 
 
 def json_loads(text, codec='utf-8'):
     return json.loads(text.decode(codec))
+
+
+def imread(filename):
+    """Load image as an RGB array ignoring EXIF orientation."""
+    if context.OPENCV3:
+        flags = cv2.IMREAD_COLOR
+        try:
+            flags |= cv2.IMREAD_IGNORE_ORIENTATION
+        except AttributeError:
+            logger.warning(
+                "OpenCV version {} does not support loading images without "
+                "rotating them according to EXIF. Please upgrade OpenCV to "
+                "version 3.2 or newer.".format(cv2.__version__))
+    else:
+        flags = cv2.CV_LOAD_IMAGE_COLOR
+    bgr = cv2.imread(filename, flags)
+    return bgr[:, :, ::-1]  # Turn BGR to RGB
 
 
 # Bundler
@@ -473,7 +523,7 @@ def import_bundler(data_path, bundle_file, list_file, track_file,
         focal, k1, k2 = map(float, lines[offset].rstrip('\n').split(' '))
 
         if focal > 0:
-            im = cv2.imread(os.path.join(data_path, image_list[i]))
+            im = imread(os.path.join(data_path, image_list[i]))
             height, width = im.shape[0:2]
             camera = types.PerspectiveCamera()
             camera.id = 'camera_' + str(i)

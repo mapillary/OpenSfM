@@ -31,7 +31,8 @@ class Command:
                     shot.mesh.faces = faces
 
         data.save_reconstruction(reconstructions,
-                                 filename='reconstruction.meshed.json')
+                                 filename='reconstruction.meshed.json',
+                                 minify=True)
 
         end = time.time()
         with open(data.profile_log(), 'a') as fout:

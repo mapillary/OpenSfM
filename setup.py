@@ -31,7 +31,8 @@ setup(
     url='https://github.com/mapillary/OpenSfM',
     author='Mapillary',
     license='BSD',
-    packages=['opensfm'],
+    packages=['opensfm', 'opensfm.commands'],
+    scripts=['bin/opensfm_run_all', 'bin/opensfm'],
     package_data={
         'opensfm': ['csfm.so', 'data/sensor_data.json']
     },

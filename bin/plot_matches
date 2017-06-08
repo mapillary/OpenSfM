@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import argparse
+from itertools import combinations
 
 import matplotlib.pyplot as pl
 import networkx as nx
@@ -33,7 +34,9 @@ if __name__ == "__main__":
     parser.add_argument('dataset',
                         help='path to the dataset to be processed')
     parser.add_argument('--image',
-                        help='name of the image to show')
+                        help='show tracks for a specific')
+    parser.add_argument('--images',
+                        help='show tracks between a subset of images (separated by commas)')
     parser.add_argument('--graph',
                         help='display image graph',
                         action='store_true')
@@ -65,39 +68,40 @@ if __name__ == "__main__":
     else:
         # Plot matches between images
         if args.image:
-            toplot = [args.image]
+            pairs = [(args.image, o) for o in images if o != args.image]
+        elif args.images:
+            subset = args.images.split(',')
+            pairs = combinations(subset, 2)
         else:
-            toplot = images
+            pairs = combinations(images, 2)
 
         i = 0
-        for im1 in toplot:
-            for im2 in images:
-                if im1 != im2:
-                    matches = data.find_matches(im1, im2)
-                    if len(matches) == 0:
-                        continue
-                    print 'plotting matches between', im1, im2
+        for im1, im2 in pairs:
+            matches = data.find_matches(im1, im2)
+            if len(matches) == 0:
+                continue
+            print 'plotting matches between', im1, im2
 
-                    p1, f1, c1 = data.load_features(im1)
-                    p2, f2, c2 = data.load_features(im2)
-                    p1 = p1[matches[:, 0]]
-                    p2 = p2[matches[:, 1]]
+            p1, f1, c1 = data.load_features(im1)
+            p2, f2, c2 = data.load_features(im2)
+            p1 = p1[matches[:, 0]]
+            p2 = p2[matches[:, 1]]
 
-                    pl.figure(figsize=(20, 10))
-                    pl.title('Images: ' + im1 + ' - ' + im2 + ', matches: ' +
-                             str(matches.shape[0]))
-                    plot_matches(data.image_as_array(im1),
-                                 data.image_as_array(im2), p1, p2)
-                    i += 1
-                    if args.save_figs:
-                        p = args.dataset + '/plot_tracks'
-                        io.mkdir_p(p)
-                        pl.savefig(p + '/' + im1 + '_' + im2 + '.jpg', dpi=100)
-                        pl.close()
-                    else:
-                        if i >= 10:
-                            i = 0
-                            pl.show()
+            pl.figure(figsize=(20, 10))
+            pl.title('Images: ' + im1 + ' - ' + im2 + ', matches: ' +
+                     str(matches.shape[0]))
+            plot_matches(data.image_as_array(im1),
+                         data.image_as_array(im2), p1, p2)
+            i += 1
+            if args.save_figs:
+                p = args.dataset + '/plot_tracks'
+                io.mkdir_p(p)
+                pl.savefig(p + '/' + im1 + '_' + im2 + '.jpg', dpi=100)
+                pl.close()
+            else:
+                if i >= 10:
+                    i = 0
+                    pl.show()
 
         if not args.save_figs and i > 0:
             pl.show()

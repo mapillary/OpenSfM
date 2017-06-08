@@ -70,3 +70,12 @@ When running OpenSfM on top of OpenCV version 3.0 the `OpenCV Contrib`_ modules 
 .. _Ceres solver: http://ceres-solver.org/
 .. _Boost Python: http://www.boost.org/
 .. _Networkx: https://github.com/networkx/networkx
+
+
+Building the documentation
+--------------------------
+To build the documentation and browse it locally use
+::
+    cd doc
+    make livehtml
+and browse `http://localhost:8001/ <http://localhost:8001/>`_

@@ -1,0 +1,76 @@
+#!/usr/bin/env python
+
+import argparse
+import matplotlib.pyplot as pl
+import numpy as np
+from textwrap import wrap
+
+from opensfm import dataset
+from opensfm import io
+
+
+def plot_depthmap(im, title, depth, plane, score, nghbr):
+        ax = pl.subplot2grid((2, 3), (0, 0), rowspan=2)
+        ax_title = ax.set_title(title)
+        ax_title.set_y(1.05)
+        pl.imshow(im)
+        ax = pl.subplot(2, 3, 2)
+        ax_title = ax.set_title("Depth")
+        ax_title.set_y(1.08)
+        pl.imshow(depth)
+        pl.colorbar()
+        ax = pl.subplot(2, 3, 3)
+        ax_title = ax.set_title("Score")
+        ax_title.set_y(1.08)
+        pl.imshow(score)
+        pl.colorbar()
+        ax = pl.subplot(2, 3, 5)
+        ax_title = ax.set_title("Neighbor")
+        ax_title.set_y(1.08)
+        pl.imshow(nghbr)
+        pl.colorbar()
+        ax = pl.subplot(2, 3, 6)
+        ax_title = ax.set_title("Plane normal")
+        ax_title.set_y(1.02)
+        pl.imshow(color_plane_normals(plane))
+
+
+def color_plane_normals(plane):
+    l = np.linalg.norm(plane, axis=2)
+    normal = plane / l[..., np.newaxis]
+    normal[..., 1] *= -1  # Reverse Y because it points down
+    normal[..., 2] *= -1  # Reverse Z because standard colormap does so
+    return ((normal + 1) * 128).astype(np.uint8)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Compute reconstruction')
+    parser.add_argument('dataset',
+                        help='path to the dataset to be processed')
+    parser.add_argument('--image',
+                        help='name of the image to show')
+    parser.add_argument('--save-figs',
+                        help='save figures istead of showing them',
+                        action='store_true')
+    args = parser.parse_args()
+
+    data = dataset.DataSet(args.dataset)
+
+    images = [args.image] if args.image else data.images()
+    for image in images:
+            depth, plane, score, nghbr, nghbrs = data.load_raw_depthmap(image)
+
+            print "Plotting depthmap for {0}".format(image)
+            pl.close("all")
+            pl.figure(figsize=(30, 16), dpi=90, facecolor='w', edgecolor='k')
+            title = "Shot: " + image + "\n" + "\n".join(wrap("Neighbors: " + ', '.join(nghbrs), 80))
+            plot_depthmap(data.image_as_array(image), title, depth, plane, score, nghbr)
+            pl.tight_layout()
+
+            if args.save_figs:
+                p = args.dataset + '/plot_depthmaps'
+                io.mkdir_p(p)
+                pl.savefig(p + '/' + image + '.png')
+                pl.close()
+            else:
+                pl.show()

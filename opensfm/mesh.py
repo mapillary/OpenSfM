@@ -18,6 +18,8 @@ def triangle_mesh(shot_id, r, graph, data):
 
     if shot.camera.projection_type == 'perspective':
         return triangle_mesh_perspective(shot_id, r, graph)
+    elif shot.camera.projection_type == 'fisheye':
+        return triangle_mesh_fisheye(shot_id, r, graph)
     elif shot.camera.projection_type in ['equirectangular', 'spherical']:
         return triangle_mesh_equirectangular(shot_id, r, graph)
     else:
@@ -76,6 +78,53 @@ def back_project_no_distortion(shot, pixel, depth):
     return shot.pose.transform_inverse(p)
 
 
+def triangle_mesh_fisheye(shot_id, r, graph):
+    shot = r.shots[shot_id]
+
+    bearings = []
+    vertices = []
+
+    # Add boundary vertices
+    num_circle_points = 20
+    for i in range(num_circle_points):
+        a = 2 * np.pi * float(i) / num_circle_points
+        point = 30 * np.array([np.cos(a), np.sin(a), 0])
+        bearing = point / np.linalg.norm(point)
+        point = shot.pose.transform_inverse(point)
+        vertices.append(point.tolist())
+        bearings.append(bearing)
+
+    # Add a single vertex in front of the camera
+    point = 30 * np.array([0, 0, 1])
+    bearing = 0.3 * point / np.linalg.norm(point)
+    point = shot.pose.transform_inverse(point)
+    vertices.append(point.tolist())
+    bearings.append(bearing)
+
+    # Add reconstructed points
+    for track_id, edge in graph[shot_id].items():
+        if track_id in r.points:
+            point = r.points[track_id].coordinates
+            vertices.append(point)
+            direction = shot.pose.transform(point)
+            pixel = direction / np.linalg.norm(direction)
+            bearings.append(pixel.tolist())
+
+    # Triangulate
+    tri = scipy.spatial.ConvexHull(bearings)
+    faces = tri.simplices.tolist()
+
+    # Remove faces having only boundary vertices
+    def good_face(face):
+        return (face[0] >= num_circle_points or
+                face[1] >= num_circle_points or
+                face[2] >= num_circle_points)
+
+    faces = filter(good_face, faces)
+
+    return vertices, faces
+
+
 def triangle_mesh_equirectangular(shot_id, r, graph):
     shot = r.shots[shot_id]
 
@@ -100,4 +149,5 @@ def triangle_mesh_equirectangular(shot_id, r, graph):
 
     tri = scipy.spatial.ConvexHull(bearings)
     faces = tri.simplices.tolist()
+
     return vertices, faces

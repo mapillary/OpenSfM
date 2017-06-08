@@ -32,7 +32,11 @@ def bundle(graph, reconstruction, gcp, config, fix_cameras=False):
                 str(camera.id), camera.focal, camera.k1, camera.k2,
                 camera.focal_prior, camera.k1_prior, camera.k2_prior,
                 fix_cameras)
-
+        elif camera.projection_type == 'fisheye':
+            ba.add_fisheye_camera(
+                str(camera.id), camera.focal, camera.k1, camera.k2,
+                camera.focal_prior, camera.k1_prior, camera.k2_prior,
+                fix_cameras)
         elif camera.projection_type in ['equirectangular', 'spherical']:
             ba.add_equirectangular_camera(str(camera.id))
 
@@ -60,14 +64,14 @@ def bundle(graph, reconstruction, gcp, config, fix_cameras=False):
     if config['bundle_use_gps']:
         for shot in reconstruction.shots.values():
             g = shot.metadata.gps_position
-            ba.add_position_prior(shot.id, g[0], g[1], g[2],
+            ba.add_position_prior(str(shot.id), g[0], g[1], g[2],
                                   shot.metadata.gps_dop)
 
     if config['bundle_use_gcp'] and gcp:
         for observation in gcp:
             if observation.shot_id in reconstruction.shots:
                 ba.add_ground_control_point_observation(
-                    observation.shot_id,
+                    str(observation.shot_id),
                     observation.coordinates[0],
                     observation.coordinates[1],
                     observation.coordinates[2],
@@ -96,6 +100,11 @@ def bundle(graph, reconstruction, gcp, config, fix_cameras=False):
             camera.focal = c.focal
             camera.k1 = c.k1
             camera.k2 = c.k2
+        elif camera.projection_type == 'fisheye':
+            c = ba.get_fisheye_camera(str(camera.id))
+            camera.focal = c.focal
+            camera.k1 = c.k1
+            camera.k2 = c.k2
 
     for shot in reconstruction.shots.values():
         s = ba.get_shot(str(shot.id))
@@ -121,6 +130,10 @@ def bundle_single_view(graph, reconstruction, shot_id, config):
 
     if camera.projection_type == 'perspective':
         ba.add_perspective_camera(
+            str(camera.id), camera.focal, camera.k1, camera.k2,
+            camera.focal_prior, camera.k1_prior, camera.k2_prior, True)
+    elif camera.projection_type == 'fisheye':
+        ba.add_fisheye_camera(
             str(camera.id), camera.focal, camera.k1, camera.k2,
             camera.focal_prior, camera.k1_prior, camera.k2_prior, True)
     elif camera.projection_type in ['equirectangular', 'spherical']:
@@ -831,7 +844,7 @@ def grow_reconstruction(data, graph, reconstruction, images, gcp):
         if data.config.get('save_partial_reconstructions', False):
             paint_reconstruction(data, graph, reconstruction)
             data.save_reconstruction(
-                reconstruction, 'reconstruction.{}.json'.format(
+                [reconstruction], 'reconstruction.{}.json'.format(
                     datetime.datetime.now().isoformat().replace(':', '_')))
 
         common_tracks = reconstructed_points_for_images(graph, reconstruction,
