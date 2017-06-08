@@ -445,13 +445,13 @@ class DataSet:
         with open(self.__navigation_graph_file(), 'w') as fout:
             io.json_dump(navigation_graphs, fout)
 
-    def __ply_file(self):
-        return os.path.join(self.data_path, 'reconstruction.ply')
+    def __ply_file(self, filename):
+        return os.path.join(self.data_path, filename or 'reconstruction.ply')
 
-    def save_ply(self, reconstruction):
+    def save_ply(self, reconstruction, filename=None):
         """Save a reconstruction in PLY format"""
         ply = io.reconstruction_to_ply(reconstruction)
-        with open(self.__ply_file(), 'w') as fout:
+        with open(self.__ply_file(filename), 'w') as fout:
             fout.write(ply)
 
     def __ground_control_points_file(self):
