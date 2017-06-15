@@ -158,7 +158,7 @@ def bundle_single_view(graph, reconstruction, shot_id, config):
 
     if config['bundle_use_gps']:
         g = shot.metadata.gps_position
-        ba.add_position_prior(shot.id, g[0], g[1], g[2],
+        ba.add_position_prior(str(shot.id), g[0], g[1], g[2],
                               shot.metadata.gps_dop)
 
     ba.set_loss_function(config.get('loss_function', 'SoftLOneLoss'),
