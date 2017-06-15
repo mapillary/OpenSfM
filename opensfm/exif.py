@@ -11,7 +11,10 @@ logger = logging.getLogger(__name__)
 
 
 def eval_frac(value):
-    return float(value.num) / float(value.den)
+    try:
+        return float(value.num) / float(value.den)
+    except ZeroDivisionError:
+        return None
 
 
 def gps_to_decimal(values, reference):
