@@ -33,10 +33,6 @@ akaze_descriptor_channels: 3  # Number of feature channels (1,2,3)
 hahog_peak_threshold: 0.00001
 hahog_edge_threshold: 10
 
-# Masks for regions that will be ignored for feature extraction
-# List of bounding boxes specified as the ratio to image width and height
-# masks: [{top: 0.96, bottom: 1.0, left: 0.0, right: 0.15}, {top: 0.95, bottom: 1.0, left: 0, right: 0.05}]
-
 # Params for general matching
 lowes_ratio: 0.8              # Ratio test for matches
 preemptive_lowes_ratio: 0.6   # Ratio test for preemptive matches
@@ -51,6 +47,7 @@ flann_checks: 200             # Smaller -> Faster (but might lose good matches)
 matching_gps_distance: 150            # Maximum gps distance between two images for matching
 matching_gps_neighbors: 0             # Number of images to match selected by GPS distance. Set to 0 to use no limit
 matching_time_neighbors: 0            # Number of images to match selected by time taken. Set to 0 to use no limit
+matching_order_neighbors: 0           # Number of images to match selected by image name. Set to 0 to use no limit
 preemptive_max: 200                   # Number of features to use for preemptive matching
 preemptive_threshold: 0               # If number of matches passes the threshold -> full feature matching
 
@@ -102,6 +99,7 @@ nav_vertical_threshold: 20            # Maximum vertical angle difference in mot
 nav_rotation_threshold: 30            # Maximum general rotation in degrees between cameras for steps
 
 # Params for depth estimation
+depthmap_method: PATCH_MATCH          # Raw depthmap computationg algorithm (PATCH_MATCH, BRUTE_FORCE, PATCH_MATCH_SAMPLE)
 depthmap_resolution: 640              # Resolution of the depth maps
 depthmap_num_neighbors: 10            # Number of neighboring views
 depthmap_num_matching_views: 2        # Number of neighboring views used for each depthmaps

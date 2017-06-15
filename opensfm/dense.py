@@ -56,23 +56,34 @@ def parallel_run(function, arguments, num_processes):
 def compute_depthmap(arguments):
     """Compute depthmap for a single shot."""
     data, reconstruction, neighbors, min_depth, max_depth, shot = arguments
+    method = data.config['depthmap_method']
 
     if data.raw_depthmap_exists(shot.id):
         logger.info("Using precomputed raw depthmap {}".format(shot.id))
         return
-    logger.info("Computing depthmap for image {}".format(shot.id))
+    logger.info("Computing depthmap for image {0} with {1}".format(shot.id, method))
 
     de = csfm.DepthmapEstimator()
     de.set_depth_range(min_depth, max_depth, 100)
     de.set_patchmatch_iterations(data.config['depthmap_patchmatch_iterations'])
     de.set_min_patch_sd(data.config['depthmap_min_patch_sd'])
     add_views_to_depth_estimator(data, reconstruction, neighbors[shot.id], de)
-    depth, plane, score = de.compute_patch_match()
+
+    if (method == 'BRUTE_FORCE'):
+        depth, plane, score, nghbr = de.compute_brute_force()
+    elif (method == 'PATCH_MATCH'):
+        depth, plane, score, nghbr = de.compute_patch_match()
+    elif (method == 'PATCH_MATCH_SAMPLE'):
+        depth, plane, score, nghbr = de.compute_patch_match_sample()
+    else:
+        raise ValueError('Unknown depthmap method type ' \
+            '(must be BRUTE_FORCE, PATCH_MATCH or PATCH_MATCH_SAMPLE)')
+
     good_score = score > data.config['depthmap_min_correlation_score']
     depth = depth * (depth < max_depth) * good_score
 
     # Save and display results
-    data.save_raw_depthmap(shot.id, depth, plane, score)
+    data.save_raw_depthmap(shot.id, depth, plane, score, nghbr, neighbors[shot.id][1:])
 
     if data.config['depthmap_save_debug_files']:
         image = data.undistorted_image_as_array(shot.id)
@@ -83,15 +94,20 @@ def compute_depthmap(arguments):
 
     if data.config.get('interactive'):
         import matplotlib.pyplot as plt
-        plt.subplot(2, 2, 1)
+        plt.figure()
+        plt.suptitle("Shot: " + shot.id + ", neighbors: " + ', '.join(neighbors[shot.id][1:]))
+        plt.subplot(2, 3, 1)
         plt.imshow(image)
-        plt.subplot(2, 2, 2)
+        plt.subplot(2, 3, 2)
         plt.imshow(color_plane_normals(plane))
-        plt.subplot(2, 2, 3)
+        plt.subplot(2, 3, 3)
         plt.imshow(depth)
         plt.colorbar()
-        plt.subplot(2, 2, 4)
+        plt.subplot(2, 3, 4)
         plt.imshow(score)
+        plt.colorbar()
+        plt.subplot(2, 3, 5)
+        plt.imshow(nghbr)
         plt.colorbar()
         plt.show()
 
@@ -112,7 +128,7 @@ def clean_depthmap(arguments):
     depth = dc.clean()
 
     # Save and display results
-    raw_depth, raw_plane, raw_score = data.load_raw_depthmap(shot.id)
+    raw_depth, raw_plane, raw_score, raw_nghbr, nghbrs = data.load_raw_depthmap(shot.id)
     data.save_clean_depthmap(shot.id, depth, raw_plane, raw_score)
 
     if data.config['depthmap_save_debug_files']:
@@ -124,6 +140,8 @@ def clean_depthmap(arguments):
 
     if data.config.get('interactive'):
         import matplotlib.pyplot as plt
+        plt.figure()
+        plt.suptitle("Shot: " + shot.id)
         plt.subplot(2, 2, 1)
         plt.imshow(raw_depth)
         plt.colorbar()
@@ -190,7 +208,7 @@ def add_views_to_depth_cleaner(data, reconstruction, neighbors, dc):
         shot = reconstruction.shots[neighbor]
         if not data.raw_depthmap_exists(shot.id):
             continue
-        depth, plane, score = data.load_raw_depthmap(shot.id)
+        depth, plane, score, nghbr, nghbrs = data.load_raw_depthmap(shot.id)
         height, width = depth.shape
         K = shot.camera.get_K_in_pixel_coordinates(width, height)
         R = shot.pose.get_rotation_matrix()
@@ -212,7 +230,7 @@ def compute_depth_range(graph, reconstruction, shot):
 
 
 def find_neighboring_images(shot, common_tracks, reconstruction, num_neighbors=5):
-    """Find neighbouring images based on common tracks."""
+    """Find neighboring images based on common tracks."""
     theta_min = np.pi / 60
     theta_max = np.pi / 6
     ns = []

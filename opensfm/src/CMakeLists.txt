@@ -77,6 +77,10 @@ target_link_libraries(akaze ${OpenCV_LIBS})
 # VLFeat
 include_directories(third_party/vlfeat)
 file(GLOB VLFEAT_SRCS third_party/vlfeat/vl/*.c third_party/vlfeat/vl/*.h)
+if (NOT CMAKE_SYSTEM_PROCESSOR MATCHES 
+    "(x86)|(X86)|(x86_64)|(X86_64)|(amd64)|(AMD64)")
+    add_definitions(-DVL_DISABLE_SSE2)
+endif ()
 add_definitions(-DVL_DISABLE_AVX)
 add_library(vl ${VLFEAT_SRCS})
 

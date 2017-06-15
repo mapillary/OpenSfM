@@ -30,7 +30,6 @@ Install OpenCV using
     brew install opencv
     brew install homebrew/science/ceres-solver
     brew install boost-python
-    sudo pip install -r requirements.txt
 
 And install OpenGV using
 
@@ -63,6 +62,10 @@ When running OpenSfM on top of [OpenCV][] 3.0 the [OpenCV Contrib][] modules are
 
 ## Building
 
+    sudo pip install virtualenv
+    virtualenv env
+    source env/bin/activate
+    pip install -r requirements.txt
     python setup.py build
 
 
@@ -72,7 +75,7 @@ An example dataset is available at `data/berlin`.
 
  1. Put some images in `data/DATASET_NAME/images/`
  2. Put config.yaml in `data/DATASET_NAME/config.yaml`
- 3. Go to the root of the project and run `bin/run_all data/DATASET_NAME`
+ 3. Go to the root of the project and run `bin/opensfm_run_all data/DATASET_NAME`
  4. Start an http server from the root with `python -m SimpleHTTPServer`
  5. Browse `http://localhost:8000/viewer/reconstruction.html#file=/data/DATASET_NAME/reconstruction.meshed.json`.
 
