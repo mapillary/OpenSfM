@@ -34,9 +34,10 @@ def plot_clusters(ax, positions, labels, centers=None):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Plot matches between images')
+    parser = argparse.ArgumentParser(
+        description='Plot gps location of a splitted dataset')
     parser.add_argument('dataset',
-                        help='path to the dataset to be processed')
+                        help='path to the dataset')
     parser.add_argument('-m', '--mode',
                         help='plot images clusters in different colors',
                         default='positions',
@@ -153,7 +154,6 @@ if __name__ == '__main__':
 
         set_axes_limits(positions)
         set_gps_labels(fig)
-
 
     if args.save_figs:
         plot_path = '{}/plot_gps'.format(args.dataset)
