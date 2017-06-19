@@ -348,6 +348,9 @@ class DataSet:
         """Return path of reconstruction file"""
         return os.path.join(self.data_path, filename or 'reconstruction.json')
 
+    def reconstruction_exists(self, filename=None):
+        return os.path.isfile(self.__reconstruction_file(filename))
+
     def load_reconstruction(self, filename=None):
         with open(self.__reconstruction_file(filename)) as fin:
             reconstructions = io.reconstructions_from_json(json.load(fin))
@@ -398,6 +401,9 @@ class DataSet:
         with open(self.__reference_lla_path(), 'r') as fin:
             return json.load(fin)
 
+    def reference_lla_exists(self):
+        return os.path.isfile(self.__reference_lla_path())
+
     def __camera_models_file(self):
         """Return path of camera model file"""
         return os.path.join(self.data_path, 'camera_models.json')
@@ -439,13 +445,13 @@ class DataSet:
         with open(self.__navigation_graph_file(), 'w') as fout:
             io.json_dump(navigation_graphs, fout)
 
-    def __ply_file(self):
-        return os.path.join(self.data_path, 'reconstruction.ply')
+    def __ply_file(self, filename):
+        return os.path.join(self.data_path, filename or 'reconstruction.ply')
 
-    def save_ply(self, reconstruction):
+    def save_ply(self, reconstruction, filename=None):
         """Save a reconstruction in PLY format"""
         ply = io.reconstruction_to_ply(reconstruction)
-        with open(self.__ply_file(), 'w') as fout:
+        with open(self.__ply_file(filename), 'w') as fout:
             fout.write(ply)
 
     def __ground_control_points_file(self):

@@ -12,6 +12,7 @@
 #include "bundle.h"
 #include "openmvs_exporter.h"
 #include "depthmap_wrapper.cc"
+#include "reconstruction_alignment.h"
 
 #if (PY_VERSION_HEX < 0x03000000)
 static void numpy_import_array_wrapper()
@@ -181,4 +182,54 @@ BOOST_PYTHON_MODULE(csfm) {
     .def("add_view", &csfm::DepthmapMergerWrapper::AddView)
     .def("merge", &csfm::DepthmapMergerWrapper::Merge)
   ;
+
+  ///////////////////////////////////
+  // Reconstruction Aligment
+  //
+  class_<ReconstructionAlignment>("ReconstructionAlignment")
+    .def("run", &ReconstructionAlignment::Run)
+    .def("get_shot", &ReconstructionAlignment::GetShot)
+    .def("get_reconstruction", &ReconstructionAlignment::GetReconstruction)
+    .def("add_shot", &ReconstructionAlignment::AddShot)
+    .def("add_reconstruction", &ReconstructionAlignment::AddReconstruction)
+    .def("add_relative_motion_constraint", &ReconstructionAlignment::AddRelativeMotionConstraint)
+    .def("add_absolute_position_constraint", &ReconstructionAlignment::AddAbsolutePositionConstraint)
+    .def("add_common_point_constraint", &ReconstructionAlignment::AddCommonPointConstraint)
+    .def("brief_report", &ReconstructionAlignment::BriefReport)
+    .def("full_report", &ReconstructionAlignment::FullReport)
+  ;
+
+  class_<RAShot>("RAShot")
+    .add_property("rx", &RAShot::GetRX, &RAShot::SetRX)
+    .add_property("ry", &RAShot::GetRY, &RAShot::SetRY)
+    .add_property("rz", &RAShot::GetRZ, &RAShot::SetRZ)
+    .add_property("tx", &RAShot::GetTX, &RAShot::SetTX)
+    .add_property("ty", &RAShot::GetTY, &RAShot::SetTY)
+    .add_property("tz", &RAShot::GetTZ, &RAShot::SetTZ)
+    .def_readwrite("id", &RAShot::id)
+  ;
+
+  class_<RAReconstruction>("RAReconstruction")
+    .add_property("rx", &RAReconstruction::GetRX, &RAReconstruction::SetRX)
+    .add_property("ry", &RAReconstruction::GetRY, &RAReconstruction::SetRY)
+    .add_property("rz", &RAReconstruction::GetRZ, &RAReconstruction::SetRZ)
+    .add_property("tx", &RAReconstruction::GetTX, &RAReconstruction::SetTX)
+    .add_property("ty", &RAReconstruction::GetTY, &RAReconstruction::SetTY)
+    .add_property("tz", &RAReconstruction::GetTZ, &RAReconstruction::SetTZ)
+    .add_property("scale", &RAReconstruction::GetScale, &RAReconstruction::SetScale)
+    .def_readwrite("id", &RAReconstruction::id)
+  ;
+
+  class_<RARelativeMotionConstraint>("RARelativeMotionConstraint", init<const std::string &, const std::string &, double, double, double, double, double, double>())
+    .def_readwrite("reconstruction", &RARelativeMotionConstraint::reconstruction_id)
+    .def_readwrite("shot", &RARelativeMotionConstraint::shot_id)
+    .add_property("rx", &RARelativeMotionConstraint::GetRX, &RARelativeMotionConstraint::SetRX)
+    .add_property("ry", &RARelativeMotionConstraint::GetRY, &RARelativeMotionConstraint::SetRY)
+    .add_property("rz", &RARelativeMotionConstraint::GetRZ, &RARelativeMotionConstraint::SetRZ)
+    .add_property("tx", &RARelativeMotionConstraint::GetTX, &RARelativeMotionConstraint::SetTX)
+    .add_property("ty", &RARelativeMotionConstraint::GetTY, &RARelativeMotionConstraint::SetTY)
+    .add_property("tz", &RARelativeMotionConstraint::GetTZ, &RARelativeMotionConstraint::SetTZ)
+    .def("set_scale_matrix", &RARelativeMotionConstraint::SetScaleMatrix)
+  ;
+
 }
