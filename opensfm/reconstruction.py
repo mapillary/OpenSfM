@@ -183,9 +183,14 @@ def bundle_local(graph, reconstruction, gcp, central_shot_id, config):
     """Bundle adjust the local neighborhood of a shot."""
     start = time.time()
 
-    interior, boundary = shot_neighborhood(graph, reconstruction, central_shot_id, 2)
-    print('interior {} boundary {} other {}'.format(len(interior), len(boundary),
+    interior, boundary = shot_neighborhood(
+        graph, reconstruction, central_shot_id, config['local_bundle_radius'])
+
+    logger.debug('Local bundle sets: interior {}  boundary {}  other {}'.format(
+          len(interior),
+          len(boundary),
           len(reconstruction.shots) - len(interior) - len(boundary)))
+
     point_ids = set()
     for shot_id in interior:
         if shot_id in graph:
@@ -872,7 +877,8 @@ def grow_reconstruction(data, graph, reconstruction, images, gcp):
                                                data.config)
                     should_bundle.done(reconstruction)
                 else:
-                    bundle_local(graph, reconstruction, None, image, data.config)
+                    if data.config['local_bundle_radius'] > 0:
+                        bundle_local(graph, reconstruction, None, image, data.config)
 
                 if should_retriangulate.should(reconstruction):
                     logger.info("Re-triangulating")
