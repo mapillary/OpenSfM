@@ -2,11 +2,13 @@
 *.so
 xcode
 .DS_Store
+launch.json
 
 # Ignore generated files
 /build
 /cmake_build
 .cache
+eval
 
 # Ignore the data folder, but not the berlin example.
 data/*
@@ -14,8 +16,6 @@ data/berlin/*
 !data/berlin
 !data/berlin/config.yaml
 !data/berlin/images
-
-eval
 
 # Ignore virtualenv files
 env/*

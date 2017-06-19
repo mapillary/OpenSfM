@@ -76,6 +76,7 @@ radial_distorsion_k2_sd: 0.01   # The standard deviation of the second radial di
 bundle_interval: 0              # bundle adjustment after adding 'bundle_interval' cameras
 bundle_new_points_ratio: 1.2    # bundle when (new points) / (bundled points) > bundle_outlier_threshold
 bundle_outlier_threshold: 0.006
+optimize_camera_parameters: yes
 
 save_partial_reconstructions: no
 
@@ -83,7 +84,7 @@ save_partial_reconstructions: no
 use_altitude_tag: no                  # Use or ignore EXIF altitude tag
 align_method: orientation_prior       # orientation_prior or naive
 align_orientation_prior: horizontal   # horizontal, vertical or no_roll
-bundle_use_gps: no                    # Enforce GPS position in bundle adjustment
+bundle_use_gps: yes                   # Enforce GPS position in bundle adjustment
 bundle_use_gcp: no                    # Enforce Ground Control Point position in bundle adjustment
 
 # Params for navigation graph

@@ -22,8 +22,10 @@ from opensfm import types
 logger = logging.getLogger(__name__)
 
 
-def bundle(graph, reconstruction, gcp, config, fix_cameras=False):
+def bundle(graph, reconstruction, gcp, config):
     """Bundle adjust a reconstruction."""
+    fix_cameras = not config['optimize_camera_parameters']
+
     start = time.time()
     ba = csfm.BundleAdjuster()
     for camera in reconstruction.cameras.values():
