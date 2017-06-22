@@ -50,11 +50,12 @@ class Command:
                 urec.add_shot(shot)
             elif shot.camera.projection_type in ['equirectangular', 'spherical']:
                 original = data.image_as_array(shot.id)
-                width = 4 * int(data.config['depthmap_resolution'])
+                subshot_width = int(data.config['depthmap_resolution'])
+                width = 4 * subshot_width
                 height = width / 2
                 image = cv2.resize(original, (width, height), interpolation=cv2.INTER_AREA)
-                shots = perspective_views_of_a_panorama(shot, width)
-                for subshot in shots:
+                subshots = perspective_views_of_a_panorama(shot, subshot_width)
+                for subshot in subshots:
                     urec.add_camera(subshot.camera)
                     urec.add_shot(subshot)
                     undistorted = render_perspective_view_of_a_panorama(
