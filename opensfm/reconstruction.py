@@ -924,6 +924,9 @@ def incremental_reconstruction(data):
 
     reconstructions = []
     for reconstruction in existing_reconstructions:
+        all_cameras = data.load_camera_models()
+        all_cameras.update(reconstruction.cameras)
+        reconstruction.cameras = all_cameras
         grow_reconstruction(data, graph, reconstruction, remaining_images, gcp)
         reconstructions.append(reconstruction)
         reconstructions = sorted(reconstructions,
