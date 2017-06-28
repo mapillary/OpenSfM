@@ -32,42 +32,56 @@ class Command:
         urec = types.Reconstruction()
         urec.points = reconstruction.points
 
+        undistorted_shots = {}
         for shot in reconstruction.shots.values():
             if shot.camera.projection_type == 'perspective':
-                image = data.image_as_array(shot.id)
-                undistorted = undistort_image(image, shot.camera)
-                data.save_undistorted_image(shot.id, undistorted)
-
                 urec.add_camera(shot.camera)
                 urec.add_shot(shot)
+                undistorted_shots[shot.id] = [shot]
             elif shot.camera.projection_type == 'fisheye':
-                image = data.image_as_array(shot.id)
-                undistorted = undistort_fisheye_image(image, shot.camera)
-                data.save_undistorted_image(shot.id, undistorted)
-
                 shot.camera = perspective_camera_from_fisheye(shot.camera)
                 urec.add_camera(shot.camera)
                 urec.add_shot(shot)
+                undistorted_shots[shot.id] = [shot]
             elif shot.camera.projection_type in ['equirectangular', 'spherical']:
-                original = data.image_as_array(shot.id)
                 subshot_width = int(data.config['depthmap_resolution'])
-                width = 4 * subshot_width
-                height = width / 2
-                image = cv2.resize(original, (width, height), interpolation=cv2.INTER_AREA)
                 subshots = perspective_views_of_a_panorama(shot, subshot_width)
                 for subshot in subshots:
                     urec.add_camera(subshot.camera)
                     urec.add_shot(subshot)
-                    undistorted = render_perspective_view_of_a_panorama(
-                        image, shot, subshot)
-                    data.save_undistorted_image(subshot.id, undistorted)
-
                     add_subshot_tracks(graph, shot, subshot)
-
+                undistorted_shots[shot.id] = subshots
         data.save_undistorted_reconstruction([urec])
 
+        from pprint import pprint
+        pprint(undistorted_shots)
 
-def undistort_image(image, camera):
+        for shot in reconstruction.shots.values():
+            undistort_image(shot, undistorted_shots[shot.id], data)
+
+
+def undistort_image(shot, undistorted_shots, data):
+    if shot.camera.projection_type == 'perspective':
+        image = data.image_as_array(shot.id)
+        undistorted = undistort_perspective_image(image, shot.camera)
+        data.save_undistorted_image(shot.id, undistorted)
+    elif shot.camera.projection_type == 'fisheye':
+        image = data.image_as_array(shot.id)
+        undistorted = undistort_fisheye_image(image, shot.camera)
+        data.save_undistorted_image(shot.id, undistorted)
+    elif shot.camera.projection_type in ['equirectangular', 'spherical']:
+        original = data.image_as_array(shot.id)
+        subshot_width = int(data.config['depthmap_resolution'])
+        width = 4 * subshot_width
+        height = width / 2
+        image = cv2.resize(original, (width, height), interpolation=cv2.INTER_AREA)
+        for subshot in undistorted_shots:
+            undistorted = render_perspective_view_of_a_panorama(
+                image, shot, subshot)
+            data.save_undistorted_image(subshot.id, undistorted)
+
+
+def undistort_perspective_image(image, camera):
     """Remove radial distortion from a perspective image."""
     height, width = image.shape[:2]
     K = camera.get_K_in_pixel_coordinates(width, height)
