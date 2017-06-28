@@ -168,6 +168,8 @@ def render_perspective_view_of_a_panorama(image, panoshot, perspectiveshot):
 
 def add_subshot_tracks(graph, panoshot, perspectiveshot):
     """Add edges between subshots and visible tracks."""
+    if panoshot.id not in graph:
+        return
     graph.add_node(perspectiveshot.id, bipartite=0)
     for track in graph[panoshot.id]:
         edge = graph[panoshot.id][track]
