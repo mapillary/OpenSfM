@@ -82,6 +82,10 @@ def shot_from_json(key, obj, cameras):
         shot.covariance = np.array(obj['covariance'])
     if 'merge_cc' in obj:
         shot.merge_cc = obj['merge_cc']
+    if 'vertices' in obj and 'faces' in obj:
+        shot.mesh = types.ShotMesh()
+        shot.mesh.vertices = obj['vertices']
+        shot.mesh.faces = obj['faces']
 
     return shot
 
