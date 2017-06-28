@@ -98,7 +98,7 @@ def compute_depthmap(arguments):
     if data.config.get('interactive'):
         import matplotlib.pyplot as plt
         plt.figure()
-        plt.suptitle("Shot: " + shot.id + ", neighbors: " + ', '.join(neighbors[shot.id][1:]))
+        plt.suptitle("Shot: " + shot.id + ", neighbors: " + ', '.join(nghbrs))
         plt.subplot(2, 3, 1)
         plt.imshow(image)
         plt.subplot(2, 3, 2)
