@@ -1,4 +1,5 @@
 import logging
+from multiprocessing import Pool
 
 import cv2
 import numpy as np
@@ -32,6 +33,7 @@ class Command:
         urec = types.Reconstruction()
         urec.points = reconstruction.points
 
+        logger.debug('Undistorting the reconstruction')
         undistorted_shots = {}
         for shot in reconstruction.shots.values():
             if shot.camera.projection_type == 'perspective':
@@ -53,14 +55,23 @@ class Command:
                 undistorted_shots[shot.id] = subshots
         data.save_undistorted_reconstruction([urec])
 
-        from pprint import pprint
-        pprint(undistorted_shots)
-
+        arguments = []
         for shot in reconstruction.shots.values():
-            undistort_image(shot, undistorted_shots[shot.id], data)
+            arguments.append((shot, undistorted_shots[shot.id], data))
+
+        processes = data.config['processes']
+        if processes == 1:
+            for arg in arguments:
+                undistort_image(arg)
+        else:
+            p = Pool(processes)
+            p.map(undistort_image, arguments)
 
 
-def undistort_image(shot, undistorted_shots, data):
+def undistort_image(arguments):
+    shot, undistorted_shots, data = arguments
+    logger.debug('Undistorting image {}'.format(shot.id))
+
     if shot.camera.projection_type == 'perspective':
         image = data.image_as_array(shot.id)
         undistorted = undistort_perspective_image(image, shot.camera)
