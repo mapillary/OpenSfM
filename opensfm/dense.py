@@ -241,7 +241,7 @@ def find_neighboring_images(shot, common_tracks, reconstruction, num_neighbors=5
         tracks = common_tracks.get(tuple(sorted([shot.id, other.id])), [])
         for track in tracks:
             if track in reconstruction.points:
-                p = np.array(reconstruction.points[track].coordinates)
+                p = reconstruction.points[track].coordinates
                 theta = angle_between_points(p, C1, C2)
                 if theta > theta_min and theta < theta_max:
                     score += 1
@@ -254,9 +254,16 @@ def find_neighboring_images(shot, common_tracks, reconstruction, num_neighbors=5
 
 
 def angle_between_points(origin, p1, p2):
-    a = np.asarray(p1) - origin
-    b = np.asarray(p2) - origin
-    return np.arccos(a.dot(b) / (np.linalg.norm(a) * np.linalg.norm(b)))
+    a0 = p1[0] - origin[0]
+    a1 = p1[1] - origin[1]
+    a2 = p1[2] - origin[2]
+    b0 = p2[0] - origin[0]
+    b1 = p2[1] - origin[1]
+    b2 = p2[2] - origin[2]
+    dot = a0 * b0 + a1 * b1 + a2 * b2
+    la = a0 * a0 + a1 * a1 + a2 * a2
+    lb = b0 * b0 + b1 * b1 + b2 * b2
+    return np.arccos(dot / np.sqrt(la * lb))
 
 
 def distance_between_shots(shot, other):
