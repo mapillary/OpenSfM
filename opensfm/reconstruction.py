@@ -236,7 +236,7 @@ def bundle_local(graph, reconstruction, gcp, central_shot_id, config):
         for shot_id in interior:
             shot = reconstruction.shots[shot_id]
             g = shot.metadata.gps_position
-            ba.add_position_prior(shot.id, g[0], g[1], g[2],
+            ba.add_position_prior(str(shot.id), g[0], g[1], g[2],
                                   shot.metadata.gps_dop)
 
     if config['bundle_use_gcp'] and gcp:
