@@ -19,8 +19,8 @@ class Command:
 
     def run(self, args):
         data = dataset.DataSet(args.dataset)
-        reconstructions = data.load_reconstruction()
-        graph = data.load_tracks_graph()
+        reconstructions = data.load_undistorted_reconstruction()
+        graph = data.load_undistorted_tracks_graph()
 
         if reconstructions:
             self.export(reconstructions[0], graph, data)
