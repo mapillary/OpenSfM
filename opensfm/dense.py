@@ -175,19 +175,13 @@ def merge_depthmaps(data, graph, reconstruction, neighbors):
     """Merge depthmaps into a single point cloud."""
     logger.info("Merging depthmaps")
 
-    # Load clean depthmaps.
-    depths, planes = {}, {}
-    for sid in neighbors:
-        if data.clean_depthmap_exists(sid):
-            depths[sid], planes[sid], _ = data.load_clean_depthmap(sid)
-
     # Set up merger.
     dm = csfm.DepthmapMerger()
     dm.set_same_depth_threshold(data.config['depthmap_same_depth_threshold'])
-    shot_ids = depths.keys()
-    indices = {k: i for i, k in enumerate(shot_ids)}
+    shot_ids = [s for s in neighbors if data.clean_depthmap_exists(s)]
+    indices = {s: i for i, s in enumerate(shot_ids)}
     for shot_id in shot_ids:
-        depth = depths[shot_id]
+        depth, plane, _ = data.load_clean_depthmap(shot_id)
         shot = reconstruction.shots[shot_id]
         neighbors_indices = [indices[n.id] for n in neighbors[shot.id] if n.id in indices]
         color_image = data.undistorted_image_as_array(shot.id)
@@ -196,7 +190,7 @@ def merge_depthmaps(data, graph, reconstruction, neighbors):
         K = shot.camera.get_K_in_pixel_coordinates(width, height)
         R = shot.pose.get_rotation_matrix()
         t = shot.pose.translation
-        dm.add_view(K, R, t, depth, planes[shot.id], image, neighbors_indices)
+        dm.add_view(K, R, t, depth, plane, image, neighbors_indices)
 
     # Merge.
     points, normals, colors = dm.merge()
