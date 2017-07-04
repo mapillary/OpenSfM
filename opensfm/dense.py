@@ -31,16 +31,32 @@ def compute_depthmaps(data, graph, reconstruction):
             continue
         min_depth, max_depth = compute_depth_range(graph, reconstruction, shot)
         arguments.append((data, neighbors[shot.id], min_depth, max_depth, shot))
-    parallel_run(compute_depthmap, arguments, processes)
+    parallel_run(compute_depthmap_catched, arguments, processes)
 
     arguments = []
     for shot in reconstruction.shots.values():
         if len(neighbors[shot.id]) <= 1:
             continue
         arguments.append((data, neighbors[shot.id], shot))
-    parallel_run(clean_depthmap, arguments, processes)
+    parallel_run(clean_depthmap_catched, arguments, processes)
 
     merge_depthmaps(data, graph, reconstruction, neighbors)
+
+
+def compute_depthmap_catched(arguments):
+    try:
+        compute_depthmap(arguments)
+    except Exception as e:
+        logger.error('Exception on child. Arguments: {}'.format(arguments))
+        logger.exception(e)
+
+
+def clean_depthmap_catched(arguments):
+    try:
+        clean_depthmap(arguments)
+    except Exception as e:
+        logger.error('Exception on child. Arguments: {}'.format(arguments))
+        logger.exception(e)
 
 
 def parallel_run(function, arguments, num_processes):
@@ -50,14 +66,17 @@ def parallel_run(function, arguments, num_processes):
         return [function(arg) for arg in arguments]
     else:
         p = Pool(num_processes)
-        return p.map(function, arguments)
+        ret = p.map(function, arguments)
+        p.close()
+        p.terminate()
+        return ret
 
 
 def compute_depthmap(arguments):
     """Compute depthmap for a single shot."""
     data, neighbors, min_depth, max_depth, shot = arguments
     method = data.config['depthmap_method']
-
+    
     if data.raw_depthmap_exists(shot.id):
         logger.info("Using precomputed raw depthmap {}".format(shot.id))
         return
