@@ -154,9 +154,10 @@ def match_candidates_from_metadata(images, exifs, data):
         data.invent_reference_lla()
     reference = data.load_reference_lla()
 
-    if not all(map(has_gps_info, exifs.values())) and gps_neighbors != 0:
-        logger.warn("Not all images have GPS info. "
-                    "Disabling matching_gps_neighbors.")
+    if not all(map(has_gps_info, exifs.values())):
+        if gps_neighbors != 0:
+            logger.warn("Not all images have GPS info. "
+                        "Disabling matching_gps_neighbors.")
         gps_neighbors = 0
         max_distance = 0
 
