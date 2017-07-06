@@ -392,9 +392,9 @@ def json_dump(data, fout, minify=False, codec='utf-8'):
     return json.dump(data, fout, **kwargs)
 
 
-def json_dumps(data, fout, minify=False, codec='utf-8'):
+def json_dumps(data, minify=False, codec='utf-8'):
     kwargs = json_dump_kwargs(minify, codec)
-    return json.dumps(data, fout, **kwargs)
+    return json.dumps(data, **kwargs)
 
 
 def json_loads(text, codec='utf-8'):
