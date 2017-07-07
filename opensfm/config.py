@@ -43,11 +43,11 @@ flann_branching: 16           # See OpenCV doc
 flann_iterations: 10          # See OpenCV doc
 flann_checks: 200             # Smaller -> Faster (but might lose good matches)
 
-# Params for preemtive matching
+# Params for preemptive matching
 matching_gps_distance: 150            # Maximum gps distance between two images for matching
-matching_gps_neighbors: 0             # Number of images to match selected by GPS distance. Set to 0 to use no limit
-matching_time_neighbors: 0            # Number of images to match selected by time taken. Set to 0 to use no limit
-matching_order_neighbors: 0           # Number of images to match selected by image name. Set to 0 to use no limit
+matching_gps_neighbors: 0             # Number of images to match selected by GPS distance. Set to 0 to use no limit (or disable if matching_gps_distance is also 0)
+matching_time_neighbors: 0            # Number of images to match selected by time taken. Set to 0 to disable
+matching_order_neighbors: 0           # Number of images to match selected by image name. Set to 0 to disable
 preemptive_max: 200                   # Number of features to use for preemptive matching
 preemptive_threshold: 0               # If number of matches passes the threshold -> full feature matching
 
