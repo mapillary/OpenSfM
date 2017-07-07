@@ -1,8 +1,9 @@
 FROM paulinus/opensfm-docker-base
 
-COPY . /source/OpenSfM
+COPY requirements.txt /source/OpenSfM/requirements.txt
+RUN pip install -r /source/OpenSfM/requirements.txt
 
+COPY . /source/OpenSfM
 WORKDIR /source/OpenSfM
 
-RUN pip install -r requirements.txt && \
-    python setup.py build
+RUN python setup.py build
