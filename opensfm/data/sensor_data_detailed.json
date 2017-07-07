@@ -2379,6 +2379,13 @@
         "Sensor": "1/1.7\" (~ 7.53 x 5.64 mm)", 
         "Sensor res. (height)": 3005.0
     }, 
+    "Canon PowerShot G9 X": {
+        "Sensor height (mm)": 8.8,
+        "Sensor width (mm)": 13.2,
+        "Sensor res. (width)": 5505.0,
+        "Sensor": "13.2 x 8.8 mm",
+        "Sensor res. (height)": 3670.0
+    },
     "Canon PowerShot N": {
         "Sensor height (mm)": 4.62, 
         "Sensor width (mm)": 6.16, 
