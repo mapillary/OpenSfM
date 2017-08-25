@@ -91,10 +91,18 @@ class DataSet:
         """Return list of file names of all masks in this dataset"""
         return self.mask_list
 
-    def mask_as_array(self, image):
-        """Given an image, returns the associated mask as an array if it exists, otherwise returns None"""
+    def mask(self, image):
+        """Given an image, returns the associated mask's name if it exists, otherwise returns None"""
         mask_name = image + '.png'
         if mask_name in self.masks():
+            return mask_name
+        else:
+            return None
+
+    def mask_as_array(self, image):
+        """Given an image, returns the associated mask as an array if it exists, otherwise returns None"""
+        mask_name = self.mask(image)
+        if mask_name is not None:
             mask_path = self.mask_files[mask_name]
             mask = cv2.imread(mask_path)
             if len(mask.shape) == 3:

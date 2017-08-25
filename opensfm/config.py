@@ -119,6 +119,7 @@ processes: 1                  # Number of threads to use
 submodels_relpath: "submodels"                                      # Relative path to the submodels directory
 submodel_relpath_template: "submodels/submodel_%04d"                # Template to generate the relative path to a submodel directory
 submodel_images_relpath_template: "submodels/submodel_%04d/images"  # Template to generate the relative path to a submodel images directory
+submodel_masks_relpath_template: "submodels/submodel_%04d/masks"    # Template to generate the relative path to a submodel masks directory
 '''
 
 
