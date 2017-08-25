@@ -16,7 +16,7 @@ class MetaDataSet():
 
         :param data_path: Path to directory containing meta dataset
         '''
-        self.data_path = data_path
+        self.data_path = os.path.abspath(data_path)
 
         config_file = os.path.join(self.data_path, 'config.yaml')
         self.config = config.load_config(config_file)

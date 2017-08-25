@@ -28,7 +28,7 @@ class DataSet:
 
         :param data_path: Path to directory containing dataset
         """
-        self.data_path = data_path
+        self.data_path = os.path.abspath(data_path)
 
         self._load_config()
 
