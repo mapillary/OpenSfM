@@ -13,7 +13,7 @@ from opensfm import csfm
 def nullspace(A):
     '''Compute the null space of A.
 
-    Return the smallest sigular value and the corresponding vector.
+    Return the smallest singular value and the corresponding vector.
     '''
     u, s, vh = np.linalg.svd(A)
     return s[-1], vh[-1]
