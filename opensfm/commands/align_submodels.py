@@ -1,5 +1,5 @@
-from opensfm.large import metadataset
-from opensfm.large import tools
+from opensfm import metadataset
+from opensfm import tools
 
 
 class Command:
