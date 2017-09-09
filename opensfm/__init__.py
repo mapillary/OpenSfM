@@ -18,4 +18,3 @@ from opensfm.transformations import *
 from opensfm.types import *
 from opensfm.unionfind import *
 from opensfm.video import *
-from opensfm.large import *
