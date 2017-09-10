@@ -18,3 +18,5 @@ from opensfm.transformations import *
 from opensfm.types import *
 from opensfm.unionfind import *
 from opensfm.video import *
+from opensfm.metadataset import *
+from opensfm.tools import *
