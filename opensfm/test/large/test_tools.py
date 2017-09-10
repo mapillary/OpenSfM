@@ -1,6 +1,6 @@
 import numpy as np
 
-from opensfm.large import tools
+from opensfm import tools
 
 
 def test_connected_reconstructions():

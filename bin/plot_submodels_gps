@@ -6,7 +6,7 @@ import numpy as np
 
 from opensfm import io
 from opensfm.dataset import DataSet
-from opensfm.large.metadataset import MetaDataSet
+from opensfm.metadataset import MetaDataSet
 
 
 def set_axes_limits(samples):

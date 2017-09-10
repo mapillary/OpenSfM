@@ -2,8 +2,8 @@ import logging
 import numpy as np
 
 from opensfm import dataset
-from opensfm.large import metadataset
-from opensfm.large import tools
+from opensfm import metadataset
+from opensfm import tools
 
 logger = logging.getLogger(__name__)
 
