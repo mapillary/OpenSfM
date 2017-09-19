@@ -76,7 +76,7 @@ def compute_depthmap(arguments):
     """Compute depthmap for a single shot."""
     data, neighbors, min_depth, max_depth, shot = arguments
     method = data.config['depthmap_method']
-    
+
     if data.raw_depthmap_exists(shot.id):
         logger.info("Using precomputed raw depthmap {}".format(shot.id))
         return
@@ -185,16 +185,18 @@ def merge_depthmaps(data, graph, reconstruction, neighbors):
         shot = reconstruction.shots[shot_id]
         neighbors_indices = [indices[n.id] for n in neighbors[shot.id] if n.id in indices]
         color_image = data.undistorted_image_as_array(shot.id)
+        segmentation = data.undistorted_segmentation_as_array(shot.id)
         height, width = depth.shape
         image = scale_down_image(color_image, width, height)
+        segmentation = scale_down_image(segmentation, width, height, cv2.INTER_NEAREST)
         K = shot.camera.get_K_in_pixel_coordinates(width, height)
         R = shot.pose.get_rotation_matrix()
         t = shot.pose.translation
-        dm.add_view(K, R, t, depth, plane, image, neighbors_indices)
+        dm.add_view(K, R, t, depth, plane, image, segmentation, neighbors_indices)
 
     # Merge.
-    points, normals, colors = dm.merge()
-    ply = point_cloud_to_ply(points, normals, colors)
+    points, normals, colors, labels = dm.merge()
+    ply = point_cloud_to_ply(points, normals, colors, labels)
     with open(data._depthmap_path() + '/merged.ply', 'w') as fout:
         fout.write(ply)
 
@@ -286,10 +288,10 @@ def distance_between_shots(shot, other):
     return np.sqrt(np.sum(l**2))
 
 
-def scale_down_image(image, width, height):
+def scale_down_image(image, width, height, interpolation=cv2.INTER_AREA):
     width = min(width, image.shape[1])
     height = min(height, image.shape[0])
-    return cv2.resize(image, (width, height), interpolation=cv2.INTER_AREA)
+    return cv2.resize(image, (width, height), interpolation=interpolation)
 
 
 def depthmap_to_ply(shot, depth, image):
@@ -324,12 +326,12 @@ def depthmap_to_ply(shot, depth, image):
     return '\n'.join(header + vertices + [''])
 
 
-def point_cloud_to_ply(points, normals, colors):
+def point_cloud_to_ply(points, normals, colors, labels):
     """Export depthmap points as a PLY string"""
     vertices = []
-    for p, n, c in zip(points, normals, colors):
-        s = "{:.4f} {:.4f} {:.4f} {:.3f} {:.3f} {:.3f} {} {} {}".format(
-            p[0], p[1], p[2], n[0], n[1], n[2], int(c[0]), int(c[1]), int(c[2]))
+    for p, n, c, l in zip(points, normals, colors, labels):
+        s = "{:.4f} {:.4f} {:.4f} {:.3f} {:.3f} {:.3f} {} {} {} {}".format(
+            p[0], p[1], p[2], n[0], n[1], n[2], int(c[0]), int(c[1]), int(c[2]), int(l))
         vertices.append(s)
 
     header = [
@@ -345,6 +347,7 @@ def point_cloud_to_ply(points, normals, colors):
         "property uchar diffuse_red",
         "property uchar diffuse_green",
         "property uchar diffuse_blue",
+        "property uchar class",
         "end_header",
     ]
 

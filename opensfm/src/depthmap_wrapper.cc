@@ -113,6 +113,7 @@ class DepthmapMergerWrapper {
                PyObject *depth,
                PyObject *normal,
                PyObject *color,
+               PyObject *label,
                bp::object neighbors) {
     PyArrayContiguousView<double> K_view((PyArrayObject *)K);
     PyArrayContiguousView<double> R_view((PyArrayObject *)R);
@@ -120,12 +121,14 @@ class DepthmapMergerWrapper {
     PyArrayContiguousView<float> depth_view((PyArrayObject *)depth);
     PyArrayContiguousView<float> plane_view((PyArrayObject *)normal);
     PyArrayContiguousView<unsigned char> color_view((PyArrayObject *)color);
+    PyArrayContiguousView<unsigned char> label_view((PyArrayObject *)label);
     std::vector<int> neighbors_vector;
     for (int i = 0; i < bp::len(neighbors); ++i) {
       neighbors_vector.push_back(bp::extract<int>(neighbors[i]));
     }
     dm_.AddView(K_view.data(), R_view.data(), t_view.data(),
-                depth_view.data(), plane_view.data(), color_view.data(),
+                depth_view.data(), plane_view.data(),
+                color_view.data(), label_view.data(),
                 neighbors_vector,
                 depth_view.shape(1), depth_view.shape(0));
   }
@@ -134,14 +137,17 @@ class DepthmapMergerWrapper {
     std::vector<float> points;
     std::vector<float> normals;
     std::vector<unsigned char> colors;
+    std::vector<unsigned char> labels;
 
-    dm_.Merge(&points, &normals, &colors);
+    dm_.Merge(&points, &normals, &colors, &labels);
 
     bp::list retn;
-    npy_intp shape[2] = {int(points.size()) / 3, 3};
-    retn.append(bpn_array_from_data(2, shape, &points[0]));
-    retn.append(bpn_array_from_data(2, shape, &normals[0]));
-    retn.append(bpn_array_from_data(2, shape, &colors[0]));
+    npy_intp shape3[2] = {int(points.size()) / 3, 3};
+    npy_intp shape1[1] = {int(points.size()) / 3};
+    retn.append(bpn_array_from_data(2, shape3, &points[0]));
+    retn.append(bpn_array_from_data(2, shape3, &normals[0]));
+    retn.append(bpn_array_from_data(2, shape3, &colors[0]));
+    retn.append(bpn_array_from_data(1, shape1, &labels[0]));
     return retn;
   }
 
