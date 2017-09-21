@@ -116,7 +116,7 @@ For each camera the following data is stored:
 Providing your own camera parameters
 ''''''''''''''''''''''''''''''''''''
 
-By default, the camera parameters are taken from the EXIF metadata but it is also possible to override the default parameters.  To do so, place a file named ``camera_models_override.json`` in the project folder.  This file should have the same structure as ``camera_models.json``.  When running the ``extract_metadata`` command, the parameters of any camera present in the ``camera_models_overrides.json`` file will be copied to ``camera_models.json`` overriding the default ones.
+By default, the camera parameters are taken from the EXIF metadata but it is also possible to override the default parameters.  To do so, place a file named ``camera_models_overrides.json`` in the project folder.  This file should have the same structure as ``camera_models.json``.  When running the ``extract_metadata`` command, the parameters of any camera present in the ``camera_models_overrides.json`` file will be copied to ``camera_models.json`` overriding the default ones.
 
 Simplest way to create the ``camera_models_overrides.json`` file is to rename ``camera_models.json`` and modify the parameters.  You will need to rerun the ``extract_metadata`` command after that.
 
