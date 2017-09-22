@@ -120,10 +120,12 @@ By default, the camera parameters are taken from the EXIF metadata but it is als
 
 Simplest way to create the ``camera_models_overrides.json`` file is to rename ``camera_models.json`` and modify the parameters.  You will need to rerun the ``extract_metadata`` command after that.
 
+Here is a _`spherical 360 images dataset` example using ``camera_models_overrides.json`` to specify that the camera is taking 360 equirectangular images.
+
 
 .. _`exif orientation documentation`: http://sylvana.net/jpegcrop/exif_orientation.html
-.. _GPano: TODO(pau): link to Google Pano metadata documentation
-
+.. _GPano: https://developers.google.com/streetview/spherical-metadata
+.. _`spherical 360 images dataset`: https://www.dropbox.com/sh/3vabbmrhqqbagp5/AABi14O2tWMbxAX91jaaQY77a?dl=0
 
 detect_features
 ```````````````
