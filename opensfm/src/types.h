@@ -49,7 +49,7 @@ bp::object bpn_array_from_data(int nd, npy_intp *shape, const T *data) {
 
 template <typename T>
 bp::object bpn_array_from_vector(const std::vector<T> &v) {
-  npy_intp shape[] = { v.size() };
+  npy_intp shape[] = { npy_intp(v.size()) };
   const T *data = v.size() ? &v[0] : NULL;
   return bpn_array_from_data(1, shape, data);
 }
