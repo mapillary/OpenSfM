@@ -177,6 +177,12 @@ BOOST_PYTHON_MODULE(csfm) {
     .def("clean", &csfm::DepthmapCleanerWrapper::Clean)
   ;
 
+  class_<csfm::DepthmapPrunerWrapper>("DepthmapPruner")
+    .def("set_same_depth_threshold", &csfm::DepthmapPrunerWrapper::SetSameDepthThreshold)
+    .def("add_view", &csfm::DepthmapPrunerWrapper::AddView)
+    .def("prune", &csfm::DepthmapPrunerWrapper::Prune)
+  ;
+
   class_<csfm::DepthmapMergerWrapper>("DepthmapMerger")
     .def("set_same_depth_threshold", &csfm::DepthmapMergerWrapper::SetSameDepthThreshold)
     .def("add_view", &csfm::DepthmapMergerWrapper::AddView)

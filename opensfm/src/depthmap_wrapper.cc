@@ -101,6 +101,37 @@ class DepthmapCleanerWrapper {
   DepthmapCleaner dc_;
 };
 
+
+class DepthmapPrunerWrapper {
+ public:
+  void SetSameDepthThreshold(float t) {
+    dp_.SetSameDepthThreshold(t);
+  }
+
+  void AddView(PyObject *K,
+               PyObject *R,
+               PyObject *t,
+               PyObject *depth) {
+    PyArrayContiguousView<double> K_view((PyArrayObject *)K);
+    PyArrayContiguousView<double> R_view((PyArrayObject *)R);
+    PyArrayContiguousView<double> t_view((PyArrayObject *)t);
+    PyArrayContiguousView<float> depth_view((PyArrayObject *)depth);
+    dp_.AddView(K_view.data(), R_view.data(), t_view.data(),
+                depth_view.data(), depth_view.shape(1), depth_view.shape(0));
+  }
+
+  bp::object Prune() {
+    cv::Mat depth;
+    dp_.Prune(&depth);
+    npy_intp shape[2] = {depth.rows, depth.cols};
+    return bpn_array_from_data(2, shape, depth.ptr<float>(0));
+  }
+
+ private:
+  DepthmapPruner dp_;
+};
+
+
 class DepthmapMergerWrapper {
  public:
   void SetSameDepthThreshold(float t) {

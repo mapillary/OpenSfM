@@ -534,6 +534,65 @@ class DepthmapCleaner {
 };
 
 
+class DepthmapPruner {
+ public:
+  DepthmapPruner()
+    : same_depth_threshold_(0.01)
+  {}
+
+  void SetSameDepthThreshold(float t) {
+    same_depth_threshold_ = t;
+  }
+
+  void AddView(const double *pK,
+               const double *pR,
+               const double *pt,
+               const float *pdepth,
+               int width,
+               int height) {
+    Ks_.emplace_back(pK);
+    Rs_.emplace_back(pR);
+    ts_.emplace_back(pt);
+    depths_.emplace_back(cv::Mat(height, width, CV_32F, (void *)pdepth).clone());
+  }
+
+  void Prune(cv::Mat *pruned_depth) {
+    for (int i = 0; i < depths_[0].rows; ++i) {
+      for (int j = 0; j < depths_[0].cols; ++j) {
+        float depth = depths_[0].at<float>(i, j);
+        pruned_depth->at<float>(i, j) = depth;
+        if (depth <= 0) {
+          continue;
+        }
+        cv::Vec3f point = Backproject(j, i, depth, Ks_[0], Rs_[0], ts_[0]);
+        for (int other = 1; other < depths_.size(); ++other) {
+          cv::Vec3d reprojection = Project(point, Ks_[other], Rs_[other], ts_[other]);
+          float iu = int(reprojection(0) / reprojection(2) + 0.5f);
+          float iv = int(reprojection(1) / reprojection(2) + 0.5f);
+          float depth_of_point = reprojection(2);
+          if (!IsInsideImage(depths_[other], iv, iu)) {
+            continue;
+          }
+          float depth_at_reprojection = depths_[other].at<float>(iv, iu);
+          if (depth_at_reprojection > (1 - same_depth_threshold_) * depth_of_point &&
+              depth > depth_of_point) {
+            pruned_depth->at<float>(i, j) = 0.0f;
+            break;
+          }
+        }
+      }
+    }
+  }
+
+ private:
+  std::vector<cv::Mat> depths_;
+  std::vector<cv::Matx33d> Ks_;
+  std::vector<cv::Matx33d> Rs_;
+  std::vector<cv::Vec3d> ts_;
+  float same_depth_threshold_;
+};
+
+
 class DepthmapMerger {
  public:
   DepthmapMerger()
