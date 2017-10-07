@@ -183,12 +183,6 @@ BOOST_PYTHON_MODULE(csfm) {
     .def("prune", &csfm::DepthmapPrunerWrapper::Prune)
   ;
 
-  class_<csfm::DepthmapMergerWrapper>("DepthmapMerger")
-    .def("set_same_depth_threshold", &csfm::DepthmapMergerWrapper::SetSameDepthThreshold)
-    .def("add_view", &csfm::DepthmapMergerWrapper::AddView)
-    .def("merge", &csfm::DepthmapMergerWrapper::Merge)
-  ;
-
   ///////////////////////////////////
   // Reconstruction Aligment
   //
