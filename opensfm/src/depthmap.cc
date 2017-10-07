@@ -548,23 +548,30 @@ class DepthmapPruner {
                const double *pR,
                const double *pt,
                const float *pdepth,
+               const float *pplane,
+               const unsigned char *pcolor,
                int width,
                int height) {
-    Ks_.emplace_back(pK);
-    Rs_.emplace_back(pR);
-    ts_.emplace_back(pt);
-    depths_.emplace_back(cv::Mat(height, width, CV_32F, (void *)pdepth).clone());
+     Ks_.emplace_back(pK);
+     Rs_.emplace_back(pR);
+     ts_.emplace_back(pt);
+     depths_.emplace_back(cv::Mat(height, width, CV_32F, (void *)pdepth).clone());
+     planes_.emplace_back(cv::Mat(height, width, CV_32FC3, (void *)pplane).clone());
+     colors_.emplace_back(cv::Mat(height, width, CV_8UC3, (void *)pcolor).clone());
   }
 
-  void Prune(cv::Mat *pruned_depth) {
+  void Prune(std::vector<float> *merged_points,
+             std::vector<float> *merged_normals,
+             std::vector<unsigned char> *merged_colors) {
+    cv::Matx33f Rinv = Rs_[0].t();
     for (int i = 0; i < depths_[0].rows; ++i) {
       for (int j = 0; j < depths_[0].cols; ++j) {
         float depth = depths_[0].at<float>(i, j);
-        pruned_depth->at<float>(i, j) = depth;
         if (depth <= 0) {
           continue;
         }
         cv::Vec3f point = Backproject(j, i, depth, Ks_[0], Rs_[0], ts_[0]);
+        bool keep = true;
         for (int other = 1; other < depths_.size(); ++other) {
           cv::Vec3d reprojection = Project(point, Ks_[other], Rs_[other], ts_[other]);
           float iu = int(reprojection(0) / reprojection(2) + 0.5f);
@@ -576,9 +583,22 @@ class DepthmapPruner {
           float depth_at_reprojection = depths_[other].at<float>(iv, iu);
           if (depth_at_reprojection > (1 - same_depth_threshold_) * depth_of_point &&
               depth > depth_of_point) {
-            pruned_depth->at<float>(i, j) = 0.0f;
+            keep = false;
             break;
           }
+        }
+        if (keep) {
+          cv::Vec3f normal = Rinv * cv::normalize(planes_[0].at<cv::Vec3f>(i, j));
+          cv::Vec3b color = colors_[0].at<cv::Vec3b>(i, j);
+          merged_points->push_back(point[0]);
+          merged_points->push_back(point[1]);
+          merged_points->push_back(point[2]);
+          merged_normals->push_back(normal[0]);
+          merged_normals->push_back(normal[1]);
+          merged_normals->push_back(normal[2]);
+          merged_colors->push_back(color[0]);
+          merged_colors->push_back(color[1]);
+          merged_colors->push_back(color[2]);
         }
       }
     }
@@ -586,6 +606,8 @@ class DepthmapPruner {
 
  private:
   std::vector<cv::Mat> depths_;
+  std::vector<cv::Mat> planes_;
+  std::vector<cv::Mat> colors_;
   std::vector<cv::Matx33d> Ks_;
   std::vector<cv::Matx33d> Rs_;
   std::vector<cv::Vec3d> ts_;

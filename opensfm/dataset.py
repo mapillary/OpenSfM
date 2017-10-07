@@ -134,6 +134,19 @@ class DataSet:
         o = np.load(self._depthmap_file(image, 'clean.npz'))
         return o['depth'], o['plane'], o['score']
 
+    def pruned_depthmap_exists(self, image):
+        return os.path.isfile(self._depthmap_file(image, 'pruned.npz'))
+
+    def save_pruned_depthmap(self, image, points, normals, colors):
+        io.mkdir_p(self._depthmap_path())
+        filepath = self._depthmap_file(image, 'pruned.npz')
+        np.savez_compressed(filepath,
+                            points=points, normals=normals, colors=colors)
+
+    def load_pruned_depthmap(self, image):
+        o = np.load(self._depthmap_file(image, 'pruned.npz'))
+        return o['points'], o['normals'], o['colors']
+
     @staticmethod
     def __is_image_file(filename):
         return filename.split('.')[-1].lower() in {'jpg', 'jpeg', 'png', 'tif', 'tiff', 'pgm', 'pnm', 'gif'}
