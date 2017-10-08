@@ -570,32 +570,37 @@ class DepthmapPruner {
         if (depth <= 0) {
           continue;
         }
+        cv::Vec3f normal = cv::normalize(planes_[0].at<cv::Vec3f>(i, j));
+        float area = -normal(2) / depth * Ks_[0](0, 0);
         cv::Vec3f point = Backproject(j, i, depth, Ks_[0], Rs_[0], ts_[0]);
         bool keep = true;
         for (int other = 1; other < depths_.size(); ++other) {
           cv::Vec3d reprojection = Project(point, Ks_[other], Rs_[other], ts_[other]);
-          float iu = int(reprojection(0) / reprojection(2) + 0.5f);
-          float iv = int(reprojection(1) / reprojection(2) + 0.5f);
+          int iu = int(reprojection(0) / reprojection(2) + 0.5f);
+          int iv = int(reprojection(1) / reprojection(2) + 0.5f);
           float depth_of_point = reprojection(2);
           if (!IsInsideImage(depths_[other], iv, iu)) {
             continue;
           }
           float depth_at_reprojection = depths_[other].at<float>(iv, iu);
-          if (depth_at_reprojection > (1 - same_depth_threshold_) * depth_of_point &&
-              depth > depth_of_point) {
-            keep = false;
-            break;
+          if (depth_at_reprojection > (1 - same_depth_threshold_) * depth_of_point) {
+            cv::Vec3f normal_at_reprojection = cv::normalize(planes_[other].at<cv::Vec3f>(iv, iu));
+            float area_at_reprojection = -normal_at_reprojection(2) / depth_at_reprojection * Ks_[other](0, 0);
+            if (area_at_reprojection > area) {
+              keep = false;
+              break;
+            }
           }
         }
         if (keep) {
-          cv::Vec3f normal = Rinv * cv::normalize(planes_[0].at<cv::Vec3f>(i, j));
+          cv::Vec3f R1_normal = Rinv * normal;
           cv::Vec3b color = colors_[0].at<cv::Vec3b>(i, j);
           merged_points->push_back(point[0]);
           merged_points->push_back(point[1]);
           merged_points->push_back(point[2]);
-          merged_normals->push_back(normal[0]);
-          merged_normals->push_back(normal[1]);
-          merged_normals->push_back(normal[2]);
+          merged_normals->push_back(R1_normal[0]);
+          merged_normals->push_back(R1_normal[1]);
+          merged_normals->push_back(R1_normal[2]);
           merged_colors->push_back(color[0]);
           merged_colors->push_back(color[1]);
           merged_colors->push_back(color[2]);
