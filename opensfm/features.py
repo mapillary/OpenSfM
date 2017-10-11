@@ -257,7 +257,7 @@ def extract_features(color_image, config, mask=None):
     color_image = resized_image(color_image, config)
     image = cv2.cvtColor(color_image, cv2.COLOR_RGB2GRAY)
 
-    feature_type = config['SIFT'].upper()
+    feature_type = config['feature_type'].upper()
     if feature_type == 'SIFT':
         points, desc = extract_features_sift(image, config)
     elif feature_type == 'SURF':
