@@ -212,10 +212,14 @@ def match(args):
         # symmetric matching
         t = time.time()
         p1, f1, c1 = ctx.data.load_features(im1)
-        i1 = ctx.data.load_feature_index(im1, f1)
-
         p2, f2, c2 = ctx.data.load_features(im2)
-        i2 = ctx.data.load_feature_index(im2, f2)
+
+        if config['matcher_type'] == 'FLANN':
+            i1 = ctx.data.load_feature_index(im1, f1)
+            i2 = ctx.data.load_feature_index(im2, f2)
+        else:
+            i1 = None
+            i2 = None
 
         matches = matching.match_symmetric(f1, i1, f2, i2, config)
         logger.debug('{} - {} has {} candidate matches'.format(

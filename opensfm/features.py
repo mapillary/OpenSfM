@@ -232,6 +232,27 @@ def extract_features_hahog(image, config):
     return points, desc
 
 
+def extract_features_orb(image, config):
+    if context.OPENCV3:
+        detector = cv2.ORB_create()
+        descriptor = detector
+        detector.setNFeatures(config['feature_min_frames'])
+    else:
+        detector = cv2.FeatureDetector_create('ORB')
+        descriptor = cv2.DescriptorExtractor_create('ORB')
+        detector.setDouble('nFeatures', config['feature_min_frames'])
+
+    logger.debug('Computing ORB')
+    t = time.time()
+    points = detector.detect(image)
+
+    points, desc = descriptor.compute(image, points)
+    points = np.array([(i.pt[0], i.pt[1], i.size, i.angle) for i in points])
+
+    logger.debug('Found {0} points in {1}s'.format( len(points), time.time()-t ))
+    return points, desc
+
+
 def extract_features(color_image, config, mask=None):
     assert len(color_image.shape) == 3
     color_image = resized_image(color_image, config)
@@ -246,6 +267,8 @@ def extract_features(color_image, config, mask=None):
         points, desc = extract_features_akaze(image, config)
     elif feature_type == 'HAHOG':
         points, desc = extract_features_hahog(image, config)
+    elif feature_type == 'ORB':
+        points, desc = extract_features_orb(image, config)
     else:
         raise ValueError('Unknown feature type (must be SURF, SIFT, AKAZE or HAHOG)')
 
