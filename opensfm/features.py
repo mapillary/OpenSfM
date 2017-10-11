@@ -234,9 +234,8 @@ def extract_features_hahog(image, config):
 
 def extract_features_orb(image, config):
     if context.OPENCV3:
-        detector = cv2.ORB_create()
+        detector = cv2.ORB_create(nfeatures=int(config['feature_min_frames']))
         descriptor = detector
-        detector.setNFeatures(config['feature_min_frames'])
     else:
         detector = cv2.FeatureDetector_create('ORB')
         descriptor = cv2.DescriptorExtractor_create('ORB')
@@ -258,7 +257,7 @@ def extract_features(color_image, config, mask=None):
     color_image = resized_image(color_image, config)
     image = cv2.cvtColor(color_image, cv2.COLOR_RGB2GRAY)
 
-    feature_type = config.get('feature_type','SIFT').upper()
+    feature_type = config['SIFT'].upper()
     if feature_type == 'SIFT':
         points, desc = extract_features_sift(image, config)
     elif feature_type == 'SURF':
@@ -270,10 +269,10 @@ def extract_features(color_image, config, mask=None):
     elif feature_type == 'ORB':
         points, desc = extract_features_orb(image, config)
     else:
-        raise ValueError('Unknown feature type (must be SURF, SIFT, AKAZE or HAHOG)')
+        raise ValueError('Unknown feature type (must be SURF, SIFT, AKAZE, HAHOG or ORB)')
 
-    xs = points[:,0].round().astype(int)
-    ys = points[:,1].round().astype(int)
+    xs = points[:, 0].round().astype(int)
+    ys = points[:, 1].round().astype(int)
     colors = color_image[ys, xs]
 
     return mask_and_normalize_features(points, desc, colors, image.shape[1], image.shape[0], mask)
