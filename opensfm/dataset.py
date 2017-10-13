@@ -3,7 +3,7 @@
 import os
 import json
 import errno
-import pickle
+import cPickle as pickle
 import gzip
 import numpy as np
 import networkx as nx
@@ -204,6 +204,10 @@ class DataSet:
         """
         return os.path.join(self.__exif_path(), image + '.exif')
 
+    def images_requiring_exif_files(self):
+        """ Return all images that we don't already have exif files for"""
+        return set(image for image in self.images() if not os.path.isfile(self.__exif_file(image)))
+
     def load_exif(self, image):
         """
         Return extracted exif information, as dictionary, usually with fields:
@@ -338,6 +342,19 @@ class DataSet:
                 if len(im2_matches[im1]):
                     return im2_matches[im1][:, [1, 0]]
         return []
+
+    def __track_sets_file(self, filename=None):
+        """Return path of unionfind file"""
+        return os.path.join(self.data_path, filename or 'track_sets.pkl')
+
+    def load_track_sets_file(self, filename=None):
+        """Return unionfind of tracks"""
+        with open(self.__track_sets_file(filename)) as fin:
+            return load_track_sets_file(fin)
+
+    def save_track_sets_file(self, unionfind, filename=None):
+        with open(self.__track_sets_file(filename), 'w') as fout:
+            save_track_sets_file(fout, unionfind)
 
     def __tracks_graph_file(self, filename=None):
         """Return path of tracks file"""
@@ -511,3 +528,9 @@ def save_tracks_graph(fileobj, graph):
                 r, g, b = data['feature_color']
                 fileobj.write('%s\t%s\t%d\t%g\t%g\t%g\t%g\t%g\n' % (
                     str(image), str(track), fid, x, y, r, g, b))
+
+def load_track_sets_file(fileobj):
+    return pickle.load(fileobj)
+
+def save_track_sets_file(fileobj, unionfind):
+    pickle.dump(unionfind, fileobj, protocol=pickle.HIGHEST_PROTOCOL)

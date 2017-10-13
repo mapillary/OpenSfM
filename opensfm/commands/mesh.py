@@ -21,6 +21,8 @@ class Command:
         graph = data.load_tracks_graph()
         reconstructions = data.load_reconstruction()
 
+        logger.debug("Starting calculation of reconstruction mesh")
+
         for i, r in enumerate(reconstructions):
             for shot in r.shots.values():
                 if shot.id in graph:

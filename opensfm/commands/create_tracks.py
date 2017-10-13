@@ -19,6 +19,16 @@ class Command:
         data = dataset.DataSet(args.dataset)
         images = data.images()
 
+        try:
+            graph = data.load_tracks_graph()
+            tracks, processed_images = matching.tracks_and_images(graph)
+        except IOError:
+            graph = None
+            tracks = None
+            processed_images = []
+
+        remaining_images = set(images) - set(processed_images)
+
         # Read local features
         logging.info('reading features')
         features = {}
@@ -30,7 +40,7 @@ class Command:
 
         # Read matches
         matches = {}
-        for im1 in images:
+        for im1 in remaining_images:
             try:
                 im1_matches = data.load_matches(im1)
             except IOError:
@@ -39,7 +49,7 @@ class Command:
                 matches[im1, im2] = im1_matches[im2]
 
         tracks_graph = matching.create_tracks_graph(features, colors, matches,
-                                                    data.config)
+                                                    data.config, data)
         data.save_tracks_graph(tracks_graph)
 
         end = time.time()

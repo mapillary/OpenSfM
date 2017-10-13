@@ -38,10 +38,10 @@ class Command:
 
 def detect(args):
     image, data = args
-    logger.info('Extracting {} features for image {}'.format(
-        data.feature_type().upper(), image))
 
     if not data.feature_index_exists(image):
+        logger.info('Extracting {} features for image {}'.format(
+            data.feature_type().upper(), image))
         mask = data.mask_as_array(image)
         if mask is not None:
             logger.info('Found mask to apply for image {}'.format(image))
