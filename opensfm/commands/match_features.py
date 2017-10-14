@@ -1,5 +1,6 @@
 import logging
 import time
+from itertools import combinations
 from multiprocessing import Pool
 
 import numpy as np
@@ -163,11 +164,15 @@ def match_candidates_from_metadata(images, exifs, data):
 
     images.sort()
 
-    d = match_candidates_by_distance(images, exifs, reference,
-                                     gps_neighbors, max_distance)
-    t = match_candidates_by_time(images, exifs, time_neighbors)
-    o = match_candidates_by_order(images, exifs, order_neighbors)
-    pairs = d | t | o
+    if max_distance == gps_neighbors == time_neighbors == order_neighbors == 0:
+        # All pair selection strategies deactivated so we match all pairs
+        pairs = combinations(images, 2)
+    else:
+        d = match_candidates_by_distance(images, exifs, reference,
+                                         gps_neighbors, max_distance)
+        t = match_candidates_by_time(images, exifs, time_neighbors)
+        o = match_candidates_by_order(images, exifs, order_neighbors)
+        pairs = d | t | o
 
     res = {im: [] for im in images}
     for im1, im2 in pairs:
