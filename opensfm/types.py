@@ -1,8 +1,6 @@
 """Basic types for building a reconstruction."""
-
 import numpy as np
 import cv2
-
 
 class Pose(object):
     """Defines the pose parameters of a camera.
@@ -159,23 +157,28 @@ class PerspectiveCamera(Camera):
         focal (real): estimated focal lenght.
         k1 (real): estimated first distortion parameter.
         k2 (real): estimated second distortion parameter.
+        k3 (real): estimated third distortion parameter.
         focal_prior (real): prior focal lenght.
         k1_prior (real): prior first distortion parameter.
         k2_prior (real): prior second distortion parameter.
+        k3_prior (real): prior third distortion parameter.
     """
 
     def __init__(self):
         """Defaut constructor."""
         self.id = None
         self.projection_type = 'perspective'
+        self.distortion_model = None
         self.width = None
         self.height = None
         self.focal = None
         self.k1 = None
         self.k2 = None
+        self.k3 = None
         self.focal_prior = None
         self.k1_prior = None
         self.k2_prior = None
+        self.k3_prior = None
 
     def project(self, point):
         """Project a 3D point in camera coordinates to the image plane."""
@@ -185,7 +188,11 @@ class PerspectiveCamera(Camera):
 
         # Radial distortion
         r2 = xn * xn + yn * yn
-        distortion = 1.0 + r2 * (self.k1 + self.k2 * r2)
+        if self.distortion_model == 'radial_k3':
+            r4 = r2 * r2
+            distortion = 1.0 + r2 * (self.k1 + self.k2 * r2 + self.k3 * r4)
+        else:
+            distortion = 1.0 + r2 * (self.k1 + self.k2 * r2)
 
         return np.array([self.focal * distortion * xn,
                          self.focal * distortion * yn])
@@ -193,7 +200,12 @@ class PerspectiveCamera(Camera):
     def pixel_bearing(self, pixel):
         """Unit vector pointing to the pixel viewing direction."""
         point = np.asarray(pixel).reshape((1, 1, 2))
-        distortion = np.array([self.k1, self.k2, 0., 0.])
+
+        if self.distortion_model == 'radial_k3':
+            distortion = np.array([self.k1, self.k2, 0., 0., self.k3])
+        else:
+            distortion = np.array([self.k1, self.k2, 0., 0., 0.])
+
         x, y = cv2.undistortPoints(point, self.get_K(), distortion).flat
         l = np.sqrt(x * x + y * y + 1.0)
         return np.array([x / l, y / l, 1.0 / l])
@@ -201,7 +213,12 @@ class PerspectiveCamera(Camera):
     def pixel_bearings(self, pixels):
         """Unit vector pointing to the pixel viewing directions."""
         points = pixels.reshape((-1, 1, 2)).astype(np.float64)
-        distortion = np.array([self.k1, self.k2, 0., 0.])
+
+        if self.distortion_model == 'radial_k3':
+            distortion = np.array([self.k1, self.k2, 0., 0., self.k3])
+        else:
+            distortion = np.array([self.k1, self.k2, 0., 0., 0.])
+
         up = cv2.undistortPoints(points, self.get_K(), distortion)
         up = up.reshape((-1, 2))
         x = up[:, 0]

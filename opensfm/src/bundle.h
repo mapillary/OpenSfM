@@ -29,10 +29,24 @@ struct BACamera {
   virtual BACameraType type() = 0;
 };
 
+enum DistortionModel {
+  BA_RADIAL_K2,
+  BA_RADIAL_K3
+};
+
+static const std::map<std::string, DistortionModel> distortion_model_names = {
+  {"radial_k2", BA_RADIAL_K2}, 
+  {"radial_k3", BA_RADIAL_K3}
+};
+
+static const int num_parameters_radial_k2 = 3;
+static const int num_parameters_radial_k3 = 4;
+
 enum {
   BA_CAMERA_FOCAL,
   BA_CAMERA_K1,
   BA_CAMERA_K2,
+  BA_CAMERA_K3,
   BA_CAMERA_NUM_PARAMS
 };
 
@@ -41,14 +55,19 @@ struct BAPerspectiveCamera : public BACamera{
   double focal_prior;
   double k1_prior;
   double k2_prior;
+  double k3_prior;
 
   BACameraType type() { return BA_PERSPECTIVE_CAMERA; }
   double GetFocal() { return parameters[BA_CAMERA_FOCAL]; }
   double GetK1() { return parameters[BA_CAMERA_K1]; }
   double GetK2() { return parameters[BA_CAMERA_K2]; }
+  double GetK3() { return parameters[BA_CAMERA_K3]; }
   void SetFocal(double v) { parameters[BA_CAMERA_FOCAL] = v; }
   void SetK1(double v) { parameters[BA_CAMERA_K1] = v; }
   void SetK2(double v) { parameters[BA_CAMERA_K2] = v; }
+  void SetK3(double v) { parameters[BA_CAMERA_K3] = v; }
+
+  DistortionModel distortion_model;
 };
 
 struct BAFisheyeCamera : public BACamera{
@@ -195,15 +214,25 @@ void WorldToCameraCoordinates(const T* const shot,
 template <typename T>
 void PerspectiveProject(const T* const camera,
                         const T point[3],
-                        T projection[2]) {
+                        T projection[2],
+                        DistortionModel distortion_model) {
   T xp = point[0] / point[2];
   T yp = point[1] / point[2];
 
   // Apply second and fourth order radial distortion.
   const T& l1 = camera[BA_CAMERA_K1];
   const T& l2 = camera[BA_CAMERA_K2];
+  const T& l3 = camera[BA_CAMERA_K3];
+
   T r2 = xp * xp + yp * yp;
-  T distortion = T(1.0) + r2  * (l1 + r2 * l2);
+  T distortion;
+
+  if (distortion_model == BA_RADIAL_K3) {
+    T r4 = r2 * r2;
+    distortion = T(1.0) + r2  * (l1 + r2 * l2 + r4 * l3);
+  } else {
+    distortion = T(1.0) + r2  * (l1 + r2 * l2);
+  }
 
   // Compute final projected point position.
   const T& focal = camera[BA_CAMERA_FOCAL];
@@ -213,10 +242,14 @@ void PerspectiveProject(const T* const camera,
 
 
 struct PerspectiveReprojectionError {
-  PerspectiveReprojectionError(double observed_x, double observed_y, double std_deviation)
+  PerspectiveReprojectionError(double observed_x, 
+                               double observed_y, 
+                               double std_deviation, 
+                               DistortionModel distortion_model)
       : observed_x_(observed_x)
       , observed_y_(observed_y)
       , scale_(1.0 / std_deviation)
+      , distortion_model_(distortion_model)
   {}
 
   template <typename T>
@@ -233,7 +266,7 @@ struct PerspectiveReprojectionError {
     }
 
     T predicted[2];
-    PerspectiveProject(camera, camera_point, predicted);
+    PerspectiveProject(camera, camera_point, predicted, distortion_model_);
 
     // The error is the difference between the predicted and observed position.
     residuals[0] = T(scale_) * (predicted[0] - T(observed_x_));
@@ -245,6 +278,7 @@ struct PerspectiveReprojectionError {
   double observed_x_;
   double observed_y_;
   double scale_;
+  DistortionModel distortion_model_;
 };
 
 template <typename T>
@@ -346,10 +380,11 @@ struct EquirectangularReprojectionError {
 
 struct GCPPerspectiveProjectionError {
   GCPPerspectiveProjectionError(
-    double world[3], double observed[2], double std_deviation)
+    double world[3], double observed[2], double std_deviation, DistortionModel distortion_model)
       : world_(world)
       , observed_(observed)
       , scale_(1.0 / std_deviation)
+      , distortion_model_(distortion_model)
   {}
 
   template <typename T>
@@ -366,7 +401,7 @@ struct GCPPerspectiveProjectionError {
     }
 
     T predicted[2];
-    PerspectiveProject(camera, camera_point, predicted);
+    PerspectiveProject(camera, camera_point, predicted, distortion_model_);
 
     // The error is the difference between the predicted and observed position.
     residuals[0] = T(scale_) * (predicted[0] - T(observed_[0]));
@@ -378,6 +413,7 @@ struct GCPPerspectiveProjectionError {
   double *world_;
   double *observed_;
   double scale_;
+  DistortionModel distortion_model_;
 };
 
 struct GCPEquirectangularProjectionError {
@@ -423,25 +459,41 @@ struct GCPEquirectangularProjectionError {
 };
 
 struct InternalParametersPriorError {
-  InternalParametersPriorError(double focal_estimate,
+  InternalParametersPriorError(DistortionModel distortion_model,
+                               double focal_estimate,
                                double focal_std_deviation,
                                double k1_estimate,
                                double k1_std_deviation,
                                double k2_estimate,
-                               double k2_std_deviation)
+                               double k2_std_deviation,
+                               double k3_estimate = 0.,
+                               double k3_std_deviation = 0.01)
       : log_focal_estimate_(log(focal_estimate))
       , focal_scale_(1.0 / focal_std_deviation)
       , k1_estimate_(k1_estimate)
       , k1_scale_(1.0 / k1_std_deviation)
       , k2_estimate_(k2_estimate)
       , k2_scale_(1.0 / k2_std_deviation)
-  {}
+      , k3_estimate_(k3_estimate)
+      , k3_scale_(1.0 / k3_std_deviation)
+      , distortion_model_(distortion_model)
+  {
+    assert( 
+      (distortion_model == BA_RADIAL_K2 && k3_estimate == 0. && k3_std_deviation == 0.01) ||
+      (distortion_model == BA_RADIAL_K3)
+    );
+  }
 
   template <typename T>
   bool operator()(const T* const parameters, T* residuals) const {
     residuals[0] = T(focal_scale_) * (log(parameters[BA_CAMERA_FOCAL]) - T(log_focal_estimate_));
     residuals[1] = T(k1_scale_) * (parameters[BA_CAMERA_K1] - T(k1_estimate_));
     residuals[2] = T(k2_scale_) * (parameters[BA_CAMERA_K2] - T(k2_estimate_));
+    
+    if (distortion_model_ == BA_RADIAL_K3) {
+      residuals[3] = T(k3_scale_) * (parameters[BA_CAMERA_K3] - T(k3_estimate_));
+    }
+    
     return true;
   }
 
@@ -451,6 +503,9 @@ struct InternalParametersPriorError {
   double k1_scale_;
   double k2_estimate_;
   double k2_scale_;
+  double k3_estimate_;
+  double k3_scale_;
+  DistortionModel distortion_model_;
 };
 
 
@@ -572,6 +627,7 @@ class BundleAdjuster {
     focal_prior_sd_ = 1;
     k1_sd_ = 1;
     k2_sd_ = 1;
+    k3_sd_ = 1;
     compute_covariances_ = false;
     covariance_estimation_valid_ = false;
     compute_reprojection_errors_ = true;
@@ -606,23 +662,38 @@ class BundleAdjuster {
 
   void AddPerspectiveCamera(
       const std::string &id,
+      const std::string &distortion_model,
       double focal,
       double k1,
       double k2,
+      double k3,
       double focal_prior,
       double k1_prior,
       double k2_prior,
+      double k3_prior,
       bool constant) {
+
     cameras_[id] = std::unique_ptr<BAPerspectiveCamera>(new BAPerspectiveCamera());
     BAPerspectiveCamera &c = static_cast<BAPerspectiveCamera &>(*cameras_[id]);
     c.id = id;
     c.parameters[BA_CAMERA_FOCAL] = focal;
     c.parameters[BA_CAMERA_K1] = k1;
     c.parameters[BA_CAMERA_K2] = k2;
+    c.parameters[BA_CAMERA_K3] = k3;
     c.constant = constant;
     c.focal_prior = focal_prior;
     c.k1_prior = k1_prior;
     c.k2_prior = k2_prior;
+    c.k3_prior = k3_prior;
+
+    if (distortion_model_names.count(distortion_model) != 0) {
+      c.distortion_model = distortion_model_names.at(distortion_model);
+    } else {
+      std::cerr << "Warning: unknown distortion model '" << distortion_model << "' for camera '" << id << 
+        "' falling back to 'radial_k2'" << std::endl;
+      
+      c.distortion_model = distortion_model_names.at("radial_k2");
+    }
   }
 
   void AddFisheyeCamera(
@@ -812,10 +883,11 @@ class BundleAdjuster {
     num_threads_ = n;
   }
 
-  void SetInternalParametersPriorSD(double focal_sd, double k1_sd, double k2_sd) {
+  void SetInternalParametersPriorSD(double focal_sd, double k1_sd, double k2_sd, double k3_sd) {
     focal_prior_sd_ = focal_sd;
     k1_sd_ = k1_sd;
     k2_sd_ = k2_sd;
+    k3_sd_ = k3_sd;
   }
 
   void SetComputeCovariances(bool v) {
@@ -855,14 +927,20 @@ class BundleAdjuster {
           case BA_PERSPECTIVE_CAMERA:
           {
             BAPerspectiveCamera &c = static_cast<BAPerspectiveCamera &>(*i.second);
-            problem.AddParameterBlock(c.parameters, BA_CAMERA_NUM_PARAMS);
+            
+            if (c.distortion_model == BA_RADIAL_K3) {
+              problem.AddParameterBlock(c.parameters, num_parameters_radial_k3);
+            } else {
+              problem.AddParameterBlock(c.parameters, num_parameters_radial_k2);
+            }
+            
             problem.SetParameterBlockConstant(c.parameters);
             break;
           }
           case BA_FISHEYE_CAMERA:
           {
             BAFisheyeCamera &c = static_cast<BAFisheyeCamera &>(*i.second);
-            problem.AddParameterBlock(c.parameters, BA_CAMERA_NUM_PARAMS);
+            problem.AddParameterBlock(c.parameters, num_parameters_radial_k2);
             problem.SetParameterBlockConstant(c.parameters);
             break;
           }
@@ -891,11 +969,24 @@ class BundleAdjuster {
         case BA_PERSPECTIVE_CAMERA:
         {
           BAPerspectiveCamera &c = static_cast<BAPerspectiveCamera &>(*observation.camera);
-          ceres::CostFunction* cost_function =
-              new ceres::AutoDiffCostFunction<PerspectiveReprojectionError, 2, 3, 6, 3>(
+          
+          ceres::CostFunction* cost_function;
+
+          if (c.distortion_model == BA_RADIAL_K3) {
+            cost_function =
+              new ceres::AutoDiffCostFunction<PerspectiveReprojectionError, 2, num_parameters_radial_k3, 6, 3>(
                   new PerspectiveReprojectionError(observation.coordinates[0],
-                                                   observation.coordinates[1],
-                                                   reprojection_error_sd_));
+                                                  observation.coordinates[1],
+                                                  reprojection_error_sd_,
+                                                  c.distortion_model));
+          } else {
+            cost_function =
+              new ceres::AutoDiffCostFunction<PerspectiveReprojectionError, 2, num_parameters_radial_k2, 6, 3>(
+                  new PerspectiveReprojectionError(observation.coordinates[0],
+                                                  observation.coordinates[1],
+                                                  reprojection_error_sd_,
+                                                  c.distortion_model));
+          }
 
           problem.AddResidualBlock(cost_function,
                                    loss,
@@ -988,11 +1079,25 @@ class BundleAdjuster {
         case BA_PERSPECTIVE_CAMERA:
         {
           BAPerspectiveCamera &c = static_cast<BAPerspectiveCamera &>(*observation.camera);
-          ceres::CostFunction* cost_function =
-              new ceres::AutoDiffCostFunction<GCPPerspectiveProjectionError, 2, 3, 6>(
+
+          ceres::CostFunction* cost_function;
+          
+          if (c.distortion_model == BA_RADIAL_K3) {
+            cost_function =
+              new ceres::AutoDiffCostFunction<GCPPerspectiveProjectionError, 2, num_parameters_radial_k3, 6>(
                   new GCPPerspectiveProjectionError(observation.coordinates3d,
                                                     observation.coordinates2d,
-                                                    reprojection_error_sd_));
+                                                    reprojection_error_sd_,
+                                                    c.distortion_model));
+          } else {
+            cost_function =
+              new ceres::AutoDiffCostFunction<GCPPerspectiveProjectionError, 2, num_parameters_radial_k2, 6>(
+                  new GCPPerspectiveProjectionError(observation.coordinates3d,
+                                                    observation.coordinates2d,
+                                                    reprojection_error_sd_,
+                                                    c.distortion_model));
+          }
+
           problem.AddResidualBlock(cost_function,
                                    NULL,
                                    c.parameters,
@@ -1027,11 +1132,22 @@ class BundleAdjuster {
         {
           BAPerspectiveCamera &c = static_cast<BAPerspectiveCamera &>(*i.second);
 
-          ceres::CostFunction* cost_function =
-              new ceres::AutoDiffCostFunction<InternalParametersPriorError, 3, 3>(
-                  new InternalParametersPriorError(c.focal_prior, focal_prior_sd_,
-                                                   c.k1_prior, k1_sd_,
-                                                   c.k2_prior, k2_sd_));
+          ceres::CostFunction* cost_function;
+          
+          if (c.distortion_model == BA_RADIAL_K3) {
+            cost_function =
+              new ceres::AutoDiffCostFunction<InternalParametersPriorError, num_parameters_radial_k3, num_parameters_radial_k3>(
+                  new InternalParametersPriorError(c.distortion_model, c.focal_prior, focal_prior_sd_,
+                                                  c.k1_prior, k1_sd_,
+                                                  c.k2_prior, k2_sd_,
+                                                  c.k3_prior, k3_sd_));
+          } else {
+            cost_function =
+              new ceres::AutoDiffCostFunction<InternalParametersPriorError, num_parameters_radial_k2, num_parameters_radial_k2>(
+                  new InternalParametersPriorError(c.distortion_model, c.focal_prior, focal_prior_sd_,
+                                                  c.k1_prior, k1_sd_,
+                                                  c.k2_prior, k2_sd_));
+          }
 
           problem.AddResidualBlock(cost_function,
                                    NULL,
@@ -1044,7 +1160,7 @@ class BundleAdjuster {
 
           ceres::CostFunction* cost_function =
               new ceres::AutoDiffCostFunction<InternalParametersPriorError, 3, 3>(
-                  new InternalParametersPriorError(c.focal_prior, focal_prior_sd_,
+                  new InternalParametersPriorError(BA_RADIAL_K2, c.focal_prior, focal_prior_sd_,
                                                    c.k1_prior, k1_sd_,
                                                    c.k2_prior, k2_sd_));
 
@@ -1131,11 +1247,12 @@ class BundleAdjuster {
       switch (observations_[i].camera->type()) {
         case BA_PERSPECTIVE_CAMERA:
         {
+          
           BAPerspectiveCamera &c = static_cast<BAPerspectiveCamera &>(*observations_[i].camera);
-
           PerspectiveReprojectionError pre(observations_[i].coordinates[0],
                                            observations_[i].coordinates[1],
-                                           1.0);
+                                           1.0,
+                                           c.distortion_model);
           double residuals[2];
           pre(c.parameters,
               observations_[i].shot->parameters,
@@ -1210,6 +1327,7 @@ class BundleAdjuster {
   double focal_prior_sd_;
   double k1_sd_;
   double k2_sd_;
+  double k3_sd_;
   bool compute_covariances_;
   bool covariance_estimation_valid_;
   bool compute_reprojection_errors_;

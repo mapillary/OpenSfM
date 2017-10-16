@@ -31,8 +31,8 @@ def bundle(graph, reconstruction, gcp, config):
     for camera in reconstruction.cameras.values():
         if camera.projection_type == 'perspective':
             ba.add_perspective_camera(
-                str(camera.id), camera.focal, camera.k1, camera.k2,
-                camera.focal_prior, camera.k1_prior, camera.k2_prior,
+                str(camera.id), str(camera.distortion_model), camera.focal, camera.k1, camera.k2, camera.k3,
+                camera.focal_prior, camera.k1_prior, camera.k2_prior, camera.k3_prior,
                 fix_cameras)
         elif camera.projection_type == 'fisheye':
             ba.add_fisheye_camera(
@@ -86,7 +86,8 @@ def bundle(graph, reconstruction, gcp, config):
     ba.set_internal_parameters_prior_sd(
         config.get('exif_focal_sd', 0.01),
         config.get('radial_distorsion_k1_sd', 0.01),
-        config.get('radial_distorsion_k2_sd', 0.01))
+        config.get('radial_distorsion_k2_sd', 0.01),
+        config.get('radial_distorsion_k3_sd', 0.01))
 
     setup = time.time()
 
@@ -102,6 +103,7 @@ def bundle(graph, reconstruction, gcp, config):
             camera.focal = c.focal
             camera.k1 = c.k1
             camera.k2 = c.k2
+            camera.k3 = c.k3
         elif camera.projection_type == 'fisheye':
             c = ba.get_fisheye_camera(str(camera.id))
             camera.focal = c.focal
@@ -132,8 +134,8 @@ def bundle_single_view(graph, reconstruction, shot_id, config):
 
     if camera.projection_type == 'perspective':
         ba.add_perspective_camera(
-            str(camera.id), camera.focal, camera.k1, camera.k2,
-            camera.focal_prior, camera.k1_prior, camera.k2_prior, True)
+            str(camera.id), str(camera.distortion_model), camera.focal, camera.k1, camera.k2, camera.k3,
+            camera.focal_prior, camera.k1_prior, camera.k2_prior, camera.k3_prior, True)
     elif camera.projection_type == 'fisheye':
         ba.add_fisheye_camera(
             str(camera.id), camera.focal, camera.k1, camera.k2,
@@ -169,7 +171,8 @@ def bundle_single_view(graph, reconstruction, shot_id, config):
     ba.set_internal_parameters_prior_sd(
         config.get('exif_focal_sd', 0.01),
         config.get('radial_distorsion_k1_sd', 0.01),
-        config.get('radial_distorsion_k2_sd', 0.01))
+        config.get('radial_distorsion_k2_sd', 0.01),
+        config.get('radial_distorsion_k3_sd', 0.01))
 
     ba.set_num_threads(config['processes'])
     ba.run()
@@ -202,8 +205,8 @@ def bundle_local(graph, reconstruction, gcp, central_shot_id, config):
     for camera in reconstruction.cameras.values():
         if camera.projection_type == 'perspective':
             ba.add_perspective_camera(
-                str(camera.id), camera.focal, camera.k1, camera.k2,
-                camera.focal_prior, camera.k1_prior, camera.k2_prior,
+                str(camera.id), str(camera.distortion_model), camera.focal, camera.k1, camera.k2, camera.k3,
+                camera.focal_prior, camera.k1_prior, camera.k2_prior, camera.k3_prior,
                 True)
 
         elif camera.projection_type in ['equirectangular', 'spherical']:
@@ -256,7 +259,8 @@ def bundle_local(graph, reconstruction, gcp, central_shot_id, config):
     ba.set_internal_parameters_prior_sd(
         config.get('exif_focal_sd', 0.01),
         config.get('radial_distorsion_k1_sd', 0.01),
-        config.get('radial_distorsion_k2_sd', 0.01))
+        config.get('radial_distorsion_k2_sd', 0.01),
+        config.get('radial_distorsion_k3_sd', 0.01))
 
     setup = time.time()
 
@@ -272,6 +276,7 @@ def bundle_local(graph, reconstruction, gcp, central_shot_id, config):
             camera.focal = c.focal
             camera.k1 = c.k1
             camera.k2 = c.k2
+            camera.k3 = c.k3
 
     for shot_id in interior:
         shot = reconstruction.shots[shot_id]

@@ -24,14 +24,17 @@ def camera_from_json(key, obj):
     if pt == 'perspective':
         camera = types.PerspectiveCamera()
         camera.id = key
+        camera.distortion_model = obj.get('distortion_model', 'radial_k2')
         camera.width = obj.get('width', 0)
         camera.height = obj.get('height', 0)
         camera.focal = obj['focal']
         camera.k1 = obj.get('k1', 0.0)
         camera.k2 = obj.get('k2', 0.0)
+        camera.k3 = obj.get('k3', 0.0)
         camera.focal_prior = obj.get('focal_prior', camera.focal)
         camera.k1_prior = obj.get('k1_prior', camera.k1)
         camera.k2_prior = obj.get('k2_prior', camera.k2)
+        camera.k3_prior = obj.get('k3_prior', camera.k3)
         return camera
     elif pt == 'fisheye':
         camera = types.FisheyeCamera()
@@ -165,14 +168,17 @@ def camera_to_json(camera):
     if camera.projection_type == 'perspective':
         return {
             'projection_type': camera.projection_type,
+            'distortion_model': camera.distortion_model,
             'width': camera.width,
             'height': camera.height,
             'focal': camera.focal,
             'k1': camera.k1,
             'k2': camera.k2,
+            'k3': camera.k3,
             'focal_prior': camera.focal_prior,
             'k1_prior': camera.k1_prior,
-            'k2_prior': camera.k2_prior
+            'k2_prior': camera.k2_prior,
+            'k3_prior': camera.k3_prior
         }
     elif camera.projection_type == 'fisheye':
         return {
@@ -448,11 +454,12 @@ def export_bundler(image_list, reconstructions, track_graph, bundle_file_path,
                 focal = camera.focal * scale
                 k1 = camera.k1
                 k2 = camera.k2
+                k3 = camera.k3
                 R = shot.pose.get_rotation_matrix()
                 t = np.array(shot.pose.translation)
                 R[1], R[2] = -R[1], -R[2]  # Reverse y and z
                 t[1], t[2] = -t[1], -t[2]
-                lines.append(' '.join(map(str, [focal, k1, k2])))
+                lines.append(' '.join(map(str, [focal, k1, k2, k3])))
                 for i in xrange(3):
                     lines.append(' '.join(list(map(str, R[i]))))
                 t = ' '.join(map(str, t))
@@ -535,7 +542,7 @@ def import_bundler(data_path, bundle_file, list_file, track_file,
     for i in xrange(num_shot):
         # Creating a model for each shot.
         shot_key = ordered_shots[i]
-        focal, k1, k2 = map(float, lines[offset].rstrip('\n').split(' '))
+        focal, k1, k2, k3 = map(float, lines[offset].rstrip('\n').split(' '))
 
         if focal > 0:
             im = imread(os.path.join(data_path, image_list[i]))
@@ -547,6 +554,7 @@ def import_bundler(data_path, bundle_file, list_file, track_file,
             camera.focal = focal / max(width, height)
             camera.k1 = k1
             camera.k2 = k2
+            camera.k3 = k3
             reconstruction.add_camera(camera)
 
             # Shots

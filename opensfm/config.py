@@ -73,6 +73,7 @@ reprojection_error_sd: 0.004    # The startard deviation of the reprojection err
 exif_focal_sd: 0.01             # The standard deviation of the exif focal length in log-scale
 radial_distorsion_k1_sd: 0.01   # The standard deviation of the first radial distortion parameter (mean assumed to be 0)
 radial_distorsion_k2_sd: 0.01   # The standard deviation of the second radial distortion parameter (mean assumed to be 0)
+radial_distorsion_k3_sd: 0.01   # The standard deviation of the third radial distortion parameter (mean assumed to be 0)
 bundle_outlier_threshold: 0.006 # Points with larger reprojection error after bundle adjustment are removed
 bundle_interval: 0              # Bundle after adding 'bundle_interval' cameras
 bundle_new_points_ratio: 1.2    # Bundle when (new points) / (bundled points) > bundle_outlier_threshold
