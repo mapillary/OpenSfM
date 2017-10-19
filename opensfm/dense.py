@@ -75,8 +75,6 @@ def prune_depthmap_catched(arguments):
 
 def parallel_run(function, arguments, num_processes):
     """Run function for all arguments using multiple processes."""
-    log.setup()
-    
     num_processes = min(num_processes, len(arguments))
     if num_processes == 1:
         return [function(arg) for arg in arguments]
@@ -88,6 +86,8 @@ def parallel_run(function, arguments, num_processes):
 
 def compute_depthmap(arguments):
     """Compute depthmap for a single shot."""
+    log.setup()
+
     data, neighbors, min_depth, max_depth, shot = arguments
     method = data.config['depthmap_method']
 
@@ -148,6 +148,8 @@ def compute_depthmap(arguments):
 
 def clean_depthmap(arguments):
     """Clean depthmap by checking consistency with neighbors."""
+    log.setup()
+
     data, neighbors, shot = arguments
 
     if data.clean_depthmap_exists(shot.id):
@@ -187,6 +189,8 @@ def clean_depthmap(arguments):
 
 def prune_depthmap(arguments):
     """Prune depthmap to remove redundant points."""
+    log.setup()
+                
     data, neighbors, shot = arguments
 
     if data.pruned_depthmap_exists(shot.id):
