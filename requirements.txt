@@ -8,3 +8,4 @@ python-dateutil==2.6.0
 PyYAML==3.12
 scipy
 xmltodict==0.10.2
+cloudpickle==0.4.0

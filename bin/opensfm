@@ -8,9 +8,9 @@ import argparse
 import logging
 
 from opensfm import commands
+from opensfm import log
 
-logging.basicConfig(format='%(asctime)s %(message)s', level=logging.DEBUG)
-
+log.setup()
 
 # Create the top-level parser
 parser = argparse.ArgumentParser()

@@ -1,12 +1,11 @@
 
 import logging
-from multiprocessing import Pool
+from loky import get_reusable_executor
 
 import cv2
 import numpy as np
 
-from opensfm import csfm
-from opensfm import matching
+from opensfm import csfm, matching, log
 
 
 logger = logging.getLogger(__name__)
@@ -76,14 +75,14 @@ def prune_depthmap_catched(arguments):
 
 def parallel_run(function, arguments, num_processes):
     """Run function for all arguments using multiple processes."""
+    log.setup()
+    
     num_processes = min(num_processes, len(arguments))
     if num_processes == 1:
         return [function(arg) for arg in arguments]
     else:
-        p = Pool(num_processes)
-        ret = p.map(function, arguments)
-        p.close()
-        p.terminate()
+        with get_reusable_executor(max_workers=num_processes) as executor:
+            ret = list(executor.map(function, arguments))
         return ret
 
 

@@ -1,13 +1,10 @@
 import logging
-from multiprocessing import Pool
+from loky import get_reusable_executor
 
 import cv2
 import numpy as np
 
-from opensfm import dataset
-from opensfm import features
-from opensfm import transformations as tf
-from opensfm import types
+from opensfm import dataset, features, transformations as tf, types, log
 
 logger = logging.getLogger(__name__)
 
@@ -64,11 +61,13 @@ class Command:
             for arg in arguments:
                 undistort_image(arg)
         else:
-            p = Pool(processes)
-            p.map(undistort_image, arguments)
+            with get_reusable_executor(max_workers=processes) as executor:
+                executor.map(undistort_image, arguments)
 
 
 def undistort_image(arguments):
+    log.setup()
+    
     shot, undistorted_shots, data = arguments
     logger.debug('Undistorting image {}'.format(shot.id))
 

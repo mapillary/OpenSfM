@@ -1,11 +1,11 @@
 import logging
+from loky import get_reusable_executor
 from multiprocessing import Pool
 import time
 
 import numpy as np
 
-from opensfm import dataset
-from opensfm import features
+from opensfm import dataset, features, log
 
 logger = logging.getLogger(__name__)
 
@@ -29,14 +29,18 @@ class Command:
             for arg in arguments:
                 detect(arg)
         else:
-            p = Pool(processes)
-            p.map(detect, arguments)
+            with get_reusable_executor(max_workers=processes) as executor:
+                executor.map(detect, arguments)
+            #p = Pool(processes)
+            #p.map(detect, arguments)
         end = time.time()
         with open(data.profile_log(), 'a') as fout:
             fout.write('detect_features: {0}\n'.format(end - start))
 
 
 def detect(args):
+    log.setup()
+
     image, data = args
     logger.info('Extracting {} features for image {}'.format(
         data.feature_type().upper(), image))

@@ -1,14 +1,12 @@
 import logging
 import time
 from itertools import combinations
-from multiprocessing import Pool
+from loky import get_reusable_executor
 
 import numpy as np
 import scipy.spatial as spatial
 
-from opensfm import dataset
-from opensfm import geo
-from opensfm import matching
+from opensfm import dataset, geo, matching, log
 
 logger = logging.getLogger(__name__)
 
@@ -42,8 +40,8 @@ class Command:
             for arg in args:
                 match(arg)
         else:
-            p = Pool(processes)
-            p.map(match, args)
+            with get_reusable_executor(max_workers=processes) as executor:
+                executor.map(match, args)
         end = time.time()
         with open(ctx.data.profile_log(), 'a') as fout:
             fout.write('match_features: {0}\n'.format(end - start))
@@ -187,6 +185,8 @@ def match_arguments(pairs, ctx):
 
 def match(args):
     """Compute all matches for a single image"""
+    log.setup()
+
     im1, candidates, i, n, ctx = args
     logger.info('Matching {}  -  {} / {}'.format(im1, i + 1, n))
 
