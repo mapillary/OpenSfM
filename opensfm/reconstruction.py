@@ -339,7 +339,7 @@ def compute_image_pairs(track_dict, config):
     if processes == 1:
         result = map(_compute_pair_reconstructability, args)
     else:
-        with get_reusable_executor(max_workers=processes) as executor:
+        with get_reusable_executor(max_workers=processes, timeout=None) as executor:
             result = list(executor.map(_compute_pair_reconstructability, args))
     pairs = [(im1, im2) for im1, im2, r in result if r > 0]
     score = [r for im1, im2, r in result if r > 0]

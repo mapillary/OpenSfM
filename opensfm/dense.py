@@ -81,7 +81,7 @@ def parallel_run(function, arguments, num_processes):
     if num_processes == 1:
         return [function(arg) for arg in arguments]
     else:
-        with get_reusable_executor(max_workers=num_processes) as executor:
+        with get_reusable_executor(max_workers=num_processes, timeout=None) as executor:
             ret = list(executor.map(function, arguments))
         return ret
 

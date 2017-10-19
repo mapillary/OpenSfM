@@ -61,7 +61,7 @@ class Command:
             for arg in arguments:
                 undistort_image(arg)
         else:
-            with get_reusable_executor(max_workers=processes) as executor:
+            with get_reusable_executor(max_workers=processes, timeout=None) as executor:
                 executor.map(undistort_image, arguments)
 
 

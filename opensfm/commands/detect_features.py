@@ -29,7 +29,7 @@ class Command:
             for arg in arguments:
                 detect(arg)
         else:
-            with get_reusable_executor(max_workers=processes) as executor:
+            with get_reusable_executor(max_workers=processes, timeout=None) as executor:
                 executor.map(detect, arguments)
             #p = Pool(processes)
             #p.map(detect, arguments)

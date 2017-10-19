@@ -40,7 +40,7 @@ class Command:
             for arg in args:
                 match(arg)
         else:
-            with get_reusable_executor(max_workers=processes) as executor:
+            with get_reusable_executor(max_workers=processes, timeout=None) as executor:
                 executor.map(match, args)
         end = time.time()
         with open(ctx.data.profile_log(), 'a') as fout:
