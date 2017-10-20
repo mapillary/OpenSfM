@@ -9,3 +9,4 @@ PyYAML==3.12
 scipy
 xmltodict==0.10.2
 cloudpickle==0.4.0
+loky==1.2.1
