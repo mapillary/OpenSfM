@@ -3,7 +3,11 @@ import logging
 import cv2
 import numpy as np
 
-from opensfm import dataset, features, transformations as tf, types, log
+from opensfm import dataset
+from opensfm import features
+from opensfm import log
+from opensfm import transformations as tf
+from opensfm import types
 from opensfm.context import parallel_map
 
 

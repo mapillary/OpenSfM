@@ -4,7 +4,9 @@ import logging
 import cv2
 import numpy as np
 
-from opensfm import csfm, matching, log
+from opensfm import csfm
+from opensfm import log
+from opensfm import matching
 from opensfm.context import parallel_map
 
 

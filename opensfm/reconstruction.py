@@ -10,7 +10,13 @@ import cv2
 import pyopengv
 import time
 
-from opensfm import align, csfm, geo, matching, multiview, types, log
+from opensfm import align
+from opensfm import csfm
+from opensfm import geo
+from opensfm import log
+from opensfm import matching
+from opensfm import multiview
+from opensfm import types
 from opensfm.context import parallel_map
 
 

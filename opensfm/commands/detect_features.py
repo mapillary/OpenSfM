@@ -3,7 +3,9 @@ import time
 
 import numpy as np
 
-from opensfm import dataset, features, log
+from opensfm import dataset
+from opensfm import features
+from opensfm import log
 from opensfm.context import parallel_map
 
 logger = logging.getLogger(__name__)
