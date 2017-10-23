@@ -1,11 +1,10 @@
 import logging
-from loky import get_reusable_executor
-from multiprocessing import Pool
 import time
 
 import numpy as np
 
 from opensfm import dataset, features, log
+from opensfm.context import parallel_map
 
 logger = logging.getLogger(__name__)
 
@@ -25,14 +24,7 @@ class Command:
 
         start = time.time()
         processes = data.config.get('processes', 1)
-        if processes == 1:
-            for arg in arguments:
-                detect(arg)
-        else:
-            with get_reusable_executor(max_workers=processes, timeout=None) as executor:
-                executor.map(detect, arguments)
-            #p = Pool(processes)
-            #p.map(detect, arguments)
+        parallel_map(detect, arguments, processes)
         end = time.time()
         with open(data.profile_log(), 'a') as fout:
             fout.write('detect_features: {0}\n'.format(end - start))
