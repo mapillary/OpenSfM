@@ -345,12 +345,15 @@ def camera_from_exif_metadata(metadata, data):
         camera.width = metadata['width']
         camera.height = metadata['height']
         camera.projection_type = metadata.get('projection_type', 'perspective')
+        camera.distortion_model = metadata.get('distortion_model', 'radial_k2')
         camera.focal = calib['focal']
         camera.k1 = calib['k1']
         camera.k2 = calib['k2']
+        camera.k3 = calib.get('k3', 0.0)
         camera.focal_prior = calib['focal']
         camera.k1_prior = calib['k1']
         camera.k2_prior = calib['k2']
+        camera.k3_prior = calib.get('k3', 0.0)
         return camera
     elif pt in ['equirectangular', 'spherical']:
         camera = types.SphericalCamera()

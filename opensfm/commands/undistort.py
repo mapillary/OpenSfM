@@ -112,6 +112,7 @@ def perspective_camera_from_fisheye(fisheye):
     """Create a perspective camera from a fisheye."""
     camera = types.PerspectiveCamera()
     camera.id = fisheye.id
+    camera.distortion_model = 'radial_k2'
     camera.width = fisheye.width
     camera.height = fisheye.height
     camera.focal = fisheye.focal
@@ -123,6 +124,7 @@ def perspective_camera_from_fisheye(fisheye):
 def perspective_views_of_a_panorama(spherical_shot, width):
     """Create 6 perspective views of a panorama."""
     camera = types.PerspectiveCamera()
+    camera.distortion_model = 'radial_k2'
     camera.id = 'perspective_panorama_camera'
     camera.width = width
     camera.height = width

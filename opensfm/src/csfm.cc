@@ -117,6 +117,7 @@ BOOST_PYTHON_MODULE(csfm) {
     .add_property("focal", &BAPerspectiveCamera::GetFocal, &BAPerspectiveCamera::SetFocal)
     .add_property("k1", &BAPerspectiveCamera::GetK1, &BAPerspectiveCamera::SetK1)
     .add_property("k2", &BAPerspectiveCamera::GetK2, &BAPerspectiveCamera::SetK2)
+    .add_property("k3", &BAPerspectiveCamera::GetK3, &BAPerspectiveCamera::SetK3)
     .def_readwrite("constant", &BAPerspectiveCamera::constant)
     .def_readwrite("focal_prior", &BAPerspectiveCamera::focal_prior)
     .def_readwrite("id", &BAPerspectiveCamera::id)
