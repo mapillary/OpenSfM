@@ -27,7 +27,10 @@ def gps_to_decimal(values, reference):
 
 def get_float_tag(tags, key):
     if key in tags:
-        return float(tags[key].values[0])
+        if isinstance(tags[key].values[0], exifread.utils.Ratio):
+            return float(tags[key].values[0].num) / tags[key].values[0].den
+        else:
+            return float(tags[key].values[0])
     else:
         return None
 
