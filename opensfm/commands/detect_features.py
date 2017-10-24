@@ -1,11 +1,12 @@
 import logging
-from multiprocessing import Pool
 import time
 
 import numpy as np
 
 from opensfm import dataset
 from opensfm import features
+from opensfm import log
+from opensfm.context import parallel_map
 
 logger = logging.getLogger(__name__)
 
@@ -25,18 +26,15 @@ class Command:
 
         start = time.time()
         processes = data.config.get('processes', 1)
-        if processes == 1:
-            for arg in arguments:
-                detect(arg)
-        else:
-            p = Pool(processes)
-            p.map(detect, arguments)
+        parallel_map(detect, arguments, processes)
         end = time.time()
         with open(data.profile_log(), 'a') as fout:
             fout.write('detect_features: {0}\n'.format(end - start))
 
 
 def detect(args):
+    log.setup()
+
     image, data = args
     logger.info('Extracting {} features for image {}'.format(
         data.feature_type().upper(), image))

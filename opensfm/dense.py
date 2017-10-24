@@ -1,12 +1,13 @@
 
 import logging
-from multiprocessing import Pool
 
 import cv2
 import numpy as np
 
 from opensfm import csfm
+from opensfm import log
 from opensfm import matching
+from opensfm.context import parallel_map
 
 
 logger = logging.getLogger(__name__)
@@ -31,21 +32,21 @@ def compute_depthmaps(data, graph, reconstruction):
             continue
         min_depth, max_depth = compute_depth_range(graph, reconstruction, shot)
         arguments.append((data, neighbors[shot.id], min_depth, max_depth, shot))
-    parallel_run(compute_depthmap_catched, arguments, processes)
+    parallel_map(compute_depthmap_catched, arguments, processes)
 
     arguments = []
     for shot in reconstruction.shots.values():
         if len(neighbors[shot.id]) <= 1:
             continue
         arguments.append((data, neighbors[shot.id], shot))
-    parallel_run(clean_depthmap_catched, arguments, processes)
+    parallel_map(clean_depthmap_catched, arguments, processes)
 
     arguments = []
     for shot in reconstruction.shots.values():
         if len(neighbors[shot.id]) <= 1:
             continue
         arguments.append((data, neighbors[shot.id], shot))
-    parallel_run(prune_depthmap_catched, arguments, processes)
+    parallel_map(prune_depthmap_catched, arguments, processes)
 
     merge_depthmaps(data, graph, reconstruction, neighbors)
 
@@ -74,21 +75,10 @@ def prune_depthmap_catched(arguments):
         logger.exception(e)
 
 
-def parallel_run(function, arguments, num_processes):
-    """Run function for all arguments using multiple processes."""
-    num_processes = min(num_processes, len(arguments))
-    if num_processes == 1:
-        return [function(arg) for arg in arguments]
-    else:
-        p = Pool(num_processes)
-        ret = p.map(function, arguments)
-        p.close()
-        p.terminate()
-        return ret
-
-
 def compute_depthmap(arguments):
     """Compute depthmap for a single shot."""
+    log.setup()
+
     data, neighbors, min_depth, max_depth, shot = arguments
     method = data.config['depthmap_method']
 
@@ -149,6 +139,8 @@ def compute_depthmap(arguments):
 
 def clean_depthmap(arguments):
     """Clean depthmap by checking consistency with neighbors."""
+    log.setup()
+
     data, neighbors, shot = arguments
 
     if data.clean_depthmap_exists(shot.id):
@@ -188,6 +180,8 @@ def clean_depthmap(arguments):
 
 def prune_depthmap(arguments):
     """Prune depthmap to remove redundant points."""
+    log.setup()
+
     data, neighbors, shot = arguments
 
     if data.pruned_depthmap_exists(shot.id):

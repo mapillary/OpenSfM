@@ -1,13 +1,15 @@
 import logging
-from multiprocessing import Pool
 
 import cv2
 import numpy as np
 
 from opensfm import dataset
 from opensfm import features
+from opensfm import log
 from opensfm import transformations as tf
 from opensfm import types
+from opensfm.context import parallel_map
+
 
 logger = logging.getLogger(__name__)
 
@@ -60,15 +62,12 @@ class Command:
             arguments.append((shot, undistorted_shots[shot.id], data))
 
         processes = data.config['processes']
-        if processes == 1:
-            for arg in arguments:
-                undistort_image(arg)
-        else:
-            p = Pool(processes)
-            p.map(undistort_image, arguments)
+        parallel_map(undistort_image, arguments, processes)
 
 
 def undistort_image(arguments):
+    log.setup()
+
     shot, undistorted_shots, data = arguments
     logger.debug('Undistorting image {}'.format(shot.id))
 

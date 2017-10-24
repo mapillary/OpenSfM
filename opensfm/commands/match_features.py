@@ -1,14 +1,16 @@
 import logging
 import time
 from itertools import combinations
-from multiprocessing import Pool
 
 import numpy as np
 import scipy.spatial as spatial
 
 from opensfm import dataset
 from opensfm import geo
+from opensfm import log
 from opensfm import matching
+from opensfm.context import parallel_map
+
 
 logger = logging.getLogger(__name__)
 
@@ -34,16 +36,11 @@ class Command:
         ctx.cameras = ctx.data.load_camera_models()
         ctx.exifs = exifs
         ctx.p_pre, ctx.f_pre = load_preemptive_features(data)
-        args = match_arguments(pairs, ctx)
+        args = list(match_arguments(pairs, ctx))
 
         start = time.time()
         processes = ctx.data.config.get('processes', 1)
-        if processes == 1:
-            for arg in args:
-                match(arg)
-        else:
-            p = Pool(processes)
-            p.map(match, args)
+        parallel_map(match, args, processes)
         end = time.time()
         with open(ctx.data.profile_log(), 'a') as fout:
             fout.write('match_features: {0}\n'.format(end - start))
@@ -187,6 +184,8 @@ def match_arguments(pairs, ctx):
 
 def match(args):
     """Compute all matches for a single image"""
+    log.setup()
+
     im1, candidates, i, n, ctx = args
     logger.info('Matching {}  -  {} / {}'.format(im1, i + 1, n))
 

@@ -9,14 +9,15 @@ import numpy as np
 import cv2
 import pyopengv
 import time
-from multiprocessing import Pool
 
 from opensfm import align
 from opensfm import csfm
 from opensfm import geo
+from opensfm import log
 from opensfm import matching
 from opensfm import multiview
 from opensfm import types
+from opensfm.context import parallel_map
 
 
 logger = logging.getLogger(__name__)
@@ -341,11 +342,8 @@ def compute_image_pairs(track_dict, config):
     """All matched image pairs sorted by reconstructability."""
     args = _pair_reconstructability_arguments(track_dict, config)
     processes = config.get('processes', 1)
-    if processes == 1:
-        result = map(_compute_pair_reconstructability, args)
-    else:
-        p = Pool(processes)
-        result = p.map(_compute_pair_reconstructability, args)
+    result = parallel_map(_compute_pair_reconstructability, args, processes)
+    result = list(result)
     pairs = [(im1, im2) for im1, im2, r in result if r > 0]
     score = [r for im1, im2, r in result if r > 0]
     order = np.argsort(-np.array(score))
@@ -359,6 +357,7 @@ def _pair_reconstructability_arguments(track_dict, config):
 
 
 def _compute_pair_reconstructability(args):
+    log.setup()
     threshold, im1, im2, p1, p2 = args
     H, inliers = cv2.findHomography(p1, p2, cv2.RANSAC, threshold)
     r = pairwise_reconstructability(len(p1), inliers.sum())
