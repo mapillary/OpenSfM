@@ -11,10 +11,12 @@ class Command:
 
     def add_arguments(self, parser):
         parser.add_argument('dataset', help='dataset to process')
+        parser.add_argument('--no-cameras', action='store_true', default=False, help='Do not save camera positions')
 
     def run(self, args):
         data = dataset.DataSet(args.dataset)
         reconstructions = data.load_reconstruction()
+        no_cameras = args.no_cameras
 
         if reconstructions:
-            data.save_ply(reconstructions[0])
+            data.save_ply(reconstructions[0], None, no_cameras)
