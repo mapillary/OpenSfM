@@ -462,9 +462,9 @@ class DataSet:
     def __ply_file(self, filename):
         return os.path.join(self.data_path, filename or 'reconstruction.ply')
 
-    def save_ply(self, reconstruction, filename=None):
+    def save_ply(self, reconstruction, filename=None, no_cameras=False):
         """Save a reconstruction in PLY format"""
-        ply = io.reconstruction_to_ply(reconstruction)
+        ply = io.reconstruction_to_ply(reconstruction, filename, no_cameras)
         with open(self.__ply_file(filename), 'w') as fout:
             fout.write(ply)
 

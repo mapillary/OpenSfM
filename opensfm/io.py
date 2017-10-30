@@ -618,7 +618,7 @@ def import_bundler(data_path, bundle_file, list_file, track_file,
 
 # PLY
 
-def reconstruction_to_ply(reconstruction):
+def reconstruction_to_ply(reconstruction, no_cameras=False):
     '''
     Export reconstruction points as a PLY string
     '''
@@ -630,16 +630,17 @@ def reconstruction_to_ply(reconstruction):
             p[0], p[1], p[2], int(c[0]), int(c[1]), int(c[2]))
         vertices.append(s)
 
-    for shot in reconstruction.shots.values():
-        o = shot.pose.get_origin()
-        R = shot.pose.get_rotation_matrix()
-        for axis in range(3):
-            c = 255 * np.eye(3)[axis]
-            for depth in np.linspace(0, 1, 10):
-                p = o + depth * R[axis]
-                s = "{} {} {} {} {} {}".format(
-                    p[0], p[1], p[2], int(c[0]), int(c[1]), int(c[2]))
-                vertices.append(s)
+    if not no_cameras:
+        for shot in reconstruction.shots.values():
+            o = shot.pose.get_origin()
+            R = shot.pose.get_rotation_matrix()
+            for axis in range(3):
+                c = 255 * np.eye(3)[axis]
+                for depth in np.linspace(0, 1, 10):
+                    p = o + depth * R[axis]
+                    s = "{} {} {} {} {} {}".format(
+                        p[0], p[1], p[2], int(c[0]), int(c[1]), int(c[2]))
+                    vertices.append(s)
 
     header = [
         "ply",
