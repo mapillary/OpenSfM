@@ -2,7 +2,6 @@
 
 import os
 import json
-import errno
 import pickle
 import gzip
 import numpy as np
@@ -462,9 +461,10 @@ class DataSet:
     def __ply_file(self, filename):
         return os.path.join(self.data_path, filename or 'reconstruction.ply')
 
-    def save_ply(self, reconstruction, filename=None, no_cameras=False):
-        """Save a reconstruction in PLY format"""
-        ply = io.reconstruction_to_ply(reconstruction, filename, no_cameras)
+    def save_ply(self, reconstruction, filename=None,
+                 no_cameras=False, no_points=False):
+        """Save a reconstruction in PLY format."""
+        ply = io.reconstruction_to_ply(reconstruction, no_cameras, no_points)
         with open(self.__ply_file(filename), 'w') as fout:
             fout.write(ply)
 

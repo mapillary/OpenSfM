@@ -618,17 +618,16 @@ def import_bundler(data_path, bundle_file, list_file, track_file,
 
 # PLY
 
-def reconstruction_to_ply(reconstruction, no_cameras=False):
-    '''
-    Export reconstruction points as a PLY string
-    '''
+def reconstruction_to_ply(reconstruction, no_cameras=False, no_points=False):
+    """Export reconstruction points as a PLY string."""
     vertices = []
 
-    for point in reconstruction.points.values():
-        p, c = point.coordinates, point.color
-        s = "{} {} {} {} {} {}".format(
-            p[0], p[1], p[2], int(c[0]), int(c[1]), int(c[2]))
-        vertices.append(s)
+    if not no_points:
+        for point in reconstruction.points.values():
+            p, c = point.coordinates, point.color
+            s = "{} {} {} {} {} {}".format(
+                p[0], p[1], p[2], int(c[0]), int(c[1]), int(c[2]))
+            vertices.append(s)
 
     if not no_cameras:
         for shot in reconstruction.shots.values():
