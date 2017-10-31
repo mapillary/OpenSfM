@@ -296,5 +296,4 @@ def build_flann_index(features, config):
                         branching=config.get('flann_branching', 16),
                         iterations=config.get('flann_iterations', 20))
 
-    flann_Index = cv2.flann.Index if context.OPENCV3 else cv2.flann_Index
-    return flann_Index(features, flann_params)
+    return cv2.flann_Index(features, flann_params)
