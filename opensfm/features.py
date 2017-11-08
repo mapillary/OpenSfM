@@ -139,14 +139,7 @@ def extract_features_dsift(image, config):
                               bin_size = config.get('dsift_bin_size', 8),
                               use_flat_window = config.get('dsift_use_flat_window', True))
 
-    if config.get('feature_root', False):
-        desc = np.sqrt(desc)
-        uchar_scaling = 362  # x * 512 < 256  =>  sqrt(x) * 362 < 256
-    else:
-        uchar_scaling = 512
-
-    if config.get('dsift_normalize_to_uchar', False):
-        desc = (uchar_scaling * desc).clip(0, 255).round()
+    if config.get('feature_root', False): desc = np.sqrt(desc)
 
     logger.debug('Found {0} points in {1}s'.format( len(points), time.time()-t ))
     return points, desc
