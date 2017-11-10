@@ -18,6 +18,7 @@ extern "C" {
 
 enum BACameraType {
   BA_PERSPECTIVE_CAMERA,
+  BA_BROWN_PERSPECTIVE_CAMERA,
   BA_FISHEYE_CAMERA,
   BA_EQUIRECTANGULAR_CAMERA
 };
@@ -33,11 +34,15 @@ enum {
   BA_CAMERA_FOCAL,
   BA_CAMERA_K1,
   BA_CAMERA_K2,
-  BA_CAMERA_NUM_PARAMS
+  BA_CAMERA_BASIC_RADIAL_DISTORTION_NUM_PARAMS,
+  BA_CAMERA_P1 = BA_CAMERA_BASIC_RADIAL_DISTORTION_NUM_PARAMS,
+  BA_CAMERA_P2,
+  BA_CAMERA_K3,
+  BA_CAMERA_BROWN_DISTORTION_NUM_PARAMS
 };
 
 struct BAPerspectiveCamera : public BACamera{
-  double parameters[BA_CAMERA_NUM_PARAMS];
+  double parameters[BA_CAMERA_BASIC_RADIAL_DISTORTION_NUM_PARAMS];
   double focal_prior;
   double k1_prior;
   double k2_prior;
@@ -51,8 +56,33 @@ struct BAPerspectiveCamera : public BACamera{
   void SetK2(double v) { parameters[BA_CAMERA_K2] = v; }
 };
 
+struct BABrownPerspectiveCamera : public BACamera{
+  double parameters[BA_CAMERA_BROWN_DISTORTION_NUM_PARAMS];
+  double focal_prior;
+  double k1_prior;
+  double k2_prior;
+  double p1_prior;
+  double p2_prior;
+  double k3_prior;
+
+  BACameraType type() { return BA_PERSPECTIVE_CAMERA; }
+  double GetFocal() { return parameters[BA_CAMERA_FOCAL]; }
+  double GetK1() { return parameters[BA_CAMERA_K1]; }
+  double GetK2() { return parameters[BA_CAMERA_K2]; }
+  double GetP1() { return parameters[BA_CAMERA_P1]; }
+  double GetP2() { return parameters[BA_CAMERA_P2]; }
+  double GetK3() { return parameters[BA_CAMERA_K3]; }
+  void SetFocal(double v) { parameters[BA_CAMERA_FOCAL] = v; }
+  void SetK1(double v) { parameters[BA_CAMERA_K1] = v; }
+  void SetK2(double v) { parameters[BA_CAMERA_K2] = v; }
+  void SetP1(double v) { parameters[BA_CAMERA_P1] = v; }
+  void SetP2(double v) { parameters[BA_CAMERA_P2] = v; }
+  void SetK3(double v) { parameters[BA_CAMERA_K3] = v; }
+};
+
+
 struct BAFisheyeCamera : public BACamera{
-  double parameters[BA_CAMERA_NUM_PARAMS];
+  double parameters[BA_CAMERA_BASIC_RADIAL_DISTORTION_NUM_PARAMS];
   double focal_prior;
   double k1_prior;
   double k2_prior;
@@ -248,6 +278,69 @@ struct PerspectiveReprojectionError {
 };
 
 template <typename T>
+void BrownPerspectiveProject(const T* const camera,
+                             const T point[3],
+                             T projection[2]) {
+  T xp = point[0] / point[2];
+  T yp = point[1] / point[2];
+
+  // Apply Brown Conrady radial and tangential distortion
+  const T& k1 = camera[BA_CAMERA_K1];
+  const T& k2 = camera[BA_CAMERA_K2];
+  const T& p1 = camera[BA_CAMERA_P1];
+  const T& p2 = camera[BA_CAMERA_P2];
+  const T& k3 = camera[BA_CAMERA_K3];
+  T r2 = xp * xp + yp * yp;
+  T radial_distortion = T(1.0) + r2  * (k1 + r2 * (k2 + r2 * k3));
+
+  T x_tangential_distortion = T(2.0) * p1 * xp * yp + p2 * (r2 + T(2.0) * xp * xp);
+  T x_distorted = xp * radial_distortion + x_tangential_distortion;
+
+  T y_tangential_distortion = p1 * (r2 + T(2.0) * yp * yp) + T(2.0) * p2 * xp * yp;
+  T y_distorted = yp * radial_distortion + y_tangential_distortion;
+
+  // Compute final projected point position.
+  const T& focal = camera[BA_CAMERA_FOCAL];
+  projection[0] = focal * x_distorted;
+  projection[1] = focal * y_distorted;
+}
+
+struct BrownPerspectiveReprojectionError {
+  BrownPerspectiveReprojectionError(double observed_x, double observed_y, double std_deviation)
+      : observed_x_(observed_x)
+      , observed_y_(observed_y)
+      , scale_(1.0 / std_deviation)
+  {}
+
+  template <typename T>
+  bool operator()(const T* const camera,
+                  const T* const shot,
+                  const T* const point,
+                  T* residuals) const {
+    T camera_point[3];
+    WorldToCameraCoordinates(shot, point, camera_point);
+
+    if (camera_point[2] <= T(0.0)) {
+      residuals[0] = residuals[1] = T(99.0);
+      return true;
+    }
+
+    T predicted[2];
+    BrownPerspectiveProject(camera, camera_point, predicted);
+
+    // The error is the difference between the predicted and observed position.
+    residuals[0] = T(scale_) * (predicted[0] - T(observed_x_));
+    residuals[1] = T(scale_) * (predicted[1] - T(observed_y_));
+
+    return true;
+  }
+
+  double observed_x_;
+  double observed_y_;
+  double scale_;
+};
+
+template <typename T>
 void FisheyeProject(const T* const camera,
                     const T point[3],
                     T projection[2]) {
@@ -380,6 +473,42 @@ struct GCPPerspectiveProjectionError {
   double scale_;
 };
 
+struct GCPBrownPerspectiveProjectionError {
+  GCPBrownPerspectiveProjectionError(
+    double world[3], double observed[2], double std_deviation)
+      : world_(world)
+      , observed_(observed)
+      , scale_(1.0 / std_deviation)
+  {}
+
+  template <typename T>
+  bool operator()(const T* const camera,
+                  const T* const shot,
+                  T* residuals) const {
+    T world_point[3] = { T(world_[0]), T(world_[1]), T(world_[2]) };
+    T camera_point[3];
+    WorldToCameraCoordinates(shot, world_point, camera_point);
+
+    if (camera_point[2] <= T(0.0)) {
+      residuals[0] = residuals[1] = T(99.0);
+      return true;
+    }
+
+    T predicted[2];
+    BrownPerspectiveProject(camera, camera_point, predicted);
+
+    // The error is the difference between the predicted and observed position.
+    residuals[0] = T(scale_) * (predicted[0] - T(observed_[0]));
+    residuals[1] = T(scale_) * (predicted[1] - T(observed_[1]));
+
+    return true;
+  }
+
+  double *world_;
+  double *observed_;
+  double scale_;
+};
+
 struct GCPEquirectangularProjectionError {
   GCPEquirectangularProjectionError(
     double world[3], double observed[2], double std_deviation)
@@ -422,13 +551,13 @@ struct GCPEquirectangularProjectionError {
   double scale_;
 };
 
-struct InternalParametersPriorError {
-  InternalParametersPriorError(double focal_estimate,
-                               double focal_std_deviation,
-                               double k1_estimate,
-                               double k1_std_deviation,
-                               double k2_estimate,
-                               double k2_std_deviation)
+struct BasicRadialInternalParametersPriorError {
+  BasicRadialInternalParametersPriorError(double focal_estimate,
+                                          double focal_std_deviation,
+                                          double k1_estimate,
+                                          double k1_std_deviation,
+                                          double k2_estimate,
+                                          double k2_std_deviation)
       : log_focal_estimate_(log(focal_estimate))
       , focal_scale_(1.0 / focal_std_deviation)
       , k1_estimate_(k1_estimate)
@@ -451,6 +580,58 @@ struct InternalParametersPriorError {
   double k1_scale_;
   double k2_estimate_;
   double k2_scale_;
+};
+
+struct BrownInternalParametersPriorError {
+  BrownInternalParametersPriorError(double focal_estimate,
+                                    double focal_std_deviation,
+                                    double k1_estimate,
+                                    double k1_std_deviation,
+                                    double k2_estimate,
+                                    double k2_std_deviation,
+                                    double p1_estimate,
+                                    double p1_std_deviation,
+                                    double p2_estimate,
+                                    double p2_std_deviation,
+                                    double k3_estimate,
+                                    double k3_std_deviation)
+      : log_focal_estimate_(log(focal_estimate))
+      , focal_scale_(1.0 / focal_std_deviation)
+      , k1_estimate_(k1_estimate)
+      , k1_scale_(1.0 / k1_std_deviation)
+      , k2_estimate_(k2_estimate)
+      , k2_scale_(1.0 / k2_std_deviation)
+      , p1_estimate_(p1_estimate)
+      , p1_scale_(1.0 / p1_std_deviation)
+      , p2_estimate_(p2_estimate)
+      , p2_scale_(1.0 / p2_std_deviation)
+      , k3_estimate_(k3_estimate)
+      , k3_scale_(1.0 / k3_std_deviation)
+  {}
+
+  template <typename T>
+  bool operator()(const T* const parameters, T* residuals) const {
+    residuals[0] = T(focal_scale_) * (log(parameters[BA_CAMERA_FOCAL]) - T(log_focal_estimate_));
+    residuals[1] = T(k1_scale_) * (parameters[BA_CAMERA_K1] - T(k1_estimate_));
+    residuals[2] = T(k2_scale_) * (parameters[BA_CAMERA_K2] - T(k2_estimate_));
+    residuals[3] = T(p1_scale_) * (parameters[BA_CAMERA_P1] - T(p1_estimate_));
+    residuals[4] = T(p2_scale_) * (parameters[BA_CAMERA_P2] - T(p2_estimate_));
+    residuals[5] = T(k3_scale_) * (parameters[BA_CAMERA_K3] - T(k3_estimate_));
+    return true;
+  }
+
+  double log_focal_estimate_;
+  double focal_scale_;
+  double k1_estimate_;
+  double k1_scale_;
+  double k2_estimate_;
+  double k2_scale_;
+  double p1_estimate_;
+  double p1_scale_;
+  double p2_estimate_;
+  double p2_scale_;
+  double k3_estimate_;
+  double k3_scale_;
 };
 
 
@@ -572,6 +753,9 @@ class BundleAdjuster {
     focal_prior_sd_ = 1;
     k1_sd_ = 1;
     k2_sd_ = 1;
+    p1_sd_ = 1;
+    p2_sd_ = 1;
+    k3_sd_ = 1;
     compute_covariances_ = false;
     covariance_estimation_valid_ = false;
     compute_reprojection_errors_ = true;
@@ -586,6 +770,10 @@ class BundleAdjuster {
 
   BAPerspectiveCamera GetPerspectiveCamera(const std::string &id) {
     return *(BAPerspectiveCamera *)cameras_[id].get();
+  }
+
+  BABrownPerspectiveCamera GetBrownPerspectiveCamera(const std::string &id) {
+    return *(BABrownPerspectiveCamera *)cameras_[id].get();
   }
 
   BAFisheyeCamera GetFisheyeCamera(const std::string &id) {
@@ -623,6 +811,39 @@ class BundleAdjuster {
     c.focal_prior = focal_prior;
     c.k1_prior = k1_prior;
     c.k2_prior = k2_prior;
+  }
+
+  void AddBrownPerspectiveCamera(
+      const std::string &id,
+      double focal,
+      double k1,
+      double k2,
+      double p1,
+      double p2,
+      double k3,
+      double focal_prior,
+      double k1_prior,
+      double k2_prior,
+      double p1_prior,
+      double p2_prior,
+      double k3_prior,
+      bool constant) {
+    cameras_[id] = std::unique_ptr<BABrownPerspectiveCamera>(new BABrownPerspectiveCamera());
+    BABrownPerspectiveCamera &c = static_cast<BABrownPerspectiveCamera &>(*cameras_[id]);
+    c.id = id;
+    c.parameters[BA_CAMERA_FOCAL] = focal;
+    c.parameters[BA_CAMERA_K1] = k1;
+    c.parameters[BA_CAMERA_K2] = k2;
+    c.parameters[BA_CAMERA_P1] = p1;
+    c.parameters[BA_CAMERA_P2] = p2;
+    c.parameters[BA_CAMERA_K3] = k3;
+    c.constant = constant;
+    c.focal_prior = focal_prior;
+    c.k1_prior = k1_prior;
+    c.k2_prior = k2_prior;
+    c.p1_prior = p1_prior;
+    c.p2_prior = p2_prior;
+    c.k3_prior = k3_prior;
   }
 
   void AddFisheyeCamera(
@@ -812,10 +1033,13 @@ class BundleAdjuster {
     num_threads_ = n;
   }
 
-  void SetInternalParametersPriorSD(double focal_sd, double k1_sd, double k2_sd) {
+  void SetInternalParametersPriorSD(double focal_sd, double k1_sd, double k2_sd, double p1_sd, double p2_sd, double k3_sd) {
     focal_prior_sd_ = focal_sd;
     k1_sd_ = k1_sd;
     k2_sd_ = k2_sd;
+    p1_sd_ = p1_sd;
+    p2_sd_ = p2_sd;
+    k3_sd_ = k3_sd;
   }
 
   void SetComputeCovariances(bool v) {
@@ -855,14 +1079,21 @@ class BundleAdjuster {
           case BA_PERSPECTIVE_CAMERA:
           {
             BAPerspectiveCamera &c = static_cast<BAPerspectiveCamera &>(*i.second);
-            problem.AddParameterBlock(c.parameters, BA_CAMERA_NUM_PARAMS);
+            problem.AddParameterBlock(c.parameters, BA_CAMERA_BASIC_RADIAL_DISTORTION_NUM_PARAMS);
+            problem.SetParameterBlockConstant(c.parameters);
+            break;
+          }
+          case BA_BROWN_PERSPECTIVE_CAMERA:
+          {
+            BABrownPerspectiveCamera &c = static_cast<BABrownPerspectiveCamera &>(*i.second);
+            problem.AddParameterBlock(c.parameters, BA_CAMERA_BROWN_DISTORTION_NUM_PARAMS);
             problem.SetParameterBlockConstant(c.parameters);
             break;
           }
           case BA_FISHEYE_CAMERA:
           {
             BAFisheyeCamera &c = static_cast<BAFisheyeCamera &>(*i.second);
-            problem.AddParameterBlock(c.parameters, BA_CAMERA_NUM_PARAMS);
+            problem.AddParameterBlock(c.parameters, BA_CAMERA_BASIC_RADIAL_DISTORTION_NUM_PARAMS);
             problem.SetParameterBlockConstant(c.parameters);
             break;
           }
@@ -896,6 +1127,22 @@ class BundleAdjuster {
                   new PerspectiveReprojectionError(observation.coordinates[0],
                                                    observation.coordinates[1],
                                                    reprojection_error_sd_));
+
+          problem.AddResidualBlock(cost_function,
+                                   loss,
+                                   c.parameters,
+                                   observation.shot->parameters,
+                                   observation.point->coordinates);
+          break;
+        }
+        case BA_BROWN_PERSPECTIVE_CAMERA:
+        {
+          BABrownPerspectiveCamera &c = static_cast<BABrownPerspectiveCamera &>(*observation.camera);
+          ceres::CostFunction* cost_function =
+              new ceres::AutoDiffCostFunction<BrownPerspectiveReprojectionError, 2, 6, 6, 3>(
+                  new BrownPerspectiveReprojectionError(observation.coordinates[0],
+                                                        observation.coordinates[1],
+                                                        reprojection_error_sd_));
 
           problem.AddResidualBlock(cost_function,
                                    loss,
@@ -999,6 +1246,20 @@ class BundleAdjuster {
                                    observation.shot->parameters);
           break;
         }
+        case BA_BROWN_PERSPECTIVE_CAMERA:
+        {
+          BABrownPerspectiveCamera &c = static_cast<BABrownPerspectiveCamera &>(*observation.camera);
+          ceres::CostFunction* cost_function =
+              new ceres::AutoDiffCostFunction<GCPBrownPerspectiveProjectionError, 2, 6, 6>(
+                  new GCPBrownPerspectiveProjectionError(observation.coordinates3d,
+                                                         observation.coordinates2d,
+                                                         reprojection_error_sd_));
+          problem.AddResidualBlock(cost_function,
+                                   NULL,
+                                   c.parameters,
+                                   observation.shot->parameters);
+          break;
+        }
         case BA_FISHEYE_CAMERA:
         {
           std::cerr << "NotImplemented: GCP for fisheye cameras\n";
@@ -1028,10 +1289,28 @@ class BundleAdjuster {
           BAPerspectiveCamera &c = static_cast<BAPerspectiveCamera &>(*i.second);
 
           ceres::CostFunction* cost_function =
-              new ceres::AutoDiffCostFunction<InternalParametersPriorError, 3, 3>(
-                  new InternalParametersPriorError(c.focal_prior, focal_prior_sd_,
-                                                   c.k1_prior, k1_sd_,
-                                                   c.k2_prior, k2_sd_));
+              new ceres::AutoDiffCostFunction<BasicRadialInternalParametersPriorError, 3, 3>(
+                  new BasicRadialInternalParametersPriorError(c.focal_prior, focal_prior_sd_,
+                                                              c.k1_prior, k1_sd_,
+                                                              c.k2_prior, k2_sd_));
+
+          problem.AddResidualBlock(cost_function,
+                                   NULL,
+                                   c.parameters);
+          break;
+        }
+        case BA_BROWN_PERSPECTIVE_CAMERA:
+        {
+          BABrownPerspectiveCamera &c = static_cast<BABrownPerspectiveCamera &>(*i.second);
+
+          ceres::CostFunction* cost_function =
+              new ceres::AutoDiffCostFunction<BrownInternalParametersPriorError, 6, 6>(
+                  new BrownInternalParametersPriorError(c.focal_prior, focal_prior_sd_,
+                                                        c.k1_prior, k1_sd_,
+                                                        c.k2_prior, k2_sd_,
+                                                        c.p1_prior, p1_sd_,
+                                                        c.p2_prior, p2_sd_,
+                                                        c.k3_prior, k3_sd_));
 
           problem.AddResidualBlock(cost_function,
                                    NULL,
@@ -1043,10 +1322,10 @@ class BundleAdjuster {
           BAFisheyeCamera &c = static_cast<BAFisheyeCamera &>(*i.second);
 
           ceres::CostFunction* cost_function =
-              new ceres::AutoDiffCostFunction<InternalParametersPriorError, 3, 3>(
-                  new InternalParametersPriorError(c.focal_prior, focal_prior_sd_,
-                                                   c.k1_prior, k1_sd_,
-                                                   c.k2_prior, k2_sd_));
+              new ceres::AutoDiffCostFunction<BasicRadialInternalParametersPriorError, 3, 3>(
+                  new BasicRadialInternalParametersPriorError(c.focal_prior, focal_prior_sd_,
+                                                              c.k1_prior, k1_sd_,
+                                                              c.k2_prior, k2_sd_));
 
           problem.AddResidualBlock(cost_function,
                                    NULL,
@@ -1146,6 +1425,23 @@ class BundleAdjuster {
               std::max(observations_[i].point->reprojection_error, error);
           break;
         }
+        case BA_BROWN_PERSPECTIVE_CAMERA:
+        {
+          BABrownPerspectiveCamera &c = static_cast<BABrownPerspectiveCamera &>(*observations_[i].camera);
+
+          BrownPerspectiveReprojectionError bpre(observations_[i].coordinates[0],
+                                                 observations_[i].coordinates[1],
+                                                 1.0);
+          double residuals[2];
+          bpre(c.parameters,
+               observations_[i].shot->parameters,
+               observations_[i].point->coordinates,
+               residuals);
+          double error = sqrt(residuals[0] * residuals[0] + residuals[1] * residuals[1]);
+          observations_[i].point->reprojection_error =
+              std::max(observations_[i].point->reprojection_error, error);
+          break;
+        }
         case BA_FISHEYE_CAMERA:
         {
           BAFisheyeCamera &c = static_cast<BAFisheyeCamera &>(*observations_[i].camera);
@@ -1210,6 +1506,9 @@ class BundleAdjuster {
   double focal_prior_sd_;
   double k1_sd_;
   double k2_sd_;
+  double p1_sd_;
+  double p2_sd_;
+  double k3_sd_;
   bool compute_covariances_;
   bool covariance_estimation_valid_;
   bool compute_reprojection_errors_;

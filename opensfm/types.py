@@ -177,6 +177,13 @@ class PerspectiveCamera(Camera):
         self.k1_prior = None
         self.k2_prior = None
 
+    def __repr__(self):
+        return '{}({!r}, {!r}, {!r}, {!r}, {!r}, {!r}, {!r}, {!r}, {!r}, {!r})'.format(
+            self.__class__.__name__,
+            self.id, self.projection_type, self.width, self.height,
+            self.focal, self.k1, self.k2,
+            self.focal_prior, self.k1_prior, self.k2_prior)
+
     def project(self, point):
         """Project a 3D point in camera coordinates to the image plane."""
         # Normalized image coordinates
@@ -237,6 +244,116 @@ class PerspectiveCamera(Camera):
                          [0, f, 0.5 * (h - 1)],
                          [0, 0, 1.0]])
 
+
+class BrownPerspectiveCamera(Camera):
+    """Define a perspective camera.
+
+    Attributes:
+        width (int): image width.
+        height (int): image height.
+        focal (real): estimated focal length.
+        k1 (real): estimated first radial distortion parameter.
+        k2 (real): estimated second radial distortion parameter.
+        p1 (real): estimated first tangential distortion parameter.
+        p2 (real): estimated second tangential distortion parameter.
+        k3 (real): estimated third radial distortion parameter.
+        focal_prior (real): prior focal length.
+        k1_prior (real): prior first radial distortion parameter.
+        k2_prior (real): prior second radial distortion parameter.
+        p1_prior (real): prior first tangential distortion parameter.
+        p2_prior (real): prior second tangential distortion parameter.
+        p3_prior (real): prior third radial distortion parameter.
+    """
+
+    def __init__(self):
+        """Defaut constructor."""
+        self.id = None
+        self.projection_type = 'brown'
+        self.width = None
+        self.height = None
+        self.focal = None
+        self.k1 = None
+        self.k2 = None
+        self.p1 = None
+        self.p2 = None
+        self.k3 = None
+        self.focal_prior = None
+        self.k1_prior = None
+        self.k2_prior = None
+        self.p1_prior = None
+        self.p2_prior = None
+        self.k3_prior = None
+
+    def __repr__(self):
+        return '{}({!r}, {!r}, {!r}, {!r}, {!r}, {!r}, {!r}, {!r}, {!r}, {!r}, ' \
+               '{!r}, {!r}, {!r}, {!r}, {!r}, {!r})'.format(
+            self.__class__.__name__,
+            self.id, self.projection_type, self.width, self.height,
+            self.focal, self.k1, self.k2, self.p1, self.p2, self.k3,
+            self.focal_prior, self.k1_prior, self.k2_prior, self.p1_prior, self.p2_prior, self.k3_prior)
+    def project(self, point):
+        """Project a 3D point in camera coordinates to the image plane."""
+        # Normalized image coordinates
+        xn = point[0] / point[2]
+        yn = point[1] / point[2]
+
+        # Radial and tangential distortion
+        r2 = xn * xn + yn * yn
+        radial_distortion = 1.0 + r2 * (self.k1 + r2 * (self.k2 + r2 * self.k3))
+        x_tangential_distortion = 2 * self.p1 * xn * yn + self.p2 * (r2 + 2 * xn * xn);
+        x_distorted = xn * radial_distortion + x_tangential_distortion;
+        y_tangential_distortion = self.p1 * (r2 + 2 * yn * yn) + 2 * self.p2 * xn * yn;
+        y_distorted = yn * radial_distortion + y_tangential_distortion;
+
+        return np.array([self.focal * x_distorted,
+                         self.focal * y_distorted])
+
+    def pixel_bearing(self, pixel):
+        """Unit vector pointing to the pixel viewing direction."""
+        point = np.asarray(pixel).reshape((1, 1, 2))
+        distortion = np.array([self.k1, self.k2, self.p1, self.p2, self.k3])
+        x, y = cv2.undistortPoints(point, self.get_K(), distortion).flat
+        l = np.sqrt(x * x + y * y + 1.0)
+        return np.array([x / l, y / l, 1.0 / l])
+
+    def pixel_bearings(self, pixels):
+        """Unit vector pointing to the pixel viewing directions."""
+        points = pixels.reshape((-1, 1, 2)).astype(np.float64)
+        distortion = np.array([self.k1, self.k2, self.p1, self.p2, self.k3])
+        up = cv2.undistortPoints(points, self.get_K(), distortion)
+        up = up.reshape((-1, 2))
+        x = up[:, 0]
+        y = up[:, 1]
+        l = np.sqrt(x * x + y * y + 1.0)
+        return np.column_stack((x / l, y / l, 1.0 / l))
+
+    def back_project(self, pixel, depth):
+        """Project a pixel to a fronto-parallel plane at a given depth."""
+        bearing = self.pixel_bearing(pixel)
+        scale = depth / bearing[2]
+        return scale * bearing
+
+    def get_K(self):
+        """The calibration matrix."""
+        return np.array([[self.focal, 0., 0.],
+                         [0., self.focal, 0.],
+                         [0., 0., 1.]])
+
+    def get_K_in_pixel_coordinates(self, width=None, height=None):
+        """The calibration matrix that maps to pixel coordinates.
+
+        Coordinates (0,0) correspond to the center of the top-left pixel,
+        and (width - 1, height - 1) to the center of bottom-right pixel.
+
+        You can optionally pass the width and height of the image, in case
+        you are using a resized versior of the original image.
+        """
+        w = width or self.width
+        h = height or self.height
+        f = self.focal * max(w, h)
+        return np.array([[f, 0, 0.5 * (w - 1)],
+                         [0, f, 0.5 * (h - 1)],
+                         [0, 0, 1.0]])
 
 class FisheyeCamera(Camera):
     """Define a fisheye camera.

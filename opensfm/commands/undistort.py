@@ -38,7 +38,7 @@ class Command:
         logger.debug('Undistorting the reconstruction')
         undistorted_shots = {}
         for shot in reconstruction.shots.values():
-            if shot.camera.projection_type == 'perspective':
+            if shot.camera.projection_type in ['perspective', 'brown']:
                 urec.add_camera(shot.camera)
                 urec.add_shot(shot)
                 undistorted_shots[shot.id] = [shot]
