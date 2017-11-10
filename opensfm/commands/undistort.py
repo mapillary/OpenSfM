@@ -181,12 +181,13 @@ def render_perspective_view_of_a_panorama(image, panoshot, perspectiveshot):
     src_pixels_denormalized = features.denormalized_image_coordinates(
         src_pixels, image.shape[1], image.shape[0])
 
+    src_pixels_denormalized.shape = dst_shape + (2,)
+
     # Sample color
-    colors = cv2.remap(image,
-                       src_pixels_denormalized[:, 0].astype(np.float32),
-                       src_pixels_denormalized[:, 1].astype(np.float32),
-                       cv2.INTER_LINEAR)
-    colors.shape = dst_shape + (-1,)
+    x = src_pixels_denormalized[..., 0].astype(np.float32)
+    y = src_pixels_denormalized[..., 1].astype(np.float32)
+    colors = cv2.remap(image, x, y, cv2.INTER_LINEAR)
+
     return colors
 
 
