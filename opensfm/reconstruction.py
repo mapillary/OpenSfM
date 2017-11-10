@@ -206,7 +206,11 @@ def bundle_local(graph, reconstruction, gcp, central_shot_id, config):
                 str(camera.id), camera.focal, camera.k1, camera.k2,
                 camera.focal_prior, camera.k1_prior, camera.k2_prior,
                 True)
-
+        elif camera.projection_type == 'fisheye':
+            ba.add_fisheye_camera(
+                str(camera.id), camera.focal, camera.k1, camera.k2,
+                camera.focal_prior, camera.k1_prior, camera.k2_prior,
+                True)
         elif camera.projection_type in ['equirectangular', 'spherical']:
             ba.add_equirectangular_camera(str(camera.id))
 
@@ -273,7 +277,11 @@ def bundle_local(graph, reconstruction, gcp, central_shot_id, config):
             camera.focal = c.focal
             camera.k1 = c.k1
             camera.k2 = c.k2
-
+        elif camera.projection_type == 'fisheye':
+            c = ba.get_fisheye_camera(str(camera.id))
+            camera.focal = c.focal
+            camera.k1 = c.k1
+            camera.k2 = c.k2
     for shot_id in interior:
         shot = reconstruction.shots[shot_id]
         s = ba.get_shot(str(shot.id))
