@@ -12,4 +12,3 @@ $DIR/opensfm reconstruct $1
 $DIR/opensfm mesh $1
 $DIR/opensfm undistort $1
 $DIR/opensfm compute_depthmaps $1
-$DIR/opensfm export_openmvs $1
