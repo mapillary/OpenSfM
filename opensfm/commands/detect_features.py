@@ -1,10 +1,11 @@
 import logging
-import time
+from timeit import default_timer as timer
 
 import numpy as np
 
 from opensfm import dataset
 from opensfm import features
+from opensfm import io
 from opensfm import log
 from opensfm.context import parallel_map
 
@@ -24,10 +25,10 @@ class Command:
 
         arguments = [(image, data) for image in images]
 
-        start = time.time()
+        start = timer()
         processes = data.config.get('processes', 1)
         parallel_map(detect, arguments, processes)
-        end = time.time()
+        end = timer()
         with open(data.profile_log(), 'a') as fout:
             fout.write('detect_features: {0}\n'.format(end - start))
 
@@ -40,6 +41,7 @@ def detect(args):
         data.feature_type().upper(), image))
 
     if not data.feature_index_exists(image):
+        start = timer()
         mask = data.mask_as_array(image)
         if mask is not None:
             logger.info('Found mask to apply for image {}'.format(image))
@@ -62,3 +64,12 @@ def detect(args):
         if data.config.get('matcher_type', 'FLANN') == 'FLANN':
             index = features.build_flann_index(f_sorted, data.config)
             data.save_feature_index(image, index)
+
+        end = timer()
+        report = {
+            "image": image,
+            "num_features": len(p_sorted),
+            "wall_time": end - start,
+        }
+        data.save_report(io.json_dumps(report),
+                         'features/{}.json'.format(image))

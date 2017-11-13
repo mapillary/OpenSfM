@@ -450,6 +450,21 @@ class DataSet:
         "Filename where to write timings."
         return os.path.join(self.data_path, 'profile.log')
 
+    def _report_path(self):
+        return os.path.join(self.data_path, 'reports')
+
+    def load_report(self, path):
+        """Load a report file as a string."""
+        with open(os.path.join(self._report_path(), path)) as fin:
+            return fin.read()
+
+    def save_report(self, report_str, path):
+        """Save report string to a file."""
+        filepath = os.path.join(self._report_path(), path)
+        io.mkdir_p(os.path.dirname(filepath))
+        with open(filepath, 'w') as fout:
+            return fout.write(report_str)
+
     def __navigation_graph_file(self):
         "Return the path of the navigation graph."
         return os.path.join(self.data_path, 'navigation_graph.json')
