@@ -32,6 +32,20 @@ class Command:
         with open(data.profile_log(), 'a') as fout:
             fout.write('detect_features: {0}\n'.format(end - start))
 
+        self.write_report(data, end - start)
+
+    def write_report(self, data, wall_time):
+        image_reports = []
+        for image in data.images():
+            txt = data.load_report('features/{}.json'.format(image))
+            image_reports.append(io.json_loads(txt))
+
+        report = {
+            "wall_time": wall_time,
+            "image_reports": image_reports
+        }
+        data.save_report(io.json_dumps(report), 'features.json')
+
 
 def detect(args):
     log.setup()
