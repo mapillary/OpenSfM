@@ -1,6 +1,8 @@
 import logging
 from timeit import default_timer as timer
 
+from networkx.algorithms import bipartite
+
 from opensfm import dataset
 from opensfm import io
 from opensfm import matching
@@ -59,9 +61,20 @@ class Command:
                 matches[im1, im2] = im1_matches[im2]
         return matches
 
-    def write_report(self, data, tracks_graph,
+    def write_report(self, data, graph,
                      features_time, matches_time, tracks_time):
-        tracks, images = matching.tracks_and_images(tracks_graph)
+        tracks, images = matching.tracks_and_images(graph)
+        image_graph = bipartite.weighted_projected_graph(graph, images)
+        matrix = []
+        for im1 in data.images():
+            row = []
+            for im2 in data.images():
+                if im1 in image_graph and im2 in image_graph[im1]:
+                    row.append(image_graph[im1][im2]['weight'])
+                else:
+                    row.append(0)
+            matrix.append(row)
+
         report = {
             "wall_times": {
                 "load_features": features_time,
@@ -70,6 +83,7 @@ class Command:
             },
             "wall_time": features_time + matches_time + tracks_time,
             "num_images": len(images),
-            "num_tracks": len(tracks)
+            "num_tracks": len(tracks),
+            "viewing_graph": matrix
         }
         data.save_report(io.json_dumps(report), 'tracks.json')
