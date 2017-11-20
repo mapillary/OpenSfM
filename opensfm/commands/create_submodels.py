@@ -28,7 +28,7 @@ class Command:
 
         meta_data.create_submodels(
             meta_data.load_clusters_with_neighbors(),
-            data.config['submodel_use_symlinks'])
+            not data.config['submodel_use_symlinks'])
 
     def _create_image_list(self, data, meta_data):
         ills = []
