@@ -7,7 +7,6 @@ import numpy as np
 import cv2
 
 from opensfm import transformations as tf
-from opensfm import csfm
 
 
 def nullspace(A):
@@ -449,3 +448,63 @@ def rotation_matrix_from_up_vector_and_compass(up_vector, compass_angle):
 
     compass_rotation = cv2.Rodrigues(np.radians([0.0, 0.0, compass_angle]))[0]
     return np.column_stack([r1, r2, r3]).dot(compass_rotation)
+
+
+def motion_from_plane_homography(H):
+    """Compute candidate camera motions from a plane-induced homography.
+
+    Returns up to 8 motions.
+    The homography is assumed to be in normalized camera coordinates.
+
+    Uses the method of [Faugueras and Lustman 1988]
+
+    [Faugueras and Lustman 1988] Faugeras, Olivier, and F. Lustman.
+    “Motion and Structure from Motion in a Piecewise Planar Environment.”
+    Report. INRIA, June 1988. https://hal.inria.fr/inria-00075698/document
+    """
+
+    u, l, vh = np.linalg.svd(H)
+    d1, d2, d3 = l
+    s = np.linalg.det(u) * np.linalg.det(vh)
+
+    # Skip the cases where some singular values are nearly equal
+    if d1 / d2 < 1.0001 or d2 / d3 < 1.0001:
+        return []
+
+    abs_x1 = np.sqrt((d1**2 - d2**2) / (d1**2 - d3**2))
+    abs_x3 = np.sqrt((d2**2 - d3**2) / (d1**2 - d3**2))
+    possible_x1_x3 = [(abs_x1, abs_x3), (abs_x1, -abs_x3),
+                      (-abs_x1, abs_x3), (-abs_x1, -abs_x3)]
+    solutions = []
+
+    # Case d' > 0
+    for x1, x3 in possible_x1_x3:
+        sin_theta = (d1 - d3) * x1 * x3 / d2
+        cos_theta = (d1 * x3**2 + d3 * x1**2) / d2
+        Rp = np.array([[cos_theta, 0, -sin_theta],
+                       [0, 1, 0],
+                       [sin_theta, 0, cos_theta]])
+        tp = (d1 - d3) * np.array([x1, 0, -x3])
+        np_ = np.array([x1, 0, x3])
+        R = s * np.dot(np.dot(u, Rp), vh)
+        t = np.dot(u, tp)
+        n = -np.dot(vh.T, np_)
+        d = s * d2
+        solutions.append((R, t, n, d))
+
+    # Case d' < 0
+    for x1, x3 in possible_x1_x3:
+        sin_phi = (d1 + d3) * x1 * x3 / d2
+        cos_phi = (d3 * x1**2 - d1 * x3**2) / d2
+        Rp = np.array([[cos_phi, 0, sin_phi],
+                       [0, -1, 0],
+                       [sin_phi, 0, -cos_phi]])
+        tp = (d1 + d3) * np.array([x1, 0, x3])
+        np_ = np.array([x1, 0, x3])
+        R = s * np.dot(np.dot(u, Rp), vh)
+        t = np.dot(u, tp)
+        n = -np.dot(vh.T, np_)
+        d = -s * d2
+        solutions.append((R, t, n, d))
+
+    return solutions
