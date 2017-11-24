@@ -108,7 +108,7 @@ def undistort_fisheye_image(image, camera):
     height, width = image.shape[:2]
     K = camera.get_K_in_pixel_coordinates(width, height)
     distortion = np.array([camera.k1, camera.k2, 0, 0])
-    return cv2.fisheye.undistortImage(image, K, distortion, K)
+    return cv2.fisheye.undistortImage(image, K, distortion, Knew=K)
 
 
 def perspective_camera_from_fisheye(fisheye):
