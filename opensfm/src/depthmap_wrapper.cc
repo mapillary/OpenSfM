@@ -113,8 +113,8 @@ class DepthmapPrunerWrapper {
                PyObject *t,
                PyObject *depth,
                PyObject *normal,
-               PyObject *label,
-               PyObject *color) {
+               PyObject *color,
+               PyObject *label) {
     PyArrayContiguousView<double> K_view((PyArrayObject *)K);
     PyArrayContiguousView<double> R_view((PyArrayObject *)R);
     PyArrayContiguousView<double> t_view((PyArrayObject *)t);
