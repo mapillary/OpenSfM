@@ -192,10 +192,10 @@ def prune_depthmap(arguments):
     dp = csfm.DepthmapPruner()
     dp.set_same_depth_threshold(data.config['depthmap_same_depth_threshold'])
     add_views_to_depth_pruner(data, neighbors, dp)
-    points, normals, colors = dp.prune()
+    points, normals, colors, labels = dp.prune()
 
     # Save and display results
-    data.save_pruned_depthmap(shot.id, points, normals, colors)
+    data.save_pruned_depthmap(shot.id, points, normals, colors, labels)
 
     if data.config['depthmap_save_debug_files']:
         ply = point_cloud_to_ply(points, normals, colors)

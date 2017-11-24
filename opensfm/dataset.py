@@ -136,15 +136,16 @@ class DataSet:
     def pruned_depthmap_exists(self, image):
         return os.path.isfile(self._depthmap_file(image, 'pruned.npz'))
 
-    def save_pruned_depthmap(self, image, points, normals, colors):
+    def save_pruned_depthmap(self, image, points, normals, colors, labels):
         io.mkdir_p(self._depthmap_path())
         filepath = self._depthmap_file(image, 'pruned.npz')
         np.savez_compressed(filepath,
-                            points=points, normals=normals, colors=colors)
+                            points=points, normals=normals,
+                            colors=colors, labels=labels)
 
     def load_pruned_depthmap(self, image):
         o = np.load(self._depthmap_file(image, 'pruned.npz'))
-        return o['points'], o['normals'], o['colors']
+        return o['points'], o['normals'], o['colors'], o['labels']
 
     @staticmethod
     def __is_image_file(filename):
