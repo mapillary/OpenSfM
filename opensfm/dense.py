@@ -265,12 +265,14 @@ def add_views_to_depth_pruner(data, neighbors, dp):
         depth, plane, score = data.load_clean_depthmap(shot.id)
         height, width = depth.shape
         color_image = data.undistorted_image_as_array(shot.id)
+        labels = data.undistorted_segmentation_as_array(shot.id)
         height, width = depth.shape
         image = scale_down_image(color_image, width, height)
+        labels = scale_down_image(labels, width, height, cv2.INTER_NEAREST)
         K = shot.camera.get_K_in_pixel_coordinates(width, height)
         R = shot.pose.get_rotation_matrix()
         t = shot.pose.translation
-        dp.add_view(K, R, t, depth, plane, image)
+        dp.add_view(K, R, t, depth, plane, image, labels)
 
 
 def compute_depth_range(graph, reconstruction, shot):
