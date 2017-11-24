@@ -598,7 +598,7 @@ class DepthmapPruner {
         if (keep) {
           cv::Vec3f R1_normal = Rinv * normal;
           cv::Vec3b color = colors_[0].at<cv::Vec3b>(i, j);
-          unsigned char label = labels.at<unsigned char>(i, j);
+          unsigned char label = labels_[0].at<unsigned char>(i, j);
           merged_points->push_back(point[0]);
           merged_points->push_back(point[1]);
           merged_points->push_back(point[2]);
