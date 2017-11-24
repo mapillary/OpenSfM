@@ -534,9 +534,9 @@ class DepthmapCleaner {
 };
 
 
-class DepthmapMerger {
+class DepthmapPruner {
  public:
-  DepthmapMerger()
+  DepthmapPruner()
     : same_depth_threshold_(0.01)
   {}
 
@@ -551,99 +551,65 @@ class DepthmapMerger {
                const float *pplane,
                const unsigned char *pcolor,
                const unsigned char *plabel,
-               const std::vector<int> neighbors,
                int width,
                int height) {
-    std::cout << "start\n";
-    Ks_.emplace_back(pK);
-    Rs_.emplace_back(pR);
-    ts_.emplace_back(pt);
-    neighbors_.emplace_back(neighbors);
-    depths_.emplace_back(cv::Mat(height, width, CV_32F, (void *)pdepth).clone());
-    planes_.emplace_back(cv::Mat(height, width, CV_32FC3, (void *)pplane).clone());
-    colors_.emplace_back(cv::Mat(height, width, CV_8UC3, (void *)pcolor).clone());
-    labels_.emplace_back(cv::Mat(height, width, CV_8U, (void *)plabel).clone());
-    std::cout << "finish\n";
+     Ks_.emplace_back(pK);
+     Rs_.emplace_back(pR);
+     ts_.emplace_back(pt);
+     depths_.emplace_back(cv::Mat(height, width, CV_32F, (void *)pdepth).clone());
+     planes_.emplace_back(cv::Mat(height, width, CV_32FC3, (void *)pplane).clone());
+     colors_.emplace_back(cv::Mat(height, width, CV_8UC3, (void *)pcolor).clone());
+     labels_.emplace_back(cv::Mat(height, width, CV_8U, (void *)plabel).clone());
   }
 
-  void Merge(std::vector<float> *merged_points,
+  void Prune(std::vector<float> *merged_points,
              std::vector<float> *merged_normals,
              std::vector<unsigned char> *merged_colors,
              std::vector<unsigned char> *merged_labels) {
-    merged_points->clear();
-    merged_normals->clear();
-    merged_colors->clear();
-    merged_labels->clear();
-
-    for (int i = 0; i < depths_.size(); ++i) {
-      PruneDepthmap(i);
-    }
-
-    for (int i = 0; i < depths_.size(); ++i) {
-      CollectDepthmapPoints(depths_[i], planes_[i], colors_[i], labels_[i],
-                            Ks_[i], Rs_[i], ts_[i],
-                            merged_points, merged_normals, merged_colors, merged_labels);
-    }
-  }
-
-  void PruneDepthmap(int view) {
-    for (int i = 0; i < depths_[view].rows; ++i) {
-      for (int j = 0; j < depths_[view].cols; ++j) {
-        float depth = depths_[view].at<float>(i, j);
+    cv::Matx33f Rinv = Rs_[0].t();
+    for (int i = 0; i < depths_[0].rows; ++i) {
+      for (int j = 0; j < depths_[0].cols; ++j) {
+        float depth = depths_[0].at<float>(i, j);
         if (depth <= 0) {
           continue;
         }
-        cv::Vec3f point = Backproject(j, i, depth, Ks_[view], Rs_[view], ts_[view]);
-        for (int k = 1; k < neighbors_[view].size(); ++k) {
-          int other = neighbors_[view][k];
+        cv::Vec3f normal = cv::normalize(planes_[0].at<cv::Vec3f>(i, j));
+        float area = -normal(2) / depth * Ks_[0](0, 0);
+        cv::Vec3f point = Backproject(j, i, depth, Ks_[0], Rs_[0], ts_[0]);
+        bool keep = true;
+        for (int other = 1; other < depths_.size(); ++other) {
           cv::Vec3d reprojection = Project(point, Ks_[other], Rs_[other], ts_[other]);
-          float iu = int(reprojection(0) / reprojection(2) + 0.5f);
-          float iv = int(reprojection(1) / reprojection(2) + 0.5f);
+          int iu = int(reprojection(0) / reprojection(2) + 0.5f);
+          int iv = int(reprojection(1) / reprojection(2) + 0.5f);
           float depth_of_point = reprojection(2);
           if (!IsInsideImage(depths_[other], iv, iu)) {
             continue;
           }
           float depth_at_reprojection = depths_[other].at<float>(iv, iu);
           if (depth_at_reprojection > (1 - same_depth_threshold_) * depth_of_point) {
-            depths_[other].at<float>(iv, iu) = 0.0f;
+            cv::Vec3f normal_at_reprojection = cv::normalize(planes_[other].at<cv::Vec3f>(iv, iu));
+            float area_at_reprojection = -normal_at_reprojection(2) / depth_at_reprojection * Ks_[other](0, 0);
+            if (area_at_reprojection > area) {
+              keep = false;
+              break;
+            }
           }
         }
-      }
-    }
-  }
-
-  void CollectDepthmapPoints(const cv::Mat &depths,
-                             const cv::Mat &planes,
-                             const cv::Mat &colors,
-                             const cv::Mat &labels,
-                             const cv::Matx33d &K,
-                             const cv::Matx33d &R,
-                             const cv::Vec3d &t,
-                             std::vector<float> *merged_points,
-                             std::vector<float> *merged_normals,
-                             std::vector<unsigned char> *merged_colors,
-                             std::vector<unsigned char> *merged_labels) {
-    cv::Matx33f Rinv = R.t();
-    for (int i = 0; i < depths.rows; ++i) {
-      for (int j = 0; j < depths.cols; ++j) {
-        float depth = depths.at<float>(i, j);
-        cv::Vec3b color = colors.at<cv::Vec3b>(i, j);
-        unsigned char label = labels.at<unsigned char>(i, j);
-        if (depth <= 0) {
-          continue;
+        if (keep) {
+          cv::Vec3f R1_normal = Rinv * normal;
+          cv::Vec3b color = colors_[0].at<cv::Vec3b>(i, j);
+          unsigned char label = labels.at<unsigned char>(i, j);
+          merged_points->push_back(point[0]);
+          merged_points->push_back(point[1]);
+          merged_points->push_back(point[2]);
+          merged_normals->push_back(R1_normal[0]);
+          merged_normals->push_back(R1_normal[1]);
+          merged_normals->push_back(R1_normal[2]);
+          merged_colors->push_back(color[0]);
+          merged_colors->push_back(color[1]);
+          merged_colors->push_back(color[2]);
+          merged_labels->push_back(label);
         }
-        cv::Vec3f point = Backproject(j, i, depth, K, R, t);
-        cv::Vec3f normal = Rinv * cv::normalize(planes.at<cv::Vec3f>(i, j));
-        merged_points->push_back(point[0]);
-        merged_points->push_back(point[1]);
-        merged_points->push_back(point[2]);
-        merged_normals->push_back(normal[0]);
-        merged_normals->push_back(normal[1]);
-        merged_normals->push_back(normal[2]);
-        merged_colors->push_back(color[0]);
-        merged_colors->push_back(color[1]);
-        merged_colors->push_back(color[2]);
-        merged_labels->push_back(label);
       }
     }
   }
@@ -653,14 +619,11 @@ class DepthmapMerger {
   std::vector<cv::Mat> planes_;
   std::vector<cv::Mat> colors_;
   std::vector<cv::Mat> labels_;
-  std::vector<std::vector<int> > neighbors_;
   std::vector<cv::Matx33d> Ks_;
   std::vector<cv::Matx33d> Rs_;
   std::vector<cv::Vec3d> ts_;
   float same_depth_threshold_;
 };
-
-
 
 }
 

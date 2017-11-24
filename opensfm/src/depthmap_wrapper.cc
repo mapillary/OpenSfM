@@ -101,10 +101,11 @@ class DepthmapCleanerWrapper {
   DepthmapCleaner dc_;
 };
 
-class DepthmapMergerWrapper {
+
+class DepthmapPrunerWrapper {
  public:
   void SetSameDepthThreshold(float t) {
-    dm_.SetSameDepthThreshold(t);
+    dp_.SetSameDepthThreshold(t);
   }
 
   void AddView(PyObject *K,
@@ -112,9 +113,8 @@ class DepthmapMergerWrapper {
                PyObject *t,
                PyObject *depth,
                PyObject *normal,
-               PyObject *color,
                PyObject *label,
-               bp::object neighbors) {
+               PyObject *color) {
     PyArrayContiguousView<double> K_view((PyArrayObject *)K);
     PyArrayContiguousView<double> R_view((PyArrayObject *)R);
     PyArrayContiguousView<double> t_view((PyArrayObject *)t);
@@ -122,24 +122,19 @@ class DepthmapMergerWrapper {
     PyArrayContiguousView<float> plane_view((PyArrayObject *)normal);
     PyArrayContiguousView<unsigned char> color_view((PyArrayObject *)color);
     PyArrayContiguousView<unsigned char> label_view((PyArrayObject *)label);
-    std::vector<int> neighbors_vector;
-    for (int i = 0; i < bp::len(neighbors); ++i) {
-      neighbors_vector.push_back(bp::extract<int>(neighbors[i]));
-    }
-    dm_.AddView(K_view.data(), R_view.data(), t_view.data(),
+    dp_.AddView(K_view.data(), R_view.data(), t_view.data(),
                 depth_view.data(), plane_view.data(),
                 color_view.data(), label_view.data(),
-                neighbors_vector,
                 depth_view.shape(1), depth_view.shape(0));
   }
 
-  bp::object Merge() {
+  bp::object Prune() {
     std::vector<float> points;
     std::vector<float> normals;
     std::vector<unsigned char> colors;
     std::vector<unsigned char> labels;
 
-    dm_.Merge(&points, &normals, &colors, &labels);
+    dp_.Prune(&points, &normals, &colors, &labels);
 
     bp::list retn;
     npy_intp shape3[2] = {int(points.size()) / 3, 3};
@@ -152,7 +147,7 @@ class DepthmapMergerWrapper {
   }
 
  private:
-  DepthmapMerger dm_;
+  DepthmapPruner dp_;
 };
 
 }

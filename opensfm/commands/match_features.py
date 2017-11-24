@@ -1,13 +1,16 @@
 import logging
 import time
-from multiprocessing import Pool
+from itertools import combinations
 
 import numpy as np
 import scipy.spatial as spatial
 
 from opensfm import dataset
 from opensfm import geo
+from opensfm import log
 from opensfm import matching
+from opensfm.context import parallel_map
+
 
 logger = logging.getLogger(__name__)
 
@@ -33,16 +36,11 @@ class Command:
         ctx.cameras = ctx.data.load_camera_models()
         ctx.exifs = exifs
         ctx.p_pre, ctx.f_pre = load_preemptive_features(data)
-        args = match_arguments(pairs, ctx)
+        args = list(match_arguments(pairs, ctx))
 
         start = time.time()
         processes = ctx.data.config.get('processes', 1)
-        if processes == 1:
-            for arg in args:
-                match(arg)
-        else:
-            p = Pool(processes)
-            p.map(match, args)
+        parallel_map(match, args, processes)
         end = time.time()
         with open(ctx.data.profile_log(), 'a') as fout:
             fout.write('match_features: {0}\n'.format(end - start))
@@ -163,11 +161,15 @@ def match_candidates_from_metadata(images, exifs, data):
 
     images.sort()
 
-    d = match_candidates_by_distance(images, exifs, reference,
-                                     gps_neighbors, max_distance)
-    t = match_candidates_by_time(images, exifs, time_neighbors)
-    o = match_candidates_by_order(images, exifs, order_neighbors)
-    pairs = d | t | o
+    if max_distance == gps_neighbors == time_neighbors == order_neighbors == 0:
+        # All pair selection strategies deactivated so we match all pairs
+        pairs = combinations(images, 2)
+    else:
+        d = match_candidates_by_distance(images, exifs, reference,
+                                         gps_neighbors, max_distance)
+        t = match_candidates_by_time(images, exifs, time_neighbors)
+        o = match_candidates_by_order(images, exifs, order_neighbors)
+        pairs = d | t | o
 
     res = {im: [] for im in images}
     for im1, im2 in pairs:
@@ -182,6 +184,8 @@ def match_arguments(pairs, ctx):
 
 def match(args):
     """Compute all matches for a single image"""
+    log.setup()
+
     im1, candidates, i, n, ctx = args
     logger.info('Matching {}  -  {} / {}'.format(im1, i + 1, n))
 
@@ -212,10 +216,14 @@ def match(args):
         # symmetric matching
         t = time.time()
         p1, f1, c1 = ctx.data.load_features(im1)
-        i1 = ctx.data.load_feature_index(im1, f1)
-
         p2, f2, c2 = ctx.data.load_features(im2)
-        i2 = ctx.data.load_feature_index(im2, f2)
+
+        if config['matcher_type'] == 'FLANN':
+            i1 = ctx.data.load_feature_index(im1, f1)
+            i2 = ctx.data.load_feature_index(im2, f2)
+        else:
+            i1 = None
+            i2 = None
 
         matches = matching.match_symmetric(f1, i1, f2, i2, config)
         logger.debug('{} - {} has {} candidate matches'.format(

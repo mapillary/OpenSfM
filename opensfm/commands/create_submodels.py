@@ -14,15 +14,6 @@ class Command:
 
     def add_arguments(self, parser):
         parser.add_argument('dataset', help='dataset to process')
-        parser.add_argument('-s', '--size', type=int, default=50,
-                            help='the average cluster size')
-        parser.add_argument('-d', '--dist', type=int, default=30,
-                            help='the max distance in meters to a neighbor ' \
-                            'for it to be included in the cluster')
-        parser.add_argument('-n', '--no-symlinks',
-                            action='store_true',
-                            help='Do not create any symlinks, ' \
-                            'every submodels needs to run complete pipeline')
 
     def run(self, args):
         data = dataset.DataSet(args.dataset)
@@ -32,20 +23,22 @@ class Command:
         data.invent_reference_lla()
 
         self._create_image_list(data, meta_data)
-        self._cluster_images(meta_data, args.size)
-        self._add_cluster_neighbors(meta_data, args.dist)
+        self._cluster_images(meta_data, data.config['submodel_size'])
+        self._add_cluster_neighbors(meta_data, data.config['submodel_overlap'])
 
         meta_data.create_submodels(
-            meta_data.load_clusters_with_neighbors(), args.no_symlinks)
+            meta_data.load_clusters_with_neighbors(),
+            not data.config['submodel_use_symlinks'])
 
     def _create_image_list(self, data, meta_data):
         ills = []
         for image in data.images():
             exif = data.load_exif(image)
-            if 'gps' not in exif or \
-                'latitude' not in exif['gps'] or \
-                'longitude' not in exif['gps']:
-                logger.warning('Skipping {} because of missing GPS'.format(image))
+            if ('gps' not in exif or
+                    'latitude' not in exif['gps'] or
+                    'longitude' not in exif['gps']):
+                logger.warning(
+                    'Skipping {} because of missing GPS'.format(image))
                 continue
 
             lat = exif['gps']['latitude']

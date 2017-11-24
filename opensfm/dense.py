@@ -1,12 +1,13 @@
 
 import logging
-from multiprocessing import Pool
 
 import cv2
 import numpy as np
 
 from opensfm import csfm
+from opensfm import log
 from opensfm import matching
+from opensfm.context import parallel_map
 
 
 logger = logging.getLogger(__name__)
@@ -31,14 +32,21 @@ def compute_depthmaps(data, graph, reconstruction):
             continue
         min_depth, max_depth = compute_depth_range(graph, reconstruction, shot)
         arguments.append((data, neighbors[shot.id], min_depth, max_depth, shot))
-    parallel_run(compute_depthmap_catched, arguments, processes)
+    parallel_map(compute_depthmap_catched, arguments, processes)
 
     arguments = []
     for shot in reconstruction.shots.values():
         if len(neighbors[shot.id]) <= 1:
             continue
         arguments.append((data, neighbors[shot.id], shot))
-    parallel_run(clean_depthmap_catched, arguments, processes)
+    parallel_map(clean_depthmap_catched, arguments, processes)
+
+    arguments = []
+    for shot in reconstruction.shots.values():
+        if len(neighbors[shot.id]) <= 1:
+            continue
+        arguments.append((data, neighbors[shot.id], shot))
+    parallel_map(prune_depthmap_catched, arguments, processes)
 
     merge_depthmaps(data, graph, reconstruction, neighbors)
 
@@ -59,21 +67,18 @@ def clean_depthmap_catched(arguments):
         logger.exception(e)
 
 
-def parallel_run(function, arguments, num_processes):
-    """Run function for all arguments using multiple processes."""
-    num_processes = min(num_processes, len(arguments))
-    if num_processes == 1:
-        return [function(arg) for arg in arguments]
-    else:
-        p = Pool(num_processes)
-        ret = p.map(function, arguments)
-        p.close()
-        p.terminate()
-        return ret
+def prune_depthmap_catched(arguments):
+    try:
+        prune_depthmap(arguments)
+    except Exception as e:
+        logger.error('Exception on child. Arguments: {}'.format(arguments))
+        logger.exception(e)
 
 
 def compute_depthmap(arguments):
     """Compute depthmap for a single shot."""
+    log.setup()
+
     data, neighbors, min_depth, max_depth, shot = arguments
     method = data.config['depthmap_method']
 
@@ -134,6 +139,8 @@ def compute_depthmap(arguments):
 
 def clean_depthmap(arguments):
     """Clean depthmap by checking consistency with neighbors."""
+    log.setup()
+
     data, neighbors, shot = arguments
 
     if data.clean_depthmap_exists(shot.id):
@@ -171,31 +178,52 @@ def clean_depthmap(arguments):
         plt.show()
 
 
+def prune_depthmap(arguments):
+    """Prune depthmap to remove redundant points."""
+    log.setup()
+
+    data, neighbors, shot = arguments
+
+    if data.pruned_depthmap_exists(shot.id):
+        logger.info("Using precomputed pruned depthmap {}".format(shot.id))
+        return
+    logger.info("Pruning depthmap for image {}".format(shot.id))
+
+    dp = csfm.DepthmapPruner()
+    dp.set_same_depth_threshold(data.config['depthmap_same_depth_threshold'])
+    add_views_to_depth_pruner(data, neighbors, dp)
+    points, normals, colors = dp.prune()
+
+    # Save and display results
+    data.save_pruned_depthmap(shot.id, points, normals, colors)
+
+    if data.config['depthmap_save_debug_files']:
+        ply = point_cloud_to_ply(points, normals, colors)
+        with open(data._depthmap_file(shot.id, 'pruned.npz.ply'), 'w') as fout:
+            fout.write(ply)
+
+
 def merge_depthmaps(data, graph, reconstruction, neighbors):
     """Merge depthmaps into a single point cloud."""
     logger.info("Merging depthmaps")
 
-    # Set up merger.
-    dm = csfm.DepthmapMerger()
-    dm.set_same_depth_threshold(data.config['depthmap_same_depth_threshold'])
-    shot_ids = [s for s in neighbors if data.clean_depthmap_exists(s)]
-    indices = {s: i for i, s in enumerate(shot_ids)}
+    shot_ids = [s for s in neighbors if data.pruned_depthmap_exists(s)]
+    points = []
+    normals = []
+    colors = []
+    labels = []
     for shot_id in shot_ids:
-        depth, plane, _ = data.load_clean_depthmap(shot_id)
-        shot = reconstruction.shots[shot_id]
-        neighbors_indices = [indices[n.id] for n in neighbors[shot.id] if n.id in indices]
-        color_image = data.undistorted_image_as_array(shot.id)
-        segmentation = data.undistorted_segmentation_as_array(shot.id)
-        height, width = depth.shape
-        image = scale_down_image(color_image, width, height)
-        segmentation = scale_down_image(segmentation, width, height, cv2.INTER_NEAREST)
-        K = shot.camera.get_K_in_pixel_coordinates(width, height)
-        R = shot.pose.get_rotation_matrix()
-        t = shot.pose.translation
-        dm.add_view(K, R, t, depth, plane, image, segmentation, neighbors_indices)
+        p, n, c, l = data.load_pruned_depthmap(shot_id)
+        points.append(p)
+        normals.append(n)
+        colors.append(c)
+        labels.append(l)
 
-    # Merge.
-    points, normals, colors, labels = dm.merge()
+    points = np.concatenate(points)
+    normals = np.concatenate(normals)
+    colors = np.concatenate(colors)
+    labels = np.concatenate(labels)
+
     ply = point_cloud_to_ply(points, normals, colors, labels)
     with open(data._depthmap_path() + '/merged.ply', 'w') as fout:
         fout.write(ply)
@@ -228,6 +256,21 @@ def add_views_to_depth_cleaner(data, neighbors, dc):
         R = shot.pose.get_rotation_matrix()
         t = shot.pose.translation
         dc.add_view(K, R, t, depth)
+
+
+def add_views_to_depth_pruner(data, neighbors, dp):
+    for shot in neighbors:
+        if not data.raw_depthmap_exists(shot.id):
+            continue
+        depth, plane, score = data.load_clean_depthmap(shot.id)
+        height, width = depth.shape
+        color_image = data.undistorted_image_as_array(shot.id)
+        height, width = depth.shape
+        image = scale_down_image(color_image, width, height)
+        K = shot.camera.get_K_in_pixel_coordinates(width, height)
+        R = shot.pose.get_rotation_matrix()
+        t = shot.pose.translation
+        dp.add_view(K, R, t, depth, plane, image)
 
 
 def compute_depth_range(graph, reconstruction, shot):

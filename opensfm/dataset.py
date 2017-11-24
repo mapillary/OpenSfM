@@ -2,7 +2,6 @@
 
 import os
 import json
-import errno
 import pickle
 import gzip
 import numpy as np
@@ -134,6 +133,19 @@ class DataSet:
         o = np.load(self._depthmap_file(image, 'clean.npz'))
         return o['depth'], o['plane'], o['score']
 
+    def pruned_depthmap_exists(self, image):
+        return os.path.isfile(self._depthmap_file(image, 'pruned.npz'))
+
+    def save_pruned_depthmap(self, image, points, normals, colors):
+        io.mkdir_p(self._depthmap_path())
+        filepath = self._depthmap_file(image, 'pruned.npz')
+        np.savez_compressed(filepath,
+                            points=points, normals=normals, colors=colors)
+
+    def load_pruned_depthmap(self, image):
+        o = np.load(self._depthmap_file(image, 'pruned.npz'))
+        return o['points'], o['normals'], o['colors']
+
     @staticmethod
     def __is_image_file(filename):
         return filename.split('.')[-1].lower() in {'jpg', 'jpeg', 'png', 'tif', 'tiff', 'pgm', 'pnm', 'gif'}
@@ -234,15 +246,16 @@ class DataSet:
     def __save_features(self, filepath, image, points, descriptors, colors=None):
         io.mkdir_p(self.__feature_path())
         feature_type = self.config.get('feature_type')
-        if ((feature_type == 'AKAZE' and self.config.get('akaze_descriptor') in ['MLDB_UPRIGHT', 'MLDB']) or
-            (feature_type == 'HAHOG' and self.config.get('hahog_normalize_to_uchar', False))):
+        if ((feature_type == 'AKAZE' and self.config.get('akaze_descriptor') in ['MLDB_UPRIGHT', 'MLDB'])
+                or (feature_type == 'HAHOG' and self.config.get('hahog_normalize_to_uchar', False))
+                or (feature_type == 'ORB')):
             feature_data_type = np.uint8
         else:
             feature_data_type = np.float32
         np.savez_compressed(filepath,
-                 points=points.astype(np.float32),
-                 descriptors=descriptors.astype(feature_data_type),
-                 colors=colors)
+                            points=points.astype(np.float32),
+                            descriptors=descriptors.astype(feature_data_type),
+                            colors=colors)
 
     def features_exist(self, image):
         return os.path.isfile(self.__feature_file(image))
@@ -270,7 +283,7 @@ class DataSet:
         return os.path.join(self.__feature_path(), image + '.flann')
 
     def load_feature_index(self, image, features):
-        index = cv2.flann.Index() if context.OPENCV3 else cv2.flann_Index()
+        index = context.flann_Index()
         index.load(features, self.__feature_index_file(image))
         return index
 
@@ -448,9 +461,10 @@ class DataSet:
     def __ply_file(self, filename):
         return os.path.join(self.data_path, filename or 'reconstruction.ply')
 
-    def save_ply(self, reconstruction, filename=None):
-        """Save a reconstruction in PLY format"""
-        ply = io.reconstruction_to_ply(reconstruction)
+    def save_ply(self, reconstruction, filename=None,
+                 no_cameras=False, no_points=False):
+        """Save a reconstruction in PLY format."""
+        ply = io.reconstruction_to_ply(reconstruction, no_cameras, no_points)
         with open(self.__ply_file(filename), 'w') as fout:
             fout.write(ply)
 

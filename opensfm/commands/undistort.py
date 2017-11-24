@@ -1,13 +1,15 @@
 import logging
-from multiprocessing import Pool
 
 import cv2
 import numpy as np
 
 from opensfm import dataset
 from opensfm import features
+from opensfm import log
 from opensfm import transformations as tf
 from opensfm import types
+from opensfm.context import parallel_map
+
 
 logger = logging.getLogger(__name__)
 
@@ -41,10 +43,14 @@ class Command:
                 urec.add_shot(shot)
                 undistorted_shots[shot.id] = [shot]
             elif shot.camera.projection_type == 'fisheye':
-                shot.camera = perspective_camera_from_fisheye(shot.camera)
-                urec.add_camera(shot.camera)
-                urec.add_shot(shot)
-                undistorted_shots[shot.id] = [shot]
+                ushot = types.Shot()
+                ushot.id = shot.id
+                ushot.camera = perspective_camera_from_fisheye(shot.camera)
+                ushot.pose = shot.pose
+                ushot.metadata = shot.metadata
+                urec.add_camera(ushot.camera)
+                urec.add_shot(ushot)
+                undistorted_shots[shot.id] = [ushot]
             elif shot.camera.projection_type in ['equirectangular', 'spherical']:
                 subshot_width = int(data.config['depthmap_resolution'])
                 subshots = perspective_views_of_a_panorama(shot, subshot_width)
@@ -60,15 +66,12 @@ class Command:
             arguments.append((shot, undistorted_shots[shot.id], data))
 
         processes = data.config['processes']
-        if processes == 1:
-            for arg in arguments:
-                undistort_image(arg)
-        else:
-            p = Pool(processes)
-            p.map(undistort_image, arguments)
+        parallel_map(undistort_image, arguments, processes)
 
 
 def undistort_image(arguments):
+    log.setup()
+
     shot, undistorted_shots, data = arguments
     logger.debug('Undistorting image {}'.format(shot.id))
 
@@ -105,7 +108,7 @@ def undistort_fisheye_image(image, camera):
     height, width = image.shape[:2]
     K = camera.get_K_in_pixel_coordinates(width, height)
     distortion = np.array([camera.k1, camera.k2, 0, 0])
-    return cv2.fisheye.undistortImage(image, K, distortion, K)
+    return cv2.fisheye.undistortImage(image, K, distortion, Knew=K)
 
 
 def perspective_camera_from_fisheye(fisheye):
@@ -182,12 +185,13 @@ def render_perspective_view_of_a_panorama(image, panoshot, perspectiveshot):
     src_pixels_denormalized = features.denormalized_image_coordinates(
         src_pixels, image.shape[1], image.shape[0])
 
+    src_pixels_denormalized.shape = dst_shape + (2,)
+
     # Sample color
-    colors = cv2.remap(image,
-                       src_pixels_denormalized[:, 0].astype(np.float32),
-                       src_pixels_denormalized[:, 1].astype(np.float32),
-                       cv2.INTER_LINEAR)
-    colors.shape = dst_shape + (-1,)
+    x = src_pixels_denormalized[..., 0].astype(np.float32)
+    y = src_pixels_denormalized[..., 1].astype(np.float32)
+    colors = cv2.remap(image, x, y, cv2.INTER_LINEAR)
+
     return colors
 
 

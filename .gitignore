@@ -3,6 +3,7 @@
 xcode
 .DS_Store
 launch.json
+.vscode
 
 # Ignore generated files
 /build
