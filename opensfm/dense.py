@@ -198,7 +198,7 @@ def prune_depthmap(arguments):
     data.save_pruned_depthmap(shot.id, points, normals, colors, labels)
 
     if data.config['depthmap_save_debug_files']:
-        ply = point_cloud_to_ply(points, normals, colors)
+        ply = point_cloud_to_ply(points, normals, colors, labels)
         with open(data._depthmap_file(shot.id, 'pruned.npz.ply'), 'w') as fout:
             fout.write(ply)
 
