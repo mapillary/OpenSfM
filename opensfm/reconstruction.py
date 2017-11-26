@@ -413,6 +413,17 @@ def get_image_metadata(data, image):
 
 
 def _two_view_reconstruction_inliers(b1, b2, R, t, threshold):
+    """Compute number of points that can be triangulated.
+
+    Args:
+        b1, b2: Bearings in the two images.
+        R, t: Rotation and translation from the second image to the first.
+              That is the opengv's convention and the opposite of many
+              functions in this module.
+        threshold: max reprojection error in radiants.
+    Returns:
+        array: Inlier indices.
+    """
     p = pyopengv.triangulation_triangulate(b1, b2, t, R)
 
     br1 = p.copy()
@@ -432,6 +443,37 @@ def run_relative_pose_ransac(b1, b2, method, threshold, iterations):
 
 def run_relative_pose_optimize_nonlinear(b1, b2, t, R):
     return pyopengv.relative_pose_optimize_nonlinear(b1, b2, t, R)
+
+
+def two_view_reconstruction_plane_based(p1, p2, camera1, camera2, threshold):
+    """Reconstruct two views from point correspondences lying on a plane.
+
+    Args:
+        p1, p2: lists points in the images
+        camera1, camera2: Camera models
+        threshold: reprojection error threshold
+
+    Returns:
+        rotation, translation and inlier list
+    """
+    b1 = camera1.pixel_bearings(p1)
+    b2 = camera2.pixel_bearings(p2)
+
+    H, inliers = cv2.findHomography(b1, b2, cv2.RANSAC, threshold)
+
+    motions = multiview.motion_from_plane_homography(H)
+
+    motion_inliers = []
+    for R, t, n, d in motions:
+        inliers = _two_view_reconstruction_inliers(
+            b1, b2, R.T, -R.T.dot(t), threshold)
+        motion_inliers.append(inliers)
+
+    best = np.argmax(map(len, motion_inliers))
+    R, t, n, d = motions[best]
+    inliers = motion_inliers[best]
+
+    return cv2.Rodrigues(R)[0].ravel(), t, inliers
 
 
 def two_view_reconstruction(p1, p2, camera1, camera2, threshold):
