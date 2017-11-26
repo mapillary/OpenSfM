@@ -341,7 +341,7 @@ def pairwise_reconstructability(common_tracks, rotation_inliers):
     outliers = common_tracks - rotation_inliers
     outlier_ratio = float(outliers) / common_tracks
     if outlier_ratio >= 0.3:
-        return common_tracks
+        return outliers
     else:
         return 0
 
@@ -359,7 +359,7 @@ def compute_image_pairs(track_dict, data):
 
 
 def _pair_reconstructability_arguments(track_dict, data):
-    threshold = data.config.get('homography_threshold', 0.004)
+    threshold = 4 * data.config['five_point_algo_threshold']
     cameras = data.load_camera_models()
     args = []
     for (im1, im2), (tracks, p1, p2) in track_dict.iteritems():
