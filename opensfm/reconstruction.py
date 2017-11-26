@@ -336,20 +336,20 @@ def shot_direct_neighbors(graph, reconstruction, shot_id):
     return neighbors
 
 
-def pairwise_reconstructability(common_tracks, homography_inliers):
+def pairwise_reconstructability(common_tracks, rotation_inliers):
     """Likeliness of an image pair giving a good initial reconstruction."""
-    outliers = common_tracks - homography_inliers
+    outliers = common_tracks - rotation_inliers
     outlier_ratio = float(outliers) / common_tracks
-    if outlier_ratio >= 0.0:
+    if outlier_ratio >= 0.3:
         return common_tracks
     else:
         return 0
 
 
-def compute_image_pairs(track_dict, config):
+def compute_image_pairs(track_dict, data):
     """All matched image pairs sorted by reconstructability."""
-    args = _pair_reconstructability_arguments(track_dict, config)
-    processes = config.get('processes', 1)
+    args = _pair_reconstructability_arguments(track_dict, data)
+    processes = data.config.get('processes', 1)
     result = parallel_map(_compute_pair_reconstructability, args, processes)
     result = list(result)
     pairs = [(im1, im2) for im1, im2, r in result if r > 0]
@@ -358,17 +358,25 @@ def compute_image_pairs(track_dict, config):
     return [pairs[o] for o in order]
 
 
-def _pair_reconstructability_arguments(track_dict, config):
-    threshold = config.get('homography_threshold', 0.004)
-    return [(threshold, im1, im2, p1, p2)
-            for (im1, im2), (tracks, p1, p2) in track_dict.items()]
+def _pair_reconstructability_arguments(track_dict, data):
+    threshold = data.config.get('homography_threshold', 0.004)
+    cameras = data.load_camera_models()
+    args = []
+    for (im1, im2), (tracks, p1, p2) in track_dict.iteritems():
+        d1 = data.load_exif(im1)
+        d2 = data.load_exif(im2)
+        camera1 = cameras[d1['camera']]
+        camera2 = cameras[d2['camera']]
+        args.append((im1, im2, p1, p2, camera1, camera2, threshold))
+    return args
 
 
 def _compute_pair_reconstructability(args):
     log.setup()
-    threshold, im1, im2, p1, p2 = args
-    H, inliers = cv2.findHomography(p1, p2, cv2.RANSAC, threshold)
-    r = pairwise_reconstructability(len(p1), inliers.sum())
+    im1, im2, p1, p2, camera1, camera2, threshold = args
+    R, inliers = two_view_reconstruction_rotation_only(
+        p1, p2, camera1, camera2, threshold)
+    r = pairwise_reconstructability(len(p1), len(inliers))
     return (im1, im2, r)
 
 
@@ -988,7 +996,7 @@ def incremental_reconstruction(data):
         gcp = data.load_ground_control_points()
     common_tracks = matching.all_common_tracks(graph, tracks)
     reconstructions = []
-    pairs = compute_image_pairs(common_tracks, data.config)
+    pairs = compute_image_pairs(common_tracks, data)
     for im1, im2 in pairs:
         if im1 in remaining_images and im2 in remaining_images:
             tracks, p1, p2 = common_tracks[im1, im2]
