@@ -340,7 +340,7 @@ def pairwise_reconstructability(common_tracks, homography_inliers):
     """Likeliness of an image pair giving a good initial reconstruction."""
     outliers = common_tracks - homography_inliers
     outlier_ratio = float(outliers) / common_tracks
-    if outlier_ratio > 0.3:
+    if outlier_ratio >= 0.0:
         return common_tracks
     else:
         return 0
@@ -477,7 +477,7 @@ def two_view_reconstruction_plane_based(p1, p2, camera1, camera2, threshold):
 
 
 def two_view_reconstruction(p1, p2, camera1, camera2, threshold):
-    """Reconstruct two views from point correspondences.
+    """Reconstruct two views using the 5-point method.
 
     Args:
         p1, p2: lists points in the images
@@ -537,6 +537,32 @@ def two_view_reconstruction_rotation_only(p1, p2, camera1, camera2, threshold):
     return cv2.Rodrigues(R.T)[0].ravel(), inliers
 
 
+def two_view_reconstruction_general(p1, p2, camera1, camera2, threshold):
+    """Reconstruct two views from point correspondences.
+
+    These will try different reconstruction methods and return the
+    results of the one with most inliers.
+
+    Args:
+        p1, p2: lists points in the images
+        camera1, camera2: Camera models
+        threshold: reprojection error threshold
+
+    Returns:
+        rotation, translation and inlier list
+    """
+    R_5p, t_5p, inliers_5p = two_view_reconstruction(
+        p1, p2, camera1, camera2, threshold)
+
+    R_plane, t_plane, inliers_plane = two_view_reconstruction_plane_based(
+        p1, p2, camera1, camera2, threshold)
+
+    if len(inliers_5p) > len(inliers_plane):
+        return R_5p, t_5p, inliers_5p
+    else:
+        return R_plane, t_plane, inliers_plane
+
+
 def bootstrap_reconstruction(data, graph, im1, im2, p1, p2):
     """Start a reconstruction using two shots."""
     logger.info("Starting reconstruction with {} and {}".format(im1, im2))
@@ -550,7 +576,8 @@ def bootstrap_reconstruction(data, graph, im1, im2, p1, p2):
 
     thresh = data.config.get('five_point_algo_threshold', 0.006)
     min_inliers = data.config.get('five_point_algo_min_inliers', 50)
-    R, t, inliers = two_view_reconstruction(p1, p2, camera1, camera2, thresh)
+    R, t, inliers = two_view_reconstruction_general(p1, p2, camera1, camera2,
+                                                    thresh)
     if len(inliers) > 5:
         logger.info("Two-view reconstruction inliers {}".format(len(inliers)))
         reconstruction = types.Reconstruction()
