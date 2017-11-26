@@ -466,9 +466,10 @@ def two_view_reconstruction_plane_based(p1, p2, camera1, camera2, threshold):
     """
     b1 = camera1.pixel_bearings(p1)
     b2 = camera2.pixel_bearings(p2)
+    x1 = multiview.euclidean(b1)
+    x2 = multiview.euclidean(b2)
 
-    H, inliers = cv2.findHomography(b1, b2, cv2.RANSAC, threshold)
-
+    H, inliers = cv2.findHomography(x1, x2, cv2.RANSAC, threshold)
     motions = multiview.motion_from_plane_homography(H)
 
     motion_inliers = []
