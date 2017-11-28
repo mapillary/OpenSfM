@@ -211,8 +211,8 @@ def common_tracks(g, im1, im2):
 
 
 def all_common_tracks(graph, tracks, include_features=True, min_common=50):
-    """
-    Returns a dictionary mapping image pairs to the list of tracks observed in both images
+    """List of tracks observed by each image pair.
+
     :param graph: Graph structure (networkx) as returned by :method:`DataSet.tracks_graph`
     :param tracks: list of track identifiers
     :param include_features: whether to include the features from the images
@@ -220,19 +220,20 @@ def all_common_tracks(graph, tracks, include_features=True, min_common=50):
     :return: tuple: im1, im2 -> tuple: tracks, features from first image, features from second image
     """
     track_dict = defaultdict(list)
-    for tr in tracks:
-        track_images = sorted(graph[tr].keys())
-        for pair in combinations(track_images, 2):
-            track_dict[pair].append(tr)
+    for track in tracks:
+        track_images = sorted(graph[track].keys())
+        for im1, im2 in combinations(track_images, 2):
+            track_dict[im1, im2].append(track)
+
     common_tracks = {}
     for k, v in track_dict.iteritems():
         if len(v) < min_common:
             continue
+        im1, im2 = k
         if include_features:
-            t1, t2 = graph[k[0]], graph[k[1]]
-            p1 = np.array([t1[tr]['feature'] for tr in v])
-            p2 = np.array([t2[tr]['feature'] for tr in v])
-            common_tracks[k] = (v, p1, p2)
+            p1 = np.array([graph[im1][tr]['feature'] for tr in v])
+            p2 = np.array([graph[im2][tr]['feature'] for tr in v])
+            common_tracks[im1, im2] = (v, p1, p2)
         else:
-            common_tracks[k] = v
+            common_tracks[im1, im2] = v
     return common_tracks

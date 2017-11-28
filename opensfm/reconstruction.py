@@ -206,7 +206,11 @@ def bundle_local(graph, reconstruction, gcp, central_shot_id, config):
                 str(camera.id), camera.focal, camera.k1, camera.k2,
                 camera.focal_prior, camera.k1_prior, camera.k2_prior,
                 True)
-
+        elif camera.projection_type == 'fisheye':
+            ba.add_fisheye_camera(
+                str(camera.id), camera.focal, camera.k1, camera.k2,
+                camera.focal_prior, camera.k1_prior, camera.k2_prior,
+                True)
         elif camera.projection_type in ['equirectangular', 'spherical']:
             ba.add_equirectangular_camera(str(camera.id))
 
@@ -273,7 +277,11 @@ def bundle_local(graph, reconstruction, gcp, central_shot_id, config):
             camera.focal = c.focal
             camera.k1 = c.k1
             camera.k2 = c.k2
-
+        elif camera.projection_type == 'fisheye':
+            c = ba.get_fisheye_camera(str(camera.id))
+            camera.focal = c.focal
+            camera.k1 = c.k1
+            camera.k2 = c.k2
     for shot_id in interior:
         shot = reconstruction.shots[shot_id]
         s = ba.get_shot(str(shot.id))
@@ -328,20 +336,20 @@ def shot_direct_neighbors(graph, reconstruction, shot_id):
     return neighbors
 
 
-def pairwise_reconstructability(common_tracks, homography_inliers):
+def pairwise_reconstructability(common_tracks, rotation_inliers):
     """Likeliness of an image pair giving a good initial reconstruction."""
-    outliers = common_tracks - homography_inliers
+    outliers = common_tracks - rotation_inliers
     outlier_ratio = float(outliers) / common_tracks
-    if outlier_ratio > 0.3:
-        return common_tracks
+    if outlier_ratio >= 0.3:
+        return outliers
     else:
         return 0
 
 
-def compute_image_pairs(track_dict, config):
+def compute_image_pairs(track_dict, data):
     """All matched image pairs sorted by reconstructability."""
-    args = _pair_reconstructability_arguments(track_dict, config)
-    processes = config.get('processes', 1)
+    args = _pair_reconstructability_arguments(track_dict, data)
+    processes = data.config.get('processes', 1)
     result = parallel_map(_compute_pair_reconstructability, args, processes)
     result = list(result)
     pairs = [(im1, im2) for im1, im2, r in result if r > 0]
@@ -350,17 +358,25 @@ def compute_image_pairs(track_dict, config):
     return [pairs[o] for o in order]
 
 
-def _pair_reconstructability_arguments(track_dict, config):
-    threshold = config.get('homography_threshold', 0.004)
-    return [(threshold, im1, im2, p1, p2)
-            for (im1, im2), (tracks, p1, p2) in track_dict.items()]
+def _pair_reconstructability_arguments(track_dict, data):
+    threshold = 4 * data.config['five_point_algo_threshold']
+    cameras = data.load_camera_models()
+    args = []
+    for (im1, im2), (tracks, p1, p2) in track_dict.iteritems():
+        d1 = data.load_exif(im1)
+        d2 = data.load_exif(im2)
+        camera1 = cameras[d1['camera']]
+        camera2 = cameras[d2['camera']]
+        args.append((im1, im2, p1, p2, camera1, camera2, threshold))
+    return args
 
 
 def _compute_pair_reconstructability(args):
     log.setup()
-    threshold, im1, im2, p1, p2 = args
-    H, inliers = cv2.findHomography(p1, p2, cv2.RANSAC, threshold)
-    r = pairwise_reconstructability(len(p1), inliers.sum())
+    im1, im2, p1, p2, camera1, camera2, threshold = args
+    R, inliers = two_view_reconstruction_rotation_only(
+        p1, p2, camera1, camera2, threshold)
+    r = pairwise_reconstructability(len(p1), len(inliers))
     return (im1, im2, r)
 
 
@@ -405,6 +421,17 @@ def get_image_metadata(data, image):
 
 
 def _two_view_reconstruction_inliers(b1, b2, R, t, threshold):
+    """Compute number of points that can be triangulated.
+
+    Args:
+        b1, b2: Bearings in the two images.
+        R, t: Rotation and translation from the second image to the first.
+              That is the opengv's convention and the opposite of many
+              functions in this module.
+        threshold: max reprojection error in radians.
+    Returns:
+        array: Inlier indices.
+    """
     p = pyopengv.triangulation_triangulate(b1, b2, t, R)
 
     br1 = p.copy()
@@ -426,8 +453,40 @@ def run_relative_pose_optimize_nonlinear(b1, b2, t, R):
     return pyopengv.relative_pose_optimize_nonlinear(b1, b2, t, R)
 
 
+def two_view_reconstruction_plane_based(p1, p2, camera1, camera2, threshold):
+    """Reconstruct two views from point correspondences lying on a plane.
+
+    Args:
+        p1, p2: lists points in the images
+        camera1, camera2: Camera models
+        threshold: reprojection error threshold
+
+    Returns:
+        rotation, translation and inlier list
+    """
+    b1 = camera1.pixel_bearings(p1)
+    b2 = camera2.pixel_bearings(p2)
+    x1 = multiview.euclidean(b1)
+    x2 = multiview.euclidean(b2)
+
+    H, inliers = cv2.findHomography(x1, x2, cv2.RANSAC, threshold)
+    motions = multiview.motion_from_plane_homography(H)
+
+    motion_inliers = []
+    for R, t, n, d in motions:
+        inliers = _two_view_reconstruction_inliers(
+            b1, b2, R.T, -R.T.dot(t), threshold)
+        motion_inliers.append(inliers)
+
+    best = np.argmax(map(len, motion_inliers))
+    R, t, n, d = motions[best]
+    inliers = motion_inliers[best]
+
+    return cv2.Rodrigues(R)[0].ravel(), t, inliers
+
+
 def two_view_reconstruction(p1, p2, camera1, camera2, threshold):
-    """Reconstruct two views from point correspondences.
+    """Reconstruct two views using the 5-point method.
 
     Args:
         p1, p2: lists points in the images
@@ -487,6 +546,32 @@ def two_view_reconstruction_rotation_only(p1, p2, camera1, camera2, threshold):
     return cv2.Rodrigues(R.T)[0].ravel(), inliers
 
 
+def two_view_reconstruction_general(p1, p2, camera1, camera2, threshold):
+    """Reconstruct two views from point correspondences.
+
+    These will try different reconstruction methods and return the
+    results of the one with most inliers.
+
+    Args:
+        p1, p2: lists points in the images
+        camera1, camera2: Camera models
+        threshold: reprojection error threshold
+
+    Returns:
+        rotation, translation and inlier list
+    """
+    R_5p, t_5p, inliers_5p = two_view_reconstruction(
+        p1, p2, camera1, camera2, threshold)
+
+    R_plane, t_plane, inliers_plane = two_view_reconstruction_plane_based(
+        p1, p2, camera1, camera2, threshold)
+
+    if len(inliers_5p) > len(inliers_plane):
+        return R_5p, t_5p, inliers_5p
+    else:
+        return R_plane, t_plane, inliers_plane
+
+
 def bootstrap_reconstruction(data, graph, im1, im2, p1, p2):
     """Start a reconstruction using two shots."""
     logger.info("Starting reconstruction with {} and {}".format(im1, im2))
@@ -500,7 +585,8 @@ def bootstrap_reconstruction(data, graph, im1, im2, p1, p2):
 
     thresh = data.config.get('five_point_algo_threshold', 0.006)
     min_inliers = data.config.get('five_point_algo_min_inliers', 50)
-    R, t, inliers = two_view_reconstruction(p1, p2, camera1, camera2, thresh)
+    R, t, inliers = two_view_reconstruction_general(p1, p2, camera1, camera2,
+                                                    thresh)
     if len(inliers) > 5:
         logger.info("Two-view reconstruction inliers {}".format(len(inliers)))
         reconstruction = types.Reconstruction()
@@ -911,7 +997,7 @@ def incremental_reconstruction(data):
         gcp = data.load_ground_control_points()
     common_tracks = matching.all_common_tracks(graph, tracks)
     reconstructions = []
-    pairs = compute_image_pairs(common_tracks, data.config)
+    pairs = compute_image_pairs(common_tracks, data)
     for im1, im2 in pairs:
         if im1 in remaining_images and im2 in remaining_images:
             tracks, p1, p2 = common_tracks[im1, im2]

@@ -205,7 +205,7 @@ def triangulate_all_gcp(reconstruction, gcp_observations):
         groups[tuple(o.lla)].append(o)
 
     triangulated, measured = [], []
-    for key, observations in groups.values():
+    for observations in groups.values():
         x = triangulate_single_gcp(reconstruction, observations)
         if x is not None:
             triangulated.append(x)

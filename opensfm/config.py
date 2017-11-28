@@ -116,9 +116,12 @@ depthmap_save_debug_files: no         # Save debug files with partial reconstruc
 processes: 1                  # Number of threads to use
 
 # Params for submodel split and merge
+submodel_size: 80                                                   # Average number of images per submodel
+submodel_overlap: 30.0                                              # Radius of the overlapping region between submodels
 submodels_relpath: "submodels"                                      # Relative path to the submodels directory
 submodel_relpath_template: "submodels/submodel_%04d"                # Template to generate the relative path to a submodel directory
 submodel_images_relpath_template: "submodels/submodel_%04d/images"  # Template to generate the relative path to a submodel images directory
+submodel_use_symlinks: yes                                          # Symlink global features and matches to be reused on each submodel
 '''
 
 

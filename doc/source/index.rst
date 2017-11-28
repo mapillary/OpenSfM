@@ -10,7 +10,9 @@ OpenSfM
    using
    dataset
    geometry
+   cam_coord_system
    api
+   reconstruction_module
    dense
 
 
