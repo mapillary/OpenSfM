@@ -428,7 +428,7 @@ def _two_view_reconstruction_inliers(b1, b2, R, t, threshold):
         R, t: Rotation and translation from the second image to the first.
               That is the opengv's convention and the opposite of many
               functions in this module.
-        threshold: max reprojection error in radiants.
+        threshold: max reprojection error in radians.
     Returns:
         array: Inlier indices.
     """
