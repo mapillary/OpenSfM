@@ -952,7 +952,9 @@ def grow_reconstruction(data, graph, reconstruction, images, gcp):
 
     should_bundle = ShouldBundle(data, reconstruction)
     should_retriangulate = ShouldRetriangulate(data, reconstruction)
-
+    report = {
+        'steps': [],
+    }
     while True:
         if data.config.get('save_partial_reconstructions', False):
             paint_reconstruction(data, graph, reconstruction)
@@ -969,14 +971,20 @@ def grow_reconstruction(data, graph, reconstruction, images, gcp):
         for image, num_tracks in common_tracks:
             if resect(data, graph, reconstruction, image):
                 logger.info("Adding {0} to the reconstruction".format(image))
+                step = {'image': image}
+                report['steps'].append(step)
                 images.remove(image)
 
+                np_before = len(reconstruction.points)
                 triangulate_shot_features(
                     graph, reconstruction, image,
                     data.config.get('triangulation_threshold', 0.004),
                     data.config.get('triangulation_min_ray_angle', 2.0))
+                np_after = len(reconstruction.points)
+                step['triangulated_points'] = np_after - np_before
 
                 if should_bundle.should(reconstruction):
+                    step['bundle'] = True
                     bundle(graph, reconstruction, None, data.config)
                     remove_outliers(graph, reconstruction, data.config)
                     align.align_reconstruction(reconstruction, gcp,
@@ -984,10 +992,12 @@ def grow_reconstruction(data, graph, reconstruction, images, gcp):
                     should_bundle.done(reconstruction)
                 else:
                     if data.config['local_bundle_radius'] > 0:
+                        step['local_bundle'] = True
                         bundle_local(graph, reconstruction, None, image, data.config)
 
                 if should_retriangulate.should(reconstruction):
                     logger.info("Re-triangulating")
+                    step['retriangulation'] = True
                     retriangulate(graph, reconstruction, data.config)
                     bundle(graph, reconstruction, None, data.config)
                     should_retriangulate.done(reconstruction)
@@ -1001,7 +1011,7 @@ def grow_reconstruction(data, graph, reconstruction, images, gcp):
     bundle(graph, reconstruction, gcp, data.config)
     align.align_reconstruction(reconstruction, gcp, data.config)
     paint_reconstruction(data, graph, reconstruction)
-    return reconstruction, {}
+    return reconstruction, report
 
 
 def incremental_reconstruction(data):
