@@ -2,6 +2,7 @@ import logging
 import time
 
 from opensfm import dataset
+from opensfm import io
 from opensfm import reconstruction
 
 logger = logging.getLogger(__name__)
@@ -17,7 +18,8 @@ class Command:
     def run(self, args):
         start = time.time()
         data = dataset.DataSet(args.dataset)
-        reconstruction.incremental_reconstruction(data)
+        report = reconstruction.incremental_reconstruction(data)
         end = time.time()
         with open(data.profile_log(), 'a') as fout:
             fout.write('reconstruct: {0}\n'.format(end - start))
+        data.save_report(io.json_dumps(report), 'reconstruction.json')
