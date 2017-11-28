@@ -81,13 +81,12 @@ def bundle(graph, reconstruction, gcp, config):
                     observation.shot_coordinates[0],
                     observation.shot_coordinates[1])
 
-    ba.set_loss_function(config.get('loss_function', 'SoftLOneLoss'),
-                         config.get('loss_function_threshold', 1))
-    ba.set_reprojection_error_sd(config.get('reprojection_error_sd', 0.004))
-    ba.set_internal_parameters_prior_sd(
-        config.get('exif_focal_sd', 0.01),
-        config.get('radial_distorsion_k1_sd', 0.01),
-        config.get('radial_distorsion_k2_sd', 0.01))
+    ba.set_loss_function(config['loss_function'],
+                         config['loss_function_threshold'])
+    ba.set_reprojection_error_sd(config['reprojection_error_sd'])
+    ba.set_internal_parameters_prior_sd(config['exif_focal_sd'],
+                                        config['radial_distorsion_k1_sd'],
+                                        config['radial_distorsion_k2_sd'])
 
     setup = timer()
 
@@ -164,13 +163,12 @@ def bundle_single_view(graph, reconstruction, shot_id, config):
         ba.add_position_prior(str(shot.id), g[0], g[1], g[2],
                               shot.metadata.gps_dop)
 
-    ba.set_loss_function(config.get('loss_function', 'SoftLOneLoss'),
-                         config.get('loss_function_threshold', 1))
-    ba.set_reprojection_error_sd(config.get('reprojection_error_sd', 0.004))
-    ba.set_internal_parameters_prior_sd(
-        config.get('exif_focal_sd', 0.01),
-        config.get('radial_distorsion_k1_sd', 0.01),
-        config.get('radial_distorsion_k2_sd', 0.01))
+    ba.set_loss_function(config['loss_function'],
+                         config['loss_function_threshold'])
+    ba.set_reprojection_error_sd(config['reprojection_error_sd'])
+    ba.set_internal_parameters_prior_sd(config['exif_focal_sd'],
+                                        config['radial_distorsion_k1_sd'],
+                                        config['radial_distorsion_k2_sd'])
 
     ba.set_num_threads(config['processes'])
     ba.run()
@@ -255,13 +253,12 @@ def bundle_local(graph, reconstruction, gcp, central_shot_id, config):
                     observation.shot_coordinates[0],
                     observation.shot_coordinates[1])
 
-    ba.set_loss_function(config.get('loss_function', 'SoftLOneLoss'),
-                         config.get('loss_function_threshold', 1))
-    ba.set_reprojection_error_sd(config.get('reprojection_error_sd', 0.004))
-    ba.set_internal_parameters_prior_sd(
-        config.get('exif_focal_sd', 0.01),
-        config.get('radial_distorsion_k1_sd', 0.01),
-        config.get('radial_distorsion_k2_sd', 0.01))
+    ba.set_loss_function(config['loss_function'],
+                         config['loss_function_threshold'])
+    ba.set_reprojection_error_sd(config['reprojection_error_sd'])
+    ba.set_internal_parameters_prior_sd(config['exif_focal_sd'],
+                                        config['radial_distorsion_k1_sd'],
+                                        config['radial_distorsion_k2_sd'])
 
     setup = timer()
 
@@ -349,7 +346,7 @@ def pairwise_reconstructability(common_tracks, rotation_inliers):
 def compute_image_pairs(track_dict, data):
     """All matched image pairs sorted by reconstructability."""
     args = _pair_reconstructability_arguments(track_dict, data)
-    processes = data.config.get('processes', 1)
+    processes = data.config['processes']
     result = parallel_map(_compute_pair_reconstructability, args, processes)
     result = list(result)
     pairs = [(im1, im2) for im1, im2, r in result if r > 0]
@@ -363,10 +360,8 @@ def _pair_reconstructability_arguments(track_dict, data):
     cameras = data.load_camera_models()
     args = []
     for (im1, im2), (tracks, p1, p2) in track_dict.iteritems():
-        d1 = data.load_exif(im1)
-        d2 = data.load_exif(im2)
-        camera1 = cameras[d1['camera']]
-        camera2 = cameras[d2['camera']]
+        camera1 = cameras[data.load_exif(im1)['camera']]
+        camera2 = cameras[data.load_exif(im2)['camera']]
         args.append((im1, im2, p1, p2, camera1, camera2, threshold))
     return args
 
@@ -390,7 +385,7 @@ def get_image_metadata(data, image):
             'longitude' in exif['gps']):
         lat = exif['gps']['latitude']
         lon = exif['gps']['longitude']
-        if data.config.get('use_altitude_tag', False):
+        if data.config['use_altitude_tag']:
             alt = exif['gps'].get('altitude', 2.0)
         else:
             alt = 2.0  # Arbitrary value used to align the reconstruction
@@ -622,8 +617,8 @@ def bootstrap_reconstruction(data, graph, im1, im2, p1, p2):
 
     triangulate_shot_features(
         graph, reconstruction, im1,
-        data.config.get('triangulation_threshold', 0.004),
-        data.config.get('triangulation_min_ray_angle', 2.0))
+        data.config['triangulation_threshold'],
+        data.config['triangulation_min_ray_angle'])
 
     logger.info("Triangulated: {}".format(len(reconstruction.points)))
     report['triangulated_points'] = len(reconstruction.points)
@@ -681,7 +676,7 @@ def resect(data, graph, reconstruction, shot_id):
     if len(bs) < 5:
         return False
 
-    threshold = data.config.get('resection_threshold', 0.004)
+    threshold = data.config['resection_threshold']
     T = pyopengv.absolute_pose_ransac(
         bs, Xs, "KNEIP", 1 - np.cos(threshold), 1000)
 
@@ -696,7 +691,7 @@ def resect(data, graph, reconstruction, shot_id):
 
     logger.info("{} resection inliers: {} / {}".format(
         shot_id, ninliers, len(bs)))
-    if ninliers >= data.config.get('resection_min_inliers', 15):
+    if ninliers >= data.config['resection_min_inliers']:
         R = T[:, :3].T
         t = -R.dot(T[:, 3])
         shot = types.Shot()
@@ -805,8 +800,8 @@ def triangulate_shot_features(graph, reconstruction, shot_id, reproj_threshold,
 
 def retriangulate(graph, reconstruction, config):
     """Retrianguate all points"""
-    threshold = config.get('triangulation_threshold', 0.004)
-    min_ray_angle = config.get('triangulation_min_ray_angle', 2.0)
+    threshold = config['triangulation_threshold']
+    min_ray_angle = config['triangulation_min_ray_angle']
     triangulator = TrackTriangulator(graph, reconstruction)
     tracks, images = matching.tracks_and_images(graph)
     for track in tracks:
@@ -815,7 +810,7 @@ def retriangulate(graph, reconstruction, config):
 
 def remove_outliers(graph, reconstruction, config):
     """Remove points with large reprojection error."""
-    threshold = config.get('bundle_outlier_threshold', 0.008)
+    threshold = config['bundle_outlier_threshold']
     if threshold > 0:
         outliers = []
         for track in reconstruction.points:
@@ -914,8 +909,8 @@ class ShouldBundle:
     """Helper to keep track of when to run bundle."""
 
     def __init__(self, data, reconstruction):
-        self.interval = data.config.get('bundle_interval', 0)
-        self.new_points_ratio = data.config.get('bundle_new_points_ratio', 1.2)
+        self.interval = data.config['bundle_interval']
+        self.new_points_ratio = data.config['bundle_new_points_ratio']
         self.done(reconstruction)
 
     def should(self, reconstruction):
@@ -933,8 +928,8 @@ class ShouldRetriangulate:
     """Helper to keep track of when to re-triangulate."""
 
     def __init__(self, data, reconstruction):
-        self.active = data.config.get('retriangulation', False)
-        self.ratio = data.config.get('retriangulation_ratio', 1.25)
+        self.active = data.config['retriangulation']
+        self.ratio = data.config['retriangulation_ratio']
         self.done(reconstruction)
 
     def should(self, reconstruction):
@@ -956,7 +951,7 @@ def grow_reconstruction(data, graph, reconstruction, images, gcp):
         'steps': [],
     }
     while True:
-        if data.config.get('save_partial_reconstructions', False):
+        if data.config['save_partial_reconstructions']:
             paint_reconstruction(data, graph, reconstruction)
             data.save_reconstruction(
                 [reconstruction], 'reconstruction.{}.json'.format(
@@ -978,8 +973,8 @@ def grow_reconstruction(data, graph, reconstruction, images, gcp):
                 np_before = len(reconstruction.points)
                 triangulate_shot_features(
                     graph, reconstruction, image,
-                    data.config.get('triangulation_threshold', 0.004),
-                    data.config.get('triangulation_min_ray_angle', 2.0))
+                    data.config['triangulation_threshold'],
+                    data.config['triangulation_min_ray_angle'])
                 np_after = len(reconstruction.points)
                 step['triangulated_points'] = np_after - np_before
 

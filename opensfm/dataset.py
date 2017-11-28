@@ -226,10 +226,10 @@ class DataSet:
             io.json_dump(data, fout)
 
     def feature_type(self):
-        """Return the type of local features (e.g. AKAZE, SURF, SIFT)
-        """
-        feature_name = self.config.get('feature_type', 'sift').lower()
-        if self.config.get('feature_root', False): feature_name = 'root_' + feature_name
+        """Return the type of local features (e.g. AKAZE, SURF, SIFT)"""
+        feature_name = self.config['feature_type'].lower()
+        if self.config['feature_root']:
+            feature_name = 'root_' + feature_name
         return feature_name
 
     def __feature_path(self):
@@ -245,9 +245,9 @@ class DataSet:
 
     def __save_features(self, filepath, image, points, descriptors, colors=None):
         io.mkdir_p(self.__feature_path())
-        feature_type = self.config.get('feature_type')
-        if ((feature_type == 'AKAZE' and self.config.get('akaze_descriptor') in ['MLDB_UPRIGHT', 'MLDB'])
-                or (feature_type == 'HAHOG' and self.config.get('hahog_normalize_to_uchar', False))
+        feature_type = self.config['feature_type']
+        if ((feature_type == 'AKAZE' and self.config['akaze_descriptor'] in ['MLDB_UPRIGHT', 'MLDB'])
+                or (feature_type == 'HAHOG' and self.config['hahog_normalize_to_uchar'])
                 or (feature_type == 'ORB')):
             feature_data_type = np.uint8
         else:
@@ -261,9 +261,9 @@ class DataSet:
         return os.path.isfile(self.__feature_file(image))
 
     def load_features(self, image):
-        feature_type = self.config.get('feature_type')
+        feature_type = self.config['feature_type']
         s = np.load(self.__feature_file(image))
-        if feature_type == 'HAHOG' and self.config.get('hahog_normalize_to_uchar', False):
+        if feature_type == 'HAHOG' and self.config['hahog_normalize_to_uchar']:
             descriptors = s['descriptors'].astype(np.float32)
         else:
             descriptors = s['descriptors']

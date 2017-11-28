@@ -609,7 +609,7 @@ def plot_bootstrapped_reconstruction(fw, ip, index, p1, p2, robust_tracks, linke
                 non_robust_rec_tracks.shape[0],
                 failed_rec_tracks.shape[0]) + \
             'Triangulation threshold: {0:.2g} ({1:.1f} - {2:.1f} pixels). Min ray angle: {3}.'.format(
-                threshold, pixels1, pixels2, data.config.get('triangulation_min_ray_angle', 2.0))
+                threshold, pixels1, pixels2, data.config['triangulation_min_ray_angle'])
 
         rec_plot = plot_matches_sub(fw.figure, fw.rows, fw.cols, index, rec_title, ip.im1_array, ip.im2_array,
                                     robust_rec_points1, robust_rec_points2, 'c', 'ob')
@@ -618,8 +618,8 @@ def plot_bootstrapped_reconstruction(fw, ip, index, p1, p2, robust_tracks, linke
     else:
         failed_title = \
             'Bootstrap failed. Less than {0} points. Triangulation threshold: {1:.2g} ({2:.1f} - {3:.1f} pixels).'\
-            .format(data.config.get('five_point_algo_min_inliers', 50), threshold, pixels1, pixels2) +\
-            'Min ray angle: {0}.'.format(data.config.get('triangulation_min_ray_angle', 2.0))
+            .format(data.config['five_point_algo_min_inliers'], threshold, pixels1, pixels2) +\
+            'Min ray angle: {0}.'.format(data.config['triangulation_min_ray_angle'])
         create_subplot(fw.figure, fw.rows, fw.cols, index, failed_title, (0, 100), (0, 100))
 
 
@@ -720,7 +720,7 @@ def plot_reprojected_tracks(fw, ip, index, p1, p2, tracks, rec_tracks, non_rec_t
     rp1 = reproject_tracks(ip.im1, rec_tracks[:, 0], reconstruction)
     rp2 = reproject_tracks(ip.im2, rec_tracks[:, 0], reconstruction)
 
-    min_ray_angle = data.config.get('triangulation_min_ray_angle', 2.0)
+    min_ray_angle = data.config['triangulation_min_ray_angle']
     succeeded = triangulate_tracks(non_rec_tracks[:, 0], reconstruction, graph, min_ray_angle)
     reprojected1 = reproject_tracks(ip.im1, non_rec_tracks[succeeded, 0], reconstruction)
     reprojected2 = reproject_tracks(ip.im2, non_rec_tracks[succeeded, 0], reconstruction)
@@ -826,7 +826,7 @@ def create_complete_reconstruction_figure(im, data, save_figs=False, single_colu
     plot_points(rec_plot, im_array, rec_track_points, 'ob')
     plot_points(rec_plot, im_array, rp, '+w')
 
-    min_ray_angle = data.config.get('triangulation_min_ray_angle', 2.0)
+    min_ray_angle = data.config['triangulation_min_ray_angle']
     succeeded = triangulate_tracks(non_rec_tracks[:, 0], reconstruction, graph, min_ray_angle)
     reprojected = reproject_tracks(im, non_rec_tracks[succeeded, 0], reconstruction)
 
@@ -880,7 +880,7 @@ def create_reprojection_error_figure(im, data, save_figs=False, single_column=Fa
 
     reproj_rec = reproject_tracks(im, rec_tracks[:, 0], reconstruction)
 
-    min_ray_angle = data.config.get('triangulation_min_ray_angle', 2.0)
+    min_ray_angle = data.config['triangulation_min_ray_angle']
     succeeded = triangulate_tracks(non_rec_tracks[:, 0], reconstruction, graph, min_ray_angle)
     reproj_non = reproject_tracks(im, non_rec_tracks[succeeded, 0], reconstruction)
 
@@ -890,8 +890,8 @@ def create_reprojection_error_figure(im, data, save_figs=False, single_column=Fa
     rec_errors, rec_mean, rec_std, rec_min, rec_max, rec_corr = reprojection_errors(reproj_rec, rec_points, scale)
     non_errors, non_mean, non_std, non_min, non_max, non_corr = reprojection_errors(reproj_non, triang_non, scale)
 
-    triang_thld = data.config.get('triangulation_threshold', 0.004)
-    bundle_thld = data.config.get('bundle_outlier_threshold', 0.008)
+    triang_thld = data.config['triangulation_threshold']
+    bundle_thld = data.config['bundle_outlier_threshold']
     axis_max = np.max(np.abs(np.vstack((rec_errors, non_errors))))
     axis_max = 1.05 * np.max([axis_max, scale * triang_thld, scale * bundle_thld])
 

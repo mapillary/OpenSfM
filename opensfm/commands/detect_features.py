@@ -26,7 +26,7 @@ class Command:
         arguments = [(image, data) for image in images]
 
         start = timer()
-        processes = data.config.get('processes', 1)
+        processes = data.config['processes']
         parallel_map(detect, arguments, processes)
         end = timer()
         with open(data.profile_log(), 'a') as fout:
@@ -59,7 +59,7 @@ def detect(args):
         mask = data.mask_as_array(image)
         if mask is not None:
             logger.info('Found mask to apply for image {}'.format(image))
-        preemptive_max = data.config.get('preemptive_max', 200)
+        preemptive_max = data.config['preemptive_max']
         p_unsorted, f_unsorted, c_unsorted = features.extract_features(
             data.image_as_array(image), data.config, mask)
         if len(p_unsorted) == 0:
@@ -75,7 +75,7 @@ def detect(args):
         data.save_features(image, p_sorted, f_sorted, c_sorted)
         data.save_preemptive_features(image, p_pre, f_pre)
 
-        if data.config.get('matcher_type', 'FLANN') == 'FLANN':
+        if data.config['matcher_type'] == 'FLANN':
             index = features.build_flann_index(f_sorted, data.config)
             data.save_feature_index(image, index)
 
