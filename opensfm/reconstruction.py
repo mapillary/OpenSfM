@@ -27,7 +27,7 @@ def bundle(graph, reconstruction, gcp, config):
     """Bundle adjust a reconstruction."""
     fix_cameras = not config['optimize_camera_parameters']
 
-    start = timer()
+    chrono = Chronometer()
     ba = csfm.BundleAdjuster()
     for camera in reconstruction.cameras.values():
         if camera.projection_type == 'perspective':
@@ -87,14 +87,11 @@ def bundle(graph, reconstruction, gcp, config):
     ba.set_internal_parameters_prior_sd(config['exif_focal_sd'],
                                         config['radial_distorsion_k1_sd'],
                                         config['radial_distorsion_k2_sd'])
-
-    setup = timer()
-
     ba.set_num_threads(config['processes'])
-    ba.run()
 
-    run = timer()
-    logger.debug(ba.brief_report())
+    chrono.lap('setup')
+    ba.run()
+    chrono.lap('run')
 
     for camera in reconstruction.cameras.values():
         if camera.projection_type == 'perspective':
@@ -118,10 +115,14 @@ def bundle(graph, reconstruction, gcp, config):
         point.coordinates = [p.x, p.y, p.z]
         point.reprojection_error = p.reprojection_error
 
-    teardown = timer()
+    chrono.lap('teardown')
 
-    logger.debug('Bundle setup/run/teardown {0}/{1}/{2}'.format(
-        setup - start, run - setup, teardown - run))
+    logger.debug(ba.brief_report())
+    report = {
+        'wall_times': dict(chrono.lap_times()),
+        'brief_report': ba.brief_report(),
+    }
+    return report
 
 
 def bundle_single_view(graph, reconstruction, shot_id, config):
@@ -180,15 +181,15 @@ def bundle_single_view(graph, reconstruction, shot_id, config):
 
 def bundle_local(graph, reconstruction, gcp, central_shot_id, config):
     """Bundle adjust the local neighborhood of a shot."""
-    start = timer()
+    chrono = Chronometer()
 
     interior, boundary = shot_neighborhood(
         graph, reconstruction, central_shot_id, config['local_bundle_radius'])
 
-    logger.debug('Local bundle sets: interior {}  boundary {}  other {}'.format(
-          len(interior),
-          len(boundary),
-          len(reconstruction.shots) - len(interior) - len(boundary)))
+    logger.debug(
+        'Local bundle sets: interior {}  boundary {}  other {}'.format(
+            len(interior), len(boundary),
+            len(reconstruction.shots) - len(interior) - len(boundary)))
 
     point_ids = set()
     for shot_id in interior:
@@ -259,14 +260,11 @@ def bundle_local(graph, reconstruction, gcp, central_shot_id, config):
     ba.set_internal_parameters_prior_sd(config['exif_focal_sd'],
                                         config['radial_distorsion_k1_sd'],
                                         config['radial_distorsion_k2_sd'])
-
-    setup = timer()
-
     ba.set_num_threads(config['processes'])
-    ba.run()
 
-    run = timer()
-    logger.debug(ba.brief_report())
+    chrono.lap('setup')
+    ba.run()
+    chrono.lap('run')
 
     for camera in reconstruction.cameras.values():
         if camera.projection_type == 'perspective':
@@ -291,10 +289,18 @@ def bundle_local(graph, reconstruction, gcp, central_shot_id, config):
         point.coordinates = [p.x, p.y, p.z]
         point.reprojection_error = p.reprojection_error
 
-    teardown = timer()
+    chrono.lap('teardown')
 
-    logger.debug('Local bundle setup/run/teardown {0}/{1}/{2}'.format(
-        setup - start, run - setup, teardown - run))
+    logger.debug(ba.brief_report())
+    report = {
+        'wall_times': dict(chrono.lap_times()),
+        'brief_report': ba.brief_report(),
+        'num_interior_images': len(interior),
+        'num_boundary_images': len(boundary),
+        'num_other_images': (len(reconstruction.shots)
+                             - len(interior) - len(boundary)),
+    }
+    return report
 
 
 def shot_neighborhood(graph, reconstruction, central_shot_id, radius):
@@ -691,6 +697,10 @@ def resect(data, graph, reconstruction, shot_id):
 
     logger.info("{} resection inliers: {} / {}".format(
         shot_id, ninliers, len(bs)))
+    report = {
+        'num_common_points': len(bs),
+        'num_inliers': ninliers,
+    }
     if ninliers >= data.config['resection_min_inliers']:
         R = T[:, :3].T
         t = -R.dot(T[:, 3])
@@ -703,9 +713,9 @@ def resect(data, graph, reconstruction, shot_id):
         shot.metadata = get_image_metadata(data, shot_id)
         reconstruction.add_shot(shot)
         bundle_single_view(graph, reconstruction, shot_id, data.config)
-        return True
+        return True, report
     else:
-        return False
+        return False, report
 
 
 class TrackTriangulator:
@@ -800,12 +810,19 @@ def triangulate_shot_features(graph, reconstruction, shot_id, reproj_threshold,
 
 def retriangulate(graph, reconstruction, config):
     """Retrianguate all points"""
+    chrono = Chronometer()
+    report = {}
+    report['num_points_before'] = len(reconstruction.points)
     threshold = config['triangulation_threshold']
     min_ray_angle = config['triangulation_min_ray_angle']
     triangulator = TrackTriangulator(graph, reconstruction)
     tracks, images = matching.tracks_and_images(graph)
     for track in tracks:
         triangulator.triangulate(track, threshold, min_ray_angle)
+    report['num_points_after'] = len(reconstruction.points)
+    chrono.lap('retriangulate')
+    report['wall_time'] = chrono.total_time()
+    return report
 
 
 def remove_outliers(graph, reconstruction, config):
@@ -964,9 +981,13 @@ def grow_reconstruction(data, graph, reconstruction, images, gcp):
 
         logger.info("-------------------------------------------------------")
         for image, num_tracks in common_tracks:
-            if resect(data, graph, reconstruction, image):
+            ok, resrep = resect(data, graph, reconstruction, image)
+            if ok:
                 logger.info("Adding {0} to the reconstruction".format(image))
-                step = {'image': image}
+                step = {
+                    'image': image,
+                    'resection': resrep,
+                }
                 report['steps'].append(step)
                 images.remove(image)
 
@@ -979,21 +1000,22 @@ def grow_reconstruction(data, graph, reconstruction, images, gcp):
                 step['triangulated_points'] = np_after - np_before
 
                 if should_bundle.should(reconstruction):
-                    step['bundle'] = True
-                    bundle(graph, reconstruction, None, data.config)
+                    brep = bundle(graph, reconstruction, None, data.config)
+                    step['bundle'] = brep
                     remove_outliers(graph, reconstruction, data.config)
                     align.align_reconstruction(reconstruction, gcp,
                                                data.config)
                     should_bundle.done(reconstruction)
                 else:
                     if data.config['local_bundle_radius'] > 0:
-                        step['local_bundle'] = True
-                        bundle_local(graph, reconstruction, None, image, data.config)
+                        brep = bundle_local(graph, reconstruction, None, image,
+                                            data.config)
+                        step['local_bundle'] = brep
 
                 if should_retriangulate.should(reconstruction):
                     logger.info("Re-triangulating")
-                    step['retriangulation'] = True
-                    retriangulate(graph, reconstruction, data.config)
+                    rrep = retriangulate(graph, reconstruction, data.config)
+                    step['retriangulation'] = rrep
                     bundle(graph, reconstruction, None, data.config)
                     should_retriangulate.done(reconstruction)
                 break
@@ -1054,7 +1076,8 @@ def incremental_reconstruction(data):
     logger.info("{} partial reconstructions in total.".format(
         len(reconstructions)))
     chrono.lap('compute reconstructions')
-    report['wall_times'] = chrono.laps
+    report['wall_times'] = dict(chrono.lap_times())
+    report['not_reconstructed_images'] = list(remaining_images)
     return report
 
 
@@ -1077,3 +1100,9 @@ class Chronometer:
 
     def lap_time(self, key):
         return self.laps_dict[key][1]
+
+    def lap_times(self):
+        return [(k, dt) for k, dt, t in self.laps[1:]]
+
+    def total_time(self):
+        return self.laps[-1][2] - self.laps[0][2]
