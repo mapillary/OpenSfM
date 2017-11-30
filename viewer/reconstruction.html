@@ -1074,7 +1074,15 @@
                 var reconstruction = camera.reconstruction;
                 var shot = reconstruction['shots'][camera.shot_id];
                 var cam = reconstruction['cameras'][shot['camera']];
-                controls.goto_shot(cam, shot);
+                if (cam.projection_type == 'equirectangular') {
+                    // Move camera to new location
+                    controls.animationPosition.copy(opticalCenter(shot));
+                    // Keep camera pointing in same direction
+                    var oldShot = reconstruction['shots'][imagePlaneCameraOld.shot_id];
+                    controls.animationTarget.add(opticalCenter(shot)).sub(opticalCenter(oldShot));
+                } else {
+                    controls.goto_shot(cam, shot);
+                }
             }
 
             function hideImagePlanesList(){
@@ -1131,6 +1139,7 @@
                     var r = line.reconstruction;
                     var shot_id = line.shot_id;
                     var shot = r['shots'][shot_id];
+                    var cam = r['cameras'][shot['camera']];
                     var oc = opticalCenter(shot);
                     var dir = viewingDirection(shot);
                     var motion = oc.clone().sub(currentPosition);
@@ -1141,7 +1150,7 @@
 
                     for (var k in wantedMotionDirs) {
                         if (wantedMotionDirs.hasOwnProperty(k)) {
-                            var turn = angleBetweenVector2(wantedDirs[k].x, wantedDirs[k].y, dir.x, dir.y);
+                            var turn = cam.projection_type == 'equirectangular' ? 0 : angleBetweenVector2(wantedDirs[k].x, wantedDirs[k].y, dir.x, dir.y);
                             var driftAB = angleBetweenVector2(wantedMotionDirs[k].x, wantedMotionDirs[k].y, motion.x, motion.y);
                             var driftBA = driftAB - turn;
                             var drift = Math.max(driftAB, driftBA);
