@@ -1050,7 +1050,7 @@ def incremental_reconstruction(data):
     reconstructions = []
     pairs = compute_image_pairs(common_tracks, data)
     chrono.lap('compute image pairs')
-
+    report['num_candidate_image_pairs'] = len(pairs)
     report['reconstructions'] = []
     for im1, im2 in pairs:
         if im1 in remaining_images and im2 in remaining_images:
