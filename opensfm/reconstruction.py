@@ -680,7 +680,7 @@ def resect(data, graph, reconstruction, shot_id):
     bs = np.array(bs)
     Xs = np.array(Xs)
     if len(bs) < 5:
-        return False
+        return False, {'num_common_points': len(bs)}
 
     threshold = data.config['resection_threshold']
     T = pyopengv.absolute_pose_ransac(
