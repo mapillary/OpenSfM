@@ -8,7 +8,7 @@ from itertools import combinations
 import numpy as np
 import cv2
 import pyopengv
-import time
+from timeit import default_timer as timer
 
 from opensfm import align
 from opensfm import csfm
@@ -17,7 +17,7 @@ from opensfm import log
 from opensfm import matching
 from opensfm import multiview
 from opensfm import types
-from opensfm.context import parallel_map
+from opensfm.context import parallel_map, current_memory_usage
 
 
 logger = logging.getLogger(__name__)
@@ -27,7 +27,7 @@ def bundle(graph, reconstruction, gcp, config):
     """Bundle adjust a reconstruction."""
     fix_cameras = not config['optimize_camera_parameters']
 
-    start = time.time()
+    chrono = Chronometer()
     ba = csfm.BundleAdjuster()
     for camera in reconstruction.cameras.values():
         if camera.projection_type == 'perspective':
@@ -81,21 +81,17 @@ def bundle(graph, reconstruction, gcp, config):
                     observation.shot_coordinates[0],
                     observation.shot_coordinates[1])
 
-    ba.set_loss_function(config.get('loss_function', 'SoftLOneLoss'),
-                         config.get('loss_function_threshold', 1))
-    ba.set_reprojection_error_sd(config.get('reprojection_error_sd', 0.004))
-    ba.set_internal_parameters_prior_sd(
-        config.get('exif_focal_sd', 0.01),
-        config.get('radial_distorsion_k1_sd', 0.01),
-        config.get('radial_distorsion_k2_sd', 0.01))
-
-    setup = time.time()
-
+    ba.set_loss_function(config['loss_function'],
+                         config['loss_function_threshold'])
+    ba.set_reprojection_error_sd(config['reprojection_error_sd'])
+    ba.set_internal_parameters_prior_sd(config['exif_focal_sd'],
+                                        config['radial_distorsion_k1_sd'],
+                                        config['radial_distorsion_k2_sd'])
     ba.set_num_threads(config['processes'])
-    ba.run()
 
-    run = time.time()
-    logger.debug(ba.brief_report())
+    chrono.lap('setup')
+    ba.run()
+    chrono.lap('run')
 
     for camera in reconstruction.cameras.values():
         if camera.projection_type == 'perspective':
@@ -119,10 +115,14 @@ def bundle(graph, reconstruction, gcp, config):
         point.coordinates = [p.x, p.y, p.z]
         point.reprojection_error = p.reprojection_error
 
-    teardown = time.time()
+    chrono.lap('teardown')
 
-    logger.debug('Bundle setup/run/teardown {0}/{1}/{2}'.format(
-        setup - start, run - setup, teardown - run))
+    logger.debug(ba.brief_report())
+    report = {
+        'wall_times': dict(chrono.lap_times()),
+        'brief_report': ba.brief_report(),
+    }
+    return report
 
 
 def bundle_single_view(graph, reconstruction, shot_id, config):
@@ -164,13 +164,12 @@ def bundle_single_view(graph, reconstruction, shot_id, config):
         ba.add_position_prior(str(shot.id), g[0], g[1], g[2],
                               shot.metadata.gps_dop)
 
-    ba.set_loss_function(config.get('loss_function', 'SoftLOneLoss'),
-                         config.get('loss_function_threshold', 1))
-    ba.set_reprojection_error_sd(config.get('reprojection_error_sd', 0.004))
-    ba.set_internal_parameters_prior_sd(
-        config.get('exif_focal_sd', 0.01),
-        config.get('radial_distorsion_k1_sd', 0.01),
-        config.get('radial_distorsion_k2_sd', 0.01))
+    ba.set_loss_function(config['loss_function'],
+                         config['loss_function_threshold'])
+    ba.set_reprojection_error_sd(config['reprojection_error_sd'])
+    ba.set_internal_parameters_prior_sd(config['exif_focal_sd'],
+                                        config['radial_distorsion_k1_sd'],
+                                        config['radial_distorsion_k2_sd'])
 
     ba.set_num_threads(config['processes'])
     ba.run()
@@ -182,15 +181,15 @@ def bundle_single_view(graph, reconstruction, shot_id, config):
 
 def bundle_local(graph, reconstruction, gcp, central_shot_id, config):
     """Bundle adjust the local neighborhood of a shot."""
-    start = time.time()
+    chrono = Chronometer()
 
     interior, boundary = shot_neighborhood(
         graph, reconstruction, central_shot_id, config['local_bundle_radius'])
 
-    logger.debug('Local bundle sets: interior {}  boundary {}  other {}'.format(
-          len(interior),
-          len(boundary),
-          len(reconstruction.shots) - len(interior) - len(boundary)))
+    logger.debug(
+        'Local bundle sets: interior {}  boundary {}  other {}'.format(
+            len(interior), len(boundary),
+            len(reconstruction.shots) - len(interior) - len(boundary)))
 
     point_ids = set()
     for shot_id in interior:
@@ -255,21 +254,17 @@ def bundle_local(graph, reconstruction, gcp, central_shot_id, config):
                     observation.shot_coordinates[0],
                     observation.shot_coordinates[1])
 
-    ba.set_loss_function(config.get('loss_function', 'SoftLOneLoss'),
-                         config.get('loss_function_threshold', 1))
-    ba.set_reprojection_error_sd(config.get('reprojection_error_sd', 0.004))
-    ba.set_internal_parameters_prior_sd(
-        config.get('exif_focal_sd', 0.01),
-        config.get('radial_distorsion_k1_sd', 0.01),
-        config.get('radial_distorsion_k2_sd', 0.01))
-
-    setup = time.time()
-
+    ba.set_loss_function(config['loss_function'],
+                         config['loss_function_threshold'])
+    ba.set_reprojection_error_sd(config['reprojection_error_sd'])
+    ba.set_internal_parameters_prior_sd(config['exif_focal_sd'],
+                                        config['radial_distorsion_k1_sd'],
+                                        config['radial_distorsion_k2_sd'])
     ba.set_num_threads(config['processes'])
-    ba.run()
 
-    run = time.time()
-    logger.debug(ba.brief_report())
+    chrono.lap('setup')
+    ba.run()
+    chrono.lap('run')
 
     for camera in reconstruction.cameras.values():
         if camera.projection_type == 'perspective':
@@ -294,10 +289,18 @@ def bundle_local(graph, reconstruction, gcp, central_shot_id, config):
         point.coordinates = [p.x, p.y, p.z]
         point.reprojection_error = p.reprojection_error
 
-    teardown = time.time()
+    chrono.lap('teardown')
 
-    logger.debug('Local bundle setup/run/teardown {0}/{1}/{2}'.format(
-        setup - start, run - setup, teardown - run))
+    logger.debug(ba.brief_report())
+    report = {
+        'wall_times': dict(chrono.lap_times()),
+        'brief_report': ba.brief_report(),
+        'num_interior_images': len(interior),
+        'num_boundary_images': len(boundary),
+        'num_other_images': (len(reconstruction.shots)
+                             - len(interior) - len(boundary)),
+    }
+    return report
 
 
 def shot_neighborhood(graph, reconstruction, central_shot_id, radius):
@@ -349,7 +352,7 @@ def pairwise_reconstructability(common_tracks, rotation_inliers):
 def compute_image_pairs(track_dict, data):
     """All matched image pairs sorted by reconstructability."""
     args = _pair_reconstructability_arguments(track_dict, data)
-    processes = data.config.get('processes', 1)
+    processes = data.config['processes']
     result = parallel_map(_compute_pair_reconstructability, args, processes)
     result = list(result)
     pairs = [(im1, im2) for im1, im2, r in result if r > 0]
@@ -363,10 +366,8 @@ def _pair_reconstructability_arguments(track_dict, data):
     cameras = data.load_camera_models()
     args = []
     for (im1, im2), (tracks, p1, p2) in track_dict.iteritems():
-        d1 = data.load_exif(im1)
-        d2 = data.load_exif(im2)
-        camera1 = cameras[d1['camera']]
-        camera2 = cameras[d2['camera']]
+        camera1 = cameras[data.load_exif(im1)['camera']]
+        camera2 = cameras[data.load_exif(im2)['camera']]
         args.append((im1, im2, p1, p2, camera1, camera2, threshold))
     return args
 
@@ -390,7 +391,7 @@ def get_image_metadata(data, image):
             'longitude' in exif['gps']):
         lat = exif['gps']['latitude']
         lon = exif['gps']['longitude']
-        if data.config.get('use_altitude_tag', False):
+        if data.config['use_altitude_tag']:
             alt = exif['gps'].get('altitude', 2.0)
         else:
             alt = 2.0  # Arbitrary value used to align the reconstruction
@@ -481,7 +482,6 @@ def two_view_reconstruction_plane_based(p1, p2, camera1, camera2, threshold):
     best = np.argmax(map(len, motion_inliers))
     R, t, n, d = motions[best]
     inliers = motion_inliers[best]
-
     return cv2.Rodrigues(R)[0].ravel(), t, inliers
 
 
@@ -566,58 +566,81 @@ def two_view_reconstruction_general(p1, p2, camera1, camera2, threshold):
     R_plane, t_plane, inliers_plane = two_view_reconstruction_plane_based(
         p1, p2, camera1, camera2, threshold)
 
+    report = {
+        '5_point_inliers': len(inliers_5p),
+        'plane_based_inliers': len(inliers_plane),
+    }
+
     if len(inliers_5p) > len(inliers_plane):
-        return R_5p, t_5p, inliers_5p
+        report['method'] = '5_point'
+        return R_5p, t_5p, inliers_5p, report
     else:
-        return R_plane, t_plane, inliers_plane
+        report['method'] = 'plane_based'
+        return R_plane, t_plane, inliers_plane, report
 
 
 def bootstrap_reconstruction(data, graph, im1, im2, p1, p2):
     """Start a reconstruction using two shots."""
     logger.info("Starting reconstruction with {} and {}".format(im1, im2))
-    d1 = data.load_exif(im1)
-    d2 = data.load_exif(im2)
+    report = {
+        'image_pair': (im1, im2),
+        'common_tracks': len(p1),
+    }
+
     cameras = data.load_camera_models()
-    camera1 = cameras[d1['camera']]
-    camera2 = cameras[d2['camera']]
+    camera1 = cameras[data.load_exif(im1)['camera']]
+    camera2 = cameras[data.load_exif(im2)['camera']]
 
-    logger.info("Common tracks: {}".format(len(p1)))
+    threshold = data.config['five_point_algo_threshold']
+    min_inliers = data.config['five_point_algo_min_inliers']
+    R, t, inliers, report['two_view_reconstruction'] = \
+        two_view_reconstruction_general(p1, p2, camera1, camera2, threshold)
 
-    thresh = data.config.get('five_point_algo_threshold', 0.006)
-    min_inliers = data.config.get('five_point_algo_min_inliers', 50)
-    R, t, inliers = two_view_reconstruction_general(p1, p2, camera1, camera2,
-                                                    thresh)
-    if len(inliers) > 5:
-        logger.info("Two-view reconstruction inliers {}".format(len(inliers)))
-        reconstruction = types.Reconstruction()
-        reconstruction.cameras = cameras
+    logger.info("Two-view reconstruction inliers: {} / {}".format(
+        len(inliers), len(p1)))
 
-        shot1 = types.Shot()
-        shot1.id = im1
-        shot1.camera = cameras[str(d1['camera'])]
-        shot1.pose = types.Pose()
-        shot1.metadata = get_image_metadata(data, im1)
-        reconstruction.add_shot(shot1)
+    if len(inliers) <= 5:
+        report['decision'] = "Could not find initial motion"
+        logger.info(report['decision'])
+        return None, report
 
-        shot2 = types.Shot()
-        shot2.id = im2
-        shot2.camera = cameras[str(d2['camera'])]
-        shot2.pose = types.Pose(R, t)
-        shot2.metadata = get_image_metadata(data, im2)
-        reconstruction.add_shot(shot2)
+    reconstruction = types.Reconstruction()
+    reconstruction.cameras = cameras
 
-        triangulate_shot_features(
-            graph, reconstruction, im1,
-            data.config.get('triangulation_threshold', 0.004),
-            data.config.get('triangulation_min_ray_angle', 2.0))
-        logger.info("Triangulated: {}".format(len(reconstruction.points)))
-        if len(reconstruction.points) > min_inliers:
-            bundle_single_view(graph, reconstruction, im2, data.config)
-            retriangulate(graph, reconstruction, data.config)
-            bundle_single_view(graph, reconstruction, im2, data.config)
-            return reconstruction
+    shot1 = types.Shot()
+    shot1.id = im1
+    shot1.camera = camera1
+    shot1.pose = types.Pose()
+    shot1.metadata = get_image_metadata(data, im1)
+    reconstruction.add_shot(shot1)
 
-    logger.info("Starting reconstruction with {} and {} failed")
+    shot2 = types.Shot()
+    shot2.id = im2
+    shot2.camera = camera2
+    shot2.pose = types.Pose(R, t)
+    shot2.metadata = get_image_metadata(data, im2)
+    reconstruction.add_shot(shot2)
+
+    triangulate_shot_features(
+        graph, reconstruction, im1,
+        data.config['triangulation_threshold'],
+        data.config['triangulation_min_ray_angle'])
+
+    logger.info("Triangulated: {}".format(len(reconstruction.points)))
+    report['triangulated_points'] = len(reconstruction.points)
+
+    if len(reconstruction.points) < min_inliers:
+        report['decision'] = "Initial motion did not generate enough points"
+        logger.info(report['decision'])
+        return None, report
+
+    bundle_single_view(graph, reconstruction, im2, data.config)
+    retriangulate(graph, reconstruction, data.config)
+    bundle_single_view(graph, reconstruction, im2, data.config)
+
+    report['decision'] = 'Success'
+    report['memory_usage'] = current_memory_usage()
+    return reconstruction, report
 
 
 def reconstructed_points_for_images(graph, reconstruction, images):
@@ -658,9 +681,9 @@ def resect(data, graph, reconstruction, shot_id):
     bs = np.array(bs)
     Xs = np.array(Xs)
     if len(bs) < 5:
-        return False
+        return False, {'num_common_points': len(bs)}
 
-    threshold = data.config.get('resection_threshold', 0.004)
+    threshold = data.config['resection_threshold']
     T = pyopengv.absolute_pose_ransac(
         bs, Xs, "KNEIP", 1 - np.cos(threshold), 1000)
 
@@ -675,7 +698,11 @@ def resect(data, graph, reconstruction, shot_id):
 
     logger.info("{} resection inliers: {} / {}".format(
         shot_id, ninliers, len(bs)))
-    if ninliers >= data.config.get('resection_min_inliers', 15):
+    report = {
+        'num_common_points': len(bs),
+        'num_inliers': ninliers,
+    }
+    if ninliers >= data.config['resection_min_inliers']:
         R = T[:, :3].T
         t = -R.dot(T[:, 3])
         shot = types.Shot()
@@ -687,9 +714,9 @@ def resect(data, graph, reconstruction, shot_id):
         shot.metadata = get_image_metadata(data, shot_id)
         reconstruction.add_shot(shot)
         bundle_single_view(graph, reconstruction, shot_id, data.config)
-        return True
+        return True, report
     else:
-        return False
+        return False, report
 
 
 class TrackTriangulator:
@@ -784,17 +811,24 @@ def triangulate_shot_features(graph, reconstruction, shot_id, reproj_threshold,
 
 def retriangulate(graph, reconstruction, config):
     """Retrianguate all points"""
-    threshold = config.get('triangulation_threshold', 0.004)
-    min_ray_angle = config.get('triangulation_min_ray_angle', 2.0)
+    chrono = Chronometer()
+    report = {}
+    report['num_points_before'] = len(reconstruction.points)
+    threshold = config['triangulation_threshold']
+    min_ray_angle = config['triangulation_min_ray_angle']
     triangulator = TrackTriangulator(graph, reconstruction)
     tracks, images = matching.tracks_and_images(graph)
     for track in tracks:
         triangulator.triangulate(track, threshold, min_ray_angle)
+    report['num_points_after'] = len(reconstruction.points)
+    chrono.lap('retriangulate')
+    report['wall_time'] = chrono.total_time()
+    return report
 
 
 def remove_outliers(graph, reconstruction, config):
     """Remove points with large reprojection error."""
-    threshold = config.get('bundle_outlier_threshold', 0.008)
+    threshold = config['bundle_outlier_threshold']
     if threshold > 0:
         outliers = []
         for track in reconstruction.points:
@@ -893,8 +927,8 @@ class ShouldBundle:
     """Helper to keep track of when to run bundle."""
 
     def __init__(self, data, reconstruction):
-        self.interval = data.config.get('bundle_interval', 0)
-        self.new_points_ratio = data.config.get('bundle_new_points_ratio', 1.2)
+        self.interval = data.config['bundle_interval']
+        self.new_points_ratio = data.config['bundle_new_points_ratio']
         self.done(reconstruction)
 
     def should(self, reconstruction):
@@ -912,8 +946,8 @@ class ShouldRetriangulate:
     """Helper to keep track of when to re-triangulate."""
 
     def __init__(self, data, reconstruction):
-        self.active = data.config.get('retriangulation', False)
-        self.ratio = data.config.get('retriangulation_ratio', 1.25)
+        self.active = data.config['retriangulation']
+        self.ratio = data.config['retriangulation_ratio']
         self.done(reconstruction)
 
     def should(self, reconstruction):
@@ -931,9 +965,11 @@ def grow_reconstruction(data, graph, reconstruction, images, gcp):
 
     should_bundle = ShouldBundle(data, reconstruction)
     should_retriangulate = ShouldRetriangulate(data, reconstruction)
-
+    report = {
+        'steps': [],
+    }
     while True:
-        if data.config.get('save_partial_reconstructions', False):
+        if data.config['save_partial_reconstructions']:
             paint_reconstruction(data, graph, reconstruction)
             data.save_reconstruction(
                 [reconstruction], 'reconstruction.{}.json'.format(
@@ -946,28 +982,42 @@ def grow_reconstruction(data, graph, reconstruction, images, gcp):
 
         logger.info("-------------------------------------------------------")
         for image, num_tracks in common_tracks:
-            if resect(data, graph, reconstruction, image):
+            ok, resrep = resect(data, graph, reconstruction, image)
+            if ok:
                 logger.info("Adding {0} to the reconstruction".format(image))
+                step = {
+                    'image': image,
+                    'resection': resrep,
+                    'memory_usage': current_memory_usage()
+                }
+                report['steps'].append(step)
                 images.remove(image)
 
+                np_before = len(reconstruction.points)
                 triangulate_shot_features(
                     graph, reconstruction, image,
-                    data.config.get('triangulation_threshold', 0.004),
-                    data.config.get('triangulation_min_ray_angle', 2.0))
+                    data.config['triangulation_threshold'],
+                    data.config['triangulation_min_ray_angle'])
+                np_after = len(reconstruction.points)
+                step['triangulated_points'] = np_after - np_before
 
                 if should_bundle.should(reconstruction):
-                    bundle(graph, reconstruction, None, data.config)
+                    brep = bundle(graph, reconstruction, None, data.config)
+                    step['bundle'] = brep
                     remove_outliers(graph, reconstruction, data.config)
                     align.align_reconstruction(reconstruction, gcp,
                                                data.config)
                     should_bundle.done(reconstruction)
                 else:
                     if data.config['local_bundle_radius'] > 0:
-                        bundle_local(graph, reconstruction, None, image, data.config)
+                        brep = bundle_local(graph, reconstruction, None, image,
+                                            data.config)
+                        step['local_bundle'] = brep
 
                 if should_retriangulate.should(reconstruction):
                     logger.info("Re-triangulating")
-                    retriangulate(graph, reconstruction, data.config)
+                    rrep = retriangulate(graph, reconstruction, data.config)
+                    step['retriangulation'] = rrep
                     bundle(graph, reconstruction, None, data.config)
                     should_retriangulate.done(reconstruction)
                 break
@@ -980,17 +1030,20 @@ def grow_reconstruction(data, graph, reconstruction, images, gcp):
     bundle(graph, reconstruction, gcp, data.config)
     align.align_reconstruction(reconstruction, gcp, data.config)
     paint_reconstruction(data, graph, reconstruction)
-    return reconstruction
+    return reconstruction, report
 
 
 def incremental_reconstruction(data):
     """Run the entire incremental reconstruction pipeline."""
     logger.info("Starting incremental reconstruction")
+    report = {}
+    chrono = Chronometer()
     if not data.reference_lla_exists():
         data.invent_reference_lla()
 
     graph = data.load_tracks_graph()
     tracks, images = matching.tracks_and_images(graph)
+    chrono.lap('load tracks graph')
     remaining_images = set(images)
     gcp = None
     if data.ground_control_points_exist():
@@ -998,14 +1051,21 @@ def incremental_reconstruction(data):
     common_tracks = matching.all_common_tracks(graph, tracks)
     reconstructions = []
     pairs = compute_image_pairs(common_tracks, data)
+    chrono.lap('compute image pairs')
+    report['num_candidate_image_pairs'] = len(pairs)
+    report['reconstructions'] = []
     for im1, im2 in pairs:
         if im1 in remaining_images and im2 in remaining_images:
+            rec_report = {}
+            report['reconstructions'].append(rec_report)
             tracks, p1, p2 = common_tracks[im1, im2]
-            reconstruction = bootstrap_reconstruction(data, graph, im1, im2, p1, p2)
+            reconstruction, rec_report['bootstrap'] = bootstrap_reconstruction(
+                data, graph, im1, im2, p1, p2)
+
             if reconstruction:
                 remaining_images.remove(im1)
                 remaining_images.remove(im2)
-                reconstruction = grow_reconstruction(
+                reconstruction, rec_report['grow'] = grow_reconstruction(
                     data, graph, reconstruction, remaining_images, gcp)
                 reconstructions.append(reconstruction)
                 reconstructions = sorted(reconstructions,
@@ -1017,3 +1077,34 @@ def incremental_reconstruction(data):
             k, len(r.shots), len(r.points)))
     logger.info("{} partial reconstructions in total.".format(
         len(reconstructions)))
+    chrono.lap('compute reconstructions')
+    report['wall_times'] = dict(chrono.lap_times())
+    report['not_reconstructed_images'] = list(remaining_images)
+    return report
+
+
+class Chronometer:
+    def __init__(self):
+        self.start()
+
+    def start(self):
+        t = timer()
+        lap = ('start', 0, t)
+        self.laps = [lap]
+        self.laps_dict = {'start': lap}
+
+    def lap(self, key):
+        t = timer()
+        dt = t - self.laps[-1][2]
+        lap = (key, dt, t)
+        self.laps.append(lap)
+        self.laps_dict[key] = lap
+
+    def lap_time(self, key):
+        return self.laps_dict[key][1]
+
+    def lap_times(self):
+        return [(k, dt) for k, dt, t in self.laps[1:]]
+
+    def total_time(self):
+        return self.laps[-1][2] - self.laps[0][2]

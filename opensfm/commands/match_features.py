@@ -39,7 +39,7 @@ class Command:
         args = list(match_arguments(pairs, ctx))
 
         start = time.time()
-        processes = ctx.data.config.get('processes', 1)
+        processes = ctx.data.config['processes']
         parallel_map(match, args, processes)
         end = time.time()
         with open(ctx.data.profile_log(), 'a') as fout:
@@ -61,10 +61,8 @@ def load_preemptive_features(data):
             except IOError:
                 p, f, c = data.load_features(image)
                 p[image], f[image] = p, f
-            preemptive_max = min(
-                data.config.get('preemptive_max',
-                                p[image].shape[0]),
-                p[image].shape[0])
+            preemptive_max = min(data.config['preemptive_max'],
+                                 p[image].shape[0])
             p[image] = p[image][:preemptive_max, :]
             f[image] = f[image][:preemptive_max, :]
     return p, f

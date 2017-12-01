@@ -21,17 +21,21 @@ sift_edge_threshold: 10       # See OpenCV doc
 surf_hessian_threshold: 3000  # Smaller value -> more features
 surf_n_octaves: 4             # See OpenCV doc
 surf_n_octavelayers: 2        # See OpenCV doc
+surf_upright: 0               # See OpenCV doc
 
 # Params for AKAZE (See detials in lib/src/third_party/akaze/AKAZEConfig.h)
-akaze_omax: 4                 # Maximum octave evolution of the image 2^sigma (coarsest scale sigma units)
-akaze_dthreshold: 0.001       # Detector response threshold to accept point
-akaze_descriptor: MSURF       # Feature type
-akaze_descriptor_size: 0      # Size of the descriptor in bits. 0->Full size
-akaze_descriptor_channels: 3  # Number of feature channels (1,2,3)
+akaze_omax: 4                      # Maximum octave evolution of the image 2^sigma (coarsest scale sigma units)
+akaze_dthreshold: 0.001            # Detector response threshold to accept point
+akaze_descriptor: MSURF            # Feature type
+akaze_descriptor_size: 0           # Size of the descriptor in bits. 0->Full size
+akaze_descriptor_channels: 3       # Number of feature channels (1,2,3)
+akaze_kcontrast_percentile: 0.7
+akaze_use_isotropic_diffusion: no
 
 # Params for HAHOG
 hahog_peak_threshold: 0.00001
 hahog_edge_threshold: 10
+hahog_normalize_to_uchar: no
 
 # Params for general matching
 lowes_ratio: 0.8              # Ratio test for matches
