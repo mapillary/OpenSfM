@@ -17,7 +17,7 @@ from opensfm import log
 from opensfm import matching
 from opensfm import multiview
 from opensfm import types
-from opensfm.context import parallel_map
+from opensfm.context import parallel_map, current_memory_usage
 
 
 logger = logging.getLogger(__name__)
@@ -637,8 +637,9 @@ def bootstrap_reconstruction(data, graph, im1, im2, p1, p2):
     bundle_single_view(graph, reconstruction, im2, data.config)
     retriangulate(graph, reconstruction, data.config)
     bundle_single_view(graph, reconstruction, im2, data.config)
-    report['decision'] = 'Success'
 
+    report['decision'] = 'Success'
+    report['memory_usage'] = current_memory_usage()
     return reconstruction, report
 
 
@@ -987,6 +988,7 @@ def grow_reconstruction(data, graph, reconstruction, images, gcp):
                 step = {
                     'image': image,
                     'resection': resrep,
+                    'memory_usage': current_memory_usage()
                 }
                 report['steps'].append(step)
                 images.remove(image)
