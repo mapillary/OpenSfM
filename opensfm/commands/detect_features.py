@@ -37,8 +37,11 @@ class Command:
     def write_report(self, data, wall_time):
         image_reports = []
         for image in data.images():
-            txt = data.load_report('features/{}.json'.format(image))
-            image_reports.append(io.json_loads(txt))
+            try:
+                txt = data.load_report('features/{}.json'.format(image))
+                image_reports.append(io.json_loads(txt))
+            except IOError:
+                logger.warning('No feature report image {}'.format(image))
 
         report = {
             "wall_time": wall_time,
