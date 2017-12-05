@@ -79,7 +79,7 @@ radial_distorsion_k1_sd: 0.01   # The standard deviation of the first radial dis
 radial_distorsion_k2_sd: 0.01   # The standard deviation of the second radial distortion parameter (mean assumed to be 0)
 bundle_outlier_threshold: 0.006 # Points with larger reprojection error after bundle adjustment are removed
 bundle_interval: 0              # Bundle after adding 'bundle_interval' cameras
-bundle_new_points_ratio: 1.2    # Bundle when (new points) / (bundled points) > bundle_outlier_threshold
+bundle_new_points_ratio: 1.2    # Bundle when (new points) / (bundled points) > bundle_new_points_ratio
 optimize_camera_parameters: yes # Optimize internal camera parameters during bundle
 local_bundle_radius: 0          # Max image graph distance for images to be included in local bundle adjustment
 
