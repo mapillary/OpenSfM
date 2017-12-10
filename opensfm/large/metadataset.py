@@ -24,6 +24,7 @@ class MetaDataSet():
         self._image_list_file_name = 'image_list_with_gps.tsv'
         self._clusters_file_name = 'clusters.npz'
         self._clusters_with_neighbors_file_name = 'clusters_with_neighbors.npz'
+        self._clusters_with_neighbors_geojson_file_name = 'clusters_with_neighbors.geojson'
 
         io.mkdir_p(self._submodels_path())
 
@@ -48,6 +49,9 @@ class MetaDataSet():
 
     def _clusters_with_neighbors_path(self):
         return os.path.join(self._submodels_path(), self._clusters_with_neighbors_file_name)
+
+    def _clusters_with_neighbors_geojson_path(self):
+        return os.path.join(self._submodels_path(), self._clusters_with_neighbors_geojson_file_name)
 
     def _create_csv_writer(self, csvfile):
         return csv.writer(csvfile, delimiter='\t', quotechar='"', quoting=csv.QUOTE_MINIMAL)
@@ -105,6 +109,11 @@ class MetaDataSet():
     def load_clusters_with_neighbors(self):
         c = np.load(self._clusters_with_neighbors_path())
         return c['clusters']
+
+    def save_cluster_with_neighbors_geojson(self, geojson):
+        filepath = self._clusters_with_neighbors_geojson_path()
+        with open(filepath, 'w') as fout:
+            io.json_dump(geojson, fout)
 
     def remove_submodels(self):
         sm = self._submodels_path()

@@ -33,6 +33,7 @@ class Command:
         else:
             self._cluster_images(meta_data, data.config['submodel_size'])
         self._add_cluster_neighbors(meta_data, data.config['submodel_overlap'])
+        self._save_cluster_neighbors_geojson(meta_data)
 
         meta_data.create_submodels(
             meta_data.load_clusters_with_neighbors(),
@@ -115,3 +116,29 @@ class Command:
             image_clusters.append(list(np.take(images, np.array(cluster))))
 
         meta_data.save_clusters_with_neighbors(image_clusters)
+
+    def _save_cluster_neighbors_geojson(self, meta_data):
+        image_coordinates = {}
+        for image, lat, lon in meta_data.images_with_gps():
+            image_coordinates[image] = [lon, lat]
+
+        features = []
+        clusters = meta_data.load_clusters_with_neighbors()
+        for cluster_idx, images in enumerate(clusters):
+            for image in images:
+                features.append({
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": image_coordinates[image]
+                    },
+                    "properties": {
+                        "name": image,
+                        "submodel": cluster_idx
+                    }
+                })
+        geojson = {
+            "type": "FeatureCollection",
+            "features": features
+        }
+        meta_data.save_cluster_with_neighbors_geojson(geojson)
