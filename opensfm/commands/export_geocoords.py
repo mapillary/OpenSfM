@@ -15,23 +15,52 @@ class Command:
 
     def add_arguments(self, parser):
         parser.add_argument('dataset', help='dataset to process')
-        parser.add_argument('--proj',
-                            help='PROJ.4 projection string',
-                            required=True)
+        parser.add_argument(
+            '--proj',
+            help='PROJ.4 projection string',
+            required=True)
+        parser.add_argument(
+            '--transformation',
+            help='Print cooordinate transformation matrix',
+            action='store_true',
+            default=False)
+        parser.add_argument(
+            '--reconstruction',
+            help='Export reconstruction.json',
+            action='store_true',
+            default=False)
+        parser.add_argument(
+            '--dense',
+            help='Export dense point cloud (depthmaps/merged.ply)',
+            action='store_true',
+            default=False)
 
     def run(self, args):
+        if not (args.transformation or
+                args.reconstruction or
+                args.dense):
+            print('Nothing to do. At least on of the options: ')
+            print(' --transformation, --reconstruction, --dense')
+
         data = dataset.DataSet(args.dataset)
         reference = data.load_reference_lla()
-        reconstructions = data.load_reconstruction()
 
         projection = pyproj.Proj(args.proj)
         transformation = self._get_transformation(reference, projection)
 
-        for r in reconstructions:
-            self._transform_reconstruction(r, transformation)
-        data.save_reconstruction(reconstructions, 'reconstruction.geocoords.json')
+        if args.transformation:
+            for row in transformation:
+                print(' '.join(map(str, row)))
+            print('')
 
-        self._transform_dense_point_cloud(data, reference, transformation)
+        if args.reconstruction:
+            reconstructions = data.load_reconstruction()
+            for r in reconstructions:
+                self._transform_reconstruction(r, transformation)
+            data.save_reconstruction(reconstructions, 'reconstruction.geocoords.json')
+
+        if args.dense:
+            self._transform_dense_point_cloud(data, reference, transformation)
 
     def _get_transformation(self, reference, projection):
         """Get the linear transform from reconstruction coords to geocoords."""
