@@ -41,6 +41,9 @@ class MetaDataSet():
         template = self.config['submodel_images_relpath_template']
         return os.path.join(self.data_path, template % i)
 
+    def _image_groups_path(self):
+        return os.path.join(self.data_path, 'image_groups.txt')
+
     def _image_list_path(self):
         return os.path.join(self._submodels_path(), self._image_list_file_name)
 
@@ -65,6 +68,14 @@ class MetaDataSet():
         os.symlink(
             os.path.relpath(os.path.join(self.data_path, dir_name), base_path),
             os.path.join(link_path))
+
+    def image_groups_exists(self):
+        return os.path.isfile(self._image_groups_path())
+
+    def load_image_groups(self):
+        with open(self._image_groups_path()) as fin:
+            for line in fin:
+                yield line.split()
 
     def image_list_exists(self):
         return os.path.isfile(self._image_list_path())

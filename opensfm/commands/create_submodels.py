@@ -15,10 +15,6 @@ class Command:
 
     def add_arguments(self, parser):
         parser.add_argument('dataset', help='dataset to process')
-        parser.add_argument(
-            '--groups',
-            help='text file with group definitions. '
-                 'Each line should contain an image and its group.')
 
     def run(self, args):
         data = dataset.DataSet(args.dataset)
@@ -26,12 +22,13 @@ class Command:
 
         meta_data.remove_submodels()
         data.invent_reference_lla()
-
         self._create_image_list(data, meta_data)
-        if args.groups:
-            self._read_image_clusters(meta_data, args.groups)
+
+        if meta_data.image_groups_exists():
+            self._read_image_groups(meta_data)
         else:
             self._cluster_images(meta_data, data.config['submodel_size'])
+
         self._add_cluster_neighbors(meta_data, data.config['submodel_overlap'])
         self._save_cluster_neighbors_geojson(meta_data)
 
@@ -56,14 +53,12 @@ class Command:
 
         meta_data.create_image_list(ills)
 
-    def _read_image_clusters(self, meta_data, groups_file):
+    def _read_image_groups(self, meta_data):
         image_cluster = {}
         cluster_images = defaultdict(list)
-        with open(groups_file) as fin:
-            for line in fin:
-                image, cluster = line.split()
-                image_cluster[image] = cluster
-                cluster_images[cluster].append(image)
+        for image, cluster in meta_data.load_image_groups():
+            image_cluster[image] = cluster
+            cluster_images[cluster].append(image)
         K = len(cluster_images)
         cluster_index = dict(zip(sorted(cluster_images.keys()), range(K)))
 
