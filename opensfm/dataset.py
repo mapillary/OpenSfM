@@ -434,17 +434,31 @@ class DataSet:
             io.json_dump(obj, fout)
 
     def __camera_models_overrides_file(self):
-        """Return path of camera model overrides file"""
+        """Path to the camera model overrides file."""
         return os.path.join(self.data_path, 'camera_models_overrides.json')
 
     def camera_models_overrides_exists(self):
+        """Check if camera overrides file exists."""
         return os.path.isfile(self.__camera_models_overrides_file())
 
     def load_camera_models_overrides(self):
-        """Return camera models overrides data"""
+        """Load camera models overrides data."""
         with open(self.__camera_models_overrides_file(), 'r') as fin:
             obj = json.load(fin)
             return io.cameras_from_json(obj)
+
+    def __gps_overrides_file(self):
+        """Path to the GPS overrides file."""
+        return os.path.join(self.data_path, 'gps_overrides.json')
+
+    def gps_overrides_exists(self):
+        """Check if GPS overrides file exists."""
+        return os.path.isfile(self.__gps_overrides_file())
+
+    def load_gps_overrides(self):
+        """Load GPS overrides data."""
+        with open(self.__gps_overrides_file(), 'r') as fin:
+            return json.load(fin)
 
     def profile_log(self):
         "Filename where to write timings."
