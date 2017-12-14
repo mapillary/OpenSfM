@@ -65,15 +65,12 @@ class Command:
                      features_time, matches_time, tracks_time):
         tracks, images = matching.tracks_and_images(graph)
         image_graph = bipartite.weighted_projected_graph(graph, images)
-        matrix = []
+        view_graph = []
         for im1 in data.images():
-            row = []
             for im2 in data.images():
                 if im1 in image_graph and im2 in image_graph[im1]:
-                    row.append(image_graph[im1][im2]['weight'])
-                else:
-                    row.append(0)
-            matrix.append(row)
+                    weight = image_graph[im1][im2]['weight']
+                    view_graph.append((im1, im2, weight))
 
         report = {
             "wall_times": {
@@ -84,6 +81,6 @@ class Command:
             "wall_time": features_time + matches_time + tracks_time,
             "num_images": len(images),
             "num_tracks": len(tracks),
-            "viewing_graph": matrix
+            "view_graph": view_graph
         }
         data.save_report(io.json_dumps(report), 'tracks.json')
