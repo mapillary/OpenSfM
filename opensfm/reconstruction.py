@@ -1043,7 +1043,7 @@ def incremental_reconstruction(data):
 
     graph = data.load_tracks_graph()
     tracks, images = matching.tracks_and_images(graph)
-    chrono.lap('load tracks graph')
+    chrono.lap('load_tracks_graph')
     remaining_images = set(images)
     gcp = None
     if data.ground_control_points_exist():
@@ -1051,7 +1051,7 @@ def incremental_reconstruction(data):
     common_tracks = matching.all_common_tracks(graph, tracks)
     reconstructions = []
     pairs = compute_image_pairs(common_tracks, data)
-    chrono.lap('compute image pairs')
+    chrono.lap('compute_image_pairs')
     report['num_candidate_image_pairs'] = len(pairs)
     report['reconstructions'] = []
     for im1, im2 in pairs:
@@ -1077,7 +1077,7 @@ def incremental_reconstruction(data):
             k, len(r.shots), len(r.points)))
     logger.info("{} partial reconstructions in total.".format(
         len(reconstructions)))
-    chrono.lap('compute reconstructions')
+    chrono.lap('compute_reconstructions')
     report['wall_times'] = dict(chrono.lap_times())
     report['not_reconstructed_images'] = list(remaining_images)
     return report
