@@ -11,10 +11,10 @@ Dataset Structure
    ├── images/
    ├── masks/
    ├── gcp_list.txt
-   ├── metadata/
+   ├── exif/
    ├── features/
    ├── matches/
-   ├── tracks.tsv
+   ├── tracks.csv
    ├── reconstruction.json
    ├── reconstruction.meshed.json
    ├── undistorted/

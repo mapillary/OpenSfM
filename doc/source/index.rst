@@ -11,10 +11,9 @@ OpenSfM
    dataset
    geometry
    cam_coord_system
-   api
    reconstruction_module
-   dense
-
+   large
+   api
 
 Indices and tables
 ==================
