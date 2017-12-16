@@ -6,9 +6,9 @@ Splitting a large dataset into smaller submodels
 
 Large datasets can be slow to process.  An option to speed up the reconstruction process is to split them into smaller datasets.  We will call each of the small datasets a *submodel*.  Smaller datasets run faster because they involve fewer images on each bundle adjustment iteration.  Additionally, the reconstruction of the different submodels can be done in parallel.
 
-Since the reconstructions of the submodels are done independently, they will not be necessarly aligned to each other.  Only the GPS positions of the images and the ground control points will determine the aligment.  When the neighboring reconstructions share cameras or points, it is possible to enforce the alignment of common cameras and points between the different reconstructions.
+Since the reconstructions of the submodels are done independently, they will not be necessarily aligned with each other.  Only the GPS positions of the images and the ground control points will determine the alignment.  When the neighboring reconstructions share cameras or points, it is possible to enforce the alignment of common cameras and points between the different reconstructions.
 
-In the following, we describe the commands that help splitting a large dataset and aligning the resulting submodels.
+In the following, we describe the commands that help to split a large dataset and aligning the resulting submodels.
 
 
 Creating submodels
@@ -28,7 +28,7 @@ The process to split a dataset into submodels is then
 Submodels dataset structure
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The submodels are created inside the ``submodels`` folder.  Each submodel folder is a valid OpenSfM dataset.  The images, exif metadata, features and matches are shared with the global dataset by using symbolic links.
+The submodels are created inside the ``submodels`` folder.  Each submodel folder is a valid OpenSfM dataset.  The images, EXIF metadata, features, and matches are shared with the global dataset by using symbolic links.
 
 ::
 
@@ -46,16 +46,16 @@ The submodels are created inside the ``submodels`` folder.  Each submodel folder
         ├── clusters.npz
         ├── image_list_with_gps.tsv
         ├── submodel_0000/
-            ├── image_list.txt        # images of submodel_0000
-            ├── config.yaml           # copy to global equivalent
-            ├── images/               # link to global equivalent
-            ├── exif/                 # link to global equivalent
-            ├── features/             # link to global equivalent
-            ├── matches/              # link to global equivalent
-            ├── camera_models.json    # link to global equivalent
-            └── reference_lla.json    # link to global equivalent
-        └── submodel_0001/
-            └── ...
+            │   ├── image_list.txt        # images of submodel_0000
+            │   ├── config.yaml           # copy from global equivalent
+            │   ├── images/               # link to global equivalent
+            │   ├── exif/                 # link to global equivalent
+            │   ├── features/             # link to global equivalent
+            │   ├── matches/              # link to global equivalent
+            │   ├── camera_models.json    # link to global equivalent
+            │   └── reference_lla.json    # link to global equivalent
+            └── submodel_0001/
+        └── ...
 
 Config parameters
 ~~~~~~~~~~~~~~~~~
