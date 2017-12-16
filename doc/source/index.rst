@@ -4,7 +4,7 @@ OpenSfM
 =======
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    building
    using
@@ -13,6 +13,7 @@ OpenSfM
    cam_coord_system
    reconstruction_module
    large
+   reporting
    api
 
 Indices and tables
