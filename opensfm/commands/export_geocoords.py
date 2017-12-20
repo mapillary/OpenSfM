@@ -1,3 +1,4 @@
+import os
 import logging
 
 import numpy as np
@@ -34,6 +35,10 @@ class Command:
             help='Export dense point cloud (depthmaps/merged.ply)',
             action='store_true',
             default=False)
+        parser.add_argument(
+            '--output',
+            help='Path of the output file relative to the dataset'
+        )
 
     def run(self, args):
         if not (args.transformation or
@@ -49,20 +54,20 @@ class Command:
         transformation = self._get_transformation(reference, projection)
 
         if args.transformation:
-            output_path = data.data_path + '/transformation.txt'
-            with open(output_path, 'w') as fout:
-                for row in transformation:
-                    fout.write(' '.join(map(str, row)))
-                    fout.write('\n')
+            output = args.output or 'geocoords_transformation.txt'
+            output_path = os.path.join(data.data_path, output)
+            self._write_transformation(transformation, output_path)
 
         if args.reconstruction:
             reconstructions = data.load_reconstruction()
             for r in reconstructions:
                 self._transform_reconstruction(r, transformation)
-            data.save_reconstruction(reconstructions, 'reconstruction.geocoords.json')
+            output = args.output or 'reconstruction.geocoords.json'
+            data.save_reconstruction(reconstructions, output)
 
         if args.dense:
-            self._transform_dense_point_cloud(data, reference, transformation)
+            output = args.output or 'depthmaps/merged.geocoords.ply'
+            self._transform_dense_point_cloud(data, transformation, output)
 
     def _get_transformation(self, reference, projection):
         """Get the linear transform from reconstruction coords to geocoords."""
@@ -80,7 +85,15 @@ class Command:
         ])
         return transformation
 
+    def _write_transformation(self, transformation, filename):
+        """Write the 4x4 matrix transformation to a text file."""
+        with open(filename, 'w') as fout:
+            for row in transformation:
+                fout.write(' '.join(map(str, row)))
+                fout.write('\n')
+
     def _transform(self, point, reference, projection):
+        """Transform on point from local coords to a proj4 projection."""
         lat, lon, altitude = geo.lla_from_topocentric(
             point[0], point[1], point[2],
             reference['latitude'], reference['longitude'], reference['altitude'])
@@ -102,10 +115,11 @@ class Command:
         for point in reconstruction.points.values():
             point.coordinates = list(np.dot(A, point.coordinates) + b)
 
-    def _transform_dense_point_cloud(self, data, reference, transformation):
+    def _transform_dense_point_cloud(self, data, transformation, output):
+        """Apply a transformation to the merged point cloud."""
         A, b = transformation[:3, :3], transformation[:3, 3]
-        input_path = data._depthmap_path() + '/merged.ply'
-        output_path = data._depthmap_path() + '/merged.geocoords.ply'
+        input_path = os.path.join(data._depthmap_path(), 'merged.ply')
+        output_path = os.path.join(data.data_path, output)
         with open(input_path) as fin:
             with open(output_path, 'w') as fout:
                 for i, line in enumerate(fin):
