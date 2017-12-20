@@ -447,17 +447,17 @@ class DataSet:
             obj = json.load(fin)
             return io.cameras_from_json(obj)
 
-    def __gps_overrides_file(self):
-        """Path to the GPS overrides file."""
-        return os.path.join(self.data_path, 'gps_overrides.json')
+    def __exif_overrides_file(self):
+        """Path to the EXIF overrides file."""
+        return os.path.join(self.data_path, 'exif_overrides.json')
 
-    def gps_overrides_exists(self):
-        """Check if GPS overrides file exists."""
-        return os.path.isfile(self.__gps_overrides_file())
+    def exif_overrides_exists(self):
+        """Check if EXIF overrides file exists."""
+        return os.path.isfile(self.__exif_overrides_file())
 
-    def load_gps_overrides(self):
-        """Load GPS overrides data."""
-        with open(self.__gps_overrides_file(), 'r') as fin:
+    def load_exif_overrides(self):
+        """Load EXIF overrides data."""
+        with open(self.__exif_overrides_file(), 'r') as fin:
             return json.load(fin)
 
     def profile_log(self):

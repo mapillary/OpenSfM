@@ -21,9 +21,9 @@ class Command:
         start = time.time()
         data = dataset.DataSet(args.dataset)
 
-        gps_overrides = {}
-        if data.gps_overrides_exists():
-            gps_overrides = data.load_gps_overrides()
+        exif_overrides = {}
+        if data.exif_overrides_exists():
+            exif_overrides = data.load_exif_overrides()
 
         camera_models = {}
         for image in data.images():
@@ -36,8 +36,8 @@ class Command:
             if d['width'] <= 0 or not data.config['use_exif_size']:
                 d['height'], d['width'] = data.image_as_array(image).shape[:2]
 
-            if image in gps_overrides:
-                d['gps'].update(gps_overrides[image])
+            if image in exif_overrides:
+                d.update(exif_overrides[image])
 
             data.save_exif(image, d)
 
