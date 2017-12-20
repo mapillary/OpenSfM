@@ -49,9 +49,11 @@ class Command:
         transformation = self._get_transformation(reference, projection)
 
         if args.transformation:
-            for row in transformation:
-                print(' '.join(map(str, row)))
-            print('')
+            output_path = data.data_path + '/transformation.txt'
+            with open(output_path, 'w') as fout:
+                for row in transformation:
+                    fout.write(' '.join(map(str, row)))
+                    fout.write('\n')
 
         if args.reconstruction:
             reconstructions = data.load_reconstruction()
