@@ -58,7 +58,13 @@ def sensor_string(make, model):
     return (make.strip() + ' ' + model.strip()).lower()
 
 
-def camera_id(make, model, width, height, projection_type, focal):
+def camera_id(exif):
+    return camera_id_(exif['make'], exif['model'],
+                      exif['width'], exif['height'],
+                      exif['projection_type'], exif['focal_ratio'])
+
+
+def camera_id_(make, model, width, height, projection_type, focal):
     if make != 'unknown':
         # remove duplicate 'make' information in 'model'
         model = model.replace(make, '')
@@ -250,7 +256,6 @@ class EXIF:
         geo = self.extract_geo()
         capture_time = self.extract_capture_time()
         d = {
-            'camera': camera_id(make, model, width, height, projection_type, focal_ratio),
             'make': make,
             'model': model,
             'width': width,
@@ -261,6 +266,7 @@ class EXIF:
             'capture_time': capture_time,
             'gps': geo
         }
+        d['camera'] = camera_id(d)
         return d
 
 

@@ -36,6 +36,8 @@ class Command:
             if d['width'] <= 0 or not data.config['use_exif_size']:
                 d['height'], d['width'] = data.image_as_array(image).shape[:2]
 
+            d['camera'] = exif.camera_id(d)
+
             if image in exif_overrides:
                 d.update(exif_overrides[image])
 
