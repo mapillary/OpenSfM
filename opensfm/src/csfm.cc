@@ -84,11 +84,13 @@ BOOST_PYTHON_MODULE(csfm) {
   class_<BundleAdjuster, boost::noncopyable>("BundleAdjuster")
     .def("run", &BundleAdjuster::Run)
     .def("get_perspective_camera", &BundleAdjuster::GetPerspectiveCamera)
+    .def("get_brown_perspective_camera", &BundleAdjuster::GetBrownPerspectiveCamera)
     .def("get_fisheye_camera", &BundleAdjuster::GetFisheyeCamera)
     .def("get_equirectangular_camera", &BundleAdjuster::GetEquirectangularCamera)
     .def("get_shot", &BundleAdjuster::GetShot)
     .def("get_point", &BundleAdjuster::GetPoint)
     .def("add_perspective_camera", &BundleAdjuster::AddPerspectiveCamera)
+    .def("add_brown_perspective_camera", &BundleAdjuster::AddBrownPerspectiveCamera)
     .def("add_fisheye_camera", &BundleAdjuster::AddFisheyeCamera)
     .def("add_equirectangular_camera", &BundleAdjuster::AddEquirectangularCamera)
     .def("add_shot", &BundleAdjuster::AddShot)
@@ -120,6 +122,18 @@ BOOST_PYTHON_MODULE(csfm) {
     .def_readwrite("constant", &BAPerspectiveCamera::constant)
     .def_readwrite("focal_prior", &BAPerspectiveCamera::focal_prior)
     .def_readwrite("id", &BAPerspectiveCamera::id)
+  ;
+
+  class_<BABrownPerspectiveCamera>("BABrownPerspectiveCamera")
+    .add_property("focal", &BABrownPerspectiveCamera::GetFocal, &BABrownPerspectiveCamera::SetFocal)
+    .add_property("k1", &BABrownPerspectiveCamera::GetK1, &BABrownPerspectiveCamera::SetK1)
+    .add_property("k2", &BABrownPerspectiveCamera::GetK2, &BABrownPerspectiveCamera::SetK2)
+    .add_property("p1", &BABrownPerspectiveCamera::GetP1, &BABrownPerspectiveCamera::SetP1)
+    .add_property("p2", &BABrownPerspectiveCamera::GetP2, &BABrownPerspectiveCamera::SetP2)
+    .add_property("k3", &BABrownPerspectiveCamera::GetK3, &BABrownPerspectiveCamera::SetK3)
+    .def_readwrite("constant", &BABrownPerspectiveCamera::constant)
+    .def_readwrite("focal_prior", &BABrownPerspectiveCamera::focal_prior)
+    .def_readwrite("id", &BABrownPerspectiveCamera::id)
   ;
 
   class_<BAFisheyeCamera>("BAFisheyeCamera")

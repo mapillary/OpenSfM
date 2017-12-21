@@ -35,6 +35,13 @@ def bundle(graph, reconstruction, gcp, config):
                 str(camera.id), camera.focal, camera.k1, camera.k2,
                 camera.focal_prior, camera.k1_prior, camera.k2_prior,
                 fix_cameras)
+        elif camera.projection_type == 'brown':
+            ba.add_brown_perspective_camera(
+                str(camera.id), camera.focal, camera.k1, camera.k2,
+                camera.p1, camera.p2, camera.k3,
+                camera.focal_prior, camera.k1_prior, camera.k2_prior,
+                camera.p1_prior, camera.p2_prior, camera.k3_prior,
+                fix_cameras)
         elif camera.projection_type == 'fisheye':
             ba.add_fisheye_camera(
                 str(camera.id), camera.focal, camera.k1, camera.k2,
@@ -84,9 +91,13 @@ def bundle(graph, reconstruction, gcp, config):
     ba.set_loss_function(config['loss_function'],
                          config['loss_function_threshold'])
     ba.set_reprojection_error_sd(config['reprojection_error_sd'])
-    ba.set_internal_parameters_prior_sd(config['exif_focal_sd'],
-                                        config['radial_distorsion_k1_sd'],
-                                        config['radial_distorsion_k2_sd'])
+    ba.set_internal_parameters_prior_sd(
+        config['exif_focal_sd'],
+        config['radial_distorsion_k1_sd'],
+        config['radial_distorsion_k2_sd'],
+        config['radial_distorsion_p1_sd'],
+        config['radial_distorsion_p2_sd'],
+        config['radial_distorsion_k3_sd'])
     ba.set_num_threads(config['processes'])
 
     chrono.lap('setup')
@@ -99,6 +110,14 @@ def bundle(graph, reconstruction, gcp, config):
             camera.focal = c.focal
             camera.k1 = c.k1
             camera.k2 = c.k2
+        elif camera.projection_type == 'brown':
+            c = ba.get_brown_perspective_camera(str(camera.id))
+            camera.focal = c.focal
+            camera.k1 = c.k1
+            camera.k2 = c.k2
+            camera.p1 = c.p1
+            camera.p2 = c.p2
+            camera.k3 = c.k3
         elif camera.projection_type == 'fisheye':
             c = ba.get_fisheye_camera(str(camera.id))
             camera.focal = c.focal
@@ -135,6 +154,12 @@ def bundle_single_view(graph, reconstruction, shot_id, config):
         ba.add_perspective_camera(
             str(camera.id), camera.focal, camera.k1, camera.k2,
             camera.focal_prior, camera.k1_prior, camera.k2_prior, True)
+    elif camera.projection_type == 'brown':
+        ba.add_brown_perspective_camera(
+            str(camera.id), camera.focal, camera.k1, camera.k2,
+            camera.p1, camera.p2, camera.k3,
+            camera.focal_prior, camera.k1_prior, camera.k2_prior,
+            camera.p1_prior, camera.p2_prior, camera.k3_prior, True)
     elif camera.projection_type == 'fisheye':
         ba.add_fisheye_camera(
             str(camera.id), camera.focal, camera.k1, camera.k2,
@@ -167,12 +192,18 @@ def bundle_single_view(graph, reconstruction, shot_id, config):
     ba.set_loss_function(config['loss_function'],
                          config['loss_function_threshold'])
     ba.set_reprojection_error_sd(config['reprojection_error_sd'])
-    ba.set_internal_parameters_prior_sd(config['exif_focal_sd'],
-                                        config['radial_distorsion_k1_sd'],
-                                        config['radial_distorsion_k2_sd'])
-
+    ba.set_internal_parameters_prior_sd(
+        config['exif_focal_sd'],
+        config['radial_distorsion_k1_sd'],
+        config['radial_distorsion_k2_sd'],
+        config['radial_distorsion_p1_sd'],
+        config['radial_distorsion_p2_sd'],
+        config['radial_distorsion_k3_sd'])
     ba.set_num_threads(config['processes'])
+
     ba.run()
+
+    logger.debug(ba.brief_report())
 
     s = ba.get_shot(str(shot_id))
     shot.pose.rotation = [s.rx, s.ry, s.rz]
@@ -204,6 +235,13 @@ def bundle_local(graph, reconstruction, gcp, central_shot_id, config):
             ba.add_perspective_camera(
                 str(camera.id), camera.focal, camera.k1, camera.k2,
                 camera.focal_prior, camera.k1_prior, camera.k2_prior,
+                True)
+        elif camera.projection_type == 'brown':
+            ba.add_brown_perspective_camera(
+                str(camera.id), camera.focal, camera.k1, camera.k2,
+                camera.p1, camera.p2, camera.k3,
+                camera.focal_prior, camera.k1_prior, camera.k2_prior,
+                camera.p1_prior, camera.p2_prior, camera.k3_prior,
                 True)
         elif camera.projection_type == 'fisheye':
             ba.add_fisheye_camera(
@@ -257,9 +295,13 @@ def bundle_local(graph, reconstruction, gcp, central_shot_id, config):
     ba.set_loss_function(config['loss_function'],
                          config['loss_function_threshold'])
     ba.set_reprojection_error_sd(config['reprojection_error_sd'])
-    ba.set_internal_parameters_prior_sd(config['exif_focal_sd'],
-                                        config['radial_distorsion_k1_sd'],
-                                        config['radial_distorsion_k2_sd'])
+    ba.set_internal_parameters_prior_sd(
+        config['exif_focal_sd'],
+        config['radial_distorsion_k1_sd'],
+        config['radial_distorsion_k2_sd'],
+        config['radial_distorsion_p1_sd'],
+        config['radial_distorsion_p2_sd'],
+        config['radial_distorsion_k3_sd'])
     ba.set_num_threads(config['processes'])
 
     chrono.lap('setup')
@@ -272,6 +314,14 @@ def bundle_local(graph, reconstruction, gcp, central_shot_id, config):
             camera.focal = c.focal
             camera.k1 = c.k1
             camera.k2 = c.k2
+        elif camera.projection_type == 'brown':
+            c = ba.get_brown_perspective_camera(str(camera.id))
+            camera.focal = c.focal
+            camera.k1 = c.k1
+            camera.k2 = c.k2
+            camera.p1 = c.p1
+            camera.p2 = c.p2
+            camera.k3 = c.k3
         elif camera.projection_type == 'fisheye':
             c = ba.get_fisheye_camera(str(camera.id))
             camera.focal = c.focal

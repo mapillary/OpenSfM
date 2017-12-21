@@ -316,7 +316,10 @@ def focal_ratio_calibration(exif):
         return {
             'focal': exif['focal_ratio'],
             'k1': 0.0,
-            'k2': 0.0
+            'k2': 0.0,
+            'p1': 0.0,
+            'p2': 0.0,
+            'k3': 0.0
         }
 
 
@@ -324,7 +327,10 @@ def default_calibration(data):
     return {
         'focal': data.config['default_focal_prior'],
         'k1': 0.0,
-        'k2': 0.0
+        'k2': 0.0,
+        'p1': 0.0,
+        'p2': 0.0,
+        'k3': 0.0
     }
 
 
@@ -341,10 +347,29 @@ def camera_from_exif_metadata(metadata, data):
         camera.id = metadata['camera']
         camera.width = metadata['width']
         camera.height = metadata['height']
-        camera.projection_type = metadata.get('projection_type', 'perspective')
+        camera.projection_type = pt
         camera.focal = calib['focal']
         camera.k1 = calib['k1']
         camera.k2 = calib['k2']
+        camera.focal_prior = calib['focal']
+        camera.k1_prior = calib['k1']
+        camera.k2_prior = calib['k2']
+        return camera
+    elif pt == 'brown':
+        calib = (hard_coded_calibration(metadata)
+                 or focal_ratio_calibration(metadata)
+                 or default_calibration(data))
+        camera = types.BrownPerspectiveCamera()
+        camera.id = metadata['camera']
+        camera.width = metadata['width']
+        camera.height = metadata['height']
+        camera.projection_type = pt
+        camera.focal = calib['focal']
+        camera.k1 = calib['k1']
+        camera.k2 = calib['k2']
+        camera.p1 = calib['p1']
+        camera.p2 = calib['p2']
+        camera.k3 = calib['k3']
         camera.focal_prior = calib['focal']
         camera.k1_prior = calib['k1']
         camera.k2_prior = calib['k2']
