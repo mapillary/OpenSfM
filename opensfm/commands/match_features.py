@@ -177,6 +177,9 @@ def match_candidates_from_metadata(images, exifs, data):
 
     if max_distance == gps_neighbors == time_neighbors == order_neighbors == 0:
         # All pair selection strategies deactivated so we match all pairs
+        d = set()
+        t = set()
+        o = set()
         pairs = combinations(images, 2)
     else:
         d = match_candidates_by_distance(images, exifs, reference,
