@@ -46,6 +46,9 @@ two_view_reconstruction
 
 Estimate relative pose on each camera's POV of its own points (pixel
 bearings). (OpenGV's ``relative_pose_ransac`` with ``"STEWENIUS"``)
+The way of "STEWENIUS" is shown here_.
+
+.. _here: https://lup.lub.lu.se/search/publication/a60a4fee-fc50-4e13-b668-66bcc618e580
 
 Use this pose estimate to triangulate the pixel bearings into two sets
 of 3D positions.
@@ -57,7 +60,9 @@ Considering both sets from the respective camera coordinate systems:
 compute distance between original bearings and re-projected ones.
 
 Remove outliers, defined as points with a reprojection error of at least
-``five_point_algo_threshold`` (0.006).
+``five_point_algo_threshold`` (0.006). The threshold is explained here_.
+
+.. _here: http://ieeexplore.ieee.org/iel7/6895053/6906581/06906582.pdf
 
 Run through OpenGV's ``relative_pose_optimize_nonlinear``, yielding
 refined pose (beyond that, no idea what it does. Some nonlinear
@@ -79,7 +84,9 @@ Align reconstruction to GPS, based on GCPs (Ground Control Points).
 
 For each image: attempt to ``resect`` (whatever that means?
 ``absolute_pose_ransac`` with ``"KNEIP"``, add shot to reconstruction,
-bundle adjust shot.)
+bundle adjust shot.) A novel p3p ("KNEIP") is shown here_.
+
+.. _here: http://www.ifi.unizh.ch/dam/jcr:c51c3827-d037-4df5-8fd5-d84a2fbe01f9/CVPR11_kneip.pdf
 
 If couldn't ``resect``, skip ahead to try the next image. Once we find
 an image that can be successfully resected:
