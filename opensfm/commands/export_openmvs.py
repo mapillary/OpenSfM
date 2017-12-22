@@ -27,7 +27,7 @@ class Command:
 
     def export(self, reconstruction, graph, data):
         exporter = csfm.OpenMVSExporter()
-        for camera in reconstruction.cameras.values():
+        for camera in list(reconstruction.cameras.values()):
             if camera.projection_type == 'perspective':
                 w, h = camera.width, camera.height
                 K = np.array([
@@ -37,7 +37,7 @@ class Command:
                 ])
                 exporter.add_camera(str(camera.id), K)
 
-        for shot in reconstruction.shots.values():
+        for shot in list(reconstruction.shots.values()):
             if shot.camera.projection_type == 'perspective':
                 image_path = data._undistorted_image_file(shot.id)
                 exporter.add_shot(
@@ -47,8 +47,8 @@ class Command:
                     shot.pose.get_rotation_matrix(),
                     shot.pose.get_origin())
 
-        for point in reconstruction.points.values():
-            shots = graph[point.id].keys()
+        for point in list(reconstruction.points.values()):
+            shots = list(graph[point.id].keys())
             coordinates = np.array(point.coordinates, dtype=np.float64)
             exporter.add_point(coordinates, shots)
 

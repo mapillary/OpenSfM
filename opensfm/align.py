@@ -26,12 +26,12 @@ def apply_similarity(reconstruction, s, A, b):
     :param b: The translation vector (3)
     """
     # Align points.
-    for point in reconstruction.points.values():
+    for point in list(reconstruction.points.values()):
         Xp = s * A.dot(point.coordinates) + b
         point.coordinates = Xp.tolist()
 
     # Align cameras.
-    for shot in reconstruction.shots.values():
+    for shot in list(reconstruction.shots.values()):
         R = shot.pose.get_rotation_matrix()
         t = np.array(shot.pose.translation)
         Rp = R.dot(A.T)
@@ -67,7 +67,7 @@ def align_reconstruction_naive_similarity(reconstruction, gcp):
         Xp.extend(measured)
 
     # Get camera center correspondences
-    for shot in reconstruction.shots.values():
+    for shot in list(reconstruction.shots.values()):
         X.append(shot.pose.get_origin())
         Xp.append(shot.metadata.gps_position)
 
@@ -103,7 +103,7 @@ def align_reconstruction_orientation_prior_similarity(reconstruction, config):
     X, Xp = [], []
     orientation_type = config['align_orientation_prior']
     onplane, verticals = [], []
-    for shot in reconstruction.shots.values():
+    for shot in list(reconstruction.shots.values()):
         X.append(shot.pose.get_origin())
         Xp.append(shot.metadata.gps_position)
         R = shot.pose.get_rotation_matrix()
@@ -174,7 +174,7 @@ def get_horizontal_and_vertical_directions(R, orientation):
         return -R[1, :], -R[0, :], -R[2, :]
     if orientation == 8:
         return R[1, :], -R[0, :], R[2, :]
-    print 'ERROR unknown orientation {0}. Using 1 instead'.format(orientation)
+    print('ERROR unknown orientation {0}. Using 1 instead'.format(orientation))
     return R[0, :], R[1, :], R[2, :]
 
 
@@ -205,7 +205,7 @@ def triangulate_all_gcp(reconstruction, gcp_observations):
         groups[tuple(o.lla)].append(o)
 
     triangulated, measured = [], []
-    for observations in groups.values():
+    for observations in list(groups.values()):
         x = triangulate_single_gcp(reconstruction, observations)
         if x is not None:
             triangulated.append(x)

@@ -4,7 +4,7 @@ import time
 import logging
 import numpy as np
 import cv2
-import csfm
+from . import csfm
 
 from opensfm import context
 
@@ -19,7 +19,7 @@ def resized_image(image, config):
     size = max(w, h)
     if 0 < max_size < size:
         dsize = w * max_size / size, h * max_size / size
-        return cv2.resize(image, dsize=dsize, interpolation=cv2.INTER_AREA)
+        return cv2.resize(image, dsize=tuple(int(i) for i in dsize), interpolation=cv2.INTER_AREA)
     else:
         return image
 
@@ -42,7 +42,7 @@ def root_feature_surf(desc, l2_normalization=False, partial=False):
             s2 = np.linalg.norm(desc, axis=1)
             desc = (desc.T/s2).T
         if partial:
-            ii = np.array([i for i in xrange(64) if (i%4==2 or i%4==3)])
+            ii = np.array([i for i in range(64) if (i%4==2 or i%4==3)])
         else:
             ii = np.arange(64)
         desc_sub = np.abs(desc[:, ii])

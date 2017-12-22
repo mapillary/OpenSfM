@@ -55,7 +55,7 @@ class Command:
                     camera_models[key] = copy.copy(overrides["all"])
                     camera_models[key].id = key
             else:
-                for key, value in overrides.items():
+                for key, value in list(overrides.items()):
                     camera_models[key] = value
         data.save_camera_models(camera_models)
 

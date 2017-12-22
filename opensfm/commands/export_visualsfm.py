@@ -24,7 +24,7 @@ class Command:
 
     def export(self, reconstruction, graph, data):
         lines = ['NVM_V3', '', str(len(reconstruction.shots))]
-        for shot in reconstruction.shots.values():
+        for shot in list(reconstruction.shots.values()):
             q = tf.quaternion_from_matrix(shot.pose.get_rotation_matrix())
             o = shot.pose.get_origin()
             words = [

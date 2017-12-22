@@ -222,7 +222,7 @@ class DataSet:
 
     def save_exif(self, image, data):
         io.mkdir_p(self.__exif_path())
-        with open(self.__exif_file(image), 'wb') as fout:
+        with open(self.__exif_file(image), 'wt') as fout:
             io.json_dump(data, fout)
 
     def feature_type(self):
@@ -534,7 +534,7 @@ def save_tracks_graph(fileobj, graph):
     for node, data in graph.nodes(data=True):
         if data['bipartite'] == 0:
             image = node
-            for track, data in graph[image].items():
+            for track, data in list(graph[image].items()):
                 x, y = data['feature']
                 fid = data['feature_id']
                 r, g, b = data['feature_color']

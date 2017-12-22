@@ -80,7 +80,7 @@ def camera_id_(make, model, width, height, projection_type, focal):
 
 
 def extract_exif_from_file(fileobj):
-    if isinstance(fileobj, (str, unicode)):
+    if isinstance(fileobj, str):
         with open(fileobj) as f:
             exif_data = EXIF(f)
     else:
@@ -145,7 +145,7 @@ class EXIF:
         else:
             make = 'unknown'
         try:
-            return make.decode('utf-8')
+            return make
         except UnicodeDecodeError:
             return 'unknown'
 
@@ -157,7 +157,7 @@ class EXIF:
         else:
             model = 'unknown'
         try:
-            return model.decode('utf-8')
+            return model
         except UnicodeDecodeError:
             return 'unknown'
 

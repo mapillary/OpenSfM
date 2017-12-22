@@ -29,7 +29,7 @@ class Command:
         exifs = {im: data.load_exif(im) for im in images}
         pairs, preport = match_candidates_from_metadata(images, exifs, data)
 
-        num_pairs = sum(len(c) for c in pairs.values())
+        num_pairs = sum(len(c) for c in list(pairs.values()))
         logger.info('Matching {} image pairs'.format(num_pairs))
 
         ctx = Context()
@@ -49,7 +49,7 @@ class Command:
 
     def write_report(self, data, preport, pairs, wall_time):
         pair_list = []
-        for im1, others in pairs.items():
+        for im1, others in list(pairs.items()):
             for im2 in others:
                 pair_list.append((im1, im2))
 
@@ -166,7 +166,7 @@ def match_candidates_from_metadata(images, exifs, data):
         data.invent_reference_lla()
     reference = data.load_reference_lla()
 
-    if not all(map(has_gps_info, exifs.values())):
+    if not all(map(has_gps_info, list(exifs.values()))):
         if gps_neighbors != 0:
             logger.warn("Not all images have GPS info. "
                         "Disabling matching_gps_neighbors.")

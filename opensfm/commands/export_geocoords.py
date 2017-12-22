@@ -106,13 +106,13 @@ class Command:
         A1 = np.linalg.inv(A)
         b1 = -np.dot(A1, b)
 
-        for shot in reconstruction.shots.values():
+        for shot in list(reconstruction.shots.values()):
             R = shot.pose.get_rotation_matrix()
             t = shot.pose.translation
             shot.pose.set_rotation_matrix(np.dot(R, A1))
             shot.pose.translation = list(np.dot(R, b1) + t)
 
-        for point in reconstruction.points.values():
+        for point in list(reconstruction.points.values()):
             point.coordinates = list(np.dot(A, point.coordinates) + b)
 
     def _transform_dense_point_cloud(self, data, transformation, output):
@@ -127,8 +127,8 @@ class Command:
                         fout.write(line)
                     else:
                         x, y, z, nx, ny, nz, red, green, blue = line.split()
-                        x, y, z = np.dot(A, map(float, [x, y, z])) + b
-                        nx, ny, nz = np.dot(A, map(float, [nx, ny, nz]))
+                        x, y, z = np.dot(A, list(map(float, [x, y, z]))) + b
+                        nx, ny, nz = np.dot(A, list(map(float, [nx, ny, nz])))
                         fout.write(
                             "{} {} {} {} {} {} {} {} {}\n".format(
                                 x, y, z, nx, ny, nz, red, green, blue))

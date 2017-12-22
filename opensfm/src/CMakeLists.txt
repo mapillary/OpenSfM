@@ -46,12 +46,13 @@ include_directories(${GLOG_INCLUDE_DIR})
 find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 
-find_package(Boost COMPONENTS python REQUIRED)
-include_directories(${Boost_INCLUDE_DIRS})
-
-set(Python_ADDITIONAL_VERSIONS "2.7")
+set(Python_ADDITIONAL_VERSIONS 3.6)
 find_package(PythonLibs REQUIRED)
 include_directories(${PYTHON_INCLUDE_DIRS})
+
+find_package(Boost COMPONENTS numpy3 python3 REQUIRED)
+set(Boost_PYTHON_FOUND ${Boost_PYTHON3_FOUND})
+include_directories(${Boost_INCLUDE_DIRS})
 
 find_package(NumPy REQUIRED)
 include_directories(${NUMPY_INCLUDE_DIRS})

@@ -75,8 +75,8 @@ class CubeDataset:
         self.points = {'point' + str(i): p for i, p in enumerate(points)}
 
         g = nx.Graph()
-        for shot_id, shot in self.shots.iteritems():
-            for point_id, point in self.points.iteritems():
+        for shot_id, shot in self.shots.items():
+            for point_id, point in self.points.items():
                 feature = shot.project(point)
                 g.add_node(shot_id, bipartite=0)
                 g.add_node(point_id, bipartite=1)
