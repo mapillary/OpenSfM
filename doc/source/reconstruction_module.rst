@@ -84,9 +84,8 @@ Align reconstruction to GPS, based on GCPs (Ground Control Points).
 
 For each image: attempt to ``resect`` (whatever that means?
 ``absolute_pose_ransac`` with ``"KNEIP"``, add shot to reconstruction,
-bundle adjust shot.) A novel p3p ("KNEIP") is shown here_.
-
-.. _here: http://www.ifi.unizh.ch/dam/jcr:c51c3827-d037-4df5-8fd5-d84a2fbe01f9/CVPR11_kneip.pdf
+bundle adjust shot.) A novel p3p ("KNEIP") is shown 'here
+<http://www.ifi.unizh.ch/dam/jcr:c51c3827-d037-4df5-8fd5-d84a2fbe01f9/CVPR11_kneip.pdf>'_.
 
 If couldn't ``resect``, skip ahead to try the next image. Once we find
 an image that can be successfully resected:
