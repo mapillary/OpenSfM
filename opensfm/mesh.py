@@ -34,7 +34,7 @@ def triangle_mesh_perspective(shot_id, r, graph):
     dy = float(cam.height) / 2 / max(cam.width, cam.height)
     pixels = [[-dx, -dy], [-dx, dy], [dx, dy], [dx, -dy]]
     vertices = [None for i in range(4)]
-    for track_id, edge in graph[shot_id].items():
+    for track_id, edge in list(graph[shot_id].items()):
         if track_id in r.points:
             point = r.points[track_id]
             pixel = shot.project(point.coordinates)
@@ -102,7 +102,7 @@ def triangle_mesh_fisheye(shot_id, r, graph):
     bearings.append(bearing)
 
     # Add reconstructed points
-    for track_id, edge in graph[shot_id].items():
+    for track_id, edge in list(graph[shot_id].items()):
         if track_id in r.points:
             point = r.points[track_id].coordinates
             vertices.append(point)
@@ -120,7 +120,7 @@ def triangle_mesh_fisheye(shot_id, r, graph):
                 face[1] >= num_circle_points or
                 face[2] >= num_circle_points)
 
-    faces = filter(good_face, faces)
+    faces = list(filter(good_face, faces))
 
     return vertices, faces
 
@@ -139,7 +139,7 @@ def triangle_mesh_equirectangular(shot_id, r, graph):
         point = shot.pose.transform_inverse(bearing)
         vertices.append(point.tolist())
 
-    for track_id, edge in graph[shot_id].items():
+    for track_id, edge in list(graph[shot_id].items()):
         if track_id in r.points:
             point = r.points[track_id].coordinates
             vertices.append(point)

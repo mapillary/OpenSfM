@@ -153,7 +153,7 @@ def ransac(kernel, threshold):
         try:
             samples = kernel.sampling()
         except AttributeError:
-            samples = random.sample(xrange(kernel.num_samples()),
+            samples = random.sample(range(kernel.num_samples()),
                                 kernel.required_samples)
         models = kernel.fit(samples)
         for model in models:
@@ -219,10 +219,10 @@ class PlaneKernel:
     def sampling(self):
         samples = {}
         if len(self.vectors)>0:
-            samples['points'] = self.points[random.sample(xrange(len(self.points)), 2),:]
-            samples['vectors'] = [self.vectors[i] for i in random.sample(xrange(len(self.vectors)), 1)]
+            samples['points'] = self.points[random.sample(range(len(self.points)), 2),:]
+            samples['vectors'] = [self.vectors[i] for i in random.sample(range(len(self.vectors)), 1)]
         else:
-            samples['points'] = self.points[:,random.sample(xrange(len(self.points)), 3)]
+            samples['points'] = self.points[:,random.sample(range(len(self.points)), 3)]
             samples['vectors'] = None
         return samples
 
@@ -330,7 +330,7 @@ def fit_similarity_transform(p1, p2, max_iterations=1000, threshold=1):
 
     best_inliers= 0
 
-    for i in xrange(max_iterations):
+    for i in range(max_iterations):
 
         rnd = np.random.permutation(num_points)
         rnd = rnd[0:dim]

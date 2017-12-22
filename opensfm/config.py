@@ -144,7 +144,7 @@ def load_config(filepath):
         with open(filepath) as fin:
             new_config = yaml.load(fin)
         if new_config:
-            for k, v in new_config.items():
+            for k, v in list(new_config.items()):
                 config[k] = v
 
     return config

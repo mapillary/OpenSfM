@@ -1,7 +1,7 @@
 #ifndef __TYPES_H__
 #define __TYPES_H__
 
-#include <boost/python.hpp>
+#include <boost/python/numpy.hpp>
 #include <vector>
 #include <iostream>
 
@@ -11,7 +11,7 @@
 namespace csfm {
 
 namespace bp = boost::python;
-namespace bpn = boost::python::numeric;
+namespace bpn = boost::python::numpy;
 
 template <typename T> inline int numpy_typenum() {}
 template <> inline int numpy_typenum<bool>() { return NPY_BOOL; }
@@ -41,10 +41,13 @@ template <> inline const char *type_string<double>() { return "float64"; }
 
 template <typename T>
 bp::object bpn_array_from_data(int nd, npy_intp *shape, const T *data) {
-  PyObject *pyarray = PyArray_SimpleNewFromData(
-      nd, shape, numpy_typenum<T>(), (void *)data);
-  bp::handle<> handle(pyarray);
-  return bpn::array(handle).copy(); // copy the object. numpy owns the copy now.
+  if(nd == 1) {
+    return bpn::from_data((void*)data, bpn::dtype::get_builtin<T>(), bp::make_tuple(shape[0]), bp::make_tuple(sizeof(T)), bp::object()).copy();
+  } else if(nd == 2) {
+    return bpn::from_data((void*)data, bpn::dtype::get_builtin<T>(), bp::make_tuple(shape[0], shape[1]), bp::make_tuple(sizeof(T)*shape[1], sizeof(T)), bp::object()).copy();
+  } else {
+    assert(nd > 0 && nd < 3);
+  }
 }
 
 template <typename T>
@@ -57,7 +60,7 @@ bp::object bpn_array_from_vector(const std::vector<T> &v) {
 template<typename T>
 class PyArrayContiguousView {
  public:
-  PyArrayContiguousView(bpn::array array) {
+  PyArrayContiguousView(bpn::ndarray array) {
     init((PyArrayObject *)array.ptr());
   }
 

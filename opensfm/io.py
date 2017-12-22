@@ -110,25 +110,25 @@ def reconstruction_from_json(obj):
     reconstruction = types.Reconstruction()
 
     # Extract cameras
-    for key, value in obj['cameras'].iteritems():
+    for key, value in obj['cameras'].items():
         camera = camera_from_json(key, value)
         reconstruction.add_camera(camera)
 
     # Extract shots
-    for key, value in obj['shots'].iteritems():
+    for key, value in obj['shots'].items():
         shot = shot_from_json(key, value, reconstruction.cameras)
         reconstruction.add_shot(shot)
 
     # Extract points
     if 'points' in obj:
-        for key, value in obj['points'].iteritems():
+        for key, value in obj['points'].items():
             point = point_from_json(key, value)
             reconstruction.add_point(point)
 
     # Extract pano_shots
     if 'pano_shots' in obj:
         reconstruction.pano_shots = {}
-        for key, value in obj['pano_shots'].iteritems():
+        for key, value in obj['pano_shots'].items():
             shot = shot_from_json(key, value, reconstruction.cameras)
             reconstruction.pano_shots[shot.id] = shot
 
@@ -153,7 +153,7 @@ def cameras_from_json(obj):
     Read cameras from a json object
     """
     cameras = {}
-    for key, value in obj.iteritems():
+    for key, value in obj.items():
         cameras[key] = camera_from_json(key, value)
     return cameras
 
@@ -254,21 +254,21 @@ def reconstruction_to_json(reconstruction):
     }
 
     # Extract cameras
-    for camera in reconstruction.cameras.values():
+    for camera in list(reconstruction.cameras.values()):
         obj['cameras'][camera.id] = camera_to_json(camera)
 
     # Extract shots
-    for shot in reconstruction.shots.values():
+    for shot in list(reconstruction.shots.values()):
         obj['shots'][shot.id] = shot_to_json(shot)
 
     # Extract points
-    for point in reconstruction.points.values():
+    for point in list(reconstruction.points.values()):
         obj['points'][point.id] = point_to_json(point)
 
     # Extract pano_shots
     if hasattr(reconstruction, 'pano_shots'):
         obj['pano_shots'] = {}
-        for shot in reconstruction.pano_shots.values():
+        for shot in list(reconstruction.pano_shots.values()):
             obj['pano_shots'][shot.id] = shot_to_json(shot)
 
     # Extract main and unit shots
@@ -292,14 +292,14 @@ def cameras_to_json(cameras):
     Write cameras to a json object
     """
     obj = {}
-    for camera in cameras.values():
+    for camera in list(cameras.values()):
         obj[camera.id] = camera_to_json(camera)
     return obj
 
 
 def _read_ground_control_points_list_line(line, projection, reference_lla, exif):
     words = line.split()
-    easting, northing, alt, pixel_x, pixel_y = map(float, words[:5])
+    easting, northing, alt, pixel_x, pixel_y = list(map(float, words[:5]))
     shot_id = words[5]
 
     # Convert 3D coordinates
@@ -384,7 +384,7 @@ def json_dump_kwargs(minify=False, codec='utf-8'):
     else:
         indent, separators = 4, None
     return dict(indent=indent, ensure_ascii=False,
-                encoding=codec, separators=separators)
+                separators=separators)
 
 
 def json_dump(data, fout, minify=False, codec='utf-8'):
@@ -453,7 +453,7 @@ def export_bundler(image_list, reconstructions, track_graph, bundle_file_path,
                 R[1], R[2] = -R[1], -R[2]  # Reverse y and z
                 t[1], t[2] = -t[1], -t[2]
                 lines.append(' '.join(map(str, [focal, k1, k2])))
-                for i in xrange(3):
+                for i in range(3):
                     lines.append(' '.join(list(map(str, R[i]))))
                 t = ' '.join(map(str, t))
                 lines.append(t)
@@ -462,15 +462,15 @@ def export_bundler(image_list, reconstructions, track_graph, bundle_file_path,
                     lines.append("0 0 0")
 
         # tracks
-        for point_id, point in points.iteritems():
+        for point_id, point in points.items():
             coord = point.coordinates
-            color = map(int, point.color)
+            color = list(map(int, point.color))
             view_list = track_graph[point_id]
             lines.append(' '.join(map(str, coord)))
             lines.append(' '.join(map(str, color)))
             view_line = []
-            for shot_key, view in view_list.iteritems():
-                if shot_key in shots.keys():
+            for shot_key, view in view_list.items():
+                if shot_key in list(shots.keys()):
                     v = view['feature']
                     shot_index = shots_order[shot_key]
                     camera = shots[shot_key].camera
@@ -525,17 +525,17 @@ def import_bundler(data_path, bundle_file, list_file, track_file,
     offset = 1 if '#' in lines[0] else 0
 
     # header
-    num_shot, num_point = map(int, lines[offset].split(' '))
+    num_shot, num_point = list(map(int, lines[offset].split(' ')))
     offset += 1
 
     # initialization
     reconstruction = types.Reconstruction()
 
     # cameras
-    for i in xrange(num_shot):
+    for i in range(num_shot):
         # Creating a model for each shot.
         shot_key = ordered_shots[i]
-        focal, k1, k2 = map(float, lines[offset].rstrip('\n').split(' '))
+        focal, k1, k2 = list(map(float, lines[offset].rstrip('\n').split(' ')))
 
         if focal > 0:
             im = imread(os.path.join(data_path, image_list[i]))
@@ -551,12 +551,12 @@ def import_bundler(data_path, bundle_file, list_file, track_file,
 
             # Shots
             rline = []
-            for k in xrange(3):
+            for k in range(3):
                 rline += lines[offset + 1 + k].rstrip('\n').split(' ')
             R = ' '.join(rline)
             t = lines[offset + 4].rstrip('\n').split(' ')
-            R = np.array(map(float, R.split())).reshape(3, 3)
-            t = np.array(map(float, t))
+            R = np.array(list(map(float, R.split()))).reshape(3, 3)
+            t = np.array(list(map(float, t)))
             R[1], R[2] = -R[1], -R[2]  # Reverse y and z
             t[1], t[2] = -t[1], -t[2]
 
@@ -568,25 +568,25 @@ def import_bundler(data_path, bundle_file, list_file, track_file,
             shot.pose.translation = t
             reconstruction.add_shot(shot)
         else:
-            print 'ignore failed image', shot_key
+            print('ignore failed image', shot_key)
         offset += 5
 
     # tracks
     track_lines = []
-    for i in xrange(num_point):
+    for i in range(num_point):
         coordinates = lines[offset].rstrip('\n').split(' ')
         color = lines[offset + 1].rstrip('\n').split(' ')
         point = types.Point()
         point.id = i
-        point.coordinates = map(float, coordinates)
-        point.color = map(int, color)
+        point.coordinates = list(map(float, coordinates))
+        point.color = list(map(int, color))
         reconstruction.add_point(point)
 
         view_line = lines[offset + 2].rstrip('\n').split(' ')
 
         num_view, view_list = int(view_line[0]), view_line[1:]
 
-        for k in xrange(num_view):
+        for k in range(num_view):
             shot_key = ordered_shots[int(view_list[4 * k])]
             if shot_key in reconstruction.shots:
                 camera = reconstruction.shots[shot_key].camera
@@ -623,14 +623,14 @@ def reconstruction_to_ply(reconstruction, no_cameras=False, no_points=False):
     vertices = []
 
     if not no_points:
-        for point in reconstruction.points.values():
+        for point in list(reconstruction.points.values()):
             p, c = point.coordinates, point.color
             s = "{} {} {} {} {} {}".format(
                 p[0], p[1], p[2], int(c[0]), int(c[1]), int(c[2]))
             vertices.append(s)
 
     if not no_cameras:
-        for shot in reconstruction.shots.values():
+        for shot in list(reconstruction.shots.values()):
             o = shot.pose.get_origin()
             R = shot.pose.get_rotation_matrix()
             for axis in range(3):

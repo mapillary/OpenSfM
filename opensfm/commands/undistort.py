@@ -37,7 +37,7 @@ class Command:
 
         logger.debug('Undistorting the reconstruction')
         undistorted_shots = {}
-        for shot in reconstruction.shots.values():
+        for shot in list(reconstruction.shots.values()):
             if shot.camera.projection_type == 'perspective':
                 urec.add_camera(shot.camera)
                 urec.add_shot(shot)
@@ -62,7 +62,7 @@ class Command:
         data.save_undistorted_reconstruction([urec])
 
         arguments = []
-        for shot in reconstruction.shots.values():
+        for shot in list(reconstruction.shots.values()):
             arguments.append((shot, undistorted_shots[shot.id], data))
 
         processes = data.config['processes']

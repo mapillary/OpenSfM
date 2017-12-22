@@ -60,7 +60,7 @@ class Command:
             image_cluster[image] = cluster
             cluster_images[cluster].append(image)
         K = len(cluster_images)
-        cluster_index = dict(zip(sorted(cluster_images.keys()), range(K)))
+        cluster_index = dict(list(zip(sorted(cluster_images.keys()), list(range(K)))))
 
         images = []
         positions = []

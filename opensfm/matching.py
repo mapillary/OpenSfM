@@ -19,7 +19,7 @@ def match_lowe(index, f2, config):
     results, dists = index.knnSearch(f2, 2, params=search_params)
     squared_ratio = config['lowes_ratio']**2  # Flann returns squared L2 distances
     good = dists[:, 0] < squared_ratio * dists[:, 1]
-    matches = zip(results[good, 0], good.nonzero()[0])
+    matches = list(zip(results[good, 0], good.nonzero()[0]))
     return np.array(matches, dtype=int)
 
 
@@ -158,7 +158,7 @@ def create_tracks_graph(features, colors, matches, config):
         else:
             sets[p] = [i]
 
-    tracks = [t for t in sets.values() if good_track(t, config['min_track_length'])]
+    tracks = [t for t in list(sets.values()) if good_track(t, config['min_track_length'])]
     logger.debug('Good tracks: {}'.format(len(tracks)))
 
     tracks_graph = nx.Graph()
@@ -226,7 +226,7 @@ def all_common_tracks(graph, tracks, include_features=True, min_common=50):
             track_dict[im1, im2].append(track)
 
     common_tracks = {}
-    for k, v in track_dict.iteritems():
+    for k, v in track_dict.items():
         if len(v) < min_common:
             continue
         im1, im2 = k

@@ -22,7 +22,7 @@ class Command:
         reconstructions = data.load_reconstruction()
 
         for i, r in enumerate(reconstructions):
-            for shot in r.shots.values():
+            for shot in list(r.shots.values()):
                 if shot.id in graph:
                     vertices, faces = mesh.triangle_mesh(shot.id, r, graph,
                                                          data)

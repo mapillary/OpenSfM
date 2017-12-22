@@ -1,18 +1,18 @@
 
-import extract_metadata
-import detect_features
-import match_features
-import create_tracks
-import reconstruct
-import mesh
-import undistort
-import compute_depthmaps
-import export_ply
-import export_openmvs
-import export_visualsfm
-import export_geocoords
-import create_submodels
-import align_submodels
+from . import extract_metadata
+from . import detect_features
+from . import match_features
+from . import create_tracks
+from . import reconstruct
+from . import mesh
+from . import undistort
+from . import compute_depthmaps
+from . import export_ply
+from . import export_openmvs
+from . import export_visualsfm
+from . import export_geocoords
+from . import create_submodels
+from . import align_submodels
 
 opensfm_commands = [
     extract_metadata,

@@ -29,7 +29,7 @@ def bundle(graph, reconstruction, gcp, config):
 
     chrono = Chronometer()
     ba = csfm.BundleAdjuster()
-    for camera in reconstruction.cameras.values():
+    for camera in list(reconstruction.cameras.values()):
         if camera.projection_type == 'perspective':
             ba.add_perspective_camera(
                 str(camera.id), camera.focal, camera.k1, camera.k2,
@@ -43,7 +43,7 @@ def bundle(graph, reconstruction, gcp, config):
         elif camera.projection_type in ['equirectangular', 'spherical']:
             ba.add_equirectangular_camera(str(camera.id))
 
-    for shot in reconstruction.shots.values():
+    for shot in list(reconstruction.shots.values()):
         r = shot.pose.rotation
         t = shot.pose.translation
         ba.add_shot(
@@ -53,7 +53,7 @@ def bundle(graph, reconstruction, gcp, config):
             False
         )
 
-    for point in reconstruction.points.values():
+    for point in list(reconstruction.points.values()):
         x = point.coordinates
         ba.add_point(str(point.id), x[0], x[1], x[2], False)
 
@@ -65,7 +65,7 @@ def bundle(graph, reconstruction, gcp, config):
                                        *graph[shot_id][track]['feature'])
 
     if config['bundle_use_gps']:
-        for shot in reconstruction.shots.values():
+        for shot in list(reconstruction.shots.values()):
             g = shot.metadata.gps_position
             ba.add_position_prior(str(shot.id), g[0], g[1], g[2],
                                   shot.metadata.gps_dop)
@@ -93,7 +93,7 @@ def bundle(graph, reconstruction, gcp, config):
     ba.run()
     chrono.lap('run')
 
-    for camera in reconstruction.cameras.values():
+    for camera in list(reconstruction.cameras.values()):
         if camera.projection_type == 'perspective':
             c = ba.get_perspective_camera(str(camera.id))
             camera.focal = c.focal
@@ -105,12 +105,12 @@ def bundle(graph, reconstruction, gcp, config):
             camera.k1 = c.k1
             camera.k2 = c.k2
 
-    for shot in reconstruction.shots.values():
+    for shot in list(reconstruction.shots.values()):
         s = ba.get_shot(str(shot.id))
         shot.pose.rotation = [s.rx, s.ry, s.rz]
         shot.pose.translation = [s.tx, s.ty, s.tz]
 
-    for point in reconstruction.points.values():
+    for point in list(reconstruction.points.values()):
         p = ba.get_point(str(point.id))
         point.coordinates = [p.x, p.y, p.z]
         point.reprojection_error = p.reprojection_error
@@ -199,7 +199,7 @@ def bundle_local(graph, reconstruction, gcp, central_shot_id, config):
                     point_ids.add(track)
 
     ba = csfm.BundleAdjuster()
-    for camera in reconstruction.cameras.values():
+    for camera in list(reconstruction.cameras.values()):
         if camera.projection_type == 'perspective':
             ba.add_perspective_camera(
                 str(camera.id), camera.focal, camera.k1, camera.k2,
@@ -266,7 +266,7 @@ def bundle_local(graph, reconstruction, gcp, central_shot_id, config):
     ba.run()
     chrono.lap('run')
 
-    for camera in reconstruction.cameras.values():
+    for camera in list(reconstruction.cameras.values()):
         if camera.projection_type == 'perspective':
             c = ba.get_perspective_camera(str(camera.id))
             camera.focal = c.focal
@@ -365,7 +365,7 @@ def _pair_reconstructability_arguments(track_dict, data):
     threshold = 4 * data.config['five_point_algo_threshold']
     cameras = data.load_camera_models()
     args = []
-    for (im1, im2), (tracks, p1, p2) in track_dict.iteritems():
+    for (im1, im2), (tracks, p1, p2) in track_dict.items():
         camera1 = cameras[data.load_exif(im1)['camera']]
         camera2 = cameras[data.load_exif(im2)['camera']]
         args.append((im1, im2, p1, p2, camera1, camera2, threshold))
@@ -479,7 +479,7 @@ def two_view_reconstruction_plane_based(p1, p2, camera1, camera2, threshold):
             b1, b2, R.T, -R.T.dot(t), threshold)
         motion_inliers.append(inliers)
 
-    best = np.argmax(map(len, motion_inliers))
+    best = np.argmax(list(map(len, motion_inliers)))
     R, t, n, d = motions[best]
     inliers = motion_inliers[best]
     return cv2.Rodrigues(R)[0].ravel(), t, inliers
@@ -919,8 +919,8 @@ def merge_reconstructions(reconstructions, config):
 
 def paint_reconstruction(data, graph, reconstruction):
     """Set the color of the points from the color of the tracks."""
-    for k, point in reconstruction.points.iteritems():
-        point.color = graph[k].values()[0]['feature_color']
+    for k, point in reconstruction.points.items():
+        point.color = list(graph[k].values())[0]['feature_color']
 
 
 class ShouldBundle:

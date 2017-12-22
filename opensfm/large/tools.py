@@ -71,7 +71,7 @@ def connected_reconstructions(reconstruction_shots):
             g.add_node(shot_id, bipartite=1)
             g.add_edge(r, shot_id)
 
-    p = bipartite.projected_graph(g, reconstruction_shots.keys())
+    p = bipartite.projected_graph(g, list(reconstruction_shots.keys()))
 
     return p.edges()
 
@@ -157,7 +157,7 @@ def add_point_constraints(ra, reconstruction_shots):
         r1 = d1.load_reconstruction()[connection[0].index]
         r2 = d2.load_reconstruction()[connection[1].index]
 
-        common_ims = set(r1.shots.keys()).intersection(r2.shots.keys())
+        common_ims = set(r1.shots.keys()).intersection(list(r2.shots.keys()))
 
         g1 = d1.load_tracks_graph()
         g2 = d2.load_tracks_graph()
@@ -217,7 +217,7 @@ def align_reconstructions(reconstruction_shots):
 
 
 def apply_transformations(transformations):
-    submodels = itertools.groupby(transformations.keys(), lambda key: key.submodel_path)
+    submodels = itertools.groupby(list(transformations.keys()), lambda key: key.submodel_path)
     for submodel_path, keys in submodels:
         data = dataset.DataSet(submodel_path)
         if not data.reconstruction_exists():

@@ -22,12 +22,12 @@ def compute_depthmaps(data, graph, reconstruction):
     common_tracks = matching.all_common_tracks(graph, tracks, include_features=False)
 
     neighbors = {}
-    for shot in reconstruction.shots.values():
+    for shot in list(reconstruction.shots.values()):
         neighbors[shot.id] = find_neighboring_images(
             shot, common_tracks, reconstruction, num_neighbors)
 
     arguments = []
-    for shot in reconstruction.shots.values():
+    for shot in list(reconstruction.shots.values()):
         if len(neighbors[shot.id]) <= 1:
             continue
         min_depth, max_depth = compute_depth_range(graph, reconstruction, shot)
@@ -35,14 +35,14 @@ def compute_depthmaps(data, graph, reconstruction):
     parallel_map(compute_depthmap_catched, arguments, processes)
 
     arguments = []
-    for shot in reconstruction.shots.values():
+    for shot in list(reconstruction.shots.values()):
         if len(neighbors[shot.id]) <= 1:
             continue
         arguments.append((data, neighbors[shot.id], shot))
     parallel_map(clean_depthmap_catched, arguments, processes)
 
     arguments = []
-    for shot in reconstruction.shots.values():
+    for shot in list(reconstruction.shots.values()):
         if len(neighbors[shot.id]) <= 1:
             continue
         arguments.append((data, neighbors[shot.id], shot))
@@ -289,7 +289,7 @@ def find_neighboring_images(shot, common_tracks, reconstruction, num_neighbors=5
     theta_max = np.pi / 6
     ns = []
     C1 = shot.pose.get_origin()
-    others = (s for s in reconstruction.shots.values() if s.id != shot.id)
+    others = (s for s in list(reconstruction.shots.values()) if s.id != shot.id)
     for other in others:
         score = 0
         C2 = other.pose.get_origin()
