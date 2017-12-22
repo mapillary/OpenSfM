@@ -65,7 +65,7 @@ struct BABrownPerspectiveCamera : public BACamera{
   double p2_prior;
   double k3_prior;
 
-  BACameraType type() { return BA_PERSPECTIVE_CAMERA; }
+  BACameraType type() { return BA_BROWN_PERSPECTIVE_CAMERA; }
   double GetFocal() { return parameters[BA_CAMERA_FOCAL]; }
   double GetK1() { return parameters[BA_CAMERA_K1]; }
   double GetK2() { return parameters[BA_CAMERA_K2]; }
