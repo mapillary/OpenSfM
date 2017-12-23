@@ -320,8 +320,10 @@ void BrownPerspectiveProject(const T* const camera,
   // Compute final projected point position.
   const T& focal_x = camera[BA_BROWN_CAMERA_FOCAL_X];
   const T& focal_y = camera[BA_BROWN_CAMERA_FOCAL_Y];
-  projection[0] = focal_x * x_distorted;
-  projection[1] = focal_y * y_distorted;
+  const T& c_x = camera[BA_BROWN_CAMERA_C_X];
+  const T& c_y = camera[BA_BROWN_CAMERA_C_Y];
+  projection[0] = focal_x * x_distorted + c_x;
+  projection[1] = focal_y * y_distorted + c_y;
 }
 
 struct BrownPerspectiveReprojectionError {
