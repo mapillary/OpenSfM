@@ -36,12 +36,28 @@ def bundle(graph, reconstruction, gcp, config):
                 camera.focal_prior, camera.k1_prior, camera.k2_prior,
                 fix_cameras)
         elif camera.projection_type == 'brown':
-            ba.add_brown_perspective_camera(
-                str(camera.id), camera.focal, camera.k1, camera.k2,
-                camera.p1, camera.p2, camera.k3,
-                camera.focal_prior, camera.k1_prior, camera.k2_prior,
-                camera.p1_prior, camera.p2_prior, camera.k3_prior,
-                fix_cameras)
+            c = csfm.BABrownPerspectiveCamera()
+            c.id = str(camera.id)
+            c.focal_x = camera.focal_x
+            c.focal_y = camera.focal_y
+            c.c_x = camera.c_x
+            c.c_y = camera.c_y
+            c.k1 = camera.k1
+            c.k2 = camera.k2
+            c.p1 = camera.p1
+            c.p2 = camera.p2
+            c.k3 = camera.k3
+            c.focal_x_prior = camera.focal_x_prior
+            c.focal_y_prior = camera.focal_y_prior
+            c.c_x_prior = camera.c_x_prior
+            c.c_y_prior = camera.c_y_prior
+            c.k1_prior = camera.k1_prior
+            c.k2_prior = camera.k2_prior
+            c.p1_prior = camera.p1_prior
+            c.p2_prior = camera.p2_prior
+            c.k3_prior = camera.k3_prior
+            c.constant = fix_cameras
+            ba.add_brown_perspective_camera(c)
         elif camera.projection_type == 'fisheye':
             ba.add_fisheye_camera(
                 str(camera.id), camera.focal, camera.k1, camera.k2,
@@ -93,6 +109,7 @@ def bundle(graph, reconstruction, gcp, config):
     ba.set_reprojection_error_sd(config['reprojection_error_sd'])
     ba.set_internal_parameters_prior_sd(
         config['exif_focal_sd'],
+        config['principal_point_sd'],
         config['radial_distorsion_k1_sd'],
         config['radial_distorsion_k2_sd'],
         config['radial_distorsion_p1_sd'],
@@ -112,7 +129,10 @@ def bundle(graph, reconstruction, gcp, config):
             camera.k2 = c.k2
         elif camera.projection_type == 'brown':
             c = ba.get_brown_perspective_camera(str(camera.id))
-            camera.focal = c.focal
+            camera.focal_x = c.focal_x
+            camera.focal_y = c.focal_y
+            camera.c_x = c.c_x
+            camera.c_y = c.c_y
             camera.k1 = c.k1
             camera.k2 = c.k2
             camera.p1 = c.p1
@@ -155,11 +175,28 @@ def bundle_single_view(graph, reconstruction, shot_id, config):
             str(camera.id), camera.focal, camera.k1, camera.k2,
             camera.focal_prior, camera.k1_prior, camera.k2_prior, True)
     elif camera.projection_type == 'brown':
-        ba.add_brown_perspective_camera(
-            str(camera.id), camera.focal, camera.k1, camera.k2,
-            camera.p1, camera.p2, camera.k3,
-            camera.focal_prior, camera.k1_prior, camera.k2_prior,
-            camera.p1_prior, camera.p2_prior, camera.k3_prior, True)
+        c = csfm.BABrownPerspectiveCamera()
+        c.id = str(camera.id)
+        c.focal_x = camera.focal_x
+        c.focal_y = camera.focal_y
+        c.c_x = camera.c_x
+        c.c_y = camera.c_y
+        c.k1 = camera.k1
+        c.k2 = camera.k2
+        c.p1 = camera.p1
+        c.p2 = camera.p2
+        c.k3 = camera.k3
+        c.focal_x_prior = camera.focal_x_prior
+        c.focal_y_prior = camera.focal_y_prior
+        c.c_x_prior = camera.c_x_prior
+        c.c_y_prior = camera.c_y_prior
+        c.k1_prior = camera.k1_prior
+        c.k2_prior = camera.k2_prior
+        c.p1_prior = camera.p1_prior
+        c.p2_prior = camera.p2_prior
+        c.k3_prior = camera.k3_prior
+        c.constant = True
+        ba.add_brown_perspective_camera(c)
     elif camera.projection_type == 'fisheye':
         ba.add_fisheye_camera(
             str(camera.id), camera.focal, camera.k1, camera.k2,
@@ -194,6 +231,7 @@ def bundle_single_view(graph, reconstruction, shot_id, config):
     ba.set_reprojection_error_sd(config['reprojection_error_sd'])
     ba.set_internal_parameters_prior_sd(
         config['exif_focal_sd'],
+        config['principal_point_sd'],
         config['radial_distorsion_k1_sd'],
         config['radial_distorsion_k2_sd'],
         config['radial_distorsion_p1_sd'],
@@ -237,12 +275,28 @@ def bundle_local(graph, reconstruction, gcp, central_shot_id, config):
                 camera.focal_prior, camera.k1_prior, camera.k2_prior,
                 True)
         elif camera.projection_type == 'brown':
-            ba.add_brown_perspective_camera(
-                str(camera.id), camera.focal, camera.k1, camera.k2,
-                camera.p1, camera.p2, camera.k3,
-                camera.focal_prior, camera.k1_prior, camera.k2_prior,
-                camera.p1_prior, camera.p2_prior, camera.k3_prior,
-                True)
+            c = csfm.BABrownPerspectiveCamera()
+            c.id = str(camera.id)
+            c.focal_x = camera.focal_x
+            c.focal_y = camera.focal_y
+            c.c_x = camera.c_x
+            c.c_y = camera.c_y
+            c.k1 = camera.k1
+            c.k2 = camera.k2
+            c.p1 = camera.p1
+            c.p2 = camera.p2
+            c.k3 = camera.k3
+            c.focal_x_prior = camera.focal_x_prior
+            c.focal_y_prior = camera.focal_y_prior
+            c.c_x_prior = camera.c_x_prior
+            c.c_y_prior = camera.c_y_prior
+            c.k1_prior = camera.k1_prior
+            c.k2_prior = camera.k2_prior
+            c.p1_prior = camera.p1_prior
+            c.p2_prior = camera.p2_prior
+            c.k3_prior = camera.k3_prior
+            c.constant = True
+            ba.add_brown_perspective_camera(c)
         elif camera.projection_type == 'fisheye':
             ba.add_fisheye_camera(
                 str(camera.id), camera.focal, camera.k1, camera.k2,
@@ -297,6 +351,7 @@ def bundle_local(graph, reconstruction, gcp, central_shot_id, config):
     ba.set_reprojection_error_sd(config['reprojection_error_sd'])
     ba.set_internal_parameters_prior_sd(
         config['exif_focal_sd'],
+        config['principal_point_sd'],
         config['radial_distorsion_k1_sd'],
         config['radial_distorsion_k2_sd'],
         config['radial_distorsion_p1_sd'],
@@ -316,7 +371,10 @@ def bundle_local(graph, reconstruction, gcp, central_shot_id, config):
             camera.k2 = c.k2
         elif camera.projection_type == 'brown':
             c = ba.get_brown_perspective_camera(str(camera.id))
-            camera.focal = c.focal
+            camera.focal_x = c.focal_x
+            camera.focal_y = c.focal_y
+            camera.c_x = c.c_x
+            camera.c_y = c.c_y
             camera.k1 = c.k1
             camera.k2 = c.k2
             camera.p1 = c.p1

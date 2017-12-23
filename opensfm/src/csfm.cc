@@ -125,14 +125,25 @@ BOOST_PYTHON_MODULE(csfm) {
   ;
 
   class_<BABrownPerspectiveCamera>("BABrownPerspectiveCamera")
-    .add_property("focal", &BABrownPerspectiveCamera::GetFocal, &BABrownPerspectiveCamera::SetFocal)
+    .add_property("focal_x", &BABrownPerspectiveCamera::GetFocalX, &BABrownPerspectiveCamera::SetFocalX)
+    .add_property("focal_y", &BABrownPerspectiveCamera::GetFocalY, &BABrownPerspectiveCamera::SetFocalY)
+    .add_property("c_x", &BABrownPerspectiveCamera::GetCX, &BABrownPerspectiveCamera::SetCX)
+    .add_property("c_y", &BABrownPerspectiveCamera::GetCY, &BABrownPerspectiveCamera::SetCY)
     .add_property("k1", &BABrownPerspectiveCamera::GetK1, &BABrownPerspectiveCamera::SetK1)
     .add_property("k2", &BABrownPerspectiveCamera::GetK2, &BABrownPerspectiveCamera::SetK2)
     .add_property("p1", &BABrownPerspectiveCamera::GetP1, &BABrownPerspectiveCamera::SetP1)
     .add_property("p2", &BABrownPerspectiveCamera::GetP2, &BABrownPerspectiveCamera::SetP2)
     .add_property("k3", &BABrownPerspectiveCamera::GetK3, &BABrownPerspectiveCamera::SetK3)
+    .def_readwrite("focal_x_prior", &BABrownPerspectiveCamera::focal_x_prior)
+    .def_readwrite("focal_y_prior", &BABrownPerspectiveCamera::focal_y_prior)
+    .def_readwrite("c_x_prior", &BABrownPerspectiveCamera::c_x_prior)
+    .def_readwrite("c_y_prior", &BABrownPerspectiveCamera::c_y_prior)
+    .def_readwrite("k1_prior", &BABrownPerspectiveCamera::k1_prior)
+    .def_readwrite("k2_prior", &BABrownPerspectiveCamera::k2_prior)
+    .def_readwrite("p1_prior", &BABrownPerspectiveCamera::p1_prior)
+    .def_readwrite("p2_prior", &BABrownPerspectiveCamera::p2_prior)
+    .def_readwrite("k3_prior", &BABrownPerspectiveCamera::k3_prior)
     .def_readwrite("constant", &BABrownPerspectiveCamera::constant)
-    .def_readwrite("focal_prior", &BABrownPerspectiveCamera::focal_prior)
     .def_readwrite("id", &BABrownPerspectiveCamera::id)
   ;
 

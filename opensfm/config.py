@@ -75,6 +75,7 @@ loss_function: SoftLOneLoss     # Loss function for the ceres problem (see: http
 loss_function_threshold: 1      # Threshold on the squared residuals.  Usually cost is quadratic for smaller residuals and sub-quadratic above.
 reprojection_error_sd: 0.004    # The startard deviation of the reprojection error
 exif_focal_sd: 0.01             # The standard deviation of the exif focal length in log-scale
+principal_point_sd: 0.01        # The standard deviation of the prinicipal point coordinates
 radial_distorsion_k1_sd: 0.01   # The standard deviation of the first radial distortion parameter
 radial_distorsion_k2_sd: 0.01   # The standard deviation of the second radial distortion parameter
 radial_distorsion_k3_sd: 0.01   # The standard deviation of the third radial distortion parameter

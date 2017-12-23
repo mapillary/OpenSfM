@@ -34,15 +34,24 @@ enum {
   BA_CAMERA_FOCAL,
   BA_CAMERA_K1,
   BA_CAMERA_K2,
-  BA_CAMERA_BASIC_RADIAL_DISTORTION_NUM_PARAMS,
-  BA_CAMERA_P1 = BA_CAMERA_BASIC_RADIAL_DISTORTION_NUM_PARAMS,
-  BA_CAMERA_P2,
-  BA_CAMERA_K3,
-  BA_CAMERA_BROWN_DISTORTION_NUM_PARAMS
+  BA_CAMERA_NUM_PARAMS
 };
 
-struct BAPerspectiveCamera : public BACamera{
-  double parameters[BA_CAMERA_BASIC_RADIAL_DISTORTION_NUM_PARAMS];
+enum {
+  BA_BROWN_CAMERA_FOCAL_X,
+  BA_BROWN_CAMERA_FOCAL_Y,
+  BA_BROWN_CAMERA_C_X,
+  BA_BROWN_CAMERA_C_Y,
+  BA_BROWN_CAMERA_K1,
+  BA_BROWN_CAMERA_K2,
+  BA_BROWN_CAMERA_P1,
+  BA_BROWN_CAMERA_P2,
+  BA_BROWN_CAMERA_K3,
+  BA_BROWN_CAMERA_NUM_PARAMS
+};
+
+struct BAPerspectiveCamera : public BACamera {
+  double parameters[BA_CAMERA_NUM_PARAMS];
   double focal_prior;
   double k1_prior;
   double k2_prior;
@@ -56,9 +65,12 @@ struct BAPerspectiveCamera : public BACamera{
   void SetK2(double v) { parameters[BA_CAMERA_K2] = v; }
 };
 
-struct BABrownPerspectiveCamera : public BACamera{
-  double parameters[BA_CAMERA_BROWN_DISTORTION_NUM_PARAMS];
-  double focal_prior;
+struct BABrownPerspectiveCamera : public BACamera {
+  double parameters[BA_BROWN_CAMERA_NUM_PARAMS];
+  double focal_x_prior;
+  double focal_y_prior;
+  double c_x_prior;
+  double c_y_prior;
   double k1_prior;
   double k2_prior;
   double p1_prior;
@@ -66,23 +78,29 @@ struct BABrownPerspectiveCamera : public BACamera{
   double k3_prior;
 
   BACameraType type() { return BA_BROWN_PERSPECTIVE_CAMERA; }
-  double GetFocal() { return parameters[BA_CAMERA_FOCAL]; }
-  double GetK1() { return parameters[BA_CAMERA_K1]; }
-  double GetK2() { return parameters[BA_CAMERA_K2]; }
-  double GetP1() { return parameters[BA_CAMERA_P1]; }
-  double GetP2() { return parameters[BA_CAMERA_P2]; }
-  double GetK3() { return parameters[BA_CAMERA_K3]; }
-  void SetFocal(double v) { parameters[BA_CAMERA_FOCAL] = v; }
-  void SetK1(double v) { parameters[BA_CAMERA_K1] = v; }
-  void SetK2(double v) { parameters[BA_CAMERA_K2] = v; }
-  void SetP1(double v) { parameters[BA_CAMERA_P1] = v; }
-  void SetP2(double v) { parameters[BA_CAMERA_P2] = v; }
-  void SetK3(double v) { parameters[BA_CAMERA_K3] = v; }
+  double GetFocalX() { return parameters[BA_BROWN_CAMERA_FOCAL_X]; }
+  double GetFocalY() { return parameters[BA_BROWN_CAMERA_FOCAL_Y]; }
+  double GetCX() { return parameters[BA_BROWN_CAMERA_C_X]; }
+  double GetCY() { return parameters[BA_BROWN_CAMERA_C_Y]; }
+  double GetK1() { return parameters[BA_BROWN_CAMERA_K1]; }
+  double GetK2() { return parameters[BA_BROWN_CAMERA_K2]; }
+  double GetP1() { return parameters[BA_BROWN_CAMERA_P1]; }
+  double GetP2() { return parameters[BA_BROWN_CAMERA_P2]; }
+  double GetK3() { return parameters[BA_BROWN_CAMERA_K3]; }
+  void SetFocalX(double v) { parameters[BA_BROWN_CAMERA_FOCAL_X] = v; }
+  void SetFocalY(double v) { parameters[BA_BROWN_CAMERA_FOCAL_Y] = v; }
+  void SetCX(double v) { parameters[BA_BROWN_CAMERA_C_X] = v; }
+  void SetCY(double v) { parameters[BA_BROWN_CAMERA_C_Y] = v; }
+  void SetK1(double v) { parameters[BA_BROWN_CAMERA_K1] = v; }
+  void SetK2(double v) { parameters[BA_BROWN_CAMERA_K2] = v; }
+  void SetP1(double v) { parameters[BA_BROWN_CAMERA_P1] = v; }
+  void SetP2(double v) { parameters[BA_BROWN_CAMERA_P2] = v; }
+  void SetK3(double v) { parameters[BA_BROWN_CAMERA_K3] = v; }
 };
 
 
 struct BAFisheyeCamera : public BACamera{
-  double parameters[BA_CAMERA_BASIC_RADIAL_DISTORTION_NUM_PARAMS];
+  double parameters[BA_CAMERA_NUM_PARAMS];
   double focal_prior;
   double k1_prior;
   double k2_prior;
@@ -284,12 +302,12 @@ void BrownPerspectiveProject(const T* const camera,
   T xp = point[0] / point[2];
   T yp = point[1] / point[2];
 
-  // Apply Brown Conrady radial and tangential distortion
-  const T& k1 = camera[BA_CAMERA_K1];
-  const T& k2 = camera[BA_CAMERA_K2];
-  const T& p1 = camera[BA_CAMERA_P1];
-  const T& p2 = camera[BA_CAMERA_P2];
-  const T& k3 = camera[BA_CAMERA_K3];
+  // Apply Brown--Conrady radial and tangential distortion
+  const T& k1 = camera[BA_BROWN_CAMERA_K1];
+  const T& k2 = camera[BA_BROWN_CAMERA_K2];
+  const T& p1 = camera[BA_BROWN_CAMERA_P1];
+  const T& p2 = camera[BA_BROWN_CAMERA_P2];
+  const T& k3 = camera[BA_BROWN_CAMERA_K3];
   T r2 = xp * xp + yp * yp;
   T radial_distortion = T(1.0) + r2  * (k1 + r2 * (k2 + r2 * k3));
 
@@ -300,9 +318,10 @@ void BrownPerspectiveProject(const T* const camera,
   T y_distorted = yp * radial_distortion + y_tangential_distortion;
 
   // Compute final projected point position.
-  const T& focal = camera[BA_CAMERA_FOCAL];
-  projection[0] = focal * x_distorted;
-  projection[1] = focal * y_distorted;
+  const T& focal_x = camera[BA_BROWN_CAMERA_FOCAL_X];
+  const T& focal_y = camera[BA_BROWN_CAMERA_FOCAL_Y];
+  projection[0] = focal_x * x_distorted;
+  projection[1] = focal_y * y_distorted;
 }
 
 struct BrownPerspectiveReprojectionError {
@@ -583,8 +602,14 @@ struct BasicRadialInternalParametersPriorError {
 };
 
 struct BrownInternalParametersPriorError {
-  BrownInternalParametersPriorError(double focal_estimate,
-                                    double focal_std_deviation,
+  BrownInternalParametersPriorError(double focal_x_estimate,
+                                    double focal_x_std_deviation,
+                                    double focal_y_estimate,
+                                    double focal_y_std_deviation,
+                                    double c_x_estimate,
+                                    double c_x_std_deviation,
+                                    double c_y_estimate,
+                                    double c_y_std_deviation,
                                     double k1_estimate,
                                     double k1_std_deviation,
                                     double k2_estimate,
@@ -595,8 +620,14 @@ struct BrownInternalParametersPriorError {
                                     double p2_std_deviation,
                                     double k3_estimate,
                                     double k3_std_deviation)
-      : log_focal_estimate_(log(focal_estimate))
-      , focal_scale_(1.0 / focal_std_deviation)
+      : log_focal_x_estimate_(log(focal_x_estimate))
+      , focal_x_scale_(1.0 / focal_x_std_deviation)
+      , log_focal_y_estimate_(log(focal_y_estimate))
+      , focal_y_scale_(1.0 / focal_y_std_deviation)
+      , c_x_estimate_(c_x_estimate)
+      , c_x_scale_(1.0 / c_x_std_deviation)
+      , c_y_estimate_(c_y_estimate)
+      , c_y_scale_(1.0 / c_y_std_deviation)
       , k1_estimate_(k1_estimate)
       , k1_scale_(1.0 / k1_std_deviation)
       , k2_estimate_(k2_estimate)
@@ -611,17 +642,26 @@ struct BrownInternalParametersPriorError {
 
   template <typename T>
   bool operator()(const T* const parameters, T* residuals) const {
-    residuals[0] = T(focal_scale_) * (log(parameters[BA_CAMERA_FOCAL]) - T(log_focal_estimate_));
-    residuals[1] = T(k1_scale_) * (parameters[BA_CAMERA_K1] - T(k1_estimate_));
-    residuals[2] = T(k2_scale_) * (parameters[BA_CAMERA_K2] - T(k2_estimate_));
-    residuals[3] = T(p1_scale_) * (parameters[BA_CAMERA_P1] - T(p1_estimate_));
-    residuals[4] = T(p2_scale_) * (parameters[BA_CAMERA_P2] - T(p2_estimate_));
-    residuals[5] = T(k3_scale_) * (parameters[BA_CAMERA_K3] - T(k3_estimate_));
+    residuals[0] = T(focal_x_scale_) * (log(parameters[BA_BROWN_CAMERA_FOCAL_X]) - T(log_focal_x_estimate_));
+    residuals[1] = T(focal_y_scale_) * (log(parameters[BA_BROWN_CAMERA_FOCAL_Y]) - T(log_focal_y_estimate_));
+    residuals[2] = T(c_x_scale_) * (parameters[BA_BROWN_CAMERA_C_X] - T(c_x_estimate_));
+    residuals[3] = T(c_y_scale_) * (parameters[BA_BROWN_CAMERA_C_Y] - T(c_y_estimate_));
+    residuals[4] = T(k1_scale_) * (parameters[BA_BROWN_CAMERA_K1] - T(k1_estimate_));
+    residuals[5] = T(k2_scale_) * (parameters[BA_BROWN_CAMERA_K2] - T(k2_estimate_));
+    residuals[6] = T(p1_scale_) * (parameters[BA_BROWN_CAMERA_P1] - T(p1_estimate_));
+    residuals[7] = T(p2_scale_) * (parameters[BA_BROWN_CAMERA_P2] - T(p2_estimate_));
+    residuals[8] = T(k3_scale_) * (parameters[BA_BROWN_CAMERA_K3] - T(k3_estimate_));
     return true;
   }
 
-  double log_focal_estimate_;
-  double focal_scale_;
+  double log_focal_x_estimate_;
+  double focal_x_scale_;
+  double log_focal_y_estimate_;
+  double focal_y_scale_;
+  double c_x_estimate_;
+  double c_x_scale_;
+  double c_y_estimate_;
+  double c_y_scale_;
   double k1_estimate_;
   double k1_scale_;
   double k2_estimate_;
@@ -751,6 +791,7 @@ class BundleAdjuster {
     loss_function_threshold_ = 1;
     reprojection_error_sd_ = 1;
     focal_prior_sd_ = 1;
+    c_prior_sd_ = 1;
     k1_sd_ = 1;
     k2_sd_ = 1;
     p1_sd_ = 1;
@@ -813,37 +854,8 @@ class BundleAdjuster {
     c.k2_prior = k2_prior;
   }
 
-  void AddBrownPerspectiveCamera(
-      const std::string &id,
-      double focal,
-      double k1,
-      double k2,
-      double p1,
-      double p2,
-      double k3,
-      double focal_prior,
-      double k1_prior,
-      double k2_prior,
-      double p1_prior,
-      double p2_prior,
-      double k3_prior,
-      bool constant) {
-    cameras_[id] = std::unique_ptr<BABrownPerspectiveCamera>(new BABrownPerspectiveCamera());
-    BABrownPerspectiveCamera &c = static_cast<BABrownPerspectiveCamera &>(*cameras_[id]);
-    c.id = id;
-    c.parameters[BA_CAMERA_FOCAL] = focal;
-    c.parameters[BA_CAMERA_K1] = k1;
-    c.parameters[BA_CAMERA_K2] = k2;
-    c.parameters[BA_CAMERA_P1] = p1;
-    c.parameters[BA_CAMERA_P2] = p2;
-    c.parameters[BA_CAMERA_K3] = k3;
-    c.constant = constant;
-    c.focal_prior = focal_prior;
-    c.k1_prior = k1_prior;
-    c.k2_prior = k2_prior;
-    c.p1_prior = p1_prior;
-    c.p2_prior = p2_prior;
-    c.k3_prior = k3_prior;
+  void AddBrownPerspectiveCamera(const BABrownPerspectiveCamera &c) {
+    cameras_[c.id] = std::unique_ptr<BABrownPerspectiveCamera>(new BABrownPerspectiveCamera(c));
   }
 
   void AddFisheyeCamera(
@@ -1033,8 +1045,9 @@ class BundleAdjuster {
     num_threads_ = n;
   }
 
-  void SetInternalParametersPriorSD(double focal_sd, double k1_sd, double k2_sd, double p1_sd, double p2_sd, double k3_sd) {
+  void SetInternalParametersPriorSD(double focal_sd, double c_sd, double k1_sd, double k2_sd, double p1_sd, double p2_sd, double k3_sd) {
     focal_prior_sd_ = focal_sd;
+    c_prior_sd_ = c_sd;
     k1_sd_ = k1_sd;
     k2_sd_ = k2_sd;
     p1_sd_ = p1_sd;
@@ -1079,21 +1092,21 @@ class BundleAdjuster {
           case BA_PERSPECTIVE_CAMERA:
           {
             BAPerspectiveCamera &c = static_cast<BAPerspectiveCamera &>(*i.second);
-            problem.AddParameterBlock(c.parameters, BA_CAMERA_BASIC_RADIAL_DISTORTION_NUM_PARAMS);
+            problem.AddParameterBlock(c.parameters, BA_CAMERA_NUM_PARAMS);
             problem.SetParameterBlockConstant(c.parameters);
             break;
           }
           case BA_BROWN_PERSPECTIVE_CAMERA:
           {
             BABrownPerspectiveCamera &c = static_cast<BABrownPerspectiveCamera &>(*i.second);
-            problem.AddParameterBlock(c.parameters, BA_CAMERA_BROWN_DISTORTION_NUM_PARAMS);
+            problem.AddParameterBlock(c.parameters, BA_BROWN_CAMERA_NUM_PARAMS);
             problem.SetParameterBlockConstant(c.parameters);
             break;
           }
           case BA_FISHEYE_CAMERA:
           {
             BAFisheyeCamera &c = static_cast<BAFisheyeCamera &>(*i.second);
-            problem.AddParameterBlock(c.parameters, BA_CAMERA_BASIC_RADIAL_DISTORTION_NUM_PARAMS);
+            problem.AddParameterBlock(c.parameters, BA_CAMERA_NUM_PARAMS);
             problem.SetParameterBlockConstant(c.parameters);
             break;
           }
@@ -1139,7 +1152,7 @@ class BundleAdjuster {
         {
           BABrownPerspectiveCamera &c = static_cast<BABrownPerspectiveCamera &>(*observation.camera);
           ceres::CostFunction* cost_function =
-              new ceres::AutoDiffCostFunction<BrownPerspectiveReprojectionError, 2, 6, 6, 3>(
+              new ceres::AutoDiffCostFunction<BrownPerspectiveReprojectionError, 2, 9, 6, 3>(
                   new BrownPerspectiveReprojectionError(observation.coordinates[0],
                                                         observation.coordinates[1],
                                                         reprojection_error_sd_));
@@ -1250,7 +1263,7 @@ class BundleAdjuster {
         {
           BABrownPerspectiveCamera &c = static_cast<BABrownPerspectiveCamera &>(*observation.camera);
           ceres::CostFunction* cost_function =
-              new ceres::AutoDiffCostFunction<GCPBrownPerspectiveProjectionError, 2, 6, 6>(
+              new ceres::AutoDiffCostFunction<GCPBrownPerspectiveProjectionError, 2, 9, 6>(
                   new GCPBrownPerspectiveProjectionError(observation.coordinates3d,
                                                          observation.coordinates2d,
                                                          reprojection_error_sd_));
@@ -1304,8 +1317,11 @@ class BundleAdjuster {
           BABrownPerspectiveCamera &c = static_cast<BABrownPerspectiveCamera &>(*i.second);
 
           ceres::CostFunction* cost_function =
-              new ceres::AutoDiffCostFunction<BrownInternalParametersPriorError, 6, 6>(
-                  new BrownInternalParametersPriorError(c.focal_prior, focal_prior_sd_,
+              new ceres::AutoDiffCostFunction<BrownInternalParametersPriorError, 9, 9>(
+                  new BrownInternalParametersPriorError(c.focal_x_prior, focal_prior_sd_,
+                                                        c.focal_y_prior, focal_prior_sd_,
+                                                        c.c_x_prior, c_prior_sd_,
+                                                        c.c_y_prior, c_prior_sd_,
                                                         c.k1_prior, k1_sd_,
                                                         c.k2_prior, k2_sd_,
                                                         c.p1_prior, p1_sd_,
@@ -1504,6 +1520,7 @@ class BundleAdjuster {
   double loss_function_threshold_;
   double reprojection_error_sd_;
   double focal_prior_sd_;
+  double c_prior_sd_;
   double k1_sd_;
   double k2_sd_;
   double p1_sd_;
