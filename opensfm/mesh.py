@@ -16,7 +16,7 @@ def triangle_mesh(shot_id, r, graph, data):
 
     shot = r.shots[shot_id]
 
-    if shot.camera.projection_type == 'perspective':
+    if shot.camera.projection_type in ['perspective', 'brown']:
         return triangle_mesh_perspective(shot_id, r, graph)
     elif shot.camera.projection_type == 'fisheye':
         return triangle_mesh_fisheye(shot_id, r, graph)

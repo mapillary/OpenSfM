@@ -23,7 +23,7 @@ surf_n_octaves: 4             # See OpenCV doc
 surf_n_octavelayers: 2        # See OpenCV doc
 surf_upright: 0               # See OpenCV doc
 
-# Params for AKAZE (See detials in lib/src/third_party/akaze/AKAZEConfig.h)
+# Params for AKAZE (See details in lib/src/third_party/akaze/AKAZEConfig.h)
 akaze_omax: 4                      # Maximum octave evolution of the image 2^sigma (coarsest scale sigma units)
 akaze_dthreshold: 0.001            # Detector response threshold to accept point
 akaze_descriptor: MSURF            # Feature type
@@ -57,7 +57,7 @@ preemptive_threshold: 0               # If number of matches passes the threshol
 
 # Params for geometric estimation
 robust_matching_threshold: 0.004      # Outlier threshold for fundamental matrix estimation as portion of image width
-robust_matching_min_match: 20         # Minimum number of matches to be considered as an edge in the match grph
+robust_matching_min_match: 20         # Minimum number of matches to be considered as an edge in the match graph
 five_point_algo_threshold: 0.004      # Outlier threshold (in pixels) for essential matrix estimation
 five_point_algo_min_inliers: 20       # Minimum number of inliers for considering a two view reconstruction valid.
 triangulation_threshold: 0.006        # Outlier threshold (in pixels) for accepting a triangulated point.
@@ -73,10 +73,15 @@ min_track_length: 2             # Minimum number of features/images per track
 # Params for bundle adjustment
 loss_function: SoftLOneLoss     # Loss function for the ceres problem (see: http://ceres-solver.org/modeling.html#lossfunction)
 loss_function_threshold: 1      # Threshold on the squared residuals.  Usually cost is quadratic for smaller residuals and sub-quadratic above.
-reprojection_error_sd: 0.004    # The startard deviation of the reprojection error
+reprojection_error_sd: 0.004    # The standard deviation of the reprojection error
 exif_focal_sd: 0.01             # The standard deviation of the exif focal length in log-scale
-radial_distorsion_k1_sd: 0.01   # The standard deviation of the first radial distortion parameter (mean assumed to be 0)
-radial_distorsion_k2_sd: 0.01   # The standard deviation of the second radial distortion parameter (mean assumed to be 0)
+principal_point_sd: 0.01        # The standard deviation of the principal point coordinates
+radial_distorsion_k1_sd: 0.01   # The standard deviation of the first radial distortion parameter
+radial_distorsion_k2_sd: 0.01   # The standard deviation of the second radial distortion parameter
+radial_distorsion_k3_sd: 0.01   # The standard deviation of the third radial distortion parameter
+radial_distorsion_p1_sd: 0.01   # The standard deviation of the first tangential distortion parameter
+radial_distorsion_p2_sd: 0.01   # The standard deviation of the second tangential distortion parameter
+
 bundle_outlier_threshold: 0.006 # Points with larger reprojection error after bundle adjustment are removed
 bundle_interval: 0              # Bundle after adding 'bundle_interval' cameras
 bundle_new_points_ratio: 1.2    # Bundle when (new points) / (bundled points) > bundle_new_points_ratio
@@ -85,7 +90,7 @@ local_bundle_radius: 0          # Max image graph distance for images to be incl
 
 save_partial_reconstructions: no
 
-# Params for GPS aligment
+# Params for GPS alignment
 use_altitude_tag: no                  # Use or ignore EXIF altitude tag
 align_method: orientation_prior       # orientation_prior or naive
 align_orientation_prior: horizontal   # horizontal, vertical or no_roll
@@ -96,21 +101,21 @@ bundle_use_gcp: no                    # Enforce Ground Control Point position in
 nav_min_distance: 0.01                # Minimum distance for a possible edge between two nodes
 nav_step_pref_distance: 6             # Preferred distance between camera centers
 nav_step_max_distance: 20             # Maximum distance for a possible step edge between two nodes
-nav_turn_max_distance: 15             # Maixmum distance for a possible turn edge between two nodes
+nav_turn_max_distance: 15             # Maximum distance for a possible turn edge between two nodes
 nav_step_forward_view_threshold: 15   # Maximum difference of angles in degrees between viewing directions for forward steps
 nav_step_view_threshold: 30           # Maximum difference of angles in degrees between viewing directions for other steps
 nav_step_drift_threshold: 36          # Maximum motion drift with respect to step directions for steps in degrees
 nav_turn_view_threshold: 40           # Maximum difference of angles in degrees with respect to turn directions
-nav_vertical_threshold: 20            # Maximum vertical angle difference in motion and viewving direction in degrees
+nav_vertical_threshold: 20            # Maximum vertical angle difference in motion and viewing direction in degrees
 nav_rotation_threshold: 30            # Maximum general rotation in degrees between cameras for steps
 
 # Params for depth estimation
-depthmap_method: PATCH_MATCH          # Raw depthmap computationg algorithm (PATCH_MATCH, BRUTE_FORCE, PATCH_MATCH_SAMPLE)
+depthmap_method: PATCH_MATCH          # Raw depthmap computation algorithm (PATCH_MATCH, BRUTE_FORCE, PATCH_MATCH_SAMPLE)
 depthmap_resolution: 640              # Resolution of the depth maps
 depthmap_num_neighbors: 10            # Number of neighboring views
 depthmap_num_matching_views: 2        # Number of neighboring views used for each depthmaps
 depthmap_patchmatch_iterations: 3     # Number of PatchMatch iterations to run
-depthmap_min_patch_sd: 5.0            # Patches with lower stardard deviation are ignored
+depthmap_min_patch_sd: 5.0            # Patches with lower standard deviation are ignored
 depthmap_min_correlation_score: 0.7   # Minimum correlation score to accept a depth value
 depthmap_same_depth_threshold: 0.005  # Threshold to measure depth closeness
 depthmap_min_consistent_views: 3      # Min number of views that should reconstruct a point for it to be valid
@@ -130,14 +135,12 @@ submodel_use_symlinks: yes                                          # Symlink gl
 
 
 def default_config():
-    '''Return default configuration
-    '''
+    """Return default configuration"""
     return yaml.load(default_config_yaml)
 
 
 def load_config(filepath):
-    '''Load config from a config.yaml filepath
-    '''
+    """Load config from a config.yaml filepath"""
     config = default_config()
 
     if os.path.isfile(filepath):
