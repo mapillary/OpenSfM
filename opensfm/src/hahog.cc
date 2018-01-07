@@ -107,10 +107,8 @@ bp::object hahog(PyObject *image,
     // std::cout << "description " << float(t_description - t_orient)/CLOCKS_PER_SEC << "\n";
 
     bp::list retn;
-    npy_intp points_shape[2] = {npy_intp(numFeatures), 6};
-    retn.append(bpn_array_from_data(2, points_shape, &points[0]));
-    npy_intp desc_shape[2] = {npy_intp(numFeatures), npy_intp(dimension)};
-    retn.append(bpn_array_from_data(2, desc_shape, &desc[0]));
+    retn.append(bpn_array_from_data(&points[0], numFeatures, 6));
+    retn.append(bpn_array_from_data(&desc[0], numFeatures, dimension));
     return retn;
   }
   return bp::object();

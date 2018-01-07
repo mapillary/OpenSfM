@@ -54,12 +54,10 @@ class DepthmapEstimatorWrapper {
                                  const cv::Mat &score,
                                  const cv::Mat &nghbr) {
     bp::list retn;
-    npy_intp shape[2] = {depth.rows, depth.cols};
-    npy_intp plane_shape[3] = {depth.rows, depth.cols, 3};
-    retn.append(bpn_array_from_data(2, shape, depth.ptr<float>(0)));
-    retn.append(bpn_array_from_data(3, plane_shape, plane.ptr<float>(0)));
-    retn.append(bpn_array_from_data(2, shape, score.ptr<float>(0)));
-    retn.append(bpn_array_from_data(2, shape, nghbr.ptr<int>(0)));
+    retn.append(bpn_array_from_data(depth.ptr<float>(0), depth.rows, depth.cols));
+    retn.append(bpn_array_from_data(plane.ptr<float>(0), plane.rows, plane.cols, 3));
+    retn.append(bpn_array_from_data(score.ptr<float>(0), score.rows, score.cols));
+    retn.append(bpn_array_from_data(nghbr.ptr<int>(0), nghbr.rows, nghbr.cols));
     return retn;
   }
 
@@ -93,8 +91,7 @@ class DepthmapCleanerWrapper {
   bp::object Clean() {
     cv::Mat depth;
     dc_.Clean(&depth);
-    npy_intp shape[2] = {depth.rows, depth.cols};
-    return bpn_array_from_data(2, shape, depth.ptr<float>(0));
+    return bpn_array_from_data(depth.ptr<float>(0), depth.rows, depth.cols);
   }
 
  private:
@@ -133,10 +130,10 @@ class DepthmapPrunerWrapper {
     dp_.Prune(&points, &normals, &colors);
 
     bp::list retn;
-    npy_intp shape[2] = {int(points.size()) / 3, 3};
-    retn.append(bpn_array_from_data(2, shape, &points[0]));
-    retn.append(bpn_array_from_data(2, shape, &normals[0]));
-    retn.append(bpn_array_from_data(2, shape, &colors[0]));
+    int n = int(points.size()) / 3;
+    retn.append(bpn_array_from_data(&points[0], n, 3));
+    retn.append(bpn_array_from_data(&normals[0], n, 3));
+    retn.append(bpn_array_from_data(&colors[0], n, 3));
     return retn;
   }
 

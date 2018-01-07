@@ -2,16 +2,20 @@
 #define __TYPES_H__
 
 #include <boost/python.hpp>
+#ifdef USE_BOOST_PYTHON_NUMPY
+#include <boost/python/numpy.hpp>
+#endif
+
 #include <vector>
 #include <iostream>
 
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
-#include <numpy/ndarrayobject.h> 
+#include <numpy/ndarrayobject.h>
+
 
 namespace csfm {
 
 namespace bp = boost::python;
-namespace bpn = boost::python::numeric;
 
 template <typename T> inline int numpy_typenum() {}
 template <> inline int numpy_typenum<bool>() { return NPY_BOOL; }
@@ -39,25 +43,84 @@ template <> inline const char *type_string<unsigned long long>() { return "uint6
 template <> inline const char *type_string<float>() { return "float32"; }
 template <> inline const char *type_string<double>() { return "float64"; }
 
+
+#ifdef USE_BOOST_PYTHON_NUMPY
+
+namespace bpn = boost::python::numpy;
+typedef bpn::ndarray ndarray;
+
 template <typename T>
-bp::object bpn_array_from_data(int nd, npy_intp *shape, const T *data) {
+bp::object bpn_array_from_data(const T *data, int shape0) {
+  bp::tuple shape = bp::make_tuple(shape0);
+  bpn::dtype dtype =  bpn::dtype::get_builtin<T>();
+  bpn::ndarray res = bpn::empty(shape, dtype);
+  std::copy(data, data + shape0, reinterpret_cast<T*>(res.get_data()));
+  return res;
+}
+
+template <typename T>
+bp::object bpn_array_from_data(const T *data, int shape0, int shape1) {
+  bp::tuple shape = bp::make_tuple(shape0, shape1);
+  bpn::dtype dtype =  bpn::dtype::get_builtin<T>();
+  bpn::ndarray res = bpn::empty(shape, dtype);
+  std::copy(data, data + shape0 * shape1, reinterpret_cast<T*>(res.get_data()));
+  return res;
+}
+
+template <typename T>
+bp::object bpn_array_from_data(const T *data, int shape0, int shape1, int shape2) {
+  bp::tuple shape = bp::make_tuple(shape0, shape1, shape2);
+  bpn::dtype dtype =  bpn::dtype::get_builtin<T>();
+  bpn::ndarray res = bpn::empty(shape, dtype);
+  std::copy(data, data + shape0 * shape1 * shape2, reinterpret_cast<T*>(res.get_data()));
+  return res;
+}
+
+#else
+
+namespace bpn = boost::python::numeric;
+typedef bpn::array ndarray;
+
+template <typename T>
+bp::object bpn_array_from_data(const T *data, int shape0) {
+  npy_intp shape[1] = {shape0};
   PyObject *pyarray = PyArray_SimpleNewFromData(
-      nd, shape, numpy_typenum<T>(), (void *)data);
+      1, shape, numpy_typenum<T>(), (void *)data);
   bp::handle<> handle(pyarray);
   return bpn::array(handle).copy(); // copy the object. numpy owns the copy now.
 }
 
 template <typename T>
+bp::object bpn_array_from_data(const T *data, int shape0, int shape1) {
+  npy_intp shape[2] = {shape0, shape1};
+  PyObject *pyarray = PyArray_SimpleNewFromData(
+      2, shape, numpy_typenum<T>(), (void *)data);
+  bp::handle<> handle(pyarray);
+  return bpn::array(handle).copy(); // copy the object. numpy owns the copy now.
+}
+
+template <typename T>
+bp::object bpn_array_from_data(const T *data, int shape0, int shape1, int shape2) {
+  npy_intp shape[3] = {shape0, shape1, shape2};
+  PyObject *pyarray = PyArray_SimpleNewFromData(
+      3, shape, numpy_typenum<T>(), (void *)data);
+  bp::handle<> handle(pyarray);
+  return bpn::array(handle).copy(); // copy the object. numpy owns the copy now.
+}
+
+#endif
+
+
+template <typename T>
 bp::object bpn_array_from_vector(const std::vector<T> &v) {
-  npy_intp shape[] = { v.size() };
   const T *data = v.size() ? &v[0] : NULL;
-  return bpn_array_from_data(1, shape, data);
+  return bpn_array_from_data(data, v.size());
 }
 
 template<typename T>
 class PyArrayContiguousView {
  public:
-  PyArrayContiguousView(bpn::array array) {
+  PyArrayContiguousView(ndarray array) {
     init((PyArrayObject *)array.ptr());
   }
 

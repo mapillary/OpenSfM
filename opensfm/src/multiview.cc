@@ -122,9 +122,8 @@ bp::object TriangulateBearingsDLT(const bp::list &Rts_list,
     }
   }
 
-  npy_intp Xe_shape[1] = {3};
   return TriangulateReturn(TRIANGULATION_OK,
-      bpn_array_from_data(1, Xe_shape, X.data()));
+                           bpn_array_from_data(X.data(), 3));
 }
 
 
@@ -207,9 +206,8 @@ bp::object TriangulateBearingsMidpoint(const bp::list &os_list,
     }
   }
 
-  npy_intp Xe_shape[1] = {3};
   return TriangulateReturn(TRIANGULATION_OK,
-                           bpn_array_from_data(1, Xe_shape, X.data()));
+                           bpn_array_from_data(X.data(), 3));
 }
 
 

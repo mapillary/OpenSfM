@@ -2,9 +2,6 @@
 #include <iostream>
 #include <vector>
 
-#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
-#include <numpy/ndarrayobject.h>
-
 #include "types.h"
 #include "hahog.cc"
 #include "multiview.cc"
@@ -28,7 +25,11 @@ BOOST_PYTHON_MODULE(csfm) {
   using namespace boost::python;
 
   google::InitGoogleLogging("csfm");
+#ifdef USE_BOOST_PYTHON_NUMPY
+  boost::python::numpy::initialize();
+#else
   boost::python::numeric::array::set_module_and_type("numpy", "ndarray");
+#endif
   numpy_import_array_wrapper();
 
 

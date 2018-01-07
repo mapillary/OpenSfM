@@ -46,8 +46,18 @@ include_directories(${GLOG_INCLUDE_DIR})
 find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 
-find_package(Boost COMPONENTS python REQUIRED)
-include_directories(${Boost_INCLUDE_DIRS})
+find_package(Boost REQUIRED COMPONENTS python)
+
+if(${Boost_VERSION} LESS 106300)
+    message("Not using boost/python/numpy.")
+    set(USE_BOOST_PYTHON_NUMPY "off")
+else()
+    message("Using boost/python/numpy.")
+    set(USE_BOOST_PYTHON_NUMPY "on")
+    add_definitions(-DUSE_BOOST_PYTHON_NUMPY)
+
+    find_package(Boost 1.63 REQUIRED COMPONENTS python numpy)
+endif()
 
 set(Python_ADDITIONAL_VERSIONS "2.7")
 find_package(PythonLibs REQUIRED)
@@ -77,7 +87,7 @@ target_link_libraries(akaze ${OpenCV_LIBS})
 # VLFeat
 include_directories(third_party/vlfeat)
 file(GLOB VLFEAT_SRCS third_party/vlfeat/vl/*.c third_party/vlfeat/vl/*.h)
-if (NOT CMAKE_SYSTEM_PROCESSOR MATCHES 
+if (NOT CMAKE_SYSTEM_PROCESSOR MATCHES
     "(x86)|(X86)|(x86_64)|(X86_64)|(amd64)|(AMD64)")
     add_definitions(-DVL_DISABLE_SSE2)
 endif ()
