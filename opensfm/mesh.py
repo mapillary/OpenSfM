@@ -73,7 +73,9 @@ def back_project_no_distortion(shot, pixel, depth):
     '''
     Back-project a pixel of a perspective camera ignoring its radial distortion
     '''
-    p = np.array([pixel[0], pixel[1], shot.camera.focal])
+    K = shot.camera.get_K()
+    K1 = np.linalg.inv(K)
+    p = np.dot(K1, [pixel[0], pixel[1], 1])
     p *= depth / p[2]
     return shot.pose.transform_inverse(p)
 
