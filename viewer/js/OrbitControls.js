@@ -256,9 +256,13 @@ THREE.OrbitControls = function ( object, domElement ) {
 	};
 
 	this.goto_shot = function(cam, shot) {
+		if (cam.projection_type == 'equirectangular') {
+			this.animationTarget.add(opticalCenter(shot)).sub(this.animationPosition);
+		} else {
+			var offset = pixelToVertex(cam, shot, 0, 0, 20);
+			this.animationTarget.copy(offset);
+		}
 		this.animationPosition.copy(opticalCenter(shot));
-		var offset = pixelToVertex(cam, shot, 0, 0, 20);
-		this.animationTarget.copy(offset);
 	};
 
 	this.goto = function(position, target) {

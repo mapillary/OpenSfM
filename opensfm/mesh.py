@@ -16,7 +16,7 @@ def triangle_mesh(shot_id, r, graph, data):
 
     shot = r.shots[shot_id]
 
-    if shot.camera.projection_type == 'perspective':
+    if shot.camera.projection_type in ['perspective', 'brown']:
         return triangle_mesh_perspective(shot_id, r, graph)
     elif shot.camera.projection_type == 'fisheye':
         return triangle_mesh_fisheye(shot_id, r, graph)
@@ -73,7 +73,9 @@ def back_project_no_distortion(shot, pixel, depth):
     '''
     Back-project a pixel of a perspective camera ignoring its radial distortion
     '''
-    p = np.array([pixel[0], pixel[1], shot.camera.focal])
+    K = shot.camera.get_K()
+    K1 = np.linalg.inv(K)
+    p = np.dot(K1, [pixel[0], pixel[1], 1])
     p *= depth / p[2]
     return shot.pose.transform_inverse(p)
 

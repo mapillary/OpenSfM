@@ -38,8 +38,27 @@ Normalized coordinates are independent of the resolution of the image and give b
 Pixel Coordinates
 `````````````````
 
-Many OpenCV functions that work with images use *pixel coordinates*.  In that reference frame, the origin is at the center of the top-left pixel, x grow by one for every pixel to the right and y grows by one for every pixel downwards.  The bottom-right pixel is therefore at ``(width -1, height - 1)``.
+Many OpenCV functions that work with images use *pixel coordinates*.  In that reference frame, the origin is at the center of the top-left pixel, x grow by one for every pixel to the right and y grows by one for every pixel downwards.  The bottom-right pixel is therefore at ``(width - 1, height - 1)``.
 
+The transformation from normalised image coordinates to pixel coordinates is
+
+.. math::
+   H = \begin{pmatrix}
+            \max(w, h) & 0 & \frac{w-1}{2} \\
+            0 & \max(w, h) & \frac{h-1}{2} \\
+            0 & 0 & 1
+        \end{pmatrix},
+
+and its inverse
+
+.. math::
+   H^{-1} = \begin{pmatrix}
+            1 & 0 & -\frac{w-1}{2} \\
+            0 & 1 & -\frac{h-1}{2} \\
+            0 & 0 & \max(w, h)
+        \end{pmatrix},
+
+where :math:`w` and :math:`h` being the width and height of the image.
 
 World Coordinates
 `````````````````

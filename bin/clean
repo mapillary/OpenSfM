@@ -16,3 +16,4 @@ mv -vf $1/depthmaps $trash
 mv -vf $1/features $trash
 mv -vf $1/undistorted* $trash
 mv -vf $1/tracks.csv $trash
+mv -vf $1/reports $trash

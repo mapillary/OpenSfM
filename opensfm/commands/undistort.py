@@ -42,6 +42,15 @@ class Command:
                 urec.add_camera(shot.camera)
                 urec.add_shot(shot)
                 undistorted_shots[shot.id] = [shot]
+            elif shot.camera.projection_type == 'brown':
+                ushot = types.Shot()
+                ushot.id = shot.id
+                ushot.camera = perspective_camera_from_brown(shot.camera)
+                ushot.pose = shot.pose
+                ushot.metadata = shot.metadata
+                urec.add_camera(ushot.camera)
+                urec.add_shot(ushot)
+                undistorted_shots[shot.id] = [ushot]
             elif shot.camera.projection_type == 'fisheye':
                 ushot = types.Shot()
                 ushot.id = shot.id
@@ -79,6 +88,11 @@ def undistort_image(arguments):
         image = data.image_as_array(shot.id)
         undistorted = undistort_perspective_image(image, shot.camera)
         data.save_undistorted_image(shot.id, undistorted)
+    elif shot.camera.projection_type == 'brown':
+        image = data.image_as_array(shot.id)
+        new_camera = undistorted_shots[0].camera
+        undistorted = undistort_brown_image(image, shot.camera, new_camera)
+        data.save_undistorted_image(shot.id, undistorted)
     elif shot.camera.projection_type == 'fisheye':
         image = data.image_as_array(shot.id)
         undistorted = undistort_fisheye_image(image, shot.camera)
@@ -93,6 +107,10 @@ def undistort_image(arguments):
             undistorted = render_perspective_view_of_a_panorama(
                 image, shot, subshot)
             data.save_undistorted_image(subshot.id, undistorted)
+    else:
+        raise NotImplementedError(
+            'Undistort not implemented for projection type: {}'.format(
+                shot.camera.projection_type))
 
 
 def undistort_perspective_image(image, camera):
@@ -103,12 +121,33 @@ def undistort_perspective_image(image, camera):
     return cv2.undistort(image, K, distortion)
 
 
+def undistort_brown_image(image, camera, new_camera):
+    """Remove radial distortion from a brown image."""
+    height, width = image.shape[:2]
+    K = camera.get_K_in_pixel_coordinates(width, height)
+    distortion = np.array([camera.k1, camera.k2, camera.p1, camera.p2, camera.k3])
+    new_K = new_camera.get_K_in_pixel_coordinates(width, height)
+    return cv2.undistort(image, K, distortion, new_K)
+
+
 def undistort_fisheye_image(image, camera):
-    """Remove radial distortion from a perspective image."""
+    """Remove radial distortion from a fisheye image."""
     height, width = image.shape[:2]
     K = camera.get_K_in_pixel_coordinates(width, height)
     distortion = np.array([camera.k1, camera.k2, 0, 0])
     return cv2.fisheye.undistortImage(image, K, distortion, Knew=K)
+
+
+def perspective_camera_from_brown(brown):
+    """Create a perspective camera froma a Brown camera."""
+    camera = types.PerspectiveCamera()
+    camera.id = brown.id
+    camera.width = brown.width
+    camera.height = brown.height
+    camera.focal = (brown.focal_x + brown.focal_y) / 2.0
+    camera.focal_prior = (brown.focal_x_prior + brown.focal_y_prior) / 2.0
+    camera.k1 = camera.k1_prior = camera.k2 = camera.k2_prior = 0.0
+    return camera
 
 
 def perspective_camera_from_fisheye(fisheye):

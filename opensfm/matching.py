@@ -15,21 +15,21 @@ logger = logging.getLogger(__name__)
 
 # pairwise matches
 def match_lowe(index, f2, config):
-    search_params = dict(checks=config.get('flann_checks', 200))
+    search_params = dict(checks=config['flann_checks'])
     results, dists = index.knnSearch(f2, 2, params=search_params)
-    squared_ratio = config.get('lowes_ratio', 0.6)**2  # Flann returns squared L2 distances
+    squared_ratio = config['lowes_ratio']**2  # Flann returns squared L2 distances
     good = dists[:, 0] < squared_ratio * dists[:, 1]
     matches = zip(results[good, 0], good.nonzero()[0])
     return np.array(matches, dtype=int)
 
 
 def match_symmetric(fi, indexi, fj, indexj, config):
-    if config.get('matcher_type', 'FLANN') == 'FLANN':
-        matches_ij = [(a,b) for a,b in match_lowe(indexi, fj, config)]
-        matches_ji = [(b,a) for a,b in match_lowe(indexj, fi, config)]
+    if config['matcher_type'] == 'FLANN':
+        matches_ij = [(a, b) for a, b in match_lowe(indexi, fj, config)]
+        matches_ji = [(b, a) for a, b in match_lowe(indexj, fi, config)]
     else:
-        matches_ij = [(a,b) for a,b in match_lowe_bf(fi, fj, config)]
-        matches_ji = [(b,a) for a,b in match_lowe_bf(fj, fi, config)]
+        matches_ij = [(a, b) for a, b in match_lowe_bf(fi, fj, config)]
+        matches_ji = [(b, a) for a, b in match_lowe_bf(fj, fi, config)]
 
     matches = set(matches_ij).intersection(set(matches_ji))
     return np.array(list(matches), dtype=int)
@@ -38,11 +38,11 @@ def match_symmetric(fi, indexi, fj, indexj, config):
 def convert_matches_to_vector(matches):
     '''Convert Dmatch object to matrix form
     '''
-    matches_vector = np.zeros((len(matches),2),dtype=np.int)
+    matches_vector = np.zeros((len(matches), 2), dtype=np.int)
     k = 0
     for mm in matches:
-        matches_vector[k,0] = mm.queryIdx
-        matches_vector[k,1] = mm.trainIdx
+        matches_vector[k, 0] = mm.queryIdx
+        matches_vector[k, 1] = mm.trainIdx
         k = k+1
     return matches_vector
 
@@ -50,7 +50,7 @@ def convert_matches_to_vector(matches):
 def match_lowe_bf(f1, f2, config):
     '''Bruteforce feature matching
     '''
-    assert(f1.dtype.type==f2.dtype.type)
+    assert(f1.dtype.type == f2.dtype.type)
     if (f1.dtype.type == np.uint8):
         matcher_type = 'BruteForce-Hamming'
     else:
@@ -58,7 +58,7 @@ def match_lowe_bf(f1, f2, config):
     matcher = cv2.DescriptorMatcher_create(matcher_type)
     matches = matcher.knnMatch(f1, f2, k=2)
 
-    ratio = config.get('lowes_ratio', 0.6)
+    ratio = config['lowes_ratio']
     good_matches = []
     for match in matches:
         if match and len(match) == 2:
@@ -79,10 +79,10 @@ def robust_match_fundamental(p1, p2, matches, config):
     p2 = p2[matches[:, 1]][:, :2].copy()
 
     FM_RANSAC = cv2.FM_RANSAC if context.OPENCV3 else cv2.cv.CV_FM_RANSAC
-    F, mask = cv2.findFundamentalMat(p1, p2, FM_RANSAC, config.get('robust_matching_threshold', 0.006), 0.9999)
+    F, mask = cv2.findFundamentalMat(p1, p2, FM_RANSAC, config['robust_matching_threshold'], 0.9999)
     inliers = mask.ravel().nonzero()
 
-    if F[2,2] == 0.0:
+    if F[2, 2] == 0.0:
         return []
 
     return matches[inliers]
@@ -158,7 +158,7 @@ def create_tracks_graph(features, colors, matches, config):
         else:
             sets[p] = [i]
 
-    tracks = [t for t in sets.values() if good_track(t, config.get('min_track_length', 2))]
+    tracks = [t for t in sets.values() if good_track(t, config['min_track_length'])]
     logger.debug('Good tracks: {}'.format(len(tracks)))
 
     tracks_graph = nx.Graph()
@@ -211,8 +211,8 @@ def common_tracks(g, im1, im2):
 
 
 def all_common_tracks(graph, tracks, include_features=True, min_common=50):
-    """
-    Returns a dictionary mapping image pairs to the list of tracks observed in both images
+    """List of tracks observed by each image pair.
+
     :param graph: Graph structure (networkx) as returned by :method:`DataSet.tracks_graph`
     :param tracks: list of track identifiers
     :param include_features: whether to include the features from the images
@@ -220,19 +220,20 @@ def all_common_tracks(graph, tracks, include_features=True, min_common=50):
     :return: tuple: im1, im2 -> tuple: tracks, features from first image, features from second image
     """
     track_dict = defaultdict(list)
-    for tr in tracks:
-        track_images = sorted(graph[tr].keys())
-        for pair in combinations(track_images, 2):
-            track_dict[pair].append(tr)
+    for track in tracks:
+        track_images = sorted(graph[track].keys())
+        for im1, im2 in combinations(track_images, 2):
+            track_dict[im1, im2].append(track)
+
     common_tracks = {}
     for k, v in track_dict.iteritems():
         if len(v) < min_common:
             continue
+        im1, im2 = k
         if include_features:
-            t1, t2 = graph[k[0]], graph[k[1]]
-            p1 = np.array([t1[tr]['feature'] for tr in v])
-            p2 = np.array([t2[tr]['feature'] for tr in v])
-            common_tracks[k] = (v, p1, p2)
+            p1 = np.array([graph[im1][tr]['feature'] for tr in v])
+            p2 = np.array([graph[im2][tr]['feature'] for tr in v])
+            common_tracks[im1, im2] = (v, p1, p2)
         else:
-            common_tracks[k] = v
+            common_tracks[im1, im2] = v
     return common_tracks

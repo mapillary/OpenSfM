@@ -1,12 +1,13 @@
 import logging
-import time
 from itertools import combinations
+from timeit import default_timer as timer
 
 import numpy as np
 import scipy.spatial as spatial
 
 from opensfm import dataset
 from opensfm import geo
+from opensfm import io
 from opensfm import log
 from opensfm import matching
 from opensfm.context import parallel_map
@@ -26,7 +27,7 @@ class Command:
         data = dataset.DataSet(args.dataset)
         images = data.images()
         exifs = {im: data.load_exif(im) for im in images}
-        pairs = match_candidates_from_metadata(images, exifs, data)
+        pairs, preport = match_candidates_from_metadata(images, exifs, data)
 
         num_pairs = sum(len(c) for c in pairs.values())
         logger.info('Matching {} image pairs'.format(num_pairs))
@@ -38,12 +39,27 @@ class Command:
         ctx.p_pre, ctx.f_pre = load_preemptive_features(data)
         args = list(match_arguments(pairs, ctx))
 
-        start = time.time()
-        processes = ctx.data.config.get('processes', 1)
+        start = timer()
+        processes = ctx.data.config['processes']
         parallel_map(match, args, processes)
-        end = time.time()
+        end = timer()
         with open(ctx.data.profile_log(), 'a') as fout:
             fout.write('match_features: {0}\n'.format(end - start))
+        self.write_report(data, preport, pairs, end - start)
+
+    def write_report(self, data, preport, pairs, wall_time):
+        pair_list = []
+        for im1, others in pairs.items():
+            for im2 in others:
+                pair_list.append((im1, im2))
+
+        report = {
+            "wall_time": wall_time,
+            "num_pairs": len(pair_list),
+            "pairs": pair_list,
+        }
+        report.update(preport)
+        data.save_report(io.json_dumps(report), 'matches.json')
 
 
 class Context:
@@ -61,10 +77,8 @@ def load_preemptive_features(data):
             except IOError:
                 p, f, c = data.load_features(image)
                 p[image], f[image] = p, f
-            preemptive_max = min(
-                data.config.get('preemptive_max',
-                                p[image].shape[0]),
-                p[image].shape[0])
+            preemptive_max = min(data.config['preemptive_max'],
+                                 p[image].shape[0])
             p[image] = p[image][:preemptive_max, :]
             f[image] = f[image][:preemptive_max, :]
     return p, f
@@ -163,6 +177,9 @@ def match_candidates_from_metadata(images, exifs, data):
 
     if max_distance == gps_neighbors == time_neighbors == order_neighbors == 0:
         # All pair selection strategies deactivated so we match all pairs
+        d = set()
+        t = set()
+        o = set()
         pairs = combinations(images, 2)
     else:
         d = match_candidates_by_distance(images, exifs, reference,
@@ -174,7 +191,13 @@ def match_candidates_from_metadata(images, exifs, data):
     res = {im: [] for im in images}
     for im1, im2 in pairs:
         res[im1].append(im2)
-    return res
+
+    report = {
+        "num_pairs_distance": len(d),
+        "num_pairs_time": len(t),
+        "num_pairs_order": len(o)
+    }
+    return res, report
 
 
 def match_arguments(pairs, ctx):
@@ -200,13 +223,13 @@ def match(args):
     for im2 in candidates:
         # preemptive matching
         if preemptive_threshold > 0:
-            t = time.time()
+            t = timer()
             config['lowes_ratio'] = preemptive_lowes_ratio
             matches_pre = matching.match_lowe_bf(
                 ctx.f_pre[im1], ctx.f_pre[im2], config)
             config['lowes_ratio'] = lowes_ratio
             logger.debug("Preemptive matching {0}, time: {1}s".format(
-                len(matches_pre), time.time() - t))
+                len(matches_pre), timer() - t))
             if len(matches_pre) < preemptive_threshold:
                 logger.debug(
                     "Discarding based of preemptive matches {0} < {1}".format(
@@ -214,7 +237,7 @@ def match(args):
                 continue
 
         # symmetric matching
-        t = time.time()
+        t = timer()
         p1, f1, c1 = ctx.data.load_features(im1)
         p2, f2, c2 = ctx.data.load_features(im2)
 
@@ -233,7 +256,7 @@ def match(args):
             continue
 
         # robust matching
-        t_robust_matching = time.time()
+        t_robust_matching = timer()
         camera1 = ctx.cameras[ctx.exifs[im1]['camera']]
         camera2 = ctx.cameras[ctx.exifs[im2]['camera']]
 
@@ -245,8 +268,8 @@ def match(args):
             continue
         im1_matches[im2] = rmatches
         logger.debug('Robust matching time : {0}s'.format(
-            time.time() - t_robust_matching))
+            timer() - t_robust_matching))
 
         logger.debug("Full matching {0} / {1}, time: {2}s".format(
-            len(rmatches), len(matches), time.time() - t))
+            len(rmatches), len(matches), timer() - t))
     ctx.data.save_matches(im1, im1_matches)

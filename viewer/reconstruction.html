@@ -306,7 +306,7 @@
                 var gui = new dat.GUI();
 
                 f1 = gui.addFolder('Options');
-                f1.add(options, 'pointSize', 0, 10)
+                f1.add(options, 'pointSize', 0, 2)
                     .listen()
                     .onChange(setPointSize);
                 f1.add(options, 'cameraSize', 0, 2)
@@ -1131,8 +1131,9 @@
                     var r = line.reconstruction;
                     var shot_id = line.shot_id;
                     var shot = r['shots'][shot_id];
+                    var cam = r['cameras'][shot['camera']];
                     var oc = opticalCenter(shot);
-                    var dir = viewingDirection(shot);
+                    var dir = cam.projection_type == 'equirectangular' ? currentDir : viewingDirection(shot);
                     var motion = oc.clone().sub(currentPosition);
                     var d = currentPosition.distanceTo(oc);
                     var rid = reconstruction_id_of_shot(reconstructions, shot_id);

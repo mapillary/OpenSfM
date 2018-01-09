@@ -27,7 +27,7 @@ See this `Dockerfile <https://github.com/paulinus/opensfm-docker-base/blob/maste
 1. Install OpenCV, Boost Python, NumPy, SciPy using apt-get
 2. Install python requirements using pip
 3. Clone, build and install OpenGV following the receipt in the Dockerfile
-4. `Build and Install <http://ceres-solver.org/building.html>`_ the Ceres solver from its source using the ``-fPIC`` compilation flag.
+4. `Build and Install <http://ceres-solver.org/installation.html>`_ the Ceres solver from its source using the ``-fPIC`` compilation flag.
 
 
 Installing dependencies on MacOSX
