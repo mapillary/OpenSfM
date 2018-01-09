@@ -46,7 +46,24 @@ include_directories(${GLOG_INCLUDE_DIR})
 find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 
-find_package(Boost REQUIRED COMPONENTS python)
+option(BUILD_FOR_PYTHON3 "build pyopengv for Python 3" OFF)
+option(BOOST_PYTHON3_COMPONENT
+       "name of the Boost Python 3 component (python3, python-py36 or python-py37)"
+       python3)
+
+if(${BUILD_FOR_PYTHON3})
+    set(BOOST_PYTHON_COMPONENT ${BOOST_PYTHON3_COMPONENT})
+    set(BOOST_NUMPY_COMPONENT numpy3)
+    set(Python_ADDITIONAL_VERSIONS 3.7 3.6)
+    set(Python_VERSION_SUFFIX 3)
+else()
+    set(BOOST_PYTHON_COMPONENT python)
+    set(BOOST_NUMPY_COMPONENT numpy)
+    set(Python_ADDITIONAL_VERSIONS 2.7)
+    set(Python_VERSION_SUFFIX "")
+endif()
+
+find_package(Boost REQUIRED COMPONENTS ${BOOST_PYTHON_COMPONENT})
 
 if(${Boost_VERSION} LESS 106300)
     message("Not using boost/python/numpy.")
@@ -56,11 +73,11 @@ else()
     set(USE_BOOST_PYTHON_NUMPY "on")
     add_definitions(-DUSE_BOOST_PYTHON_NUMPY)
 
-    find_package(Boost 1.63 REQUIRED COMPONENTS python numpy)
+    find_package(Boost 1.63 REQUIRED COMPONENTS
+                 ${BOOST_PYTHON_COMPONENT} ${BOOST_NUMPY_COMPONENT})
 endif()
 
-set(Python_ADDITIONAL_VERSIONS "2.7")
-find_package(PythonLibs REQUIRED)
+find_package(PythonLibs ${Python_VERSION_SUFFIX} REQUIRED)
 include_directories(${PYTHON_INCLUDE_DIRS})
 
 find_package(NumPy REQUIRED)
