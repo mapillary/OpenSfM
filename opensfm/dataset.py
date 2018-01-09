@@ -102,6 +102,45 @@ class DataSet:
             mask = None
         return mask
 
+    def _segmentation_path(self):
+        return os.path.join(self.data_path, 'segmentations')
+
+    def _segmentation_file(self, image):
+        return os.path.join(self._segmentation_path(), image + '.png')
+
+    def segmentation_as_array(self, image):
+        """Load image segmentation.
+
+        Returns a numpy array or None
+        """
+        segmentation_file = self._segmentation_file(image)
+        if os.path.isfile(segmentation_file):
+            segmentation = cv2.imread(segmentation_file)
+            if len(segmentation.shape) == 3:
+                segmentation = segmentation.max(axis=2)
+        else:
+            segmentation = None
+        return segmentation
+
+    def _undistorted_segmentation_path(self):
+        return os.path.join(self.data_path, 'undistorted_segmentations')
+
+    def _undistorted_segmentation_file(self, image):
+        """Path of undistorted version of a segmentation."""
+        return os.path.join(self._undistorted_segmentation_path(), image + '.png')
+
+    def undistorted_segmentation_as_array(self, image):
+        """Load an undistorted image segmentation."""
+        segmentation = cv2.imread(self._undistorted_segmentation_file(image))
+        if len(segmentation.shape) == 3:
+            segmentation = segmentation.max(axis=2)
+        return segmentation
+
+    def save_undistorted_segmentation(self, image, array):
+        """Save the undistorted image segmentation."""
+        io.mkdir_p(self._undistorted_segmentation_path())
+        cv2.imwrite(self._undistorted_segmentation_file(image), array)
+
     def _depthmap_path(self):
         return os.path.join(self.data_path, 'depthmaps')
 
