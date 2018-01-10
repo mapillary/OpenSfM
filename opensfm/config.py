@@ -14,8 +14,14 @@ feature_process_size: 2048    # Resize the image if its size is larger than spec
 feature_use_adaptive_suppression: no
 
 # Params for SIFT
-sift_peak_threshold: 0.1     # Smaller value -> more features
+sift_peak_threshold: 0.1      # Smaller value -> more features
 sift_edge_threshold: 10       # See OpenCV doc
+
+# Params for DSIFT
+dsift_step: 16                # Sampling step, smaller value -> more features
+dsift_bin_size: 8
+dsift_use_flat_window: yes    # See VLFeat DSIFT doc
+dsift_gaussian_blur: no       # Smooth image using CV2 Gaussian Blur
 
 # Params for SURF
 surf_hessian_threshold: 3000  # Smaller value -> more features

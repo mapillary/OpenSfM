@@ -4,6 +4,7 @@
 
 #include "types.h"
 #include "hahog.cc"
+#include "dsift.cc"
 #include "multiview.cc"
 #include "akaze.cc"
 #include "bundle.h"
@@ -76,6 +77,13 @@ BOOST_PYTHON_MODULE(csfm) {
        boost::python::arg("edge_threshold") = 10,
        boost::python::arg("target_num_features") = 0,
        boost::python::arg("use_adaptive_suppression") = false
+      )
+  );
+
+  def("dsift", csfm::dsift,
+      (boost::python::arg("step") = 16,
+       boost::python::arg("bin_size") = 8,
+       boost::python::arg("use_flat_window") = false
       )
   );
 
