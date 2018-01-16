@@ -1,4 +1,4 @@
-.. Notes and doc on dense matching
+.. Automatically generated code documentation
 
 
 Code Documentation
@@ -12,9 +12,15 @@ Dataset I/O
    :members:
 
 
-
 Reconstruction Types
 --------------------
 
 .. automodule:: opensfm.types
+   :members:
+
+
+Incremental Reconstruction
+--------------------------
+
+.. automodule:: opensfm.reconstruction
    :members:
