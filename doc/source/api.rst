@@ -19,6 +19,20 @@ Reconstruction Types
    :members:
 
 
+Features
+--------
+
+.. automodule:: opensfm.features
+   :members:
+
+
+Matching
+--------
+
+.. automodule:: opensfm.matching
+   :members:
+
+
 Incremental Reconstruction
 --------------------------
 

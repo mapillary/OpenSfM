@@ -261,7 +261,7 @@ def extract_features(color_image, config, mask=None):
     config option.
 
     The coordinates of the detected points are returned in normalized
-    image coordinates (see :ref:`coordinate-systems`)
+    image coordinates.
 
     Returns:
         tuple:

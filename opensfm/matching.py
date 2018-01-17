@@ -15,6 +15,13 @@ logger = logging.getLogger(__name__)
 
 # pairwise matches
 def match_lowe(index, f2, config):
+    """Match features and apply Lowe's ratio filter.
+
+    Args:
+        index: flann index if the first image
+        f2: feature descriptors of the second image
+        config: config parameters
+    """
     search_params = dict(checks=config['flann_checks'])
     results, dists = index.knnSearch(f2, 2, params=search_params)
     squared_ratio = config['lowes_ratio']**2  # Flann returns squared L2 distances
@@ -24,6 +31,15 @@ def match_lowe(index, f2, config):
 
 
 def match_symmetric(fi, indexi, fj, indexj, config):
+    """Match in both directions and keep consistent matches.
+
+    Args:
+        fi: feature descriptors of the first image
+        indexi: flann index if the first image
+        fj: feature descriptors of the second image
+        indexj: flann index of the second image
+        config: config parameters
+    """
     if config['matcher_type'] == 'FLANN':
         matches_ij = [(a, b) for a, b in match_lowe(indexi, fj, config)]
         matches_ji = [(b, a) for a, b in match_lowe(indexj, fi, config)]
@@ -35,9 +51,8 @@ def match_symmetric(fi, indexi, fj, indexj, config):
     return np.array(list(matches), dtype=int)
 
 
-def convert_matches_to_vector(matches):
-    '''Convert Dmatch object to matrix form
-    '''
+def _convert_matches_to_vector(matches):
+    """Convert Dmatch object to matrix form."""
     matches_vector = np.zeros((len(matches), 2), dtype=np.int)
     k = 0
     for mm in matches:
@@ -48,8 +63,13 @@ def convert_matches_to_vector(matches):
 
 
 def match_lowe_bf(f1, f2, config):
-    '''Bruteforce feature matching
-    '''
+    """Bruteforce matching and Lowe's ratio filtering.
+
+    Args:
+        f1: feature descriptors of the first image
+        f2: feature descriptors of the second image
+        config: config parameters
+    """
     assert(f1.dtype.type == f2.dtype.type)
     if (f1.dtype.type == np.uint8):
         matcher_type = 'BruteForce-Hamming'
@@ -65,13 +85,12 @@ def match_lowe_bf(f1, f2, config):
             m, n = match
             if m.distance < ratio * n.distance:
                 good_matches.append(m)
-    good_matches = convert_matches_to_vector(good_matches)
+    good_matches = _convert_matches_to_vector(good_matches)
     return np.array(good_matches, dtype=int)
 
 
 def robust_match_fundamental(p1, p2, matches, config):
-    '''Computes robust matches by estimating the Fundamental matrix via RANSAC.
-    '''
+    """Filter matches by estimating the Fundamental matrix via RANSAC."""
     if len(matches) < 8:
         return np.array([])
 
@@ -79,7 +98,8 @@ def robust_match_fundamental(p1, p2, matches, config):
     p2 = p2[matches[:, 1]][:, :2].copy()
 
     FM_RANSAC = cv2.FM_RANSAC if context.OPENCV3 else cv2.cv.CV_FM_RANSAC
-    F, mask = cv2.findFundamentalMat(p1, p2, FM_RANSAC, config['robust_matching_threshold'], 0.9999)
+    threshold = config['robust_matching_threshold']
+    F, mask = cv2.findFundamentalMat(p1, p2, FM_RANSAC, threshold, 0.9999)
     inliers = mask.ravel().nonzero()
 
     if F[2, 2] == 0.0:
@@ -88,7 +108,7 @@ def robust_match_fundamental(p1, p2, matches, config):
     return matches[inliers]
 
 
-def compute_inliers_bearings(b1, b2, T):
+def _compute_inliers_bearings(b1, b2, T):
     R = T[:, :3]
     t = T[:, 3]
     p = pyopengv.triangulation_triangulate(b1, b2, t, R)
@@ -105,8 +125,7 @@ def compute_inliers_bearings(b1, b2, T):
 
 
 def robust_match_calibrated(p1, p2, camera1, camera2, matches, config):
-    '''Computes robust matches by estimating the Essential matrix via RANSAC.
-    '''
+    """Filter matches by estimating the Essential matrix via RANSAC."""
 
     if len(matches) < 8:
         return np.array([])
@@ -119,12 +138,17 @@ def robust_match_calibrated(p1, p2, camera1, camera2, matches, config):
     threshold = config['robust_matching_threshold']
     T = pyopengv.relative_pose_ransac(b1, b2, "STEWENIUS", 1 - np.cos(threshold), 1000)
 
-    inliers = compute_inliers_bearings(b1, b2, T)
+    inliers = _compute_inliers_bearings(b1, b2, T)
 
     return matches[inliers]
 
 
 def robust_match(p1, p2, camera1, camera2, matches, config):
+    """Filter matches by fitting a geometric model.
+
+    If cameras are perspective without distortion, then the Fundamental
+    matrix is used.  Otherwise, we use the Essential matrix.
+    """
     if (camera1.projection_type == 'perspective'
             and camera1.k1 == 0.0
             and camera2.projection_type == 'perspective'
@@ -134,7 +158,7 @@ def robust_match(p1, p2, camera1, camera2, matches, config):
         return robust_match_calibrated(p1, p2, camera1, camera2, matches, config)
 
 
-def good_track(track, min_length):
+def _good_track(track, min_length):
     if len(track) < min_length:
         return False
     images = [f[0] for f in track]
@@ -144,6 +168,7 @@ def good_track(track, min_length):
 
 
 def create_tracks_graph(features, colors, matches, config):
+    """Link matches into tracks."""
     logger.debug('Merging features onto tracks')
     uf = UnionFind()
     for im1, im2 in matches:
@@ -158,7 +183,7 @@ def create_tracks_graph(features, colors, matches, config):
         else:
             sets[p] = [i]
 
-    tracks = [t for t in sets.values() if good_track(t, config['min_track_length'])]
+    tracks = [t for t in sets.values() if _good_track(t, config['min_track_length'])]
     logger.debug('Good tracks: {}'.format(len(tracks)))
 
     tracks_graph = nx.Graph()
@@ -190,15 +215,18 @@ def tracks_and_images(graph):
     return tracks, images
 
 
-def common_tracks(g, im1, im2):
+def common_tracks(graph, im1, im2):
+    """List of tracks observed in both images.
+
+    Args:
+        graph: tracks graph
+        im1: name of the first image
+        im2: name of the second image
+
+    Returns:
+        tuple: tracks, feature from first image, feature from second image
     """
-    Return the list of tracks observed in both images
-    :param g: Graph structure (networkx) as returned by :method:`DataSet.tracks_graph`
-    :param im1: Image name, with extension (i.e. 123.jpg)
-    :param im2: Image name, with extension (i.e. 123.jpg)
-    :return: tuple: track, feature from first image, feature from second image
-    """
-    t1, t2 = g[im1], g[im2]
+    t1, t2 = graph[im1], graph[im2]
     tracks, p1, p2 = [], [], []
     for track in t1:
         if track in t2:
@@ -213,11 +241,16 @@ def common_tracks(g, im1, im2):
 def all_common_tracks(graph, tracks, include_features=True, min_common=50):
     """List of tracks observed by each image pair.
 
-    :param graph: Graph structure (networkx) as returned by :method:`DataSet.tracks_graph`
-    :param tracks: list of track identifiers
-    :param include_features: whether to include the features from the images
-    :param min_common: the minimum number of tracks the two images need to have in common
-    :return: tuple: im1, im2 -> tuple: tracks, features from first image, features from second image
+    Args:
+        graph: tracks graph
+        tracks: list of track identifiers
+        include_features: whether to include the features from the images
+        min_common: the minimum number of tracks the two images need to have
+            in common
+
+    Returns:
+        tuple: im1, im2 -> tuple: tracks, features from first image, features
+        from second image
     """
     track_dict = defaultdict(list)
     for track in tracks:
