@@ -6,6 +6,7 @@ import pyproj
 
 from opensfm import dataset
 from opensfm import geo
+from opensfm import io
 
 logger = logging.getLogger(__name__)
 
@@ -87,7 +88,7 @@ class Command:
 
     def _write_transformation(self, transformation, filename):
         """Write the 4x4 matrix transformation to a text file."""
-        with open(filename, 'w') as fout:
+        with io.open_wt(filename) as fout:
             for row in transformation:
                 fout.write(' '.join(map(str, row)))
                 fout.write('\n')
@@ -120,8 +121,8 @@ class Command:
         A, b = transformation[:3, :3], transformation[:3, 3]
         input_path = os.path.join(data._depthmap_path(), 'merged.ply')
         output_path = os.path.join(data.data_path, output)
-        with open(input_path) as fin:
-            with open(output_path, 'w') as fout:
+        with io.open_rt(input_path) as fin:
+            with io.open_wt(output_path) as fout:
                 for i, line in enumerate(fin):
                     if i < 13:
                         fout.write(line)

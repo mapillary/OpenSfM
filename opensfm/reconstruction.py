@@ -8,7 +8,9 @@ from itertools import combinations
 import numpy as np
 import cv2
 import pyopengv
+import six
 from timeit import default_timer as timer
+from six import iteritems
 
 from opensfm import align
 from opensfm import csfm
@@ -397,7 +399,7 @@ def _pair_reconstructability_arguments(track_dict, data):
     threshold = 4 * data.config['five_point_algo_threshold']
     cameras = data.load_camera_models()
     args = []
-    for (im1, im2), (tracks, p1, p2) in track_dict.iteritems():
+    for (im1, im2), (tracks, p1, p2) in iteritems(track_dict):
         camera1 = cameras[data.load_exif(im1)['camera']]
         camera2 = cameras[data.load_exif(im2)['camera']]
         args.append((im1, im2, p1, p2, camera1, camera2, threshold))
@@ -726,7 +728,7 @@ def resect(data, graph, reconstruction, shot_id):
     reprojected_bs /= np.linalg.norm(reprojected_bs, axis=1)[:, np.newaxis]
 
     inliers = np.linalg.norm(reprojected_bs - bs, axis=1) < threshold
-    ninliers = sum(inliers)
+    ninliers = int(sum(inliers))
 
     logger.info("{} resection inliers: {} / {}".format(
         shot_id, ninliers, len(bs)))
@@ -951,8 +953,8 @@ def merge_reconstructions(reconstructions, config):
 
 def paint_reconstruction(data, graph, reconstruction):
     """Set the color of the points from the color of the tracks."""
-    for k, point in reconstruction.points.iteritems():
-        point.color = graph[k].values()[0]['feature_color']
+    for k, point in iteritems(reconstruction.points):
+        point.color = six.next(six.itervalues(graph[k]))['feature_color']
 
 
 class ShouldBundle:

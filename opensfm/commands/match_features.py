@@ -143,7 +143,7 @@ def match_candidates_by_order(images, exifs, max_neighbors):
     """Find candidate matching pairs by sequence order."""
     if max_neighbors <= 0:
         return set()
-    n = (max_neighbors + 1) / 2
+    n = (max_neighbors + 1) // 2
 
     pairs = set()
     for i, image in enumerate(images):

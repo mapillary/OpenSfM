@@ -3,6 +3,7 @@ import os
 
 from opensfm import dataset
 from opensfm import transformations as tf
+from opensfm import io
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +38,7 @@ class Command:
             lines.append(' '.join(map(str, words)))
         lines += ['0', '', '0', '', '0']
 
-        with open(data.data_path + '/reconstruction.nvm', 'w') as fout:
+        with io.open_wt(data.data_path + '/reconstruction.nvm') as fout:
             fout.write('\n'.join(lines))
 
     def image_path(self, image, data):

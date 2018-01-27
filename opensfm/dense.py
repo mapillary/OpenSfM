@@ -5,6 +5,7 @@ import cv2
 import numpy as np
 
 from opensfm import csfm
+from opensfm import io
 from opensfm import log
 from opensfm import matching
 from opensfm.context import parallel_map
@@ -100,7 +101,8 @@ def compute_depthmap(arguments):
     elif (method == 'PATCH_MATCH_SAMPLE'):
         depth, plane, score, nghbr = de.compute_patch_match_sample()
     else:
-        raise ValueError('Unknown depthmap method type ' \
+        raise ValueError(
+            'Unknown depthmap method type '
             '(must be BRUTE_FORCE, PATCH_MATCH or PATCH_MATCH_SAMPLE)')
 
     good_score = score > data.config['depthmap_min_correlation_score']
@@ -114,7 +116,7 @@ def compute_depthmap(arguments):
         image = data.undistorted_image_as_array(shot.id)
         image = scale_down_image(image, depth.shape[1], depth.shape[0])
         ply = depthmap_to_ply(shot, depth, image)
-        with open(data._depthmap_file(shot.id, 'raw.npz.ply'), 'w') as fout:
+        with io.open_wt(data._depthmap_file(shot.id, 'raw.npz.ply')) as fout:
             fout.write(ply)
 
     if data.config.get('interactive'):
@@ -162,7 +164,7 @@ def clean_depthmap(arguments):
         image = data.undistorted_image_as_array(shot.id)
         image = scale_down_image(image, depth.shape[1], depth.shape[0])
         ply = depthmap_to_ply(shot, depth, image)
-        with open(data._depthmap_file(shot.id, 'clean.npz.ply'), 'w') as fout:
+        with io.open_wt(data._depthmap_file(shot.id, 'clean.npz.ply')) as fout:
             fout.write(ply)
 
     if data.config.get('interactive'):
@@ -199,7 +201,7 @@ def prune_depthmap(arguments):
 
     if data.config['depthmap_save_debug_files']:
         ply = point_cloud_to_ply(points, normals, colors)
-        with open(data._depthmap_file(shot.id, 'pruned.npz.ply'), 'w') as fout:
+        with io.open_wt(data._depthmap_file(shot.id, 'pruned.npz.ply')) as fout:
             fout.write(ply)
 
 
@@ -222,7 +224,7 @@ def merge_depthmaps(data, graph, reconstruction, neighbors):
     colors = np.concatenate(colors)
 
     ply = point_cloud_to_ply(points, normals, colors)
-    with open(data._depthmap_path() + '/merged.ply', 'w') as fout:
+    with io.open_wt(data._depthmap_path() + '/merged.ply') as fout:
         fout.write(ply)
 
 
@@ -235,7 +237,7 @@ def add_views_to_depth_estimator(data, neighbors, de):
         gray_image = cv2.cvtColor(color_image, cv2.COLOR_RGB2GRAY)
         original_height, original_width = gray_image.shape
         width = int(data.config['depthmap_resolution'])
-        height = width * original_height / original_width
+        height = width * original_height // original_width
         image = scale_down_image(gray_image, width, height)
         K = shot.camera.get_K_in_pixel_coordinates(width, height)
         R = shot.pose.get_rotation_matrix()

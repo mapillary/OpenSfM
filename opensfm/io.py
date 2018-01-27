@@ -2,10 +2,12 @@ import errno
 import json
 import logging
 import os
+import io
 
 import cv2
 import numpy as np
 import pyproj
+from six import iteritems
 
 from opensfm import features
 from opensfm import geo
@@ -134,25 +136,25 @@ def reconstruction_from_json(obj):
     reconstruction = types.Reconstruction()
 
     # Extract cameras
-    for key, value in obj['cameras'].iteritems():
+    for key, value in iteritems(obj['cameras']):
         camera = camera_from_json(key, value)
         reconstruction.add_camera(camera)
 
     # Extract shots
-    for key, value in obj['shots'].iteritems():
+    for key, value in iteritems(obj['shots']):
         shot = shot_from_json(key, value, reconstruction.cameras)
         reconstruction.add_shot(shot)
 
     # Extract points
     if 'points' in obj:
-        for key, value in obj['points'].iteritems():
+        for key, value in iteritems(obj['points']):
             point = point_from_json(key, value)
             reconstruction.add_point(point)
 
     # Extract pano_shots
     if 'pano_shots' in obj:
         reconstruction.pano_shots = {}
-        for key, value in obj['pano_shots'].iteritems():
+        for key, value in iteritems(obj['pano_shots']):
             shot = shot_from_json(key, value, reconstruction.cameras)
             reconstruction.pano_shots[shot.id] = shot
 
@@ -177,7 +179,7 @@ def cameras_from_json(obj):
     Read cameras from a json object
     """
     cameras = {}
-    for key, value in obj.iteritems():
+    for key, value in iteritems(obj):
         cameras[key] = camera_from_json(key, value)
     return cameras
 
@@ -426,27 +428,37 @@ def mkdir_p(path):
             raise
 
 
-def json_dump_kwargs(minify=False, codec='utf-8'):
+def open_wt(path):
+    """Open a file in text mode for writing utf-8."""
+    return io.open(path, 'w', encoding='utf-8')
+
+
+def open_rt(path):
+    """Open a file in text mode for reading utf-8."""
+    return io.open(path, 'r', encoding='utf-8')
+
+
+def json_dump_kwargs(minify=False):
     if minify:
         indent, separators = None, (',', ':')
     else:
         indent, separators = 4, None
     return dict(indent=indent, ensure_ascii=False,
-                encoding=codec, separators=separators)
+                separators=separators)
 
 
-def json_dump(data, fout, minify=False, codec='utf-8'):
-    kwargs = json_dump_kwargs(minify, codec)
+def json_dump(data, fout, minify=False):
+    kwargs = json_dump_kwargs(minify)
     return json.dump(data, fout, **kwargs)
 
 
-def json_dumps(data, minify=False, codec='utf-8'):
-    kwargs = json_dump_kwargs(minify, codec)
+def json_dumps(data, minify=False):
+    kwargs = json_dump_kwargs(minify)
     return json.dumps(data, **kwargs)
 
 
-def json_loads(text, codec='utf-8'):
-    return json.loads(text.decode(codec))
+def json_loads(text):
+    return json.loads(text)
 
 
 def imread(filename):
@@ -501,8 +513,8 @@ def export_bundler(image_list, reconstructions, track_graph, bundle_file_path,
                 R[1], R[2] = -R[1], -R[2]  # Reverse y and z
                 t[1], t[2] = -t[1], -t[2]
                 lines.append(' '.join(map(str, [focal, k1, k2])))
-                for i in xrange(3):
-                    lines.append(' '.join(list(map(str, R[i]))))
+                for i in range(3):
+                    lines.append(' '.join(map(str, R[i])))
                 t = ' '.join(map(str, t))
                 lines.append(t)
             else:
@@ -510,14 +522,14 @@ def export_bundler(image_list, reconstructions, track_graph, bundle_file_path,
                     lines.append("0 0 0")
 
         # tracks
-        for point_id, point in points.iteritems():
+        for point_id, point in iteritems(points):
             coord = point.coordinates
-            color = map(int, point.color)
+            color = list(map(int, point.color))
             view_list = track_graph[point_id]
             lines.append(' '.join(map(str, coord)))
             lines.append(' '.join(map(str, color)))
             view_line = []
-            for shot_key, view in view_list.iteritems():
+            for shot_key, view in iteritems(view_list):
                 if shot_key in shots.keys():
                     v = view['feature']
                     shot_index = shots_order[shot_key]
@@ -561,7 +573,7 @@ def import_bundler(data_path, bundle_file, list_file, track_file,
         rel_to_data = os.path.relpath(image_path, data_path)
         image_list.append(rel_to_data)
         ordered_shots.append(os.path.basename(image_path))
-    with open(os.path.join(data_path, 'image_list.txt'), 'w') as fout:
+    with open_wt(os.path.join(data_path, 'image_list.txt')) as fout:
         fout.write('\n'.join(image_list) + '\n')
 
     # Check for bundle_file
@@ -580,7 +592,7 @@ def import_bundler(data_path, bundle_file, list_file, track_file,
     reconstruction = types.Reconstruction()
 
     # cameras
-    for i in xrange(num_shot):
+    for i in range(num_shot):
         # Creating a model for each shot.
         shot_key = ordered_shots[i]
         focal, k1, k2 = map(float, lines[offset].rstrip('\n').split(' '))
@@ -599,12 +611,12 @@ def import_bundler(data_path, bundle_file, list_file, track_file,
 
             # Shots
             rline = []
-            for k in xrange(3):
+            for k in range(3):
                 rline += lines[offset + 1 + k].rstrip('\n').split(' ')
             R = ' '.join(rline)
             t = lines[offset + 4].rstrip('\n').split(' ')
-            R = np.array(map(float, R.split())).reshape(3, 3)
-            t = np.array(map(float, t))
+            R = np.array(list(map(float, R.split()))).reshape(3, 3)
+            t = np.array(list(map(float, t)))
             R[1], R[2] = -R[1], -R[2]  # Reverse y and z
             t[1], t[2] = -t[1], -t[2]
 
@@ -616,25 +628,25 @@ def import_bundler(data_path, bundle_file, list_file, track_file,
             shot.pose.translation = t
             reconstruction.add_shot(shot)
         else:
-            print 'ignore failed image', shot_key
+            logger.warning('ignoring failed image {}'.format(shot_key))
         offset += 5
 
     # tracks
     track_lines = []
-    for i in xrange(num_point):
+    for i in range(num_point):
         coordinates = lines[offset].rstrip('\n').split(' ')
         color = lines[offset + 1].rstrip('\n').split(' ')
         point = types.Point()
         point.id = i
-        point.coordinates = map(float, coordinates)
-        point.color = map(int, color)
+        point.coordinates = list(map(float, coordinates))
+        point.color = list(map(int, color))
         reconstruction.add_point(point)
 
         view_line = lines[offset + 2].rstrip('\n').split(' ')
 
         num_view, view_list = int(view_line[0]), view_line[1:]
 
-        for k in xrange(num_view):
+        for k in range(num_view):
             shot_key = ordered_shots[int(view_list[4 * k])]
             if shot_key in reconstruction.shots:
                 camera = reconstruction.shots[shot_key].camera

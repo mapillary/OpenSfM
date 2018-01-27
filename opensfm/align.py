@@ -1,5 +1,6 @@
 """Tools to align a reconstruction to GPS and GCP data."""
 
+import logging
 from collections import defaultdict
 
 import numpy as np
@@ -7,6 +8,8 @@ import numpy as np
 from opensfm import csfm
 from opensfm import multiview
 from opensfm import transformations as tf
+
+logger = logging.getLogger(__name__)
 
 
 def align_reconstruction(reconstruction, gcp, config):
@@ -174,7 +177,7 @@ def get_horizontal_and_vertical_directions(R, orientation):
         return -R[1, :], -R[0, :], -R[2, :]
     if orientation == 8:
         return R[1, :], -R[0, :], R[2, :]
-    print 'ERROR unknown orientation {0}. Using 1 instead'.format(orientation)
+    logger.error('unknown orientation {0}. Using 1 instead'.format(orientation))
     return R[0, :], R[1, :], R[2, :]
 
 
