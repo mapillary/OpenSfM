@@ -349,20 +349,20 @@ def depthmap_to_ply(shot, depth, image):
 
     vertices = []
     for p, c in zip(points.T, image.reshape(-1, 3)):
-        s = "{} {} {} {} {} {}".format(p[0], p[1], p[2], c[0], c[1], c[2])
+        s = u"{} {} {} {} {} {}".format(p[0], p[1], p[2], c[0], c[1], c[2])
         vertices.append(s)
 
     header = [
-        "ply",
-        "format ascii 1.0",
-        "element vertex {}".format(len(vertices)),
-        "property float x",
-        "property float y",
-        "property float z",
-        "property uchar diffuse_red",
-        "property uchar diffuse_green",
-        "property uchar diffuse_blue",
-        "end_header",
+        u"ply",
+        u"format ascii 1.0",
+        u"element vertex {}".format(len(vertices)),
+        u"property float x",
+        u"property float y",
+        u"property float z",
+        u"property uchar diffuse_red",
+        u"property uchar diffuse_green",
+        u"property uchar diffuse_blue",
+        u"end_header",
     ]
 
     return '\n'.join(header + vertices + [''])
@@ -372,24 +372,24 @@ def point_cloud_to_ply(points, normals, colors):
     """Export depthmap points as a PLY string"""
     vertices = []
     for p, n, c in zip(points, normals, colors):
-        s = "{:.4f} {:.4f} {:.4f} {:.3f} {:.3f} {:.3f} {} {} {}".format(
+        s = u"{:.4f} {:.4f} {:.4f} {:.3f} {:.3f} {:.3f} {} {} {}".format(
             p[0], p[1], p[2], n[0], n[1], n[2], int(c[0]), int(c[1]), int(c[2]))
         vertices.append(s)
 
     header = [
-        "ply",
-        "format ascii 1.0",
-        "element vertex {}".format(len(vertices)),
-        "property float x",
-        "property float y",
-        "property float z",
-        "property float nx",
-        "property float ny",
-        "property float nz",
-        "property uchar diffuse_red",
-        "property uchar diffuse_green",
-        "property uchar diffuse_blue",
-        "end_header",
+        u"ply",
+        u"format ascii 1.0",
+        u"element vertex {}".format(len(vertices)),
+        u"property float x",
+        u"property float y",
+        u"property float z",
+        u"property float nx",
+        u"property float ny",
+        u"property float nz",
+        u"property uchar diffuse_red",
+        u"uproperty uchar diffuse_green",
+        u"property uchar diffuse_blue",
+        u"end_header",
     ]
 
     return '\n'.join(header + vertices + [''])

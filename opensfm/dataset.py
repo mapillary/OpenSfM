@@ -408,11 +408,11 @@ class DataSet:
 
     def save_reference_lla(self, reference):
         with io.open_wt(self.__reference_lla_path()) as fout:
-            json.dump(reference, fout)
+            io.json_dump(reference, fout)
 
     def load_reference_lla(self):
         with io.open_rt(self.__reference_lla_path()) as fin:
-            return json.load(fin)
+            return io.json_load(fin)
 
     def reference_lla_exists(self):
         return os.path.isfile(self.__reference_lla_path())
@@ -538,5 +538,5 @@ def save_tracks_graph(fileobj, graph):
                 x, y = data['feature']
                 fid = data['feature_id']
                 r, g, b = data['feature_color']
-                fileobj.write('%s\t%s\t%d\t%g\t%g\t%g\t%g\t%g\n' % (
+                fileobj.write(u'%s\t%s\t%d\t%g\t%g\t%g\t%g\t%g\n' % (
                     str(image), str(track), fid, x, y, r, g, b))
