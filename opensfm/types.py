@@ -47,6 +47,10 @@ class Pose(object):
         """Transform a point from this pose to world coordinates."""
         return self.get_rotation_matrix().T.dot(point - self.translation)
 
+    def transform_inverse_many(self, points):
+        """Transform points from this pose to world coordinates."""
+        return (points - self.translation).dot(self.get_rotation_matrix())
+
     def get_rotation_matrix(self):
         """Get rotation as a 3x3 matrix."""
         return cv2.Rodrigues(self.rotation)[0]
@@ -206,7 +210,7 @@ class PerspectiveCamera(Camera):
         return np.array([x / l, y / l, 1.0 / l])
 
     def pixel_bearings(self, pixels):
-        """Unit vector pointing to the pixel viewing directions."""
+        """Unit vectors pointing to the pixel viewing directions."""
         points = pixels.reshape((-1, 1, 2)).astype(np.float64)
         distortion = np.array([self.k1, self.k2, 0., 0.])
         up = cv2.undistortPoints(points, self.get_K(), distortion)
@@ -221,6 +225,12 @@ class PerspectiveCamera(Camera):
         bearing = self.pixel_bearing(pixel)
         scale = depth / bearing[2]
         return scale * bearing
+
+    def back_project_many(self, pixels, depths):
+        """Project pixels to fronto-parallel planes at given depths."""
+        bearings = self.pixel_bearings(pixels)
+        scales = depths / bearings[:, 2]
+        return scales[:, np.newaxis] * bearings
 
     def get_K(self):
         """The calibration matrix."""
@@ -528,6 +538,13 @@ class Shot(object):
         """
         point_in_cam_coords = self.camera.back_project(pixel, depth)
         return self.pose.transform_inverse(point_in_cam_coords)
+
+    def back_project_many(self, pixels, depths):
+        """Project pixels to fronto-parallel planes at given depths.
+        The planes are defined by z = depth in the shot reference frame.
+        """
+        points_in_cam_coords = self.camera.back_project_many(pixels, depths)
+        return self.pose.transform_inverse_many(points_in_cam_coords)
 
     def viewing_direction(self):
         """The viewing direction of the shot.
