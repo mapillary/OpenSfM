@@ -132,8 +132,8 @@ def robust_match_calibrated(p1, p2, camera1, camera2, matches, config):
 
     p1 = p1[matches[:, 0]][:, :2].copy()
     p2 = p2[matches[:, 1]][:, :2].copy()
-    b1 = camera1.pixel_bearings(p1)
-    b2 = camera2.pixel_bearings(p2)
+    b1 = camera1.pixel_bearing_many(p1)
+    b2 = camera2.pixel_bearing_many(p2)
 
     threshold = config['robust_matching_threshold']
     T = pyopengv.relative_pose_ransac(b1, b2, "STEWENIUS", 1 - np.cos(threshold), 1000)

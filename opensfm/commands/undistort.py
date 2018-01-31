@@ -208,7 +208,7 @@ def render_perspective_view_of_a_panorama(image, panoshot, perspectiveshot):
         perspectiveshot.camera.height)
 
     # Convert to bearing
-    dst_bearings = perspectiveshot.camera.pixel_bearings(dst_pixels)
+    dst_bearings = perspectiveshot.camera.pixel_bearing_many(dst_pixels)
 
     # Rotate to panorama reference frame
     rotation = np.dot(panoshot.pose.get_rotation_matrix(),
