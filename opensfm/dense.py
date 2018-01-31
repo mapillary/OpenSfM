@@ -387,7 +387,7 @@ def point_cloud_to_ply(points, normals, colors):
         u"property float ny",
         u"property float nz",
         u"property uchar diffuse_red",
-        u"uproperty uchar diffuse_green",
+        u"property uchar diffuse_green",
         u"property uchar diffuse_blue",
         u"end_header",
     ]
