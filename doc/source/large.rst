@@ -18,8 +18,8 @@ The command ``create_submodels`` splits a dataset into submodels.  The splitting
 
 Additionally, the feature extraction and matching can also be done before creating the submodels.  This makes it possible for each submodel to reuse the features and matches of the common images.
 
-The process to split a dataset into submodels is then
-::
+The process to split a dataset into submodels is then::
+
     bin/opensfm extract_metadata path/to/dataset
     bin/opensfm detect_features path/to/dataset
     bin/opensfm match_features path/to/dataset

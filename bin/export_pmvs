@@ -20,6 +20,9 @@ if __name__ == "__main__":
         description='Convert output from OpenSfM to PMVS')
     parser.add_argument('dataset', help='path to the dataset to be processed')
     parser.add_argument('--output', help='output pmvs directory')
+    parser.add_argument('--undistorted',
+                        action='store_true',
+                        help='export the undistorted reconstruction')
     args = parser.parse_args()
 
     data = dataset.DataSet(args.dataset)
@@ -35,14 +38,21 @@ if __name__ == "__main__":
 
     # load tracks for vis.dat
     try:
-        graph = data.load_tracks_graph()
+        if args.undistorted:
+            graph = data.load_undistorted_tracks_graph()
+        else:
+            graph = data.load_tracks_graph()
         tracks, images = matching.tracks_and_images(graph)
         image_graph = bipartite.weighted_projected_graph(graph, images)
         use_vis_data = True
     except IOError:
         use_vis_data = False
 
-    reconstructions = data.load_reconstruction()
+    if args.undistorted:
+        reconstructions = data.load_undistorted_reconstruction()
+    else:
+        reconstructions = data.load_reconstruction()
+
     for h, reconstruction in enumerate(reconstructions):
         print "Reconstruction", h
         output_path = os.path.join(base_output_path, "recon%d" % h)
@@ -78,12 +88,15 @@ if __name__ == "__main__":
                 fvis.write("\n")
 
             # radially undistort the original image
-            original_image = data.image_as_array(image)[:, :, ::-1]
             camera = shot.camera
-            original_h, original_w = original_image.shape[:2]
-            K = camera.get_K_in_pixel_coordinates(original_w, original_h)
-            distortion = np.array([camera.k1, camera.k2, 0, 0])
-            undistorted_image = cv2.undistort(original_image, K, distortion)
+            if args.undistorted:
+                undistorted_image = data.undistorted_image_as_array(image)
+            else:
+                original_image = data.image_as_array(image)[:, :, ::-1]
+                original_h, original_w = original_image.shape[:2]
+                K = camera.get_K_in_pixel_coordinates(original_w, original_h)
+                distortion = np.array([camera.k1, camera.k2, 0, 0])
+                undistorted_image = cv2.undistort(original_image, K, distortion)
 
             # resize and save the undistorted to visualize/%08d.jpg
             resized_image = features.resized_image(undistorted_image, data.config)

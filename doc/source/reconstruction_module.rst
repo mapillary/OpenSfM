@@ -1,124 +1,51 @@
+.. Overview of the incremental reconstruction algorithm
+
 
 Incremental reconstruction algorithm
 =====================================
 
-The following is the product of painstaking reverse-engineering from the ``reconstruction`` module's source code.
+OpenSfM implements an incremental structure from motion algorithm.  This is reconstruction algorithm that starts building a reconstruction of a single image pair and then iteratively add the other images to the reconstruction one at a time.
 
-It is a high-level, natural-language version of the ``incremental_reconstruction`` function and its sub-units.
+The algorithm is implemented in the ``reconstruction.py`` module and the main entry point is the :func:`~opensfm.reconstruction.incremental_reconstruction` function.
 
-Incremental reconstruction
---------------------------
+The algorithm has three main steps:
 
-Obtain image pairs with > 30% outliers (via OpenCV's
-``findHomography()`` with ``RANSAC``), sorted by number of common
-tracks. (``compute_image_pairs``)
+1. Find good initial pairs
+2. Bootstrap the reconstruction with two images
+3. Grow the reconstruction by adding images one at a time
 
-For each pair ``(img1, img2)`` remaining:
+If after step 3 there are images that have not yet been reconstructed, steps 2 and 3 are repeated to generate more reconstructions.
 
-1. Initiate new reconstruction on pair. (``bootstrap_reconstruction``)
-2. Grow reconstruction as applicable, taking from image list without
-   replacement. (``grow_reconstruction``)
 
-Initiating a new reconstruction
--------------------------------
+1. Finding good initial pairs
+-----------------------------
 
-Obtain relative pose of camera 2 from camera 1's POV
-(``two_view_reconstruction``).
+To compute the initial reconstruction using two images, there needs to be enough parallax between them.  That is, the camera should have been displaced between the two shots, and the displacement needs to be large enough compared to the distance to the scene.
 
-If <= 5 inliers from this step, abort by returning early. Otherwise:
+To compute whether there is enough parallax, we start by trying to fit a rotation only camera model to the two images.  We only consider image pairs that have a significant portion of the correspondences that can not be explained by the rotation model.  We compute the number of outliers of the model and accept it only if the portion of outliers is larger than 30%.
 
-Form the snapshot objects: ``shot1`` with default pose, ``shot2`` from
-established relative pose.
+The accepted image pairs are sorted by the number of outliers of the rotation only model.
 
-Triangulate features in ``img1`` and add them to the reconstruction.
+This step is done by the :func:`~opensfm.reconstruction.compute_image_pairs` function.
 
-Provided more than ``five_point_algo_min_inliers`` (50) points were
-added:
 
--  Bundle adjust ``shot2``.
--  Re-triangulate tracks.
--  Bundle adjust ``shot2`` again.
+2. Boostraping the reconstruction
+---------------------------------
 
-Initial "bootstrapped" reconstruction completed.
+To bootstrap the reconstruction, we use the first image pair.  If initialization fails we try with the next on the list.  If the initialization works, we pass it to the next step to grow it with more images.
 
-two_view_reconstruction
-```````````````````````````
+The reconstruction from two views can be done by two algorithms depending on the geometry of the scene.  If the scene is flat, a plane-based initialization is used, if it is not flat, then the five-point algorithm is used.  Since we do not know a priori if the scene is flat, both initializations are computed and the one that produces more points is retained (see the :func:`~opensfm.reconstruction.two_view_reconstruction_general` function).
 
-Estimate relative pose on each camera's POV of its own points (pixel
-bearings). (OpenGV's ``relative_pose_ransac`` with ``"STEWENIUS"``)
+If the pair gives enough inliers we initialize a reconstruction with the corresponding poses, triangulate the matches and bundle adjust it.
 
-Use this pose estimate to triangulate the pixel bearings into two sets
-of 3D positions.
 
-Normalise the bearings, effectively projecting them back to the image
-planes.
+3. Growing the reconstruction
+-----------------------------
 
-Considering both sets from the respective camera coordinate systems:
-compute distance between original bearings and re-projected ones.
+Given the initial reconstruction with two images, more images are added one by one starting with the one that sees more of the reconstructed points.
 
-Remove outliers, defined as points with a reprojection error of at least
-``five_point_algo_threshold`` (0.006).
+To add an image it needs first needs to be aligned to the reconstruction.  This is done by finding the camera position that makes the reconstructed 3D points project to the corresponding position in the new image.  The process is called resectioning and is done by the :func:`~opensfm.reconstruction.resect` function.
 
-Run through OpenGV's ``relative_pose_optimize_nonlinear``, yielding
-refined pose (beyond that, no idea what it does. Some nonlinear
-optimisation in Ceres solver.)
+If resectioning works, the image is added to the reconstruction. After adding it, all features of the new image that are also seen in other reconstructed images are triangulated.  If needed, the reconstruction is then bundle adjusted and eventually all features are re-triangulated.  The parameters ``bundle_interval``, ``bundle_new_points_ratio``, ``retriangulation`` and ``retriangulation_ratio`` control when bundle and re-triangulation are needed.
 
-Reproject, compare and filter outliers again.
-
-Return the number of inliers along with the relative pose of camera 2
-wrt camera 1.
-
-Grow reconstruction
--------------------
-
-Bundle adjust entire reconstruction (not an individual shot).
-
-Align reconstruction to GPS, based on GCPs (Ground Control Points).
-
-(*) Obtain images (not pairs), from highest number of tracks to least.
-
-For each image: attempt to ``resect`` (whatever that means?
-``absolute_pose_ransac`` with ``"KNEIP"``, add shot to reconstruction,
-bundle adjust shot.)
-
-If couldn't ``resect``, skip ahead to try the next image. Once we find
-an image that can be successfully resected:
-
-Shot was added to reconstruction during resection, so remove it from the
-list of remaining images in ``incremental_reconstruction``.
-
-Triangulate features in shot, based on pose information from the
-``resect`` step (presumably.)
-
-Decide whether to bundle adjust. Bundle adjustment happens every
-``bundle_interval`` (0) snapshots resected and added. It also happens
-after growing the number of points in the reconstruction by a factor of
-``bundle_new_points_ratio`` (1.2).
-
-If it's time to bundle adjust:
-
--  Bundle adjust the entire reconstruction (without GCP data).
--  Get rid of all tracks with reprojection error larger than
-   ``bundle_outlier_threshold`` (0.008).
--  Align reconstruction again, using GPS and GCPs.
-
-Decide whether to re-triangulate. This can be disabled entirely
-(``retriangulation`` config parameter). If active, happens after growing
-the number of points in the reconstruction by a factor of
-``retriangulation_ratio`` (1.25).
-
-If it's time to re-triangulate:
-
--  Re-triangulate all tracks in reconstruction.
--  Bundle adjust entire reconstruction (again, without GCP data).
-
-Since resection succeeded, go back to (*) to re-generate the image list
-and search for another candidate image to resect into a snapshot.
-
-Once (*) fails:
-
-Bundle adjust entire reconstruction - this time, using GCPs.
-
-Align reconstruction using GPS and GCPs.
-
-Finished.
+Finally, if the GPS positions of the shots or Ground Control Points (GPS) are available, the reconstruction is rigidly moved to best align to those.

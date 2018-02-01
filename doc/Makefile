@@ -60,6 +60,9 @@ html:
 livehtml: html
 	sphinx-autobuild -b html -p 8001 $(ALLSPHINXOPTS) $(BUILDDIR)/html
 
+deploy: html
+	aws s3 sync --exclude=.DS_Store build/html s3://opensfm.org/docs
+
 dirhtml:
 	$(SPHINXBUILD) -b dirhtml $(ALLSPHINXOPTS) $(BUILDDIR)/dirhtml
 	@echo

@@ -47,6 +47,10 @@ class Pose(object):
         """Transform a point from this pose to world coordinates."""
         return self.get_rotation_matrix().T.dot(point - self.translation)
 
+    def transform_inverse_many(self, points):
+        """Transform points from this pose to world coordinates."""
+        return (points - self.translation).dot(self.get_rotation_matrix())
+
     def get_rotation_matrix(self):
         """Get rotation as a 3x3 matrix."""
         return cv2.Rodrigues(self.rotation)[0]
@@ -205,8 +209,8 @@ class PerspectiveCamera(Camera):
         l = np.sqrt(x * x + y * y + 1.0)
         return np.array([x / l, y / l, 1.0 / l])
 
-    def pixel_bearings(self, pixels):
-        """Unit vector pointing to the pixel viewing directions."""
+    def pixel_bearing_many(self, pixels):
+        """Unit vectors pointing to the pixel viewing directions."""
         points = pixels.reshape((-1, 1, 2)).astype(np.float64)
         distortion = np.array([self.k1, self.k2, 0., 0.])
         up = cv2.undistortPoints(points, self.get_K(), distortion)
@@ -216,11 +220,21 @@ class PerspectiveCamera(Camera):
         l = np.sqrt(x * x + y * y + 1.0)
         return np.column_stack((x / l, y / l, 1.0 / l))
 
+    def pixel_bearings(self, pixels):
+        """Deprecated: use pixel_bearing_many."""
+        return self.pixel_bearing_many(pixels)
+
     def back_project(self, pixel, depth):
         """Project a pixel to a fronto-parallel plane at a given depth."""
         bearing = self.pixel_bearing(pixel)
         scale = depth / bearing[2]
         return scale * bearing
+
+    def back_project_many(self, pixels, depths):
+        """Project pixels to fronto-parallel planes at given depths."""
+        bearings = self.pixel_bearing_many(pixels)
+        scales = depths / bearings[:, 2]
+        return scales[:, np.newaxis] * bearings
 
     def get_K(self):
         """The calibration matrix."""
@@ -324,7 +338,7 @@ class BrownPerspectiveCamera(Camera):
         l = np.sqrt(x * x + y * y + 1.0)
         return np.array([x / l, y / l, 1.0 / l])
 
-    def pixel_bearings(self, pixels):
+    def pixel_bearing_many(self, pixels):
         """Unit vector pointing to the pixel viewing directions."""
         points = pixels.reshape((-1, 1, 2)).astype(np.float64)
         distortion = np.array([self.k1, self.k2, self.p1, self.p2, self.k3])
@@ -334,6 +348,10 @@ class BrownPerspectiveCamera(Camera):
         y = up[:, 1]
         l = np.sqrt(x * x + y * y + 1.0)
         return np.column_stack((x / l, y / l, 1.0 / l))
+
+    def pixel_bearings(self, pixels):
+        """Deprecated: use pixel_bearing_many."""
+        return self.pixel_bearing_many(pixels)
 
     def back_project(self, pixel, depth):
         """Project a pixel to a fronto-parallel plane at a given depth."""
@@ -411,7 +429,7 @@ class FisheyeCamera(Camera):
         l = np.sqrt(x * x + y * y + 1.0)
         return np.array([x / l, y / l, 1.0 / l])
 
-    def pixel_bearings(self, pixels):
+    def pixel_bearing_many(self, pixels):
         """Unit vector pointing to the pixel viewing directions."""
         points = pixels.reshape((-1, 1, 2)).astype(np.float64)
         distortion = np.array([self.k1, self.k2, 0., 0.])
@@ -421,6 +439,10 @@ class FisheyeCamera(Camera):
         y = up[:, 1]
         l = np.sqrt(x * x + y * y + 1.0)
         return np.column_stack((x / l, y / l, 1.0 / l))
+
+    def pixel_bearings(self, pixels):
+        """Deprecated: use pixel_bearing_many."""
+        return self.pixel_bearing_many(pixels)
 
     def back_project(self, pixel, depth):
         """Project a pixel to a fronto-parallel plane at a given depth."""
@@ -482,7 +504,7 @@ class SphericalCamera(Camera):
         z = np.cos(lat) * np.cos(lon)
         return np.array([x, y, z])
 
-    def pixel_bearings(self, pixels):
+    def pixel_bearing_many(self, pixels):
         """Unit vector pointing to the pixel viewing directions."""
         lon = pixels[:, 0] * 2 * np.pi
         lat = -pixels[:, 1] * 2 * np.pi
@@ -490,6 +512,10 @@ class SphericalCamera(Camera):
         y = -np.sin(lat)
         z = np.cos(lat) * np.cos(lon)
         return np.column_stack([x, y, z]).astype(float)
+
+    def pixel_bearings(self, pixels):
+        """Deprecated: use pixel_bearing_many."""
+        return self.pixel_bearing_many(pixels)
 
 
 class Shot(object):
@@ -528,6 +554,13 @@ class Shot(object):
         """
         point_in_cam_coords = self.camera.back_project(pixel, depth)
         return self.pose.transform_inverse(point_in_cam_coords)
+
+    def back_project_many(self, pixels, depths):
+        """Project pixels to fronto-parallel planes at given depths.
+        The planes are defined by z = depth in the shot reference frame.
+        """
+        points_in_cam_coords = self.camera.back_project_many(pixels, depths)
+        return self.pose.transform_inverse_many(points_in_cam_coords)
 
     def viewing_direction(self):
         """The viewing direction of the shot.

@@ -14,11 +14,18 @@ class Command:
 
     def add_arguments(self, parser):
         parser.add_argument('dataset', help='dataset to process')
+        parser.add_argument('--undistorted',
+                            action='store_true',
+                            help='export the undistorted reconstruction')
 
     def run(self, args):
         data = dataset.DataSet(args.dataset)
-        reconstructions = data.load_reconstruction()
-        graph = data.load_tracks_graph()
+        if args.undistorted:
+            reconstructions = data.load_undistorted_reconstruction()
+            graph = data.load_undistorted_tracks_graph()
+        else:
+            reconstructions = data.load_reconstruction()
+            graph = data.load_tracks_graph()
 
         if reconstructions:
             self.export(reconstructions[0], graph, data)

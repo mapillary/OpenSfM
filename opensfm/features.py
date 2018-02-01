@@ -254,6 +254,20 @@ def extract_features_orb(image, config):
 
 
 def extract_features(color_image, config, mask=None):
+    """Detect features in an image.
+
+    The type of feature detected is determined by the ``feature_type``
+    config option.
+
+    The coordinates of the detected points are returned in normalized
+    image coordinates.
+
+    Returns:
+        tuple:
+        - points: ``x``, ``y``, ``size`` and ``angle`` for each feature
+        - descriptors: the descriptor of each feature
+        - colors: the color of the center of each feature
+    """
     assert len(color_image.shape) == 3
     color_image = resized_image(color_image, config)
     image = cv2.cvtColor(color_image, cv2.COLOR_RGB2GRAY)
@@ -270,13 +284,15 @@ def extract_features(color_image, config, mask=None):
     elif feature_type == 'ORB':
         points, desc = extract_features_orb(image, config)
     else:
-        raise ValueError('Unknown feature type (must be SURF, SIFT, AKAZE, HAHOG or ORB)')
+        raise ValueError('Unknown feature type '
+                         '(must be SURF, SIFT, AKAZE, HAHOG or ORB)')
 
     xs = points[:, 0].round().astype(int)
     ys = points[:, 1].round().astype(int)
     colors = color_image[ys, xs]
 
-    return mask_and_normalize_features(points, desc, colors, image.shape[1], image.shape[0], mask)
+    return mask_and_normalize_features(points, desc, colors,
+                                       image.shape[1], image.shape[0], mask)
 
 
 def build_flann_index(features, config):

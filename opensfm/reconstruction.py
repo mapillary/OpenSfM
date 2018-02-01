@@ -499,8 +499,8 @@ def two_view_reconstruction_plane_based(p1, p2, camera1, camera2, threshold):
     Returns:
         rotation, translation and inlier list
     """
-    b1 = camera1.pixel_bearings(p1)
-    b2 = camera2.pixel_bearings(p2)
+    b1 = camera1.pixel_bearing_many(p1)
+    b2 = camera2.pixel_bearing_many(p2)
     x1 = multiview.euclidean(b1)
     x2 = multiview.euclidean(b2)
 
@@ -530,8 +530,8 @@ def two_view_reconstruction(p1, p2, camera1, camera2, threshold):
     Returns:
         rotation, translation and inlier list
     """
-    b1 = camera1.pixel_bearings(p1)
-    b2 = camera2.pixel_bearings(p2)
+    b1 = camera1.pixel_bearing_many(p1)
+    b2 = camera2.pixel_bearing_many(p2)
 
     # Note on threshold:
     # See opengv doc on thresholds here:
@@ -570,8 +570,8 @@ def two_view_reconstruction_rotation_only(p1, p2, camera1, camera2, threshold):
     Returns:
         rotation and inlier list
     """
-    b1 = camera1.pixel_bearings(p1)
-    b2 = camera2.pixel_bearings(p2)
+    b1 = camera1.pixel_bearing_many(p1)
+    b2 = camera2.pixel_bearing_many(p2)
 
     R = pyopengv.relative_pose_ransac_rotation_only(
         b1, b2, 1 - np.cos(threshold), 1000)
