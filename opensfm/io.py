@@ -791,16 +791,16 @@ def reconstruction_to_ply(reconstruction, no_cameras=False, no_points=False):
                     vertices.append(s)
 
     header = [
-        "ply",
-        "format ascii 1.0",
-        "element vertex {}".format(len(vertices)),
-        "property float x",
-        "property float y",
-        "property float z",
-        "property uchar diffuse_red",
-        "property uchar diffuse_green",
-        "property uchar diffuse_blue",
-        "end_header",
+        u"ply",
+        u"format ascii 1.0",
+        u"element vertex {}".format(len(vertices)),
+        u"property float x",
+        u"property float y",
+        u"property float z",
+        u"property uchar diffuse_red",
+        u"property uchar diffuse_green",
+        u"property uchar diffuse_blue",
+        u"end_header",
     ]
 
     return '\n'.join(header + vertices + [''])
