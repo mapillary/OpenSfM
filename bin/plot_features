@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 
 import argparse
 
@@ -44,7 +45,7 @@ if __name__ == "__main__":
     images = [args.image] if args.image else data.images()
     for image in images:
         points, desc, colors = data.load_features(image)
-        print "ploting {0} points".format(len(points))
+        print("ploting {0} points".format(len(points)))
         plt.figure()
         plt.title('Image: ' + image + ', features: ' + str(len(points)))
         fig = plot_features(data.image_as_array(image), points)
