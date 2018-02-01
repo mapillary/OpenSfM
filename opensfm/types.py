@@ -158,7 +158,7 @@ class PerspectiveCamera(Camera):
     """Define a perspective camera.
 
     Attributes:
-        widht (int): image width.
+        width (int): image width.
         height (int): image height.
         focal (real): estimated focal lenght.
         k1 (real): estimated first distortion parameter.
@@ -282,7 +282,7 @@ class BrownPerspectiveCamera(Camera):
         k2_prior (real): prior second radial distortion parameter.
         p1_prior (real): prior first tangential distortion parameter.
         p2_prior (real): prior second tangential distortion parameter.
-        p3_prior (real): prior third radial distortion parameter.
+        k3_prior (real): prior third radial distortion parameter.
     """
 
     def __init__(self):
@@ -389,7 +389,7 @@ class FisheyeCamera(Camera):
     """Define a fisheye camera.
 
     Attributes:
-        widht (int): image width.
+        width (int): image width.
         height (int): image height.
         focal (real): estimated focal lenght.
         k1 (real): estimated first distortion parameter.
@@ -477,7 +477,7 @@ class SphericalCamera(Camera):
     """A spherical camera generating equirectangular projections.
 
     Attributes:
-        widht (int): image width.
+        width (int): image width.
         height (int): image height.
     """
 
@@ -592,7 +592,6 @@ class GroundControlPointObservation(object):
     """A ground control point observation.
 
     Attributes:
-        id: identification of the
         lla: latitue, longitude and altitude
         coordinates: x, y, z coordinates in topocentric reference frame
         shot_id: the shot where the point is observed
