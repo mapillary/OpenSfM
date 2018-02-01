@@ -43,6 +43,10 @@ class Pose(object):
         """Transform a point from world to this pose coordinates."""
         return self.get_rotation_matrix().dot(point) + self.translation
 
+    def transform_many(self, points):
+        """Transform points from world coordinates to this pose."""
+        return points.dot(self.get_rotation_matrix().T) + self.translation
+
     def transform_inverse(self, point):
         """Transform a point from this pose to world coordinates."""
         return self.get_rotation_matrix().T.dot(point - self.translation)
@@ -200,6 +204,16 @@ class PerspectiveCamera(Camera):
 
         return np.array([self.focal * distortion * xn,
                          self.focal * distortion * yn])
+
+    def project_many(self, points):
+        """Project 3D points in camera coordinates to the image plane."""
+        # Normalized image coordinates
+        points_n = points[:,:2] / points[:,2,np.newaxis]
+
+        # Radial distortion
+        r2 = np.sum(np.square(points_n), axis=1, keepdims=True)
+        distortion = 1.0 + r2 * (self.k1 + self.k2 * r2)
+        return self.focal * distortion * points_n
 
     def pixel_bearing(self, pixel):
         """Unit vector pointing to the pixel viewing direction."""
@@ -546,6 +560,11 @@ class Shot(object):
         """Project a 3D point to the image plane."""
         camera_point = self.pose.transform(point)
         return self.camera.project(camera_point)
+
+    def project_many(self, points):
+        """Project 3D points to the image plane."""
+        camera_point = self.pose.transform_many(points)
+        return self.camera.project_many(camera_point)
 
     def back_project(self, pixel, depth):
         """Project a pixel to a fronto-parallel plane at a given depth.
