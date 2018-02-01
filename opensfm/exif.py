@@ -3,6 +3,8 @@ import exifread
 import logging
 import xmltodict as x2d
 
+from six import string_types
+
 from opensfm.sensors import sensor_data
 from opensfm import types
 
@@ -80,7 +82,7 @@ def camera_id_(make, model, width, height, projection_type, focal):
 
 
 def extract_exif_from_file(fileobj):
-    if isinstance(fileobj, (str, unicode)):
+    if isinstance(fileobj, string_types):
         with open(fileobj) as f:
             exif_data = EXIF(f)
     else:
@@ -136,6 +138,16 @@ class EXIF:
             width, height = -1, -1
         return width, height
 
+    def _decode_make_model(self, value):
+        """Python 2/3 compatible decoding of make/model field."""
+        if hasattr(value, 'decode'):
+            try:
+                return value.decode('utf-8')
+            except UnicodeDecodeError:
+                return 'unknown'
+        else:
+            return value
+
     def extract_make(self):
         # Camera make and model
         if 'EXIF LensMake' in self.tags:
@@ -144,10 +156,7 @@ class EXIF:
             make = self.tags['Image Make'].values
         else:
             make = 'unknown'
-        try:
-            return make.decode('utf-8')
-        except UnicodeDecodeError:
-            return 'unknown'
+        return self._decode_make_model(make)
 
     def extract_model(self):
         if 'EXIF LensModel' in self.tags:
@@ -156,10 +165,7 @@ class EXIF:
             model = self.tags['Image Model'].values
         else:
             model = 'unknown'
-        try:
-            return model.decode('utf-8')
-        except UnicodeDecodeError:
-            return 'unknown'
+        return self._decode_make_model(model)
 
     def extract_projection_type(self):
         gpano = get_gpano_from_xmp(self.xmp)

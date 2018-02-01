@@ -15,8 +15,6 @@
 
 # Picking exceptions
 doc/build
-*/*.so
-*/*.pyc
-*/*/*.pyc
-*/__pycache__
-*/*/__pycache__
+**/*.so
+**/*.pyc
+**/__pycache__

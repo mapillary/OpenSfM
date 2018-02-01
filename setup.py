@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
 from distutils.core import setup
-import sys
 import os
 import errno
 import subprocess
+import sys
 
 
 def mkdir_p(path):
@@ -16,14 +17,22 @@ def mkdir_p(path):
         if exc.errno != errno.EEXIST or not os.path.isdir(path):
             raise
 
-print "Configuring..."
+
+print("Configuring...")
 mkdir_p('cmake_build')
-subprocess.Popen(['cmake','../opensfm/src'], cwd='cmake_build').wait()
+cmake_command = ['cmake', '../opensfm/src']
+if sys.version_info >= (3, 0):
+    cmake_command.extend([
+        '-DBUILD_FOR_PYTHON3=ON',
+        '-DBOOST_PYTHON3_COMPONENT=python-py{}{}'.format(
+            sys.version_info.major,
+            sys.version_info.minor)])
+subprocess.Popen(cmake_command, cwd='cmake_build').wait()
 
-print "Compiling extension..."
-subprocess.Popen(['make','-j4'], cwd='cmake_build').wait()
+print("Compiling extension...")
+subprocess.Popen(['make', '-j4'], cwd='cmake_build').wait()
 
-print "Building package"
+print("Building package")
 setup(
     name='OpenSfM',
     version='0.1',
