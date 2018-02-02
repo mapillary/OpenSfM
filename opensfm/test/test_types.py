@@ -110,9 +110,7 @@ def test_fisheye_camera_projection():
 
 def test_spherical_camera_projection():
     """Test spherical projection--backprojection loop."""
-    camera = types.SphericalCamera()
-    camera.width = 800
-    camera.height = 600
+    camera = _get_spherical_camera()
     pixel = [0.1, 0.2]
     bearing = camera.pixel_bearing(pixel)
     projected = camera.project(bearing)
@@ -156,16 +154,22 @@ def test_single_vs_many():
         _get_perspective_camera(),
         _get_brown_perspective_camera(),
         _get_fisheye_camera(),
+        _get_spherical_camera(),
     ]
     for camera in cameras:
         p_single = [camera.project(p) for p in points]
         p_many = camera.project_many(points)
         assert np.allclose(p_single, p_many)
 
-        q_single = [camera.back_project(p, d)
-                    for p, d in zip(pixels, depths)]
-        q_many = camera.back_project_many(pixels, depths)
-        assert np.allclose(q_single, q_many)
+        b_single = [camera.pixel_bearing(p) for p in pixels]
+        b_many = camera.pixel_bearing_many(pixels)
+        assert np.allclose(b_single, b_many)
+
+        if hasattr(camera, 'back_project'):
+            q_single = [camera.back_project(p, d)
+                        for p, d in zip(pixels, depths)]
+            q_many = camera.back_project_many(pixels, depths)
+            assert np.allclose(q_single, q_many)
 
 
 def _get_perspective_camera():
@@ -201,4 +205,11 @@ def _get_fisheye_camera():
     camera.focal = 0.6
     camera.k1 = -0.1
     camera.k2 = 0.01
+    return camera
+
+
+def _get_spherical_camera():
+    camera = types.SphericalCamera()
+    camera.width = 800
+    camera.height = 600
     return camera

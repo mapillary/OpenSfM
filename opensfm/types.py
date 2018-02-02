@@ -533,6 +533,13 @@ class SphericalCamera(Camera):
         lat = np.arctan2(-y, np.sqrt(x**2 + z**2))
         return np.array([lon / (2 * np.pi), -lat / (2 * np.pi)])
 
+    def project_many(self, points):
+        """Project 3D points in camera coordinates to the image plane."""
+        x, y, z = points.T
+        lon = np.arctan2(x, z)
+        lat = np.arctan2(-y, np.sqrt(x**2 + z**2))
+        return np.column_stack([lon / (2 * np.pi), -lat / (2 * np.pi)])
+
     def pixel_bearing(self, pixel):
         """Unit vector pointing to the pixel viewing direction."""
         lon = pixel[0] * 2 * np.pi
