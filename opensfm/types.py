@@ -344,6 +344,13 @@ class BrownPerspectiveCamera(Camera):
         return np.array([self.focal_x * x_distorted + self.c_x,
                          self.focal_y * y_distorted + self.c_y])
 
+    def project_many(self, points):
+        """Project 3D points in camera coordinates to the image plane."""
+        distortion = np.array([self.k1, self.k2, self.p1, self.p2, self.k3])
+        K, R, t = self.get_K(), np.zeros(3), np.zeros(3)
+        pixels, _ = cv2.projectPoints(points, R, t, K, distortion)
+        return pixels.reshape((2, -1))
+
     def pixel_bearing(self, pixel):
         """Unit vector pointing to the pixel viewing direction."""
         point = np.asarray(pixel).reshape((1, 1, 2))
@@ -372,6 +379,12 @@ class BrownPerspectiveCamera(Camera):
         bearing = self.pixel_bearing(pixel)
         scale = depth / bearing[2]
         return scale * bearing
+
+    def back_project_many(self, pixels, depths):
+        """Project pixels to fronto-parallel planes at given depths."""
+        bearings = self.pixel_bearing_many(pixels)
+        scales = depths / bearings[:, 2]
+        return scales[:, np.newaxis] * bearings
 
     def get_K(self):
         """The calibration matrix."""

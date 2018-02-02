@@ -154,6 +154,7 @@ def test_single_vs_many():
 
     cameras = [
         _get_perspective_camera(),
+        _get_brown_perspective_camera(),
         # _get_fisheye_camera(),
     ]
     for camera in cameras:
@@ -174,6 +175,22 @@ def _get_perspective_camera():
     camera.focal = 0.6
     camera.k1 = -0.1
     camera.k2 = 0.01
+    return camera
+
+
+def _get_brown_perspective_camera():
+    camera = types.BrownPerspectiveCamera()
+    camera.width = 800
+    camera.height = 600
+    camera.focal_x = 0.6
+    camera.focal_y = 0.7
+    camera.c_x = 0.1
+    camera.c_y = -0.05
+    camera.k1 = -0.1
+    camera.k2 = 0.01
+    camera.p1 = 0.001
+    camera.p2 = 0.002
+    camera.k3 = 0.01
     return camera
 
 
