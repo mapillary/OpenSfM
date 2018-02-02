@@ -207,13 +207,10 @@ class PerspectiveCamera(Camera):
 
     def project_many(self, points):
         """Project 3D points in camera coordinates to the image plane."""
-        # Normalized image coordinates
-        points_n = points[:,:2] / points[:,2,np.newaxis]
-
-        # Radial distortion
-        r2 = np.sum(np.square(points_n), axis=1, keepdims=True)
-        distortion = 1.0 + r2 * (self.k1 + self.k2 * r2)
-        return self.focal * distortion * points_n
+        distortion = np.array([self.k1, self.k2, 0, 0, 0])
+        K, R, t = self.get_K(), np.zeros(3), np.zeros(3)
+        pixels, _ = cv2.projectPoints(points, R, t, K, distortion)
+        return pixels.reshape((2, -1))
 
     def pixel_bearing(self, pixel):
         """Unit vector pointing to the pixel viewing direction."""
@@ -448,6 +445,14 @@ class FisheyeCamera(Camera):
         s = self.focal * theta_d / l
         return np.array([s * x, s * y])
 
+    def project_many(self, points):
+        """Project 3D points in camera coordinates to the image plane."""
+        points = points.reshape((-1, 1, 3)).astype(np.float64)
+        distortion = np.array([self.k1, self.k2, 0., 0.])
+        K, R, t = self.get_K(), np.zeros(3), np.zeros(3)
+        pixels, _ = cv2.fisheye.projectPoints(points, R, t, K, distortion)
+        return pixels.reshape((2, -1))
+
     def pixel_bearing(self, pixel):
         """Unit vector pointing to the pixel viewing direction."""
         point = np.asarray(pixel).reshape((1, 1, 2))
@@ -476,6 +481,12 @@ class FisheyeCamera(Camera):
         bearing = self.pixel_bearing(pixel)
         scale = depth / bearing[2]
         return scale * bearing
+
+    def back_project_many(self, pixels, depths):
+        """Project pixels to fronto-parallel planes at given depths."""
+        bearings = self.pixel_bearing_many(pixels)
+        scales = depths / bearings[:, 2]
+        return scales[:, np.newaxis] * bearings
 
     def get_K(self):
         """The calibration matrix."""

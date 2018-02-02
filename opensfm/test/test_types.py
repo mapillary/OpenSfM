@@ -155,7 +155,7 @@ def test_single_vs_many():
     cameras = [
         _get_perspective_camera(),
         _get_brown_perspective_camera(),
-        # _get_fisheye_camera(),
+        _get_fisheye_camera(),
     ]
     for camera in cameras:
         p_single = [camera.project(p) for p in points]
