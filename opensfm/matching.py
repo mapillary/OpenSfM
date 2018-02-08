@@ -9,6 +9,7 @@ from itertools import combinations
 from six import iteritems
 
 from opensfm import context
+from opensfm import multiview
 from opensfm.unionfind import UnionFind
 
 
@@ -109,8 +110,7 @@ def robust_match_fundamental(p1, p2, matches, config):
 
     return matches[inliers]
 
-
-def _compute_inliers_bearings(b1, b2, T):
+def _compute_inliers_bearings(b1, b2, T, threshold=0.01):
     R = T[:, :3]
     t = T[:, 3]
     p = pyopengv.triangulation_triangulate(b1, b2, t, R)
@@ -121,8 +121,8 @@ def _compute_inliers_bearings(b1, b2, T):
     br2 = R.T.dot((p - t).T).T
     br2 /= np.linalg.norm(br2, axis=1)[:, np.newaxis]
 
-    ok1 = np.linalg.norm(br1 - b1, axis=1) < 0.01   # TODO(pau): compute angular error and use proper threshold
-    ok2 = np.linalg.norm(br2 - b2, axis=1) < 0.01
+    ok1 = multiview.vector_angle(br1, b1) < threshold
+    ok2 = multiview.vector_angle(br2, b2) < threshold
     return ok1 * ok2
 
 
