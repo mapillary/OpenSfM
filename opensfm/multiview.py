@@ -111,9 +111,7 @@ def vector_angle(u, v):
     >>> vector_angle(u, v)
     0.0
     '''
-    cos = np.dot(u, v) / math.sqrt(np.dot(u,u) * np.dot(v,v))
-    if cos >= 1.0: return 0.0
-    else: return math.acos(cos)
+    return tf.angle_between_vectors(u,v)
 
 
 def decompose_similarity_transform(T):
