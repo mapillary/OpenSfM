@@ -111,7 +111,7 @@ def vector_angle(u, v):
     >>> vector_angle(u, v)
     0.0
     '''
-    return tf.angle_between_vectors(u,v)
+    return tf.angle_between_vectors(u,v,axis=1)
 
 
 def decompose_similarity_transform(T):
