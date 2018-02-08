@@ -57,6 +57,7 @@ preemptive_threshold: 0               # If number of matches passes the threshol
 
 # Params for geometric estimation
 robust_matching_threshold: 0.004      # Outlier threshold for fundamental matrix estimation as portion of image width
+robust_matching_calib_threshold: 0.01 # Outlier threshold for essential matrix estimation in radians
 robust_matching_min_match: 20         # Minimum number of matches to be considered as an edge in the match graph
 five_point_algo_threshold: 0.004      # Outlier threshold (in pixels) for essential matrix estimation
 five_point_algo_min_inliers: 20       # Minimum number of inliers for considering a two view reconstruction valid.
