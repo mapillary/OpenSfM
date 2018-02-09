@@ -210,7 +210,7 @@ class PerspectiveCamera(Camera):
         distortion = np.array([self.k1, self.k2, 0, 0, 0])
         K, R, t = self.get_K(), np.zeros(3), np.zeros(3)
         pixels, _ = cv2.projectPoints(points, R, t, K, distortion)
-        return pixels.reshape((2, -1))
+        return pixels.reshape((-1, 2))
 
     def pixel_bearing(self, pixel):
         """Unit vector pointing to the pixel viewing direction."""
@@ -346,7 +346,7 @@ class BrownPerspectiveCamera(Camera):
         distortion = np.array([self.k1, self.k2, self.p1, self.p2, self.k3])
         K, R, t = self.get_K(), np.zeros(3), np.zeros(3)
         pixels, _ = cv2.projectPoints(points, R, t, K, distortion)
-        return pixels.reshape((2, -1))
+        return pixels.reshape((-1, 2))
 
     def pixel_bearing(self, pixel):
         """Unit vector pointing to the pixel viewing direction."""
@@ -451,7 +451,7 @@ class FisheyeCamera(Camera):
         distortion = np.array([self.k1, self.k2, 0., 0.])
         K, R, t = self.get_K(), np.zeros(3), np.zeros(3)
         pixels, _ = cv2.fisheye.projectPoints(points, R, t, K, distortion)
-        return pixels.reshape((2, -1))
+        return pixels.reshape((-1, 2))
 
     def pixel_bearing(self, pixel):
         """Unit vector pointing to the pixel viewing direction."""
