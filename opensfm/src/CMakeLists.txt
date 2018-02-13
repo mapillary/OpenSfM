@@ -47,9 +47,8 @@ find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 
 option(BUILD_FOR_PYTHON3 "build pyopengv for Python 3" OFF)
-option(BOOST_PYTHON3_COMPONENT
-       "name of the Boost Python 3 component (python3, python-py36 or python-py37)"
-       python3)
+set(BOOST_PYTHON3_COMPONENT "python3" CACHE STRING
+    "name of the Boost Python 3 component (python3, python-py36 or python-py37)")
 
 if(${BUILD_FOR_PYTHON3})
     set(BOOST_PYTHON_COMPONENT ${BOOST_PYTHON3_COMPONENT})
