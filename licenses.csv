@@ -1,0 +1,25 @@
+ExifRead, 2.1.2, BSD
+PyYAML, 3.12, MIT
+boost, 1.66, "Boost Software License"
+ceres-solver, 1.10.0, BSD
+cloudpickle, 0.4.0, BSD
+coverage, 4.4.2, "Apache 2.0"
+docutils, 0.14, "public domain, Python, 2-Clause BSD, GPL 3 (see COPYING.txt)"
+futures, 3.1.1, "Python Software Foundation License"
+gpxpy, 1.1.2, "Apache 2.0"
+loky, 1.2.1, BSD
+networkx, 1.11, BSD
+numpy, 1.14.0, BSD
+opencv, 2.4.10.1, "3-clause BSD License"
+opengv, master, "New BSD 3-Clause"
+py, 1.5.2, MIT
+pyproj, 1.9.5.1, "OSI Approved"
+pytest, 3.2.3, MIT
+pytest-cov, 2.5.1, MIT
+python-dateutil, 2.6.0, "Simplified BSD"
+scikit-learn, 0.19.1, "New BSD"
+scipy, 0.19.0, BSD
+setuptools, 36.7.2, MIT
+six, 1.11.0, MIT
+transformations, 2013.06.29, BSD
+xmltodict, 0.10.2, MIT
