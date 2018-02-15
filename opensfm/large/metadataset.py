@@ -1,4 +1,3 @@
-import csv
 import numpy as np
 import os
 import os.path
@@ -60,9 +59,6 @@ class MetaDataSet():
     def _clusters_geojson_path(self):
         return os.path.join(self._submodels_path(), self._clusters_geojson_file_name)
 
-    def _create_csv_writer(self, csvfile):
-        return csv.writer(csvfile, delimiter='\t', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-
     def _create_symlink(self, base_path, dir_name):
         link_path = os.path.join(base_path, dir_name)
 
@@ -86,20 +82,13 @@ class MetaDataSet():
 
     def create_image_list(self, ills):
         with io.open_wt(self._image_list_path()) as csvfile:
-            w = self._create_csv_writer(csvfile)
-
             for image, lat, lon in ills:
-                w.writerow([image, lat, lon])
+                csvfile.write(u'{}\t{}\t{}\n'.format(image, lat, lon))
 
     def images_with_gps(self):
         with io.open_rt(self._image_list_path()) as csvfile:
-            image_reader = csv.reader(
-                csvfile,
-                delimiter='\t',
-                quotechar='"',
-                quoting=csv.QUOTE_MINIMAL)
-
-            for image, lat, lon in image_reader:
+            for line in csvfile:
+                image, lat, lon = line.split(u'\t')
                 yield image, float(lat), float(lon)
 
     def save_clusters(self, images, positions, labels, centers):

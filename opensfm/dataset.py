@@ -4,9 +4,11 @@ import os
 import json
 import pickle
 import gzip
+
+import cv2
 import numpy as np
 import networkx as nx
-import cv2
+import six
 
 from opensfm import io
 from opensfm import config
@@ -34,7 +36,7 @@ class DataSet:
         # Load list of images.
         image_list_file = os.path.join(self.data_path, 'image_list.txt')
         if os.path.isfile(image_list_file):
-            with open(image_list_file) as fin:
+            with io.open_rt(image_list_file) as fin:
                 lines = fin.read().splitlines()
             self.set_image_list(lines)
         else:
@@ -156,6 +158,7 @@ class DataSet:
         self.image_files = {}
         if os.path.exists(path):
             for name in os.listdir(path):
+                name = six.text_type(name)
                 if self.__is_image_file(name):
                     self.image_list.append(name)
                     self.image_files[name] = os.path.join(path, name)
