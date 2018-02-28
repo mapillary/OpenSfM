@@ -102,8 +102,9 @@ def match_candidates_by_distance(images, exifs, reference, max_neighbors, max_di
     points = np.zeros((len(images), 3))
     for i, image in enumerate(images):
         gps = exifs[image]['gps']
+        alt = gps.get('altitude', 2.0)
         points[i] = geo.topocentric_from_lla(
-            gps['latitude'], gps['longitude'], gps['altitude'],
+            gps['latitude'], gps['longitude'], alt,
             reference['latitude'], reference['longitude'], reference['altitude'])
 
     tree = spatial.cKDTree(points)
