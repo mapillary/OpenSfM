@@ -110,6 +110,7 @@ def robust_match_fundamental(p1, p2, matches, config):
 
     return matches[inliers]
 
+
 def _compute_inliers_bearings(b1, b2, T, threshold=0.01):
     R = T[:, :3]
     t = T[:, 3]
