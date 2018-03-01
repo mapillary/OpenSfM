@@ -105,13 +105,29 @@ def rq(A):
 
 
 def vector_angle(u, v):
-    '''
+    """Angle between two vectors.
+
+    >>> u = [ 0.99500417, -0.33333333, -0.09983342]
+    >>> v = [ 0.99500417, -0.33333333, -0.09983342]
+    >>> vector_angle(u, v)
+    0.0
+    """
+    cos = np.dot(u, v) / math.sqrt(np.dot(u, u) * np.dot(v, v))
+    if cos >= 1.0:
+        return 0.0
+    else:
+        return math.acos(cos)
+
+
+def vector_angle_many(u, v):
+    """Angles between to lists of vectors.
+
     >>> u = [[0.99500417, -0.33333333, -0.09983342], [0, -1, 0], [0, 1, 0]]
     >>> v = [[0.99500417, -0.33333333, -0.09983342], [0, +1, 0], [0, 0, 1]]
-    >>> angles = vector_angle(u, v)
+    >>> angles = vector_angle_many(u, v)
     >>> np.allclose(angles, [0., 3.1416, 1.5708])
     True
-    '''
+    """
     ua = np.array(u, dtype=np.float64, copy=False).reshape(-1, 3)
     va = np.array(v, dtype=np.float64, copy=False).reshape(-1, 3)
     return tf.angle_between_vectors(ua, va, axis=1)

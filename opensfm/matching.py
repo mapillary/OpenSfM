@@ -122,8 +122,8 @@ def _compute_inliers_bearings(b1, b2, T, threshold=0.01):
     br2 = R.T.dot((p - t).T).T
     br2 /= np.linalg.norm(br2, axis=1)[:, np.newaxis]
 
-    ok1 = multiview.vector_angle(br1, b1) < threshold
-    ok2 = multiview.vector_angle(br2, b2) < threshold
+    ok1 = multiview.vector_angle_many(br1, b1) < threshold
+    ok2 = multiview.vector_angle_many(br2, b2) < threshold
     return ok1 * ok2
 
 
