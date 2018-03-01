@@ -106,14 +106,14 @@ def rq(A):
 
 def vector_angle(u, v):
     '''
-    >>> u = [ 0.99500417, -0.33333333, -0.09983342]
-    >>> v = [ 0.99500417, -0.33333333, -0.09983342]
-    >>> vector_angle(u, v)
-    0.0
+    >>> u = [[0.99500417, -0.33333333, -0.09983342], [0, -1, 0], [0, 1, 0]]
+    >>> v = [[0.99500417, -0.33333333, -0.09983342], [0, +1, 0], [0, 0, 1]]
+    >>> np.array2string(vector_angle(u, v), precision=4)
+    '[ 0.      3.1416  1.5708]'
     '''
-    cos = np.dot(u, v) / math.sqrt(np.dot(u,u) * np.dot(v,v))
-    if cos >= 1.0: return 0.0
-    else: return math.acos(cos)
+    ua = np.array(u, dtype=np.float64, copy=False).reshape(-1,3)
+    va = np.array(v, dtype=np.float64, copy=False).reshape(-1,3)
+    return tf.angle_between_vectors(ua,va,axis=1)
 
 
 def decompose_similarity_transform(T):
