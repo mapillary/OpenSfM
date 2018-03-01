@@ -56,14 +56,15 @@ preemptive_max: 200                   # Number of features to use for preemptive
 preemptive_threshold: 0               # If number of matches passes the threshold -> full feature matching
 
 # Params for geometric estimation
-robust_matching_threshold: 0.004      # Outlier threshold for fundamental matrix estimation as portion of image width
-robust_matching_min_match: 20         # Minimum number of matches to be considered as an edge in the match graph
-five_point_algo_threshold: 0.004      # Outlier threshold (in pixels) for essential matrix estimation
-five_point_algo_min_inliers: 20       # Minimum number of inliers for considering a two view reconstruction valid.
-triangulation_threshold: 0.006        # Outlier threshold (in pixels) for accepting a triangulated point.
+robust_matching_threshold: 0.004        # Outlier threshold for fundamental matrix estimation as portion of image width
+robust_matching_calib_threshold: 0.004  # Outlier threshold for essential matrix estimation in radians
+robust_matching_min_match: 20           # Minimum number of matches to be considered as an edge in the match graph
+five_point_algo_threshold: 0.004        # Outlier threshold (in pixels) for essential matrix estimation
+five_point_algo_min_inliers: 20         # Minimum number of inliers for considering a two view reconstruction valid.
+triangulation_threshold: 0.006          # Outlier threshold (in pixels) for accepting a triangulated point.
 triangulation_min_ray_angle: 1.0
-resection_threshold: 0.004            # Outlier threshold (in pixels) for camera resection.
-resection_min_inliers: 10             # Minimum number of resection inliers to accept it.
+resection_threshold: 0.004              # Outlier threshold (in pixels) for camera resection.
+resection_min_inliers: 10               # Minimum number of resection inliers to accept it.
 retriangulation: no
 retriangulation_ratio: 1.25
 
