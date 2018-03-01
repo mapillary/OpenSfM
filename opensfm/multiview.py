@@ -108,12 +108,13 @@ def vector_angle(u, v):
     '''
     >>> u = [[0.99500417, -0.33333333, -0.09983342], [0, -1, 0], [0, 1, 0]]
     >>> v = [[0.99500417, -0.33333333, -0.09983342], [0, +1, 0], [0, 0, 1]]
-    >>> np.array2string(vector_angle(u, v), precision=4)
-    '[ 0.      3.1416  1.5708]'
+    >>> angles = vector_angle(u, v)
+    >>> np.allclose(angles, [0., 3.1416, 1.5708])
+    True
     '''
-    ua = np.array(u, dtype=np.float64, copy=False).reshape(-1,3)
-    va = np.array(v, dtype=np.float64, copy=False).reshape(-1,3)
-    return tf.angle_between_vectors(ua,va,axis=1)
+    ua = np.array(u, dtype=np.float64, copy=False).reshape(-1, 3)
+    va = np.array(v, dtype=np.float64, copy=False).reshape(-1, 3)
+    return tf.angle_between_vectors(ua, va, axis=1)
 
 
 def decompose_similarity_transform(T):
@@ -141,8 +142,13 @@ def ransac(kernel, threshold):
     >>> x = np.array([1., 2., 3.])
     >>> y = np.array([2., 4., 7.])
     >>> kernel = TestLinearKernel(x, y)
-    >>> ransac(kernel, 0.1)
-    (2.0, array([0, 1]), 0.10000000000000001)
+    >>> model, inliers, error = ransac(kernel, 0.1)
+    >>> np.allclose(model, 2.0)
+    True
+    >>> inliers
+    array([0, 1])
+    >>> np.allclose(error, 0.1)
+    True
     '''
     max_iterations = 1000
     best_error = float('inf')
@@ -179,8 +185,9 @@ class TestLinearKernel:
     >>> models = kernel.fit([0])
     >>> models
     [2.0]
-    >>> kernel.evaluate(models[0])
-    array([ 0.,  0.,  1.])
+    >>> errors = kernel.evaluate(models[0])
+    >>> np.allclose(errors, [0., 0., 1.])
+    True
     '''
     required_samples = 1
 
