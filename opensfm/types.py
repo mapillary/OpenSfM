@@ -43,6 +43,10 @@ class Pose(object):
         """Transform a point from world to this pose coordinates."""
         return self.get_rotation_matrix().dot(point) + self.translation
 
+    def transform_many(self, points):
+        """Transform points from world coordinates to this pose."""
+        return points.dot(self.get_rotation_matrix().T) + self.translation
+
     def transform_inverse(self, point):
         """Transform a point from this pose to world coordinates."""
         return self.get_rotation_matrix().T.dot(point - self.translation)
@@ -201,6 +205,13 @@ class PerspectiveCamera(Camera):
         return np.array([self.focal * distortion * xn,
                          self.focal * distortion * yn])
 
+    def project_many(self, points):
+        """Project 3D points in camera coordinates to the image plane."""
+        distortion = np.array([self.k1, self.k2, 0, 0, 0])
+        K, R, t = self.get_K(), np.zeros(3), np.zeros(3)
+        pixels, _ = cv2.projectPoints(points, R, t, K, distortion)
+        return pixels.reshape((-1, 2))
+
     def pixel_bearing(self, pixel):
         """Unit vector pointing to the pixel viewing direction."""
         point = np.asarray(pixel).reshape((1, 1, 2))
@@ -330,6 +341,13 @@ class BrownPerspectiveCamera(Camera):
         return np.array([self.focal_x * x_distorted + self.c_x,
                          self.focal_y * y_distorted + self.c_y])
 
+    def project_many(self, points):
+        """Project 3D points in camera coordinates to the image plane."""
+        distortion = np.array([self.k1, self.k2, self.p1, self.p2, self.k3])
+        K, R, t = self.get_K(), np.zeros(3), np.zeros(3)
+        pixels, _ = cv2.projectPoints(points, R, t, K, distortion)
+        return pixels.reshape((-1, 2))
+
     def pixel_bearing(self, pixel):
         """Unit vector pointing to the pixel viewing direction."""
         point = np.asarray(pixel).reshape((1, 1, 2))
@@ -358,6 +376,12 @@ class BrownPerspectiveCamera(Camera):
         bearing = self.pixel_bearing(pixel)
         scale = depth / bearing[2]
         return scale * bearing
+
+    def back_project_many(self, pixels, depths):
+        """Project pixels to fronto-parallel planes at given depths."""
+        bearings = self.pixel_bearing_many(pixels)
+        scales = depths / bearings[:, 2]
+        return scales[:, np.newaxis] * bearings
 
     def get_K(self):
         """The calibration matrix."""
@@ -421,6 +445,14 @@ class FisheyeCamera(Camera):
         s = self.focal * theta_d / l
         return np.array([s * x, s * y])
 
+    def project_many(self, points):
+        """Project 3D points in camera coordinates to the image plane."""
+        points = points.reshape((-1, 1, 3)).astype(np.float64)
+        distortion = np.array([self.k1, self.k2, 0., 0.])
+        K, R, t = self.get_K(), np.zeros(3), np.zeros(3)
+        pixels, _ = cv2.fisheye.projectPoints(points, R, t, K, distortion)
+        return pixels.reshape((-1, 2))
+
     def pixel_bearing(self, pixel):
         """Unit vector pointing to the pixel viewing direction."""
         point = np.asarray(pixel).reshape((1, 1, 2))
@@ -449,6 +481,12 @@ class FisheyeCamera(Camera):
         bearing = self.pixel_bearing(pixel)
         scale = depth / bearing[2]
         return scale * bearing
+
+    def back_project_many(self, pixels, depths):
+        """Project pixels to fronto-parallel planes at given depths."""
+        bearings = self.pixel_bearing_many(pixels)
+        scales = depths / bearings[:, 2]
+        return scales[:, np.newaxis] * bearings
 
     def get_K(self):
         """The calibration matrix."""
@@ -494,6 +532,13 @@ class SphericalCamera(Camera):
         lon = np.arctan2(x, z)
         lat = np.arctan2(-y, np.sqrt(x**2 + z**2))
         return np.array([lon / (2 * np.pi), -lat / (2 * np.pi)])
+
+    def project_many(self, points):
+        """Project 3D points in camera coordinates to the image plane."""
+        x, y, z = points.T
+        lon = np.arctan2(x, z)
+        lat = np.arctan2(-y, np.sqrt(x**2 + z**2))
+        return np.column_stack([lon / (2 * np.pi), -lat / (2 * np.pi)])
 
     def pixel_bearing(self, pixel):
         """Unit vector pointing to the pixel viewing direction."""
@@ -546,6 +591,11 @@ class Shot(object):
         """Project a 3D point to the image plane."""
         camera_point = self.pose.transform(point)
         return self.camera.project(camera_point)
+
+    def project_many(self, points):
+        """Project 3D points to the image plane."""
+        camera_point = self.pose.transform_many(points)
+        return self.camera.project_many(camera_point)
 
     def back_project(self, pixel, depth):
         """Project a pixel to a fronto-parallel plane at a given depth.
