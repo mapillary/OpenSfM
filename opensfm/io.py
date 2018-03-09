@@ -567,6 +567,12 @@ def imread(filename):
     return bgr[:, :, ::-1]  # Turn BGR to RGB
 
 
+def imwrite(filename, image):
+    """Write an RGB image to a file"""
+    bgr = image[:, :, ::-1]
+    cv2.imwrite(filename, bgr)
+
+
 # Bundler
 
 def export_bundler(image_list, reconstructions, track_graph, bundle_file_path,
