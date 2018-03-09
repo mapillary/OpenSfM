@@ -349,7 +349,7 @@ def cameras_to_json(cameras):
     return obj
 
 
-def _read_ground_control_points_list_line(line, projection, reference_lla, exif):
+def _read_gcp_list_line(line, projection, reference_lla, exif):
     words = line.split()
     easting, northing, alt, pixel_x, pixel_y = map(float, words[:5])
     shot_id = words[5]
@@ -408,18 +408,21 @@ def _parse_projection(line):
         raise ValueError("Un-supported geo system definition: {}".format(line))
 
 
+def _valid_gcp_line(line):
+    stripped = line.strip()
+    return stripped and stripped[0] != '#'
+
+
 def read_ground_control_points_list(fileobj, reference_lla, exif):
     """Read a ground control point list file.
 
     It requires the points to be in the WGS84 lat, lon, alt format.
     """
-    lines = fileobj.readlines()
-    for line in lines[:] :
-        if line[0] == '#' or  not line.strip():
-            del lines[lines.index(line)]      # remove comments and empty lines
-    projection = _parse_projection(lines[0])
-    points = [_read_ground_control_points_list_line(line, projection, reference_lla, exif)
-              for line in lines[1:]]
+    all_lines = fileobj.readlines()
+    lines = iter(filter(_valid_gcp_line, all_lines))
+    projection = _parse_projection(lines.next())
+    points = [_read_gcp_list_line(line, projection, reference_lla, exif)
+              for line in lines]
     return points
 
 
