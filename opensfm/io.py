@@ -414,6 +414,9 @@ def read_ground_control_points_list(fileobj, reference_lla, exif):
     It requires the points to be in the WGS84 lat, lon, alt format.
     """
     lines = fileobj.readlines()
+    for line in lines[:] :
+        if line[0] == '#' or  not line.strip():
+            del lines[lines.index(line)]      # remove comments and empty lines
     projection = _parse_projection(lines[0])
     points = [_read_ground_control_points_list_line(line, projection, reference_lla, exif)
               for line in lines[1:]]
