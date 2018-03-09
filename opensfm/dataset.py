@@ -487,6 +487,12 @@ class DataSet:
             obj = json.load(fin)
             return io.cameras_from_json(obj)
 
+    def save_camera_models_overrides(self, camera_models):
+        """Save camera models overrides data"""
+        with io.open_wt(self.__camera_models_overrides_file()) as fout:
+            obj = io.cameras_to_json(camera_models)
+            io.json_dump(obj, fout)
+
     def __exif_overrides_file(self):
         """Path to the EXIF overrides file."""
         return os.path.join(self.data_path, 'exif_overrides.json')
