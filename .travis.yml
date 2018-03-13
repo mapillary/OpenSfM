@@ -7,9 +7,10 @@ services:
 
 before_install:
   - docker build -t mapillary/opensfm .
-
+  - docker build -t mapillary/opensfm:python3 -f Dockerfile.python3 .
 script:
   - docker run mapillary/opensfm /bin/sh -c "py.test"
+  - docker run mapillary/opensfm:python3 /bin/sh -c "py.test"
 
 notifications:
   slack:

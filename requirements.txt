@@ -6,6 +6,7 @@ pyproj==1.9.5.1
 pytest==3.0.7
 python-dateutil==2.6.0
 PyYAML==3.12
+six
 scipy
 xmltodict==0.10.2
 cloudpickle==0.4.0

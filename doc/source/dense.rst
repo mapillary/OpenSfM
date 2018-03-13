@@ -93,6 +93,7 @@ The homography mapping defined by matrix :math:`H` is
 
    f(x, y) = \begin{pmatrix} u / w \\
                              v / w \end{pmatrix}
+
 where
 
 .. math::

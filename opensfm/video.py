@@ -41,18 +41,18 @@ def import_video_with_gpx(video_file, gpx_file, output_path, dx, dt=None, start_
             exifdate = Popen(['exiftool', '-CreateDate', '-b', video_file], stdout=PIPE).stdout.read()
             video_start_time = datetime.datetime.strptime(exifdate,'%Y:%m:%d %H:%M:%S')
         except:
-            print 'Video recording timestamp not found. Using first GPS point time.'
+            print('Video recording timestamp not found. Using first GPS point time.')
             video_start_time = points[0][0]
         try:
             duration = Popen(['exiftool', '-MediaDuration', '-b', video_file], stdout=PIPE).stdout.read()
             video_duration = float(duration)
             video_end_time = video_start_time + datetime.timedelta(seconds=video_duration)
         except:
-            print 'Video end time not found. Using last GPS point time.'
+            print('Video end time not found. Using last GPS point time.')
             video_end_time = points[-1][0]
 
-    print 'GPS track starts at:', points[0][0]
-    print 'Video starts at:', video_start_time
+    print('GPS track starts at: {}'.format(points[0][0]))
+    print('Video starts at: {}'.format(video_start_time))
 
     # Extract video frames.
     io.mkdir_p(output_path)
@@ -67,7 +67,7 @@ def import_video_with_gpx(video_file, gpx_file, output_path, dx, dt=None, start_
             cap.set(CAP_PROP_POS_MSEC, int(dt * 1000))
             ret, frame = cap.read()
             if ret:
-                print 'Grabbing frame for time', p[0]
+                print('Grabbing frame for time {}'.format(p[0]))
                 filepath = os.path.join(output_path, p[0].strftime("%Y_%m_%d_%H_%M_%S_%f")[:-3] + '.jpg')
                 cv2.imwrite(filepath, frame)
                 geotag_from_gpx.add_exif_using_timestamp(filepath, points, timestamp=p[0], orientation=orientation)

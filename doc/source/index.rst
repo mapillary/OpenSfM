@@ -15,6 +15,7 @@ OpenSfM
    large
    reporting
    api
+   python3
 
 Indices and tables
 ==================

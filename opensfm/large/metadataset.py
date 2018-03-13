@@ -1,4 +1,3 @@
-import csv
 import numpy as np
 import os
 import os.path
@@ -25,6 +24,7 @@ class MetaDataSet():
         self._clusters_file_name = 'clusters.npz'
         self._clusters_with_neighbors_file_name = 'clusters_with_neighbors.npz'
         self._clusters_with_neighbors_geojson_file_name = 'clusters_with_neighbors.geojson'
+        self._clusters_geojson_file_name = 'clusters.geojson'
 
         io.mkdir_p(self._submodels_path())
 
@@ -56,8 +56,8 @@ class MetaDataSet():
     def _clusters_with_neighbors_geojson_path(self):
         return os.path.join(self._submodels_path(), self._clusters_with_neighbors_geojson_file_name)
 
-    def _create_csv_writer(self, csvfile):
-        return csv.writer(csvfile, delimiter='\t', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+    def _clusters_geojson_path(self):
+        return os.path.join(self._submodels_path(), self._clusters_geojson_file_name)
 
     def _create_symlink(self, base_path, dir_name):
         link_path = os.path.join(base_path, dir_name)
@@ -81,21 +81,14 @@ class MetaDataSet():
         return os.path.isfile(self._image_list_path())
 
     def create_image_list(self, ills):
-        with open(self._image_list_path(), 'w') as csvfile:
-            w = self._create_csv_writer(csvfile)
-
+        with io.open_wt(self._image_list_path()) as csvfile:
             for image, lat, lon in ills:
-                w.writerow([image, lat, lon])
+                csvfile.write(u'{}\t{}\t{}\n'.format(image, lat, lon))
 
     def images_with_gps(self):
-        with open(self._image_list_path(), 'r') as csvfile:
-            image_reader = csv.reader(
-                csvfile,
-                delimiter='\t',
-                quotechar='"',
-                quoting=csv.QUOTE_MINIMAL)
-
-            for image, lat, lon in image_reader:
+        with io.open_rt(self._image_list_path()) as csvfile:
+            for line in csvfile:
+                image, lat, lon = line.split(u'\t')
                 yield image, float(lat), float(lon)
 
     def save_clusters(self, images, positions, labels, centers):
@@ -123,7 +116,12 @@ class MetaDataSet():
 
     def save_cluster_with_neighbors_geojson(self, geojson):
         filepath = self._clusters_with_neighbors_geojson_path()
-        with open(filepath, 'w') as fout:
+        with io.open_wt(filepath) as fout:
+            io.json_dump(geojson, fout)
+
+    def save_clusters_geojson(self, geojson):
+        filepath = self._clusters_geojson_path()
+        with io.open_wt(filepath) as fout:
             io.json_dump(geojson, fout)
 
     def remove_submodels(self):
@@ -143,7 +141,7 @@ class MetaDataSet():
 
             # link images and create image list file
             image_list_path = os.path.join(submodel_path, 'image_list.txt')
-            with open(image_list_path, 'w') as txtfile:
+            with io.open_wt(image_list_path) as txtfile:
                 for image in cluster:
                     src = data.image_files[image]
                     dst = os.path.join(submodel_images_path, image)

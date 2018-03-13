@@ -9,11 +9,16 @@ import numpy as np
 import opensfm.dataset as dataset
 import opensfm.io as io
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Convert OpenSfM reconstructions to Bundler output format')
     parser.add_argument('dataset', help='path to the dataset to be processed')
     parser.add_argument('--list_path', help='path to the list.txt file')
     parser.add_argument('--bundle_path', help='path to the bundle.out file')
+    parser.add_argument('--undistorted',
+                        action='store_true',
+                        help='export the undistorted reconstruction')
+
     args = parser.parse_args()
 
     # Assume that bundle.out, list.txt and all the images are in datapath
@@ -30,11 +35,14 @@ if __name__ == "__main__":
         bundle_file_path = data_path
     data = dataset.DataSet(args.dataset)
     images = data.images()
-    reconstructions = data.load_reconstruction()
 
-    try:
+    if args.undistorted:
+        reconstructions = data.load_undistorted_reconstruction()
+        track_graph = data.load_undistorted_tracks_graph()
+        images = reconstructions[0].shots.keys()
+    else:
+        reconstructions = data.load_reconstruction()
         track_graph = data.load_tracks_graph()
-    except IOError:
-        track_graph = {}
+        images = data.images()
 
-    io.export_bundler(data.images(), reconstructions, track_graph, bundle_file_path, list_file_path)
+    io.export_bundler(images, reconstructions, track_graph, bundle_file_path, list_file_path)

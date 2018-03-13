@@ -4,10 +4,9 @@ import time
 import logging
 import numpy as np
 import cv2
-import csfm
 
 from opensfm import context
-
+from opensfm import csfm
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +17,7 @@ def resized_image(image, config):
     h, w, _ = image.shape
     size = max(w, h)
     if 0 < max_size < size:
-        dsize = w * max_size / size, h * max_size / size
+        dsize = w * max_size // size, h * max_size // size
         return cv2.resize(image, dsize=dsize, interpolation=cv2.INTER_AREA)
     else:
         return image
@@ -27,9 +26,9 @@ def resized_image(image, config):
 def root_feature(desc, l2_normalization=False):
     if l2_normalization:
         s2 = np.linalg.norm(desc, axis=1)
-        desc = (desc.T/s2).T
+        desc = (desc.T / s2).T
     s = np.sum(desc, 1)
-    desc = np.sqrt(desc.T/s).T
+    desc = np.sqrt(desc.T / s).T
     return desc
 
 
@@ -42,14 +41,14 @@ def root_feature_surf(desc, l2_normalization=False, partial=False):
             s2 = np.linalg.norm(desc, axis=1)
             desc = (desc.T/s2).T
         if partial:
-            ii = np.array([i for i in xrange(64) if (i%4==2 or i%4==3)])
+            ii = np.array([i for i in range(64) if (i % 4 == 2 or i % 4 == 3)])
         else:
             ii = np.arange(64)
         desc_sub = np.abs(desc[:, ii])
         desc_sub_sign = np.sign(desc[:, ii])
         # s_sub = np.sum(desc_sub, 1)  # This partial normalization gives slightly better results for AKAZE surf
         s_sub = np.sum(np.abs(desc), 1)
-        desc_sub = np.sqrt(desc_sub.T/s_sub).T
+        desc_sub = np.sqrt(desc_sub.T / s_sub).T
         desc[:, ii] = desc_sub*desc_sub_sign
     return desc
 
@@ -255,6 +254,20 @@ def extract_features_orb(image, config):
 
 
 def extract_features(color_image, config, mask=None):
+    """Detect features in an image.
+
+    The type of feature detected is determined by the ``feature_type``
+    config option.
+
+    The coordinates of the detected points are returned in normalized
+    image coordinates.
+
+    Returns:
+        tuple:
+        - points: ``x``, ``y``, ``size`` and ``angle`` for each feature
+        - descriptors: the descriptor of each feature
+        - colors: the color of the center of each feature
+    """
     assert len(color_image.shape) == 3
     color_image = resized_image(color_image, config)
     image = cv2.cvtColor(color_image, cv2.COLOR_RGB2GRAY)
@@ -271,13 +284,15 @@ def extract_features(color_image, config, mask=None):
     elif feature_type == 'ORB':
         points, desc = extract_features_orb(image, config)
     else:
-        raise ValueError('Unknown feature type (must be SURF, SIFT, AKAZE, HAHOG or ORB)')
+        raise ValueError('Unknown feature type '
+                         '(must be SURF, SIFT, AKAZE, HAHOG or ORB)')
 
     xs = points[:, 0].round().astype(int)
     ys = points[:, 1].round().astype(int)
     colors = color_image[ys, xs]
 
-    return mask_and_normalize_features(points, desc, colors, image.shape[1], image.shape[0], mask)
+    return mask_and_normalize_features(points, desc, colors,
+                                       image.shape[1], image.shape[0], mask)
 
 
 def build_flann_index(features, config):

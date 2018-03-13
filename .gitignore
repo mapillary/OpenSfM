@@ -4,6 +4,7 @@ xcode
 .DS_Store
 launch.json
 .vscode
+.idea
 
 # Ignore generated files
 /build

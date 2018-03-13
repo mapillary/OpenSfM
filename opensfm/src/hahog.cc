@@ -62,26 +62,28 @@ bp::object hahog(PyObject *image,
     double patchRelativeSmoothing = 1;
     vl_size patchSide = 2 * patchResolution + 1;
     double patchStep = (double)patchRelativeExtent / patchResolution;
-    std::vector<float> points(6 * numFeatures);
+    std::vector<float> points(4 * numFeatures);
     std::vector<float> desc(dimension * numFeatures);
     std::vector<float> patch(patchSide * patchSide);
     std::vector<float> patchXY(2 * patchSide * patchSide);
 
     vl_sift_set_magnif(sift, 3.0);
     for (i = 0; i < (signed)numFeatures; ++i) {
-      points[6 * i + 0] = feature[i].frame.x;
-      points[6 * i + 1] = feature[i].frame.y;
-      points[6 * i + 2] = feature[i].frame.a11;
-      points[6 * i + 3] = feature[i].frame.a12;
-      points[6 * i + 4] = feature[i].frame.a21;
-      points[6 * i + 5] = feature[i].frame.a22;
+      const VlFrameOrientedEllipse &frame = feature[i].frame;
+      float det = frame.a11 * frame.a22 - frame.a12 * frame.a21;
+      float size = sqrt(fabs(det));
+      float angle = atan2(frame.a21, frame.a11) * 180.0f / M_PI;
+      points[4 * i + 0] = frame.x;
+      points[4 * i + 1] = frame.y;
+      points[4 * i + 2] = size;
+      points[4 * i + 3] = angle;
 
       vl_covdet_extract_patch_for_frame(covdet,
                                         &patch[0],
                                         patchResolution,
                                         patchRelativeExtent,
                                         patchRelativeSmoothing,
-                                        feature[i].frame);
+                                        frame);
 
       vl_imgradient_polar_f(&patchXY[0], &patchXY[1],
                             2, 2 * patchSide,
@@ -94,7 +96,6 @@ bp::object hahog(PyObject *image,
                                   (double)(patchSide - 1) / 2, (double)(patchSide - 1) / 2,
                                   (double)patchRelativeExtent / (3.0 * (4 + 1) / 2) / patchStep,
                                   VL_PI / 2);
-
     }
     vl_sift_delete(sift);
     vl_covdet_delete(covdet);
@@ -107,7 +108,7 @@ bp::object hahog(PyObject *image,
     // std::cout << "description " << float(t_description - t_orient)/CLOCKS_PER_SEC << "\n";
 
     bp::list retn;
-    retn.append(bpn_array_from_data(&points[0], numFeatures, 6));
+    retn.append(bpn_array_from_data(&points[0], numFeatures, 4));
     retn.append(bpn_array_from_data(&desc[0], numFeatures, dimension));
     return retn;
   }

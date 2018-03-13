@@ -90,12 +90,7 @@ def test_reconstruction_class_initialization():
 
 def test_perspective_camera_projection():
     """Test perspectiive projection--backprojection loop."""
-    camera = types.PerspectiveCamera()
-    camera.width = 800
-    camera.height = 600
-    camera.focal = 0.6
-    camera.k1 = -0.1
-    camera.k2 = 0.01
+    camera = _get_perspective_camera()
     pixel = [0.1, 0.2]
     bearing = camera.pixel_bearing(pixel)
     projected = camera.project(bearing)
@@ -106,12 +101,7 @@ def test_fisheye_camera_projection():
     """Test fisheye projection--backprojection loop."""
     if not context.OPENCV3:
         return
-    camera = types.FisheyeCamera()
-    camera.width = 800
-    camera.height = 600
-    camera.focal = 0.6
-    camera.k1 = -0.1
-    camera.k2 = 0.01
+    camera = _get_fisheye_camera()
     pixel = [0.1, 0.2]
     bearing = camera.pixel_bearing(pixel)
     projected = camera.project(bearing)
@@ -120,9 +110,7 @@ def test_fisheye_camera_projection():
 
 def test_spherical_camera_projection():
     """Test spherical projection--backprojection loop."""
-    camera = types.SphericalCamera()
-    camera.width = 800
-    camera.height = 600
+    camera = _get_spherical_camera()
     pixel = [0.1, 0.2]
     bearing = camera.pixel_bearing(pixel)
     projected = camera.project(bearing)
@@ -146,3 +134,84 @@ def test_pose_inverse():
     identity = p.compose(inverse)
     assert np.allclose(identity.rotation, [0, 0, 0])
     assert np.allclose(identity.translation, [0, 0, 0])
+
+
+def test_single_vs_many():
+    points = np.array([[1, 2, 3], [4, 5, 6]], dtype=float)
+    pixels = np.array([[0.1, 0.2], [0.3, 0.4]], dtype=float)
+    depths = np.array([1, 2], dtype=float)
+
+    pose = types.Pose([1, 2, 3], [4, 5, 6])
+    t_single = [pose.transform(p) for p in points]
+    t_many = pose.transform_many(points)
+    assert np.allclose(t_single, t_many)
+
+    t_single = [pose.transform_inverse(p) for p in points]
+    t_many = pose.transform_inverse_many(points)
+    assert np.allclose(t_single, t_many)
+
+    cameras = [
+        _get_perspective_camera(),
+        _get_brown_perspective_camera(),
+        _get_spherical_camera(),
+    ]
+    if context.OPENCV3:
+        cameras.append(_get_fisheye_camera())
+
+    for camera in cameras:
+        p_single = [camera.project(p) for p in points]
+        p_many = camera.project_many(points)
+        assert np.allclose(p_single, p_many)
+
+        b_single = [camera.pixel_bearing(p) for p in pixels]
+        b_many = camera.pixel_bearing_many(pixels)
+        assert np.allclose(b_single, b_many)
+
+        if hasattr(camera, 'back_project'):
+            q_single = [camera.back_project(p, d)
+                        for p, d in zip(pixels, depths)]
+            q_many = camera.back_project_many(pixels, depths)
+            assert np.allclose(q_single, q_many)
+
+
+def _get_perspective_camera():
+    camera = types.PerspectiveCamera()
+    camera.width = 800
+    camera.height = 600
+    camera.focal = 0.6
+    camera.k1 = -0.1
+    camera.k2 = 0.01
+    return camera
+
+
+def _get_brown_perspective_camera():
+    camera = types.BrownPerspectiveCamera()
+    camera.width = 800
+    camera.height = 600
+    camera.focal_x = 0.6
+    camera.focal_y = 0.7
+    camera.c_x = 0.1
+    camera.c_y = -0.05
+    camera.k1 = -0.1
+    camera.k2 = 0.01
+    camera.p1 = 0.001
+    camera.p2 = 0.002
+    camera.k3 = 0.01
+    return camera
+
+
+def _get_fisheye_camera():
+    camera = types.FisheyeCamera()
+    camera.width = 800
+    camera.height = 600
+    camera.focal = 0.6
+    camera.k1 = -0.1
+    camera.k2 = 0.01
+    return camera
+
+
+def _get_spherical_camera():
+    camera = types.SphericalCamera()
+    camera.width = 800
+    camera.height = 600
+    return camera

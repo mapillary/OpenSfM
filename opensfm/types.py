@@ -43,9 +43,17 @@ class Pose(object):
         """Transform a point from world to this pose coordinates."""
         return self.get_rotation_matrix().dot(point) + self.translation
 
+    def transform_many(self, points):
+        """Transform points from world coordinates to this pose."""
+        return points.dot(self.get_rotation_matrix().T) + self.translation
+
     def transform_inverse(self, point):
         """Transform a point from this pose to world coordinates."""
         return self.get_rotation_matrix().T.dot(point - self.translation)
+
+    def transform_inverse_many(self, points):
+        """Transform points from this pose to world coordinates."""
+        return (points - self.translation).dot(self.get_rotation_matrix())
 
     def get_rotation_matrix(self):
         """Get rotation as a 3x3 matrix."""
@@ -154,7 +162,7 @@ class PerspectiveCamera(Camera):
     """Define a perspective camera.
 
     Attributes:
-        widht (int): image width.
+        width (int): image width.
         height (int): image height.
         focal (real): estimated focal lenght.
         k1 (real): estimated first distortion parameter.
@@ -197,6 +205,13 @@ class PerspectiveCamera(Camera):
         return np.array([self.focal * distortion * xn,
                          self.focal * distortion * yn])
 
+    def project_many(self, points):
+        """Project 3D points in camera coordinates to the image plane."""
+        distortion = np.array([self.k1, self.k2, 0, 0, 0])
+        K, R, t = self.get_K(), np.zeros(3), np.zeros(3)
+        pixels, _ = cv2.projectPoints(points, R, t, K, distortion)
+        return pixels.reshape((-1, 2))
+
     def pixel_bearing(self, pixel):
         """Unit vector pointing to the pixel viewing direction."""
         point = np.asarray(pixel).reshape((1, 1, 2))
@@ -205,8 +220,8 @@ class PerspectiveCamera(Camera):
         l = np.sqrt(x * x + y * y + 1.0)
         return np.array([x / l, y / l, 1.0 / l])
 
-    def pixel_bearings(self, pixels):
-        """Unit vector pointing to the pixel viewing directions."""
+    def pixel_bearing_many(self, pixels):
+        """Unit vectors pointing to the pixel viewing directions."""
         points = pixels.reshape((-1, 1, 2)).astype(np.float64)
         distortion = np.array([self.k1, self.k2, 0., 0.])
         up = cv2.undistortPoints(points, self.get_K(), distortion)
@@ -216,11 +231,21 @@ class PerspectiveCamera(Camera):
         l = np.sqrt(x * x + y * y + 1.0)
         return np.column_stack((x / l, y / l, 1.0 / l))
 
+    def pixel_bearings(self, pixels):
+        """Deprecated: use pixel_bearing_many."""
+        return self.pixel_bearing_many(pixels)
+
     def back_project(self, pixel, depth):
         """Project a pixel to a fronto-parallel plane at a given depth."""
         bearing = self.pixel_bearing(pixel)
         scale = depth / bearing[2]
         return scale * bearing
+
+    def back_project_many(self, pixels, depths):
+        """Project pixels to fronto-parallel planes at given depths."""
+        bearings = self.pixel_bearing_many(pixels)
+        scales = depths / bearings[:, 2]
+        return scales[:, np.newaxis] * bearings
 
     def get_K(self):
         """The calibration matrix."""
@@ -268,7 +293,7 @@ class BrownPerspectiveCamera(Camera):
         k2_prior (real): prior second radial distortion parameter.
         p1_prior (real): prior first tangential distortion parameter.
         p2_prior (real): prior second tangential distortion parameter.
-        p3_prior (real): prior third radial distortion parameter.
+        k3_prior (real): prior third radial distortion parameter.
     """
 
     def __init__(self):
@@ -316,6 +341,13 @@ class BrownPerspectiveCamera(Camera):
         return np.array([self.focal_x * x_distorted + self.c_x,
                          self.focal_y * y_distorted + self.c_y])
 
+    def project_many(self, points):
+        """Project 3D points in camera coordinates to the image plane."""
+        distortion = np.array([self.k1, self.k2, self.p1, self.p2, self.k3])
+        K, R, t = self.get_K(), np.zeros(3), np.zeros(3)
+        pixels, _ = cv2.projectPoints(points, R, t, K, distortion)
+        return pixels.reshape((-1, 2))
+
     def pixel_bearing(self, pixel):
         """Unit vector pointing to the pixel viewing direction."""
         point = np.asarray(pixel).reshape((1, 1, 2))
@@ -324,7 +356,7 @@ class BrownPerspectiveCamera(Camera):
         l = np.sqrt(x * x + y * y + 1.0)
         return np.array([x / l, y / l, 1.0 / l])
 
-    def pixel_bearings(self, pixels):
+    def pixel_bearing_many(self, pixels):
         """Unit vector pointing to the pixel viewing directions."""
         points = pixels.reshape((-1, 1, 2)).astype(np.float64)
         distortion = np.array([self.k1, self.k2, self.p1, self.p2, self.k3])
@@ -335,11 +367,21 @@ class BrownPerspectiveCamera(Camera):
         l = np.sqrt(x * x + y * y + 1.0)
         return np.column_stack((x / l, y / l, 1.0 / l))
 
+    def pixel_bearings(self, pixels):
+        """Deprecated: use pixel_bearing_many."""
+        return self.pixel_bearing_many(pixels)
+
     def back_project(self, pixel, depth):
         """Project a pixel to a fronto-parallel plane at a given depth."""
         bearing = self.pixel_bearing(pixel)
         scale = depth / bearing[2]
         return scale * bearing
+
+    def back_project_many(self, pixels, depths):
+        """Project pixels to fronto-parallel planes at given depths."""
+        bearings = self.pixel_bearing_many(pixels)
+        scales = depths / bearings[:, 2]
+        return scales[:, np.newaxis] * bearings
 
     def get_K(self):
         """The calibration matrix."""
@@ -371,7 +413,7 @@ class FisheyeCamera(Camera):
     """Define a fisheye camera.
 
     Attributes:
-        widht (int): image width.
+        width (int): image width.
         height (int): image height.
         focal (real): estimated focal lenght.
         k1 (real): estimated first distortion parameter.
@@ -403,6 +445,14 @@ class FisheyeCamera(Camera):
         s = self.focal * theta_d / l
         return np.array([s * x, s * y])
 
+    def project_many(self, points):
+        """Project 3D points in camera coordinates to the image plane."""
+        points = points.reshape((-1, 1, 3)).astype(np.float64)
+        distortion = np.array([self.k1, self.k2, 0., 0.])
+        K, R, t = self.get_K(), np.zeros(3), np.zeros(3)
+        pixels, _ = cv2.fisheye.projectPoints(points, R, t, K, distortion)
+        return pixels.reshape((-1, 2))
+
     def pixel_bearing(self, pixel):
         """Unit vector pointing to the pixel viewing direction."""
         point = np.asarray(pixel).reshape((1, 1, 2))
@@ -411,7 +461,7 @@ class FisheyeCamera(Camera):
         l = np.sqrt(x * x + y * y + 1.0)
         return np.array([x / l, y / l, 1.0 / l])
 
-    def pixel_bearings(self, pixels):
+    def pixel_bearing_many(self, pixels):
         """Unit vector pointing to the pixel viewing directions."""
         points = pixels.reshape((-1, 1, 2)).astype(np.float64)
         distortion = np.array([self.k1, self.k2, 0., 0.])
@@ -422,11 +472,21 @@ class FisheyeCamera(Camera):
         l = np.sqrt(x * x + y * y + 1.0)
         return np.column_stack((x / l, y / l, 1.0 / l))
 
+    def pixel_bearings(self, pixels):
+        """Deprecated: use pixel_bearing_many."""
+        return self.pixel_bearing_many(pixels)
+
     def back_project(self, pixel, depth):
         """Project a pixel to a fronto-parallel plane at a given depth."""
         bearing = self.pixel_bearing(pixel)
         scale = depth / bearing[2]
         return scale * bearing
+
+    def back_project_many(self, pixels, depths):
+        """Project pixels to fronto-parallel planes at given depths."""
+        bearings = self.pixel_bearing_many(pixels)
+        scales = depths / bearings[:, 2]
+        return scales[:, np.newaxis] * bearings
 
     def get_K(self):
         """The calibration matrix."""
@@ -455,7 +515,7 @@ class SphericalCamera(Camera):
     """A spherical camera generating equirectangular projections.
 
     Attributes:
-        widht (int): image width.
+        width (int): image width.
         height (int): image height.
     """
 
@@ -473,6 +533,13 @@ class SphericalCamera(Camera):
         lat = np.arctan2(-y, np.sqrt(x**2 + z**2))
         return np.array([lon / (2 * np.pi), -lat / (2 * np.pi)])
 
+    def project_many(self, points):
+        """Project 3D points in camera coordinates to the image plane."""
+        x, y, z = points.T
+        lon = np.arctan2(x, z)
+        lat = np.arctan2(-y, np.sqrt(x**2 + z**2))
+        return np.column_stack([lon / (2 * np.pi), -lat / (2 * np.pi)])
+
     def pixel_bearing(self, pixel):
         """Unit vector pointing to the pixel viewing direction."""
         lon = pixel[0] * 2 * np.pi
@@ -482,7 +549,7 @@ class SphericalCamera(Camera):
         z = np.cos(lat) * np.cos(lon)
         return np.array([x, y, z])
 
-    def pixel_bearings(self, pixels):
+    def pixel_bearing_many(self, pixels):
         """Unit vector pointing to the pixel viewing directions."""
         lon = pixels[:, 0] * 2 * np.pi
         lat = -pixels[:, 1] * 2 * np.pi
@@ -490,6 +557,10 @@ class SphericalCamera(Camera):
         y = -np.sin(lat)
         z = np.cos(lat) * np.cos(lon)
         return np.column_stack([x, y, z]).astype(float)
+
+    def pixel_bearings(self, pixels):
+        """Deprecated: use pixel_bearing_many."""
+        return self.pixel_bearing_many(pixels)
 
 
 class Shot(object):
@@ -521,6 +592,11 @@ class Shot(object):
         camera_point = self.pose.transform(point)
         return self.camera.project(camera_point)
 
+    def project_many(self, points):
+        """Project 3D points to the image plane."""
+        camera_point = self.pose.transform_many(points)
+        return self.camera.project_many(camera_point)
+
     def back_project(self, pixel, depth):
         """Project a pixel to a fronto-parallel plane at a given depth.
 
@@ -528,6 +604,13 @@ class Shot(object):
         """
         point_in_cam_coords = self.camera.back_project(pixel, depth)
         return self.pose.transform_inverse(point_in_cam_coords)
+
+    def back_project_many(self, pixels, depths):
+        """Project pixels to fronto-parallel planes at given depths.
+        The planes are defined by z = depth in the shot reference frame.
+        """
+        points_in_cam_coords = self.camera.back_project_many(pixels, depths)
+        return self.pose.transform_inverse_many(points_in_cam_coords)
 
     def viewing_direction(self):
         """The viewing direction of the shot.
@@ -559,7 +642,6 @@ class GroundControlPointObservation(object):
     """A ground control point observation.
 
     Attributes:
-        id: identification of the
         lla: latitue, longitude and altitude
         coordinates: x, y, z coordinates in topocentric reference frame
         shot_id: the shot where the point is observed

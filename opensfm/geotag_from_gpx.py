@@ -1,17 +1,24 @@
 #!/usr/bin/python
 
-import sys
-import os
-import shutil
-import gpxpy
 import datetime
 import math
+import os
+import shutil
+import sys
 import time
-import geo
-import pyexiv2
-from pyexiv2.utils import make_fraction
-import json
+
+import gpxpy
 import numpy as np
+try:
+    import pyexiv2
+    from pyexiv2.utils import make_fraction
+except ModuleNotFoundError as e:
+    # pyexiv2 is not available in python 3. We catch the error
+    # so that py.test can load this module anyway.
+    # TODO(pau): find an alternative package. Probably py3exiv2.
+    print("ERROR: pyexiv2 module not available")
+
+from opensfm import geo
 
 
 '''
@@ -195,11 +202,11 @@ def space_distance(a, b):
 def sample_gpx(points, dx, dt=None):
     if dt is not None:
         dx = float(dt)
-        print "Sampling GPX file every {0} seconds".format(dx)
+        print("Sampling GPX file every {0} seconds".format(dx))
         distance = time_distance
         next_point = time_next_point
     else:
-        print "Sampling GPX file every {0} meters".format(dx)
+        print("Sampling GPX file every {0} meters".format(dx))
         distance = space_distance
         next_point = space_next_point
 
@@ -213,7 +220,7 @@ def sample_gpx(points, dx, dt=None):
             key_points.append(a)
             assert np.fabs(dx - distance(key_points[-2], key_points[-1])) < 0.1
             dx_b = distance(key_points[-1], b)
-    print len(key_points), "points sampled"
+    print("{} points sampled".format(len(key_points)))
     return key_points
 
 
@@ -307,7 +314,7 @@ def add_exif_using_timestamp(filename, points, offset_time=0, timestamp=None, or
         metadata.write()
 
         print("Added geodata to: {0} ({1}, {2}, {3}), altitude {4}".format(filename, lat, lon, bearing, elevation))
-    except ValueError, e:
+    except ValueError as e:
         print("Skipping {0}: {1}".format(filename, e))
 
 

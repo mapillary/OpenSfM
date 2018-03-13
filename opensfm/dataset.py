@@ -4,9 +4,11 @@ import os
 import json
 import pickle
 import gzip
+
+import cv2
 import numpy as np
 import networkx as nx
-import cv2
+import six
 
 from opensfm import io
 from opensfm import config
@@ -34,7 +36,7 @@ class DataSet:
         # Load list of images.
         image_list_file = os.path.join(self.data_path, 'image_list.txt')
         if os.path.isfile(image_list_file):
-            with open(image_list_file) as fin:
+            with io.open_rt(image_list_file) as fin:
                 lines = fin.read().splitlines()
             self.set_image_list(lines)
         else:
@@ -196,6 +198,7 @@ class DataSet:
         self.image_files = {}
         if os.path.exists(path):
             for name in os.listdir(path):
+                name = six.text_type(name)
                 if self.__is_image_file(name):
                     self.image_list.append(name)
                     self.image_files[name] = os.path.join(path, name)
@@ -257,12 +260,12 @@ class DataSet:
 
         :param image: Image name, with extension (i.e. 123.jpg)
         """
-        with open(self.__exif_file(image), 'rb') as fin:
+        with io.open_rt(self.__exif_file(image)) as fin:
             return json.load(fin)
 
     def save_exif(self, image, data):
         io.mkdir_p(self.__exif_path())
-        with open(self.__exif_file(image), 'wb') as fout:
+        with io.open_wt(self.__exif_file(image)) as fout:
             io.json_dump(data, fout)
 
     def feature_type(self):
@@ -388,7 +391,7 @@ class DataSet:
             return load_tracks_graph(fin)
 
     def save_tracks_graph(self, graph, filename=None):
-        with open(self.__tracks_graph_file(filename), 'w') as fout:
+        with io.open_wt(self.__tracks_graph_file(filename)) as fout:
             save_tracks_graph(fout, graph)
 
     def load_undistorted_tracks_graph(self):
@@ -410,7 +413,7 @@ class DataSet:
         return reconstructions
 
     def save_reconstruction(self, reconstruction, filename=None, minify=False):
-        with open(self.__reconstruction_file(filename), 'w') as fout:
+        with io.open_wt(self.__reconstruction_file(filename)) as fout:
             io.json_dump(io.reconstructions_to_json(reconstruction), fout, minify)
 
     def load_undistorted_reconstruction(self):
@@ -447,12 +450,12 @@ class DataSet:
         return reference
 
     def save_reference_lla(self, reference):
-        with open(self.__reference_lla_path(), 'w') as fout:
-            json.dump(reference, fout)
+        with io.open_wt(self.__reference_lla_path()) as fout:
+            io.json_dump(reference, fout)
 
     def load_reference_lla(self):
-        with open(self.__reference_lla_path(), 'r') as fin:
-            return json.load(fin)
+        with io.open_rt(self.__reference_lla_path()) as fin:
+            return io.json_load(fin)
 
     def reference_lla_exists(self):
         return os.path.isfile(self.__reference_lla_path())
@@ -463,13 +466,13 @@ class DataSet:
 
     def load_camera_models(self):
         """Return camera models data"""
-        with open(self.__camera_models_file(), 'r') as fin:
+        with io.open_rt(self.__camera_models_file()) as fin:
             obj = json.load(fin)
             return io.cameras_from_json(obj)
 
     def save_camera_models(self, camera_models):
         """Save camera models data"""
-        with open(self.__camera_models_file(), 'w') as fout:
+        with io.open_wt(self.__camera_models_file()) as fout:
             obj = io.cameras_to_json(camera_models)
             io.json_dump(obj, fout)
 
@@ -483,7 +486,7 @@ class DataSet:
 
     def load_camera_models_overrides(self):
         """Load camera models overrides data."""
-        with open(self.__camera_models_overrides_file(), 'r') as fin:
+        with io.open_rt(self.__camera_models_overrides_file()) as fin:
             obj = json.load(fin)
             return io.cameras_from_json(obj)
 
@@ -503,7 +506,7 @@ class DataSet:
 
     def load_exif_overrides(self):
         """Load EXIF overrides data."""
-        with open(self.__exif_overrides_file(), 'r') as fin:
+        with io.open_rt(self.__exif_overrides_file()) as fin:
             return json.load(fin)
 
     def profile_log(self):
@@ -522,7 +525,7 @@ class DataSet:
         """Save report string to a file."""
         filepath = os.path.join(self._report_path(), path)
         io.mkdir_p(os.path.dirname(filepath))
-        with open(filepath, 'w') as fout:
+        with io.open_wt(filepath) as fout:
             return fout.write(report_str)
 
     def __navigation_graph_file(self):
@@ -530,7 +533,7 @@ class DataSet:
         return os.path.join(self.data_path, 'navigation_graph.json')
 
     def save_navigation_graph(self, navigation_graphs):
-        with open(self.__navigation_graph_file(), 'w') as fout:
+        with io.open_wt(self.__navigation_graph_file()) as fout:
             io.json_dump(navigation_graphs, fout)
 
     def __ply_file(self, filename):
@@ -540,7 +543,7 @@ class DataSet:
                  no_cameras=False, no_points=False):
         """Save a reconstruction in PLY format."""
         ply = io.reconstruction_to_ply(reconstruction, no_cameras, no_points)
-        with open(self.__ply_file(filename), 'w') as fout:
+        with io.open_wt(self.__ply_file(filename)) as fout:
             fout.write(ply)
 
     def __ground_control_points_file(self):
@@ -584,5 +587,5 @@ def save_tracks_graph(fileobj, graph):
                 x, y = data['feature']
                 fid = data['feature_id']
                 r, g, b = data['feature_color']
-                fileobj.write('%s\t%s\t%d\t%g\t%g\t%g\t%g\t%g\n' % (
+                fileobj.write(u'%s\t%s\t%d\t%g\t%g\t%g\t%g\t%g\n' % (
                     str(image), str(track), fid, x, y, r, g, b))

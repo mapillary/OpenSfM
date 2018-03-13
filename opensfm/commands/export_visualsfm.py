@@ -1,8 +1,11 @@
+from __future__ import unicode_literals
+
 import logging
 import os
 
 from opensfm import dataset
 from opensfm import transformations as tf
+from opensfm import io
 
 logger = logging.getLogger(__name__)
 
@@ -13,11 +16,18 @@ class Command:
 
     def add_arguments(self, parser):
         parser.add_argument('dataset', help='dataset to process')
+        parser.add_argument('--undistorted',
+                            action='store_true',
+                            help='export the undistorted reconstruction')
 
     def run(self, args):
         data = dataset.DataSet(args.dataset)
-        reconstructions = data.load_reconstruction()
-        graph = data.load_tracks_graph()
+        if args.undistorted:
+            reconstructions = data.load_undistorted_reconstruction()
+            graph = data.load_undistorted_tracks_graph()
+        else:
+            reconstructions = data.load_reconstruction()
+            graph = data.load_tracks_graph()
 
         if reconstructions:
             self.export(reconstructions[0], graph, data)
@@ -37,7 +47,7 @@ class Command:
             lines.append(' '.join(map(str, words)))
         lines += ['0', '', '0', '', '0']
 
-        with open(data.data_path + '/reconstruction.nvm', 'w') as fout:
+        with io.open_wt(data.data_path + '/reconstruction.nvm') as fout:
             fout.write('\n'.join(lines))
 
     def image_path(self, image, data):

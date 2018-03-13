@@ -21,6 +21,10 @@ def test_run_all(tmpdir):
         commands.create_tracks,
         commands.reconstruct,
         commands.mesh,
+        # commands.undistort,
+        # commands.compute_depthmaps,
+        commands.export_ply,
+        commands.export_visualsfm,
     ]
 
     for module in run_all_commands:

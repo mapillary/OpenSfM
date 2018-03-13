@@ -109,7 +109,7 @@ def undistort_image(arguments):
         original = getattr(data, load_image)(shot.id)
         subshot_width = int(data.config['depthmap_resolution'])
         width = 4 * subshot_width
-        height = width / 2
+        height = width // 2
         image = cv2.resize(original, (width, height), interpolation=interpolation)
         for subshot in undistorted_shots:
             undistorted = render_perspective_view_of_a_panorama(
@@ -225,7 +225,7 @@ def render_perspective_view_of_a_panorama(image, panoshot, perspectiveshot, inte
         perspectiveshot.camera.height)
 
     # Convert to bearing
-    dst_bearings = perspectiveshot.camera.pixel_bearings(dst_pixels)
+    dst_bearings = perspectiveshot.camera.pixel_bearing_many(dst_pixels)
 
     # Rotate to panorama reference frame
     rotation = np.dot(panoshot.pose.get_rotation_matrix(),

@@ -102,8 +102,9 @@ def match_candidates_by_distance(images, exifs, reference, max_neighbors, max_di
     points = np.zeros((len(images), 3))
     for i, image in enumerate(images):
         gps = exifs[image]['gps']
+        alt = gps.get('altitude', 2.0)
         points[i] = geo.topocentric_from_lla(
-            gps['latitude'], gps['longitude'], gps['altitude'],
+            gps['latitude'], gps['longitude'], alt,
             reference['latitude'], reference['longitude'], reference['altitude'])
 
     tree = spatial.cKDTree(points)
@@ -143,7 +144,7 @@ def match_candidates_by_order(images, exifs, max_neighbors):
     """Find candidate matching pairs by sequence order."""
     if max_neighbors <= 0:
         return set()
-    n = (max_neighbors + 1) / 2
+    n = (max_neighbors + 1) // 2
 
     pairs = set()
     for i, image in enumerate(images):

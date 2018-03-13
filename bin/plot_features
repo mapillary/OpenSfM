@@ -1,40 +1,40 @@
 #!/usr/bin/env python
+from __future__ import print_function
 
 import argparse
-import matplotlib.pyplot as pl
-import networkx as nx
-import numpy as np
-from networkx.algorithms import bipartite
-from itertools import combinations
+
+import matplotlib.pyplot as plt
+from matplotlib.collections import PatchCollection
+from matplotlib.patches import Wedge
 
 from opensfm import dataset
 from opensfm import features
-from opensfm import reconstruction
 from opensfm import io
 
 
-def plot_features(image, points, colors, plot_colors):
+def plot_features(image, points):
     h, w, d = image.shape
-    p = features.denormalized_image_coordinates(points, w, h)
-    pl.imshow(image)
+    pixels = features.denormalized_image_coordinates(points, w, h)
+    sizes = points[:, 2]
+    angles = points[:, 3]
 
-    if plot_colors:
-        c = colors.astype(float) / 255.
-    else:
-        c = 'b'
+    ax = plt.axes()
+    ax.imshow(image)
 
-    pl.scatter(p[:,0], p[:,1], c=c)
+    patches = []
+    for p, s, a in zip(pixels, sizes, angles):
+        patches.append(Wedge(p, s, a + 1, a - 1))
+
+    collection = PatchCollection(patches, alpha=0.4)
+    ax.add_collection(collection)
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Compute reconstruction')
+    parser = argparse.ArgumentParser(description='Plot detected features')
     parser.add_argument('dataset',
                         help='path to the dataset to be processed')
     parser.add_argument('--image',
                         help='name of the image to show')
-    parser.add_argument('--plot_colors',
-                        help='plot features color',
-                        action='store_true')
     parser.add_argument('--save_figs',
                         help='save figures istead of showing them',
                         action='store_true')
@@ -42,20 +42,17 @@ if __name__ == "__main__":
 
     data = dataset.DataSet(args.dataset)
 
-    if not args.image:
-        for image in data.images():
-            points, desc, colors = data.load_features(image)
-            print "ploting {0} points".format(len(points))
-            pl.figure()
-            pl.title('Image: ' + image + ', features: ' + str(len(points)))
-            plot_features(data.image_as_array(image), points, colors, args.plot_colors)
-            if args.save_figs:
-                p = args.dataset + '/plot_features'
-                io.mkdir_p(p)
-                pl.savefig(p + '/' + image + '.jpg')
-                pl.close()
-            else:
-                pl.show()
-
-
-
+    images = [args.image] if args.image else data.images()
+    for image in images:
+        points, desc, colors = data.load_features(image)
+        print("ploting {0} points".format(len(points)))
+        plt.figure()
+        plt.title('Image: ' + image + ', features: ' + str(len(points)))
+        fig = plot_features(data.image_as_array(image), points)
+        if args.save_figs:
+            p = args.dataset + '/plot_features'
+            io.mkdir_p(p)
+            plt.savefig(p + '/' + image + '.jpg')
+            plt.close()
+        else:
+            plt.show()
