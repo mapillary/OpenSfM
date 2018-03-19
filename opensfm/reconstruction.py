@@ -149,6 +149,8 @@ def bundle(graph, reconstruction, gcp, config):
         config['radial_distorsion_p2_sd'],
         config['radial_distorsion_k3_sd'])
     ba.set_num_threads(config['processes'])
+    ba.set_max_num_iterations(50)
+    ba.set_linear_solver_type("SPARSE_SCHUR")
 
     chrono.lap('setup')
     ba.run()
@@ -221,6 +223,8 @@ def bundle_single_view(graph, reconstruction, shot_id, config):
     ba.set_num_threads(config['processes'])
 
     ba.run()
+    ba.set_max_num_iterations(10)
+    ba.set_linear_solver_type("DENSE_QR")
 
     logger.debug(ba.brief_report())
 
@@ -306,6 +310,8 @@ def bundle_local(graph, reconstruction, gcp, central_shot_id, config):
         config['radial_distorsion_p2_sd'],
         config['radial_distorsion_k3_sd'])
     ba.set_num_threads(config['processes'])
+    ba.set_max_num_iterations(10)
+    ba.set_linear_solver_type("DENSE_SCHUR")
 
     chrono.lap('setup')
     ba.run()

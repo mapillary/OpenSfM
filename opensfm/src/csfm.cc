@@ -108,6 +108,7 @@ BOOST_PYTHON_MODULE(csfm) {
     .def("set_reprojection_error_sd", &BundleAdjuster::SetReprojectionErrorSD)
     .def("set_max_num_iterations", &BundleAdjuster::SetMaxNumIterations)
     .def("set_num_threads", &BundleAdjuster::SetNumThreads)
+    .def("set_linear_solver_type", &BundleAdjuster::SetLinearSolverType)
     .def("set_internal_parameters_prior_sd", &BundleAdjuster::SetInternalParametersPriorSD)
     .def("set_compute_covariances", &BundleAdjuster::SetComputeCovariances)
     .def("get_covariance_estimation_valid", &BundleAdjuster::GetCovarianceEstimationValid)
