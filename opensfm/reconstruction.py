@@ -272,7 +272,7 @@ def bundle_local(graph, reconstruction, gcp, central_shot_id, config):
     for shot_id in interior | boundary:
         if shot_id in graph:
             for track in graph[shot_id]:
-                if track in reconstruction.points:
+                if track in point_ids:
                     ba.add_observation(str(shot_id), str(track),
                                        *graph[shot_id][track]['feature'])
 
