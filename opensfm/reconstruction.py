@@ -3,6 +3,7 @@
 
 import datetime
 import logging
+from collections import defaultdict
 from itertools import combinations
 
 import numpy as np
@@ -238,7 +239,8 @@ def bundle_local(graph, reconstruction, gcp, central_shot_id, config):
     chrono = Chronometer()
 
     interior, boundary = shot_neighborhood(
-        graph, reconstruction, central_shot_id, config['local_bundle_radius'])
+        graph, reconstruction, central_shot_id, config['local_bundle_radius'],
+        config['local_bundle_min_common_points'])
 
     logger.debug(
         'Local bundle sets: interior {}  boundary {}  other {}'.format(
@@ -343,39 +345,46 @@ def bundle_local(graph, reconstruction, gcp, central_shot_id, config):
     return report
 
 
-def shot_neighborhood(graph, reconstruction, central_shot_id, radius):
+def shot_neighborhood(graph, reconstruction, central_shot_id, radius,
+                      min_common_points):
     """Reconstructed shots near a given shot.
 
     Returns:
         a tuple with interior and boundary:
         - interior: the list of shots at distance smaller than radius
-        - boundary: shots at distance radius
+        - boundary: shots sharing at least on point with the interior
 
     Central shot is at distance 0.  Shots at distance n + 1 share at least
-    one point with shots at distance n.
+    min_common_points points with shots at distance n.
     """
-    interior = set()
-    boundary = set([central_shot_id])
-    for distance in range(radius):
-        new_boundary = set()
-        for shot_id in boundary:
-            neighbors = shot_direct_neighbors(graph, reconstruction, shot_id)
-            for neighbor in neighbors:
-                if neighbor not in boundary and neighbor not in interior:
-                    new_boundary.add(neighbor)
-        interior.update(boundary)
-        boundary = new_boundary
+    interior = set([central_shot_id])
+    for distance in range(1, radius):
+        neighbors = direct_shot_neighbors(
+            graph, reconstruction, interior, min_common_points)
+        interior.update(neighbors)
+    boundary = direct_shot_neighbors(graph, reconstruction, interior, 1)
     return interior, boundary
 
 
-def shot_direct_neighbors(graph, reconstruction, shot_id):
-    """Reconstructed shots sharing reconstructed points with a given shot."""
+def direct_shot_neighbors(graph, reconstruction, shot_ids, min_common_points):
+    """Reconstructed shots sharing reconstructed points with a shot set."""
+    points = set()
+    for shot_id in shot_ids:
+        for track_id in graph[shot_id]:
+            if track_id in reconstruction.points:
+                points.add(track_id)
+
+    candidate_shots = set(reconstruction.shots) - set(shot_ids)
+    common_points = defaultdict(int)
+    for track_id in points:
+        for neighbor in graph[track_id]:
+            if neighbor in candidate_shots:
+                common_points[neighbor] += 1
+
     neighbors = set()
-    for track_id in graph[shot_id]:
-        if track_id in reconstruction.points:
-            for neighbor in graph[track_id]:
-                if neighbor in reconstruction.shots:
-                    neighbors.add(neighbor)
+    for neighbor, num_points in common_points.items():
+        if num_points >= min_common_points:
+            neighbors.add(neighbor)
     return neighbors
 
 

@@ -25,17 +25,17 @@ def test_shot_neighborhood_linear_graph():
         graph.add_edge(prev_shot_id, point.id)
 
     interior, boundary = opensfm.reconstruction.shot_neighborhood(
-        graph, reconstruction, 'im2', 1)
+        graph, reconstruction, 'im2', 1, 1)
     assert interior == set(['im2'])
     assert boundary == set(['im1', 'im3'])
 
     interior, boundary = opensfm.reconstruction.shot_neighborhood(
-        graph, reconstruction, 'im2', 2)
+        graph, reconstruction, 'im2', 2, 1)
     assert interior == set(['im1', 'im2', 'im3'])
     assert boundary == set(['im0'])
 
     interior, boundary = opensfm.reconstruction.shot_neighborhood(
-        graph, reconstruction, 'im2', 3)
+        graph, reconstruction, 'im2', 3, 1)
     assert interior == set(['im0', 'im1', 'im2', 'im3'])
     assert boundary == set()
 
@@ -57,6 +57,6 @@ def test_shot_neighborhood_complete_graph():
         graph.add_edge(shot.id, point.id)
 
     interior, boundary = opensfm.reconstruction.shot_neighborhood(
-        graph, reconstruction, 'im2', 2)
+        graph, reconstruction, 'im2', 2, 1)
     assert interior == set(['im0', 'im1', 'im2', 'im3'])
     assert boundary == set()

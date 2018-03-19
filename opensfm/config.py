@@ -83,11 +83,12 @@ radial_distorsion_k3_sd: 0.01   # The standard deviation of the third radial dis
 radial_distorsion_p1_sd: 0.01   # The standard deviation of the first tangential distortion parameter
 radial_distorsion_p2_sd: 0.01   # The standard deviation of the second tangential distortion parameter
 
-bundle_outlier_threshold: 0.006 # Points with larger reprojection error after bundle adjustment are removed
-bundle_interval: 0              # Bundle after adding 'bundle_interval' cameras
-bundle_new_points_ratio: 1.2    # Bundle when (new points) / (bundled points) > bundle_new_points_ratio
-optimize_camera_parameters: yes # Optimize internal camera parameters during bundle
-local_bundle_radius: 0          # Max image graph distance for images to be included in local bundle adjustment
+bundle_outlier_threshold: 0.006     # Points with larger reprojection error after bundle adjustment are removed
+bundle_interval: 0                  # Bundle after adding 'bundle_interval' cameras
+bundle_new_points_ratio: 1.2        # Bundle when (new points) / (bundled points) > bundle_new_points_ratio
+optimize_camera_parameters: yes     # Optimize internal camera parameters during bundle
+local_bundle_radius: 0              # Max image graph distance for images to be included in local bundle adjustment
+local_bundle_min_common_points: 50  # Minimum number of common points betwenn images to be considered neighbors
 
 save_partial_reconstructions: no
 
