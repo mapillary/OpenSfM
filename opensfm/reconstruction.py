@@ -988,17 +988,18 @@ class ShouldBundle:
     def __init__(self, data, reconstruction):
         self.interval = data.config['bundle_interval']
         self.new_points_ratio = data.config['bundle_new_points_ratio']
-        self.done(reconstruction)
+        self.reconstruction = reconstruction
+        self.done()
 
-    def should(self, reconstruction):
+    def should(self):
         max_points = self.num_points_last * self.new_points_ratio
         max_shots = self.num_shots_last + self.interval
-        return (len(reconstruction.points) >= max_points or
-                len(reconstruction.shots) >= max_shots)
+        return (len(self.reconstruction.points) >= max_points or
+                len(self.reconstruction.shots) >= max_shots)
 
-    def done(self, reconstruction):
-        self.num_points_last = len(reconstruction.points)
-        self.num_shots_last = len(reconstruction.shots)
+    def done(self):
+        self.num_points_last = len(self.reconstruction.points)
+        self.num_shots_last = len(self.reconstruction.shots)
 
 
 class ShouldRetriangulate:
@@ -1007,14 +1008,15 @@ class ShouldRetriangulate:
     def __init__(self, data, reconstruction):
         self.active = data.config['retriangulation']
         self.ratio = data.config['retriangulation_ratio']
-        self.done(reconstruction)
+        self.reconstruction = reconstruction
+        self.done()
 
-    def should(self, reconstruction):
+    def should(self):
         max_points = self.num_points_last * self.ratio
-        return self.active and len(reconstruction.points) > max_points
+        return self.active and len(self.reconstruction.points) > max_points
 
-    def done(self, reconstruction):
-        self.num_points_last = len(reconstruction.points)
+    def done(self):
+        self.num_points_last = len(self.reconstruction.points)
 
 
 def grow_reconstruction(data, graph, reconstruction, images, gcp):
@@ -1035,13 +1037,12 @@ def grow_reconstruction(data, graph, reconstruction, images, gcp):
                 [reconstruction], 'reconstruction.{}.json'.format(
                     datetime.datetime.now().isoformat().replace(':', '_')))
 
-        common_tracks = reconstructed_points_for_images(graph, reconstruction,
-                                                        images)
-        if not common_tracks:
+        candidates = reconstructed_points_for_images(graph, reconstruction, images)
+        if not candidates:
             break
 
         logger.info("-------------------------------------------------------")
-        for image, num_tracks in common_tracks:
+        for image, num_tracks in candidates:
             ok, resrep = resect(data, graph, reconstruction, image)
             if not ok:
                 continue
@@ -1060,7 +1061,7 @@ def grow_reconstruction(data, graph, reconstruction, images, gcp):
             np_after = len(reconstruction.points)
             step['triangulated_points'] = np_after - np_before
 
-            if should_retriangulate.should(reconstruction):
+            if should_retriangulate.should():
                 logger.info("Re-triangulating")
                 b1rep = bundle(graph, reconstruction, None, config)
                 rrep = retriangulate(graph, reconstruction, config)
@@ -1070,14 +1071,14 @@ def grow_reconstruction(data, graph, reconstruction, images, gcp):
                 step['bundle'] = b1rep
                 step['retriangulation'] = rrep
                 step['bundle_after_retriangulation'] = b2rep
-                should_retriangulate.done(reconstruction)
-                should_bundle.done(reconstruction)
-            elif should_bundle.should(reconstruction):
+                should_retriangulate.done()
+                should_bundle.done()
+            elif should_bundle.should():
                 brep = bundle(graph, reconstruction, None, config)
                 remove_outliers(graph, reconstruction, config)
                 align_reconstruction(reconstruction, gcp, config)
                 step['bundle'] = brep
-                should_bundle.done(reconstruction)
+                should_bundle.done()
             elif config['local_bundle_radius'] > 0:
                 brep = bundle_local(graph, reconstruction, None, image, config)
                 step['local_bundle'] = brep
@@ -1090,6 +1091,7 @@ def grow_reconstruction(data, graph, reconstruction, images, gcp):
     logger.info("-------------------------------------------------------")
 
     bundle(graph, reconstruction, gcp, config)
+    remove_outliers(graph, reconstruction, config)
     align_reconstruction(reconstruction, gcp, config)
     paint_reconstruction(data, graph, reconstruction)
     return reconstruction, report
