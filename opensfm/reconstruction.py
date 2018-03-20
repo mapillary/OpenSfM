@@ -1043,44 +1043,44 @@ def grow_reconstruction(data, graph, reconstruction, images, gcp):
         logger.info("-------------------------------------------------------")
         for image, num_tracks in common_tracks:
             ok, resrep = resect(data, graph, reconstruction, image)
-            if ok:
-                logger.info("Adding {0} to the reconstruction".format(image))
-                step = {
-                    'image': image,
-                    'resection': resrep,
-                    'memory_usage': current_memory_usage()
-                }
-                report['steps'].append(step)
-                images.remove(image)
+            if not ok:
+                continue
 
-                np_before = len(reconstruction.points)
-                triangulate_shot_features(
-                    graph, reconstruction, image,
-                    data.config['triangulation_threshold'],
-                    data.config['triangulation_min_ray_angle'])
-                np_after = len(reconstruction.points)
-                step['triangulated_points'] = np_after - np_before
+            logger.info("Adding {0} to the reconstruction".format(image))
+            step = {
+                'image': image,
+                'resection': resrep,
+                'memory_usage': current_memory_usage()
+            }
+            report['steps'].append(step)
+            images.remove(image)
 
-                if should_bundle.should(reconstruction):
-                    brep = bundle(graph, reconstruction, None, data.config)
-                    step['bundle'] = brep
-                    remove_outliers(graph, reconstruction, data.config)
-                    align.align_reconstruction(reconstruction, gcp,
-                                               data.config)
-                    should_bundle.done(reconstruction)
-                else:
-                    if data.config['local_bundle_radius'] > 0:
-                        brep = bundle_local(graph, reconstruction, None, image,
-                                            data.config)
-                        step['local_bundle'] = brep
+            np_before = len(reconstruction.points)
+            triangulate_shot_features(
+                graph, reconstruction, image,
+                data.config['triangulation_threshold'],
+                data.config['triangulation_min_ray_angle'])
+            np_after = len(reconstruction.points)
+            step['triangulated_points'] = np_after - np_before
 
+            if should_bundle.should(reconstruction):
+                brep = bundle(graph, reconstruction, None, data.config)
+                step['bundle'] = brep
+                remove_outliers(graph, reconstruction, data.config)
+                align.align_reconstruction(reconstruction, gcp, data.config)
+                should_bundle.done(reconstruction)
                 if should_retriangulate.should(reconstruction):
                     logger.info("Re-triangulating")
                     rrep = retriangulate(graph, reconstruction, data.config)
                     step['retriangulation'] = rrep
                     bundle(graph, reconstruction, None, data.config)
                     should_retriangulate.done(reconstruction)
-                break
+            else:
+                if data.config['local_bundle_radius'] > 0:
+                    brep = bundle_local(graph, reconstruction, None, image,
+                                        data.config)
+                    step['local_bundle'] = brep
+            break
         else:
             logger.info("Some images can not be added")
             break
