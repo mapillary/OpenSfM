@@ -239,8 +239,10 @@ def bundle_local(graph, reconstruction, gcp, central_shot_id, config):
     chrono = Chronometer()
 
     interior, boundary = shot_neighborhood(
-        graph, reconstruction, central_shot_id, config['local_bundle_radius'],
-        config['local_bundle_min_common_points'])
+        graph, reconstruction, central_shot_id,
+        config['local_bundle_radius'],
+        config['local_bundle_min_common_points'],
+        config['local_bundle_max_shots'])
 
     logger.debug(
         'Local bundle sets: interior {}  boundary {}  other {}'.format(
@@ -346,7 +348,7 @@ def bundle_local(graph, reconstruction, gcp, central_shot_id, config):
 
 
 def shot_neighborhood(graph, reconstruction, central_shot_id, radius,
-                      min_common_points):
+                      min_common_points, max_interior_size):
     """Reconstructed shots near a given shot.
 
     Returns:
@@ -357,16 +359,22 @@ def shot_neighborhood(graph, reconstruction, central_shot_id, radius,
     Central shot is at distance 0.  Shots at distance n + 1 share at least
     min_common_points points with shots at distance n.
     """
+    max_boundary_size = 1000000
     interior = set([central_shot_id])
     for distance in range(1, radius):
+        remaining = max_interior_size - len(interior)
+        if remaining <= 0:
+            break
         neighbors = direct_shot_neighbors(
-            graph, reconstruction, interior, min_common_points)
+            graph, reconstruction, interior, min_common_points, remaining)
         interior.update(neighbors)
-    boundary = direct_shot_neighbors(graph, reconstruction, interior, 1)
+    boundary = direct_shot_neighbors(
+        graph, reconstruction, interior, 1, max_boundary_size)
     return interior, boundary
 
 
-def direct_shot_neighbors(graph, reconstruction, shot_ids, min_common_points):
+def direct_shot_neighbors(graph, reconstruction, shot_ids,
+                          min_common_points, max_neighbors):
     """Reconstructed shots sharing reconstructed points with a shot set."""
     points = set()
     for shot_id in shot_ids:
@@ -381,10 +389,13 @@ def direct_shot_neighbors(graph, reconstruction, shot_ids, min_common_points):
             if neighbor in candidate_shots:
                 common_points[neighbor] += 1
 
+    pairs = sorted(common_points.items(), key=lambda x: -x[1])
     neighbors = set()
-    for neighbor, num_points in common_points.items():
+    for neighbor, num_points in pairs[:max_neighbors]:
         if num_points >= min_common_points:
             neighbors.add(neighbor)
+        else:
+            break
     return neighbors
 
 

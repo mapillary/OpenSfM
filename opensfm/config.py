@@ -89,6 +89,7 @@ bundle_new_points_ratio: 1.2        # Bundle when (new points) / (bundled points
 optimize_camera_parameters: yes     # Optimize internal camera parameters during bundle
 local_bundle_radius: 0              # Max image graph distance for images to be included in local bundle adjustment
 local_bundle_min_common_points: 50  # Minimum number of common points betwenn images to be considered neighbors
+local_bundle_max_shots: 30          # Max number of shots to optimize during local bundle adjustment
 
 save_partial_reconstructions: no
 
