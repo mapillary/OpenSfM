@@ -13,13 +13,13 @@ import six
 from timeit import default_timer as timer
 from six import iteritems
 
-from opensfm import align
 from opensfm import csfm
 from opensfm import geo
 from opensfm import log
 from opensfm import matching
 from opensfm import multiview
 from opensfm import types
+from opensfm.align import align_reconstruction, apply_similarity
 from opensfm.context import parallel_map, current_memory_usage
 
 
@@ -681,10 +681,7 @@ def bootstrap_reconstruction(data, graph, im1, im2, p1, p2):
     shot2.metadata = get_image_metadata(data, im2)
     reconstruction.add_shot(shot2)
 
-    triangulate_shot_features(
-        graph, reconstruction, im1,
-        data.config['triangulation_threshold'],
-        data.config['triangulation_min_ray_angle'])
+    triangulate_shot_features(graph, reconstruction, im1, data.config)
 
     logger.info("Triangulated: {}".format(len(reconstruction.points)))
     report['triangulated_points'] = len(reconstruction.points)
@@ -859,9 +856,11 @@ class TrackTriangulator:
             return r
 
 
-def triangulate_shot_features(graph, reconstruction, shot_id, reproj_threshold,
-                              min_ray_angle):
+def triangulate_shot_features(graph, reconstruction, shot_id, config):
     """Reconstruct as many tracks seen in shot_id as possible."""
+    reproj_threshold = config['triangulation_threshold']
+    min_ray_angle = config['triangulation_min_ray_angle']
+
     triangulator = TrackTriangulator(graph, reconstruction)
 
     for track in graph[shot_id]:
@@ -930,11 +929,11 @@ def merge_two_reconstructions(r1, r2, config, threshold=1):
         if len(inliers) >= 10:
             s, A, b = multiview.decompose_similarity_transform(T)
             r1p = r1
-            align.apply_similarity(r1p, s, A, b)
+            apply_similarity(r1p, s, A, b)
             r = r2
             r.shots.update(r1p.shots)
             r.points.update(r1p.points)
-            align.align_reconstruction(r, None, config)
+            align_reconstruction(r, None, config)
             return [r]
         else:
             return [r1, r2]
@@ -1020,16 +1019,17 @@ class ShouldRetriangulate:
 
 def grow_reconstruction(data, graph, reconstruction, images, gcp):
     """Incrementally add shots to an initial reconstruction."""
-    bundle(graph, reconstruction, None, data.config)
-    align.align_reconstruction(reconstruction, gcp, data.config)
+    config = data.config
+    report = {'steps': []}
+
+    bundle(graph, reconstruction, None, config)
+    remove_outliers(graph, reconstruction, config)
+    align_reconstruction(reconstruction, gcp, config)
 
     should_bundle = ShouldBundle(data, reconstruction)
     should_retriangulate = ShouldRetriangulate(data, reconstruction)
-    report = {
-        'steps': [],
-    }
     while True:
-        if data.config['save_partial_reconstructions']:
+        if config['save_partial_reconstructions']:
             paint_reconstruction(data, graph, reconstruction)
             data.save_reconstruction(
                 [reconstruction], 'reconstruction.{}.json'.format(
@@ -1056,30 +1056,32 @@ def grow_reconstruction(data, graph, reconstruction, images, gcp):
             images.remove(image)
 
             np_before = len(reconstruction.points)
-            triangulate_shot_features(
-                graph, reconstruction, image,
-                data.config['triangulation_threshold'],
-                data.config['triangulation_min_ray_angle'])
+            triangulate_shot_features(graph, reconstruction, image, config)
             np_after = len(reconstruction.points)
             step['triangulated_points'] = np_after - np_before
 
-            if should_bundle.should(reconstruction):
-                brep = bundle(graph, reconstruction, None, data.config)
-                step['bundle'] = brep
-                remove_outliers(graph, reconstruction, data.config)
-                align.align_reconstruction(reconstruction, gcp, data.config)
+            if should_retriangulate.should(reconstruction):
+                logger.info("Re-triangulating")
+                b1rep = bundle(graph, reconstruction, None, config)
+                rrep = retriangulate(graph, reconstruction, config)
+                b2rep = bundle(graph, reconstruction, None, config)
+                remove_outliers(graph, reconstruction, config)
+                align_reconstruction(reconstruction, gcp, config)
+                step['bundle'] = b1rep
+                step['retriangulation'] = rrep
+                step['bundle_after_retriangulation'] = b2rep
+                should_retriangulate.done(reconstruction)
                 should_bundle.done(reconstruction)
-                if should_retriangulate.should(reconstruction):
-                    logger.info("Re-triangulating")
-                    rrep = retriangulate(graph, reconstruction, data.config)
-                    step['retriangulation'] = rrep
-                    bundle(graph, reconstruction, None, data.config)
-                    should_retriangulate.done(reconstruction)
-            else:
-                if data.config['local_bundle_radius'] > 0:
-                    brep = bundle_local(graph, reconstruction, None, image,
-                                        data.config)
-                    step['local_bundle'] = brep
+            elif should_bundle.should(reconstruction):
+                brep = bundle(graph, reconstruction, None, config)
+                remove_outliers(graph, reconstruction, config)
+                align_reconstruction(reconstruction, gcp, config)
+                step['bundle'] = brep
+                should_bundle.done(reconstruction)
+            elif config['local_bundle_radius'] > 0:
+                brep = bundle_local(graph, reconstruction, None, image, config)
+                step['local_bundle'] = brep
+
             break
         else:
             logger.info("Some images can not be added")
@@ -1087,8 +1089,8 @@ def grow_reconstruction(data, graph, reconstruction, images, gcp):
 
     logger.info("-------------------------------------------------------")
 
-    bundle(graph, reconstruction, gcp, data.config)
-    align.align_reconstruction(reconstruction, gcp, data.config)
+    bundle(graph, reconstruction, gcp, config)
+    align_reconstruction(reconstruction, gcp, config)
     paint_reconstruction(data, graph, reconstruction)
     return reconstruction, report
 
