@@ -1081,6 +1081,7 @@ def grow_reconstruction(data, graph, reconstruction, images, gcp):
                 should_bundle.done()
             elif config['local_bundle_radius'] > 0:
                 brep = bundle_local(graph, reconstruction, None, image, config)
+                remove_outliers(graph, reconstruction, config)
                 step['local_bundle'] = brep
 
             break
