@@ -462,12 +462,26 @@ def rotation_matrix_from_up_vector_and_compass(up_vector, compass_angle):
     True
     >>> np.allclose(camera_compass_angle(R), angle)
     True
+
+    >>> d = [0, 0, 1]
+    >>> angle = 123
+    >>> R = rotation_matrix_from_up_vector_and_compass(d, angle)
+    >>> np.allclose(np.linalg.det(R), 1.0)
+    True
+    >>> up = camera_up_vector(R)
+    >>> np.allclose(d / np.linalg.norm(d), up)
+    True
     """
     r3 = np.array(up_vector) / np.linalg.norm(up_vector)
     ez = np.array([0.0, 0.0, 1.0])
     r2 = ez - np.dot(ez, r3) * r3
-    r2 /= np.linalg.norm(r2)
-    r1 = np.cross(r2, r3)
+    r2n = np.linalg.norm(r2)
+    if r2n > 1e-8:
+        r2 /= r2n
+        r1 = np.cross(r2, r3)
+    else:  # We are looking to nadir or zenith
+        r1 = np.array([1.0, 0.0, 0.0])
+        r2 = np.cross(r3, r1)
 
     compass_rotation = cv2.Rodrigues(np.radians([0.0, 0.0, compass_angle]))[0]
     return np.column_stack([r1, r2, r3]).dot(compass_rotation)
