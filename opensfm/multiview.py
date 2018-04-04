@@ -326,20 +326,36 @@ def fit_plane(points, vectors, verticals):
 def plane_horizontalling_rotation(p):
     '''Compute a rotation that brings p to z=0
 
-    >>> p = [1.,2.,3.]
+    >>> p = [1.0, 2.0, 3.0]
     >>> R = plane_horizontalling_rotation(p)
-    >>> np.allclose(R.dot(p), [0,0,np.linalg.norm(p)])
+    >>> np.allclose(R.dot(p), [0, 0, np.linalg.norm(p)])
+    True
+
+    >>> p = [0, 0, 1.0]
+    >>> R = plane_horizontalling_rotation(p)
+    >>> np.allclose(R.dot(p), [0, 0, np.linalg.norm(p)])
+    True
+
+    >>> p = [0, 0, -1.0]
+    >>> R = plane_horizontalling_rotation(p)
+    >>> np.allclose(R.dot(p), [0, 0, np.linalg.norm(p)])
+    True
+
+    >>> p = [1e-14, 1e-14, -1.0]
+    >>> R = plane_horizontalling_rotation(p)
+    >>> np.allclose(R.dot(p), [0, 0, np.linalg.norm(p)])
     True
     '''
     v0 = p[:3]
-    v1 = [0,0,1.0]
+    v1 = [0.0, 0.0, 1.0]
     angle = tf.angle_between_vectors(v0, v1)
-    if angle > 0:
-        return tf.rotation_matrix(angle,
-                                  tf.vector_product(v0, v1)
-                                  )[:3,:3]
-    else:
+    axis = tf.vector_product(v0, v1)
+    if np.linalg.norm(axis) > 0:
+        return tf.rotation_matrix(angle, axis)[:3, :3]
+    elif angle < 1.0:
         return np.eye(3)
+    elif angle > 3.0:
+        return np.diag([1, -1, -1])
 
 
 def fit_similarity_transform(p1, p2, max_iterations=1000, threshold=1):
