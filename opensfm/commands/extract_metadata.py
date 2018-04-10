@@ -27,21 +27,17 @@ class Command:
 
         camera_models = {}
         for image in data.images():
-            logging.info('Extracting focal lengths for image {}'.format(image))
+            if data.exif_exists(image):
+                logging.info('Loading existing EXIF for {}'.format(image))
+                d = data.load_exif(image)
+            else:
+                logging.info('Extracting EXIF for {}'.format(image))
+                d = self._extract_exif(image, data)
 
-            # EXIF data in Image
-            d = exif.extract_exif_from_file(data.load_image(image))
+                if image in exif_overrides:
+                    d.update(exif_overrides[image])
 
-            # Image Height and Image Width
-            if d['width'] <= 0 or not data.config['use_exif_size']:
-                d['height'], d['width'] = data.image_as_array(image).shape[:2]
-
-            d['camera'] = exif.camera_id(d)
-
-            if image in exif_overrides:
-                d.update(exif_overrides[image])
-
-            data.save_exif(image, d)
+                data.save_exif(image, d)
 
             if d['camera'] not in camera_models:
                 camera = exif.camera_from_exif_metadata(d, data)
@@ -62,3 +58,15 @@ class Command:
         end = time.time()
         with open(data.profile_log(), 'a') as fout:
             fout.write('focal_from_exif: {0}\n'.format(end - start))
+
+    def _extract_exif(self, image, data):
+         # EXIF data in Image
+        d = exif.extract_exif_from_file(data.load_image(image))
+
+        # Image Height and Image Width
+        if d['width'] <= 0 or not data.config['use_exif_size']:
+            d['height'], d['width'] = data.image_as_array(image).shape[:2]
+
+        d['camera'] = exif.camera_id(d)
+
+        return d
