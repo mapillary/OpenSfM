@@ -228,6 +228,9 @@ class DataSet:
         with io.open_wt(self.__exif_file(image)) as fout:
             io.json_dump(data, fout)
 
+    def exif_exists(self, image):
+        return os.path.isfile(self.__exif_file(image))
+
     def feature_type(self):
         """Return the type of local features (e.g. AKAZE, SURF, SIFT)"""
         feature_name = self.config['feature_type'].lower()
