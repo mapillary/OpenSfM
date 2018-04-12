@@ -6,8 +6,8 @@ import logging
 from collections import defaultdict
 from itertools import combinations
 
-import numpy as np
 import cv2
+import numpy as np
 import pyopengv
 import six
 from timeit import default_timer as timer
@@ -506,8 +506,42 @@ def _two_view_reconstruction_inliers(b1, b2, R, t, threshold):
     return np.nonzero(ok1 * ok2)[0]
 
 
-def run_relative_pose_ransac(b1, b2, method, threshold, iterations):
-    return pyopengv.relative_pose_ransac(b1, b2, method, threshold, iterations)
+def run_absolute_pose_ransac(bs, Xs, method, threshold,
+                             iterations, probabilty):
+    try:
+        return pyopengv.absolute_pose_ransac(
+            bs, Xs, method, threshold,
+            iterations=iterations,
+            probabilty=probabilty)
+    except:
+        # Older versions of pyopengv do not accept the probability argument.
+        return pyopengv.absolute_pose_ransac(
+            bs, Xs, method, threshold, iterations)
+
+
+def run_relative_pose_ransac(b1, b2, method, threshold,
+                             iterations, probability):
+    try:
+        return pyopengv.relative_pose_ransac(b1, b2, method, threshold,
+                                             iterations=iterations,
+                                             probability=probability)
+    except:
+        # Older versions of pyopengv do not accept the probability argument.
+        return pyopengv.relative_pose_ransac(b1, b2, method, threshold,
+                                             iterations)
+
+
+def run_relative_pose_ransac_rotation_only(b1, b2, threshold,
+                                           iterations, probability):
+    try:
+        return pyopengv.relative_pose_ransac_rotation_only(
+            b1, b2, threshold,
+            iterations=iterations,
+            probability=probability)
+    except:
+        # Older versions of pyopengv do not accept the probability argument.
+        return pyopengv.relative_pose_ransac_rotation_only(
+            b1, b2, threshold, iterations)
 
 
 def run_relative_pose_optimize_nonlinear(b1, b2, t, R):
@@ -566,7 +600,7 @@ def two_view_reconstruction(p1, p2, camera1, camera2, threshold):
     # focal length 1.  Also, arctan(threshold) \approx threshold since
     # threshold is small
     T = run_relative_pose_ransac(
-        b1, b2, "STEWENIUS", 1 - np.cos(threshold), 1000)
+        b1, b2, "STEWENIUS", 1 - np.cos(threshold), 1000, 0.999)
     R = T[:, :3]
     t = T[:, 3]
     inliers = _two_view_reconstruction_inliers(b1, b2, R, t, threshold)
@@ -599,8 +633,8 @@ def two_view_reconstruction_rotation_only(p1, p2, camera1, camera2, threshold):
     b1 = camera1.pixel_bearing_many(p1)
     b2 = camera2.pixel_bearing_many(p2)
 
-    R = pyopengv.relative_pose_ransac_rotation_only(
-        b1, b2, 1 - np.cos(threshold), 1000)
+    R = run_relative_pose_ransac_rotation_only(
+        b1, b2, 1 - np.cos(threshold), 1000, 0.999)
     inliers = _two_view_rotation_inliers(b1, b2, R, threshold)
 
     return cv2.Rodrigues(R.T)[0].ravel(), inliers
@@ -741,8 +775,8 @@ def resect(data, graph, reconstruction, shot_id):
         return False, {'num_common_points': len(bs)}
 
     threshold = data.config['resection_threshold']
-    T = pyopengv.absolute_pose_ransac(
-        bs, Xs, "KNEIP", 1 - np.cos(threshold), 1000)
+    T = run_absolute_pose_ransac(
+        bs, Xs, "KNEIP", 1 - np.cos(threshold), 1000, 0.999)
 
     R = T[:, :3]
     t = T[:, 3]
