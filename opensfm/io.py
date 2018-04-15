@@ -387,7 +387,7 @@ def _parse_utm_projection_string(line):
         zone_number = int(zone[:-1])
         zone_hemisphere = 'north'
     elif zone[-1] == 'S':
-        zone_number = int(zone['-1'])
+        zone_number = int(zone[:-1])
         zone_hemisphere = 'south'
     else:
         zone_number = int(zone)
