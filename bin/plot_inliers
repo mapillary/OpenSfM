@@ -584,7 +584,6 @@ def plot_bootstrapped_reconstruction(fw, ip, index, p1, p2, robust_tracks, linke
     """
 
     print_reset = redirect_print()
-    # reconstruction = reconstruct.bootstrap_reconstruction(data, graph, ip.im1, ip.im2, p1, p2)
     reconstruction = find_reconstruction([ip.im1, ip.im2], data)
     reset_print(print_reset)
 
