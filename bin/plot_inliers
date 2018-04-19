@@ -584,7 +584,8 @@ def plot_bootstrapped_reconstruction(fw, ip, index, p1, p2, robust_tracks, linke
     """
 
     print_reset = redirect_print()
-    reconstruction = find_reconstruction([ip.im1, ip.im2], data)
+    _, pm1, pm2 = matching.common_tracks(graph, ip.im1, ip.im2)
+    reconstruction, _ = reconstruct.bootstrap_reconstruction(data, graph, ip.im1, ip.im2, pm1, pm2)
     reset_print(print_reset)
 
     threshold, pixels1, pixels2 = thresholds(ip.im1_array, ip.im2_array, 'triangulation_threshold', 0.004, data)
