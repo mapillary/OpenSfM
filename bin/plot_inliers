@@ -175,9 +175,9 @@ def display_figure(figure, save_figs, data=None, file_name='',
                            hspace=hspace)
 
     if save_figs:
-        p = data.data_path + '/plot_inliers'
+        p = os.path.join(args.dataset, 'plot_inliers')
         io.mkdir_p(p)
-        figure.savefig(p + '/' + file_name, dpi=100)
+        figure.savefig(os.path.join(p, file_name), dpi=100)
         pl.close()
     else:
         pl.show()
@@ -418,7 +418,7 @@ def create_matches_figure(im1, im2, data, save_figs=False, single_column=False):
     symmetric_matches = matching.match_symmetric(f1, i1, f2, i2, data.config)
 
     if symmetric_matches.shape[0] < 8:
-        print 'Not enough matches for eight point algorithm: ' + str(symmetric_matches.shape[0])
+        print('Not enough matches for eight point algorithm: ' + str(symmetric_matches.shape[0]))
         return
 
     # Plot features
@@ -655,7 +655,7 @@ def create_tracks_figure(im1, im2, data, save_figs=False, single_column=False):
     track_points2 = p2[tracks[:, 2]]
 
     if tracks.shape[0] < 5:
-        print 'Not enough tracks for five point algorithm: ' + str(tracks.shape[0])
+        print('Not enough tracks for five point algorithm: ' + str(tracks.shape[0]))
         return
 
     robust_tracks, linked_tracks = matches(tracks, robust_matches, lambda a: a[1:])
@@ -772,12 +772,12 @@ def create_reconstruction_matches_figure(im1, im2, data, save_figs=False):
     graph = data.load_tracks_graph()
     tracks = load_common_tracks(im1, im2, graph)
     if tracks.shape[0] < 1:
-        print 'No tracks to plot.'
+        print('No tracks to plot.')
         return
 
     reconstruction = find_reconstruction([im1, im2], data)
     if reconstruction is None:
-        print '{0} and {1} does not exist in a common reconstruction.'.format(im1, im2)
+        print('{0} and {1} does not exist in a common reconstruction.'.format(im1, im2))
 
     rec_tracks, non_rec_tracks = reconstruction_tracks(tracks, reconstruction)
 
@@ -803,7 +803,7 @@ def create_complete_reconstruction_figure(im, data, save_figs=False, single_colu
 
     reconstruction = find_reconstruction([im], data)
     if reconstruction is None:
-        print '{0} does not exist in a reconstruction.'.format(im)
+        print('{0} does not exist in a reconstruction.'.format(im))
         return
 
     im_array = data.image_as_array(im)
@@ -812,7 +812,7 @@ def create_complete_reconstruction_figure(im, data, save_figs=False, single_colu
     graph = data.load_tracks_graph()
     tracks = load_tracks(im, graph)
     if tracks.shape[0] < 1:
-        print 'No tracks for exist for {0}.'.format(im)
+        print('No tracks for exist for {0}.'.format(im))
         return
 
     rec_tracks, non_rec_tracks = reconstruction_tracks(tracks, reconstruction)
@@ -865,7 +865,7 @@ def create_reprojection_error_figure(im, data, save_figs=False, single_column=Fa
 
     reconstruction = find_reconstruction([im], data)
     if reconstruction is None:
-        print '{0} does not exist in a reconstruction.'.format(im)
+        print('{0} does not exist in a reconstruction.'.format(im))
         return
 
     im_array = data.image_as_array(im)
@@ -874,7 +874,7 @@ def create_reprojection_error_figure(im, data, save_figs=False, single_column=Fa
     graph = data.load_tracks_graph()
     tracks = load_tracks(im, graph)
     if tracks.shape[0] < 1:
-        print 'No tracks for exist for {0}.'.format(im)
+        print('No tracks for exist for {0}.'.format(im))
         return
 
     rec_tracks, non_rec_tracks = reconstruction_tracks(tracks, reconstruction)
@@ -960,24 +960,24 @@ if __name__ == "__main__":
     save = args.save_figs
     single = args.single_col
 
-    print 'Plotting matches for {0} - {1}...'.format(image1, image2)
+    print('Plotting matches for {0} - {1}...'.format(image1, image2))
     create_matches_figure(image1, image2, ds, save, single)
 
-    print 'Plotting tracks for {0} - {1}...'.format(image1, image2)
+    print('Plotting tracks for {0} - {1}...'.format(image1, image2))
     create_tracks_figure(image1, image2, ds, save, single)
 
-    print 'Plotting reconstruction matches for {0} - {1}...'.format(image1, image2)
+    print('Plotting reconstruction matches for {0} - {1}...'.format(image1, image2))
     create_reconstruction_matches_figure(image1, image2, ds, save)
 
     if args.plot_rec:
-        print 'Plotting complete reconstruction tracks for {0}...'.format(image1)
+        print('Plotting complete reconstruction tracks for {0}...'.format(image1))
         create_complete_reconstruction_figure(image1, ds, save, single)
 
-        print 'Plotting reprojection error for {0}...'.format(image1)
+        print('Plotting reprojection error for {0}...'.format(image1))
         create_reprojection_error_figure(image1, ds, save, single)
 
-        print 'Plotting complete reconstruction tracks for {0}...'.format(image2)
+        print('Plotting complete reconstruction tracks for {0}...'.format(image2))
         create_complete_reconstruction_figure(image2, ds, save, single)
 
-        print 'Plotting reprojection error for {0}...'.format(image2)
+        print('Plotting reprojection error for {0}...'.format(image2))
         create_reprojection_error_figure(image2, ds, save, single)
