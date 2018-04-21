@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import os.path
 import argparse
 from itertools import combinations
 
@@ -41,7 +42,7 @@ if __name__ == "__main__":
                         help='display image graph',
                         action='store_true')
     parser.add_argument('--save_figs',
-                        help='save figures istead of showing them',
+                        help='save figures instead of showing them',
                         action='store_true')
     args = parser.parse_args()
 
@@ -80,7 +81,7 @@ if __name__ == "__main__":
             matches = data.find_matches(im1, im2)
             if len(matches) == 0:
                 continue
-            print 'plotting matches between', im1, im2
+            print('plotting {} matches between {} {}'.format(len(matches), im1, im2))
 
             p1, f1, c1 = data.load_features(im1)
             p2, f2, c2 = data.load_features(im2)
@@ -94,9 +95,9 @@ if __name__ == "__main__":
                          data.image_as_array(im2), p1, p2)
             i += 1
             if args.save_figs:
-                p = args.dataset + '/plot_tracks'
+                p = os.path.join(args.dataset, 'plot_tracks')
                 io.mkdir_p(p)
-                pl.savefig(p + '/' + im1 + '_' + im2 + '.jpg', dpi=100)
+                pl.savefig(os.path.join(p, "{}_{}.jpg".format(im1, im2)), dpi=100)
                 pl.close()
             else:
                 if i >= 10:
