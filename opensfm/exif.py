@@ -39,7 +39,7 @@ def get_tag_as_float(tags, key):
 
 
 def compute_focal(focal_35, focal, sensor_width, sensor_string):
-    if focal_35 > 0:
+    if focal_35 is not None and focal_35 > 0:
         focal_ratio = focal_35 / 36.0  # 35mm film produces 36x24mm pictures.
     else:
         if not sensor_width:

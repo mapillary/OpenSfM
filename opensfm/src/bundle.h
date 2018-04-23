@@ -779,6 +779,43 @@ struct PointPositionPriorError {
   double scale_;
 };
 
+ceres::LossFunction *CreateLossFunction(std::string name, double threshold) {
+  if (name.compare("TrivialLoss") == 0) {
+    return new ceres::TrivialLoss();
+  } else if (name.compare("HuberLoss") == 0) {
+    return new ceres::HuberLoss(threshold);
+  } else if (name.compare("SoftLOneLoss") == 0) {
+    return new ceres::SoftLOneLoss(threshold);
+  } else if (name.compare("CauchyLoss") == 0) {
+    return new ceres::CauchyLoss(threshold);
+  } else if (name.compare("ArctanLoss") == 0) {
+    return new ceres::ArctanLoss(threshold);
+  } else if (name.compare("TruncatedLoss") == 0) {
+    return new TruncatedLoss(threshold);
+  }
+  return NULL;
+}
+
+
+ceres::LinearSolverType LinearSolverTypeFromNamae(std::string name) {
+  if (name.compare("DENSE_QR") == 0) {
+    return ceres::DENSE_QR;
+  } else if (name.compare("DENSE_NORMAL_CHOLESKY") == 0) {
+    return ceres::DENSE_NORMAL_CHOLESKY;
+  } else if (name.compare("SPARSE_NORMAL_CHOLESKY") == 0) {
+    return ceres::SPARSE_NORMAL_CHOLESKY;
+  } else if (name.compare("CGNR") == 0) {
+    return ceres::CGNR;
+  } else if (name.compare("DENSE_SCHUR") == 0) {
+    return ceres::DENSE_SCHUR;
+  } else if (name.compare("SPARSE_SCHUR") == 0) {
+    return ceres::SPARSE_SCHUR;
+  } else if (name.compare("ITERATIVE_SCHUR") == 0) {
+    return ceres::ITERATIVE_SCHUR;
+  }
+  return ceres::SPARSE_SCHUR;
+}
+
 
 // A bundle adjustment class for optimizing the problem
 //
@@ -804,6 +841,7 @@ class BundleAdjuster {
     compute_reprojection_errors_ = true;
     max_num_iterations_ = 50;
     num_threads_ = 1;
+    linear_solver_type_ = "SPARSE_SCHUR";
   }
 
   // Disable copy constructor
@@ -1047,6 +1085,10 @@ class BundleAdjuster {
     num_threads_ = n;
   }
 
+  void SetLinearSolverType(std::string t) {
+    linear_solver_type_ = t;
+  }
+
   void SetInternalParametersPriorSD(double focal_sd, double c_sd, double k1_sd, double k2_sd, double p1_sd, double p2_sd, double k3_sd) {
     focal_prior_sd_ = focal_sd;
     c_prior_sd_ = c_sd;
@@ -1070,21 +1112,7 @@ class BundleAdjuster {
   }
 
   void Run() {
-    ceres::LossFunction *loss;
-    if (loss_function_.compare("TruncatedLoss") == 0) {
-      loss = new TruncatedLoss(loss_function_threshold_);
-    } else if (loss_function_.compare("TrivialLoss") == 0) {
-      loss = new ceres::TrivialLoss();
-    } else if (loss_function_.compare("HuberLoss") == 0) {
-      loss = new ceres::HuberLoss(loss_function_threshold_);
-    } else if (loss_function_.compare("SoftLOneLoss") == 0) {
-      loss = new ceres::SoftLOneLoss(loss_function_threshold_);
-    } else if (loss_function_.compare("CauchyLoss") == 0) {
-      loss = new ceres::CauchyLoss(loss_function_threshold_);
-    } else if (loss_function_.compare("ArctanLoss") == 0) {
-      loss = new ceres::ArctanLoss(loss_function_threshold_);
-    }
-
+    ceres::LossFunction *loss = CreateLossFunction(loss_function_, loss_function_threshold_);
     ceres::Problem problem;
 
     // Init parameter blocks.
@@ -1368,7 +1396,7 @@ class BundleAdjuster {
 
     // Solve
     ceres::Solver::Options options;
-    options.linear_solver_type = ceres::SPARSE_SCHUR;
+    options.linear_solver_type = LinearSolverTypeFromNamae(linear_solver_type_);
     options.num_threads = num_threads_;
     options.num_linear_solver_threads = num_threads_;
     options.max_num_iterations = max_num_iterations_;
@@ -1533,6 +1561,7 @@ class BundleAdjuster {
   bool compute_reprojection_errors_;
   int max_num_iterations_;
   int num_threads_;
+  std::string linear_solver_type_;
 
   ceres::Solver::Summary last_run_summary_;
 };

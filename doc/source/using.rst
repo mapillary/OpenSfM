@@ -38,7 +38,7 @@ For the Berlin dataset you should get something similar to this
 To reconstruct your own images,
 
 1. put some images in ``data/DATASET_NAME/images/``, and
-2. copy ``data/berlin/config.yml` to ``data/DATASET_NAME/config.yaml``
+2. copy ``data/berlin/config.yaml` to ``data/DATASET_NAME/config.yaml``
 
 
 .. _Meshlab: http://www.meshlab.net/

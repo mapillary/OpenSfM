@@ -268,6 +268,9 @@ class DataSet:
         with io.open_wt(self.__exif_file(image)) as fout:
             io.json_dump(data, fout)
 
+    def exif_exists(self, image):
+        return os.path.isfile(self.__exif_file(image))
+
     def feature_type(self):
         """Return the type of local features (e.g. AKAZE, SURF, SIFT)"""
         feature_name = self.config['feature_type'].lower()
@@ -434,7 +437,7 @@ class DataSet:
         for image in images:
             d = self.load_exif(image)
             if 'gps' in d and 'latitude' in d['gps'] and 'longitude' in d['gps']:
-                w = 1.0 / d['gps'].get('dop', 15)
+                w = 1.0 / max(0.01, d['gps'].get('dop', 15))
                 lat += w * d['gps']['latitude']
                 lon += w * d['gps']['longitude']
                 wlat += w

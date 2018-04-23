@@ -65,8 +65,6 @@ triangulation_threshold: 0.006          # Outlier threshold for accepting a tria
 triangulation_min_ray_angle: 1.0        # Minimum angle between views to accept a triangulated point
 resection_threshold: 0.004              # Outlier threshold for resection in radians
 resection_min_inliers: 10               # Minimum number of resection inliers to accept it
-retriangulation: no
-retriangulation_ratio: 1.25
 
 # Params for track creation
 min_track_length: 2             # Minimum number of features/images per track
@@ -82,14 +80,18 @@ radial_distorsion_k2_sd: 0.01   # The standard deviation of the second radial di
 radial_distorsion_k3_sd: 0.01   # The standard deviation of the third radial distortion parameter
 radial_distorsion_p1_sd: 0.01   # The standard deviation of the first tangential distortion parameter
 radial_distorsion_p2_sd: 0.01   # The standard deviation of the second tangential distortion parameter
+bundle_outlier_threshold: 0.006     # Points with larger reprojection error after bundle adjustment are removed
+optimize_camera_parameters: yes     # Optimize internal camera parameters during bundle
 
-bundle_outlier_threshold: 0.006 # Points with larger reprojection error after bundle adjustment are removed
-bundle_interval: 0              # Bundle after adding 'bundle_interval' cameras
-bundle_new_points_ratio: 1.2    # Bundle when (new points) / (bundled points) > bundle_new_points_ratio
-optimize_camera_parameters: yes # Optimize internal camera parameters during bundle
-local_bundle_radius: 0          # Max image graph distance for images to be included in local bundle adjustment
+retriangulation: yes                # Retriangulate all points from time to time
+retriangulation_ratio: 1.2          # Retriangulate when the number of points grows by this ratio
+bundle_interval: 999999             # Bundle after adding 'bundle_interval' cameras
+bundle_new_points_ratio: 1.2        # Bundle when the number of points grows by this ratio
+local_bundle_radius: 3              # Max image graph distance for images to be included in local bundle adjustment
+local_bundle_min_common_points: 20  # Minimum number of common points betwenn images to be considered neighbors
+local_bundle_max_shots: 30          # Max number of shots to optimize during local bundle adjustment
 
-save_partial_reconstructions: no
+save_partial_reconstructions: no    # Save reconstructions at every iteration
 
 # Params for GPS alignment
 use_altitude_tag: no                  # Use or ignore EXIF altitude tag
@@ -116,7 +118,7 @@ depthmap_resolution: 640              # Resolution of the depth maps
 depthmap_num_neighbors: 10            # Number of neighboring views
 depthmap_num_matching_views: 2        # Number of neighboring views used for each depthmaps
 depthmap_patchmatch_iterations: 3     # Number of PatchMatch iterations to run
-depthmap_min_patch_sd: 5.0            # Patches with lower standard deviation are ignored
+depthmap_min_patch_sd: 1.0            # Patches with lower standard deviation are ignored
 depthmap_min_correlation_score: 0.7   # Minimum correlation score to accept a depth value
 depthmap_same_depth_threshold: 0.005  # Threshold to measure depth closeness
 depthmap_min_consistent_views: 3      # Min number of views that should reconstruct a point for it to be valid

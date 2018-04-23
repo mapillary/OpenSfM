@@ -153,9 +153,9 @@ def robust_match(p1, p2, camera1, camera2, matches, config):
     matrix is used.  Otherwise, we use the Essential matrix.
     """
     if (camera1.projection_type == 'perspective'
-            and camera1.k1 == 0.0
+            and camera1.k1 == 0.0 and camera1.k2 == 0.0
             and camera2.projection_type == 'perspective'
-            and camera2.k1 == 0.0):
+            and camera2.k1 == 0.0 and camera2.k2 == 0.0):
         return robust_match_fundamental(p1, p2, matches, config)
     else:
         return robust_match_calibrated(p1, p2, camera1, camera2, matches, config)

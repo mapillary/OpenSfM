@@ -103,8 +103,8 @@ class Command:
         """Write the 4x4 matrix transformation to a text file."""
         with io.open_wt(filename) as fout:
             for row in transformation:
-                fout.write(' '.join(map(str, row)))
-                fout.write('\n')
+                fout.write(u' '.join(map(str, row)))
+                fout.write(u'\n')
 
     def _transform(self, point, reference, projection):
         """Transform on point from local coords to a proj4 projection."""

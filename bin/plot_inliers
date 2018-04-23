@@ -240,10 +240,11 @@ def triangulate_tracks(tracks, reconstruction, graph, min_ray_angle):
     :return: An array of booleans determining if each track was successfully triangulated or not.
     """
     succeeded = []
+    triangulator = reconstruct.TrackTriangulator(graph, reconstruction)
 
     for track in tracks:
         # Triangulate with 1 as reprojection threshold to avoid excluding tracks because of error.
-        reconstruct.triangulate_track(str(track), graph, reconstruction, {}, 1, min_ray_angle)
+        triangulator.triangulate(str(track), 1, min_ray_angle)
         succeeded.append(True) if str(track) in reconstruction.points else succeeded.append(False)
 
     return np.array(succeeded) if len(succeeded) else np.empty((0,), bool)
@@ -583,7 +584,8 @@ def plot_bootstrapped_reconstruction(fw, ip, index, p1, p2, robust_tracks, linke
     """
 
     print_reset = redirect_print()
-    reconstruction = reconstruct.bootstrap_reconstruction(data, graph, ip.im1, ip.im2)
+    _, pm1, pm2 = matching.common_tracks(graph, ip.im1, ip.im2)
+    reconstruction, _ = reconstruct.bootstrap_reconstruction(data, graph, ip.im1, ip.im2, pm1, pm2)
     reset_print(print_reset)
 
     threshold, pixels1, pixels2 = thresholds(ip.im1_array, ip.im2_array, 'triangulation_threshold', 0.004, data)
