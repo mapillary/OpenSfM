@@ -102,8 +102,8 @@ Fisheye Camera
     r^2 = x_n^2 + y_n^2 \\
     \theta = \arctan(r) \\
     \theta_d = \theta (1 + \theta^2 k_1 + \theta^4 k_2) \\
-    u = f \theta_d x_n \\
-    v = f \theta_d y_n
+    u = f \theta_d \frac{x_n}{r} \\
+    v = f \theta_d \frac{y_n}{r}
     \end{array}
 
 Spherical Camera
