@@ -88,9 +88,9 @@ Perspective Camera
     x_n = \frac{x}{z} \\
     y_n = \frac{y}{z} \\
     r^2 = x_n^2 + y_n^2 \\
-    d = 1 + r^2 (k_1 + k_2 r^2) \\
-    u = f d x_n \\
-    v = f d y_n
+    d = 1 + k_1 r^2 + k_2 r^4 \\
+    u = f\ d\ x_n \\
+    v = f\ d\ y_n
     \end{array}
 
 Fisheye Camera
@@ -101,9 +101,9 @@ Fisheye Camera
     y_n = \frac{y}{z} \\
     r^2 = x_n^2 + y_n^2 \\
     \theta = \arctan(r) \\
-    \theta_d = \theta (1 + \theta^2 k_1 + \theta^4 k_2) \\
-    u = f \theta_d \frac{x_n}{r} \\
-    v = f \theta_d \frac{y_n}{r}
+    d = 1 +  k_1 \theta^2+  k_2 \theta^4 \\
+    u = f\ d\ \theta\ \frac{x_n}{r} \\
+    v = f\ d\ \theta\ \frac{y_n}{r}
     \end{array}
 
 Spherical Camera
