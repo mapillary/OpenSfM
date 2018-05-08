@@ -246,7 +246,7 @@ def render_perspective_view_of_a_panorama(image, panoshot, perspectiveshot, inte
     # Sample color
     x = src_pixels_denormalized[..., 0].astype(np.float32)
     y = src_pixels_denormalized[..., 1].astype(np.float32)
-    colors = cv2.remap(image, x, y, interpolation)
+    colors = cv2.remap(image, x, y, interpolation, borderMode=cv2.BORDER_WRAP)
 
     return colors
 

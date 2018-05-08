@@ -9,6 +9,7 @@ launch.json
 # Ignore generated files
 /build
 /cmake_build
+/doc/build
 .cache
 eval
 

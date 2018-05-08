@@ -78,5 +78,42 @@ The pose of a camera is determined by the rotation and translation that converts
 
 Camera Models
 -------------
+The camera models deal with the projection of 3D points expressed in *camera coordinates* ``x, y, z`` into points ``u, v`` in *normalized image coordinates*.
 
-TODO
+Perspective Camera
+``````````````````
+
+.. math::
+    \begin{array}{l}
+    x_n = \frac{x}{z} \\
+    y_n = \frac{y}{z} \\
+    r^2 = x_n^2 + y_n^2 \\
+    d = 1 + k_1 r^2 + k_2 r^4 \\
+    u = f\ d\ x_n \\
+    v = f\ d\ y_n
+    \end{array}
+
+Fisheye Camera
+``````````````````
+.. math::
+    \begin{array}{l}
+    x_n = \frac{x}{z} \\
+    y_n = \frac{y}{z} \\
+    r^2 = x_n^2 + y_n^2 \\
+    \theta = \arctan(r) \\
+    d = 1 +  k_1 \theta^2+  k_2 \theta^4 \\
+    u = f\ d\ \theta\ \frac{x_n}{r} \\
+    v = f\ d\ \theta\ \frac{y_n}{r}
+    \end{array}
+
+Spherical Camera
+``````````````````
+
+.. math::
+    \begin{array}{l}
+    \mathrm{lon} = \arctan\left(\frac{x}{z}\right) \\
+    \mathrm{lat} = \arctan\left(\frac{-y}{\sqrt{x^2 + z^2}}\right) \\
+    u = \frac{\mathrm{lon}}{2 \pi} \\
+    v = -\frac{\mathrm{lat}}{2 \pi}
+    \end{array}
+
