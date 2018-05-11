@@ -2,6 +2,7 @@
 from __future__ import print_function
 
 import argparse
+import os.path
 
 import matplotlib.pyplot as plt
 from matplotlib.collections import PatchCollection
@@ -49,10 +50,11 @@ if __name__ == "__main__":
         plt.figure()
         plt.title('Image: ' + image + ', features: ' + str(len(points)))
         fig = plot_features(data.image_as_array(image), points)
+
         if args.save_figs:
-            p = args.dataset + '/plot_features'
+            p = os.path.join(args.dataset, 'plot_features')
             io.mkdir_p(p)
-            plt.savefig(p + '/' + image + '.jpg')
+            plt.savefig(os.path.join(p, image + '.jpg'))
             plt.close()
         else:
             plt.show()
