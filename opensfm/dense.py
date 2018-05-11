@@ -49,7 +49,7 @@ def compute_depthmaps(data, graph, reconstruction):
         arguments.append((data, neighbors[shot.id], shot))
     parallel_map(prune_depthmap_catched, arguments, processes)
 
-    merge_depthmaps(data, graph, reconstruction, neighbors)
+    merge_depthmaps(data, reconstruction)
 
 
 def compute_depthmap_catched(arguments):
@@ -200,16 +200,15 @@ def prune_depthmap(arguments):
     data.save_pruned_depthmap(shot.id, points, normals, colors, labels)
 
     if data.config['depthmap_save_debug_files']:
-        ply = point_cloud_to_ply(points, normals, colors, labels)
-        with io.open_wt(data._depthmap_file(shot.id, 'pruned.npz.ply')) as fout:
-            fout.write(ply)
+        with io.open_wt(data._depthmap_file(shot.id, 'pruned.npz.ply')) as fp:
+            point_cloud_to_ply(points, normals, colors, labels, fp)
 
 
-def merge_depthmaps(data, graph, reconstruction, neighbors):
+def merge_depthmaps(data, reconstruction):
     """Merge depthmaps into a single point cloud."""
     logger.info("Merging depthmaps")
 
-    shot_ids = [s for s in neighbors if data.pruned_depthmap_exists(s)]
+    shot_ids = [s for s in reconstruction.shots if data.pruned_depthmap_exists(s)]
     points = []
     normals = []
     colors = []
@@ -226,9 +225,8 @@ def merge_depthmaps(data, graph, reconstruction, neighbors):
     colors = np.concatenate(colors)
     labels = np.concatenate(labels)
 
-    ply = point_cloud_to_ply(points, normals, colors, labels)
-    with io.open_wt(data._depthmap_path() + '/merged.ply') as fout:
-        fout.write(ply)
+    with io.open_wt(data._depthmap_path() + '/merged.ply') as fp:
+        point_cloud_to_ply(points, normals, colors, labels, fp)
 
 
 def add_views_to_depth_estimator(data, neighbors, de):
@@ -373,32 +371,34 @@ def depthmap_to_ply(shot, depth, image):
     return '\n'.join(header + vertices + [''])
 
 
-def point_cloud_to_ply(points, normals, colors, labels):
+def point_cloud_to_ply(points, normals, colors, labels, fp):
     """Export depthmap points as a PLY string"""
-    vertices = []
-    for p, n, c, l in zip(points, normals, colors, labels):
-        s = u"{:.4f} {:.4f} {:.4f} {:.3f} {:.3f} {:.3f} {} {} {} {}".format(
-            p[0], p[1], p[2], n[0], n[1], n[2], int(c[0]), int(c[1]), int(c[2]), int(l))
-        vertices.append(s)
+    lines = _point_cloud_to_ply_lines(points, normals, colors, labels)
+    fp.writelines(lines)
 
-    header = [
-        u"ply",
-        u"format ascii 1.0",
-        u"element vertex {}".format(len(vertices)),
-        u"property float x",
-        u"property float y",
-        u"property float z",
-        u"property float nx",
-        u"property float ny",
-        u"property float nz",
-        u"property uchar diffuse_red",
-        u"property uchar diffuse_green",
-        u"property uchar diffuse_blue",
-        u"property uchar class",
-        u"end_header",
-    ]
 
-    return '\n'.join(header + vertices + [''])
+def _point_cloud_to_ply_lines(points, normals, colors, labels):
+    yield u"ply\n"
+    yield u"format ascii 1.0\n"
+    yield u"element vertex {}\n".format(len(points))
+    yield u"property float x\n"
+    yield u"property float y\n"
+    yield u"property float z\n"
+    yield u"property float nx\n"
+    yield u"property float ny\n"
+    yield u"property float nz\n"
+    yield u"property uchar diffuse_red\n"
+    yield u"property uchar diffuse_green\n"
+    yield u"property uchar diffuse_blue\n"
+    yield u"property uchar class\n"
+    yield u"end_header\n"
+
+    template = u"{:.4f} {:.4f} {:.4f} {:.3f} {:.3f} {:.3f} {} {} {} {}\n"
+    for i in range(len(points)):
+        p, n, c, l = points[i], normals[i], colors[i], labels[i]
+        yield template.format(
+            p[0], p[1], p[2], n[0], n[1], n[2],
+            int(c[0]), int(c[1]), int(c[2]), int(l))
 
 
 def color_plane_normals(plane):
