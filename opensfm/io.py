@@ -446,7 +446,8 @@ def open_rt(path):
     return io.open(path, 'r', encoding='utf-8')
 
 
-def _json_dump_python_2_pached(obj, fp, skipkeys=False, ensure_ascii=True, check_circular=True,
+def _json_dump_python_2_pached(
+        obj, fp, skipkeys=False, ensure_ascii=True, check_circular=True,
         allow_nan=True, cls=None, indent=None, separators=None,
         encoding='utf-8', default=None, sort_keys=False, **kw):
     """Serialize ``obj`` as a JSON formatted stream to ``fp`` (a
@@ -500,14 +501,16 @@ def _json_dump_python_2_pached(obj, fp, skipkeys=False, ensure_ascii=True, check
     """
     # cached encoder
     if (not skipkeys and ensure_ascii and
-        check_circular and allow_nan and
-        cls is None and indent is None and separators is None and
-        encoding == 'utf-8' and default is None and not sort_keys and not kw):
+            check_circular and allow_nan and
+            cls is None and indent is None and separators is None and
+            encoding == 'utf-8' and default is None and not sort_keys and
+            not kw):
         iterable = json._default_encoder.iterencode(obj)
     else:
         if cls is None:
             cls = json.JSONEncoder
-        iterable = cls(skipkeys=skipkeys, ensure_ascii=ensure_ascii,
+        iterable = cls(
+            skipkeys=skipkeys, ensure_ascii=ensure_ascii,
             check_circular=check_circular, allow_nan=allow_nan, indent=indent,
             separators=separators, encoding=encoding,
             default=default, sort_keys=sort_keys, **kw).iterencode(obj)
