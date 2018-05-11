@@ -645,12 +645,12 @@ def export_bundler(image_list, reconstructions, track_graph, bundle_file_path,
 
         bundle_file = os.path.join(bundle_file_path,
                                    'bundle_r' + str(j).zfill(3) + '.out')
-        with open(bundle_file, 'w') as fout:
+        with open_wt(bundle_file) as fout:
             fout.writelines('\n'.join(lines) + '\n')
 
         list_file = os.path.join(list_file_path,
                                  'list_r' + str(j).zfill(3) + '.out')
-        with open(list_file, 'w') as fout:
+        with open_wt(list_file) as fout:
             fout.writelines('\n'.join(map(str, image_list)))
 
 
@@ -665,7 +665,7 @@ def import_bundler(data_path, bundle_file, list_file, track_file,
 
     # Copy image list.
     list_dir = os.path.dirname(list_file)
-    with open(list_file, 'rb') as fin:
+    with open_rt(list_file) as fin:
         lines = fin.read().splitlines()
     ordered_shots = []
     image_list = []
@@ -681,7 +681,7 @@ def import_bundler(data_path, bundle_file, list_file, track_file,
     if not bundle_file or not os.path.isfile(bundle_file):
         return None
 
-    with open(bundle_file, 'rb') as fin:
+    with open_rt(bundle_file) as fin:
         lines = fin.readlines()
     offset = 1 if '#' in lines[0] else 0
 
@@ -766,12 +766,12 @@ def import_bundler(data_path, bundle_file, list_file, track_file,
         offset += 3
 
     # save track file
-    with open(track_file, 'wb') as fout:
+    with open_wt(track_file) as fout:
         fout.writelines('\n'.join(track_lines))
 
     # save reconstruction
     if reconstruction_file is not None:
-        with open(reconstruction_file, 'wb') as fout:
+        with open_wt(reconstruction_file) as fout:
             obj = reconstructions_to_json([reconstruction])
             json_dump(obj, fout)
     return reconstruction
