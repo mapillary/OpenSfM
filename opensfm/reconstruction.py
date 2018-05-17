@@ -222,10 +222,10 @@ def bundle_single_view(graph, reconstruction, shot_id, config):
         config['radial_distorsion_p2_sd'],
         config['radial_distorsion_k3_sd'])
     ba.set_num_threads(config['processes'])
-
-    ba.run()
     ba.set_max_num_iterations(10)
     ba.set_linear_solver_type("DENSE_QR")
+
+    ba.run()
 
     logger.debug(ba.brief_report())
 
