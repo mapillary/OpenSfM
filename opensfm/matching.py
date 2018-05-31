@@ -105,7 +105,7 @@ def robust_match_fundamental(p1, p2, matches, config):
     F, mask = cv2.findFundamentalMat(p1, p2, FM_RANSAC, threshold, 0.9999)
     inliers = mask.ravel().nonzero()
 
-    if F[2, 2] == 0.0:
+    if F is None or F[2, 2] == 0.0:
         return []
 
     return matches[inliers]
