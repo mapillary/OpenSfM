@@ -136,7 +136,7 @@ Eigen::Vector3d TriangulateBearingsMidpointSolve(
     const Eigen::Matrix<double, 3, Eigen::Dynamic> &os,
     const Eigen::Matrix<double, 3, Eigen::Dynamic> &bs) {
   int nviews = bs.cols();
-  assert(nviews == os.size());
+  assert(nviews == os.cols());
   assert(nviews >= 2);
 
   Eigen::Matrix3d BBt;
