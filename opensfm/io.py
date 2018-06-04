@@ -653,12 +653,12 @@ def export_bundler(image_list, reconstructions, track_graph, bundle_file_path,
         bundle_file = os.path.join(bundle_file_path,
                                    'bundle_r' + str(j).zfill(3) + '.out')
         with open_wt(bundle_file) as fout:
-             fout.writelines('\n'.join(lines) + '\n') => fout.writelines(unicode('\n'.join(lines) + '\n', 'utf-8'))
+             fout.writelines(unicode('\n'.join(lines) + '\n', 'utf-8'))
 
         list_file = os.path.join(list_file_path,
                                  'list_r' + str(j).zfill(3) + '.out')
         with open_wt(list_file) as fout:
-             fout.writelines('\n'.join(map(str, image_list))) => fout.writelines(unicode('\n'.join(map(str, image_list)),'utf-8'))
+             fout.writelines(unicode('\n'.join(map(str, image_list)),'utf-8'))
 
 
 def import_bundler(data_path, bundle_file, list_file, track_file,
