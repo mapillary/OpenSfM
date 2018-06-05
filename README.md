@@ -48,7 +48,7 @@ Be sure to update your `PYTHONPATH` to include `/usr/local/lib/python2.7/site-pa
 
 ### Installing dependencies on Ubuntu
 
-See this [Dockerfile](https://github.com/paulinus/opensfm-docker-base/blob/master/Dockerfile) for the commands to install all dependencies on Ubuntu 14.04.  The steps are
+See this [Dockerfile](https://github.com/paulinus/opensfm-docker-base/blob/master/Dockerfile) for the commands to install all dependencies on Ubuntu 16.04.  The steps are
 
  1. Install [OpenCV][], [Boost Python][], [NumPy][], [SciPy][] using apt-get
  2. Install python requirements using pip

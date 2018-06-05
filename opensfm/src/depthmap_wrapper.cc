@@ -110,15 +110,18 @@ class DepthmapPrunerWrapper {
                PyObject *t,
                PyObject *depth,
                PyObject *normal,
-               PyObject *color) {
+               PyObject *color,
+               PyObject *label) {
     PyArrayContiguousView<double> K_view((PyArrayObject *)K);
     PyArrayContiguousView<double> R_view((PyArrayObject *)R);
     PyArrayContiguousView<double> t_view((PyArrayObject *)t);
     PyArrayContiguousView<float> depth_view((PyArrayObject *)depth);
     PyArrayContiguousView<float> plane_view((PyArrayObject *)normal);
     PyArrayContiguousView<unsigned char> color_view((PyArrayObject *)color);
+    PyArrayContiguousView<unsigned char> label_view((PyArrayObject *)label);
     dp_.AddView(K_view.data(), R_view.data(), t_view.data(),
-                depth_view.data(), plane_view.data(), color_view.data(),
+                depth_view.data(), plane_view.data(),
+                color_view.data(), label_view.data(),
                 depth_view.shape(1), depth_view.shape(0));
   }
 
@@ -126,14 +129,16 @@ class DepthmapPrunerWrapper {
     std::vector<float> points;
     std::vector<float> normals;
     std::vector<unsigned char> colors;
+    std::vector<unsigned char> labels;
 
-    dp_.Prune(&points, &normals, &colors);
+    dp_.Prune(&points, &normals, &colors, &labels);
 
     bp::list retn;
     int n = int(points.size()) / 3;
     retn.append(bpn_array_from_data(&points[0], n, 3));
     retn.append(bpn_array_from_data(&normals[0], n, 3));
     retn.append(bpn_array_from_data(&colors[0], n, 3));
+    retn.append(bpn_array_from_data(&labels[0], n));
     return retn;
   }
 

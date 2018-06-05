@@ -550,6 +550,7 @@ class DepthmapPruner {
                const float *pdepth,
                const float *pplane,
                const unsigned char *pcolor,
+               const unsigned char *plabel,
                int width,
                int height) {
      Ks_.emplace_back(pK);
@@ -558,11 +559,13 @@ class DepthmapPruner {
      depths_.emplace_back(cv::Mat(height, width, CV_32F, (void *)pdepth).clone());
      planes_.emplace_back(cv::Mat(height, width, CV_32FC3, (void *)pplane).clone());
      colors_.emplace_back(cv::Mat(height, width, CV_8UC3, (void *)pcolor).clone());
+     labels_.emplace_back(cv::Mat(height, width, CV_8U, (void *)plabel).clone());
   }
 
   void Prune(std::vector<float> *merged_points,
              std::vector<float> *merged_normals,
-             std::vector<unsigned char> *merged_colors) {
+             std::vector<unsigned char> *merged_colors,
+             std::vector<unsigned char> *merged_labels) {
     cv::Matx33f Rinv = Rs_[0].t();
     for (int i = 0; i < depths_[0].rows; ++i) {
       for (int j = 0; j < depths_[0].cols; ++j) {
@@ -595,6 +598,7 @@ class DepthmapPruner {
         if (keep) {
           cv::Vec3f R1_normal = Rinv * normal;
           cv::Vec3b color = colors_[0].at<cv::Vec3b>(i, j);
+          unsigned char label = labels_[0].at<unsigned char>(i, j);
           merged_points->push_back(point[0]);
           merged_points->push_back(point[1]);
           merged_points->push_back(point[2]);
@@ -604,6 +608,7 @@ class DepthmapPruner {
           merged_colors->push_back(color[0]);
           merged_colors->push_back(color[1]);
           merged_colors->push_back(color[2]);
+          merged_labels->push_back(label);
         }
       }
     }
@@ -613,6 +618,7 @@ class DepthmapPruner {
   std::vector<cv::Mat> depths_;
   std::vector<cv::Mat> planes_;
   std::vector<cv::Mat> colors_;
+  std::vector<cv::Mat> labels_;
   std::vector<cv::Matx33d> Ks_;
   std::vector<cv::Matx33d> Rs_;
   std::vector<cv::Vec3d> ts_;
