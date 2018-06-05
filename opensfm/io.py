@@ -424,7 +424,7 @@ def read_ground_control_points_list(fileobj, reference_lla, exif):
     """
     all_lines = fileobj.readlines()
     lines = iter(filter(_valid_gcp_line, all_lines))
-    projection = _parse_projection(lines.next())
+    projection = _parse_projection(next(lines))
     points = [_read_gcp_list_line(line, projection, reference_lla, exif)
               for line in lines]
     return points
