@@ -59,7 +59,7 @@ class Pose(object):
         """Get rotation as a 3x3 matrix."""
         return cv2.Rodrigues(self.rotation)[0]
 
-    def set_rotation_matrix(self, rotation_matrix):
+    def set_rotation_matrix(self, rotation_matrix, permissive=False):
         """Set rotation as a 3x3 matrix.
 
         >>> pose = Pose()
@@ -80,10 +80,11 @@ class Pose(object):
         ValueError: Determinant not 1
         """
         R = np.array(rotation_matrix, dtype=float)
-        if not np.isclose(np.linalg.det(R), 1):
-            raise ValueError("Determinant not 1")
-        if not np.allclose(np.linalg.inv(R), R.T):
-            raise ValueError("Not orthogonal")
+        if not permissive:
+          if not np.isclose(np.linalg.det(R), 1):
+              raise ValueError("Determinant not 1")
+          if not np.allclose(np.linalg.inv(R), R.T):
+              raise ValueError("Not orthogonal")
         self.rotation = cv2.Rodrigues(R)[0].ravel()
 
     def get_origin(self):
