@@ -100,7 +100,7 @@ def undistort_image(arguments):
         }
         image = getattr(data, load_image)(shot.id)
         if image is None:
-            image = np.zeros((shot.camera.height, shot.camera.width))
+            return
         new_camera = undistorted_shots[0].camera
         uf = undistort_function[projection_type]
         undistorted = uf(image, shot.camera, new_camera, interpolation)

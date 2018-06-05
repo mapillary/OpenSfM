@@ -131,6 +131,10 @@ class DataSet:
         """Path of undistorted version of a segmentation."""
         return os.path.join(self._undistorted_segmentation_path(), image + '.png')
 
+    def undistorted_segmentation_exists(self, image):
+        """Check if the undistorted segmentation file exists."""
+        return os.path.isfile(self._undistorted_segmentation_file(image))
+
     def undistorted_segmentation_as_array(self, image):
         """Load an undistorted image segmentation."""
         segmentation = cv2.imread(self._undistorted_segmentation_file(image))

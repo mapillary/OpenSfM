@@ -258,6 +258,18 @@ def add_views_to_depth_cleaner(data, neighbors, dc):
         dc.add_view(K, R, t, depth)
 
 
+def load_segmentation_labels(data, shot):
+    """Load the undistorted segmentation labels.
+
+    If no segmentation exists return an array of zeros.
+    """
+    if data.undistorted_segmentation_exists(shot.id):
+        return data.undistorted_segmentation_as_array(shot.id)
+    else:
+        size = shot.camera.height, shot.camera.width
+        return np.zeros(size, dtype=np.uint8)
+
+
 def add_views_to_depth_pruner(data, neighbors, dp):
     for shot in neighbors:
         if not data.raw_depthmap_exists(shot.id):
@@ -265,7 +277,7 @@ def add_views_to_depth_pruner(data, neighbors, dp):
         depth, plane, score = data.load_clean_depthmap(shot.id)
         height, width = depth.shape
         color_image = data.undistorted_image_as_array(shot.id)
-        labels = data.undistorted_segmentation_as_array(shot.id)
+        labels = load_segmentation_labels(data, shot)
         height, width = depth.shape
         image = scale_down_image(color_image, width, height)
         labels = scale_down_image(labels, width, height, cv2.INTER_NEAREST)
