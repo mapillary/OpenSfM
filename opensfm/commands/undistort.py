@@ -212,7 +212,8 @@ def perspective_views_of_a_panorama(spherical_shot, width):
     return shots
 
 
-def render_perspective_view_of_a_panorama(image, panoshot, perspectiveshot, interpolation):
+def render_perspective_view_of_a_panorama(image, panoshot, perspectiveshot,
+                                          interpolation=cv2.INTER_LINEAR):
     """Render a perspective view of a panorama."""
     # Get destination pixel coordinates
     dst_shape = (perspectiveshot.camera.height, perspectiveshot.camera.width)
