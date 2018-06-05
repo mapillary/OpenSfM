@@ -15,7 +15,6 @@ extern "C" {
 #include "ceres/covariance.h"
 
 
-
 enum BACameraType {
   BA_PERSPECTIVE_CAMERA,
   BA_BROWN_PERSPECTIVE_CAMERA,
@@ -27,6 +26,7 @@ struct BACamera {
   std::string id;
   bool constant;
 
+  virtual ~BACamera() {}
   virtual BACameraType type() = 0;
 };
 
