@@ -140,6 +140,12 @@ else()
 endif()
 
 
+add_executable(debug_c_extension
+    debug_c_extension.cc
+    third_party/PythonExtensionPatterns/py_import_call_execute.c
+)
+target_link_libraries(debug_c_extension ${PYTHON_LIBRARIES})
+
 # Tests
 option(OPENSFM_BUILD_TESTS "Build OpenSfM unit tests." on)
 
