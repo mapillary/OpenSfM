@@ -32,32 +32,29 @@ class DepthmapEstimatorWrapper {
   }
 
   bp::object ComputePatchMatch() {
-    cv::Mat depth, plane, score, nghbr;
-    de_.ComputePatchMatch(&depth, &plane, &score, &nghbr);
-    return ComputeReturnValues(depth, plane, score, nghbr);
+    DepthmapEstimatorResult result;
+    de_.ComputePatchMatch(&result);
+    return ComputeReturnValues(result);
   }
 
   bp::object ComputePatchMatchSample() {
-    cv::Mat depth, plane, score, nghbr;
-    de_.ComputePatchMatchSample(&depth, &plane, &score, &nghbr);
-    return ComputeReturnValues(depth, plane, score, nghbr);
+    DepthmapEstimatorResult result;
+    de_.ComputePatchMatchSample(&result);
+    return ComputeReturnValues(result);
   }
 
   bp::object ComputeBruteForce() {
-    cv::Mat depth, plane, score, nghbr;
-    de_.ComputeBruteForce(&depth, &plane, &score, &nghbr);
-    return ComputeReturnValues(depth, plane, score, nghbr);
+    DepthmapEstimatorResult result;
+    de_.ComputeBruteForce(&result);
+    return ComputeReturnValues(result);
   }
 
-  bp::object ComputeReturnValues(const cv::Mat &depth,
-                                 const cv::Mat &plane,
-                                 const cv::Mat &score,
-                                 const cv::Mat &nghbr) {
+  bp::object ComputeReturnValues(const DepthmapEstimatorResult &result) {
     bp::list retn;
-    retn.append(bpn_array_from_data(depth.ptr<float>(0), depth.rows, depth.cols));
-    retn.append(bpn_array_from_data(plane.ptr<float>(0), plane.rows, plane.cols, 3));
-    retn.append(bpn_array_from_data(score.ptr<float>(0), score.rows, score.cols));
-    retn.append(bpn_array_from_data(nghbr.ptr<int>(0), nghbr.rows, nghbr.cols));
+    retn.append(bpn_array_from_data(result.depth.ptr<float>(0), result.depth.rows, result.depth.cols));
+    retn.append(bpn_array_from_data(result.plane.ptr<float>(0), result.plane.rows, result.plane.cols, 3));
+    retn.append(bpn_array_from_data(result.score.ptr<float>(0), result.score.rows, result.score.cols));
+    retn.append(bpn_array_from_data(result.nghbr.ptr<int>(0), result.nghbr.rows, result.nghbr.cols));
     return retn;
   }
 
