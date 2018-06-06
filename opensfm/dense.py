@@ -1,3 +1,7 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
 
 import logging
 
@@ -364,20 +368,20 @@ def depthmap_to_ply(shot, depth, image):
 
     vertices = []
     for p, c in zip(points.T, image.reshape(-1, 3)):
-        s = u"{} {} {} {} {} {}".format(p[0], p[1], p[2], c[0], c[1], c[2])
+        s = "{} {} {} {} {} {}".format(p[0], p[1], p[2], c[0], c[1], c[2])
         vertices.append(s)
 
     header = [
-        u"ply",
-        u"format ascii 1.0",
-        u"element vertex {}".format(len(vertices)),
-        u"property float x",
-        u"property float y",
-        u"property float z",
-        u"property uchar diffuse_red",
-        u"property uchar diffuse_green",
-        u"property uchar diffuse_blue",
-        u"end_header",
+        "ply",
+        "format ascii 1.0",
+        "element vertex {}".format(len(vertices)),
+        "property float x",
+        "property float y",
+        "property float z",
+        "property uchar diffuse_red",
+        "property uchar diffuse_green",
+        "property uchar diffuse_blue",
+        "end_header",
     ]
 
     return '\n'.join(header + vertices + [''])
@@ -390,22 +394,22 @@ def point_cloud_to_ply(points, normals, colors, labels, fp):
 
 
 def _point_cloud_to_ply_lines(points, normals, colors, labels):
-    yield u"ply\n"
-    yield u"format ascii 1.0\n"
-    yield u"element vertex {}\n".format(len(points))
-    yield u"property float x\n"
-    yield u"property float y\n"
-    yield u"property float z\n"
-    yield u"property float nx\n"
-    yield u"property float ny\n"
-    yield u"property float nz\n"
-    yield u"property uchar diffuse_red\n"
-    yield u"property uchar diffuse_green\n"
-    yield u"property uchar diffuse_blue\n"
-    yield u"property uchar class\n"
-    yield u"end_header\n"
+    yield "ply\n"
+    yield "format ascii 1.0\n"
+    yield "element vertex {}\n".format(len(points))
+    yield "property float x\n"
+    yield "property float y\n"
+    yield "property float z\n"
+    yield "property float nx\n"
+    yield "property float ny\n"
+    yield "property float nz\n"
+    yield "property uchar diffuse_red\n"
+    yield "property uchar diffuse_green\n"
+    yield "property uchar diffuse_blue\n"
+    yield "property uchar class\n"
+    yield "end_header\n"
 
-    template = u"{:.4f} {:.4f} {:.4f} {:.3f} {:.3f} {:.3f} {} {} {} {}\n"
+    template = "{:.4f} {:.4f} {:.4f} {:.3f} {:.3f} {:.3f} {} {} {} {}\n"
     for i in range(len(points)):
         p, n, c, l = points[i], normals[i], colors[i], labels[i]
         yield template.format(
