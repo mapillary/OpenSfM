@@ -2,6 +2,7 @@
 
 import os
 import json
+import logging
 import pickle
 import gzip
 
@@ -15,25 +16,35 @@ from opensfm import config
 from opensfm import context
 
 
-class DataSet:
-    """
-    Dataset representing directory with images, extracted , feature descriptors (SURF, SIFT), etc.
+logger = logging.getLogger(__name__)
 
-    Methods to retrieve *base directory* for data file(s) have suffix ``_path``, methods to retrieve path of specified
-    data file have suffix ``_file``.
+
+class DataSet:
+    """Accessors to the main input and output data.
+
+    Data include input images, masks, and segmentation as well
+    temporary data such as feature and matches and the final
+    reconstructions.
+
+    All data is stored inside a single folder with a specific subfolder
+    structure.
+
+    It is possible to store data remotely or in different formats
+    by subclassing this class and overloading its methods.
     """
     def __init__(self, data_path):
-        """
-        Create dataset instance. Empty directories (for EXIF, matches, etc) will be created if they don't exist
-        already.
-
-        :param data_path: Path to directory containing dataset
-        """
+        """Init dataset associated to a folder."""
         self.data_path = data_path
-
         self._load_config()
+        self._load_image_list()
+        self._load_mask_list()
 
-        # Load list of images.
+    def _load_config(self):
+        config_file = os.path.join(self.data_path, 'config.yaml')
+        self.config = config.load_config(config_file)
+
+    def _load_image_list(self):
+        """Load image list from image_list.txt or list image/ folder."""
         image_list_file = os.path.join(self.data_path, 'image_list.txt')
         if os.path.isfile(image_list_file):
             with io.open_rt(image_list_file) as fin:
@@ -42,35 +53,24 @@ class DataSet:
         else:
             self.set_image_path(os.path.join(self.data_path, 'images'))
 
-        # Load list of masks if they exist.
-        mask_list_file = os.path.join(self.data_path, 'mask_list.txt')
-        if os.path.isfile(mask_list_file):
-            with open(mask_list_file) as fin:
-                lines = fin.read().splitlines()
-            self.set_mask_list(lines)
-        else:
-            self.set_mask_path(os.path.join(self.data_path, 'masks'))
-
-    def _load_config(self):
-        config_file = os.path.join(self.data_path, 'config.yaml')
-        self.config = config.load_config(config_file)
-
     def images(self):
-        """Return list of file names of all images in this dataset"""
+        """List of file names of all images in the dataset."""
         return self.image_list
 
     def _image_file(self, image):
-        """
-        Return path of image with given name
-        :param image: Image file name (**with extension**)
-        """
+        """Path to the image file."""
         return self.image_files[image]
 
-    def load_image(self, image):
+    def open_image_file(self, image):
+        """Open image file and return file object."""
         return open(self._image_file(image), 'rb')
 
-    def image_as_array(self, image):
-        """Return image pixels as 3-dimensional numpy array (R G B order)"""
+    def load_image(self, image):
+        """Load image pixels as numpy array.
+
+        The array is 3D, indexed by y-coord, x-coord, channel.
+        The channels are in RGB order.
+        """
         return io.imread(self._image_file(image))
 
     def _undistorted_image_path(self):
@@ -80,20 +80,30 @@ class DataSet:
         """Path of undistorted version of an image."""
         return os.path.join(self._undistorted_image_path(), image + '.jpg')
 
-    def undistorted_image_as_array(self, image):
-        """Undistorted image pixels as 3-dimensional numpy array (R G B order)"""
+    def load_undistorted_image(self, image):
+        """Load undistorted image pixels as a numpy array."""
         return io.imread(self._undistorted_image_file(image))
 
     def save_undistorted_image(self, image, array):
         io.mkdir_p(self._undistorted_image_path())
         cv2.imwrite(self._undistorted_image_file(image), array[:, :, ::-1])
 
+    def _load_mask_list(self):
+        """Load mask list from mask_list.txt or list masks/ folder."""
+        mask_list_file = os.path.join(self.data_path, 'mask_list.txt')
+        if os.path.isfile(mask_list_file):
+            with open(mask_list_file) as fin:
+                lines = fin.read().splitlines()
+            self._set_mask_list(lines)
+        else:
+            self._set_mask_path(os.path.join(self.data_path, 'masks'))
+
     def masks(self):
-        """Return list of file names of all masks in this dataset"""
+        """List of file names of all masks in the dataset."""
         return self.mask_list
 
-    def mask_as_array(self, image):
-        """Given an image, returns the associated mask as an array if it exists, otherwise returns None"""
+    def load_mask(self, image):
+        """Load image mask if it exists, otherwise return None."""
         mask_name = image + '.png'
         if mask_name in self.masks():
             mask_path = self.mask_files[mask_name]
@@ -104,17 +114,26 @@ class DataSet:
             mask = None
         return mask
 
+    def _undistorted_mask_file(self, image):
+        """Path of undistorted version of a mask."""
+        return os.path.join(self._undistorted_mask_path(), image + '.png')
+
+    def undistorted_mask_exists(self, image):
+        """Check if the undistorted mask file exists."""
+        return os.path.isfile(self._undistorted_mask_file(image))
+
+    def load_undistorted_mask(self, image):
+        """Load undistorted mask pixels as a numpy array."""
+        return io.imread(self._undistorted_mask_file(image))
+
     def _segmentation_path(self):
         return os.path.join(self.data_path, 'segmentations')
 
     def _segmentation_file(self, image):
         return os.path.join(self._segmentation_path(), image + '.png')
 
-    def segmentation_as_array(self, image):
-        """Load image segmentation.
-
-        Returns a numpy array or None
-        """
+    def load_segmentation(self, image):
+        """Load image segmentation if it exitsts, otherwise return None."""
         segmentation_file = self._segmentation_file(image)
         if os.path.isfile(segmentation_file):
             segmentation = cv2.imread(segmentation_file)
@@ -135,7 +154,7 @@ class DataSet:
         """Check if the undistorted segmentation file exists."""
         return os.path.isfile(self._undistorted_segmentation_file(image))
 
-    def undistorted_segmentation_as_array(self, image):
+    def load_undistorted_segmentation(self, image):
         """Load an undistorted image segmentation."""
         segmentation = cv2.imread(self._undistorted_segmentation_file(image))
         if len(segmentation.shape) == 3:
@@ -194,7 +213,8 @@ class DataSet:
 
     @staticmethod
     def _is_image_file(filename):
-        return filename.split('.')[-1].lower() in {'jpg', 'jpeg', 'png', 'tif', 'tiff', 'pgm', 'pnm', 'gif'}
+        extensions = {'jpg', 'jpeg', 'png', 'tif', 'tiff', 'pgm', 'pnm', 'gif'}
+        return filename.split('.')[-1].lower() in extensions
 
     def set_image_path(self, path):
         """Set image path and find all images in there"""
@@ -220,7 +240,7 @@ class DataSet:
     def _is_mask_file(filename):
         return DataSet._is_image_file(filename)
 
-    def set_mask_path(self, path):
+    def _set_mask_path(self, path):
         """Set mask path and find all masks in there"""
         self.mask_list = []
         self.mask_files = {}
@@ -230,7 +250,7 @@ class DataSet:
                     self.mask_list.append(name)
                     self.mask_files[name] = os.path.join(path, name)
 
-    def set_mask_list(self, mask_list):
+    def _set_mask_list(self, mask_list):
             self.mask_list = []
             self.mask_files = {}
             for line in mask_list:
@@ -570,6 +590,19 @@ class DataSet:
         with open(self._ground_control_points_file()) as fin:
             return io.read_ground_control_points_list(
                 fin, self.load_reference_lla(), exif)
+
+    def image_as_array(self, image):
+        logger.warning("image_as_array() is deprecated. Use load_image() instead.")
+        return self.load_image(image)
+
+    def undistorted_image_as_array(self, image):
+        logger.warning("undistorted_image_as_array() is deprecated. "
+                       "Use load_undistorted_image() instead.")
+        return self.load_undistorted_image(image)
+
+    def mask_as_array(self, image):
+        logger.warning("mask_as_array() is deprecated. Use load_mask() instead.")
+        return self.load_mask(image)
 
 
 def load_tracks_graph(fileobj):

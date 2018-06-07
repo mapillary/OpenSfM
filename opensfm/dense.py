@@ -117,7 +117,7 @@ def compute_depthmap(arguments):
     data.save_raw_depthmap(shot.id, depth, plane, score, nghbr, neighbor_ids)
 
     if data.config['depthmap_save_debug_files']:
-        image = data.undistorted_image_as_array(shot.id)
+        image = data.load_undistorted_image(shot.id)
         image = scale_down_image(image, depth.shape[1], depth.shape[0])
         ply = depthmap_to_ply(shot, depth, image)
         with io.open_wt(data._depthmap_file(shot.id, 'raw.npz.ply')) as fout:
@@ -165,7 +165,7 @@ def clean_depthmap(arguments):
     data.save_clean_depthmap(shot.id, depth, raw_plane, raw_score)
 
     if data.config['depthmap_save_debug_files']:
-        image = data.undistorted_image_as_array(shot.id)
+        image = data.load_undistorted_image(shot.id)
         image = scale_down_image(image, depth.shape[1], depth.shape[0])
         ply = depthmap_to_ply(shot, depth, image)
         with io.open_wt(data._depthmap_file(shot.id, 'clean.npz.ply')) as fout:
@@ -238,7 +238,7 @@ def add_views_to_depth_estimator(data, neighbors, de):
     num_neighbors = data.config['depthmap_num_matching_views']
     for shot in neighbors[:num_neighbors + 1]:
         assert shot.camera.projection_type == 'perspective'
-        color_image = data.undistorted_image_as_array(shot.id)
+        color_image = data.load_undistorted_image(shot.id)
         # TODO(pau): convert segmentation to mask
         mask = load_segmentation_labels(data, shot)
         gray_image = cv2.cvtColor(color_image, cv2.COLOR_RGB2GRAY)
@@ -271,7 +271,7 @@ def load_segmentation_labels(data, shot):
     If no segmentation exists return an array of zeros.
     """
     if data.undistorted_segmentation_exists(shot.id):
-        return data.undistorted_segmentation_as_array(shot.id)
+        return data.load_undistorted_segmentation(shot.id)
     else:
         size = shot.camera.height, shot.camera.width
         return np.zeros(size, dtype=np.uint8)
@@ -283,7 +283,7 @@ def add_views_to_depth_pruner(data, neighbors, dp):
             continue
         depth, plane, score = data.load_clean_depthmap(shot.id)
         height, width = depth.shape
-        color_image = data.undistorted_image_as_array(shot.id)
+        color_image = data.load_undistorted_image(shot.id)
         labels = load_segmentation_labels(data, shot)
         height, width = depth.shape
         image = scale_down_image(color_image, width, height)

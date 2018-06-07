@@ -49,7 +49,7 @@ if __name__ == "__main__":
         print("ploting {0} points".format(len(points)))
         plt.figure()
         plt.title('Image: ' + image + ', features: ' + str(len(points)))
-        fig = plot_features(data.image_as_array(image), points)
+        fig = plot_features(data.load_image(image), points)
 
         if args.save_figs:
             p = os.path.join(args.dataset, 'plot_features')
