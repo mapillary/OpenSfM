@@ -174,6 +174,84 @@ class DataSet:
         io.mkdir_p(self._undistorted_segmentation_path())
         cv2.imwrite(self._undistorted_segmentation_file(image), array)
 
+    def segmentation_ignore_values(self, image):
+        """List of label values to ignore.
+
+        Pixels with this labels values will be masked out and won't be
+        processed when extracting features or computing depthmaps.
+        """
+        return self.config.get('segmentation_ignore_values', [])
+
+    def load_segmentation_mask(self, image):
+        """Build a mask from segmentation ignore values.
+
+        The mask is non-zero only for pixels with segmentation
+        labels not in segmentation_ignore_values.
+        """
+        ignore_values = self.segmentation_ignore_values(image)
+        if not ignore_values:
+            return None
+
+        segmentation = self.load_segmentation(image)
+        if segmentation is None:
+            return None
+
+        return self._mask_from_segmentation(segmentation, ignore_values)
+
+    def load_undistorted_segmentation_mask(self, image):
+        """Build a mask from the undistorted segmentation.
+
+        The mask is non-zero only for pixels with segmentation
+        labels not in segmentation_ignore_values.
+        """
+        ignore_values = self.segmentation_ignore_values(image)
+        if not ignore_values:
+            return None
+
+        segmentation = self.load_undistorted_segmentation(image)
+        if segmentation is None:
+            return None
+
+        return self._mask_from_segmentation(segmentation, ignore_values)
+
+    def _mask_from_segmentation(segmentation, ignore_values):
+        mask = np.ones(segmentation.shape, dtype=np.uint8)
+        for value in ignore_values:
+            mask &= (segmentation == value)
+        return mask
+
+    def load_combined_mask(self, image):
+        """Combine binary mask with segmentation mask.
+
+        Return a mask that is non-zero only where the binary
+        mask and the segmentation mask are non-zero.
+        """
+        mask = self.load_mask(image)
+        smask = self.load_segmentation_mask(image)
+        return self._combine_masks(mask, smask)
+
+    def load_undistorted_combined_mask(self, image):
+        """Combine undistorted binary mask with segmentation mask.
+
+        Return a mask that is non-zero only where the binary
+        mask and the segmentation mask are non-zero.
+        """
+        mask = self.load_undistorted_mask(image)
+        smask = self.load_undistorted_segmentation_mask(image)
+        return self._combine_masks(mask, smask)
+
+    def _combine_masks(self, mask, smask):
+        if mask is None:
+            if smask is None:
+                return None
+            else:
+                return smask
+        else:
+            if smask is None:
+                return mask
+            else:
+                return mask & smask
+
     def _depthmap_path(self):
         return os.path.join(self.data_path, 'depthmaps')
 

@@ -59,7 +59,7 @@ def detect(args):
 
     if not data.feature_index_exists(image):
         start = timer()
-        mask = data.load_mask(image)
+        mask = data.load_combined_mask(image)
         if mask is not None:
             logger.info('Found mask to apply for image {}'.format(image))
         preemptive_max = data.config['preemptive_max']
