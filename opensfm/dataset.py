@@ -59,7 +59,7 @@ class DataSet:
         """Return list of file names of all images in this dataset"""
         return self.image_list
 
-    def __image_file(self, image):
+    def _image_file(self, image):
         """
         Return path of image with given name
         :param image: Image file name (**with extension**)
@@ -67,11 +67,11 @@ class DataSet:
         return self.image_files[image]
 
     def load_image(self, image):
-        return open(self.__image_file(image), 'rb')
+        return open(self._image_file(image), 'rb')
 
     def image_as_array(self, image):
         """Return image pixels as 3-dimensional numpy array (R G B order)"""
-        return io.imread(self.__image_file(image))
+        return io.imread(self._image_file(image))
 
     def _undistorted_image_path(self):
         return os.path.join(self.data_path, 'undistorted')
@@ -193,7 +193,7 @@ class DataSet:
         return o['points'], o['normals'], o['colors'], o['labels']
 
     @staticmethod
-    def __is_image_file(filename):
+    def _is_image_file(filename):
         return filename.split('.')[-1].lower() in {'jpg', 'jpeg', 'png', 'tif', 'tiff', 'pgm', 'pnm', 'gif'}
 
     def set_image_path(self, path):
@@ -203,7 +203,7 @@ class DataSet:
         if os.path.exists(path):
             for name in os.listdir(path):
                 name = six.text_type(name)
-                if self.__is_image_file(name):
+                if self._is_image_file(name):
                     self.image_list.append(name)
                     self.image_files[name] = os.path.join(path, name)
 
@@ -217,8 +217,8 @@ class DataSet:
                 self.image_files[name] = path
 
     @staticmethod
-    def __is_mask_file(filename):
-        return DataSet.__is_image_file(filename)
+    def _is_mask_file(filename):
+        return DataSet._is_image_file(filename)
 
     def set_mask_path(self, path):
         """Set mask path and find all masks in there"""
@@ -226,7 +226,7 @@ class DataSet:
         self.mask_files = {}
         if os.path.exists(path):
             for name in os.listdir(path):
-                if self.__is_mask_file(name):
+                if self._is_mask_file(name):
                     self.mask_list.append(name)
                     self.mask_files[name] = os.path.join(path, name)
 
@@ -239,16 +239,16 @@ class DataSet:
                 self.mask_list.append(name)
                 self.mask_files[name] = path
 
-    def __exif_path(self):
+    def _exif_path(self):
         """Return path of extracted exif directory"""
         return os.path.join(self.data_path, 'exif')
 
-    def __exif_file(self, image):
+    def _exif_file(self, image):
         """
         Return path of exif information for given image
         :param image: Image name, with extension (i.e. 123.jpg)
         """
-        return os.path.join(self.__exif_path(), image + '.exif')
+        return os.path.join(self._exif_path(), image + '.exif')
 
     def load_exif(self, image):
         """
@@ -264,16 +264,16 @@ class DataSet:
 
         :param image: Image name, with extension (i.e. 123.jpg)
         """
-        with io.open_rt(self.__exif_file(image)) as fin:
+        with io.open_rt(self._exif_file(image)) as fin:
             return json.load(fin)
 
     def save_exif(self, image, data):
-        io.mkdir_p(self.__exif_path())
-        with io.open_wt(self.__exif_file(image)) as fout:
+        io.mkdir_p(self._exif_path())
+        with io.open_wt(self._exif_file(image)) as fout:
             io.json_dump(data, fout)
 
     def exif_exists(self, image):
-        return os.path.isfile(self.__exif_file(image))
+        return os.path.isfile(self._exif_file(image))
 
     def feature_type(self):
         """Return the type of local features (e.g. AKAZE, SURF, SIFT)"""
@@ -282,19 +282,19 @@ class DataSet:
             feature_name = 'root_' + feature_name
         return feature_name
 
-    def __feature_path(self):
+    def _feature_path(self):
         """Return path of feature descriptors and FLANN indices directory"""
         return os.path.join(self.data_path, "features")
 
-    def __feature_file(self, image):
+    def _feature_file(self, image):
         """
         Return path of feature file for specified image
         :param image: Image name, with extension (i.e. 123.jpg)
         """
-        return os.path.join(self.__feature_path(), image + '.npz')
+        return os.path.join(self._feature_path(), image + '.npz')
 
-    def __save_features(self, filepath, image, points, descriptors, colors=None):
-        io.mkdir_p(self.__feature_path())
+    def _save_features(self, filepath, image, points, descriptors, colors=None):
+        io.mkdir_p(self._feature_path())
         feature_type = self.config['feature_type']
         if ((feature_type == 'AKAZE' and self.config['akaze_descriptor'] in ['MLDB_UPRIGHT', 'MLDB'])
                 or (feature_type == 'HAHOG' and self.config['hahog_normalize_to_uchar'])
@@ -308,11 +308,11 @@ class DataSet:
                             colors=colors)
 
     def features_exist(self, image):
-        return os.path.isfile(self.__feature_file(image))
+        return os.path.isfile(self._feature_file(image))
 
     def load_features(self, image):
         feature_type = self.config['feature_type']
-        s = np.load(self.__feature_file(image))
+        s = np.load(self._feature_file(image))
         if feature_type == 'HAHOG' and self.config['hahog_normalize_to_uchar']:
             descriptors = s['descriptors'].astype(np.float32)
         else:
@@ -320,60 +320,60 @@ class DataSet:
         return s['points'], descriptors, s['colors'].astype(float)
 
     def save_features(self, image, points, descriptors, colors):
-        self.__save_features(self.__feature_file(image), image, points, descriptors, colors)
+        self._save_features(self._feature_file(image), image, points, descriptors, colors)
 
     def feature_index_exists(self, image):
-        return os.path.isfile(self.__feature_index_file(image))
+        return os.path.isfile(self._feature_index_file(image))
 
-    def __feature_index_file(self, image):
+    def _feature_index_file(self, image):
         """
         Return path of FLANN index file for specified image
         :param image: Image name, with extension (i.e. 123.jpg)
         """
-        return os.path.join(self.__feature_path(), image + '.flann')
+        return os.path.join(self._feature_path(), image + '.flann')
 
     def load_feature_index(self, image, features):
         index = context.flann_Index()
-        index.load(features, self.__feature_index_file(image))
+        index.load(features, self._feature_index_file(image))
         return index
 
     def save_feature_index(self, image, index):
-        index.save(self.__feature_index_file(image))
+        index.save(self._feature_index_file(image))
 
-    def __preemptive_features_file(self, image):
+    def _preemptive_features_file(self, image):
         """
         Return path of preemptive feature file (a short list of the full feature file)
         for specified image
         :param image: Image name, with extension (i.e. 123.jpg)
         """
-        return os.path.join(self.__feature_path(), image + '_preemptive' + '.npz')
+        return os.path.join(self._feature_path(), image + '_preemptive' + '.npz')
 
     def load_preemtive_features(self, image):
-        s = np.load(self.__preemptive_features_file(image))
+        s = np.load(self._preemptive_features_file(image))
         return s['points'], s['descriptors']
 
     def save_preemptive_features(self, image, points, descriptors):
-        self.__save_features(self.__preemptive_features_file(image), image, points, descriptors)
+        self._save_features(self._preemptive_features_file(image), image, points, descriptors)
 
-    def __matches_path(self):
+    def _matches_path(self):
         """Return path of matches directory"""
         return os.path.join(self.data_path, 'matches')
 
-    def __matches_file(self, image):
+    def _matches_file(self, image):
         """File for matches for an image"""
-        return os.path.join(self.__matches_path(), '{}_matches.pkl.gz'.format(image))
+        return os.path.join(self._matches_path(), '{}_matches.pkl.gz'.format(image))
 
     def matches_exists(self, image):
-        return os.path.isfile(self.__matches_file(image))
+        return os.path.isfile(self._matches_file(image))
 
     def load_matches(self, image):
-        with gzip.open(self.__matches_file(image), 'rb') as fin:
+        with gzip.open(self._matches_file(image), 'rb') as fin:
             matches = pickle.load(fin)
         return matches
 
     def save_matches(self, image, matches):
-        io.mkdir_p(self.__matches_path())
-        with gzip.open(self.__matches_file(image), 'wb') as fout:
+        io.mkdir_p(self._matches_path())
+        with gzip.open(self._matches_file(image), 'wb') as fout:
             pickle.dump(matches, fout)
 
     def find_matches(self, im1, im2):
@@ -388,17 +388,17 @@ class DataSet:
                     return im2_matches[im1][:, [1, 0]]
         return []
 
-    def __tracks_graph_file(self, filename=None):
+    def _tracks_graph_file(self, filename=None):
         """Return path of tracks file"""
         return os.path.join(self.data_path, filename or 'tracks.csv')
 
     def load_tracks_graph(self, filename=None):
         """Return graph (networkx data structure) of tracks"""
-        with open(self.__tracks_graph_file(filename)) as fin:
+        with open(self._tracks_graph_file(filename)) as fin:
             return load_tracks_graph(fin)
 
     def save_tracks_graph(self, graph, filename=None):
-        with io.open_wt(self.__tracks_graph_file(filename)) as fout:
+        with io.open_wt(self._tracks_graph_file(filename)) as fout:
             save_tracks_graph(fout, graph)
 
     def load_undistorted_tracks_graph(self):
@@ -407,20 +407,20 @@ class DataSet:
     def save_undistorted_tracks_graph(self, graph):
         return self.save_tracks_graph(graph, 'undistorted_tracks.csv')
 
-    def __reconstruction_file(self, filename):
+    def _reconstruction_file(self, filename):
         """Return path of reconstruction file"""
         return os.path.join(self.data_path, filename or 'reconstruction.json')
 
     def reconstruction_exists(self, filename=None):
-        return os.path.isfile(self.__reconstruction_file(filename))
+        return os.path.isfile(self._reconstruction_file(filename))
 
     def load_reconstruction(self, filename=None):
-        with open(self.__reconstruction_file(filename)) as fin:
+        with open(self._reconstruction_file(filename)) as fin:
             reconstructions = io.reconstructions_from_json(json.load(fin))
         return reconstructions
 
     def save_reconstruction(self, reconstruction, filename=None, minify=False):
-        with io.open_wt(self.__reconstruction_file(filename)) as fout:
+        with io.open_wt(self._reconstruction_file(filename)) as fout:
             io.json_dump(io.reconstructions_to_json(reconstruction), fout, minify)
 
     def load_undistorted_reconstruction(self):
@@ -431,7 +431,7 @@ class DataSet:
         return self.save_reconstruction(
             reconstruction, filename='undistorted_reconstruction.json')
 
-    def __reference_lla_path(self):
+    def _reference_lla_path(self):
         return os.path.join(self.data_path, 'reference_lla.json')
 
     def invent_reference_lla(self, images=None):
@@ -457,63 +457,63 @@ class DataSet:
         return reference
 
     def save_reference_lla(self, reference):
-        with io.open_wt(self.__reference_lla_path()) as fout:
+        with io.open_wt(self._reference_lla_path()) as fout:
             io.json_dump(reference, fout)
 
     def load_reference_lla(self):
-        with io.open_rt(self.__reference_lla_path()) as fin:
+        with io.open_rt(self._reference_lla_path()) as fin:
             return io.json_load(fin)
 
     def reference_lla_exists(self):
-        return os.path.isfile(self.__reference_lla_path())
+        return os.path.isfile(self._reference_lla_path())
 
-    def __camera_models_file(self):
+    def _camera_models_file(self):
         """Return path of camera model file"""
         return os.path.join(self.data_path, 'camera_models.json')
 
     def load_camera_models(self):
         """Return camera models data"""
-        with io.open_rt(self.__camera_models_file()) as fin:
+        with io.open_rt(self._camera_models_file()) as fin:
             obj = json.load(fin)
             return io.cameras_from_json(obj)
 
     def save_camera_models(self, camera_models):
         """Save camera models data"""
-        with io.open_wt(self.__camera_models_file()) as fout:
+        with io.open_wt(self._camera_models_file()) as fout:
             obj = io.cameras_to_json(camera_models)
             io.json_dump(obj, fout)
 
-    def __camera_models_overrides_file(self):
+    def _camera_models_overrides_file(self):
         """Path to the camera model overrides file."""
         return os.path.join(self.data_path, 'camera_models_overrides.json')
 
     def camera_models_overrides_exists(self):
         """Check if camera overrides file exists."""
-        return os.path.isfile(self.__camera_models_overrides_file())
+        return os.path.isfile(self._camera_models_overrides_file())
 
     def load_camera_models_overrides(self):
         """Load camera models overrides data."""
-        with io.open_rt(self.__camera_models_overrides_file()) as fin:
+        with io.open_rt(self._camera_models_overrides_file()) as fin:
             obj = json.load(fin)
             return io.cameras_from_json(obj)
 
     def save_camera_models_overrides(self, camera_models):
         """Save camera models overrides data"""
-        with io.open_wt(self.__camera_models_overrides_file()) as fout:
+        with io.open_wt(self._camera_models_overrides_file()) as fout:
             obj = io.cameras_to_json(camera_models)
             io.json_dump(obj, fout)
 
-    def __exif_overrides_file(self):
+    def _exif_overrides_file(self):
         """Path to the EXIF overrides file."""
         return os.path.join(self.data_path, 'exif_overrides.json')
 
     def exif_overrides_exists(self):
         """Check if EXIF overrides file exists."""
-        return os.path.isfile(self.__exif_overrides_file())
+        return os.path.isfile(self._exif_overrides_file())
 
     def load_exif_overrides(self):
         """Load EXIF overrides data."""
-        with io.open_rt(self.__exif_overrides_file()) as fin:
+        with io.open_rt(self._exif_overrides_file()) as fin:
             return json.load(fin)
 
     def profile_log(self):
@@ -535,29 +535,29 @@ class DataSet:
         with io.open_wt(filepath) as fout:
             return fout.write(report_str)
 
-    def __navigation_graph_file(self):
+    def _navigation_graph_file(self):
         "Return the path of the navigation graph."
         return os.path.join(self.data_path, 'navigation_graph.json')
 
     def save_navigation_graph(self, navigation_graphs):
-        with io.open_wt(self.__navigation_graph_file()) as fout:
+        with io.open_wt(self._navigation_graph_file()) as fout:
             io.json_dump(navigation_graphs, fout)
 
-    def __ply_file(self, filename):
+    def _ply_file(self, filename):
         return os.path.join(self.data_path, filename or 'reconstruction.ply')
 
     def save_ply(self, reconstruction, filename=None,
                  no_cameras=False, no_points=False):
         """Save a reconstruction in PLY format."""
         ply = io.reconstruction_to_ply(reconstruction, no_cameras, no_points)
-        with io.open_wt(self.__ply_file(filename)) as fout:
+        with io.open_wt(self._ply_file(filename)) as fout:
             fout.write(ply)
 
-    def __ground_control_points_file(self):
+    def _ground_control_points_file(self):
         return os.path.join(self.data_path, 'gcp_list.txt')
 
     def ground_control_points_exist(self):
-        return os.path.isfile(self.__ground_control_points_file())
+        return os.path.isfile(self._ground_control_points_file())
 
     def load_ground_control_points(self):
         """Load ground control points.
@@ -567,7 +567,7 @@ class DataSet:
         """
         exif = {image: self.load_exif(image) for image in self.images()}
 
-        with open(self.__ground_control_points_file()) as fin:
+        with open(self._ground_control_points_file()) as fin:
             return io.read_ground_control_points_list(
                 fin, self.load_reference_lla(), exif)
 
