@@ -49,9 +49,9 @@ class DataSet:
         if os.path.isfile(image_list_file):
             with io.open_rt(image_list_file) as fin:
                 lines = fin.read().splitlines()
-            self.set_image_list(lines)
+            self._set_image_list(lines)
         else:
-            self.set_image_path(os.path.join(self.data_path, 'images'))
+            self._set_image_path(os.path.join(self.data_path, 'images'))
 
     def images(self):
         """List of file names of all images in the dataset."""
@@ -98,16 +98,14 @@ class DataSet:
         else:
             self._set_mask_path(os.path.join(self.data_path, 'masks'))
 
-    def masks(self):
-        """List of file names of all masks in the dataset."""
-        return self.mask_list
-
     def load_mask(self, image):
         """Load image mask if it exists, otherwise return None."""
-        mask_name = image + '.png'
-        if mask_name in self.masks():
-            mask_path = self.mask_files[mask_name]
+        if image in self.mask_files:
+            mask_path = self.mask_files[image]
             mask = cv2.imread(mask_path)
+            if mask is None:
+                raise IOError("Unable to load mask for image {} "
+                              "from file {}".format(image, mask_path))
             if len(mask.shape) == 3:
                 mask = mask.max(axis=2)
         else:
@@ -297,12 +295,11 @@ class DataSet:
         o = np.load(self._depthmap_file(image, 'pruned.npz'))
         return o['points'], o['normals'], o['colors'], o['labels']
 
-    @staticmethod
-    def _is_image_file(filename):
+    def _is_image_file(self, filename):
         extensions = {'jpg', 'jpeg', 'png', 'tif', 'tiff', 'pgm', 'pnm', 'gif'}
         return filename.split('.')[-1].lower() in extensions
 
-    def set_image_path(self, path):
+    def _set_image_path(self, path):
         """Set image path and find all images in there"""
         self.image_list = []
         self.image_files = {}
@@ -313,37 +310,32 @@ class DataSet:
                     self.image_list.append(name)
                     self.image_files[name] = os.path.join(path, name)
 
-    def set_image_list(self, image_list):
-            self.image_list = []
-            self.image_files = {}
-            for line in image_list:
-                path = os.path.join(self.data_path, line)
-                name = os.path.basename(path)
-                self.image_list.append(name)
-                self.image_files[name] = path
+    def _set_image_list(self, image_list):
+        self.image_list = []
+        self.image_files = {}
+        for line in image_list:
+            path = os.path.join(self.data_path, line)
+            name = os.path.basename(path)
+            self.image_list.append(name)
+            self.image_files[name] = path
 
-    @staticmethod
-    def _is_mask_file(filename):
-        return DataSet._is_image_file(filename)
+    def _is_mask_file(self, filename):
+        return self._is_image_file(filename)
 
     def _set_mask_path(self, path):
         """Set mask path and find all masks in there"""
-        self.mask_list = []
         self.mask_files = {}
-        if os.path.exists(path):
-            for name in os.listdir(path):
-                if self._is_mask_file(name):
-                    self.mask_list.append(name)
-                    self.mask_files[name] = os.path.join(path, name)
+        for image in self.images():
+            filepath = os.path.join(path, image + '.png')
+            if self._is_mask_file(filepath):
+                self.mask_files[image] = filepath
 
-    def _set_mask_list(self, mask_list):
-            self.mask_list = []
-            self.mask_files = {}
-            for line in mask_list:
-                path = os.path.join(self.data_path, line)
-                name = os.path.basename(path)
-                self.mask_list.append(name)
-                self.mask_files[name] = path
+    def _set_mask_list(self, mask_list_lines):
+        self.mask_files = {}
+        for line in mask_list_lines:
+            image, relpath = line.split(None, 1)
+            path = os.path.join(self.data_path, relpath.strip())
+            self.mask_files[image.strip()] = path
 
     def _exif_path(self):
         """Return path of extracted exif directory"""
