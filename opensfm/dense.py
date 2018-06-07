@@ -239,15 +239,18 @@ def add_views_to_depth_estimator(data, neighbors, de):
     for shot in neighbors[:num_neighbors + 1]:
         assert shot.camera.projection_type == 'perspective'
         color_image = data.undistorted_image_as_array(shot.id)
+        # TODO(pau): convert segmentation to mask
+        mask = load_segmentation_labels(data, shot)
         gray_image = cv2.cvtColor(color_image, cv2.COLOR_RGB2GRAY)
         original_height, original_width = gray_image.shape
         width = int(data.config['depthmap_resolution'])
         height = width * original_height // original_width
         image = scale_down_image(gray_image, width, height)
+        mask = scale_down_image(mask, width, height, cv2.INTER_NEAREST)
         K = shot.camera.get_K_in_pixel_coordinates(width, height)
         R = shot.pose.get_rotation_matrix()
         t = shot.pose.translation
-        de.add_view(K, R, t, image)
+        de.add_view(K, R, t, image, mask)
 
 
 def add_views_to_depth_cleaner(data, neighbors, dc):

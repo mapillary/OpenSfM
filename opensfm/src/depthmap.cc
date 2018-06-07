@@ -159,6 +159,7 @@ class DepthmapEstimator {
                const double *pR,
                const double *pt,
                const unsigned char *pimage,
+               const unsigned char *pmask,
                int width,
                int height) {
     Ks_.emplace_back(pK);
@@ -168,6 +169,7 @@ class DepthmapEstimator {
     Qs_.emplace_back(Rs_.back() * Rs_.front().t());
     as_.emplace_back(Qs_.back() * ts_.front() - ts_.back());
     images_.emplace_back(cv::Mat(height, width, CV_8U, (void *)pimage).clone());
+    masks_.emplace_back(cv::Mat(height, width, CV_8U, (void *)pmask).clone());
     std::size_t size = images_.size();
     int a = (size > 1) ? 1 : 0;
     int b = (size > 1) ? size - 1 : 0;
@@ -257,8 +259,9 @@ class DepthmapEstimator {
     int hpz = (patch_size_ - 1) / 2;
     for (int i = hpz; i < result->depth.rows - hpz; ++i) {
       for (int j = hpz; j < result->depth.cols - hpz; ++j) {
-        float variance = PatchVariance(i, j);
-        if (variance < min_patch_variance_) {
+        bool masked = masks_[0].at<unsigned char>(i, j) == 0;
+        bool low_variance = PatchVariance(i, j) < min_patch_variance_;
+        if (masked || low_variance) {
           AssignPixel(result, i, j, 0.0f, cv::Vec3f(0, 0, 0), 0.0f, 0);
         }
       }
@@ -461,6 +464,7 @@ class DepthmapEstimator {
 
  private:
   std::vector<cv::Mat> images_;
+  std::vector<cv::Mat> masks_;
   std::vector<cv::Matx33d> Ks_;
   std::vector<cv::Matx33d> Rs_;
   std::vector<cv::Vec3d> ts_;
