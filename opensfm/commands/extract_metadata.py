@@ -61,7 +61,7 @@ class Command:
 
     def _extract_exif(self, image, data):
          # EXIF data in Image
-        d = exif.extract_exif_from_file(data.load_image(image))
+        d = exif.extract_exif_from_file(data.open_image_file(image))
 
         # Image Height and Image Width
         if d['width'] <= 0 or not data.config['use_exif_size']:

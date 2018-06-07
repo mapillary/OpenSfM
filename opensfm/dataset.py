@@ -114,6 +114,9 @@ class DataSet:
             mask = None
         return mask
 
+    def _undistorted_mask_path(self):
+        return os.path.join(self.data_path, 'undistorted_masks')
+
     def _undistorted_mask_file(self, image):
         """Path of undistorted version of a mask."""
         return os.path.join(self._undistorted_mask_path(), image + '.png')
@@ -125,6 +128,11 @@ class DataSet:
     def load_undistorted_mask(self, image):
         """Load undistorted mask pixels as a numpy array."""
         return io.imread(self._undistorted_mask_file(image))
+
+    def save_undistorted_mask(self, image, array):
+        """Save the undistorted image mask."""
+        io.mkdir_p(self._undistorted_mask_path())
+        cv2.imwrite(self._undistorted_mask_file(image), array)
 
     def _segmentation_path(self):
         return os.path.join(self.data_path, 'segmentations')

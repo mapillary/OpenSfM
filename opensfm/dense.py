@@ -240,7 +240,7 @@ def add_views_to_depth_estimator(data, neighbors, de):
         assert shot.camera.projection_type == 'perspective'
         color_image = data.load_undistorted_image(shot.id)
         # TODO(pau): convert segmentation to mask
-        mask = load_segmentation_labels(data, shot)
+        mask = load_mask(data, shot)
         gray_image = cv2.cvtColor(color_image, cv2.COLOR_RGB2GRAY)
         original_height, original_width = gray_image.shape
         width = int(data.config['depthmap_resolution'])
@@ -263,6 +263,18 @@ def add_views_to_depth_cleaner(data, neighbors, dc):
         R = shot.pose.get_rotation_matrix()
         t = shot.pose.translation
         dc.add_view(K, R, t, depth)
+
+
+def load_mask(data, shot):
+    """Load the undistorted mask.
+
+    If no mask exists return an array of ones.
+    """
+    if data.undistorted_mask_exists(shot.id):
+        return data.load_undistorted_mask(shot.id)
+    else:
+        size = shot.camera.height, shot.camera.width
+        return np.ones(size, dtype=np.uint8)
 
 
 def load_segmentation_labels(data, shot):
