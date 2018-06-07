@@ -212,7 +212,7 @@ class DataSet:
 
         return self._mask_from_segmentation(segmentation, ignore_values)
 
-    def _mask_from_segmentation(segmentation, ignore_values):
+    def _mask_from_segmentation(self, segmentation, ignore_values):
         mask = np.ones(segmentation.shape, dtype=np.uint8)
         for value in ignore_values:
             mask &= (segmentation == value)
@@ -234,8 +234,12 @@ class DataSet:
         Return a mask that is non-zero only where the binary
         mask and the segmentation mask are non-zero.
         """
-        mask = self.load_undistorted_mask(image)
-        smask = self.load_undistorted_segmentation_mask(image)
+        mask = None
+        if self.undistorted_mask_exists(image):
+            mask = self.load_undistorted_mask(image)
+        smask = None
+        if self.undistorted_segmentation_exists(image):
+            smask = self.load_undistorted_segmentation_mask(image)
         return self._combine_masks(mask, smask)
 
     def _combine_masks(self, mask, smask):
