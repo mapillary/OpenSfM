@@ -197,9 +197,6 @@ __docformat__ = 'restructuredtext en'
 __all__ = []
 
 
-numpy.set_printoptions(legacy='1.13')
-
-
 def identity_matrix():
     """Return 4x4 identity/unit matrix.
 
