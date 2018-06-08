@@ -215,7 +215,7 @@ class DataSet:
     def _mask_from_segmentation(self, segmentation, ignore_values):
         mask = np.ones(segmentation.shape, dtype=np.uint8)
         for value in ignore_values:
-            mask &= (segmentation == value)
+            mask &= (segmentation != value)
         return mask
 
     def load_combined_mask(self, image):
