@@ -61,11 +61,11 @@ class Command:
 
     def _extract_exif(self, image, data):
          # EXIF data in Image
-        d = exif.extract_exif_from_file(data.load_image(image))
+        d = exif.extract_exif_from_file(data.open_image_file(image))
 
         # Image Height and Image Width
         if d['width'] <= 0 or not data.config['use_exif_size']:
-            d['height'], d['width'] = data.image_as_array(image).shape[:2]
+            d['height'], d['width'] = data.load_image(image).shape[:2]
 
         d['camera'] = exif.camera_id(d)
 

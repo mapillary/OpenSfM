@@ -73,11 +73,15 @@ class Command:
         arguments = []
         for shot in reconstruction.shots.values():
             arguments.append((shot, undistorted_shots[shot.id], data,
-                              'image_as_array',
+                              'load_image',
                               'save_undistorted_image',
                               cv2.INTER_AREA))
             arguments.append((shot, undistorted_shots[shot.id], data,
-                              'segmentation_as_array',
+                              'load_mask',
+                              'save_undistorted_mask',
+                              cv2.INTER_NEAREST))
+            arguments.append((shot, undistorted_shots[shot.id], data,
+                              'load_segmentation',
                               'save_undistorted_segmentation',
                               cv2.INTER_NEAREST))
 

@@ -90,4 +90,8 @@ def create_berlin_test_folder(tmpdir):
     path = str(tmpdir.mkdir('berlin'))
     os.symlink(os.path.abspath('data/berlin/images'),
                os.path.join(path, 'images'))
+    os.symlink(os.path.abspath('data/berlin/masks'),
+               os.path.join(path, 'masks'))
+    os.symlink(os.path.abspath('data/berlin/gcp_list.txt'),
+               os.path.join(path, 'gcp_list.txt'))
     return opensfm.dataset.DataSet(path)

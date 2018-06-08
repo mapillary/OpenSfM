@@ -90,9 +90,9 @@ if __name__ == "__main__":
             # radially undistort the original image
             camera = shot.camera
             if args.undistorted:
-                undistorted_image = data.undistorted_image_as_array(image)
+                undistorted_image = data.load_undistorted_image(image)
             else:
-                original_image = data.image_as_array(image)[:, :, ::-1]
+                original_image = data.load_image(image)[:, :, ::-1]
                 original_h, original_w = original_image.shape[:2]
                 K = camera.get_K_in_pixel_coordinates(original_w, original_h)
                 distortion = np.array([camera.k1, camera.k2, 0, 0])

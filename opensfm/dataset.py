@@ -2,6 +2,7 @@
 
 import os
 import json
+import logging
 import pickle
 import gzip
 
@@ -15,62 +16,61 @@ from opensfm import config
 from opensfm import context
 
 
-class DataSet:
-    """
-    Dataset representing directory with images, extracted , feature descriptors (SURF, SIFT), etc.
+logger = logging.getLogger(__name__)
 
-    Methods to retrieve *base directory* for data file(s) have suffix ``_path``, methods to retrieve path of specified
-    data file have suffix ``_file``.
+
+class DataSet:
+    """Accessors to the main input and output data.
+
+    Data include input images, masks, and segmentation as well
+    temporary data such as feature and matches and the final
+    reconstructions.
+
+    All data is stored inside a single folder with a specific subfolder
+    structure.
+
+    It is possible to store data remotely or in different formats
+    by subclassing this class and overloading its methods.
     """
     def __init__(self, data_path):
-        """
-        Create dataset instance. Empty directories (for EXIF, matches, etc) will be created if they don't exist
-        already.
-
-        :param data_path: Path to directory containing dataset
-        """
+        """Init dataset associated to a folder."""
         self.data_path = data_path
-
         self._load_config()
-
-        # Load list of images.
-        image_list_file = os.path.join(self.data_path, 'image_list.txt')
-        if os.path.isfile(image_list_file):
-            with io.open_rt(image_list_file) as fin:
-                lines = fin.read().splitlines()
-            self.set_image_list(lines)
-        else:
-            self.set_image_path(os.path.join(self.data_path, 'images'))
-
-        # Load list of masks if they exist.
-        mask_list_file = os.path.join(self.data_path, 'mask_list.txt')
-        if os.path.isfile(mask_list_file):
-            with open(mask_list_file) as fin:
-                lines = fin.read().splitlines()
-            self.set_mask_list(lines)
-        else:
-            self.set_mask_path(os.path.join(self.data_path, 'masks'))
+        self._load_image_list()
+        self._load_mask_list()
 
     def _load_config(self):
         config_file = os.path.join(self.data_path, 'config.yaml')
         self.config = config.load_config(config_file)
 
+    def _load_image_list(self):
+        """Load image list from image_list.txt or list image/ folder."""
+        image_list_file = os.path.join(self.data_path, 'image_list.txt')
+        if os.path.isfile(image_list_file):
+            with io.open_rt(image_list_file) as fin:
+                lines = fin.read().splitlines()
+            self._set_image_list(lines)
+        else:
+            self._set_image_path(os.path.join(self.data_path, 'images'))
+
     def images(self):
-        """Return list of file names of all images in this dataset"""
+        """List of file names of all images in the dataset."""
         return self.image_list
 
     def _image_file(self, image):
-        """
-        Return path of image with given name
-        :param image: Image file name (**with extension**)
-        """
+        """Path to the image file."""
         return self.image_files[image]
 
-    def load_image(self, image):
+    def open_image_file(self, image):
+        """Open image file and return file object."""
         return open(self._image_file(image), 'rb')
 
-    def image_as_array(self, image):
-        """Return image pixels as 3-dimensional numpy array (R G B order)"""
+    def load_image(self, image):
+        """Load image pixels as numpy array.
+
+        The array is 3D, indexed by y-coord, x-coord, channel.
+        The channels are in RGB order.
+        """
         return io.imread(self._image_file(image))
 
     def _undistorted_image_path(self):
@@ -80,29 +80,57 @@ class DataSet:
         """Path of undistorted version of an image."""
         return os.path.join(self._undistorted_image_path(), image + '.jpg')
 
-    def undistorted_image_as_array(self, image):
-        """Undistorted image pixels as 3-dimensional numpy array (R G B order)"""
+    def load_undistorted_image(self, image):
+        """Load undistorted image pixels as a numpy array."""
         return io.imread(self._undistorted_image_file(image))
 
     def save_undistorted_image(self, image, array):
         io.mkdir_p(self._undistorted_image_path())
         cv2.imwrite(self._undistorted_image_file(image), array[:, :, ::-1])
 
-    def masks(self):
-        """Return list of file names of all masks in this dataset"""
-        return self.mask_list
+    def _load_mask_list(self):
+        """Load mask list from mask_list.txt or list masks/ folder."""
+        mask_list_file = os.path.join(self.data_path, 'mask_list.txt')
+        if os.path.isfile(mask_list_file):
+            with open(mask_list_file) as fin:
+                lines = fin.read().splitlines()
+            self._set_mask_list(lines)
+        else:
+            self._set_mask_path(os.path.join(self.data_path, 'masks'))
 
-    def mask_as_array(self, image):
-        """Given an image, returns the associated mask as an array if it exists, otherwise returns None"""
-        mask_name = image + '.png'
-        if mask_name in self.masks():
-            mask_path = self.mask_files[mask_name]
+    def load_mask(self, image):
+        """Load image mask if it exists, otherwise return None."""
+        if image in self.mask_files:
+            mask_path = self.mask_files[image]
             mask = cv2.imread(mask_path)
+            if mask is None:
+                raise IOError("Unable to load mask for image {} "
+                              "from file {}".format(image, mask_path))
             if len(mask.shape) == 3:
                 mask = mask.max(axis=2)
         else:
             mask = None
         return mask
+
+    def _undistorted_mask_path(self):
+        return os.path.join(self.data_path, 'undistorted_masks')
+
+    def _undistorted_mask_file(self, image):
+        """Path of undistorted version of a mask."""
+        return os.path.join(self._undistorted_mask_path(), image + '.png')
+
+    def undistorted_mask_exists(self, image):
+        """Check if the undistorted mask file exists."""
+        return os.path.isfile(self._undistorted_mask_file(image))
+
+    def load_undistorted_mask(self, image):
+        """Load undistorted mask pixels as a numpy array."""
+        return io.imread(self._undistorted_mask_file(image))
+
+    def save_undistorted_mask(self, image, array):
+        """Save the undistorted image mask."""
+        io.mkdir_p(self._undistorted_mask_path())
+        cv2.imwrite(self._undistorted_mask_file(image), array)
 
     def _segmentation_path(self):
         return os.path.join(self.data_path, 'segmentations')
@@ -110,11 +138,8 @@ class DataSet:
     def _segmentation_file(self, image):
         return os.path.join(self._segmentation_path(), image + '.png')
 
-    def segmentation_as_array(self, image):
-        """Load image segmentation.
-
-        Returns a numpy array or None
-        """
+    def load_segmentation(self, image):
+        """Load image segmentation if it exitsts, otherwise return None."""
         segmentation_file = self._segmentation_file(image)
         if os.path.isfile(segmentation_file):
             segmentation = cv2.imread(segmentation_file)
@@ -135,7 +160,7 @@ class DataSet:
         """Check if the undistorted segmentation file exists."""
         return os.path.isfile(self._undistorted_segmentation_file(image))
 
-    def undistorted_segmentation_as_array(self, image):
+    def load_undistorted_segmentation(self, image):
         """Load an undistorted image segmentation."""
         segmentation = cv2.imread(self._undistorted_segmentation_file(image))
         if len(segmentation.shape) == 3:
@@ -146,6 +171,88 @@ class DataSet:
         """Save the undistorted image segmentation."""
         io.mkdir_p(self._undistorted_segmentation_path())
         cv2.imwrite(self._undistorted_segmentation_file(image), array)
+
+    def segmentation_ignore_values(self, image):
+        """List of label values to ignore.
+
+        Pixels with this labels values will be masked out and won't be
+        processed when extracting features or computing depthmaps.
+        """
+        return self.config.get('segmentation_ignore_values', [])
+
+    def load_segmentation_mask(self, image):
+        """Build a mask from segmentation ignore values.
+
+        The mask is non-zero only for pixels with segmentation
+        labels not in segmentation_ignore_values.
+        """
+        ignore_values = self.segmentation_ignore_values(image)
+        if not ignore_values:
+            return None
+
+        segmentation = self.load_segmentation(image)
+        if segmentation is None:
+            return None
+
+        return self._mask_from_segmentation(segmentation, ignore_values)
+
+    def load_undistorted_segmentation_mask(self, image):
+        """Build a mask from the undistorted segmentation.
+
+        The mask is non-zero only for pixels with segmentation
+        labels not in segmentation_ignore_values.
+        """
+        ignore_values = self.segmentation_ignore_values(image)
+        if not ignore_values:
+            return None
+
+        segmentation = self.load_undistorted_segmentation(image)
+        if segmentation is None:
+            return None
+
+        return self._mask_from_segmentation(segmentation, ignore_values)
+
+    def _mask_from_segmentation(self, segmentation, ignore_values):
+        mask = np.ones(segmentation.shape, dtype=np.uint8)
+        for value in ignore_values:
+            mask &= (segmentation != value)
+        return mask
+
+    def load_combined_mask(self, image):
+        """Combine binary mask with segmentation mask.
+
+        Return a mask that is non-zero only where the binary
+        mask and the segmentation mask are non-zero.
+        """
+        mask = self.load_mask(image)
+        smask = self.load_segmentation_mask(image)
+        return self._combine_masks(mask, smask)
+
+    def load_undistorted_combined_mask(self, image):
+        """Combine undistorted binary mask with segmentation mask.
+
+        Return a mask that is non-zero only where the binary
+        mask and the segmentation mask are non-zero.
+        """
+        mask = None
+        if self.undistorted_mask_exists(image):
+            mask = self.load_undistorted_mask(image)
+        smask = None
+        if self.undistorted_segmentation_exists(image):
+            smask = self.load_undistorted_segmentation_mask(image)
+        return self._combine_masks(mask, smask)
+
+    def _combine_masks(self, mask, smask):
+        if mask is None:
+            if smask is None:
+                return None
+            else:
+                return smask
+        else:
+            if smask is None:
+                return mask
+            else:
+                return mask & smask
 
     def _depthmap_path(self):
         return os.path.join(self.data_path, 'depthmaps')
@@ -192,11 +299,11 @@ class DataSet:
         o = np.load(self._depthmap_file(image, 'pruned.npz'))
         return o['points'], o['normals'], o['colors'], o['labels']
 
-    @staticmethod
-    def _is_image_file(filename):
-        return filename.split('.')[-1].lower() in {'jpg', 'jpeg', 'png', 'tif', 'tiff', 'pgm', 'pnm', 'gif'}
+    def _is_image_file(self, filename):
+        extensions = {'jpg', 'jpeg', 'png', 'tif', 'tiff', 'pgm', 'pnm', 'gif'}
+        return filename.split('.')[-1].lower() in extensions
 
-    def set_image_path(self, path):
+    def _set_image_path(self, path):
         """Set image path and find all images in there"""
         self.image_list = []
         self.image_files = {}
@@ -207,37 +314,29 @@ class DataSet:
                     self.image_list.append(name)
                     self.image_files[name] = os.path.join(path, name)
 
-    def set_image_list(self, image_list):
-            self.image_list = []
-            self.image_files = {}
-            for line in image_list:
-                path = os.path.join(self.data_path, line)
-                name = os.path.basename(path)
-                self.image_list.append(name)
-                self.image_files[name] = path
+    def _set_image_list(self, image_list):
+        self.image_list = []
+        self.image_files = {}
+        for line in image_list:
+            path = os.path.join(self.data_path, line)
+            name = os.path.basename(path)
+            self.image_list.append(name)
+            self.image_files[name] = path
 
-    @staticmethod
-    def _is_mask_file(filename):
-        return DataSet._is_image_file(filename)
-
-    def set_mask_path(self, path):
+    def _set_mask_path(self, path):
         """Set mask path and find all masks in there"""
-        self.mask_list = []
         self.mask_files = {}
-        if os.path.exists(path):
-            for name in os.listdir(path):
-                if self._is_mask_file(name):
-                    self.mask_list.append(name)
-                    self.mask_files[name] = os.path.join(path, name)
+        for image in self.images():
+            filepath = os.path.join(path, image + '.png')
+            if os.path.isfile(filepath):
+                self.mask_files[image] = filepath
 
-    def set_mask_list(self, mask_list):
-            self.mask_list = []
-            self.mask_files = {}
-            for line in mask_list:
-                path = os.path.join(self.data_path, line)
-                name = os.path.basename(path)
-                self.mask_list.append(name)
-                self.mask_files[name] = path
+    def _set_mask_list(self, mask_list_lines):
+        self.mask_files = {}
+        for line in mask_list_lines:
+            image, relpath = line.split(None, 1)
+            path = os.path.join(self.data_path, relpath.strip())
+            self.mask_files[image.strip()] = path
 
     def _exif_path(self):
         """Return path of extracted exif directory"""
@@ -570,6 +669,19 @@ class DataSet:
         with open(self._ground_control_points_file()) as fin:
             return io.read_ground_control_points_list(
                 fin, self.load_reference_lla(), exif)
+
+    def image_as_array(self, image):
+        logger.warning("image_as_array() is deprecated. Use load_image() instead.")
+        return self.load_image(image)
+
+    def undistorted_image_as_array(self, image):
+        logger.warning("undistorted_image_as_array() is deprecated. "
+                       "Use load_undistorted_image() instead.")
+        return self.load_undistorted_image(image)
+
+    def mask_as_array(self, image):
+        logger.warning("mask_as_array() is deprecated. Use load_mask() instead.")
+        return self.load_mask(image)
 
 
 def load_tracks_graph(fileobj):

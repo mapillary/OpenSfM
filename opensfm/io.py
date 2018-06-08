@@ -576,7 +576,12 @@ def imread(filename):
                 "version 3.2 or newer.".format(cv2.__version__))
     else:
         flags = cv2.CV_LOAD_IMAGE_COLOR
+
     bgr = cv2.imread(filename, flags)
+
+    if bgr is None:
+        raise IOError("Unable to load image {}".format(filename))
+
     return bgr[:, :, ::-1]  # Turn BGR to RGB
 
 

@@ -59,12 +59,12 @@ def detect(args):
 
     if not data.feature_index_exists(image):
         start = timer()
-        mask = data.mask_as_array(image)
+        mask = data.load_combined_mask(image)
         if mask is not None:
             logger.info('Found mask to apply for image {}'.format(image))
         preemptive_max = data.config['preemptive_max']
         p_unsorted, f_unsorted, c_unsorted = features.extract_features(
-            data.image_as_array(image), data.config, mask)
+            data.load_image(image), data.config, mask)
         if len(p_unsorted) == 0:
             return
 

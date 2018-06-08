@@ -78,8 +78,8 @@ if __name__ == "__main__":
                 pl.figure(figsize=(20, 10))
                 pl.title('Images: ' + im1 + ' - ' + im2 +
                          ', matches: ' + str(len(t)))
-                plot_matches(data.image_as_array(im1),
-                             data.image_as_array(im2), p1, p2)
+                plot_matches(data.load_image(im1),
+                             data.load_image(im2), p1, p2)
                 i += 1
                 if args.save_figs:
                     p = args.dataset + '/plot_tracks'

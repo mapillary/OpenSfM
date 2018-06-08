@@ -10,13 +10,16 @@ class DepthmapEstimatorWrapper {
   void AddView(PyObject *K,
                PyObject *R,
                PyObject *t,
-               PyObject *image) {
+               PyObject *image,
+               PyObject *mask) {
     PyArrayContiguousView<double> K_view((PyArrayObject *)K);
     PyArrayContiguousView<double> R_view((PyArrayObject *)R);
     PyArrayContiguousView<double> t_view((PyArrayObject *)t);
     PyArrayContiguousView<unsigned char> image_view((PyArrayObject *)image);
+    PyArrayContiguousView<unsigned char> mask_view((PyArrayObject *)mask);
     de_.AddView(K_view.data(), R_view.data(), t_view.data(),
-                image_view.data(), image_view.shape(1), image_view.shape(0));
+                image_view.data(), mask_view.data(),
+                image_view.shape(1), image_view.shape(0));
   }
 
   void SetDepthRange(double min_depth, double max_depth, int num_depth_planes) {
