@@ -323,15 +323,12 @@ class DataSet:
             self.image_list.append(name)
             self.image_files[name] = path
 
-    def _is_mask_file(self, filename):
-        return self._is_image_file(filename)
-
     def _set_mask_path(self, path):
         """Set mask path and find all masks in there"""
         self.mask_files = {}
         for image in self.images():
             filepath = os.path.join(path, image + '.png')
-            if self._is_mask_file(filepath):
+            if os.path.isfile(filepath):
                 self.mask_files[image] = filepath
 
     def _set_mask_list(self, mask_list_lines):
