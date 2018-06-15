@@ -758,13 +758,6 @@
                 rotation.setPosition(translation);
 
                 return rotation;
-
-                if (cam.projection_type == 'equirectangular' || cam.projection_type == 'spherical')
-                    return rotation
-                var dx = cam.width / Math.max(cam.width, cam.height) / cam.focal;
-                var dy = cam.height / Math.max(cam.width, cam.height) / cam.focal;
-                var projection = new THREE.Matrix4().makeFrustum(-dx, +dx, +dy, -dy, -1, -1000);
-                return projection.multiply(rotation);
             }
 
 
