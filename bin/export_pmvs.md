@@ -14,7 +14,7 @@ Download CMVS: http://www.di.ens.fr/cmvs/
     + `cmvs`
     + `genOptions`
     
-- Most depedencies installed with apt-get: 
+- Most dependencies installed with apt-get: 
 
     `sudo apt-get install libgsl0-dev libblas-dev libatlas-dev liblapack-dev liblapacke-dev`
 
@@ -75,7 +75,7 @@ Add this to `../base/cmvs/bundle.cc`
     genOption.cc: In function ‘int main(int, char**)’:
     genOption.cc:17:12: error: ‘exit’ was not declared in this scope
 
-Add this to genOption.cc
+Add this to `genOption.cc`
 
     #include <cstdlib>
 
