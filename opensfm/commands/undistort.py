@@ -111,6 +111,8 @@ def undistort_image(arguments):
         getattr(data, save_image)(shot.id, undistorted)
     elif projection_type in ['equirectangular', 'spherical']:
         original = getattr(data, load_image)(shot.id)
+        if original is None:
+            return
         subshot_width = int(data.config['depthmap_resolution'])
         width = 4 * subshot_width
         height = width // 2
