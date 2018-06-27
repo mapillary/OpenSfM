@@ -271,7 +271,7 @@ def load_combined_mask(data, shot):
     """
     mask = data.load_undistorted_combined_mask(shot.id)
     if mask is None:
-        size = shot.camera.height, shot.camera.width
+        size = int(shot.camera.height), int(shot.camera.width)
         return np.ones(size, dtype=np.uint8)
     else:
         return mask
