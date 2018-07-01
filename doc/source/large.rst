@@ -46,15 +46,15 @@ The submodels are created inside the ``submodels`` folder.  Each submodel folder
         ├── clusters.npz
         ├── image_list_with_gps.tsv
         ├── submodel_0000/
-            │   ├── image_list.txt        # images of submodel_0000
-            │   ├── config.yaml           # copy from global equivalent
-            │   ├── images/               # link to global equivalent
-            │   ├── exif/                 # link to global equivalent
-            │   ├── features/             # link to global equivalent
-            │   ├── matches/              # link to global equivalent
-            │   ├── camera_models.json    # link to global equivalent
-            │   └── reference_lla.json    # link to global equivalent
-            └── submodel_0001/
+        │   ├── image_list.txt        # images of submodel_0000
+        │   ├── config.yaml           # copy from global equivalent
+        │   ├── images/               # link to global equivalent
+        │   ├── exif/                 # link to global equivalent
+        │   ├── features/             # link to global equivalent
+        │   ├── matches/              # link to global equivalent
+        │   ├── camera_models.json    # link to global equivalent
+        │   └── reference_lla.json    # link to global equivalent
+        ├── submodel_0001/
         └── ...
 
 Config parameters
