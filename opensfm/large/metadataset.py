@@ -15,7 +15,7 @@ class MetaDataSet():
 
         :param data_path: Path to directory containing meta dataset
         '''
-        self.data_path = data_path
+        self.data_path = os.path.abspath(data_path)
 
         config_file = os.path.join(self.data_path, 'config.yaml')
         self.config = config.load_config(config_file)
@@ -39,6 +39,11 @@ class MetaDataSet():
     def _submodel_images_path(self, i):
         """Path to submodel i images folder."""
         template = self.config['submodel_images_relpath_template']
+        return os.path.join(self.data_path, template % i)
+
+    def _submodel_masks_path(self, i):
+        """Path to submodel i masks folder."""
+        template = self.config['submodel_masks_relpath_template']
         return os.path.join(self.data_path, template % i)
 
     def _image_groups_path(self):
@@ -136,8 +141,10 @@ class MetaDataSet():
             # create sub model dirs
             submodel_path = self._submodel_path(i)
             submodel_images_path = self._submodel_images_path(i)
+            submodel_masks_path = self._submodel_masks_path(i)
             io.mkdir_p(submodel_path)
             io.mkdir_p(submodel_images_path)
+            io.mkdir_p(submodel_masks_path)
 
             # link images and create image list file
             image_list_path = os.path.join(submodel_path, 'image_list.txt')
@@ -147,6 +154,12 @@ class MetaDataSet():
                     dst = os.path.join(submodel_images_path, image)
                     if not os.path.isfile(dst):
                         os.symlink(src, dst)
+                    mask = data.mask(image)
+                    if mask is not None:
+                        mask_src = data.mask_files[mask]
+                        mask_dst = os.path.join(submodel_masks_path, mask)
+                        if not os.path.isfile(mask_dst):
+                            os.symlink(mask_src, mask_dst)
                     dst_relpath = os.path.relpath(dst, submodel_path)
                     txtfile.write(dst_relpath + "\n")
 
