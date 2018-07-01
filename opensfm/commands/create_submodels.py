@@ -34,8 +34,7 @@ class Command:
         self._save_cluster_neighbors_geojson(meta_data)
 
         meta_data.create_submodels(
-            meta_data.load_clusters_with_neighbors(),
-            not data.config['submodel_use_symlinks'])
+            meta_data.load_clusters_with_neighbors())
 
     def _create_image_list(self, data, meta_data):
         ills = []

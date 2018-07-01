@@ -82,9 +82,6 @@ The folder structure of the submodels can also be controlled using the following
 - ``submodel_images_relpath_template``
   Template to generate the relative path to a submodel images directory.
 
-- ``submodel_use_symlinks``
-  When true, global features and matches will be symlinked in each submodel so that they can be reused.  When false, features and matches will need to be run for each submodel.
-
 Providing the image groups
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 The ``create_submodels`` command clusters images into groups to decide the partition into submodels.  If you already know how you want to split the dataset, you can provide that information and it will be used instead of the clustering algorithm.
