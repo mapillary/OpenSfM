@@ -59,15 +59,17 @@ class MetaDataSet():
     def _clusters_geojson_path(self):
         return os.path.join(self._submodels_path(), self._clusters_geojson_file_name)
 
-    def _create_symlink(self, base_path, dir_name):
-        link_path = os.path.join(base_path, dir_name)
+    def _create_symlink(self, base_path, filename):
+        src = os.path.join(self.data_path, filename)
+        dst = os.path.join(base_path, filename)
 
-        if os.path.islink(link_path):
-            os.unlink(link_path)
+        if not os.path.exists(src):
+            return
 
-        os.symlink(
-            os.path.relpath(os.path.join(self.data_path, dir_name), base_path),
-            os.path.join(link_path))
+        if os.path.islink(dst):
+            os.unlink(dst)
+
+        os.symlink(os.path.relpath(src, base_path), dst)
 
     def image_groups_exists(self):
         return os.path.isfile(self._image_groups_path())
