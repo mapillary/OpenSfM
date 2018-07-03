@@ -77,7 +77,7 @@ class Command:
             centers[label, 1] += lon
             centers_count[label] += 1
 
-        images = np.array(images).reshape((len(images), 1))
+        images = np.array(images)
         positions = np.array(positions, np.float32)
         labels = np.array(labels)
         centers /= centers_count
@@ -98,6 +98,9 @@ class Command:
         K = int(np.ceil(K))
 
         labels, centers = tools.kmeans(positions, K)[1:]
+
+        images = images.ravel()
+        labels = labels.ravel()
 
         meta_data.save_clusters(images, positions, labels, centers)
 
@@ -145,10 +148,7 @@ class Command:
 
         features = []
         images, positions, labels, centers = meta_data.load_clusters()
-        for inum in np.arange(images.shape[0]):
-            image = images[inum][0]
-            image_label = int(labels[inum][0])
-
+        for image, label in zip(images, labels):
             features.append({
                 "type": "Feature",
                 "geometry": {
@@ -157,7 +157,7 @@ class Command:
                 },
                 "properties": {
                     "name": image,
-                    "submodel": image_label  # cluster_idx
+                    "submodel": int(label)  # cluster_idx
                 }
             })
         geojson = {

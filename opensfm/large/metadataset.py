@@ -104,7 +104,9 @@ class MetaDataSet():
 
     def load_clusters(self):
         c = np.load(self._clusters_path())
-        return c['images'], c['positions'], c['labels'], c['centers']
+        images = c['images'].ravel()
+        labels = c['labels'].ravel()
+        return images, c['positions'], labels, c['centers']
 
     def save_clusters_with_neighbors(self, clusters):
         filepath = self._clusters_with_neighbors_path()
