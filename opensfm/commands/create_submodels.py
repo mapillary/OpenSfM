@@ -100,7 +100,8 @@ class Command:
 
         labels, centers = tools.kmeans(positions, K)[1:]
 
-        meta_data.save_clusters(images, positions, labels, centers)
+        meta_data.save_clusters(
+            images, positions, np.ndarray.flatten(labels), centers)
 
     def _add_cluster_neighbors(self, meta_data, max_distance):
         images, positions, labels, centers = meta_data.load_clusters()
@@ -148,7 +149,7 @@ class Command:
         images, positions, labels, centers = meta_data.load_clusters()
         for inum in np.arange(images.shape[0]):
             image = images[inum][0]
-            image_label = int(labels[inum][0])
+            image_label = int(labels[inum])
 
             features.append({
                 "type": "Feature",
