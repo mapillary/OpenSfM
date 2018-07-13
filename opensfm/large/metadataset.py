@@ -15,7 +15,7 @@ class MetaDataSet():
 
         :param data_path: Path to directory containing meta dataset
         '''
-        self.data_path = data_path
+        self.data_path = os.path.abspath(data_path)
 
         config_file = os.path.join(self.data_path, 'config.yaml')
         self.config = config.load_config(config_file)
@@ -59,15 +59,17 @@ class MetaDataSet():
     def _clusters_geojson_path(self):
         return os.path.join(self._submodels_path(), self._clusters_geojson_file_name)
 
-    def _create_symlink(self, base_path, dir_name):
-        link_path = os.path.join(base_path, dir_name)
+    def _create_symlink(self, base_path, filename):
+        src = os.path.join(self.data_path, filename)
+        dst = os.path.join(base_path, filename)
 
-        if os.path.islink(link_path):
-            os.unlink(link_path)
+        if not os.path.exists(src):
+            return
 
-        os.symlink(
-            os.path.relpath(os.path.join(self.data_path, dir_name), base_path),
-            os.path.join(link_path))
+        if os.path.islink(dst):
+            os.unlink(dst)
+
+        os.symlink(os.path.relpath(src, base_path), dst)
 
     def image_groups_exists(self):
         return os.path.isfile(self._image_groups_path())
@@ -102,7 +104,9 @@ class MetaDataSet():
 
     def load_clusters(self):
         c = np.load(self._clusters_path())
-        return c['images'], c['positions'], c['labels'], c['centers']
+        images = c['images'].ravel()
+        labels = c['labels'].ravel()
+        return images, c['positions'], labels, c['centers']
 
     def save_clusters_with_neighbors(self, clusters):
         filepath = self._clusters_with_neighbors_path()
@@ -130,7 +134,7 @@ class MetaDataSet():
         for path in paths:
             shutil.rmtree(path)
 
-    def create_submodels(self, clusters, no_symlinks=False):
+    def create_submodels(self, clusters):
         data = DataSet(self.data_path)
         for i, cluster in enumerate(clusters):
             # create sub model dirs
@@ -139,7 +143,7 @@ class MetaDataSet():
             io.mkdir_p(submodel_path)
             io.mkdir_p(submodel_images_path)
 
-            # link images and create image list file
+            # create image list file
             image_list_path = os.path.join(submodel_path, 'image_list.txt')
             with io.open_wt(image_list_path) as txtfile:
                 for image in cluster:
@@ -155,15 +159,12 @@ class MetaDataSet():
             if os.path.exists(config_file_path):
                 shutil.copyfile(config_file_path, os.path.join(submodel_path, 'config.yaml'))
 
-            if no_symlinks:
-                reference_file_path = os.path.join(self.data_path, 'reference_lla.json')
-                if os.path.exists(reference_file_path):
-                    shutil.copyfile(reference_file_path, os.path.join(submodel_path, 'reference_lla.json'))
-            else:
-                # create symlinks to metadata files
-                for symlink_path in ['camera_models.json', 'reference_lla.json',
-                                     'exif', 'features', 'matches']:
-                    self._create_symlink(submodel_path, symlink_path)
+            # create symlinks to additional files
+            filenames = ['camera_models.json', 'reference_lla.json', 'exif',
+                         'features', 'matches', 'masks', 'mask_list.txt',
+                         'segmentations']
+            for filename in filenames:
+                self._create_symlink(submodel_path, filename)
 
     def get_submodel_paths(self):
         submodel_paths = []

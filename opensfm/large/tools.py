@@ -36,13 +36,8 @@ def add_cluster_neighbors(positions, labels, centers, max_distance):
     topocentrics = []
     for position in positions:
         x, y, z = geo.topocentric_from_lla(
-            position[0],
-            position[1],
-            0,
-            reference[0],
-            reference[1],
-            0)
-
+            position[0], position[1], 0,
+            reference[0], reference[1], 0)
         topocentrics.append([x, y])
 
     topocentrics = np.array(topocentrics)
@@ -50,7 +45,7 @@ def add_cluster_neighbors(positions, labels, centers, max_distance):
 
     clusters = []
     for label in np.arange(centers.shape[0]):
-        cluster_indices = np.where(labels.ravel() == label)[0]
+        cluster_indices = np.where(labels == label)[0]
 
         neighbors = []
         for i in cluster_indices:
