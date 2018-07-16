@@ -149,8 +149,9 @@ class MetaDataSet():
                 for image in cluster:
                     src = data.image_files[image]
                     dst = os.path.join(submodel_images_path, image)
+                    src_relpath = os.path.relpath(src, submodel_images_path)
                     if not os.path.isfile(dst):
-                        os.symlink(src, dst)
+                        os.symlink(src_relpath, dst)
                     dst_relpath = os.path.relpath(dst, submodel_path)
                     txtfile.write(dst_relpath + "\n")
 
