@@ -802,7 +802,6 @@ def resect(graph, reconstruction, shot_id,
         shot.pose.translation = t
         shot.metadata = metadata
         reconstruction.add_shot(shot)
-        bundle_single_view(graph, reconstruction, shot_id, data.config)
         return True, report
     else:
         return False, report
@@ -1083,7 +1082,9 @@ def grow_reconstruction(data, graph, reconstruction, images, gcp):
             ok, resrep = resect(graph, reconstruction, image, camera, metadata, threshold, min_inliers)
             if not ok:
                 continue
-
+            
+            bundle_single_view(graph, reconstruction, image, data.config)
+            
             logger.info("Adding {0} to the reconstruction".format(image))
             step = {
                 'image': image,
