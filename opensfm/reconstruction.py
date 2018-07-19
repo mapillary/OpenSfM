@@ -943,20 +943,27 @@ def shot_lla_and_compass(shot, reference):
     return lat, lon, alt, angle
 
 
-def merge_two_reconstructions(r1, r2, config, threshold=1):
-    """Merge two reconstructions with common tracks."""
+def pairwise_two_reconstruction(r1, r2, threshold):
     t1, t2 = r1.points, r2.points
     common_tracks = list(set(t1) & set(t2))
 
+    # Estimate similarity transform
     if len(common_tracks) > 6:
-
-        # Estimate similarity transform
         p1 = np.array([t1[t].coordinates for t in common_tracks])
         p2 = np.array([t2[t].coordinates for t in common_tracks])
 
-        T, inliers = multiview.fit_similarity_transform(
+        return True, multiview.fit_similarity_transform(
             p1, p2, max_iterations=1000, threshold=threshold)
+    else:
+        return False, []
 
+
+def merge_two_reconstructions(r1, r2, config, threshold=1):
+    """Merge two reconstructions with common tracks."""
+    status, result = pairwise_two_reconstruction(r1, r2, threshold)
+    if status:
+        T = result[0]
+        inliers = result[1]
         if len(inliers) >= 10:
             s, A, b = multiview.decompose_similarity_transform(T)
             r1p = r1
