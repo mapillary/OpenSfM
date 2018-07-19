@@ -807,6 +807,16 @@ def resect(graph, reconstruction, shot_id,
         return False, report
 
 
+def resect_reconstruction(reconstruction1, reconstruction2, graph1,
+                          graph2, threshold, min_inliers):
+
+    status, result = pairwise_two_reconstruction(reconstruction1, reconstruction2, 1)
+    if not status:
+        return False, []
+
+    return True, result
+
+
 class TrackTriangulator:
     """Triangulate tracks in a reconstruction.
 
