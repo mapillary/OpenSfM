@@ -7,7 +7,7 @@ import data_generation
 
 
 def test_robust_match():
-    d = data_generation.CubeDataset(2, 100, 0.1, 0.3)
+    d = data_generation.CubeDataset(2, 100, 0.0, 0.3)
     p1 = np.array([v['feature'] for k, v in iteritems(d.tracks['shot0'])])
     p2 = np.array([v['feature'] for k, v in iteritems(d.tracks['shot1'])])
     camera1 = d.shots['shot0'].camera

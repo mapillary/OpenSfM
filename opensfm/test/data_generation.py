@@ -79,6 +79,7 @@ class CubeDataset:
         for shot_id, shot in iteritems(self.shots):
             for point_id, point in iteritems(self.points):
                 feature = shot.project(point)
+                feature += np.random.rand(*feature.shape)*noise
                 g.add_node(shot_id, bipartite=0)
                 g.add_node(point_id, bipartite=1)
                 g.add_edge(shot_id, point_id, feature=feature,
