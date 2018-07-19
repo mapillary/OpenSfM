@@ -752,14 +752,13 @@ def reconstructed_points_for_images(graph, reconstruction, images):
     return sorted(res, key=lambda x: -x[1])
 
 
-def resect(data, graph, reconstruction, shot_id):
+def resect(graph, reconstruction, shot_id,
+           camera, metadata, threshold, min_inliers):
     """Try resecting and adding a shot to the reconstruction.
 
     Return:
         True on success.
     """
-    exif = data.load_exif(shot_id)
-    camera = reconstruction.cameras[exif['camera']]
 
     bs = []
     Xs = []
@@ -774,7 +773,6 @@ def resect(data, graph, reconstruction, shot_id):
     if len(bs) < 5:
         return False, {'num_common_points': len(bs)}
 
-    threshold = data.config['resection_threshold']
     T = run_absolute_pose_ransac(
         bs, Xs, "KNEIP", 1 - np.cos(threshold), 1000, 0.999)
 
@@ -793,7 +791,7 @@ def resect(data, graph, reconstruction, shot_id):
         'num_common_points': len(bs),
         'num_inliers': ninliers,
     }
-    if ninliers >= data.config['resection_min_inliers']:
+    if ninliers >= min_inliers:
         R = T[:, :3].T
         t = -R.dot(T[:, 3])
         shot = types.Shot()
@@ -802,7 +800,7 @@ def resect(data, graph, reconstruction, shot_id):
         shot.pose = types.Pose()
         shot.pose.set_rotation_matrix(R)
         shot.pose.translation = t
-        shot.metadata = get_image_metadata(data, shot_id)
+        shot.metadata = metadata
         reconstruction.add_shot(shot)
         bundle_single_view(graph, reconstruction, shot_id, data.config)
         return True, report
@@ -1076,8 +1074,13 @@ def grow_reconstruction(data, graph, reconstruction, images, gcp):
             break
 
         logger.info("-------------------------------------------------------")
+        threshold = data.config['resection_threshold']
+        min_inliers = data.config['resection_min_inliers']
         for image, num_tracks in candidates:
-            ok, resrep = resect(data, graph, reconstruction, image)
+
+            camera = reconstruction.cameras[data.load_exif(image)['camera']]
+            metadata = get_image_metadata(data, image)
+            ok, resrep = resect(graph, reconstruction, image, camera, metadata, threshold, min_inliers)
             if not ok:
                 continue
 
