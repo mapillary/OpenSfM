@@ -807,14 +807,41 @@ def resect(graph, reconstruction, shot_id,
         return False, report
 
 
+def corresponding_tracks(tracks1, tracks2):
+    features1 = {tracks1[t1]["feature_id"]: t1 for t1 in tracks1}
+    corresponding_tracks = []
+    for t2 in tracks2:
+        feature_id = tracks2[t2]["feature_id"]
+        if feature_id in features1:
+            corresponding_tracks.append((features1[feature_id], t2))
+    return corresponding_tracks
+
+
+def compute_common_tracks(reconstruction1, reconstruction2,
+                          graph1, graph2):
+    common_tracks = set()
+    common_images = set(reconstruction1.shots.keys()).intersection(
+        reconstruction2.shots.keys())
+    for image in common_images:
+        for t1, t2 in corresponding_tracks(graph1[image], graph2[image]):
+            if t1 in reconstruction1.points and t2 in reconstruction2.points:
+                common_tracks.add((t1, t2))
+    return list(common_tracks)
+
+
 def resect_reconstruction(reconstruction1, reconstruction2, graph1,
                           graph2, threshold, min_inliers):
 
-    status, result = pairwise_two_reconstruction(reconstruction1, reconstruction2, 1)
+    common_tracks = compute_common_tracks(
+        reconstruction1, reconstruction2, graph1, graph2)
+    status, result = pairwise_two_reconstruction(
+        reconstruction1, reconstruction2, common_tracks, threshold)
     if not status:
-        return False, []
+        return False, [], []
 
-    return True, result
+    similarity = result[0] 
+    inliers = [common_tracks[result[1][i]] for i in range(len(result[1]))]
+    return True, similarity, inliers
 
 
 class TrackTriangulator:
@@ -953,24 +980,28 @@ def shot_lla_and_compass(shot, reference):
     return lat, lon, alt, angle
 
 
-def pairwise_two_reconstruction(r1, r2, threshold):
+def pairwise_two_reconstruction(r1, r2, common_tracks, threshold):
     t1, t2 = r1.points, r2.points
-    common_tracks = list(set(t1) & set(t2))
 
     # Estimate similarity transform
     if len(common_tracks) > 6:
-        p1 = np.array([t1[t].coordinates for t in common_tracks])
-        p2 = np.array([t2[t].coordinates for t in common_tracks])
+        p1 = np.array([t1[t[0]].coordinates for t in common_tracks])
+        p2 = np.array([t2[t[1]].coordinates for t in common_tracks])
 
-        return True, multiview.fit_similarity_transform(
-            p1, p2, max_iterations=1000, threshold=threshold)
-    else:
-        return False, []
+        # 3 samples / 50 trials / 50% outliers = 0.99 probability
+        # with probability = 1-(1-(1-outlier)^model)^trial
+        T, inliers = multiview.fit_similarity_transform(
+            p1, p2, max_iterations=100, threshold=threshold)
+        if len(inliers) > 0:
+            return True, [T, inliers]
+
+    return False, []
 
 
 def merge_two_reconstructions(r1, r2, config, threshold=1):
-    """Merge two reconstructions with common tracks."""
-    status, result = pairwise_two_reconstruction(r1, r2, threshold)
+    """Merge two reconstructions with common tracks IDs."""
+    common_tracks = list(set(r1.points) & set(r2.points))
+    status, result = pairwise_two_reconstruction(r1, r2, common_tracks, threshold)
     if status:
         T = result[0]
         inliers = result[1]

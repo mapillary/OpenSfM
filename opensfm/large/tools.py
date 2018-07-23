@@ -13,6 +13,8 @@ from opensfm import context
 from opensfm import csfm
 from opensfm import dataset
 from opensfm import geo
+from opensfm import reconstruction
+from opensfm import multiview
 
 logger = logging.getLogger(__name__)
 
@@ -69,17 +71,6 @@ def connected_reconstructions(reconstruction_shots):
     p = bipartite.projected_graph(g, reconstruction_shots.keys())
 
     return p.edges()
-
-
-def corresponding_tracks(tracks1, tracks2):
-    features1 = {tracks1[t1]["feature_id"]: t1 for t1 in tracks1}
-    corresponding_tracks = []
-    for t2 in tracks2:
-        feature_id = tracks2[t2]["feature_id"]
-        if feature_id in features1:
-            corresponding_tracks.append((features1[feature_id], t2))
-
-    return corresponding_tracks
 
 
 def scale_matrix(covariance):
@@ -151,22 +142,26 @@ def add_point_constraints(ra, reconstruction_shots):
 
         r1 = d1.load_reconstruction()[connection[0].index]
         r2 = d2.load_reconstruction()[connection[1].index]
-
-        common_ims = set(r1.shots.keys()).intersection(r2.shots.keys())
-
+        
         g1 = d1.load_tracks_graph()
         g2 = d2.load_tracks_graph()
 
         rec_name1 = encode_reconstruction_name(connection[0])
         rec_name2 = encode_reconstruction_name(connection[1])
 
-        common_tracks = set()
-        for im in common_ims:
-            for t1, t2 in corresponding_tracks(g1[im], g2[im]):
-                if t1 in r1.points and t2 in r2.points:
-                    common_tracks.add((t1, t2))
+        scale_treshold = 1.3
+        treshold_in_meter = 0.3
+        minimum_inliers = 20
+        status, T, inliers = reconstruction.resect_reconstruction(
+            r1, r2, g1, g2, treshold_in_meter, minimum_inliers)
+        if not status:
+            continue
 
-        for t1, t2 in common_tracks:
+        s, R, t = multiview.decompose_similarity_transform(T)
+        if s > scale_treshold or s < (1.0/scale_treshold) or len(inliers) < minimum_inliers:
+            continue
+
+        for t1, t2 in inliers:
             c1 = r1.points[t1].coordinates
             c2 = r2.points[t2].coordinates
 
@@ -196,7 +191,7 @@ def align_reconstructions(reconstruction_shots):
 
     add_camera_constraints(ra, reconstruction_shots)
     add_point_constraints(ra, reconstruction_shots)
-
+    
     ra.run()
 
     transformations = {}
