@@ -99,10 +99,11 @@ def test_absolute_pose_generalized_shot():
     cluster1, cluster2 = split_synthetic_reconstruction(scene, tracks, 3, 0.01)
     cluster2, translation, scale = move_and_scale_cluster(cluster2)
 
-    status, report = reconstruction.resect_reconstruction(cluster1, cluster2,
-                                                          tracks, tracks,
-                                                          parameters['resection_threshold'], 
-                                                          parameters['resection_min_inliers'])
+    status, report = reconstruction.\
+        resect_reconstruction(cluster1, cluster2,
+                              tracks, tracks,
+                              parameters['resection_threshold'],
+                              parameters['resection_min_inliers'])
 
     assert status is True
     s, A, b = multiview.decompose_similarity_transform(report[0])

@@ -158,7 +158,8 @@ def add_point_constraints(ra, reconstruction_shots):
             continue
 
         s, R, t = multiview.decompose_similarity_transform(T)
-        if s > scale_treshold or s < (1.0/scale_treshold) or len(inliers) < minimum_inliers:
+        if s > scale_treshold or s < (1.0/scale_treshold) or \
+                len(inliers) < minimum_inliers:
             continue
 
         for t1, t2 in inliers:
@@ -191,7 +192,7 @@ def align_reconstructions(reconstruction_shots):
 
     add_camera_constraints(ra, reconstruction_shots)
     add_point_constraints(ra, reconstruction_shots)
-    
+
     ra.run()
 
     transformations = {}

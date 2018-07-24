@@ -839,7 +839,7 @@ def resect_reconstruction(reconstruction1, reconstruction2, graph1,
     if not status:
         return False, [], []
 
-    similarity = result[0] 
+    similarity = result[0]
     inliers = [common_tracks[result[1][i]] for i in range(len(result[1]))]
     return True, similarity, inliers
 
@@ -988,20 +988,20 @@ def pairwise_two_reconstruction(r1, r2, common_tracks, threshold):
         p1 = np.array([t1[t[0]].coordinates for t in common_tracks])
         p2 = np.array([t2[t[1]].coordinates for t in common_tracks])
 
-        # 3 samples / 50 trials / 50% outliers = 0.99 probability
+        # 3 samples / 100 trials / 50% outliers = 0.99 probability
         # with probability = 1-(1-(1-outlier)^model)^trial
         T, inliers = multiview.fit_similarity_transform(
             p1, p2, max_iterations=100, threshold=threshold)
         if len(inliers) > 0:
             return True, [T, inliers]
-
     return False, []
 
 
 def merge_two_reconstructions(r1, r2, config, threshold=1):
     """Merge two reconstructions with common tracks IDs."""
     common_tracks = list(set(r1.points) & set(r2.points))
-    status, result = pairwise_two_reconstruction(r1, r2, common_tracks, threshold)
+    status, result = pairwise_two_reconstruction(
+        r1, r2, common_tracks, threshold)
     if status:
         T = result[0]
         inliers = result[1]
@@ -1116,7 +1116,8 @@ def grow_reconstruction(data, graph, reconstruction, images, gcp):
                 [reconstruction], 'reconstruction.{}.json'.format(
                     datetime.datetime.now().isoformat().replace(':', '_')))
 
-        candidates = reconstructed_points_for_images(graph, reconstruction, images)
+        candidates = reconstructed_points_for_images(
+            graph, reconstruction, images)
         if not candidates:
             break
 
@@ -1127,12 +1128,13 @@ def grow_reconstruction(data, graph, reconstruction, images, gcp):
 
             camera = reconstruction.cameras[data.load_exif(image)['camera']]
             metadata = get_image_metadata(data, image)
-            ok, resrep = resect(graph, reconstruction, image, camera, metadata, threshold, min_inliers)
+            ok, resrep = resect(graph, reconstruction, image,
+                                camera, metadata, threshold, min_inliers)
             if not ok:
                 continue
-            
+
             bundle_single_view(graph, reconstruction, image, data.config)
-            
+
             logger.info("Adding {0} to the reconstruction".format(image))
             step = {
                 'image': image,
