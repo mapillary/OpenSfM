@@ -7,6 +7,37 @@ from opensfm import config
 from opensfm import types
 
 
+def test_corresponding_tracks():
+    t1 = {1: {"feature_id": 1}}
+    t2 = {1: {"feature_id": 2}}
+
+    correspondences = reconstruction.corresponding_tracks(t1, t2)
+    assert len(correspondences) == 0
+
+    t1 = {1: {"feature_id": 3}}
+    t2 = {2: {"feature_id": 3}}
+
+    correspondences = reconstruction.corresponding_tracks(t1, t2)
+    assert len(correspondences) == 1
+    assert correspondences[0] == (1, 2)
+
+    t1 = {1: {"feature_id": 3}, 2: {"feature_id": 4}}
+    t2 = {1: {"feature_id": 4}, 2: {"feature_id": 5}}
+
+    correspondences = reconstruction.corresponding_tracks(t1, t2)
+    assert len(correspondences) == 1
+    assert correspondences[0] == (2, 1)
+
+    t1 = {1: {"feature_id": 5}, 2: {"feature_id": 6}}
+    t2 = {3: {"feature_id": 5}, 4: {"feature_id": 6}}
+
+    correspondences = reconstruction.corresponding_tracks(t1, t2)
+    correspondences.sort(key=lambda c: c[0] + c[1])
+    assert len(correspondences) == 2
+    assert correspondences[0] == (1, 3)
+    assert correspondences[1] == (2, 4)
+
+
 def synthetic_reconstruction():
     cube_dataset = data_generation.CubeDataset(10, 100, 0.001, 0.3)
     synthetic_reconstruction = types.Reconstruction()
@@ -14,7 +45,7 @@ def synthetic_reconstruction():
         synthetic_reconstruction.add_shot(shot)
     for camera in cube_dataset.cameras.values():
         synthetic_reconstruction.add_camera(camera)
-    for point_id, point in cube_dataset.points.iteritems():
+    for point_id, point in cube_dataset.points.items():
         point_type = types.Point()
         point_type.coordinates = point
         point_type.id = point_id
@@ -45,7 +76,7 @@ def split_synthetic_reconstruction(synthetic_reconstruction,
                          synthetic_reconstruction.shots.values()):
         if(i >= cluster_size):
             cluster2.add_shot(shot)
-        else:
+        if(i <= cluster_size):
             cluster1.add_shot(shot)
 
     cluster1 = copy_cluster_points(
@@ -93,20 +124,24 @@ def test_absolute_pose_single_shot():
 
 def test_absolute_pose_generalized_shot():
     """ Whole reconstruction resection (generalized pose) on a toy """
-    """ reconstruction with 1/1000 pixel noise and zero outliers """
+    """ reconstruction with 0.01 meter point noise and zero outliers """
+    noise = 0.01
     parameters = config.default_config()
     scene, tracks = synthetic_reconstruction()
-    cluster1, cluster2 = split_synthetic_reconstruction(scene, tracks, 3, 0.01)
+    cluster1, cluster2 = split_synthetic_reconstruction(
+        scene, tracks, 3, noise)
     cluster2, translation, scale = move_and_scale_cluster(cluster2)
 
-    status, report = reconstruction.\
+    status, T, inliers = reconstruction.\
         resect_reconstruction(cluster1, cluster2,
                               tracks, tracks,
-                              parameters['resection_threshold'],
+                              2*noise,
                               parameters['resection_min_inliers'])
 
     assert status is True
-    s, A, b = multiview.decompose_similarity_transform(report[0])
+    s, A, b = multiview.decompose_similarity_transform(T)
     np.testing.assert_almost_equal(scale, s, 2)
     np.testing.assert_almost_equal(np.eye(3), A, 2)
     np.testing.assert_almost_equal(translation, b, 2)
+
+test_absolute_pose_generalized_shot()
