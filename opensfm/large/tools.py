@@ -7,6 +7,7 @@ import scipy.spatial as spatial
 
 from collections import namedtuple
 from networkx.algorithms import bipartite
+from repoze.lru import lru_cache
 
 from opensfm import align
 from opensfm import context
@@ -133,18 +134,22 @@ def add_camera_constraints(ra, reconstruction_shots):
 
             ra.add_relative_motion_constraint(rmc)
 
+@lru_cache(25)
+def load_reconstruction(path, index):
+    d1 = dataset.DataSet(path)
+    r1 = d1.load_reconstruction()[index]
+    g1 = d1.load_tracks_graph()
+    return (path + ("_%s" % index)), (r1, g1)
+
 
 def add_point_constraints(ra, reconstruction_shots):
     connections = connected_reconstructions(reconstruction_shots)
     for connection in connections:
-        d1 = dataset.DataSet(connection[0].submodel_path)
-        d2 = dataset.DataSet(connection[1].submodel_path)
 
-        r1 = d1.load_reconstruction()[connection[0].index]
-        r2 = d2.load_reconstruction()[connection[1].index]
-        
-        g1 = d1.load_tracks_graph()
-        g2 = d2.load_tracks_graph()
+        i1, (r1, g1) = load_reconstruction(
+            connection[0].submodel_path, connection[0].index)
+        i2, (r2, g2) = load_reconstruction(
+            connection[1].submodel_path, connection[1].index)
 
         rec_name1 = encode_reconstruction_name(connection[0])
         rec_name2 = encode_reconstruction_name(connection[1])
