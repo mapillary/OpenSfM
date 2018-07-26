@@ -557,7 +557,7 @@ def two_view_reconstruction(p1, p2, camera1, camera2, threshold):
     # Here we arbitrarily assume that the threshold is given for a camera of
     # focal length 1.  Also, arctan(threshold) \approx threshold since
     # threshold is small
-    T = multivew.relative_pose_ransac(
+    T = multiview.relative_pose_ransac(
         b1, b2, "STEWENIUS", 1 - np.cos(threshold), 1000, 0.999)
     R = T[:, :3]
     t = T[:, 3]
