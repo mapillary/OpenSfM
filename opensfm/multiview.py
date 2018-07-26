@@ -3,8 +3,9 @@
 import math
 import random
 
-import numpy as np
 import cv2
+import numpy as np
+import pyopengv
 
 from opensfm import transformations as tf
 
@@ -561,3 +562,43 @@ def motion_from_plane_homography(H):
         solutions.append((R, t, n, d))
 
     return solutions
+
+
+def absolute_pose_ransac(bs, Xs, method, threshold, iterations, probabilty):
+    try:
+        return pyopengv.absolute_pose_ransac(
+            bs, Xs, method, threshold,
+            iterations=iterations,
+            probabilty=probabilty)
+    except Exception:
+        # Older versions of pyopengv do not accept the probability argument.
+        return pyopengv.absolute_pose_ransac(
+            bs, Xs, method, threshold, iterations)
+
+
+def relative_pose_ransac(b1, b2, method, threshold, iterations, probability):
+    try:
+        return pyopengv.relative_pose_ransac(b1, b2, method, threshold,
+                                             iterations=iterations,
+                                             probability=probability)
+    except Exception:
+        # Older versions of pyopengv do not accept the probability argument.
+        return pyopengv.relative_pose_ransac(b1, b2, method, threshold,
+                                             iterations)
+
+
+def relative_pose_ransac_rotation_only(b1, b2, threshold, iterations,
+                                       probability):
+    try:
+        return pyopengv.relative_pose_ransac_rotation_only(
+            b1, b2, threshold,
+            iterations=iterations,
+            probability=probability)
+    except Exception:
+        # Older versions of pyopengv do not accept the probability argument.
+        return pyopengv.relative_pose_ransac_rotation_only(
+            b1, b2, threshold, iterations)
+
+
+def relative_pose_optimize_nonlinear(b1, b2, t, R):
+    return pyopengv.relative_pose_optimize_nonlinear(b1, b2, t, R)
