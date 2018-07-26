@@ -221,6 +221,7 @@ BOOST_PYTHON_MODULE(csfm) {
     .def("add_reconstruction", &ReconstructionAlignment::AddReconstruction)
     .def("add_relative_motion_constraint", &ReconstructionAlignment::AddRelativeMotionConstraint)
     .def("add_absolute_position_constraint", &ReconstructionAlignment::AddAbsolutePositionConstraint)
+    .def("add_relative_absolute_position_constraint", &ReconstructionAlignment::AddRelativeAbsolutePositionConstraint)
     .def("add_common_point_constraint", &ReconstructionAlignment::AddCommonPointConstraint)
     .def("brief_report", &ReconstructionAlignment::BriefReport)
     .def("full_report", &ReconstructionAlignment::FullReport)
