@@ -205,12 +205,13 @@ def load_reconstruction_shots(meta_data):
     return reconstruction_shots
 
 
-def align_reconstructions(reconstruction_shots,
+def align_reconstructions(reconstruction_shots, use_points_constraints,
                           camera_constraint_type='soft_camera_constraint'):
     ra = csfm.ReconstructionAlignment()
 
     add_camera_constraints(ra, reconstruction_shots, camera_constraint_type)
-    #add_point_constraints(ra, reconstruction_shots)
+    if use_points_constraints:
+        add_point_constraints(ra, reconstruction_shots)
 
     ra.run()
 
