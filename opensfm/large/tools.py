@@ -100,7 +100,7 @@ def encode_reconstruction_name(key):
     return str(key.submodel_path) + "_index" + str(key.index)
 
 
-def add_camera_constraints(ra, reconstruction_shots):
+def add_camera_constraints(ra, reconstruction_shots, constraint_type):
     added_shots = set()
     for key in reconstruction_shots:
         shots = reconstruction_shots[key]
@@ -108,31 +108,44 @@ def add_camera_constraints(ra, reconstruction_shots):
         ra.add_reconstruction(rec_name, 0, 0, 0, 0, 0, 0, 1, False)
         for shot_id in shots:
             shot = shots[shot_id]
-            shot_name = str(shot_id)
+
+            if constraint_type is 'soft_camera_constraint':
+                shot_name = str(shot_id)
+            if constraint_type is 'hard_camera_constraint':
+                shot_name = rec_name + str(shot_id)
 
             R = shot.pose.rotation
             t = shot.pose.translation
 
             if shot_id not in added_shots:
-                ra.add_shot(shot_name, R[0], R[1], R[2], t[0], t[1], t[2], False)
+                lock = True if constraint_type is 'hard_camera_constraint' \
+                    else False
+                ra.add_shot(shot_name, R[0], R[1], R[2],
+                            t[0], t[1], t[2], lock)
 
                 gps = shot.metadata.gps_position
                 gps_sd = shot.metadata.gps_dop
-                ra.add_absolute_position_constraint(
-                    shot_name, gps[0], gps[1], gps[2], gps_sd)
+
+                if constraint_type is 'soft_camera_constraint':
+                    ra.add_absolute_position_constraint(
+                        shot_name, gps[0], gps[1], gps[2], gps_sd)
+                if constraint_type is 'hard_camera_constraint':
+                    ra.add_relative_absolute_position_constraint(
+                        rec_name, shot_name, gps[0], gps[1], gps[2], gps_sd)
 
                 added_shots.add(shot_id)
 
-            covariance = np.diag([1e-5, 1e-5, 1e-5, 1e-2, 1e-2, 1e-2])
-            sm = scale_matrix(covariance)
-            rmc = csfm.RARelativeMotionConstraint(
-                rec_name, shot_name, R[0], R[1], R[2], t[0], t[1], t[2])
+            if constraint_type is 'soft_camera_constraint':
+                covariance = np.diag([1e-5, 1e-5, 1e-5, 1e-2, 1e-2, 1e-2])
+                sm = scale_matrix(covariance)
+                rmc = csfm.RARelativeMotionConstraint(
+                    rec_name, shot_name, R[0], R[1], R[2], t[0], t[1], t[2])
 
-            for i in range(6):
-                for j in range(6):
-                    rmc.set_scale_matrix(i, j, sm[i, j])
+                for i in range(6):
+                    for j in range(6):
+                        rmc.set_scale_matrix(i, j, sm[i, j])
 
-            ra.add_relative_motion_constraint(rmc)
+                ra.add_relative_motion_constraint(rmc)
 
 @lru_cache(25)
 def load_reconstruction(path, index):
@@ -192,11 +205,12 @@ def load_reconstruction_shots(meta_data):
     return reconstruction_shots
 
 
-def align_reconstructions(reconstruction_shots):
+def align_reconstructions(reconstruction_shots,
+                          camera_constraint_type='soft_camera_constraint'):
     ra = csfm.ReconstructionAlignment()
 
-    add_camera_constraints(ra, reconstruction_shots)
-    add_point_constraints(ra, reconstruction_shots)
+    add_camera_constraints(ra, reconstruction_shots, camera_constraint_type)
+    #add_point_constraints(ra, reconstruction_shots)
 
     ra.run()
 
