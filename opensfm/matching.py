@@ -139,7 +139,8 @@ def robust_match_calibrated(p1, p2, camera1, camera2, matches, config):
     b2 = camera2.pixel_bearing_many(p2)
 
     threshold = config['robust_matching_calib_threshold']
-    T = pyopengv.relative_pose_ransac(b1, b2, "STEWENIUS", 1 - np.cos(threshold), 1000)
+    T = pyopengv.relative_pose_ransac(
+        b1, b2, "STEWENIUS", 1 - np.cos(threshold), 1000, 0.999)
 
     inliers = _compute_inliers_bearings(b1, b2, T, threshold)
 
