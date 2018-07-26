@@ -100,7 +100,7 @@ def encode_reconstruction_name(key):
     return str(key.submodel_path) + "_index" + str(key.index)
 
 
-def add_camera_constraints(ra, reconstruction_shots, constraint_type):
+def add_camera_constraints_soft(ra, reconstruction_shots):
     added_shots = set()
     for key in reconstruction_shots:
         shots = reconstruction_shots[key]
@@ -108,45 +108,71 @@ def add_camera_constraints(ra, reconstruction_shots, constraint_type):
         ra.add_reconstruction(rec_name, 0, 0, 0, 0, 0, 0, 1, False)
         for shot_id in shots:
             shot = shots[shot_id]
-
-            if constraint_type is 'soft_camera_constraint':
-                shot_name = str(shot_id)
-            if constraint_type is 'hard_camera_constraint':
-                shot_name = rec_name + str(shot_id)
+            shot_name = str(shot_id)
 
             R = shot.pose.rotation
             t = shot.pose.translation
 
             if shot_id not in added_shots:
-                lock = True if constraint_type is 'hard_camera_constraint' \
-                    else False
                 ra.add_shot(shot_name, R[0], R[1], R[2],
-                            t[0], t[1], t[2], lock)
+                            t[0], t[1], t[2], False)
 
                 gps = shot.metadata.gps_position
                 gps_sd = shot.metadata.gps_dop
 
-                if constraint_type is 'soft_camera_constraint':
-                    ra.add_absolute_position_constraint(
+                ra.add_absolute_position_constraint(
                         shot_name, gps[0], gps[1], gps[2], gps_sd)
-                if constraint_type is 'hard_camera_constraint':
-                    ra.add_relative_absolute_position_constraint(
-                        rec_name, shot_name, gps[0], gps[1], gps[2], gps_sd)
 
                 added_shots.add(shot_id)
 
-            if constraint_type is 'soft_camera_constraint':
-                covariance = np.diag([1e-5, 1e-5, 1e-5, 1e-2, 1e-2, 1e-2])
-                sm = scale_matrix(covariance)
-                rmc = csfm.RARelativeMotionConstraint(
-                    rec_name, shot_name, R[0], R[1], R[2], t[0], t[1], t[2])
+            covariance = np.diag([1e-5, 1e-5, 1e-5, 1e-2, 1e-2, 1e-2])
+            sm = scale_matrix(covariance)
+            rmc = csfm.RARelativeMotionConstraint(
+                   rec_name, shot_name, R[0], R[1], R[2], t[0], t[1], t[2])
 
-                for i in range(6):
-                    for j in range(6):
-                        rmc.set_scale_matrix(i, j, sm[i, j])
+            for i in range(6):
+                for j in range(6):
+                    rmc.set_scale_matrix(i, j, sm[i, j])
 
-                ra.add_relative_motion_constraint(rmc)
+            ra.add_relative_motion_constraint(rmc)
 
+
+def add_camera_constraints_hard(ra, reconstruction_shots,
+                                add_common_camera_constraint):
+    for key in reconstruction_shots:
+        shots = reconstruction_shots[key]
+        rec_name = encode_reconstruction_name(key)
+        ra.add_reconstruction(rec_name, 0, 0, 0, 0, 0, 0, 1, False)
+        for shot_id in shots:
+            shot = shots[shot_id]
+            shot_name = rec_name + str(shot_id)
+
+            R = shot.pose.rotation
+            t = shot.pose.translation
+            ra.add_shot(shot_name, R[0], R[1], R[2],
+                        t[0], t[1], t[2], True)
+
+            gps = shot.metadata.gps_position
+            gps_sd = shot.metadata.gps_dop
+            ra.add_relative_absolute_position_constraint(
+                rec_name, shot_name, gps[0], gps[1], gps[2], gps_sd)
+
+    if add_common_camera_constraint:
+        connections = connected_reconstructions(reconstruction_shots)
+        for connection in connections:
+            rec_name1 = encode_reconstruction_name(connection[0])
+            rec_name2 = encode_reconstruction_name(connection[1])
+
+            shots1 = reconstruction_shots[connection[0]]
+            shots2 = reconstruction_shots[connection[1]]
+
+            common_images = set(shots1.keys()).intersection(shots2.keys())
+            for image in common_images:
+                ra.add_common_camera_constraint(rec_name1, rec_name1 +
+                                                str(image),
+                                                rec_name2, rec_name2 +
+                                                str(image),
+                                                1, 0.1)
 @lru_cache(25)
 def load_reconstruction(path, index):
     d1 = dataset.DataSet(path)
@@ -209,7 +235,10 @@ def align_reconstructions(reconstruction_shots, use_points_constraints,
                           camera_constraint_type='soft_camera_constraint'):
     ra = csfm.ReconstructionAlignment()
 
-    add_camera_constraints(ra, reconstruction_shots, camera_constraint_type)
+    if camera_constraint_type is 'soft_camera_constraint':
+        add_camera_constraints_soft(ra, reconstruction_shots)
+    if camera_constraint_type is 'hard_camera_constraint':
+        add_camera_constraints_hard(ra, reconstruction_shots, False)
     if use_points_constraints:
         add_point_constraints(ra, reconstruction_shots)
 
