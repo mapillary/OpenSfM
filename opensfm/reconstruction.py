@@ -834,13 +834,12 @@ def resect_reconstruction(reconstruction1, reconstruction2, graph1,
 
     common_tracks = compute_common_tracks(
         reconstruction1, reconstruction2, graph1, graph2)
-    status, result = pairwise_two_reconstruction(
+    worked, similarity, inliers = align_two_reconstruction(
         reconstruction1, reconstruction2, common_tracks, threshold)
-    if not status:
+    if not worked:
         return False, [], []
 
-    similarity = result[0]
-    inliers = [common_tracks[result[1][i]] for i in range(len(result[1]))]
+    inliers = [common_tracks[inliers[i]] for i in range(len(inliers))]
     return True, similarity, inliers
 
 
@@ -980,10 +979,10 @@ def shot_lla_and_compass(shot, reference):
     return lat, lon, alt, angle
 
 
-def pairwise_two_reconstruction(r1, r2, common_tracks, threshold):
+def align_two_reconstruction(r1, r2, common_tracks, threshold):
+    """Estimate similarity transform between two reconstructions."""
     t1, t2 = r1.points, r2.points
 
-    # Estimate similarity transform
     if len(common_tracks) > 6:
         p1 = np.array([t1[t[0]].coordinates for t in common_tracks])
         p2 = np.array([t2[t[1]].coordinates for t in common_tracks])
@@ -993,29 +992,25 @@ def pairwise_two_reconstruction(r1, r2, common_tracks, threshold):
         T, inliers = multiview.fit_similarity_transform(
             p1, p2, max_iterations=100, threshold=threshold)
         if len(inliers) > 0:
-            return True, [T, inliers]
-    return False, []
+            return True, T, inliers
+    return False, None, None
 
 
 def merge_two_reconstructions(r1, r2, config, threshold=1):
     """Merge two reconstructions with common tracks IDs."""
     common_tracks = list(set(r1.points) & set(r2.points))
-    status, result = pairwise_two_reconstruction(
+    worked, T, inliers = align_two_reconstruction(
         r1, r2, common_tracks, threshold)
-    if status:
-        T = result[0]
-        inliers = result[1]
-        if len(inliers) >= 10:
-            s, A, b = multiview.decompose_similarity_transform(T)
-            r1p = r1
-            apply_similarity(r1p, s, A, b)
-            r = r2
-            r.shots.update(r1p.shots)
-            r.points.update(r1p.points)
-            align_reconstruction(r, None, config)
-            return [r]
-        else:
-            return [r1, r2]
+
+    if worked and len(inliers) >= 10:
+        s, A, b = multiview.decompose_similarity_transform(T)
+        r1p = r1
+        apply_similarity(r1p, s, A, b)
+        r = r2
+        r.shots.update(r1p.shots)
+        r.points.update(r1p.points)
+        align_reconstruction(r, None, config)
+        return [r]
     else:
         return [r1, r2]
 

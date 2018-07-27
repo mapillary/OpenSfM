@@ -97,8 +97,8 @@ def move_and_scale_cluster(cluster):
 
 
 def test_absolute_pose_single_shot():
-    """ Single-camera resection on a toy reconstruction with """
-    """ 1/1000 pixel noise and zero outliers """
+    """Single-camera resection on a toy reconstruction with
+    1/1000 pixel noise and zero outliers."""
     parameters = config.default_config()
     synthetic_data, synthetic_tracks = synthetic_reconstruction()
 
@@ -123,8 +123,8 @@ def test_absolute_pose_single_shot():
 
 
 def test_absolute_pose_generalized_shot():
-    """ Whole reconstruction resection (generalized pose) on a toy """
-    """ reconstruction with 0.01 meter point noise and zero outliers """
+    """Whole reconstruction resection (generalized pose) on a toy
+    reconstruction with 0.01 meter point noise and zero outliers."""
     noise = 0.01
     parameters = config.default_config()
     scene, tracks = synthetic_reconstruction()
@@ -143,5 +143,3 @@ def test_absolute_pose_generalized_shot():
     np.testing.assert_almost_equal(scale, s, 2)
     np.testing.assert_almost_equal(np.eye(3), A, 2)
     np.testing.assert_almost_equal(translation, b, 2)
-
-test_absolute_pose_generalized_shot()
