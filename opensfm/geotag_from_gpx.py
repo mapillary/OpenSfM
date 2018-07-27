@@ -12,7 +12,7 @@ import numpy as np
 try:
     import pyexiv2
     from pyexiv2.utils import make_fraction
-except ModuleNotFoundError as e:
+except ImportError as e:
     # pyexiv2 is not available in python 3. We catch the error
     # so that py.test can load this module anyway.
     # TODO(pau): find an alternative package. Probably py3exiv2.
