@@ -710,14 +710,13 @@ def reconstructed_points_for_images(graph, reconstruction, images):
     return sorted(res, key=lambda x: -x[1])
 
 
-def resect(data, graph, reconstruction, shot_id):
+def resect(graph, reconstruction, shot_id,
+           camera, metadata, threshold, min_inliers):
     """Try resecting and adding a shot to the reconstruction.
 
     Return:
         True on success.
     """
-    exif = data.load_exif(shot_id)
-    camera = reconstruction.cameras[exif['camera']]
 
     bs = []
     Xs = []
@@ -732,7 +731,6 @@ def resect(data, graph, reconstruction, shot_id):
     if len(bs) < 5:
         return False, {'num_common_points': len(bs)}
 
-    threshold = data.config['resection_threshold']
     T = multiview.absolute_pose_ransac(
         bs, Xs, "KNEIP", 1 - np.cos(threshold), 1000, 0.999)
 
@@ -751,7 +749,7 @@ def resect(data, graph, reconstruction, shot_id):
         'num_common_points': len(bs),
         'num_inliers': ninliers,
     }
-    if ninliers >= data.config['resection_min_inliers']:
+    if ninliers >= min_inliers:
         R = T[:, :3].T
         t = -R.dot(T[:, 3])
         shot = types.Shot()
@@ -760,12 +758,47 @@ def resect(data, graph, reconstruction, shot_id):
         shot.pose = types.Pose()
         shot.pose.set_rotation_matrix(R)
         shot.pose.translation = t
-        shot.metadata = get_image_metadata(data, shot_id)
+        shot.metadata = metadata
         reconstruction.add_shot(shot)
-        bundle_single_view(graph, reconstruction, shot_id, data.config)
         return True, report
     else:
         return False, report
+
+
+def corresponding_tracks(tracks1, tracks2):
+    features1 = {tracks1[t1]["feature_id"]: t1 for t1 in tracks1}
+    corresponding_tracks = []
+    for t2 in tracks2:
+        feature_id = tracks2[t2]["feature_id"]
+        if feature_id in features1:
+            corresponding_tracks.append((features1[feature_id], t2))
+    return corresponding_tracks
+
+
+def compute_common_tracks(reconstruction1, reconstruction2,
+                          graph1, graph2):
+    common_tracks = set()
+    common_images = set(reconstruction1.shots.keys()).intersection(
+        reconstruction2.shots.keys())
+    for image in common_images:
+        for t1, t2 in corresponding_tracks(graph1[image], graph2[image]):
+            if t1 in reconstruction1.points and t2 in reconstruction2.points:
+                common_tracks.add((t1, t2))
+    return list(common_tracks)
+
+
+def resect_reconstruction(reconstruction1, reconstruction2, graph1,
+                          graph2, threshold, min_inliers):
+
+    common_tracks = compute_common_tracks(
+        reconstruction1, reconstruction2, graph1, graph2)
+    worked, similarity, inliers = align_two_reconstruction(
+        reconstruction1, reconstruction2, common_tracks, threshold)
+    if not worked:
+        return False, [], []
+
+    inliers = [common_tracks[inliers[i]] for i in range(len(inliers))]
+    return True, similarity, inliers
 
 
 class TrackTriangulator:
@@ -904,31 +937,38 @@ def shot_lla_and_compass(shot, reference):
     return lat, lon, alt, angle
 
 
-def merge_two_reconstructions(r1, r2, config, threshold=1):
-    """Merge two reconstructions with common tracks."""
+def align_two_reconstruction(r1, r2, common_tracks, threshold):
+    """Estimate similarity transform between two reconstructions."""
     t1, t2 = r1.points, r2.points
-    common_tracks = list(set(t1) & set(t2))
 
     if len(common_tracks) > 6:
+        p1 = np.array([t1[t[0]].coordinates for t in common_tracks])
+        p2 = np.array([t2[t[1]].coordinates for t in common_tracks])
 
-        # Estimate similarity transform
-        p1 = np.array([t1[t].coordinates for t in common_tracks])
-        p2 = np.array([t2[t].coordinates for t in common_tracks])
-
+        # 3 samples / 100 trials / 50% outliers = 0.99 probability
+        # with probability = 1-(1-(1-outlier)^model)^trial
         T, inliers = multiview.fit_similarity_transform(
-            p1, p2, max_iterations=1000, threshold=threshold)
+            p1, p2, max_iterations=100, threshold=threshold)
+        if len(inliers) > 0:
+            return True, T, inliers
+    return False, None, None
 
-        if len(inliers) >= 10:
-            s, A, b = multiview.decompose_similarity_transform(T)
-            r1p = r1
-            apply_similarity(r1p, s, A, b)
-            r = r2
-            r.shots.update(r1p.shots)
-            r.points.update(r1p.points)
-            align_reconstruction(r, None, config)
-            return [r]
-        else:
-            return [r1, r2]
+
+def merge_two_reconstructions(r1, r2, config, threshold=1):
+    """Merge two reconstructions with common tracks IDs."""
+    common_tracks = list(set(r1.points) & set(r2.points))
+    worked, T, inliers = align_two_reconstruction(
+        r1, r2, common_tracks, threshold)
+
+    if worked and len(inliers) >= 10:
+        s, A, b = multiview.decompose_similarity_transform(T)
+        r1p = r1
+        apply_similarity(r1p, s, A, b)
+        r = r2
+        r.shots.update(r1p.shots)
+        r.points.update(r1p.points)
+        align_reconstruction(r, None, config)
+        return [r]
     else:
         return [r1, r2]
 
@@ -1029,15 +1069,24 @@ def grow_reconstruction(data, graph, reconstruction, images, gcp):
                 [reconstruction], 'reconstruction.{}.json'.format(
                     datetime.datetime.now().isoformat().replace(':', '_')))
 
-        candidates = reconstructed_points_for_images(graph, reconstruction, images)
+        candidates = reconstructed_points_for_images(
+            graph, reconstruction, images)
         if not candidates:
             break
 
         logger.info("-------------------------------------------------------")
+        threshold = data.config['resection_threshold']
+        min_inliers = data.config['resection_min_inliers']
         for image, num_tracks in candidates:
-            ok, resrep = resect(data, graph, reconstruction, image)
+
+            camera = reconstruction.cameras[data.load_exif(image)['camera']]
+            metadata = get_image_metadata(data, image)
+            ok, resrep = resect(graph, reconstruction, image,
+                                camera, metadata, threshold, min_inliers)
             if not ok:
                 continue
+
+            bundle_single_view(graph, reconstruction, image, data.config)
 
             logger.info("Adding {0} to the reconstruction".format(image))
             step = {
