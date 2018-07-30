@@ -506,48 +506,6 @@ def _two_view_reconstruction_inliers(b1, b2, R, t, threshold):
     return np.nonzero(ok1 * ok2)[0]
 
 
-def run_absolute_pose_ransac(bs, Xs, method, threshold,
-                             iterations, probabilty):
-    try:
-        return pyopengv.absolute_pose_ransac(
-            bs, Xs, method, threshold,
-            iterations=iterations,
-            probabilty=probabilty)
-    except:
-        # Older versions of pyopengv do not accept the probability argument.
-        return pyopengv.absolute_pose_ransac(
-            bs, Xs, method, threshold, iterations)
-
-
-def run_relative_pose_ransac(b1, b2, method, threshold,
-                             iterations, probability):
-    try:
-        return pyopengv.relative_pose_ransac(b1, b2, method, threshold,
-                                             iterations=iterations,
-                                             probability=probability)
-    except:
-        # Older versions of pyopengv do not accept the probability argument.
-        return pyopengv.relative_pose_ransac(b1, b2, method, threshold,
-                                             iterations)
-
-
-def run_relative_pose_ransac_rotation_only(b1, b2, threshold,
-                                           iterations, probability):
-    try:
-        return pyopengv.relative_pose_ransac_rotation_only(
-            b1, b2, threshold,
-            iterations=iterations,
-            probability=probability)
-    except:
-        # Older versions of pyopengv do not accept the probability argument.
-        return pyopengv.relative_pose_ransac_rotation_only(
-            b1, b2, threshold, iterations)
-
-
-def run_relative_pose_optimize_nonlinear(b1, b2, t, R):
-    return pyopengv.relative_pose_optimize_nonlinear(b1, b2, t, R)
-
-
 def two_view_reconstruction_plane_based(p1, p2, camera1, camera2, threshold):
     """Reconstruct two views from point correspondences lying on a plane.
 
@@ -599,13 +557,13 @@ def two_view_reconstruction(p1, p2, camera1, camera2, threshold):
     # Here we arbitrarily assume that the threshold is given for a camera of
     # focal length 1.  Also, arctan(threshold) \approx threshold since
     # threshold is small
-    T = run_relative_pose_ransac(
+    T = multiview.relative_pose_ransac(
         b1, b2, "STEWENIUS", 1 - np.cos(threshold), 1000, 0.999)
     R = T[:, :3]
     t = T[:, 3]
     inliers = _two_view_reconstruction_inliers(b1, b2, R, t, threshold)
 
-    T = run_relative_pose_optimize_nonlinear(b1[inliers], b2[inliers], t, R)
+    T = multiview.relative_pose_optimize_nonlinear(b1[inliers], b2[inliers], t, R)
     R = T[:, :3]
     t = T[:, 3]
     inliers = _two_view_reconstruction_inliers(b1, b2, R, t, threshold)
@@ -633,7 +591,7 @@ def two_view_reconstruction_rotation_only(p1, p2, camera1, camera2, threshold):
     b1 = camera1.pixel_bearing_many(p1)
     b2 = camera2.pixel_bearing_many(p2)
 
-    R = run_relative_pose_ransac_rotation_only(
+    R = multiview.relative_pose_ransac_rotation_only(
         b1, b2, 1 - np.cos(threshold), 1000, 0.999)
     inliers = _two_view_rotation_inliers(b1, b2, R, threshold)
 
@@ -773,7 +731,7 @@ def resect(graph, reconstruction, shot_id,
     if len(bs) < 5:
         return False, {'num_common_points': len(bs)}
 
-    T = run_absolute_pose_ransac(
+    T = multiview.absolute_pose_ransac(
         bs, Xs, "KNEIP", 1 - np.cos(threshold), 1000, 0.999)
 
     R = T[:, :3]
@@ -834,13 +792,12 @@ def resect_reconstruction(reconstruction1, reconstruction2, graph1,
 
     common_tracks = compute_common_tracks(
         reconstruction1, reconstruction2, graph1, graph2)
-    status, result = pairwise_two_reconstruction(
+    worked, similarity, inliers = align_two_reconstruction(
         reconstruction1, reconstruction2, common_tracks, threshold)
-    if not status:
+    if not worked:
         return False, [], []
 
-    similarity = result[0]
-    inliers = [common_tracks[result[1][i]] for i in range(len(result[1]))]
+    inliers = [common_tracks[inliers[i]] for i in range(len(inliers))]
     return True, similarity, inliers
 
 
@@ -980,10 +937,10 @@ def shot_lla_and_compass(shot, reference):
     return lat, lon, alt, angle
 
 
-def pairwise_two_reconstruction(r1, r2, common_tracks, threshold):
+def align_two_reconstruction(r1, r2, common_tracks, threshold):
+    """Estimate similarity transform between two reconstructions."""
     t1, t2 = r1.points, r2.points
 
-    # Estimate similarity transform
     if len(common_tracks) > 6:
         p1 = np.array([t1[t[0]].coordinates for t in common_tracks])
         p2 = np.array([t2[t[1]].coordinates for t in common_tracks])
@@ -993,29 +950,25 @@ def pairwise_two_reconstruction(r1, r2, common_tracks, threshold):
         T, inliers = multiview.fit_similarity_transform(
             p1, p2, max_iterations=100, threshold=threshold)
         if len(inliers) > 0:
-            return True, [T, inliers]
-    return False, []
+            return True, T, inliers
+    return False, None, None
 
 
 def merge_two_reconstructions(r1, r2, config, threshold=1):
     """Merge two reconstructions with common tracks IDs."""
     common_tracks = list(set(r1.points) & set(r2.points))
-    status, result = pairwise_two_reconstruction(
+    worked, T, inliers = align_two_reconstruction(
         r1, r2, common_tracks, threshold)
-    if status:
-        T = result[0]
-        inliers = result[1]
-        if len(inliers) >= 10:
-            s, A, b = multiview.decompose_similarity_transform(T)
-            r1p = r1
-            apply_similarity(r1p, s, A, b)
-            r = r2
-            r.shots.update(r1p.shots)
-            r.points.update(r1p.points)
-            align_reconstruction(r, None, config)
-            return [r]
-        else:
-            return [r1, r2]
+
+    if worked and len(inliers) >= 10:
+        s, A, b = multiview.decompose_similarity_transform(T)
+        r1p = r1
+        apply_similarity(r1p, s, A, b)
+        r = r2
+        r.shots.update(r1p.shots)
+        r.points.update(r1p.points)
+        align_reconstruction(r, None, config)
+        return [r]
     else:
         return [r1, r2]
 
