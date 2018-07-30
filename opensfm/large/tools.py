@@ -7,6 +7,7 @@ import scipy.spatial as spatial
 
 from collections import namedtuple
 from networkx.algorithms import bipartite
+from repoze.lru import lru_cache
 
 from opensfm import align
 from opensfm import context
@@ -99,7 +100,7 @@ def encode_reconstruction_name(key):
     return str(key.submodel_path) + "_index" + str(key.index)
 
 
-def add_camera_constraints(ra, reconstruction_shots):
+def add_camera_constraints_soft(ra, reconstruction_shots):
     added_shots = set()
     for key in reconstruction_shots:
         shots = reconstruction_shots[key]
@@ -113,19 +114,21 @@ def add_camera_constraints(ra, reconstruction_shots):
             t = shot.pose.translation
 
             if shot_id not in added_shots:
-                ra.add_shot(shot_name, R[0], R[1], R[2], t[0], t[1], t[2], False)
+                ra.add_shot(shot_name, R[0], R[1], R[2],
+                            t[0], t[1], t[2], False)
 
                 gps = shot.metadata.gps_position
                 gps_sd = shot.metadata.gps_dop
+
                 ra.add_absolute_position_constraint(
-                    shot_name, gps[0], gps[1], gps[2], gps_sd)
+                        shot_name, gps[0], gps[1], gps[2], gps_sd)
 
                 added_shots.add(shot_id)
 
             covariance = np.diag([1e-5, 1e-5, 1e-5, 1e-2, 1e-2, 1e-2])
             sm = scale_matrix(covariance)
             rmc = csfm.RARelativeMotionConstraint(
-                rec_name, shot_name, R[0], R[1], R[2], t[0], t[1], t[2])
+                   rec_name, shot_name, R[0], R[1], R[2], t[0], t[1], t[2])
 
             for i in range(6):
                 for j in range(6):
@@ -134,17 +137,58 @@ def add_camera_constraints(ra, reconstruction_shots):
             ra.add_relative_motion_constraint(rmc)
 
 
+def add_camera_constraints_hard(ra, reconstruction_shots,
+                                add_common_camera_constraint):
+    for key in reconstruction_shots:
+        shots = reconstruction_shots[key]
+        rec_name = encode_reconstruction_name(key)
+        ra.add_reconstruction(rec_name, 0, 0, 0, 0, 0, 0, 1, False)
+        for shot_id in shots:
+            shot = shots[shot_id]
+            shot_name = rec_name + str(shot_id)
+
+            R = shot.pose.rotation
+            t = shot.pose.translation
+            ra.add_shot(shot_name, R[0], R[1], R[2],
+                        t[0], t[1], t[2], True)
+
+            gps = shot.metadata.gps_position
+            gps_sd = shot.metadata.gps_dop
+            ra.add_relative_absolute_position_constraint(
+                rec_name, shot_name, gps[0], gps[1], gps[2], gps_sd)
+
+    if add_common_camera_constraint:
+        connections = connected_reconstructions(reconstruction_shots)
+        for connection in connections:
+            rec_name1 = encode_reconstruction_name(connection[0])
+            rec_name2 = encode_reconstruction_name(connection[1])
+
+            shots1 = reconstruction_shots[connection[0]]
+            shots2 = reconstruction_shots[connection[1]]
+
+            common_images = set(shots1.keys()).intersection(shots2.keys())
+            for image in common_images:
+                ra.add_common_camera_constraint(rec_name1, rec_name1 +
+                                                str(image),
+                                                rec_name2, rec_name2 +
+                                                str(image),
+                                                1, 0.1)
+@lru_cache(25)
+def load_reconstruction(path, index):
+    d1 = dataset.DataSet(path)
+    r1 = d1.load_reconstruction()[index]
+    g1 = d1.load_tracks_graph()
+    return (path + ("_%s" % index)), (r1, g1)
+
+
 def add_point_constraints(ra, reconstruction_shots):
     connections = connected_reconstructions(reconstruction_shots)
     for connection in connections:
-        d1 = dataset.DataSet(connection[0].submodel_path)
-        d2 = dataset.DataSet(connection[1].submodel_path)
 
-        r1 = d1.load_reconstruction()[connection[0].index]
-        r2 = d2.load_reconstruction()[connection[1].index]
-        
-        g1 = d1.load_tracks_graph()
-        g2 = d2.load_tracks_graph()
+        i1, (r1, g1) = load_reconstruction(
+            connection[0].submodel_path, connection[0].index)
+        i2, (r2, g2) = load_reconstruction(
+            connection[1].submodel_path, connection[1].index)
 
         rec_name1 = encode_reconstruction_name(connection[0])
         rec_name2 = encode_reconstruction_name(connection[1])
@@ -187,11 +231,16 @@ def load_reconstruction_shots(meta_data):
     return reconstruction_shots
 
 
-def align_reconstructions(reconstruction_shots):
+def align_reconstructions(reconstruction_shots, use_points_constraints,
+                          camera_constraint_type='soft_camera_constraint'):
     ra = csfm.ReconstructionAlignment()
 
-    add_camera_constraints(ra, reconstruction_shots)
-    add_point_constraints(ra, reconstruction_shots)
+    if camera_constraint_type is 'soft_camera_constraint':
+        add_camera_constraints_soft(ra, reconstruction_shots)
+    if camera_constraint_type is 'hard_camera_constraint':
+        add_camera_constraints_hard(ra, reconstruction_shots, False)
+    if use_points_constraints:
+        add_point_constraints(ra, reconstruction_shots)
 
     ra.run()
 

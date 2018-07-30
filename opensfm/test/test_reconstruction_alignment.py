@@ -92,7 +92,7 @@ def test_two_shots_one_fixed():
     assert np.allclose(rec_a.scale, 0.5)
 
 
-def test_two_reconstructions():
+def test_two_reconstructions_soft_alignment():
     """Two reconstructions"""
     ra = csfm.ReconstructionAlignment()
     ra.add_shot('1', 0, 0, 0, 0, 0, 0, False)
@@ -131,6 +131,71 @@ def test_two_reconstructions():
     assert np.allclose(get_shot_origin(s4), [4, 0, 0], atol=1e-6)
     assert np.allclose(get_reconstruction_origin(rec_a), [1, 0, 0], atol=1e-6)
     assert np.allclose(get_reconstruction_origin(rec_b), [2, 0, 0], atol=1e-6)
+    assert np.allclose(rec_a.scale, 1)
+    assert np.allclose(rec_b.scale, 1)
+
+
+def test_two_reconstructions_rigid_alignment():
+    """Two reconstructions"""
+    ra = csfm.ReconstructionAlignment()
+
+    ra.add_shot('a_1', 0, 0, 0, -1, 0, 0, True)
+    ra.add_shot('a_2', 0, 0, 0, -2, 0, 0, True)
+    ra.add_shot('a_3', 0, 0, 0, 0, 0, 0, True)
+    ra.add_shot('a_4', 0, 0, 0, 0, -1, 0, True)
+    ra.add_shot('a_5', 0, 0, 0, -1, 0, 0, True)
+    ra.add_reconstruction('a', 0, 0, 0, 0, 0, 0, 1, False)
+
+    ra.add_shot('b_3', 0, 0, 0, -1, -1, 0, True)
+    ra.add_shot('b_4', 0, 0, 0, -1, -2, 0, True)
+    ra.add_shot('b_5', 0, 0, 0, -2, -1, 0, True)
+    ra.add_shot('b_6', 0, 0, 0, -4, 0, 0, True)
+    ra.add_shot('b_7', 0, 0, 0, -5, 0, 0, True)
+    ra.add_reconstruction('b', 0, 0, 0, 0, 0, 0, 1, False)
+    
+    ra.add_relative_absolute_position_constraint('a', 'a_3', 5, 5, 0, 1)
+    ra.add_relative_absolute_position_constraint('a', 'a_4', 5, 6, 0, 1)
+    ra.add_relative_absolute_position_constraint('b', 'b_3', 5, 5, 0, 1)
+    ra.add_relative_absolute_position_constraint('b', 'b_4', 5, 6, 0, 1)
+
+    ra.run()
+    rec_a = ra.get_reconstruction('a')
+    rec_b = ra.get_reconstruction('b')
+
+    assert np.allclose(get_reconstruction_origin(rec_a), [5, 5, 0], atol=1e-6)
+    assert np.allclose(get_reconstruction_origin(rec_b), [4, 4, 0], atol=1e-6)
+    assert np.allclose(rec_a.scale, 1)
+    assert np.allclose(rec_b.scale, 1)
+
+
+def test_two_reconstructions_common_camera():
+    """Two reconstructions"""
+    ra = csfm.ReconstructionAlignment()
+
+    ra.add_shot('a_1', 0, 0, 0, -1, 0, 0, True)
+    ra.add_shot('a_2', 0, 0, 0, -2, 0, 0, True)
+    ra.add_shot('a_3', 0, 0, 0, 0, 0, 0, True)
+    ra.add_shot('a_4', 0, 0, 0, 0, -1, 0, True)
+    ra.add_shot('a_5', 0, 0, 0, -1, 0, 0, True)
+    ra.add_reconstruction('a', 0, 0, 0, 0, 0, 0, 1, True)
+
+    ra.add_shot('b_3', 0, 0, 0, -1, -1, 0, True)
+    ra.add_shot('b_4', 0, 0, 0, -1, -2, 0, True)
+    ra.add_shot('b_5', 0, 0, 0, -2, -1, 0, True)
+    ra.add_shot('b_6', 0, 0, 0, -4, 0, 0, True)
+    ra.add_shot('b_7', 0, 0, 0, -5, 0, 0, True)
+    ra.add_reconstruction('b', 0, 0, 0, 0, 0, 0, 1, False)
+
+    ra.add_common_camera_constraint('a', 'a_3', 'b', 'b_3', 1, 1)
+    ra.add_common_camera_constraint('a', 'a_4', 'b', 'b_4', 1, 1)
+    ra.add_common_camera_constraint('a', 'a_5', 'b', 'b_5', 1, 1)
+    ra.run()
+
+    rec_a = ra.get_reconstruction('a')
+    rec_b = ra.get_reconstruction('b')
+
+    assert np.allclose(get_reconstruction_origin(rec_a), [0, 0, 0], atol=1e-6)
+    assert np.allclose(get_reconstruction_origin(rec_b), [-1, -1, 0], atol=1e-6)
     assert np.allclose(rec_a.scale, 1)
     assert np.allclose(rec_b.scale, 1)
 
