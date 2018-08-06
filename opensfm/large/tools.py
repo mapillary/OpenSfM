@@ -238,7 +238,7 @@ def align_reconstructions(reconstruction_shots, use_points_constraints,
     if camera_constraint_type is 'soft_camera_constraint':
         add_camera_constraints_soft(ra, reconstruction_shots)
     if camera_constraint_type is 'hard_camera_constraint':
-        add_camera_constraints_hard(ra, reconstruction_shots, False)
+        add_camera_constraints_hard(ra, reconstruction_shots, True)
     if use_points_constraints:
         add_point_constraints(ra, reconstruction_shots)
 
