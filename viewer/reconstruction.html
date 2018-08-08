@@ -34,6 +34,12 @@
                 font-size: 10px;
                 color: #FFF;
             }
+            #reconstruction {
+                text-align: center;
+                font-family: sans-serif;
+                font-size: 10px;
+                color: #FFF;
+            }
             #navigation {
                 position: absolute;
                 top: 0px;
@@ -55,6 +61,7 @@
         <div id="info">
             <img id="image">
             <div id="text"></div>
+            <div id="reconstruction"></div>
         </div>
         <div id="navigation">
             <table>
@@ -569,7 +576,8 @@
                 for (var shot_id in reconstruction.shots) {
                     if (reconstruction.shots.hasOwnProperty(shot_id)) {
                         var lineMaterial = new THREE.LineBasicMaterial({size: 0.1 })
-                        lineMaterial.color = options.cameraColor;
+                        var rid = reconstruction_id_of_shot(reconstructions, shot_id);
+                        lineMaterial.color =  reconstruction_color(rid);
                         var linegeo = cameraLineGeo(reconstruction, shot_id);
                         var line = new THREE.Line(linegeo, lineMaterial, THREE.LinePieces);
                         line.reconstruction = reconstruction;
@@ -760,6 +768,16 @@
                 return rotation;
             }
 
+            function reconstruction_color(id){
+                var s = 1
+                if(id !== 0){
+                    s = Math.sin(id) * 10000; 
+                    s -= Math.floor(s);
+                }
+                var color = new THREE.Color();
+                color.setHex( s * 0xffffff );
+                return color;
+            }
 
             function init() {
                 raycaster = new THREE.Raycaster();
@@ -973,9 +991,10 @@
                 var shot_id = cameraObject.shot_id;
                 var shot = r['shots'][shot_id];
                 var image_url = imageURL(shot_id);
+                var rid = reconstruction_id_of_shot(reconstructions, shot_id);
                 if (selectedCamera !== undefined) {
                     selectedCamera.material.linewidth = 1;
-                    selectedCamera.material.color = options.cameraColor;
+                    selectedCamera.material.color = reconstruction_color(rid);
                 }
                 selectedCamera = cameraObject;
                 selectedCamera.material.linewidth = 5;
@@ -984,6 +1003,8 @@
                 image_tag.src = image_url;
                 var text = document.getElementById('text');
                 text.innerHTML = shot_id;
+                var reconstruction = document.getElementById('reconstruction');
+                reconstruction.innerHTML = rid;
 
                 invokeJourneyWrapper(function () { journeyWrapper.showPath(); });
             }
@@ -1279,7 +1300,8 @@
                 // Handle camera selection.
                 if (hoverCamera !== undefined && hoverCamera !== selectedCamera) {
                     hoverCamera.material.linewidth = 1;
-                    hoverCamera.material.color = options.cameraColor;
+                    var rid = reconstruction_id_of_shot(reconstructions, hoverCamera.shot_id);
+                    hoverCamera.material.color = reconstruction_color(rid);
                 }
                 var vector = new THREE.Vector3(mouse.x, mouse.y, 1).unproject(camera);
                 raycaster.set(camera.position, vector.sub(camera.position).normalize());
