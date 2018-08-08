@@ -772,7 +772,7 @@
                 var s = 1
                 if(id !== 0){
                     s = Math.sin(id) * 10000; 
-                    s - Math.floor(s);
+                    s -= Math.floor(s);
                 }
                 var color = new THREE.Color();
                 color.setHex( s * 0xffffff );
