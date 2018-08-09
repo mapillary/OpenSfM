@@ -19,6 +19,8 @@ class Command:
         parser.add_argument('--undistorted',
                             action='store_true',
                             help='export the undistorted reconstruction')
+        parser.add_argument('--image_extension', choices=["jpg", "png"], default="jpg", type=str, help='Extension of images. Default: %(default)s')
+        parser.add_argument('--scale_focal', default=1.0, type=float, help='Scale the focal length by this value. Default: %(default)s (no scale)')
 
     def run(self, args):
         data = dataset.DataSet(args.dataset)
@@ -30,16 +32,16 @@ class Command:
             graph = data.load_tracks_graph()
 
         if reconstructions:
-            self.export(reconstructions[0], graph, data)
+            self.export(reconstructions[0], graph, data, args.image_extension, args.scale_focal)
 
-    def export(self, reconstruction, graph, data):
+    def export(self, reconstruction, graph, data, image_extension = 'jpg', scale_focal = 1.0):
         lines = ['NVM_V3', '', str(len(reconstruction.shots))]
         for shot in reconstruction.shots.values():
             q = tf.quaternion_from_matrix(shot.pose.get_rotation_matrix())
             o = shot.pose.get_origin()
             words = [
-                self.image_path(shot.id, data),
-                shot.camera.focal * max(shot.camera.width, shot.camera.height),
+                self.image_path(shot.id, data, image_extension),
+                shot.camera.focal * max(shot.camera.width, shot.camera.height) * scale_focal,
                 q[0], q[1], q[2], q[3],
                 o[0], o[1], o[2],
                 '0', '0',
@@ -50,7 +52,7 @@ class Command:
         with io.open_wt(data.data_path + '/reconstruction.nvm') as fout:
             fout.write('\n'.join(lines))
 
-    def image_path(self, image, data):
+    def image_path(self, image, data, extension):
         """Path to the undistorted image relative to the dataset path."""
-        path = data._undistorted_image_file(image)
+        path = data._undistorted_image_file(image, extension)
         return os.path.relpath(path, data.data_path)

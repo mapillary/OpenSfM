@@ -76,17 +76,17 @@ class DataSet:
     def _undistorted_image_path(self):
         return os.path.join(self.data_path, 'undistorted')
 
-    def _undistorted_image_file(self, image):
+    def _undistorted_image_file(self, image, extension = 'jpg'):
         """Path of undistorted version of an image."""
-        return os.path.join(self._undistorted_image_path(), image + '.jpg')
+        return os.path.join(self._undistorted_image_path(), image + '.' + extension)
 
     def load_undistorted_image(self, image):
         """Load undistorted image pixels as a numpy array."""
         return io.imread(self._undistorted_image_file(image))
 
-    def save_undistorted_image(self, image, array):
+    def save_undistorted_image(self, image, array, image_format = 'jpg'):
         io.mkdir_p(self._undistorted_image_path())
-        cv2.imwrite(self._undistorted_image_file(image), array[:, :, ::-1])
+        cv2.imwrite(self._undistorted_image_file(image, image_format), array[:, :, ::-1])
 
     def _load_mask_list(self):
         """Load mask list from mask_list.txt or list masks/ folder."""
