@@ -125,7 +125,6 @@ def undistort_image(arguments):
         subshot_width = int(data.config['depthmap_resolution'])
         width = 4 * subshot_width
         height = width // 2
-
         image = cv2.resize(original, (width, height), interpolation=interpolation)
         for subshot in undistorted_shots:
             undistorted = render_perspective_view_of_a_panorama(
