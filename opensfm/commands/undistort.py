@@ -20,6 +20,8 @@ class Command:
 
     def add_arguments(self, parser):
         parser.add_argument('dataset', help='dataset to process')
+        parser.add_argument('--image_format', choices=["jpg", "png"], default="jpg", type=str, help='Use this format to export images. Default: %(default)s')
+        parser.add_argument('--image_scale', default=1.0, type=float, help='Scale exported images by this factor. Default: %(default)s (no scale)')
 
     def run(self, args):
         data = dataset.DataSet(args.dataset)
@@ -27,11 +29,11 @@ class Command:
         graph = data.load_tracks_graph()
 
         if reconstructions:
-            self.undistort_reconstruction(graph, reconstructions[0], data)
+            self.undistort_reconstruction(graph, reconstructions[0], data, args.image_format, args.image_scale)
 
         data.save_undistorted_tracks_graph(graph)
 
-    def undistort_reconstruction(self, graph, reconstruction, data):
+    def undistort_reconstruction(self, graph, reconstruction, data, image_format = "jpg", image_scale = 1):
         urec = types.Reconstruction()
         urec.points = reconstruction.points
 
@@ -75,15 +77,21 @@ class Command:
             arguments.append((shot, undistorted_shots[shot.id], data,
                               'load_image',
                               'save_undistorted_image',
-                              cv2.INTER_AREA))
+                              cv2.INTER_AREA,
+                              image_format,
+                              image_scale))
             arguments.append((shot, undistorted_shots[shot.id], data,
                               'load_mask',
                               'save_undistorted_mask',
-                              cv2.INTER_NEAREST))
+                              cv2.INTER_NEAREST,
+                              image_format,
+                              image_scale))
             arguments.append((shot, undistorted_shots[shot.id], data,
                               'load_segmentation',
                               'save_undistorted_segmentation',
-                              cv2.INTER_NEAREST))
+                              cv2.INTER_NEAREST,
+                              image_format,
+                              image_scale))
 
         processes = data.config['processes']
         parallel_map(undistort_image, arguments, processes)
@@ -91,7 +99,7 @@ class Command:
 
 def undistort_image(arguments):
     log.setup()
-    shot, undistorted_shots, data, load_image, save_image, interpolation = arguments
+    shot, undistorted_shots, data, load_image, save_image, interpolation, image_format, image_scale = arguments
     logger.debug('Undistorting image {}'.format(shot.id))
 
     projection_type = shot.camera.projection_type
@@ -108,7 +116,8 @@ def undistort_image(arguments):
         new_camera = undistorted_shots[0].camera
         uf = undistort_function[projection_type]
         undistorted = uf(image, shot.camera, new_camera, interpolation)
-        getattr(data, save_image)(shot.id, undistorted)
+        undistorted = scale_image(undistorted, interpolation, image_scale)
+        getattr(data, save_image)(shot.id, undistorted, image_format)
     elif projection_type in ['equirectangular', 'spherical']:
         original = getattr(data, load_image)(shot.id)
         if original is None:
@@ -116,16 +125,29 @@ def undistort_image(arguments):
         subshot_width = int(data.config['depthmap_resolution'])
         width = 4 * subshot_width
         height = width // 2
+
         image = cv2.resize(original, (width, height), interpolation=interpolation)
         for subshot in undistorted_shots:
             undistorted = render_perspective_view_of_a_panorama(
                 image, shot, subshot,
                 cv2.INTER_LINEAR if interpolation == cv2.INTER_AREA else interpolation)
-            getattr(data, save_image)(subshot.id, undistorted)
+            undistorted = scale_image(undistorted, interpolation, image_scale)
+            getattr(data, save_image)(subshot.id, undistorted, image_format)
     else:
         raise NotImplementedError(
             'Undistort not implemented for projection type: {}'.format(
                 shot.camera.projection_type))
+
+
+def scale_image(image, interpolation, scale_factor):
+    """Scale an image by a factor."""
+    if scale_factor == 1.0:
+        return image
+    
+    height, width, _ = image.shape
+    width = int(width * scale_factor)
+    height = int(height * scale_factor)
+    return cv2.resize(image, (width, height), interpolation=interpolation)
 
 
 def undistort_perspective_image(image, camera, new_camera, interpolation):
