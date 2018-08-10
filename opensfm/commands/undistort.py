@@ -116,7 +116,7 @@ def undistort_image(arguments):
         new_camera = undistorted_shots[0].camera
         uf = undistort_function[projection_type]
         undistorted = uf(image, shot.camera, new_camera, interpolation)
-        undistorted = scale_image(undistorted, interpolation, image_scale)
+        undistorted = scale_image(undistorted, image_scale)
         getattr(data, save_image)(shot.id, undistorted, image_format)
     elif projection_type in ['equirectangular', 'spherical']:
         original = getattr(data, load_image)(shot.id)
@@ -130,7 +130,7 @@ def undistort_image(arguments):
             undistorted = render_perspective_view_of_a_panorama(
                 image, shot, subshot,
                 cv2.INTER_LINEAR if interpolation == cv2.INTER_AREA else interpolation)
-            undistorted = scale_image(undistorted, interpolation, image_scale)
+            undistorted = scale_image(undistorted, image_scale)
             getattr(data, save_image)(subshot.id, undistorted, image_format)
     else:
         raise NotImplementedError(
@@ -138,7 +138,7 @@ def undistort_image(arguments):
                 shot.camera.projection_type))
 
 
-def scale_image(image, interpolation, scale_factor):
+def scale_image(image, scale_factor):
     """Scale an image by a factor."""
     if scale_factor == 1.0:
         return image
@@ -146,7 +146,7 @@ def scale_image(image, interpolation, scale_factor):
     height, width, _ = image.shape
     width = int(width * scale_factor)
     height = int(height * scale_factor)
-    return cv2.resize(image, (width, height), interpolation=interpolation)
+    return cv2.resize(image, (width, height), interpolation=cv2.INTER_NEAREST)
 
 
 def undistort_perspective_image(image, camera, new_camera, interpolation):
