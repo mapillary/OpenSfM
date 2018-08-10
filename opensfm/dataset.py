@@ -83,7 +83,11 @@ class DataSet(object):
 
     def load_undistorted_image(self, image):
         """Load undistorted image pixels as a numpy array."""
-        return io.imread(self._undistorted_image_file(image))
+        for extension in ['jpg', 'png']:
+            if os.path.exists(self._undistorted_image_file(image, extension)):
+                return io.imread(self._undistorted_image_file(image, extension))
+        
+        raise OSError("Cannot read image {}. File does not exist.".format(image))
 
     def save_undistorted_image(self, image, array, image_format = 'jpg'):
         io.mkdir_p(self._undistorted_image_path())
