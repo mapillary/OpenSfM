@@ -559,6 +559,7 @@ class ReconstructionAlignment {
     }
 
     // Add relative-absolute position errors
+    ceres::LossFunction *l1_loss = new ceres::SoftLOneLoss(1.0);
     for (auto &a : relative_absolute_positions_) {
       ceres::CostFunction *cost_function =
           new ceres::AutoDiffCostFunction<RARelativeAbsolutePositionError, 3,
@@ -566,11 +567,9 @@ class ReconstructionAlignment {
               new RARelativeAbsolutePositionError(
                   a.position, a.shot->parameters, a.std_deviation));
 
-      problem.AddResidualBlock(cost_function, NULL,
+      problem.AddResidualBlock(cost_function, l1_loss,
                                a.reconstruction->parameters);
     }
-
-    ceres::LossFunction *l1_loss = new ceres::SoftLOneLoss(1.0);
 
     // Add common cameras constraints
     for (auto &a : common_cameras_) {
@@ -580,7 +579,7 @@ class ReconstructionAlignment {
                                            a.std_deviation_center,
                                            a.std_deviation_rotation));
 
-      problem.AddResidualBlock(cost_function, nullptr,
+      problem.AddResidualBlock(cost_function, loss,
                                a.reconstruction_a->parameters,
                                a.reconstruction_b->parameters);
     }
