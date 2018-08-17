@@ -122,6 +122,15 @@ def shot_from_json(key, obj, cameras):
     return shot
 
 
+def measurement_from_json(obj):
+    """
+    Read a measurement from a json object
+    """
+    return types.Measurement(obj["coordinates"],
+                             obj["std_deviation"],
+                             obj["confidence"])
+
+
 def point_from_json(key, obj):
     """
     Read a point from a json object
@@ -132,6 +141,9 @@ def point_from_json(key, obj):
     point.coordinates = obj["coordinates"]
     if "reprojection_error" in obj:
         point.reprojection_error = obj["reprojection_error"]
+    if "measurements" in obj:
+        for key, value in iteritems(obj['measurements']):
+            point.measurements[key] = measurement_from_json(value)
     return point
 
 
@@ -288,6 +300,17 @@ def shot_to_json(shot):
     return obj
 
 
+def measurement_to_json(measurement):
+    """
+    Write a measurement to a json object
+    """
+    return {
+        'coordinates': list(measurement.coordinates),
+        'std_deviation': list(measurement.std_deviation),
+        'confidence': measurement.confidence
+    }
+
+
 def point_to_json(point):
     """
     Write a point to a json object
@@ -295,7 +318,9 @@ def point_to_json(point):
     return {
         'color': list(point.color),
         'coordinates': list(point.coordinates),
-        'reprojection_error': point.reprojection_error
+        'reprojection_error': point.reprojection_error,
+        'measurements': {k: measurement_to_json(v)
+                         for k, v in point.measurements.items()}
     }
 
 

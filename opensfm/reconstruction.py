@@ -817,7 +817,7 @@ class TrackTriangulator:
 
     def triangulate(self, track, reproj_threshold, min_ray_angle_degrees):
         """Triangulate track and add point to reconstruction."""
-        os, bs = [], []
+        os, bs, measurements = [], [], {}
         for shot_id in self.graph[track]:
             if shot_id in self.reconstruction.shots:
                 shot = self.reconstruction.shots[shot_id]
@@ -826,6 +826,7 @@ class TrackTriangulator:
                 b = shot.camera.pixel_bearing(np.array(x))
                 r = self._shot_rotation_inverse(shot)
                 bs.append(r.dot(b))
+                measurements[shot_id] = types.Measurement(x, [1, 1, 1], 1)
 
         if len(os) >= 2:
             e, X = csfm.triangulate_bearings_midpoint(
@@ -834,11 +835,12 @@ class TrackTriangulator:
                 point = types.Point()
                 point.id = track
                 point.coordinates = X.tolist()
+                point.measurements = measurements
                 self.reconstruction.add_point(point)
 
     def triangulate_dlt(self, track, reproj_threshold, min_ray_angle_degrees):
         """Triangulate track using DLT and add point to reconstruction."""
-        Rts, bs = [], []
+        Rts, bs, measurements = [], [], {}
         for shot_id in self.graph[track]:
             if shot_id in self.reconstruction.shots:
                 shot = self.reconstruction.shots[shot_id]
@@ -846,6 +848,7 @@ class TrackTriangulator:
                 x = self.graph[track][shot_id]['feature']
                 b = shot.camera.pixel_bearing(np.array(x))
                 bs.append(b)
+                measurements[shot_id] = types.Measurement(x, [1, 1, 1], 1)
 
         if len(Rts) >= 2:
             e, X = csfm.triangulate_bearings_dlt(
@@ -854,6 +857,7 @@ class TrackTriangulator:
                 point = types.Point()
                 point.id = track
                 point.coordinates = X.tolist()
+                point.measurements = measurements
                 self.reconstruction.add_point(point)
 
     def _shot_origin(self, shot):

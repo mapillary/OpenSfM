@@ -643,6 +643,25 @@ class Shot(object):
         return self.pose.get_rotation_matrix().T.dot([0, 0, 1])
 
 
+class Measurement(object):
+    """Defines a measured quantity.
+
+    It is anything that is measured in the real world
+    and is used as input for the reconstruction, such a
+    2D feature, a ground control point or GPS/IMU value.
+
+    Attributes:
+        coordinates (list(real)): list containing the measured data
+        std_deviation (list(real)): list containing the standard deviation
+        of the measured data
+        confidence (real): [0,1] measure that the measurement is good (1 value)
+    """
+    def __init__(self, coordinates, std_deviation, confidence):
+        self.coordinates = coordinates
+        self.std_deviation = std_deviation
+        self.confidence = confidence
+
+
 class Point(object):
     """Defines a 3D point.
 
@@ -651,6 +670,8 @@ class Point(object):
         color (list(int)): list containing the RGB values.
         coordinates (list(real)): list containing the 3D position.
         reprojection_error (real): the reprojection error.
+        measurements (Dict(Measurement)): list of measured 2D positions
+        indexed by images they're seen into
     """
 
     def __init__(self):
@@ -659,6 +680,7 @@ class Point(object):
         self.color = None
         self.coordinates = None
         self.reprojection_error = None
+        self.measurements = {}
 
 
 class GroundControlPointObservation(object):
