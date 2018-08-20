@@ -268,6 +268,7 @@
             var savedOptions = {
                 cameraSize: 0,
                 pointSize: 0,
+                pointLength: 2,
                 showThumbnail: false,
                 showImagePlane: true,
                 drawGrid: false,
@@ -277,6 +278,7 @@
             var options = {
                 cameraSize: 0.9,
                 pointSize: 0.7,
+                pointLength: 2,
                 imagePlaneSize: 50,
                 showThumbnail: true,
                 showImagePlane: false,
@@ -284,6 +286,7 @@
                 drawGPS: false,
                 animationSpeed: 0.1,
                 imagePlaneOpacity: 1,
+                background_color: 0x202020,
                 cameraColor: new THREE.Color(0xFFFFFF),
                 hoverCameraColor: new THREE.Color(0xFF8888),
                 selectedCameraColor: new THREE.Color(0xFFFF88),
@@ -316,6 +319,9 @@
                 f1.add(options, 'pointSize', 0, 2)
                     .listen()
                     .onChange(setPointSize);
+                f1.add(options, 'pointLength', 2, 10, 1)
+                    .listen()
+                    .onChange(setPointLength);
                 f1.add(options, 'cameraSize', 0, 2)
                     .listen()
                     .onChange(setCameraSize);
@@ -374,6 +380,37 @@
                 pointCloudMaterial.size = value;
                 for (var i = 0; i < point_clouds.length; ++i) {
                     point_clouds[i].visible = (value > 0);
+                }
+                render();
+            }
+
+            function setPointLength(value){
+                options.pointLength = value;
+                
+                for (var i = 0; i < reconstructions.length; ++i) {
+                    var reconstruction = reconstructions[i];
+                    var j = 0;
+                    for (var point_id in reconstruction.points) {
+                        if (!reconstruction.points.hasOwnProperty(point_id)) {
+                            continue;
+                        }
+                        var point = reconstruction.points[point_id];
+                        if (!point.hasOwnProperty('measurements')) {
+                            continue;
+                        }
+
+                        var color = new THREE.Color();
+                        if(Object.keys(point.measurements).length < options.pointLength) {
+                            color.setHex(options.background_color);
+                        }
+                        else {
+                            var c = point.color;
+                            color.setRGB(c[0] / 255., c[1] / 255., c[2] / 255.)
+                        }
+                        point_clouds[i].geometry.colors[j] = color;
+                        ++j;
+                    }
+                    point_clouds[i].geometry.colorsNeedUpdate = true;
                 }
                 render();
             }
@@ -455,6 +492,7 @@
             function swapOptions() {
                 var tmpOptions = {
                     pointSize: savedOptions.pointSize,
+                    pointLength: savedOptions.pointLength,
                     cameraSize: savedOptions.cameraSize,
                     showThumbnail: savedOptions.showThumbnail,
                     showImagePlane: savedOptions.showImagePlane,
@@ -463,6 +501,7 @@
                 };
 
                 savedOptions.pointSize = options.pointSize;
+                savedOptions.pointLength = options.pointLength;
                 savedOptions.cameraSize = options.cameraSize;
                 savedOptions.showThumbnail = options.showThumbnail;
                 savedOptions.showImagePlane = options.showImagePlane;
@@ -470,6 +509,7 @@
                 savedOptions.drawGPS = options.drawGPS;
 
                 setPointSize(tmpOptions.pointSize);
+                setPointLength(tmpOptions.pointLength);
                 setCameraSize(tmpOptions.cameraSize);
                 setShowThumbnail(tmpOptions.showThumbnail);
                 setShowImagePlane(tmpOptions.showImagePlane);
@@ -785,7 +825,7 @@
 
                 renderer = new THREE.WebGLRenderer();
                 renderer.setSize(window.innerWidth, window.innerHeight);
-                renderer.setClearColor( 0x202020, 0.0);
+                renderer.setClearColor( options.background_color, 0.0);
                 renderer.sortObjects = false;
 
                 container = document.getElementById( 'ThreeJS' );
