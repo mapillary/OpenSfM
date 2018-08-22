@@ -256,6 +256,7 @@
             var point_clouds = [];
             var camera_lines = [];
             var gps_lines = [];
+            var graph_lines = [];
             var imagePlanes = [];
             var imagePlaneCameras = [];
             var imageMaterials = [];
@@ -272,7 +273,8 @@
                 showThumbnail: false,
                 showImagePlane: true,
                 drawGrid: false,
-                drawGPS: false
+                drawGPS: false,
+                showGraph: false
             };
 
             var options = {
@@ -284,6 +286,7 @@
                 showImagePlane: false,
                 drawGrid: true,
                 drawGPS: false,
+                showGraph: false,
                 animationSpeed: 0.1,
                 imagePlaneOpacity: 1,
                 background_color: 0x202020,
@@ -351,6 +354,9 @@
                 f1.add(options, 'drawGPS')
                     .listen()
                     .onChange(setDrawGPS);
+                f1.add(options, 'showGraph')
+                    .listen()
+                    .onChange(setShowGraph);
                 f1.open();
 
 
@@ -453,6 +459,14 @@
                 render();
             }
 
+            function setShowGraph(value) {
+                options.showGraph = value;
+                for (var i = 0; i < graph_lines.length; ++i) {
+                    graph_lines[i].visible = value;
+                }
+                render();
+            }
+
             function setMovingMode(mode) {
                 if (mode != movingMode) {
                     movingMode = mode;
@@ -497,7 +511,8 @@
                     showThumbnail: savedOptions.showThumbnail,
                     showImagePlane: savedOptions.showImagePlane,
                     drawGrid: savedOptions.drawGrid,
-                    drawGPS: savedOptions.drawGPS
+                    drawGPS: savedOptions.drawGPS,
+                    showGraph: savedOptions.showGraph
                 };
 
                 savedOptions.pointSize = options.pointSize;
@@ -507,6 +522,7 @@
                 savedOptions.showImagePlane = options.showImagePlane;
                 savedOptions.drawGrid = options.drawGrid;
                 savedOptions.drawGPS = options.drawGPS;
+                savedOptions.showGraph = options.showGraph;
 
                 setPointSize(tmpOptions.pointSize);
                 setPointLength(tmpOptions.pointLength);
@@ -515,6 +531,7 @@
                 setShowImagePlane(tmpOptions.showImagePlane);
                 setDrawGrid(tmpOptions.drawGrid);
                 setDrawGPS(tmpOptions.drawGPS);
+                setShowGraph(tmpOptions.showGraph);
             }
 
             function imageURL(shot_id) {
@@ -898,6 +915,63 @@
                                 gps_lines.push(line);
                             }
                         }
+                    }
+                    
+                    // Camera graph
+                    camera_graph = {};
+                    for(var point_id in reconstruction.points){
+                        var point = reconstruction.points[point_id];
+                        if (!point.hasOwnProperty('measurements')) {
+                            continue;
+                        }
+
+                        sorted = Object.keys(point.measurements).sort()
+                        for(var i = 0; i < sorted.length; ++i){
+                            var shot1 = sorted[i];
+                            for(var j = i+1; j < sorted.length; ++j){
+                                var shot2 = sorted[j];
+                                var shot_pair = shot1 + '/' + shot2;
+                                if(camera_graph[shot_pair] == undefined){
+                                    camera_graph[shot_pair] = 1;
+                                }
+                                else{
+                                    camera_graph[shot_pair] += 1;
+                                }
+                            }
+                        }
+                    }
+                    
+                    var sorted_edges = Object.keys(camera_graph).sort(function(a, b){
+                         if( camera_graph[a] < camera_graph[b])return -1;
+                         if( camera_graph[a] > camera_graph[b])return 1;
+                         return 0;});
+                    var big_ratio = 0.9;
+                    var big_index = Math.floor(big_ratio*(sorted_edges.length-1));
+                    var normalizer = 1.0/camera_graph[sorted_edges[big_index]];
+                    var min_line_width = 1;
+                    var max_line_width = 6;
+                    for(var i = 0; i < sorted_edges.length; ++i){
+                        var shot_pair = sorted_edges[i];
+                        var shot1 = opticalCenter(reconstruction.shots[shot_pair.split('/')[0]]);
+                        var shot2 = opticalCenter(reconstruction.shots[shot_pair.split('/')[1]]);
+
+                        var edge = camera_graph[shot_pair];
+                        if(edge < 20){
+                            continue;
+                        }
+                        var edge_value = edge*normalizer;
+                        var edge_color = new THREE.Color();
+                        edge_color.setRGB(1-edge_value, edge_value, 0);
+
+                        var linegeo = new THREE.Geometry();
+                        linegeo.vertices.push(shot1, shot2);
+                        var lineMaterial = new THREE.LineBasicMaterial(
+                            { color: edge_color, 
+                            linewidth: min_line_width +(max_line_width-min_line_width)*edge_value });
+                        var line = new THREE.Line(linegeo, lineMaterial, THREE.LinePieces);
+                        line.visible = options.showGraph;
+                        group.add(line);
+                        graph_lines.push(line);
                     }
 
                     scene_group.add(group);
