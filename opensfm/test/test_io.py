@@ -21,6 +21,17 @@ def test_reconstructions_from_json():
     assert len(reconstructions[0].points) == 1588
 
 
+def test_json_reconstruction_consistency():
+    with open(filename) as fin:
+        reconstructions_before = io.reconstructions_to_json(
+            io.reconstructions_from_json(json.loads(fin.read())))
+
+    reconstructions_after = io.reconstructions_to_json(
+        io.reconstructions_from_json(reconstructions_before))
+
+    assert reconstructions_before == reconstructions_after
+
+
 def test_reconstruction_to_ply():
     with open(filename) as fin:
         obj = json.loads(fin.read())

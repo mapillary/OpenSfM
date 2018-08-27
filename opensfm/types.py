@@ -652,14 +652,9 @@ class Measurement(object):
 
     Attributes:
         coordinates (list(real)): list containing the measured data
-        std_deviation (list(real)): list containing the standard deviation
-        of the measured data
-        confidence (real): [0,1] measure that the measurement is good (1 value)
     """
-    def __init__(self, coordinates, std_deviation, confidence):
+    def __init__(self, coordinates):
         self.coordinates = coordinates
-        self.std_deviation = std_deviation
-        self.confidence = confidence
 
 
 class Point(object):

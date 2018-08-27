@@ -126,9 +126,7 @@ def measurement_from_json(obj):
     """
     Read a measurement from a json object
     """
-    return types.Measurement(obj["coordinates"],
-                             obj["std_deviation"],
-                             obj["confidence"])
+    return types.Measurement(obj["coordinates"])
 
 
 def point_from_json(key, obj):
@@ -304,11 +302,7 @@ def measurement_to_json(measurement):
     """
     Write a measurement to a json object
     """
-    return {
-        'coordinates': list(measurement.coordinates),
-        'std_deviation': list(measurement.std_deviation),
-        'confidence': measurement.confidence
-    }
+    return {'coordinates': list(measurement.coordinates)}
 
 
 def point_to_json(point):

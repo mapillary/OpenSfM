@@ -826,7 +826,7 @@ class TrackTriangulator:
                 b = shot.camera.pixel_bearing(np.array(x))
                 r = self._shot_rotation_inverse(shot)
                 bs.append(r.dot(b))
-                measurements[shot_id] = types.Measurement(x, [1, 1, 1], 1)
+                measurements[shot_id] = types.Measurement(x)
 
         if len(os) >= 2:
             e, X = csfm.triangulate_bearings_midpoint(
@@ -848,7 +848,7 @@ class TrackTriangulator:
                 x = self.graph[track][shot_id]['feature']
                 b = shot.camera.pixel_bearing(np.array(x))
                 bs.append(b)
-                measurements[shot_id] = types.Measurement(x, [1, 1, 1], 1)
+                measurements[shot_id] = types.Measurement(x)
 
         if len(Rts) >= 2:
             e, X = csfm.triangulate_bearings_dlt(
