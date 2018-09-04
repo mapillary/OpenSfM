@@ -901,7 +901,9 @@ def retriangulate(graph, reconstruction, config):
     threshold = config['triangulation_threshold']
     min_ray_angle = config['triangulation_min_ray_angle']
     triangulator = TrackTriangulator(graph, reconstruction)
-    tracks, images = matching.tracks_and_images(graph)
+    tracks = set()
+    for image in reconstruction.shots.keys():
+        tracks.update(graph[image].keys())
     for track in tracks:
         triangulator.triangulate(track, threshold, min_ray_angle)
     report['num_points_after'] = len(reconstruction.points)
