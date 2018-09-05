@@ -19,7 +19,8 @@ class Command:
         start = time.time()
         data = dataset.DataSet(args.dataset)
         graph = data.load_tracks_graph()
-        report, reconstructions = reconstruction.incremental_reconstruction(data, graph)
+        report, reconstructions = reconstruction.\
+            incremental_reconstruction(data, graph)
         end = time.time()
         with open(data.profile_log(), 'a') as fout:
             fout.write('reconstruct: {0}\n'.format(end - start))
