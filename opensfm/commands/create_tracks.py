@@ -22,9 +22,9 @@ class Command:
         data = dataset.DataSet(args.dataset)
 
         start = timer()
-        features, colors = tracks.load_features(data)
+        features, colors = tracks.load_features(data, data.images())
         features_end = timer()
-        matches = tracks.load_matches(data)
+        matches = tracks.load_matches(data, data.images())
         matches_end = timer()
         tracks_graph = tracks.create_tracks_graph(features, colors, matches,
                                                   data.config)

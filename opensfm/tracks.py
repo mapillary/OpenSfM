@@ -14,22 +14,22 @@ from opensfm import dataset
 logger = logging.getLogger(__name__)
 
 
-def load_features(data):
+def load_features(dataset, images):
     logging.info('reading features')
     features = {}
     colors = {}
-    for im in data.images():
-        p, f, c = data.load_features(im)
+    for im in images:
+        p, f, c = dataset.load_features(im)
         features[im] = p[:, :2]
         colors[im] = c
     return features, colors
 
 
-def load_matches(data):
+def load_matches(dataset, images):
     matches = {}
-    for im1 in data.images():
+    for im1 in images:
         try:
-            im1_matches = data.load_matches(im1)
+            im1_matches = dataset.load_matches(im1)
         except IOError:
             continue
         for im2 in im1_matches:
