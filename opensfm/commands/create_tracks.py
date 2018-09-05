@@ -6,6 +6,7 @@ from networkx.algorithms import bipartite
 from opensfm import dataset
 from opensfm import io
 from opensfm import matching
+from opensfm import tracks
 
 logger = logging.getLogger(__name__)
 
@@ -21,9 +22,9 @@ class Command:
         data = dataset.DataSet(args.dataset)
 
         start = timer()
-        features, colors = self.load_features(data)
+        features, colors = tracks.load_features(data)
         features_end = timer()
-        matches = self.load_matches(data)
+        matches = tracks.load_matches(data)
         matches_end = timer()
         tracks_graph = matching.create_tracks_graph(features, colors, matches,
                                                     data.config)
@@ -39,27 +40,6 @@ class Command:
                           features_end - start,
                           matches_end - features_end,
                           tracks_end - matches_end)
-
-    def load_features(self, data):
-        logging.info('reading features')
-        features = {}
-        colors = {}
-        for im in data.images():
-            p, f, c = data.load_features(im)
-            features[im] = p[:, :2]
-            colors[im] = c
-        return features, colors
-
-    def load_matches(self, data):
-        matches = {}
-        for im1 in data.images():
-            try:
-                im1_matches = data.load_matches(im1)
-            except IOError:
-                continue
-            for im2 in im1_matches:
-                matches[im1, im2] = im1_matches[im2]
-        return matches
 
     def write_report(self, data, graph,
                      features_time, matches_time, tracks_time):
