@@ -17,6 +17,7 @@ from opensfm import csfm
 from opensfm import geo
 from opensfm import log
 from opensfm import matching
+from opensfm import tracks
 from opensfm import multiview
 from opensfm import types
 from opensfm.align import align_reconstruction, apply_similarity
@@ -901,11 +902,11 @@ def retriangulate(graph, reconstruction, config):
     threshold = config['triangulation_threshold']
     min_ray_angle = config['triangulation_min_ray_angle']
     triangulator = TrackTriangulator(graph, reconstruction)
-    tracks = set()
+    all_tracks = set()
     for image in reconstruction.shots.keys():
         if image in graph:
-            tracks.update(graph[image].keys())
-    for track in tracks:
+            all_tracks.update(graph[image].keys())
+    for track in all_tracks:
         triangulator.triangulate(track, threshold, min_ray_angle)
     report['num_points_after'] = len(reconstruction.points)
     chrono.lap('retriangulate')
@@ -1151,13 +1152,13 @@ def incremental_reconstruction(data):
         data.invent_reference_lla()
 
     graph = data.load_tracks_graph()
-    tracks, images = matching.tracks_and_images(graph)
+    all_tracks, images = tracks.tracks_and_images(graph)
     chrono.lap('load_tracks_graph')
     remaining_images = set(images)
     gcp = None
     if data.ground_control_points_exist():
         gcp = data.load_ground_control_points()
-    common_tracks = matching.all_common_tracks(graph, tracks)
+    common_tracks = tracks.all_common_tracks(graph, all_tracks)
     reconstructions = []
     pairs = compute_image_pairs(common_tracks, data)
     chrono.lap('compute_image_pairs')
@@ -1167,7 +1168,7 @@ def incremental_reconstruction(data):
         if im1 in remaining_images and im2 in remaining_images:
             rec_report = {}
             report['reconstructions'].append(rec_report)
-            tracks, p1, p2 = common_tracks[im1, im2]
+            all_tracks, p1, p2 = common_tracks[im1, im2]
             reconstruction, rec_report['bootstrap'] = bootstrap_reconstruction(
                 data, graph, im1, im2, p1, p2)
 

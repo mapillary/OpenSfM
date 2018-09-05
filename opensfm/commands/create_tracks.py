@@ -26,8 +26,8 @@ class Command:
         features_end = timer()
         matches = tracks.load_matches(data)
         matches_end = timer()
-        tracks_graph = matching.create_tracks_graph(features, colors, matches,
-                                                    data.config)
+        tracks_graph = tracks.create_tracks_graph(features, colors, matches,
+                                                  data.config)
         tracks_end = timer()
         data.save_tracks_graph(tracks_graph)
         end = timer()
@@ -43,7 +43,7 @@ class Command:
 
     def write_report(self, data, graph,
                      features_time, matches_time, tracks_time):
-        tracks, images = matching.tracks_and_images(graph)
+        all_tracks, images = tracks.tracks_and_images(graph)
         image_graph = bipartite.weighted_projected_graph(graph, images)
         view_graph = []
         for im1 in data.images():
@@ -60,7 +60,7 @@ class Command:
             },
             "wall_time": features_time + matches_time + tracks_time,
             "num_images": len(images),
-            "num_tracks": len(tracks),
+            "num_tracks": len(all_tracks),
             "view_graph": view_graph
         }
         data.save_report(io.json_dumps(report), 'tracks.json')
