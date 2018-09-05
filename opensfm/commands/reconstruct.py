@@ -19,8 +19,9 @@ class Command:
         start = time.time()
         data = dataset.DataSet(args.dataset)
         graph = data.load_tracks_graph()
-        report = reconstruction.incremental_reconstruction(data, graph)
+        report, reconstructions = reconstruction.incremental_reconstruction(data, graph)
         end = time.time()
         with open(data.profile_log(), 'a') as fout:
             fout.write('reconstruct: {0}\n'.format(end - start))
+        data.save_reconstruction(reconstructions)
         data.save_report(io.json_dumps(report), 'reconstruction.json')
