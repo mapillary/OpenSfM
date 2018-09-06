@@ -65,7 +65,11 @@ class NCCEstimator {
     float meanxy = sumxy_ / sumw_;
     float varx = meanxx - meanx * meanx;
     float vary = meanyy - meany * meany;
-    return (meanxy - meanx * meany) / sqrt(varx * vary + 1e-10);
+    if (varx < 0.1 || vary < 0.1) {
+      return -1;
+    } else {
+      return (meanxy - meanx * meany) / sqrt(varx * vary);
+    }
   }
 
  private:
