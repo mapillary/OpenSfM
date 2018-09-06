@@ -86,26 +86,26 @@ void ApplyHomography(const cv::Matx33f &H,
   *y2 = (H(1, 0) * x1 + H(1, 1) * y1 + H(1, 2)) / w;
 }
 
-cv::Matx33d PlaneInducedHomography(const cv::Matx33d K1,
-                                   const cv::Matx33d R1,
-                                   const cv::Vec3d t1,
-                                   const cv::Matx33d K2,
-                                   const cv::Matx33d R2,
-                                   const cv::Vec3d t2,
-                                   const cv::Vec3d v) {
+cv::Matx33d PlaneInducedHomography(const cv::Matx33d &K1,
+                                   const cv::Matx33d &R1,
+                                   const cv::Vec3d &t1,
+                                   const cv::Matx33d &K2,
+                                   const cv::Matx33d &R2,
+                                   const cv::Vec3d &t2,
+                                   const cv::Vec3d &v) {
   cv::Matx33d R2R1 = R2 * R1.t();
   return K2 * (R2R1 + (R2R1 * t1 - t2) * v.t()) * K1.inv();
 }
 
-cv::Matx33f PlaneInducedHomographyBaked(const cv::Matx33d K1inv,
-                                        const cv::Matx33d Q2,
-                                        const cv::Vec3d a2,
-                                        const cv::Matx33d K2,
-                                        const cv::Vec3d v) {
+cv::Matx33f PlaneInducedHomographyBaked(const cv::Matx33d &K1inv,
+                                        const cv::Matx33d &Q2,
+                                        const cv::Vec3d &a2,
+                                        const cv::Matx33d &K2,
+                                        const cv::Vec3d &v) {
   return K2 * (Q2 + a2 * v.t()) * K1inv;
 }
 
-cv::Vec3d Project(cv::Vec3d x,
+cv::Vec3d Project(const cv::Vec3d &x,
                   const cv::Matx33d &K,
                   const cv::Matx33d &R,
                   const cv::Vec3d &t) {
