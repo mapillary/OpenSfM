@@ -219,6 +219,8 @@ class DepthmapEstimator {
       PatchMatchForwardPass(result, false);
       PatchMatchBackwardPass(result, false);
     }
+
+    PostProcess(result);
   }
 
   void ComputePatchMatchSample(DepthmapEstimatorResult *result) {
@@ -230,6 +232,8 @@ class DepthmapEstimator {
       PatchMatchForwardPass(result, true);
       PatchMatchBackwardPass(result, true);
     }
+
+    PostProcess(result);
   }
 
   void AssignMatrices(DepthmapEstimatorResult *result) {
@@ -481,6 +485,20 @@ class DepthmapEstimator {
     );
   }
 
+  void PostProcess(DepthmapEstimatorResult *result) {
+    cv::Mat depth_filtered;
+    cv::medianBlur(result->depth, depth_filtered, 5);
+
+    for (int i = 0; i < result->depth.rows; ++i) {
+      for (int j = 0; j < result->depth.cols; ++j) {
+        float d = result->depth.at<float>(i, j);
+        float m = depth_filtered.at<float>(i, j);
+        if (fabs(d - m) / d > 0.05) {
+          result->depth.at<float>(i, j) = 0;
+        }
+      }
+    }
+  }
 
  private:
   std::vector<cv::Mat> images_;
