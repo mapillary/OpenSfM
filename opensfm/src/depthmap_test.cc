@@ -67,9 +67,9 @@ TEST(Backproject, Reprojection) {
 
 TEST(NCCEstimator, Simple) {
   NCCEstimator ncc;
-  ncc.Push(1, 1);
-  ncc.Push(2, 2);
-  ncc.Push(3, 3);
+  ncc.Push(1, 1, 1);
+  ncc.Push(2, 2, 1);
+  ncc.Push(3, 3, 1);
   EXPECT_NEAR(ncc.Get(), 1.0, 1e-6);
 }
 
