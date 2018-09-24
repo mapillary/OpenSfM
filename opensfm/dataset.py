@@ -23,7 +23,7 @@ class DataSet:
     """Accessors to the main input and output data.
 
     Data include input images, masks, and segmentation as well
-    temporary data such as feature and matches and the final
+    temporary data such as features and matches and the final
     reconstructions.
 
     All data is stored inside a single folder with a specific subfolder

@@ -16,7 +16,7 @@ GCPs can be specified by adding a text file named ``gcp_list.txt`` at the root f
 
 - The first line should contain the name of the projection used for the geo coordinates.
 
-- The following lines should con should contain the data for each ground control point observation. One per line and in the format::
+- The following lines should contain the data for each ground control point observation. One per line and in the format::
 
       <geo_x> <geo_y> <geo_z> <im_x> <im_y> <image_name>
 

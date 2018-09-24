@@ -86,11 +86,11 @@ The following data is extracted for each image:
 
 - ``width`` and ``height``: image size in pixels
 
-- ``gps`` ``latitude``, ``longitude``, ``altitude`` and ``dop``: The GPS coordinates of the camera at capture time and the corresponding Degree Of Precission).  This is used to geolocate the reconstruction.
+- ``gps`` ``latitude``, ``longitude``, ``altitude`` and ``dop``: The GPS coordinates of the camera at capture time and the corresponding Dilution Of Precision).  This is used to geolocate the reconstruction.
 
 - ``capture_time``: The capture time. Used to choose candidate matching images when the option ``matching_time_neighbors`` is set.
 
-- ``camera orientation``: The EXIF orientation tag (see this `exif orientation documentation`_).  Used to orient the reconstruction straigh up.
+- ``camera orientation``: The EXIF orientation tag (see this `exif orientation documentation`_).  Used to orient the reconstruction straight up.
 
 - ``projection_type``: The camera projection type.  It is extracted from the GPano_ metadata and used to determine which projection to use for each camera.  Supported types are `perspective`, `equirectangular` and `fisheye`.
 
@@ -129,7 +129,7 @@ Here is a `spherical 360 images dataset`_ example using ``camera_models_override
 
 detect_features
 ```````````````
-This command detect feature points in the images and stores them in the `feature` folder.
+This command detects feature points in the images and stores them in the `feature` folder.
 
 
 match_features

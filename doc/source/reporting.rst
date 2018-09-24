@@ -4,7 +4,7 @@
 Reporting
 =========
 
-OpenSfM commands write reports on the work done.  Reports are stored in the ``reports`` folder in json format so that they can be loaded by programatically.  Here is the list of reports produced and the data included.
+OpenSfM commands write reports on the work done.  Reports are stored in the ``reports`` folder in json format so that they can be loaded programatically.  Here is the list of reports produced and the data included.
 
 Feature detection
 -----------------
