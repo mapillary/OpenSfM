@@ -2,6 +2,8 @@ import numpy as np
 import functools
 import math
 
+import networkx as nx
+
 from opensfm import types
 from opensfm import io
 
@@ -104,6 +106,9 @@ def sample_camera():
     camera.focal = 0.9
     camera.k1 = -0.1
     camera.k2 = 0.01
+    camera.focal_prior = camera.focal
+    camera.k1_prior = camera.k1
+    camera.k2_prior = camera.k2
     camera.height = 600
     camera.width = 800
     return camera
@@ -142,23 +147,27 @@ def create_reconstruction(points, colors,
     return reconstruction
 
 
-def generate_corridor_data():
-    width = 30
-    height = 18
-    length = 500
-    ellipse_ratio = 4
-    points_count = 100000
-
-    # generator = functools.partial(ellipse_generator, length,
-    #                               length/ellipse_ratio)
-    generator = functools.partial(weird_curve, length)
+def generate_reconstruction(width, height, length, points_count, type):
+    generator = None
+    if type == 'ellipse':
+        ellipse_ratio = 4
+        generator = functools.partial(ellipse_generator, length,
+                                      length/ellipse_ratio)
+    if type == 'line':
+        generator = functools.partial(line_generator, length)
+    if type == 'curve':
+        generator = functools.partial(weird_curve, length)
 
     wall_points, floor_points = generate_street(
         samples_generator_random_count(
-            points_count), generator,
+            points_count/3), generator,
         height, width)
-    positions, rotations = generate_cameras(samples_generator_interval(length, 3),
-                                            generator, 1.5)
+
+    cameras_interval = 3
+    cameras_height = 1.5
+    positions, rotations = generate_cameras(
+        samples_generator_interval(length, cameras_interval),
+        generator, cameras_height)
 
     reconstruction = create_reconstruction(
         [floor_points, wall_points],
@@ -167,6 +176,49 @@ def generate_corridor_data():
     ply_file = io.reconstruction_to_ply(reconstruction)
     with open("/home/yann/corridor.ply", "w") as ply_output:
         ply_output.write(ply_file)
+    return reconstruction
 
 
-generate_corridor_data()
+def generate_track_data(reconstruction):
+    tracks_graph = nx.Graph()
+    for shot_index in reconstruction.shots:
+        tracks_graph.add_node(shot_index, bipartite=0)
+    for track_index in reconstruction.points:
+        tracks_graph.add_node(str(track_index), bipartite=1)
+
+    colors = {}
+    features = {}
+    for shot_index, shot in reconstruction.shots.items():
+        # need to have these as we lost track of keys
+        all_keys = reconstruction.points.keys()
+        all_values = reconstruction.points.values()
+
+        # temporary work on numpy array
+        all_coordinates = [p.coordinates for p in all_values]
+        projections = shot.project_many(np.array(all_coordinates))
+        projections_inside = []
+        colors_inside = []
+        for i, projection in enumerate(projections):
+            if _is_inside_camera(projection, shot.camera):
+                original_key = all_keys[i]
+                original_point = all_values[i]
+                projections_inside.append([projection])
+                colors_inside.append([original_point.color])
+                tracks_graph.add_edge(str(shot_index),
+                                      str(original_key),
+                                      feature=projection,
+                                      feature_id=len(projections_inside)-1,
+                                      feature_color=(float(original_point.color[0]),
+                                                     float(original_point.color[1]),
+                                                     float(original_point.color[2])))
+        features[shot_index] = projections_inside
+        colors[shot_index] = colors_inside
+            
+    return features, colors, tracks_graph
+
+
+def _is_inside_camera(projection, camera):
+    if camera.width > camera.height:
+        return (-0.5 < projection[0] < 0.5) and \
+            (-camera.height/(2*camera.width) < projection[1]
+                < camera.height/(2*camera.width))
