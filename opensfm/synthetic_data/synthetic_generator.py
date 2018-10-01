@@ -86,6 +86,12 @@ def line_generator(length, point):
     return np.transpose(np.array([x, 0]))
 
 
+def weird_curve(length, point):
+    y = math.cos(point+0.1*point**2+2.3*point**4 +
+                 0.8*point**7+0.1*point**9)
+    return length*np.transpose(np.array([point, y]))
+
+
 def ellipse_generator(x_size, y_size, point):
     y = np.sin(point*2*np.pi)*y_size/2
     x = np.cos(point*2*np.pi)*x_size/2
@@ -145,7 +151,7 @@ def generate_corridor_data():
 
     # generator = functools.partial(ellipse_generator, length,
     #                               length/ellipse_ratio)
-    generator = functools.partial(line_generator, length)
+    generator = functools.partial(weird_curve, length)
 
     wall_points, floor_points = generate_street(
         samples_generator_random_count(
