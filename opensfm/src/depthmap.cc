@@ -48,13 +48,13 @@ class NCCEstimator {
     , sumw_(0)
   {}
 
-  void Push(float x, float y) {
-    sumx_ += x;
-    sumy_ += y;
-    sumxx_ += x * x;
-    sumyy_ += y * y;
-    sumxy_ += x * y;
-    sumw_ += 1;
+  void Push(float x, float y, float w) {
+    sumx_ += w * x;
+    sumy_ += w * y;
+    sumxx_ += w * x * x;
+    sumyy_ += w * y * y;
+    sumxy_ += w * x * y;
+    sumw_ += w;
   }
 
   float Get() {
@@ -219,6 +219,8 @@ class DepthmapEstimator {
       PatchMatchForwardPass(result, false);
       PatchMatchBackwardPass(result, false);
     }
+
+    PostProcess(result);
   }
 
   void ComputePatchMatchSample(DepthmapEstimatorResult *result) {
@@ -230,6 +232,8 @@ class DepthmapEstimator {
       PatchMatchForwardPass(result, true);
       PatchMatchBackwardPass(result, true);
     }
+
+    PostProcess(result);
   }
 
   void AssignMatrices(DepthmapEstimatorResult *result) {
@@ -420,14 +424,16 @@ class DepthmapEstimator {
     cv::Matx33f H = PlaneInducedHomographyBaked(
         Kinvs_[0], Qs_[other], as_[other], Ks_[other], plane);
     int hpz = (patch_size_ - 1) / 2;
+    float im1_center = images_[0].at<unsigned char>(i, j);
     NCCEstimator ncc;
-    for (int u = -hpz; u <= hpz; ++u) {
-      for (int v = -hpz; v <= hpz; ++v) {
-        float im1 = images_[0].at<unsigned char>(i + u, j + v);
+    for (int dy = -hpz; dy <= hpz; ++dy) {
+      for (int dx = -hpz; dx <= hpz; ++dx) {
+        float im1 = images_[0].at<unsigned char>(i + dy, j + dx);
         float x2, y2;
-        ApplyHomography(H, j + v, i + u, &x2, &y2);
+        ApplyHomography(H, j + dx, i + dy, &x2, &y2);
         float im2 = LinearInterpolation<unsigned char>(images_[other], y2, x2);
-        ncc.Push(im1, im2);
+        float weight = BilateralWeight(im1 - im1_center, dx, dy);
+        ncc.Push(im1, im2, weight);
       }
     }
     return ncc.Get();
@@ -452,6 +458,8 @@ class DepthmapEstimator {
     float Hx0 = u / w;
     float Hy0 = v / w;
 
+    float im1_center = images_[0].at<unsigned char>(i, j);
+
     NCCEstimator ncc;
     for (int dy = -hpz; dy <= hpz; ++dy) {
       for (int dx = -hpz; dx <= hpz; ++dx) {
@@ -459,12 +467,38 @@ class DepthmapEstimator {
         float x2 = Hx0 + dfdx_x * dx + dfdy_x * dy;
         float y2 = Hy0 + dfdx_y * dx + dfdy_y * dy;
         float im2 = LinearInterpolation<unsigned char>(images_[other], y2, x2);
-        ncc.Push(im1, im2);
+        float weight = BilateralWeight(im1 - im1_center, dx, dy);
+        ncc.Push(im1, im2, weight);
       }
     }
     return ncc.Get();
   }
 
+  float BilateralWeight(float dcolor, float dx, float dy) {
+    const float dcolor_sigma = 50.0f;
+    const float dx_sigma = 5.0f;
+    const float dcolor_factor = 1.0f / (2 * dcolor_sigma * dcolor_sigma);
+    const float dx_factor = 1.0f / (2 * dx_sigma * dx_sigma);
+    return exp(
+      - dcolor * dcolor * dcolor_factor
+      - (dx * dx + dy * dy) * dx_factor
+    );
+  }
+
+  void PostProcess(DepthmapEstimatorResult *result) {
+    cv::Mat depth_filtered;
+    cv::medianBlur(result->depth, depth_filtered, 5);
+
+    for (int i = 0; i < result->depth.rows; ++i) {
+      for (int j = 0; j < result->depth.cols; ++j) {
+        float d = result->depth.at<float>(i, j);
+        float m = depth_filtered.at<float>(i, j);
+        if (fabs(d - m) / d > 0.05) {
+          result->depth.at<float>(i, j) = 0;
+        }
+      }
+    }
+  }
 
  private:
   std::vector<cv::Mat> images_;
