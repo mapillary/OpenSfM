@@ -260,10 +260,10 @@ if __name__ == "__main__":
     for image in data.images():
         width = data.load_exif(image)['width']
         height = data.load_exif(image)['height']
-        f, _, _ = data.load_features(image)
-        f = features.denormalized_image_coordinates(f, width, height)
-        features_map[image] = f
-        db.add_keypoints(images_map[image], f)
+        feat, _, _ = data.load_features(image)
+        feat = features.denormalized_image_coordinates(feat, width, height)
+        features_map[image] = feat
+        db.add_keypoints(images_map[image], feat)
 
     matches_per_pair = {}
     for image1 in data.images():
@@ -285,9 +285,10 @@ if __name__ == "__main__":
         F, inliers = matching.robust_match_fundamental(features_map[pair[0]],
                                                        features_map[pair[1]],
                                                        matches_numpy, data.config)
-        db.add_two_view_geometry(images_map[pair[0]], images_map[pair[1]],
-                                 inliers, F=F)
-        db.add_matches(images_map[pair[0]], images_map[pair[1]], inliers)
+        if len(inliers) > 10:
+            db.add_two_view_geometry(images_map[pair[0]], images_map[pair[1]],
+                                     inliers, F=F)
+            db.add_matches(images_map[pair[0]], images_map[pair[1]], inliers)
 
     db.commit()
     db.close()
