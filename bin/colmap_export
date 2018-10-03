@@ -243,11 +243,21 @@ if __name__ == "__main__":
 
     camera_map = {}
     for camera_model, camera in data.load_camera_models().items():
+        if data.camera_models_overrides_exists():
+            overrides = data.load_camera_models_overrides()
+            if camera_model in overrides:
+                camera = overrides[camera_model]
+
         normalizer = max(camera.width, camera.height)
         parameters = np.array((camera.focal*normalizer,
                                camera.width/2, camera.height/2,
                                camera.k1, camera.k2))
-        camera_id = db.add_camera(3, camera.width, camera.height, parameters)
+        if camera.projection_type == 'perspective':
+            camera_id = db.add_camera(3, camera.width, camera.height,
+                                      parameters)
+        if camera.projection_type == 'fisheye':
+            camera_id = db.add_camera(9, camera.width, camera.height,
+                                      parameters)
         camera_map[camera_model] = camera_id
 
     images_map = {}
