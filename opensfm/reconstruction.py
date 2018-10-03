@@ -16,7 +16,7 @@ from six import iteritems
 from opensfm import csfm
 from opensfm import geo
 from opensfm import log
-from opensfm import matching
+from opensfm import tracking
 from opensfm import multiview
 from opensfm import types
 from opensfm.align import align_reconstruction, apply_similarity
@@ -1142,22 +1142,23 @@ def grow_reconstruction(data, graph, reconstruction, images, gcp):
     return reconstruction, report
 
 
-def incremental_reconstruction(data):
+def incremental_reconstruction(data, graph):
     """Run the entire incremental reconstruction pipeline."""
     logger.info("Starting incremental reconstruction")
     report = {}
     chrono = Chronometer()
-    if not data.reference_lla_exists():
-        data.invent_reference_lla()
 
-    graph = data.load_tracks_graph()
-    tracks, images = matching.tracks_and_images(graph)
+    tracks, images = tracking.tracks_and_images(graph)
     chrono.lap('load_tracks_graph')
+
+    if not data.reference_lla_exists():
+        data.invent_reference_lla(images)
+
     remaining_images = set(images)
     gcp = None
     if data.ground_control_points_exist():
         gcp = data.load_ground_control_points()
-    common_tracks = matching.all_common_tracks(graph, tracks)
+    common_tracks = tracking.all_common_tracks(graph, tracks)
     reconstructions = []
     pairs = compute_image_pairs(common_tracks, data)
     chrono.lap('compute_image_pairs')
@@ -1179,7 +1180,6 @@ def incremental_reconstruction(data):
                 reconstructions.append(reconstruction)
                 reconstructions = sorted(reconstructions,
                                          key=lambda x: -len(x.shots))
-                data.save_reconstruction(reconstructions)
 
     for k, r in enumerate(reconstructions):
         logger.info("Reconstruction {}: {} images, {} points".format(
@@ -1189,7 +1189,7 @@ def incremental_reconstruction(data):
     chrono.lap('compute_reconstructions')
     report['wall_times'] = dict(chrono.lap_times())
     report['not_reconstructed_images'] = list(remaining_images)
-    return report
+    return report, reconstructions
 
 
 class Chronometer:

@@ -5,7 +5,7 @@ from networkx.algorithms import bipartite
 
 from opensfm import dataset
 from opensfm import io
-from opensfm import matching
+from opensfm import tracking
 
 logger = logging.getLogger(__name__)
 
@@ -21,49 +21,28 @@ class Command:
         data = dataset.DataSet(args.dataset)
 
         start = timer()
-        features, colors = self.load_features(data)
+        features, colors = tracking.load_features(data, data.images())
         features_end = timer()
-        matches = self.load_matches(data)
+        matches = tracking.load_matches(data, data.images())
         matches_end = timer()
-        tracks_graph = matching.create_tracks_graph(features, colors, matches,
-                                                    data.config)
+        graph = tracking.create_tracks_graph(features, colors, matches,
+                                             data.config)
         tracks_end = timer()
-        data.save_tracks_graph(tracks_graph)
+        data.save_tracks_graph(graph)
         end = timer()
 
         with open(data.profile_log(), 'a') as fout:
             fout.write('create_tracks: {0}\n'.format(end - start))
 
         self.write_report(data,
-                          tracks_graph,
+                          graph,
                           features_end - start,
                           matches_end - features_end,
                           tracks_end - matches_end)
 
-    def load_features(self, data):
-        logging.info('reading features')
-        features = {}
-        colors = {}
-        for im in data.images():
-            p, f, c = data.load_features(im)
-            features[im] = p[:, :2]
-            colors[im] = c
-        return features, colors
-
-    def load_matches(self, data):
-        matches = {}
-        for im1 in data.images():
-            try:
-                im1_matches = data.load_matches(im1)
-            except IOError:
-                continue
-            for im2 in im1_matches:
-                matches[im1, im2] = im1_matches[im2]
-        return matches
-
     def write_report(self, data, graph,
                      features_time, matches_time, tracks_time):
-        tracks, images = matching.tracks_and_images(graph)
+        tracks, images = tracking.tracks_and_images(graph)
         image_graph = bipartite.weighted_projected_graph(graph, images)
         view_graph = []
         for im1 in data.images():

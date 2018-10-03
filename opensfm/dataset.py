@@ -19,7 +19,7 @@ from opensfm import context
 logger = logging.getLogger(__name__)
 
 
-class DataSet:
+class DataSet(object):
     """Accessors to the main input and output data.
 
     Data include input images, masks, and segmentation as well

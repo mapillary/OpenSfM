@@ -96,15 +96,15 @@ def invert_similarity(s, A, b):
     return s_inv, A_inv, b_inv
 
 
-def encode_reconstruction_name(key):
+def partial_reconstruction_name(key):
     return str(key.submodel_path) + "_index" + str(key.index)
 
 
-def add_camera_constraints_soft(ra, reconstruction_shots):
+def add_camera_constraints_soft(ra, reconstruction_shots, reconstruction_name):
     added_shots = set()
     for key in reconstruction_shots:
         shots = reconstruction_shots[key]
-        rec_name = encode_reconstruction_name(key)
+        rec_name = reconstruction_name(key)
         ra.add_reconstruction(rec_name, 0, 0, 0, 0, 0, 0, 1, False)
         for shot_id in shots:
             shot = shots[shot_id]
@@ -138,10 +138,11 @@ def add_camera_constraints_soft(ra, reconstruction_shots):
 
 
 def add_camera_constraints_hard(ra, reconstruction_shots,
+                                reconstruction_name,
                                 add_common_camera_constraint):
     for key in reconstruction_shots:
         shots = reconstruction_shots[key]
-        rec_name = encode_reconstruction_name(key)
+        rec_name = reconstruction_name(key)
         ra.add_reconstruction(rec_name, 0, 0, 0, 0, 0, 0, 1, False)
         for shot_id in shots:
             shot = shots[shot_id]
@@ -160,8 +161,8 @@ def add_camera_constraints_hard(ra, reconstruction_shots,
     if add_common_camera_constraint:
         connections = connected_reconstructions(reconstruction_shots)
         for connection in connections:
-            rec_name1 = encode_reconstruction_name(connection[0])
-            rec_name2 = encode_reconstruction_name(connection[1])
+            rec_name1 = reconstruction_name(connection[0])
+            rec_name2 = reconstruction_name(connection[1])
 
             shots1 = reconstruction_shots[connection[0]]
             shots2 = reconstruction_shots[connection[1]]
@@ -181,7 +182,7 @@ def load_reconstruction(path, index):
     return (path + ("_%s" % index)), (r1, g1)
 
 
-def add_point_constraints(ra, reconstruction_shots):
+def add_point_constraints(ra, reconstruction_shots, reconstruction_name):
     connections = connected_reconstructions(reconstruction_shots)
     for connection in connections:
 
@@ -190,8 +191,8 @@ def add_point_constraints(ra, reconstruction_shots):
         i2, (r2, g2) = load_reconstruction(
             connection[1].submodel_path, connection[1].index)
 
-        rec_name1 = encode_reconstruction_name(connection[0])
-        rec_name2 = encode_reconstruction_name(connection[1])
+        rec_name1 = reconstruction_name(connection[0])
+        rec_name2 = reconstruction_name(connection[1])
 
         scale_treshold = 1.3
         treshold_in_meter = 0.3
@@ -231,22 +232,26 @@ def load_reconstruction_shots(meta_data):
     return reconstruction_shots
 
 
-def align_reconstructions(reconstruction_shots, use_points_constraints,
+def align_reconstructions(reconstruction_shots,
+                          reconstruction_name,
+                          use_points_constraints,
                           camera_constraint_type='soft_camera_constraint'):
     ra = csfm.ReconstructionAlignment()
 
     if camera_constraint_type is 'soft_camera_constraint':
-        add_camera_constraints_soft(ra, reconstruction_shots)
+        add_camera_constraints_soft(ra, reconstruction_shots,
+                                    reconstruction_name)
     if camera_constraint_type is 'hard_camera_constraint':
-        add_camera_constraints_hard(ra, reconstruction_shots, True)
+        add_camera_constraints_hard(ra, reconstruction_shots,
+                                    reconstruction_name, True)
     if use_points_constraints:
-        add_point_constraints(ra, reconstruction_shots)
+        add_point_constraints(ra, reconstruction_shots, reconstruction_name)
 
     ra.run()
 
     transformations = {}
     for key in reconstruction_shots:
-        rec_name = encode_reconstruction_name(key)
+        rec_name = reconstruction_name(key)
         r = ra.get_reconstruction(rec_name)
         s = r.scale
         A = cv2.Rodrigues(np.array([r.rx, r.ry, r.rz]))[0]
