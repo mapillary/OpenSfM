@@ -5,6 +5,7 @@ import numpy as np
 
 from opensfm.dataset import DataSet
 from opensfm import matching
+from opensfm import geo
 
 
 logger = logging.getLogger(__name__)
@@ -14,14 +15,14 @@ class SyntheticDataSet(DataSet, object):
 
     def __init__(self, reconstruction, features=None,
                  colors=None, graph=None):
-        super(SyntheticDataSet, self).__init__('')
+        super(SyntheticDataSet, self).__init__('/home/yann/')
         self.reconstruction = reconstruction
         self.features = features
         self.colors = colors
         self.graph = graph
         self.image_list = reconstruction.shots.keys()
         self.reference_lla = {'latitude': 0, 'longitude': 0, 'altitude': 0}
-        self.matches = self._construct_matches()
+        self.matches = None
 
     def images(self):
         return self.image_list
@@ -44,10 +45,19 @@ class SyntheticDataSet(DataSet, object):
         :param image: Image name, with extension (i.e. 123.jpg)
         """
         exif = {}
-        exif['width'] = self.reconstruction.shots[image].camera.width
-        exif['height'] = self.reconstruction.shots[image].camera.height
-        exif['focal_prior'] = self.reconstruction.shots[image].camera.focal_prior
-        exif['camera'] = str(self.reconstruction.shots[image].camera.id)
+        shot = self.reconstruction.shots[image]
+        exif['width'] = shot.camera.width
+        exif['height'] = shot.camera.height
+        exif['focal_prior'] = shot.camera.focal_prior
+        exif['camera'] = str(shot.camera.id)
+
+        pose = shot.pose.get_origin()
+        lat, lon, alt = geo.lla_from_topocentric(pose[0], pose[1], pose[2],
+                                                 0, 0, 0)
+        exif['gps'] = {}
+        exif['gps']['latitude'] = lat
+        exif['gps']['longitude'] = lon
+        exif['gps']['altitude'] = alt
         return exif
 
     def exif_exists(self, image):
@@ -65,11 +75,13 @@ class SyntheticDataSet(DataSet, object):
         pass
 
     def matches_exists(self, image):
+        self._check_and_create_matches()
         if self.matches is None:
             return False
         return True
 
     def load_matches(self, image):
+        self._check_and_create_matches()
         if self.matches is not None:
             return self.matches[image]
 
@@ -84,6 +96,10 @@ class SyntheticDataSet(DataSet, object):
                 if len(im2_matches[im1]):
                     return im2_matches[im1][:, [1, 0]]
         return []
+
+    def _check_and_create_matches(self):
+        if self.matches is None:
+            self.matches = self._construct_matches()
 
     def _construct_matches(self):
         matches = {}
