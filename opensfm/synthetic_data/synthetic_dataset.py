@@ -1,8 +1,10 @@
 import logging
 import os
 import os.path
+import numpy as np
 
 from opensfm.dataset import DataSet
+from opensfm import matching
 
 
 logger = logging.getLogger(__name__)
@@ -11,15 +13,15 @@ logger = logging.getLogger(__name__)
 class SyntheticDataSet(DataSet, object):
 
     def __init__(self, reconstruction, features=None,
-                 colors=None, matches=None, graph=None):
+                 colors=None, graph=None):
         super(SyntheticDataSet, self).__init__('')
         self.reconstruction = reconstruction
         self.features = features
         self.colors = colors
-        self.matches = matches
         self.graph = graph
         self.image_list = reconstruction.shots.keys()
         self.reference_lla = {'latitude': 0, 'longitude': 0, 'altitude': 0}
+        self.matches = self._construct_matches()
 
     def images(self):
         return self.image_list
@@ -57,7 +59,7 @@ class SyntheticDataSet(DataSet, object):
         return True
 
     def load_features(self, image):
-        return self.features[image], self.colors[image]
+        return self.features[image], {}, self.colors[image]
 
     def save_features(self, image, points, descriptors, colors):
         pass
@@ -82,6 +84,23 @@ class SyntheticDataSet(DataSet, object):
                 if len(im2_matches[im1]):
                     return im2_matches[im1][:, [1, 0]]
         return []
+
+    def _construct_matches(self):
+        matches = {}
+        for im1 in self.images():
+            for im2 in self.images():
+                if im1 == im2:
+                    continue
+                image_matches = matches.setdefault(im1, {})
+                tracks = matching.common_tracks(self.graph,
+                                                im1, im2)[0]
+                if len(tracks) > 10:
+                    pair_matches = np.array(
+                        [np.array([self.graph[t][im1]['feature_id'],
+                                   self.graph[t][im2]['feature_id']])
+                         for t in tracks])
+                    image_matches[im2] = pair_matches
+        return matches
 
     def load_tracks_graph(self, filename=None):
         return self.graph

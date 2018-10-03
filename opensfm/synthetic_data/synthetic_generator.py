@@ -202,8 +202,8 @@ def generate_track_data(reconstruction):
             if _is_inside_camera(projection, shot.camera):
                 original_key = all_keys[i]
                 original_point = all_values[i]
-                projections_inside.append([projection])
-                colors_inside.append([original_point.color])
+                projections_inside.append(projection)
+                colors_inside.append(original_point.color)
                 tracks_graph.add_edge(str(shot_index),
                                       str(original_key),
                                       feature=projection,
@@ -211,8 +211,8 @@ def generate_track_data(reconstruction):
                                       feature_color=(float(original_point.color[0]),
                                                      float(original_point.color[1]),
                                                      float(original_point.color[2])))
-        features[shot_index] = projections_inside
-        colors[shot_index] = colors_inside
+        features[shot_index] = np.array(projections_inside)
+        colors[shot_index] = np.array(colors_inside)
             
     return features, colors, tracks_graph
 
@@ -220,5 +220,5 @@ def generate_track_data(reconstruction):
 def _is_inside_camera(projection, camera):
     if camera.width > camera.height:
         return (-0.5 < projection[0] < 0.5) and \
-            (-camera.height/(2*camera.width) < projection[1]
-                < camera.height/(2*camera.width))
+            (-float(camera.height)/float(2*camera.width) < projection[1]
+                < float(camera.height)/float(2*camera.width))
