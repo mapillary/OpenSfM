@@ -8,8 +8,6 @@ from itertools import combinations
 from six import iteritems
 from opensfm.unionfind import UnionFind
 
-from opensfm import dataset
-
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +51,8 @@ def create_tracks_graph(features, colors, matches, config):
         else:
             sets[p] = [i]
 
-    tracks = [t for t in sets.values() if _good_track(t, config['min_track_length'])]
+    min_length = config['min_track_length']
+    tracks = [t for t in sets.values() if _good_track(t, min_length)]
     logger.debug('Good tracks: {}'.format(len(tracks)))
 
     tracks_graph = nx.Graph()
