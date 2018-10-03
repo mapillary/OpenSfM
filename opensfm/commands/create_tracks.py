@@ -5,8 +5,7 @@ from networkx.algorithms import bipartite
 
 from opensfm import dataset
 from opensfm import io
-from opensfm import matching
-from opensfm import tracks
+from opensfm import tracking
 
 logger = logging.getLogger(__name__)
 
@@ -22,28 +21,28 @@ class Command:
         data = dataset.DataSet(args.dataset)
 
         start = timer()
-        features, colors = tracks.load_features(data, data.images())
+        features, colors = tracking.load_features(data, data.images())
         features_end = timer()
-        matches = tracks.load_matches(data, data.images())
+        matches = tracking.load_matches(data, data.images())
         matches_end = timer()
-        tracks_graph = tracks.create_tracks_graph(features, colors, matches,
-                                                  data.config)
+        graph = tracking.create_tracks_graph(features, colors, matches,
+                                             data.config)
         tracks_end = timer()
-        data.save_tracks_graph(tracks_graph)
+        data.save_tracks_graph(graph)
         end = timer()
 
         with open(data.profile_log(), 'a') as fout:
             fout.write('create_tracks: {0}\n'.format(end - start))
 
         self.write_report(data,
-                          tracks_graph,
+                          graph,
                           features_end - start,
                           matches_end - features_end,
                           tracks_end - matches_end)
 
     def write_report(self, data, graph,
                      features_time, matches_time, tracks_time):
-        all_tracks, images = tracks.tracks_and_images(graph)
+        tracks, images = tracking.tracks_and_images(graph)
         image_graph = bipartite.weighted_projected_graph(graph, images)
         view_graph = []
         for im1 in data.images():
@@ -60,7 +59,7 @@ class Command:
             },
             "wall_time": features_time + matches_time + tracks_time,
             "num_images": len(images),
-            "num_tracks": len(all_tracks),
+            "num_tracks": len(tracks),
             "view_graph": view_graph
         }
         data.save_report(io.json_dumps(report), 'tracks.json')
