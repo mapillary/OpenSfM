@@ -1,11 +1,12 @@
 import numpy as np
 import functools
 import math
+import cv2
 
 import networkx as nx
 
-from opensfm import types
 from opensfm import io
+from opensfm import types
 
 
 def derivative(func, x):
@@ -19,8 +20,12 @@ def samples_generator_random_count(count):
     return np.random.rand(count)
 
 
-def samples_generator_interval(length, interval):
-    return np.linspace(0, 1, num=length/interval)
+def samples_generator_interval(start, length, interval, interval_noise):
+    samples = np.linspace(start/length, 1, num=length/interval)
+    samples += np.random.normal(0.0,
+                                float(interval_noise)/float(length),
+                                samples.shape)
+    return samples
 
 
 def generate_samples_and_local_frame(samples, shape):
@@ -52,7 +57,7 @@ def generate_z_plane(samples, shape, thickness):
         point = shape(i)
         tangent = derivative(shape, i)
         tangent = np.array([-tangent[1], tangent[0]])
-        shift = tangent*((np.random.rand()-0.5)*thickness/2)
+        shift = tangent*((np.random.rand()-0.5)*thickness)
         point += shift
         plane_points += [point]
     plane_points = np.array(plane_points)
@@ -60,8 +65,8 @@ def generate_z_plane(samples, shape, thickness):
 
 
 def generate_xy_planes(samples, shape, z_size, y_size):
-    xy1 = generate_samples_shifted(samples, shape, y_size/2)
-    xy2 = generate_samples_shifted(samples, shape, -y_size/2)
+    xy1 = generate_samples_shifted(samples, shape, y_size)
+    xy2 = generate_samples_shifted(samples, shape, -y_size)
     xy1 = np.insert(xy1, 2, values=np.random.rand(
         xy1.shape[0])*z_size, axis=1)
     xy2 = np.insert(xy2, 2, values=np.random.rand(
@@ -100,24 +105,20 @@ def ellipse_generator(x_size, y_size, point):
     return np.transpose(np.array([x, y]))
 
 
-def perturb_points(points, pertubation_sigmas):
+def perturb_points(points, xyz_sigmas):
     for point in points:
-        point += np.random.normal(0.0, pertubation_sigmas,
+        point += np.random.normal(0.0, xyz_sigmas,
                                   point.shape)
 
 
-def sample_camera():
-    camera = types.PerspectiveCamera()
-    camera.id = 'camera'
-    camera.focal = 0.9
-    camera.k1 = -0.1
-    camera.k2 = 0.01
-    camera.focal_prior = camera.focal
-    camera.k1_prior = camera.k1
-    camera.k2_prior = camera.k2
-    camera.height = 600
-    camera.width = 800
-    return camera
+def perturb_rotations(rotations, angle_sigma):
+    for i in range(len(rotations)):
+        rotation = rotations[i]
+        rodrigues = cv2.Rodrigues(rotation)[0].ravel()
+        angle = np.linalg.norm(rodrigues)
+        angle_pertubed = angle + np.random.normal(0.0, angle_sigma)
+        rodrigues *= (float(angle_pertubed)/float(angle))
+        rotations[i] = cv2.Rodrigues(rodrigues)[0]
 
 
 def add_shots_to_reconstruction(positions, rotations, camera, reconstruction):
@@ -151,44 +152,6 @@ def create_reconstruction(points, colors,
     for item in zip(positions, rotations, cameras):
         add_shots_to_reconstruction(item[0], item[1], item[2], reconstruction)
     return reconstruction
-
-
-def generate_reconstruction(width, height, length, points_count, type):
-    generator = None
-    if type == 'ellipse':
-        ellipse_ratio = 4
-        generator = functools.partial(ellipse_generator, length,
-                                      length/ellipse_ratio)
-    if type == 'line':
-        generator = functools.partial(line_generator, length)
-    if type == 'curve':
-        generator = functools.partial(weird_curve, length)
-
-    wall_points, floor_points = generate_street(
-        samples_generator_random_count(
-            points_count/3), generator,
-        height, width)
-
-    floor_pertubation = [0.0, 0.0, 0.1]
-    perturb_points(floor_points, floor_pertubation)
-    walls_pertubation = [0.5, 0.5, 0.0]
-    perturb_points(wall_points, walls_pertubation)
-
-    cameras_interval = 3
-    cameras_height = 1.5
-    positions, rotations = generate_cameras(
-        samples_generator_interval(length, cameras_interval),
-        generator, cameras_height)
-
-    camera_pertubation = [0.2, 0.2, 0.01]
-    perturb_points(positions, camera_pertubation)
-
-    floor_color = [120, 90, 10]
-    wall_color = [10, 90, 130]
-    return create_reconstruction(
-        [floor_points, wall_points],
-        [floor_color, wall_color],
-        [sample_camera()], [positions], [rotations])
 
 
 def generate_track_data(reconstruction, maximum_depth):
@@ -251,4 +214,3 @@ def _is_inside_camera(projection, camera):
         return (-0.5 < projection[1] < 0.5) and \
             (-float(camera.width)/float(2*camera.height) < projection[0]
                 < float(camera.width)/float(2*camera.height))
-        
