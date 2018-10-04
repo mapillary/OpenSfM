@@ -191,7 +191,7 @@ def generate_reconstruction(width, height, length, points_count, type):
         [sample_camera()], [positions], [rotations])
 
 
-def generate_track_data(reconstruction):
+def generate_track_data(reconstruction, maximum_depth):
     tracks_graph = nx.Graph()
     for shot_index in reconstruction.shots:
         tracks_graph.add_node(shot_index, bipartite=0)
@@ -217,6 +217,8 @@ def generate_track_data(reconstruction):
             original_point = all_values[i]
             if not _is_in_front(original_point, shot):
                 continue
+            if not _check_depth(original_point, shot, maximum_depth):
+                continue
             projections_inside.append(projection)
             colors_inside.append(original_point.color)
             tracks_graph.add_edge(str(shot_index),
@@ -229,6 +231,10 @@ def generate_track_data(reconstruction):
         features[shot_index] = np.array(projections_inside)
         colors[shot_index] = np.array(colors_inside)
     return features, colors, tracks_graph
+
+
+def _check_depth(point, shot, maximum_depth):
+    return shot.pose.transform(point.coordinates)[2] < maximum_depth
 
 
 def _is_in_front(point, shot):
