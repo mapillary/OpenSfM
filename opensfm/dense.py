@@ -11,7 +11,7 @@ import numpy as np
 from opensfm import csfm
 from opensfm import io
 from opensfm import log
-from opensfm import matching
+from opensfm import tracking
 from opensfm.context import parallel_map
 
 
@@ -23,8 +23,9 @@ def compute_depthmaps(data, graph, reconstruction):
     logger.info('Computing neighbors')
     processes = data.config.get('processes', 1)
     num_neighbors = data.config['depthmap_num_neighbors']
-    tracks, _ = matching.tracks_and_images(graph)
-    common_tracks = matching.all_common_tracks(graph, tracks, include_features=False)
+    tracks, _ = tracking.tracks_and_images(graph)
+    common_tracks = tracking.all_common_tracks(graph, tracks,
+                                               include_features=False)
 
     neighbors = {}
     for shot in reconstruction.shots.values():
