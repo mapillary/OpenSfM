@@ -100,6 +100,12 @@ def ellipse_generator(x_size, y_size, point):
     return np.transpose(np.array([x, y]))
 
 
+def perturb_points(points, pertubation_sigmas):
+    for point in points:
+        point += np.random.normal(0.0, pertubation_sigmas,
+                                  point.shape)
+
+
 def sample_camera():
     camera = types.PerspectiveCamera()
     camera.id = 'camera'
@@ -163,11 +169,19 @@ def generate_reconstruction(width, height, length, points_count, type):
             points_count/3), generator,
         height, width)
 
+    floor_pertubation = [0.0, 0.0, 0.1]
+    perturb_points(floor_points, floor_pertubation)
+    walls_pertubation = [0.5, 0.5, 0.0]
+    perturb_points(wall_points, walls_pertubation)
+
     cameras_interval = 3
     cameras_height = 1.5
     positions, rotations = generate_cameras(
         samples_generator_interval(length, cameras_interval),
         generator, cameras_height)
+
+    camera_pertubation = [0.2, 0.2, 0.01]
+    perturb_points(positions, camera_pertubation)
 
     floor_color = [120, 90, 10]
     wall_color = [10, 90, 130]
@@ -197,21 +211,29 @@ def generate_track_data(reconstruction):
         projections_inside = []
         colors_inside = []
         for i, projection in enumerate(projections):
-            if _is_inside_camera(projection, shot.camera):
-                original_key = all_keys[i]
-                original_point = all_values[i]
-                projections_inside.append(projection)
-                colors_inside.append(original_point.color)
-                tracks_graph.add_edge(str(shot_index),
-                                      str(original_key),
-                                      feature=projection,
-                                      feature_id=len(projections_inside)-1,
-                                      feature_color=(float(original_point.color[0]),
-                                                     float(original_point.color[1]),
-                                                     float(original_point.color[2])))
+            if not _is_inside_camera(projection, shot.camera):
+                continue
+            original_key = all_keys[i]
+            original_point = all_values[i]
+            if not _is_in_front(original_point, shot):
+                continue
+            projections_inside.append(projection)
+            colors_inside.append(original_point.color)
+            tracks_graph.add_edge(str(shot_index),
+                                  str(original_key),
+                                  feature=projection,
+                                  feature_id=len(projections_inside)-1,
+                                  feature_color=(float(original_point.color[0]),
+                                                 float(original_point.color[1]),
+                                                 float(original_point.color[2])))
         features[shot_index] = np.array(projections_inside)
         colors[shot_index] = np.array(colors_inside)
     return features, colors, tracks_graph
+
+
+def _is_in_front(point, shot):
+    return np.dot((point.coordinates - shot.pose.get_origin()),
+                  shot.pose.get_rotation_matrix()[2]) > 0
 
 
 def _is_inside_camera(projection, camera):
