@@ -5,6 +5,7 @@ import numpy as np
 
 from opensfm.dataset import DataSet
 from opensfm import matching
+from opensfm import tracking
 from opensfm import geo
 
 
@@ -108,7 +109,7 @@ class SyntheticDataSet(DataSet, object):
                 if im1 == im2:
                     continue
                 image_matches = matches.setdefault(im1, {})
-                tracks = matching.common_tracks(self.graph,
+                tracks = tracking.common_tracks(self.graph,
                                                 im1, im2)[0]
                 if len(tracks) > 10:
                     pair_matches = np.array(
