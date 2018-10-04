@@ -169,14 +169,12 @@ def generate_reconstruction(width, height, length, points_count, type):
         samples_generator_interval(length, cameras_interval),
         generator, cameras_height)
 
-    reconstruction = create_reconstruction(
+    floor_color = [120, 90, 10]
+    wall_color = [10, 90, 130]
+    return create_reconstruction(
         [floor_points, wall_points],
-        [[120, 90, 10], [10, 90, 130]],
+        [floor_color, wall_color],
         [sample_camera()], [positions], [rotations])
-    ply_file = io.reconstruction_to_ply(reconstruction)
-    with open("/home/yann/corridor.ply", "w") as ply_output:
-        ply_output.write(ply_file)
-    return reconstruction
 
 
 def generate_track_data(reconstruction):
@@ -213,7 +211,6 @@ def generate_track_data(reconstruction):
                                                      float(original_point.color[2])))
         features[shot_index] = np.array(projections_inside)
         colors[shot_index] = np.array(colors_inside)
-            
     return features, colors, tracks_graph
 
 
@@ -222,3 +219,8 @@ def _is_inside_camera(projection, camera):
         return (-0.5 < projection[0] < 0.5) and \
             (-float(camera.height)/float(2*camera.width) < projection[1]
                 < float(camera.height)/float(2*camera.width))
+    else:
+        return (-0.5 < projection[1] < 0.5) and \
+            (-float(camera.width)/float(2*camera.height) < projection[0]
+                < float(camera.width)/float(2*camera.height))
+        
