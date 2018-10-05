@@ -184,7 +184,8 @@ def generate_track_data(reconstruction, maximum_depth, noise):
                 continue
 
             # add perturbation
-            perturbation = float(noise)/float(shot.camera.width)
+            perturbation = float(noise)/float(max(shot.camera.width,
+                                                  shot.camera.height))
             perturb_points([projection], np.array([perturbation, perturbation]))
 
             projections_inside.append(projection)
