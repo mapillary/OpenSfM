@@ -104,7 +104,8 @@ class SyntheticScene(object):
             self.shot_rotations)
 
     def get_tracks_data(self, maximum_depth, noise):
-        return generate_track_data(self.get_reconstruction(), maximum_depth)
+        return generate_track_data(self.get_reconstruction(),
+                                   maximum_depth, noise)
 
     def compare(self, reconstruction):
         reference = self.get_reconstruction()

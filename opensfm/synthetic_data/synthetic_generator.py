@@ -105,9 +105,9 @@ def ellipse_generator(x_size, y_size, point):
     return np.transpose(np.array([x, y]))
 
 
-def perturb_points(points, xyz_sigmas):
+def perturb_points(points, sigmas):
     for point in points:
-        point += np.random.normal(0.0, xyz_sigmas,
+        point += np.random.normal(0.0, sigmas,
                                   point.shape)
 
 
@@ -154,7 +154,7 @@ def create_reconstruction(points, colors,
     return reconstruction
 
 
-def generate_track_data(reconstruction, maximum_depth):
+def generate_track_data(reconstruction, maximum_depth, noise):
     tracks_graph = nx.Graph()
     for shot_index in reconstruction.shots:
         tracks_graph.add_node(shot_index, bipartite=0)
@@ -182,6 +182,11 @@ def generate_track_data(reconstruction, maximum_depth):
                 continue
             if not _check_depth(original_point, shot, maximum_depth):
                 continue
+
+            # add perturbation
+            perturbation = float(noise)/float(shot.camera.width)
+            perturb_points([projection], np.array([perturbation, perturbation]))
+
             projections_inside.append(projection)
             colors_inside.append(original_point.color)
             tracks_graph.add_edge(str(shot_index),
@@ -193,6 +198,7 @@ def generate_track_data(reconstruction, maximum_depth):
                                                  float(original_point.color[2])))
         features[shot_index] = np.array(projections_inside)
         colors[shot_index] = np.array(colors_inside)
+
     return features, colors, tracks_graph
 
 
