@@ -86,18 +86,6 @@ class SyntheticDataSet(DataSet, object):
         if self.matches is not None:
             return self.matches[image]
 
-    def find_matches(self, im1, im2):
-        if self.matches_exists(im1):
-            im1_matches = self.load_matches(im1)
-            if im2 in im1_matches:
-                return im1_matches[im2]
-        if self.matches_exists(im2):
-            im2_matches = self.load_matches(im2)
-            if im1 in im2_matches:
-                if len(im2_matches[im1]):
-                    return im2_matches[im1][:, [1, 0]]
-        return []
-
     def _check_and_create_matches(self):
         if self.matches is None:
             self.matches = self._construct_matches()
