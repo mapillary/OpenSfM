@@ -34,9 +34,9 @@ def generate_samples_and_local_frame(samples, shape):
     for i in samples:
         point = shape(i)
         points += [point]
-        ez = derivative(shape, i)
-        ex = np.array([-ez[1], ez[0]])
-        tangents += [np.array([ex, ez])]
+        ex = derivative(shape, i)
+        ez = np.array([ex[1], -ex[0]])
+        tangents += [np.array([ez, ex])]
     return np.array(points), np.array(tangents)
 
 
@@ -84,7 +84,7 @@ def generate_cameras(samples, shape, height):
     positions, rotations = generate_samples_and_local_frame(samples, shape)
     positions = np.insert(positions, 2, values=height, axis=1)
     rotations = np.insert(rotations, 2, values=0, axis=2)
-    rotations = np.insert(rotations, 1, values=np.array([0, 0, 1]), axis=1)
+    rotations = np.insert(rotations, 1, values=np.array([0, 0, -1]), axis=1)
     return positions, rotations
 
 

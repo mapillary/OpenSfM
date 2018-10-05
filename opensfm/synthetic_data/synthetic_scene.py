@@ -121,6 +121,8 @@ def position_errors(reference, candidate):
     for s in common_shots:
         pose1 = reference.shots[s].pose.get_origin()
         pose2 = candidate.shots[s].pose.get_origin()
+        pose1[2] = pose2[2]
+        error = np.linalg.norm(pose1-pose2)
         errors.append(np.linalg.norm(pose1-pose2))
     return np.array(errors)
 
@@ -132,7 +134,7 @@ def rotation_errors(reference, candidate):
     for s in common_shots:
         pose1 = reference.shots[s].pose.get_rotation_matrix()
         pose2 = candidate.shots[s].pose.get_rotation_matrix()
-        difference = np.transpose(pose1)*pose2
+        difference = np.transpose(pose1).dot(pose2)
         rodrigues = cv2.Rodrigues(difference)[0].ravel()
         angle = np.linalg.norm(rodrigues)
         errors.append(angle)
