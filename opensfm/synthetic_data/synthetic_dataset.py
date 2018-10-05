@@ -16,7 +16,7 @@ class SyntheticDataSet(DataSet, object):
 
     def __init__(self, reconstruction, features=None,
                  colors=None, graph=None):
-        super(SyntheticDataSet, self).__init__('/home/yann/')
+        super(SyntheticDataSet, self).__init__('')
         self.reconstruction = reconstruction
         self.features = features
         self.colors = colors
@@ -24,6 +24,7 @@ class SyntheticDataSet(DataSet, object):
         self.image_list = reconstruction.shots.keys()
         self.reference_lla = {'latitude': 0, 'longitude': 0, 'altitude': 0}
         self.matches = None
+        self.config['use_altitude_tag'] = True
 
     def images(self):
         return self.image_list
