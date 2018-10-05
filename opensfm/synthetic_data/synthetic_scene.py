@@ -113,12 +113,12 @@ class SyntheticScene(object):
         rotation = metrics.rotation_errors(reference, reconstruction)
         points = metrics.points_errors(reference, reconstruction)
         completeness = metrics.completeness_errors(reference, reconstruction)
-        return {'position_average': np.average(position),
-                'position_std': np.std(position),
+        return {'position_average': np.linalg.norm(np.average(position, axis=0)),
+                'position_std': np.linalg.norm(np.std(position, axis=0)),
                 'rotation_average': np.average(rotation),
                 'rotation_std': np.std(rotation),
-                'points_average': np.average(points),
-                'points_std': np.std(points),
+                'points_average': np.linalg.norm(np.average(points, axis=0)),
+                'points_std': np.linalg.norm(np.std(points, axis=0)),
                 'ratio_cameras': completeness[0],
                 'ratio_points': completeness[1]}
 

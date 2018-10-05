@@ -8,7 +8,10 @@ def points_errors(reference, candidate, max_distance=1):
     topo_tree = spatial.cKDTree(ref_points)
 
     cand_points = np.array([p.coordinates for p in candidate.points.values()])
-    return topo_tree.query(cand_points)[0]
+    closest_indexes = topo_tree.query(cand_points)[1]
+
+    return np.array([ref_points[closest]-cand
+                     for closest, cand in zip(closest_indexes, cand_points)])
 
 
 def completeness_errors(reference, candidate):
@@ -23,11 +26,7 @@ def position_errors(reference, candidate):
     for s in common_shots:
         pose1 = reference.shots[s].pose.get_origin()
         pose2 = candidate.shots[s].pose.get_origin()
-        # TODO For now don't consider Z as 
-        # there's an issue with XYZ<->WGS84
-        pose1[2] = pose2[2]
-        error = np.linalg.norm(pose1-pose2)
-        errors.append(np.linalg.norm(pose1-pose2))
+        errors.append(pose1-pose2)
     return np.array(errors)
 
 
