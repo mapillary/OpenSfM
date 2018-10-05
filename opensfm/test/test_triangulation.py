@@ -60,7 +60,7 @@ def test_triangulate_bearings_midpoint():
     max_reprojection = 0.01
     min_ray_angle = np.radians(2.0)
     res, X = opensfm.csfm.triangulate_bearings_midpoint(
-        [o1, o2], [b1, b2], max_reprojection, min_ray_angle)
+        [o1, o2], [b1, b2], 2 * [max_reprojection], min_ray_angle)
 
     assert np.allclose(X, [0, 0, 1.0])
     assert res == 0

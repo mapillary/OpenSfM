@@ -157,7 +157,7 @@ Eigen::Vector3d TriangulateBearingsMidpointSolve(
 
 bp::object TriangulateBearingsMidpoint(const bp::list &os_list,
                                        const bp::list &bs_list,
-                                       double threshold,
+                                       const bp::list &threshold_list,
                                        double min_angle) {
   int n = bp::len(os_list);
 
@@ -201,8 +201,8 @@ bp::object TriangulateBearingsMidpoint(const bp::list &os_list,
     Eigen::Vector3d b = bs.col(i);
 
     double error = AngleBetweenVectors(x_reproj, b);
-    if (error > threshold) {
-     return TriangulateReturn(TRIANGULATION_BAD_REPROJECTION, bp::object());
+    if (error > threshold_list[i]) {
+      return TriangulateReturn(TRIANGULATION_BAD_REPROJECTION, bp::object());
     }
   }
 
