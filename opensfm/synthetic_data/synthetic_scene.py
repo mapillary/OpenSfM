@@ -1,6 +1,7 @@
 import numpy as np
 import functools
 import cv2
+import synthetic_metrics as metrics
 
 from opensfm import types
 
@@ -106,39 +107,19 @@ class SyntheticScene(object):
         return generate_track_data(self.get_reconstruction(), maximum_depth)
 
     def compare(self, reconstruction):
-        position = position_errors(self.get_reconstruction(), reconstruction)
-        rotation = rotation_errors(self.get_reconstruction(), reconstruction)
+        reference = self.get_reconstruction()
+        position = metrics.position_errors(reference, reconstruction)
+        rotation = metrics.rotation_errors(reference, reconstruction)
+        points = metrics.points_errors(reference, reconstruction)
+        completeness = metrics.completeness_errors(reference, reconstruction)
         return {'position_average': np.average(position),
                 'position_std': np.std(position),
                 'rotation_average': np.average(rotation),
-                'rotation_std': np.std(rotation)}
-
-
-def position_errors(reference, candidate):
-    common_shots = set(reference.shots.keys()).\
-        intersection(set(candidate.shots.keys()))
-    errors = []
-    for s in common_shots:
-        pose1 = reference.shots[s].pose.get_origin()
-        pose2 = candidate.shots[s].pose.get_origin()
-        pose1[2] = pose2[2]
-        error = np.linalg.norm(pose1-pose2)
-        errors.append(np.linalg.norm(pose1-pose2))
-    return np.array(errors)
-
-
-def rotation_errors(reference, candidate):
-    common_shots = set(reference.shots.keys()).\
-        intersection(set(candidate.shots.keys()))
-    errors = []
-    for s in common_shots:
-        pose1 = reference.shots[s].pose.get_rotation_matrix()
-        pose2 = candidate.shots[s].pose.get_rotation_matrix()
-        difference = np.transpose(pose1).dot(pose2)
-        rodrigues = cv2.Rodrigues(difference)[0].ravel()
-        angle = np.linalg.norm(rodrigues)
-        errors.append(angle)
-    return np.array(errors)
+                'rotation_std': np.std(rotation),
+                'points_average': np.average(points),
+                'points_std': np.std(points),
+                'ratio_cameras': completeness[0],
+                'ratio_points': completeness[1]}
 
 
 
