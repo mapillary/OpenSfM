@@ -2,6 +2,7 @@
 
 import argparse
 import matplotlib.pyplot as pl
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
 from textwrap import wrap
 
@@ -9,34 +10,41 @@ from opensfm import dataset
 from opensfm import io
 
 
+def small_colorbar(ax):
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.05)
+    pl.colorbar(cax=cax)
+
+
 def plot_depthmap(im, title, depth, clean, plane, score, nghbr):
-        ax = pl.subplot(2, 3, 1)
-        ax_title = ax.set_title(title)
-        ax_title.set_y(1.05)
-        pl.imshow(im)
-        ax = pl.subplot(2, 3, 2)
-        ax_title = ax.set_title("Depth")
-        ax_title.set_y(1.08)
-        pl.imshow(depth)
-        ax = pl.subplot(2, 3, 3)
-        ax_title = ax.set_title("Clean depth")
-        ax_title.set_y(1.08)
-        pl.imshow(clean)
-        pl.colorbar()
-        ax = pl.subplot(2, 3, 4)
-        ax_title = ax.set_title("Score")
-        ax_title.set_y(1.08)
-        pl.imshow(score)
-        pl.colorbar()
-        ax = pl.subplot(2, 3, 5)
-        ax_title = ax.set_title("Neighbor")
-        ax_title.set_y(1.08)
-        pl.imshow(nghbr)
-        pl.colorbar()
-        ax = pl.subplot(2, 3, 6)
-        ax_title = ax.set_title("Plane normal")
-        ax_title.set_y(1.02)
-        pl.imshow(color_plane_normals(plane))
+    ax = pl.subplot(2, 3, 1)
+    ax_title = ax.set_title(title)
+    ax_title.set_y(1.05)
+    pl.imshow(im)
+    ax = pl.subplot(2, 3, 2)
+    ax_title = ax.set_title("Depth")
+    ax_title.set_y(1.08)
+    pl.imshow(depth)
+    small_colorbar(ax)
+    ax = pl.subplot(2, 3, 3)
+    ax_title = ax.set_title("Clean depth")
+    ax_title.set_y(1.08)
+    pl.imshow(clean)
+    small_colorbar(ax)
+    ax = pl.subplot(2, 3, 4)
+    ax_title = ax.set_title("Score")
+    ax_title.set_y(1.08)
+    pl.imshow(score)
+    small_colorbar(ax)
+    ax = pl.subplot(2, 3, 5)
+    ax_title = ax.set_title("Neighbor")
+    ax_title.set_y(1.08)
+    pl.imshow(nghbr)
+    small_colorbar(ax)
+    ax = pl.subplot(2, 3, 6)
+    ax_title = ax.set_title("Plane normal")
+    ax_title.set_y(1.02)
+    pl.imshow(color_plane_normals(plane))
 
 
 def color_plane_normals(plane):
