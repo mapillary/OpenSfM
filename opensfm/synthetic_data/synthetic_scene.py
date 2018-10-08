@@ -19,6 +19,7 @@ from synthetic_generator import perturb_points
 from synthetic_generator import perturb_rotations
 
 from synthetic_generator import generate_track_data
+from synthetic_generator import generate_exifs
 from synthetic_generator import create_reconstruction
 
 
@@ -103,6 +104,10 @@ class SyntheticScene(object):
             self.cameras, self.shot_positions,
             self.shot_rotations)
 
+    def get_scene_exifs(self, gps_noise):
+        return generate_exifs(self.get_reconstruction(),
+                              gps_noise)
+
     def get_tracks_data(self, maximum_depth, noise):
         return generate_track_data(self.get_reconstruction(),
                                    maximum_depth, noise)
@@ -110,11 +115,14 @@ class SyntheticScene(object):
     def compare(self, reconstruction):
         reference = self.get_reconstruction()
         position = metrics.position_errors(reference, reconstruction)
+        gps = metrics.gps_errors(reconstruction)
         rotation = metrics.rotation_errors(reference, reconstruction)
         points = metrics.points_errors(reference, reconstruction)
         completeness = metrics.completeness_errors(reference, reconstruction)
         return {'position_average': np.linalg.norm(np.average(position, axis=0)),
                 'position_std': np.linalg.norm(np.std(position, axis=0)),
+                'gps_average': np.linalg.norm(np.average(gps, axis=0)),
+                'gps_std': np.linalg.norm(np.std(gps, axis=0)),
                 'rotation_average': np.average(rotation),
                 'rotation_std': np.std(rotation),
                 'points_average': np.linalg.norm(np.average(points, axis=0)),

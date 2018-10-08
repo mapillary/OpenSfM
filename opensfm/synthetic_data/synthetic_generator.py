@@ -6,6 +6,7 @@ import cv2
 import networkx as nx
 
 from opensfm import io
+from opensfm import geo
 from opensfm import types
 
 
@@ -111,6 +112,41 @@ def perturb_points(points, sigmas):
                                   point.shape)
 
 
+def generate_exifs(reconstruction, gps_noise):
+    """
+    Return extracted exif information, as dictionary, usually with fields:
+
+    ================  =====  ===================================
+    Field             Type   Description
+    ================  =====  ===================================
+    width             int    Width of image, in pixels
+    height            int    Height of image, in pixels
+    focal_prior       float  Focal length (real) / sensor width
+    ================  =====  ===================================
+
+    :param image: Image name, with extension (i.e. 123.jpg)
+    """
+    exifs = {}
+    for shot_name, shot in reconstruction.shots.items():
+        exif = {}
+        exif['width'] = shot.camera.width
+        exif['height'] = shot.camera.height
+        exif['focal_prior'] = shot.camera.focal_prior
+        exif['camera'] = str(shot.camera.id)
+
+        pose = shot.pose.get_origin()
+        perturb_points([pose], [gps_noise, gps_noise, gps_noise])
+        lat, lon, alt = geo.lla_from_topocentric(pose[0], pose[1], pose[2],
+                                                 0, 0, 0)
+        exif['gps'] = {}
+        exif['gps']['latitude'] = lat
+        exif['gps']['longitude'] = lon
+        exif['gps']['altitude'] = alt
+        exif['gps']['dop'] = gps_noise
+        exifs[shot_name] = exif
+    return exifs
+
+
 def perturb_rotations(rotations, angle_sigma):
     for i in range(len(rotations)):
         rotation = rotations[i]
@@ -121,7 +157,8 @@ def perturb_rotations(rotations, angle_sigma):
         rotations[i] = cv2.Rodrigues(rodrigues)[0]
 
 
-def add_shots_to_reconstruction(positions, rotations, camera, reconstruction):
+def add_shots_to_reconstruction(positions, rotations,
+                                camera, reconstruction):
     shift = len(reconstruction.shots)
     for i, item in enumerate(zip(positions, rotations)):
         shot = types.Shot()
@@ -145,7 +182,8 @@ def add_points_to_reconstruction(points, color, reconstruction):
 
 
 def create_reconstruction(points, colors,
-                          cameras, positions, rotations):
+                          cameras, positions,
+                          rotations):
     reconstruction = types.Reconstruction()
     for item in zip(points, colors):
         add_points_to_reconstruction(item[0], item[1], reconstruction)

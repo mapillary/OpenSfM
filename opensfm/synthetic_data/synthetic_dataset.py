@@ -14,10 +14,11 @@ logger = logging.getLogger(__name__)
 
 class SyntheticDataSet(DataSet, object):
 
-    def __init__(self, reconstruction, features=None,
+    def __init__(self, reconstruction, exifs, features=None,
                  colors=None, graph=None):
         super(SyntheticDataSet, self).__init__('')
         self.reconstruction = reconstruction
+        self.exifs = exifs
         self.features = features
         self.colors = colors
         self.graph = graph
@@ -33,34 +34,7 @@ class SyntheticDataSet(DataSet, object):
         return self.reconstruction.cameras
 
     def load_exif(self, image):
-        """
-        Return extracted exif information, as dictionary, usually with fields:
-
-        ================  =====  ===================================
-        Field             Type   Description
-        ================  =====  ===================================
-        width             int    Width of image, in pixels
-        height            int    Height of image, in pixels
-        focal_prior       float  Focal length (real) / sensor width
-        ================  =====  ===================================
-
-        :param image: Image name, with extension (i.e. 123.jpg)
-        """
-        exif = {}
-        shot = self.reconstruction.shots[image]
-        exif['width'] = shot.camera.width
-        exif['height'] = shot.camera.height
-        exif['focal_prior'] = shot.camera.focal_prior
-        exif['camera'] = str(shot.camera.id)
-
-        pose = shot.pose.get_origin()
-        lat, lon, alt = geo.lla_from_topocentric(pose[0], pose[1], pose[2],
-                                                 0, 0, 0)
-        exif['gps'] = {}
-        exif['gps']['latitude'] = lat
-        exif['gps']['longitude'] = lon
-        exif['gps']['altitude'] = alt
-        return exif
+        return self.exifs[image]
 
     def exif_exists(self, image):
         return True
