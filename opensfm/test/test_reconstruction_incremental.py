@@ -50,7 +50,7 @@ def test_reconstruction_incremental(scene):
     assert errors['ratio_cameras'] == 1.0
     assert np.allclose(errors['ratio_points'], 0.942, 1e-3)
 
-    # below, (av+std) should be in order of ||gps_noise||²
+    # below, (av+std) should be in order of ||gps_noise||^2
     assert np.allclose(errors['position_average'], 2.005, 1e-3)
     assert np.allclose(errors['position_std'], 2.503, 1e-3)
     assert np.allclose(errors['gps_std'], 9.132, 1e-3)
