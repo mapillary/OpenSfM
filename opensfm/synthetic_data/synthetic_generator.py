@@ -138,7 +138,7 @@ def add_points_to_reconstruction(points, color, reconstruction):
     shift = len(reconstruction.points)
     for i in range(points.shape[0]):
         point = types.Point()
-        point.id = shift+i
+        point.id = str(shift+i)
         point.coordinates = points[i, :]
         point.color = color
         reconstruction.add_point(point)
