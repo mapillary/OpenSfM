@@ -1,17 +1,14 @@
 import numpy as np
 import cv2
-import scipy.spatial as spatial
 
 
-def points_errors(reference, candidate, max_distance=1):
-    ref_points = np.array([p.coordinates for p in reference.points.values()])
-    topo_tree = spatial.cKDTree(ref_points)
+def points_errors(reference, candidate):
+    common_points = set(reference.points.keys()).\
+         intersection(set(candidate.points.keys()))
 
-    cand_points = np.array([p.coordinates for p in candidate.points.values()])
-    closest_indexes = topo_tree.query(cand_points)[1]
-
-    return np.array([ref_points[closest]-cand
-                     for closest, cand in zip(closest_indexes, cand_points)])
+    return np.array([reference.points[p].coordinates -
+                     candidate.points[p].coordinates
+                     for p in common_points])
 
 
 def completeness_errors(reference, candidate):
