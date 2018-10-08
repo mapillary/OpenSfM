@@ -1,4 +1,5 @@
 import pytest
+import numpy as np
 
 from opensfm import reconstruction
 from opensfm import io
@@ -9,31 +10,51 @@ from opensfm.synthetic_data import synthetic_scene
 
 @pytest.fixture(scope='module')
 def scene():
-    generator = synthetic_scene.get_scene_generator('ellipse', 100)
+    np.random.seed(42)
+
+    scene_length = 60
+    points_count = 5000
+    generator = synthetic_scene.get_scene_generator('ellipse', scene_length)
     scene = synthetic_scene.SyntheticScene(generator)
-    scene.add_street(10000, 10, 7).perturb_floor([0, 0, 0.1]).\
+    scene.add_street(points_count, 7, 7).perturb_floor([0, 0, 0.1]).\
         perturb_walls([0.2, 0.2, 0.01])
 
+    camera_height = 1.5
+    camera_interval = 3
+    position_perturbation = [0.2, 0.2, 0.01]
+    rotation_perturbation = 0.3
     camera = synthetic_scene.get_camera('perspective', '1', 0.9, -0.1, 0.01)
-    scene.add_camera_sequence(camera, 0, 80, 1.5, 3, [0.2, 0.2, 0.01], 0.3)
+    scene.add_camera_sequence(camera, 0, scene_length,
+                              camera_height, camera_interval,
+                              position_perturbation,
+                              rotation_perturbation)
     return scene
 
 
 def test_reconstruction_incremental(scene):
     reference = scene.get_reconstruction()
-    features, colors, graph = scene.get_tracks_data(40, 1.0)
-    dataset = synthetic_dataset.SyntheticDataSet(reference, features,
+    maximum_depth = 40
+    projection_noise = 1.0
+    gps_noise = 5.0
+
+    exifs = scene.get_scene_exifs(gps_noise)
+    features, colors, graph = scene.get_tracks_data(maximum_depth,
+                                                    projection_noise)
+    dataset = synthetic_dataset.SyntheticDataSet(reference, exifs, features,
                                                  colors, graph)
 
-    ply_file = io.reconstruction_to_ply(reference)
-    with open("/home/yann/corridor_before.ply", "w") as ply_output:
-        ply_output.write(ply_file)
-
-    dataset.config['processes'] = 12
     _, reconstructed_scene = reconstruction.\
         incremental_reconstruction(dataset, graph)
-
     errors = scene.compare(reconstructed_scene[0])
-    ply_file = io.reconstruction_to_ply(reconstructed_scene[0])
-    with open("/home/yann/corridor_after.ply", "w") as ply_output:
-        ply_output.write(ply_file)
+
+    assert errors['ratio_cameras'] == 1.0
+    assert np.allclose(errors['ratio_points'], 0.942, 1e-3)
+
+    # below, (av+std) should be in order of ||gps_noise||²
+    assert np.allclose(errors['position_average'], 2.005, 1e-3)
+    assert np.allclose(errors['position_std'], 2.503, 1e-3)
+    assert np.allclose(errors['gps_std'], 9.132, 1e-3)
+    assert np.allclose(errors['gps_average'], 0.0)
+
+    assert np.allclose(errors['rotation_average'], 0.051, 1e-2)
+    assert np.allclose(errors['rotation_std'], 0.0009, 1e-2)
