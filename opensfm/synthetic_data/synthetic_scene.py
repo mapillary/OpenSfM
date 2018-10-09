@@ -1,26 +1,11 @@
 import numpy as np
 import functools
 import cv2
-import synthetic_metrics as metrics
 
 from opensfm import types
 
-from synthetic_generator import ellipse_generator
-from synthetic_generator import line_generator
-from synthetic_generator import weird_curve
-
-from synthetic_generator import generate_street
-from synthetic_generator import generate_cameras
-
-from synthetic_generator import samples_generator_random_count
-from synthetic_generator import samples_generator_interval
-
-from synthetic_generator import perturb_points
-from synthetic_generator import perturb_rotations
-
-from synthetic_generator import generate_track_data
-from synthetic_generator import generate_exifs
-from synthetic_generator import create_reconstruction
+from opensfm.synthetic_data.synthetic_metrics import *
+from opensfm.synthetic_data.synthetic_generator import *
 
 
 def get_camera(type, id, focal, k1, k2):
@@ -67,7 +52,7 @@ class SyntheticScene(object):
     def add_street(self, points_count, height, width):
         self.wall_points, self.floor_points = generate_street(
             samples_generator_random_count(
-                points_count/3), self.generator,
+                int(points_count/3)), self.generator,
             height, width)
         self.width = width
         return self
@@ -114,11 +99,11 @@ class SyntheticScene(object):
 
     def compare(self, reconstruction):
         reference = self.get_reconstruction()
-        position = metrics.position_errors(reference, reconstruction)
-        gps = metrics.gps_errors(reconstruction)
-        rotation = metrics.rotation_errors(reference, reconstruction)
-        points = metrics.points_errors(reference, reconstruction)
-        completeness = metrics.completeness_errors(reference, reconstruction)
+        position = position_errors(reference, reconstruction)
+        gps = gps_errors(reconstruction)
+        rotation = rotation_errors(reference, reconstruction)
+        points = points_errors(reference, reconstruction)
+        completeness = completeness_errors(reference, reconstruction)
         return {'position_average': np.linalg.norm(np.average(position, axis=0)),
                 'position_std': np.linalg.norm(np.std(position, axis=0)),
                 'gps_average': np.linalg.norm(np.average(gps, axis=0)),

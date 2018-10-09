@@ -41,6 +41,9 @@ from opensfm import dataset
 from opensfm import matching
 from opensfm import features
 
+from opensfm.synthetic_data import synthetic_dataset
+from opensfm.synthetic_data import synthetic_generator
+
 IS_PYTHON3 = sys.version_info[0] >= 3
 
 MAX_IMAGE_ID = 2**31 - 1
@@ -238,7 +241,14 @@ if __name__ == "__main__":
     database_path = os.path.join(args.dataset, 'colmap_database.db')
     data = dataset.DataSet(args.dataset)
 
-    db = COLMAPDatabase.connect(database_path)
+    scene = synthetic_generator.\
+        generate_reconstruction(15, 10, 300, 10000, 'ellipse')
+    feat, colors, graph = synthetic_generator.generate_track_data(
+        scene, 40)
+    data = synthetic_dataset.SyntheticDataSet(
+        scene, feat, colors, graph)
+
+    db = COLMAPDatabase.connect('/home/yann/colmap_synth.db')
     db.create_tables()
 
     camera_map = {}

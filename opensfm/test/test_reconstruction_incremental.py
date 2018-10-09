@@ -48,13 +48,13 @@ def test_reconstruction_incremental(scene):
     errors = scene.compare(reconstructed_scene[0])
 
     assert errors['ratio_cameras'] == 1.0
-    assert np.allclose(errors['ratio_points'], 0.942, 1e-3)
+    assert 0.940 < errors['ratio_points'] < 0.950
+
+    assert 0.02 < errors['rotation_average'] < 0.06
+    assert 0.0007 < errors['rotation_std'] < 0.0012
 
     # below, (av+std) should be in order of ||gps_noise||^2
-    assert np.allclose(errors['position_average'], 2.005, 1e-3)
-    assert np.allclose(errors['position_std'], 2.503, 1e-3)
-    assert np.allclose(errors['gps_std'], 9.132, 1e-3)
+    assert 1.5 < errors['position_average'] < 2.5
+    assert 1.1 < errors['position_std'] < 2.6
+    assert 8.0 < errors['gps_std'] < 10.0
     assert np.allclose(errors['gps_average'], 0.0)
-
-    assert np.allclose(errors['rotation_average'], 0.051, 1e-2)
-    assert np.allclose(errors['rotation_std'], 0.0009, 1e-2)

@@ -107,7 +107,9 @@ def ellipse_generator(x_size, y_size, point):
 
 
 def perturb_points(points, sigmas):
+    eps = 1e-10
     for point in points:
+        sigmas = np.array([max(s, eps) for s in sigmas])
         point += np.random.normal(0.0, sigmas,
                                   point.shape)
 
@@ -203,8 +205,8 @@ def generate_track_data(reconstruction, maximum_depth, noise):
     features = {}
     for shot_index, shot in reconstruction.shots.items():
         # need to have these as we lost track of keys
-        all_keys = reconstruction.points.keys()
-        all_values = reconstruction.points.values()
+        all_keys = list(reconstruction.points.keys())
+        all_values = list(reconstruction.points.values())
 
         # temporary work on numpy array
         all_coordinates = [p.coordinates for p in all_values]
