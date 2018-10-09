@@ -114,7 +114,7 @@ def perturb_points(points, sigmas):
                                   point.shape)
 
 
-def generate_exifs(reconstruction, gps_noise):
+def generate_exifs(reconstruction, gps_noise, speed_ms=10):
     """
     Return extracted exif information, as dictionary, usually with fields:
 
@@ -128,8 +128,11 @@ def generate_exifs(reconstruction, gps_noise):
 
     :param image: Image name, with extension (i.e. 123.jpg)
     """
+    previous_pose = None
+    previous_time = 0
     exifs = {}
-    for shot_name, shot in reconstruction.shots.items():
+    for shot_name in sorted(reconstruction.shots.keys()):
+        shot = reconstruction.shots[shot_name]
         exif = {}
         exif['width'] = shot.camera.width
         exif['height'] = shot.camera.height
@@ -137,9 +140,16 @@ def generate_exifs(reconstruction, gps_noise):
         exif['camera'] = str(shot.camera.id)
 
         pose = shot.pose.get_origin()
+
+        if previous_pose is not None:
+            previous_time += np.linalg.norm(pose-previous_pose)*speed_ms
+            previous_pose = pose
+        exif['capture_time'] = previous_time
+
         perturb_points([pose], [gps_noise, gps_noise, gps_noise])
         lat, lon, alt = geo.lla_from_topocentric(pose[0], pose[1], pose[2],
                                                  0, 0, 0)
+
         exif['gps'] = {}
         exif['gps']['latitude'] = lat
         exif['gps']['longitude'] = lon
