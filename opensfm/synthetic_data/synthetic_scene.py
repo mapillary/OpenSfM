@@ -114,6 +114,3 @@ class SyntheticScene(object):
                 'points_std': np.linalg.norm(np.std(points, axis=0)),
                 'ratio_cameras': completeness[0],
                 'ratio_points': completeness[1]}
-
-
-
