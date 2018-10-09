@@ -808,7 +808,7 @@ def reconstruction_to_ply(reconstruction, no_cameras=False, no_points=False):
             R = shot.pose.get_rotation_matrix()
             for axis in range(3):
                 c = 255 * np.eye(3)[axis]
-                for depth in np.linspace(0, 1, 10):
+                for depth in np.linspace(0, 2, 10):
                     p = o + depth * R[axis]
                     s = "{} {} {} {} {} {}".format(
                         p[0], p[1], p[2], int(c[0]), int(c[1]), int(c[2]))
