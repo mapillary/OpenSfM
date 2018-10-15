@@ -15,6 +15,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -std=c++0x")
 
 
 # Find dependencies.
+add_subdirectory(third_party/pybind11)
+
 find_package(OpenMP)
 if (OPENMP_FOUND)
   set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
@@ -46,49 +48,16 @@ include_directories(${GLOG_INCLUDE_DIR})
 find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 
-find_package(Boost REQUIRED)
-
-option(BUILD_FOR_PYTHON3 "build pyopengv for Python 3" OFF)
-set(BOOST_PYTHON3_COMPONENT "python3" CACHE STRING
-    "name of the Boost Python 3 component (python3, python-py36 or python-py37)")
-
 if(${BUILD_FOR_PYTHON3})
-    set(BOOST_PYTHON_COMPONENT ${BOOST_PYTHON3_COMPONENT})
-    set(BOOST_NUMPY_COMPONENT numpy3)
     set(Python_ADDITIONAL_VERSIONS 3.7 3.6)
     set(Python_VERSION_SUFFIX 3)
 else()
-    if(${Boost_VERSION} LESS 106700)
-        set(BOOST_PYTHON_COMPONENT python)
-        set(BOOST_NUMPY_COMPONENT numpy)
-    else()
-        set(BOOST_PYTHON_COMPONENT python27)
-        set(BOOST_NUMPY_COMPONENT numpy27)
-    endif()
     set(Python_ADDITIONAL_VERSIONS 2.7)
     set(Python_VERSION_SUFFIX "")
 endif()
 
-if(${Boost_VERSION} LESS 106300)
-    message("Not using boost/python/numpy.")
-    set(USE_BOOST_PYTHON_NUMPY "off")
-
-    find_package(Boost REQUIRED COMPONENTS ${BOOST_PYTHON_COMPONENT})
-else()
-    message("Using boost/python/numpy.")
-    set(USE_BOOST_PYTHON_NUMPY "on")
-    add_definitions(-DUSE_BOOST_PYTHON_NUMPY)
-
-    find_package(Boost 1.63 REQUIRED COMPONENTS
-                 ${BOOST_PYTHON_COMPONENT} ${BOOST_NUMPY_COMPONENT})
-endif()
-
 find_package(PythonLibs ${Python_VERSION_SUFFIX} REQUIRED)
 include_directories(${PYTHON_INCLUDE_DIRS})
-
-find_package(NumPy REQUIRED)
-include_directories(${NUMPY_INCLUDE_DIRS})
-
 
 # Akaze
 include_directories(third_party/akaze/lib/)
@@ -119,7 +88,7 @@ add_library(vl ${VLFEAT_SRCS})
 
 
 # Python wrapper
-add_library(csfm SHARED csfm.cc)
+pybind11_add_module(csfm csfm.cc)
 target_link_libraries(csfm
     ${OpenCV_LIBS}
     ${GFLAGS_LIBRARY}

@@ -5,10 +5,9 @@
 namespace csfm {
 
 
-bp::object akaze(PyObject *image,
+py::object akaze(ndarray_uint8 image,
                  AKAZEOptions options) {
-  PyArrayContiguousView<unsigned char> view((PyArrayObject *)image);
-  const cv::Mat img(view.shape(0), view.shape(1), CV_8U, (void *)view.data());
+  const cv::Mat img(image.shape(0), image.shape(1), CV_8U, (void *)image.data());
 
   cv::Mat img_32;
   img.convertTo(img_32, CV_32F, 1.0 / 255.0, 0);
@@ -39,13 +38,13 @@ bp::object akaze(PyObject *image,
     keys.at<float>(i, 3) = kpts[i].angle;
   }
 
-  bp::list retn;
-  retn.append(bpn_array_from_data(keys.ptr<float>(0), keys.rows, keys.cols));
+  py::list retn;
+  retn.append(py_array_from_data(keys.ptr<float>(0), keys.rows, keys.cols));
 
   if (options.descriptor == MLDB_UPRIGHT || options.descriptor == MLDB) {
-    retn.append(bpn_array_from_data(desc.ptr<unsigned char>(0), desc.rows, desc.cols));
+    retn.append(py_array_from_data(desc.ptr<unsigned char>(0), desc.rows, desc.cols));
   } else {
-    retn.append(bpn_array_from_data(desc.ptr<float>(0), desc.rows, desc.cols));
+    retn.append(py_array_from_data(desc.ptr<float>(0), desc.rows, desc.cols));
   }
   return retn;
 }
