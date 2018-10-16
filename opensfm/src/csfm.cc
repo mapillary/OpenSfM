@@ -28,6 +28,7 @@ PYBIND11_MODULE(csfm, m) {
   ;
 
   py::class_<AKAZEOptions>(m, "AKAZEOptions")
+    .def(py::init())
     .def_readwrite("omin", &AKAZEOptions::omin)
     .def_readwrite("omax", &AKAZEOptions::omax)
     .def_readwrite("nsublevels", &AKAZEOptions::nsublevels)
@@ -104,6 +105,7 @@ PYBIND11_MODULE(csfm, m) {
   ;
 
   py::class_<BAPerspectiveCamera>(m, "BAPerspectiveCamera")
+    .def(py::init())
     .def_property("focal", &BAPerspectiveCamera::GetFocal, &BAPerspectiveCamera::SetFocal)
     .def_property("k1", &BAPerspectiveCamera::GetK1, &BAPerspectiveCamera::SetK1)
     .def_property("k2", &BAPerspectiveCamera::GetK2, &BAPerspectiveCamera::SetK2)
@@ -113,6 +115,7 @@ PYBIND11_MODULE(csfm, m) {
   ;
 
   py::class_<BABrownPerspectiveCamera>(m, "BABrownPerspectiveCamera")
+    .def(py::init())
     .def_property("focal_x", &BABrownPerspectiveCamera::GetFocalX, &BABrownPerspectiveCamera::SetFocalX)
     .def_property("focal_y", &BABrownPerspectiveCamera::GetFocalY, &BABrownPerspectiveCamera::SetFocalY)
     .def_property("c_x", &BABrownPerspectiveCamera::GetCX, &BABrownPerspectiveCamera::SetCX)
@@ -136,6 +139,7 @@ PYBIND11_MODULE(csfm, m) {
   ;
 
   py::class_<BAFisheyeCamera>(m, "BAFisheyeCamera")
+    .def(py::init())
     .def_property("focal", &BAFisheyeCamera::GetFocal, &BAFisheyeCamera::SetFocal)
     .def_property("k1", &BAFisheyeCamera::GetK1, &BAFisheyeCamera::SetK1)
     .def_property("k2", &BAFisheyeCamera::GetK2, &BAFisheyeCamera::SetK2)
@@ -145,6 +149,7 @@ PYBIND11_MODULE(csfm, m) {
   ;
 
   py::class_<BAShot>(m, "BAShot")
+    .def(py::init())
     .def_property("rx", &BAShot::GetRX, &BAShot::SetRX)
     .def_property("ry", &BAShot::GetRY, &BAShot::SetRY)
     .def_property("rz", &BAShot::GetRZ, &BAShot::SetRZ)
@@ -158,6 +163,7 @@ PYBIND11_MODULE(csfm, m) {
   ;
 
   py::class_<BAPoint>(m, "BAPoint")
+    .def(py::init())
     .def_property("x", &BAPoint::GetX, &BAPoint::SetX)
     .def_property("y", &BAPoint::GetY, &BAPoint::SetY)
     .def_property("z", &BAPoint::GetZ, &BAPoint::SetZ)
@@ -167,6 +173,7 @@ PYBIND11_MODULE(csfm, m) {
   ;
 
   py::class_<csfm::OpenMVSExporter>(m, "OpenMVSExporter")
+    .def(py::init())
     .def("add_camera", &csfm::OpenMVSExporter::AddCamera)
     .def("add_shot", &csfm::OpenMVSExporter::AddShot)
     .def("add_point", &csfm::OpenMVSExporter::AddPoint)
@@ -174,6 +181,7 @@ PYBIND11_MODULE(csfm, m) {
   ;
 
   py::class_<csfm::DepthmapEstimatorWrapper>(m, "DepthmapEstimator")
+    .def(py::init())
     .def("set_depth_range", &csfm::DepthmapEstimatorWrapper::SetDepthRange)
     .def("set_patchmatch_iterations", &csfm::DepthmapEstimatorWrapper::SetPatchMatchIterations)
     .def("set_min_patch_sd", &csfm::DepthmapEstimatorWrapper::SetMinPatchSD)
@@ -184,6 +192,7 @@ PYBIND11_MODULE(csfm, m) {
   ;
 
   py::class_<csfm::DepthmapCleanerWrapper>(m, "DepthmapCleaner")
+    .def(py::init())
     .def("set_same_depth_threshold", &csfm::DepthmapCleanerWrapper::SetSameDepthThreshold)
     .def("set_min_consistent_views", &csfm::DepthmapCleanerWrapper::SetMinConsistentViews)
     .def("add_view", &csfm::DepthmapCleanerWrapper::AddView)
@@ -191,6 +200,7 @@ PYBIND11_MODULE(csfm, m) {
   ;
 
   py::class_<csfm::DepthmapPrunerWrapper>(m, "DepthmapPruner")
+    .def(py::init())
     .def("set_same_depth_threshold", &csfm::DepthmapPrunerWrapper::SetSameDepthThreshold)
     .def("add_view", &csfm::DepthmapPrunerWrapper::AddView)
     .def("prune", &csfm::DepthmapPrunerWrapper::Prune)
@@ -200,6 +210,7 @@ PYBIND11_MODULE(csfm, m) {
   // Reconstruction Aligment
   //
   py::class_<ReconstructionAlignment>(m, "ReconstructionAlignment")
+    .def(py::init())
     .def("run", &ReconstructionAlignment::Run)
     .def("get_shot", &ReconstructionAlignment::GetShot)
     .def("get_reconstruction", &ReconstructionAlignment::GetReconstruction)
@@ -215,6 +226,7 @@ PYBIND11_MODULE(csfm, m) {
   ;
 
   py::class_<RAShot>(m, "RAShot")
+    .def(py::init())
     .def_property("rx", &RAShot::GetRX, &RAShot::SetRX)
     .def_property("ry", &RAShot::GetRY, &RAShot::SetRY)
     .def_property("rz", &RAShot::GetRZ, &RAShot::SetRZ)
@@ -225,6 +237,7 @@ PYBIND11_MODULE(csfm, m) {
   ;
 
   py::class_<RAReconstruction>(m, "RAReconstruction")
+    .def(py::init())
     .def_property("rx", &RAReconstruction::GetRX, &RAReconstruction::SetRX)
     .def_property("ry", &RAReconstruction::GetRY, &RAReconstruction::SetRY)
     .def_property("rz", &RAReconstruction::GetRZ, &RAReconstruction::SetRZ)
