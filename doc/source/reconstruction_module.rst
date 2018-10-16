@@ -29,7 +29,7 @@ The accepted image pairs are sorted by the number of outliers of the rotation on
 This step is done by the :func:`~opensfm.reconstruction.compute_image_pairs` function.
 
 
-2. Boostraping the reconstruction
+2. Bootstraping the reconstruction
 ---------------------------------
 
 To bootstrap the reconstruction, we use the first image pair.  If initialization fails we try with the next on the list.  If the initialization works, we pass it to the next step to grow it with more images.

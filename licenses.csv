@@ -1,6 +1,5 @@
 ExifRead, 2.1.2, BSD
 PyYAML, 3.12, MIT
-boost, 1.66, "Boost Software License"
 ceres-solver, 1.10.0, BSD
 cloudpickle, 0.4.0, BSD
 coverage, 4.4.2, "Apache 2.0"
@@ -13,6 +12,7 @@ numpy, 1.14.0, BSD
 opencv, 2.4.10.1, "3-clause BSD License"
 opengv, master, "New BSD 3-Clause"
 py, 1.5.2, MIT
+pybind, 2.2.4, BSD
 pyproj, 1.9.5.1, "OSI Approved"
 pytest, 3.2.3, MIT
 pytest-cov, 2.5.1, MIT

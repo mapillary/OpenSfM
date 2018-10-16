@@ -96,7 +96,6 @@ target_link_libraries(csfm
     ${CERES_LIBRARIES}
     ${LAPACK_LIBRARIES}
     ${SUITESPARSE_LIBRARIES}
-    ${Boost_LIBRARIES}
     vl
     akaze
 )

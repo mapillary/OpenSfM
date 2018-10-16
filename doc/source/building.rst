@@ -11,7 +11,6 @@ OpenSfM depends on the following libraries that need to be installed before buil
 * OpenCV_
 * OpenGV_
 * `Ceres Solver`_
-* `Boost Python`_
 * NumPy_, SciPy_, Networkx_, PyYAML, exifread
 
 Once the dependencies have been installed, you can build OpenSfM by running the following command from the main folder::
@@ -24,7 +23,7 @@ Installing dependencies on Ubuntu
 
 See this `Dockerfile <https://github.com/paulinus/opensfm-docker-base/blob/master/Dockerfile>`_ for the commands to install all dependencies on Ubuntu 16.04.  The steps are
 
-1. Install OpenCV, Boost Python, NumPy, SciPy using apt-get
+1. Install OpenCV, NumPy, SciPy using apt-get
 2. Install python requirements using pip
 3. Clone, build and install OpenGV following the receipt in the Dockerfile
 4. `Build and Install <http://ceres-solver.org/installation.html>`_ the Ceres solver from its source using the ``-fPIC`` compilation flag.
@@ -33,12 +32,11 @@ See this `Dockerfile <https://github.com/paulinus/opensfm-docker-base/blob/maste
 Installing dependencies on MacOSX
 ---------------------------------
 
-Install OpenCV, boost python and the Ceres solver using::
+Install OpenCV and the Ceres solver using::
 
     brew tap homebrew/science
     brew install opencv
     brew install homebrew/science/ceres-solver
-    brew install boost-python
     sudo pip install -r requirements.txt
 
 And install OpenGV using::
@@ -68,7 +66,6 @@ When running OpenSfM on top of OpenCV version 3.0 the `OpenCV Contrib`_ modules 
 .. _NumPy: http://www.numpy.org/
 .. _SciPy: http://www.scipy.org/
 .. _Ceres solver: http://ceres-solver.org/
-.. _Boost Python: http://www.boost.org/
 .. _Networkx: https://github.com/networkx/networkx
 
 

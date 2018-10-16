@@ -19,7 +19,6 @@ Checkout this [blog post with more demos](http://blog.mapillary.com/update/2014/
 * [OpenCV][]
 * [OpenGV][]
 * [Ceres Solver][]
-* [Boost Python][]
 * [NumPy][], [SciPy][], [Networkx][], PyYAML, exifread
 
 ### Installing dependencies on MacOSX
@@ -29,7 +28,6 @@ Install OpenCV using
     brew tap homebrew/science
     brew install opencv
     brew install ceres-solver
-    brew install boost-python
 
 And install OpenGV using
 
@@ -50,7 +48,7 @@ Be sure to update your `PYTHONPATH` to include `/usr/local/lib/python2.7/site-pa
 
 See this [Dockerfile](https://github.com/paulinus/opensfm-docker-base/blob/master/Dockerfile) for the commands to install all dependencies on Ubuntu 16.04.  The steps are
 
- 1. Install [OpenCV][], [Boost Python][], [NumPy][], [SciPy][] using apt-get
+ 1. Install [OpenCV][], [NumPy][], [SciPy][] using apt-get
  2. Install python requirements using pip
  3. Clone, build and install [OpenGV][] following the receipt in the Dockerfile
  4. [Build and Install](http://ceres-solver.org/building.html) the [Ceres solver][] from its source using the `-fPIC` compilation flag.
@@ -94,5 +92,4 @@ Things you can do from there:
 [NumPy]: http://www.numpy.org/ (Scientific computing with Python)
 [SciPy]: http://www.scipy.org/ (Fundamental library for scientific computing)
 [Ceres solver]: http://ceres-solver.org/ (Library for solving complicated nonlinear least squares problems)
-[Boost Python]: http://www.boost.org/
 [Networkx]: https://github.com/networkx/networkx
