@@ -31,9 +31,9 @@ double AngleBetweenVectors(const Eigen::Vector3d &u,
 }
 
 
-py::object TriangulateReturn(int error, py::object value) {
+py::list TriangulateReturn(int error, py::object value) {
     py::list retn;
-    retn.append(int(error));
+    retn.append(error);
     retn.append(value);
     return retn;
 }
@@ -105,7 +105,7 @@ py::object TriangulateBearingsDLT(const py::list &Rts_list,
   }
 
   if (!angle_ok) {
-    return TriangulateReturn(TRIANGULATION_SMALL_ANGLE, py::object());
+    return TriangulateReturn(TRIANGULATION_SMALL_ANGLE, py::none());
   }
 
   Eigen::Vector4d X = TriangulateBearingsDLTSolve(bs, Rts);
@@ -118,7 +118,7 @@ py::object TriangulateBearingsDLT(const py::list &Rts_list,
 
     double error = AngleBetweenVectors(x_reproj, b);
     if (error > threshold) {
-     return TriangulateReturn(TRIANGULATION_BAD_REPROJECTION, py::object());
+     return TriangulateReturn(TRIANGULATION_BAD_REPROJECTION, py::none());
     }
   }
 
@@ -165,8 +165,8 @@ py::object TriangulateBearingsMidpoint(const py::list &os_list,
   Eigen::Matrix<double, 3, Eigen::Dynamic> os(3, n);
   Eigen::Matrix<double, 3, Eigen::Dynamic> bs(3, n);
   for (int i = 0; i < n; ++i) {
-    ndarray_d o_array(os_list[i]);
-    ndarray_d b_array(bs_list[i]);
+    ndarray_d o_array = os_list[i].cast<ndarray_d>();
+    ndarray_d b_array = bs_list[i].cast<ndarray_d>();
     const double *o = o_array.data();
     const double *b = b_array.data();
     os.col(i) <<  o[0], o[1], o[2];
@@ -189,7 +189,7 @@ py::object TriangulateBearingsMidpoint(const py::list &os_list,
     }
   }
   if (!angle_ok) {
-    return TriangulateReturn(TRIANGULATION_SMALL_ANGLE, py::object());
+    return TriangulateReturn(TRIANGULATION_SMALL_ANGLE, py::none());
   }
 
   // Triangulate
@@ -202,7 +202,7 @@ py::object TriangulateBearingsMidpoint(const py::list &os_list,
 
     double error = AngleBetweenVectors(x_reproj, b);
     if (error > threshold_list[i].cast<float>()) {
-      return TriangulateReturn(TRIANGULATION_BAD_REPROJECTION, py::object());
+      return TriangulateReturn(TRIANGULATION_BAD_REPROJECTION, py::none());
     }
   }
 

@@ -68,6 +68,7 @@ PYBIND11_MODULE(csfm, m) {
   m.def("triangulate_bearings_midpoint", csfm::TriangulateBearingsMidpoint);
 
   py::class_<BundleAdjuster>(m, "BundleAdjuster")
+    .def(py::init())
     .def("run", &BundleAdjuster::Run)
     .def("get_perspective_camera", &BundleAdjuster::GetPerspectiveCamera)
     .def("get_brown_perspective_camera", &BundleAdjuster::GetBrownPerspectiveCamera)

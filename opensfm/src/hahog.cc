@@ -111,7 +111,7 @@ py::object hahog(ndarray_f image,
     retn.append(py_array_from_data(&desc[0], numFeatures, dimension));
     return retn;
   }
-  return py::object();
+  return py::none();
 }
 
 }
