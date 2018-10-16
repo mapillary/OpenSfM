@@ -31,9 +31,9 @@ double AngleBetweenVectors(const Eigen::Vector3d &u,
 }
 
 
-bp::object TriangulateReturn(int error, bp::object value) {
-    bp::list retn;
-    retn.append(int(error));
+py::list TriangulateReturn(int error, py::object value) {
+    py::list retn;
+    retn.append(error);
     retn.append(value);
     return retn;
 }
@@ -62,22 +62,22 @@ Eigen::Vector4d TriangulateBearingsDLTSolve(
 }
 
 
-bp::object TriangulateBearingsDLT(const bp::list &Rts_list,
-                                  const bp::list &bs_list,
+py::object TriangulateBearingsDLT(const py::list &Rts_list,
+                                  const py::list &bs_list,
                                   double threshold,
                                   double min_angle) {
 
-  int n = bp::len(Rts_list);
+  int n = py::len(Rts_list);
   vector_mat34 Rts;
   Eigen::Matrix<double, 3, Eigen::Dynamic> bs(3, n);
   Eigen::MatrixXd vs(3, n);
   bool angle_ok = false;
   for (int i = 0; i < n; ++i) {
-    bp::object oRt = Rts_list[i];
-    bp::object ob = bs_list[i];
+    py::object oRt = Rts_list[i];
+    py::object ob = bs_list[i];
 
-    PyArrayContiguousView<double> Rt_array(oRt);
-    PyArrayContiguousView<double> b_array(ob);
+    pyarray_d Rt_array(oRt);
+    pyarray_d b_array(ob);
 
     Eigen::Map<const Eigen::MatrixXd> Rt(Rt_array.data(), 4, 3);
     Eigen::Map<const Eigen::MatrixXd> b(b_array.data(), 3, 1);
@@ -105,7 +105,7 @@ bp::object TriangulateBearingsDLT(const bp::list &Rts_list,
   }
 
   if (!angle_ok) {
-    return TriangulateReturn(TRIANGULATION_SMALL_ANGLE, bp::object());
+    return TriangulateReturn(TRIANGULATION_SMALL_ANGLE, py::none());
   }
 
   Eigen::Vector4d X = TriangulateBearingsDLTSolve(bs, Rts);
@@ -118,12 +118,12 @@ bp::object TriangulateBearingsDLT(const bp::list &Rts_list,
 
     double error = AngleBetweenVectors(x_reproj, b);
     if (error > threshold) {
-     return TriangulateReturn(TRIANGULATION_BAD_REPROJECTION, bp::object());
+     return TriangulateReturn(TRIANGULATION_BAD_REPROJECTION, py::none());
     }
   }
 
   return TriangulateReturn(TRIANGULATION_OK,
-                           bpn_array_from_data(X.data(), 3));
+                           py_array_from_data(X.data(), 3));
 }
 
 
@@ -155,18 +155,18 @@ Eigen::Vector3d TriangulateBearingsMidpointSolve(
 }
 
 
-bp::object TriangulateBearingsMidpoint(const bp::list &os_list,
-                                       const bp::list &bs_list,
-                                       const bp::list &threshold_list,
+py::object TriangulateBearingsMidpoint(const py::list &os_list,
+                                       const py::list &bs_list,
+                                       const py::list &threshold_list,
                                        double min_angle) {
-  int n = bp::len(os_list);
+  int n = py::len(os_list);
 
   // Build Eigen matrices
   Eigen::Matrix<double, 3, Eigen::Dynamic> os(3, n);
   Eigen::Matrix<double, 3, Eigen::Dynamic> bs(3, n);
   for (int i = 0; i < n; ++i) {
-    PyArrayContiguousView<double> o_array(os_list[i]);
-    PyArrayContiguousView<double> b_array(bs_list[i]);
+    pyarray_d o_array = os_list[i].cast<pyarray_d>();
+    pyarray_d b_array = bs_list[i].cast<pyarray_d>();
     const double *o = o_array.data();
     const double *b = b_array.data();
     os.col(i) <<  o[0], o[1], o[2];
@@ -189,7 +189,7 @@ bp::object TriangulateBearingsMidpoint(const bp::list &os_list,
     }
   }
   if (!angle_ok) {
-    return TriangulateReturn(TRIANGULATION_SMALL_ANGLE, bp::object());
+    return TriangulateReturn(TRIANGULATION_SMALL_ANGLE, py::none());
   }
 
   // Triangulate
@@ -201,13 +201,13 @@ bp::object TriangulateBearingsMidpoint(const bp::list &os_list,
     Eigen::Vector3d b = bs.col(i);
 
     double error = AngleBetweenVectors(x_reproj, b);
-    if (error > threshold_list[i]) {
-      return TriangulateReturn(TRIANGULATION_BAD_REPROJECTION, bp::object());
+    if (error > threshold_list[i].cast<float>()) {
+      return TriangulateReturn(TRIANGULATION_BAD_REPROJECTION, py::none());
     }
   }
 
   return TriangulateReturn(TRIANGULATION_OK,
-                           bpn_array_from_data(X.data(), 3));
+                           py_array_from_data(X.data(), 3));
 }
 
 

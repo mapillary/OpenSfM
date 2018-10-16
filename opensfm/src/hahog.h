@@ -5,7 +5,7 @@
 
 namespace csfm {
 
-bp::object hahog(PyObject *image,
+py::object hahog(pyarray_f image,
                  float peak_threshold,
                  float edge_threshold,
                  int target_num_features,

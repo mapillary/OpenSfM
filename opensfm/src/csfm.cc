@@ -1,6 +1,6 @@
-#include <boost/python.hpp>
 #include <iostream>
 #include <vector>
+#include <pybind11/pybind11.h>
 
 #include "types.h"
 #include "hahog.cc"
@@ -11,29 +11,14 @@
 #include "depthmap_wrapper.cc"
 #include "reconstruction_alignment.h"
 
-#if (PY_VERSION_HEX < 0x03000000)
-static void numpy_import_array_wrapper()
-#else
-static int* numpy_import_array_wrapper()
-#endif
-{
-  /* Initialise numpy API and use 2/3 compatible return */
-  import_array();
-}
 
-BOOST_PYTHON_MODULE(csfm) {
-  using namespace boost::python;
+namespace py = pybind11;
 
+
+PYBIND11_MODULE(csfm, m) {
   google::InitGoogleLogging("csfm");
-#ifdef USE_BOOST_PYTHON_NUMPY
-  boost::python::numpy::initialize();
-#else
-  boost::python::numeric::array::set_module_and_type("numpy", "ndarray");
-#endif
-  numpy_import_array_wrapper();
 
-
-  enum_<DESCRIPTOR_TYPE>("AkazeDescriptorType")
+  py::enum_<DESCRIPTOR_TYPE>(m, "AkazeDescriptorType")
     .value("SURF_UPRIGHT", SURF_UPRIGHT)
     .value("SURF", SURF)
     .value("MSURF_UPRIGHT", MSURF_UPRIGHT)
@@ -42,7 +27,8 @@ BOOST_PYTHON_MODULE(csfm) {
     .value("MLDB", MLDB)
   ;
 
-  class_<AKAZEOptions>("AKAZEOptions")
+  py::class_<AKAZEOptions>(m, "AKAZEOptions")
+    .def(py::init())
     .def_readwrite("omin", &AKAZEOptions::omin)
     .def_readwrite("omax", &AKAZEOptions::omax)
     .def_readwrite("nsublevels", &AKAZEOptions::nsublevels)
@@ -69,20 +55,21 @@ BOOST_PYTHON_MODULE(csfm) {
     .def_readwrite("verbosity", &AKAZEOptions::verbosity)
   ;
 
-  def("akaze", csfm::akaze);
+  m.def("akaze", csfm::akaze);
 
-  def("hahog", csfm::hahog,
-      (boost::python::arg("peak_threshold") = 0.003,
-       boost::python::arg("edge_threshold") = 10,
-       boost::python::arg("target_num_features") = 0,
-       boost::python::arg("use_adaptive_suppression") = false
-      )
+  m.def("hahog", csfm::hahog,
+        py::arg("image"),
+        py::arg("peak_threshold") = 0.003,
+        py::arg("edge_threshold") = 10,
+        py::arg("target_num_features") = 0,
+        py::arg("use_adaptive_suppression") = false
   );
 
-  def("triangulate_bearings_dlt", csfm::TriangulateBearingsDLT);
-  def("triangulate_bearings_midpoint", csfm::TriangulateBearingsMidpoint);
+  m.def("triangulate_bearings_dlt", csfm::TriangulateBearingsDLT);
+  m.def("triangulate_bearings_midpoint", csfm::TriangulateBearingsMidpoint);
 
-  class_<BundleAdjuster, boost::noncopyable>("BundleAdjuster")
+  py::class_<BundleAdjuster>(m, "BundleAdjuster")
+    .def(py::init())
     .def("run", &BundleAdjuster::Run)
     .def("get_perspective_camera", &BundleAdjuster::GetPerspectiveCamera)
     .def("get_brown_perspective_camera", &BundleAdjuster::GetBrownPerspectiveCamera)
@@ -117,25 +104,27 @@ BOOST_PYTHON_MODULE(csfm) {
     .def("full_report", &BundleAdjuster::FullReport)
   ;
 
-  class_<BAPerspectiveCamera>("BAPerspectiveCamera")
-    .add_property("focal", &BAPerspectiveCamera::GetFocal, &BAPerspectiveCamera::SetFocal)
-    .add_property("k1", &BAPerspectiveCamera::GetK1, &BAPerspectiveCamera::SetK1)
-    .add_property("k2", &BAPerspectiveCamera::GetK2, &BAPerspectiveCamera::SetK2)
+  py::class_<BAPerspectiveCamera>(m, "BAPerspectiveCamera")
+    .def(py::init())
+    .def_property("focal", &BAPerspectiveCamera::GetFocal, &BAPerspectiveCamera::SetFocal)
+    .def_property("k1", &BAPerspectiveCamera::GetK1, &BAPerspectiveCamera::SetK1)
+    .def_property("k2", &BAPerspectiveCamera::GetK2, &BAPerspectiveCamera::SetK2)
     .def_readwrite("constant", &BAPerspectiveCamera::constant)
     .def_readwrite("focal_prior", &BAPerspectiveCamera::focal_prior)
     .def_readwrite("id", &BAPerspectiveCamera::id)
   ;
 
-  class_<BABrownPerspectiveCamera>("BABrownPerspectiveCamera")
-    .add_property("focal_x", &BABrownPerspectiveCamera::GetFocalX, &BABrownPerspectiveCamera::SetFocalX)
-    .add_property("focal_y", &BABrownPerspectiveCamera::GetFocalY, &BABrownPerspectiveCamera::SetFocalY)
-    .add_property("c_x", &BABrownPerspectiveCamera::GetCX, &BABrownPerspectiveCamera::SetCX)
-    .add_property("c_y", &BABrownPerspectiveCamera::GetCY, &BABrownPerspectiveCamera::SetCY)
-    .add_property("k1", &BABrownPerspectiveCamera::GetK1, &BABrownPerspectiveCamera::SetK1)
-    .add_property("k2", &BABrownPerspectiveCamera::GetK2, &BABrownPerspectiveCamera::SetK2)
-    .add_property("p1", &BABrownPerspectiveCamera::GetP1, &BABrownPerspectiveCamera::SetP1)
-    .add_property("p2", &BABrownPerspectiveCamera::GetP2, &BABrownPerspectiveCamera::SetP2)
-    .add_property("k3", &BABrownPerspectiveCamera::GetK3, &BABrownPerspectiveCamera::SetK3)
+  py::class_<BABrownPerspectiveCamera>(m, "BABrownPerspectiveCamera")
+    .def(py::init())
+    .def_property("focal_x", &BABrownPerspectiveCamera::GetFocalX, &BABrownPerspectiveCamera::SetFocalX)
+    .def_property("focal_y", &BABrownPerspectiveCamera::GetFocalY, &BABrownPerspectiveCamera::SetFocalY)
+    .def_property("c_x", &BABrownPerspectiveCamera::GetCX, &BABrownPerspectiveCamera::SetCX)
+    .def_property("c_y", &BABrownPerspectiveCamera::GetCY, &BABrownPerspectiveCamera::SetCY)
+    .def_property("k1", &BABrownPerspectiveCamera::GetK1, &BABrownPerspectiveCamera::SetK1)
+    .def_property("k2", &BABrownPerspectiveCamera::GetK2, &BABrownPerspectiveCamera::SetK2)
+    .def_property("p1", &BABrownPerspectiveCamera::GetP1, &BABrownPerspectiveCamera::SetP1)
+    .def_property("p2", &BABrownPerspectiveCamera::GetP2, &BABrownPerspectiveCamera::SetP2)
+    .def_property("k3", &BABrownPerspectiveCamera::GetK3, &BABrownPerspectiveCamera::SetK3)
     .def_readwrite("focal_x_prior", &BABrownPerspectiveCamera::focal_x_prior)
     .def_readwrite("focal_y_prior", &BABrownPerspectiveCamera::focal_y_prior)
     .def_readwrite("c_x_prior", &BABrownPerspectiveCamera::c_x_prior)
@@ -149,45 +138,50 @@ BOOST_PYTHON_MODULE(csfm) {
     .def_readwrite("id", &BABrownPerspectiveCamera::id)
   ;
 
-  class_<BAFisheyeCamera>("BAFisheyeCamera")
-    .add_property("focal", &BAFisheyeCamera::GetFocal, &BAFisheyeCamera::SetFocal)
-    .add_property("k1", &BAFisheyeCamera::GetK1, &BAFisheyeCamera::SetK1)
-    .add_property("k2", &BAFisheyeCamera::GetK2, &BAFisheyeCamera::SetK2)
+  py::class_<BAFisheyeCamera>(m, "BAFisheyeCamera")
+    .def(py::init())
+    .def_property("focal", &BAFisheyeCamera::GetFocal, &BAFisheyeCamera::SetFocal)
+    .def_property("k1", &BAFisheyeCamera::GetK1, &BAFisheyeCamera::SetK1)
+    .def_property("k2", &BAFisheyeCamera::GetK2, &BAFisheyeCamera::SetK2)
     .def_readwrite("constant", &BAFisheyeCamera::constant)
     .def_readwrite("focal_prior", &BAFisheyeCamera::focal_prior)
     .def_readwrite("id", &BAFisheyeCamera::id)
   ;
 
-  class_<BAShot>("BAShot")
-    .add_property("rx", &BAShot::GetRX, &BAShot::SetRX)
-    .add_property("ry", &BAShot::GetRY, &BAShot::SetRY)
-    .add_property("rz", &BAShot::GetRZ, &BAShot::SetRZ)
-    .add_property("tx", &BAShot::GetTX, &BAShot::SetTX)
-    .add_property("ty", &BAShot::GetTY, &BAShot::SetTY)
-    .add_property("tz", &BAShot::GetTZ, &BAShot::SetTZ)
+  py::class_<BAShot>(m, "BAShot")
+    .def(py::init())
+    .def_property("rx", &BAShot::GetRX, &BAShot::SetRX)
+    .def_property("ry", &BAShot::GetRY, &BAShot::SetRY)
+    .def_property("rz", &BAShot::GetRZ, &BAShot::SetRZ)
+    .def_property("tx", &BAShot::GetTX, &BAShot::SetTX)
+    .def_property("ty", &BAShot::GetTY, &BAShot::SetTY)
+    .def_property("tz", &BAShot::GetTZ, &BAShot::SetTZ)
     .def("get_covariance", &BAShot::GetCovariance)
     .def_readwrite("constant", &BAShot::constant)
     .def_readwrite("camera", &BAShot::camera)
     .def_readwrite("id", &BAShot::id)
   ;
 
-  class_<BAPoint>("BAPoint")
-    .add_property("x", &BAPoint::GetX, &BAPoint::SetX)
-    .add_property("y", &BAPoint::GetY, &BAPoint::SetY)
-    .add_property("z", &BAPoint::GetZ, &BAPoint::SetZ)
+  py::class_<BAPoint>(m, "BAPoint")
+    .def(py::init())
+    .def_property("x", &BAPoint::GetX, &BAPoint::SetX)
+    .def_property("y", &BAPoint::GetY, &BAPoint::SetY)
+    .def_property("z", &BAPoint::GetZ, &BAPoint::SetZ)
     .def_readwrite("constant", &BAPoint::constant)
     .def_readwrite("reprojection_error", &BAPoint::reprojection_error)
     .def_readwrite("id", &BAPoint::id)
   ;
 
-  class_<csfm::OpenMVSExporter>("OpenMVSExporter")
+  py::class_<csfm::OpenMVSExporter>(m, "OpenMVSExporter")
+    .def(py::init())
     .def("add_camera", &csfm::OpenMVSExporter::AddCamera)
     .def("add_shot", &csfm::OpenMVSExporter::AddShot)
     .def("add_point", &csfm::OpenMVSExporter::AddPoint)
     .def("export", &csfm::OpenMVSExporter::Export)
   ;
 
-  class_<csfm::DepthmapEstimatorWrapper>("DepthmapEstimator")
+  py::class_<csfm::DepthmapEstimatorWrapper>(m, "DepthmapEstimator")
+    .def(py::init())
     .def("set_depth_range", &csfm::DepthmapEstimatorWrapper::SetDepthRange)
     .def("set_patchmatch_iterations", &csfm::DepthmapEstimatorWrapper::SetPatchMatchIterations)
     .def("set_min_patch_sd", &csfm::DepthmapEstimatorWrapper::SetMinPatchSD)
@@ -197,14 +191,16 @@ BOOST_PYTHON_MODULE(csfm) {
     .def("compute_brute_force", &csfm::DepthmapEstimatorWrapper::ComputeBruteForce)
   ;
 
-  class_<csfm::DepthmapCleanerWrapper>("DepthmapCleaner")
+  py::class_<csfm::DepthmapCleanerWrapper>(m, "DepthmapCleaner")
+    .def(py::init())
     .def("set_same_depth_threshold", &csfm::DepthmapCleanerWrapper::SetSameDepthThreshold)
     .def("set_min_consistent_views", &csfm::DepthmapCleanerWrapper::SetMinConsistentViews)
     .def("add_view", &csfm::DepthmapCleanerWrapper::AddView)
     .def("clean", &csfm::DepthmapCleanerWrapper::Clean)
   ;
 
-  class_<csfm::DepthmapPrunerWrapper>("DepthmapPruner")
+  py::class_<csfm::DepthmapPrunerWrapper>(m, "DepthmapPruner")
+    .def(py::init())
     .def("set_same_depth_threshold", &csfm::DepthmapPrunerWrapper::SetSameDepthThreshold)
     .def("add_view", &csfm::DepthmapPrunerWrapper::AddView)
     .def("prune", &csfm::DepthmapPrunerWrapper::Prune)
@@ -213,7 +209,8 @@ BOOST_PYTHON_MODULE(csfm) {
   ///////////////////////////////////
   // Reconstruction Aligment
   //
-  class_<ReconstructionAlignment>("ReconstructionAlignment")
+  py::class_<ReconstructionAlignment>(m, "ReconstructionAlignment")
+    .def(py::init())
     .def("run", &ReconstructionAlignment::Run)
     .def("get_shot", &ReconstructionAlignment::GetShot)
     .def("get_reconstruction", &ReconstructionAlignment::GetReconstruction)
@@ -228,36 +225,39 @@ BOOST_PYTHON_MODULE(csfm) {
     .def("full_report", &ReconstructionAlignment::FullReport)
   ;
 
-  class_<RAShot>("RAShot")
-    .add_property("rx", &RAShot::GetRX, &RAShot::SetRX)
-    .add_property("ry", &RAShot::GetRY, &RAShot::SetRY)
-    .add_property("rz", &RAShot::GetRZ, &RAShot::SetRZ)
-    .add_property("tx", &RAShot::GetTX, &RAShot::SetTX)
-    .add_property("ty", &RAShot::GetTY, &RAShot::SetTY)
-    .add_property("tz", &RAShot::GetTZ, &RAShot::SetTZ)
+  py::class_<RAShot>(m, "RAShot")
+    .def(py::init())
+    .def_property("rx", &RAShot::GetRX, &RAShot::SetRX)
+    .def_property("ry", &RAShot::GetRY, &RAShot::SetRY)
+    .def_property("rz", &RAShot::GetRZ, &RAShot::SetRZ)
+    .def_property("tx", &RAShot::GetTX, &RAShot::SetTX)
+    .def_property("ty", &RAShot::GetTY, &RAShot::SetTY)
+    .def_property("tz", &RAShot::GetTZ, &RAShot::SetTZ)
     .def_readwrite("id", &RAShot::id)
   ;
 
-  class_<RAReconstruction>("RAReconstruction")
-    .add_property("rx", &RAReconstruction::GetRX, &RAReconstruction::SetRX)
-    .add_property("ry", &RAReconstruction::GetRY, &RAReconstruction::SetRY)
-    .add_property("rz", &RAReconstruction::GetRZ, &RAReconstruction::SetRZ)
-    .add_property("tx", &RAReconstruction::GetTX, &RAReconstruction::SetTX)
-    .add_property("ty", &RAReconstruction::GetTY, &RAReconstruction::SetTY)
-    .add_property("tz", &RAReconstruction::GetTZ, &RAReconstruction::SetTZ)
-    .add_property("scale", &RAReconstruction::GetScale, &RAReconstruction::SetScale)
+  py::class_<RAReconstruction>(m, "RAReconstruction")
+    .def(py::init())
+    .def_property("rx", &RAReconstruction::GetRX, &RAReconstruction::SetRX)
+    .def_property("ry", &RAReconstruction::GetRY, &RAReconstruction::SetRY)
+    .def_property("rz", &RAReconstruction::GetRZ, &RAReconstruction::SetRZ)
+    .def_property("tx", &RAReconstruction::GetTX, &RAReconstruction::SetTX)
+    .def_property("ty", &RAReconstruction::GetTY, &RAReconstruction::SetTY)
+    .def_property("tz", &RAReconstruction::GetTZ, &RAReconstruction::SetTZ)
+    .def_property("scale", &RAReconstruction::GetScale, &RAReconstruction::SetScale)
     .def_readwrite("id", &RAReconstruction::id)
   ;
 
-  class_<RARelativeMotionConstraint>("RARelativeMotionConstraint", init<const std::string &, const std::string &, double, double, double, double, double, double>())
+  py::class_<RARelativeMotionConstraint>(m, "RARelativeMotionConstraint")
+    .def(py::init<const std::string &, const std::string &, double, double, double, double, double, double>())
     .def_readwrite("reconstruction", &RARelativeMotionConstraint::reconstruction_id)
     .def_readwrite("shot", &RARelativeMotionConstraint::shot_id)
-    .add_property("rx", &RARelativeMotionConstraint::GetRX, &RARelativeMotionConstraint::SetRX)
-    .add_property("ry", &RARelativeMotionConstraint::GetRY, &RARelativeMotionConstraint::SetRY)
-    .add_property("rz", &RARelativeMotionConstraint::GetRZ, &RARelativeMotionConstraint::SetRZ)
-    .add_property("tx", &RARelativeMotionConstraint::GetTX, &RARelativeMotionConstraint::SetTX)
-    .add_property("ty", &RARelativeMotionConstraint::GetTY, &RARelativeMotionConstraint::SetTY)
-    .add_property("tz", &RARelativeMotionConstraint::GetTZ, &RARelativeMotionConstraint::SetTZ)
+    .def_property("rx", &RARelativeMotionConstraint::GetRX, &RARelativeMotionConstraint::SetRX)
+    .def_property("ry", &RARelativeMotionConstraint::GetRY, &RARelativeMotionConstraint::SetRY)
+    .def_property("rz", &RARelativeMotionConstraint::GetRZ, &RARelativeMotionConstraint::SetRZ)
+    .def_property("tx", &RARelativeMotionConstraint::GetTX, &RARelativeMotionConstraint::SetTX)
+    .def_property("ty", &RARelativeMotionConstraint::GetTY, &RARelativeMotionConstraint::SetTY)
+    .def_property("tz", &RARelativeMotionConstraint::GetTZ, &RARelativeMotionConstraint::SetTZ)
     .def("set_scale_matrix", &RARelativeMotionConstraint::SetScaleMatrix)
   ;
 
