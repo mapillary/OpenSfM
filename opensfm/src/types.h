@@ -13,9 +13,9 @@ namespace csfm {
 namespace py = pybind11;
 
 
-typedef py::array_t<float, py::array::c_style | py::array::forcecast> ndarray_f;
-typedef py::array_t<double, py::array::c_style | py::array::forcecast> ndarray_d;
-typedef py::array_t<unsigned char, py::array::c_style | py::array::forcecast> ndarray_uint8;
+typedef py::array_t<float, py::array::c_style | py::array::forcecast> pyarray_f;
+typedef py::array_t<double, py::array::c_style | py::array::forcecast> pyarray_d;
+typedef py::array_t<unsigned char, py::array::c_style | py::array::forcecast> pyarray_uint8;
 
 template <typename T>
 py::array_t<T> py_array_from_data(const T *data, size_t shape0) {

@@ -5,7 +5,7 @@
 namespace csfm {
 
 
-py::object akaze(ndarray_uint8 image,
+py::object akaze(pyarray_uint8 image,
                  AKAZEOptions options) {
   const cv::Mat img(image.shape(0), image.shape(1), CV_8U, (void *)image.data());
 

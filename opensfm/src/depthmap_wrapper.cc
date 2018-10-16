@@ -7,11 +7,11 @@ namespace csfm {
 
 class DepthmapEstimatorWrapper {
  public:
-  void AddView(ndarray_d K,
-               ndarray_d R,
-               ndarray_d t,
-               ndarray_uint8 image,
-               ndarray_uint8 mask) {
+  void AddView(pyarray_d K,
+               pyarray_d R,
+               pyarray_d t,
+               pyarray_uint8 image,
+               pyarray_uint8 mask) {
     de_.AddView(K.data(), R.data(), t.data(),
                 image.data(), mask.data(), image.shape(1), image.shape(0));
   }
@@ -70,10 +70,10 @@ class DepthmapCleanerWrapper {
     dc_.SetMinConsistentViews(n);
   }
 
-  void AddView(ndarray_d K,
-               ndarray_d R,
-               ndarray_d t,
-               ndarray_f depth) {
+  void AddView(pyarray_d K,
+               pyarray_d R,
+               pyarray_d t,
+               pyarray_f depth) {
     dc_.AddView(K.data(), R.data(), t.data(),
                 depth.data(), depth.shape(1), depth.shape(0));
   }
@@ -95,13 +95,13 @@ class DepthmapPrunerWrapper {
     dp_.SetSameDepthThreshold(t);
   }
 
-  void AddView(ndarray_d K,
-               ndarray_d R,
-               ndarray_d t,
-               ndarray_f depth,
-               ndarray_f plane,
-               ndarray_uint8 color,
-               ndarray_uint8 label) {
+  void AddView(pyarray_d K,
+               pyarray_d R,
+               pyarray_d t,
+               pyarray_f depth,
+               pyarray_f plane,
+               pyarray_uint8 color,
+               pyarray_uint8 label) {
     dp_.AddView(K.data(), R.data(), t.data(),
                 depth.data(), plane.data(),
                 color.data(), label.data(),

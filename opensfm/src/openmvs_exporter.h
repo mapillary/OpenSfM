@@ -9,7 +9,7 @@ class OpenMVSExporter {
  public:
   void AddCamera(
       const std::string &camera_id,
-      ndarray_d K) {
+      pyarray_d K) {
     MVS::Interface::Platform platform;
     platform.name = camera_id;
     MVS::Interface::Platform::Camera camera;
@@ -26,8 +26,8 @@ class OpenMVSExporter {
       const std::string &path,
       const std::string &shot_id,
       const std::string &camera_id,
-      ndarray_d R,
-      ndarray_d C) {
+      pyarray_d R,
+      pyarray_d C) {
     const double *C_data = C.data();
 
     int platform_id = platform_ids_[camera_id];
@@ -50,7 +50,7 @@ class OpenMVSExporter {
   }
 
   void AddPoint(
-      ndarray_d coordinates,
+      pyarray_d coordinates,
       py::list shot_ids) {
     const double *x = coordinates.data();
 
