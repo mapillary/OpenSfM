@@ -17,6 +17,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -std=c++0x")
 # Find dependencies.
 add_subdirectory(third_party/pybind11)
 
+include_directories(${PYTHON_INCLUDE_DIRS})
+
 find_package(OpenMP)
 if (OPENMP_FOUND)
   set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
@@ -48,16 +50,6 @@ include_directories(${GLOG_INCLUDE_DIR})
 find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 
-if(${BUILD_FOR_PYTHON3})
-    set(Python_ADDITIONAL_VERSIONS 3.7 3.6)
-    set(Python_VERSION_SUFFIX 3)
-else()
-    set(Python_ADDITIONAL_VERSIONS 2.7)
-    set(Python_VERSION_SUFFIX "")
-endif()
-
-find_package(PythonLibs ${Python_VERSION_SUFFIX} REQUIRED)
-include_directories(${PYTHON_INCLUDE_DIRS})
 
 # Akaze
 include_directories(third_party/akaze/lib/)
@@ -100,19 +92,8 @@ target_link_libraries(csfm
     akaze
 )
 set_target_properties(csfm PROPERTIES
-    PREFIX ""
-    SUFFIX ".so"
     LIBRARY_OUTPUT_DIRECTORY "${opensfm_SOURCE_DIR}/.."
 )
-if(APPLE)
-    set_target_properties(csfm PROPERTIES
-        LINK_FLAGS "-undefined dynamic_lookup"
-    )
-else()
-    target_link_libraries(csfm
-        ${PYTHON_LIBRARIES}
-    )
-endif()
 
 
 add_executable(debug_c_extension

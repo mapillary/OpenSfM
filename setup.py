@@ -18,19 +18,22 @@ def mkdir_p(path):
             raise
 
 
-print("Configuring...")
+python_version = '{}.{}'.format(sys.version_info.major, sys.version_info.minor)
+
+print("Configuring for python {}...".format(python_version))
+
 mkdir_p('cmake_build')
-cmake_command = ['cmake', '../opensfm/src']
-if sys.version_info >= (3, 0):
-    cmake_command.extend([
-        '-DBUILD_FOR_PYTHON3=ON',
-    ])
+cmake_command = [
+    'cmake',
+    '../opensfm/src',
+    '-DPYBIND11_PYTHON_VERSION=' + python_version,
+]
 subprocess.Popen(cmake_command, cwd='cmake_build').wait()
 
 print("Compiling extension...")
 subprocess.Popen(['make', '-j4'], cwd='cmake_build').wait()
 
-print("Building package")
+print("Building package...")
 setup(
     name='OpenSfM',
     version='0.1',
