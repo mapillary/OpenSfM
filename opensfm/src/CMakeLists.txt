@@ -124,9 +124,6 @@ if (OPENSFM_BUILD_TESTS)
     add_executable(${NAME}_test ${NAME}_test.cc)
     target_link_libraries(${NAME}_test
                           ${EXTRA_LIBS} # Extra libs MUST be first.
-                          ${GFLAGS_LIBRARY}
-                          ${GLOG_LIBRARY}
-                          gtest
                           testing_main)
     add_test(${NAME}_test ${NAME}_test)
   endmacro ()
