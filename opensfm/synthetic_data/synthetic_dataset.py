@@ -1,12 +1,8 @@
 import logging
-import os
-import os.path
 import numpy as np
 
 from opensfm.dataset import DataSet
-from opensfm import matching
 from opensfm import tracking
-from opensfm import geo
 
 
 logger = logging.getLogger(__name__)
@@ -22,7 +18,7 @@ class SyntheticDataSet(DataSet, object):
         self.features = features
         self.colors = colors
         self.graph = graph
-        self.image_list = reconstruction.shots.keys()
+        self.image_list = list(reconstruction.shots.keys())
         self.reference_lla = {'latitude': 0, 'longitude': 0, 'altitude': 0}
         self.matches = None
         self.config['use_altitude_tag'] = True
