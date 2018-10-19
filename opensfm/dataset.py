@@ -92,7 +92,7 @@ class DataSet(object):
         """Load mask list from mask_list.txt or list masks/ folder."""
         mask_list_file = os.path.join(self.data_path, 'mask_list.txt')
         if os.path.isfile(mask_list_file):
-            with open(mask_list_file) as fin:
+            with io.open_rt(mask_list_file) as fin:
                 lines = fin.read().splitlines()
             self._set_mask_list(lines)
         else:
@@ -493,7 +493,7 @@ class DataSet(object):
 
     def load_tracks_graph(self, filename=None):
         """Return graph (networkx data structure) of tracks"""
-        with open(self._tracks_graph_file(filename)) as fin:
+        with io.open_rt(self._tracks_graph_file(filename)) as fin:
             return load_tracks_graph(fin)
 
     def save_tracks_graph(self, graph, filename=None):
@@ -514,8 +514,8 @@ class DataSet(object):
         return os.path.isfile(self._reconstruction_file(filename))
 
     def load_reconstruction(self, filename=None):
-        with open(self._reconstruction_file(filename)) as fin:
-            reconstructions = io.reconstructions_from_json(json.load(fin))
+        with io.open_rt(self._reconstruction_file(filename)) as fin:
+            reconstructions = io.reconstructions_from_json(io.json_load(fin))
         return reconstructions
 
     def save_reconstruction(self, reconstruction, filename=None, minify=False):
@@ -624,7 +624,7 @@ class DataSet(object):
 
     def load_report(self, path):
         """Load a report file as a string."""
-        with open(os.path.join(self._report_path(), path)) as fin:
+        with io.open_rt(os.path.join(self._report_path(), path)) as fin:
             return fin.read()
 
     def save_report(self, report_str, path):
@@ -666,7 +666,7 @@ class DataSet(object):
         """
         exif = {image: self.load_exif(image) for image in self.images()}
 
-        with open(self._ground_control_points_file()) as fin:
+        with io.open_rt(self._ground_control_points_file()) as fin:
             return io.read_ground_control_points_list(
                 fin, self.load_reference_lla(), exif)
 

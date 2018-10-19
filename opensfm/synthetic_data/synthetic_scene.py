@@ -1,3 +1,8 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
 import numpy as np
 import functools
 import cv2
@@ -31,7 +36,7 @@ def get_scene_generator(type, length):
     if type == 'ellipse':
         ellipse_ratio = 4
         generator = functools.partial(ellipse_generator, length,
-                                      length/ellipse_ratio)
+                                      length / ellipse_ratio)
     if type == 'line':
         generator = functools.partial(line_generator, length)
     if type == 'curve':
@@ -52,7 +57,7 @@ class SyntheticScene(object):
     def add_street(self, points_count, height, width):
         self.wall_points, self.floor_points = generate_street(
             samples_generator_random_count(
-                int(points_count/3)), self.generator,
+                int(points_count // 3)), self.generator,
             height, width)
         self.width = width
         return self
