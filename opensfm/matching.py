@@ -136,6 +136,11 @@ def robust_match_calibrated(p1, p2, camera1, camera2, matches, config):
     T = multiview.relative_pose_ransac(
         b1, b2, "STEWENIUS", 1 - np.cos(threshold), 1000, 0.999)
 
+    for relax in [4, 2, 1]:
+        inliers = _compute_inliers_bearings(b1, b2, T, relax * threshold)
+        T = pyopengv.relative_pose_optimize_nonlinear(
+            b1[inliers], b2[inliers], T[:3, 3], T[:3, :3])
+
     inliers = _compute_inliers_bearings(b1, b2, T, threshold)
 
     return matches[inliers]
