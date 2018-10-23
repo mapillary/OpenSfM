@@ -1,6 +1,7 @@
 import numpy as np
 import functools
 import math
+import copy
 import cv2
 
 import networkx as nx
@@ -8,6 +9,7 @@ import networkx as nx
 from opensfm import io
 from opensfm import geo
 from opensfm import types
+from opensfm import reconstruction as rc
 
 
 def derivative(func, x):
@@ -131,6 +133,7 @@ def generate_exifs(reconstruction, gps_noise, speed_ms=10):
     previous_pose = None
     previous_time = 0
     exifs = {}
+    reference = {'latitude': 0, 'longitude': 0, 'altitude': 0}
     for shot_name in sorted(reconstruction.shots.keys()):
         shot = reconstruction.shots[shot_name]
         exif = {}
@@ -147,14 +150,18 @@ def generate_exifs(reconstruction, gps_noise, speed_ms=10):
         exif['capture_time'] = previous_time
 
         perturb_points([pose], [gps_noise, gps_noise, gps_noise])
-        lat, lon, alt = geo.lla_from_topocentric(pose[0], pose[1], pose[2],
-                                                 0, 0, 0)
+
+        shot_copy = copy.deepcopy(shot)
+        shot_copy.pose.set_origin(pose)
+        lat, lon, alt, comp = rc.shot_lla_and_compass(shot_copy,
+                                                      reference)
 
         exif['gps'] = {}
         exif['gps']['latitude'] = lat
         exif['gps']['longitude'] = lon
         exif['gps']['altitude'] = alt
         exif['gps']['dop'] = gps_noise
+        exif['compass'] = {'angle': comp}
         exifs[shot_name] = exif
     return exifs
 
