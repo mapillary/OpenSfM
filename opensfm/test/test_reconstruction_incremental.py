@@ -22,10 +22,10 @@ def test_reconstruction_incremental(scene):
     gps_noise = 5.0
 
     exifs = scene.get_scene_exifs(gps_noise)
-    features, colors, graph = scene.get_tracks_data(maximum_depth,
-                                                    projection_noise)
+    features, desc, colors, graph = scene.get_tracks_data(maximum_depth,
+                                                          projection_noise)
     dataset = synthetic_dataset.SyntheticDataSet(reference, exifs, features,
-                                                 colors, graph)
+                                                 desc, colors, graph)
 
     _, reconstructed_scene = reconstruction.\
         incremental_reconstruction(dataset, graph)

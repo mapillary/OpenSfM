@@ -67,11 +67,11 @@ if __name__ == "__main__":
     position_file = open(os.path.join(args.output, 'stats_cameras.txt'), 'w')
     points_file = open(os.path.join(args.output, 'stats_points.txt'), 'w')
     for projection_noise in frange(0.0, args.image_noise, 0.5):
-        features, colors, graph = scene.get_tracks_data(maximum_depth,
-                                                        projection_noise)
+        features, desc, colors, graph = scene.get_tracks_data(maximum_depth,
+                                                              projection_noise)
         exifs = scene.get_scene_exifs(args.gps_noise)
         dataset = synthetic_dataset.SyntheticDataSet(reference, exifs,
-                                                     features,
+                                                     features, desc,
                                                      colors, graph)
 
         dataset.config['processes'] = multiprocessing.cpu_count()

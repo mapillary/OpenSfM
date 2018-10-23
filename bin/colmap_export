@@ -243,10 +243,10 @@ if __name__ == "__main__":
 
     scene = synthetic_generator.\
         generate_reconstruction(15, 10, 300, 10000, 'ellipse')
-    feat, colors, graph = synthetic_generator.generate_track_data(
+    feat, desc, colors, graph = synthetic_generator.generate_track_data(
         scene, 40)
     data = synthetic_dataset.SyntheticDataSet(
-        scene, feat, colors, graph)
+        scene, feat, desc, colors, graph)
 
     db = COLMAPDatabase.connect('/home/yann/colmap_synth.db')
     db.create_tables()

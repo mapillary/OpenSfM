@@ -211,8 +211,21 @@ def generate_track_data(reconstruction, maximum_depth, noise):
     for track_index in reconstruction.points:
         tracks_graph.add_node(str(track_index), bipartite=1)
 
+    feature_data_type = np.float32
+    desc_size = 128
+    non_zeroes = 5
+    track_descriptors = {}
+    for track_index in reconstruction.points:
+        descriptor = np.zeros(desc_size)
+        for i in range(non_zeroes):
+            index = np.random.randint(0, desc_size)
+            descriptor[index] = np.random.random()*255
+        track_descriptors[track_index] = descriptor.round().\
+            astype(feature_data_type)
+
     colors = {}
     features = {}
+    descriptors = {}
     for shot_index, shot in reconstruction.shots.items():
         # need to have these as we lost track of keys
         all_keys = list(reconstruction.points.keys())
@@ -222,6 +235,7 @@ def generate_track_data(reconstruction, maximum_depth, noise):
         all_coordinates = [p.coordinates for p in all_values]
         projections = shot.project_many(np.array(all_coordinates))
         projections_inside = []
+        descriptors_inside = []
         colors_inside = []
         for i, projection in enumerate(projections):
             if not _is_inside_camera(projection, shot.camera):
@@ -239,6 +253,7 @@ def generate_track_data(reconstruction, maximum_depth, noise):
             perturb_points([projection], np.array([perturbation, perturbation]))
 
             projections_inside.append(projection)
+            descriptors_inside.append(track_descriptors[original_key])
             colors_inside.append(original_point.color)
             tracks_graph.add_edge(str(shot_index),
                                   str(original_key),
@@ -249,8 +264,9 @@ def generate_track_data(reconstruction, maximum_depth, noise):
                                                  float(original_point.color[2])))
         features[shot_index] = np.array(projections_inside)
         colors[shot_index] = np.array(colors_inside)
+        descriptors[shot_index] = np.array(descriptors_inside)
 
-    return features, colors, tracks_graph
+    return features, descriptors, colors, tracks_graph
 
 
 def _check_depth(point, shot, maximum_depth):

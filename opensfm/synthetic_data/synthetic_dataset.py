@@ -16,11 +16,12 @@ logger = logging.getLogger(__name__)
 class SyntheticDataSet(DataSet, object):
 
     def __init__(self, reconstruction, exifs, features=None,
-                 colors=None, graph=None):
+                 descriptors=None, colors=None, graph=None):
         super(SyntheticDataSet, self).__init__('')
         self.reconstruction = reconstruction
         self.exifs = exifs
         self.features = features
+        self.descriptors = descriptors
         self.colors = colors
         self.graph = graph
         self.image_list = list(reconstruction.shots.keys())
@@ -46,7 +47,7 @@ class SyntheticDataSet(DataSet, object):
         return True
 
     def load_features(self, image):
-        return self.features[image], {}, self.colors[image]
+        return self.features[image], self.descriptors[image], self.colors[image]
 
     def save_features(self, image, points, descriptors, colors):
         pass
