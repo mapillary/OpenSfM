@@ -13,7 +13,7 @@ from opensfm import tracking
 logger = logging.getLogger(__name__)
 
 
-class SyntheticDataSet(DataSet, object):
+class SyntheticDataSet(DataSet):
 
     def __init__(self, reconstruction, exifs, features=None,
                  descriptors=None, colors=None, graph=None):
