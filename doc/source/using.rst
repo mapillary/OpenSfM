@@ -169,7 +169,9 @@ This commands computes a dense point cloud of the scene by computing and merging
 Configuration
 -------------
 
-TODO explain config.yaml and the available parameters
+SfM algorithms have options and depend on various parameters.  OpenSfM comes setup with default values for each option but you might want to tune some options for a particular dataset.  Options used to reconstruct a dataset can be set by editing the file ``DATASET_PATH/config.yaml``.  Any option present in this file will override the default.
+
+Checkout `the default configuration <_modules/opensfm/config.html>`_ to see the list of options.
 
 
 .. include:: gcp.rst

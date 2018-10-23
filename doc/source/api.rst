@@ -38,3 +38,10 @@ Incremental Reconstruction
 
 .. automodule:: opensfm.reconstruction
    :members:
+
+
+Config
+------
+
+.. automodule:: opensfm.config
+   :members:
