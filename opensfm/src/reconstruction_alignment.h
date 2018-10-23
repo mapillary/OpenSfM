@@ -600,7 +600,6 @@ class ReconstructionAlignment {
     ceres::Solver::Options options;
     options.linear_solver_type = ceres::SPARSE_NORMAL_CHOLESKY;
     options.num_threads = 8;
-    options.num_linear_solver_threads = 8;
     options.max_num_iterations = 500;
 
     ceres::Solve(options, &problem, &last_run_summary_);
