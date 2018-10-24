@@ -92,7 +92,12 @@ def has_gps_info(exif):
 
 
 def match_candidates_by_distance(images, exifs, reference, max_neighbors, max_distance):
-    """Find candidate matching pairs by GPS distance."""
+    """Find candidate matching pairs by GPS distance.
+
+    The GPS altitude is ignored because we want images of the same position
+    at different altitudes to be matched together.  Otherwise, for drone
+    datasets, flights at different altitudes do not get matched.
+    """
     if max_neighbors <= 0 and max_distance <= 0:
         return set()
     max_neighbors = max_neighbors or 99999999
@@ -102,10 +107,9 @@ def match_candidates_by_distance(images, exifs, reference, max_neighbors, max_di
     points = np.zeros((len(images), 3))
     for i, image in enumerate(images):
         gps = exifs[image]['gps']
-        alt = gps.get('altitude', 2.0)
         points[i] = geo.topocentric_from_lla(
-            gps['latitude'], gps['longitude'], alt,
-            reference['latitude'], reference['longitude'], reference['altitude'])
+            gps['latitude'], gps['longitude'], 0,
+            reference['latitude'], reference['longitude'], 0)
 
     tree = spatial.cKDTree(points)
 
