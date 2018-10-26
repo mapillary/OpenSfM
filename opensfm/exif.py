@@ -28,11 +28,17 @@ def gps_to_decimal(values, reference):
     return sign * (degrees + minutes / 60 + seconds / 3600)
 
 
-def get_tag_as_float(tags, key):
+def get_tag_as_float(tags, key, index = 0):
     if key in tags:
-        val = tags[key].values[0]
+        val = tags[key].values[index]
         if isinstance(val, exifread.utils.Ratio):
-            return eval_frac(val)
+            ret_val = eval_frac(val)
+            if ret_val is None:
+                logger.error(
+                    'The rational "{2}" of tag "{0:s}" at index {1:d} c'
+                    'aused a division by zero error'.format(
+                        key, index, val))
+            return ret_val
         else:
             return float(val)
     else:
@@ -260,39 +266,63 @@ class EXIF:
     def extract_capture_time(self):
         if ('GPS GPSDate' in self.tags and # Actually GPSDateStamp
             'GPS GPSTimeStamp' in self.tags):
-            gps_timestamp_string = (
-            '{0:s} {1:02d}:{2:02d}:{3:02f}'.format(
-                self.tags['GPS GPSDate'].values,                         # day
-                int(eval_frac(self.tags['GPS GPSTimeStamp'].values[0])), # hour
-                int(eval_frac(self.tags['GPS GPSTimeStamp'].values[1])), # minute
-                eval_frac(self.tags['GPS GPSTimeStamp'].values[2])))     # second.fraction
             try:
+                hours = int(get_tag_as_float(self.tags, 'GPS GPSTimeStamp', 0))
+                minutes = int(get_tag_as_float(self.tags, 'GPS GPSTimeStamp', 1))
+                seconds = get_tag_as_float(self.tags, 'GPS GPSTimeStamp', 2)
+                gps_timestamp_string = ('{0:s} {1:02d}:{2:02d}:{3:02f}'.format(
+                    self.tags['GPS GPSDate'].values,
+                    hours,
+                    minutes,
+                    seconds))
                 return (datetime.datetime.strptime(
                     gps_timestamp_string, '%Y:%m:%d %H:%M:%S.%f') -
                     datetime.datetime(1970, 1, 1)).total_seconds()
-            except ValueError:
-                pass
+            except (TypeError, ValueError):
+                logger.error(
+                    'The GPS time stamp in image file "{0:s}" is invalid. Falli'
+                    'ng back to DateTime*'.format(self.fileobj.name))
         time_strings = [('EXIF DateTimeOriginal', 'EXIF SubSecTimeOriginal', 'EXIF Tag 0x9011'),
                         ('EXIF DateTimeDigitized', 'EXIF SubSecTimeDigitized', 'EXIF Tag 0x9012'),
                         ('Image DateTime', 'Image SubSecTime', 'Image Tag 0x9010')]
         for ts in time_strings:
             if ts[0] in self.tags:
-                s = '{0:s}.{1:s}'.format(self.tags[ts[0]].values,
-                                         self.tags.get(ts[1], '0'))
+                date_time = self.tags[ts[0]].values
+                subsec_time = self.tags.get(ts[1], '0')
                 try:
+                    s = '{0:s}.{1:s}'.format(date_time, subsec_time)
                     d = datetime.datetime.strptime(s, '%Y:%m:%d %H:%M:%S.%f')
                 except ValueError:
+                    logger.error(
+                        'The "{1:s}" time stamp or \"{2:s}\" tag is invalid in '
+                        'image file "{0:s}"'.format(
+                            self.fileobj.name, ts[0], ts[1]))
                     continue
+                # Test for OffsetTimeOriginal | OffsetTimeDigitized | OffsetTime
                 if ts[2] in self.tags:
                     offset_time = self.tags[ts[2]].values
-                    d += datetime.timedelta(
-                        hours=-int(offset_time[0]+offset_time[1]+offset_time[2]),
-                        minutes=int(offset_time[4]+offset_time[5]))
+                    try:
+                        d += datetime.timedelta(hours=-int(offset_time[0:3]),
+                                                minutes=int(offset_time[4:6]))
+                    except (TypeError, ValueError):
+                        logger.error(
+                            'The "{0:s}" time zone offset in image file "{1:s}"'
+                            ' is invalid'.format(
+                                ts[2], self.fileobj.name))
+                        logger.warn(
+                            'Naively assuming UTC on "{0:s}" in image file "{1:'
+                            's}"'.format(ts[0], self.fileobj.name))
                 else:
-                    logger.warn('Image file "{0:s}" has no GPS time stamp and '
-                                'no time zone offset. Naively assuming UTC on '
-                                '{1:s}'.format(self.fileobj.name, ts[0]))
+                    logger.warn(
+                        'No GPS time stamp and no time zone offset in image fil'
+                        'e "{0:s}"'.format(self.fileobj.name))
+                    logger.warn(
+                        'Naively assuming UTC on "{0:s}" in image file "{1:s}"'.
+                            format(ts[0], self.fileobj.name))
                 return (d - datetime.datetime(1970, 1, 1)).total_seconds()
+        logger.error(
+            'Image file "{0:s}" has no valid time stamp'.format(
+                self.fileobj.name))
         return 0.0
 
     def extract_exif(self):
