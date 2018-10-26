@@ -123,8 +123,8 @@ def get_gpano_from_xmp(xmp):
 
 
 class EXIF:
-
     def __init__(self, fileobj):
+        self.fileobj = fileobj
         self.tags = exifread.process_file(fileobj, details=False)
         fileobj.seek(0)
         self.xmp = get_xmp(fileobj)
@@ -258,19 +258,41 @@ class EXIF:
         return d
 
     def extract_capture_time(self):
-        time_strings = [('EXIF DateTimeOriginal', 'EXIF SubSecTimeOriginal'),
-                        ('EXIF DateTimeDigitized', 'EXIF SubSecTimeDigitized'),
-                        ('Image DateTime', 'EXIF SubSecTime')]
+        if ('GPS GPSDate' in self.tags and # Actually GPSDateStamp
+            'GPS GPSTimeStamp' in self.tags):
+            gps_timestamp_string = (
+            '{0:s} {1:02d}:{2:02d}:{3:02f}'.format(
+                self.tags['GPS GPSDate'].values,                         # day
+                int(eval_frac(self.tags['GPS GPSTimeStamp'].values[0])), # hour
+                int(eval_frac(self.tags['GPS GPSTimeStamp'].values[1])), # minute
+                eval_frac(self.tags['GPS GPSTimeStamp'].values[2])))     # second.fraction
+            try:
+                return (datetime.datetime.strptime(
+                    gps_timestamp_string, '%Y:%m:%d %H:%M:%S.%f') -
+                    datetime.datetime(1970, 1, 1)).total_seconds()
+            except ValueError:
+                pass
+        time_strings = [('EXIF DateTimeOriginal', 'EXIF SubSecTimeOriginal', 'EXIF Tag 0x9011'),
+                        ('EXIF DateTimeDigitized', 'EXIF SubSecTimeDigitized', 'EXIF Tag 0x9012'),
+                        ('Image DateTime', 'Image SubSecTime', 'Image Tag 0x9010')]
         for ts in time_strings:
             if ts[0] in self.tags:
-                s = str(self.tags[ts[0]].values)
+                s = '{0:s}.{1:s}'.format(self.tags[ts[0]].values,
+                                         self.tags.get(ts[1], '0'))
                 try:
-                    d = datetime.datetime.strptime(s, '%Y:%m:%d %H:%M:%S')
+                    d = datetime.datetime.strptime(s, '%Y:%m:%d %H:%M:%S.%f')
                 except ValueError:
                     continue
-                timestamp = (d - datetime.datetime(1970, 1, 1)).total_seconds()   # Assuming d is in UTC
-                timestamp += int(str(self.tags.get(ts[1], 0))) / 1000.0;
-                return timestamp
+                if ts[2] in self.tags:
+                    offset_time = self.tags[ts[2]].values
+                    d += datetime.timedelta(
+                        hours=-int(offset_time[0]+offset_time[1]+offset_time[2]),
+                        minutes=int(offset_time[4]+offset_time[5]))
+                else:
+                    logger.warn('Image file "{0:s}" has no GPS time stamp and '
+                                'no time zone offset. Naively assuming UTC on '
+                                '{1:s}'.format(self.fileobj.name, ts[0]))
+                return (d - datetime.datetime(1970, 1, 1)).total_seconds()
         return 0.0
 
     def extract_exif(self):
