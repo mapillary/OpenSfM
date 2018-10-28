@@ -1,12 +1,12 @@
 #include "types.h"
 #include "AKAZE.h"
+#include "akaze_bind.h"
 #include <opencv2/imgproc/imgproc.hpp>
 
 namespace csfm {
 
 
-py::object akaze(pyarray_uint8 image,
-                 AKAZEOptions options) {
+py::object akaze(pyarray_uint8 image, AKAZEOptions options) {
   const cv::Mat img(image.shape(0), image.shape(1), CV_8U, (void *)image.data());
 
   cv::Mat img_32;

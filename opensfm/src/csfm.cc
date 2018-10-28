@@ -5,7 +5,7 @@
 #include "types.h"
 #include "hahog.cc"
 #include "multiview.cc"
-#include "akaze.cc"
+#include "akaze_bind.h"
 #include "bundle.h"
 #include "openmvs_exporter.h"
 #include "depthmap_wrapper.cc"
