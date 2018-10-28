@@ -1,7 +1,7 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/calib3d/calib3d.hpp>
 #include <gtest/gtest.h>
-#include "depthmap.cc"
+#include "depthmap.h"
 
 namespace {
 

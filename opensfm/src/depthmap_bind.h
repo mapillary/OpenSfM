@@ -1,6 +1,7 @@
+#pragma once
 
 #include "types.h"
-#include "depthmap.cc"
+#include "depthmap.h"
 
 
 namespace csfm {

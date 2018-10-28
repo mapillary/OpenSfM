@@ -8,7 +8,7 @@
 #include "akaze_bind.h"
 #include "bundle.h"
 #include "openmvs_exporter.h"
-#include "depthmap_wrapper.cc"
+#include "depthmap_bind.h"
 #include "reconstruction_alignment.h"
 
 

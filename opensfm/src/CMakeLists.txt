@@ -120,13 +120,10 @@ if (OPENSFM_BUILD_TESTS)
                         ${GLOG_LIBRARY}
                         gtest)
 
-  macro (OPENSFM_TEST NAME EXTRA_LIBS)
-    add_executable(${NAME}_test ${NAME}_test.cc)
-    target_link_libraries(${NAME}_test
-                          ${EXTRA_LIBS} # Extra libs MUST be first.
-                          testing_main)
-    add_test(${NAME}_test ${NAME}_test)
-  endmacro ()
+  add_executable(depthmap_test depthmap_test.cc depthmap.cc)
+  target_link_libraries(depthmap_test
+                        ${OpenCV_LIBS}
+                        testing_main)
+  add_test(depthmap_test depthmap_test)
 
-  opensfm_test(depthmap "${OpenCV_LIBS}")
 endif()
