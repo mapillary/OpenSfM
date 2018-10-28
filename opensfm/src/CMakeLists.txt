@@ -10,9 +10,14 @@ endif()
 
 set(CMAKE_MODULE_PATH ${opensfm_SOURCE_DIR}/cmake)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -std=c++0x")
-
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} \
+    -fPIC \
+    -fvisibility=hidden")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+    -fPIC \
+    -fvisibility=hidden \
+    -fvisibility-inlines-hidden \
+    -std=c++11")
 
 # Find dependencies.
 add_subdirectory(third_party/pybind11)
@@ -80,7 +85,7 @@ add_library(vl ${VLFEAT_SRCS})
 
 
 # Python wrapper
-pybind11_add_module(csfm csfm.cc akaze_bind.cc)
+pybind11_add_module(csfm csfm.cc akaze_bind.cc depthmap.cc)
 target_link_libraries(csfm PRIVATE
     ${OpenCV_LIBS}
     ${GFLAGS_LIBRARY}
