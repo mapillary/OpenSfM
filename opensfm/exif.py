@@ -321,7 +321,7 @@ def hard_coded_calibration(exif):
             return {'focal': 0.55, 'k1': -0.30, 'k2': 0.08}
         elif 'hdr-as300' in model:
             return {"focal":  0.3958, "k1": -0.1496, "k2": 0.0201}
-            
+
 
 def focal_ratio_calibration(exif):
     if exif['focal_ratio']:
@@ -350,7 +350,7 @@ def camera_from_exif_metadata(metadata, data):
     '''
     Create a camera object from exif metadata
     '''
-    pt = metadata.get('projection_type', 'perspective')
+    pt = metadata.get('projection_type', 'perspective').lower()
     if pt == 'perspective':
         calib = (hard_coded_calibration(metadata)
                  or focal_ratio_calibration(metadata)
