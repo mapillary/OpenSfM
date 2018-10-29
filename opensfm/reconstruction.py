@@ -558,7 +558,7 @@ def two_view_reconstruction(p1, p2, camera1, camera2, threshold):
     # focal length 1.  Also, arctan(threshold) \approx threshold since
     # threshold is small
     T = multiview.relative_pose_ransac(
-        b1, b2, "STEWENIUS", 1 - np.cos(threshold), 1000, 0.999)
+        b1, b2, b"STEWENIUS", 1 - np.cos(threshold), 1000, 0.999)
     R = T[:, :3]
     t = T[:, 3]
     inliers = _two_view_reconstruction_inliers(b1, b2, R, t, threshold)
@@ -732,7 +732,7 @@ def resect(graph, reconstruction, shot_id,
         return False, {'num_common_points': len(bs)}
 
     T = multiview.absolute_pose_ransac(
-        bs, Xs, "KNEIP", 1 - np.cos(threshold), 1000, 0.999)
+        bs, Xs, b"KNEIP", 1 - np.cos(threshold), 1000, 0.999)
 
     R = T[:, :3]
     t = T[:, 3]
