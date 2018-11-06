@@ -57,7 +57,7 @@ def sensor_string(make, model):
     if make != 'unknown':
         # remove duplicate 'make' information in 'model'
         model = model.replace(make, '')
-    return (make.strip() + ' ' + model.strip()).lower()
+    return (make.strip() + ' ' + model.strip()).strip().lower()
 
 
 def camera_id(exif):
