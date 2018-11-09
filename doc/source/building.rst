@@ -31,7 +31,11 @@ OpenSfM depends on the following libraries that need to be installed before buil
 Installing dependencies on Ubuntu
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-See this `Dockerfile <https://github.com/paulinus/opensfm-docker-base/blob/master/Dockerfile>`_ for the commands to install all dependencies on Ubuntu 16.04.  The steps are
+If using Python 2, see this `Dockerfile <https://github.com/paulinus/opensfm-docker-base/blob/master/Dockerfile>`_ for the commands to install all dependencies on Ubuntu 16.04.
+
+If using Python 3, follow the process here `Dockerfile.python3 <https://github.com/paulinus/opensfm-docker-base/blob/master/Dockerfile.python3>`_.
+
+The main steps are
 
 1. Install OpenCV, NumPy, SciPy using apt-get
 2. Install python requirements using pip
@@ -54,7 +58,6 @@ And install OpenGV using::
     brew install eigen
     git clone https://github.com/paulinus/opengv.git
     cd opengv/build
-    cd opengv/build
     cmake .. -DBUILD_TESTS=OFF -DBUILD_PYTHON=ON
     make install
 
@@ -74,6 +77,7 @@ Once the dependencies have been installed, you can build OpenSfM by running the 
 
     python setup.py build
 
+or ``python3 setup.py build`` for a Python 3 build.
 
 Building the documentation
 --------------------------
