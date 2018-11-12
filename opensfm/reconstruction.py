@@ -14,7 +14,6 @@ from timeit import default_timer as timer
 from six import iteritems
 
 from opensfm import csfm
-from opensfm import geo
 from opensfm import log
 from opensfm import tracking
 from opensfm import multiview

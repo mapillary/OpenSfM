@@ -6,7 +6,6 @@ import numpy as np
 import scipy.spatial as spatial
 
 from opensfm import dataset
-from opensfm import geo
 from opensfm import io
 from opensfm import log
 from opensfm import matching

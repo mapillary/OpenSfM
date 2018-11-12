@@ -5,7 +5,6 @@ import numpy as np
 import pyproj
 
 from opensfm import dataset
-from opensfm import geo
 from opensfm import io
 
 logger = logging.getLogger(__name__)

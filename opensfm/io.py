@@ -16,7 +16,6 @@ import pyproj
 from six import iteritems
 
 from opensfm import features
-from opensfm import geo
 from opensfm import types
 from opensfm import context
 

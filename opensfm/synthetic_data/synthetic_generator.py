@@ -1,12 +1,10 @@
 import numpy as np
-import functools
 import math
 import copy
 import cv2
 
 import networkx as nx
 
-from opensfm import io
 from opensfm import geo
 from opensfm import types
 from opensfm import reconstruction as rc
