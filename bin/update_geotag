@@ -36,7 +36,7 @@ args = parser.parse_args()
 data_path = args.dataset
 
 data = dataset.DataSet(data_path)
-reference = data.load_reference_lla()
+reference = data.load_reference()
 
 updated_image_path = os.path.join(data.data_path, 'images_updated_geotag')
 if not args.overwrite_originals and not os.path.exists(updated_image_path):

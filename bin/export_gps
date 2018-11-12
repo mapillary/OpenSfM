@@ -20,7 +20,7 @@ args = parser.parse_args()
 
 # Load data
 data = dataset.DataSet(args.dataset)
-reference = data.load_reference_lla()
+reference = data.load_reference()
 reconstructions = data.load_reconstruction()
 
 # Compute lat, lon

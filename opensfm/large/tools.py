@@ -34,13 +34,12 @@ def kmeans(samples, nclusters, max_iter=100, attempts=20):
 
 
 def add_cluster_neighbors(positions, labels, centers, max_distance):
-    reference = np.mean(positions, 0)
+    reflla = np.mean(positions, 0)
+    reference = geo.TopocentricConverter(reflla[0], reflla[1], 0)
 
     topocentrics = []
     for position in positions:
-        x, y, z = geo.topocentric_from_lla(
-            position[0], position[1], 0,
-            reference[0], reference[1], 0)
+        x, y, z = reference.to_topocentric(position[0], position[1], 0)
         topocentrics.append([x, y])
 
     topocentrics = np.array(topocentrics)

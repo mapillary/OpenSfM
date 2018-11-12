@@ -55,7 +55,7 @@ class Command:
             print(' --transformation, --image-positions, --reconstruction, --dense')
 
         data = dataset.DataSet(args.dataset)
-        reference = data.load_reference_lla()
+        reference = data.load_reference()
 
         projection = pyproj.Proj(args.proj)
         transformation = self._get_transformation(reference, projection)
@@ -108,9 +108,7 @@ class Command:
 
     def _transform(self, point, reference, projection):
         """Transform on point from local coords to a proj4 projection."""
-        lat, lon, altitude = geo.lla_from_topocentric(
-            point[0], point[1], point[2],
-            reference['latitude'], reference['longitude'], reference['altitude'])
+        lat, lon, altitude = reference.to_lla(point[0], point[1], point[2])
         easting, northing = projection(lon, lat)
         return [easting, northing, altitude]
 

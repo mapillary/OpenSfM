@@ -14,6 +14,7 @@ import six
 from opensfm import io
 from opensfm import config
 from opensfm import context
+from opensfm import geo
 
 
 logger = logging.getLogger(__name__)
@@ -563,6 +564,12 @@ class DataSet(object):
         with io.open_rt(self._reference_lla_path()) as fin:
             return io.json_load(fin)
 
+    def load_reference(self):
+        """Load reference as a topocentric converter."""
+        lla = self.load_reference_lla()
+        return geo.TopocentricConverter(
+            lla['latitude'], lla['longitude'], lla['altitude'])
+
     def reference_lla_exists(self):
         return os.path.isfile(self._reference_lla_path())
 
@@ -665,10 +672,10 @@ class DataSet(object):
         to topocentric reference frame.
         """
         exif = {image: self.load_exif(image) for image in self.images()}
+        reference = self.load_reference()
 
         with io.open_rt(self._ground_control_points_file()) as fin:
-            return io.read_ground_control_points_list(
-                fin, self.load_reference_lla(), exif)
+            return io.read_ground_control_points_list(fin, reference, exif)
 
     def image_as_array(self, image):
         logger.warning("image_as_array() is deprecated. Use load_image() instead.")

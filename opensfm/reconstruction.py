@@ -445,7 +445,7 @@ def get_image_metadata(data, image):
     """Get image metadata as a ShotMetadata object."""
     metadata = types.ShotMetadata()
     exif = data.load_exif(image)
-    reflla = data.load_reference_lla()
+    reference = data.load_reference()
     if ('gps' in exif and
             'latitude' in exif['gps'] and
             'longitude' in exif['gps']):
@@ -455,9 +455,7 @@ def get_image_metadata(data, image):
             alt = exif['gps'].get('altitude', 2.0)
         else:
             alt = 2.0  # Arbitrary value used to align the reconstruction
-        x, y, z = geo.topocentric_from_lla(
-            lat, lon, alt,
-            reflla['latitude'], reflla['longitude'], reflla['altitude'])
+        x, y, z = reference.to_topocentric(lat, lon, alt)
         metadata.gps_position = [x, y, z]
         metadata.gps_dop = exif['gps'].get('dop', 15.0)
     else:
@@ -931,9 +929,7 @@ def remove_outliers(graph, reconstruction, config):
 def shot_lla_and_compass(shot, reference):
     """Lat, lon, alt and compass of the reconstructed shot position."""
     topo = shot.pose.get_origin()
-    lat, lon, alt = geo.lla_from_topocentric(
-        topo[0], topo[1], topo[2],
-        reference['latitude'], reference['longitude'], reference['altitude'])
+    lat, lon, alt = reference.to_lla(*topo)
 
     dz = shot.viewing_direction()
     angle = np.rad2deg(np.arctan2(dz[0], dz[1]))

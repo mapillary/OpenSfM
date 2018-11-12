@@ -146,3 +146,23 @@ def gps_distance(latlon_1, latlon_2):
     dis = np.sqrt((x1-x2)**2 + (y1-y2)**2 + (z1-z2)**2)
 
     return dis
+
+
+class TopocentricConverter(object):
+    """Convert to and from a topocentric reference frame."""
+
+    def __init__(self, reflat, reflon, refalt):
+        """Init the converter given the reference origin."""
+        self.lat = reflat
+        self.lon = reflon
+        self.alt = refalt
+
+    def to_topocentric(self, lat, lon, alt):
+        """Convert lat, lon, alt to topocentric x, y, z."""
+        return topocentric_from_lla(lat, lon, alt,
+                                    self.lat, self.lon, self.alt)
+
+    def to_lla(self, x, y, z):
+        """Convert topocentric x, y, z to lat, lon, alt."""
+        return lla_from_topocentric(x, y, z,
+                                    self.lat, self.lon, self.alt)

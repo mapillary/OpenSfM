@@ -107,9 +107,8 @@ def match_candidates_by_distance(images, exifs, reference, max_neighbors, max_di
     points = np.zeros((len(images), 3))
     for i, image in enumerate(images):
         gps = exifs[image]['gps']
-        points[i] = geo.topocentric_from_lla(
-            gps['latitude'], gps['longitude'], 0,
-            reference['latitude'], reference['longitude'], 0)
+        points[i] = reference.to_topocentric(
+            gps['latitude'], gps['longitude'], 0)
 
     tree = spatial.cKDTree(points)
 
@@ -169,7 +168,7 @@ def match_candidates_from_metadata(images, exifs, data):
 
     if not data.reference_lla_exists():
         data.invent_reference_lla()
-    reference = data.load_reference_lla()
+    reference = data.load_reference()
 
     if not all(map(has_gps_info, exifs.values())):
         if gps_neighbors != 0:

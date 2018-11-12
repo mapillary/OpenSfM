@@ -133,7 +133,7 @@ def generate_exifs(reconstruction, gps_noise, speed_ms=10):
     previous_pose = None
     previous_time = 0
     exifs = {}
-    reference = {'latitude': 0, 'longitude': 0, 'altitude': 0}
+    reference = geo.TopocentricConverter(0, 0, 0)
     for shot_name in sorted(reconstruction.shots.keys()):
         shot = reconstruction.shots[shot_name]
         exif = {}
@@ -153,8 +153,7 @@ def generate_exifs(reconstruction, gps_noise, speed_ms=10):
 
         shot_copy = copy.deepcopy(shot)
         shot_copy.pose.set_origin(pose)
-        lat, lon, alt, comp = rc.shot_lla_and_compass(shot_copy,
-                                                      reference)
+        lat, lon, alt, comp = rc.shot_lla_and_compass(shot_copy, reference)
 
         exif['gps'] = {}
         exif['gps']['latitude'] = lat

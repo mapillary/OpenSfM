@@ -353,7 +353,7 @@ def cameras_to_json(cameras):
     return obj
 
 
-def _read_gcp_list_line(line, projection, reference_lla, exif):
+def _read_gcp_list_line(line, projection, reference, exif):
     words = line.split()
     easting, northing, alt, pixel_x, pixel_y = map(float, words[:5])
     shot_id = words[5]
@@ -363,11 +363,7 @@ def _read_gcp_list_line(line, projection, reference_lla, exif):
         lon, lat = projection(easting, northing, inverse=True)
     else:
         lon, lat = easting, northing
-    x, y, z = geo.topocentric_from_lla(
-        lat, lon, alt,
-        reference_lla['latitude'],
-        reference_lla['longitude'],
-        reference_lla['altitude'])
+    x, y, z = reference.to_topocentric(lat, lon, alt)
 
     # Convert 2D coordinates
     d = exif[shot_id]
@@ -417,7 +413,7 @@ def _valid_gcp_line(line):
     return stripped and stripped[0] != '#'
 
 
-def read_ground_control_points_list(fileobj, reference_lla, exif):
+def read_ground_control_points_list(fileobj, reference, exif):
     """Read a ground control point list file.
 
     It requires the points to be in the WGS84 lat, lon, alt format.
@@ -425,7 +421,7 @@ def read_ground_control_points_list(fileobj, reference_lla, exif):
     all_lines = fileobj.readlines()
     lines = iter(filter(_valid_gcp_line, all_lines))
     projection = _parse_projection(next(lines))
-    points = [_read_gcp_list_line(line, projection, reference_lla, exif)
+    points = [_read_gcp_list_line(line, projection, reference, exif)
               for line in lines]
     return points
 
