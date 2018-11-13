@@ -9,5 +9,5 @@ def pytest_configure(config):
 
 def use_legacy_numpy_printoptions():
     """Ensure numpy use legacy print formant."""
-    if LooseVersion(numpy.__version__) > LooseVersion('1.13'):
+    if LooseVersion(numpy.__version__).version[:2] > [1, 13]:
         numpy.set_printoptions(legacy='1.13')
