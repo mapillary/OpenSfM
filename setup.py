@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 
 from __future__ import print_function
-from distutils.core import setup
-import os
+
 import errno
+import os
+import setuptools
 import subprocess
 import sys
 
@@ -34,16 +35,16 @@ print("Compiling extension...")
 subprocess.Popen(['make', '-j4'], cwd='cmake_build').wait()
 
 print("Building package...")
-setup(
+setuptools.setup(
     name='OpenSfM',
-    version='0.1',
+    version='0.4.0',
     description='A Structure from Motion library',
     url='https://github.com/mapillary/OpenSfM',
     author='Mapillary',
     license='BSD',
-    packages=['opensfm', 'opensfm.commands',
-              'opensfm.large', 'opensfm.synthetic_data'],
+    packages=setuptools.find_packages(),
     scripts=['bin/opensfm_run_all', 'bin/opensfm'],
+    include_package_data=True,
     package_data={
         'opensfm': ['csfm.so', 'data/sensor_data.json']
     },
