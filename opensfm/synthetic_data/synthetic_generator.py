@@ -139,6 +139,7 @@ def generate_exifs(reconstruction, gps_noise, speed_ms=10):
         exif['height'] = shot.camera.height
         exif['focal_prior'] = shot.camera.focal_prior
         exif['camera'] = str(shot.camera.id)
+        exif['make'] = str(shot.camera.id)
 
         pose = shot.pose.get_origin()
 
