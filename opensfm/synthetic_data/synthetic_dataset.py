@@ -46,6 +46,9 @@ class SyntheticDataSet(DataSet):
             return False
         return True
 
+    def load_words(self, image, n_closest): 
+        return [image] * n_closest
+
     def load_features(self, image):
         return self.features[image], self.descriptors[image], self.colors[image]
 
