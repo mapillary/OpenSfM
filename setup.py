@@ -22,17 +22,16 @@ def mkdir_p(path):
 python_version = '{}.{}'.format(sys.version_info.major, sys.version_info.minor)
 
 print("Configuring for python {}...".format(python_version))
-
 mkdir_p('cmake_build')
 cmake_command = [
     'cmake',
     '../opensfm/src',
     '-DPYBIND11_PYTHON_VERSION=' + python_version,
 ]
-subprocess.Popen(cmake_command, cwd='cmake_build').wait()
+subprocess.check_call(cmake_command, cwd='cmake_build')
 
 print("Compiling extension...")
-subprocess.Popen(['make', '-j4'], cwd='cmake_build').wait()
+subprocess.check_call(['make', '-j4'], cwd='cmake_build')
 
 print("Building package...")
 setuptools.setup(
