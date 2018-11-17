@@ -8,6 +8,7 @@
 !data/berlin/images
 !doc
 !opensfm
+!README.md
 !requirements.txt
 !setup.cfg
 !setup.py
