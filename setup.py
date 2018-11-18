@@ -33,7 +33,7 @@ mkdir_p('cmake_build')
 cmake_command = [
     'cmake',
     '../opensfm/src',
-    '-DPYBIND11_PYTHON_VERSION=' + python_version,
+    '-DPYTHON_EXECUTABLE=' + sys.executable,
 ]
 subprocess.check_call(cmake_command, cwd='cmake_build')
 
