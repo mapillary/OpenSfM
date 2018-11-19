@@ -26,21 +26,28 @@ def mkdir_p(path):
             raise
 
 
-python_version = '{}.{}'.format(sys.version_info.major, sys.version_info.minor)
+def configure_c_extension():
+    """Configure cmake project to C extension."""
+    print("Configuring for python {}.{}...".format(sys.version_info.major,
+                                                   sys.version_info.minor))
+    mkdir_p('cmake_build')
+    cmake_command = [
+        'cmake',
+        '../opensfm/src',
+        '-DPYTHON_EXECUTABLE=' + sys.executable,
+    ]
+    subprocess.check_call(cmake_command, cwd='cmake_build')
 
-print("Configuring for python {}...".format(python_version))
-mkdir_p('cmake_build')
-cmake_command = [
-    'cmake',
-    '../opensfm/src',
-    '-DPYTHON_EXECUTABLE=' + sys.executable,
-]
-subprocess.check_call(cmake_command, cwd='cmake_build')
 
-print("Compiling extension...")
-subprocess.check_call(['make', '-j4'], cwd='cmake_build')
+def build_c_extension():
+    """Compile C extension."""
+    print("Compiling extension...")
+    subprocess.check_call(['make', '-j4'], cwd='cmake_build')
 
-print("Building package...")
+
+configure_c_extension()
+build_c_extension()
+
 setuptools.setup(
     name='opensfm',
     version='0.4.1a7',
