@@ -71,6 +71,7 @@ setuptools.setup(
         'loky>=1.2.1',
         'networkx>=1.11',
         'numpy>=1.13',
+        'opencv-python>=2.4.11',
         'pyproj>=1.9.5.1',
         'pytest>=3.0.7',
         'python-dateutil>=2.6.0',
