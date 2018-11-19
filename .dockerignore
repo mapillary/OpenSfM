@@ -7,7 +7,9 @@
 !data/berlin/gcp_list.txt
 !data/berlin/images
 !doc
+!LICENSE
 !opensfm
+!README.md
 !requirements.txt
 !setup.cfg
 !setup.py
