@@ -112,6 +112,10 @@ nav_turn_view_threshold: 40           # Maximum difference of angles in degrees 
 nav_vertical_threshold: 20            # Maximum vertical angle difference in motion and viewing direction in degrees
 nav_rotation_threshold: 30            # Maximum general rotation in degrees between cameras for steps
 
+# Params for image undistortion
+undistorted_image_format: jpg         # Format in which to save the undistorted images
+undistorted_image_max_size: 100000    # Max width and height of the undistorted image
+
 # Params for depth estimation
 depthmap_method: PATCH_MATCH_SAMPLE   # Raw depthmap computation algorithm (PATCH_MATCH, BRUTE_FORCE, PATCH_MATCH_SAMPLE)
 depthmap_resolution: 640              # Resolution of the depth maps
