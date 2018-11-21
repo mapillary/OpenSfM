@@ -52,7 +52,7 @@ include_directories(${GFLAGS_INCLUDE_DIR})
 find_package(Glog REQUIRED)
 include_directories(${GLOG_INCLUDE_DIR})
 
-find_package(OpenCV REQUIRED)
+find_package(OpenCV REQUIRED core imgproc calib3d)
 include_directories(${OpenCV_INCLUDE_DIRS})
 
 
