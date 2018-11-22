@@ -6,7 +6,6 @@ import logging
 import pickle
 import gzip
 
-import cv2
 import numpy as np
 import networkx as nx
 import six
@@ -87,7 +86,7 @@ class DataSet(object):
 
     def save_undistorted_image(self, image, array):
         io.mkdir_p(self._undistorted_image_path())
-        cv2.imwrite(self._undistorted_image_file(image), array[:, :, ::-1])
+        io.imwrite(self._undistorted_image_file(image), array)
 
     def _load_mask_list(self):
         """Load mask list from mask_list.txt or list masks/ folder."""
@@ -103,12 +102,10 @@ class DataSet(object):
         """Load image mask if it exists, otherwise return None."""
         if image in self.mask_files:
             mask_path = self.mask_files[image]
-            mask = cv2.imread(mask_path)
+            mask = io.imread(mask_path, grayscale=True)
             if mask is None:
                 raise IOError("Unable to load mask for image {} "
                               "from file {}".format(image, mask_path))
-            if len(mask.shape) == 3:
-                mask = mask.max(axis=2)
         else:
             mask = None
         return mask
@@ -126,12 +123,12 @@ class DataSet(object):
 
     def load_undistorted_mask(self, image):
         """Load undistorted mask pixels as a numpy array."""
-        return io.imread(self._undistorted_mask_file(image))
+        return io.imread(self._undistorted_mask_file(image), grayscale=True)
 
     def save_undistorted_mask(self, image, array):
         """Save the undistorted image mask."""
         io.mkdir_p(self._undistorted_mask_path())
-        cv2.imwrite(self._undistorted_mask_file(image), array)
+        io.imwrite(self._undistorted_mask_file(image), array)
 
     def _segmentation_path(self):
         return os.path.join(self.data_path, 'segmentations')
@@ -143,9 +140,7 @@ class DataSet(object):
         """Load image segmentation if it exitsts, otherwise return None."""
         segmentation_file = self._segmentation_file(image)
         if os.path.isfile(segmentation_file):
-            segmentation = cv2.imread(segmentation_file)
-            if len(segmentation.shape) == 3:
-                segmentation = segmentation.max(axis=2)
+            segmentation = io.imread(segmentation_file, grayscale=True)
         else:
             segmentation = None
         return segmentation
@@ -163,15 +158,14 @@ class DataSet(object):
 
     def load_undistorted_segmentation(self, image):
         """Load an undistorted image segmentation."""
-        segmentation = cv2.imread(self._undistorted_segmentation_file(image))
-        if len(segmentation.shape) == 3:
-            segmentation = segmentation.max(axis=2)
+        segmentation = io.imread(self._undistorted_segmentation_file(image),
+                                 grayscale=True)
         return segmentation
 
     def save_undistorted_segmentation(self, image, array):
         """Save the undistorted image segmentation."""
         io.mkdir_p(self._undistorted_segmentation_path())
-        cv2.imwrite(self._undistorted_segmentation_file(image), array)
+        io.imwrite(self._undistorted_segmentation_file(image), array)
 
     def segmentation_ignore_values(self, image):
         """List of label values to ignore.

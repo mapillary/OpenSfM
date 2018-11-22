@@ -558,10 +558,14 @@ def json_loads(text):
     return json.loads(text)
 
 
-def imread(filename):
-    """Load image as an RGB array ignoring EXIF orientation."""
+def imread(filename, grayscale=False):
+    """Load image as an array ignoring EXIF orientation."""
     if context.OPENCV3:
-        flags = cv2.IMREAD_COLOR
+        if grayscale:
+            flags = cv2.IMREAD_GRAYSCALE
+        else:
+            flags = cv2.IMREAD_COLOR
+
         try:
             flags |= cv2.IMREAD_IGNORE_ORIENTATION
         except AttributeError:
@@ -570,20 +574,26 @@ def imread(filename):
                 "rotating them according to EXIF. Please upgrade OpenCV to "
                 "version 3.2 or newer.".format(cv2.__version__))
     else:
-        flags = cv2.CV_LOAD_IMAGE_COLOR
+        if grayscale:
+            flags = cv2.CV_LOAD_IMAGE_GRAYSCALE
+        else:
+            flags = cv2.CV_LOAD_IMAGE_COLOR
 
-    bgr = cv2.imread(filename, flags)
+    image = cv2.imread(filename, flags)
 
-    if bgr is None:
+    if image is None:
         raise IOError("Unable to load image {}".format(filename))
 
-    return bgr[:, :, ::-1]  # Turn BGR to RGB
+    if len(image.shape) == 3:
+        image = image[:, :, ::-1]  # Turn BGR to RGB
+    return image
 
 
 def imwrite(filename, image):
-    """Write an RGB image to a file"""
-    bgr = image[:, :, ::-1]
-    cv2.imwrite(filename, bgr)
+    """Write an image to a file"""
+    if len(image.shape) == 3:
+        image = image[:, :, ::-1]  # Turn RGB to BGR
+    cv2.imwrite(filename, image)
 
 
 # Bundler
