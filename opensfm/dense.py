@@ -200,14 +200,14 @@ def prune_depthmap(arguments):
     dp = csfm.DepthmapPruner()
     dp.set_same_depth_threshold(data.config['depthmap_same_depth_threshold'])
     add_views_to_depth_pruner(data, neighbors, dp)
-    points, normals, colors, labels = dp.prune()
+    points, normals, colors, labels, detections = dp.prune()
 
     # Save and display results
-    data.save_pruned_depthmap(shot.id, points, normals, colors, labels)
+    data.save_pruned_depthmap(shot.id, points, normals, colors, labels, detections)
 
     if data.config['depthmap_save_debug_files']:
         with io.open_wt(data._depthmap_file(shot.id, 'pruned.npz.ply')) as fp:
-            point_cloud_to_ply(points, normals, colors, labels, fp)
+            point_cloud_to_ply(points, normals, colors, labels, detections, fp)
 
 
 def merge_depthmaps(data, reconstruction):
@@ -219,20 +219,23 @@ def merge_depthmaps(data, reconstruction):
     normals = []
     colors = []
     labels = []
+    detections = []
     for shot_id in shot_ids:
-        p, n, c, l = data.load_pruned_depthmap(shot_id)
+        p, n, c, l, d = data.load_pruned_depthmap(shot_id)
         points.append(p)
         normals.append(n)
         colors.append(c)
         labels.append(l)
+        detections.append(d)
 
     points = np.concatenate(points)
     normals = np.concatenate(normals)
     colors = np.concatenate(colors)
     labels = np.concatenate(labels)
+    detections = np.concatenate(detections)
 
     with io.open_wt(data._depthmap_path() + '/merged.ply') as fp:
-        point_cloud_to_ply(points, normals, colors, labels, fp)
+        point_cloud_to_ply(points, normals, colors, labels, detections, fp)
 
 
 def add_views_to_depth_estimator(data, neighbors, de):
@@ -279,6 +282,18 @@ def load_combined_mask(data, shot):
         return mask
 
 
+def load_detection_labels(data, shot):
+    """Load the undistorted detection labels.
+
+    If no detection exists return an array of zeros.
+    """
+    if data.undistorted_detection_exists(shot.id):
+        return data.load_undistorted_detection(shot.id)
+    else:
+        size = shot.camera.height, shot.camera.width
+        return np.zeros(size, dtype=np.uint8)
+
+
 def load_segmentation_labels(data, shot):
     """Load the undistorted segmentation labels.
 
@@ -299,13 +314,15 @@ def add_views_to_depth_pruner(data, neighbors, dp):
         height, width = depth.shape
         color_image = data.load_undistorted_image(shot.id)
         labels = load_segmentation_labels(data, shot)
+        detections = load_detection_labels(data, shot)
         height, width = depth.shape
         image = scale_down_image(color_image, width, height)
         labels = scale_down_image(labels, width, height, cv2.INTER_NEAREST)
+        detections = scale_down_image(detections, width, height, cv2.INTER_NEAREST)
         K = shot.camera.get_K_in_pixel_coordinates(width, height)
         R = shot.pose.get_rotation_matrix()
         t = shot.pose.translation
-        dp.add_view(K, R, t, depth, plane, image, labels)
+        dp.add_view(K, R, t, depth, plane, image, labels, detections)
 
 
 def compute_depth_range(graph, reconstruction, shot, config):
@@ -424,13 +441,13 @@ def depthmap_to_ply(shot, depth, image):
     return '\n'.join(header + vertices + [''])
 
 
-def point_cloud_to_ply(points, normals, colors, labels, fp):
+def point_cloud_to_ply(points, normals, colors, labels, detections, fp):
     """Export depthmap points as a PLY string"""
-    lines = _point_cloud_to_ply_lines(points, normals, colors, labels)
+    lines = _point_cloud_to_ply_lines(points, normals, colors, labels, detections)
     fp.writelines(lines)
 
 
-def _point_cloud_to_ply_lines(points, normals, colors, labels):
+def _point_cloud_to_ply_lines(points, normals, colors, labels, detections):
     yield "ply\n"
     yield "format ascii 1.0\n"
     yield "element vertex {}\n".format(len(points))
@@ -444,14 +461,15 @@ def _point_cloud_to_ply_lines(points, normals, colors, labels):
     yield "property uchar diffuse_green\n"
     yield "property uchar diffuse_blue\n"
     yield "property uchar class\n"
+    yield "property uchar detection\n"
     yield "end_header\n"
 
-    template = "{:.4f} {:.4f} {:.4f} {:.3f} {:.3f} {:.3f} {} {} {} {}\n"
+    template = "{:.4f} {:.4f} {:.4f} {:.3f} {:.3f} {:.3f} {} {} {} {} {}\n"
     for i in range(len(points)):
-        p, n, c, l = points[i], normals[i], colors[i], labels[i]
+        p, n, c, l, d = points[i], normals[i], colors[i], labels[i], detections[i]
         yield template.format(
             p[0], p[1], p[2], n[0], n[1], n[2],
-            int(c[0]), int(c[1]), int(c[2]), int(l))
+            int(c[0]), int(c[1]), int(c[2]), int(l), int(d))
 
 
 def color_plane_normals(plane):

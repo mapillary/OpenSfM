@@ -133,6 +133,46 @@ class DataSet(object):
         io.mkdir_p(self._undistorted_mask_path())
         io.imwrite(self._undistorted_mask_file(image), array)
 
+    def _detection_path(self):
+        return os.path.join(self.data_path, 'detections')
+
+    def _detection_file(self, image):
+        return os.path.join(self._detection_path(), image + '.png')
+
+    def load_detection(self, image):
+        """Load image detection if it exists, otherwise return None."""
+        detection_file = self._detection_file(image)
+        if os.path.isfile(detection_file):
+            detection = cv2.imread(detection_file)
+            if len(detection.shape) == 3:
+                detection = detection.max(axis=2)
+        else:
+            detection = None
+        return detection
+
+    def _undistorted_detection_path(self):
+        return os.path.join(self.data_path, 'undistorted_detections')
+
+    def _undistorted_detection_file(self, image):
+        """Path of undistorted version of a detection."""
+        return os.path.join(self._undistorted_detection_path(), image + '.png')
+
+    def undistorted_detection_exists(self, image):
+        """Check if the undistorted detection file exists."""
+        return os.path.isfile(self._undistorted_detection_file(image))
+
+    def load_undistorted_detection(self, image):
+        """Load an undistorted image detection."""
+        detection = cv2.imread(self._undistorted_detection_file(image))
+        if len(detection.shape) == 3:
+            detection = detection.max(axis=2)
+        return detection
+
+    def save_undistorted_detection(self, image, array):
+        """Save the undistorted image detection."""
+        io.mkdir_p(self._undistorted_detection_path())
+        cv2.imwrite(self._undistorted_detection_file(image), array)
+
     def _segmentation_path(self):
         return os.path.join(self.data_path, 'segmentations')
 
@@ -286,16 +326,17 @@ class DataSet(object):
     def pruned_depthmap_exists(self, image):
         return os.path.isfile(self._depthmap_file(image, 'pruned.npz'))
 
-    def save_pruned_depthmap(self, image, points, normals, colors, labels):
+    def save_pruned_depthmap(self, image, points, normals, colors, labels, detections):
         io.mkdir_p(self._depthmap_path())
         filepath = self._depthmap_file(image, 'pruned.npz')
         np.savez_compressed(filepath,
                             points=points, normals=normals,
-                            colors=colors, labels=labels)
+                            colors=colors, labels=labels,
+                            detections=detections)
 
     def load_pruned_depthmap(self, image):
         o = np.load(self._depthmap_file(image, 'pruned.npz'))
-        return o['points'], o['normals'], o['colors'], o['labels']
+        return o['points'], o['normals'], o['colors'], o['labels'], o['detections']
 
     def _is_image_file(self, filename):
         extensions = {'jpg', 'jpeg', 'png', 'tif', 'tiff', 'pgm', 'pnm', 'gif'}

@@ -73,6 +73,10 @@ class Command:
         arguments = []
         for shot in reconstruction.shots.values():
             arguments.append((shot, undistorted_shots[shot.id], data))
+            arguments.append((shot, undistorted_shots[shot.id], data,
+                              'load_detection',
+                              'save_undistorted_detection',
+                              cv2.INTER_NEAREST))
 
         processes = data.config['processes']
         parallel_map(undistort_image_and_masks, arguments, processes)
