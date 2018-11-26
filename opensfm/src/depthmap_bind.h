@@ -102,10 +102,12 @@ class DepthmapPrunerWrapper {
                pyarray_f depth,
                pyarray_f plane,
                pyarray_uint8 color,
-               pyarray_uint8 label) {
+               pyarray_uint8 label,
+               pyarray_uint8 detection) {
     dp_.AddView(K.data(), R.data(), t.data(),
                 depth.data(), plane.data(),
                 color.data(), label.data(),
+                detection.data(),
                 depth.shape(1), depth.shape(0));
   }
 
@@ -114,8 +116,9 @@ class DepthmapPrunerWrapper {
     std::vector<float> normals;
     std::vector<unsigned char> colors;
     std::vector<unsigned char> labels;
+    std::vector<unsigned char> detections;
 
-    dp_.Prune(&points, &normals, &colors, &labels);
+    dp_.Prune(&points, &normals, &colors, &labels, &detections);
 
     py::list retn;
     int n = int(points.size()) / 3;
@@ -123,6 +126,7 @@ class DepthmapPrunerWrapper {
     retn.append(py_array_from_data(&normals[0], n, 3));
     retn.append(py_array_from_data(&colors[0], n, 3));
     retn.append(py_array_from_data(&labels[0], n));
+    retn.append(py_array_from_data(&detections[0], n));
     return retn;
   }
 

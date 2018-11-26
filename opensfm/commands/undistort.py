@@ -84,6 +84,10 @@ class Command:
                               'load_segmentation',
                               'save_undistorted_segmentation',
                               cv2.INTER_NEAREST))
+            arguments.append((shot, undistorted_shots[shot.id], data,
+                              'load_detection',
+                              'save_undistorted_detection',
+                              cv2.INTER_NEAREST))
 
         processes = data.config['processes']
         parallel_map(undistort_image, arguments, processes)
