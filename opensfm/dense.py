@@ -290,7 +290,7 @@ def load_detection_labels(data, shot):
     if data.undistorted_detection_exists(shot.id):
         return data.load_undistorted_detection(shot.id)
     else:
-        size = shot.camera.height, shot.camera.width
+        size = int(shot.camera.height), int(shot.camera.width)
         return np.zeros(size, dtype=np.uint8)
 
 
