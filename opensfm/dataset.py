@@ -143,9 +143,7 @@ class DataSet(object):
         """Load image detection if it exists, otherwise return None."""
         detection_file = self._detection_file(image)
         if os.path.isfile(detection_file):
-            detection = cv2.imread(detection_file)
-            if len(detection.shape) == 3:
-                detection = detection.max(axis=2)
+            detection = io.imread(detection_file, grayscale=True)
         else:
             detection = None
         return detection
@@ -336,7 +334,10 @@ class DataSet(object):
 
     def load_pruned_depthmap(self, image):
         o = np.load(self._depthmap_file(image, 'pruned.npz'))
-        return o['points'], o['normals'], o['colors'], o['labels'], o['detections']
+        if 'detections' not in o:
+            return o['points'], o['normals'], o['colors'], o['labels'], np.zeros(o['labels'].shape)
+        else:
+            return o['points'], o['normals'], o['colors'], o['labels'], o['detections']
 
     def _is_image_file(self, filename):
         extensions = {'jpg', 'jpeg', 'png', 'tif', 'tiff', 'pgm', 'pnm', 'gif'}
