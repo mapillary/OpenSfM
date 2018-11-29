@@ -161,15 +161,14 @@ class DataSet(object):
 
     def load_undistorted_detection(self, image):
         """Load an undistorted image detection."""
-        detection = cv2.imread(self._undistorted_detection_file(image))
-        if len(detection.shape) == 3:
-            detection = detection.max(axis=2)
+        detection = io.imread(self._undistorted_detection_file(image),
+                              grayscale=True)
         return detection
 
     def save_undistorted_detection(self, image, array):
         """Save the undistorted image detection."""
         io.mkdir_p(self._undistorted_detection_path())
-        cv2.imwrite(self._undistorted_detection_file(image), array)
+        io.imwrite(self._undistorted_detection_file(image), array)
 
     def _segmentation_path(self):
         return os.path.join(self.data_path, 'segmentations')
