@@ -355,7 +355,7 @@ def cameras_to_json(cameras):
 def _read_gcp_list_line(line, projection, reference, exif):
     words = line.split()
     easting, northing, alt, pixel_x, pixel_y = map(float, words[:5])
-    shot_id = words[5]
+    shot_id = " ".join(words[5:])
 
     # Convert 3D coordinates
     if projection is not None:
