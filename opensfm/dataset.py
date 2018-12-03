@@ -78,13 +78,16 @@ class DataSet(object):
 
     def _undistorted_image_file(self, image):
         """Path of undistorted version of an image."""
-        return os.path.join(self._undistorted_image_path(), image + '.jpg')
+        image_format = self.config['undistorted_image_format']
+        filename = image + '.' + image_format
+        return os.path.join(self._undistorted_image_path(), filename)
 
     def load_undistorted_image(self, image):
         """Load undistorted image pixels as a numpy array."""
         return io.imread(self._undistorted_image_file(image))
 
     def save_undistorted_image(self, image, array):
+        """Save undistorted image pixels."""
         io.mkdir_p(self._undistorted_image_path())
         io.imwrite(self._undistorted_image_file(image), array)
 

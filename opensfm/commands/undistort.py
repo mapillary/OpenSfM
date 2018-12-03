@@ -72,60 +72,86 @@ class Command:
 
         arguments = []
         for shot in reconstruction.shots.values():
-            arguments.append((shot, undistorted_shots[shot.id], data,
-                              'load_image',
-                              'save_undistorted_image',
-                              cv2.INTER_AREA))
-            arguments.append((shot, undistorted_shots[shot.id], data,
-                              'load_mask',
-                              'save_undistorted_mask',
-                              cv2.INTER_NEAREST))
-            arguments.append((shot, undistorted_shots[shot.id], data,
-                              'load_segmentation',
-                              'save_undistorted_segmentation',
-                              cv2.INTER_NEAREST))
+            arguments.append((shot, undistorted_shots[shot.id], data))
 
         processes = data.config['processes']
-        parallel_map(undistort_image, arguments, processes)
+        parallel_map(undistort_image_and_masks, arguments, processes)
 
 
-def undistort_image(arguments):
+def undistort_image_and_masks(arguments):
+    shot, undistorted_shots, data = arguments
     log.setup()
-    shot, undistorted_shots, data, load_image, save_image, interpolation = arguments
     logger.debug('Undistorting image {}'.format(shot.id))
 
-    projection_type = shot.camera.projection_type
+    # Undistort image
+    image = data.load_image(shot.id)
+    if image is not None:
+        max_size = data.config['undistorted_image_max_size']
+        undistorted = undistort_image(shot, undistorted_shots, data, image,
+                                      cv2.INTER_AREA, max_size)
+        for k, v in undistorted.items():
+            data.save_undistorted_image(k, v)
 
+    # Undistort mask
+    mask = data.load_mask(shot.id)
+    if mask is not None:
+        undistorted = undistort_image(shot, undistorted_shots, data, mask,
+                                      cv2.INTER_NEAREST, 1e9)
+        for k, v in undistorted.items():
+            data.save_undistorted_mask(k, v)
+
+    # Undistort segmentation
+    segmentation = data.load_segmentation(shot.id)
+    if segmentation is not None:
+        undistorted = undistort_image(shot, undistorted_shots, data,
+                                      segmentation, cv2.INTER_NEAREST, 1e9)
+        for k, v in undistorted.items():
+            data.save_undistorted_segmentation(k, v)
+
+
+def undistort_image(shot, undistorted_shots, data, original, interpolation,
+                    max_size):
+    if original is None:
+        return
+
+    projection_type = shot.camera.projection_type
     if projection_type in ['perspective', 'brown', 'fisheye']:
         undistort_function = {
             'perspective': undistort_perspective_image,
             'brown': undistort_brown_image,
             'fisheye': undistort_fisheye_image,
         }
-        image = getattr(data, load_image)(shot.id)
-        if image is None:
-            return
         new_camera = undistorted_shots[0].camera
         uf = undistort_function[projection_type]
-        undistorted = uf(image, shot.camera, new_camera, interpolation)
-        getattr(data, save_image)(shot.id, undistorted)
+        undistorted = uf(original, shot.camera, new_camera, interpolation)
+        return {shot.id: scale_image(undistorted, max_size)}
     elif projection_type in ['equirectangular', 'spherical']:
-        original = getattr(data, load_image)(shot.id)
-        if original is None:
-            return
         subshot_width = int(data.config['depthmap_resolution'])
         width = 4 * subshot_width
         height = width // 2
         image = cv2.resize(original, (width, height), interpolation=interpolation)
+        mint = cv2.INTER_LINEAR if interpolation == cv2.INTER_AREA else interpolation
+        res = {}
         for subshot in undistorted_shots:
             undistorted = render_perspective_view_of_a_panorama(
-                image, shot, subshot,
-                cv2.INTER_LINEAR if interpolation == cv2.INTER_AREA else interpolation)
-            getattr(data, save_image)(subshot.id, undistorted)
+                image, shot, subshot, mint)
+            res[subshot] = scale_image(undistorted, max_size)
+        return res
     else:
         raise NotImplementedError(
             'Undistort not implemented for projection type: {}'.format(
                 shot.camera.projection_type))
+
+
+def scale_image(image, max_size):
+    """Scale an image not to exceed max_size."""
+    height, width = image.shape[:2]
+    factor = max_size / max(height, width)
+    if factor >= 1:
+        return image
+    width = int(round(width * factor))
+    height = int(round(height * factor))
+    return cv2.resize(image, (width, height), interpolation=cv2.INTER_NEAREST)
 
 
 def undistort_perspective_image(image, camera, new_camera, interpolation):
