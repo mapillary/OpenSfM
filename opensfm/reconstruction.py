@@ -29,12 +29,12 @@ def _add_camera_to_bundle(ba, camera, constant):
     """Add camera to a bundle adjustment problem."""
     if camera.projection_type == 'perspective':
         ba.add_perspective_camera(
-            str(camera.id), camera.focal, camera.k1, camera.k2,
+            camera.id, camera.focal, camera.k1, camera.k2,
             camera.focal_prior, camera.k1_prior, camera.k2_prior,
             constant)
     elif camera.projection_type == 'brown':
         c = csfm.BABrownPerspectiveCamera()
-        c.id = str(camera.id)
+        c.id = camera.id
         c.focal_x = camera.focal_x
         c.focal_y = camera.focal_y
         c.c_x = camera.c_x
@@ -57,22 +57,22 @@ def _add_camera_to_bundle(ba, camera, constant):
         ba.add_brown_perspective_camera(c)
     elif camera.projection_type == 'fisheye':
         ba.add_fisheye_camera(
-            str(camera.id), camera.focal, camera.k1, camera.k2,
+            camera.id, camera.focal, camera.k1, camera.k2,
             camera.focal_prior, camera.k1_prior, camera.k2_prior,
             constant)
     elif camera.projection_type in ['equirectangular', 'spherical']:
-        ba.add_equirectangular_camera(str(camera.id))
+        ba.add_equirectangular_camera(camera.id)
 
 
 def _get_camera_from_bundle(ba, camera):
     """Read camera parameters from a bundle adjustment problem."""
     if camera.projection_type == 'perspective':
-        c = ba.get_perspective_camera(str(camera.id))
+        c = ba.get_perspective_camera(camera.id)
         camera.focal = c.focal
         camera.k1 = c.k1
         camera.k2 = c.k2
     elif camera.projection_type == 'brown':
-        c = ba.get_brown_perspective_camera(str(camera.id))
+        c = ba.get_brown_perspective_camera(camera.id)
         camera.focal_x = c.focal_x
         camera.focal_y = c.focal_y
         camera.c_x = c.c_x
@@ -83,7 +83,7 @@ def _get_camera_from_bundle(ba, camera):
         camera.p2 = c.p2
         camera.k3 = c.k3
     elif camera.projection_type == 'fisheye':
-        c = ba.get_fisheye_camera(str(camera.id))
+        c = ba.get_fisheye_camera(camera.id)
         camera.focal = c.focal
         camera.k1 = c.k1
         camera.k2 = c.k2
@@ -103,7 +103,7 @@ def bundle(graph, reconstruction, gcp, config):
         r = shot.pose.rotation
         t = shot.pose.translation
         ba.add_shot(
-            str(shot.id), str(shot.camera.id),
+            shot.id, shot.camera.id,
             r[0], r[1], r[2],
             t[0], t[1], t[2],
             False
@@ -111,26 +111,26 @@ def bundle(graph, reconstruction, gcp, config):
 
     for point in reconstruction.points.values():
         x = point.coordinates
-        ba.add_point(str(point.id), x[0], x[1], x[2], False)
+        ba.add_point(point.id, x[0], x[1], x[2], False)
 
     for shot_id in reconstruction.shots:
         if shot_id in graph:
             for track in graph[shot_id]:
                 if track in reconstruction.points:
-                    ba.add_observation(str(shot_id), str(track),
+                    ba.add_observation(shot_id, track,
                                        *graph[shot_id][track]['feature'])
 
     if config['bundle_use_gps']:
         for shot in reconstruction.shots.values():
             g = shot.metadata.gps_position
-            ba.add_position_prior(str(shot.id), g[0], g[1], g[2],
+            ba.add_position_prior(shot.id, g[0], g[1], g[2],
                                   shot.metadata.gps_dop)
 
     if config['bundle_use_gcp'] and gcp:
         for observation in gcp:
             if observation.shot_id in reconstruction.shots:
                 ba.add_ground_control_point_observation(
-                    str(observation.shot_id),
+                    observation.shot_id,
                     observation.coordinates[0],
                     observation.coordinates[1],
                     observation.coordinates[2],
@@ -160,12 +160,12 @@ def bundle(graph, reconstruction, gcp, config):
         _get_camera_from_bundle(ba, camera)
 
     for shot in reconstruction.shots.values():
-        s = ba.get_shot(str(shot.id))
+        s = ba.get_shot(shot.id)
         shot.pose.rotation = [s.rx, s.ry, s.rz]
         shot.pose.translation = [s.tx, s.ty, s.tz]
 
     for point in reconstruction.points.values():
-        p = ba.get_point(str(point.id))
+        p = ba.get_point(point.id)
         point.coordinates = [p.x, p.y, p.z]
         point.reprojection_error = p.reprojection_error
 
@@ -190,7 +190,7 @@ def bundle_single_view(graph, reconstruction, shot_id, config):
     r = shot.pose.rotation
     t = shot.pose.translation
     ba.add_shot(
-        str(shot.id), str(camera.id),
+        shot.id, camera.id,
         r[0], r[1], r[2],
         t[0], t[1], t[2],
         False
@@ -200,13 +200,13 @@ def bundle_single_view(graph, reconstruction, shot_id, config):
         if track_id in reconstruction.points:
             track = reconstruction.points[track_id]
             x = track.coordinates
-            ba.add_point(str(track_id), x[0], x[1], x[2], True)
-            ba.add_observation(str(shot_id), str(track_id),
+            ba.add_point(track_id, x[0], x[1], x[2], True)
+            ba.add_observation(shot_id, track_id,
                                *graph[shot_id][track_id]['feature'])
 
     if config['bundle_use_gps']:
         g = shot.metadata.gps_position
-        ba.add_position_prior(str(shot.id), g[0], g[1], g[2],
+        ba.add_position_prior(shot.id, g[0], g[1], g[2],
                               shot.metadata.gps_dop)
 
     ba.set_loss_function(config['loss_function'],
@@ -228,7 +228,7 @@ def bundle_single_view(graph, reconstruction, shot_id, config):
 
     logger.debug(ba.brief_report())
 
-    s = ba.get_shot(str(shot_id))
+    s = ba.get_shot(shot_id)
     shot.pose.rotation = [s.rx, s.ry, s.rz]
     shot.pose.translation = [s.tx, s.ty, s.tz]
 
@@ -265,7 +265,7 @@ def bundle_local(graph, reconstruction, gcp, central_shot_id, config):
         r = shot.pose.rotation
         t = shot.pose.translation
         ba.add_shot(
-            str(shot.id), str(shot.camera.id),
+            shot.id, shot.camera.id,
             r[0], r[1], r[2],
             t[0], t[1], t[2],
             shot.id in boundary
@@ -274,20 +274,20 @@ def bundle_local(graph, reconstruction, gcp, central_shot_id, config):
     for point_id in point_ids:
         point = reconstruction.points[point_id]
         x = point.coordinates
-        ba.add_point(str(point.id), x[0], x[1], x[2], False)
+        ba.add_point(point.id, x[0], x[1], x[2], False)
 
     for shot_id in interior | boundary:
         if shot_id in graph:
             for track in graph[shot_id]:
                 if track in point_ids:
-                    ba.add_observation(str(shot_id), str(track),
+                    ba.add_observation(shot_id, track,
                                        *graph[shot_id][track]['feature'])
 
     if config['bundle_use_gps']:
         for shot_id in interior:
             shot = reconstruction.shots[shot_id]
             g = shot.metadata.gps_position
-            ba.add_position_prior(str(shot.id), g[0], g[1], g[2],
+            ba.add_position_prior(shot.id, g[0], g[1], g[2],
                                   shot.metadata.gps_dop)
 
     if config['bundle_use_gcp'] and gcp:
@@ -322,13 +322,13 @@ def bundle_local(graph, reconstruction, gcp, central_shot_id, config):
 
     for shot_id in interior:
         shot = reconstruction.shots[shot_id]
-        s = ba.get_shot(str(shot.id))
+        s = ba.get_shot(shot.id)
         shot.pose.rotation = [s.rx, s.ry, s.rz]
         shot.pose.translation = [s.tx, s.ty, s.tz]
 
     for point in point_ids:
         point = reconstruction.points[point]
-        p = ba.get_point(str(point.id))
+        p = ba.get_point(point.id)
         point.coordinates = [p.x, p.y, p.z]
         point.reprojection_error = p.reprojection_error
 
