@@ -560,10 +560,12 @@ def two_view_reconstruction(p1, p2, camera1, camera2, threshold):
     t = T[:, 3]
     inliers = _two_view_reconstruction_inliers(b1, b2, R, t, threshold)
 
-    T = multiview.relative_pose_optimize_nonlinear(b1[inliers], b2[inliers], t, R)
-    R = T[:, :3]
-    t = T[:, 3]
-    inliers = _two_view_reconstruction_inliers(b1, b2, R, t, threshold)
+    if inliers.sum() > 5:
+        T = multiview.relative_pose_optimize_nonlinear(b1[inliers],
+                                                       b2[inliers], t, R)
+        R = T[:, :3]
+        t = T[:, 3]
+        inliers = _two_view_reconstruction_inliers(b1, b2, R, t, threshold)
 
     return cv2.Rodrigues(R.T)[0].ravel(), -R.T.dot(t), inliers
 
