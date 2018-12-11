@@ -105,19 +105,26 @@ def match_candidates_by_distance(images, exifs, reference, max_neighbors, max_di
 
     points = np.zeros((len(images), 3))
     for i, image in enumerate(images):
-        gps = exifs[image]['gps']
-        points[i] = reference.to_topocentric(
-            gps['latitude'], gps['longitude'], 0)
+        if has_gps_info(exifs[image]):
+            gps = exifs[image]['gps']
+            points[i] = reference.to_topocentric(
+                gps['latitude'], gps['longitude'], 0)
 
     tree = spatial.cKDTree(points)
 
     pairs = set()
     for i, image in enumerate(images):
-        distances, neighbors = tree.query(
-            points[i], k=k, distance_upper_bound=max_distance)
+        if not has_gps_info(exifs[image]):
+            logger.warn("Image {} does not have exif info. Matching all "
+                        "images with this one.".format(image))
+            neighbors = [j for j, img in enumerate(images)]
+        else:
+            distances, neighbors = tree.query(
+                points[i], k=k, distance_upper_bound=max_distance)
         for j in neighbors:
             if i != j and j < len(images):
                 pairs.add(tuple(sorted((images[i], images[j]))))
+
     return pairs
 
 
@@ -168,13 +175,6 @@ def match_candidates_from_metadata(images, exifs, data):
     if not data.reference_lla_exists():
         data.invent_reference_lla()
     reference = data.load_reference()
-
-    if not all(map(has_gps_info, exifs.values())):
-        if gps_neighbors != 0:
-            logger.warn("Not all images have GPS info. "
-                        "Disabling matching_gps_neighbors.")
-        gps_neighbors = 0
-        max_distance = 0
 
     images.sort()
 
