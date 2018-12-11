@@ -21,8 +21,9 @@ logger = logging.getLogger(__name__)
 def compute_depthmaps(data, graph, reconstruction):
     """Compute and refine depthmaps for all shots."""
     logger.info('Computing neighbors')
-    processes = data.config.get('processes', 1)
-    num_neighbors = data.config['depthmap_num_neighbors']
+    config = data.config
+    processes = config['processes']
+    num_neighbors = config['depthmap_num_neighbors']
     tracks, _ = tracking.tracks_and_images(graph)
     common_tracks = tracking.all_common_tracks(graph, tracks,
                                                include_features=False)
@@ -36,8 +37,8 @@ def compute_depthmaps(data, graph, reconstruction):
     for shot in reconstruction.shots.values():
         if len(neighbors[shot.id]) <= 1:
             continue
-        min_depth, max_depth = compute_depth_range(graph, reconstruction, shot)
-        arguments.append((data, neighbors[shot.id], min_depth, max_depth, shot))
+        mind, maxd = compute_depth_range(graph, reconstruction, shot, config)
+        arguments.append((data, neighbors[shot.id], mind, maxd, shot))
     parallel_map(compute_depthmap_catched, arguments, processes)
 
     arguments = []
@@ -307,7 +308,7 @@ def add_views_to_depth_pruner(data, neighbors, dp):
         dp.add_view(K, R, t, depth, plane, image, labels)
 
 
-def compute_depth_range(graph, reconstruction, shot):
+def compute_depth_range(graph, reconstruction, shot, config):
     """Compute min and max depth based on reconstruction points."""
     depths = []
     for track in graph[shot.id]:
@@ -315,9 +316,13 @@ def compute_depth_range(graph, reconstruction, shot):
             p = reconstruction.points[track].coordinates
             z = shot.pose.transform(p)[2]
             depths.append(z)
-    min_depth = np.percentile(depths, 10)
-    max_depth = np.percentile(depths, 90)
-    return min_depth * 0.9, max_depth * 1.1
+    min_depth = np.percentile(depths, 10) * 0.9
+    max_depth = np.percentile(depths, 90) * 1.1
+
+    config_min_depth = config['depthmap_min_depth']
+    config_max_depth = config['depthmap_max_depth']
+
+    return config_min_depth or min_depth, config_max_depth or max_depth
 
 
 def find_neighboring_images(shot, common_tracks, reconstruction, num_neighbors=5):
