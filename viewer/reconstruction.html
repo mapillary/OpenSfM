@@ -7,14 +7,25 @@
             body {
                 margin: 0px;
             }
+            #load_button {
+               position: absolute;
+               top: 50%;
+               left: 50%;
+               width: 300px;
+               height: 120px;
+               margin-top: -60px; /* Half the height */
+               margin-left: -150px; /* Half the width */
+            }
+
             #loading {
                position: absolute;
                top: 50%;
                left: 50%;
-               width: 508px;
-               height: 381px;
-               margin-top: -190px; /* Half the height */
-               margin-left: -254px; /* Half the width */
+               width: 245px;
+               height: 148px;
+               margin-top: -74px; /* Half the height */
+               margin-left: -122px; /* Half the width */
+               display: none;
             }
 
             #info {
@@ -55,9 +66,13 @@
     </head>
     <body>
         <div id="ThreeJS" target="_blank"></div>
+
+        <input id='load_button' type="file" value="open reconstruction" />
+
         <div id="loading">
             <img src="images/preloader.gif">
         </div>
+
         <div id="info">
             <img id="image">
             <div id="text"></div>
@@ -307,7 +322,9 @@
                 }
             };
 
-            getData();
+            document.getElementById('load_button').addEventListener('change', onReconstructionFileSelected, false);
+            processUrlParams();
+
 
             function addDatGui(){
                 var gui = new dat.GUI();
@@ -479,6 +496,7 @@
 
             function imageURL(shot_id) {
                 var url = urlParams.file;
+                if (url === undefined) return;
                 var slash = url.lastIndexOf('/');
                 var imagePath = '/images' + options.resolution.replace('original', '')
                 return url.substring(0, slash) + imagePath +'/' + shot_id;
@@ -502,23 +520,48 @@
                 }
             }
 
-            function getData() {
+            function processUrlParams() {
                 parseUrl();
 
                 if ('res' in urlParams) options.resolution = urlParams.res;
 
-                jQuery.getJSON(urlParams.file, function(data) {
-                    if ('cameras' in data) {
-                        reconstructions = [data];
-                    } else {
-                        reconstructions = data;
-                    }
-                    $('#loading').remove();
-                    init();
-                    animate();
+                if (urlParams.file !== undefined) {
+                    loadReconstructionFromURL(urlParams.file);
+                }
+            }
 
-                    invokeJourneyWrapper(function () { journeyWrapper.initialize(); });
-                });
+            function onReconstructionFileSelected(evt) {
+                let file = evt.target.files[0];
+                console.log(file);
+
+                $('#load_button').hide();
+                $('#loading').show();
+
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    data = JSON.parse(e.target.result);
+                    setReconstructionData(data);
+                };
+                reader.readAsText(file);
+            }
+
+            function loadReconstructionFromURL(file_path) {
+                $('#load_button').hide();
+                $('#loading').show();
+                jQuery.getJSON(file_path, setReconstructionData);
+            }
+
+            function setReconstructionData(data) {
+                if ('cameras' in data) {
+                    reconstructions = [data];
+                } else {
+                    reconstructions = data;
+                }
+                $('#loading').hide();
+                init();
+                animate();
+
+                invokeJourneyWrapper(function () { journeyWrapper.initialize(); });
             }
 
             function rotate(vector, angleaxis) {
@@ -771,7 +814,7 @@
             function reconstruction_color(id){
                 var s = 1
                 if(id !== 0){
-                    s = Math.sin(id) * 10000; 
+                    s = Math.sin(id) * 10000;
                     s -= Math.floor(s);
                 }
                 var color = new THREE.Color();
