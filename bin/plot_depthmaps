@@ -70,20 +70,23 @@ if __name__ == "__main__":
 
     images = [args.image] if args.image else data.images()
     for image in images:
-            depth, plane, score, nghbr, nghbrs = data.load_raw_depthmap(image)
-            clean_depth, clean_plane, clean_score = data.load_clean_depthmap(image)
+        if not data.raw_depthmap_exists(image):
+            continue
 
-            print "Plotting depthmap for {0}".format(image)
-            pl.close("all")
-            pl.figure(figsize=(30, 16), dpi=90, facecolor='w', edgecolor='k')
-            title = "Shot: " + image + "\n" + "\n".join(wrap("Neighbors: " + ', '.join(nghbrs), 80))
-            plot_depthmap(data.load_image(image), title, depth, clean_depth, plane, score, nghbr)
-            pl.tight_layout()
+        depth, plane, score, nghbr, nghbrs = data.load_raw_depthmap(image)
+        clean_depth, clean_plane, clean_score = data.load_clean_depthmap(image)
 
-            if args.save_figs:
-                p = args.dataset + '/plot_depthmaps'
-                io.mkdir_p(p)
-                pl.savefig(p + '/' + image + '.png')
-                pl.close()
-            else:
-                pl.show()
+        print "Plotting depthmap for {0}".format(image)
+        pl.close("all")
+        pl.figure(figsize=(30, 16), dpi=90, facecolor='w', edgecolor='k')
+        title = "Shot: " + image + "\n" + "\n".join(wrap("Neighbors: " + ', '.join(nghbrs), 80))
+        plot_depthmap(data.load_image(image), title, depth, clean_depth, plane, score, nghbr)
+        pl.tight_layout()
+
+        if args.save_figs:
+            p = args.dataset + '/plot_depthmaps'
+            io.mkdir_p(p)
+            pl.savefig(p + '/' + image + '.png')
+            pl.close()
+        else:
+            pl.show()
