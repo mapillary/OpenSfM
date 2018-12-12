@@ -10,7 +10,7 @@ import numpy as np
 from opensfm import dataset
 from opensfm import features
 from opensfm import io
-from opensfm import matching
+from opensfm import tracking
 
 
 # Prepare OpenSfM output for dense reconstruction with PMVS
@@ -42,7 +42,7 @@ if __name__ == "__main__":
             graph = data.load_undistorted_tracks_graph()
         else:
             graph = data.load_tracks_graph()
-        tracks, images = matching.tracks_and_images(graph)
+        tracks, images = tracking.tracks_and_images(graph)
         image_graph = bipartite.weighted_projected_graph(graph, images)
         use_vis_data = True
     except IOError:
