@@ -167,6 +167,10 @@ void DepthmapEstimator::SetPatchMatchIterations(int n) {
   patchmatch_iterations_ = n;
 }
 
+void DepthmapEstimator::SetPatchSize(int size) {
+  patch_size_ = size;
+}
+
 void DepthmapEstimator::SetMinPatchSD(float sd) {
   min_patch_variance_ = sd * sd;
 }

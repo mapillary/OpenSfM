@@ -97,6 +97,7 @@ def compute_depthmap(arguments):
     de = csfm.DepthmapEstimator()
     de.set_depth_range(min_depth, max_depth, 100)
     de.set_patchmatch_iterations(data.config['depthmap_patchmatch_iterations'])
+    de.set_patch_size(data.config['depthmap_patch_size'])
     de.set_min_patch_sd(data.config['depthmap_min_patch_sd'])
     add_views_to_depth_estimator(data, neighbors, de)
 

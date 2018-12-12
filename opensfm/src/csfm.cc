@@ -184,6 +184,7 @@ PYBIND11_MODULE(csfm, m) {
     .def(py::init())
     .def("set_depth_range", &csfm::DepthmapEstimatorWrapper::SetDepthRange)
     .def("set_patchmatch_iterations", &csfm::DepthmapEstimatorWrapper::SetPatchMatchIterations)
+    .def("set_patch_size", &csfm::DepthmapEstimatorWrapper::SetPatchSize)
     .def("set_min_patch_sd", &csfm::DepthmapEstimatorWrapper::SetMinPatchSD)
     .def("add_view", &csfm::DepthmapEstimatorWrapper::AddView)
     .def("compute_patch_match", &csfm::DepthmapEstimatorWrapper::ComputePatchMatch)

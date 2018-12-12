@@ -73,6 +73,7 @@ class DepthmapEstimator {
                int width, int height);
   void SetDepthRange(double min_depth, double max_depth, int num_depth_planes);
   void SetPatchMatchIterations(int n);
+  void SetPatchSize(int size);
   void SetMinPatchSD(float sd);
   void ComputeBruteForce(DepthmapEstimatorResult *result);
   void ComputePatchMatch(DepthmapEstimatorResult *result);
