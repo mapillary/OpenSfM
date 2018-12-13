@@ -1,4 +1,4 @@
-.. Notes and doc on dense matching
+.. Download and install instructions
 
 
 Building

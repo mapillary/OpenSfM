@@ -22,3 +22,58 @@ Dataset Structure
    ├── undistorted_reconstruction.json
    └── depthmaps/
        └── merged.ply
+
+
+
+Reconstruction file format
+==========================
+
+The main output of OpenSfM is a reconstruction that contains the estimated camera parameters, the estimated camera positions and a sparse set of reconstructed 3D points.  These data are stored in the ``reconstruction.json`` file.  Its format is as follows::
+
+    reconstruction.json: [RECONSTRUCTION, ...]
+
+    RECONSTRUCTION: {
+        "cameras": {
+            CAMERA_ID: CAMERA,
+            ...
+        },
+        "shots": {
+            SHOT_ID: SHOT,
+            ...
+        },
+        "points": {
+            POINT_ID: POINT,
+            ...
+        }
+    }
+
+    CAMERA: {
+        "projection_type": "perspective",  # Can be perspective, brown, fisheye or equirectangular
+        "width": NUMBER,                   # Image width in pixels
+        "height": NUMBER,                  # Image height in pixels
+
+        # Depending on the projection type more parameters are stored.
+        # These are the parameters of the perspective camera.
+        "focal": NUMBER,                   # Estimated focal length
+        "k1": NUMBER,                      # Estimated distortion coefficient
+        "k2": NUMBER,                      # Estimated distortion coefficient
+        "focal_prior": NUMBER,             # Initial focal length
+        "k1_prior": NUMBER,                # Initial distortion coefficient
+        "k2_prior": NUMBER                 # Initial distortion coefficient
+    }
+
+    SHOT: {
+        "camera": CAMERA_ID,
+        "rotation": [X, Y, Z],     # Estimated rotation as an angle-axis vector
+        "translation": [X, Y, Z],  # Estimated translation
+        "orientation": 1,
+        "gps_position": [X, Y, Z],  # GPS coordinates in the reconstruction reference frame
+        "gps_dop": METERS,          # GPS accuracy in meters
+        "capture_time": SECONDS     # Capture time as a UNIX timestamp
+    }
+
+    POINT: {
+        "coordinates": [X, Y, Z],      # Estimated position of the point
+        "color": [R, G, B],            # Color of the point
+        "reprojection_error": NUMBER   # Average reprojection error
+    }

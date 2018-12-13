@@ -1,10 +1,7 @@
-.. Notes and doc on dense matching
-
+.. Doc on geometric models and coordinate systems
 
 Geometric Models
 ================
-
-TODO
 
 
 Coordinate Systems
