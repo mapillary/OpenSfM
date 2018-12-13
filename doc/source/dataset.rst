@@ -64,11 +64,11 @@ The main output of OpenSfM is a reconstruction that contains the estimated camer
 
     SHOT: {
         "camera": CAMERA_ID,
-        "rotation": [X, Y, Z],     # Estimated rotation as an angle-axis vector
-        "translation": [X, Y, Z],  # Estimated translation
-        "orientation": 1,
+        "rotation": [X, Y, Z],      # Estimated rotation as an angle-axis vector
+        "translation": [X, Y, Z],   # Estimated translation
         "gps_position": [X, Y, Z],  # GPS coordinates in the reconstruction reference frame
         "gps_dop": METERS,          # GPS accuracy in meters
+        "orientation": NUMBER,      # EXIF orientation tag (can be 1, 3, 6 or 8)
         "capture_time": SECONDS     # Capture time as a UNIX timestamp
     }
 
