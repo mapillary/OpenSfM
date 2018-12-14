@@ -7,6 +7,7 @@ import logging
 
 import cv2
 import numpy as np
+from six import iteritems
 
 from opensfm import csfm
 from opensfm import io
@@ -24,11 +25,9 @@ def compute_depthmaps(data, graph, reconstruction):
     config = data.config
     processes = config['processes']
     num_neighbors = config['depthmap_num_neighbors']
-    tracks, _ = tracking.tracks_and_images(graph)
-    common_tracks = tracking.all_common_tracks(graph, tracks,
-                                               include_features=False)
 
     neighbors = {}
+    common_tracks = common_tracks_double_dict(graph)
     for shot in reconstruction.shots.values():
         neighbors[shot.id] = find_neighboring_images(
             shot, common_tracks, reconstruction, num_neighbors)
@@ -326,25 +325,41 @@ def compute_depth_range(graph, reconstruction, shot, config):
     return config_min_depth or min_depth, config_max_depth or max_depth
 
 
-def find_neighboring_images(shot, common_tracks, reconstruction, num_neighbors=5):
+def common_tracks_double_dict(graph):
+    """List of track ids observed by each image pair.
+
+    Return a dict, ``res``, such that ``res[im1][im2]`` is the list of
+    common tracks between ``im1`` and ``im2``.
+    """
+    tracks, images = tracking.tracks_and_images(graph)
+    common_tracks_per_pair = tracking.all_common_tracks(
+        graph, tracks, include_features=False)
+    res = {image: {} for image in images}
+    for (im1, im2), v in iteritems(common_tracks_per_pair):
+        res[im1][im2] = v
+        res[im2][im1] = v
+    return res
+
+
+def find_neighboring_images(shot, common_tracks, reconstruction, num_neighbors):
     """Find neighboring images based on common tracks."""
     theta_min = np.pi / 60
     theta_max = np.pi / 6
     ns = []
     C1 = shot.pose.get_origin()
-    others = (s for s in reconstruction.shots.values() if s.id != shot.id)
-    for other in others:
+    for other_id, tracks in iteritems(common_tracks[shot.id]):
+        if other_id not in reconstruction.shots:
+            continue
+        other = reconstruction.shots[other_id]
         score = 0
         C2 = other.pose.get_origin()
-        tracks = common_tracks.get(tuple(sorted([shot.id, other.id])), [])
         for track in tracks:
             if track in reconstruction.points:
                 p = reconstruction.points[track].coordinates
                 theta = angle_between_points(p, C1, C2)
                 if theta > theta_min and theta < theta_max:
                     score += 1
-
-        if (score > 20):
+        if score > 20:
             ns.append((other, score))
 
     ns.sort(key=lambda ns: ns[1], reverse=True)
