@@ -347,7 +347,7 @@ def find_neighboring_images(shot, common_tracks, reconstruction, num_neighbors):
     theta_max = np.pi / 6
     ns = []
     C1 = shot.pose.get_origin()
-    for other_id, tracks in iteritems(common_tracks[shot.id]):
+    for other_id, tracks in iteritems(common_tracks.get(shot.id, {})):
         if other_id not in reconstruction.shots:
             continue
         other = reconstruction.shots[other_id]
