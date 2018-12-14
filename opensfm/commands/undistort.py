@@ -135,7 +135,7 @@ def undistort_image(shot, undistorted_shots, data, original, interpolation,
         for subshot in undistorted_shots:
             undistorted = render_perspective_view_of_a_panorama(
                 image, shot, subshot, mint)
-            res[subshot] = scale_image(undistorted, max_size)
+            res[subshot.id] = scale_image(undistorted, max_size)
         return res
     else:
         raise NotImplementedError(
