@@ -73,10 +73,6 @@ class Command:
         arguments = []
         for shot in reconstruction.shots.values():
             arguments.append((shot, undistorted_shots[shot.id], data))
-            arguments.append((shot, undistorted_shots[shot.id], data,
-                              'load_detection',
-                              'save_undistorted_detection',
-                              cv2.INTER_NEAREST))
 
         processes = data.config['processes']
         parallel_map(undistort_image_and_masks, arguments, processes)
@@ -111,6 +107,14 @@ def undistort_image_and_masks(arguments):
                                       segmentation, cv2.INTER_NEAREST, 1e9)
         for k, v in undistorted.items():
             data.save_undistorted_segmentation(k, v)
+
+    # Undistort detections
+    detection = data.load_detection(shot.id)
+    if detection is not None:
+        undistorted = undistort_image(shot, undistorted_shots, data,
+                                      detection, cv2.INTER_NEAREST, 1e9)
+        for k, v in undistorted.items():
+            data.save_undistorted_detection(k, v)
 
 
 def undistort_image(shot, undistorted_shots, data, original, interpolation,
