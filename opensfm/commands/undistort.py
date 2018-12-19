@@ -307,6 +307,9 @@ def render_perspective_view_of_a_panorama(image, panoshot, perspectiveshot,
 
 def add_subshot_tracks(graph, ugraph, shot, subshot):
     """Add shot tracks to the undistorted graph."""
+    if shot.id not in graph:
+        return
+
     if shot.camera.projection_type in ['equirectangular', 'spherical']:
         add_pano_subshot_tracks(graph, ugraph, shot, subshot)
     else:
@@ -322,9 +325,7 @@ def add_subshot_tracks(graph, ugraph, shot, subshot):
 
 def add_pano_subshot_tracks(graph, ugraph, panoshot, perspectiveshot):
     """Add edges between subshots and visible tracks."""
-    if panoshot.id not in graph:
-        return
-    graph.add_node(perspectiveshot.id, bipartite=0)
+    ugraph.add_node(perspectiveshot.id, bipartite=0)
     for track in graph[panoshot.id]:
         edge = graph[panoshot.id][track]
         feature = edge['feature']
@@ -343,6 +344,7 @@ def add_pano_subshot_tracks(graph, ugraph, panoshot, perspectiveshot):
                 perspective_feature[1] > 0.5):
             continue
 
+        ugraph.add_node(track, bipartite=1)
         ugraph.add_edge(perspectiveshot.id,
                         track,
                         feature=perspective_feature,
