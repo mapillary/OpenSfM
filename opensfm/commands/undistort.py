@@ -39,9 +39,14 @@ class Command:
         undistorted_shots = {}
         for shot in reconstruction.shots.values():
             if shot.camera.projection_type == 'perspective':
-                urec.add_camera(shot.camera)
-                urec.add_shot(shot)
-                undistorted_shots[shot.id] = [shot]
+                ushot = types.Shot()
+                ushot.id = shot.id
+                ushot.camera = perspective_camera_from_perspective(shot.camera)
+                ushot.pose = shot.pose
+                ushot.metadata = shot.metadata
+                urec.add_camera(ushot.camera)
+                urec.add_shot(ushot)
+                undistorted_shots[shot.id] = [ushot]
             elif shot.camera.projection_type == 'brown':
                 ushot = types.Shot()
                 ushot.id = shot.id
@@ -193,6 +198,18 @@ def undistort_fisheye_image(image, camera, new_camera, interpolation):
     map1, map2 = cv2.fisheye.initUndistortRectifyMap(
         K, distortion, None, new_K, (width, height), cv2.CV_32FC1)
     return cv2.remap(image, map1, map2, interpolation)
+
+
+def perspective_camera_from_perspective(distorted):
+    """Create an undistorted camera from a distorted."""
+    camera = types.PerspectiveCamera()
+    camera.id = distorted.id
+    camera.width = distorted.width
+    camera.height = distorted.height
+    camera.focal = distorted.focal
+    camera.focal_prior = distorted.focal_prior
+    camera.k1 = camera.k1_prior = camera.k2 = camera.k2_prior = 0.0
+    return camera
 
 
 def perspective_camera_from_brown(brown):
