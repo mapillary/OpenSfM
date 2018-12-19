@@ -1,7 +1,9 @@
 import logging
 
 import cv2
+import networkx as nx
 import numpy as np
+from six import iteritems
 
 from opensfm import dataset
 from opensfm import features
@@ -29,11 +31,10 @@ class Command:
         if reconstructions:
             self.undistort_reconstruction(graph, reconstructions[0], data)
 
-        data.save_undistorted_tracks_graph(graph)
-
     def undistort_reconstruction(self, graph, reconstruction, data):
         urec = types.Reconstruction()
         urec.points = reconstruction.points
+        ugraph = nx.Graph()
 
         logger.debug('Undistorting the reconstruction')
         undistorted_shots = {}
@@ -46,6 +47,7 @@ class Command:
                 ushot.metadata = shot.metadata
                 urec.add_camera(ushot.camera)
                 urec.add_shot(ushot)
+                add_shot_tracks(graph, ugraph, shot, ushot)
                 undistorted_shots[shot.id] = [ushot]
             elif shot.camera.projection_type == 'brown':
                 ushot = types.Shot()
@@ -55,6 +57,7 @@ class Command:
                 ushot.metadata = shot.metadata
                 urec.add_camera(ushot.camera)
                 urec.add_shot(ushot)
+                add_shot_tracks(graph, ugraph, shot, ushot)
                 undistorted_shots[shot.id] = [ushot]
             elif shot.camera.projection_type == 'fisheye':
                 ushot = types.Shot()
@@ -64,6 +67,7 @@ class Command:
                 ushot.metadata = shot.metadata
                 urec.add_camera(ushot.camera)
                 urec.add_shot(ushot)
+                add_shot_tracks(graph, ugraph, shot, ushot)
                 undistorted_shots[shot.id] = [ushot]
             elif shot.camera.projection_type in ['equirectangular', 'spherical']:
                 subshot_width = int(data.config['depthmap_resolution'])
@@ -71,9 +75,11 @@ class Command:
                 for subshot in subshots:
                     urec.add_camera(subshot.camera)
                     urec.add_shot(subshot)
-                    add_subshot_tracks(graph, shot, subshot)
+                    add_pano_subshot_tracks(graph, ugraph, shot, subshot)
                 undistorted_shots[shot.id] = subshots
+
         data.save_undistorted_reconstruction([urec])
+        data.save_undistorted_tracks_graph(ugraph)
 
         arguments = []
         for shot in reconstruction.shots.values():
@@ -309,7 +315,22 @@ def render_perspective_view_of_a_panorama(image, panoshot, perspectiveshot,
     return colors
 
 
-def add_subshot_tracks(graph, panoshot, perspectiveshot):
+def add_shot_tracks(graph, ugraph, shot, ushot):
+    """Add shot tracks to the undistorted graph."""
+    if shot.camera.projection_type in ['equirectangular', 'spherical']:
+        add_pano_subshot_tracks(graph, ugraph, shot, ushot)
+    else:
+        ugraph.add_node(ushot.id, bipartite=0)
+        for track_id, edge in iteritems(graph[shot.id]):
+            ugraph.add_node(track_id, bipartite=1)
+            ugraph.add_edge(
+                ushot.id, track_id,
+                feature=edge['feature'],
+                feature_id=edge['feature_id'],
+                feature_color=edge['feature_color'])
+
+
+def add_pano_subshot_tracks(graph, ugraph, panoshot, perspectiveshot):
     """Add edges between subshots and visible tracks."""
     if panoshot.id not in graph:
         return
@@ -332,8 +353,8 @@ def add_subshot_tracks(graph, panoshot, perspectiveshot):
                 perspective_feature[1] > 0.5):
             continue
 
-        graph.add_edge(perspectiveshot.id,
-                       track,
-                       feature=perspective_feature,
-                       feature_id=edge['feature_id'],
-                       feature_color=edge['feature_color'])
+        ugraph.add_edge(perspectiveshot.id,
+                        track,
+                        feature=perspective_feature,
+                        feature_id=edge['feature_id'],
+                        feature_color=edge['feature_color'])
