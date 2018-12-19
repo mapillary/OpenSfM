@@ -40,43 +40,23 @@ class Command:
         undistorted_shots = {}
         for shot in reconstruction.shots.values():
             if shot.camera.projection_type == 'perspective':
-                ushot = types.Shot()
-                ushot.id = shot.id
-                ushot.camera = perspective_camera_from_perspective(shot.camera)
-                ushot.pose = shot.pose
-                ushot.metadata = shot.metadata
-                urec.add_camera(ushot.camera)
-                urec.add_shot(ushot)
-                add_shot_tracks(graph, ugraph, shot, ushot)
-                undistorted_shots[shot.id] = [ushot]
+                camera = perspective_camera_from_perspective(shot.camera)
+                subshots = [get_shot_with_different_camera(shot, camera)]
             elif shot.camera.projection_type == 'brown':
-                ushot = types.Shot()
-                ushot.id = shot.id
-                ushot.camera = perspective_camera_from_brown(shot.camera)
-                ushot.pose = shot.pose
-                ushot.metadata = shot.metadata
-                urec.add_camera(ushot.camera)
-                urec.add_shot(ushot)
-                add_shot_tracks(graph, ugraph, shot, ushot)
-                undistorted_shots[shot.id] = [ushot]
+                camera = perspective_camera_from_brown(shot.camera)
+                subshots = [get_shot_with_different_camera(shot, camera)]
             elif shot.camera.projection_type == 'fisheye':
-                ushot = types.Shot()
-                ushot.id = shot.id
-                ushot.camera = perspective_camera_from_fisheye(shot.camera)
-                ushot.pose = shot.pose
-                ushot.metadata = shot.metadata
-                urec.add_camera(ushot.camera)
-                urec.add_shot(ushot)
-                add_shot_tracks(graph, ugraph, shot, ushot)
-                undistorted_shots[shot.id] = [ushot]
+                camera = perspective_camera_from_fisheye(shot.camera)
+                subshots = [get_shot_with_different_camera(shot, camera)]
             elif shot.camera.projection_type in ['equirectangular', 'spherical']:
                 subshot_width = int(data.config['depthmap_resolution'])
                 subshots = perspective_views_of_a_panorama(shot, subshot_width)
-                for subshot in subshots:
-                    urec.add_camera(subshot.camera)
-                    urec.add_shot(subshot)
-                    add_pano_subshot_tracks(graph, ugraph, shot, subshot)
-                undistorted_shots[shot.id] = subshots
+
+            for subshot in subshots:
+                urec.add_camera(subshot.camera)
+                urec.add_shot(subshot)
+                add_subshot_tracks(graph, ugraph, shot, subshot)
+            undistorted_shots[shot.id] = subshots
 
         data.save_undistorted_reconstruction([urec])
         data.save_undistorted_tracks_graph(ugraph)
@@ -206,6 +186,16 @@ def undistort_fisheye_image(image, camera, new_camera, interpolation):
     return cv2.remap(image, map1, map2, interpolation)
 
 
+def get_shot_with_different_camera(shot, camera):
+    """Copy shot and replace camera."""
+    ushot = types.Shot()
+    ushot.id = shot.id
+    ushot.camera = camera
+    ushot.pose = shot.pose
+    ushot.metadata = shot.metadata
+    return ushot
+ 
+
 def perspective_camera_from_perspective(distorted):
     """Create an undistorted camera from a distorted."""
     camera = types.PerspectiveCamera()
@@ -315,16 +305,16 @@ def render_perspective_view_of_a_panorama(image, panoshot, perspectiveshot,
     return colors
 
 
-def add_shot_tracks(graph, ugraph, shot, ushot):
+def add_subshot_tracks(graph, ugraph, shot, subshot):
     """Add shot tracks to the undistorted graph."""
     if shot.camera.projection_type in ['equirectangular', 'spherical']:
-        add_pano_subshot_tracks(graph, ugraph, shot, ushot)
+        add_pano_subshot_tracks(graph, ugraph, shot, subshot)
     else:
-        ugraph.add_node(ushot.id, bipartite=0)
+        ugraph.add_node(subshot.id, bipartite=0)
         for track_id, edge in iteritems(graph[shot.id]):
             ugraph.add_node(track_id, bipartite=1)
             ugraph.add_edge(
-                ushot.id, track_id,
+                subshot.id, track_id,
                 feature=edge['feature'],
                 feature_id=edge['feature_id'],
                 feature_color=edge['feature_color'])
