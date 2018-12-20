@@ -246,7 +246,9 @@ def align_reconstructions(reconstruction_shots,
     if use_points_constraints:
         add_point_constraints(ra, reconstruction_shots, reconstruction_name)
 
+    logger.info("Running alignment")
     ra.run()
+    logger.info(ra.brief_report())
 
     transformations = {}
     for key in reconstruction_shots:
