@@ -141,8 +141,7 @@ def decompose_similarity_transform(T):
     assert(m==n)
     A, b = T[:(m-1),:(m-1)], T[:(m-1),(m-1)]
     s = np.linalg.det(A)**(1./(m-1))
-    A /= s
-    return s, A, b
+    return s, A/s, b
 
 
 def ransac_max_iterations(kernel, inliers, failure_probability):
@@ -368,8 +367,7 @@ def fit_similarity_transform(p1, p2, max_iterations=1000, threshold=1):
 
     assert(p1.shape[0]==p2.shape[0])
 
-    best_inliers= 0
-
+    best_inliers = []
     for i in range(max_iterations):
 
         rnd = np.random.permutation(num_points)
@@ -380,21 +378,18 @@ def fit_similarity_transform(p1, p2, max_iterations=1000, threshold=1):
         p2h = homogeneous(p2)
 
         errors = np.sqrt(np.sum( ( p2h.T - np.dot(T, p1h.T) ) ** 2 , axis=0 ) )
-
         inliers = np.argwhere(errors < threshold)[:,0]
-
-        num_inliers = len(inliers)
-
-        if num_inliers >= best_inliers:
-            best_inliers = num_inliers
+        if len(inliers) >= len(best_inliers):
             best_T = T.copy()
-            inliers = np.argwhere(errors < threshold)[:,0]
+            best_inliers = np.argwhere(errors < threshold)[:,0]
 
     # Estimate similarity transform with inliers
-    if len(inliers)>dim+3:
-        best_T = tf.affine_matrix_from_points(p1[inliers,:].T, p2[inliers,:].T, shear=False)
+    if len(best_inliers)>dim+3:
+        best_T = tf.affine_matrix_from_points(p1[best_inliers,:].T, p2[best_inliers,:].T, shear=False)
+        errors = np.sqrt(np.sum( ( p2h.T - np.dot(best_T, p1h.T) ) ** 2 , axis=0 ) )
+        best_inliers = np.argwhere(errors < threshold)[:,0]
 
-    return best_T, inliers
+    return best_T, best_inliers
 
 
 def K_from_camera(camera):
