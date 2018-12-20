@@ -535,6 +535,9 @@ class DataSet(object):
         with io.open_rt(self._tracks_graph_file(filename)) as fin:
             return load_tracks_graph(fin)
 
+    def tracks_exists(self, filename=None):
+        return os.path.isfile(self._tracks_graph_file(filename))
+
     def save_tracks_graph(self, graph, filename=None):
         with io.open_wt(self._tracks_graph_file(filename)) as fout:
             save_tracks_graph(fout, graph)
