@@ -56,7 +56,7 @@ Install OpenCV and the Ceres solver using::
 And install OpenGV using::
 
     brew install eigen
-    git clone https://github.com/paulinus/opengv.git
+    git clone --recurse-submodules -j8 https://github.com/paulinus/opengv.git
     cd opengv/build
     cmake .. -DBUILD_TESTS=OFF -DBUILD_PYTHON=ON
     make install
