@@ -113,6 +113,27 @@ For each camera the following data is stored:
 - ``k1_prior`` and ``k2_prior``:  The radial distortion parameters prior.
 
 
+Providing additional metadata
+'''''''''''''''''''''''''''''
+
+When some metadata is missing or erroneous in the EXIF, it can be provided on the ``exif_overrides.json`` file.  This file must contain a dictionary mapping image names to the metadata fields that will override the values in the EXIF.
+
+For example, to set the GPS location of an image that might not have it available in its EXIF tags, we will write the following in the ``exif_overrides.json`` file::
+
+    {
+        "image_name.jpg": {
+            "gps": {
+                "latitude": 52.51891, 
+                "longitude": 13.40029,
+                "altitude": 27.0, 
+                "dop": 5.0
+            }
+        }
+    }
+
+These values are used during the ``extract_metadata``, so we will need to rerun that command after writing the file.
+
+
 Providing your own camera parameters
 ''''''''''''''''''''''''''''''''''''
 
