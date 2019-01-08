@@ -215,6 +215,11 @@ def merge_depthmaps(data, reconstruction):
     logger.info("Merging depthmaps")
 
     shot_ids = [s for s in reconstruction.shots if data.pruned_depthmap_exists(s)]
+
+    if not shot_ids:
+        logger.warning("Depthmaps contain no points.  Try using more images.")
+        return
+
     points = []
     normals = []
     colors = []
@@ -227,7 +232,7 @@ def merge_depthmaps(data, reconstruction):
         colors.append(c)
         labels.append(l)
         detections.append(d)
-
+        
     points = np.concatenate(points)
     normals = np.concatenate(normals)
     colors = np.concatenate(colors)
