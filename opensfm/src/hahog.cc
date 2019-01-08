@@ -18,6 +18,7 @@ py::object hahog(pyarray_f image,
                  float edge_threshold,
                  int target_num_features,
                  bool use_adaptive_suppression) {
+  py::gil_scoped_release release;
 
   if (image.size()) {
     //clock_t t_start = clock();

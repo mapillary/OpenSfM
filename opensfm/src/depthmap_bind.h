@@ -34,18 +34,24 @@ class DepthmapEstimatorWrapper {
   }
 
   py::object ComputePatchMatch() {
+    py::gil_scoped_release release;
+
     DepthmapEstimatorResult result;
     de_.ComputePatchMatch(&result);
     return ComputeReturnValues(result);
   }
 
   py::object ComputePatchMatchSample() {
+    py::gil_scoped_release release;
+
     DepthmapEstimatorResult result;
     de_.ComputePatchMatchSample(&result);
     return ComputeReturnValues(result);
   }
 
   py::object ComputeBruteForce() {
+    py::gil_scoped_release release;
+
     DepthmapEstimatorResult result;
     de_.ComputeBruteForce(&result);
     return ComputeReturnValues(result);
@@ -84,6 +90,8 @@ class DepthmapCleanerWrapper {
   }
 
   py::object Clean() {
+    py::gil_scoped_release release;
+
     cv::Mat depth;
     dc_.Clean(&depth);
     return py_array_from_data(depth.ptr<float>(0), depth.rows, depth.cols);
@@ -116,6 +124,8 @@ class DepthmapPrunerWrapper {
   }
 
   py::object Prune() {
+    py::gil_scoped_release release;
+
     std::vector<float> points;
     std::vector<float> normals;
     std::vector<unsigned char> colors;

@@ -7,6 +7,8 @@ namespace csfm {
 
 
 py::object akaze(pyarray_uint8 image, AKAZEOptions options) {
+  py::gil_scoped_release release;
+
   const cv::Mat img(image.shape(0), image.shape(1), CV_8U, (void *)image.data());
 
   cv::Mat img_32;

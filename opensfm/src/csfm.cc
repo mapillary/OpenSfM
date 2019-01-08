@@ -15,6 +15,12 @@
 namespace py = pybind11;
 
 
+void BundleAdjusterRun(BundleAdjuster* bundle_adjuster) {
+    py::gil_scoped_release release;
+    bundle_adjuster->Run();
+}
+
+
 PYBIND11_MODULE(csfm, m) {
   google::InitGoogleLogging("csfm");
 
@@ -70,7 +76,7 @@ PYBIND11_MODULE(csfm, m) {
 
   py::class_<BundleAdjuster>(m, "BundleAdjuster")
     .def(py::init())
-    .def("run", &BundleAdjuster::Run)
+    .def("run", &BundleAdjusterRun)
     .def("get_perspective_camera", &BundleAdjuster::GetPerspectiveCamera)
     .def("get_brown_perspective_camera", &BundleAdjuster::GetBrownPerspectiveCamera)
     .def("get_fisheye_camera", &BundleAdjuster::GetFisheyeCamera)
