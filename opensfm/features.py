@@ -191,7 +191,6 @@ def extract_features_akaze(image, config):
     options.descriptor = akaze_descriptor_type(akaze_descriptor_name)
     options.descriptor_size = config['akaze_descriptor_size']
     options.descriptor_channels = config['akaze_descriptor_channels']
-    options.process_size = config['feature_process_size']
     options.dthreshold = config['akaze_dthreshold']
     options.kcontrast_percentile = config['akaze_kcontrast_percentile']
     options.use_isotropic_diffusion = config['akaze_use_isotropic_diffusion']
