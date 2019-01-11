@@ -1,0 +1,24 @@
+{
+    "description": "Open source SfM library",
+    "repo": "OpenSfM",
+    "frameworks": [],
+    "language": "python",
+    "maintainers": [
+      "paulinus",
+      "YanNoun"
+    ],
+    "providers": [
+      {
+        "dependencies": [],
+        "description": "Provides the open source SfM library",
+        "name": "OpenSfM_library_provider",
+        "services": [
+          {
+            "description": "Open source SfM library",
+            "name": "OpenSfM_library"
+          }
+        ],
+        "type": "library"
+      }
+    ]
+}
