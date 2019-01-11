@@ -68,7 +68,14 @@ if __name__ == "__main__":
 
     data = dataset.DataSet(args.dataset)
 
-    images = [args.image] if args.image else data.images()
+    if args.image:
+        images = [args.image]
+    else:
+        reconstructions = data.load_undistorted_reconstruction()
+        images = []
+        for reconstruction in reconstructions:
+            images.extend(reconstruction.shots.keys())
+
     for image in images:
         if not data.raw_depthmap_exists(image):
             continue
