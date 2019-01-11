@@ -87,7 +87,7 @@ if __name__ == "__main__":
         pl.close("all")
         pl.figure(figsize=(30, 16), dpi=90, facecolor='w', edgecolor='k')
         title = "Shot: " + image + "\n" + "\n".join(wrap("Neighbors: " + ', '.join(nghbrs), 80))
-        plot_depthmap(data.load_image(image), title, depth, clean_depth, plane, score, nghbr)
+        plot_depthmap(data.load_undistorted_image(image), title, depth, clean_depth, plane, score, nghbr)
         pl.tight_layout()
 
         if args.save_figs:
