@@ -177,7 +177,7 @@ class DataSet(object):
         return os.path.join(self._segmentation_path(), image + '.png')
 
     def load_segmentation(self, image):
-        """Load image segmentation if it exitsts, otherwise return None."""
+        """Load image segmentation if it exists, otherwise return None."""
         segmentation_file = self._segmentation_file(image)
         if os.path.isfile(segmentation_file):
             segmentation = io.imread(segmentation_file, grayscale=True)
