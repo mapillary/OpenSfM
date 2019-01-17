@@ -1,3 +1,5 @@
+from __future__ import division
+
 import datetime
 import exifread
 import logging
@@ -12,6 +14,7 @@ from opensfm import types
 logger = logging.getLogger(__name__)
 
 inch_in_mm = 1609334.0 / 1760.0 / 3.0 / 12.0
+
 
 def eval_frac(value):
     try:
@@ -190,15 +193,31 @@ class EXIF:
             'EXIF FocalPlaneXResolution' not in self.tags):
             return
         resolution_unit = self.tags['EXIF FocalPlaneResolutionUnit'].values[0]
-        if resolution_unit == 1: # cm
-            return (10.0 /
-                   get_tag_as_float(self.tags, 'EXIF FocalPlaneXResolution') *
-                   self.extract_image_size()[0])
-        if resolution_unit == 2: # inch
-            return (inch_in_mm /
-                   get_tag_as_float(self.tags, 'EXIF FocalPlaneXResolution') *
-                   self.extract_image_size()[0])
-        return
+        mm_per_unit = self.get_mm_per_unit(resolution_unit)
+        pixels_per_unit = get_tag_as_float(self.tags, 'EXIF FocalPlaneXResolution')
+        units_per_pixel = 1 / pixels_per_unit
+        width_in_pixels = self.extract_image_size()[0]
+        return width_in_pixels * units_per_pixel * mm_per_unit
+
+    def get_mm_per_unit(resolution_unit):
+        """Length of a resolution unit in millimeters.
+
+        Uses the values from the EXIF specs in
+        https://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/EXIF.html
+
+        Args:
+            resolution_unit: the resolution unit value given in the EXIF
+        """
+        if resolution_unit == 2:    # inch
+            return inch_in_mm
+        elif resolution_unit == 3:  # cm
+            return 10
+        elif resolution_unit == 4:  # mm
+            return 1
+        elif resolution_unit == 5:  # um
+            return 0.001
+        else:                       # Undefined, assuming cm
+            return 10
 
     def extract_orientation(self):
         orientation = 1
