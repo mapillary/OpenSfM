@@ -11,6 +11,7 @@ from opensfm import types
 
 logger = logging.getLogger(__name__)
 
+inch_in_mm = 1609334.0 / 1760.0 / 3.0 / 12.0
 
 def eval_frac(value):
     try:
@@ -130,10 +131,14 @@ class EXIF:
 
     def extract_image_size(self):
         # Image Width and Image Height
-        if ('EXIF ExifImageWidth' in self.tags and
-                'EXIF ExifImageLength' in self.tags):
+        if ('EXIF ExifImageWidth' in self.tags and # PixelXDimension
+            'EXIF ExifImageLength' in self.tags):  # PixelYDimension
             width, height = (int(self.tags['EXIF ExifImageWidth'].values[0]),
                              int(self.tags['EXIF ExifImageLength'].values[0]))
+        elif ('Image ImageWidth' in self.tags and
+              'Image ImageLength' in self.tags):
+            width, height = (int(self.tags['Image ImageWidth'].values[0]),
+                             int(self.tags['Image ImageLength'].values[0]))
         else:
             width, height = -1, -1
         return width, height
@@ -176,9 +181,24 @@ class EXIF:
         focal_35, focal_ratio = compute_focal(
             get_tag_as_float(self.tags, 'EXIF FocalLengthIn35mmFilm'),
             get_tag_as_float(self.tags, 'EXIF FocalLength'),
-            get_tag_as_float(self.tags, 'EXIF CCD width'),
+            self.extract_sensor_width(),
             sensor_string(make, model))
         return focal_35, focal_ratio
+
+    def extract_sensor_width(self):
+        if ('EXIF FocalPlaneResolutionUnit' not in self.tags or
+            'EXIF FocalPlaneXResolution' not in self.tags):
+            return
+        resolution_unit = self.tags['EXIF FocalPlaneResolutionUnit'].values[0]
+        if resolution_unit == 1: # cm
+            return (10.0 /
+                   get_tag_as_float(self.tags, 'EXIF FocalPlaneXResolution') *
+                   self.extract_image_size()[0])
+        if resolution_unit == 2: # inch
+            return (inch_in_mm /
+                   get_tag_as_float(self.tags, 'EXIF FocalPlaneXResolution') *
+                   self.extract_image_size()[0])
+        return
 
     def extract_orientation(self):
         orientation = 1
