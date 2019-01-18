@@ -189,11 +189,14 @@ class EXIF:
         return focal_35, focal_ratio
 
     def extract_sensor_width(self):
+        """Compute sensor with from width and resolution."""
         if ('EXIF FocalPlaneResolutionUnit' not in self.tags or
-            'EXIF FocalPlaneXResolution' not in self.tags):
-            return
+                'EXIF FocalPlaneXResolution' not in self.tags):
+            return None
         resolution_unit = self.tags['EXIF FocalPlaneResolutionUnit'].values[0]
         mm_per_unit = self.get_mm_per_unit(resolution_unit)
+        if not mm_per_unit:
+            return None
         pixels_per_unit = get_tag_as_float(self.tags, 'EXIF FocalPlaneXResolution')
         units_per_pixel = 1 / pixels_per_unit
         width_in_pixels = self.extract_image_size()[0]
@@ -212,12 +215,9 @@ class EXIF:
             return inch_in_mm
         elif resolution_unit == 3:  # cm
             return 10
-        elif resolution_unit == 4:  # mm
-            return 1
-        elif resolution_unit == 5:  # um
-            return 0.001
-        else:                       # Undefined, assuming cm
-            return 10
+        else:
+            logger.warning('Unknown EXIF resolution unit value: {}'.format(resolution_unit))
+            return None
 
     def extract_orientation(self):
         orientation = 1
