@@ -39,7 +39,6 @@ hahog_normalize_to_uchar: no
 
 # Params for general matching
 lowes_ratio: 0.8              # Ratio test for matches
-preemptive_lowes_ratio: 0.6   # Ratio test for preemptive matches
 matcher_type: FLANN           # FLANN or BRUTEFORCE or WORDS
 
 # Params for FLANN matching
@@ -59,8 +58,6 @@ matching_gps_distance: 150            # Maximum gps distance between two images 
 matching_gps_neighbors: 0             # Number of images to match selected by GPS distance. Set to 0 to use no limit (or disable if matching_gps_distance is also 0)
 matching_time_neighbors: 0            # Number of images to match selected by time taken. Set to 0 to disable
 matching_order_neighbors: 0           # Number of images to match selected by image name. Set to 0 to disable
-preemptive_max: 200                   # Number of features to use for preemptive matching
-preemptive_threshold: 0               # If number of matches passes the threshold -> full feature matching
 
 # Params for geometric estimation
 robust_matching_threshold: 0.004        # Outlier threshold for fundamental matrix estimation as portion of image width

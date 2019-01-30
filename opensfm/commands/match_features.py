@@ -35,7 +35,6 @@ class Command:
         ctx.data = data
         ctx.cameras = ctx.data.load_camera_models()
         ctx.exifs = exifs
-        ctx.p_pre, ctx.f_pre = load_preemptive_features(data)
         args = list(match_arguments(pairs, ctx))
 
         start = timer()
@@ -63,24 +62,6 @@ class Command:
 
 class Context:
     pass
-
-
-def load_preemptive_features(data):
-    p, f = {}, {}
-    if data.config['preemptive_threshold'] > 0:
-        logger.debug('Loading preemptive data')
-        for image in data.images():
-            try:
-                p[image], f[image] = \
-                    data.load_preemtive_features(image)
-            except IOError:
-                p, f, c = data.load_features(image)
-                p[image], f[image] = p, f
-            preemptive_max = min(data.config['preemptive_max'],
-                                 p[image].shape[0])
-            p[image] = p[image][:preemptive_max, :]
-            f[image] = f[image][:preemptive_max, :]
-    return p, f
 
 
 def has_gps_info(exif):
@@ -217,28 +198,10 @@ def match(args):
 
     config = ctx.data.config
     robust_matching_min_match = config['robust_matching_min_match']
-    preemptive_threshold = config['preemptive_threshold']
-    lowes_ratio = config['lowes_ratio']
-    preemptive_lowes_ratio = config['preemptive_lowes_ratio']
 
     im1_matches = {}
 
     for im2 in candidates:
-        # preemptive matching
-        if preemptive_threshold > 0:
-            t = timer()
-            config['lowes_ratio'] = preemptive_lowes_ratio
-            matches_pre = matching.match_lowe_bf(
-                ctx.f_pre[im1], ctx.f_pre[im2], config)
-            config['lowes_ratio'] = lowes_ratio
-            logger.debug("Preemptive matching {0}, time: {1}s".format(
-                len(matches_pre), timer() - t))
-            if len(matches_pre) < preemptive_threshold:
-                logger.debug(
-                    "Discarding based of preemptive matches {0} < {1}".format(
-                        len(matches_pre), preemptive_threshold))
-                continue
-
         # symmetric matching
         t = timer()
         p1, f1, c1 = ctx.data.load_features(im1)
