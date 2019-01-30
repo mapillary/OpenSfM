@@ -41,6 +41,7 @@ class Command:
         processes = ctx.data.config['processes']
         parallel_map(match, args, processes)
         end = timer()
+
         with open(ctx.data.profile_log(), 'a') as fout:
             fout.write('match_features: {0}\n'.format(end - start))
         self.write_report(data, preport, pairs, end - start)
@@ -197,6 +198,7 @@ def match(args):
     logger.info('Matching {}  -  {} / {}'.format(im1, i + 1, n))
 
     config = ctx.data.config
+    matcher_type = config['matcher_type']
     robust_matching_min_match = config['robust_matching_min_match']
 
     im1_matches = {}
@@ -207,14 +209,15 @@ def match(args):
         p1, f1, c1 = ctx.data.load_features(im1)
         p2, f2, c2 = ctx.data.load_features(im2)
 
-        if config['matcher_type'] == 'FLANN':
+        if matcher_type == 'FLANN':
             i1 = ctx.data.load_feature_index(im1, f1)
             i2 = ctx.data.load_feature_index(im2, f2)
+            matches = matching.match_flann_symmetric(f1, i1, f2, i2, config)
+        elif matcher_type == 'BRUTEFORCE':
+            matches = matching.match_brute_force_symmetric(f1, f2, config)
         else:
-            i1 = None
-            i2 = None
-
-        matches = matching.match_symmetric(f1, i1, f2, i2, config)
+            raise ValueError("Invalid matcher_type: {}".format(matcher_type))
+            
         logger.debug('{} - {} has {} candidate matches'.format(
             im1, im2, len(matches)))
         if len(matches) < robust_matching_min_match:

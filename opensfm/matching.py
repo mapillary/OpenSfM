@@ -11,8 +11,8 @@ logger = logging.getLogger(__name__)
 
 
 # pairwise matches
-def match_lowe(index, f2, config):
-    """Match features and apply Lowe's ratio filter.
+def match_flann(index, f2, config):
+    """Match using FLANN and apply Lowe's ratio filter.
 
     Args:
         index: flann index if the first image
@@ -27,8 +27,8 @@ def match_lowe(index, f2, config):
     return np.array(matches, dtype=int)
 
 
-def match_symmetric(fi, indexi, fj, indexj, config):
-    """Match in both directions and keep consistent matches.
+def match_flann_symmetric(fi, indexi, fj, indexj, config):
+    """Match using FLANN in both directions and keep consistent matches.
 
     Args:
         fi: feature descriptors of the first image
@@ -37,30 +37,15 @@ def match_symmetric(fi, indexi, fj, indexj, config):
         indexj: flann index of the second image
         config: config parameters
     """
-    if config['matcher_type'] == 'FLANN':
-        matches_ij = [(a, b) for a, b in match_lowe(indexi, fj, config)]
-        matches_ji = [(b, a) for a, b in match_lowe(indexj, fi, config)]
-    else:
-        matches_ij = [(a, b) for a, b in match_lowe_bf(fi, fj, config)]
-        matches_ji = [(b, a) for a, b in match_lowe_bf(fj, fi, config)]
+    matches_ij = [(a, b) for a, b in match_flann(indexi, fj, config)]
+    matches_ji = [(b, a) for a, b in match_flann(indexj, fi, config)]
 
     matches = set(matches_ij).intersection(set(matches_ji))
     return np.array(list(matches), dtype=int)
 
 
-def _convert_matches_to_vector(matches):
-    """Convert Dmatch object to matrix form."""
-    matches_vector = np.zeros((len(matches), 2), dtype=np.int)
-    k = 0
-    for mm in matches:
-        matches_vector[k, 0] = mm.queryIdx
-        matches_vector[k, 1] = mm.trainIdx
-        k = k+1
-    return matches_vector
-
-
-def match_lowe_bf(f1, f2, config):
-    """Bruteforce matching and Lowe's ratio filtering.
+def match_brute_force(f1, f2, config):
+    """Brute force matching and Lowe's ratio filtering.
 
     Args:
         f1: feature descriptors of the first image
@@ -84,6 +69,32 @@ def match_lowe_bf(f1, f2, config):
                 good_matches.append(m)
     good_matches = _convert_matches_to_vector(good_matches)
     return np.array(good_matches, dtype=int)
+
+
+def _convert_matches_to_vector(matches):
+    """Convert Dmatch object to matrix form."""
+    matches_vector = np.zeros((len(matches), 2), dtype=np.int)
+    k = 0
+    for mm in matches:
+        matches_vector[k, 0] = mm.queryIdx
+        matches_vector[k, 1] = mm.trainIdx
+        k = k + 1
+    return matches_vector
+
+
+def match_brute_force_symmetric(fi, fj, config):
+    """Match with brute force in both directions and keep consistent matches.
+
+    Args:
+        fi: feature descriptors of the first image
+        fj: feature descriptors of the second image
+        config: config parameters
+    """
+    matches_ij = [(a, b) for a, b in match_brute_force(fi, fj, config)]
+    matches_ji = [(b, a) for a, b in match_brute_force(fj, fi, config)]
+
+    matches = set(matches_ij).intersection(set(matches_ji))
+    return np.array(list(matches), dtype=int)
 
 
 def robust_match_fundamental(p1, p2, matches, config):
