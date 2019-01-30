@@ -478,6 +478,19 @@ class DataSet(object):
     def save_words(self, image, words):
         np.savez_compressed(self._words_file(image), words=words.astype(np.uint16))
 
+    def _words_file(self, image, n):
+        return os.path.join(self._feature_path(), image + '.words.npz')
+
+    def words_exist(self, image, n):
+        return os.path.isfile(self._words_file(image, n))
+
+    def load_words(self, image, n):
+        s = np.load(self._words_file(image, n))
+        return s['words'].astype(np.int32)
+
+    def save_words(self, image, words, n):
+        np.savez_compressed(self._words_file(image, n), words=words.astype(np.uint16))
+
     def _matches_path(self):
         """Return path of matches directory"""
         return os.path.join(self.data_path, 'matches')
