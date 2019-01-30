@@ -12,7 +12,8 @@ logger = logging.getLogger(__name__)
 
 
 abspath = os.path.abspath(os.path.dirname(__file__))
-SENSOR = os.path.join(abspath, 'data/sensor_data.json')
+SENSOR = os.path.join(abspath, 'data', 'sensor_data.json')
+BOW_PATH = os.path.join(abspath, 'data', 'bow')
 
 
 # Handle different OpenCV versions

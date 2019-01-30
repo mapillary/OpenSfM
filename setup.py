@@ -69,6 +69,8 @@ setuptools.setup(
         'opensfm': [
             'csfm.*',
             'data/sensor_data.json',
+            'data/bow/frequencies_hahog_root_uchar.npy',
+            'data/bow/words_hahog_root_uchar.npy',
         ]
     },
     # install_requires=[

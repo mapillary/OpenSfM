@@ -3,6 +3,7 @@ from timeit import default_timer as timer
 
 import numpy as np
 
+from opensfm import bow
 from opensfm import dataset
 from opensfm import features
 from opensfm import io
@@ -88,6 +89,12 @@ def detect(args):
     if data.config['matcher_type'] == 'FLANN':
         index = features.build_flann_index(f_sorted, data.config)
         data.save_feature_index(image, index)
+    elif data.config['matcher_type'] == 'WORDS':
+        bows = bow.load_bows(data.config)
+        n_closest = data.config['bow_words_to_match']
+        closest_words = bows.map_to_words(
+            f_sorted, n_closest, data.config['bow_matcher_type'])
+        data.save_words(image, closest_words, n_closest)
 
     end = timer()
     report = {

@@ -40,12 +40,19 @@ hahog_normalize_to_uchar: no
 # Params for general matching
 lowes_ratio: 0.8              # Ratio test for matches
 preemptive_lowes_ratio: 0.6   # Ratio test for preemptive matches
-matcher_type: FLANN           # FLANN or BRUTEFORCE
+matcher_type: FLANN           # FLANN or BRUTEFORCE or WORDS
 
 # Params for FLANN matching
 flann_branching: 16           # See OpenCV doc
 flann_iterations: 10          # See OpenCV doc
 flann_checks: 200             # Smaller -> Faster (but might lose good matches)
+
+# Params for BoW matching
+bow_file: bow_hahog_root_uchar.npz
+bow_images_to_match: 15       # Number of images to do detailed matching.
+bow_words_to_match: 50        # Number of words to explore per feature.
+bow_num_checks: 20            # Number of matching features to check.
+bow_matcher_type: FLANN       # Matcher type to assign words to features
 
 # Params for preemptive matching
 matching_gps_distance: 150            # Maximum gps distance between two images for matching
