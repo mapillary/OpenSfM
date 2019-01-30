@@ -35,7 +35,7 @@ akaze_use_isotropic_diffusion: no
 # Params for HAHOG
 hahog_peak_threshold: 0.00001
 hahog_edge_threshold: 10
-hahog_normalize_to_uchar: no
+hahog_normalize_to_uchar: yes
 
 # Params for general matching
 lowes_ratio: 0.8              # Ratio test for matches

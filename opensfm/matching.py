@@ -3,6 +3,7 @@ import cv2
 import pyopengv
 import logging
 
+from opensfm import csfm
 from opensfm import context
 from opensfm import multiview
 
@@ -10,7 +11,41 @@ from opensfm import multiview
 logger = logging.getLogger(__name__)
 
 
-# pairwise matches
+def match_words(f1, words1, f2, words2, config):
+    """Match using words and apply Lowe's ratio filter.
+
+    Args:
+        f1: feature descriptors of the first image
+        w1: the nth closest words for each feature in the first image
+        f2: feature descriptors of the second image
+        w2: the nth closest words for each feature in the second image
+        config: config parameters
+    """
+    ratio = config['lowes_ratio']
+    num_checks = config['bow_num_checks']
+    return csfm.match_using_words(f1, words1, f2, words2[:, 0],
+                                  ratio, num_checks)
+
+
+def match_words_symmetric(f1, words1, f2, words2, config):
+    """Match using words in both directions and keep consistent matches.
+
+    Args:
+        f1: feature descriptors of the first image
+        w1: the nth closest words for each feature in the first image
+        f2: feature descriptors of the second image
+        w2: the nth closest words for each feature in the second image
+        config: config parameters
+    """
+    matches_ij = match_words(f1, words1, f2, words2, config)
+    matches_ji = match_words(f2, words2, f1, words1, config)
+    matches_ij = [(a, b) for a, b in matches_ij]
+    matches_ji = [(b, a) for a, b in matches_ji]
+
+    matches = set(matches_ij).intersection(set(matches_ji))
+    return np.array(list(matches), dtype=int)
+
+
 def match_flann(index, f2, config):
     """Match using FLANN and apply Lowe's ratio filter.
 

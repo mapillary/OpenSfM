@@ -209,7 +209,11 @@ def match(args):
         p1, f1, c1 = ctx.data.load_features(im1)
         p2, f2, c2 = ctx.data.load_features(im2)
 
-        if matcher_type == 'FLANN':
+        if matcher_type == 'WORDS':
+            w1 = ctx.data.load_words(im1)
+            w2 = ctx.data.load_words(im2)
+            matches = matching.match_words_symmetric(f1, w1, f2, w2, config)
+        elif matcher_type == 'FLANN':
             i1 = ctx.data.load_feature_index(im1, f1)
             i2 = ctx.data.load_feature_index(im2, f2)
             matches = matching.match_flann_symmetric(f1, i1, f2, i2, config)
@@ -217,7 +221,7 @@ def match(args):
             matches = matching.match_brute_force_symmetric(f1, f2, config)
         else:
             raise ValueError("Invalid matcher_type: {}".format(matcher_type))
-            
+
         logger.debug('{} - {} has {} candidate matches'.format(
             im1, im2, len(matches)))
         if len(matches) < robust_matching_min_match:
