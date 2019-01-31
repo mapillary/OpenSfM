@@ -1,3 +1,5 @@
+#include <map>
+#include <vector>
 #include <opencv2/core/core.hpp>
 #include <pybind11/pybind11.h>
 
