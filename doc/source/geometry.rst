@@ -79,7 +79,6 @@ The camera models deal with the projection of 3D points expressed in *camera coo
 
 Perspective Camera
 ``````````````````
-
 .. math::
     \begin{array}{l}
     x_n = \frac{x}{z} \\
@@ -94,18 +93,15 @@ Fisheye Camera
 ``````````````````
 .. math::
     \begin{array}{l}
-    x_n = \frac{x}{z} \\
-    y_n = \frac{y}{z} \\
-    r^2 = x_n^2 + y_n^2 \\
-    \theta = \arctan(r) \\
+    r^2 = x^2 + y^2 \\
+    \theta = \arctan(r / z) \\
     d = 1 +  k_1 \theta^2+  k_2 \theta^4 \\
-    u = f\ d\ \theta\ \frac{x_n}{r} \\
-    v = f\ d\ \theta\ \frac{y_n}{r}
+    u = f\ d\ \theta\ \frac{x}{r} \\
+    v = f\ d\ \theta\ \frac{y}{r}
     \end{array}
 
 Spherical Camera
 ``````````````````
-
 .. math::
     \begin{array}{l}
     \mathrm{lon} = \arctan\left(\frac{x}{z}\right) \\
