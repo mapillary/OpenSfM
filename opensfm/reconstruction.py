@@ -780,6 +780,8 @@ def compute_common_tracks(reconstruction1, reconstruction2,
     common_images = set(reconstruction1.shots.keys()).intersection(
         reconstruction2.shots.keys())
     for image in common_images:
+        if image not in graph1 or image not in graph2:
+            continue
         for t1, t2 in corresponding_tracks(graph1[image], graph2[image]):
             if t1 in reconstruction1.points and t2 in reconstruction2.points:
                 common_tracks.add((t1, t2))
