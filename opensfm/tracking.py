@@ -31,7 +31,8 @@ def load_matches(dataset, images):
         except IOError:
             continue
         for im2 in im1_matches:
-            matches[im1, im2] = im1_matches[im2]
+            if im2 in images:
+                matches[im1, im2] = im1_matches[im2]
     return matches
 
 
