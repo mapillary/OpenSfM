@@ -685,6 +685,8 @@ class Reconstruction(object):
       cameras (Dict(Camera)): List of cameras.
       shots   (Dict(Shot)): List of reconstructed shots.
       points  (Dict(Point)): List of reconstructed points.
+      reference (list(real)): list containing the lat/lon/alt
+                              of the topocentric reference frame
     """
 
     def __init__(self):
@@ -692,6 +694,7 @@ class Reconstruction(object):
         self.cameras = {}
         self.shots = {}
         self.points = {}
+        self.reference_lla = None
 
     def add_camera(self, camera):
         """Add a camera in the list
