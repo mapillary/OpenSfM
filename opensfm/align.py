@@ -137,11 +137,7 @@ def align_reconstruction_orientation_prior_similarity(reconstruction, config):
     same_shots = (X.std(axis=0).max() < 1e-8 or     # All points are the same.
                   Xp.std(axis=0).max() < 0.01)      # All GPS points are the same.
     if single_shot or same_shots:
-        if single_shot:
-            s = 1.0
-        if same_shots:
-            # Set the arbitrary scale proportional to the number of cameras.
-            s = len(X) / max(1e-8, X.std(axis=0).max())
+        s = 1.0
         A = Rplane
         b = Xp.mean(axis=0) - X.mean(axis=0)
     else:
