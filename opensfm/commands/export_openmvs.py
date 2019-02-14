@@ -50,10 +50,6 @@ class Command:
         for point in reconstruction.points.values():
             shots = list(graph[point.id])
 
-            # Python 3: keys() returns a dict_keys, OpenMVSExporter::add_point() requires a list
-            if not isinstance(shots, list):
-                shots = list(shots)
-
             coordinates = np.array(point.coordinates, dtype=np.float64)
             exporter.add_point(coordinates, shots)
 
