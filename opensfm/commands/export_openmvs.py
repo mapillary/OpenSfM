@@ -48,7 +48,8 @@ class Command:
                     shot.pose.get_origin())
 
         for point in reconstruction.points.values():
-            shots = graph[point.id].keys()
+            shots = list(graph[point.id])
+
             coordinates = np.array(point.coordinates, dtype=np.float64)
             exporter.add_point(coordinates, shots)
 
