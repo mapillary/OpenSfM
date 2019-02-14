@@ -48,7 +48,7 @@ class Command:
                     shot.pose.get_origin())
 
         for point in reconstruction.points.values():
-            shots = graph[point.id].keys()
+            shots = list(graph[point.id])
 
             # Python 3: keys() returns a dict_keys, OpenMVSExporter::add_point() requires a list
             if not isinstance(shots, list):
