@@ -426,9 +426,10 @@ def depthmap_to_ply(shot, depth, image):
     points = R.T.dot(camera_coords - t.reshape(3, 1))
 
     vertices = []
-    for p, c in zip(points.T, image.reshape(-1, 3)):
-        s = "{} {} {} {} {} {}".format(p[0], p[1], p[2], c[0], c[1], c[2])
-        vertices.append(s)
+    for p, c, d in zip(points.T, image.reshape(-1, 3), depth.reshape(-1, 1)):
+        if d != 0: # ignore points with zero depth
+            s = "{} {} {} {} {} {}".format(p[0], p[1], p[2], c[0], c[1], c[2])
+            vertices.append(s)
 
     header = [
         "ply",
