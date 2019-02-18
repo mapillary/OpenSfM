@@ -83,7 +83,7 @@ if __name__ == "__main__":
         depth, plane, score, nghbr, nghbrs = data.load_raw_depthmap(image)
         clean_depth, clean_plane, clean_score = data.load_clean_depthmap(image)
 
-        print "Plotting depthmap for {0}".format(image)
+        print("Plotting depthmap for {0}".format(image))
         pl.close("all")
         pl.figure(figsize=(30, 16), dpi=90, facecolor='w', edgecolor='k')
         title = "Shot: " + image + "\n" + "\n".join(wrap("Neighbors: " + ', '.join(nghbrs), 80))
