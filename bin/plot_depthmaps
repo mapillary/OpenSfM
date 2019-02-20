@@ -4,7 +4,7 @@ import argparse
 import matplotlib.pyplot as pl
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
-from textwrap import wrap
+from matplotlib import cm
 
 from opensfm import dataset
 from opensfm import io
@@ -16,6 +16,16 @@ def small_colorbar(ax):
     pl.colorbar(cax=cax)
 
 
+def depth_colormap(d, cmap=None, invalid_val = 0, invalid_color=(.5, .5, .5)):
+    """
+    Colormaps and sets 0 (invalid) values to zero_color
+    """
+    sm = cm.ScalarMappable(cmap=cm.get_cmap(cmap))
+    rgb = sm.to_rgba(d)[:, :, :3]
+    rgb[d == invalid_val] = invalid_color
+    return rgb
+
+
 def plot_depthmap(im, title, depth, clean, plane, score, nghbr):
     ax = pl.subplot(2, 3, 1)
     ax_title = ax.set_title(title)
@@ -24,12 +34,12 @@ def plot_depthmap(im, title, depth, clean, plane, score, nghbr):
     ax = pl.subplot(2, 3, 2)
     ax_title = ax.set_title("Depth")
     ax_title.set_y(1.08)
-    pl.imshow(depth)
+    pl.imshow(depth_colormap(depth))
     small_colorbar(ax)
     ax = pl.subplot(2, 3, 3)
     ax_title = ax.set_title("Clean depth")
     ax_title.set_y(1.08)
-    pl.imshow(clean)
+    pl.imshow(depth_colormap(clean))
     small_colorbar(ax)
     ax = pl.subplot(2, 3, 4)
     ax_title = ax.set_title("Score")
