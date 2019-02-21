@@ -4,6 +4,7 @@ import argparse
 import matplotlib.pyplot as pl
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
+from textwrap import wrap
 from matplotlib import cm
 
 from opensfm import dataset
@@ -16,7 +17,7 @@ def small_colorbar(ax):
     pl.colorbar(cax=cax)
 
 
-def depth_colormap(d, cmap=None, invalid_val = 0, invalid_color=(.5, .5, .5)):
+def depth_colormap(d, cmap=None, invalid_val=0, invalid_color=(.5, .5, .5)):
     """
     Colormaps and sets 0 (invalid) values to zero_color
     """
