@@ -11,10 +11,10 @@ from opensfm import dataset
 from opensfm import io
 
 
-def small_colorbar(ax):
+def small_colorbar(ax, mappable=None):
     divider = make_axes_locatable(ax)
     cax = divider.append_axes("right", size="5%", pad=0.05)
-    pl.colorbar(cax=cax)
+    pl.colorbar(cax=cax, mappable=mappable)
 
 
 def depth_colormap(d, cmap=None, invalid_val=0, invalid_color=(.5, .5, .5)):
@@ -22,9 +22,10 @@ def depth_colormap(d, cmap=None, invalid_val=0, invalid_color=(.5, .5, .5)):
     Colormaps and sets 0 (invalid) values to zero_color
     """
     sm = cm.ScalarMappable(cmap=cm.get_cmap(cmap))
+    sm.set_array(d)
     rgb = sm.to_rgba(d)[:, :, :3]
     rgb[d == invalid_val] = invalid_color
-    return rgb
+    return rgb, sm
 
 
 def plot_depthmap(im, title, depth, clean, plane, score, nghbr):
@@ -35,13 +36,15 @@ def plot_depthmap(im, title, depth, clean, plane, score, nghbr):
     ax = pl.subplot(2, 3, 2)
     ax_title = ax.set_title("Depth")
     ax_title.set_y(1.08)
-    pl.imshow(depth_colormap(depth))
-    small_colorbar(ax)
+    rgb, sm = depth_colormap(depth)
+    pl.imshow(rgb)
+    small_colorbar(ax, mappable=sm)
     ax = pl.subplot(2, 3, 3)
     ax_title = ax.set_title("Clean depth")
     ax_title.set_y(1.08)
-    pl.imshow(depth_colormap(clean))
-    small_colorbar(ax)
+    rgb, sm = depth_colormap(clean)
+    pl.imshow(rgb)
+    small_colorbar(ax, mappable=sm)
     ax = pl.subplot(2, 3, 4)
     ax_title = ax.set_title("Score")
     ax_title.set_y(1.08)
