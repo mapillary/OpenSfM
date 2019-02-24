@@ -13,7 +13,7 @@ from opensfm import types
 
 logger = logging.getLogger(__name__)
 
-inch_in_mm = 1609334.0 / 1760.0 / 3.0 / 12.0
+inch_in_mm = 25.4
 
 
 def eval_frac(value):
