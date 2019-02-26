@@ -558,11 +558,13 @@ def json_loads(text):
     return json.loads(text)
 
 
-def imread(filename, grayscale=False):
+def imread(filename, grayscale=False, unchanged=False):
     """Load image as an array ignoring EXIF orientation."""
     if context.OPENCV3:
         if grayscale:
             flags = cv2.IMREAD_GRAYSCALE
+        elif unchanged:
+            flags = cv2.IMREAD_UNCHANGED
         else:
             flags = cv2.IMREAD_COLOR
 
@@ -576,6 +578,8 @@ def imread(filename, grayscale=False):
     else:
         if grayscale:
             flags = cv2.CV_LOAD_IMAGE_GRAYSCALE
+        elif unchanged:
+            flags = cv2.CV_LOAD_IMAGE_UNCHANGED
         else:
             flags = cv2.CV_LOAD_IMAGE_COLOR
 
@@ -585,14 +589,14 @@ def imread(filename, grayscale=False):
         raise IOError("Unable to load image {}".format(filename))
 
     if len(image.shape) == 3:
-        image = image[:, :, ::-1]  # Turn BGR to RGB
+        image[:,:,:3] = image[:, :, [2,1,0]]  # Turn BGR to RGB (or BGRA to RGBA)
     return image
 
 
 def imwrite(filename, image):
     """Write an image to a file"""
-    if len(image.shape) == 3:
-        image = image[:, :, ::-1]  # Turn RGB to BGR
+    if len(image.shape) == 3 :
+        image[:,:,:3] = image[:, :, [2,1,0]]  # Turn RGB to BGR (or RGBA to BGRA)
     cv2.imwrite(filename, image)
 
 
