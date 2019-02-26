@@ -78,7 +78,7 @@ def undistort_image_and_masks(arguments):
     image = data.load_image(shot.id)
     if image is not None:
         max_size = data.config['undistorted_image_max_size']
-        undistorted = undistort_image(shot, undistorted_shots, data, image,
+        undistorted = undistort_image(shot, undistorted_shots, image,
                                       cv2.INTER_AREA, max_size)
         for k, v in undistorted.items():
             data.save_undistorted_image(k, v)
@@ -86,7 +86,7 @@ def undistort_image_and_masks(arguments):
     # Undistort mask
     mask = data.load_mask(shot.id)
     if mask is not None:
-        undistorted = undistort_image(shot, undistorted_shots, data, mask,
+        undistorted = undistort_image(shot, undistorted_shots, mask,
                                       cv2.INTER_NEAREST, 1e9)
         for k, v in undistorted.items():
             data.save_undistorted_mask(k, v)
@@ -94,22 +94,33 @@ def undistort_image_and_masks(arguments):
     # Undistort segmentation
     segmentation = data.load_segmentation(shot.id)
     if segmentation is not None:
-        undistorted = undistort_image(shot, undistorted_shots, data,
-                                      segmentation, cv2.INTER_NEAREST, 1e9)
+        undistorted = undistort_image(shot, undistorted_shots, segmentation,
+                                      cv2.INTER_NEAREST, 1e9)
         for k, v in undistorted.items():
             data.save_undistorted_segmentation(k, v)
 
     # Undistort detections
     detection = data.load_detection(shot.id)
     if detection is not None:
-        undistorted = undistort_image(shot, undistorted_shots, data,
-                                      detection, cv2.INTER_NEAREST, 1e9)
+        undistorted = undistort_image(shot, undistorted_shots, detection,
+                                      cv2.INTER_NEAREST, 1e9)
         for k, v in undistorted.items():
             data.save_undistorted_detection(k, v)
 
 
-def undistort_image(shot, undistorted_shots, data, original, interpolation,
+def undistort_image(shot, undistorted_shots, original, interpolation,
                     max_size):
+    """Undistort an image into a set of undistorted ones.
+
+    Args:
+        shot: the distorted shot
+        undistorted_shots: the set of undistorted shots covering the
+            distorted shot field of view. That is 1 for most camera
+            types and 6 for equirectangular cameras.
+        original: the original distorted image array.
+        interpolation: the opencv interpolation flag to use.
+        max_size: maximum size of the undistorted image.
+    """
     if original is None:
         return
 
@@ -125,7 +136,7 @@ def undistort_image(shot, undistorted_shots, data, original, interpolation,
         undistorted = uf(original, shot.camera, new_camera, interpolation)
         return {shot.id: scale_image(undistorted, max_size)}
     elif projection_type in ['equirectangular', 'spherical']:
-        subshot_width = int(data.config['depthmap_resolution'])
+        subshot_width = undistorted_shots[0].camera.width
         width = 4 * subshot_width
         height = width // 2
         image = cv2.resize(original, (width, height), interpolation=interpolation)
@@ -194,7 +205,7 @@ def get_shot_with_different_camera(shot, camera):
     ushot.pose = shot.pose
     ushot.metadata = shot.metadata
     return ushot
- 
+
 
 def perspective_camera_from_perspective(distorted):
     """Create an undistorted camera from a distorted."""
