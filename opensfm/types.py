@@ -683,10 +683,9 @@ class Reconstruction(object):
 
     Attributes:
       cameras (Dict(Camera)): List of cameras.
-      shots   (Dict(Shot)): List of reconstructed shots.
-      points  (Dict(Point)): List of reconstructed points.
-      reference (list(real)): list containing the lat/lon/alt
-                              of the topocentric reference frame
+      shots (Dict(Shot)): List of reconstructed shots.
+      points (Dict(Point)): List of reconstructed points.
+      reference (TopocentricConverter): Topocentric reference converter.
     """
 
     def __init__(self):

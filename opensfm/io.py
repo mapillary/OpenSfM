@@ -15,6 +15,7 @@ import numpy as np
 import pyproj
 from six import iteritems
 
+from opensfm import geo
 from opensfm import features
 from opensfm import types
 from opensfm import context
@@ -171,7 +172,9 @@ def reconstruction_from_json(obj):
 
     # Extract reference topocentric frame
     if 'reference_lla' in obj:
-        reconstruction.reference_lla = obj['reference_lla']
+        lla = obj['reference_lla']
+        reconstruction.reference = geo.TopocentricConverter(
+            lla['latitude'], lla['longitude'], lla['altitude'])
 
     return reconstruction
 
@@ -337,8 +340,13 @@ def reconstruction_to_json(reconstruction):
         obj['unit_shot'] = reconstruction.unit_shot
 
     # Extract reference topocentric frame
-    if hasattr(reconstruction, 'reference_lla'):
-        obj['reference_lla'] = reconstruction.reference_lla
+    if hasattr(reconstruction, 'reference'):
+        ref = reconstruction.reference
+        obj['reference_lla'] = {
+            'latitude': ref.lat,
+            'longitude': ref.lon,
+            'altitude': ref.alt,
+        }
 
     return obj
 
