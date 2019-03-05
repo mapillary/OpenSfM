@@ -693,7 +693,7 @@ class Reconstruction(object):
         self.cameras = {}
         self.shots = {}
         self.points = {}
-        self.reference_lla = None
+        self.reference = None
 
     def add_camera(self, camera):
         """Add a camera in the list

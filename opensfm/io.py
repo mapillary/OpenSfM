@@ -340,7 +340,7 @@ def reconstruction_to_json(reconstruction):
         obj['unit_shot'] = reconstruction.unit_shot
 
     # Extract reference topocentric frame
-    if hasattr(reconstruction, 'reference'):
+    if reconstruction.reference:
         ref = reconstruction.reference
         obj['reference_lla'] = {
             'latitude': ref.lat,
