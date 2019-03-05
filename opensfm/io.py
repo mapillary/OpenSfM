@@ -169,6 +169,10 @@ def reconstruction_from_json(obj):
     if 'unit_shot' in obj:
         reconstruction.unit_shot = obj['unit_shot']
 
+    # Extract reference topocentric frame
+    if 'reference_lla' in obj:
+        reconstruction.reference_lla = obj['reference_lla']
+
     return reconstruction
 
 
@@ -331,6 +335,10 @@ def reconstruction_to_json(reconstruction):
         obj['main_shot'] = reconstruction.main_shot
     if hasattr(reconstruction, 'unit_shot'):
         obj['unit_shot'] = reconstruction.unit_shot
+
+    # Extract reference topocentric frame
+    if hasattr(reconstruction, 'reference_lla'):
+        obj['reference_lla'] = reconstruction.reference_lla
 
     return obj
 
