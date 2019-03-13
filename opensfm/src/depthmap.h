@@ -117,6 +117,7 @@ class DepthmapEstimator {
   float min_patch_variance_;
   std::mt19937 rng_;
   std::uniform_int_distribution<int> uni_;
+  std::normal_distribution<float> unit_normal_;
 };
 
 class DepthmapCleaner {

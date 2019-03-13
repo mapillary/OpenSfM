@@ -136,7 +136,8 @@ DepthmapEstimator::DepthmapEstimator()
       patchmatch_iterations_(3),
       min_patch_variance_(5 * 5),
       rng_{std::random_device{}()},
-      uni_(0, 0) {}
+      uni_(0, 0),
+      unit_normal_(0, 1) {}
 
 void DepthmapEstimator::AddView(const double *pK, const double *pR,
                                 const double *pt, const unsigned char *pimage,
@@ -232,7 +233,7 @@ void DepthmapEstimator::RandomInitialization(DepthmapEstimatorResult *result,
   int hpz = (patch_size_ - 1) / 2;
   for (int i = hpz; i < result->depth.rows - hpz; ++i) {
     for (int j = hpz; j < result->depth.cols - hpz; ++j) {
-      float depth = UniformRand(min_depth_, max_depth_);
+      float depth = exp(UniformRand(log(min_depth_), log(max_depth_)));
       cv::Vec3f normal(UniformRand(-1, 1), UniformRand(-1, 1), -1);
       cv::Vec3f plane = PlaneFromDepthAndNormal(j, i, Ks_[0], depth, normal);
       int nghbr;
@@ -324,18 +325,18 @@ void DepthmapEstimator::PatchMatchUpdatePixel(DepthmapEstimatorResult *result,
   }
 
   // Check random planes for current neighbor.
-  float depth_range = (1 / max_depth_ - 1 / min_depth_) / 20;
+  float depth_range = 0.02;
   float normal_range = 0.5;
   int current_nghbr = result->nghbr.at<int>(i, j);
   for (int k = 0; k < 6; ++k) {
     float current_depth = result->depth.at<float>(i, j);
-    float depth = 1 / (1 / current_depth + UniformRand(-depth_range, depth_range));
+    float depth = current_depth * exp(depth_range * unit_normal_(rng_));
 
     cv::Vec3f current_plane = result->plane.at<cv::Vec3f>(i, j);
-    cv::Vec3f normal(-current_plane(0) / current_plane(2) +
-                         UniformRand(-normal_range, normal_range),
-                     -current_plane(1) / current_plane(2) +
-                         UniformRand(-normal_range, normal_range),
+    cv::Vec3f normal(-current_plane(0) / current_plane(2)
+                       + normal_range * unit_normal_(rng_),
+                     -current_plane(1) / current_plane(2)
+                       + normal_range * unit_normal_(rng_),
                      -1.0f);
 
     cv::Vec3f plane = PlaneFromDepthAndNormal(j, i, Ks_[0], depth, normal);
@@ -345,8 +346,8 @@ void DepthmapEstimator::PatchMatchUpdatePixel(DepthmapEstimatorResult *result,
       CheckPlaneCandidate(result, i, j, plane);
     }
 
-    depth_range *= 0.5;
-    normal_range *= 0.5;
+    depth_range *= 0.3;
+    normal_range *= 0.8;
   }
 
   if (!sample || images_.size() <= 2) {
