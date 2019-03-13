@@ -64,9 +64,17 @@ def plot_depthmap(im, title, depth, clean, plane, score, nghbr):
 def color_plane_normals(plane):
     norm = np.linalg.norm(plane, axis=2)
     normal = plane / norm[..., np.newaxis]
-    normal[..., 1] *= -1  # Reverse Y because it points down
-    normal[..., 2] *= -1  # Reverse Z because standard colormap does so
-    return ((normal + 1) * 128).astype(np.uint8)
+
+    n = 100
+    coords = np.linspace(-1, 1, n)
+    x, y = np.meshgrid(coords, coords, sparse=True)
+    r = x**2 + y**2
+    z = - np.sqrt(np.clip(1 - r, 0, 1))
+    normal[:n, :n, 0] = np.where(r < 1, x, normal[:n, :n, 0])
+    normal[:n, :n, 1] = np.where(r < 1, y, normal[:n, :n, 1])
+    normal[:n, :n, 2] = np.where(r < 1, z, normal[:n, :n, 2])
+
+    return ((1 - normal) * 128).astype(np.uint8)
 
 
 if __name__ == "__main__":
