@@ -7,7 +7,7 @@ numpy
 pyproj==1.9.5.1
 pytest==3.0.7
 python-dateutil==2.6.0
-PyYAML==3.12
+pyyaml==5.1
 repoze.lru==0.7
 scipy
 six
