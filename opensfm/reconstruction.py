@@ -656,6 +656,7 @@ def bootstrap_reconstruction(data, graph, im1, im2, p1, p2):
         return None, report
 
     reconstruction = types.Reconstruction()
+    reconstruction.reference = data.load_reference()
     reconstruction.cameras = cameras
 
     shot1 = types.Shot()
