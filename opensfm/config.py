@@ -145,7 +145,7 @@ submodel_images_relpath_template: "submodels/submodel_%04d/images"   # Template 
 
 def default_config():
     """Return default configuration"""
-    return yaml.load(default_config_yaml)
+    return yaml.safe_load(default_config_yaml)
 
 
 def load_config(filepath):
@@ -154,7 +154,7 @@ def load_config(filepath):
 
     if os.path.isfile(filepath):
         with open(filepath) as fin:
-            new_config = yaml.load(fin)
+            new_config = yaml.safe_load(fin)
         if new_config:
             for k, v in new_config.items():
                 config[k] = v
