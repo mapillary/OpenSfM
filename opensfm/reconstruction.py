@@ -127,15 +127,16 @@ def bundle(graph, reconstruction, gcp, config):
                                   shot.metadata.gps_dop)
 
     if config['bundle_use_gcp'] and gcp:
-        for observation in gcp:
-            if observation.shot_id in reconstruction.shots:
-                ba.add_ground_control_point_observation(
-                    observation.shot_id,
-                    observation.coordinates[0],
-                    observation.coordinates[1],
-                    observation.coordinates[2],
-                    observation.shot_coordinates[0],
-                    observation.shot_coordinates[1])
+        for point in gcp:
+            for observation in point.observations:
+                if observation.shot_id in reconstruction.shots:
+                    ba.add_ground_control_point_observation(
+                        observation.shot_id,
+                        point.coordinates[0],
+                        point.coordinates[1],
+                        point.coordinates[2],
+                        observation.shot_coordinates[0],
+                        observation.shot_coordinates[1])
 
     ba.set_loss_function(config['loss_function'],
                          config['loss_function_threshold'])
@@ -291,15 +292,16 @@ def bundle_local(graph, reconstruction, gcp, central_shot_id, config):
                                   shot.metadata.gps_dop)
 
     if config['bundle_use_gcp'] and gcp:
-        for observation in gcp:
-            if observation.shot_id in interior:
-                ba.add_ground_control_point_observation(
-                    observation.shot_id,
-                    observation.coordinates[0],
-                    observation.coordinates[1],
-                    observation.coordinates[2],
-                    observation.shot_coordinates[0],
-                    observation.shot_coordinates[1])
+        for point in gcp:
+            for observation in point.observations:
+                if observation.shot_id in interior:
+                    ba.add_ground_control_point_observation(
+                        observation.shot_id,
+                        point.coordinates[0],
+                        point.coordinates[1],
+                        point.coordinates[2],
+                        observation.shot_coordinates[0],
+                        observation.shot_coordinates[1])
 
     ba.set_loss_function(config['loss_function'],
                          config['loss_function_threshold'])

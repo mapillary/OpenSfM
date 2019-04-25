@@ -368,29 +368,46 @@ def cameras_to_json(cameras):
     return obj
 
 
-def _read_gcp_list_line(line, projection, reference, exif):
-    words = line.split(None, 5)
-    easting, northing, alt, pixel_x, pixel_y = map(float, words[:5])
-    shot_id = words[5].strip()
+def _read_gcp_list_lines(lines, projection, reference, exif):
+    points = {}
+    for line in lines:
+        words = line.split(None, 5)
+        easting, northing, alt, pixel_x, pixel_y = map(float, words[:5])
+        shot_id = words[5].strip()
+        key = (easting, northing, alt)
 
-    # Convert 3D coordinates
-    if projection is not None:
-        lon, lat = projection(easting, northing, inverse=True)
-    else:
-        lon, lat = easting, northing
-    x, y, z = reference.to_topocentric(lat, lon, alt)
+        if key in points:
+            point = points[key]
+        else:
+            # Convert 3D coordinates
+            if np.isnan(alt):
+                alt = 0
+                has_altitude = False
+            else:
+                has_altitude = True
+            if projection is not None:
+                lon, lat = projection(easting, northing, inverse=True)
+            else:
+                lon, lat = easting, northing
+            x, y, z = reference.to_topocentric(lat, lon, alt)
 
-    # Convert 2D coordinates
-    d = exif[shot_id]
-    coordinates = features.normalized_image_coordinates(
-        np.array([[pixel_x, pixel_y]]), d['width'], d['height'])[0]
+            point = types.GroundControlPoint()
+            point.lla = np.array([lat, lon, alt])
+            point.coordinates = np.array([x, y, z])
+            point.has_altitude = has_altitude
+            points[key] = point
 
-    o = types.GroundControlPointObservation()
-    o.lla = np.array([lat, lon, alt])
-    o.coordinates = np.array([x, y, z])
-    o.shot_id = shot_id
-    o.shot_coordinates = coordinates
-    return o
+        # Convert 2D coordinates
+        d = exif[shot_id]
+        coordinates = features.normalized_image_coordinates(
+            np.array([[pixel_x, pixel_y]]), d['width'], d['height'])[0]
+
+        o = types.GroundControlPointObservation()
+        o.shot_id = shot_id
+        o.shot_coordinates = coordinates
+        point.observations.append(o)
+
+    return list(points.values())
 
 
 def _parse_utm_projection_string(line):
@@ -436,8 +453,7 @@ def read_ground_control_points_list(fileobj, reference, exif):
     all_lines = fileobj.readlines()
     lines = iter(filter(_valid_gcp_line, all_lines))
     projection = _parse_projection(next(lines))
-    points = [_read_gcp_list_line(line, projection, reference, exif)
-              for line in lines]
+    points = _read_gcp_list_lines(lines, projection, reference, exif)
     return points
 
 

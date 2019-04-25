@@ -661,19 +661,32 @@ class Point(object):
         self.reprojection_error = None
 
 
-class GroundControlPointObservation(object):
-    """A ground control point observation.
+class GroundControlPoint(object):
+    """A ground control point with its observations.
 
     Attributes:
         lla: latitue, longitude and altitude
         coordinates: x, y, z coordinates in topocentric reference frame
-        shot_id: the shot where the point is observed
-        shot_coordinates: 2d coordinates of the observation
+        has_altitude: true if z coordinate is known
+        observations: list of observations of the point on images
     """
 
     def __init__(self):
         self.lla = None
         self.coordinates = None
+        self.has_altitude = None
+        self.observations = []
+
+
+class GroundControlPointObservation(object):
+    """A ground control point observation.
+
+    Attributes:
+        shot_id: the shot where the point is observed
+        shot_coordinates: 2d coordinates of the observation
+    """
+
+    def __init__(self):
         self.shot_id = None
         self.shot_coordinates = None
 

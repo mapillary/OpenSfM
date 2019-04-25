@@ -1,7 +1,6 @@
 """Tools to align a reconstruction to GPS and GCP data."""
 
 import logging
-from collections import defaultdict
 
 import numpy as np
 
@@ -202,17 +201,12 @@ def triangulate_single_gcp(reconstruction, observations):
         return X
 
 
-def triangulate_all_gcp(reconstruction, gcp_observations):
+def triangulate_all_gcp(reconstruction, gcp):
     """Group and triangulate Ground Control Points seen in 2+ images."""
-    groups = defaultdict(list)
-    for o in gcp_observations:
-        groups[tuple(o.lla)].append(o)
-
     triangulated, measured = [], []
-    for observations in groups.values():
-        x = triangulate_single_gcp(reconstruction, observations)
+    for point in gcp:
+        x = triangulate_single_gcp(reconstruction, point.observations)
         if x is not None:
             triangulated.append(x)
-            measured.append(observations[0].coordinates)
-
+            measured.append(point.coordinates)
     return triangulated, measured
