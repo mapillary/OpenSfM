@@ -89,6 +89,24 @@ def _get_camera_from_bundle(ba, camera):
         camera.k2 = c.k2
 
 
+def _add_gcp_to_bundle(ba, gcp, reconstruction):
+    """Add Ground Control Points constraints to the bundle problem."""
+    for i, point in enumerate(gcp):
+        initial = point.coordinates
+        ba.add_gcp_point(
+            str(i), initial[0], initial[1], initial[2], False)
+        prior = point.coordinates
+        ba.add_gcp_world_observation(
+            str(i), prior[0], prior[1], prior[2], point.has_altitude)
+        for observation in point.observations:
+            if observation.shot_id in reconstruction.shots:
+                ba.add_gcp_image_observation(
+                    observation.shot_id,
+                    str(i),
+                    observation.shot_coordinates[0],
+                    observation.shot_coordinates[1])
+
+
 def bundle(graph, reconstruction, gcp, config):
     """Bundle adjust a reconstruction."""
     fix_cameras = not config['optimize_camera_parameters']
@@ -127,16 +145,7 @@ def bundle(graph, reconstruction, gcp, config):
                                   shot.metadata.gps_dop)
 
     if config['bundle_use_gcp'] and gcp:
-        for point in gcp:
-            for observation in point.observations:
-                if observation.shot_id in reconstruction.shots:
-                    ba.add_ground_control_point_observation(
-                        observation.shot_id,
-                        point.coordinates[0],
-                        point.coordinates[1],
-                        point.coordinates[2],
-                        observation.shot_coordinates[0],
-                        observation.shot_coordinates[1])
+        _add_gcp_to_bundle(ba, gcp, reconstruction)
 
     ba.set_loss_function(config['loss_function'],
                          config['loss_function_threshold'])
@@ -292,16 +301,7 @@ def bundle_local(graph, reconstruction, gcp, central_shot_id, config):
                                   shot.metadata.gps_dop)
 
     if config['bundle_use_gcp'] and gcp:
-        for point in gcp:
-            for observation in point.observations:
-                if observation.shot_id in interior:
-                    ba.add_ground_control_point_observation(
-                        observation.shot_id,
-                        point.coordinates[0],
-                        point.coordinates[1],
-                        point.coordinates[2],
-                        observation.shot_coordinates[0],
-                        observation.shot_coordinates[1])
+        _add_gcp_to_bundle(ba, gcp, reconstruction)
 
     ba.set_loss_function(config['loss_function'],
                          config['loss_function_threshold'])

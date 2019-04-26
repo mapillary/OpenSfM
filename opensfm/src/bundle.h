@@ -196,11 +196,17 @@ struct BAPointPositionPrior {
   double std_deviation;
 };
 
-struct BAGroundControlPointObservation {
+struct BAGcpWorldObservation {
+  BAPoint *point;
+  double coordinates[3];
+  bool has_altitude;
+};
+
+struct BAGcpImageObservation {
   BACamera *camera;
   BAShot *shot;
-  double coordinates3d[3];
-  double coordinates2d[2];
+  BAPoint *point;
+  double coordinates[2];
 };
 
 class TruncatedLoss : public ceres::LossFunction {
@@ -779,6 +785,23 @@ struct PointPositionPriorError {
   double scale_;
 };
 
+struct PointPositionPrior2dError {
+  PointPositionPrior2dError(double *position, double std_deviation)
+      : position_(position)
+      , scale_(1.0 / std_deviation)
+  {}
+
+  template <typename T>
+  bool operator()(const T* const p, T* residuals) const {
+    residuals[0] = T(scale_) * (p[0] - T(position_[0]));
+    residuals[1] = T(scale_) * (p[1] - T(position_[1]));
+    return true;
+  }
+
+  double *position_;
+  double scale_;
+};
+
 ceres::LossFunction *CreateLossFunction(std::string name, double threshold) {
   if (name.compare("TrivialLoss") == 0) {
     return new ceres::TrivialLoss();
@@ -871,6 +894,10 @@ class BundleAdjuster {
 
   BAPoint GetPoint(const std::string &id) {
     return points_[id];
+  }
+
+  BAPoint GetGcpPoint(const std::string &id) {
+    return gcp_points_[id];
   }
 
   void AddPerspectiveCamera(
@@ -1039,22 +1066,49 @@ class BundleAdjuster {
     point_position_priors_.push_back(p);
   }
 
-  void AddGroundControlPointObservation(
+  void AddGcpPoint(
+      const std::string &id,
+      double x,
+      double y,
+      double z,
+      bool constant) {
+    BAPoint p;
+    p.id = id;
+    p.coordinates[0] = x;
+    p.coordinates[1] = y;
+    p.coordinates[2] = z;
+    p.constant = constant;
+    p.reprojection_error = -1;
+    gcp_points_[id] = p;
+  }
+
+  void AddGcpWorldObservation(
+      const std::string &point,
+      double x,
+      double y,
+      double z,
+      bool has_altitude) {
+    BAGcpWorldObservation o;
+    o.point = &gcp_points_[point];
+    o.coordinates[0] = x;
+    o.coordinates[1] = y;
+    o.coordinates[2] = z;
+    o.has_altitude = has_altitude;
+    gcp_world_observations_.push_back(o);
+  }
+
+  void AddGcpImageObservation(
       const std::string &shot,
-      double x3d,
-      double y3d,
-      double z3d,
-      double x2d,
-      double y2d) {
-    BAGroundControlPointObservation o;
+      const std::string &point,
+      double x,
+      double y) {
+    BAObservation o;
     o.shot = &shots_[shot];
     o.camera = cameras_[o.shot->camera].get();
-    o.coordinates3d[0] = x3d;
-    o.coordinates3d[1] = y3d;
-    o.coordinates3d[2] = z3d;
-    o.coordinates2d[0] = x2d;
-    o.coordinates2d[1] = y2d;
-    gcp_observations_.push_back(o);
+    o.point = &gcp_points_[point];
+    o.coordinates[0] = x;
+    o.coordinates[1] = y;
+    gcp_image_observations_.push_back(o);
   }
 
   void SetOriginShot(const std::string &shot_id) {
@@ -1158,74 +1212,16 @@ class BundleAdjuster {
         problem.SetParameterBlockConstant(i.second.coordinates);
       }
     }
+    for (auto &i : gcp_points_) {
+      if (i.second.constant) {
+        problem.AddParameterBlock(i.second.coordinates, 3);
+        problem.SetParameterBlockConstant(i.second.coordinates);
+      }
+    }
 
     // Add reprojection error blocks
     for (auto &observation : observations_) {
-      switch (observation.camera->type()) {
-        case BA_PERSPECTIVE_CAMERA:
-        {
-          BAPerspectiveCamera &c = static_cast<BAPerspectiveCamera &>(*observation.camera);
-          ceres::CostFunction* cost_function =
-              new ceres::AutoDiffCostFunction<PerspectiveReprojectionError, 2, 3, 6, 3>(
-                  new PerspectiveReprojectionError(observation.coordinates[0],
-                                                   observation.coordinates[1],
-                                                   reprojection_error_sd_));
-
-          problem.AddResidualBlock(cost_function,
-                                   loss,
-                                   c.parameters,
-                                   observation.shot->parameters,
-                                   observation.point->coordinates);
-          break;
-        }
-        case BA_BROWN_PERSPECTIVE_CAMERA:
-        {
-          BABrownPerspectiveCamera &c = static_cast<BABrownPerspectiveCamera &>(*observation.camera);
-          ceres::CostFunction* cost_function =
-              new ceres::AutoDiffCostFunction<BrownPerspectiveReprojectionError, 2, 9, 6, 3>(
-                  new BrownPerspectiveReprojectionError(observation.coordinates[0],
-                                                        observation.coordinates[1],
-                                                        reprojection_error_sd_));
-
-          problem.AddResidualBlock(cost_function,
-                                   loss,
-                                   c.parameters,
-                                   observation.shot->parameters,
-                                   observation.point->coordinates);
-          break;
-        }
-        case BA_FISHEYE_CAMERA:
-        {
-          BAFisheyeCamera &c = static_cast<BAFisheyeCamera &>(*observation.camera);
-          ceres::CostFunction* cost_function =
-              new ceres::AutoDiffCostFunction<FisheyeReprojectionError, 2, 3, 6, 3>(
-                  new FisheyeReprojectionError(observation.coordinates[0],
-                                               observation.coordinates[1],
-                                               reprojection_error_sd_));
-
-          problem.AddResidualBlock(cost_function,
-                                   loss,
-                                   c.parameters,
-                                   observation.shot->parameters,
-                                   observation.point->coordinates);
-          break;
-        }
-        case BA_EQUIRECTANGULAR_CAMERA:
-        {
-          BAEquirectangularCamera &c = static_cast<BAEquirectangularCamera &>(*observation.camera);
-          ceres::CostFunction* cost_function =
-              new ceres::AutoDiffCostFunction<EquirectangularReprojectionError, 3, 6, 3>(
-                  new EquirectangularReprojectionError(observation.coordinates[0],
-                                                       observation.coordinates[1],
-                                                       reprojection_error_sd_));
-
-          problem.AddResidualBlock(cost_function,
-                                   loss,
-                                   observation.shot->parameters,
-                                   observation.point->coordinates);
-          break;
-        }
-      }
+      AddObservationResidualBlock(observation, loss, &problem);
     }
 
     // Add rotation priors
@@ -1272,56 +1268,30 @@ class BundleAdjuster {
                                pp.point->coordinates);
     }
 
-    // Add ground control point observations
-    for (auto &observation : gcp_observations_) {
-      switch (observation.camera->type()) {
-        case BA_PERSPECTIVE_CAMERA:
-        {
-          BAPerspectiveCamera &c = static_cast<BAPerspectiveCamera &>(*observation.camera);
-          ceres::CostFunction* cost_function =
-              new ceres::AutoDiffCostFunction<GCPPerspectiveProjectionError, 2, 3, 6>(
-                  new GCPPerspectiveProjectionError(observation.coordinates3d,
-                                                    observation.coordinates2d,
-                                                    reprojection_error_sd_));
-          problem.AddResidualBlock(cost_function,
-                                   NULL,
-                                   c.parameters,
-                                   observation.shot->parameters);
-          break;
-        }
-        case BA_BROWN_PERSPECTIVE_CAMERA:
-        {
-          BABrownPerspectiveCamera &c = static_cast<BABrownPerspectiveCamera &>(*observation.camera);
-          ceres::CostFunction* cost_function =
-              new ceres::AutoDiffCostFunction<GCPBrownPerspectiveProjectionError, 2, 9, 6>(
-                  new GCPBrownPerspectiveProjectionError(observation.coordinates3d,
-                                                         observation.coordinates2d,
-                                                         reprojection_error_sd_));
-          problem.AddResidualBlock(cost_function,
-                                   NULL,
-                                   c.parameters,
-                                   observation.shot->parameters);
-          break;
-        }
-        case BA_FISHEYE_CAMERA:
-        {
-          std::cerr << "NotImplemented: GCP for fisheye cameras\n";
-          break;
-        }
-        case BA_EQUIRECTANGULAR_CAMERA:
-        {
-          ceres::CostFunction* cost_function =
-              new ceres::AutoDiffCostFunction<GCPEquirectangularProjectionError, 3, 6>(
-                  new GCPEquirectangularProjectionError(observation.coordinates3d,
-                                                        observation.coordinates2d,
-                                                        reprojection_error_sd_));
+    // Add ground control point world observations
+    for (auto &observation : gcp_world_observations_) {
+      if (observation.has_altitude) {
+        ceres::CostFunction* cost_function =
+            new ceres::AutoDiffCostFunction<PointPositionPriorError, 3, 3>(
+                new PointPositionPriorError(observation.coordinates, 0.1));
 
-          problem.AddResidualBlock(cost_function,
-                                   NULL,
-                                   observation.shot->parameters);
-          break;
-        }
+        problem.AddResidualBlock(cost_function,
+                                 NULL,
+                                 observation.point->coordinates);
+      } else {
+        ceres::CostFunction* cost_function =
+            new ceres::AutoDiffCostFunction<PointPositionPrior2dError, 3, 2>(
+                new PointPositionPrior2dError(observation.coordinates, 0.1));
+
+        problem.AddResidualBlock(cost_function,
+                                 NULL,
+                                 observation.point->coordinates);
       }
+    }
+
+    // Add ground control point image observations
+    for (auto &observation : gcp_image_observations_) {
+      AddObservationResidualBlock(observation, NULL, &problem);
     }
 
     // Add internal parameter priors blocks
@@ -1407,6 +1377,76 @@ class BundleAdjuster {
     }
     if (compute_reprojection_errors_) {
       ComputeReprojectionErrors();
+    }
+  }
+
+  void AddObservationResidualBlock(const BAObservation &observation,
+                                   ceres::LossFunction *loss,
+                                   ceres::Problem *problem) {
+    switch (observation.camera->type()) {
+      case BA_PERSPECTIVE_CAMERA:
+      {
+        BAPerspectiveCamera &c = static_cast<BAPerspectiveCamera &>(*observation.camera);
+        ceres::CostFunction* cost_function =
+            new ceres::AutoDiffCostFunction<PerspectiveReprojectionError, 2, 3, 6, 3>(
+                new PerspectiveReprojectionError(observation.coordinates[0],
+                                                  observation.coordinates[1],
+                                                  reprojection_error_sd_));
+
+        problem->AddResidualBlock(cost_function,
+                                  loss,
+                                  c.parameters,
+                                  observation.shot->parameters,
+                                  observation.point->coordinates);
+        break;
+      }
+      case BA_BROWN_PERSPECTIVE_CAMERA:
+      {
+        BABrownPerspectiveCamera &c = static_cast<BABrownPerspectiveCamera &>(*observation.camera);
+        ceres::CostFunction* cost_function =
+            new ceres::AutoDiffCostFunction<BrownPerspectiveReprojectionError, 2, 9, 6, 3>(
+                new BrownPerspectiveReprojectionError(observation.coordinates[0],
+                                                      observation.coordinates[1],
+                                                      reprojection_error_sd_));
+
+        problem->AddResidualBlock(cost_function,
+                                  loss,
+                                  c.parameters,
+                                  observation.shot->parameters,
+                                  observation.point->coordinates);
+        break;
+      }
+      case BA_FISHEYE_CAMERA:
+      {
+        BAFisheyeCamera &c = static_cast<BAFisheyeCamera &>(*observation.camera);
+        ceres::CostFunction* cost_function =
+            new ceres::AutoDiffCostFunction<FisheyeReprojectionError, 2, 3, 6, 3>(
+                new FisheyeReprojectionError(observation.coordinates[0],
+                                              observation.coordinates[1],
+                                              reprojection_error_sd_));
+
+        problem->AddResidualBlock(cost_function,
+                                  loss,
+                                  c.parameters,
+                                  observation.shot->parameters,
+                                  observation.point->coordinates);
+        break;
+      }
+      case BA_EQUIRECTANGULAR_CAMERA:
+      {
+        BAEquirectangularCamera &c = static_cast<BAEquirectangularCamera &>(*observation.camera);
+        ceres::CostFunction* cost_function =
+            new ceres::AutoDiffCostFunction<EquirectangularReprojectionError, 3, 6, 3>(
+                new EquirectangularReprojectionError(observation.coordinates[0],
+                                                      observation.coordinates[1],
+                                                      reprojection_error_sd_));
+
+        problem->AddResidualBlock(cost_function,
+                                  loss,
+                                  observation.shot->parameters,
+                                  observation.point->coordinates);
+        break;
+      }
     }
   }
 
@@ -1542,13 +1582,15 @@ class BundleAdjuster {
   std::map<std::string, std::unique_ptr<BACamera> > cameras_;
   std::map<std::string, BAShot> shots_;
   std::map<std::string, BAPoint> points_;
+  std::map<std::string, BAPoint> gcp_points_;
 
   std::vector<BAObservation> observations_;
   std::vector<BARotationPrior> rotation_priors_;
   std::vector<BATranslationPrior> translation_priors_;
   std::vector<BAPositionPrior> position_priors_;
   std::vector<BAPointPositionPrior> point_position_priors_;
-  std::vector<BAGroundControlPointObservation> gcp_observations_;
+  std::vector<BAGcpWorldObservation> gcp_world_observations_;
+  std::vector<BAObservation> gcp_image_observations_;
 
   BAShot *unit_translation_shot_;
 

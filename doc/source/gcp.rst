@@ -20,7 +20,7 @@ GCPs can be specified by adding a text file named ``gcp_list.txt`` at the root f
 
       <geo_x> <geo_y> <geo_z> <im_x> <im_y> <image_name>
 
-  Where ``<geo_x> <geo_y> <geo_z>`` are the geospatial coordinates of the GCP and ``<im_x> <im_y>`` are the pixel coordinates where the GCP is observed.
+  Where ``<geo_x> <geo_y> <geo_z>`` are the geospatial coordinates of the GCP and ``<im_x> <im_y>`` are the pixel coordinates where the GCP is observed.  If the altitude of the GCP is not known, set ``<geo_z>`` to ``NaN``.
 
 
 Supported projections
