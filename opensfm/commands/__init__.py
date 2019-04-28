@@ -4,6 +4,7 @@ from . import detect_features
 from . import match_features
 from . import create_tracks
 from . import reconstruct
+from . import bundle
 from . import mesh
 from . import undistort
 from . import compute_depthmaps
@@ -21,6 +22,7 @@ opensfm_commands = [
     match_features,
     create_tracks,
     reconstruct,
+    bundle,
     mesh,
     undistort,
     compute_depthmaps,
