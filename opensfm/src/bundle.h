@@ -1280,7 +1280,7 @@ class BundleAdjuster {
                                  observation.point->coordinates);
       } else {
         ceres::CostFunction* cost_function =
-            new ceres::AutoDiffCostFunction<PointPositionPrior2dError, 3, 2>(
+            new ceres::AutoDiffCostFunction<PointPositionPrior2dError, 2, 3>(
                 new PointPositionPrior2dError(observation.coordinates, 0.1));
 
         problem.AddResidualBlock(cost_function,
