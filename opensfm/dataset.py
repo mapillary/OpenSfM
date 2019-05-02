@@ -735,12 +735,13 @@ class DataSet(object):
 def load_tracks_graph(fileobj):
     g = nx.Graph()
     for line in fileobj:
-        image, track, observation, x, y, R, G, B = line.split('\t')
+        image, track, observation, x, y, scale, R, G, B = line.split('\t')
         g.add_node(image, bipartite=0)
         g.add_node(track, bipartite=1)
         g.add_edge(
             image, track,
             feature=(float(x), float(y)),
+            feature_scale=float(scale),
             feature_id=int(observation),
             feature_color=(float(R), float(G), float(B)))
     return g
@@ -752,7 +753,8 @@ def save_tracks_graph(fileobj, graph):
             image = node
             for track, data in graph[image].items():
                 x, y = data['feature']
+                s = data['feature_scale']
                 fid = data['feature_id']
                 r, g, b = data['feature_color']
-                fileobj.write(u'%s\t%s\t%d\t%g\t%g\t%g\t%g\t%g\n' % (
-                    str(image), str(track), fid, x, y, r, g, b))
+                fileobj.write(u'%s\t%s\t%d\t%g\t%g\t%g\t%g\t%g\t%g\n' % (
+                    str(image), str(track), fid, x, y, s, r, g, b))

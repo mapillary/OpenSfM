@@ -18,7 +18,14 @@ def load_features(dataset, images):
     colors = {}
     for im in images:
         p, f, c = dataset.load_features(im)
-        features[im] = p[:, :2]
+        exif = dataset.load_exif(im)
+
+        # legacy : scale is not normalized
+        width = exif["width"]
+        height = exif["height"]
+        p[:, 2:3] /= max(width, height)
+
+        features[im] = p[:, :3]
         colors[im] = c
     return features, colors
 
@@ -61,13 +68,14 @@ def create_tracks_graph(features, colors, matches, config):
         for image, featureid in track:
             if image not in features:
                 continue
-            x, y = features[image][featureid]
+            x, y, s = features[image][featureid]
             r, g, b = colors[image][featureid]
             tracks_graph.add_node(str(image), bipartite=0)
             tracks_graph.add_node(str(track_id), bipartite=1)
             tracks_graph.add_edge(str(image),
                                   str(track_id),
                                   feature=(float(x), float(y)),
+                                  feature_scale=float(s),
                                   feature_id=int(featureid),
                                   feature_color=(float(r), float(g), float(b)))
 
