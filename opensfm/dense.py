@@ -232,7 +232,7 @@ def merge_depthmaps(data, reconstruction):
         colors.append(c)
         labels.append(l)
         detections.append(d)
-        
+
     points = np.concatenate(points)
     normals = np.concatenate(normals)
     colors = np.concatenate(colors)
@@ -252,7 +252,7 @@ def add_views_to_depth_estimator(data, neighbors, de):
         mask = load_combined_mask(data, shot)
         gray_image = cv2.cvtColor(color_image, cv2.COLOR_RGB2GRAY)
         original_height, original_width = gray_image.shape
-        width = int(data.config['depthmap_resolution'])
+        width = min(original_width, int(data.config['depthmap_resolution']))
         height = width * original_height // original_width
         image = scale_down_image(gray_image, width, height)
         mask = scale_down_image(mask, width, height, cv2.INTER_NEAREST)
