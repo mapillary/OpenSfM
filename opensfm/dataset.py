@@ -5,6 +5,7 @@ import json
 import logging
 import pickle
 import gzip
+import sys
 
 import numpy as np
 import networkx as nx
@@ -732,7 +733,32 @@ class DataSet(object):
         return self.load_mask(image)
 
 
+TRACKS_VERSION = 0
+TRACKS_HEADER = u'OPENSFM_TRACKS_VERSION'
+
+
 def load_tracks_graph(fileobj):
+    version = _tracks_file_version(fileobj)
+    return getattr(sys.modules[__name__], '_load_tracks_graph_v%d' % version)(fileobj)
+
+
+def save_tracks_graph(fileobj, graph):
+    fileobj.write((TRACKS_HEADER + u'_v%d\n') % TRACKS_VERSION)
+    getattr(sys.modules[__name__], '_save_tracks_graph_v%d' % TRACKS_VERSION)(fileobj, graph)
+
+
+def _tracks_file_version(fileobj):
+    current_position = fileobj.tell()
+    line = fileobj.readline()
+    if line.startswith(TRACKS_HEADER):
+        version = int(line.split('_v')[1])
+    else:
+        fileobj.seek(current_position)
+        version = 0
+    return version
+
+
+def _load_tracks_graph_v0(fileobj):
     g = nx.Graph()
     for line in fileobj:
         image, track, observation, x, y, scale, R, G, B = line.split('\t')
@@ -747,7 +773,7 @@ def load_tracks_graph(fileobj):
     return g
 
 
-def save_tracks_graph(fileobj, graph):
+def _save_tracks_graph_v0(fileobj, graph):
     for node, data in graph.nodes(data=True):
         if data['bipartite'] == 0:
             image = node
