@@ -15,6 +15,7 @@ from opensfm import io
 from opensfm import config
 from opensfm import context
 from opensfm import geo
+from opensfm import tracking
 
 
 logger = logging.getLogger(__name__)
@@ -534,14 +535,14 @@ class DataSet(object):
     def load_tracks_graph(self, filename=None):
         """Return graph (networkx data structure) of tracks"""
         with io.open_rt(self._tracks_graph_file(filename)) as fin:
-            return load_tracks_graph(fin)
+            return tracking.load_tracks_graph(fin)
 
     def tracks_exists(self, filename=None):
         return os.path.isfile(self._tracks_graph_file(filename))
 
     def save_tracks_graph(self, graph, filename=None):
         with io.open_wt(self._tracks_graph_file(filename)) as fout:
-            save_tracks_graph(fout, graph)
+            tracking.save_tracks_graph(fout, graph)
 
     def load_undistorted_tracks_graph(self):
         return self.load_tracks_graph('undistorted_tracks.csv')
@@ -731,84 +732,3 @@ class DataSet(object):
     def mask_as_array(self, image):
         logger.warning("mask_as_array() is deprecated. Use load_mask() instead.")
         return self.load_mask(image)
-
-
-TRACKS_VERSION = 1
-TRACKS_HEADER = u'OPENSFM_TRACKS_VERSION'
-
-
-def load_tracks_graph(fileobj):
-    version = _tracks_file_version(fileobj)
-    return getattr(sys.modules[__name__], '_load_tracks_graph_v%d' % version)(fileobj)
-
-
-def save_tracks_graph(fileobj, graph):
-    fileobj.write((TRACKS_HEADER + u'_v%d\n') % TRACKS_VERSION)
-    getattr(sys.modules[__name__], '_save_tracks_graph_v%d' % TRACKS_VERSION)(fileobj, graph)
-
-
-def _tracks_file_version(fileobj):
-    current_position = fileobj.tell()
-    line = fileobj.readline()
-    if line.startswith(TRACKS_HEADER):
-        version = int(line.split('_v')[1])
-    else:
-        fileobj.seek(current_position)
-        version = 0
-    return version
-
-
-def _load_tracks_graph_v0(fileobj):
-    default_scale = 0.004  # old default reprojection_sd config
-    g = nx.Graph()
-    for line in fileobj:
-        image, track, observation, x, y, R, G, B = line.split('\t')
-        g.add_node(image, bipartite=0)
-        g.add_node(track, bipartite=1)
-        g.add_edge(
-            image, track,
-            feature=(float(x), float(y)),
-            feature_scale=float(default_scale),
-            feature_id=int(observation),
-            feature_color=(float(R), float(G), float(B)))
-    return g
-
-
-def _save_tracks_graph_v0(fileobj, graph):
-    for node, data in graph.nodes(data=True):
-        if data['bipartite'] == 0:
-            image = node
-            for track, data in graph[image].items():
-                x, y = data['feature']
-                fid = data['feature_id']
-                r, g, b = data['feature_color']
-                fileobj.write(u'%s\t%s\t%d\t%g\t%g\t%g\t%g\t%g\n' % (
-                    str(image), str(track), fid, x, y, s, r, g, b))
-
-
-def _load_tracks_graph_v1(fileobj):
-    g = nx.Graph()
-    for line in fileobj:
-        image, track, observation, x, y, scale, R, G, B = line.split('\t')
-        g.add_node(image, bipartite=0)
-        g.add_node(track, bipartite=1)
-        g.add_edge(
-            image, track,
-            feature=(float(x), float(y)),
-            feature_scale=float(scale),
-            feature_id=int(observation),
-            feature_color=(float(R), float(G), float(B)))
-    return g
-
-
-def _save_tracks_graph_v1(fileobj, graph):
-    for node, data in graph.nodes(data=True):
-        if data['bipartite'] == 0:
-            image = node
-            for track, data in graph[image].items():
-                x, y = data['feature']
-                s = data['feature_scale']
-                fid = data['feature_id']
-                r, g, b = data['feature_color']
-                fileobj.write(u'%s\t%s\t%d\t%g\t%g\t%g\t%g\t%g\t%g\n' % (
-                    str(image), str(track), fid, x, y, s, r, g, b))
