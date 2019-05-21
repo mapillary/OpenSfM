@@ -80,10 +80,12 @@ class CubeDataset:
             for point_id, point in iteritems(self.points):
                 feature = shot.project(point)
                 feature += np.random.rand(*feature.shape)*noise
+                point_integer = int(point_id.split('point')[1])
                 g.add_node(shot_id, bipartite=0)
                 g.add_node(point_id, bipartite=1)
                 g.add_edge(shot_id, point_id, feature=feature,
-                           feature_id=point_id, feature_color=(0, 0, 0))
+                           feature_id=point_integer, feature_color=(0, 0, 0),
+                           feature_scale=0.004)
         self.tracks = g
 
 
