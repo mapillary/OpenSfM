@@ -733,7 +733,7 @@ class DataSet(object):
         return self.load_mask(image)
 
 
-TRACKS_VERSION = 0
+TRACKS_VERSION = 1
 TRACKS_HEADER = u'OPENSFM_TRACKS_VERSION'
 
 
@@ -759,6 +759,34 @@ def _tracks_file_version(fileobj):
 
 
 def _load_tracks_graph_v0(fileobj):
+    default_scale = 0.004  # old default reprojection_sd config
+    g = nx.Graph()
+    for line in fileobj:
+        image, track, observation, x, y, R, G, B = line.split('\t')
+        g.add_node(image, bipartite=0)
+        g.add_node(track, bipartite=1)
+        g.add_edge(
+            image, track,
+            feature=(float(x), float(y)),
+            feature_scale=float(default_scale),
+            feature_id=int(observation),
+            feature_color=(float(R), float(G), float(B)))
+    return g
+
+
+def _save_tracks_graph_v0(fileobj, graph):
+    for node, data in graph.nodes(data=True):
+        if data['bipartite'] == 0:
+            image = node
+            for track, data in graph[image].items():
+                x, y = data['feature']
+                fid = data['feature_id']
+                r, g, b = data['feature_color']
+                fileobj.write(u'%s\t%s\t%d\t%g\t%g\t%g\t%g\t%g\n' % (
+                    str(image), str(track), fid, x, y, s, r, g, b))
+
+
+def _load_tracks_graph_v1(fileobj):
     g = nx.Graph()
     for line in fileobj:
         image, track, observation, x, y, scale, R, G, B = line.split('\t')
@@ -773,7 +801,7 @@ def _load_tracks_graph_v0(fileobj):
     return g
 
 
-def _save_tracks_graph_v0(fileobj, graph):
+def _save_tracks_graph_v1(fileobj, graph):
     for node, data in graph.nodes(data=True):
         if data['bipartite'] == 0:
             image = node
