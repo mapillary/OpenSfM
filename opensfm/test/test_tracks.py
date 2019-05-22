@@ -1,4 +1,4 @@
-import StringIO
+from io import StringIO
 
 import opensfm.tracking
 import data_generation
@@ -7,7 +7,7 @@ import data_generation
 def test_tracks_io():
     d = data_generation.CubeDataset(2, 100, 0.0, 0.3)
 
-    output = StringIO.StringIO()
+    output = StringIO()
 
     tracks_before = d.tracks
     opensfm.tracking.save_tracks_graph(output, tracks_before)
