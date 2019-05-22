@@ -20,12 +20,6 @@ def load_features(dataset, images):
     for im in images:
         p, f, c = dataset.load_features(im)
         exif = dataset.load_exif(im)
-
-        # legacy : scale is not normalized
-        width = exif["width"]
-        height = exif["height"]
-        p[:, 2:3] /= max(width, height)
-
         features[im] = p[:, :3]
         colors[im] = c
     return features, colors
