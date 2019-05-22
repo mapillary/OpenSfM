@@ -313,3 +313,27 @@ def build_flann_index(features, config):
                         iterations=config['flann_iterations'])
 
     return context.flann_Index(features, flann_params)
+
+
+def load_features(filepath, config):
+    feature_type = config['feature_type']
+    s = np.load(filepath)
+    if feature_type == 'HAHOG' and config['hahog_normalize_to_uchar']:
+        descriptors = s['descriptors'].astype(np.float32)
+    else:
+        descriptors = s['descriptors']
+    return s['points'], descriptors, s['colors'].astype(float)
+
+
+def save_features(filepath, points, desc, colors, config):
+    feature_type = config['feature_type']
+    if ((feature_type == 'AKAZE' and config['akaze_descriptor'] in ['MLDB_UPRIGHT', 'MLDB'])
+            or (feature_type == 'HAHOG' and config['hahog_normalize_to_uchar'])
+            or (feature_type == 'ORB')):
+        feature_data_type = np.uint8
+    else:
+        feature_data_type = np.float32
+    np.savez_compressed(filepath,
+                        points=points.astype(np.float32),
+                        descriptors=desc.astype(feature_data_type),
+                        colors=colors)
