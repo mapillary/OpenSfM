@@ -16,6 +16,7 @@ from opensfm import config
 from opensfm import context
 from opensfm import geo
 from opensfm import tracking
+from opensfm import features
 
 
 logger = logging.getLogger(__name__)
@@ -433,34 +434,18 @@ class DataSet(object):
         """
         return os.path.join(self._feature_path(), image + '.npz')
 
-    def _save_features(self, filepath, image, points, descriptors, colors=None):
+    def _save_features(self, filepath, points, descriptors, colors=None):
         io.mkdir_p(self._feature_path())
-        feature_type = self.config['feature_type']
-        if ((feature_type == 'AKAZE' and self.config['akaze_descriptor'] in ['MLDB_UPRIGHT', 'MLDB'])
-                or (feature_type == 'HAHOG' and self.config['hahog_normalize_to_uchar'])
-                or (feature_type == 'ORB')):
-            feature_data_type = np.uint8
-        else:
-            feature_data_type = np.float32
-        np.savez_compressed(filepath,
-                            points=points.astype(np.float32),
-                            descriptors=descriptors.astype(feature_data_type),
-                            colors=colors)
+        features.save_features(filepath, points, descriptors, colors, self.config)
 
     def features_exist(self, image):
         return os.path.isfile(self._feature_file(image))
 
     def load_features(self, image):
-        feature_type = self.config['feature_type']
-        s = np.load(self._feature_file(image))
-        if feature_type == 'HAHOG' and self.config['hahog_normalize_to_uchar']:
-            descriptors = s['descriptors'].astype(np.float32)
-        else:
-            descriptors = s['descriptors']
-        return s['points'], descriptors, s['colors'].astype(float)
+        return features.load_features(self._feature_file(image), self.config)
 
     def save_features(self, image, points, descriptors, colors):
-        self._save_features(self._feature_file(image), image, points, descriptors, colors)
+        self._save_features(self._feature_file(image), points, descriptors, colors)
 
     def feature_index_exists(self, image):
         return os.path.isfile(self._feature_index_file(image))
@@ -493,7 +478,7 @@ class DataSet(object):
         return s['points'], s['descriptors']
 
     def save_preemptive_features(self, image, points, descriptors):
-        self._save_features(self._preemptive_features_file(image), image, points, descriptors)
+        self._save_features(self._preemptive_features_file(image), points, descriptors)
 
     def _matches_path(self):
         """Return path of matches directory"""

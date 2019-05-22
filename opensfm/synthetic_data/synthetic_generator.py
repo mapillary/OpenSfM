@@ -231,6 +231,7 @@ def generate_track_data(reconstruction, maximum_depth, noise):
     colors = {}
     features = {}
     descriptors = {}
+    default_scale = 0.004
     for shot_index, shot in reconstruction.shots.items():
         # need to have these as we lost track of keys
         all_keys = list(reconstruction.points.keys())
@@ -257,14 +258,14 @@ def generate_track_data(reconstruction, maximum_depth, noise):
                                                   shot.camera.height))
             perturb_points([projection], np.array([perturbation, perturbation]))
 
-            projections_inside.append(projection)
+            projections_inside.append(np.hstack((projection, [default_scale])))
             descriptors_inside.append(track_descriptors[original_key])
             colors_inside.append(original_point.color)
             tracks_graph.add_edge(str(shot_index),
                                   str(original_key),
                                   feature=projection,
                                   feature_id=len(projections_inside)-1,
-                                  feature_scale=0.004,
+                                  feature_scale=default_scale,
                                   feature_color=(float(original_point.color[0]),
                                                  float(original_point.color[1]),
                                                  float(original_point.color[2])))

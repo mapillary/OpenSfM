@@ -3,6 +3,7 @@
 import time
 import logging
 import numpy as np
+import sys
 import cv2
 
 from opensfm import context
@@ -79,6 +80,7 @@ def mask_and_normalize_features(points, desc, colors, width, height, mask=None):
         colors = colors[ids]
 
     points[:, :2] = normalized_image_coordinates(points[:, :2], width, height)
+    points[:, 2:3] /= max(width, height)
     return points, desc, colors
 
 
@@ -313,3 +315,64 @@ def build_flann_index(features, config):
                         iterations=config['flann_iterations'])
 
     return context.flann_Index(features, flann_params)
+
+
+FEATURES_VERSION = 1
+FEATURES_HEADER = 'OPENSFM_FEATURES_VERSION'
+
+
+def load_features(filepath, config):
+    """ Load features from filename """
+    s = np.load(filepath)
+    version = _features_file_version(s)
+    return getattr(sys.modules[__name__], '_load_features_v%d' % version)(s, config)
+
+
+def _features_file_version(obj):
+    """ Retrieve features file version. Return 0 if none """
+    if FEATURES_HEADER in obj:
+        return obj[FEATURES_HEADER]
+    else:
+        return 0
+
+
+def _load_features_v0(s, config):
+    """ Base version of features file
+
+    Scale (desc[2]) set to reprojection_error_sd by default (legacy behaviour)
+    """
+    feature_type = config['feature_type']
+    if feature_type == 'HAHOG' and config['hahog_normalize_to_uchar']:
+        descriptors = s['descriptors'].astype(np.float32)
+    else:
+        descriptors = s['descriptors']
+    descriptors[:, 2:3] = config['reprojection_error_sd']
+    return s['points'], descriptors, s['colors'].astype(float)
+
+
+def _load_features_v1(s, config):
+    """ Version 1 of features file
+
+    Scale is not properly set higher in the pipeline, default is gone.
+    """
+    feature_type = config['feature_type']
+    if feature_type == 'HAHOG' and config['hahog_normalize_to_uchar']:
+        descriptors = s['descriptors'].astype(np.float32)
+    else:
+        descriptors = s['descriptors']
+    return s['points'], descriptors, s['colors'].astype(float)
+
+
+def save_features(filepath, points, desc, colors, config):
+    feature_type = config['feature_type']
+    if ((feature_type == 'AKAZE' and config['akaze_descriptor'] in ['MLDB_UPRIGHT', 'MLDB'])
+            or (feature_type == 'HAHOG' and config['hahog_normalize_to_uchar'])
+            or (feature_type == 'ORB')):
+        feature_data_type = np.uint8
+    else:
+        feature_data_type = np.float32
+    np.savez_compressed(filepath,
+                        points=points.astype(np.float32),
+                        descriptors=desc.astype(feature_data_type),
+                        colors=colors,
+                        OPENSFM_FEATURES_VERSION=FEATURES_VERSION)
