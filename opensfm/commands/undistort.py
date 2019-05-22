@@ -330,6 +330,7 @@ def add_subshot_tracks(graph, ugraph, shot, subshot):
             ugraph.add_edge(
                 subshot.id, track_id,
                 feature=edge['feature'],
+                feature_scale=edge['feature_scale'],
                 feature_id=edge['feature_id'],
                 feature_color=edge['feature_color'])
 

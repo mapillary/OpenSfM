@@ -264,6 +264,7 @@ def generate_track_data(reconstruction, maximum_depth, noise):
                                   str(original_key),
                                   feature=projection,
                                   feature_id=len(projections_inside)-1,
+                                  feature_scale=0.004,
                                   feature_color=(float(original_point.color[0]),
                                                  float(original_point.color[1]),
                                                  float(original_point.color[2])))

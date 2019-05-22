@@ -5,6 +5,7 @@ import json
 import logging
 import pickle
 import gzip
+import sys
 
 import numpy as np
 import networkx as nx
@@ -14,6 +15,7 @@ from opensfm import io
 from opensfm import config
 from opensfm import context
 from opensfm import geo
+from opensfm import tracking
 
 
 logger = logging.getLogger(__name__)
@@ -533,14 +535,14 @@ class DataSet(object):
     def load_tracks_graph(self, filename=None):
         """Return graph (networkx data structure) of tracks"""
         with io.open_rt(self._tracks_graph_file(filename)) as fin:
-            return load_tracks_graph(fin)
+            return tracking.load_tracks_graph(fin)
 
     def tracks_exists(self, filename=None):
         return os.path.isfile(self._tracks_graph_file(filename))
 
     def save_tracks_graph(self, graph, filename=None):
         with io.open_wt(self._tracks_graph_file(filename)) as fout:
-            save_tracks_graph(fout, graph)
+            tracking.save_tracks_graph(fout, graph)
 
     def load_undistorted_tracks_graph(self):
         return self.load_tracks_graph('undistorted_tracks.csv')
@@ -730,29 +732,3 @@ class DataSet(object):
     def mask_as_array(self, image):
         logger.warning("mask_as_array() is deprecated. Use load_mask() instead.")
         return self.load_mask(image)
-
-
-def load_tracks_graph(fileobj):
-    g = nx.Graph()
-    for line in fileobj:
-        image, track, observation, x, y, R, G, B = line.split('\t')
-        g.add_node(image, bipartite=0)
-        g.add_node(track, bipartite=1)
-        g.add_edge(
-            image, track,
-            feature=(float(x), float(y)),
-            feature_id=int(observation),
-            feature_color=(float(R), float(G), float(B)))
-    return g
-
-
-def save_tracks_graph(fileobj, graph):
-    for node, data in graph.nodes(data=True):
-        if data['bipartite'] == 0:
-            image = node
-            for track, data in graph[image].items():
-                x, y = data['feature']
-                fid = data['feature_id']
-                r, g, b = data['feature_color']
-                fileobj.write(u'%s\t%s\t%d\t%g\t%g\t%g\t%g\t%g\n' % (
-                    str(image), str(track), fid, x, y, r, g, b))
