@@ -80,6 +80,7 @@ def mask_and_normalize_features(points, desc, colors, width, height, mask=None):
         colors = colors[ids]
 
     points[:, :2] = normalized_image_coordinates(points[:, :2], width, height)
+    points[:, 2:3] /= max(width, height)
     return points, desc, colors
 
 
