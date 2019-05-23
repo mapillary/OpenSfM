@@ -1,9 +1,10 @@
+import mapillary_sfm.csfm
 from opensfm import csfm
 
 
 def test_unicode_strings_in_bundle():
     """Test that byte and unicode strings can be used as camera ids."""
-    ba = csfm.BundleAdjuster()
+    ba = mapillary_sfm.csfm.SimilarityAverager()
 
     unicode_id = u"A\xb2"
     byte_id = b"A_2"
