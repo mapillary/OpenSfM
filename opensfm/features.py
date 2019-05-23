@@ -346,8 +346,9 @@ def _load_features_v0(s, config):
         descriptors = s['descriptors'].astype(np.float32)
     else:
         descriptors = s['descriptors']
-    descriptors[:, 2:3] = config['reprojection_error_sd']
-    return s['points'], descriptors, s['colors'].astype(float)
+    points = s['points']
+    points[:, 2:3] = config['reprojection_error_sd']
+    return points, descriptors, s['colors'].astype(float)
 
 
 def _load_features_v1(s, config):
