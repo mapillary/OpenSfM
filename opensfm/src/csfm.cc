@@ -1,12 +1,13 @@
 #include <iostream>
 #include <vector>
 #include <pybind11/pybind11.h>
+#include <pybind11/eigen.h>
 
 #include "types.h"
 #include "hahog.cc"
 #include "multiview.cc"
 #include "akaze_bind.h"
-#include "bundle.h"
+#include "bundle/bundle_adjuster.h"
 #include "openmvs_exporter.h"
 #include "depthmap_bind.h"
 #include "reconstruction_alignment.h"
@@ -77,6 +78,8 @@ PYBIND11_MODULE(csfm, m) {
   py::class_<BundleAdjuster>(m, "BundleAdjuster")
     .def(py::init())
     .def("run", &BundleAdjusterRun)
+    .def("set_point_projection_loss_function", &BundleAdjuster::SetPointProjectionLossFunction)
+    .def("set_relative_motion_loss_function", &BundleAdjuster::SetRelativeMotionLossFunction)
     .def("get_perspective_camera", &BundleAdjuster::GetPerspectiveCamera)
     .def("get_brown_perspective_camera", &BundleAdjuster::GetBrownPerspectiveCamera)
     .def("get_fisheye_camera", &BundleAdjuster::GetFisheyeCamera)
@@ -84,33 +87,57 @@ PYBIND11_MODULE(csfm, m) {
     .def("get_shot", &BundleAdjuster::GetShot)
     .def("get_point", &BundleAdjuster::GetPoint)
     .def("get_gcp_point", &BundleAdjuster::GetGcpPoint) 
+    .def("set_scale_sharing", &BundleAdjuster::SetScaleSharing)
+    .def("get_reconstruction", &BundleAdjuster::GetReconstruction)
     .def("add_perspective_camera", &BundleAdjuster::AddPerspectiveCamera)
     .def("add_brown_perspective_camera", &BundleAdjuster::AddBrownPerspectiveCamera)
     .def("add_fisheye_camera", &BundleAdjuster::AddFisheyeCamera)
     .def("add_equirectangular_camera", &BundleAdjuster::AddEquirectangularCamera)
     .def("add_shot", &BundleAdjuster::AddShot)
     .def("add_point", &BundleAdjuster::AddPoint)
-    .def("add_observation", &BundleAdjuster::AddObservation)
+    .def("add_reconstruction", &BundleAdjuster::AddReconstruction)
+    .def("add_reconstruction_shot", &BundleAdjuster::AddReconstructionShot)
+    .def("add_point_projection_observation", &BundleAdjuster::AddPointProjectionObservation)
+    .def("add_relative_motion", &BundleAdjuster::AddRelativeMotion)
+    .def("add_relative_similarity", &BundleAdjuster::AddRelativeSimilarity)
+    .def("add_relative_rotation", &BundleAdjuster::AddRelativeRotation)
+    .def("add_common_position", &BundleAdjuster::AddCommonPosition)
+    .def("add_absolute_position", &BundleAdjuster::AddAbsolutePosition)
+    .def("add_absolute_up_vector", &BundleAdjuster::AddAbsoluteUpVector)
+    .def("add_absolute_pan", &BundleAdjuster::AddAbsolutePan)
+    .def("add_absolute_tilt", &BundleAdjuster::AddAbsoluteTilt)
+    .def("add_absolute_roll", &BundleAdjuster::AddAbsoluteRoll)
     .def("add_rotation_prior", &BundleAdjuster::AddRotationPrior)
     .def("add_translation_prior", &BundleAdjuster::AddTranslationPrior)
     .def("add_position_prior", &BundleAdjuster::AddPositionPrior)
     .def("add_point_position_prior", &BundleAdjuster::AddPointPositionPrior)
+    .def("set_origin_shot", &BundleAdjuster::SetOriginShot)
+    .def("set_unit_translation_shot", &BundleAdjuster::SetUnitTranslationShot)
+    .def("add_point_position_shot", &BundleAdjuster::AddPointPositionShot)
+    .def("add_point_bearing_shot", &BundleAdjuster::AddPointBearingShot)
+    .def("add_point_position_world", &BundleAdjuster::AddPointPositionWorld)
     .def("add_gcp_point", &BundleAdjuster::AddGcpPoint)
     .def("add_gcp_world_observation", &BundleAdjuster::AddGcpWorldObservation)
     .def("add_gcp_image_observation", &BundleAdjuster::AddGcpImageObservation)
-    .def("set_origin_shot", &BundleAdjuster::SetOriginShot)
-    .def("set_unit_translation_shot", &BundleAdjuster::SetUnitTranslationShot)
-    .def("set_loss_function", &BundleAdjuster::SetLossFunction)
-    .def("set_reprojection_error_sd", &BundleAdjuster::SetReprojectionErrorSD)
-    .def("set_max_num_iterations", &BundleAdjuster::SetMaxNumIterations)
-    .def("set_num_threads", &BundleAdjuster::SetNumThreads)
-    .def("set_linear_solver_type", &BundleAdjuster::SetLinearSolverType)
+    .def("add_linear_motion", &BundleAdjuster::AddLinearMotion)
     .def("set_internal_parameters_prior_sd", &BundleAdjuster::SetInternalParametersPriorSD)
     .def("set_compute_covariances", &BundleAdjuster::SetComputeCovariances)
     .def("get_covariance_estimation_valid", &BundleAdjuster::GetCovarianceEstimationValid)
     .def("set_compute_reprojection_errors", &BundleAdjuster::SetComputeReprojectionErrors)
+    .def("set_max_num_iterations", &BundleAdjuster::SetMaxNumIterations)
+    .def("set_num_threads", &BundleAdjuster::SetNumThreads)
+    .def("set_linear_solver_type", &BundleAdjuster::SetLinearSolverType)
     .def("brief_report", &BundleAdjuster::BriefReport)
     .def("full_report", &BundleAdjuster::FullReport)
+  ;
+
+  py::enum_<PositionConstraintType>(m, "PositionConstraintType")
+        .value("X", PositionConstraintType::X)
+        .value("Y", PositionConstraintType::Y)
+        .value("Z", PositionConstraintType::Z)
+        .value("XY", PositionConstraintType::XY)
+        .value("XYZ", PositionConstraintType::XYZ)
+        .export_values()
   ;
 
   py::class_<BAPerspectiveCamera>(m, "BAPerspectiveCamera")
@@ -159,26 +186,61 @@ PYBIND11_MODULE(csfm, m) {
 
   py::class_<BAShot>(m, "BAShot")
     .def(py::init())
-    .def_property("rx", &BAShot::GetRX, &BAShot::SetRX)
-    .def_property("ry", &BAShot::GetRY, &BAShot::SetRY)
-    .def_property("rz", &BAShot::GetRZ, &BAShot::SetRZ)
-    .def_property("tx", &BAShot::GetTX, &BAShot::SetTX)
-    .def_property("ty", &BAShot::GetTY, &BAShot::SetTY)
-    .def_property("tz", &BAShot::GetTZ, &BAShot::SetTZ)
-    .def("get_covariance", &BAShot::GetCovariance)
-    .def_readwrite("constant", &BAShot::constant)
-    .def_readwrite("camera", &BAShot::camera)
+    .def_property("r", &BAShot::GetRotation, &BAShot::SetRotation)
+    .def_property("t", &BAShot::GetTranslation, &BAShot::SetTranslation)
     .def_readwrite("id", &BAShot::id)
+    .def_readwrite("camera", &BAShot::camera)
+    .def("get_covariance", &BAShot::GetCovariance)
+  ;
+
+  py::class_<BAReconstruction>(m, "BAReconstruction")
+    .def(py::init())
+    .def("get_scale", &BAReconstruction::GetScale)
+    .def("set_scale", &BAReconstruction::SetScale)
+    .def_readwrite("id", &BAReconstruction::id)
   ;
 
   py::class_<BAPoint>(m, "BAPoint")
     .def(py::init())
-    .def_property("x", &BAPoint::GetX, &BAPoint::SetX)
-    .def_property("y", &BAPoint::GetY, &BAPoint::SetY)
-    .def_property("z", &BAPoint::GetZ, &BAPoint::SetZ)
-    .def_readwrite("constant", &BAPoint::constant)
-    .def_readwrite("reprojection_error", &BAPoint::reprojection_error)
+    .def_property("p", &BAPoint::GetPoint, &BAPoint::SetPoint)
     .def_readwrite("id", &BAPoint::id)
+    .def_readwrite("reprojection_error", &BAPoint::reprojection_error)
+  ;
+
+  py::class_<BARelativeMotion>(m, "BARelativeMotion")
+    .def(py::init<const std::string &, const std::string &, 
+	        const std::string &, const std::string &, 
+				  const Eigen::Vector3d &, const Eigen::Vector3d &>())
+    .def_readwrite("reconstruction_i", &BARelativeMotion::reconstruction_id_i)
+    .def_readwrite("shot_i", &BARelativeMotion::shot_id_i)
+    .def_readwrite("reconstruction_j", &BARelativeMotion::reconstruction_id_j)
+    .def_readwrite("shot_j", &BARelativeMotion::shot_id_j)
+    .def_property("r", &BARelativeMotion::GetRotation, &BARelativeMotion::SetRotation)
+    .def_property("t", &BARelativeMotion::GetTranslation, &BARelativeMotion::SetTranslation)
+    .def("set_scale_matrix", &BARelativeMotion::SetScaleMatrix)
+  ;
+
+  py::class_<BARelativeSimilarity>(m, "BARelativeSimilarity")
+    .def(py::init<const std::string &, const std::string &, 
+	        const std::string &, const std::string &, 
+				  const Eigen::Vector3d &, const Eigen::Vector3d &, double>())
+    .def_readwrite("scale", &BARelativeSimilarity::scale)
+    .def("set_scale_matrix", &BARelativeSimilarity::SetScaleMatrix)
+  ;
+  
+  py::class_<BARelativeSimilarityCovariance>(m, "BARelativeSimilarityCovariance")
+    .def(py::init())
+    .def("add_point", &BARelativeSimilarityCovariance::AddPoint)
+    .def("compute", &BARelativeSimilarityCovariance::Compute)
+    .def("get_covariance", &BARelativeSimilarityCovariance::GetCovariance)
+  ;
+
+  py::class_<BARelativeRotation>(m, "BARelativeRotation")
+    .def(py::init<const std::string &, const std::string &, const Eigen::Vector3d &>())
+    .def_readwrite("shot_i", &BARelativeRotation::shot_id_i)
+    .def_readwrite("shot_j", &BARelativeRotation::shot_id_j)
+    .def_property("r", &BARelativeRotation::GetRotation, &BARelativeRotation::SetRotation)
+    .def("set_scale_matrix", &BARelativeRotation::SetScaleMatrix)
   ;
 
   py::class_<csfm::OpenMVSExporter>(m, "OpenMVSExporter")

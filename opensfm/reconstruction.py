@@ -13,8 +13,6 @@ import six
 from timeit import default_timer as timer
 from six import iteritems
 
-import mapillary_sfm.csfm
-
 from opensfm import csfm
 from opensfm import log
 from opensfm import tracking
@@ -114,7 +112,7 @@ def bundle(graph, reconstruction, gcp, config):
     fix_cameras = not config['optimize_camera_parameters']
 
     chrono = Chronometer()
-    ba = mapillary_sfm.csfm.SimilarityAverager()
+    ba = csfm.BundleAdjuster()
 
     for camera in reconstruction.cameras.values():
         _add_camera_to_bundle(ba, camera, fix_cameras)
@@ -188,7 +186,7 @@ def bundle(graph, reconstruction, gcp, config):
 
 def bundle_single_view(graph, reconstruction, shot_id, config):
     """Bundle adjust a single camera."""
-    ba = mapillary_sfm.csfm.SimilarityAverager()
+    ba = csfm.BundleAdjuster()
     shot = reconstruction.shots[shot_id]
     camera = shot.camera
 
@@ -257,7 +255,7 @@ def bundle_local(graph, reconstruction, gcp, central_shot_id, config):
                 if track in reconstruction.points:
                     point_ids.add(track)
 
-    ba = mapillary_sfm.csfm.SimilarityAverager()
+    ba = csfm.BundleAdjuster()
 
     for camera in reconstruction.cameras.values():
         _add_camera_to_bundle(ba, camera, constant=True)
