@@ -120,16 +120,10 @@ def bundle(graph, reconstruction, gcp, config):
     for shot in reconstruction.shots.values():
         r = shot.pose.rotation
         t = shot.pose.translation
-        ba.add_shot(
-            shot.id, shot.camera.id,
-            r[0], r[1], r[2],
-            t[0], t[1], t[2],
-            False
-        )
+        ba.add_shot(shot.id, shot.camera.id, r, t, False)
 
     for point in reconstruction.points.values():
-        x = point.coordinates
-        ba.add_point(point.id, x[0], x[1], x[2], False)
+        ba.add_point(point.id, point.coordinates, False)
 
     for shot_id in reconstruction.shots:
         if shot_id in graph:
@@ -137,8 +131,8 @@ def bundle(graph, reconstruction, gcp, config):
                 if track in reconstruction.points:
                     point = graph[shot_id][track]['feature']
                     scale = graph[shot_id][track]['feature_scale']
-                    ba.add_observation(shot_id, track,
-                                       point[0], point[1], scale)
+                    ba.add_point_projection_observation(
+                        shot_id, track, point[0], point[1], scale)
 
     if config['bundle_use_gps']:
         for shot in reconstruction.shots.values():
@@ -149,9 +143,8 @@ def bundle(graph, reconstruction, gcp, config):
     if config['bundle_use_gcp'] and gcp:
         _add_gcp_to_bundle(ba, gcp, reconstruction)
 
-    ba.set_loss_function(config['loss_function'],
-                         config['loss_function_threshold'])
-    ba.set_reprojection_error_sd(config['reprojection_error_sd'])
+    ba.set_point_projection_loss_function(config['loss_function'],
+                                          config['loss_function_threshold'])
     ba.set_internal_parameters_prior_sd(
         config['exif_focal_sd'],
         config['principal_point_sd'],
@@ -173,12 +166,12 @@ def bundle(graph, reconstruction, gcp, config):
 
     for shot in reconstruction.shots.values():
         s = ba.get_shot(shot.id)
-        shot.pose.rotation = [s.rx, s.ry, s.rz]
-        shot.pose.translation = [s.tx, s.ty, s.tz]
+        shot.pose.rotation = [s.r[0], s.r[1], s.r[2]]
+        shot.pose.translation = [s.t[0], s.t[1], s.t[2]]
 
     for point in reconstruction.points.values():
         p = ba.get_point(point.id)
-        point.coordinates = [p.x, p.y, p.z]
+        point.coordinates = [p.p[0], p.p[1], p.p[2]]
         point.reprojection_error = p.reprojection_error
 
     chrono.lap('teardown')
@@ -201,31 +194,24 @@ def bundle_single_view(graph, reconstruction, shot_id, config):
 
     r = shot.pose.rotation
     t = shot.pose.translation
-    ba.add_shot(
-        shot.id, camera.id,
-        r[0], r[1], r[2],
-        t[0], t[1], t[2],
-        False
-    )
+    ba.add_shot(shot.id, camera.id, r, t, False)
 
     for track_id in graph[shot_id]:
         if track_id in reconstruction.points:
             track = reconstruction.points[track_id]
-            x = track.coordinates
-            ba.add_point(track_id, x[0], x[1], x[2], True)
+            ba.add_point(track_id, track.coordinates, True)
             point = graph[shot_id][track_id]['feature']
             scale = graph[shot_id][track_id]['feature_scale']
-            ba.add_observation(shot_id, track_id,
-                                point[0], point[1], scale)
+            ba.add_point_projection_observation(
+                shot_id, track_id, point[0], point[1], scale)
 
     if config['bundle_use_gps']:
         g = shot.metadata.gps_position
         ba.add_position_prior(shot.id, g[0], g[1], g[2],
                               shot.metadata.gps_dop)
 
-    ba.set_loss_function(config['loss_function'],
-                         config['loss_function_threshold'])
-    ba.set_reprojection_error_sd(config['reprojection_error_sd'])
+    ba.set_point_projection_loss_function(config['loss_function'],
+                                          config['loss_function_threshold'])
     ba.set_internal_parameters_prior_sd(
         config['exif_focal_sd'],
         config['principal_point_sd'],
@@ -243,8 +229,8 @@ def bundle_single_view(graph, reconstruction, shot_id, config):
     logger.debug(ba.brief_report())
 
     s = ba.get_shot(shot_id)
-    shot.pose.rotation = [s.rx, s.ry, s.rz]
-    shot.pose.translation = [s.tx, s.ty, s.tz]
+    shot.pose.rotation = [s.r[0], s.r[1], s.r[2]]
+    shot.pose.translation = [s.t[0], s.t[1], s.t[2]]
 
 
 def bundle_local(graph, reconstruction, gcp, central_shot_id, config):
@@ -278,17 +264,11 @@ def bundle_local(graph, reconstruction, gcp, central_shot_id, config):
         shot = reconstruction.shots[shot_id]
         r = shot.pose.rotation
         t = shot.pose.translation
-        ba.add_shot(
-            shot.id, shot.camera.id,
-            r[0], r[1], r[2],
-            t[0], t[1], t[2],
-            shot.id in boundary
-        )
+        ba.add_shot(shot.id, shot.camera.id, r, t, shot.id in boundary)
 
     for point_id in point_ids:
         point = reconstruction.points[point_id]
-        x = point.coordinates
-        ba.add_point(point.id, x[0], x[1], x[2], False)
+        ba.add_point(point.id, point.coordinates, False)
 
     for shot_id in interior | boundary:
         if shot_id in graph:
@@ -296,8 +276,8 @@ def bundle_local(graph, reconstruction, gcp, central_shot_id, config):
                 if track in point_ids:
                     point = graph[shot_id][track]['feature']
                     scale = graph[shot_id][track]['feature_scale']
-                    ba.add_observation(shot_id, track,
-                                       point[0], point[1], scale)
+                    ba.add_point_projection_observation(
+                        shot_id, track, point[0], point[1], scale)
 
     if config['bundle_use_gps']:
         for shot_id in interior:
@@ -309,9 +289,8 @@ def bundle_local(graph, reconstruction, gcp, central_shot_id, config):
     if config['bundle_use_gcp'] and gcp:
         _add_gcp_to_bundle(ba, gcp, reconstruction)
 
-    ba.set_loss_function(config['loss_function'],
-                         config['loss_function_threshold'])
-    ba.set_reprojection_error_sd(config['reprojection_error_sd'])
+    ba.set_point_projection_loss_function(config['loss_function'],
+                                          config['loss_function_threshold'])
     ba.set_internal_parameters_prior_sd(
         config['exif_focal_sd'],
         config['principal_point_sd'],
@@ -331,13 +310,13 @@ def bundle_local(graph, reconstruction, gcp, central_shot_id, config):
     for shot_id in interior:
         shot = reconstruction.shots[shot_id]
         s = ba.get_shot(shot.id)
-        shot.pose.rotation = [s.rx, s.ry, s.rz]
-        shot.pose.translation = [s.tx, s.ty, s.tz]
+        shot.pose.rotation = [s.r[0], s.r[1], s.r[2]]
+        shot.pose.translation = [s.t[0], s.t[1], s.t[2]]
 
     for point in point_ids:
         point = reconstruction.points[point]
         p = ba.get_point(point.id)
-        point.coordinates = [p.x, p.y, p.z]
+        point.coordinates = [p.p[0], p.p[1], p.p[2]]
         point.reprojection_error = p.reprojection_error
 
     chrono.lap('teardown')

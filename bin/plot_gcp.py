@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 
 from opensfm import features
 from opensfm import io
-from mapillary_sfm import dataset
+from opensfm import dataset
 
 logger = logging.getLogger(__name__)
 
