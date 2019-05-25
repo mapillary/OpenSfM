@@ -35,7 +35,6 @@ void WorldToCameraCoordinates(const T* const shot,
   camera_point[2] += shot[BA_SHOT_TZ];
 }
 
-
 template <typename T>
 void PerspectiveProject(const T* const camera,
                         const T point[3],
@@ -54,7 +53,6 @@ void PerspectiveProject(const T* const camera,
   projection[0] = focal * distortion * xp;
   projection[1] = focal * distortion * yp;
 }
-
 
 struct PerspectiveReprojectionError {
   PerspectiveReprojectionError(double observed_x, double observed_y, double std_deviation)
@@ -354,123 +352,4 @@ struct BrownInternalParametersPriorError {
   double p2_scale_;
   double k3_estimate_;
   double k3_scale_;
-};
-
-struct RotationPriorError {
-  RotationPriorError(double *R_prior, double std_deviation)
-      : R_prior_(R_prior)
-      , scale_(1.0 / std_deviation)
-  {}
-
-  template <typename T>
-  bool operator()(const T* const shot, T* residuals) const {
-    // Get rotation and translation values.
-    const T* const R = shot + BA_SHOT_RX;
-    T Rpt[3] = { -T(R_prior_[0]),
-                 -T(R_prior_[1]),
-                 -T(R_prior_[2]) };
-
-    // Compute rotation residual: log( R Rp^t )
-    T qR[4], qRpt[4], qR_Rpt[4];
-    ceres::AngleAxisToQuaternion(R, qR);
-    ceres::AngleAxisToQuaternion(Rpt, qRpt);
-    ceres::QuaternionProduct(qR, qRpt, qR_Rpt);
-    T R_Rpt[3];
-    ceres::QuaternionToAngleAxis(qR_Rpt, R_Rpt);
-
-    residuals[0] = T(scale_) * R_Rpt[0];
-    residuals[1] = T(scale_) * R_Rpt[1];
-    residuals[2] = T(scale_) * R_Rpt[2];
-
-    return true;
-  }
-
-  double *R_prior_;
-  double scale_;
-};
-
-struct TranslationPriorError {
-  TranslationPriorError(double *translation_prior, double std_deviation)
-      : translation_prior_(translation_prior)
-      , scale_(1.0 / std_deviation)
-  {}
-
-  template <typename T>
-  bool operator()(const T* const shot, T* residuals) const {
-    residuals[0] = T(scale_) * (T(translation_prior_[0]) - shot[BA_SHOT_TX]);
-    residuals[1] = T(scale_) * (T(translation_prior_[1]) - shot[BA_SHOT_TY]);
-    residuals[2] = T(scale_) * (T(translation_prior_[2]) - shot[BA_SHOT_TZ]);
-    return true;
-  }
-
-  double *translation_prior_;
-  double scale_;
-};
-
-struct PositionPriorError {
-  PositionPriorError(double *position_prior, double std_deviation)
-      : position_prior_(position_prior)
-      , scale_(1.0 / std_deviation)
-  {}
-
-  template <typename T>
-  bool operator()(const T* const shot, T* residuals) const {
-    T Rt[3] = { -shot[BA_SHOT_RX], -shot[BA_SHOT_RY], -shot[BA_SHOT_RZ] };
-    T p[3];
-    ceres::AngleAxisRotatePoint(Rt, shot + BA_SHOT_TX, p);
-
-    residuals[0] = T(scale_) * (p[0] + T(position_prior_[0]));
-    residuals[1] = T(scale_) * (p[1] + T(position_prior_[1]));
-    residuals[2] = T(scale_) * (p[2] + T(position_prior_[2]));
-    return true;
-  }
-
-  double *position_prior_;
-  double scale_;
-};
-
-struct UnitTranslationPriorError {
-  UnitTranslationPriorError() {}
-
-  template <typename T>
-  bool operator()(const T* const shot, T* residuals) const {
-    const T* const t = shot + 3;
-    residuals[0] = log(t[0] * t[0] + t[1] * t[1] + t[2] * t[2]);
-    return true;
-  }
-};
-
-struct PointPositionPriorError {
-  PointPositionPriorError(double *position, double std_deviation)
-      : position_(position)
-      , scale_(1.0 / std_deviation)
-  {}
-
-  template <typename T>
-  bool operator()(const T* const p, T* residuals) const {
-    residuals[0] = T(scale_) * (p[0] - T(position_[0]));
-    residuals[1] = T(scale_) * (p[1] - T(position_[1]));
-    residuals[2] = T(scale_) * (p[2] - T(position_[2]));
-    return true;
-  }
-
-  double *position_;
-  double scale_;
-};
-
-struct PointPositionPrior2dError {
-  PointPositionPrior2dError(double *position, double std_deviation)
-      : position_(position)
-      , scale_(1.0 / std_deviation)
-  {}
-
-  template <typename T>
-  bool operator()(const T* const p, T* residuals) const {
-    residuals[0] = T(scale_) * (p[0] - T(position_[0]));
-    residuals[1] = T(scale_) * (p[1] - T(position_[1]));
-    return true;
-  }
-
-  double *position_;
-  double scale_;
 };
