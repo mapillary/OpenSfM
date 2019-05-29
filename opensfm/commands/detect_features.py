@@ -90,6 +90,7 @@ def detect(args):
         n_closest = data.config['bow_words_to_match']
         closest_words = bows.map_to_words(
             f_sorted, n_closest, data.config['bow_matcher_type'])
+        closest_words = closest_words[order, :]
         data.save_words(image, closest_words)
 
     end = timer()
