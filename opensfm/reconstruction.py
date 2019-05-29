@@ -3,6 +3,7 @@
 
 import datetime
 import logging
+import math
 from collections import defaultdict
 from itertools import combinations
 
@@ -843,7 +844,7 @@ class TrackTriangulator:
         best_point.id = track
 
         combinatiom_tried = set()
-        ransac_tries = 20
+        ransac_tries = 11 # 0.99 proba, 60% inliers
         all_combinations = list(combinations(range(len(ids)), 2))
 
         thresholds = len(os) * [reproj_threshold]
@@ -866,9 +867,17 @@ class TrackTriangulator:
                 reprojected_bs /= np.linalg.norm(reprojected_bs, axis=1)[:, np.newaxis]
                 inliers = np.linalg.norm(reprojected_bs - bs, axis=1) < reproj_threshold
 
-                if len(inliers) > len(best_inliers):
+                if sum(inliers) > sum(best_inliers):
                     best_inliers = inliers
                     best_point.coordinates = X.tolist()
+
+                    pout = 0.99
+                    inliers_ratio = float(sum(best_inliers))/len(ids)
+                    if inliers_ratio == 1.0:
+                        break
+                    optimal_iter = math.log(1.0-pout)/math.log(1.0-inliers_ratio*inliers_ratio)
+                    if optimal_iter <= ransac_tries:
+                        break
 
         if len(best_inliers) > 1:
             self.reconstruction.add_point(best_point)
