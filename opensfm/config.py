@@ -63,6 +63,7 @@ five_point_algo_threshold: 0.004        # Outlier threshold for essential matrix
 five_point_algo_min_inliers: 20         # Minimum number of inliers for considering a two view reconstruction valid
 triangulation_threshold: 0.006          # Outlier threshold for accepting a triangulated point in radians
 triangulation_min_ray_angle: 1.0        # Minimum angle between views to accept a triangulated point
+triangulation_type: ROBUST              # Triangulation type : either considering all rays (FULL), or sing a RANSAC variant (ROBUST)
 resection_threshold: 0.004              # Outlier threshold for resection in radians
 resection_min_inliers: 10               # Minimum number of resection inliers to accept it
 

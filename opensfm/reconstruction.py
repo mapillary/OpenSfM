@@ -991,7 +991,10 @@ def retriangulate(graph, graph_inliers, reconstruction, config):
         if image in graph:
             tracks.update(graph[image].keys())
     for track in tracks:
-        triangulator.triangulate_robust(track, threshold, min_ray_angle)
+        if config['triangulation_type'] == 'ROBUST':
+            triangulator.triangulate_robust(track, threshold, min_ray_angle)
+        elif config['triangulation_type'] == 'FULL':
+            triangulator.triangulate(track, threshold, min_ray_angle)
 
     report['num_points_after'] = len(reconstruction.points)
     chrono.lap('retriangulate')
