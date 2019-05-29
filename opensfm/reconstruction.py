@@ -822,6 +822,60 @@ class TrackTriangulator:
         self.rotation_inverses = {}
         self.Rts = {}
 
+    def triangulate_robust(self, track, reproj_threshold, min_ray_angle_degrees):
+        """Triangulate track in a RANSAC way and add point to reconstruction."""
+        os, bs, ids = [], [], []
+        for shot_id in self.graph[track]:
+            if shot_id in self.reconstruction.shots:
+                shot = self.reconstruction.shots[shot_id]
+                os.append(self._shot_origin(shot))
+                x = self.graph[track][shot_id]['feature']
+                b = shot.camera.pixel_bearing(np.array(x))
+                r = self._shot_rotation_inverse(shot)
+                bs.append(r.dot(b))
+                ids.append(shot_id)
+
+        if len(ids) < 2:
+            return
+
+        best_inliers = []
+        best_point = types.Point()
+        best_point.id = track
+
+        combinatiom_tried = set()
+        ransac_tries = 20
+        all_combinations = list(combinations(range(len(ids)), 2))
+
+        thresholds = len(os) * [reproj_threshold]
+        for i in range(ransac_tries):
+            random_id = int(np.random.rand()*(len(all_combinations)-1))
+            if random_id in combinatiom_tried:
+                continue
+
+            i, j = all_combinations[random_id]
+            combinatiom_tried.add(random_id)
+
+            os_t = [os[i], os[j]]
+            bs_t = [bs[i], bs[j]]
+
+            e, X = csfm.triangulate_bearings_midpoint(
+                os_t, bs_t, thresholds, np.radians(min_ray_angle_degrees))
+
+            if X is not None:
+                reprojected_bs = X-os
+                reprojected_bs /= np.linalg.norm(reprojected_bs, axis=1)[:, np.newaxis]
+                inliers = np.linalg.norm(reprojected_bs - bs, axis=1) < reproj_threshold
+
+                if len(inliers) > len(best_inliers):
+                    best_inliers = inliers
+                    best_point.coordinates = X.tolist()
+
+        if len(best_inliers) > 1:
+            self.reconstruction.add_point(best_point)
+            for i, succeed in enumerate(best_inliers):
+                if succeed:
+                    self._add_track_to_graph_inlier(track, ids[i])
+
     def triangulate(self, track, reproj_threshold, min_ray_angle_degrees):
         """Triangulate track and add point to reconstruction."""
         os, bs, ids = [], [], []
@@ -928,7 +982,7 @@ def retriangulate(graph, graph_inliers, reconstruction, config):
         if image in graph:
             tracks.update(graph[image].keys())
     for track in tracks:
-        triangulator.triangulate(track, threshold, min_ray_angle)
+        triangulator.triangulate_robust(track, threshold, min_ray_angle)
 
     report['num_points_after'] = len(reconstruction.points)
     chrono.lap('retriangulate')
