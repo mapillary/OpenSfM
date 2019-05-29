@@ -85,7 +85,7 @@ def detect(args):
     if data.config['matcher_type'] == 'FLANN':
         index = features.build_flann_index(f_sorted, data.config)
         data.save_feature_index(image, index)
-    elif data.config['matcher_type'] == 'WORDS':
+    if data.config['matcher_type'] == 'WORDS' or data.config['matching_bow_neighbors'] > 0:
         bows = bow.load_bows(data.config)
         n_closest = data.config['bow_words_to_match']
         closest_words = bows.map_to_words(
