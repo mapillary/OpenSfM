@@ -1130,6 +1130,29 @@ def grow_reconstruction(data, graph, reconstruction, images, gcp):
     return reconstruction, report
 
 
+def _length_histogram(points, graph):
+    hist = defaultdict(int)
+    for p in points:
+        hist[len(graph[p])] += 1
+    return np.array(hist.keys()), np.array(hist.values())
+
+
+def compute_statistics(reconstruction, graph):
+    stats = {}
+    stats['points_count'] = len(reconstruction.points)
+    stats['cameras_count'] = len(reconstruction.shots)
+
+    hist, values = _length_histogram(reconstruction.points, graph)
+    stats['observations_count'] = sum(hist*values)
+    stats['average_track_length'] = float(stats['observations_count'])/len(reconstruction.points)
+    tracks_notwo = sum([1 if len(graph[p]) > 2 else 0 for p in reconstruction.points])
+    if tracks_notwo > 0:
+        stats['average_track_length_notwo'] = float(sum(hist[1:]*values[1:]))/tracks_notwo
+    else:
+        stats['average_track_length_notwo'] = -1
+    return stats
+
+
 def incremental_reconstruction(data, graph):
     """Run the entire incremental reconstruction pipeline."""
     logger.info("Starting incremental reconstruction")
@@ -1168,6 +1191,8 @@ def incremental_reconstruction(data, graph):
                 reconstructions.append(reconstruction)
                 reconstructions = sorted(reconstructions,
                                          key=lambda x: -len(x.shots))
+                rec_report['stats'] = compute_statistics(reconstruction, graph_inliers)
+                logger.info(rec_report['stats'])
 
     for k, r in enumerate(reconstructions):
         logger.info("Reconstruction {}: {} images, {} points".format(
