@@ -156,7 +156,7 @@ def undistort_image(shot, undistorted_shots, original, interpolation,
 def scale_image(image, max_size):
     """Scale an image not to exceed max_size."""
     height, width = image.shape[:2]
-    factor = max_size / max(height, width)
+    factor = max_size / float(max(height, width))
     if factor >= 1:
         return image
     width = int(round(width * factor))
