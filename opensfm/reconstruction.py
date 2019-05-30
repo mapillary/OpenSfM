@@ -107,8 +107,8 @@ def _add_gcp_to_bundle(ba, gcp, reconstruction):
                 ba.add_point_projection_observation(
                     observation.shot_id,
                     point_id,
-                    observation.shot_coordinates[0],
-                    observation.shot_coordinates[1],
+                    observation.projection[0],
+                    observation.projection[1],
                     scale)
 
 

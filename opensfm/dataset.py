@@ -687,6 +687,12 @@ class DataSet(object):
         with io.open_wt(self._ply_file(filename)) as fout:
             fout.write(ply)
 
+    def _point_constraints_file(self):
+        return os.path.join(self.data_path, 'point_constraints.json')
+
+    def point_constraints_exist(self):
+        return os.path.isfile(self._point_constraints_file())
+
     def _ground_control_points_file(self):
         return os.path.join(self.data_path, 'gcp_list.txt')
 
@@ -702,8 +708,17 @@ class DataSet(object):
         exif = {image: self.load_exif(image) for image in self.images()}
         reference = self.load_reference()
 
-        with io.open_rt(self._ground_control_points_file()) as fin:
-            return io.read_ground_control_points_list(fin, reference, exif)
+        gcp = []
+        if self.ground_control_points_exist():
+            with io.open_rt(self._ground_control_points_file()) as fin:
+                gcp = io.read_ground_control_points_list(fin, reference, exif)
+
+        pcs = []
+        if self.point_constraints_exist():
+            with io.open_rt(self._ground_control_points_file()) as fin:
+                pcs = io.read_point_constraints(fin, reference)
+
+        return gcp + pcs
 
     def image_as_array(self, image):
         logger.warning("image_as_array() is deprecated. Use load_image() instead.")

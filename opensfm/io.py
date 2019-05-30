@@ -405,7 +405,7 @@ def _read_gcp_list_lines(lines, projection, reference, exif):
 
         o = types.GroundControlPointObservation()
         o.shot_id = shot_id
-        o.shot_coordinates = coordinates
+        o.projection = coordinates
         point.observations.append(o)
 
     return list(points.values())
@@ -456,6 +456,32 @@ def read_ground_control_points_list(fileobj, reference, exif):
     projection = _parse_projection(next(lines))
     points = _read_gcp_list_lines(lines, projection, reference, exif)
     return points
+
+
+def read_point_constraints(fileobj, reference):
+    """Read a point constraint file.
+
+    Returns list of types.GroundControlPoint.
+    """
+    obj = json_load(fileobj)
+    point_constraints = obj['point_constraints']
+
+    for point_dict in point_constraints:
+        point = types.GroundControlPoint()
+        point.id = point_dict['id']
+        point.lla = point_dict.get('position')
+        if point.lla:
+            point.coordinates = reference.to_topocentric(
+                point.lla['latitude'],
+                point.lla['longitude'],
+                point.lla.get('altitude', 0))
+            point.has_altitude = ('altitude' in point.lla)
+
+        for o_dict in point_dict['observations']:
+            o = types.GroundControlPointObservation()
+            o.shot_id = o_dict['shot_id']
+            if 'projection' in o_dict:
+                o.projection = np.array(o_dict['projection'])
 
 
 def mkdir_p(path):
