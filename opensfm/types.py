@@ -672,6 +672,7 @@ class GroundControlPoint(object):
     """
 
     def __init__(self):
+        self.id = None
         self.lla = None
         self.coordinates = None
         self.has_altitude = None

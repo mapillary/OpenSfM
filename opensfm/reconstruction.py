@@ -91,8 +91,8 @@ def _get_camera_from_bundle(ba, camera):
 
 def _add_gcp_to_bundle(ba, gcp, reconstruction):
     """Add Ground Control Points constraints to the bundle problem."""
-    for i, point in enumerate(gcp):
-        point_id = 'gcp-' + str(i)
+    for point in gcp:
+        point_id = 'gcp-' + point.id
 
         ba.add_point(point_id, point.coordinates, False)
 

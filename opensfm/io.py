@@ -392,6 +392,7 @@ def _read_gcp_list_lines(lines, projection, reference, exif):
             x, y, z = reference.to_topocentric(lat, lon, alt)
 
             point = types.GroundControlPoint()
+            point.id = "unnamed-%d" % len(points)
             point.lla = np.array([lat, lon, alt])
             point.coordinates = np.array([x, y, z])
             point.has_altitude = has_altitude
