@@ -11,8 +11,7 @@ struct BAAbsolutePositionError {
                           const Eigen::Vector3d& pos_prior,
                           double std_deviation,
                           const PositionConstraintType& type)
-      : 
-      pos_func_(pos_func)
+      : pos_func_(pos_func)
       , pos_prior_(pos_prior)
       , scale_(1.0 / std_deviation)
       , type_(type)
@@ -272,23 +271,6 @@ struct PointPositionPriorError {
     residuals[0] = T(scale_) * (p[0] - T(position_[0]));
     residuals[1] = T(scale_) * (p[1] - T(position_[1]));
     residuals[2] = T(scale_) * (p[2] - T(position_[2]));
-    return true;
-  }
-
-  double *position_;
-  double scale_;
-};
-
-struct PointPositionPrior2dError {
-  PointPositionPrior2dError(double *position, double std_deviation)
-      : position_(position)
-      , scale_(1.0 / std_deviation)
-  {}
-
-  template <typename T>
-  bool operator()(const T* const p, T* residuals) const {
-    residuals[0] = T(scale_) * (p[0] - T(position_[0]));
-    residuals[1] = T(scale_) * (p[1] - T(position_[1]));
     return true;
   }
 

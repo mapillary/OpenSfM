@@ -92,19 +92,24 @@ def _get_camera_from_bundle(ba, camera):
 def _add_gcp_to_bundle(ba, gcp, reconstruction):
     """Add Ground Control Points constraints to the bundle problem."""
     for i, point in enumerate(gcp):
-        initial = point.coordinates
-        ba.add_gcp_point(
-            str(i), initial[0], initial[1], initial[2], False)
-        prior = point.coordinates
-        ba.add_gcp_world_observation(
-            str(i), prior[0], prior[1], prior[2], point.has_altitude)
+        point_id = 'gcp-' + str(i)
+
+        ba.add_point(point_id, point.coordinates, False)
+
+        point_type = csfm.XYZ if point.has_altitude else csfm.XY
+        ba.add_point_position_world(point_id, point.coordinates, 0.1,
+                                    point_type)
+
         for observation in point.observations:
             if observation.shot_id in reconstruction.shots:
-                ba.add_gcp_image_observation(
+                # TODO(pau): move this to a config or per point parameter.
+                scale = 0.0001
+                ba.add_point_projection_observation(
                     observation.shot_id,
-                    str(i),
+                    point_id,
                     observation.shot_coordinates[0],
-                    observation.shot_coordinates[1])
+                    observation.shot_coordinates[1],
+                    scale)
 
 
 def bundle(graph, reconstruction, gcp, config):
