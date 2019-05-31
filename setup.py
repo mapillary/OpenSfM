@@ -86,6 +86,7 @@ setuptools.setup(
     #     'scipy',
     #     'six',
     #     'xmltodict>=0.10.2',
+    #     'Pillow>=6.0.0',
     # ],
     cmdclass={'bdist_wheel': platform_bdist_wheel},
 )
