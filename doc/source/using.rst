@@ -78,7 +78,7 @@ Here is the usage page of ``bin/opensfm``, which lists the available commands::
 
 
 extract_metadata
-````````````````
+~~~~~~~~~~~~~~~~
 
 This commands extracts EXIF metadata from the images an stores them in the ``exif`` folder and the ``camera_models.json`` file.
 
@@ -149,41 +149,41 @@ Here is a `spherical 360 images dataset`_ example using ``camera_models_override
 .. _`spherical 360 images dataset`: https://www.dropbox.com/sh/3vabbmrhqqbagp5/AABi14O2tWMbxAX91jaaQY77a?dl=0
 
 detect_features
-```````````````
+~~~~~~~~~~~~~~~
 This command detects feature points in the images and stores them in the `feature` folder.
 
 
 match_features
-``````````````
+~~~~~~~~~~~~~~
 This command matches feature points between images and stores them in the `matches` folder.  It first determines the list of image pairs to run, and then run the matching process for each pair to find corresponding feature points.
 
 Since there are a lot of possible image pairs, the process can be very slow.  It can be speeded up by restricting the list of pairs to match.  The pairs can be restricted by GPS distance, capture time or file name order.
 
 
 create_tracks
-`````````````
+~~~~~~~~~~~~~
 This command links the matches between pairs of images to build feature point tracks.  The tracks are stored in the `tracks.csv` file.  A track is a set of feature points from different images that have been recognized to correspond to the same pysical point.
 
 
 reconstruct
-```````````
+~~~~~~~~~~~
 This command runs the incremental reconstruction process.  The goal of the reconstruction process is to find the 3D position of tracks (the `structure`) together with the position of the cameras (the `motion`).  The computed reconstruction is stored in the ``reconstruction.json`` file.
 
 
 mesh
-````
+~~~~
 This process computes a rough triangular mesh of the scene seen by each images.  Such mesh is used for simulating smooth motions between images in the web viewer.  The reconstruction with the mesh added is stored in ``reconstruction.meshed.json`` file.
 
 Note that the only difference between ``reconstruction.json`` and ``reconstruction.meshed.json`` is that the later contains the triangular meshes.  If you don't need that, you only need the former file and there's no need to run this command.
 
 
 undistort
-`````````
+~~~~~~~~~
 This command creates undistorted version of the reconstruction, tracks and images.  The undistorted version can later be used for computing depth maps.
 
 
 compute_depthmaps
-`````````````````
+~~~~~~~~~~~~~~~~~
 This commands computes a dense point cloud of the scene by computing and merging depthmaps.  It requires an undistorted reconstructions.  The resulting depthmaps are stored in the ``depthmaps`` folder and the merged point cloud is stored in ``depthmaps/merged.ply``
 
 
