@@ -2,7 +2,6 @@ from __future__ import unicode_literals
 
 import logging
 import os
-import struct
 from PIL import Image
 
 from opensfm import dataset
@@ -69,4 +68,3 @@ class Command:
             # Slower fallback
             image = data.load_undistorted_image(image)
             return image.shape[:2]
-
