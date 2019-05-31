@@ -446,8 +446,8 @@ def _valid_gcp_line(line):
     return stripped and stripped[0] != '#'
 
 
-def read_ground_control_points_list(fileobj, reference, exif):
-    """Read a ground control point list file.
+def read_gcp_list(fileobj, reference, exif):
+    """Read a ground control points from a gcp_list.txt file.
 
     It requires the points to be in the WGS84 lat, lon, alt format.
     """
@@ -458,15 +458,15 @@ def read_ground_control_points_list(fileobj, reference, exif):
     return points
 
 
-def read_point_constraints(fileobj, reference):
-    """Read a point constraint file.
+def read_ground_control_points(fileobj, reference):
+    """Read ground control points from json file.
 
     Returns list of types.GroundControlPoint.
     """
     obj = json_load(fileobj)
-    point_constraints = obj['point_constraints']
 
-    for point_dict in point_constraints:
+    points = []
+    for point_dict in obj['points']:
         point = types.GroundControlPoint()
         point.id = point_dict['id']
         point.lla = point_dict.get('position')
@@ -477,11 +477,15 @@ def read_point_constraints(fileobj, reference):
                 point.lla.get('altitude', 0))
             point.has_altitude = ('altitude' in point.lla)
 
+        point.observations = []
         for o_dict in point_dict['observations']:
             o = types.GroundControlPointObservation()
             o.shot_id = o_dict['shot_id']
             if 'projection' in o_dict:
                 o.projection = np.array(o_dict['projection'])
+            point.observations.append(o)
+        points.append(point)
+    return points
 
 
 def mkdir_p(path):

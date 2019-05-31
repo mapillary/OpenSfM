@@ -687,17 +687,11 @@ class DataSet(object):
         with io.open_wt(self._ply_file(filename)) as fout:
             fout.write(ply)
 
-    def _point_constraints_file(self):
-        return os.path.join(self.data_path, 'point_constraints.json')
-
-    def point_constraints_exist(self):
-        return os.path.isfile(self._point_constraints_file())
-
     def _ground_control_points_file(self):
-        return os.path.join(self.data_path, 'gcp_list.txt')
+        return os.path.join(self.data_path, 'ground_control_points.json')
 
-    def ground_control_points_exist(self):
-        return os.path.isfile(self._ground_control_points_file())
+    def _gcp_list_file(self):
+        return os.path.join(self.data_path, 'gcp_list.txt')
 
     def load_ground_control_points(self):
         """Load ground control points.
@@ -709,14 +703,14 @@ class DataSet(object):
         reference = self.load_reference()
 
         gcp = []
-        if self.ground_control_points_exist():
-            with io.open_rt(self._ground_control_points_file()) as fin:
-                gcp = io.read_ground_control_points_list(fin, reference, exif)
+        if os.path.isfile(self._gcp_list_file()):
+            with io.open_rt(self._gcp_list_file()) as fin:
+                gcp = io.read_gcp_list(fin, reference, exif)
 
         pcs = []
-        if self.point_constraints_exist():
+        if os.path.isfile(self._ground_control_points_file()):
             with io.open_rt(self._ground_control_points_file()) as fin:
-                pcs = io.read_point_constraints(fin, reference)
+                pcs = io.read_ground_control_points(fin, reference)
 
         return gcp + pcs
 

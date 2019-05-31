@@ -45,7 +45,7 @@ def test_parse_projection():
     assert np.allclose((lat, lon), (plat, plon))
 
 
-def test_read_ground_control_points_list():
+def test_read_gcp_list():
     text = """WGS84
 13.400740745 52.519134104 12.0792090446 2335.0 1416.7 01.jpg
 13.400740745 52.519134104 12.0792090446 2639.1 938.0 02.jpg
@@ -56,7 +56,57 @@ def test_read_ground_control_points_list():
     images = ['01.jpg', '02.jpg']
     exif = {i: {'width': 3000, 'height': 2000} for i in images}
 
-    points = io.read_ground_control_points_list(fp, reference, exif)
+    points = io.read_gcp_list(fp, reference, exif)
+    assert len(points) == 2
+
+    a, b = (len(point.observations) for point in points)
+    assert min(a, b) == 1
+    assert max(a, b) == 2
+
+
+def test_read_ground_control_points():
+    text = """
+{
+  "points": [
+    {
+      "id": "1",
+      "position": {
+        "latitude": 52.519134104,
+        "longitude": 13.400740745,
+        "altitude": 12.0792090446
+      },
+      "observations": [
+        {
+          "shot_id": "01.jpg",
+          "projection": [0.7153, 0.5787]
+        },
+        {
+          "shot_id": "02.jpg",
+          "projection": [0.8085, 0.3831]
+        }
+      ]
+    },
+    {
+      "id": "2",
+      "position": {
+        "latitude": 52.519251158,
+        "longitude": 13.400502446,
+        "altitude": 16.7021233002
+      },
+      "observations": [
+        {
+          "shot_id": "01.jpg",
+          "projection": [0.2346, 0.4628]
+        }
+      ]
+    }
+  ]
+}    
+    """
+    fp = StringIO(text)
+    reference = geo.TopocentricConverter(52.51913, 13.4007, 0)
+
+    points = io.read_ground_control_points(fp, reference)
     assert len(points) == 2
 
     a, b = (len(point.observations) for point in points)

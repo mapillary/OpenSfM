@@ -1148,9 +1148,7 @@ def incremental_reconstruction(data, graph):
         data.invent_reference_lla(images)
 
     remaining_images = set(images)
-    gcp = None
-    if data.ground_control_points_exist():
-        gcp = data.load_ground_control_points()
+    gcp = data.load_ground_control_points()
     common_tracks = tracking.all_common_tracks(graph, tracks)
     reconstructions = []
     pairs = compute_image_pairs(common_tracks, data)
