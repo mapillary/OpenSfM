@@ -63,7 +63,8 @@ class Command:
         try:
             file_path = data._undistorted_image_file(image)
             with Image.open(file_path) as img:
-                return img.size
+                width, height = img.size
+                return height, width
         except:
             # Slower fallback
             image = data.load_undistorted_image(image)
