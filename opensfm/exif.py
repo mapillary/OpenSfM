@@ -202,7 +202,7 @@ class EXIF:
         width_in_pixels = self.extract_image_size()[0]
         return width_in_pixels * units_per_pixel * mm_per_unit
 
-    def get_mm_per_unit(resolution_unit):
+    def get_mm_per_unit(self,resolution_unit):
         """Length of a resolution unit in millimeters.
 
         Uses the values from the EXIF specs in
