@@ -1011,18 +1011,20 @@ def get_error_distribution(points):
     return robust_mean, robust_std
 
 
-def get_actual_threshold(config):
-    threshold = config['bundle_outlier_threshold']
-    if threshold > 0:
-        return threshold
+def get_actual_threshold(config, points):
+    filter_type = config['bundle_outlier_filtering_type']
+    if filter_type == 'FIXED':
+        return config['bundle_outlier_fixed_threshold']
+    elif filter_type == 'AUTO':
+        mean, std = get_error_distribution(points)
+        return config['bundle_outlier_auto_ratio']*np.linalg.norm(mean+std)
     else:
-        mean, std = get_error_distribution(reconstruction.points)
-        return 3.0*np.linalg.norm(mean+std)
+        return 1.0
 
 
 def remove_outliers(graph, reconstruction, config):
     """Remove points with large reprojection error."""
-    threshold = get_actual_threshold(config)
+    threshold = get_actual_threshold(config, reconstruction.points)
     outliers = []
     for track in reconstruction.points:
         for shot_id, error in reconstruction.points[track].reprojection_errors.items():
