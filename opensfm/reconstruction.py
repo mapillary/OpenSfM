@@ -1104,9 +1104,6 @@ def grow_reconstruction(data, graph, reconstruction, images, gcp):
                 rrep = retriangulate(graph, reconstruction, config)
                 b2rep = bundle(graph, reconstruction, None, config)
                 remove_outliers(graph, reconstruction, config)
-                if True:
-                    paint_reconstruction(data, graph, reconstruction)
-                    data.save_reconstruction([reconstruction], "reconstruction.prealign.json")
                 align_reconstruction(reconstruction, gcp, config)
                 step['bundle'] = b1rep
                 step['retriangulation'] = rrep
