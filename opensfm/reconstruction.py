@@ -89,7 +89,7 @@ def _get_camera_from_bundle(ba, camera):
         camera.k2 = c.k2
 
 
-def _add_gcp_to_bundle(ba, gcp, reconstruction):
+def _add_gcp_to_bundle(ba, gcp, shots):
     """Add Ground Control Points constraints to the bundle problem."""
     for point in gcp:
         point_id = 'gcp-' + point.id
@@ -101,7 +101,7 @@ def _add_gcp_to_bundle(ba, gcp, reconstruction):
                                     point_type)
 
         for observation in point.observations:
-            if observation.shot_id in reconstruction.shots:
+            if observation.shot_id in shots:
                 # TODO(pau): move this to a config or per point parameter.
                 scale = 0.0001
                 ba.add_point_projection_observation(
@@ -146,7 +146,7 @@ def bundle(graph, reconstruction, gcp, config):
                                   shot.metadata.gps_dop)
 
     if config['bundle_use_gcp'] and gcp:
-        _add_gcp_to_bundle(ba, gcp, reconstruction)
+        _add_gcp_to_bundle(ba, gcp, reconstruction.shots)
 
     ba.set_point_projection_loss_function(config['loss_function'],
                                           config['loss_function_threshold'])
@@ -292,7 +292,7 @@ def bundle_local(graph, reconstruction, gcp, central_shot_id, config):
                                   shot.metadata.gps_dop)
 
     if config['bundle_use_gcp'] and gcp:
-        _add_gcp_to_bundle(ba, gcp, reconstruction)
+        _add_gcp_to_bundle(ba, gcp, reconstruction.shots)
 
     ba.set_point_projection_loss_function(config['loss_function'],
                                           config['loss_function_threshold'])
@@ -1104,6 +1104,9 @@ def grow_reconstruction(data, graph, reconstruction, images, gcp):
                 rrep = retriangulate(graph, reconstruction, config)
                 b2rep = bundle(graph, reconstruction, None, config)
                 remove_outliers(graph, reconstruction, config)
+                if True:
+                    paint_reconstruction(data, graph, reconstruction)
+                    data.save_reconstruction([reconstruction], "reconstruction.prealign.json")
                 align_reconstruction(reconstruction, gcp, config)
                 step['bundle'] = b1rep
                 step['retriangulation'] = rrep
