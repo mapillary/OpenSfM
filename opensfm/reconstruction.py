@@ -174,7 +174,7 @@ def bundle(graph, reconstruction, gcp, config):
     for point in reconstruction.points.values():
         p = ba.get_point(point.id)
         point.coordinates = [p.p[0], p.p[1], p.p[2]]
-        point.reprojection_error = p.reprojection_error
+        point.reprojection_errors = p.reprojection_errors
 
     chrono.lap('teardown')
 
@@ -318,7 +318,7 @@ def bundle_local(graph, reconstruction, gcp, central_shot_id, config):
         point = reconstruction.points[point]
         p = ba.get_point(point.id)
         point.coordinates = [p.p[0], p.p[1], p.p[2]]
-        point.reprojection_error = p.reprojection_error
+        point.reprojection_errors = p.reprojection_errors
 
     chrono.lap('teardown')
 
@@ -1002,19 +1002,43 @@ def retriangulate(graph, graph_inliers, reconstruction, config):
     return report
 
 
-def remove_outliers(graph, reconstruction, config):
-    """Remove points with large reprojection error."""
+def get_error_distribution(points):
+    all_errors = []
+    for track in points.values():
+        all_errors += track.reprojection_errors.values()
+    robust_mean = np.median(all_errors, axis=0)
+    robust_std = 1.486*np.median(np.linalg.norm(all_errors-robust_mean, axis=1))
+    return robust_mean, robust_std
+
+
+def get_actual_threshold(config):
     threshold = config['bundle_outlier_threshold']
     if threshold > 0:
-        outliers = []
-        for track in reconstruction.points:
-            error = reconstruction.points[track].reprojection_error
-            if error > threshold:
-                outliers.append(track)
-        for track in outliers:
-            graph.remove_node(track)
+        return threshold
+    else:
+        mean, std = get_error_distribution(reconstruction.points)
+        return 3.0*np.linalg.norm(mean+std)
+
+
+def remove_outliers(graph, reconstruction, config):
+    """Remove points with large reprojection error."""
+    threshold = get_actual_threshold(config)
+    outliers = []
+    for track in reconstruction.points:
+        for shot_id, error in reconstruction.points[track].reprojection_errors.items():
+            if np.linalg.norm(error) > threshold:
+                outliers.append((track, shot_id))
+
+    for track, shot_id in outliers:
+        graph.remove_edge(track, shot_id)
+    for track, _ in outliers:
+        if track not in reconstruction.points:
+            continue
+        if len(graph[track]) < 2:
             del reconstruction.points[track]
-        logger.info("Removed outliers: {}".format(len(outliers)))
+            graph.remove_node(track)
+    logger.info("Removed outliers: {}".format(len(outliers)))
+    return len(outliers)
 
 
 def shot_lla_and_compass(shot, reference):
