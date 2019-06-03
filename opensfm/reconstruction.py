@@ -1030,6 +1030,7 @@ def remove_outliers(graph, reconstruction, config):
                 outliers.append((track, shot_id))
 
     for track, shot_id in outliers:
+        del reconstruction.points[track].reprojection_errors[shot_id]
         graph.remove_edge(track, shot_id)
     for track, _ in outliers:
         if track not in reconstruction.points:
