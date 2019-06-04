@@ -1261,7 +1261,7 @@ def _length_histogram(points, graph):
     hist = defaultdict(int)
     for p in points:
         hist[len(graph[p])] += 1
-    return np.array(hist.keys()), np.array(hist.values())
+    return np.array(list(hist.keys())), np.array(list(hist.values()))
 
 
 def compute_statistics(reconstruction, graph):
@@ -1270,7 +1270,7 @@ def compute_statistics(reconstruction, graph):
     stats['cameras_count'] = len(reconstruction.shots)
 
     hist, values = _length_histogram(reconstruction.points, graph)
-    stats['observations_count'] = sum(hist*values)
+    stats['observations_count'] = int(sum(hist * values))
     stats['average_track_length'] = float(stats['observations_count'])/len(reconstruction.points)
     tracks_notwo = sum([1 if len(graph[p]) > 2 else 0 for p in reconstruction.points])
     if tracks_notwo > 0:
