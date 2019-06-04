@@ -14,5 +14,5 @@ def test_tracks_io():
     output.seek(0)
     tracks_after = opensfm.tracking.load_tracks_graph(output)
 
-    assert tracks_before.nodes() == tracks_after.nodes()
-    assert tracks_before.edges() == tracks_after.edges()
+    assert len(tracks_before.nodes()) == len(tracks_after.nodes())
+    assert len(tracks_before.edges()) == len(tracks_after.edges())

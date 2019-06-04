@@ -35,7 +35,7 @@ def test_reconstruction_incremental(scene):
     assert 0.940 < errors['ratio_points'] < 0.950
 
     assert 0.002 < errors['rotation_average'] < 0.09
-    assert 0.0002 < errors['rotation_std'] < 0.0012
+    assert 0.0002 < errors['rotation_std'] < 0.0020
 
     # below, (av+std) should be in order of ||gps_noise||^2
     assert 1.5 < errors['position_average'] < 3
