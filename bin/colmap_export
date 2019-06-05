@@ -239,7 +239,7 @@ if __name__ == "__main__":
     database_path = os.path.join(args.dataset, 'colmap_database.db')
     data = dataset.DataSet(args.dataset)
 
-    db = COLMAPDatabase.connect('/home/yann/colmap_synth.db')
+    db = COLMAPDatabase.connect(database_path)
     db.create_tables()
 
     camera_map = {}

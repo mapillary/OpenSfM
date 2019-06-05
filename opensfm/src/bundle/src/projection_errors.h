@@ -69,11 +69,6 @@ struct PerspectiveReprojectionError {
     T camera_point[3];
     WorldToCameraCoordinates(shot, point, camera_point);
 
-    if (camera_point[2] <= T(0.0)) {
-      residuals[0] = residuals[1] = T(99.0);
-      return true;
-    }
-
     T predicted[2];
     PerspectiveProject(camera, camera_point, predicted);
 
@@ -135,11 +130,6 @@ struct BrownPerspectiveReprojectionError {
     T camera_point[3];
     WorldToCameraCoordinates(shot, point, camera_point);
 
-    if (camera_point[2] <= T(0.0)) {
-      residuals[0] = residuals[1] = T(99.0);
-      return true;
-    }
-
     T predicted[2];
     BrownPerspectiveProject(camera, camera_point, predicted);
 
@@ -190,11 +180,6 @@ struct FisheyeReprojectionError {
                   T* residuals) const {
     T camera_point[3];
     WorldToCameraCoordinates(shot, point, camera_point);
-
-    if (camera_point[2] <= T(0.0)) {
-      residuals[0] = residuals[1] = T(99.0);
-      return true;
-    }
 
     T predicted[2];
     FisheyeProject(camera, camera_point, predicted);

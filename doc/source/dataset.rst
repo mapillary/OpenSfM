@@ -75,5 +75,4 @@ The main output of OpenSfM is a reconstruction that contains the estimated camer
     POINT: {
         "coordinates": [X, Y, Z],      # Estimated position of the point
         "color": [R, G, B],            # Color of the point
-        "reprojection_error": NUMBER   # Average reprojection error
     }

@@ -151,7 +151,7 @@ struct BAPoint {
   std::string id;
   Eigen::Matrix<double, 3, 1> parameters;
   bool constant;
-  double reprojection_error;
+  std::map<std::string, Eigen::VectorXd> reprojection_errors;
 
   Eigen::Vector3d GetPoint() const {return parameters;}
   void SetPoint(const Eigen::Vector3d &p) {parameters = p;}

@@ -1,5 +1,6 @@
 import data_generation
 import numpy as np
+import networkx as nx
 
 from opensfm import reconstruction
 from opensfm import multiview
@@ -107,14 +108,17 @@ def test_absolute_pose_single_shot():
     metadata = types.ShotMetadata()
     camera = synthetic_data.cameras[camera_id]
 
+    graph_inliers = nx.Graph()
     shot_before = synthetic_data.shots[shot_id]
-    status, report = reconstruction.resect(synthetic_tracks, synthetic_data,
-                                           shot_id, camera, metadata,
+    status, report = reconstruction.resect(synthetic_tracks, graph_inliers,
+                                           synthetic_data, shot_id,
+                                           camera, metadata,
                                            parameters['resection_threshold'],
                                            parameters['resection_min_inliers'])
     shot_after = synthetic_data.shots[shot_id]
 
     assert status is True
+    assert report['num_inliers'] == len(graph_inliers.edges())
     assert report['num_inliers'] is len(synthetic_data.points)
     np.testing.assert_almost_equal(
         shot_before.pose.rotation, shot_after.pose.rotation, 1)
