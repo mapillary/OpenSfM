@@ -130,8 +130,6 @@ def point_from_json(key, obj):
     point.id = key
     point.color = obj["color"]
     point.coordinates = obj["coordinates"]
-    if "reprojection_error" in obj:
-        point.reprojection_error = obj["reprojection_error"]
     return point
 
 
@@ -300,8 +298,7 @@ def point_to_json(point):
     """
     return {
         'color': list(point.color),
-        'coordinates': list(point.coordinates),
-        'reprojection_error': point.reprojection_error
+        'coordinates': list(point.coordinates)
     }
 
 

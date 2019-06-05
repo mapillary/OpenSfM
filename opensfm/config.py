@@ -63,6 +63,7 @@ five_point_algo_threshold: 0.004        # Outlier threshold for essential matrix
 five_point_algo_min_inliers: 20         # Minimum number of inliers for considering a two view reconstruction valid
 triangulation_threshold: 0.006          # Outlier threshold for accepting a triangulated point in radians
 triangulation_min_ray_angle: 1.0        # Minimum angle between views to accept a triangulated point
+triangulation_type: FULL              # Triangulation type : either considering all rays (FULL), or sing a RANSAC variant (ROBUST)
 resection_threshold: 0.004              # Outlier threshold for resection in radians
 resection_min_inliers: 10               # Minimum number of resection inliers to accept it
 
@@ -80,8 +81,10 @@ radial_distorsion_k2_sd: 0.01   # The standard deviation of the second radial di
 radial_distorsion_k3_sd: 0.01   # The standard deviation of the third radial distortion parameter
 radial_distorsion_p1_sd: 0.01   # The standard deviation of the first tangential distortion parameter
 radial_distorsion_p2_sd: 0.01   # The standard deviation of the second tangential distortion parameter
-bundle_outlier_threshold: 0.006     # Points with larger reprojection error after bundle adjustment are removed
-optimize_camera_parameters: yes     # Optimize internal camera parameters during bundle
+bundle_outlier_filtering_type: FIXED    # Type of threshold for filtering outlier : either fixed value (FIXED) or based on actual distribution (AUTO)
+bundle_outlier_auto_ratio: 3.0          # For AUTO filtering type, projections with larger reprojection than ratio-times-mean, are removed
+bundle_outlier_fixed_threshold: 0.006   # For FIXED filtering type, projections with larger reprojection error after bundle adjustment are removed
+optimize_camera_parameters: yes         # Optimize internal camera parameters during bundle
 
 retriangulation: yes                # Retriangulate all points from time to time
 retriangulation_ratio: 1.2          # Retriangulate when the number of points grows by this ratio

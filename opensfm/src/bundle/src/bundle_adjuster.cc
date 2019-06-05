@@ -217,7 +217,6 @@ void BundleAdjuster::AddGcpPoint(
   p.parameters[1] = y;
   p.parameters[2] = z;
   p.constant = constant;
-  p.reprojection_error = -1;
   gcp_points_[id] = p;
 }
 
@@ -998,77 +997,70 @@ void BundleAdjuster::ComputeCovariances(ceres::Problem *problem) {
 void BundleAdjuster::ComputeReprojectionErrors() {
   // Init errors
   for (auto &i : points_) {
-    i.second.reprojection_error = 0;
+    i.second.reprojection_errors.clear();
   }
 
   // Sum over all observations
   for (int i = 0; i < point_projection_observations_.size(); ++i) {
-    switch (point_projection_observations_[i].camera->type()) {
+    auto& projection = point_projection_observations_[i];
+    switch (projection.camera->type()) {
       case BA_PERSPECTIVE_CAMERA:
       {
-        BAPerspectiveCamera &c = static_cast<BAPerspectiveCamera &>(*point_projection_observations_[i].camera);
+        BAPerspectiveCamera &c = static_cast<BAPerspectiveCamera &>(*projection.camera);
 
-        PerspectiveReprojectionError pre(point_projection_observations_[i].coordinates[0],
-                                          point_projection_observations_[i].coordinates[1],
+        PerspectiveReprojectionError pre(projection.coordinates[0],
+                                          projection.coordinates[1],
                                           1.0);
         double residuals[2];
         pre(c.parameters,
-            point_projection_observations_[i].shot->parameters.data(),
-            point_projection_observations_[i].point->parameters.data(),
+            projection.shot->parameters.data(),
+            projection.point->parameters.data(),
             residuals);
-        double error = sqrt(residuals[0] * residuals[0] + residuals[1] * residuals[1]);
-        point_projection_observations_[i].point->reprojection_error =
-            std::max(point_projection_observations_[i].point->reprojection_error, error);
+        projection.point->reprojection_errors[projection.shot->id] = Eigen::Vector2d(residuals[0], residuals[1]);
         break;
       }
       case BA_BROWN_PERSPECTIVE_CAMERA:
       {
-        BABrownPerspectiveCamera &c = static_cast<BABrownPerspectiveCamera &>(*point_projection_observations_[i].camera);
+        BABrownPerspectiveCamera &c = static_cast<BABrownPerspectiveCamera &>(*projection.camera);
 
-        BrownPerspectiveReprojectionError bpre(point_projection_observations_[i].coordinates[0],
-                                                point_projection_observations_[i].coordinates[1],
+        BrownPerspectiveReprojectionError bpre(projection.coordinates[0],
+                                                projection.coordinates[1],
                                                 1.0);
         double residuals[2];
         bpre(c.parameters,
-              point_projection_observations_[i].shot->parameters.data(),
-              point_projection_observations_[i].point->parameters.data(),
+              projection.shot->parameters.data(),
+              projection.point->parameters.data(),
               residuals);
-        double error = sqrt(residuals[0] * residuals[0] + residuals[1] * residuals[1]);
-        point_projection_observations_[i].point->reprojection_error =
-            std::max(point_projection_observations_[i].point->reprojection_error, error);
+        projection.point->reprojection_errors[projection.shot->id] = Eigen::Vector2d(residuals[0], residuals[1]);
         break;
       }
       case BA_FISHEYE_CAMERA:
       {
-        BAFisheyeCamera &c = static_cast<BAFisheyeCamera &>(*point_projection_observations_[i].camera);
+        BAFisheyeCamera &c = static_cast<BAFisheyeCamera &>(*projection.camera);
 
-        FisheyeReprojectionError pre(point_projection_observations_[i].coordinates[0],
-                                      point_projection_observations_[i].coordinates[1],
+        FisheyeReprojectionError pre(projection.coordinates[0],
+                                      projection.coordinates[1],
                                       1.0);
         double residuals[2];
         pre(c.parameters,
-            point_projection_observations_[i].shot->parameters.data(),
-            point_projection_observations_[i].point->parameters.data(),
+            projection.shot->parameters.data(),
+            projection.point->parameters.data(),
             residuals);
-        double error = sqrt(residuals[0] * residuals[0] + residuals[1] * residuals[1]);
-        point_projection_observations_[i].point->reprojection_error =
-            std::max(point_projection_observations_[i].point->reprojection_error, error);
+        projection.point->reprojection_errors[projection.shot->id] = Eigen::Vector2d(residuals[0], residuals[1]);
         break;
       }
       case BA_EQUIRECTANGULAR_CAMERA:
       {
-        BAEquirectangularCamera &c = static_cast<BAEquirectangularCamera &>(*point_projection_observations_[i].camera);
+        BAEquirectangularCamera &c = static_cast<BAEquirectangularCamera &>(*projection.camera);
 
-        EquirectangularReprojectionError ere(point_projection_observations_[i].coordinates[0],
-                                              point_projection_observations_[i].coordinates[1],
+        EquirectangularReprojectionError ere(projection.coordinates[0],
+                                              projection.coordinates[1],
                                               1.0);
         double residuals[3];
-        ere(point_projection_observations_[i].shot->parameters.data(),
-            point_projection_observations_[i].point->parameters.data(),
+        ere(projection.shot->parameters.data(),
+            projection.point->parameters.data(),
             residuals);
-        double error = sqrt(residuals[0] * residuals[0] + residuals[1] * residuals[1] + residuals[2] * residuals[2]);
-        point_projection_observations_[i].point->reprojection_error =
-            std::max(point_projection_observations_[i].point->reprojection_error, error);
+        projection.point->reprojection_errors[projection.shot->id] = Eigen::Vector3d(residuals[0], residuals[1], residuals[2]);
         break;
       }
     }

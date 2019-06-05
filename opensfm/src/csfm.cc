@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 #include <pybind11/eigen.h>
 
 #include "types.h"
@@ -204,7 +205,7 @@ PYBIND11_MODULE(csfm, m) {
     .def(py::init())
     .def_property("p", &BAPoint::GetPoint, &BAPoint::SetPoint)
     .def_readwrite("id", &BAPoint::id)
-    .def_readwrite("reprojection_error", &BAPoint::reprojection_error)
+    .def_readwrite("reprojection_errors", &BAPoint::reprojection_errors)
   ;
 
   py::class_<BARelativeMotion>(m, "BARelativeMotion")
