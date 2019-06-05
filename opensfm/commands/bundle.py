@@ -3,7 +3,6 @@ import time
 
 import opensfm.reconstruction as orec
 from opensfm import dataset
-from opensfm import io
 
 logger = logging.getLogger(__name__)
 
@@ -26,9 +25,7 @@ class Command:
         data = dataset.DataSet(args.dataset)
         graph = data.load_tracks_graph()
         reconstructions = data.load_reconstruction(args.input)
-        gcp = None
-        if data.ground_control_points_exist():
-            gcp = data.load_ground_control_points()
+        gcp = data.load_ground_control_points()
 
         for reconstruction in reconstructions:
             orec.bundle(graph, reconstruction, gcp, data.config)

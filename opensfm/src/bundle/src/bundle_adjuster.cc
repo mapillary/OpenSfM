@@ -205,51 +205,6 @@ void BundleAdjuster::AddPointPositionPrior(
   point_position_priors_.push_back(p);
 }
 
-void BundleAdjuster::AddGcpPoint(
-    const std::string &id,
-    double x,
-    double y,
-    double z,
-    bool constant) {
-  BAPoint p;
-  p.id = id;
-  p.parameters[0] = x;
-  p.parameters[1] = y;
-  p.parameters[2] = z;
-  p.constant = constant;
-  gcp_points_[id] = p;
-}
-
-void BundleAdjuster::AddGcpWorldObservation(
-    const std::string &point,
-    double x,
-    double y,
-    double z,
-    bool has_altitude) {
-  BAGcpWorldObservation o;
-  o.point = &gcp_points_[point];
-  o.coordinates[0] = x;
-  o.coordinates[1] = y;
-  o.coordinates[2] = z;
-  o.has_altitude = has_altitude;
-  gcp_world_observations_.push_back(o);
-}
-
-void BundleAdjuster::AddGcpImageObservation(
-    const std::string &shot,
-    const std::string &point,
-    double x,
-    double y) {
-  BAPointProjectionObservation o;
-  o.shot = &shots_[shot];
-  o.camera = cameras_[o.shot->camera].get();
-  o.point = &gcp_points_[point];
-  o.coordinates[0] = x;
-  o.coordinates[1] = y;
-  gcp_image_observations_.push_back(o);
-}
-
-
 void BundleAdjuster::SetOriginShot(const std::string &shot_id) {
   BAShot *shot = &shots_[shot_id];
   for (int i = 0; i < 6; ++i) shot->parameters[0] = 0;
@@ -518,13 +473,6 @@ void BundleAdjuster::Run() {
     }
   }
 
-  for (auto &i : gcp_points_) {
-    if (i.second.constant) {
-      problem.AddParameterBlock(i.second.parameters.data(), 3);
-      problem.SetParameterBlockConstant(i.second.parameters.data());
-    }
-  }
-
   // Add reprojection error blocks
   ceres::LossFunction *projection_loss = CreateLossFunction(
       point_projection_loss_name_, point_projection_loss_threshold_);
@@ -574,32 +522,6 @@ void BundleAdjuster::Run() {
     problem.AddResidualBlock(cost_function,
                              NULL,
                              pp.point->parameters.data());
-  }
-
-  // Add ground control point world observations
-  for (auto &observation : gcp_world_observations_) {
-    if (observation.has_altitude) {
-      ceres::CostFunction* cost_function =
-          new ceres::AutoDiffCostFunction<PointPositionPriorError, 3, 3>(
-              new PointPositionPriorError(observation.coordinates, 0.01));
-
-      problem.AddResidualBlock(cost_function,
-                                NULL,
-                                observation.point->parameters.data());
-    } else {
-      ceres::CostFunction* cost_function =
-          new ceres::AutoDiffCostFunction<PointPositionPrior2dError, 2, 3>(
-              new PointPositionPrior2dError(observation.coordinates, 0.001));
-
-      problem.AddResidualBlock(cost_function,
-                                NULL,
-                                observation.point->parameters.data());
-    }
-  }
-
-  // Add ground control point image observations
-  for (auto &observation : gcp_image_observations_) {
-    AddObservationResidualBlock(observation, NULL, &problem);
   }
 
   // Add internal parameter priors blocks
@@ -1093,10 +1015,6 @@ BAShot BundleAdjuster::GetShot(const std::string &id) {
 
 BAPoint BundleAdjuster::GetPoint(const std::string &id) {
   return points_[id];
-}
-
-BAPoint BundleAdjuster::GetGcpPoint(const std::string &id) {
-  return gcp_points_[id];
 }
 
 BAReconstruction BundleAdjuster::GetReconstruction(const std::string &id) {

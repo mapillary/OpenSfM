@@ -11,7 +11,7 @@ The pose of a camera, conceptually, consists of two things:
 2. Where is it, i.e. the position of the camera origin
 
 Local coordinate system of camera
-`````````````````````````````````
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 These online docs say that, from the POV of a camera (a.k.a. a ``Shot``
 object):
 
@@ -95,7 +95,7 @@ It basically works like this (apologies for ASCII art):
     X <-----+
 
 Where is the camera?
-````````````````````
+~~~~~~~~~~~~~~~~~~~~
 
 Conceptually, this is a simple translation, in world coordinates, to the
 camera's origin position.

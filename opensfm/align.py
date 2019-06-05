@@ -190,7 +190,7 @@ def triangulate_single_gcp(reconstruction, observations):
         if o.shot_id in reconstruction.shots:
             shot = reconstruction.shots[o.shot_id]
             os.append(shot.pose.get_origin())
-            b = shot.camera.pixel_bearing(np.asarray(o.shot_coordinates))
+            b = shot.camera.pixel_bearing(np.asarray(o.projection))
             r = shot.pose.get_rotation_matrix().T
             bs.append(r.dot(b))
 

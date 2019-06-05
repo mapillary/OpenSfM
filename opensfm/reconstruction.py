@@ -91,22 +91,27 @@ def _get_camera_from_bundle(ba, camera):
         camera.k2 = c.k2
 
 
-def _add_gcp_to_bundle(ba, gcp, reconstruction):
+def _add_gcp_to_bundle(ba, gcp, shots):
     """Add Ground Control Points constraints to the bundle problem."""
-    for i, point in enumerate(gcp):
-        initial = point.coordinates
-        ba.add_gcp_point(
-            str(i), initial[0], initial[1], initial[2], False)
-        prior = point.coordinates
-        ba.add_gcp_world_observation(
-            str(i), prior[0], prior[1], prior[2], point.has_altitude)
+    for point in gcp:
+        point_id = 'gcp-' + point.id
+
+        ba.add_point(point_id, point.coordinates, False)
+
+        point_type = csfm.XYZ if point.has_altitude else csfm.XY
+        ba.add_point_position_world(point_id, point.coordinates, 0.1,
+                                    point_type)
+
         for observation in point.observations:
-            if observation.shot_id in reconstruction.shots:
-                ba.add_gcp_image_observation(
+            if observation.shot_id in shots:
+                # TODO(pau): move this to a config or per point parameter.
+                scale = 0.0001
+                ba.add_point_projection_observation(
                     observation.shot_id,
-                    str(i),
-                    observation.shot_coordinates[0],
-                    observation.shot_coordinates[1])
+                    point_id,
+                    observation.projection[0],
+                    observation.projection[1],
+                    scale)
 
 
 def bundle(graph, reconstruction, gcp, config):
@@ -143,7 +148,7 @@ def bundle(graph, reconstruction, gcp, config):
                                   shot.metadata.gps_dop)
 
     if config['bundle_use_gcp'] and gcp:
-        _add_gcp_to_bundle(ba, gcp, reconstruction)
+        _add_gcp_to_bundle(ba, gcp, reconstruction.shots)
 
     ba.set_point_projection_loss_function(config['loss_function'],
                                           config['loss_function_threshold'])
@@ -288,7 +293,7 @@ def bundle_local(graph, reconstruction, gcp, central_shot_id, config):
                                   shot.metadata.gps_dop)
 
     if config['bundle_use_gcp'] and gcp:
-        _add_gcp_to_bundle(ba, gcp, reconstruction)
+        _add_gcp_to_bundle(ba, gcp, reconstruction.shots)
 
     ba.set_point_projection_loss_function(config['loss_function'],
                                           config['loss_function_threshold'])
@@ -1293,9 +1298,7 @@ def incremental_reconstruction(data, graph):
         data.invent_reference_lla(images)
 
     remaining_images = set(images)
-    gcp = None
-    if data.ground_control_points_exist():
-        gcp = data.load_ground_control_points()
+    gcp = data.load_ground_control_points()
     common_tracks = tracking.all_common_tracks(graph, tracks)
     reconstructions = []
     pairs = compute_image_pairs(common_tracks, data)

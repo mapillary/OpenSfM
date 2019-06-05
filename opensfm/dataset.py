@@ -688,10 +688,10 @@ class DataSet(object):
             fout.write(ply)
 
     def _ground_control_points_file(self):
-        return os.path.join(self.data_path, 'gcp_list.txt')
+        return os.path.join(self.data_path, 'ground_control_points.json')
 
-    def ground_control_points_exist(self):
-        return os.path.isfile(self._ground_control_points_file())
+    def _gcp_list_file(self):
+        return os.path.join(self.data_path, 'gcp_list.txt')
 
     def load_ground_control_points(self):
         """Load ground control points.
@@ -702,8 +702,17 @@ class DataSet(object):
         exif = {image: self.load_exif(image) for image in self.images()}
         reference = self.load_reference()
 
-        with io.open_rt(self._ground_control_points_file()) as fin:
-            return io.read_ground_control_points_list(fin, reference, exif)
+        gcp = []
+        if os.path.isfile(self._gcp_list_file()):
+            with io.open_rt(self._gcp_list_file()) as fin:
+                gcp = io.read_gcp_list(fin, reference, exif)
+
+        pcs = []
+        if os.path.isfile(self._ground_control_points_file()):
+            with io.open_rt(self._ground_control_points_file()) as fin:
+                pcs = io.read_ground_control_points(fin, reference)
+
+        return gcp + pcs
 
     def image_as_array(self, image):
         logger.warning("image_as_array() is deprecated. Use load_image() instead.")

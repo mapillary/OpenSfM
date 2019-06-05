@@ -45,7 +45,6 @@ struct BARelativeMotionError {
   Eigen::MatrixXd scale_matrix_;
 };
 
-
 struct BARelativeSimilarityError : public BARelativeMotionError {
   BARelativeSimilarityError(const Eigen::VectorXd& Rtij, double Sij, const Eigen::MatrixXd& scale_matrix)
       : BARelativeMotionError(Rtij, scale_matrix), Sij_(Sij)
@@ -64,7 +63,6 @@ struct BARelativeSimilarityError : public BARelativeMotionError {
 
   double Sij_;
 };
-
 
 struct BARelativeRotationError {
   BARelativeRotationError(const Eigen::Vector3d& Rij,

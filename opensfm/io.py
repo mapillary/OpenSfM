@@ -389,6 +389,7 @@ def _read_gcp_list_lines(lines, projection, reference, exif):
             x, y, z = reference.to_topocentric(lat, lon, alt)
 
             point = types.GroundControlPoint()
+            point.id = "unnamed-%d" % len(points)
             point.lla = np.array([lat, lon, alt])
             point.coordinates = np.array([x, y, z])
             point.has_altitude = has_altitude
@@ -401,7 +402,7 @@ def _read_gcp_list_lines(lines, projection, reference, exif):
 
         o = types.GroundControlPointObservation()
         o.shot_id = shot_id
-        o.shot_coordinates = coordinates
+        o.projection = coordinates
         point.observations.append(o)
 
     return list(points.values())
@@ -442,8 +443,8 @@ def _valid_gcp_line(line):
     return stripped and stripped[0] != '#'
 
 
-def read_ground_control_points_list(fileobj, reference, exif):
-    """Read a ground control point list file.
+def read_gcp_list(fileobj, reference, exif):
+    """Read a ground control points from a gcp_list.txt file.
 
     It requires the points to be in the WGS84 lat, lon, alt format.
     """
@@ -451,6 +452,36 @@ def read_ground_control_points_list(fileobj, reference, exif):
     lines = iter(filter(_valid_gcp_line, all_lines))
     projection = _parse_projection(next(lines))
     points = _read_gcp_list_lines(lines, projection, reference, exif)
+    return points
+
+
+def read_ground_control_points(fileobj, reference):
+    """Read ground control points from json file.
+
+    Returns list of types.GroundControlPoint.
+    """
+    obj = json_load(fileobj)
+
+    points = []
+    for point_dict in obj['points']:
+        point = types.GroundControlPoint()
+        point.id = point_dict['id']
+        point.lla = point_dict.get('position')
+        if point.lla:
+            point.coordinates = reference.to_topocentric(
+                point.lla['latitude'],
+                point.lla['longitude'],
+                point.lla.get('altitude', 0))
+            point.has_altitude = ('altitude' in point.lla)
+
+        point.observations = []
+        for o_dict in point_dict['observations']:
+            o = types.GroundControlPointObservation()
+            o.shot_id = o_dict['shot_id']
+            if 'projection' in o_dict:
+                o.projection = np.array(o_dict['projection'])
+            point.observations.append(o)
+        points.append(point)
     return points
 
 

@@ -672,6 +672,7 @@ class GroundControlPoint(object):
     """
 
     def __init__(self):
+        self.id = None
         self.lla = None
         self.coordinates = None
         self.has_altitude = None
@@ -683,12 +684,12 @@ class GroundControlPointObservation(object):
 
     Attributes:
         shot_id: the shot where the point is observed
-        shot_coordinates: 2d coordinates of the observation
+        projection: 2d coordinates of the observation
     """
 
     def __init__(self):
         self.shot_id = None
-        self.shot_coordinates = None
+        self.projection = None
 
 
 class Reconstruction(object):

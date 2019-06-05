@@ -7,8 +7,10 @@ Geometric Models
 Coordinate Systems
 ------------------
 
+.. _normalized-image-coordinates:
+
 Normalized Image Coordinates
-````````````````````````````
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The 2d position of a point in images is stored in what we will call *normalized image coordinates*.  The origin is in the middle of the image.  The x coordinate grows to the right and y grows downwards.  The larger dimension of the image is 1.
 
@@ -32,8 +34,10 @@ This means, for example, that all the pixels in an image with aspect ratio 4:3 w
 Normalized coordinates are independent of the resolution of the image and give better numerical stability for some multi-view geometry algorithms than pixel coordinates.
 
 
+.. _pixel-coordinates:
+
 Pixel Coordinates
-`````````````````
+~~~~~~~~~~~~~~~~~
 
 Many OpenCV functions that work with images use *pixel coordinates*.  In that reference frame, the origin is at the center of the top-left pixel, x grow by one for every pixel to the right and y grows by one for every pixel downwards.  The bottom-right pixel is therefore at ``(width - 1, height - 1)``.
 
@@ -58,7 +62,7 @@ and its inverse
 where :math:`w` and :math:`h` being the width and height of the image.
 
 World Coordinates
-`````````````````
+~~~~~~~~~~~~~~~~~
 The position of the reconstructed 3D points is stored in *world coordinates*.  In general, this is an arbitrary euclidean reference frame.
 
 When GPS data is available, a topocentric reference frame is used for the world coordinates reference.  This is a reference frame that with the origin somewhere near the ground, the X axis pointing to the east, the Y axis pointing to the north and the Z axis pointing to the zenith.  The latitude, longitude, and altitude of the origin are stored in the ``reference_lla.json`` file.
@@ -67,7 +71,7 @@ When GPS data is not available, the reconstruction process makes its best to rot
 
 
 Camera Coordinates
-``````````````````
+~~~~~~~~~~~~~~~~~~
 The *camera coordinate* reference frame has the origin at the camera's optical center, the X axis is pointing to the right of the camera the Y axis is pointing down and the Z axis is pointing to the front.  A point in front of the camera has positive Z camera coordinate.
 
 The pose of a camera is determined by the rotation and translation that converts world coordinates to camera coordinates.
@@ -78,7 +82,7 @@ Camera Models
 The camera models deal with the projection of 3D points expressed in *camera coordinates* ``x, y, z`` into points ``u, v`` in *normalized image coordinates*.
 
 Perspective Camera
-``````````````````
+~~~~~~~~~~~~~~~~~~
 .. math::
     \begin{array}{l}
     x_n = \frac{x}{z} \\
@@ -90,7 +94,7 @@ Perspective Camera
     \end{array}
 
 Fisheye Camera
-``````````````````
+~~~~~~~~~~~~~~
 .. math::
     \begin{array}{l}
     r^2 = x^2 + y^2 \\
@@ -101,7 +105,7 @@ Fisheye Camera
     \end{array}
 
 Spherical Camera
-``````````````````
+~~~~~~~~~~~~~~~~
 .. math::
     \begin{array}{l}
     \mathrm{lon} = \arctan\left(\frac{x}{z}\right) \\

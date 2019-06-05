@@ -80,7 +80,7 @@ def main():
             shot = reconstruction.shots[observation.shot_id]
 
             reprojected = shot.project(gcp.coordinates)
-            annotated = observation.shot_coordinates
+            annotated = observation.projection
             rpixel = pix_coords(reprojected, image)
             apixel = pix_coords(annotated, image)
 
