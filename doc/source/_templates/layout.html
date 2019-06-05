@@ -1,3 +1,41 @@
 {% extends "!layout.html" %}
+{% block footer %}
+{{ super() }}
+<style>
+  @import url('https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,600,700&display=swap');
+  * {
+    font-family: 'Source Sans Pro', sans-serif!important;
+  }
+  .wy-side-nav-search {
+    background: #05cb63;
+  }
+  .wy-side-nav-search input[type=text] {
+    border-color: #05cb63;
+  }
+  .wy-nav-side {
+    background: #212b36;
+  }
+  .wy-menu-vertical a:hover {
+    color: #d9d9d9;
+    background: rgba(255, 255, 255, 0.1);
+  }
+  a, a:hover {
+    color: #05cb63;
+  }
+  body {
+    color: #212b36;
+  }
+  .wy-side-nav-search>a:hover {
+    color: #fff!important;
+  }
+  .highlight {
+    background: #dee5ed;
+  }
+  .rst-content pre.literal-block, .rst-content div[class^='highlight'] {
+    border-radius: 4px;
+    border-color: #dee5ed!important;  
+  }
+</style>
+{% endblock %}
 
 {% set script_files = script_files + ["_static/mathjax_conf.js"] %}
