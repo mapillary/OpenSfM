@@ -374,6 +374,21 @@ def focal_ratio_calibration(exif):
         }
 
 
+def focal_xy_calibration(exif):
+    if exif['focal_x']:
+        return {
+            'focal_x': exif['focal_x'],
+            'focal_y': exif['focal_y'],
+            'c_x': exif['c_x'],
+            'c_y': exif['c_y'],
+            'k1': 0.0,
+            'k2': 0.0,
+            'p1': 0.0,
+            'p2': 0.0,
+            'k3': 0.0
+        }
+
+
 def default_calibration(data):
     return {
         'focal': data.config['default_focal_prior'],
@@ -408,22 +423,31 @@ def camera_from_exif_metadata(metadata, data):
         return camera
     elif pt == 'brown':
         calib = (hard_coded_calibration(metadata)
-                 or focal_ratio_calibration(metadata)
+                 or focal_xy_calibration(metadata)
                  or default_calibration(data))
         camera = types.BrownPerspectiveCamera()
         camera.id = metadata['camera']
         camera.width = metadata['width']
         camera.height = metadata['height']
         camera.projection_type = pt
-        camera.focal = calib['focal']
+        camera.focal_x = calib['focal_x']
+        camera.focal_y = calib['focal_y']
+        camera.c_x = calib['c_x']
+        camera.c_y = calib['c_y']
         camera.k1 = calib['k1']
         camera.k2 = calib['k2']
         camera.p1 = calib['p1']
         camera.p2 = calib['p2']
         camera.k3 = calib['k3']
-        camera.focal_prior = calib['focal']
+        camera.focal_x_prior = calib['focal_x']
+        camera.focal_y_prior = calib['focal_y']
+        camera.c_x_prior = calib['c_x']
+        camera.c_y_prior = calib['c_y']
         camera.k1_prior = calib['k1']
         camera.k2_prior = calib['k2']
+        camera.p1_prior = calib['p1']
+        camera.p2_prior = calib['p2']
+        camera.k3_prior = calib['k3']
         return camera
     elif pt in ['equirectangular', 'spherical']:
         camera = types.SphericalCamera()
