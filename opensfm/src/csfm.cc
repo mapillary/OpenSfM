@@ -6,8 +6,10 @@
 
 #include "types.h"
 #include "hahog.cc"
+#include "matching.h"
 #include "multiview.cc"
 #include "akaze_bind.h"
+#include "matching.h"
 #include "bundle/bundle_adjuster.h"
 #include "openmvs_exporter.h"
 #include "depthmap_bind.h"
@@ -72,6 +74,8 @@ PYBIND11_MODULE(csfm, m) {
         py::arg("target_num_features") = 0,
         py::arg("use_adaptive_suppression") = false
   );
+
+  m.def("match_using_words", csfm::match_using_words);
 
   m.def("triangulate_bearings_dlt", csfm::TriangulateBearingsDLT);
   m.def("triangulate_bearings_midpoint", csfm::TriangulateBearingsMidpoint);

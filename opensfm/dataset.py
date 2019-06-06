@@ -432,7 +432,7 @@ class DataSet(object):
         Return path of feature file for specified image
         :param image: Image name, with extension (i.e. 123.jpg)
         """
-        return os.path.join(self._feature_path(), image + '.npz')
+        return os.path.join(self._feature_path(), image + '.features.npz')
 
     def _save_features(self, filepath, points, descriptors, colors=None):
         io.mkdir_p(self._feature_path())
@@ -465,20 +465,18 @@ class DataSet(object):
     def save_feature_index(self, image, index):
         index.save(self._feature_index_file(image))
 
-    def _preemptive_features_file(self, image):
-        """
-        Return path of preemptive feature file (a short list of the full feature file)
-        for specified image
-        :param image: Image name, with extension (i.e. 123.jpg)
-        """
-        return os.path.join(self._feature_path(), image + '_preemptive' + '.npz')
+    def _words_file(self, image):
+        return os.path.join(self._feature_path(), image + '.words.npz')
 
-    def load_preemtive_features(self, image):
-        s = np.load(self._preemptive_features_file(image))
-        return s['points'], s['descriptors']
+    def words_exist(self, image):
+        return os.path.isfile(self._words_file(image))
 
-    def save_preemptive_features(self, image, points, descriptors):
-        self._save_features(self._preemptive_features_file(image), points, descriptors)
+    def load_words(self, image):
+        s = np.load(self._words_file(image))
+        return s['words'].astype(np.int32)
+
+    def save_words(self, image, words):
+        np.savez_compressed(self._words_file(image), words=words.astype(np.uint16))
 
     def _matches_path(self):
         """Return path of matches directory"""

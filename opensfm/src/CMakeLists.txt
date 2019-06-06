@@ -103,7 +103,13 @@ target_link_libraries(bundle PRIVATE
 
 
 # Python wrapper
-pybind11_add_module(csfm csfm.cc akaze_bind.cc depthmap.cc)
+pybind11_add_module(csfm
+    csfm.cc
+    types.cc
+    akaze_bind.cc
+    matching.cc
+    depthmap.cc
+)
 target_link_libraries(csfm PRIVATE
     ${OpenCV_LIBS}
     ${GFLAGS_LIBRARY}
