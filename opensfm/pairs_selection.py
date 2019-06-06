@@ -67,7 +67,6 @@ def match_candidates_with_bow(data, images, max_neighbors):
         order, other = bow_distances(im, images, words, None, bows)
         for i in order[:max_neighbors]:
             pairs.add(tuple(sorted((im, other[i]))))
-        logger.info("Candidates for %s are %s" % (im, str(pairs).translate(None, "'")))
     return pairs
 
 
