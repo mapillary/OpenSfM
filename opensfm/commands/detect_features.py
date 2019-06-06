@@ -56,7 +56,11 @@ def detect(args):
 
     log.setup()
 
-    if data.feature_index_exists(image):
+    need_words = data.config['matcher_type'] == 'WORDS' or data.config['matching_bow_neighbors'] > 0
+    has_words = not need_words or data.words_exist(image)
+    has_features = data.feature_index_exists(image)
+
+    if has_features and has_words:
         logger.info('Skip recomputing {} features for image {}'.format(
             data.feature_type().upper(), image))
         return
@@ -85,7 +89,7 @@ def detect(args):
     if data.config['matcher_type'] == 'FLANN':
         index = features.build_flann_index(f_sorted, data.config)
         data.save_feature_index(image, index)
-    if data.config['matcher_type'] == 'WORDS' or data.config['matching_bow_neighbors'] > 0:
+    if need_words:
         bows = bow.load_bows(data.config)
         n_closest = data.config['bow_words_to_match']
         closest_words = bows.map_to_words(
