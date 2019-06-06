@@ -53,7 +53,7 @@ void MatchUsingWords(const cv::Mat &f1,
         int match = it->second;
         const float *pa = f1.ptr<float>(i);
         const float *pb = f2.ptr<float>(match);
-        float distance = DistanceL1(pa, pb, f1.cols);
+        float distance = DistanceL2(pa, pb, f1.cols);
         if (distance < best_distance[i]) {
           second_best_distance[i] = best_distance[i];
           second_best_match[i] = best_match[i];
