@@ -230,18 +230,7 @@ class COLMAPDatabase(sqlite3.Connection):
                                           array_to_blob(F), array_to_blob(E), array_to_blob(H)))
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description='Convert OpenSfM dataset to COLMAP database')
-    parser.add_argument('dataset', help='path to the dataset to be processed')
-    args = parser.parse_args()
-
-    database_path = os.path.join(args.dataset, 'colmap_database.db')
-    data = dataset.DataSet(args.dataset)
-
-    db = COLMAPDatabase.connect(database_path)
-    db.create_tables()
-
+def export_cameras(data, db):
     camera_map = {}
     for camera_model, camera in data.load_camera_models().items():
         if data.camera_models_overrides_exists():
@@ -279,6 +268,10 @@ if __name__ == "__main__":
         image_id = db.add_image(image, camera_map[camera_model])
         images_map[image] = image_id
 
+    return images_map
+
+
+def export_features(data, db, images_map):
     features_map = {}
     for image in data.images():
         width = data.load_exif(image)['width']
@@ -287,7 +280,10 @@ if __name__ == "__main__":
         feat = features.denormalized_image_coordinates(feat, width, height)
         features_map[image] = feat
         db.add_keypoints(images_map[image], feat)
+    return features_map
 
+
+def export_matches(data, db, features_map):
     matches_per_pair = {}
     for image1 in data.images():
         matches = data.load_matches(image1)
@@ -312,6 +308,23 @@ if __name__ == "__main__":
             db.add_two_view_geometry(images_map[pair[0]], images_map[pair[1]],
                                      inliers, F=F)
             db.add_matches(images_map[pair[0]], images_map[pair[1]], inliers)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description='Convert OpenSfM dataset to COLMAP database')
+    parser.add_argument('dataset', help='path to the dataset to be processed')
+    args = parser.parse_args()
+
+    database_path = os.path.join(args.dataset, 'colmap_database.db')
+    data = dataset.DataSet(args.dataset)
+
+    db = COLMAPDatabase.connect(database_path)
+    db.create_tables()
+
+    images_map = export_cameras(data, db)
+    features_map = export_features(data, db, images_map)
+    export_matches(data, db, features_map)
 
     db.commit()
     db.close()
