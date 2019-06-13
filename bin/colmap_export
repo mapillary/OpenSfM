@@ -250,13 +250,25 @@ if __name__ == "__main__":
                 camera = overrides[camera_model]
 
         normalizer = max(camera.width, camera.height)
-        parameters = np.array((camera.focal*normalizer,
-                               camera.width/2, camera.height/2,
-                               camera.k1, camera.k2))
+
         if camera.projection_type == 'perspective':
+            parameters = np.array((camera.focal*normalizer,
+                                   camera.width/2, camera.height/2,
+                                   camera.k1, camera.k2))
             camera_id = db.add_camera(3, camera.width, camera.height,
                                       parameters)
+        if camera.projection_type == 'brown':
+            parameters = np.array((camera.focal_x*normalizer,
+                                   camera.focal_y*normalizer,
+                                   camera.width/2, camera.height/2,
+                                   camera.k1, camera.k2,
+                                   camera.p1, camera.p2))
+            camera_id = db.add_camera(4, camera.width, camera.height,
+                                      parameters)
         if camera.projection_type == 'fisheye':
+            parameters = np.array((camera.focal*normalizer,
+                                   camera.width/2, camera.height/2,
+                                   camera.k1, camera.k2))
             camera_id = db.add_camera(9, camera.width, camera.height,
                                       parameters)
         camera_map[camera_model] = camera_id
