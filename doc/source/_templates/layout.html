@@ -3,14 +3,18 @@
 {{ super() }}
 <style>
   @import url('https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,600,700&display=swap');
-  * {
-    font-family: 'Source Sans Pro', sans-serif!important;
+  html {
+    font-family: 'Source Sans Pro', sans-serif;
+  }
+  .highlight {
+    font-family: "Lucida Console", Monaco, monospace!important;
   }
   .wy-side-nav-search {
-    background: #05cb63;
+    background: #212b36;
   }
   .wy-side-nav-search input[type=text] {
-    border-color: #05cb63;
+    border-color: transparent;
+    
   }
   .wy-nav-side {
     background: #212b36;
@@ -25,11 +29,21 @@
   body {
     color: #212b36;
   }
+  .wy-nav-content-wrap {
+    background: #fcfcfc!important;
+  }
   .wy-side-nav-search>a:hover {
     color: #fff!important;
   }
   .highlight {
     background: #dee5ed;
+  }
+  .wy-menu-vertical li.on a, .wy-menu-vertical li.current>a {
+
+  }
+  .wy-menu-vertical li.toctree-l1.current>a {
+    border-top: 0;
+    border-bottom: 0;
   }
   .rst-content pre.literal-block, .rst-content div[class^='highlight'] {
     border-radius: 4px;
