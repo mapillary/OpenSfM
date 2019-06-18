@@ -4,6 +4,8 @@ import time
 
 from opensfm import dataset
 from opensfm import exif
+from opensfm.context import parallel_map
+from opensfm import log
 
 
 logger = logging.getLogger(__name__)
@@ -25,19 +27,28 @@ class Command:
         if data.exif_overrides_exists():
             exif_overrides = data.load_exif_overrides()
 
-        camera_models = {}
-        for image in data.images():
-            if data.exif_exists(image):
-                logging.info('Loading existing EXIF for {}'.format(image))
-                d = data.load_exif(image)
-            else:
-                logging.info('Extracting EXIF for {}'.format(image))
+        def extract_exif(image):
+            if not data.exif_exists(image):
+                log.setup()
+                logger.info('Extracting EXIF for {}'.format(image))
                 d = self._extract_exif(image, data)
 
                 if image in exif_overrides:
                     d.update(exif_overrides[image])
 
                 data.save_exif(image, d)
+
+        processes = min(data.config['processes'], 2) # Don't use all CPUs as we're I/O bound
+        if processes > 1:
+            parallel_map(extract_exif, data.images(), processes)
+        else:
+            for image in data.images():
+                extract_exif(image)
+
+        camera_models = {}
+        for image in data.images():
+            logging.info('Loading EXIF for {}'.format(image))
+            d = data.load_exif(image)
 
             if d['camera'] not in camera_models:
                 camera = exif.camera_from_exif_metadata(d, data)
