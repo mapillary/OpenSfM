@@ -1276,7 +1276,10 @@ def compute_statistics(reconstruction, graph):
 
     hist, values = _length_histogram(reconstruction.points, graph)
     stats['observations_count'] = int(sum(hist * values))
-    stats['average_track_length'] = float(stats['observations_count'])/len(reconstruction.points)
+    if len(reconstruction.points) > 0:
+        stats['average_track_length'] = float(stats['observations_count'])/len(reconstruction.points)
+    else:
+        stats['average_track_length'] = -1
     tracks_notwo = sum([1 if len(graph[p]) > 2 else 0 for p in reconstruction.points])
     if tracks_notwo > 0:
         stats['average_track_length_notwo'] = float(sum(hist[1:]*values[1:]))/tracks_notwo
