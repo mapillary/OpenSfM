@@ -2,15 +2,7 @@ import pytest
 import numpy as np
 
 from opensfm import reconstruction
-
 from opensfm.synthetic_data import synthetic_dataset
-from opensfm.synthetic_data import synthetic_examples
-
-
-@pytest.fixture(scope='module')
-def scene():
-    np.random.seed(42)
-    return synthetic_examples.synthetic_ellipse_scene()
 
 
 def test_reconstruction_incremental(scene):

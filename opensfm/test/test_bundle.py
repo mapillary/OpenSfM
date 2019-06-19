@@ -1,8 +1,11 @@
+import copy
 import numpy as np
 
 from opensfm import csfm
 from opensfm import geometry
+from opensfm import config
 from opensfm import types
+from opensfm import reconstruction
 
 
 def test_unicode_strings_in_bundle():
@@ -49,6 +52,36 @@ def test_sigleton_pan_tilt_roll():
     assert np.allclose(ptr, (pan, tilt, roll))
 
 
+def test_bundle_projection(scene):
+    reference = scene.get_reconstruction(0.01, [1.0] * 3, 0.1)
+    adjusted = copy.deepcopy(reference)
+
+    custom_config = config.default_config()
+    custom_config['bundle_use_gps'] = False
+    _, _, _, graph = scene.get_tracks_data(40, 1.0)
+    reconstruction.bundle(graph, adjusted, {}, custom_config)
+
+    all_errors = []
+    for p in adjusted.points.values():
+        all_errors += p.reprojection_errors.values()
+    assert np.std(all_errors) < 5e-3
+
+
+def test_bundle_projection_fixed_internals(scene):
+    reference = scene.get_reconstruction(0.01, [1.0] * 3, 0.1)
+    adjusted = copy.deepcopy(reference)
+
+    custom_config = config.default_config()
+    custom_config['bundle_use_gps'] = False
+    custom_config['optimize_camera_parameters'] = False
+    _, _, _, graph = scene.get_tracks_data(40, 1.0)
+    reconstruction.bundle(graph, adjusted, {}, custom_config)
+
+    assert reference.cameras['1'].focal == adjusted.cameras['1'].focal
+    assert reference.cameras['1'].k2 == adjusted.cameras['1'].k1
+    assert reference.cameras['1'].k1 == adjusted.cameras['1'].k2
+
+
 def test_pair():
     """Simple two camera test"""
     sa = csfm.BundleAdjuster()
@@ -63,7 +96,6 @@ def test_pair():
     sa.add_absolute_position('2', [2, 0, 0], 1)
 
     sa.run()
-    print(sa.brief_report())
     s1 = sa.get_shot('1')
     s2 = sa.get_shot('2')
     r12 = sa.get_reconstruction('12')

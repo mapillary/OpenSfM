@@ -84,14 +84,29 @@ class SyntheticScene(object):
         self.cameras.append(camera)
         return self
 
-    def get_reconstruction(self):
+    def get_reconstruction(self, rotation_noise=0.0,
+                           position_noise=0.0,
+                           camera_noise=0.0):
         floor_color = [120, 90, 10]
         wall_color = [10, 90, 130]
+
+        positions = self.shot_positions
+        if position_noise != 0.0:
+            for p in positions:
+                sg.perturb_points(p, position_noise)
+        rotations = self.shot_rotations
+        if position_noise != 0.0:
+            for r in rotations:
+                sg.perturb_rotations(r, rotation_noise)
+        cameras = self.cameras
+        if camera_noise != 0.0:
+            for c in cameras:
+                c.focal *= (1+camera_noise)
+
         return sg.create_reconstruction(
             [self.floor_points, self.wall_points],
             [floor_color, wall_color],
-            self.cameras, self.shot_positions,
-            self.shot_rotations)
+            cameras, positions, rotations)
 
     def get_scene_exifs(self, gps_noise):
         return sg.generate_exifs(self.get_reconstruction(),
