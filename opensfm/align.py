@@ -55,26 +55,38 @@ def align_reconstruction_similarity(reconstruction, gcp, config):
         return align_reconstruction_orientation_prior_similarity(
             reconstruction, config)
     elif align_method == 'naive':
-        return align_reconstruction_naive_similarity(reconstruction, gcp)
+        return align_reconstruction_naive_similarity(config, reconstruction, gcp)
 
 
-def align_reconstruction_naive_similarity(reconstruction, gcp):
+def align_reconstruction_naive_similarity(config, reconstruction, gcp):
     """Align with GPS and GCP data using direct 3D-3D matches."""
     X, Xp = [], []
 
     # Get Ground Control Point correspondences
-    if gcp:
+    if gcp and config['bundle_use_gcp']:
         triangulated, measured = triangulate_all_gcp(reconstruction, gcp)
         X.extend(triangulated)
         Xp.extend(measured)
 
     # Get camera center correspondences
-    for shot in reconstruction.shots.values():
-        X.append(shot.pose.get_origin())
-        Xp.append(shot.metadata.gps_position)
+    if config['bundle_use_gps']:
+        for shot in reconstruction.shots.values():
+            X.append(shot.pose.get_origin())
+            Xp.append(shot.metadata.gps_position)
 
-    if len(X) < 3:
-        return
+    if len(X) == 0:
+        return 1.0, np.identity(3), np.zeros((3))
+
+    # Translation-only case
+    if len(X) == 1:
+        t = Xp[0] - X[0]
+        return 1.0, np.identity(3), t
+
+    # For now, translation only, need to decide on a prior rotation
+    if len(X) == 2:
+        s = np.linalg.norm(Xp[0] - Xp[1])/np.linalg.norm(X[0] - X[1])
+        t = np.average(Xp, axis=0)-s*np.average(X, axis=0)
+        return s, np.identity(3), t
 
     # Compute similarity Xp = s A X + b
     X = np.array(X)
