@@ -38,12 +38,7 @@ class Command:
 
                 data.save_exif(image, d)
 
-        processes = min(data.config['processes'], 2) # Don't use all CPUs as we're I/O bound
-        if processes > 1:
-            parallel_map(extract_exif, data.images(), processes)
-        else:
-            for image in data.images():
-                extract_exif(image)
+        parallel_map(extract_exif, data.images(), data.config['processes'])
 
         camera_models = {}
         for image in data.images():
@@ -76,7 +71,7 @@ class Command:
 
         # Image Height and Image Width
         if d['width'] <= 0 or not data.config['use_exif_size']:
-            d['height'], d['width'] = data.load_image(image).shape[:2]
+            d['height'], d['width'] = data.image_size(image)
 
         d['camera'] = exif.camera_id(d)
 
