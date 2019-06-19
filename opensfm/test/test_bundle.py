@@ -52,19 +52,11 @@ def test_sigleton_pan_tilt_roll():
     assert np.allclose(ptr, (pan, tilt, roll))
 
 
-def test_bundle_projection(scene):
-    reference = scene.get_reconstruction(0.01, [1.0] * 3, 0.1)
-    adjusted = copy.deepcopy(reference)
-
-    custom_config = config.default_config()
-    custom_config['bundle_use_gps'] = False
-    _, _, _, graph = scene.get_tracks_data(40, 1.0)
-    reconstruction.bundle(graph, adjusted, {}, custom_config)
-
+def _projection_errors_std(points):
     all_errors = []
-    for p in adjusted.points.values():
+    for p in points.values():
         all_errors += p.reprojection_errors.values()
-    assert np.std(all_errors) < 5e-3
+    return np.std(all_errors)
 
 
 def test_bundle_projection_fixed_internals(scene):
@@ -77,9 +69,10 @@ def test_bundle_projection_fixed_internals(scene):
     _, _, _, graph = scene.get_tracks_data(40, 1.0)
     reconstruction.bundle(graph, adjusted, {}, custom_config)
 
+    assert _projection_errors_std(adjusted.points) < 5e-3
     assert reference.cameras['1'].focal == adjusted.cameras['1'].focal
-    assert reference.cameras['1'].k2 == adjusted.cameras['1'].k1
-    assert reference.cameras['1'].k1 == adjusted.cameras['1'].k2
+    assert reference.cameras['1'].k1 == adjusted.cameras['1'].k1
+    assert reference.cameras['1'].k2 == adjusted.cameras['1'].k2
 
 
 def test_pair():

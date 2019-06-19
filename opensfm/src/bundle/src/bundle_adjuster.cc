@@ -452,6 +452,35 @@ void BundleAdjuster::Run() {
     }
   }
 
+  for (auto &i : cameras_) {
+    if (i.second->constant) {
+      switch (i.second->type()) {
+        case BA_PERSPECTIVE_CAMERA: {
+          BAPerspectiveCamera &c =
+              static_cast<BAPerspectiveCamera &>(*i.second);
+          problem.AddParameterBlock(c.parameters, BA_CAMERA_NUM_PARAMS);
+          problem.SetParameterBlockConstant(c.parameters);
+          break;
+        }
+        case BA_BROWN_PERSPECTIVE_CAMERA: {
+          BABrownPerspectiveCamera &c =
+              static_cast<BABrownPerspectiveCamera &>(*i.second);
+          problem.AddParameterBlock(c.parameters, BA_BROWN_CAMERA_NUM_PARAMS);
+          problem.SetParameterBlockConstant(c.parameters);
+          break;
+        }
+        case BA_FISHEYE_CAMERA: {
+          BAFisheyeCamera &c = static_cast<BAFisheyeCamera &>(*i.second);
+          problem.AddParameterBlock(c.parameters, BA_CAMERA_NUM_PARAMS);
+          problem.SetParameterBlockConstant(c.parameters);
+          break;
+        }
+        case BA_EQUIRECTANGULAR_CAMERA:
+          // No parameters for now
+          break;
+      }
+    }
+  }
   for (auto &i : reconstructions_) {
     for (auto &s : i.second.scales) {
       if (i.second.constant) {
