@@ -431,7 +431,7 @@ def depthmap_to_ply(shot, depth, image):
             s = "{} {} {} {} {} {}".format(p[0], p[1], p[2], c[0], c[1], c[2])
             vertices.append(s)
 
-    return io.points_to_ply(vertices)
+    return io.points_to_ply_string(vertices)
 
 
 def point_cloud_to_ply(points, normals, colors, labels, detections, fp):
