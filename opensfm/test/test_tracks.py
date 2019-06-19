@@ -1,7 +1,7 @@
 from io import StringIO
 
-import opensfm.tracking
-import data_generation
+from opensfm import tracking
+from opensfm.test import data_generation
 
 
 def test_tracks_io():
@@ -10,9 +10,9 @@ def test_tracks_io():
     output = StringIO()
 
     tracks_before = d.tracks
-    opensfm.tracking.save_tracks_graph(output, tracks_before)
+    tracking.save_tracks_graph(output, tracks_before)
     output.seek(0)
-    tracks_after = opensfm.tracking.load_tracks_graph(output)
+    tracks_after = tracking.load_tracks_graph(output)
 
     assert len(tracks_before.nodes()) == len(tracks_after.nodes())
     assert len(tracks_before.edges()) == len(tracks_after.edges())

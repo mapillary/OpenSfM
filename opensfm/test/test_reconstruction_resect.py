@@ -1,4 +1,3 @@
-import data_generation
 import numpy as np
 import networkx as nx
 
@@ -6,6 +5,7 @@ from opensfm import reconstruction
 from opensfm import multiview
 from opensfm import config
 from opensfm import types
+from opensfm.test import data_generation
 
 
 def test_corresponding_tracks():

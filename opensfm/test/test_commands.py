@@ -1,7 +1,7 @@
 import argparse
 
 from opensfm import commands
-import data_generation
+from opensfm.test import data_generation
 
 
 def run_command(command, args):

@@ -1,6 +1,6 @@
 import numpy as np
 
-import data_generation
+from opensfm.test import data_generation
 
 
 def test_dataset_load_features_sift(tmpdir):

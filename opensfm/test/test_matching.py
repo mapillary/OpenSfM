@@ -1,9 +1,9 @@
 import numpy as np
 from six import iteritems
 
-import opensfm.config
-import opensfm.matching
-import data_generation
+from opensfm import config
+from opensfm import matching
+from opensfm.test import data_generation
 
 
 def test_robust_match():
@@ -16,9 +16,8 @@ def test_robust_match():
     inlier_matches = np.array([(i, i) for i in range(num_points)])
     outlier_matches = np.random.randint(num_points, size=(num_points // 2, 2))
     matches = np.concatenate((inlier_matches, outlier_matches))
-    config = opensfm.config.default_config()
-    rmatches = opensfm.matching.robust_match(p1, p2, camera1, camera2, matches,
-                                             config)
+    rmatches = matching.robust_match(p1, p2, camera1, camera2, matches,
+                                     config.default_config())
     assert num_points <= len(rmatches) <= len(matches)
 
 
