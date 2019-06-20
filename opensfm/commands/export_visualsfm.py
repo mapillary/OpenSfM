@@ -2,7 +2,6 @@ from __future__ import unicode_literals
 
 import logging
 import os
-from PIL import Image
 
 from opensfm import dataset
 from opensfm import transformations as tf
@@ -37,7 +36,7 @@ class Command:
         for shot in reconstruction.shots.values():
             q = tf.quaternion_from_matrix(shot.pose.get_rotation_matrix())
             o = shot.pose.get_origin()
-            size = max(self.image_size(shot.id, data))
+            size = max(data.undistorted_image_size(shot.id))
             words = [
                 self.image_path(shot.id, data),
                 shot.camera.focal * size,
@@ -55,17 +54,3 @@ class Command:
         """Path to the undistorted image relative to the dataset path."""
         path = data._undistorted_image_file(image)
         return os.path.relpath(path, data.data_path)
-
-    def image_size(self, image, data):
-        """
-        Height and width of the undistorted image.
-        """
-        try:
-            file_path = data._undistorted_image_file(image)
-            with Image.open(file_path) as img:
-                width, height = img.size
-                return height, width
-        except:
-            # Slower fallback
-            image = data.load_undistorted_image(image)
-            return image.shape[:2]

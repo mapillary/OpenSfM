@@ -65,7 +65,7 @@ class Command:
 
         # Image Height and Image Width
         if d['width'] <= 0 or not data.config['use_exif_size']:
-            d['height'], d['width'] = data.load_image(image).shape[:2]
+            d['height'], d['width'] = data.image_size(image)
 
         d['camera'] = exif.camera_id(d)
 
