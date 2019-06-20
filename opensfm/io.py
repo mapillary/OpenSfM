@@ -13,6 +13,7 @@ import sys
 import cv2
 import numpy as np
 import pyproj
+from PIL import Image
 from six import iteritems
 
 from opensfm import geo
@@ -649,15 +650,27 @@ def imread(filename, grayscale=False, unchanged=False):
         raise IOError("Unable to load image {}".format(filename))
 
     if len(image.shape) == 3:
-        image[:,:,:3] = image[:, :, [2,1,0]]  # Turn BGR to RGB (or BGRA to RGBA)
+        image[:, :, :3] = image[:, :, [2, 1, 0]]  # Turn BGR to RGB (or BGRA to RGBA)
     return image
 
 
 def imwrite(filename, image):
     """Write an image to a file"""
-    if len(image.shape) == 3 :
-        image[:,:,:3] = image[:, :, [2,1,0]]  # Turn RGB to BGR (or RGBA to BGRA)
+    if len(image.shape) == 3:
+        image[:, :, :3] = image[:, :, [2, 1, 0]]  # Turn RGB to BGR (or RGBA to BGRA)
     cv2.imwrite(filename, image)
+
+
+def image_size(filename):
+    """Height and width of an image."""
+    try:
+        with Image.open(filename) as img:
+            width, height = img.size
+            return height, width
+    except:
+        # Slower fallback
+        image = imread(filename)
+        return image.shape[:2]
 
 
 # Bundler
