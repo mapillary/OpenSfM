@@ -84,7 +84,7 @@ def align_reconstruction_naive_similarity(config, reconstruction, gcp):
 
     # For now, translation only, need to decide on a prior rotation
     if len(X) == 2:
-        s = np.linalg.norm(Xp[0] - Xp[1])/np.linalg.norm(X[0] - X[1])
+        s = np.linalg.norm(Xp[0] - Xp[1])/np.linalg.norm(np.array(X[0]) - np.array(X[1]))
         t = np.average(Xp, axis=0)-s*np.average(X, axis=0)
         return s, np.identity(3), t
 
