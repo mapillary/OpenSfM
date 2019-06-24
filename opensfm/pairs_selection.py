@@ -87,12 +87,17 @@ def match_candidates_by_distance(images, exifs, reference, max_neighbors, max_di
 
 
 def match_candidates_with_bow(data, images, exifs, reference, max_neighbors,
-                              max_gps_distance, max_gps_neighbors):
+                              max_gps_distance, max_gps_neighbors,
+                              enforce_other_cameras):
     """Find candidate matching pairs using BoW-based distance.
 
     If max_gps_distance > 0, then we use first restrain a set of
     candidates using max_gps_neighbors neighbors selected using
     GPS distance.
+
+    If enforce_other_cameras is True, we keep max_neighbors images
+    with same cameras AND  max_neighbors images from any other different
+    camera.
     """
     if max_neighbors <= 0:
         return set()
@@ -107,15 +112,42 @@ def match_candidates_with_bow(data, images, exifs, reference, max_neighbors,
             preempted[p[0]].append(p[1])
             preempted[p[1]].append(p[0])
 
-
     words = {im: data.load_words(im) for im in preempted}
     bows = bow.load_bows(data.config)
 
     pairs = set()
     for im in images:
         order, other = bow_distances(im, preempted[im], words, None, bows)
-        for i in order[:max_neighbors]:
-            pairs.add(tuple(sorted((im, other[i]))))
+        if enforce_other_cameras:
+            pairs.union(_pairs_from_neighbors(im, exifs, order, other, max_neighbors))
+        else:
+            for i in order[:max_neighbors]:
+                pairs.add(tuple(sorted((im, other[i]))))
+    return pairs
+
+
+def _pairs_from_neighbors(image, exifs, order, other, max_neighbors):
+    """Construct matching pairs given closest ordered neighbors.
+
+    Pairs will of form (image, im2), im2 being the closest max_neighbors
+    given by (order, other) having the same cameras OR the closest max_neighbors
+    having from any other camera.
+    """
+    same_camera, other_cameras = [], []
+    for i in order:
+        im2 = other[i]
+        if exifs[im2]['camera'] == exifs[image]['camera']:
+            if len(same_camera) < max_neighbors:
+                same_camera.append(im2)
+        else:
+            if len(other_cameras) < max_neighbors:
+                other_cameras.append(im2)
+        if len(same_camera) + len(other_cameras) >= 2 * max_neighbors:
+            break
+
+    pairs = set()
+    for im2 in same_camera+other_cameras:
+        pairs.add(tuple(sorted((image, im2))))
     return pairs
 
 
@@ -163,6 +195,9 @@ def match_candidates_from_metadata(images, exifs, data):
     time_neighbors = data.config['matching_time_neighbors']
     order_neighbors = data.config['matching_order_neighbors']
     bow_neighbors = data.config['matching_bow_neighbors']
+    bow_gps_distance = data.config['matching_bow_gps_distance']
+    bow_gps_neighbors = data.config['matching_bow_gps_neighbors']
+    bow_other_cameras = data.config['matching_bow_other_cameras']
 
     if not data.reference_lla_exists():
         data.invent_reference_lla()
@@ -188,7 +223,9 @@ def match_candidates_from_metadata(images, exifs, data):
                                          gps_neighbors, max_distance)
         t = match_candidates_by_time(images, exifs, time_neighbors)
         o = match_candidates_by_order(images, order_neighbors)
-        b = match_candidates_with_bow(data, images, bow_neighbors)
+        b = match_candidates_with_bow(data, images, exifs, reference, bow_neighbors,
+                                      bow_gps_distance, bow_gps_neighbors,
+                                      bow_other_cameras)
         pairs = d | t | o | b
 
     res = {im: [] for im in images}
