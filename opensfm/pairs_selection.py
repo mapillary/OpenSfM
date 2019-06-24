@@ -1,5 +1,6 @@
 import logging
 from itertools import combinations
+from collections import defaultdict
 import numpy as np
 
 import scipy.spatial as spatial
@@ -54,22 +55,6 @@ def bow_distances(image, other_images, words, masks, bows):
     return np.argsort(distances), other
 
 
-def match_candidates_with_bow(data, images, max_neighbors):
-    """Find candidate matching pairs using BoW-based distance."""
-    if max_neighbors <= 0:
-        return set()
-
-    words = {im: data.load_words(im) for im in images}
-    bows = bow.load_bows(data.config)
-
-    pairs = set()
-    for im in images:
-        order, other = bow_distances(im, images, words, None, bows)
-        for i in order[:max_neighbors]:
-            pairs.add(tuple(sorted((im, other[i]))))
-    return pairs
-
-
 def match_candidates_by_distance(images, exifs, reference, max_neighbors, max_distance):
     """Find candidate matching pairs by GPS distance.
 
@@ -98,6 +83,39 @@ def match_candidates_by_distance(images, exifs, reference, max_neighbors, max_di
         for j in neighbors:
             if i != j and j < len(images):
                 pairs.add(tuple(sorted((images[i], images[j]))))
+    return pairs
+
+
+def match_candidates_with_bow(data, images, exifs, reference, max_neighbors,
+                              max_gps_distance, max_gps_neighbors):
+    """Find candidate matching pairs using BoW-based distance.
+
+    If max_gps_distance > 0, then we use first restrain a set of
+    candidates using max_gps_neighbors neighbors selected using
+    GPS distance.
+    """
+    if max_neighbors <= 0:
+        return set()
+
+    preempted = {im: images for im in images}
+    if max_gps_distance > 0 or max_gps_neighbors > 0:
+        gps_pairs = match_candidates_by_distance(images, exifs, reference,
+                                                 max_gps_neighbors,
+                                                 max_gps_distance)
+        preempted = defaultdict(list)
+        for p in gps_pairs:
+            preempted[p[0]].append(p[1])
+            preempted[p[1]].append(p[0])
+
+
+    words = {im: data.load_words(im) for im in preempted}
+    bows = bow.load_bows(data.config)
+
+    pairs = set()
+    for im in images:
+        order, other = bow_distances(im, preempted[im], words, None, bows)
+        for i in order[:max_neighbors]:
+            pairs.add(tuple(sorted((im, other[i]))))
     return pairs
 
 
