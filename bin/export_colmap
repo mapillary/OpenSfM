@@ -331,7 +331,7 @@ def export_cameras_reconstruction(data, db, path, camera_map):
                     k1 = camera.k1
                     k2 = camera.k2
                     fout.write('%d %s %d %d %f %f %f %f %f\n' %
-                               (colmap_id, colmap_type, w, h, f, 0.0, 0.0, k1, k2))
+                               (colmap_id, colmap_type, w, h, f, w*0.5, h*0.5, k1, k2))
                 elif camera.projection_type == 'brown':
                     f_x = camera.focal_x*normalizer
                     f_y = camera.focal_y*normalizer
@@ -351,7 +351,7 @@ def export_cameras_reconstruction(data, db, path, camera_map):
                     k1 = camera.k1
                     k2 = camera.k2
                     fout.write('%d %s %d %d %f %f %f %f %f\n' %
-                               (colmap_id, colmap_type, w, h, f, 0.0, 0.0, k1, k2))
+                               (colmap_id, colmap_type, w, h, f, w*0.5, h*0.5, k1, k2))
 
 
 def export_shots_reconstruction(data, db, path, camera_map, images_map,
