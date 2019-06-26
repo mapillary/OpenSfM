@@ -5,7 +5,7 @@ import resource
 import sys
 
 import cv2
-from loky import get_reusable_executor
+from joblib import Parallel, parallel_backend, delayed
 
 from opensfm import log
 
@@ -37,8 +37,8 @@ def parallel_map(func, args, num_proc):
     if num_proc <= 1:
         return list(map(func, args))
     else:
-        with get_reusable_executor(max_workers=num_proc, timeout=None) as e:
-            return list(e.map(func, args))
+        with parallel_backend('loky', n_jobs=num_proc):
+            return Parallel()(delayed(func)(arg) for arg in args)
 
 
 # Memory usage
