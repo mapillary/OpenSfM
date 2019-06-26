@@ -103,7 +103,7 @@ def match_candidates_with_bow(data, images_ref, images_cand,
     # parralel BoW neighbors computation
     processes = context.processes_that_fit_in_memory(data.config['processes'])
     logger.info("Computing BoW candidates with %d processes" % processes)
-    results = context.parallel_map(match_bow_unwrap_args, args, 1)
+    results = context.parallel_map(match_bow_unwrap_args, args, processes)
 
     # construct final sets of pairs to match
     pairs = set()
@@ -203,7 +203,7 @@ def match_candidates_from_metadata(images_ref, images_cand, exifs, data):
         t = set()
         o = set()
         b = set()
-        pairs = combinations(images, 2)
+        pairs = set([tuple(sorted(i, j)) for i in images_ref for j in images_cand])
     else:
         d = match_candidates_by_distance(images_ref, images_cand, exifs, reference,
                                          gps_neighbors, max_distance)
@@ -234,6 +234,9 @@ def bow_distances(image, other_images, histograms):
 
         Can use optionaly masks for discarding some features
     """
+    if image not in histograms:
+        return image, [], []
+
     distances = []
     other = []
     h = histograms[image]
