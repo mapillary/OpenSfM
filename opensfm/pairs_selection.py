@@ -6,8 +6,7 @@ import numpy as np
 import scipy.spatial as spatial
 
 from opensfm import bow
-from opensfm import pair_selection_utils as utils
-from opensfm.context import parallel_map
+from opensfm import context
 
 
 logger = logging.getLogger(__name__)
@@ -34,7 +33,6 @@ def match_candidates_by_distance(images_ref, images_cand, exifs, reference,
     max_distance = max_distance or 99999999.
     k = min(len(images_cand), max_neighbors)
 
-    # for same sets, add a dummy neighbor for self-query
     if(images_ref == images_cand):
         k = k + 1
 
@@ -97,49 +95,47 @@ def match_candidates_with_bow(data, images_ref, images_cand,
     for v in preempted_cand.values():
         need_load.update(v)
 
-    ctx = DummyContext()
-    ctx.words = {im: utils.keep_first_word(data.load_words(im)) for im in need_load}
-    ctx.data = data
-    ctx.exifs = exifs
-    ctx.masks = {} # {feature_loader.load_masks(data, im) for im in preempted_cand}
-    args = list(match_bow_arguments(preempted_cand, ctx))
+    # construct BoW histograms
+    logger.info("Computing %d BoW histograms" % len(need_load))
+    histograms = load_histograms(data, need_load)
+    args = list(match_bow_arguments(preempted_cand, histograms))
 
     # parralel BoW neighbors computation
-    processes = utils.processes_that_fit_in_memory(data.config['processes'])
-    logger.info("== Computing BoW candidates with %d processes" % processes)
-    results = parallel_map(match_bow_unwrap_args, args, processes)
+    processes = context.processes_that_fit_in_memory(data.config['processes'])
+    logger.info("Computing BoW candidates with %d processes" % processes)
+    results = context.parallel_map(match_bow_unwrap_args, args, 1)
 
     # construct final sets of pairs to match
     pairs = set()
     for im, order, other in results:
         if enforce_other_cameras:
-            pairs.union(pairs_from_neighbors(im, exifs, order, other, max_neighbors))
+            pairs = pairs.union(pairs_from_neighbors(im, exifs, order, other, max_neighbors))
         else:
             for i in order[:max_neighbors]:
                 pairs.add(tuple(sorted((im, other[i]))))
     return pairs
 
 
-def match_bow_arguments(candidates, ctx):
+def match_bow_arguments(candidates, histograms):
+    """ Generate arguments for parralel processing of BoW """
     for im, cands in candidates.items():
-        yield (im, cands, ctx.words, ctx.masks, ctx.data)
+        yield (im, cands, histograms)
 
 
 def match_bow_unwrap_args(args):
-    image, other_images, words, masks, data = args
-    bows = bow.load_bows(data.config)
-    return bow_distances(image, other_images, words, masks, bows)
-
-
-class DummyContext:
-    pass
+    """ Wrapper for parralel processing of BoW """
+    image, other_images, histograms = args
+    return bow_distances(image, other_images, histograms)
 
 
 def match_candidates_by_time(images_ref, images_cand, exifs, max_neighbors):
     """Find candidate matching pairs by time difference."""
     if max_neighbors <= 0:
         return set()
-    k = min(len(images_cand), max_neighbors + 1)
+    k = min(len(images_cand), max_neighbors)
+
+    if(images_ref == images_cand):
+        k = k + 1
 
     times = np.zeros((len(images_cand), 1))
     for i, image in enumerate(images_cand):
@@ -232,41 +228,44 @@ def match_candidates_from_metadata(images_ref, images_cand, exifs, data):
     return res, report
 
 
-def bow_distances(image, other_images, words, masks, bows):
+def bow_distances(image, other_images, histograms):
     """ Compute BoW-based distance (L1 on histogram of words)
         between an image and other images.
 
         Can use optionaly masks for discarding some features
     """
-    # params
-    min_num_feature = 8
-
-    if words[image] is None:
-        logger.error("Could not load words for image {}".format(image))
-        return []
-
-    filtered_words = words[image][masks[image]] if masks else words[image]
-    if len(filtered_words) <= min_num_feature:
-        logger.warning("Too few filtered features in image {}: {}".format(
-            image, len(filtered_words)))
-        return []
-
-    # Compute distance
     distances = []
     other = []
-    h = bows.histogram(filtered_words[:, 0])
+    h = histograms[image]
     for im2 in other_images:
-        if im2 != image and words[im2] is not None:
-            im2_words = words[im2][masks[im2]] if masks else words[im2]
-            if len(im2_words) > min_num_feature:
-                h2 = bows.histogram(im2_words[:, 0])
-                distances.append(np.fabs(h - h2).sum())
-                other.append(im2)
-            else:
-                logger.warning(
-                    "Too few features in matching image {}: {}".format(
-                        im2, len(words[im2])))
+        if im2 != image and im2 in histograms:
+            h2 = histograms[im2]
+            distances.append(np.fabs(h - h2).sum())
+            other.append(im2)
     return image, np.argsort(distances), other
+
+
+def load_histograms(data, images):
+    """ Load BoW histograms of given images """
+    min_num_feature = 8
+
+    histograms = {}
+    bows = bow.load_bows(data.config)
+    for im in images:
+        words = data.load_words(im)
+        if words is None:
+            logger.error("Could not load words for image {}".format(image))
+            continue
+
+        mask = data.load_masks(data, im) if hasattr(data, 'load_masks') else None
+        filtered_words = words[mask] if mask else words
+        if len(filtered_words) <= min_num_feature:
+            logger.warning("Too few filtered features in image {}: {}".format(
+                im, len(filtered_words)))
+            continue
+
+        histograms[im] = bows.histogram(words[:, 0])
+    return histograms
 
 
 def pairs_from_neighbors(image, exifs, order, other, max_neighbors):
