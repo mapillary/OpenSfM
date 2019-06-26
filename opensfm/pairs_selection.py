@@ -6,6 +6,7 @@ import numpy as np
 import scipy.spatial as spatial
 
 from opensfm import bow
+from opensfm import pair_selection_utils as utils
 from opensfm.context import parallel_map
 
 
@@ -31,7 +32,11 @@ def match_candidates_by_distance(images_ref, images_cand, exifs, reference,
         return set()
     max_neighbors = max_neighbors or 99999999
     max_distance = max_distance or 99999999.
-    k = min(len(images_cand), max_neighbors + 1)
+    k = min(len(images_cand), max_neighbors)
+
+    # for same sets, add a dummy neighbor for self-query
+    if(images_ref == images_cand):
+        k = k + 1
 
     points = np.zeros((len(images_cand), 3))
     for i, image in enumerate(images_cand):
@@ -43,15 +48,17 @@ def match_candidates_by_distance(images_ref, images_cand, exifs, reference,
 
     pairs = set()
     for image_ref in images_ref:
-        gps = exifs[image]['gps']
+        gps = exifs[image_ref]['gps']
         point = reference.to_topocentric(
             gps['latitude'], gps['longitude'], 0)
         distances, neighbors = tree.query(
             point, k=k, distance_upper_bound=max_distance)
 
         for j in neighbors:
+            if j >= len(images_cand):
+                continue
             image_cand = images_cand[j]
-            if image_cand != image_ref and j < len(images_cand):
+            if image_cand != image_ref:
                 pairs.add(tuple(sorted((image_ref, image_cand))))
     return pairs
 
@@ -73,6 +80,7 @@ def match_candidates_with_bow(data, images_ref, images_cand,
     if max_neighbors <= 0:
         return set()
 
+    # preempt candidates images using GPS
     preempted_cand = {im: images_cand for im in images_ref}
     if max_gps_distance > 0 or max_gps_neighbors > 0:
         gps_pairs = match_candidates_by_distance(images_ref, images_cand,
@@ -82,27 +90,30 @@ def match_candidates_with_bow(data, images_ref, images_cand,
         preempted_cand = defaultdict(list)
         for p in gps_pairs:
             preempted_cand[p[0]].append(p[1])
+            preempted_cand[p[1]].append(p[0])
 
+    # reduce sets of images from which to load words (RAM saver)
     need_load = set(preempted_cand.keys())
     for v in preempted_cand.values():
-        preempted_cand.update(v)
+        need_load.update(v)
 
     ctx = DummyContext()
-    ctx.words = {im: _keep_first_word(data.load_words(im)) for im in preempted_cand}
-    ctx.bows = bow.load_bows(data.config)
+    ctx.words = {im: utils.keep_first_word(data.load_words(im)) for im in need_load}
+    ctx.data = data
     ctx.exifs = exifs
     ctx.masks = {} # {feature_loader.load_masks(data, im) for im in preempted_cand}
     args = list(match_bow_arguments(preempted_cand, ctx))
 
-    start = timer()
-    processes = data.config['processes']
+    # parralel BoW neighbors computation
+    processes = utils.processes_that_fit_in_memory(data.config['processes'])
+    logger.info("== Computing BoW candidates with %d processes" % processes)
     results = parallel_map(match_bow_unwrap_args, args, processes)
-    end = timer()
 
+    # construct final sets of pairs to match
     pairs = set()
     for im, order, other in results:
         if enforce_other_cameras:
-            pairs.union(_pairs_from_neighbors(im, exifs, order, other, max_neighbors))
+            pairs.union(pairs_from_neighbors(im, exifs, order, other, max_neighbors))
         else:
             for i in order[:max_neighbors]:
                 pairs.add(tuple(sorted((im, other[i]))))
@@ -111,11 +122,12 @@ def match_candidates_with_bow(data, images_ref, images_cand,
 
 def match_bow_arguments(candidates, ctx):
     for im, cands in candidates.items():
-        yield (im, cands, ctx.words, ctx.masks, ctx.bows)
+        yield (im, cands, ctx.words, ctx.masks, ctx.data)
 
 
 def match_bow_unwrap_args(args):
-    args = image, other_images, words, masks, bows
+    image, other_images, words, masks, data = args
+    bows = bow.load_bows(data.config)
     return bow_distances(image, other_images, words, masks, bows)
 
 
@@ -140,8 +152,10 @@ def match_candidates_by_time(images_ref, images_cand, exifs, max_neighbors):
         time = exifs[image_ref]['capture_time']
         distances, neighbors = tree.query(time, k=k)
         for j in neighbors:
+            if j >= len(images_cand):
+                continue
             image_cand = images_cand[j]
-            if image_ref != image_cand and j < len(images):
+            if image_ref != image_cand:
                 pairs.add(tuple(sorted((image_ref, image_cand))))
     return pairs
 
@@ -212,7 +226,7 @@ def match_candidates_from_metadata(images_ref, images_cand, exifs, data):
     report = {
         "num_pairs_distance": len(d),
         "num_pairs_time": len(t),
-        "num_pairs_order": len(o)
+        "num_pairs_order": len(o),
         "num_pairs_bow": len(b)
     }
     return res, report
@@ -255,19 +269,7 @@ def bow_distances(image, other_images, words, masks, bows):
     return image, np.argsort(distances), other
 
 
-def _keep_first_word(words):
-    """Keep only the first word of each feature.
-
-    This is useful to free memory when only the first word is going to
-    be used.  It copies the array so that the original words array can
-    be freed.
-    """
-    if words is None or len(words) == 0:
-        return words
-    return words[:, :1].copy()
-
-
-def _pairs_from_neighbors(image, exifs, order, other, max_neighbors):
+def pairs_from_neighbors(image, exifs, order, other, max_neighbors):
     """Construct matching pairs given closest ordered neighbors.
 
     Pairs will of form (image, im2), im2 being the closest max_neighbors
