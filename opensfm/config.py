@@ -59,8 +59,8 @@ matching_gps_neighbors: 0             # Number of images to match selected by GP
 matching_time_neighbors: 0            # Number of images to match selected by time taken. Set to 0 to disable
 matching_order_neighbors: 0           # Number of images to match selected by image name. Set to 0 to disable
 matching_bow_neighbors: 0             # Number of images to match selected by BoW distance. Set to 0 to disable
-matching_bow_gps_distance: 0          # Maximum gps distance to preempt images before using selection by BoW distance. Set to 0 to disable
-matching_bow_gps_neighbors: 0         # Number of images (selected by GPS distance) to preempt before using selection by BoW distance. Set to 0 to use no limit (or disable if matching_gps_distance is also 0)
+matching_bow_gps_distance: 0          # Maximum GPS distance for preempting images before using selection by BoW distance. Set to 0 to disable
+matching_bow_gps_neighbors: 0         # Number of images (selected by GPS distance) to preempt before using selection by BoW distance. Set to 0 to use no limit (or disable if matching_bow_gps_distance is also 0)
 matching_bow_other_cameras: False     # If True, BoW image selection will use N neighbors from the same camera + N neighbors from any different camera.
 
 # Params for geometric estimation

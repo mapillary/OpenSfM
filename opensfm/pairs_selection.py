@@ -231,8 +231,6 @@ def match_candidates_from_metadata(images_ref, images_cand, exifs, data):
 def bow_distances(image, other_images, histograms):
     """ Compute BoW-based distance (L1 on histogram of words)
         between an image and other images.
-
-        Can use optionaly masks for discarding some features
     """
     if image not in histograms:
         return image, [], []
@@ -257,7 +255,7 @@ def load_histograms(data, images):
     for im in images:
         words = data.load_words(im)
         if words is None:
-            logger.error("Could not load words for image {}".format(image))
+            logger.error("Could not load words for image {}".format(im))
             continue
 
         mask = data.load_masks(data, im) if hasattr(data, 'load_masks') else None
