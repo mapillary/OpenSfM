@@ -69,6 +69,7 @@ def match(im1, im2, camera1, camera2,
                                       p1, camera1,
                                       p2, camera2)
 
+    matches = np.array(matches, dtype=int)
     time_2d_matching = timer() - time_start
     t = timer()
 
@@ -102,7 +103,7 @@ def match(im1, im2, camera1, camera2,
             im1, im2, matcher_type,
             time_2d_matching, time_robust_matching, time_total,
             len(matches), len(rmatches)))
-    return rmatches
+    return np.array(rmatches, dtype=int)
 
 
 def match_words(f1, words1, f2, words2, config):
@@ -131,13 +132,12 @@ def match_words_symmetric(f1, words1, f2, words2, config):
         w2: the nth closest words for each feature in the second image
         config: config parameters
     """
-    matches_ij = match_words(f1, words1, f2, words2, config)
-    matches_ji = match_words(f2, words2, f1, words1, config)
+    matches_ij = match_words(f1, words1, f2, words2[:, 0], config)
+    matches_ji = match_words(f2, words2, f1, words1[:, 0], config)
     matches_ij = [(a, b) for a, b in matches_ij]
     matches_ji = [(b, a) for a, b in matches_ji]
 
-    matches = set(matches_ij).intersection(set(matches_ji))
-    return np.array(list(matches), dtype=int)
+    return list(set(matches_ij).intersection(set(matches_ji)))
 
 
 def match_flann(index, f2, config):
@@ -152,8 +152,7 @@ def match_flann(index, f2, config):
     results, dists = index.knnSearch(f2, 2, params=search_params)
     squared_ratio = config['lowes_ratio']**2  # Flann returns squared L2 distances
     good = dists[:, 0] < squared_ratio * dists[:, 1]
-    matches = list(zip(results[good, 0], good.nonzero()[0]))
-    return np.array(matches, dtype=int)
+    return list(zip(results[good, 0], good.nonzero()[0]))
 
 
 def match_flann_symmetric(fi, indexi, fj, indexj, config):
@@ -169,8 +168,7 @@ def match_flann_symmetric(fi, indexi, fj, indexj, config):
     matches_ij = [(a, b) for a, b in match_flann(indexi, fj, config)]
     matches_ji = [(b, a) for a, b in match_flann(indexj, fi, config)]
 
-    matches = set(matches_ij).intersection(set(matches_ji))
-    return np.array(list(matches), dtype=int)
+    return list(set(matches_ij).intersection(set(matches_ji)))
 
 
 def match_brute_force(f1, f2, config):
@@ -196,8 +194,7 @@ def match_brute_force(f1, f2, config):
             m, n = match
             if m.distance < ratio * n.distance:
                 good_matches.append(m)
-    good_matches = _convert_matches_to_vector(good_matches)
-    return np.array(good_matches, dtype=int)
+    return _convert_matches_to_vector(good_matches)
 
 
 def _convert_matches_to_vector(matches):
@@ -222,8 +219,7 @@ def match_brute_force_symmetric(fi, fj, config):
     matches_ij = [(a, b) for a, b in match_brute_force(fi, fj, config)]
     matches_ji = [(b, a) for a, b in match_brute_force(fj, fi, config)]
 
-    matches = set(matches_ij).intersection(set(matches_ji))
-    return np.array(list(matches), dtype=int)
+    return list(set(matches_ij).intersection(set(matches_ji)))
 
 
 def robust_match_fundamental(p1, p2, matches, config):
