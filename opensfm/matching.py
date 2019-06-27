@@ -3,12 +3,106 @@ import cv2
 import pyopengv
 import logging
 
+from timeit import default_timer as timer
+
 from opensfm import csfm
 from opensfm import context
 from opensfm import multiview
 
 
 logger = logging.getLogger(__name__)
+
+
+def match(im1, im2, camera1, camera2,
+          p1, p2, f1, f2, w1, w2, m1, m2, data):
+    """ Perform matching for a pair of images
+
+    Given a pair of images (1,2) and their :
+    - features position p
+    - features descriptor f
+    - descriptor BoW assignments w
+    - mask selection m
+    - camera
+    Compute 2D + robust geometric matching (either E or F-matrix)
+    """
+    if p1 is None or p2 is None:
+        return []
+
+    # Apply mask to features if any
+    time_start = timer()
+    f1_filtered = f1 if m1 is None else f1[m1]
+    f2_filtered = f2 if m2 is None else f2[m2]
+
+    config = data.config
+    matcher_type = config['matcher_type'].upper()
+
+    if matcher_type == 'WORDS':
+        w1_filtered = w1 if m1 is None else w1[m1]
+        w2_filtered = w2 if m2 is None else w2[m2]
+        matches = csfm.match_using_words(
+            f1_filtered, w1_filtered,
+            f2_filtered, w2_filtered[:, 0],
+            data.config['lowes_ratio'],
+            data.config['bow_num_checks'])
+    elif matcher_type == 'WORDS_SYMMETRIC':
+        w1_filtered = w1 if m1 is None else w1[m1]
+        w2_filtered = w2 if m2 is None else w2[m2]
+        matches = match_words_symmetric(
+            f1_filtered, w1_filtered,
+            f2_filtered, w2_filtered, config)
+    elif matcher_type == 'FLANN':
+        i1 = data.load_feature_index(im1, f1)
+        i2 = data.load_feature_index(im2, f2)
+        matches = match_flann_symmetric(f1, i1, f2, i2, config)
+    elif matcher_type == 'BRUTEFORCE':
+        matches = match_brute_force_symmetric(f1, f2, config)
+    else:
+        raise ValueError("Invalid matcher_type: {}".format(matcher_type))
+
+    # From indexes in filtered sets, to indexes in original sets of features
+    if m1 and m2:
+        matches = unfilter_matches(matches, m1, m2)
+
+    # Adhoc filters
+    if config['matching_use_filters']:
+        matches = apply_adhoc_filters(data, matches,
+                                      p1, camera1,
+                                      p2, camera2)
+
+    time_2d_matching = timer() - time_start
+    t = timer()
+
+    robust_matching_min_match = config['robust_matching_min_match']
+    if len(matches) < robust_matching_min_match:
+        logger.debug(
+            'Matching {} and {}.  Matcher: {} T-desc: {:1.3f} '
+            'Matches: FAILED'.format( im1, im2, matcher_type, time_2d_matching))
+        return []
+
+    # robust matching
+    rmatches = robust_match(p1, p2, camera1, camera2, matches, config)
+    rmatches = np.array([[a, b] for a, b in rmatches])
+    time_robust_matching = timer() - t
+    time_total = timer() - time_start
+
+    if len(rmatches) < robust_matching_min_match:
+        logger.debug(
+            'Matching {} and {}.  Matcher: {} '
+            'T-desc: {:1.3f} T-robust: {:1.3f} T-total: {:1.3f} '
+            'Matches: {} Robust: FAILED'.format(
+                im1, im2, matcher_type,
+                time_2d_matching, time_robust_matching, time_total,
+                len(matches)))
+        return []
+
+    logger.debug(
+        'Matching {} and {}.  Matcher: {} '
+        'T-desc: {:1.3f} T-robust: {:1.3f} T-total: {:1.3f} '
+        'Matches: {} Robust: {}'.format(
+            im1, im2, matcher_type,
+            time_2d_matching, time_robust_matching, time_total,
+            len(matches), len(rmatches)))
+    return rmatches
 
 
 def match_words(f1, words1, f2, words2, config):
@@ -207,3 +301,106 @@ def robust_match(p1, p2, camera1, camera2, matches, config):
         return robust_match_fundamental(p1, p2, matches, config)[1]
     else:
         return robust_match_calibrated(p1, p2, camera1, camera2, matches, config)
+
+
+def unfilter_matches(matches, m1, m2):
+    """ Given matches ans masking arrays, get matches with un-masked indexes """
+    i1 = np.flatnonzero(m1)
+    i2 = np.flatnonzero(m2)
+    return np.array([(i1[match[0]], i2[match[1]]) for match in matches])
+
+
+def apply_adhoc_filters(data, matches, camera1, p1, camera2, p2):
+    """ Apply a set of filters functions defined further below
+        for removing static data in images.
+
+    """
+    matches = _non_static_matches(p1, p2, matches, data.config)
+    matches = _not_on_pano_poles_matches(p1, p2, matches, camera1, camera2)
+    matches = _not_on_vermont_watermark(p1, p2, matches, im1, im2, data)
+    matches = _not_on_blackvue_watermark(p1, p2, matches, im1, im2, data)
+    return matches
+
+
+def _non_static_matches(p1, p2, matches, config):
+    """Remove matches with same position in both images.
+
+    That should remove matches on that are likely belong to rig occluders,
+    watermarks or dust, but not discard entirely static images.
+    """
+    threshold = 0.001
+    res = []
+    for match in matches:
+        d = p1[match[0]] - p2[match[1]]
+        if d[0]**2 + d[1]**2 >= threshold**2:
+            res.append(match)
+
+    static_ratio_threshold = 0.85
+    static_ratio_removed = 1 - len(res) / max(len(matches), 1)
+    if static_ratio_removed > static_ratio_threshold:
+        return matches
+    else:
+        return res
+
+
+def _not_on_pano_poles_matches(p1, p2, matches, camera1, camera2):
+    """Remove matches for features that are too high or to low on a pano.
+
+    That should remove matches on the sky and and carhood part of panoramas
+    """
+    min_lat = -0.125
+    max_lat = 0.125
+    is_pano1 = (camera1.projection_type == 'equirectangular')
+    is_pano2 = (camera2.projection_type == 'equirectangular')
+    if is_pano1 or is_pano2:
+        res = []
+        for match in matches:
+            if ((not is_pano1 or min_lat < p1[match[0]][1] < max_lat) and
+                    (not is_pano2 or min_lat < p2[match[1]][1] < max_lat)):
+                res.append(match)
+        return res
+    else:
+        return matches
+
+
+def _not_on_vermont_watermark(p1, p2, matches, im1, im2, data):
+    """Filter Vermont images watermark."""
+    meta1 = data.load_exif(im1)
+    meta2 = data.load_exif(im2)
+
+    if meta1['make'] == 'VTrans_Camera' and meta1['model'] == 'VTrans_Camera':
+        matches = [m for m in matches if _vermont_valid_mask(p1[m[0]])]
+    if meta2['make'] == 'VTrans_Camera' and meta2['model'] == 'VTrans_Camera':
+        matches = [m for m in matches if _vermont_valid_mask(p2[m[1]])]
+    return matches
+
+
+def _vermont_valid_mask(p):
+    """Check if pixel inside the valid region.
+
+    Pixel coord Y should be larger than 50.
+    In normalized coordinates y > (50 - h / 2) / w
+    """
+    return p[1] > -0.255
+
+
+def _not_on_blackvue_watermark(p1, p2, matches, im1, im2, data):
+    """Filter Blackvue's watermark."""
+    meta1 = data.load_exif(im1)
+    meta2 = data.load_exif(im2)
+
+    if meta1['make'].lower() == 'blackvue':
+        matches = [m for m in matches if _blackvue_valid_mask(p1[m[0]])]
+    if meta2['make'].lower() == 'blackvue':
+        matches = [m for m in matches if _blackvue_valid_mask(p2[m[1]])]
+    return matches
+
+
+def _blackvue_valid_mask(p):
+    """Check if pixel inside the valid region.
+
+    Pixel coord Y should be smaller than h - 70.
+    In normalized coordinates y < (h - 70 - h / 2) / w,
+    with h = 2160 and w = 3840
+    """
+    return p[1] < 0.263
