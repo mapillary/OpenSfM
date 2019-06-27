@@ -33,9 +33,6 @@ def match_candidates_by_distance(images_ref, images_cand, exifs, reference,
     max_distance = max_distance or 99999999.
     k = min(len(images_cand), max_neighbors)
 
-    if(images_ref == images_cand):
-        k = k + 1
-
     points = np.zeros((len(images_cand), 3))
     for i, image in enumerate(images_cand):
         gps = exifs[image]['gps']
@@ -46,11 +43,13 @@ def match_candidates_by_distance(images_ref, images_cand, exifs, reference,
 
     pairs = set()
     for image_ref in images_ref:
+        nn = k+1 if image_ref in images_cand else k
+
         gps = exifs[image_ref]['gps']
         point = reference.to_topocentric(
             gps['latitude'], gps['longitude'], 0)
         distances, neighbors = tree.query(
-            point, k=k, distance_upper_bound=max_distance)
+            point, k=nn, distance_upper_bound=max_distance)
 
         for j in neighbors:
             if j >= len(images_cand):
@@ -134,9 +133,6 @@ def match_candidates_by_time(images_ref, images_cand, exifs, max_neighbors):
         return set()
     k = min(len(images_cand), max_neighbors)
 
-    if(images_ref == images_cand):
-        k = k + 1
-
     times = np.zeros((len(images_cand), 1))
     for i, image in enumerate(images_cand):
         times[i] = exifs[image]['capture_time']
@@ -145,8 +141,10 @@ def match_candidates_by_time(images_ref, images_cand, exifs, max_neighbors):
 
     pairs = set()
     for image_ref in images_ref:
+        nn = k+1 if image_ref in images_cand else k
+
         time = exifs[image_ref]['capture_time']
-        distances, neighbors = tree.query(time, k=k)
+        distances, neighbors = tree.query(time, k=nn)
         for j in neighbors:
             if j >= len(images_cand):
                 continue
