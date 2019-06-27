@@ -7,8 +7,6 @@ import sys
 import cv2
 from joblib import Parallel, parallel_backend, delayed
 
-from opensfm import log
-
 
 logger = logging.getLogger(__name__)
 
@@ -47,17 +45,6 @@ if sys.platform == 'darwin':
     rusage_unit = 1
 else:
     rusage_unit = 1024
-
-
-def processes_that_fit_in_memory(desired):
-    """Amount of parallel matching process that fit in memory."""
-    per_process_mem = 1.6 * 1024
-    available_mem = log.memory_available()
-    if available_mem is not None:
-        fittable = max(1, int(available_mem / per_process_mem))
-        return min(desired, fittable)
-    else:
-        return desired
 
 
 def current_memory_usage():
