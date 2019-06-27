@@ -6,7 +6,6 @@ import numpy as np
 import scipy.spatial as spatial
 
 from opensfm import bow
-from opensfm import log
 from opensfm import context
 
 
@@ -296,7 +295,7 @@ def pairs_from_neighbors(image, exifs, order, other, max_neighbors):
 def processes_that_fit_in_memory(desired):
     """Amount of parallel BoW process that fit in memory."""
     per_process_mem = 1.6 * 1024
-    available_mem = log.memory_available()
+    available_mem = context.memory_available()
     if available_mem is not None:
         fittable = max(1, int(available_mem / per_process_mem))
         return min(desired, fittable)

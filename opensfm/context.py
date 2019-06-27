@@ -47,5 +47,17 @@ else:
     rusage_unit = 1024
 
 
+def memory_available():
+    """Available memory in MB.
+
+    Only works on linux and returns None otherwise.
+    """
+    lines = os.popen('free -t -m').readlines()
+    if not lines:
+        return None
+    available_mem = int(lines[1].split()[6])
+    return available_mem
+
+
 def current_memory_usage():
     return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * rusage_unit
