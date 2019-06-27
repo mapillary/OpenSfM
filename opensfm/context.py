@@ -38,7 +38,8 @@ def parallel_map(func, args, num_proc):
         return list(map(func, args))
     else:
         with parallel_backend('loky', n_jobs=num_proc):
-            return Parallel()(delayed(func)(arg) for arg in args)
+            batch_size = max(1, len(args)/num_proc)
+            return Parallel(batch_size=batch_size)(delayed(func)(arg) for arg in args)
 
 
 # Memory usage
