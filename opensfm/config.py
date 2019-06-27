@@ -59,6 +59,9 @@ matching_gps_neighbors: 0             # Number of images to match selected by GP
 matching_time_neighbors: 0            # Number of images to match selected by time taken. Set to 0 to disable
 matching_order_neighbors: 0           # Number of images to match selected by image name. Set to 0 to disable
 matching_bow_neighbors: 0             # Number of images to match selected by BoW distance. Set to 0 to disable
+matching_bow_gps_distance: 0          # Maximum GPS distance for preempting images before using selection by BoW distance. Set to 0 to disable
+matching_bow_gps_neighbors: 0         # Number of images (selected by GPS distance) to preempt before using selection by BoW distance. Set to 0 to use no limit (or disable if matching_bow_gps_distance is also 0)
+matching_bow_other_cameras: False     # If True, BoW image selection will use N neighbors from the same camera + N neighbors from any different camera.
 
 # Params for geometric estimation
 robust_matching_threshold: 0.004        # Outlier threshold for fundamental matrix estimation as portion of image width
@@ -68,7 +71,7 @@ five_point_algo_threshold: 0.004        # Outlier threshold for essential matrix
 five_point_algo_min_inliers: 20         # Minimum number of inliers for considering a two view reconstruction valid
 triangulation_threshold: 0.006          # Outlier threshold for accepting a triangulated point in radians
 triangulation_min_ray_angle: 1.0        # Minimum angle between views to accept a triangulated point
-triangulation_type: FULL              # Triangulation type : either considering all rays (FULL), or sing a RANSAC variant (ROBUST)
+triangulation_type: FULL                # Triangulation type : either considering all rays (FULL), or sing a RANSAC variant (ROBUST)
 resection_threshold: 0.004              # Outlier threshold for resection in radians
 resection_min_inliers: 10               # Minimum number of resection inliers to accept it
 

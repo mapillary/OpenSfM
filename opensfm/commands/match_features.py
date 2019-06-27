@@ -25,7 +25,7 @@ class Command:
         data = dataset.DataSet(args.dataset)
         images = data.images()
         exifs = {im: data.load_exif(im) for im in images}
-        pairs, preport = pairs_selection.match_candidates_from_metadata(images, exifs, data)
+        pairs, preport = pairs_selection.match_candidates_from_metadata(images, images, exifs, data)
 
         num_pairs = sum(len(c) for c in pairs.values())
         logger.info('Matching {} image pairs'.format(num_pairs))

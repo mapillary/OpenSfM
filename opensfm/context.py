@@ -5,7 +5,7 @@ import resource
 import sys
 
 import cv2
-from loky import get_reusable_executor
+from joblib import Parallel, parallel_backend, delayed
 
 
 logger = logging.getLogger(__name__)
@@ -35,8 +35,9 @@ def parallel_map(func, args, num_proc):
     if num_proc <= 1:
         return list(map(func, args))
     else:
-        with get_reusable_executor(max_workers=num_proc, timeout=None) as e:
-            return list(e.map(func, args))
+        with parallel_backend('loky', n_jobs=num_proc):
+            batch_size = max(1, len(args)/num_proc)
+            return Parallel(batch_size=batch_size)(delayed(func)(arg) for arg in args)
 
 
 # Memory usage
@@ -44,6 +45,18 @@ if sys.platform == 'darwin':
     rusage_unit = 1
 else:
     rusage_unit = 1024
+
+
+def memory_available():
+    """Available memory in MB.
+
+    Only works on linux and returns None otherwise.
+    """
+    lines = os.popen('free -t -m').readlines()
+    if not lines:
+        return None
+    available_mem = int(lines[1].split()[6])
+    return available_mem
 
 
 def current_memory_usage():

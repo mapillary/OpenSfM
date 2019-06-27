@@ -440,14 +440,24 @@ class DataSet(object):
         """
         return os.path.join(self._feature_path(), image + '.features.npz')
 
+    def _feature_file_legacy(self, image):
+        """
+        Return path of a legacy feature file for specified image
+        :param image: Image name, with extension (i.e. 123.jpg)
+        """
+        return os.path.join(self._feature_path(), image + '.npz')
+
     def _save_features(self, filepath, points, descriptors, colors=None):
         io.mkdir_p(self._feature_path())
         features.save_features(filepath, points, descriptors, colors, self.config)
 
     def features_exist(self, image):
-        return os.path.isfile(self._feature_file(image))
+        return os.path.isfile(self._feature_file(image)) or\
+            os.path.isfile(self._feature_file_legacy(image))
 
     def load_features(self, image):
+        if os.path.isfile(self._feature_file_legacy(image)):
+            return features.load_features(self._feature_file_legacy(image), self.config)
         return features.load_features(self._feature_file(image), self.config)
 
     def save_features(self, image, points, descriptors, colors):
