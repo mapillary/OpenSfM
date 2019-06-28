@@ -11,9 +11,11 @@ from opensfm import context
 from opensfm import log
 from opensfm import multiview
 from opensfm import pairs_selection
+from opensfm import feature_loading
 
 
 logger = logging.getLogger(__name__)
+feature_loader = feature_loading.FeatureLoader()
 
 
 def match_images(data, ref_images, cand_images):
@@ -77,17 +79,19 @@ def match_unwrap_args(args):
     im1, candidates, ctx = args
     im1_matches = {}
     for im2 in candidates:
-        p1, f1, _ = ctx.data.load_features(im1)
-        p2, f2, _ = ctx.data.load_features(im2)
-        w1 = ctx.data.load_words(im1)
-        w2 = ctx.data.load_words(im2)
+        p1, f1, _ = feature_loader.load_points_features_colors(ctx.data, im1)
+        p2, f2, _ = feature_loader.load_points_features_colors(ctx.data, im2)
+        w1 = feature_loader.load_words(ctx.data, im1)
+        w2 = feature_loader.load_words(ctx.data, im2)
+        i1 = feature_loader.load_features_index(ctx.data, im1, f1)
+        i2 = feature_loader.load_features_index(ctx.data, im2, f2)
         m1 = ctx.data.load_masks(im1) if hasattr(ctx.data, 'load_masks') else None
         m2 = ctx.data.load_masks(im2) if hasattr(ctx.data, 'load_masks') else None
         camera1 = ctx.cameras[ctx.exifs[im1]['camera']]
         camera2 = ctx.cameras[ctx.exifs[im2]['camera']]
         im1_matches[im2] = match(im1, im2, camera1, camera2,
                                  p1, p2, f1, f2, w1, w2,
-                                 m1, m2, ctx.data)
+                                 i1, i2, m1, m2, ctx.data)
 
     num_matches = sum(1 for m in im1_matches.values() if len(m) > 0)
     logger.debug('Image {} matches: {} out of {}'.format(
@@ -96,14 +100,16 @@ def match_unwrap_args(args):
 
 
 def match(im1, im2, camera1, camera2,
-          p1, p2, f1, f2, w1, w2, m1, m2, data):
+          p1, p2, f1, f2, w1, w2,
+          i1, i2, m1, m2, data):
     """ Perform matching for a pair of images
 
     Given a pair of images (1,2) and their :
     - features position p
     - features descriptor f
-    - descriptor BoW assignments w
-    - mask selection m
+    - descriptor BoW assignments w (optionnal, can be None)
+    - descriptor kNN index indexing structure (optionnal, can be None)
+    - mask selection m  (optionnal, can be None)
     - camera
     Compute 2D + robust geometric matching (either E or F-matrix)
     """
@@ -133,8 +139,6 @@ def match(im1, im2, camera1, camera2,
             f1_filtered, w1_filtered,
             f2_filtered, w2_filtered, config)
     elif matcher_type == 'FLANN':
-        i1 = data.load_feature_index(im1, f1)
-        i2 = data.load_feature_index(im2, f2)
         matches = match_flann_symmetric(f1, i1, f2, i2, config)
     elif matcher_type == 'BRUTEFORCE':
         matches = match_brute_force_symmetric(f1, f2, config)
@@ -159,7 +163,7 @@ def match(im1, im2, camera1, camera2,
     if len(matches) < robust_matching_min_match:
         logger.debug(
             'Matching {} and {}.  Matcher: {} T-desc: {:1.3f} '
-            'Matches: FAILED'.format( im1, im2, matcher_type, time_2d_matching))
+            'Matches: FAILED'.format(im1, im2, matcher_type, time_2d_matching))
         return []
 
     # robust matching
