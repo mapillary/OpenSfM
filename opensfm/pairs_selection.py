@@ -100,7 +100,8 @@ def match_candidates_with_bow(data, images_ref, images_cand,
     args = list(match_bow_arguments(preempted_cand, histograms))
 
     # parralel BoW neighbors computation
-    processes = processes_that_fit_in_memory(data.config['processes'])
+    per_process = 1.6 * 1024
+    processes = context.processes_that_fit_in_memory(data.config['processes'], per_process)
     logger.info("Computing BoW candidates with %d processes" % processes)
     results = context.parallel_map(match_bow_unwrap_args, args, processes)
 
@@ -290,14 +291,3 @@ def pairs_from_neighbors(image, exifs, order, other, max_neighbors):
     for im2 in same_camera+other_cameras:
         pairs.add(tuple(sorted((image, im2))))
     return pairs
-
-
-def processes_that_fit_in_memory(desired):
-    """Amount of parallel BoW process that fit in memory."""
-    per_process_mem = 1.6 * 1024
-    available_mem = context.memory_available()
-    if available_mem is not None:
-        fittable = max(1, int(available_mem / per_process_mem))
-        return min(desired, fittable)
-    else:
-        return desired
