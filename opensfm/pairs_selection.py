@@ -173,7 +173,11 @@ def match_candidates_by_order(images_ref, images_cand, max_neighbors):
 
 
 def match_candidates_from_metadata(images_ref, images_cand, exifs, data):
-    """Compute candidate matching pairs between between images_ref and images_cand"""
+    """Compute candidate matching pairs between between images_ref and images_cand
+
+    Returns a list of pairs (im1, im2) such that (im1 in images_ref) is true.
+    Returned pairs are unique given that (i, j) == (j, i).
+    """
     max_distance = data.config['matching_gps_distance']
     gps_neighbors = data.config['matching_gps_neighbors']
     time_neighbors = data.config['matching_time_neighbors']
@@ -214,9 +218,7 @@ def match_candidates_from_metadata(images_ref, images_cand, exifs, data):
                                       bow_other_cameras)
         pairs = d | t | o | b
 
-    res = {im: [] for im in images_ref}
-    for im1, im2 in pairs:
-        res[im1].append(im2)
+    pairs = ordered_pairs(pairs, images_ref)
 
     report = {
         "num_pairs_distance": len(d),
@@ -224,7 +226,7 @@ def match_candidates_from_metadata(images_ref, images_cand, exifs, data):
         "num_pairs_order": len(o),
         "num_pairs_bow": len(b)
     }
-    return res, report
+    return pairs, report
 
 
 def bow_distances(image, other_images, histograms):
@@ -291,3 +293,34 @@ def pairs_from_neighbors(image, exifs, order, other, max_neighbors):
     for im2 in same_camera+other_cameras:
         pairs.add(tuple(sorted((image, im2))))
     return pairs
+
+
+def ordered_pairs(pairs, images_ref):
+    """Image pairs that need matching skipping duplicates.
+
+    Returns a list of pairs (im1, im2) such that (im1 in images_ref) is true.
+    """
+    per_image = defaultdict(list)
+    for im1, im2 in pairs:
+        per_image[im1].append(im2)
+        per_image[im2].append(im1)
+
+    ordered = set()
+    remaining = set(images_ref)
+    if len(remaining) > 0:
+        next_image = remaining.pop()
+        while next_image:
+            im1 = next_image
+            next_image = None
+
+            for im2 in per_image[im1]:
+                if (im2, im1) not in ordered:
+                    ordered.add((im1, im2))
+                    if not next_image and im2 in remaining:
+                        next_image = im2
+                        remaining.remove(im2)
+
+            if not next_image and remaining:
+                next_image = remaining.pop()
+
+    return list(ordered)

@@ -4,13 +4,95 @@ import pyopengv
 import logging
 
 from timeit import default_timer as timer
+from collections import defaultdict
 
 from opensfm import csfm
 from opensfm import context
+from opensfm import log
 from opensfm import multiview
+from opensfm import pairs_selection
 
 
 logger = logging.getLogger(__name__)
+
+
+def match_images(data, ref_images, cand_images):
+    """ Perform pair matchings between two sets of images.
+
+    It will do matching for each pair (i, j), i being in
+    ref_images and j in cand_images, taking assumption that
+    matching(i, j) == matching(j ,i). This does not hold for
+    non-symmetric matching options like WORDS. Data will be
+    stored in i matching only.
+    """
+
+    # Get EXIFs data
+    all_images = list(set(ref_images+cand_images))
+    exifs = {im: data.load_exif(im) for im in all_images}
+
+    # Generate pairs for matching
+    pairs, preport = pairs_selection.match_candidates_from_metadata(
+        ref_images, cand_images, exifs, data)
+    logger.info('Matching {} image pairs'.format(len(pairs)))
+
+    # Store per each image in ref for processing
+    per_image = defaultdict(list)
+    for im1, im2 in pairs:
+        per_image[im1].append(im2)
+
+    ctx = Context()
+    ctx.data = data
+    ctx.cameras = ctx.data.load_camera_models()
+    ctx.exifs = exifs
+    args = list(match_arguments(per_image, ctx))
+
+    # Perform all pair matchings in parallel
+    start = timer()
+    per_process = 1.6 * 1024
+    processes = context.processes_that_fit_in_memory(data.config['processes'], per_process)
+    logger.info("Computing pair matching with %d processes" % processes)
+    context.parallel_map(match_unwrap_args, args, processes)
+    logger.debug('Matched {} pairs in {} seconds.'.format(
+        len(pairs), timer()-start))
+
+    return pairs, preport
+
+
+class Context:
+    pass
+
+
+def match_arguments(pairs, ctx):
+    """ Generate arguments for parralel processing of pair matching """
+    for im, candidates in pairs.items():
+        yield im, candidates, ctx
+
+
+def match_unwrap_args(args):
+    """ Wrapper for parralel processing of pair matching
+
+    Compute all pair matchings of a given image and save them.
+    """
+    log.setup()
+    im1, candidates, ctx = args
+    im1_matches = {}
+    for im2 in candidates:
+        p1, f1, _ = ctx.data.load_features(im1)
+        p2, f2, _ = ctx.data.load_features(im2)
+        w1 = ctx.data.load_words(im1)
+        w2 = ctx.data.load_words(im2)
+        m1 = ctx.data.load_masks(im1) if hasattr(ctx.data, 'load_masks') else None
+        m2 = ctx.data.load_masks(im2) if hasattr(ctx.data, 'load_masks') else None
+        camera1 = ctx.cameras[ctx.exifs[im1]['camera']]
+        camera2 = ctx.cameras[ctx.exifs[im2]['camera']]
+        im1_matches[im2] = match(im1, im2, camera1, camera2,
+                                 p1, p2, f1, f2, w1, w2,
+                                 m1, m2, ctx.data)
+
+    num_matches = sum(1 for m in im1_matches.values() if len(m) > 0)
+    logger.debug('Image {} matches: {} out of {}'.format(
+        im1, num_matches, len(candidates)))
+    ctx.data.save_matches(im1, im1_matches)
 
 
 def match(im1, im2, camera1, camera2,
