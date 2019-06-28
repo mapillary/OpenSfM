@@ -77,12 +77,14 @@ def match_unwrap_args(args):
     """
     log.setup()
     im1, candidates, ctx = args
+    need_words = 'WORDS' in ctx.data.config['matcher_type']
+
     im1_matches = {}
     for im2 in candidates:
         p1, f1, _ = feature_loader.load_points_features_colors(ctx.data, im1)
         p2, f2, _ = feature_loader.load_points_features_colors(ctx.data, im2)
-        w1 = feature_loader.load_words(ctx.data, im1)
-        w2 = feature_loader.load_words(ctx.data, im2)
+        w1 = feature_loader.load_words(ctx.data, im1) if need_words else None
+        w2 = feature_loader.load_words(ctx.data, im2) if need_words else None
         i1 = feature_loader.load_features_index(ctx.data, im1, f1)
         i2 = feature_loader.load_features_index(ctx.data, im2, f2)
         m1 = ctx.data.load_masks(im1) if hasattr(ctx.data, 'load_masks') else None
