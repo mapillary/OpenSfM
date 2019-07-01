@@ -122,6 +122,13 @@ class DataSet(object):
             mask = None
         return mask
 
+    def load_features_mask(self, image, features):
+        """Load a feature-wise mask if it exists, otherwise return None.
+
+        This mask is used when performing features matching.
+        """
+        return np.ones((features.shape[0],), dtype=bool)
+
     def _undistorted_mask_path(self):
         return os.path.join(self.data_path, 'undistorted_masks')
 

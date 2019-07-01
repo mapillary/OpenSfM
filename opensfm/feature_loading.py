@@ -37,6 +37,14 @@ class FeatureLoader(object):
             self.colors_cache.put(image, colors)
         return points, colors
 
+    def load_masks(self, data, image):
+        points, _ = self.load_points_colors(data, image)
+        masks = self.masks_cache.get(image)
+        if masks is None:
+            masks = data.load_features_mask(image, points[:, :2], data)
+            self.masks_cache.put(image, masks)
+        return masks
+
     def load_features_index(self, data, image, features):
         index = self.index_cache.get(image)
         if index is None:
