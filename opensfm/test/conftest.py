@@ -17,6 +17,15 @@ def use_legacy_numpy_printoptions():
 
 
 @pytest.fixture(scope='module')
-def scene():
+def scene_synthetic():
     np.random.seed(42)
-    return synthetic_examples.synthetic_ellipse_scene()
+    data = synthetic_examples.synthetic_ellipse_scene()
+
+    maximum_depth = 40
+    projection_noise = 1.0
+    gps_noise = 5.0
+
+    exifs = data.get_scene_exifs(gps_noise)
+    features, desc, colors, graph = data.get_tracks_data(maximum_depth,
+                                                         projection_noise)
+    return data, exifs, features, desc, colors, graph

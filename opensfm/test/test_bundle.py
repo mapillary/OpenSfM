@@ -59,14 +59,14 @@ def _projection_errors_std(points):
     return np.std(all_errors)
 
 
-def test_bundle_projection_fixed_internals(scene):
-    reference = scene.get_reconstruction(0.01, [1.0] * 3, 0.1)
+def test_bundle_projection_fixed_internals(scene_synthetic):
+    reference = scene_synthetic[0].get_reconstruction()
+    graph = scene_synthetic[5]
     adjusted = copy.deepcopy(reference)
 
     custom_config = config.default_config()
     custom_config['bundle_use_gps'] = False
     custom_config['optimize_camera_parameters'] = False
-    _, _, _, graph = scene.get_tracks_data(40, 1.0)
     reconstruction.bundle(graph, adjusted, {}, custom_config)
 
     assert _projection_errors_std(adjusted.points) < 5e-3
