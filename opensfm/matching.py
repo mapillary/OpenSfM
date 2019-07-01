@@ -18,6 +18,10 @@ logger = logging.getLogger(__name__)
 feature_loader = feature_loading.FeatureLoader()
 
 
+def clear_cache():
+    feature_loader.clear_cache()
+
+
 def match_images(data, ref_images, cand_images):
     """ Perform pair matchings between two sets of images.
 
@@ -53,9 +57,15 @@ def match_images(data, ref_images, cand_images):
     per_process = 512
     processes = context.processes_that_fit_in_memory(data.config['processes'], per_process)
     logger.info("Computing pair matching with %d processes" % processes)
-    context.parallel_map(match_unwrap_args, args, processes)
+    matches = context.parallel_map(match_unwrap_args, args, processes)
     logger.debug('Matched {} pairs in {} seconds.'.format(
         len(pairs), timer()-start))
+
+    # Index results per pair
+    pairs = {}
+    for im1, im1_matches in matches:
+        for im2, m in im1_matches.items():
+            pairs[im1, im2] = m
 
     return pairs, preport
 
@@ -100,6 +110,7 @@ def match_unwrap_args(args):
     logger.debug('Image {} matches: {} out of {}'.format(
         im1, num_matches, len(candidates)))
     ctx.data.save_matches(im1, im1_matches)
+    return im1, im1_matches
 
 
 def match(im1, im2, camera1, camera2,
