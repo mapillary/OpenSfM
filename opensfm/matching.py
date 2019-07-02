@@ -54,10 +54,11 @@ def match_images(data, ref_images, cand_images):
 
     # Perform all pair matchings in parallel
     start = timer()
-    per_process = 512
-    processes = context.processes_that_fit_in_memory(data.config['processes'], per_process)
+    mem_per_process = 512
+    jobs_per_process = 100
+    processes = context.processes_that_fit_in_memory(data.config['processes'], mem_per_process)
     logger.info("Computing pair matching with %d processes" % processes)
-    matches = context.parallel_map(match_unwrap_args, args, processes)
+    matches = context.parallel_map(match_unwrap_args, args, processes, jobs_per_process)
     logger.debug('Matched {} pairs in {} seconds.'.format(
         len(pairs), timer()-start))
 
