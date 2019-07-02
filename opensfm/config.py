@@ -48,12 +48,11 @@ flann_checks: 200             # Smaller -> Faster (but might lose good matches)
 
 # Params for BoW matching
 bow_file: bow_hahog_root_uchar.npz
-bow_images_to_match: 15       # Number of images to do detailed matching.
 bow_words_to_match: 50        # Number of words to explore per feature.
 bow_num_checks: 20            # Number of matching features to check.
 bow_matcher_type: FLANN       # Matcher type to assign words to features
 
-# Params for preemptive matching
+# Params for matching
 matching_gps_distance: 150            # Maximum gps distance between two images for matching
 matching_gps_neighbors: 0             # Number of images to match selected by GPS distance. Set to 0 to use no limit (or disable if matching_gps_distance is also 0)
 matching_time_neighbors: 0            # Number of images to match selected by time taken. Set to 0 to disable
