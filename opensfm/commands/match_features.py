@@ -31,7 +31,7 @@ class Command:
 
         with open(data.profile_log(), 'a') as fout:
             fout.write('match_features: {0}\n'.format(end - start))
-        self.write_report(data, preport, pairs_matches.keys(), end - start)
+        self.write_report(data, preport, list(pairs_matches.keys()), end - start)
 
     def write_report(self, data, preport, pairs, wall_time):
         report = {
