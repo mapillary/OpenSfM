@@ -481,6 +481,8 @@ class DataSet(object):
         return os.path.join(self._feature_path(), image + '.flann')
 
     def load_feature_index(self, image, features):
+        if not self.feature_index_exists(image):
+            raise IOError("FLANN index file for {} doesn't exists.".format(image))
         index = context.flann_Index()
         index.load(features, self._feature_index_file(image))
         return index
