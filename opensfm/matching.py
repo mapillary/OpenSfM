@@ -88,18 +88,20 @@ def match_unwrap_args(args):
     """
     log.setup()
     im1, candidates, ctx = args
+
     need_words = 'WORDS' in ctx.data.config['matcher_type']
+    need_index = 'FLANN' in ctx.data.config['matcher_type']
 
     im1_matches = {}
     p1, f1, _ = feature_loader.load_points_features_colors(ctx.data, im1)
     w1 = feature_loader.load_words(ctx.data, im1) if need_words else None
-    i1 = feature_loader.load_features_index(ctx.data, im1, f1)
+    i1 = feature_loader.load_features_index(ctx.data, im1, f1) if need_index else None
     m1 = feature_loader.load_masks(ctx.data, im1)
 
     for im2 in candidates:
         p2, f2, _ = feature_loader.load_points_features_colors(ctx.data, im2)
         w2 = feature_loader.load_words(ctx.data, im2) if need_words else None
-        i2 = feature_loader.load_features_index(ctx.data, im2, f2)
+        i2 = feature_loader.load_features_index(ctx.data, im2, f2) if need_index else None
         m2 = feature_loader.load_masks(ctx.data, im2)
         camera1 = ctx.cameras[ctx.exifs[im1]['camera']]
         camera2 = ctx.cameras[ctx.exifs[im2]['camera']]
