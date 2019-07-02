@@ -93,13 +93,13 @@ def match_unwrap_args(args):
     p1, f1, _ = feature_loader.load_points_features_colors(ctx.data, im1)
     w1 = feature_loader.load_words(ctx.data, im1) if need_words else None
     i1 = feature_loader.load_features_index(ctx.data, im1, f1)
-    m1 = ctx.data.load_masks(im1) if hasattr(ctx.data, 'load_masks') else None
+    m1 = feature_loader.load_masks(ctx.data, im1)
 
     for im2 in candidates:
         p2, f2, _ = feature_loader.load_points_features_colors(ctx.data, im2)
         w2 = feature_loader.load_words(ctx.data, im2) if need_words else None
         i2 = feature_loader.load_features_index(ctx.data, im2, f2)
-        m2 = ctx.data.load_masks(im2) if hasattr(ctx.data, 'load_masks') else None
+        m2 = feature_loader.load_masks(ctx.data, im2)
         camera1 = ctx.cameras[ctx.exifs[im1]['camera']]
         camera2 = ctx.cameras[ctx.exifs[im2]['camera']]
         im1_matches[im2] = match(im1, im2, camera1, camera2,
@@ -160,7 +160,7 @@ def match(im1, im2, camera1, camera2,
         raise ValueError("Invalid matcher_type: {}".format(matcher_type))
 
     # From indexes in filtered sets, to indexes in original sets of features
-    if m1 and m2:
+    if m1 is not None and m2 is not None:
         matches = unfilter_matches(matches, m1, m2)
 
     # Adhoc filters
