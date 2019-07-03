@@ -169,8 +169,8 @@ def match(im1, im2, camera1, camera2,
     # Adhoc filters
     if config['matching_use_filters']:
         matches = apply_adhoc_filters(data, matches,
-                                      p1, camera1,
-                                      p2, camera2)
+                                      im1, camera1, p1,
+                                      im2, camera2, p2)
 
     matches = np.array(matches, dtype=int)
     time_2d_matching = timer() - time_start
@@ -409,7 +409,7 @@ def unfilter_matches(matches, m1, m2):
     return np.array([(i1[match[0]], i2[match[1]]) for match in matches])
 
 
-def apply_adhoc_filters(data, matches, camera1, p1, camera2, p2):
+def apply_adhoc_filters(data, matches, im1, camera1, p1, im2, camera2, p2):
     """ Apply a set of filters functions defined further below
         for removing static data in images.
 
