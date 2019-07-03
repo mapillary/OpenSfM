@@ -100,7 +100,7 @@ def match_candidates_with_bow(data, images_ref, images_cand,
     args = list(match_bow_arguments(preempted_cand, histograms))
 
     # parralel BoW neighbors computation
-    per_process = 1.6 * 1024
+    per_process = 512
     processes = context.processes_that_fit_in_memory(data.config['processes'], per_process)
     logger.info("Computing BoW candidates with %d processes" % processes)
     results = context.parallel_map(match_bow_unwrap_args, args, processes)
