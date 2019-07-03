@@ -55,7 +55,7 @@ def match_images(data, ref_images, cand_images):
     # Perform all pair matchings in parallel
     start = timer()
     mem_per_process = 512
-    jobs_per_process = 100
+    jobs_per_process = 2
     processes = context.processes_that_fit_in_memory(data.config['processes'], mem_per_process)
     logger.info("Computing pair matching with %d processes" % processes)
     matches = context.parallel_map(match_unwrap_args, args, processes, jobs_per_process)
@@ -77,7 +77,8 @@ class Context:
 
 def match_arguments(pairs, ctx):
     """ Generate arguments for parralel processing of pair matching """
-    for im, candidates in pairs.items():
+    pairs = sorted(pairs.items(), key=lambda x: -len(x[1]))
+    for im, candidates in pairs:
         yield im, candidates, ctx
 
 
@@ -97,13 +98,13 @@ def match_unwrap_args(args):
     w1 = feature_loader.load_words(ctx.data, im1) if need_words else None
     i1 = feature_loader.load_features_index(ctx.data, im1, f1) if need_index else None
     m1 = feature_loader.load_masks(ctx.data, im1)
+    camera1 = ctx.cameras[ctx.exifs[im1]['camera']]
 
     for im2 in candidates:
         p2, f2, _ = feature_loader.load_points_features_colors(ctx.data, im2)
         w2 = feature_loader.load_words(ctx.data, im2) if need_words else None
         i2 = feature_loader.load_features_index(ctx.data, im2, f2) if need_index else None
         m2 = feature_loader.load_masks(ctx.data, im2)
-        camera1 = ctx.cameras[ctx.exifs[im1]['camera']]
         camera2 = ctx.cameras[ctx.exifs[im2]['camera']]
         im1_matches[im2] = match(im1, im2, camera1, camera2,
                                  p1, p2, f1, f2, w1, w2,
