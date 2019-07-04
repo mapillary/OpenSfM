@@ -122,12 +122,29 @@ class DataSet(object):
             mask = None
         return mask
 
-    def load_features_mask(self, image, features):
+    def load_features_mask(self, image, feat):
         """Load a feature-wise mask if it exists, otherwise return None.
 
         This mask is used when performing features matching.
         """
-        return np.ones((features.shape[0],), dtype=bool)
+        if feat is None or len(feat) == 0:
+            return np.array([], dtype=bool)
+
+        mask_image = self.load_combined_mask(image)
+        if mask_image is None:
+            logger.debug('No segmentation for {}, no features masked.'.format(image))
+            return np.ones((feat.shape[0],), dtype=bool)
+
+        w = mask_image.shape[1]
+        h = mask_image.shape[0]
+        ps = features.denormalized_image_coordinates(feat, w, h).astype(int)
+        mask = mask_image[ps[:, 1], ps[:, 0]]
+
+        n_removed = len(mask) - np.sum(mask)
+        logger.debug('Masking {} / {} ({:.2f}) features for {}'.format(
+                    n_removed, len(mask), n_removed / len(mask), image))
+
+        return np.array(mask, dtype=bool)
 
     def _undistorted_mask_path(self):
         return os.path.join(self.data_path, 'undistorted_masks')
