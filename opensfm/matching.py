@@ -157,9 +157,9 @@ def match(im1, im2, camera1, camera2,
             f1_filtered, w1_filtered,
             f2_filtered, w2_filtered, config)
     elif matcher_type == 'FLANN':
-        matches = match_flann_symmetric(f1, i1, f2, i2, config)
+        matches = match_flann_symmetric(f1_filtered, i1, f2_filtered, i2, config)
     elif matcher_type == 'BRUTEFORCE':
-        matches = match_brute_force_symmetric(f1, f2, config)
+        matches = match_brute_force_symmetric(f1_filtered, f2_filtered, config)
     else:
         raise ValueError("Invalid matcher_type: {}".format(matcher_type))
 
