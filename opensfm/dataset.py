@@ -141,7 +141,9 @@ class DataSet(object):
         height = exif["height"]
         orientation = exif["orientation"]
 
-        ps = upright.opensfm_to_upright(feat, width, height, orientation).astype(int)
+        new_height, new_width = mask_image.shape
+        ps = upright.opensfm_to_upright(feat, width, height, orientation,
+                                        new_width=new_width, new_height=new_height).astype(int)
         mask = mask_image[ps[:, 1], ps[:, 0]]
 
         n_removed = len(mask) - np.sum(mask)

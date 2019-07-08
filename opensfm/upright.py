@@ -6,7 +6,8 @@ from __future__ import unicode_literals
 import numpy as np
 
 
-def opensfm_to_upright(coords, width, height, orientation):
+def opensfm_to_upright(coords, width, height, orientation,
+                       new_width=None, new_height=None):
     """
     Transform opensfm coordinates to upright coordinates, correcting for EXIF orientation.
 
@@ -49,6 +50,10 @@ def opensfm_to_upright(coords, width, height, orientation):
 
     upright_width = width if orientation < 6 else height
     upright_height = height if orientation < 6 else width
+    if new_width is not None:
+        upright_width = new_width
+    if new_height is not None:
+        upright_height = new_height
     p[:, 0] = upright_width * p[:, 0]
     p[:, 1] = upright_height * p[:, 1]
 
