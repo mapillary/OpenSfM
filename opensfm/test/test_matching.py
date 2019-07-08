@@ -64,7 +64,7 @@ def test_match_using_words():
     for i, j in matches:
         assert i == j
 
-
+        
 def test_unfilter_matches():
     matches = np.array([])
     m1 = np.array([], dtype=bool)
@@ -83,7 +83,7 @@ def test_unfilter_matches():
     assert res[1][1] == 6
 
 
-def test_compute_bow_gps_pairs(scene_synthetic):
+def test_match_images(scene_synthetic):
     reference = scene_synthetic[0].get_reconstruction()
     synthetic = synthetic_dataset.SyntheticDataSet(reference,
                                                    scene_synthetic[1],
@@ -91,19 +91,21 @@ def test_compute_bow_gps_pairs(scene_synthetic):
                                                    scene_synthetic[3],
                                                    scene_synthetic[4],
                                                    scene_synthetic[5])
+
     synthetic.matches_exists = lambda im: False
     synthetic.save_matches = lambda im, m: False
 
     num_neighbors = 5
     synthetic.config['matching_gps_neighbors'] = num_neighbors
     synthetic.config['bow_words_to_match'] = 8
+    synthetic.config['matcher_type'] = 'FLANN'
 
     images = synthetic.images()
-    exifs = {im: synthetic.load_exif(im) for im in images}
-    pairs = pairs_selection.match_candidates_from_metadata(images, images,
-                                                           exifs, synthetic)
+    pairs, _ = matching.match_images(synthetic, images, images)
 
-    assert len(pairs) <= num_neighbors * len(images)
+    assert len(pairs) == 62
+    value, margin = 11842, 0.01
+    assert value*(1-margin) < sum([len(m) for m in pairs.values()]) < value*(1+margin)
 
 
 def test_ordered_pairs():
