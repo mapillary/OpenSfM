@@ -15,6 +15,7 @@ from opensfm import context
 from opensfm import geo
 from opensfm import tracking
 from opensfm import features
+from opensfm import upright
 
 
 logger = logging.getLogger(__name__)
@@ -135,9 +136,12 @@ class DataSet(object):
             logger.debug('No segmentation for {}, no features masked.'.format(image))
             return np.ones((feat.shape[0],), dtype=bool)
 
-        w = mask_image.shape[1]
-        h = mask_image.shape[0]
-        ps = features.denormalized_image_coordinates(feat, w, h).astype(int)
+        exif = self.load_exif(image)
+        width = exif["width"]
+        height = exif["height"]
+        orientation = exif["orientation"]
+
+        ps = upright.opensfm_to_upright(feat, width, height, orientation).astype(int)
         mask = mask_image[ps[:, 1], ps[:, 0]]
 
         n_removed = len(mask) - np.sum(mask)
