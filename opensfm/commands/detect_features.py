@@ -28,7 +28,7 @@ class Command:
 
         start = timer()
         processes = data.config['processes']
-        parallel_map(detect, arguments, processes)
+        parallel_map(detect, arguments, processes, 1)
         end = timer()
         with open(data.profile_log(), 'a') as fout:
             fout.write('detect_features: {0}\n'.format(end - start))
