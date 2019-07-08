@@ -39,7 +39,7 @@ hahog_normalize_to_uchar: yes
 
 # Params for general matching
 lowes_ratio: 0.8              # Ratio test for matches
-matcher_type: FLANN           # FLANN or BRUTEFORCE or WORDS
+matcher_type: FLANN           # FLANN(symmetric) or BRUTEFORCE(symmetric), WORDS(one-way) or WORDS_SYMMETRIC(symmetric)
 
 # Params for FLANN matching
 flann_branching: 16           # See OpenCV doc
@@ -48,12 +48,11 @@ flann_checks: 200             # Smaller -> Faster (but might lose good matches)
 
 # Params for BoW matching
 bow_file: bow_hahog_root_uchar.npz
-bow_images_to_match: 15       # Number of images to do detailed matching.
 bow_words_to_match: 50        # Number of words to explore per feature.
 bow_num_checks: 20            # Number of matching features to check.
 bow_matcher_type: FLANN       # Matcher type to assign words to features
 
-# Params for preemptive matching
+# Params for matching
 matching_gps_distance: 150            # Maximum gps distance between two images for matching
 matching_gps_neighbors: 0             # Number of images to match selected by GPS distance. Set to 0 to use no limit (or disable if matching_gps_distance is also 0)
 matching_time_neighbors: 0            # Number of images to match selected by time taken. Set to 0 to disable
@@ -62,6 +61,7 @@ matching_bow_neighbors: 0             # Number of images to match selected by Bo
 matching_bow_gps_distance: 0          # Maximum GPS distance for preempting images before using selection by BoW distance. Set to 0 to disable
 matching_bow_gps_neighbors: 0         # Number of images (selected by GPS distance) to preempt before using selection by BoW distance. Set to 0 to use no limit (or disable if matching_bow_gps_distance is also 0)
 matching_bow_other_cameras: False     # If True, BoW image selection will use N neighbors from the same camera + N neighbors from any different camera.
+matching_use_filters: False           # If True, removes static matches using ad-hoc heuristics
 
 # Params for geometric estimation
 robust_matching_threshold: 0.004        # Outlier threshold for fundamental matrix estimation as portion of image width

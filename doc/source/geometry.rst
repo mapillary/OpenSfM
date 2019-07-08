@@ -61,6 +61,17 @@ and its inverse
 
 where :math:`w` and :math:`h` being the width and height of the image.
 
+Upright Coordinates
+~~~~~~~~~~~~~~~~~~~
+
+When taking pictures, a camera might be rotated in either portrait or in landscape orientation. But the corresponding image file will always store the pixels in the same order, the one when the camera is supposed to be upright.
+
+To overcome this issue, most camera store this orientation (i.e. camera orientation at shoot time) in the EXIFs in the `orientation` tag. Most editing software will also use this information to display image correctly.
+
+That's why, when editing a mask with your favorite software, you don't need to bother about image orientation as OpenSfM will automatically apply the right rotation correction so your mask will be aligned with the original image.
+
+Please note that `Normalized Image Coordinates` and `Pixel Coordinates` are *NOT* corrected for upright, and are really *original* image coordinates.
+
 World Coordinates
 ~~~~~~~~~~~~~~~~~
 The position of the reconstructed 3D points is stored in *world coordinates*.  In general, this is an arbitrary euclidean reference frame.

@@ -15,6 +15,7 @@ from opensfm import context
 from opensfm import geo
 from opensfm import tracking
 from opensfm import features
+from opensfm import upright
 
 
 logger = logging.getLogger(__name__)
@@ -121,6 +122,35 @@ class DataSet(object):
         else:
             mask = None
         return mask
+
+    def load_features_mask(self, image, feat):
+        """Load a feature-wise mask if it exists, otherwise return None.
+
+        This mask is used when performing features matching.
+        """
+        if feat is None or len(feat) == 0:
+            return np.array([], dtype=bool)
+
+        mask_image = self.load_combined_mask(image)
+        if mask_image is None:
+            logger.debug('No segmentation for {}, no features masked.'.format(image))
+            return np.ones((feat.shape[0],), dtype=bool)
+
+        exif = self.load_exif(image)
+        width = exif["width"]
+        height = exif["height"]
+        orientation = exif["orientation"]
+
+        new_height, new_width = mask_image.shape
+        ps = upright.opensfm_to_upright(feat, width, height, orientation,
+                                        new_width=new_width, new_height=new_height).astype(int)
+        mask = mask_image[ps[:, 1], ps[:, 0]]
+
+        n_removed = len(mask) - np.sum(mask)
+        logger.debug('Masking {} / {} ({:.2f}) features for {}'.format(
+                    n_removed, len(mask), n_removed / len(mask), image))
+
+        return np.array(mask, dtype=bool)
 
     def _undistorted_mask_path(self):
         return os.path.join(self.data_path, 'undistorted_masks')
@@ -474,6 +504,8 @@ class DataSet(object):
         return os.path.join(self._feature_path(), image + '.flann')
 
     def load_feature_index(self, image, features):
+        if not self.feature_index_exists(image):
+            raise IOError("FLANN index file for {} doesn't exists.".format(image))
         index = context.flann_Index()
         index.load(features, self._feature_index_file(image))
         return index

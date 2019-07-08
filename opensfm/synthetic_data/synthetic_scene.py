@@ -116,22 +116,22 @@ class SyntheticScene(object):
         return sg.generate_track_data(self.get_reconstruction(),
                                       maximum_depth, noise)
 
-    def compare(self, reconstruction):
-        reference = self.get_reconstruction()
-        position = sm.position_errors(reference, reconstruction)
-        gps = sm.gps_errors(reconstruction)
-        rotation = sm.rotation_errors(reference, reconstruction)
-        points = sm.points_errors(reference, reconstruction)
-        completeness = sm.completeness_errors(reference, reconstruction)
-        return {
-            'position_average': np.linalg.norm(np.average(position, axis=0)),
-            'position_std': np.linalg.norm(np.std(position, axis=0)),
-            'gps_average': np.linalg.norm(np.average(gps, axis=0)),
-            'gps_std': np.linalg.norm(np.std(gps, axis=0)),
-            'rotation_average': np.average(rotation),
-            'rotation_std': np.std(rotation),
-            'points_average': np.linalg.norm(np.average(points, axis=0)),
-            'points_std': np.linalg.norm(np.std(points, axis=0)),
-            'ratio_cameras': completeness[0],
-            'ratio_points': completeness[1]
-        }
+
+def compare(reference, reconstruction):
+    position = sm.position_errors(reference, reconstruction)
+    gps = sm.gps_errors(reconstruction)
+    rotation = sm.rotation_errors(reference, reconstruction)
+    points = sm.points_errors(reference, reconstruction)
+    completeness = sm.completeness_errors(reference, reconstruction)
+    return {
+        'position_average': np.linalg.norm(np.average(position, axis=0)),
+        'position_std': np.linalg.norm(np.std(position, axis=0)),
+        'gps_average': np.linalg.norm(np.average(gps, axis=0)),
+        'gps_std': np.linalg.norm(np.std(gps, axis=0)),
+        'rotation_average': np.average(rotation),
+        'rotation_std': np.std(rotation),
+        'points_average': np.linalg.norm(np.average(points, axis=0)),
+        'points_std': np.linalg.norm(np.std(points, axis=0)),
+        'ratio_cameras': completeness[0],
+        'ratio_points': completeness[1]
+    }
