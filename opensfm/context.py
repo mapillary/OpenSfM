@@ -29,7 +29,7 @@ else:
 
 
 # Parallel processes
-def parallel_map(func, args, num_proc, max_batch_size=None):
+def parallel_map(func, args, num_proc, max_batch_size=1):
     """Run function for all arguments using multiple processes."""
     num_proc = min(num_proc, len(args))
     if num_proc <= 1:
