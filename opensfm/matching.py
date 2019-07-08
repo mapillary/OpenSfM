@@ -96,16 +96,21 @@ def match_unwrap_args(args):
     im1_matches = {}
     p1, f1, _ = feature_loader.load_points_features_colors(ctx.data, im1)
     w1 = feature_loader.load_words(ctx.data, im1) if need_words else None
-    i1 = feature_loader.load_features_index(ctx.data, im1, f1) if need_index else None
     m1 = feature_loader.load_masks(ctx.data, im1)
     camera1 = ctx.cameras[ctx.exifs[im1]['camera']]
+
+    f1_filtered = f1 if m1 is None else f1[m1]
+    i1 = feature_loader.load_features_index(ctx.data, im1, f1_filtered) if need_index else None
 
     for im2 in candidates:
         p2, f2, _ = feature_loader.load_points_features_colors(ctx.data, im2)
         w2 = feature_loader.load_words(ctx.data, im2) if need_words else None
-        i2 = feature_loader.load_features_index(ctx.data, im2, f2) if need_index else None
         m2 = feature_loader.load_masks(ctx.data, im2)
         camera2 = ctx.cameras[ctx.exifs[im2]['camera']]
+
+        f2_filtered = f2 if m2 is None else f2[m2]
+        i2 = feature_loader.load_features_index(ctx.data, im2, f2_filtered) if need_index else None
+
         im1_matches[im2] = match(im1, im2, camera1, camera2,
                                  p1, p2, f1, f2, w1, w2,
                                  i1, i2, m1, m2, ctx.data)

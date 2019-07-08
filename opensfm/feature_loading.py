@@ -8,6 +8,8 @@ import logging
 import numpy as np
 from repoze.lru import LRUCache
 
+from opensfm import features as ft
+
 
 logger = logging.getLogger(__name__)
 
@@ -47,8 +49,14 @@ class FeatureLoader(object):
 
     def load_features_index(self, data, image, features):
         index = self.index_cache.get(image)
-        if index is None:
+        current_features = self.load_points_features_colors(data, image)
+        use_load = len(current_features) == len(features) and index is None
+        use_rebuild = len(current_features) != len(features)
+        if use_load:
             index = data.load_feature_index(image, features)
+        if use_rebuild:
+            index = ft.build_flann_index(features, data.config)
+        if use_load or use_rebuild:
             self.index_cache.put(image, index)
         return index
 
