@@ -23,10 +23,10 @@ def opensfm_to_upright(coords, width, height, orientation,
     ...                 [ 0.5, -0.375],
     ...                 [ 0.5,  0.375]])
     >>> opensfm_to_upright(sfm, 320, 240, 1)
-    array([[ 0.,  0.],
-           [ 0.,  320.],
-           [ 240.,  0.],
-           [ 240.,  320.]])
+    array([[  0.,   0.],
+           [  0., 240.],
+           [320.,   0.],
+           [320., 240.]])
     """
 
     R_T = {
