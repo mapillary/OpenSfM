@@ -46,7 +46,8 @@ class SyntheticDataSet(DataSet):
             return False
         return True
 
-    def load_words(self, image, n_closest): 
+    def load_words(self, image):
+        n_closest = 50
         return [image] * n_closest
 
     def load_features(self, image):
