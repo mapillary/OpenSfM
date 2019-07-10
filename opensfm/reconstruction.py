@@ -91,16 +91,50 @@ def _get_camera_from_bundle(ba, camera):
         camera.k2 = c.k2
 
 
+def triangulate_gcp(point, shots):
+    """Compute the reconstructed position of a GCP from observations."""
+    reproj_threshold = 1.0
+    min_ray_angle = np.radians(0.1)
+
+    os, bs, ids = [], [], []
+    for observation in point.observations:
+        shot_id = observation.shot_id
+        if shot_id in shots:
+            shot = shots[shot_id]
+            os.append(shot.pose.get_origin())
+            x = observation.projection
+            b = shot.camera.pixel_bearing(np.array(x))
+            r = shot.pose.get_rotation_matrix().T
+            bs.append(r.dot(b))
+            ids.append(shot_id)
+
+    if len(os) >= 2:
+        thresholds = len(os) * [reproj_threshold]
+        e, X = csfm.triangulate_bearings_midpoint(
+            os, bs, thresholds, min_ray_angle)
+        return X
+
+
 def _add_gcp_to_bundle(ba, gcp, shots):
     """Add Ground Control Points constraints to the bundle problem."""
     for point in gcp:
         point_id = 'gcp-' + point.id
 
-        ba.add_point(point_id, point.coordinates, False)
+        coordinates = triangulate_gcp(point, shots)
+        if coordinates is None:
+            if point.coordinates is not None:
+                coordinates = point.coordinates
+            else:
+                logger.warning("Cannot initialize GCP '{}'."
+                               "  Ignoring it".format(point.id))
+                continue
 
-        point_type = csfm.XYZ if point.has_altitude else csfm.XY
-        ba.add_point_position_world(point_id, point.coordinates, 0.1,
-                                    point_type)
+        ba.add_point(point_id, coordinates, False)
+
+        if point.coordinates is not None:
+            point_type = csfm.XYZ if point.has_altitude else csfm.XY
+            ba.add_point_position_world(point_id, point.coordinates, 0.1,
+                                        point_type)
 
         for observation in point.observations:
             if observation.shot_id in shots:
