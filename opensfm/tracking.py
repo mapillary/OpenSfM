@@ -19,7 +19,6 @@ def load_features(dataset, images):
     colors = {}
     for im in images:
         p, f, c = dataset.load_features(im)
-        exif = dataset.load_exif(im)
         features[im] = p[:, :3]
         colors[im] = c
     return features, colors
