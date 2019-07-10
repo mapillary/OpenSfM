@@ -241,8 +241,8 @@ def match_words_symmetric(f1, words1, f2, words2, config):
         w2: the nth closest words for each feature in the second image
         config: config parameters
     """
-    matches_ij = match_words(f1, words1, f2, words2[:, 0], config)
-    matches_ji = match_words(f2, words2, f1, words1[:, 0], config)
+    matches_ij = match_words(f1, words1, f2, words2, config)
+    matches_ji = match_words(f2, words2, f1, words1, config)
     matches_ij = [(a, b) for a, b in matches_ij]
     matches_ji = [(b, a) for a, b in matches_ji]
 
