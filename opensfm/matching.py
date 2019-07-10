@@ -42,7 +42,7 @@ def match_images(data, ref_images, cand_images):
     logger.info('Matching {} image pairs'.format(len(pairs)))
 
     # Store per each image in ref for processing
-    per_image = defaultdict(list)
+    per_image = {im: [] for im in ref_images}
     for im1, im2 in pairs:
         per_image[im1].append(im2)
 
