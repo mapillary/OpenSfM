@@ -486,6 +486,41 @@ def read_ground_control_points(fileobj, reference):
     return points
 
 
+def write_ground_control_points(gcp, fileobj, reference):
+    """Write ground control points to json file."""
+    obj = {"points": []}
+
+    for point in gcp:
+        point_obj = {}
+        point_obj['id'] = point.id
+        if point.lla:
+            point_obj['position'] = {
+                'latitude': point.lla['latitude'],
+                'longitude': point.lla['longitude'],
+            }
+            if point.has_altitude:
+                point_obj['position']['altitude'] = point.lla['altitude']
+        elif point.coordinates:
+            lat, lon, alt = reference.to_lla(*point.coordinates)
+            point_obj['position'] = {
+                'latitude': lat,
+                'longitude': lon,
+            }
+            if point.has_altitude:
+                point_obj['position']['altitude'] = alt
+
+        point_obj['observations'] = []
+        for observation in point.observations:
+            point_obj['observations'].append({
+                'shot_id': observation.shot_id,
+                'projection': tuple(observation.projection),
+            })
+
+        obj['points'].append(point_obj)
+
+    json_dump(obj, fileobj)
+
+
 def mkdir_p(path):
     '''Make a directory including parent directories.
     '''
