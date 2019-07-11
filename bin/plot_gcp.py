@@ -79,7 +79,7 @@ def main():
         fout.write(gcp_to_ply(gcps, reconstruction))
 
     for gcp in gcps:
-        print("Plotting GCP '{}'".format(gcp.id))
+        plt.suptitle("GCP '{}'".format(gcp.id))
         for i, observation in enumerate(gcp.observations):
             image = data.load_image(observation.shot_id)
             shot = reconstruction.shots[observation.shot_id]
@@ -95,7 +95,7 @@ def main():
             apixel = pix_coords(annotated, image)
 
             n = (len(gcp.observations) + 3) / 4
-            plt.subplot(n, 4, i + 1)
+            plt.subplot(n, min(len(gcp.observations), 4), i + 1)
             plt.imshow(image)
             plt.scatter(rpixel[0], rpixel[1])
             plt.scatter(apixel[0], apixel[1])
