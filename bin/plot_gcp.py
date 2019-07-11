@@ -12,6 +12,7 @@ import logging
 import numpy as np
 import matplotlib.pyplot as plt
 
+import opensfm.reconstruction as orec
 from opensfm import features
 from opensfm import io
 from opensfm import dataset
@@ -34,12 +35,15 @@ def pix_coords(x, image):
         np.array([[x[0], x[1]]]), image.shape[1], image.shape[0])[0]
 
 
-def gcp_to_ply(gcps):
+def gcp_to_ply(gcps, reconstruction):
     """Export GCP position as a PLY string."""
     vertices = []
 
     for gcp in gcps:
-        p = gcp.coordinates
+        if gcp.coordinates is not None:
+            p = gcp.coordinates
+        else:
+            p = orec.triangulate_gcp(gcp, reconstruction.shots)
         c = 255, 0, 0
         s = "{} {} {} {} {} {}".format(
             p[0], p[1], p[2], int(c[0]), int(c[1]), int(c[2]))
@@ -67,25 +71,31 @@ def main():
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
         level=logging.DEBUG)
 
-    data = dataset.DataSetBase(args.dataset)
+    data = dataset.DataSet(args.dataset)
     reconstruction = data.load_reconstruction()[0]
     gcps = data.load_ground_control_points()
 
     with io.open_wt(data.data_path + '/gcp.ply') as fout:
-        fout.write(gcp_to_ply(gcps))
+        fout.write(gcp_to_ply(gcps, reconstruction))
 
     for gcp in gcps:
+        plt.suptitle("GCP '{}'".format(gcp.id))
         for i, observation in enumerate(gcp.observations):
             image = data.load_image(observation.shot_id)
             shot = reconstruction.shots[observation.shot_id]
 
-            reprojected = shot.project(gcp.coordinates)
+            if gcp.coordinates is not None:
+                coordinates = gcp.coordinates
+            else:
+                coordinates = orec.triangulate_gcp(gcp, reconstruction.shots)
+
+            reprojected = shot.project(coordinates)
             annotated = observation.projection
             rpixel = pix_coords(reprojected, image)
             apixel = pix_coords(annotated, image)
 
             n = (len(gcp.observations) + 3) / 4
-            plt.subplot(n, 4, i + 1)
+            plt.subplot(n, min(len(gcp.observations), 4), i + 1)
             plt.imshow(image)
             plt.scatter(rpixel[0], rpixel[1])
             plt.scatter(apixel[0], apixel[1])
