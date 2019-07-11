@@ -44,6 +44,12 @@ def gcp_to_ply(gcps, reconstruction):
             p = gcp.coordinates
         else:
             p = orec.triangulate_gcp(gcp, reconstruction.shots)
+
+        if p is None:
+            logger.warning("Could not compute the 3D position of GCP '{}'"
+                           .format(gcp.id))
+            continue
+
         c = 255, 0, 0
         s = "{} {} {} {} {} {}".format(
             p[0], p[1], p[2], int(c[0]), int(c[1]), int(c[2]))
@@ -80,14 +86,20 @@ def main():
 
     for gcp in gcps:
         plt.suptitle("GCP '{}'".format(gcp.id))
+
+        if gcp.coordinates is not None:
+            coordinates = gcp.coordinates
+        else:
+            coordinates = orec.triangulate_gcp(gcp, reconstruction.shots)
+
+        if coordinates is None:
+            logger.warning("Could not compute the 3D position of GCP '{}'"
+                           .format(gcp.id))
+            continue
+
         for i, observation in enumerate(gcp.observations):
             image = data.load_image(observation.shot_id)
             shot = reconstruction.shots[observation.shot_id]
-
-            if gcp.coordinates is not None:
-                coordinates = gcp.coordinates
-            else:
-                coordinates = orec.triangulate_gcp(gcp, reconstruction.shots)
 
             reprojected = shot.project(coordinates)
             annotated = observation.projection
