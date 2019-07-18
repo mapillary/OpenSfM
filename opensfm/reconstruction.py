@@ -549,6 +549,9 @@ def two_view_reconstruction_plane_based(p1, p2, camera1, camera2, threshold):
     H, inliers = cv2.findHomography(x1, x2, cv2.RANSAC, threshold)
     motions = multiview.motion_from_plane_homography(H)
 
+    if len(motions) == 0:
+        return None, None, []
+
     motion_inliers = []
     for R, t, n, d in motions:
         inliers = _two_view_reconstruction_inliers(
