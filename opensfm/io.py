@@ -102,6 +102,7 @@ def shot_from_json(key, obj, cameras):
     metadata.capture_time = obj.get("capture_time")
     metadata.gps_dop = obj.get("gps_dop")
     metadata.gps_position = obj.get("gps_position")
+    metadata.skey = obj.get("skey")
 
     shot = types.Shot()
     shot.id = key
@@ -166,6 +167,8 @@ def reconstruction_from_json(obj):
     # Extract main and unit shots
     if 'main_shot' in obj:
         reconstruction.main_shot = obj['main_shot']
+    if 'main_shots' in obj:
+        reconstruction.main_shots = obj['main_shots']
     if 'unit_shot' in obj:
         reconstruction.unit_shot = obj['unit_shot']
 
@@ -334,6 +337,8 @@ def reconstruction_to_json(reconstruction):
     # Extract main and unit shots
     if hasattr(reconstruction, 'main_shot'):
         obj['main_shot'] = reconstruction.main_shot
+    if hasattr(reconstruction, 'main_shots'):
+        obj['main_shots'] = reconstruction.main_shots
     if hasattr(reconstruction, 'unit_shot'):
         obj['unit_shot'] = reconstruction.unit_shot
 
