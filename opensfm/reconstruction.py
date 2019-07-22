@@ -683,7 +683,7 @@ def bootstrap_reconstruction(data, graph, im1, im2, p1, p2):
     if len(inliers) <= 5:
         report['decision'] = "Could not find initial motion"
         logger.info(report['decision'])
-        return None, report
+        return None, None, report
 
     reconstruction = types.Reconstruction()
     reconstruction.reference = data.load_reference()
@@ -712,7 +712,7 @@ def bootstrap_reconstruction(data, graph, im1, im2, p1, p2):
     if len(reconstruction.points) < min_inliers:
         report['decision'] = "Initial motion did not generate enough points"
         logger.info(report['decision'])
-        return None, report
+        return None, None, report
 
     bundle_single_view(graph_inliers, reconstruction, im2, data.config)
     retriangulate(graph, graph_inliers, reconstruction, data.config)
