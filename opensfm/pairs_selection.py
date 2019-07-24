@@ -102,8 +102,9 @@ def match_candidates_with_bow(data, images_ref, images_cand,
     # parralel BoW neighbors computation
     per_process = 512
     processes = context.processes_that_fit_in_memory(data.config['processes'], per_process)
+    batch_size = max(1, len(args)/(2*processes))
     logger.info("Computing BoW candidates with %d processes" % processes)
-    results = context.parallel_map(match_bow_unwrap_args, args, processes)
+    results = context.parallel_map(match_bow_unwrap_args, args, processes, batch_size)
 
     # construct final sets of pairs to match
     pairs = set()
