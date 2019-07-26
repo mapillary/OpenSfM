@@ -745,8 +745,19 @@ class DataSet(object):
         It uses reference_lla to convert the coordinates
         to topocentric reference frame.
         """
-        exif = {image: self.load_exif(image) for image in self.images()}
+
         reference = self.load_reference()
+        return self._load_ground_control_points(reference)
+
+    def _load_ground_control_points(self, reference):
+        """Load ground control points.
+
+        It might use reference to convert the coordinates
+        to topocentric reference frame.
+        If reference is None, it won't initialize topocentric data,
+        thus allowing loading raw data only.
+        """
+        exif = {image: self.load_exif(image) for image in self.images()}
 
         gcp = []
         if os.path.isfile(self._gcp_list_file()):
