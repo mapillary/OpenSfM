@@ -740,6 +740,7 @@ def export_bundler(image_list, reconstructions, track_graph, bundle_file_path,
                 shot = shots[shot_id]
                 camera = shot.camera
                 if type(camera) == types.BrownPerspectiveCamera:
+                    # Will aproximate Brown model, not optimal
                     focal_normalized = camera.focal_x
                 else:
                     focal_normalized = camera.focal
