@@ -360,5 +360,6 @@ def add_pano_subshot_tracks(graph, ugraph, panoshot, perspectiveshot):
         ugraph.add_edge(perspectiveshot.id,
                         track,
                         feature=perspective_feature,
+                        feature_scale=edge['feature_scale'],
                         feature_id=edge['feature_id'],
                         feature_color=edge['feature_color'])
