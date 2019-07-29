@@ -739,8 +739,12 @@ def export_bundler(image_list, reconstructions, track_graph, bundle_file_path,
             if shot_id in shots:
                 shot = shots[shot_id]
                 camera = shot.camera
+                if type(camera) == types.BrownPerspectiveCamera:
+                    focal_normalized = camera.focal_x
+                else:
+                    focal_normalized = camera.focal
                 scale = max(camera.width, camera.height)
-                focal = camera.focal * scale
+                focal = focal_normalized * scale
                 k1 = camera.k1
                 k2 = camera.k2
                 R = shot.pose.get_rotation_matrix()
