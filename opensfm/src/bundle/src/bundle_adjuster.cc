@@ -726,9 +726,8 @@ void BundleAdjuster::Run() {
     cost_function->AddParameterBlock(6);
     cost_function->AddParameterBlock(1);
     cost_function->SetNumResiduals(3);
-
-    double* std__deviation = std_deviations.data() + std_dev_group_remap[a.std_deviation_group];
-    problem.AddResidualBlock(cost_function, NULL, a.shot->parameters.data(), std__deviation);
+    problem.AddResidualBlock(cost_function, NULL, a.shot->parameters.data(),
+                             &std_deviations[std_dev_group_remap[a.std_deviation_group]]);
   }
 
   // Add regularizer term if we're adjusting for standart deviation, or lock them up.

@@ -24,7 +24,7 @@ struct BAAbsolutePositionError {
     Eigen::Map< Eigen::Matrix<T,3,1> > residual(r);
 
     // error is : position_prior - adjusted_position
-    residual =  T(scale_) * (pos_prior_.cast<T>() - pos_func_(p));
+    residual = T(scale_) * (pos_prior_.cast<T>() - pos_func_(p));
     if(has_std_deviation_param_){
       residual /= p[1][0];
     }
