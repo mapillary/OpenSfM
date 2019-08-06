@@ -10,10 +10,12 @@ struct BAAbsolutePositionError {
   BAAbsolutePositionError(const PosFunc& pos_func, 
                           const Eigen::Vector3d& pos_prior,
                           double std_deviation,
+                          bool has_std_deviation_param,
                           const PositionConstraintType& type)
       : pos_func_(pos_func)
       , pos_prior_(pos_prior)
       , scale_(1.0 / std_deviation)
+      , has_std_deviation_param_(has_std_deviation_param)
       , type_(type)
   {}
 
@@ -22,7 +24,13 @@ struct BAAbsolutePositionError {
     Eigen::Map< Eigen::Matrix<T,3,1> > residual(r);
 
     // error is : position_prior - adjusted_position
-    residual =  T(scale_) * (pos_prior_.cast<T>() - pos_func_(p));
+    residual = pos_prior_.cast<T>() - pos_func_(p);
+    if(has_std_deviation_param_){
+      residual /= p[1][0];
+    }
+    else{
+      residual *= T(scale_);
+    }
 
     // filter axises to use
     const std::vector<PositionConstraintType> axises = {
@@ -44,6 +52,7 @@ struct BAAbsolutePositionError {
   PosFunc pos_func_;
   Eigen::Vector3d pos_prior_;
   double scale_;
+  bool has_std_deviation_param_;
   PositionConstraintType type_;
 };
 

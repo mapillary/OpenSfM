@@ -333,6 +333,7 @@ struct BAAbsolutePosition {
   BAShot *shot;
   Eigen::Vector3d position;
   double std_deviation;
+  std::string std_deviation_group;
 };
 
 struct BAAbsoluteUpVector {
@@ -478,7 +479,8 @@ class BundleAdjuster {
   void AddAbsolutePosition(
       const std::string &shot_id,
       const Eigen::Vector3d& position,
-      double std_deviation);
+      double std_deviation,
+      const std::string& std_deviation_group);
   void AddAbsoluteUpVector(
       const std::string &shot_id,
       const Eigen::Vector3d& up_vector,
@@ -527,6 +529,7 @@ class BundleAdjuster {
   // minimization setup
   void SetPointProjectionLossFunction(std::string name, double threshold);
   void SetRelativeMotionLossFunction(std::string name, double threshold);
+  void SetAdjustAbsolutePositionStd(bool adjust);
 
   void SetMaxNumIterations(int miter);
   void SetNumThreads(int n);
@@ -621,6 +624,7 @@ class BundleAdjuster {
   double point_projection_loss_threshold_;
   std::string relative_motion_loss_name_;
   double relative_motion_loss_threshold_;
+  bool adjust_absolute_position_std_;
 
   bool compute_covariances_;
   bool covariance_estimation_valid_;

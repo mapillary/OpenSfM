@@ -19,6 +19,7 @@ BundleAdjuster::BundleAdjuster() {
   compute_covariances_ = false;
   covariance_estimation_valid_ = false;
   compute_reprojection_errors_ = true;
+  adjust_absolute_position_std_ = false;
   max_num_iterations_ = 500;
   num_threads_ = 1;
   linear_solver_type_ = "SPARSE_NORMAL_CHOLESKY";
@@ -241,11 +242,13 @@ void BundleAdjuster::AddCommonPosition(const std::string &shot_id1,
 
 void BundleAdjuster::AddAbsolutePosition(const std::string &shot_id,
                                              const Eigen::Vector3d& position,
-                                             double std_deviation) {
+                                             double std_deviation,
+                                             const std::string& std_deviation_group) {
   BAAbsolutePosition a;
   a.shot = &shots_[shot_id];
   a.position = position;
   a.std_deviation = std_deviation;
+  a.std_deviation_group = std_deviation_group;
   absolute_positions_.push_back(a);
 }
 
@@ -347,6 +350,10 @@ void BundleAdjuster::SetRelativeMotionLossFunction(std::string name,
   relative_motion_loss_threshold_ = threshold;
 }
 
+void BundleAdjuster::SetAdjustAbsolutePositionStd(bool adjust){
+  adjust_absolute_position_std_ = adjust;
+}
+
 void BundleAdjuster::SetMaxNumIterations(int miter) {
   max_num_iterations_ = miter;
 }
@@ -438,6 +445,17 @@ void BundleAdjuster::AddLinearMotion(const std::string &shot0_id,
   a.orientation_std_deviation = orientation_std_deviation;
   linear_motion_prior_.push_back(a);
 }
+
+struct BAStdDeviationConstraint {
+  BAStdDeviationConstraint() = default;
+
+  template <typename T>
+  bool operator()(const T* const std_deviation, T* residuals) const {
+    T std = std_deviation[0];
+    residuals[0] = ceres::log(T(1.0)/ceres::sqrt(T(2.0*M_PI)*std*std));
+    return true;
+  }
+};
 
 void BundleAdjuster::Run() {
   ceres::Problem problem;
@@ -675,6 +693,19 @@ void BundleAdjuster::Run() {
   }
 
   // Add absolute position errors
+  std::map<std::string,int> std_dev_group_remap;
+  for (const auto& a : absolute_positions_){
+    if(std_dev_group_remap.find(a.std_deviation_group) != std_dev_group_remap.end()){
+      continue;
+    }
+    const int index = std_dev_group_remap.size();
+    std_dev_group_remap[a.std_deviation_group] = index;
+  }
+  std::vector<double> std_deviations(std_dev_group_remap.size());
+  for (const auto& a : absolute_positions_){
+    std_deviations[std_dev_group_remap[a.std_deviation_group]] = a.std_deviation;
+  }
+
   for (auto &a : absolute_positions_) {
 
     ceres::DynamicCostFunction *cost_function = nullptr;
@@ -684,7 +715,7 @@ void BundleAdjuster::Run() {
     cost_function = new ceres::DynamicAutoDiffCostFunction<
         BAAbsolutePositionError<ShotPositionShotParam>>(
         new BAAbsolutePositionError<ShotPositionShotParam>(
-            pos_func, a.position, a.std_deviation,
+            pos_func, a.position, 1.0, true,
             PositionConstraintType::XYZ));
 
     // world parametrization
@@ -694,9 +725,25 @@ void BundleAdjuster::Run() {
     //     new BAAbsolutePositionError(pos_func, a.position, a.std_deviation));
 
     cost_function->AddParameterBlock(6);
+    cost_function->AddParameterBlock(1);
     cost_function->SetNumResiduals(3);
+    problem.AddResidualBlock(cost_function, NULL, a.shot->parameters.data(),
+                             &std_deviations[std_dev_group_remap[a.std_deviation_group]]);
+  }
 
-    problem.AddResidualBlock(cost_function, NULL, a.shot->parameters.data());
+  // Add regularizer term if we're adjusting for standart deviation, or lock them up.
+  if(adjust_absolute_position_std_){
+    for (int i = 0; i < std_deviations.size(); ++i) {
+      ceres::CostFunction* std_dev_cost_function =
+            new ceres::AutoDiffCostFunction<BAStdDeviationConstraint, 1, 1>(
+                new BAStdDeviationConstraint());
+      problem.AddResidualBlock(std_dev_cost_function, NULL, &std_deviations[i]);
+    }
+  }
+  else{
+    for (int i = 0; i < std_deviations.size(); ++i) {
+      problem.SetParameterBlockConstant(&std_deviations[i]);
+    }
   }
 
   // Add absolute up vector errors
@@ -768,7 +815,7 @@ void BundleAdjuster::Run() {
     auto *cost_function = new ceres::DynamicAutoDiffCostFunction<
         BAAbsolutePositionError<PointPositionScaledShot>>(
         new BAAbsolutePositionError<PointPositionScaledShot>(
-            pos_func, p.position, p.std_deviation, p.type));
+            pos_func, p.position, p.std_deviation, false, p.type));
 
     cost_function->AddParameterBlock(6);
     cost_function->AddParameterBlock(1);
@@ -804,7 +851,7 @@ void BundleAdjuster::Run() {
     PointPositionWorld pos_func(0);
     auto *cost_function = new ceres::DynamicAutoDiffCostFunction<
         BAAbsolutePositionError<PointPositionWorld>>(
-        new BAAbsolutePositionError<PointPositionWorld>(pos_func, p.position, p.std_deviation, p.type));
+        new BAAbsolutePositionError<PointPositionWorld>(pos_func, p.position, p.std_deviation, false, p.type));
 
     cost_function->AddParameterBlock(3);
     cost_function->SetNumResiduals(3);
