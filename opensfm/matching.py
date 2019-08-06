@@ -31,7 +31,7 @@ def match_images(data, ref_images, cand_images, overwrite):
     non-symmetric matching options like WORDS. Data will be
     stored in i matching only.
 
-    if 'overwrite' is set to True, matches of a given images will be
+    If 'overwrite' is set to True, matches of a given images will be
     overwritten with the new ones, if False, they're going to be updated,
     keeping the previous ones.
     """
