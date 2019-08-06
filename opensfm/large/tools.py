@@ -120,7 +120,7 @@ def add_camera_constraints_soft(ra, reconstruction_shots, reconstruction_name):
                 gps_sd = shot.metadata.gps_dop
 
                 ra.add_absolute_position_constraint(
-                        shot_name, gps[0], gps[1], gps[2], gps_sd)
+                        shot_name, gps[0], gps[1], gps[2], gps_sd, key)
 
                 added_shots.add(shot_id)
 
