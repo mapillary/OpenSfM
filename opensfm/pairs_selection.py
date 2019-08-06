@@ -146,7 +146,7 @@ def match_candidates_by_time(images_ref, images_cand, exifs, max_neighbors):
         nn = k+1 if image_ref in images_cand else k
 
         time = exifs[image_ref]['capture_time']
-        distances, neighbors = tree.query(time, k=nn)
+        distances, neighbors = tree.query([time], k=nn)
         for j in neighbors:
             if j >= len(images_cand):
                 continue
@@ -169,7 +169,7 @@ def match_candidates_by_order(images_ref, images_cand, max_neighbors):
         for j in range(a, b):
             image_cand = images_cand[j]
             if image_ref != image_cand:
-                pairs.add(tuple(sorted((image_ref, images_cand))))
+                pairs.add(tuple(sorted([image_ref, image_cand])))
     return pairs
 
 
