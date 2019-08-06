@@ -22,7 +22,7 @@ def clear_cache():
     feature_loader.clear_cache()
 
 
-def match_images(data, ref_images, cand_images):
+def match_images(data, ref_images, cand_images, overwrite):
     """ Perform pair matchings between two sets of images.
 
     It will do matching for each pair (i, j), i being in
@@ -30,6 +30,10 @@ def match_images(data, ref_images, cand_images):
     matching(i, j) == matching(j ,i). This does not hold for
     non-symmetric matching options like WORDS. Data will be
     stored in i matching only.
+
+    if 'overwrite' is set to True, matches of a given images will be
+    overwritten with the new ones, if False, they're going to be updated,
+    keeping the previous ones.
     """
 
     # Get EXIFs data
@@ -50,6 +54,7 @@ def match_images(data, ref_images, cand_images):
     ctx.data = data
     ctx.cameras = ctx.data.load_camera_models()
     ctx.exifs = exifs
+    ctx.overwrite = overwrite
     args = list(match_arguments(per_image, ctx))
 
     # Perform all pair matchings in parallel
@@ -118,7 +123,10 @@ def match_unwrap_args(args):
     num_matches = sum(1 for m in im1_matches.values() if len(m) > 0)
     logger.debug('Image {} matches: {} out of {}'.format(
         im1, num_matches, len(candidates)))
-    ctx.data.save_matches(im1, im1_matches)
+
+    all_im1_matches = {} if ctx.overwrite else ctx.data.load_matches(im1)
+    all_im1_matches.update(im1_matches)
+    ctx.data.save_matches(im1, all_im1_matches)
     return im1, im1_matches
 
 
