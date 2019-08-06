@@ -698,7 +698,8 @@ void BundleAdjuster::Run() {
     if(std_dev_group_remap.find(a.std_deviation_group) != std_dev_group_remap.end()){
       continue;
     }
-    std_dev_group_remap[a.std_deviation_group] = std_dev_group_remap.size()-1;
+    const int index = std_dev_group_remap.size();
+    std_dev_group_remap[a.std_deviation_group] = index;
   }
   std::vector<double> std_deviations(std_dev_group_remap.size());
   for (const auto& a : absolute_positions_){
