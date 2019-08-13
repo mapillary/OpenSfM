@@ -86,13 +86,16 @@ def match_candidates_with_bow(data, images_ref, images_cand,
                                                  max_gps_distance)
         preempted_cand = defaultdict(list)
         for p in gps_pairs:
-            preempted_cand[p[0]].append(p[1])
-            preempted_cand[p[1]].append(p[0])
+            if p[0] in images_ref:
+                preempted_cand[p[0]].append(p[1])
+            if p[1] in images_ref:
+                preempted_cand[p[1]].append(p[0])
 
     # reduce sets of images from which to load words (RAM saver)
     need_load = set(preempted_cand.keys())
-    for v in preempted_cand.values():
+    for k, v in preempted_cand.items():
         need_load.update(v)
+        need_load.add(k)
 
     # construct BoW histograms
     logger.info("Computing %d BoW histograms" % len(need_load))
