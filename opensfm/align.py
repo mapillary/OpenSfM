@@ -58,8 +58,7 @@ def align_reconstruction_similarity(reconstruction, gcp, config):
         return align_reconstruction_naive_similarity(config, reconstruction, gcp)
 
 
-def align_reconstruction_naive_similarity(config, reconstruction, gcp):
-    """Align with GPS and GCP data using direct 3D-3D matches."""
+def alignment_constraints(config, reconstruction, gcp):
     X, Xp = [], []
 
     # Get Ground Control Point correspondences
@@ -73,6 +72,13 @@ def align_reconstruction_naive_similarity(config, reconstruction, gcp):
         for shot in reconstruction.shots.values():
             X.append(shot.pose.get_origin())
             Xp.append(shot.metadata.gps_position)
+
+    return X, Xp
+
+
+def align_reconstruction_naive_similarity(config, reconstruction, gcp):
+    """Align with GPS and GCP data using direct 3D-3D matches."""
+    X, Xp = alignment_constraints(config, reconstruction, gcp)
 
     if len(X) == 0:
         return 1.0, np.identity(3), np.zeros((3))
@@ -114,12 +120,10 @@ def align_reconstruction_orientation_prior_similarity(reconstruction, config):
      - horizontal: assumes cameras are looking towards the horizon
      - vertical: assumes cameras are looking down towards the ground
     """
-    X, Xp = [], []
+    X, Xp = alignment_constraints(config, reconstruction, gcp)
     orientation_type = config['align_orientation_prior']
     onplane, verticals = [], []
     for shot in reconstruction.shots.values():
-        X.append(shot.pose.get_origin())
-        Xp.append(shot.metadata.gps_position)
         R = shot.pose.get_rotation_matrix()
         x, y, z = get_horizontal_and_vertical_directions(
             R, shot.metadata.orientation)
