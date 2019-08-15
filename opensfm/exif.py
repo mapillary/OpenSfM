@@ -449,6 +449,22 @@ def camera_from_exif_metadata(metadata, data):
         camera.p2_prior = calib['p2']
         camera.k3_prior = calib['k3']
         return camera
+    elif pt == 'fisheye':
+        calib = (hard_coded_calibration(metadata)
+                 or focal_ratio_calibration(metadata)
+                 or default_calibration(data))
+        camera = types.FisheyeCamera()
+        camera.id = metadata['camera']
+        camera.width = metadata['width']
+        camera.height = metadata['height']
+        camera.projection_type = pt
+        camera.focal = calib['focal']
+        camera.k1 = calib['k1']
+        camera.k2 = calib['k2']
+        camera.focal_prior = calib['focal']
+        camera.k1_prior = calib['k1']
+        camera.k2_prior = calib['k2']
+        return camera
     elif pt in ['equirectangular', 'spherical']:
         camera = types.SphericalCamera()
         camera.id = metadata['camera']
