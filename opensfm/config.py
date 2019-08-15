@@ -93,6 +93,7 @@ bundle_outlier_filtering_type: FIXED    # Type of threshold for filtering outlie
 bundle_outlier_auto_ratio: 3.0          # For AUTO filtering type, projections with larger reprojection than ratio-times-mean, are removed
 bundle_outlier_fixed_threshold: 0.006   # For FIXED filtering type, projections with larger reprojection error after bundle adjustment are removed
 optimize_camera_parameters: yes         # Optimize internal camera parameters during bundle
+camera_projection_type: AUTO        # The projection type of the camera : attempt to detect it from metadata (AUTO), or set it manually (PERSPECTIVE, BROWN, FISHEYE) 
 
 retriangulation: yes                # Retriangulate all points from time to time
 retriangulation_ratio: 1.2          # Retriangulate when the number of points grows by this ratio

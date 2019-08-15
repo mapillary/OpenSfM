@@ -63,6 +63,10 @@ class Command:
          # EXIF data in Image
         d = exif.extract_exif_from_file(data.open_image_file(image))
 
+        # Override projection type if needed
+        if data.config['camera_projection_type'] != 'AUTO':
+            d['projection_type'] = data.config['camera_projection_type'].lower()
+
         # Image Height and Image Width
         if d['width'] <= 0 or not data.config['use_exif_size']:
             d['height'], d['width'] = data.image_size(image)

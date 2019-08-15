@@ -363,7 +363,7 @@ def hard_coded_calibration(exif):
 
 
 def focal_ratio_calibration(exif):
-    if exif['focal_ratio']:
+    if exif.get('focal_ratio'):
         return {
             'focal': exif['focal_ratio'],
             'k1': 0.0,
@@ -375,12 +375,13 @@ def focal_ratio_calibration(exif):
 
 
 def focal_xy_calibration(exif):
-    if exif['focal_x']:
+    focal = exif.get('focal_x', exif.get('focal_ratio'))
+    if focal:
         return {
-            'focal_x': exif['focal_x'],
-            'focal_y': exif['focal_y'],
-            'c_x': exif['c_x'],
-            'c_y': exif['c_y'],
+            'focal_x': focal,
+            'focal_y': focal,
+            'c_x': exif.get('c_x', 0.0),
+            'c_y': exif.get('c_y', 0.0),
             'k1': 0.0,
             'k2': 0.0,
             'p1': 0.0,
