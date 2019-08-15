@@ -6,6 +6,7 @@ import os
 from opensfm import dataset
 from opensfm import transformations as tf
 from opensfm import io
+from opensfm import types
 from six import iteritems
 
 logger = logging.getLogger(__name__)
@@ -49,9 +50,15 @@ class Command:
             shot_index[shot.id] = i
             i += 1
 
+            if type(shot.camera) == types.BrownPerspectiveCamera:
+                # Will aproximate Brown model, not optimal
+                focal_normalized = shot.camera.focal_x
+            else:
+                focal_normalized = shot.camera.focal
+
             words = [
                 self.image_path(shot.id, data),
-                shot.camera.focal * max(shot_size_cache[shot.id]),
+                focal_normalized * max(shot_size_cache[shot.id]),
                 q[0], q[1], q[2], q[3],
                 o[0], o[1], o[2],
                 '0', '0',
