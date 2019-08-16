@@ -88,7 +88,7 @@ def detect_alignment_constraints(config, reconstruction, gcp):
 
     X, Xp = alignment_constraints(config, reconstruction, gcp)
     if len(X) < 3:
-        return 'naive'
+        return 'orientation_prior'
 
     X = np.array(X)
     X = X - np.average(X, axis=0)
