@@ -176,6 +176,9 @@ def align_reconstruction_orientation_prior_similarity(reconstruction, config, gc
     X = np.array(X)
     Xp = np.array(Xp)
 
+    if len(X) < 1:
+        return 1.0, np.identity(3), np.zeros((3))
+
     # Estimate ground plane.
     p = multiview.fit_plane(X - X.mean(axis=0), onplane, verticals)
     Rplane = multiview.plane_horizontalling_rotation(p)
