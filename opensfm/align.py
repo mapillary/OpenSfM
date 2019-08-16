@@ -1,6 +1,7 @@
 """Tools to align a reconstruction to GPS and GCP data."""
 
 import logging
+import math
 
 import numpy as np
 
@@ -51,14 +52,17 @@ def align_reconstruction_similarity(reconstruction, gcp, config):
      - orientation_prior: assumes a particular camera orientation
     """
     align_method = config['align_method']
+    if align_method == 'auto':
+        align_method = detect_alignment_constraints(config, reconstruction, gcp)
     if align_method == 'orientation_prior':
-        return align_reconstruction_orientation_prior_similarity(
-            reconstruction, config)
+        return align_reconstruction_orientation_prior_similarity(reconstruction, config, gcp)
     elif align_method == 'naive':
         return align_reconstruction_naive_similarity(config, reconstruction, gcp)
 
 
 def alignment_constraints(config, reconstruction, gcp):
+    """ Gather alignment constraints to be used by checking bundle_use_gcp and bundle_use_gps. """
+
     X, Xp = [], []
 
     # Get Ground Control Point correspondences
@@ -76,6 +80,35 @@ def alignment_constraints(config, reconstruction, gcp):
     return X, Xp
 
 
+def detect_alignment_constraints(config, reconstruction, gcp):
+    """ Automatically pick the best alignment method, depending
+    if alignment data such as GPS/GCP is aligned on a single-line or not.
+
+    """
+
+    X, Xp = alignment_constraints(config, reconstruction, gcp)
+    if len(X) < 3:
+        return 'naive'
+
+    X = np.array(X)
+    X = X - np.average(X, axis=0)
+    evalues, _ = np.linalg.eig(X.T.dot(X))
+
+    evalues = np.array(sorted(evalues))
+    ratio_1st_2nd = math.fabs(evalues[2]/evalues[1])
+
+    epsilon_abs = 1e-10
+    epsilon_ratio = 5e3
+    is_line = sum(evalues < epsilon_abs) > 1 or ratio_1st_2nd > epsilon_ratio
+    if is_line:
+        logger.warning('Shots and/or GCPs are aligned on a single-line. Using %s prior',
+                       config['align_orientation_prior'])
+        return 'orientation_prior'
+    else:
+        logger.info('Shots and/or GCPs are well-conditionned. Using naive 3D-3D alignment.')
+        return 'naive'
+
+
 def align_reconstruction_naive_similarity(config, reconstruction, gcp):
     """Align with GPS and GCP data using direct 3D-3D matches."""
     X, Xp = alignment_constraints(config, reconstruction, gcp)
@@ -85,14 +118,15 @@ def align_reconstruction_naive_similarity(config, reconstruction, gcp):
 
     # Translation-only case
     if len(X) == 1:
-        t = Xp[0] - X[0]
+        logger.warning('Only 1 constraints. Using translation-only alignment.')
+        t = np.array(Xp[0]) - np.array(X[0])
         return 1.0, np.identity(3), t
 
-    # For now, translation only, need to decide on a prior rotation
+    # Will be up to some unknown rotation
     if len(X) == 2:
-        s = np.linalg.norm(Xp[0] - Xp[1])/np.linalg.norm(np.array(X[0]) - np.array(X[1]))
-        t = np.average(Xp, axis=0)-s*np.average(X, axis=0)
-        return s, np.identity(3), t
+        logger.warning('Only 2 constraints. Will be up to some unknown rotation.')
+        X.append(X[1])
+        Xp.append(Xp[1])
 
     # Compute similarity Xp = s A X + b
     X = np.array(X)
@@ -105,7 +139,7 @@ def align_reconstruction_naive_similarity(config, reconstruction, gcp):
     return s, A, b
 
 
-def align_reconstruction_orientation_prior_similarity(reconstruction, config):
+def align_reconstruction_orientation_prior_similarity(reconstruction, config, gcp):
     """Align with GPS data assuming particular a camera orientation.
 
     In some cases, using 3D-3D matches directly fails to find proper
