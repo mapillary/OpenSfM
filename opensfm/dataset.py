@@ -146,7 +146,7 @@ class DataSet(object):
                                         new_width=new_width, new_height=new_height).astype(int)
         mask = mask_image[ps[:, 1], ps[:, 0]]
 
-        n_removed = len(mask) - np.sum(mask)
+        n_removed = np.sum(mask == 0)
         logger.debug('Masking {} / {} ({:.2f}) features for {}'.format(
                     n_removed, len(mask), n_removed / len(mask), image))
 
