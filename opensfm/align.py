@@ -155,32 +155,13 @@ def align_reconstruction_orientation_prior_similarity(reconstruction, config, gc
      - vertical: assumes cameras are looking down towards the ground
     """
     X, Xp = alignment_constraints(config, reconstruction, gcp)
-    orientation_type = config['align_orientation_prior']
-    onplane, verticals = [], []
-    for shot in reconstruction.shots.values():
-        R = shot.pose.get_rotation_matrix()
-        x, y, z = get_horizontal_and_vertical_directions(
-            R, shot.metadata.orientation)
-        if orientation_type == 'no_roll':
-            onplane.append(x)
-            verticals.append(-y)
-        elif orientation_type == 'horizontal':
-            onplane.append(x)
-            onplane.append(z)
-            verticals.append(-y)
-        elif orientation_type == 'vertical':
-            onplane.append(x)
-            onplane.append(y)
-            verticals.append(-z)
-
     X = np.array(X)
     Xp = np.array(Xp)
 
     if len(X) < 1:
         return 1.0, np.identity(3), np.zeros((3))
 
-    # Estimate ground plane.
-    p = multiview.fit_plane(X - X.mean(axis=0), onplane, verticals)
+    p = estimate_ground_plane(reconstruction, config)
     Rplane = multiview.plane_horizontalling_rotation(p)
     X = Rplane.dot(X.T).T
 
@@ -205,6 +186,41 @@ def align_reconstruction_orientation_prior_similarity(reconstruction, config, gc
         ])
     return s, A, b
 
+
+def estimate_ground_plane(reconstruction, config):
+    """Estimate ground plane orientation.
+    
+    It assumes cameras are all at a similar height and uses the
+    align_orientation_prior option to enforce cameras to look
+    horizontally or vertically.
+    """
+    orientation_type = config['align_orientation_prior']
+    onplane, verticals = [], []
+    for shot in reconstruction.shots.values():
+        R = shot.pose.get_rotation_matrix()
+        x, y, z = get_horizontal_and_vertical_directions(
+            R, shot.metadata.orientation)
+        if orientation_type == 'no_roll':
+            onplane.append(x)
+            verticals.append(-y)
+        elif orientation_type == 'horizontal':
+            onplane.append(x)
+            onplane.append(z)
+            verticals.append(-y)
+        elif orientation_type == 'vertical':
+            onplane.append(x)
+            onplane.append(y)
+            verticals.append(-z)
+
+    ground_points = []
+    for shot in reconstruction.shots.values():
+        ground_points.append(shot.pose.get_origin())
+    ground_points = np.array(ground_points)
+    ground_points -= ground_points.mean(axis=0)
+    
+    plane = multiview.fit_plane(ground_points, onplane, verticals)
+    return plane
+    
 
 def get_horizontal_and_vertical_directions(R, orientation):
     """Get orientation vectors from camera rotation matrix and orientation tag.
