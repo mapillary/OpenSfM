@@ -1293,7 +1293,6 @@ def grow_reconstruction(data, graph, graph_inliers, reconstruction, images, gcp)
                 step['bundle'] = brep
                 should_bundle.done()
             elif config['local_bundle_radius'] > 0:
-                align_reconstruction(reconstruction, gcp, config)
                 brep = bundle_local(graph_inliers, reconstruction, None, image, config)
                 remove_outliers(graph_inliers, reconstruction, config)
                 step['local_bundle'] = brep
