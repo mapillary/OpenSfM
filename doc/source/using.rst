@@ -98,19 +98,16 @@ The following data is extracted for each image:
 
 - ``make`` and ``model``: The camera make and model.  Used to build the camera ID.
 
-- ``camera``: The camera ID string. Used to identify a camera. When multiple images have the same camera ID string, they will be assumed to be taken with the same camera and will share its parameters.
+- ``camera``: The camera ID string. Used to identify a camera.  When multiple images have the same camera ID string, they will be assumed to be taken with the same camera and will share its parameters.
 
 
-Once the metadata for all images has been extracted, a list of camera models is created and stored in ``camera_models.json``.  A camera is created for each diferent camera ID string found on the images.
+Once the metadata for all images has been extracted, a list of camera models is created and stored in ``camera_models.json``.  A camera model is created for each diferent camera ID string found on the images.
 
-For each camera the following data is stored:
+For each camera ID, the cammera model parameters are chosen using the following procedure.
 
-- ``width`` and ``height``: image size in pixels
-- ``projection_type``:  the camera projection type
-- ``focal``:  The initial estimation of the focal length (as a multiple of the sensor width).
-- ``k1`` and ``k2``:  The initial estimation of the radial distortion parameters. Only used for `perspective` and `fisheye` projection models.
-- ``focal_prior``: The focal length prior.  The final estimated focal length will be forced to be similar to it.
-- ``k1_prior`` and ``k2_prior``:  The radial distortion parameters prior.
+- If the camera ID exists in the ``camera_models_overrides.json`` then the parameters are taken from that file. 
+- Otherwise, if the camera ID exists in an internal calibration database, then the camera parameters are taken from the database.
+- Otherwise, the camera parameters are inferred from the avalable EXIF metadata.
 
 
 Providing additional metadata
@@ -137,11 +134,51 @@ These values are used during the ``extract_metadata``, so we will need to rerun 
 Providing your own camera parameters
 ''''''''''''''''''''''''''''''''''''
 
-By default, the camera parameters are taken from the EXIF metadata but it is also possible to override the default parameters.  To do so, place a file named ``camera_models_overrides.json`` in the project folder.  This file should have the same structure as ``camera_models.json``.  When running the ``extract_metadata`` command, the parameters of any camera present in the ``camera_models_overrides.json`` file will be copied to ``camera_models.json`` overriding the default ones.
+By default, the camera parameters are taken from the EXIF metadata using the procedure described above.  If you know the camera parameters that you want to use, you can put them in a file named ``camera_models_overrides.json`` in the project folder.  This file should have the same structure as ``camera_models.json``.  That is a dictionary mapping camera identifiers to the desired camera parameters.
 
-Simplest way to create the ``camera_models_overrides.json`` file is to rename ``camera_models.json`` and modify the parameters.  You will need to rerun the ``extract_metadata`` command after that.
+When running the ``extract_metadata`` command, the parameters of any camera present in the ``camera_models_overrides.json`` file will be copied to ``camera_models.json`` overriding the default ones.
 
-Here is a `spherical 360 images dataset`_ example using ``camera_models_overrides.json`` to specify that the camera is taking 360 equirectangular images.
+The simplest way to create the ``camera_models_overrides.json`` file is to rename ``camera_models.json`` and modify the parameters.  You will need to rerun the ``extract_metadata`` command after that.
+
+Optionally, you may want to override the camera parameters of **all** cameras in the dataset.  To do so, use ``"all"`` as camera ID.  For example::
+
+    {
+        "all": {
+            "projection_type": "perspective",
+            "width": 1920,
+            "height": 1080,
+            "focal": 0.9,
+            "k1": 0.0,
+            "k2": 0.0,
+        }
+    }
+
+will set all cameras to use a perspective projection model.  Likewise::
+
+    {
+        "all": {
+            "projection_type": "fisheye",
+            "width": 1920,
+            "height": 1080,
+            "focal": 0.5,
+            "k1": 0.0,
+            "k2": 0.0,
+        }
+    }
+
+will set all cameras to use a fisheye projection model.  And::
+
+    {
+        "all": {
+            "projection_type": "equirectangular",
+            "width": 2000,
+            "height": 1000,
+        }
+    }
+
+will set all cameras to use an equirectangular panoramic projection model.
+
+Have a look at the `spherical 360 images dataset`_ for a complete example using ``camera_models_overrides.json`` to specify that the camera is taking 360 equirectangular images.
 
 
 .. _`exif orientation documentation`: http://sylvana.net/jpegcrop/exif_orientation.html
