@@ -57,7 +57,7 @@ class Command:
 
         end = time.time()
         with open(data.profile_log(), 'a') as fout:
-            fout.write('focal_from_exif: {0}\n'.format(end - start))
+            fout.write('extract_metadata: {0}\n'.format(end - start))
 
     def _extract_exif(self, image, data):
          # EXIF data in Image
