@@ -2,7 +2,7 @@
 
 
 Incremental reconstruction algorithm
-=====================================
+====================================
 
 OpenSfM implements an incremental structure from motion algorithm.  This is reconstruction algorithm that starts building a reconstruction of a single image pair and then iteratively add the other images to the reconstruction one at a time.
 
@@ -30,7 +30,7 @@ This step is done by the :func:`~opensfm.reconstruction.compute_image_pairs` fun
 
 
 2. Bootstraping the reconstruction
----------------------------------
+----------------------------------
 
 To bootstrap the reconstruction, we use the first image pair.  If initialization fails we try with the next on the list.  If the initialization works, we pass it to the next step to grow it with more images.
 
