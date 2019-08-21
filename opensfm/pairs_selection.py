@@ -51,6 +51,9 @@ def match_candidates_by_distance(images_ref, images_cand, exifs, reference,
         distances, neighbors = tree.query(
             point, k=nn, distance_upper_bound=max_distance)
 
+        if type(neighbors) == int:      # special case with only one NN
+            neighbors = [neighbors]
+
         for j in neighbors:
             if j >= len(images_cand):
                 continue
@@ -150,6 +153,10 @@ def match_candidates_by_time(images_ref, images_cand, exifs, max_neighbors):
 
         time = exifs[image_ref]['capture_time']
         distances, neighbors = tree.query([time], k=nn)
+
+        if type(neighbors) == int:      # special case with only one NN
+            neighbors = [neighbors]
+
         for j in neighbors:
             if j >= len(images_cand):
                 continue
