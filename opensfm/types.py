@@ -524,7 +524,7 @@ class FisheyeCamera(Camera):
         and (width - 1, height - 1) to the center of bottom-right pixel.
 
         You can optionally pass the width and height of the image, in case
-        you are using a resized versior of the original image.
+        you are using a resized version of the original image.
         """
         w = width or self.width
         h = height or self.height
