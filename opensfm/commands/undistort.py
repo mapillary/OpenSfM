@@ -26,7 +26,7 @@ class Command:
     def run(self, args):
         data = dataset.DataSet(args.dataset)
         reconstructions = data.load_reconstruction()
-        graph = data.load_tracks_graph()
+        graph = data.load_tracks_graph() if data.tracks_exists() else None
 
         if reconstructions:
             self.undistort_reconstruction(graph, reconstructions[0], data)
@@ -55,11 +55,13 @@ class Command:
             for subshot in subshots:
                 urec.add_camera(subshot.camera)
                 urec.add_shot(subshot)
-                add_subshot_tracks(graph, ugraph, shot, subshot)
+                if graph:
+                    add_subshot_tracks(graph, ugraph, shot, subshot)
             undistorted_shots[shot.id] = subshots
 
         data.save_undistorted_reconstruction([urec])
-        data.save_undistorted_tracks_graph(ugraph)
+        if graph:
+            data.save_undistorted_tracks_graph(ugraph)
 
         arguments = []
         for shot in reconstruction.shots.values():
