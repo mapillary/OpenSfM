@@ -44,7 +44,7 @@ class BagOfWords:
 
 
 def load_bow_words_and_frequencies(config):
-    if config['bow_file'] == 'bow_hahog_root_uchar.npz':
+    if config['bow_file'] == 'bow_hahog_root_uchar_10000.npz':
         assert config['feature_type'] == 'HAHOG'
         assert config['feature_root']
         assert config['hahog_normalize_to_uchar']
@@ -52,6 +52,17 @@ def load_bow_words_and_frequencies(config):
     bow_file = os.path.join(context.BOW_PATH, config['bow_file'])
     bow = np.load(bow_file)
     return bow['words'], bow['frequencies']
+
+
+def load_vlad_words_and_frequencies(config):
+    if config['vlad_file'] == 'bow_hahog_root_uchar_64.npz':
+        assert config['feature_type'] == 'HAHOG'
+        assert config['feature_root']
+        assert config['hahog_normalize_to_uchar']
+
+    vlad_file = os.path.join(context.BOW_PATH, config['vlad_file'])
+    vlad = np.load(vlad_file)
+    return vlad['words'], vlad['frequencies']
 
 
 def load_bows(config):
