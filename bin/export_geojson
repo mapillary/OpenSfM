@@ -1,0 +1,78 @@
+#!/usr/bin/env python
+
+"""Export GPS and reconstructed camera positions to geojson."""
+
+import os.path, sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+import argparse
+
+from opensfm import dataset
+from opensfm import io
+import opensfm.reconstruction as orec
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description=__doc__)
+    parser.add_argument(
+        'dataset',
+        help='path to the dataset to be processed')
+    return parser.parse_args()
+
+
+def main():
+    args = parse_args()
+
+    # Load data
+    data = dataset.DataSet(args.dataset)
+    reference = data.load_reference()
+    reconstructions = data.load_reconstruction()
+
+    # Compute lat, lon
+    gps_features = []
+    rec_features = []
+    for reconstruction in reconstructions:
+        for shot in reconstruction.shots.values():
+            exif = data.load_exif(shot.id)
+            gps_features.append({
+                "type": "Feature",
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [exif['gps']['longitude'],
+                                    exif['gps']['latitude']],
+                },
+                "properties": {
+                    "marker-size": "small",
+                    "marker-color": "#E80",
+                }
+            })
+
+            lat, lon, alt, angle = orec.shot_lla_and_compass(shot, reference)
+            rec_features.append({
+                "type": "Feature",
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [lon, lat, alt],
+                },
+                "properties": {
+                    "marker-size": "small",
+                    "marker-color": "#0E0",
+                }
+            })
+
+    store_features(gps_features, args.dataset + '/reconstruction.gps.geojson')
+    store_features(rec_features, args.dataset + '/reconstruction.geojson')
+
+
+def store_features(features, filename):
+    geojson = {
+        "type": "FeatureCollection",
+        "features": features,
+    }
+    with io.open_wt(filename) as fp:
+        io.json_dump(geojson, fp)
+
+
+if __name__ == '__main__':
+    main()
