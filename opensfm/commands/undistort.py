@@ -279,7 +279,8 @@ def perspective_views_of_a_panorama(spherical_shot, width):
 
 
 def render_perspective_view_of_a_panorama(image, panoshot, perspectiveshot,
-                                          interpolation=cv2.INTER_LINEAR):
+                                          interpolation=cv2.INTER_LINEAR,
+                                          borderMode=cv2.BORDER_WRAP):
     """Render a perspective view of a panorama."""
     # Get destination pixel coordinates
     dst_shape = (perspectiveshot.camera.height, perspectiveshot.camera.width)
@@ -313,7 +314,7 @@ def render_perspective_view_of_a_panorama(image, panoshot, perspectiveshot,
     # Sample color
     x = src_pixels_denormalized[..., 0].astype(np.float32)
     y = src_pixels_denormalized[..., 1].astype(np.float32)
-    colors = cv2.remap(image, x, y, interpolation, borderMode=cv2.BORDER_WRAP)
+    colors = cv2.remap(image, x, y, interpolation, borderMode=borderMode)
 
     return colors
 
