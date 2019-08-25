@@ -49,7 +49,7 @@ class FeatureLoader(object):
 
     def load_features_index(self, data, image, features):
         index = self.index_cache.get(image)
-        current_features = self.load_points_features_colors(data, image)
+        _, current_features, _ = self.load_points_features_colors(data, image)
         use_load = len(current_features) == len(features) and index is None
         use_rebuild = len(current_features) != len(features)
         if use_load:
