@@ -48,7 +48,9 @@ class FeatureLoader(object):
         return masks
 
     def load_features_index(self, data, image, features):
-        index = self.index_cache.get(image)
+        cached = self.index_cache.get(image)
+        index = cached[1] if cached else None
+
         _, current_features, _ = self.load_points_features_colors(data, image)
         use_load = len(current_features) == len(features) and index is None
         use_rebuild = len(current_features) != len(features)
@@ -57,7 +59,7 @@ class FeatureLoader(object):
         if use_rebuild:
             index = ft.build_flann_index(features, data.config)
         if use_load or use_rebuild:
-            self.index_cache.put(image, index)
+            self.index_cache.put(image, (features, index))
         return index
 
     def load_points_features_colors(self, data, image):
