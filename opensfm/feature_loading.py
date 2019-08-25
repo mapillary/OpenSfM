@@ -22,6 +22,7 @@ class FeatureLoader(object):
         self.words_cache = LRUCache(200)
         self.masks_cache = LRUCache(1000)
         self.index_cache = LRUCache(200)
+        self.masked_index_cache = LRUCache(200)
 
     def clear_cache(self):
         self.points_cache.clear()
@@ -30,39 +31,30 @@ class FeatureLoader(object):
         self.words_cache.clear()
         self.masks_cache.clear()
 
-    def load_points_colors(self, data, image):
+    def load_mask(self, data, image, points=None):
+        masks = self.masks_cache.get(image)
+        if masks is None:
+            if points is None:
+                points, _ = self.load_points_colors(data, image, masked=False)
+            masks = data.load_features_mask(image, points[:, :2])
+            self.masks_cache.put(image, masks)
+        return masks
+
+    def load_points_colors(self, data, image, masked=False):
         points = self.points_cache.get(image)
         colors = self.colors_cache.get(image)
         if points is None or colors is None:
             points, _, colors = self._load_features_nocache(data, image)
             self.points_cache.put(image, points)
             self.colors_cache.put(image, colors)
+        if masked:
+            mask = self.load_mask(data, image, points)
+            if mask is not None:
+                points = points[mask]
+                colors = colors[mask]
         return points, colors
 
-    def load_masks(self, data, image):
-        points, _ = self.load_points_colors(data, image)
-        masks = self.masks_cache.get(image)
-        if masks is None:
-            masks = data.load_features_mask(image, points[:, :2])
-            self.masks_cache.put(image, masks)
-        return masks
-
-    def load_features_index(self, data, image, features):
-        cached = self.index_cache.get(image)
-        index = cached[1] if cached else None
-
-        _, current_features, _ = self.load_points_features_colors(data, image)
-        use_load = len(current_features) == len(features) and index is None
-        use_rebuild = len(current_features) != len(features)
-        if use_load:
-            index = data.load_feature_index(image, features)
-        if use_rebuild:
-            index = ft.build_flann_index(features, data.config)
-        if use_load or use_rebuild:
-            self.index_cache.put(image, (features, index))
-        return index
-
-    def load_points_features_colors(self, data, image):
+    def load_points_features_colors(self, data, image, masked=False):
         points = self.points_cache.get(image)
         features = self.features_cache.get(image)
         colors = self.colors_cache.get(image)
@@ -71,13 +63,35 @@ class FeatureLoader(object):
             self.points_cache.put(image, points)
             self.features_cache.put(image, features)
             self.colors_cache.put(image, colors)
+        if masked:
+            mask = self.load_mask(data, image, points)
+            if mask is not None:
+                points = points[mask]
+                features = features[mask]
+                colors = colors[mask]
         return points, features, colors
 
-    def load_words(self, data, image):
+    def load_features_index(self, data, image, masked=False):
+        cache = self.masked_index_cache if masked else self.index_cache
+        cached = cache.get(image)
+        if cached is None:
+            _, features, _ = self.load_points_features_colors(data, image,
+                                                              masked)
+            index = ft.build_flann_index(features, data.config)
+            cache.put(image, (features, index))
+        else:
+            features, index = cached
+        return index
+
+    def load_words(self, data, image, masked):
         words = self.words_cache.get(image)
         if words is None:
             words = data.load_words(image)
             self.words_cache.put(image, words)
+        if masked:
+            mask = self.load_mask(data, image)
+            if mask is not None:
+                words = words[mask]
         return words
 
     def _load_features_nocache(self, data, image):
