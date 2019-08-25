@@ -270,8 +270,8 @@ def load_histograms(data, images):
             logger.error("Could not load words for image {}".format(im))
             continue
 
-        mask = data.load_masks(data, im) if hasattr(data, 'load_masks') else None
-        filtered_words = words[mask] if mask else words
+        mask = data.load_mask(data, im) if hasattr(data, 'load_mask') else None
+        filtered_words = words[mask] if mask is not None else words
         if len(filtered_words) <= min_num_feature:
             logger.warning("Too few filtered features in image {}: {}".format(
                 im, len(filtered_words)))
