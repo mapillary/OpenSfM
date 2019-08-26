@@ -16,6 +16,7 @@ from timeit import default_timer as timer
 from six import iteritems
 
 from opensfm import csfm
+from opensfm import align
 from opensfm import log
 from opensfm import tracking
 from opensfm import multiview
@@ -183,6 +184,17 @@ def bundle(graph, reconstruction, gcp, config):
 
     if config['bundle_use_gcp'] and gcp:
         _add_gcp_to_bundle(ba, gcp, reconstruction.shots)
+
+    align_method = config['align_method']
+    if align_method == 'auto':
+        align_method = align.detect_alignment_constraints(config, reconstruction, gcp)
+    if align_method == 'orientation_prior':
+        if config['align_orientation_prior'] == 'vertical':
+            for shot_id in reconstruction.shots:
+                ba.add_absolute_up_vector(shot_id, [0, 0, -1], 1e-3)
+        if config['align_orientation_prior'] == 'horizontal':
+            for shot_id in reconstruction.shots:
+                ba.add_absolute_up_vector(shot_id, [0, 1, 0], 1e-3)
 
     ba.set_point_projection_loss_function(config['loss_function'],
                                           config['loss_function_threshold'])
@@ -1216,9 +1228,9 @@ def grow_reconstruction(data, graph, graph_inliers, reconstruction, images, gcp)
     config = data.config
     report = {'steps': []}
 
+    align_reconstruction(reconstruction, gcp, config)
     bundle(graph, reconstruction, None, config)
     remove_outliers(graph_inliers, reconstruction, config)
-    align_reconstruction(reconstruction, gcp, config)
 
     should_bundle = ShouldBundle(data, reconstruction)
     should_retriangulate = ShouldRetriangulate(data, reconstruction)
@@ -1264,20 +1276,20 @@ def grow_reconstruction(data, graph, graph_inliers, reconstruction, images, gcp)
 
             if should_retriangulate.should():
                 logger.info("Re-triangulating")
+                align_reconstruction(reconstruction, gcp, config)
                 b1rep = bundle(graph_inliers, reconstruction, None, config)
                 rrep = retriangulate(graph, graph_inliers, reconstruction, config)
                 b2rep = bundle(graph_inliers, reconstruction, None, config)
                 remove_outliers(graph_inliers, reconstruction, config)
-                align_reconstruction(reconstruction, gcp, config)
                 step['bundle'] = b1rep
                 step['retriangulation'] = rrep
                 step['bundle_after_retriangulation'] = b2rep
                 should_retriangulate.done()
                 should_bundle.done()
             elif should_bundle.should():
+                align_reconstruction(reconstruction, gcp, config)
                 brep = bundle(graph_inliers, reconstruction, None, config)
                 remove_outliers(graph_inliers, reconstruction, config)
-                align_reconstruction(reconstruction, gcp, config)
                 step['bundle'] = brep
                 should_bundle.done()
             elif config['local_bundle_radius'] > 0:
@@ -1292,9 +1304,10 @@ def grow_reconstruction(data, graph, graph_inliers, reconstruction, images, gcp)
 
     logger.info("-------------------------------------------------------")
 
+    align_reconstruction(reconstruction, gcp, config)
     bundle(graph_inliers, reconstruction, gcp, config)
     remove_outliers(graph_inliers, reconstruction, config)
-    align_reconstruction(reconstruction, gcp, config)
+
     paint_reconstruction(data, graph, reconstruction)
     return reconstruction, report
 

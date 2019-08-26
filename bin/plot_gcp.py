@@ -107,8 +107,9 @@ def main():
             apixel = pix_coords(annotated, image)
 
             n = (len(gcp.observations) + 3) / 4
-            plt.subplot(n, min(len(gcp.observations), 4), i + 1)
+            ax = plt.subplot(n, min(len(gcp.observations), 4), i + 1)
             plt.imshow(image)
+            ax.title.set_text("{}".format(observation.shot_id))
             plt.scatter(rpixel[0], rpixel[1])
             plt.scatter(apixel[0], apixel[1])
         plt.show()

@@ -28,6 +28,7 @@ class SyntheticDataSet(DataSet):
         self.reference_lla = {'latitude': 0, 'longitude': 0, 'altitude': 0}
         self.matches = None
         self.config['use_altitude_tag'] = True
+        self.config['align_method'] = 'naive'
 
     def images(self):
         return self.image_list
