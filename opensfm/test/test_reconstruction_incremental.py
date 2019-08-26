@@ -29,4 +29,4 @@ def test_reconstruction_incremental(scene_synthetic):
     assert 1.5 < errors['position_average'] < 3
     assert 1.1 < errors['position_std'] < 4
     assert 8.0 < errors['gps_std'] < 10.0
-    assert np.allclose(errors['gps_average'], 0.0)
+    assert errors['gps_average'] < 3e-3
