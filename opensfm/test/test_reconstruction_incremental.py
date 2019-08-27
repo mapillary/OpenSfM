@@ -22,7 +22,7 @@ def test_reconstruction_incremental(scene_synthetic):
     assert errors['ratio_cameras'] >= 0.95          # Keeps jumping last resection between 9 and 14 inliers with Python3
     assert 0.920 < errors['ratio_points'] < 0.950
 
-    assert 0.002 < errors['rotation_average'] < 0.09
+    assert 0.002 < errors['rotation_average'] < 0.095
     assert 0.0002 < errors['rotation_std'] < 0.0022
 
     # below, (av+std) should be in order of ||gps_noise||^2
