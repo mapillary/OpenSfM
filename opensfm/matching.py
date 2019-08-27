@@ -88,37 +88,22 @@ def match_arguments(pairs, ctx):
 
 
 def match_unwrap_args(args):
-    """ Wrapper for parralel processing of pair matching
+    """Wrapper for parallel processing of pair matching.
 
     Compute all pair matchings of a given image and save them.
     """
     log.setup()
     im1, candidates, ctx = args
 
-    need_words = 'WORDS' in ctx.data.config['matcher_type']
-    need_index = 'FLANN' in ctx.data.config['matcher_type']
-
     im1_matches = {}
     p1, f1, _ = feature_loader.load_points_features_colors(ctx.data, im1)
-    w1 = feature_loader.load_words(ctx.data, im1) if need_words else None
-    m1 = feature_loader.load_masks(ctx.data, im1)
     camera1 = ctx.cameras[ctx.exifs[im1]['camera']]
-
-    f1_filtered = f1 if m1 is None else f1[m1]
-    i1 = feature_loader.load_features_index(ctx.data, im1, f1_filtered) if need_index else None
 
     for im2 in candidates:
         p2, f2, _ = feature_loader.load_points_features_colors(ctx.data, im2)
-        w2 = feature_loader.load_words(ctx.data, im2) if need_words else None
-        m2 = feature_loader.load_masks(ctx.data, im2)
         camera2 = ctx.cameras[ctx.exifs[im2]['camera']]
 
-        f2_filtered = f2 if m2 is None else f2[m2]
-        i2 = feature_loader.load_features_index(ctx.data, im2, f2_filtered) if need_index else None
-
-        im1_matches[im2] = match(im1, im2, camera1, camera2,
-                                 p1, p2, f1, f2, w1, w2,
-                                 i1, i2, m1, m2, ctx.data)
+        im1_matches[im2] = match(im1, im2, camera1, camera2, ctx.data)
 
     num_matches = sum(1 for m in im1_matches.values() if len(m) > 0)
     logger.debug('Image {} matches: {} out of {}'.format(
@@ -130,55 +115,40 @@ def match_unwrap_args(args):
     return im1, im1_matches
 
 
-def match(im1, im2, camera1, camera2,
-          p1, p2, f1, f2, w1, w2,
-          i1, i2, m1, m2, data):
-    """ Perform matching for a pair of images
-
-    Given a pair of images (1,2) and their :
-    - features position p
-    - features descriptor f
-    - descriptor BoW assignments w (optionnal, can be None)
-    - descriptor kNN index indexing structure (optionnal, can be None)
-    - mask selection m  (optionnal, can be None)
-    - camera
-    Compute 2D + robust geometric matching (either E or F-matrix)
-    """
-    if p1 is None or p2 is None:
-        return []
-
+def match(im1, im2, camera1, camera2, data):
+    """Perform matching for a pair of images."""
     # Apply mask to features if any
     time_start = timer()
-    f1_filtered = f1 if m1 is None else f1[m1]
-    f2_filtered = f2 if m2 is None else f2[m2]
+    p1, f1, _ = feature_loader.load_points_features_colors(
+        data, im1, masked=True)
+    p2, f2, _ = feature_loader.load_points_features_colors(
+        data, im2, masked=True)
+
+    if p1 is None or p2 is None:
+        return []
 
     config = data.config
     matcher_type = config['matcher_type'].upper()
 
     if matcher_type == 'WORDS':
-        w1_filtered = w1 if m1 is None else w1[m1]
-        w2_filtered = w2 if m2 is None else w2[m2]
+        w1 = feature_loader.load_words(data, im1, masked=True)
+        w2 = feature_loader.load_words(data, im2, masked=True)
         matches = csfm.match_using_words(
-            f1_filtered, w1_filtered,
-            f2_filtered, w2_filtered[:, 0],
+            f1, w1, f2, w2[:, 0],
             data.config['lowes_ratio'],
             data.config['bow_num_checks'])
     elif matcher_type == 'WORDS_SYMMETRIC':
-        w1_filtered = w1 if m1 is None else w1[m1]
-        w2_filtered = w2 if m2 is None else w2[m2]
-        matches = match_words_symmetric(
-            f1_filtered, w1_filtered,
-            f2_filtered, w2_filtered, config)
+        w1 = feature_loader.load_words(data, im1, masked=True)
+        w2 = feature_loader.load_words(data, im2, masked=True)
+        matches = match_words_symmetric(f1, w1, f2, w2, config)
     elif matcher_type == 'FLANN':
-        matches = match_flann_symmetric(f1_filtered, i1, f2_filtered, i2, config)
+        i1 = feature_loader.load_features_index(data, im1, masked=True)
+        i2 = feature_loader.load_features_index(data, im2, masked=True)
+        matches = match_flann_symmetric(f1, i1, f2, i2, config)
     elif matcher_type == 'BRUTEFORCE':
-        matches = match_brute_force_symmetric(f1_filtered, f2_filtered, config)
+        matches = match_brute_force_symmetric(f1, f2, config)
     else:
         raise ValueError("Invalid matcher_type: {}".format(matcher_type))
-
-    # From indexes in filtered sets, to indexes in original sets of features
-    if m1 is not None and m2 is not None:
-        matches = unfilter_matches(matches, m1, m2)
 
     # Adhoc filters
     if config['matching_use_filters']:
@@ -203,23 +173,24 @@ def match(im1, im2, camera1, camera2,
     time_robust_matching = timer() - t
     time_total = timer() - time_start
 
-    if len(rmatches) < robust_matching_min_match:
-        logger.debug(
-            'Matching {} and {}.  Matcher: {} '
-            'T-desc: {:1.3f} T-robust: {:1.3f} T-total: {:1.3f} '
-            'Matches: {} Robust: FAILED'.format(
-                im1, im2, matcher_type,
-                time_2d_matching, time_robust_matching, time_total,
-                len(matches)))
-        return []
+    # From indexes in filtered sets, to indexes in original sets of features
+    m1 = feature_loader.load_mask(data, im1)
+    m2 = feature_loader.load_mask(data, im2)
+    if m1 is not None and m2 is not None:
+        rmatches = unfilter_matches(rmatches, m1, m2)
 
     logger.debug(
         'Matching {} and {}.  Matcher: {} '
         'T-desc: {:1.3f} T-robust: {:1.3f} T-total: {:1.3f} '
-        'Matches: {} Robust: {}'.format(
+        'Matches: {} Robust: {} Success: {}'.format(
             im1, im2, matcher_type,
             time_2d_matching, time_robust_matching, time_total,
-            len(matches), len(rmatches)))
+            len(matches), len(rmatches),
+            len(rmatches) >= robust_matching_min_match))
+
+    if len(rmatches) < robust_matching_min_match:
+        return []
+
     return np.array(rmatches, dtype=int)
 
 
@@ -417,7 +388,7 @@ def robust_match(p1, p2, camera1, camera2, matches, config):
 
 
 def unfilter_matches(matches, m1, m2):
-    """ Given matches ans masking arrays, get matches with un-masked indexes """
+    """Given matches and masking arrays, get matches with un-masked indexes."""
     i1 = np.flatnonzero(m1)
     i2 = np.flatnonzero(m2)
     return np.array([(i1[match[0]], i2[match[1]]) for match in matches])
