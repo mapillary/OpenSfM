@@ -11,15 +11,14 @@ from opensfm import context
 from opensfm import log
 from opensfm import multiview
 from opensfm import pairs_selection
-from opensfm import feature_loading
+from opensfm import feature_loader
 
 
 logger = logging.getLogger(__name__)
-feature_loader = feature_loading.FeatureLoader()
 
 
 def clear_cache():
-    feature_loader.clear_cache()
+    feature_loader.instance.clear_cache()
 
 
 def match_images(data, ref_images, cand_images, overwrite):
@@ -96,11 +95,11 @@ def match_unwrap_args(args):
     im1, candidates, ctx = args
 
     im1_matches = {}
-    p1, f1, _ = feature_loader.load_points_features_colors(ctx.data, im1)
+    p1, f1, _ = feature_loader.instance.load_points_features_colors(ctx.data, im1)
     camera1 = ctx.cameras[ctx.exifs[im1]['camera']]
 
     for im2 in candidates:
-        p2, f2, _ = feature_loader.load_points_features_colors(ctx.data, im2)
+        p2, f2, _ = feature_loader.instance.load_points_features_colors(ctx.data, im2)
         camera2 = ctx.cameras[ctx.exifs[im2]['camera']]
 
         im1_matches[im2] = match(im1, im2, camera1, camera2, ctx.data)
@@ -119,9 +118,9 @@ def match(im1, im2, camera1, camera2, data):
     """Perform matching for a pair of images."""
     # Apply mask to features if any
     time_start = timer()
-    p1, f1, _ = feature_loader.load_points_features_colors(
+    p1, f1, _ = feature_loader.instance.load_points_features_colors(
         data, im1, masked=True)
-    p2, f2, _ = feature_loader.load_points_features_colors(
+    p2, f2, _ = feature_loader.instance.load_points_features_colors(
         data, im2, masked=True)
 
     if p1 is None or p2 is None:
@@ -131,19 +130,19 @@ def match(im1, im2, camera1, camera2, data):
     matcher_type = config['matcher_type'].upper()
 
     if matcher_type == 'WORDS':
-        w1 = feature_loader.load_words(data, im1, masked=True)
-        w2 = feature_loader.load_words(data, im2, masked=True)
+        w1 = feature_loader.instance.load_words(data, im1, masked=True)
+        w2 = feature_loader.instance.load_words(data, im2, masked=True)
         matches = csfm.match_using_words(
             f1, w1, f2, w2[:, 0],
             data.config['lowes_ratio'],
             data.config['bow_num_checks'])
     elif matcher_type == 'WORDS_SYMMETRIC':
-        w1 = feature_loader.load_words(data, im1, masked=True)
-        w2 = feature_loader.load_words(data, im2, masked=True)
+        w1 = feature_loader.instance.load_words(data, im1, masked=True)
+        w2 = feature_loader.instance.load_words(data, im2, masked=True)
         matches = match_words_symmetric(f1, w1, f2, w2, config)
     elif matcher_type == 'FLANN':
-        i1 = feature_loader.load_features_index(data, im1, masked=True)
-        i2 = feature_loader.load_features_index(data, im2, masked=True)
+        i1 = feature_loader.instance.load_features_index(data, im1, masked=True)
+        i2 = feature_loader.instance.load_features_index(data, im2, masked=True)
         matches = match_flann_symmetric(f1, i1, f2, i2, config)
     elif matcher_type == 'BRUTEFORCE':
         matches = match_brute_force_symmetric(f1, f2, config)
@@ -174,8 +173,8 @@ def match(im1, im2, camera1, camera2, data):
     time_total = timer() - time_start
 
     # From indexes in filtered sets, to indexes in original sets of features
-    m1 = feature_loader.load_mask(data, im1)
-    m2 = feature_loader.load_mask(data, im2)
+    m1 = feature_loader.instance.load_mask(data, im1)
+    m2 = feature_loader.instance.load_mask(data, im2)
     if m1 is not None and m2 is not None:
         rmatches = unfilter_matches(rmatches, m1, m2)
 

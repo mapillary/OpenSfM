@@ -7,7 +7,7 @@ import scipy.spatial as spatial
 
 from opensfm import bow
 from opensfm import context
-
+from opensfm import feature_loader
 
 logger = logging.getLogger(__name__)
 
@@ -265,19 +265,13 @@ def load_histograms(data, images):
     histograms = {}
     bows = bow.load_bows(data.config)
     for im in images:
-        words = data.load_words(im)
-        if words is None:
-            logger.error("Could not load words for image {}".format(im))
-            continue
-
-        mask = data.load_mask(im) if hasattr(data, 'load_mask') else None
-        filtered_words = words[mask] if mask is not None else words
+        filtered_words = feature_loader.instance.load_words(data, im, masked=True)
         if len(filtered_words) <= min_num_feature:
             logger.warning("Too few filtered features in image {}: {}".format(
                 im, len(filtered_words)))
             continue
 
-        histograms[im] = bows.histogram(words[:, 0])
+        histograms[im] = bows.histogram(filtered_words[:, 0])
     return histograms
 
 
