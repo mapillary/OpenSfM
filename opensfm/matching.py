@@ -129,16 +129,19 @@ def match(im1, im2, camera1, camera2, data):
     config = data.config
     matcher_type = config['matcher_type'].upper()
 
-    if matcher_type == 'WORDS':
+    w1, w2 = None, None
+    if 'WORDS' in matcher_type:
         w1 = feature_loader.instance.load_words(data, im1, masked=True)
         w2 = feature_loader.instance.load_words(data, im2, masked=True)
+        if w1 is None or w2 is None:
+            return []
+
+    if matcher_type == 'WORDS':
         matches = csfm.match_using_words(
             f1, w1, f2, w2[:, 0],
             data.config['lowes_ratio'],
             data.config['bow_num_checks'])
     elif matcher_type == 'WORDS_SYMMETRIC':
-        w1 = feature_loader.instance.load_words(data, im1, masked=True)
-        w2 = feature_loader.instance.load_words(data, im2, masked=True)
         matches = match_words_symmetric(f1, w1, f2, w2, config)
     elif matcher_type == 'FLANN':
         i1 = feature_loader.instance.load_features_index(data, im1, masked=True)
