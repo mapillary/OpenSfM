@@ -88,7 +88,7 @@ class FeatureLoader(object):
         if words is None:
             words = data.load_words(image)
             self.words_cache.put(image, words)
-        if masked:
+        if masked and words is not None:
             mask = self.load_mask(data, image)
             if mask is not None:
                 words = words[mask]
