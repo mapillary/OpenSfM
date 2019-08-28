@@ -382,7 +382,7 @@ def bundle_local(graph, reconstruction, gcp, central_shot_id, config):
         'num_other_images': (len(reconstruction.shots)
                              - len(interior) - len(boundary)),
     }
-    return report
+    return point_ids, report
 
 
 def shot_neighborhood(graph, reconstruction, central_shot_id, radius,
@@ -1076,14 +1076,19 @@ def get_actual_threshold(config, points):
         return 1.0
 
 
-def remove_outliers(graph, reconstruction, config):
-    """Remove points with large reprojection error."""
+def remove_outliers(graph, reconstruction, config, points=None):
+    """Remove points with large reprojection error.
+
+    A list of point ids to be processed can be given in ``points``.
+    """
+    if points is None:
+        points = reconstruction.points
     threshold = get_actual_threshold(config, reconstruction.points)
     outliers = []
-    for track in reconstruction.points:
-        for shot_id, error in reconstruction.points[track].reprojection_errors.items():
+    for point_id in points:
+        for shot_id, error in reconstruction.points[point_id].reprojection_errors.items():
             if np.linalg.norm(error) > threshold:
-                outliers.append((track, shot_id))
+                outliers.append((point_id, shot_id))
 
     for track, shot_id in outliers:
         del reconstruction.points[track].reprojection_errors[shot_id]
@@ -1293,8 +1298,10 @@ def grow_reconstruction(data, graph, graph_inliers, reconstruction, images, gcp)
                 step['bundle'] = brep
                 should_bundle.done()
             elif config['local_bundle_radius'] > 0:
-                brep = bundle_local(graph_inliers, reconstruction, None, image, config)
-                remove_outliers(graph_inliers, reconstruction, config)
+                bundled_points, brep = bundle_local(
+                    graph_inliers, reconstruction, None, image, config)
+                remove_outliers(
+                    graph_inliers, reconstruction, config, bundled_points)
                 step['local_bundle'] = brep
 
             break
