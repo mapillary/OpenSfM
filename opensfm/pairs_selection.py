@@ -78,7 +78,7 @@ def match_candidates_with_bow(data, images_ref, images_cand,
     GPS distance.
 
     If enforce_other_cameras is True, we keep max_neighbors images
-    with same cameras AND  max_neighbors images from any other different
+    with same cameras AND max_neighbors images from any other different
     camera.
     """
     if max_neighbors <= 0:
@@ -93,7 +93,7 @@ def match_candidates_with_bow(data, images_ref, images_cand,
     logger.info("Computing %d BoW histograms" % len(need_load))
     histograms = load_histograms(data, need_load)
 
-     # parallel VLAD neighbors computation
+    # parallel VLAD neighbors computation
     args, processes, batch_size = create_parallel_matching_args(
         data, preempted_candidates, histograms)
     logger.info("Computing BoW candidates with %d processes" % processes)
@@ -110,6 +110,10 @@ def match_candidates_with_vlad(data, images_ref, images_cand,
      If max_gps_distance > 0, then we use first restrain a set of
     candidates using max_gps_neighbors neighbors selected using
     GPS distance.
+
+    If enforce_other_cameras is True, we keep max_neighbors images
+    with same cameras AND max_neighbors images from any other different
+    camera.
     """
     if max_neighbors <= 0:
         return set()
@@ -119,11 +123,11 @@ def match_candidates_with_vlad(data, images_ref, images_cand,
             exifs, reference,
             max_gps_neighbors, max_gps_distance)
 
-     # construct VLAD histograms
+    # construct VLAD histograms
     logger.info("Computing %d VLAD histograms" % len(need_load))
     histograms = vlad_histograms(need_load, data)
 
-     # parallel VLAD neighbors computation
+    # parallel VLAD neighbors computation
     args, processes, batch_size = create_parallel_matching_args(
         data, preempted_candidates, histograms)
     logger.info("Computing VLAD candidates with %d processes" % processes)
@@ -135,6 +139,9 @@ def match_candidates_with_vlad(data, images_ref, images_cand,
 def preempt_candidates(images_ref, images_cand,
                        exifs, reference,
                        max_gps_neighbors, max_gps_distance):
+    """Preempt candidates using GPS to reduce set of images
+    from which to load data to save RAM.
+    """
 
     # preempt candidates images using GPS
     preempted_cand = {im: images_cand for im in images_ref}
@@ -150,7 +157,7 @@ def preempt_candidates(images_ref, images_cand,
             if p[1] in images_ref:
                 preempted_cand[p[1]].append(p[0])
 
-    # reduce sets of images from which to load words (RAM saver)
+    # reduce sets of images from which to load histograms (RAM saver)
     need_load = set(preempted_cand.keys())
     for k, v in preempted_cand.items():
         need_load.update(v)
@@ -159,7 +166,7 @@ def preempt_candidates(images_ref, images_cand,
 
 
 def construct_pairs(results, max_neighbors, exifs, enforce_other_cameras):
-    # construct final sets of pairs to match
+    """Construct final sets of pairs to match"""
     pairs = set()
     for im, order, other in results:
         if enforce_other_cameras:
@@ -171,7 +178,8 @@ def construct_pairs(results, max_neighbors, exifs, enforce_other_cameras):
 
 
 def create_parallel_matching_args(data, preempted_cand, histograms):
-    args = list(match_bow_arguments(preempted_cand, histograms))
+    """Create arguments to matching function"""
+    args = list(match_histogram_arguments(preempted_cand, histograms))
 
      # parallel VLAD neighbors computation
     per_process = 512
@@ -180,7 +188,7 @@ def create_parallel_matching_args(data, preempted_cand, histograms):
     return args, processes, batch_size
 
 
-def match_bow_arguments(candidates, histograms):
+def match_histogram_arguments(candidates, histograms):
     """ Generate arguments for parralel processing of BoW """
     for im, cands in candidates.items():
         yield (im, cands, histograms)
@@ -193,7 +201,7 @@ def match_bow_unwrap_args(args):
 
 
 def match_vlad_unwrap_args(args):
-    """ Wrapper for parralel processing of BoW """
+    """ Wrapper for parralel processing of VLAD """
     image, other_images, histograms = args
     return vlad_distances(image, other_images, histograms)
 
@@ -347,6 +355,10 @@ def load_histograms(data, images):
 
 
 def vlad_histograms(images, data):
+    """ Construct VLAD histograms from the image features.
+
+        Returns a dictionary of VLAD vectors for the images.
+    """
     if len(images) == 0:
         return {}
 
@@ -363,7 +375,11 @@ def vlad_histograms(images, data):
 
 
 def unnormalized_vlad(features, centers):
-    # Unnormalized VLAD
+    """ Compute unnormalized VLAD histograms from a set of
+        features in relation to centers.
+
+        Returns the unnormalized VLAD vector.
+    """
     vlad = np.zeros(centers.shape, dtype=np.float32)
     for f in features:
         i = np.argmin(np.linalg.norm(f-centers, axis=1))
@@ -373,7 +389,11 @@ def unnormalized_vlad(features, centers):
 
 
 def signed_square_root_normalize(v):
-    # Signed square root (SSR) normalization
+    """ Compute Signed Square Root (SSR) normalization on
+        a vector.
+
+        Returns the SSR normalized vector.
+    """
     v = np.sign(v) * np.sqrt(np.abs(v))
     v /= np.linalg.norm(v)
     return v
@@ -382,6 +402,9 @@ def signed_square_root_normalize(v):
 def vlad_distances(image, other_images, histograms):
     """ Compute VLAD-based distance (L2 on VLAD-histogram)
         between an image and other images.
+
+        Returns the image, the order of the other images,
+        and the other images.
     """
     if image not in histograms:
         return image, [], []
