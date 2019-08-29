@@ -3,6 +3,7 @@ import os
 import networkx as nx
 import numpy as np
 from six import iteritems
+import yaml
 
 from opensfm import types
 import opensfm.dataset
@@ -98,3 +99,18 @@ def create_berlin_test_folder(tmpdir):
     os.symlink(os.path.abspath('data/berlin/gcp_list.txt'),
                os.path.join(path, 'gcp_list.txt'))
     return opensfm.dataset.DataSet(path)
+
+
+def create_lund_test_folder(tmpdir, config=None):
+    path = str(tmpdir.mkdir('lund'))
+    os.symlink(os.path.abspath('data/lund/images'),
+               os.path.join(path, 'images'))
+    if config:
+        save_config(config, path)
+    return opensfm.dataset.DataSet(path)
+
+
+def save_config(config, path):
+    with open(os.path.join(path, 'config.yaml'), 'w') as fout:
+        yaml.dump(config, fout, default_flow_style=False)
+
