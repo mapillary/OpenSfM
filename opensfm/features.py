@@ -70,15 +70,8 @@ def denormalized_image_coordinates(norm_coords, width, height):
     return p
 
 
-def mask_and_normalize_features(points, desc, colors, width, height, mask=None):
-    """Remove features outside the mask and normalize image coordinates."""
-
-    if mask is not None:
-        ids = np.array([_in_mask(point, width, height, mask) for point in points])
-        points = points[ids]
-        desc = desc[ids]
-        colors = colors[ids]
-
+def normalize_features(points, desc, colors, width, height):
+    """Normalize feature coordinates and size."""
     points[:, :2] = normalized_image_coordinates(points[:, :2], width, height)
     points[:, 2:3] /= max(width, height)
     return points, desc, colors
@@ -254,7 +247,7 @@ def extract_features_orb(image, config):
     return points, desc
 
 
-def extract_features(color_image, config, mask=None):
+def extract_features(color_image, config):
     """Detect features in an image.
 
     The type of feature detected is determined by the ``feature_type``
@@ -292,8 +285,8 @@ def extract_features(color_image, config, mask=None):
     ys = points[:, 1].round().astype(int)
     colors = color_image[ys, xs]
 
-    return mask_and_normalize_features(points, desc, colors,
-                                       image.shape[1], image.shape[0], mask)
+    return normalize_features(points, desc, colors,
+                              image.shape[1], image.shape[0])
 
 
 def build_flann_index(features, config):

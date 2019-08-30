@@ -71,12 +71,15 @@ def detect(args):
         data.feature_type().upper(), image))
 
     start = timer()
-    mask = data.load_combined_mask(image)
-    if mask is not None:
-        logger.info('Found mask to apply for image {}'.format(image))
 
-    p_unsorted, f_unsorted, c_unsorted = features.extract_features(
-        data.load_image(image), data.config, mask)
+    p_unmasked, f_unmasked, c_unmasked = features.extract_features(
+        data.load_image(image), data.config, mask=None)
+
+    fmask = data.load_features_mask(image, p_unmasked)
+
+    p_unsorted = p_unmasked[fmask]
+    f_unsorted = f_unmasked[fmask]
+    c_unsorted = c_unmasked[fmask]
 
     if len(p_unsorted) == 0:
         logger.warning('No features found in image {}'.format(image))
