@@ -29,24 +29,24 @@ def opensfm_to_upright(coords, width, height, orientation,
            [ 320.,  240.]])
     """
 
-    R_T = {
+    R = {
         1: np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]]),
-        3: np.array([[-1, 0, 0], [0, -1, 0], [0, 0, 1]]),
-        6: np.array([[0, -1, 0], [1, 0, 0], [0, 0, 1]]),
-        8: np.array([[0, 1, 0], [-1, 0, 0], [0, 0, 1]]),
+        3: np.array([[-1, 0, 1], [0, -1, 1], [0, 0, 1]]),
+        6: np.array([[0, -1, 1], [1, 0, 0], [0, 0, 1]]),
+        8: np.array([[0, 1, 0], [-1, 0, 1], [0, 0, 1]]),
     }
 
     w = float(width)
     h = float(height)
     s = max(w, h)
 
-    H_inv = np.array([[s / w,     0, 0.5],
-                      [    0, s / h, 0.5],
-                      [    0,     0,   1]])
+    H = np.array([[s / w,     0, 0.5],
+                  [    0, s / h, 0.5],
+                  [    0,     0,   1]])
 
-    T_inv = np.dot(R_T[orientation], H_inv)
+    T = np.dot(R[orientation], H)
 
-    p = np.dot(coords, T_inv[:2, :2].T) + T_inv[:2, 2].reshape(1, 2)
+    p = np.dot(coords, T[:2, :2].T) + T[:2, 2].reshape(1, 2)
 
     upright_width = width if orientation < 6 else height
     upright_height = height if orientation < 6 else width
