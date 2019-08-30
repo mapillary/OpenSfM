@@ -73,7 +73,7 @@ def detect(args):
     start = timer()
 
     p_unmasked, f_unmasked, c_unmasked = features.extract_features(
-        data.load_image(image), data.config, mask=None)
+        data.load_image(image), data.config)
 
     fmask = data.load_features_mask(image, p_unmasked)
 
