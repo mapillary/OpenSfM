@@ -16,7 +16,7 @@ from opensfm import io
 def plot_features(image, points):
     h, w, d = image.shape
     pixels = features.denormalized_image_coordinates(points, w, h)
-    sizes = points[:, 2]
+    sizes = points[:, 2] * max(w, h)
     angles = points[:, 3]
 
     ax = plt.axes()
