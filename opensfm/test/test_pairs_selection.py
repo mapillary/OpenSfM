@@ -101,14 +101,14 @@ def match_candidates_from_metadata(data, neighbors=NEIGHBORS, assert_count=NEIGH
 
 
 def create_match_candidates_config(**kwargs):
-    config={
-        str('matcher_type'): str('BRUTEFORCE'),
-        str('matching_gps_distance'): 0,
-        str('matching_gps_neighbors'): 0,
-        str('matching_time_neighbors'): 0,
-        str('matching_order_neighbors'): 0,
-        str('matching_bow_neighbors'): 0,
-        str('matching_vlad_neighbors'): 0,
+    config = {
+        'matcher_type': 'BRUTEFORCE',
+        'matching_gps_distance': 0,
+        'matching_gps_neighbors': 0,
+        'matching_time_neighbors': 0,
+        'matching_order_neighbors': 0,
+        'matching_bow_neighbors': 0,
+        'matching_vlad_neighbors': 0,
     }
 
     for key, value in kwargs.items():
@@ -126,7 +126,7 @@ def test_match_candidates_from_metadata_vlad(tmpdir):
 def test_match_candidates_from_metadata_bow(tmpdir):
     config = create_match_candidates_config(
         matching_bow_neighbors=NEIGHBORS,
-        matcher_type=str('WORDS'))
+        matcher_type='WORDS')
     data = data_generation.create_lund_test_folder(tmpdir, config)
     match_candidates_from_metadata(data, assert_count=5)
 
