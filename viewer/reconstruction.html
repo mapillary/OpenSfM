@@ -277,6 +277,7 @@
             var num_preview_plane = 5;
             var moveSpeed = 0.2;
             var turnSpeed = 0.1;
+            var virtualLinesByClick = new THREE.Object3D();
             var previousShot = undefined;
             var validMoves;
             var movingMode = 'orbit';
@@ -285,6 +286,7 @@
                 pointSize: 0,
                 showThumbnail: false,
                 showImagePlane: true,
+                drawLineOnPointClick:false,
                 drawGrid: false,
                 drawGPS: false
             };
@@ -295,6 +297,7 @@
                 imagePlaneSize: 50,
                 showThumbnail: true,
                 showImagePlane: false,
+                drawLineOnPointClick:false,
                 drawGrid: true,
                 drawGPS: false,
                 animationSpeed: 0.1,
@@ -362,6 +365,9 @@
                 f1.add(options, 'drawGPS')
                     .listen()
                     .onChange(setDrawGPS);
+                f1.add(options, 'drawLineOnPointClick')
+                    .listen()
+                    .onChange(setDrawLineOnPointClick);
                 f1.open();
 
 
@@ -424,7 +430,11 @@
                 grid_group.visible = value;
                 render();
             }
-
+            function setDrawLineOnPointClick(value){
+                options.drawLineOnPointClick = value;
+                virtualLinesByClick.visible=value;
+                render();
+            }
             function setDrawGPS(value) {
                 options.drawGPS = value;
                 for (var i = 0; i < gps_lines.length; ++i) {
@@ -475,6 +485,7 @@
                     cameraSize: savedOptions.cameraSize,
                     showThumbnail: savedOptions.showThumbnail,
                     showImagePlane: savedOptions.showImagePlane,
+                    drawLineOnPointClick:savedOptions.drawLineOnPointClick,
                     drawGrid: savedOptions.drawGrid,
                     drawGPS: savedOptions.drawGPS
                 };
@@ -482,6 +493,7 @@
                 savedOptions.pointSize = options.pointSize;
                 savedOptions.cameraSize = options.cameraSize;
                 savedOptions.showThumbnail = options.showThumbnail;
+                savedOptions.drawLineOnPointClick=options.drawLineOnPointClick,
                 savedOptions.showImagePlane = options.showImagePlane;
                 savedOptions.drawGrid = options.drawGrid;
                 savedOptions.drawGPS = options.drawGPS;
@@ -490,6 +502,7 @@
                 setCameraSize(tmpOptions.cameraSize);
                 setShowThumbnail(tmpOptions.showThumbnail);
                 setShowImagePlane(tmpOptions.showImagePlane);
+                setDrawLineOnPointClick(tmpOptions.drawLineOnPointClick)
                 setDrawGrid(tmpOptions.drawGrid);
                 setDrawGPS(tmpOptions.drawGPS);
             }
@@ -872,6 +885,7 @@
                     }
                     var point_cloud = new THREE.PointCloud(points, pointCloudMaterial);
                     point_clouds.push(point_cloud);
+                   
                     group.add(point_cloud);
 
                     // Cameras.
@@ -1112,6 +1126,33 @@
 
             function onDocumentMouseDown(event) {
                 window.focus();
+
+                intersected = raycaster.intersectObjects(point_clouds);
+                if (
+                    intersected.length > 0 &&
+                    options.drawLineOnPointClick && 
+                    selectedCamera
+                ){
+                    var material = new THREE.LineBasicMaterial( { color: 0xFFC0CB } );
+                    var geometry = new THREE.Geometry();
+                    geometry.vertices.push(new THREE.Vector3( 
+                        selectedCamera.geometry.boundingSphere.center.x,
+                        selectedCamera.geometry.boundingSphere.center.y,
+                        selectedCamera.geometry.boundingSphere.center.z,
+                    ));
+                    geometry.vertices.push(new THREE.Vector3( 
+                        intersected[0].point.x,
+                        intersected[0].point.y,
+                        intersected[0].point.z,
+                    ));
+                    
+                    line = new THREE.Line( geometry, material );
+                    virtualLinesByClick.add(line)
+                    scene_group.add(virtualLinesByClick);
+                    //xxx intersected[0].point;
+
+                }
+
                 if (hoverCamera !== undefined) {
                     if (movingMode !== 'walk') {
                         if (selectedCamera !== hoverCamera) {
