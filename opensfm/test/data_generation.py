@@ -5,6 +5,7 @@ import numpy as np
 from six import iteritems
 import yaml
 
+from opensfm import io
 from opensfm import types
 import opensfm.dataset
 
@@ -111,6 +112,6 @@ def create_lund_test_folder(tmpdir, config=None):
 
 
 def save_config(config, path):
-    with open(os.path.join(path, 'config.yaml'), 'w') as fout:
-        yaml.dump(config, fout, default_flow_style=False)
+    with io.open_wt(os.path.join(path, 'config.yaml')) as fout:
+        yaml.safe_dump(config, fout, default_flow_style=False)
 
