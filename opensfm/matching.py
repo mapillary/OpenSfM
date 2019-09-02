@@ -143,7 +143,7 @@ def match(im1, im2, camera1, camera2, data):
             data.config['bow_num_checks'])
     elif matcher_type == 'WORDS_SYMMETRIC':
         matches = match_words_symmetric(f1, w1, f2, w2, config)
-    elif matcher_type == 'FLANN':
+    elif 'FLANN' in matcher_type:
         i1 = feature_loader.instance.load_features_index(data, im1, masked=True)
         i2 = feature_loader.instance.load_features_index(data, im2, masked=True)
         matches = match_flann_symmetric(f1, i1, f2, i2, config)

@@ -6,6 +6,7 @@
 !data/berlin/config.yaml
 !data/berlin/gcp_list.txt
 !data/berlin/images
+!data/lund/images
 !doc
 !LICENSE
 !opensfm
