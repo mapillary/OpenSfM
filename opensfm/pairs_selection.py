@@ -292,6 +292,7 @@ def match_candidates_from_metadata(images_ref, images_cand, exifs, data):
         t = set()
         o = set()
         b = set()
+        v = set()
         pairs = set([tuple(sorted([i, j])) for i in images_ref for j in images_cand])
     else:
         d = match_candidates_by_distance(images_ref, images_cand, exifs, reference,
@@ -314,7 +315,8 @@ def match_candidates_from_metadata(images_ref, images_cand, exifs, data):
         "num_pairs_distance": len(d),
         "num_pairs_time": len(t),
         "num_pairs_order": len(o),
-        "num_pairs_bow": len(b)
+        "num_pairs_bow": len(b),
+        "num_pairs_vlad": len(v),
     }
     return pairs, report
 
