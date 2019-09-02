@@ -123,18 +123,20 @@ class DataSet(object):
             mask = None
         return mask
 
-    def load_features_mask(self, image, feat):
-        """Load a feature-wise mask if it exists, otherwise return None.
+    def load_features_mask(self, image, points):
+        """Load a feature-wise mask.
 
-        This mask is used when performing features matching.
+        This is a binary array true for features that lie inside the
+        combined mask.
+        The array is all true when there's no mask.
         """
-        if feat is None or len(feat) == 0:
+        if points is None or len(points) == 0:
             return np.array([], dtype=bool)
 
         mask_image = self.load_combined_mask(image)
         if mask_image is None:
             logger.debug('No segmentation for {}, no features masked.'.format(image))
-            return np.ones((feat.shape[0],), dtype=bool)
+            return np.ones((points.shape[0],), dtype=bool)
 
         exif = self.load_exif(image)
         width = exif["width"]
@@ -142,13 +144,14 @@ class DataSet(object):
         orientation = exif["orientation"]
 
         new_height, new_width = mask_image.shape
-        ps = upright.opensfm_to_upright(feat, width, height, orientation,
-                                        new_width=new_width, new_height=new_height).astype(int)
+        ps = upright.opensfm_to_upright(
+            points[:, :2], width, height, orientation,
+            new_width=new_width, new_height=new_height).astype(int)
         mask = mask_image[ps[:, 1], ps[:, 0]]
 
         n_removed = np.sum(mask == 0)
         logger.debug('Masking {} / {} ({:.2f}) features for {}'.format(
-                    n_removed, len(mask), n_removed / len(mask), image))
+            n_removed, len(mask), n_removed / len(mask), image))
 
         return np.array(mask, dtype=bool)
 
