@@ -128,6 +128,13 @@ def align_reconstruction_naive_similarity(config, reconstruction, gcp):
         X.append(X[1])
         Xp.append(Xp[1])
 
+    # Sometimes, consraint data such as GPS EXIFs can
+    # be corrupted, all values being the same
+    std = np.std(Xp, axis=0)
+    if np.linalg.norm(std < 1e-10):
+        logger.warning('GPS/GCP data seems to have identical values : unable to align.')
+        return 1.0, np.identity(3), np.zeros((3))
+
     # Compute similarity Xp = s A X + b
     X = np.array(X)
     Xp = np.array(Xp)
