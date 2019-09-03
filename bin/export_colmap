@@ -32,6 +32,11 @@
 
 # This script is based on an original implementation by True Price.
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
 import sys
 import sqlite3
 import os
@@ -126,7 +131,7 @@ def image_ids_to_pair_id(image_id1, image_id2):
 
 def pair_id_to_image_ids(pair_id):
     image_id2 = pair_id % MAX_IMAGE_ID
-    image_id1 = (pair_id - image_id2) / MAX_IMAGE_ID
+    image_id1 = (pair_id - image_id2) // MAX_IMAGE_ID
     return image_id1, image_id2
 
 
@@ -318,7 +323,7 @@ def export_matches(data, db, features_map):
 
 def export_cameras_reconstruction(data, db, path, camera_map):
     reconstructions = data.load_reconstruction()
-    with open(os.path.join(path, 'cameras.txt'), 'w') as fout:
+    with io.open_wt(os.path.join(path, 'cameras.txt')) as fout:
         for reconstruction in reconstructions:
             for camera_id, camera in reconstruction.cameras.items():
                 w = camera.width
@@ -359,7 +364,7 @@ def export_shots_reconstruction(data, db, path, camera_map, images_map,
     reconstructions = data.load_reconstruction()
     graph = data.load_tracks_graph()
 
-    with open(os.path.join(path, 'images.txt'), 'w') as fout:
+    with io.open_wt(os.path.join(path, 'images.txt')) as fout:
         for reconstruction in reconstructions:
 
             for shot_id, shot in reconstruction.shots.items():
@@ -397,7 +402,7 @@ def export_points_reconstruction(data, db, path, camera_map, images_map):
     graph = data.load_tracks_graph()
 
     points_map = {}
-    with open(os.path.join(path, 'points3D.txt'), 'w') as fout:
+    with io.open_wt(os.path.join(path, 'points3D.txt')) as fout:
         for reconstruction in reconstructions:
             for i, point in enumerate(reconstruction.points.values()):
                 c = point.coordinates
@@ -435,7 +440,7 @@ def angle_axis_to_quaternion(angle_axis):
 
 
 def export_ini_file(path, db_path, images_path):
-    with open(os.path.join(path, 'project.ini'), 'w') as fout:
+    with io.open_rt(os.path.join(path, 'project.ini')) as fout:
         fout.write('log_to_stderr=false\nlog_level=2\n')
         fout.write('database_path=%s\n' % db_path)
         fout.write('image_path=%s\n' % images_path)
