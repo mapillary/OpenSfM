@@ -48,7 +48,6 @@ Installing dependencies on MacOSX
 
 Install OpenCV and the Ceres solver using::
 
-    brew tap brewsci/bio
     brew tap brewsci/science
     brew install opencv
     brew install ceres-solver
