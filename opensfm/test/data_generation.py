@@ -102,15 +102,6 @@ def create_berlin_test_folder(tmpdir):
     return opensfm.dataset.DataSet(path)
 
 
-def create_lund_test_folder(tmpdir, config=None):
-    path = str(tmpdir.mkdir('lund'))
-    os.symlink(os.path.abspath('data/lund/images'),
-               os.path.join(path, 'images'))
-    if config:
-        save_config(config, path)
-    return opensfm.dataset.DataSet(path)
-
-
 def save_config(config, path):
     with io.open_wt(os.path.join(path, 'config.yaml')) as fout:
         yaml.safe_dump(config, fout, default_flow_style=False)

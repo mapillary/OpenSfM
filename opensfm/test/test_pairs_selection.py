@@ -17,11 +17,45 @@ from opensfm import feature_loader
 from opensfm.test import data_generation
 
 
+NEIGHBORS = 6
+
+
+class Args():
+    def __init__(self, dataset):
+        self.dataset = dataset
+
+
 @pytest.fixture(scope="module", autouse=True)
-def my_fixture():
+def clear_cache():
+    """
+    Clear feature loader cache to avoid using cached
+    masks etc from berlin dataset which has the same
+    naming convention for images.
+    """
     feature_loader.instance.clear_cache()
     yield
     feature_loader.instance.clear_cache()
+
+
+@pytest.fixture(scope="module", autouse=True)
+def lund_path(tmpdir_factory):
+    """
+    Precompute exif and features to avoid doing
+    it for every test which is time consuming.
+    """
+    path = str(tmpdir_factory.mktemp('lund'))
+
+    os.symlink(os.path.abspath('data/lund/images'),
+               os.path.join(path, 'images'))
+
+    # Use words matcher type to support the bow retrieval test
+    data_generation.save_config({'matcher_type': 'WORDS'}, path)
+
+    args = Args(path)
+    commands.extract_metadata.Command().run(args)
+    commands.detect_features.Command().run(args)
+
+    return path
 
 
 def test_vlad_distances_order():
@@ -64,14 +98,6 @@ def test_unnormalized_vlad():
 
     assert res[0] == res[1] == res[2] == 0
     assert pytest.approx(res[3], 1e-6) == 0.1
-
-
-class Args():
-    def __init__(self, dataset):
-        self.dataset = dataset
-
-
-NEIGHBORS = 6
 
 
 def match_candidates_from_metadata(data, neighbors=NEIGHBORS, assert_count=NEIGHBORS):
@@ -117,27 +143,31 @@ def create_match_candidates_config(**kwargs):
     return config
 
 
-def test_match_candidates_from_metadata_vlad(tmpdir):
+def test_match_candidates_from_metadata_vlad(lund_path):
     config = create_match_candidates_config(matching_vlad_neighbors=NEIGHBORS)
-    data = data_generation.create_lund_test_folder(tmpdir, config)
+    data_generation.save_config(config, lund_path)
+    data = dataset.DataSet(lund_path)
     match_candidates_from_metadata(data, assert_count=5)
 
 
-def test_match_candidates_from_metadata_bow(tmpdir):
+def test_match_candidates_from_metadata_bow(lund_path):
     config = create_match_candidates_config(
         matching_bow_neighbors=NEIGHBORS,
         matcher_type='WORDS')
-    data = data_generation.create_lund_test_folder(tmpdir, config)
+    data_generation.save_config(config, lund_path)
+    data = dataset.DataSet(lund_path)
     match_candidates_from_metadata(data, assert_count=5)
 
 
-def test_match_candidates_from_metadata_gps(tmpdir):
+def test_match_candidates_from_metadata_gps(lund_path):
     config = create_match_candidates_config(matching_gps_neighbors=NEIGHBORS)
-    data = data_generation.create_lund_test_folder(tmpdir, config)
+    data_generation.save_config(config, lund_path)
+    data = dataset.DataSet(lund_path)
     match_candidates_from_metadata(data)
 
 
-def test_match_candidates_from_metadata_time(tmpdir):
+def test_match_candidates_from_metadata_time(lund_path):
     config = create_match_candidates_config(matching_time_neighbors=NEIGHBORS)
-    data = data_generation.create_lund_test_folder(tmpdir, config)
+    data_generation.save_config(config, lund_path)
+    data = dataset.DataSet(lund_path)
     match_candidates_from_metadata(data)
