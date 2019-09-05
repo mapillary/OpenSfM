@@ -496,26 +496,6 @@ class DataSet(object):
     def save_features(self, image, points, descriptors, colors):
         self._save_features(self._feature_file(image), points, descriptors, colors)
 
-    def feature_index_exists(self, image):
-        return os.path.isfile(self._feature_index_file(image))
-
-    def _feature_index_file(self, image):
-        """
-        Return path of FLANN index file for specified image
-        :param image: Image name, with extension (i.e. 123.jpg)
-        """
-        return os.path.join(self._feature_path(), image + '.flann')
-
-    def load_feature_index(self, image, features):
-        if not self.feature_index_exists(image):
-            raise IOError("FLANN index file for {} doesn't exists.".format(image))
-        index = context.flann_Index()
-        index.load(features, self._feature_index_file(image))
-        return index
-
-    def save_feature_index(self, image, index):
-        index.save(self._feature_index_file(image))
-
     def _words_file(self, image):
         return os.path.join(self._feature_path(), image + '.words.npz')
 

@@ -3,12 +3,13 @@
 import os.path, sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+import argparse
 import os
 
-import argparse
-import matplotlib.pyplot as pl
-import numpy as np
 import cv2
+import matplotlib.pyplot as pl
+import networkx as nx
+import numpy as np
 
 from opensfm import dataset
 from opensfm import features
@@ -241,7 +242,8 @@ def triangulate_tracks(tracks, reconstruction, graph, min_ray_angle):
     :return: An array of booleans determining if each track was successfully triangulated or not.
     """
     succeeded = []
-    triangulator = reconstruct.TrackTriangulator(graph, reconstruction)
+    graph_inliers = nx.Graph()
+    triangulator = reconstruct.TrackTriangulator(graph, graph_inliers, reconstruction)
 
     for track in tracks:
         # Triangulate with 1 as reprojection threshold to avoid excluding tracks because of error.
@@ -411,12 +413,10 @@ def create_matches_figure(im1, im2, data, save_figs=False, single_column=False):
 
     # Calculate symmetric matches.
     p1, f1, c1 = data.load_features(im1)
-    i1 = data.load_feature_index(im1, f1)
-
     p2, f2, c2 = data.load_features(im2)
-    i2 = data.load_feature_index(im2, f2)
 
-    symmetric_matches = matching.match_symmetric(f1, i1, f2, i2, data.config)
+    symmetric_matches = matching.match_brute_force_symmetric(f1, f2, data.config)
+    symmetric_matches = np.array(symmetric_matches)
 
     if symmetric_matches.shape[0] < 8:
         print('Not enough matches for eight point algorithm: ' + str(symmetric_matches.shape[0]))
@@ -426,7 +426,7 @@ def create_matches_figure(im1, im2, data, save_figs=False, single_column=False):
     features_title = 'Features (loaded): {0} - {1}, {2} - {3}'.format(im1, p1.shape[0], im2, p2.shape[0])
     plot_points_sub(fig, rows, cols, 1, features_title, im1_array, im2_array, p1, p2, 'ob', 'om')
 
-     # Plot symmetric matches.
+    # Plot symmetric matches.
     s_matches1 = p1[symmetric_matches[:, 0]]
     s_matches2 = p2[symmetric_matches[:, 1]]
 
@@ -586,7 +586,7 @@ def plot_bootstrapped_reconstruction(fw, ip, index, p1, p2, robust_tracks, linke
 
     print_reset = redirect_print()
     _, pm1, pm2 = tracking.common_tracks(graph, ip.im1, ip.im2)
-    reconstruction, _ = reconstruct.bootstrap_reconstruction(data, graph, ip.im1, ip.im2, pm1, pm2)
+    reconstruction, _, _ = reconstruct.bootstrap_reconstruction(data, graph, ip.im1, ip.im2, pm1, pm2)
     reset_print(print_reset)
 
     threshold, pixels1, pixels2 = thresholds(ip.im1_array, ip.im2_array, 'triangulation_threshold', 0.004, data)
