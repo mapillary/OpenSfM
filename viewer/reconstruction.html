@@ -68,7 +68,17 @@
         <div id="ThreeJS" target="_blank"></div>
 
         <input id='load_button' type="file" value="open reconstruction" />
-
+        <style>
+            .red{
+                background-color: red !important;
+            }
+            .green{
+                background-color: green !important;
+            }
+            .blue{
+                background-color: blue !important;
+            }
+        </style>
         <div id="loading">
             <img src="images/preloader.gif">
         </div>
@@ -135,7 +145,7 @@
         </div>
 
         <script src="js/jquery.js"></script>
-        <script src="js/three.js"></script>
+        <script src="js/three.min.js"></script>
         <script src="js/OrbitControls.js"></script>
         <script src="js/TrackballControls.js"></script>
         <script src="js/dat.gui.js"></script>
@@ -281,6 +291,10 @@
             var previousShot = undefined;
             var validMoves;
             var movingMode = 'orbit';
+            
+            var POINT_CLOUD ;
+            var POINTS;
+            var GROUP;
             var savedOptions = {
                 cameraSize: 0,
                 pointSize: 0,
@@ -292,14 +306,24 @@
             };
 
             var options = {
-                cameraSize: 0.9,
-                pointSize: 0.7,
+                cameraSize: 0.001,
+                pointSize: 0.001,
                 imagePlaneSize: 50,
                 showThumbnail: true,
                 showImagePlane: false,
                 drawLineOnPointClick:false,
                 drawGrid: true,
                 drawGPS: false,
+                
+                X_pos_:0.0001,
+                X_var_:0.0001,
+
+                Y_pos_:0.0001,
+                Y_var_:0.0001,
+                
+                Z_pos_:0.0001,
+                Z_var_:0.0001,
+                
                 animationSpeed: 0.1,
                 imagePlaneOpacity: 1,
                 cameraColor: new THREE.Color(0xFFFFFF),
@@ -327,13 +351,64 @@
 
             document.getElementById('load_button').addEventListener('change', onReconstructionFileSelected, false);
             processUrlParams();
+            
+            function calc_point_space(){
+                var min_x=0.00001;
+                var max_x=0.00001;
 
+                var min_y=0.00001;
+                var max_y=0.00001;
 
+                var min_z=0.00001;
+                var max_z=0.00001;
+                
+                var pc=reconstructions[0].points
+                for (i in pc) {
+
+                  if(pc[i].coordinates[0]<min_x){
+                      min_x=pc[i].coordinates[0];
+                  }else if(pc[i].coordinates[0]>max_x){
+                      max_x=pc[i].coordinates[0];
+                  }
+                  if(pc[i].coordinates[1]<min_y){
+                      min_y=pc[i].coordinates[1];
+                  }else if(pc[i].coordinates[1]>max_y){
+                      max_y=pc[i].coordinates[1];
+                  }
+                  if(pc[i].coordinates[2]<min_z){
+                      min_z=pc[i].coordinates[2];
+                  }else if(pc[i].coordinates[2]>max_z){
+                      max_z=pc[i].coordinates[2];
+                  }
+                    
+                }
+                return [
+                    min_x,
+                    max_x,
+                    min_y,
+                    max_y,
+                    min_z,
+                    max_z
+                ]
+            }
+            
             function addDatGui(){
                 var gui = new dat.GUI();
-
                 f1 = gui.addFolder('Options');
-                f1.add(options, 'pointSize', 0, 2)
+
+                var arr= calc_point_space();
+                console.log(arr);
+
+                var min_x=arr[0]
+                var max_x=arr[1]
+                var min_y=arr[2]
+                var max_y=arr[3]
+                var min_z=arr[4]
+                var max_z=arr[5]
+                
+
+
+                f1.add(options, 'pointSize', 0, 2,0.0001)
                     .listen()
                     .onChange(setPointSize);
                 f1.add(options, 'cameraSize', 0, 2)
@@ -368,6 +443,129 @@
                 f1.add(options, 'drawLineOnPointClick')
                     .listen()
                     .onChange(setDrawLineOnPointClick);
+
+                f1.add(options, 'X_pos_',min_x,max_x, 0.0001)
+                    .listen()
+                    .onChange(function(value) {
+
+                        options.X_pos_ = value;
+                        POINTS.dispose();
+                        POINTS = new THREE.Geometry();
+                        for (var point_id in reconstructions[0].points) {
+                            if (reconstructions[0].points.hasOwnProperty(point_id)) {
+                                var p = reconstructions[0].points[point_id].coordinates;
+                                if(
+                                    p[0]>options.X_pos_+(Math.abs(max_x-min_x)/100)*options.X_var_
+                                    ||
+                                    p[0]<options.X_pos_-(Math.abs(max_x-min_x)/100)*options.X_var_
+
+                                ){
+                                   
+                                    continue;
+                                }
+                                var c = reconstructions[0].points[point_id].color;
+                                var color = new THREE.Color();
+                                color.setRGB(c[0] / 255., c[1] / 255., c[2] / 255.)
+                                POINTS.vertices.push(new THREE.Vector3(p[0], p[1], p[2]));
+                                POINTS.colors.push(color);
+                            }
+                        } 
+                        GROUP.remove(POINT_CLOUD);
+                        POINT_CLOUD = new THREE.PointCloud(POINTS, pointCloudMaterial);
+                        GROUP.add(POINT_CLOUD)
+                        controls.update();
+                        render();
+                    });
+                f1.__ul.childNodes[11].classList += ' red';
+
+                f1.add(options, 'Y_pos_',min_y,max_y, 0.0001)
+                    .listen()
+                    .onChange(function(value) {
+
+                        options.Y_pos_ = value;
+                        POINTS.dispose();
+                        POINTS = new THREE.Geometry();
+                        for (var point_id in reconstructions[0].points) {
+                            if (reconstructions[0].points.hasOwnProperty(point_id)) {
+                                var p = reconstructions[0].points[point_id].coordinates;
+                                if(
+                                    p[1]>options.Y_pos_+(Math.abs(max_y-min_y)/100)*options.Y_var_
+                                    ||
+                                    p[1]<options.Y_pos_-(Math.abs(max_y-min_y)/100)*options.Y_var_
+
+                                ){
+                                   
+                                    continue;
+                                }
+                                var c = reconstructions[0].points[point_id].color;
+                                var color = new THREE.Color();
+                                color.setRGB(c[0] / 255., c[1] / 255., c[2] / 255.)
+                                POINTS.vertices.push(new THREE.Vector3(p[0], p[1], p[2]));
+                                POINTS.colors.push(color);
+                            }
+                        } 
+                        GROUP.remove(POINT_CLOUD);
+                        POINT_CLOUD = new THREE.PointCloud(POINTS, pointCloudMaterial);
+                        GROUP.add(POINT_CLOUD)
+                        controls.update();
+                        render();
+                    });
+                f1.__ul.childNodes[12].classList += ' green';
+                
+                f1.add(options, 'Z_pos_',min_z,max_z, 0.0001)
+                    .listen()
+                    .onChange(function(value) {
+
+                        options.Z_pos_ = value;
+                        POINTS.dispose();
+                        POINTS = new THREE.Geometry();
+                        for (var point_id in reconstructions[0].points) {
+                            if (reconstructions[0].points.hasOwnProperty(point_id)) {
+                                var p = reconstructions[0].points[point_id].coordinates;
+                                if(
+                                    p[2]>options.Z_pos_+(Math.abs(max_z-min_z)/100)*options.Z_var_
+                                    ||
+                                    p[2]<options.Z_pos_-(Math.abs(max_z-min_z)/100)*options.Z_var_
+                                ){
+                                   
+                                    continue;
+                                }
+                                var c = reconstructions[0].points[point_id].color;
+                                var color = new THREE.Color();
+                                color.setRGB(c[0] / 255., c[1] / 255., c[2] / 255.)
+                                POINTS.vertices.push(new THREE.Vector3(p[0], p[1], p[2]));
+                                POINTS.colors.push(color);
+                            }
+                        } 
+                        GROUP.remove(POINT_CLOUD);
+                        POINT_CLOUD = new THREE.PointCloud(POINTS, pointCloudMaterial);
+                        GROUP.add(POINT_CLOUD)
+                        controls.update();
+                        render();
+                    });
+                f1.__ul.childNodes[13].classList += ' blue';
+
+
+                f1.add(options, 'X_var_',0,100, 0.0001)
+                    .listen()
+                    .onChange(function(value) {
+                        options.X_var_ = value;
+                        render();
+                    });
+
+                f1.add(options, 'Y_var_',0,100, 0.0001)
+                    .listen()
+                    .onChange(function(value) {
+                        options.Y_var_ = value;
+                        render();
+                    });
+
+                f1.add(options, 'Z_var_',0,100, 0.0001)
+                    .listen()
+                    .onChange(function(value) {
+                        options.Z_var_ = value;
+                        render();
+                    });
                 f1.open();
 
 
@@ -435,6 +633,10 @@
                 virtualLinesByClick.visible=value;
                 render();
             }
+            function X_variance(){
+
+            }
+            
             function setDrawGPS(value) {
                 options.drawGPS = value;
                 for (var i = 0; i < gps_lines.length; ++i) {
@@ -486,6 +688,11 @@
                     showThumbnail: savedOptions.showThumbnail,
                     showImagePlane: savedOptions.showImagePlane,
                     drawLineOnPointClick:savedOptions.drawLineOnPointClick,
+
+                    X_pos_:savedOptions.X_pos_,
+                    Y_pos_:savedOptions.Y_pos_,
+                    Z_pos_:savedOptions.Z_pos_,
+
                     drawGrid: savedOptions.drawGrid,
                     drawGPS: savedOptions.drawGPS
                 };
@@ -497,6 +704,11 @@
                 savedOptions.showImagePlane = options.showImagePlane;
                 savedOptions.drawGrid = options.drawGrid;
                 savedOptions.drawGPS = options.drawGPS;
+
+                savedOptions.X_pos_ = options.X_pos_;
+                savedOptions.Y_pos_ = options.Y_pos_;
+                savedOptions.Z_pos_ = options.Z_pos_;
+
 
                 setPointSize(tmpOptions.pointSize);
                 setCameraSize(tmpOptions.cameraSize);
@@ -869,29 +1081,29 @@
                 for (var r = 0; r < reconstructions.length; ++r) {
                     var reconstruction = reconstructions[r];
                     reconstruction_groups[r] = new THREE.Object3D();
-                    var group = reconstruction_groups[r];
+                     GROUP = reconstruction_groups[r];
 
                     // Points.
-                    var points = new THREE.Geometry();
+                    POINTS = new THREE.Geometry();
                     for (var point_id in reconstruction.points) {
                         if (reconstruction.points.hasOwnProperty(point_id)) {
                             var p = reconstruction.points[point_id].coordinates;
                             var c = reconstruction.points[point_id].color;
                             var color = new THREE.Color();
                             color.setRGB(c[0] / 255., c[1] / 255., c[2] / 255.)
-                            points.vertices.push(new THREE.Vector3(p[0], p[1], p[2]));
-                            points.colors.push(color);
+                            POINTS.vertices.push(new THREE.Vector3(p[0], p[1], p[2]));
+                            POINTS.colors.push(color);
                         }
                     }
-                    var point_cloud = new THREE.PointCloud(points, pointCloudMaterial);
-                    point_clouds.push(point_cloud);
+                    POINT_CLOUD = new THREE.PointCloud(POINTS, pointCloudMaterial);
+                    point_clouds.push(POINT_CLOUD);
                    
-                    group.add(point_cloud);
+                    GROUP.add(POINT_CLOUD);
 
                     // Cameras.
                     var lines = initCameraLines(reconstruction);
                     for (var i = 0; i < lines.length; ++i) {
-                        group.add(lines[i]);
+                        GROUP.add(lines[i]);
                         camera_lines.push(lines[i]);
                     }
 
@@ -911,13 +1123,13 @@
                                 var lineMaterial = new THREE.LineBasicMaterial({ color: 0xff00ff });
                                 var line = new THREE.Line(linegeo, lineMaterial, THREE.LinePieces);
                                 line.visible = options.drawGPS;
-                                group.add(line);
+                                GROUP.add(line);
                                 gps_lines.push(line);
                             }
                         }
                     }
 
-                    scene_group.add(group);
+                    scene_group.add(GROUP);
                 }
 
 
@@ -1126,7 +1338,7 @@
 
             function onDocumentMouseDown(event) {
                 window.focus();
-
+                raycaster.precision = 0.0001;
                 intersected = raycaster.intersectObjects(point_clouds);
                 if (
                     intersected.length > 0 &&
@@ -1147,13 +1359,39 @@
                     ));
                     
                     line = new THREE.Line( geometry, material );
-                    virtualLinesByClick.add(line)
+                 
+                    let midX=intersected[0].point.x-selectedCamera.geometry.boundingSphere.center.x;
+                    let midY=intersected[0].point.y-selectedCamera.geometry.boundingSphere.center.y;
+                    let midZ=intersected[0].point.z-selectedCamera.geometry.boundingSphere.center.z;
+
+                    let avgX=(intersected[0].point.x+selectedCamera.geometry.boundingSphere.center.x)/2;
+                    let avgY=(intersected[0].point.y+selectedCamera.geometry.boundingSphere.center.y)/2;
+                    let avgZ=(intersected[0].point.z+selectedCamera.geometry.boundingSphere.center.z)/2;
+
+                    mesh=create2DText(Math.sqrt(midX**2+midY**2+midZ**2).toFixed(2)+"");
+                    console.info(intersected[0].point,selectedCamera.geometry.boundingSphere.center,
+                        avgX,avgY,avgZ);
+                    console.log("Dis::",Math.sqrt(midX**2+midY**2+midZ**2).toFixed(2));
+
+                    
+                     mesh.position.set(
+                        avgX+2,
+                        avgY,
+                        avgZ,
+                    ); 
+                    
+                    //mesh.rotation.x = -0.9;
+                    //line.add(mesh);
+                 
+
+                    virtualLinesByClick.add(line);
+                   // scene_group.add(mesh);
                     scene_group.add(virtualLinesByClick);
-                    //xxx intersected[0].point;
+
 
                 }
 
-                if (hoverCamera !== undefined) {
+                if (hoverCamera !== undefined && !options.drawLineOnPointClick) {
                     if (movingMode !== 'walk') {
                         if (selectedCamera !== hoverCamera) {
                             setSelectedCamera(hoverCamera);
@@ -1167,7 +1405,27 @@
                     render();
                 }
             }
+            
 
+            function create2DText(str){
+                var canvas1 = document.createElement('canvas');
+                var context1 = canvas1.getContext('2d');
+                context1.font = "Bold 10px Arial";
+                context1.fillStyle = "rgba(255,255,0,1)";
+                context1.fillText(str, 0, 30);
+
+                var texture1 = new THREE.Texture(canvas1)
+                texture1.needsUpdate = true;
+
+                var material1 = new THREE.MeshBasicMaterial({ map: texture1, side: THREE.DoubleSide });
+                material1.transparent = true;
+
+                var mesh1 = new THREE.Mesh(
+                    new THREE.PlaneGeometry(30, 10),
+                    material1
+                    );
+                return mesh1
+            }
             function navigateToShot(camera) {
                 var reconstruction = camera.reconstruction;
                 var shot = reconstruction['shots'][camera.shot_id];
