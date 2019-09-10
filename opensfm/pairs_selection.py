@@ -347,6 +347,9 @@ def load_histograms(data, images):
     bows = bow.load_bows(data.config)
     for im in images:
         filtered_words = feature_loader.instance.load_words(data, im, masked=True)
+        if filtered_words is None:
+            logger.error("No words in image {}".format(im))
+            continue
         if len(filtered_words) <= min_num_feature:
             logger.warning("Too few filtered features in image {}: {}".format(
                 im, len(filtered_words)))
