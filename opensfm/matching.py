@@ -63,8 +63,10 @@ def match_images(data, ref_images, cand_images, overwrite):
     processes = context.processes_that_fit_in_memory(data.config['processes'], mem_per_process)
     logger.info("Computing pair matching with %d processes" % processes)
     matches = context.parallel_map(match_unwrap_args, args, processes, jobs_per_process)
-    logger.debug('Matched {} pairs in {} seconds.'.format(
-        len(pairs), timer()-start))
+    logger.info(
+        'Matched {} pairs for {} ref_images and {} cand_images in '
+        '{} seconds.'.format(
+            len(pairs), len(ref_images), len(cand_images), timer() - start))
 
     # Index results per pair
     pairs = {}
