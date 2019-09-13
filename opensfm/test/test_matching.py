@@ -101,7 +101,8 @@ def test_match_images(scene_synthetic):
     synthetic.config['matcher_type'] = 'FLANN'
 
     images = synthetic.images()
-    pairs, _ = matching.match_images(synthetic, images, images, True)
+    pairs, _ = matching.match_images(synthetic, images, images)
+    matching.save_matches(synthetic, pairs)
 
     assert len(pairs) == 62
     value, margin = 11842, 0.01
