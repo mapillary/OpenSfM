@@ -135,27 +135,30 @@ def match(im1, im2, camera1, camera2, data):
 
     config = data.config
     matcher_type = config['matcher_type'].upper()
+    symmetric_matching = config['symmetric_matching']
 
-    w1, w2 = None, None
-    if 'WORDS' in matcher_type:
+    if matcher_type == 'WORDS':
         w1 = feature_loader.instance.load_words(data, im1, masked=True)
         w2 = feature_loader.instance.load_words(data, im2, masked=True)
         if w1 is None or w2 is None:
             return []
 
-    if matcher_type == 'WORDS':
-        matches = csfm.match_using_words(
-            f1, w1, f2, w2[:, 0],
-            data.config['lowes_ratio'],
-            data.config['bow_num_checks'])
-    elif matcher_type == 'WORDS_SYMMETRIC':
-        matches = match_words_symmetric(f1, w1, f2, w2, config)
+        if symmetric_matching:
+            matches = match_words_symmetric(f1, w1, f2, w2, config)
+        else:
+            matches = match_words(f1, w1, f2, w2, config)
     elif matcher_type == 'FLANN':
         i1 = feature_loader.instance.load_features_index(data, im1, masked=True)
-        i2 = feature_loader.instance.load_features_index(data, im2, masked=True)
-        matches = match_flann_symmetric(f1, i1, f2, i2, config)
+        if symmetric_matching:
+            i2 = feature_loader.instance.load_features_index(data, im2, masked=True)
+            matches = match_flann_symmetric(f1, i1, f2, i2, config)
+        else:
+            matches = match_flann(i1, f2, config)
     elif matcher_type == 'BRUTEFORCE':
-        matches = match_brute_force_symmetric(f1, f2, config)
+        if symmetric_matching:
+            matches = match_brute_force_symmetric(f1, f2, config)
+        else:
+            matches = match_brute_force(f1, f2, config)
     else:
         raise ValueError("Invalid matcher_type: {}".format(matcher_type))
 
@@ -169,11 +172,16 @@ def match(im1, im2, camera1, camera2, data):
     time_2d_matching = timer() - time_start
     t = timer()
 
+    symmetric = 'symmetric' if config['symmetric_matching'] \
+        else 'one-way'
     robust_matching_min_match = config['robust_matching_min_match']
     if len(matches) < robust_matching_min_match:
         logger.debug(
-            'Matching {} and {}.  Matcher: {} T-desc: {:1.3f} '
-            'Matches: FAILED'.format(im1, im2, matcher_type, time_2d_matching))
+            'Matching {} and {}.  Matcher: {} ({}) T-desc: {:1.3f} '
+            'Matches: FAILED'.format(
+                im1, im2,
+                matcher_type, symmetric,
+                time_2d_matching))
         return []
 
     # robust matching
@@ -189,10 +197,10 @@ def match(im1, im2, camera1, camera2, data):
         rmatches = unfilter_matches(rmatches, m1, m2)
 
     logger.debug(
-        'Matching {} and {}.  Matcher: {} '
+        'Matching {} and {}.  Matcher: {} ({}) '
         'T-desc: {:1.3f} T-robust: {:1.3f} T-total: {:1.3f} '
         'Matches: {} Robust: {} Success: {}'.format(
-            im1, im2, matcher_type,
+            im1, im2, matcher_type, symmetric,
             time_2d_matching, time_robust_matching, time_total,
             len(matches), len(rmatches),
             len(rmatches) >= robust_matching_min_match))
