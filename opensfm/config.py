@@ -39,7 +39,8 @@ hahog_normalize_to_uchar: yes
 
 # Params for general matching
 lowes_ratio: 0.8              # Ratio test for matches
-matcher_type: FLANN           # FLANN(symmetric) or BRUTEFORCE(symmetric), WORDS(one-way), WORDS_SYMMETRIC(symmetric)
+matcher_type: FLANN           # FLANN, BRUTEFORCE, or WORDS
+symmetric_matching: yes       # Match symmetricly or one-way
 
 # Params for FLANN matching
 flann_branching: 8           # See OpenCV doc
