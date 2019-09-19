@@ -27,7 +27,7 @@ class Command:
 
         start = timer()
         pairs_matches, preport = matching.match_images(data, images, images)
-        matching.save_matches(data, pairs_matches)
+        matching.save_matches(data, images, pairs_matches)
         end = timer()
 
         with open(data.profile_log(), 'a') as fout:

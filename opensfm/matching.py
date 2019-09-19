@@ -72,12 +72,12 @@ def match_images(data, ref_images, cand_images):
     return pairs, preport
 
 
-def save_matches(data, matched_pairs):
+def save_matches(data, images_ref, matched_pairs):
     """ Given pairwise matches (image 1, image 2) - > matches,
-    save them such as only image 1 matches will store the data.
+    save them such as only {image E images_ref} will store the matches.
     """
 
-    matches_per_im1 = defaultdict(dict)
+    matches_per_im1 = {im: {} for im in images_ref}
     for (im1, im2), m in matched_pairs.items():
         matches_per_im1[im1][im2] = m
 

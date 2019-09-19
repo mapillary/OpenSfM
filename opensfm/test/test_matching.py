@@ -102,7 +102,7 @@ def test_match_images(scene_synthetic):
 
     images = synthetic.images()
     pairs, _ = matching.match_images(synthetic, images, images)
-    matching.save_matches(synthetic, pairs)
+    matching.save_matches(synthetic, images, pairs)
 
     assert len(pairs) == 62
     value, margin = 11842, 0.01
