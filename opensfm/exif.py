@@ -247,6 +247,9 @@ class EXIF:
         lat_number = lat_number if lat[0] == '+' else -lat_number
         return lon_number, lat_number
 
+    def extract_dji_altitude(self):
+        return float(self.xmp[0]['@drone-dji:AbsoluteAltitude'])
+
     def has_dji_xmp(self):
         return (len(self.xmp) > 0) and ('@drone-dji:Latitude' in self.xmp[0])
 
@@ -262,7 +265,9 @@ class EXIF:
         return lon, lat
 
     def extract_altitude(self):
-        if 'GPS GPSAltitude' in self.tags:
+        if self.has_dji_xmp():
+            altitude = self.extract_dji_altitude()
+        elif 'GPS GPSAltitude' in self.tags:
             altitude = eval_frac(self.tags['GPS GPSAltitude'].values[0])
         else:
             altitude = None
