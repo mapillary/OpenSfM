@@ -116,9 +116,16 @@ def align_reconstruction_naive_similarity(config, reconstruction, gcp):
     if len(X) == 0:
         return 1.0, np.identity(3), np.zeros((3))
 
-    # Translation-only case
-    if len(X) == 1:
+    # Translation-only case, either : 
+    #  - a single value
+    #  - identical values
+    same_values = (np.linalg.norm(np.std(Xp, axis=0)) < 1e-10)
+    single_value = (len(X) == 1)
+    if single_value:
         logger.warning('Only 1 constraints. Using translation-only alignment.')
+    if same_values:
+        logger.warning('GPS/GCP data seems to have identical values. Using translation-only alignment.')
+    if same_values or single_value:
         t = np.array(Xp[0]) - np.array(X[0])
         return 1.0, np.identity(3), t
 
