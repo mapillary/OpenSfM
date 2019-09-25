@@ -7,6 +7,7 @@ import os.path
 import scipy.spatial as spatial
 
 from opensfm import bow
+from opensfm import vlad
 from opensfm import context
 from opensfm import feature_loader
 
@@ -203,7 +204,7 @@ def match_bow_unwrap_args(args):
 def match_vlad_unwrap_args(args):
     """ Wrapper for parralel processing of VLAD """
     image, other_images, histograms = args
-    return vlad_distances(image, other_images, histograms)
+    return vlad.vlad_distances(image, other_images, histograms)
 
 
 def match_candidates_by_time(images_ref, images_cand, exifs, max_neighbors):
@@ -367,62 +368,14 @@ def vlad_histograms(images, data):
     if len(images) == 0:
         return {}
 
-    words, _ = bow.load_vlad_words_and_frequencies(data.config)
+    words = vlad.instance.load_words(data)
     vlads = {}
     for im in images:
         _, features, _ = feature_loader.instance.load_points_features_colors(
             data, im, masked=True)
-        vlad = unnormalized_vlad(features, words)
-        vlad = signed_square_root_normalize(vlad)
-        vlads[im] = vlad
+        vlads[im] = vlad.instance.vlad_histogram(im, features, words)
 
     return vlads
-
-
-def unnormalized_vlad(features, centers):
-    """ Compute unnormalized VLAD histograms from a set of
-        features in relation to centers.
-
-        Returns the unnormalized VLAD vector.
-    """
-    vlad = np.zeros(centers.shape, dtype=np.float32)
-    for f in features:
-        i = np.argmin(np.linalg.norm(f-centers, axis=1))
-        vlad[i, :] += f-centers[i]
-    vlad = np.ndarray.flatten(vlad)
-    return vlad
-
-
-def signed_square_root_normalize(v):
-    """ Compute Signed Square Root (SSR) normalization on
-        a vector.
-
-        Returns the SSR normalized vector.
-    """
-    v = np.sign(v) * np.sqrt(np.abs(v))
-    v /= np.linalg.norm(v)
-    return v
-
-
-def vlad_distances(image, other_images, histograms):
-    """ Compute VLAD-based distance (L2 on VLAD-histogram)
-        between an image and other images.
-
-        Returns the image, the order of the other images,
-        and the other images.
-    """
-    if image not in histograms:
-        return image, [], []
-
-    distances = []
-    other = []
-    h = histograms[image]
-    for im2 in other_images:
-        if im2 != image and im2 in histograms:
-            h2 = histograms[im2]
-            distances.append(np.linalg.norm(h - h2))
-            other.append(im2)
-    return image, np.argsort(distances), other
 
 
 def pairs_from_neighbors(image, exifs, order, other, max_neighbors):

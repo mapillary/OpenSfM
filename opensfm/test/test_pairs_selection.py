@@ -58,48 +58,6 @@ def lund_path(tmpdir_factory):
     return path
 
 
-def test_vlad_distances_order():
-    im = 'im1'
-    other_ims = ['im2', 'im3']
-
-    histograms = {
-        'im1': np.array([1, 0, 0]),
-        'im2': np.array([0, 1, 0]),
-        'im3': np.array([1, 1, 0]) / np.linalg.norm([1, 1, 0]),
-    }
-
-    im_res, order_res, other_res = pairs_selection.vlad_distances(
-        im, other_ims, histograms)
-
-    assert im_res == im
-    assert len(order_res) == len(other_ims)
-    assert other_res == other_ims
-
-    assert other_ims[order_res[0]] == 'im3'
-    assert other_ims[order_res[1]] == 'im2'
-
-
-def test_signed_square_root_normalize():
-    v = [1, 0.01]
-    res = pairs_selection.signed_square_root_normalize(v)
-
-    assert pytest.approx(np.linalg.norm(res), 1e-6) == 1
-    assert pytest.approx(v[0] / v[1], 1e-6) == 10 * res[0] / res[1]
-
-
-def test_unnormalized_vlad():
-    features = np.array([[0, 1.1]])
-    centers = np.array([
-        [1, 0],
-        [0, 1],
-    ])
-
-    res = pairs_selection.unnormalized_vlad(features, centers)
-
-    assert res[0] == res[1] == res[2] == 0
-    assert pytest.approx(res[3], 1e-6) == 0.1
-
-
 def match_candidates_from_metadata(data, neighbors=NEIGHBORS, assert_count=NEIGHBORS):
     assert neighbors >= assert_count
 
