@@ -48,7 +48,7 @@ def vlad_distances(image, other_images, histograms):
             h2 = histograms[im2]
             distances.append(np.linalg.norm(h - h2))
             other.append(im2)
-    return image, np.argsort(distances), other
+    return image, distances, other
 
 
 class VladCache(object):

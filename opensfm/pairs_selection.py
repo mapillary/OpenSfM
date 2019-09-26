@@ -169,7 +169,8 @@ def preempt_candidates(images_ref, images_cand,
 def construct_pairs(results, max_neighbors, exifs, enforce_other_cameras):
     """Construct final sets of pairs to match"""
     pairs = set()
-    for im, order, other in results:
+    for im, distances, other in results:
+        order = np.argsort(distances)
         if enforce_other_cameras:
             pairs = pairs.union(pairs_from_neighbors(im, exifs, order, other, max_neighbors))
         else:
@@ -337,7 +338,7 @@ def bow_distances(image, other_images, histograms):
             h2 = histograms[im2]
             distances.append(np.fabs(h - h2).sum())
             other.append(im2)
-    return image, np.argsort(distances), other
+    return image, distances, other
 
 
 def load_histograms(data, images):

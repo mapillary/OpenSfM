@@ -19,13 +19,14 @@ def test_vlad_distances_order():
         'im3': np.array([1, 1, 0]) / np.linalg.norm([1, 1, 0]),
     }
 
-    im_res, order_res, other_res = vlad.vlad_distances(
+    im_res, distance_res, other_res = vlad.vlad_distances(
         im, other_ims, histograms)
 
     assert im_res == im
-    assert len(order_res) == len(other_ims)
+    assert len(distance_res) == len(other_ims)
     assert other_res == other_ims
 
+    order_res = np.argsort(distance_res)
     assert other_ims[order_res[0]] == 'im3'
     assert other_ims[order_res[1]] == 'im2'
 
