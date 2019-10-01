@@ -38,7 +38,13 @@ def match_images(data, ref_images, cand_images):
     # Generate pairs for matching
     pairs, preport = pairs_selection.match_candidates_from_metadata(
         ref_images, cand_images, exifs, data)
-    logger.info('Matching {} image pairs'.format(len(pairs)))
+
+    # Match them !
+    return match_images_with_pairs(data, exifs, ref_images, pairs), preport
+
+
+def match_images_with_pairs(data, exifs, ref_images, pairs):
+    """ Perform pair matchings given pairs. """
 
     # Store per each image in ref for processing
     per_image = {im: [] for im in ref_images}
@@ -53,23 +59,24 @@ def match_images(data, ref_images, cand_images):
 
     # Perform all pair matchings in parallel
     start = timer()
+    logger.info('Matching {} image pairs'.format(len(pairs)))
     mem_per_process = 512
     jobs_per_process = 2
     processes = context.processes_that_fit_in_memory(data.config['processes'], mem_per_process)
     logger.info("Computing pair matching with %d processes" % processes)
     matches = context.parallel_map(match_unwrap_args, args, processes, jobs_per_process)
     logger.info(
-        'Matched {} pairs for {} ref_images and {} cand_images in '
+        'Matched {} pairs for {} ref_images in '
         '{} seconds.'.format(
-            len(pairs), len(ref_images), len(cand_images), timer() - start))
+            len(pairs), len(ref_images), timer() - start))
 
     # Index results per pair
-    pairs = {}
+    resulting_pairs = {}
     for im1, im1_matches in matches:
         for im2, m in im1_matches.items():
-            pairs[im1, im2] = m
+            resulting_pairs[im1, im2] = m
 
-    return pairs, preport
+    return resulting_pairs
 
 
 def save_matches(data, images_ref, matched_pairs):

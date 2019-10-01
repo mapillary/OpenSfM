@@ -168,14 +168,14 @@ def preempt_candidates(images_ref, images_cand,
 
 def construct_pairs(results, max_neighbors, exifs, enforce_other_cameras):
     """Construct final sets of pairs to match"""
-    pairs = set()
+    pairs = dict()
     for im, distances, other in results:
         order = np.argsort(distances)
         if enforce_other_cameras:
-            pairs = pairs.union(pairs_from_neighbors(im, exifs, order, other, max_neighbors))
+            pairs.update(pairs_from_neighbors(im, exifs, distances, order, other, max_neighbors))
         else:
             for i in order[:max_neighbors]:
-                pairs.add(tuple(sorted((im, other[i]))))
+                pairs[tuple(sorted((im, other[i])))] = distances[i]
     return pairs
 
 
@@ -309,7 +309,7 @@ def match_candidates_from_metadata(images_ref, images_cand, exifs, data):
                                        exifs, reference, vlad_neighbors,
                                        vlad_gps_distance, vlad_gps_neighbors,
                                        vlad_other_cameras)
-        pairs = d | t | o | b | v
+        pairs = d | t | o | set(b) | set(v)
 
     pairs = ordered_pairs(pairs, images_ref)
 
@@ -379,7 +379,7 @@ def vlad_histograms(images, data):
     return vlads
 
 
-def pairs_from_neighbors(image, exifs, order, other, max_neighbors):
+def pairs_from_neighbors(image, exifs, distances, order, other, max_neighbors):
     """Construct matching pairs given closest ordered neighbors.
 
     Pairs will of form (image, im2), im2 being the closest max_neighbors
@@ -389,18 +389,19 @@ def pairs_from_neighbors(image, exifs, order, other, max_neighbors):
     same_camera, other_cameras = [], []
     for i in order:
         im2 = other[i]
+        d = distances[i]
         if exifs[im2]['camera'] == exifs[image]['camera']:
             if len(same_camera) < max_neighbors:
-                same_camera.append(im2)
+                same_camera.append((im2, d))
         else:
             if len(other_cameras) < max_neighbors:
-                other_cameras.append(im2)
+                other_cameras.append((im2, d))
         if len(same_camera) + len(other_cameras) >= 2 * max_neighbors:
             break
 
-    pairs = set()
-    for im2 in same_camera+other_cameras:
-        pairs.add(tuple(sorted((image, im2))))
+    pairs = dict()
+    for im2, d in same_camera+other_cameras:
+        pairs[tuple(sorted((image, im2)))] = d
     return pairs
 
 
