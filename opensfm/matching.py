@@ -66,9 +66,13 @@ def match_images_with_pairs(data, exifs, ref_images, pairs):
     logger.info("Computing pair matching with %d processes" % processes)
     matches = context.parallel_map(match_unwrap_args, args, processes, jobs_per_process)
     logger.info(
-        'Matched {} pairs for {} ref_images in '
-        '{} seconds.'.format(
-            len(pairs), len(ref_images), timer() - start))
+        'Matched {} pairs for {} ref_images {} '
+        'in {} seconds ({} seconds/pair).'.format(
+            len(pairs),
+            len(ref_images),
+            log_projection_types(pairs, ctx.exifs, ctx.cameras),
+            timer() - start,
+            (timer() - start) / len(ref_images)))
 
     # Index results per pair
     resulting_pairs = {}
@@ -77,6 +81,29 @@ def match_images_with_pairs(data, exifs, ref_images, pairs):
             resulting_pairs[im1, im2] = m
 
     return resulting_pairs
+
+
+def log_projection_types(pairs, exifs, cameras):
+    projection_type_pairs = {}
+    for im1, im2 in pairs:
+        pt1 = cameras[exifs[im1]['camera']].projection_type
+        pt2 = cameras[exifs[im2]['camera']].projection_type
+
+        if pt1 not in projection_type_pairs:
+            projection_type_pairs[pt1] = {}
+
+        if pt2 not in projection_type_pairs[pt1]:
+            projection_type_pairs[pt1][pt2] = []
+
+        projection_type_pairs[pt1][pt2].append((im1, im2))
+
+    output = "("
+    for pt1 in projection_type_pairs:
+        for pt2 in projection_type_pairs[pt1]:
+            output += "{}-{}: {}, ".format(
+                pt1, pt2, len(projection_type_pairs[pt1][pt2]))
+
+    return output[:-2] + ")"
 
 
 def save_matches(data, images_ref, matched_pairs):
