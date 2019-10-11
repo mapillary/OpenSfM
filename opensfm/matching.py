@@ -72,7 +72,7 @@ def match_images_with_pairs(data, exifs, ref_images, pairs):
             len(ref_images),
             log_projection_types(pairs, ctx.exifs, ctx.cameras),
             timer() - start,
-            (timer() - start) / len(ref_images)))
+            (timer() - start) / len(pairs)))
 
     # Index results per pair
     resulting_pairs = {}
