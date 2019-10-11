@@ -72,7 +72,7 @@ def match_images_with_pairs(data, exifs, ref_images, pairs):
             len(ref_images),
             log_projection_types(pairs, ctx.exifs, ctx.cameras),
             timer() - start,
-            (timer() - start) / len(pairs)))
+            (timer() - start) / len(pairs) if pairs else 0))
 
     # Index results per pair
     resulting_pairs = {}
@@ -84,6 +84,9 @@ def match_images_with_pairs(data, exifs, ref_images, pairs):
 
 
 def log_projection_types(pairs, exifs, cameras):
+    if not pairs:
+        return ""
+
     projection_type_pairs = {}
     for im1, im2 in pairs:
         pt1 = cameras[exifs[im1]['camera']].projection_type
