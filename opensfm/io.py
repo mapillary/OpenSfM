@@ -681,6 +681,8 @@ def imread(filename, grayscale=False, unchanged=False):
                 "OpenCV version {} does not support loading images without "
                 "rotating them according to EXIF. Please upgrade OpenCV to "
                 "version 3.2 or newer.".format(cv2.__version__))
+        
+        flags |= cv2.IMREAD_ANYDEPTH
     else:
         if grayscale:
             flags = cv2.CV_LOAD_IMAGE_GRAYSCALE
@@ -688,6 +690,8 @@ def imread(filename, grayscale=False, unchanged=False):
             flags = cv2.CV_LOAD_IMAGE_UNCHANGED
         else:
             flags = cv2.CV_LOAD_IMAGE_COLOR
+
+        flags |= cv2.CV_LOAD_IMAGE_ANYDEPTH
 
     image = cv2.imread(filename, flags)
 
