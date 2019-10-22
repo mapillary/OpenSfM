@@ -664,7 +664,7 @@ def json_loads(text):
     return json.loads(text)
 
 
-def imread(filename, grayscale=False, unchanged=False):
+def imread(filename, grayscale=False, unchanged=False, anydepth=False):
     """Load image as an array ignoring EXIF orientation."""
     if context.OPENCV3:
         if grayscale:
@@ -682,7 +682,8 @@ def imread(filename, grayscale=False, unchanged=False):
                 "rotating them according to EXIF. Please upgrade OpenCV to "
                 "version 3.2 or newer.".format(cv2.__version__))
         
-        flags |= cv2.IMREAD_ANYDEPTH
+        if anydepth:
+            flags |= cv2.IMREAD_ANYDEPTH
     else:
         if grayscale:
             flags = cv2.CV_LOAD_IMAGE_GRAYSCALE
@@ -691,7 +692,8 @@ def imread(filename, grayscale=False, unchanged=False):
         else:
             flags = cv2.CV_LOAD_IMAGE_COLOR
 
-        flags |= cv2.CV_LOAD_IMAGE_ANYDEPTH
+        if anydepth:
+            flags |= cv2.CV_LOAD_IMAGE_ANYDEPTH
 
     image = cv2.imread(filename, flags)
 
