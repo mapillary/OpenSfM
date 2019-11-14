@@ -290,6 +290,8 @@ def match_flann(index, f2, config):
         f2: feature descriptors of the second image
         config: config parameters
     """
+    if len(f2) == 0:
+        return []
     search_params = dict(checks=config['flann_checks'])
     results, dists = index.knnSearch(f2, 2, params=search_params)
     squared_ratio = config['lowes_ratio']**2  # Flann returns squared L2 distances
