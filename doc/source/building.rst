@@ -31,9 +31,9 @@ OpenSfM depends on the following libraries that need to be installed before buil
 Installing dependencies on Ubuntu
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If using Python 2, see this `Dockerfile <https://github.com/paulinus/opensfm-docker-base/blob/master/Dockerfile>`_ for the commands to install all dependencies on Ubuntu 16.04.
+If using Python 3, see this `Dockerfile <https://github.com/paulinus/opensfm-docker-base/blob/master/Dockerfile.python2>`_ for the commands to install all dependencies on Ubuntu 18.04.
 
-If using Python 3, follow the process here `Dockerfile.python3 <https://github.com/paulinus/opensfm-docker-base/blob/master/Dockerfile.python3>`_.
+If using Python 2, follow the process here `Dockerfile.python2 <https://github.com/paulinus/opensfm-docker-base/blob/master/Dockerfile.python2>`_.
 
 The main steps are
 
