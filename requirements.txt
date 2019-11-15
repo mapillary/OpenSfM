@@ -5,7 +5,7 @@ joblib==0.13.2
 loky==1.2.1
 networkx==1.11
 numpy
-Pillow==6.0.0
+Pillow==6.2.0
 pyproj==1.9.5.1
 pytest==3.0.7
 python-dateutil==2.6.0
