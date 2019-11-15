@@ -88,6 +88,7 @@ PYBIND11_MODULE(csfm, m) {
     .def("get_perspective_camera", &BundleAdjuster::GetPerspectiveCamera)
     .def("get_brown_perspective_camera", &BundleAdjuster::GetBrownPerspectiveCamera)
     .def("get_fisheye_camera", &BundleAdjuster::GetFisheyeCamera)
+    .def("get_dual_camera", &BundleAdjuster::GetDualCamera)
     .def("get_equirectangular_camera", &BundleAdjuster::GetEquirectangularCamera)
     .def("get_shot", &BundleAdjuster::GetShot)
     .def("get_point", &BundleAdjuster::GetPoint)
@@ -96,6 +97,7 @@ PYBIND11_MODULE(csfm, m) {
     .def("add_perspective_camera", &BundleAdjuster::AddPerspectiveCamera)
     .def("add_brown_perspective_camera", &BundleAdjuster::AddBrownPerspectiveCamera)
     .def("add_fisheye_camera", &BundleAdjuster::AddFisheyeCamera)
+    .def("add_dual_camera", &BundleAdjuster::AddDualCamera)
     .def("add_equirectangular_camera", &BundleAdjuster::AddEquirectangularCamera)
     .def("add_shot", &BundleAdjuster::AddShot)
     .def("add_point", &BundleAdjuster::AddPoint)
@@ -184,6 +186,17 @@ PYBIND11_MODULE(csfm, m) {
     .def_readwrite("constant", &BAFisheyeCamera::constant)
     .def_readwrite("focal_prior", &BAFisheyeCamera::focal_prior)
     .def_readwrite("id", &BAFisheyeCamera::id)
+  ;
+
+  py::class_<BADualCamera>(m, "BADualCamera")
+    .def(py::init())
+    .def_property("focal", &BADualCamera::GetFocal, &BADualCamera::SetFocal)
+    .def_property("k1", &BADualCamera::GetK1, &BADualCamera::SetK1)
+    .def_property("k2", &BADualCamera::GetK2, &BADualCamera::SetK2)
+    .def_property("transition", &BADualCamera::GetTransition, &BADualCamera::SetTransition)
+    .def_readwrite("constant", &BADualCamera::constant)
+    .def_readwrite("focal_prior", &BADualCamera::focal_prior)
+    .def_readwrite("id", &BADualCamera::id)
   ;
 
   py::class_<BAShot>(m, "BAShot")

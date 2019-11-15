@@ -63,6 +63,19 @@ def camera_from_json(key, obj):
         camera.k1 = obj.get('k1', 0.0)
         camera.k2 = obj.get('k2', 0.0)
         return camera
+    elif pt == 'dual':
+        camera = types.DualCamera()
+        camera.id = key
+        camera.width = obj.get('width', 0)
+        camera.height = obj.get('height', 0)
+        camera.focal = obj['focal']
+        camera.k1 = obj.get('k1', 0.0)
+        camera.k2 = obj.get('k2', 0.0)
+        camera.focal_prior = obj.get('focal_prior', camera.focal)
+        camera.k1_prior = obj.get('k1_prior', camera.k1)
+        camera.k2_prior = obj.get('k2_prior', camera.k2)
+        camera.transition = obj.get('transition', 1.0)
+        return camera
     elif pt in ['equirectangular', 'spherical']:
         camera = types.SphericalCamera()
         camera.id = key
@@ -217,6 +230,19 @@ def camera_to_json(camera):
             'focal': camera.focal,
             'k1': camera.k1,
             'k2': camera.k2,
+        }
+    elif camera.projection_type == 'dual':
+        return {
+            'projection_type': camera.projection_type,
+            'width': camera.width,
+            'height': camera.height,
+            'focal': camera.focal,
+            'k1': camera.k1,
+            'k2': camera.k2,
+            'focal_prior': camera.focal_prior,
+            'k1_prior': camera.k1_prior,
+            'k2_prior': camera.k2_prior,
+            'transition': camera.transition
         }
     elif camera.projection_type in ['equirectangular', 'spherical']:
         return {

@@ -34,6 +34,7 @@ enum BACameraType {
   BA_PERSPECTIVE_CAMERA,
   BA_BROWN_PERSPECTIVE_CAMERA,
   BA_FISHEYE_CAMERA,
+  BA_DUAL_CAMERA,
   BA_EQUIRECTANGULAR_CAMERA
 };
 
@@ -49,6 +50,7 @@ enum {
   BA_CAMERA_FOCAL,
   BA_CAMERA_K1,
   BA_CAMERA_K2,
+  BA_CAMERA_TRANSITION,
   BA_CAMERA_NUM_PARAMS
 };
 
@@ -126,6 +128,23 @@ struct BAFisheyeCamera : public BACamera{
   void SetFocal(double v) { parameters[BA_CAMERA_FOCAL] = v; }
   void SetK1(double v) { parameters[BA_CAMERA_K1] = v; }
   void SetK2(double v) { parameters[BA_CAMERA_K2] = v; }
+};
+
+struct BADualCamera : public BACamera{
+  double parameters[BA_CAMERA_NUM_PARAMS];
+  double focal_prior;
+  double k1_prior;
+  double k2_prior;
+
+  BACameraType type() { return BA_DUAL_CAMERA; }
+  double GetFocal() { return parameters[BA_CAMERA_FOCAL]; }
+  double GetK1() { return parameters[BA_CAMERA_K1]; }
+  double GetK2() { return parameters[BA_CAMERA_K2]; }
+  double GetTransition() { return parameters[BA_CAMERA_TRANSITION]; }
+  void SetFocal(double v) { parameters[BA_CAMERA_FOCAL] = v; }
+  void SetK1(double v) { parameters[BA_CAMERA_K1] = v; }
+  void SetK2(double v) { parameters[BA_CAMERA_K2] = v; }
+  void SetTransition(double t) { parameters[BA_CAMERA_TRANSITION] = t; }
 };
 
 struct BAEquirectangularCamera : public BACamera {
@@ -410,6 +429,17 @@ class BundleAdjuster {
       double k2_prior,
       bool constant);
 
+  void AddDualCamera(
+      const std::string &id,
+      double focal,
+      double k1,
+      double k2,
+      double focal_prior,
+      double k1_prior,
+      double k2_prior,
+      double transition,
+      bool constant);
+
   void AddEquirectangularCamera(const std::string &id);
 
   void AddShot(
@@ -561,6 +591,7 @@ class BundleAdjuster {
   BAPerspectiveCamera GetPerspectiveCamera(const std::string &id);
   BABrownPerspectiveCamera GetBrownPerspectiveCamera(const std::string &id);
   BAFisheyeCamera GetFisheyeCamera(const std::string &id);
+  BADualCamera GetDualCamera(const std::string &id);
   BAEquirectangularCamera GetEquirectangularCamera(const std::string &id);
   BAShot GetShot(const std::string &id);
   BAReconstruction GetReconstruction(const std::string &id);
