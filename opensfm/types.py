@@ -569,7 +569,7 @@ class DualCamera(Camera):
 
         point = np.asarray(pixel).reshape((1, 1, 2))
         distortion = np.array([self.k1, self.k2, 0., 0.])
-        if self.transition > 0.5:
+        if self.transition >= 0.5:
             x, y = cv2.undistortPoints(point, self.get_K(), distortion).flat
         else:
             x, y = cv2.fisheye.undistortPoints(point, self.get_K(), distortion).flat
@@ -580,7 +580,7 @@ class DualCamera(Camera):
         """Unit vector pointing to the pixel viewing directions."""
         points = pixels.reshape((-1, 1, 2)).astype(np.float64)
         distortion = np.array([self.k1, self.k2, 0., 0.])
-        if self.transition > 0.5:
+        if self.transition >= 0.5:
             up = cv2.undistortPoints(points, self.get_K(), distortion)
         else:
             up = cv2.fisheye.undistortPoints(points, self.get_K(), distortion)
