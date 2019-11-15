@@ -1,4 +1,4 @@
-FROM paulinus/opensfm-docker-base
+FROM paulinus/opensfm-docker-base:python2
 
 COPY . /source/OpenSfM
 
