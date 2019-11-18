@@ -545,11 +545,11 @@ class DualCamera(Camera):
         x_fish = theta / l * x
         y_fish = theta / l * y
 
-        x_proj = point[0] / point[2]
-        y_proj = point[1] / point[2]
+        x_persp = point[0] / point[2]
+        y_persp = point[1] / point[2]
 
-        x_dual = self.transition*x_proj + (1.0 - self.transition)*x_fish
-        y_dual = self.transition*y_proj + (1.0 - self.transition)*y_fish
+        x_dual = self.transition*x_persp + (1.0 - self.transition)*x_fish
+        y_dual = self.transition*y_persp + (1.0 - self.transition)*y_fish
 
         r2 = x_dual * x_dual + y_dual * y_dual
         distortion = 1.0 + r2 * (self.k1 + self.k2 * r2)
@@ -569,26 +569,29 @@ class DualCamera(Camera):
 
         point = np.asarray(pixel).reshape((1, 1, 2))
         distortion = np.array([self.k1, self.k2, 0., 0.])
-        if self.transition >= 0.5:
-            x, y = cv2.undistortPoints(point, self.get_K(), distortion).flat
-        else:
-            x, y = cv2.fisheye.undistortPoints(point, self.get_K(), distortion).flat
-        l = np.sqrt(x * x + y * y + 1.0)
-        return np.array([x / l, y / l, 1.0 / l])
+
+        x_persp, y_persp = cv2.undistortPoints(point, self.get_K(), distortion).flat
+        x_fish, y_fish = cv2.fisheye.undistortPoints(point, self.get_K(), distortion).flat
+
+        x_dual = self.transition*x_persp + (1.0 - self.transition)*x_fish
+        y_dual = self.transition*y_persp + (1.0 - self.transition)*y_fish
+
+        l = np.sqrt(x_dual * x_dual + y_dual * y_dual + 1.0)
+        return np.array([x_dual / l, y_dual / l, 1.0 / l])
 
     def pixel_bearing_many(self, pixels):
         """Unit vector pointing to the pixel viewing directions."""
         points = pixels.reshape((-1, 1, 2)).astype(np.float64)
         distortion = np.array([self.k1, self.k2, 0., 0.])
-        if self.transition >= 0.5:
-            up = cv2.undistortPoints(points, self.get_K(), distortion)
-        else:
-            up = cv2.fisheye.undistortPoints(points, self.get_K(), distortion)
-        up = up.reshape((-1, 2))
-        x = up[:, 0]
-        y = up[:, 1]
-        l = np.sqrt(x * x + y * y + 1.0)
-        return np.column_stack((x / l, y / l, 1.0 / l))
+
+        up_persp = cv2.undistortPoints(points, self.get_K(), distortion)
+        up_fish = cv2.fisheye.undistortPoints(points, self.get_K(), distortion)
+        up_persp = up_persp.reshape((-1, 2))
+        up_fish = up_fish.reshape((-1, 2))
+        x_dual = self.transition*up_persp[:, 0] + (1.0 - self.transition)*up_fish[:, 0]
+        y_dual = self.transition*up_persp[:, 1] + (1.0 - self.transition)*up_fish[:, 1]
+        l = np.sqrt(x_dual * x_dual + y_dual * y_dual + 1.0)
+        return np.column_stack((x_dual / l, y_dual / l, 1.0 / l))
 
     def pixel_bearings(self, pixels):
         """Deprecated: use pixel_bearing_many."""
