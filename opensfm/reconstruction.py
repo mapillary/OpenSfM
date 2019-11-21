@@ -451,9 +451,9 @@ def pairwise_reconstructability(common_tracks, rotation_inliers):
         return 0
 
 
-def compute_image_pairs(track_dict, data):
+def compute_image_pairs(track_dict, cameras, data):
     """All matched image pairs sorted by reconstructability."""
-    args = _pair_reconstructability_arguments(track_dict, data)
+    args = _pair_reconstructability_arguments(track_dict, cameras, data)
     processes = data.config['processes']
     result = parallel_map(_compute_pair_reconstructability, args, processes)
     result = list(result)
@@ -463,9 +463,8 @@ def compute_image_pairs(track_dict, data):
     return [pairs[o] for o in order]
 
 
-def _pair_reconstructability_arguments(track_dict, data):
+def _pair_reconstructability_arguments(track_dict, cameras, data):
     threshold = 4 * data.config['five_point_algo_threshold']
-    cameras = data.load_camera_models()
     args = []
     for (im1, im2), (tracks, p1, p2) in iteritems(track_dict):
         camera1 = cameras[data.load_exif(im1)['camera']]
@@ -1373,7 +1372,7 @@ def incremental_reconstruction(data, graph):
     gcp = data.load_ground_control_points()
     common_tracks = tracking.all_common_tracks(graph, tracks)
     reconstructions = []
-    pairs = compute_image_pairs(common_tracks, data)
+    pairs = compute_image_pairs(common_tracks, camera_priors, data)
     chrono.lap('compute_image_pairs')
     report['num_candidate_image_pairs'] = len(pairs)
     report['reconstructions'] = []
