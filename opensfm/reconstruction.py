@@ -728,6 +728,10 @@ def bootstrap_reconstruction(data, graph, im1, im2, p1, p2):
 
     bundle_single_view(graph_inliers, reconstruction, im2, data.config)
     retriangulate(graph, graph_inliers, reconstruction, data.config)
+    if len(reconstruction.points) < min_inliers:
+        report['decision'] = "Re-triangulation after initial motion did not generate enough points"
+        logger.info(report['decision'])
+        return None, None, report
     bundle_single_view(graph_inliers, reconstruction, im2, data.config)
 
     report['decision'] = 'Success'
