@@ -190,9 +190,6 @@ class PerspectiveCamera(Camera):
         focal (real): estimated focal lenght.
         k1 (real): estimated first distortion parameter.
         k2 (real): estimated second distortion parameter.
-        focal_prior (real): prior focal lenght.
-        k1_prior (real): prior first distortion parameter.
-        k2_prior (real): prior second distortion parameter.
     """
 
     def __init__(self):
@@ -204,16 +201,12 @@ class PerspectiveCamera(Camera):
         self.focal = None
         self.k1 = None
         self.k2 = None
-        self.focal_prior = None
-        self.k1_prior = None
-        self.k2_prior = None
 
     def __repr__(self):
-        return '{}({!r}, {!r}, {!r}, {!r}, {!r}, {!r}, {!r}, {!r}, {!r}, {!r})'.format(
+        return '{}({!r}, {!r}, {!r}, {!r}, {!r}, {!r}, {!r})'.format(
             self.__class__.__name__,
             self.id, self.projection_type, self.width, self.height,
-            self.focal, self.k1, self.k2,
-            self.focal_prior, self.k1_prior, self.k2_prior)
+            self.focal, self.k1, self.k2)
 
     def project(self, point):
         """Project a 3D point in camera coordinates to the image plane."""
@@ -308,15 +301,6 @@ class BrownPerspectiveCamera(Camera):
         p1 (real): estimated first tangential distortion parameter.
         p2 (real): estimated second tangential distortion parameter.
         k3 (real): estimated third radial distortion parameter.
-        focal_x_prior (real): prior focal length for the X axis.
-        focal_y_prior (real): prior focal length for the Y axis.
-        c_x_prior (real): prior principal point X.
-        c_y_prior (real): prior principal point Y.
-        k1_prior (real): prior first radial distortion parameter.
-        k2_prior (real): prior second radial distortion parameter.
-        p1_prior (real): prior first tangential distortion parameter.
-        p2_prior (real): prior second tangential distortion parameter.
-        k3_prior (real): prior third radial distortion parameter.
     """
 
     def __init__(self):
@@ -334,15 +318,6 @@ class BrownPerspectiveCamera(Camera):
         self.p1 = None
         self.p2 = None
         self.k3 = None
-        self.focal_x_prior = None
-        self.focal_y_prior = None
-        self.c_x_prior = None
-        self.c_y_prior = None
-        self.k1_prior = None
-        self.k2_prior = None
-        self.p1_prior = None
-        self.p2_prior = None
-        self.k3_prior = None
 
     def __repr__(self):
         return '{}({})'.format(self.__class__.__name__, self.__dict__)
@@ -441,9 +416,6 @@ class FisheyeCamera(Camera):
         focal (real): estimated focal lenght.
         k1 (real): estimated first distortion parameter.
         k2 (real): estimated second distortion parameter.
-        focal_prior (real): prior focal lenght.
-        k1_prior (real): prior first distortion parameter.
-        k2_prior (real): prior second distortion parameter.
     """
 
     def __init__(self):
@@ -455,9 +427,6 @@ class FisheyeCamera(Camera):
         self.focal = None
         self.k1 = None
         self.k2 = None
-        self.focal_prior = None
-        self.k1_prior = None
-        self.k2_prior = None
 
     def project(self, point):
         """Project a 3D point in camera coordinates to the image plane."""

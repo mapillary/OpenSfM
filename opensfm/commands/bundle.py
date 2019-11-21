@@ -25,10 +25,11 @@ class Command:
         data = dataset.DataSet(args.dataset)
         graph = data.load_tracks_graph()
         reconstructions = data.load_reconstruction(args.input)
+        camera_priors = data.load_camera_models()
         gcp = data.load_ground_control_points()
 
         for reconstruction in reconstructions:
-            orec.bundle(graph, reconstruction, gcp, data.config)
+            orec.bundle(graph, reconstruction, camera_priors, gcp, data.config)
 
         end = time.time()
         with open(data.profile_log(), 'a') as fout:

@@ -57,9 +57,6 @@ The main output of OpenSfM is a reconstruction that contains the estimated camer
         "focal": NUMBER,                   # Estimated focal length
         "k1": NUMBER,                      # Estimated distortion coefficient
         "k2": NUMBER,                      # Estimated distortion coefficient
-        "focal_prior": NUMBER,             # Initial focal length
-        "k1_prior": NUMBER,                # Initial distortion coefficient
-        "k2_prior": NUMBER                 # Initial distortion coefficient
     }
 
     SHOT: {
