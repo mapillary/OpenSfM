@@ -431,19 +431,7 @@ class DataSet(object):
         return os.path.join(self._exif_path(), image + '.exif')
 
     def load_exif(self, image):
-        """
-        Return extracted exif information, as dictionary, usually with fields:
-
-        ================  =====  ===================================
-        Field             Type   Description
-        ================  =====  ===================================
-        width             int    Width of image, in pixels
-        height            int    Height of image, in pixels
-        focal_prior       float  Focal length (real) / sensor width
-        ================  =====  ===================================
-
-        :param image: Image name, with extension (i.e. 123.jpg)
-        """
+        """Load pre-extracted image exif metadata."""
         with io.open_rt(self._exif_file(image)) as fin:
             return json.load(fin)
 

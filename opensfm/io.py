@@ -38,9 +38,6 @@ def camera_from_json(key, obj):
         camera.focal = obj['focal']
         camera.k1 = obj.get('k1', 0.0)
         camera.k2 = obj.get('k2', 0.0)
-        camera.focal_prior = obj.get('focal_prior', camera.focal)
-        camera.k1_prior = obj.get('k1_prior', camera.k1)
-        camera.k2_prior = obj.get('k2_prior', camera.k2)
         return camera
     if pt == 'brown':
         camera = types.BrownPerspectiveCamera()
@@ -56,15 +53,6 @@ def camera_from_json(key, obj):
         camera.p1 = obj.get('p1', 0.0)
         camera.p2 = obj.get('p2', 0.0)
         camera.k3 = obj.get('k3', 0.0)
-        camera.focal_x_prior = obj.get('focal_x_prior', camera.focal_x)
-        camera.focal_y_prior = obj.get('focal_y_prior', camera.focal_y)
-        camera.c_x_prior = obj.get('c_x_prior', camera.c_x)
-        camera.c_y_prior = obj.get('c_y_prior', camera.c_y)
-        camera.k1_prior = obj.get('k1_prior', camera.k1)
-        camera.k2_prior = obj.get('k2_prior', camera.k2)
-        camera.p1_prior = obj.get('p1_prior', camera.k1)
-        camera.p2_prior = obj.get('p2_prior', camera.k2)
-        camera.k3_prior = obj.get('k3_prior', camera.k1)
         return camera
     elif pt == 'fisheye':
         camera = types.FisheyeCamera()
@@ -74,9 +62,6 @@ def camera_from_json(key, obj):
         camera.focal = obj['focal']
         camera.k1 = obj.get('k1', 0.0)
         camera.k2 = obj.get('k2', 0.0)
-        camera.focal_prior = obj.get('focal_prior', camera.focal)
-        camera.k1_prior = obj.get('k1_prior', camera.k1)
-        camera.k2_prior = obj.get('k2_prior', camera.k2)
         return camera
     elif pt in ['equirectangular', 'spherical']:
         camera = types.SphericalCamera()
@@ -208,9 +193,6 @@ def camera_to_json(camera):
             'focal': camera.focal,
             'k1': camera.k1,
             'k2': camera.k2,
-            'focal_prior': camera.focal_prior,
-            'k1_prior': camera.k1_prior,
-            'k2_prior': camera.k2_prior
         }
     elif camera.projection_type == 'brown':
         return {
@@ -226,15 +208,6 @@ def camera_to_json(camera):
             'p1': camera.p1,
             'p2': camera.p2,
             'k3': camera.k3,
-            'focal_x_prior': camera.focal_x_prior,
-            'focal_y_prior': camera.focal_y_prior,
-            'c_x_prior': camera.c_x_prior,
-            'c_y_prior': camera.c_y_prior,
-            'k1_prior': camera.k1_prior,
-            'k2_prior': camera.k2_prior,
-            'p1_prior': camera.p1_prior,
-            'p2_prior': camera.p2_prior,
-            'k3_prior': camera.k3_prior
         }
     elif camera.projection_type == 'fisheye':
         return {
@@ -244,9 +217,6 @@ def camera_to_json(camera):
             'focal': camera.focal,
             'k1': camera.k1,
             'k2': camera.k2,
-            'focal_prior': camera.focal_prior,
-            'k1_prior': camera.k1_prior,
-            'k2_prior': camera.k2_prior
         }
     elif camera.projection_type in ['equirectangular', 'spherical']:
         return {
