@@ -55,9 +55,15 @@ def align_reconstruction_similarity(reconstruction, gcp, config):
     if align_method == 'auto':
         align_method = detect_alignment_constraints(config, reconstruction, gcp)
     if align_method == 'orientation_prior':
-        return align_reconstruction_orientation_prior_similarity(reconstruction, config, gcp)
+        res = align_reconstruction_orientation_prior_similarity(reconstruction, config, gcp)
     elif align_method == 'naive':
-        return align_reconstruction_naive_similarity(config, reconstruction, gcp)
+        res = align_reconstruction_naive_similarity(config, reconstruction, gcp)
+
+    s, A, b = res
+    if (s == 0) or np.isnan(A).any() or np.isnan(b).any():
+        logger.warning('Computation of alignment similarity (%s) is degenerate.' % align_method)
+        return None
+    return res
 
 
 def alignment_constraints(config, reconstruction, gcp):
