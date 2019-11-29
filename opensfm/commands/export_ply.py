@@ -38,14 +38,15 @@ class Command:
             data.save_ply(reconstructions[0], None, no_cameras, no_points)
 
         if args.depthmaps and reconstructions:
+            udata = dataset.UndistortedDataSet(data, 'undistorted')
             for id, shot in reconstructions[0].shots.items():
-                rgb = data.load_undistorted_image(id)
+                rgb = udata.load_undistorted_image(id)
                 for t in ('clean', 'raw'):
-                    path_depth = data._depthmap_file(id, t + '.npz')
+                    path_depth = udata._depthmap_file(id, t + '.npz')
                     if not os.path.exists(path_depth):
                         continue
                     depth = np.load(path_depth)['depth']
                     rgb = scale_down_image(rgb, depth.shape[1], depth.shape[0])
                     ply = depthmap_to_ply(shot, depth, rgb)
-                    with io.open_wt(data._depthmap_file(id, t + '.ply')) as fout:
+                    with io.open_wt(udata._depthmap_file(id, t + '.ply')) as fout:
                         fout.write(ply)
