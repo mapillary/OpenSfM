@@ -601,15 +601,32 @@ class DualCamera(Camera):
         """Unit vector pointing to the pixel viewing directions."""
         points = pixels.reshape((-1, 1, 2)).astype(np.float64)
         distortion = np.array([self.k1, self.k2, 0., 0.])
+        no_K = np.array([[1., 0., 0.],
+                         [0., 1., 0.],
+                         [0., 0., 1.]])
 
-        up_persp = cv2.undistortPoints(points, self.get_K(), distortion)
-        up_fish = cv2.fisheye.undistortPoints(points, self.get_K(), distortion)
-        up_persp = up_persp.reshape((-1, 2))
-        up_fish = up_fish.reshape((-1, 2))
-        x_dual = self.transition*up_persp[:, 0] + (1.0 - self.transition)*up_fish[:, 0]
-        y_dual = self.transition*up_persp[:, 1] + (1.0 - self.transition)*up_fish[:, 1]
+        undistorted = cv2.undistortPoints(points, no_K, distortion)
+        undistorted = undistorted.reshape((-1, 2))
+        r = np.sqrt(undistorted[:, 0]**2 + undistorted[:, 0]**2)
+
+        # inverse iteration for finding theta from r
+        theta_fish = r
+        theta_persp = np.arctan2(r, 1.0)
+        theta_0 = self.transition*theta_persp + (1.0 - self.transition)*theta_fish
+        r_0 = self.transition*np.tan(theta_0) + (1.0 - self.transition)*theta_0
+
+        for i in range(3):
+            secant = 1.0/np.cos(theta_0)
+            d_theta = (self.transition*secant**2 - self.transition + 1)
+            theta_0 = (r - r_0)/d_theta + theta_0
+            r_0 = self.transition*np.tan(theta_0) + (1.0 - self.transition)*theta_0
+
+        s = np.tan(theta_0)/(self.transition*np.tan(theta_0) + (1.0 - self.transition)*theta_0)
+        x_dual = undistorted[:, 0]*s
+        y_dual = undistorted[:, 1]*s
+
         l = np.sqrt(x_dual * x_dual + y_dual * y_dual + 1.0)
-        return np.column_stack((x_dual / l, y_dual / l, 1.0 / l))
+        return np.column_stack([x_dual / l, y_dual / l, 1.0 / l])
 
     def pixel_bearings(self, pixels):
         """Deprecated: use pixel_bearing_many."""
