@@ -2,6 +2,7 @@
 
 import numpy as np
 import cv2
+import math
 
 
 class Pose(object):
@@ -569,12 +570,18 @@ class DualCamera(Camera):
 
         point = np.asarray(pixel).reshape((1, 1, 2))
         distortion = np.array([self.k1, self.k2, 0., 0.])
+        no_K = np.array([[1., 0., 0.],
+                         [0., 1., 0.],
+                         [0., 0., 1.]])
 
-        x_persp, y_persp = cv2.undistortPoints(point, self.get_K(), distortion).flat
-        x_fish, y_fish = cv2.fisheye.undistortPoints(point, self.get_K(), distortion).flat
+        point /= self.focal
+        x_u, y_u = cv2.undistortPoints(point, no_K, distortion).flat
 
-        x_dual = self.transition*x_persp + (1.0 - self.transition)*x_fish
-        y_dual = self.transition*y_persp + (1.0 - self.transition)*y_fish
+        theta = np.sqrt(x_u**2 + y_u**2)
+        s = math.tan(theta)/(self.transition*math.tan(theta) + (1.0 - self.transition)*theta)
+
+        x_dual = x_u*s
+        y_dual = y_u*s
 
         l = np.sqrt(x_dual * x_dual + y_dual * y_dual + 1.0)
         return np.array([x_dual / l, y_dual / l, 1.0 / l])
