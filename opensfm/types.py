@@ -607,7 +607,7 @@ class DualCamera(Camera):
 
         undistorted = cv2.undistortPoints(points, no_K, distortion)
         undistorted = undistorted.reshape((-1, 2))
-        r = np.sqrt(undistorted[:, 0]**2 + undistorted[:, 0]**2)
+        r = np.sqrt(undistorted[:, 0]**2 + undistorted[:, 1]**2)
 
         # inverse iteration for finding theta from r
         theta_fish = r
