@@ -225,7 +225,7 @@ def _get_dual_camera():
     camera = types.DualCamera()
     camera.width = 800
     camera.height = 600
-    camera.focal = 0.6
+    camera.focal = 0.3
     camera.k1 = -0.1
     camera.k2 = 0.01
     camera.transition = 0.5
