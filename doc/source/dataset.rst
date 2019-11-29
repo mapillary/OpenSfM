@@ -12,16 +12,19 @@ Dataset Structure
    ├── masks/
    ├── gcp_list.txt
    ├── exif/
+   ├── camera_models.json
    ├── features/
    ├── matches/
    ├── tracks.csv
    ├── reconstruction.json
    ├── reconstruction.meshed.json
-   ├── undistorted/
-   ├── undistorted_tracks.json
-   ├── undistorted_reconstruction.json
-   └── depthmaps/
-       └── merged.ply
+   └── undistorted/
+       ├── images/
+       ├── masks/
+       ├── tracks.csv
+       ├── reconstruction.json
+       └── depthmaps/
+           └── merged.ply
 
 
 

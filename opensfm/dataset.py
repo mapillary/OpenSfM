@@ -46,7 +46,7 @@ class DataSet(object):
         self.config = config.load_config(config_file)
 
     def _load_image_list(self):
-        """Load image list from image_list.txt or list image/ folder."""
+        """Load image list from image_list.txt or list images/ folder."""
         image_list_file = os.path.join(self.data_path, 'image_list.txt')
         if os.path.isfile(image_list_file):
             with io.open_rt(image_list_file) as fin:
@@ -79,8 +79,11 @@ class DataSet(object):
         """Height and width of the image."""
         return io.image_size(self._image_file(image))
 
-    def _undistorted_image_path(self):
+    def _undistorted_path(self):
         return os.path.join(self.data_path, 'undistorted')
+
+    def _undistorted_image_path(self):
+        return os.path.join(self.data_path, 'undistorted/images')
 
     def _undistorted_image_file(self, image):
         """Path of undistorted version of an image."""
@@ -156,7 +159,7 @@ class DataSet(object):
         return np.array(mask, dtype=bool)
 
     def _undistorted_mask_path(self):
-        return os.path.join(self.data_path, 'undistorted_masks')
+        return os.path.join(self.data_path, 'undistorted/masks')
 
     def _undistorted_mask_file(self, image):
         """Path of undistorted version of a mask."""
@@ -191,7 +194,7 @@ class DataSet(object):
         return detection
 
     def _undistorted_detection_path(self):
-        return os.path.join(self.data_path, 'undistorted_detections')
+        return os.path.join(self.data_path, 'undistorted/detections')
 
     def _undistorted_detection_file(self, image):
         """Path of undistorted version of a detection."""
@@ -228,7 +231,7 @@ class DataSet(object):
         return segmentation
 
     def _undistorted_segmentation_path(self):
-        return os.path.join(self.data_path, 'undistorted_segmentations')
+        return os.path.join(self._undistorted_path(), 'segmentations')
 
     def _undistorted_segmentation_file(self, image):
         """Path of undistorted version of a segmentation."""
@@ -332,7 +335,7 @@ class DataSet(object):
                 return mask & smask
 
     def _depthmap_path(self):
-        return os.path.join(self.data_path, 'depthmaps')
+        return os.path.join(self._undistorted_path(), 'depthmaps')
 
     def _depthmap_file(self, image, suffix):
         """Path to the depthmap file"""
@@ -547,10 +550,10 @@ class DataSet(object):
             tracking.save_tracks_graph(fout, graph)
 
     def load_undistorted_tracks_graph(self):
-        return self.load_tracks_graph('undistorted_tracks.csv')
+        return self.load_tracks_graph('undistorted/tracks.csv')
 
     def save_undistorted_tracks_graph(self, graph):
-        return self.save_tracks_graph(graph, 'undistorted_tracks.csv')
+        return self.save_tracks_graph(graph, 'undistorted/tracks.csv')
 
     def _reconstruction_file(self, filename):
         """Return path of reconstruction file"""
@@ -570,11 +573,12 @@ class DataSet(object):
 
     def load_undistorted_reconstruction(self):
         return self.load_reconstruction(
-            filename='undistorted_reconstruction.json')
+            filename='undistorted/reconstruction.json')
 
     def save_undistorted_reconstruction(self, reconstruction):
+        io.mkdir_p(self._undistorted_path())
         return self.save_reconstruction(
-            reconstruction, filename='undistorted_reconstruction.json')
+            reconstruction, filename='undistorted/reconstruction.json')
 
     def _reference_lla_path(self):
         return os.path.join(self.data_path, 'reference_lla.json')
