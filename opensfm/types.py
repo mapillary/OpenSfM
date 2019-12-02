@@ -582,13 +582,11 @@ class DualCamera(Camera):
         theta_fish = r
         theta_persp = np.arctan2(r, 1.0)
         theta_0 = self.transition*theta_persp + (1.0 - self.transition)*theta_fish
-        r_0 = self.transition*math.tan(theta_0) + (1.0 - self.transition)*theta_0
-
         for i in range(3):
+            r_0 = self.transition*math.tan(theta_0) + (1.0 - self.transition)*theta_0
             secant = 1.0/math.cos(theta_0)
             d_theta = (self.transition*secant**2 - self.transition + 1)
             theta_0 = (r - r_0)/d_theta + theta_0
-            r_0 = self.transition*math.tan(theta_0) + (1.0 - self.transition)*theta_0
 
         s = math.tan(theta_0)/(self.transition*math.tan(theta_0) + (1.0 - self.transition)*theta_0)
         x_dual = x_u*s
@@ -613,13 +611,11 @@ class DualCamera(Camera):
         theta_fish = r
         theta_persp = np.arctan2(r, 1.0)
         theta_0 = self.transition*theta_persp + (1.0 - self.transition)*theta_fish
-        r_0 = self.transition*np.tan(theta_0) + (1.0 - self.transition)*theta_0
-
         for i in range(3):
+            r_0 = self.transition*np.tan(theta_0) + (1.0 - self.transition)*theta_0
             secant = 1.0/np.cos(theta_0)
             d_theta = (self.transition*secant**2 - self.transition + 1)
             theta_0 = (r - r_0)/d_theta + theta_0
-            r_0 = self.transition*np.tan(theta_0) + (1.0 - self.transition)*theta_0
 
         s = np.tan(theta_0)/(self.transition*np.tan(theta_0) + (1.0 - self.transition)*theta_0)
         x_dual = undistorted[:, 0]*s
