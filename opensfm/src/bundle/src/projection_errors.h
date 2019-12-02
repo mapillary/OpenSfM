@@ -168,10 +168,10 @@ void FisheyeProject(const T* const camera,
 
 template <typename T>
 void DualProject(const T* const camera, const T point[3], T projection[2]) {
-  const T& focal = camera[BA_CAMERA_FOCAL];
-  const T& transition = camera[BA_CAMERA_TRANSITION];
-  const T& k1 = camera[BA_CAMERA_K1];
-  const T& k2 = camera[BA_CAMERA_K2];
+  const T& focal = camera[BA_DUAL_CAMERA_FOCAL];
+  const T& transition = camera[BA_DUAL_CAMERA_TRANSITION];
+  const T& k1 = camera[BA_DUAL_CAMERA_K1];
+  const T& k2 = camera[BA_DUAL_CAMERA_K2];
   const T& x = point[0];
   const T& y = point[1];
   const T& z = point[2];

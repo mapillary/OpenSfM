@@ -50,8 +50,15 @@ enum {
   BA_CAMERA_FOCAL,
   BA_CAMERA_K1,
   BA_CAMERA_K2,
-  BA_CAMERA_TRANSITION,
   BA_CAMERA_NUM_PARAMS
+};
+
+enum {
+  BA_DUAL_CAMERA_FOCAL,
+  BA_DUAL_CAMERA_K1,
+  BA_DUAL_CAMERA_K2,
+  BA_DUAL_CAMERA_TRANSITION,
+  BA_DUAL_CAMERA_NUM_PARAMS
 };
 
 enum {
@@ -131,20 +138,20 @@ struct BAFisheyeCamera : public BACamera{
 };
 
 struct BADualCamera : public BACamera{
-  double parameters[BA_CAMERA_NUM_PARAMS];
+  double parameters[BA_DUAL_CAMERA_NUM_PARAMS];
   double focal_prior;
   double k1_prior;
   double k2_prior;
 
   BACameraType type() { return BA_DUAL_CAMERA; }
-  double GetFocal() { return parameters[BA_CAMERA_FOCAL]; }
-  double GetK1() { return parameters[BA_CAMERA_K1]; }
-  double GetK2() { return parameters[BA_CAMERA_K2]; }
-  double GetTransition() { return parameters[BA_CAMERA_TRANSITION]; }
-  void SetFocal(double v) { parameters[BA_CAMERA_FOCAL] = v; }
-  void SetK1(double v) { parameters[BA_CAMERA_K1] = v; }
-  void SetK2(double v) { parameters[BA_CAMERA_K2] = v; }
-  void SetTransition(double t) { parameters[BA_CAMERA_TRANSITION] = t; }
+  double GetFocal() { return parameters[BA_DUAL_CAMERA_FOCAL]; }
+  double GetK1() { return parameters[BA_DUAL_CAMERA_K1]; }
+  double GetK2() { return parameters[BA_DUAL_CAMERA_K2]; }
+  double GetTransition() { return parameters[BA_DUAL_CAMERA_TRANSITION]; }
+  void SetFocal(double v) { parameters[BA_DUAL_CAMERA_FOCAL] = v; }
+  void SetK1(double v) { parameters[BA_DUAL_CAMERA_K1] = v; }
+  void SetK2(double v) { parameters[BA_DUAL_CAMERA_K2] = v; }
+  void SetTransition(double t) { parameters[BA_DUAL_CAMERA_TRANSITION] = t; }
 };
 
 struct BAEquirectangularCamera : public BACamera {
