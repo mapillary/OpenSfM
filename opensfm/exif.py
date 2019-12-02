@@ -482,9 +482,6 @@ def camera_from_exif_metadata(metadata, data):
         camera.focal = calib['focal']
         camera.k1 = calib['k1']
         camera.k2 = calib['k2']
-        camera.focal_prior = calib['focal']
-        camera.k1_prior = calib['k1']
-        camera.k2_prior = calib['k2']
         camera.transition = calib['transition']
         return camera
     elif pt in ['equirectangular', 'spherical']:
