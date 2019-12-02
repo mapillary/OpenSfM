@@ -374,7 +374,8 @@ def vlad_histograms(images, data):
     for im in images:
         _, features, _ = feature_loader.instance.load_points_features_colors(
             data, im, masked=True)
-        vlads[im] = vlad.instance.vlad_histogram(im, features, words)
+        if features is not None:
+            vlads[im] = vlad.instance.vlad_histogram(im, features, words)
 
     return vlads
 
