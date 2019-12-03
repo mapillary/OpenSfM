@@ -2,6 +2,7 @@
 
 import numpy as np
 import cv2
+import math
 
 
 class Pose(object):
@@ -463,6 +464,162 @@ class FisheyeCamera(Camera):
         y = up[:, 1]
         l = np.sqrt(x * x + y * y + 1.0)
         return np.column_stack((x / l, y / l, 1.0 / l))
+
+    def pixel_bearings(self, pixels):
+        """Deprecated: use pixel_bearing_many."""
+        return self.pixel_bearing_many(pixels)
+
+    def back_project(self, pixel, depth):
+        """Project a pixel to a fronto-parallel plane at a given depth."""
+        bearing = self.pixel_bearing(pixel)
+        scale = depth / bearing[2]
+        return scale * bearing
+
+    def back_project_many(self, pixels, depths):
+        """Project pixels to fronto-parallel planes at given depths."""
+        bearings = self.pixel_bearing_many(pixels)
+        scales = depths / bearings[:, 2]
+        return scales[:, np.newaxis] * bearings
+
+    def get_K(self):
+        """The calibration matrix."""
+        return np.array([[self.focal, 0., 0.],
+                         [0., self.focal, 0.],
+                         [0., 0., 1.]])
+
+    def get_K_in_pixel_coordinates(self, width=None, height=None):
+        """The calibration matrix that maps to pixel coordinates.
+
+        Coordinates (0,0) correspond to the center of the top-left pixel,
+        and (width - 1, height - 1) to the center of bottom-right pixel.
+
+        You can optionally pass the width and height of the image, in case
+        you are using a resized version of the original image.
+        """
+        w = width or self.width
+        h = height or self.height
+        f = self.focal * max(w, h)
+        return np.array([[f, 0, 0.5 * (w - 1)],
+                         [0, f, 0.5 * (h - 1)],
+                         [0, 0, 1.0]])
+
+
+class DualCamera(Camera):
+    """Define a camera that seamlessly transition
+        between fisheye and perspective camera.
+
+    Attributes:
+        width (int): image width.
+        height (int): image height.
+        focal (real): estimated focal lenght.
+        k1 (real): estimated first distortion parameter.
+        k2 (real): estimated second distortion parameter.
+        focal_prior (real): prior focal lenght.
+        k1_prior (real): prior first distortion parameter.
+        k2_prior (real): prior second distortion parameter.
+        transition (real): parametrize between perpective (1.0) and fisheye (0.0)
+    """
+    def __init__(self, projection_type='unknown'):
+        """Defaut constructor."""
+        self.id = None
+        self.projection_type = 'dual'
+        self.width = None
+        self.height = None
+        self.focal = None
+        self.k1 = None
+        self.k2 = None
+        if projection_type == 'perspective':
+            self.transition = 1.0
+        elif projection_type == 'fisheye':
+            self.transition = 0.0
+        else:
+            self.transition = 0.5
+
+    def project(self, point):
+        """Project a 3D point in camera coordinates to the image plane."""
+        x, y, z = point
+        l = np.sqrt(x**2 + y**2)
+        theta = np.arctan2(l, z)
+        x_fish = theta / l * x
+        y_fish = theta / l * y
+
+        x_persp = point[0] / point[2]
+        y_persp = point[1] / point[2]
+
+        x_dual = self.transition*x_persp + (1.0 - self.transition)*x_fish
+        y_dual = self.transition*y_persp + (1.0 - self.transition)*y_fish
+
+        r2 = x_dual * x_dual + y_dual * y_dual
+        distortion = 1.0 + r2 * (self.k1 + self.k2 * r2)
+
+        return np.array([self.focal * distortion * x_dual,
+                         self.focal * distortion * y_dual])
+
+    def project_many(self, points):
+        """Project 3D points in camera coordinates to the image plane."""
+        projected = []
+        for point in points:
+            projected.append(self.project(point))
+        return np.array(projected)
+
+    def pixel_bearing(self, pixel):
+        """Unit vector pointing to the pixel viewing direction."""
+
+        point = np.asarray(pixel).reshape((1, 1, 2))
+        distortion = np.array([self.k1, self.k2, 0., 0.])
+        no_K = np.array([[1., 0., 0.],
+                         [0., 1., 0.],
+                         [0., 0., 1.]])
+
+        point /= self.focal
+        x_u, y_u = cv2.undistortPoints(point, no_K, distortion).flat
+        r = np.sqrt(x_u**2 + y_u**2)
+
+        # inverse iteration for finding theta from r
+        theta_fish = r
+        theta_persp = np.arctan2(r, 1.0)
+        theta_0 = self.transition*theta_persp + (1.0 - self.transition)*theta_fish
+        for i in range(3):
+            r_0 = self.transition*math.tan(theta_0) + (1.0 - self.transition)*theta_0
+            secant = 1.0/math.cos(theta_0)
+            d_theta = (self.transition*secant**2 - self.transition + 1)
+            theta_0 = (r - r_0)/d_theta + theta_0
+
+        s = math.tan(theta_0)/(self.transition*math.tan(theta_0) + (1.0 - self.transition)*theta_0)
+        x_dual = x_u*s
+        y_dual = y_u*s
+
+        l = np.sqrt(x_dual * x_dual + y_dual * y_dual + 1.0)
+        return np.array([x_dual / l, y_dual / l, 1.0 / l])
+
+    def pixel_bearing_many(self, pixels):
+        """Unit vector pointing to the pixel viewing directions."""
+        points = pixels.reshape((-1, 1, 2)).astype(np.float64)
+        distortion = np.array([self.k1, self.k2, 0., 0.])
+        no_K = np.array([[1., 0., 0.],
+                         [0., 1., 0.],
+                         [0., 0., 1.]])
+
+        undistorted = cv2.undistortPoints(points, no_K, distortion)
+        undistorted = undistorted.reshape((-1, 2))
+        r = np.sqrt(undistorted[:, 0]**2 + undistorted[:, 1]**2)
+
+        # inverse iteration for finding theta from r
+        theta_fish = r
+        theta_persp = np.arctan2(r, 1.0)
+        theta_0 = self.transition*theta_persp + (1.0 - self.transition)*theta_fish
+        for i in range(3):
+            r_0 = self.transition*np.tan(theta_0) + (1.0 - self.transition)*theta_0
+            secant = 1.0/np.cos(theta_0)
+            d_theta = (self.transition*secant**2 - self.transition + 1)
+            theta_0 = (r - r_0)/d_theta + theta_0
+
+        s = np.tan(theta_0)/(self.transition*np.tan(theta_0) + (1.0 - self.transition)*theta_0)
+        x_dual = undistorted[:, 0]*s
+        y_dual = undistorted[:, 1]*s
+
+        l = np.sqrt(x_dual * x_dual + y_dual * y_dual + 1.0)
+        return np.column_stack([x_dual / l, y_dual / l, 1.0 / l])
 
     def pixel_bearings(self, pixels):
         """Deprecated: use pixel_bearing_many."""

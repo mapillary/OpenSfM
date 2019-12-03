@@ -64,6 +64,11 @@ def _add_camera_to_bundle(ba, camera, camera_prior, constant):
             camera.id, camera.focal, camera.k1, camera.k2,
             camera_prior.focal, camera_prior.k1, camera_prior.k2,
             constant)
+    elif camera.projection_type == 'dual':
+        ba.add_dual_camera(
+            camera.id, camera.focal, camera.k1, camera.k2,
+            camera_prior.focal, camera_prior.k1, camera_prior.k2,
+            camera.transition, constant)     
     elif camera.projection_type in ['equirectangular', 'spherical']:
         ba.add_equirectangular_camera(camera.id)
 
@@ -91,6 +96,12 @@ def _get_camera_from_bundle(ba, camera):
         camera.focal = c.focal
         camera.k1 = c.k1
         camera.k2 = c.k2
+    elif camera.projection_type == 'dual':
+        c = ba.get_dual_camera(camera.id)
+        camera.focal = c.focal
+        camera.k1 = c.k1
+        camera.k2 = c.k2
+        camera.transition = c.transition
 
 
 def triangulate_gcp(point, shots):

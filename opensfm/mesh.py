@@ -20,6 +20,8 @@ def triangle_mesh(shot_id, r, graph, data):
         return triangle_mesh_perspective(shot_id, r, graph)
     elif shot.camera.projection_type == 'fisheye':
         return triangle_mesh_fisheye(shot_id, r, graph)
+    elif shot.camera.projection_type == 'dual':
+        return triangle_mesh_fisheye(shot_id, r, graph)
     elif shot.camera.projection_type in ['equirectangular', 'spherical']:
         return triangle_mesh_equirectangular(shot_id, r, graph)
     else:

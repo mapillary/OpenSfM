@@ -108,6 +108,17 @@ def test_fisheye_camera_projection():
     assert np.allclose(pixel, projected)
 
 
+def test_dual_camera_projection():
+    """Test dual projection--backprojection loop."""
+    if not context.OPENCV3:
+        return
+    camera = _get_dual_camera()
+    pixel = [0.1, 0.2]
+    bearing = camera.pixel_bearing(pixel)
+    projected = camera.project(bearing)
+    assert np.allclose(pixel, projected)
+
+
 def test_spherical_camera_projection():
     """Test spherical projection--backprojection loop."""
     camera = _get_spherical_camera()
@@ -207,6 +218,17 @@ def _get_fisheye_camera():
     camera.focal = 0.6
     camera.k1 = -0.1
     camera.k2 = 0.01
+    return camera
+
+
+def _get_dual_camera():
+    camera = types.DualCamera()
+    camera.width = 800
+    camera.height = 600
+    camera.focal = 0.3
+    camera.k1 = -0.1
+    camera.k2 = 0.01
+    camera.transition = 0.5
     return camera
 
 
