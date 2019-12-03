@@ -67,8 +67,8 @@ def _add_camera_to_bundle(ba, camera, camera_prior, constant):
     elif camera.projection_type == 'dual':
         ba.add_dual_camera(
             camera.id, camera.focal, camera.k1, camera.k2,
-            camera_prior.focal_prior, camera_prior.k1_prior, camera_prior.k2_prior,
-            camera.transition, constant)        
+            camera_prior.focal, camera_prior.k1, camera_prior.k2,
+            camera.transition, constant)     
     elif camera.projection_type in ['equirectangular', 'spherical']:
         ba.add_equirectangular_camera(camera.id)
 

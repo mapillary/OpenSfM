@@ -528,9 +528,6 @@ class DualCamera(Camera):
         self.focal = None
         self.k1 = None
         self.k2 = None
-        self.focal_prior = None
-        self.k1_prior = None
-        self.k2_prior = None
         if projection_type == 'perspective':
             self.transition = 1.0
         elif projection_type == 'fisheye':
