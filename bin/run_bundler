@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import os.path, sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import argparse
@@ -28,7 +28,7 @@ if __name__ == "__main__":
     images = data.images()
     for image in images:
         exif = data.load_exif(image)
-        focalpx = exif['focal_prior'] * max(exif['width'], exif['height'])
+        focalpx = exif['focal_ratio'] * max(exif['width'], exif['height'])
         abspath = os.path.abspath(data.image_file(image))
         relpath = os.path.relpath(abspath, bundler_path)
         lines.append('{0} 0 {1}'.format(relpath, focalpx))

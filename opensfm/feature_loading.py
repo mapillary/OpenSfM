@@ -36,6 +36,8 @@ class FeatureLoader(object):
         if masks is None:
             if points is None:
                 points, _ = self.load_points_colors(data, image, masked=False)
+            if points is None:
+                return None
             masks = data.load_features_mask(image, points[:, :2])
             self.masks_cache.put(image, masks)
         return masks

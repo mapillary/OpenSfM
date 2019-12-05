@@ -167,7 +167,7 @@ def match(im1, im2, camera1, camera2, data):
     p2, f2, _ = feature_loader.instance.load_points_features_colors(
         data, im2, masked=True)
 
-    if p1 is None or p2 is None:
+    if p1 is None or len(p1) < 2 or p2 is None or len(p2) < 2:
         return []
 
     config = data.config

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.0)
 
 project(opensfm C CXX)
 
@@ -52,7 +52,15 @@ include_directories(${GFLAGS_INCLUDE_DIR})
 find_package(Glog REQUIRED)
 include_directories(${GLOG_INCLUDE_DIR})
 
-find_package(OpenCV REQUIRED core imgproc calib3d)
+find_package(OpenCV)
+# OpenCV's OpenCVConfig will enforce imgcodecs for < 3.0 
+# (even if OPTIONAL_COMPONENTS) so we remove it as we don't need it
+# Cause is imread/imwrite moved to imgcodecs on > 3.0
+if(${OpenCV_VERSION} LESS 3.0)
+    find_package(OpenCV REQUIRED core imgproc calib3d)
+else()
+    find_package(OpenCV REQUIRED core imgproc calib3d OPTIONAL_COMPONENTS imgcodecs)
+endif()
 include_directories(${OpenCV_INCLUDE_DIRS})
 
 

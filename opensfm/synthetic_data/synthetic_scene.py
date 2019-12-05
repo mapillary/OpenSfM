@@ -22,9 +22,6 @@ def get_camera(type, id, focal, k1, k2):
     camera.focal = focal
     camera.k1 = k1
     camera.k2 = k2
-    camera.focal_prior = camera.focal
-    camera.k1_prior = camera.k1
-    camera.k2_prior = camera.k2
     camera.height = 1600
     camera.width = 2000
     return camera

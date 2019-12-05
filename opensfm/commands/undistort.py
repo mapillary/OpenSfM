@@ -216,8 +216,7 @@ def perspective_camera_from_perspective(distorted):
     camera.width = distorted.width
     camera.height = distorted.height
     camera.focal = distorted.focal
-    camera.focal_prior = distorted.focal_prior
-    camera.k1 = camera.k1_prior = camera.k2 = camera.k2_prior = 0.0
+    camera.k1 = camera.k2 = 0.0
     return camera
 
 
@@ -228,8 +227,7 @@ def perspective_camera_from_brown(brown):
     camera.width = brown.width
     camera.height = brown.height
     camera.focal = (brown.focal_x + brown.focal_y) / 2.0
-    camera.focal_prior = (brown.focal_x_prior + brown.focal_y_prior) / 2.0
-    camera.k1 = camera.k1_prior = camera.k2 = camera.k2_prior = 0.0
+    camera.k1 = camera.k2 = 0.0
     return camera
 
 
@@ -240,8 +238,7 @@ def perspective_camera_from_fisheye(fisheye):
     camera.width = fisheye.width
     camera.height = fisheye.height
     camera.focal = fisheye.focal
-    camera.focal_prior = fisheye.focal_prior
-    camera.k1 = camera.k1_prior = camera.k2 = camera.k2_prior = 0.0
+    camera.k1 = camera.k2 = 0.0
     return camera
 
 
@@ -252,8 +249,7 @@ def perspective_views_of_a_panorama(spherical_shot, width):
     camera.width = width
     camera.height = width
     camera.focal = 0.5
-    camera.focal_prior = camera.focal
-    camera.k1 = camera.k1_prior = camera.k2 = camera.k2_prior = 0.0
+    camera.k1 = camera.k2 = 0.0
 
     names = ['front', 'left', 'back', 'right', 'top', 'bottom']
     rotations = [
