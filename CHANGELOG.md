@@ -3,6 +3,9 @@
 
 ## [Unreleased]
 
+
+## 0.3.0
+
 ### Added
 - Matching:
   - Bag-of-words pair selection
