@@ -26,6 +26,7 @@ Dataset Structure
        └── depthmaps/
            └── merged.ply
 
+Previous versions of OpenSfM used a different folder structure where undistorted data was not grouped into a single folder.  Please, read and use ``bin/migrate_undistort.sh`` to port old datasets to the new folder structure.
 
 
 Reconstruction file format
