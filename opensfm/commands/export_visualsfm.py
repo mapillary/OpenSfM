@@ -23,6 +23,9 @@ class Command:
         parser.add_argument('--points',
                             action='store_true',
                             help='export points')
+        parser.add_argument('--image_list',
+                            type=str,
+                            help='Export only the shots included in this file (path to .txt file)')
 
     def run(self, args):
         data = dataset.DataSet(args.dataset)
@@ -33,16 +36,28 @@ class Command:
             reconstructions = data.load_reconstruction()
             graph = data.load_tracks_graph()
 
-        if reconstructions:
-            self.export(reconstructions[0], graph, data, args.points)
+        export_only = None
+        if args.image_list:
+            export_only = {}
+            with open(args.image_list, 'r') as f:
+                for image in f:
+                    export_only[image.strip()] = True
 
-    def export(self, reconstruction, graph, data, with_points):
-        lines = ['NVM_V3', '', str(len(reconstruction.shots))]
+        if reconstructions:
+            self.export(reconstructions[0], graph, data, args.points, export_only)
+
+    def export(self, reconstruction, graph, data, with_points, export_only):
+        lines = ['NVM_V3', '', len(reconstruction.shots)]
         shot_size_cache = {}
         shot_index = {}
         i = 0
+        skipped_shots = 0
 
         for shot in reconstruction.shots.values():
+            if export_only is not None and not shot.id in export_only:
+                skipped_shots += 1
+                continue
+
             q = tf.quaternion_from_matrix(shot.pose.get_rotation_matrix())
             o = shot.pose.get_origin()
 
@@ -65,10 +80,15 @@ class Command:
             ]
             lines.append(' '.join(map(str, words)))
         
+        # Adjust shots count
+        lines[2] = str(lines[2] - skipped_shots)
+        
         if with_points:
+            skipped_points = 0
             lines.append('')
             points = reconstruction.points
-            lines.append(str(len(points)))
+            lines.append(len(points))
+            points_count_index = len(lines) - 1
 
             for point_id, point in iteritems(points):
                 shots = reconstruction.shots
@@ -79,6 +99,9 @@ class Command:
                 view_line = []
 
                 for shot_key, view in iteritems(view_list):
+                    if export_only is not None and not shot_key in export_only:
+                        continue
+
                     if shot_key in shots.keys():
                         v = view['feature']
                         x = (0.5 + v[0]) * shot_size_cache[shot_key][1]
@@ -86,9 +109,15 @@ class Command:
                         view_line.append(' '.join(
                             map(str, [shot_index[shot_key], view['feature_id'], x, y])))
                 
-                lines.append(' '.join(map(str, coord)) + ' ' + 
-                             ' '.join(map(str, color)) + ' ' + 
-                             str(len(view_line)) + ' ' + ' '.join(view_line))
+                if len(view_line) > 1:
+                    lines.append(' '.join(map(str, coord)) + ' ' + 
+                                ' '.join(map(str, color)) + ' ' + 
+                                str(len(view_line)) + ' ' + ' '.join(view_line))
+                else:
+                    skipped_points += 1
+            
+            # Adjust points count
+            lines[points_count_index] = str(lines[points_count_index] - skipped_points)
         else:
             lines += ['0', '']
 
