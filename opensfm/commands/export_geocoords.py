@@ -79,8 +79,10 @@ class Command:
             data.save_reconstruction(reconstructions, output)
 
         if args.dense:
-            output = args.output or 'depthmaps/merged.geocoords.ply'
-            self._transform_dense_point_cloud(data, transformation, output)
+            output = args.output or 'undistorted/depthmaps/merged.geocoords.ply'
+            output_path = os.path.join(data.data_path, output)
+            udata = dataset.UndistortedDataSet(data, 'undistorted')
+            self._transform_dense_point_cloud(udata, transformation, output_path)
 
     def _get_transformation(self, reference, projection):
         """Get the linear transform from reconstruction coords to geocoords."""
@@ -141,11 +143,10 @@ class Command:
         for point in reconstruction.points.values():
             point.coordinates = list(np.dot(A, point.coordinates) + b)
 
-    def _transform_dense_point_cloud(self, data, transformation, output):
+    def _transform_dense_point_cloud(self, udata, transformation, output_path):
         """Apply a transformation to the merged point cloud."""
         A, b = transformation[:3, :3], transformation[:3, 3]
-        input_path = os.path.join(data._depthmap_path(), 'merged.ply')
-        output_path = os.path.join(data.data_path, output)
+        input_path = os.path.join(udata._depthmap_path(), 'merged.ply')
         with io.open_rt(input_path) as fin:
             with io.open_wt(output_path) as fout:
                 for i, line in enumerate(fin):
