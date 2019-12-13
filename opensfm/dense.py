@@ -20,7 +20,13 @@ logger = logging.getLogger(__name__)
 
 
 def compute_depthmaps(data, graph, reconstruction):
-    """Compute and refine depthmaps for all shots."""
+    """Compute and refine depthmaps for all shots.
+
+    Args:
+        data: an UndistortedDataset
+        graph: the tracks graph
+        reconstruction: the undistorted reconstruction
+    """
     logger.info('Computing neighbors')
     config = data.config
     processes = config['processes']

@@ -26,6 +26,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     data = dataset.DataSet(args.dataset)
+    udata = dataset.UndistortedDataSet(data, 'undistorted')
     if args.output:
         base_output_path = args.output
     else:
@@ -39,7 +40,7 @@ if __name__ == "__main__":
     # load tracks for vis.dat
     try:
         if args.undistorted:
-            graph = data.load_undistorted_tracks_graph()
+            graph = udata.load_undistorted_tracks_graph()
         else:
             graph = data.load_tracks_graph()
         tracks, images = tracking.tracks_and_images(graph)
@@ -49,7 +50,7 @@ if __name__ == "__main__":
         use_vis_data = False
 
     if args.undistorted:
-        reconstructions = data.load_undistorted_reconstruction()
+        reconstructions = udata.load_undistorted_reconstruction()
     else:
         reconstructions = data.load_reconstruction()
 
@@ -90,7 +91,7 @@ if __name__ == "__main__":
             # radially undistort the original image
             camera = shot.camera
             if args.undistorted:
-                undistorted_image = data.load_undistorted_image(image)
+                undistorted_image = udata.load_undistorted_image(image)
             else:
                 original_image = data.load_image(image)[:, :, ::-1]
                 original_h, original_w = original_image.shape[:2]
