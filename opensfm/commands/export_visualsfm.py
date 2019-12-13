@@ -62,8 +62,8 @@ class Command:
             i += 1
 
             if type(shot.camera) == types.BrownPerspectiveCamera:
-                # Will aproximate Brown model, not optimal
-                focal_normalized = shot.camera.focal_x
+                # Will approximate Brown model, not optimal
+                focal_normalized = (shot.camera.focal_x + shot.camera.focal_y) / 2.0
             else:
                 focal_normalized = shot.camera.focal
 
