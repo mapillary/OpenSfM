@@ -97,7 +97,7 @@ def undistort_image_and_masks(arguments):
     logger.debug('Undistorting image {}'.format(shot.id))
 
     # Undistort image
-    image = data.load_image(shot.id, anydepth=True)
+    image = data.load_image(shot.id, unchanged=True, anydepth=True)
     if image is not None:
         max_size = data.config['undistorted_image_max_size']
         undistorted = undistort_image(shot, undistorted_shots, image,
