@@ -126,7 +126,7 @@ def triangle_mesh_fisheye(shot_id, r, graph):
                 face[1] >= num_circle_points or
                 face[2] >= num_circle_points)
 
-    faces = filter(good_face, faces)
+    faces = list(filter(good_face, faces))
 
     return vertices, faces
 
