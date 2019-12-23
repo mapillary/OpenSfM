@@ -250,7 +250,8 @@ struct BARelativeMotion {
                    const std::string &reconstruction_j,
                    const std::string &shot_j,
                    const Eigen::Vector3d &rotation,
-                   const Eigen::Vector3d &translation) {
+                   const Eigen::Vector3d &translation,
+                   double robust_multiplier) {
     reconstruction_id_i = reconstruction_i;
     shot_id_i = shot_i;
     reconstruction_id_j = reconstruction_j;
@@ -260,6 +261,7 @@ struct BARelativeMotion {
     parameters.segment(BA_SHOT_TX, 3) = translation;
     scale_matrix.resize(BA_SHOT_NUM_PARAMS, BA_SHOT_NUM_PARAMS);
     scale_matrix.setIdentity();
+    this->robust_multiplier = robust_multiplier;
   }
 
   Eigen::Vector3d GetRotation() const {return parameters.segment(BA_SHOT_RX, 3);}
@@ -274,6 +276,7 @@ struct BARelativeMotion {
   std::string shot_id_j;
   Eigen::VectorXd parameters;
   Eigen::MatrixXd scale_matrix;
+  double robust_multiplier;
 };
 
 struct BARelativeSimilarity : public BARelativeMotion {
@@ -283,10 +286,11 @@ struct BARelativeSimilarity : public BARelativeMotion {
                        const std::string &shot_j,
                        const Eigen::Vector3d &rotation,
                        const Eigen::Vector3d &translation,
-                       double s)
+                       double s, double robust_multiplier)
       : BARelativeMotion(reconstruction_i, shot_i, 
                          reconstruction_j, shot_j,
-                         rotation, translation),
+                         rotation, translation,
+                         robust_multiplier),
         scale(s) {
     scale_matrix.resize(BA_SHOT_NUM_PARAMS + 1, BA_SHOT_NUM_PARAMS + 1);
     scale_matrix.setIdentity();

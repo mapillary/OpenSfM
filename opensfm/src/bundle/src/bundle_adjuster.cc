@@ -720,22 +720,28 @@ void BundleAdjuster::Run() {
   }
 
   // Add relative motion errors
-  ceres::LossFunction *loss = CreateLossFunction(
-      relative_motion_loss_name_, relative_motion_loss_threshold_);
   for (auto &rp : relative_motions_) {
+    double robust_threshold = relative_motion_loss_threshold_*rp.robust_multiplier;
+    ceres::LossFunction *relative_motion_loss = CreateLossFunction(
+      relative_motion_loss_name_, robust_threshold);
+
     auto *cost_function =
         new ceres::AutoDiffCostFunction<BARelativeMotionError, 6, 6, 1, 6>(
             new BARelativeMotionError(rp.parameters,
                                       rp.scale_matrix));
     double *scale =
         reconstructions_[rp.reconstruction_id_i].GetScalePtr(rp.shot_id_i);
-    problem.AddResidualBlock(cost_function, loss,
+    problem.AddResidualBlock(cost_function, relative_motion_loss,
                              shots_[rp.shot_id_i].parameters.data(), scale,
                              shots_[rp.shot_id_j].parameters.data());
   }
 
   // Add relative similarity errors
   for (auto &rp : relative_similarity_) {
+    double robust_threshold = relative_motion_loss_threshold_*rp.robust_multiplier;
+    ceres::LossFunction *relative_similarity_loss = CreateLossFunction(
+      relative_motion_loss_name_, robust_threshold);
+
     auto *cost_function =
         new ceres::AutoDiffCostFunction<BARelativeSimilarityError, 7, 6, 1, 6,
                                         1>(new BARelativeSimilarityError(
@@ -744,18 +750,20 @@ void BundleAdjuster::Run() {
         reconstructions_[rp.reconstruction_id_i].GetScalePtr(rp.shot_id_i);
     double *scale_j =
         reconstructions_[rp.reconstruction_id_j].GetScalePtr(rp.shot_id_j);
-    problem.AddResidualBlock(cost_function, loss,
+    problem.AddResidualBlock(cost_function, relative_similarity_loss,
                              shots_[rp.shot_id_i].parameters.data(), scale_i,
                              shots_[rp.shot_id_j].parameters.data(), scale_j);
   }
 
   // Add relative rotation errors
+    ceres::LossFunction *relative_rotation_loss = CreateLossFunction(
+      relative_motion_loss_name_, relative_motion_loss_threshold_);
   for (auto &rr : relative_rotations_) {
     auto *cost_function =
         new ceres::AutoDiffCostFunction<BARelativeRotationError, 3, 6, 6>(
             new BARelativeRotationError(rr.rotation, rr.scale_matrix));
 
-    problem.AddResidualBlock(cost_function, loss,
+    problem.AddResidualBlock(cost_function, relative_rotation_loss,
                              shots_[rr.shot_id_i].parameters.data(),
                              shots_[rr.shot_id_j].parameters.data());
   }
