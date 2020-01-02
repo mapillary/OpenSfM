@@ -66,7 +66,7 @@ Make sure you update your ``PYTHONPATH`` to include ``/usr/local/lib/python2.7/s
 
 
 .. note:: Note on OpenCV 3
-    When running OpenSfM on top of OpenCV version 3.0 the `OpenCV Contrib`_ modules are required for extracting SIFT or SURF features.
+When running OpenSfM on top of OpenCV version 3.0 the `OpenCV Contrib`_ modules are required for extracting SIFT or SURF features.
 
 
 Building the library
