@@ -14,7 +14,6 @@ An example dataset is available at ``data/berlin``.  You can reconstruct it usin
 
 This will run the entire SfM pipeline and produce the file ``data/berlin/reconstruction.meshed.json`` as output. To visualize the result you can start a HTTP server running::
 
-    python -m SimpleHTTPServer
     python3 -m http.server
 
 and then browse `<http://localhost:8000/viewer/reconstruction.html#file=/data/berlin/reconstruction.meshed.json>`_
