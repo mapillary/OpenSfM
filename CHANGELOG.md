@@ -3,6 +3,12 @@
 
 ## [Unreleased]
 
+### Changed
+- Undistorted images, masks and depthmaps are now under the undistorted folder.  Use the `bin/migrate_undistort.sh` script to port old datasets to the new folder structure.
+
+### Improved
+- Undistorting 16bit images now produces 16bit undistorted images. @pierotofy
+
 
 ## 0.3.0
 
