@@ -112,7 +112,7 @@ def vector_angle(u, v):
     >>> v = [ -0.99500417, +0.33333333, +0.09983342]
     >>> vector_angle(u, u)
     0.0
-    >>> math.isclose(vector_angle(u, v), math.pi)
+    >>> np.isclose(vector_angle(u, v), np.pi)
     True
     """
     cos = np.dot(u, v) / math.sqrt(np.dot(u, u) * np.dot(v, v))
