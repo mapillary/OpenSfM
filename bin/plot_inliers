@@ -551,7 +551,8 @@ def plot_two_view_reconstruction(fw, ip, index, track_points1, track_points2, da
     camera2 = cameras[data.load_exif(ip.im2)['camera']]
 
     threshold, pixels1, pixels2 = thresholds(ip.im1_array, ip.im2_array, 'five_point_algo_threshold', 0.006, data)
-    R, t, inliers = reconstruct.two_view_reconstruction(track_points1, track_points2, camera1, camera2, threshold)
+    iterations = data.config['five_point_refine_rec_iterations']
+    R, t, inliers = reconstruct.two_view_reconstruction(track_points1, track_points2, camera1, camera2, threshold, iterations)
 
     inliers1 = track_points1[inliers, :]
     inliers2 = track_points2[inliers, :]
