@@ -419,7 +419,7 @@ def robust_match_calibrated(p1, p2, camera1, camera2, matches, config):
         if sum(inliers) < 8:
             return np.array([])
         iterations = config['five_point_refine_match_iterations']
-        T = pyopengv.relative_pose_optimize_nonlinear(
+        T = multiview.relative_pose_optimize_nonlinear(
             b1[inliers], b2[inliers], T[:3, 3], T[:3, :3], iterations)
 
     inliers = _compute_inliers_bearings(b1, b2, T, threshold)

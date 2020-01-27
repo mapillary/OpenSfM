@@ -596,4 +596,8 @@ def relative_pose_ransac_rotation_only(b1, b2, threshold, iterations,
 
 
 def relative_pose_optimize_nonlinear(b1, b2, t, R, iterations):
-    return pyopengv.relative_pose_optimize_nonlinear(b1, b2, t, R, iterations)
+    try:
+        return pyopengv.relative_pose_optimize_nonlinear(b1, b2, t, R, iterations)
+    except Exception:
+        # Current master of pyopengv do not accept the iterations argument.
+        return pyopengv.relative_pose_optimize_nonlinear(b1, b2, t, R)
