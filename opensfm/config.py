@@ -66,9 +66,9 @@ matching_bow_gps_distance: 0          # Maximum GPS distance for preempting imag
 matching_bow_gps_neighbors: 0         # Number of images (selected by GPS distance) to preempt before using selection by BoW distance. Set to 0 to use no limit (or disable if matching_bow_gps_distance is also 0)
 matching_bow_other_cameras: False     # If True, BoW image selection will use N neighbors from the same camera + N neighbors from any different camera.
 matching_vlad_neighbors: 0            # Number of images to match selected by VLAD distance. Set to 0 to disable
-matching_vlad_gps_distance: 0          # Maximum GPS distance for preempting images before using selection by VLAD distance. Set to 0 to disable
-matching_vlad_gps_neighbors: 0         # Number of images (selected by GPS distance) to preempt before using selection by VLAD distance. Set to 0 to use no limit (or disable if matching_vlad_gps_distance is also 0)
-matching_vlad_other_cameras: False     # If True, VLAD image selection will use N neighbors from the same camera + N neighbors from any different camera.
+matching_vlad_gps_distance: 0         # Maximum GPS distance for preempting images before using selection by VLAD distance. Set to 0 to disable
+matching_vlad_gps_neighbors: 0        # Number of images (selected by GPS distance) to preempt before using selection by VLAD distance. Set to 0 to use no limit (or disable if matching_vlad_gps_distance is also 0)
+matching_vlad_other_cameras: False    # If True, VLAD image selection will use N neighbors from the same camera + N neighbors from any different camera.
 matching_use_filters: False           # If True, removes static matches using ad-hoc heuristics
 
 # Params for geometric estimation
@@ -77,6 +77,8 @@ robust_matching_calib_threshold: 0.004  # Outlier threshold for essential matrix
 robust_matching_min_match: 20           # Minimum number of matches to accept matches between two images
 five_point_algo_threshold: 0.004        # Outlier threshold for essential matrix estimation during incremental reconstruction in radians
 five_point_algo_min_inliers: 20         # Minimum number of inliers for considering a two view reconstruction valid
+five_point_refine_match_iterations: 10  # Number of LM iterations to run when refining relative pose during matching
+five_point_refine_rec_iterations: 1000  # Number of LM iterations to run when refining relative pose during reconstruction
 triangulation_threshold: 0.006          # Outlier threshold for accepting a triangulated point in radians
 triangulation_min_ray_angle: 1.0        # Minimum angle between views to accept a triangulated point
 triangulation_type: FULL                # Triangulation type : either considering all rays (FULL), or sing a RANSAC variant (ROBUST)

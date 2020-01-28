@@ -590,7 +590,8 @@ def two_view_reconstruction_plane_based(p1, p2, camera1, camera2, threshold):
     return cv2.Rodrigues(R)[0].ravel(), t, inliers
 
 
-def two_view_reconstruction(p1, p2, camera1, camera2, threshold):
+def two_view_reconstruction(p1, p2, camera1, camera2,
+                            threshold, iterations):
     """Reconstruct two views using the 5-point method.
 
     Args:
@@ -618,7 +619,8 @@ def two_view_reconstruction(p1, p2, camera1, camera2, threshold):
 
     if inliers.sum() > 5:
         T = multiview.relative_pose_optimize_nonlinear(b1[inliers],
-                                                       b2[inliers], t, R)
+                                                       b2[inliers], t, R,
+                                                       iterations)
         R = T[:, :3]
         t = T[:, 3]
         inliers = _two_view_reconstruction_inliers(b1, b2, R, t, threshold)
@@ -653,7 +655,8 @@ def two_view_reconstruction_rotation_only(p1, p2, camera1, camera2, threshold):
     return cv2.Rodrigues(R.T)[0].ravel(), inliers
 
 
-def two_view_reconstruction_general(p1, p2, camera1, camera2, threshold):
+def two_view_reconstruction_general(p1, p2, camera1, camera2,
+                                    threshold, iterations):
     """Reconstruct two views from point correspondences.
 
     These will try different reconstruction methods and return the
@@ -668,7 +671,7 @@ def two_view_reconstruction_general(p1, p2, camera1, camera2, threshold):
         rotation, translation and inlier list
     """
     R_5p, t_5p, inliers_5p = two_view_reconstruction(
-        p1, p2, camera1, camera2, threshold)
+        p1, p2, camera1, camera2, threshold, iterations)
 
     R_plane, t_plane, inliers_plane = two_view_reconstruction_plane_based(
         p1, p2, camera1, camera2, threshold)
@@ -701,8 +704,10 @@ def bootstrap_reconstruction(data, graph, camera_priors, im1, im2, p1, p2):
 
     threshold = data.config['five_point_algo_threshold']
     min_inliers = data.config['five_point_algo_min_inliers']
+    iterations = data.config['five_point_refine_rec_iterations']
     R, t, inliers, report['two_view_reconstruction'] = \
-        two_view_reconstruction_general(p1, p2, camera1, camera2, threshold)
+        two_view_reconstruction_general(
+            p1, p2, camera1, camera2, threshold, iterations)
 
     logger.info("Two-view reconstruction inliers: {} / {}".format(
         len(inliers), len(p1)))
