@@ -14,6 +14,7 @@
 #include "openmvs_exporter.h"
 #include "depthmap_bind.h"
 #include "reconstruction_alignment.h"
+#include "robust.h"
 
 
 namespace py = pybind11;
@@ -79,6 +80,22 @@ PYBIND11_MODULE(csfm, m) {
 
   m.def("triangulate_bearings_dlt", csfm::TriangulateBearingsDLT);
   m.def("triangulate_bearings_midpoint", csfm::TriangulateBearingsMidpoint);
+
+  m.def("ransac_line", csfm::RANSACLine);
+
+  py::enum_<RansacType>(m, "RansacType")
+      .value("RANSAC", RansacType::RANSAC)
+      .value("MSAC", RansacType::MSAC)
+      .value("LMedS", RansacType::LMedS)
+      .export_values()
+;
+
+  py::class_<ScoreInfo>(m, "ScoreInfo")
+    .def(py::init())
+    .def_readwrite("score", &ScoreInfo::score)
+    .def_readwrite("inliers_indices", &ScoreInfo::inliers_indices)
+    .def_readwrite("scorer_specifics", &ScoreInfo::scorer_specifics)
+  ;
 
   py::class_<BundleAdjuster>(m, "BundleAdjuster")
     .def(py::init())
