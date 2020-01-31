@@ -30,6 +30,12 @@ class Command:
             help='reconstruction to undistort',
         )
         parser.add_argument(
+            '--reconstruction-index',
+            help='index of the reconstruction component to undistort',
+            type=int,
+            default=0,
+        )
+        parser.add_argument(
             '--tracks',
             help='tracks graph of the reconstruction',
         )
@@ -49,7 +55,8 @@ class Command:
             graph = None
 
         if reconstructions:
-            self.undistort_reconstruction(graph, reconstructions[0], data, udata)
+            r = reconstructions[args.reconstruction_index]
+            self.undistort_reconstruction(graph, r, data, udata)
 
     def undistort_reconstruction(self, graph, reconstruction, data, udata):
         urec = types.Reconstruction()
