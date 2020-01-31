@@ -10,20 +10,46 @@ def line_data():
     return a, b, x, samples
 
 
-def test_robust_line_ransac():
+def add_outliers(ratio_outliers, x, min, max):
+    for index in np.random.permutation(len(x))[:int(ratio_outliers*len(x))]:
+        if np.random.rand() < 0.5:
+            x[index] -= np.random.uniform(min, max)
+        else:
+            x[index] += np.random.uniform(min, max)
+
+
+def test_uniform_line_ransac():
     a, b, x, samples = line_data()
 
-    sigma = 2.0
-    y = a*x + b + np.random.rand(x.shape[0])*sigma
+    scale = 2.0
+    y = a*x + b + np.random.rand(x.shape[0])*scale
 
     data = np.array([x, y]).transpose()
-    result = csfm.ransac_line(data, sigma, csfm.RansacType.RANSAC)
+    result = csfm.ransac_line(data, scale, csfm.RansacType.RANSAC)
 
     assert result.score == samples
     assert len(result.inliers_indices) == samples
 
 
-def test_robust_line_msac():
+def test_outliers_line_ransac():
+    a, b, x, samples = line_data()
+
+    scale = 2.0
+    y = a*x + b + np.random.rand(x.shape[0])*scale
+
+    ratio_outliers = 0.4
+    outliers_max = 5.0
+    add_outliers(ratio_outliers, x, scale, outliers_max)
+
+    data = np.array([x, y]).transpose()
+    result = csfm.ransac_line(data, scale, csfm.RansacType.RANSAC)
+
+    inliers_count = (1-ratio_outliers)*samples
+    assert result.score == inliers_count
+    assert len(result.inliers_indices) == inliers_count
+
+
+def test_normal_msac():
     a, b, x, samples = line_data()
 
     sigma = 2.0
@@ -32,14 +58,35 @@ def test_robust_line_msac():
     multiplier = 1.96
 
     data = np.array([x, y]).transpose()
-    result = csfm.ransac_line(data, multiplier, csfm.RansacType.MSAC)
+    result = csfm.ransac_line(data, multiplier*sigma, csfm.RansacType.MSAC)
 
     confidence = 0.95   # 1.96*MAD -> 95% rejecting inliers
     assert np.isclose(len(result.inliers_indices), samples,
                       rtol=(1 - confidence), atol=5)
 
 
-def test_robust_line_LMedS():
+def test_outliers_msac():
+    a, b, x, samples = line_data()
+
+    sigma = 2.0
+    y = a*x + b + np.random.normal(scale=sigma, size=x.shape[0])
+
+    multiplier = 1.96
+
+    ratio_outliers = 0.4
+    outliers_max = 5.0
+    add_outliers(ratio_outliers, x, multiplier*sigma, multiplier*outliers_max)
+
+    data = np.array([x, y]).transpose()
+    result = csfm.ransac_line(data, multiplier*sigma, csfm.RansacType.MSAC)
+
+    inliers_count = (1-ratio_outliers)*samples
+    confidence = 0.95   # 1.96*MAD -> 95% rejecting inliers
+    assert np.isclose(len(result.inliers_indices), inliers_count,
+                      rtol=(1 - confidence), atol=5)
+
+
+def test_normal_LMedS():
     a, b, x, samples = line_data()
 
     sigma = 2.0
@@ -52,5 +99,26 @@ def test_robust_line_LMedS():
 
     confidence = 0.95   # 1.96*MAD -> 95% rejecting inliers
     assert np.isclose(len(result.inliers_indices), samples,
+                      rtol=(1 - confidence), atol=8)
+
+
+def test_outliers_LMedS():
+    a, b, x, samples = line_data()
+
+    sigma = 2.0
+    y = a*x + b + np.random.normal(scale=sigma, size=x.shape[0])
+
+    multiplier = 1.96
+
+    ratio_outliers = 0.4
+    outliers_max = 5.0
+    add_outliers(ratio_outliers, x, multiplier*sigma, multiplier*outliers_max)
+
+    data = np.array([x, y]).transpose()
+    result = csfm.ransac_line(data, multiplier, csfm.RansacType.LMedS)
+
+    inliers_count = (1-ratio_outliers)*samples
+    confidence = 0.95   # 1.96*MAD -> 95% rejecting inliers
+    assert np.isclose(len(result.inliers_indices), inliers_count,
                       rtol=(1 - confidence), atol=8)
 

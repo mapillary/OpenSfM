@@ -9,12 +9,14 @@ struct Pose{
   Eigen::Vector3d translation;
 };
 
-template <class T>
+template <class T, int N>
 class Model {
   public:
+  static const int SIZE = N;
+  using ERROR = Eigen::Matrix<double, SIZE, 1>;
   template <class IT, class MODEL>
-  static std::vector<double> Errors(const MODEL& model, IT begin, IT end) {
-    std::vector<double> errors;
+  static std::vector<ERROR> Errors(const MODEL& model, IT begin, IT end) {
+    std::vector<ERROR> errors;
     std::for_each(begin, end, [&errors, &model](const typename T::DATA& d) {
       errors.push_back(T::Error(model, d));
     });
@@ -22,7 +24,7 @@ class Model {
   }
 };
 
-class RelativePose : public Model<RelativePose> {
+class RelativePose : public Model<RelativePose, 2> {
  public:
   using MODEL = Pose;
   using DATA = std::pair<Eigen::Vector2d, Eigen::Vector2d>;
@@ -40,7 +42,7 @@ class RelativePose : public Model<RelativePose> {
 
 };
 
-class Line : public Model<Line> {
+class Line : public Model<Line, 1> {
  public:
   using MODEL = Eigen::Vector2d;
   using DATA = Eigen::Vector2d;
@@ -57,10 +59,12 @@ class Line : public Model<Line> {
   }
 
   template <class MODEL, class DATA>
-  static double Error(const MODEL& model, const DATA& d){
+  static ERROR Error(const MODEL& model, const DATA& d){
     const auto a = model[0];
     const auto b = model[1];
-    return std::fabs(d[1] - (a*d[0] + b));
+    ERROR e;
+    e << d[1] - (a*d[0] + b);
+    return e;
   }
 
 };
@@ -87,7 +91,7 @@ class RansacScoring{
    ScoreInfo Score(IT begin, IT end) {
      ScoreInfo score;
      for(IT it = begin; it != end; ++it){
-       if (*it < threshold_) {
+       if (it->norm() < threshold_) {
          ++score.score;
          score.inliers_indices.push_back(int(it-begin));
        }
@@ -101,69 +105,71 @@ class RansacScoring{
 class MedianBasedScoring {
  public:
   MedianBasedScoring() = default;
-  MedianBasedScoring(double nth, double multiplier)
-      : nth_(nth), multiplier_(multiplier) {}
+  MedianBasedScoring(double nth) : nth_(nth) {}
 
   template <class IT>
   double ComputeMedian(IT begin, IT end) {
-    int median_index = (end - begin) * nth_;
-    std::nth_element(begin, begin + median_index, end);
-    return *(begin + median_index);
+    const int count = (end - begin);
+    const int median_index = count * nth_;
+    std::vector<double> norms(count);
+    for (IT it = begin; it != end; ++it) {
+        norms[(it-begin)] = it->norm();
+    }
+    std::nth_element(norms.begin(), norms.begin() + median_index, norms.end());
+    return norms[median_index];
   }
 
-  template <class IT>
-  double ComputeRobustSigma(IT begin, IT end) {
-    return 1.4826 * ComputeMedian(begin, end);
-  }
-
+protected:
   double nth_{0.5};
-  double multiplier_{1.96};
 };
 
-class MSacScoring : public MedianBasedScoring{
+class MSacScoring{
  public:
-  MSacScoring(double multiplier)
-      : MedianBasedScoring(0.5, multiplier) {}
+  MSacScoring(double threshold): threshold_(threshold){}
 
   template <class IT>
   ScoreInfo Score(IT begin, IT end) {
-    const auto sigma = ComputeRobustSigma(begin, end);
-    const auto threshold = multiplier_ * sigma;
     ScoreInfo score;
     for (IT it = begin; it != end; ++it) {
-      const auto v = *it;
+      const auto v = (*it).norm();
       const int index = int(it - begin);
-      if (*it < threshold) {
+      if (v <= threshold_) {
         score.score += v * v;
         score.inliers_indices.push_back(index);
       } else {
-        score.score += threshold * threshold;
+        score.score += threshold_ * threshold_;
       }
     }
-    score.scorer_specifics["sigma"] = sigma;
-    score.scorer_specifics["threshold"] = threshold;
-    score.score = 1.0 / score.score;
+    const double eps = 1e-8;
+    score.score = 1.0 / (score.score+eps);
     return score;
   }
+  double threshold_{0};
 };
 
 class LMedSScoring : public MedianBasedScoring{
  public:
-  LMedSScoring(double multiplier) : MedianBasedScoring(0.5, multiplier) {}
+  LMedSScoring(double multiplier)
+      : MedianBasedScoring(0.5), multiplier_(multiplier) {}
 
   template <class IT>
   ScoreInfo Score(IT begin, IT end) {
-    const auto sigma_median = ComputeRobustSigma(begin, end);
-    const auto threshold = multiplier_ * sigma_median;
+    const auto median = this->ComputeMedian(begin, end);
+    const auto mad = 1.4826 * median;
+    const auto threshold = this->multiplier_ * mad;
     ScoreInfo score;
      for(IT it = begin; it != end; ++it){
-       if (*it < threshold) {
+       const auto v = it->norm();
+       if (v <= threshold) {
          score.inliers_indices.push_back(int(it-begin));
        }
      }
-     score.score = 1.0/sigma_median;
+     const double eps = 1e-8;
+     score.score = 1.0/(median+eps);
      return score;
   }
+
+  double multiplier_;
 };
 
 class RandomSamplesGenerator{
