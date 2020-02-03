@@ -3,17 +3,22 @@
 #include <algorithm>
 #include <Eigen/Eigen>
 
+#include "numeric.h"
+#include "relative_pose_5pt.h"
+
 
 struct Pose{
   Eigen::Matrix3d rotation;
   Eigen::Vector3d translation;
 };
 
-template <class T, int N>
+template <class T, int N, int M>
 class Model {
-  public:
+ public:
   static const int SIZE = N;
+  static const int MAX_MODELS = M;
   using ERROR = Eigen::Matrix<double, SIZE, 1>;
+
   template <class IT, class MODEL>
   static std::vector<ERROR> Errors(const MODEL& model, IT begin, IT end) {
     std::vector<ERROR> errors;
@@ -24,38 +29,55 @@ class Model {
   }
 };
 
-class RelativePose : public Model<RelativePose, 2> {
+class EssentialMatrix : public Model<EssentialMatrix, 1, 10> {
  public:
-  using MODEL = Pose;
+  using MODEL = Eigen::Matrix<double, 3, 3>;
   using DATA = std::pair<Eigen::Vector2d, Eigen::Vector2d>;
   static const int MINIMAL_SAMPLES = 5;
 
-  template <class IT, class MODEL>
-  static bool Model(IT begin, IT end, MODEL* model){
-    return true;
+  template <class IT>
+  static int Model(IT begin, IT end, MODEL* models){
+    std::vector<MODEL> essentials;
+    FivePointsRelativePose(begin, end, &essentials);
+    for(int i = 0; i < essentials.size(); ++i){
+      models[i] = essentials[i];
+    }
+    return essentials.size();
   }
 
   template <class MODEL, class DATA>
-  static double Error(const MODEL& model, const DATA& d){
-    return 0;
+  static ERROR Error(const MODEL& model, const DATA& d){
+    const auto x1 = d.first;
+    const auto x2 = d.second;
+    Eigen::Vector3d x(x1(0), x1(1), 1.0);
+    Eigen::Vector3d y(x2(0), x2(1), 1.0);
+    // See page 288 equation (11.10) of HZ.
+    Eigen::Vector3d E_x = model * x;
+    Eigen::Vector3d Et_y = model.transpose() * y;
+
+    ERROR e;
+    e[0] = SQUARE(y.dot(E_x)) * ( 1 / E_x.head<2>().squaredNorm()
+                                + 1 / Et_y.head<2>().squaredNorm())
+      / 4.0;  // The divide by 4 is to make this match the sampson distance
+    return e;
   }
 
 };
 
-class Line : public Model<Line, 1> {
+class Line : public Model<Line, 1, 1> {
  public:
   using MODEL = Eigen::Vector2d;
   using DATA = Eigen::Vector2d;
   static const int MINIMAL_SAMPLES = 2;
 
-  template <class IT, class MODEL>
-  static bool Model(IT begin, IT end, MODEL* model){
+  template <class IT>
+  static int Model(IT begin, IT end, MODEL* models){
     const auto x1 = *begin;
     const auto x2 = *(++begin);
     const auto b = (x1[0]*x2[1] - x1[1]*x2[0])/(x1[0]-x2[0]);
     const auto a = (x1[1] - b)/x1[0];
-    *model << a, b;
-    return true;
+    models[0] << a, b;
+    return 1;
   }
 
   template <class MODEL, class DATA>
@@ -225,10 +247,11 @@ class RobustEstimator{
     ScoreInfo best_score;
     for( int i = 0; i < params_.iterations; ++i){
       const auto random_samples = GetRandomSamples();
-      typename MODEL::MODEL current_model;
-      if(MODEL::Model(random_samples.begin(), random_samples.end(), &current_model)){
+      typename MODEL::MODEL models[MODEL::MAX_MODELS];
+      const auto models_count = MODEL::Model(random_samples.begin(), random_samples.end(), &models[0]);
+      for(int i = 0; i < models_count; ++i){
         auto errors = MODEL::Errors(
-            current_model, samples_.begin(), samples_.end());
+            models[i], samples_.begin(), samples_.end());
         const auto score = scorer_.Score(errors.begin(), errors.end());
         best_score = std::max(score, best_score);
       }
@@ -278,4 +301,37 @@ ScoreInfo RANSACLine(const Eigen::Matrix<double, -1, 2>& points,
     }
   }
 }
+
+ScoreInfo RANSACRelativePose(const Eigen::Matrix<double, -1, 2>& x1,
+                             const Eigen::Matrix<double, -1, 2>& x2,
+                             double parameter, const RansacType& ransac_type) {
+  std::vector<EssentialMatrix::DATA> samples(x1.rows());
+  for (int i = 0; i < x1.rows(); ++i) {
+    samples[i].first = x1.row(i);
+    samples[i].second = x2.row(i);
+  }
+
+  RobustEstimatorParams params;
+  switch(ransac_type){
+    case RANSAC:
+    {
+      RansacScoring scorer(parameter);
+      RobustEstimator<RansacScoring, EssentialMatrix> ransac(samples, scorer, params);
+      return ransac.Estimate();
+    }
+    case MSAC:
+    {
+      MSacScoring scorer(parameter);
+      RobustEstimator<MSacScoring, EssentialMatrix> ransac(samples, scorer, params);
+      return ransac.Estimate();
+    }
+    case LMedS:
+    {
+      LMedSScoring scorer(parameter);
+      RobustEstimator<LMedSScoring, EssentialMatrix> ransac(samples, scorer, params);
+      return ransac.Estimate();
+    }
+  }
+}
+
 }  // namespace csfm

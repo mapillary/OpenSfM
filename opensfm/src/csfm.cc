@@ -82,6 +82,7 @@ PYBIND11_MODULE(csfm, m) {
   m.def("triangulate_bearings_midpoint", csfm::TriangulateBearingsMidpoint);
 
   m.def("ransac_line", csfm::RANSACLine);
+  m.def("ransac_relative_pose", csfm::RANSACRelativePose);
 
   py::enum_<RansacType>(m, "RansacType")
       .value("RANSAC", RansacType::RANSAC)
