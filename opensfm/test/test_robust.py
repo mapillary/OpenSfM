@@ -1,6 +1,7 @@
 import numpy as np
 
 from opensfm import csfm
+from opensfm.synthetic_data import synthetic_examples
 
 
 def line_data():
@@ -121,4 +122,18 @@ def test_outliers_LMedS():
     confidence = 0.95   # 1.96*MAD -> 95% rejecting inliers
     assert np.isclose(len(result.inliers_indices), inliers_count,
                       rtol=(1 - confidence), atol=8)
+
+
+def test_zero_essential_ransac():
+    np.random.seed(42)
+    data = synthetic_examples.synthetic_small_line_scene()
+
+    scale = 0.0
+    features, _, _, _ = data.get_tracks_data(40, scale)
+
+    shots = sorted(list(features.values()), key=lambda x: -len(x))
+    f1 = shots[0][:,0:2]
+    f2 = shots[1][:,0:2]
+    result = csfm.ransac_relative_pose(f1, f2, scale, csfm.RansacType.RANSAC)
+    a = result.inliers_indices
 
