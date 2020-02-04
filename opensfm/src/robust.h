@@ -29,9 +29,33 @@ class Model {
   }
 };
 
-class EssentialMatrix : public Model<EssentialMatrix, 1, 10> {
+// See "Structure from Motion using full spherical panoramic cameras"
+// for a nice summary of ray-based errors for SfM
+class EpipolarSymmetric{
+  public:
+    static double Error(const Eigen::Matrix3d& model, const Eigen::Vector3d& x, const Eigen::Vector3d& y){
+    Eigen::Vector3d E_x = model * x;
+    Eigen::Vector3d Et_y = model.transpose() * y;
+    return SQUARE(y.dot(E_x)) * ( 1 / E_x.head<2>().squaredNorm()
+                                + 1 / Et_y.head<2>().squaredNorm())
+      / 4.0;  // The divide by 4 is to make this match the sampson distance
+  }
+};
+
+
+class EpipolarGeodesic{
+  public:
+    static double Error(const Eigen::Matrix3d& model, const Eigen::Vector3d& x, const Eigen::Vector3d& y){
+    const double yt_E_x = y.dot(model * x);
+    return std::asin(yt_E_x);
+  }
+};
+
+template< class E = EpipolarSymmetric >
+class EssentialMatrix : public Model<EssentialMatrix<E>, 1, 10> {
  public:
-  using MODEL = Eigen::Matrix<double, 3, 3>;
+  using ERROR = typename Model<EssentialMatrix<E>, 1, 10>::ERROR;
+  using MODEL = Eigen::Matrix3d;
   using DATA = std::pair<Eigen::Vector3d, Eigen::Vector3d>;
   static const int MINIMAL_SAMPLES = 5;
 
@@ -48,14 +72,8 @@ class EssentialMatrix : public Model<EssentialMatrix, 1, 10> {
   static ERROR Error(const MODEL& model, const DATA& d){
     const auto x = d.first;
     const auto y = d.second;
-    // See page 288 equation (11.10) of HZ.
-    Eigen::Vector3d E_x = model * x;
-    Eigen::Vector3d Et_y = model.transpose() * y;
-
     ERROR e;
-    e[0] = SQUARE(y.dot(E_x)) * ( 1 / E_x.head<2>().squaredNorm()
-                                + 1 / Et_y.head<2>().squaredNorm())
-      / 4.0;  // The divide by 4 is to make this match the sampson distance
+    e[0] = E::Error(model, x, y);
     return e;
   }
 
@@ -302,7 +320,8 @@ ScoreInfo<Line::MODEL> RANSACLine(const Eigen::Matrix<double, -1, 2>& points,
   }
 }
 
-ScoreInfo<EssentialMatrix::MODEL> RANSACEssential(
+using EssentialMatrixModel = EssentialMatrix<EpipolarGeodesic>;
+ScoreInfo<EssentialMatrixModel::MODEL> RANSACEssential(
     const Eigen::Matrix<double, -1, 3>& x1,
     const Eigen::Matrix<double, -1, 3>& x2, double parameter,
     const RansacType& ransac_type) {
@@ -310,7 +329,7 @@ ScoreInfo<EssentialMatrix::MODEL> RANSACEssential(
     throw std::runtime_error("Features matrices have different sizes.");
   }
   
-  std::vector<EssentialMatrix::DATA> samples(x1.rows());
+  std::vector<EssentialMatrixModel::DATA> samples(x1.rows());
   for (int i = 0; i < x1.rows(); ++i) {
     samples[i].first = x1.row(i);
     samples[i].second = x2.row(i);
@@ -321,19 +340,19 @@ ScoreInfo<EssentialMatrix::MODEL> RANSACEssential(
     case RANSAC:
     {
       RansacScoring scorer(parameter);
-      RobustEstimator<RansacScoring, EssentialMatrix> ransac(samples, scorer, params);
+      RobustEstimator<RansacScoring, EssentialMatrixModel> ransac(samples, scorer, params);
       return ransac.Estimate();
     }
     case MSAC:
     {
       MSacScoring scorer(parameter);
-      RobustEstimator<MSacScoring, EssentialMatrix> ransac(samples, scorer, params);
+      RobustEstimator<MSacScoring, EssentialMatrixModel> ransac(samples, scorer, params);
       return ransac.Estimate();
     }
     case LMedS:
     {
       LMedSScoring scorer(parameter);
-      RobustEstimator<LMedSScoring, EssentialMatrix> ransac(samples, scorer, params);
+      RobustEstimator<LMedSScoring, EssentialMatrixModel> ransac(samples, scorer, params);
       return ransac.Estimate();
     }
   }

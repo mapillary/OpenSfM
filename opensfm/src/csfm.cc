@@ -101,7 +101,7 @@ PYBIND11_MODULE(csfm, m) {
       .export_values()
     ;
   AddScoreType<Line::MODEL>(m, "Line");
-  AddScoreType<EssentialMatrix::MODEL>(m, "EssentialMatrix");
+  AddScoreType<csfm::EssentialMatrixModel::MODEL>(m, "EssentialMatrix");
 
 
   py::class_<BundleAdjuster>(m, "BundleAdjuster")
