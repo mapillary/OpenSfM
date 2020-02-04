@@ -133,7 +133,10 @@ def test_uniform_essential_ransac(one_pair_and_its_E):
     scale = 1e-2
     points += np.random.rand(*points.shape)*scale
 
-    result = csfm.ransac_essential(points[:, 0:3], points[:, 3:6], scale, csfm.RansacType.RANSAC)
+    f1, f2 = points[:, 0:3],  points[:, 3:6]
+    f1 /= np.linalg.norm(f1, axis=1)[:, None]
+    f2 /= np.linalg.norm(f2, axis=1)[:, None]
+    result = csfm.ransac_essential(f1, f2, scale, csfm.RansacType.RANSAC)
 
     assert len(result.inliers_indices) == len(f1) == len(f2)
 
@@ -148,7 +151,10 @@ def test_outliers_essential_ransac(one_pair_and_its_E):
     ratio_outliers = 0.4
     add_outliers(ratio_outliers, points, 0.1, 1.0)
 
-    result = csfm.ransac_essential(points[:, 0:3], points[:, 3:6], scale, csfm.RansacType.RANSAC)
+    f1, f2 = points[:, 0:3],  points[:, 3:6]
+    f1 /= np.linalg.norm(f1, axis=1)[:, None]
+    f2 /= np.linalg.norm(f2, axis=1)[:, None]
+    result = csfm.ransac_essential(f1, f2, scale, csfm.RansacType.RANSAC)
 
     tolerance = 0.04    # some outliers might have been moved along the epipolar
     inliers_count = (1 - ratio_outliers) * len(points)
