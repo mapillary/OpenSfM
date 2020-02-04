@@ -69,10 +69,6 @@ def one_pair_and_its_E(pairs_and_poses):
     pairs = list(sorted(zip(pairs.values(), poses.values()), key=lambda x: -len(x[0])))
     f1 = camera.pixel_bearing_many(np.array([x for x, _ in pairs[0][0]]))
     f2 = camera.pixel_bearing_many(np.array([x for _, x in pairs[0][0]]))
-    f1 /= f1[:, 2:3]
-    f2 /= f2[:, 2:3]
-    f1 = f1[:, :2]
-    f2 = f2[:, :2]
 
     pose = pairs[0][1]
     R = pose.get_rotation_matrix()

@@ -32,7 +32,7 @@ class Model {
 class EssentialMatrix : public Model<EssentialMatrix, 1, 10> {
  public:
   using MODEL = Eigen::Matrix<double, 3, 3>;
-  using DATA = std::pair<Eigen::Vector2d, Eigen::Vector2d>;
+  using DATA = std::pair<Eigen::Vector3d, Eigen::Vector3d>;
   static const int MINIMAL_SAMPLES = 5;
 
   template <class IT>
@@ -46,10 +46,8 @@ class EssentialMatrix : public Model<EssentialMatrix, 1, 10> {
 
   template <class MODEL, class DATA>
   static ERROR Error(const MODEL& model, const DATA& d){
-    const auto x1 = d.first;
-    const auto x2 = d.second;
-    Eigen::Vector3d x(x1(0), x1(1), 1.0);
-    Eigen::Vector3d y(x2(0), x2(1), 1.0);
+    const auto x = d.first;
+    const auto y = d.second;
     // See page 288 equation (11.10) of HZ.
     Eigen::Vector3d E_x = model * x;
     Eigen::Vector3d Et_y = model.transpose() * y;
@@ -305,8 +303,8 @@ ScoreInfo<Line::MODEL> RANSACLine(const Eigen::Matrix<double, -1, 2>& points,
 }
 
 ScoreInfo<EssentialMatrix::MODEL> RANSACEssential(
-    const Eigen::Matrix<double, -1, 2>& x1,
-    const Eigen::Matrix<double, -1, 2>& x2, double parameter,
+    const Eigen::Matrix<double, -1, 3>& x1,
+    const Eigen::Matrix<double, -1, 3>& x2, double parameter,
     const RansacType& ransac_type) {
   if((x1.cols() != x2.cols()) || (x1.rows() != x2.rows())){
     throw std::runtime_error("Features matrices have different sizes.");

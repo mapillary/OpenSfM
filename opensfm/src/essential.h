@@ -61,21 +61,15 @@ enum {
   coef_1
 };
 
-template<class IT>
-inline void EncodeEpipolarEquation(IT begin, IT end, Eigen::Matrix<double, 9, 9> *A) {
+template <class IT>
+inline void EncodeEpipolarEquation(IT begin, IT end,
+                                   Eigen::Matrix<double, 9, 9> *A) {
   for (IT it = begin; it != end; ++it) {
-    int i = (it-begin);
+    int i = (it - begin);
     const auto x1 = it->first;
     const auto x2 = it->second;
-    (*A)(i, 0) = x2(0) * x1(0);  // 0 represents x coords,
-    (*A)(i, 1) = x2(0) * x1(1);  // 1 represents y coords.
-    (*A)(i, 2) = x2(0);
-    (*A)(i, 3) = x2(1) * x1(0);
-    (*A)(i, 4) = x2(1) * x1(1);
-    (*A)(i, 5) = x2(1);
-    (*A)(i, 6) = x1(0);
-    (*A)(i, 7) = x1(1);
-    (*A)(i, 8) = 1.0;
+    A->row(i) << x2(0) * x1.transpose(), x2(1) * x1.transpose(),
+        x2(2) * x1.transpose();
   }
 }
 
@@ -306,12 +300,12 @@ std::vector<Eigen::Matrix<double, 3, 3>> EssentialFivePoints(IT begin, IT end) {
 
 namespace csfm {
 std::vector<Eigen::Matrix<double, 3, 3>> EssentialFivePoints(
-    const Eigen::Matrix<double, -1, 2> &x1,
-    const Eigen::Matrix<double, -1, 2> &x2) {
+    const Eigen::Matrix<double, -1, 3> &x1,
+    const Eigen::Matrix<double, -1, 3> &x2) {
   if((x1.cols() != x2.cols()) || (x1.rows() != x2.rows())){
     throw std::runtime_error("Features matrices have different sizes.");
   }
-  std::vector<std::pair<Eigen::Vector2d, Eigen::Vector2d>> samples(x1.rows());
+  std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>> samples(x1.rows());
   for (int i = 0; i < x1.rows(); ++i) {
     samples[i].first = x1.row(i);
     samples[i].second = x2.row(i);

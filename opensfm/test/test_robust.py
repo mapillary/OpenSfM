@@ -128,12 +128,12 @@ def test_outliers_line_LMedS():
 
 def test_uniform_essential_ransac(one_pair_and_its_E):
     f1, f2, E = one_pair_and_its_E
+    points = np.concatenate((f1, f2), axis=1)
 
     scale = 1e-2
-    f1 += np.random.rand(*f1.shape)*scale
-    f2 += np.random.rand(*f2.shape)*scale
+    points += np.random.rand(*points.shape)*scale
 
-    result = csfm.ransac_essential(f1, f2, scale, csfm.RansacType.RANSAC)
+    result = csfm.ransac_essential(points[:, 0:3], points[:, 3:6], scale, csfm.RansacType.RANSAC)
 
     assert len(result.inliers_indices) == len(f1) == len(f2)
 
@@ -148,7 +148,7 @@ def test_outliers_essential_ransac(one_pair_and_its_E):
     ratio_outliers = 0.4
     add_outliers(ratio_outliers, points, 0.1, 1.0)
 
-    result = csfm.ransac_essential(points[:, 0:2], points[:, 2:4], scale, csfm.RansacType.RANSAC)
+    result = csfm.ransac_essential(points[:, 0:3], points[:, 3:6], scale, csfm.RansacType.RANSAC)
 
     tolerance = 0.04    # some outliers might have been moved along the epipolar
     inliers_count = (1 - ratio_outliers) * len(points)
