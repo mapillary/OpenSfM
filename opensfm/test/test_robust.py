@@ -1,6 +1,8 @@
+import pytest
 import numpy as np
 
 from opensfm import csfm
+from opensfm import multiview
 from opensfm.synthetic_data import synthetic_examples
 
 
@@ -13,10 +15,10 @@ def line_data():
 
 def add_outliers(ratio_outliers, x, min, max):
     for index in np.random.permutation(len(x))[:int(ratio_outliers*len(x))]:
-        if np.random.rand() < 0.5:
-            x[index] -= np.random.uniform(min, max)
-        else:
-            x[index] += np.random.uniform(min, max)
+        shape = x[index].shape
+        noise = np.random.uniform(min, max, size=shape)
+        sign = [1 if x > 0 else -1 for x in np.random.randint(2, size=shape)]
+        x[index] += sign*noise
 
 
 def test_uniform_line_ransac():
@@ -50,7 +52,7 @@ def test_outliers_line_ransac():
     assert len(result.inliers_indices) == inliers_count
 
 
-def test_normal_msac():
+def test_normal_line_msac():
     a, b, x, samples = line_data()
 
     sigma = 2.0
@@ -66,7 +68,7 @@ def test_normal_msac():
                       rtol=(1 - confidence), atol=5)
 
 
-def test_outliers_msac():
+def test_outliers_line_msac():
     a, b, x, samples = line_data()
 
     sigma = 2.0
@@ -87,7 +89,7 @@ def test_outliers_msac():
                       rtol=(1 - confidence), atol=5)
 
 
-def test_normal_LMedS():
+def test_normal_line_LMedS():
     a, b, x, samples = line_data()
 
     sigma = 2.0
@@ -103,7 +105,7 @@ def test_normal_LMedS():
                       rtol=(1 - confidence), atol=8)
 
 
-def test_outliers_LMedS():
+def test_outliers_line_LMedS():
     a, b, x, samples = line_data()
 
     sigma = 2.0
@@ -124,16 +126,31 @@ def test_outliers_LMedS():
                       rtol=(1 - confidence), atol=8)
 
 
-def test_zero_essential_ransac():
-    np.random.seed(42)
-    data = synthetic_examples.synthetic_small_line_scene()
+def test_uniform_essential_ransac(one_pair_and_its_E):
+    f1, f2, E = one_pair_and_its_E
 
-    scale = 0.0
-    features, _, _, _ = data.get_tracks_data(40, scale)
+    scale = 1e-2
+    f1 += np.random.rand(*f1.shape)*scale
+    f2 += np.random.rand(*f2.shape)*scale
 
-    shots = sorted(list(features.values()), key=lambda x: -len(x))
-    f1 = shots[0][:,0:2]
-    f2 = shots[1][:,0:2]
-    result = csfm.ransac_relative_pose(f1, f2, scale, csfm.RansacType.RANSAC)
-    a = result.inliers_indices
+    result = csfm.ransac_essential(f1, f2, scale, csfm.RansacType.RANSAC)
 
+    assert len(result.inliers_indices) == len(f1) == len(f2)
+
+
+def test_outliers_essential_ransac(one_pair_and_its_E):
+    f1, f2, E = one_pair_and_its_E
+    points = np.concatenate((f1, f2), axis=1)
+
+    scale = 1e-3
+    points += np.random.rand(*points.shape)*scale
+
+    ratio_outliers = 0.4
+    add_outliers(ratio_outliers, points, 0.1, 1.0)
+
+    result = csfm.ransac_essential(points[:, 0:2], points[:, 2:4], scale, csfm.RansacType.RANSAC)
+
+    tolerance = 0.04    # some outliers might have been moved along the epipolar
+    inliers_count = (1 - ratio_outliers) * len(points)
+    assert np.isclose(len(result.inliers_indices),
+                      inliers_count, rtol=tolerance)

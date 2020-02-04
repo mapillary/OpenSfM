@@ -39,6 +39,13 @@ def euclidean(x):
     return x[..., :-1] / x[..., -1:]
 
 
+def cross_product_matrix(x):
+    '''Return the matrix representation of x's cross product
+    '''
+    return np.array([[0, -x[2], x[1]],
+                     [x[2], 0, -x[0]],
+                     [-x[1], x[0], 0]])
+
 def P_from_KRt(K, R, t):
     '''P = K[R|t].
     '''
