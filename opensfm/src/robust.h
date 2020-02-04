@@ -4,7 +4,7 @@
 #include <Eigen/Eigen>
 
 #include "numeric.h"
-#include "relative_pose_5pt.h"
+#include "essential.h"
 
 
 struct Pose{
@@ -37,8 +37,7 @@ class EssentialMatrix : public Model<EssentialMatrix, 1, 10> {
 
   template <class IT>
   static int Model(IT begin, IT end, MODEL* models){
-    std::vector<MODEL> essentials;
-    FivePointsRelativePose(begin, end, &essentials);
+    const auto essentials = EssentialFivePoints(begin, end);
     for(int i = 0; i < essentials.size(); ++i){
       models[i] = essentials[i];
     }
@@ -91,9 +90,11 @@ class Line : public Model<Line, 1, 1> {
 
 };
 
+template< class MODEL >
 struct ScoreInfo {
   double score{0};
   std::vector<int> inliers_indices;
+  MODEL model;
   std::map<std::string, double> scorer_specifics;
 
   friend bool operator<(const ScoreInfo& s1, const ScoreInfo& s2) {
@@ -109,9 +110,9 @@ class RansacScoring{
 
    RansacScoring(double threshold):threshold_(threshold){}
   
-   template <class IT>
-   ScoreInfo Score(IT begin, IT end) {
-     ScoreInfo score;
+   template <class IT, class T>
+   ScoreInfo<T> Score(IT begin, IT end, const ScoreInfo<T>& best_score) {
+     ScoreInfo<T>  score;
      for(IT it = begin; it != end; ++it){
        if (it->norm() < threshold_) {
          ++score.score;
@@ -149,9 +150,9 @@ class MSacScoring{
  public:
   MSacScoring(double threshold): threshold_(threshold){}
 
-  template <class IT>
-  ScoreInfo Score(IT begin, IT end) {
-    ScoreInfo score;
+  template <class IT, class T>
+  ScoreInfo<T>  Score(IT begin, IT end, const ScoreInfo<T>& best_score) {
+    ScoreInfo<T>  score;
     for (IT it = begin; it != end; ++it) {
       const auto v = (*it).norm();
       const int index = int(it - begin);
@@ -174,12 +175,12 @@ class LMedSScoring : public MedianBasedScoring{
   LMedSScoring(double multiplier)
       : MedianBasedScoring(0.5), multiplier_(multiplier) {}
 
-  template <class IT>
-  ScoreInfo Score(IT begin, IT end) {
+  template <class IT, class T>
+  ScoreInfo<T>  Score(IT begin, IT end, const ScoreInfo<T>& best_score) {
     const auto median = this->ComputeMedian(begin, end);
     const auto mad = 1.4826 * median;
     const auto threshold = this->multiplier_ * mad;
-    ScoreInfo score;
+    ScoreInfo<T>  score;
      for(IT it = begin; it != end; ++it){
        const auto v = it->norm();
        if (v <= threshold) {
@@ -243,8 +244,8 @@ class RobustEstimator{
      return random_samples;
   };
 
-  ScoreInfo Estimate(){
-    ScoreInfo best_score;
+  ScoreInfo<typename MODEL::MODEL> Estimate(){
+    ScoreInfo<typename MODEL::MODEL> best_score;
     for( int i = 0; i < params_.iterations; ++i){
       const auto random_samples = GetRandomSamples();
       typename MODEL::MODEL models[MODEL::MAX_MODELS];
@@ -252,7 +253,8 @@ class RobustEstimator{
       for(int i = 0; i < models_count; ++i){
         auto errors = MODEL::Errors(
             models[i], samples_.begin(), samples_.end());
-        const auto score = scorer_.Score(errors.begin(), errors.end());
+        ScoreInfo<typename MODEL::MODEL> score = scorer_.Score(errors.begin(), errors.end(), best_score);
+        score.model = models[i];
         best_score = std::max(score, best_score);
       }
     }
@@ -272,7 +274,7 @@ enum RansacType{
 };
 
 namespace csfm {
-ScoreInfo RANSACLine(const Eigen::Matrix<double, -1, 2>& points,
+ScoreInfo<Line::MODEL> RANSACLine(const Eigen::Matrix<double, -1, 2>& points,
                      double parameter, const RansacType& ransac_type) {
   std::vector<Line::DATA> samples(points.rows());
   for (int i = 0; i < points.rows(); ++i) {
@@ -302,9 +304,14 @@ ScoreInfo RANSACLine(const Eigen::Matrix<double, -1, 2>& points,
   }
 }
 
-ScoreInfo RANSACRelativePose(const Eigen::Matrix<double, -1, 2>& x1,
-                             const Eigen::Matrix<double, -1, 2>& x2,
-                             double parameter, const RansacType& ransac_type) {
+ScoreInfo<EssentialMatrix::MODEL> RANSACEssential(
+    const Eigen::Matrix<double, -1, 2>& x1,
+    const Eigen::Matrix<double, -1, 2>& x2, double parameter,
+    const RansacType& ransac_type) {
+  if((x1.cols() != x2.cols()) || (x1.rows() != x2.rows())){
+    throw std::runtime_error("Features matrices have different sizes.");
+  }
+  
   std::vector<EssentialMatrix::DATA> samples(x1.rows());
   for (int i = 0; i < x1.rows(); ++i) {
     samples[i].first = x1.row(i);

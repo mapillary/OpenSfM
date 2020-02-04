@@ -239,8 +239,8 @@ void FivePointsGaussJordan(Eigen::MatrixXd *Mp) {
   }
 }
 
-template<class IT>
-void FivePointsRelativePose(IT begin, IT end, std::vector<Eigen::Matrix<double, 3, 3> > *Es) {
+template <class IT>
+std::vector<Eigen::Matrix<double, 3, 3>> EssentialFivePoints(IT begin, IT end) {
   // Step 1: Nullspace exrtraction.
   Eigen::MatrixXd E_basis = FivePointsNullspaceBasis(begin, end);
 
@@ -280,7 +280,8 @@ void FivePointsRelativePose(IT begin, IT end, std::vector<Eigen::Matrix<double, 
   Matc Evec = E_basis * solutions;
 
   // Build the essential matrices for the real solutions.
-  Es->reserve(10);
+  std::vector<Eigen::Matrix<double, 3, 3> >  Es;
+  Es.reserve(10);
   for (int s = 0; s < 10; ++s) {
     Evec.col(s) /= Evec.col(s).norm();
     bool is_real = true;
@@ -297,7 +298,24 @@ void FivePointsRelativePose(IT begin, IT end, std::vector<Eigen::Matrix<double, 
           E(i, j) = Evec(3 * i + j, s).real();
         }
       }
-      Es->push_back(E);
+      Es.push_back(E);
     }
   }
+  return Es;
+}
+
+namespace csfm {
+std::vector<Eigen::Matrix<double, 3, 3>> EssentialFivePoints(
+    const Eigen::Matrix<double, -1, 2> &x1,
+    const Eigen::Matrix<double, -1, 2> &x2) {
+  if((x1.cols() != x2.cols()) || (x1.rows() != x2.rows())){
+    throw std::runtime_error("Features matrices have different sizes.");
+  }
+  std::vector<std::pair<Eigen::Vector2d, Eigen::Vector2d>> samples(x1.rows());
+  for (int i = 0; i < x1.rows(); ++i) {
+    samples[i].first = x1.row(i);
+    samples[i].second = x2.row(i);
+  }
+  return ::EssentialFivePoints(samples.begin(), samples.end());
+}
 }

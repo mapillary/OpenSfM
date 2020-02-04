@@ -25,6 +25,15 @@ void BundleAdjusterRun(BundleAdjuster* bundle_adjuster) {
     bundle_adjuster->Run();
 }
 
+template <class T>
+void AddScoreType(py::module& m, const std::string& name) {
+  py::class_<ScoreInfo<T>>(m, ("ScoreInfo" + name).c_str())
+      .def(py::init())
+      .def_readwrite("score", &ScoreInfo<T>::score)
+      .def_readwrite("model", &ScoreInfo<T>::model)
+      .def_readwrite("inliers_indices", &ScoreInfo<T>::inliers_indices)
+      .def_readwrite("scorer_specifics", &ScoreInfo<T>::scorer_specifics);
+}
 
 PYBIND11_MODULE(csfm, m) {
   google::InitGoogleLogging("csfm");
@@ -80,23 +89,20 @@ PYBIND11_MODULE(csfm, m) {
 
   m.def("triangulate_bearings_dlt", csfm::TriangulateBearingsDLT);
   m.def("triangulate_bearings_midpoint", csfm::TriangulateBearingsMidpoint);
+  m.def("essential_five_points", csfm::EssentialFivePoints);
 
   m.def("ransac_line", csfm::RANSACLine);
-  m.def("ransac_relative_pose", csfm::RANSACRelativePose);
+  m.def("ransac_essential", csfm::RANSACEssential);
 
   py::enum_<RansacType>(m, "RansacType")
       .value("RANSAC", RansacType::RANSAC)
       .value("MSAC", RansacType::MSAC)
       .value("LMedS", RansacType::LMedS)
       .export_values()
-;
+    ;
+  AddScoreType<Line::MODEL>(m, "Line");
+  AddScoreType<EssentialMatrix::MODEL>(m, "EssentialMatrix");
 
-  py::class_<ScoreInfo>(m, "ScoreInfo")
-    .def(py::init())
-    .def_readwrite("score", &ScoreInfo::score)
-    .def_readwrite("inliers_indices", &ScoreInfo::inliers_indices)
-    .def_readwrite("scorer_specifics", &ScoreInfo::scorer_specifics)
-  ;
 
   py::class_<BundleAdjuster>(m, "BundleAdjuster")
     .def(py::init())
