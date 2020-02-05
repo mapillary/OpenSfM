@@ -76,4 +76,4 @@ def one_pair_and_its_E(pairs_and_poses):
     e = R.dot(t_x)
     e /= np.linalg.norm(e)
 
-    return f1, f2, e
+    return f1, f2, e, pose
