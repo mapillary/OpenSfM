@@ -38,6 +38,7 @@ Eigen::Matrix<double, 3, 4> RelativePoseFromEssential(
     } else {
       translation = -U.col(2);
     }
+    translation.normalize();
     for (int j = 0; j < 2; ++j) {
       Eigen::Matrix3d rotation;
       if (j == 0) {
@@ -45,8 +46,6 @@ Eigen::Matrix<double, 3, 4> RelativePoseFromEssential(
       } else {
         rotation = U * W.transpose() * Vt;
       }
-
-      translation.normalize();
       centers.col(1) << -rotation.transpose()*translation;
 
       int are_in_front = 0;
@@ -65,6 +64,7 @@ Eigen::Matrix<double, 3, 4> RelativePoseFromEssential(
         }
       }
 
+      std::cout << are_in_front << std::endl;
       if (are_in_front > best_decomposition.first) {
         Eigen::Matrix<double, 3, 4> RT;
         RT.block<3, 3>(0, 0) = rotation;
