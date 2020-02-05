@@ -32,8 +32,8 @@ void AddScoreType(py::module& m, const std::string& name) {
       .def_readwrite("score", &ScoreInfo<T>::score)
       .def_readwrite("model", &ScoreInfo<T>::model)
       .def_readwrite("inliers_indices", &ScoreInfo<T>::inliers_indices)
-      .def_readwrite("scorer_specifics", &ScoreInfo<T>::scorer_specifics);
-}
+    ;
+  }
 
 PYBIND11_MODULE(csfm, m) {
   google::InitGoogleLogging("csfm");
@@ -92,6 +92,12 @@ PYBIND11_MODULE(csfm, m) {
   m.def("essential_five_points", csfm::EssentialFivePoints);
   m.def("relative_pose_from_essential", csfm::RelativePoseFromEssential);
 
+  py::class_<RobustEstimatorParams>(m, "RobustEstimatorParams")
+    .def(py::init())
+    .def_readwrite("iterations", &RobustEstimatorParams::iterations)
+    .def_readwrite("probability", &RobustEstimatorParams::probability)
+  ;
+
   m.def("ransac_line", csfm::RANSACLine);
   m.def("ransac_essential", csfm::RANSACEssential);
   m.def("ransac_relative_pose", csfm::RANSACRelativePose);
@@ -104,6 +110,7 @@ PYBIND11_MODULE(csfm, m) {
     ;
   AddScoreType<Line::MODEL>(m, "Line");
   AddScoreType<csfm::EssentialMatrixModel::MODEL>(m, "EssentialMatrix");
+  AddScoreType<Eigen::Matrix<double, 3, 4>>(m, "RelativePose");
 
 
   py::class_<BundleAdjuster>(m, "BundleAdjuster")
