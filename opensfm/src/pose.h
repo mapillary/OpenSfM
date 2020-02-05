@@ -27,9 +27,8 @@ Eigen::Matrix<double, 3, 4> RelativePoseFromEssential(
        0, 0, 1;
 
   Eigen::Matrix<double, 3, 2> bearings;
-  std::vector<Eigen::Matrix<double, 3, 4> > RTs(2);
-  RTs[0].block<3, 3>(0, 0) = Eigen::Matrix3d::Identity();
-  RTs[0].block<3, 1>(0, 3) = Eigen::Vector3d::Zero();
+  Eigen::Matrix<double, 3, 2> centers;
+  centers.col(0) << Eigen::Vector3d::Zero();
 
   auto best_decomposition = std::make_pair(0, Eigen::Matrix<double, 3, 4>());
   for (int i = 0; i < 2; ++i) {
@@ -46,14 +45,15 @@ Eigen::Matrix<double, 3, 4> RelativePoseFromEssential(
       } else {
         rotation = U * W.transpose() * Vt;
       }
-      RTs[1].block<3, 3>(0, 0) = rotation;
-      RTs[1].block<3, 1>(0, 3) = translation.normalized();
+
+      translation.normalize();
+      centers.col(1) << -rotation.transpose()*translation;
 
       int are_in_front = 0;
       for (IT it = begin; it != end; ++it) {
         bearings.col(0) << it->first;
-        bearings.col(1) << it->second;
-        const auto point = csfm::TriangulateBearingsDLTSolve(bearings, RTs).hnormalized();
+        bearings.col(1) << rotation.transpose()*it->second;
+        const auto point = csfm::TriangulateBearingsMidpointSolve(centers, bearings);
         const bool is_in_front =
             bearings.col(0).dot(point) > 0.0 &&
             bearings.col(1).dot(rotation * point + translation) > 0.0;
@@ -65,9 +65,11 @@ Eigen::Matrix<double, 3, 4> RelativePoseFromEssential(
         }
       }
 
-      std::cout << are_in_front << std::endl;
       if (are_in_front > best_decomposition.first) {
-        best_decomposition = std::make_pair(are_in_front, RTs[1]);
+        Eigen::Matrix<double, 3, 4> RT;
+        RT.block<3, 3>(0, 0) = rotation;
+        RT.block<3, 1>(0, 3) = translation;
+        best_decomposition = std::make_pair(are_in_front, RT);
       }
     }
   }
