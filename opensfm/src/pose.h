@@ -58,13 +58,12 @@ Eigen::Matrix<double, 3, 4> RelativePoseFromEssential(
             bearings.col(1).dot(rotation * point + translation) > 0.0;
         are_in_front += is_in_front;
 
-        const auto maximum_possible = are_in_front + (it - begin);
+        const auto maximum_possible = are_in_front + (end - it);
         if (maximum_possible < best_decomposition.first) {
           break;
         }
       }
 
-      std::cout << are_in_front << std::endl;
       if (are_in_front > best_decomposition.first) {
         Eigen::Matrix<double, 3, 4> RT;
         RT.block<3, 3>(0, 0) = rotation;
