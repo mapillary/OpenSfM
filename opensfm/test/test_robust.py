@@ -127,7 +127,7 @@ def test_outliers_line_LMedS():
 
 
 def test_uniform_essential_ransac(one_pair_and_its_E):
-    f1, f2, E = one_pair_and_its_E
+    f1, f2, E, _ = one_pair_and_its_E
     points = np.concatenate((f1, f2), axis=1)
 
     scale = 1e-2
@@ -142,7 +142,7 @@ def test_uniform_essential_ransac(one_pair_and_its_E):
 
 
 def test_outliers_essential_ransac(one_pair_and_its_E):
-    f1, f2, E = one_pair_and_its_E
+    f1, f2, E, _ = one_pair_and_its_E
     points = np.concatenate((f1, f2), axis=1)
 
     scale = 1e-3

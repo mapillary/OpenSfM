@@ -5,12 +5,7 @@
 
 #include "numeric.h"
 #include "essential.h"
-
-
-struct Pose{
-  Eigen::Matrix3d rotation;
-  Eigen::Vector3d translation;
-};
+#include "pose.h"
 
 template <class T, int N, int M>
 class Model {
@@ -291,7 +286,7 @@ enum RansacType{
 
 namespace csfm {
 ScoreInfo<Line::MODEL> RANSACLine(const Eigen::Matrix<double, -1, 2>& points,
-                     double parameter, const RansacType& ransac_type) {
+                                  double parameter, const RansacType& ransac_type) {
   std::vector<Line::DATA> samples(points.rows());
   for (int i = 0; i < points.rows(); ++i) {
     samples[i] = points.row(i);
@@ -323,7 +318,8 @@ ScoreInfo<Line::MODEL> RANSACLine(const Eigen::Matrix<double, -1, 2>& points,
 using EssentialMatrixModel = EssentialMatrix<EpipolarGeodesic>;
 ScoreInfo<EssentialMatrixModel::MODEL> RANSACEssential(
     const Eigen::Matrix<double, -1, 3>& x1,
-    const Eigen::Matrix<double, -1, 3>& x2, double parameter,
+    const Eigen::Matrix<double, -1, 3>& x2, double threshold,
+    const RobustEstimatorParams& parameters,
     const RansacType& ransac_type) {
   if((x1.cols() != x2.cols()) || (x1.rows() != x2.rows())){
     throw std::runtime_error("Features matrices have different sizes.");
@@ -335,27 +331,44 @@ ScoreInfo<EssentialMatrixModel::MODEL> RANSACEssential(
     samples[i].second = x2.row(i);
   }
 
-  RobustEstimatorParams params;
   switch(ransac_type){
     case RANSAC:
     {
-      RansacScoring scorer(parameter);
-      RobustEstimator<RansacScoring, EssentialMatrixModel> ransac(samples, scorer, params);
+      RansacScoring scorer(threshold);
+      RobustEstimator<RansacScoring, EssentialMatrixModel> ransac(samples, scorer, parameters);
       return ransac.Estimate();
     }
     case MSAC:
     {
-      MSacScoring scorer(parameter);
-      RobustEstimator<MSacScoring, EssentialMatrixModel> ransac(samples, scorer, params);
+      MSacScoring scorer(threshold);
+      RobustEstimator<MSacScoring, EssentialMatrixModel> ransac(samples, scorer, parameters);
       return ransac.Estimate();
     }
     case LMedS:
     {
-      LMedSScoring scorer(parameter);
-      RobustEstimator<LMedSScoring, EssentialMatrixModel> ransac(samples, scorer, params);
+      LMedSScoring scorer(threshold);
+      RobustEstimator<LMedSScoring, EssentialMatrixModel> ransac(samples, scorer, parameters);
       return ransac.Estimate();
     }
   }
+}
+
+Eigen::Matrix<double, 3, 4> RANSACRelativePose(
+    const Eigen::Matrix<double, -1, 3>& x1,
+    const Eigen::Matrix<double, -1, 3>& x2, 
+    double threshold, int max_iterations, double probability) {
+  RobustEstimatorParams params;
+  params.iterations = max_iterations;
+  params.probability = probability;
+  params.probability = probability;
+  const auto result = RANSACEssential(x1, x2, threshold, params, RansacType::RANSAC);
+
+  std::vector<EssentialMatrixModel::DATA> samples(x1.rows());
+  for (int i = 0; i < x1.rows(); ++i) {
+    samples[i].first = x1.row(i);
+    samples[i].second = x2.row(i);
+  }
+  return ::RelativePoseFromEssential(result.model, samples.begin(), samples.end());
 }
 
 }  // namespace csfm

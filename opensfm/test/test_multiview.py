@@ -34,7 +34,7 @@ def test_motion_from_plane_homography():
 
 
 def test_essential(one_pair_and_its_E):
-    f1, f2, E = one_pair_and_its_E
+    f1, f2, E, _ = one_pair_and_its_E
 
     result = csfm.essential_five_points(f1[0:5, :], f2[0:5, :])
 
@@ -49,3 +49,13 @@ def test_essential(one_pair_and_its_E):
             exact_found = True
 
     assert exact_found
+
+
+def test_relative_pose_from_essential(one_pair_and_its_E):
+    f1, f2, E, pose = one_pair_and_its_E
+
+    result = csfm.relative_pose_from_essential(E, f1[0:5, :], f2[0:5, :])
+
+    pose.translation /= np.linalg.norm(pose.translation)
+    expected = pose.get_Rt()
+    assert np.allclose(expected, result, rtol=1e-10)

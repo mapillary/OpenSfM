@@ -7,7 +7,7 @@
 #include "types.h"
 #include "hahog.cc"
 #include "matching.h"
-#include "multiview.cc"
+#include "triangulation.h"
 #include "akaze_bind.h"
 #include "matching.h"
 #include "bundle/bundle_adjuster.h"
@@ -90,9 +90,11 @@ PYBIND11_MODULE(csfm, m) {
   m.def("triangulate_bearings_dlt", csfm::TriangulateBearingsDLT);
   m.def("triangulate_bearings_midpoint", csfm::TriangulateBearingsMidpoint);
   m.def("essential_five_points", csfm::EssentialFivePoints);
+  m.def("relative_pose_from_essential", csfm::RelativePoseFromEssential);
 
   m.def("ransac_line", csfm::RANSACLine);
   m.def("ransac_essential", csfm::RANSACEssential);
+  m.def("ransac_relative_pose", csfm::RANSACRelativePose);
 
   py::enum_<RansacType>(m, "RansacType")
       .value("RANSAC", RansacType::RANSAC)
