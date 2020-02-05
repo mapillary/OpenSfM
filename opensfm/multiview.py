@@ -7,6 +7,7 @@ import cv2
 import numpy as np
 import pyopengv
 
+from opensfm import csfm
 from opensfm import transformations as tf
 
 
@@ -581,9 +582,17 @@ def absolute_pose_ransac(bs, Xs, method, threshold, iterations, probabilty):
 def relative_pose_ransac(b1, b2, method, threshold, iterations, probability):
     # in-house estimation
     if method == 'mapillary':
-        return csfm.relative_pose_ransac(b1, b2, method, threshold,
-                                         iterations=iterations,
-                                         probability=probability)
+        threshold = np.arccos(1 - threshold)
+        params = csfm.RobustEstimatorParams()
+        params.iterations = 1000
+        result = csfm.ransac_relative_pose(b1, b2, threshold, params, csfm.RansacType.RANSAC)
+
+        Rt = result.model.copy()
+        R, t = Rt[:3, :3], Rt[:, 3]
+        Rt[:3, :3] = R.T
+        Rt[:, 3] = -R.T.dot(t)
+        return Rt
+
     # fallback to opengv
     else:
         try:
