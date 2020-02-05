@@ -1,74 +1,50 @@
 
-#include <iostream>
-#include <fstream>
-#include <string>
-#include "types.h"
-#include <Eigen/SVD>
-#include <Eigen/LU>
-#include <Eigen/QR>
-#include <Eigen/StdVector>
-
+#include "triangulation.h"
 
 namespace csfm {
 
-
-typedef std::vector<Eigen::Matrix<double, 3, 4>, Eigen::aligned_allocator<Eigen::Matrix<double, 3, 4> > > vector_mat34;
-
-enum {
-  TRIANGULATION_OK = 0,
-  TRIANGULATION_SMALL_ANGLE,
-  TRIANGULATION_BEHIND_CAMERA,
-  TRIANGULATION_BAD_REPROJECTION
-};
-
-
-double AngleBetweenVectors(const Eigen::Vector3d &u,
-                           const Eigen::Vector3d &v) {
-    double c = (u.dot(v))
-               / sqrt(u.dot(u) * v.dot(v));
-    if (c >= 1.0) return 0.0;
-    else return acos(c);
+double AngleBetweenVectors(const Eigen::Vector3d &u, const Eigen::Vector3d &v) {
+  double c = (u.dot(v)) / sqrt(u.dot(u) * v.dot(v));
+  if (c >= 1.0)
+    return 0.0;
+  else
+    return acos(c);
 }
-
 
 py::list TriangulateReturn(int error, py::object value) {
-    py::list retn;
-    retn.append(error);
-    retn.append(value);
-    return retn;
+  py::list retn;
+  retn.append(error);
+  retn.append(value);
+  return retn;
 }
-
 
 Eigen::Vector4d TriangulateBearingsDLTSolve(
     const Eigen::Matrix<double, 3, Eigen::Dynamic> &bs,
-    const vector_mat34 &Rts) {
+    const std::vector<Eigen::Matrix<double, 3, 4> > &Rts) {
   int nviews = bs.cols();
   assert(nviews == Rts.size());
 
   Eigen::MatrixXd A(2 * nviews, 4);
   for (int i = 0; i < nviews; i++) {
-    A.row(2 * i    ) = bs(0, i) * Rts[i].row(2) - bs(2, i) * Rts[i].row(0);
+    A.row(2 * i) = bs(0, i) * Rts[i].row(2) - bs(2, i) * Rts[i].row(0);
     A.row(2 * i + 1) = bs(1, i) * Rts[i].row(2) - bs(2, i) * Rts[i].row(1);
   }
 
-  Eigen::JacobiSVD< Eigen::MatrixXd > mySVD(A, Eigen::ComputeFullV );
+  Eigen::JacobiSVD<Eigen::MatrixXd> mySVD(A, Eigen::ComputeFullV);
   Eigen::Vector4d worldPoint;
-  worldPoint[0] = mySVD.matrixV()(0,3);
-  worldPoint[1] = mySVD.matrixV()(1,3);
-  worldPoint[2] = mySVD.matrixV()(2,3);
-  worldPoint[3] = mySVD.matrixV()(3,3);
+  worldPoint[0] = mySVD.matrixV()(0, 3);
+  worldPoint[1] = mySVD.matrixV()(1, 3);
+  worldPoint[2] = mySVD.matrixV()(2, 3);
+  worldPoint[3] = mySVD.matrixV()(3, 3);
 
   return worldPoint;
 }
 
-
 py::object TriangulateBearingsDLT(const py::list &Rts_list,
-                                  const py::list &bs_list,
-                                  double threshold,
+                                  const py::list &bs_list, double threshold,
                                   double min_angle) {
-
   int n = py::len(Rts_list);
-  vector_mat34 Rts;
+  std::vector<Eigen::Matrix<double, 3, 4> > Rts;
   Eigen::Matrix<double, 3, Eigen::Dynamic> bs(3, n);
   Eigen::MatrixXd vs(3, n);
   bool angle_ok = false;
@@ -88,8 +64,8 @@ py::object TriangulateBearingsDLT(const py::list &Rts_list,
     // Check angle between rays
     if (!angle_ok) {
       Eigen::Vector3d xh;
-      xh << b(0,0), b(1,0), b(2,0);
-      Eigen::Vector3d v = Rt.block<3,3>(0,0).transpose().inverse() * xh;
+      xh << b(0, 0), b(1, 0), b(2, 0);
+      Eigen::Vector3d v = Rt.block<3, 3>(0, 0).transpose().inverse() * xh;
       vs.col(i) << v(0), v(1), v(2);
 
       for (int j = 0; j < i; ++j) {
@@ -118,14 +94,12 @@ py::object TriangulateBearingsDLT(const py::list &Rts_list,
 
     double error = AngleBetweenVectors(x_reproj, b);
     if (error > threshold) {
-     return TriangulateReturn(TRIANGULATION_BAD_REPROJECTION, py::none());
+      return TriangulateReturn(TRIANGULATION_BAD_REPROJECTION, py::none());
     }
   }
 
-  return TriangulateReturn(TRIANGULATION_OK,
-                           py_array_from_data(X.data(), 3));
+  return TriangulateReturn(TRIANGULATION_OK, py_array_from_data(X.data(), 3));
 }
-
 
 // Point minimizing the squared distance to all rays
 // Closed for solution from
@@ -154,7 +128,6 @@ Eigen::Vector3d TriangulateBearingsMidpointSolve(
   return (Eigen::Matrix3d::Identity() + BBt * Cinv) * A / nviews - Cinv * BBtA;
 }
 
-
 py::object TriangulateBearingsMidpoint(const py::list &os_list,
                                        const py::list &bs_list,
                                        const py::list &threshold_list,
@@ -169,8 +142,8 @@ py::object TriangulateBearingsMidpoint(const py::list &os_list,
     pyarray_d b_array = bs_list[i].cast<pyarray_d>();
     const double *o = o_array.data();
     const double *b = b_array.data();
-    os.col(i) <<  o[0], o[1], o[2];
-    bs.col(i) <<  b[0], b[1], b[2];
+    os.col(i) << o[0], o[1], o[2];
+    bs.col(i) << b[0], b[1], b[2];
   }
 
   // Check angle between rays
@@ -206,10 +179,7 @@ py::object TriangulateBearingsMidpoint(const py::list &os_list,
     }
   }
 
-  return TriangulateReturn(TRIANGULATION_OK,
-                           py_array_from_data(X.data(), 3));
+  return TriangulateReturn(TRIANGULATION_OK, py_array_from_data(X.data(), 3));
 }
 
-
-}
-
+}  // namespace csfm

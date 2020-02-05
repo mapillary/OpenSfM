@@ -579,14 +579,21 @@ def absolute_pose_ransac(bs, Xs, method, threshold, iterations, probabilty):
 
 
 def relative_pose_ransac(b1, b2, method, threshold, iterations, probability):
-    try:
-        return pyopengv.relative_pose_ransac(b1, b2, method, threshold,
-                                             iterations=iterations,
-                                             probability=probability)
-    except Exception:
-        # Older versions of pyopengv do not accept the probability argument.
-        return pyopengv.relative_pose_ransac(b1, b2, method, threshold,
-                                             iterations)
+    # in-house estimation
+    if method == 'mapillary':
+        return csfm.relative_pose_ransac(b1, b2, method, threshold,
+                                         iterations=iterations,
+                                         probability=probability)
+    # fallback to opengv
+    else:
+        try:
+            return pyopengv.relative_pose_ransac(b1, b2, method, threshold,
+                                                iterations=iterations,
+                                                probability=probability)
+        except Exception:
+            # Older versions of pyopengv do not accept the probability argument.
+            return pyopengv.relative_pose_ransac(b1, b2, method, threshold,
+                                                iterations)
 
 
 def relative_pose_ransac_rotation_only(b1, b2, threshold, iterations,

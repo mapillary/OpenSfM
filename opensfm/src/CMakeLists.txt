@@ -117,6 +117,7 @@ pybind11_add_module(csfm
     akaze_bind.cc
     matching.cc
     depthmap.cc
+    triangulation.cc
 )
 target_link_libraries(csfm PRIVATE
     ${OpenCV_LIBS}
