@@ -220,7 +220,7 @@ def bundle(graph, reconstruction, camera_priors, gcp, config):
         config['radial_distorsion_p2_sd'],
         config['radial_distorsion_k3_sd'])
     ba.set_num_threads(config['processes'])
-    ba.set_max_num_iterations(50)
+    ba.set_max_num_iterations(config['bundle_max_iterations'])
     ba.set_linear_solver_type("SPARSE_SCHUR")
 
     chrono.lap('setup')
