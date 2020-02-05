@@ -54,7 +54,7 @@ def test_essential(one_pair_and_its_E):
 def test_relative_pose_from_essential(one_pair_and_its_E):
     f1, f2, E, pose = one_pair_and_its_E
 
-    result = csfm.relative_pose_from_essential(E, f1[0:5, :], f2[0:5, :])
+    result = csfm.relative_pose_from_essential(E, f1, f2)
 
     pose.translation /= np.linalg.norm(pose.translation)
     expected = pose.get_Rt()
