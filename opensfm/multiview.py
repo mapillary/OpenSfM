@@ -109,15 +109,15 @@ def vector_angle(u, v):
     """Angle between two vectors.
 
     >>> u = [ 0.99500417, -0.33333333, -0.09983342]
-    >>> v = [ 0.99500417, -0.33333333, -0.09983342]
-    >>> vector_angle(u, v)
+    >>> v = [ -0.99500417, +0.33333333, +0.09983342]
+    >>> vector_angle(u, u)
     0.0
+    >>> np.isclose(vector_angle(u, v), np.pi)
+    True
     """
     cos = np.dot(u, v) / math.sqrt(np.dot(u, u) * np.dot(v, v))
-    if cos >= 1.0:
-        return 0.0
-    else:
-        return math.acos(cos)
+    cos = np.clip(cos, -1, 1)
+    return math.acos(cos)
 
 
 def vector_angle_many(u, v):
