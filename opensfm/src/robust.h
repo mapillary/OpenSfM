@@ -255,25 +255,38 @@ class RobustEstimator{
 
   ScoreInfo<typename MODEL::MODEL> Estimate(){
     ScoreInfo<typename MODEL::MODEL> best_score;
-    for( int i = 0; i < params_.iterations; ++i){
+    bool should_stop = false;
+    for( int i = 0; i < params_.iterations && !should_stop; ++i){
       const auto random_samples = GetRandomSamples();
       typename MODEL::MODEL models[MODEL::MAX_MODELS];
       const auto models_count = MODEL::Model(random_samples.begin(), random_samples.end(), &models[0]);
-      for(int i = 0; i < models_count; ++i){
+      for(int i = 0; i < models_count && !should_stop; ++i){
         auto errors = MODEL::Errors(
             models[i], samples_.begin(), samples_.end());
         ScoreInfo<typename MODEL::MODEL> score = scorer_.Score(errors.begin(), errors.end(), best_score);
         score.model = models[i];
         best_score = std::max(score, best_score);
+        should_stop = ShouldStop(best_score, i);
       }
     }
     return best_score;
   }
 
-  const std::vector<typename MODEL::DATA> samples_;
-  SCORING scorer_;
-  RobustEstimatorParams params_;
-  RandomSamplesGenerator random_generator_;
+private:
+ bool ShouldStop(const ScoreInfo<typename MODEL::MODEL>& best_score,
+                 int iteration) {
+   const double inliers_ratio = double(best_score.inliers_indices.size()) / samples_.size();
+   const double proba_one_outlier =
+       std::min(1.0 - std::numeric_limits<double>::epsilon(),
+                1.0 - std::pow(inliers_ratio, double(MODEL::MINIMAL_SAMPLES)));
+   const auto max_iterations = std::log(1.0 - params_.probability) / std::log(proba_one_outlier);
+   return max_iterations < iteration;
+ }
+
+ const std::vector<typename MODEL::DATA> samples_;
+ SCORING scorer_;
+ RobustEstimatorParams params_;
+ RandomSamplesGenerator random_generator_;
 };
 
 enum RansacType{
