@@ -40,7 +40,7 @@ template <class T1, class T2, class T3>
 Eigen::Matrix<MatrixType<T1>, 3, 1> RelativeRotationError(const T1& Ri,
                                                           const T2& Rj,
                                                           const T3& Rij) {
-  return MultRotations(Rij, Ri, (-Rj).eval());
+  return MultRotations(Rij, (-Ri).eval(), -Rj);
 }
 
 // apply a rotation R to a vector x as R*x
@@ -58,7 +58,7 @@ Eigen::Matrix<MatrixType<T1>, 3, 1> RotatePoint(const T1& R, const T2& x) {
 // in world coordinates : c = -R^t*t
 template <class T1, class T2>
 Eigen::Matrix<MatrixType<T1>, 3, 1> OriginFromRT(const T1& R, const T2& t) {
-  return -RotatePoint((-R).eval(), t);
+  return t;
 }
 
 // apply a similarity transform of scale s, rotation R and translation t
@@ -66,5 +66,5 @@ Eigen::Matrix<MatrixType<T1>, 3, 1> OriginFromRT(const T1& R, const T2& t) {
 template <class T1, class T2, class T3, class T4>
 Eigen::Matrix<MatrixType<T2>, 3, 1> ApplySimilarity(const T1& s, const T2& R, 
                                                     const T3& t, const T4& x) {
-  return s * RotatePoint(R, x) + t;
+  return RotatePoint((-R).eval(), (s * x - t).eval());
 }

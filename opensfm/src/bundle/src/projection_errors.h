@@ -29,10 +29,17 @@ template <typename T>
 void WorldToCameraCoordinates(const T* const shot,
                               const T world_point[3],
                               T camera_point[3]) {
-  ceres::AngleAxisRotatePoint(shot + BA_SHOT_RX, world_point, camera_point);
-  camera_point[0] += shot[BA_SHOT_TX];
-  camera_point[1] += shot[BA_SHOT_TY];
-  camera_point[2] += shot[BA_SHOT_TZ];
+  const T pt[3] = {
+    world_point[0] - shot[BA_SHOT_TX],
+    world_point[1] - shot[BA_SHOT_TY],
+    world_point[2] - shot[BA_SHOT_TZ]
+  };
+  const T Rt[3] = {
+    -shot[BA_SHOT_RX],
+    -shot[BA_SHOT_RY],
+    -shot[BA_SHOT_RZ]
+  };
+  ceres::AngleAxisRotatePoint(Rt, pt, camera_point);
 }
 
 template <typename T>

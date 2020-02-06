@@ -109,8 +109,7 @@ void BundleAdjuster::AddShot(const std::string &id,
   BAShot s;
   s.id = id;
   s.camera = camera;
-  s.SetRotation(rotation);
-  s.SetTranslation(translation);
+  s.SetRotationAndTranslation(rotation, translation);
   s.constant = constant;
   shots_[id] = s;
 }
@@ -333,20 +332,6 @@ void BundleAdjuster::AddPointPositionShot(const std::string &point_id,
   a.std_deviation = std_deviation;
   a.type = type;
   point_positions_shot_.push_back(a);
-}
-
-void BundleAdjuster::AddPointBearingShot(const std::string &point_id,
-                                             const std::string &shot_id,
-                                             const std::string &reconstruction_id,
-                                             const Eigen::Vector3d& bearing,
-                                             double std_deviation) {
-  BAPointBearingShot a;
-  a.point_id = point_id;
-  a.shot_id = shot_id;
-  a.reconstruction_id = reconstruction_id;
-  a.bearing = bearing;
-  a.std_deviation = std_deviation;
-  point_bearing_shot_.push_back(a);
 }
 
 void BundleAdjuster::AddPointPositionWorld(const std::string &point_id,
@@ -902,24 +887,6 @@ void BundleAdjuster::Run() {
         BAAbsolutePositionError<PointPositionScaledShot>>(
         new BAAbsolutePositionError<PointPositionScaledShot>(
             pos_func, p.position, p.std_deviation, false, p.type));
-
-    cost_function->AddParameterBlock(6);
-    cost_function->AddParameterBlock(1);
-    cost_function->AddParameterBlock(3);
-    cost_function->SetNumResiduals(3);
-
-    problem.AddResidualBlock(cost_function, NULL, 
-                             shots_[p.shot_id].parameters.data(),
-                             reconstructions_[p.reconstruction_id].GetScalePtr(p.shot_id), 
-                             points_[p.point_id].parameters.data());
-  }
-
-    // Add point with shot projection
-  for (auto &p : point_bearing_shot_) {
-    PointPositionScaledShot pos_func(0, 1, 2);
-    auto *cost_function = new ceres::DynamicAutoDiffCostFunction<
-        BABearingError<PointPositionScaledShot>>(
-        new BABearingError<PointPositionScaledShot>(p.bearing, p.std_deviation, pos_func));
 
     cost_function->AddParameterBlock(6);
     cost_function->AddParameterBlock(1);

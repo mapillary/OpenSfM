@@ -7,6 +7,7 @@
 #include <string>
 
 #include "ceres/ceres.h"
+#include "ceres/rotation.h"
 
 extern "C" {
 #include <string.h>
@@ -165,12 +166,34 @@ struct BAShot {
   double covariance[BA_SHOT_NUM_PARAMS * BA_SHOT_NUM_PARAMS];
   bool constant;
 
-  Eigen::Vector3d GetRotation() const {return parameters.segment<3>(BA_SHOT_RX);}
-  Eigen::Vector3d GetTranslation() const {return parameters.segment<3>(BA_SHOT_TX);}
+  Eigen::Vector3d GetRotation() const {
+    Eigen::Vector3d r;
+    Eigen::Vector3d t;
+    InvertTransform_(&parameters[BA_SHOT_RX], &parameters[BA_SHOT_TX], &r[0], &t[0]);
+    return r;
+  }
+  Eigen::Vector3d GetTranslation() const {
+    Eigen::Vector3d r;
+    Eigen::Vector3d t;
+    InvertTransform_(&parameters[BA_SHOT_RX], &parameters[BA_SHOT_TX], &r[0], &t[0]);
+    return t;
+  }
   double GetCovariance(int i, int j) { return covariance[i * BA_SHOT_NUM_PARAMS + j]; }
 
-  void SetRotation(const Eigen::Vector3d &r) {parameters.segment<3>(BA_SHOT_RX) = r;}
-  void SetTranslation(const Eigen::Vector3d &t) {parameters.segment<3>(BA_SHOT_TX) = t;}
+  void SetRotationAndTranslation(const Eigen::Vector3d &r, const Eigen::Vector3d &t) {
+    InvertTransform_(&r[0], &t[0], &parameters[BA_SHOT_RX], &parameters[BA_SHOT_TX]);
+  }
+
+  void InvertTransform_(const double *r, const double *t, double *rinv, double *tinv) const {
+    // Rinv = R^t  tinv = -R^t * t
+    rinv[0] = -r[0];
+    rinv[1] = -r[1];
+    rinv[2] = -r[2];
+    ceres::AngleAxisRotatePoint(rinv, t, tinv);
+    tinv[0] = -tinv[0];
+    tinv[1] = -tinv[1];
+    tinv[2] = -tinv[2];
+  }
 };
 
 struct BAPoint {
@@ -396,14 +419,6 @@ struct BAPointPositionShot {
   PositionConstraintType type;
 };
 
-struct BAPointBearingShot {
-  std::string shot_id;
-  std::string reconstruction_id;
-  std::string point_id;
-  Eigen::Vector3d bearing;
-  double std_deviation;
-};
-
 struct BAPointPositionWorld {
   std::string point_id;
   Eigen::Vector3d position;
@@ -560,13 +575,6 @@ class BundleAdjuster {
                              double std_deviation,
                              const PositionConstraintType& type);
 
-  // point bearing
-  void AddPointBearingShot(const std::string &point_id,
-                           const std::string &shot_id,
-                           const std::string &reconstruction_id,
-                           const Eigen::Vector3d& bearing,
-                           double std_deviation);
-
   // minimization setup
   void SetPointProjectionLossFunction(std::string name, double threshold);
   void SetRelativeMotionLossFunction(std::string name, double threshold);
@@ -649,7 +657,6 @@ class BundleAdjuster {
 
   // points absolute constraints
   std::vector<BAPointPositionShot> point_positions_shot_;
-  std::vector<BAPointBearingShot> point_bearing_shot_;
   std::vector<BAPointPositionWorld> point_positions_world_;
 
   // Camera parameters prior

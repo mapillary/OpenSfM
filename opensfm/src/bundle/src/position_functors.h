@@ -12,9 +12,8 @@ struct ShotPositionShotParam{
   template <typename T>
   Eigen::Matrix<T,3,1> operator()(T const* const* p)const{
     const T* const shot = p[index_];
-    Eigen::Map< const Eigen::Matrix<T,3,1> > R(shot + BA_SHOT_RX);
     Eigen::Map< const Eigen::Matrix<T,3,1> > t(shot + BA_SHOT_TX);
-    return OriginFromRT(R, t);
+    return t;
   }
   const int index_{-1};
 };

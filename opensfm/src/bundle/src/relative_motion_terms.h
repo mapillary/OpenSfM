@@ -21,13 +21,13 @@ struct BARelativeMotionError {
     Eigen::Map< const Eigen::Matrix<T,3,1> > tj(shot_j + BA_SHOT_TX);
     Eigen::Matrix<T,6,1> residual;
 
-    // Compute rotation residual: log( Rij Ri Rj^t )
+    // Compute rotation residual: log( Rij Ri Rj^t )  ->  log( Rij Ri^t Rj)
     const Eigen::Matrix<T,3,1> Rij = Rtij_.segment<3>(BA_SHOT_RX).cast<T>();
     residual.segment(0, 3) = RelativeRotationError(Ri, Rj, Rij);
 
-    // Compute translation residual: tij - scale * ( tj - Rj Ri^t ti )
+    // Compute translation residual: tij - scale * ( tj - Rj Ri^t ti )  ->  tij - scale * Rj^t * (ti - tj)
     const auto tij = Rtij_.segment<3>(BA_SHOT_TX).cast<T>();
-    residual.segment(3, 3) = tij - scale[0] * (tj - RotatePoint(Rj, RotatePoint((-Ri).eval(), ti)));
+    residual.segment(3, 3) = tij - scale[0] * RotatePoint((-Rj).eval(), (ti - tj).eval());
     return residual;
   }
 

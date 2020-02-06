@@ -113,7 +113,6 @@ def test_pair_with_shot_point():
     sa.add_relative_motion(csfm.BARelativeMotion('12', '1', '12', '2', [0, 0, 0], [-1, 0, 0], 1))
     sa.add_point_position_shot('p1', '1', '12', [1, 0, 0], 1,  csfm.XYZ)
     sa.add_point_position_shot('p1', '2', '12', [-1, 0, 0], 1,  csfm.XYZ)
-    sa.add_point_bearing_shot('p1', '1', '12', [1, 0, 0], 2e-3)
     sa.add_point_position_world('p1', [1, 0, 0], 1,  csfm.XYZ)
 
     sa.run()
