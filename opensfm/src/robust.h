@@ -63,7 +63,6 @@ class EssentialMatrix : public Model<EssentialMatrix<E>, 1, 10> {
     return essentials.size();
   }
 
-  template <class MODEL, class DATA>
   static ERROR Error(const MODEL& model, const DATA& d){
     const auto x = d.first;
     const auto y = d.second;
@@ -71,6 +70,57 @@ class EssentialMatrix : public Model<EssentialMatrix<E>, 1, 10> {
     e[0] = E::Error(model, x, y);
     return e;
   }
+};
+
+class RelativePose : public Model<RelativePose, 1, 10> {
+ public:
+  using MODEL = Eigen::Matrix<double, 3, 4>;
+  using DATA = std::pair<Eigen::Vector3d, Eigen::Vector3d>;
+  static const int MINIMAL_SAMPLES = 5;
+
+  template <class IT>
+  static int Model(IT begin, IT end, MODEL* models){
+    const auto essentials = EssentialFivePoints(begin, end);
+    for(int i = 0; i < essentials.size(); ++i){
+      models[i] = RelativePoseFromEssential(essentials[i], begin, end);
+    }
+    return essentials.size();
+  }
+
+  static ERROR Error(const MODEL& model, const DATA& d){
+    const auto rotation = model.block<3, 3>(0, 0);
+    const auto translation = model.block<3, 1>(0, 3);
+    const auto x = d.first.normalized();
+    const auto y = d.second.normalized();
+
+    Eigen::Matrix<double, 3, 2> bearings;
+    Eigen::Matrix<double, 3, 2> centers;
+    centers.col(0) << Eigen::Vector3d::Zero();
+    centers.col(1) << -rotation.transpose()*translation;
+    bearings.col(0) << x;
+    bearings.col(1) << rotation.transpose()*y;
+    const auto point = csfm::TriangulateBearingsMidpointSolve(centers, bearings);
+    const auto projected_x = point.normalized();
+    const auto projected_y = (rotation*point+translation).normalized();
+
+    ERROR e;
+    e[0] = std::acos((projected_x.dot(x) + projected_y.dot(y))*0.5);
+    return e;
+  }
+};
+
+template< class T >
+class LOAdapter : public T {
+  using typename T::ERROR;
+  using typename T::MODEL;
+  using typename T::DATA;
+  using typename T::MINIMAL_SAMPLES;
+  using typename T::Model;
+  using typename T::Error;
+};
+
+template<class E>
+class LOAdapter<EssentialMatrix<E>> {
 };
 
 class Line : public Model<Line, 1, 1> {
@@ -89,7 +139,6 @@ class Line : public Model<Line, 1, 1> {
     return 1;
   }
 
-  template <class MODEL, class DATA>
   static ERROR Error(const MODEL& model, const DATA& d){
     const auto a = model[0];
     const auto b = model[1];
@@ -257,15 +306,28 @@ class RobustEstimator{
     ScoreInfo<typename MODEL::MODEL> best_score;
     bool should_stop = false;
     for( int i = 0; i < params_.iterations && !should_stop; ++i){
+
+      // Generate and compute some models
       const auto random_samples = GetRandomSamples();
       typename MODEL::MODEL models[MODEL::MAX_MODELS];
       const auto models_count = MODEL::Model(random_samples.begin(), random_samples.end(), &models[0]);
       for(int i = 0; i < models_count && !should_stop; ++i){
+
+        // Compute model's errors
         auto errors = MODEL::Errors(
             models[i], samples_.begin(), samples_.end());
+
+        // Compute score based on errors
         ScoreInfo<typename MODEL::MODEL> score = scorer_.Score(errors.begin(), errors.end(), best_score);
         score.model = models[i];
+  
+        // Keep the best score (bigger, the better)
         best_score = std::max(score, best_score);
+        if( true ){
+          LOAdapter<MODEL> LO_model;
+        }
+
+        // Based on actual inliers ratio, we might stop here
         should_stop = ShouldStop(best_score, i);
       }
     }
@@ -295,6 +357,34 @@ enum RansacType{
   LMedS = 2
 };
 
+template<class MODEL>
+ScoreInfo<typename MODEL::MODEL> RunEstimation(const std::vector<typename MODEL::DATA>& samples, double threshold,
+                               const RobustEstimatorParams& parameters,
+                               const RansacType& ransac_type){
+  switch(ransac_type){
+    case RANSAC:
+    {
+      RansacScoring scorer(threshold);
+      RobustEstimator<RansacScoring, MODEL> ransac(samples, scorer, parameters);
+      return ransac.Estimate();
+    }
+    case MSAC:
+    {
+      MSacScoring scorer(threshold);
+      RobustEstimator<MSacScoring, MODEL> ransac(samples, scorer, parameters);
+      return ransac.Estimate();
+    }
+    case LMedS:
+    {
+      LMedSScoring scorer(threshold);
+      RobustEstimator<LMedSScoring, MODEL> ransac(samples, scorer, parameters);
+      return ransac.Estimate();
+    }
+    default:
+      throw std::runtime_error("Unsupported RANSAC type.");
+  }
+}
+
 namespace csfm {
 ScoreInfo<Line::MODEL> RANSACLine(const Eigen::Matrix<double, -1, 2>& points,
                                   double threshold,
@@ -304,27 +394,7 @@ ScoreInfo<Line::MODEL> RANSACLine(const Eigen::Matrix<double, -1, 2>& points,
   for (int i = 0; i < points.rows(); ++i) {
     samples[i] = points.row(i);
   }
-
-  switch(ransac_type){
-    case RANSAC:
-    {
-      RansacScoring scorer(threshold);
-      RobustEstimator<RansacScoring, Line> ransac(samples, scorer, parameters);
-      return ransac.Estimate();
-    }
-    case MSAC:
-    {
-      MSacScoring scorer(threshold);
-      RobustEstimator<MSacScoring, Line> ransac(samples, scorer, parameters);
-      return ransac.Estimate();
-    }
-    case LMedS:
-    {
-      LMedSScoring scorer(threshold);
-      RobustEstimator<LMedSScoring, Line> ransac(samples, scorer, parameters);
-      return ransac.Estimate();
-    }
-  }
+  return RunEstimation<Line>(samples, threshold, parameters, ransac_type);
 }
 
 using EssentialMatrixModel = EssentialMatrix<EpipolarGeodesic>;
@@ -342,27 +412,7 @@ ScoreInfo<EssentialMatrixModel::MODEL> RANSACEssential(
     samples[i].first = x1.row(i);
     samples[i].second = x2.row(i);
   }
-
-  switch(ransac_type){
-    case RANSAC:
-    {
-      RansacScoring scorer(threshold);
-      RobustEstimator<RansacScoring, EssentialMatrixModel> ransac(samples, scorer, parameters);
-      return ransac.Estimate();
-    }
-    case MSAC:
-    {
-      MSacScoring scorer(threshold);
-      RobustEstimator<MSacScoring, EssentialMatrixModel> ransac(samples, scorer, parameters);
-      return ransac.Estimate();
-    }
-    case LMedS:
-    {
-      LMedSScoring scorer(threshold);
-      RobustEstimator<LMedSScoring, EssentialMatrixModel> ransac(samples, scorer, parameters);
-      return ransac.Estimate();
-    }
-  }
+  return RunEstimation<EssentialMatrixModel>(samples, threshold, parameters, ransac_type);
 }
 
 ScoreInfo<Eigen::Matrix<double, 3, 4>> RANSACRelativePose(
@@ -370,19 +420,16 @@ ScoreInfo<Eigen::Matrix<double, 3, 4>> RANSACRelativePose(
     const Eigen::Matrix<double, -1, 3>& x2, 
     double threshold, const RobustEstimatorParams& parameters,
     const RansacType& ransac_type) {
-  const auto essential_result = RANSACEssential(x1, x2, threshold, parameters, ransac_type);
-
-  std::vector<EssentialMatrixModel::DATA> samples(x1.rows());
+   if((x1.cols() != x2.cols()) || (x1.rows() != x2.rows())){
+    throw std::runtime_error("Features matrices have different sizes.");
+  }
+  
+  std::vector<RelativePose::DATA> samples(x1.rows());
   for (int i = 0; i < x1.rows(); ++i) {
     samples[i].first = x1.row(i);
     samples[i].second = x2.row(i);
   }
-
-  ScoreInfo<Eigen::Matrix<double, 3, 4>> relative_pose_result;
-  relative_pose_result.inliers_indices = essential_result.inliers_indices;
-  relative_pose_result.score = essential_result.score;
-  relative_pose_result.model = ::RelativePoseFromEssential(essential_result.model, samples.begin(), samples.end());
-  return relative_pose_result;
+  return RunEstimation<RelativePose>(samples, threshold, parameters, ransac_type);
 }
 
 }  // namespace csfm
