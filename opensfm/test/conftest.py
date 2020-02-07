@@ -67,12 +67,14 @@ def one_pair_and_its_E(pairs_and_poses):
     pairs, poses, camera = pairs_and_poses
 
     pairs = list(sorted(zip(pairs.values(), poses.values()), key=lambda x: -len(x[0])))
-    f1 = camera.pixel_bearing_many(np.array([x for x, _ in pairs[0][0]]))
-    f2 = camera.pixel_bearing_many(np.array([x for _, x in pairs[0][0]]))
+    pair = pairs[0]
 
-    pose = pairs[0][1]
+    f1 = camera.pixel_bearing_many(np.array([x for x, _ in pair[0]]))
+    f2 = camera.pixel_bearing_many(np.array([x for _, x in pair[0]]))
+
+    pose = pair[1]
     R = pose.get_rotation_matrix()
-    t_x = multiview.cross_product_matrix(pairs[0][1].get_origin())
+    t_x = multiview.cross_product_matrix(pose.get_origin())
     e = R.dot(t_x)
     e /= np.linalg.norm(e)
 

@@ -61,9 +61,9 @@ enum {
   coef_1
 };
 
-template <class IT>
+template <class IT, class MAT>
 inline void EncodeEpipolarEquation(IT begin, IT end,
-                                   Eigen::Matrix<double, 9, 9> *A) {
+                                   MAT *A) {
   for (IT it = begin; it != end; ++it) {
     int i = (it - begin);
     const auto x1 = it->first;
@@ -298,6 +298,32 @@ std::vector<Eigen::Matrix<double, 3, 3>> EssentialFivePoints(IT begin, IT end) {
   return Es;
 }
 
+template <class IT>
+std::vector<Eigen::Matrix<double, 3, 3>> EssentialNPoints(IT begin, IT end) {
+  const int count = end-begin;
+  Eigen::MatrixXd A(count, 9);
+  A.setZero();
+  EncodeEpipolarEquation(begin, end, &A);
+  
+  Eigen::VectorXd solution;
+  std::vector<Eigen::Matrix<double, 3, 3>> Es;
+  if(SolveAX0(A, &solution)){
+    Eigen::Matrix3d E = Eigen::Map<Eigen::Matrix3d>(solution.data()).transpose();
+    if (count > 8) {
+      Eigen::JacobiSVD<Eigen::Matrix3d> USV(E, Eigen::ComputeFullU | Eigen::ComputeFullV);
+
+      // Enforce essential matrix constraints
+      auto d = USV.singularValues();
+      const auto a = d[0];
+      const auto b = d[1];
+      d << (a+b)/2., (a+b)/2., 0.0;
+      E = USV.matrixU() * d.asDiagonal() * USV.matrixV().transpose();
+    }
+    Es.push_back(E);
+  }
+  return Es;
+}
+
 namespace csfm {
 std::vector<Eigen::Matrix<double, 3, 3>> EssentialFivePoints(
     const Eigen::Matrix<double, -1, 3> &x1,
@@ -312,4 +338,19 @@ std::vector<Eigen::Matrix<double, 3, 3>> EssentialFivePoints(
   }
   return ::EssentialFivePoints(samples.begin(), samples.end());
 }
+
+std::vector<Eigen::Matrix<double, 3, 3>> EssentialNPoints(
+    const Eigen::Matrix<double, -1, 3> &x1,
+    const Eigen::Matrix<double, -1, 3> &x2) {
+  if((x1.cols() != x2.cols()) || (x1.rows() != x2.rows())){
+    throw std::runtime_error("Features matrices have different sizes.");
+  }
+  std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>> samples(x1.rows());
+  for (int i = 0; i < x1.rows(); ++i) {
+    samples[i].first = x1.row(i);
+    samples[i].second = x2.row(i);
+  }
+  return ::EssentialNPoints(samples.begin(), samples.end());
+}
+
 }
