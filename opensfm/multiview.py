@@ -587,7 +587,7 @@ def relative_pose_ransac(b1, b2, method, threshold, iterations, probability):
         params.iterations = 1000
         result = csfm.ransac_relative_pose(b1, b2, threshold, params, csfm.RansacType.RANSAC)
 
-        Rt = result.model.copy()
+        Rt = result.lo_model.copy()
         R, t = Rt[:3, :3], Rt[:, 3]
         Rt[:3, :3] = R.T
         Rt[:, 3] = -R.T.dot(t)
