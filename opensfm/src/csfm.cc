@@ -31,6 +31,7 @@ void AddScoreType(py::module& m, const std::string& name) {
       .def(py::init())
       .def_readwrite("score", &ScoreInfo<T>::score)
       .def_readwrite("model", &ScoreInfo<T>::model)
+      .def_readwrite("lo_model", &ScoreInfo<T>::lo_model)
       .def_readwrite("inliers_indices", &ScoreInfo<T>::inliers_indices)
     ;
   }
@@ -97,6 +98,8 @@ PYBIND11_MODULE(csfm, m) {
     .def(py::init())
     .def_readwrite("iterations", &RobustEstimatorParams::iterations)
     .def_readwrite("probability", &RobustEstimatorParams::probability)
+    .def_readwrite("use_local_optimization", &RobustEstimatorParams::use_local_optimization)
+    .def_readwrite("use_iteration_reduction", &RobustEstimatorParams::use_iteration_reduction)
   ;
 
   m.def("ransac_line", csfm::RANSACLine);

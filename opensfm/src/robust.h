@@ -7,12 +7,34 @@
 #include "essential.h"
 #include "pose.h"
 
-template <class T, int N, int M>
+template< class T >
+class ModelAdapter {
+  public:
+  
+  using MODEL = typename T::MODEL;
+
+  template <class IT>
+  static int Model(IT begin, IT end, typename T::MODEL* models){
+    return T::Model(begin, end, models);
+  }
+
+  static typename T::ERROR Error(const typename T::MODEL& model, const typename T::DATA& d){
+    return T::Model(model, d);
+  }
+
+  template <class IT>
+  static std::vector<typename T::ERROR> Errors(const typename T::MODEL& model, IT begin, IT end) {
+    return T::Errors(model, begin, end);
+  }
+};
+
+template <class T, int N, int M, class L = ModelAdapter<T> >
 class Model {
  public:
   static const int SIZE = N;
   static const int MAX_MODELS = M;
   using ERROR = Eigen::Matrix<double, SIZE, 1>;
+  using LOMODEL = L;
 
   template <class IT, class MODEL>
   static std::vector<ERROR> Errors(const MODEL& model, IT begin, IT end) {
@@ -46,17 +68,33 @@ class EpipolarGeodesic{
   }
 };
 
-template< class E = EpipolarSymmetric >
-class EssentialMatrix : public Model<EssentialMatrix<E>, 1, 10> {
+class EssentialMatrixSolvingFivePoints{
+  public:
+  template< class IT>
+  static std::vector<Eigen::Matrix<double, 3, 3>> Solve(IT begin, IT end){
+    return EssentialFivePoints(begin, end);
+  }
+};
+
+class EssentialMatrixSolvingNPoints{
+  public:
+  template< class IT>
+  static std::vector<Eigen::Matrix<double, 3, 3>> Solve(IT begin, IT end){
+    return EssentialNPoints(begin, end);
+  }
+};
+
+template< class E = EpipolarSymmetric, class S = EssentialMatrixSolvingFivePoints >
+class EssentialMatrix : public Model<EssentialMatrix<E, S>, 1, 10, ModelAdapter<EssentialMatrix<E, EssentialMatrixSolvingNPoints> >> {
  public:
-  using ERROR = typename Model<EssentialMatrix<E>, 1, 10>::ERROR;
+  using ERROR = typename Model<EssentialMatrix<E, S>, 1, 10>::ERROR;
   using MODEL = Eigen::Matrix3d;
   using DATA = std::pair<Eigen::Vector3d, Eigen::Vector3d>;
   static const int MINIMAL_SAMPLES = 5;
 
   template <class IT>
   static int Model(IT begin, IT end, MODEL* models){
-    const auto essentials = EssentialFivePoints(begin, end);
+    const auto essentials = S::Solve(begin, end);
     for(int i = 0; i < essentials.size(); ++i){
       models[i] = essentials[i];
     }
@@ -72,15 +110,17 @@ class EssentialMatrix : public Model<EssentialMatrix<E>, 1, 10> {
   }
 };
 
-class RelativePose : public Model<RelativePose, 1, 10> {
+template< class S = EssentialMatrixSolvingFivePoints>
+class RelativePose : public Model<RelativePose<S>, 1, 10, ModelAdapter<RelativePose<EssentialMatrixSolvingNPoints> >> {
  public:
+  using ERROR = typename Model<RelativePose<S>, 1, 10>::ERROR;
   using MODEL = Eigen::Matrix<double, 3, 4>;
   using DATA = std::pair<Eigen::Vector3d, Eigen::Vector3d>;
   static const int MINIMAL_SAMPLES = 5;
 
   template <class IT>
   static int Model(IT begin, IT end, MODEL* models){
-    const auto essentials = EssentialFivePoints(begin, end);
+    const auto essentials = S::Solve(begin, end);
     for(int i = 0; i < essentials.size(); ++i){
       models[i] = RelativePoseFromEssential(essentials[i], begin, end);
     }
@@ -109,20 +149,6 @@ class RelativePose : public Model<RelativePose, 1, 10> {
   }
 };
 
-template< class T >
-class LOAdapter : public T {
-  using typename T::ERROR;
-  using typename T::MODEL;
-  using typename T::DATA;
-  using typename T::MINIMAL_SAMPLES;
-  using typename T::Model;
-  using typename T::Error;
-};
-
-template<class E>
-class LOAdapter<EssentialMatrix<E>> {
-};
-
 class Line : public Model<Line, 1, 1> {
  public:
   using MODEL = Eigen::Vector2d;
@@ -135,6 +161,11 @@ class Line : public Model<Line, 1, 1> {
     const auto x2 = *(++begin);
     const auto b = (x1[0]*x2[1] - x1[1]*x2[0])/(x1[0]-x2[0]);
     const auto a = (x1[1] - b)/x1[0];
+
+    if(std::isnan(a) || std::isnan(b)){
+      return 0;
+    }
+
     models[0] << a, b;
     return 1;
   }
@@ -149,11 +180,12 @@ class Line : public Model<Line, 1, 1> {
 
 };
 
-template< class MODEL >
+template< class MODEL, class LOMODEL = MODEL>
 struct ScoreInfo {
   double score{0};
   std::vector<int> inliers_indices;
   MODEL model;
+  LOMODEL lo_model;
 
   friend bool operator<(const ScoreInfo& s1, const ScoreInfo& s2) {
     if (s1.score < s2.score) {
@@ -268,7 +300,10 @@ class RandomSamplesGenerator{
       std::vector<int> indices(size);
       DISTRIBUTION distribution(0, range_max);
       for(int i = 0; i < size; ++i){
-        indices[i] = distribution(generator_);
+        do {
+          indices[i] = distribution(generator_);
+        }
+        while(std::find(indices.begin(), indices.begin()+i, indices[i]) != (indices.begin()+i));
       }
       return indices;
     }
@@ -279,6 +314,9 @@ class RandomSamplesGenerator{
 struct RobustEstimatorParams{
   int iterations{100};
   double probability{0.99};
+  bool use_local_optimization{true};
+  bool use_iteration_reduction{true};
+  int local_optimization_iterations{10};
 
   RobustEstimatorParams() = default;
 };
@@ -290,14 +328,14 @@ class RobustEstimator{
                    const SCORING scorer, const RobustEstimatorParams& params)
        : samples_(samples), scorer_(scorer), params_(params) {}
 
-   std::vector<typename MODEL::DATA> GetRandomSamples() {
+   std::vector<typename MODEL::DATA> GetRandomSamples(const std::vector<typename MODEL::DATA>& samples, int size) {
      const auto random_sample_indices = random_generator_.Generate(
-         MODEL::MINIMAL_SAMPLES, samples_.size() - 1);
+         size, samples.size() - 1);
 
      std::vector<typename MODEL::DATA> random_samples;
      std::for_each(random_sample_indices.begin(), random_sample_indices.end(),
-                   [&random_samples, this](const int idx) {
-                     random_samples.push_back(samples_[idx]);
+                   [&random_samples, &samples](const int idx) {
+                     random_samples.push_back(samples[idx]);
                    });
      return random_samples;
   };
@@ -308,23 +346,59 @@ class RobustEstimator{
     for( int i = 0; i < params_.iterations && !should_stop; ++i){
 
       // Generate and compute some models
-      const auto random_samples = GetRandomSamples();
+      const auto random_samples = GetRandomSamples(samples_, MODEL::MINIMAL_SAMPLES);
       typename MODEL::MODEL models[MODEL::MAX_MODELS];
       const auto models_count = MODEL::Model(random_samples.begin(), random_samples.end(), &models[0]);
-      for(int i = 0; i < models_count && !should_stop; ++i){
+      for(int j = 0; j < models_count && !should_stop; ++j){
 
         // Compute model's errors
         auto errors = MODEL::Errors(
-            models[i], samples_.begin(), samples_.end());
+            models[j], samples_.begin(), samples_.end());
 
         // Compute score based on errors
         ScoreInfo<typename MODEL::MODEL> score = scorer_.Score(errors.begin(), errors.end(), best_score);
-        score.model = models[i];
+        score.model = models[j];
+        score.lo_model = models[j];
   
         // Keep the best score (bigger, the better)
         best_score = std::max(score, best_score);
-        if( true ){
-          LOAdapter<MODEL> LO_model;
+        const bool best_found = score.score == best_score.score;
+
+        // Run local optimization (inner non-minimal RANSAC on inliers)
+        if(best_found && params_.use_local_optimization ){
+          for(int k = 0; k < params_.local_optimization_iterations; ++k)
+          { 
+            // Gather inliers and use them for getting random sample
+            std::vector<typename MODEL::DATA> inliers_samples;
+            std::for_each(best_score.inliers_indices.begin(), best_score.inliers_indices.end(),
+                    [&inliers_samples, this](const int idx) {
+                      inliers_samples.push_back(samples_[idx]);
+                    });
+
+            // Same as Matas papers : min(inliers/2, 12)
+            const int lo_sample_size_clamp = 12;
+            const int lo_sample_size = std::min(lo_sample_size_clamp, int(best_score.inliers_indices.size()*0.5));
+            const auto lo_random_samples = GetRandomSamples(inliers_samples, lo_sample_size);
+
+            // The local model (LO) can be different
+            using LOMODEL = typename MODEL::LOMODEL;
+
+            // So far, we assume a single model
+            typename LOMODEL::MODEL lo_models[MODEL::MAX_MODELS];   // TODO : use LOMODEL's specific MAX_MODELS
+            const auto lo_models_count = LOMODEL::Model(lo_random_samples.begin(), lo_random_samples.end(), &lo_models[0]);
+            for(int l = 0; l < lo_models_count; ++l){
+              // Compute LO model's errors on all samples
+              auto lo_errors = LOMODEL::Errors(lo_models[l], samples_.begin(), samples_.end());
+
+              // Compute LO score based on errors
+              ScoreInfo<typename LOMODEL::MODEL> lo_score = scorer_.Score(lo_errors.begin(), lo_errors.end(), best_score);
+              lo_score.model = best_score.model;
+              lo_score.lo_model = lo_models[l];
+
+              // Keep the best score (bigger, the better)
+              best_score = std::max(lo_score, best_score);
+            }
+          }
         }
 
         // Based on actual inliers ratio, we might stop here
@@ -337,6 +411,9 @@ class RobustEstimator{
 private:
  bool ShouldStop(const ScoreInfo<typename MODEL::MODEL>& best_score,
                  int iteration) {
+   if(!params_.use_iteration_reduction){
+     return false;
+   }
    const double inliers_ratio = double(best_score.inliers_indices.size()) / samples_.size();
    const double proba_one_outlier =
        std::min(1.0 - std::numeric_limits<double>::epsilon(),
@@ -415,6 +492,7 @@ ScoreInfo<EssentialMatrixModel::MODEL> RANSACEssential(
   return RunEstimation<EssentialMatrixModel>(samples, threshold, parameters, ransac_type);
 }
 
+using RelativePoseModel = RelativePose<EssentialMatrixSolvingFivePoints>;
 ScoreInfo<Eigen::Matrix<double, 3, 4>> RANSACRelativePose(
     const Eigen::Matrix<double, -1, 3>& x1,
     const Eigen::Matrix<double, -1, 3>& x2, 
@@ -424,12 +502,12 @@ ScoreInfo<Eigen::Matrix<double, 3, 4>> RANSACRelativePose(
     throw std::runtime_error("Features matrices have different sizes.");
   }
   
-  std::vector<RelativePose::DATA> samples(x1.rows());
+  std::vector<RelativePoseModel::DATA> samples(x1.rows());
   for (int i = 0; i < x1.rows(); ++i) {
     samples[i].first = x1.row(i);
     samples[i].second = x2.row(i);
   }
-  return RunEstimation<RelativePose>(samples, threshold, parameters, ransac_type);
+  return RunEstimation<RelativePoseModel>(samples, threshold, parameters, ransac_type);
 }
 
 }  // namespace csfm
