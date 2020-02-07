@@ -133,6 +133,10 @@ def test_outliers_line_LMedS():
     data = np.array([x, y]).transpose()
 
     params = csfm.RobustEstimatorParams()
+
+    # can't be used with LMedS as an over-estimated sigma will make it stop early
+    params.use_iteration_reduction = False
+
     result = csfm.ransac_line(data, multiplier, params, csfm.RansacType.LMedS)
 
     inliers_count = (1-ratio_outliers)*samples
@@ -182,7 +186,7 @@ def test_outliers_essential_ransac(one_pair_and_its_E):
     # sometimes, the negative of E is the good one
     correct_found = 0
     for sign in [-1, 1]:
-        correct_found += np.linalg.norm(E-sign*result.model, ord='fro') < 5e-2
+        correct_found += np.linalg.norm(E-sign*result.lo_model, ord='fro') < 5e-2
     assert correct_found == 1
 
 
@@ -212,4 +216,4 @@ def test_outliers_relative_pose_ransac(one_pair_and_its_E):
     assert np.isclose(len(result.inliers_indices),
                       inliers_count, rtol=tolerance)
 
-    assert np.linalg.norm(expected-result.model, ord='fro')  < 5e-2
+    assert np.linalg.norm(expected-result.lo_model, ord='fro')  < 8e-2
