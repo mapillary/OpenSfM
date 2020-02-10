@@ -1,7 +1,4 @@
-#include "robust_estimator.h"
-#include "line_model.h"
-#include "essential_model.h"
-#include "relative_pose_model.h"
+#include "instanciations.h"
 
 namespace csfm {
 ScoreInfo<Line::MODEL> RANSACLine(const Eigen::Matrix<double, -1, 2>& points, double threshold,

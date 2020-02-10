@@ -19,11 +19,13 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
     -fvisibility-inlines-hidden \
     -std=c++11")
 
-# Find dependencies.
-add_subdirectory(third_party/pybind11)
+if (NOT CMAKE_SYSTEM_PROCESSOR MATCHES
+    "(x86)|(X86)|(x86_64)|(X86_64)|(amd64)|(AMD64)")
+    add_definitions(-DVL_DISABLE_SSE2)
+endif ()
+add_definitions(-DVL_DISABLE_AVX)
 
-include_directories(${PYTHON_INCLUDE_DIRS})
-
+####### Find Dependencies #######
 find_package(OpenMP)
 if (OPENMP_FOUND)
   set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
@@ -31,26 +33,11 @@ if (OPENMP_FOUND)
 endif()
 
 find_package(LAPACK)
-if (LAPACK_FOUND)
-  include_directories(${LAPACK_INCLUDE_DIRS})
-endif()
-
 find_package(SuiteSparse)
-if (SUITESPARSE_FOUND)
-  include_directories(${SUITESPARSE_INCLUDE_DIRS})
-endif()
-
 find_package(Eigen REQUIRED)
-include_directories(${EIGEN_INCLUDE_DIRS})
-
 find_package(Ceres REQUIRED)
-include_directories(${CERES_INCLUDE_DIR})
-
 find_package(Gflags REQUIRED)
-include_directories(${GFLAGS_INCLUDE_DIR})
-
 find_package(Glog REQUIRED)
-include_directories(${GLOG_INCLUDE_DIR})
 
 find_package(OpenCV)
 # OpenCV's OpenCVConfig will enforce imgcodecs for < 3.0 
@@ -61,11 +48,11 @@ if(${OpenCV_VERSION} LESS 3.0)
 else()
     find_package(OpenCV REQUIRED core imgproc calib3d OPTIONAL_COMPONENTS imgcodecs)
 endif()
-include_directories(${OpenCV_INCLUDE_DIRS})
 
+####### Third party libraries #######
+add_subdirectory(third_party/pybind11)
 
 # Akaze
-include_directories(third_party/akaze/lib/)
 set(AKAZE_SRCS
     third_party/akaze/lib/AKAZEConfig.h
     third_party/akaze/lib/AKAZE.h
@@ -79,22 +66,22 @@ set(AKAZE_SRCS
 )
 add_library(akaze ${AKAZE_SRCS})
 target_link_libraries(akaze ${OpenCV_LIBS})
+target_include_directories(third_party/akaze/lib/)
+target_include_directories(${OpenCV_INCLUDE_DIRS})
 
 
 # VLFeat
-include_directories(third_party/vlfeat)
 file(GLOB VLFEAT_SRCS third_party/vlfeat/vl/*.c third_party/vlfeat/vl/*.h)
-if (NOT CMAKE_SYSTEM_PROCESSOR MATCHES
-    "(x86)|(X86)|(x86_64)|(X86_64)|(amd64)|(AMD64)")
-    add_definitions(-DVL_DISABLE_SSE2)
-endif ()
-add_definitions(-DVL_DISABLE_AVX)
+target_include_directories(vl third_party/vlfeat)
 add_library(vl ${VLFEAT_SRCS})
 
+####### OpenSfM libraries #######
 
 # Bundle
-include_directories(.)
+include_directories(bundle/src)
 set(BUNDLE_FILES
+    bundle/bundle_adjuster.h
+    bundle/reconstruction_alignment.h
     bundle/src/error_utils.h
     bundle/src/motion_prior_terms.h
     bundle/src/absolute_motion_terms.h
@@ -108,33 +95,99 @@ target_link_libraries(bundle PRIVATE
     ${LAPACK_LIBRARIES}
     ${SUITESPARSE_LIBRARIES}
 )
+if (LAPACK_FOUND)
+    target_include_directories(bundle ${LAPACK_INCLUDE_DIRS})
+endif()
+if (SUITESPARSE_FOUND)
+    target_include_directories(bundle ${SUITESPARSE_INCLUDE_DIRS})
+endif()
+target_include_directories(bundle ${EIGEN_INCLUDE_DIRS} ${CERES_INCLUDE_DIR} ${GFLAGS_INCLUDE_DIR} ${GLOG_INCLUDE_DIR})
 
-
-# Python wrapper
-pybind11_add_module(csfm
-    csfm.cc
-    types.cc
-    akaze_bind.cc
-    matching.cc
-    depthmap.cc
-    triangulation.cc
-)
-target_link_libraries(csfm PRIVATE
-    ${OpenCV_LIBS}
-    ${GFLAGS_LIBRARY}
-    ${GLOG_LIBRARY}
-    ${CERES_LIBRARIES}
-    ${LAPACK_LIBRARIES}
-    ${SUITESPARSE_LIBRARIES}
-    vl
-    akaze
-    bundle
-)
-set_target_properties(csfm PROPERTIES
+pybind11_add_module(pybundle bundle/python/pybind.cc)
+target_link_libraries(pybundle PRIVATE bundle)
+set_target_properties(pybundle PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${opensfm_SOURCE_DIR}/.."
 )
 
+# Dense
+set(DENSE_FILES
+    dense/depthmap_bind.h
+    dense/depthmap.h
+    dense/src/depthmap_test.cc
+    dense/src/depthmap_test.cc
+add_library(dense ${DENSE_FILES})
+target_link_libraries(dense PRIVATE
+    ${OpenCV_LIBS}
+    ${GFLAGS_LIBRARY}
+    ${GLOG_LIBRARY}
+)
+target_include_directories(dense ${EIGEN_INCLUDE_DIRS} ${OpenCV_LIBS} ${GFLAGS_INCLUDE_DIR} ${GLOG_INCLUDE_DIR})
+pybind11_add_module(pydense dense/python/pybind.cc)
+target_link_libraries(pydense PRIVATE dense)
+target_include_directories(pydense ${PYTHON_INCLUDE_DIRS})
+set_target_properties(pydense PROPERTIES
+    LIBRARY_OUTPUT_DIRECTORY "${opensfm_SOURCE_DIR}/.."
+)
 
+# Features
+set(FEATURES_FILES
+    features/akaze_bind.h
+    features/hahog.h
+    features/matching.h
+    features/src/akaze_bind.cc
+    features/src/hahog.cc
+    features/src/matching.cc
+add_library(features ${FEATURES_FILES})
+target_link_libraries(features PRIVATE
+    ${OpenCV_LIBS}
+    ${GFLAGS_LIBRARY}
+    ${GLOG_LIBRARY}
+    akaze
+    vl
+)
+target_include_directories(features ${EIGEN_INCLUDE_DIRS} ${OpenCV_LIBS} ${GFLAGS_INCLUDE_DIR} ${GLOG_INCLUDE_DIR})
+pybind11_add_module(pyfeatures features/python/pybind.cc)
+target_link_libraries(pyfeatures PRIVATE features)
+target_include_directories(pyfeatures ${PYTHON_INCLUDE_DIRS})
+set_target_properties(pyfeatures PROPERTIES
+    LIBRARY_OUTPUT_DIRECTORY "${opensfm_SOURCE_DIR}/.."
+)
+
+# Geometry
+set(GEOMETRY_FILES
+    geometry/essential.h
+    geometry/pose.h
+    geometry/triangulation.h
+    geometry/src/triangulation.cc
+add_library(geometry ${FEATURES_FILES})
+target_include_directories(features ${EIGEN_INCLUDE_DIRS})
+pybind11_add_module(pygeometry geometry/python/pybind.cc)
+target_link_libraries(pygeometry PRIVATE geometry)
+target_include_directories(pygeometry ${PYTHON_INCLUDE_DIRS})
+set_target_properties(pygeometry PROPERTIES
+    LIBRARY_OUTPUT_DIRECTORY "${opensfm_SOURCE_DIR}/.."
+)
+
+# Robust
+set(ROBUST_FILES
+    robust/model.h
+    robust/random_sampler.h
+    robust/robust_estimator.h
+    robust/essential_model.h
+    robust/line_model.h
+    robust/relative_pose_model.h
+    robust/src/scorer.cc
+    robust/src/instanciations.cc
+add_library(robust ${ROBUST_FILES})
+target_include_directories(features ${EIGEN_INCLUDE_DIRS})
+pybind11_add_module(pyrobust robust/python/pybind.cc)
+target_link_libraries(pyrobust PRIVATE robust)
+target_include_directories(pyrobust ${PYTHON_INCLUDE_DIRS})
+set_target_properties(pyrobust PROPERTIES
+    LIBRARY_OUTPUT_DIRECTORY "${opensfm_SOURCE_DIR}/.."
+)
+
+####### Debugging #######
 if (CMAKE_BUILD_TYPE MATCHES DEBUG)
     add_executable(debug_c_extension
         debug_c_extension.cc
@@ -144,7 +197,7 @@ if (CMAKE_BUILD_TYPE MATCHES DEBUG)
 endif()
 
 
-# Tests
+####### Testing #######
 option(OPENSFM_BUILD_TESTS "Build OpenSfM unit tests." on)
 
 if (OPENSFM_BUILD_TESTS)
@@ -162,7 +215,7 @@ if (OPENSFM_BUILD_TESTS)
                         ${GLOG_LIBRARY}
                         gtest)
 
-  add_executable(depthmap_test depthmap_test.cc depthmap.cc)
+  add_executable(depthmap_test dense/src/depthmap_test.cc dense/src/depthmap.cc)
   target_link_libraries(depthmap_test
                         ${OpenCV_LIBS}
                         testing_main)
