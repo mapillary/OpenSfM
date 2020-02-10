@@ -260,8 +260,8 @@ struct PositionPriorError {
   template <typename T>
   bool operator()(const T* const shot, T* residuals) const {
     residuals[0] = T(scale_) * (shot[BA_SHOT_TX] - T(position_prior_[0]));
-    residuals[1] = T(scale_) * (shot[BA_SHOT_TY] + T(position_prior_[1]));
-    residuals[2] = T(scale_) * (shot[BA_SHOT_TZ] + T(position_prior_[2]));
+    residuals[1] = T(scale_) * (shot[BA_SHOT_TY] - T(position_prior_[1]));
+    residuals[2] = T(scale_) * (shot[BA_SHOT_TZ] - T(position_prior_[2]));
     return true;
   }
 
