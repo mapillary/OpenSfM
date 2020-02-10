@@ -33,16 +33,6 @@ Eigen::Matrix<MatrixType<T1>, 3, 1> MultRotations(const T1& R1, T... R){
   return result;
 }
 
-// compute the relative rotation error between two
-// global rotation Ri and Rj, such as Rij = Rj*Ri^t
-// rotations are expected to be angle-axis
-template <class T1, class T2, class T3>
-Eigen::Matrix<MatrixType<T1>, 3, 1> RelativeRotationError(const T1& Ri,
-                                                          const T2& Rj,
-                                                          const T3& Rij) {
-  return MultRotations(Rij, (-Ri).eval(), -Rj);
-}
-
 // apply a rotation R to a vector x as R*x
 // rotations is expected to be angle-axis
 template <class T1, class T2>
