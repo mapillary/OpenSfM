@@ -440,7 +440,7 @@ def angle_axis_to_quaternion(angle_axis):
 
 
 def export_ini_file(path, db_path, images_path):
-    with io.open_rt(os.path.join(path, 'project.ini')) as fout:
+    with io.open_wt(os.path.join(path, 'project.ini')) as fout:
         fout.write('log_to_stderr=false\nlog_level=2\n')
         fout.write('database_path=%s\n' % db_path)
         fout.write('image_path=%s\n' % images_path)
