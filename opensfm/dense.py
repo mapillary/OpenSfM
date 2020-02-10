@@ -9,7 +9,7 @@ import cv2
 import numpy as np
 from six import iteritems
 
-from opensfm import csfm
+from opensfm import pydense
 from opensfm import io
 from opensfm import log
 from opensfm import tracking
@@ -99,7 +99,7 @@ def compute_depthmap(arguments):
         return
     logger.info("Computing depthmap for image {0} with {1}".format(shot.id, method))
 
-    de = csfm.DepthmapEstimator()
+    de = pydense.DepthmapEstimator()
     de.set_depth_range(min_depth, max_depth, 100)
     de.set_patchmatch_iterations(data.config['depthmap_patchmatch_iterations'])
     de.set_patch_size(data.config['depthmap_patch_size'])
@@ -162,7 +162,7 @@ def clean_depthmap(arguments):
         return
     logger.info("Cleaning depthmap for image {}".format(shot.id))
 
-    dc = csfm.DepthmapCleaner()
+    dc = pydense.DepthmapCleaner()
     dc.set_same_depth_threshold(data.config['depthmap_same_depth_threshold'])
     dc.set_min_consistent_views(data.config['depthmap_min_consistent_views'])
     add_views_to_depth_cleaner(data, neighbors, dc)
@@ -203,7 +203,7 @@ def prune_depthmap(arguments):
         return
     logger.info("Pruning depthmap for image {}".format(shot.id))
 
-    dp = csfm.DepthmapPruner()
+    dp = pydense.DepthmapPruner()
     dp.set_same_depth_threshold(data.config['depthmap_same_depth_threshold'])
     add_views_to_depth_pruner(data, neighbors, dp)
     points, normals, colors, labels, detections = dp.prune()

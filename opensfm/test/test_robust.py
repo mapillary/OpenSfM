@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 
-from opensfm import csfm
+from opensfm import pyrobust
 from opensfm import multiview
 from opensfm.synthetic_data import synthetic_examples
 
@@ -32,8 +32,8 @@ def test_uniform_line_ransac():
 
     data = np.array([x, y]).transpose()
 
-    params = csfm.RobustEstimatorParams()
-    result = csfm.ransac_line(data, scale, params, csfm.RansacType.RANSAC)
+    params = pyrobust.RobustEstimatorParams()
+    result = pyrobust.ransac_line(data, scale, params, pyrobust.RansacType.RANSAC)
 
     assert result.score == samples
     assert len(result.inliers_indices) == samples
@@ -51,8 +51,8 @@ def test_outliers_line_ransac():
 
     data = np.array([x, y]).transpose()
 
-    params = csfm.RobustEstimatorParams()
-    result = csfm.ransac_line(data, scale, params, csfm.RansacType.RANSAC)
+    params = pyrobust.RobustEstimatorParams()
+    result = pyrobust.ransac_line(data, scale, params, pyrobust.RansacType.RANSAC)
 
     inliers_count = (1-ratio_outliers)*samples
     assert result.score == inliers_count
@@ -69,8 +69,8 @@ def test_normal_line_msac():
 
     data = np.array([x, y]).transpose()
 
-    params = csfm.RobustEstimatorParams()
-    result = csfm.ransac_line(data, multiplier*sigma, params, csfm.RansacType.MSAC)
+    params = pyrobust.RobustEstimatorParams()
+    result = pyrobust.ransac_line(data, multiplier*sigma, params, pyrobust.RansacType.MSAC)
 
     confidence = 0.95   # 1.96*MAD -> 95% rejecting inliers
     assert np.isclose(len(result.inliers_indices), samples,
@@ -91,8 +91,8 @@ def test_outliers_line_msac():
 
     data = np.array([x, y]).transpose()
 
-    params = csfm.RobustEstimatorParams()
-    result = csfm.ransac_line(data, multiplier*sigma, params, csfm.RansacType.MSAC)
+    params = pyrobust.RobustEstimatorParams()
+    result = pyrobust.ransac_line(data, multiplier*sigma, params, pyrobust.RansacType.MSAC)
 
     inliers_count = (1-ratio_outliers)*samples
     confidence = 0.95   # 1.96*MAD -> 95% rejecting inliers
@@ -110,8 +110,8 @@ def test_normal_line_LMedS():
 
     data = np.array([x, y]).transpose()
 
-    params = csfm.RobustEstimatorParams()
-    result = csfm.ransac_line(data, multiplier, params, csfm.RansacType.LMedS)
+    params = pyrobust.RobustEstimatorParams()
+    result = pyrobust.ransac_line(data, multiplier, params, pyrobust.RansacType.LMedS)
 
     confidence = 0.95   # 1.96*MAD -> 95% rejecting inliers
     assert np.isclose(len(result.inliers_indices), samples,
@@ -132,12 +132,12 @@ def test_outliers_line_LMedS():
 
     data = np.array([x, y]).transpose()
 
-    params = csfm.RobustEstimatorParams()
+    params = pyrobust.RobustEstimatorParams()
 
     # can't be used with LMedS as an over-estimated sigma will make it stop early
     params.use_iteration_reduction = False
 
-    result = csfm.ransac_line(data, multiplier, params, csfm.RansacType.LMedS)
+    result = pyrobust.ransac_line(data, multiplier, params, pyrobust.RansacType.LMedS)
 
     inliers_count = (1-ratio_outliers)*samples
     confidence = 0.95   # 1.96*MAD -> 95% rejecting inliers
@@ -156,8 +156,8 @@ def test_uniform_essential_ransac(one_pair_and_its_E):
     f1 /= np.linalg.norm(f1, axis=1)[:, None]
     f2 /= np.linalg.norm(f2, axis=1)[:, None]
 
-    params = csfm.RobustEstimatorParams()
-    result = csfm.ransac_essential(f1, f2, scale, params, csfm.RansacType.RANSAC)
+    params = pyrobust.RobustEstimatorParams()
+    result = pyrobust.ransac_essential(f1, f2, scale, params, pyrobust.RansacType.RANSAC)
 
     assert len(result.inliers_indices) == len(f1) == len(f2)
 
@@ -176,8 +176,8 @@ def test_outliers_essential_ransac(one_pair_and_its_E):
     f1 /= np.linalg.norm(f1, axis=1)[:, None]
     f2 /= np.linalg.norm(f2, axis=1)[:, None]
 
-    params = csfm.RobustEstimatorParams()
-    result = csfm.ransac_essential(f1, f2, scale, params, csfm.RansacType.RANSAC)
+    params = pyrobust.RobustEstimatorParams()
+    result = pyrobust.ransac_essential(f1, f2, scale, params, pyrobust.RansacType.RANSAC)
 
     tolerance = 0.04    # some outliers might have been moved along the epipolar
     inliers_count = (1 - ratio_outliers) * len(points)
@@ -204,9 +204,9 @@ def test_outliers_relative_pose_ransac(one_pair_and_its_E):
     f1 /= np.linalg.norm(f1, axis=1)[:, None]
     f2 /= np.linalg.norm(f2, axis=1)[:, None]
 
-    params = csfm.RobustEstimatorParams()
+    params = pyrobust.RobustEstimatorParams()
     params.iterations = 1000
-    result = csfm.ransac_relative_pose(f1, f2, scale, params, csfm.RansacType.RANSAC)
+    result = pyrobust.ransac_relative_pose(f1, f2, scale, params, pyrobust.RansacType.RANSAC)
 
     pose.translation /= np.linalg.norm(pose.translation)
     expected = pose.get_Rt()

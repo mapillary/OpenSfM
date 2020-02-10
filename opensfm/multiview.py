@@ -7,7 +7,7 @@ import cv2
 import numpy as np
 import pyopengv
 
-from opensfm import csfm
+from opensfm import pyrobust
 from opensfm import transformations as tf
 
 
@@ -583,9 +583,9 @@ def relative_pose_ransac(b1, b2, method, threshold, iterations, probability):
     # in-house estimation
     if method == 'mapillary':
         threshold = np.arccos(1 - threshold)
-        params = csfm.RobustEstimatorParams()
+        params = pyrobust.RobustEstimatorParams()
         params.iterations = 1000
-        result = csfm.ransac_relative_pose(b1, b2, threshold, params, csfm.RansacType.RANSAC)
+        result = pyrobust.ransac_relative_pose(b1, b2, threshold, params, pyrobust.RansacType.RANSAC)
 
         Rt = result.lo_model.copy()
         R, t = Rt[:3, :3], Rt[:, 3]

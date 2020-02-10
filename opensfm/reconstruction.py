@@ -16,7 +16,8 @@ import six
 from timeit import default_timer as timer
 from six import iteritems
 
-from opensfm import csfm
+from opensfm import pybundle
+from opensfm import pygeometry
 from opensfm import align
 from opensfm import log
 from opensfm import tracking
@@ -37,7 +38,7 @@ def _add_camera_to_bundle(ba, camera, camera_prior, constant):
             camera_prior.focal, camera_prior.k1, camera_prior.k2,
             constant)
     elif camera.projection_type == 'brown':
-        c = csfm.BABrownPerspectiveCamera()
+        c = pybundle.BABrownPerspectiveCamera()
         c.id = camera.id
         c.focal_x = camera.focal_x
         c.focal_y = camera.focal_y
@@ -123,7 +124,7 @@ def triangulate_gcp(point, shots):
 
     if len(os) >= 2:
         thresholds = len(os) * [reproj_threshold]
-        e, X = csfm.triangulate_bearings_midpoint(
+        e, X = pybundle.triangulate_bearings_midpoint(
             os, bs, thresholds, min_ray_angle)
         return X
 
@@ -145,7 +146,7 @@ def _add_gcp_to_bundle(ba, gcp, shots):
         ba.add_point(point_id, coordinates, False)
 
         if point.coordinates is not None:
-            point_type = csfm.XYZ if point.has_altitude else csfm.XY
+            point_type = pybundle.XYZ if point.has_altitude else pybundle.XY
             ba.add_point_position_world(point_id, point.coordinates, 0.1,
                                         point_type)
 
@@ -166,7 +167,7 @@ def bundle(graph, reconstruction, camera_priors, gcp, config):
     fix_cameras = not config['optimize_camera_parameters']
 
     chrono = Chronometer()
-    ba = csfm.BundleAdjuster()
+    ba = pybundle.BundleAdjuster()
 
     for camera in reconstruction.cameras.values():
         camera_prior = camera_priors[camera.id]
@@ -252,7 +253,7 @@ def bundle(graph, reconstruction, camera_priors, gcp, config):
 
 def bundle_single_view(graph, reconstruction, shot_id, camera_priors, config):
     """Bundle adjust a single camera."""
-    ba = csfm.BundleAdjuster()
+    ba = pybundle.BundleAdjuster()
     shot = reconstruction.shots[shot_id]
     camera = shot.camera
     camera_prior = camera_priors[camera.id]
@@ -321,7 +322,7 @@ def bundle_local(graph, reconstruction, camera_priors, gcp, central_shot_id, con
                 if track in reconstruction.points:
                     point_ids.add(track)
 
-    ba = csfm.BundleAdjuster()
+    ba = pybundle.BundleAdjuster()
 
     for camera in reconstruction.cameras.values():
         camera_prior = camera_priors[camera.id]
@@ -940,7 +941,7 @@ class TrackTriangulator:
             os_t = [os[i], os[j]]
             bs_t = [bs[i], bs[j]]
 
-            e, X = csfm.triangulate_bearings_midpoint(
+            e, X = pygeometry.triangulate_bearings_midpoint(
                 os_t, bs_t, thresholds, np.radians(min_ray_angle_degrees))
 
             if X is not None:
@@ -981,7 +982,7 @@ class TrackTriangulator:
 
         if len(os) >= 2:
             thresholds = len(os) * [reproj_threshold]
-            e, X = csfm.triangulate_bearings_midpoint(
+            e, X = pygeometry.triangulate_bearings_midpoint(
                 os, bs, thresholds, np.radians(min_ray_angle_degrees))
             if X is not None:
                 point = types.Point()
@@ -1004,7 +1005,7 @@ class TrackTriangulator:
                 ids.append(shot_id)
 
         if len(Rts) >= 2:
-            e, X = csfm.triangulate_bearings_dlt(
+            e, X = pygeometry.triangulate_bearings_dlt(
                 Rts, bs, reproj_threshold, np.radians(min_ray_angle_degrees))
             if X is not None:
                 point = types.Point()

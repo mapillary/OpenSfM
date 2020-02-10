@@ -11,7 +11,7 @@ from repoze.lru import lru_cache
 
 from opensfm import align
 from opensfm import context
-from opensfm import csfm
+from opensfm import pybundle
 from opensfm import dataset
 from opensfm import geo
 from opensfm import reconstruction
@@ -126,7 +126,7 @@ def add_camera_constraints_soft(ra, reconstruction_shots, reconstruction_name):
 
             covariance = np.diag([1e-5, 1e-5, 1e-5, 1e-2, 1e-2, 1e-2])
             sm = scale_matrix(covariance)
-            rmc = csfm.RARelativeMotionConstraint(
+            rmc = pybundle.RARelativeMotionConstraint(
                    rec_name, shot_name, R[0], R[1], R[2], t[0], t[1], t[2])
 
             for i in range(6):
@@ -235,7 +235,7 @@ def align_reconstructions(reconstruction_shots,
                           reconstruction_name,
                           use_points_constraints,
                           camera_constraint_type='soft_camera_constraint'):
-    ra = csfm.ReconstructionAlignment()
+    ra = pybundle.ReconstructionAlignment()
 
     if camera_constraint_type is 'soft_camera_constraint':
         add_camera_constraints_soft(ra, reconstruction_shots,

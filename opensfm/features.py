@@ -7,7 +7,7 @@ import sys
 import cv2
 
 from opensfm import context
-from opensfm import csfm
+from opensfm import pyfeatures
 
 logger = logging.getLogger(__name__)
 
@@ -171,7 +171,7 @@ def extract_features_surf(image, config):
 
 
 def akaze_descriptor_type(name):
-    d = csfm.AkazeDescriptorType.__dict__
+    d = pyfeatures.AkazeDescriptorType.__dict__
     if name in d:
         return d[name]
     else:
@@ -180,7 +180,7 @@ def akaze_descriptor_type(name):
 
 
 def extract_features_akaze(image, config):
-    options = csfm.AKAZEOptions()
+    options = pyfeatures.AKAZEOptions()
     options.omax = config['akaze_omax']
     akaze_descriptor_name = config['akaze_descriptor']
     options.descriptor = akaze_descriptor_type(akaze_descriptor_name)
@@ -194,7 +194,7 @@ def extract_features_akaze(image, config):
 
     logger.debug('Computing AKAZE with threshold {0}'.format(options.dthreshold))
     t = time.time()
-    points, desc = csfm.akaze(image, options)
+    points, desc = pyfeatures.akaze(image, options)
     logger.debug('Found {0} points in {1}s'.format(len(points), time.time() - t))
 
     if config['feature_root']:
@@ -208,7 +208,7 @@ def extract_features_akaze(image, config):
 
 def extract_features_hahog(image, config):
     t = time.time()
-    points, desc = csfm.hahog(image.astype(np.float32) / 255,  # VlFeat expects pixel values between 0, 1
+    points, desc = pyfeatures.hahog(image.astype(np.float32) / 255,  # VlFeat expects pixel values between 0, 1
                               peak_threshold=config['hahog_peak_threshold'],
                               edge_threshold=config['hahog_edge_threshold'],
                               target_num_features=config['feature_min_frames'],

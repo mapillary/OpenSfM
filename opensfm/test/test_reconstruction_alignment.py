@@ -1,7 +1,7 @@
 
 import numpy as np
 from opensfm import types
-from opensfm import csfm
+from opensfm import pybundle
 
 
 def get_shot_origin(shot):
@@ -19,7 +19,7 @@ def get_reconstruction_origin(r):
 
 def test_single_shot():
     """Single shot test."""
-    ra = csfm.ReconstructionAlignment()
+    ra = pybundle.ReconstructionAlignment()
     ra.add_shot('1', 0.5, 0, 0, 0, 0, 0, False)
     ra.add_absolute_position_constraint('1', 1, 0, 0, 1)
 
@@ -30,11 +30,11 @@ def test_single_shot():
 
 def test_singleton_reconstruction():
     """Single shot in a single reconstruction."""
-    ra = csfm.ReconstructionAlignment()
+    ra = pybundle.ReconstructionAlignment()
     ra.add_shot('1', 0, 0, 0, 0, 0, 0, False)
     ra.add_reconstruction('a', 0, 0, 0, 0, 0, 0, 4, False)
     ra.add_relative_motion_constraint(
-        csfm.RARelativeMotionConstraint('a', '1', 0, 0, 0, -1, 0, 0))
+        pybundle.RARelativeMotionConstraint('a', '1', 0, 0, 0, -1, 0, 0))
     ra.add_absolute_position_constraint('1', 1, 0, 0, 1)
 
     ra.run()
@@ -45,14 +45,14 @@ def test_singleton_reconstruction():
 
 def test_pair():
     """Simple single reconstruction two shots test."""
-    ra = csfm.ReconstructionAlignment()
+    ra = pybundle.ReconstructionAlignment()
     ra.add_shot('1', 0, 0, 0, 0, 0, 0, False)
     ra.add_shot('2', 0, 0, 0, 0, 0, 0, False)
     ra.add_reconstruction('a', 0, 0, 0, 0, 0, 0, 4, False)
     ra.add_relative_motion_constraint(
-        csfm.RARelativeMotionConstraint('a', '1', 0, 0, 0, 0, 0, 0))
+        pybundle.RARelativeMotionConstraint('a', '1', 0, 0, 0, 0, 0, 0))
     ra.add_relative_motion_constraint(
-        csfm.RARelativeMotionConstraint('a', '2', 0, 0, 0, -1, 0, 0))
+        pybundle.RARelativeMotionConstraint('a', '2', 0, 0, 0, -1, 0, 0))
     ra.add_absolute_position_constraint('1', 1, 0, 0, 1)
     ra.add_absolute_position_constraint('2', 3, 0, 0, 1)
 
@@ -69,14 +69,14 @@ def test_pair():
 
 def test_two_shots_one_fixed():
     """Two shot, one reconstruction. One shot is fixed"""
-    ra = csfm.ReconstructionAlignment()
+    ra = pybundle.ReconstructionAlignment()
     ra.add_shot('1', 0, 0, 0, -1, 0, 0, True)
     ra.add_shot('2', 0, 0, 0, 0, 0, 0, False)
     ra.add_reconstruction('a', 0, 0, 0, 0, 0, 0, 1, False)
     ra.add_relative_motion_constraint(
-        csfm.RARelativeMotionConstraint('a', '1', 0, 0, 0, 0, 0, 0))
+        pybundle.RARelativeMotionConstraint('a', '1', 0, 0, 0, 0, 0, 0))
     ra.add_relative_motion_constraint(
-        csfm.RARelativeMotionConstraint('a', '2', 0, 0, 0, -1, 0, 0))
+        pybundle.RARelativeMotionConstraint('a', '2', 0, 0, 0, -1, 0, 0))
     # Next line should be ignored because shot 1 is fixed
     ra.add_absolute_position_constraint('1', 100, 0, 0, 1)
     ra.add_absolute_position_constraint('2', 3, 0, 0, 1)
@@ -94,25 +94,25 @@ def test_two_shots_one_fixed():
 
 def test_two_reconstructions_soft_alignment():
     """Two reconstructions"""
-    ra = csfm.ReconstructionAlignment()
+    ra = pybundle.ReconstructionAlignment()
     ra.add_shot('1', 0, 0, 0, 0, 0, 0, False)
     ra.add_shot('2', 0, 0, 0, 0, 0, 0, False)
     ra.add_shot('3', 0, 0, 0, 0, 0, 0, False)
     ra.add_shot('4', 0, 0, 0, 0, 0, 0, False)
     ra.add_reconstruction('a', 0, 0, 0, 0, 0, 0, 1, False)
     ra.add_relative_motion_constraint(
-        csfm.RARelativeMotionConstraint('a', '1', 0, 0, 0, 0, 0, 0))
+        pybundle.RARelativeMotionConstraint('a', '1', 0, 0, 0, 0, 0, 0))
     ra.add_relative_motion_constraint(
-        csfm.RARelativeMotionConstraint('a', '2', 0, 0, 0, -1, 0, 0))
+        pybundle.RARelativeMotionConstraint('a', '2', 0, 0, 0, -1, 0, 0))
     ra.add_relative_motion_constraint(
-        csfm.RARelativeMotionConstraint('a', '3', 0, 0, 0, -2, 0, 0))
+        pybundle.RARelativeMotionConstraint('a', '3', 0, 0, 0, -2, 0, 0))
     ra.add_reconstruction('b', 0, 0, 0, 0, 0, 0, 1, False)
     ra.add_relative_motion_constraint(
-        csfm.RARelativeMotionConstraint('b', '2', 0, 0, 0, 0, 0, 0))
+        pybundle.RARelativeMotionConstraint('b', '2', 0, 0, 0, 0, 0, 0))
     ra.add_relative_motion_constraint(
-        csfm.RARelativeMotionConstraint('b', '3', 0, 0, 0, -1, 0, 0))
+        pybundle.RARelativeMotionConstraint('b', '3', 0, 0, 0, -1, 0, 0))
     ra.add_relative_motion_constraint(
-        csfm.RARelativeMotionConstraint('b', '4', 0, 0, 0, -2, 0, 0))
+        pybundle.RARelativeMotionConstraint('b', '4', 0, 0, 0, -2, 0, 0))
 
     ra.add_absolute_position_constraint('1', 1, 0, 0, 1)
     ra.add_absolute_position_constraint('2', 2, 0, 0, 1)
@@ -137,7 +137,7 @@ def test_two_reconstructions_soft_alignment():
 
 def test_two_reconstructions_rigid_alignment():
     """Two reconstructions"""
-    ra = csfm.ReconstructionAlignment()
+    ra = pybundle.ReconstructionAlignment()
 
     ra.add_shot('a_1', 0, 0, 0, -1, 0, 0, True)
     ra.add_shot('a_2', 0, 0, 0, -2, 0, 0, True)
@@ -170,7 +170,7 @@ def test_two_reconstructions_rigid_alignment():
 
 def test_two_reconstructions_common_camera():
     """Two reconstructions"""
-    ra = csfm.ReconstructionAlignment()
+    ra = pybundle.ReconstructionAlignment()
 
     ra.add_shot('a_1', 0, 0, 0, -1, 0, 0, True)
     ra.add_shot('a_2', 0, 0, 0, -2, 0, 0, True)
@@ -202,7 +202,7 @@ def test_two_reconstructions_common_camera():
 
 def test_common_points():
     """Two reconstructions, two common points"""
-    ra = csfm.ReconstructionAlignment()
+    ra = pybundle.ReconstructionAlignment()
     ra.add_reconstruction('a', 0, 0, 0, 0, 0, 0, 1, True)
     ra.add_reconstruction('b', 0, 0, 0, 0, 0, 0, 1, False)
     ra.add_common_point_constraint('a', 0, 0, 0, 'b', -1, 0, 0, 1.0)
