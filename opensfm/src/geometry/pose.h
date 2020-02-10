@@ -52,7 +52,7 @@ Eigen::Matrix<double, 3, 4> RelativePoseFromEssential(
       for (IT it = begin; it != end; ++it) {
         bearings.col(0) << it->first;
         bearings.col(1) << rotation.transpose()*it->second;
-        const auto point = csfm::TriangulateBearingsMidpointSolve(centers, bearings);
+        const auto point = geometry::TriangulateBearingsMidpointSolve(centers, bearings);
         const bool is_in_front =
             bearings.col(0).dot(point) > 0.0 &&
             bearings.col(1).dot(rotation * point + translation) > 0.0;
@@ -75,19 +75,9 @@ Eigen::Matrix<double, 3, 4> RelativePoseFromEssential(
   return best_decomposition.second;
 }
 
-namespace csfm {
+namespace geometry {
 Eigen::Matrix<double, 3, 4> RelativePoseFromEssential(
     const Eigen::Matrix3d& essential,
     const Eigen::Matrix<double, -1, 3> &x1,
-    const Eigen::Matrix<double, -1, 3> &x2) {
-  if((x1.cols() != x2.cols()) || (x1.rows() != x2.rows())){
-    throw std::runtime_error("Features matrices have different sizes.");
-  }
-  std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>> samples(x1.rows());
-  for (int i = 0; i < x1.rows(); ++i) {
-    samples[i].first = x1.row(i);
-    samples[i].second = x2.row(i);
-  }
-  return ::RelativePoseFromEssential(essential, samples.begin(), samples.end());
-}
+    const Eigen::Matrix<double, -1, 3> &x2);
 }

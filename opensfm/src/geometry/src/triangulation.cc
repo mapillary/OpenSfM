@@ -1,7 +1,7 @@
 
-#include "triangulation.h"
+#include <geometry/triangulation.h>
 
-namespace csfm {
+namespace geometry {
 
 double AngleBetweenVectors(const Eigen::Vector3d &u, const Eigen::Vector3d &v) {
   double c = (u.dot(v)) / sqrt(u.dot(u) * v.dot(v));
@@ -52,8 +52,8 @@ py::object TriangulateBearingsDLT(const py::list &Rts_list,
     py::object oRt = Rts_list[i];
     py::object ob = bs_list[i];
 
-    pyarray_d Rt_array(oRt);
-    pyarray_d b_array(ob);
+    foundation::pyarray_d Rt_array(oRt);
+    foundation::pyarray_d b_array(ob);
 
     Eigen::Map<const Eigen::MatrixXd> Rt(Rt_array.data(), 4, 3);
     Eigen::Map<const Eigen::MatrixXd> b(b_array.data(), 3, 1);
@@ -98,7 +98,7 @@ py::object TriangulateBearingsDLT(const py::list &Rts_list,
     }
   }
 
-  return TriangulateReturn(TRIANGULATION_OK, py_array_from_data(X.data(), 3));
+  return TriangulateReturn(TRIANGULATION_OK, foundation::py_array_from_data(X.data(), 3));
 }
 
 // Point minimizing the squared distance to all rays
@@ -138,8 +138,8 @@ py::object TriangulateBearingsMidpoint(const py::list &os_list,
   Eigen::Matrix<double, 3, Eigen::Dynamic> os(3, n);
   Eigen::Matrix<double, 3, Eigen::Dynamic> bs(3, n);
   for (int i = 0; i < n; ++i) {
-    pyarray_d o_array = os_list[i].cast<pyarray_d>();
-    pyarray_d b_array = bs_list[i].cast<pyarray_d>();
+    foundation::pyarray_d o_array = os_list[i].cast<foundation::pyarray_d>();
+    foundation::pyarray_d b_array = bs_list[i].cast<foundation::pyarray_d>();
     const double *o = o_array.data();
     const double *b = b_array.data();
     os.col(i) << o[0], o[1], o[2];
@@ -179,7 +179,7 @@ py::object TriangulateBearingsMidpoint(const py::list &os_list,
     }
   }
 
-  return TriangulateReturn(TRIANGULATION_OK, py_array_from_data(X.data(), 3));
+  return TriangulateReturn(TRIANGULATION_OK, foundation::py_array_from_data(X.data(), 3));
 }
 
-}  // namespace csfm
+}  // namespace geometry

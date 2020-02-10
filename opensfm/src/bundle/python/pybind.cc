@@ -2,12 +2,9 @@
 #include <pybind11/stl.h>
 #include <pybind11/eigen.h>
 
-
-#include "bundle/bundle_adjuster.h"
-#include "bundle/reconstruction_alignment.h"
-
-
-namespace py = pybind11;
+#include <foundation/types.h>
+#include <bundle/bundle_adjuster.h>
+#include <bundle/reconstruction_alignment.h>
 
 
 void BundleAdjusterRun(BundleAdjuster* bundle_adjuster) {
@@ -16,9 +13,7 @@ void BundleAdjusterRun(BundleAdjuster* bundle_adjuster) {
 }
 
 
-PYBIND11_MODULE(csfm, m) {
-  google::InitGoogleLogging("csfm");
-
+PYBIND11_MODULE(pybundle, m) {
   py::class_<BundleAdjuster>(m, "BundleAdjuster")
     .def(py::init())
     .def("run", &BundleAdjusterRun)

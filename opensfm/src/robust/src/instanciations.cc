@@ -1,6 +1,6 @@
-#include "instanciations.h"
+#include <robust/instanciations.h>
 
-namespace csfm {
+namespace robust {
 ScoreInfo<Line::MODEL> RANSACLine(const Eigen::Matrix<double, -1, 2>& points, double threshold,
                                   const RobustEstimatorParams& parameters,
                                   const RansacType& ransac_type) {

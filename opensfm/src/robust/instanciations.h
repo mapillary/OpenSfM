@@ -4,7 +4,7 @@
 #include "essential_model.h"
 #include "relative_pose_model.h"
 
-namespace csfm {
+namespace robust {
 ScoreInfo<Line::MODEL> RANSACLine(const Eigen::Matrix<double, -1, 2>& points, double threshold,
                                   const RobustEstimatorParams& parameters,
                                   const RansacType& ransac_type);
@@ -23,4 +23,4 @@ ScoreInfo<Eigen::Matrix<double, 3, 4>> RANSACRelativePose(
     double threshold, const RobustEstimatorParams& parameters,
     const RansacType& ransac_type);
 
-}  // namespace csfm
+}  // namespace robust

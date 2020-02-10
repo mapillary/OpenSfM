@@ -1,10 +1,10 @@
 #pragma once
 
-#include "types.h"
-#include "AKAZE.h"
+#include <foundation/types.h>
+#include <third_party/akaze/lib/AKAZE.h>
 
-namespace csfm {
+namespace features {
 
-py::object akaze(pyarray_uint8 image, AKAZEOptions options);
+py::object akaze(foundation::pyarray_uint8 image, AKAZEOptions options);
 
 }

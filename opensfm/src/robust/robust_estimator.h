@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <random>
 #include <Eigen/Eigen>
 
 #include "scorer.h"
@@ -121,7 +122,7 @@ private:
  const std::vector<typename MODEL::DATA> samples_;
  SCORING scorer_;
  RobustEstimatorParams params_;
- RandomSamplesGenerator random_generator_;
+ RandomSamplesGenerator<std::mt19937> random_generator_;
 };
 
 enum RansacType{

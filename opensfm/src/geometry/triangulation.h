@@ -7,9 +7,9 @@
 #include <fstream>
 #include <iostream>
 #include <string>
-#include "types.h"
+#include <foundation/types.h>
 
-namespace csfm {
+namespace geometry {
 
 enum {
   TRIANGULATION_OK = 0,
@@ -44,4 +44,4 @@ py::object TriangulateBearingsMidpoint(const py::list &os_list,
                                        const py::list &threshold_list,
                                        double min_angle);
 
-}  // namespace csfm
+}  // namespace geometry

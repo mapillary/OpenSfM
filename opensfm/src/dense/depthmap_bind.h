@@ -1,10 +1,12 @@
 #pragma once
 
-#include "types.h"
-#include "depthmap.h"
+#include <foundation/types.h>
+#include <dense/depthmap.h>
 
 
-namespace csfm {
+using namespace foundation;
+
+namespace dense {
 
 class DepthmapEstimatorWrapper {
  public:

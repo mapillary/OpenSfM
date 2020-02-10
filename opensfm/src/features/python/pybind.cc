@@ -3,17 +3,13 @@
 #include <pybind11/eigen.h>
 #include <glog/logging.h>
 
-#include "hahog.h"
-#include "matching.h"
-#include "akaze_bind.h"
+#include <foundation/types.h>
+#include <features/hahog.h>
+#include <features/matching.h>
+#include <features/akaze_bind.h>
 
 
-namespace py = pybind11;
-
-
-PYBIND11_MODULE(csfm, m) {
-  google::InitGoogleLogging("csfm");
-
+PYBIND11_MODULE(pyfeatures, m) {
   py::enum_<DESCRIPTOR_TYPE>(m, "AkazeDescriptorType")
     .value("SURF_UPRIGHT", SURF_UPRIGHT)
     .value("SURF", SURF)
@@ -51,9 +47,9 @@ PYBIND11_MODULE(csfm, m) {
     .def_readwrite("verbosity", &AKAZEOptions::verbosity)
   ;
 
-  m.def("akaze", csfm::akaze);
+  m.def("akaze", features::akaze);
 
-  m.def("hahog", csfm::hahog,
+  m.def("hahog", features::hahog,
         py::arg("image"),
         py::arg("peak_threshold") = 0.003,
         py::arg("edge_threshold") = 10,
@@ -61,5 +57,5 @@ PYBIND11_MODULE(csfm, m) {
         py::arg("use_adaptive_suppression") = false
   );
 
-  m.def("match_using_words", csfm::match_using_words);
+  m.def("match_using_words", features::match_using_words);
 }

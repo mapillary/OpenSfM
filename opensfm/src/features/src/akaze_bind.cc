@@ -1,12 +1,13 @@
-#include "types.h"
-#include "AKAZE.h"
-#include "akaze_bind.h"
+#include <foundation/types.h>
 #include <opencv2/imgproc/imgproc.hpp>
+#include <third_party/akaze/lib/AKAZE.h>
+#include <features/akaze_bind.h>
 
-namespace csfm {
+
+namespace features {
 
 
-py::object akaze(pyarray_uint8 image, AKAZEOptions options) {
+py::object akaze(foundation::pyarray_uint8 image, AKAZEOptions options) {
   py::gil_scoped_release release;
 
   const cv::Mat img(image.shape(0), image.shape(1), CV_8U, (void *)image.data());
@@ -41,12 +42,12 @@ py::object akaze(pyarray_uint8 image, AKAZEOptions options) {
   }
 
   py::list retn;
-  retn.append(py_array_from_data(keys.ptr<float>(0), keys.rows, keys.cols));
+  retn.append(foundation::py_array_from_data(keys.ptr<float>(0), keys.rows, keys.cols));
 
   if (options.descriptor == MLDB_UPRIGHT || options.descriptor == MLDB) {
-    retn.append(py_array_from_data(desc.ptr<unsigned char>(0), desc.rows, desc.cols));
+    retn.append(foundation::py_array_from_data(desc.ptr<unsigned char>(0), desc.rows, desc.cols));
   } else {
-    retn.append(py_array_from_data(desc.ptr<float>(0), desc.rows, desc.cols));
+    retn.append(foundation::py_array_from_data(desc.ptr<float>(0), desc.rows, desc.cols));
   }
   return retn;
 }

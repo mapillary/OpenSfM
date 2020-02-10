@@ -1,11 +1,11 @@
 #ifndef __HAHOG_H__
 #define __HAHOG_H__
 
-#include "types.h"
+#include <foundation/types.h>
 
-namespace csfm {
+namespace features {
 
-py::object hahog(pyarray_f image,
+py::object hahog(foundation::pyarray_f image,
                  float peak_threshold,
                  float edge_threshold,
                  int target_num_features,

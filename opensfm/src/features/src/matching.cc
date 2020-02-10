@@ -3,10 +3,10 @@
 #include <opencv2/core/core.hpp>
 #include <pybind11/pybind11.h>
 
-#include "types.h"
+#include <foundation/types.h>
 
 
-namespace csfm {
+namespace features {
 
 float DistanceL1(const float *pa, const float *pb, int n) {
   float distance = 0;
@@ -75,16 +75,16 @@ void MatchUsingWords(const cv::Mat &f1,
   }
 }
 
-py::object match_using_words(pyarray_f features1,
-                             pyarray_int words1,
-                             pyarray_f features2,
-                             pyarray_int words2,
+py::object match_using_words(foundation::pyarray_f features1,
+                             foundation::pyarray_int words1,
+                             foundation::pyarray_f features2,
+                             foundation::pyarray_int words2,
                              float lowes_ratio,
                              int max_checks) {
-  cv::Mat cv_f1 = pyarray_cv_mat_view(features1);
-  cv::Mat cv_w1 = pyarray_cv_mat_view(words1);
-  cv::Mat cv_f2 = pyarray_cv_mat_view(features2);
-  cv::Mat cv_w2 = pyarray_cv_mat_view(words2);
+  cv::Mat cv_f1 = foundation::pyarray_cv_mat_view(features1);
+  cv::Mat cv_w1 = foundation::pyarray_cv_mat_view(words1);
+  cv::Mat cv_f2 = foundation::pyarray_cv_mat_view(features2);
+  cv::Mat cv_w2 = foundation::pyarray_cv_mat_view(words2);
   cv::Mat matches;
 
   MatchUsingWords(cv_f1, cv_w1,
@@ -93,7 +93,7 @@ py::object match_using_words(pyarray_f features1,
                   max_checks,
                   &matches);
 
-  return py_array_from_cvmat<int>(matches);
+  return foundation::py_array_from_cvmat<int>(matches);
 }
 
 }

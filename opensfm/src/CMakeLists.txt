@@ -66,16 +66,33 @@ set(AKAZE_SRCS
 )
 add_library(akaze ${AKAZE_SRCS})
 target_link_libraries(akaze ${OpenCV_LIBS})
-target_include_directories(third_party/akaze/lib/)
-target_include_directories(${OpenCV_INCLUDE_DIRS})
+target_include_directories(akaze PUBLIC third_party/akaze/lib/ ${OpenCV_INCLUDE_DIRS})
 
 
 # VLFeat
 file(GLOB VLFEAT_SRCS third_party/vlfeat/vl/*.c third_party/vlfeat/vl/*.h)
-target_include_directories(vl third_party/vlfeat)
 add_library(vl ${VLFEAT_SRCS})
+target_include_directories(vl PRIVATE third_party/vlfeat)
+
 
 ####### OpenSfM libraries #######
+
+# Foundation
+set(FOUNDATION_FILES
+    foundation/types.h
+    foundation/numeric.h
+    foundation/src/types.cc
+    foundation/src/logger.cc
+)
+add_library(foundation ${FOUNDATION_FILES})
+target_link_libraries(foundation PUBLIC pybind11 ${OpenCV_LIBS} ${GFLAGS_LIBRARY} ${GLOG_LIBRARY})
+target_include_directories(foundation 
+PUBLIC 
+${CMAKE_CURRENT_SOURCE_DIR}
+${EIGEN_INCLUDE_DIRS}
+${PYTHON_INCLUDE_DIRS}
+${OpenCV_LIBS}
+)
 
 # Bundle
 include_directories(bundle/src)
@@ -86,25 +103,25 @@ set(BUNDLE_FILES
     bundle/src/motion_prior_terms.h
     bundle/src/absolute_motion_terms.h
     bundle/src/relative_motion_terms.h
-    bundle/src/bundle_adjuster.cc)
+    bundle/src/bundle_adjuster.cc
+)
 add_library(bundle ${BUNDLE_FILES})
 target_link_libraries(bundle PRIVATE
-    ${GFLAGS_LIBRARY}
-    ${GLOG_LIBRARY}
     ${CERES_LIBRARIES}
     ${LAPACK_LIBRARIES}
     ${SUITESPARSE_LIBRARIES}
+    foundation
 )
 if (LAPACK_FOUND)
-    target_include_directories(bundle ${LAPACK_INCLUDE_DIRS})
+    target_include_directories(bundle PRIVATE ${LAPACK_INCLUDE_DIRS})
 endif()
 if (SUITESPARSE_FOUND)
-    target_include_directories(bundle ${SUITESPARSE_INCLUDE_DIRS})
+    target_include_directories(bundle PRIVATE ${SUITESPARSE_INCLUDE_DIRS})
 endif()
-target_include_directories(bundle ${EIGEN_INCLUDE_DIRS} ${CERES_INCLUDE_DIR} ${GFLAGS_INCLUDE_DIR} ${GLOG_INCLUDE_DIR})
+target_include_directories(bundle PRIVATE foundation)
 
 pybind11_add_module(pybundle bundle/python/pybind.cc)
-target_link_libraries(pybundle PRIVATE bundle)
+target_link_libraries(pybundle PRIVATE bundle foundation pybind11)
 set_target_properties(pybundle PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${opensfm_SOURCE_DIR}/.."
 )
@@ -113,18 +130,15 @@ set_target_properties(pybundle PROPERTIES
 set(DENSE_FILES
     dense/depthmap_bind.h
     dense/depthmap.h
-    dense/src/depthmap_test.cc
-    dense/src/depthmap_test.cc
+    dense/src/depthmap.cc
+)
 add_library(dense ${DENSE_FILES})
 target_link_libraries(dense PRIVATE
     ${OpenCV_LIBS}
-    ${GFLAGS_LIBRARY}
-    ${GLOG_LIBRARY}
 )
-target_include_directories(dense ${EIGEN_INCLUDE_DIRS} ${OpenCV_LIBS} ${GFLAGS_INCLUDE_DIR} ${GLOG_INCLUDE_DIR})
+target_include_directories(dense PRIVATE ${EIGEN_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR})
 pybind11_add_module(pydense dense/python/pybind.cc)
-target_link_libraries(pydense PRIVATE dense)
-target_include_directories(pydense ${PYTHON_INCLUDE_DIRS})
+target_link_libraries(pydense PRIVATE dense foundation pybind11)
 set_target_properties(pydense PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${opensfm_SOURCE_DIR}/.."
 )
@@ -137,18 +151,17 @@ set(FEATURES_FILES
     features/src/akaze_bind.cc
     features/src/hahog.cc
     features/src/matching.cc
+)
 add_library(features ${FEATURES_FILES})
 target_link_libraries(features PRIVATE
     ${OpenCV_LIBS}
-    ${GFLAGS_LIBRARY}
-    ${GLOG_LIBRARY}
     akaze
+    foundation
     vl
 )
-target_include_directories(features ${EIGEN_INCLUDE_DIRS} ${OpenCV_LIBS} ${GFLAGS_INCLUDE_DIR} ${GLOG_INCLUDE_DIR})
+target_include_directories(features PRIVATE ${EIGEN_INCLUDE_DIRS})
 pybind11_add_module(pyfeatures features/python/pybind.cc)
-target_link_libraries(pyfeatures PRIVATE features)
-target_include_directories(pyfeatures ${PYTHON_INCLUDE_DIRS})
+target_link_libraries(pyfeatures PRIVATE features foundation pybind11 akaze)
 set_target_properties(pyfeatures PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${opensfm_SOURCE_DIR}/.."
 )
@@ -158,12 +171,15 @@ set(GEOMETRY_FILES
     geometry/essential.h
     geometry/pose.h
     geometry/triangulation.h
+    geometry/src/essential.cc
     geometry/src/triangulation.cc
-add_library(geometry ${FEATURES_FILES})
-target_include_directories(features ${EIGEN_INCLUDE_DIRS})
+    geometry/src/pose.cc
+)
+add_library(geometry ${GEOMETRY_FILES})
+target_include_directories(geometry PRIVATE ${EIGEN_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(geometry PRIVATE foundation)
 pybind11_add_module(pygeometry geometry/python/pybind.cc)
-target_link_libraries(pygeometry PRIVATE geometry)
-target_include_directories(pygeometry ${PYTHON_INCLUDE_DIRS})
+target_link_libraries(pygeometry PRIVATE geometry foundation pybind11)
 set_target_properties(pygeometry PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${opensfm_SOURCE_DIR}/.."
 )
@@ -176,13 +192,12 @@ set(ROBUST_FILES
     robust/essential_model.h
     robust/line_model.h
     robust/relative_pose_model.h
-    robust/src/scorer.cc
     robust/src/instanciations.cc
+)
 add_library(robust ${ROBUST_FILES})
-target_include_directories(features ${EIGEN_INCLUDE_DIRS})
+target_link_libraries(robust PRIVATE foundation geometry)
 pybind11_add_module(pyrobust robust/python/pybind.cc)
-target_link_libraries(pyrobust PRIVATE robust)
-target_include_directories(pyrobust ${PYTHON_INCLUDE_DIRS})
+target_link_libraries(pyrobust PRIVATE robust foundation pybind11)
 set_target_properties(pyrobust PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${opensfm_SOURCE_DIR}/.."
 )
@@ -216,7 +231,9 @@ if (OPENSFM_BUILD_TESTS)
                         gtest)
 
   add_executable(depthmap_test dense/src/depthmap_test.cc dense/src/depthmap.cc)
+  target_include_directories(depthmap_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
   target_link_libraries(depthmap_test
+                        PUBLIC
                         ${OpenCV_LIBS}
                         testing_main)
   add_test(depthmap_test depthmap_test)

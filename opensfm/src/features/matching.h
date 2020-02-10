@@ -1,13 +1,13 @@
 #pragma once
 
-#include "types.h"
+#include <foundation/types.h>
 
-namespace csfm {
+namespace features {
 
-py::object match_using_words(pyarray_f features1,
-                             pyarray_int words1,
-                             pyarray_f features2,
-                             pyarray_int words2,
+py::object match_using_words(foundation::pyarray_f features1,
+                             foundation::pyarray_int words1,
+                             foundation::pyarray_f features2,
+                             foundation::pyarray_int words2,
                              float lowes_ratio,
                              int max_checks);
 

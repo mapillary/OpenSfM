@@ -3,48 +3,44 @@
 #include <pybind11/eigen.h>
 #include <glog/logging.h>
 
-#include "depthmap_bind.h"
-#include "openmvs_exporter.h"
+#include <foundation/types.h>
+#include <dense/depthmap_bind.h>
+#include <dense/openmvs_exporter.h>
 
 
-namespace py = pybind11;
-
-
-PYBIND11_MODULE(csfm, m) {
-  google::InitGoogleLogging("csfm");
-
-  py::class_<csfm::OpenMVSExporter>(m, "OpenMVSExporter")
+PYBIND11_MODULE(pydense, m) {
+  py::class_<dense::OpenMVSExporter>(m, "OpenMVSExporter")
     .def(py::init())
-    .def("add_camera", &csfm::OpenMVSExporter::AddCamera)
-    .def("add_shot", &csfm::OpenMVSExporter::AddShot)
-    .def("add_point", &csfm::OpenMVSExporter::AddPoint)
-    .def("export", &csfm::OpenMVSExporter::Export)
+    .def("add_camera", &dense::OpenMVSExporter::AddCamera)
+    .def("add_shot", &dense::OpenMVSExporter::AddShot)
+    .def("add_point", &dense::OpenMVSExporter::AddPoint)
+    .def("export", &dense::OpenMVSExporter::Export)
   ;
 
-  py::class_<csfm::DepthmapEstimatorWrapper>(m, "DepthmapEstimator")
+  py::class_<dense::DepthmapEstimatorWrapper>(m, "DepthmapEstimator")
     .def(py::init())
-    .def("set_depth_range", &csfm::DepthmapEstimatorWrapper::SetDepthRange)
-    .def("set_patchmatch_iterations", &csfm::DepthmapEstimatorWrapper::SetPatchMatchIterations)
-    .def("set_patch_size", &csfm::DepthmapEstimatorWrapper::SetPatchSize)
-    .def("set_min_patch_sd", &csfm::DepthmapEstimatorWrapper::SetMinPatchSD)
-    .def("add_view", &csfm::DepthmapEstimatorWrapper::AddView)
-    .def("compute_patch_match", &csfm::DepthmapEstimatorWrapper::ComputePatchMatch)
-    .def("compute_patch_match_sample", &csfm::DepthmapEstimatorWrapper::ComputePatchMatchSample)
-    .def("compute_brute_force", &csfm::DepthmapEstimatorWrapper::ComputeBruteForce)
+    .def("set_depth_range", &dense::DepthmapEstimatorWrapper::SetDepthRange)
+    .def("set_patchmatch_iterations", &dense::DepthmapEstimatorWrapper::SetPatchMatchIterations)
+    .def("set_patch_size", &dense::DepthmapEstimatorWrapper::SetPatchSize)
+    .def("set_min_patch_sd", &dense::DepthmapEstimatorWrapper::SetMinPatchSD)
+    .def("add_view", &dense::DepthmapEstimatorWrapper::AddView)
+    .def("compute_patch_match", &dense::DepthmapEstimatorWrapper::ComputePatchMatch)
+    .def("compute_patch_match_sample", &dense::DepthmapEstimatorWrapper::ComputePatchMatchSample)
+    .def("compute_brute_force", &dense::DepthmapEstimatorWrapper::ComputeBruteForce)
   ;
 
-  py::class_<csfm::DepthmapCleanerWrapper>(m, "DepthmapCleaner")
+  py::class_<dense::DepthmapCleanerWrapper>(m, "DepthmapCleaner")
     .def(py::init())
-    .def("set_same_depth_threshold", &csfm::DepthmapCleanerWrapper::SetSameDepthThreshold)
-    .def("set_min_consistent_views", &csfm::DepthmapCleanerWrapper::SetMinConsistentViews)
-    .def("add_view", &csfm::DepthmapCleanerWrapper::AddView)
-    .def("clean", &csfm::DepthmapCleanerWrapper::Clean)
+    .def("set_same_depth_threshold", &dense::DepthmapCleanerWrapper::SetSameDepthThreshold)
+    .def("set_min_consistent_views", &dense::DepthmapCleanerWrapper::SetMinConsistentViews)
+    .def("add_view", &dense::DepthmapCleanerWrapper::AddView)
+    .def("clean", &dense::DepthmapCleanerWrapper::Clean)
   ;
 
-  py::class_<csfm::DepthmapPrunerWrapper>(m, "DepthmapPruner")
+  py::class_<dense::DepthmapPrunerWrapper>(m, "DepthmapPruner")
     .def(py::init())
-    .def("set_same_depth_threshold", &csfm::DepthmapPrunerWrapper::SetSameDepthThreshold)
-    .def("add_view", &csfm::DepthmapPrunerWrapper::AddView)
-    .def("prune", &csfm::DepthmapPrunerWrapper::Prune)
+    .def("set_same_depth_threshold", &dense::DepthmapPrunerWrapper::SetSameDepthThreshold)
+    .def("add_view", &dense::DepthmapPrunerWrapper::AddView)
+    .def("prune", &dense::DepthmapPrunerWrapper::Prune)
   ;
 }

@@ -5,6 +5,7 @@
 #include "essential_model.h"
 #include <foundation/numeric.h>
 #include <geometry/pose.h>
+#include <geometry/triangulation.h>
 
 
 template< class S = EssentialMatrixSolvingFivePoints>
@@ -36,7 +37,7 @@ class RelativePose : public Model<RelativePose<S>, 1, 10, ModelAdapter<RelativeP
     centers.col(1) << -rotation.transpose()*translation;
     bearings.col(0) << x;
     bearings.col(1) << rotation.transpose()*y;
-    const auto point = csfm::TriangulateBearingsMidpointSolve(centers, bearings);
+    const auto point = geometry::TriangulateBearingsMidpointSolve(centers, bearings);
     const auto projected_x = point.normalized();
     const auto projected_y = (rotation*point+translation).normalized();
 

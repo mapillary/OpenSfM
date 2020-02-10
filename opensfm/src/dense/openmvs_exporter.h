@@ -3,7 +3,7 @@
 #include "third_party/openmvs/Interface.h"
 
 
-namespace csfm {
+namespace dense {
 
 class OpenMVSExporter {
  public:

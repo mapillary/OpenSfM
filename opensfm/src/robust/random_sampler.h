@@ -1,10 +1,11 @@
 #pragma once
 
-template<class T = std::mt19937>
+
+template<class T >
 class RandomSamplesGenerator{
   public:
     using RAND_GEN = T;
-    using DISTRIBUTION  = std::uniform_int_distribution<RAND_GEN::result_type>;
+    using DISTRIBUTION  = std::uniform_int_distribution<typename RAND_GEN::result_type>;
 
     RandomSamplesGenerator(int seed = 42): generator_(seed){}
     std::vector<int> Generate(int size, int range_max){
