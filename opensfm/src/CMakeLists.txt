@@ -23,11 +23,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-####### Architecture Specifics #######
-include(OptimizeForArchitecture)
-OptimizeForArchitecture()
-
-# We disable AVX, as it causes crashes due to Eigen+Ceres(Jet) hard-coded alignment. Should work with Eigen >= 3.3.
+# For compiling VLFeat
 add_definitions(-DVL_DISABLE_AVX)
 
 ####### Find Dependencies #######
