@@ -39,7 +39,7 @@ PYBIND11_MODULE(pyrobust, m) {
       .value("LMedS", RansacType::LMedS)
       .export_values()
     ;
-  AddScoreType<Line::MODEL>(m, "Line");
-  AddScoreType<robust::EssentialMatrixModel::MODEL>(m, "EssentialMatrix");
+  AddScoreType<Line::Type>(m, "Line");
+  AddScoreType<robust::EssentialMatrixModel::Type>(m, "EssentialMatrix");
   AddScoreType<Eigen::Matrix<double, 3, 4>>(m, "RelativePose");
 }

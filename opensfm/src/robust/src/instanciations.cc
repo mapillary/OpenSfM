@@ -1,10 +1,10 @@
 #include <robust/instanciations.h>
 
 namespace robust {
-ScoreInfo<Line::MODEL> RANSACLine(const Eigen::Matrix<double, -1, 2>& points, double threshold,
+ScoreInfo<Line::Type> RANSACLine(const Eigen::Matrix<double, -1, 2>& points, double threshold,
                                   const RobustEstimatorParams& parameters,
                                   const RansacType& ransac_type) {
-  std::vector<Line::DATA> samples(points.rows());
+  std::vector<Line::Data> samples(points.rows());
   for (int i = 0; i < points.rows(); ++i) {
     samples[i] = points.row(i);
   }
@@ -12,7 +12,7 @@ ScoreInfo<Line::MODEL> RANSACLine(const Eigen::Matrix<double, -1, 2>& points, do
 }
 
 using EssentialMatrixModel = EssentialMatrix<EpipolarGeodesic>;
-ScoreInfo<EssentialMatrixModel::MODEL> RANSACEssential(
+ScoreInfo<EssentialMatrixModel::Type> RANSACEssential(
     const Eigen::Matrix<double, -1, 3>& x1,
     const Eigen::Matrix<double, -1, 3>& x2, double threshold,
     const RobustEstimatorParams& parameters,
@@ -21,7 +21,7 @@ ScoreInfo<EssentialMatrixModel::MODEL> RANSACEssential(
     throw std::runtime_error("Features matrices have different sizes.");
   }
   
-  std::vector<EssentialMatrixModel::DATA> samples(x1.rows());
+  std::vector<EssentialMatrixModel::Data> samples(x1.rows());
   for (int i = 0; i < x1.rows(); ++i) {
     samples[i].first = x1.row(i);
     samples[i].second = x2.row(i);
@@ -29,8 +29,7 @@ ScoreInfo<EssentialMatrixModel::MODEL> RANSACEssential(
   return RunEstimation<EssentialMatrixModel>(samples, threshold, parameters, ransac_type);
 }
 
-using RelativePoseModel = RelativePose<EssentialMatrixSolvingFivePoints>;
-ScoreInfo<Eigen::Matrix<double, 3, 4>> RANSACRelativePose(
+ScoreInfo<RelativePose::Type> RANSACRelativePose(
     const Eigen::Matrix<double, -1, 3>& x1,
     const Eigen::Matrix<double, -1, 3>& x2, 
     double threshold, const RobustEstimatorParams& parameters,
@@ -39,12 +38,12 @@ ScoreInfo<Eigen::Matrix<double, 3, 4>> RANSACRelativePose(
     throw std::runtime_error("Features matrices have different sizes.");
   }
   
-  std::vector<RelativePoseModel::DATA> samples(x1.rows());
+  std::vector<RelativePose::Data> samples(x1.rows());
   for (int i = 0; i < x1.rows(); ++i) {
     samples[i].first = x1.row(i);
     samples[i].second = x2.row(i);
   }
-  return RunEstimation<RelativePoseModel>(samples, threshold, parameters, ransac_type);
+  return RunEstimation<RelativePose>(samples, threshold, parameters, ransac_type);
 }
 
 }  // namespace csfm

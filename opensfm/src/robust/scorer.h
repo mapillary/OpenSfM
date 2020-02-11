@@ -23,7 +23,7 @@ class RansacScoring {
   RansacScoring(double threshold) : threshold_(threshold) {}
 
   template <class IT, class T>
-  ScoreInfo<T> Score(IT begin, IT end, const ScoreInfo<T>& best_score) {
+  ScoreInfo<T> Score(IT begin, IT end, const ScoreInfo<T>& best_score)const {
     ScoreInfo<T> score;
     for (IT it = begin; it != end; ++it) {
       if (it->norm() < threshold_) {
@@ -42,7 +42,7 @@ class MedianBasedScoring {
   MedianBasedScoring(double nth) : nth_(nth) {}
 
   template <class IT>
-  double ComputeMedian(IT begin, IT end) {
+  double ComputeMedian(IT begin, IT end) const {
     const int count = (end - begin);
     const int median_index = count * nth_;
     std::vector<double> norms(count);
@@ -62,7 +62,7 @@ class MSacScoring {
   MSacScoring(double threshold) : threshold_(threshold) {}
 
   template <class IT, class T>
-  ScoreInfo<T> Score(IT begin, IT end, const ScoreInfo<T>& best_score) {
+  ScoreInfo<T> Score(IT begin, IT end, const ScoreInfo<T>& best_score) const {
     ScoreInfo<T> score;
     for (IT it = begin; it != end; ++it) {
       const auto v = (*it).norm();
@@ -87,7 +87,7 @@ class LMedSScoring : public MedianBasedScoring {
       : MedianBasedScoring(0.5), multiplier_(multiplier) {}
 
   template <class IT, class T>
-  ScoreInfo<T> Score(IT begin, IT end, const ScoreInfo<T>& best_score) {
+  ScoreInfo<T> Score(IT begin, IT end, const ScoreInfo<T>& best_score) const {
     const auto median = this->ComputeMedian(begin, end);
     const auto mad = 1.4826 * median;
     const auto threshold = this->multiplier_ * mad;

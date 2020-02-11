@@ -25,43 +25,36 @@ class EpipolarGeodesic{
   }
 };
 
-class EssentialMatrixSolvingFivePoints{
-  public:
-  template< class IT>
-  static std::vector<Eigen::Matrix<double, 3, 3>> Solve(IT begin, IT end){
-    return EssentialFivePoints(begin, end);
-  }
-};
-
-class EssentialMatrixSolvingNPoints{
-  public:
-  template< class IT>
-  static std::vector<Eigen::Matrix<double, 3, 3>> Solve(IT begin, IT end){
-    return EssentialNPoints(begin, end);
-  }
-};
-
-template< class E = EpipolarSymmetric, class S = EssentialMatrixSolvingFivePoints >
-class EssentialMatrix : public Model<EssentialMatrix<E, S>, 1, 10, ModelAdapter<EssentialMatrix<E, EssentialMatrixSolvingNPoints> >> {
+template< class E = EpipolarSymmetric >
+class EssentialMatrix : public Model<EssentialMatrix<E>, 1, 10> {
  public:
-  using ERROR = typename Model<EssentialMatrix<E, S>, 1, 10>::ERROR;
-  using MODEL = Eigen::Matrix3d;
-  using DATA = std::pair<Eigen::Vector3d, Eigen::Vector3d>;
+  using Error = typename Model<EssentialMatrix<E>, 1, 10>::Error;
+  using Type = Eigen::Matrix3d;
+  using Data = std::pair<Eigen::Vector3d, Eigen::Vector3d>;
   static const int MINIMAL_SAMPLES = 5;
 
   template <class IT>
-  static int Model(IT begin, IT end, MODEL* models){
-    const auto essentials = S::Solve(begin, end);
+  static int Estimate(IT begin, IT end, Type* models){
+    const auto essentials = EssentialFivePoints(begin, end);
     for(int i = 0; i < essentials.size(); ++i){
       models[i] = essentials[i];
     }
     return essentials.size();
   }
 
-  static ERROR Error(const MODEL& model, const DATA& d){
+  template <class IT>
+  static int EstimateNonMinimal(IT begin, IT end, Type* models){
+    const auto essentials = EssentialNPoints(begin, end);
+    for(int i = 0; i < essentials.size(); ++i){
+      models[i] = essentials[i];
+    }
+    return essentials.size();
+  }
+
+  static Error Evaluate(const Type& model, const Data& d){
     const auto x = d.first;
     const auto y = d.second;
-    ERROR e;
+    Error e;
     e[0] = E::Error(model, x, y);
     return e;
   }

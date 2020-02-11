@@ -8,8 +8,16 @@ class RandomSamplesGenerator{
     using DISTRIBUTION  = std::uniform_int_distribution<typename RAND_GEN::result_type>;
 
     RandomSamplesGenerator(int seed = 42): generator_(seed){}
-    std::vector<int> Generate(int size, int range_max){
-      return GenerateOneSample(size, range_max);
+
+    template <class MODEL>
+    std::vector<typename MODEL::Data> GetRandomSamples(const std::vector<typename MODEL::Data>& samples, int size) {
+      const auto random_sample_indices = GenerateOneSample(size, samples.size() - 1);
+      std::vector<typename MODEL::Data> random_samples;
+      std::for_each(random_sample_indices.begin(), random_sample_indices.end(),
+                    [&random_samples, &samples](const int idx) {
+                      random_samples.push_back(samples[idx]);
+                    });
+      return random_samples;
     }
 
   private:

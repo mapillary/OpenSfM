@@ -8,24 +8,32 @@
 #include <geometry/triangulation.h>
 
 
-template< class S = EssentialMatrixSolvingFivePoints>
-class RelativePose : public Model<RelativePose<S>, 1, 10, ModelAdapter<RelativePose<EssentialMatrixSolvingNPoints> >> {
+class RelativePose : public Model<RelativePose, 1, 10> {
  public:
-  using ERROR = typename Model<RelativePose<S>, 1, 10>::ERROR;
-  using MODEL = Eigen::Matrix<double, 3, 4>;
-  using DATA = std::pair<Eigen::Vector3d, Eigen::Vector3d>;
+  using Error = typename Model<RelativePose, 1, 10>::Error;
+  using Type = Eigen::Matrix<double, 3, 4>;
+  using Data = std::pair<Eigen::Vector3d, Eigen::Vector3d>;
   static const int MINIMAL_SAMPLES = 5;
 
   template <class IT>
-  static int Model(IT begin, IT end, MODEL* models){
-    const auto essentials = S::Solve(begin, end);
+  static int Estimate(IT begin, IT end, Type* models){
+    const auto essentials = EssentialFivePoints(begin, end);
     for(int i = 0; i < essentials.size(); ++i){
       models[i] = RelativePoseFromEssential(essentials[i], begin, end);
     }
     return essentials.size();
   }
 
-  static ERROR Error(const MODEL& model, const DATA& d){
+  template <class IT>
+  static int EstimateNonMinimal(IT begin, IT end, Type* models){
+    const auto essentials = EssentialNPoints(begin, end);
+    for(int i = 0; i < essentials.size(); ++i){
+      models[i] = RelativePoseFromEssential(essentials[i], begin, end);
+    }
+    return essentials.size();
+  }
+
+  static Error Evaluate(const Type& model, const Data& d){
     const auto rotation = model.block<3, 3>(0, 0);
     const auto translation = model.block<3, 1>(0, 3);
     const auto x = d.first.normalized();
@@ -41,7 +49,7 @@ class RelativePose : public Model<RelativePose<S>, 1, 10, ModelAdapter<RelativeP
     const auto projected_x = point.normalized();
     const auto projected_y = (rotation*point+translation).normalized();
 
-    ERROR e;
+    Error e;
     e[0] = std::acos((projected_x.dot(x) + projected_y.dot(y))*0.5);
     return e;
   }

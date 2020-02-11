@@ -5,19 +5,18 @@
 #include "relative_pose_model.h"
 
 namespace robust {
-ScoreInfo<Line::MODEL> RANSACLine(const Eigen::Matrix<double, -1, 2>& points, double threshold,
+ScoreInfo<Line::Type> RANSACLine(const Eigen::Matrix<double, -1, 2>& points, double threshold,
                                   const RobustEstimatorParams& parameters,
                                   const RansacType& ransac_type);
 
 using EssentialMatrixModel = EssentialMatrix<EpipolarGeodesic>;
-ScoreInfo<EssentialMatrixModel::MODEL> RANSACEssential(
+ScoreInfo<EssentialMatrixModel::Type> RANSACEssential(
     const Eigen::Matrix<double, -1, 3>& x1,
     const Eigen::Matrix<double, -1, 3>& x2, double threshold,
     const RobustEstimatorParams& parameters,
     const RansacType& ransac_type);
 
-using RelativePoseModel = RelativePose<EssentialMatrixSolvingFivePoints>;
-ScoreInfo<Eigen::Matrix<double, 3, 4>> RANSACRelativePose(
+ScoreInfo<RelativePose::Type> RANSACRelativePose(
     const Eigen::Matrix<double, -1, 3>& x1,
     const Eigen::Matrix<double, -1, 3>& x2, 
     double threshold, const RobustEstimatorParams& parameters,
