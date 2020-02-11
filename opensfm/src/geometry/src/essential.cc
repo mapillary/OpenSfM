@@ -1,4 +1,4 @@
-#include <geometry/essential.h>
+#include "../essential.h"
 
 // Multiply two polynomials of degree 1.
 Eigen::Matrix<double, -1, 1>  o1(const Eigen::Matrix<double, -1, 1>  &a, const Eigen::Matrix<double, -1, 1>  &b) {

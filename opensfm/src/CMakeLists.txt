@@ -10,19 +10,24 @@ endif()
 
 set(CMAKE_MODULE_PATH ${opensfm_SOURCE_DIR}/cmake)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} \
-    -fPIC \
-    -fvisibility=hidden")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
-    -fPIC \
-    -fvisibility=hidden \
-    -fvisibility-inlines-hidden \
-    -std=c++11")
+####### Compilation Options #######
+# Visibility stuff
+cmake_policy(SET CMP0063 NEW)
+set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+set(CMAKE_CXX_VISIBILITY_INLINES ON)
 
-if (NOT CMAKE_SYSTEM_PROCESSOR MATCHES
-    "(x86)|(X86)|(x86_64)|(X86_64)|(amd64)|(AMD64)")
-    add_definitions(-DVL_DISABLE_SSE2)
-endif ()
+# fPIC
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+# C++11
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+####### Architecture Specifics #######
+include(OptimizeForArchitecture)
+OptimizeForArchitecture()
+
+# We disable AVX, as it causes crashes due to Eigen+Ceres(Jet) hard-coded alignment. Should work with Eigen >= 3.3.
 add_definitions(-DVL_DISABLE_AVX)
 
 ####### Find Dependencies #######
@@ -51,156 +56,16 @@ endif()
 
 ####### Third party libraries #######
 add_subdirectory(third_party/pybind11)
-
-# Akaze
-set(AKAZE_SRCS
-    third_party/akaze/lib/AKAZEConfig.h
-    third_party/akaze/lib/AKAZE.h
-    third_party/akaze/lib/AKAZE.cpp
-    third_party/akaze/lib/fed.h
-    third_party/akaze/lib/fed.cpp
-    third_party/akaze/lib/nldiffusion_functions.h
-    third_party/akaze/lib/nldiffusion_functions.cpp
-    third_party/akaze/lib/utils.h
-    third_party/akaze/lib/utils.cpp
-)
-add_library(akaze ${AKAZE_SRCS})
-target_link_libraries(akaze ${OpenCV_LIBS})
-target_include_directories(akaze PUBLIC third_party/akaze/lib/ ${OpenCV_INCLUDE_DIRS})
-
-
-# VLFeat
-file(GLOB VLFEAT_SRCS third_party/vlfeat/vl/*.c third_party/vlfeat/vl/*.h)
-add_library(vl ${VLFEAT_SRCS})
-target_include_directories(vl PRIVATE third_party/vlfeat)
-
+add_subdirectory(third_party/akaze)
+add_subdirectory(third_party/vlfeat)
 
 ####### OpenSfM libraries #######
-
-# Foundation
-set(FOUNDATION_FILES
-    foundation/types.h
-    foundation/numeric.h
-    foundation/src/types.cc
-    foundation/src/logger.cc
-)
-add_library(foundation ${FOUNDATION_FILES})
-target_link_libraries(foundation PUBLIC pybind11 ${OpenCV_LIBS} ${GFLAGS_LIBRARY} ${GLOG_LIBRARY})
-target_include_directories(foundation 
-PUBLIC 
-${CMAKE_CURRENT_SOURCE_DIR}
-${EIGEN_INCLUDE_DIRS}
-${PYTHON_INCLUDE_DIRS}
-${OpenCV_LIBS}
-)
-
-# Bundle
-include_directories(bundle/src)
-set(BUNDLE_FILES
-    bundle/bundle_adjuster.h
-    bundle/reconstruction_alignment.h
-    bundle/src/error_utils.h
-    bundle/src/motion_prior_terms.h
-    bundle/src/absolute_motion_terms.h
-    bundle/src/relative_motion_terms.h
-    bundle/src/bundle_adjuster.cc
-)
-add_library(bundle ${BUNDLE_FILES})
-target_link_libraries(bundle PRIVATE
-    ${CERES_LIBRARIES}
-    ${LAPACK_LIBRARIES}
-    ${SUITESPARSE_LIBRARIES}
-    foundation
-)
-if (LAPACK_FOUND)
-    target_include_directories(bundle PRIVATE ${LAPACK_INCLUDE_DIRS})
-endif()
-if (SUITESPARSE_FOUND)
-    target_include_directories(bundle PRIVATE ${SUITESPARSE_INCLUDE_DIRS})
-endif()
-target_include_directories(bundle PRIVATE foundation)
-
-pybind11_add_module(pybundle bundle/python/pybind.cc)
-target_link_libraries(pybundle PRIVATE bundle foundation pybind11)
-set_target_properties(pybundle PROPERTIES
-    LIBRARY_OUTPUT_DIRECTORY "${opensfm_SOURCE_DIR}/.."
-)
-
-# Dense
-set(DENSE_FILES
-    dense/depthmap_bind.h
-    dense/depthmap.h
-    dense/src/depthmap.cc
-)
-add_library(dense ${DENSE_FILES})
-target_link_libraries(dense PRIVATE
-    ${OpenCV_LIBS}
-)
-target_include_directories(dense PRIVATE ${EIGEN_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR})
-pybind11_add_module(pydense dense/python/pybind.cc)
-target_link_libraries(pydense PRIVATE dense foundation pybind11)
-set_target_properties(pydense PROPERTIES
-    LIBRARY_OUTPUT_DIRECTORY "${opensfm_SOURCE_DIR}/.."
-)
-
-# Features
-set(FEATURES_FILES
-    features/akaze_bind.h
-    features/hahog.h
-    features/matching.h
-    features/src/akaze_bind.cc
-    features/src/hahog.cc
-    features/src/matching.cc
-)
-add_library(features ${FEATURES_FILES})
-target_link_libraries(features PRIVATE
-    ${OpenCV_LIBS}
-    akaze
-    foundation
-    vl
-)
-target_include_directories(features PRIVATE ${EIGEN_INCLUDE_DIRS})
-pybind11_add_module(pyfeatures features/python/pybind.cc)
-target_link_libraries(pyfeatures PRIVATE features foundation pybind11 akaze)
-set_target_properties(pyfeatures PROPERTIES
-    LIBRARY_OUTPUT_DIRECTORY "${opensfm_SOURCE_DIR}/.."
-)
-
-# Geometry
-set(GEOMETRY_FILES
-    geometry/essential.h
-    geometry/pose.h
-    geometry/triangulation.h
-    geometry/src/essential.cc
-    geometry/src/triangulation.cc
-    geometry/src/pose.cc
-)
-add_library(geometry ${GEOMETRY_FILES})
-target_include_directories(geometry PRIVATE ${EIGEN_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(geometry PRIVATE foundation)
-pybind11_add_module(pygeometry geometry/python/pybind.cc)
-target_link_libraries(pygeometry PRIVATE geometry foundation pybind11)
-set_target_properties(pygeometry PROPERTIES
-    LIBRARY_OUTPUT_DIRECTORY "${opensfm_SOURCE_DIR}/.."
-)
-
-# Robust
-set(ROBUST_FILES
-    robust/model.h
-    robust/random_sampler.h
-    robust/robust_estimator.h
-    robust/essential_model.h
-    robust/line_model.h
-    robust/relative_pose_model.h
-    robust/src/instanciations.cc
-)
-add_library(robust ${ROBUST_FILES})
-target_link_libraries(robust PRIVATE foundation geometry)
-pybind11_add_module(pyrobust robust/python/pybind.cc)
-target_link_libraries(pyrobust PRIVATE robust foundation pybind11)
-set_target_properties(pyrobust PROPERTIES
-    LIBRARY_OUTPUT_DIRECTORY "${opensfm_SOURCE_DIR}/.."
-)
+add_subdirectory(foundation)
+add_subdirectory(bundle)
+add_subdirectory(dense)
+add_subdirectory(features)
+add_subdirectory(geometry)
+add_subdirectory(robust)
 
 ####### Debugging #######
 if (CMAKE_BUILD_TYPE MATCHES DEBUG)

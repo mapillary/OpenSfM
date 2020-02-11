@@ -1,4 +1,4 @@
-#include <dense/depthmap.h>
+#include "../depthmap.h"
 #include <opencv2/opencv.hpp>
 #include <random>
 
