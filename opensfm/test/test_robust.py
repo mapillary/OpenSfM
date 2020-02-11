@@ -21,7 +21,7 @@ def add_outliers(ratio_outliers, x, min, max):
             sign = 1 if np.random.randint(2) > 0 else -1
         else:
             sign = [1 if x > 0 else -1 for x in np.random.randint(2, size=shape)]
-        x[index] += sign*noise
+        x[int(index)] += sign*noise
 
 
 def test_uniform_line_ransac():
