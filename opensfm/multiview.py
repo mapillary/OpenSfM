@@ -588,7 +588,7 @@ def relative_pose_ransac(b1, b2, method, threshold, iterations, probability):
         result = pyrobust.ransac_relative_pose(b1, b2, threshold, params, pyrobust.RansacType.RANSAC)
 
         Rt = result.lo_model.copy()
-        R, t = Rt[:3, :3], Rt[:, 3]
+        R, t = Rt[:3, :3].copy(), Rt[:, 3].copy()
         Rt[:3, :3] = R.T
         Rt[:, 3] = -R.T.dot(t)
         return Rt
