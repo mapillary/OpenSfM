@@ -204,7 +204,7 @@ PYBIND11_MODULE(csfm, m) {
     .def_property_readonly("t", &BAShot::GetTranslation)
     .def_readwrite("id", &BAShot::id)
     .def_readwrite("camera", &BAShot::camera)
-    .def("get_covariance", &BAShot::GetCovariance)
+    .def("get_covariance_inv_param", &BAShot::GetCovarianceInvParam)
   ;
 
   py::class_<BAReconstruction>(m, "BAReconstruction")

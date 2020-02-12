@@ -178,7 +178,7 @@ struct BAShot {
     InvertTransform_(&parameters[BA_SHOT_RX], &parameters[BA_SHOT_TX], &r[0], &t[0]);
     return t;
   }
-  double GetCovariance(int i, int j) { return covariance[i * BA_SHOT_NUM_PARAMS + j]; }
+  double GetCovarianceInvParam(int i, int j) { return covariance[i * BA_SHOT_NUM_PARAMS + j]; }
 
   void SetRotationAndTranslation(const Eigen::Vector3d &r, const Eigen::Vector3d &t) {
     InvertTransform_(&r[0], &t[0], &parameters[BA_SHOT_RX], &parameters[BA_SHOT_TX]);
