@@ -124,7 +124,7 @@ def triangulate_gcp(point, shots):
 
     if len(os) >= 2:
         thresholds = len(os) * [reproj_threshold]
-        e, X = pybundle.triangulate_bearings_midpoint(
+        e, X = pygeometry.triangulate_bearings_midpoint(
             os, bs, thresholds, min_ray_angle)
         return X
 
