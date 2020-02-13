@@ -22,7 +22,7 @@ def samples_generator_random_count(count):
 
 
 def samples_generator_interval(start, length, interval, interval_noise):
-    samples = np.linspace(start/length, 1, num=length/interval)
+    samples = np.linspace(start/length, 1, num=int(length/interval))
     samples += np.random.normal(0.0,
                                 float(interval_noise)/float(length),
                                 samples.shape)

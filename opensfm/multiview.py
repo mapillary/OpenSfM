@@ -7,6 +7,7 @@ import cv2
 import numpy as np
 import pyopengv
 
+from opensfm import pyrobust
 from opensfm import transformations as tf
 
 
@@ -38,6 +39,13 @@ def euclidean(x):
     '''
     return x[..., :-1] / x[..., -1:]
 
+
+def cross_product_matrix(x):
+    '''Return the matrix representation of x's cross product
+    '''
+    return np.array([[0, -x[2], x[1]],
+                     [x[2], 0, -x[0]],
+                     [-x[1], x[0], 0]])
 
 def P_from_KRt(K, R, t):
     '''P = K[R|t].
@@ -572,14 +580,29 @@ def absolute_pose_ransac(bs, Xs, method, threshold, iterations, probabilty):
 
 
 def relative_pose_ransac(b1, b2, method, threshold, iterations, probability):
-    try:
-        return pyopengv.relative_pose_ransac(b1, b2, method, threshold,
-                                             iterations=iterations,
-                                             probability=probability)
-    except Exception:
-        # Older versions of pyopengv do not accept the probability argument.
-        return pyopengv.relative_pose_ransac(b1, b2, method, threshold,
-                                             iterations)
+    # in-house estimation
+    if method == 'mapillary':
+        threshold = np.arccos(1 - threshold)
+        params = pyrobust.RobustEstimatorParams()
+        params.iterations = 1000
+        result = pyrobust.ransac_relative_pose(b1, b2, threshold, params, pyrobust.RansacType.RANSAC)
+
+        Rt = result.lo_model.copy()
+        R, t = Rt[:3, :3].copy(), Rt[:, 3].copy()
+        Rt[:3, :3] = R.T
+        Rt[:, 3] = -R.T.dot(t)
+        return Rt
+
+    # fallback to opengv
+    else:
+        try:
+            return pyopengv.relative_pose_ransac(b1, b2, method, threshold,
+                                                iterations=iterations,
+                                                probability=probability)
+        except Exception:
+            # Older versions of pyopengv do not accept the probability argument.
+            return pyopengv.relative_pose_ransac(b1, b2, method, threshold,
+                                                iterations)
 
 
 def relative_pose_ransac_rotation_only(b1, b2, threshold, iterations,

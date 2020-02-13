@@ -3,7 +3,7 @@ import os
 
 import numpy as np
 
-from opensfm import csfm
+from opensfm import pydense
 from opensfm import dataset
 from opensfm import io
 
@@ -27,7 +27,7 @@ class Command:
             self.export(reconstructions[0], graph, data)
 
     def export(self, reconstruction, graph, data):
-        exporter = csfm.OpenMVSExporter()
+        exporter = pydense.OpenMVSExporter()
         for camera in reconstruction.cameras.values():
             if camera.projection_type == 'perspective':
                 w, h = camera.width, camera.height

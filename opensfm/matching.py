@@ -6,7 +6,7 @@ import logging
 from timeit import default_timer as timer
 from collections import defaultdict
 
-from opensfm import csfm
+from opensfm import pyfeatures
 from opensfm import context
 from opensfm import log
 from opensfm import multiview
@@ -260,8 +260,8 @@ def match_words(f1, words1, f2, words2, config):
     """
     ratio = config['lowes_ratio']
     num_checks = config['bow_num_checks']
-    return csfm.match_using_words(f1, words1, f2, words2[:, 0],
-                                  ratio, num_checks)
+    return pyfeatures.match_using_words(f1, words1, f2, words2[:, 0],
+                                        ratio, num_checks)
 
 
 def match_words_symmetric(f1, words1, f2, words2, config):

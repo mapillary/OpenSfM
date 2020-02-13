@@ -3,7 +3,7 @@
 #include <opencv2/opencv.hpp>
 #include <random>
 
-namespace csfm {
+namespace dense {
 
 float Variance(float *x, int n);
 
@@ -165,4 +165,4 @@ class DepthmapPruner {
   float same_depth_threshold_;
 };
 
-}  // namespace csfm
+}  // namespace dense

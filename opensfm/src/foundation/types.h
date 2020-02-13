@@ -7,11 +7,9 @@
 #include <iostream>
 #include "opencv2/core/core.hpp"
 
-
-namespace csfm {
-
 namespace py = pybind11;
 
+namespace foundation {
 
 typedef py::array_t<float, py::array::c_style | py::array::forcecast> pyarray_f;
 typedef py::array_t<double, py::array::c_style | py::array::forcecast> pyarray_d;

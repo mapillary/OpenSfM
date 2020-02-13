@@ -1,0 +1,22 @@
+set(FOUNDATION_FILES
+    types.h
+    numeric.h
+    logger.h
+    src/types.cc
+    src/logger.cc
+)
+add_library(foundation ${FOUNDATION_FILES})
+target_link_libraries(foundation 
+  PUBLIC
+    pybind11
+    ${OpenCV_LIBS}
+  PRIVATE
+    ${GFLAGS_LIBRARY}
+    ${GLOG_LIBRARY}
+)
+target_include_directories(foundation 
+  PUBLIC 
+    ${EIGEN_INCLUDE_DIRS}
+    ${PYTHON_INCLUDE_DIRS}
+    ${CMAKE_SOURCE_DIR}
+)

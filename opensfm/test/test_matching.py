@@ -10,7 +10,7 @@ from opensfm import config
 from opensfm import matching
 from opensfm import pairs_selection
 from opensfm import bow
-from opensfm import csfm
+from opensfm import pyfeatures
 from opensfm.synthetic_data import synthetic_dataset
 from opensfm.test import data_generation
 
@@ -56,10 +56,10 @@ def test_match_using_words():
     nfeatures = 1000
 
     features, words = example_features(nfeatures, configuration)
-    matches = csfm.match_using_words(features[0], words[0],
-                                     features[1], words[1][:, 0],
-                                     configuration['lowes_ratio'],
-                                     configuration['bow_num_checks'])
+    matches = pyfeatures.match_using_words(features[0], words[0],
+                                           features[1], words[1][:, 0],
+                                           configuration['lowes_ratio'],
+                                           configuration['bow_num_checks'])
     assert len(matches) == nfeatures
     for i, j in matches:
         assert i == j
