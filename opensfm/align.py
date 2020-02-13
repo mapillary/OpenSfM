@@ -5,7 +5,7 @@ import math
 
 import numpy as np
 
-from opensfm import csfm
+from opensfm import pygeometry
 from opensfm import multiview
 from opensfm import transformations as tf
 
@@ -279,7 +279,7 @@ def triangulate_single_gcp(reconstruction, observations):
     if len(os) >= 2:
         thresholds = len(os) * [reproj_threshold]
         angle = np.radians(min_ray_angle_degrees)
-        e, X = csfm.triangulate_bearings_midpoint(os, bs, thresholds, angle)
+        e, X = pygeometry.triangulate_bearings_midpoint(os, bs, thresholds, angle)
         return X
 
 

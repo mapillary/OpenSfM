@@ -1,4 +1,4 @@
-#include <bundle/bundle_adjuster.h>
+#include "../bundle_adjuster.h"
 #include "absolute_motion_terms.h"
 #include "position_functors.h"
 #include "motion_prior_terms.h"

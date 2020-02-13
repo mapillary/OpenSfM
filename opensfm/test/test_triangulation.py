@@ -2,7 +2,7 @@ import numpy as np
 import networkx as nx
 
 from opensfm import io
-from opensfm import csfm
+from opensfm import pygeometry
 from opensfm import reconstruction
 
 
@@ -61,7 +61,7 @@ def test_triangulate_bearings_midpoint():
     b2 = unit_vector([-1.0, 0, 1])
     max_reprojection = 0.01
     min_ray_angle = np.radians(2.0)
-    res, X = csfm.triangulate_bearings_midpoint(
+    res, X = pygeometry.triangulate_bearings_midpoint(
         [o1, o2], [b1, b2], 2 * [max_reprojection], min_ray_angle)
 
     assert np.allclose(X, [0, 0, 1.0])

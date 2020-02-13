@@ -1,22 +1,11 @@
-#include <iostream>
-#include <vector>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/eigen.h>
 
-#include "types.h"
-#include "hahog.cc"
-#include "matching.h"
-#include "multiview.cc"
-#include "akaze_bind.h"
-#include "matching.h"
-#include "bundle/bundle_adjuster.h"
-#include "openmvs_exporter.h"
-#include "depthmap_bind.h"
-#include "reconstruction_alignment.h"
-
-
-namespace py = pybind11;
+#include <foundation/types.h>
+#include <foundation/logger.h>
+#include <bundle/bundle_adjuster.h>
+#include <bundle/reconstruction_alignment.h>
 
 
 void BundleAdjusterRun(BundleAdjuster* bundle_adjuster) {
@@ -25,61 +14,8 @@ void BundleAdjusterRun(BundleAdjuster* bundle_adjuster) {
 }
 
 
-PYBIND11_MODULE(csfm, m) {
-  google::InitGoogleLogging("csfm");
-
-  py::enum_<DESCRIPTOR_TYPE>(m, "AkazeDescriptorType")
-    .value("SURF_UPRIGHT", SURF_UPRIGHT)
-    .value("SURF", SURF)
-    .value("MSURF_UPRIGHT", MSURF_UPRIGHT)
-    .value("MSURF", MSURF)
-    .value("MLDB_UPRIGHT", MLDB_UPRIGHT)
-    .value("MLDB", MLDB)
-  ;
-
-  py::class_<AKAZEOptions>(m, "AKAZEOptions")
-    .def(py::init())
-    .def_readwrite("omin", &AKAZEOptions::omin)
-    .def_readwrite("omax", &AKAZEOptions::omax)
-    .def_readwrite("nsublevels", &AKAZEOptions::nsublevels)
-    .def_readwrite("img_width", &AKAZEOptions::img_width)
-    .def_readwrite("img_height", &AKAZEOptions::img_height)
-    .def_readwrite("soffset", &AKAZEOptions::soffset)
-    .def_readwrite("derivative_factor", &AKAZEOptions::derivative_factor)
-    .def_readwrite("sderivatives", &AKAZEOptions::sderivatives)
-    .def_readwrite("diffusivity", &AKAZEOptions::diffusivity)
-    .def_readwrite("dthreshold", &AKAZEOptions::dthreshold)
-    .def_readwrite("min_dthreshold", &AKAZEOptions::min_dthreshold)
-    .def_readwrite("target_num_features", &AKAZEOptions::target_num_features)
-    .def_readwrite("use_adaptive_suppression", &AKAZEOptions::use_adaptive_suppression)
-    .def_readwrite("descriptor", &AKAZEOptions::descriptor)
-    .def_readwrite("descriptor_size", &AKAZEOptions::descriptor_size)
-    .def_readwrite("descriptor_channels", &AKAZEOptions::descriptor_channels)
-    .def_readwrite("descriptor_pattern_size", &AKAZEOptions::descriptor_pattern_size)
-    .def_readwrite("kcontrast", &AKAZEOptions::kcontrast)
-    .def_readwrite("kcontrast_percentile", &AKAZEOptions::kcontrast_percentile)
-    .def_readwrite("kcontrast_nbins", &AKAZEOptions::kcontrast_nbins)
-    .def_readwrite("use_isotropic_diffusion", &AKAZEOptions::use_isotropic_diffusion)
-    .def_readwrite("save_scale_space", &AKAZEOptions::save_scale_space)
-    .def_readwrite("save_keypoints", &AKAZEOptions::save_keypoints)
-    .def_readwrite("verbosity", &AKAZEOptions::verbosity)
-  ;
-
-  m.def("akaze", csfm::akaze);
-
-  m.def("hahog", csfm::hahog,
-        py::arg("image"),
-        py::arg("peak_threshold") = 0.003,
-        py::arg("edge_threshold") = 10,
-        py::arg("target_num_features") = 0,
-        py::arg("use_adaptive_suppression") = false
-  );
-
-  m.def("match_using_words", csfm::match_using_words);
-
-  m.def("triangulate_bearings_dlt", csfm::TriangulateBearingsDLT);
-  m.def("triangulate_bearings_midpoint", csfm::TriangulateBearingsMidpoint);
-
+PYBIND11_MODULE(pybundle, m) {
+  GLogInitializationWrapper::Instance();
   py::class_<BundleAdjuster>(m, "BundleAdjuster")
     .def(py::init())
     .def("run", &BundleAdjusterRun)
@@ -259,41 +195,6 @@ PYBIND11_MODULE(csfm, m) {
     .def("set_scale_matrix", &BARelativeRotation::SetScaleMatrix)
   ;
 
-  py::class_<csfm::OpenMVSExporter>(m, "OpenMVSExporter")
-    .def(py::init())
-    .def("add_camera", &csfm::OpenMVSExporter::AddCamera)
-    .def("add_shot", &csfm::OpenMVSExporter::AddShot)
-    .def("add_point", &csfm::OpenMVSExporter::AddPoint)
-    .def("export", &csfm::OpenMVSExporter::Export)
-  ;
-
-  py::class_<csfm::DepthmapEstimatorWrapper>(m, "DepthmapEstimator")
-    .def(py::init())
-    .def("set_depth_range", &csfm::DepthmapEstimatorWrapper::SetDepthRange)
-    .def("set_patchmatch_iterations", &csfm::DepthmapEstimatorWrapper::SetPatchMatchIterations)
-    .def("set_patch_size", &csfm::DepthmapEstimatorWrapper::SetPatchSize)
-    .def("set_min_patch_sd", &csfm::DepthmapEstimatorWrapper::SetMinPatchSD)
-    .def("add_view", &csfm::DepthmapEstimatorWrapper::AddView)
-    .def("compute_patch_match", &csfm::DepthmapEstimatorWrapper::ComputePatchMatch)
-    .def("compute_patch_match_sample", &csfm::DepthmapEstimatorWrapper::ComputePatchMatchSample)
-    .def("compute_brute_force", &csfm::DepthmapEstimatorWrapper::ComputeBruteForce)
-  ;
-
-  py::class_<csfm::DepthmapCleanerWrapper>(m, "DepthmapCleaner")
-    .def(py::init())
-    .def("set_same_depth_threshold", &csfm::DepthmapCleanerWrapper::SetSameDepthThreshold)
-    .def("set_min_consistent_views", &csfm::DepthmapCleanerWrapper::SetMinConsistentViews)
-    .def("add_view", &csfm::DepthmapCleanerWrapper::AddView)
-    .def("clean", &csfm::DepthmapCleanerWrapper::Clean)
-  ;
-
-  py::class_<csfm::DepthmapPrunerWrapper>(m, "DepthmapPruner")
-    .def(py::init())
-    .def("set_same_depth_threshold", &csfm::DepthmapPrunerWrapper::SetSameDepthThreshold)
-    .def("add_view", &csfm::DepthmapPrunerWrapper::AddView)
-    .def("prune", &csfm::DepthmapPrunerWrapper::Prune)
-  ;
-
   ///////////////////////////////////
   // Reconstruction Aligment
   //
@@ -348,5 +249,4 @@ PYBIND11_MODULE(csfm, m) {
     .def_property("tz", &RARelativeMotionConstraint::GetTZ, &RARelativeMotionConstraint::SetTZ)
     .def("set_scale_matrix", &RARelativeMotionConstraint::SetScaleMatrix)
   ;
-
 }

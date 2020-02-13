@@ -1,7 +1,7 @@
 import copy
 import numpy as np
 
-from opensfm import csfm
+from opensfm import pybundle
 from opensfm import geometry
 from opensfm import config
 from opensfm import types
@@ -10,7 +10,7 @@ from opensfm import reconstruction
 
 def test_unicode_strings_in_bundle():
     """Test that byte and unicode strings can be used as camera ids."""
-    ba = csfm.BundleAdjuster()
+    ba = pybundle.BundleAdjuster()
 
     unicode_id = u"A\xb2"
     byte_id = b"A_2"
@@ -21,7 +21,7 @@ def test_unicode_strings_in_bundle():
 
 def test_sigleton():
     """Single camera test"""
-    sa = csfm.BundleAdjuster()
+    sa = pybundle.BundleAdjuster()
     sa.add_shot('1', 'cam1', [0.5, 0, 0], [0, 0, 0], False)
     sa.add_absolute_position('1', [1, 0, 0], 1, '1')
     sa.add_absolute_up_vector('1', [0, -1, 0], 1)
@@ -35,7 +35,7 @@ def test_sigleton():
 def test_sigleton_pan_tilt_roll():
     """Single camera test with pan, tilt, roll priors."""
     pan, tilt, roll = 1, 0.3, 0.2
-    sa = csfm.BundleAdjuster()
+    sa = pybundle.BundleAdjuster()
     sa.add_shot('1', 'cam1', [0.5, 0, 0], [0, 0, 0], False)
     sa.add_absolute_position('1', [1, 0, 0], 1, '1')
     sa.add_absolute_pan('1', pan, 1)
@@ -78,14 +78,14 @@ def test_bundle_projection_fixed_internals(scene_synthetic):
 
 def test_pair():
     """Simple two camera test"""
-    sa = csfm.BundleAdjuster()
+    sa = pybundle.BundleAdjuster()
     sa.add_shot('1', 'cam1', [0, 0, 0], [0, 0, 0], False)
     sa.add_shot('2', 'cam1', [0, 0, 0], [0, 0, 0], False)
     sa.add_reconstruction('12', False)
     sa.add_reconstruction_shot('12', 4, '1')
     sa.add_reconstruction_shot('12', 4, '2')
     sa.set_scale_sharing('12', True)
-    sa.add_relative_motion(csfm.BARelativeMotion('12', '1', '12', '2', [0, 0, 0], [-1, 0, 0], 1))
+    sa.add_relative_motion(pybundle.BARelativeMotion('12', '1', '12', '2', [0, 0, 0], [-1, 0, 0], 1))
     sa.add_absolute_position('1', [0, 0, 0], 1, '1')
     sa.add_absolute_position('2', [2, 0, 0], 1, '2')
 
@@ -102,7 +102,7 @@ def test_pair():
 
 def test_pair_with_shot_point():
     """Simple two camera test with a point constraint for anchoring"""
-    sa = csfm.BundleAdjuster()
+    sa = pybundle.BundleAdjuster()
     sa.add_shot('1', 'cam1', [0, 0, 0], [1e-3, 1e-3, 1e-3], False)
     sa.add_shot('2', 'cam1', [0, 0, 0], [1e-3, 1e-3, 1e-3], False)
     sa.add_point('p1', [0, 0, 0], False)
@@ -111,7 +111,7 @@ def test_pair_with_shot_point():
     sa.add_reconstruction_shot('12', 4, '2')
     sa.add_rotation_prior('1', 0, 0, 0, 1)
     sa.set_scale_sharing('12', True)
-    sa.add_relative_motion(csfm.BARelativeMotion('12', '1', '12', '2', [0, 0, 0], [-1, 0, 0], 1))
+    sa.add_relative_motion(pybunble.BARelativeMotion('12', '1', '12', '2', [0, 0, 0], [-1, 0, 0], 1))
     sa.add_point_position_shot('p1', '1', '12', [1, 0, 0], 1, csfm.XYZ)
     sa.add_point_position_shot('p1', '2', '12', [-1, 0, 0], 1, csfm.XYZ)
     sa.add_point_position_world('p1', [1, 0, 0], 1, csfm.XYZ)
@@ -131,14 +131,14 @@ def test_pair_with_shot_point():
 
 def test_pair_non_rigid():
     """Simple two camera test"""
-    sa = csfm.BundleAdjuster()
+    sa = pybundle.BundleAdjuster()
     sa.add_shot('1', 'cam1', [0, 0, 0], [0, 0, 0], False)
     sa.add_shot('2', 'cam1', [0, 0, 0], [0, 0, 0], False)
     sa.add_reconstruction('12', False)
     sa.add_reconstruction_shot('12', 4, '1')
     sa.add_reconstruction_shot('12', 4, '2')
     sa.set_scale_sharing('12', False)
-    sa.add_relative_similarity(csfm.BARelativeSimilarity('12', '1', '12', '2', [0, 0, 0], [-1, 0, 0], 1, 1))
+    sa.add_relative_similarity(pybundle.BARelativeSimilarity('12', '1', '12', '2', [0, 0, 0], [-1, 0, 0], 1, 1))
     sa.add_absolute_position('1', [0, 0, 0], 1, '1')
     sa.add_absolute_position('2', [2, 0, 0], 1, '2')
 
@@ -155,7 +155,7 @@ def test_pair_non_rigid():
 
 def test_four_cams_single_reconstruction():
     """Four cameras, one reconstruction"""
-    sa = csfm.BundleAdjuster()
+    sa = pybundle.BundleAdjuster()
     sa.add_shot('1', 'cam1', [0, 0, 0], [0, 0, 0], False)
     sa.add_shot('2', 'cam1', [0, 0, 0], [0, 0, 0], False)
     sa.add_shot('3', 'cam1', [0, 0, 0], [0, 0, 0], False)
@@ -166,9 +166,9 @@ def test_four_cams_single_reconstruction():
     sa.add_reconstruction_shot('1234', 1, '3')
     sa.add_reconstruction_shot('1234', 1, '4')
     sa.set_scale_sharing('1234', True)
-    sa.add_relative_motion(csfm.BARelativeMotion('1234', '1', '1234', '2', [0, 0, 0], [-1, 0, 0], 1))
-    sa.add_relative_motion(csfm.BARelativeMotion('1234', '1', '1234', '3', [0, 0, 0], [0, -1, 0], 1))
-    sa.add_relative_motion(csfm.BARelativeMotion('1234', '1', '1234', '4', [0, 0, 0], [0, 0, -1], 1))
+    sa.add_relative_motion(pybundle.BARelativeMotion('1234', '1', '1234', '2', [0, 0, 0], [-1, 0, 0], 1))
+    sa.add_relative_motion(pybundle.BARelativeMotion('1234', '1', '1234', '3', [0, 0, 0], [0, -1, 0], 1))
+    sa.add_relative_motion(pybundle.BARelativeMotion('1234', '1', '1234', '4', [0, 0, 0], [0, 0, -1], 1))
     sa.add_absolute_position('1', [0, 0, 0], 1, '1')
     sa.add_absolute_position('2', [2, 0, 0], 1, '2')
     sa.add_absolute_position('3', [0, 2, 0], 1, '3')
@@ -189,7 +189,7 @@ def test_four_cams_single_reconstruction():
 
 def test_four_cams_single_reconstruction_non_rigid():
     """Four cameras, one reconstruction"""
-    sa = csfm.BundleAdjuster()
+    sa = pybundle.BundleAdjuster()
     sa.add_shot('1', 'cam1', [0, 0, 0], [0, 0, 0], False)
     sa.add_shot('2', 'cam1', [0, 0, 0], [0, 0, 0], False)
     sa.add_shot('3', 'cam1', [0, 0, 0], [0, 0, 0], False)
@@ -201,9 +201,9 @@ def test_four_cams_single_reconstruction_non_rigid():
     sa.add_reconstruction_shot('1234', 1, '4')
     sa.set_scale_sharing('1234', False)
 
-    sa.add_relative_similarity(csfm.BARelativeSimilarity('1234', '1', '1234', '2', [0, 0, 0], [-1, 0, 0], 1, 1))
-    sa.add_relative_similarity(csfm.BARelativeSimilarity('1234', '2', '1234', '3', [0, 0, 0], [-1, -1, 0], 1, 1))
-    sa.add_relative_similarity(csfm.BARelativeSimilarity('1234', '3', '1234', '4', [0, 0, 0], [0, -1, 0], 1, 1))
+    sa.add_relative_similarity(pybundle.BARelativeSimilarity('1234', '1', '1234', '2', [0, 0, 0], [-1, 0, 0], 1, 1))
+    sa.add_relative_similarity(pybundle.BARelativeSimilarity('1234', '2', '1234', '3', [0, 0, 0], [-1, -1, 0], 1, 1))
+    sa.add_relative_similarity(pybundle.BARelativeSimilarity('1234', '3', '1234', '4', [0, 0, 0], [0, -1, 0], 1, 1))
     sa.add_absolute_position('1', [0, 0, 0], 1, '1')
     sa.add_absolute_position('2', [2, 0, 0], 1, '2')
     sa.add_absolute_position('3', [4, 2, 0], 1, '3')
@@ -229,7 +229,7 @@ def test_four_cams_single_reconstruction_non_rigid():
 
 def test_four_cams_one_fixed():
     """Four cameras, one reconstruction"""
-    sa = csfm.BundleAdjuster()
+    sa = pybundle.BundleAdjuster()
     sa.add_shot('1', 'cam1', [0, 0, 0], [0, 0, 0], True)
     sa.add_shot('2', 'cam1', [0, 0, 0], [0, 0, 0], False)
     sa.add_shot('3', 'cam1', [0, 0, 0], [0, 0, 0], False)
@@ -240,9 +240,9 @@ def test_four_cams_one_fixed():
     sa.add_reconstruction_shot('1234', 1, '3')
     sa.add_reconstruction_shot('1234', 1, '4')
     sa.set_scale_sharing('1234', True)
-    sa.add_relative_motion(csfm.BARelativeMotion('1234', '1', '1234', '2', [0, 0, 0], [-1, 0, 0], 1))
-    sa.add_relative_motion(csfm.BARelativeMotion('1234', '1', '1234', '3', [0, 0, 0], [0, -1, 0], 1))
-    sa.add_relative_motion(csfm.BARelativeMotion('1234', '1', '1234', '4', [0, 0, 0], [0, 0, -1], 1))
+    sa.add_relative_motion(pybundle.BARelativeMotion('1234', '1', '1234', '2', [0, 0, 0], [-1, 0, 0], 1))
+    sa.add_relative_motion(pybundle.BARelativeMotion('1234', '1', '1234', '3', [0, 0, 0], [0, -1, 0], 1))
+    sa.add_relative_motion(pybundle.BARelativeMotion('1234', '1', '1234', '4', [0, 0, 0], [0, 0, -1], 1))
     sa.add_absolute_position('1', [100, 0, 0], 1, '1')
     sa.add_absolute_position('2', [2, 0, 0], 1, '2')
     sa.add_absolute_position('3', [0, 2, 0], 1, '3')
@@ -261,7 +261,7 @@ def test_four_cams_one_fixed():
 
 def test_linear_motion_prior_position():
     """Three cameras, middle has no gps info. Translation only"""
-    sa = csfm.BundleAdjuster()
+    sa = pybundle.BundleAdjuster()
     sa.add_shot('1', 'cam1', [0, 0, 0], [0, 0, 0], True)
     sa.add_shot('2', 'cam1', [0, 0, 0], [0, 0, 0], False)
     sa.add_shot('3', 'cam1', [0, 0, 0], [0, 0, 0], False)
@@ -286,7 +286,7 @@ def test_linear_motion_prior_position():
 
 def test_linear_motion_prior_rotation():
     """Three cameras, middle has no gps or orientation info"""
-    sa = csfm.BundleAdjuster()
+    sa = pybundle.BundleAdjuster()
     sa.add_shot('1', 'cam1', [0, 0, 0], [0, 0, 0], True)
     sa.add_shot('2', 'cam1', [0, 0, 0], [0, 0, 0], False)
     sa.add_shot('3', 'cam1', [0, 1, 0], [0, 0, 0], True)

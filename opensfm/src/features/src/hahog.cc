@@ -1,19 +1,18 @@
-#include "types.h"
-#include "hahog.h"
+#include <foundation/types.h>
+#include <features/hahog.h>
 
 #include <vector>
 #include <iostream>
 
 extern "C" {
-  #include "vl/covdet.h"
-  #include "vl/sift.h"
+  #include <third_party/vlfeat/vl/covdet.h>
+  #include <third_party/vlfeat/vl/sift.h>
   #include <time.h>
 }
 
+namespace features {
 
-namespace csfm {
-
-py::object hahog(pyarray_f image,
+py::object hahog(foundation::pyarray_f image,
                  float peak_threshold,
                  float edge_threshold,
                  int target_num_features,
@@ -108,8 +107,8 @@ py::object hahog(pyarray_f image,
     // std::cout << "description " << float(t_description - t_orient)/CLOCKS_PER_SEC << "\n";
 
     py::list retn;
-    retn.append(py_array_from_data(&points[0], numFeatures, 4));
-    retn.append(py_array_from_data(&desc[0], numFeatures, dimension));
+    retn.append(foundation::py_array_from_data(&points[0], numFeatures, 4));
+    retn.append(foundation::py_array_from_data(&desc[0], numFeatures, dimension));
     return retn;
   }
   return py::none();

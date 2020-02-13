@@ -1,8 +1,8 @@
-#include "depthmap.h"
+#include "../depthmap.h"
 #include <opencv2/opencv.hpp>
 #include <random>
 
-namespace csfm {
+namespace dense {
 
 bool IsInsideImage(const cv::Mat &image, int i, int j) {
   return i >= 0 && i < image.rows && j >= 0 && j < image.cols;

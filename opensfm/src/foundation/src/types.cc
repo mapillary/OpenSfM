@@ -1,7 +1,7 @@
-#include "types.h"
+#include <foundation/types.h>
 
 
-namespace csfm {
+namespace foundation {
 
 template<>
 cv::Mat pyarray_cv_mat_view(pyarray_f &array) {
