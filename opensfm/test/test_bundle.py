@@ -112,9 +112,9 @@ def test_pair_with_shot_point():
     sa.add_rotation_prior('1', 0, 0, 0, 1)
     sa.set_scale_sharing('12', True)
     sa.add_relative_motion(pybundle.BARelativeMotion('12', '1', '12', '2', [0, 0, 0], [-1, 0, 0], 1))
-    sa.add_point_position_shot('p1', '1', '12', [1, 0, 0], 1, csfm.XYZ)
-    sa.add_point_position_shot('p1', '2', '12', [-1, 0, 0], 1, csfm.XYZ)
-    sa.add_point_position_world('p1', [1, 0, 0], 1, csfm.XYZ)
+    sa.add_point_position_shot('p1', '1', '12', [1, 0, 0], 1, pybundle.XYZ)
+    sa.add_point_position_shot('p1', '2', '12', [-1, 0, 0], 1, pybundle.XYZ)
+    sa.add_point_position_world('p1', [1, 0, 0], 1, pybundle.XYZ)
 
     sa.run()
     s1 = sa.get_shot('1')
