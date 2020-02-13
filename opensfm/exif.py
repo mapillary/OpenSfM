@@ -412,6 +412,10 @@ def focal_xy_calibration(exif):
 def default_calibration(data):
     return {
         'focal': data.config['default_focal_prior'],
+        'focal_x': data.config['default_focal_prior'],
+        'focal_y': data.config['default_focal_prior'],
+        'c_x': 0.0,
+        'c_y': 0.0,
         'k1': 0.0,
         'k2': 0.0,
         'p1': 0.0,
