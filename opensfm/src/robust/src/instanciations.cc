@@ -46,4 +46,4 @@ ScoreInfo<RelativePose::Type> RANSACRelativePose(
   return RunEstimation<RelativePose>(samples, threshold, parameters, ransac_type);
 }
 
-}  // namespace csfm
+}  // namespace robust
