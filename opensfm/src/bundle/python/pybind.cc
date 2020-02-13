@@ -3,6 +3,7 @@
 #include <pybind11/eigen.h>
 
 #include <foundation/types.h>
+#include <foundation/logger.h>
 #include <bundle/bundle_adjuster.h>
 #include <bundle/reconstruction_alignment.h>
 
@@ -14,6 +15,7 @@ void BundleAdjusterRun(BundleAdjuster* bundle_adjuster) {
 
 
 PYBIND11_MODULE(pybundle, m) {
+  GLogInitializationWrapper::Instance();
   py::class_<BundleAdjuster>(m, "BundleAdjuster")
     .def(py::init())
     .def("run", &BundleAdjusterRun)

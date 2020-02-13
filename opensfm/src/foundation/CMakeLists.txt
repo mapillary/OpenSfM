@@ -1,6 +1,7 @@
 set(FOUNDATION_FILES
     types.h
     numeric.h
+    logger.h
     src/types.cc
     src/logger.cc
 )

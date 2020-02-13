@@ -1,9 +1,14 @@
+#include "../logger.h"
 #include <glog/logging.h>
-#include <foundation/types.h>
 
-class GLogInitializationWrapper {
- public:
-  GLogInitializationWrapper() { google::InitGoogleLogging("opensfm"); }
-};
 
-static GLogInitializationWrapper initializer;
+GLogInitializationWrapper::GLogInitializationWrapper(){
+  google::InitGoogleLogging("opensfm");
+}
+
+GLogInitializationWrapper& GLogInitializationWrapper::Instance()
+{
+  static GLogInitializationWrapper initializer;
+  return initializer;
+}
+
