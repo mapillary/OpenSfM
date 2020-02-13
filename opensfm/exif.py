@@ -14,7 +14,8 @@ from opensfm import types
 logger = logging.getLogger(__name__)
 
 inch_in_mm = 25.4
-
+cm_in_mm = 10
+um_in_mm = 0.001
 
 def eval_frac(value):
     try:
@@ -214,7 +215,11 @@ class EXIF:
         if resolution_unit == 2:    # inch
             return inch_in_mm
         elif resolution_unit == 3:  # cm
-            return 10
+            return cm_in_mm
+        elif resolution_unit == 4:  # mm
+            return 1
+        elif resolution_unit == 5:  # um
+            return um_in_mm
         else:
             logger.warning('Unknown EXIF resolution unit value: {}'.format(resolution_unit))
             return None
@@ -412,6 +417,10 @@ def focal_xy_calibration(exif):
 def default_calibration(data):
     return {
         'focal': data.config['default_focal_prior'],
+        'focal_x': data.config['default_focal_prior'],
+        'focal_y': data.config['default_focal_prior'],
+        'c_x': 0.0,
+        'c_y': 0.0,
         'k1': 0.0,
         'k2': 0.0,
         'p1': 0.0,
