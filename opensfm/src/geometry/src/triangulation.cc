@@ -5,7 +5,7 @@ namespace geometry {
 
 double AngleBetweenVectors(const Eigen::Vector3d &u, const Eigen::Vector3d &v) {
   double c = (u.dot(v)) / sqrt(u.dot(u) * v.dot(v));
-  if (c >= 1.0)
+  if (std::fabs(c) >= 1.0)
     return 0.0;
   else
     return acos(c);
