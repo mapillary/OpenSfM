@@ -511,6 +511,8 @@ def get_image_metadata(data, image):
         x, y, z = reference.to_topocentric(lat, lon, alt)
         metadata.gps_position = [x, y, z]
         metadata.gps_dop = exif['gps'].get('dop', 15.0)
+        if metadata.gps_dop == 0.0:
+            metadata.gps_dop = 15.0
     else:
         metadata.gps_position = [0.0, 0.0, 0.0]
         metadata.gps_dop = 999999.0
