@@ -16,7 +16,6 @@ from opensfm import features
 from opensfm import matching
 from opensfm import tracking
 from opensfm import io
-from opensfm import csfm
 import opensfm.reconstruction as reconstruct
 
 
@@ -536,7 +535,7 @@ def plot_opencv_find_homography(fw, ip, index, tracks, track_points1, track_poin
 
 
 def plot_two_view_reconstruction(fw, ip, index, track_points1, track_points2, data):
-    """ Plot inliers and outliers of the tracks from csfm two view reconstruction.
+    """ Plot inliers and outliers of the tracks from two view reconstruction.
 
     :param fw: Figure wrapper.
     :param ip: Image pair.
