@@ -6,6 +6,7 @@ import logging
 from timeit import default_timer as timer
 from collections import defaultdict
 
+from opensfm import pygeometry
 from opensfm import pyfeatures
 from opensfm import context
 from opensfm import log
@@ -386,7 +387,7 @@ def robust_match_fundamental(p1, p2, matches, config):
 def _compute_inliers_bearings(b1, b2, T, threshold=0.01):
     R = T[:, :3]
     t = T[:, 3]
-    p = pyopengv.triangulation_triangulate(b1, b2, t, R)
+    p = pygeometry.triangulate_two_bearings_midpoint_many(b1, b2, R, t)
 
     br1 = p.copy()
     br1 /= np.linalg.norm(br1, axis=1)[:, np.newaxis]
@@ -416,7 +417,7 @@ def robust_match_calibrated(p1, p2, camera1, camera2, matches, config):
 
     for relax in [4, 2, 1]:
         inliers = _compute_inliers_bearings(b1, b2, T, relax * threshold)
-        if sum(inliers) < 8:
+        if np.sum(inliers) < 8:
             return np.array([])
         iterations = config['five_point_refine_match_iterations']
         T = multiview.relative_pose_optimize_nonlinear(
