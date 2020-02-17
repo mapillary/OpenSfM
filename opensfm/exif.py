@@ -4,6 +4,7 @@ import datetime
 import exifread
 import logging
 import xmltodict as x2d
+from codecs import encode, decode
 
 from six import string_types
 
@@ -104,6 +105,19 @@ def extract_exif_from_file(fileobj):
     return d
 
 
+def unescape_string(s):
+    return decode(encode(s, 'latin-1', 'backslashreplace'), 'unicode-escape')
+
+
+def parse_xmp_string(xmp_str):
+    for _ in range(2):
+        try:
+            return x2d.parse(xmp_str)
+        except:
+            xmp_str = unescape_string(xmp_str)
+    return None
+
+
 def get_xmp(fileobj):
     '''Extracts XMP metadata from and image fileobj
     '''
@@ -113,7 +127,9 @@ def get_xmp(fileobj):
 
     if xmp_start < xmp_end:
         xmp_str = img_str[xmp_start:xmp_end + 12]
-        xdict = x2d.parse(xmp_str)
+        xdict = parse_xmp_string(xmp_str)
+        if xdict is None:
+            return []
         xdict = xdict.get('x:xmpmeta', {})
         xdict = xdict.get('rdf:RDF', {})
         xdict = xdict.get('rdf:Description', {})
