@@ -96,7 +96,7 @@ py::object TriangulateBearingsMidpoint(const Eigen::Matrix<double, -1, 3> &cente
                                        const Eigen::Matrix<double, -1, 3> &bearings,
                                        const std::vector<double>&threshold_list,
                                        double min_angle) {
-  const int count = os.rows();
+  const int count = centers.rows();
 
   // Check angle between rays
   bool angle_ok = false;
@@ -117,7 +117,7 @@ py::object TriangulateBearingsMidpoint(const Eigen::Matrix<double, -1, 3> &cente
 
   // Check reprojection error
   for (int i = 0; i < count; ++i) {
-    const auto projected = X - os.row(i).transpose();
+    const auto projected = X - centers.row(i).transpose();
     const auto measured = bearings.row(i);
     if (AngleBetweenVectors(projected, measured) > threshold_list[i]) {
       return TriangulateReturn(TRIANGULATION_BAD_REPROJECTION, py::none());
