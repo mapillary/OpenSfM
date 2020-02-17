@@ -19,15 +19,15 @@ py::list TriangulateReturn(int error, py::object value) {
 }
 
 Eigen::Vector4d TriangulateBearingsDLTSolve(
-    const Eigen::Matrix<double, 3, Eigen::Dynamic> &bs,
+    const Eigen::Matrix<double, -1, 3> &bearings,
     const std::vector<Eigen::Matrix<double, 3, 4> > &Rts) {
-  int nviews = bs.cols();
+  const int nviews = bearings.rows();
   assert(nviews == Rts.size());
 
   Eigen::MatrixXd A(2 * nviews, 4);
   for (int i = 0; i < nviews; i++) {
-    A.row(2 * i) = bs(0, i) * Rts[i].row(2) - bs(2, i) * Rts[i].row(0);
-    A.row(2 * i + 1) = bs(1, i) * Rts[i].row(2) - bs(2, i) * Rts[i].row(1);
+    A.row(2 * i) = bearings(i, 0) * Rts[i].row(2) - bearings(i, 2) * Rts[i].row(0);
+    A.row(2 * i + 1) = bearings(i, 1) * Rts[i].row(2) - bearings(i, 2) * Rts[i].row(1);
   }
 
   Eigen::JacobiSVD<Eigen::MatrixXd> mySVD(A, Eigen::ComputeFullV);
@@ -40,42 +40,20 @@ Eigen::Vector4d TriangulateBearingsDLTSolve(
   return worldPoint;
 }
 
-py::object TriangulateBearingsDLT(const py::list &Rts_list,
-                                  const py::list &bs_list, double threshold,
+py::object TriangulateBearingsDLT(const std::vector<Eigen::Matrix<double, 3, 4>> &Rts,
+                                  const Eigen::Matrix<double, -1, 3> &bearings, 
+                                  double threshold,
                                   double min_angle) {
-  int n = py::len(Rts_list);
-  std::vector<Eigen::Matrix<double, 3, 4> > Rts;
-  Eigen::Matrix<double, 3, Eigen::Dynamic> bs(3, n);
-  Eigen::MatrixXd vs(3, n);
+  const int count = Rts.size();
+  Eigen::MatrixXd world_bearings(count, 3);
   bool angle_ok = false;
-  for (int i = 0; i < n; ++i) {
-    py::object oRt = Rts_list[i];
-    py::object ob = bs_list[i];
-
-    foundation::pyarray_d Rt_array(oRt);
-    foundation::pyarray_d b_array(ob);
-
-    Eigen::Map<const Eigen::MatrixXd> Rt(Rt_array.data(), 4, 3);
-    Eigen::Map<const Eigen::MatrixXd> b(b_array.data(), 3, 1);
-
-    Rts.push_back(Rt.transpose());
-    bs.col(i) = b.col(0);
-
-    // Check angle between rays
-    if (!angle_ok) {
-      Eigen::Vector3d xh;
-      xh << b(0, 0), b(1, 0), b(2, 0);
-      Eigen::Vector3d v = Rt.block<3, 3>(0, 0).transpose().inverse() * xh;
-      vs.col(i) << v(0), v(1), v(2);
-
-      for (int j = 0; j < i; ++j) {
-        Eigen::Vector3d a, b;
-        a << vs(0, i), vs(1, i), vs(2, i);
-        b << vs(0, j), vs(1, j), vs(2, j);
-        double angle = AngleBetweenVectors(a, b);
-        if (angle >= min_angle) {
-          angle_ok = true;
-        }
+  for (int i = 0; i < count && !angle_ok; ++i) {
+    const auto Rt = Rts[i];
+    world_bearings.row(i) = Rt.block<3, 3>(0, 0).transpose() * bearings.row(i).transpose();
+    for (int j = 0; j < i && !angle_ok; ++j) {
+      const double angle = AngleBetweenVectors(world_bearings.row(i), world_bearings.row(j));
+      if (angle >= min_angle) {
+        angle_ok = true;
       }
     }
   }
@@ -84,16 +62,12 @@ py::object TriangulateBearingsDLT(const py::list &Rts_list,
     return TriangulateReturn(TRIANGULATION_SMALL_ANGLE, py::none());
   }
 
-  Eigen::Vector4d X = TriangulateBearingsDLTSolve(bs, Rts);
+  Eigen::Vector4d X = TriangulateBearingsDLTSolve(bearings, Rts);
   X /= X(3);
 
-  for (int i = 0; i < n; ++i) {
-    Eigen::Vector3d x_reproj = Rts[i] * X;
-    Eigen::Vector3d b;
-    b << bs(0, i), bs(1, i), bs(2, i);
-
-    double error = AngleBetweenVectors(x_reproj, b);
-    if (error > threshold) {
+  for (int i = 0; i < count; ++i) {
+    const auto projected = Rts[i] * X;
+    if (AngleBetweenVectors(projected, bearings.row(i)) > threshold) {
       return TriangulateReturn(TRIANGULATION_BAD_REPROJECTION, py::none());
     }
   }
@@ -101,63 +75,36 @@ py::object TriangulateBearingsDLT(const py::list &Rts_list,
   return TriangulateReturn(TRIANGULATION_OK, foundation::py_array_from_data(X.data(), 3));
 }
 
-// Point minimizing the squared distance to all rays
-// Closed for solution from
-//   Srikumar Ramalingam, Suresh K. Lodha and Peter Sturm
-//   "A generic structure-from-motion framework"
-//   CVIU 2006
-Eigen::Vector3d TriangulateBearingsMidpointSolve(
-    const Eigen::Matrix<double, 3, Eigen::Dynamic> &os,
-    const Eigen::Matrix<double, 3, Eigen::Dynamic> &bs) {
-  int nviews = bs.cols();
-  assert(nviews == os.cols());
-  assert(nviews >= 2);
-
-  Eigen::Matrix3d BBt;
-  Eigen::Vector3d BBtA, A;
-  BBt.setZero();
-  BBtA.setZero();
-  A.setZero();
-  for (int i = 0; i < nviews; ++i) {
-    BBt += bs.col(i) * bs.col(i).transpose();
-    BBtA += bs.col(i) * bs.col(i).transpose() * os.col(i);
-    A += os.col(i);
+std::vector<Eigen::Vector3d> TriangulateTwoBearingsMidpointMany(
+    const Eigen::Matrix<double, -1, 3> &bearings1,
+    const Eigen::Matrix<double, -1, 3> &bearings2,
+    const Eigen::Matrix3d &rotation,
+    const Eigen::Vector3d &translation) {
+  std::vector<Eigen::Vector3d> triangulated(bearings1.rows());
+  Eigen::Matrix<double, 2, 3> os, bs;
+  os.row(0) = Eigen::Vector3d::Zero();
+  os.row(1) = translation;
+  for(int i = 0; i < bearings1.rows(); ++i){
+    bs.row(0) = bearings1.row(i);
+    bs.row(1) = rotation*bearings2.row(i).transpose();
+    triangulated[i] = TriangulateTwoBearingsMidpointSolve(os, bs);
   }
-  Eigen::Matrix3d Cinv = (nviews * Eigen::Matrix3d::Identity() - BBt).inverse();
-
-  return (Eigen::Matrix3d::Identity() + BBt * Cinv) * A / nviews - Cinv * BBtA;
+  return triangulated;
 }
 
-py::object TriangulateBearingsMidpoint(const py::list &os_list,
-                                       const py::list &bs_list,
-                                       const py::list &threshold_list,
+py::object TriangulateBearingsMidpoint(const Eigen::Matrix<double, -1, 3> &centers,
+                                       const Eigen::Matrix<double, -1, 3> &bearings,
+                                       const std::vector<double>&threshold_list,
                                        double min_angle) {
-  int n = py::len(os_list);
-
-  // Build Eigen matrices
-  Eigen::Matrix<double, 3, Eigen::Dynamic> os(3, n);
-  Eigen::Matrix<double, 3, Eigen::Dynamic> bs(3, n);
-  for (int i = 0; i < n; ++i) {
-    foundation::pyarray_d o_array = os_list[i].cast<foundation::pyarray_d>();
-    foundation::pyarray_d b_array = bs_list[i].cast<foundation::pyarray_d>();
-    const double *o = o_array.data();
-    const double *b = b_array.data();
-    os.col(i) << o[0], o[1], o[2];
-    bs.col(i) << b[0], b[1], b[2];
-  }
+  const int count = os.rows();
 
   // Check angle between rays
   bool angle_ok = false;
-  for (int i = 0; i < n; ++i) {
-    if (!angle_ok) {
-      for (int j = 0; j < i; ++j) {
-        Eigen::Vector3d a, b;
-        a << bs(0, i), bs(1, i), bs(2, i);
-        b << bs(0, j), bs(1, j), bs(2, j);
-        double angle = AngleBetweenVectors(a, b);
-        if (angle >= min_angle) {
-          angle_ok = true;
-        }
+  for (int i = 0; i < count && !angle_ok; ++i) {
+    for (int j = 0; j < i && !angle_ok; ++j) {
+      const auto angle = AngleBetweenVectors(bearings.row(i), bearings.row(j));
+      if (angle >= min_angle) {
+        angle_ok = true;
       }
     }
   }
@@ -166,15 +113,13 @@ py::object TriangulateBearingsMidpoint(const py::list &os_list,
   }
 
   // Triangulate
-  Eigen::Vector3d X = TriangulateBearingsMidpointSolve(os, bs);
+  const auto X = TriangulateBearingsMidpointSolve(centers, bearings);
 
   // Check reprojection error
-  for (int i = 0; i < n; ++i) {
-    Eigen::Vector3d x_reproj = X - os.col(i);
-    Eigen::Vector3d b = bs.col(i);
-
-    double error = AngleBetweenVectors(x_reproj, b);
-    if (error > threshold_list[i].cast<float>()) {
+  for (int i = 0; i < count; ++i) {
+    const auto projected = X - os.row(i).transpose();
+    const auto measured = bearings.row(i);
+    if (AngleBetweenVectors(projected, measured) > threshold_list[i]) {
       return TriangulateReturn(TRIANGULATION_BAD_REPROJECTION, py::none());
     }
   }
