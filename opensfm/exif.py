@@ -349,7 +349,10 @@ class EXIF:
         for datetime_tag, subsec_tag, offset_tag in time_strings:
             if datetime_tag in self.tags:
                 date_time = self.tags[datetime_tag].values
-                subsec_time = self.tags.get(subsec_tag, '0')
+                if subsec_tag in self.tags:
+                    subsec_time = self.tags[subsec_tag].values
+                else:
+                    subsec_time = '0'
                 try:
                     s = '{0:s}.{1:s}'.format(date_time, subsec_time)
                     d = datetime.datetime.strptime(s, '%Y:%m:%d %H:%M:%S.%f')
