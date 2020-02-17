@@ -619,7 +619,7 @@ def relative_pose_ransac_rotation_only(b1, b2, threshold, iterations,
             b1, b2, threshold, iterations)
 
 
-def relative_pose_optimize_nonlinear(b1, b2, t, R, iterations):
+def relative_pose_optimize_nonlinear(b1, b2, method, t, R, iterations):
     # in-house refinement
     if method == 'mapillary':
         Rt = np.zeros((3, 4))
