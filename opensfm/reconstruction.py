@@ -545,7 +545,7 @@ def _two_view_reconstruction_inliers(b1, b2, R, t, threshold):
     Returns:
         array: Inlier indices.
     """
-    p = pygeometry.triangulate_two_bearings_midpoint_many(b1, b2, R, t)
+    p = np.array(pygeometry.triangulate_two_bearings_midpoint_many(b1, b2, R, t))
 
     br1 = p.copy()
     br1 /= np.linalg.norm(br1, axis=1)[:, np.newaxis]
