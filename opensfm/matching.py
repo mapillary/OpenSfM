@@ -387,7 +387,7 @@ def robust_match_fundamental(p1, p2, matches, config):
 def _compute_inliers_bearings(b1, b2, T, threshold=0.01):
     R = T[:, :3]
     t = T[:, 3]
-    p = pygeometry.triangulate_two_bearings_midpoint_many(b1, b2, R, t)
+    p = np.array(pygeometry.triangulate_two_bearings_midpoint_many(b1, b2, R, t))
 
     br1 = p.copy()
     br1 /= np.linalg.norm(br1, axis=1)[:, np.newaxis]
