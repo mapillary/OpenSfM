@@ -41,10 +41,10 @@ class RelativePose : public Model<RelativePose, 1, 10> {
 
     Eigen::Matrix<double, 2, 3> bearings;
     Eigen::Matrix<double, 2, 3> centers;
-    centers.row(0) << Eigen::Vector3d::Zero();
-    centers.row(1) << -rotation.transpose()*translation;
-    bearings.row(0) << x;
-    bearings.row(1) << rotation.transpose()*y;
+    centers.row(0) = Eigen::Vector3d::Zero();
+    centers.row(1) = -rotation.transpose()*translation;
+    bearings.row(0) = x;
+    bearings.row(1) = rotation.transpose()*y;
     const auto point = geometry::TriangulateTwoBearingsMidpointSolve(centers, bearings);
     const auto projected_x = point.normalized();
     const auto projected_y = (rotation*point+translation).normalized();
