@@ -11,7 +11,6 @@ from itertools import combinations
 import cv2
 import numpy as np
 import networkx as nx
-import pyopengv
 import six
 from timeit import default_timer as timer
 from six import iteritems
@@ -546,7 +545,7 @@ def _two_view_reconstruction_inliers(b1, b2, R, t, threshold):
     Returns:
         array: Inlier indices.
     """
-    p = pyopengv.triangulation_triangulate(b1, b2, t, R)
+    p = np.array(pygeometry.triangulate_two_bearings_midpoint_many(b1, b2, R, t))
 
     br1 = p.copy()
     br1 /= np.linalg.norm(br1, axis=1)[:, np.newaxis]
@@ -622,7 +621,9 @@ def two_view_reconstruction(p1, p2, camera1, camera2,
 
     if inliers.sum() > 5:
         T = multiview.relative_pose_optimize_nonlinear(b1[inliers],
-                                                       b2[inliers], t, R,
+                                                       b2[inliers], 
+                                                       b"STEWENIUS",
+                                                       t, R,
                                                        iterations)
         R = T[:, :3]
         t = T[:, 3]

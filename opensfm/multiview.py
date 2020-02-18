@@ -8,6 +8,7 @@ import numpy as np
 import pyopengv
 
 from opensfm import pyrobust
+from opensfm import pygeometry
 from opensfm import transformations as tf
 
 
@@ -618,9 +619,21 @@ def relative_pose_ransac_rotation_only(b1, b2, threshold, iterations,
             b1, b2, threshold, iterations)
 
 
-def relative_pose_optimize_nonlinear(b1, b2, t, R, iterations):
-    try:
-        return pyopengv.relative_pose_optimize_nonlinear(b1, b2, t, R, iterations)
-    except Exception:
-        # Current master of pyopengv do not accept the iterations argument.
-        return pyopengv.relative_pose_optimize_nonlinear(b1, b2, t, R)
+def relative_pose_optimize_nonlinear(b1, b2, method, t, R, iterations):
+    # in-house refinement
+    if method == 'mapillary':
+        Rt = np.zeros((3, 4))
+        Rt[:3, :3] = R.T
+        Rt[:, 3] = -R.T.dot(t)
+        Rt_refined = pygeometry.relative_pose_refinement(Rt, b1, b2, iterations)
+
+        R, t = Rt_refined[:3, :3].copy(), Rt_refined[:, 3].copy()
+        Rt[:3, :3] = R.T
+        Rt[:, 3] = -R.T.dot(t)
+        return Rt
+    else:
+        try:
+            return pyopengv.relative_pose_optimize_nonlinear(b1, b2, t, R, iterations)
+        except Exception:
+            # Current master of pyopengv do not accept the iterations argument.
+            return pyopengv.relative_pose_optimize_nonlinear(b1, b2, t, R)
