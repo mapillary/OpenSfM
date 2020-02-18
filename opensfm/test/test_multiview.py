@@ -52,6 +52,28 @@ def test_essential_five_points(one_pair_and_its_E):
     assert exact_found
 
 
+def test_absolute_pose_three_points(scene_synthetic):
+    data, exifs, features, _, _, graph = scene_synthetic
+
+    reconstruction = data.get_reconstruction()
+    shot = reconstruction.shots['shot0']
+
+    bearings, points = [], []
+    for k, p in reconstruction.points.items():
+        for s, x in graph[k].items():
+            if shot.id != s:
+                continue
+            xy = features[shot.id][x['feature_id']][:2]
+            bearings.append(shot.camera.pixel_bearing(xy))
+            points.append(p)
+
+    result = pygeometry.absolute_pose_three_points(bearings, points)
+
+    pose.translation /= np.linalg.norm(pose.translation)
+    expected = pose.get_Rt()
+    assert np.allclose(expected, result, rtol=1e-10)
+
+
 def test_essential_n_points(one_pair_and_its_E):
     f1, f2, E, _ = one_pair_and_its_E
 

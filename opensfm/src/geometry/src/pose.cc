@@ -1,4 +1,4 @@
-#include <geometry/pose.h>
+#include <geometry/relative_pose.h>
 
 namespace geometry {
 Eigen::Matrix<double, 3, 4> RelativePoseFromEssential(
