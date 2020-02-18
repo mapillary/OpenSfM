@@ -1,3 +1,4 @@
+import copy
 import numpy as np
 
 from opensfm import multiview
@@ -75,3 +76,16 @@ def test_relative_pose_from_essential(one_pair_and_its_E):
     pose.translation /= np.linalg.norm(pose.translation)
     expected = pose.get_Rt()
     assert np.allclose(expected, result, rtol=1e-10)
+
+
+def test_relative_pose_refinement(one_pair_and_its_E):
+    f1, f2, _, pose = one_pair_and_its_E
+    pose.translation /= np.linalg.norm(pose.translation)
+
+    noisy_pose = copy.deepcopy(pose)
+    noisy_pose.translation += np.random.rand(3)*1e-2
+    noisy_pose.rotation += np.random.rand(3)*1e-2
+    result = pygeometry.relative_pose_refinement(noisy_pose.get_Rt(), f1, f2, 1000)
+
+    expected = pose.get_Rt()
+    assert np.linalg.norm(expected-result) < 5e-2
