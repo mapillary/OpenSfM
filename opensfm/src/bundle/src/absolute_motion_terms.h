@@ -81,7 +81,7 @@ struct BAUpVectorError {
     Eigen::Map< Eigen::Matrix<T,3,1> > residual(r);
 
     const Eigen::Matrix<T,3,1> acceleration = acceleration_.cast<T>();
-    const Eigen::Matrix<T,3,1> z_world = RotatePoint((-R).eval(), acceleration);
+    const Eigen::Matrix<T,3,1> z_world = RotatePoint(R, acceleration);
     const Eigen::Matrix<T,3,1> z_axis =  Eigen::Vector3d(0, 0, 1).cast<T>();
     residual = T(scale_) * (z_world - z_axis);
     return true;
@@ -103,7 +103,7 @@ struct BAPanAngleError {
     Eigen::Map< const Eigen::Matrix<T,3,1> > R(shot + BA_SHOT_RX);
 
     const Eigen::Matrix<T,3,1> z_axis = Eigen::Vector3d(0, 0, 1).cast<T>();
-    const auto z_world = RotatePoint((-R).eval(), z_axis);
+    const auto z_world = RotatePoint(R, z_axis);
 
     if (ceres::abs(z_world(0)) < T(1e-8) && ceres::abs(z_world(1)) < T(1e-8)) {
       residuals[0] = T(0.0);
@@ -128,10 +128,9 @@ struct BATiltAngleError {
   bool operator()(const T* const shot,
                   T* residuals) const {
     const T* const R = shot + BA_SHOT_RX;
-    T Rt[3] = { -R[0], -R[1], -R[2] }; // transposed R
     T ez[3] = { T(0), T(0), T(1) }; // ez: A point in front of the camera (z=1)
     T Rt_ez[3];
-    ceres::AngleAxisRotatePoint(Rt, ez, Rt_ez);
+    ceres::AngleAxisRotatePoint(R, ez, Rt_ez);
 
     T l = sqrt(Rt_ez[0] * Rt_ez[0] + Rt_ez[1] * Rt_ez[1]);
     T predicted_angle = -atan2(Rt_ez[2], l);
@@ -154,13 +153,12 @@ struct BARollAngleError {
   bool operator()(const T* const shot,
                   T* residuals) const {
     const T* const R = shot + BA_SHOT_RX;
-    T Rt[3] = { -R[0], -R[1], -R[2] }; // transposed R
     T ex[3] = { T(1), T(0), T(0) }; // A point to the right of the camera (x=1)
     T ez[3] = { T(0), T(0), T(1) }; // A point in front of the camera (z=1)
     T Rt_ex[3], Rt_ez[3];
     T tangle_ = T(angle_);
-    ceres::AngleAxisRotatePoint(Rt, ex, Rt_ex);
-    ceres::AngleAxisRotatePoint(Rt, ez, Rt_ez);
+    ceres::AngleAxisRotatePoint(R, ex, Rt_ex);
+    ceres::AngleAxisRotatePoint(R, ez, Rt_ez);
 
     T a[3] = {Rt_ez[1], -Rt_ez[0], T(0)};
     T la = sqrt(a[0] * a[0] + a[1] * a[1]);
@@ -194,7 +192,11 @@ struct RotationPriorError {
   template <typename T>
   bool operator()(const T* const shot, T* residuals) const {
     // Get rotation and translation values.
-    const T* const R = shot + BA_SHOT_RX;
+    const T R[3] = {
+      -shot[BA_SHOT_RX],
+      -shot[BA_SHOT_RY],
+      -shot[BA_SHOT_RZ]
+    };
     T Rpt[3] = { -T(R_prior_[0]),
                  -T(R_prior_[1]),
                  -T(R_prior_[2]) };
@@ -226,9 +228,22 @@ struct TranslationPriorError {
 
   template <typename T>
   bool operator()(const T* const shot, T* residuals) const {
-    residuals[0] = T(scale_) * (T(translation_prior_[0]) - shot[BA_SHOT_TX]);
-    residuals[1] = T(scale_) * (T(translation_prior_[1]) - shot[BA_SHOT_TY]);
-    residuals[2] = T(scale_) * (T(translation_prior_[2]) - shot[BA_SHOT_TZ]);
+    const T mt[3] = {
+      -shot[BA_SHOT_TX],
+      -shot[BA_SHOT_TY],
+      -shot[BA_SHOT_TZ]
+    };
+    const T Rt[3] = {
+      -shot[BA_SHOT_RX],
+      -shot[BA_SHOT_RY],
+      -shot[BA_SHOT_RZ]
+    };
+    T translation[3];
+    ceres::AngleAxisRotatePoint(Rt, mt, translation);
+
+    residuals[0] = T(scale_) * (T(translation_prior_[0]) - translation[0]);
+    residuals[1] = T(scale_) * (T(translation_prior_[1]) - translation[1]);
+    residuals[2] = T(scale_) * (T(translation_prior_[2]) - translation[2]);
     return true;
   }
 
@@ -244,13 +259,9 @@ struct PositionPriorError {
 
   template <typename T>
   bool operator()(const T* const shot, T* residuals) const {
-    T Rt[3] = { -shot[BA_SHOT_RX], -shot[BA_SHOT_RY], -shot[BA_SHOT_RZ] };
-    T p[3];
-    ceres::AngleAxisRotatePoint(Rt, shot + BA_SHOT_TX, p);
-
-    residuals[0] = T(scale_) * (p[0] + T(position_prior_[0]));
-    residuals[1] = T(scale_) * (p[1] + T(position_prior_[1]));
-    residuals[2] = T(scale_) * (p[2] + T(position_prior_[2]));
+    residuals[0] = T(scale_) * (shot[BA_SHOT_TX] - T(position_prior_[0]));
+    residuals[1] = T(scale_) * (shot[BA_SHOT_TY] - T(position_prior_[1]));
+    residuals[2] = T(scale_) * (shot[BA_SHOT_TZ] - T(position_prior_[2]));
     return true;
   }
 

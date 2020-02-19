@@ -56,7 +56,6 @@ PYBIND11_MODULE(pybundle, m) {
     .def("set_origin_shot", &BundleAdjuster::SetOriginShot)
     .def("set_unit_translation_shot", &BundleAdjuster::SetUnitTranslationShot)
     .def("add_point_position_shot", &BundleAdjuster::AddPointPositionShot)
-    .def("add_point_bearing_shot", &BundleAdjuster::AddPointBearingShot)
     .def("add_point_position_world", &BundleAdjuster::AddPointPositionWorld)
     .def("add_linear_motion", &BundleAdjuster::AddLinearMotion)
     .def("set_internal_parameters_prior_sd", &BundleAdjuster::SetInternalParametersPriorSD)
@@ -137,11 +136,11 @@ PYBIND11_MODULE(pybundle, m) {
 
   py::class_<BAShot>(m, "BAShot")
     .def(py::init())
-    .def_property("r", &BAShot::GetRotation, &BAShot::SetRotation)
-    .def_property("t", &BAShot::GetTranslation, &BAShot::SetTranslation)
+    .def_property_readonly("r", &BAShot::GetRotation)
+    .def_property_readonly("t", &BAShot::GetTranslation)
     .def_readwrite("id", &BAShot::id)
     .def_readwrite("camera", &BAShot::camera)
-    .def("get_covariance", &BAShot::GetCovariance)
+    .def("get_covariance_inv_param", &BAShot::GetCovarianceInvParam)
   ;
 
   py::class_<BAReconstruction>(m, "BAReconstruction")
