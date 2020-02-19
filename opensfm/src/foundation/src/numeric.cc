@@ -39,29 +39,3 @@ void SolveQuartic(const double coefficients[5], double roots[4]){
     roots[2] = (-b + Q7 - ComplexSqrt(4. * Q4 / 6. - 4. * Q6 + Q3 / Q7)).real() / 4.;
     roots[3] = (-b + Q7 + ComplexSqrt(4. * Q4 / 6. - 4. * Q6 + Q3 / Q7)).real() / 4.;
 }
-
-void RefineQuartic
-(
-  const double coeffs[5],
-  double roots[4],
-  const int iterations)
-{
-  for (int i = 0; i < iterations; ++i)
-  {
-    for (int j = 0; j < 4; ++j)
-    {
-        auto& root = roots[j];
-      const double error =
-        coeffs[4] + root * (coeffs[3] +
-                            root * (coeffs[2] +
-                                    root * (coeffs[1] +
-                                            root * coeffs[0])));
-      
-      const double derivative =
-        coeffs[3] + root * (2 * coeffs[2] +
-                            root * ((4 * coeffs[0] * root + 3 * coeffs[1])));
-      std::cout << error << "\t" << derivative << std::endl;
-      root -= error / derivative;
-    }
-  }
-}

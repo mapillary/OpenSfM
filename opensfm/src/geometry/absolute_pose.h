@@ -67,7 +67,6 @@ std::vector<Eigen::Matrix<double, 3, 4>> AbsolutePoseThreePoints(IT begin, IT en
   double coefficients[5] = {alpha0, alpha1, alpha2, alpha3, alpha4};
   double roots[4];
   SolveQuartic(coefficients, roots);
-  //RefineQuartic(coefficients, roots);
 
   Eigen::Matrix3d c_barre, c_barre_barre;
   c_barre << k1, k3_second, k1.cross(k3_second);

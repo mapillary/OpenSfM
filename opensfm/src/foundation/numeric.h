@@ -41,4 +41,3 @@ bool SolveAX0(const MAT& A, VEC* solution){
 Eigen::Matrix3d SkewMatrix(const Eigen::Vector3d& v);
 
 void SolveQuartic(const double coefficients[5], double roots[4]);
-void RefineQuartic(const double coefficients[5], double roots[4], const int iterations = 2);
