@@ -59,12 +59,12 @@ def pairs_and_poses():
                     compose(reconstruction.shots[im1].pose.inverse())
 
     camera = list(reconstruction.cameras.values())[0]
-    return pairs, poses, camera
+    return pairs, poses, camera, features, graph, reconstruction
 
 
 @pytest.fixture(scope='module')
 def one_pair_and_its_E(pairs_and_poses):
-    pairs, poses, camera = pairs_and_poses
+    pairs, poses, camera, _, _, _ = pairs_and_poses
 
     pairs = list(sorted(zip(pairs.values(), poses.values()), key=lambda x: -len(x[0])))
     pair = pairs[0]
@@ -79,3 +79,20 @@ def one_pair_and_its_E(pairs_and_poses):
     e /= np.linalg.norm(e)
 
     return f1, f2, e, pose
+
+
+@pytest.fixture(scope='module')
+def one_shot_and_its_points(pairs_and_poses):
+    _, _, _, features, graph, reconstruction = pairs_and_poses
+
+    shot = reconstruction.shots['shot0']
+    bearings, points = [], []
+    for k, p in reconstruction.points.items():
+        for s, x in graph[k].items():
+            if shot.id != s:
+                continue
+            xy = features[shot.id][x['feature_id']][:2]
+            bearings.append(shot.camera.pixel_bearing(xy))
+            points.append(p.coordinates)
+
+    return shot.pose, bearings, points

@@ -1,6 +1,18 @@
 #pragma once
 
+#include <Eigen/Dense>
+
 #define SQUARE(x) ((x)*(x))
+
+template< class T>
+T Sign(const T& a){
+  if(a < T(0)){
+    return T(-1);
+  }
+  else{
+    return T(1);
+  }
+}
 
 template<class MAT, class VEC>
 bool SolveAX0(const MAT& A, VEC* solution){
@@ -25,3 +37,8 @@ bool SolveAX0(const MAT& A, VEC* solution){
   else
     return false;
 }
+
+Eigen::Matrix3d SkewMatrix(const Eigen::Vector3d& v);
+
+void SolveQuartic(const double coefficients[5], double roots[4]);
+void RefineQuartic(const double coefficients[5], double roots[4], const int iterations = 2);

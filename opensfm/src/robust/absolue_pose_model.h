@@ -2,35 +2,33 @@
 
 
 #include "model.h"
-#include "essential_model.h"
 #include <foundation/numeric.h>
-#include <geometry/relative_pose.h>
-#include <geometry/triangulation.h>
+#include <geometry/absolute_pose.h>
 
 
-class RelativePose : public Model<RelativePose, 1, 10> {
+class AbsolutePose : public Model<AbsolutePose, 1, 3> {
  public:
-  using Error = typename Model<RelativePose, 1, 10>::Error;
+  using Error = typename Model<AbsolutePose, 1, 3>::Error;
   using Type = Eigen::Matrix<double, 3, 4>;
   using Data = std::pair<Eigen::Vector3d, Eigen::Vector3d>;
-  static const int MINIMAL_SAMPLES = 5;
+  static const int MINIMAL_SAMPLES = 3;
 
   template <class IT>
   static int Estimate(IT begin, IT end, Type* models){
-    const auto essentials = EssentialFivePoints(begin, end);
-    for(int i = 0; i < essentials.size(); ++i){
-      models[i] = RelativePoseFromEssential(essentials[i], begin, end);
+    const auto poses = AbsolutePoseThreePoints(begin, end);
+    for(int i = 0; i < poses.size(); ++i){
+      models[i] = poses[i];
     }
-    return essentials.size();
+    return poses.size();
   }
 
   template <class IT>
   static int EstimateNonMinimal(IT begin, IT end, Type* models){
-    const auto essentials = EssentialNPoints(begin, end);
-    for(int i = 0; i < essentials.size(); ++i){
-      models[i] = RelativePoseFromEssential(essentials[i], begin, end);
+    const auto poses = AbsolutePoseThreePoints(begin, end);
+    for(int i = 0; i < poses.size(); ++i){
+      models[i] = poses[i];
     }
-    return essentials.size();
+    return poses.size();
   }
 
   static Error Evaluate(const Type& model, const Data& d){

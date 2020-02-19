@@ -1,11 +1,13 @@
 # Geometry
 set(GEOMETRY_FILES
     essential.h
-    pose.h
+    absolute_pose.h
+    relative_pose.h
     triangulation.h
     src/essential.cc
     src/triangulation.cc
-    src/pose.cc
+    src/absolute_pose.cc
+    src/relative_pose.cc
 )
 add_library(geometry ${GEOMETRY_FILES})
 target_link_libraries(geometry 

@@ -4,6 +4,7 @@ set(FOUNDATION_FILES
     logger.h
     src/types.cc
     src/logger.cc
+    src/numeric.cc
 )
 add_library(foundation ${FOUNDATION_FILES})
 target_link_libraries(foundation 

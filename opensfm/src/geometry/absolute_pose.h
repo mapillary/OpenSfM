@@ -1,56 +1,12 @@
 #pragma once
 
 #include <foundation/numeric.h>
-
 #include <Eigen/Eigen>
-
 #include <complex>
+#include <iostream>
 
-// taken from https://github.com/sidneycadot/quartic
-static std::complex<double> complex_sqrt(const std::complex<double> & z)
-{
-    return pow(z, 1. / 2.);
-}
 
-static std::complex<double> complex_cbrt(const std::complex<double> & z)
-{
-    return pow(z, 1. / 3.);
-}
-
-void solve_quartic(const std::complex<double> coefficients[5], std::complex<double> roots[4])
-{
-    // The algorithm below was derived by solving the quartic in Mathematica, and simplifying the resulting expression by hand.
-
-    const std::complex<double> a = coefficients[4];
-    const std::complex<double> b = coefficients[3] / a;
-    const std::complex<double> c = coefficients[2] / a;
-    const std::complex<double> d = coefficients[1] / a;
-    const std::complex<double> e = coefficients[0] / a;
-
-    const std::complex<double> Q1 = c * c - 3. * b * d + 12. * e;
-    const std::complex<double> Q2 = 2. * c * c * c - 9. * b * c * d + 27. * d * d + 27. * b * b * e - 72. * c * e;
-    const std::complex<double> Q3 = 8. * b * c - 16. * d - 2. * b * b * b;
-    const std::complex<double> Q4 = 3. * b * b - 8. * c;
-
-    const std::complex<double> Q5 = complex_cbrt(Q2 / 2. + complex_sqrt(Q2 * Q2 / 4. - Q1 * Q1 * Q1));
-    const std::complex<double> Q6 = (Q1 / Q5 + Q5) / 3.;
-    const std::complex<double> Q7 = 2. * complex_sqrt(Q4 / 12. + Q6);
-
-    roots[0] = (-b - Q7 - complex_sqrt(4. * Q4 / 6. - 4. * Q6 - Q3 / Q7)) / 4.;
-    roots[1] = (-b - Q7 + complex_sqrt(4. * Q4 / 6. - 4. * Q6 - Q3 / Q7)) / 4.;
-    roots[2] = (-b + Q7 - complex_sqrt(4. * Q4 / 6. - 4. * Q6 + Q3 / Q7)) / 4.;
-    roots[3] = (-b + Q7 + complex_sqrt(4. * Q4 / 6. - 4. * Q6 + Q3 / Q7)) / 4.;
-}
-
-template< class T>
-T sign(const T& a){
-  if(a < T(0)){
-    return T(-1);
-  }
-  else{
-    return T(1);
-  }
-}
+Eigen::Matrix3d RotationMatrixAroundAxis(const double cos_theta, const double sin_theta, const Eigen::Vector3d& v);
 
 // Implements "An Efficient Algebraic Solution to the 
 // Perspective-Three-Point Problem" from Ke and al.
@@ -101,34 +57,60 @@ std::vector<Eigen::Matrix<double, 3, 4>> AbsolutePoseThreePoints(IT begin, IT en
   const auto g7 = -f15*f24;
 
   // Solve for cost(theta) by expressing the determinant^2 of (37)
-  const auto a = f11*f22;
-  const auto b = f25*f11-f15*f21;
-  const auto c = -f24*f15;
-  const auto alpha4 = a*a;
-  const auto alpha3 = 2.0*a*b;
-  const auto alpha2 = 2.0*a*c+b*b;
-  const auto alpha1 = 2.0*b*c;
-  const auto alpha0 = c*c;
+  const auto alpha4 = SQUARE(g5)+SQUARE(g1)+SQUARE(g3);
+  const auto alpha3 = 2.0*(g5*g6 + g1*g2 + g3*g4);
+  const auto alpha2 = SQUARE(g6) + 2.0*g5*g7 + SQUARE(g2) + SQUARE(g4) - SQUARE(g1) - SQUARE(g3);
+  const auto alpha1 = 2.0*(g6*g7 - g1*g2 - g3*g4);
+  const auto alpha0 = SQUARE(g7)-SQUARE(g2)-SQUARE(g4);
 
-  std::complex<double> coefficients[5] = {alpha0, alpha1, alpha2, alpha3, alpha4};
-  std::complex<double> roots[4];
-  solve_quartic(coefficients, roots);
+  std::cout << alpha0 << "\t" << alpha1 << "\t" << alpha2 << "\t" << alpha3 << "\t" << alpha4 << "\t" << std::endl;
+  double coefficients[5] = {alpha0, alpha1, alpha2, alpha3, alpha4};
+  double roots[4];
+  SolveQuartic(coefficients, roots);
+  //RefineQuartic(coefficients, roots);
+
+  Eigen::Matrix3d c_barre, c_barre_barre;
+  c_barre << k1, k3_second, k1.cross(k3_second);
+  c_barre_barre << b1, k3, b1.cross(k3);
+
+  Eigen::Vector3d e1, e2;
+  e1 << 1, 0, 0;
+  e2 << 0, 1, 0;
+
+  std::vector<Eigen::Matrix<double, 3, 4>> RTs;
 
   const double eps = 1e-20;
-  for(const auto& root : roots)
-    if(root.imag() > eps){
-      continue;
-    }
-    const auto cos_theta_1 = root.real();
-    const auto sin_theta_1 = sign(k3_b3)*std::sqrt(1.0-SQUARE(std::cos(cos_theta)));
-    const auto t = sin_theta_1/(g5*cos_theta_1*cos_theta_1 + g6*cos_theta_1 + g7);
+  for(const auto& root : roots){
+    const auto cos_theta_1 = root;
+    std::cout << root << std::endl;
+    const auto sin_theta_1 = Sign(k3_b3)*std::sqrt(1.0-SQUARE(cos_theta_1));
+    const auto t = sin_theta_1/(g5*SQUARE(cos_theta_1) + g6*cos_theta_1 + g7);
+    
     const auto cos_theta_3 = t*(g1*cos_theta_1 + g2);
     const auto sin_theta_3 = t*(g3*cos_theta_1 + g4);
-    const auto Eigen::Matrix3d C1, C2;
 
-    Eigen::Matrix3d c_barre, c_barre_barre;
-    Eigen::Matrix3d rotation = c_barre*C1*C2*c_barre_barre;
+    const auto c1 = RotationMatrixAroundAxis(cos_theta_1, sin_theta_1, e1);
+    const auto c2 = RotationMatrixAroundAxis(cos_theta_3, sin_theta_3, e2);
 
+    const auto rotation = c_barre*c1*c2*c_barre_barre;
+    const auto translation = p3 - (sigma*sin_theta_1)/k3_b3*(rotation*b3);
+
+    std::cout << "******" << std::endl;
+    std::cout << translation << std::endl << std::endl;
+    std::cout << rotation << std::endl << std::endl;
+    std::cout << "******" << std::endl;
+
+    // Rcamera and Tcamera parametrization
+    Eigen::Matrix<double, 3, 4> RT;
+    RT.block<3, 3>(0, 0) = rotation.transpose();
+    RT.block<3, 1>(0, 3) = -rotation.transpose()*translation;
+    RTs.push_back(RT);
   }
+  return RTs;
 }
+
+namespace geometry{
+std::vector<Eigen::Matrix<double, 3, 4>> AbsolutePoseThreePoints(
+  const Eigen::Matrix<double, -1, 3> &bearings,
+  const Eigen::Matrix<double, -1, 3> &points);
 }
