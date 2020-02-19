@@ -32,6 +32,7 @@ PYBIND11_MODULE(pyrobust, m) {
   m.def("ransac_line", robust::RANSACLine);
   m.def("ransac_essential", robust::RANSACEssential);
   m.def("ransac_relative_pose", robust::RANSACRelativePose);
+  m.def("ransac_absolute_pose", robust::RANSACAbsolutePose);
 
   py::enum_<RansacType>(m, "RansacType")
       .value("RANSAC", RansacType::RANSAC)

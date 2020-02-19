@@ -95,4 +95,4 @@ def one_shot_and_its_points(pairs_and_poses):
             bearings.append(shot.camera.pixel_bearing(xy))
             points.append(p.coordinates)
 
-    return shot.pose, bearings, points
+    return shot.pose, np.array(bearings), np.array(points)

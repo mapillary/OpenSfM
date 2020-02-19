@@ -56,7 +56,7 @@ def test_essential_five_points(one_pair_and_its_E):
 def test_absolute_pose_three_points(one_shot_and_its_points):
     pose, bearings, points = one_shot_and_its_points
 
-    result = pygeometry.absolute_pose_three_points(np.array(bearings), np.array(points))
+    result = pygeometry.absolute_pose_three_points(bearings, points)
 
     exact_found = False
     expected = pose.get_Rt()

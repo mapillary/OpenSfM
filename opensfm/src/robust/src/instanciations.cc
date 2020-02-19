@@ -46,4 +46,21 @@ ScoreInfo<RelativePose::Type> RANSACRelativePose(
   return RunEstimation<RelativePose>(samples, threshold, parameters, ransac_type);
 }
 
+ScoreInfo<RelativePose::Type> RANSACAbsolutePose(
+    const Eigen::Matrix<double, -1, 3>& bearings,
+    const Eigen::Matrix<double, -1, 3>& points, 
+    double threshold, const RobustEstimatorParams& parameters,
+    const RansacType& ransac_type) {
+   if((bearings.cols() != points.cols()) || (bearings.rows() != points.rows())){
+    throw std::runtime_error("Features matrices have different sizes.");
+  }
+  
+  std::vector<AbsolutePose::Data> samples(bearings.rows());
+  for (int i = 0; i < bearings.rows(); ++i) {
+    samples[i].first = bearings.row(i).normalized();
+    samples[i].second = points.row(i);
+  }
+  return RunEstimation<AbsolutePose>(samples, threshold, parameters, ransac_type);
+}
+
 }  // namespace robust
