@@ -61,7 +61,7 @@ def test_absolute_pose_three_points(one_shot_and_its_points):
     exact_found = False
     expected = pose.get_Rt()
     for Rt in result:
-        if np.linalg.norm(expected-Rt, ord='fro') < 1e-4:
+        if np.linalg.norm(expected-Rt, ord='fro') < 1e-6:
             exact_found = True
 
     assert exact_found

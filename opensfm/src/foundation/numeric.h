@@ -38,6 +38,22 @@ bool SolveAX0(const MAT& A, VEC* solution){
     return false;
 }
 
-Eigen::Matrix3d SkewMatrix(const Eigen::Vector3d& v);
+template< class F >
+double NewtonRaphson(const F& func, double initial_value, int iterations){
+  const auto eps = std::numeric_limits<double>::epsilon();
+  auto current_value = initial_value;
+  for (int i = 0; i < iterations; ++i){
+    const auto at_current_value = func(current_value);
 
-void SolveQuartic(const double coefficients[5], double roots[4]);
+    // TODO : add a bit more templates for user-supplied derivatives
+    const auto derivative = (func(current_value+eps)-func(current_value))/eps;
+    current_value -= at_current_value/derivative;
+  }
+  return current_value;
+}
+
+
+Eigen::Matrix3d SkewMatrix(const Eigen::Vector3d& v);
+std::array<double, 4> SolveQuartic(const std::array<double, 5>& coefficients);
+std::array<double, 4> RefineQuarticRoots(const std::array<double, 5>& coefficients,
+                                         const std::array<double, 4>& roots);
