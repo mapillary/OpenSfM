@@ -57,11 +57,12 @@ std::vector<Eigen::Matrix<double, 3, 4>> AbsolutePoseThreePoints(IT begin, IT en
   const auto g7 = -f15*f24;
 
   // Solve for cost(theta) by expressing the determinant^2 of (37)
-  const auto alpha4 = SQUARE(g5)+SQUARE(g1)+SQUARE(g3);
-  const auto alpha3 = 2.0*(g5*g6 + g1*g2 + g3*g4);
-  const auto alpha2 = SQUARE(g6) + 2.0*g5*g7 + SQUARE(g2) + SQUARE(g4) - SQUARE(g1) - SQUARE(g3);
-  const auto alpha1 = 2.0*(g6*g7 - g1*g2 - g3*g4);
-  const auto alpha0 = SQUARE(g7)-SQUARE(g2)-SQUARE(g4);
+  const auto alpha4 = SQUARE(g5) + SQUARE(g1) + SQUARE(g3);
+  const auto alpha3 = 2.0 * (g5 * g6 + g1 * g2 + g3 * g4);
+  const auto alpha2 = SQUARE(g6) + 2.0 * g5 * g7 + SQUARE(g2) + SQUARE(g4) -
+                      SQUARE(g1) - SQUARE(g3);
+  const auto alpha1 = 2.0 * (g6 * g7 - g1 * g2 - g3 * g4);
+  const auto alpha0 = SQUARE(g7) - SQUARE(g2) - SQUARE(g4);
 
   std::array<double, 5> coefficients = {alpha0, alpha1, alpha2, alpha3, alpha4};
   std::array<double, 4> roots = SolveQuartic(coefficients);

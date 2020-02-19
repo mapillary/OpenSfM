@@ -61,7 +61,9 @@ ScoreInfo<typename MODEL::Type> Estimate(
 
       // Keep the best score (bigger, the better)
       best_score = std::max(score, best_score);
-      const bool best_found = score.score == best_score.score;
+      const bool best_found =
+          score.score == best_score.score &&
+          score.inliers_indices.size() >= MODEL::MINIMAL_SAMPLES;
 
       // Run local optimization (inner non-minimal RANSAC on inliers)
       if (best_found && params.use_local_optimization) {
@@ -75,7 +77,10 @@ ScoreInfo<typename MODEL::Type> Estimate(
           // Same as Matas papers : min(inliers/2, 12)
           const int lo_sample_size_clamp = 12;
           const int lo_sample_size =
-              std::min(lo_sample_size_clamp, int(best_score.inliers_indices.size() * 0.5));
+              std::max(std::min(lo_sample_size_clamp,
+                                int(best_score.inliers_indices.size() * 0.5)),
+                       MODEL::MINIMAL_SAMPLES);
+
           const auto lo_random_samples = random_generator.GetRandomSamples<MODEL>(inliers_samples, lo_sample_size);
 
           typename MODEL::Type lo_models[MODEL::MAX_MODELS];

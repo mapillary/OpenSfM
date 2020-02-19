@@ -23,7 +23,7 @@ ScoreInfo<RelativePose::Type> RANSACRelativePose(
     double threshold, const RobustEstimatorParams& parameters,
     const RansacType& ransac_type);
 
-ScoreInfo<RelativePose::Type> RANSACAbsolutePose(
+ScoreInfo<AbsolutePose::Type> RANSACAbsolutePose(
     const Eigen::Matrix<double, -1, 3>& bearings,
     const Eigen::Matrix<double, -1, 3>& points, 
     double threshold, const RobustEstimatorParams& parameters,

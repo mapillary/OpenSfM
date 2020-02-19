@@ -235,7 +235,7 @@ def test_outliers_absolute_pose_ransac(one_shot_and_its_points):
 
     expected = pose.get_Rt()
 
-    tolerance = 0.04    # some outliers might have been moved along the epipolar
+    tolerance = 0.05
     inliers_count = (1 - ratio_outliers) * len(points)
     assert np.isclose(len(result.inliers_indices),
                       inliers_count, rtol=tolerance)
