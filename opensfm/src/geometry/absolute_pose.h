@@ -63,7 +63,6 @@ std::vector<Eigen::Matrix<double, 3, 4>> AbsolutePoseThreePoints(IT begin, IT en
   const auto alpha1 = 2.0*(g6*g7 - g1*g2 - g3*g4);
   const auto alpha0 = SQUARE(g7)-SQUARE(g2)-SQUARE(g4);
 
-  std::cout << alpha0 << "\t" << alpha1 << "\t" << alpha2 << "\t" << alpha3 << "\t" << alpha4 << "\t" << std::endl;
   double coefficients[5] = {alpha0, alpha1, alpha2, alpha3, alpha4};
   double roots[4];
   SolveQuartic(coefficients, roots);
@@ -71,6 +70,7 @@ std::vector<Eigen::Matrix<double, 3, 4>> AbsolutePoseThreePoints(IT begin, IT en
   Eigen::Matrix3d c_barre, c_barre_barre;
   c_barre << k1, k3_second, k1.cross(k3_second);
   c_barre_barre << b1, k3, b1.cross(k3);
+  c_barre_barre.transposeInPlace();
 
   Eigen::Vector3d e1, e2;
   e1 << 1, 0, 0;
@@ -81,7 +81,6 @@ std::vector<Eigen::Matrix<double, 3, 4>> AbsolutePoseThreePoints(IT begin, IT en
   const double eps = 1e-20;
   for(const auto& root : roots){
     const auto cos_theta_1 = root;
-    std::cout << root << std::endl;
     const auto sin_theta_1 = Sign(k3_b3)*std::sqrt(1.0-SQUARE(cos_theta_1));
     const auto t = sin_theta_1/(g5*SQUARE(cos_theta_1) + g6*cos_theta_1 + g7);
     
@@ -93,11 +92,6 @@ std::vector<Eigen::Matrix<double, 3, 4>> AbsolutePoseThreePoints(IT begin, IT en
 
     const auto rotation = c_barre*c1*c2*c_barre_barre;
     const auto translation = p3 - (sigma*sin_theta_1)/k3_b3*(rotation*b3);
-
-    std::cout << "******" << std::endl;
-    std::cout << translation << std::endl << std::endl;
-    std::cout << rotation << std::endl << std::endl;
-    std::cout << "******" << std::endl;
 
     // Rcamera and Tcamera parametrization
     Eigen::Matrix<double, 3, 4> RT;

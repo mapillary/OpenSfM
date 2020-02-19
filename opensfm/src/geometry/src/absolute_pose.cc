@@ -2,16 +2,16 @@
 
 Eigen::Matrix3d RotationMatrixAroundAxis(const double cos_theta, const double sin_theta, const Eigen::Vector3d& v){
   Eigen::Matrix3d R;
-  const auto one_minus_cos_theta = 1.0 - SQUARE(cos_theta);
-  R(0, 0) =     cos_theta     + v[0]*v[0]*one_minus_cos_theta;
-  R(1, 0) =  v[2]*sin_theta   + v[0]*v[1]*one_minus_cos_theta;
-  R(2, 0) = -v[1]*sin_theta   + v[0]*v[2]*one_minus_cos_theta;
-  R(0, 1) = -v[2]*sin_theta   + v[0]*v[1]*one_minus_cos_theta;
-  R(1, 1) =     cos_theta     + v[1]*v[1]*one_minus_cos_theta;
-  R(2, 1) =  v[0]*sin_theta   + v[1]*v[2]*one_minus_cos_theta;
-  R(0, 2) =  v[1]*sin_theta   + v[0]*v[2]*one_minus_cos_theta;
-  R(1, 2) = -v[0]*sin_theta   + v[1]*v[2]*one_minus_cos_theta;
-  R(2, 2) =     cos_theta     + v[2]*v[2]*one_minus_cos_theta;
+  const auto one_minus_cos_theta = 1.0 - cos_theta;
+  R(0, 0) =     cos_theta      + v[0]*v[0]*one_minus_cos_theta;
+  R(1, 0) =  -v[2]*sin_theta   + v[0]*v[1]*one_minus_cos_theta;
+  R(2, 0) =   v[1]*sin_theta   + v[0]*v[2]*one_minus_cos_theta;
+  R(0, 1) =   v[2]*sin_theta   + v[0]*v[1]*one_minus_cos_theta;
+  R(1, 1) =     cos_theta      + v[1]*v[1]*one_minus_cos_theta;
+  R(2, 1) =  -v[0]*sin_theta   + v[1]*v[2]*one_minus_cos_theta;
+  R(0, 2) =  -v[1]*sin_theta   + v[0]*v[2]*one_minus_cos_theta;
+  R(1, 2) =   v[0]*sin_theta   + v[1]*v[2]*one_minus_cos_theta;
+  R(2, 2) =     cos_theta      + v[2]*v[2]*one_minus_cos_theta;
   return R;
 }
 
