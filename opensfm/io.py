@@ -476,9 +476,14 @@ def read_ground_control_points(fileobj, reference):
                 point.coordinates = None
 
         point.observations = []
+        observing_images = set()
         for o_dict in point_dict['observations']:
             o = types.GroundControlPointObservation()
             o.shot_id = o_dict['shot_id']
+            if o.shot_id in observing_images:
+                logger.warning("GCP {} has multiple observations in image {}"
+                               .format(point.id, o.shot_id))
+            observing_images.add(o.shot_id)
             if 'projection' in o_dict:
                 o.projection = np.array(o_dict['projection'])
             point.observations.append(o)
