@@ -72,6 +72,7 @@ class DataSet(object):
         The array is 3D, indexed by y-coord, x-coord, channel.
         The channels are in RGB order.
         """
+        print("hello")
         return io.imread(self._image_file(image), unchanged=unchanged, anydepth=anydepth)
 
     def image_size(self, image):

@@ -659,7 +659,7 @@ def json_loads(text):
     return json.loads(text)
 
 
-def imread(filename, grayscale=False, unchanged=False, anydepth=False):
+def imread(image, grayscale=False, unchanged=False, anydepth=False):
     """Load image as an array ignoring EXIF orientation."""
     if context.OPENCV3:
         if grayscale:
@@ -689,14 +689,19 @@ def imread(filename, grayscale=False, unchanged=False, anydepth=False):
 
         if anydepth:
             flags |= cv2.CV_LOAD_IMAGE_ANYDEPTH
+    #print(image)
 
-    image = cv2.imread(filename, flags)
+    #image = cv2.imread(filename, flags)
 
     if image is None:
         raise IOError("Unable to load image {}".format(filename))
 
     if len(image.shape) == 3:
         image[:, :, :3] = image[:, :, [2, 1, 0]]  # Turn BGR to RGB (or BGRA to RGBA)
+    # print("****hello******")
+    # cv2.imshow('test',image)
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
     return image
 
 

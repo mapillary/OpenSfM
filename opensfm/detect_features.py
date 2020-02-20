@@ -12,22 +12,28 @@ from opensfm.context import parallel_map
 
 logger = logging.getLogger(__name__)
 
-
-
 def run(data):
     images = data.images()
+    print(data)
     arguments = [(image, data) for image in images]
+    
+    print(arguments)
 
+    exit()
     start = timer()
     processes = data.config['processes']
+    
+    print(processes)
+    #detect(arguments[0])
     parallel_map(detect, arguments, processes, 1)
     end = timer()
-    with open(data.profile_log(), 'a') as fout:
-        fout.write('detect_features: {0}\n'.format(end - start))
+    # with open(data.profile_log(), 'a') as fout:
+    #     fout.write('detect_features: {0}\n'.format(end - start))
 
-    self.write_report(data, end - start)
+    # write_report(data, end - start)
 
-def write_report(self, data, wall_time):
+
+def write_report(data, wall_time):
     image_reports = []
     for image in data.images():
         try:
@@ -45,27 +51,26 @@ def write_report(self, data, wall_time):
 
 def detect(args):
     image, data = args
-
     log.setup()
 
     need_words = data.config['matcher_type'] == 'WORDS' or data.config['matching_bow_neighbors'] > 0
-    has_words = not need_words or data.words_exist(image)
-    has_features = data.features_exist(image)
+    #print("need_words===",need_words)
+    #has_words = not need_words or data.words_exist(image)
+    #has_features = data.features_exist(image)
 
-    if has_features and has_words:
-        logger.info('Skip recomputing {} features for image {}'.format(
-            data.feature_type().upper(), image))
-        return
-
+    # if has_features and has_words:
+    #     logger.info('Skip recomputing {} features for image {}'.format(
+    #         data.feature_type().upper(), image))
+    #     return
     logger.info('Extracting {} features for image {}'.format(
         data.feature_type().upper(), image))
-
     start = timer()
 
+    #print(image)## 1.jpg
     p_unmasked, f_unmasked, c_unmasked = features.extract_features(
         data.load_image(image), data.config)
-
-    fmask = data.load_features_mask(image, p_unmasked)
+    #print(p_unmasked, f_unmasked, c_unmasked)
+    fmask = data.load_features_mask(image, p_unmasked)  
 
     p_unsorted = p_unmasked[fmask]
     f_unsorted = f_unmasked[fmask]
@@ -77,18 +82,17 @@ def detect(args):
 
     size = p_unsorted[:, 2]
     order = np.argsort(size)
-    p_sorted = p_unsorted[order, :]
-    f_sorted = f_unsorted[order, :]
-    c_sorted = c_unsorted[order, :]
+    p_sorted = p_unsorted[order, :] # points
+    f_sorted = f_unsorted[order, :] # descriptors
+    c_sorted = c_unsorted[order, :] # colors
     data.save_features(image, p_sorted, f_sorted, c_sorted)
 
-    if need_words:
-        bows = bow.load_bows(data.config)
-        n_closest = data.config['bow_words_to_match']
-        closest_words = bows.map_to_words(
-            f_sorted, n_closest, data.config['bow_matcher_type'])
-        data.save_words(image, closest_words)
-
+    # if need_words:
+    #     bows = bow.load_bows(data.config)
+    #     n_closest = data.config['bow_words_to_match']
+    #     closest_words = bows.map_to_words(
+    #         f_sorted, n_closest, data.config['bow_matcher_type'])
+    #     data.save_words(image, closest_words)
     end = timer()
     report = {
         "image": image,

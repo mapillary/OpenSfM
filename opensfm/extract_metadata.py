@@ -5,6 +5,12 @@ import cv2 as cv
 
 from opensfm import dataset
 from opensfm import exif
+from opensfm import dataset
+from opensfm import log
+from opensfm import io
+from opensfm import exif
+from opensfm import types
+from opensfm import config
 
 import cv2 as cv
 logger = logging.getLogger(__name__)
@@ -16,7 +22,6 @@ def hard_coded_calibration(exif):
     fmm35 = int(round(focal * 36.0))
     make = exif['make'].strip().lower()
     model = exif['model'].strip().lower()
-    print("hello")
     if 'gopro' in make:
         if fmm35 == 20:
             # GoPro Hero 3, 7MP medium
@@ -70,7 +75,6 @@ def focal_ratio_calibration(exif):
             'p2': 0.0,
             'k3': 0.0
         }
-    print("hello")
 
 def default_calibration(data):
 
@@ -117,7 +121,7 @@ def camera_from_exif_metadata(metadata, data):
                  or default_calibration(data)
                  )
 
-    print("calib== ",calib)
+    #print("calib== ",calib['focal'])
     camera = types.PerspectiveCamera()
     camera.id = metadata['camera']
     camera.width = metadata['width']
@@ -126,9 +130,7 @@ def camera_from_exif_metadata(metadata, data):
     camera.focal = calib['focal']
     camera.k1 = calib['k1']
     camera.k2 = calib['k2']
-    print()
-    print(camera)
-    return camera
+    return camera,calib
 
 def run(data):
     start=time.time()
@@ -142,16 +144,18 @@ def run(data):
         
         data.save_exif(image, d)
     
-    print(d)
+    
     if d['camera'] not in camera_models:
-            camera = camera_from_exif_metadata(d, data)
+            camera,calib = camera_from_exif_metadata(d, data)
             camera_models[d['camera']] = camera
     
     data.meta_data_d=d
-
     data.save_camera_models(camera_models)
     end=time.time()
+    
     print("Metadata Extracted in {}".format(end-start))
+    d.update({'focal':calib['focal']})
+    
     return d
 
 
@@ -159,5 +163,5 @@ def _extract_exif(image ,data):
     #EXIF data in Image
     #### 여기서 metadata값 설정
     d={} 
-    d=image_size(image,d)
+    d=data.image_size(image,d)
     return d 

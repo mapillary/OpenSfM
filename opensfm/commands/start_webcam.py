@@ -11,141 +11,22 @@ import errno
 import io
 import json
 
-#from opensfm.commands.extract_metadata import *
+from opensfm import extract_metadata
+from opensfm import detect_features
+
 from opensfm import dataset
 from opensfm import log
 from opensfm import io
 from opensfm import exif
 from opensfm import types
 from opensfm import config
+from opensfm import features
 
 
 from PIL import Image
 
 logger = logging.getLogger(__name__)
 logging.getLogger("Starting Webcam!!").setLevel(logging.WARNING)
-
-
-def hard_coded_calibration(exif):
-    focal = exif['focal_ratio']
-    fmm35 = int(round(focal * 36.0))
-    make = exif['make'].strip().lower()
-    model = exif['model'].strip().lower()
-    print("hello")
-    if 'gopro' in make:
-        if fmm35 == 20:
-            # GoPro Hero 3, 7MP medium
-            return {'focal': focal, 'k1': -0.37, 'k2': 0.28}
-        elif fmm35 == 15:
-            # GoPro Hero 3, 7MP wide
-            # "v2 gopro hero3+ black edition 3000 2250 perspective 0.4166"
-            return {'focal': 0.466, 'k1': -0.195, 'k2': 0.030}
-        elif fmm35 == 23:
-            # GoPro Hero 2, 5MP medium
-            return {'focal': focal, 'k1': -0.38, 'k2': 0.24}
-        elif fmm35 == 16:
-            # GoPro Hero 2, 5MP wide
-            return {'focal': focal, 'k1': -0.39, 'k2': 0.22}
-    elif 'bullet5s' in make:
-        return {'focal': 0.57, 'k1': -0.30, 'k2': 0.06}
-    elif 'garmin' == make:
-        if 'virb' == model:
-            # "v2 garmin virb 4608 3456 perspective 0"
-            return {'focal': 0.5, 'k1': -0.08, 'k2': 0.005}
-        elif 'virbxe' == model:
-            # "v2 garmin virbxe 3477 1950 perspective 0.3888"
-            # "v2 garmin virbxe 1600 1200 perspective 0.3888"
-            # "v2 garmin virbxe 4000 3000 perspective 0.3888"
-            # Calibration when using camera's undistortion
-            return {'focal': 0.466, 'k1': -0.08, 'k2': 0.0}
-            # Calibration when not using camera's undistortion
-            # return {'focal': 0.466, 'k1': -0.195, 'k2'; 0.030}
-    elif 'drift' == make:
-        if 'ghost s' == model:
-            return {'focal': 0.47, 'k1': -0.22, 'k2': 0.03}
-    elif 'xiaoyi' in make:
-        return {'focal': 0.5, 'k1': -0.19, 'k2': 0.028}
-    elif 'geo' == make and 'frames' == model:
-        return {'focal': 0.5, 'k1': -0.24, 'k2': 0.04}
-    elif 'sony' == make:
-        if 'hdr-as200v' == model:
-            return {'focal': 0.55, 'k1': -0.30, 'k2': 0.08}
-        elif 'hdr-as300' in model:
-            return {"focal":  0.3958, "k1": -0.1496, "k2": 0.0201}
-
-
-def focal_ratio_calibration(exif):
-
-    if exif.get('focal_ratio'):
-        return {
-            'focal': exif['focal_ratio'],
-            'k1': 0.0,
-            'k2': 0.0,
-            'p1': 0.0,
-            'p2': 0.0,
-            'k3': 0.0
-        }
-    print("hello")
-
-def default_calibration(data):
-
-	return {
-		'focal': data.config['default_focal_prior'],
-		'k1': 0.0,
-		'k2': 0.0,
-		'p1': 0.0,
-		'p2': 0.0,
-		'k3': 0.0
-	}
-
-
-def extract_exif():
-	make,model="unknown","unknown"
-	width,height=640,480
-	projection_type="perspective"
-	focal_ratio=0
-	orientation=1
-
-	d = {
-            'make': make,
-            'model': model,
-            'width': width,
-            'height': height,
-            'projection_type': projection_type,
-            'focal_ratio': focal_ratio,
-            #'orientation': orientation,
-            #'capture_time': capture_time,
-            #'gps': geo
-        }
-	d['camera'] = "Jae Won Yang"
-
-	return d
-
-def camera_from_exif_metadata(metadata, data):
-    '''
-    Create a camera object from exif metadata
-    '''
-    pt = metadata.get('projection_type', 'perspective').lower()
-    if pt == 'perspective':
-        calib = (hard_coded_calibration(metadata)
-                 or focal_ratio_calibration(metadata)
-                 or default_calibration(data)
-                 )
-
-    print("calib== ",calib)
-    camera = types.PerspectiveCamera()
-    camera.id = metadata['camera']
-    camera.width = metadata['width']
-    camera.height = metadata['height']
-    camera.projection_type = pt
-    camera.focal = calib['focal']
-    camera.k1 = calib['k1']
-    camera.k2 = calib['k2']
-    print()
-    print(camera)
-    return camera
-
-
 
 class DataSet(object):
 	"""Accessors to the main input and output data.
@@ -164,7 +45,11 @@ class DataSet(object):
 		self.data_path=data_path
 		self.image_list=image_list
 		self._load_config()
+		self._load_mask_list()
 		self.meta_data_d={}
+		self.feature_points={}
+		self.feature_colors={}
+		self.feature_descriptors={}
 
 	def _load_config(self):
 		config_file = os.path.join(self.data_path, 'config.yaml')
@@ -178,11 +63,15 @@ class DataSet(object):
 	def images(self):
 		"""List of all images in the dataset""" 
 		return self.image_list.keys()
+
+	def _image_file(self, image):
+	    """Path to the image file."""
+	    return self.image_list[image]
+
 	def image_size(self,image,d):
-		d=extract_exif()
+		d=extract_metadata.extract_exif()
 		d['height']=image.shape[0]
 		d['width']=image.shape[1]
-
 		return d
 	def _exif_file(self, image):
 	    """
@@ -213,57 +102,186 @@ class DataSet(object):
 	def _camera_models_file(self):
 	    """Return path of camera model file"""
 	    return os.path.join(self.data_path, 'camera_models.json')
+
+	def _load_mask_list(self):
+	    """Load mask list from mask_list.txt or list masks/ folder."""
+	    mask_list_file = os.path.join(self.data_path, 'mask_list.txt')
+	    if os.path.isfile(mask_list_file):
+	        with io.open_rt(mask_list_file) as fin:
+	            lines = fin.read().splitlines()
+	        self._set_mask_list(lines)
+	    else:
+	        self._set_mask_path(os.path.join(self.data_path, 'masks'))
 	
+	def _set_mask_path(self, path):
+	    """Set mask path and find all masks in there"""
+	    self.mask_files = {}
+	    for image in self.images():
+	        filepath = os.path.join(path, image + '.png')
+	        print(filepath)# data/maintest/masks/1.jpg.png
+	        if os.path.isfile(filepath):
+	            self.mask_files[image] = filepath            
 
+	def features_exist(self, image):
+	    return os.path.isfile(self._feature_file(image)) or\
+	        os.path.isfile(self._feature_file_legacy(image))
 
-class extract_metadata(DataSet):
+	def feature_type(self):
+	    """Return the type of local features (e.g. AKAZE, SURF, SIFT)"""
+	    feature_name = self.config['feature_type'].lower()
+	    if self.config['feature_root']:
+	        feature_name = 'root_' + feature_name
+	    return feature_name
 	
-	def __init__(self, data_path, image_list):
-		super().__init__(data_path,image_list)
-		
+	def load_image(self, image, unchanged=False, anydepth=False):
+		"""Load image pixels as numpy array.
 
-	def run(self, data):
-		start=time.time()
+		The array is 3D, indexed by y-coord, x-coord, channel.
+		The channels are in RGB order.
+		"""
+		a=io.imread(self._image_file(image), unchanged=unchanged, anydepth=anydepth)
+		return a
 
-		camera_models = {}
-		print()
-		#print("data.images()=== ", data.images())
-		for image in data.images():
-			logging.info('Extracting EXIF for {}'.format(image))
-			self.d=self._extract_exif(self.image_list[image],data)
-			
-			data.save_exif(image, self.d)
-		
-		print(self.d)
-		if self.d['camera'] not in camera_models:
-		        camera = camera_from_exif_metadata(self.d, data)
-		        camera_models[self.d['camera']] = camera
-		
-		data.meta_data_d=self.d
+	def load_mask(self, image):
+	    """Load image mask if it exists, otherwise return None."""
+	    if image in self.mask_files: ## 여기 안들어감 
+	        mask_path = self.mask_files[image]
+	        mask = io.imread(mask_path, grayscale=True)
+	       
+	        if mask is None:
+	            raise IOError("Unable to load mask for image {} "
+	                          "from file {}".format(image, mask_path))
+	    else:
+	        mask = None
+	    return mask
 
-		data.save_camera_models(camera_models)
-		end=time.time()
-		print("Metadata Extracted in {}".format(end-start))
+	def load_segmentation_mask(self, image):
+	    """Build a mask from segmentation ignore values.
+
+	    The mask is non-zero only for pixels with segmentation
+	    labels not in segmentation_ignore_values.
+	    """
+	    ignore_values = self.segmentation_ignore_values(image)
+	    if not ignore_values:	
+	        return None
+	    segmentation = self.load_segmentation(image)
+	    if segmentation is None:
+	        return None
+
+	    return self._mask_from_segmentation(segmentation, ignore_values)
+
+	def _combine_masks(self, mask, smask):
+	    if mask is None:
+	        if smask is None:
+	            return None
+	        else:
+	            return smask
+	    else:
+	        if smask is None:
+	            return mask
+	        else:
+	            return mask & smask
+
+	def segmentation_ignore_values(self, image):
+	    """List of label values to ignore.
+
+	    Pixels with this labels values will be masked out and won't be
+	    processed when extracting features or computing depthmaps.
+	    """
+	    return self.config.get('segmentation_ignore_values', [])
+
+	def load_combined_mask(self, image):
+	    """Combine binary mask with segmentation mask.
+	    Return a mask that is non-zero only where the binary
+	    mask and the segmentation mask are non-zero.
+	    """
+	    mask = self.load_mask(image) # 필요없다 None값
+	    smask = self.load_segmentation_mask(image) # 필요없다 None 값 
+	    return self._combine_masks(mask, smask)
+	
+	def load_features_mask(self, image, points):
+	    """Load a feature-wise mask.
+
+	    This is a binary array true for features that lie inside the
+	    combined mask.
+	    The array is all true when there's no mask.
+	    """
+	    if points is None or len(points) == 0:
+	        return np.array([], dtype=bool)
+
+	    mask_image = self.load_combined_mask(image)
+	    
+	    if mask_image is None:
+	        logger.debug('No segmentation for {}, no features masked.'.format(image))
+	        return np.ones((points.shape[0],), dtype=bool)
+   
+   		#detect features명령어에선 여기서 종료함 *************
+	    exif = self.load_exif(image)
+	    width = exif["width"]
+	    height = exif["height"]
+	    orientation = exif["orientation"]
+
+	    new_height, new_width = mask_image.shape
+	    ps = upright.opensfm_to_upright(
+	        points[:, :2], width, height, orientation,
+	        new_width=new_width, new_height=new_height).astype(int)
+	    mask = mask_image[ps[:, 1], ps[:, 0]]
+
+	    n_removed = np.sum(mask == 0)
+	    logger.debug('Masking {} / {} ({:.2f}) features for {}'.format(
+	        n_removed, len(mask), n_removed / len(mask), image))
+
+	    return np.array(mask, dtype=bool)
+	def _feature_file(self, image):
+	    """
+	    Return path of feature file for specified image
+	    :param image: Image name, with extension (i.e. 123.jpg)
+	    """
+	    return os.path.join(self._feature_path(), image + '.features.npz')
+	
+	def _feature_path(self):
+	    """Return path of feature descriptors and FLANN indices directory"""
+	    return os.path.join(self.data_path, "features")
+
+	def _save_features(self, filepath, points, descriptors, colors=None):
+	    io.mkdir_p(self._feature_path())
+	    features.save_features(filepath, points, descriptors, colors, self.config)
+
+	def save_features(self, image, points, descriptors, colors):
+		self.feature_points.update({image:points})
+		self.feature_descriptors.update({image:descriptors})
+		self.feature_colors.update({image:colors})
+		self._save_features(self._feature_file(image), points, descriptors, colors)
+		print(self.feature_points)
 
 
-	def _extract_exif(self, image ,data):
-		#EXIF data in Image
-		#### 여기서 metadata값 설정
-		d={} 
-		d=self.image_size(image,d)
-		return d 
+	def _report_path(self):
+	    return os.path.join(self.data_path, 'reports')
 
-class detect_features(DataSet):
+	def save_report(self, report_str, path):
+		"""Save report string to a file."""
+		filepath = os.path.join(self._report_path(), path)
+		io.mkdir_p(os.path.dirname(filepath))
+		with io.open_wt(filepath) as fout:
+		    return fout.write(report_str)
 
+class SLAM():
 	def __init__(self,data):
-		self.image_list=data.image_list
-		self.data_path=data.data_path
-		self.meta_data_d=data.meta_data_d
-	def run(self,data):
-		print(self.image_list.keys())
-		#self.show(self.image_list['1.jpg'])
-		print(self.meta_data_d)
+		self.data=data
+		self.meta_data={}
+		self.feature_points={}
+		self.feature_descriptors={}
+		self.feature_colors={}
+		
+	def Metadata(self):
+		self.meta_data=extract_metadata.run(self.data)
+		print("meta_data==", self.meta_data)
 
+	def detect_Features(self):
+		self.feature_points=detect_features.run(self.data)
+		print(self.data.feature_points)
+		#print(self.data.feature_descriptors)
+		#print(self.data.feature_colors)
 
 
 class Command:
@@ -280,11 +298,12 @@ class Command:
 		#*****
 		data=DataSet(args.dataset,self.image_list)
 		#******
+		slam=SLAM(data)
+		slam.Metadata()
+		slam.detect_Features()
 
-		meta_data=extract_metadata(data.data_path,data.image_list)
-		meta_data.run(data)# data객체 전달 (이미지포함됨) 
-		detect_data=detect_features(data)
-		detect_data.run(data)
+		
+	
 
 		print("yjw")
 
@@ -304,7 +323,7 @@ class Command:
 		   
 		    cv.imshow('camera',frame)
 		    #print(type(frame))#== numpy.ndarray'	    
-		    if i%2==0:
+		    if i%1==0:
 		    	img_name = "{}.jpg".format(count)
 		    	#self.image_list.append(frame)
 		    	self.image_list.update({img_name:frame})
