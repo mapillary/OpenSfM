@@ -286,6 +286,8 @@ class Command:
 		detect_data=detect_features(data)
 		detect_data.run(data)
 
+		print("yjw")
+
 
 	def save_webcamImage(self, args):
 		cap=cv.VideoCapture(0)
