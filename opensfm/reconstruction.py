@@ -207,7 +207,7 @@ def bundle(graph, reconstruction, camera_priors, gcp, config):
                 ba.add_absolute_up_vector(shot_id, [0, 0, -1], 1e-3)
         if config['align_orientation_prior'] == 'horizontal':
             for shot_id in reconstruction.shots:
-                ba.add_absolute_up_vector(shot_id, [0, 1, 0], 1e-3)
+                ba.add_absolute_up_vector(shot_id, [0, -1, 0], 1e-3)
 
     ba.set_point_projection_loss_function(config['loss_function'],
                                           config['loss_function_threshold'])
