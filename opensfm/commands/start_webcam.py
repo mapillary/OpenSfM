@@ -50,6 +50,8 @@ class DataSet(object):
 		self.feature_points={}
 		self.feature_colors={}
 		self.feature_descriptors={}
+		self.feature_of_images={}
+		self.feature_report={}
 
 	def _load_config(self):
 		config_file = os.path.join(self.data_path, 'config.yaml')
@@ -232,6 +234,7 @@ class DataSet(object):
 	        n_removed, len(mask), n_removed / len(mask), image))
 
 	    return np.array(mask, dtype=bool)
+	
 	def _feature_file(self, image):
 	    """
 	    Return path of feature file for specified image
@@ -248,12 +251,13 @@ class DataSet(object):
 	    features.save_features(filepath, points, descriptors, colors, self.config)
 
 	def save_features(self, image, points, descriptors, colors):
-		self.feature_points.update({image:points})
-		self.feature_descriptors.update({image:descriptors})
-		self.feature_colors.update({image:colors})
 		self._save_features(self._feature_file(image), points, descriptors, colors)
-		print(self.feature_points)
 
+	def save_total_features(self,feature_of_images):
+
+		self.feature_of_images=feature_of_images
+	def save_report_of_features(self,image,report):
+		self.feature_report.update({image:report})
 
 	def _report_path(self):
 	    return os.path.join(self.data_path, 'reports')
@@ -264,24 +268,34 @@ class DataSet(object):
 		io.mkdir_p(os.path.dirname(filepath))
 		with io.open_wt(filepath) as fout:
 		    return fout.write(report_str)
+	
+	def load_report(self, path):
+	    """Load a report file as a string."""
+	    with io.open_rt(os.path.join(self._report_path(), path)) as fin:
+	        return fin.read()
+
+	def profile_log(self):
+	    #"Filename where to write timings."
+	    return os.path.join(self.data_path, 'profile.log')
+
+
 
 class SLAM():
 	def __init__(self,data):
 		self.data=data
 		self.meta_data={}
-		self.feature_points={}
-		self.feature_descriptors={}
-		self.feature_colors={}
+		
 		
 	def Metadata(self):
 		self.meta_data=extract_metadata.run(self.data)
 		print("meta_data==", self.meta_data)
 
 	def detect_Features(self):
-		self.feature_points=detect_features.run(self.data)
-		print(self.data.feature_points)
-		#print(self.data.feature_descriptors)
-		#print(self.data.feature_colors)
+		DF=detect_features.detecting_features()
+		DF.run(self.data)
+
+		#self.data.feature_of_images 저장완료
+		#self.data.feature_report 저장완료 
 
 
 class Command:

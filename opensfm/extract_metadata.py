@@ -155,6 +155,8 @@ def run(data):
     
     print("Metadata Extracted in {}".format(end-start))
     d.update({'focal':calib['focal']})
+    with open(data.profile_log(), 'a') as fout:
+            fout.write('extract_metadata: {0}\n'.format(end - start))
     
     return d
 
