@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <Eigen/Dense>
 
 #define SQUARE(x) ((x)*(x))
