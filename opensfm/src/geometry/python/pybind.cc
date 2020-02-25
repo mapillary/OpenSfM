@@ -18,6 +18,7 @@ PYBIND11_MODULE(pygeometry, m) {
   m.def("essential_five_points", geometry::EssentialFivePoints);
   m.def("absolute_pose_three_points", geometry::AbsolutePoseThreePoints);
   m.def("absolute_pose_n_points", geometry::AbsolutePoseNPoints);
+  m.def("absolute_pose_n_points_known_rotation", geometry::AbsolutePoseNPointsKnownRotation);
   m.def("essential_n_points", geometry::EssentialNPoints);
   m.def("relative_pose_from_essential", geometry::RelativePoseFromEssential);
   m.def("relative_pose_refinement", geometry::RelativePoseRefinement);

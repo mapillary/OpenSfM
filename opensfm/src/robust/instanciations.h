@@ -3,7 +3,8 @@
 #include "line_model.h"
 #include "essential_model.h"
 #include "relative_pose_model.h"
-#include "absolue_pose_model.h"
+#include "absolute_pose_model.h"
+#include "absolute_pose_known_rotation_model.h"
 
 namespace robust {
 ScoreInfo<Line::Type> RANSACLine(const Eigen::Matrix<double, -1, 2>& points, double threshold,
@@ -24,6 +25,12 @@ ScoreInfo<RelativePose::Type> RANSACRelativePose(
     const RansacType& ransac_type);
 
 ScoreInfo<AbsolutePose::Type> RANSACAbsolutePose(
+    const Eigen::Matrix<double, -1, 3>& bearings,
+    const Eigen::Matrix<double, -1, 3>& points, 
+    double threshold, const RobustEstimatorParams& parameters,
+    const RansacType& ransac_type);
+
+ScoreInfo<AbsolutePoseKnownRotation::Type> RANSACAbsolutePoseKnownRotation(
     const Eigen::Matrix<double, -1, 3>& bearings,
     const Eigen::Matrix<double, -1, 3>& points, 
     double threshold, const RobustEstimatorParams& parameters,

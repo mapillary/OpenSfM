@@ -191,12 +191,22 @@ Eigen::Matrix<double, 3, 4> AbsolutePoseNPoints(IT begin, IT end) {
   RT.block<3, 1>(0, 3) = translation;
   return RT;
 }
+
+template <class IT>
+Eigen::Vector3d AbsolutePoseNPointsKnownRotation(IT begin, IT end) {
+  return TranslationBetweenPoints(begin, end, Eigen::Matrix3d::Identity());
+}
+
 namespace geometry{
 std::vector<Eigen::Matrix<double, 3, 4>> AbsolutePoseThreePoints(
   const Eigen::Matrix<double, -1, 3> &bearings,
   const Eigen::Matrix<double, -1, 3> &points);
 
 Eigen::Matrix<double, 3, 4> AbsolutePoseNPoints(
+  const Eigen::Matrix<double, -1, 3> &bearings,
+  const Eigen::Matrix<double, -1, 3> &points);
+
+Eigen::Vector3d AbsolutePoseNPointsKnownRotation(
   const Eigen::Matrix<double, -1, 3> &bearings,
   const Eigen::Matrix<double, -1, 3> &points);
 }

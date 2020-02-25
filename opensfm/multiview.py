@@ -568,6 +568,31 @@ def motion_from_plane_homography(H):
     return solutions
 
 
+def absolute_pose_known_rotation_ransac(bs, Xs, method, threshold, iterations, probabilty):
+    # in-house estimation
+    if method == 'mapillary':
+        threshold = np.arccos(1 - threshold)
+        params = pyrobust.RobustEstimatorParams()
+        params.iterations = 1000
+        result = pyrobust.ransac_absolute_pose_known_rotation(bs, Xs, threshold, params, pyrobust.RansacType.RANSAC)
+
+        Rt = result.lo_model.copy()
+        R, t = Rt[:3, :3].copy(), Rt[:, 3].copy()
+        Rt[:3, :3] = R.T
+        Rt[:, 3] = -R.T.dot(t)
+        return Rt
+    else:
+        try:
+            return pyopengv.absolute_pose_ransac(
+                bs, Xs, method, threshold,
+                iterations=iterations,
+                probabilty=probabilty)
+        except Exception:
+            # Older versions of pyopengv do not accept the probability argument.
+            return pyopengv.absolute_pose_ransac(
+                bs, Xs, method, threshold, iterations)
+
+
 def absolute_pose_ransac(bs, Xs, method, threshold, iterations, probabilty):
     # in-house estimation
     if method == 'mapillary':

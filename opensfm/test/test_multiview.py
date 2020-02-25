@@ -76,6 +76,16 @@ def test_absolute_pose_n_points(one_shot_and_its_points):
     assert np.linalg.norm(expected-result, ord='fro') < 1e-6
 
 
+def test_absolute_pose_n_points_known_rotation(one_shot_and_its_points):
+    pose, bearings, points = one_shot_and_its_points
+
+    R = pose.get_rotation_matrix()
+    p_rotated = np.array([R.dot(p) for p in points])
+    result = pygeometry.absolute_pose_n_points_known_rotation(bearings, p_rotated)
+
+    assert np.linalg.norm(pose.translation-result) < 1e-6
+
+
 def test_essential_n_points(one_pair_and_its_E):
     f1, f2, E, _ = one_pair_and_its_E
 

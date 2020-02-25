@@ -241,3 +241,28 @@ def test_outliers_absolute_pose_ransac(one_shot_and_its_points):
                       inliers_count, rtol=tolerance)
 
     assert np.linalg.norm(expected-result.lo_model, ord='fro')  < 8e-2
+
+
+def test_outliers_absolute_pose_known_rotation_ransac(one_shot_and_its_points):
+    pose, bearings, points = one_shot_and_its_points
+
+    scale = 1e-3
+    bearings += np.random.rand(*bearings.shape)*scale
+
+    ratio_outliers = 0.3
+    add_outliers(ratio_outliers, bearings, 0.1, 1.0)
+    bearings /= np.linalg.norm(bearings, axis=1)[:, None]
+
+    R = pose.get_rotation_matrix()
+    p_rotated = np.array([R.dot(p) for p in points])
+
+    params = pyrobust.RobustEstimatorParams()
+    params.iterations = 1000
+    result = pyrobust.ransac_absolute_pose_known_rotation(bearings, p_rotated, scale, params, pyrobust.RansacType.RANSAC)
+
+    tolerance = 0.05
+    inliers_count = (1 - ratio_outliers) * len(points)
+    assert np.isclose(len(result.inliers_indices),
+                      inliers_count, rtol=tolerance)
+
+    assert np.linalg.norm(pose.translation-result.lo_model)  < 8e-2
