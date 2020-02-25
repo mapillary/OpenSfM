@@ -107,13 +107,16 @@ def test_relative_pose_from_essential(one_pair_and_its_E):
 
     result = pygeometry.relative_pose_from_essential(E, f1, f2)
 
+    pose = copy.deepcopy(pose)
     pose.translation /= np.linalg.norm(pose.translation)
+
     expected = pose.get_Rt()
     assert np.allclose(expected, result, rtol=1e-10)
 
 
 def test_relative_pose_refinement(one_pair_and_its_E):
     f1, f2, _, pose = one_pair_and_its_E
+    pose = copy.deepcopy(pose)
     pose.translation /= np.linalg.norm(pose.translation)
 
     noisy_pose = copy.deepcopy(pose)

@@ -1,4 +1,5 @@
 import pytest
+import copy
 import numpy as np
 
 from opensfm import pyrobust
@@ -223,6 +224,7 @@ def test_outliers_absolute_pose_ransac(one_shot_and_its_points):
     pose, bearings, points = one_shot_and_its_points
 
     scale = 1e-3
+    bearings = copy.deepcopy(bearings)
     bearings += np.random.rand(*bearings.shape)*scale
 
     ratio_outliers = 0.3
@@ -247,6 +249,7 @@ def test_outliers_absolute_pose_known_rotation_ransac(one_shot_and_its_points):
     pose, bearings, points = one_shot_and_its_points
 
     scale = 1e-3
+    bearings = copy.deepcopy(bearings)
     bearings += np.random.rand(*bearings.shape)*scale
 
     ratio_outliers = 0.3
