@@ -67,6 +67,15 @@ def test_absolute_pose_three_points(one_shot_and_its_points):
     assert exact_found
 
 
+def test_absolute_pose_n_points(one_shot_and_its_points):
+    pose, bearings, points = one_shot_and_its_points
+
+    result = pygeometry.absolute_pose_n_points(bearings, points)
+
+    expected = pose.get_Rt()
+    assert np.linalg.norm(expected-result, ord='fro') < 1e-6
+
+
 def test_essential_n_points(one_pair_and_its_E):
     f1, f2, E, _ = one_pair_and_its_E
 

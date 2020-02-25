@@ -103,8 +103,100 @@ std::vector<Eigen::Matrix<double, 3, 4>> AbsolutePoseThreePoints(IT begin, IT en
   return RTs;
 }
 
+template <class IT>
+std::pair<Eigen::Vector3d, Eigen::Vector3d> ComputeAverage(IT begin, IT end){
+  Eigen::Vector3d q_average = Eigen::Vector3d::Zero();
+  Eigen::Vector3d p_average = Eigen::Vector3d::Zero();
+  for(IT it = begin; it != end; ++it){
+    q_average += it->first;
+    p_average += it->second;
+  }
+  q_average /= (end-begin);
+  p_average /= (end-begin);
+  return std::make_pair(q_average, p_average);
+}
+
+template <class IT>
+Eigen::Matrix3d RotationBetweenPoints(IT begin, IT end){
+  const auto averages = ComputeAverage(begin, end);
+  Eigen::Matrix3d M = Eigen::Matrix3d::Zero();
+  for(IT it = begin; it != end; ++it){
+    const Eigen::Vector3d q = it->first-averages.first;
+    const Eigen::Vector3d p = it->second-averages.second;
+    M += q*p.transpose();
+  }
+
+  Eigen::JacobiSVD<Eigen::Matrix3d> svd(M, Eigen::ComputeFullU | Eigen::ComputeFullV);
+  const auto U = svd.matrixU();
+  const auto V = svd.matrixV();
+  return U*V.transpose();
+}
+
+template <class IT>
+Eigen::Vector3d TranslationBetweenPoints(IT begin, IT end, const Eigen::Matrix3d& rotation){
+  Eigen::Matrix3d F1 = Eigen::Matrix3d::Zero();
+  Eigen::Vector3d F2 = Eigen::Vector3d::Zero();
+  const Eigen::Matrix3d identity = Eigen::Matrix3d::Identity();
+  for(IT it = begin; it != end; ++it){
+    const auto v = it->first;
+    const Eigen::Matrix3d F = (v*v.transpose())/(v.dot(v));
+    F1 += F;
+    F2 += (F-identity)*rotation*it->second;
+  }
+  F2 /= (end-begin);
+  F1 /= (end-begin);
+
+  return (identity-F1).inverse()*F2;
+}
+
+// Implements "Fast and Globally Convergent Pose
+// Estimation from Video Images" from Lu and al.
+template <class IT>
+Eigen::Matrix<double, 3, 4> AbsolutePoseNPoints(IT begin, IT end) {
+  // Initialize by compute s, R and t using Horn's method between rays and points
+  const auto averages = ComputeAverage(begin, end);
+  double s_num = 0., s_denum = 0.;
+  for(IT it = begin; it != end; ++it){
+    const auto q = it->first-averages.first;
+    const auto p = it->second-averages.second;
+    s_num += SQUARE(p.norm());
+    s_denum += SQUARE(q.norm());
+  }
+  const double scale = std::sqrt(s_num/s_denum);
+  Eigen::Matrix3d rotation = RotationBetweenPoints(begin, end);
+  Eigen::Vector3d translation = scale*averages.first - rotation*averages.second;
+
+  const double tolerance = 1e-7;
+  const int max_iterations = 100;
+  for(int i = 0; i < max_iterations; ++i){
+    std::vector< std::pair<Eigen::Vector3d, Eigen::Vector3d> > current_points;
+    for(IT it = begin; it != end; ++it){
+      const auto v = it->first;
+      const Eigen::Matrix3d F = (v*v.transpose())/(v.dot(v));
+      const auto p = it->second;
+      const auto q = F*(rotation*p + translation);
+      current_points.push_back(std::make_pair(q, p));
+    }
+    rotation = RotationBetweenPoints(current_points.begin(), current_points.end());
+    const auto new_translation = TranslationBetweenPoints(begin, end, rotation);
+    const auto rel_delta = (new_translation-translation).norm()/translation.norm();
+    if(rel_delta < tolerance){
+      break;
+    }
+    translation = new_translation;
+  }
+  // Rcamera and Tcamera parametrization
+  Eigen::Matrix<double, 3, 4> RT;
+  RT.block<3, 3>(0, 0) = rotation;
+  RT.block<3, 1>(0, 3) = translation;
+  return RT;
+}
 namespace geometry{
 std::vector<Eigen::Matrix<double, 3, 4>> AbsolutePoseThreePoints(
+  const Eigen::Matrix<double, -1, 3> &bearings,
+  const Eigen::Matrix<double, -1, 3> &points);
+
+Eigen::Matrix<double, 3, 4> AbsolutePoseNPoints(
   const Eigen::Matrix<double, -1, 3> &bearings,
   const Eigen::Matrix<double, -1, 3> &points);
 }

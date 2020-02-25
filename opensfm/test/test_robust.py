@@ -197,7 +197,7 @@ def test_outliers_relative_pose_ransac(one_pair_and_its_E):
     scale = 1e-3
     points += np.random.rand(*points.shape)*scale
 
-    ratio_outliers = 0.1
+    ratio_outliers = 0.3
     add_outliers(ratio_outliers, points, 0.1, 1.0)
 
     f1, f2 = points[:, 0:3],  points[:, 3:6]
