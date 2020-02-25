@@ -24,11 +24,8 @@ class AbsolutePose : public Model<AbsolutePose, 1, 4> {
 
   template <class IT>
   static int EstimateNonMinimal(IT begin, IT end, Type* models){
-    const auto poses = AbsolutePoseThreePoints(begin, end);
-    for(int i = 0; i < poses.size(); ++i){
-      models[i] = poses[i];
-    }
-    return poses.size();
+    models[0] = AbsolutePoseNPoints(begin, end);
+    return 1;
   }
 
   static Error Evaluate(const Type& model, const Data& d){
