@@ -34,7 +34,7 @@ ScoreInfo<RelativePose::Type> RANSACRelativePose(
     const Eigen::Matrix<double, -1, 3>& x2, 
     double threshold, const RobustEstimatorParams& parameters,
     const RansacType& ransac_type) {
-   if((x1.cols() != x2.cols()) || (x1.rows() != x2.rows())){
+  if((x1.cols() != x2.cols()) || (x1.rows() != x2.rows())){
     throw std::runtime_error("Features matrices have different sizes.");
   }
   
@@ -44,6 +44,23 @@ ScoreInfo<RelativePose::Type> RANSACRelativePose(
     samples[i].second = x2.row(i);
   }
   return RunEstimation<RelativePose>(samples, threshold, parameters, ransac_type);
+}
+
+ScoreInfo<RelativeRotation::Type> RANSACRelativeRotation(
+    const Eigen::Matrix<double, -1, 3>& x1,
+    const Eigen::Matrix<double, -1, 3>& x2, 
+    double threshold, const RobustEstimatorParams& parameters,
+    const RansacType& ransac_type){
+  if((x1.cols() != x2.cols()) || (x1.rows() != x2.rows())){
+    throw std::runtime_error("Features matrices have different sizes.");
+  }
+  
+  std::vector<RelativeRotation::Data> samples(x1.rows());
+  for (int i = 0; i < x1.rows(); ++i) {
+    samples[i].first = x1.row(i);
+    samples[i].second = x2.row(i);
+  }
+  return RunEstimation<RelativeRotation>(samples, threshold, parameters, ransac_type);
 }
 
 ScoreInfo<AbsolutePose::Type> RANSACAbsolutePose(

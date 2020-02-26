@@ -3,6 +3,7 @@
 #include "line_model.h"
 #include "essential_model.h"
 #include "relative_pose_model.h"
+#include "relative_rotation_model.h"
 #include "absolute_pose_model.h"
 #include "absolute_pose_known_rotation_model.h"
 
@@ -19,6 +20,12 @@ ScoreInfo<EssentialMatrixModel::Type> RANSACEssential(
     const RansacType& ransac_type);
 
 ScoreInfo<RelativePose::Type> RANSACRelativePose(
+    const Eigen::Matrix<double, -1, 3>& x1,
+    const Eigen::Matrix<double, -1, 3>& x2, 
+    double threshold, const RobustEstimatorParams& parameters,
+    const RansacType& ransac_type);
+
+ScoreInfo<RelativeRotation::Type> RANSACRelativeRotation(
     const Eigen::Matrix<double, -1, 3>& x1,
     const Eigen::Matrix<double, -1, 3>& x2, 
     double threshold, const RobustEstimatorParams& parameters,

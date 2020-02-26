@@ -1,5 +1,6 @@
 import copy
 import random
+import pyopengv
 import numpy as np
 
 from opensfm import multiview
@@ -112,6 +113,25 @@ def test_relative_pose_from_essential(one_pair_and_its_E):
 
     expected = pose.get_Rt()
     assert np.allclose(expected, result, rtol=1e-10)
+
+
+def test_relative_rotation(one_pair_and_its_E):
+    f1, _, _, _ = one_pair_and_its_E
+
+    vec_x = np.random.rand(3)
+    vec_x /= np.linalg.norm(vec_x)
+    vec_y = np.array([-vec_x[1], vec_x[0], 0.])
+    vec_y /= np.linalg.norm(vec_y)
+    vec_z = np.cross(vec_x, vec_y)
+
+    rotation = np.array([vec_x, vec_y, vec_z])
+
+    f1 /= np.linalg.norm(f1, axis=1)[:, None]
+    f2 = [rotation.dot(x) for x in f1]
+
+    result = pygeometry.relative_rotation_n_points(f1, f2)
+
+    assert np.allclose(rotation, result, rtol=1e-10)
 
 
 def test_relative_pose_refinement(one_pair_and_its_E):
