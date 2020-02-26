@@ -9,6 +9,15 @@ Eigen::Matrix3d SkewMatrix(const Eigen::Vector3d& v){
   return m;
 }
 
+Eigen::Matrix3d ClosestRotationMatrix(const Eigen::Matrix3d& matrix){
+  Eigen::JacobiSVD<Eigen::Matrix3d> svd(matrix, Eigen::ComputeFullU | Eigen::ComputeFullV);
+  Eigen::Matrix3d rotation = svd.matrixU()*svd.matrixV().transpose();
+  if(rotation.determinant() < 0.){
+    rotation *= -1.0;
+  }
+  return rotation;
+}
+
 // taken from https://github.com/sidneycadot/quartic
 static std::complex<double> ComplexSqrt(const std::complex<double> & z){
     return pow(z, 1. / 2.);

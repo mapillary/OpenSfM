@@ -55,6 +55,8 @@ double NewtonRaphson(const F& func, double initial_value, int iterations){
 
 
 Eigen::Matrix3d SkewMatrix(const Eigen::Vector3d& v);
+Eigen::Matrix3d ClosestRotationMatrix(const Eigen::Matrix3d& matrix);
+
 std::array<double, 4> SolveQuartic(const std::array<double, 5>& coefficients);
 std::array<double, 4> RefineQuarticRoots(const std::array<double, 5>& coefficients,
                                          const std::array<double, 4>& roots);

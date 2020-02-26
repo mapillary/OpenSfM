@@ -91,7 +91,7 @@ std::vector<Eigen::Matrix<double, 3, 4>> AbsolutePoseThreePoints(IT begin, IT en
     const auto c1 = RotationMatrixAroundAxis(cos_theta_1, sin_theta_1, e1);
     const auto c2 = RotationMatrixAroundAxis(cos_theta_3, sin_theta_3, e2);
 
-    const auto rotation = c_barre*c1*c2*c_barre_barre;
+    const auto rotation = ClosestRotationMatrix(c_barre*c1*c2*c_barre_barre);
     const auto translation = p3 - (sigma*sin_theta_1)/k3_b3*(rotation*b3);
 
     // Rcamera and Tcamera parametrization
