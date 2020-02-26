@@ -123,7 +123,10 @@ struct RelativePoseCost {
       residuals[0] += 1.0 - ((projected_x.dot(x) + projected_y.dot(y))*T(0.5));
     }
     residuals[1] = 1.0 - translation.norm();
+  
+    return true;
   }
+
   IT begin_;
   IT end_;
 };

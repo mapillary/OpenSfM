@@ -1,4 +1,5 @@
 import copy
+import random
 import numpy as np
 
 from opensfm import multiview
@@ -52,6 +53,39 @@ def test_essential_five_points(one_pair_and_its_E):
     assert exact_found
 
 
+def test_absolute_pose_three_points(one_shot_and_its_points):
+    pose, bearings, points = one_shot_and_its_points
+
+    result = pygeometry.absolute_pose_three_points(bearings, points)
+
+    exact_found = False
+    expected = pose.get_Rt()
+    for Rt in result:
+        if np.linalg.norm(expected-Rt, ord='fro') < 1e-6:
+            exact_found = True
+
+    assert exact_found
+
+
+def test_absolute_pose_n_points(one_shot_and_its_points):
+    pose, bearings, points = one_shot_and_its_points
+
+    result = pygeometry.absolute_pose_n_points(bearings, points)
+
+    expected = pose.get_Rt()
+    assert np.linalg.norm(expected-result, ord='fro') < 1e-6
+
+
+def test_absolute_pose_n_points_known_rotation(one_shot_and_its_points):
+    pose, bearings, points = one_shot_and_its_points
+
+    R = pose.get_rotation_matrix()
+    p_rotated = np.array([R.dot(p) for p in points])
+    result = pygeometry.absolute_pose_n_points_known_rotation(bearings, p_rotated)
+
+    assert np.linalg.norm(pose.translation-result) < 1e-6
+
+
 def test_essential_n_points(one_pair_and_its_E):
     f1, f2, E, _ = one_pair_and_its_E
 
@@ -73,13 +107,16 @@ def test_relative_pose_from_essential(one_pair_and_its_E):
 
     result = pygeometry.relative_pose_from_essential(E, f1, f2)
 
+    pose = copy.deepcopy(pose)
     pose.translation /= np.linalg.norm(pose.translation)
+
     expected = pose.get_Rt()
     assert np.allclose(expected, result, rtol=1e-10)
 
 
 def test_relative_pose_refinement(one_pair_and_its_E):
     f1, f2, _, pose = one_pair_and_its_E
+    pose = copy.deepcopy(pose)
     pose.translation /= np.linalg.norm(pose.translation)
 
     noisy_pose = copy.deepcopy(pose)
