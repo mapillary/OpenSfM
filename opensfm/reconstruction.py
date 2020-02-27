@@ -616,7 +616,6 @@ def two_view_reconstruction(p1, p2, camera1, camera2,
     if inliers.sum() > 5:
         T = multiview.relative_pose_optimize_nonlinear(b1[inliers],
                                                        b2[inliers], 
-                                                       b"STEWENIUS",
                                                        t, R,
                                                        iterations)
         R = T[:, :3]
