@@ -117,20 +117,21 @@ template <class MODEL>
 ScoreInfo<typename MODEL::Type> RunEstimation(
     const std::vector<typename MODEL::Data>& samples, double threshold,
     const RobustEstimatorParams& parameters, const RansacType& ransac_type) {
+  const double model_threshold = MODEL::ThresholdAdapter(threshold);
   switch(ransac_type){
     case RANSAC:
     {
-      RansacScoring scorer(threshold);
+      RansacScoring scorer(model_threshold);
       return Estimate<RansacScoring, MODEL>(samples, scorer, parameters);
     }
     case MSAC:
     {
-      MSacScoring scorer(threshold);
+      MSacScoring scorer(model_threshold);
       return Estimate<MSacScoring, MODEL>(samples, scorer, parameters);
     }
     case LMedS:
     {
-      LMedSScoring scorer(threshold);
+      LMedSScoring scorer(model_threshold);
       return Estimate<LMedSScoring, MODEL>(samples, scorer, parameters);
     }
     default:

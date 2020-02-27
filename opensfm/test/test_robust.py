@@ -248,7 +248,7 @@ def test_outliers_relative_rotation_ransac(one_pair_and_its_E):
     params = pyrobust.RobustEstimatorParams()
     params.iterations = 1000
 
-    result = pyrobust.ransac_relative_rotation(f1, f2, 1 - np.cos(np.sqrt(3*scale*scale)), params, pyrobust.RansacType.RANSAC)
+    result = pyrobust.ransac_relative_rotation(f1, f2, np.sqrt(3*scale*scale), params, pyrobust.RansacType.RANSAC)
 
     tolerance = 0.04
     inliers_count = (1 - ratio_outliers) * len(points)
