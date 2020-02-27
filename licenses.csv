@@ -10,7 +10,6 @@ loky, 1.2.1, BSD
 networkx, 1.11, BSD
 numpy, 1.14.0, BSD
 opencv, 2.4.10.1, "3-clause BSD License"
-opengv, master, "New BSD 3-Clause"
 py, 1.5.2, MIT
 pybind, 2.2.4, BSD
 pyproj, 1.9.5.1, "OSI Approved"
