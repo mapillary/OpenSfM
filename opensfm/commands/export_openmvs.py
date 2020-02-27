@@ -24,9 +24,9 @@ class Command:
         graph = udata.load_undistorted_tracks_graph()
 
         if reconstructions:
-            self.export(reconstructions[0], graph, data)
+            self.export(reconstructions[0], graph, udata, data)
 
-    def export(self, reconstruction, graph, data):
+    def export(self, reconstruction, graph, udata, data):
         exporter = pydense.OpenMVSExporter()
         for camera in reconstruction.cameras.values():
             if camera.projection_type == 'perspective':
