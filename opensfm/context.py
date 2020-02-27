@@ -35,10 +35,15 @@ def parallel_map(func, args, num_proc, max_batch_size=1):
     if num_proc <= 1:
         return list(map(func, args))
     else:
+        # De-activate/Restore any inner OpenCV threading
+        threads_used = cv2.getNumThreads()
+        cv2.setNumThreads(0)
         with parallel_backend('loky', n_jobs=num_proc):
             batch_size = max(1, int(len(args)/(num_proc*2)))
             batch_size = min(batch_size, max_batch_size) if max_batch_size else batch_size
-            return Parallel(batch_size=batch_size)(delayed(func)(arg) for arg in args)
+            res = Parallel(batch_size=batch_size)(delayed(func)(arg) for arg in args)
+            cv2.setNumThreads(threads_used)
+            return res
 
 
 # Memory usage
