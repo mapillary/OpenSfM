@@ -645,15 +645,23 @@ def relative_pose_ransac(b1, b2, method, threshold, iterations, probability):
 
 def relative_pose_ransac_rotation_only(b1, b2, threshold, iterations,
                                        probability):
-    try:
-        return pyopengv.relative_pose_ransac_rotation_only(
-            b1, b2, threshold,
-            iterations=iterations,
-            probability=probability)
-    except Exception:
-        # Older versions of pyopengv do not accept the probability argument.
-        return pyopengv.relative_pose_ransac_rotation_only(
-            b1, b2, threshold, iterations)
+    # in-house estimation
+    if in_house_multiview:
+        threshold = np.arccos(1 - threshold)
+        params = pyrobust.RobustEstimatorParams()
+        params.iterations = 1000
+        result = pyrobust.ransac_relative_rotation(b1, b2, threshold, params, pyrobust.RansacType.RANSAC)
+        return result.lo_model.T
+    else:
+        try:
+            return pyopengv.relative_pose_ransac_rotation_only(
+                b1, b2, threshold,
+                iterations=iterations,
+                probability=probability)
+        except Exception:
+            # Older versions of pyopengv do not accept the probability argument.
+            return pyopengv.relative_pose_ransac_rotation_only(
+                b1, b2, threshold, iterations)
 
 
 def relative_pose_optimize_nonlinear(b1, b2, method, t, R, iterations):

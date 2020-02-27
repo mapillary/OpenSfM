@@ -165,4 +165,7 @@ Eigen::Matrix<double, 3, 4> RelativePoseRefinement(
     const Eigen::Matrix<double, -1, 3> &x1,
     const Eigen::Matrix<double, -1, 3> &x2,
     int iterations);
+Eigen::Matrix3d RelativeRotationNPoints(
+    const Eigen::Matrix<double, -1, 3> &x1,
+    const Eigen::Matrix<double, -1, 3> &x2);
 }

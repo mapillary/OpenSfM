@@ -13,6 +13,10 @@ class AbsolutePose : public Model<AbsolutePose, 1, 4> {
   using Data = std::pair<Eigen::Vector3d, Eigen::Vector3d>;
   static const int MINIMAL_SAMPLES = 3;
 
+  static double ThresholdAdapter(const double threshold_angle){
+    return 1.0 - std::cos(threshold_angle);
+  }
+
   template <class IT>
   static int Estimate(IT begin, IT end, Type* models){
     const auto poses = AbsolutePoseThreePoints(begin, end);
@@ -36,7 +40,7 @@ class AbsolutePose : public Model<AbsolutePose, 1, 4> {
     const auto projected = (rotation*point+translation).normalized();
 
     Error e;
-    e[0] = std::acos(bearing.dot(projected));
+    e[0] = 1.0 - (bearing.dot(projected));
     return e;
   }
 };

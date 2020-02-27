@@ -32,6 +32,7 @@ PYBIND11_MODULE(pyrobust, m) {
   m.def("ransac_line", robust::RANSACLine);
   m.def("ransac_essential", robust::RANSACEssential);
   m.def("ransac_relative_pose", robust::RANSACRelativePose);
+  m.def("ransac_relative_rotation", robust::RANSACRelativeRotation);
   m.def("ransac_absolute_pose", robust::RANSACAbsolutePose);
   m.def("ransac_absolute_pose_known_rotation", robust::RANSACAbsolutePoseKnownRotation);
 
@@ -43,7 +44,7 @@ PYBIND11_MODULE(pyrobust, m) {
       .export_values()
     ;
   AddScoreType<Line::Type>(m, "Line");
-  AddScoreType<robust::EssentialMatrixModel::Type>(m, "EssentialMatrix");
-  AddScoreType<Eigen::Matrix<double, 3, 4>>(m, "RelativePose");
-  AddScoreType<Eigen::Vector3d>(m, "RelativePoseKnownRotation");
+  AddScoreType<Eigen::Matrix3d>(m, "Matrix3d");
+  AddScoreType<Eigen::Matrix<double, 3, 4>>(m, "Matrix34d");
+  AddScoreType<Eigen::Vector3d>(m, "Vector3d");
 }

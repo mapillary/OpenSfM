@@ -15,6 +15,10 @@ class RelativePose : public Model<RelativePose, 1, 10> {
   using Data = std::pair<Eigen::Vector3d, Eigen::Vector3d>;
   static const int MINIMAL_SAMPLES = 5;
 
+  static double ThresholdAdapter(const double threshold_angle){
+    return 1.0 - std::cos(threshold_angle);
+  }
+
   template <class IT>
   static int Estimate(IT begin, IT end, Type* models){
     const auto essentials = EssentialFivePoints(begin, end);
@@ -50,7 +54,7 @@ class RelativePose : public Model<RelativePose, 1, 10> {
     const auto projected_y = (rotation*point+translation).normalized();
 
     Error e;
-    e[0] = std::acos((projected_x.dot(x) + projected_y.dot(y))*0.5);
+    e[0] = 1.0 - ((projected_x.dot(x) + projected_y.dot(y))*0.5);
     return e;
   }
 };

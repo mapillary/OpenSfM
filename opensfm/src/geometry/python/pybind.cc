@@ -21,5 +21,6 @@ PYBIND11_MODULE(pygeometry, m) {
   m.def("absolute_pose_n_points_known_rotation", geometry::AbsolutePoseNPointsKnownRotation);
   m.def("essential_n_points", geometry::EssentialNPoints);
   m.def("relative_pose_from_essential", geometry::RelativePoseFromEssential);
+  m.def("relative_rotation_n_points", geometry::RelativeRotationNPoints);
   m.def("relative_pose_refinement", geometry::RelativePoseRefinement);
 }

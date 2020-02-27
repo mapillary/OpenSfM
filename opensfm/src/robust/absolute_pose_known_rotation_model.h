@@ -13,6 +13,10 @@ class AbsolutePoseKnownRotation : public Model<AbsolutePoseKnownRotation, 1, 1> 
   using Data = std::pair<Eigen::Vector3d, Eigen::Vector3d>;
   static const int MINIMAL_SAMPLES = 2;
 
+  static double ThresholdAdapter(const double threshold_angle){
+    return 1.0 - std::cos(threshold_angle);
+  }
+
   template <class IT>
   static int Estimate(IT begin, IT end, Type* models){
     models[0] = AbsolutePoseNPointsKnownRotation(begin, end);
@@ -32,7 +36,7 @@ class AbsolutePoseKnownRotation : public Model<AbsolutePoseKnownRotation, 1, 1> 
     const auto projected = (point+translation).normalized();
 
     Error e;
-    e[0] = std::acos(bearing.dot(projected));
+    e[0] = 1.0 - (bearing.dot(projected));
     return e;
   }
 };
