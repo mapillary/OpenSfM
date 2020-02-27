@@ -370,3 +370,5 @@ def save_features(filepath, points, desc, colors, config):
                         descriptors=desc.astype(feature_data_type),
                         colors=colors,
                         OPENSFM_FEATURES_VERSION=FEATURES_VERSION)
+
+    
