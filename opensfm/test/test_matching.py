@@ -105,7 +105,7 @@ def test_match_images(scene_synthetic):
     matching.save_matches(synthetic, images, pairs)
 
     assert len(pairs) == 62
-    value, margin = 11842, 0.01
+    value, margin = 11842, 0.015
     assert value*(1-margin) < sum([len(m) for m in pairs.values()]) < value*(1+margin)
 
 
