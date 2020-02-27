@@ -539,7 +539,7 @@ def _two_view_reconstruction_inliers(b1, b2, R, t, threshold):
     Args:
         b1, b2: Bearings in the two images.
         R, t: Rotation and translation from the second image to the first.
-              That is the opengv's convention and the opposite of many
+              That is the convention and the opposite of many
               functions in this module.
         threshold: max reprojection error in radians.
     Returns:
@@ -607,12 +607,6 @@ def two_view_reconstruction(p1, p2, camera1, camera2,
     b1 = camera1.pixel_bearing_many(p1)
     b2 = camera2.pixel_bearing_many(p2)
 
-    # Note on threshold:
-    # See opengv doc on thresholds here:
-    #   http://laurentkneip.github.io/opengv/page_how_to_use.html
-    # Here we arbitrarily assume that the threshold is given for a camera of
-    # focal length 1.  Also, arctan(threshold) \approx threshold since
-    # threshold is small
     T = multiview.relative_pose_ransac(
         b1, b2, b"STEWENIUS", 1 - np.cos(threshold), 1000, 0.999)
     R = T[:, :3]

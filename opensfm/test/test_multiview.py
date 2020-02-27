@@ -1,6 +1,5 @@
 import copy
 import random
-import pyopengv
 import numpy as np
 
 from opensfm import multiview

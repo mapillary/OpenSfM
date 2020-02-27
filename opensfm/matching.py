@@ -1,6 +1,5 @@
 import numpy as np
 import cv2
-import pyopengv
 import logging
 
 from timeit import default_timer as timer
