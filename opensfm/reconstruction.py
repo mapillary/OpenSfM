@@ -608,7 +608,7 @@ def two_view_reconstruction(p1, p2, camera1, camera2,
     b2 = camera2.pixel_bearing_many(p2)
 
     T = multiview.relative_pose_ransac(
-        b1, b2, b"STEWENIUS", 1 - np.cos(threshold), 1000, 0.999)
+        b1, b2, threshold, 1000, 0.999)
     R = T[:, :3]
     t = T[:, 3]
     inliers = _two_view_reconstruction_inliers(b1, b2, R, t, threshold)
@@ -647,7 +647,7 @@ def two_view_reconstruction_rotation_only(p1, p2, camera1, camera2, threshold):
     b2 = camera2.pixel_bearing_many(p2)
 
     R = multiview.relative_pose_ransac_rotation_only(
-        b1, b2, 1 - np.cos(threshold), 1000, 0.999)
+        b1, b2, threshold, 1000, 0.999)
     inliers = _two_view_rotation_inliers(b1, b2, R, threshold)
 
     return cv2.Rodrigues(R.T)[0].ravel(), inliers
@@ -800,7 +800,7 @@ def resect(graph, graph_inliers, reconstruction, shot_id,
         return False, {'num_common_points': len(bs)}
 
     T = multiview.absolute_pose_ransac(
-        bs, Xs, b"KNEIP", 1 - np.cos(threshold), 1000, 0.999)
+        bs, Xs, threshold, 1000, 0.999)
 
     R = T[:, :3]
     t = T[:, 3]

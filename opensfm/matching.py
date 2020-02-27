@@ -412,7 +412,7 @@ def robust_match_calibrated(p1, p2, camera1, camera2, matches, config):
 
     threshold = config['robust_matching_calib_threshold']
     T = multiview.relative_pose_ransac(
-        b1, b2, b"STEWENIUS", 1 - np.cos(threshold), 1000, 0.999)
+        b1, b2, threshold, 1000, 0.999)
 
     for relax in [4, 2, 1]:
         inliers = _compute_inliers_bearings(b1, b2, T, relax * threshold)

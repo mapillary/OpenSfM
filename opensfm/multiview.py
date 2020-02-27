@@ -567,8 +567,7 @@ def motion_from_plane_homography(H):
     return solutions
 
 
-def absolute_pose_known_rotation_ransac(bs, Xs, method, threshold, iterations, probabilty):
-    threshold = np.arccos(1 - threshold)
+def absolute_pose_known_rotation_ransac(bs, Xs, threshold, iterations, probabilty):
     params = pyrobust.RobustEstimatorParams()
     params.iterations = 1000
     result = pyrobust.ransac_absolute_pose_known_rotation(bs, Xs, threshold, params, pyrobust.RansacType.RANSAC)
@@ -578,8 +577,7 @@ def absolute_pose_known_rotation_ransac(bs, Xs, method, threshold, iterations, p
     return np.concatenate((R, [[t[0]], [t[1]], [t[2]]]), axis=1)
 
 
-def absolute_pose_ransac(bs, Xs, method, threshold, iterations, probabilty):
-    threshold = np.arccos(1 - threshold)
+def absolute_pose_ransac(bs, Xs, threshold, iterations, probabilty):
     params = pyrobust.RobustEstimatorParams()
     params.iterations = 1000
     result = pyrobust.ransac_absolute_pose(bs, Xs, threshold, params, pyrobust.RansacType.RANSAC)
@@ -591,8 +589,7 @@ def absolute_pose_ransac(bs, Xs, method, threshold, iterations, probabilty):
     return Rt
 
 
-def relative_pose_ransac(b1, b2, method, threshold, iterations, probability):
-    threshold = np.arccos(1 - threshold)
+def relative_pose_ransac(b1, b2, threshold, iterations, probability):
     params = pyrobust.RobustEstimatorParams()
     params.iterations = 1000
     result = pyrobust.ransac_relative_pose(b1, b2, threshold, params, pyrobust.RansacType.RANSAC)
@@ -612,7 +609,7 @@ def relative_pose_ransac_rotation_only(b1, b2, threshold, iterations,
     return result.lo_model.T
 
 
-def relative_pose_optimize_nonlinear(b1, b2, method, t, R, iterations):
+def relative_pose_optimize_nonlinear(b1, b2, t, R, iterations):
     Rt = np.zeros((3, 4))
     Rt[:3, :3] = R.T
     Rt[:, 3] = -R.T.dot(t)
