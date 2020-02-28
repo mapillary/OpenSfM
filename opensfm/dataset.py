@@ -603,6 +603,8 @@ class UndistortedDataSet(object):
     def _undistorted_image_file(self, image):
         """Path of undistorted version of an image."""
         image_format = self.config['undistorted_image_format']
+        if ' ' in image:
+            image.replace(' ', '') + hex(hash(image))
         filename = image + '.' + image_format
         return os.path.join(self._undistorted_image_path(), filename)
 
