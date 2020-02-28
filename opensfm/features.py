@@ -316,8 +316,9 @@ FEATURES_HEADER = 'OPENSFM_FEATURES_VERSION'
 
 def load_features(filepath, config):
     """ Load features from filename """
+    print(filepath)
     s = np.load(filepath)
-    version = _features_file_version(s)
+    version = _features_file_version(s)# ==1 
     return getattr(sys.modules[__name__], '_load_features_v%d' % version)(s, config)
 
 

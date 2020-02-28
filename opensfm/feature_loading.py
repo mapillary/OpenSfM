@@ -97,9 +97,25 @@ class FeatureLoader(object):
         return words
 
     def _load_features_nocache(self, data, image):
-        points, features, colors = data.load_features(image)
+        print(data)
+        #points, features, colors = data.load_features(image)
+        points, features, colors = _load_features_v1(data.feature_of_images[image],data.config)
+
+        #print(points.shape)
+        #print(points2.shape)
+
         if points is None:
             logger.error('Could not load features for image {}'.format(image))
         else:
             points = np.array(points[:, :3], dtype=float)
         return points, features, colors
+
+def _load_features_v1(s, config):
+    """ Version 1 of features file
+    Scale is not properly set higher in the pipeline, default is gone.
+    """
+    feature_type = config['feature_type']
+    if feature_type == 'HAHOG' and config['hahog_normalize_to_uchar']:
+        descriptors = s['descriptors'].astype(np.float32)
+
+    return s['points'], descriptors, s['colors'].astype(float)

@@ -275,18 +275,20 @@ def match_candidates_from_metadata(images_ref, images_cand, exifs, data):
     vlad_gps_neighbors = data.config['matching_vlad_gps_neighbors']
     vlad_other_cameras = data.config['matching_vlad_other_cameras']
 
-    if not data.reference_lla_exists():
-        data.invent_reference_lla()
-    reference = data.load_reference()
+    # if not data.reference_lla_exists():
+    #     data.invent_reference_lla()
+    # reference = data.load_reference()
 
-    if not all(map(has_gps_info, exifs.values())):
-        if gps_neighbors != 0:
-            logger.warn("Not all images have GPS info. "
-                        "Disabling matching_gps_neighbors.")
-        gps_neighbors = 0
-        max_distance = 0
-
+    # if not all(map(has_gps_info, exifs.values())):
+    #     if gps_neighbors != 0:
+    #         logger.warn("Not all images have GPS info. "
+    #                     "Disabling matching_gps_neighbors.")
+    #     gps_neighbors = 0
+    #     max_distance = 0
+    gps_neighbors=0
+    max_distance=0
     images_ref.sort()
+
 
     if max_distance == gps_neighbors == time_neighbors == order_neighbors == bow_neighbors == vlad_neighbors == 0:
         # All pair selection strategies deactivated so we match all pairs
@@ -312,6 +314,7 @@ def match_candidates_from_metadata(images_ref, images_cand, exifs, data):
         pairs = d | t | o | set(b) | set(v)
 
     pairs = ordered_pairs(pairs, images_ref)
+    
 
     report = {
         "num_pairs_distance": len(d),

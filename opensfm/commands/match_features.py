@@ -24,6 +24,7 @@ class Command:
     def run(self, args):
         data = dataset.DataSet(args.dataset)
         images = data.images()
+        print(images)
 
         start = timer()
         pairs_matches, preport = matching.match_images(data, images, images)

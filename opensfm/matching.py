@@ -34,12 +34,12 @@ def match_images(data, ref_images, cand_images):
 
     # Get EXIFs data
     all_images = list(set(ref_images+cand_images))
-    exifs = {im: data.load_exif(im) for im in all_images}
-
+    exifs = {im: data.meta_data_d for im in all_images}
+    
+    
     # Generate pairs for matching
     pairs, preport = pairs_selection.match_candidates_from_metadata(
         ref_images, cand_images, exifs, data)
-
     # Match them !
     return match_images_with_pairs(data, exifs, ref_images, pairs), preport
 
@@ -56,16 +56,23 @@ def match_images_with_pairs(data, exifs, ref_images, pairs):
     ctx.data = data
     ctx.cameras = ctx.data.load_camera_models()
     ctx.exifs = exifs
-    args = list(match_arguments(per_image, ctx))
 
+    args = list(match_arguments(per_image, ctx))
     # Perform all pair matchings in parallel
+
     start = timer()
     logger.info('Matching {} image pairs'.format(len(pairs)))
     mem_per_process = 512
     jobs_per_process = 2
     processes = context.processes_that_fit_in_memory(data.config['processes'], mem_per_process)
     logger.info("Computing pair matching with %d processes" % processes)
+    
+    #matches=match_unwrap_args(args[0])
     matches = context.parallel_map(match_unwrap_args, args, processes, jobs_per_process)
+    
+    #print(matches)
+    print("Match size==",len(matches))
+   
     logger.info(
         'Matched {} pairs for {} ref_images {} '
         'in {} seconds ({} seconds/pair).'.format(
@@ -121,6 +128,7 @@ def save_matches(data, images_ref, matched_pairs):
 
     for im1, im1_matches in matches_per_im1.items():
         data.save_matches(im1, im1_matches)
+        data.save_total_matches(im1,im1_matches)
 
 
 class Context:
@@ -145,7 +153,7 @@ def match_unwrap_args(args):
     im1_matches = {}
     p1, f1, _ = feature_loader.instance.load_points_features_colors(ctx.data, im1)
     camera1 = ctx.cameras[ctx.exifs[im1]['camera']]
-
+   
     for im2 in candidates:
         p2, f2, _ = feature_loader.instance.load_points_features_colors(ctx.data, im2)
         camera2 = ctx.cameras[ctx.exifs[im2]['camera']]
@@ -162,11 +170,12 @@ def match_unwrap_args(args):
 def match(im1, im2, camera1, camera2, data):
     """Perform matching for a pair of images."""
     # Apply mask to features if any
+    print(data)
     time_start = timer()
     p1, f1, _ = feature_loader.instance.load_points_features_colors(
         data, im1, masked=True)
     p2, f2, _ = feature_loader.instance.load_points_features_colors(
-        data, im2, masked=True)
+        data, im2, masked=True)    
 
     if p1 is None or len(p1) < 2 or p2 is None or len(p2) < 2:
         return []
@@ -190,6 +199,7 @@ def match(im1, im2, camera1, camera2, data):
         if symmetric_matching:
             i2 = feature_loader.instance.load_features_index(data, im2, masked=True)
             matches = match_flann_symmetric(f1, i1, f2, i2, config)
+            #feature랑 
         else:
             matches = match_flann(i1, f2, config)
     elif matcher_type == 'BRUTEFORCE':
@@ -200,12 +210,14 @@ def match(im1, im2, camera1, camera2, data):
     else:
         raise ValueError("Invalid matcher_type: {}".format(matcher_type))
 
+
     # Adhoc filters
     if config['matching_use_filters']:
         matches = apply_adhoc_filters(data, matches,
                                       im1, camera1, p1,
                                       im2, camera2, p2)
 
+    
     matches = np.array(matches, dtype=int)
     time_2d_matching = timer() - time_start
     t = timer()
@@ -221,10 +233,11 @@ def match(im1, im2, camera1, camera2, data):
                 matcher_type, symmetric,
                 time_2d_matching))
         return []
-
-    # robust matching
+    # robust matching    
+  
     rmatches = robust_match(p1, p2, camera1, camera2, matches, config)
     rmatches = np.array([[a, b] for a, b in rmatches])
+    
     time_robust_matching = timer() - t
     time_total = timer() - time_start
 
@@ -376,7 +389,7 @@ def robust_match_fundamental(p1, p2, matches, config):
     FM_RANSAC = cv2.FM_RANSAC if context.OPENCV3 else cv2.cv.CV_FM_RANSAC
     threshold = config['robust_matching_threshold']
     F, mask = cv2.findFundamentalMat(p1, p2, FM_RANSAC, threshold, 0.9999)
-    inliers = mask.ravel().nonzero()
+    inliers = mask.ravel().nonzero()    
 
     if F is None or F[2, 2] == 0.0:
         return F, []
@@ -438,6 +451,7 @@ def robust_match(p1, p2, camera1, camera2, matches, config):
             and camera1.k1 == 0.0 and camera1.k2 == 0.0
             and camera2.projection_type == 'perspective'
             and camera2.k1 == 0.0 and camera2.k2 == 0.0):
+        print(matches.shape)
         return robust_match_fundamental(p1, p2, matches, config)[1]
     else:
         return robust_match_calibrated(p1, p2, camera1, camera2, matches, config)

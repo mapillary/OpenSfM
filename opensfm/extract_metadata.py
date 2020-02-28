@@ -106,7 +106,7 @@ def extract_exif():
             #'capture_time': capture_time,
             #'gps': geo
         }
-    d['camera'] = "Jae Won Yang"
+    d['camera'] = "v2 unknown unknown 640 480 perspective 0"
 
     return d
 
@@ -141,14 +141,15 @@ def run(data):
     for image in data.images():
         logging.info('Extracting EXIF for {}'.format(image))
         d=_extract_exif(data.image_list[image],data)
-        
         data.save_exif(image, d)
+
+
     
     
     if d['camera'] not in camera_models:
-            camera,calib = camera_from_exif_metadata(d, data)
-            camera_models[d['camera']] = camera
-    
+        camera,calib = camera_from_exif_metadata(d, data)
+        camera_models[d['camera']] = camera
+    print(camera_models)
     data.meta_data_d=d
     data.save_camera_models(camera_models)
     end=time.time()

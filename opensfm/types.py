@@ -204,8 +204,10 @@ class PerspectiveCamera(Camera):
         self.k2 = None
 
     def __repr__(self):
-        return '{!r}, {!r}, {!r}, {!r}'.format(
-            self.id, self.focal, self.k1, self.k2)
+        return '{}({!r}, {!r}, {!r}, {!r}, {!r}, {!r}, {!r})'.format(
+            self.__class__.__name__,
+            self.id, self.projection_type, self.width, self.height,
+            self.focal, self.k1, self.k2)
 
     def project(self, point):
         """Project a 3D point in camera coordinates to the image plane."""

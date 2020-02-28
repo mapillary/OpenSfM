@@ -10,9 +10,13 @@ import numpy as np
 import errno
 import io
 import json
+import gzip
+import pickle
+import six
 
 from opensfm import extract_metadata
 from opensfm import detect_features
+from opensfm import match_features
 
 from opensfm import dataset
 from opensfm import log
@@ -47,11 +51,9 @@ class DataSet(object):
 		self._load_config()
 		self._load_mask_list()
 		self.meta_data_d={}
-		self.feature_points={}
-		self.feature_colors={}
-		self.feature_descriptors={}
 		self.feature_of_images={}
 		self.feature_report={}
+		self.match_of_images={}
 
 	def _load_config(self):
 		config_file = os.path.join(self.data_path, 'config.yaml')
@@ -95,6 +97,23 @@ class DataSet(object):
 		    io.json_dump(data, fout)
 		# with io.open_wt(self._exif_file(image)) as fout:
 		#     io.json_dump(data, fout)
+
+	def load_exif(self, image):
+		#image='1.jpg'
+		pass
+
+	def _camera_models_file(self):
+	    """Return path of camera model file"""
+	    return os.path.join(self.data_path, 'camera_models.json')
+
+	def load_camera_models(self):
+       # """Return camera models data"""
+		with io.open_rt(self._camera_models_file()) as fin:
+		    obj = json.load(fin)
+		    return io.cameras_from_json(obj)
+	    #"""Load pre-extracted image exif metadata."""
+	    
+
 	def save_camera_models(self, camera_models):
 	    """Save camera models data"""
 	    with io.open_wt(self._camera_models_file()) as fout:
@@ -216,8 +235,8 @@ class DataSet(object):
 	    if mask_image is None:
 	        logger.debug('No segmentation for {}, no features masked.'.format(image))
 	        return np.ones((points.shape[0],), dtype=bool)
-   
-   		#detect features명령어에선 여기서 종료함 *************
+   		#detect features명령어에선 여기서 종료함 **********
+
 	    exif = self.load_exif(image)
 	    width = exif["width"]
 	    height = exif["height"]
@@ -253,11 +272,31 @@ class DataSet(object):
 	def save_features(self, image, points, descriptors, colors):
 		self._save_features(self._feature_file(image), points, descriptors, colors)
 
-	def save_total_features(self,feature_of_images):
+	def save_total_features(self,features):
+		self.feature_of_images=features
 
-		self.feature_of_images=feature_of_images
 	def save_report_of_features(self,image,report):
 		self.feature_report.update({image:report})
+	
+	def _matches_path(self):
+	    """Return path of matches directory"""
+	    return os.path.join(self.data_path, 'matches')
+	
+	def _matches_file(self, image):
+	#"""File for matches for an image"""
+		return os.path.join(self._matches_path(), '{}_matches.pkl.gz'.format(image))
+
+	def save_matches(self, image, matches):
+	    io.mkdir_p(self._matches_path())
+	    with gzip.open(self._matches_file(image), 'wb') as fout:
+	        pickle.dump(matches, fout)
+
+	def save_total_matches(self,image,matches):
+		self.match_of_images.update({image:matches})
+
+
+	def load_features(self, image):
+		return features.load_features(self._feature_file(image), self.config)
 
 	def _report_path(self):
 	    return os.path.join(self.data_path, 'reports')
@@ -283,7 +322,6 @@ class DataSet(object):
 class SLAM():
 	def __init__(self,data):
 		self.data=data
-		self.meta_data={}
 		
 		
 	def Metadata(self):
@@ -293,9 +331,15 @@ class SLAM():
 	def detect_Features(self):
 		DF=detect_features.detecting_features()
 		DF.run(self.data)
-
 		#self.data.feature_of_images 저장완료
 		#self.data.feature_report 저장완료 
+
+	def match_Features(self):
+		MF=match_features.run(self.data)
+		print(self.data.match_of_images)
+
+	def create_tracks(self):
+
 
 
 class Command:
@@ -304,9 +348,17 @@ class Command:
 
 	def add_arguments(self, parser):
 		parser.add_argument('dataset', help='dataset to process')
+		parser.add_argument('webcam', help='webcam status 0:off  1: on')
+
 
 	def run(self, args):
-		self.save_webcamImage(args)
+		print(args)
+		if(args.webcam=='0'):#webcam off 
+			self.load_image_list(args.dataset)
+		else:	#webcam on 
+			self.save_webcamImage(args)
+
+		#print(self.image_list.keys())
 		print(self.image_list.keys())
 		
 		#*****
@@ -315,15 +367,35 @@ class Command:
 		slam=SLAM(data)
 		slam.Metadata()
 		slam.detect_Features()
-
+		slam.match_Features()
+		slam.create_tracks()
 		
-	
-
+		
 		print("yjw")
+
+	def load_image_list(self, data_path):
+		print(data_path)
+		self._set_image_path(os.path.join(data_path, 'images'))
+
+	def _is_image_file(self, filename):
+		extensions = {'jpg', 'jpeg', 'png', 'tif', 'tiff', 'pgm', 'pnm', 'gif'}
+		return filename.split('.')[-1].lower() in extensions
+
+	def _set_image_path(self,path):
+
+		self.image_list = {}
+		if os.path.exists(path):
+		    for name in os.listdir(path):
+		        name = six.text_type(name)
+		        if self._is_image_file(name):
+		        	frame=cv.imread(os.path.join('data/maintest/images/',name),1)
+		
+		        	print(frame.shape)
+		        	self.image_list.update({name:frame})
 
 
 	def save_webcamImage(self, args):
-		cap=cv.VideoCapture(0)
+		cap=cv.VideoCapture(2)
 		i=0
 		count=1
 		self.image_list={}
@@ -337,8 +409,9 @@ class Command:
 		   
 		    cv.imshow('camera',frame)
 		    #print(type(frame))#== numpy.ndarray'	    
-		    if i%1==0:
-		    	img_name = "{}.jpg".format(count)
+		    if i%40==0:
+		    	img_name = "{}.jpg".format(count-1)
+		    	cv.imwrite(os.path.join('data/maintest/webcam_images', img_name),frame)
 		    	#self.image_list.append(frame)
 		    	self.image_list.update({img_name:frame})
 		    	logging.info('Capturing Images for {}'.format(img_name))
@@ -349,9 +422,8 @@ class Command:
 		    		#self.webcam_data.image_list=self.image_list
 		    		break
 		    		#run(data_path, image_list)
-		    	#cv.imwrite(os.path.join(data_path, img_name),frame)
+		    	
 		    	count+=1
-
 		    if cv.waitKey(1) & 0xFF==27:
 		        break
 		    i=i+1
