@@ -21,10 +21,6 @@ def run(data):
     for i in data.images():
         images.append(i)
 
-    print(type(images))
-    print(images)
-    print(data.meta_data_d)
-
     start = timer()
     pairs_matches, preport = matching.match_images(data, images, images)
     save_matches(data, images, pairs_matches)
@@ -44,7 +40,7 @@ def save_matches(data, images_ref, matched_pairs):
         matches_per_im1[im1][im2] = m
 
     for im1, im1_matches in matches_per_im1.items():
-        data.save_matches(im1, im1_matches)
+        #data.save_matches(im1, im1_matches)
         data.save_total_matches(im1,im1_matches) 
 
 def write_report(data, preport, pairs, wall_time):

@@ -22,7 +22,7 @@ def run(data):
     graph = tracking.create_tracks_graph(features, colors, matches,
                                          data.config)
     tracks_end = timer()
-    data.save_tracks_graph(graph)
+    #data.save_tracks_graph(graph)
     data.save_total_tracks_graph(graph)
     end = timer()
 

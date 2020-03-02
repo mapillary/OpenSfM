@@ -22,6 +22,8 @@ from opensfm import create_tracks
 from opensfm import reconstruct
 from opensfm import mesh_data
 from opensfm import undistort
+from opensfm import undistorted_dataset
+from opensfm import compute_depthmaps
 
 from opensfm import dataset
 from opensfm import log
@@ -64,9 +66,17 @@ class DataSet(object):
 		self.match_of_images={}
 		self.track_graph_of_images=nx.Graph()
 		self.reconstructions=[]
+		#self.undistorted_data
 		self.udata_image={}
 		self.udata_reconstruction=[]
 		self.udata_track_graph=nx.Graph()
+		self.raw_depthmap={}
+		self.raw_ply={}
+		self.clean_depthmap={}
+		self.clean_ply={}
+		self.pruned_depthmap={}
+		self.pruned_ply={}
+
 
 	def _load_config(self):
 		config_file = os.path.join(self.data_path, 'config.yaml')
@@ -329,7 +339,7 @@ class DataSet(object):
 	def invent_reference_lla(self, images=None):
         #lat, lon, alt = 0.0, 0.0, 0.0
 		reference = {'latitude': 0.0, 'longitude': 0.0, 'altitude': 0}  # Set altitude manually.
-		self.save_reference_lla(reference)
+		#self.save_reference_lla(reference)
 		return reference
 
 	def save_reference_lla(self, reference):
@@ -356,6 +366,43 @@ class DataSet(object):
 	def save_undistorted_tracks_graph(self,graph):
 		self.udata_track_graph=graph
 
+	def save_udata(self,udata):
+		self.undistorted_data=udata
+
+	def save_raw_depthmap(self, image, depthmap):
+	    self.raw_depthmap.update({image:depthmap})
+
+	def save_raw_ply(self, image, ply):
+		self.raw_ply.update({image:ply})
+
+	def save_clean_depthmap(self, image, depthmap):
+		self.clean_depthmap.update({image:depthmap})
+
+	def save_clean_ply(self, image, ply):
+		self.clean_ply.update({image:ply})
+
+	def save_pruned_depthmap(self, image, depthmap):
+		self.pruned_depthmap.update({image:depthmap})
+
+	def save_ply_line(self, image, ply):
+		self.pruned_ply.update({image:ply})
+
+
+	def load_raw_depthmap(self, image):
+	    o = self.raw_depthmap[image]
+	    return o['depth'], o['plane'], o['score'], o['nghbr'], o['nghbrs']
+
+	def load_clean_depthmap(self, image):
+	    o = self.clean_depthmap[image]
+	    return o['depth'], o['plane'], o['score']
+
+	def load_pruned_depthmap(self, image):
+	    o = self.pruned_depthmap[image]
+	    if 'detections' not in o:
+	        return o['points'], o['normals'], o['colors'], o['labels'], np.zeros(o['labels'].shape)
+	    else:
+	        return o['points'], o['normals'], o['colors'], o['labels'], o['detections']
+
 	def _report_path(self):
 	    return os.path.join(self.data_path, 'reports')
 
@@ -374,6 +421,10 @@ class DataSet(object):
 	def profile_log(self):
 	    #"Filename where to write timings."
 	    return os.path.join(self.data_path, 'profile.log')
+
+	def _depthmap_path(self):
+		#self.depthmap_path = os.path.join(self.data_path, 'undistorted')
+		return os.path.join(self.data_path)
 
 
 
@@ -404,9 +455,11 @@ class SLAM():
 
 	# def mesh(self):
 	# 	mesh_data.run(self.data)
-
 	def undistorting(self):
 		undistort.run(self.data)
+	
+	def compute_depthmaps(self):
+		compute_depthmaps.run(self.data)
 
 
 class Command:
@@ -429,6 +482,8 @@ class Command:
 		print(self.image_list.keys())
 		
 		#*****
+
+		start=time.time()
 		data=DataSet(args.dataset,self.image_list)
 		#******
 		slam=SLAM(data)
@@ -439,9 +494,11 @@ class Command:
 		slam.reconstruct()
 		#slam.mesh()
 		slam.undistorting()
-
-		
+		slam.compute_depthmaps()
+		end=time.time()
 		print("yjw")
+		recon_time=end-start
+		print("Reconstruction Time == {}m {}s".format(recon_time//60, recon_time%60))
 
 	def load_image_list(self, data_path):
 		print(data_path)

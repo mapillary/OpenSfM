@@ -11,40 +11,11 @@ from opensfm import features
 from opensfm import log
 from opensfm import transformations as tf
 from opensfm import types
-from opensfm.context import parallel_map_match_features
+from opensfm.context import parallel_map
 
 
 logger = logging.getLogger(__name__)
 
-
-# class Command:
-#     name = 'undistort'
-#     help = "Save radially undistorted images"
-
-#     def add_arguments(self, parser):
-#         parser.add_argument(
-#             'dataset',
-#             help='dataset to process',
-#         )
-#         parser.add_argument(
-#             '--reconstruction',
-#             help='reconstruction to undistort',
-#         )
-#         parser.add_argument(
-#             '--reconstruction-index',
-#             help='index of the reconstruction component to undistort',
-#             type=int,
-#             default=0,
-#         )
-#         parser.add_argument(
-#             '--tracks',
-#             help='tracks graph of the reconstruction',
-#         )
-#         parser.add_argument(
-#             '--output',
-#             help='output folder',
-#             default='undistorted',
-#         )
 
 def run(data):
     output='undistorted'
@@ -52,6 +23,8 @@ def run(data):
     udata = undistorted_dataset.UndistortedDataSet(data,output)
     reconstructions = data.reconstructions
     graph=data.track_graph_of_images
+
+    data.save_udata(udata)
 
     if reconstructions:
         r = reconstructions[0]
@@ -85,11 +58,11 @@ def undistort_reconstruction(graph, reconstruction, data, udata):
                 add_subshot_tracks(graph, ugraph, shot, subshot)
         undistorted_shots[shot.id] = subshots
 
-    udata.save_undistorted_reconstruction([urec])
+    #udata.save_undistorted_reconstruction([urec])
     data.save_undistorted_reconstruction([urec])
 
     if graph:
-        udata.save_undistorted_tracks_graph(ugraph)
+        #udata.save_undistorted_tracks_graph(ugraph)
         data.save_undistorted_tracks_graph(graph)
 
     arguments = []
@@ -97,17 +70,13 @@ def undistort_reconstruction(graph, reconstruction, data, udata):
         arguments.append((shot, undistorted_shots[shot.id], data, udata))
 
     processes = data.config['processes']
-    parallel_map_match_features(undistort_image_and_masks, arguments, processes)
+    parallel_map(undistort_image_and_masks, arguments, processes)
 
 
 def undistort_image_and_masks(arguments):
     shot, undistorted_shots, data, udata = arguments
     log.setup()
     logger.debug('Undistorting image {}'.format(shot.id))
-
-    print(shot.id)
-    # Undistort image
-    #image = data.load_image(shot.id, unchanged=True, anydepth=True)
     image=data.image_list[shot.id]
     
     if image is not None:
@@ -115,33 +84,8 @@ def undistort_image_and_masks(arguments):
         undistorted = undistort_image(shot, undistorted_shots, image,
                                       cv2.INTER_AREA, max_size)
         for k, v in undistorted.items():
-            udata.save_undistorted_image(k, v)
-            data.udata_image.update({k:v})
-
-    # Undistort mask
-    # mask = data.load_mask(shot.id)
-    # if mask is not None:# 안들어감
-    #     undistorted = undistort_image(shot, undistorted_shots, mask,
-    #                                   cv2.INTER_NEAREST, 1e9)
-    #     for k, v in undistorted.items():
-    #         udata.save_undistorted_mask(k, v)
-
-    # Undistort segmentation
-    # segmentation = data.load_segmentation(shot.id)
-    # if segmentation is not None:
-    #     undistorted = undistort_image(shot, undistorted_shots, segmentation,
-    #                                   cv2.INTER_NEAREST, 1e9)
-    #     for k, v in undistorted.items():
-    #         udata.save_undistorted_segmentation(k, v)
-
-    # Undistort detections
-    # detection = data.load_detection(shot.id)
-    # if detection is not None:
-    #     undistorted = undistort_image(shot, undistorted_shots, detection,
-    #                                   cv2.INTER_NEAREST, 1e9)
-    #     for k, v in undistorted.items():
-    #         udata.save_undistorted_detection(k, v)
-
+            #udata.save_undistorted_image(k, v)
+            data.udata_image.update({k:v}) # 색깔있음 
 
 def undistort_image(shot, undistorted_shots, original, interpolation,
                     max_size):

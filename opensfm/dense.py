@@ -19,16 +19,16 @@ from opensfm.context import parallel_map
 logger = logging.getLogger(__name__)
 
 
-def compute_depthmaps(data, graph, reconstruction):
+def compute_depthmaps(data, udata, graph, reconstruction):
     """Compute and refine depthmaps for all shots.
 
     Args:
-        data: an UndistortedDataset
+        udata: an UndistortedDataset
         graph: the tracks graph
         reconstruction: the undistorted reconstruction
     """
     logger.info('Computing neighbors')
-    config = data.config
+    config = udata.config
     processes = config['processes']
     num_neighbors = config['depthmap_num_neighbors']
 
@@ -43,21 +43,21 @@ def compute_depthmaps(data, graph, reconstruction):
         if len(neighbors[shot.id]) <= 1:
             continue
         mind, maxd = compute_depth_range(graph, reconstruction, shot, config)
-        arguments.append((data, neighbors[shot.id], mind, maxd, shot))
+        arguments.append((data, udata, neighbors[shot.id], mind, maxd, shot))
     parallel_map(compute_depthmap_catched, arguments, processes)
 
     arguments = []
     for shot in reconstruction.shots.values():
         if len(neighbors[shot.id]) <= 1:
             continue
-        arguments.append((data, neighbors[shot.id], shot))
+        arguments.append((data ,udata, neighbors[shot.id], shot))
     parallel_map(clean_depthmap_catched, arguments, processes)
 
     arguments = []
     for shot in reconstruction.shots.values():
         if len(neighbors[shot.id]) <= 1:
             continue
-        arguments.append((data, neighbors[shot.id], shot))
+        arguments.append((data, udata, neighbors[shot.id], shot))
     parallel_map(prune_depthmap_catched, arguments, processes)
 
     merge_depthmaps(data, reconstruction)
@@ -91,20 +91,20 @@ def compute_depthmap(arguments):
     """Compute depthmap for a single shot."""
     log.setup()
 
-    data, neighbors, min_depth, max_depth, shot = arguments
-    method = data.config['depthmap_method']
+    data, udata, neighbors, min_depth, max_depth, shot = arguments
+    method = udata.config['depthmap_method']
 
-    if data.raw_depthmap_exists(shot.id):
+    if udata.raw_depthmap_exists(shot.id):
         logger.info("Using precomputed raw depthmap {}".format(shot.id))
         return
     logger.info("Computing depthmap for image {0} with {1}".format(shot.id, method))
 
     de = pydense.DepthmapEstimator()
     de.set_depth_range(min_depth, max_depth, 100)
-    de.set_patchmatch_iterations(data.config['depthmap_patchmatch_iterations'])
-    de.set_patch_size(data.config['depthmap_patch_size'])
-    de.set_min_patch_sd(data.config['depthmap_min_patch_sd'])
-    add_views_to_depth_estimator(data, neighbors, de)
+    de.set_patchmatch_iterations(udata.config['depthmap_patchmatch_iterations'])
+    de.set_patch_size(udata.config['depthmap_patch_size'])
+    de.set_min_patch_sd(udata.config['depthmap_min_patch_sd'])
+    add_views_to_depth_estimator(data,udata, neighbors, de)
 
     if (method == 'BRUTE_FORCE'):
         depth, plane, score, nghbr = de.compute_brute_force()
@@ -117,69 +117,69 @@ def compute_depthmap(arguments):
             'Unknown depthmap method type '
             '(must be BRUTE_FORCE, PATCH_MATCH or PATCH_MATCH_SAMPLE)')
 
-    good_score = score > data.config['depthmap_min_correlation_score']
+    good_score = score > udata.config['depthmap_min_correlation_score']
     depth = depth * (depth < max_depth) * good_score
 
     # Save and display results
     neighbor_ids = [i.id for i in neighbors[1:]]
-    data.save_raw_depthmap(shot.id, depth, plane, score, nghbr, neighbor_ids)
+    #udata.save_raw_depthmap(shot.id, depth, plane, score, nghbr, neighbor_ids)
 
-    if data.config['depthmap_save_debug_files']:
-        image = data.load_undistorted_image(shot.id)
+    depthmap={}
+    depthmap.update({'depth':depth})
+    depthmap.update({'plane':plane})
+    depthmap.update({'score':score})
+    depthmap.update({'nghbr':nghbr})
+    depthmap.update({'nghbrs':neighbor_ids})
+    data.save_raw_depthmap(shot.id, depthmap)
+
+    if udata.config['depthmap_save_debug_files']:
+        image = data.udata_image[shot.id]  #load_undistorted_image(shot.id)
+        #image[:, :, :3] = image[:, :, [2, 1, 0]]
         image = scale_down_image(image, depth.shape[1], depth.shape[0])
         ply = depthmap_to_ply(shot, depth, image)
-        with io.open_wt(data._depthmap_file(shot.id, 'raw.npz.ply')) as fout:
-            fout.write(ply)
-
-    if data.config.get('interactive'):
-        import matplotlib.pyplot as plt
-        plt.figure()
-        plt.suptitle("Shot: " + shot.id + ", neighbors: " + ', '.join(neighbor_ids))
-        plt.subplot(2, 3, 1)
-        plt.imshow(image)
-        plt.subplot(2, 3, 2)
-        plt.imshow(color_plane_normals(plane))
-        plt.subplot(2, 3, 3)
-        plt.imshow(depth)
-        plt.colorbar()
-        plt.subplot(2, 3, 4)
-        plt.imshow(score)
-        plt.colorbar()
-        plt.subplot(2, 3, 5)
-        plt.imshow(nghbr)
-        plt.colorbar()
-        plt.show()
-
+        data.save_raw_ply(shot.id,ply)
+        #<class 'str'>
+        #size = 15941709
+        # with io.open_wt(udata._depthmap_file(shot.id, 'raw.npz.ply')) as fout:
+        #     fout.write(ply)
 
 def clean_depthmap(arguments):
     """Clean depthmap by checking consistency with neighbors."""
     log.setup()
-
-    data, neighbors, shot = arguments
-
-    if data.clean_depthmap_exists(shot.id):
-        logger.info("Using precomputed clean depthmap {}".format(shot.id))
-        return
+    data, udata, neighbors, shot = arguments
+    # if udata.clean_depthmap_exists(shot.id):
+    #     logger.info("Using precomputed clean depthmap {}".format(shot.id))
+    #     return
     logger.info("Cleaning depthmap for image {}".format(shot.id))
-
     dc = pydense.DepthmapCleaner()
-    dc.set_same_depth_threshold(data.config['depthmap_same_depth_threshold'])
-    dc.set_min_consistent_views(data.config['depthmap_min_consistent_views'])
-    add_views_to_depth_cleaner(data, neighbors, dc)
+    dc.set_same_depth_threshold(udata.config['depthmap_same_depth_threshold'])
+    dc.set_min_consistent_views(udata.config['depthmap_min_consistent_views'])
+    add_views_to_depth_cleaner(data,udata, neighbors, dc)
     depth = dc.clean()
 
     # Save and display results
     raw_depth, raw_plane, raw_score, raw_nghbr, nghbrs = data.load_raw_depthmap(shot.id)
-    data.save_clean_depthmap(shot.id, depth, raw_plane, raw_score)
+    #udata.save_clean_depthmap(shot.id, depth, raw_plane, raw_score)
+    
+    depthmap={}
+    depthmap.update({'depth':depth})
+    depthmap.update({'plane':raw_plane})
+    depthmap.update({'score':raw_score})
+    data.save_clean_depthmap(shot.id, depthmap)
 
-    if data.config['depthmap_save_debug_files']:
-        image = data.load_undistorted_image(shot.id)
+    if udata.config['depthmap_save_debug_files']:
+        image = data.udata_image[shot.id]#load_undistorted_image(shot.id)
+        
+        # opencv는 BGR로 받아서 계산 
+
         image = scale_down_image(image, depth.shape[1], depth.shape[0])
         ply = depthmap_to_ply(shot, depth, image)
-        with io.open_wt(data._depthmap_file(shot.id, 'clean.npz.ply')) as fout:
-            fout.write(ply)
+        data.save_clean_ply(shot.id,ply)
 
-    if data.config.get('interactive'):
+        # with io.open_wt(udata._depthmap_file(shot.id, 'clean.npz.ply')) as fout:
+        #     fout.write(ply)
+
+    if udata.config.get('interactive'):
         import matplotlib.pyplot as plt
         plt.figure()
         plt.suptitle("Shot: " + shot.id)
@@ -196,32 +196,39 @@ def prune_depthmap(arguments):
     """Prune depthmap to remove redundant points."""
     log.setup()
 
-    data, neighbors, shot = arguments
+    data, udata, neighbors, shot = arguments
 
-    if data.pruned_depthmap_exists(shot.id):
-        logger.info("Using precomputed pruned depthmap {}".format(shot.id))
-        return
+    # if udata.pruned_depthmap_exists(shot.id):
+    #     logger.info("Using precomputed pruned depthmap {}".format(shot.id))
+    #     return
     logger.info("Pruning depthmap for image {}".format(shot.id))
 
     dp = pydense.DepthmapPruner()
-    dp.set_same_depth_threshold(data.config['depthmap_same_depth_threshold'])
-    add_views_to_depth_pruner(data, neighbors, dp)
+    dp.set_same_depth_threshold(udata.config['depthmap_same_depth_threshold'])
+    add_views_to_depth_pruner(data,udata, neighbors, dp)
     points, normals, colors, labels, detections = dp.prune()
-
     # Save and display results
-    data.save_pruned_depthmap(shot.id, points, normals, colors, labels, detections)
+    #udata.save_pruned_depthmap(shot.id, points, normals, colors, labels, detections)
+    depthmap={}
+    depthmap.update({'points':points})
+    depthmap.update({'normals':normals})
+    depthmap.update({'colors':colors})
+    depthmap.update({'labels':labels})
+    depthmap.update({'detections':detections})
+    data.save_pruned_depthmap(shot.id, depthmap)
 
-    if data.config['depthmap_save_debug_files']:
-        with io.open_wt(data._depthmap_file(shot.id, 'pruned.npz.ply')) as fp:
-            point_cloud_to_ply(points, normals, colors, labels, detections, fp)
+
+    if udata.config['depthmap_save_debug_files']:
+        ply_line=pruned_point_cloud_to_ply(points, normals, colors, labels, detections)
+        data.save_ply_line(shot.id, ply_line)
+        # with io.open_wt(udata._depthmap_file(shot.id, 'pruned.npz.ply')) as fp:
+        #     ply_line=point_cloud_to_ply(points, normals, colors, labels, detections, fp)
 
 
 def merge_depthmaps(data, reconstruction):
     """Merge depthmaps into a single point cloud."""
     logger.info("Merging depthmaps")
-
-    shot_ids = [s for s in reconstruction.shots if data.pruned_depthmap_exists(s)]
-
+    shot_ids = [s for s in reconstruction.shots]
     if not shot_ids:
         logger.warning("Depthmaps contain no points.  Try using more images.")
         return
@@ -239,26 +246,28 @@ def merge_depthmaps(data, reconstruction):
         labels.append(l)
         detections.append(d)
 
+
     points = np.concatenate(points)
     normals = np.concatenate(normals)
     colors = np.concatenate(colors)
     labels = np.concatenate(labels)
     detections = np.concatenate(detections)
+    
 
     with io.open_wt(data._depthmap_path() + '/merged.ply') as fp:
         point_cloud_to_ply(points, normals, colors, labels, detections, fp)
 
 
-def add_views_to_depth_estimator(data, neighbors, de):
+def add_views_to_depth_estimator(original_data, udata, neighbors, de):
     """Add neighboring views to the DepthmapEstimator."""
-    num_neighbors = data.config['depthmap_num_matching_views']
+    num_neighbors = udata.config['depthmap_num_matching_views']
     for shot in neighbors[:num_neighbors + 1]:
         assert shot.camera.projection_type == 'perspective'
-        color_image = data.load_undistorted_image(shot.id)
-        mask = load_combined_mask(data, shot)
+        color_image = original_data.image_list[shot.id]
+        mask = load_combined_mask(udata, shot)
         gray_image = cv2.cvtColor(color_image, cv2.COLOR_RGB2GRAY)
         original_height, original_width = gray_image.shape
-        width = min(original_width, int(data.config['depthmap_resolution']))
+        width = min(original_width, int(udata.config['depthmap_resolution']))
         height = width * original_height // original_width
         image = scale_down_image(gray_image, width, height)
         mask = scale_down_image(mask, width, height, cv2.INTER_NEAREST)
@@ -268,10 +277,8 @@ def add_views_to_depth_estimator(data, neighbors, de):
         de.add_view(K, R, t, image, mask)
 
 
-def add_views_to_depth_cleaner(data, neighbors, dc):
+def add_views_to_depth_cleaner(data, udata, neighbors, dc):
     for shot in neighbors:
-        if not data.raw_depthmap_exists(shot.id):
-            continue
         depth, plane, score, nghbr, nghbrs = data.load_raw_depthmap(shot.id)
         height, width = depth.shape
         K = shot.camera.get_K_in_pixel_coordinates(width, height)
@@ -317,15 +324,14 @@ def load_segmentation_labels(data, shot):
         return np.zeros(size, dtype=np.uint8)
 
 
-def add_views_to_depth_pruner(data, neighbors, dp):
+def add_views_to_depth_pruner(data,udata, neighbors, dp):
     for shot in neighbors:
-        if not data.raw_depthmap_exists(shot.id):
-            continue
+        
         depth, plane, score = data.load_clean_depthmap(shot.id)
         height, width = depth.shape
-        color_image = data.load_undistorted_image(shot.id)
-        labels = load_segmentation_labels(data, shot)
-        detections = load_detection_labels(data, shot)
+        color_image = data.udata_image[shot.id]
+        labels = load_segmentation_labels(udata, shot)
+        detections = load_detection_labels(udata, shot)
         height, width = depth.shape
         image = scale_down_image(color_image, width, height)
         labels = scale_down_image(labels, width, height, cv2.INTER_NEAREST)
@@ -439,6 +445,12 @@ def depthmap_to_ply(shot, depth, image):
 
     return io.points_to_ply_string(vertices)
 
+
+def pruned_point_cloud_to_ply(points, normals, colors, labels, detections):
+    """Export depthmap points as a PLY string"""
+    lines = _point_cloud_to_ply_lines(points, normals, colors, labels, detections)
+    #fp.writelines(lines)
+    return lines
 
 def point_cloud_to_ply(points, normals, colors, labels, detections, fp):
     """Export depthmap points as a PLY string"""

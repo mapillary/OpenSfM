@@ -140,7 +140,7 @@ def run(data):
     for image in data.images():
         logging.info('Extracting EXIF for {}'.format(image))
         d=_extract_exif(data.image_list[image],data)
-        data.save_exif(image, d)
+        #data.save_exif(image, d)
 
     if d['camera'] not in camera_models:
         camera,calib = camera_from_exif_metadata(d, data)
@@ -149,9 +149,8 @@ def run(data):
     data.meta_data_d=d
     
     data.camera_models=camera_models
-    data.save_camera_models(camera_models)
+    #data.save_camera_models(camera_models)
     end=time.time()
-    
     
     print("Metadata Extracted in {}".format(end-start))
     d.update({'focal':calib['focal']})

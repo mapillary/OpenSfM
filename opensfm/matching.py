@@ -54,7 +54,8 @@ def match_images_with_pairs(data, exifs, ref_images, pairs):
 
     ctx = Context()
     ctx.data = data
-    ctx.cameras = ctx.data.load_camera_models()
+    #ctx.cameras = ctx.data.load_camera_models()
+    ctx.cameras=ctx.data.camera_models
     ctx.exifs = exifs
 
     args = list(match_arguments(per_image, ctx))

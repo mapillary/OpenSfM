@@ -62,14 +62,6 @@ class detecting_features():
         self.feature_pdc={}   
         need_words = data.config['matcher_type'] == 'WORDS' or data.config['matching_bow_neighbors'] > 0
         
-        #print("need_words===",need_words)
-        #has_words = not need_words or data.words_exist(image)
-        #has_features = data.features_exist(image)
-
-        # if has_features and has_words:
-        #     logger.info('Skip recomputing {} features for image {}'.format(
-        #         data.feature_type().upper(), image))
-        #     return
         logger.info('Extracting {} features for image {}'.format(
             data.feature_type().upper(), image))
         start = timer()
@@ -93,7 +85,7 @@ class detecting_features():
         p_sorted = p_unsorted[order, :] # points  == numpy.ndarray
         f_sorted = f_unsorted[order, :] # descriptors
         c_sorted = c_unsorted[order, :] # colors
-        data.save_features(image, p_sorted, f_sorted, c_sorted)
+        #data.save_features(image, p_sorted, f_sorted, c_sorted)
 
         points=p_sorted.astype(np.float32)
         descriptors=f_sorted.astype(np.uint8)
