@@ -60,6 +60,10 @@ class FeatureLoader(object):
         points = self.points_cache.get(image)
         features = self.features_cache.get(image)
         colors = self.colors_cache.get(image)
+        # points=None
+        # features=None
+        # colors=None
+
         if points is None or features is None or colors is None:
             points, features, colors = self._load_features_nocache(data, image)
             self.points_cache.put(image, points)
@@ -100,9 +104,6 @@ class FeatureLoader(object):
         print(data)
         #points, features, colors = data.load_features(image)
         points, features, colors = _load_features_v1(data.feature_of_images[image],data.config)
-
-        #print(points.shape)
-        #print(points2.shape)
 
         if points is None:
             logger.error('Could not load features for image {}'.format(image))

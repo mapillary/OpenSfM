@@ -20,7 +20,7 @@ def load_features(data, images):
     colors = {}
     for im in images:
         #p, f, c = dataset.load_features(im)
-        p, f, c = feature_loader.instance.load_points_features_colors(data.feature_of_images[im],data.config)
+        p, f, c = feature_loader.instance.load_points_features_colors(data,im)
         features[im] = p[:, :3]
         colors[im] = c
     return features, colors
@@ -243,6 +243,7 @@ def _save_tracks_graph_v1(fileobj, graph):
 
     Feature scale was added
     """
+    #tracks.csv
     for node, data in graph.nodes(data=True):
         if data['bipartite'] == 0:
             image = node

@@ -466,6 +466,8 @@ def compute_image_pairs(track_dict, cameras, data):
     """All matched image pairs sorted by reconstructability."""
     args = _pair_reconstructability_arguments(track_dict, cameras, data)
     processes = data.config['processes']
+    print("hello")
+
     result = parallel_map(_compute_pair_reconstructability, args, processes)
     result = list(result)
     pairs = [(im1, im2) for im1, im2, r in result if r > 0]
@@ -480,6 +482,8 @@ def _pair_reconstructability_arguments(track_dict, cameras, data):
     for (im1, im2), (tracks, p1, p2) in iteritems(track_dict):
         camera1 = cameras[data.load_exif(im1)['camera']]
         camera2 = cameras[data.load_exif(im2)['camera']]
+        # camera1=data.camera_models
+        # camera2=data.camera_models
         args.append((im1, im2, p1, p2, camera1, camera2, threshold))
     return args
 
@@ -496,39 +500,10 @@ def _compute_pair_reconstructability(args):
 def get_image_metadata(data, image):
     """Get image metadata as a ShotMetadata object."""
     metadata = types.ShotMetadata()
-    exif = data.load_exif(image)
-    reference = data.load_reference()
-    if ('gps' in exif and
-            'latitude' in exif['gps'] and
-            'longitude' in exif['gps']):
-        lat = exif['gps']['latitude']
-        lon = exif['gps']['longitude']
-        if data.config['use_altitude_tag']:
-            alt = exif['gps'].get('altitude', 2.0)
-        else:
-            alt = 2.0  # Arbitrary value used to align the reconstruction
-        x, y, z = reference.to_topocentric(lat, lon, alt)
-        metadata.gps_position = [x, y, z]
-        metadata.gps_dop = exif['gps'].get('dop', 15.0)
-        if metadata.gps_dop == 0.0:
-            metadata.gps_dop = 15.0
-    else:
-        metadata.gps_position = [0.0, 0.0, 0.0]
-        metadata.gps_dop = 999999.0
-
-    metadata.orientation = exif.get('orientation', 1)
-
-    if 'accelerometer' in exif:
-        metadata.accelerometer = exif['accelerometer']
-
-    if 'compass' in exif:
-        metadata.compass = exif['compass']
-
-    if 'capture_time' in exif:
-        metadata.capture_time = exif['capture_time']
-
-    if 'skey' in exif:
-        metadata.skey = exif['skey']
+    metadata.gps_position = [0.0, 0.0, 0.0]
+    metadata.gps_dop=99999.0
+    metadata.orientation=1
+    metadata.capture_time=0.0
 
     return metadata
 
@@ -722,7 +697,7 @@ def bootstrap_reconstruction(data, graph, camera_priors, im1, im2, p1, p2):
         return None, None, report
 
     reconstruction = types.Reconstruction()
-    reconstruction.reference = data.load_reference()
+    #reconstruction.reference = data.load_reference()
     reconstruction.cameras = copy.deepcopy(camera_priors)
 
     shot1 = types.Shot()
@@ -1390,14 +1365,26 @@ def incremental_reconstruction(data, graph):
     chrono.lap('load_tracks_graph')
 
     if not data.reference_lla_exists():
-        data.invent_reference_lla(images)
+        reference=data.invent_reference_lla(images)
+
 
     remaining_images = set(images)
-    camera_priors = data.load_camera_models()
-    gcp = data.load_ground_control_points()
+    #camera_priors = data.load_camera_models()
+    camera_priors=data.camera_models
+    # meta_data== {'make': 'unknown', 'model': 'unknown', 'width': 3072, 
+    # 'height': 2048, 'projection_type': 'perspective', 'focal_ratio': 0, 
+    # 'camera': 'v2 unknown unknown 640 480 perspective 0', 'focal': 0.85}
+
+    #gcp = data.load_ground_control_points()
+    gcp=[]
+    print(remaining_images)
+    print(camera_priors)
+    print(gcp)
+    
     common_tracks = tracking.all_common_tracks(graph, tracks)
     reconstructions = []
     pairs = compute_image_pairs(common_tracks, camera_priors, data)
+    
     chrono.lap('compute_image_pairs')
     report['num_candidate_image_pairs'] = len(pairs)
     report['reconstructions'] = []

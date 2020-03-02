@@ -88,13 +88,12 @@ def default_calibration(data):
     }
 
 
-def extract_exif():
+def extract_exif(image, data):
     make,model="unknown","unknown"
-    width,height=640,480
+    width,height=data.image_size(image)
     projection_type="perspective"
-    focal_ratio=0
+    focal_ratio=0.85
     orientation=1
-
     d = {
             'make': make,
             'model': model,
@@ -106,7 +105,7 @@ def extract_exif():
             #'capture_time': capture_time,
             #'gps': geo
         }
-    d['camera'] = "v2 unknown unknown 640 480 perspective 0"
+    d['camera'] = "v2 unknown unknown {} {} perspective 0".format(width,height)
 
     return d
 
@@ -143,16 +142,16 @@ def run(data):
         d=_extract_exif(data.image_list[image],data)
         data.save_exif(image, d)
 
-
-    
-    
     if d['camera'] not in camera_models:
         camera,calib = camera_from_exif_metadata(d, data)
         camera_models[d['camera']] = camera
     print(camera_models)
     data.meta_data_d=d
+    
+    data.camera_models=camera_models
     data.save_camera_models(camera_models)
     end=time.time()
+    
     
     print("Metadata Extracted in {}".format(end-start))
     d.update({'focal':calib['focal']})
@@ -165,6 +164,6 @@ def run(data):
 def _extract_exif(image ,data):
     #EXIF data in Image
     #### 여기서 metadata값 설정
-    d={} 
-    d=data.image_size(image,d)
+    d=extract_exif(image,data)
+    
     return d 

@@ -13,10 +13,15 @@ import json
 import gzip
 import pickle
 import six
+import networkx as nx
 
 from opensfm import extract_metadata
 from opensfm import detect_features
 from opensfm import match_features
+from opensfm import create_tracks
+from opensfm import reconstruct
+from opensfm import mesh_data
+from opensfm import undistort
 
 from opensfm import dataset
 from opensfm import log
@@ -25,6 +30,8 @@ from opensfm import exif
 from opensfm import types
 from opensfm import config
 from opensfm import features
+from opensfm import tracking
+
 
 
 from PIL import Image
@@ -51,9 +58,15 @@ class DataSet(object):
 		self._load_config()
 		self._load_mask_list()
 		self.meta_data_d={}
+		self.camera_models={}
 		self.feature_of_images={}
 		self.feature_report={}
 		self.match_of_images={}
+		self.track_graph_of_images=nx.Graph()
+		self.reconstructions=[]
+		self.udata_image={}
+		self.udata_reconstruction=[]
+		self.udata_track_graph=nx.Graph()
 
 	def _load_config(self):
 		config_file = os.path.join(self.data_path, 'config.yaml')
@@ -72,11 +85,9 @@ class DataSet(object):
 	    """Path to the image file."""
 	    return self.image_list[image]
 
-	def image_size(self,image,d):
-		d=extract_metadata.extract_exif()
-		d['height']=image.shape[0]
-		d['width']=image.shape[1]
-		return d
+	def image_size(self,image):
+		return image.shape[0], image.shape[1]
+
 	def _exif_file(self, image):
 	    """
 	    Return path of exif information for given image
@@ -100,7 +111,7 @@ class DataSet(object):
 
 	def load_exif(self, image):
 		#image='1.jpg'
-		pass
+		return self.meta_data_d
 
 	def _camera_models_file(self):
 	    """Return path of camera model file"""
@@ -291,12 +302,59 @@ class DataSet(object):
 	    with gzip.open(self._matches_file(image), 'wb') as fout:
 	        pickle.dump(matches, fout)
 
+	def load_matches(self, image):
+	    return self.match_of_images[image]
+
 	def save_total_matches(self,image,matches):
 		self.match_of_images.update({image:matches})
 
 
 	def load_features(self, image):
 		return features.load_features(self._feature_file(image), self.config)
+
+	def _tracks_graph_file(self, filename=None):
+	    """Return path of tracks file"""
+	    return os.path.join(self.data_path, filename or 'tracks.csv')
+
+	def save_tracks_graph(self, graph, filename=None):
+	    with io.open_wt(self._tracks_graph_file(filename)) as fout:
+	        tracking.save_tracks_graph(fout, graph)	
+
+	def save_total_tracks_graph(self,graph,filename=None):
+		self.track_graph_of_images=graph
+
+
+
+
+	def invent_reference_lla(self, images=None):
+        #lat, lon, alt = 0.0, 0.0, 0.0
+		reference = {'latitude': 0.0, 'longitude': 0.0, 'altitude': 0}  # Set altitude manually.
+		self.save_reference_lla(reference)
+		return reference
+
+	def save_reference_lla(self, reference):
+		with io.open_wt(self._reference_lla_path()) as fout:
+		    io.json_dump(reference, fout)
+
+	def _reference_lla_path(self):
+	    return os.path.join(self.data_path, 'reference_lla.json')
+
+	def reference_lla_exists(self):
+	    return os.path.isfile(self._reference_lla_path())
+
+	def _reconstruction_file(self, filename):
+	    """Return path of reconstruction file"""
+	    return os.path.join(self.data_path, filename or 'reconstruction.json')
+
+	def save_reconstruction(self, reconstruction, filename=None, minify=False):
+		with io.open_wt(self._reconstruction_file(filename)) as fout:
+		    io.json_dump(io.reconstructions_to_json(reconstruction), fout, minify)
+
+	def save_undistorted_reconstruction(self, reconstruction):
+		self.udata_reconstruction=reconstruction
+
+	def save_undistorted_tracks_graph(self,graph):
+		self.udata_track_graph=graph
 
 	def _report_path(self):
 	    return os.path.join(self.data_path, 'reports')
@@ -339,7 +397,16 @@ class SLAM():
 		print(self.data.match_of_images)
 
 	def create_tracks(self):
+		create_tracks.run(self.data)
 
+	def reconstruct(self):
+		reconstruct.run(self.data)
+
+	# def mesh(self):
+	# 	mesh_data.run(self.data)
+
+	def undistorting(self):
+		undistort.run(self.data)
 
 
 class Command:
@@ -369,7 +436,10 @@ class Command:
 		slam.detect_Features()
 		slam.match_Features()
 		slam.create_tracks()
-		
+		slam.reconstruct()
+		#slam.mesh()
+		slam.undistorting()
+
 		
 		print("yjw")
 
