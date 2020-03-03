@@ -263,7 +263,7 @@ def align_reconstructions(reconstruction_shots,
 
 
 def apply_transformations(transformations):
-    submodels = itertools.groupby(transformations.keys(), lambda key: key.submodel_path)
+    submodels = itertools.groupby(sorted(transformations.keys(), key=lambda key: key.submodel_path), lambda key: key.submodel_path)
     for submodel_path, keys in submodels:
         data = dataset.DataSet(submodel_path)
         if not data.reconstruction_exists():
