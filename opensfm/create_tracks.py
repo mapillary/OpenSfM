@@ -13,7 +13,6 @@ logger = logging.getLogger(__name__)
 
 
 def run(data):
-   
     start = timer()
     features, colors = tracking.load_features(data, data.images())
     features_end = timer()

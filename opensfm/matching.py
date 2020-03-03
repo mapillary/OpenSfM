@@ -68,12 +68,8 @@ def match_images_with_pairs(data, exifs, ref_images, pairs):
     processes = context.processes_that_fit_in_memory(data.config['processes'], mem_per_process)
     logger.info("Computing pair matching with %d processes" % processes)
     
-    #matches=match_unwrap_args(args[0])
     matches = context.parallel_map(match_unwrap_args, args, processes, jobs_per_process)
     
-    #print(matches)
-    print("Match size==",len(matches))
-   
     logger.info(
         'Matched {} pairs for {} ref_images {} '
         'in {} seconds ({} seconds/pair).'.format(
@@ -171,7 +167,7 @@ def match_unwrap_args(args):
 def match(im1, im2, camera1, camera2, data):
     """Perform matching for a pair of images."""
     # Apply mask to features if any
-    print(data)
+    
     time_start = timer()
     p1, f1, _ = feature_loader.instance.load_points_features_colors(
         data, im1, masked=True)
@@ -452,7 +448,7 @@ def robust_match(p1, p2, camera1, camera2, matches, config):
             and camera1.k1 == 0.0 and camera1.k2 == 0.0
             and camera2.projection_type == 'perspective'
             and camera2.k1 == 0.0 and camera2.k2 == 0.0):
-        print(matches.shape)
+        
         return robust_match_fundamental(p1, p2, matches, config)[1]
     else:
         return robust_match_calibrated(p1, p2, camera1, camera2, matches, config)

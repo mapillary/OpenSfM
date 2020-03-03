@@ -1,7 +1,7 @@
-from . import start_webcam
+from . import slam
 
 
 
 opensfm_commands = [ 
-    start_webcam,
+    slam,
 ]

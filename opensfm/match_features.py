@@ -29,6 +29,7 @@ def run(data):
     with open(data.profile_log(), 'a') as fout:
         fout.write('match_features: {0}\n'.format(end - start))
     write_report(data, preport, list(pairs_matches.keys()), end - start)
+    
 
 def save_matches(data, images_ref, matched_pairs):
     """ Given pairwise matches (image 1, image 2) - > matches,

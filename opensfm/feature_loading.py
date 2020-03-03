@@ -101,7 +101,6 @@ class FeatureLoader(object):
         return words
 
     def _load_features_nocache(self, data, image):
-        print(data)
         #points, features, colors = data.load_features(image)
         points, features, colors = _load_features_v1(data.feature_of_images[image],data.config)
 
