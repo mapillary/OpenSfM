@@ -4,30 +4,31 @@
 #include <Eigen/Eigen>
 
 template <class IT>
-std::pair<Eigen::Vector3d, Eigen::Vector3d> ComputeAverage(IT begin, IT end){
+std::pair<Eigen::Vector3d, Eigen::Vector3d> ComputeAverage(IT begin, IT end) {
   Eigen::Vector3d q_average = Eigen::Vector3d::Zero();
   Eigen::Vector3d p_average = Eigen::Vector3d::Zero();
-  for(IT it = begin; it != end; ++it){
+  for (IT it = begin; it != end; ++it) {
     q_average += it->first;
     p_average += it->second;
   }
-  q_average /= (end-begin);
-  p_average /= (end-begin);
+  q_average /= (end - begin);
+  p_average /= (end - begin);
   return std::make_pair(q_average, p_average);
 }
 
 template <class IT>
-Eigen::Matrix3d RotationBetweenPoints(IT begin, IT end){
+Eigen::Matrix3d RotationBetweenPoints(IT begin, IT end) {
   const auto averages = ComputeAverage(begin, end);
   Eigen::Matrix3d M = Eigen::Matrix3d::Zero();
-  for(IT it = begin; it != end; ++it){
-    const Eigen::Vector3d q = it->first-averages.first;
-    const Eigen::Vector3d p = it->second-averages.second;
-    M += q*p.transpose();
+  for (IT it = begin; it != end; ++it) {
+    const Eigen::Vector3d q = it->first - averages.first;
+    const Eigen::Vector3d p = it->second - averages.second;
+    M += q * p.transpose();
   }
 
-  Eigen::JacobiSVD<Eigen::Matrix3d> svd(M, Eigen::ComputeFullU | Eigen::ComputeFullV);
+  Eigen::JacobiSVD<Eigen::Matrix3d> svd(
+      M, Eigen::ComputeFullU | Eigen::ComputeFullV);
   const auto U = svd.matrixU();
   const auto V = svd.matrixV();
-  return U*V.transpose();
+  return U * V.transpose();
 }

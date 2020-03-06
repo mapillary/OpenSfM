@@ -23,7 +23,6 @@ Install dependencies
 OpenSfM depends on the following libraries that need to be installed before building it.
 
 * OpenCV_
-* OpenGV_
 * `Ceres Solver`_
 * NumPy_, SciPy_, Networkx_, PyYAML, exifread
 
@@ -39,8 +38,7 @@ The main steps are
 
 1. Install OpenCV, NumPy, SciPy using apt-get
 2. Install python requirements using pip
-3. Clone, build and install OpenGV following the receipt in the Dockerfile
-4. `Build and Install <http://ceres-solver.org/installation.html>`_ the Ceres solver from its source using the ``-fPIC`` compilation flag.
+3. `Build and Install <http://ceres-solver.org/installation.html>`_ the Ceres solver from its source using the ``-fPIC`` compilation flag.
 
 
 Installing dependencies on MacOSX
@@ -52,15 +50,7 @@ Install OpenCV and the Ceres solver using::
     brew install ceres-solver
     sudo pip install -r requirements.txt
 
-And install OpenGV using::
-
-    brew install eigen
-    git clone --recurse-submodules -j8 https://github.com/paulinus/opengv.git
-    cd opengv/build
-    cmake .. -DBUILD_TESTS=OFF -DBUILD_PYTHON=ON
-    make install
-
-Make sure you update your ``PYTHONPATH`` to include ``/usr/local/lib/python2.7/site-packages`` where OpenCV and OpenGV have been installed. For example with::
+Make sure you update your ``PYTHONPATH`` to include ``/usr/local/lib/python2.7/site-packages`` where OpenCV have been installed. For example with::
 
     export PYTHONPATH=/usr/local/lib/python2.7/site-packages:$PYTHONPATH
 
@@ -92,7 +82,6 @@ and browse `http://localhost:8001/ <http://localhost:8001/>`_
 .. _release: https://github.com/mapillary/OpenSfM/releases
 .. _OpenCV: http://opencv.org/
 .. _OpenCV Contrib: https://github.com/itseez/opencv_contrib
-.. _OpenGV: http://laurentkneip.github.io/opengv/
 .. _NumPy: http://www.numpy.org/
 .. _SciPy: http://www.scipy.org/
 .. _Ceres solver: http://ceres-solver.org/
