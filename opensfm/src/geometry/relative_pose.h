@@ -101,8 +101,6 @@ struct RelativePoseCost {
     centers.row(1) = translation;
     Eigen::Matrix<T, 3, 1> some_tmp = Eigen::Matrix<T, 3, 1>::Zero();
 
-    int count = 0;
-    residuals[0] = T(0.);
     for (IT it = begin_; it != end_; ++it) {
       const Eigen::Matrix<T, 3, 1> x = it->first.template cast<T>();
       const Eigen::Matrix<T, 3, 1> y = it->second.template cast<T>();
@@ -120,10 +118,10 @@ struct RelativePoseCost {
       const Eigen::Matrix<T, 3, 1> y_centered = point-translation;
       ceres::AngleAxisRotatePoint(rotation.data(), y_centered.data(), some_tmp.data());
       const auto projected_y = some_tmp.normalized();
-      residuals[0] += 1.0 - ((projected_x.dot(x) + projected_y.dot(y))*T(0.5));
+      residuals[(it-begin_)] = 1.0 - ((projected_x.dot(x) + projected_y.dot(y))*T(0.5));
     }
-    residuals[1] = 1.0 - translation.norm();
-  
+    residuals[NumResiduals()-1] = 1.0 - translation.norm();
+
     return true;
   }
 
@@ -141,7 +139,7 @@ Eigen::Matrix<double, 3, 4> RelativePoseRefinement(
   ceres::RotationMatrixToAngleAxis(relative_pose.block<3, 3>(0, 0).data(), parameters.data());
   parameters.segment<3>(3) = -relative_pose.block<3, 3>(0, 0).transpose()*relative_pose.col(3);
 
-  using RelativePoseFunction = ceres::TinySolverAutoDiffFunction<RelativePoseCost<IT>, 2, 6>;
+  using RelativePoseFunction = ceres::TinySolverAutoDiffFunction<RelativePoseCost<IT>, -1, 6>;
   RelativePoseCost<IT> cost(begin, end);
   RelativePoseFunction f(cost);
 
