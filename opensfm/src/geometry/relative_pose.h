@@ -134,7 +134,7 @@ Eigen::Matrix<double, 3, 4> RelativePoseRefinement(
   ceres::RotationMatrixToAngleAxis(relative_pose.block<3, 3>(0, 0).data(), parameters.data());
   parameters.segment<3>(3) = -relative_pose.block<3, 3>(0, 0).transpose()*relative_pose.col(3);
 
-  using RelativePoseFunction = ceres::TinySolverAutoDiffFunction<RelativePoseCost<IT>, -1, 6>;
+  using RelativePoseFunction = ceres::TinySolverAutoDiffFunction<RelativePoseCost<IT>, Eigen::Dynamic, 6>;
   RelativePoseCost<IT> cost(begin, end);
   RelativePoseFunction f(cost);
 
