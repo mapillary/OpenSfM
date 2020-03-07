@@ -53,27 +53,22 @@ Eigen::Matrix<double, 3, 4> RelativePoseFromEssential(
       // Since rotation=Rcamera and translation=Tcamera parametrization
       centers.row(1) = -rotation.transpose()*translation;
 
-      int are_in_front = 0;
+      double score = 0;
       for (IT it = begin; it != end; ++it) {
         bearings.row(0) = it->first;
         bearings.row(1) = rotation.transpose()*it->second;
         const Eigen::Vector3d point = geometry::TriangulateTwoBearingsMidpointSolve(centers, bearings);
-        const bool is_in_front =
-            bearings.row(0).dot(point) > 0.0 &&
-            bearings.row(1).dot(rotation * point + translation) > 0.0;
-        are_in_front += is_in_front;
-
-        const auto maximum_possible = are_in_front + (end - it);
-        if (maximum_possible < best_decomposition.first) {
-          break;
-        }
+        
+        const auto projected_x = point.normalized();
+        const auto projected_y = rotation*point+translation;
+        score += ((projected_x.dot(it->first) + projected_y.dot(it->second))*0.5);
       }
 
-      if (are_in_front > best_decomposition.first) {
+      if (score > best_decomposition.first) {
         Eigen::Matrix<double, 3, 4> RT;
         RT.block<3, 3>(0, 0) = rotation;
         RT.block<3, 1>(0, 3) = translation;
-        best_decomposition = std::make_pair(are_in_front, RT);
+        best_decomposition = std::make_pair(score, RT);
       }
     }
   }
