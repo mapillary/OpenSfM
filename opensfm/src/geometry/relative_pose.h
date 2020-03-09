@@ -79,9 +79,13 @@ Eigen::Matrix<double, 3, 4> RelativePoseFromEssential(
 
 template< class IT >
 struct RelativePoseCost {
-  RelativePoseCost(IT begin, IT end): begin_(begin), end_(end){}
-  int NumResiduals() const {
-    return (end_-begin_)+1;
+  RelativePoseCost(IT begin, IT end): begin_(begin), end_(end){
+    std::srand(42);
+    const int count = end_ - begin_;
+    for(int i = 0; i < MAX_ERRORS; ++i){
+      const int index = (float(std::rand())/RAND_MAX)*count;
+      picked_errors_.push_back(begin_+index);
+    }
   }
 
   template<typename T>
@@ -96,7 +100,9 @@ struct RelativePoseCost {
     centers.row(1) = translation;
     Eigen::Matrix<T, 3, 1> some_tmp = Eigen::Matrix<T, 3, 1>::Zero();
 
-    for (IT it = begin_; it != end_; ++it) {
+    residuals[0] = T(0.);
+    for (int i = 0; i < MAX_ERRORS; ++i) {
+      IT it = picked_errors_[i];
       const Eigen::Matrix<T, 3, 1> x = it->first.template cast<T>();
       const Eigen::Matrix<T, 3, 1> y = it->second.template cast<T>();
 
@@ -113,16 +119,19 @@ struct RelativePoseCost {
       const Eigen::Matrix<T, 3, 1> y_centered = point-translation;
       ceres::AngleAxisRotatePoint(rotation.data(), y_centered.data(), some_tmp.data());
       const auto projected_y = some_tmp.normalized();
-      residuals[(it-begin_)] = 1.0 - ((projected_x.dot(x) + projected_y.dot(y))*T(0.5));
+      residuals[i] = 1.0 - ((projected_x.dot(x) + projected_y.dot(y))*T(0.5));
     }
-    residuals[NumResiduals()-1] = 1.0 - translation.norm();
+    residuals[MAX_ERRORS] = 1.0 - translation.norm();
 
     return true;
   }
 
   IT begin_;
   IT end_;
+  static const int MAX_ERRORS = 100;
+  std::vector<IT> picked_errors_;
 };
+
 
 template <class IT>
 Eigen::Matrix<double, 3, 4> RelativePoseRefinement(
@@ -134,7 +143,7 @@ Eigen::Matrix<double, 3, 4> RelativePoseRefinement(
   ceres::RotationMatrixToAngleAxis(relative_pose.block<3, 3>(0, 0).data(), parameters.data());
   parameters.segment<3>(3) = -relative_pose.block<3, 3>(0, 0).transpose()*relative_pose.col(3);
 
-  using RelativePoseFunction = ceres::TinySolverAutoDiffFunction<RelativePoseCost<IT>, Eigen::Dynamic, 6>;
+  using RelativePoseFunction = ceres::TinySolverAutoDiffFunction<RelativePoseCost<IT>, RelativePoseCost<IT>::MAX_ERRORS+1, 6>;
   RelativePoseCost<IT> cost(begin, end);
   RelativePoseFunction f(cost);
 
