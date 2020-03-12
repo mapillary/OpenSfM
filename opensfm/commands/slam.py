@@ -34,6 +34,8 @@ from opensfm import types
 from opensfm import config
 from opensfm import features
 from opensfm import tracking
+from opensfm import io
+from opensfm.context import current_memory_usage, memory_available
 
 
 
@@ -67,6 +69,12 @@ class SLAM():
 
 	# def mesh(self):
 	# 	mesh_data.run(self.data)
+	
+	def visualize_slam(self):
+		ply= io.reconstruction_to_ply(self.data.reconstructions_as_json)
+		with io.open_wt(self.data._depthmap_path() + '/SLAM.ply') as fout:
+		        fout.write(ply)
+
 	def undistorting(self):
 		undistort.run(self.data)
 	
@@ -96,19 +104,31 @@ class Command:
 		start=time.time()
 		data=dataset.DataSet(args.dataset,self.image_list)
 		
+		print('available memory== ', memory_available())
+		print("current memory usage==", current_memory_usage())
+
 		slam=SLAM(data)
 		slam.Metadata()
 		slam.detect_Features()
 		slam.match_Features()
 		slam.create_tracks()
 		slam.reconstruct()
-		#slam.mesh()
-		slam.undistorting()
-		slam.compute_depthmaps()
 		
+		slam.visualize_slam()
 		end=time.time()
 		recon_time=end-start
-		print("Reconstruction Time == {}m {}s".format(recon_time//60, recon_time%60))
+		print("Reconstruction Time == {:.0f}m {:.0f}s".format(recon_time//60, recon_time%60))
+		
+		# slam.undistorting()
+		# slam.compute_depthmaps()
+		
+		# end=time.time()
+		# dense_time=end-start
+		# print("Computing depth Time == {:.0f}m {:.0f}s".format(dense_time//60, dense_time%60))
+
+		end=time.time()
+		slam_time=end-start
+		print("Total SLAM Time == {:.0f}m {:.0f}s".format(slam_time//60, slam_time%60))	
 
 	def load_image_list(self, data_path):
 		print(data_path)
@@ -130,7 +150,7 @@ class Command:
 		        	self.image_list.update({name:frame})
 
 	def save_webcamImage(self, data_path):
-		cap=cv.VideoCapture(2)
+		cap=cv.VideoCapture(0)
 		i=0
 		count=1
 		self.image_list={}

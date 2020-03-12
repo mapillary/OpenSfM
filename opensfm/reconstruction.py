@@ -23,7 +23,7 @@ from opensfm import tracking
 from opensfm import multiview
 from opensfm import types
 from opensfm.align import align_reconstruction, apply_similarity
-from opensfm.context import parallel_map, current_memory_usage
+from opensfm.context import parallel_map, current_memory_usage, parallel_map_thread
 
 
 logger = logging.getLogger(__name__)
@@ -465,10 +465,9 @@ def pairwise_reconstructability(common_tracks, rotation_inliers):
 def compute_image_pairs(track_dict, cameras, data):
     """All matched image pairs sorted by reconstructability."""
     args = _pair_reconstructability_arguments(track_dict, cameras, data)
-    processes = data.config['processes']
-    print("hello")
+    processes = data.config['processes']    
 
-    result = parallel_map(_compute_pair_reconstructability, args, processes)
+    result = parallel_map_thread(_compute_pair_reconstructability, args, processes)
     result = list(result)
     pairs = [(im1, im2) for im1, im2, r in result if r > 0]
     score = [r for im1, im2, r in result if r > 0]
@@ -490,6 +489,7 @@ def _pair_reconstructability_arguments(track_dict, cameras, data):
 
 def _compute_pair_reconstructability(args):
     log.setup()
+    
     im1, im2, p1, p2, camera1, camera2, threshold = args
     R, inliers = two_view_reconstruction_rotation_only(
         p1, p2, camera1, camera2, threshold)
@@ -1379,7 +1379,8 @@ def incremental_reconstruction(data, graph):
     gcp=[]
     print(remaining_images)
     print(camera_priors)
-    print(gcp)
+    
+    cnt=0
     
     common_tracks = tracking.all_common_tracks(graph, tracks)
     reconstructions = []
@@ -1402,11 +1403,19 @@ def incremental_reconstruction(data, graph):
                 reconstruction, rec_report['grow'] = grow_reconstruction(
                     data, graph, graph_inliers, reconstruction, remaining_images, camera_priors, gcp)
                 reconstructions.append(reconstruction)
+                cnt=cnt+1
+                
+                # print(type(reconstruction))
+                # print(reconstruction.cameras)
+                # print(reconstruction.shots)
+                # reconstructions.update({"mike":reconstruction})
+
                 reconstructions = sorted(reconstructions,
                                          key=lambda x: -len(x.shots))
                 rec_report['stats'] = compute_statistics(reconstruction, graph_inliers)
                 logger.info(rec_report['stats'])
 
+    print("cnt== ", cnt)
     for k, r in enumerate(reconstructions):
         logger.info("Reconstruction {}: {} images, {} points".format(
             k, len(r.shots), len(r.points)))

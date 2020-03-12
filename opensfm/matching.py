@@ -68,8 +68,10 @@ def match_images_with_pairs(data, exifs, ref_images, pairs):
     processes = context.processes_that_fit_in_memory(data.config['processes'], mem_per_process)
     logger.info("Computing pair matching with %d processes" % processes)
     
-    matches = context.parallel_map(match_unwrap_args, args, processes, jobs_per_process)
-    
+    #print(args)
+    #matches = context.parallel_map(match_unwrap_args, args, processes, jobs_per_process)
+    matches = context.parallel_map_thread(match_unwrap_args_thread, args, processes, jobs_per_process)
+
     logger.info(
         'Matched {} pairs for {} ref_images {} '
         'in {} seconds ({} seconds/pair).'.format(
@@ -138,6 +140,32 @@ def match_arguments(pairs, ctx):
     for im, candidates in pairs:
         yield im, candidates, ctx
 
+def match_unwrap_args_thread(args):
+    """Wrapper for parallel processing of pair matching.
+
+    Compute all pair matchings of a given image and save them.
+    """
+    log.setup()
+    im1, candidates, ctx = args
+
+    print(args)
+    
+    im1_matches = {}
+    p1, f1, _ = feature_loader.instance.load_points_features_colors(ctx.data, im1)
+    camera1 = ctx.cameras[ctx.exifs[im1]['camera']]
+   
+    for im2 in candidates:
+        p2, f2, _ = feature_loader.instance.load_points_features_colors(ctx.data, im2)
+        camera2 = ctx.cameras[ctx.exifs[im2]['camera']]
+
+        im1_matches[im2] = match(im1, im2, camera1, camera2, ctx.data)
+
+    num_matches = sum(1 for m in im1_matches.values() if len(m) > 0)
+    logger.debug('Image {} matches: {} out of {}'.format(
+        im1, num_matches, len(candidates)))
+
+    return im1, im1_matches
+
 
 def match_unwrap_args(args):
     """Wrapper for parallel processing of pair matching.
@@ -147,6 +175,8 @@ def match_unwrap_args(args):
     log.setup()
     im1, candidates, ctx = args
 
+    print(args)
+    
     im1_matches = {}
     p1, f1, _ = feature_loader.instance.load_points_features_colors(ctx.data, im1)
     camera1 = ctx.cameras[ctx.exifs[im1]['camera']]

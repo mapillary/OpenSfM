@@ -64,6 +64,7 @@ class DataSet(object):
         self.match_of_images={}
         self.track_graph_of_images=nx.Graph()
         self.reconstructions=[]
+        self.reconstructions_as_json={}
         #self.undistorted_data
         self.udata_image={}
         self.udata_reconstruction=[]
@@ -350,6 +351,12 @@ class DataSet(object):
     def save_reconstruction(self, reconstruction, filename=None, minify=False):
         with io.open_wt(self._reconstruction_file(filename)) as fout:
             io.json_dump(io.reconstructions_to_json(reconstruction), fout, minify)
+
+    def save_reconstruction_to_json(self, reconstruction):
+        self.reconstructions_as_json.update({'cameras':reconstruction.cameras})
+        self.reconstructions_as_json.update({'shots':reconstruction.shots})
+        self.reconstructions_as_json.update({'points':reconstruction.points})
+
 
     def save_undistorted_reconstruction(self, reconstruction):
         self.udata_reconstruction=reconstruction

@@ -13,11 +13,22 @@ from opensfm import pydense
 from opensfm import io
 from opensfm import log
 from opensfm import tracking
-from opensfm.context import parallel_map
-
+from opensfm.context import parallel_map, parallel_map_thread, current_memory_usage,  memory_available
+import os
+import objgraph
+from guppy import hpy
+import pdb
+import gc
 
 logger = logging.getLogger(__name__)
 
+
+# raw_depthmap={}
+# raw_ply={}
+# cleaned_depthmap={}
+# cleaned_ply={}
+# pruned_depthmap={}
+# pruned_ply={}
 
 def compute_depthmaps(data, udata, graph, reconstruction):
     """Compute and refine depthmaps for all shots.
@@ -32,11 +43,17 @@ def compute_depthmaps(data, udata, graph, reconstruction):
     processes = config['processes']
     num_neighbors = config['depthmap_num_neighbors']
 
+    print('available memory== ', memory_available())
+    print("current memory usage==", current_memory_usage())
+
     neighbors = {}
     common_tracks = common_tracks_double_dict(graph)
     for shot in reconstruction.shots.values():
         neighbors[shot.id] = find_neighboring_images(
             shot, common_tracks, reconstruction, num_neighbors)
+
+
+    
 
     arguments = []
     for shot in reconstruction.shots.values():
@@ -44,23 +61,40 @@ def compute_depthmaps(data, udata, graph, reconstruction):
             continue
         mind, maxd = compute_depth_range(graph, reconstruction, shot, config)
         arguments.append((data, udata, neighbors[shot.id], mind, maxd, shot))
+    #parallel_map_thread(compute_depthmap_catched, arguments, processes)
     parallel_map(compute_depthmap_catched, arguments, processes)
+    
+    # data.save_raw_depthmap(raw_depthmap)
+    # data.save_raw_ply(raw_ply)
 
+    
     arguments = []
     for shot in reconstruction.shots.values():
         if len(neighbors[shot.id]) <= 1:
             continue
         arguments.append((data ,udata, neighbors[shot.id], shot))
+    #parallel_map_thread(clean_depthmap_catched, arguments, processes)
     parallel_map(clean_depthmap_catched, arguments, processes)
+
+
+
+    # data.save_clean_depthmap(cleaned_depthmap)
+    # data.save_clean_ply(cleaned_ply)
 
     arguments = []
     for shot in reconstruction.shots.values():
         if len(neighbors[shot.id]) <= 1:
             continue
         arguments.append((data, udata, neighbors[shot.id], shot))
+    #parallel_map_thread(prune_depthmap_catched, arguments, processes)
     parallel_map(prune_depthmap_catched, arguments, processes)
+    
+    # data.save_pruned_depthmap(pruned_depthmap)
+    # data.save_ply_line(pruned_ply)
 
     merge_depthmaps(data, reconstruction)
+
+
 
 
 def compute_depthmap_catched(arguments):
@@ -99,6 +133,9 @@ def compute_depthmap(arguments):
         return
     logger.info("Computing depthmap for image {0} with {1}".format(shot.id, method))
 
+    hp=hpy()
+    before=hp.heap()
+
     de = pydense.DepthmapEstimator()
     de.set_depth_range(min_depth, max_depth, 100)
     de.set_patchmatch_iterations(udata.config['depthmap_patchmatch_iterations'])
@@ -122,7 +159,7 @@ def compute_depthmap(arguments):
 
     # Save and display results
     neighbor_ids = [i.id for i in neighbors[1:]]
-    #udata.save_raw_depthmap(shot.id, depth, plane, score, nghbr, neighbor_ids)
+    udata.save_raw_depthmap(shot.id, depth, plane, score, nghbr, neighbor_ids)
 
     depthmap={}
     depthmap.update({'depth':depth})
@@ -130,18 +167,36 @@ def compute_depthmap(arguments):
     depthmap.update({'score':score})
     depthmap.update({'nghbr':nghbr})
     depthmap.update({'nghbrs':neighbor_ids})
+
+    #raw_depthmap.update({shot.id:depthmap})
     data.save_raw_depthmap(shot.id, depthmap)
+    # after=hp.heap()
+    # leftover=after-before
+    # objgraph.show_most_common_types()
+    # pdb.set_trace()
+    # after1=hp.heap()
+    # leftover1=after1-before
+    # exit()
+
+    # print(data)
+    # print("pid == ",os.getpid())
+    # print("depthmap== ", hex(id(depthmap)))
+    # print("raw_depthmap== ", hex(id(raw_depthmap)))
 
     if udata.config['depthmap_save_debug_files']:
         image = data.udata_image[shot.id]  #load_undistorted_image(shot.id)
         #image[:, :, :3] = image[:, :, [2, 1, 0]]
         image = scale_down_image(image, depth.shape[1], depth.shape[0])
         ply = depthmap_to_ply(shot, depth, image)
+        # raw_ply.update({shot.id:ply})
+        # print("ply== ", hex(id(ply)))
+        # print("raw_ply== ", hex(id(raw_ply)))
+        with io.open_wt(udata._depthmap_file(shot.id, 'raw.npz.ply')) as fout:
+            fout.write(ply)
         data.save_raw_ply(shot.id,ply)
-        #<class 'str'>
-        #size = 15941709
-        # with io.open_wt(udata._depthmap_file(shot.id, 'raw.npz.ply')) as fout:
-        #     fout.write(ply)
+        print('available memory== ', memory_available())
+        print("current memory usage==", current_memory_usage())
+    
 
 def clean_depthmap(arguments):
     """Clean depthmap by checking consistency with neighbors."""
@@ -159,13 +214,14 @@ def clean_depthmap(arguments):
 
     # Save and display results
     raw_depth, raw_plane, raw_score, raw_nghbr, nghbrs = data.load_raw_depthmap(shot.id)
-    #udata.save_clean_depthmap(shot.id, depth, raw_plane, raw_score)
+    udata.save_clean_depthmap(shot.id, depth, raw_plane, raw_score)
     
     depthmap={}
     depthmap.update({'depth':depth})
     depthmap.update({'plane':raw_plane})
     depthmap.update({'score':raw_score})
     data.save_clean_depthmap(shot.id, depthmap)
+    #cleaned_depthmap.update({shot.id:depthmap})
 
     if udata.config['depthmap_save_debug_files']:
         image = data.udata_image[shot.id]#load_undistorted_image(shot.id)
@@ -175,21 +231,12 @@ def clean_depthmap(arguments):
         image = scale_down_image(image, depth.shape[1], depth.shape[0])
         ply = depthmap_to_ply(shot, depth, image)
         data.save_clean_ply(shot.id,ply)
+        #cleaned_ply.update({shot.id:ply})
 
-        # with io.open_wt(udata._depthmap_file(shot.id, 'clean.npz.ply')) as fout:
-        #     fout.write(ply)
-
-    if udata.config.get('interactive'):
-        import matplotlib.pyplot as plt
-        plt.figure()
-        plt.suptitle("Shot: " + shot.id)
-        plt.subplot(2, 2, 1)
-        plt.imshow(raw_depth)
-        plt.colorbar()
-        plt.subplot(2, 2, 2)
-        plt.imshow(depth)
-        plt.colorbar()
-        plt.show()
+        with io.open_wt(udata._depthmap_file(shot.id, 'clean.npz.ply')) as fout:
+            fout.write(ply)
+    print('available memory== ', memory_available())
+    print("current memory usage==", current_memory_usage())
 
 
 def prune_depthmap(arguments):
@@ -208,7 +255,7 @@ def prune_depthmap(arguments):
     add_views_to_depth_pruner(data,udata, neighbors, dp)
     points, normals, colors, labels, detections = dp.prune()
     # Save and display results
-    #udata.save_pruned_depthmap(shot.id, points, normals, colors, labels, detections)
+    udata.save_pruned_depthmap(shot.id, points, normals, colors, labels, detections)
     depthmap={}
     depthmap.update({'points':points})
     depthmap.update({'normals':normals})
@@ -216,13 +263,15 @@ def prune_depthmap(arguments):
     depthmap.update({'labels':labels})
     depthmap.update({'detections':detections})
     data.save_pruned_depthmap(shot.id, depthmap)
+    #pruned_depthmap.update({shot.id:depthmap})
 
 
     if udata.config['depthmap_save_debug_files']:
         ply_line=pruned_point_cloud_to_ply(points, normals, colors, labels, detections)
         data.save_ply_line(shot.id, ply_line)
-        # with io.open_wt(udata._depthmap_file(shot.id, 'pruned.npz.ply')) as fp:
-        #     ply_line=point_cloud_to_ply(points, normals, colors, labels, detections, fp)
+        #pruned_ply.update({shot.id:ply_line})
+        with io.open_wt(udata._depthmap_file(shot.id, 'pruned.npz.ply')) as fp:
+            ply_line=point_cloud_to_ply(points, normals, colors, labels, detections, fp)
 
 
 def merge_depthmaps(data, reconstruction):
@@ -246,7 +295,6 @@ def merge_depthmaps(data, reconstruction):
         labels.append(l)
         detections.append(d)
 
-
     points = np.concatenate(points)
     normals = np.concatenate(normals)
     colors = np.concatenate(colors)
@@ -256,6 +304,12 @@ def merge_depthmaps(data, reconstruction):
 
     with io.open_wt(data._depthmap_path() + '/merged.ply') as fp:
         point_cloud_to_ply(points, normals, colors, labels, detections, fp)
+    print('available memory== ', memory_available())
+    print("current memory usage==", current_memory_usage())
+
+    ply= io.reconstruction_to_ply(data.reconstructions_as_json)
+    with io.open_wt(data._depthmap_path() + '/SLAM.ply') as fout:
+            fout.write(ply)
 
 
 def add_views_to_depth_estimator(original_data, udata, neighbors, de):
