@@ -223,9 +223,9 @@
                 float r = sqrt(a * a + b * b);
                 float theta = atan(r);
                 float theta2 = theta * theta;
-                float theta_d = theta * (1.0 + theta2 * (k1 + theta2 * (k2 + theta2 * (k3 + theta2 * k4)));
-                float x_p = theta_d / r * a
-                float y_p = theta_d / r * b
+                float theta_d = theta * (1.0 + theta2 * (k1 + theta2 * (k2 + theta2 * (k3 + theta2 * k4))));
+                float x_p = theta_d / r * a;
+                float y_p = theta_d / r * b;
 
                 float u = focal_x * x_p + c_x;
                 float v = focal_y * y_p + c_y;
@@ -768,6 +768,22 @@
                             type: 'f',
                             value: cam.focal
                         },
+                        focal_x: {
+                            type: 'f',
+                            value: cam.focal_x
+                        },
+                        focal_y: {
+                            type: 'f',
+                            value: cam.focal_y
+                        },
+                        c_x: {
+                            type: 'f',
+                            value: cam.c_x
+                        },
+                        c_y: {
+                            type: 'f',
+                            value: cam.c_y
+                        },
                         k1: {
                             type: 'f',
                             value: cam.k1
@@ -775,6 +791,14 @@
                         k2: {
                             type: 'f',
                             value: cam.k2
+                        },
+                        k3: {
+                            type: 'f',
+                            value: cam.k3
+                        },
+                        k4: {
+                            type: 'f',
+                            value: cam.k4
                         },
                         scale_x: {
                             type: 'f',
@@ -1080,8 +1104,14 @@
                             imagePlaneOld.material.uniforms.projectorTex.value = imagePlane.material.uniforms.projectorTex.value;
                             imagePlaneOld.material.uniforms.projectorMat.value = imagePlane.material.uniforms.projectorMat.value;
                             imagePlane.material.uniforms.focal.value = imagePlane.material.uniforms.focal.value;
+                            imagePlane.material.uniforms.focal_x.value = imagePlane.material.uniforms.focal_x.value;
+                            imagePlane.material.uniforms.focal_y.value = imagePlane.material.uniforms.focal_y.value;
+                            imagePlane.material.uniforms.c_x.value = imagePlane.material.uniforms.c_x.value;
+                            imagePlane.material.uniforms.c_y.value = imagePlane.material.uniforms.c_y.value;
                             imagePlane.material.uniforms.k1.value = imagePlane.material.uniforms.k1.value;
                             imagePlane.material.uniforms.k2.value = imagePlane.material.uniforms.k2.value;
+                            imagePlane.material.uniforms.k3.value = imagePlane.material.uniforms.k3.value;
+                            imagePlane.material.uniforms.k4.value = imagePlane.material.uniforms.k4.value;
                             imagePlane.material.uniforms.scale_x.value = imagePlane.material.uniforms.scale_x.value;
                             imagePlane.material.uniforms.scale_y.value = imagePlane.material.uniforms.scale_y.value;
                             imagePlaneOld.material.vertexShader = imagePlane.material.vertexShader;
