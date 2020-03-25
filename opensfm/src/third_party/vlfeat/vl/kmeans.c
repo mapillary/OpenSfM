@@ -669,7 +669,7 @@ VL_XCAT(_vl_kmeans_quantize_, SFX)
 #endif
 
 #ifdef _OPENMP
-#pragma omp parallel default(none) \
+#pragma omp parallel \
             shared(self, distances, assignments, numData, distFn, data) \
             num_threads(vl_get_max_threads())
 #endif
@@ -726,7 +726,7 @@ VL_XCAT(_vl_kmeans_quantize_ann_, SFX)
   vl_kdforest_build(forest,self->numCenters,self->centers);
 
 #ifdef _OPENMP
-#pragma omp parallel default(none) \
+#pragma omp parallel \
   num_threads(vl_get_max_threads()) \
   shared(self, forest, update, assignments, distances, data, numData, distFn)
 #endif
@@ -1489,7 +1489,6 @@ VL_XCAT(_vl_kmeans_refine_centers_elkan_, SFX)
 
 #if defined(_OPENMP)
 #pragma omp parallel for \
-            default(none) \
             shared(self,numData, \
               pointToClosestCenterUB,pointToCenterLB, \
               nextCenterDistances,pointToClosestCenterUBIsStrict, \
