@@ -1,11 +1,11 @@
 from io import StringIO
 
 from opensfm import tracking
-from opensfm.test import data_generation
+from opensfm.synthetic_data import synthetic_scene
 
 
 def test_tracks_io():
-    d = data_generation.CubeDataset(2, 100, 0.0, 0.3)
+    d = synthetic_scene.SyntheticCubeScene(2, 100, 0.0)
 
     output = StringIO()
 

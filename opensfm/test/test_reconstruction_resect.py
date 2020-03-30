@@ -5,7 +5,7 @@ from opensfm import reconstruction
 from opensfm import multiview
 from opensfm import config
 from opensfm import types
-from opensfm.test import data_generation
+from opensfm.synthetic_data import synthetic_scene
 
 
 def test_corresponding_tracks():
@@ -40,7 +40,7 @@ def test_corresponding_tracks():
 
 
 def synthetic_reconstruction():
-    cube_dataset = data_generation.CubeDataset(10, 100, 0.001, 0.3)
+    cube_dataset = synthetic_scene.SyntheticCubeScene(10, 100, 0.001)
     synthetic_reconstruction = types.Reconstruction()
     for shot in cube_dataset.shots.values():
         synthetic_reconstruction.add_shot(shot)
@@ -95,35 +95,6 @@ def move_and_scale_cluster(cluster):
     for point in cluster.points.values():
         point.coordinates = scale*point.coordinates + translation
     return cluster, translation, scale
-
-
-def test_absolute_pose_single_shot():
-    """Single-camera resection on a toy reconstruction with
-    1/1000 pixel noise and zero outliers."""
-    parameters = config.default_config()
-    synthetic_data, synthetic_tracks = synthetic_reconstruction()
-
-    shot_id = 'shot1'
-    camera_id = 'camera1'
-    metadata = types.ShotMetadata()
-    camera = synthetic_data.cameras[camera_id]
-
-    graph_inliers = nx.Graph()
-    shot_before = synthetic_data.shots[shot_id]
-    status, report = reconstruction.resect(synthetic_tracks, graph_inliers,
-                                           synthetic_data, shot_id,
-                                           camera, metadata,
-                                           parameters['resection_threshold'],
-                                           parameters['resection_min_inliers'])
-    shot_after = synthetic_data.shots[shot_id]
-
-    assert status is True
-    assert report['num_inliers'] == len(graph_inliers.edges())
-    assert report['num_inliers'] is len(synthetic_data.points)
-    np.testing.assert_almost_equal(
-        shot_before.pose.rotation, shot_after.pose.rotation, 1)
-    np.testing.assert_almost_equal(
-        shot_before.pose.translation, shot_after.pose.translation, 1)
 
 
 def test_absolute_pose_generalized_shot():
