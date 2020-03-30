@@ -222,8 +222,10 @@ class EXIF:
         if not mm_per_unit:
             return None
         pixels_per_unit = get_tag_as_float(self.tags, 'EXIF FocalPlaneXResolution')
-        if pixels_per_unit == 0:
-            return None
+        if pixels_per_unit <= 0:
+            pixels_per_unit = get_tag_as_float(self.tags, 'EXIF FocalPlaneYResolution')
+            if pixels_per_unit <= 0:
+                return None
         units_per_pixel = 1 / pixels_per_unit
         width_in_pixels = self.extract_image_size()[0]
         return width_in_pixels * units_per_pixel * mm_per_unit
