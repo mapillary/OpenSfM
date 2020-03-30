@@ -108,31 +108,26 @@ class SyntheticCubeScene(SyntheticScene):
             self.shots[shot.id] = shot
 
         points = np.random.rand(num_points, 3)
-        self.points = {'point' + str(i): p for i, p in enumerate(points)}
-
-        g = nx.Graph()
-        for shot_id, shot in self.shots.items():
-            for point_id, point in self.points.items():
-                feature = shot.project(point)
-                feature += np.random.rand(*feature.shape)*noise
-                point_integer = int(point_id.split('point')[1])
-                g.add_node(shot_id, bipartite=0)
-                g.add_node(point_id, bipartite=1)
-                g.add_edge(shot_id, point_id, feature=feature,
-                           feature_id=point_integer, feature_color=(0, 0, 0),
-                           feature_scale=0.004)
-        self.tracks = g
+        self.points = {}
+        for i, p in enumerate(points):
+            pt = types.Point()
+            pt.id = 'point' + str(i)
+            pt.coordinates = p
+            pt.color = [100, 100, 20]
+            self.points[pt.id] = pt
 
     def get_reconstruction(self, rotation_noise=0.0,
                            position_noise=0.0,
                            camera_noise=0.0):
-        raise NotImplementedError()
-
-    def get_scene_exifs(self, gps_noise):
-        raise NotImplementedError()
+        reconstruction = types.Reconstruction()
+        reconstruction.shots = self.shots
+        reconstruction.points = self.points
+        reconstruction.cameras = self.cameras
+        return reconstruction
 
     def get_tracks_data(self, maximum_depth, noise):
-        raise NotImplementedError()
+        return sg.generate_track_data(self.get_reconstruction(),
+                                      maximum_depth, noise)
 
 
 class SyntheticStreetScene(SyntheticScene):
