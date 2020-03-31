@@ -74,9 +74,8 @@ def test_normal_line_msac():
     result = pyrobust.ransac_line(data, multiplier*sigma, params, pyrobust.RansacType.MSAC)
 
     confidence = 0.95   # 1.96*MAD -> 95% rejecting inliers
-    confidence_margin = 0.05
     assert np.isclose(len(result.inliers_indices), samples,
-                      rtol=(1 - confidence-confidence_margin), atol=5)
+                      rtol=(1 - confidence), atol=7)
 
 
 def test_outliers_line_msac():
