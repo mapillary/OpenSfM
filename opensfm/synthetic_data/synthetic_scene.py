@@ -6,6 +6,7 @@ from __future__ import unicode_literals
 import numpy as np
 import networkx as nx
 import functools
+import math
 
 from opensfm import types
 
@@ -95,10 +96,17 @@ class SyntheticCubeScene(SyntheticScene):
             self.cameras[camera.id] = camera
 
         self.shots = {}
+        r = 2.0
         for i in range(num_cameras):
-            alpha = float(i) / (num_cameras - 1)
-            position = [alpha, -5.0, 0.5]
-            lookat = [1.0 - alpha, alpha, alpha]
+            phi = np.random.rand()*math.pi
+            theta = np.random.rand()*2.0*math.pi
+            x = r*np.sin(theta)*np.cos(phi)
+            y = r*np.sin(theta)*np.sin(phi)
+            z = r*np.cos(theta)
+            position = [x, y, z]
+
+            alpha = np.random.rand()
+            lookat = [0.0, 0, 0]
             up = [alpha * 0.2, alpha * 0.2, 1.0]
 
             shot = types.Shot()
@@ -107,7 +115,7 @@ class SyntheticCubeScene(SyntheticScene):
             shot.pose = camera_pose(position, lookat, up)
             self.shots[shot.id] = shot
 
-        points = np.random.rand(num_points, 3)
+        points = np.random.rand(num_points, 3)-[0.5, 0.5, 0.5]
         self.points = {}
         for i, p in enumerate(points):
             pt = types.Point()
