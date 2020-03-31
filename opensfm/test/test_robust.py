@@ -74,8 +74,9 @@ def test_normal_line_msac():
     result = pyrobust.ransac_line(data, multiplier*sigma, params, pyrobust.RansacType.MSAC)
 
     confidence = 0.95   # 1.96*MAD -> 95% rejecting inliers
+    confidence_margin = 0.05
     assert np.isclose(len(result.inliers_indices), samples,
-                      rtol=(1 - confidence), atol=5)
+                      rtol=(1 - confidence-confidence_margin), atol=5)
 
 
 def test_outliers_line_msac():
@@ -157,7 +158,7 @@ def test_uniform_essential_ransac(pairs_and_their_E):
         f1 /= np.linalg.norm(f1, axis=1)[:, None]
         f2 /= np.linalg.norm(f2, axis=1)[:, None]
 
-        scale_eps_ratio = 1e-1
+        scale_eps_ratio = 5e-1
         params = pyrobust.RobustEstimatorParams()
         params.use_iteration_reduction = False
         result = pyrobust.ransac_essential(
