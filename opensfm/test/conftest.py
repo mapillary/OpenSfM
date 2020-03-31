@@ -35,6 +35,14 @@ def scene_synthetic():
     return data, exifs, features, desc, colors, graph
 
 
+@pytest.fixture(scope='session')
+def scene_synthetic_cube():
+    np.random.seed(42)
+    data = synthetic_examples.synthetic_cube_scene()
+    _, _, _, graph = data.get_tracks_data(40, 0.0)
+    return data.get_reconstruction(), graph
+
+
 @pytest.fixture(scope='module')
 def pairs_and_poses():
     np.random.seed(42)

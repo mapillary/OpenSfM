@@ -39,21 +39,6 @@ def test_corresponding_tracks():
     assert correspondences[1] == (2, 4)
 
 
-def synthetic_reconstruction():
-    cube_dataset = synthetic_scene.SyntheticCubeScene(10, 100, 0.001)
-    synthetic_reconstruction = types.Reconstruction()
-    for shot in cube_dataset.shots.values():
-        synthetic_reconstruction.add_shot(shot)
-    for camera in cube_dataset.cameras.values():
-        synthetic_reconstruction.add_camera(camera)
-    for point_id, point in cube_dataset.points.items():
-        point_type = types.Point()
-        point_type.coordinates = point
-        point_type.id = point_id
-        synthetic_reconstruction.add_point(point_type)
-    return synthetic_reconstruction, cube_dataset.tracks
-
-
 def copy_cluster_points(cluster, tracks, points, noise):
     for shot in cluster.shots:
         for point in tracks[shot]:
@@ -65,26 +50,25 @@ def copy_cluster_points(cluster, tracks, points, noise):
     return cluster
 
 
-def split_synthetic_reconstruction(synthetic_reconstruction,
-                                   synthetic_tracks,
+def split_synthetic_reconstruction(scene, tracks,
                                    cluster_size,
                                    point_noise):
     cluster1 = types.Reconstruction()
     cluster2 = types.Reconstruction()
-    cluster1.cameras = synthetic_reconstruction.cameras
-    cluster2.cameras = synthetic_reconstruction.cameras
-    for (i, shot) in zip(range(len(synthetic_reconstruction.shots)),
-                         synthetic_reconstruction.shots.values()):
+    cluster1.cameras = scene.cameras
+    cluster2.cameras = scene.cameras
+    for (i, shot) in zip(range(len(scene.shots)),
+                         scene.shots.values()):
         if(i >= cluster_size):
             cluster2.add_shot(shot)
         if(i <= cluster_size):
             cluster1.add_shot(shot)
 
     cluster1 = copy_cluster_points(
-        cluster1, synthetic_tracks, synthetic_reconstruction.points,
+        cluster1, tracks, scene.points,
         point_noise)
     cluster2 = copy_cluster_points(
-        cluster2, synthetic_tracks, synthetic_reconstruction.points,
+        cluster2, tracks, scene.points,
         point_noise)
     return cluster1, cluster2
 
@@ -97,12 +81,12 @@ def move_and_scale_cluster(cluster):
     return cluster, translation, scale
 
 
-def test_absolute_pose_generalized_shot():
+def test_absolute_pose_generalized_shot(scene_synthetic_cube):
     """Whole reconstruction resection (generalized pose) on a toy
     reconstruction with 0.01 meter point noise and zero outliers."""
     noise = 0.01
     parameters = config.default_config()
-    scene, tracks = synthetic_reconstruction()
+    scene, tracks = scene_synthetic_cube
     cluster1, cluster2 = split_synthetic_reconstruction(
         scene, tracks, 3, noise)
     cluster2, translation, scale = move_and_scale_cluster(cluster2)

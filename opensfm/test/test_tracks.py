@@ -5,11 +5,12 @@ from opensfm.synthetic_data import synthetic_scene
 
 
 def test_tracks_io():
-    d = synthetic_scene.SyntheticCubeScene(2, 100, 0.0)
+    data = synthetic_scene.SyntheticCubeScene(2, 100, 0.0)
+    _, _, _, graph = data.get_tracks_data(40, 0.0)
 
     output = StringIO()
 
-    tracks_before = d.tracks
+    tracks_before = graph
     tracking.save_tracks_graph(output, tracks_before)
     output.seek(0)
     tracks_after = tracking.load_tracks_graph(output)
