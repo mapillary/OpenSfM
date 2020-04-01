@@ -10,7 +10,7 @@ def synthetic_ellipse_scene():
     scene_length = 60
     points_count = 5000
     generator = get_scene_generator('ellipse', scene_length)
-    scene = SyntheticScene(generator)
+    scene = SyntheticStreetScene(generator)
     scene.add_street(points_count, 7, 7).perturb_floor([0, 0, 0.1]).\
         perturb_walls([0.2, 0.2, 0.01])
 
@@ -26,11 +26,15 @@ def synthetic_ellipse_scene():
     return scene
 
 
+def synthetic_cube_scene():
+    return SyntheticCubeScene(10, 1000, 0.001)
+
+
 def synthetic_small_line_scene():
     scene_length = 15
     points_count = 5000
     generator = get_scene_generator('line', scene_length)
-    scene = SyntheticScene(generator)
+    scene = SyntheticStreetScene(generator)
     scene.add_street(points_count, 7, 7).perturb_floor([0, 0, 0.1]).\
         perturb_walls([0.2, 0.2, 0.01])
 

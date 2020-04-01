@@ -14,7 +14,7 @@ from opensfm.synthetic_data import synthetic_scene
 def construct_scene(scene_type, scene_length):
     points_count = 10000
     generator = synthetic_scene.get_scene_generator(scene_type, scene_length)
-    scene = synthetic_scene.SyntheticScene(generator)
+    scene = synthetic_scene.SyntheticStreetScene(generator)
     scene.add_street(points_count, 7, 7).perturb_floor([0, 0, 0.1]).\
         perturb_walls([0.2, 0.2, 0.01])
 

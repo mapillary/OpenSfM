@@ -75,7 +75,7 @@ def test_normal_line_msac():
 
     confidence = 0.95   # 1.96*MAD -> 95% rejecting inliers
     assert np.isclose(len(result.inliers_indices), samples,
-                      rtol=(1 - confidence), atol=5)
+                      rtol=(1 - confidence), atol=7)
 
 
 def test_outliers_line_msac():
@@ -146,164 +146,166 @@ def test_outliers_line_LMedS():
                       rtol=(1 - confidence), atol=8)
 
 
-def test_uniform_essential_ransac(one_pair_and_its_E):
-    f1, f2, E, _ = one_pair_and_its_E
-    points = np.concatenate((f1, f2), axis=1)
+def test_uniform_essential_ransac(pairs_and_their_E):
+    for f1, f2, E, _ in pairs_and_their_E:
+        points = np.concatenate((f1, f2), axis=1)
 
-    scale = 1e-2
-    points += np.random.rand(*points.shape)*scale
+        scale = 1e-2
+        points += np.random.rand(*points.shape) * scale
 
-    f1, f2 = points[:, 0:3],  points[:, 3:6]
-    f1 /= np.linalg.norm(f1, axis=1)[:, None]
-    f2 /= np.linalg.norm(f2, axis=1)[:, None]
+        f1, f2 = points[:, 0:3], points[:, 3:6]
+        f1 /= np.linalg.norm(f1, axis=1)[:, None]
+        f2 /= np.linalg.norm(f2, axis=1)[:, None]
 
-    params = pyrobust.RobustEstimatorParams()
-    result = pyrobust.ransac_essential(f1, f2, scale, params, pyrobust.RansacType.RANSAC)
+        scale_eps_ratio = 5e-1
+        params = pyrobust.RobustEstimatorParams()
+        params.use_iteration_reduction = False
+        result = pyrobust.ransac_essential(
+            f1, f2, scale*(1.0+scale_eps_ratio), params, pyrobust.RansacType.RANSAC)
 
-    assert len(result.inliers_indices) == len(f1) == len(f2)
-
-
-def test_outliers_essential_ransac(one_pair_and_its_E):
-    f1, f2, E, _ = one_pair_and_its_E
-    points = np.concatenate((f1, f2), axis=1)
-
-    scale = 1e-3
-    points += np.random.rand(*points.shape)*scale
-
-    ratio_outliers = 0.4
-    add_outliers(ratio_outliers, points, 0.1, 0.4)
-
-    f1, f2 = points[:, 0:3],  points[:, 3:6]
-    f1 /= np.linalg.norm(f1, axis=1)[:, None]
-    f2 /= np.linalg.norm(f2, axis=1)[:, None]
-
-    params = pyrobust.RobustEstimatorParams()
-    result = pyrobust.ransac_essential(f1, f2, scale, params, pyrobust.RansacType.RANSAC)
-
-    tolerance = 0.04    # some outliers might have been moved along the epipolar
-    inliers_count = (1 - ratio_outliers) * len(points)
-    assert np.isclose(len(result.inliers_indices), inliers_count, rtol=tolerance)
-
-    # sometimes, the negative of E is the good one
-    correct_found = 0
-    for sign in [-1, 1]:
-        correct_found += np.linalg.norm(E-sign*result.lo_model, ord='fro') < 5e-2
-    assert correct_found == 1
+        assert len(result.inliers_indices) == len(f1) == len(f2)
 
 
-def test_outliers_relative_pose_ransac(one_pair_and_its_E):
-    f1, f2, _, pose = one_pair_and_its_E
-    points = np.concatenate((f1, f2), axis=1)
+def test_outliers_essential_ransac(pairs_and_their_E):
+    for f1, f2, E, _ in pairs_and_their_E:
+        points = np.concatenate((f1, f2), axis=1)
 
-    scale = 1e-3
-    points += np.random.rand(*points.shape)*scale
+        scale = 1e-3
+        points += np.random.rand(*points.shape) * scale
 
-    ratio_outliers = 0.3
-    add_outliers(ratio_outliers, points, 0.1, 1.0)
+        ratio_outliers = 0.3
+        add_outliers(ratio_outliers, points, 0.1, 0.4)
 
-    f1, f2 = points[:, 0:3],  points[:, 3:6]
-    f1 /= np.linalg.norm(f1, axis=1)[:, None]
-    f2 /= np.linalg.norm(f2, axis=1)[:, None]
+        f1, f2 = points[:, 0:3], points[:, 3:6]
+        f1 /= np.linalg.norm(f1, axis=1)[:, None]
+        f2 /= np.linalg.norm(f2, axis=1)[:, None]
 
-    params = pyrobust.RobustEstimatorParams()
-    params.iterations = 1000
-    result = pyrobust.ransac_relative_pose(f1, f2, scale, params, pyrobust.RansacType.RANSAC)
+        scale_eps_ratio = 1e-1
+        params = pyrobust.RobustEstimatorParams()
+        result = pyrobust.ransac_essential(
+            f1, f2, scale*(1.0+scale_eps_ratio), params, pyrobust.RansacType.RANSAC)
 
-    pose.translation /= np.linalg.norm(pose.translation)
-    expected = pose.get_Rt()
-
-    tolerance = 0.04    # some outliers might have been moved along the epipolar
-    inliers_count = (1 - ratio_outliers) * len(points)
-    assert np.isclose(len(result.inliers_indices),
-                      inliers_count, rtol=tolerance)
-
-    assert np.linalg.norm(expected-result.lo_model, ord='fro')  < 8e-2
-
-def test_outliers_relative_rotation_ransac(one_pair_and_its_E):
-    f1, _, _, _ = one_pair_and_its_E
-
-    vec_x = np.random.rand(3)
-    vec_x /= np.linalg.norm(vec_x)
-    vec_y = np.array([-vec_x[1], vec_x[0], 0.])
-    vec_y /= np.linalg.norm(vec_y)
-    vec_z = np.cross(vec_x, vec_y)
-
-    rotation = np.array([vec_x, vec_y, vec_z])
-
-    f1 /= np.linalg.norm(f1, axis=1)[:, None]
-    f2 = [rotation.dot(x) for x in f1]
-
-    points = np.concatenate((f1, f2), axis=1)
-
-    scale = 1e-3
-    points += np.random.rand(*points.shape)*scale
-
-    ratio_outliers = 0.3
-    add_outliers(ratio_outliers, points, 0.1, 1.0)
-
-    f1, f2 = points[:, 0:3],  points[:, 3:6]
-    f1 /= np.linalg.norm(f1, axis=1)[:, None]
-    f2 /= np.linalg.norm(f2, axis=1)[:, None]
-
-    params = pyrobust.RobustEstimatorParams()
-    params.iterations = 1000
-
-    result = pyrobust.ransac_relative_rotation(f1, f2, np.sqrt(3*scale*scale), params, pyrobust.RansacType.RANSAC)
-
-    tolerance = 0.04
-    inliers_count = (1 - ratio_outliers) * len(points)
-    assert np.isclose(len(result.inliers_indices),
-                      inliers_count, rtol=tolerance)
-
-    assert np.linalg.norm(rotation-result.lo_model, ord='fro')  < 8e-2
+        tolerance = 0.12    # some outliers might have been moved along the epipolar
+        inliers_count = (1 - ratio_outliers) * len(points)
+        assert np.isclose(len(result.inliers_indices),
+                          inliers_count, rtol=tolerance)
 
 
-def test_outliers_absolute_pose_ransac(one_shot_and_its_points):
-    pose, bearings, points = one_shot_and_its_points
+def test_outliers_relative_pose_ransac(pairs_and_their_E):
+    for f1, f2, _, pose in pairs_and_their_E:
+        points = np.concatenate((f1, f2), axis=1)
 
-    scale = 1e-3
-    bearings = copy.deepcopy(bearings)
-    bearings += np.random.rand(*bearings.shape)*scale
+        scale = 1e-3
+        points += np.random.rand(*points.shape) * scale
 
-    ratio_outliers = 0.3
-    add_outliers(ratio_outliers, bearings, 0.1, 1.0)
-    bearings /= np.linalg.norm(bearings, axis=1)[:, None]
+        ratio_outliers = 0.3
+        add_outliers(ratio_outliers, points, 0.1, 1.0)
 
-    params = pyrobust.RobustEstimatorParams()
-    params.iterations = 1000
-    result = pyrobust.ransac_absolute_pose(bearings, points, scale, params, pyrobust.RansacType.RANSAC)
+        f1, f2 = points[:, 0:3], points[:, 3:6]
+        f1 /= np.linalg.norm(f1, axis=1)[:, None]
+        f2 /= np.linalg.norm(f2, axis=1)[:, None]
 
-    expected = pose.get_Rt()
+        scale_eps_ratio = 1e-1
+        params = pyrobust.RobustEstimatorParams()
+        params.iterations = 1000
+        result = pyrobust.ransac_relative_pose(
+            f1, f2, scale*(1.0+scale_eps_ratio), params, pyrobust.RansacType.RANSAC)
 
-    tolerance = 0.05
-    inliers_count = (1 - ratio_outliers) * len(points)
-    assert np.isclose(len(result.inliers_indices),
-                      inliers_count, rtol=tolerance)
+        pose.translation /= np.linalg.norm(pose.translation)
+        expected = pose.get_Rt()
 
-    assert np.linalg.norm(expected-result.lo_model, ord='fro')  < 8e-2
+        tolerance = 0.1
+        inliers_count = (1 - ratio_outliers) * len(points)
+        assert np.isclose(len(result.inliers_indices),
+                          inliers_count, rtol=tolerance)
+
+    assert np.linalg.norm(expected-result.lo_model, ord='fro')  < 16e-2
 
 
-def test_outliers_absolute_pose_known_rotation_ransac(one_shot_and_its_points):
-    pose, bearings, points = one_shot_and_its_points
+def test_outliers_relative_rotation_ransac(pairs_and_their_E):
+    for f1, _, _, _ in pairs_and_their_E:
 
-    scale = 1e-3
-    bearings = copy.deepcopy(bearings)
-    bearings += np.random.rand(*bearings.shape)*scale
+        vec_x = np.random.rand(3)
+        vec_x /= np.linalg.norm(vec_x)
+        vec_y = np.array([-vec_x[1], vec_x[0], 0.])
+        vec_y /= np.linalg.norm(vec_y)
+        vec_z = np.cross(vec_x, vec_y)
 
-    ratio_outliers = 0.3
-    add_outliers(ratio_outliers, bearings, 0.1, 1.0)
-    bearings /= np.linalg.norm(bearings, axis=1)[:, None]
+        rotation = np.array([vec_x, vec_y, vec_z])
 
-    R = pose.get_rotation_matrix()
-    p_rotated = np.array([R.dot(p) for p in points])
+        f1 /= np.linalg.norm(f1, axis=1)[:, None]
+        f2 = [rotation.dot(x) for x in f1]
 
-    params = pyrobust.RobustEstimatorParams()
-    params.iterations = 1000
-    result = pyrobust.ransac_absolute_pose_known_rotation(bearings, p_rotated, scale, params, pyrobust.RansacType.RANSAC)
+        points = np.concatenate((f1, f2), axis=1)
 
-    tolerance = 0.05
-    inliers_count = (1 - ratio_outliers) * len(points)
-    assert np.isclose(len(result.inliers_indices),
-                      inliers_count, rtol=tolerance)
+        scale = 1e-3
+        points += np.random.rand(*points.shape) * scale
 
-    assert np.linalg.norm(pose.translation-result.lo_model)  < 8e-2
+        ratio_outliers = 0.3
+        add_outliers(ratio_outliers, points, 0.1, 1.0)
+
+        f1, f2 = points[:, 0:3], points[:, 3:6]
+        f1 /= np.linalg.norm(f1, axis=1)[:, None]
+        f2 /= np.linalg.norm(f2, axis=1)[:, None]
+
+        params = pyrobust.RobustEstimatorParams()
+        params.iterations = 1000
+
+        result = pyrobust.ransac_relative_rotation(f1, f2, np.sqrt(
+            3 * scale * scale), params, pyrobust.RansacType.RANSAC)
+
+        tolerance = 0.04
+        inliers_count = (1 - ratio_outliers) * len(points)
+        assert np.isclose(len(result.inliers_indices),
+                          inliers_count, rtol=tolerance)
+
+        assert np.linalg.norm(rotation - result.lo_model, ord='fro') < 8e-2
+
+
+def test_outliers_absolute_pose_ransac(shots_and_their_points):
+    for pose, bearings, points in shots_and_their_points:
+        scale = 1e-3
+        bearings = copy.deepcopy(bearings)
+        bearings += np.random.rand(*bearings.shape)*scale
+
+        ratio_outliers = 0.3
+        add_outliers(ratio_outliers, bearings, 0.1, 1.0)
+        bearings /= np.linalg.norm(bearings, axis=1)[:, None]
+
+        params = pyrobust.RobustEstimatorParams()
+        params.iterations = 1000
+        result = pyrobust.ransac_absolute_pose(bearings, points, scale, params, pyrobust.RansacType.RANSAC)
+
+        expected = pose.get_Rt()
+
+        tolerance = 0.05
+        inliers_count = (1 - ratio_outliers) * len(points)
+        assert np.isclose(len(result.inliers_indices),
+                          inliers_count, rtol=tolerance)
+
+        assert np.linalg.norm(expected-result.lo_model, ord='fro')  < 8e-2
+
+
+def test_outliers_absolute_pose_known_rotation_ransac(shots_and_their_points):
+    for pose, bearings, points in shots_and_their_points:
+        scale = 1e-3
+        bearings = copy.deepcopy(bearings)
+        bearings += np.random.rand(*bearings.shape)*scale
+
+        ratio_outliers = 0.3
+        add_outliers(ratio_outliers, bearings, 0.1, 1.0)
+        bearings /= np.linalg.norm(bearings, axis=1)[:, None]
+
+        R = pose.get_rotation_matrix()
+        p_rotated = np.array([R.dot(p) for p in points])
+
+        params = pyrobust.RobustEstimatorParams()
+        params.iterations = 1000
+        result = pyrobust.ransac_absolute_pose_known_rotation(bearings, p_rotated, scale, params, pyrobust.RansacType.RANSAC)
+
+        tolerance = 0.05
+        inliers_count = (1 - ratio_outliers) * len(points)
+        assert np.isclose(len(result.inliers_indices),
+                          inliers_count, rtol=tolerance)
+
+        assert np.linalg.norm(pose.translation-result.lo_model)  < 8e-2

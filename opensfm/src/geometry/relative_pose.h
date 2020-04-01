@@ -60,7 +60,7 @@ Eigen::Matrix<double, 3, 4> RelativePoseFromEssential(
         const Eigen::Vector3d point = geometry::TriangulateTwoBearingsMidpointSolve(centers, bearings);
         
         const auto projected_x = point.normalized();
-        const auto projected_y = rotation*point+translation;
+        const auto projected_y = (rotation*point+translation).normalized();
         score += ((projected_x.dot(it->first) + projected_y.dot(it->second))*0.5);
       }
 
