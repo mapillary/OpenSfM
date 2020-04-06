@@ -26,7 +26,7 @@ class TracksManagerTest : public ::testing::Test {
     track["1"] = Keypoint(1.0, 1.0, 1.0, 1, 1, 1, 1);
     track["2"] = Keypoint(2.0, 2.0, 2.0, 2, 2, 2, 2);
     track["3"] = Keypoint(3.0, 3.0, 3.0, 3, 3, 3, 3);
-    manager.AddTrack(1, track);
+    manager.AddTrack("1", track);
   }
 
   TempFile tmpfile;
@@ -41,34 +41,34 @@ TEST_F(TracksManagerTest, ReturnsShotsIDs) {
 
 TEST_F(TracksManagerTest, ReturnsTracksIDs) {
   EXPECT_THAT(manager.GetTrackIds(),
-              ::testing::WhenSorted(::testing::ElementsAre(1)));
+              ::testing::WhenSorted(::testing::ElementsAre("1")));
 }
 
 TEST_F(TracksManagerTest, ReturnsObservation) {
-  EXPECT_EQ(manager.GetObservation("1", 1), Keypoint(1.0, 1.0, 1.0, 1, 1, 1, 1));
+  EXPECT_EQ(manager.GetObservation("1", "1"), Keypoint(1.0, 1.0, 1.0, 1, 1, 1, 1));
 }
 
 TEST_F(TracksManagerTest, ReturnsAllCommonObservations) {
-  const auto pair =
-      std::make_pair(Keypoint(1.0, 1.0, 1.0, 1, 1, 1, 1), Keypoint(2.0, 2.0, 2.0, 2, 2, 2, 2));
-  std::vector<std::pair<Keypoint, Keypoint> > one_pair{pair};
-  EXPECT_EQ(manager.GetAllCommonObservations("1", "2"), one_pair);
+  const auto tuple =
+      std::make_tuple("1", Keypoint(1.0, 1.0, 1.0, 1, 1, 1, 1), Keypoint(2.0, 2.0, 2.0, 2, 2, 2, 2));
+  std::vector<std::tuple<TrackId, Keypoint, Keypoint> > one_tuple{tuple};
+  EXPECT_EQ(manager.GetAllCommonObservations("1", "2"), one_tuple);
 }
 
 TEST_F(TracksManagerTest, ReturnsObservationsOfPoint) {
-  EXPECT_EQ(manager.GetObservationsOfPoint(1), track);
+  EXPECT_EQ(manager.GetObservationsOfPoint("1"), track);
 }
 
 TEST_F(TracksManagerTest, ReturnsObservationsOfShot) {
   std::unordered_map<TrackId, Keypoint> shot;
-  shot[1] = Keypoint(1.0, 1.0, 1.0, 1, 1, 1, 1);
+  shot["1"] = Keypoint(1.0, 1.0, 1.0, 1, 1, 1, 1);
   EXPECT_EQ(manager.GetObservationsOfShot("1"), shot);
 }
 
 TEST_F(TracksManagerTest, ReturnsObservationsOfPointsAtShot) {
   std::unordered_map<TrackId, Keypoint> shot;
-  shot[1] = Keypoint(1.0, 1.0, 1.0, 1, 1, 1, 1);
-  EXPECT_EQ(manager.GetObservationsOfPointsAtShot({1}, "1"), shot);
+  shot["1"] = Keypoint(1.0, 1.0, 1.0, 1, 1, 1, 1);
+  EXPECT_EQ(manager.GetObservationsOfPointsAtShot({"1"}, "1"), shot);
 }
 
 TEST_F(TracksManagerTest, HasIOConsistency) {
@@ -79,8 +79,8 @@ TEST_F(TracksManagerTest, HasIOConsistency) {
   EXPECT_THAT(manager_new.GetShotIds(),
               ::testing::WhenSorted(::testing::ElementsAre("1", "2", "3")));
   EXPECT_THAT(manager_new.GetTrackIds(),
-              ::testing::WhenSorted(::testing::ElementsAre(1)));
-  EXPECT_EQ(track, manager_new.GetObservationsOfPoint(1));
+              ::testing::WhenSorted(::testing::ElementsAre("1")));
+  EXPECT_EQ(track, manager_new.GetObservationsOfPoint("1"));
 }
 
 }  // namespace
