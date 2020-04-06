@@ -2,12 +2,13 @@ import logging
 import sys
 
 import numpy as np
-import networkx as nx
 
 from collections import defaultdict
 from itertools import combinations
 from six import iteritems
+
 from opensfm.unionfind import UnionFind
+from opensfm import pysfm
 
 
 logger = logging.getLogger(__name__)
@@ -57,34 +58,22 @@ def create_tracks_graph(features, colors, matches, config):
     tracks = [t for t in sets.values() if _good_track(t, min_length)]
     logger.debug('Good tracks: {}'.format(len(tracks)))
 
-    tracks_graph = nx.Graph()
+    tracks_graph = pysfm.TracksManager()
     for track_id, track in enumerate(tracks):
+        track = {}
         for image, featureid in track:
             if image not in features:
                 continue
             x, y, s = features[image][featureid]
             r, g, b = colors[image][featureid]
-            tracks_graph.add_node(str(image), bipartite=0)
-            tracks_graph.add_node(str(track_id), bipartite=1)
-            tracks_graph.add_edge(str(image),
-                                  str(track_id),
-                                  feature=(float(x), float(y)),
-                                  feature_scale=float(s),
-                                  feature_id=int(featureid),
-                                  feature_color=(float(r), float(g), float(b)))
-
+            track[image] = pysfm.Keypoint(x, y, s, r, g, b, featureid)
+        tracks_graph.add_track(track_id, track)
     return tracks_graph
 
 
 def tracks_and_images(graph):
     """List of tracks and images in the graph."""
-    tracks, images = [], []
-    for n in graph.nodes(data=True):
-        if n[1]['bipartite'] == 0:
-            images.append(n[0])
-        else:
-            tracks.append(n[0])
-    return tracks, images
+    return graph.get_track_ids(), graph.get_shot_ids()
 
 
 def common_tracks(graph, im1, im2):
@@ -98,7 +87,8 @@ def common_tracks(graph, im1, im2):
     Returns:
         tuple: tracks, feature from first image, feature from second image
     """
-    t1, t2 = graph[im1], graph[im2]
+    t1, t2 = graph.get_observations_of_shot(im1),\
+        graph.get_observations_of_shot(im2)
     tracks, p1, p2 = [], [], []
     for track in t1:
         if track in t2:
@@ -126,7 +116,7 @@ def all_common_tracks(graph, tracks, include_features=True, min_common=50):
     """
     track_dict = defaultdict(list)
     for track in tracks:
-        track_images = sorted(graph[track].keys())
+        track_images = sorted(graph.get_observations_of_track(track).keys())
         for im1, im2 in combinations(track_images, 2):
             track_dict[im1, im2].append(track)
 
@@ -136,8 +126,10 @@ def all_common_tracks(graph, tracks, include_features=True, min_common=50):
             continue
         im1, im2 = k
         if include_features:
-            p1 = np.array([graph[im1][tr]['feature'] for tr in v])
-            p2 = np.array([graph[im2][tr]['feature'] for tr in v])
+            p1 = np.array([graph.get_observations_of_shot(im1)
+                           [tr]['feature'] for tr in v])
+            p2 = np.array([graph.get_observations_of_shot(im2)
+                           [tr]['feature'] for tr in v])
             common_tracks[im1, im2] = (v, p1, p2)
         else:
             common_tracks[im1, im2] = v
@@ -151,103 +143,3 @@ def _good_track(track, min_length):
     if len(images) != len(set(images)):
         return False
     return True
-
-
-TRACKS_VERSION = 1
-TRACKS_HEADER = u'OPENSFM_TRACKS_VERSION'
-
-
-def load_tracks_graph(fileobj):
-    """ Load a tracks graph from file object """
-    version = _tracks_file_version(fileobj)
-    return getattr(sys.modules[__name__], '_load_tracks_graph_v%d' % version)(fileobj)
-
-
-def save_tracks_graph(fileobj, graph):
-    """ Save a tracks graph to some file object """
-    fileobj.write((TRACKS_HEADER + u'_v%d\n') % TRACKS_VERSION)
-    getattr(sys.modules[__name__], '_save_tracks_graph_v%d' % TRACKS_VERSION)(fileobj, graph)
-
-
-def _tracks_file_version(fileobj):
-    """ Extract tracks file version by reading header.
-
-    Return 0 version if no vrsion/header was red
-    """
-    current_position = fileobj.tell()
-    line = fileobj.readline()
-    if line.startswith(TRACKS_HEADER):
-        version = int(line.split('_v')[1])
-    else:
-        fileobj.seek(current_position)
-        version = 0
-    return version
-
-
-def _load_tracks_graph_v0(fileobj):
-    """ Tracks graph file base version reading
-
-    Uses some default scale for compliancy
-    """
-    default_scale = 0.004  # old default reprojection_sd config
-    g = nx.Graph()
-    for line in fileobj:
-        image, track, observation, x, y, R, G, B = line.split('\t')
-        g.add_node(image, bipartite=0)
-        g.add_node(track, bipartite=1)
-        g.add_edge(
-            image, track,
-            feature=(float(x), float(y)),
-            feature_scale=float(default_scale),
-            feature_id=int(observation),
-            feature_color=(float(R), float(G), float(B)))
-    return g
-
-
-def _save_tracks_graph_v0(fileobj, graph):
-    """ Tracks graph file base version saving """
-    for node, data in graph.nodes(data=True):
-        if data['bipartite'] == 0:
-            image = node
-            for track, data in graph[image].items():
-                x, y = data['feature']
-                fid = data['feature_id']
-                r, g, b = data['feature_color']
-                fileobj.write(u'%s\t%s\t%d\t%g\t%g\t%g\t%g\t%g\n' % (
-                    str(image), str(track), fid, x, y, r, g, b))
-
-
-def _load_tracks_graph_v1(fileobj):
-    """ Version 1 of tracks graph file loading
-
-    Feature scale was added
-    """
-    g = nx.Graph()
-    for line in fileobj:
-        image, track, observation, x, y, scale, R, G, B = line.split('\t')
-        g.add_node(image, bipartite=0)
-        g.add_node(track, bipartite=1)
-        g.add_edge(
-            image, track,
-            feature=(float(x), float(y)),
-            feature_scale=float(scale),
-            feature_id=int(observation),
-            feature_color=(float(R), float(G), float(B)))
-    return g
-
-
-def _save_tracks_graph_v1(fileobj, graph):
-    """ Version 1 of tracks graph file saving
-
-    Feature scale was added
-    """
-    for node, data in graph.nodes(data=True):
-        if data['bipartite'] == 0:
-            image = node
-            for track, data in graph[image].items():
-                x, y = data['feature']
-                s = data['feature_scale']
-                fid = data['feature_id']
-                r, g, b = data['feature_color']
-                fileobj.write(u'%s\t%s\t%d\t%g\t%g\t%g\t%g\t%g\t%g\n' % (
-                    str(image), str(track), fid, x, y, s, r, g, b))
