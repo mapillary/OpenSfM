@@ -55,14 +55,6 @@ add_subdirectory(third_party/pybind11)
 add_subdirectory(third_party/akaze)
 add_subdirectory(third_party/vlfeat)
 
-####### OpenSfM libraries #######
-add_subdirectory(foundation)
-add_subdirectory(bundle)
-add_subdirectory(dense)
-add_subdirectory(features)
-add_subdirectory(geometry)
-add_subdirectory(robust)
-
 ####### Debugging #######
 if (CMAKE_BUILD_TYPE MATCHES DEBUG)
     add_executable(debug_c_extension
@@ -85,18 +77,19 @@ if (OPENSFM_BUILD_TESTS)
               third_party/gtest/gmock_gtest_all.cc
               third_party/gtest/gmock_main.cc)
 
-  add_library(testing_main testing_main.cc)
-  target_link_libraries(testing_main
+  set(TEST_MAIN test_main)
+  add_library(${TEST_MAIN} testing_main.cc)
+  target_link_libraries(${TEST_MAIN}
                         ${GFLAGS_LIBRARY}
                         ${GLOG_LIBRARY}
                         gtest)
-
-  add_executable(depthmap_test dense/src/depthmap_test.cc dense/src/depthmap.cc)
-  target_include_directories(depthmap_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-  target_link_libraries(depthmap_test
-                        PUBLIC
-                        ${OpenCV_LIBS}
-                        testing_main)
-  add_test(depthmap_test depthmap_test)
-
 endif()
+
+####### OpenSfM libraries #######
+add_subdirectory(foundation)
+add_subdirectory(bundle)
+add_subdirectory(dense)
+add_subdirectory(features)
+add_subdirectory(geometry)
+add_subdirectory(robust)
+add_subdirectory(sfm)
