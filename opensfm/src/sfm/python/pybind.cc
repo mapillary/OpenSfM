@@ -11,7 +11,7 @@
 PYBIND11_MODULE(pysfm, m) {
 
   py::class_<Keypoint>(m, "Keypoint")
-    .def(py::init())
+    .def(py::init<double, double, double, int, int, int, int>())
     .def_readwrite("point", &Keypoint::point)
     .def_readwrite("scale", &Keypoint::scale)
     .def_readwrite("id", &Keypoint::id)
@@ -30,6 +30,7 @@ PYBIND11_MODULE(pysfm, m) {
     .def("instanciate_from_file", &TracksManager::InstanciateFromFile)
     .def("write_to_file", &TracksManager::WriteToFile)
     .def("get_all_common_observations", &TracksManager::GetAllCommonObservations)
+    .def("get_all_common_observations_all_pairs", &TracksManager::GetAllCommonObservationsAllPairs)
     ;
 }
 

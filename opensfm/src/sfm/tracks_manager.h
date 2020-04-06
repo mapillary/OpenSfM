@@ -10,7 +10,7 @@
 
 class TracksManager {
  public:
-  void AddTrack(int id, const std::unordered_map<ShotId, Keypoint>& track) {
+  void AddTrack(TrackId id, const std::unordered_map<ShotId, Keypoint>& track) {
     for (const auto observation : track) {
       tracks_per_shot_[observation.first][id] = observation.second;
       shot_per_tracks_[id][observation.first] = observation.second;
@@ -82,9 +82,8 @@ class TracksManager {
     return obervations;
   }
 
-  // For pair bootstrapping
-  using KeyPointPair = std::pair<Keypoint, Keypoint>;
-  std::vector<KeyPointPair> GetAllCommonObservations(
+  using KeyPointTuple = std::tuple<TrackId, Keypoint, Keypoint>;
+  std::vector<KeyPointTuple> GetAllCommonObservations(
       const ShotId& shot1, const ShotId& shot2) const {
     auto findShot1 = tracks_per_shot_.find(shot1);
     auto findShot2 = tracks_per_shot_.find(shot2);
@@ -101,14 +100,36 @@ class TracksManager {
       per_track[p.first].push_back(p.second);
     }
 
-    std::vector<KeyPointPair> pairs;
+    std::vector<KeyPointTuple> tuples;
     for (const auto& p : per_track) {
       if (p.second.size() < 2) {
         continue;
       }
-      pairs.push_back(std::make_pair(p.second[0], p.second[1]));
+      tuples.push_back(std::make_tuple(p.first, p.second[0], p.second[1]));
     }
-    return pairs;
+    return tuples;
+  }
+
+  using ShotPair = std::pair<ShotId, ShotId>;
+  std::unordered_map<ShotPair, std::vector<KeyPointTuple>, HashPair>
+  GetAllCommonObservationsAllPairs() const {
+    std::unordered_map<ShotPair, std::vector<KeyPointTuple>, HashPair> common_per_pair;
+    for (const auto& track : shot_per_tracks_) {
+      for (std::unordered_map<ShotId, Keypoint>::const_iterator it1 =
+               track.second.begin(); it1 != track.second.end(); ++it1) {
+        const auto& shotID1 = it1->first;
+        for (std::unordered_map<ShotId, Keypoint>::const_iterator it2 = it1;
+             it2 != track.second.end(); ++it2) {
+          const auto& shotID2 = it2->first;
+          if (shotID1 == shotID2) {
+            continue;
+          }
+          common_per_pair[std::make_pair(shotID1, shotID2)].push_back(
+              std::make_tuple(track.first, it1->second, it2->second));
+        }
+      }
+    }
+    return common_per_pair;
   }
 
   // I/O
@@ -187,8 +208,9 @@ class TracksManager {
   }
 
   static TracksManager InstanciateFromFileV0(std::ifstream& fstream) {
-    std::string image = "", linw = "";
-    int trackID = -1, featureID = -1;
+    ShotId image = "", linw = "";
+    TrackId trackID = "";
+    int featureID = -1;
     double x = -1.0, y = -1.0;
     int r = 0, g = 0, b = 0;
 
@@ -202,8 +224,9 @@ class TracksManager {
   }
 
   static TracksManager InstanciateFromFileV1(std::ifstream& fstream) {
-    std::string image = "", linw = "";
-    int trackID = -1, featureID = -1;
+    ShotId image = "", linw = "";
+    TrackId trackID = "";
+    int featureID = -1;
     double x = -1.0, y = -1.0, scale = 0.;
     int r = 0, g = 0, b = 0;
 
