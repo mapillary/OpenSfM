@@ -17,6 +17,7 @@ PYBIND11_MODULE(pysfm, m) {
     .def("get_observations_of_point_at_shot", &TracksManager::GetObservationsOfPointsAtShot)
     .def("get_observations_of_shot", &TracksManager::GetObservationsOfShot)
     .def("instanciate_from_file", &TracksManager::InstanciateFromFile)
+    .def("write_to_file", &TracksManager::WriteToFile)
     .def("get_all_common_observations", &TracksManager::GetAllCommonObservations)
     ;
 }
