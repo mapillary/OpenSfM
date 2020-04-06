@@ -1210,7 +1210,7 @@ def merge_reconstructions(reconstructions, config):
 def paint_reconstruction(data, tracks_manager, reconstruction):
     """Set the color of the points from the color of the tracks."""
     for k, point in reconstruction.points.items():
-        point.color = next(iter(tracks_manager.get_observations_of_point(k).values())).color
+        point.color = map(float, next(iter(tracks_manager.get_observations_of_point(k).values())).color)
 
 
 class ShouldBundle:
