@@ -23,9 +23,9 @@ class TempFile {
 class TracksManagerTest : public ::testing::Test {
  protected:
   void SetUp() {
-    track["1"] = Keypoint(1.0, 1.0, 1.0);
-    track["2"] = Keypoint(2.0, 2.0, 2.0);
-    track["3"] = Keypoint(3.0, 3.0, 3.0);
+    track["1"] = Keypoint(1.0, 1.0, 1.0, 1, 1, 1, 1);
+    track["2"] = Keypoint(2.0, 2.0, 2.0, 2, 2, 2, 2);
+    track["3"] = Keypoint(3.0, 3.0, 3.0, 3, 3, 3, 3);
     manager.AddTrack(1, track);
   }
 
@@ -45,12 +45,12 @@ TEST_F(TracksManagerTest, ReturnsTracksIDs) {
 }
 
 TEST_F(TracksManagerTest, ReturnsObservation) {
-  EXPECT_EQ(manager.GetObservation("1", 1), Keypoint(1.0, 1.0, 1.0));
+  EXPECT_EQ(manager.GetObservation("1", 1), Keypoint(1.0, 1.0, 1.0, 1, 1, 1, 1));
 }
 
 TEST_F(TracksManagerTest, ReturnsAllCommonObservations) {
   const auto pair =
-      std::make_pair(Keypoint(1.0, 1.0, 1.0), Keypoint(2.0, 2.0, 2.0));
+      std::make_pair(Keypoint(1.0, 1.0, 1.0, 1, 1, 1, 1), Keypoint(2.0, 2.0, 2.0, 2, 2, 2, 2));
   std::vector<std::pair<Keypoint, Keypoint> > one_pair{pair};
   EXPECT_EQ(manager.GetAllCommonObservations("1", "2"), one_pair);
 }
@@ -61,13 +61,13 @@ TEST_F(TracksManagerTest, ReturnsObservationsOfPoint) {
 
 TEST_F(TracksManagerTest, ReturnsObservationsOfShot) {
   std::unordered_map<TrackId, Keypoint> shot;
-  shot[1] = Keypoint(1.0, 1.0, 1.0);
+  shot[1] = Keypoint(1.0, 1.0, 1.0, 1, 1, 1, 1);
   EXPECT_EQ(manager.GetObservationsOfShot("1"), shot);
 }
 
 TEST_F(TracksManagerTest, ReturnsObservationsOfPointsAtShot) {
   std::unordered_map<TrackId, Keypoint> shot;
-  shot[1] = Keypoint(1.0, 1.0, 1.0);
+  shot[1] = Keypoint(1.0, 1.0, 1.0, 1, 1, 1, 1);
   EXPECT_EQ(manager.GetObservationsOfPointsAtShot({1}, "1"), shot);
 }
 

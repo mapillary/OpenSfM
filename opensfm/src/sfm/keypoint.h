@@ -5,7 +5,8 @@
 
 struct Keypoint {
   Keypoint() = default;
-  Keypoint(double x, double y, double s) : point(x, y), scale(s), color(0, 0, 0), id(0) {}
+  Keypoint(double x, double y, double s, int r, int g, int b, int id)
+      : point(x, y), scale(s), color(r, g, b), id(id) {}
   bool operator==(const Keypoint& k) const {
     return point == k.point && scale == k.scale && color == k.color &&
            id == k.id;
