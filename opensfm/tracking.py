@@ -71,9 +71,9 @@ def create_tracks_graph(features, colors, matches, config):
     return tracks_graph
 
 
-def tracks_and_images(graph):
-    """List of tracks and images in the graph."""
-    return graph.get_track_ids(), graph.get_shot_ids()
+def tracks_and_images(tracks_manager):
+    """List of tracks and images in the tracks_manager."""
+    return tracks_manager.get_track_ids(), tracks_manager.get_shot_ids()
 
 
 def common_tracks(graph, im1, im2):
@@ -100,12 +100,11 @@ def common_tracks(graph, im1, im2):
     return tracks, p1, p2
 
 
-def all_common_tracks(graph, tracks, include_features=True, min_common=50):
+def all_common_tracks(tracks_manager, include_features=True, min_common=50):
     """List of tracks observed by each image pair.
 
     Args:
-        graph: tracks graph
-        tracks: list of track identifiers
+        tracks_manager: tracks manager
         include_features: whether to include the features from the images
         min_common: the minimum number of tracks the two images need to have
             in common
@@ -114,25 +113,17 @@ def all_common_tracks(graph, tracks, include_features=True, min_common=50):
         tuple: im1, im2 -> tuple: tracks, features from first image, features
         from second image
     """
-    track_dict = defaultdict(list)
-    for track in tracks:
-        track_images = sorted(graph.get_observations_of_track(track).keys())
-        for im1, im2 in combinations(track_images, 2):
-            track_dict[im1, im2].append(track)
-
     common_tracks = {}
-    for k, v in iteritems(track_dict):
-        if len(v) < min_common:
+    for(im1, im2), tuples in tracks_manager.get_all_common_observations_all_pairs().items():
+        if len(tuples) < min_common:
             continue
-        im1, im2 = k
+
         if include_features:
-            p1 = np.array([graph.get_observations_of_shot(im1)
-                           [tr]['feature'] for tr in v])
-            p2 = np.array([graph.get_observations_of_shot(im2)
-                           [tr]['feature'] for tr in v])
-            common_tracks[im1, im2] = (v, p1, p2)
+            common_tracks[im1, im2] = ([v for v, _, _ in tuples],
+                                       np.array([p.point for _, p, _ in tuples]),
+                                       np.array([p.point for _, _, p in tuples]))
         else:
-            common_tracks[im1, im2] = v
+            common_tracks[im1, im2] = [v for v, _, _ in tuples]
     return common_tracks
 
 
