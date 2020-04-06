@@ -15,6 +15,7 @@ from opensfm import geo
 from opensfm import tracking
 from opensfm import features
 from opensfm import upright
+from opensfm import pysfm
 
 
 logger = logging.getLogger(__name__)
@@ -368,17 +369,15 @@ class DataSet(object):
         """Return path of tracks file"""
         return os.path.join(self.data_path, filename or 'tracks.csv')
 
-    def load_tracks_graph(self, filename=None):
-        """Return graph (networkx data structure) of tracks"""
-        with io.open_rt(self._tracks_graph_file(filename)) as fin:
-            return tracking.load_tracks_graph(fin)
+    def load_tracks_manager(self, filename=None):
+        """Return the tracks manager"""
+        return pysfm.TracksManager.instanciate_from_file(self._tracks_graph_file(filename))
 
     def tracks_exists(self, filename=None):
         return os.path.isfile(self._tracks_graph_file(filename))
 
-    def save_tracks_graph(self, graph, filename=None):
-        with io.open_wt(self._tracks_graph_file(filename)) as fout:
-            tracking.save_tracks_graph(fout, graph)
+    def save_tracks_manager(self, graph, filename=None):
+        pysfm.TracksManager.write_to_file(self._tracks_graph_file(filename))
 
     def _reconstruction_file(self, filename):
         """Return path of reconstruction file"""
