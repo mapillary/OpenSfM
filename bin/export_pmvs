@@ -4,7 +4,6 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 import argparse
 
 import cv2
-from networkx.algorithms import bipartite
 import numpy as np
 
 from opensfm import dataset
@@ -40,11 +39,10 @@ if __name__ == "__main__":
     # load tracks for vis.dat
     try:
         if args.undistorted:
-            graph = udata.load_undistorted_tracks_graph()
+            tracks_manager = udata.load_undistorted_tracks_manager()
         else:
-            graph = data.load_tracks_graph()
-        tracks, images = tracking.tracks_and_images(graph)
-        image_graph = bipartite.weighted_projected_graph(graph, images)
+            tracks_manager = data.load_tracks_manager()
+        image_graph = tracking.as_weighted_graph(tracks_manager)
         use_vis_data = True
     except IOError:
         use_vis_data = False

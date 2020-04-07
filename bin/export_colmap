@@ -362,7 +362,7 @@ def export_cameras_reconstruction(data, db, path, camera_map):
 def export_shots_reconstruction(data, db, path, camera_map, images_map,
                                 features_map, points_map):
     reconstructions = data.load_reconstruction()
-    graph = data.load_tracks_graph()
+    tracks_manager = data.load_tracks_manager()
 
     with io.open_wt(os.path.join(path, 'images.txt')) as fout:
         for reconstruction in reconstructions:
@@ -380,7 +380,7 @@ def export_shots_reconstruction(data, db, path, camera_map, images_map,
                                 t[0], t[1], t[2],
                                 colmap_camera_id, shot_id]
 
-                point_per_feat = {graph[shot_id][p]['feature_id']: p for p in graph[shot_id]}
+                point_per_feat = {obs.id: k for k, obs in tracks_manager.get_observations_of_shot(shot_id).items()}
                 for feature_id in range(len(features_map[shot_id])):
                     colmap_point_id = -1
                     if feature_id in point_per_feat:
@@ -399,7 +399,7 @@ def export_shots_reconstruction(data, db, path, camera_map, images_map,
 
 def export_points_reconstruction(data, db, path, camera_map, images_map):
     reconstructions = data.load_reconstruction()
-    graph = data.load_tracks_graph()
+    tracks_manager = data.load_tracks_manager()
 
     points_map = {}
     with io.open_wt(os.path.join(path, 'points3D.txt')) as fout:
@@ -411,11 +411,9 @@ def export_points_reconstruction(data, db, path, camera_map, images_map):
                 format_tuple = [int(i), c[0], c[1], c[2],
                                 int(cl[0]), int(cl[1]), int(cl[2]), 0.0]
 
-                for image in graph[point.id]:
-                    feature_data = graph[point.id][image]
-                    feature_id = feature_data['feature_id']
+                for image, obs in tracks_manager.get_observations_of_point(point.id).items():
                     format_line += '%d %d '
-                    format_tuple += [images_map[image], feature_id]
+                    format_tuple += [images_map[image], obs.id]
                 format_line += '\n'
                 format_tuple = tuple(format_tuple)
 
