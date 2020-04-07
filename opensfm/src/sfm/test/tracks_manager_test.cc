@@ -9,7 +9,7 @@ class TempFile {
   TempFile() {
     char tmpname[L_tmpnam];
     auto dummy = tmpnam(tmpname);
-    filename = "/home/yann/toto.txt";  // std::string(tmpname);
+    filename = std::string(tmpname);
   }
 
   ~TempFile() { remove(filename.c_str()); }
