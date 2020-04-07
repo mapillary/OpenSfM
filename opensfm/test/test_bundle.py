@@ -60,10 +60,26 @@ def _projection_errors_std(points):
     return np.std(all_errors)
 
 
+def tracks_manager_to_graph(tracks_manager):
+    shot_ids = tracks_manager.get_shot_ids()
+    track_ids = tracks_manager.get_track_ids()
+
+    graph = nx.Graph()
+    for track_id in track_ids:
+        graph.add_node(track_id, bipartite=1)
+    for shot_id in shot_ids:
+        graph.add_node(shot_id, bipartite=0)
+    for track_id in track_ids:
+        for im, obs in tracks_manager.get_observations_of_point(track_id).items():
+            graph.add_edge(im, track_id, feature=obs.point, feature_scale=obs.scale,
+                           feature_id=obs.id, feature_color=obs.color)
+    return graph
+
+
 def test_bundle_projection_fixed_internals(scene_synthetic):
     reference = scene_synthetic[0].get_reconstruction()
     camera_priors = {c.id: c for c in scene_synthetic[0].cameras}
-    graph = scene_synthetic[5]
+    graph = tracks_manager_to_graph(scene_synthetic[5])
     adjusted = copy.deepcopy(reference)
 
     custom_config = config.default_config()
