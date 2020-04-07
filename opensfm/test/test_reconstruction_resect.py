@@ -5,32 +5,37 @@ from opensfm import reconstruction
 from opensfm import multiview
 from opensfm import config
 from opensfm import types
+from opensfm import pysfm
 from opensfm.synthetic_data import synthetic_scene
 
 
 def test_corresponding_tracks():
-    t1 = {1: {"feature_id": 1}}
-    t2 = {1: {"feature_id": 2}}
+    t1 = {1: pysfm.Keypoint(1.0, 1.0, 1.0, 0, 0, 0, 1)}
+    t2 = {1: pysfm.Keypoint(1.0, 1.0, 1.0, 0, 0, 0, 2)}
 
     correspondences = reconstruction.corresponding_tracks(t1, t2)
     assert len(correspondences) == 0
 
-    t1 = {1: {"feature_id": 3}}
-    t2 = {2: {"feature_id": 3}}
+    t1 = {1: pysfm.Keypoint(1.0, 1.0, 1.0, 0, 0, 0, 3)}
+    t2 = {2: pysfm.Keypoint(1.0, 1.0, 1.0, 0, 0, 0, 3)}
 
     correspondences = reconstruction.corresponding_tracks(t1, t2)
     assert len(correspondences) == 1
     assert correspondences[0] == (1, 2)
 
-    t1 = {1: {"feature_id": 3}, 2: {"feature_id": 4}}
-    t2 = {1: {"feature_id": 4}, 2: {"feature_id": 5}}
+    t1 = {1: pysfm.Keypoint(1.0, 1.0, 1.0, 0, 0, 0, 3),
+          2: pysfm.Keypoint(1.0, 1.0, 1.0, 0, 0, 0, 4)}
+    t2 = {1: pysfm.Keypoint(1.0, 1.0, 1.0, 0, 0, 0, 4),
+          2: pysfm.Keypoint(1.0, 1.0, 1.0, 0, 0, 0, 5)}
 
     correspondences = reconstruction.corresponding_tracks(t1, t2)
     assert len(correspondences) == 1
     assert correspondences[0] == (2, 1)
 
-    t1 = {1: {"feature_id": 5}, 2: {"feature_id": 6}}
-    t2 = {3: {"feature_id": 5}, 4: {"feature_id": 6}}
+    t1 = {1: pysfm.Keypoint(1.0, 1.0, 1.0, 0, 0, 0, 5),
+          2: pysfm.Keypoint(1.0, 1.0, 1.0, 0, 0, 0, 6)}
+    t2 = {3: pysfm.Keypoint(1.0, 1.0, 1.0, 0, 0, 0, 5),
+          4: pysfm.Keypoint(1.0, 1.0, 1.0, 0, 0, 0, 6)}
 
     correspondences = reconstruction.corresponding_tracks(t1, t2)
     correspondences.sort(key=lambda c: c[0] + c[1])

@@ -835,34 +835,39 @@ def resect(tracks_manager, graph_inliers, reconstruction, shot_id,
 
 
 def corresponding_tracks(tracks1, tracks2):
-    features1 = {tracks1[t1]["feature_id"]: t1 for t1 in tracks1}
+    features1 = {obs.id: t1 for t1, obs in tracks1.items()}
     corresponding_tracks = []
-    for t2 in tracks2:
-        feature_id = tracks2[t2]["feature_id"]
+    for t2, obs in tracks2.items():
+        feature_id = obs.id
         if feature_id in features1:
             corresponding_tracks.append((features1[feature_id], t2))
     return corresponding_tracks
 
 
 def compute_common_tracks(reconstruction1, reconstruction2,
-                          graph1, graph2):
+                          tracks_manager1, tracks_manager2):
     common_tracks = set()
     common_images = set(reconstruction1.shots.keys()).intersection(
         reconstruction2.shots.keys())
+
+    all_shot_ids1 = set(tracks_manager1.get_shot_ids())
+    all_shot_ids2 = set(tracks_manager2.get_shot_ids())
     for image in common_images:
-        if image not in graph1 or image not in graph2:
+        if image not in all_shot_ids1 or image not in all_shot_ids2:
             continue
-        for t1, t2 in corresponding_tracks(graph1[image], graph2[image]):
+        at_shot1 = tracks_manager1.get_observations_of_shot(image)
+        at_shot2 = tracks_manager2.get_observations_of_shot(image)
+        for t1, t2 in corresponding_tracks(at_shot1, at_shot2):
             if t1 in reconstruction1.points and t2 in reconstruction2.points:
                 common_tracks.add((t1, t2))
     return list(common_tracks)
 
 
-def resect_reconstruction(reconstruction1, reconstruction2, graph1,
-                          graph2, threshold, min_inliers):
+def resect_reconstruction(reconstruction1, reconstruction2, tracks_manager1,
+                          tracks_manager2, threshold, min_inliers):
 
     common_tracks = compute_common_tracks(
-        reconstruction1, reconstruction2, graph1, graph2)
+        reconstruction1, reconstruction2, tracks_manager1, tracks_manager2)
     worked, similarity, inliers = align_two_reconstruction(
         reconstruction1, reconstruction2, common_tracks, threshold)
     if not worked:
