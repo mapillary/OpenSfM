@@ -21,6 +21,7 @@ PYBIND11_MODULE(pysfm, m) {
   py::class_<TracksManager>(m, "TracksManager")
     .def(py::init())
     .def("add_track", &TracksManager::AddTrack)
+    .def("add_observation", &TracksManager::AddObservation)
     .def("get_shot_ids", &TracksManager::GetShotIds)
     .def("get_track_ids", &TracksManager::GetTrackIds)
     .def("get_observation", &TracksManager::GetObservation)

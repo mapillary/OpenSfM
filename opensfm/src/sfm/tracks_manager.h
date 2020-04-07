@@ -10,12 +10,18 @@
 
 class TracksManager {
  public:
-  void AddTrack(TrackId id, const std::unordered_map<ShotId, Keypoint>& track) {
+  void AddTrack(const TrackId& id, const std::unordered_map<ShotId, Keypoint>& track) {
     for (const auto observation : track) {
       tracks_per_shot_[observation.first][id] = observation.second;
       shot_per_tracks_[id][observation.first] = observation.second;
     }
   }
+
+  void AddObservation(const ShotId& shot_id, const TrackId& track_id, const Keypoint& observation) {
+    tracks_per_shot_[shot_id][track_id] = observation;
+    shot_per_tracks_[track_id][shot_id] = observation;
+  }
+
   std::vector<ShotId> GetShotIds() const {
     std::vector<ShotId> shots;
     for (const auto& it : tracks_per_shot_) {
@@ -118,10 +124,13 @@ class TracksManager {
       for (std::unordered_map<ShotId, Keypoint>::const_iterator it1 =
                track.second.begin(); it1 != track.second.end(); ++it1) {
         const auto& shotID1 = it1->first;
-        for (std::unordered_map<ShotId, Keypoint>::const_iterator it2 = it1;
+        for (std::unordered_map<ShotId, Keypoint>::const_iterator it2 = track.second.begin();
              it2 != track.second.end(); ++it2) {
           const auto& shotID2 = it2->first;
           if (shotID1 == shotID2) {
+            continue;
+          }
+          if(shotID1 > shotID2){
             continue;
           }
           common_per_pair[std::make_pair(shotID1, shotID2)].push_back(
