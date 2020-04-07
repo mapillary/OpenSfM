@@ -2,6 +2,7 @@ import logging
 import sys
 
 import numpy as np
+import networkx as nx
 
 from collections import defaultdict
 from itertools import combinations
@@ -134,3 +135,33 @@ def _good_track(track, min_length):
     if len(images) != len(set(images)):
         return False
     return True
+
+
+def as_weighted_graph(tracks_manager):
+    """ Return the tracks manager as a weighted graph
+        having shots a snodes and weighted by the # of
+        common tracks between two nodes.
+    """
+    tracks, images = tracking.tracks_and_images(tracks_manager)
+    image_graph = nx.Graph()
+    for im in images:
+        image_graph.add_node(im)
+    for k, v in tracks_manager.get_all_common_observations_all_pairs().items():
+        image_graph.add_edge(k[0], k[1], weight=len(v))
+    return image_graph
+
+
+def as_graph(tracks_manager):
+    """ Return the tracks manager as a bipartite graph (legacy). """
+    tracks, images = tracking.tracks_and_images(tracks_manager)
+
+    graph = nx.Graph()
+    for track_id in tracks:
+        graph.add_node(track_id, bipartite=1)
+    for shot_id in images:
+        graph.add_node(shot_id, bipartite=0)
+    for track_id in track_ids:
+        for im, obs in tracks_manager.get_observations_of_point(track_id).items():
+            graph.add_edge(im, track_id, feature=obs.point, feature_scale=obs.scale,
+                           feature_id=obs.id, feature_color=obs.color)
+    return graph
