@@ -177,7 +177,7 @@ def add_camera_constraints_hard(ra, reconstruction_shots,
 def load_reconstruction(path, index):
     d1 = dataset.DataSet(path)
     r1 = d1.load_reconstruction()[index]
-    g1 = d1.load_tracks_graph()
+    g1 = d1.load_tracks_manager()
     return (path + ("_%s" % index)), (r1, g1)
 
 
