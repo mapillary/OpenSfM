@@ -142,7 +142,7 @@ def as_weighted_graph(tracks_manager):
         having shots a snodes and weighted by the # of
         common tracks between two nodes.
     """
-    tracks, images = tracking.tracks_and_images(tracks_manager)
+    tracks, images = tracks_and_images(tracks_manager)
     image_graph = nx.Graph()
     for im in images:
         image_graph.add_node(im)
@@ -153,7 +153,7 @@ def as_weighted_graph(tracks_manager):
 
 def as_graph(tracks_manager):
     """ Return the tracks manager as a bipartite graph (legacy). """
-    tracks, images = tracking.tracks_and_images(tracks_manager)
+    tracks, images = tracks_and_images(tracks_manager)
 
     graph = nx.Graph()
     for track_id in tracks:
