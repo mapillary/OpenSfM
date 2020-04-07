@@ -376,8 +376,8 @@ class DataSet(object):
     def tracks_exists(self, filename=None):
         return os.path.isfile(self._tracks_graph_file(filename))
 
-    def save_tracks_manager(self, graph, filename=None):
-        pysfm.TracksManager.write_to_file(self._tracks_graph_file(filename))
+    def save_tracks_manager(self, tracks_manager, filename=None):
+        pysfm.TracksManager.write_to_file(self._tracks_graph_file(filename), tracks_manager)
 
     def _reconstruction_file(self, filename):
         """Return path of reconstruction file"""

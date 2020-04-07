@@ -38,7 +38,7 @@ def load_matches(dataset, images):
     return matches
 
 
-def create_tracks_graph(features, colors, matches, config):
+def create_tracks_manager(features, colors, matches, config):
     """Link matches into tracks."""
     logger.debug('Merging features onto tracks')
     uf = UnionFind()
@@ -58,17 +58,17 @@ def create_tracks_graph(features, colors, matches, config):
     tracks = [t for t in sets.values() if _good_track(t, min_length)]
     logger.debug('Good tracks: {}'.format(len(tracks)))
 
-    tracks_graph = pysfm.TracksManager()
+    tracks_manager = pysfm.TracksManager()
     for track_id, track in enumerate(tracks):
-        track = {}
+        track_tmp = {}
         for image, featureid in track:
             if image not in features:
                 continue
             x, y, s = features[image][featureid]
             r, g, b = colors[image][featureid]
-            track[image] = pysfm.Keypoint(x, y, s, r, g, b, featureid)
-        tracks_graph.add_track(track_id, track)
-    return tracks_graph
+            track_tmp[image] = pysfm.Keypoint(x, y, s, int(r), int(g), int(b), featureid)
+        tracks_manager.add_track(str(track_id), track_tmp)
+    return tracks_manager
 
 
 def tracks_and_images(tracks_manager):
