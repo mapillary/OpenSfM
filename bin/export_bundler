@@ -36,11 +36,11 @@ if __name__ == "__main__":
     if args.undistorted:
         udata = dataset.UndistortedDataSet(data, 'undistorted')
         reconstructions = udata.load_undistorted_reconstruction()
-        track_graph = udata.load_undistorted_tracks_graph()
+        track_manager = udata.load_undistorted_tracks_manager()
         images = reconstructions[0].shots.keys()
     else:
         reconstructions = data.load_reconstruction()
-        track_graph = data.load_tracks_graph()
+        track_manager = data.load_tracks_manager()
         images = data.images()
 
-    io.export_bundler(images, reconstructions, track_graph, bundle_file_path, list_file_path)
+    io.export_bundler(images, reconstructions, track_manager, bundle_file_path, list_file_path)

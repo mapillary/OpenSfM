@@ -21,10 +21,10 @@ class Command:
         data = dataset.DataSet(args.dataset)
         udata = dataset.UndistortedDataSet(data, 'undistorted')
         reconstructions = udata.load_undistorted_reconstruction()
-        graph = udata.load_undistorted_tracks_graph()
+        tracks_manager = udata.load_undistorted_tracks_manager()
 
         if reconstructions:
-            self.export(reconstructions[0], graph, udata, data)
+            self.export(reconstructions[0], tracks_manager, udata, data)
 
     def export(self, reconstruction, graph, udata, data):
         exporter = pydense.OpenMVSExporter()

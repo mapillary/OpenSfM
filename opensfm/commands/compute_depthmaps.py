@@ -31,6 +31,6 @@ class Command:
         udata = dataset.UndistortedDataSet(data, args.subfolder)
         data.config['interactive'] = args.interactive
         reconstructions = udata.load_undistorted_reconstruction()
-        graph = udata.load_undistorted_tracks_graph()
+        tracks_manager = udata.load_undistorted_tracks_manager()
 
-        dense.compute_depthmaps(udata, graph, reconstructions[0])
+        dense.compute_depthmaps(udata, tracks_manager, reconstructions[0])

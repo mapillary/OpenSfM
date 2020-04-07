@@ -1,7 +1,6 @@
 import logging
 from timeit import default_timer as timer
 
-from networkx.algorithms import bipartite
 
 from opensfm import dataset
 from opensfm import io
