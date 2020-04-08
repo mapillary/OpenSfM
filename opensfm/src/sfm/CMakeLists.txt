@@ -1,6 +1,8 @@
 set(SFM_FILES
+    observation.h
     tracks_manager.h
     types.h
+    src/tracks_manager.cc
 )
 add_library(sfm ${SFM_FILES})
 target_link_libraries(sfm 
@@ -25,6 +27,7 @@ target_link_libraries(pysfm
   PRIVATE 
     foundation
     pybind11
+    sfm
 )
 set_target_properties(pysfm PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${opensfm_SOURCE_DIR}/.."
