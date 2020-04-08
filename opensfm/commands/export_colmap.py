@@ -31,6 +31,11 @@
 
 # This script is based on an original implementation by True Price.
 
+from __future__ import print_function
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import absolute_import
+
 import sys
 import sqlite3
 import logging
@@ -370,7 +375,7 @@ def export_cameras_reconstruction(data, db, path, camera_map):
                     f = camera.focal*normalizer
                     k1 = camera.k1
                     k2 = camera.k2
-                    fout.write(u'%d %s %d %d %f %f %f %f %f\n' %
+                    fout.write('%d %s %d %d %f %f %f %f %f\n' %
                                (colmap_id, colmap_type, w, h, f, w*0.5, h*0.5, k1, k2))
                 elif camera.projection_type == 'brown':
                     f_x = camera.focal_x*normalizer
@@ -382,7 +387,7 @@ def export_cameras_reconstruction(data, db, path, camera_map):
                     k3 = camera.k3
                     p1 = camera.p1
                     p2 = camera.p2
-                    fout.write(u'%d %s %d %d %f %f %f %f %f %f %f %f %f %f %f %f\n' %
+                    fout.write('%d %s %d %d %f %f %f %f %f %f %f %f %f %f %f %f\n' %
                                (colmap_id, colmap_type, w, h, f_x, f_y, c_x, c_y,
                                k1, k2, p1, p2, k3,
                                0.0, 0.0, 0.0))
@@ -390,7 +395,7 @@ def export_cameras_reconstruction(data, db, path, camera_map):
                     f = camera.focal*normalizer
                     k1 = camera.k1
                     k2 = camera.k2
-                    fout.write(u'%d %s %d %d %f %f %f %f %f\n' %
+                    fout.write('%d %s %d %d %f %f %f %f %f\n' %
                                (colmap_id, colmap_type, w, h, f, w*0.5, h*0.5, k1, k2))
 
 
@@ -409,7 +414,7 @@ def export_shots_reconstruction(data, db, path, camera_map, images_map,
                 t = shot.pose.translation
                 q = angle_axis_to_quaternion(shot.pose.rotation)
 
-                format_line = u'%d %f %f %f %f %f %f %f %d %s\n'
+                format_line = '%d %f %f %f %f %f %f %f %d %s\n'
                 format_tuple = [colmap_shot_id,
                                 q[0], q[1], q[2], q[3],
                                 t[0], t[1], t[2],
@@ -442,12 +447,12 @@ def export_points_reconstruction(data, db, path, camera_map, images_map):
             for i, point in enumerate(reconstruction.points.values()):
                 c = point.coordinates
                 cl = point.color
-                format_line = u'%d %f %f %f %d %d %d %f '
+                format_line = '%d %f %f %f %d %d %d %f '
                 format_tuple = [int(i), c[0], c[1], c[2],
                                 int(cl[0]), int(cl[1]), int(cl[2]), 0.0]
 
                 for image, obs in tracks_manager.get_observations_of_point(point.id).items():
-                    format_line += u'%d %d '
+                    format_line += '%d %d '
                     format_tuple += [images_map[image], obs.id]
                 format_line += '\n'
                 format_tuple = tuple(format_tuple)
@@ -474,6 +479,6 @@ def angle_axis_to_quaternion(angle_axis):
 
 def export_ini_file(path, db_path, images_path):
     with io.open_wt(os.path.join(path, 'project.ini')) as fout:
-        fout.write(u'log_to_stderr=false\nlog_level=2\n')
-        fout.write(u'database_path=%s\n' % db_path)
-        fout.write(u'image_path=%s\n' % images_path)
+        fout.write('log_to_stderr=false\nlog_level=2\n')
+        fout.write('database_path=%s\n' % db_path)
+        fout.write('image_path=%s\n' % images_path)
