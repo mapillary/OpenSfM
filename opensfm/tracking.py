@@ -67,7 +67,7 @@ def create_tracks_manager(features, colors, matches, config):
                 continue
             x, y, s = features[image][featureid]
             r, g, b = colors[image][featureid]
-            track_tmp[image] = pysfm.Keypoint(x, y, s, int(r), int(g), int(b), featureid)
+            track_tmp[image] = pysfm.Observation(x, y, s, int(r), int(g), int(b), featureid)
         tracks_manager.add_track(str(track_id), track_tmp)
     return tracks_manager
 
