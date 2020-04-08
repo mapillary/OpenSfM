@@ -26,6 +26,10 @@ def test_run_all(tmpdir):
         commands.compute_depthmaps,
         commands.export_ply,
         commands.export_visualsfm,
+        commands.export_openmvs,
+        commands.export_pmvs,
+        commands.export_bundler,
+        commands.export_colmap
     ]
 
     for module in run_all_commands:
