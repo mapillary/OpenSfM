@@ -160,7 +160,7 @@ def as_graph(tracks_manager):
         graph.add_node(track_id, bipartite=1)
     for shot_id in images:
         graph.add_node(shot_id, bipartite=0)
-    for track_id in track_ids:
+    for track_id in tracks:
         for im, obs in tracks_manager.get_observations_of_point(track_id).items():
             graph.add_edge(im, track_id, feature=obs.point, feature_scale=obs.scale,
                            feature_id=obs.id, feature_color=obs.color)
