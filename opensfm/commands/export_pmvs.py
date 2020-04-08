@@ -1,60 +1,85 @@
-#!/usr/bin/env python3
-import os.path, sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-import argparse
+from __future__ import unicode_literals
 
+import logging
+import os
+import sys
 import cv2
+
 import numpy as np
 
 from opensfm import dataset
-from opensfm import features
+from opensfm import transformations as tf
 from opensfm import io
+from opensfm import types
 from opensfm import tracking
+from opensfm import features
+from six import iteritems
+
+logger = logging.getLogger(__name__)
 
 
-# Prepare OpenSfM output for dense reconstruction with PMVS
+class Command:
+    name = 'export_pmvs'
+    help = "Export reconstruction to PMVS"
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description='Convert output from OpenSfM to PMVS')
-    parser.add_argument('dataset', help='path to the dataset to be processed')
-    parser.add_argument('--output', help='output pmvs directory')
-    parser.add_argument('--undistorted',
-                        action='store_true',
-                        help='export the undistorted reconstruction')
-    args = parser.parse_args()
+    def add_arguments(self, parser):
+        parser.add_argument('dataset', help='dataset to process')
+        parser.add_argument('--points',
+                            action='store_true',
+                            help='export points')
+        parser.add_argument('--image_list',
+                            type=str,
+                            help='Export only the shots included in this file (path to .txt file)')
+        parser.add_argument('--output', help='output pmvs directory')
+        parser.add_argument('--undistorted',
+                            action='store_true',
+                            help='export the undistorted reconstruction')
 
-    data = dataset.DataSet(args.dataset)
-    udata = dataset.UndistortedDataSet(data, 'undistorted')
-    if args.output:
-        base_output_path = args.output
-    else:
-        base_output_path = os.path.join(data.data_path, 'pmvs')
+    def run(self, args):
+        data = dataset.DataSet(args.dataset)
+        udata = dataset.UndistortedDataSet(data, 'undistorted')
 
-    print "Converting dataset [%s] to PMVS dir [%s]" % (
-        data.data_path, base_output_path)
+        base_output_path = args.output if args.output else os.path.join(data.data_path, 'pmvs')
+        io.mkdir_p(base_output_path)
+        logger.info("Converting dataset [%s] to PMVS dir [%s]" % (
+            data.data_path, base_output_path))
 
-    io.mkdir_p(base_output_path)
-
-    # load tracks for vis.dat
-    try:
         if args.undistorted:
-            tracks_manager = udata.load_undistorted_tracks_manager()
+            reconstructions = udata.load_undistorted_reconstruction()
         else:
-            tracks_manager = data.load_tracks_manager()
-        image_graph = tracking.as_weighted_graph(tracks_manager)
-        use_vis_data = True
-    except IOError:
-        use_vis_data = False
+            reconstructions = data.load_reconstruction()
 
-    if args.undistorted:
-        reconstructions = udata.load_undistorted_reconstruction()
-    else:
-        reconstructions = data.load_reconstruction()
+        # load tracks for vis.dat
+        try:
+            if args.undistorted:
+                tracks_manager = udata.load_undistorted_tracks_manager()
+            else:
+                tracks_manager = data.load_tracks_manager()
+            image_graph = tracking.as_weighted_graph(tracks_manager)
+        except IOError:
+            image_graph = None
 
-    for h, reconstruction in enumerate(reconstructions):
-        print "Reconstruction", h
-        output_path = os.path.join(base_output_path, "recon%d" % h)
+        export_only = None
+        if args.image_list:
+            export_only = {}
+            with open(args.image_list, 'r') as f:
+                for image in f:
+                    export_only[image.strip()] = True
+
+        for h, reconstruction in enumerate(reconstructions):
+            self.export(reconstruction, h,
+                        image_graph, tracks_manager,
+                        base_output_path, data,
+                        args.undistorted, udata,
+                        args.points, export_only)
+
+    def export(self, reconstruction, index,
+               image_graph, tracks_manager,
+               base_output_path, data,
+               undistorted, udata,
+               with_points, export_only):
+        logger.info("Reconstruction %d" % index)
+        output_path = os.path.join(base_output_path, "recon%d" % index)
         io.mkdir_p(output_path)
         io.mkdir_p(os.path.join(output_path, "visualize"))
         io.mkdir_p(os.path.join(output_path, "txt"))
@@ -69,10 +94,10 @@ if __name__ == "__main__":
         for image, i in shot_index.items():
             shot = reconstruction.shots[image]
             base = "%08d" % i
-            print "Image:", image, base
+            logger.info("Image: %s %s" % (image, base))
 
             # vis.dat for this image
-            if use_vis_data:
+            if image_graph:
                 adj_indices = []
                 for adj_image in image_graph[image]:
                     weight = image_graph[image][adj_image]["weight"]
@@ -88,7 +113,7 @@ if __name__ == "__main__":
 
             # radially undistort the original image
             camera = shot.camera
-            if args.undistorted:
+            if undistorted:
                 undistorted_image = udata.load_undistorted_image(image)
             else:
                 original_image = data.load_image(image)[:, :, ::-1]
@@ -124,7 +149,7 @@ if __name__ == "__main__":
             f.write("CPU 8\n")
             f.write("setEdge 0\n")
             f.write("useBound 0\n")
-            f.write("useVisData {}\n".format(int(use_vis_data)))
+            f.write("useVisData {}\n".format(int(image_graph is not None)))
             f.write("sequence -1\n")
             f.write("timages -1 0 %d\n" % len(shot_index))
             f.write("oimages 0\n")
