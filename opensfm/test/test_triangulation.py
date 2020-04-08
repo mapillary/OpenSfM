@@ -11,8 +11,8 @@ def test_track_triangulator_equirectangular():
     """Test triangulating tracks of spherical images."""
     tracks_manager = pysfm.TracksManager()
     track = {}
-    track['im1'] = pysfm.Keypoint(0, 0, 1.0, 0, 0, 0, 0)
-    track['im2'] = pysfm.Keypoint(-0.1, 0, 1.0, 0, 0, 0, 1)
+    track['im1'] = pysfm.Observation(0, 0, 1.0, 0, 0, 0, 0)
+    track['im2'] = pysfm.Observation(-0.1, 0, 1.0, 0, 0, 0, 1)
     tracks_manager.add_track('1', track)
 
     rec = io.reconstruction_from_json({

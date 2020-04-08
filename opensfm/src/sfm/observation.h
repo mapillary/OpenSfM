@@ -3,11 +3,11 @@
 #include <sfm/types.h>
 #include <Eigen/Dense>
 
-struct Keypoint {
-  Keypoint() = default;
-  Keypoint(double x, double y, double s, int r, int g, int b, int id)
+struct Observation {
+  Observation() = default;
+  Observation(double x, double y, double s, int r, int g, int b, int id)
       : point(x, y), scale(s), color(r, g, b), id(id) {}
-  bool operator==(const Keypoint& k) const {
+  bool operator==(const Observation& k) const {
     return point == k.point && scale == k.scale && color == k.color &&
            id == k.id;
   }

@@ -247,9 +247,9 @@ def generate_track_data(reconstruction, maximum_depth, noise):
             descriptors_inside.append(track_descriptors[original_key])
             colors_inside.append(original_point.color)
             tracks[str(original_key)][str(shot_index)] =\
-                pysfm.Keypoint(projection[0], projection[1], default_scale,
-                               original_point.color[0], original_point.color[1],
-                               original_point.color[2], len(projections_inside) - 1)
+                pysfm.Observation(projection[0], projection[1], default_scale,
+                                  original_point.color[0], original_point.color[1],
+                                  original_point.color[2], len(projections_inside) - 1)
         features[shot_index] = np.array(projections_inside)
         colors[shot_index] = np.array(colors_inside)
         descriptors[shot_index] = np.array(descriptors_inside)

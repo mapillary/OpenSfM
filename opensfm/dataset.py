@@ -371,13 +371,13 @@ class DataSet(object):
 
     def load_tracks_manager(self, filename=None):
         """Return the tracks manager"""
-        return pysfm.TracksManager.instanciate_from_file(self._tracks_manager_file(filename))
+        return pysfm.TracksManager(self._tracks_manager_file(filename))
 
     def tracks_exists(self, filename=None):
         return os.path.isfile(self._tracks_manager_file(filename))
 
     def save_tracks_manager(self, tracks_manager, filename=None):
-        pysfm.TracksManager.write_to_file(self._tracks_manager_file(filename), tracks_manager)
+        tracks_manager.write_to_file(self._tracks_manager_file(filename))
 
     def _reconstruction_file(self, filename):
         """Return path of reconstruction file"""

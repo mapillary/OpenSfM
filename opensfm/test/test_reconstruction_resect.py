@@ -10,32 +10,32 @@ from opensfm.synthetic_data import synthetic_scene
 
 
 def test_corresponding_tracks():
-    t1 = {1: pysfm.Keypoint(1.0, 1.0, 1.0, 0, 0, 0, 1)}
-    t2 = {1: pysfm.Keypoint(1.0, 1.0, 1.0, 0, 0, 0, 2)}
+    t1 = {1: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 1)}
+    t2 = {1: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 2)}
 
     correspondences = reconstruction.corresponding_tracks(t1, t2)
     assert len(correspondences) == 0
 
-    t1 = {1: pysfm.Keypoint(1.0, 1.0, 1.0, 0, 0, 0, 3)}
-    t2 = {2: pysfm.Keypoint(1.0, 1.0, 1.0, 0, 0, 0, 3)}
+    t1 = {1: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 3)}
+    t2 = {2: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 3)}
 
     correspondences = reconstruction.corresponding_tracks(t1, t2)
     assert len(correspondences) == 1
     assert correspondences[0] == (1, 2)
 
-    t1 = {1: pysfm.Keypoint(1.0, 1.0, 1.0, 0, 0, 0, 3),
-          2: pysfm.Keypoint(1.0, 1.0, 1.0, 0, 0, 0, 4)}
-    t2 = {1: pysfm.Keypoint(1.0, 1.0, 1.0, 0, 0, 0, 4),
-          2: pysfm.Keypoint(1.0, 1.0, 1.0, 0, 0, 0, 5)}
+    t1 = {1: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 3),
+          2: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 4)}
+    t2 = {1: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 4),
+          2: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 5)}
 
     correspondences = reconstruction.corresponding_tracks(t1, t2)
     assert len(correspondences) == 1
     assert correspondences[0] == (2, 1)
 
-    t1 = {1: pysfm.Keypoint(1.0, 1.0, 1.0, 0, 0, 0, 5),
-          2: pysfm.Keypoint(1.0, 1.0, 1.0, 0, 0, 0, 6)}
-    t2 = {3: pysfm.Keypoint(1.0, 1.0, 1.0, 0, 0, 0, 5),
-          4: pysfm.Keypoint(1.0, 1.0, 1.0, 0, 0, 0, 6)}
+    t1 = {1: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 5),
+          2: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 6)}
+    t2 = {3: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 5),
+          4: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 6)}
 
     correspondences = reconstruction.corresponding_tracks(t1, t2)
     correspondences.sort(key=lambda c: c[0] + c[1])

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <sfm/keypoint.h>
+#include <sfm/observation.h>
 #include <sfm/types.h>
 
 #include <fstream>
@@ -10,20 +10,21 @@
 
 class TracksManager {
  public:
-  void AddTrack(const TrackId& id, const std::unordered_map<ShotId, Keypoint>& track) {
-    for (const auto observation : track) {
+  void AddTrack(const TrackId& id, const std::unordered_map<ShotId, Observation>& track) {
+    for (const auto& observation : track) {
       tracks_per_shot_[observation.first][id] = observation.second;
       shot_per_tracks_[id][observation.first] = observation.second;
     }
   }
 
-  void AddObservation(const ShotId& shot_id, const TrackId& track_id, const Keypoint& observation) {
+  void AddObservation(const ShotId& shot_id, const TrackId& track_id, const Observation& observation) {
     tracks_per_shot_[shot_id][track_id] = observation;
     shot_per_tracks_[track_id][shot_id] = observation;
   }
 
   std::vector<ShotId> GetShotIds() const {
     std::vector<ShotId> shots;
+    shots.reserve(tracks_per_shot_.size());
     for (const auto& it : tracks_per_shot_) {
       shots.push_back(it.first);
     }
@@ -32,13 +33,14 @@ class TracksManager {
 
   std::vector<TrackId> GetTrackIds() const {
     std::vector<TrackId> tracks;
+    tracks.reserve(shot_per_tracks_.size());
     for (const auto& it : shot_per_tracks_) {
       tracks.push_back(it.first);
     }
     return tracks;
   }
 
-  Keypoint GetObservation(const ShotId& shot, const TrackId& point) const {
+  Observation GetObservation(const ShotId& shot, const TrackId& point) const {
     const auto findShot = tracks_per_shot_.find(shot);
     if (findShot == tracks_per_shot_.end()) {
       throw std::runtime_error("Accessing invalid shot ID");
@@ -51,7 +53,7 @@ class TracksManager {
   }
 
   // Not sure if we use that
-  std::unordered_map<TrackId, Keypoint> GetObservationsOfShot(
+  std::unordered_map<TrackId, Observation> GetObservationsOfShot(
       const ShotId& shot) const {
     const auto findShot = tracks_per_shot_.find(shot);
     if (findShot == tracks_per_shot_.end()) {
@@ -61,7 +63,7 @@ class TracksManager {
   }
 
   // For point triangulation
-  std::unordered_map<ShotId, Keypoint> GetObservationsOfPoint(
+  std::unordered_map<ShotId, Observation> GetObservationsOfPoint(
       const TrackId& point) const {
     const auto findPoint = shot_per_tracks_.find(point);
     if (findPoint == shot_per_tracks_.end()) {
@@ -71,14 +73,14 @@ class TracksManager {
   }
 
   // For shot resection
-  std::unordered_map<TrackId, Keypoint> GetObservationsOfPointsAtShot(
+  std::unordered_map<TrackId, Observation> GetObservationsOfPointsAtShot(
       const std::vector<TrackId>& points, const ShotId& shot) const {
-    std::unordered_map<TrackId, Keypoint> obervations;
+    std::unordered_map<TrackId, Observation> obervations;
     const auto findShot = tracks_per_shot_.find(shot);
     if (findShot == tracks_per_shot_.end()) {
       throw std::runtime_error("Accessing invalid shot ID");
     }
-    for (const auto point : points) {
+    for (const auto& point : points) {
       const auto findPoint = findShot->second.find(point);
       if (findPoint == findShot->second.end()) {
         continue;
@@ -88,7 +90,7 @@ class TracksManager {
     return obervations;
   }
 
-  using KeyPointTuple = std::tuple<TrackId, Keypoint, Keypoint>;
+  using KeyPointTuple = std::tuple<TrackId, Observation, Observation>;
   std::vector<KeyPointTuple> GetAllCommonObservations(
       const ShotId& shot1, const ShotId& shot2) const {
     auto findShot1 = tracks_per_shot_.find(shot1);
@@ -98,7 +100,7 @@ class TracksManager {
       throw std::runtime_error("Accessing invalid shot ID");
     }
 
-    std::unordered_map<TrackId, std::vector<Keypoint>> per_track;
+    std::unordered_map<TrackId, std::vector<Observation>> per_track;
     for (const auto& p : findShot1->second) {
       per_track[p.first].push_back(p.second);
     }
@@ -121,10 +123,10 @@ class TracksManager {
   GetAllCommonObservationsAllPairs() const {
     std::unordered_map<ShotPair, std::vector<KeyPointTuple>, HashPair> common_per_pair;
     for (const auto& track : shot_per_tracks_) {
-      for (std::unordered_map<ShotId, Keypoint>::const_iterator it1 =
+      for (std::unordered_map<ShotId, Observation>::const_iterator it1 =
                track.second.begin(); it1 != track.second.end(); ++it1) {
         const auto& shotID1 = it1->first;
-        for (std::unordered_map<ShotId, Keypoint>::const_iterator it2 = track.second.begin();
+        for (std::unordered_map<ShotId, Observation>::const_iterator it2 = track.second.begin();
              it2 != track.second.end(); ++it2) {
           const auto& shotID2 = it2->first;
           if (shotID1 == shotID2) {
@@ -159,12 +161,11 @@ class TracksManager {
     }
   }
 
-  static bool WriteToFile(const std::string& filename,
-                          const TracksManager& manager) {
+  bool WriteToFile(const std::string& filename) {
     std::ofstream ostream(filename);
     if (ostream.is_open()) {
       ostream << TRACKS_HEADER << "_v" << TRACKS_VERSION << std::endl;
-      return WriteToFileCurrentVersion(ostream, manager);
+      return WriteToFileCurrentVersion(ostream, *this);
     } else {
       throw std::runtime_error("Can't write tracks manager file");
     }
@@ -206,9 +207,9 @@ class TracksManager {
     }
   }
 
-  static Keypoint InstanciateKeypoint(double x, double y, double scale, int id,
+  static Observation InstanciateObservation(double x, double y, double scale, int id,
                                       int r, int g, int b) {
-    Keypoint keypoint;
+    Observation keypoint;
     keypoint.point << x, y;
     keypoint.scale = scale;
     keypoint.id = id;
@@ -225,7 +226,7 @@ class TracksManager {
 
     TracksManager manager;
     while (fstream >> image >> trackID >> featureID >> x >> y >> r >> g >> b) {
-      auto keypoint = InstanciateKeypoint(x, y, 0., featureID, r, g, b);
+      auto keypoint = InstanciateObservation(x, y, 0., featureID, r, g, b);
       manager.tracks_per_shot_[image][trackID] = keypoint;
       manager.shot_per_tracks_[trackID][image] = keypoint;
     }
@@ -242,16 +243,16 @@ class TracksManager {
     TracksManager manager;
     while (fstream >> image >> trackID >> featureID >> x >> y >> scale >> r >>
            g >> b) {
-      auto keypoint = InstanciateKeypoint(x, y, scale, featureID, r, g, b);
+      auto keypoint = InstanciateObservation(x, y, scale, featureID, r, g, b);
       manager.tracks_per_shot_[image][trackID] = keypoint;
       manager.shot_per_tracks_[trackID][image] = keypoint;
     }
     return manager;
   }
 
-  std::unordered_map<ShotId, std::unordered_map<TrackId, Keypoint>>
+  std::unordered_map<ShotId, std::unordered_map<TrackId, Observation>>
       tracks_per_shot_;
-  std::unordered_map<TrackId, std::unordered_map<ShotId, Keypoint>>
+  std::unordered_map<TrackId, std::unordered_map<ShotId, Observation>>
       shot_per_tracks_;
 };
 

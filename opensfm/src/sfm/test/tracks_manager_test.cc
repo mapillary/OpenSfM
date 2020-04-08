@@ -23,15 +23,15 @@ class TempFile {
 class TracksManagerTest : public ::testing::Test {
  protected:
   void SetUp() {
-    track["1"] = Keypoint(1.0, 1.0, 1.0, 1, 1, 1, 1);
-    track["2"] = Keypoint(2.0, 2.0, 2.0, 2, 2, 2, 2);
-    track["3"] = Keypoint(3.0, 3.0, 3.0, 3, 3, 3, 3);
+    track["1"] = Observation(1.0, 1.0, 1.0, 1, 1, 1, 1);
+    track["2"] = Observation(2.0, 2.0, 2.0, 2, 2, 2, 2);
+    track["3"] = Observation(3.0, 3.0, 3.0, 3, 3, 3, 3);
     manager.AddTrack("1", track);
   }
 
   TempFile tmpfile;
   TracksManager manager;
-  std::unordered_map<ShotId, Keypoint> track;
+  std::unordered_map<ShotId, Observation> track;
 };
 
 TEST_F(TracksManagerTest, ReturnsShotsIDs) {
@@ -45,13 +45,13 @@ TEST_F(TracksManagerTest, ReturnsTracksIDs) {
 }
 
 TEST_F(TracksManagerTest, ReturnsObservation) {
-  EXPECT_EQ(manager.GetObservation("1", "1"), Keypoint(1.0, 1.0, 1.0, 1, 1, 1, 1));
+  EXPECT_EQ(manager.GetObservation("1", "1"), Observation(1.0, 1.0, 1.0, 1, 1, 1, 1));
 }
 
 TEST_F(TracksManagerTest, ReturnsAllCommonObservations) {
   const auto tuple =
-      std::make_tuple("1", Keypoint(1.0, 1.0, 1.0, 1, 1, 1, 1), Keypoint(2.0, 2.0, 2.0, 2, 2, 2, 2));
-  std::vector<std::tuple<TrackId, Keypoint, Keypoint> > one_tuple{tuple};
+      std::make_tuple("1", Observation(1.0, 1.0, 1.0, 1, 1, 1, 1), Observation(2.0, 2.0, 2.0, 2, 2, 2, 2));
+  std::vector<std::tuple<TrackId, Observation, Observation> > one_tuple{tuple};
   EXPECT_EQ(manager.GetAllCommonObservations("1", "2"), one_tuple);
 }
 
@@ -60,19 +60,19 @@ TEST_F(TracksManagerTest, ReturnsObservationsOfPoint) {
 }
 
 TEST_F(TracksManagerTest, ReturnsObservationsOfShot) {
-  std::unordered_map<TrackId, Keypoint> shot;
-  shot["1"] = Keypoint(1.0, 1.0, 1.0, 1, 1, 1, 1);
+  std::unordered_map<TrackId, Observation> shot;
+  shot["1"] = Observation(1.0, 1.0, 1.0, 1, 1, 1, 1);
   EXPECT_EQ(manager.GetObservationsOfShot("1"), shot);
 }
 
 TEST_F(TracksManagerTest, ReturnsObservationsOfPointsAtShot) {
-  std::unordered_map<TrackId, Keypoint> shot;
-  shot["1"] = Keypoint(1.0, 1.0, 1.0, 1, 1, 1, 1);
+  std::unordered_map<TrackId, Observation> shot;
+  shot["1"] = Observation(1.0, 1.0, 1.0, 1, 1, 1, 1);
   EXPECT_EQ(manager.GetObservationsOfPointsAtShot({"1"}, "1"), shot);
 }
 
 TEST_F(TracksManagerTest, HasIOConsistency) {
-  TracksManager::WriteToFile(tmpfile.Name(), manager);
+  manager.WriteToFile(tmpfile.Name());
   const TracksManager manager_new =
       TracksManager::InstanciateFromFile(tmpfile.Name());
 
