@@ -26,7 +26,7 @@ class Command:
         if reconstructions:
             self.export(reconstructions[0], tracks_manager, udata, data)
 
-    def export(self, reconstruction, graph, udata, data):
+    def export(self, reconstruction, tracks_manager, udata, data):
         exporter = pydense.OpenMVSExporter()
         for camera in reconstruction.cameras.values():
             if camera.projection_type == 'perspective':
@@ -49,7 +49,7 @@ class Command:
                     shot.pose.get_origin())
 
         for point in reconstruction.points.values():
-            shots = list(graph[point.id])
+            shots = list(tracks_manager.get_observations_of_point(point.id))
 
             coordinates = np.array(point.coordinates, dtype=np.float64)
             exporter.add_point(coordinates, shots)
