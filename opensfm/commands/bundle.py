@@ -25,13 +25,13 @@ class Command:
         start = time.time()
         data = dataset.DataSet(args.dataset)
         tracks_manager = data.load_tracks_manager()
-        graph = tracking.as_graph(scene_synthetic[5])
+        graph = tracking.as_graph(tracks_manager)
         reconstructions = data.load_reconstruction(args.input)
         camera_priors = data.load_camera_models()
         gcp = data.load_ground_control_points()
 
         for reconstruction in reconstructions:
-            orec.bundle(tracks_manager, reconstruction, camera_priors, gcp, data.config)
+            orec.bundle(graph, reconstruction, camera_priors, gcp, data.config)
 
         end = time.time()
         with open(data.profile_log(), 'a') as fout:
