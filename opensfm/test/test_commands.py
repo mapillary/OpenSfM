@@ -20,6 +20,7 @@ def test_run_all(tmpdir):
         commands.match_features,
         commands.create_tracks,
         commands.reconstruct,
+        commands.bundle,
         commands.mesh,
         commands.undistort,
         commands.compute_depthmaps,
