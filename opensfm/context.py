@@ -78,6 +78,5 @@ def processes_that_fit_in_memory(desired, per_process):
 
 
 def current_memory_usage():
-    ps = psutil.Process(os.getpid())
-    return ps.memory_info().rss
+    return psutil.Process(os.getpid()).memory_info().rss
     #return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * rusage_unit
