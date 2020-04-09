@@ -134,8 +134,7 @@ class Command:
 
             new_txt = os.path.join(output_path, "txt", base + ".txt")
             with open(new_txt, "wb") as f:
-                f.write("CONTOUR\n")
-                np.savetxt(f, P, u'%f')
+                np.savetxt(f, P, u'%f', header="CONTOUR")
 
         fvis.close()
 
