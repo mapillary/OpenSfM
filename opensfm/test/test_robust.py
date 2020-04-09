@@ -182,6 +182,7 @@ def test_outliers_essential_ransac(pairs_and_their_E):
 
         scale_eps_ratio = 1e-1
         params = pyrobust.RobustEstimatorParams()
+        params.use_iteration_reduction = False
         result = pyrobust.ransac_essential(
             f1, f2, scale*(1.0+scale_eps_ratio), params, pyrobust.RansacType.RANSAC)
 
