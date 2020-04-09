@@ -412,6 +412,8 @@ def export_points_reconstruction(data, db, path, camera_map, images_map):
                                 int(cl[0]), int(cl[1]), int(cl[2]), 0.0]
 
                 for image in graph[point.id]:
+                    if image not in reconstruction.shots:
+                        continue
                     feature_data = graph[point.id][image]
                     feature_id = feature_data['feature_id']
                     format_line += '%d %d '
