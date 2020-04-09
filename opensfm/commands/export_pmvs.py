@@ -133,7 +133,7 @@ class Command:
             P = resized_K.dot(shot.pose.get_Rt())
 
             new_txt = os.path.join(output_path, "txt", base + ".txt")
-            with open(new_txt, "w") as f:
+            with open(new_txt, "wb") as f:
                 f.write("CONTOUR\n")
                 np.savetxt(f, P, u'%f')
 
