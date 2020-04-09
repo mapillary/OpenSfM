@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 import os
-import resource
+import psutil
 import sys
 
 import cv2
@@ -78,4 +78,6 @@ def processes_that_fit_in_memory(desired, per_process):
 
 
 def current_memory_usage():
-    return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * rusage_unit
+    ps = psutil.Process(os.getpid())
+    return ps.memory_info().rss
+    #return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * rusage_unit
