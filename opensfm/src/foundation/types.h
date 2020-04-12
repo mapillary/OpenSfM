@@ -65,7 +65,7 @@ cv::Mat pyarray_cv_mat_view_typed(T &array, int type) {
 }
 
 template<typename T>
-cv::Mat pyarray_cv_mat_view(T &array) {}
+cv::Mat pyarray_cv_mat_view(T &array);
 
 template<>
 cv::Mat pyarray_cv_mat_view(pyarray_f &array);
