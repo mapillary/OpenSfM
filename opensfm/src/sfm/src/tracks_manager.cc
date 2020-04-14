@@ -18,7 +18,7 @@ int GetTracksFileVersion(std::ifstream& fstream) {
   return version;
 }
 
-bool WriteToFileCurrentVersion(std::ofstream& ostream,
+void WriteToFileCurrentVersion(std::ofstream& ostream,
                                const TracksManager& manager) {
   const auto shotsIDs = manager.GetShotIds();
   for (const auto& shotID : shotsIDs) {
@@ -265,11 +265,11 @@ TracksManager TracksManager::InstanciateFromFile(const std::string& filename) {
   }
 }
 
-bool TracksManager::WriteToFile(const std::string& filename) {
+void TracksManager::WriteToFile(const std::string& filename) {
   std::ofstream ostream(filename);
   if (ostream.is_open()) {
     ostream << TRACKS_HEADER << "_v" << TRACKS_VERSION << std::endl;
-    return WriteToFileCurrentVersion(ostream, *this);
+    WriteToFileCurrentVersion(ostream, *this);
   } else {
     throw std::runtime_error("Can't write tracks manager file");
   }
