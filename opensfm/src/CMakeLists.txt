@@ -59,9 +59,8 @@ add_subdirectory(third_party/vlfeat)
 if (CMAKE_BUILD_TYPE MATCHES DEBUG)
     add_executable(debug_c_extension
         debug_c_extension.cc
-        third_party/PythonExtensionPatterns/py_import_call_execute.c
     )
-    target_link_libraries(debug_c_extension ${PYTHON_LIBRARIES})
+    target_link_libraries(debug_c_extension PRIVATE pybind11::embed)
 endif()
 
 

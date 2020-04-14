@@ -1,7 +1,0 @@
-Project: PythonExtensionPatterns
-URL: https://github.com/paulross/PythonExtensionPatterns
-License: MIT
-Version: 1261e88f1b89adc707b590fb0931e6895d1a769f,  2018-05-08
-Local modifications:
-
-* Imported only the py_import_call_execute.{h|c} files
