@@ -882,7 +882,8 @@ def copy_graph_data(tracks_manager, graph_inliers, shot_id, track_id):
         graph_inliers.add_node(shot_id, bipartite=0)
     if track_id not in graph_inliers:
         graph_inliers.add_node(track_id, bipartite=1)
-    observation = tracks_manager.get_observations_of_point_at_shot([track_id], shot_id)[track_id]
+    observation = tracks_manager.get_observations_of_point_at_shot([track_id], shot_id)
+    observation = observation[track_id]
     graph_inliers.add_edge(shot_id, track_id,
                            feature=observation.point,
                            feature_scale=observation.scale,
