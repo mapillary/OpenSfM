@@ -88,13 +88,13 @@ def common_tracks(graph, im1, im2):
     Returns:
         tuple: tracks, feature from first image, feature from second image
     """
-    t1, t2 = graph.get_observations_of_shot(im1),\
-        graph.get_observations_of_shot(im2)
+    t1 = graph.get_observations_of_shot(im1)
+    t2 = graph.get_observations_of_shot(im2)
     tracks, p1, p2 = [], [], []
-    for track in t1:
+    for track, obs in t1.items():
         if track in t2:
-            p1.append(t1[track]['feature'])
-            p2.append(t2[track]['feature'])
+            p1.append(obs.point)
+            p2.append(t2[track].point)
             tracks.append(track)
     p1 = np.array(p1)
     p2 = np.array(p2)
