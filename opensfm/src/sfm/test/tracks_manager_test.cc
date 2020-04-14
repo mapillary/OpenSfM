@@ -23,10 +23,9 @@ class TempFile {
 class TracksManagerTest : public ::testing::Test {
  protected:
   void SetUp() {
-    track["1"] = Observation(1.0, 1.0, 1.0, 1, 1, 1, 1);
-    track["2"] = Observation(2.0, 2.0, 2.0, 2, 2, 2, 2);
-    track["3"] = Observation(3.0, 3.0, 3.0, 3, 3, 3, 3);
-    manager.AddTrack("1", track);
+    manager.AddObservation("1", "1", Observation(1.0, 1.0, 1.0, 1, 1, 1, 1));
+    manager.AddObservation("2", "1", Observation(2.0, 2.0, 2.0, 2, 2, 2, 2));
+    manager.AddObservation("3", "1", Observation(3.0, 3.0, 3.0, 3, 3, 3, 3));
   }
 
   TempFile tmpfile;

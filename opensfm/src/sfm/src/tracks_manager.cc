@@ -76,14 +76,6 @@ TracksManager InstanciateFromFileV1(std::ifstream& fstream) {
 }
 }  // namespace
 
-void TracksManager::AddTrack(
-    const TrackId& id, const std::unordered_map<ShotId, Observation>& track) {
-  for (const auto& observation : track) {
-    tracks_per_shot_[observation.first][id] = observation.second;
-    shot_per_tracks_[id][observation.first] = observation.second;
-  }
-}
-
 void TracksManager::AddObservation(const ShotId& shot_id,
                                    const TrackId& track_id,
                                    const Observation& observation) {
