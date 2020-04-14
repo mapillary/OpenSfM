@@ -10,6 +10,7 @@
 
 class TracksManager {
  public:
+
   void AddObservation(const ShotId& shot_id, const TrackId& track_id,
                       const Observation& observation);
   Observation GetObservation(const ShotId& shot, const TrackId& point) const;
@@ -33,7 +34,7 @@ class TracksManager {
   GetAllCommonObservationsAllPairs() const;
 
   static TracksManager InstanciateFromFile(const std::string& filename);
-  bool WriteToFile(const std::string& filename);
+  void WriteToFile(const std::string& filename);
 
   static std::string TRACKS_HEADER;
   static int TRACKS_VERSION;
