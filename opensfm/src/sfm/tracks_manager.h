@@ -14,6 +14,7 @@ class TracksManager {
                 const std::unordered_map<ShotId, Observation>& track);
   void AddObservation(const ShotId& shot_id, const TrackId& track_id,
                       const Observation& observation);
+  void DeleteObservation(const ShotId& shot_id, const TrackId& track_id);
   Observation GetObservation(const ShotId& shot, const TrackId& point) const;
 
   std::vector<ShotId> GetShotIds() const;
@@ -25,6 +26,10 @@ class TracksManager {
       const TrackId& point) const;
   std::unordered_map<TrackId, Observation> GetObservationsOfPointsAtShot(
       const std::vector<TrackId>& points, const ShotId& shot) const;
+
+  TracksManager ConstructSubTracksManager(
+      const std::vector<TrackId>& points,
+      const std::vector<ShotId>& shots) const;
 
   using KeyPointTuple = std::tuple<TrackId, Observation, Observation>;
   std::vector<KeyPointTuple> GetAllCommonObservations(

@@ -48,6 +48,19 @@ TEST_F(TracksManagerTest, ReturnsObservation) {
   EXPECT_EQ(manager.GetObservation("1", "1"), Observation(1.0, 1.0, 1.0, 1, 1, 1, 1));
 }
 
+TEST_F(TracksManagerTest, AddsObservation) {
+  Observation obs(4.0, 4.0, 4.0, 4, 4, 4, 4);
+  manager.AddObservation("4", "1", obs);
+  EXPECT_EQ(manager.GetObservation("4", "1"), obs);
+}
+
+TEST_F(TracksManagerTest, DeleteObservation) {
+  manager.DeleteObservation("3", "1");
+  auto copy = track;
+  copy.erase("3");
+  EXPECT_EQ(manager.GetObservationsOfPoint("1"), copy);
+}
+
 TEST_F(TracksManagerTest, ReturnsAllCommonObservations) {
   const auto tuple =
       std::make_tuple("1", Observation(1.0, 1.0, 1.0, 1, 1, 1, 1), Observation(2.0, 2.0, 2.0, 2, 2, 2, 2));
@@ -69,6 +82,19 @@ TEST_F(TracksManagerTest, ReturnsObservationsOfPointsAtShot) {
   std::unordered_map<TrackId, Observation> shot;
   shot["1"] = Observation(1.0, 1.0, 1.0, 1, 1, 1, 1);
   EXPECT_EQ(manager.GetObservationsOfPointsAtShot({"1"}, "1"), shot);
+}
+
+TEST_F(TracksManagerTest, ConstructSubTracksManager) {
+  const auto subset = manager.ConstructSubTracksManager({"1"}, {"2", "3"});
+  EXPECT_THAT(subset.GetShotIds(),
+              ::testing::WhenSorted(::testing::ElementsAre("2", "3")));
+  EXPECT_THAT(subset.GetTrackIds(),
+              ::testing::WhenSorted(::testing::ElementsAre("1")));
+
+  std::unordered_map<ShotId, Observation> subtrack;
+  subtrack["2"] = Observation(2.0, 2.0, 2.0, 2, 2, 2, 2);
+  subtrack["3"] = Observation(3.0, 3.0, 3.0, 3, 3, 3, 3);
+  EXPECT_EQ(subtrack, subset.GetObservationsOfPoint("1"));
 }
 
 TEST_F(TracksManagerTest, HasIOConsistency) {
