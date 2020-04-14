@@ -215,7 +215,6 @@ def generate_track_data(reconstruction, maximum_depth, noise):
     colors = {}
     features = {}
     descriptors = {}
-    tracks = defaultdict(dict)
     default_scale = 0.004
     for shot_index, shot in reconstruction.shots.items():
         # need to have these as we lost track of keys
@@ -246,16 +245,14 @@ def generate_track_data(reconstruction, maximum_depth, noise):
             projections_inside.append(np.hstack((projection, [default_scale])))
             descriptors_inside.append(track_descriptors[original_key])
             colors_inside.append(original_point.color)
-            tracks[str(original_key)][str(shot_index)] =\
-                pysfm.Observation(projection[0], projection[1], default_scale,
-                                  original_point.color[0], original_point.color[1],
-                                  original_point.color[2], len(projections_inside) - 1)
+            obs = pysfm.Observation(
+                projection[0], projection[1], default_scale,
+                original_point.color[0], original_point.color[1],
+                original_point.color[2], len(projections_inside) - 1)
+            tracks_manager.add_observation(str(shot_index), str(original_key), obs)
         features[shot_index] = np.array(projections_inside)
         colors[shot_index] = np.array(colors_inside)
         descriptors[shot_index] = np.array(descriptors_inside)
-
-    for track_id, observations in tracks.items():
-        tracks_manager.add_track(track_id, observations)
 
     return features, descriptors, colors, tracks_manager
 

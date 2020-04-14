@@ -10,10 +10,8 @@ from opensfm import pysfm
 def test_track_triangulator_equirectangular():
     """Test triangulating tracks of spherical images."""
     tracks_manager = pysfm.TracksManager()
-    track = {}
-    track['im1'] = pysfm.Observation(0, 0, 1.0, 0, 0, 0, 0)
-    track['im2'] = pysfm.Observation(-0.1, 0, 1.0, 0, 0, 0, 1)
-    tracks_manager.add_track('1', track)
+    tracks_manager.add_observation('im1', '1', pysfm.Observation(0, 0, 1.0, 0, 0, 0, 0))
+    tracks_manager.add_observation('im2', '1', pysfm.Observation(-0.1, 0, 1.0, 0, 0, 0, 1))
 
     rec = io.reconstruction_from_json({
         "cameras": {

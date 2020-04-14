@@ -10,8 +10,6 @@
 
 class TracksManager {
  public:
-  void AddTrack(const TrackId& id,
-                const std::unordered_map<ShotId, Observation>& track);
   void AddObservation(const ShotId& shot_id, const TrackId& track_id,
                       const Observation& observation);
   Observation GetObservation(const ShotId& shot, const TrackId& point) const;

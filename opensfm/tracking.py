@@ -61,14 +61,13 @@ def create_tracks_manager(features, colors, matches, config):
 
     tracks_manager = pysfm.TracksManager()
     for track_id, track in enumerate(tracks):
-        track_tmp = {}
         for image, featureid in track:
             if image not in features:
                 continue
             x, y, s = features[image][featureid]
             r, g, b = colors[image][featureid]
-            track_tmp[image] = pysfm.Observation(x, y, s, int(r), int(g), int(b), featureid)
-        tracks_manager.add_track(str(track_id), track_tmp)
+            obs = pysfm.Observation(x, y, s, int(r), int(g), int(b), featureid)
+            tracks_manager.add_observation(image, str(track_id), obs)
     return tracks_manager
 
 
