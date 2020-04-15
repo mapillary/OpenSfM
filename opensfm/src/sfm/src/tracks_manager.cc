@@ -1,5 +1,7 @@
 #include <sfm/tracks_manager.h>
 
+#include <unordered_set>
+
 namespace {
 int GetTracksFileVersion(std::ifstream& fstream) {
   const auto current_position = fstream.tellg();
@@ -30,6 +32,7 @@ void WriteToFileCurrentVersion(std::ofstream& ostream,
               << observation.second.color(2) << std::endl;
     }
   }
+  return true;
 }
 
 Observation InstanciateObservation(double x, double y, double scale, int id,
@@ -79,6 +82,20 @@ void TracksManager::AddObservation(const ShotId& shot_id,
                                    const Observation& observation) {
   tracks_per_shot_[shot_id][track_id] = observation;
   shot_per_tracks_[track_id][shot_id] = observation;
+}
+
+void TracksManager::DeleteObservation(const ShotId& shot_id,
+                                      const TrackId& track_id) {
+  const auto findShot = tracks_per_shot_.find(shot_id);
+  if (findShot == tracks_per_shot_.end()) {
+    throw std::runtime_error("Accessing invalid shot ID");
+  }
+  const auto findPoint = shot_per_tracks_.find(track_id);
+  if (findPoint == shot_per_tracks_.end()) {
+    throw std::runtime_error("Accessing invalid point ID");
+  }
+  findShot->second.erase(track_id);
+  findPoint->second.erase(shot_id);
 }
 
 std::vector<ShotId> TracksManager::GetShotIds() const {
@@ -149,6 +166,31 @@ TracksManager::GetObservationsOfPointsAtShot(const std::vector<TrackId>& points,
     obervations[point] = findPoint->second;
   }
   return obervations;
+}
+
+TracksManager TracksManager::ConstructSubTracksManager(
+    const std::vector<TrackId>& points,
+    const std::vector<ShotId>& shots) const {
+  std::unordered_set<TrackId> shotsTmp;
+  for (const auto& id : shots) {
+    shotsTmp.insert(id);
+  }
+
+  TracksManager subset;
+  for (const auto& point_id : points) {
+    const auto findPoint = shot_per_tracks_.find(point_id);
+    if (findPoint == shot_per_tracks_.end()) {
+      continue;
+    }
+    for (const auto& obs : findPoint->second) {
+      const auto& shot_id = obs.first;
+      if (shotsTmp.find(shot_id) == shotsTmp.end()) {
+        continue;
+      }
+      subset.AddObservation(shot_id, point_id, obs.second);
+    }
+  }
+  return subset;
 }
 
 std::vector<TracksManager::KeyPointTuple>
