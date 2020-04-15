@@ -49,7 +49,7 @@ class Command:
                     shot.pose.get_origin())
 
         for point in reconstruction.points.values():
-            shots = list(tracks_manager.get_observations_of_point(point.id))
+            shots = list(tracks_manager.get_track_observations(point.id))
 
             coordinates = np.array(point.coordinates, dtype=np.float64)
             exporter.add_point(coordinates, shots)

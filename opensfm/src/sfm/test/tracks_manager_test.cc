@@ -57,7 +57,7 @@ TEST_F(TracksManagerTest, RemoveObservation) {
   manager.RemoveObservation("3", "1");
   auto copy = track;
   copy.erase("3");
-  EXPECT_EQ(manager.GetObservationsOfPoint("1"), copy);
+  EXPECT_EQ(manager.GetTrackObservations("1"), copy);
 }
 
 TEST_F(TracksManagerTest, ReturnsAllCommonObservations) {
@@ -67,14 +67,14 @@ TEST_F(TracksManagerTest, ReturnsAllCommonObservations) {
   EXPECT_EQ(manager.GetAllCommonObservations("1", "2"), one_tuple);
 }
 
-TEST_F(TracksManagerTest, ReturnsObservationsOfPoint) {
-  EXPECT_EQ(manager.GetObservationsOfPoint("1"), track);
+TEST_F(TracksManagerTest, ReturnsTrackObservations) {
+  EXPECT_EQ(manager.GetTrackObservations("1"), track);
 }
 
-TEST_F(TracksManagerTest, ReturnsObservationsOfShot) {
+TEST_F(TracksManagerTest, ReturnsShotObservations) {
   std::unordered_map<TrackId, Observation> shot;
   shot["1"] = Observation(1.0, 1.0, 1.0, 1, 1, 1, 1);
-  EXPECT_EQ(manager.GetObservationsOfShot("1"), shot);
+  EXPECT_EQ(manager.GetShotObservations("1"), shot);
 }
 
 TEST_F(TracksManagerTest, ConstructSubTracksManager) {
@@ -87,7 +87,7 @@ TEST_F(TracksManagerTest, ConstructSubTracksManager) {
   std::unordered_map<ShotId, Observation> subtrack;
   subtrack["2"] = Observation(2.0, 2.0, 2.0, 2, 2, 2, 2);
   subtrack["3"] = Observation(3.0, 3.0, 3.0, 3, 3, 3, 3);
-  EXPECT_EQ(subtrack, subset.GetObservationsOfPoint("1"));
+  EXPECT_EQ(subtrack, subset.GetTrackObservations("1"));
 }
 
 TEST_F(TracksManagerTest, HasIOConsistency) {
@@ -99,7 +99,7 @@ TEST_F(TracksManagerTest, HasIOConsistency) {
               ::testing::WhenSorted(::testing::ElementsAre("1", "2", "3")));
   EXPECT_THAT(manager_new.GetTrackIds(),
               ::testing::WhenSorted(::testing::ElementsAre("1")));
-  EXPECT_EQ(track, manager_new.GetObservationsOfPoint("1"));
+  EXPECT_EQ(track, manager_new.GetTrackObservations("1"));
 }
 
 }  // namespace

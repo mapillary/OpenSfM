@@ -771,7 +771,7 @@ def export_bundler(image_list, reconstructions, track_manager,
         for point_id, point in iteritems(points):
             coord = point.coordinates
             color = list(map(int, point.color))
-            view_list = track_manager.get_observations_of_point(point.id)
+            view_list = track_manager.get_track_observations(point.id)
             lines.append(' '.join(map(str, coord)))
             lines.append(' '.join(map(str, color)))
             view_line = []

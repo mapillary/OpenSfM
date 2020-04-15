@@ -93,12 +93,12 @@ def pairs_and_their_E(pairs_and_poses):
 
 @pytest.fixture(scope='module')
 def shots_and_their_points(pairs_and_poses):
-    _, _, _, features, tracks_manager, reconstruction = pairs_and_poses
+    _, _, _, _, tracks_manager, reconstruction = pairs_and_poses
 
     ret_shots = []
     for shot in reconstruction.shots.values():
         bearings, points = [], []
-        for k, obs in tracks_manager.get_observations_of_shot(shot.id).items():
+        for k, obs in tracks_manager.get_shot_observations(shot.id).items():
             if k not in reconstruction.points:
                 continue
             p = reconstruction.points[k]

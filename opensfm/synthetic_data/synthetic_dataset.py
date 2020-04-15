@@ -84,7 +84,7 @@ class SyntheticDataSet(DataSet):
                 if len(tracks) > 10:
                     pair_matches = []
                     for t in tracks:
-                        observations = self.tracks_manager.get_observations_of_point(t)
+                        observations = self.tracks_manager.get_track_observations(t)
                         pair_matches.append(np.array([observations[im1].id,
                                                       observations[im2].id]))
                     image_matches[im2] = np.array(pair_matches)

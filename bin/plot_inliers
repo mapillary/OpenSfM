@@ -319,8 +319,8 @@ def load_common_tracks(im1, im2, tracks_manager):
     :param tracks_manager: The track manager.
     :return: An array with rows containing a track id and the corresponding feature id for the first and second image.
     """
-    t1 = tracks_manager.get_observations_of_shot(im1).items()
-    t2 = tracks_manager.get_observations_of_shot(im2).items()
+    t1 = tracks_manager.get_shot_observations(im1).items()
+    t2 = tracks_manager.get_shot_observations(im2).items()
     tc, p1, p2 = tracking.common_tracks(tracks_manager, im1, im2)
 
     common_tracks = []
@@ -338,7 +338,7 @@ def load_tracks(im, tracks_manager):
     :return: An array with rows containing a track id and the corresponding feature id.
     """
     tracks = []
-    for t, obs in tracks_manager.get_observations_of_shot(im).items():
+    for t, obs in tracks_manager.get_shot_observations(im).items():
         tracks.append(np.array([int(t), obs.id]))
 
     return np.array(tracks) if len(tracks) else np.empty((0, 2), int)

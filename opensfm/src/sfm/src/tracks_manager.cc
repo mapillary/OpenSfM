@@ -22,7 +22,7 @@ void WriteToFileCurrentVersion(std::ofstream& ostream,
                                const TracksManager& manager) {
   const auto shotsIDs = manager.GetShotIds();
   for (const auto& shotID : shotsIDs) {
-    const auto observations = manager.GetObservationsOfShot(shotID);
+    const auto observations = manager.GetShotObservations(shotID);
     for (const auto& observation : observations) {
       ostream << shotID << "\t" << observation.first << "\t"
               << observation.second.id << "\t" << observation.second.point(0)
@@ -85,16 +85,16 @@ void TracksManager::AddObservation(const ShotId& shot_id,
 
 void TracksManager::RemoveObservation(const ShotId& shot_id,
                                       const TrackId& track_id) {
-  const auto findShot = tracks_per_shot_.find(shot_id);
-  if (findShot == tracks_per_shot_.end()) {
+  const auto find_shot = tracks_per_shot_.find(shot_id);
+  if (find_shot == tracks_per_shot_.end()) {
     throw std::runtime_error("Accessing invalid shot ID");
   }
-  const auto findPoint = shot_per_tracks_.find(track_id);
-  if (findPoint == shot_per_tracks_.end()) {
-    throw std::runtime_error("Accessing invalid point ID");
+  const auto find_track = shot_per_tracks_.find(track_id);
+  if (find_track == shot_per_tracks_.end()) {
+    throw std::runtime_error("Accessing invalid track ID");
   }
-  findShot->second.erase(track_id);
-  findPoint->second.erase(shot_id);
+  find_shot->second.erase(track_id);
+  find_track->second.erase(shot_id);
 }
 
 int TracksManager::NumShots() const {
@@ -124,40 +124,40 @@ std::vector<TrackId> TracksManager::GetTrackIds() const {
 }
 
 Observation TracksManager::GetObservation(const ShotId& shot,
-                                          const TrackId& point) const {
-  const auto findShot = tracks_per_shot_.find(shot);
-  if (findShot == tracks_per_shot_.end()) {
+                                          const TrackId& track) const {
+  const auto find_shot = tracks_per_shot_.find(shot);
+  if (find_shot == tracks_per_shot_.end()) {
     throw std::runtime_error("Accessing invalid shot ID");
   }
-  const auto findPoint = findShot->second.find(point);
-  if (findPoint == findShot->second.end()) {
-    throw std::runtime_error("Accessing invalid point ID");
+  const auto find_track = find_shot->second.find(track);
+  if (find_track == find_shot->second.end()) {
+    throw std::runtime_error("Accessing invalid track ID");
   }
-  return findPoint->second;
+  return find_track->second;
 }
 
 // Not sure if we use that
-std::unordered_map<TrackId, Observation> TracksManager::GetObservationsOfShot(
+std::unordered_map<TrackId, Observation> TracksManager::GetShotObservations(
     const ShotId& shot) const {
-  const auto findShot = tracks_per_shot_.find(shot);
-  if (findShot == tracks_per_shot_.end()) {
+  const auto find_shot = tracks_per_shot_.find(shot);
+  if (find_shot == tracks_per_shot_.end()) {
     throw std::runtime_error("Accessing invalid shot ID");
   }
-  return findShot->second;
+  return find_shot->second;
 }
 
 // For point triangulation
-std::unordered_map<ShotId, Observation> TracksManager::GetObservationsOfPoint(
-    const TrackId& point) const {
-  const auto findPoint = shot_per_tracks_.find(point);
-  if (findPoint == shot_per_tracks_.end()) {
-    throw std::runtime_error("Accessing invalid point ID");
+std::unordered_map<ShotId, Observation> TracksManager::GetTrackObservations(
+    const TrackId& track) const {
+  const auto find_track = shot_per_tracks_.find(track);
+  if (find_track == shot_per_tracks_.end()) {
+    throw std::runtime_error("Accessing invalid track ID");
   }
-  return findPoint->second;
+  return find_track->second;
 }
 
 TracksManager TracksManager::ConstructSubTracksManager(
-    const std::vector<TrackId>& points,
+    const std::vector<TrackId>& tracks,
     const std::vector<ShotId>& shots) const {
   std::unordered_set<TrackId> shotsTmp;
   for (const auto& id : shots) {
@@ -165,17 +165,17 @@ TracksManager TracksManager::ConstructSubTracksManager(
   }
 
   TracksManager subset;
-  for (const auto& point_id : points) {
-    const auto findPoint = shot_per_tracks_.find(point_id);
-    if (findPoint == shot_per_tracks_.end()) {
+  for (const auto& track_id : tracks) {
+    const auto find_track = shot_per_tracks_.find(track_id);
+    if (find_track == shot_per_tracks_.end()) {
       continue;
     }
-    for (const auto& obs : findPoint->second) {
+    for (const auto& obs : find_track->second) {
       const auto& shot_id = obs.first;
       if (shotsTmp.find(shot_id) == shotsTmp.end()) {
         continue;
       }
-      subset.AddObservation(shot_id, point_id, obs.second);
+      subset.AddObservation(shot_id, track_id, obs.second);
     }
   }
   return subset;

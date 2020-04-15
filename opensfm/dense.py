@@ -339,7 +339,7 @@ def add_views_to_depth_pruner(data, neighbors, dp):
 def compute_depth_range(tracks_manager, reconstruction, shot, config):
     """Compute min and max depth based on reconstruction points."""
     depths = []
-    for track in tracks_manager.get_observations_of_shot(shot.id):
+    for track in tracks_manager.get_shot_observations(shot.id):
         if track in reconstruction.points:
             p = reconstruction.points[track].coordinates
             z = shot.pose.transform(p)[2]

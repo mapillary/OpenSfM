@@ -95,7 +95,7 @@ class Command:
                 color = list(map(int, point.color))
 
                 view_line = []
-                for shot_key, obs in tracks_manager.get_observations_of_point(point_id).items():
+                for shot_key, obs in tracks_manager.get_track_observations(point_id).items():
                     if export_only is not None and not shot_key in export_only:
                         continue
 
