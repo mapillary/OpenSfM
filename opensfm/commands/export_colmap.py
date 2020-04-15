@@ -452,6 +452,8 @@ def export_points_reconstruction(data, db, path, camera_map, images_map):
                                 int(cl[0]), int(cl[1]), int(cl[2]), 0.0]
 
                 for image, obs in tracks_manager.get_observations_of_point(point.id).items():
+                    if image not in reconstruction.shots:
+                        continue
                     format_line += '%d %d '
                     format_tuple += [images_map[image], obs.id]
                 format_line += '\n'

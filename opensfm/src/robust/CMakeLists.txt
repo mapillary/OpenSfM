@@ -4,7 +4,15 @@ set(ROBUST_FILES
     robust_estimator.h
     essential_model.h
     line_model.h
+    absolute_pose_model.h
     relative_pose_model.h
+    relative_rotation_model.h
+    absolute_pose_known_rotation_model.h
+    src/absolute_pose_model.cc
+    src/absolute_pose_known_rotation_model.cc
+    src/relative_rotation_model.cc
+    src/relative_pose_model.cc
+    src/line_model.cc
     src/instanciations.cc
 )
 add_library(robust ${ROBUST_FILES})

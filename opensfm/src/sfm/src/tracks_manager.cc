@@ -32,6 +32,7 @@ bool WriteToFileCurrentVersion(std::ofstream& ostream,
               << observation.second.color(2) << std::endl;
     }
   }
+  return true;
 }
 
 Observation InstanciateObservation(double x, double y, double scale, int id,

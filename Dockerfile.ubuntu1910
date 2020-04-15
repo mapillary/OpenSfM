@@ -1,0 +1,35 @@
+FROM ubuntu:19.10
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+# Install apt-getable dependencies
+RUN apt-get update \
+    && apt-get install -y \
+        build-essential \
+        cmake \
+        git \
+        libatlas-base-dev \
+        libeigen3-dev \
+        libgoogle-glog-dev \
+        libopencv-dev \
+        libsuitesparse-dev \
+        libceres-dev \
+        python3-dev \
+        python3-numpy \
+        python3-opencv \
+        python3-pip \
+        python3-pyproj \
+        python3-scipy \
+        python3-yaml \
+        curl \
+        vim \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+
+COPY . /source/OpenSfM
+
+WORKDIR /source/OpenSfM
+
+RUN pip3 install -r requirements.txt && \
+    python3 setup.py build
