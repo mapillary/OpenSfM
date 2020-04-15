@@ -77,12 +77,6 @@ TEST_F(TracksManagerTest, ReturnsObservationsOfShot) {
   EXPECT_EQ(manager.GetObservationsOfShot("1"), shot);
 }
 
-TEST_F(TracksManagerTest, ReturnsObservationsOfPointsAtShot) {
-  std::unordered_map<TrackId, Observation> shot;
-  shot["1"] = Observation(1.0, 1.0, 1.0, 1, 1, 1, 1);
-  EXPECT_EQ(manager.GetObservationsOfPointsAtShot({"1"}, "1"), shot);
-}
-
 TEST_F(TracksManagerTest, ConstructSubTracksManager) {
   const auto subset = manager.ConstructSubTracksManager({"1"}, {"2", "3"});
   EXPECT_THAT(subset.GetShotIds(),

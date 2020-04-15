@@ -23,8 +23,6 @@ class TracksManager {
       const ShotId& shot) const;
   std::unordered_map<ShotId, Observation> GetObservationsOfPoint(
       const TrackId& point) const;
-  std::unordered_map<TrackId, Observation> GetObservationsOfPointsAtShot(
-      const std::vector<TrackId>& points, const ShotId& shot) const;
 
   TracksManager ConstructSubTracksManager(
       const std::vector<TrackId>& points,

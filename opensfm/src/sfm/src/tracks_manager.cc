@@ -32,7 +32,6 @@ void WriteToFileCurrentVersion(std::ofstream& ostream,
               << observation.second.color(2) << std::endl;
     }
   }
-  return true;
 }
 
 Observation InstanciateObservation(double x, double y, double scale, int id,
@@ -147,25 +146,6 @@ std::unordered_map<ShotId, Observation> TracksManager::GetObservationsOfPoint(
     throw std::runtime_error("Accessing invalid point ID");
   }
   return findPoint->second;
-}
-
-// For shot resection
-std::unordered_map<TrackId, Observation>
-TracksManager::GetObservationsOfPointsAtShot(const std::vector<TrackId>& points,
-                                             const ShotId& shot) const {
-  std::unordered_map<TrackId, Observation> obervations;
-  const auto findShot = tracks_per_shot_.find(shot);
-  if (findShot == tracks_per_shot_.end()) {
-    throw std::runtime_error("Accessing invalid shot ID");
-  }
-  for (const auto& point : points) {
-    const auto findPoint = findShot->second.find(point);
-    if (findPoint == findShot->second.end()) {
-      continue;
-    }
-    obervations[point] = findPoint->second;
-  }
-  return obervations;
 }
 
 TracksManager TracksManager::ConstructSubTracksManager(
