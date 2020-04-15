@@ -359,10 +359,9 @@ def common_tracks_double_dict(tracks_manager):
     Return a dict, ``res``, such that ``res[im1][im2]`` is the list of
     common tracks between ``im1`` and ``im2``.
     """
-    tracks, images = tracking.tracks_and_images(tracks_manager)
     common_tracks_per_pair = tracking.all_common_tracks(
         tracks_manager, include_features=False)
-    res = {image: {} for image in images}
+    res = {image: {} for image in tracks_manager.get_shot_ids()}
     for (im1, im2), v in iteritems(common_tracks_per_pair):
         res[im1][im2] = v
         res[im2][im1] = v

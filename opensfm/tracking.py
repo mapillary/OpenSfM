@@ -71,11 +71,6 @@ def create_tracks_manager(features, colors, matches, config):
     return tracks_manager
 
 
-def tracks_and_images(tracks_manager):
-    """List of tracks and images in the tracks_manager."""
-    return tracks_manager.get_track_ids(), tracks_manager.get_shot_ids()
-
-
 def common_tracks(graph, im1, im2):
     """List of tracks observed in both images.
 
@@ -141,7 +136,7 @@ def as_weighted_graph(tracks_manager):
         having shots a snodes and weighted by the # of
         common tracks between two nodes.
     """
-    tracks, images = tracks_and_images(tracks_manager)
+    images = tracks_manager.get_shot_ids()
     image_graph = nx.Graph()
     for im in images:
         image_graph.add_node(im)
@@ -152,7 +147,8 @@ def as_weighted_graph(tracks_manager):
 
 def as_graph(tracks_manager):
     """ Return the tracks manager as a bipartite graph (legacy). """
-    tracks, images = tracks_and_images(tracks_manager)
+    tracks = tracks_manager.get_track_ids()
+    images = tracks_manager.get_shot_ids()
 
     graph = nx.Graph()
     for track_id in tracks:

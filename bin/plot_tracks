@@ -48,7 +48,7 @@ if __name__ == "__main__":
 
     data = dataset.DataSet(args.dataset)
     tracks_manager = data.load_tracks_manager()
-    tracks, images = tracking.tracks_and_images(tracks_manager)
+    images = tracks_manager.get_shot_ids()
     image_graph = tracking.as_weighted_graph(tracks_manager)
 
     if args.graph:

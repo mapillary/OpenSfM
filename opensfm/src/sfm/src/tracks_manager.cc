@@ -97,6 +97,14 @@ void TracksManager::DeleteObservation(const ShotId& shot_id,
   findPoint->second.erase(shot_id);
 }
 
+int TracksManager::NumShots() const {
+  return tracks_per_shot_.size();
+}
+
+int TracksManager::NumTracks() const {
+  return shot_per_tracks_.size();
+}
+
 std::vector<ShotId> TracksManager::GetShotIds() const {
   std::vector<ShotId> shots;
   shots.reserve(tracks_per_shot_.size());

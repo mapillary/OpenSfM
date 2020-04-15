@@ -1382,15 +1382,15 @@ def incremental_reconstruction(data, tracks_manager):
     report = {}
     chrono = Chronometer()
 
-    tracks, images = tracking.tracks_and_images(tracks_manager)
-
+    images = tracks_manager.get_shot_ids()
+    
     if not data.reference_lla_exists():
         data.invent_reference_lla(images)
 
     remaining_images = set(images)
     camera_priors = data.load_camera_models()
     gcp = data.load_ground_control_points()
-    common_tracks = tracking.all_common_tracks(tracks_manager, tracks)
+    common_tracks = tracking.all_common_tracks(tracks_manager)
     reconstructions = []
     pairs = compute_image_pairs(common_tracks, camera_priors, data)
     chrono.lap('compute_image_pairs')
@@ -1400,7 +1400,7 @@ def incremental_reconstruction(data, tracks_manager):
         if im1 in remaining_images and im2 in remaining_images:
             rec_report = {}
             report['reconstructions'].append(rec_report)
-            tracks, p1, p2 = common_tracks[im1, im2]
+            _, p1, p2 = common_tracks[im1, im2]
             reconstruction, graph_inliers, rec_report['bootstrap'] = bootstrap_reconstruction(
                 data, tracks_manager, camera_priors, im1, im2, p1, p2)
 

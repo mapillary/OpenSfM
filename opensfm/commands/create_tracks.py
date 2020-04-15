@@ -41,7 +41,6 @@ class Command:
 
     def write_report(self, data, tracks_manager,
                      features_time, matches_time, tracks_time):
-        tracks, images = tracking.tracks_and_images(tracks_manager)
         view_graph = [(k[0], k[1], len(v)) for k, v in tracks_manager.get_all_common_observations_all_pairs().items()]
 
         report = {
@@ -51,8 +50,8 @@ class Command:
                 "compute_tracks": tracks_time,
             },
             "wall_time": features_time + matches_time + tracks_time,
-            "num_images": len(images),
-            "num_tracks": len(tracks),
+            "num_images": tracks_manager.num_shots(),
+            "num_tracks": tracks_manager.num_tracks(),
             "view_graph": view_graph
         }
         data.save_report(io.json_dumps(report), 'tracks.json')
