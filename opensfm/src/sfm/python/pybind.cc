@@ -22,7 +22,7 @@ PYBIND11_MODULE(pysfm, m) {
     .def(py::init())
     .def(py::init(&TracksManager::InstanciateFromFile))
     .def("add_observation", &TracksManager::AddObservation)
-    .def("delete_observation", &TracksManager::DeleteObservation)
+    .def("remove_observation", &TracksManager::RemoveObservation)
     .def("num_shots", &TracksManager::NumShots)
     .def("num_tracks", &TracksManager::NumTracks)
     .def("get_shot_ids", &TracksManager::GetShotIds)

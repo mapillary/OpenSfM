@@ -53,8 +53,8 @@ TEST_F(TracksManagerTest, AddsObservation) {
   EXPECT_EQ(manager.GetObservation("4", "1"), obs);
 }
 
-TEST_F(TracksManagerTest, DeleteObservation) {
-  manager.DeleteObservation("3", "1");
+TEST_F(TracksManagerTest, RemoveObservation) {
+  manager.RemoveObservation("3", "1");
   auto copy = track;
   copy.erase("3");
   EXPECT_EQ(manager.GetObservationsOfPoint("1"), copy);
