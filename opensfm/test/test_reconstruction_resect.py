@@ -46,7 +46,7 @@ def test_corresponding_tracks():
 
 def copy_cluster_points(cluster, tracks_manager, points, noise):
     for shot in cluster.shots:
-        for point in tracks_manager.get_observations_of_shot(shot):
+        for point in tracks_manager.get_shot_observations(shot):
             base = points[point]
             copy = types.Point()
             copy.id = base.id

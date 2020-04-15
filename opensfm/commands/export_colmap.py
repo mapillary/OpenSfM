@@ -420,7 +420,7 @@ def export_shots_reconstruction(data, db, path, camera_map, images_map,
                                 t[0], t[1], t[2],
                                 colmap_camera_id, shot_id]
 
-                point_per_feat = {obs.id: k for k, obs in tracks_manager.get_observations_of_shot(shot_id).items()}
+                point_per_feat = {obs.id: k for k, obs in tracks_manager.get_shot_observations(shot_id).items()}
                 for feature_id in range(len(features_map[shot_id])):
                     colmap_point_id = -1
                     if feature_id in point_per_feat:
@@ -451,7 +451,7 @@ def export_points_reconstruction(data, db, path, camera_map, images_map):
                 format_tuple = [int(i), c[0], c[1], c[2],
                                 int(cl[0]), int(cl[1]), int(cl[2]), 0.0]
 
-                for image, obs in tracks_manager.get_observations_of_point(point.id).items():
+                for image, obs in tracks_manager.get_track_observations(point.id).items():
                     if image not in reconstruction.shots:
                         continue
                     format_line += '%d %d '

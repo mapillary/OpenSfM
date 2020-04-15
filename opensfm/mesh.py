@@ -36,7 +36,7 @@ def triangle_mesh_perspective(shot_id, r, tracks_manager):
     dy = float(cam.height) / 2 / max(cam.width, cam.height)
     pixels = [[-dx, -dy], [-dx, dy], [dx, dy], [dx, -dy]]
     vertices = [None for i in range(4)]
-    for track_id in tracks_manager.get_observations_of_shot(shot_id):
+    for track_id in tracks_manager.get_shot_observations(shot_id):
         if track_id in r.points:
             point = r.points[track_id]
             pixel = shot.project(point.coordinates)
@@ -107,7 +107,7 @@ def triangle_mesh_fisheye(shot_id, r, tracks_manager):
     bearings.append(bearing)
 
     # Add reconstructed points
-    for track_id in tracks_manager.get_observations_of_shot(shot_id):
+    for track_id in tracks_manager.get_shot_observations(shot_id):
         if track_id in r.points:
             point = r.points[track_id].coordinates
             direction = shot.pose.transform(point)
@@ -145,7 +145,7 @@ def triangle_mesh_equirectangular(shot_id, r, tracks_manager):
         point = shot.pose.transform_inverse(bearing)
         vertices.append(point.tolist())
 
-    for track_id in tracks_manager.get_observations_of_shot(shot_id):
+    for track_id in tracks_manager.get_shot_observations(shot_id):
         if track_id in r.points:
             point = r.points[track_id].coordinates
             direction = shot.pose.transform(point)

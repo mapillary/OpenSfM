@@ -351,13 +351,13 @@ def add_subshot_tracks(tracks_manager, utracks_manager, shot, subshot):
     if shot.camera.projection_type in ['equirectangular', 'spherical']:
         add_pano_subshot_tracks(tracks_manager, utracks_manager, shot, subshot)
     else:
-        for track_id, obs in tracks_manager.get_observations_of_shot(shot.id).items():
+        for track_id, obs in tracks_manager.get_shot_observations(shot.id).items():
             utracks_manager.add_observation(subshot.id, track_id, obs)
 
 
 def add_pano_subshot_tracks(tracks_manager, utracks_manager, panoshot, perspectiveshot):
     """Add edges between subshots and visible tracks."""
-    for track_id, obs in tracks_manager.get_observations_of_shot(panoshot.id).items():
+    for track_id, obs in tracks_manager.get_shot_observations(panoshot.id).items():
         bearing = panoshot.camera.pixel_bearing(obs.point)
         rotation = np.dot(perspectiveshot.pose.get_rotation_matrix(),
                           panoshot.pose.get_rotation_matrix().T)

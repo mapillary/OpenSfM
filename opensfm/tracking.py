@@ -82,8 +82,8 @@ def common_tracks(graph, im1, im2):
     Returns:
         tuple: tracks, feature from first image, feature from second image
     """
-    t1 = graph.get_observations_of_shot(im1)
-    t2 = graph.get_observations_of_shot(im2)
+    t1 = graph.get_shot_observations(im1)
+    t2 = graph.get_shot_observations(im2)
     tracks, p1, p2 = [], [], []
     for track, obs in t1.items():
         if track in t2:
@@ -156,7 +156,7 @@ def as_graph(tracks_manager):
     for shot_id in images:
         graph.add_node(shot_id, bipartite=0)
     for track_id in tracks:
-        for im, obs in tracks_manager.get_observations_of_point(track_id).items():
+        for im, obs in tracks_manager.get_track_observations(track_id).items():
             graph.add_edge(im, track_id, feature=obs.point, feature_scale=obs.scale,
                            feature_id=obs.id, feature_color=obs.color)
     return graph
