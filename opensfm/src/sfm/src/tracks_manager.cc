@@ -83,7 +83,7 @@ void TracksManager::AddObservation(const ShotId& shot_id,
   shot_per_tracks_[track_id][shot_id] = observation;
 }
 
-void TracksManager::DeleteObservation(const ShotId& shot_id,
+void TracksManager::RemoveObservation(const ShotId& shot_id,
                                       const TrackId& track_id) {
   const auto findShot = tracks_per_shot_.find(shot_id);
   if (findShot == tracks_per_shot_.end()) {
