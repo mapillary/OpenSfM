@@ -16,6 +16,8 @@ class TracksManager {
   void DeleteObservation(const ShotId& shot_id, const TrackId& track_id);
   Observation GetObservation(const ShotId& shot, const TrackId& point) const;
 
+  int NumShots() const;
+  int NumTracks() const;
   std::vector<ShotId> GetShotIds() const;
   std::vector<TrackId> GetTrackIds() const;
 
