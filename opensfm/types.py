@@ -188,7 +188,7 @@ class PerspectiveCamera(Camera):
     Attributes:
         width (int): image width.
         height (int): image height.
-        focal (real): estimated focal lenght.
+        focal (real): estimated focal length.
         k1 (real): estimated first distortion parameter.
         k2 (real): estimated second distortion parameter.
     """
@@ -414,7 +414,7 @@ class FisheyeCamera(Camera):
     Attributes:
         width (int): image width.
         height (int): image height.
-        focal (real): estimated focal lenght.
+        focal (real): estimated focal length.
         k1 (real): estimated first distortion parameter.
         k2 (real): estimated second distortion parameter.
     """
@@ -511,12 +511,9 @@ class DualCamera(Camera):
     Attributes:
         width (int): image width.
         height (int): image height.
-        focal (real): estimated focal lenght.
+        focal (real): estimated focal length.
         k1 (real): estimated first distortion parameter.
         k2 (real): estimated second distortion parameter.
-        focal_prior (real): prior focal lenght.
-        k1_prior (real): prior first distortion parameter.
-        k2_prior (real): prior second distortion parameter.
         transition (real): parametrize between perpective (1.0) and fisheye (0.0)
     """
     def __init__(self, projection_type='unknown'):
