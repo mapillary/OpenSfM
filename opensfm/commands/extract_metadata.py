@@ -5,10 +5,11 @@ import time
 from opensfm import dataset
 from opensfm import exif
 
-
 logger = logging.getLogger(__name__)
 logging.getLogger("exifread").setLevel(logging.WARNING)
 
+# multiprocessor processing
+import multiprocessing as mp
 
 class Command:
     name = 'extract_metadata'
@@ -26,7 +27,10 @@ class Command:
             exif_overrides = data.load_exif_overrides()
 
         camera_models = {}
-        for image in data.images():
+        
+        pool = mp.Pool(mp.cpu_count())
+        
+        def extract_and_save_exif:
             if data.exif_exists(image):
                 logging.info('Loading existing EXIF for {}'.format(image))
                 d = data.load_exif(image)
@@ -42,6 +46,9 @@ class Command:
             if d['camera'] not in camera_models:
                 camera = exif.camera_from_exif_metadata(d, data)
                 camera_models[d['camera']] = camera
+        
+        # Process exif data in parallel
+        _ = pool.map(extract_and_save_exif, [image for image in data.images()])
 
         # Override any camera specified in the camera models overrides file.
         if data.camera_models_overrides_exists():
@@ -53,6 +60,7 @@ class Command:
             else:
                 for key, value in overrides.items():
                     camera_models[key] = value
+        
         data.save_camera_models(camera_models)
 
         end = time.time()
