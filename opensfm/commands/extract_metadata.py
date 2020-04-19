@@ -30,7 +30,7 @@ class Command:
         
         pool = mp.Pool(mp.cpu_count())
         
-        def extract_and_save_exif:
+        def extract_and_save_exif():
             if data.exif_exists(image):
                 logging.info('Loading existing EXIF for {}'.format(image))
                 d = data.load_exif(image)
