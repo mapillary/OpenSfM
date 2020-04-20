@@ -1,8 +1,10 @@
 set(SFM_FILES
     observation.h
     tracks_manager.h
+    sfm_helpers.h
     types.h
     src/tracks_manager.cc
+    src/sfm_helpers.cc
 )
 add_library(sfm ${SFM_FILES})
 target_link_libraries(sfm 
