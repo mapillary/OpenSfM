@@ -22,6 +22,7 @@ from opensfm import log
 from opensfm import tracking
 from opensfm import multiview
 from opensfm import types
+from opensfm import pysfm
 from opensfm.align import align_reconstruction, apply_similarity
 from opensfm.context import parallel_map, current_memory_usage
 
@@ -766,15 +767,10 @@ def reconstructed_points_for_images(tracks_manager, reconstruction, images):
         A list of (image, num_point) pairs sorted by decreasing number
         of points.
     """
-    res = []
-    for image in images:
-        if image not in reconstruction.shots:
-            common_tracks = 0
-            for track in tracks_manager.get_shot_observations(image):
-                if track in reconstruction.points:
-                    common_tracks += 1
-            res.append((image, common_tracks))
-    return sorted(res, key=lambda x: -x[1])
+    non_reconstructed = [im for im in images if im not in reconstruction.shots]
+    res = pysfm.count_tracks_per_shot(
+        tracks_manager, non_reconstructed, list(reconstruction.points.keys()))
+    return sorted(res.items(), key=lambda x: -x[1])
 
 
 def resect(tracks_manager, graph_inliers, reconstruction, shot_id,
