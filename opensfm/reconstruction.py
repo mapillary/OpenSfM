@@ -1106,11 +1106,12 @@ def remove_outliers(graph, reconstruction, config, points=None):
     """
     if points is None:
         points = reconstruction.points
-    threshold = get_actual_threshold(config, reconstruction.points)
+    threshold_sqr = get_actual_threshold(config, reconstruction.points)**2
     outliers = []
     for point_id in points:
         for shot_id, error in reconstruction.points[point_id].reprojection_errors.items():
-            if np.linalg.norm(error) > threshold:
+            error_sqr = error[0]**2 + error[1]**2
+            if error_sqr > threshold_sqr:
                 outliers.append((point_id, shot_id))
 
     for track, shot_id in outliers:
