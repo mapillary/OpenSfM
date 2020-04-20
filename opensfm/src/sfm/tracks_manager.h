@@ -21,9 +21,9 @@ class TracksManager {
   std::vector<ShotId> GetShotIds() const;
   std::vector<TrackId> GetTrackIds() const;
 
-  std::unordered_map<TrackId, Observation> GetShotObservations(
+  const std::unordered_map<TrackId, Observation>& GetShotObservations(
       const ShotId& shot) const;
-  std::unordered_map<ShotId, Observation> GetTrackObservations(
+  const std::unordered_map<ShotId, Observation>& GetTrackObservations(
       const TrackId& track) const;
 
   TracksManager ConstructSubTracksManager(

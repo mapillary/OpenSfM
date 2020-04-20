@@ -136,8 +136,7 @@ Observation TracksManager::GetObservation(const ShotId& shot,
   return find_track->second;
 }
 
-// Not sure if we use that
-std::unordered_map<TrackId, Observation> TracksManager::GetShotObservations(
+const std::unordered_map<TrackId, Observation>& TracksManager::GetShotObservations(
     const ShotId& shot) const {
   const auto find_shot = tracks_per_shot_.find(shot);
   if (find_shot == tracks_per_shot_.end()) {
@@ -146,8 +145,7 @@ std::unordered_map<TrackId, Observation> TracksManager::GetShotObservations(
   return find_shot->second;
 }
 
-// For point triangulation
-std::unordered_map<ShotId, Observation> TracksManager::GetTrackObservations(
+const std::unordered_map<ShotId, Observation>& TracksManager::GetTrackObservations(
     const TrackId& track) const {
   const auto find_track = shot_per_tracks_.find(track);
   if (find_track == shot_per_tracks_.end()) {
