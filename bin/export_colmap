@@ -254,20 +254,20 @@ def export_cameras(data, db):
         normalizer = max(camera.width, camera.height)
 
         if camera.projection_type == 'perspective':
-            parameters = np.array((camera.focal * normalizer,
-                                   camera.width / 2, camera.height / 2,
+            parameters = np.array((camera.focal*normalizer,
+                                   camera.width/2, camera.height/2,
                                    camera.k1, camera.k2))
         if camera.projection_type == 'brown':
-            parameters = np.array((camera.focal_x * normalizer,
-                                   camera.focal_y * normalizer,
-                                   (camera.width - 1) * 0.5 + camera.c_x * normalizer,
-                                   (camera.height - 1) * 0.5 + camera.c_y * normalizer,
+            parameters = np.array((camera.focal_x*normalizer,
+                                   camera.focal_y*normalizer,
+                                   (camera.width-1)*0.5 + camera.c_x*normalizer,
+                                   (camera.height-1)*0.5 + camera.c_y*normalizer,
                                    camera.k1, camera.k2,
                                    camera.p1, camera.p2,
                                    camera.k3, 0.0, 0.0, 0.0))
         if camera.projection_type == 'fisheye':
-            parameters = np.array((camera.focal * normalizer,
-                                   camera.width / 2, camera.height / 2,
+            parameters = np.array((camera.focal*normalizer,
+                                   camera.width/2, camera.height/2,
                                    camera.k1, camera.k2))
         camera_id = db.add_camera(COLMAP_ID_MAP[camera.projection_type],
                                   camera.width, camera.height,
@@ -334,16 +334,16 @@ def export_cameras_reconstruction(data, db, path, camera_map):
                 colmap_id = camera_map[camera_id]
                 colmap_type = COLMAP_TYPES_MAP[camera.projection_type]
                 if camera.projection_type == 'perspective':
-                    f = camera.focal * normalizer
+                    f = camera.focal*normalizer
                     k1 = camera.k1
                     k2 = camera.k2
                     fout.write('%d %s %d %d %f %f %f %f %f\n' %
                                (colmap_id, colmap_type, w, h, f, w * 0.5, h * 0.5, k1, k2))
                 elif camera.projection_type == 'brown':
-                    f_x = camera.focal_x * normalizer
-                    f_y = camera.focal_y * normalizer
-                    c_x = (w - 1) * 0.5 + normalizer * camera.c_x
-                    c_y = (h - 1) * 0.5 + normalizer * camera.c_y
+                    f_x = camera.focal_x*normalizer
+                    f_y = camera.focal_y*normalizer
+                    c_x = (w-1)*0.5 + normalizer*camera.c_x
+                    c_y = (h-1)*0.5 + normalizer*camera.c_y
                     k1 = camera.k1
                     k2 = camera.k2
                     k3 = camera.k3
@@ -354,11 +354,11 @@ def export_cameras_reconstruction(data, db, path, camera_map):
                                 k1, k2, p1, p2, k3,
                                 0.0, 0.0, 0.0))
                 elif camera.projection_type == 'fisheye':
-                    f = camera.focal * normalizer
+                    f = camera.focal*normalizer
                     k1 = camera.k1
                     k2 = camera.k2
                     fout.write('%d %s %d %d %f %f %f %f %f\n' %
-                               (colmap_id, colmap_type, w, h, f, w * 0.5, h * 0.5, k1, k2))
+                               (colmap_id, colmap_type, w, h, f, w*0.5, h*0.5, k1, k2))
 
 
 def export_shots_reconstruction(data, db, path, camera_map, images_map,
@@ -431,14 +431,14 @@ def export_points_reconstruction(data, db, path, camera_map, images_map):
 def angle_axis_to_quaternion(angle_axis):
     angle = np.linalg.norm(angle_axis)
 
-    x = angle_axis[0] / angle
-    y = angle_axis[1] / angle
-    z = angle_axis[2] / angle
+    x = angle_axis[0]/angle
+    y = angle_axis[1]/angle
+    z = angle_axis[2]/angle
 
-    qw = math.cos(angle / 2.0)
-    qx = x * math.sqrt(1 - qw * qw)
-    qy = y * math.sqrt(1 - qw * qw)
-    qz = z * math.sqrt(1 - qw * qw)
+    qw = math.cos(angle/2.0)
+    qx = x * math.sqrt(1-qw*qw)
+    qy = y * math.sqrt(1-qw*qw)
+    qz = z * math.sqrt(1-qw*qw)
 
     return [qw, qx, qy, qz]
 
