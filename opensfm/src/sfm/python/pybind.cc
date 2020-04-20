@@ -4,6 +4,7 @@
 #include <glog/logging.h>
 
 #include <sfm/tracks_manager.h>
+#include <sfm/sfm_helpers.h>
 #include <sfm/observation.h>
 #include <foundation/types.h>
 
@@ -35,5 +36,7 @@ PYBIND11_MODULE(pysfm, m) {
     .def("get_all_common_observations", &TracksManager::GetAllCommonObservations)
     .def("get_all_common_observations_all_pairs", &TracksManager::GetAllCommonObservationsAllPairs)
     ;
+
+  m.def("count_tracks_per_shot", &sfm_helpers::CountTracksPerShot);
 }
 
