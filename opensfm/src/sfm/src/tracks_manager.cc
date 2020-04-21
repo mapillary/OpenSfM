@@ -229,17 +229,33 @@ TracksManager::GetAllCommonObservations(const ShotId& shot1,
 
 std::unordered_map<TracksManager::ShotPair,
                    std::vector<TracksManager::KeyPointTuple>, HashPair>
-TracksManager::GetAllCommonObservationsAllPairs() const {
+TracksManager::GetAllCommonObservationsAllPairs(const std::vector<TrackId>& tracks) const {
   std::unordered_map<ShotPair, std::vector<KeyPointTuple>, HashPair>
       common_per_pair;
-  for (const auto& track : shot_per_tracks_) {
+
+  std::vector<TrackId> tracks_to_use;
+  if(tracks.empty()){
+    for (const auto& track : shot_per_tracks_){
+      tracks_to_use.push_back(track.first);
+    }
+  }
+  else{
+    tracks_to_use = tracks;
+  }
+
+  for (const auto& track_id : tracks_to_use) {
+    const auto find_track = shot_per_tracks_.find(track_id);
+    if(find_track == shot_per_tracks_.end()){
+      continue;
+    }
+    const auto& track = find_track->second;
     for (std::unordered_map<ShotId, Observation>::const_iterator it1 =
-             track.second.begin();
-         it1 != track.second.end(); ++it1) {
+             track.begin();
+         it1 != track.end(); ++it1) {
       const auto& shotID1 = it1->first;
       for (std::unordered_map<ShotId, Observation>::const_iterator it2 =
-               track.second.begin();
-           it2 != track.second.end(); ++it2) {
+               track.begin();
+           it2 != track.end(); ++it2) {
         const auto& shotID2 = it2->first;
         if (shotID1 == shotID2) {
           continue;
@@ -248,7 +264,7 @@ TracksManager::GetAllCommonObservationsAllPairs() const {
           continue;
         }
         common_per_pair[std::make_pair(shotID1, shotID2)].push_back(
-            std::make_tuple(track.first, it1->second, it2->second));
+            std::make_tuple(track_id, it1->second, it2->second));
       }
     }
   }
