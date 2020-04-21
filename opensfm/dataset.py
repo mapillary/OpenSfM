@@ -371,7 +371,7 @@ class DataSet(object):
 
     def load_tracks_manager(self, filename=None):
         """Return the tracks manager"""
-        return pysfm.TracksManager(self._tracks_manager_file(filename))
+        return pysfm.TracksManager.instanciate_from_file(self._tracks_manager_file(filename))
 
     def tracks_exists(self, filename=None):
         return os.path.isfile(self._tracks_manager_file(filename))
