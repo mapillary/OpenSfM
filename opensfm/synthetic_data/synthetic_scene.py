@@ -4,7 +4,9 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import numpy as np
+import networkx as nx
 import functools
+import math
 
 from opensfm import types
 
@@ -40,7 +42,107 @@ def get_scene_generator(type, length):
     return generator
 
 
+def normalized(x):
+    return x / np.linalg.norm(x)
+
+
+def camera_pose(position, lookat, up):
+    '''
+    Pose from position and look at direction
+
+    >>> position = [1.0, 2.0, 3.0]
+    >>> lookat = [0., 10.0, 2.0]
+    >>> up = [0.0, 0.0, 1.0]
+    >>> pose = camera_pose(position, lookat, up)
+    >>> np.allclose(pose.get_origin(), position)
+    True
+    >>> d = normalized(pose.transform(lookat))
+    >>> np.allclose(d, [0, 0, 1])
+    True
+    '''
+    ez = normalized(np.array(lookat) - np.array(position))
+    ex = normalized(np.cross(ez, up))
+    ey = normalized(np.cross(ez, ex))
+    pose = types.Pose()
+    pose.set_rotation_matrix([ex, ey, ez])
+    pose.set_origin(position)
+    return pose
+
 class SyntheticScene(object):
+    def get_reconstruction(self, rotation_noise=0.0,
+                           position_noise=0.0,
+                           camera_noise=0.0):
+        raise NotImplementedError()
+
+    def get_scene_exifs(self, gps_noise):
+        raise NotImplementedError()
+
+    def get_tracks_data(self, maximum_depth, noise):
+        raise NotImplementedError()
+
+
+class SyntheticCubeScene(SyntheticScene):
+    """ Scene consisting in of cameras looking at point in a cube. """
+    def __init__(self, num_cameras, num_points, noise):
+        self.cameras = {}
+        for i in range(num_cameras):
+            camera = types.PerspectiveCamera()
+            camera.id = 'camera' + str(i)
+            camera.focal = 0.9
+            camera.k1 = -0.1
+            camera.k2 = 0.01
+            camera.height = 600
+            camera.width = 800
+            self.cameras[camera.id] = camera
+
+        self.shots = {}
+        r = 2.0
+        for i in range(num_cameras):
+            phi = np.random.rand()*math.pi
+            theta = np.random.rand()*2.0*math.pi
+            x = r*np.sin(theta)*np.cos(phi)
+            y = r*np.sin(theta)*np.sin(phi)
+            z = r*np.cos(theta)
+            position = [x, y, z]
+
+            alpha = np.random.rand()
+            lookat = [0.0, 0, 0]
+            up = [alpha * 0.2, alpha * 0.2, 1.0]
+
+            shot = types.Shot()
+            shot.id = 'shot' + str(i)
+            shot.camera = self.cameras['camera' + str(i)]
+            shot.pose = camera_pose(position, lookat, up)
+            self.shots[shot.id] = shot
+
+        points = np.random.rand(num_points, 3)-[0.5, 0.5, 0.5]
+        self.points = {}
+        for i, p in enumerate(points):
+            pt = types.Point()
+            pt.id = 'point' + str(i)
+            pt.coordinates = p
+            pt.color = [100, 100, 20]
+            self.points[pt.id] = pt
+
+    def get_reconstruction(self, rotation_noise=0.0,
+                           position_noise=0.0,
+                           camera_noise=0.0):
+        reconstruction = types.Reconstruction()
+        reconstruction.shots = self.shots
+        reconstruction.points = self.points
+        reconstruction.cameras = self.cameras
+        return reconstruction
+
+    def get_tracks_data(self, maximum_depth, noise):
+        return sg.generate_track_data(self.get_reconstruction(),
+                                      maximum_depth, noise)
+
+
+class SyntheticStreetScene(SyntheticScene):
+    """ Scene consisting in a virtual street extruded along some
+        parametric shape (line, ellipse), with camera placed along
+        the shape.
+    """
     def __init__(self, generator):
         self.generator = generator
         self.wall_points = None

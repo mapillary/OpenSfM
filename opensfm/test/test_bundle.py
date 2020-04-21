@@ -1,4 +1,5 @@
 import copy
+import networkx as nx
 import numpy as np
 
 from opensfm import pybundle
@@ -301,3 +302,32 @@ def test_linear_motion_prior_rotation():
     s2 = sa.get_shot('2')
 
     assert np.allclose(s2.r, [0, 0.3, 0], atol=1e-6)
+
+
+def test_bundle_alignment_prior():
+    """Test that cameras are aligned to have the Y axis pointing down."""
+    camera = types.PerspectiveCamera()
+    camera.id = 'camera1'
+    camera.focal = 1.0
+    camera.k1 = camera.k2 = 0.0
+    shot = types.Shot()
+    shot.id = '1'
+    shot.camera = camera
+    shot.pose = types.Pose(np.random.rand(3), np.random.rand(3))
+    shot.metadata = types.ShotMetadata()
+    shot.metadata.gps_position = [0, 0, 0]
+    shot.metadata.gps_dop = 1
+
+    r = types.Reconstruction()
+    r.add_camera(camera)
+    r.add_shot(shot)
+    graph = nx.Graph()
+    camera_priors = {camera.id: camera}
+    gcp = []
+    myconfig = config.default_config()
+
+    reconstruction.bundle(graph, r, camera_priors, gcp, myconfig)
+
+    assert np.allclose(shot.pose.translation, np.zeros(3))
+    # up vector in camera coordinates is (0, -1, 0)
+    assert np.allclose(shot.pose.transform([0, 0, 1]), [0, -1, 0])

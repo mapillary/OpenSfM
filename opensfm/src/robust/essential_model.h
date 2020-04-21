@@ -59,3 +59,7 @@ class EssentialMatrix : public Model<EssentialMatrix<E>, 1, 10> {
     return e;
   }
 };
+
+
+template <class E>
+const int EssentialMatrix<E>::MINIMAL_SAMPLES;

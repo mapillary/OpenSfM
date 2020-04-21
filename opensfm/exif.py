@@ -222,6 +222,10 @@ class EXIF:
         if not mm_per_unit:
             return None
         pixels_per_unit = get_tag_as_float(self.tags, 'EXIF FocalPlaneXResolution')
+        if pixels_per_unit <= 0:
+            pixels_per_unit = get_tag_as_float(self.tags, 'EXIF FocalPlaneYResolution')
+            if pixels_per_unit <= 0:
+                return None
         units_per_pixel = 1 / pixels_per_unit
         width_in_pixels = self.extract_image_size()[0]
         return width_in_pixels * units_per_pixel * mm_per_unit
@@ -339,9 +343,9 @@ class EXIF:
                     gps_timestamp_string, '%Y:%m:%d %H:%M:%S.%f') -
                     datetime.datetime(1970, 1, 1)).total_seconds()
             except (TypeError, ValueError):
-                logger.error(
-                    'The GPS time stamp in image file "{0:s}" is invalid. Falli'
-                    'ng back to DateTime*'.format(self.fileobj.name))
+                logger.info(
+                    'The GPS time stamp in image file "{0:s}" is invalid. '
+                    'Falling back to DateTime*'.format(self.fileobj.name))
 
         time_strings = [('EXIF DateTimeOriginal', 'EXIF SubSecTimeOriginal', 'EXIF Tag 0x9011'),
                         ('EXIF DateTimeDigitized', 'EXIF SubSecTimeDigitized', 'EXIF Tag 0x9012'),
@@ -357,7 +361,7 @@ class EXIF:
                     s = '{0:s}.{1:s}'.format(date_time, subsec_time)
                     d = datetime.datetime.strptime(s, '%Y:%m:%d %H:%M:%S.%f')
                 except ValueError:
-                    logger.error(
+                    logger.debug(
                         'The "{1:s}" time stamp or \"{2:s}\" tag is invalid in '
                         'image file "{0:s}"'.format(
                             self.fileobj.name, datetime_tag, subsec_tag))
@@ -369,22 +373,22 @@ class EXIF:
                         d += datetime.timedelta(hours=-int(offset_time[0:3]),
                                                 minutes=int(offset_time[4:6]))
                     except (TypeError, ValueError):
-                        logger.error(
+                        logger.debug(
                             'The "{0:s}" time zone offset in image file "{1:s}"'
                             ' is invalid'.format(
                                 offset_tag, self.fileobj.name))
-                        logger.warn(
-                            'Naively assuming UTC on "{0:s}" in image file "{1:'
-                            's}"'.format(datetime_tag, self.fileobj.name))
+                        logger.debug(
+                            'Naively assuming UTC on "{0:s}" in image file '
+                            '"{1:s}"'.format(datetime_tag, self.fileobj.name))
                 else:
-                    logger.warn(
-                        'No GPS time stamp and no time zone offset in image fil'
-                        'e "{0:s}"'.format(self.fileobj.name))
-                    logger.warn(
+                    logger.debug(
+                        'No GPS time stamp and no time zone offset in image '
+                        'file "{0:s}"'.format(self.fileobj.name))
+                    logger.debug(
                         'Naively assuming UTC on "{0:s}" in image file "{1:s}"'
                         .format(datetime_tag, self.fileobj.name))
                 return (d - datetime.datetime(1970, 1, 1)).total_seconds()
-        logger.error(
+        logger.info(
             'Image file "{0:s}" has no valid time stamp'.format(
                 self.fileobj.name))
         return 0.0

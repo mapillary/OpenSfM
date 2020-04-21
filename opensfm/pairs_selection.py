@@ -295,7 +295,9 @@ def match_candidates_from_metadata(images_ref, images_cand, exifs, data):
         o = set()
         b = set()
         v = set()
-        pairs = set([tuple(sorted([i, j])) for i in images_ref for j in images_cand])
+        pairs = set([tuple(sorted([i, j]))
+                     for i in images_ref for j in images_cand
+                     if i != j])
     else:
         d = match_candidates_by_distance(images_ref, images_cand, exifs, reference,
                                          gps_neighbors, max_distance)

@@ -35,10 +35,18 @@ def scene_synthetic():
     return data, exifs, features, desc, colors, graph
 
 
+@pytest.fixture(scope='session')
+def scene_synthetic_cube():
+    np.random.seed(42)
+    data = synthetic_examples.synthetic_cube_scene()
+    _, _, _, graph = data.get_tracks_data(40, 0.0)
+    return data.get_reconstruction(), graph
+
+
 @pytest.fixture(scope='module')
 def pairs_and_poses():
     np.random.seed(42)
-    data = synthetic_examples.synthetic_small_line_scene()
+    data = synthetic_examples.synthetic_cube_scene()
     reconstruction = data.get_reconstruction()
 
     scale = 0.0
@@ -59,23 +67,47 @@ def pairs_and_poses():
                     compose(reconstruction.shots[im1].pose.inverse())
 
     camera = list(reconstruction.cameras.values())[0]
-    return pairs, poses, camera
+    return pairs, poses, camera, features, graph, reconstruction
 
 
 @pytest.fixture(scope='module')
-def one_pair_and_its_E(pairs_and_poses):
-    pairs, poses, camera = pairs_and_poses
+def pairs_and_their_E(pairs_and_poses):
+    pairs, poses, camera, _, _, _ = pairs_and_poses
 
     pairs = list(sorted(zip(pairs.values(), poses.values()), key=lambda x: -len(x[0])))
-    pair = pairs[0]
 
-    f1 = camera.pixel_bearing_many(np.array([x for x, _ in pair[0]]))
-    f2 = camera.pixel_bearing_many(np.array([x for _, x in pair[0]]))
+    num_pairs = 20
+    indices = [np.random.randint(0, len(pairs)-1) for i in range(num_pairs)]
 
-    pose = pair[1]
-    R = pose.get_rotation_matrix()
-    t_x = multiview.cross_product_matrix(pose.get_origin())
-    e = R.dot(t_x)
-    e /= np.linalg.norm(e)
+    ret_pairs = []
+    for idx in indices:
+        pair = pairs[idx]
 
-    return f1, f2, e, pose
+        f1 = camera.pixel_bearing_many(np.array([x for x, _ in pair[0]]))
+        f2 = camera.pixel_bearing_many(np.array([x for _, x in pair[0]]))
+
+        pose = pair[1]
+        R = pose.get_rotation_matrix()
+        t_x = multiview.cross_product_matrix(pose.get_origin())
+        e = R.dot(t_x)
+        e /= np.linalg.norm(e)
+
+        ret_pairs.append((f1, f2, e, pose))
+    return ret_pairs
+
+
+@pytest.fixture(scope='module')
+def shots_and_their_points(pairs_and_poses):
+    _, _, _, features, graph, reconstruction = pairs_and_poses
+
+    ret_shots = []
+    for shot in reconstruction.shots.values():
+        bearings, points = [], []
+        for k, x in graph[shot.id].items():
+            p = reconstruction.points[k]
+            xy = features[shot.id][x['feature_id']][:2]
+            bearings.append(shot.camera.pixel_bearing(xy))
+            points.append(p.coordinates)
+        ret_shots.append((shot.pose, np.array(bearings), np.array(points)))
+
+    return ret_shots

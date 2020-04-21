@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import logging
 import os
+import sys
 
 from opensfm import dataset
 from opensfm import transformations as tf
@@ -28,6 +29,8 @@ class Command:
     def run(self, args):
         data = dataset.DataSet(args.dataset)
         udata = dataset.UndistortedDataSet(data, 'undistorted')
+
+        self.validate_image_names(data, udata)
 
         reconstructions = udata.load_undistorted_reconstruction()
         graph = udata.load_undistorted_tracks_graph()
@@ -126,3 +129,15 @@ class Command:
         """Path to the undistorted image relative to the dataset path."""
         path = udata._undistorted_image_file(image)
         return os.path.relpath(path, udata.data_path)
+
+    def validate_image_names(self, data, udata):
+        """Check that image files do not have spaces."""
+        for image in data.images():
+            filename = self.image_path(image, udata)
+            if ' ' in filename:
+                logger.error(
+                    'Image name "{}" contains spaces.  '
+                    'This is not supported by the NVM format.  '
+                    'Please, rename it before running OpenSfM.'
+                    .format(filename))
+                sys.exit(1)

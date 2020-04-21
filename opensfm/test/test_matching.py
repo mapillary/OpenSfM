@@ -105,7 +105,7 @@ def test_match_images(scene_synthetic):
     matching.save_matches(synthetic, images, pairs)
 
     assert len(pairs) == 62
-    value, margin = 11842, 0.01
+    value, margin = 11842, 0.015
     assert value*(1-margin) < sum([len(m) for m in pairs.values()]) < value*(1+margin)
 
 
@@ -120,18 +120,3 @@ def test_ordered_pairs():
     images = [1, 2, 3]
     pairs = pairs_selection.ordered_pairs(neighbors, images)
     assert set(pairs) == {(1, 2), (1, 3), (2, 5), (3, 2)}
-
-
-def test_robust_match():
-    d = data_generation.CubeDataset(2, 100, 0.0, 0.3)
-    p1 = np.array([v['feature'] for k, v in iteritems(d.tracks['shot0'])])
-    p2 = np.array([v['feature'] for k, v in iteritems(d.tracks['shot1'])])
-    camera1 = d.shots['shot0'].camera
-    camera2 = d.shots['shot1'].camera
-    num_points = len(p1)
-    inlier_matches = np.array([(i, i) for i in range(num_points)])
-    outlier_matches = np.random.randint(num_points, size=(num_points // 2, 2))
-    matches = np.concatenate((inlier_matches, outlier_matches))
-    rmatches = matching.robust_match(p1, p2, camera1, camera2, matches,
-                                     config.default_config())
-    assert num_points <= len(rmatches) <= len(matches)

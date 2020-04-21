@@ -53,27 +53,22 @@ Eigen::Matrix<double, 3, 4> RelativePoseFromEssential(
       // Since rotation=Rcamera and translation=Tcamera parametrization
       centers.row(1) = -rotation.transpose()*translation;
 
-      int are_in_front = 0;
+      double score = 0;
       for (IT it = begin; it != end; ++it) {
         bearings.row(0) = it->first;
         bearings.row(1) = rotation.transpose()*it->second;
         const Eigen::Vector3d point = geometry::TriangulateTwoBearingsMidpointSolve(centers, bearings);
-        const bool is_in_front =
-            bearings.row(0).dot(point) > 0.0 &&
-            bearings.row(1).dot(rotation * point + translation) > 0.0;
-        are_in_front += is_in_front;
-
-        const auto maximum_possible = are_in_front + (end - it);
-        if (maximum_possible < best_decomposition.first) {
-          break;
-        }
+        
+        const auto projected_x = point.normalized();
+        const auto projected_y = (rotation*point+translation).normalized();
+        score += ((projected_x.dot(it->first) + projected_y.dot(it->second))*0.5);
       }
 
-      if (are_in_front > best_decomposition.first) {
+      if (score > best_decomposition.first) {
         Eigen::Matrix<double, 3, 4> RT;
         RT.block<3, 3>(0, 0) = rotation;
         RT.block<3, 1>(0, 3) = translation;
-        best_decomposition = std::make_pair(are_in_front, RT);
+        best_decomposition = std::make_pair(score, RT);
       }
     }
   }
@@ -84,9 +79,13 @@ Eigen::Matrix<double, 3, 4> RelativePoseFromEssential(
 
 template< class IT >
 struct RelativePoseCost {
-  RelativePoseCost(IT begin, IT end): begin_(begin), end_(end){}
-  int NumResiduals() const {
-    return (end_-begin_)+1;
+  RelativePoseCost(IT begin, IT end): begin_(begin), end_(end){
+    std::srand(42);
+    const int count = end_ - begin_;
+    for(int i = 0; i < MAX_ERRORS; ++i){
+      const int index = (float(std::rand())/RAND_MAX)*count;
+      picked_errors_.push_back(begin_+index);
+    }
   }
 
   template<typename T>
@@ -101,9 +100,9 @@ struct RelativePoseCost {
     centers.row(1) = translation;
     Eigen::Matrix<T, 3, 1> some_tmp = Eigen::Matrix<T, 3, 1>::Zero();
 
-    int count = 0;
     residuals[0] = T(0.);
-    for (IT it = begin_; it != end_; ++it) {
+    for (int i = 0; i < MAX_ERRORS; ++i) {
+      IT it = picked_errors_[i];
       const Eigen::Matrix<T, 3, 1> x = it->first.template cast<T>();
       const Eigen::Matrix<T, 3, 1> y = it->second.template cast<T>();
 
@@ -120,13 +119,19 @@ struct RelativePoseCost {
       const Eigen::Matrix<T, 3, 1> y_centered = point-translation;
       ceres::AngleAxisRotatePoint(rotation.data(), y_centered.data(), some_tmp.data());
       const auto projected_y = some_tmp.normalized();
-      residuals[0] += 1.0 - ((projected_x.dot(x) + projected_y.dot(y))*T(0.5));
+      residuals[i] = 1.0 - ((projected_x.dot(x) + projected_y.dot(y))*T(0.5));
     }
-    residuals[1] = 1.0 - translation.norm();
+    residuals[MAX_ERRORS] = 1.0 - translation.norm();
+
+    return true;
   }
+
   IT begin_;
   IT end_;
+  static const int MAX_ERRORS = 100;
+  std::vector<IT> picked_errors_;
 };
+
 
 template <class IT>
 Eigen::Matrix<double, 3, 4> RelativePoseRefinement(
@@ -138,7 +143,7 @@ Eigen::Matrix<double, 3, 4> RelativePoseRefinement(
   ceres::RotationMatrixToAngleAxis(relative_pose.block<3, 3>(0, 0).data(), parameters.data());
   parameters.segment<3>(3) = -relative_pose.block<3, 3>(0, 0).transpose()*relative_pose.col(3);
 
-  using RelativePoseFunction = ceres::TinySolverAutoDiffFunction<RelativePoseCost<IT>, 2, 6>;
+  using RelativePoseFunction = ceres::TinySolverAutoDiffFunction<RelativePoseCost<IT>, RelativePoseCost<IT>::MAX_ERRORS+1, 6>;
   RelativePoseCost<IT> cost(begin, end);
   RelativePoseFunction f(cost);
 
@@ -162,4 +167,7 @@ Eigen::Matrix<double, 3, 4> RelativePoseRefinement(
     const Eigen::Matrix<double, -1, 3> &x1,
     const Eigen::Matrix<double, -1, 3> &x2,
     int iterations);
+Eigen::Matrix3d RelativeRotationNPoints(
+    const Eigen::Matrix<double, -1, 3> &x1,
+    const Eigen::Matrix<double, -1, 3> &x2);
 }

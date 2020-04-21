@@ -11,6 +11,10 @@ class Model {
   static const int MAX_MODELS = M;
   using Error = Eigen::Matrix<double, SIZE, 1>;
 
+  static double ThresholdAdapter(const double threshold){
+    return threshold;
+  }
+
   template <class IT, class MODEL>
   static std::vector<Error> EvaluateModel(const MODEL& model, IT begin, IT end) {
     std::vector<Error> errors;
