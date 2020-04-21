@@ -236,7 +236,7 @@ class COLMAPDatabase(sqlite3.Connection):
             (pair_id,) + matches.shape + (array_to_blob(matches), config,
                                           array_to_blob(F), array_to_blob(E), array_to_blob(H)))
 
-COLMAP_DIR_NAME = 'colmap_export_query_database'
+COLMAP_DIR_NAME = 'colmap_export'
 COLMAP_DB_NAME = 'colmap_database.db'
 COLMAP_TYPES_MAP = {'brown': 'FULL_OPENCV', 'perspective': 'RADIAL', 'fisheye': 'RADIAL_FISHEYE'}
 COLMAP_ID_MAP = {'brown': 6, 'perspective': 3, 'fisheye': 9}
