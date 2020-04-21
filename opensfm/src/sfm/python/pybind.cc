@@ -21,7 +21,8 @@ PYBIND11_MODULE(pysfm, m) {
 
   py::class_<TracksManager>(m, "TracksManager")
     .def(py::init())
-    .def(py::init(&TracksManager::InstanciateFromFile))
+    .def_static("instanciate_from_file", &TracksManager::InstanciateFromFile)
+    .def_static("instanciate_from_string", &TracksManager::InstanciateFromString)
     .def("add_observation", &TracksManager::AddObservation)
     .def("remove_observation", &TracksManager::RemoveObservation)
     .def("num_shots", &TracksManager::NumShots)
@@ -33,6 +34,7 @@ PYBIND11_MODULE(pysfm, m) {
     .def("get_track_observations", &TracksManager::GetTrackObservations)
     .def("construct_sub_tracks_manager", &TracksManager::ConstructSubTracksManager)
     .def("write_to_file", &TracksManager::WriteToFile)
+    .def("as_string", &TracksManager::AsSring)
     .def("get_all_common_observations", &TracksManager::GetAllCommonObservations)
     .def("get_all_common_observations_all_pairs", &TracksManager::GetAllCommonObservationsAllPairs)
     ;
