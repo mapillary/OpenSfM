@@ -11,6 +11,5 @@ pytest==3.0.7
 python-dateutil==2.6.0
 pyyaml==5.1
 repoze.lru==0.7
-scipy
 six
 xmltodict==0.10.2

@@ -104,10 +104,9 @@ def _get_camera_from_bundle(ba, camera):
         camera.transition = c.transition
 
 
-def triangulate_gcp(point, shots):
+def triangulate_gcp(point, shots,reproj_threshold = 1.0
+    ,min_ray_angle = np.radians(0.1)):
     """Compute the reconstructed position of a GCP from observations."""
-    reproj_threshold = 1.0
-    min_ray_angle = np.radians(0.1)
 
     os, bs, ids = [], [], []
     for observation in point.observations:
@@ -120,7 +119,6 @@ def triangulate_gcp(point, shots):
             r = shot.pose.get_rotation_matrix().T
             bs.append(r.dot(b))
             ids.append(shot_id)
-
     if len(os) >= 2:
         thresholds = len(os) * [reproj_threshold]
         e, X = pygeometry.triangulate_bearings_midpoint(

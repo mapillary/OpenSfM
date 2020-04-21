@@ -78,7 +78,7 @@ def main():
         level=logging.DEBUG)
 
     data = dataset.DataSet(args.dataset)
-    reconstruction = data.load_reconstruction()[0]
+    reconstruction = data.load_reconstruction(filename='result_bundle_adjustment.json')[0]
     gcps = data.load_ground_control_points()
 
     with io.open_wt(data.data_path + '/gcp.ply') as fout:
@@ -90,7 +90,8 @@ def main():
         if gcp.coordinates is not None:
             coordinates = gcp.coordinates
         else:
-            coordinates = orec.triangulate_gcp(gcp, reconstruction.shots)
+            coordinates = orec.triangulate_gcp(gcp, reconstruction.shots,reproj_threshold = 100000000000000.0
+            ,min_ray_angle = np.radians(0.00000000001))
 
         if coordinates is None:
             logger.warning("Could not compute the 3D position of GCP '{}'"

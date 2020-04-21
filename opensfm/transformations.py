@@ -927,6 +927,10 @@ def affine_matrix_from_points(v0, v1, shear=True, scale=True, usesvd=True):
 
     ndims = v0.shape[0]
     if ndims < 2 or v0.shape[1] < ndims or v0.shape != v1.shape:
+        print(ndims)
+        print(v0.shape)
+        print(v1.shape[1])
+        print(v0.shape != v1.shape)
         raise ValueError("input arrays are of wrong shape or type")
 
     # move centroids to origin

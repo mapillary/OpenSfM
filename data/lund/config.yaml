@@ -1,7 +1,0 @@
-
-# OpenSfM will use the default parameters from opensfm/config.py
-# Set here any parameter that you want to override for this dataset
-# For example:
-feature_min_frames: 8000      # If fewer frames are detected, sift_peak_threshold/surf_hessian_threshold is reduced.
-matching_gps_neighbors: 4     # Number of images to match selected by GPS distance. Set to 0 to use no limit
-processes: 4                  # Number of threads to use

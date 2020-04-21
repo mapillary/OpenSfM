@@ -27,10 +27,12 @@ class Command:
                             action='store_true',
                             default=False,
                             help='Export per-image depthmaps as pointclouds')
+        parser.add_argument('--reconstruction_file',
+                            help='reconstruction file for custom reconstructions')
 
     def run(self, args):
         data = dataset.DataSet(args.dataset)
-        reconstructions = data.load_reconstruction()
+        reconstructions = data.load_reconstruction(filename=args.reconstruction_file)
         no_cameras = args.no_cameras
         no_points = args.no_points
 

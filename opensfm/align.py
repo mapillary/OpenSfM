@@ -147,6 +147,8 @@ def align_reconstruction_naive_similarity(config, reconstruction, gcp):
     T = tf.superimposition_matrix(X.T, Xp.T, scale=True)
 
     A, b = T[:3, :3], T[:3, 3]
+
+    print(np.linalg.det(A))
     s = np.linalg.det(A)**(1. / 3)
     A /= s
     return s, A, b
