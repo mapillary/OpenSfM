@@ -23,9 +23,15 @@ class TempFile {
 class TracksManagerTest : public ::testing::Test {
  protected:
   void SetUp() {
-    manager.AddObservation("1", "1", Observation(1.0, 1.0, 1.0, 1, 1, 1, 1));
-    manager.AddObservation("2", "1", Observation(2.0, 2.0, 2.0, 2, 2, 2, 2));
-    manager.AddObservation("3", "1", Observation(3.0, 3.0, 3.0, 3, 3, 3, 3));
+    const auto o1 =  Observation(1.0, 1.0, 1.0, 1, 1, 1, 1);
+    const auto o2 =  Observation(2.0, 2.0, 2.0, 2, 2, 2, 2);
+    const auto o3 =  Observation(3.0, 3.0, 3.0, 3, 3, 3, 3);
+    manager.AddObservation("1", "1", o1);
+    manager.AddObservation("2", "1", o2);
+    manager.AddObservation("3", "1", o3);
+    track["1"] = o1;
+    track["2"] = o2;
+    track["3"] = o3;
   }
 
   TempFile tmpfile;
@@ -90,7 +96,7 @@ TEST_F(TracksManagerTest, ConstructSubTracksManager) {
   EXPECT_EQ(subtrack, subset.GetTrackObservations("1"));
 }
 
-TEST_F(TracksManagerTest, HasIOConsistency) {
+TEST_F(TracksManagerTest, HasIOFileConsistency) {
   manager.WriteToFile(tmpfile.Name());
   const TracksManager manager_new =
       TracksManager::InstanciateFromFile(tmpfile.Name());
@@ -100,6 +106,18 @@ TEST_F(TracksManagerTest, HasIOConsistency) {
   EXPECT_THAT(manager_new.GetTrackIds(),
               ::testing::WhenSorted(::testing::ElementsAre("1")));
   EXPECT_EQ(track, manager_new.GetTrackObservations("1"));
+}
+
+TEST_F(TracksManagerTest, HasIOStringConsistency) {
+  const auto serialized = manager.AsSring();
+  const TracksManager manager_new =
+      TracksManager::InstanciateFromString(serialized);
+
+  // EXPECT_THAT(manager_new.GetShotIds(),
+  //             ::testing::WhenSorted(::testing::ElementsAre("1", "2", "3")));
+  // EXPECT_THAT(manager_new.GetTrackIds(),
+  //             ::testing::WhenSorted(::testing::ElementsAre("1")));
+  // EXPECT_EQ(track, manager_new.GetTrackObservations("1"));
 }
 
 }  // namespace

@@ -39,7 +39,10 @@ class TracksManager {
   GetAllCommonObservationsAllPairs() const;
 
   static TracksManager InstanciateFromFile(const std::string& filename);
-  void WriteToFile(const std::string& filename);
+  void WriteToFile(const std::string& filename)const;
+
+  static TracksManager InstanciateFromString(const std::string& str);
+  std::string AsSring()const;
 
   static std::string TRACKS_HEADER;
   static int TRACKS_VERSION;
