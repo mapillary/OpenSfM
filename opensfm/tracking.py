@@ -71,19 +71,19 @@ def create_tracks_manager(features, colors, matches, config):
     return tracks_manager
 
 
-def common_tracks(graph, im1, im2):
+def common_tracks(tracks_manager, im1, im2):
     """List of tracks observed in both images.
 
     Args:
-        graph: tracks graph
+        tracks_manager: tracks manager
         im1: name of the first image
         im2: name of the second image
 
     Returns:
         tuple: tracks, feature from first image, feature from second image
     """
-    t1 = graph.get_shot_observations(im1)
-    t2 = graph.get_shot_observations(im2)
+    t1 = tracks_manager.get_shot_observations(im1)
+    t2 = tracks_manager.get_shot_observations(im2)
     tracks, p1, p2 = [], [], []
     for track, obs in t1.items():
         if track in t2:
