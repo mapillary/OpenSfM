@@ -40,5 +40,6 @@ PYBIND11_MODULE(pysfm, m) {
     ;
 
   m.def("count_tracks_per_shot", &sfm_helpers::CountTracksPerShot);
+  m.def("count_common_observations", &sfm_helpers::CountCommonObservations);
 }
 
