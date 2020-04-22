@@ -189,12 +189,7 @@ def cam_from_colmap_params(camera_model_id, width, height, params, prior_focal=1
         cam.k1 = params[3]
         cam.k2 = params[4]
     elif projection_type == 'brown':
-        cam = types.BrownPerspectiveCamera()
-        cam.focal_x = params[0] / normalizer if prior_focal else 0.85
-        cam.focal_y = params[1] / normalizer if prior_focal else 0.85
-        cam.c_x = (params[2] - (width - 1) * 0.5) / normalizer
-        cam.c_y = (params[3] - (height - 1) * 0.5) / normalizer
-        cam.k1, cam.k2, cam.p1, cam.p2, cam.k3 = params[4:9]
+        raise ValueError("FullOpenCVCameraModel not supported in OpenSfM")
     else:  # projection_type == 'fisheye'
         cam = types.FisheyeCamera()
         cam.focal = params[0] / normalizer if prior_focal else 0.85
