@@ -50,10 +50,15 @@ Install OpenCV and the Ceres solver using::
     brew install ceres-solver
     sudo pip install -r requirements.txt
 
-Make sure you update your ``PYTHONPATH`` to include ``/usr/local/lib/python2.7/site-packages`` where OpenCV have been installed. For example with::
+Make sure you update your ``PYTHONPATH`` to include ``/usr/local/lib/python3.7/site-packages`` where OpenCV have been installed. For example with::
 
-    export PYTHONPATH=/usr/local/lib/python2.7/site-packages:$PYTHONPATH
+    export PYTHONPATH=/usr/local/lib/python3.7/site-packages:$PYTHONPATH
 
+Also, in order for Cmake to recognize the libraries installed by Brew, make sure that C_INCLUDE_PATH, CPLUS_INCLUDE_PATH, DYLD_LIBRARY_PATH environment variables are set correctly. For example, you can run::
+
+    export C_INCLUDE_PATH=/usr/local/include
+    export CPLUS_INCLUDE_PATH=/usr/local/include
+    export DYLD_LIBRARY_PATH=$HOME/local/lib64
 
 .. note:: Note on OpenCV 3
     When running OpenSfM on top of OpenCV version 3.0 the `OpenCV Contrib`_ modules are required for extracting SIFT or SURF features.
