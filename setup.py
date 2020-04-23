@@ -50,7 +50,7 @@ build_c_extension()
 
 setuptools.setup(
     name='opensfm',
-    version='0.3.0',
+    version='0.4.0',
     description='A Structure from Motion library',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',

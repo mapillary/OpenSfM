@@ -3,11 +3,20 @@
 
 ## [Unreleased]
 
+
+## 0.4.0
+
+### Added
+ - Internal geometric solvers and RANSAC
+
 ### Changed
 - Undistorted images, masks and depthmaps are now under the undistorted folder.  Use the `bin/migrate_undistort.sh` script to port old datasets to the new folder structure.
+- Removed dependency on opengv
+- Restructured c++ code
 
 ### Improved
 - Undistorting 16bit images now produces 16bit undistorted images. @pierotofy
+- Fix bug on multiple reconstruction alignment. @linusmartensson
 
 
 ## 0.3.0
