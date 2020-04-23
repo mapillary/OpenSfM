@@ -1,0 +1,9 @@
+
+# OpenSfM will use the default parameters from opensfm/config.py
+# Set here any parameter that you want to override for this dataset
+# For example:
+processes: 8                  # Number of threads to use
+depthmap_min_consistent_views: 2      # Min number of views that should reconstruct a point for it to be valid
+depthmap_save_debug_files: yes        # Save debug files with partial reconstruction results
+feature_process_size: 1024
+bundle_use_gcp: yes
