@@ -1,6 +1,3 @@
-# we want to have a list of image pairs
-# the thingy scrolls on.
-# The gcps are set in a different structure, explained on the notes
 
 from __future__ import print_function
 from __future__ import division
