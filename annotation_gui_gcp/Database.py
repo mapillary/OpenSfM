@@ -62,7 +62,7 @@ class Database:
 
     def init_points(self, points):
         for point in points:
-            point_id, observations = point.values()
+            point_id, observations = point['id'], point['observations']
             for observation in observations:
                 h, w = self.get_image_size(observation["shot_id"])
                 observation["projection"] = features.denormalized_image_coordinates(
