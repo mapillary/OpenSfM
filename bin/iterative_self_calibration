@@ -7,6 +7,7 @@ import os
 import subprocess
 import shutil
 import sys
+import yaml
 from os.path import join as pj
 
 from opensfm import io
@@ -76,7 +77,6 @@ def remove_previous_workdir(path):
 def init_dataset(src, dst, camera_models):
     """Init a dataset using data from a previous iteration."""
     filenames = [
-        'config.yaml',
         'image_list.txt',
         'images',
         'masks',
@@ -102,6 +102,24 @@ def init_dataset(src, dst, camera_models):
                 os.unlink(dst_path)
 
             os.symlink(os.path.relpath(src_path, dst), dst_path)
+
+    init_config(src, dst)
+
+
+def init_config(src, dst):
+    """Init the config with calibration specific options."""
+    with io.open_rt(pj(src, 'config.yaml')) as fp:
+        conf = yaml.safe_load(fp)
+    conf['exif_focal_sd'] = 1.0
+    conf['principal_point_sd'] = 1.0
+    conf['radial_distorsion_k1_sd'] = 1.0
+    conf['radial_distorsion_k2_sd'] = 1.0
+    conf['radial_distorsion_k3_sd'] = 1.0
+    conf['radial_distorsion_p1_sd'] = 1.0
+    conf['radial_distorsion_p2_sd'] = 1.0
+
+    with io.open_wt(pj(dst, 'config.yaml')) as fp:
+        yaml.safe_dump(conf, fp) 
 
 
 def run_dataset(path, opensfm_path):
