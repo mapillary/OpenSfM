@@ -15,7 +15,8 @@ target_include_directories(dense_test PRIVATE ${CMAKE_SOURCE_DIR})
 target_link_libraries(dense_test
                       PUBLIC
                       dense
-                      ${TEST_MAIN})
+                      ${TEST_MAIN}
+                      ${OpenCV_LIBS})
 add_test(dense_test dense_test)
 
 pybind11_add_module(pydense python/pybind.cc)
