@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # Copyright (c) 2018, ETH Zurich and UNC Chapel Hill.
 # All rights reserved.
 #
@@ -32,13 +31,14 @@
 
 # This script is based on an original implementation by True Price.
 
-from __future__ import absolute_import
-from __future__ import division
 from __future__ import print_function
+from __future__ import division
 from __future__ import unicode_literals
+from __future__ import absolute_import
 
 import sys
 import sqlite3
+import logging
 import os
 import math
 import argparse
@@ -48,6 +48,47 @@ from opensfm import dataset
 from opensfm import matching
 from opensfm import features
 from opensfm import io
+
+
+logger = logging.getLogger(__name__)
+
+
+class Command:
+    name = 'export_bundler'
+    help = "Export reconstruction to bundler format"
+
+    def add_arguments(self, parser):
+        parser.add_argument('dataset', help='dataset to process')
+
+    def run(self, args):
+        data = dataset.DataSet(args.dataset)
+
+        export_folder = os.path.join(data.data_path, 'colmap_export')
+        io.mkdir_p(export_folder)
+
+        database_path = os.path.join(export_folder, 'colmap_database.db')
+        images_path = os.path.join(data.data_path, 'images')
+
+        if os.path.exists(database_path):
+            os.remove(database_path)
+        db = COLMAPDatabase.connect(database_path)
+        db.create_tables()
+
+        images_map, camera_map = export_cameras(data, db)
+        features_map = export_features(data, db, images_map)
+        export_matches(data, db, features_map, images_map)
+
+        if data.reconstruction_exists():
+            export_ini_file(export_folder, database_path, images_path)
+            export_cameras_reconstruction(data, db, export_folder, camera_map)
+            points_map = export_points_reconstruction(data, db, export_folder,
+                                                      camera_map, images_map)
+            export_shots_reconstruction(data, db, export_folder,
+                                        camera_map, images_map,
+                                        features_map, points_map)
+        db.commit()
+        db.close()
+
 
 IS_PYTHON3 = sys.version_info[0] >= 3
 
@@ -236,8 +277,7 @@ class COLMAPDatabase(sqlite3.Connection):
             (pair_id,) + matches.shape + (array_to_blob(matches), config,
                                           array_to_blob(F), array_to_blob(E), array_to_blob(H)))
 
-COLMAP_DIR_NAME = 'colmap_export'
-COLMAP_DB_NAME = 'colmap_database.db'
+
 COLMAP_TYPES_MAP = {'brown': 'FULL_OPENCV', 'perspective': 'RADIAL', 'fisheye': 'RADIAL_FISHEYE'}
 COLMAP_ID_MAP = {'brown': 6, 'perspective': 3, 'fisheye': 9}
 
@@ -294,7 +334,7 @@ def export_features(data, db, images_map):
     return features_map
 
 
-def export_matches(data, db, features_map):
+def export_matches(data, db, features_map, images_map):
     matches_per_pair = {}
     for image1 in data.images():
         matches = data.load_matches(image1)
@@ -362,7 +402,7 @@ def export_cameras_reconstruction(data, db, path, camera_map):
 def export_shots_reconstruction(data, db, path, camera_map, images_map,
                                 features_map, points_map):
     reconstructions = data.load_reconstruction()
-    graph = data.load_tracks_graph()
+    tracks_manager = data.load_tracks_manager()
 
     with io.open_wt(os.path.join(path, 'images.txt')) as fout:
         for reconstruction in reconstructions:
@@ -380,7 +420,7 @@ def export_shots_reconstruction(data, db, path, camera_map, images_map,
                                 t[0], t[1], t[2],
                                 colmap_camera_id, shot_id]
 
-                point_per_feat = {graph[shot_id][p]['feature_id']: p for p in graph[shot_id]}
+                point_per_feat = {obs.id: k for k, obs in tracks_manager.get_shot_observations(shot_id).items()}
                 for feature_id in range(len(features_map[shot_id])):
                     colmap_point_id = -1
                     if feature_id in point_per_feat:
@@ -399,7 +439,7 @@ def export_shots_reconstruction(data, db, path, camera_map, images_map,
 
 def export_points_reconstruction(data, db, path, camera_map, images_map):
     reconstructions = data.load_reconstruction()
-    graph = data.load_tracks_graph()
+    tracks_manager = data.load_tracks_manager()
 
     points_map = {}
     with io.open_wt(os.path.join(path, 'points3D.txt')) as fout:
@@ -411,13 +451,11 @@ def export_points_reconstruction(data, db, path, camera_map, images_map):
                 format_tuple = [int(i), c[0], c[1], c[2],
                                 int(cl[0]), int(cl[1]), int(cl[2]), 0.0]
 
-                for image in graph[point.id]:
+                for image, obs in tracks_manager.get_track_observations(point.id).items():
                     if image not in reconstruction.shots:
                         continue
-                    feature_data = graph[point.id][image]
-                    feature_id = feature_data['feature_id']
                     format_line += '%d %d '
-                    format_tuple += [images_map[image], feature_id]
+                    format_tuple += [images_map[image], obs.id]
                 format_line += '\n'
                 format_tuple = tuple(format_tuple)
 
@@ -446,37 +484,3 @@ def export_ini_file(path, db_path, images_path):
         fout.write('log_to_stderr=false\nlog_level=2\n')
         fout.write('database_path=%s\n' % db_path)
         fout.write('image_path=%s\n' % images_path)
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description='Convert OpenSfM dataset to COLMAP database')
-    parser.add_argument('dataset', help='path to the dataset to be processed')
-    args = parser.parse_args()
-
-    export_folder = os.path.join(args.dataset, COLMAP_DIR_NAME)
-    io.mkdir_p(export_folder)
-
-    database_path = os.path.join(export_folder, COLMAP_DB_NAME)
-    images_path = os.path.join(args.dataset, 'images')
-    data = dataset.DataSet(args.dataset)
-
-    if os.path.exists(database_path):
-        os.remove(database_path)
-    db = COLMAPDatabase.connect(database_path)
-    db.create_tables()
-
-    images_map, camera_map = export_cameras(data, db)
-    features_map = export_features(data, db, images_map)
-    export_matches(data, db, features_map)
-
-    if data.reconstruction_exists():
-        export_ini_file(export_folder, database_path, images_path)
-        export_cameras_reconstruction(data, db, export_folder, camera_map)
-        points_map = export_points_reconstruction(data, db, export_folder,
-                                                  camera_map, images_map)
-        export_shots_reconstruction(data, db, export_folder,
-                                    camera_map, images_map,
-                                    features_map, points_map)
-    db.commit()
-    db.close()

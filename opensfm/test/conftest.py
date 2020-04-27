@@ -39,8 +39,8 @@ def scene_synthetic():
 def scene_synthetic_cube():
     np.random.seed(42)
     data = synthetic_examples.synthetic_cube_scene()
-    _, _, _, graph = data.get_tracks_data(40, 0.0)
-    return data.get_reconstruction(), graph
+    _, _, _, tracks_manager = data.get_tracks_data(40, 0.0)
+    return data.get_reconstruction(), tracks_manager
 
 
 @pytest.fixture(scope='module')
@@ -50,24 +50,19 @@ def pairs_and_poses():
     reconstruction = data.get_reconstruction()
 
     scale = 0.0
-    features, _, _, graph = data.get_tracks_data(40, scale)
+    features, _, _, tracks_manager = data.get_tracks_data(40, scale)
 
+    points_keys = list(reconstruction.points.keys())
     pairs, poses = defaultdict(list), defaultdict(list)
-    for track in reconstruction.points:
-        for im1, im2 in combinations(graph[track].keys(), 2):
-            f1 = features[im1][graph[track][im1]['feature_id']][:2]
-            f2 = features[im2][graph[track][im2]['feature_id']][:2]
-            if im1 > im2:
-                im1, im2 = im2, im1
-                f1, f2, = f2, f1
-            pairs[im1, im2].append((f1, f2))
-
-            if not poses[im1, im2]:
-                poses[im1, im2] = reconstruction.shots[im2].pose.\
-                    compose(reconstruction.shots[im1].pose.inverse())
+    for (im1, im2), tuples in tracks_manager.get_all_common_observations_all_pairs().items():
+        f1 = [p.point for k, p, _ in tuples if k in points_keys]
+        f2 = [p.point for k, _, p in tuples if k in points_keys]
+        pairs[im1, im2].append((f1, f2))
+        poses[im1, im2] = reconstruction.shots[im2].pose.\
+            compose(reconstruction.shots[im1].pose.inverse())
 
     camera = list(reconstruction.cameras.values())[0]
-    return pairs, poses, camera, features, graph, reconstruction
+    return pairs, poses, camera, features, tracks_manager, reconstruction
 
 
 @pytest.fixture(scope='module')
@@ -98,15 +93,16 @@ def pairs_and_their_E(pairs_and_poses):
 
 @pytest.fixture(scope='module')
 def shots_and_their_points(pairs_and_poses):
-    _, _, _, features, graph, reconstruction = pairs_and_poses
+    _, _, _, _, tracks_manager, reconstruction = pairs_and_poses
 
     ret_shots = []
     for shot in reconstruction.shots.values():
         bearings, points = [], []
-        for k, x in graph[shot.id].items():
+        for k, obs in tracks_manager.get_shot_observations(shot.id).items():
+            if k not in reconstruction.points:
+                continue
             p = reconstruction.points[k]
-            xy = features[shot.id][x['feature_id']][:2]
-            bearings.append(shot.camera.pixel_bearing(xy))
+            bearings.append(shot.camera.pixel_bearing(obs.point))
             points.append(p.coordinates)
         ret_shots.append((shot.pose, np.array(bearings), np.array(points)))
 

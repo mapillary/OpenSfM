@@ -61,8 +61,7 @@ The report on the reconstruction process is stored in the file ``reconstruction.
     {
         "wall_times": {
             "compute_reconstructions": {{ time computing the reconstruction }},
-            "compute_image_pairs": {{ time computing the candidate initial pairs }},
-            "load_tracks_graph": {{ time loading tracks }}
+            "compute_image_pairs": {{ time computing the candidate initial pairs }}
         },
         "num_candidate_image_pairs": {{ number of candidate image pairs for initializing reconstructions }},
         "reconstructions": [  # For each reconstruction build

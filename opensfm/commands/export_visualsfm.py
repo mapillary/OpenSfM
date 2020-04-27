@@ -33,7 +33,7 @@ class Command:
         self.validate_image_names(data, udata)
 
         reconstructions = udata.load_undistorted_reconstruction()
-        graph = udata.load_undistorted_tracks_graph()
+        tracks_manager = udata.load_undistorted_tracks_manager()
 
         export_only = None
         if args.image_list:
@@ -43,9 +43,9 @@ class Command:
                     export_only[image.strip()] = True
 
         if reconstructions:
-            self.export(reconstructions[0], graph, udata, args.points, export_only)
+            self.export(reconstructions[0], tracks_manager, udata, args.points, export_only)
 
-    def export(self, reconstruction, graph, udata, with_points, export_only):
+    def export(self, reconstruction, tracks_manager, udata, with_points, export_only):
         lines = ['NVM_V3', '', len(reconstruction.shots)]
         shot_size_cache = {}
         shot_index = {}
@@ -94,19 +94,17 @@ class Command:
                 coord = point.coordinates
                 color = list(map(int, point.color))
 
-                view_list = graph[point_id]
                 view_line = []
-
-                for shot_key, view in iteritems(view_list):
+                for shot_key, obs in tracks_manager.get_track_observations(point_id).items():
                     if export_only is not None and not shot_key in export_only:
                         continue
 
                     if shot_key in shots.keys():
-                        v = view['feature']
+                        v = obs.point
                         x = (0.5 + v[0]) * shot_size_cache[shot_key][1]
                         y = (0.5 + v[1]) * shot_size_cache[shot_key][0]
                         view_line.append(' '.join(
-                            map(str, [shot_index[shot_key], view['feature_id'], x, y])))
+                            map(str, [shot_index[shot_key], obs.id, x, y])))
                 
                 if len(view_line) > 1:
                     lines.append(' '.join(map(str, coord)) + ' ' + 

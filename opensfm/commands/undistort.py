@@ -10,6 +10,7 @@ from opensfm import features
 from opensfm import log
 from opensfm import transformations as tf
 from opensfm import types
+from opensfm import pysfm
 from opensfm.context import parallel_map
 
 
@@ -50,18 +51,18 @@ class Command:
         udata = dataset.UndistortedDataSet(data, args.output)
         reconstructions = data.load_reconstruction(args.reconstruction)
         if data.tracks_exists(args.tracks):
-            graph = data.load_tracks_graph(args.tracks)
+            tracks_manager = data.load_tracks_manager(args.tracks)
         else:
-            graph = None
+            tracks_manager = None
 
         if reconstructions:
             r = reconstructions[args.reconstruction_index]
-            self.undistort_reconstruction(graph, r, data, udata)
+            self.undistort_reconstruction(tracks_manager, r, data, udata)
 
-    def undistort_reconstruction(self, graph, reconstruction, data, udata):
+    def undistort_reconstruction(self, tracks_manager, reconstruction, data, udata):
         urec = types.Reconstruction()
         urec.points = reconstruction.points
-        ugraph = nx.Graph()
+        utracks_manager = pysfm.TracksManager()
 
         logger.debug('Undistorting the reconstruction')
         undistorted_shots = {}
@@ -82,13 +83,13 @@ class Command:
             for subshot in subshots:
                 urec.add_camera(subshot.camera)
                 urec.add_shot(subshot)
-                if graph:
-                    add_subshot_tracks(graph, ugraph, shot, subshot)
+                if tracks_manager:
+                    add_subshot_tracks(tracks_manager, utracks_manager, shot, subshot)
             undistorted_shots[shot.id] = subshots
 
         udata.save_undistorted_reconstruction([urec])
-        if graph:
-            udata.save_undistorted_tracks_graph(ugraph)
+        if tracks_manager:
+            udata.save_undistorted_tracks_manager(utracks_manager)
 
         arguments = []
         for shot in reconstruction.shots.values():
@@ -342,32 +343,22 @@ def render_perspective_view_of_a_panorama(image, panoshot, perspectiveshot,
     return colors
 
 
-def add_subshot_tracks(graph, ugraph, shot, subshot):
-    """Add shot tracks to the undistorted graph."""
-    if shot.id not in graph:
+def add_subshot_tracks(tracks_manager, utracks_manager, shot, subshot):
+    """Add shot tracks to the undistorted tracks_manager."""
+    if shot.id not in tracks_manager.get_shot_ids():
         return
 
     if shot.camera.projection_type in ['equirectangular', 'spherical']:
-        add_pano_subshot_tracks(graph, ugraph, shot, subshot)
+        add_pano_subshot_tracks(tracks_manager, utracks_manager, shot, subshot)
     else:
-        ugraph.add_node(subshot.id, bipartite=0)
-        for track_id, edge in iteritems(graph[shot.id]):
-            ugraph.add_node(track_id, bipartite=1)
-            ugraph.add_edge(
-                subshot.id, track_id,
-                feature=edge['feature'],
-                feature_scale=edge['feature_scale'],
-                feature_id=edge['feature_id'],
-                feature_color=edge['feature_color'])
+        for track_id, obs in tracks_manager.get_shot_observations(shot.id).items():
+            utracks_manager.add_observation(subshot.id, track_id, obs)
 
 
-def add_pano_subshot_tracks(graph, ugraph, panoshot, perspectiveshot):
+def add_pano_subshot_tracks(tracks_manager, utracks_manager, panoshot, perspectiveshot):
     """Add edges between subshots and visible tracks."""
-    ugraph.add_node(perspectiveshot.id, bipartite=0)
-    for track in graph[panoshot.id]:
-        edge = graph[panoshot.id][track]
-        feature = edge['feature']
-        bearing = panoshot.camera.pixel_bearing(feature)
+    for track_id, obs in tracks_manager.get_shot_observations(panoshot.id).items():
+        bearing = panoshot.camera.pixel_bearing(obs.point)
         rotation = np.dot(perspectiveshot.pose.get_rotation_matrix(),
                           panoshot.pose.get_rotation_matrix().T)
 
@@ -382,10 +373,5 @@ def add_pano_subshot_tracks(graph, ugraph, panoshot, perspectiveshot):
                 perspective_feature[1] > 0.5):
             continue
 
-        ugraph.add_node(track, bipartite=1)
-        ugraph.add_edge(perspectiveshot.id,
-                        track,
-                        feature=perspective_feature,
-                        feature_scale=edge['feature_scale'],
-                        feature_id=edge['feature_id'],
-                        feature_color=edge['feature_color'])
+        obs.point = perspective_feature
+        utracks_manager.add_observation(perspectiveshot.id, track_id, obs)

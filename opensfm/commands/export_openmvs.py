@@ -21,12 +21,12 @@ class Command:
         data = dataset.DataSet(args.dataset)
         udata = dataset.UndistortedDataSet(data, 'undistorted')
         reconstructions = udata.load_undistorted_reconstruction()
-        graph = udata.load_undistorted_tracks_graph()
+        tracks_manager = udata.load_undistorted_tracks_manager()
 
         if reconstructions:
-            self.export(reconstructions[0], graph, udata, data)
+            self.export(reconstructions[0], tracks_manager, udata, data)
 
-    def export(self, reconstruction, graph, udata, data):
+    def export(self, reconstruction, tracks_manager, udata, data):
         exporter = pydense.OpenMVSExporter()
         for camera in reconstruction.cameras.values():
             if camera.projection_type == 'perspective':
@@ -49,7 +49,7 @@ class Command:
                     shot.pose.get_origin())
 
         for point in reconstruction.points.values():
-            shots = list(graph[point.id])
+            shots = list(tracks_manager.get_track_observations(point.id))
 
             coordinates = np.array(point.coordinates, dtype=np.float64)
             exporter.add_point(coordinates, shots)

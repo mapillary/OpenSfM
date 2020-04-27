@@ -15,6 +15,7 @@ from opensfm import geo
 from opensfm import tracking
 from opensfm import features
 from opensfm import upright
+from opensfm import pysfm
 
 
 logger = logging.getLogger(__name__)
@@ -364,21 +365,19 @@ class DataSet(object):
                     return im2_matches[im1][:, [1, 0]]
         return []
 
-    def _tracks_graph_file(self, filename=None):
+    def _tracks_manager_file(self, filename=None):
         """Return path of tracks file"""
         return os.path.join(self.data_path, filename or 'tracks.csv')
 
-    def load_tracks_graph(self, filename=None):
-        """Return graph (networkx data structure) of tracks"""
-        with io.open_rt(self._tracks_graph_file(filename)) as fin:
-            return tracking.load_tracks_graph(fin)
+    def load_tracks_manager(self, filename=None):
+        """Return the tracks manager"""
+        return pysfm.TracksManager.instanciate_from_file(self._tracks_manager_file(filename))
 
     def tracks_exists(self, filename=None):
-        return os.path.isfile(self._tracks_graph_file(filename))
+        return os.path.isfile(self._tracks_manager_file(filename))
 
-    def save_tracks_graph(self, graph, filename=None):
-        with io.open_wt(self._tracks_graph_file(filename)) as fout:
-            tracking.save_tracks_graph(fout, graph)
+    def save_tracks_manager(self, tracks_manager, filename=None):
+        tracks_manager.write_to_file(self._tracks_manager_file(filename))
 
     def _reconstruction_file(self, filename):
         """Return path of reconstruction file"""
@@ -760,11 +759,11 @@ class UndistortedDataSet(object):
         else:
             return o['points'], o['normals'], o['colors'], o['labels'], o['detections']
 
-    def load_undistorted_tracks_graph(self):
-        return self.base.load_tracks_graph(os.path.join(self.subfolder, 'tracks.csv'))
+    def load_undistorted_tracks_manager(self):
+        return self.base.load_tracks_manager(os.path.join(self.subfolder, 'tracks.csv'))
 
-    def save_undistorted_tracks_graph(self, graph):
-        return self.base.save_tracks_graph(graph, os.path.join(self.subfolder, 'tracks.csv'))
+    def save_undistorted_tracks_manager(self, tracks_manager):
+        return self.base.save_tracks_manager(tracks_manager, os.path.join(self.subfolder, 'tracks.csv'))
 
     def load_undistorted_reconstruction(self):
         return self.base.load_reconstruction(
