@@ -85,6 +85,20 @@ def match_candidates_with_bow(data, images_ref, images_cand,
     if max_neighbors <= 0:
         return set()
 
+    results = compute_bow_affinity(data, images_ref, images_cand,
+                                   exifs, reference, max_gps_distance,
+                                   max_gps_neighbors)
+
+    return construct_pairs(results, max_neighbors, exifs,
+                           enforce_other_cameras)
+
+
+def compute_bow_affinity(data, images_ref, images_cand,
+                         exifs, reference, max_gps_distance,
+                         max_gps_neighbors):
+    """Compute afinity scores between references and candidates
+        images using BoW-based distance.
+    """
     preempted_candidates, need_load = preempt_candidates(
             images_ref, images_cand,
             exifs, reference,
@@ -98,9 +112,7 @@ def match_candidates_with_bow(data, images_ref, images_cand,
     args, processes, batch_size = create_parallel_matching_args(
         data, preempted_candidates, histograms)
     logger.info("Computing BoW candidates with %d processes" % processes)
-    results = context.parallel_map(match_bow_unwrap_args, args, processes, batch_size)
-
-    return construct_pairs(results, max_neighbors, exifs, enforce_other_cameras)
+    return context.parallel_map(match_bow_unwrap_args, args, processes, batch_size)
 
 
 def match_candidates_with_vlad(data, images_ref, images_cand,
@@ -119,6 +131,20 @@ def match_candidates_with_vlad(data, images_ref, images_cand,
     if max_neighbors <= 0:
         return set()
 
+    results = compute_vlad_affinity(data, images_ref, images_cand,
+                                    exifs, reference, max_gps_distance,
+                                    max_gps_neighbors)
+
+    return construct_pairs(results, max_neighbors, exifs,
+                           enforce_other_cameras)
+
+
+def compute_vlad_affinity(data, images_ref, images_cand,
+                          exifs, reference, max_gps_distance,
+                          max_gps_neighbors):
+    """Compute afinity scores between references and candidates
+        images using VLAD-based distance.
+    """
     preempted_candidates, need_load = preempt_candidates(
             images_ref, images_cand,
             exifs, reference,
@@ -132,9 +158,7 @@ def match_candidates_with_vlad(data, images_ref, images_cand,
     args, processes, batch_size = create_parallel_matching_args(
         data, preempted_candidates, histograms)
     logger.info("Computing VLAD candidates with %d processes" % processes)
-    results = context.parallel_map(match_vlad_unwrap_args, args, processes, batch_size)
-
-    return construct_pairs(results, max_neighbors, exifs, enforce_other_cameras)
+    return context.parallel_map(match_vlad_unwrap_args, args, processes, batch_size)
 
 
 def preempt_candidates(images_ref, images_cand,
