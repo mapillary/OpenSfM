@@ -1,5 +1,6 @@
 set(FOUNDATION_FILES
     types.h
+    newton_raphson.h
     numeric.h
     logger.h
     src/types.cc

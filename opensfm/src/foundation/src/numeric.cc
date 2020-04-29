@@ -1,4 +1,5 @@
 #include <foundation/numeric.h>
+#include <foundation/newton_raphson.h>
 #include <iostream>
 
 Eigen::Matrix3d SkewMatrix(const Eigen::Vector3d& v){
@@ -64,7 +65,7 @@ std::array<double, 4> RefineQuarticRoots(const std::array<double, 5>& coefficien
 
   std::array<double, 4> refined_roots = roots;
   for (auto& root : refined_roots){
-    root = NewtonRaphson(eval_function, root, iterations);
+    root = NewtonRaphson(eval_function, root, iterations, 1e-20);
   }
   return refined_roots;
 }
