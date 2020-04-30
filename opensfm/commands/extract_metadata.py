@@ -13,26 +13,21 @@ logging.getLogger("exifread").setLevel(logging.WARNING)
 multiprocessing_manager = Manager()
 
 
-def extract_and_save_exif(data, exif_overrides, camera_models, image):
+def extract_and_save_exif(image, data, exif_overrides, camera_models):
     if data.exif_exists(image):
         logging.info('Loading existing EXIF for {}'.format(image))
         d = data.load_exif(image)
     else:
         logging.info('Extracting EXIF for {}'.format(image))
 
-        def _extract_exif(_image, _data):
-            # EXIF data in Image
-            _d = exif.extract_exif_from_file(_data.open_image_file(_image))
+        # EXIF data in Image
+        d = exif.extract_exif_from_file(data.open_image_file(image))
 
-            # Image Height and Image Width
-            if _d['width'] <= 0 or not _data.config['use_exif_size']:
-                _d['height'], _d['width'] = _data.image_size(_image)
+        # Image Height and Image Width
+        if d['width'] <= 0 or not data.config['use_exif_size']:
+            d['height'], d['width'] = data.image_size(image)
 
-            _d['camera'] = exif.camera_id(_d)
-
-            return _d
-
-        d = _extract_exif(image, data)
+        d['camera'] = exif.camera_id(d)
 
         if image in exif_overrides:
             d.update(exif_overrides[image])
