@@ -54,7 +54,8 @@ def pairs_and_poses():
 
     points_keys = list(reconstruction.points.keys())
     pairs, poses = defaultdict(list), defaultdict(list)
-    for (im1, im2), tuples in tracks_manager.get_all_common_observations_all_pairs().items():
+    for im1, im2 in tracks_manager.get_all_pairs_connectivity():
+        tuples = tracks_manager.get_all_common_observations(im1, im2)
         f1 = [p.point for k, p, _ in tuples if k in points_keys]
         f2 = [p.point for k, _, p in tuples if k in points_keys]
         pairs[im1, im2].append((f1, f2))

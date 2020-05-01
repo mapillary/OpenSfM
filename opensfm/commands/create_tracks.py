@@ -41,7 +41,7 @@ class Command:
 
     def write_report(self, data, tracks_manager,
                      features_time, matches_time, tracks_time):
-        view_graph = [(k[0], k[1], len(v)) for k, v in tracks_manager.get_all_common_observations_all_pairs().items()]
+        view_graph = [(k[0], k[1], v) for k, v in tracks_manager.get_all_pairs_connectivity().items()]
 
         report = {
             "wall_times": {

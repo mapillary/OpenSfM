@@ -109,10 +109,11 @@ def all_common_tracks(tracks_manager, include_features=True, min_common=50):
         from second image
     """
     common_tracks = {}
-    for(im1, im2), tuples in tracks_manager.get_all_common_observations_all_pairs().items():
-        if len(tuples) < min_common:
+    for(im1, im2), size in tracks_manager.get_all_pairs_connectivity().items():
+        if size < min_common:
             continue
 
+        tuples = tracks_manager.get_all_common_observations(im1, im2)
         if include_features:
             common_tracks[im1, im2] = ([v for v, _, _ in tuples],
                                        np.array([p.point for _, p, _ in tuples]),
@@ -140,8 +141,8 @@ def as_weighted_graph(tracks_manager):
     image_graph = nx.Graph()
     for im in images:
         image_graph.add_node(im)
-    for k, v in tracks_manager.get_all_common_observations_all_pairs().items():
-        image_graph.add_edge(k[0], k[1], weight=len(v))
+    for k, v in tracks_manager.get_all_pairs_connectivity().items():
+        image_graph.add_edge(k[0], k[1], weight=v)
     return image_graph
 
 
