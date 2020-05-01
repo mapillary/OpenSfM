@@ -35,9 +35,9 @@ class TracksManager {
       const ShotId& shot1, const ShotId& shot2) const;
 
   using ShotPair = std::pair<ShotId, ShotId>;
-  std::unordered_map<ShotPair, std::vector<KeyPointTuple>, HashPair>
-  GetAllCommonObservationsAllPairs(
-      const std::vector<TrackId>& tracks = std::vector<TrackId>()) const;
+  std::unordered_map<ShotPair, int, HashPair> GetAllPairsConnectivity(
+      const std::vector<ShotId>& shots,
+      const std::vector<TrackId>& tracks) const;
 
   static TracksManager InstanciateFromFile(const std::string& filename);
   void WriteToFile(const std::string& filename)const;

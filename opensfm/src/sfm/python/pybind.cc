@@ -36,11 +36,11 @@ PYBIND11_MODULE(pysfm, m) {
     .def("write_to_file", &TracksManager::WriteToFile)
     .def("as_string", &TracksManager::AsSring)
     .def("get_all_common_observations", &TracksManager::GetAllCommonObservations)
-    .def("get_all_common_observations_all_pairs", &TracksManager::GetAllCommonObservationsAllPairs,
-         py::arg("tracks") = std::vector<TrackId>())
+    .def("get_all_pairs_connectivity", &TracksManager::GetAllPairsConnectivity,
+        py::arg("shots") = std::vector<ShotId>(),
+        py::arg("tracks") = std::vector<TrackId>())
     ;
 
   m.def("count_tracks_per_shot", &sfm_helpers::CountTracksPerShot);
-  m.def("count_common_observations", &sfm_helpers::CountCommonObservations);
 }
 

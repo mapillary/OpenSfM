@@ -227,11 +227,11 @@ TracksManager::GetAllCommonObservations(const ShotId& shot1,
   return tuples;
 }
 
-std::unordered_map<TracksManager::ShotPair,
-                   std::vector<TracksManager::KeyPointTuple>, HashPair>
-TracksManager::GetAllCommonObservationsAllPairs(const std::vector<TrackId>& tracks) const {
-  std::unordered_map<ShotPair, std::vector<KeyPointTuple>, HashPair>
-      common_per_pair;
+std::unordered_map<TracksManager::ShotPair, int, HashPair>
+TracksManager::GetAllPairsConnectivity(
+    const std::vector<ShotId>& shots,
+    const std::vector<TrackId>& tracks) const {
+  std::unordered_map<ShotPair, int, HashPair> common_per_pair;
 
   std::vector<TrackId> tracks_to_use;
   if(tracks.empty()){
@@ -243,6 +243,19 @@ TracksManager::GetAllCommonObservationsAllPairs(const std::vector<TrackId>& trac
     tracks_to_use = tracks;
   }
 
+  std::unordered_set<ShotId> shots_to_use;
+  if(shots.empty()){
+    for (const auto& shot : tracks_per_shot_){
+      shots_to_use.insert(shot.first);
+    }
+  }
+  else{
+    for (const auto& shot : shots){
+      shots_to_use.insert(shot);
+    }
+  }
+
+
   for (const auto& track_id : tracks_to_use) {
     const auto find_track = shot_per_tracks_.find(track_id);
     if(find_track == shot_per_tracks_.end()){
@@ -253,18 +266,23 @@ TracksManager::GetAllCommonObservationsAllPairs(const std::vector<TrackId>& trac
              track.begin();
          it1 != track.end(); ++it1) {
       const auto& shotID1 = it1->first;
+      if(shots_to_use.find(shotID1) == shots_to_use.end()){
+        continue;
+      }
       for (std::unordered_map<ShotId, Observation>::const_iterator it2 =
                track.begin();
            it2 != track.end(); ++it2) {
         const auto& shotID2 = it2->first;
+        if(shots_to_use.find(shotID2) == shots_to_use.end()){
+          continue;
+        }
         if (shotID1 == shotID2) {
           continue;
         }
         if (shotID1 > shotID2) {
           continue;
         }
-        common_per_pair[std::make_pair(shotID1, shotID2)].push_back(
-            std::make_tuple(track_id, it1->second, it2->second));
+        ++common_per_pair[std::make_pair(shotID1, shotID2)];
       }
     }
   }
