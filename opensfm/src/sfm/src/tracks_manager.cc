@@ -202,27 +202,20 @@ TracksManager TracksManager::ConstructSubTracksManager(
 std::vector<TracksManager::KeyPointTuple>
 TracksManager::GetAllCommonObservations(const ShotId& shot1,
                                         const ShotId& shot2) const {
-  auto findShot1 = tracks_per_shot_.find(shot1);
-  auto findShot2 = tracks_per_shot_.find(shot2);
-  if (findShot1 == tracks_per_shot_.end() ||
-      findShot2 == tracks_per_shot_.end()) {
+  auto find_shot1 = tracks_per_shot_.find(shot1);
+  auto find_shot2 = tracks_per_shot_.find(shot2);
+  if (find_shot1 == tracks_per_shot_.end() ||
+      find_shot2 == tracks_per_shot_.end()) {
     throw std::runtime_error("Accessing invalid shot ID");
   }
 
-  std::unordered_map<TrackId, std::vector<Observation>> per_track;
-  for (const auto& p : findShot1->second) {
-    per_track[p.first].push_back(p.second);
-  }
-  for (const auto& p : findShot2->second) {
-    per_track[p.first].push_back(p.second);
-  }
-
   std::vector<KeyPointTuple> tuples;
-  for (const auto& p : per_track) {
-    if (p.second.size() < 2) {
+  for (const auto& p : find_shot1->second) {
+    const auto find = find_shot2->second.find(p.first);
+    if(find == find_shot2->second.end()){
       continue;
     }
-    tuples.push_back(std::make_tuple(p.first, p.second[0], p.second[1]));
+    tuples.push_back(std::make_tuple(p.first, p.second, find->second));
   }
   return tuples;
 }
