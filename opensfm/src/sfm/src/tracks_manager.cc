@@ -102,7 +102,7 @@ void TracksManager::AddObservation(const ShotId& shot_id,
                                    const TrackId& track_id,
                                    const Observation& observation) {
   tracks_per_shot_[shot_id][track_id] = observation;
-  shot_per_tracks_[track_id][shot_id] = observation;
+  shots_per_track_[track_id][shot_id] = observation;
 }
 
 void TracksManager::RemoveObservation(const ShotId& shot_id,
@@ -111,8 +111,8 @@ void TracksManager::RemoveObservation(const ShotId& shot_id,
   if (find_shot == tracks_per_shot_.end()) {
     throw std::runtime_error("Accessing invalid shot ID");
   }
-  const auto find_track = shot_per_tracks_.find(track_id);
-  if (find_track == shot_per_tracks_.end()) {
+  const auto find_track = shots_per_track_.find(track_id);
+  if (find_track == shots_per_track_.end()) {
     throw std::runtime_error("Accessing invalid track ID");
   }
   find_shot->second.erase(track_id);
@@ -121,7 +121,7 @@ void TracksManager::RemoveObservation(const ShotId& shot_id,
 
 int TracksManager::NumShots() const { return tracks_per_shot_.size(); }
 
-int TracksManager::NumTracks() const { return shot_per_tracks_.size(); }
+int TracksManager::NumTracks() const { return shots_per_track_.size(); }
 
 std::vector<ShotId> TracksManager::GetShotIds() const {
   std::vector<ShotId> shots;
@@ -134,8 +134,8 @@ std::vector<ShotId> TracksManager::GetShotIds() const {
 
 std::vector<TrackId> TracksManager::GetTrackIds() const {
   std::vector<TrackId> tracks;
-  tracks.reserve(shot_per_tracks_.size());
-  for (const auto& it : shot_per_tracks_) {
+  tracks.reserve(shots_per_track_.size());
+  for (const auto& it : shots_per_track_) {
     tracks.push_back(it.first);
   }
   return tracks;
@@ -165,8 +165,8 @@ TracksManager::GetShotObservations(const ShotId& shot) const {
 
 const std::unordered_map<ShotId, Observation>&
 TracksManager::GetTrackObservations(const TrackId& track) const {
-  const auto find_track = shot_per_tracks_.find(track);
-  if (find_track == shot_per_tracks_.end()) {
+  const auto find_track = shots_per_track_.find(track);
+  if (find_track == shots_per_track_.end()) {
     throw std::runtime_error("Accessing invalid track ID");
   }
   return find_track->second;
@@ -182,8 +182,8 @@ TracksManager TracksManager::ConstructSubTracksManager(
 
   TracksManager subset;
   for (const auto& track_id : tracks) {
-    const auto find_track = shot_per_tracks_.find(track_id);
-    if (find_track == shot_per_tracks_.end()) {
+    const auto find_track = shots_per_track_.find(track_id);
+    if (find_track == shots_per_track_.end()) {
       continue;
     }
     for (const auto& obs : find_track->second) {
@@ -225,7 +225,7 @@ TracksManager::GetAllPairsConnectivity(
 
   std::vector<TrackId> tracks_to_use;
   if (tracks.empty()) {
-    for (const auto& track : shot_per_tracks_) {
+    for (const auto& track : shots_per_track_) {
       tracks_to_use.push_back(track.first);
     }
   } else {
@@ -244,8 +244,8 @@ TracksManager::GetAllPairsConnectivity(
   }
 
   for (const auto& track_id : tracks_to_use) {
-    const auto find_track = shot_per_tracks_.find(track_id);
-    if (find_track == shot_per_tracks_.end()) {
+    const auto find_track = shots_per_track_.find(track_id);
+    if (find_track == shots_per_track_.end()) {
       continue;
     }
     const auto& track = find_track->second;

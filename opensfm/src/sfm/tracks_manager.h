@@ -52,5 +52,5 @@ class TracksManager {
   std::unordered_map<ShotId, std::unordered_map<TrackId, Observation>>
       tracks_per_shot_;
   std::unordered_map<TrackId, std::unordered_map<ShotId, Observation>>
-      shot_per_tracks_;
+      shots_per_track_;
 };
