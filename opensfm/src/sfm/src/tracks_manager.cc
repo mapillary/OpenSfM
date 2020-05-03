@@ -1,11 +1,11 @@
 #include <sfm/tracks_manager.h>
 
-#include <unordered_set>
 #include <sstream>
+#include <unordered_set>
 
 namespace {
 
-template< class S>
+template <class S>
 int GetTracksFileVersion(S& fstream) {
   const auto current_position = fstream.tellg();
 
@@ -14,7 +14,8 @@ int GetTracksFileVersion(S& fstream) {
 
   int version = 0;
   if (line.find(TracksManager::TRACKS_HEADER) == 0) {
-    version = std::atoi(line.substr(TracksManager::TRACKS_HEADER.length() + 2).c_str());
+    version = std::atoi(
+        line.substr(TracksManager::TRACKS_HEADER.length() + 2).c_str());
   } else {
     fstream.seekg(current_position);
   }
@@ -23,7 +24,8 @@ int GetTracksFileVersion(S& fstream) {
 
 template <class S>
 void WriteToStreamCurrentVersion(S& ostream, const TracksManager& manager) {
-  ostream << manager.TRACKS_HEADER << "_v" << manager.TRACKS_VERSION << std::endl;
+  ostream << manager.TRACKS_HEADER << "_v" << manager.TRACKS_VERSION
+          << std::endl;
   const auto shotsIDs = manager.GetShotIds();
   for (const auto& shotID : shotsIDs) {
     const auto observations = manager.GetShotObservations(shotID);
@@ -48,7 +50,7 @@ Observation InstanciateObservation(double x, double y, double scale, int id,
   return observation;
 }
 
-template< class S>
+template <class S>
 TracksManager InstanciateFromStreamV0(S& fstream) {
   ShotId image = "";
   TrackId trackID = "";
@@ -64,7 +66,7 @@ TracksManager InstanciateFromStreamV0(S& fstream) {
   return manager;
 }
 
-template< class S>
+template <class S>
 TracksManager InstanciateFromStreamV1(S& fstream) {
   ShotId image = "";
   TrackId trackID = "";
@@ -81,17 +83,17 @@ TracksManager InstanciateFromStreamV1(S& fstream) {
   return manager;
 }
 
-template< class S>
+template <class S>
 TracksManager InstanciateFromStreamT(S& fstream) {
   const auto version = GetTracksFileVersion(fstream);
-    switch (version) {
-      case 0:
-        return InstanciateFromStreamV0(fstream);
-      case 1:
-        return InstanciateFromStreamV1(fstream);
-      default:
-        throw std::runtime_error("Unknown tracks manager file version");
-    }
+  switch (version) {
+    case 0:
+      return InstanciateFromStreamV0(fstream);
+    case 1:
+      return InstanciateFromStreamV1(fstream);
+    default:
+      throw std::runtime_error("Unknown tracks manager file version");
+  }
 }
 
 }  // namespace
@@ -117,13 +119,9 @@ void TracksManager::RemoveObservation(const ShotId& shot_id,
   find_track->second.erase(shot_id);
 }
 
-int TracksManager::NumShots() const {
-  return tracks_per_shot_.size();
-}
+int TracksManager::NumShots() const { return tracks_per_shot_.size(); }
 
-int TracksManager::NumTracks() const {
-  return shot_per_tracks_.size();
-}
+int TracksManager::NumTracks() const { return shot_per_tracks_.size(); }
 
 std::vector<ShotId> TracksManager::GetShotIds() const {
   std::vector<ShotId> shots;
@@ -156,8 +154,8 @@ Observation TracksManager::GetObservation(const ShotId& shot,
   return find_track->second;
 }
 
-const std::unordered_map<TrackId, Observation>& TracksManager::GetShotObservations(
-    const ShotId& shot) const {
+const std::unordered_map<TrackId, Observation>&
+TracksManager::GetShotObservations(const ShotId& shot) const {
   const auto find_shot = tracks_per_shot_.find(shot);
   if (find_shot == tracks_per_shot_.end()) {
     throw std::runtime_error("Accessing invalid shot ID");
@@ -165,8 +163,8 @@ const std::unordered_map<TrackId, Observation>& TracksManager::GetShotObservatio
   return find_shot->second;
 }
 
-const std::unordered_map<ShotId, Observation>& TracksManager::GetTrackObservations(
-    const TrackId& track) const {
+const std::unordered_map<ShotId, Observation>&
+TracksManager::GetTrackObservations(const TrackId& track) const {
   const auto find_track = shot_per_tracks_.find(track);
   if (find_track == shot_per_tracks_.end()) {
     throw std::runtime_error("Accessing invalid track ID");
@@ -276,7 +274,7 @@ TracksManager TracksManager::InstanciateFromFile(const std::string& filename) {
   }
 }
 
-void TracksManager::WriteToFile(const std::string& filename)const {
+void TracksManager::WriteToFile(const std::string& filename) const {
   std::ofstream ostream(filename);
   if (ostream.is_open()) {
     WriteToStreamCurrentVersion(ostream, *this);
@@ -290,7 +288,7 @@ TracksManager TracksManager::InstanciateFromString(const std::string& str) {
   return InstanciateFromStreamT(sstream);
 }
 
-std::string TracksManager::AsSring()const {
+std::string TracksManager::AsSring() const {
   std::stringstream sstream;
   WriteToStreamCurrentVersion(sstream, *this);
   return sstream.str();
