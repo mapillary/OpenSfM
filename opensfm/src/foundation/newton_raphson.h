@@ -1,7 +1,6 @@
 #pragma once
 
 #include <Eigen/Eigen>
-#include <iostream>
 #include <limits>
 
 // Unfortunately we need these traits because we want to use
@@ -29,13 +28,23 @@ struct FiniteDiff {
       const F& func, typename TypeTraits<N, M>::Values& x) {
     typename TypeTraits<N, M>::Jacobian jacobian;
     typename TypeTraits<N, M>::Values x_plus = x;
-    const auto eps = std::numeric_limits<double>::epsilon();
+    const auto eps = 1e-15;
     for (int i = 0; i < M; ++i) {
       x_plus[i] += eps;
       jacobian.col(i) = (func(x_plus) - func(x)) / eps;
       x_plus[i] -= eps;
     }
     return jacobian;
+  }
+};
+
+template <class F>
+struct FiniteDiff<F,1,1> {
+  static typename TypeTraits<1, 1>::Jacobian Derivative(
+      const F& func, typename TypeTraits<1, 1>::Values& x) {
+    typename TypeTraits<1, 1>::Jacobian jacobian;
+    const auto eps = 1e-15;
+    return (func(x + eps) - func(x)) / eps;
   }
 };
 
