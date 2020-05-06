@@ -2,8 +2,11 @@
 set(GEOMETRY_FILES
     essential.h
     absolute_pose.h
+    camera.h
+    camera_functions.h
     relative_pose.h
     triangulation.h
+    src/camera.cc
     src/essential.cc
     src/triangulation.cc
     src/absolute_pose.cc
