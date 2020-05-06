@@ -5,62 +5,6 @@
 #include <Eigen/Eigen>
 #include <iostream>
 
-template <class PROJ, class DISTO, class AFF>
-struct CameraT {
-  CameraT() {
-    affine_.setIdentity();
-    principal_point_.setZero();
-    distorsion_.setZero();
-  }
-  CameraT(double focal_x, double focal_y,
-          const Eigen::Vector2d& principal_point,
-          const Eigen::Vector3d& radial_distorsion,
-          const Eigen::Vector2d& tangential_distorsion)
-      : principal_point_(principal_point) {
-    affine_ << focal_x, 0, 0, focal_y;
-    distorsion_.resize(5);
-    distorsion_.head<3>() = radial_distorsion;
-    distorsion_.tail<2>() = tangential_distorsion;
-  }
-
-  CameraT(double focal, double k1, double k2) {
-    affine_ << focal, 0, 0, focal;
-    distorsion_.resize(2);
-    distorsion_ << k1, k2;
-    principal_point_ << 0., 0.;
-  }
-
-  Eigen::Vector2d Project(const Eigen::Vector3d& point) const {
-    return AFF::Forward(DISTO::Forward(PROJ::Forward(point), distorsion_),
-                        affine_, principal_point_);
-  }
-
-  Eigen::MatrixX2d ProjectMany(const Eigen::MatrixX3d& points) const {
-    Eigen::MatrixX2d projected(points.rows(), 2);
-    for (int i = 0; i < points.rows(); ++i) {
-      projected.row(i) = Project(points.row(i));
-    }
-    return projected;
-  }
-
-  Eigen::Vector3d Bearing(const Eigen::Vector2d& point) const {
-    return PROJ::Backward(DISTO::Backward(
-        AFF::Backward(point, affine_, principal_point_), distorsion_));
-  }
-
-  Eigen::MatrixX3d BearingsMany(const Eigen::MatrixX2d& points) const {
-    Eigen::MatrixX3d projected(points.rows(), 3);
-    for (int i = 0; i < points.rows(); ++i) {
-      projected.row(i) = Bearing(points.row(i));
-    }
-    return projected;
-  }
-
-  Eigen::Matrix2d affine_;
-  Eigen::Vector2d principal_point_;
-  Eigen::VectorXd distorsion_;  // r^2, r^4, r^6, p1, p2
-};
-
 struct FisheyeProjection {
   static Eigen::Vector2d Forward(const Eigen::Vector3d& point) {
     const auto r = point.head<2>().norm();
@@ -249,7 +193,123 @@ struct Identity {
   }
 };
 
-using FisheyeCamera = CameraT<FisheyeProjection, Disto24, Affine>;
-using PerspectiveCamera = CameraT< PerspectiveProjection, Disto24, Affine>;
-using BrownCamera = CameraT< PerspectiveProjection, DistoBrown, Affine>;
-using SphericalCamera = CameraT< SphericalProjection, Identity, Identity>;
+class Camera {
+ public:
+  enum Type { PERSPECTIVE, BROWN, FISHEYE, SPHERICAL };
+
+  static Camera CreatePerspective(double focal, double k1, double k2) {
+    Camera camera;
+    camera.type_ = Type::PERSPECTIVE;
+    camera.affine_ << focal, 0, 0, focal;
+    camera.distorsion_ << k1, k2, 0, 0, 0;
+    return camera;
+  };
+
+  static Camera CreateBrownCamera(double focal_x, double focal_y,
+                                  const Eigen::Vector2d& principal_point,
+                                  const Eigen::VectorXd& distorsion) {
+    Camera camera;
+    if (distorsion.size() != camera.distorsion_.size()) {
+      throw std::runtime_error("Invalid distorsion coefficients size");
+    }
+    camera.type_ = Type::BROWN;
+    camera.affine_ << focal_x, 0, 0, focal_y;
+    camera.distorsion_ = distorsion;
+    camera.principal_point_ = principal_point;
+    return camera;
+  };
+
+  static Camera CreateFisheyeCamera(double focal, double k1, double k2) {
+    Camera camera;
+    camera.type_ = Type::FISHEYE;
+    camera.affine_ << focal, 0, 0, focal;
+    camera.distorsion_ << k1, k2, 0, 0, 0;
+    return camera;
+  };
+
+  static Camera CreateSphericalCamera() {
+    Camera camera;
+    camera.type_ = Type::SPHERICAL;
+    return camera;
+  };
+
+  Eigen::Vector2d Project(const Eigen::Vector3d& point) const {
+    return Dispatch<Eigen::Vector2d, ProjectT, Eigen::Vector3d>(point);
+  }
+
+  Eigen::MatrixX2d ProjectMany(const Eigen::MatrixX3d& points) const {
+    Eigen::MatrixX2d projected(points.rows(), 2);
+    for (int i = 0; i < points.rows(); ++i) {
+      projected.row(i) = Project(points.row(i));
+    }
+    return projected;
+  }
+
+  Eigen::Vector3d Bearing(const Eigen::Vector2d& point) const {
+    return Dispatch<Eigen::Vector3d, BearingT, Eigen::Vector2d>(point);
+  }
+
+  Eigen::MatrixX3d BearingsMany(const Eigen::MatrixX2d& points) const {
+    Eigen::MatrixX3d projected(points.rows(), 3);
+    for (int i = 0; i < points.rows(); ++i) {
+      projected.row(i) = Bearing(points.row(i));
+    }
+    return projected;
+  }
+
+ private:
+  Camera() : type_(Type::PERSPECTIVE) {
+    affine_.setIdentity();
+    principal_point_.setZero();
+    distorsion_.resize(5);
+    distorsion_.setZero();
+  }
+
+  // This is where the pseudo-strategy pattern takes place.
+  // If you want to add your own new camera model, just add
+  // a new enum value and the corresponding case below.
+  template <class OUT, class FUNC, class... IN>
+  OUT Dispatch(IN... args) const {
+    switch (type_) {
+      case PERSPECTIVE:
+        return FUNC::template Apply<PerspectiveProjection, Disto24, Affine>(
+            args..., affine_, principal_point_, distorsion_);
+      case BROWN:
+        return FUNC::template Apply<PerspectiveProjection, DistoBrown, Affine>(
+            args..., affine_, principal_point_, distorsion_);
+      case FISHEYE:
+        return FUNC::template Apply<FisheyeProjection, Disto24, Affine>(
+            args..., affine_, principal_point_, distorsion_);
+      case SPHERICAL:
+        return FUNC::template Apply<SphericalProjection, Identity, Identity>(
+            args..., affine_, principal_point_, distorsion_);
+    }
+  }
+
+  struct ProjectT {
+    template <class PROJ, class DISTO, class AFF>
+    static Eigen::Vector2d Apply(const Eigen::Vector3d& point,
+                                 const Eigen::Matrix2d& affine,
+                                 const Eigen::Vector2d& principal_point,
+                                 const Eigen::VectorXd& distorsion) {
+      return AFF::Forward(DISTO::Forward(PROJ::Forward(point), distorsion),
+                          affine, principal_point);
+    }
+  };
+
+  struct BearingT {
+    template <class PROJ, class DISTO, class AFF>
+    static Eigen::Vector3d Apply(const Eigen::Vector2d& point,
+                                 const Eigen::Matrix2d& affine,
+                                 const Eigen::Vector2d& principal_point,
+                                 const Eigen::VectorXd& distorsion) {
+      return PROJ::Backward(DISTO::Backward(
+          AFF::Backward(point, affine, principal_point), distorsion));
+    }
+  };
+
+  Type type_;
+  Eigen::Matrix2d affine_;
+  Eigen::Vector2d principal_point_;
+  Eigen::VectorXd distorsion_;  // r^2, r^4, r^6, p1, p2
+};
