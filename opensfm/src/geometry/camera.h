@@ -5,16 +5,34 @@
 #include <Eigen/Eigen>
 #include <iostream>
 
-class PerspectiveCamera {
- public:
-  PerspectiveCamera(double focal, double k1, double k2)
-      : focal_(focal), k1_(k1), k2_(k2) {}
+template <class PROJ, class DISTO, class AFF>
+struct CameraT {
+  CameraT() {
+    affine_.setIdentity();
+    principal_point_.setZero();
+    distorsion_.setZero();
+  }
+  CameraT(double focal_x, double focal_y,
+          const Eigen::Vector2d& principal_point,
+          const Eigen::Vector3d& radial_distorsion,
+          const Eigen::Vector2d& tangential_distorsion)
+      : principal_point_(principal_point) {
+    affine_ << focal_x, 0, 0, focal_y;
+    distorsion_.resize(5);
+    distorsion_.head<3>() = radial_distorsion;
+    distorsion_.tail<2>() = tangential_distorsion;
+  }
+
+  CameraT(double focal, double k1, double k2) {
+    affine_ << focal, 0, 0, focal;
+    distorsion_.resize(2);
+    distorsion_ << k1, k2;
+    principal_point_ << 0., 0.;
+  }
 
   Eigen::Vector2d Project(const Eigen::Vector3d& point) const {
-    Eigen::Vector2d projected(point[0] / point[2], point[1] / point[2]);
-    const auto r2 = projected.dot(projected);
-    const auto distortion = Distorsion(r2);
-    return focal_ * projected * distortion;
+    return AFF::Forward(DISTO::Forward(PROJ::Forward(point), distorsion_),
+                        affine_, principal_point_);
   }
 
   Eigen::MatrixX2d ProjectMany(const Eigen::MatrixX3d& points) const {
@@ -26,40 +44,8 @@ class PerspectiveCamera {
   }
 
   Eigen::Vector3d Bearing(const Eigen::Vector2d& point) const {
-    Eigen::Vector2d bearing(point[0] / focal_, point[1] / focal_);
-    // We will initialize with current radius
-    const auto rd = bearing.norm();
-
-    // Now, refine with a bit of Newton
-    const int iterations = 20;
-    struct DistoEval {
-      const PerspectiveCamera& self;
-      const double rd;
-      double operator()(const double& x) const {
-        const auto r = x;
-        const auto r2 = r * r;
-        return r * self.Distorsion(r2) - rd;
-      }
-      double derivative(const double& x) const {
-        const auto r = x;
-        const auto r2 = r * r;
-        return self.DistorsionDerivative(r2);
-      }
-    };
-    DistoEval eval_function{*this, rd};
-    const auto ru_refined =
-        NewtonRaphson<DistoEval, 1, 1, ManualDiff<DistoEval, 1, 1>>(
-            eval_function, rd, iterations);
-
-    // Finally, compute distorsion factor
-    const auto r2 = ru_refined * ru_refined;
-    const auto distorsion = Distorsion(r2);
-
-    // Apply undistorsion
-    bearing /= distorsion;
-
-    // Apply inverse projection
-    return Eigen::Vector3d(bearing[0], bearing[1], 1.0).normalized();
+    return PROJ::Backward(DISTO::Backward(
+        AFF::Backward(point, affine_, principal_point_), distorsion_));
   }
 
   Eigen::MatrixX3d BearingsMany(const Eigen::MatrixX2d& points) const {
@@ -70,55 +56,110 @@ class PerspectiveCamera {
     return projected;
   }
 
-  double Distorsion(double r2) const { return 1.0 + r2 * (k1_ + k2_ * r2); }
-  double DistorsionDerivative(double r2) const {
-    return 1.0 + r2 * 2.0 * (k1_ + 2.0 * k2_ * r2);
-  }
-
-  double focal_;
-  double k1_;
-  double k2_;
+  Eigen::Matrix2d affine_;
+  Eigen::Vector2d principal_point_;
+  Eigen::VectorXd distorsion_;  // r^2, r^4, r^6, p1, p2
 };
 
-class BrownCamera {
- public:
-  BrownCamera(double focal_x, double focal_y,
-              const Eigen::Vector2d& principal_point,
-              const Eigen::Vector3d& radial_distorsion,
-              const Eigen::Vector2d& tangential_distorsion)
-      : focal_x_(focal_x),
-        focal_y_(focal_y),
-        principal_point_(principal_point),
-        radial_distorsion_(radial_distorsion),
-        tangential_distorsion_(tangential_distorsion) {}
-
-  Eigen::Vector2d Project(const Eigen::Vector3d& point) {
-    Eigen::Vector2d projected(point[0] / point[2], point[1] / point[2]);
-
-    const auto r2 = projected.dot(projected);
-    const auto distortion_radial = RadialDistorsion(r2);
-    const auto distortion_tangential =
-        TangentialDistorsion(r2, projected[0], projected[1]);
-
-    Eigen::Matrix2d affine;
-    affine << focal_x_, 0, 0, focal_y_;
-    projected = projected * distortion_radial + distortion_tangential;
-    return affine * projected + principal_point_;
+struct FisheyeProjection {
+  static Eigen::Vector2d Forward(const Eigen::Vector3d& point) {
+    const auto r = point.head<2>().norm();
+    const auto theta = std::atan2(r, point[2]);
+    return Eigen::Vector2d(theta / r * point[0], theta / r * point[1]);
   }
 
-  Eigen::MatrixX2d ProjectMany(const Eigen::MatrixX3d& points) {
-    Eigen::MatrixX2d projected(points.rows(), 2);
-    for (int i = 0; i < points.rows(); ++i) {
-      projected.row(i) = Project(points.row(i));
+  static Eigen::Vector3d Backward(const Eigen::Vector2d& point) {
+    const auto r = point.norm();
+    const auto s = std::tan(r) / r;
+    return Eigen::Vector3d(point[0] * s, point[1] * s, 1.0).normalized();
+  }
+};
+
+struct PerspectiveProjection {
+  static Eigen::Vector2d Forward(const Eigen::Vector3d& point) {
+    return Eigen::Vector2d(point[0] / point[2], point[1] / point[2]);
+  }
+
+  static Eigen::Vector3d Backward(const Eigen::Vector2d& point) {
+    return Eigen::Vector3d(point[0], point[1], 1.0).normalized();
+  }
+};
+
+struct SphericalProjection {
+  static Eigen::Vector2d Forward(const Eigen::Vector3d& point) {
+    const auto lon = std::atan2(point[0], point[2]);
+    const auto lat = std::atan2(-point[1], std::hypot(point[0], point[2]));
+    return Eigen::Vector2d(lon / (2 * M_PI), -lat / (2 * M_PI));
+  }
+
+  static Eigen::Vector3d Backward(const Eigen::Vector2d& point) {
+    const auto lon = point[0] * 2 * M_PI;
+    const auto lat = -point[1] * 2 * M_PI;
+    return Eigen::Vector3d(std::cos(lat) * std::sin(lon), std::sin(lat),
+                           std::cos(lat) * std::cos(lon));
+  }
+};
+
+struct Disto24{
+  static Eigen::Vector2d Forward(const Eigen::Vector2d& point, const Eigen::VectorXd& k) {
+    const auto r2 = point.dot(point);
+    const auto distortion = Distorsion(r2, k[0], k[1]);
+    return point * distortion;
+  }
+
+  static Eigen::Vector2d Backward(const Eigen::Vector2d& point,
+                                  const Eigen::VectorXd& k) {
+    // Compute undistorted radius
+    auto rd = point.norm();
+    DistoEval eval_function{rd, k[0], k[1]};
+    const auto ru_refined =
+        NewtonRaphson<DistoEval, 1, 1, ManualDiff<DistoEval, 1, 1>>(
+            eval_function, rd, iterations);
+
+    // Ccompute distorsion factor from undistorted radius
+    const auto r2 = ru_refined * ru_refined;
+    const auto distorsion = Distorsion(r2, k[0], k[1]);
+
+    // Unapply undistorsion
+    return point/distorsion;
+  }
+
+  static const int iterations = 20;
+  struct DistoEval {
+    const double& rd;
+    const double& k1;
+    const double& k2;
+    double operator()(const double& x) const {
+      const auto r = x;
+      const auto r2 = r * r;
+      return r * Disto24::Distorsion(r2, k1, k2) - rd;
     }
-    return projected;
+    double derivative(const double& x) const {
+      const auto r = x;
+      const auto r2 = r * r;
+      return Disto24::DistorsionDerivative(r2, k1, k2);
+    }
+  };
+
+  static double Distorsion(double r2, double k1, double k2) {
+    return 1.0 + r2 * (k1 + k2 * r2);
+  }
+  static double DistorsionDerivative(double r2, double k1, double k2) {
+    return 1.0 + r2 * 2.0 * (k1 + 2.0 * k2 * r2);
+  }
+};
+
+struct DistoBrown{
+
+  static Eigen::Vector2d Forward(const Eigen::Vector2d& point, const Eigen::VectorXd& k) {
+    const auto r2 = point.dot(point);
+    const auto distortion_radial = RadialDistorsion(r2, k[0], k[1], k[2]);
+    const auto distortion_tangential =
+        TangentialDistorsion(r2, point[0], point[1], k[3], k[4]);
+    return point * distortion_radial + distortion_tangential;
   }
 
-  Eigen::Vector3d Bearing(const Eigen::Vector2d& point) {
-    // Un-apply affine (focal and principal point)
-    Eigen::Vector2d bearing((point[0] - principal_point_[0]) / focal_x_,
-                            (point[1] - principal_point_[1]) / focal_y_);
-
+  static Eigen::Vector2d Backward(const Eigen::Vector2d& point, const Eigen::VectorXd& k) {
     // Undistort using Newton iterations.
     // Sorry for the analytical derivatives,
     // there no real alternative. Jet/Dual number
@@ -126,22 +167,21 @@ class BrownCamera {
     // differencing is so inaccurate.
     const int iterations = 20;
     struct DistoEval {
-      const BrownCamera& self;
-      const Eigen::Vector2d point_distorted;
+      const Eigen::Vector2d& point_distorted;
+      const double& k1;
+      const double& k2;
+      const double& k3;
+      const double& p1;
+      const double& p2;
       Eigen::Vector2d operator()(const Eigen::Vector2d& point) const {
         const auto r2 = point.dot(point);
-        const auto distortion_radial = self.RadialDistorsion(r2);
+        const auto distortion_radial = RadialDistorsion(r2, k1, k2, k3);
         const auto distortion_tangential =
-            self.TangentialDistorsion(r2, point[0], point[1]);
+            TangentialDistorsion(r2, point[0], point[1], p1, p2);
         return point * distortion_radial + distortion_tangential -
                point_distorted;
       }
       Eigen::Matrix2d derivative(const Eigen::Vector2d& point) const {
-        const auto a = self.radial_distorsion_[0];
-        const auto b = self.radial_distorsion_[1];
-        const auto c = self.radial_distorsion_[2];
-        const auto d = self.tangential_distorsion_[0];
-        const auto e = self.tangential_distorsion_[1];
         const auto x = point[0];
         const auto y = point[1];
         const auto r2 = point.squaredNorm();
@@ -152,172 +192,64 @@ class BrownCamera {
         const double y2 = y * y;
         const double y4 = y2 * y2;
 
-        const auto dxx = 5 * b * x4 + 3 * a * x2 + 6 * c * x2 * r4 +
-                         6 * b * x2 * y2 + c * r6 + b * y4 + a * y2 + 1 +
-                         2 * d * y + 6 * e * x;
-        const auto dxy = x * (2 * a * y + 4 * b * y * r2 + 6 * c * y * r4) +
-                         2 * d * x + 2 * e * y;
+        const auto dxx = 5 * k2 * x4 + 3 * k1 * x2 + 6 * k3 * x2 * r4 +
+                         6 * k2 * x2 * y2 + k3 * r6 + k2 * y4 + k1 * y2 + 1 +
+                         2 * p1 * y + 6 * p2 * x;
+        const auto dxy = x * (2 * k1 * y + 4 * k2 * y * r2 + 6 * k3 * y * r4) +
+                         2 * p1 * x + 2 * p2 * y;
 
-        const auto dyy = 5 * b * y4 + 3 * a * y2 + 6 * c * y2 * r4 +
-                         6 * b * x2 * y2 + c * r6 + b * x4 + a * x2 + 1 +
-                         2 * e * x + 6 * d * y;
-        const auto dyx = y * (2 * a * x + 4 * b * x * r2 + 6 * c * x * r4) +
-                         2 * e * y + 2 * d * x;
+        const auto dyy = 5 * k2 * y4 + 3 * k1 * y2 + 6 * k3 * y2 * r4 +
+                         6 * k2 * x2 * y2 + k3 * r6 + k2 * x4 + k1 * x2 + 1 +
+                         2 * p2 * x + 6 * p1 * y;
+        const auto dyx = y * (2 * k1 * x + 4 * k2 * x * r2 + 6 * k3 * x * r4) +
+                         2 * p2 * y + 2 * p1 * x;
         Eigen::Matrix2d jacobian;
         jacobian << dxx, dxy, dyx, dyy;
         return jacobian;
       }
     };
-    DistoEval eval_function{*this, bearing};
-    const auto point_undistorted =
-        NewtonRaphson<DistoEval, 2, 2, ManualDiff<DistoEval, 2, 2>>(
-            eval_function, bearing, iterations);
-
-    // Apply inverse projection
-    return Eigen::Vector3d(point_undistorted[0], point_undistorted[1], 1.0)
-        .normalized();
+    DistoEval eval_function{point, k[0], k[1], k[2], k[3], k[4]};
+    return  NewtonRaphson<DistoEval, 2, 2, ManualDiff<DistoEval, 2, 2>>(
+            eval_function, point, iterations);
   }
 
-  Eigen::MatrixX3d BearingsMany(const Eigen::MatrixX2d& points) {
-    Eigen::MatrixX3d projected(points.rows(), 3);
-    for (int i = 0; i < points.rows(); ++i) {
-      projected.row(i) = Bearing(points.row(i));
-    }
-    return projected;
+  static double RadialDistorsion(double r2, double k1, double k2, double k3) {
+    return 1.0 + r2 * (k1 + r2 * (k2 + r2 * k3));
   }
-
-  double RadialDistorsion(double r2) const {
-    return 1.0 +
-           r2 * (radial_distorsion_[0] +
-                 r2 * (radial_distorsion_[1] + r2 * radial_distorsion_[2]));
-  }
-  Eigen::Vector2d TangentialDistorsion(double r2, double x, double y) const {
-    return Eigen::Vector2d(2.0 * tangential_distorsion_[0] * x * y +
-                               tangential_distorsion_[1] * (r2 + 2 * x * x),
-                           2.0 * tangential_distorsion_[1] * x * y +
-                               tangential_distorsion_[0] * (r2 + 2 * y * y));
-  }
-
-  double focal_x_;
-  double focal_y_;
-  Eigen::Vector2d principal_point_;
-  Eigen::Vector3d radial_distorsion_;
-  Eigen::Vector2d tangential_distorsion_;
-};
-
-class FisheyeCamera {
- public:
-  FisheyeCamera(double focal, double k1, double k2)
-      : focal_(focal), k1_(k1), k2_(k2) {}
-
-  Eigen::Vector2d Project(const Eigen::Vector3d& point) const {
-    const auto r = point.head<2>().norm();
-    const auto theta = std::atan2(r, point[2]);
-    Eigen::Vector2d projected(theta / r * point[0], theta / r * point[1]);
-    const auto r2 = projected.dot(projected);
-    const auto distortion = Distorsion(r2);
-    return focal_ * projected * distortion;
-  }
-
-  Eigen::MatrixX2d ProjectMany(const Eigen::MatrixX3d& points) const {
-    Eigen::MatrixX2d projected(points.rows(), 2);
-    for (int i = 0; i < points.rows(); ++i) {
-      projected.row(i) = Project(points.row(i));
-    }
-    return projected;
-  }
-
-  Eigen::Vector3d Bearing(const Eigen::Vector2d& point) const {
-    // Un-apply affine (only focal here)
-    Eigen::Vector2d bearing(point[0] / focal_, point[1] / focal_);
-
-    // We will initialize with current radius
-    const auto rd = bearing.norm();
-
-    // Now, refine with a bit of Newton
-    const int iterations = 20;
-    struct DistoEval {
-      const FisheyeCamera& self;
-      const double rd;
-      double operator()(const double& x) const {
-        const auto r = x;
-        const auto r2 = r * r;
-        return r * self.Distorsion(r2) - rd;
-      }
-      double derivative(const double& x) const {
-        const auto r = x;
-        const auto r2 = r * r;
-        return self.DistorsionDerivative(r2);
-      }
-    };
-    DistoEval eval_function{*this, rd};
-    const auto ru_refined =
-        NewtonRaphson<DistoEval, 1, 1, ManualDiff<DistoEval, 1, 1>>(
-            eval_function, rd, iterations);
-
-    // Finally, compute distorsion factor
-    const auto r2 = ru_refined * ru_refined;
-    const auto distorsion = Distorsion(r2);
-
-    // Apply undistorsion
-    bearing /= distorsion;
-
-    // Apply inverse projectiom
-    const auto r = bearing.norm();
-    const auto s = std::tan(r) / r;
-    bearing *= s;
-
-    return Eigen::Vector3d(bearing[0], bearing[1], 1.0).normalized();
-  }
-
-  Eigen::MatrixX3d BearingsMany(const Eigen::MatrixX2d& points) const {
-    Eigen::MatrixX3d projected(points.rows(), 3);
-    for (int i = 0; i < points.rows(); ++i) {
-      projected.row(i) = Bearing(points.row(i));
-    }
-    return projected;
-  }
-
-  double Distorsion(double r2) const { return 1.0 + r2 * (k1_ + k2_ * r2); }
-  double DistorsionDerivative(double r2) const {
-    return 1.0 + r2 * 2.0 * (k1_ + 2.0 * k2_ * r2);
-  }
-
-  double focal_;
-  double k1_;
-  double k2_;
-};
-
-class SphericalCamera {
- public:
-  SphericalCamera() = default;
-
-  Eigen::Vector2d Project(const Eigen::Vector3d& point) const {
-    const auto lon = std::atan2(point[0], point[2]);
-    const auto lat = std::atan2(-point[1], std::hypot(point[0], point[2]));
-    return Eigen::Vector2d(lon / (2 * M_PI), -lat / (2 * M_PI));
-  }
-
-  Eigen::MatrixX2d ProjectMany(const Eigen::MatrixX3d& points) const {
-    Eigen::MatrixX2d projected(points.rows(), 2);
-    for (int i = 0; i < points.rows(); ++i) {
-      projected.row(i) = Project(points.row(i));
-    }
-    return projected;
-  }
-
-  Eigen::Vector3d Bearing(const Eigen::Vector2d& point) const {
-    const auto lon = point[0] * 2 * M_PI;
-    const auto lat = -point[1] * 2 * M_PI;
-    return Eigen::Vector3d(std::cos(lat) * std::sin(lon), std::sin(lat),
-                           std::cos(lat) * std::cos(lon));
-  }
-
-  Eigen::MatrixX3d BearingsMany(const Eigen::MatrixX2d& points) const {
-    Eigen::MatrixX3d projected(points.rows(), 3);
-    for (int i = 0; i < points.rows(); ++i) {
-      projected.row(i) = Bearing(points.row(i));
-    }
-    return projected;
+  static Eigen::Vector2d TangentialDistorsion(double r2, double x, double y,
+                                              double p1, double p2) {
+    return Eigen::Vector2d(2.0 * p1 * x * y + p2 * (r2 + 2 * x * x),
+                           2.0 * p2 * x * y + p1 * (r2 + 2 * y * y));
   }
 };
+
+struct Affine{
+  static Eigen::Vector2d Forward(const Eigen::Vector2d& point,
+                                 const Eigen::Matrix2d& affine,
+                                 const Eigen::Vector2d& shift) {
+    return affine * point + shift;
+  }
+
+  static Eigen::Vector2d Backward(const Eigen::Vector2d& point,
+                                  const Eigen::Matrix2d& affine,
+                                  const Eigen::Vector2d& shift) {
+    return affine.inverse()*(point-shift);
+  }
+};
+
+struct Identity {
+  template <class... Types>
+  static Eigen::Vector2d Forward(const Eigen::Vector2d& point, Types... args) {
+    return point;
+  }
+
+  template <class... Types>
+  static Eigen::Vector2d Backward(const Eigen::Vector2d& point, Types... args) {
+    return point;
+  }
+};
+
+using FisheyeCamera = CameraT<FisheyeProjection, Disto24, Affine>;
+using PerspectiveCamera = CameraT< PerspectiveProjection, Disto24, Affine>;
+using BrownCamera = CameraT< PerspectiveProjection, DistoBrown, Affine>;
+using SphericalCamera = CameraT< SphericalProjection, Identity, Identity>;
