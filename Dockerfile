@@ -19,7 +19,6 @@ RUN apt-get update \
         python3-scipy \
         python3-yaml \
         curl \
-        vim \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
