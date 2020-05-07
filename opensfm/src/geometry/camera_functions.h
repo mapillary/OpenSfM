@@ -4,13 +4,15 @@
 #include <Eigen/Eigen>
 
 struct FisheyeProjection {
-  static Eigen::Vector2d Forward(const Eigen::Vector3d& point) {
+  static Eigen::Vector2d Forward(const Eigen::Vector3d& point,
+                                 const Eigen::VectorXd& p) {
     const auto r = point.head<2>().norm();
     const auto theta = std::atan2(r, point[2]);
     return Eigen::Vector2d(theta / r * point[0], theta / r * point[1]);
   }
 
-  static Eigen::Vector3d Backward(const Eigen::Vector2d& point) {
+  static Eigen::Vector3d Backward(const Eigen::Vector2d& point,
+                                  const Eigen::VectorXd& p) {
     const auto r = point.norm();
     const auto s = std::tan(r) / r;
     return Eigen::Vector3d(point[0] * s, point[1] * s, 1.0).normalized();
@@ -18,23 +20,66 @@ struct FisheyeProjection {
 };
 
 struct PerspectiveProjection {
-  static Eigen::Vector2d Forward(const Eigen::Vector3d& point) {
+  static Eigen::Vector2d Forward(const Eigen::Vector3d& point,
+                                 const Eigen::VectorXd& p) {
     return Eigen::Vector2d(point[0] / point[2], point[1] / point[2]);
   }
 
-  static Eigen::Vector3d Backward(const Eigen::Vector2d& point) {
+  static Eigen::Vector3d Backward(const Eigen::Vector2d& point,
+                                  const Eigen::VectorXd& p) {
     return Eigen::Vector3d(point[0], point[1], 1.0).normalized();
   }
 };
 
+struct DualProjection {
+  static Eigen::Vector2d Forward(const Eigen::Vector3d& point,
+                                 const Eigen::VectorXd& p) {
+    const auto p_persp = PerspectiveProjection::Forward(point, p);
+    const auto p_fish = FisheyeProjection::Forward(point, p);
+    return p[0] * p_persp + (1.0 - p[0]) * p_fish;
+  }
+
+  static Eigen::Vector3d Backward(const Eigen::Vector2d& point,
+                                  const Eigen::VectorXd& p) {
+    // Perform a bit iterations for finding theta from r
+    const auto r = point.norm();
+    ThetaEval eval_function{0, r, p[0]};
+    const auto theta_refined =
+        NewtonRaphson<ThetaEval, 1, 1, ManualDiff<ThetaEval, 1, 1>>(
+            eval_function, 0, 5);
+
+    const auto s = std::tan(theta_refined) / (p[0] * std::tan(theta_refined) +
+                                              (1.0 - p[0]) * theta_refined);
+    return Eigen::Vector3d(point[0] * s, point[1] * s, 1.0).normalized();
+  }
+
+  struct ThetaEval {
+    mutable int count;
+    const double& r;
+    const double& transition;
+    double operator()(const double& x) const {
+      return transition * std::tan(x) + (1.0 - transition) * x - r;
+    }
+    double derivative(const double& x) const {
+      /* Here's some trick : use a half shorter step to prevent gross
+       * overfitting on tan(x) */
+      const double mult = count++ == 0 ? 2.0 : 1.0;
+      const auto secant = 1.0 / std::cos(x);
+      return mult * (transition * secant * secant - transition + 1);
+    }
+  };
+};
+
 struct SphericalProjection {
-  static Eigen::Vector2d Forward(const Eigen::Vector3d& point) {
+  static Eigen::Vector2d Forward(const Eigen::Vector3d& point,
+                                 const Eigen::VectorXd& p) {
     const auto lon = std::atan2(point[0], point[2]);
     const auto lat = std::atan2(-point[1], std::hypot(point[0], point[2]));
     return Eigen::Vector2d(lon / (2 * M_PI), -lat / (2 * M_PI));
   }
 
-  static Eigen::Vector3d Backward(const Eigen::Vector2d& point) {
+  static Eigen::Vector3d Backward(const Eigen::Vector2d& point,
+                                  const Eigen::VectorXd& p) {
     const auto lon = point[0] * 2 * M_PI;
     const auto lat = -point[1] * 2 * M_PI;
     return Eigen::Vector3d(std::cos(lat) * std::sin(lon), std::sin(lat),

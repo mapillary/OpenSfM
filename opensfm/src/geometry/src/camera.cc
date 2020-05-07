@@ -30,6 +30,15 @@ Camera Camera::CreateFisheyeCamera(double focal, double k1, double k2) {
   return camera;
 };
 
+Camera Camera::CreateDualCamera(double transition, double focal, double k1, double k2) {
+  Camera camera;
+  camera.type_ = Type::DUAL;
+  camera.projection_[0] = transition;
+  camera.affine_ << focal, 0, 0, focal;
+  camera.distortion_ << k1, k2, 0, 0, 0;
+  return camera;
+};
+
 Camera Camera::CreateSphericalCamera() {
   Camera camera;
   camera.type_ = Type::SPHERICAL;
@@ -61,6 +70,8 @@ Eigen::MatrixX3d Camera::BearingsMany(const Eigen::MatrixX2d& points) const {
 }
 
 Camera::Camera() : type_(Type::PERSPECTIVE) {
+  projection_.resize(1);
+  projection_[0] = 1.0;
   affine_.setIdentity();
   principal_point_.setZero();
   distortion_.resize(5);
@@ -75,15 +86,18 @@ OUT Camera::Dispatch(IN... args) const {
   switch (type_) {
     case PERSPECTIVE:
       return FUNC::template Apply<PerspectiveProjection, Disto24, Affine>(
-          args..., affine_, principal_point_, distortion_);
+          args..., projection_, affine_, principal_point_, distortion_);
     case BROWN:
       return FUNC::template Apply<PerspectiveProjection, DistoBrown, Affine>(
-          args..., affine_, principal_point_, distortion_);
+          args..., projection_, affine_, principal_point_, distortion_);
     case FISHEYE:
       return FUNC::template Apply<FisheyeProjection, Disto24, Affine>(
-          args..., affine_, principal_point_, distortion_);
+          args..., projection_, affine_, principal_point_, distortion_);
+    case DUAL:
+      return FUNC::template Apply<DualProjection, Disto24, Affine>(
+          args..., projection_, affine_, principal_point_, distortion_);
     case SPHERICAL:
       return FUNC::template Apply<SphericalProjection, Identity, Identity>(
-          args..., affine_, principal_point_, distortion_);
+          args..., projection_, affine_, principal_point_, distortion_);
   }
 }
