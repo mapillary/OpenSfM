@@ -9,7 +9,7 @@ class Camera {
   static Camera CreatePerspective(double focal, double k1, double k2);
   static Camera CreateBrownCamera(double focal_x, double focal_y,
                                   const Eigen::Vector2d& principal_point,
-                                  const Eigen::VectorXd& distorsion);
+                                  const Eigen::VectorXd& distortion);
   static Camera CreateFisheyeCamera(double focal, double k1, double k2);
   static Camera CreateSphericalCamera();
 
@@ -31,8 +31,8 @@ class Camera {
     static Eigen::Vector2d Apply(const Eigen::Vector3d& point,
                                  const Eigen::Matrix2d& affine,
                                  const Eigen::Vector2d& principal_point,
-                                 const Eigen::VectorXd& distorsion) {
-      return AFF::Forward(DISTO::Forward(PROJ::Forward(point), distorsion),
+                                 const Eigen::VectorXd& distortion) {
+      return AFF::Forward(DISTO::Forward(PROJ::Forward(point), distortion),
                           affine, principal_point);
     }
   };
@@ -42,14 +42,14 @@ class Camera {
     static Eigen::Vector3d Apply(const Eigen::Vector2d& point,
                                  const Eigen::Matrix2d& affine,
                                  const Eigen::Vector2d& principal_point,
-                                 const Eigen::VectorXd& distorsion) {
+                                 const Eigen::VectorXd& distortion) {
       return PROJ::Backward(DISTO::Backward(
-          AFF::Backward(point, affine, principal_point), distorsion));
+          AFF::Backward(point, affine, principal_point), distortion));
     }
   };
 
   Type type_;
   Eigen::Matrix2d affine_;
   Eigen::Vector2d principal_point_;
-  Eigen::VectorXd distorsion_;  // r^2, r^4, r^6, p1, p2
+  Eigen::VectorXd distortion_;  // r^2, r^4, r^6, p1, p2
 };

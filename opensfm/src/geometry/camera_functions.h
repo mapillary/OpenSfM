@@ -45,7 +45,7 @@ struct SphericalProjection {
 struct Disto24{
   static Eigen::Vector2d Forward(const Eigen::Vector2d& point, const Eigen::VectorXd& k) {
     const auto r2 = point.dot(point);
-    const auto distortion = Distorsion(r2, k[0], k[1]);
+    const auto distortion = Distortion(r2, k[0], k[1]);
     return point * distortion;
   }
 
@@ -58,12 +58,12 @@ struct Disto24{
         NewtonRaphson<DistoEval, 1, 1, ManualDiff<DistoEval, 1, 1>>(
             eval_function, rd, iterations);
 
-    // Ccompute distorsion factor from undistorted radius
+    // Compute distortion factor from undistorted radius
     const auto r2 = ru_refined * ru_refined;
-    const auto distorsion = Distorsion(r2, k[0], k[1]);
+    const auto distortion = Distortion(r2, k[0], k[1]);
 
-    // Unapply undistorsion
-    return point/distorsion;
+    // Unapply undistortion
+    return point/distortion;
   }
 
   static const int iterations = 20;
@@ -74,19 +74,19 @@ struct Disto24{
     double operator()(const double& x) const {
       const auto r = x;
       const auto r2 = r * r;
-      return r * Disto24::Distorsion(r2, k1, k2) - rd;
+      return r * Disto24::Distortion(r2, k1, k2) - rd;
     }
     double derivative(const double& x) const {
       const auto r = x;
       const auto r2 = r * r;
-      return Disto24::DistorsionDerivative(r2, k1, k2);
+      return Disto24::DistortionDerivative(r2, k1, k2);
     }
   };
 
-  static double Distorsion(double r2, double k1, double k2) {
+  static double Distortion(double r2, double k1, double k2) {
     return 1.0 + r2 * (k1 + k2 * r2);
   }
-  static double DistorsionDerivative(double r2, double k1, double k2) {
+  static double DistortionDerivative(double r2, double k1, double k2) {
     return 1.0 + r2 * 2.0 * (k1 + 2.0 * k2 * r2);
   }
 };
@@ -95,18 +95,16 @@ struct DistoBrown{
 
   static Eigen::Vector2d Forward(const Eigen::Vector2d& point, const Eigen::VectorXd& k) {
     const auto r2 = point.dot(point);
-    const auto distortion_radial = RadialDistorsion(r2, k[0], k[1], k[2]);
+    const auto distortion_radial = RadialDistortion(r2, k[0], k[1], k[2]);
     const auto distortion_tangential =
-        TangentialDistorsion(r2, point[0], point[1], k[3], k[4]);
+        TangentialDistortion(r2, point[0], point[1], k[3], k[4]);
     return point * distortion_radial + distortion_tangential;
   }
 
   static Eigen::Vector2d Backward(const Eigen::Vector2d& point, const Eigen::VectorXd& k) {
-    // Undistort using Newton iterations.
-    // Sorry for the analytical derivatives,
-    // there no real alternative. Jet/Dual number
-    // would kill the performance and finite
-    // differencing is so inaccurate.
+    /* Undistort using Newton iterations. Sorry for the analytical derivatives,
+     * there no real alternative. Jet/Dual number would kill the performance and
+     * finite differencing is so inaccurate. */
     const int iterations = 20;
     struct DistoEval {
       const Eigen::Vector2d& point_distorted;
@@ -117,9 +115,9 @@ struct DistoBrown{
       const double& p2;
       Eigen::Vector2d operator()(const Eigen::Vector2d& point) const {
         const auto r2 = point.dot(point);
-        const auto distortion_radial = RadialDistorsion(r2, k1, k2, k3);
+        const auto distortion_radial = RadialDistortion(r2, k1, k2, k3);
         const auto distortion_tangential =
-            TangentialDistorsion(r2, point[0], point[1], p1, p2);
+            TangentialDistortion(r2, point[0], point[1], p1, p2);
         return point * distortion_radial + distortion_tangential -
                point_distorted;
       }
@@ -155,10 +153,10 @@ struct DistoBrown{
             eval_function, point, iterations);
   }
 
-  static double RadialDistorsion(double r2, double k1, double k2, double k3) {
+  static double RadialDistortion(double r2, double k1, double k2, double k3) {
     return 1.0 + r2 * (k1 + r2 * (k2 + r2 * k3));
   }
-  static Eigen::Vector2d TangentialDistorsion(double r2, double x, double y,
+  static Eigen::Vector2d TangentialDistortion(double r2, double x, double y,
                                               double p1, double p2) {
     return Eigen::Vector2d(2.0 * p1 * x * y + p2 * (r2 + 2 * x * x),
                            2.0 * p2 * x * y + p1 * (r2 + 2 * y * y));
