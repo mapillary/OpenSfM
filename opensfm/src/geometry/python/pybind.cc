@@ -4,6 +4,7 @@
 #include <glog/logging.h>
 
 #include <geometry/essential.h>
+#include <geometry/camera.h>
 #include <geometry/relative_pose.h>
 #include <geometry/absolute_pose.h>
 #include <geometry/triangulation.h>
@@ -11,6 +12,19 @@
 
 
 PYBIND11_MODULE(pygeometry, m) {
+
+  py::class_<Camera>(m, "Camera")
+  .def_static("create_perspective", &Camera::CreatePerspective)
+  .def_static("create_brown", &Camera::CreateBrownCamera)
+  .def_static("create_fisheye", &Camera::CreateFisheyeCamera)
+  .def_static("create_dual", &Camera::CreateDualCamera)
+  .def_static("create_spherical", &Camera::CreateSphericalCamera)
+  .def("project", &Camera::Project)
+  .def("project_many", &Camera::ProjectMany)
+  .def("pixel_bearing", &Camera::Bearing)
+  .def("pixel_bearing_many", &Camera::BearingsMany)
+  ;
+
   m.def("triangulate_bearings_dlt", geometry::TriangulateBearingsDLT);
   m.def("triangulate_bearings_midpoint", geometry::TriangulateBearingsMidpoint);
   m.def("triangulate_two_bearings_midpoint", geometry::TriangulateTwoBearingsMidpointSolve<double>);
