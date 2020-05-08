@@ -1,6 +1,7 @@
 #pragma once
 
 #include <foundation/newton_raphson.h>
+
 #include <Eigen/Eigen>
 
 struct FisheyeProjection {
@@ -53,7 +54,7 @@ struct DualProjection {
     return Eigen::Vector3d(point[0] * s, point[1] * s, 1.0).normalized();
   }
 
-  constexpr int iterations = 5;
+  static constexpr int iterations = 5;
   struct ThetaEval {
     mutable int count;
     const double& r;
@@ -88,8 +89,9 @@ struct SphericalProjection {
   }
 };
 
-struct Disto24{
-  static Eigen::Vector2d Forward(const Eigen::Vector2d& point, const Eigen::VectorXd& k) {
+struct Disto24 {
+  static Eigen::Vector2d Forward(const Eigen::Vector2d& point,
+                                 const Eigen::VectorXd& k) {
     const auto r2 = point.dot(point);
     const auto distortion = Distortion(r2, k[0], k[1]);
     return point * distortion;
@@ -109,7 +111,7 @@ struct Disto24{
     const auto distortion = Distortion(r2, k[0], k[1]);
 
     // Unapply undistortion
-    return point/distortion;
+    return point / distortion;
   }
 
   static constexpr int iterations = 20;
@@ -137,9 +139,9 @@ struct Disto24{
   }
 };
 
-struct DistoBrown{
-
-  static Eigen::Vector2d Forward(const Eigen::Vector2d& point, const Eigen::VectorXd& k) {
+struct DistoBrown {
+  static Eigen::Vector2d Forward(const Eigen::Vector2d& point,
+                                 const Eigen::VectorXd& k) {
     const auto r2 = point.dot(point);
     const auto distortion_radial = RadialDistortion(r2, k[0], k[1], k[2]);
     const auto distortion_tangential =
@@ -147,57 +149,59 @@ struct DistoBrown{
     return point * distortion_radial + distortion_tangential;
   }
 
-  static Eigen::Vector2d Backward(const Eigen::Vector2d& point, const Eigen::VectorXd& k) {
-    /* Undistort using Newton iterations. Sorry for the analytical derivatives,
-     * there no real alternative. Jet/Dual number would kill the performance and
-     * finite differencing is so inaccurate. */
-    constexpr int iterations = 20;
-    struct DistoEval {
-      const Eigen::Vector2d& point_distorted;
-      const double& k1;
-      const double& k2;
-      const double& k3;
-      const double& p1;
-      const double& p2;
-      Eigen::Vector2d operator()(const Eigen::Vector2d& point) const {
-        const auto r2 = point.dot(point);
-        const auto distortion_radial = RadialDistortion(r2, k1, k2, k3);
-        const auto distortion_tangential =
-            TangentialDistortion(r2, point[0], point[1], p1, p2);
-        return point * distortion_radial + distortion_tangential -
-               point_distorted;
-      }
-      Eigen::Matrix2d derivative(const Eigen::Vector2d& point) const {
-        const auto x = point[0];
-        const auto y = point[1];
-        const auto r2 = point.squaredNorm();
-        const double r4 = r2 * r2;
-        const double r6 = r4 * r2;
-        const double x2 = x * x;
-        const double x4 = x2 * x2;
-        const double y2 = y * y;
-        const double y4 = y2 * y2;
-
-        const auto dxx = 5 * k2 * x4 + 3 * k1 * x2 + 6 * k3 * x2 * r4 +
-                         6 * k2 * x2 * y2 + k3 * r6 + k2 * y4 + k1 * y2 + 1 +
-                         2 * p1 * y + 6 * p2 * x;
-        const auto dxy = x * (2 * k1 * y + 4 * k2 * y * r2 + 6 * k3 * y * r4) +
-                         2 * p1 * x + 2 * p2 * y;
-
-        const auto dyy = 5 * k2 * y4 + 3 * k1 * y2 + 6 * k3 * y2 * r4 +
-                         6 * k2 * x2 * y2 + k3 * r6 + k2 * x4 + k1 * x2 + 1 +
-                         2 * p2 * x + 6 * p1 * y;
-        const auto dyx = y * (2 * k1 * x + 4 * k2 * x * r2 + 6 * k3 * x * r4) +
-                         2 * p2 * y + 2 * p1 * x;
-        Eigen::Matrix2d jacobian;
-        jacobian << dxx, dxy, dyx, dyy;
-        return jacobian;
-      }
-    };
+  static Eigen::Vector2d Backward(const Eigen::Vector2d& point,
+                                  const Eigen::VectorXd& k) {
     DistoEval eval_function{point, k[0], k[1], k[2], k[3], k[4]};
-    return  NewtonRaphson<DistoEval, 2, 2, ManualDiff<DistoEval, 2, 2>>(
-            eval_function, point, iterations);
+    return NewtonRaphson<DistoEval, 2, 2, ManualDiff<DistoEval, 2, 2>>(
+        eval_function, point, iterations);
   }
+
+  /* Undistort using Newton iterations. Sorry for the analytical derivatives,
+   * there no real alternative. Jet/Dual number would kill the performance and
+   * finite differencing is so inaccurate. */
+  static constexpr int iterations = 20;
+  struct DistoEval {
+    const Eigen::Vector2d& point_distorted;
+    const double& k1;
+    const double& k2;
+    const double& k3;
+    const double& p1;
+    const double& p2;
+    Eigen::Vector2d operator()(const Eigen::Vector2d& point) const {
+      const auto r2 = point.dot(point);
+      const auto distortion_radial = RadialDistortion(r2, k1, k2, k3);
+      const auto distortion_tangential =
+          TangentialDistortion(r2, point[0], point[1], p1, p2);
+      return point * distortion_radial + distortion_tangential -
+             point_distorted;
+    }
+    Eigen::Matrix2d derivative(const Eigen::Vector2d& point) const {
+      const auto x = point[0];
+      const auto y = point[1];
+      const auto r2 = point.squaredNorm();
+      const double r4 = r2 * r2;
+      const double r6 = r4 * r2;
+      const double x2 = x * x;
+      const double x4 = x2 * x2;
+      const double y2 = y * y;
+      const double y4 = y2 * y2;
+
+      const auto dxx = 5 * k2 * x4 + 3 * k1 * x2 + 6 * k3 * x2 * r4 +
+                       6 * k2 * x2 * y2 + k3 * r6 + k2 * y4 + k1 * y2 + 1 +
+                       2 * p1 * y + 6 * p2 * x;
+      const auto dxy = x * (2 * k1 * y + 4 * k2 * y * r2 + 6 * k3 * y * r4) +
+                       2 * p1 * x + 2 * p2 * y;
+
+      const auto dyy = 5 * k2 * y4 + 3 * k1 * y2 + 6 * k3 * y2 * r4 +
+                       6 * k2 * x2 * y2 + k3 * r6 + k2 * x4 + k1 * x2 + 1 +
+                       2 * p2 * x + 6 * p1 * y;
+      const auto dyx = y * (2 * k1 * x + 4 * k2 * x * r2 + 6 * k3 * x * r4) +
+                       2 * p2 * y + 2 * p1 * x;
+      Eigen::Matrix2d jacobian;
+      jacobian << dxx, dxy, dyx, dyy;
+      return jacobian;
+    }
+  };
 
   static double RadialDistortion(double r2, double k1, double k2, double k3) {
     return 1.0 + r2 * (k1 + r2 * (k2 + r2 * k3));
@@ -209,7 +213,7 @@ struct DistoBrown{
   }
 };
 
-struct Affine{
+struct Affine {
   static Eigen::Vector2d Forward(const Eigen::Vector2d& point,
                                  const Eigen::Matrix2d& affine,
                                  const Eigen::Vector2d& shift) {
@@ -219,7 +223,7 @@ struct Affine{
   static Eigen::Vector2d Backward(const Eigen::Vector2d& point,
                                   const Eigen::Matrix2d& affine,
                                   const Eigen::Vector2d& shift) {
-    return affine.inverse()*(point-shift);
+    return affine.inverse() * (point - shift);
   }
 };
 
@@ -238,11 +242,12 @@ struct Identity {
 struct ProjectT {
   template <class TYPE>
   static Eigen::Vector2d Apply(const Eigen::Vector3d& point,
-                                const Eigen::VectorXd& projection,
-                                const Eigen::Matrix2d& affine,
-                                const Eigen::Vector2d& principal_point,
-                                const Eigen::VectorXd& distortion) {
-    return TYPE::Forward(point, projection, affine, principal_point, distortion);
+                               const Eigen::VectorXd& projection,
+                               const Eigen::Matrix2d& affine,
+                               const Eigen::Vector2d& principal_point,
+                               const Eigen::VectorXd& distortion) {
+    return TYPE::Forward(point, projection, affine, principal_point,
+                         distortion);
   }
 };
 
