@@ -1060,7 +1060,7 @@ def retriangulate(tracks_manager, graph_inliers, reconstruction, config):
     graph_inliers.clear()
     reconstruction.points = {}
 
-    all_shots_ids = tracks_manager.get_shot_ids()
+    all_shots_ids = set(tracks_manager.get_shot_ids())
 
     triangulator = TrackTriangulator(tracks_manager, graph_inliers, reconstruction)
     tracks = set()
