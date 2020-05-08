@@ -4,6 +4,9 @@
 
 #include <Eigen/Eigen>
 
+enum Type { PERSPECTIVE, BROWN, FISHEYE, SPHERICAL, DUAL };
+enum Disto { K1 = 0, K2 = 1, K3 = 2, P1 = 3, P2 = 4 };
+
 struct FisheyeProjection {
   static Eigen::Vector2d Forward(const Eigen::Vector3d& point,
                                  const Eigen::VectorXd& p) {
@@ -93,7 +96,7 @@ struct Disto24 {
   static Eigen::Vector2d Forward(const Eigen::Vector2d& point,
                                  const Eigen::VectorXd& k) {
     const auto r2 = point.dot(point);
-    const auto distortion = Distortion(r2, k[0], k[1]);
+    const auto distortion = Distortion(r2, k[Disto::K1], k[Disto::K2]);
     return point * distortion;
   }
 
@@ -101,14 +104,14 @@ struct Disto24 {
                                   const Eigen::VectorXd& k) {
     // Compute undistorted radius
     auto rd = point.norm();
-    DistoEval eval_function{rd, k[0], k[1]};
+    DistoEval eval_function{rd, k[Disto::K1], k[Disto::K2]};
     const auto ru_refined =
         NewtonRaphson<DistoEval, 1, 1, ManualDiff<DistoEval, 1, 1>>(
             eval_function, rd, iterations);
 
     // Compute distortion factor from undistorted radius
     const auto r2 = ru_refined * ru_refined;
-    const auto distortion = Distortion(r2, k[0], k[1]);
+    const auto distortion = Distortion(r2, k[Disto::K1], k[Disto::K2]);
 
     // Unapply undistortion
     return point / distortion;
@@ -143,15 +146,15 @@ struct DistoBrown {
   static Eigen::Vector2d Forward(const Eigen::Vector2d& point,
                                  const Eigen::VectorXd& k) {
     const auto r2 = point.dot(point);
-    const auto distortion_radial = RadialDistortion(r2, k[0], k[1], k[2]);
+    const auto distortion_radial = RadialDistortion(r2, k[Disto::K1], k[Disto::K2], k[Disto::K3]);
     const auto distortion_tangential =
-        TangentialDistortion(r2, point[0], point[1], k[3], k[4]);
+        TangentialDistortion(r2, point[0], point[1], k[Disto::P1], k[Disto::P2]);
     return point * distortion_radial + distortion_tangential;
   }
 
   static Eigen::Vector2d Backward(const Eigen::Vector2d& point,
                                   const Eigen::VectorXd& k) {
-    DistoEval eval_function{point, k[0], k[1], k[2], k[3], k[4]};
+    DistoEval eval_function{point, k[Disto::K1], k[Disto::K2], k[Disto::K3], k[Disto::P1], k[Disto::P2]};
     return NewtonRaphson<DistoEval, 2, 2, ManualDiff<DistoEval, 2, 2>>(
         eval_function, point, iterations);
   }
@@ -301,17 +304,17 @@ using SphericalCameraT = ProjectGeneric<SphericalProjection, Identity, Identity>
  * your own new camera model, just add a new enum value, the corresponding
  * case below and the implementation (see above). */
 template <class OUT, class FUNC, class... IN>
-OUT Dispatch(const Camera::Type& type, IN... args) {
+OUT Dispatch(const Type& type, IN... args) {
   switch (type) {
-    case Camera::PERSPECTIVE:
+    case PERSPECTIVE:
       return FUNC::template Apply<PerspectiveCameraT>(args...);
-    case Camera::BROWN:
+    case BROWN:
       return FUNC::template Apply<BrownCameraT>(args...);
-    case Camera::FISHEYE:
+    case FISHEYE:
       return FUNC::template Apply<FisheyeCameraT>(args...);
-    case Camera::DUAL:
+    case DUAL:
       return FUNC::template Apply<DualCameraT>(args...);
-    case Camera::SPHERICAL:
+    case SPHERICAL:
       return FUNC::template Apply<SphericalCameraT>(args...);
   }
 };

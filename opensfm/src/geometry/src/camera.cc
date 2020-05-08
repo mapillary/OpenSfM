@@ -46,6 +46,46 @@ Camera Camera::CreateSphericalCamera() {
   return camera;
 };
 
+void Camera::SetDistortion(const Eigen::VectorXd& distortion) {
+  std::vector<int> coeffs;
+  if (type_ != Type::SPHERICAL) {
+    coeffs.push_back(Disto::K1);
+    coeffs.push_back(Disto::K2);
+  }
+  if (type_ == Type::BROWN) {
+    coeffs.push_back(Disto::K3);
+    coeffs.push_back(Disto::P1);
+    coeffs.push_back(Disto::P2);
+  }
+  for (const auto idx : coeffs) {
+    distortion_[idx] = distortion[idx];
+  }
+}
+Eigen::VectorXd Camera::GetDistortion() const { return distortion_; }
+
+void Camera::SetPrincipalPoint(const Eigen::Vector2d& principal_point) {
+  if (type_ != Type::BROWN) {
+    return;
+  }
+  principal_point_ = principal_point;
+}
+Eigen::Vector2d Camera::GetPrincipalPoint() const { return principal_point_; }
+
+void Camera::SetFocal(double focal) {
+  if (type_ == Type::SPHERICAL) {
+    return;
+  }
+
+  const auto ar = GetAspectRatio();
+  affine_(1, 1) = ar * focal;
+  affine_(0, 0) = focal;
+}
+double Camera::GetFocal() const { return affine_(0, 0); }
+
+void Camera::SetAspectRatio(double ar) { affine_(1, 1) = ar * GetFocal(); }
+
+double Camera::GetAspectRatio() const { return affine_(1, 1) / affine_(0, 0); }
+
 Eigen::Vector2d Camera::Project(const Eigen::Vector3d& point) const {
   return Dispatch<Eigen::Vector2d, ProjectT, Eigen::Vector3d>(
       type_, point, projection_, affine_, principal_point_, distortion_);
