@@ -46,21 +46,22 @@ struct DualProjection {
     ThetaEval eval_function{0, r, p[0]};
     const auto theta_refined =
         NewtonRaphson<ThetaEval, 1, 1, ManualDiff<ThetaEval, 1, 1>>(
-            eval_function, 0, 5);
+            eval_function, 0, iterations);
 
     const auto s = std::tan(theta_refined) / (p[0] * std::tan(theta_refined) +
                                               (1.0 - p[0]) * theta_refined);
     return Eigen::Vector3d(point[0] * s, point[1] * s, 1.0).normalized();
   }
 
+  constexpr int iterations = 5;
   struct ThetaEval {
     mutable int count;
     const double& r;
     const double& transition;
-    double operator()(const double& x) const {
+    double operator()(double x) const {
       return transition * std::tan(x) + (1.0 - transition) * x - r;
     }
-    double derivative(const double& x) const {
+    double derivative(double x) const {
       /* Here's some trick : use a half shorter step to prevent gross
        * overfitting on tan(x) */
       const double mult = count++ == 0 ? 2.0 : 1.0;
@@ -111,17 +112,17 @@ struct Disto24{
     return point/distortion;
   }
 
-  static const int iterations = 20;
+  static constexpr int iterations = 20;
   struct DistoEval {
     const double& rd;
     const double& k1;
     const double& k2;
-    double operator()(const double& x) const {
+    double operator()(double x) const {
       const auto r = x;
       const auto r2 = r * r;
       return r * Disto24::Distortion(r2, k1, k2) - rd;
     }
-    double derivative(const double& x) const {
+    double derivative(double x) const {
       const auto r = x;
       const auto r2 = r * r;
       return Disto24::DistortionDerivative(r2, k1, k2);
@@ -150,7 +151,7 @@ struct DistoBrown{
     /* Undistort using Newton iterations. Sorry for the analytical derivatives,
      * there no real alternative. Jet/Dual number would kill the performance and
      * finite differencing is so inaccurate. */
-    const int iterations = 20;
+    constexpr int iterations = 20;
     struct DistoEval {
       const Eigen::Vector2d& point_distorted;
       const double& k1;
