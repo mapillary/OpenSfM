@@ -25,7 +25,7 @@ class Camera {
 
   Type type_;
   Eigen::VectorXd projection_;      // dual transition (1 = perspective, 0 = fisheye)
-  Eigen::Matrix2d affine_;          // fx 0, 0, fy
+  Eigen::Matrix2d affine_;          // fx, skew, skew, fy
   Eigen::Vector2d principal_point_; // cx, cy
   Eigen::VectorXd distortion_;      // r^2, r^4, r^6, p1, p2
 };
