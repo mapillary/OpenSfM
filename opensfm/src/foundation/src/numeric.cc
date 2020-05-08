@@ -60,12 +60,17 @@ std::array<double, 4> RefineQuarticRoots(const std::array<double, 5>& coefficien
     double operator()(double x)const{
       return (((coefficients_[4]*x + coefficients_[3])*x + coefficients_[2])*x + coefficients_[1])*x + coefficients_[0];
     }
+    double derivative(double x)const{
+      const double x2 = x*x;
+      const double x3 = x2*x;
+      return 4.0*coefficients_[4]*x3 + 3.0*coefficients_[3]*x2 + 2.0*coefficients_[2]*x + coefficients_[1];
+    }
   };
   QuarticEval eval_function{coefficients};
 
   std::array<double, 4> refined_roots = roots;
   for (auto& root : refined_roots){
-    root = NewtonRaphson(eval_function, root, iterations, 1e-20);
+    root = NewtonRaphson<QuarticEval, 1, 1, ManualDiff<QuarticEval, 1, 1>>(eval_function, root, iterations, 1e-20);
   }
   return refined_roots;
 }
