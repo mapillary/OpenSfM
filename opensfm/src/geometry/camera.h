@@ -1,6 +1,6 @@
 #pragma once
 
-#include <geometry/camera_functions.h>
+#include <Eigen/Eigen>
 
 class Camera {
  public:
@@ -22,37 +22,6 @@ class Camera {
 
  private:
   Camera();
-
-  // This is where the pseudo-strategy pattern takes place.
-  template <class OUT, class FUNC, class... IN>
-  OUT Dispatch(IN... args) const;
-
-  struct ProjectT {
-    template <class PROJ, class DISTO, class AFF>
-    static Eigen::Vector2d Apply(const Eigen::Vector3d& point,
-                                 const Eigen::VectorXd& projection,
-                                 const Eigen::Matrix2d& affine,
-                                 const Eigen::Vector2d& principal_point,
-                                 const Eigen::VectorXd& distortion) {
-      return AFF::Forward(
-          DISTO::Forward(PROJ::Forward(point, projection), distortion), affine,
-          principal_point);
-    }
-  };
-
-  struct BearingT {
-    template <class PROJ, class DISTO, class AFF>
-    static Eigen::Vector3d Apply(const Eigen::Vector2d& point,
-                                 const Eigen::VectorXd& projection,
-                                 const Eigen::Matrix2d& affine,
-                                 const Eigen::Vector2d& principal_point,
-                                 const Eigen::VectorXd& distortion) {
-      return PROJ::Backward(
-          DISTO::Backward(AFF::Backward(point, affine, principal_point),
-                          distortion),
-          projection);
-    }
-  };
 
   Type type_;
   Eigen::VectorXd projection_;      // dual transition (1 = perspective, 0 = fisheye)

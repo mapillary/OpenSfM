@@ -1,4 +1,5 @@
 #include <geometry/camera.h>
+#include <geometry/camera_functions.h>
 
 Camera Camera::CreatePerspective(double focal, double k1, double k2) {
   Camera camera;
@@ -46,7 +47,8 @@ Camera Camera::CreateSphericalCamera() {
 };
 
 Eigen::Vector2d Camera::Project(const Eigen::Vector3d& point) const {
-  return Dispatch<Eigen::Vector2d, ProjectT, Eigen::Vector3d>(point);
+  return Dispatch<Eigen::Vector2d, ProjectT, Eigen::Vector3d>(
+      type_, point, projection_, affine_, principal_point_, distortion_);
 }
 
 Eigen::MatrixX2d Camera::ProjectMany(const Eigen::MatrixX3d& points) const {
@@ -58,7 +60,8 @@ Eigen::MatrixX2d Camera::ProjectMany(const Eigen::MatrixX3d& points) const {
 }
 
 Eigen::Vector3d Camera::Bearing(const Eigen::Vector2d& point) const {
-  return Dispatch<Eigen::Vector3d, BearingT, Eigen::Vector2d>(point);
+  return Dispatch<Eigen::Vector3d, BearingT, Eigen::Vector2d>(
+      type_, point, projection_, affine_, principal_point_, distortion_);
 }
 
 Eigen::MatrixX3d Camera::BearingsMany(const Eigen::MatrixX2d& points) const {
@@ -76,28 +79,4 @@ Camera::Camera() : type_(Type::PERSPECTIVE) {
   principal_point_.setZero();
   distortion_.resize(5);
   distortion_.setZero();
-}
-
-/* This is where the pseudo-strategy pattern takes place. If you want to add
- * your own new camera model, just add a new enum value and the corresponding
- * case below. */
-template <class OUT, class FUNC, class... IN>
-OUT Camera::Dispatch(IN... args) const {
-  switch (type_) {
-    case PERSPECTIVE:
-      return FUNC::template Apply<PerspectiveProjection, Disto24, Affine>(
-          args..., projection_, affine_, principal_point_, distortion_);
-    case BROWN:
-      return FUNC::template Apply<PerspectiveProjection, DistoBrown, Affine>(
-          args..., projection_, affine_, principal_point_, distortion_);
-    case FISHEYE:
-      return FUNC::template Apply<FisheyeProjection, Disto24, Affine>(
-          args..., projection_, affine_, principal_point_, distortion_);
-    case DUAL:
-      return FUNC::template Apply<DualProjection, Disto24, Affine>(
-          args..., projection_, affine_, principal_point_, distortion_);
-    case SPHERICAL:
-      return FUNC::template Apply<SphericalProjection, Identity, Identity>(
-          args..., projection_, affine_, principal_point_, distortion_);
-  }
 }
