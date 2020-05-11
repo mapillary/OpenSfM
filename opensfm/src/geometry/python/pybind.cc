@@ -13,6 +13,15 @@
 
 PYBIND11_MODULE(pygeometry, m) {
 
+  py::enum_<ProjectionType>(m, "ProjectionType")
+    .value("PERSPECTIVE", ProjectionType::PERSPECTIVE)
+    .value("BROWN", ProjectionType::BROWN)
+    .value("FISHEYE", ProjectionType::FISHEYE)
+    .value("DUAL", ProjectionType::DUAL)
+    .value("SPHERICAL", ProjectionType::SPHERICAL)
+    .export_values()
+  ;
+
   py::class_<Camera>(m, "Camera")
   .def_static("create_perspective", &Camera::CreatePerspective)
   .def_static("create_brown", &Camera::CreateBrownCamera)
@@ -30,6 +39,42 @@ PYBIND11_MODULE(pygeometry, m) {
   .def_property("aspec_ratio", &Camera::GetAspectRatio, &Camera::SetAspectRatio)
   .def_property("distortion", &Camera::GetDistortion, &Camera::SetDistortion)
   .def_property("principal_point", &Camera::GetPrincipalPoint, &Camera::SetPrincipalPoint)
+  .def_property("projection_params", &Camera::GetProjectionParams, &Camera::SetProjectionParams)
+  .def_property_readonly("projection_type", &Camera::GetProjectionString)
+  .def(py::pickle(
+    [](const Camera &p) {
+      return py::make_tuple(p.GetProjectionParams(), p.GetDistortion(),
+      p.GetFocal(), p.GetPrincipalPoint(), p.GetAspectRatio(),
+      p.GetProjectionType(), p.width, p.height, p.id);
+    },
+    [](py::tuple t) {
+      const auto projection_params = t[0].cast<Eigen::VectorXd>();
+      const auto distorsion = t[1].cast<Eigen::VectorXd>();
+      const auto focal = t[2].cast<double>();
+      const auto principal_point = t[3].cast<Eigen::Vector2d>();
+      const auto aspect_ratio = t[4].cast<double>();
+      const auto type = t[5].cast<ProjectionType>();
+      const auto width = t[6].cast<int>();
+      const auto height = t[7].cast<int>();
+      const auto id = t[8].cast<std::string>();
+      Camera camera = Camera::CreatePerspective(0, 0, 0);
+      switch(type){
+        case ProjectionType::PERSPECTIVE:
+          camera = Camera::CreatePerspective(focal, distorsion[0], distorsion[1]); break;
+        case ProjectionType::BROWN:
+          camera = Camera::CreateBrownCamera (focal, aspect_ratio, principal_point, distorsion ); break;
+        case ProjectionType::FISHEYE:
+          camera = Camera::CreatePerspective(focal, distorsion[0], distorsion[1]); break;
+        case ProjectionType::DUAL:
+          camera = Camera::CreateDualCamera(projection_params[0], focal, distorsion[0], distorsion[1]); break;
+        case ProjectionType::SPHERICAL:
+          camera = Camera::CreateSphericalCamera();
+      }
+      camera.width = width;
+      camera.height = height;
+      camera.id = id;
+      return camera;
+    }))
   ;
 
   m.def("triangulate_bearings_dlt", geometry::TriangulateBearingsDLT);
