@@ -36,6 +36,9 @@ class Camera {
 
   ProjectionType GetProjectionType()const;
   std::string GetProjectionString()const;
+
+  Eigen::Matrix3d GetProjectionMatrix()const;
+  Eigen::Matrix3d GetProjectionMatrixScaled(int width, int height)const;
   
   int width{1};
   int height{1};

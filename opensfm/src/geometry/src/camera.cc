@@ -105,6 +105,18 @@ ProjectionType Camera::GetProjectionType() const { return type_; }
 
 std::string Camera::GetProjectionString() const { return "perspective"; }
 
+Eigen::Matrix3d Camera::GetProjectionMatrix() const {
+  return GetProjectionMatrixScaled(1.0, 1.0);
+}
+
+Eigen::Matrix3d Camera::GetProjectionMatrixScaled(int width, int height) const {
+  const auto unnormalizer = std::max(width, height);
+  Eigen::Matrix3d unnormalized = Eigen::Matrix3d::Zero();
+  unnormalized << unnormalizer * affine_;
+  unnormalized.col(2) << unnormalizer * principal_point_, 1.0;
+  return unnormalized;
+}
+
 Eigen::Vector2d Camera::Project(const Eigen::Vector3d& point) const {
   return Dispatch<Eigen::Vector2d, ProjectT, Eigen::Vector3d>(
       type_, point, projection_, affine_, principal_point_, distortion_);

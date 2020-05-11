@@ -32,6 +32,8 @@ PYBIND11_MODULE(pygeometry, m) {
   .def("project_many", &Camera::ProjectMany)
   .def("pixel_bearing", &Camera::Bearing)
   .def("pixel_bearing_many", &Camera::BearingsMany)
+  .def("get_K", &Camera::GetProjectionMatrix)
+  .def("get_K_in_pixel_coordinates", &Camera::GetProjectionMatrixScaled)
   .def_readwrite("width", &Camera::width)
   .def_readwrite("height", &Camera::height)
   .def_readwrite("id", &Camera::id)
@@ -43,6 +45,9 @@ PYBIND11_MODULE(pygeometry, m) {
   .def_property_readonly("projection_type", &Camera::GetProjectionString)
   .def_property_readonly("k1", [](const Camera& c){return c.GetDistortion()[0];})
   .def_property_readonly("k2", [](const Camera& c){return c.GetDistortion()[1];})
+  .def_property_readonly("k3", [](const Camera& c){return c.GetDistortion()[2];})
+  .def_property_readonly("p1", [](const Camera& c){return c.GetDistortion()[3];})
+  .def_property_readonly("p2", [](const Camera& c){return c.GetDistortion()[4];})
   .def(py::pickle(
     [](const Camera &p) {
       return py::make_tuple(p.GetProjectionParams(), p.GetDistortion(),
