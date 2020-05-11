@@ -17,8 +17,8 @@ struct FisheyeProjection {
 
   static Eigen::Vector3d Backward(const Eigen::Vector2d& point,
                                   const Eigen::VectorXd& p) {
-    const auto r = point.norm();
-    const auto s = std::tan(r) / r;
+    const auto theta = point.norm();
+    const auto s = std::tan(theta) / theta;
     return Eigen::Vector3d(point[0] * s, point[1] * s, 1.0).normalized();
   }
 };
