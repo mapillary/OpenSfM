@@ -117,7 +117,7 @@ struct Disto24 {
     return point / distortion;
   }
 
-  static constexpr int iterations = 20;
+  static constexpr int iterations = 10;
   struct DistoEval {
     const double& rd;
     const double& k1;
@@ -162,7 +162,7 @@ struct DistoBrown {
   /* Undistort using Newton iterations. Sorry for the analytical derivatives,
    * there no real alternative. Jet/Dual number would kill the performance and
    * finite differencing is so inaccurate. */
-  static constexpr int iterations = 20;
+  static constexpr int iterations = 10;
   struct DistoEval {
     const Eigen::Vector2d& point_distorted;
     const double& k1;
