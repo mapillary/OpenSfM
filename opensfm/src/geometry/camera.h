@@ -5,7 +5,7 @@
 
 class Camera {
  public:
-  static Camera CreatePerspective(double focal, double k1, double k2);
+  static Camera CreatePerspectiveCamera(double focal, double k1, double k2);
   static Camera CreateBrownCamera(double focal, double aspect_ratio,
                                   const Eigen::Vector2d& principal_point,
                                   const Eigen::VectorXd& distortion);

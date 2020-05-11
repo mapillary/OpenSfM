@@ -23,7 +23,7 @@ PYBIND11_MODULE(pygeometry, m) {
   ;
 
   py::class_<Camera>(m, "Camera")
-  .def_static("create_perspective", &Camera::CreatePerspective)
+  .def_static("create_perspective", &Camera::CreatePerspectiveCamera)
   .def_static("create_brown", &Camera::CreateBrownCamera)
   .def_static("create_fisheye", &Camera::CreateFisheyeCamera)
   .def_static("create_dual", &Camera::CreateDualCamera)
@@ -64,14 +64,14 @@ PYBIND11_MODULE(pygeometry, m) {
       const auto width = t[6].cast<int>();
       const auto height = t[7].cast<int>();
       const auto id = t[8].cast<std::string>();
-      Camera camera = Camera::CreatePerspective(0, 0, 0);
+      Camera camera = Camera::CreatePerspectiveCamera(0, 0, 0);
       switch(type){
         case ProjectionType::PERSPECTIVE:
-          camera = Camera::CreatePerspective(focal, distorsion[0], distorsion[1]); break;
+          camera = Camera::CreatePerspectiveCamera(focal, distorsion[0], distorsion[1]); break;
         case ProjectionType::BROWN:
           camera = Camera::CreateBrownCamera (focal, aspect_ratio, principal_point, distorsion ); break;
         case ProjectionType::FISHEYE:
-          camera = Camera::CreatePerspective(focal, distorsion[0], distorsion[1]); break;
+          camera = Camera::CreateFisheyeCamera(focal, distorsion[0], distorsion[1]); break;
         case ProjectionType::DUAL:
           camera = Camera::CreateDualCamera(projection_params[0], focal, distorsion[0], distorsion[1]); break;
         case ProjectionType::SPHERICAL:

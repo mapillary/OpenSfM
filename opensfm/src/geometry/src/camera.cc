@@ -1,7 +1,7 @@
 #include <geometry/camera.h>
 #include <geometry/camera_functions.h>
 
-Camera Camera::CreatePerspective(double focal, double k1, double k2) {
+Camera Camera::CreatePerspectiveCamera(double focal, double k1, double k2) {
   Camera camera;
   camera.type_ = ProjectionType::PERSPECTIVE;
   camera.affine_ << focal, 0, 0, focal;
