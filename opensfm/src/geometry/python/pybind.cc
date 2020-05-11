@@ -38,7 +38,7 @@ PYBIND11_MODULE(pygeometry, m) {
   .def_readwrite("height", &Camera::height)
   .def_readwrite("id", &Camera::id)
   .def_property("focal", &Camera::GetFocal, &Camera::SetFocal)
-  .def_property("aspec_ratio", &Camera::GetAspectRatio, &Camera::SetAspectRatio)
+  .def_property("aspect_ratio", &Camera::GetAspectRatio, &Camera::SetAspectRatio)
   .def_property("distortion", &Camera::GetDistortion, &Camera::SetDistortion)
   .def_property("principal_point", &Camera::GetPrincipalPoint, &Camera::SetPrincipalPoint)
   .def_property("projection_params", &Camera::GetProjectionParams, &Camera::SetProjectionParams)
