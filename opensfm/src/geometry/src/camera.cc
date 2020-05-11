@@ -97,7 +97,12 @@ void Camera::SetFocal(double focal) {
 }
 double Camera::GetFocal() const { return affine_(0, 0); }
 
-void Camera::SetAspectRatio(double ar) { affine_(1, 1) = ar * GetFocal(); }
+void Camera::SetAspectRatio(double ar) { 
+  if (type_ != ProjectionType::BROWN) {
+    return;
+  }
+  affine_(1, 1) = ar * GetFocal(); 
+  }
 
 double Camera::GetAspectRatio() const { return affine_(1, 1) / affine_(0, 0); }
 
