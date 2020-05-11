@@ -75,7 +75,7 @@ PYBIND11_MODULE(pygeometry, m) {
         case ProjectionType::DUAL:
           camera = Camera::CreateDualCamera(projection_params[0], focal, distorsion[0], distorsion[1]); break;
         case ProjectionType::SPHERICAL:
-          camera = Camera::CreateSphericalCamera();
+          camera = Camera::CreateSphericalCamera(); break;
       }
       camera.width = width;
       camera.height = height;
