@@ -3,21 +3,21 @@
 
 Camera Camera::CreatePerspective(double focal, double k1, double k2) {
   Camera camera;
-  camera.type_ = Type::PERSPECTIVE;
+  camera.type_ = ProjectionType::PERSPECTIVE;
   camera.affine_ << focal, 0, 0, focal;
   camera.distortion_ << k1, k2, 0, 0, 0;
   return camera;
 };
 
-Camera Camera::CreateBrownCamera(double focal_x, double focal_y,
+Camera Camera::CreateBrownCamera(double focal, double aspect_ratio,
                                  const Eigen::Vector2d& principal_point,
                                  const Eigen::VectorXd& distortion) {
   Camera camera;
   if (distortion.size() != camera.distortion_.size()) {
     throw std::runtime_error("Invalid distortion coefficients size");
   }
-  camera.type_ = Type::BROWN;
-  camera.affine_ << focal_x, 0, 0, focal_y;
+  camera.type_ = ProjectionType::BROWN;
+  camera.affine_ << focal, 0, 0, focal*aspect_ratio;
   camera.distortion_ = distortion;
   camera.principal_point_ = principal_point;
   return camera;
@@ -25,15 +25,16 @@ Camera Camera::CreateBrownCamera(double focal_x, double focal_y,
 
 Camera Camera::CreateFisheyeCamera(double focal, double k1, double k2) {
   Camera camera;
-  camera.type_ = Type::FISHEYE;
+  camera.type_ = ProjectionType::FISHEYE;
   camera.affine_ << focal, 0, 0, focal;
   camera.distortion_ << k1, k2, 0, 0, 0;
   return camera;
 };
 
-Camera Camera::CreateDualCamera(double transition, double focal, double k1, double k2) {
+Camera Camera::CreateDualCamera(double transition, double focal, double k1,
+                                double k2) {
   Camera camera;
-  camera.type_ = Type::DUAL;
+  camera.type_ = ProjectionType::DUAL;
   camera.projection_[0] = transition;
   camera.affine_ << focal, 0, 0, focal;
   camera.distortion_ << k1, k2, 0, 0, 0;
@@ -42,17 +43,31 @@ Camera Camera::CreateDualCamera(double transition, double focal, double k1, doub
 
 Camera Camera::CreateSphericalCamera() {
   Camera camera;
-  camera.type_ = Type::SPHERICAL;
+  camera.type_ = ProjectionType::SPHERICAL;
   return camera;
 };
 
+void Camera::SetProjectionParams(const Eigen::VectorXd& projection) {
+  if (type_ != ProjectionType::DUAL) {
+    return;
+  }
+  if (type_ == ProjectionType::DUAL && projection.size() > 1) {
+    throw std::runtime_error("Incorrect size of projection parameters");
+  }
+  projection_ = projection;
+}
+
+const Eigen::VectorXd& Camera::GetProjectionParams() const {
+  return projection_;
+}
+
 void Camera::SetDistortion(const Eigen::VectorXd& distortion) {
   std::vector<int> coeffs;
-  if (type_ != Type::SPHERICAL) {
+  if (type_ != ProjectionType::SPHERICAL) {
     coeffs.push_back(Disto::K1);
     coeffs.push_back(Disto::K2);
   }
-  if (type_ == Type::BROWN) {
+  if (type_ == ProjectionType::BROWN) {
     coeffs.push_back(Disto::K3);
     coeffs.push_back(Disto::P1);
     coeffs.push_back(Disto::P2);
@@ -61,10 +76,10 @@ void Camera::SetDistortion(const Eigen::VectorXd& distortion) {
     distortion_[idx] = distortion[idx];
   }
 }
-Eigen::VectorXd Camera::GetDistortion() const { return distortion_; }
+const Eigen::VectorXd& Camera::GetDistortion() const { return distortion_; }
 
 void Camera::SetPrincipalPoint(const Eigen::Vector2d& principal_point) {
-  if (type_ != Type::BROWN) {
+  if (type_ != ProjectionType::BROWN) {
     return;
   }
   principal_point_ = principal_point;
@@ -72,7 +87,7 @@ void Camera::SetPrincipalPoint(const Eigen::Vector2d& principal_point) {
 Eigen::Vector2d Camera::GetPrincipalPoint() const { return principal_point_; }
 
 void Camera::SetFocal(double focal) {
-  if (type_ == Type::SPHERICAL) {
+  if (type_ == ProjectionType::SPHERICAL) {
     return;
   }
 
@@ -85,6 +100,10 @@ double Camera::GetFocal() const { return affine_(0, 0); }
 void Camera::SetAspectRatio(double ar) { affine_(1, 1) = ar * GetFocal(); }
 
 double Camera::GetAspectRatio() const { return affine_(1, 1) / affine_(0, 0); }
+
+ProjectionType Camera::GetProjectionType() const { return type_; }
+
+std::string Camera::GetProjectionString() const { return "perspective"; }
 
 Eigen::Vector2d Camera::Project(const Eigen::Vector3d& point) const {
   return Dispatch<Eigen::Vector2d, ProjectT, Eigen::Vector3d>(
@@ -112,11 +131,11 @@ Eigen::MatrixX3d Camera::BearingsMany(const Eigen::MatrixX2d& points) const {
   return projected;
 }
 
-Camera::Camera() : type_(Type::PERSPECTIVE) {
+Camera::Camera() : type_(ProjectionType::PERSPECTIVE) {
   projection_.resize(1);
   projection_[0] = 1.0;
   affine_.setIdentity();
   principal_point_.setZero();
-  distortion_.resize(5);
+  distortion_.resize(Disto::COUNT);
   distortion_.setZero();
 }

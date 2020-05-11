@@ -4,8 +4,8 @@
 
 #include <Eigen/Eigen>
 
-enum Type { PERSPECTIVE, BROWN, FISHEYE, SPHERICAL, DUAL };
-enum Disto { K1 = 0, K2 = 1, K3 = 2, P1 = 3, P2 = 4 };
+enum ProjectionType { PERSPECTIVE, BROWN, FISHEYE, SPHERICAL, DUAL };
+enum Disto { K1 = 0, K2 = 1, K3 = 2, P1 = 3, P2 = 4, COUNT = 5 };
 
 struct FisheyeProjection {
   static Eigen::Vector2d Forward(const Eigen::Vector3d& point,
@@ -304,7 +304,7 @@ using SphericalCameraT = ProjectGeneric<SphericalProjection, Identity, Identity>
  * your own new camera model, just add a new enum value, the corresponding
  * case below and the implementation (see above). */
 template <class OUT, class FUNC, class... IN>
-OUT Dispatch(const Type& type, IN... args) {
+OUT Dispatch(const ProjectionType& type, IN... args) {
   switch (type) {
     case PERSPECTIVE:
       return FUNC::template Apply<PerspectiveCameraT>(args...);

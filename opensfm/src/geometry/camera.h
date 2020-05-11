@@ -6,7 +6,7 @@
 class Camera {
  public:
   static Camera CreatePerspective(double focal, double k1, double k2);
-  static Camera CreateBrownCamera(double focal_x, double focal_y,
+  static Camera CreateBrownCamera(double focal, double aspect_ratio,
                                   const Eigen::Vector2d& principal_point,
                                   const Eigen::VectorXd& distortion);
   static Camera CreateFisheyeCamera(double focal, double k1, double k2);
@@ -19,8 +19,11 @@ class Camera {
   Eigen::Vector3d Bearing(const Eigen::Vector2d& point) const;
   Eigen::MatrixX3d BearingsMany(const Eigen::MatrixX2d& points) const;
 
+  void SetProjectionParams(const Eigen::VectorXd& projection);
+  const Eigen::VectorXd& GetProjectionParams() const;
+
   void SetDistortion(const Eigen::VectorXd& distortion);
-  Eigen::VectorXd GetDistortion() const;
+  const Eigen::VectorXd& GetDistortion() const;
 
   void SetPrincipalPoint(const Eigen::Vector2d& principal_point);
   Eigen::Vector2d GetPrincipalPoint() const;
@@ -31,6 +34,9 @@ class Camera {
   void SetAspectRatio(double focal);
   double GetAspectRatio() const;
 
+  ProjectionType GetProjectionType()const;
+  std::string GetProjectionString()const;
+  
   int width{1};
   int height{1};
   std::string id;
@@ -38,7 +44,7 @@ class Camera {
  private:
   Camera();
 
-  Type type_;
+  ProjectionType type_;
   Eigen::VectorXd projection_;      // dual transition (1 = perspective, 0 = fisheye)
   Eigen::Matrix2d affine_;          // fx, skew, skew, fy = (ar*fx)
   Eigen::Vector2d principal_point_; // cx, cy
