@@ -9,6 +9,7 @@ import functools
 import math
 
 from opensfm import types
+from opensfm import pygeometry
 
 import opensfm.synthetic_data.synthetic_metrics as sm
 import opensfm.synthetic_data.synthetic_generator as sg
@@ -17,13 +18,11 @@ import opensfm.synthetic_data.synthetic_generator as sg
 def get_camera(type, id, focal, k1, k2):
     camera = None
     if type == 'perspective':
-        camera = types.PerspectiveCamera()
+        camera = pygeometry.Camera.create_perspective(focal, k1, k2)
     if type == 'fisheye':
-        camera = types.FisheyeCamera()
+        camera = pygeometry.Camera.create_fisheye(focal, k1, k2)
     camera.id = id
-    camera.focal = focal
-    camera.k1 = k1
-    camera.k2 = k2
+
     camera.height = 1600
     camera.width = 2000
     return camera
@@ -86,11 +85,8 @@ class SyntheticCubeScene(SyntheticScene):
     def __init__(self, num_cameras, num_points, noise):
         self.cameras = {}
         for i in range(num_cameras):
-            camera = types.PerspectiveCamera()
+            camera = camera = pygeometry.Camera.create_perspective(0.9, -0.1, 0.01)
             camera.id = 'camera' + str(i)
-            camera.focal = 0.9
-            camera.k1 = -0.1
-            camera.k2 = 0.01
             camera.height = 600
             camera.width = 800
             self.cameras[camera.id] = camera

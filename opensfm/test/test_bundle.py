@@ -3,6 +3,7 @@ import networkx as nx
 import numpy as np
 
 from opensfm import pybundle
+from opensfm import pygeometry
 from opensfm import geometry
 from opensfm import config
 from opensfm import types
@@ -307,10 +308,9 @@ def test_linear_motion_prior_rotation():
 
 def test_bundle_alignment_prior():
     """Test that cameras are aligned to have the Y axis pointing down."""
-    camera = types.PerspectiveCamera()
+    camera = pygeometry.Camera.create_perspective(1.0, 0.0, 0.0)
     camera.id = 'camera1'
-    camera.focal = 1.0
-    camera.k1 = camera.k2 = 0.0
+
     shot = types.Shot()
     shot.id = '1'
     shot.camera = camera

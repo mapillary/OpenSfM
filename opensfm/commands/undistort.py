@@ -11,6 +11,7 @@ from opensfm import log
 from opensfm import transformations as tf
 from opensfm import types
 from opensfm import pysfm
+from opensfm import pygeometry
 from opensfm.context import parallel_map
 
 
@@ -239,45 +240,38 @@ def get_shot_with_different_camera(shot, camera):
 
 def perspective_camera_from_perspective(distorted):
     """Create an undistorted camera from a distorted."""
-    camera = types.PerspectiveCamera()
+    camera = pygeometry.Camera.create_perspective(distorted.focal, 0.0, 0.0)
     camera.id = distorted.id
     camera.width = distorted.width
     camera.height = distorted.height
-    camera.focal = distorted.focal
-    camera.k1 = camera.k2 = 0.0
     return camera
 
 
 def perspective_camera_from_brown(brown):
     """Create a perspective camera froma a Brown camera."""
-    camera = types.PerspectiveCamera()
+    camera = pygeometry.Camera.create_perspective(
+        (brown.focal_x + brown.focal_y) / 2.0, 0.0, 0.0)
     camera.id = brown.id
     camera.width = brown.width
     camera.height = brown.height
-    camera.focal = (brown.focal_x + brown.focal_y) / 2.0
-    camera.k1 = camera.k2 = 0.0
     return camera
 
 
 def perspective_camera_from_fisheye(fisheye):
     """Create a perspective camera from a fisheye."""
-    camera = types.PerspectiveCamera()
+    camera = pygeometry.Camera.create_perspective(fisheye.focal, 0.0, 0.0)
     camera.id = fisheye.id
     camera.width = fisheye.width
     camera.height = fisheye.height
-    camera.focal = fisheye.focal
-    camera.k1 = camera.k2 = 0.0
     return camera
 
 
 def perspective_views_of_a_panorama(spherical_shot, width):
     """Create 6 perspective views of a panorama."""
-    camera = types.PerspectiveCamera()
+    camera = pygeometry.Camera.create_perspective(0.5, 0.0, 0.0)
     camera.id = 'perspective_panorama_camera'
     camera.width = width
     camera.height = width
-    camera.focal = 0.5
-    camera.k1 = camera.k2 = 0.0
 
     names = ['front', 'left', 'back', 'right', 'top', 'bottom']
     rotations = [

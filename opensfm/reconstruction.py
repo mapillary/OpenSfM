@@ -40,8 +40,8 @@ def _add_camera_to_bundle(ba, camera, camera_prior, constant):
     elif camera.projection_type == 'brown':
         c = pybundle.BABrownPerspectiveCamera()
         c.id = camera.id
-        c.focal_x = camera.focal_x
-        c.focal_y = camera.focal_y
+        c.focal_x = camera.focal
+        c.focal_y = camera.focal*camera.aspect_ratio
         c.c_x = camera.c_x
         c.c_y = camera.c_y
         c.k1 = camera.k1
@@ -79,30 +79,22 @@ def _get_camera_from_bundle(ba, camera):
     if camera.projection_type == 'perspective':
         c = ba.get_perspective_camera(camera.id)
         camera.focal = c.focal
-        camera.k1 = c.k1
-        camera.k2 = c.k2
+        camera.distortion = [c.k1, c.k2]
     elif camera.projection_type == 'brown':
         c = ba.get_brown_perspective_camera(camera.id)
-        camera.focal_x = c.focal_x
-        camera.focal_y = c.focal_y
-        camera.c_x = c.c_x
-        camera.c_y = c.c_y
-        camera.k1 = c.k1
-        camera.k2 = c.k2
-        camera.p1 = c.p1
-        camera.p2 = c.p2
-        camera.k3 = c.k3
+        camera.principal_point = [c.c_x, c.c_y]
+        camera.focal = c.focal_x
+        camera.aspect_ratio = c.focal_y/c.focal_x
+        camera.distortion = [c.k1, c.k2, c.k3, c.p1, c.p2]
     elif camera.projection_type == 'fisheye':
         c = ba.get_fisheye_camera(camera.id)
         camera.focal = c.focal
-        camera.k1 = c.k1
-        camera.k2 = c.k2
+        camera.distortion = [c.k1, c.k2]
     elif camera.projection_type == 'dual':
         c = ba.get_dual_camera(camera.id)
         camera.focal = c.focal
-        camera.k1 = c.k1
-        camera.k2 = c.k2
-        camera.transition = c.transition
+        camera.distortion = [c.k1, c.k2]
+        camera.projection_params = [c.transition]
 
 
 def triangulate_gcp(point, shots):

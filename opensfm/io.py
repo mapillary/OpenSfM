@@ -35,7 +35,7 @@ def camera_from_json(key, obj):
     if pt == 'perspective':
         camera = pygeometry.Camera.create_perspective(
             obj['focal'], obj.get('k1', 0.0), obj.get('k2', 0.0))
-    if pt == 'brown':
+    elif pt == 'brown':
         camera = pygeometry.Camera.create_brown(
             obj['focal_x'], obj['focal_y'] / obj['focal_x'],
             [obj.get('c_x', 0.0), obj.get('c_y', 0.0)],
@@ -820,13 +820,10 @@ def import_bundler(data_path, bundle_file, list_file, track_file,
         if focal > 0:
             im = imread(os.path.join(data_path, image_list[i]))
             height, width = im.shape[0:2]
-            camera = types.PerspectiveCamera()
+            camera = pygeometry.Camera.create_perspective(focal / max(width, height), k1, k2)
             camera.id = 'camera_' + str(i)
             camera.width = width
             camera.height = height
-            camera.focal = focal / max(width, height)
-            camera.k1 = k1
-            camera.k2 = k2
             reconstruction.add_camera(camera)
 
             # Shots
