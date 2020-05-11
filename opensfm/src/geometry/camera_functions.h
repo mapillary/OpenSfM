@@ -295,7 +295,7 @@ struct ProjectGeneric {
 };
 
 using PerspectiveCameraT = ProjectGeneric<PerspectiveProjection, Disto24, Affine>;
-using BrownCameraT = ProjectGeneric<PerspectiveProjection, Disto24, Affine>;
+using BrownCameraT = ProjectGeneric<PerspectiveProjection, DistoBrown, Affine>;
 using FisheyeCameraT = ProjectGeneric<FisheyeProjection, Disto24, Affine>;
 using DualCameraT = ProjectGeneric<DualProjection, Disto24, Affine>;
 using SphericalCameraT = ProjectGeneric<SphericalProjection, Identity, Identity>;
