@@ -54,7 +54,7 @@ std::array<double, 4> SolveQuartic(const std::array<double, 5>& coefficients){
 
 std::array<double, 4> RefineQuarticRoots(const std::array<double, 5>& coefficients,
                                          const std::array<double, 4>& roots){
-  const int iterations = 5;
+  constexpr int iterations = 5;
   struct QuarticEval{
     const std::array<double, 5> coefficients_;
     double operator()(double x)const{
