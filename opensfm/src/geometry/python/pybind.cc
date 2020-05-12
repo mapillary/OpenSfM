@@ -82,6 +82,9 @@ PYBIND11_MODULE(pygeometry, m) {
       camera.id = id;
       return camera;
     }))
+  // Python2 + copy/deepcopy + pybind11 workaround
+  .def("__copy__", [](const Camera& c, const py::dict& d){ return c;}, py::return_value_policy::copy)
+  .def("__deepcopy__", [](const Camera& c, const py::dict& d){ return c;}, py::return_value_policy::copy)
   ;
 
   m.def("triangulate_bearings_dlt", geometry::TriangulateBearingsDLT);
