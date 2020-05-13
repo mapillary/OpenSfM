@@ -45,6 +45,9 @@ class CameraFixture : public ::testing::Test {
   double new_focal{0.8};
   double new_ar{0.9};
 
+  int pixel_width{4000};
+  int pixel_height{3000};
+
   Eigen::VectorXd distortion;
   Eigen::VectorXd new_distortion;
   Eigen::Vector2d principal_point;
@@ -207,4 +210,46 @@ TEST_F(CameraFixture, SphericalCanSetFocalAndAspectRatio){
 
   ASSERT_EQ(1.0, camera.GetFocal());
   ASSERT_EQ(1.0, camera.GetAspectRatio());
+}
+
+TEST_F(CameraFixture, PerspectiveReturnCorrectK){
+  Camera camera = Camera::CreatePerspectiveCamera(focal, distortion[0], distortion[1]);
+
+  Eigen::Matrix3d expected = Eigen::Matrix3d::Identity();
+  expected(0, 0) = expected(1, 1) = focal;
+  ASSERT_EQ(expected, camera.GetProjectionMatrix());
+}
+
+TEST_F(CameraFixture, PerspectiveReturnCorrectKScaled){
+  Camera camera = Camera::CreatePerspectiveCamera(focal, distortion[0], distortion[1]);
+
+  Eigen::Matrix3d expected = Eigen::Matrix3d::Identity();
+  expected(0, 0) = expected(1, 1) = focal*std::max(pixel_width, pixel_height);
+  expected(0, 2) = pixel_width*0.5;
+  expected(1, 2) = pixel_height*0.5;
+  ASSERT_EQ(expected, camera.GetProjectionMatrixScaled(pixel_width, pixel_height));
+}
+
+TEST_F(CameraFixture, BrownReturnCorrectK){
+  Camera camera = Camera::CreateBrownCamera(focal, new_ar, principal_point, distortion);
+
+  Eigen::Matrix3d expected = Eigen::Matrix3d::Identity();
+  expected(0, 0) = focal;
+  expected(1, 1) = new_ar*focal;
+  expected(0, 2) = principal_point(0);
+  expected(1, 2) = principal_point(1);
+  ASSERT_EQ(expected, camera.GetProjectionMatrix());
+}
+
+TEST_F(CameraFixture, BrownReturnCorrectKScaled){
+  Camera camera = Camera::CreateBrownCamera(focal, new_ar, principal_point, distortion);
+
+  Eigen::Matrix3d expected = Eigen::Matrix3d::Identity();
+  const auto normalizer = std::max(pixel_width, pixel_height);
+  expected(0, 0) = focal*normalizer;
+  expected(1, 1) = (focal*new_ar)*normalizer;
+  expected(0, 2) = principal_point(0)*normalizer + pixel_width*0.5;
+  expected(1, 2) = principal_point(1)*normalizer + pixel_height*0.5;
+
+  ASSERT_EQ(expected, camera.GetProjectionMatrixScaled(pixel_width, pixel_height));
 }

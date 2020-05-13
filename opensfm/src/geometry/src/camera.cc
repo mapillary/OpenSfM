@@ -1,5 +1,6 @@
 #include <geometry/camera.h>
 #include <geometry/camera_functions.h>
+#include <iostream>
 
 Camera Camera::CreatePerspectiveCamera(double focal, double k1, double k2) {
   Camera camera;
@@ -17,7 +18,7 @@ Camera Camera::CreateBrownCamera(double focal, double aspect_ratio,
     throw std::runtime_error("Invalid distortion coefficients size");
   }
   camera.type_ = ProjectionType::BROWN;
-  camera.affine_ << focal, 0, 0, focal*aspect_ratio;
+  camera.affine_ << focal, 0, 0, focal * aspect_ratio;
   camera.distortion_ = distortion;
   camera.principal_point_ = principal_point;
   return camera;
@@ -97,12 +98,12 @@ void Camera::SetFocal(double focal) {
 }
 double Camera::GetFocal() const { return affine_(0, 0); }
 
-void Camera::SetAspectRatio(double ar) { 
+void Camera::SetAspectRatio(double ar) {
   if (type_ != ProjectionType::BROWN) {
     return;
   }
-  affine_(1, 1) = ar * GetFocal(); 
-  }
+  affine_(1, 1) = ar * GetFocal();
+}
 
 double Camera::GetAspectRatio() const { return affine_(1, 1) / affine_(0, 0); }
 
@@ -124,48 +125,53 @@ std::string Camera::GetProjectionString() const {
 }
 
 Eigen::Matrix3d Camera::GetProjectionMatrix() const {
-  return GetProjectionMatrixScaled(1.0, 1.0);
+  Eigen::Matrix3d unnormalized = Eigen::Matrix3d::Zero();
+  unnormalized << affine_;
+  unnormalized.col(2) << principal_point_, 1.0;
+  return unnormalized;
 }
 
-  Eigen::Matrix3d Camera::GetProjectionMatrixScaled(int width, int height) const {
-    const auto unnormalizer = std::max(width, height);
-    Eigen::Matrix3d unnormalized = Eigen::Matrix3d::Zero();
-    unnormalized << unnormalizer * affine_;
-    unnormalized.col(2) << unnormalizer * principal_point_, 1.0;
-    return unnormalized;
-  }
+Eigen::Matrix3d Camera::GetProjectionMatrixScaled(int width, int height) const {
+  const auto unnormalizer = std::max(width, height);
 
-  Eigen::Vector2d Camera::Project(const Eigen::Vector3d& point) const {
-    return Dispatch<Eigen::Vector2d, ProjectT, Eigen::Vector3d>(
-        type_, point, projection_, affine_, principal_point_, distortion_);
-  }
+  Eigen::Matrix3d unnormalized = Eigen::Matrix3d::Zero();
+  unnormalized << unnormalizer * affine_;
+  unnormalized.col(2) << principal_point_[0] * unnormalizer + 0.5 * width,
+      principal_point_[1] * unnormalizer + 0.5 * height, 1.0;
+  return unnormalized;
+}
 
-  Eigen::MatrixX2d Camera::ProjectMany(const Eigen::MatrixX3d& points) const {
-    Eigen::MatrixX2d projected(points.rows(), 2);
-    for (int i = 0; i < points.rows(); ++i) {
-      projected.row(i) = Project(points.row(i));
-    }
-    return projected;
-  }
+Eigen::Vector2d Camera::Project(const Eigen::Vector3d& point) const {
+  return Dispatch<Eigen::Vector2d, ProjectT, Eigen::Vector3d>(
+      type_, point, projection_, affine_, principal_point_, distortion_);
+}
 
-  Eigen::Vector3d Camera::Bearing(const Eigen::Vector2d& point) const {
-    return Dispatch<Eigen::Vector3d, BearingT, Eigen::Vector2d>(
-        type_, point, projection_, affine_, principal_point_, distortion_);
+Eigen::MatrixX2d Camera::ProjectMany(const Eigen::MatrixX3d& points) const {
+  Eigen::MatrixX2d projected(points.rows(), 2);
+  for (int i = 0; i < points.rows(); ++i) {
+    projected.row(i) = Project(points.row(i));
   }
+  return projected;
+}
 
-  Eigen::MatrixX3d Camera::BearingsMany(const Eigen::MatrixX2d& points) const {
-    Eigen::MatrixX3d projected(points.rows(), 3);
-    for (int i = 0; i < points.rows(); ++i) {
-      projected.row(i) = Bearing(points.row(i));
-    }
-    return projected;
-  }
+Eigen::Vector3d Camera::Bearing(const Eigen::Vector2d& point) const {
+  return Dispatch<Eigen::Vector3d, BearingT, Eigen::Vector2d>(
+      type_, point, projection_, affine_, principal_point_, distortion_);
+}
 
-  Camera::Camera() : type_(ProjectionType::PERSPECTIVE) {
-    projection_.resize(1);
-    projection_[0] = 1.0;
-    affine_.setIdentity();
-    principal_point_.setZero();
-    distortion_.resize(Disto::COUNT);
-    distortion_.setZero();
+Eigen::MatrixX3d Camera::BearingsMany(const Eigen::MatrixX2d& points) const {
+  Eigen::MatrixX3d projected(points.rows(), 3);
+  for (int i = 0; i < points.rows(); ++i) {
+    projected.row(i) = Bearing(points.row(i));
   }
+  return projected;
+}
+
+Camera::Camera() : type_(ProjectionType::PERSPECTIVE) {
+  projection_.resize(1);
+  projection_[0] = 1.0;
+  affine_.setIdentity();
+  principal_point_.setZero();
+  distortion_.resize(Disto::COUNT);
+  distortion_.setZero();
+}
