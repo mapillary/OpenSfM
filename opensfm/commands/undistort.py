@@ -157,14 +157,8 @@ def undistort_image(shot, undistorted_shots, original, interpolation,
 
     projection_type = shot.camera.projection_type
     if projection_type in ['perspective', 'brown', 'fisheye']:
-        undistort_function = {
-            'perspective': undistort_perspective_image,
-            'brown': undistort_brown_image,
-            'fisheye': undistort_fisheye_image,
-        }
         new_camera = undistorted_shots[0].camera
-        uf = undistort_function[projection_type]
-        undistorted = uf(original, shot.camera, new_camera, interpolation)
+        undistorted = undistort_image(original, shot.camera, new_camera, interpolation)
         return {shot.id: scale_image(undistorted, max_size)}
     elif projection_type in ['equirectangular', 'spherical']:
         subshot_width = undistorted_shots[0].camera.width
@@ -195,36 +189,10 @@ def scale_image(image, max_size):
     return cv2.resize(image, (width, height), interpolation=cv2.INTER_NEAREST)
 
 
-def undistort_perspective_image(image, camera, new_camera, interpolation):
-    """Remove radial distortion from a perspective image."""
+def undistort_image(image, camera, new_camera, interpolation):
+    """Remove radial distortion from an image."""
     height, width = image.shape[:2]
-    K = camera.get_K_in_pixel_coordinates(width, height)
-    distortion = np.array([camera.k1, camera.k2, 0, 0])
-    new_K = new_camera.get_K_in_pixel_coordinates(width, height)
-    map1, map2 = cv2.initUndistortRectifyMap(
-        K, distortion, None, new_K, (width, height), cv2.CV_32FC1)
-    return cv2.remap(image, map1, map2, interpolation)
-
-
-def undistort_brown_image(image, camera, new_camera, interpolation):
-    """Remove radial distortion from a brown image."""
-    height, width = image.shape[:2]
-    K = camera.get_K_in_pixel_coordinates(width, height)
-    distortion = np.array([camera.k1, camera.k2, camera.p1, camera.p2, camera.k3])
-    new_K = new_camera.get_K_in_pixel_coordinates(width, height)
-    map1, map2 = cv2.initUndistortRectifyMap(
-        K, distortion, None, new_K, (width, height), cv2.CV_32FC1)
-    return cv2.remap(image, map1, map2, interpolation)
-
-
-def undistort_fisheye_image(image, camera, new_camera, interpolation):
-    """Remove radial distortion from a fisheye image."""
-    height, width = image.shape[:2]
-    K = camera.get_K_in_pixel_coordinates(width, height)
-    distortion = np.array([camera.k1, camera.k2, 0, 0])
-    new_K = new_camera.get_K_in_pixel_coordinates(width, height)
-    map1, map2 = cv2.fisheye.initUndistortRectifyMap(
-        K, distortion, None, new_K, (width, height), cv2.CV_32FC1)
+    map1, map2 = pygeometry.compute_camera_mapping(camera, new_camera, width, height)
     return cv2.remap(image, map1, map2, interpolation)
 
 
@@ -250,7 +218,7 @@ def perspective_camera_from_perspective(distorted):
 def perspective_camera_from_brown(brown):
     """Create a perspective camera froma a Brown camera."""
     camera = pygeometry.Camera.create_perspective(
-        (brown.focal_x + brown.focal_y) / 2.0, 0.0, 0.0)
+        brown.focal * (1 + brown.aspect_ratio) / 2.0, 0.0, 0.0)
     camera.id = brown.id
     camera.width = brown.width
     camera.height = brown.height
