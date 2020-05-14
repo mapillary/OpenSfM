@@ -17,7 +17,7 @@ import os
 import sqlite3
 from pathlib import Path
 
-import networkx
+from opensfm import pysfm
 import numpy as np
 
 from opensfm import dataset
@@ -207,7 +207,7 @@ def import_shots_reconstruction(path_shots, camera_map, keypoints, points3D):
 
     With this, we build the OpenSfM shots and a partial tracks graph.
     """
-    tracks_graph = networkx.Graph()
+    tracks_manager = pysfm.TracksManager()
     shots = {}
     with io.open_rt(path_shots) as fin:
         while True:
@@ -242,18 +242,12 @@ def import_shots_reconstruction(path_shots, camera_map, keypoints, points3D):
                 if point3D_id == -1:
                     continue
                 kp = keypoints[colmap_shot_id][point2d_idx]
-                s = kp[2]
-                tracks_graph.add_node(str(image), bipartite=0)
-                tracks_graph.add_node(str(point3D_id), bipartite=1)
-                tracks_graph.add_edge(str(image),
-                                      str(point3D_id),
-                                      feature=(float(xy[0]), float(xy[1])),
-                                      feature_id=point2d_idx,
-                                      feature_scale=float(s),
-                                      feature_color=points3D[point3D_id].color)
+                r,g,b = points3D[point3D_id].color
+                obs = pysfm.Observation(xy[0], xy[1], kp[2], int(r), int(g), int(b), point2d_idx)
+                tracks_manager.add_observation(image, str(point3D_id), obs)
                 point2d_idx += 1
 
-    return shots, tracks_graph
+    return shots, tracks_manager
 
 
 def import_points_reconstruction(path_points):
@@ -310,8 +304,8 @@ if __name__ == "__main__":
     if rec_cameras.exists() and rec_images.exists() and rec_points.exists():
         cameras = import_cameras_reconstruction(rec_cameras)
         points3D = import_points_reconstruction(rec_points)
-        shots, tracks_graph = import_shots_reconstruction(rec_images, cameras, keypoints, points3D)
-        data.save_tracks_graph(tracks_graph)
+        shots, tracks_manager = import_shots_reconstruction(rec_images, cameras, keypoints, points3D)
+        data.save_tracks_manager(tracks_manager)
 
         reconstruction = types.Reconstruction()
         reconstruction.cameras = cameras
