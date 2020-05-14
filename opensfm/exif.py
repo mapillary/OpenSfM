@@ -530,7 +530,7 @@ def camera_from_exif_metadata(metadata, data,
     function that turns metadata into usable calibration parameters.
     '''
 
-    calib = calibration_from_metadata(metadata, data)
+    calib = calibration_func(metadata, data)
     calib_pt = metadata.get('projection_type', default_projection).lower()
 
     camera = None
