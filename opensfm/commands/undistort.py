@@ -158,7 +158,9 @@ def undistort_image(shot, undistorted_shots, original, interpolation,
     projection_type = shot.camera.projection_type
     if projection_type in ['perspective', 'brown', 'fisheye']:
         new_camera = undistorted_shots[0].camera
-        undistorted = undistort_image(original, shot.camera, new_camera, interpolation)
+        height, width = image.shape[:2]
+        map1, map2 = pygeometry.compute_camera_mapping(camera, new_camera, width, height)
+        undistorted = cv2.remap(image, map1, map2, interpolation)
         return {shot.id: scale_image(undistorted, max_size)}
     elif projection_type in ['equirectangular', 'spherical']:
         subshot_width = undistorted_shots[0].camera.width
@@ -187,13 +189,6 @@ def scale_image(image, max_size):
     width = int(round(width * factor))
     height = int(round(height * factor))
     return cv2.resize(image, (width, height), interpolation=cv2.INTER_NEAREST)
-
-
-def undistort_image(image, camera, new_camera, interpolation):
-    """Remove radial distortion from an image."""
-    height, width = image.shape[:2]
-    map1, map2 = pygeometry.compute_camera_mapping(camera, new_camera, width, height)
-    return cv2.remap(image, map1, map2, interpolation)
 
 
 def get_shot_with_different_camera(shot, camera):
@@ -287,11 +282,7 @@ def render_perspective_view_of_a_panorama(image, panoshot, perspectiveshot,
     rotated_bearings = np.dot(dst_bearings, rotation.T)
 
     # Project to panorama pixels
-    src_x, src_y = panoshot.camera.project((rotated_bearings[:, 0],
-                                            rotated_bearings[:, 1],
-                                            rotated_bearings[:, 2]))
-    src_pixels = np.column_stack([src_x.ravel(), src_y.ravel()])
-
+    src_pixels = panoshot.camera.project_many(rotated_bearings)
     src_pixels_denormalized = features.denormalized_image_coordinates(
         src_pixels, image.shape[1], image.shape[0])
 
