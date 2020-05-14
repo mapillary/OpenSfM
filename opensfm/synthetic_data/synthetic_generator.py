@@ -1,13 +1,13 @@
 import numpy as np
+from collections import defaultdict
 import math
 import copy
 import cv2
 
-import networkx as nx
-
 from opensfm import geo
 from opensfm import types
 from opensfm import reconstruction as rc
+from opensfm import pysfm
 
 
 def derivative(func, x):
@@ -198,11 +198,7 @@ def create_reconstruction(points, colors,
 
 
 def generate_track_data(reconstruction, maximum_depth, noise):
-    tracks_graph = nx.Graph()
-    for shot_index in reconstruction.shots:
-        tracks_graph.add_node(shot_index, bipartite=0)
-    for track_index in reconstruction.points:
-        tracks_graph.add_node(str(track_index), bipartite=1)
+    tracks_manager = pysfm.TracksManager()
 
     feature_data_type = np.float32
     desc_size = 128
@@ -249,19 +245,16 @@ def generate_track_data(reconstruction, maximum_depth, noise):
             projections_inside.append(np.hstack((projection, [default_scale])))
             descriptors_inside.append(track_descriptors[original_key])
             colors_inside.append(original_point.color)
-            tracks_graph.add_edge(str(shot_index),
-                                  str(original_key),
-                                  feature=projection,
-                                  feature_id=len(projections_inside)-1,
-                                  feature_scale=default_scale,
-                                  feature_color=(float(original_point.color[0]),
-                                                 float(original_point.color[1]),
-                                                 float(original_point.color[2])))
+            obs = pysfm.Observation(
+                projection[0], projection[1], default_scale,
+                original_point.color[0], original_point.color[1],
+                original_point.color[2], len(projections_inside) - 1)
+            tracks_manager.add_observation(str(shot_index), str(original_key), obs)
         features[shot_index] = np.array(projections_inside)
         colors[shot_index] = np.array(colors_inside)
         descriptors[shot_index] = np.array(descriptors_inside)
 
-    return features, descriptors, colors, tracks_graph
+    return features, descriptors, colors, tracks_manager
 
 
 def _check_depth(point, shot, maximum_depth):

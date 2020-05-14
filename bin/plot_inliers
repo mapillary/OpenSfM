@@ -311,36 +311,35 @@ def load_points(im, data):
     return np.array(p[:, :2], np.float64)
 
 
-def load_common_tracks(im1, im2, graph):
+def load_common_tracks(im1, im2, tracks_manager):
     """ Loads the common track ids and corresponding feature ids for two images in a graph.
 
     :param im1: The name of the first image.
     :param im2: The name of the second image.
-    :param graph: The track graph.
+    :param tracks_manager: The track manager.
     :return: An array with rows containing a track id and the corresponding feature id for the first and second image.
     """
-    t1, t2 = graph[im1], graph[im2]
-    tc, p1, p2 = tracking.common_tracks(graph, im1, im2)
+    t1 = tracks_manager.get_shot_observations(im1).items()
+    t2 = tracks_manager.get_shot_observations(im2).items()
+    tc, p1, p2 = tracking.common_tracks(tracks_manager, im1, im2)
 
     common_tracks = []
     for t in tc:
-        common_tracks.append(np.array([int(t), t1[t]['feature_id'], t2[t]['feature_id']]))
+        common_tracks.append(np.array([int(t), t1[t].id, t2[t].id]))
 
     return np.array(common_tracks) if len(common_tracks) else np.empty((0, 3), int)
 
 
-def load_tracks(im, graph):
-    """ Loads the track ids and corresponding feature ids for an image in a graph.
+def load_tracks(im, tracks_manager):
+    """ Loads the track ids and corresponding feature ids for an image in a tracks_manager.
 
     :param im: The name of the image.
-    :param graph: The track graph.
+    :param tracks_manager: The track manager.
     :return: An array with rows containing a track id and the corresponding feature id.
     """
-    tn = graph[im]
-
     tracks = []
-    for t in tn:
-        tracks.append(np.array([int(t), tn[t]['feature_id']]))
+    for t, obs in tracks_manager.get_shot_observations(im).items():
+        tracks.append(np.array([int(t), obs.id]))
 
     return np.array(tracks) if len(tracks) else np.empty((0, 2), int)
 
@@ -650,8 +649,8 @@ def create_tracks_figure(im1, im2, data, save_figs=False, single_column=False):
     robust_matches = data.find_matches(im1, im2)
     robust_matches = np.array(robust_matches) if len(robust_matches) else np.empty((0, 2), int)
 
-    graph = data.load_tracks_graph()
-    tracks = load_common_tracks(im1, im2, graph)
+    tracks_manager = data.load_tracks_manager()
+    tracks = load_common_tracks(im1, im2, tracks_manager)
     track_points1 = p1[tracks[:, 1]]
     track_points2 = p2[tracks[:, 2]]
 
@@ -770,8 +769,8 @@ def create_reconstruction_matches_figure(im1, im2, data, save_figs=False):
     p1 = load_points(im1, data)
     p2 = load_points(im2, data)
 
-    graph = data.load_tracks_graph()
-    tracks = load_common_tracks(im1, im2, graph)
+    tracks_manager = data.load_tracks_manager()
+    tracks = load_common_tracks(im1, im2, tracks_manager)
     if tracks.shape[0] < 1:
         print('No tracks to plot.')
         return
@@ -810,8 +809,8 @@ def create_complete_reconstruction_figure(im, data, save_figs=False, single_colu
     im_array = data.load_image(im)
     p = load_points(im, data)
 
-    graph = data.load_tracks_graph()
-    tracks = load_tracks(im, graph)
+    tracks_manager = data.load_tracks_manager()
+    tracks = load_tracks(im, tracks_manager)
     if tracks.shape[0] < 1:
         print('No tracks for exist for {0}.'.format(im))
         return
@@ -872,8 +871,8 @@ def create_reprojection_error_figure(im, data, save_figs=False, single_column=Fa
     im_array = data.load_image(im)
     p = load_points(im, data)
 
-    graph = data.load_tracks_graph()
-    tracks = load_tracks(im, graph)
+    tracks_manager = data.load_tracks_manager()
+    tracks = load_tracks(im, tracks_manager)
     if tracks.shape[0] < 1:
         print('No tracks for exist for {0}.'.format(im))
         return

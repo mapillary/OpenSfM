@@ -4,16 +4,14 @@ import networkx as nx
 from opensfm import io
 from opensfm import pygeometry
 from opensfm import reconstruction
+from opensfm import pysfm
 
 
 def test_track_triangulator_equirectangular():
     """Test triangulating tracks of spherical images."""
-    graph = nx.Graph()
-    graph.add_node('im1', bipartite=0)
-    graph.add_node('im2', bipartite=0)
-    graph.add_node('1', bipartite=1)
-    graph.add_edge('im1', '1', feature=(0, 0), feature_scale=1.0, feature_id=0, feature_color=0)
-    graph.add_edge('im2', '1', feature=(-0.1, 0), feature_scale=1.0, feature_id=1, feature_color=0)
+    tracks_manager = pysfm.TracksManager()
+    tracks_manager.add_observation('im1', '1', pysfm.Observation(0, 0, 1.0, 0, 0, 0, 0))
+    tracks_manager.add_observation('im2', '1', pysfm.Observation(-0.1, 0, 1.0, 0, 0, 0, 1))
 
     rec = io.reconstruction_from_json({
         "cameras": {
@@ -42,7 +40,7 @@ def test_track_triangulator_equirectangular():
     })
 
     graph_inliers = nx.Graph()
-    triangulator = reconstruction.TrackTriangulator(graph, graph_inliers, rec)
+    triangulator = reconstruction.TrackTriangulator(tracks_manager, graph_inliers, rec)
     triangulator.triangulate('1', 0.01, 2.0)
     assert '1' in rec.points
     p = rec.points['1'].coordinates

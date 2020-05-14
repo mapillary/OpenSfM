@@ -721,8 +721,8 @@ def image_size(filename):
 
 # Bundler
 
-def export_bundler(image_list, reconstructions, track_graph, bundle_file_path,
-                   list_file_path):
+def export_bundler(image_list, reconstructions, track_manager,
+                   bundle_file_path, list_file_path):
     """
     Generate a reconstruction file that is consistent with Bundler's format
     """
@@ -771,20 +771,20 @@ def export_bundler(image_list, reconstructions, track_graph, bundle_file_path,
         for point_id, point in iteritems(points):
             coord = point.coordinates
             color = list(map(int, point.color))
-            view_list = track_graph[point_id]
+            view_list = track_manager.get_track_observations(point.id)
             lines.append(' '.join(map(str, coord)))
             lines.append(' '.join(map(str, color)))
             view_line = []
-            for shot_key, view in iteritems(view_list):
+            for shot_key, obs in view_list.items():
                 if shot_key in shots.keys():
-                    v = view['feature']
+                    v = obs.point
                     shot_index = shots_order[shot_key]
                     camera = shots[shot_key].camera
                     scale = max(camera.width, camera.height)
                     x = v[0] * scale
                     y = -v[1] * scale
                     view_line.append(' '.join(
-                        map(str, [shot_index, view['feature_id'], x, y])))
+                        map(str, [shot_index, obs.id, x, y])))
 
             lines.append(str(len(view_line)) + ' ' + ' '.join(view_line))
 

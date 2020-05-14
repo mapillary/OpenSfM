@@ -5,32 +5,37 @@ from opensfm import reconstruction
 from opensfm import multiview
 from opensfm import config
 from opensfm import types
+from opensfm import pysfm
 from opensfm.synthetic_data import synthetic_scene
 
 
 def test_corresponding_tracks():
-    t1 = {1: {"feature_id": 1}}
-    t2 = {1: {"feature_id": 2}}
+    t1 = {1: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 1)}
+    t2 = {1: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 2)}
 
     correspondences = reconstruction.corresponding_tracks(t1, t2)
     assert len(correspondences) == 0
 
-    t1 = {1: {"feature_id": 3}}
-    t2 = {2: {"feature_id": 3}}
+    t1 = {1: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 3)}
+    t2 = {2: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 3)}
 
     correspondences = reconstruction.corresponding_tracks(t1, t2)
     assert len(correspondences) == 1
     assert correspondences[0] == (1, 2)
 
-    t1 = {1: {"feature_id": 3}, 2: {"feature_id": 4}}
-    t2 = {1: {"feature_id": 4}, 2: {"feature_id": 5}}
+    t1 = {1: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 3),
+          2: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 4)}
+    t2 = {1: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 4),
+          2: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 5)}
 
     correspondences = reconstruction.corresponding_tracks(t1, t2)
     assert len(correspondences) == 1
     assert correspondences[0] == (2, 1)
 
-    t1 = {1: {"feature_id": 5}, 2: {"feature_id": 6}}
-    t2 = {3: {"feature_id": 5}, 4: {"feature_id": 6}}
+    t1 = {1: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 5),
+          2: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 6)}
+    t2 = {3: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 5),
+          4: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 6)}
 
     correspondences = reconstruction.corresponding_tracks(t1, t2)
     correspondences.sort(key=lambda c: c[0] + c[1])
@@ -39,9 +44,9 @@ def test_corresponding_tracks():
     assert correspondences[1] == (2, 4)
 
 
-def copy_cluster_points(cluster, tracks, points, noise):
+def copy_cluster_points(cluster, tracks_manager, points, noise):
     for shot in cluster.shots:
-        for point in tracks[shot]:
+        for point in tracks_manager.get_shot_observations(shot):
             base = points[point]
             copy = types.Point()
             copy.id = base.id
@@ -50,7 +55,7 @@ def copy_cluster_points(cluster, tracks, points, noise):
     return cluster
 
 
-def split_synthetic_reconstruction(scene, tracks,
+def split_synthetic_reconstruction(scene, tracks_manager,
                                    cluster_size,
                                    point_noise):
     cluster1 = types.Reconstruction()
@@ -65,10 +70,10 @@ def split_synthetic_reconstruction(scene, tracks,
             cluster1.add_shot(shot)
 
     cluster1 = copy_cluster_points(
-        cluster1, tracks, scene.points,
+        cluster1, tracks_manager, scene.points,
         point_noise)
     cluster2 = copy_cluster_points(
-        cluster2, tracks, scene.points,
+        cluster2, tracks_manager, scene.points,
         point_noise)
     return cluster1, cluster2
 
@@ -86,14 +91,14 @@ def test_absolute_pose_generalized_shot(scene_synthetic_cube):
     reconstruction with 0.01 meter point noise and zero outliers."""
     noise = 0.01
     parameters = config.default_config()
-    scene, tracks = scene_synthetic_cube
+    scene, tracks_manager = scene_synthetic_cube
     cluster1, cluster2 = split_synthetic_reconstruction(
-        scene, tracks, 3, noise)
+        scene, tracks_manager, 3, noise)
     cluster2, translation, scale = move_and_scale_cluster(cluster2)
 
     status, T, inliers = reconstruction.\
         resect_reconstruction(cluster1, cluster2,
-                              tracks, tracks,
+                              tracks_manager, tracks_manager,
                               2*noise,
                               parameters['resection_min_inliers'])
 

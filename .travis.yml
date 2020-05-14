@@ -7,9 +7,11 @@ services:
 
 before_install:
   - docker build -t mapillary/opensfm .
+  - docker build -t mapillary/opensfm:ubuntu1910 -f Dockerfile.ubuntu1910 .
   - docker build -t mapillary/opensfm:python2 -f Dockerfile.python2 .
 script:
   - docker run mapillary/opensfm /bin/sh -c "py.test"
+  - docker run mapillary/opensfm:ubuntu1910 /bin/sh -c "py.test"
   - docker run mapillary/opensfm:python2 /bin/sh -c "py.test"
 
 notifications:

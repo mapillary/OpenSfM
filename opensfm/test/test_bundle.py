@@ -6,6 +6,7 @@ from opensfm import pybundle
 from opensfm import geometry
 from opensfm import config
 from opensfm import types
+from opensfm import tracking
 from opensfm import reconstruction
 
 
@@ -63,7 +64,7 @@ def _projection_errors_std(points):
 def test_bundle_projection_fixed_internals(scene_synthetic):
     reference = scene_synthetic[0].get_reconstruction()
     camera_priors = {c.id: c for c in scene_synthetic[0].cameras}
-    graph = scene_synthetic[5]
+    graph = tracking.as_graph(scene_synthetic[5])
     adjusted = copy.deepcopy(reference)
 
     custom_config = config.default_config()
