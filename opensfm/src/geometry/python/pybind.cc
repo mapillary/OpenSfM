@@ -86,6 +86,7 @@ PYBIND11_MODULE(pygeometry, m) {
   .def("__copy__", [](const Camera& c, const py::dict& d){ return c;}, py::return_value_policy::copy)
   .def("__deepcopy__", [](const Camera& c, const py::dict& d){ return c;}, py::return_value_policy::copy)
   ;
+  m.def("compute_camera_mapping", ComputeCameraMapping);
 
   m.def("triangulate_bearings_dlt", geometry::TriangulateBearingsDLT);
   m.def("triangulate_bearings_midpoint", geometry::TriangulateBearingsMidpoint);

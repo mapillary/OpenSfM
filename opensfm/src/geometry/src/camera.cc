@@ -142,8 +142,8 @@ Eigen::Matrix3d Camera::GetProjectionMatrixScaled(int width, int height) const {
 }
 
 Eigen::Vector2d Camera::Project(const Eigen::Vector3d& point) const {
-  return Dispatch<Eigen::Vector2d, ProjectT, Eigen::Vector3d>(
-      type_, point, projection_, affine_, principal_point_, distortion_);
+  return Dispatch<Eigen::Vector2d, ProjectT>(type_, point, projection_, affine_,
+                                             principal_point_, distortion_);
 }
 
 Eigen::MatrixX2d Camera::ProjectMany(const Eigen::MatrixX3d& points) const {
@@ -155,8 +155,8 @@ Eigen::MatrixX2d Camera::ProjectMany(const Eigen::MatrixX3d& points) const {
 }
 
 Eigen::Vector3d Camera::Bearing(const Eigen::Vector2d& point) const {
-  return Dispatch<Eigen::Vector3d, BearingT, Eigen::Vector2d>(
-      type_, point, projection_, affine_, principal_point_, distortion_);
+  return Dispatch<Eigen::Vector3d, BearingT>(type_, point, projection_, affine_,
+                                             principal_point_, distortion_);
 }
 
 Eigen::MatrixX3d Camera::BearingsMany(const Eigen::MatrixX2d& points) const {
@@ -174,4 +174,25 @@ Camera::Camera() : type_(ProjectionType::PERSPECTIVE) {
   principal_point_.setZero();
   distortion_.resize(Disto::COUNT);
   distortion_.setZero();
+}
+
+std::pair<Eigen::MatrixXf, Eigen::MatrixXf> ComputeCameraMapping(const Camera& from, const Camera& to, int width, int height){
+  const auto normalizer_factor = std::max(width, height);
+  const auto inv_normalizer_factor = 1.0/normalizer_factor;
+
+  Eigen::MatrixXf u_from(height, width);
+  Eigen::MatrixXf v_from(height, width);
+
+  const auto half_width = width*0.5;
+  const auto half_height = height*0.5;
+
+  for(int v = 0; v < height; ++v){
+    for(int u = 0; u < width; ++u){
+      const auto uv = Eigen::Vector2d(u-half_width, v-half_height);
+      const auto point_uv_from = normalizer_factor*from.Project(to.Bearing(inv_normalizer_factor*uv));
+      u_from(v, u) = point_uv_from(0) + half_width;
+      v_from(v, u) = point_uv_from(1) + half_height;
+    }
+  }
+  return std::make_pair(u_from, v_from);
 }

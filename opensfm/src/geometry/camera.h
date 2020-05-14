@@ -53,3 +53,5 @@ class Camera {
   Eigen::Vector2d principal_point_; // cx, cy
   Eigen::VectorXd distortion_;      // r^2, r^4, r^6, p1, p2
 };
+
+std::pair<Eigen::MatrixXf, Eigen::MatrixXf> ComputeCameraMapping(const Camera& from, const Camera& to, int width, int height);
