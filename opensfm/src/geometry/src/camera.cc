@@ -189,7 +189,7 @@ std::pair<Eigen::MatrixXf, Eigen::MatrixXf> ComputeCameraMapping(const Camera& f
   for(int v = 0; v < height; ++v){
     for(int u = 0; u < width; ++u){
       const auto uv = Eigen::Vector2d(u-half_width, v-half_height);
-      const auto point_uv_from = normalizer_factor*from.Project(to.Bearing(inv_normalizer_factor*uv));
+      const Eigen::Vector2d point_uv_from = normalizer_factor*from.Project(to.Bearing(inv_normalizer_factor*uv));
       u_from(v, u) = point_uv_from(0) + half_width;
       v_from(v, u) = point_uv_from(1) + half_height;
     }
