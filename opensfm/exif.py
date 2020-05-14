@@ -531,7 +531,7 @@ def camera_from_exif_metadata(metadata, data,
     '''
 
     calib = calibration_func(metadata, data)
-    calib_pt = metadata.get('projection_type', default_projection).lower()
+    calib_pt = calib.get('projection_type', default_projection).lower()
 
     camera = None
     if calib_pt == 'perspective':
