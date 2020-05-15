@@ -517,7 +517,7 @@ def calibration_from_metadata(metadata, data):
                  or default_calibration(data))
     else:
         calib = (hard_coded_calibration(metadata)
-                 or focal_xy_calibration(metadata)
+                 or focal_ratio_calibration(metadata)
                  or default_calibration(data))
     calib['projection_type'] = pt
     return calib
