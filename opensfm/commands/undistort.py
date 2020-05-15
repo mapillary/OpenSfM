@@ -158,9 +158,9 @@ def undistort_image(shot, undistorted_shots, original, interpolation,
     projection_type = shot.camera.projection_type
     if projection_type in ['perspective', 'brown', 'fisheye']:
         new_camera = undistorted_shots[0].camera
-        height, width = image.shape[:2]
-        map1, map2 = pygeometry.compute_camera_mapping(camera, new_camera, width, height)
-        undistorted = cv2.remap(image, map1, map2, interpolation)
+        height, width = original.shape[:2]
+        map1, map2 = pygeometry.compute_camera_mapping(shot.camera, new_camera, width, height)
+        undistorted = cv2.remap(original, map1, map2, interpolation)
         return {shot.id: scale_image(undistorted, max_size)}
     elif projection_type in ['equirectangular', 'spherical']:
         subshot_width = undistorted_shots[0].camera.width
