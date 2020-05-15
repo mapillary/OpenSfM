@@ -20,6 +20,10 @@ from pathlib import Path
 from struct import unpack
 from PIL import Image
 
+import matplotlib.pyplot as pl
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+from matplotlib import cm
+
 from opensfm import pysfm
 import numpy as np
 
@@ -27,10 +31,51 @@ from opensfm import dataset
 from opensfm import features
 from opensfm import io
 from opensfm import types
-from opensfm.commands.undistort import perspective_camera_from_perspective
+import opensfm.commands.undistort as osfm_u
 
 EXPORT_DIR_NAME = 'opensfm_export'
 
+def save_undistorted_reconstruction(reconstruction, tracks_manager, udata):
+    urec = types.Reconstruction()
+    utracks_manager = pysfm.TracksManager()
+    undistorted_shots = {}
+    for shot in reconstruction.shots.values():
+        if shot.camera.projection_type == 'perspective':
+            ucamera = osfm_u.perspective_camera_from_perspective(shot.camera)
+        elif shot.camera.projection_type == 'brown':
+            ucamera = osfm_u.perspective_camera_from_brown(shot.camera)
+        elif shot.camera.projection_type == 'fisheye':
+            ucamera = osfm_u.perspective_camera_from_fisheye(shot.camera)
+        else:
+            raise ValueError
+
+        ushot = osfm_u.get_shot_with_different_camera(shot, ucamera)
+        urec.add_camera(ushot.camera)
+        urec.add_shot(ushot)
+        if tracks_manager:
+            osfm_u.add_subshot_tracks(tracks_manager, utracks_manager, shot, ushot)
+        undistorted_shots[shot.id] = ushot
+
+    udata.save_undistorted_reconstruction([urec])
+    if tracks_manager:
+        udata.save_undistorted_tracks_manager(utracks_manager)
+
+    return urec
+
+def small_colorbar(ax, mappable=None):
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.05)
+    pl.colorbar(cax=cax, mappable=mappable)
+
+def depth_colormap(d, cmap=None, invalid_val=0, invalid_color=(.5, .5, .5)):
+    """
+    Colormaps and sets 0 (invalid) values to zero_color
+    """
+    sm = cm.ScalarMappable(cmap=cm.get_cmap(cmap))
+    sm.set_array(d)
+    rgb = sm.to_rgba(d)[:, :, :3]
+    rgb[d == invalid_val] = invalid_color
+    return rgb, sm
 
 def import_cameras_images(db, data):
     cursor = db.cursor()
@@ -203,7 +248,7 @@ def cam_from_colmap_params(camera_model_id, width, height, params, prior_focal=1
     return cam
 
 
-def import_shots_reconstruction(path_shots, camera_map, keypoints, points3D):
+def import_shots_reconstruction(path_images, camera_map, keypoints, points3D):
     """
     Reads the points.txt from colmap, which contains two lines of data per image:
     #   IMAGE_ID, QW, QX, QY, QZ, TX, TY, TZ, CAMERA_ID, NAME
@@ -214,7 +259,7 @@ def import_shots_reconstruction(path_shots, camera_map, keypoints, points3D):
     tracks_manager = pysfm.TracksManager()
     shots = {}
     image_ix_to_shot_id = {}
-    with io.open_rt(path_shots) as fin:
+    with io.open_rt(path_images) as fin:
         image_ix = -1
         while True:
             row = fin.readline().strip()
@@ -240,9 +285,7 @@ def import_shots_reconstruction(path_shots, camera_map, keypoints, points3D):
 
             row = fin.readline().strip().split(' ')
             xys = np.column_stack([tuple(map(float, row[0::3])), tuple(map(float, row[1::3]))])
-            xys = features.normalized_image_coordinates(xys,
-                                                        shot.camera.width,
-                                                        shot.camera.height)
+            xys = features.normalized_image_coordinates(xys, shot.camera.width, shot.camera.height)
             point3D_ids = np.array(tuple(map(int, row[2::3])))
 
             point2d_idx = 0
@@ -317,10 +360,16 @@ def read_colmap_ply(path_ply):
 
         assert header == header_should_be
         data = np.fromfile(f, dtype=properties, count=n_vertices)
-    return data
+
+    points, normals, colors = [],[],[]
+    for row in data:
+        points.append(np.array([row[0], row[1], row[2]]))
+        normals.append(np.array([row[3], row[4], row[5]]))
+        colors.append(np.array([row[6], row[7], row[8]]))
+    return np.array(points), np.array(normals), np.array(colors)
 
 
-def read_vis(path_vis):
+def read_vis(path_vis, image_ix_to_shot_id):
     """
     <num_points : uint64_t>
     <num_visible_images_for_point1 : uint32_t>
@@ -332,49 +381,71 @@ def read_vis(path_vis):
     correspond to the image_id of a Reconstruction, but the index of the image in
     the mvs::Model, which is the location of the image in the images.bin/.txt.
     """
-    points_seen = defaultdict(set)
+    points_seen = defaultdict(list)
     with open(path_vis, 'rb') as f:
         n_points = unpack('<Q', f.read(8))[0]
         for point_ix in range(n_points):
             n_images = unpack('<I', f.read(4))[0]
-            image_ixs = unpack('<I', f.read(n_images))
-            for image_ix in image_ixs:
-                points_seen[image_ix].add(point_ix)
+            for i in range(n_images):
+                image_ix = unpack('<I', f.read(4))[0]
+                shot_id = image_ix_to_shot_id[image_ix]
+                points_seen[shot_id].append(point_ix)
+    for ixs in points_seen.values():
+        assert len(ixs) == len(set(ixs))
     return points_seen
 
 
-def import_depthmaps_from_fused_pointcloud(data, reconstruction, image_ix_to_shot_id, path_ply):
+def import_depthmaps_from_fused_pointcloud(udata, urec, image_ix_to_shot_id, path_ply):
     """
     Imports the depthmaps by reprojecting the fused pointcloud
     """
     # Read ply
-    points = read_colmap_ply(path_ply)
-    points = points[:, :3]
+    points, normals, colors = read_colmap_ply(path_ply)
 
-    # Read visibility file, save as opensfm depthmaps
-    # points_seen[image_ix] == points_ixs
-    points_seen = read_vis(path_vis = path_ply + '.vis')
+    # Read visibility file
+    points_seen = read_vis(path_ply.with_suffix('.ply.vis'), image_ix_to_shot_id)
 
-    udata = dataset.UndistortedDataSet(data, 'undistorted')
+    # Debug: ensure every point is seen once at least
+    seen_counter = defaultdict(int)
+    for shot_id, points_seen_ixs in points_seen.items():
+        for ix_seen in points_seen_ixs:
+            seen_counter[ix_seen] += 1
+    seen_counter = dict(seen_counter)
+    assert min(list(seen_counter.values())) > 0
 
-    for image_ix in points_seen:
-        points_seen_from_this_shot = points[points_seen[image_ix]]
-        """
-        Note that an image_idx in the case of the mvs::StereoFuser does not
-        correspond to the image_id of a Reconstruction, but the index of the image in
-        the mvs::Model, which is the location of the image in the images.bin/.txt.
-        """
-        shot_id = image_ix_to_shot_id[image_ix]
-        shot = reconstruction.shots[shot_id]
-        project_pointcloud_save_depth(udata, points_seen_from_this_shot, shot_id, shot)
+    # Project to shots and save as depthmaps
+    for shot_id, points_seen_ixs in points_seen.items():
+        project_pointcloud_save_depth(udata,
+                                      urec,
+                                      points[points_seen_ixs],
+                                      shot_id)
 
 
-def project_pointcloud_save_depth(udata, points, shot_id, shot):
+def project_pointcloud_save_depth(udata, urec, points, shot_id, max_sz = 1024):
     # Project points to the undistorted image
-    assert shot.camera.projection_type == 'perspective'
-    shot.camera = perspective_camera_from_perspective(shot.camera)
+    shot = urec.shots[shot_id]
     w, h = shot.camera.width, shot.camera.height
+    large = max(w, h)
+    if large > max_sz:
+        ar = w/h
+        if w > h:
+            w = max_sz
+            h = int(w / ar)
+        else:
+            h = max_sz
+            w = int(ar * h)
+
     points_2d = shot.project_many(points)
+
+    pixel_coords = features.denormalized_image_coordinates(points_2d, w, h).astype(int)
+    # Filter out points that fall out of the image
+    # <<< aren't we supposed to have points that are visible from this image only??!?!
+    mask = np.ones(pixel_coords.shape[0], dtype=bool)
+    mask[pixel_coords[:, 0] < 0] = 0
+    mask[pixel_coords[:, 1] < 0] = 0
+    mask[pixel_coords[:, 0] >= w] = 0
+    mask[pixel_coords[:, 1] >= h] = 0
+    pixel_coords = pixel_coords[mask]
 
     # Compute the depth
     distances = np.linalg.norm(points - shot.pose.get_origin(), axis=1)
@@ -383,18 +454,22 @@ def project_pointcloud_save_depth(udata, points, shot_id, shot):
 
     # Create depth image
     depth_image = np.zeros([h, w])
-    pixel_coords = features.denormalized_image_coordinates(points_2d, w, h).astype(int)
-    depth_image[pixel_coords[:1], pixel_coords[:, 0]] = depths
+    depth_image[pixel_coords[:,1], pixel_coords[:, 0]] = depths[mask]
 
     # Save numpy
-    filepath = udata._depthmap_file(shot_id, 'fused.npz')
+    filepath = Path(udata._depthmap_file(shot_id, 'fused.npz'))
+    filepath.parent.mkdir(exist_ok=True, parents=True)
     np.savez_compressed(filepath, points=depth_image)
 
-    # Save png
-    quantized_depth = (depth_image * 256).astype(np.uint32)
-    depth_image = Image.fromarray(quantized_depth, "I")
-    filepath = udata._depthmap_file(shot_id, 'fused.png')
-    depth_image.save(filepath)
+    # Save jpg for visualization
+    import matplotlib.pyplot as plt
+    plt.figure()
+    rgb, sm = depth_colormap(depth_image)
+    plt.imshow(rgb)
+    small_colorbar(plt.gca(), mappable=sm)
+    filepath = Path(udata._depthmap_file(shot_id, 'fused_viz.png'))
+    filepath.parent.mkdir(exist_ok=True, parents=True)
+    plt.savefig(filepath, dpi=300)
 
 
 def quaternion_to_angle_axis(quaternion):
@@ -417,6 +492,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     p_db = Path(args.database)
+    assert p_db.is_file()
+
     export_folder = p_db.parent / EXPORT_DIR_NAME
     export_folder.mkdir(exist_ok=True)
     images_path = export_folder / 'images'
@@ -440,16 +517,24 @@ if __name__ == "__main__":
                                                                                  keypoints,
                                                                                  points3D)
 
-        data.save_tracks_manager(tracks_manager)
 
         reconstruction = types.Reconstruction()
         reconstruction.cameras = cameras
         reconstruction.shots = shots
         reconstruction.points = points3D
         data.save_reconstruction([reconstruction])
+        data.save_tracks_manager(tracks_manager)
 
+        # Save undistorted reconstruction as well
+        udata = dataset.UndistortedDataSet(data, 'undistorted')
+        urec = save_undistorted_reconstruction(reconstruction, tracks_manager, udata)
+
+        # Project colmap's fused pointcloud to save depths in opensfm format
         path_ply = p_db.parent / 'dense/fused.ply'
-        import_depthmaps_from_fused_pointcloud(data, reconstruction, image_ix_to_shot_id, path_ply)
+        if path_ply.is_file():
+            import_depthmaps_from_fused_pointcloud(udata, urec, image_ix_to_shot_id, path_ply)
+        else:
+            print("Not importing dense reconstruction: Didn't find {}".format(path_ply))
 
     else:
         print("Didn't find reconstruction files in text format")
