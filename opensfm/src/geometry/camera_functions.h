@@ -88,7 +88,7 @@ struct SphericalProjection {
                                   const Eigen::VectorXd& p) {
     const auto lon = point[0] * 2 * M_PI;
     const auto lat = -point[1] * 2 * M_PI;
-    return Eigen::Vector3d(std::cos(lat) * std::sin(lon), std::sin(lat),
+    return Eigen::Vector3d(std::cos(lat) * std::sin(lon), -std::sin(lat),
                            std::cos(lat) * std::cos(lon));
   }
 };

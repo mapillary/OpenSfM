@@ -82,7 +82,7 @@ TEST_F(CameraFixture, SphericalIsConsistent){
   Camera camera = Camera::CreateSphericalCamera();
   const auto projected = camera.Project(camera.Bearing(Eigen::Vector2d(0.2, 0.2)));
   ASSERT_EQ(projected(0), 0.2);
-  ASSERT_EQ(projected(1), -0.2);
+  ASSERT_EQ(projected(1), 0.2);
 }
 
 TEST_F(CameraFixture, PerspectiveCanSetDistorsion){
