@@ -121,6 +121,8 @@ std::string Camera::GetProjectionString() const {
       return "dual";
     case ProjectionType::SPHERICAL:
       return "spherical";
+    default:
+      throw std::runtime_error("Invalid ProjectionType");
   }
 }
 

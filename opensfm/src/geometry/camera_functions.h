@@ -332,5 +332,7 @@ OUT Dispatch(const ProjectionType& type, IN&&... args) {
       return FUNC::template Apply<DualCameraT>(std::forward<IN>(args)...);
     case SPHERICAL:
       return FUNC::template Apply<SphericalCameraT>(std::forward<IN>(args)...);
+    default:
+      throw std::runtime_error("Invalid ProjectionType");
   }
 };
