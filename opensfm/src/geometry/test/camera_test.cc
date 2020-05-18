@@ -85,7 +85,7 @@ TEST_F(CameraFixture, SphericalIsConsistent){
   ASSERT_EQ(projected(1), 0.2);
 }
 
-TEST_F(CameraFixture, PerspectiveCanSetDistorsion){
+TEST_F(CameraFixture, PerspectiveCanSetDistortion){
   Camera camera = Camera::CreatePerspectiveCamera(focal, distortion[0], distortion[1]);
   camera.SetDistortion(new_distortion);
 
@@ -94,7 +94,7 @@ TEST_F(CameraFixture, PerspectiveCanSetDistorsion){
   ASSERT_EQ(expected_distortion, camera.GetDistortion());
 }
 
-TEST_F(CameraFixture, FisheyeCanSetDistorsion){
+TEST_F(CameraFixture, FisheyeCanSetDistortion){
   Camera camera = Camera::CreateFisheyeCamera(focal, distortion[0], distortion[1]);
   camera.SetDistortion(new_distortion);
 
@@ -103,7 +103,7 @@ TEST_F(CameraFixture, FisheyeCanSetDistorsion){
   ASSERT_EQ(expected_distortion, camera.GetDistortion());
 }
 
-TEST_F(CameraFixture, DualCanSetDistorsion){
+TEST_F(CameraFixture, DualCanSetDistortion){
   Camera camera = Camera::CreateDualCamera(0.5, focal, distortion[0], distortion[1]);
   camera.SetDistortion(new_distortion);
 
@@ -112,14 +112,14 @@ TEST_F(CameraFixture, DualCanSetDistorsion){
   ASSERT_EQ(expected_distortion, camera.GetDistortion());
 }
 
-TEST_F(CameraFixture, BrownCanSetDistorsion){
+TEST_F(CameraFixture, BrownCanSetDistortion){
   Camera camera = Camera::CreateBrownCamera(focal, 1.0, principal_point, distortion);
   camera.SetDistortion(new_distortion);
 
   ASSERT_EQ(new_distortion, camera.GetDistortion());
 }
 
-TEST_F(CameraFixture, SphericalCanSetDistorsion){
+TEST_F(CameraFixture, SphericalCanSetDistortion){
   Camera camera = Camera::CreateSphericalCamera();
   camera.SetDistortion(new_distortion);
 

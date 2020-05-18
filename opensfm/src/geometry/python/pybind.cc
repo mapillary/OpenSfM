@@ -56,7 +56,7 @@ PYBIND11_MODULE(pygeometry, m) {
     },
     [](py::tuple t) {
       const auto projection_params = t[0].cast<Eigen::VectorXd>();
-      const auto distorsion = t[1].cast<Eigen::VectorXd>();
+      const auto distortion = t[1].cast<Eigen::VectorXd>();
       const auto focal = t[2].cast<double>();
       const auto principal_point = t[3].cast<Eigen::Vector2d>();
       const auto aspect_ratio = t[4].cast<double>();
@@ -67,13 +67,13 @@ PYBIND11_MODULE(pygeometry, m) {
       Camera camera = Camera::CreatePerspectiveCamera(0, 0, 0);
       switch(type){
         case ProjectionType::PERSPECTIVE:
-          camera = Camera::CreatePerspectiveCamera(focal, distorsion[0], distorsion[1]); break;
+          camera = Camera::CreatePerspectiveCamera(focal, distortion[0], distortion[1]); break;
         case ProjectionType::BROWN:
-          camera = Camera::CreateBrownCamera (focal, aspect_ratio, principal_point, distorsion ); break;
+          camera = Camera::CreateBrownCamera (focal, aspect_ratio, principal_point, distortion ); break;
         case ProjectionType::FISHEYE:
-          camera = Camera::CreateFisheyeCamera(focal, distorsion[0], distorsion[1]); break;
+          camera = Camera::CreateFisheyeCamera(focal, distortion[0], distortion[1]); break;
         case ProjectionType::DUAL:
-          camera = Camera::CreateDualCamera(projection_params[0], focal, distorsion[0], distorsion[1]); break;
+          camera = Camera::CreateDualCamera(projection_params[0], focal, distortion[0], distortion[1]); break;
         case ProjectionType::SPHERICAL:
           camera = Camera::CreateSphericalCamera(); break;
       }
