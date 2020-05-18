@@ -6,7 +6,7 @@
 #include <sfm/tracks_manager.h>
 #include <sfm/sfm_helpers.h>
 #include <sfm/observation.h>
-#include <foundation/types.h>
+#include <foundation/python_types.h>
 
 
 PYBIND11_MODULE(pysfm, m) {

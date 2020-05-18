@@ -3,7 +3,7 @@
 #include <pybind11/eigen.h>
 #include <glog/logging.h>
 
-#include <foundation/types.h>
+#include <foundation/python_types.h>
 #include <robust/robust_estimator.h>
 #include <robust/scorer.h>
 #include <robust/instanciations.h>

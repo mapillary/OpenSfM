@@ -1,7 +1,7 @@
 #ifndef __HAHOG_H__
 #define __HAHOG_H__
 
-#include <foundation/types.h>
+#include <foundation/python_types.h>
 
 namespace features {
 

@@ -3,7 +3,7 @@
 #include <pybind11/eigen.h>
 #include <glog/logging.h>
 
-#include <foundation/types.h>
+#include <foundation/python_types.h>
 #include <dense/depthmap_bind.h>
 #include <dense/openmvs_exporter.h>
 

@@ -1,4 +1,4 @@
-#include <foundation/types.h>
+#include <foundation/python_types.h>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <third_party/akaze/lib/AKAZE.h>
 #include <features/akaze_bind.h>
