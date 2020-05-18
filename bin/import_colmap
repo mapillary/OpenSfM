@@ -24,6 +24,7 @@ from opensfm import dataset
 from opensfm import features
 from opensfm import io
 from opensfm import types
+from opensfm import pygeometry
 
 EXPORT_DIR_NAME = 'opensfm_export'
 
@@ -183,17 +184,13 @@ def cam_from_colmap_params(camera_model_id, width, height, params, prior_focal=1
     mapping = {3: 'perspective', 6: 'brown', 9: 'fisheye'}
     projection_type = mapping[camera_model_id]
     normalizer = max(width, height)
+    focal = params[0] / normalizer if prior_focal else 0.85
     if projection_type == 'perspective':
-        cam = types.PerspectiveCamera()
-        cam.focal = params[0] / normalizer if prior_focal else 0.85
-        cam.k1 = params[3]
-        cam.k2 = params[4]
+        cam = pygeometry.Camera.create_perspective(focal, params[3], params[4])
     elif projection_type == 'brown':
         raise ValueError("FullOpenCVCameraModel not supported in OpenSfM")
     else:  # projection_type == 'fisheye'
-        cam = types.FisheyeCamera()
-        cam.focal = params[0] / normalizer if prior_focal else 0.85
-        cam.k1 = params[3]
+        cam = pygeometry.Camera.create_fisheye(focal, params[3], 0)
     cam.width = width
     cam.height = height
     return cam

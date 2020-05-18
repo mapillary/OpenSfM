@@ -39,20 +39,6 @@ bool SolveAX0(const MAT& A, VEC* solution){
     return false;
 }
 
-template< class F >
-double NewtonRaphson(const F& func, double initial_value, int iterations){
-  const auto eps = std::numeric_limits<double>::epsilon();
-  auto current_value = initial_value;
-  for (int i = 0; i < iterations; ++i){
-    const auto at_current_value = func(current_value);
-
-    // TODO : add a bit more templates for user-supplied derivatives
-    const auto derivative = (func(current_value+eps)-func(current_value))/eps;
-    current_value -= at_current_value/derivative;
-  }
-  return current_value;
-}
-
 
 Eigen::Matrix3d SkewMatrix(const Eigen::Vector3d& v);
 Eigen::Matrix3d ClosestRotationMatrix(const Eigen::Matrix3d& matrix);

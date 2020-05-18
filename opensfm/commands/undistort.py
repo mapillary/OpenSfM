@@ -11,6 +11,7 @@ from opensfm import log
 from opensfm import transformations as tf
 from opensfm import types
 from opensfm import pysfm
+from opensfm import pygeometry
 from opensfm.context import parallel_map
 
 
@@ -156,14 +157,10 @@ def undistort_image(shot, undistorted_shots, original, interpolation,
 
     projection_type = shot.camera.projection_type
     if projection_type in ['perspective', 'brown', 'fisheye']:
-        undistort_function = {
-            'perspective': undistort_perspective_image,
-            'brown': undistort_brown_image,
-            'fisheye': undistort_fisheye_image,
-        }
         new_camera = undistorted_shots[0].camera
-        uf = undistort_function[projection_type]
-        undistorted = uf(original, shot.camera, new_camera, interpolation)
+        height, width = original.shape[:2]
+        map1, map2 = pygeometry.compute_camera_mapping(shot.camera, new_camera, width, height)
+        undistorted = cv2.remap(original, map1, map2, interpolation)
         return {shot.id: scale_image(undistorted, max_size)}
     elif projection_type in ['equirectangular', 'spherical']:
         subshot_width = undistorted_shots[0].camera.width
@@ -194,39 +191,6 @@ def scale_image(image, max_size):
     return cv2.resize(image, (width, height), interpolation=cv2.INTER_NEAREST)
 
 
-def undistort_perspective_image(image, camera, new_camera, interpolation):
-    """Remove radial distortion from a perspective image."""
-    height, width = image.shape[:2]
-    K = camera.get_K_in_pixel_coordinates(width, height)
-    distortion = np.array([camera.k1, camera.k2, 0, 0])
-    new_K = new_camera.get_K_in_pixel_coordinates(width, height)
-    map1, map2 = cv2.initUndistortRectifyMap(
-        K, distortion, None, new_K, (width, height), cv2.CV_32FC1)
-    return cv2.remap(image, map1, map2, interpolation)
-
-
-def undistort_brown_image(image, camera, new_camera, interpolation):
-    """Remove radial distortion from a brown image."""
-    height, width = image.shape[:2]
-    K = camera.get_K_in_pixel_coordinates(width, height)
-    distortion = np.array([camera.k1, camera.k2, camera.p1, camera.p2, camera.k3])
-    new_K = new_camera.get_K_in_pixel_coordinates(width, height)
-    map1, map2 = cv2.initUndistortRectifyMap(
-        K, distortion, None, new_K, (width, height), cv2.CV_32FC1)
-    return cv2.remap(image, map1, map2, interpolation)
-
-
-def undistort_fisheye_image(image, camera, new_camera, interpolation):
-    """Remove radial distortion from a fisheye image."""
-    height, width = image.shape[:2]
-    K = camera.get_K_in_pixel_coordinates(width, height)
-    distortion = np.array([camera.k1, camera.k2, 0, 0])
-    new_K = new_camera.get_K_in_pixel_coordinates(width, height)
-    map1, map2 = cv2.fisheye.initUndistortRectifyMap(
-        K, distortion, None, new_K, (width, height), cv2.CV_32FC1)
-    return cv2.remap(image, map1, map2, interpolation)
-
-
 def get_shot_with_different_camera(shot, camera):
     """Copy shot and replace camera."""
     ushot = types.Shot()
@@ -239,45 +203,38 @@ def get_shot_with_different_camera(shot, camera):
 
 def perspective_camera_from_perspective(distorted):
     """Create an undistorted camera from a distorted."""
-    camera = types.PerspectiveCamera()
+    camera = pygeometry.Camera.create_perspective(distorted.focal, 0.0, 0.0)
     camera.id = distorted.id
     camera.width = distorted.width
     camera.height = distorted.height
-    camera.focal = distorted.focal
-    camera.k1 = camera.k2 = 0.0
     return camera
 
 
 def perspective_camera_from_brown(brown):
     """Create a perspective camera froma a Brown camera."""
-    camera = types.PerspectiveCamera()
+    camera = pygeometry.Camera.create_perspective(
+        brown.focal * (1 + brown.aspect_ratio) / 2.0, 0.0, 0.0)
     camera.id = brown.id
     camera.width = brown.width
     camera.height = brown.height
-    camera.focal = (brown.focal_x + brown.focal_y) / 2.0
-    camera.k1 = camera.k2 = 0.0
     return camera
 
 
 def perspective_camera_from_fisheye(fisheye):
     """Create a perspective camera from a fisheye."""
-    camera = types.PerspectiveCamera()
+    camera = pygeometry.Camera.create_perspective(fisheye.focal, 0.0, 0.0)
     camera.id = fisheye.id
     camera.width = fisheye.width
     camera.height = fisheye.height
-    camera.focal = fisheye.focal
-    camera.k1 = camera.k2 = 0.0
     return camera
 
 
 def perspective_views_of_a_panorama(spherical_shot, width):
     """Create 6 perspective views of a panorama."""
-    camera = types.PerspectiveCamera()
+    camera = pygeometry.Camera.create_perspective(0.5, 0.0, 0.0)
     camera.id = 'perspective_panorama_camera'
     camera.width = width
     camera.height = width
-    camera.focal = 0.5
-    camera.k1 = camera.k2 = 0.0
 
     names = ['front', 'left', 'back', 'right', 'top', 'bottom']
     rotations = [
@@ -325,11 +282,7 @@ def render_perspective_view_of_a_panorama(image, panoshot, perspectiveshot,
     rotated_bearings = np.dot(dst_bearings, rotation.T)
 
     # Project to panorama pixels
-    src_x, src_y = panoshot.camera.project((rotated_bearings[:, 0],
-                                            rotated_bearings[:, 1],
-                                            rotated_bearings[:, 2]))
-    src_pixels = np.column_stack([src_x.ravel(), src_y.ravel()])
-
+    src_pixels = panoshot.camera.project_many(rotated_bearings)
     src_pixels_denormalized = features.denormalized_image_coordinates(
         src_pixels, image.shape[1], image.shape[0])
 
