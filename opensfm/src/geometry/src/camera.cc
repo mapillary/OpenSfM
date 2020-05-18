@@ -65,13 +65,13 @@ const Eigen::VectorXd& Camera::GetProjectionParams() const {
 void Camera::SetDistortion(const Eigen::VectorXd& distortion) {
   std::vector<int> coeffs;
   if (type_ != ProjectionType::SPHERICAL) {
-    coeffs.push_back(Disto::K1);
-    coeffs.push_back(Disto::K2);
+    coeffs.push_back(static_cast<int>(Disto::K1));
+    coeffs.push_back(static_cast<int>(Disto::K2));
   }
   if (type_ == ProjectionType::BROWN) {
-    coeffs.push_back(Disto::K3);
-    coeffs.push_back(Disto::P1);
-    coeffs.push_back(Disto::P2);
+    coeffs.push_back(static_cast<int>(Disto::K3));
+    coeffs.push_back(static_cast<int>(Disto::P1));
+    coeffs.push_back(static_cast<int>(Disto::P2));
   }
   for (const auto idx : coeffs) {
     distortion_[idx] = distortion[idx];
@@ -174,7 +174,7 @@ Camera::Camera() : type_(ProjectionType::PERSPECTIVE) {
   projection_[0] = 1.0;
   affine_.setIdentity();
   principal_point_.setZero();
-  distortion_.resize(Disto::COUNT);
+  distortion_.resize(static_cast<int>(Disto::COUNT));
   distortion_.setZero();
 }
 
