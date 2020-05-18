@@ -42,14 +42,6 @@ Eigen::Matrix<MatrixType<T1>, 3, 1> RotatePoint(const T1& R, const T2& x) {
   return rotated;
 }
 
-// given a rotation R and a translation t representating
-// a camera in 'projection' (or camera) convention, such that R.x + t
-// brings a point x to the camera frame, compute the camera center c
-// in world coordinates : c = -R^t*t
-template <class T1, class T2>
-Eigen::Matrix<MatrixType<T1>, 3, 1> OriginFromRT(const T1& R, const T2& t) {
-  return t;
-}
 
 // apply a similarity transform of scale s, rotation R and translation t
 // to some point x as s * R * x + t

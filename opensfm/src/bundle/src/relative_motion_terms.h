@@ -106,7 +106,7 @@ struct BACommonPositionError {
     Eigen::Map< Eigen::Matrix<T,3,1> > residual(r);
 
     // error is : shot_origin_1 - shot_origin_2
-    Eigen::Matrix<T,3,1> error = OriginFromRT(R1, t1) - OriginFromRT(R2, t2);
+    Eigen::Matrix<T,3,1> error = t1 - t2;
 
     // restrict XYerror to some positive margin (?)
     for( int i = 0; i < 2; ++i){
