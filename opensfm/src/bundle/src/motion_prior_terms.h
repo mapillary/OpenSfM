@@ -31,10 +31,7 @@ struct BALinearMotionError {
     Eigen::Map< Eigen::Matrix<T,6,1> > residual(r);
 
     // Position residual : op is translation
-    const auto c0 = OriginFromRT(R0, t0);
-    const auto c1 = OriginFromRT(R1, t1);
-    const auto c2 = OriginFromRT(R2, t2);
-    residual.segment(0, 3) = T(position_scale_) * (T(alpha_) * (c2 - c0) + (c0 - c1));
+    residual.segment(0, 3) = T(position_scale_) * (T(alpha_) * (t2 - t0) + (t0 - t1));
 
     // Rotation residual : op is rotation
     const Eigen::Matrix<T,3,1> R2_R0t = T(alpha_) * MultRotations(R2, (-R0).eval());
