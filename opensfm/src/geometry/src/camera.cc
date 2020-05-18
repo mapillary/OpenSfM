@@ -144,8 +144,8 @@ Eigen::Matrix3d Camera::GetProjectionMatrixScaled(int width, int height) const {
 }
 
 Eigen::Vector2d Camera::Project(const Eigen::Vector3d& point) const {
-  return Dispatch<Eigen::Vector2d, ProjectT>(type_, point, projection_, affine_,
-                                             principal_point_, distortion_);
+  return Dispatch<Eigen::Vector2d, ProjectFunction>(
+      type_, point, projection_, affine_, principal_point_, distortion_);
 }
 
 Eigen::MatrixX2d Camera::ProjectMany(const Eigen::MatrixX3d& points) const {
@@ -157,8 +157,8 @@ Eigen::MatrixX2d Camera::ProjectMany(const Eigen::MatrixX3d& points) const {
 }
 
 Eigen::Vector3d Camera::Bearing(const Eigen::Vector2d& point) const {
-  return Dispatch<Eigen::Vector3d, BearingT>(type_, point, projection_, affine_,
-                                             principal_point_, distortion_);
+  return Dispatch<Eigen::Vector3d, BearingFunction>(
+      type_, point, projection_, affine_, principal_point_, distortion_);
 }
 
 Eigen::MatrixX3d Camera::BearingsMany(const Eigen::MatrixX2d& points) const {
