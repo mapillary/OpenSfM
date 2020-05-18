@@ -5,8 +5,8 @@
 namespace {
 
 struct EvalFunction {
-  double operator()(const double& x) const { return x * x * x - 2 * x * x + 1; }
-  double derivative(const double& x) const { return 3 * x * x - 4 * x; }
+  double operator()(double x) const { return x * x * x - 2 * x * x + 1; }
+  double derivative(double x) const { return 3 * x * x - 4 * x; }
 };
 };  // namespace
 
