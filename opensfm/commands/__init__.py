@@ -14,6 +14,7 @@ from . import export_visualsfm
 from . import export_geocoords
 from . import create_submodels
 from . import align_submodels
+from . import export_colmap
 
 
 opensfm_commands = [
@@ -32,4 +33,5 @@ opensfm_commands = [
     export_geocoords,
     create_submodels,
     align_submodels,
+    export_colmap,
 ]

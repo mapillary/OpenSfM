@@ -54,8 +54,8 @@ logger = logging.getLogger(__name__)
 
 
 class Command:
-    name = 'export_bundler'
-    help = "Export reconstruction to bundler format"
+    name = 'export_colmap'
+    help = "Export reconstruction to colmap format"
 
     def add_arguments(self, parser):
         parser.add_argument('dataset', help='dataset to process')
