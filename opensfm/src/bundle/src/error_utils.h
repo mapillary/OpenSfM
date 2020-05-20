@@ -48,8 +48,8 @@ Eigen::Matrix<MatrixType<T1>, 3, 1> RotatePoint(const T1& R, const T2& x) {
  * center in world coordinates being respectively R and c such : x(camera) =
  * R(t).(x(world) - c) */
 template <typename T1, typename T2, typename T3>
-void WorldToCamera(const T1& R, const T2& c, const T3& x) {
-  return RotatePoint(-R, (x - c));
+Eigen::Matrix<MatrixType<T3>, 3, 1>  WorldToCamera(const T1& R, const T2& c, const T3& x) {
+  return RotatePoint((-R).eval(), (x - c).eval());
 }
 
 /* apply a similarity transform of scale s, rotation R and translation t to some
