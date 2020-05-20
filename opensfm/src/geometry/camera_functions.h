@@ -12,14 +12,14 @@ struct FisheyeProjection {
   template <class T>
   static Vec2T<T> Forward(const Vec3T<T>& point, const VecXT<T>& p) {
     const auto r = point.template head<2>().norm();
-    const auto theta = std::atan2(r, point[2]);
+    const auto theta = atan2(r, point[2]);
     return Vec2T<T>(theta / r * point[0], theta / r * point[1]);
   }
 
   template <class T>
   static Vec3T<T> Backward(const Vec2T<T>& point, const VecXT<T>& p) {
     const auto theta = point.norm();
-    const auto s = std::tan(theta) / theta;
+    const auto s = tan(theta) / theta;
     return Vec3T<T>(point[0] * s, point[1] * s, 1.0).normalized();
   }
 };
@@ -53,7 +53,7 @@ struct DualProjection {
         NewtonRaphson<ThetaEval<T>, 1, 1, ManualDiff<ThetaEval<T>, 1, 1>>(
             eval_function, 0, iterations);
 
-    const auto s = std::tan(theta_refined) / (p[0] * std::tan(theta_refined) +
+    const auto s = tan(theta_refined) / (p[0] * tan(theta_refined) +
                                               (1.0 - p[0]) * theta_refined);
     return Vec3T<T>(point[0] * s, point[1] * s, 1.0).normalized();
   }
@@ -65,13 +65,13 @@ struct DualProjection {
     const T& r;
     const T& transition;
     T operator()(const T& x) const {
-      return transition * std::tan(x) + (1.0 - transition) * x - r;
+      return transition * tan(x) + (1.0 - transition) * x - r;
     }
     T derivative(const T& x) const {
       /* Here's some trick : use a half shorter step to prevent gross
        * overfitting on tan(x) */
       const T mult = count++ == 0 ? T(2.0) : T(1.0);
-      const auto secant = 1.0 / std::cos(x);
+      const auto secant = 1.0 / cos(x);
       return mult * (transition * secant * secant - transition + 1);
     }
   };
@@ -80,8 +80,8 @@ struct DualProjection {
 struct SphericalProjection {
   template <class T>
   static Vec2T<T> Forward(const Vec3T<T>& point, const VecXT<T>& p) {
-    const auto lon = std::atan2(point[0], point[2]);
-    const auto lat = std::atan2(-point[1], std::hypot(point[0], point[2]));
+    const auto lon = atan2(point[0], point[2]);
+    const auto lat = atan2(-point[1], hypot(point[0], point[2]));
     return Vec2T<T>(lon / (2 * M_PI), -lat / (2 * M_PI));
   }
 
@@ -89,8 +89,8 @@ struct SphericalProjection {
   static Vec3T<T> Backward(const Vec2T<T>& point, const VecXT<T>& p) {
     const auto lon = point[0] * 2 * M_PI;
     const auto lat = -point[1] * 2 * M_PI;
-    return Vec3T<T>(std::cos(lat) * std::sin(lon), -std::sin(lat),
-                    std::cos(lat) * std::cos(lon));
+    return Vec3T<T>(cos(lat) * sin(lon), -sin(lat),
+                    cos(lat) * cos(lon));
   }
 };
 
@@ -225,17 +225,22 @@ struct DistoBrown {
       const T y2 = y * y;
       const T y4 = y2 * y2;
 
-      const auto dxx = 5 * k2 * x4 + 3 * k1 * x2 + 6 * k3 * x2 * r4 +
-                       6 * k2 * x2 * y2 + k3 * r6 + k2 * y4 + k1 * y2 + 1 +
-                       2 * p1 * y + 6 * p2 * x;
-      const auto dxy = x * (2 * k1 * y + 4 * k2 * y * r2 + 6 * k3 * y * r4) +
-                       2 * p1 * x + 2 * p2 * y;
+      const auto dxx = T(5.0) * k2 * x4 + T(3.0) * k1 * x2 +
+                       T(6.0) * k3 * x2 * r4 + T(6.0) * k2 * x2 * y2 + k3 * r6 +
+                       k2 * y4 + k1 * y2 + T(1.0) + T(2.0) * p1 * y +
+                       T(6.0) * p2 * x;
+      const auto dxy =
+          x * (T(2.0) * k1 * y + T(4.0) * k2 * y * r2 + T(6.0) * k3 * y * r4) +
+          T(2.0) * p1 * x + T(2.0) * p2 * y;
 
-      const auto dyy = 5 * k2 * y4 + 3 * k1 * y2 + 6 * k3 * y2 * r4 +
-                       6 * k2 * x2 * y2 + k3 * r6 + k2 * x4 + k1 * x2 + 1 +
-                       2 * p2 * x + 6 * p1 * y;
-      const auto dyx = y * (2 * k1 * x + 4 * k2 * x * r2 + 6 * k3 * x * r4) +
-                       2 * p2 * y + 2 * p1 * x;
+      const auto dyy = T(5.0) * k2 * y4 + T(3.0) * k1 * y2 +
+                       T(6.0) * k3 * y2 * r4 + T(6.0) * k2 * x2 * y2 + k3 * r6 +
+                       k2 * x4 + k1 * x2 + T(1.0) + T(2.0) * p2 * x +
+                       T(6.0) * p1 * y;
+      const auto dyx =
+          y * (T(2.0) * k1 * x + T(4.0) * k2 * x * r2 + T(6.0) * k3 * x * r4) +
+          T(2.0) * p2 * y + T(2.0) * p1 * x;
+
       Mat2T<T> jacobian;
       jacobian << dxx, dxy, dyx, dyy;
       return jacobian;
@@ -250,8 +255,8 @@ struct DistoBrown {
   template <class T>
   static Vec2T<T> TangentialDistortion(const T& r2, const T& x, const T& y,
                                        const T& p1, const T& p2) {
-    return Vec2T<T>(T(2.0) * p1 * x * y + p2 * (r2 + 2 * x * x),
-                    T(2.0) * p2 * x * y + p1 * (r2 + 2 * y * y));
+    return Vec2T<T>(T(2.0) * p1 * x * y + p2 * (r2 + T(2.0) * x * x),
+                    T(2.0) * p2 * x * y + p1 * (r2 + T(2.0) * y * y));
   }
 };
 
