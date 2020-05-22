@@ -9,7 +9,9 @@ Dataset Structure
    project/
    ├── config.yaml
    ├── images/
+      ├── image_filename
    ├── masks/
+      ├── image_filename.png
    ├── gcp_list.txt
    ├── exif/
    ├── camera_models.json
@@ -20,7 +22,9 @@ Dataset Structure
    ├── reconstruction.meshed.json
    └── undistorted/
        ├── images/
+          ├── image_filename
        ├── masks/
+          ├── image_filename.png
        ├── tracks.csv
        ├── reconstruction.json
        └── depthmaps/

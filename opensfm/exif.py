@@ -10,6 +10,7 @@ from six import string_types
 
 from opensfm.sensors import sensor_data
 from opensfm import types
+from opensfm import pygeometry
 
 
 logger = logging.getLogger(__name__)
@@ -17,6 +18,7 @@ logger = logging.getLogger(__name__)
 inch_in_mm = 25.4
 cm_in_mm = 10
 um_in_mm = 0.001
+default_projection = 'perspective'
 
 
 def eval_frac(value):
@@ -506,75 +508,53 @@ def default_calibration(data):
     }
 
 
-def camera_from_exif_metadata(metadata, data):
-    '''
-    Create a camera object from exif metadata
-    '''
-    pt = metadata.get('projection_type', 'perspective').lower()
-    if pt == 'perspective':
-        calib = (hard_coded_calibration(metadata)
-                 or focal_ratio_calibration(metadata)
-                 or default_calibration(data))
-        camera = types.PerspectiveCamera()
-        camera.id = metadata['camera']
-        camera.width = metadata['width']
-        camera.height = metadata['height']
-        camera.projection_type = pt
-        camera.focal = calib['focal']
-        camera.k1 = calib['k1']
-        camera.k2 = calib['k2']
-        return camera
-    elif pt == 'brown':
+def calibration_from_metadata(metadata, data):
+    """Finds the best calibration in one of the calibration sources."""
+    pt = metadata.get('projection_type', default_projection).lower()
+    if pt == 'brown':
         calib = (hard_coded_calibration(metadata)
                  or focal_xy_calibration(metadata)
                  or default_calibration(data))
-        camera = types.BrownPerspectiveCamera()
-        camera.id = metadata['camera']
-        camera.width = metadata['width']
-        camera.height = metadata['height']
-        camera.projection_type = pt
-        camera.focal_x = calib['focal_x']
-        camera.focal_y = calib['focal_y']
-        camera.c_x = calib['c_x']
-        camera.c_y = calib['c_y']
-        camera.k1 = calib['k1']
-        camera.k2 = calib['k2']
-        camera.p1 = calib['p1']
-        camera.p2 = calib['p2']
-        camera.k3 = calib['k3']
-        return camera
-    elif pt == 'fisheye':
+    else:
         calib = (hard_coded_calibration(metadata)
                  or focal_ratio_calibration(metadata)
                  or default_calibration(data))
-        camera = types.FisheyeCamera()
-        camera.id = metadata['camera']
-        camera.width = metadata['width']
-        camera.height = metadata['height']
-        camera.projection_type = pt
-        camera.focal = calib['focal']
-        camera.k1 = calib['k1']
-        camera.k2 = calib['k2']
-        return camera
-    elif pt == 'dual':
-        calib = (hard_coded_calibration(metadata)
-                 or focal_ratio_calibration(metadata)
-                 or default_calibration(data))
-        camera = types.DualCamera()
-        camera.id = metadata['camera']
-        camera.width = metadata['width']
-        camera.height = metadata['height']
-        camera.projection_type = pt
-        camera.focal = calib['focal']
-        camera.k1 = calib['k1']
-        camera.k2 = calib['k2']
-        camera.transition = calib['transition']
-        return camera
-    elif pt in ['equirectangular', 'spherical']:
-        camera = types.SphericalCamera()
-        camera.id = metadata['camera']
-        camera.width = metadata['width']
-        camera.height = metadata['height']
-        return camera
+    calib['projection_type'] = pt
+    return calib
+
+
+def camera_from_exif_metadata(metadata, data,
+                              calibration_func=calibration_from_metadata):
+    '''
+    Create a camera object from exif metadata and the calibration
+    function that turns metadata into usable calibration parameters.
+    '''
+
+    calib = calibration_func(metadata, data)
+    calib_pt = calib.get('projection_type', default_projection).lower()
+
+    camera = None
+    if calib_pt == 'perspective':
+        camera = pygeometry.Camera.create_perspective(
+            calib['focal'], calib['k1'], calib['k2'])
+    elif calib_pt == 'brown':
+        camera = pygeometry.Camera.create_brown(
+            calib['focal_x'], calib['focal_y'] / calib['focal_x'],
+            [calib['c_x'], calib['c_y']],
+            [calib['k1'], calib['k3'], calib['k3'],
+             calib['p1'], calib['p2']])
+    elif calib_pt == 'fisheye':
+        camera = pygeometry.Camera.create_fisheye(
+            calib['focal'], calib['k1'], calib['k2'])
+    elif calib_pt == 'dual':
+        camera = pygeometry.Camera.create_dual(
+            calib['transition'], calib['focal'], calib['k1'], calib['k2'])
+    elif calib_pt in ['equirectangular', 'spherical']:
+        camera = pygeometry.Camera.create_spherical()
     else:
         raise ValueError("Unknown projection type: {}".format(pt))
+
+    camera.id = metadata['camera']
+    camera.width = metadata['width']
+    camera.height = metadata['height']
+    return camera

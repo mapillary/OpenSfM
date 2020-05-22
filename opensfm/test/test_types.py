@@ -2,6 +2,7 @@ import numpy as np
 
 from opensfm import context
 from opensfm import types
+from opensfm import pygeometry
 
 """
 Trying to imitate the following structure
@@ -90,42 +91,42 @@ def test_reconstruction_class_initialization():
 
 def test_perspective_camera_projection():
     """Test perspectiive projection--backprojection loop."""
-    camera = _get_perspective_camera()
-    pixel = [0.1, 0.2]
-    bearing = camera.pixel_bearing(pixel)
-    projected = camera.project(bearing)
-    assert np.allclose(pixel, projected)
+    for camera in _get_perspective_camera():
+        pixel = [0.1, 0.2]
+        bearing = camera.pixel_bearing(pixel)
+        projected = camera.project(bearing)
+        assert np.allclose(pixel, projected)
 
 
 def test_fisheye_camera_projection():
     """Test fisheye projection--backprojection loop."""
     if not context.OPENCV3:
         return
-    camera = _get_fisheye_camera()
-    pixel = [0.1, 0.2]
-    bearing = camera.pixel_bearing(pixel)
-    projected = camera.project(bearing)
-    assert np.allclose(pixel, projected)
+    for camera in _get_fisheye_camera():
+        pixel = [0.1, 0.2]
+        bearing = camera.pixel_bearing(pixel)
+        projected = camera.project(bearing)
+        assert np.allclose(pixel, projected)
 
 
 def test_dual_camera_projection():
     """Test dual projection--backprojection loop."""
     if not context.OPENCV3:
         return
-    camera = _get_dual_camera()
-    pixel = [0.1, 0.2]
-    bearing = camera.pixel_bearing(pixel)
-    projected = camera.project(bearing)
-    assert np.allclose(pixel, projected)
+    for camera in _get_dual_camera():
+        pixel = [0.1, 0.2]
+        bearing = camera.pixel_bearing(pixel)
+        projected = camera.project(bearing)
+        assert np.allclose(pixel, projected)
 
 
 def test_spherical_camera_projection():
     """Test spherical projection--backprojection loop."""
-    camera = _get_spherical_camera()
-    pixel = [0.1, 0.2]
-    bearing = camera.pixel_bearing(pixel)
-    projected = camera.project(bearing)
-    assert np.allclose(pixel, projected)
+    for camera in _get_spherical_camera():
+        pixel = [0.1, 0.2]
+        bearing = camera.pixel_bearing(pixel)
+        projected = camera.project(bearing)
+        assert np.allclose(pixel, projected)
 
 
 def test_pose_properties():
@@ -169,14 +170,15 @@ def test_single_vs_many():
     if context.OPENCV3:
         cameras.append(_get_fisheye_camera())
 
-    for camera in cameras:
-        p_single = [camera.project(p) for p in points]
-        p_many = camera.project_many(points)
-        assert np.allclose(p_single, p_many)
+    for camera, camera_cpp in cameras:
+        p = camera.project_many(points)
+        p_cpp = camera_cpp.project_many(points)
+        assert np.allclose(p, p_cpp)
 
-        b_single = [camera.pixel_bearing(p) for p in pixels]
-        b_many = camera.pixel_bearing_many(pixels)
-        assert np.allclose(b_single, b_many)
+        b = camera.pixel_bearing_many(pixels)
+        b_cpp = camera_cpp.pixel_bearing_many(pixels)
+        print(camera)
+        assert np.allclose(b, b_cpp)
 
         if hasattr(camera, 'back_project'):
             q_single = [camera.back_project(p, d)
@@ -192,7 +194,9 @@ def _get_perspective_camera():
     camera.focal = 0.6
     camera.k1 = -0.1
     camera.k2 = 0.01
-    return camera
+    camera_cpp = pygeometry.Camera.create_perspective(
+        camera.focal, camera.k1, camera.k2)
+    return camera, camera_cpp
 
 
 def _get_brown_perspective_camera():
@@ -208,7 +212,11 @@ def _get_brown_perspective_camera():
     camera.p1 = 0.001
     camera.p2 = 0.002
     camera.k3 = 0.01
-    return camera
+    camera_cpp = pygeometry.Camera.create_brown(
+        camera.focal_x, camera.focal_y / camera.focal_x,
+        [camera.c_x, camera.c_y],
+        [camera.k1, camera.k2, camera.k3, camera.p1, camera.p2])
+    return camera, camera_cpp
 
 
 def _get_fisheye_camera():
@@ -218,7 +226,9 @@ def _get_fisheye_camera():
     camera.focal = 0.6
     camera.k1 = -0.1
     camera.k2 = 0.01
-    return camera
+    camera_cpp = pygeometry.Camera.create_fisheye(
+        camera.focal, camera.k1, camera.k2)
+    return camera, camera_cpp
 
 
 def _get_dual_camera():
@@ -229,11 +239,14 @@ def _get_dual_camera():
     camera.k1 = -0.1
     camera.k2 = 0.01
     camera.transition = 0.5
-    return camera
+    camera_cpp = pygeometry.Camera.create_dual(
+        camera.transition, camera.focal, camera.k1, camera.k2)
+    return camera, camera_cpp
 
 
 def _get_spherical_camera():
     camera = types.SphericalCamera()
     camera.width = 800
     camera.height = 600
-    return camera
+    camera_cpp = pygeometry.Camera.create_spherical()
+    return camera, camera_cpp
