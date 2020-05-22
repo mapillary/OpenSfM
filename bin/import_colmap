@@ -18,7 +18,6 @@ import sqlite3
 from collections import defaultdict
 from pathlib import Path
 from struct import unpack
-from PIL import Image
 
 import matplotlib.pyplot as pl
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -29,11 +28,25 @@ import numpy as np
 
 from opensfm import dataset
 from opensfm import features
-from opensfm import io
 from opensfm import types
 import opensfm.commands.undistort as osfm_u
 
 EXPORT_DIR_NAME = 'opensfm_export'
+
+camera_models = {
+    0: ("SIMPLE_PINHOLE", 3),
+    1: ("PINHOLE", 4),
+    2: ("SIMPLE_RADIAL", 4),
+    3: ("RADIAL", 5),
+    4: ("OPENCV", 8),
+    5: ("OPENCV_FISHEYE", 8),
+    6: ("FULL_OPENCV", 12),
+    7: ("FOV", 5),
+    8: ("SIMPLE_RADIAL_FISHEYE", 4),
+    9: ("RADIAL_FISHEYE", 5),
+    10: ("THIN_PRISM_FISHEYE", 12)
+}
+
 
 def compute_and_save_undistorted_reconstruction(reconstruction, tracks_manager, udata):
     urec = types.Reconstruction()
@@ -204,21 +217,21 @@ def import_matches(db, data, image_map):
 
 def import_cameras_reconstruction(path_cameras):
     """
-    Imports cameras from a COLMAP reconstruction text file
+    Imports cameras from a COLMAP reconstruction cameras.bin file
     """
+    print("Importing cameras from {}".format(path_cameras))
     r_cams = {}
-    mapping = {'FULL_OPENCV': 6, 'RADIAL': 3, 'RADIAL_FISHEYE': 9}
-    with io.open_rt(path_cameras) as fin:
-        for row in fin:
-            if row[0] == '#':
-                continue
-            row = row[:-1].split(' ')
-            camera_id = int(row[0])
-            camera_model = row[1]
-            width = int(row[2])
-            height = int(row[3])
-            params = [float(p) for p in row[4:]]
-            camera_model_id = mapping[camera_model]
+    with open(path_cameras, 'rb') as f:
+        n_cameras = unpack('<Q', f.read(8))[0]
+        for _ in range(n_cameras):
+            camera_id = unpack('<i', f.read(4))[0]
+            camera_model_id = unpack('<i', f.read(4))[0]
+            width = unpack('<Q', f.read(8))[0]
+            height = unpack('<Q', f.read(8))[0]
+            params = []
+            n_params = camera_models[camera_model_id][1]
+            for _ in range(n_params):
+                params.append(unpack('<d', f.read(8))[0])
             cam = cam_from_colmap_params(camera_model_id, width, height, params)
             cam.id = camera_id
             r_cams[camera_id] = cam
@@ -229,7 +242,9 @@ def cam_from_colmap_params(camera_model_id, width, height, params, prior_focal=1
     """
     Helper function to map from colmap parameters to an OpenSfM camera
     """
-    mapping = {3: 'perspective', 6: 'brown', 9: 'fisheye'}
+    if camera_model_id not in (3, 9):
+        raise ValueError("Not supported: " + camera_models[camera_model_id][0])
+    mapping = {3: 'perspective', 9: 'fisheye'}
     projection_type = mapping[camera_model_id]
     normalizer = max(width, height)
     if projection_type == 'perspective':
@@ -237,8 +252,6 @@ def cam_from_colmap_params(camera_model_id, width, height, params, prior_focal=1
         cam.focal = params[0] / normalizer if prior_focal else 0.85
         cam.k1 = params[3]
         cam.k2 = params[4]
-    elif projection_type == 'brown':
-        raise ValueError("FullOpenCVCameraModel not supported in OpenSfM")
     else:  # projection_type == 'fisheye'
         cam = types.FisheyeCamera()
         cam.focal = params[0] / normalizer if prior_focal else 0.85
@@ -249,17 +262,25 @@ def cam_from_colmap_params(camera_model_id, width, height, params, prior_focal=1
 
 
 def import_points_reconstruction(path_points):
+    print("Importing points from {}".format(path_points))
     points3d = {}
-
-    with io.open_rt(path_points) as fin:
-        for row in fin:
-            if row[0] == '#':
-                continue
-            row = row[:-1].split(' ')
+    with open(path_points, 'rb') as f:
+        n_points = unpack('<Q', f.read(8))[0]
+        for point_ix in range(n_points):
             p = types.Point()
-            p.id = int(row[0])
-            p.coordinates = tuple(map(float, row[1:4]))
-            p.color = tuple(map(int, row[4:7]))
+            p.id = unpack('<Q', f.read(8))[0]
+            x = unpack('<d', f.read(8))[0]
+            y = unpack('<d', f.read(8))[0]
+            z = unpack('<d', f.read(8))[0]
+            r = unpack('<B', f.read(1))[0]
+            g = unpack('<B', f.read(1))[0]
+            b = unpack('<B', f.read(1))[0]
+            error = unpack('<d', f.read(8))[0]
+            track_len = unpack('<Q', f.read(8))[0]
+            # Ignore track info
+            f.seek(8*track_len, 1)
+            p.coordinates = (x,y,z)
+            p.color = (r, g, b)
             points3d[p.id] = p
     return points3d
 
@@ -268,6 +289,7 @@ def read_colmap_ply(path_ply):
     Reads the ply output from COLMAP.
     This is not a generic ply binary reader but a quick hack to read only this file
     """
+    print("Reading fused pointcloud {}".format(path_ply))
     header_should_be = ["ply\n",
                         "format binary_little_endian 1.0\n",
                         "element vertex\n",
@@ -316,10 +338,11 @@ def read_colmap_ply(path_ply):
     return np.array(points), np.array(normals), np.array(colors)
 
 
-def read_images_bin(path_images, camera_map, keypoints, points3D):
+def import_images_reconstruction(path_images, camera_map, keypoints, points3D):
     """
     Read images.bin, building shots and tracks graph
     """
+    print("Importing images from {}".format(path_images))
     tracks_manager = pysfm.TracksManager()
     shots = {}
     image_ix_to_shot_id = {}
@@ -367,17 +390,7 @@ def read_images_bin(path_images, camera_map, keypoints, points3D):
 
 
 def read_vis(path_vis, image_ix_to_shot_id):
-    """
-    <num_points : uint64_t>
-    <num_visible_images_for_point1 : uint32_t>
-    <point1_image_idx1 : uint32_t><point1_image_idx2 : uint32_t> ...
-    <num_visible_images_for_point2 : uint32_t>
-    <point2_image_idx2 : uint32_t><point2_image_idx2 : uint32_t> ...
-    ...
-    Note that an image_idx in the case of the mvs::StereoFuser does not
-    correspond to the image_id of a Reconstruction, but the index of the image in
-    the mvs::Model, which is the location of the image in the images.bin/.txt.
-    """
+    print("Reading visibility file {}".format(path_vis))
     points_seen = defaultdict(list)
     with open(path_vis, 'rb') as f:
         n_points = unpack('<Q', f.read(8))[0]
@@ -402,16 +415,9 @@ def import_depthmaps_from_fused_pointcloud(udata, urec, image_ix_to_shot_id, pat
     # Read visibility file
     points_seen = read_vis(path_ply.with_suffix('.ply.vis'), image_ix_to_shot_id)
 
-    # Debug: ensure every point is seen once at least
-    seen_counter = defaultdict(int)
-    for shot_id, points_seen_ixs in points_seen.items():
-        for ix_seen in points_seen_ixs:
-            seen_counter[ix_seen] += 1
-    seen_counter = dict(seen_counter)
-    assert min(list(seen_counter.values())) > 0
-
     # Project to shots and save as depthmaps
     for shot_id, points_seen_ixs in points_seen.items():
+        print("Projecting shot {}".format(shot_id))
         project_pointcloud_save_depth(udata,
                                       urec,
                                       points[points_seen_ixs],
@@ -467,7 +473,7 @@ def project_pointcloud_save_depth(udata, urec, points, shot_id, max_sz = 1024):
     filepath = Path(udata._depthmap_file(shot_id, 'fused_viz.png'))
     filepath.parent.mkdir(exist_ok=True, parents=True)
     plt.savefig(filepath, dpi=300)
-    fig.close()
+    plt.close(fig)
 
 
 def quaternion_to_angle_axis(quaternion):
@@ -504,16 +510,16 @@ if __name__ == "__main__":
     keypoints = import_features(db, data, image_map, camera_map)
     import_matches(db, data, image_map)
 
-    rec_cameras = p_db.parent / 'cameras.txt'
-    rec_points = p_db.parent / 'points3D.txt'
+    rec_cameras = p_db.parent / 'cameras.bin'
+    rec_points = p_db.parent / 'points3D.bin'
     rec_images = p_db.parent / 'images.bin'
     if rec_cameras.exists() and rec_images.exists() and rec_points.exists():
         cameras = import_cameras_reconstruction(rec_cameras)
         points3D = import_points_reconstruction(rec_points)
-        shots, tracks_manager, _ = read_images_bin(rec_images,
-                                                   cameras,
-                                                   keypoints,
-                                                   points3D)
+        shots, tracks_manager, _ = import_images_reconstruction(rec_images,
+                                                                cameras,
+                                                                keypoints,
+                                                                points3D)
 
 
         reconstruction = types.Reconstruction()
@@ -530,10 +536,10 @@ if __name__ == "__main__":
         # Project colmap's fused pointcloud to save depths in opensfm format
         path_ply = p_db.parent / 'dense/fused.ply'
         if path_ply.is_file():
-            _, _, image_ix_to_shot_id = read_images_bin(p_db.parent / 'dense/sparse/images.bin',
-                                                        cameras,
-                                                        keypoints,
-                                                        points3D)
+            _, _, image_ix_to_shot_id = import_images_reconstruction(p_db.parent / 'dense/sparse/images.bin',
+                                                                     cameras,
+                                                                     keypoints,
+                                                                     points3D)
             import_depthmaps_from_fused_pointcloud(udata, urec, image_ix_to_shot_id, path_ply)
         else:
             print("Not importing dense reconstruction: Didn't find {}".format(path_ply))
