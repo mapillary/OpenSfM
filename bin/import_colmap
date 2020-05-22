@@ -20,16 +20,15 @@ from pathlib import Path
 from struct import unpack
 
 import matplotlib.pyplot as pl
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-from matplotlib import cm
-
-from opensfm import pysfm
 import numpy as np
+from matplotlib import cm
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
+import opensfm.commands.undistort as osfm_u
 from opensfm import dataset
 from opensfm import features
+from opensfm import pysfm
 from opensfm import types
-import opensfm.commands.undistort as osfm_u
 
 EXPORT_DIR_NAME = 'opensfm_export'
 
@@ -75,10 +74,12 @@ def compute_and_save_undistorted_reconstruction(reconstruction, tracks_manager, 
 
     return urec
 
+
 def small_colorbar(ax, mappable=None):
     divider = make_axes_locatable(ax)
     cax = divider.append_axes("right", size="5%", pad=0.05)
     pl.colorbar(cax=cax, mappable=mappable)
+
 
 def depth_colormap(d, cmap=None, invalid_val=0, invalid_color=(.5, .5, .5)):
     """
@@ -89,6 +90,7 @@ def depth_colormap(d, cmap=None, invalid_val=0, invalid_color=(.5, .5, .5)):
     rgb = sm.to_rgba(d)[:, :, :3]
     rgb[d == invalid_val] = invalid_color
     return rgb, sm
+
 
 def import_cameras_images(db, data):
     cursor = db.cursor()
@@ -278,11 +280,12 @@ def import_points_reconstruction(path_points):
             error = unpack('<d', f.read(8))[0]
             track_len = unpack('<Q', f.read(8))[0]
             # Ignore track info
-            f.seek(8*track_len, 1)
-            p.coordinates = (x,y,z)
+            f.seek(8 * track_len, 1)
+            p.coordinates = (x, y, z)
             p.color = (r, g, b)
             points3d[p.id] = p
     return points3d
+
 
 def read_colmap_ply(path_ply):
     """
@@ -330,7 +333,7 @@ def read_colmap_ply(path_ply):
         assert header == header_should_be
         data = np.fromfile(f, dtype=properties, count=n_vertices)
 
-    points, normals, colors = [],[],[]
+    points, normals, colors = [], [], []
     for row in data:
         points.append(np.array([row[0], row[1], row[2]]))
         normals.append(np.array([row[3], row[4], row[5]]))
@@ -424,13 +427,13 @@ def import_depthmaps_from_fused_pointcloud(udata, urec, image_ix_to_shot_id, pat
                                       shot_id)
 
 
-def project_pointcloud_save_depth(udata, urec, points, shot_id, max_sz = 1024):
+def project_pointcloud_save_depth(udata, urec, points, shot_id, max_sz=1024):
     # Project points to the undistorted image
     shot = urec.shots[shot_id]
     w, h = shot.camera.width, shot.camera.height
     large = max(w, h)
     if large > max_sz:
-        ar = w/h
+        ar = w / h
         if w > h:
             w = max_sz
             h = int(w / ar)
@@ -457,7 +460,7 @@ def project_pointcloud_save_depth(udata, urec, points, shot_id, max_sz = 1024):
 
     # Create depth image
     depth_image = np.zeros([h, w])
-    depth_image[pixel_coords[:,1], pixel_coords[:, 0]] = depths[mask]
+    depth_image[pixel_coords[:, 1], pixel_coords[:, 0]] = depths[mask]
 
     # Save numpy
     filepath = Path(udata._depthmap_file(shot_id, 'fused.npz'))
@@ -521,7 +524,6 @@ if __name__ == "__main__":
                                                                 keypoints,
                                                                 points3D)
 
-
         reconstruction = types.Reconstruction()
         reconstruction.cameras = cameras
         reconstruction.shots = shots
@@ -535,8 +537,9 @@ if __name__ == "__main__":
 
         # Project colmap's fused pointcloud to save depths in opensfm format
         path_ply = p_db.parent / 'dense/fused.ply'
+        path_images = p_db.parent / 'dense/sparse/images.bin'
         if path_ply.is_file():
-            _, _, image_ix_to_shot_id = import_images_reconstruction(p_db.parent / 'dense/sparse/images.bin',
+            _, _, image_ix_to_shot_id = import_images_reconstruction(path_images,
                                                                      cameras,
                                                                      keypoints,
                                                                      points3D)
