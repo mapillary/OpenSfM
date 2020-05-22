@@ -48,7 +48,7 @@ py::object TriangulateBearingsDLT(const std::vector<Eigen::Matrix<double, 3, 4>>
   Eigen::MatrixXd world_bearings(count, 3);
   bool angle_ok = false;
   for (int i = 0; i < count && !angle_ok; ++i) {
-    const auto Rt = Rts[i];
+    const Eigen::Matrix<double, 3, 4> Rt = Rts[i];
     world_bearings.row(i) = Rt.block<3, 3>(0, 0).transpose() * bearings.row(i).transpose();
     for (int j = 0; j < i && !angle_ok; ++j) {
       const double angle = AngleBetweenVectors(world_bearings.row(i), world_bearings.row(j));
@@ -66,7 +66,7 @@ py::object TriangulateBearingsDLT(const std::vector<Eigen::Matrix<double, 3, 4>>
   X /= X(3);
 
   for (int i = 0; i < count; ++i) {
-    const auto projected = Rts[i] * X;
+    const Eigen::Vector3d projected = Rts[i] * X;
     if (AngleBetweenVectors(projected, bearings.row(i)) > threshold) {
       return TriangulateReturn(TRIANGULATION_BAD_REPROJECTION, py::none());
     }
@@ -117,8 +117,8 @@ py::object TriangulateBearingsMidpoint(const Eigen::Matrix<double, -1, 3> &cente
 
   // Check reprojection error
   for (int i = 0; i < count; ++i) {
-    const auto projected = X - centers.row(i).transpose();
-    const auto measured = bearings.row(i);
+    const Eigen::Vector3d projected = X - centers.row(i).transpose();
+    const Eigen::Vector3d measured = bearings.row(i);
     if (AngleBetweenVectors(projected, measured) > threshold_list[i]) {
       return TriangulateReturn(TRIANGULATION_BAD_REPROJECTION, py::none());
     }

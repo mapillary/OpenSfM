@@ -59,8 +59,8 @@ Eigen::Matrix<double, 3, 4> RelativePoseFromEssential(
         bearings.row(1) = rotation.transpose()*it->second;
         const Eigen::Vector3d point = geometry::TriangulateTwoBearingsMidpointSolve(centers, bearings);
         
-        const auto projected_x = point.normalized();
-        const auto projected_y = (rotation*point+translation).normalized();
+        const Eigen::Vector3d projected_x = point.normalized();
+        const Eigen::Vector3d projected_y = (rotation*point+translation).normalized();
         score += ((projected_x.dot(it->first) + projected_y.dot(it->second))*0.5);
       }
 
@@ -115,10 +115,10 @@ struct RelativePoseCost {
       auto point = geometry::TriangulateTwoBearingsMidpointSolve(centers, bearings);
 
       // Point in x stays at identity, y is brought in second camera with R*(y-t)
-      const auto projected_x = point.normalized();
+      const Eigen::Matrix<T, 3, 1> projected_x = point.normalized();
       const Eigen::Matrix<T, 3, 1> y_centered = point-translation;
       ceres::AngleAxisRotatePoint(rotation.data(), y_centered.data(), some_tmp.data());
-      const auto projected_y = some_tmp.normalized();
+      const Eigen::Matrix<T, 3, 1> projected_y = some_tmp.normalized();
       residuals[i] = 1.0 - ((projected_x.dot(x) + projected_y.dot(y))*T(0.5));
     }
     residuals[MAX_ERRORS] = 1.0 - translation.norm();
