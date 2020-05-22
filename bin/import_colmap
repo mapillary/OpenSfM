@@ -35,7 +35,7 @@ import opensfm.commands.undistort as osfm_u
 
 EXPORT_DIR_NAME = 'opensfm_export'
 
-def save_undistorted_reconstruction(reconstruction, tracks_manager, udata):
+def compute_and_save_undistorted_reconstruction(reconstruction, tracks_manager, udata):
     urec = types.Reconstruction()
     utracks_manager = pysfm.TracksManager()
     undistorted_shots = {}
@@ -213,7 +213,7 @@ def import_cameras_reconstruction(path_cameras):
             if row[0] == '#':
                 continue
             row = row[:-1].split(' ')
-            camera_id = row[0]
+            camera_id = int(row[0])
             camera_model = row[1]
             width = int(row[2])
             height = int(row[3])
@@ -246,59 +246,6 @@ def cam_from_colmap_params(camera_model_id, width, height, params, prior_focal=1
     cam.width = width
     cam.height = height
     return cam
-
-
-def import_shots_reconstruction(path_images, camera_map, keypoints, points3D):
-    """
-    Reads the points.txt from colmap, which contains two lines of data per image:
-    #   IMAGE_ID, QW, QX, QY, QZ, TX, TY, TZ, CAMERA_ID, NAME
-    #   POINTS2D[] as (X, Y, POINT3D_ID)
-
-    With this, we build the OpenSfM shots and a partial tracks graph.
-    """
-    tracks_manager = pysfm.TracksManager()
-    shots = {}
-    image_ix_to_shot_id = {}
-    with io.open_rt(path_images) as fin:
-        image_ix = -1
-        while True:
-            row = fin.readline().strip()
-            if not row:  # None or len==0
-                break
-            if row[0] == '#':
-                continue
-
-            row = row.split(' ')
-            image_ix += 1
-            colmap_shot_id = int(row[0])
-            q = np.array(tuple(map(float, row[1:5])))
-            t = np.array(tuple(map(float, row[5:8])))
-            colmap_camera_id = row[8]
-            image = row[9]  # filename / key
-
-            shot = types.Shot()
-            shot.pose = types.Pose(rotation=quaternion_to_angle_axis(q), translation=t)
-            shot.camera = camera_map[colmap_camera_id]
-            shot.id = image
-            shots[shot.id] = shot
-            image_ix_to_shot_id[image_ix] = shot.id
-
-            row = fin.readline().strip().split(' ')
-            xys = np.column_stack([tuple(map(float, row[0::3])), tuple(map(float, row[1::3]))])
-            xys = features.normalized_image_coordinates(xys, shot.camera.width, shot.camera.height)
-            point3D_ids = np.array(tuple(map(int, row[2::3])))
-
-            point2d_idx = 0
-            for point3D_id, xy in zip(point3D_ids, xys):
-                if point3D_id == -1:
-                    continue
-                kp = keypoints[colmap_shot_id][point2d_idx]
-                r,g,b = points3D[point3D_id].color
-                obs = pysfm.Observation(xy[0], xy[1], kp[2], int(r), int(g), int(b), point2d_idx)
-                tracks_manager.add_observation(image, str(point3D_id), obs)
-                point2d_idx += 1
-
-    return shots, tracks_manager, image_ix_to_shot_id
 
 
 def import_points_reconstruction(path_points):
@@ -367,6 +314,56 @@ def read_colmap_ply(path_ply):
         normals.append(np.array([row[3], row[4], row[5]]))
         colors.append(np.array([row[6], row[7], row[8]]))
     return np.array(points), np.array(normals), np.array(colors)
+
+
+def read_images_bin(path_images, camera_map, keypoints, points3D):
+    """
+    Read images.bin, building shots and tracks graph
+    """
+    tracks_manager = pysfm.TracksManager()
+    shots = {}
+    image_ix_to_shot_id = {}
+    with open(path_images, 'rb') as f:
+        n_ims = unpack('<Q', f.read(8))[0]
+        for image_ix in range(n_ims):
+            image_id = unpack('<I', f.read(4))[0]
+            q0 = unpack('<d', f.read(8))[0]
+            q1 = unpack('<d', f.read(8))[0]
+            q2 = unpack('<d', f.read(8))[0]
+            q3 = unpack('<d', f.read(8))[0]
+            t0 = unpack('<d', f.read(8))[0]
+            t1 = unpack('<d', f.read(8))[0]
+            t2 = unpack('<d', f.read(8))[0]
+            camera_id = unpack('<I', f.read(4))[0]
+            filename = ''
+            while True:
+                c = f.read(1).decode()
+                if c == '\0':
+                    break
+                filename += c
+            q = np.array([q0, q1, q2, q3])
+            q /= np.linalg.norm(q)
+            t = np.array([t0, t1, t2])
+
+            shot = types.Shot()
+            shot.pose = types.Pose(rotation=quaternion_to_angle_axis(q), translation=t)
+            shot.camera = camera_map[camera_id]
+            shot.id = filename
+            shots[shot.id] = shot
+            image_ix_to_shot_id[image_ix] = shot.id
+
+            n_points_2d = unpack('<Q', f.read(8))[0]
+            for point2d_ix in range(n_points_2d):
+                x = unpack('<d', f.read(8))[0]
+                y = unpack('<d', f.read(8))[0]
+                point3d_id = unpack('<Q', f.read(8))[0]
+                if point3d_id != np.iinfo(np.uint64).max:
+                    kp = keypoints[image_id][point2d_ix]
+                    r, g, b = points3D[point3d_id].color
+                    obs = pysfm.Observation(x, y, kp[2], int(r), int(g), int(b), point2d_ix)
+                    tracks_manager.add_observation(shot.id, str(point3d_id), obs)
+
+    return shots, tracks_manager, image_ix_to_shot_id
 
 
 def read_vis(path_vis, image_ix_to_shot_id):
@@ -463,13 +460,14 @@ def project_pointcloud_save_depth(udata, urec, points, shot_id, max_sz = 1024):
 
     # Save jpg for visualization
     import matplotlib.pyplot as plt
-    plt.figure()
+    fig = plt.figure()
     rgb, sm = depth_colormap(depth_image)
     plt.imshow(rgb)
     small_colorbar(plt.gca(), mappable=sm)
     filepath = Path(udata._depthmap_file(shot_id, 'fused_viz.png'))
     filepath.parent.mkdir(exist_ok=True, parents=True)
     plt.savefig(filepath, dpi=300)
+    fig.close()
 
 
 def quaternion_to_angle_axis(quaternion):
@@ -508,14 +506,14 @@ if __name__ == "__main__":
 
     rec_cameras = p_db.parent / 'cameras.txt'
     rec_points = p_db.parent / 'points3D.txt'
-    rec_images = p_db.parent / 'images.txt'
+    rec_images = p_db.parent / 'images.bin'
     if rec_cameras.exists() and rec_images.exists() and rec_points.exists():
         cameras = import_cameras_reconstruction(rec_cameras)
         points3D = import_points_reconstruction(rec_points)
-        shots, tracks_manager, image_ix_to_shot_id = import_shots_reconstruction(rec_images,
-                                                                                 cameras,
-                                                                                 keypoints,
-                                                                                 points3D)
+        shots, tracks_manager, _ = read_images_bin(rec_images,
+                                                   cameras,
+                                                   keypoints,
+                                                   points3D)
 
 
         reconstruction = types.Reconstruction()
@@ -527,11 +525,15 @@ if __name__ == "__main__":
 
         # Save undistorted reconstruction as well
         udata = dataset.UndistortedDataSet(data, 'undistorted')
-        urec = save_undistorted_reconstruction(reconstruction, tracks_manager, udata)
+        urec = compute_and_save_undistorted_reconstruction(reconstruction, tracks_manager, udata)
 
         # Project colmap's fused pointcloud to save depths in opensfm format
         path_ply = p_db.parent / 'dense/fused.ply'
         if path_ply.is_file():
+            _, _, image_ix_to_shot_id = read_images_bin(p_db.parent / 'dense/sparse/images.bin',
+                                                        cameras,
+                                                        keypoints,
+                                                        points3D)
             import_depthmaps_from_fused_pointcloud(udata, urec, image_ix_to_shot_id, path_ply)
         else:
             print("Not importing dense reconstruction: Didn't find {}".format(path_ply))
