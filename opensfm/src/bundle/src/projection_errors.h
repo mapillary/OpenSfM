@@ -62,12 +62,61 @@ void PerspectiveProject(const T* const camera,
   projection[1] = focal * distortion * yp;
 }
 
-template< class T >
-struct BADataPrior{
-  public:
-  private:
-  
-}
+template <class DATA>
+struct BADataPriorError {
+ public:
+  // Parameter scaling
+  enum class ScaleType { LINEAR = 0, LOGARITHMIC = 1 };
+
+  BADataPriorError(BAData<DATA>* ba_data)
+      : ba_data_(ba_data), count_(ba_data->GetValueData().rows()) {
+    const auto sigma = ba_data->GetSigmaData();
+    scales_.resize(sigma.rows(), 1);
+    for (int i = 0; i < count_; ++i) {
+      scales_(i) = 1.0 / sigma(i);
+    }
+  }
+
+  void SetScaleType(int index, const ScaleType& type) {
+    if(index > count_){
+      throw std::runtime_error("Parameter index out-of-range");
+    }
+    scale_types_[index] = type;
+  }
+
+  template <typename T>
+  bool operator()(const T* const parameters, T* residuals) const {
+    Eigen::Map<VecXT<T>> residuals_mapped(residuals, count_);
+    Eigen::Map<const VecXT<T>> parameters_values(parameters, count_);
+    const VecXT<T> prior_values = ba_data_->GetPriorData().template cast<T>();
+    for (int i = 0; i < count_; ++i) {
+      auto scale_type = ScaleType::LINEAR;
+      const auto scale_type_find = scale_types_.find(i);
+      if (scale_type_find != scale_types_.end()) {
+        scale_type = scale_type_find->second;
+      }
+
+      T error = T(0.);
+      switch (scale_type) {
+        case ScaleType::LINEAR:
+          error = parameters_values(i) - prior_values(i);
+          break;
+        case ScaleType::LOGARITHMIC:
+          error = log(parameters_values(i) / prior_values(i));
+          break;
+      }
+      residuals_mapped(i) = scales_(i) * error;
+    }
+    return true;
+  }
+
+ private:
+  int count_;
+  VecXd scales_;
+  std::unordered_map<int, ScaleType>
+      scale_types_;  // Per-parameter prior scaling (default is linear)
+  BAData<DATA>* ba_data_;
+};
 
 struct ReprojectionError{
   ReprojectionError(const ProjectionType& type, const Vec2d& observed, double std_deviation)
@@ -82,7 +131,7 @@ struct ReprojectionError{
     Eigen::Map<const Vec3T<T>> x(point);
     Eigen::Map<const Vec3T<T>> R(shot + GetParamIndex(BAShotParameters::RX));
     Eigen::Map<const Vec3T<T>> c(shot + GetParamIndex(BAShotParameters::TX));
-    const auto camera_point = WorldToCamera(R, c, x);
+    const Vec3T<T> camera_point = WorldToCamera(R, c, x);
 
     Mat2T<T> affine = Mat2T<T>::Zero();
     affine(0, 0) = camera[GetParamIndex(BACameraParameters::FOCAL)];
@@ -93,8 +142,9 @@ struct ReprojectionError{
     Eigen::Map<const VecXT<T>> projection(camera + GetParamIndex(BACameraParameters::TRANSITION), 1);
 
     // Apply camera projection
-    const auto predicted = Dispatch<Vec2T<T>, ProjectFunction>(
-      type_, camera_point.eval(), projection.eval(), affine.eval(), principal_point.eval(), distortion.eval());
+    const Vec2T<T> predicted = Dispatch<Vec2T<T>, ProjectFunction>(
+        type_, camera_point, projection.eval(), affine, principal_point.eval(),
+        distortion.eval());
 
     // The error is the difference between the predicted and observed position
     Eigen::Map<Vec2T<T>> residuals_mapped(residuals);
@@ -375,6 +425,79 @@ struct BasicRadialInternalParametersPriorError {
   double k1_scale_;
   double k2_estimate_;
   double k2_scale_;
+};
+
+struct CameaInternalsPriorError {
+  CameaInternalsPriorError(double focal_x_estimate,
+                                    double focal_x_std_deviation,
+                                    double focal_y_estimate,
+                                    double focal_y_std_deviation,
+                                    double c_x_estimate,
+                                    double c_x_std_deviation,
+                                    double c_y_estimate,
+                                    double c_y_std_deviation,
+                                    double k1_estimate,
+                                    double k1_std_deviation,
+                                    double k2_estimate,
+                                    double k2_std_deviation,
+                                    double p1_estimate,
+                                    double p1_std_deviation,
+                                    double p2_estimate,
+                                    double p2_std_deviation,
+                                    double k3_estimate,
+                                    double k3_std_deviation)
+      : log_focal_x_estimate_(log(focal_x_estimate))
+      , focal_x_scale_(1.0 / focal_x_std_deviation)
+      , log_focal_y_estimate_(log(focal_y_estimate))
+      , focal_y_scale_(1.0 / focal_y_std_deviation)
+      , c_x_estimate_(c_x_estimate)
+      , c_x_scale_(1.0 / c_x_std_deviation)
+      , c_y_estimate_(c_y_estimate)
+      , c_y_scale_(1.0 / c_y_std_deviation)
+      , k1_estimate_(k1_estimate)
+      , k1_scale_(1.0 / k1_std_deviation)
+      , k2_estimate_(k2_estimate)
+      , k2_scale_(1.0 / k2_std_deviation)
+      , p1_estimate_(p1_estimate)
+      , p1_scale_(1.0 / p1_std_deviation)
+      , p2_estimate_(p2_estimate)
+      , p2_scale_(1.0 / p2_std_deviation)
+      , k3_estimate_(k3_estimate)
+      , k3_scale_(1.0 / k3_std_deviation)
+  {}
+
+  template <typename T>
+  bool operator()(const T* const parameters, T* residuals) const {
+    residuals[0] = T(focal_x_scale_) * (log(parameters[BA_BROWN_CAMERA_FOCAL_X]) - T(log_focal_x_estimate_));
+    residuals[1] = T(focal_y_scale_) * (log(parameters[BA_BROWN_CAMERA_FOCAL_Y]) - T(log_focal_y_estimate_));
+    residuals[2] = T(c_x_scale_) * (parameters[BA_BROWN_CAMERA_C_X] - T(c_x_estimate_));
+    residuals[3] = T(c_y_scale_) * (parameters[BA_BROWN_CAMERA_C_Y] - T(c_y_estimate_));
+    residuals[4] = T(k1_scale_) * (parameters[BA_BROWN_CAMERA_K1] - T(k1_estimate_));
+    residuals[5] = T(k2_scale_) * (parameters[BA_BROWN_CAMERA_K2] - T(k2_estimate_));
+    residuals[6] = T(p1_scale_) * (parameters[BA_BROWN_CAMERA_P1] - T(p1_estimate_));
+    residuals[7] = T(p2_scale_) * (parameters[BA_BROWN_CAMERA_P2] - T(p2_estimate_));
+    residuals[8] = T(k3_scale_) * (parameters[BA_BROWN_CAMERA_K3] - T(k3_estimate_));
+    return true;
+  }
+
+  double log_focal_x_estimate_;
+  double focal_x_scale_;
+  double log_focal_y_estimate_;
+  double focal_y_scale_;
+  double c_x_estimate_;
+  double c_x_scale_;
+  double c_y_estimate_;
+  double c_y_scale_;
+  double k1_estimate_;
+  double k1_scale_;
+  double k2_estimate_;
+  double k2_scale_;
+  double p1_estimate_;
+  double p1_scale_;
+  double p2_estimate_;
+  double p2_scale_;
+  double k3_estimate_;
+  double k3_scale_;
 };
 
 struct BrownInternalParametersPriorError {
