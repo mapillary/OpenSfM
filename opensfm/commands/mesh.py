@@ -27,7 +27,7 @@ class Command:
                 if shot.id in all_shot_ids:
                     vertices, faces = mesh.triangle_mesh(
                         shot.id, r, tracks_manager, data)
-                    shot.mesh = types.ShotMesh()
+                    # shot.mesh = types.ShotMesh()
                     shot.mesh.vertices = vertices
                     shot.mesh.faces = faces
 

@@ -43,13 +43,18 @@ public:
 
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  // Landmark(const LandmarkId lm_id, const Eigen::Vector3d& global_pos, const std::string& name = "");
   Landmark(const LandmarkId lm_id, const Eigen::Vector3d& global_pos);
+
+  // Getters and Setters
   Eigen::Vector3d GetGlobalPos() const { return global_pos_; }
   void SetGlobalPos(const Eigen::Vector3d& global_pos) { global_pos_ = global_pos; }
+  Eigen::Vector3i GetColor() const { return color_; }
+  void SetColor(const Eigen::Vector3i& color) { color_ = color; }
+  void SetRefShot(Shot* ref_shot) {ref_shot_ = ref_shot;}
+  Shot* GetRefShot() { return ref_shot_; }
 
+  // Utility functions
   bool IsObservedInShot(Shot* shot) const { return observations_.count(shot) > 0; }
-  
   void AddObservation(Shot* shot, const FeatureId feat_id) { observations_.emplace(shot, feat_id); }
   void RemoveObservation(Shot* shot) { observations_.erase(shot); }
   bool HasObservations() const { return !observations_.empty(); }
@@ -59,13 +64,9 @@ public:
   {
     return observations_; 
   }
-  
   void ClearObservations() { observations_.clear(); }
-  void SetRefShot(Shot* ref_shot) {ref_shot_ = ref_shot;}
-  Shot* GetRefShot() { return ref_shot_; }
   double ComputeDistanceFromRefFrame() const;
-  Eigen::Vector3i GetColor() const { return color_; }
-  void SetColor(const Eigen::Vector3i& color) { color_ = color; }
+
   //Comparisons
   bool operator==(const Landmark& lm) const { return id_ == lm.id_; }
   bool operator!=(const Landmark& lm) const { return !(*this == lm); }
@@ -73,6 +74,8 @@ public:
   bool operator<=(const Landmark& lm) const { return id_ <= lm.id_; }
   bool operator>(const Landmark& lm) const { return id_ > lm.id_; }
   bool operator>=(const Landmark& lm) const { return id_ >= lm.id_; }
+
+  // Reprojection Errors
   void SetReprojectionErrors(const std::unordered_map<std::string, Eigen::VectorXd> reproj_errors);
   std::unordered_map<std::string, Eigen::VectorXd> GetReprojectionErrors() const { return reproj_errors_; }
   void RemoveReprojectionError(const std::string& shot_id)
@@ -81,10 +84,8 @@ public:
   }
 
 public:
-  //We could set the const values to public, to avoid writing a getter.
   const LandmarkId id_;
   const LandmarkUniqueId unique_id_;
-  // const std::string name_;
   SLAMLandmarkData slam_data_;
 private:
   Eigen::Vector3d global_pos_; // point in global

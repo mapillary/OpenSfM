@@ -247,8 +247,10 @@ def shot_to_json(shot):
         if shot.metadata.skey is not None:
             obj['skey'] = shot.metadata.skey
     if shot.mesh is not None:
-        obj['vertices'] = shot.mesh.vertices
-        obj['faces'] = shot.mesh.faces
+        # obj['vertices'] = list(shot.mesh.vertices)
+        # obj['faces'] = list(shot.mesh.faces)
+        obj['vertices'] = [list(vertice) for vertice in shot.mesh.vertices]
+        obj['faces'] = [list(face) for face in shot.mesh.faces]
     if hasattr(shot, 'scale'):
         obj['scale'] = shot.scale
     if hasattr(shot, 'covariance'):
@@ -263,7 +265,8 @@ def point_to_json(point):
     Write a point to a json object
     """
     return {
-        'color': list(point.color),
+        # 'color': list(point.color),
+        'color': list(point.color.astype(float)),
         'coordinates': list(point.coordinates)
     }
 

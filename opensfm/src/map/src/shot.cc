@@ -5,11 +5,6 @@
 namespace map
 {
 ShotUniqueId Shot::shot_unique_id_ = 0;
-// Shot::Shot(const ShotId shot_id, const ShotCamera& shot_camera, const Pose& pose):
-//             id_(shot_id), unique_id_(shot_unique_id_), shot_camera_(shot_camera), slam_data_(this), pose_(pose)
-// {
-//   ++Shot::shot_unique_id_;
-// }
 Shot::Shot(const ShotId shot_id, const Camera& shot_camera, const Pose& pose):
             id_(shot_id), unique_id_(shot_unique_id_), shot_camera_(shot_camera), slam_data_(this), pose_(pose)
 {
@@ -37,8 +32,6 @@ Shot::ComputeMedianDepthOfLandmarks(const bool take_abs) const
   depths.reserve(landmarks_.size());
   const Eigen::Matrix4d T_cw = pose_.WorldToCamera();
   const Eigen::Vector3d rot_cw_z_row = T_cw.block<1, 3>(2, 0);
-
-  // T_cw
   const double trans_cw_z = T_cw(2, 3);
   for (const auto& lm : landmarks_)
   {
@@ -60,13 +53,11 @@ Shot::InitKeyptsAndDescriptors(const size_t n_keypts)
     num_keypts_ = n_keypts;
     landmarks_.resize(num_keypts_, nullptr);
     keypoints_.resize(num_keypts_);
-    // descriptors_ = cv::Mat(n_keypts, 32, CV_8UC1, cv::Scalar(0));
     descriptors_ = DescriptorMatrix(n_keypts, 32);
   }
 }
 
 void
-// Shot::InitAndTakeDatastructures(AlignedVector<Observation> keypts, cv::Mat descriptors)
 Shot::InitAndTakeDatastructures(AlignedVector<Observation> keypts, DescriptorMatrix descriptors)
 {
   assert(keypts.size() == descriptors.rows());
@@ -77,6 +68,7 @@ Shot::InitAndTakeDatastructures(AlignedVector<Observation> keypts, DescriptorMat
   landmarks_.resize(num_keypts_, nullptr);
 }
 
+//For SLAM
 // void
 // Shot::UndistortedKeyptsToBearings()
 // {
@@ -97,19 +89,30 @@ Shot::InitAndTakeDatastructures(AlignedVector<Observation> keypts, DescriptorMat
 // }
 
 void
-Shot::ScaleLandmarks(const float scale)
+Shot::ScaleLandmarks(const double scale)
 {
-  for (auto lm : landmarks_) 
+  if (landmarks_.empty())
   {
-    if (lm != nullptr)
+    for (auto& lm_obs : landmark_observations_)
     {
+      auto* lm = lm_obs.first;
       lm->SetGlobalPos(lm->GetGlobalPos()*scale);
+    }
+  }
+  else
+  {
+    for (auto* lm : landmarks_) 
+    {
+      if (lm != nullptr)
+      {
+        lm->SetGlobalPos(lm->GetGlobalPos()*scale);
+      }
     }
   }
 }
 
 void
-Shot::ScalePose(const float scale)
+Shot::ScalePose(const double scale)
 {
     Eigen::Matrix4d cam_pose_cw = pose_.WorldToCamera();
     cam_pose_cw.block<3, 1>(0, 3) *= scale;
@@ -118,40 +121,22 @@ Shot::ScalePose(const float scale)
 
 void 
 Shot::RemoveLandmarkObservation(const FeatureId id) 
-{ 
+{
+  // for OpenSfM
   if (landmarks_.empty())
   {
     auto* lm = landmark_id_.at(id);
-    // std::cout << "Got: " << lm->id_ << ", " << landmark_id_.size() << "/" << landmark_observations_.size() 
-              // << " from shot: " << id_ << ", " << name_ << std::endl;
-    // std::cout << "Erasing: " << lm << " and " << id << std::endl;
-    // if (landmark_id_.find(id) != landmark_id_.end())
-    // {
-    //   std::cout << "found id" << std::endl;
-    // }
-    // if (landmark_observations_.find(lm) != landmark_observations_.end())
-    // {
-    //   std::cout << "found lm" << std::endl;
-    // }
     landmark_id_.erase(id);
     landmark_observations_.erase(lm);
   }
-  else
+  else //for SLAM
   {
     landmarks_.at(id) = nullptr; 
   }
 }
 
 Eigen::Vector2d Shot::Project(const Eigen::Vector3d& global_pos) const {
-  // TODO: Think about oob reprojeciotn
-  // Eigen::Vector2d new_pt;
-  //rotate
-  // const Eigen::Vector3d rot_pt = pose_.RotationWorldToCamera()*global_pos + pose_.TranslationWorldToCamera();
   return shot_camera_.Project(pose_.RotationWorldToCamera()*global_pos + pose_.TranslationWorldToCamera());
-  // shot_camera_.camera_model_.ReprojectToImage(pose_.RotationWorldToCamera(),
-                                              // pose_.TranslationWorldToCamera(),
-                                              // global_pos, new_pt);
-  // return new_pt;
 }
 
 } //namespace map

@@ -848,7 +848,7 @@ class PointView(object):
 
     def keys(self):
         return [str(x) for x in self.map.get_all_landmarks().keys()]
-    
+
     def items(self):
         return self.map.get_all_landmarks().items()
 
@@ -934,13 +934,16 @@ class Reconstruction(object):
             for cam in value.values():
                 self.cameras.add_camera(cam)
         elif name == 'reference':
-            # print("Reference!!")
             self.map.set_reference(value.lat, value.lon, value.alt)
             super(Reconstruction, self).__setattr__("reference", self.map.get_reference())
         elif name == 'points':
-            # print("value", len(value))
-            if len(value) == 0: # clear the landmarks
+            if len(value) == 0:  # clear the landmarks
                 self.map.clear_observations_and_landmarks()
+            else:
+                self.map.clear_observations_and_landmarks()
+                for point in value.values():
+                    # create a new point
+                    self.add_point(point)
         else:
             super(Reconstruction, self).__setattr__(name, value)
     
