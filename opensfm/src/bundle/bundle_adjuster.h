@@ -6,6 +6,8 @@
 #include <vector>
 #include <string>
 
+#include <geometry/camera.h>
+
 #include "ceres/ceres.h"
 #include "ceres/rotation.h"
 
@@ -102,16 +104,16 @@ struct BABrownPerspectiveCamera : public BACamera {
   double p2_prior;
   double k3_prior;
 
-  BACameraType type() { return BA_BROWN_PERSPECTIVE_CAMERA; }
-  double GetFocalX() { return parameters[BA_BROWN_CAMERA_FOCAL_X]; }
-  double GetFocalY() { return parameters[BA_BROWN_CAMERA_FOCAL_Y]; }
-  double GetCX() { return parameters[BA_BROWN_CAMERA_C_X]; }
-  double GetCY() { return parameters[BA_BROWN_CAMERA_C_Y]; }
-  double GetK1() { return parameters[BA_BROWN_CAMERA_K1]; }
-  double GetK2() { return parameters[BA_BROWN_CAMERA_K2]; }
-  double GetP1() { return parameters[BA_BROWN_CAMERA_P1]; }
-  double GetP2() { return parameters[BA_BROWN_CAMERA_P2]; }
-  double GetK3() { return parameters[BA_BROWN_CAMERA_K3]; }
+  BACameraType type()  { return BA_BROWN_PERSPECTIVE_CAMERA; }
+  double GetFocalX()const { return parameters[BA_BROWN_CAMERA_FOCAL_X]; }
+  double GetFocalY()const { return parameters[BA_BROWN_CAMERA_FOCAL_Y]; }
+  double GetCX()const { return parameters[BA_BROWN_CAMERA_C_X]; }
+  double GetCY()const { return parameters[BA_BROWN_CAMERA_C_Y]; }
+  double GetK1()const { return parameters[BA_BROWN_CAMERA_K1]; }
+  double GetK2()const { return parameters[BA_BROWN_CAMERA_K2]; }
+  double GetP1()const { return parameters[BA_BROWN_CAMERA_P1]; }
+  double GetP2()const { return parameters[BA_BROWN_CAMERA_P2]; }
+  double GetK3()const { return parameters[BA_BROWN_CAMERA_K3]; }
   void SetFocalX(double v) { parameters[BA_BROWN_CAMERA_FOCAL_X] = v; }
   void SetFocalY(double v) { parameters[BA_BROWN_CAMERA_FOCAL_Y] = v; }
   void SetCX(double v) { parameters[BA_BROWN_CAMERA_C_X] = v; }
@@ -238,6 +240,15 @@ struct BAReconstruction {
 struct BAPointProjectionObservation {
   double coordinates[2];
   BACamera *camera;
+  BAShot *shot;
+  BAPoint *point;
+  double std_deviation;
+};
+
+struct BACameraNew;
+struct BAPointProjectionObservationNew {
+  Vec2d coordinates;
+  BACameraNew *camera;
   BAShot *shot;
   BAPoint *point;
   double std_deviation;
@@ -426,6 +437,130 @@ struct BAPointPositionWorld {
   PositionConstraintType type;
 };
 
+template <class T, class E>
+struct BAData {
+ public:
+  using ValueType = T;
+
+  BAData(const T &value, const T &prior, const T &sigma)
+      : value_(value), prior_(prior), sigma_(sigma) {}
+
+  virtual VecXd GetValueData() = 0;
+  virtual VecXd GetPriorData() = 0;
+  virtual T GetValue() = 0;
+
+  E parameters;
+
+ protected:
+  T value_;
+  T prior_;
+  T sigma_;
+};
+
+enum class BAShotParameters {
+  RX = 0x1,
+  RY = 0x2,
+  RZ = 0x4,
+  ROTATION = RX | RY | RZ,
+  TX = 0x8,
+  TY = 0x10,
+  TZ = 0x20,
+  TRANSLATION = TX | TY | TZ,
+  COUNT = 6
+};
+
+template< class T>
+inline int GetParamIndex(const T& p){
+  return std::log2(static_cast<int>(p));
+}
+
+template< class T>
+inline int GetParamsCount(const T& p){
+  int count = 0;
+  int rest = static_cast<int>(p);
+  while(rest){
+    if(rest & 0x1){
+      ++count;
+    }
+    rest = rest >> 1;
+  }
+  return count;
+}
+
+template <typename T>
+constexpr int GetEnumAsConstExpr(const T &t) {
+  return static_cast<int>(t);
+}
+
+enum class BACameraParameters {
+  FOCAL = 0x1,
+  ASPECT_RATIO = 0x2,
+  CX = 0x4,
+  CY = 0x8,
+  PRINCIPAL_POINT = CX | CY,
+  K1 = 0x10,
+  K2 = 0x20,
+  K3 = 0x40,
+  DISTO_RADIAL = K1 | K2 | K3,
+  P1 = 0x80,
+  P2 = 0x100,
+  DISTO_TANGENTIAL = P1 | P2,
+  DISTO = DISTO_RADIAL | DISTO_TANGENTIAL,
+  TRANSITION = 0x200,
+  COUNT = 10
+};
+
+struct BACameraNew : public BAData<Camera, BACameraParameters> {
+  using BAData::BAData;
+  
+  double *GetData() final {
+    UpdateData();
+    return data_.data();
+  }
+
+  Camera GetValue() final {
+    UpdateData();
+    Camera value = value_;
+    value.SetFocal(data_[GetParamIndex(BACameraParameters::FOCAL)]);
+    value.SetAspectRatio(
+        data_[GetParamIndex(BACameraParameters::ASPECT_RATIO)]);
+    value.SetPrincipalPoint(
+        data_.segment(GetParamIndex(BACameraParameters::CX),
+                      GetParamsCount(BACameraParameters::PRINCIPAL_POINT)));
+    value.SetDistortion(
+        data_.segment(GetParamIndex(BACameraParameters::K1),
+                      GetParamsCount(BACameraParameters::DISTO)));
+    return value;
+  }
+
+ private:
+  void UpdateData() {
+    if (data_.size() == 0) {
+      data_.resize(GetEnumAsConstExpr(BACameraParameters::COUNT));
+      data_[GetParamIndex(BACameraParameters::FOCAL)] = value_.GetFocal();
+      data_[GetParamIndex(BACameraParameters::ASPECT_RATIO)] =
+          value_.GetAspectRatio();
+      data_.segment(GetParamIndex(BACameraParameters::CX),
+                    GetParamsCount(BACameraParameters::PRINCIPAL_POINT)) =
+          value_.GetPrincipalPoint();
+      data_.segment(GetParamIndex(BACameraParameters::K1),
+                    GetParamsCount(BACameraParameters::DISTO)) =
+          value_.GetDistortion();
+    }
+  }
+
+  VecXd data_;
+};
+
+struct BAShotNew
+    : public BAData<VecNXd<GetEnumAsConstExpr(BAShotParameters::COUNT)>,
+                    BAShotParameters> {
+  double *GetData() final { return value_.data(); }
+  ValueType GetValue() final {
+    return value_;
+  }
+};
+
 class BundleAdjuster {
  public:
   BundleAdjuster();
@@ -433,6 +568,7 @@ class BundleAdjuster {
 
   // Bundle variables
 
+  void AddCameraNew(const std::string &id, const Camera& camera, const Camera& prior, bool constant);
   void AddPerspectiveCamera(
       const std::string &id,
       double focal,
@@ -583,6 +719,7 @@ class BundleAdjuster {
   void SetMaxNumIterations(int miter);
   void SetNumThreads(int n);
   void SetLinearSolverType(std::string t);
+  void SetUseNew(bool b);
 
   void SetInternalParametersPriorSD(
       double focal_sd,
@@ -603,10 +740,15 @@ class BundleAdjuster {
       const BAPointProjectionObservation &observation,
       ceres::LossFunction *loss,
       ceres::Problem *problem);
+  void AddObservationResidualBlockNew(
+      const BAPointProjectionObservationNew &observation,
+      ceres::LossFunction *loss,
+      ceres::Problem *problem);
   void ComputeCovariances(ceres::Problem *problem);
   void ComputeReprojectionErrors();
 
   // getters
+  Camera GetCamera(const std::string &id);
   BAPerspectiveCamera GetPerspectiveCamera(const std::string &id);
   BABrownPerspectiveCamera GetBrownPerspectiveCamera(const std::string &id);
   BAFisheyeCamera GetFisheyeCamera(const std::string &id);
@@ -626,11 +768,15 @@ class BundleAdjuster {
   std::map<std::string, BAShot> shots_;
   std::map<std::string, BAReconstruction> reconstructions_;
   std::map<std::string, BAPoint> points_;
-  
+
+  std::map<std::string, BACameraNew> cameras_new_;
+  bool use_new_{false};
+
   // minimization constraints
 
   // reprojection observation
   std::vector<BAPointProjectionObservation> point_projection_observations_;
+  std::vector<BAPointProjectionObservationNew> point_projection_observations_new_;
 
   // relative motion between shots
   std::vector<BARelativeMotion> relative_motions_;
