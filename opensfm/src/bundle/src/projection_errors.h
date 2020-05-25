@@ -1,6 +1,7 @@
 #pragma once
 
-#include <Eigen/Eigen>
+#include <foundation/types.h>
+#include <geometry/camera_functions.h>
 
 template <class PointFunc> 
 struct BABearingError {
@@ -60,6 +61,51 @@ void PerspectiveProject(const T* const camera,
   projection[0] = focal * distortion * xp;
   projection[1] = focal * distortion * yp;
 }
+
+template< class T >
+struct BADataPrior{
+  public:
+  private:
+  
+}
+
+struct ReprojectionError{
+  ReprojectionError(const ProjectionType& type, const Vec2d& observed, double std_deviation)
+      : type_(type), observed_(observed), scale_(1.0 / std_deviation) {}
+
+  template <typename T>
+  bool operator()(const T* const camera,
+                  const T* const shot,
+                  const T* const point,
+                  T* residuals) const {
+    // Bring the point to the camera coordinate frame
+    Eigen::Map<const Vec3T<T>> x(point);
+    Eigen::Map<const Vec3T<T>> R(shot + GetParamIndex(BAShotParameters::RX));
+    Eigen::Map<const Vec3T<T>> c(shot + GetParamIndex(BAShotParameters::TX));
+    const auto camera_point = WorldToCamera(R, c, x);
+
+    Mat2T<T> affine = Mat2T<T>::Zero();
+    affine(0, 0) = camera[GetParamIndex(BACameraParameters::FOCAL)];
+    affine(1, 1) = camera[GetParamIndex(BACameraParameters::FOCAL)]*camera[GetParamIndex(BACameraParameters::ASPECT_RATIO)];
+
+    Eigen::Map<const Vec2T<T>> principal_point(camera + GetParamIndex(BACameraParameters::CX));
+    Eigen::Map<const VecXT<T>> distortion(camera + GetParamIndex(BACameraParameters::K1), GetParamsCount(BACameraParameters::DISTO));
+    Eigen::Map<const VecXT<T>> projection(camera + GetParamIndex(BACameraParameters::TRANSITION), 1);
+
+    // Apply camera projection
+    const auto predicted = Dispatch<Vec2T<T>, ProjectFunction>(
+      type_, camera_point.eval(), projection.eval(), affine.eval(), principal_point.eval(), distortion.eval());
+
+    // The error is the difference between the predicted and observed position
+    Eigen::Map<Vec2T<T>> residuals_mapped(residuals);
+    residuals_mapped = T(scale_) * (predicted - observed_.cast<T>());
+
+    return true;
+  }
+  ProjectionType type_;
+  Vec2d observed_;
+  double scale_;
+};
 
 struct PerspectiveReprojectionError {
   PerspectiveReprojectionError(double observed_x, double observed_y, double std_deviation)
