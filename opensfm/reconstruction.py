@@ -30,6 +30,9 @@ from opensfm.context import parallel_map, current_memory_usage
 logger = logging.getLogger(__name__)
 
 
+USE_NEW_BUNDLE = True
+
+
 def _add_camera_to_bundle(ba, camera, camera_prior, constant):
     """Add camera to a bundle adjustment problem."""
     if camera.projection_type == 'perspective':
@@ -76,25 +79,37 @@ def _add_camera_to_bundle(ba, camera, camera_prior, constant):
 
 def _get_camera_from_bundle(ba, camera):
     """Read camera parameters from a bundle adjustment problem."""
-    if camera.projection_type == 'perspective':
-        c = ba.get_perspective_camera(camera.id)
+    if USE_NEW_BUNDLE:
+        c = ba.get_camera(camera.id)
         camera.focal = c.focal
-        camera.distortion = [c.k1, c.k2]
-    elif camera.projection_type == 'brown':
-        c = ba.get_brown_perspective_camera(camera.id)
-        camera.principal_point = [c.c_x, c.c_y]
-        camera.focal = c.focal_x
-        camera.aspect_ratio = c.focal_y/c.focal_x
+        camera.aspect_ratio = c.aspect_ratio
+        camera.principal_point = c.principal_point
         camera.distortion = [c.k1, c.k2, c.k3, c.p1, c.p2]
-    elif camera.projection_type == 'fisheye':
-        c = ba.get_fisheye_camera(camera.id)
-        camera.focal = c.focal
-        camera.distortion = [c.k1, c.k2]
-    elif camera.projection_type == 'dual':
-        c = ba.get_dual_camera(camera.id)
-        camera.focal = c.focal
-        camera.distortion = [c.k1, c.k2]
-        camera.projection_params = [c.transition]
+        print(c.focal)
+        print(c.aspect_ratio)
+    else:
+        if camera.projection_type == 'perspective':
+            c = ba.get_perspective_camera(camera.id)
+            camera.focal = c.focal
+            camera.distortion = [c.k1, c.k2]
+            print(c.focal)
+        elif camera.projection_type == 'brown':
+            c = ba.get_brown_perspective_camera(camera.id)
+            camera.principal_point = [c.c_x, c.c_y]
+            camera.focal = c.focal_x
+            camera.aspect_ratio = c.focal_y/c.focal_x
+            camera.distortion = [c.k1, c.k2, c.k3, c.p1, c.p2]
+            print(c.focal_x)
+            print(c.focal_y/c.focal_x)
+        elif camera.projection_type == 'fisheye':
+            c = ba.get_fisheye_camera(camera.id)
+            camera.focal = c.focal
+            camera.distortion = [c.k1, c.k2]
+        elif camera.projection_type == 'dual':
+            c = ba.get_dual_camera(camera.id)
+            camera.focal = c.focal
+            camera.distortion = [c.k1, c.k2]
+            camera.projection_params = [c.transition]
 
 
 def triangulate_gcp(point, shots):
@@ -160,6 +175,7 @@ def bundle(graph, reconstruction, camera_priors, gcp, config):
 
     chrono = Chronometer()
     ba = pybundle.BundleAdjuster()
+    ba.set_use_new(USE_NEW_BUNDLE)
 
     for camera in reconstruction.cameras.values():
         camera_prior = camera_priors[camera.id]
@@ -246,6 +262,7 @@ def bundle(graph, reconstruction, camera_priors, gcp, config):
 def bundle_single_view(graph, reconstruction, shot_id, camera_priors, config):
     """Bundle adjust a single camera."""
     ba = pybundle.BundleAdjuster()
+    ba.set_use_new(USE_NEW_BUNDLE)
     shot = reconstruction.shots[shot_id]
     camera = shot.camera
     camera_prior = camera_priors[camera.id]
@@ -291,6 +308,9 @@ def bundle_single_view(graph, reconstruction, shot_id, camera_priors, config):
     shot.pose.rotation = [s.r[0], s.r[1], s.r[2]]
     shot.pose.translation = [s.t[0], s.t[1], s.t[2]]
 
+    dummy = copy.deepcopy(shot.camera)
+    _get_camera_from_bundle(ba, dummy)
+
 
 def bundle_local(graph, reconstruction, camera_priors, gcp, central_shot_id, config):
     """Bundle adjust the local neighborhood of a shot."""
@@ -315,6 +335,7 @@ def bundle_local(graph, reconstruction, camera_priors, gcp, central_shot_id, con
                     point_ids.add(track)
 
     ba = pybundle.BundleAdjuster()
+    ba.set_use_new(USE_NEW_BUNDLE)
 
     for camera in reconstruction.cameras.values():
         camera_prior = camera_priors[camera.id]
