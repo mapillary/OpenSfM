@@ -1,6 +1,7 @@
 """Basic types for building a reconstruction."""
 
 import numpy as np
+from opensfm import pymap 
 import cv2
 import math
 
@@ -892,11 +893,12 @@ class CameraView(object):
         return self.map.number_of_cameras()
 
     def add_camera(self, cam):
-        if cam.projection_type == "perspective":
-            cam_tmp = pymap.PerspectiveCamera(640, 480, cam.projection_type, cam.focal, cam.k1, cam.k2)
-            cam_map = self.map.create_cam_model(cam.id, cam_tmp)
-            self.map.create_shot_camera(self.map.number_of_cameras(),
-                                     cam_map, cam.id)
+        # if cam.projection_type == "perspective":
+            # cam_tmp = pymap.PerspectiveCamera(640, 480, cam.projection_type, cam.focal, cam.k1, cam.k2)
+            # cam_map = self.map.create_cam_model(cam.id, cam_tmp)
+            # self.map.create_shot_camera(self.map.number_of_cameras(),
+                                    #  cam_map, cam.id)
+        self.map.create_camera(cam)
     
     def __getitem__(self, index):
         return self.get(index)
@@ -917,6 +919,14 @@ class Reconstruction(object):
       points (Dict(Point)): List of reconstructed points.
       reference (TopocentricConverter): Topocentric reference converter.
     """
+
+    def __init__(self):
+        """Defaut constructor"""
+        self.map = pymap.Map()
+        super(Reconstruction, self).__setattr__("cameras", CameraView(self.map))
+        super(Reconstruction, self).__setattr__("reference", None)
+        super(Reconstruction, self).__setattr__("shots", ShotView(self.map))
+        super(Reconstruction, self).__setattr__("points", PointView(self.map))
 
     def __setattr__(self, name, value):
 

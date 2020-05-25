@@ -164,7 +164,7 @@ PYBIND11_MODULE(pymap, m) {
            py::return_value_policy::reference_internal)
       .def("set_reference", &map::Map::SetTopoCentricConverter)
       .def("get_reference", &map::Map::GetTopoCentricConverter)
-      .def("create_cam_model", &map::Map::CreateCamera,
+      .def("create_camera", &map::Map::CreateCamera,
            py::return_value_policy::reference_internal)
       .def("has_landmark", &map::Map::HasLandmark)
       .def("get_landmark", &map::Map::GetLandmark,
@@ -216,9 +216,9 @@ PYBIND11_MODULE(pymap, m) {
       .def("init_and_take_datastructures",
            &map::Shot::InitAndTakeDatastructures)
       .def("init_keypts_and_descriptors", &map::Shot::InitKeyptsAndDescriptors)
-      .def("undistort_keypts", &map::Shot::UndistortKeypts)
-      .def("undistorted_keypts_to_bearings",
-           &map::Shot::UndistortedKeyptsToBearings)
+      // .def("undistort_keypts", &map::Shot::UndistortKeypts)
+      // .def("undistorted_keypts_to_bearings",
+          //  &map::Shot::UndistortedKeyptsToBearings)
       .def("set_pose", &map::Shot::SetPose)
       .def("get_pose", &map::Shot::GetPose,
            py::return_value_policy::reference_internal)
