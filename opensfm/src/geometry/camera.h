@@ -5,6 +5,7 @@
 
 class Camera {
  public:
+  Camera();
   static Camera CreatePerspectiveCamera(double focal, double k1, double k2);
   static Camera CreateBrownCamera(double focal, double aspect_ratio,
                                   const Eigen::Vector2d& principal_point,
@@ -45,7 +46,6 @@ class Camera {
   std::string id;
 
  private:
-  Camera();
 
   ProjectionType type_;
   Eigen::VectorXd projection_;      // dual transition (1 = perspective, 0 = fisheye)
