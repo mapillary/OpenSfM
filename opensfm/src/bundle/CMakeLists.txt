@@ -26,6 +26,7 @@ target_include_directories(bundle PRIVATE ${CMAKE_SOURCE_DIR})
 pybind11_add_module(pybundle python/pybind.cc)
 target_link_libraries(pybundle PRIVATE
   bundle
+  geometry
   foundation
   pybind11)
 set_target_properties(pybundle PROPERTIES
