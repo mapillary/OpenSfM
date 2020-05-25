@@ -7,7 +7,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
-#include <foundation/types.h>
+#include <foundation/python_types.h>
 
 namespace geometry {
 

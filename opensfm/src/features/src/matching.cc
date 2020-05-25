@@ -3,7 +3,7 @@
 #include <opencv2/core/core.hpp>
 #include <pybind11/pybind11.h>
 
-#include <foundation/types.h>
+#include <foundation/python_types.h>
 
 
 namespace features {

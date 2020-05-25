@@ -258,7 +258,7 @@ struct Identity {
   }
 };
 
-struct ProjectT {
+struct ProjectFunction {
   template <class TYPE>
   static Eigen::Vector2d Apply(const Eigen::Vector3d& point,
                                const Eigen::VectorXd& projection,
@@ -270,7 +270,7 @@ struct ProjectT {
   }
 };
 
-struct BearingT {
+struct BearingFunction {
   template <class TYPE>
   static Eigen::Vector3d Apply(const Eigen::Vector2d& point,
                                const Eigen::VectorXd& projection,
