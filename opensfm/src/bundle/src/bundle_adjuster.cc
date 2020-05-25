@@ -25,6 +25,23 @@ BundleAdjuster::BundleAdjuster() {
   linear_solver_type_ = "SPARSE_NORMAL_CHOLESKY";
 }
 
+void BundleAdjuster::UpdateSigmas(){
+  for (auto &camera : cameras_new_) {
+    Camera sigma = camera.second.GetValue();
+    VecXd disto_prior_sd(GetParamsCount(BACameraParameters::DISTO));
+    disto_prior_sd << k1_sd_, k2_sd_, k3_sd_, p1_sd_, p2_sd_;
+    sigma.SetDistortion(disto_prior_sd);
+    Vec2d principal_point_prior_sd;
+    principal_point_prior_sd << c_prior_sd_, c_prior_sd_;
+    sigma.SetPrincipalPoint(principal_point_prior_sd);
+    sigma.SetFocal(focal_prior_sd_);
+    sigma.SetAspectRatio(focal_prior_sd_);
+    Vec1d projection_sd = VecXd(1);
+    projection_sd.setOnes();
+    sigma.SetProjectionParams(projection_sd);
+    camera.second.SetSigma(sigma);
+  }
+}
 void BundleAdjuster::AddCameraNew(const std::string &id, const Camera& camera, const Camera& prior, bool constant){  
   Camera sigma = camera;
   VecXd disto_prior_sd(GetParamsCount(BACameraParameters::DISTO));
@@ -35,6 +52,7 @@ void BundleAdjuster::AddCameraNew(const std::string &id, const Camera& camera, c
   sigma.SetPrincipalPoint(principal_point_prior_sd);
   sigma.SetFocal(focal_prior_sd_);
   sigma.SetAspectRatio(focal_prior_sd_);
+  sigma.SetProjectionParams(VecXd(1).setOnes());
 
   cameras_new_.emplace(id, BACameraNew(camera, prior, sigma));
 
@@ -479,6 +497,7 @@ void BundleAdjuster::SetInternalParametersPriorSD(
   p1_sd_ = p1_sd;
   p2_sd_ = p2_sd;
   k3_sd_ = k3_sd;
+  UpdateSigmas();
 }
 
 void BundleAdjuster::SetComputeCovariances(bool v) {
@@ -589,7 +608,7 @@ void BundleAdjuster::Run() {
 
   if(use_new_){
     for (auto &i : cameras_new_) {
-      auto data = i.second.GetData();
+      auto data = i.second.GetValueData().data();
 
       // Push data block
       const auto data_size = static_cast<int>(BACameraParameters::COUNT);
@@ -607,10 +626,8 @@ void BundleAdjuster::Run() {
         for(int i = 0; i < data_size; ++i ){
           if(!((1 << i) & parameters)){
             subset.push_back(i);
-            std::cout << i << " ";
           }
         }
-        std::cout << std::endl;
         problem.SetParameterization(data, new ceres::SubsetParameterization(data_size, subset));
       }
     }
@@ -742,111 +759,86 @@ void BundleAdjuster::Run() {
   }
 
   // Add internal parameter priors blocks
-  if(use_new_){
+  if (use_new_) {
     for (auto &i : cameras_new_) {
-      auto data = i.second.GetData();
+      auto data = i.second.GetValueData().data();
 
-      // Push data block
-      const auto data_size = static_cast<int>(BACameraParameters::COUNT);
-      problem.AddParameterBlock(data, data_size);
+      auto* prior_function = new BADataPriorError<Camera>(&i.second);
 
-      // Lock parameters based on bitmask of parameters :
-      const auto parameters = static_cast<int>(i.second.parameters);
+      // Set focal and aspect ratio prior to log scale
+      prior_function->SetScaleType(
+          GetParamsCount(BACameraParameters::FOCAL),
+          BADataPriorError<Camera>::ScaleType::LOGARITHMIC);
+      prior_function->SetScaleType(
+          GetParamsCount(BACameraParameters::ASPECT_RATIO),
+          BADataPriorError<Camera>::ScaleType::LOGARITHMIC);
 
-      // Set it as fully constant (no bits)
-
-    BABrownPerspectiveCamera &c = static_cast<BABrownPerspectiveCamera &>(*i.second);
-
-        ceres::CostFunction* cost_function =
-            new ceres::AutoDiffCostFunction<BrownInternalParametersPriorError,
-              BA_BROWN_CAMERA_NUM_PARAMS, BA_BROWN_CAMERA_NUM_PARAMS>(
-                new BrownInternalParametersPriorError(c.focal_x_prior, focal_prior_sd_,
-                                                      c.focal_y_prior, focal_prior_sd_,
-                                                      c.c_x_prior, c_prior_sd_,
-                                                      c.c_y_prior, c_prior_sd_,
-                                                      c.k1_prior, k1_sd_,
-                                                      c.k2_prior, k2_sd_,
-                                                      c.p1_prior, p1_sd_,
-                                                      c.p2_prior, p2_sd_,
-                                                      c.k3_prior, k3_sd_));
-  }
-  else{
-  for (auto &i : cameras_) {
-    switch (i.second->type()) {
-      case BA_PERSPECTIVE_CAMERA:
-      {
-        BAPerspectiveCamera &c = static_cast<BAPerspectiveCamera &>(*i.second);
-
-        ceres::CostFunction* cost_function =
-            new ceres::AutoDiffCostFunction<BasicRadialInternalParametersPriorError, 
-              BA_CAMERA_NUM_PARAMS, BA_CAMERA_NUM_PARAMS>(
-                new BasicRadialInternalParametersPriorError(c.focal_prior, focal_prior_sd_,
-                                                            c.k1_prior, k1_sd_,
-                                                            c.k2_prior, k2_sd_));
-
-        problem.AddResidualBlock(cost_function,
-                                  NULL,
-                                  c.parameters);
-        break;
-      }
-      case BA_BROWN_PERSPECTIVE_CAMERA:
-      {
-        BABrownPerspectiveCamera &c = static_cast<BABrownPerspectiveCamera &>(*i.second);
-
-        ceres::CostFunction* cost_function =
-            new ceres::AutoDiffCostFunction<BrownInternalParametersPriorError,
-              BA_BROWN_CAMERA_NUM_PARAMS, BA_BROWN_CAMERA_NUM_PARAMS>(
-                new BrownInternalParametersPriorError(c.focal_x_prior, focal_prior_sd_,
-                                                      c.focal_y_prior, focal_prior_sd_,
-                                                      c.c_x_prior, c_prior_sd_,
-                                                      c.c_y_prior, c_prior_sd_,
-                                                      c.k1_prior, k1_sd_,
-                                                      c.k2_prior, k2_sd_,
-                                                      c.p1_prior, p1_sd_,
-                                                      c.p2_prior, p2_sd_,
-                                                      c.k3_prior, k3_sd_));
-
-        problem.AddResidualBlock(cost_function,
-                                  NULL,
-                                  c.parameters);
-        break;
-      }
-      case BA_FISHEYE_CAMERA:
-      {
-        BAFisheyeCamera &c = static_cast<BAFisheyeCamera &>(*i.second);
-
-        ceres::CostFunction* cost_function =
-            new ceres::AutoDiffCostFunction<BasicRadialInternalParametersPriorError,
-              BA_CAMERA_NUM_PARAMS, BA_CAMERA_NUM_PARAMS>(
-                new BasicRadialInternalParametersPriorError(c.focal_prior, focal_prior_sd_,
-                                                            c.k1_prior, k1_sd_,
-                                                            c.k2_prior, k2_sd_));
-
-        problem.AddResidualBlock(cost_function,
-                                  NULL,
-                                  c.parameters);
-        break;
-      }
-      case BA_DUAL_CAMERA:
-      {
-        BADualCamera &c = static_cast<BADualCamera &>(*i.second);
-
-        ceres::CostFunction* cost_function =
-            new ceres::AutoDiffCostFunction<BasicRadialInternalParametersPriorError,
-              BA_CAMERA_NUM_PARAMS, BA_DUAL_CAMERA_NUM_PARAMS>(
-                new BasicRadialInternalParametersPriorError(c.focal_prior, focal_prior_sd_,
-                                                            c.k1_prior, k1_sd_,
-                                                            c.k2_prior, k2_sd_));
-
-        problem.AddResidualBlock(cost_function,
-                                  NULL,
-                                  c.parameters);
-        break;
-      }
-      case BA_EQUIRECTANGULAR_CAMERA:
-        break;
+      ceres::CostFunction *cost_function =
+          new ceres::AutoDiffCostFunction<BADataPriorError<Camera>,
+                                          GetEnumAsConstExpr(BACameraParameters::COUNT),
+                                          GetEnumAsConstExpr(BACameraParameters::COUNT)>(prior_function);
+      problem.AddResidualBlock(cost_function, NULL, data);
     }
-  }
+  } else {
+    for (auto &i : cameras_) {
+      switch (i.second->type()) {
+        case BA_PERSPECTIVE_CAMERA: {
+          BAPerspectiveCamera &c =
+              static_cast<BAPerspectiveCamera &>(*i.second);
+
+          ceres::CostFunction *cost_function = new ceres::AutoDiffCostFunction<
+              BasicRadialInternalParametersPriorError, BA_CAMERA_NUM_PARAMS,
+              BA_CAMERA_NUM_PARAMS>(new BasicRadialInternalParametersPriorError(
+              c.focal_prior, focal_prior_sd_, c.k1_prior, k1_sd_, c.k2_prior,
+              k2_sd_));
+
+          problem.AddResidualBlock(cost_function, NULL, c.parameters);
+          break;
+        }
+        case BA_BROWN_PERSPECTIVE_CAMERA: {
+          BABrownPerspectiveCamera &c =
+              static_cast<BABrownPerspectiveCamera &>(*i.second);
+
+          ceres::CostFunction *cost_function = new ceres::AutoDiffCostFunction<
+              BrownInternalParametersPriorError, BA_BROWN_CAMERA_NUM_PARAMS,
+              BA_BROWN_CAMERA_NUM_PARAMS>(new BrownInternalParametersPriorError(
+              c.focal_x_prior, focal_prior_sd_, c.focal_y_prior,
+              focal_prior_sd_, c.c_x_prior, c_prior_sd_, c.c_y_prior,
+              c_prior_sd_, c.k1_prior, k1_sd_, c.k2_prior, k2_sd_, c.p1_prior,
+              p1_sd_, c.p2_prior, p2_sd_, c.k3_prior, k3_sd_));
+
+          problem.AddResidualBlock(cost_function, NULL, c.parameters);
+          break;
+        }
+        case BA_FISHEYE_CAMERA: {
+          BAFisheyeCamera &c = static_cast<BAFisheyeCamera &>(*i.second);
+
+          ceres::CostFunction *cost_function = new ceres::AutoDiffCostFunction<
+              BasicRadialInternalParametersPriorError, BA_CAMERA_NUM_PARAMS,
+              BA_CAMERA_NUM_PARAMS>(new BasicRadialInternalParametersPriorError(
+              c.focal_prior, focal_prior_sd_, c.k1_prior, k1_sd_, c.k2_prior,
+              k2_sd_));
+
+          problem.AddResidualBlock(cost_function, NULL, c.parameters);
+          break;
+        }
+        case BA_DUAL_CAMERA: {
+          BADualCamera &c = static_cast<BADualCamera &>(*i.second);
+
+          ceres::CostFunction *cost_function = new ceres::AutoDiffCostFunction<
+              BasicRadialInternalParametersPriorError, BA_CAMERA_NUM_PARAMS,
+              BA_DUAL_CAMERA_NUM_PARAMS>(
+              new BasicRadialInternalParametersPriorError(
+                  c.focal_prior, focal_prior_sd_, c.k1_prior, k1_sd_,
+                  c.k2_prior, k2_sd_));
+
+          problem.AddResidualBlock(cost_function, NULL, c.parameters);
+          break;
+        }
+        case BA_EQUIRECTANGULAR_CAMERA:
+          break;
+      }
+    }
   }
 
   // Add unit translation block
@@ -1093,7 +1085,7 @@ void BundleAdjuster::AddObservationResidualBlockNew(
       GetEnumAsConstExpr(BAShotParameters::COUNT), 3>(new ReprojectionError(
       observation.camera->GetValue().GetProjectionType(), observation.coordinates,
       observation.std_deviation));
-  problem->AddResidualBlock(cost_function, loss, observation.camera->GetData(),
+  problem->AddResidualBlock(cost_function, loss, observation.camera->GetValueData().data(),
                             observation.shot->parameters.data(),
                             observation.point->parameters.data());
 }
@@ -1235,84 +1227,88 @@ void BundleAdjuster::ComputeReprojectionErrors() {
     i.second.reprojection_errors.clear();
   }
 
-  // Sum over all observations
-  for (int i = 0; i < point_projection_observations_.size(); ++i) {
-    auto& projection = point_projection_observations_[i];
-    switch (projection.camera->type()) {
-      case BA_PERSPECTIVE_CAMERA:
-      {
-        BAPerspectiveCamera &c = static_cast<BAPerspectiveCamera &>(*projection.camera);
+  if (use_new_) {
+    for (auto &observation : point_projection_observations_new_) {
+      ReprojectionError error(
+          observation.camera->GetValue().GetProjectionType(),
+          observation.coordinates, 1.0);
 
-        PerspectiveReprojectionError pre(projection.coordinates[0],
-                                          projection.coordinates[1],
-                                          1.0);
-        double residuals[2];
-        pre(c.parameters,
-            projection.shot->parameters.data(),
-            projection.point->parameters.data(),
-            residuals);
-        projection.point->reprojection_errors[projection.shot->id] = Eigen::Vector2d(residuals[0], residuals[1]);
-        break;
-      }
-      case BA_BROWN_PERSPECTIVE_CAMERA:
-      {
-        BABrownPerspectiveCamera &c = static_cast<BABrownPerspectiveCamera &>(*projection.camera);
+      Vec2d residuals;
+      error(observation.camera->GetValueData().data(),
+            observation.shot->parameters.data(),
+            observation.point->parameters.data(), residuals.data());
+      observation.point->reprojection_errors[observation.shot->id] = residuals;
+    }
+  } else {
+    // Sum over all observations
+    for (int i = 0; i < point_projection_observations_.size(); ++i) {
+      auto &projection = point_projection_observations_[i];
+      switch (projection.camera->type()) {
+        case BA_PERSPECTIVE_CAMERA: {
+          BAPerspectiveCamera &c =
+              static_cast<BAPerspectiveCamera &>(*projection.camera);
 
-        BrownPerspectiveReprojectionError bpre(projection.coordinates[0],
-                                                projection.coordinates[1],
-                                                1.0);
-        double residuals[2];
-        bpre(c.parameters,
-              projection.shot->parameters.data(),
-              projection.point->parameters.data(),
-              residuals);
-        projection.point->reprojection_errors[projection.shot->id] = Eigen::Vector2d(residuals[0], residuals[1]);
-        break;
-      }
-      case BA_FISHEYE_CAMERA:
-      {
-        BAFisheyeCamera &c = static_cast<BAFisheyeCamera &>(*projection.camera);
+          PerspectiveReprojectionError pre(projection.coordinates[0],
+                                           projection.coordinates[1], 1.0);
+          double residuals[2];
+          pre(c.parameters, projection.shot->parameters.data(),
+              projection.point->parameters.data(), residuals);
+          projection.point->reprojection_errors[projection.shot->id] =
+              Eigen::Vector2d(residuals[0], residuals[1]);
+          break;
+        }
+        case BA_BROWN_PERSPECTIVE_CAMERA: {
+          BABrownPerspectiveCamera &c =
+              static_cast<BABrownPerspectiveCamera &>(*projection.camera);
 
-        FisheyeReprojectionError pre(projection.coordinates[0],
-                                      projection.coordinates[1],
-                                      1.0);
-        double residuals[2];
-        pre(c.parameters,
-            projection.shot->parameters.data(),
-            projection.point->parameters.data(),
-            residuals);
-        projection.point->reprojection_errors[projection.shot->id] = Eigen::Vector2d(residuals[0], residuals[1]);
-        break;
-      }
-      case BA_DUAL_CAMERA:
-      {
-        BADualCamera &c = static_cast<BADualCamera &>(*projection.camera);
+          BrownPerspectiveReprojectionError bpre(
+              projection.coordinates[0], projection.coordinates[1], 1.0);
+          double residuals[2];
+          bpre(c.parameters, projection.shot->parameters.data(),
+               projection.point->parameters.data(), residuals);
+          projection.point->reprojection_errors[projection.shot->id] =
+              Eigen::Vector2d(residuals[0], residuals[1]);
+          break;
+        }
+        case BA_FISHEYE_CAMERA: {
+          BAFisheyeCamera &c =
+              static_cast<BAFisheyeCamera &>(*projection.camera);
 
-        DualReprojectionError pre(projection.coordinates[0],
-                                  projection.coordinates[1],
-                                  1.0);
+          FisheyeReprojectionError pre(projection.coordinates[0],
+                                       projection.coordinates[1], 1.0);
+          double residuals[2];
+          pre(c.parameters, projection.shot->parameters.data(),
+              projection.point->parameters.data(), residuals);
+          projection.point->reprojection_errors[projection.shot->id] =
+              Eigen::Vector2d(residuals[0], residuals[1]);
+          break;
+        }
+        case BA_DUAL_CAMERA: {
+          BADualCamera &c = static_cast<BADualCamera &>(*projection.camera);
 
-        double residuals[2];
-        pre(c.parameters,
-            projection.shot->parameters.data(),
-            projection.point->parameters.data(),
-            residuals);
-        projection.point->reprojection_errors[projection.shot->id] = Eigen::Vector2d(residuals[0], residuals[1]);
-        break;
-      }
-      case BA_EQUIRECTANGULAR_CAMERA:
-      {
-        BAEquirectangularCamera &c = static_cast<BAEquirectangularCamera &>(*projection.camera);
+          DualReprojectionError pre(projection.coordinates[0],
+                                    projection.coordinates[1], 1.0);
 
-        EquirectangularReprojectionError ere(projection.coordinates[0],
-                                              projection.coordinates[1],
-                                              1.0);
-        double residuals[3];
-        ere(projection.shot->parameters.data(),
-            projection.point->parameters.data(),
-            residuals);
-        projection.point->reprojection_errors[projection.shot->id] = Eigen::Vector3d(residuals[0], residuals[1], residuals[2]);
-        break;
+          double residuals[2];
+          pre(c.parameters, projection.shot->parameters.data(),
+              projection.point->parameters.data(), residuals);
+          projection.point->reprojection_errors[projection.shot->id] =
+              Eigen::Vector2d(residuals[0], residuals[1]);
+          break;
+        }
+        case BA_EQUIRECTANGULAR_CAMERA: {
+          BAEquirectangularCamera &c =
+              static_cast<BAEquirectangularCamera &>(*projection.camera);
+
+          EquirectangularReprojectionError ere(projection.coordinates[0],
+                                               projection.coordinates[1], 1.0);
+          double residuals[3];
+          ere(projection.shot->parameters.data(),
+              projection.point->parameters.data(), residuals);
+          projection.point->reprojection_errors[projection.shot->id] =
+              Eigen::Vector3d(residuals[0], residuals[1], residuals[2]);
+          break;
+        }
       }
     }
   }
@@ -1322,8 +1318,6 @@ Camera BundleAdjuster::GetCamera(const std::string &id){
   if(cameras_new_.find(id) == cameras_new_.end()){
     throw std::runtime_error("Camera doesn't exists");
   }
-  auto c = cameras_new_.at(id).GetValue();
-  std::cout << c.GetFocal() << std::endl;
   return cameras_new_.at(id).GetValue();
 }
 BAPerspectiveCamera BundleAdjuster::GetPerspectiveCamera(
