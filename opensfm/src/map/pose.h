@@ -1,7 +1,6 @@
 #pragma once
 #include <Eigen/Core>
 #include <Eigen/Geometry>
-#include <third_party/sophus/se3.hpp>
 
 namespace map
 {
@@ -11,99 +10,121 @@ class Pose
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   Pose():
-    cam_to_world_(Eigen::Matrix4d::Identity()), world_to_cam_(Eigen::Matrix4d::Identity())
+    cam_to_world_(Mat4d::Identity()), world_to_cam_(Mat4d::Identity())
   {
 
   }
-  Eigen::Matrix4d WorldToCamera() const { return world_to_cam_.matrix(); }
-  Eigen::Matrix<double, 3, 4> WorldToCameraRt() const { return world_to_cam_.matrix3x4(); }
+  // Transformation Matrices
+  Mat4d WorldToCamera() const { return world_to_cam_; }
+  Mat34d WorldToCameraRt() const { return world_to_cam_.block<3,4>(0,0); }
 
-  //4x4 Transformation
-  Eigen::Matrix4d CameraToWorld() const { return cam_to_world_.matrix(); }
-  Eigen::Matrix<double, 3, 4> CameraToWorldRt() const { return cam_to_world_.matrix3x4(); }
+  Mat4d CameraToWorld() const { return cam_to_world_; }
+  Mat34d CameraToWorldRt() const { return cam_to_world_.block<3,4>(0,0); }
 
   // 3x3 Rotation
-  Eigen::Matrix3d RotationWorldToCamera() const { return world_to_cam_.rotationMatrix(); }
-  Eigen::Matrix3d RotationCameraToWorld() const { return cam_to_world_.rotationMatrix(); }
-  Eigen::Vector3d RotationWorldToCameraMin() const { return world_to_cam_.so3().log(); }
-  Eigen::Vector3d RotationCameraToWorldMin() const { return cam_to_world_.so3().log(); }
+  Mat3d RotationWorldToCamera() const { return world_to_cam_.block<3,3>(0,0); }
+  Mat3d RotationCameraToWorld() const { return cam_to_world_.block<3,3>(0,0); }
+  Vec3d RotationWorldToCameraMin() const { return r_min_world_to_cam_;  } 
+  Vec3d RotationCameraToWorldMin() const { return r_min_cam_to_world_;  } 
 
   // 3x1 Translation
-  Eigen::Vector3d TranslationWorldToCamera() const { return world_to_cam_.translation(); }
-  Eigen::Vector3d TranslationCameraToWorld() const { return cam_to_world_.translation(); };
-  Eigen::Vector3d GetOrigin() const { return TranslationCameraToWorld(); }  
+  Vec3d TranslationWorldToCamera() const { return world_to_cam_.block<3,1>(0,3); }
+  Vec3d TranslationCameraToWorld() const { return cam_to_world_.block<3,1>(0,3); };
+  Vec3d GetOrigin() const { return TranslationCameraToWorld(); }  
 
-  void SetFromWorldToCamera(const Eigen::Matrix4d& world_to_camera)
+  void SetFromWorldToCamera(const Mat4d& world_to_camera)
   {
-    const Eigen::Matrix3d R_cw = world_to_camera.block<3,3>(0,0);
+    const Mat3d R_cw = world_to_camera.block<3,3>(0,0); //avoid ambiguous compile error
     SetFromWorldToCamera(R_cw, world_to_camera.block<3,1>(0,3));
 
   }
-  void SetFromCameraToWorld(const Eigen::Matrix4d& camera_to_world)
+  void SetFromCameraToWorld(const Mat4d& camera_to_world)
   {
-    const Eigen::Matrix3d R_wc = camera_to_world.block<3,3>(0,0); //avoid ambiguous compile error
+    const Mat3d R_wc = camera_to_world.block<3,3>(0,0); //avoid ambiguous compile error
     SetFromCameraToWorld(R_wc, camera_to_world.block<3,1>(0,3));
-
-    // SetFromCameraToWorld(camera_to_world.block<3,3>(0,0), camera_to_world.block<3,1>(0,3));
   }
 
-  void SetFromWorldToCamera(const Eigen::Matrix3d& R_cw, const Eigen::Vector3d& t_cw)
+  void SetFromWorldToCamera(const Mat3d& R_cw, const Vec3d& t_cw)
   {
-    world_to_cam_.setRotationMatrix(R_cw);
-    world_to_cam_.translation() = t_cw;
+    world_to_cam_.block<3,3>(0,0) = R_cw;
+    world_to_cam_.block<3,1>(0,3) = t_cw;
     cam_to_world_ = world_to_cam_.inverse();
+    UpdateMinRotations();
   }
-  void SetFromCameraToWorld(const Eigen::Matrix3d& R_wc, const Eigen::Vector3d& t_wc)
+
+  void SetFromCameraToWorld(const Mat3d& R_wc, const Vec3d& t_wc)
   {
-    cam_to_world_.setRotationMatrix(R_wc);
-    cam_to_world_.translation() = t_wc;
+    cam_to_world_.block<3,3>(0,0) = R_wc;
+    cam_to_world_.block<3,1>(0,3) = t_wc;
     world_to_cam_ = cam_to_world_.inverse();
+    UpdateMinRotations();
   }
 
-  void SetWorldToCamRotation(const Eigen::Vector3d& r_cw)
+  void SetWorldToCamRotation(const Vec3d& r_cw)
   {
-    Eigen::Matrix3d R_cw = Sophus::SO3d::exp(r_cw).matrix();
-    world_to_cam_.setRotationMatrix(R_cw);
-    cam_to_world_.setRotationMatrix(R_cw.transpose());
+    Mat3d R_cw = VectorToRotationMatrix(r_cw);
+    world_to_cam_.block<3,3>(0,0) = R_cw;
+    cam_to_world_.block<3,3>(0,0) = R_cw.transpose();
+    UpdateMinRotations();
   }
 
-  void SetWorldToCamTranslation(const Eigen::Vector3d& t_cw)
+  void SetWorldToCamTranslation(const Vec3d& t_cw)
   {
-    world_to_cam_.translation() = t_cw;
-    cam_to_world_.translation() = world_to_cam_.inverse().translation();
+    world_to_cam_.block<3,1>(0,3) = t_cw;
+    cam_to_world_.block<3,1>(0,3) = world_to_cam_.inverse().block<3,1>(0,3);
   }
 
-  void SetWorldToCamRotationMatrix(const Eigen::Matrix3d& R_cw)
+  void SetWorldToCamRotationMatrix(const Mat3d& R_cw)
   {
-    world_to_cam_.setRotationMatrix(R_cw);
-    cam_to_world_.setRotationMatrix(R_cw.transpose());
+    world_to_cam_.block<3,3>(0,0)= R_cw;
+    cam_to_world_.block<3,3>(0,0)= R_cw.transpose();
+    UpdateMinRotations();
   }
-  void SetFromCameraToWorld(const Eigen::Vector3d& R_wc, const Eigen::Vector3d& t_wc)
+  void SetFromCameraToWorld(const Vec3d& r_wc, const Vec3d& t_wc)
   {
-    // Sophus::SO3d::exp(R_wc);
-    // SetFromCameraToWorld(Sophus::makeRotationMatrix(R_wc), t_wc);
-    SetFromCameraToWorld(Sophus::SO3d::exp(R_wc).matrix(), t_wc);
+    const Mat3d R_wc = VectorToRotationMatrix(r_wc);//#Eigen::AngleAxisd(r_wc.norm(), r_wc).toRotationMatrix();
+    SetFromCameraToWorld(R_wc, t_wc);
 
   }
-  void SetFromWorldToCamera(const Eigen::Vector3d& R_cw, const Eigen::Vector3d& t_cw)
+  void SetFromWorldToCamera(const Vec3d& r_cw, const Vec3d& t_cw)
   {
-    SetFromWorldToCamera(Sophus::SO3d::exp(R_cw).matrix(), t_cw);
+    const Mat3d R_cw = VectorToRotationMatrix(r_cw); //Eigen::AngleAxisd(r_cw.norm(), r_cw).toRotationMatrix();
+    SetFromCameraToWorld(R_cw, t_cw);
   }
 
-  Eigen::Vector3d TransformWorldToCamera(const Eigen::Vector3d& global_pos) const
+  Vec3d TransformWorldToCamera(const Vec3d& point) const
   {
-    return world_to_cam_.rotationMatrix()*global_pos + world_to_cam_.translation();
+    return world_to_cam_.block<3, 3>(0, 0) * point +
+           world_to_cam_.block<3, 1>(0, 3);
   }
 
-  Eigen::Vector3d TransformCameraToWorld(const Eigen::Vector3d& point) const
+  Vec3d TransformCameraToWorld(const Vec3d& point) const
   {
     // equal to: world_to_cam_.rotationMatrix().t (point - world_to_cam_.translation())
-    return cam_to_world_.rotationMatrix()*point + cam_to_world_.translation();
+    return cam_to_world_.block<3, 3>(0, 0) * point +
+           cam_to_world_.block<3, 1>(0, 3);
   }
 
-  // TODO: set from min representation!
 private:
-  Sophus::SE3d cam_to_world_;
-  Sophus::SE3d world_to_cam_;
+  Mat4d cam_to_world_; // [R',-R't] cam to world
+  Mat4d world_to_cam_; // [R, t] world to cam
+  Vec3d r_min_cam_to_world_;
+  Vec3d r_min_world_to_cam_;
+
+  static Mat3d VectorToRotationMatrix(const Vec3d& r)
+  {
+    const auto n = r.norm();
+    return Eigen::AngleAxisd(n, r/n).toRotationMatrix();
+  }
+  static Vec3d RotationMatrixToVector(const Mat3d& R)
+  {
+    Eigen::AngleAxisd tmp(R);
+    return tmp.axis()*tmp.angle();
+  }
+  void UpdateMinRotations()
+  {
+    r_min_cam_to_world_ = RotationMatrixToVector(cam_to_world_.block<3,3>(0,0));
+    r_min_world_to_cam_ = RotationMatrixToVector(world_to_cam_.block<3,3>(0,0));
+  }
 };
 }; //namespace map
