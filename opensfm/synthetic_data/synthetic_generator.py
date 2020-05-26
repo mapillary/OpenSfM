@@ -165,6 +165,7 @@ def perturb_rotations(rotations, angle_sigma):
 def add_shots_to_reconstruction(positions, rotations,
                                 camera, reconstruction):
     shift = len(reconstruction.shots)
+    reconstruction.add_camera(camera)
     for i, item in enumerate(zip(positions, rotations)):
         shot = types.Shot()
         shot.id = 'shot' + str(shift+i)
@@ -173,7 +174,7 @@ def add_shots_to_reconstruction(positions, rotations,
         shot.pose.set_rotation_matrix(item[1])
         shot.pose.set_origin(item[0])
         reconstruction.add_shot(shot)
-    reconstruction.add_camera(camera)
+
 
 
 def add_points_to_reconstruction(points, color, reconstruction):

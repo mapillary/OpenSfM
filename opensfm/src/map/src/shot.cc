@@ -30,8 +30,8 @@ Shot::ComputeMedianDepthOfLandmarks(const bool take_abs) const
     return 1.0f;
   std::vector<float> depths;
   depths.reserve(landmarks_.size());
-  const Eigen::Matrix4d T_cw = pose_.WorldToCamera();
-  const Eigen::Vector3d rot_cw_z_row = T_cw.block<1, 3>(2, 0);
+  const Mat4d T_cw = pose_.WorldToCamera();
+  const Vec3d rot_cw_z_row = T_cw.block<1, 3>(2, 0);
   const double trans_cw_z = T_cw(2, 3);
   for (const auto& lm : landmarks_)
   {
@@ -114,7 +114,7 @@ Shot::ScaleLandmarks(const double scale)
 void
 Shot::ScalePose(const double scale)
 {
-    Eigen::Matrix4d cam_pose_cw = pose_.WorldToCamera();
+    Mat4d cam_pose_cw = pose_.WorldToCamera();
     cam_pose_cw.block<3, 1>(0, 3) *= scale;
     pose_.SetFromWorldToCamera(cam_pose_cw);
 }
@@ -135,7 +135,7 @@ Shot::RemoveLandmarkObservation(const FeatureId id)
   }
 }
 
-Eigen::Vector2d Shot::Project(const Eigen::Vector3d& global_pos) const {
+Vec2d Shot::Project(const Vec3d& global_pos) const {
   return shot_camera_.Project(pose_.RotationWorldToCamera()*global_pos + pose_.TranslationWorldToCamera());
 }
 

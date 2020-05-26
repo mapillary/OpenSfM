@@ -24,7 +24,7 @@ public:
   // TODO: Removing a camera might be problematic while shots are still using it.
   // void RemoveCamera(const CameraId cam_id);
   std::vector<Camera*> GetCameras();
-  Camera* GetCamera(const CameraId& cam);
+  Camera* GetCamera(const CameraId& cam_id);
   Camera* CreateCamera(const Camera& cam);
   const std::unordered_map<CameraId, Camera>& GetAllCameras() const { return cameras_; };
   const std::unordered_map<CameraId, Camera*> GetAllCameraPointers() //const
@@ -39,12 +39,12 @@ public:
     }
     return copy;
   }
-
+  
   // Shot Methods
   Shot* CreateShot(const ShotId shot_id, const CameraId camera_id, const Pose& pose = Pose());
   Shot* CreateShot(const ShotId shot_id, const Camera& cam, const Pose& pose = Pose());
   Shot* GetShot(const ShotId shot_id);
-  void UpdateShotPose(const ShotId shot_id, const Pose& pose);
+  // void UpdateShotPose(const ShotId shot_id, const Pose& pose);
   void RemoveShot(const ShotId shot_id);
   bool HasLandmark(const LandmarkId lm_id) const { return landmarks_.count(lm_id) > 0; }
   bool HasShot(const ShotId shot_id) const { return shots_.find(shot_id) != shots_.end(); }
@@ -63,7 +63,7 @@ public:
   }
 
   // Landmark
-  Landmark* CreateLandmark(const LandmarkId lm_id, const Eigen::Vector3d& global_pos);
+  Landmark* CreateLandmark(const LandmarkId lm_id, const Vec3d& global_pos);
   Landmark* GetLandmark(const LandmarkId lm_id);
   void RemoveLandmark(const Landmark* const lm);
   void RemoveLandmark(const LandmarkId lm_id);

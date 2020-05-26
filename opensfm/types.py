@@ -893,11 +893,6 @@ class CameraView(object):
         return self.map.number_of_cameras()
 
     def add_camera(self, cam):
-        # if cam.projection_type == "perspective":
-            # cam_tmp = pymap.PerspectiveCamera(640, 480, cam.projection_type, cam.focal, cam.k1, cam.k2)
-            # cam_map = self.map.create_cam_model(cam.id, cam_tmp)
-            # self.map.create_shot_camera(self.map.number_of_cameras(),
-                                    #  cam_map, cam.id)
         self.map.create_camera(cam)
     
     def __getitem__(self, index):
@@ -967,9 +962,17 @@ class Reconstruction(object):
         :param shot: The shot.
         """
         map_shot = self.map.create_shot(shot.id, shot.camera.id)
-        map_shot.shot_measurement.gps_dop = shot.metadata.gps_dop
-        map_shot.shot_measurement.gps_pos = shot.metadata.gps_position
-        map_shot.shot_measurement.orientation = shot.metadata.orientation
+        if shot.metadata is not None:
+            print("metadata is not None")
+            print(shot.metadata.gps_dop)
+            print(shot.metadata.gps_position)
+            print(shot.metadata.orientation)
+            if shot.metadata.gps_dop is not None:
+                map_shot.shot_measurement.gps_dop = shot.metadata.gps_dop
+            if shot.metadata.gps_position is not None:
+                map_shot.shot_measurement.gps_position = shot.metadata.gps_position
+            if shot.metadata.orientation is not None:
+                map_shot.shot_measurement.orientation = shot.metadata.orientation
         pose = pymap.Pose()
         pose.set_from_world_to_cam(shot.pose.rotation, shot.pose.translation)
         map_shot.set_pose(pose)
@@ -996,3 +999,5 @@ class Reconstruction(object):
         :return: If exists returns the point, otherwise None.
         """
         return self.points.get(id)
+    
+    

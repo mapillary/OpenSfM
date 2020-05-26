@@ -1393,17 +1393,13 @@ def grow_reconstruction(data, tracks_manager, reconstruction, images, camera_pri
     remove_outliers(reconstruction, config)
 
     paint_reconstruction(data, tracks_manager, reconstruction)
-    # pymap.MapIO.color_map(reconstruction.map)
     return reconstruction, report
 
 
 def _length_histogram(points):
     hist = defaultdict(int)
     for point in points.values():
-        # point = reconstruction.points[point_id]
         hist[point.number_of_observations()] += 1
-        
-        # hist[len(graph[p])] += 1
     return np.array(list(hist.keys())), np.array(list(hist.values()))
 
 
@@ -1418,7 +1414,6 @@ def compute_statistics(reconstruction):
         stats['average_track_length'] = float(stats['observations_count'])/len(reconstruction.points)
     else:
         stats['average_track_length'] = -1
-    # tracks_notwo = sum([1 if len(graph[p]) > 2 else 0 for p in reconstruction.points])
     tracks_notwo = sum([1 if p.number_of_observations() > 2 else 0 for p in reconstruction.points.values()])
 
     if tracks_notwo > 0:

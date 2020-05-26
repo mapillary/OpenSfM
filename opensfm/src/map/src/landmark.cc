@@ -6,7 +6,7 @@
 namespace map {
 LandmarkUniqueId Landmark::landmark_unique_id_ = 0;
 
-Landmark::Landmark(const LandmarkId lm_id, const Eigen::Vector3d& global_pos)
+Landmark::Landmark(const LandmarkId lm_id, const Vec3d& global_pos)
     : id_(lm_id),
       unique_id_(Landmark::landmark_unique_id_),
       global_pos_(global_pos),
@@ -14,9 +14,12 @@ Landmark::Landmark(const LandmarkId lm_id, const Eigen::Vector3d& global_pos)
   ++Landmark::landmark_unique_id_;
 }
 
-Eigen::Vector3f Landmark::GetObservationInShot(Shot* shot) const {
-  const auto obs_id = observations_.at(shot);
-  return shot->GetKeyPointEigen(obs_id);
+Vec3f Landmark::GetObservationInShot(Shot* shot) const {
+  const auto it = observations_.find(shot);
+  if (it == observations_.end()) {
+    throw std::runtime_error("No observation in shot " + shot->id_);
+  }
+  return shot->GetKeyPointEigen(it->second);
 }
 
 void Landmark::SetReprojectionErrors(
@@ -25,7 +28,7 @@ void Landmark::SetReprojectionErrors(
 }
 
 double Landmark::ComputeDistanceFromRefFrame() const {
-  const Eigen::Vector3d cam_to_lm_vec =
+  const Vec3d cam_to_lm_vec =
       global_pos_ - ref_shot_->GetPose().GetOrigin();
   return cam_to_lm_vec.norm();
 }

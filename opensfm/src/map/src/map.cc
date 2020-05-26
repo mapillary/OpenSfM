@@ -60,9 +60,8 @@ void Map::ClearObservationsAndLandmarks() {
  * Creates a shot and returns a pointer to it
  *
  * @param shot_id       unique id of the shot
- * @param camera_id     unique id of EXISTING camera
- * @param global_pos    pose in the 3D world
- * @param name          name of the shot
+ * @param camera        previously created camera
+ * @param global_pos    position in the 3D world
  *
  * @returns             returns pointer to created or existing shot
  */
@@ -77,20 +76,25 @@ Shot* Map::CreateShot(const ShotId shot_id, const Camera& cam,
   return it.first->second.get();
 }
 
+/**
+ * Creates a shot and returns a pointer to it
+ *
+ * @param shot_id       unique id of the shot
+ * @param camera_id     unique id of EXISTING camera
+ * @param global_pos    position in the 3D world
+ *
+ * @returns             returns pointer to created or existing shot
+ */
 Shot* Map::CreateShot(const ShotId shot_id, const CameraId camera_id,
                       const Pose& pose) {
-  auto cam_it = cameras_.find(camera_id);
-  if (cam_it == cameras_.end()) {
-    throw std::runtime_error("Couldn't create shot with invalid camera id: " +
-                             camera_id);
-  }
-
-  return CreateShot(shot_id, cam_it->second, pose);
+  
+  auto* cam = GetCamera(camera_id);
+  return CreateShot(shot_id, *cam, pose);
 }
 
-void Map::UpdateShotPose(const ShotId shot_id, const Pose& pose) {
-  shots_.at(shot_id)->SetPose(pose);
-}
+// void Map::UpdateShotPose(const ShotId shot_id, const Pose& pose) {
+//   shots_.at(shot_id)->SetPose(pose);
+// }
 
 void Map::RemoveShot(const ShotId shot_id) {
   // 1) Find the point
@@ -120,7 +124,7 @@ void Map::RemoveShot(const ShotId shot_id) {
  */
 Landmark* Map::CreateLandmark(
     const LandmarkId lm_id,
-    const Eigen::Vector3d& global_pos)  //, const std::string& name)
+    const Vec3d& global_pos)  //, const std::string& name)
 {
   // C++14
   // auto it = landmarks_.emplace(lm_id, std::make_unique<Landmark>(lm_id,
@@ -145,6 +149,7 @@ void Map::RemoveLandmark(const Landmark* const lm) {
     landmarks_.erase(lm->id_);
   }
 }
+
 void Map::RemoveLandmark(const LandmarkId lm_id) {
   // 1) Find the landmark
   const auto& lm_it = landmarks_.find(lm_id);
@@ -163,6 +168,7 @@ void Map::RemoveLandmark(const LandmarkId lm_id) {
     landmarks_.erase(lm_it);
   }
 }
+
 /**
  * Replaces landmark old_lm by new_lm
  *
@@ -211,8 +217,8 @@ void Map::ReplaceLandmark(Landmark* old_lm, Landmark* new_lm) {
 
 Camera* Map::CreateCamera(const Camera& cam) {
   auto make_cam = [](const Camera& cam) {
-    const Eigen::VectorXd projection_params = cam.GetProjectionParams();
-    const Eigen::VectorXd& distortion = cam.GetDistortion();
+    const VecXd& projection_params = cam.GetProjectionParams();
+    const VecXd& distortion = cam.GetDistortion();
     const auto focal = cam.GetFocal();
     switch (cam.GetProjectionType()) {
       case ProjectionType::PERSPECTIVE:
@@ -229,7 +235,8 @@ Camera* Map::CreateCamera(const Camera& cam) {
       case ProjectionType::SPHERICAL:
         return Camera::CreateSphericalCamera();
       default:
-        return Camera::CreatePerspectiveCamera(0, 0, 0);
+        throw std::runtime_error("Could not create unknown camera type: " +
+                                 cam.id);
     }
   };
   auto it = cameras_.emplace(std::make_pair(cam.id, make_cam(cam)));
@@ -249,6 +256,14 @@ std::vector<Camera*> Map::GetCameras() {
   return cameras;
 }
 
-Camera* Map::GetCamera(const std::string& cam) { return &cameras_.at(cam); }
+Camera* Map::GetCamera(const CameraId& cam_id) 
+{ 
+  auto it = cameras_.find(cam_id);
+  if (it == cameras_.end())
+  {
+    throw std::runtime_error("Accessing invalid camera ID "+cam_id);
+  }
+  return &it->second; 
+}
 
 };  // namespace map

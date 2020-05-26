@@ -124,12 +124,12 @@ PYBIND11_MODULE(pymap, m) {
            py::arg("shot_id"), py::arg("camera_id"),
            py::arg("pose") = map::Pose(),
            py::return_value_policy::reference_internal)
-      .def("create_shot",
-           (map::Shot * (map::Map::*)(const map::ShotId, const Camera &,
-                                      const map::Pose &)) &
-               map::Map::CreateShot,
-           py::arg("shot_id"), py::arg("camera"), py::arg("pose") = map::Pose(),
-           py::return_value_policy::reference_internal)
+     //  .def("create_shot",
+     //       (map::Shot * (map::Map::*)(const map::ShotId, const Camera &,
+     //                                  const map::Pose &)) &
+     //           map::Map::CreateShot,
+     //       py::arg("shot_id"), py::arg("camera"), py::arg("pose") = map::Pose(),
+     //       py::return_value_policy::reference_internal)
       // C++14
       // .def("create_shot",
       //      py::overload_cast<const map::ShotId, const map::CameraId,
@@ -149,7 +149,7 @@ PYBIND11_MODULE(pymap, m) {
       //      py::arg("shot_id"), py::arg("shot_cam"),
       //      py::arg("pose") = map::Pose(),
       //      py::return_value_policy::reference_internal)
-      .def("update_shot_pose", &map::Map::UpdateShotPose)
+     //  .def("update_shot_pose", &map::Map::UpdateShotPose)
       .def("remove_shot", &map::Map::RemoveShot)
       .def("get_shot", &map::Map::GetShot,
            py::return_value_policy::reference_internal)
@@ -268,7 +268,7 @@ PYBIND11_MODULE(pymap, m) {
 
   py::class_<map::ShotMeasurements>(m, "ShotMeasurements")
       .def_readwrite("gps_dop", &map::ShotMeasurements::gps_dop_)
-      .def_readwrite("gps_pos", &map::ShotMeasurements::gps_position_)
+     //  .def_readwrite("gps_pos", &map::ShotMeasurements::gps_position_)
       .def_readwrite("gps_position", &map::ShotMeasurements::gps_position_)
       .def_readwrite("orientation", &map::ShotMeasurements::orientation_)
       .def_readwrite("capture_time", &map::ShotMeasurements::capture_time_)
