@@ -97,9 +97,6 @@ struct SphericalProjection {
 struct Disto24 {
   template <class T>
   static Vec2<T> Forward(const Vec2<T>& point, const VecX<T>& k) {
-    if (k.norm() < T(std::numeric_limits<double>::epsilon())) {
-      return point;
-    }
     const auto r2 = point.dot(point);
     const auto distortion = Distortion(r2, k[static_cast<int>(Disto::K1)],
                                        k[static_cast<int>(Disto::K2)]);
@@ -108,6 +105,8 @@ struct Disto24 {
 
   template <class T>
   static Vec2<T> Backward(const Vec2<T>& point, const VecX<T>& k) {
+    /* Beware if you use Backward together with autodiff. You'll need to remove
+     * the line below, otherwise, derivatives won't be propagated */
     if (k.norm() < T(std::numeric_limits<double>::epsilon())) {
       return point;
     }
@@ -161,10 +160,6 @@ struct Disto24 {
 struct DistoBrown {
   template <class T>
   static Vec2<T> Forward(const Vec2<T>& point, const VecX<T>& k) {
-    if (k.norm() < T(std::numeric_limits<double>::epsilon())) {
-      return point;
-    }
-
     const auto r2 = point.dot(point);
     const auto distortion_radial = RadialDistortion(
         r2, k[static_cast<int>(Disto::K1)], k[static_cast<int>(Disto::K2)],
@@ -177,6 +172,8 @@ struct DistoBrown {
 
   template <class T>
   static Vec2<T> Backward(const Vec2<T>& point, const VecX<T>& k) {
+    /* Beware if you use Backward together with autodiff. You'll need to remove
+     * the line below, otherwise, derivatives won't be propagated */
     if (k.norm() < T(std::numeric_limits<double>::epsilon())) {
       return point;
     }
