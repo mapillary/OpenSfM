@@ -574,7 +574,7 @@ struct BACameraNew : public BAData<Camera> {
 };
 
 struct BAShotNew
-    : public BAData<VecNXd<GetEnumAsConstExpr(BAShotParameters::COUNT)>> {
+    : public BAData<VecNd<GetEnumAsConstExpr(BAShotParameters::COUNT)>> {
   BAShotParameters parameters;
 
  private:

@@ -73,7 +73,7 @@ struct BADataPriorError {
     const auto sigma = ba_data->GetSigmaData();
     scales_.resize(sigma.rows(), 1);
     for (int i = 0; i < count_; ++i) {
-      scales_(i) = 1.0 / sigma(i);
+      scales_(i) = 1.0 / std::max(sigma(i), std::numeric_limits<double>::epsilon());
     }
   }
 
@@ -86,9 +86,9 @@ struct BADataPriorError {
 
   template <typename T>
   bool operator()(const T* const parameters, T* residuals) const {
-    Eigen::Map<VecXT<T>> residuals_mapped(residuals, count_);
-    Eigen::Map<const VecXT<T>> parameters_values(parameters, count_);
-    const VecXT<T> prior_values = ba_data_->GetPriorData().template cast<T>();
+    Eigen::Map<VecX<T>> residuals_mapped(residuals, count_);
+    Eigen::Map<const VecX<T>> parameters_values(parameters, count_);
+    const VecX<T> prior_values = ba_data_->GetPriorData().template cast<T>();
     for (int i = 0; i < count_; ++i) {
       auto scale_type = ScaleType::LINEAR;
       const auto scale_type_find = scale_types_.find(i);
@@ -128,26 +128,26 @@ struct ReprojectionError{
                   const T* const point,
                   T* residuals) const {
     // Bring the point to the camera coordinate frame
-    Eigen::Map<const Vec3T<T>> x(point);
-    Eigen::Map<const Vec3T<T>> R(shot + GetParamIndex(BAShotParameters::RX));
-    Eigen::Map<const Vec3T<T>> c(shot + GetParamIndex(BAShotParameters::TX));
-    const Vec3T<T> camera_point = WorldToCamera(R, c, x);
+    Eigen::Map<const Vec3<T>> x(point);
+    Eigen::Map<const Vec3<T>> R(shot + GetParamIndex(BAShotParameters::RX));
+    Eigen::Map<const Vec3<T>> c(shot + GetParamIndex(BAShotParameters::TX));
+    const Vec3<T> camera_point = WorldToCamera(R, c, x);
 
-    Mat2T<T> affine = Mat2T<T>::Zero();
+    Mat2<T> affine = Mat2<T>::Zero();
     affine(0, 0) = camera[GetParamIndex(BACameraParameters::FOCAL)];
     affine(1, 1) = camera[GetParamIndex(BACameraParameters::FOCAL)]*camera[GetParamIndex(BACameraParameters::ASPECT_RATIO)];
 
-    Eigen::Map<const Vec2T<T>> principal_point(camera + GetParamIndex(BACameraParameters::CX));
-    Eigen::Map<const VecXT<T>> distortion(camera + GetParamIndex(BACameraParameters::K1), GetParamsCount(BACameraParameters::DISTO));
-    Eigen::Map<const VecXT<T>> projection(camera + GetParamIndex(BACameraParameters::TRANSITION), 1);
+    Eigen::Map<const Vec2<T>> principal_point(camera + GetParamIndex(BACameraParameters::CX));
+    Eigen::Map<const VecX<T>> distortion(camera + GetParamIndex(BACameraParameters::K1), GetParamsCount(BACameraParameters::DISTO));
+    Eigen::Map<const VecX<T>> projection(camera + GetParamIndex(BACameraParameters::TRANSITION), 1);
 
     // Apply camera projection
-    const Vec2T<T> predicted = Dispatch<Vec2T<T>, ProjectFunction>(
+    const Vec2<T> predicted = Dispatch<Vec2<T>, ProjectFunction>(
         type_, camera_point, projection.eval(), affine, principal_point.eval(),
         distortion.eval());
 
     // The error is the difference between the predicted and observed position
-    Eigen::Map<Vec2T<T>> residuals_mapped(residuals);
+    Eigen::Map<Vec2<T>> residuals_mapped(residuals);
     residuals_mapped = T(scale_) * (predicted - observed_.cast<T>());
 
     return true;
