@@ -28,8 +28,8 @@ Eigen::Matrix3d RotationBetweenPoints(IT begin, IT end) {
 
   Eigen::JacobiSVD<Eigen::Matrix3d> svd(
       M, Eigen::ComputeFullU | Eigen::ComputeFullV);
-  const auto U = svd.matrixU();
-  const auto V = svd.matrixV();
+  const Eigen::Matrix3d U = svd.matrixU();
+  const Eigen::Matrix3d V = svd.matrixV();
   Eigen::Matrix3d rotation = U * V.transpose();
   if(rotation.determinant() < 0.){
     rotation *= -1.0;

@@ -2,7 +2,7 @@
 #include <pybind11/stl.h>
 #include <pybind11/eigen.h>
 
-#include <foundation/types.h>
+#include <foundation/python_types.h>
 #include <foundation/logger.h>
 #include <bundle/bundle_adjuster.h>
 #include <bundle/reconstruction_alignment.h>

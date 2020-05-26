@@ -13,28 +13,28 @@ Eigen::Matrix3d RotationMatrixAroundAxis(const double cos_theta, const double si
 // Perspective-Three-Point Problem" from Ke and al.
 template <class IT>
 std::vector<Eigen::Matrix<double, 3, 4>> AbsolutePoseThreePoints(IT begin, IT end) {
-  const auto b1 = begin->first;
-  const auto b2 = (begin+1)->first;
-  const auto b3 = (begin+2)->first;
-  const auto p1 = begin->second;
-  const auto p2 = (begin+1)->second;
-  const auto p3 = (begin+2)->second;
+  const Eigen::Vector3d  b1 = begin->first;
+  const Eigen::Vector3d b2 = (begin+1)->first;
+  const Eigen::Vector3d b3 = (begin+2)->first;
+  const Eigen::Vector3d p1 = begin->second;
+  const Eigen::Vector3d p2 = (begin+1)->second;
+  const Eigen::Vector3d p3 = (begin+2)->second;
 
   // Compute k1, k2 and k3
-  const auto k1 = (p1-p2).normalized();
-  const auto k3 = (b1.cross(b2)).normalized();
-  const auto k2 = (k1.cross(k3)).normalized();
+  const Eigen::Vector3d k1 = (p1-p2).normalized();
+  const Eigen::Vector3d k3 = (b1.cross(b2)).normalized();
+  const Eigen::Vector3d k2 = (k1.cross(k3)).normalized();
 
   // Compute ui and vi for i = 1, 2
-  const auto u1 = p1 - p3;
-  const auto u2 = p2 - p3;
-  const auto v1 = b1.cross(b3);
-  const auto v2 = b2.cross(b3);
+  const Eigen::Vector3d u1 = p1 - p3;
+  const Eigen::Vector3d u2 = p2 - p3;
+  const Eigen::Vector3d v1 = b1.cross(b3);
+  const Eigen::Vector3d v2 = b2.cross(b3);
 
   // Compute sigma and k3"
-  const auto u1_k1 = u1.cross(k1);
+  const Eigen::Vector3d u1_k1 = u1.cross(k1);
   const auto sigma = u1_k1.norm();
-  const auto k3_second = u1_k1/sigma;
+  const Eigen::Vector3d k3_second = u1_k1/sigma;
 
   // Compute fij's
   const auto k3_b3 = k3.dot(b3);
@@ -80,7 +80,7 @@ std::vector<Eigen::Matrix<double, 3, 4>> AbsolutePoseThreePoints(IT begin, IT en
 
   std::vector<Eigen::Matrix<double, 3, 4>> RTs;
 
-  const double eps = 1e-20;
+  constexpr double eps = 1e-20;
   for(const auto& root : roots){
     const auto cos_theta_1 = root;
     const auto sin_theta_1 = Sign(k3_b3)*std::sqrt(1.0-SQUARE(cos_theta_1));
@@ -89,11 +89,11 @@ std::vector<Eigen::Matrix<double, 3, 4>> AbsolutePoseThreePoints(IT begin, IT en
     const auto cos_theta_3 = t*(g1*cos_theta_1 + g2);
     const auto sin_theta_3 = t*(g3*cos_theta_1 + g4);
 
-    const auto c1 = RotationMatrixAroundAxis(cos_theta_1, sin_theta_1, e1);
-    const auto c2 = RotationMatrixAroundAxis(cos_theta_3, sin_theta_3, e2);
+    const Eigen::Matrix3d c1 = RotationMatrixAroundAxis(cos_theta_1, sin_theta_1, e1);
+    const Eigen::Matrix3d c2 = RotationMatrixAroundAxis(cos_theta_3, sin_theta_3, e2);
 
-    const auto rotation = ClosestRotationMatrix(c_barre*c1*c2*c_barre_barre);
-    const auto translation = p3 - (sigma*sin_theta_1)/k3_b3*(rotation*b3);
+    const Eigen::Matrix3d rotation = ClosestRotationMatrix(c_barre*c1*c2*c_barre_barre);
+    const Eigen::Vector3d translation = p3 - (sigma*sin_theta_1)/k3_b3*(rotation*b3);
 
     // Rcamera and Tcamera parametrization
     Eigen::Matrix<double, 3, 4> RT;

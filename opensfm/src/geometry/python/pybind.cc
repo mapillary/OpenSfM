@@ -8,7 +8,7 @@
 #include <geometry/relative_pose.h>
 #include <geometry/absolute_pose.h>
 #include <geometry/triangulation.h>
-#include <foundation/types.h>
+#include <foundation/python_types.h>
 
 
 PYBIND11_MODULE(pygeometry, m) {
