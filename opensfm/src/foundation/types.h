@@ -36,21 +36,26 @@ using VecXd = Eigen::Matrix<double, Eigen::Dynamic, 1>;
 template <class T, int N>
 using VecN = Eigen::Matrix<T, N, 1>;
 template <int N>
-using VecNd = Eigen::Matrix<float, N, 1>;
+using VecNf = Eigen::Matrix<float, N, 1>;
 template <int N>
 using VecNd = Eigen::Matrix<double, N, 1>;
+template <int N>
+using VecNi = Eigen::Matrix<int, N, 1>;
 
 template <class T>
 using Vec2 = Eigen::Matrix<T, 2, 1>;
 using Vec2f = Eigen::Matrix<float, 2, 1>;
 using Vec2d = Eigen::Matrix<double, 2, 1>;
+using Vec2i = Eigen::Matrix<int, 2, 1>;
 
 template <class T>
 using Vec3 = Eigen::Matrix<T, 3, 1>;
 using Vec3f = Eigen::Matrix<float, 3, 1>;
 using Vec3d = Eigen::Matrix<double, 3, 1>;
+using Vec3i = Eigen::Matrix<int, 3, 1>;
 
 template <class T>
 using Vec4 = Eigen::Matrix<T, 4, 1>;
 using Vec4f = Eigen::Matrix<float, 4, 1>;
 using Vec4d = Eigen::Matrix<double, 4, 1>;
+using Vec4i = Eigen::Matrix<int, 4, 1>;
