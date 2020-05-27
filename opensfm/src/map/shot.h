@@ -55,13 +55,11 @@ class Shot {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  Shot(const ShotId shot_id, const Camera& shot_camera, const Pose& pose);
+  Shot(const ShotId& shot_id, const Camera& shot_camera, const Pose& pose);
   const DescriptorType GetDescriptor(const FeatureId id) const {
     return descriptors_.row(id);
   }
-  const Observation& GetKeyPoint(const FeatureId id) const {
-    return keypoints_.at(id);
-  }
+ 
   Eigen::Vector3f GetKeyPointEigen(const FeatureId id) const {
     const auto kpt = keypoints_.at(id);
     return Eigen::Vector3f(kpt.point[0], kpt.point[1], kpt.size);
@@ -71,17 +69,21 @@ class Shot {
   const AlignedVector<Observation>& GetKeyPoints() const { return keypoints_; }
   const DescriptorMatrix& GetDescriptors() const { return descriptors_; }
 
-  size_t NumberOfKeyPoints() const { return keypoints_.size(); }
-  size_t ComputeNumValidLandmarks(const int min_obs_thr) const;
+  // size_t NumberOfKeyPoints() const { return keypoints_.size(); }
+  size_t ComputeNumValidLandmarks(const int min_obs_thr = 1) const;
   float ComputeMedianDepthOfLandmarks(const bool take_abs) const;
 
   const std::vector<Landmark*>& GetLandmarks() const { return landmarks_; }
   std::vector<Landmark*>& GetLandmarks() { return landmarks_; }
 
-  Observation GetObservation(const FeatureId id) const {
+  const Observation& GetObservation(const FeatureId id) const {
     return landmarks_.empty() ? landmark_observations_.at(landmark_id_.at(id))
                               : keypoints_.at(id);
   }
+
+//  const Observation& GetKeyPoint(const FeatureId id) const {
+//     return keypoints_.at(id);
+//   }
 
   std::vector<Landmark*> ComputeValidLandmarks() {
     std::vector<Landmark*> valid_landmarks;
@@ -106,29 +108,29 @@ class Shot {
     return valid_landmarks;
   }
 
-  std::vector<FeatureId> ComputeValidLandmarksIndices() const {
-    std::vector<FeatureId> valid_landmarks;
-    valid_landmarks.reserve(landmarks_.size());
-    for (size_t idx = 0; idx < landmarks_.size(); ++idx) {
-      if (landmarks_[idx] != nullptr) {
-        valid_landmarks.push_back(idx);
-      }
-    }
-    return valid_landmarks;
-  }
+  // std::vector<FeatureId> ComputeValidLandmarksIndices() const {
+  //   std::vector<FeatureId> valid_landmarks;
+  //   valid_landmarks.reserve(landmarks_.size());
+  //   for (size_t idx = 0; idx < landmarks_.size(); ++idx) {
+  //     if (landmarks_[idx] != nullptr) {
+  //       valid_landmarks.push_back(idx);
+  //     }
+  //   }
+  //   return valid_landmarks;
+  // }
 
-  std::vector<std::pair<Landmark*, FeatureId>> ComputeValidLandmarksAndIndices()
-      const {
-    std::vector<std::pair<Landmark*, FeatureId>> valid_landmarks;
-    valid_landmarks.reserve(landmarks_.size());
-    for (size_t idx = 0; idx < landmarks_.size(); ++idx) {
-      auto* lm = landmarks_[idx];
-      if (lm != nullptr) {
-        valid_landmarks.push_back(std::make_pair(lm, idx));
-      }
-    }
-    return valid_landmarks;
-  }
+  // std::vector<std::pair<Landmark*, FeatureId>> ComputeValidLandmarksAndIndices()
+  //     const {
+  //   std::vector<std::pair<Landmark*, FeatureId>> valid_landmarks;
+  //   valid_landmarks.reserve(landmarks_.size());
+  //   for (size_t idx = 0; idx < landmarks_.size(); ++idx) {
+  //     auto* lm = landmarks_[idx];
+  //     if (lm != nullptr) {
+  //       valid_landmarks.push_back(std::make_pair(lm, idx));
+  //     }
+  //   }
+  //   return valid_landmarks;
+  // }
 
   Landmark* GetLandmark(const FeatureId id) { return landmarks_.at(id); }
   void RemoveLandmarkObservation(const FeatureId id);
@@ -136,7 +138,7 @@ class Shot {
     landmarks_.at(feat_id) = lm;
   }
 
-  void CreateObservation(Landmark* lm, const Eigen::Vector2d& pt,
+  void CreateObservation(Landmark* lm, const Vec2d& pt,
                          const double scale, const Eigen::Vector3i& color,
                          FeatureId id) {
     // C++ 14
@@ -150,13 +152,20 @@ class Shot {
   }
 
   Observation* GetLandmarkObservation(Landmark* lm) {
-    return &landmark_observations_.at(lm);
+    if (landmarks_.empty()) //SfM
+    {
+      return &landmark_observations_.at(lm);
+    }
+    else
+    {
+      return &keypoints_.at(lm->GetObservationIdInShot(this));
+    }
   }
 
   void SetPose(const Pose& pose) { pose_ = pose; }
   const Pose& GetPose() const { return pose_; }
-  Eigen::Matrix4d GetWorldToCam() const { return pose_.WorldToCamera(); }
-  Eigen::Matrix4d GetCamToWorld() const { return pose_.CameraToWorld(); }
+  Mat4d GetWorldToCam() const { return pose_.WorldToCamera(); }
+  Mat4d GetCamToWorld() const { return pose_.CameraToWorld(); }
 
   void InitAndTakeDatastructures(AlignedVector<Observation> keypts,
                                  DescriptorMatrix descriptors);
@@ -178,12 +187,12 @@ class Shot {
   std::string GetCameraName() const { return shot_camera_.id; }
   const Camera& GetCamera() const { return shot_camera_; }
 
-  Eigen::Vector2d Project(const Eigen::Vector3d& global_pos) const;
+  Vec2d Project(const Vec3d& global_pos) const;
 
  public:
   SLAMShotData slam_data_;
   const ShotId id_;  // the file name
-  const ShotUniqueId unique_id_;
+  ShotUniqueId unique_id_;
   const Camera& shot_camera_;
   ShotMeasurements shot_measurements_;  // metadata
   ShotMesh mesh;

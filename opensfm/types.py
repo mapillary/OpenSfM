@@ -899,10 +899,10 @@ class CameraView(object):
         return self.get(index)
 
     def get(self, index):
-        return self.map.get_camera_model(index)
+        return self.map.get_camera(index)
 
     def values(self):
-        return self.map.get_all_camera_models()
+        return self.map.get_cameras()
 
 
 class Reconstruction(object):
@@ -963,10 +963,6 @@ class Reconstruction(object):
         """
         map_shot = self.map.create_shot(shot.id, shot.camera.id)
         if shot.metadata is not None:
-            print("metadata is not None")
-            print(shot.metadata.gps_dop)
-            print(shot.metadata.gps_position)
-            print(shot.metadata.orientation)
             if shot.metadata.gps_dop is not None:
                 map_shot.shot_measurement.gps_dop = shot.metadata.gps_dop
             if shot.metadata.gps_position is not None:

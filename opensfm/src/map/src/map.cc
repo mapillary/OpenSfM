@@ -13,9 +13,12 @@ void Map::AddObservation(Shot* const shot, Landmark* const lm,
   lm->AddObservation(shot, feat_id);
 }
 
-void Map::AddObservation(const ShotId shot_id, const LandmarkId lm_id,
+void Map::AddObservation(const ShotId& shot_id, const LandmarkId& lm_id,
                          const FeatureId feat_id) {
   auto* const shot = GetShot(shot_id);
+  if (shot == nullptr) {
+    throw std::runtime_error("Accessing invalid ShotID " + shot_id);
+  }
   auto& lm = landmarks_.at(lm_id);
   AddObservation(shot, lm.get(), feat_id);
 }
@@ -32,13 +35,13 @@ void Map::RemoveObservation(Shot* const shot, Landmark* const lm,
   lm->RemoveObservation(shot);
 }
 
-Shot* Map::GetShot(const ShotId shot_id)  // const
+Shot* Map::GetShot(const ShotId& shot_id)  // const
 {
   const auto& it = shots_.find(shot_id);
   return (it != shots_.end() ? it->second.get() : nullptr);
 }
 
-Landmark* Map::GetLandmark(const LandmarkId lm_id) {
+Landmark* Map::GetLandmark(const LandmarkId& lm_id) {
   const auto& it = landmarks_.find(lm_id);
   return (it != landmarks_.end() ? it->second.get() : nullptr);
 }
@@ -65,15 +68,23 @@ void Map::ClearObservationsAndLandmarks() {
  *
  * @returns             returns pointer to created or existing shot
  */
-Shot* Map::CreateShot(const ShotId shot_id, const Camera& cam,
+Shot* Map::CreateShot(const ShotId& shot_id, const Camera& cam,
                       const Pose& pose) {
   // C++14
   // auto it = shots_.emplace(shot_id, std::make_unique<Shot>(shot_id, cam,
   // pose));
   // C++11
-  auto it = shots_.emplace(shot_id,
-                           std::unique_ptr<Shot>(new Shot(shot_id, cam, pose)));
-  return it.first->second.get();
+  auto it_exist = shots_.find(shot_id);
+  if (it_exist == shots_.end())  // create
+  {
+    auto it = shots_.emplace(
+        shot_id, std::unique_ptr<Shot>(new Shot(shot_id, cam, pose)));
+    it.first->second->unique_id_ = shot_unique_id_;
+    shot_unique_id_++;
+    return it.first->second.get();
+  } else {
+    return it_exist->second.get();
+  }
 }
 
 /**
@@ -85,18 +96,18 @@ Shot* Map::CreateShot(const ShotId shot_id, const Camera& cam,
  *
  * @returns             returns pointer to created or existing shot
  */
-Shot* Map::CreateShot(const ShotId shot_id, const CameraId camera_id,
+Shot* Map::CreateShot(const ShotId& shot_id, const CameraId& camera_id,
                       const Pose& pose) {
   
   auto* cam = GetCamera(camera_id);
   return CreateShot(shot_id, *cam, pose);
 }
 
-// void Map::UpdateShotPose(const ShotId shot_id, const Pose& pose) {
+// void Map::UpdateShotPose(const ShotId& shot_id, const Pose& pose) {
 //   shots_.at(shot_id)->SetPose(pose);
 // }
 
-void Map::RemoveShot(const ShotId shot_id) {
+void Map::RemoveShot(const ShotId& shot_id) {
   // 1) Find the point
   const auto& shot_it = shots_.find(shot_id);
   if (shot_it != shots_.end()) {
@@ -123,16 +134,27 @@ void Map::RemoveShot(const ShotId shot_id) {
  * @returns           pointer to the created or already existing lm
  */
 Landmark* Map::CreateLandmark(
-    const LandmarkId lm_id,
+    const LandmarkId& lm_id,
     const Vec3d& global_pos)  //, const std::string& name)
 {
   // C++14
   // auto it = landmarks_.emplace(lm_id, std::make_unique<Landmark>(lm_id,
   // global_pos));
   // C++11
-  auto it = landmarks_.emplace(
-      lm_id, std::unique_ptr<Landmark>(new Landmark(lm_id, global_pos)));
-  return it.first->second.get();  // the raw pointer
+  auto it_exist = landmarks_.find(lm_id);
+  if (it_exist == landmarks_.end()) //create
+  {
+    auto it = landmarks_.emplace(
+        lm_id, std::unique_ptr<Landmark>(new Landmark(lm_id, global_pos)));
+    it.first->second->unique_id_ = landmark_unique_id_;
+    landmark_unique_id_++;
+    return it.first->second.get();  // the raw pointer
+  }
+  else
+  {
+    return it_exist->second.get();
+  }
+  
 }
 
 void Map::RemoveLandmark(const Landmark* const lm) {
@@ -150,7 +172,7 @@ void Map::RemoveLandmark(const Landmark* const lm) {
   }
 }
 
-void Map::RemoveLandmark(const LandmarkId lm_id) {
+void Map::RemoveLandmark(const LandmarkId& lm_id) {
   // 1) Find the landmark
   const auto& lm_it = landmarks_.find(lm_id);
   if (lm_it != landmarks_.end()) {

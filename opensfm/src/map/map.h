@@ -41,13 +41,13 @@ public:
   }
   
   // Shot Methods
-  Shot* CreateShot(const ShotId shot_id, const CameraId camera_id, const Pose& pose = Pose());
-  Shot* CreateShot(const ShotId shot_id, const Camera& cam, const Pose& pose = Pose());
-  Shot* GetShot(const ShotId shot_id);
-  // void UpdateShotPose(const ShotId shot_id, const Pose& pose);
-  void RemoveShot(const ShotId shot_id);
-  bool HasLandmark(const LandmarkId lm_id) const { return landmarks_.count(lm_id) > 0; }
-  bool HasShot(const ShotId shot_id) const { return shots_.find(shot_id) != shots_.end(); }
+  Shot* CreateShot(const ShotId& shot_id, const CameraId& camera_id, const Pose& pose = Pose());
+  Shot* CreateShot(const ShotId& shot_id, const Camera& cam, const Pose& pose = Pose());
+  Shot* GetShot(const ShotId& shot_id);
+  // void UpdateShotPose(const ShotId& shot_id, const Pose& pose);
+  void RemoveShot(const ShotId& shot_id);
+  bool HasLandmark(const LandmarkId& lm_id) const { return landmarks_.count(lm_id) > 0; }
+  bool HasShot(const ShotId& shot_id) const { return shots_.find(shot_id) != shots_.end(); }
   const std::unordered_map<ShotId, std::unique_ptr<Shot>>& GetAllShots() const { return shots_; }
   const std::unordered_map<ShotId, Shot*> GetAllShotPointers() const
   {
@@ -63,10 +63,10 @@ public:
   }
 
   // Landmark
-  Landmark* CreateLandmark(const LandmarkId lm_id, const Vec3d& global_pos);
-  Landmark* GetLandmark(const LandmarkId lm_id);
+  Landmark* CreateLandmark(const LandmarkId& lm_id, const Vec3d& global_pos);
+  Landmark* GetLandmark(const LandmarkId& lm_id);
   void RemoveLandmark(const Landmark* const lm);
-  void RemoveLandmark(const LandmarkId lm_id);
+  void RemoveLandmark(const LandmarkId& lm_id);
   void ReplaceLandmark(Landmark* old_lm, Landmark* new_lm);
   const std::unordered_map<LandmarkId, std::unique_ptr<Landmark>>& GetAllLandmarks() const { return landmarks_; };
   const std::unordered_map<LandmarkId, Landmark*> GetAllLandmarkPointers() const
@@ -84,7 +84,7 @@ public:
 
   //Observation methods
   void AddObservation(Shot *const shot,  Landmark *const lm, const FeatureId feat_id);
-  void AddObservation(const ShotId shot_id, const LandmarkId lm_id, const FeatureId feat_id);
+  void AddObservation(const ShotId& shot_id, const LandmarkId& lm_id, const FeatureId feat_id);
   void AddObservation(Shot *const shot,  Landmark *const lm, const Observation& obs);
   void RemoveObservation(Shot *const shot,  Landmark *const lm, const FeatureId feat_id) const;
   void ClearObservationsAndLandmarks();
@@ -116,6 +116,9 @@ private:
   std::unordered_map<ShotId, std::unique_ptr<Shot>> shots_;
   std::unordered_map<LandmarkId, std::unique_ptr<Landmark>> landmarks_;
   TopoCentricConverter topo_conv_;
+
+  LandmarkUniqueId landmark_unique_id_ = 0;
+  ShotUniqueId shot_unique_id_ = 0;
 };
 
 } // namespace map

@@ -1,15 +1,13 @@
 #include <glog/logging.h>
-// #include <map/map_io.h>
-// #include <map/camera_py.h>
 #include <map/defines.h>
 #include <map/landmark.h>
 #include <map/map.h>
-// #include <map/observation.h>
 #include <map/pose.h>
 #include <map/shot.h>
 #include <pybind11/eigen.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+
 namespace py = pybind11;
 PYBIND11_MODULE(pymap, m) {
   py::class_<map::Pose>(m, "Pose")
@@ -106,7 +104,7 @@ PYBIND11_MODULE(pymap, m) {
       //  .def("update_landmark", &map::Map::UpdateLandmark)
       .def("remove_landmark", (void (map::Map::*)(const map::Landmark *const)) &
                                   map::Map::RemoveLandmark)
-      .def("remove_landmark", (void (map::Map::*)(const map::LandmarkId)) &
+      .def("remove_landmark", (void (map::Map::*)(const map::LandmarkId&)) &
                                   map::Map::RemoveLandmark)
       // C++14
       // .def("remove_landmark", py::overload_cast<const map::Landmark *const>(
@@ -118,33 +116,33 @@ PYBIND11_MODULE(pymap, m) {
       // Shot
       // C++11
       .def("create_shot",
-           (map::Shot * (map::Map::*)(const map::ShotId, const map::CameraId,
+           (map::Shot * (map::Map::*)(const map::ShotId&, const map::CameraId&,
                                       const map::Pose &)) &
                map::Map::CreateShot,
            py::arg("shot_id"), py::arg("camera_id"),
            py::arg("pose") = map::Pose(),
            py::return_value_policy::reference_internal)
      //  .def("create_shot",
-     //       (map::Shot * (map::Map::*)(const map::ShotId, const Camera &,
+     //       (map::Shot * (map::Map::*)(const map::ShotId&, const Camera &,
      //                                  const map::Pose &)) &
      //           map::Map::CreateShot,
      //       py::arg("shot_id"), py::arg("camera"), py::arg("pose") = map::Pose(),
      //       py::return_value_policy::reference_internal)
       // C++14
       // .def("create_shot",
-      //      py::overload_cast<const map::ShotId, const map::CameraId,
+      //      py::overload_cast<const map::ShotId&, const map::CameraId&,
       //                        const map::Pose &>(&map::Map::CreateShot),
       //      py::arg("shot_id"), py::arg("camera_id"),
       //      py::arg("pose") = map::Pose(),
       //      py::return_value_policy::reference_internal)
       // .def("create_shot",
-      //      py::overload_cast<const map::ShotId, const map::Camera &,
+      //      py::overload_cast<const map::ShotId&, const map::Camera &,
       //                        const map::Pose &>(&map::Map::CreateShot),
       //      py::arg("shot_id"), py::arg("camera"),
       //      py::arg("pose") = map::Pose(),
       //      py::return_value_policy::reference_internal)
       // .def("create_shot",
-      //      py::overload_cast<const map::ShotId, const std::string &,
+      //      py::overload_cast<const map::ShotId&, const std::string &,
       //                        const map::Pose &>(&map::Map::CreateShot),
       //      py::arg("shot_id"), py::arg("shot_cam"),
       //      py::arg("pose") = map::Pose(),
@@ -194,9 +192,9 @@ PYBIND11_MODULE(pymap, m) {
            py::return_value_policy::reference_internal)
       .def("clear_observations_and_landmarks",
            &map::Map::ClearObservationsAndLandmarks)
-      .def("get_all_camera_models", &map::Map::GetCameras,
+      .def("get_cameras", &map::Map::GetCameras,
            py::return_value_policy::reference_internal)
-      .def("get_camera_model", &map::Map::GetCamera,
+      .def("get_camera", &map::Map::GetCamera,
            py::return_value_policy::reference_internal)
 
       ;
@@ -209,30 +207,31 @@ PYBIND11_MODULE(pymap, m) {
       .def_readonly("alt", &map::TopoCentricConverter::lat_);
 
   py::class_<map::Shot>(m, "Shot")
-      .def(py::init<const map::ShotId, const Camera &, const map::Pose &>())
+      .def(py::init<const map::ShotId&, const Camera &, const map::Pose &>())
       .def_readonly("id", &map::Shot::id_)
       .def_readonly("unique_id", &map::Shot::unique_id_)
       .def_readonly("slam_data", &map::Shot::slam_data_,
                     py::return_value_policy::reference_internal)
       .def_readwrite("mesh", &map::Shot::mesh)
-      .def("get_descriptor", &map::Shot::GetDescriptor,
-           py::return_value_policy::reference_internal)
-      .def("get_descriptors", &map::Shot::GetDescriptors,
-           py::return_value_policy::reference_internal)
-      .def("get_keypoint", &map::Shot::GetKeyPoint,
+     //  .def("get_descriptor", &map::Shot::GetDescriptor,
+     //       py::return_value_policy::reference_internal)
+     //  .def("get_descriptors", &map::Shot::GetDescriptors,
+     //       py::return_value_policy::reference_internal)
+      .def("get_observation", &map::Shot::GetObservation,
            py::return_value_policy::reference_internal)
       .def("get_keypoints", &map::Shot::GetKeyPoints,
            py::return_value_policy::reference_internal)
-      .def("compute_num_valid_pts", &map::Shot::ComputeNumValidLandmarks)
+      .def("compute_num_valid_pts", &map::Shot::ComputeNumValidLandmarks,
+      py::arg("min_obs_thr") = 1)
       .def("get_valid_landmarks", &map::Shot::ComputeValidLandmarks,
            py::return_value_policy::reference_internal)
-      .def("get_valid_landmarks_indices",
-           &map::Shot::ComputeValidLandmarksIndices,
-           py::return_value_policy::reference_internal)
-      .def("get_valid_landmarks_and_indices",
-           &map::Shot::ComputeValidLandmarksAndIndices,
-           py::return_value_policy::reference_internal)
-      .def("number_of_keypoints", &map::Shot::NumberOfKeyPoints)
+     //  .def("get_valid_landmarks_indices",
+     //       &map::Shot::ComputeValidLandmarksIndices,
+     //       py::return_value_policy::reference_internal)
+     //  .def("get_valid_landmarks_and_indices",
+     //       &map::Shot::ComputeValidLandmarksAndIndices,
+     //       py::return_value_policy::reference_internal)
+     //  .def("number_of_keypoints", &map::Shot::NumberOfKeyPoints)
       .def("init_and_take_datastructures",
            &map::Shot::InitAndTakeDatastructures)
       .def("init_keypts_and_descriptors", &map::Shot::InitKeyptsAndDescriptors)
@@ -282,7 +281,7 @@ PYBIND11_MODULE(pymap, m) {
                     &map::ShotMesh::SetVertices);
 
   py::class_<map::Landmark>(m, "Landmark")
-      .def(py::init<const map::LandmarkId &, const Eigen::Vector3d &>())
+      .def(py::init<const map::LandmarkId&, const Eigen::Vector3d &>())
       .def_readonly("id", &map::Landmark::id_)
       .def_readonly("unique_id", &map::Landmark::unique_id_)
       .def_readwrite("slam_data", &map::Landmark::slam_data_)

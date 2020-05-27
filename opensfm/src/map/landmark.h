@@ -38,12 +38,9 @@ private:
 };
 
 class Landmark {
-public:
-  static LandmarkUniqueId landmark_unique_id_;
-
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  Landmark(const LandmarkId lm_id, const Vec3d& global_pos);
+  Landmark(const LandmarkId& lm_id, const Vec3d& global_pos);
 
   // Getters and Setters
   Vec3d GetGlobalPos() const { return global_pos_; }
@@ -60,6 +57,10 @@ public:
   bool HasObservations() const { return !observations_.empty(); }
   size_t NumberOfObservations() const { return observations_.size(); }
   Vec3f GetObservationInShot(Shot* shot) const;
+  FeatureId GetObservationIdInShot(Shot* shot) const
+  {
+    return observations_.at(shot);
+  }
   const std::map<Shot*, FeatureId, KeyCompare>& GetObservations() const {
     return observations_;
   }
@@ -75,23 +76,23 @@ public:
   bool operator>=(const Landmark& lm) const { return id_ >= lm.id_; }
 
   // Reprojection Errors
-  void SetReprojectionErrors(const std::unordered_map<std::string, Eigen::VectorXd> reproj_errors);
-  std::unordered_map<std::string, Eigen::VectorXd> GetReprojectionErrors() const { return reproj_errors_; }
-  void RemoveReprojectionError(const std::string& shot_id)
+  void SetReprojectionErrors(const std::unordered_map<ShotId, Eigen::VectorXd> reproj_errors);
+  std::unordered_map<ShotId, Eigen::VectorXd> GetReprojectionErrors() const { return reproj_errors_; }
+  void RemoveReprojectionError(const ShotId& shot_id)
   {
     reproj_errors_.erase(shot_id);
   }
 
 public:
   const LandmarkId id_;
-  const LandmarkUniqueId unique_id_;
+  LandmarkUniqueId unique_id_;
   SLAMLandmarkData slam_data_;
 private:
   Vec3d global_pos_; // point in global
   std::map<Shot*, FeatureId, KeyCompare> observations_;
   Shot* ref_shot_; //shot in which the landmark was first seen
   Vec3i color_;
-  std::unordered_map<std::string, Eigen::VectorXd> reproj_errors_;
+  std::unordered_map<ShotId, Eigen::VectorXd> reproj_errors_;
 
 };
 }

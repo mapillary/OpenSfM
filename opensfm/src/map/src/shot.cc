@@ -4,11 +4,9 @@
 #include <numeric>
 namespace map
 {
-ShotUniqueId Shot::shot_unique_id_ = 0;
-Shot::Shot(const ShotId shot_id, const Camera& shot_camera, const Pose& pose):
-            id_(shot_id), unique_id_(shot_unique_id_), shot_camera_(shot_camera), slam_data_(this), pose_(pose)
+Shot::Shot(const ShotId& shot_id, const Camera& shot_camera, const Pose& pose):
+            id_(shot_id), shot_camera_(shot_camera), slam_data_(this), pose_(pose)
 {
-  ++Shot::shot_unique_id_;
 }
 
 size_t
