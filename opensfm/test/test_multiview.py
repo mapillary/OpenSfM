@@ -137,7 +137,7 @@ def test_relative_pose_refinement(pairs_and_their_E):
         pose.translation /= np.linalg.norm(pose.translation)
 
         noisy_pose = copy.deepcopy(pose)
-        noisy_pose.translation += np.random.rand(3)*1e-2
+        noisy_pose.translation += np.random.rand(3)*1e-1
         noisy_pose.rotation += np.random.rand(3)*1e-2
         result = pygeometry.relative_pose_refinement(noisy_pose.get_Rt(), f1, f2, 1000)
 
