@@ -8,7 +8,7 @@
 template< class PosFunc >
 struct BAAbsolutePositionError {
   BAAbsolutePositionError(const PosFunc& pos_func, 
-                          const Eigen::Vector3d& pos_prior,
+                          const Vec3d& pos_prior,
                           double std_deviation,
                           bool has_std_deviation_param,
                           const PositionConstraintType& type)
@@ -21,7 +21,7 @@ struct BAAbsolutePositionError {
 
   template <typename T>
   bool operator()(T const* const* p, T* r) const {
-    Eigen::Map< Eigen::Matrix<T,3,1> > residual(r);
+    Eigen::Map< Vec3<T> > residual(r);
 
     // error is : position_prior - adjusted_position
     residual = pos_prior_.cast<T>() - pos_func_(p);
@@ -50,7 +50,7 @@ struct BAAbsolutePositionError {
   }
 
   PosFunc pos_func_;
-  Eigen::Vector3d pos_prior_;
+  Vec3d pos_prior_;
   double scale_;
   bool has_std_deviation_param_;
   PositionConstraintType type_;
@@ -69,7 +69,7 @@ T diff_between_angles(T a, T b) {
 }
 
 struct BAUpVectorError {
-  BAUpVectorError(const Eigen::Vector3d& acceleration, double std_deviation)
+  BAUpVectorError(const Vec3d& acceleration, double std_deviation)
       : scale_(1.0 / std_deviation)
   {
     acceleration_ = acceleration.normalized();
@@ -77,17 +77,17 @@ struct BAUpVectorError {
 
   template <typename T>
   bool operator()(const T* const shot, T* r) const {
-    Eigen::Map< const Eigen::Matrix<T,3,1> > R(shot + BA_SHOT_RX);
-    Eigen::Map< Eigen::Matrix<T,3,1> > residual(r);
+    Eigen::Map< const Vec3<T> > R(shot + BA_SHOT_RX);
+    Eigen::Map< Vec3<T> > residual(r);
 
-    const Eigen::Matrix<T,3,1> acceleration = acceleration_.cast<T>();
-    const Eigen::Matrix<T,3,1> z_world = RotatePoint(R, acceleration);
-    const Eigen::Matrix<T,3,1> z_axis =  Eigen::Vector3d(0, 0, 1).cast<T>();
+    const Vec3<T> acceleration = acceleration_.cast<T>();
+    const Vec3<T> z_world = RotatePoint(R.eval(), acceleration);
+    const Vec3<T> z_axis =  Vec3d(0, 0, 1).cast<T>();
     residual = T(scale_) * (z_world - z_axis);
     return true;
   }
 
-  Eigen::Vector3d acceleration_;
+  Vec3d acceleration_;
   double scale_;
 };
 
@@ -100,10 +100,10 @@ struct BAPanAngleError {
   template <typename T>
   bool operator()(const T* const shot,
                   T* residuals) const {
-    Eigen::Map< const Eigen::Matrix<T,3,1> > R(shot + BA_SHOT_RX);
+    Eigen::Map< const Vec3<T> > R(shot + BA_SHOT_RX);
 
-    const Eigen::Matrix<T,3,1> z_axis = Eigen::Vector3d(0, 0, 1).cast<T>();
-    const auto z_world = RotatePoint(R, z_axis);
+    const Vec3<T> z_axis = Vec3d(0, 0, 1).cast<T>();
+    const auto z_world = RotatePoint(R.eval(), z_axis);
 
     if (ceres::abs(z_world(0)) < T(1e-8) && ceres::abs(z_world(1)) < T(1e-8)) {
       residuals[0] = T(0.0);
