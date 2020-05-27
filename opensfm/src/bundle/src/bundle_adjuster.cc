@@ -767,10 +767,10 @@ void BundleAdjuster::Run() {
 
       // Set focal and aspect ratio prior to log scale
       prior_function->SetScaleType(
-          GetParamsCount(BACameraParameters::FOCAL),
+          GetParamIndex(BACameraParameters::FOCAL),
           BADataPriorError<Camera>::ScaleType::LOGARITHMIC);
       prior_function->SetScaleType(
-          GetParamsCount(BACameraParameters::ASPECT_RATIO),
+          GetParamIndex(BACameraParameters::ASPECT_RATIO),
           BADataPriorError<Camera>::ScaleType::LOGARITHMIC);
 
       ceres::CostFunction *cost_function =
