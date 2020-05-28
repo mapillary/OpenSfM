@@ -127,11 +127,9 @@ struct ReprojectionError{
                   const T* const shot,
                   const T* const point,
                   T* residuals) const {
-    // Bring the point to the camera coordinate frame
-    Eigen::Map<const Vec3<T>> x(point);
-    Eigen::Map<const Vec3<T>> R(shot + GetParamIndex(BAShotParameters::RX));
-    Eigen::Map<const Vec3<T>> c(shot + GetParamIndex(BAShotParameters::TX));
-    const Vec3<T> camera_point = WorldToCamera(R, c, x);
+    T camera_point_data[3];
+    WorldToCameraCoordinates(shot, point, camera_point_data);
+    Eigen::Map<const Vec3<T>> camera_point(camera_point_data);
 
     Mat2<T> affine = Mat2<T>::Zero();
     affine(0, 0) = camera[GetParamIndex(BACameraParameters::FOCAL)];
@@ -143,7 +141,7 @@ struct ReprojectionError{
 
     // Apply camera projection
     const Vec2<T> predicted = Dispatch<Vec2<T>, ProjectFunction>(
-        type_, camera_point, projection.eval(), affine, principal_point.eval(),
+        type_, camera_point.eval(), projection.eval(), affine, principal_point.eval(),
         distortion.eval());
 
     // The error is the difference between the predicted and observed position
