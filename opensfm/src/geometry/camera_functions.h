@@ -89,8 +89,7 @@ struct SphericalProjection {
   static Vec3<T> Backward(const Vec2<T>& point, const VecX<T>& p) {
     const auto lon = point[0] * 2 * M_PI;
     const auto lat = -point[1] * 2 * M_PI;
-    return Vec3<T>(cos(lat) * sin(lon), -sin(lat),
-                    cos(lat) * cos(lon));
+    return Vec3<T>(cos(lat) * sin(lon), -sin(lat), cos(lat) * cos(lon));
   }
 };
 
@@ -249,22 +248,22 @@ struct DistoBrown {
   }
   template <class T>
   static Vec2<T> TangentialDistortion(const T& r2, const T& x, const T& y,
-                                       const T& p1, const T& p2) {
+                                      const T& p1, const T& p2) {
     return Vec2<T>(T(2.0) * p1 * x * y + p2 * (r2 + T(2.0) * x * x),
-                    T(2.0) * p2 * x * y + p1 * (r2 + T(2.0) * y * y));
+                   T(2.0) * p2 * x * y + p1 * (r2 + T(2.0) * y * y));
   }
 };
 
 struct Affine {
   template <class T>
   static Vec2<T> Forward(const Vec2<T>& point, const Mat2<T>& affine,
-                          const Vec2<T>& shift) {
+                         const Vec2<T>& shift) {
     return affine * point + shift;
   }
 
   template <class T>
   static Vec2<T> Backward(const Vec2<T>& point, const Mat2<T>& affine,
-                           const Vec2<T>& shift) {
+                          const Vec2<T>& shift) {
     return affine.inverse() * (point - shift);
   }
 };
@@ -298,8 +297,8 @@ struct Identity {
 struct ProjectFunction {
   template <class TYPE, class T>
   static Vec2<T> Apply(const Vec3<T>& point, const VecX<T>& projection,
-                        const Mat2<T>& affine, const Vec2<T>& principal_point,
-                        const VecX<T>& distortion) {
+                       const Mat2<T>& affine, const Vec2<T>& principal_point,
+                       const VecX<T>& distortion) {
     return TYPE::Forward(point, projection, affine, principal_point,
                          distortion);
   }
@@ -308,8 +307,8 @@ struct ProjectFunction {
 struct BearingFunction {
   template <class TYPE, class T>
   static Vec3<T> Apply(const Vec2<T>& point, const VecX<T>& projection,
-                        const Mat2<T>& affine, const Vec2<T>& principal_point,
-                        const VecX<T>& distortion) {
+                       const Mat2<T>& affine, const Vec2<T>& principal_point,
+                       const VecX<T>& distortion) {
     return TYPE::Backward(point, projection, affine, principal_point,
                           distortion);
   }
@@ -323,9 +322,8 @@ template <class PROJ, class DISTO, class AFF>
 struct ProjectGeneric {
   template <class T>
   static Vec2<T> Forward(const Vec3<T>& point, const VecX<T>& projection,
-                          const Mat2<T>& affine,
-                          const Vec2<T>& principal_point,
-                          const VecX<T>& distortion) {
+                         const Mat2<T>& affine, const Vec2<T>& principal_point,
+                         const VecX<T>& distortion) {
     return AFF::Forward(
         DISTO::Forward(PROJ::Forward(point, projection), distortion), affine,
         principal_point);
@@ -333,9 +331,8 @@ struct ProjectGeneric {
 
   template <class T>
   static Vec3<T> Backward(const Vec2<T>& point, const VecX<T>& projection,
-                           const Mat2<T>& affine,
-                           const Vec2<T>& principal_point,
-                           const VecX<T>& distortion) {
+                          const Mat2<T>& affine, const Vec2<T>& principal_point,
+                          const VecX<T>& distortion) {
     return PROJ::Backward(
         DISTO::Backward(AFF::Backward(point, affine, principal_point),
                         distortion),
