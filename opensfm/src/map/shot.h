@@ -188,6 +188,10 @@ class Shot {
   const Camera& GetCamera() const { return shot_camera_; }
 
   Vec2d Project(const Vec3d& global_pos) const;
+  MatX2d ProjectMany(const MatX3d& points) const;
+
+  Vec3d Bearing(const Vec2d& point) const;
+  MatX3d BearingMany(const MatX2d& points) const;
 
  public:
   SLAMShotData slam_data_;

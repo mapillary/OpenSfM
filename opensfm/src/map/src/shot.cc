@@ -137,5 +137,25 @@ Vec2d Shot::Project(const Vec3d& global_pos) const {
   return shot_camera_.Project(pose_.RotationWorldToCamera()*global_pos + pose_.TranslationWorldToCamera());
 }
 
+MatX2d Shot::ProjectMany(const MatX3d& points) const {
+  MatX2d projected(points.rows(), 2);
+  for (int i = 0; i < points.rows(); ++i) {
+    projected.row(i) = Project(points.row(i));
+  }
+  return projected;
+}
+
+Vec3d Shot::Bearing(const Vec2d& point) const {
+  return pose_.RotationCameraToWorld() * shot_camera_.Bearing(point);
+}
+
+MatX3d Shot::BearingMany(const MatX2d& points) const {
+  MatX3d bearings(points.rows(), 3);
+  for (int i = 0; i < points.rows(); ++i) {
+    bearings.row(i) = Bearing(points.row(i));
+  }
+  return bearings;
+}
+
 } //namespace map
 
