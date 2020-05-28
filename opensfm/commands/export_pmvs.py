@@ -130,7 +130,7 @@ class Command:
             # write camera projection matrix to txt/%08d.txt
             resized_h, resized_w = resized_image.shape[:2]
             resized_K = camera.get_K_in_pixel_coordinates(resized_w, resized_h)
-            P = resized_K.dot(shot.pose.get_Rt())
+            P = resized_K.dot(shot.pose.get_world_to_cam()[:3])
 
             new_txt = os.path.join(output_path, "txt", base + ".txt")
             with open(new_txt, "wb") as f:
