@@ -99,7 +99,7 @@ struct Disto24 {
     const T r2 = point.squaredNorm();
     const auto distortion = Distortion(r2, k(static_cast<int>(Disto::K1)),
                                        k(static_cast<int>(Disto::K2)));
-    return point * distortion;
+    return Vec2<T>(point[0] / distortion, point[1] / distortion);
   }
 
   template <class T>
