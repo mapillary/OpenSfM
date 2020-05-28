@@ -1144,29 +1144,21 @@ def remove_outliers(reconstruction, config, points=None):
             if error_sqr > threshold_sqr:
                 outliers.append((point_id, shot_id))
 
-    # TODO: implement delete reprojecion errors
     for track, shot_id in outliers:
-        # del reconstruction.points[track].reprojection_errors[shot_id]
-        # reconstruction.map.remove_reprojection_error(shot_id)
         #TODO: revise this!
+        #TODO: -> remove_observation completely in C++
+        # remove_observation(shot_id, lm_id)
         shot = reconstruction.shots[shot_id]
         lm = reconstruction.points[track]
         lm.remove_reprojection_error(shot_id)
         obs = shot.get_landmark_observation(lm)
         reconstruction.map.remove_observation(shot, lm, obs.id)
-        #
-        # graph.remove_edge(track, shot_id)
+
     for track, _ in outliers:
-        # if track not in reconstruction.points:
-            # continue
-        # TODO: implement delete!
         lm = reconstruction.points[track]
         if lm is not None and lm.number_of_observations() < 2:
-        # if lm.number_of_observations() < 2:
             reconstruction.map.remove_landmark(lm)
-        # if len(graph[track]) < 2:
-            # del reconstruction.points[track]
-            # graph.remove_node(track)
+
     logger.info("Removed outliers: {}".format(len(outliers)))
     return len(outliers)
 
@@ -1310,9 +1302,6 @@ def grow_reconstruction(data, tracks_manager, reconstruction, images, camera_pri
     should_retriangulate = ShouldRetriangulate(data, reconstruction)
     while True:
         if config['save_partial_reconstructions']:
-            # pymap.MapIO.color_map(reconstruction.map)
-            # pymap.MapIO.save_map(reconstruction.map, 'reconstruction.{}.json'.format(
-            #     datetime.datetime.now().isoformat().replace(':', '_')))
             paint_reconstruction(data, tracks_manager, reconstruction)
             data.save_reconstruction(
                 [reconstruction], 'reconstruction.{}.json'.format(

@@ -346,6 +346,18 @@ def test_map():
         n_total_obs -= lm.number_of_observations()
     assert n_total_obs == 0
 
+    # remove the observations for the first landmarks from all the shots
+    for lm in m.get_all_landmarks().values():
+        for shot_id in range(int(n_shots/2)):
+            m.remove_observation(str(shot_id), lm.id)
+        assert lm.number_of_observations() == int(n_shots/2)
+    n_total_obs = 0
+    for shot in m.get_all_shots().values():
+        n_total_obs += shot.compute_num_valid_pts(1)
+    
+    assert n_total_obs == int((n_shots*n_landmarks)/2)
+
+
     # last clear
     m.clear_observations_and_landmarks()
     n_total_obs = 0
@@ -353,3 +365,5 @@ def test_map():
         n_total_obs += shot.compute_num_valid_pts(1)
 
     assert m.number_of_landmarks() == 0 and n_total_obs == 0
+
+test_map()

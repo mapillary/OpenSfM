@@ -879,7 +879,7 @@ class ShotView(object):
 
     def values(self):
         return self.map.get_all_shots().values()
-    
+
     def keys(self):
         return self.map.get_all_shots().keys()
 
@@ -888,13 +888,13 @@ class CameraView(object):
 
     def __init__(self, map_mgn):
         self.map: pymap.Map = map_mgn
-    
+
     def __len__(self):
         return self.map.number_of_cameras()
 
     def add_camera(self, cam):
         self.map.create_camera(cam)
-    
+
     def __getitem__(self, index):
         return self.get(index)
 
@@ -924,7 +924,7 @@ class Reconstruction(object):
         super(Reconstruction, self).__setattr__("points", PointView(self.map))
 
     def __setattr__(self, name, value):
-
+        # Define property
         if name == 'cameras':
             for cam in value.values():
                 self.cameras.add_camera(cam)
@@ -941,7 +941,7 @@ class Reconstruction(object):
                     self.add_point(point)
         else:
             super(Reconstruction, self).__setattr__(name, value)
-    
+
     def add_camera(self, camera):
         """Add a camera in the list
 
@@ -995,5 +995,3 @@ class Reconstruction(object):
         :return: If exists returns the point, otherwise None.
         """
         return self.points.get(id)
-    
-    

@@ -82,13 +82,13 @@ public:
   }
   void SetFromCameraToWorld(const Vec3d& r_wc, const Vec3d& t_wc)
   {
-    const Mat3d R_wc = VectorToRotationMatrix(r_wc);//#Eigen::AngleAxisd(r_wc.norm(), r_wc).toRotationMatrix();
+    const Mat3d R_wc = VectorToRotationMatrix(r_wc);
     SetFromCameraToWorld(R_wc, t_wc);
 
   }
   void SetFromWorldToCamera(const Vec3d& r_cw, const Vec3d& t_cw)
   {
-    const Mat3d R_cw = VectorToRotationMatrix(r_cw); //Eigen::AngleAxisd(r_cw.norm(), r_cw).toRotationMatrix();
+    const Mat3d R_cw = VectorToRotationMatrix(r_cw);
     SetFromWorldToCamera(R_cw, t_cw);
   }
 
@@ -100,7 +100,6 @@ public:
 
   Vec3d TransformCameraToWorld(const Vec3d& point) const
   {
-    // equal to: world_to_cam_.rotationMatrix().t (point - world_to_cam_.translation())
     return cam_to_world_.block<3, 3>(0, 0) * point +
            cam_to_world_.block<3, 1>(0, 3);
   }
@@ -131,7 +130,7 @@ private:
   void UpdateMinRotations()
   {
     r_min_cam_to_world_ = RotationMatrixToVector(cam_to_world_.block<3,3>(0,0));
-    r_min_world_to_cam_ = -r_min_cam_to_world_; //RotationMatrixToVector(world_to_cam_.block<3,3>(0,0));
+    r_min_world_to_cam_ = -r_min_cam_to_world_;
   }
 };
 }; //namespace map

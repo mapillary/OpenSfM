@@ -53,7 +53,7 @@ class Landmark {
   // Utility functions
   bool IsObservedInShot(Shot* shot) const { return observations_.count(shot) > 0; }
   void AddObservation(Shot* shot, const FeatureId feat_id) { observations_.emplace(shot, feat_id); }
-  void RemoveObservation(Shot* shot) { observations_.erase(shot); }
+  void RemoveObservation(Shot* shot);
   bool HasObservations() const { return !observations_.empty(); }
   size_t NumberOfObservations() const { return observations_.size(); }
   Vec3f GetObservationInShot(Shot* shot) const;
@@ -80,7 +80,11 @@ class Landmark {
   std::unordered_map<ShotId, Eigen::VectorXd> GetReprojectionErrors() const { return reproj_errors_; }
   void RemoveReprojectionError(const ShotId& shot_id)
   {
-    reproj_errors_.erase(shot_id);
+    auto it = reproj_errors_.find(shot_id);
+    if (it != reproj_errors_.end())
+    {
+      reproj_errors_.erase(it);
+    }
   }
 
 public:

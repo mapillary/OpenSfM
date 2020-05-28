@@ -8,13 +8,15 @@
 #include <map/defines.h>
 #include <map/pose.h>
 #include <map/geo.h>
+#include <map/shot.h>
+#include <map/landmark.h>
+
 #include <sfm/tracks_manager.h>
 #include <geometry/camera.h>
 namespace map
 {
-class Shot;
-class Landmark;
-class ShotCamera;
+// class Shot;
+// class Landmark;
 
 class Map 
 {
@@ -86,7 +88,8 @@ public:
   void AddObservation(Shot *const shot,  Landmark *const lm, const FeatureId feat_id);
   void AddObservation(const ShotId& shot_id, const LandmarkId& lm_id, const FeatureId feat_id);
   void AddObservation(Shot *const shot,  Landmark *const lm, const Observation& obs);
-  void RemoveObservation(Shot *const shot,  Landmark *const lm, const FeatureId feat_id) const;
+  void RemoveObservation(Shot *const shot,  Landmark *const lm, const FeatureId feat_id);
+  void RemoveObservation(const ShotId& shot_id, const LandmarkId& lm_id);
   void ClearObservationsAndLandmarks();
 
   // Map information and access methods
@@ -108,7 +111,6 @@ public:
     topo_conv_.long_ = longitude;
     topo_conv_.alt_ = alt;
   }
-
 
 private:
   std::unordered_map<CameraId, Camera> cameras_;

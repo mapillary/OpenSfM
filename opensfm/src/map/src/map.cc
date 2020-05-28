@@ -30,8 +30,21 @@ void Map::AddObservation(Shot* const shot, Landmark* const lm,
 }
 
 void Map::RemoveObservation(Shot* const shot, Landmark* const lm,
-                            const FeatureId feat_id) const {
+                            const FeatureId feat_id) {
   shot->RemoveLandmarkObservation(feat_id);
+  lm->RemoveObservation(shot);
+}
+
+void Map::RemoveObservation(const ShotId& shot_id, const LandmarkId& lm_id)
+{
+  //get the shot
+  auto* shot = GetShot(shot_id);
+  //get the landmark
+  auto* lm = GetLandmark(lm_id);
+  //get observation
+  shot->RemoveLandmarkObservation(lm->GetObservationIdInShot(shot));
+  //remove
+  // shot->RemoveLandmarkObservation(feat_id);
   lm->RemoveObservation(shot);
 }
 

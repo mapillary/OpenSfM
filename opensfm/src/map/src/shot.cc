@@ -12,13 +12,26 @@ Shot::Shot(const ShotId& shot_id, const Camera& shot_camera, const Pose& pose):
 size_t
 Shot::ComputeNumValidLandmarks(const int min_obs_thr) const
 {
-  return std::accumulate(landmarks_.cbegin(), landmarks_.cend(), 0,
+  if (landmarks_.empty())
+  {
+      return std::accumulate(landmark_observations_.cbegin(), landmark_observations_.cend(), 0,
+                    [min_obs_thr](const size_t prior, const std::pair<Landmark*, Observation>& lm)
+                    {
+                        if (min_obs_thr <= lm.first->NumberOfObservations())
+                          return prior + 1;
+                        return prior;
+                    });
+  }
+  else
+  {
+    return std::accumulate(landmarks_.cbegin(), landmarks_.cend(), 0,
                     [min_obs_thr](const size_t prior, const Landmark* lm)
                     {
                         if (lm != nullptr && min_obs_thr <= lm->NumberOfObservations())
                           return prior + 1;
                         return prior;
                     });
+  }
 }
 
 float
