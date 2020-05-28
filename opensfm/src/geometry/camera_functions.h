@@ -11,14 +11,14 @@ enum class Disto { K1 = 0, K2 = 1, K3 = 2, P1 = 3, P2 = 4, COUNT = 5 };
 struct FisheyeProjection {
   template <class T>
   static Vec2<T> Forward(const Vec3<T>& point, const VecX<T>& p) {
-    const auto r = point.template head<2>().norm();
+    const T r = point.template head<2>().norm();
     const auto theta = atan2(r, point[2]);
     return Vec2<T>(theta / r * point[0], theta / r * point[1]);
   }
 
   template <class T>
   static Vec3<T> Backward(const Vec2<T>& point, const VecX<T>& p) {
-    const auto theta = point.norm();
+    const T theta = point.norm();
     const auto s = tan(theta) / theta;
     return Vec3<T>(point[0] * s, point[1] * s, 1.0).normalized();
   }
@@ -47,14 +47,14 @@ struct DualProjection {
   template <class T>
   static Vec3<T> Backward(const Vec2<T>& point, const VecX<T>& p) {
     // Perform a bit iterations for finding theta from r
-    const auto r = point.norm();
+    const T r = point.norm();
     ThetaEval<T> eval_function{0, r, p[0]};
     const auto theta_refined =
         NewtonRaphson<ThetaEval<T>, 1, 1, ManualDiff<ThetaEval<T>, 1, 1>>(
             eval_function, 0, iterations);
 
-    const auto s = tan(theta_refined) / (p[0] * tan(theta_refined) +
-                                              (1.0 - p[0]) * theta_refined);
+    const auto s = tan(theta_refined) /
+                   (p[0] * tan(theta_refined) + (1.0 - p[0]) * theta_refined);
     return Vec3<T>(point[0] * s, point[1] * s, 1.0).normalized();
   }
 
@@ -97,9 +97,9 @@ struct SphericalProjection {
 struct Disto24 {
   template <class T>
   static Vec2<T> Forward(const Vec2<T>& point, const VecX<T>& k) {
-    const auto r2 = point.dot(point);
-    const auto distortion = Distortion(r2, k[static_cast<int>(Disto::K1)],
-                                       k[static_cast<int>(Disto::K2)]);
+    const T r2 = point.squaredNorm();
+    const auto distortion = Distortion(r2, k(static_cast<int>(Disto::K1)),
+                                       k(static_cast<int>(Disto::K2)));
     return point * distortion;
   }
 
@@ -107,12 +107,12 @@ struct Disto24 {
   static Vec2<T> Backward(const Vec2<T>& point, const VecX<T>& k) {
     /* Beware if you use Backward together with autodiff. You'll need to remove
      * the line below, otherwise, derivatives won't be propagated */
-    if (k.norm() < T(std::numeric_limits<double>::epsilon())) {
+    const T rd = point.norm();
+    if (rd < T(std::numeric_limits<double>::epsilon())) {
       return point;
     }
 
     // Compute undistorted radius
-    auto rd = point.norm();
     DistoEval<T> eval_function{rd, k[static_cast<int>(Disto::K1)],
                                k[static_cast<int>(Disto::K2)]};
     const auto ru_refined =
@@ -120,7 +120,7 @@ struct Disto24 {
             eval_function, rd, iterations);
 
     // Compute distortion factor from undistorted radius
-    const auto r2 = ru_refined * ru_refined;
+    const T r2 = ru_refined * ru_refined;
     const auto distortion = Distortion(r2, k[static_cast<int>(Disto::K1)],
                                        k[static_cast<int>(Disto::K2)]);
 
@@ -135,19 +135,17 @@ struct Disto24 {
     const T& k1;
     const T& k2;
     T operator()(const T& x) const {
-      const auto r = x;
-      const auto r2 = r * r;
-      return r * Disto24::Distortion(r2, k1, k2) - rd;
+      const auto r2 = x * x;
+      return x * Disto24::Distortion(r2, k1, k2) - rd;
     }
     T derivative(const T& x) const {
-      const auto r = x;
-      const auto r2 = r * r;
+      const auto r2 = x * x;
       return Disto24::DistortionDerivative(r2, k1, k2);
     }
   };
 
   template <class T>
-  static T Distortion(const T& r2, const T& k1, const T& k2) {
+  static inline T Distortion(const T& r2, const T& k1, const T& k2) {
     return T(1.0) + r2 * (k1 + k2 * r2);
   }
 
@@ -203,7 +201,7 @@ struct DistoBrown {
     const T& p2;
 
     Vec2<T> operator()(const Vec2<T>& point) const {
-      const auto r2 = point.dot(point);
+      const T r2 = point.squaredNorm();
       const auto distortion_radial = RadialDistortion(r2, k1, k2, k3);
       const auto distortion_tangential =
           TangentialDistortion(r2, point[0], point[1], p1, p2);
@@ -271,6 +269,20 @@ struct Affine {
   }
 };
 
+struct UniformScale {
+  template <class T>
+  static Vec2<T> Forward(const Vec2<T>& point, const Mat2<T>& affine,
+                         const Vec2<T>& /* shift */) {
+    return Vec2<T>(affine(0, 0) * point(0), affine(1, 1) * point(1));
+  }
+
+  template <class T>
+  static Vec2<T> Backward(const Vec2<T>& point, const Mat2<T>& affine,
+                          const Vec2<T>& /* shift */) {
+    return Vec2<T>(point(0) / affine(0, 0), point(1) / affine(1, 1));
+  }
+};
+
 struct Identity {
   template <class T, class... Types>
   static Vec2<T> Forward(const Vec2<T>& point, Types&&... args) {
@@ -331,10 +343,10 @@ struct ProjectGeneric {
   }
 };
 
-using PerspectiveCameraT = ProjectGeneric<PerspectiveProjection, Disto24, Affine>;
+using PerspectiveCameraT = ProjectGeneric<PerspectiveProjection, Disto24, UniformScale>;
 using BrownCameraT = ProjectGeneric<PerspectiveProjection, DistoBrown, Affine>;
-using FisheyeCameraT = ProjectGeneric<FisheyeProjection, Disto24, Affine>;
-using DualCameraT = ProjectGeneric<DualProjection, Disto24, Affine>;
+using FisheyeCameraT = ProjectGeneric<FisheyeProjection, Disto24, UniformScale>;
+using DualCameraT = ProjectGeneric<DualProjection, Disto24, UniformScale>;
 using SphericalCameraT = ProjectGeneric<SphericalProjection, Identity, Identity>;
 
 /* This is where the pseudo-strategy pattern takes place. If you want to add
