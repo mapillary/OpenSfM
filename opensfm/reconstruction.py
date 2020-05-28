@@ -727,7 +727,7 @@ def bootstrap_reconstruction(data, tracks_manager, camera_priors, im1, im2, p1, 
     if len(inliers) <= 5:
         report['decision'] = "Could not find initial motion"
         logger.info(report['decision'])
-        return None, None, report
+        return None, report
 
     reconstruction = types.Reconstruction()
     reconstruction.reference = data.load_reference()
@@ -747,7 +747,6 @@ def bootstrap_reconstruction(data, tracks_manager, camera_priors, im1, im2, p1, 
     shot2.metadata = get_image_metadata(data, im2)
     reconstruction.add_shot(shot2)
 
-    # graph_inliers = nx.Graph()
     triangulate_shot_features(tracks_manager, reconstruction, im1, data.config)
 
     logger.info("Triangulated: {}".format(len(reconstruction.points)))
@@ -755,7 +754,7 @@ def bootstrap_reconstruction(data, tracks_manager, camera_priors, im1, im2, p1, 
     if len(reconstruction.points) < min_inliers:
         report['decision'] = "Initial motion did not generate enough points"
         logger.info(report['decision'])
-        return None, None, report
+        return None, report
 
     bundle_single_view(reconstruction, im2, camera_priors,
                        data.config)
@@ -764,7 +763,7 @@ def bootstrap_reconstruction(data, tracks_manager, camera_priors, im1, im2, p1, 
     if len(reconstruction.points) < min_inliers:
         report['decision'] = "Re-triangulation after initial motion did not generate enough points"
         logger.info(report['decision'])
-        return None, None, report
+        return None, report
     bundle_single_view(reconstruction, im2, camera_priors,
                        data.config)
 

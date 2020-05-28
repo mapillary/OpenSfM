@@ -89,7 +89,7 @@ public:
   void SetFromWorldToCamera(const Vec3d& r_cw, const Vec3d& t_cw)
   {
     const Mat3d R_cw = VectorToRotationMatrix(r_cw); //Eigen::AngleAxisd(r_cw.norm(), r_cw).toRotationMatrix();
-    SetFromCameraToWorld(R_cw, t_cw);
+    SetFromWorldToCamera(R_cw, t_cw);
   }
 
   Vec3d TransformWorldToCamera(const Vec3d& point) const
@@ -114,7 +114,14 @@ private:
   static Mat3d VectorToRotationMatrix(const Vec3d& r)
   {
     const auto n = r.norm();
-    return Eigen::AngleAxisd(n, r/n).toRotationMatrix();
+    if (n == 0) // avoid division by 0
+    {
+      return Eigen::AngleAxisd(0, r).toRotationMatrix();
+    }
+    else
+    {
+      return Eigen::AngleAxisd(n, r/n).toRotationMatrix();
+    }
   }
   static Vec3d RotationMatrixToVector(const Mat3d& R)
   {
@@ -124,7 +131,7 @@ private:
   void UpdateMinRotations()
   {
     r_min_cam_to_world_ = RotationMatrixToVector(cam_to_world_.block<3,3>(0,0));
-    r_min_world_to_cam_ = RotationMatrixToVector(world_to_cam_.block<3,3>(0,0));
+    r_min_world_to_cam_ = -r_min_cam_to_world_; //RotationMatrixToVector(world_to_cam_.block<3,3>(0,0));
   }
 };
 }; //namespace map
