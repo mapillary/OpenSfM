@@ -138,9 +138,8 @@ def generate_exifs(reconstruction, gps_noise, speed_ms=10):
 
         perturb_points([pose], [gps_noise, gps_noise, gps_noise])
 
-        shot_copy = copy.deepcopy(shot)
-        shot_copy.pose.set_origin(pose)
-        lat, lon, alt, comp = rc.shot_lla_and_compass(shot_copy, reference)
+        _, _, _, comp = rc.shot_lla_and_compass(shot, reference)
+        lat, lon, alt = reference.to_lla(*pose)
 
         exif['gps'] = {}
         exif['gps']['latitude'] = lat
