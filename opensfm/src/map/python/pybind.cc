@@ -86,7 +86,8 @@ PYBIND11_MODULE(pymap, m) {
                     &map::Pose::SetWorldToCamTranslation)
       .def("set_rotation_matrix", &map::Pose::SetWorldToCamRotationMatrix)
       .def("transform", &map::Pose::TransformWorldToCamera)
-      .def("transform_inverse", &map::Pose::TransformCameraToWorld);
+      .def("transform_inverse", &map::Pose::TransformCameraToWorld)
+      .def("relative_to", &map::Pose::RelativeTo);
 
   py::class_<map::Map>(m, "Map")
       .def(py::init())
