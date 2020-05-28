@@ -1,4 +1,27 @@
-FROM paulinus/opensfm-docker-base:python2
+FROM ubuntu:19.10
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+# Install apt-getable dependencies
+RUN apt-get update \
+    && apt-get install -y \
+        build-essential \
+        cmake \
+        git \
+        libeigen3-dev \
+        libopencv-dev \
+        libceres-dev \
+        python-dev \
+        python-numpy \
+        python-opencv \
+        python-pip \
+        python-pyproj \
+        python-scipy \
+        python-yaml \
+        curl \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
 
 COPY . /source/OpenSfM
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <opencv2/features2d/features2d.hpp>
+#include <string>
 
 using TrackId = std::string;
 using ShotId = std::string;
