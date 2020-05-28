@@ -127,9 +127,8 @@ struct ReprojectionError{
                   const T* const shot,
                   const T* const point,
                   T* residuals) const {
-    T camera_point_data[3];
-    WorldToCameraCoordinates(shot, point, camera_point_data);
-    Eigen::Map<const Vec3<T>> camera_point(camera_point_data);
+    Vec3<T> camera_point;
+    WorldToCameraCoordinates(shot, point, camera_point.data());
 
     Mat2<T> affine = Mat2<T>::Zero();
     affine(0, 0) = camera[GetParamIndex(BACameraParameters::FOCAL)];
