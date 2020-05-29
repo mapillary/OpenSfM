@@ -218,7 +218,7 @@ PYBIND11_MODULE(pymap, m) {
       .def_readonly("alt", &map::TopoCentricConverter::lat_);
 
   py::class_<map::Shot>(m, "Shot")
-      .def(py::init<const map::ShotId &, const Camera &, const map::Pose &>())
+      .def(py::init<const map::ShotId &, const Camera * const, const map::Pose &>())
       .def_readonly("id", &map::Shot::id_)
       .def_readonly("unique_id", &map::Shot::unique_id_)
       .def_readonly("slam_data", &map::Shot::slam_data_,
@@ -269,7 +269,61 @@ PYBIND11_MODULE(pymap, m) {
       .def("project", &map::Shot::Project)
       .def("project_many", &map::Shot::ProjectMany)
       .def("bearing", &map::Shot::Bearing)
-      .def("bearing_many", &map::Shot::BearingMany);
+      .def("bearing_many", &map::Shot::BearingMany)
+      // pickle support
+      .def(py::pickle(
+           [](const map::Shot& s)
+           {
+                auto c = s.GetCamera();
+                return py::make_tuple(s.id_, s.unique_id_, s.GetPose().CameraToWorld(),
+                       py::make_tuple( c->GetProjectionParams(), c->GetDistortion(),
+                         c->GetFocal(), c->GetPrincipalPoint(), c->GetAspectRatio(),
+                         c->GetProjectionType(), c->width, c->height, c->id));
+           },
+           [](py::tuple s)
+           {
+
+               //tuple
+               auto pose = map::Pose();
+               pose.SetFromCameraToWorld(s[2].cast<Mat4d>());
+               auto t = s[3].cast<py::tuple>();
+               // Create camera
+               const auto projection_params = t[0].cast<Eigen::VectorXd>();
+               const auto distortion = t[1].cast<Eigen::VectorXd>();
+               const auto focal = t[2].cast<double>();
+               const auto principal_point = t[3].cast<Eigen::Vector2d>();
+               const auto aspect_ratio = t[4].cast<double>();
+               const auto type = t[5].cast<ProjectionType>();
+               const auto width = t[6].cast<int>();
+               const auto height = t[7].cast<int>();
+               const auto id = t[8].cast<std::string>();
+               Camera camera = Camera::CreatePerspectiveCamera(0, 0, 0);
+               switch(type){
+               case ProjectionType::PERSPECTIVE:
+                    camera = Camera::CreatePerspectiveCamera(focal, distortion[0], distortion[1]); break;
+               case ProjectionType::BROWN:
+                    camera = Camera::CreateBrownCamera (focal, aspect_ratio, principal_point, distortion ); break;
+               case ProjectionType::FISHEYE:
+                    camera = Camera::CreateFisheyeCamera(focal, distortion[0], distortion[1]); break;
+               case ProjectionType::DUAL:
+                    camera = Camera::CreateDualCamera(projection_params[0], focal, distortion[0], distortion[1]); break;
+               case ProjectionType::SPHERICAL:
+                    camera = Camera::CreateSphericalCamera(); break;
+               }
+               camera.width = width;
+               camera.height = height;
+               camera.id = id;
+               
+               //create unique_ptr
+               auto cam_ptr = std::unique_ptr<Camera>(new Camera(camera));
+               auto shot = map::Shot(t[0].cast<map::ShotId>(), std::move(cam_ptr),pose);
+               shot.unique_id_ = t[1].cast<map::ShotUniqueId>();
+               // shot.TransferCameraOwnership(std::move(cam));
+               
+               return shot;
+           }
+      ))
+      ;
 
 
   py::class_<map::SLAMShotData>(m, "SlamShotData")

@@ -50,12 +50,15 @@ struct ShotMeasurements {
 
 class Shot {
  public:
-  static ShotUniqueId shot_unique_id_;
-
- public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  Shot(const ShotId& shot_id, const Camera& shot_camera, const Pose& pose);
+  // Shot(const ShotId& shot_id, const Camera& shot_camera, const Pose& pose);
+  Shot(const ShotId& shot_id, const Camera* const shot_camera, const Pose& pose);
+  // Workaround for pickle that makes it possible for the shot to have camera
+  // outside of the reconstruction.
+  Shot(const ShotId& shot_id, std::unique_ptr<Camera> cam, const Pose& pose);
+  
+
   const DescriptorType GetDescriptor(const FeatureId id) const {
     return descriptors_.row(id);
   }
@@ -184,8 +187,10 @@ class Shot {
   bool operator<=(const Shot& shot) const { return id_ <= shot.id_; }
   bool operator>(const Shot& shot) const { return id_ > shot.id_; }
   bool operator>=(const Shot& shot) const { return id_ >= shot.id_; }
-  std::string GetCameraName() const { return shot_camera_.id; }
-  const Camera& GetCamera() const { return shot_camera_; }
+  // std::string GetCameraName() const { return shot_camera_.id; }
+  // const Camera& GetCamera() const { return shot_camera_; }
+  std::string GetCameraName() const { return shot_camera_->id; }
+  const Camera* const GetCamera() const { return shot_camera_; }
 
   Vec2d Project(const Vec3d& global_pos) const;
   MatX2d ProjectMany(const MatX3d& points) const;
@@ -193,11 +198,17 @@ class Shot {
   Vec3d Bearing(const Vec2d& point) const;
   MatX3d BearingMany(const MatX2d& points) const;
 
+
+  // void TransferCamOwnership(std::unique_ptr<Camera> cam)
+  // {
+  //   own_camera_ = std::move(cam);
+  // }
  public:
   SLAMShotData slam_data_;
   const ShotId id_;  // the file name
   ShotUniqueId unique_id_;
-  const Camera& shot_camera_;
+  // const Camera& shot_camera_;
+  const Camera* const shot_camera_;
   ShotMeasurements shot_measurements_;  // metadata
   ShotMesh mesh;
 
@@ -215,5 +226,8 @@ class Shot {
            Eigen::aligned_allocator<Observation>>
       landmark_observations_;
   std::unordered_map<FeatureId, Landmark*> landmark_id_;
+  // Workaround for pickle that makes it possible for the shot to have camera
+  // outside of the reconstruction.
+  std::unique_ptr<Camera> own_camera_;
 };
 }  // namespace map

@@ -83,7 +83,7 @@ void Map::ClearObservationsAndLandmarks() {
  *
  * @returns             returns pointer to created or existing shot
  */
-Shot* Map::CreateShot(const ShotId& shot_id, const Camera& cam,
+Shot* Map::CreateShot(const ShotId& shot_id, const Camera* const cam,
                       const Pose& pose) {
   // C++14
   // auto it = shots_.emplace(shot_id, std::make_unique<Shot>(shot_id, cam,
@@ -114,8 +114,8 @@ Shot* Map::CreateShot(const ShotId& shot_id, const Camera& cam,
 Shot* Map::CreateShot(const ShotId& shot_id, const CameraId& camera_id,
                       const Pose& pose) {
   
-  auto* cam = GetCamera(camera_id);
-  return CreateShot(shot_id, *cam, pose);
+  // auto* cam = ;
+  return CreateShot(shot_id, GetCamera(camera_id), pose);
 }
 
 // void Map::UpdateShotPose(const ShotId& shot_id, const Pose& pose) {

@@ -4,11 +4,15 @@
 #include <numeric>
 namespace map
 {
-Shot::Shot(const ShotId& shot_id, const Camera& shot_camera, const Pose& pose):
+Shot::Shot(const ShotId& shot_id, const Camera* const shot_camera, const Pose& pose):
             id_(shot_id), shot_camera_(shot_camera), slam_data_(this), pose_(pose)
 {
 }
-
+Shot::Shot(const ShotId& shot_id, std::unique_ptr<Camera> shot_camera, const Pose& pose):
+            id_(shot_id), shot_camera_(shot_camera.get()), slam_data_(this), pose_(pose)
+{
+  own_camera_ = std::move(shot_camera);
+}
 size_t
 Shot::ComputeNumValidLandmarks(const int min_obs_thr) const
 {
@@ -147,7 +151,7 @@ Shot::RemoveLandmarkObservation(const FeatureId id)
 }
 
 Vec2d Shot::Project(const Vec3d& global_pos) const {
-  return shot_camera_.Project(pose_.RotationWorldToCamera()*global_pos + pose_.TranslationWorldToCamera());
+  return shot_camera_->Project(pose_.RotationWorldToCamera()*global_pos + pose_.TranslationWorldToCamera());
 }
 
 MatX2d Shot::ProjectMany(const MatX3d& points) const {
@@ -159,7 +163,7 @@ MatX2d Shot::ProjectMany(const MatX3d& points) const {
 }
 
 Vec3d Shot::Bearing(const Vec2d& point) const {
-  return pose_.RotationCameraToWorld() * shot_camera_.Bearing(point);
+  return pose_.RotationCameraToWorld() * shot_camera_->Bearing(point);
 }
 
 MatX3d Shot::BearingMany(const MatX2d& points) const {

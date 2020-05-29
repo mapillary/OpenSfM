@@ -44,7 +44,8 @@ public:
   
   // Shot Methods
   Shot* CreateShot(const ShotId& shot_id, const CameraId& camera_id, const Pose& pose = Pose());
-  Shot* CreateShot(const ShotId& shot_id, const Camera& cam, const Pose& pose = Pose());
+  // Shot* CreateShot(const ShotId& shot_id, const Camera& cam, const Pose& pose = Pose());
+  Shot* CreateShot(const ShotId& shot_id, const Camera* const cam, const Pose& pose = Pose());
   Shot* GetShot(const ShotId& shot_id);
   // void UpdateShotPose(const ShotId& shot_id, const Pose& pose);
   void RemoveShot(const ShotId& shot_id);

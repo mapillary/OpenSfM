@@ -63,13 +63,13 @@ TEST(Map, CreateAndDeleteShots)
   for (auto i = 0; i < n_shots; ++i)
   {
     const auto shot_id = "shot"+std::to_string(i);
-    auto* shot = map.CreateShot(shot_id, *my_cam);
+    auto* shot = map.CreateShot(shot_id, my_cam);
     ASSERT_EQ(shot, map.GetShot(shot_id));
     //Creating the same shot again, should yield the same pointer
-    ASSERT_EQ(shot, map.CreateShot(shot_id, *my_cam));
+    ASSERT_EQ(shot, map.CreateShot(shot_id, my_cam));
     ASSERT_EQ(shot->id_, shot_id);
     ASSERT_EQ(shot->unique_id_, n_shots+i);
-    ASSERT_EQ(shot->GetCamera().id, my_cam->id);
+    ASSERT_EQ(shot->GetCamera()->id, my_cam->id);
   }
   ASSERT_EQ(map.NumberOfShots(), n_shots);
   ASSERT_EQ(map.GetShot("invalid_shot_id"), nullptr);
