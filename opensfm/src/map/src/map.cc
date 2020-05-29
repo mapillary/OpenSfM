@@ -29,6 +29,20 @@ void Map::AddObservation(Shot* const shot, Landmark* const lm,
   shot->CreateObservation(lm, obs.point, obs.scale, obs.color, obs.id);
 }
 
+void Map::AddObservation(const ShotId& shot_id, const LandmarkId& lm_id, const Observation& obs)
+{
+  auto* const shot = GetShot(shot_id);
+  if (shot == nullptr) {
+    throw std::runtime_error("Accessing invalid ShotID " + shot_id);
+  }
+  auto* const lm = GetLandmark(lm_id);
+  if (lm == nullptr)
+  {
+    throw std::runtime_error("Accessing invalid LandmarkID" + lm_id);
+  }
+  AddObservation(shot, lm, obs);
+}
+
 void Map::RemoveObservation(Shot* const shot, Landmark* const lm,
                             const FeatureId feat_id) {
   shot->RemoveLandmarkObservation(feat_id);

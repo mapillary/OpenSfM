@@ -89,6 +89,7 @@ public:
   void AddObservation(Shot *const shot,  Landmark *const lm, const FeatureId feat_id);
   void AddObservation(const ShotId& shot_id, const LandmarkId& lm_id, const FeatureId feat_id);
   void AddObservation(Shot *const shot,  Landmark *const lm, const Observation& obs);
+  void AddObservation(const ShotId& shot_id, const LandmarkId& lm_id, const Observation& obs);
   void RemoveObservation(Shot *const shot,  Landmark *const lm, const FeatureId feat_id);
   void RemoveObservation(const ShotId& shot_id, const LandmarkId& lm_id);
   void ClearObservationsAndLandmarks();

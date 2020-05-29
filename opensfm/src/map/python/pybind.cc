@@ -163,6 +163,13 @@ PYBIND11_MODULE(pymap, m) {
                                const Observation &)) &
                map::Map::AddObservation,
            py::arg("shot"), py::arg("landmark"), py::arg("observation"))
+      .def("add_observation",
+          (void (map::Map::*)(const map::ShotId&, const map::LandmarkId&,
+                               const Observation &)) &
+               map::Map::AddObservation,
+           py::arg("shot_Id"), py::arg("landmark_id"), py::arg("observation"))
+          
+          // void AddObservation(const ShotId& shot_id, const LandmarkId& lm_id, const Observation& obs);)
 
       // C++14
       //       .def("add_observation",
