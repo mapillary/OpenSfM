@@ -9,7 +9,7 @@ from opensfm import config
 from opensfm import types
 from opensfm import tracking
 from opensfm import reconstruction
-
+from opensfm import pysfm
 
 def test_unicode_strings_in_bundle():
     """Test that byte and unicode strings can be used as camera ids."""
@@ -66,17 +66,30 @@ def test_bundle_projection_fixed_internals(scene_synthetic):
     reference = scene_synthetic[0].get_reconstruction()
     camera_priors = {c.id: c for c in scene_synthetic[0].cameras}
     graph = tracking.as_graph(scene_synthetic[5])
-    adjusted = copy.deepcopy(reference)
+    # Create the connnections in the reference
+    graph.nodes
+    for point_id in reference.points.keys():
+        if point_id in graph:
+            for shot_id, g_obs in graph[point_id].items():
+                color = g_obs['feature_color']
+                pt = g_obs['feature']
+                obs = pysfm.Observation(pt[0], pt[1], g_obs['feature_scale'],
+                                        g_obs['feature_id'],
+                                        color[0], color[1], color[2])
+                reference.map.add_observation(shot_id, point_id, obs)
+
+    
+    orig_camera = copy.deepcopy(reference.cameras['1'])
 
     custom_config = config.default_config()
     custom_config['bundle_use_gps'] = False
     custom_config['optimize_camera_parameters'] = False
-    reconstruction.bundle(graph, adjusted, camera_priors, {}, custom_config)
+    reconstruction.bundle(reference, camera_priors, {}, custom_config)
 
-    assert _projection_errors_std(adjusted.points) < 5e-3
-    assert reference.cameras['1'].focal == adjusted.cameras['1'].focal
-    assert reference.cameras['1'].k1 == adjusted.cameras['1'].k1
-    assert reference.cameras['1'].k2 == adjusted.cameras['1'].k2
+    assert _projection_errors_std(reference.points) < 5e-3
+    assert reference.cameras['1'].focal == orig_camera.focal
+    assert reference.cameras['1'].k1 == orig_camera.k1
+    assert reference.cameras['1'].k2 == orig_camera.k2
 
 
 def test_pair():
@@ -331,3 +344,19 @@ def test_bundle_alignment_prior():
     assert np.allclose(shot.pose.translation, np.zeros(3))
     # up vector in camera coordinates is (0, -1, 0)
     assert np.allclose(shot.pose.transform([0, 0, 1]), [0, -1, 0])
+
+
+from opensfm.synthetic_data import synthetic_examples
+def scene_synthetic():
+    np.random.seed(42)
+    data = synthetic_examples.synthetic_ellipse_scene()
+
+    maximum_depth = 40
+    projection_noise = 1.0
+    gps_noise = 5.0
+
+    exifs = data.get_scene_exifs(gps_noise)
+    features, desc, colors, graph = data.get_tracks_data(maximum_depth,
+                                                         projection_noise)
+    return data, exifs, features, desc, colors, graph
+test_bundle_projection_fixed_internals(scene_synthetic())
