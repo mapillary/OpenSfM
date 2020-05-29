@@ -10,7 +10,7 @@
 #include <pybind11/stl.h>
 
 namespace py = pybind11;
-PYBIND11_MAKE_OPAQUE(std::unordered_map<std::string, map::TestShot>)
+// PYBIND11_MAKE_OPAQUE(std::unordered_map<std::string, map::TestShot>)
 PYBIND11_MODULE(pymap, m) {
   py::class_<map::Pose>(m, "Pose")
       .def(py::init())
@@ -391,9 +391,8 @@ py::class_<map::TestView>(m, "TestView")
      // .def("__iter__", [](const map::TestView& t){return py::make_iterator(t.test_vector.begin(),t.test_vector.end());});
      .def("__iter__", [](const map::TestView& t){return py::make_key_iterator(t.test_map.begin(), t.test_map.end());})
      .def("items", [](const map::TestView& t){return py::make_iterator(t.test_map.begin(), t.test_map.end());});
-     
 
-// py::class_<map::TestShot>(m, "TestShot")
-//      // .def(py::init<std::string>())
-//      .def_readonly("shot_id", &map::TestShot::shot_id);
+py::class_<map::TestShot>(m, "TestShot")
+     // .def(py::init<std::string>())
+     .def_readonly("shot_id", &map::TestShot::shot_id);
 }
