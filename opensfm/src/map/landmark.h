@@ -57,8 +57,11 @@ class Landmark {
   bool HasObservations() const { return !observations_.empty(); }
   size_t NumberOfObservations() const { return observations_.size(); }
   Vec3f GetObservationInShot(Shot* shot) const;
-  FeatureId GetObservationIdInShot(Shot* shot) const
-  {
+  FeatureId GetObservationIdInShot(Shot* shot) const {
+    auto obs_it = observations_.find(shot);
+    if (obs_it == observations_.end()) {
+      throw std::runtime_error("Accessing with invalid shot ptr!");
+    }
     return observations_.at(shot);
   }
   const std::map<Shot*, FeatureId, KeyCompare>& GetObservations() const {

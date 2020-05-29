@@ -1145,14 +1145,7 @@ def remove_outliers(reconstruction, config, points=None):
                 outliers.append((point_id, shot_id))
 
     for track, shot_id in outliers:
-        #TODO: revise this!
-        #TODO: -> remove_observation completely in C++
-        # remove_observation(shot_id, lm_id)
-        shot = reconstruction.shots[shot_id]
-        lm = reconstruction.points[track]
-        lm.remove_reprojection_error(shot_id)
-        obs = shot.get_landmark_observation(lm)
-        reconstruction.map.remove_observation(shot, lm, obs.id)
+        reconstruction.map.remove_observation(shot_id, track)
 
     for track, _ in outliers:
         lm = reconstruction.points[track]
