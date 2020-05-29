@@ -124,9 +124,9 @@ class SyntheticCubeScene(SyntheticScene):
                            position_noise=0.0,
                            camera_noise=0.0):
         reconstruction = types.Reconstruction()
+        reconstruction.cameras = self.cameras
         reconstruction.shots = self.shots
         reconstruction.points = self.points
-        reconstruction.cameras = self.cameras
         return reconstruction
 
     def get_tracks_data(self, maximum_depth, noise):

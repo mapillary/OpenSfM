@@ -830,7 +830,7 @@ class PointView(object):
     def __getitem__(self, point_id):
         return self.get(point_id)
 
-    def __setitem__(self, item):
+    def __setitem__(self, index, item):
         print("calling PointView__setitem__")
 
     def __iter__(self):
@@ -874,7 +874,7 @@ class ShotView(object):
     def __contains__(self, index):
         return self.map.get_shot(index) is not None
 
-    def __setitem__(self, item):
+    def __setitem__(self, index, item):
         print("calling ShotView__setitem__")
 
     def values(self):
@@ -882,6 +882,9 @@ class ShotView(object):
 
     def keys(self):
         return self.map.get_all_shots().keys()
+
+    def items(self):
+        return self.map.get_all_shots().items()
 
 
 class CameraView(object):
@@ -891,10 +894,7 @@ class CameraView(object):
 
     def __len__(self):
         return self.map.number_of_cameras()
-
-    def add_camera(self, cam):
-        self.map.create_camera(cam)
-
+    
     def __getitem__(self, index):
         return self.get(index)
 
@@ -918,36 +918,49 @@ class Reconstruction(object):
     def __init__(self):
         """Defaut constructor"""
         self.map = pymap.Map()
-        super(Reconstruction, self).__setattr__("cameras", CameraView(self.map))
-        super(Reconstruction, self).__setattr__("reference", None)
-        super(Reconstruction, self).__setattr__("shots", ShotView(self.map))
-        super(Reconstruction, self).__setattr__("points", PointView(self.map))
 
-    def __setattr__(self, name, value):
-        # Define property
-        if name == 'cameras':
-            for cam in value.values():
-                self.cameras.add_camera(cam)
-        elif name == 'reference':
-            self.map.set_reference(value.lat, value.lon, value.alt)
-            super(Reconstruction, self).__setattr__("reference", self.map.get_reference())
-        elif name == 'points':
-            if len(value) == 0:  # clear the landmarks
-                self.map.clear_observations_and_landmarks()
-            else:
-                self.map.clear_observations_and_landmarks()
-                for point in value.values():
-                    # create a new point
-                    self.add_point(point)
-        else:
-            super(Reconstruction, self).__setattr__(name, value)
+    def get_cameras(self):
+        return CameraView(self.map)
 
+    def set_cameras(self, value):
+        for cam in value.values():
+            self.map.create_camera(cam)
+
+    cameras = property(get_cameras, set_cameras)
+
+    def get_shots(self):
+        return ShotView(self.map)
+
+    def set_shots(self, value):
+        for shot in value.values():
+            self.add_shot(shot)
+
+    shots = property(get_shots, set_shots)
+
+    def get_points(self):
+        return PointView(self.map)
+
+    def set_points(self, value):
+        self.map.clear_observations_and_landmarks()
+        for point in value.values():
+            self.add_point(point)
+
+    points = property(get_points, set_points)
+
+    def get_reference(self):
+        return self.map.get_reference()
+
+    def set_reference(self, value):
+        self.map.set_reference(value.lat, value.lon, value.alt)
+
+    reference = property(get_reference, set_reference)
+    
     def add_camera(self, camera):
         """Add a camera in the list
 
         :param camera: The camera.
         """
-        self.cameras.add_camera(camera)
+        self.map.create_camera(camera)
 
     def get_camera(self, id):
         """Return a camera by id.

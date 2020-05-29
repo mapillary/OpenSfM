@@ -1,11 +1,11 @@
 cloudpickle==0.4.0
 exifread==2.1.2
 gpxpy==1.1.2
-joblib==0.13.2
+joblib==0.14.1
 loky==1.2.1
 networkx==1.11
 numpy
-Pillow==6.2.0
+Pillow==6.2.2
 pyproj>=1.9.5.1
 pytest==3.0.7
 python-dateutil==2.6.0

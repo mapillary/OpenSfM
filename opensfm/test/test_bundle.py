@@ -322,12 +322,11 @@ def test_bundle_alignment_prior():
     r = types.Reconstruction()
     r.add_camera(camera)
     r.add_shot(shot)
-    graph = nx.Graph()
     camera_priors = {camera.id: camera}
     gcp = []
     myconfig = config.default_config()
 
-    reconstruction.bundle(graph, r, camera_priors, gcp, myconfig)
+    reconstruction.bundle(r, camera_priors, gcp, myconfig)
 
     assert np.allclose(shot.pose.translation, np.zeros(3))
     # up vector in camera coordinates is (0, -1, 0)

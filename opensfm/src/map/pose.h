@@ -104,6 +104,12 @@ public:
            cam_to_world_.block<3, 1>(0, 3);
   }
 
+  Pose RelativeTo(const Pose &base_pose) const {
+    Pose relpose;
+    relpose.SetFromWorldToCamera(world_to_cam_ * base_pose.cam_to_world_);
+    return relpose;
+  }
+
 private:
   Mat4d cam_to_world_; // [R',-R't] cam to world
   Mat4d world_to_cam_; // [R, t] world to cam

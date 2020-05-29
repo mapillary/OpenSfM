@@ -1161,7 +1161,7 @@ def shot_lla_and_compass(shot, reference):
     topo = shot.pose.get_origin()
     lat, lon, alt = reference.to_lla(*topo)
 
-    dz = shot.viewing_direction()
+    dz = shot.pose.get_R_cam_to_world()[:, 2]
     angle = np.rad2deg(np.arctan2(dz[0], dz[1]))
     angle = (angle + 360) % 360
     return lat, lon, alt, angle

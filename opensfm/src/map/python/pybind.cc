@@ -86,7 +86,8 @@ PYBIND11_MODULE(pymap, m) {
                     &map::Pose::SetWorldToCamTranslation)
       .def("set_rotation_matrix", &map::Pose::SetWorldToCamRotationMatrix)
       .def("transform", &map::Pose::TransformWorldToCamera)
-      .def("transform_inverse", &map::Pose::TransformCameraToWorld);
+      .def("transform_inverse", &map::Pose::TransformCameraToWorld)
+      .def("relative_to", &map::Pose::RelativeTo);
 
   py::class_<map::Map>(m, "Map")
       .def(py::init())
@@ -265,7 +266,11 @@ PYBIND11_MODULE(pymap, m) {
       .def("create_observation", &map::Shot::CreateObservation)
       .def("get_landmark_observation", &map::Shot::GetLandmarkObservation,
            py::return_value_policy::reference_internal)
-      .def("project", &map::Shot::Project);
+      .def("project", &map::Shot::Project)
+      .def("project_many", &map::Shot::ProjectMany)
+      .def("bearing", &map::Shot::Bearing)
+      .def("bearing_many", &map::Shot::BearingMany);
+
 
   py::class_<map::SLAMShotData>(m, "SlamShotData")
       .def_readonly("undist_keypts", &map::SLAMShotData::undist_keypts_,

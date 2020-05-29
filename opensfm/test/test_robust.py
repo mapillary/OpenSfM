@@ -211,9 +211,8 @@ def test_outliers_relative_pose_ransac(pairs_and_their_E):
         result = pyrobust.ransac_relative_pose(
             f1, f2, scale*(1.0+scale_eps_ratio), params, pyrobust.RansacType.RANSAC)
 
-        pose = copy.deepcopy(pose)
-        pose.translation /= np.linalg.norm(pose.translation)
-        expected = pose.get_Rt()
+        expected = pose.get_world_to_cam()[:3]
+        expected[:, 3] /= np.linalg.norm(expected[:, 3])
 
         tolerance = 0.1
         inliers_count = (1 - ratio_outliers) * len(points)
@@ -277,7 +276,7 @@ def test_outliers_absolute_pose_ransac(shots_and_their_points):
         params.iterations = 1000
         result = pyrobust.ransac_absolute_pose(bearings, points, scale, params, pyrobust.RansacType.RANSAC)
 
-        expected = pose.get_Rt()
+        expected = pose.get_world_to_cam()[:3]
 
         tolerance = 0.05
         inliers_count = (1 - ratio_outliers) * len(points)
