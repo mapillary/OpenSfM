@@ -52,8 +52,8 @@ def camera_from_json(key, obj):
     else:
         raise NotImplementedError
     camera.id = key
-    camera.width = obj.get('width', 0)
-    camera.height = obj.get('height', 0)
+    camera.width = int(obj.get('width', 0))
+    camera.height = int(obj.get('height', 0))
     return camera
 
 
