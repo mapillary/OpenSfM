@@ -327,7 +327,7 @@ def test_bundle_alignment_prior():
     myconfig = config.default_config()
 
     reconstruction.bundle(r, camera_priors, gcp, myconfig)
-
+    shot = r.shots[shot.id]
     assert np.allclose(shot.pose.translation, np.zeros(3))
     # up vector in camera coordinates is (0, -1, 0)
     assert np.allclose(shot.pose.transform([0, 0, 1]), [0, -1, 0])
