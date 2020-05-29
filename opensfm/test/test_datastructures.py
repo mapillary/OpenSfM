@@ -328,14 +328,12 @@ def test_map():
     for lm in m.get_all_landmarks().values():
         n_obs = 0
         for shot in m.get_all_shots().values():
-            # 50 % chance to add observation
-            if int(np.random.rand(1) * 10 % 2):
-                # create a new observation
-                obs = pysfm.Observation(100, 200, 0.5, 255, 0, 0, int(lm.id))
-                m.add_observation(shot, lm, obs)
-                n_obs += 1
-                n_total_obs += 1
-                assert lm.is_observed_in_shot(shot)
+            # create a new observation
+            obs = pysfm.Observation(100, 200, 0.5, 255, 0, 0, int(lm.id))
+            m.add_observation(shot, lm, obs)
+            n_obs += 1
+            n_total_obs += 1
+            assert lm.is_observed_in_shot(shot)
         if n_obs > 0:
             assert lm.has_observations()
         else:
@@ -348,17 +346,13 @@ def test_map():
 
     # remove the observations for the first landmarks from all the shots
     for lm in m.get_all_landmarks().values():
-        for shot_id in range(int(n_shots/2)):
+        for shot_id in range(int(n_shots / 2)):
             m.remove_observation(str(shot_id), lm.id)
-        assert lm.number_of_observations() == int(n_shots/2)
+        assert lm.number_of_observations() == int(n_shots / 2)
     n_total_obs = 0
     for shot in m.get_all_shots().values():
         n_total_obs += shot.compute_num_valid_pts(1)
-    
-    assert n_total_obs == int((n_shots*n_landmarks)/2)
-
-
-    # last clear
+    assert n_total_obs == int((n_shots * n_landmarks) / 2)
     m.clear_observations_and_landmarks()
     n_total_obs = 0
     for shot in m.get_all_shots().values():
