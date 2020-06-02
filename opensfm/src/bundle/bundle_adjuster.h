@@ -769,10 +769,10 @@ class BundleAdjuster {
       const BAPointProjectionObservation &observation,
       ceres::LossFunction *loss,
       ceres::Problem *problem);
+  template <class T>
   void AddObservationResidualBlockNew(
       const BAPointProjectionObservationNew &observation,
-      ceres::LossFunction *loss,
-      ceres::Problem *problem);
+      ceres::LossFunction *loss, ceres::Problem *problem);
   void ComputeCovariances(ceres::Problem *problem);
   void ComputeReprojectionErrors();
 

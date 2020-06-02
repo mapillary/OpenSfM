@@ -118,15 +118,25 @@ struct BADataPriorError {
   BAData<DATA>* ba_data_;
 };
 
-struct ReprojectionError{
+class ReprojectionError{
+public:
   ReprojectionError(const ProjectionType& type, const Vec2d& observed, double std_deviation)
       : type_(type), observed_(observed), scale_(1.0 / std_deviation) {}
 
+protected:
+  ProjectionType type_;
+  Vec2d observed_;
+  double scale_;
+};
+
+class ReprojectionError2D : public ReprojectionError{
+  public:
+  using ReprojectionError::ReprojectionError;
+  constexpr static int Size = 2;
+
   template <typename T>
-  bool operator()(const T* const camera,
-                  const T* const shot,
-                  const T* const point,
-                  T* residuals) const {
+  bool operator()(const T* const camera, const T* const shot,
+                  const T* const point, T* residuals) const {
     Vec3<T> camera_point;
     WorldToCameraCoordinates(shot, point, camera_point.data());
 
@@ -149,9 +159,39 @@ struct ReprojectionError{
 
     return true;
   }
-  ProjectionType type_;
-  Vec2d observed_;
-  double scale_;
+};
+
+class ReprojectionError3D : public ReprojectionError {
+ public:
+ constexpr static int Size = 3;
+
+  ReprojectionError3D(const ProjectionType& type, const Vec2d& observed,
+                      double std_deviation)
+      : ReprojectionError(type, observed, std_deviation) {
+    double lon = observed[0] * 2 * M_PI;
+    double lat = -observed[1] * 2 * M_PI;
+    bearing_vector_[0] = std::cos(lat) * std::sin(lon);
+    bearing_vector_[1] = -std::sin(lat);
+    bearing_vector_[2] = std::cos(lat) * std::cos(lon);
+  }
+
+  template <typename T>
+  bool operator()(const T* const camera, const T* const shot,
+                  const T* const point, T* residuals) const {
+    Vec3<T> predicted;
+    WorldToCameraCoordinates(shot, point, predicted.data());
+    predicted.normalize();
+
+    /* Difference between projected vector and observed bearing vector. We use
+     * the difference between unit vectors as an approximation to the angle for
+     * small angles. */
+    Eigen::Map<Vec3<T>> residuals_mapped(residuals);
+    residuals_mapped = T(scale_) * (predicted - bearing_vector_.cast<T>());
+    return true;
+  }
+
+ private:
+  Vec3d bearing_vector_;
 };
 
 struct PerspectiveReprojectionError {
