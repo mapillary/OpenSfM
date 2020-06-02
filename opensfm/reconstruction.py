@@ -85,22 +85,26 @@ def _get_camera_from_bundle(ba, camera):
         camera.aspect_ratio = c.aspect_ratio
         camera.principal_point = c.principal_point
         camera.distortion = [c.k1, c.k2, c.k3, c.p1, c.p2]
-        print(c.focal)
-        print(c.aspect_ratio)
+        logger.info(camera.focal)
+        logger.info(camera.aspect_ratio)
+        logger.info(camera.distortion)
     else:
         if camera.projection_type == 'perspective':
             c = ba.get_perspective_camera(camera.id)
             camera.focal = c.focal
             camera.distortion = [c.k1, c.k2]
-            print(c.focal)
+            logger.info(camera.focal)
+            logger.info(camera.aspect_ratio)
+            logger.info(camera.distortion)
         elif camera.projection_type == 'brown':
             c = ba.get_brown_perspective_camera(camera.id)
             camera.principal_point = [c.c_x, c.c_y]
             camera.focal = c.focal_x
             camera.aspect_ratio = c.focal_y/c.focal_x
             camera.distortion = [c.k1, c.k2, c.k3, c.p1, c.p2]
-            print(c.focal_x)
-            print(c.focal_y/c.focal_x)
+            logger.info(camera.focal)
+            logger.info(camera.aspect_ratio)
+            logger.info(camera.distortion)
         elif camera.projection_type == 'fisheye':
             c = ba.get_fisheye_camera(camera.id)
             camera.focal = c.focal
