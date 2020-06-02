@@ -5,6 +5,7 @@
 #include <map/pose.h>
 #include <map/shot.h>
 #include <map/TestView.h>
+#include <map/dataviews.h>
 #include <pybind11/eigen.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -395,4 +396,28 @@ py::class_<map::TestView>(m, "TestView")
 py::class_<map::TestShot>(m, "TestShot")
      // .def(py::init<std::string>())
      .def_readonly("shot_id", &map::TestShot::shot_id);
+
+py::class_<map::ShotView>(m, "ShotView")
+    .def(py::init<map::Map &>())
+    .def("__len__",
+         [](const map::ShotView &sv) { return sv.map_.NumberOfShots(); })
+    // .def("__iter__", [](const map::ShotView& sv){ return
+    // sv.map_.NumberOfShots();})
+    .def("items",
+         [](const map::ShotView &sv) {
+           const auto &shots = sv.map_.GetAllShots();
+           return py::make_iterator(shots.begin(), shots.end());
+         })
+    .def("values",
+          [](const map::ShotView &sv) {
+           const auto &shots = sv.map_.GetAllShots();
+           return py::make_unique_ptr_value_iterator(shots.begin(), shots.end());
+         })
+     .def("keys",
+          [](const map::ShotView &sv) {
+           const auto &shots = sv.map_.GetAllShots();
+           return py::make_key_iterator(shots.begin(), shots.end());
+         })
+    .def("get",
+         [](const map::ShotView &sv, const map::ShotId& shot_id) { return sv.map_.GetShot(shot_id);});
 }

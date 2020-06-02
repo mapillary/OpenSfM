@@ -7,6 +7,7 @@ set(MAP_FILES
   src/map.cc
   src/shot.cc
   TestView.h
+  dataviews.h
 )
 
 add_library(map ${MAP_FILES})

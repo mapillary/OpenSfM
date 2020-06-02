@@ -10,6 +10,7 @@
 
 namespace map {
 class Pose;
+class Map;
 class SLAMShotData {
  public:
   SLAMShotData() = delete;
