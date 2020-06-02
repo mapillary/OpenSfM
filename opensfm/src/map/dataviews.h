@@ -1,136 +1,44 @@
-#include <pybind11/pybind11.h>
-// #include <pybind11/common.h>
+#pragma once
 #include <map/map.h>
-NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
-
-/// Makes an python iterator over the keys (`.first`) of a iterator over pairs from a
-/// first and past-the-end InputIterator.
-template <return_value_policy Policy = return_value_policy::reference_internal,
-          typename Iterator,
-          typename Sentinel,
-          typename KeyType = decltype((*std::declval<Iterator>()).second),
-          typename... Extra>
-iterator make_value_iterator(Iterator first, Sentinel last, Extra &&... extra) {
-    typedef detail::iterator_state<Iterator, Sentinel, true, Policy> state;
-
-    if (!detail::get_type_info(typeid(state), false)) {
-        class_<state>(handle(), "iterator", pybind11::module_local())
-            .def("__iter__", [](state &s) -> state& { return s; })
-            .def("__next__", [](state &s) -> KeyType {
-                if (!s.first_or_done)
-                    ++s.it;
-                else
-                    s.first_or_done = false;
-                if (s.it == s.end) {
-                    s.first_or_done = true;
-                    throw stop_iteration();
-                }
-                return (*s.it).second;
-            }, std::forward<Extra>(extra)..., Policy);
-    }
-
-    return cast(state{first, last, true});
-}
-template <return_value_policy Policy = return_value_policy::reference_internal,
-          typename Iterator,
-          typename Sentinel,
-        //   typename KeyType = decltype((*std::declval<Iterator>()).second),
-          typename ValueType = std::pair<decltype((*std::declval<Iterator>()).first), 
-          std::pointer_traits<(*std::declval<Iterator>()).second>::element_type>,
-        //   std::pointer_traits<(decltype((*std::declval<Iterator>()).second)>::element_type*>,
-          typename... Extra>
-iterator make_unique_ptr_iterator(Iterator first, Sentinel last, Extra &&... extra) {
-    typedef detail::iterator_state<Iterator, Sentinel, true, Policy> state;
-
-    if (!detail::get_type_info(typeid(state), false)) {
-        class_<state>(handle(), "iterator", pybind11::module_local())
-            .def("__iter__", [](state &s) -> state& { return s; })
-            .def("__next__", [](state &s) -> KeyType {
-                if (!s.first_or_done)
-                    ++s.it;
-                else
-                    s.first_or_done = false;
-                if (s.it == s.end) {
-                    s.first_or_done = true;
-                    throw stop_iteration();
-                }
-                return (*s.it).second;
-            }, std::forward<Extra>(extra)..., Policy);
-    }
-
-    return cast(state{first, last, true});
-}
-
-template <return_value_policy Policy = return_value_policy::reference_internal,
-          typename Iterator,
-          typename Sentinel,
-          typename KeyType = decltype((*std::declval<Iterator>()).second),
-          typename... Extra>
-iterator make_unique_ptr_value_iterator(Iterator first, Sentinel last, Extra &&... extra) {
-    typedef detail::iterator_state<Iterator, Sentinel, true, Policy> state;
-
-    if (!detail::get_type_info(typeid(state), false)) {
-        class_<state>(handle(), "iterator", pybind11::module_local())
-            .def("__iter__", [](state &s) -> state& { return s; })
-            .def("__next__", [](state &s) -> KeyType {
-                if (!s.first_or_done)
-                    ++s.it;
-                else
-                    s.first_or_done = false;
-                if (s.it == s.end) {
-                    s.first_or_done = true;
-                    throw stop_iteration();
-                }
-                return (*s.it).second.get();
-            }, std::forward<Extra>(extra)..., Policy);
-    }
-
-    return cast(state{first, last, true});
-}
-/// Makes an iterator over the keys (`.first`) of a stl map-like container supporting
-/// `std::begin()`/`std::end()`
-template <return_value_policy Policy = return_value_policy::reference_internal,
-          typename Type, typename... Extra> iterator make_value_iterator(Type &value, Extra&&... extra) {
-    return make_value_iterator<Policy>(std::begin(value), std::end(value), extra...);
-}
-template <return_value_policy Policy = return_value_policy::reference_internal,
-          typename Type, typename... Extra> iterator make_unique_ptr_value_iterator(Type &value, Extra&&... extra) {
-    return make_unique_ptr_value_iterator<Policy>(std::begin(value), std::end(value), extra...);
-}
-template <return_value_policy Policy = return_value_policy::reference_internal,
-          typename Type, typename... Extra> iterator make_unique_ptr_iterator(Type &value, Extra&&... extra) {
-    return make_unique_ptr_iterator<Policy>(std::begin(value), std::end(value), extra...);
-}
-NAMESPACE_END(PYBIND11_NAMESPACE)
-
-namespace map
-{
-class ShotView
-{
-public:
-  ShotView(Map& map):map_(map){
-      const auto& shots = map_.GetAllShots();
-      auto it = shots.begin();
-      std::unordered_map<ShotId, Shot*>::iterator t()
+namespace map {
+class ShotView {
+ public:
+  ShotView(Map& map) : map_(map) {}
+  Shot* GetShot(const map::ShotId& shot_id) { return map_.GetShot(shot_id); }
+  bool HasShot(const map::ShotId& shot_id) { return map_.HasShot(shot_id); }
+  const std::unordered_map<ShotId, std::unique_ptr<Shot>>& GetShots() const {
+    return map_.GetAllShots();
   }
-// private:
+  size_t NumberOfShots() const { return map_.NumberOfShots();}
+ private:
   Map& map_;
 };
 
-class PointView
-{
-public:
-  PointView(Map& map):map_(map){}
-private:
+class LandmarkView {
+ public:
+  LandmarkView(Map& map) : map_(map) {}
+  Landmark* GetLandmark(const LandmarkId& lm_id) { return map_.GetLandmark(lm_id); }
+  bool HasLandmark(const LandmarkId& lm_id) { return map_.HasLandmark(lm_id); }
+  const std::unordered_map<LandmarkId, std::unique_ptr<Landmark>>&
+  GetLandmarks() const {
+    return map_.GetAllLandmarks();
+  }
+  size_t NumberOfLandmarks() const { return map_.NumberOfLandmarks();}
+
+ private:
   Map& map_;
 };
 
-class CameraView
-{
-public:
-  CameraView(Map& map):map_(map){}
-private:
+class CameraView {
+ public:
+  CameraView(Map& map) : map_(map) {}
+  size_t NumberOfCameras() const { return map_.NumberOfCameras(); }
+  Camera* GetCamera(const CameraId& cam_id) { return map_.GetCamera(cam_id);}
+  const std::unordered_map<CameraId, Camera>&
+  GetCameras() const { return map_.GetAllCameras(); }
+  bool HasCamera(const CameraId& cam_id) const { return map_.HasCamera(cam_id);}
+ private:
   Map& map_;
 };
 
-}
+}  // namespace map

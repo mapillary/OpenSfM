@@ -819,90 +819,90 @@ class GroundControlPointObservation(object):
         self.projection = None
 
 
-class PointView(object):
+# class PointView(object):
 
-    def __init__(self, map_mgn):
-        self.map = map_mgn
+#     def __init__(self, map_mgn):
+#         self.map = map_mgn
 
-    def __len__(self):
-        return self.map.number_of_landmarks()
+#     def __len__(self):
+#         return self.map.number_of_landmarks()
 
-    def __getitem__(self, point_id):
-        return self.get(point_id)
+#     def __getitem__(self, point_id):
+#         return self.get(point_id)
 
-    def __setitem__(self, index, item):
-        print("calling PointView__setitem__")
+#     def __setitem__(self, index, item):
+#         print("calling PointView__setitem__")
 
-    def __iter__(self):
-        for point_id in self.map.get_all_landmarks().keys():
-            yield point_id
+#     def __iter__(self):
+#         for point_id in self.map.get_all_landmarks().keys():
+#             yield point_id
 
-    def get(self, point_id):
-        return self.map.get_landmark(point_id)
+#     def get(self, point_id):
+#         return self.map.get_landmark(point_id)
 
-    def __contains__(self, point_id):
-        return self.map.has_landmark(point_id)
+#     def __contains__(self, point_id):
+#         return self.map.has_landmark(point_id)
 
-    def values(self):
-        return self.map.get_all_landmarks().values()
+#     def values(self):
+#         return self.map.get_all_landmarks().values()
 
-    def keys(self):
-        return [str(x) for x in self.map.get_all_landmarks().keys()]
+#     def keys(self):
+#         return [str(x) for x in self.map.get_all_landmarks().keys()]
 
-    def items(self):
-        return self.map.get_all_landmarks().items()
-
-
-class ShotView(object):
-
-    def __init__(self, map_mgn):
-        self.map = map_mgn
-
-    def __len__(self):
-        return self.map.number_of_shots()
-
-    def __getitem__(self, index):
-        return self.get(index)
-
-    def get(self, index):
-        return self.map.get_shot(index)
-
-    def __iter__(self):
-        for shot_id in self.map.get_all_shots().keys():
-            yield shot_id
-
-    def __contains__(self, index):
-        return self.map.get_shot(index) is not None
-
-    def __setitem__(self, index, item):
-        print("calling ShotView__setitem__")
-
-    def values(self):
-        return self.map.get_all_shots().values()
-
-    def keys(self):
-        return self.map.get_all_shots().keys()
-
-    def items(self):
-        return self.map.get_all_shots().items()
+#     def items(self):
+#         return self.map.get_all_landmarks().items()
 
 
-class CameraView(object):
+# class ShotView(object):
 
-    def __init__(self, map_mgn):
-        self.map: pymap.Map = map_mgn
+#     def __init__(self, map_mgn):
+#         self.map = map_mgn
 
-    def __len__(self):
-        return self.map.number_of_cameras()
+#     def __len__(self):
+#         return self.map.number_of_shots()
+
+#     def __getitem__(self, index):
+#         return self.get(index)
+
+#     def get(self, index):
+#         return self.map.get_shot(index)
+
+#     def __iter__(self):
+#         for shot_id in self.map.get_all_shots().keys():
+#             yield shot_id
+
+#     def __contains__(self, index):
+#         return self.map.get_shot(index) is not None
+
+#     def __setitem__(self, index, item):
+#         print("calling ShotView__setitem__")
+
+#     def values(self):
+#         return self.map.get_all_shots().values()
+
+#     def keys(self):
+#         return self.map.get_all_shots().keys()
+
+#     def items(self):
+#         return self.map.get_all_shots().items()
+
+
+# class CameraView(object):
+
+#     def __init__(self, map_mgn):
+#         self.map: pymap.Map = map_mgn
+
+#     def __len__(self):
+#         return self.map.number_of_cameras()
     
-    def __getitem__(self, index):
-        return self.get(index)
+#     def __getitem__(self, index):
+#         return self.get(index)
 
-    def get(self, index):
-        return self.map.get_camera(index)
+#     def get(self, index):
+#         return self.map.get_camera(index)
 
-    def values(self):
-        return self.map.get_cameras()
+#     def values(self):
+#         return self.map.get_cameras()
 
 
 class Reconstruction(object):
@@ -920,7 +920,8 @@ class Reconstruction(object):
         self.map = pymap.Map()
 
     def get_cameras(self):
-        return CameraView(self.map)
+        return pymap.CameraView(self.map)
+        # return CameraView(self.map)
 
     def set_cameras(self, value):
         for cam in value.values():
@@ -928,8 +929,10 @@ class Reconstruction(object):
 
     cameras = property(get_cameras, set_cameras)
 
+    # def get_shots(self):
+    #     return ShotView(self.map)
     def get_shots(self):
-        return ShotView(self.map)
+        return pymap.ShotView(self.map)
 
     def set_shots(self, value):
         for shot in value.values():
@@ -938,7 +941,8 @@ class Reconstruction(object):
     shots = property(get_shots, set_shots)
 
     def get_points(self):
-        return PointView(self.map)
+        # return PointView(self.map)
+        return pymap.LandmarkView(self.map)
 
     def set_points(self, value):
         self.map.clear_observations_and_landmarks()

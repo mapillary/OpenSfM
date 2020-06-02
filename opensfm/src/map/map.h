@@ -41,7 +41,10 @@ public:
     }
     return copy;
   }
-  
+  bool HasCamera(const CameraId& cam_id) const {
+    return cameras_.count(cam_id) > 0;
+  }
+
   // Shot Methods
   Shot* CreateShot(const ShotId& shot_id, const CameraId& camera_id, const Pose& pose = Pose());
   // Shot* CreateShot(const ShotId& shot_id, const Camera& cam, const Pose& pose = Pose());

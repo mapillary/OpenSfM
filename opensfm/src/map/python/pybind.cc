@@ -1,11 +1,13 @@
+#include <foundation/types.h>
 #include <glog/logging.h>
+#include <map/TestView.h>
+#include <map/dataviews.h>
 #include <map/defines.h>
 #include <map/landmark.h>
 #include <map/map.h>
 #include <map/pose.h>
+#include <map/pybind_utils.h>
 #include <map/shot.h>
-#include <map/TestView.h>
-#include <map/dataviews.h>
 #include <pybind11/eigen.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -167,12 +169,13 @@ PYBIND11_MODULE(pymap, m) {
                map::Map::AddObservation,
            py::arg("shot"), py::arg("landmark"), py::arg("observation"))
       .def("add_observation",
-          (void (map::Map::*)(const map::ShotId&, const map::LandmarkId&,
+           (void (map::Map::*)(const map::ShotId &, const map::LandmarkId &,
                                const Observation &)) &
                map::Map::AddObservation,
            py::arg("shot_Id"), py::arg("landmark_id"), py::arg("observation"))
-          
-          // void AddObservation(const ShotId& shot_id, const LandmarkId& lm_id, const Observation& obs);)
+
+      // void AddObservation(const ShotId& shot_id, const LandmarkId& lm_id,
+      // const Observation& obs);)
 
       // C++14
       //       .def("add_observation",
@@ -192,11 +195,11 @@ PYBIND11_MODULE(pymap, m) {
            (void (map::Map::*)(map::Shot *const, map::Landmark *const,
                                const map::FeatureId)) &
                map::Map::RemoveObservation,
-               py::arg("shot"), py::arg("landmark"), py::arg("feature_id"))
+           py::arg("shot"), py::arg("landmark"), py::arg("feature_id"))
       .def("remove_observation",
            (void (map::Map::*)(const map::ShotId &, const map::LandmarkId &)) &
                map::Map::RemoveObservation,
-               py::arg("shot"), py::arg("landmark"))
+           py::arg("shot"), py::arg("landmark"))
 
       .def("get_all_shots", &map::Map::GetAllShotPointers,
            py::return_value_policy::reference_internal)
@@ -228,7 +231,8 @@ PYBIND11_MODULE(pymap, m) {
       .def_readonly("alt", &map::TopoCentricConverter::lat_);
 
   py::class_<map::Shot>(m, "Shot")
-      .def(py::init<const map::ShotId &, const Camera * const, const map::Pose &>())
+      .def(py::init<const map::ShotId &, const Camera *const,
+                    const map::Pose &>())
       .def_readonly("id", &map::Shot::id_)
       .def_readonly("unique_id", &map::Shot::unique_id_)
       .def_readonly("slam_data", &map::Shot::slam_data_,
@@ -282,59 +286,65 @@ PYBIND11_MODULE(pymap, m) {
       .def("bearing_many", &map::Shot::BearingMany)
       // pickle support
       .def(py::pickle(
-           [](const map::Shot& s)
-           {
-                auto c = s.GetCamera();
-                return py::make_tuple(s.id_, s.unique_id_, s.GetPose().CameraToWorld(),
-                       py::make_tuple( c->GetProjectionParams(), c->GetDistortion(),
-                         c->GetFocal(), c->GetPrincipalPoint(), c->GetAspectRatio(),
-                         c->GetProjectionType(), c->width, c->height, c->id));
-           },
-           [](py::tuple s)
-           {
+          [](const map::Shot &s) {
+            auto c = s.GetCamera();
+            return py::make_tuple(
+                s.id_, s.unique_id_, s.GetPose().CameraToWorld(),
+                py::make_tuple(c->GetProjectionParams(), c->GetDistortion(),
+                               c->GetFocal(), c->GetPrincipalPoint(),
+                               c->GetAspectRatio(), c->GetProjectionType(),
+                               c->width, c->height, c->id));
+          },
+          [](py::tuple s) {
+            // tuple
+            auto pose = map::Pose();
+            pose.SetFromCameraToWorld(s[2].cast<Mat4d>());
+            auto t = s[3].cast<py::tuple>();
+            // Create camera
+            const auto projection_params = t[0].cast<Eigen::VectorXd>();
+            const auto distortion = t[1].cast<Eigen::VectorXd>();
+            const auto focal = t[2].cast<double>();
+            const auto principal_point = t[3].cast<Eigen::Vector2d>();
+            const auto aspect_ratio = t[4].cast<double>();
+            const auto type = t[5].cast<ProjectionType>();
+            const auto width = t[6].cast<int>();
+            const auto height = t[7].cast<int>();
+            const auto id = t[8].cast<std::string>();
+            Camera camera = Camera::CreatePerspectiveCamera(0, 0, 0);
+            switch (type) {
+              case ProjectionType::PERSPECTIVE:
+                camera = Camera::CreatePerspectiveCamera(focal, distortion[0],
+                                                         distortion[1]);
+                break;
+              case ProjectionType::BROWN:
+                camera = Camera::CreateBrownCamera(focal, aspect_ratio,
+                                                   principal_point, distortion);
+                break;
+              case ProjectionType::FISHEYE:
+                camera = Camera::CreateFisheyeCamera(focal, distortion[0],
+                                                     distortion[1]);
+                break;
+              case ProjectionType::DUAL:
+                camera = Camera::CreateDualCamera(projection_params[0], focal,
+                                                  distortion[0], distortion[1]);
+                break;
+              case ProjectionType::SPHERICAL:
+                camera = Camera::CreateSphericalCamera();
+                break;
+            }
+            camera.width = width;
+            camera.height = height;
+            camera.id = id;
 
-               //tuple
-               auto pose = map::Pose();
-               pose.SetFromCameraToWorld(s[2].cast<Mat4d>());
-               auto t = s[3].cast<py::tuple>();
-               // Create camera
-               const auto projection_params = t[0].cast<Eigen::VectorXd>();
-               const auto distortion = t[1].cast<Eigen::VectorXd>();
-               const auto focal = t[2].cast<double>();
-               const auto principal_point = t[3].cast<Eigen::Vector2d>();
-               const auto aspect_ratio = t[4].cast<double>();
-               const auto type = t[5].cast<ProjectionType>();
-               const auto width = t[6].cast<int>();
-               const auto height = t[7].cast<int>();
-               const auto id = t[8].cast<std::string>();
-               Camera camera = Camera::CreatePerspectiveCamera(0, 0, 0);
-               switch(type){
-               case ProjectionType::PERSPECTIVE:
-                    camera = Camera::CreatePerspectiveCamera(focal, distortion[0], distortion[1]); break;
-               case ProjectionType::BROWN:
-                    camera = Camera::CreateBrownCamera (focal, aspect_ratio, principal_point, distortion ); break;
-               case ProjectionType::FISHEYE:
-                    camera = Camera::CreateFisheyeCamera(focal, distortion[0], distortion[1]); break;
-               case ProjectionType::DUAL:
-                    camera = Camera::CreateDualCamera(projection_params[0], focal, distortion[0], distortion[1]); break;
-               case ProjectionType::SPHERICAL:
-                    camera = Camera::CreateSphericalCamera(); break;
-               }
-               camera.width = width;
-               camera.height = height;
-               camera.id = id;
-               
-               //create unique_ptr
-               auto cam_ptr = std::unique_ptr<Camera>(new Camera(camera));
-               auto shot = map::Shot(t[0].cast<map::ShotId>(), std::move(cam_ptr),pose);
-               shot.unique_id_ = t[1].cast<map::ShotUniqueId>();
-               // shot.TransferCameraOwnership(std::move(cam));
-               
-               return shot;
-           }
-      ))
-      ;
+            // create unique_ptr
+            auto cam_ptr = std::unique_ptr<Camera>(new Camera(camera));
+            auto shot =
+                map::Shot(t[0].cast<map::ShotId>(), std::move(cam_ptr), pose);
+            shot.unique_id_ = t[1].cast<map::ShotUniqueId>();
+            // shot.TransferCameraOwnership(std::move(cam));
 
+            return shot;
+          }));
 
   py::class_<map::SLAMShotData>(m, "SlamShotData")
       .def_readonly("undist_keypts", &map::SLAMShotData::undist_keypts_,
@@ -385,39 +395,129 @@ PYBIND11_MODULE(pymap, m) {
       .def_property("color", &map::Landmark::GetColor,
                     &map::Landmark::SetColor);
 
+  //   py::class_<map::TestView>(m, "TestView")
+  //       .def(py::init<>())
+  //       .def("__len__",
+  //            [](const map::TestView &t) { return t.test_vector.size(); })
+  //       .def("__iter__",
+  //            [](const map::TestView &t) {
+  //              return py::make_key_iterator(t.test_map.begin(),
+  //              t.test_map.end());
+  //            })
+  //       .def("items", [](const map::TestView &t) {
+  //         return py::make_iterator(t.test_map.begin(), t.test_map.end());
+  //       });
 
-py::class_<map::TestView>(m, "TestView")
-     .def(py::init<>())
-     .def("__len__", [](const map::TestView& t){return t.test_vector.size();})
-     // .def("__iter__", [](const map::TestView& t){return py::make_iterator(t.test_vector.begin(),t.test_vector.end());});
-     .def("__iter__", [](const map::TestView& t){return py::make_key_iterator(t.test_map.begin(), t.test_map.end());})
-     .def("items", [](const map::TestView& t){return py::make_iterator(t.test_map.begin(), t.test_map.end());});
+  //   py::class_<map::TestShot>(m, "TestShot")
+  //       .def_readonly("shot_id", &map::TestShot::shot_id);
 
-py::class_<map::TestShot>(m, "TestShot")
-     // .def(py::init<std::string>())
-     .def_readonly("shot_id", &map::TestShot::shot_id);
-
-py::class_<map::ShotView>(m, "ShotView")
-    .def(py::init<map::Map &>())
-    .def("__len__",
-         [](const map::ShotView &sv) { return sv.map_.NumberOfShots(); })
-    // .def("__iter__", [](const map::ShotView& sv){ return
-    // sv.map_.NumberOfShots();})
-    .def("items",
-         [](const map::ShotView &sv) {
-           const auto &shots = sv.map_.GetAllShots();
-           return py::make_iterator(shots.begin(), shots.end());
-         })
-    .def("values",
+  py::class_<map::ShotView>(m, "ShotView")
+      .def(py::init<map::Map &>())
+      .def("__len__", &map::ShotView::NumberOfShots)
+      .def(
+          "items",
           [](const map::ShotView &sv) {
-           const auto &shots = sv.map_.GetAllShots();
-           return py::make_unique_ptr_value_iterator(shots.begin(), shots.end());
-         })
-     .def("keys",
+            const auto &shots = sv.GetShots();
+            return py::make_unique_ptr_iterator(shots.begin(), shots.end());
+          },
+          py::return_value_policy::reference_internal)
+      .def(
+          "values",
           [](const map::ShotView &sv) {
-           const auto &shots = sv.map_.GetAllShots();
-           return py::make_key_iterator(shots.begin(), shots.end());
-         })
-    .def("get",
-         [](const map::ShotView &sv, const map::ShotId& shot_id) { return sv.map_.GetShot(shot_id);});
+            const auto &shots = sv.GetShots();
+            return py::make_unique_ptr_value_iterator(shots.begin(),
+                                                      shots.end());
+          },
+          py::return_value_policy::reference_internal)
+      .def(
+          "__iter__",
+          [](const map::ShotView &sv) {
+            const auto &shots = sv.GetShots();
+            return py::make_key_iterator(shots.begin(), shots.end());
+          },
+          py::return_value_policy::reference_internal)
+      .def(
+          "keys",
+          [](const map::ShotView &sv) {
+            const auto &shots = sv.GetShots();
+            return py::make_key_iterator(shots.begin(), shots.end());
+          },
+          py::return_value_policy::reference_internal)
+      .def("get", &map::ShotView::GetShot,
+           py::return_value_policy::reference_internal)
+      .def("__getitem__", &map::ShotView::GetShot,
+           py::return_value_policy::reference_internal)
+      .def("__contains__", &map::ShotView::HasShot);
+  py::class_<map::LandmarkView>(m, "LandmarkView")
+      .def(py::init<map::Map &>())
+      .def("__len__", &map::LandmarkView::NumberOfLandmarks)
+      .def(
+          "items",
+          [](const map::LandmarkView &sv) {
+            const auto &lms = sv.GetLandmarks();
+            return py::make_unique_ptr_iterator(lms.begin(), lms.end());
+          },
+          py::return_value_policy::reference_internal)
+      .def(
+          "values",
+          [](const map::LandmarkView &sv) {
+            const auto &lms = sv.GetLandmarks();
+            return py::make_unique_ptr_value_iterator(lms.begin(), lms.end());
+          },
+          py::return_value_policy::reference_internal)
+      .def(
+          "__iter__",
+          [](const map::LandmarkView &sv) {
+            const auto &lms = sv.GetLandmarks();
+            return py::make_key_iterator(lms.begin(), lms.end());
+          },
+          py::return_value_policy::reference_internal)
+      .def(
+          "keys",
+          [](const map::LandmarkView &sv) {
+            const auto &lms = sv.GetLandmarks();
+            return py::make_key_iterator(lms.begin(), lms.end());
+          },
+          py::return_value_policy::reference_internal)
+      .def("get", &map::LandmarkView::GetLandmark,
+           py::return_value_policy::reference_internal)
+      .def("__getitem__", &map::LandmarkView::GetLandmark,
+           py::return_value_policy::reference_internal)
+      .def("__contains__", &map::LandmarkView::HasLandmark);
+  py::class_<map::CameraView>(m, "CameraView")
+      .def(py::init<map::Map &>())
+      .def("__len__", &map::CameraView::NumberOfCameras)
+      .def(
+          "items",
+          [](const map::CameraView &sv) {
+            const auto &cams = sv.GetCameras();
+            return py::make_iterator(cams.begin(), cams.end());
+          },
+          py::return_value_policy::reference_internal)
+      .def(
+          "values",
+          [](const map::CameraView &sv) {
+            const auto &cams = sv.GetCameras();
+            return py::make_value_iterator(cams.begin(), cams.end());
+          },
+          py::return_value_policy::reference_internal)
+      .def(
+          "__iter__",
+          [](const map::CameraView &sv) {
+            const auto &cams = sv.GetCameras();
+            return py::make_key_iterator(cams.begin(), cams.end());
+          },
+          py::return_value_policy::reference_internal)
+      .def(
+          "keys",
+          [](const map::CameraView &sv) {
+            const auto &cams = sv.GetCameras();
+            return py::make_key_iterator(cams.begin(), cams.end());
+          },
+          py::return_value_policy::reference_internal)
+      .def("get", &map::CameraView::GetCamera,
+           py::return_value_policy::reference_internal)
+      .def("__getitem__", &map::CameraView::GetCamera,
+           py::return_value_policy::reference_internal)
+      .def("__contains__", &map::CameraView::HasCamera);
 }
