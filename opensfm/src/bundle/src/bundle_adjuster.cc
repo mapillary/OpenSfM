@@ -706,7 +706,21 @@ void BundleAdjuster::Run() {
       point_projection_loss_name_, point_projection_loss_threshold_);
   if (use_new_) {
     for (auto &observation : point_projection_observations_new_) {
-      AddObservationResidualBlockNew(observation, projection_loss, &problem);
+      switch (observation.camera->GetValue().GetProjectionType()) {
+        case ProjectionType::PERSPECTIVE:
+        case ProjectionType::FISHEYE:
+        case ProjectionType::DUAL:
+        case ProjectionType::BROWN:
+          AddObservationResidualBlockNew<ReprojectionError2D>(
+              observation, projection_loss, &problem);
+          break;
+        case ProjectionType::SPHERICAL:
+          AddObservationResidualBlockNew<ReprojectionError3D>(
+              observation, projection_loss, &problem);
+          break;
+        default:
+          throw std::runtime_error("Unknown projection type");
+      }
     }
   } else {
     for (auto &observation : point_projection_observations_) {
@@ -1077,12 +1091,13 @@ void BundleAdjuster::Run() {
   }
 }
 
+template<class T>
 void BundleAdjuster::AddObservationResidualBlockNew(
     const BAPointProjectionObservationNew &observation, ceres::LossFunction *loss,
     ceres::Problem *problem) {
   ceres::CostFunction *cost_function = new ceres::AutoDiffCostFunction<
-      ReprojectionError, 2, GetEnumAsConstExpr(BACameraParameters::COUNT),
-      GetEnumAsConstExpr(BAShotParameters::COUNT), 3>(new ReprojectionError(
+      T, T::Size, GetEnumAsConstExpr(BACameraParameters::COUNT),
+      GetEnumAsConstExpr(BAShotParameters::COUNT), 3>(new T(
       observation.camera->GetValue().GetProjectionType(), observation.coordinates,
       observation.std_deviation));
   problem->AddResidualBlock(cost_function, loss, observation.camera->GetValueData().data(),
@@ -1229,14 +1244,32 @@ void BundleAdjuster::ComputeReprojectionErrors() {
 
   if (use_new_) {
     for (auto &observation : point_projection_observations_new_) {
-      ReprojectionError error(
-          observation.camera->GetValue().GetProjectionType(),
-          observation.coordinates, 1.0);
-
-      Vec2d residuals;
-      error(observation.camera->GetValueData().data(),
-            observation.shot->parameters.data(),
-            observation.point->parameters.data(), residuals.data());
+      VecXd residuals;
+      const auto projection_type =
+          observation.camera->GetValue().GetProjectionType();
+      switch (projection_type) {
+        case ProjectionType::PERSPECTIVE:
+        case ProjectionType::FISHEYE:
+        case ProjectionType::DUAL:
+        case ProjectionType::BROWN: {
+          ReprojectionError2D error(projection_type, observation.coordinates, 1.0);
+          residuals.resize(2);
+          error(observation.camera->GetValueData().data(),
+                observation.shot->parameters.data(),
+                observation.point->parameters.data(), residuals.data());
+          break;
+        }
+        case ProjectionType::SPHERICAL: {
+          ReprojectionError3D error(projection_type, observation.coordinates, 1.0);
+          residuals.resize(3);
+          error(observation.camera->GetValueData().data(),
+                observation.shot->parameters.data(),
+                observation.point->parameters.data(), residuals.data());
+          break;
+        }
+        default:
+          throw std::runtime_error("Unknown proection type !");
+      }
       observation.point->reprojection_errors[observation.shot->id] = residuals;
     }
   } else {
