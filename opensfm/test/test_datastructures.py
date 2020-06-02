@@ -359,5 +359,3 @@ def test_map():
         n_total_obs += shot.compute_num_valid_pts(1)
 
     assert m.number_of_landmarks() == 0 and n_total_obs == 0
-
-test_map()

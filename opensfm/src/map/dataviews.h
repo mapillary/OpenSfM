@@ -1,29 +1,32 @@
 #pragma once
-#include <map/map.h>
+// #include <map/map.h>
+#include <geometry/camera.h>
+#include <map/landmark.h>
+#include <map/shot.h>
+
+#include <unordered_map>
 namespace map {
+class Map;
 class ShotView {
  public:
-  ShotView(Map& map) : map_(map) {}
-  Shot* GetShot(const map::ShotId& shot_id) { return map_.GetShot(shot_id); }
-  bool HasShot(const map::ShotId& shot_id) { return map_.HasShot(shot_id); }
-  const std::unordered_map<ShotId, std::unique_ptr<Shot>>& GetShots() const {
-    return map_.GetAllShots();
-  }
-  size_t NumberOfShots() const { return map_.NumberOfShots();}
+  ShotView(Map& map);
+  Shot* GetShot(const map::ShotId& shot_id);
+  bool HasShot(const map::ShotId& shot_id);
+  const std::unordered_map<ShotId, std::unique_ptr<Shot>>& GetShots() const;
+  size_t NumberOfShots() const;
+
  private:
   Map& map_;
 };
 
 class LandmarkView {
  public:
-  LandmarkView(Map& map) : map_(map) {}
-  Landmark* GetLandmark(const LandmarkId& lm_id) { return map_.GetLandmark(lm_id); }
-  bool HasLandmark(const LandmarkId& lm_id) { return map_.HasLandmark(lm_id); }
+  LandmarkView(Map& map);
+  Landmark* GetLandmark(const LandmarkId& lm_id);
+  bool HasLandmark(const LandmarkId& lm_id);
   const std::unordered_map<LandmarkId, std::unique_ptr<Landmark>>&
-  GetLandmarks() const {
-    return map_.GetAllLandmarks();
-  }
-  size_t NumberOfLandmarks() const { return map_.NumberOfLandmarks();}
+  GetLandmarks() const;
+  size_t NumberOfLandmarks() const;
 
  private:
   Map& map_;
@@ -31,12 +34,12 @@ class LandmarkView {
 
 class CameraView {
  public:
-  CameraView(Map& map) : map_(map) {}
-  size_t NumberOfCameras() const { return map_.NumberOfCameras(); }
-  Camera* GetCamera(const CameraId& cam_id) { return map_.GetCamera(cam_id);}
-  const std::unordered_map<CameraId, Camera>&
-  GetCameras() const { return map_.GetAllCameras(); }
-  bool HasCamera(const CameraId& cam_id) const { return map_.HasCamera(cam_id);}
+  CameraView(Map& map);
+  size_t NumberOfCameras() const;
+  Camera* GetCamera(const CameraId& cam_id);
+  const std::unordered_map<CameraId, Camera>& GetCameras() const;
+  bool HasCamera(const CameraId& cam_id) const;
+
  private:
   Map& map_;
 };

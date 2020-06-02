@@ -1,5 +1,5 @@
 #pragma once
-#include <map/defines.h>
+
 #include <Eigen/Core>
 #include <unordered_map>
 #include <map>
@@ -10,7 +10,8 @@
 #include <map/geo.h>
 #include <map/shot.h>
 #include <map/landmark.h>
-
+#include <map/defines.h>
+#include <map/dataviews.h>
 #include <sfm/tracks_manager.h>
 #include <geometry/camera.h>
 namespace map
@@ -29,18 +30,19 @@ public:
   Camera* GetCamera(const CameraId& cam_id);
   Camera* CreateCamera(const Camera& cam);
   const std::unordered_map<CameraId, Camera>& GetAllCameras() const { return cameras_; };
-  const std::unordered_map<CameraId, Camera*> GetAllCameraPointers() //const
-  {
-    std::unordered_map<CameraId, Camera*> copy;
-    //C++14
-    // std::transform(cameras_.begin(), cameras_.end(), std::inserter(copy, copy.end()), [](auto& elem) { return std::make_pair(elem.first, &elem.second); });
-    //C++11
-    for (auto& cam_pair : cameras_)
-    {
-      copy.emplace(cam_pair.first, &cam_pair.second);
-    }
-    return copy;
-  }
+  // const std::unordered_map<CameraId, Camera*> GetAllCameraPointers() //const
+  // {
+  //   std::unordered_map<CameraId, Camera*> copy;
+  //   //C++14
+  //   // std::transform(cameras_.begin(), cameras_.end(), std::inserter(copy, copy.end()), [](auto& elem) { return std::make_pair(elem.first, &elem.second); });
+  //   //C++11
+  //   for (auto& cam_pair : cameras_)
+  //   {
+  //     copy.emplace(cam_pair.first, &cam_pair.second);
+  //   }
+  //   return copy;
+  // }
+  CameraView GetCameraView() { return CameraView(*this);}
   bool HasCamera(const CameraId& cam_id) const {
     return cameras_.count(cam_id) > 0;
   }
@@ -55,18 +57,20 @@ public:
   bool HasLandmark(const LandmarkId& lm_id) const { return landmarks_.count(lm_id) > 0; }
   bool HasShot(const ShotId& shot_id) const { return shots_.find(shot_id) != shots_.end(); }
   const std::unordered_map<ShotId, std::unique_ptr<Shot>>& GetAllShots() const { return shots_; }
-  const std::unordered_map<ShotId, Shot*> GetAllShotPointers() const
-  {
-    std::unordered_map<ShotId, Shot*> copy;
-    //C++14
-    // std::transform(shots_.begin(), shots_.end(), std::inserter(copy, copy.end()), [](auto& elem) { return std::make_pair(elem.first, elem.second.get()); });
-    //C++11
-    for (const auto& shot_pair : shots_)
-    {
-      copy.emplace(shot_pair.first, shot_pair.second.get());
-    }
-    return copy;
-  }
+  // const std::unordered_map<ShotId, Shot*> GetAllShotPointers() const
+  // {
+  //   std::unordered_map<ShotId, Shot*> copy;
+  //   //C++14
+  //   // std::transform(shots_.begin(), shots_.end(), std::inserter(copy, copy.end()), [](auto& elem) { return std::make_pair(elem.first, elem.second.get()); });
+  //   //C++11
+  //   for (const auto& shot_pair : shots_)
+  //   {
+  //     copy.emplace(shot_pair.first, shot_pair.second.get());
+  //   }
+  //   return copy;
+  // }
+  ShotView GetShotView() { return ShotView(*this); }
+
 
   // Landmark
   Landmark* CreateLandmark(const LandmarkId& lm_id, const Vec3d& global_pos);
@@ -75,18 +79,19 @@ public:
   void RemoveLandmark(const LandmarkId& lm_id);
   void ReplaceLandmark(Landmark* old_lm, Landmark* new_lm);
   const std::unordered_map<LandmarkId, std::unique_ptr<Landmark>>& GetAllLandmarks() const { return landmarks_; };
-  const std::unordered_map<LandmarkId, Landmark*> GetAllLandmarkPointers() const
-  {
-    std::unordered_map<LandmarkId, Landmark*> copy;
-    //C++14
-    // std::transform(landmarks_.begin(), landmarks_.end(), std::inserter(copy, copy.end()), [](auto& elem) { return std::make_pair(elem.first, elem.second.get()); });
-    //C++11
-    for (const auto& lm_pair : landmarks_)
-    {
-      copy.emplace(lm_pair.first, lm_pair.second.get());
-    }
-    return copy;
-  }
+  // const std::unordered_map<LandmarkId, Landmark*> GetAllLandmarkPointers() const
+  // {
+  //   std::unordered_map<LandmarkId, Landmark*> copy;
+  //   //C++14
+  //   // std::transform(landmarks_.begin(), landmarks_.end(), std::inserter(copy, copy.end()), [](auto& elem) { return std::make_pair(elem.first, elem.second.get()); });
+  //   //C++11
+  //   for (const auto& lm_pair : landmarks_)
+  //   {
+  //     copy.emplace(lm_pair.first, lm_pair.second.get());
+  //   }
+  //   return copy;
+  // }
+  LandmarkView GetLandmarkView() { return LandmarkView(*this); }
 
   //Observation methods
   void AddObservation(Shot *const shot,  Landmark *const lm, const FeatureId feat_id);

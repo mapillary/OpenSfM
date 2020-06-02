@@ -201,12 +201,20 @@ PYBIND11_MODULE(pymap, m) {
                map::Map::RemoveObservation,
            py::arg("shot"), py::arg("landmark"))
 
-      .def("get_all_shots", &map::Map::GetAllShotPointers,
-           py::return_value_policy::reference_internal)
-      .def("get_all_cameras", &map::Map::GetAllCameraPointers,
-           py::return_value_policy::reference_internal)
-      .def("get_all_landmarks", &map::Map::GetAllLandmarkPointers,
-           py::return_value_policy::reference_internal)
+     //  .def("get_all_shots", &map::Map::GetAllShotPointers,
+     //       py::return_value_policy::reference_internal)
+      .def("get_all_shots", &map::Map::GetShotView)
+      .def("get_shot_view", &map::Map::GetShotView)
+     //  ,
+          //  py::return_value_policy::reference_internal)
+      .def("get_all_cameras", &map::Map::GetCameraView)
+      .def("get_camera_view", &map::Map::GetCameraView)
+     //  ,
+          //  py::return_value_policy::reference_internal)
+      .def("get_all_landmarks", &map::Map::GetLandmarkView)
+      .def("get_landmark_view", &map::Map::GetLandmarkView)
+     //  ,
+          //  py::return_value_policy::reference_internal)
       .def("set_reference", &map::Map::SetTopoCentricConverter)
       .def("get_reference", &map::Map::GetTopoCentricConverter)
       .def("create_camera", &map::Map::CreateCamera,
@@ -238,10 +246,6 @@ PYBIND11_MODULE(pymap, m) {
       .def_readonly("slam_data", &map::Shot::slam_data_,
                     py::return_value_policy::reference_internal)
       .def_readwrite("mesh", &map::Shot::mesh)
-      //  .def("get_descriptor", &map::Shot::GetDescriptor,
-      //       py::return_value_policy::reference_internal)
-      //  .def("get_descriptors", &map::Shot::GetDescriptors,
-      //       py::return_value_policy::reference_internal)
       .def("get_observation", &map::Shot::GetObservation,
            py::return_value_policy::reference_internal)
       .def("get_keypoints", &map::Shot::GetKeyPoints,
@@ -250,13 +254,6 @@ PYBIND11_MODULE(pymap, m) {
            py::arg("min_obs_thr") = 1)
       .def("get_valid_landmarks", &map::Shot::ComputeValidLandmarks,
            py::return_value_policy::reference_internal)
-      //  .def("get_valid_landmarks_indices",
-      //       &map::Shot::ComputeValidLandmarksIndices,
-      //       py::return_value_policy::reference_internal)
-      //  .def("get_valid_landmarks_and_indices",
-      //       &map::Shot::ComputeValidLandmarksAndIndices,
-      //       py::return_value_policy::reference_internal)
-      //  .def("number_of_keypoints", &map::Shot::NumberOfKeyPoints)
       .def("init_and_take_datastructures",
            &map::Shot::InitAndTakeDatastructures)
       .def("init_keypts_and_descriptors", &map::Shot::InitKeyptsAndDescriptors)
