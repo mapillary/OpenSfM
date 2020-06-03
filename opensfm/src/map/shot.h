@@ -39,20 +39,19 @@ struct ShotMesh {
 struct ShotMeasurements {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   double capture_time_;
-  // TODO:
-  double compass;
-  double accelerometer;
+  // TODO: Correct data types for compass,....
+  double compass_;
+  double accelerometer_;
   double gps_dop_{0};
   std::array<double, 3> gps_position_{0};
   int orientation_;
-  std::string skey;
+  std::string skey_;
 };
 
 class Shot {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  // Shot(const ShotId& shot_id, const Camera& shot_camera, const Pose& pose);
   Shot(const ShotId& shot_id, const Camera* const shot_camera, const Pose& pose);
   // Workaround for pickle that makes it possible for the shot to have camera
   // outside of the reconstruction.

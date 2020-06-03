@@ -37,13 +37,12 @@ def test_reconstruction_class_initialization():
 
     # Instantiate Reconstruction
     reconstruction = types.Reconstruction()
-
+    focal = 0.9722222222222222
+    k1 = 0.006094395128698237
+    k2 = -0.0004952058188617129
     # Instantiate camera instrinsics
-    camera = types.PerspectiveCamera()
+    camera = pygeometry.Camera.create_perspective(focal, k1, k2)
     camera.id = 'apple iphone 4s back camera 4.28mm f/2.4'
-    camera.focal = 0.9722222222222222
-    camera.k1 = 0.006094395128698237
-    camera.k2 = -0.0004952058188617129
     camera.height = 2448
     camera.width = 3264
 
@@ -60,7 +59,7 @@ def test_reconstruction_class_initialization():
     pose0 = types.Pose([0.0, 0.0, 0.0], [0.0, 0.0, 0.0])
 
     shot0 = types.Shot()
-    shot0.id = 0
+    shot0.id = '0'
     shot0.camera = camera
     shot0.pose = pose0
     shot0.metadata = metadata
@@ -68,7 +67,7 @@ def test_reconstruction_class_initialization():
     pose1 = types.Pose([0.0, 0.0, 0.0], [-1.0, 0.0, 0.0])
 
     shot1 = types.Shot()
-    shot1.id = 1
+    shot1.id = '1'
     shot1.camera = camera
     shot1.pose = pose1
     shot1.metadata = metadata
@@ -82,11 +81,12 @@ def test_reconstruction_class_initialization():
     assert len(reconstruction.cameras) == 1
     assert len(reconstruction.shots) == 2
     assert len(reconstruction.points) == 0
-    assert reconstruction.get_camera(camera.id) == camera
-    assert reconstruction.get_camera(1) is None
-    assert reconstruction.get_shot(shot0.id) == shot0
-    assert reconstruction.get_shot(shot1.id) == shot1
-    assert reconstruction.get_shot(2) is None
+    assert reconstruction.get_camera(camera.id) is not None
+
+    assert reconstruction.get_camera('1') is None
+    assert reconstruction.get_shot(shot0.id) is not None
+    assert reconstruction.get_shot(shot1.id) is not None
+    assert reconstruction.get_shot('2') is None
 
 
 def test_perspective_camera_projection():
@@ -250,3 +250,5 @@ def _get_spherical_camera():
     camera.height = 600
     camera_cpp = pygeometry.Camera.create_spherical()
     return camera, camera_cpp
+
+test_reconstruction_class_initialization()

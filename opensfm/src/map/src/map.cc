@@ -312,7 +312,7 @@ Camera* Map::GetCamera(const CameraId& cam_id)
   auto it = cameras_.find(cam_id);
   if (it == cameras_.end())
   {
-    throw std::runtime_error("Accessing invalid camera ID "+cam_id);
+    return nullptr;
   }
   return &it->second; 
 }

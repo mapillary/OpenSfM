@@ -84,15 +84,6 @@ PYBIND11_MODULE(pymap, m) {
                                   map::Map::RemoveLandmark)
       .def("remove_landmark", (void (map::Map::*)(const map::LandmarkId &)) &
                                   map::Map::RemoveLandmark)
-      // C++14
-      // .def("remove_landmark", py::overload_cast<const map::Landmark *const>(
-      //                             &map::Map::RemoveLandmark))
-      // .def("remove_landmark",
-      //      py::overload_cast<const
-      //      map::LandmarkId>(&map::Map::RemoveLandmark))
-
-      // Shot
-      // C++11
       .def(
           "create_shot",
           (map::Shot * (map::Map::*)(const map::ShotId &, const map::CameraId &,
@@ -101,32 +92,6 @@ PYBIND11_MODULE(pymap, m) {
           py::arg("shot_id"), py::arg("camera_id"),
           py::arg("pose") = map::Pose(),
           py::return_value_policy::reference_internal)
-      //  .def("create_shot",
-      //       (map::Shot * (map::Map::*)(const map::ShotId&, const Camera &,
-      //                                  const map::Pose &)) &
-      //           map::Map::CreateShot,
-      //       py::arg("shot_id"), py::arg("camera"), py::arg("pose") =
-      //       map::Pose(), py::return_value_policy::reference_internal)
-      // C++14
-      // .def("create_shot",
-      //      py::overload_cast<const map::ShotId&, const map::CameraId&,
-      //                        const map::Pose &>(&map::Map::CreateShot),
-      //      py::arg("shot_id"), py::arg("camera_id"),
-      //      py::arg("pose") = map::Pose(),
-      //      py::return_value_policy::reference_internal)
-      // .def("create_shot",
-      //      py::overload_cast<const map::ShotId&, const map::Camera &,
-      //                        const map::Pose &>(&map::Map::CreateShot),
-      //      py::arg("shot_id"), py::arg("camera"),
-      //      py::arg("pose") = map::Pose(),
-      //      py::return_value_policy::reference_internal)
-      // .def("create_shot",
-      //      py::overload_cast<const map::ShotId&, const std::string &,
-      //                        const map::Pose &>(&map::Map::CreateShot),
-      //      py::arg("shot_id"), py::arg("shot_cam"),
-      //      py::arg("pose") = map::Pose(),
-      //      py::return_value_policy::reference_internal)
-      //  .def("update_shot_pose", &map::Map::UpdateShotPose)
       .def("remove_shot", &map::Map::RemoveShot)
       .def("get_shot", &map::Map::GetShot,
            py::return_value_policy::reference_internal)
@@ -299,24 +264,24 @@ PYBIND11_MODULE(pymap, m) {
       .def_readwrite("gps_position", &map::ShotMeasurements::gps_position_)
       .def_readwrite("orientation", &map::ShotMeasurements::orientation_)
       .def_readwrite("capture_time", &map::ShotMeasurements::capture_time_)
-      .def_readwrite("accelerometer", &map::ShotMeasurements::accelerometer)
-      .def_readwrite("compass", &map::ShotMeasurements::compass)
-      .def_readwrite("skey", &map::ShotMeasurements::skey)
+      .def_readwrite("accelerometer", &map::ShotMeasurements::accelerometer_)
+      .def_readwrite("compass", &map::ShotMeasurements::compass_)
+      .def_readwrite("skey", &map::ShotMeasurements::skey_)
       .def(py::pickle(
           [](const map::ShotMeasurements &s) {
             return py::make_tuple(s.gps_dop_, s.gps_position_, s.orientation_,
-                                  s.capture_time_, s.accelerometer, s.compass,
-                                  s.compass);
+                                  s.capture_time_, s.accelerometer_, s.compass_,
+                                  s.compass_);
           },
           [](py::tuple s) {
             map::ShotMeasurements sm;
-            sm.gps_dop_ = s[0].cast<double>();
-            sm.gps_position_ = s[1].cast<std::array<double, 3>>();
-            sm.orientation_ = s[2].cast<int>();
-            sm.capture_time_ = s[3].cast<double>();
-            sm.accelerometer = s[4].cast<double>();
-            sm.compass = s[5].cast<double>();
-            sm.skey = s[6].cast<std::string>();
+            sm.gps_dop_ = s[0].cast<decltype(sm.gps_dop_)>();
+            sm.gps_position_ = s[1].cast<decltype(sm.gps_position_)>();
+            sm.orientation_ = s[2].cast<decltype(sm.orientation_)>();
+            sm.capture_time_ = s[3].cast<decltype(sm.capture_time_)>();
+            sm.accelerometer_ = s[4].cast<decltype(sm.accelerometer_)>();
+            sm.compass_ = s[5].cast<decltype(sm.compass_)>();
+            sm.skey_ = s[6].cast<decltype(sm.skey_)>();
             return sm;
           }));
 

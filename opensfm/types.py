@@ -954,7 +954,7 @@ class Reconstruction(object):
         self.map.set_reference(value.lat, value.lon, value.alt)
 
     reference = property(get_reference, set_reference)
-    
+
     def add_camera(self, camera):
         """Add a camera in the list
 
