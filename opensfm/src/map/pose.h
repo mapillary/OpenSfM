@@ -21,7 +21,7 @@ public:
   Mat4d CameraToWorld() const { return cam_to_world_; }
   Mat34d CameraToWorldRt() const { return cam_to_world_.block<3,4>(0,0); }
 
-  // 3x3 Rotation
+  // 3x3 Rotation  
   Mat3d RotationWorldToCamera() const { return world_to_cam_.block<3,3>(0,0); }
   Mat3d RotationCameraToWorld() const { return cam_to_world_.block<3,3>(0,0); }
   Vec3d RotationWorldToCameraMin() const { return r_min_world_to_cam_;  } 

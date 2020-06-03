@@ -447,7 +447,6 @@ def direct_shot_neighbors(reconstruction, shot_ids,
         for track in valid_landmarks:
             track_id = track.id
             if track_id in reconstruction.points:
-                #TODO: Take a closer look
                 points.add(track)
 
     candidate_shots = set(reconstruction.shots) - set(shot_ids)
@@ -731,7 +730,7 @@ def bootstrap_reconstruction(data, tracks_manager, camera_priors, im1, im2, p1, 
 
     reconstruction = types.Reconstruction()
     reconstruction.reference = data.load_reference()
-    reconstruction.cameras = copy.deepcopy(camera_priors)
+    reconstruction.cameras = camera_priors
 
     shot1 = types.Shot()
     shot1.id = im1
@@ -836,8 +835,8 @@ def resect(tracks_manager, reconstruction, shot_id,
         reconstruction.add_shot(shot)
         for i, succeed in enumerate(inliers):
             if succeed:
-                # copy_graph_data(tracks_manager, graph_inliers, shot_id, ids[i])
-                copy_graph_data(tracks_manager, reconstruction, shot_id, ids[i])
+                # add_observation_to_reconstruction(tracks_manager, graph_inliers, shot_id, ids[i])
+                add_observation_to_reconstruction(tracks_manager, reconstruction, shot_id, ids[i])
         return True, report
     else:
         return False, report
@@ -886,25 +885,10 @@ def resect_reconstruction(reconstruction1, reconstruction2, tracks_manager1,
     return True, similarity, inliers
 
 
-# def copy_graph_data(tracks_manager, graph_inliers, shot_id, track_id):
-def copy_graph_data(tracks_manager, reconstruction, shot_id, track_id):
-    # if shot_id not in graph_inliers:
-    #     graph_inliers.add_node(shot_id, bipartite=0)
-    # if track_id not in graph_inliers:
-    #     graph_inliers.add_node(track_id, bipartite=1)
-    # observation = tracks_manager.get_observation(shot_id, track_id)
-    # graph_inliers.add_edge(shot_id, track_id,
-    #                        feature=observation.point,
-    #                        feature_scale=observation.scale,
-    #                        feature_id=observation.id,
-    #                        feature_color=observation.color)
-    shot = reconstruction.get_shot(shot_id)
-    lm = reconstruction.get_point(track_id)
+def add_observation_to_reconstruction(tracks_manager, reconstruction,
+                                      shot_id, track_id):
     observation = tracks_manager.get_observation(shot_id, track_id)
-    # At one point observation from tracks_manager == my observation
-    # TODO: Make the same observation!
-    #self.reconstruction.map.add_observation(shot.id, int(track_id), observation.id)
-    reconstruction.map.add_observation(shot, lm, observation)
+    reconstruction.add_observation(shot_id, track_id, observation)
 
 
 class TrackTriangulator:
@@ -916,7 +900,6 @@ class TrackTriangulator:
     def __init__(self, tracks_manager, reconstruction):
         """Build a triangulator for a specific reconstruction."""
         self.tracks_manager = tracks_manager
-        # self.graph_inliers = graph_inliers
         self.reconstruction = reconstruction
         self.origins = {}
         self.rotation_inverses = {}
@@ -981,7 +964,7 @@ class TrackTriangulator:
             self.reconstruction.add_point(best_point)
             for i, succeed in enumerate(best_inliers):
                 if succeed:
-                    self._add_track_to_graph_inlier(track, ids[i])
+                    self._add_track_to_reconstruction(track, ids[i])
 
     def triangulate(self, track, reproj_threshold, min_ray_angle_degrees):
         """Triangulate track and add point to reconstruction."""
@@ -1005,7 +988,9 @@ class TrackTriangulator:
                 point.coordinates = X.tolist()
                 self.reconstruction.add_point(point)
                 for shot_id in ids:
-                    self._add_track_to_graph_inlier(track, shot_id)
+                    self._add_track_to_reconstruction(track, shot_id)
+                    # add_observation_to_reconstruction(self.tracks_manager,self.reconstruction,shot_id, track)
+
 
     def triangulate_dlt(self, track, reproj_threshold, min_ray_angle_degrees):
         """Triangulate track using DLT and add point to reconstruction."""
@@ -1027,20 +1012,12 @@ class TrackTriangulator:
                 point.coordinates = X.tolist()
                 self.reconstruction.add_point(point)
                 for shot_id in ids:
-                    self._add_track_to_graph_inlier(track, shot_id)
+                    self._add_track_to_reconstruction(track, shot_id)
 
-    def _add_track_to_graph_inlier(self, track_id, shot_id):
-        # copy_graph_data(self.tracks_manager, self.graph_inliers, shot_id, track_id)
-        shot = self.reconstruction.get_shot(shot_id)
-        lm = self.reconstruction.get_point(track_id)
+    def _add_track_to_reconstruction(self, track_id, shot_id):
         observation = self.tracks_manager.get_observation(shot_id, track_id)
-        # At one point observation from tracks_manager == my observation
-        # TODO: Make the same observation!
-        #self.reconstruction.map.add_observation(shot.id, int(track_id), observation.id)
-        self.reconstruction.map.add_observation(shot, lm, observation)
-        # print("tri: ", len(self.reconstruction.points))
-        # print(len(self.reconstruction.points), shot.id, lm.id, observation.id)
-        
+        self.reconstruction.add_observation(shot_id, track_id, observation)
+
     def _shot_origin(self, shot):
         if shot.id in self.origins:
             return self.origins[shot.id]
@@ -1241,7 +1218,6 @@ def merge_reconstructions(reconstructions, config):
 def paint_reconstruction(data, tracks_manager, reconstruction):
     """Set the color of the points from the color of the tracks."""
     for k, point in reconstruction.points.items():
-        #TODO: id/name
         point.color = list(map(float, next(iter(tracks_manager.get_track_observations(str(k)).values())).color))
 
 
@@ -1411,7 +1387,7 @@ def incremental_reconstruction(data, tracks_manager):
     chrono = Chronometer()
 
     images = tracks_manager.get_shot_ids()
-    
+
     if not data.reference_lla_exists():
         data.invent_reference_lla(images)
 

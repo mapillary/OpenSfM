@@ -31,7 +31,8 @@ class Command:
         gcp = data.load_ground_control_points()
 
         for reconstruction in reconstructions:
-            orec.bundle(graph, reconstruction, camera_priors, gcp, data.config)
+            # orec.bundle(graph, reconstruction, camera_priors, gcp, data.config)
+            orec.bundle(reconstruction, camera_priors, gcp, data.config)
 
         end = time.time()
         with open(data.profile_log(), 'a') as fout:

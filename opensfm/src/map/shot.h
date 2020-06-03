@@ -38,7 +38,6 @@ struct ShotMesh {
 
 struct ShotMeasurements {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  Eigen::Vector3d gps_;
   double capture_time_;
   // TODO:
   double compass;

@@ -921,7 +921,6 @@ class Reconstruction(object):
 
     def get_cameras(self):
         return pymap.CameraView(self.map)
-        # return CameraView(self.map)
 
     def set_cameras(self, value):
         for cam in value.values():
@@ -929,8 +928,6 @@ class Reconstruction(object):
 
     cameras = property(get_cameras, set_cameras)
 
-    # def get_shots(self):
-    #     return ShotView(self.map)
     def get_shots(self):
         return pymap.ShotView(self.map)
 
@@ -941,7 +938,6 @@ class Reconstruction(object):
     shots = property(get_shots, set_shots)
 
     def get_points(self):
-        # return PointView(self.map)
         return pymap.LandmarkView(self.map)
 
     def set_points(self, value):
@@ -978,7 +974,13 @@ class Reconstruction(object):
 
         :param shot: The shot.
         """
-        map_shot = self.map.create_shot(shot.id, shot.camera.id)
+
+        pose = pymap.Pose()
+        if shot.pose is not None:
+            pose.set_from_world_to_cam(
+                shot.pose.rotation, shot.pose.translation)
+        # map_shot.set_pose(pose)
+        map_shot = self.map.create_shot(shot.id, shot.camera.id, pose)
         if shot.metadata is not None:
             if shot.metadata.gps_dop is not None:
                 map_shot.shot_measurement.gps_dop = shot.metadata.gps_dop
@@ -986,9 +988,6 @@ class Reconstruction(object):
                 map_shot.shot_measurement.gps_position = shot.metadata.gps_position
             if shot.metadata.orientation is not None:
                 map_shot.shot_measurement.orientation = shot.metadata.orientation
-        pose = pymap.Pose()
-        pose.set_from_world_to_cam(shot.pose.rotation, shot.pose.translation)
-        map_shot.set_pose(pose)
 
     def get_shot(self, id):
         """Return a shot by id.
@@ -1002,7 +1001,10 @@ class Reconstruction(object):
 
         :param point: The point.
         """
-        new_pt = self.map.create_landmark(point.id, point.coordinates)
+        if point.coordinates is None:
+            new_pt = self.map.create_landmark(point.id, [0, 0, 0])
+        else:
+            new_pt = self.map.create_landmark(point.id, point.coordinates)
         if point.color is not None:
             new_pt.color = point.color
 
@@ -1012,3 +1014,11 @@ class Reconstruction(object):
         :return: If exists returns the point, otherwise None.
         """
         return self.points.get(id)
+
+    def add_observation(self, shot_id, lm_id, observation):
+        """ Adds an observation between a shot and a landmark
+        :param shot_id: The id of the shot
+        :param lm_id: The id of the landmark
+        :param observation: The observation
+        """
+        self.map.add_observation(shot_id, lm_id, observation)
