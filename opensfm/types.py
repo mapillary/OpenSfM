@@ -819,92 +819,6 @@ class GroundControlPointObservation(object):
         self.projection = None
 
 
-# class PointView(object):
-
-#     def __init__(self, map_mgn):
-#         self.map = map_mgn
-
-#     def __len__(self):
-#         return self.map.number_of_landmarks()
-
-#     def __getitem__(self, point_id):
-#         return self.get(point_id)
-
-#     def __setitem__(self, index, item):
-#         print("calling PointView__setitem__")
-
-#     def __iter__(self):
-#         for point_id in self.map.get_all_landmarks().keys():
-#             yield point_id
-
-#     def get(self, point_id):
-#         return self.map.get_landmark(point_id)
-
-#     def __contains__(self, point_id):
-#         return self.map.has_landmark(point_id)
-
-#     def values(self):
-#         return self.map.get_all_landmarks().values()
-
-#     def keys(self):
-#         return [str(x) for x in self.map.get_all_landmarks().keys()]
-
-#     def items(self):
-#         return self.map.get_all_landmarks().items()
-
-
-# class ShotView(object):
-
-#     def __init__(self, map_mgn):
-#         self.map = map_mgn
-
-#     def __len__(self):
-#         return self.map.number_of_shots()
-
-#     def __getitem__(self, index):
-#         return self.get(index)
-
-#     def get(self, index):
-#         return self.map.get_shot(index)
-
-#     def __iter__(self):
-#         for shot_id in self.map.get_all_shots().keys():
-#             yield shot_id
-
-#     def __contains__(self, index):
-#         return self.map.get_shot(index) is not None
-
-#     def __setitem__(self, index, item):
-#         print("calling ShotView__setitem__")
-
-#     def values(self):
-#         return self.map.get_all_shots().values()
-
-#     def keys(self):
-#         return self.map.get_all_shots().keys()
-
-#     def items(self):
-#         return self.map.get_all_shots().items()
-
-
-# class CameraView(object):
-
-#     def __init__(self, map_mgn):
-#         self.map: pymap.Map = map_mgn
-
-#     def __len__(self):
-#         return self.map.number_of_cameras()
-    
-#     def __getitem__(self, index):
-#         return self.get(index)
-
-#     def get(self, index):
-#         return self.map.get_camera(index)
-
-#     def values(self):
-#         return self.map.get_cameras()
-
-
 class Reconstruction(object):
     """Defines the reconstructed scene.
 
@@ -979,7 +893,6 @@ class Reconstruction(object):
         if shot.pose is not None:
             pose.set_from_world_to_cam(
                 shot.pose.rotation, shot.pose.translation)
-        # map_shot.set_pose(pose)
         map_shot = self.map.create_shot(shot.id, shot.camera.id, pose)
         if shot.metadata is not None:
             if shot.metadata.gps_dop is not None:
