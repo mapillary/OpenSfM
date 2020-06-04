@@ -239,7 +239,7 @@ def shot_to_json(shot):
         if shot.metadata.gps_dop is not None:
             obj['gps_dop'] = shot.metadata.gps_dop
         if shot.metadata.gps_position is not None:
-            obj['gps_position'] = shot.metadata.gps_position
+            obj['gps_position'] = list(shot.metadata.gps_position)
         if shot.metadata.accelerometer is not None:
             obj['accelerometer'] = shot.metadata.accelerometer
         if shot.metadata.compass is not None:

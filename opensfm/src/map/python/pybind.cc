@@ -204,11 +204,8 @@ PYBIND11_MODULE(pymap, m) {
                                c->width, c->height, c->id));
           },
           [](py::tuple s) {
-            // tuple
-            auto pose = map::Pose();
-            pose.SetFromCameraToWorld(s[2].cast<Mat4d>());
-            auto t = s[3].cast<py::tuple>();
             // Create camera
+            auto t = s[3].cast<py::tuple>();
             const auto projection_params = t[0].cast<Eigen::VectorXd>();
             const auto distortion = t[1].cast<Eigen::VectorXd>();
             const auto focal = t[2].cast<double>();
@@ -243,12 +240,13 @@ PYBIND11_MODULE(pymap, m) {
             camera.width = width;
             camera.height = height;
             camera.id = id;
-
             // create unique_ptr
             auto cam_ptr = std::unique_ptr<Camera>(new Camera(camera));
+            auto pose = map::Pose();
+            pose.SetFromCameraToWorld(s[2].cast<Mat4d>());
             auto shot =
-                map::Shot(t[0].cast<map::ShotId>(), std::move(cam_ptr), pose);
-            shot.unique_id_ = t[1].cast<map::ShotUniqueId>();
+                map::Shot(s[0].cast<map::ShotId>(), std::move(cam_ptr), pose);
+            shot.unique_id_ = s[1].cast<map::ShotUniqueId>();
             return shot;
           }));
 
@@ -271,7 +269,7 @@ PYBIND11_MODULE(pymap, m) {
           [](const map::ShotMeasurements &s) {
             return py::make_tuple(s.gps_dop_, s.gps_position_, s.orientation_,
                                   s.capture_time_, s.accelerometer_, s.compass_,
-                                  s.compass_);
+                                  s.skey_);
           },
           [](py::tuple s) {
             map::ShotMeasurements sm;
