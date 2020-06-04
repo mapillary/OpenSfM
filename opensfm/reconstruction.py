@@ -1,19 +1,16 @@
 # -*- coding: utf-8 -*-
 """Incremental reconstruction pipeline"""
 
-import copy
 import datetime
 import logging
 import math
 from collections import defaultdict
 from itertools import combinations
+from six import iteritems
 
 import cv2
 import numpy as np
-import networkx as nx
-import six
 from timeit import default_timer as timer
-from six import iteritems
 
 from opensfm import pybundle
 from opensfm import pygeometry
@@ -23,7 +20,6 @@ from opensfm import tracking
 from opensfm import multiview
 from opensfm import types
 from opensfm import pysfm
-from opensfm import pymap
 from opensfm.align import align_reconstruction, apply_similarity
 from opensfm.context import parallel_map, current_memory_usage
 
@@ -42,7 +38,7 @@ def _add_camera_to_bundle(ba, camera, camera_prior, constant):
         c = pybundle.BABrownPerspectiveCamera()
         c.id = camera.id
         c.focal_x = camera.focal
-        c.focal_y = camera.focal*camera.aspect_ratio
+        c.focal_y = camera.focal * camera.aspect_ratio
         c.c_x = camera.principal_point[0]
         c.c_y = camera.principal_point[1]
         c.k1 = camera.k1
@@ -255,17 +251,10 @@ def bundle_single_view(reconstruction, shot_id, camera_priors, config):
     t = shot.pose.translation
     ba.add_shot(shot_id, camera.id, r, t, False)
 
-    # for track_id in graph[shot_id]:
-        # track = reconstruction.points[track_id]
-    # for track in reconstruction.points:
     for track in shot.get_valid_landmarks():
         track_id = track.id
         ba.add_point(track_id, track.coordinates, True)
-        
-        # point = graph[shot_id][track_id]['feature']
-        # scale = graph[shot_id][track_id]['feature_scale']
         obs = shot.get_landmark_observation(track)
-        # obs = track.get_obs_in_shot(shot.id)
         point = obs.point
         ba.add_point_projection_observation(
             shot_id, track_id, point[0], point[1], obs.scale)
@@ -320,10 +309,6 @@ def bundle_local(reconstruction, camera_priors, gcp, central_shot_id, config):
         valid_landmarks = shot.get_valid_landmarks()
         for lm in valid_landmarks:
             point_ids.add(lm.id)
-        # if shot_id in graph:
-        #     for track in graph[shot_id]:
-        #         if track in reconstruction.points:
-        #             point_ids.add(track)
 
     ba = pybundle.BundleAdjuster()
 
@@ -348,14 +333,6 @@ def bundle_local(reconstruction, camera_priors, gcp, central_shot_id, config):
                 obs = shot.get_landmark_observation(point)
                 ba.add_point_projection_observation(
                     shot.id, point.id, obs.point[0], obs.point[1], obs.scale)
-
-        # if shot_id in graph:
-        #     for track in graph[shot_id]:
-        #         if track in point_ids:
-        #             point = graph[shot_id][track]['feature']
-        #             scale = graph[shot_id][track]['feature_scale']
-        #             ba.add_point_projection_observation(
-        #                 shot_id, track, point[0], point[1], scale)
 
     if config['bundle_use_gps']:
         for shot_id in interior:
