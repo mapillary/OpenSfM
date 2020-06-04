@@ -424,7 +424,7 @@ def import_depthmaps_from_fused_pointcloud(udata, urec, image_ix_to_shot_id, pat
     points_seen = read_vis(path_ply.with_suffix('.ply.vis'), image_ix_to_shot_id)
 
     # Project to shots and save as depthmaps
-    max_size = udata.config['undistorted_image_max_size']
+    max_size = udata.config['depthmap_resolution']
     for shot_id, points_seen_ixs in points_seen.items():
         print("Projecting shot {}".format(shot_id))
         project_pointcloud_save_depth(udata,
@@ -464,15 +464,16 @@ def project_pointcloud_save_depth(udata, urec, points, shot_id, max_sz):
     distances = np.linalg.norm(points - shot.pose.get_origin(), axis=1)
     viewing_angles = np.arctan2(np.linalg.norm(points_2d, axis=1), shot.camera.focal)
     depths = distances * np.cos(viewing_angles)
+    depths[depths > udata.config['depthmap_max_depth']] = 0
 
     # Create depth image
     depth_image = np.zeros([h, w])
     depth_image[pixel_coords[:, 1], pixel_coords[:, 0]] = depths[mask]
 
     # Save numpy
-    filepath = Path(udata._depthmap_file(shot_id, 'fused.npz'))
+    filepath = Path(udata._depthmap_file(shot_id, 'clean.npz'))
     filepath.parent.mkdir(exist_ok=True, parents=True)
-    np.savez_compressed(filepath, points=depth_image)
+    np.savez_compressed(filepath, depth=depth_image, plane=np.zeros(1), score=np.zeros(1))
 
     # Save jpg for visualization
     import matplotlib.pyplot as plt
@@ -480,7 +481,7 @@ def project_pointcloud_save_depth(udata, urec, points, shot_id, max_sz):
     rgb, sm = depth_colormap(depth_image)
     plt.imshow(rgb)
     small_colorbar(plt.gca(), mappable=sm)
-    filepath = Path(udata._depthmap_file(shot_id, 'fused_viz.png'))
+    filepath = Path(udata.data_path) / 'plot_depthmaps' / '{}.png'.format(shot_id)
     filepath.parent.mkdir(exist_ok=True, parents=True)
     plt.savefig(filepath, dpi=300)
     plt.close(fig)
@@ -512,6 +513,10 @@ def main():
     images_path = export_folder / 'images'
     if not images_path.exists():
         os.symlink(args.images, images_path, target_is_directory=True)
+
+    # Copy the config if this is an colmap export of an opensfm export
+    if p_db.parent.name == 'colmap_export' and not (export_folder/'config.yaml').exists():
+        os.symlink(p_db.parent.parent / 'config.yaml', export_folder / 'config.yaml')
 
     data = dataset.DataSet(export_folder)
     db = sqlite3.connect(p_db.as_posix())
