@@ -123,6 +123,8 @@ int TracksManager::NumShots() const { return tracks_per_shot_.size(); }
 
 int TracksManager::NumTracks() const { return shots_per_track_.size(); }
 
+bool TracksManager::HasShotObservations(const ShotId& shot) const { return tracks_per_shot_.count(shot) > 0; }
+
 std::vector<ShotId> TracksManager::GetShotIds() const {
   std::vector<ShotId> shots;
   shots.reserve(tracks_per_shot_.size());
