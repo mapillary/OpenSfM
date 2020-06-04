@@ -1,7 +1,7 @@
 """Basic types for building a reconstruction."""
 
 import numpy as np
-from opensfm import pymap 
+from opensfm import pymap
 import cv2
 import math
 
@@ -332,10 +332,13 @@ class BrownPerspectiveCamera(Camera):
 
         # Radial and tangential distortion
         r2 = xn * xn + yn * yn
-        radial_distortion = 1.0 + r2 * (self.k1 + r2 * (self.k2 + r2 * self.k3))
-        x_tangential_distortion = 2 * self.p1 * xn * yn + self.p2 * (r2 + 2 * xn * xn)
+        radial_distortion = 1.0 + r2 * \
+            (self.k1 + r2 * (self.k2 + r2 * self.k3))
+        x_tangential_distortion = 2 * self.p1 * \
+            xn * yn + self.p2 * (r2 + 2 * xn * xn)
         x_distorted = xn * radial_distortion + x_tangential_distortion
-        y_tangential_distortion = self.p1 * (r2 + 2 * yn * yn) + 2 * self.p2 * xn * yn
+        y_tangential_distortion = self.p1 * \
+            (r2 + 2 * yn * yn) + 2 * self.p2 * xn * yn
         y_distorted = yn * radial_distortion + y_tangential_distortion
 
         return np.array([self.focal_x * x_distorted + self.c_x,
@@ -451,7 +454,8 @@ class FisheyeCamera(Camera):
         """Unit vector pointing to the pixel viewing direction."""
         point = np.asarray(pixel).reshape((1, 1, 2))
         distortion = np.array([self.k1, self.k2, 0., 0.])
-        x, y = cv2.fisheye.undistortPoints(point, self.get_K(), distortion).flat
+        x, y = cv2.fisheye.undistortPoints(
+            point, self.get_K(), distortion).flat
         l = np.sqrt(x * x + y * y + 1.0)
         return np.array([x / l, y / l, 1.0 / l])
 
@@ -517,6 +521,7 @@ class DualCamera(Camera):
         k2 (real): estimated second distortion parameter.
         transition (real): parametrize between perpective (1.0) and fisheye (0.0)
     """
+
     def __init__(self, projection_type='unknown'):
         """Defaut constructor."""
         self.id = None
@@ -544,8 +549,8 @@ class DualCamera(Camera):
         x_persp = point[0] / point[2]
         y_persp = point[1] / point[2]
 
-        x_dual = self.transition*x_persp + (1.0 - self.transition)*x_fish
-        y_dual = self.transition*y_persp + (1.0 - self.transition)*y_fish
+        x_dual = self.transition * x_persp + (1.0 - self.transition) * x_fish
+        y_dual = self.transition * y_persp + (1.0 - self.transition) * y_fish
 
         r2 = x_dual * x_dual + y_dual * y_dual
         distortion = 1.0 + r2 * (self.k1 + self.k2 * r2)
@@ -576,17 +581,19 @@ class DualCamera(Camera):
         # inverse iteration for finding theta from r
         theta = 0
         for i in range(5):
-            f = self.transition*math.tan(theta) + (1.0 - self.transition)*theta - r
-            secant = 1.0/math.cos(theta)
-            d = (self.transition*secant**2 - self.transition + 1)
+            f = self.transition * \
+                math.tan(theta) + (1.0 - self.transition) * theta - r
+            secant = 1.0 / math.cos(theta)
+            d = (self.transition * secant**2 - self.transition + 1)
             if i < 1:
-                theta -= 0.5*f/d
+                theta -= 0.5 * f / d
             else:
-                theta -= f/d
+                theta -= f / d
 
-        s = math.tan(theta)/(self.transition*math.tan(theta) + (1.0 - self.transition)*theta)
-        x_dual = x_u*s
-        y_dual = y_u*s
+        s = math.tan(theta) / (self.transition *
+                               math.tan(theta) + (1.0 - self.transition) * theta)
+        x_dual = x_u * s
+        y_dual = y_u * s
 
         l = math.sqrt(x_dual * x_dual + y_dual * y_dual + 1.0)
         return np.array([x_dual / l, y_dual / l, 1.0 / l])
@@ -607,17 +614,19 @@ class DualCamera(Camera):
         # inverse iteration for finding theta from r
         theta = 0
         for i in range(5):
-            f = self.transition*np.tan(theta) + (1.0 - self.transition)*theta - r
-            secant = 1.0/np.cos(theta)
-            d = (self.transition*secant**2 - self.transition + 1)
+            f = self.transition * np.tan(theta) + \
+                (1.0 - self.transition) * theta - r
+            secant = 1.0 / np.cos(theta)
+            d = (self.transition * secant**2 - self.transition + 1)
             if i < 1:
-                theta -= 0.5*f/d
+                theta -= 0.5 * f / d
             else:
-                theta -= f/d
+                theta -= f / d
 
-        s = np.tan(theta)/(self.transition*np.tan(theta) + (1.0 - self.transition)*theta)
-        x_dual = undistorted[:, 0]*s
-        y_dual = undistorted[:, 1]*s
+        s = np.tan(theta) / (self.transition * np.tan(theta) +
+                             (1.0 - self.transition) * theta)
+        x_dual = undistorted[:, 0] * s
+        y_dual = undistorted[:, 1] * s
 
         l = np.sqrt(x_dual * x_dual + y_dual * y_dual + 1.0)
         return np.column_stack([x_dual / l, y_dual / l, 1.0 / l])
