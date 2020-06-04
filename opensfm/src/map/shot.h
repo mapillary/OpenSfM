@@ -43,7 +43,6 @@ struct ShotMeasurements {
   double compass_;
   double accelerometer_;
   double gps_dop_{0};
-  // std::array<double, 3> gps_position_{0};
   Vec3d gps_position_;
   int orientation_;
   std::string skey_;
