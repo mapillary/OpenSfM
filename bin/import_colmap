@@ -19,6 +19,7 @@ from collections import defaultdict
 from pathlib import Path
 from struct import unpack
 
+import cv2
 import matplotlib.pyplot as pl
 import numpy as np
 from matplotlib import cm
@@ -48,10 +49,10 @@ camera_models = {
 }
 
 
-def compute_and_save_undistorted_reconstruction(reconstruction, tracks_manager, udata):
+def compute_and_save_undistorted_reconstruction(reconstruction, tracks_manager, data, udata):
     urec = types.Reconstruction()
     utracks_manager = pysfm.TracksManager()
-    undistorted_shots = {}
+    undistorted_shots = []
     for shot in reconstruction.shots.values():
         if shot.camera.projection_type == 'perspective':
             ucamera = osfm_u.perspective_camera_from_perspective(shot.camera)
@@ -67,7 +68,15 @@ def compute_and_save_undistorted_reconstruction(reconstruction, tracks_manager, 
         urec.add_shot(ushot)
         if tracks_manager:
             osfm_u.add_subshot_tracks(tracks_manager, utracks_manager, shot, ushot)
-        undistorted_shots[shot.id] = ushot
+        undistorted_shots.append(ushot)
+
+        image = data.load_image(shot.id, unchanged=True, anydepth=True)
+        if image is not None:
+            max_size = data.config['undistorted_image_max_size']
+            undistorted = osfm_u.undistort_image(shot, undistorted_shots, image,
+                                                 cv2.INTER_AREA, max_size)
+            for k, v in undistorted.items():
+                udata.save_undistorted_image(k, v)
 
     udata.save_undistorted_reconstruction([urec])
     if tracks_manager:
@@ -415,15 +424,17 @@ def import_depthmaps_from_fused_pointcloud(udata, urec, image_ix_to_shot_id, pat
     points_seen = read_vis(path_ply.with_suffix('.ply.vis'), image_ix_to_shot_id)
 
     # Project to shots and save as depthmaps
+    max_size = udata.config['depthmap_resolution']
     for shot_id, points_seen_ixs in points_seen.items():
         print("Projecting shot {}".format(shot_id))
         project_pointcloud_save_depth(udata,
                                       urec,
                                       points[points_seen_ixs],
-                                      shot_id)
+                                      shot_id,
+                                      max_size)
 
 
-def project_pointcloud_save_depth(udata, urec, points, shot_id, max_sz=1024):
+def project_pointcloud_save_depth(udata, urec, points, shot_id, max_sz):
     # Project points to the undistorted image
     shot = urec.shots[shot_id]
     w, h = shot.camera.width, shot.camera.height
@@ -453,15 +464,16 @@ def project_pointcloud_save_depth(udata, urec, points, shot_id, max_sz=1024):
     distances = np.linalg.norm(points - shot.pose.get_origin(), axis=1)
     viewing_angles = np.arctan2(np.linalg.norm(points_2d, axis=1), shot.camera.focal)
     depths = distances * np.cos(viewing_angles)
+    depths[depths > udata.config['depthmap_max_depth']] = 0
 
     # Create depth image
     depth_image = np.zeros([h, w])
     depth_image[pixel_coords[:, 1], pixel_coords[:, 0]] = depths[mask]
 
     # Save numpy
-    filepath = Path(udata._depthmap_file(shot_id, 'fused.npz'))
+    filepath = Path(udata._depthmap_file(shot_id, 'clean.npz'))
     filepath.parent.mkdir(exist_ok=True, parents=True)
-    np.savez_compressed(filepath, points=depth_image)
+    np.savez_compressed(filepath, depth=depth_image, plane=np.zeros(1), score=np.zeros(1))
 
     # Save jpg for visualization
     import matplotlib.pyplot as plt
@@ -469,7 +481,7 @@ def project_pointcloud_save_depth(udata, urec, points, shot_id, max_sz=1024):
     rgb, sm = depth_colormap(depth_image)
     plt.imshow(rgb)
     small_colorbar(plt.gca(), mappable=sm)
-    filepath = Path(udata._depthmap_file(shot_id, 'fused_viz.png'))
+    filepath = Path(udata.data_path) / 'plot_depthmaps' / '{}.png'.format(shot_id)
     filepath.parent.mkdir(exist_ok=True, parents=True)
     plt.savefig(filepath, dpi=300)
     plt.close(fig)
@@ -486,8 +498,7 @@ def quaternion_to_angle_axis(quaternion):
     angle = 2 * math.acos(qw)
     return [angle * x, angle * y, angle * z]
 
-
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(
         description='Convert COLMAP database to OpenSfM dataset')
     parser.add_argument('database', help='path to the database to be processed')
@@ -503,11 +514,23 @@ if __name__ == "__main__":
     if not images_path.exists():
         os.symlink(args.images, images_path, target_is_directory=True)
 
+    # Copy the config if this is an colmap export of an opensfm export
+    if p_db.parent.name == 'colmap_export' and not (export_folder/'config.yaml').exists():
+        os.symlink(p_db.parent.parent / 'config.yaml', export_folder / 'config.yaml')
+
     data = dataset.DataSet(export_folder)
     db = sqlite3.connect(p_db.as_posix())
     camera_map, image_map = import_cameras_images(db, data)
+
+    # Create image_list.txt
+    with open(export_folder / 'image_list.txt', 'w') as f:
+        for image_id, (filename, camera_id) in image_map.items():
+            f.write('images/' + filename + '\n')
+    data._load_image_list()
+
     keypoints = import_features(db, data, image_map, camera_map)
     import_matches(db, data, image_map)
+
 
     rec_cameras = p_db.parent / 'cameras.bin'
     rec_points = p_db.parent / 'points3D.bin'
@@ -529,7 +552,7 @@ if __name__ == "__main__":
 
         # Save undistorted reconstruction as well
         udata = dataset.UndistortedDataSet(data, 'undistorted')
-        urec = compute_and_save_undistorted_reconstruction(reconstruction, tracks_manager, udata)
+        urec = compute_and_save_undistorted_reconstruction(reconstruction, tracks_manager, data, udata)
 
         # Project colmap's fused pointcloud to save depths in opensfm format
         path_ply = p_db.parent / 'dense/fused.ply'
@@ -544,6 +567,10 @@ if __name__ == "__main__":
             print("Not importing dense reconstruction: Didn't find {}".format(path_ply))
 
     else:
-        print("Didn't find reconstruction files in text format")
+        print("Didn't find some of the reconstruction files at {}".format(p_db.parent))
 
     db.close()
+
+
+if __name__ == "__main__":
+    main()
