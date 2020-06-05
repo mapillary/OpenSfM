@@ -8,46 +8,67 @@
 enum class ProjectionType { PERSPECTIVE, BROWN, FISHEYE, SPHERICAL, DUAL };
 enum class Disto { K1 = 0, K2 = 1, K3 = 2, P1 = 3, P2 = 4, COUNT = 5 };
 
+template <class T>
+inline T SquaredNorm(T* point){
+  return point[0]*point[0] + point[1]*point[1];
+}
+
+/* Parameters are : none used */
 struct FisheyeProjection {
   template <class T>
-  static Vec2<T> Forward(const Vec3<T>& point, const VecX<T>& p) {
-    const T r = point.template head<2>().norm();
+  static void Forward(const T* point, const T* /* p */, T* projected) {
+    const T r = sqrt(SquaredNorm(point));
     const auto theta = atan2(r, point[2]);
-    return Vec2<T>(theta / r * point[0], theta / r * point[1]);
+    projected[0] = theta / r * point[0];
+    projected[1] = theta / r * point[1];
   }
 
   template <class T>
-  static Vec3<T> Backward(const Vec2<T>& point, const VecX<T>& p) {
-    const T theta = point.norm();
+  static void Backward(const T* point, const T* /* p */, T* bearing) {
+    const T theta = sqrt(SquaredNorm(point));
     const auto s = tan(theta) / theta;
-    return Vec3<T>(point[0] * s, point[1] * s, 1.0).normalized();
+    const T x = s * point[0];
+    const T y = s * point[1];
+    const T inv_norm = T(1.0) / sqrt(x*x + y*y + T(1.0));
+    bearing[0] = point[0] * inv_norm;
+    bearing[1] = point[1] * inv_norm;
+    bearing[2] = inv_norm;
   }
 };
 
+/* Parameters are : none used */
 struct PerspectiveProjection {
   template <class T>
-  static Vec2<T> Forward(const Vec3<T>& point, const VecX<T>& p) {
-    return Vec2<T>(point[0] / point[2], point[1] / point[2]);
+  static void Forward(const T* point, const T* /* p */, T* projected) {
+    projected[0] = point[0] / point[2];
+    projected[1] = point[1] / point[2];
   }
 
   template <class T>
-  static Vec3<T> Backward(const Vec2<T>& point, const VecX<T>& p) {
-    return Vec3<T>(point[0], point[1], 1.0).normalized();
+  static void Backward(const T* point, const T* /* p */, T* bearing) {
+    const T inv_norm = T(1.0) / sqrt(SquaredNorm(point) + T(1.0));
+    bearing[0] = point[0] * inv_norm;
+    bearing[1] = point[1] * inv_norm;
+    bearing[2] = inv_norm;
   }
 };
 
+/* Parameters are : transition */
 struct DualProjection {
   template <class T>
-  static Vec2<T> Forward(const Vec3<T>& point, const VecX<T>& p) {
-    const auto p_persp = PerspectiveProjection::Forward(point, p);
-    const auto p_fish = FisheyeProjection::Forward(point, p);
-    return p[0] * p_persp + (1.0 - p[0]) * p_fish;
+  static void Forward(const T* point, const T* p, T* projected) {
+    T p_persp[2];
+    PerspectiveProjection::Forward(point, p, p_persp);
+    T p_fish[2];
+    FisheyeProjection::Forward(point, p, p_fish);
+    projected[0] = p[0] * p_persp[0] + (1.0 - p[0]) * p_fish[0];
+    projected[1] = p[0] * p_persp[1] + (1.0 - p[0]) * p_fish[1];
   }
 
   template <class T>
-  static Vec3<T> Backward(const Vec2<T>& point, const VecX<T>& p) {
+  static void Backward(const T* point, const T* p, T* bearing) {
     // Perform a bit iterations for finding theta from r
-    const T r = point.norm();
+    const T r = sqrt(SquaredNorm(point));
     ThetaEval<T> eval_function{0, r, p[0]};
     const auto theta_refined =
         NewtonRaphson<ThetaEval<T>, 1, 1, ManualDiff<ThetaEval<T>, 1, 1>>(
@@ -55,7 +76,13 @@ struct DualProjection {
 
     const auto s = tan(theta_refined) /
                    (p[0] * tan(theta_refined) + (1.0 - p[0]) * theta_refined);
-    return Vec3<T>(point[0] * s, point[1] * s, 1.0).normalized();
+
+    const T x = s * point[0];
+    const T y = s * point[1];
+    const T inv_norm = T(1.0) / sqrt(x*x + y*y + T(1.0));
+    bearing[0] = point[0] * inv_norm;
+    bearing[1] = point[1] * inv_norm;
+    bearing[2] = inv_norm;
   }
 
   static constexpr int iterations = 5;
@@ -77,38 +104,45 @@ struct DualProjection {
   };
 };
 
+/* Parameters are : none used */
 struct SphericalProjection {
   template <class T>
-  static Vec2<T> Forward(const Vec3<T>& point, const VecX<T>& p) {
+  static void Forward(const T* point, const T* /* p */, T* projected) {
     const auto lon = atan2(point[0], point[2]);
     const auto lat = atan2(-point[1], hypot(point[0], point[2]));
-    return Vec2<T>(lon / (2 * M_PI), -lat / (2 * M_PI));
+    projected[0] = lon / (2 * M_PI);
+    projected[1] = -lat / (2 * M_PI);
   }
 
   template <class T>
-  static Vec3<T> Backward(const Vec2<T>& point, const VecX<T>& p) {
+  static void Backward(const T* point, const T* /* p */, T* bearing) {
     const auto lon = point[0] * 2 * M_PI;
     const auto lat = -point[1] * 2 * M_PI;
-    return Vec3<T>(cos(lat) * sin(lon), -sin(lat), cos(lat) * cos(lon));
+    bearing[0] = cos(lat) * sin(lon);
+    bearing[1] = -sin(lat);
+    bearing[2] = cos(lat) * cos(lon);
   }
 };
 
+/* Parameters are : k1, k2 */
 struct Disto24 {
   template <class T>
-  static Vec2<T> Forward(const Vec2<T>& point, const VecX<T>& k) {
-    const T r2 = point.squaredNorm();
-    const auto distortion = Distortion(r2, k(static_cast<int>(Disto::K1)),
-                                       k(static_cast<int>(Disto::K2)));
-    return Vec2<T>(point[0] / distortion, point[1] / distortion);
+  static void Forward(const T* point, const T* k, T* distorted) {
+    const T r2 = point[0]*point[0] + point[1]*point[1];
+    const auto distortion = Distortion(r2, k[static_cast<int>(Disto::K1)],
+                                       k[static_cast<int>(Disto::K2)]);
+    distorted[0] = point[0] * distortion;
+    distorted[1] = point[1] * distortion;
   }
 
   template <class T>
-  static Vec2<T> Backward(const Vec2<T>& point, const VecX<T>& k) {
+  static void Backward(const T* point, const T* k, T* undistorted) {
     /* Beware if you use Backward together with autodiff. You'll need to remove
      * the line below, otherwise, derivatives won't be propagated */
-    const T rd = point.norm();
+    const T rd = sqrt(SquaredNorm(point));
     if (rd < T(std::numeric_limits<double>::epsilon())) {
-      return point;
+      undistorted[0] = point[0];
+      undistorted[1] = point[1];
     }
 
     // Compute undistorted radius
@@ -124,7 +158,8 @@ struct Disto24 {
                                        k[static_cast<int>(Disto::K2)]);
 
     // Unapply undistortion
-    return point / distortion;
+    undistorted[0] = point[0] / distortion;
+    undistorted[1] = point[1] / distortion;
   }
 
   static constexpr int iterations = 10;
@@ -154,35 +189,42 @@ struct Disto24 {
   }
 };
 
+/* Parameters are : k1, k2, k3, p1, p2 */
 struct DistoBrown {
   template <class T>
-  static Vec2<T> Forward(const Vec2<T>& point, const VecX<T>& k) {
-    const auto r2 = point.dot(point);
+  static void Forward(const T* point, const T* k, T* distorted) {
+    const auto r2 = SquaredNorm(point);
     const auto distortion_radial = RadialDistortion(
         r2, k[static_cast<int>(Disto::K1)], k[static_cast<int>(Disto::K2)],
         k[static_cast<int>(Disto::K3)]);
     const auto distortion_tangential = TangentialDistortion(
         r2, point[0], point[1], k[static_cast<int>(Disto::P1)],
         k[static_cast<int>(Disto::P2)]);
-    return point * distortion_radial + distortion_tangential;
+    distorted[0] = point[0] * distortion_radial + distortion_tangential[0];
+    distorted[1] = point[1] * distortion_radial + distortion_tangential[1];
   }
 
   template <class T>
-  static Vec2<T> Backward(const Vec2<T>& point, const VecX<T>& k) {
+  static void Backward(const T* point, const T* k, T* undistorted) {
     /* Beware if you use Backward together with autodiff. You'll need to remove
      * the line below, otherwise, derivatives won't be propagated */
-    if (k.norm() < T(std::numeric_limits<double>::epsilon())) {
-      return point;
+    const T rd = sqrt(SquaredNorm(point));
+    if (rd < T(std::numeric_limits<double>::epsilon())) {
+      undistorted[0] = point[0];
+      undistorted[1] = point[1];
     }
 
-    DistoEval<T> eval_function{point,
+    Eigen::Map<const Vec2<T>> mapped_point(point);
+    DistoEval<T> eval_function{mapped_point,
                                k[static_cast<int>(Disto::K1)],
                                k[static_cast<int>(Disto::K2)],
                                k[static_cast<int>(Disto::K3)],
                                k[static_cast<int>(Disto::P1)],
                                k[static_cast<int>(Disto::P2)]};
-    return NewtonRaphson<DistoEval<T>, 2, 2, ManualDiff<DistoEval<T>, 2, 2>>(
-        eval_function, point, iterations);
+    Eigen::Map<Vec2<T>> mapped_undistorted(undistorted);
+    mapped_undistorted =
+        NewtonRaphson<DistoEval<T>, 2, 2, ManualDiff<DistoEval<T>, 2, 2>>(
+            eval_function, mapped_point, iterations);
   }
 
   /* Undistort using Newton iterations. Sorry for the analytical derivatives,
@@ -254,63 +296,62 @@ struct DistoBrown {
   }
 };
 
+/* Parameters are : focal, aspect ratio, cx, cy */
 struct Affine {
   template <class T>
-  static Vec2<T> Forward(const Vec2<T>& point, const Mat2<T>& affine,
-                         const Vec2<T>& shift) {
-    return affine * point + shift;
+  static void Forward(const T* point, const T* affine, T* transformed) {
+    transformed[0] = affine[0] * point[0] + affine[2];
+    transformed[1] = affine[0] * affine[1] * point[1] + affine[3];
   }
 
   template <class T>
-  static Vec2<T> Backward(const Vec2<T>& point, const Mat2<T>& affine,
-                          const Vec2<T>& shift) {
-    return affine.inverse() * (point - shift);
+  static void Backward(const T* point, const T* affine, T* transformed) {
+    transformed[0] = (point[0] - affine[2])/affine[0];
+    transformed[1] = (point[1] - affine[3])/(affine[1]*affine[0]);
   }
 };
 
+/* Parameters are : focal */
 struct UniformScale {
   template <class T>
-  static Vec2<T> Forward(const Vec2<T>& point, const Mat2<T>& affine,
-                         const Vec2<T>& /* shift */) {
-    return Vec2<T>(affine(0, 0) * point(0), affine(1, 1) * point(1));
+  static void Forward(const T* point, const T* scale, T* transformed) {
+    transformed[0] = scale[0] * point[0];
+    transformed[1] = scale[0] * point[1];
   }
 
   template <class T>
-  static Vec2<T> Backward(const Vec2<T>& point, const Mat2<T>& affine,
-                          const Vec2<T>& /* shift */) {
-    return Vec2<T>(point(0) / affine(0, 0), point(1) / affine(1, 1));
+  static void Backward(const T* point, const T* scale, T* transformed) {
+    transformed[0] = point[0] / scale[0];
+    transformed[1] = point[1] / scale[0];
   }
 };
 
+/* Parameters are : none used */
 struct Identity {
-  template <class T, class... Types>
-  static Vec2<T> Forward(const Vec2<T>& point, Types&&... args) {
-    return point;
+  template <class T>
+  static void Forward(const T* point, const T* /* k */, T* transformed) {
+    transformed[0] = point[0];
+    transformed[1] = point[1];
   }
 
-  template <class T, class... Types>
-  static Vec2<T> Backward(const Vec2<T>& point, Types&&... args) {
-    return point;
+  template <class T>
+  static void Backward(const T* point, const T* /* k */, T* transformed) {
+    transformed[0] = point[0];
+    transformed[1] = point[1];
   }
 };
 
 struct ProjectFunction {
   template <class TYPE, class T>
-  static Vec2<T> Apply(const Vec3<T>& point, const VecX<T>& projection,
-                       const Mat2<T>& affine, const Vec2<T>& principal_point,
-                       const VecX<T>& distortion) {
-    return TYPE::Forward(point, projection, affine, principal_point,
-                         distortion);
+  static void Apply(const T* point, const T* parameters, T* projected) {
+    TYPE::Forward(point, parameters, projected);
   }
 };
 
 struct BearingFunction {
   template <class TYPE, class T>
-  static Vec3<T> Apply(const Vec2<T>& point, const VecX<T>& projection,
-                       const Mat2<T>& affine, const Vec2<T>& principal_point,
-                       const VecX<T>& distortion) {
-    return TYPE::Backward(point, projection, affine, principal_point,
-                          distortion);
+  static void Apply(const T* point, const T* parameters, T* bearing) {
+    TYPE::Backward(point, parameters, bearing);
   }
 };
 
@@ -318,25 +359,59 @@ struct BearingFunction {
  * pattern PROJ - > DISTO -> AFFINE. However, its is not mandatory for any
  * camera model to follow it. You can add any new camera models as long as it
  * implements the Forward and Backward functions. */
+
+/* Here's some trait that defines where to look for parameters that follows the
+ * generic scheme */
+template <class PROJ, class DISTO, class AFF>
+struct ParametersIndexTraits {};
+template <>
+struct ParametersIndexTraits<PerspectiveProjection, Disto24, UniformScale> {
+  static constexpr int Projection = 0;  /* Unused in that case */
+  static constexpr int Distorsion = 1;
+  static constexpr int Affine = 0;
+};
+template <>
+struct ParametersIndexTraits<FisheyeProjection, Disto24, UniformScale> {
+  static constexpr int Projection = 0;  /* Unused in that case */
+  static constexpr int Distorsion = 1;
+  static constexpr int Affine = 0;
+};
+template <>
+struct ParametersIndexTraits<DualProjection, Disto24, UniformScale> {
+  static constexpr int Projection = 3;
+  static constexpr int Distorsion = 1;
+  static constexpr int Affine = 0;
+};
+template <>
+struct ParametersIndexTraits<PerspectiveProjection, DistoBrown, Affine> {
+  static constexpr int Projection = 0;  /* Unused in that case */
+  static constexpr int Distorsion = 4;
+  static constexpr int Affine = 0;
+};
+template <>
+struct ParametersIndexTraits<SphericalProjection, Identity, Identity> {
+  static constexpr int Projection = 0; /* Unused in that case */
+  static constexpr int Distorsion = 0; /* Unused in that case */
+  static constexpr int Affine = 0;     /* Unused in that case */
+};
+
 template <class PROJ, class DISTO, class AFF>
 struct ProjectGeneric {
+  using Indexes = ParametersIndexTraits<PROJ, DISTO, AFF>;
+
   template <class T>
-  static Vec2<T> Forward(const Vec3<T>& point, const VecX<T>& projection,
-                         const Mat2<T>& affine, const Vec2<T>& principal_point,
-                         const VecX<T>& distortion) {
-    return AFF::Forward(
-        DISTO::Forward(PROJ::Forward(point, projection), distortion), affine,
-        principal_point);
+  static void Forward(const T* point, const T* parameters, T* projected) {
+    PROJ::Forward(point, parameters + Indexes::Projection, projected);
+    DISTO::Forward(projected, parameters + Indexes::Distorsion, projected);
+    AFF::Forward(projected, parameters + Indexes::Affine, projected);
   };
 
   template <class T>
-  static Vec3<T> Backward(const Vec2<T>& point, const VecX<T>& projection,
-                          const Mat2<T>& affine, const Vec2<T>& principal_point,
-                          const VecX<T>& distortion) {
-    return PROJ::Backward(
-        DISTO::Backward(AFF::Backward(point, affine, principal_point),
-                        distortion),
-        projection);
+  static void Backward(const T* point, const T* parameters, T* bearing) {
+    T tmp[2];
+    AFF::Backward(point, parameters + Indexes::Projection, tmp);
+    DISTO::Backward(tmp, parameters + Indexes::Distorsion, tmp);
+    PROJ::Backward(tmp, parameters + Indexes::Affine, bearing);
   }
 };
 
@@ -349,19 +424,24 @@ using SphericalCameraT = ProjectGeneric<SphericalProjection, Identity, Identity>
 /* This is where the pseudo-strategy pattern takes place. If you want to add
  * your own new camera model, just add a new enum value, the corresponding
  * case below and the implementation (see above). */
-template <class OUT, class FUNC, class... IN>
-OUT Dispatch(const ProjectionType& type, IN&&... args) {
+template <class FUNC, class... IN>
+void Dispatch(const ProjectionType& type, IN&&... args) {
   switch (type) {
     case ProjectionType::PERSPECTIVE:
-      return FUNC::template Apply<PerspectiveCameraT>(std::forward<IN>(args)...);
+      FUNC::template Apply<PerspectiveCameraT>(std::forward<IN>(args)...);
+      break;
     case ProjectionType::BROWN:
-      return FUNC::template Apply<BrownCameraT>(std::forward<IN>(args)...);
+      FUNC::template Apply<BrownCameraT>(std::forward<IN>(args)...);
+      break;
     case ProjectionType::FISHEYE:
-      return FUNC::template Apply<FisheyeCameraT>(std::forward<IN>(args)...);
+      FUNC::template Apply<FisheyeCameraT>(std::forward<IN>(args)...);
+      break;
     case ProjectionType::DUAL:
-      return FUNC::template Apply<DualCameraT>(std::forward<IN>(args)...);
+      FUNC::template Apply<DualCameraT>(std::forward<IN>(args)...);
+      break;
     case ProjectionType::SPHERICAL:
-      return FUNC::template Apply<SphericalCameraT>(std::forward<IN>(args)...);
+      FUNC::template Apply<SphericalCameraT>(std::forward<IN>(args)...);
+      break;
     default:
       throw std::runtime_error("Invalid ProjectionType");
   }
