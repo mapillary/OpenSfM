@@ -131,33 +131,25 @@ protected:
 
 class ReprojectionError2D : public ReprojectionError{
   public:
-  using ReprojectionError::ReprojectionError;
-  constexpr static int Size = 2;
+   using ReprojectionError::ReprojectionError;
+   constexpr static int Size = 2;
 
-  template <typename T>
+   template <typename T>
   bool operator()(const T* const camera, const T* const shot,
                   const T* const point, T* residuals) const {
-    Vec3<T> camera_point;
-    WorldToCameraCoordinates(shot, point, camera_point.data());
+     T camera_point[3];
+     WorldToCameraCoordinates(shot, point, camera_point);
 
-    Mat2<T> affine = Mat2<T>::Zero();
-    affine(0, 0) = camera[GetParamIndex(BACameraParameters::FOCAL)];
-    affine(1, 1) = camera[GetParamIndex(BACameraParameters::FOCAL)]*camera[GetParamIndex(BACameraParameters::ASPECT_RATIO)];
+     // Apply camera projection
+     T predicted[2];
+     Dispatch<ProjectFunction>(type_, camera_point, camera, predicted);
 
-    Eigen::Map<const Vec2<T>> principal_point(camera + GetParamIndex(BACameraParameters::CX));
-    Eigen::Map<const VecX<T>> distortion(camera + GetParamIndex(BACameraParameters::K1), GetParamsCount(BACameraParameters::DISTO));
-    Eigen::Map<const VecX<T>> projection(camera + GetParamIndex(BACameraParameters::TRANSITION), 1);
+     // The error is the difference between the predicted and observed position
+     for (int i = 0; i < 2; ++i) {
+       residuals[i] = T(scale_) * (predicted[i] - T(observed_[i]));
+     }
 
-    // Apply camera projection
-    const Vec2<T> predicted = Dispatch<Vec2<T>, ProjectFunction>(
-        type_, camera_point.eval(), projection.eval(), affine, principal_point.eval(),
-        distortion.eval());
-
-    // The error is the difference between the predicted and observed position
-    Eigen::Map<Vec2<T>> residuals_mapped(residuals);
-    residuals_mapped = T(scale_) * (predicted - observed_.cast<T>());
-
-    return true;
+     return true;
   }
 };
 
