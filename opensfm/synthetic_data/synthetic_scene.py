@@ -86,7 +86,7 @@ class SyntheticCubeScene(SyntheticScene):
         self.cameras = {}
         for i in range(num_cameras):
             camera = camera = pygeometry.Camera.create_perspective(0.9, -0.1, 0.01)
-            camera.id = 'camera' + str(i)
+            camera.id = 'camera%04d' % i
             camera.height = 600
             camera.width = 800
             self.cameras[camera.id] = camera
@@ -106,8 +106,8 @@ class SyntheticCubeScene(SyntheticScene):
             up = [alpha * 0.2, alpha * 0.2, 1.0]
 
             shot = types.Shot()
-            shot.id = 'shot' + str(i)
-            shot.camera = self.cameras['camera' + str(i)]
+            shot.id = 'shot%04d' % i
+            shot.camera = self.cameras['camera%04d' % i]
             shot.pose = camera_pose(position, lookat, up)
             self.shots[shot.id] = shot
 
