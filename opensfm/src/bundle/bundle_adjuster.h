@@ -469,10 +469,10 @@ struct BAData {
   }
   void SetSigma(const T &sigma) { sigma_ = sigma; }
 
- protected:
-
   virtual void ValueToData(const T &value, VecXd &data) const = 0;
   virtual void DataToValue(const VecXd &data, T &value) const = 0;
+
+ protected:
   VecXd value_data_;
 
   T value_;
@@ -515,63 +515,27 @@ constexpr int GetEnumAsConstExpr(const T &t) {
   return static_cast<int>(t);
 }
 
-enum class BACameraParameters {
-  FOCAL = 0x1,
-  ASPECT_RATIO = 0x2,
-  CX = 0x4,
-  CY = 0x8,
-  PRINCIPAL_POINT = CX | CY,
-  K1 = 0x10,
-  K2 = 0x20,
-  K3 = 0x40,
-  DISTO_RADIAL = K1 | K2 | K3,
-  P1 = 0x80,
-  P2 = 0x100,
-  DISTO_TANGENTIAL = P1 | P2,
-  DISTO = DISTO_RADIAL | DISTO_TANGENTIAL,
-  TRANSITION = 0x200,
-  COUNT = 10
-};
 
 struct BACameraNew : public BAData<Camera> {
   using BAData::BAData;
 
-  BACameraParameters parameters;
-
+  std::vector<Camera::Parameters> to_optimize;
  private:
   void ValueToData(const Camera &value, VecXd &data) const final {
     if (data.size() == 0) {
-      data.resize(GetEnumAsConstExpr(BACameraParameters::COUNT));
-      data[GetParamIndex(BACameraParameters::FOCAL)] = value.GetFocal();
-      data[GetParamIndex(BACameraParameters::ASPECT_RATIO)] =
-          value.GetAspectRatio();
-      data.segment(GetParamIndex(BACameraParameters::CX),
-                   GetParamsCount(BACameraParameters::PRINCIPAL_POINT)) =
-          value.GetPrincipalPoint();
-      data.segment(GetParamIndex(BACameraParameters::K1),
-                   GetParamsCount(BACameraParameters::DISTO)) =
-          value.GetDistortion();
-      data.segment(GetParamIndex(BACameraParameters::TRANSITION), 1) =
-          value.GetProjectionParams();
+        data = value.GetParametersValues();
     }
   }
 
   void DataToValue(const VecXd &data, Camera &value) const final {
     if (data.size() > 0) {
-      value.SetFocal(data[GetParamIndex(BACameraParameters::FOCAL)]);
-      value.SetAspectRatio(
-          data[GetParamIndex(BACameraParameters::ASPECT_RATIO)]);
-      value.SetPrincipalPoint(
-          data.segment(GetParamIndex(BACameraParameters::CX),
-                       GetParamsCount(BACameraParameters::PRINCIPAL_POINT)));
-      value.SetDistortion(
-          data.segment(GetParamIndex(BACameraParameters::K1),
-                       GetParamsCount(BACameraParameters::DISTO)));
-      value.SetProjectionParams(
-          data.segment(GetParamIndex(BACameraParameters::TRANSITION), 1));
+      const auto types = value.GetParametersTypes();
+      int count = 0;
+      for (const auto t : types) {
+        value.SetParameterValue(t, data(count++));
+      }
     }
-  }
-};
+  };
 
 struct BAShotNew
     : public BAData<VecNd<GetEnumAsConstExpr(BAShotParameters::COUNT)>> {

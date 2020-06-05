@@ -28,7 +28,7 @@ BundleAdjuster::BundleAdjuster() {
 void BundleAdjuster::UpdateSigmas(){
   for (auto &camera : cameras_new_) {
     Camera sigma = camera.second.GetValue();
-    VecXd disto_prior_sd(GetParamsCount(BACameraParameters::DISTO));
+    VecXd disto_prior_sd(GetParamsCount(BABrownParameters::DISTO));
     disto_prior_sd << k1_sd_, k2_sd_, k3_sd_, p1_sd_, p2_sd_;
     sigma.SetDistortion(disto_prior_sd);
     Vec2d principal_point_prior_sd;
@@ -44,7 +44,7 @@ void BundleAdjuster::UpdateSigmas(){
 }
 void BundleAdjuster::AddCameraNew(const std::string &id, const Camera& camera, const Camera& prior, bool constant){  
   Camera sigma = camera;
-  VecXd disto_prior_sd(GetParamsCount(BACameraParameters::DISTO));
+  VecXd disto_prior_sd(GetParamsCount(BABrownParameters::DISTO));
   disto_prior_sd << k1_sd_, k2_sd_, k3_sd_, p1_sd_, p2_sd_;
   sigma.SetDistortion(disto_prior_sd);
   Vec2d principal_point_prior_sd;
@@ -57,35 +57,10 @@ void BundleAdjuster::AddCameraNew(const std::string &id, const Camera& camera, c
   cameras_new_.emplace(id, BACameraNew(camera, prior, sigma));
 
   if (constant) {
-    cameras_new_.at(id).parameters = BACameraParameters(0);
-  } else {
-    switch (camera.GetProjectionType()) {
-      case ProjectionType::PERSPECTIVE:
-      case ProjectionType::FISHEYE:
-        cameras_new_.at(id).parameters =
-            BACameraParameters(static_cast<int>(BACameraParameters::FOCAL) |
-                               static_cast<int>(BACameraParameters::K1) |
-                               static_cast<int>(BACameraParameters::K2));
-        break;
-      case ProjectionType::BROWN:
-        cameras_new_.at(id).parameters = BACameraParameters(
-            static_cast<int>(BACameraParameters::FOCAL) |
-            static_cast<int>(BACameraParameters::PRINCIPAL_POINT) |
-            static_cast<int>(BACameraParameters::ASPECT_RATIO) |
-            static_cast<int>(BACameraParameters::DISTO));
-        break;
-      case ProjectionType::DUAL:
-        cameras_new_.at(id).parameters = BACameraParameters(
-            static_cast<int>(BACameraParameters::FOCAL) |
-            static_cast<int>(BACameraParameters::K1) |
-            static_cast<int>(BACameraParameters::K2) |
-            static_cast<int>(BACameraParameters::TRANSITION));
-        break;
-      default:
-      case ProjectionType::SPHERICAL:
-        cameras_new_.at(id).parameters = BACameraParameters(0);
-        break;
-    }
+    cameras_new_.at(id).to_optimize.clear();
+  }
+  else{
+    cameras_new_.at(id).to_optimize = camera.GetParametersTypes();
   }
 }
 void BundleAdjuster::AddPerspectiveCamera(const std::string &id, double focal,
@@ -608,27 +583,12 @@ void BundleAdjuster::Run() {
 
   if(use_new_){
     for (auto &i : cameras_new_) {
-      auto data = i.second.GetValueData().data();
+      auto& data = i.second.GetValueData();
+      problem.AddParameterBlock(data.data(), data.size());
 
-      // Push data block
-      const auto data_size = static_cast<int>(BACameraParameters::COUNT);
-      problem.AddParameterBlock(data, data_size);
-
-      // Lock parameters based on bitmask of parameters :
-      const auto parameters = static_cast<int>(i.second.parameters);
-
-      // Set it as fully constant (no bits)
-      if (!parameters) {
-        problem.SetParameterBlockConstant(data);
-      // Get relevant bits as a vector of integers
-      } else {
-        std::vector<int> subset;
-        for(int i = 0; i < data_size; ++i ){
-          if(!((1 << i) & parameters)){
-            subset.push_back(i);
-          }
-        }
-        problem.SetParameterization(data, new ceres::SubsetParameterization(data_size, subset));
+      // Lock parameters based on bitmask of parameters : only constant for now
+      if (!i.second.parameters.any) {
+        problem.SetParameterBlockConstant(data.data());
       }
     }
   }
@@ -775,23 +735,25 @@ void BundleAdjuster::Run() {
   // Add internal parameter priors blocks
   if (use_new_) {
     for (auto &i : cameras_new_) {
-      auto data = i.second.GetValueData().data();
+      auto& data = i.second.GetValueData();
 
       auto* prior_function = new BADataPriorError<Camera>(&i.second);
 
       // Set focal and aspect ratio prior to log scale
       prior_function->SetScaleType(
-          GetParamIndex(BACameraParameters::FOCAL),
+          GetParamIndex(BABrownParameters::FOCAL),
           BADataPriorError<Camera>::ScaleType::LOGARITHMIC);
-      prior_function->SetScaleType(
-          GetParamIndex(BACameraParameters::ASPECT_RATIO),
-          BADataPriorError<Camera>::ScaleType::LOGARITHMIC);
+      if (i.second.GetValue().GetProjectionType() == ProjectionType::BROWN) {
+        prior_function->SetScaleType(
+            GetParamIndex(BABrownParameters::ASPECT_RATIO),
+            BADataPriorError<Camera>::ScaleType::LOGARITHMIC);
+      }
 
-      ceres::CostFunction *cost_function =
-          new ceres::AutoDiffCostFunction<BADataPriorError<Camera>,
-                                          GetEnumAsConstExpr(BACameraParameters::COUNT),
-                                          GetEnumAsConstExpr(BACameraParameters::COUNT)>(prior_function);
-      problem.AddResidualBlock(cost_function, NULL, data);
+      ceres::CostFunction *cost_function = new ceres::AutoDiffCostFunction<
+          BADataPriorError<Camera>,
+          GetEnumAsConstExpr(BAPerspectiveParameters::COUNT),
+          GetEnumAsConstExpr(BAPerspectiveParameters::COUNT)>(prior_function);
+      problem.AddResidualBlock(cost_function, NULL, data.data());
     }
   } else {
     for (auto &i : cameras_) {
@@ -1096,7 +1058,7 @@ void BundleAdjuster::AddObservationResidualBlockNew(
     const BAPointProjectionObservationNew &observation, ceres::LossFunction *loss,
     ceres::Problem *problem) {
   ceres::CostFunction *cost_function = new ceres::AutoDiffCostFunction<
-      T, T::Size, GetEnumAsConstExpr(BACameraParameters::COUNT),
+      T, T::Size, GetEnumAsConstExpr(BAPerspectiveParameters::COUNT),
       GetEnumAsConstExpr(BAShotParameters::COUNT), 3>(new T(
       observation.camera->GetValue().GetProjectionType(), observation.coordinates,
       observation.std_deviation));
@@ -1262,7 +1224,7 @@ void BundleAdjuster::ComputeReprojectionErrors() {
         case ProjectionType::SPHERICAL: {
           ReprojectionError3D error(projection_type, observation.coordinates, 1.0);
           residuals.resize(3);
-          error(observation.camera->GetValueData().data(),
+           error(observation.camera->GetValueData().data(),
                 observation.shot->parameters.data(),
                 observation.point->parameters.data(), residuals.data());
           break;
