@@ -34,12 +34,19 @@ class Camera {
   void SetAspectRatio(double focal);
   double GetAspectRatio() const;
 
-  ProjectionType GetProjectionType()const;
-  std::string GetProjectionString()const;
+  ProjectionType GetProjectionType() const;
+  std::string GetProjectionString() const;
 
-  Eigen::Matrix3d GetProjectionMatrix()const;
-  Eigen::Matrix3d GetProjectionMatrixScaled(int width, int height)const;
-  
+  Eigen::Matrix3d GetProjectionMatrix() const;
+  Eigen::Matrix3d GetProjectionMatrixScaled(int width, int height) const;
+  Eigen::Matrix3d GetProjectionMatrixScaled() const;
+
+  bool CheckWithinBoundaries(const Eigen::Vector2d& pt) const;
+  Eigen::Vector2d NormalizeImageCoordinate(const Eigen::Vector2d& pt) const;
+  Eigen::Vector3d NormalizeImageCoordinateAndScale(
+      const Eigen::Vector3d& pt_scale) const;
+  Eigen::Vector2d UndistortImageCoordinates(const Eigen::Vector2d& pt) const;
+  Eigen::Matrix<double, Eigen::Dynamic, 2> UndistortImageCoordinatesMany(const Eigen::Matrix<double, Eigen::Dynamic, 2>& pts) const;
   int width{1};
   int height{1};
   std::string id;

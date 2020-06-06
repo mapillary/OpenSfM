@@ -133,7 +133,8 @@ Eigen::Matrix3d Camera::GetProjectionMatrix() const {
   return unnormalized;
 }
 
-Eigen::Matrix3d Camera::GetProjectionMatrixScaled(int width, int height) const {
+Eigen::Matrix3d Camera::GetProjectionMatrixScaled(int width, int height) const 
+{
   const auto unnormalizer = std::max(width, height);
 
   Eigen::Matrix3d unnormalized = Eigen::Matrix3d::Zero();
@@ -141,6 +142,11 @@ Eigen::Matrix3d Camera::GetProjectionMatrixScaled(int width, int height) const {
   unnormalized.col(2) << principal_point_[0] * unnormalizer + 0.5 * width,
       principal_point_[1] * unnormalizer + 0.5 * height, 1.0;
   return unnormalized;
+}
+
+Eigen::Matrix3d Camera::GetProjectionMatrixScaled() const
+{
+  return GetProjectionMatrixScaled(width, height);
 }
 
 Eigen::Vector2d Camera::Project(const Eigen::Vector3d& point) const {
@@ -167,6 +173,34 @@ Eigen::MatrixX3d Camera::BearingsMany(const Eigen::MatrixX2d& points) const {
     projected.row(i) = Bearing(points.row(i));
   }
   return projected;
+}
+
+Eigen::Vector2d Camera::NormalizeImageCoordinate(const Eigen::Vector2d& pt) const {
+  const auto size = std::max(width, height);
+  return Eigen::Vector2d(pt[0] + 0.5 - width / 2.0,
+                         pt[1] + 0.5 - height / 2.0) / size;
+}
+
+Eigen::Vector3d Camera::NormalizeImageCoordinateAndScale(const Eigen::Vector3d& pt_scale) const
+{
+  const auto size = std::max(width, height);
+  return Eigen::Vector3d(pt_scale[0] + 0.5 - width / 2.0,
+                         pt_scale[1] + 0.5 - height / 2.0,
+                         pt_scale[2]) / size;
+}
+
+Eigen::Vector2d Camera::UndistortImageCoordinates(const Eigen::Vector2d& pt) const
+{
+  return Project(Bearing(pt));
+}
+
+Eigen::Matrix<double, Eigen::Dynamic, 2> Camera::UndistortImageCoordinatesMany(
+    const Eigen::Matrix<double, Eigen::Dynamic, 2>& pts) const {
+  Eigen::Matrix<double, Eigen::Dynamic, 2> output(pts.rows(), 2);
+  for (size_t row = 0; row < pts.rows(); ++row) {
+    output.row(row) = UndistortImageCoordinates(pts.row(row));
+  }
+  return output;
 }
 
 Camera::Camera() : type_(ProjectionType::PERSPECTIVE) {
@@ -197,4 +231,8 @@ std::pair<Eigen::MatrixXf, Eigen::MatrixXf> ComputeCameraMapping(const Camera& f
     }
   }
   return std::make_pair(u_from, v_from);
+}
+
+bool Camera::CheckWithinBoundaries(const Eigen::Vector2d& pt) const {
+  return pt[0] >= 0 && pt[0] < width && pt[1] >= 0 && pt[1] < height;
 }

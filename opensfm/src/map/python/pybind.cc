@@ -165,6 +165,8 @@ PYBIND11_MODULE(pymap, m) {
            py::arg("min_obs_thr") = 1)
       .def("get_valid_landmarks", &map::Shot::ComputeValidLandmarks,
            py::return_value_policy::reference_internal)
+      .def("get_valid_landmarks_and_indices", &map::Shot::ComputeValidLandmarksAndIndices,
+          py::return_value_policy::reference_internal)
       .def("init_and_take_datastructures",
            &map::Shot::InitAndTakeDatastructures)
       .def("init_keypts_and_descriptors", &map::Shot::InitKeyptsAndDescriptors)
@@ -192,6 +194,8 @@ PYBIND11_MODULE(pymap, m) {
       .def("project_many", &map::Shot::ProjectMany)
       .def("bearing", &map::Shot::Bearing)
       .def("bearing_many", &map::Shot::BearingMany)
+      .def("undistort_and_compute_bearings", &map::Shot::UndistortAndComputeBearings)
+      .def("normalize_keypts", &map::Shot::NormalizeKeypts)
       // pickle support
       .def(py::pickle(
           [](const map::Shot &s) {
@@ -244,8 +248,9 @@ PYBIND11_MODULE(pymap, m) {
             auto cam_ptr = std::unique_ptr<Camera>(new Camera(camera));
             auto pose = map::Pose();
             pose.SetFromCameraToWorld(s[2].cast<Mat4d>());
-            auto shot =
-                map::Shot(s[0].cast<map::ShotId>(), std::move(cam_ptr), pose);
+            map::Shot shot(s[0].cast<map::ShotId>(), std::move(cam_ptr), pose);
+            // auto shot =
+                // map::Shot(s[0].cast<map::ShotId>(), std::move(cam_ptr), pose);
             shot.unique_id_ = s[1].cast<map::ShotUniqueId>();
             return shot;
           }));
@@ -313,7 +318,9 @@ PYBIND11_MODULE(pymap, m) {
                     &map::Landmark::SetReprojectionErrors)
       .def("remove_reprojection_error", &map::Landmark::RemoveReprojectionError)
       .def_property("color", &map::Landmark::GetColor,
-                    &map::Landmark::SetColor);
+                    &map::Landmark::SetColor)
+      .def("get_observation_id_in_shot", &map::Landmark::GetObservationIdInShot)
+     ;
 
   //   py::class_<map::TestView>(m, "TestView")
   //       .def(py::init<>())

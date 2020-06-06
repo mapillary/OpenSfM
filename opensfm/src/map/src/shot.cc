@@ -83,25 +83,79 @@ Shot::InitAndTakeDatastructures(AlignedVector<Observation> keypts, DescriptorMat
   landmarks_.resize(num_keypts_, nullptr);
 }
 
-//For SLAM
-// void
-// Shot::UndistortedKeyptsToBearings()
-// {
-//   if (!slam_data_.undist_keypts_.empty())
-//   {
-    
-//     shot_camera_.camera_model_.UndistortedKeyptsToBearings(slam_data_.undist_keypts_, slam_data_.bearings_);
-//   }
-// }
+void
+Shot::NormalizeKeypts()
+{
+  const auto& cam = shot_camera_;
 
-// void
-// Shot::UndistortKeypts()
-// {
-//   if (!keypoints_.empty())
-//   {
-//     shot_camera_.camera_model_.UndistortKeypts(keypoints_, slam_data_.undist_keypts_);
-//   }
-// }
+  auto normalize_obseration = [&cam](Observation& obs)
+  {
+    // const Vec3d pt_and_scale(obs.point[0], obs.point[1], obs.scale);
+    const Vec3d norm_pt = cam->NormalizeImageCoordinateAndScale(Vec3d(obs.point[0], obs.point[1], obs.scale));
+    obs.point = norm_pt.head<2>();
+    obs.scale = norm_pt[2];
+  };
+
+  if (landmarks_.empty())
+  {
+    for (auto& lm_obs : landmark_observations_)
+    {
+      auto& obs = lm_obs.second;
+      normalize_obseration(obs);
+    }
+  }
+  else
+  {
+    for (auto& obs : keypoints_)
+    {
+      normalize_obseration(obs);
+    }
+  }
+}
+
+//For SLAM
+void
+Shot::UndistortAndComputeBearings()
+{
+  slam_data_.bearings_.reserve(keypoints_.size());
+  slam_data_.undist_keypts_.reserve(keypoints_.size());
+  for (size_t idx = 0; idx < keypoints_.size(); ++idx)
+  {
+    slam_data_.bearings_.push_back(shot_camera_->Bearing(keypoints_[idx].point));
+    slam_data_.undist_keypts_.emplace_back(keypoints_.at(idx));
+    auto& obs = slam_data_.undist_keypts_.back();
+    obs.point = shot_camera_->Project(slam_data_.bearings_.at(idx));
+  }
+}
+
+void
+Shot::UndistortKeypts()
+{
+  
+  // slam_data_.undist_keypts_.reserve(slam_data_.bearings_.size());
+  // if (slam_data_.bearings_.size() == keypoints_.size())
+  // {
+  //   for (size_t idx = 0; idx < keypoints_.size(); ++idx)
+  //   {
+  //     slam_data_.undist_keypts_.emplace_back(keypoints_.at(idx));
+  //     auto& obs = slam_data_.undist_keypts_.back();
+  //     obs.point = shot_camera_->Project(slam_data_.bearings_.at(idx));
+  //   }
+  // }
+  // else
+  // {
+  //   //we have to compute the 
+  // }
+  // for (const auto& b : slam_data_.bearings_)
+  // {
+
+  //   slam_data_.undist_keypts_.push_back(shot_camera_->Project(b));
+  // }
+  // if (!keypoints_.empty())
+  // {
+  //   shot_camera_.camera_model_.UndistortKeypts(keypoints_, slam_data_.undist_keypts_);
+  // }
+}
 
 void
 Shot::ScaleLandmarks(const double scale)

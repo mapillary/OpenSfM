@@ -24,4 +24,6 @@ template<class T>
 using AlignedVector = std::vector<T, Eigen::aligned_allocator<T>>;
 using DescriptorType = Eigen::Matrix<uint8_t, 1, 32, Eigen::RowMajor>;
 using DescriptorMatrix = Eigen::Matrix<uint8_t, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
+using CellIndices = std::vector<std::vector<std::vector<size_t>>>;
+using MatchIndices = std::vector<std::pair<size_t, size_t>>;
 

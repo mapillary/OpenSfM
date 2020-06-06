@@ -9,6 +9,8 @@ set(MAP_FILES
   TestView.h
   dataviews.h
   src/dataviews.cc
+  third_party/data/graph_node.cc
+  third_party/data/graph_node.h
 )
 
 add_library(map ${MAP_FILES})

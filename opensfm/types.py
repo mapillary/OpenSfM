@@ -903,13 +903,30 @@ class Reconstruction(object):
             pose.set_from_world_to_cam(
                 shot.pose.rotation, shot.pose.translation)
         map_shot = self.map.create_shot(shot.id, shot.camera.id, pose)
-        if shot.metadata is not None:
-            if shot.metadata.gps_dop is not None:
-                map_shot.shot_measurement.gps_dop = shot.metadata.gps_dop
-            if shot.metadata.gps_position is not None:
-                map_shot.shot_measurement.gps_position = shot.metadata.gps_position
-            if shot.metadata.orientation is not None:
-                map_shot.shot_measurement.orientation = shot.metadata.orientation
+        self.set_shot_metadata(map_shot, shot.metadata)
+        # if shot.metadata is not None:
+        #     if shot.metadata.gps_dop is not None:
+        #         map_shot.shot_measurement.gps_dop = shot.metadata.gps_dop
+        #     if shot.metadata.gps_position is not None:
+        #         map_shot.shot_measurement.gps_position = shot.metadata.gps_position
+        #     if shot.metadata.orientation is not None:
+        #         map_shot.shot_measurement.orientation = shot.metadata.orientation
+
+    def set_shot_metadata(self, map_shot: pymap.Shot, metadata):
+        if metadata is not None:
+            if metadata.gps_dop is not None:
+                map_shot.shot_measurement.gps_dop = metadata.gps_dop
+            if metadata.gps_position is not None:
+                map_shot.shot_measurement.gps_position = metadata.gps_position
+            if metadata.orientation is not None:
+                map_shot.shot_measurement.orientation = metadata.orientation
+    
+    def create_shot(self, shot_id, camera_id, pose = pymap.Pose()):
+        """Creates a shot with shot_id
+
+        :return The created or already existing shot
+        """
+        return self.map.create_shot(shot_id, camera_id, pose)
 
     def get_shot(self, id):
         """Return a shot by id.
@@ -936,6 +953,9 @@ class Reconstruction(object):
         :return: If exists returns the point, otherwise None.
         """
         return self.points.get(id)
+
+    def create_point(self, id, coordinates):
+        self.map.create_landmark(id, coordinates)
 
     def add_observation(self, shot_id, lm_id, observation):
         """ Adds an observation between a shot and a landmark

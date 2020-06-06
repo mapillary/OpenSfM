@@ -3,6 +3,7 @@
 #include <map/defines.h>
 #include <map/landmark.h>
 #include <map/pose.h>
+#include <map/third_party/data/graph_node.h>
 #include <sfm/observation.h>
 
 #include <Eigen/Eigen>
@@ -13,27 +14,30 @@ class Pose;
 class Map;
 class SLAMShotData {
  public:
+//  SLAMShotData();
   SLAMShotData() = delete;
-  SLAMShotData(Shot* shot) {
-  }  //:graph_node_(std::make_unique<data::graph_node>(shot, false)){}
+  SLAMShotData(Shot* shot) : graph_node_(new data::graph_node(shot, false)) {}
   AlignedVector<Observation> undist_keypts_;
   AlignedVector<Eigen::Vector3d> bearings_;
-  std::vector<std::vector<std::vector<size_t>>> keypt_indices_in_cells_;
-  // const std::unique_ptr<data::graph_node> graph_node_ = nullptr;
-  // void UpdateGraphNode()
-  // {
-  //   graph_node_->update_connections();
-  // }
+  CellIndices keypt_indices_in_cells_;
+  const std::unique_ptr<data::graph_node> graph_node_ = nullptr;
+  SLAMShotData(const SLAMShotData&& sd):
+  undist_keypts_(sd.undist_keypts_),
+  bearings_(sd.bearings_)
+  {
+    // TODO: fix constructor
+  }
+  void UpdateGraphNode() { graph_node_->update_connections(); }
 };
 
 struct ShotMesh {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  void SetVertices(const Eigen::MatrixXd& vertices) { vertices_ = vertices; }
-  void SetFaces(const Eigen::MatrixXd& faces) { faces_ = faces; }
-  Eigen::MatrixXd GetFaces() const { return faces_; }
-  Eigen::MatrixXd GetVertices() const { return vertices_; }
-  Eigen::MatrixXd vertices_;
-  Eigen::MatrixXd faces_;
+  void SetVertices(const MatXd& vertices) { vertices_ = vertices; }
+  void SetFaces(const MatXd& faces) { faces_ = faces; }
+  MatXd GetFaces() const { return faces_; }
+  MatXd GetVertices() const { return vertices_; }
+  MatXd vertices_;
+  MatXd faces_;
 };
 
 struct ShotMeasurements {
@@ -64,7 +68,7 @@ class Shot {
  
   Eigen::Vector3f GetKeyPointEigen(const FeatureId id) const {
     const auto kpt = keypoints_.at(id);
-    return Eigen::Vector3f(kpt.point[0], kpt.point[1], kpt.size);
+    return Eigen::Vector3f(kpt.point[0], kpt.point[1], kpt.scale);
   }
   // No reason to set individual keypoints or descriptors
   // read-only access
@@ -121,18 +125,18 @@ class Shot {
   //   return valid_landmarks;
   // }
 
-  // std::vector<std::pair<Landmark*, FeatureId>> ComputeValidLandmarksAndIndices()
-  //     const {
-  //   std::vector<std::pair<Landmark*, FeatureId>> valid_landmarks;
-  //   valid_landmarks.reserve(landmarks_.size());
-  //   for (size_t idx = 0; idx < landmarks_.size(); ++idx) {
-  //     auto* lm = landmarks_[idx];
-  //     if (lm != nullptr) {
-  //       valid_landmarks.push_back(std::make_pair(lm, idx));
-  //     }
-  //   }
-  //   return valid_landmarks;
-  // }
+  std::vector<std::pair<Landmark*, FeatureId>> ComputeValidLandmarksAndIndices()
+      const {
+    std::vector<std::pair<Landmark*, FeatureId>> valid_landmarks;
+    valid_landmarks.reserve(landmarks_.size());
+    for (size_t idx = 0; idx < landmarks_.size(); ++idx) {
+      auto* lm = landmarks_[idx];
+      if (lm != nullptr) {
+        valid_landmarks.push_back(std::make_pair(lm, idx));
+      }
+    }
+    return valid_landmarks;
+  }
 
   Landmark* GetLandmark(const FeatureId id) { return landmarks_.at(id); }
   void RemoveLandmarkObservation(const FeatureId id);
@@ -168,7 +172,6 @@ class Shot {
   const Pose& GetPose() const { return pose_; }
   Mat4d GetWorldToCam() const { return pose_.WorldToCamera(); }
   Mat4d GetCamToWorld() const { return pose_.CameraToWorld(); }
-
   void InitAndTakeDatastructures(AlignedVector<Observation> keypts,
                                  DescriptorMatrix descriptors);
   void InitKeyptsAndDescriptors(const size_t n_keypts);
@@ -176,7 +179,7 @@ class Shot {
   // SLAM stuff
   void UndistortedKeyptsToBearings();
   void UndistortKeypts();
-
+  void UndistortAndComputeBearings();
   void ScalePose(const double scale);
   void ScaleLandmarks(const double scale);
   // Comparisons
@@ -186,8 +189,6 @@ class Shot {
   bool operator<=(const Shot& shot) const { return id_ <= shot.id_; }
   bool operator>(const Shot& shot) const { return id_ > shot.id_; }
   bool operator>=(const Shot& shot) const { return id_ >= shot.id_; }
-  // std::string GetCameraName() const { return shot_camera_.id; }
-  // const Camera& GetCamera() const { return shot_camera_; }
   std::string GetCameraName() const { return shot_camera_->id; }
   const Camera* const GetCamera() const { return shot_camera_; }
 
@@ -197,11 +198,11 @@ class Shot {
   Vec3d Bearing(const Vec2d& point) const;
   MatX3d BearingMany(const MatX2d& points) const;
 
-
-  // void TransferCamOwnership(std::unique_ptr<Camera> cam)
-  // {
-  //   own_camera_ = std::move(cam);
-  // }
+  size_t NumberOfKeyPoints() const
+  {
+    return landmarks_.empty() ? landmark_observations_.size() : landmarks_.size();
+  }
+  void NormalizeKeypts();
  public:
   SLAMShotData slam_data_;
   const ShotId id_;  // the file name
