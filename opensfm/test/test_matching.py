@@ -95,18 +95,20 @@ def test_match_images(scene_synthetic):
     synthetic.matches_exists = lambda im: False
     synthetic.save_matches = lambda im, m: False
 
-    num_neighbors = 5
-    synthetic.config['matching_gps_neighbors'] = num_neighbors
-    synthetic.config['bow_words_to_match'] = 8
-    synthetic.config['matcher_type'] = 'FLANN'
+    synthetic.config['matching_gps_neighbors'] = 0
+    synthetic.config['matching_gps_distance'] = 0
+    synthetic.config['matching_time_neighbors'] = 2
 
-    images = synthetic.images()
+    images = sorted(synthetic.images())
     pairs, _ = matching.match_images(synthetic, images, images)
     matching.save_matches(synthetic, images, pairs)
 
-    assert len(pairs) == 62
-    value, margin = 11842, 0.015
-    assert value*(1-margin) < sum([len(m) for m in pairs.values()]) < value*(1+margin)
+    for i in range(len(images) - 1):
+        pair = images[i], images[i + 1]
+        matches = pairs.get(pair)
+        if matches is None or len(matches) == 1:
+            matches = pairs.get(pair[::-1])
+        assert len(matches) > 25
 
 
 def test_ordered_pairs():

@@ -41,7 +41,7 @@ if __name__ == "__main__":
                 scene and evaluate its quality over different image noise\
                 and different GPS noise')
     parser.add_argument('--type',
-                        choices=['ellipse', 'line', 'curve'],
+                        choices=['circle', 'ellipse', 'line', 'curve'],
                         default='ellipse',
                         help='type of street geometry')
     parser.add_argument('--length',

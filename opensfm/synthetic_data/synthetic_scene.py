@@ -30,8 +30,10 @@ def get_camera(type, id, focal, k1, k2):
 
 def get_scene_generator(type, length):
     generator = None
+    if type == 'circle':
+        generator = functools.partial(sg.ellipse_generator, length, length)
     if type == 'ellipse':
-        ellipse_ratio = 4
+        ellipse_ratio = 2
         generator = functools.partial(sg.ellipse_generator, length,
                                       length / ellipse_ratio)
     if type == 'line':
@@ -212,6 +214,8 @@ class SyntheticStreetScene(SyntheticScene):
                                       maximum_depth, noise)
 
 
+import json
+from opensfm import io
 def compare(reference, reconstruction):
     completeness = sm.completeness_errors(reference, reconstruction)
 
@@ -225,6 +229,8 @@ def compare(reference, reconstruction):
     aligned_rotation = sm.rotation_errors(reference, aligned)
     aligned_points = sm.points_errors(reference, aligned)
     aligned_gps = sm.gps_errors(aligned)
+
+    json.dump(io.reconstructions_to_json([reference, reconstruction, aligned]), open('/tmp/mapillary_sfm_test/aligned.json', 'wt'))
 
     return {
         'ratio_cameras': completeness[0],
