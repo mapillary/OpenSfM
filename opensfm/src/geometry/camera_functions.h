@@ -30,8 +30,8 @@ struct FisheyeProjection {
     const T x = s * point[0];
     const T y = s * point[1];
     const T inv_norm = T(1.0) / sqrt(x*x + y*y + T(1.0));
-    bearing[0] = point[0] * inv_norm;
-    bearing[1] = point[1] * inv_norm;
+    bearing[0] = x * inv_norm;
+    bearing[1] = y * inv_norm;
     bearing[2] = inv_norm;
   }
 };
@@ -80,8 +80,8 @@ struct DualProjection {
     const T x = s * point[0];
     const T y = s * point[1];
     const T inv_norm = T(1.0) / sqrt(x*x + y*y + T(1.0));
-    bearing[0] = point[0] * inv_norm;
-    bearing[1] = point[1] * inv_norm;
+    bearing[0] = x * inv_norm;
+    bearing[1] = y * inv_norm;
     bearing[2] = inv_norm;
   }
 
@@ -128,7 +128,7 @@ struct SphericalProjection {
 struct Disto24 {
   template <class T>
   static void Forward(const T* point, const T* k, T* distorted) {
-    const T r2 = point[0]*point[0] + point[1]*point[1];
+    const T r2 = SquaredNorm(point);
     const auto distortion = Distortion(r2, k[static_cast<int>(Disto::K1)],
                                        k[static_cast<int>(Disto::K2)]);
     distorted[0] = point[0] * distortion;
@@ -409,17 +409,17 @@ struct ProjectGeneric {
   template <class T>
   static void Backward(const T* point, const T* parameters, T* bearing) {
     T tmp[2];
-    AFF::Backward(point, parameters + Indexes::Projection, tmp);
+    AFF::Backward(point, parameters + Indexes::Affine, tmp);
     DISTO::Backward(tmp, parameters + Indexes::Distorsion, tmp);
-    PROJ::Backward(tmp, parameters + Indexes::Affine, bearing);
+    PROJ::Backward(tmp, parameters + Indexes::Projection, bearing);
   }
 };
 
-using PerspectiveCameraT = ProjectGeneric<PerspectiveProjection, Disto24, UniformScale>;
-using BrownCameraT = ProjectGeneric<PerspectiveProjection, DistoBrown, Affine>;
-using FisheyeCameraT = ProjectGeneric<FisheyeProjection, Disto24, UniformScale>;
-using DualCameraT = ProjectGeneric<DualProjection, Disto24, UniformScale>;
-using SphericalCameraT = ProjectGeneric<SphericalProjection, Identity, Identity>;
+using PerspectiveCamera = ProjectGeneric<PerspectiveProjection, Disto24, UniformScale>;
+using BrownCamera = ProjectGeneric<PerspectiveProjection, DistoBrown, Affine>;
+using FisheyeCamera = ProjectGeneric<FisheyeProjection, Disto24, UniformScale>;
+using DualCamera = ProjectGeneric<DualProjection, Disto24, UniformScale>;
+using SphericalCamera = ProjectGeneric<SphericalProjection, Identity, Identity>;
 
 /* This is where the pseudo-strategy pattern takes place. If you want to add
  * your own new camera model, just add a new enum value, the corresponding
@@ -428,21 +428,70 @@ template <class FUNC, class... IN>
 void Dispatch(const ProjectionType& type, IN&&... args) {
   switch (type) {
     case ProjectionType::PERSPECTIVE:
-      FUNC::template Apply<PerspectiveCameraT>(std::forward<IN>(args)...);
+      FUNC::template Apply<PerspectiveCamera>(std::forward<IN>(args)...);
       break;
     case ProjectionType::BROWN:
-      FUNC::template Apply<BrownCameraT>(std::forward<IN>(args)...);
+      FUNC::template Apply<BrownCamera>(std::forward<IN>(args)...);
       break;
     case ProjectionType::FISHEYE:
-      FUNC::template Apply<FisheyeCameraT>(std::forward<IN>(args)...);
+      FUNC::template Apply<FisheyeCamera>(std::forward<IN>(args)...);
       break;
     case ProjectionType::DUAL:
-      FUNC::template Apply<DualCameraT>(std::forward<IN>(args)...);
+      FUNC::template Apply<DualCamera>(std::forward<IN>(args)...);
       break;
     case ProjectionType::SPHERICAL:
-      FUNC::template Apply<SphericalCameraT>(std::forward<IN>(args)...);
+      FUNC::template Apply<SphericalCamera>(std::forward<IN>(args)...);
       break;
     default:
       throw std::runtime_error("Invalid ProjectionType");
   }
 };
+
+/* Here's some conveniancy functions, so the dispatch function can be re-used for
+ * applyting any camera-type-dependant function. */
+template <class T>
+struct SizeTraits {};
+
+/* Some traits that statically defines the sie of the parameter vector */
+template <>
+struct SizeTraits<PerspectiveCamera> {
+  static constexpr int Size = 3;
+};
+template <>
+struct SizeTraits<FisheyeCamera> {
+  static constexpr int Size = 3;
+};
+template <>
+struct SizeTraits<BrownCamera> {
+  static constexpr int Size = 9;
+};
+template <>
+struct SizeTraits<DualCamera> {
+  static constexpr int Size = 4;
+};
+template <>
+struct SizeTraits<SphericalCamera> {
+  static constexpr int Size = 1;  // Dummy as we cant' allocate zero-size vector
+};
+
+/* Struct that can help overcomes the member template specialization */
+struct DispatchHelper {
+  template <class T>
+  struct Type {};
+};
+
+/* Here's an example that uses some specialization 
+ * by using overloading and DispatchHelper.
+ * 
+struct DispatchMySTuff : public DispatchHelper {
+  template <class CAMERA>
+  static void DoMySTuff(MyArg1 arg1, MyArg2 arg2, ...) {
+    DoMyStuffInternal(Type<CAMERA>(), arg1, arg2, ...);
+  }
+
+ private:
+  static void DoMySTuffInternal(const Type<PerspectiveCamera> &, MyArg1 arg1, MyArg2 arg2, ...)) {
+    constexpr int num_parameters = SizeTraits<PerspectiveCamera>::Size;
+  }
+};
+*/
