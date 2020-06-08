@@ -109,7 +109,7 @@ struct SphericalProjection {
   template <class T>
   static void Forward(const T* point, const T* /* p */, T* projected) {
     const auto lon = atan2(point[0], point[2]);
-    const auto lat = atan2(-point[1], hypot(point[0], point[2]));
+    const auto lat = atan2(-point[1], sqrt(point[0]*point[0] + point[2]*point[2]));
     projected[0] = lon / (2 * M_PI);
     projected[1] = -lat / (2 * M_PI);
   }
