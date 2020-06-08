@@ -1,12 +1,13 @@
 #pragma once
 
 #include <geometry/camera_functions.h>
+
 #include <Eigen/Eigen>
 #include <unordered_map>
 
 class Camera {
  public:
-  enum class Parameters : int{
+  enum class Parameters : int {
     Focal,
     AspectRatio,
     Cx,
@@ -20,13 +21,19 @@ class Camera {
     None
   };
 
-  Camera();
+  struct CompParameters {
+    size_t operator()(const Parameters& p1, const Parameters& p2) const {
+      return static_cast<size_t>(p1) < static_cast<size_t>(p2);
+    }
+  };
+
   static Camera CreatePerspectiveCamera(double focal, double k1, double k2);
   static Camera CreateBrownCamera(double focal, double aspect_ratio,
                                   const Vec2d& principal_point,
                                   const VecXd& distortion);
   static Camera CreateFisheyeCamera(double focal, double k1, double k2);
-  static Camera CreateDualCamera(double transition, double focal, double k1, double k2);
+  static Camera CreateDualCamera(double transition, double focal, double k1,
+                                 double k2);
   static Camera CreateSphericalCamera();
 
   Vec2d Project(const Vec3d& point) const;
@@ -37,22 +44,28 @@ class Camera {
 
   std::vector<Parameters> GetParametersTypes() const;
   VecXd GetParametersValues() const;
-  bool SetParameterValue(const Parameters& parameter, double value);
+  std::map<Parameters, double, CompParameters> GetParametersMap()const;
 
-  ProjectionType GetProjectionType()const;
-  std::string GetProjectionString()const;
+  double GetParameterValue(const Parameters& parameter) const;
+  void SetParameterValue(const Parameters& parameter, double value);
 
-  Mat3d GetProjectionMatrix()const;
-  Mat3d GetProjectionMatrixScaled(int width, int height)const;
-  
+  ProjectionType GetProjectionType() const;
+  std::string GetProjectionString() const;
+
+  Mat3d GetProjectionMatrix() const;
+  Mat3d GetProjectionMatrixScaled(int width, int height) const;
+
   int width{1};
   int height{1};
   std::string id;
 
  private:
+  Camera();
 
   ProjectionType type_;
-  std::unordered_map<Parameters, double> parameters_;
+  std::map<Parameters, double, CompParameters> parameters_;
 };
 
-std::pair<MatXf, MatXf> ComputeCameraMapping(const Camera& from, const Camera& to, int width, int height);
+std::pair<MatXf, MatXf> ComputeCameraMapping(const Camera& from,
+                                             const Camera& to, int width,
+                                             int height);
