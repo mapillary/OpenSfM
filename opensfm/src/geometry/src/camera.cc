@@ -28,6 +28,7 @@ Camera Camera::CreateBrownCamera(double focal, double aspect_ratio,
   camera.parameters_[Camera::Parameters::P2] = distortion(4);
   camera.parameters_[Camera::Parameters::Cx] = principal_point(0);
   camera.parameters_[Camera::Parameters::Cy] = principal_point(1);
+  return camera;
 };
 
 Camera Camera::CreateFisheyeCamera(double focal, double k1, double k2) {
@@ -74,11 +75,23 @@ VecXd Camera::GetParametersValues() const {
   return values;
 }
 
-bool Camera::SetParameterValue(const Parameters& parameter, double value) {
+std::map<Camera::Parameters, double, Camera::CompParameters>
+Camera::GetParametersMap() const {
+  return parameters_;
+}
+
+void Camera::SetParameterValue(const Parameters& parameter, double value) {
   if (parameters_.find(parameter) == parameters_.end()) {
     throw std::runtime_error("Unknown parameter for this camera model");
   }
   parameters_[parameter] = value;
+}
+
+double Camera::GetParameterValue(const Parameters& parameter) const {
+  if (parameters_.find(parameter) == parameters_.end()) {
+    throw std::runtime_error("Unknown parameter for this camera model");
+  }
+  return parameters_.at(parameter);
 }
 
 ProjectionType Camera::GetProjectionType() const { return type_; }
@@ -136,7 +149,7 @@ Mat3d Camera::GetProjectionMatrixScaled(int width, int height) const {
   Mat3d unnormalized = Mat3d::Zero();
 
   const auto projection_matrix = GetProjectionMatrix();
-  unnormalized.block<2, 2>(0, 0) << unnormalizer * unnormalized.block<2, 2>(0, 0);
+  unnormalized.block<2, 2>(0, 0) << unnormalizer * projection_matrix.block<2, 2>(0, 0);
   unnormalized.col(2) << projection_matrix(0, 2) * unnormalizer + 0.5 * width,
       projection_matrix(1, 2)  * unnormalizer + 0.5 * height, 1.0;
   return unnormalized;
