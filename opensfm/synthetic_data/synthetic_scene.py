@@ -212,19 +212,6 @@ class SyntheticStreetScene(SyntheticScene):
                                       maximum_depth, noise)
 
 
-def pairs_from_track_data(reconstruction, graph, features):
-    pairs = defaultdict(list)
-    for track in reconstruction.points:
-        for im1, im2 in combinations(graph[track].keys(), 2):
-            f1 = features[im1][graph[track][im1]['feature_id']][:2]
-            f2 = features[im2][graph[track][im2]['feature_id']][:2]
-            if im1 < im2:
-                pairs[im1, im2].append((f1, f2))
-            else:
-                pairs[im1, im2].append((f2, f1))
-    return pairs
-
-
 def compare(reference, reconstruction):
     position = sm.position_errors(reference, reconstruction)
     gps = sm.gps_errors(reconstruction)
