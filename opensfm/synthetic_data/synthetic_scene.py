@@ -213,20 +213,30 @@ class SyntheticStreetScene(SyntheticScene):
 
 
 def compare(reference, reconstruction):
-    position = sm.position_errors(reference, reconstruction)
-    gps = sm.gps_errors(reconstruction)
-    rotation = sm.rotation_errors(reference, reconstruction)
-    points = sm.points_errors(reference, reconstruction)
     completeness = sm.completeness_errors(reference, reconstruction)
+
+    absolute_position = sm.position_errors(reference, reconstruction)
+    absolute_rotation = sm.rotation_errors(reference, reconstruction)
+    absolute_points = sm.points_errors(reference, reconstruction)
+    absolute_gps = sm.gps_errors(reconstruction)
+
+    aligned = sm.aligned_to_reference(reference, reconstruction)
+    aligned_position = sm.position_errors(reference, aligned)
+    aligned_rotation = sm.rotation_errors(reference, aligned)
+    aligned_points = sm.points_errors(reference, aligned)
+    aligned_gps = sm.gps_errors(aligned)
+
     return {
-        'position_average': np.linalg.norm(np.average(position, axis=0)),
-        'position_std': np.linalg.norm(np.std(position, axis=0)),
-        'gps_average': np.linalg.norm(np.average(gps, axis=0)),
-        'gps_std': np.linalg.norm(np.std(gps, axis=0)),
-        'rotation_average': np.average(rotation),
-        'rotation_std': np.std(rotation),
-        'points_average': np.linalg.norm(np.average(points, axis=0)),
-        'points_std': np.linalg.norm(np.std(points, axis=0)),
         'ratio_cameras': completeness[0],
-        'ratio_points': completeness[1]
+        'ratio_points': completeness[1],
+
+        'absolute_position_rmse': sm.rmse(absolute_position),
+        'absolute_rotation_rmse': sm.rmse(absolute_rotation),
+        'absolute_points_rmse': sm.rmse(absolute_points),
+        'absolute_gps_rmse': sm.rmse(absolute_gps),
+
+        'aligned_position_rmse': sm.rmse(aligned_position),
+        'aligned_rotation_rmse': sm.rmse(aligned_rotation),
+        'aligned_points_rmse': sm.rmse(aligned_points),
+        'aligned_gps_rmse': sm.rmse(aligned_gps),
     }
