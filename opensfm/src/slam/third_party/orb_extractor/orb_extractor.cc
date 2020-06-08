@@ -170,6 +170,11 @@ void orb_extractor::extract(const cv::_InputArray &in_image, const cv::_InputArr
     for (const auto &kpt : keypts_at_level)
     {
       const cv::Vec3b color = image.at<cv::Vec3b>(std::floor(kpt.pt.y), std::floor(kpt.pt.x));
+  //       Observation(double x, double y, double s, uint8_t r, uint8_t g, uint8_t b, size_t id,
+  //           float _angle, float _resp, float _octave, int _class_id)
+  // : point(x, y), scale(s), color(r, g, b), id(id),
+  //   angle(_angle), response(_resp), octave(_octave), class_id(_class_id)
+  //   { }
       keypts.emplace_back(kpt.pt.x, kpt.pt.y, kpt.size, color[0], color[1], color[2],
                           curr_kpts, kpt.angle, kpt.response, kpt.octave, kpt.class_id);
       ++curr_kpts;

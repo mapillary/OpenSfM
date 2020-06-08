@@ -167,6 +167,8 @@ PYBIND11_MODULE(pymap, m) {
            py::return_value_policy::reference_internal)
       .def("get_valid_landmarks_and_indices", &map::Shot::ComputeValidLandmarksAndIndices,
           py::return_value_policy::reference_internal)
+     .def("get_valid_landmarks_indices", &map::Shot::ComputeValidLandmarksIndices,
+          py::return_value_policy::reference_internal)
       .def("init_and_take_datastructures",
            &map::Shot::InitAndTakeDatastructures)
       .def("init_keypts_and_descriptors", &map::Shot::InitKeyptsAndDescriptors)
@@ -320,6 +322,7 @@ PYBIND11_MODULE(pymap, m) {
       .def_property("color", &map::Landmark::GetColor,
                     &map::Landmark::SetColor)
       .def("get_observation_id_in_shot", &map::Landmark::GetObservationIdInShot)
+      .def("get_observation_in_shot", &map::Landmark::GetObservationInShot)
      ;
 
   //   py::class_<map::TestView>(m, "TestView")

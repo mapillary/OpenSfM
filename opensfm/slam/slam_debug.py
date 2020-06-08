@@ -150,13 +150,15 @@ def visualize_matches_pts(pts1, pts2, matches, im1, im2, is_normalized= True, do
         h1, w1, c = im1.shape
     else:
         h1, w1 = im1.shape
+    pts1 = np.asarray(pts1)
+    pts2 = np.asarray(pts2)
     fig, ax = plt.subplots(1)
     im = np.hstack((im1, im2))
     if is_normalized:
         obs_d1 = features.\
-            denormalized_image_coordinates(np.asarray(pts1[matches[:, 0]]), w1, h1)
+            denormalized_image_coordinates(pts1[matches[:, 0]], w1, h1)
         obs_d2 = features.\
-            denormalized_image_coordinates(np.asarray(pts2[matches[:, 1]]), w1, h1)
+            denormalized_image_coordinates(pts2[matches[:, 1]], w1, h1)
     else:
         obs_d1, obs_d2 = pts1[matches[:, 0]], pts2[matches[:, 1]]
     ax.imshow(im)

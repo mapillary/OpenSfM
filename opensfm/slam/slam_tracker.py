@@ -175,8 +175,8 @@ class SlamTracker(object):
             points3D[idx, :] = lm.get_global_pos()
         slam_debug.disable_debug = False
         T_last = last_shot.get_pose().get_world_to_cam()
-        slam_debug.reproject_landmarks(points3D, pyslam.SlamUtilities.keypts_from_shot(last_shot),
-                                       T_last, data.load_image(last_shot.id), camera, title="init_last", obs_normalized=True, do_show=False)
+        # slam_debug.reproject_landmarks(points3D, pyslam.SlamUtilities.keypts_from_shot(last_shot),
+                                    #    T_last, data.load_image(last_shot.id), camera, title="init_last", obs_normalized=True, do_show=False)
         slam_debug.reproject_landmarks(points3D, pyslam.SlamUtilities.keypts_from_shot(curr_shot),
                                        T_init, data.load_image(curr_shot.id), camera, title="init", obs_normalized=True, do_show=True)
         slam_debug.disable_debug = True
@@ -199,16 +199,28 @@ class SlamTracker(object):
                 logger.error("Tracking lost!!")
                 exit()
         slam_debug.check_shot_for_double_entries(curr_shot) # TODO: Remove debug stuff
-
         lms = curr_shot.get_valid_landmarks()
         points2D = pyslam.SlamUtilities.get_valid_kpts_from_shot(curr_shot)
         valid_ids = curr_shot.get_valid_landmarks_indices()
-        print("got: ", len(lms), " landmarks and ", len(points2D))
 
-        # normalize
-        points2D, _, _ = features.\
-            normalize_features(points2D, None, None,
-                               camera[1].width, camera[1].height)
+        print("got: ", len(lms), " landmarks and ", len(points2D))
+        pts1 = []
+        # pts2 = []
+        for lm in lms:
+            pts1.append(lm.get_observation_in_shot(slam_mapper.last_shot))
+            # pts2.append(lm.get_observation_in_shot(curr_shot))
+        slam_debug.disable_debug = False
+        slam_debug.visualize_matches_pts(
+            pts1, points2D, np.column_stack((np.arange(len(lms), dtype=np.int), np.arange(len(lms), dtype=np.int))), 
+            data.load_image(slam_mapper.last_shot.id), 
+            data.load_image(curr_shot.id), is_normalized=True, do_show=True)
+
+    
+
+        # normalize -> not necessary I think!
+        # points2D, _, _ = features.\
+        #     normalize_features(points2D, None, None,
+        #                        camera.width, camera.height)
 
         points3D = np.zeros((len(lms), 3), dtype=np.float)
         for i, lm in enumerate(lms):
@@ -225,12 +237,12 @@ class SlamTracker(object):
         points3D = np.zeros((len(lms), 3), dtype=np.float)
         for idx, lm in enumerate(lms):
             points3D[idx, :] = lm.get_global_pos()
-        # slam_debug.disable_debug = False
+        slam_debug.disable_debug = False
         slam_debug.\
             reproject_landmarks(points3D, points2D,
                                 slam_utils.pose_to_mat(pose),
                                 data.load_image(curr_shot.id),
-                                camera[1], title="reproj",
+                                camera, title="reproj",
                                 obs_normalized=False, do_show=True)
         slam_debug.disable_debug = True
         # TODO: REMOVE DEBUG VISUALIZATION
@@ -287,11 +299,12 @@ class SlamTracker(object):
         ba = pybundle.BundleAdjuster()
         # for camera in reconstruction.cameras.values():
         reconstruction.\
-            _add_camera_to_bundle(ba, camera[1], camera[1], fix_cameras)
+            _add_camera_to_bundle(ba, camera, camera, fix_cameras)
 
         # constant motion velocity -> just say id
         shot_id = str(0)
-        camera_id = str(camera[0])
+        # camera_id = str(camera[0])
+        camera_id = camera.id
         camera_const = False
         ba.add_shot(shot_id, str(camera_id), init_pose.rotation,
                     init_pose.translation, camera_const)
@@ -300,6 +313,7 @@ class SlamTracker(object):
         for (pt_id, pt_coord) in enumerate(points3D):
             ba.add_point(str(pt_id), pt_coord, points_3D_constant)
             ft = observations[pt_id, :]
+            # ft[2] -> "should be the size and not the scale!!"
             ba.add_point_projection_observation(shot_id, str(pt_id),
                                                 ft[0], ft[1], ft[2])
         # Assume observations N x 3 (x,y,s)
@@ -325,10 +339,9 @@ class SlamTracker(object):
         pose = types.Pose()
         pose.rotation = [s.r[0], s.r[1], s.r[2]]
         pose.translation = [s.t[0], s.t[1], s.t[2]]
-        valid_pts = self.discard_outliers(ba, len(points3D), pose, camera[1])
+        valid_pts = self.discard_outliers(ba, len(points3D), pose, camera)
         chrono.lap('discard_outliers')
         print(chrono.lap_times())
-        # print("valid_pts!: ", valid_pts)
         return pose, valid_pts
 
     def discard_outliers(self, ba, n_pts, pose, camera):

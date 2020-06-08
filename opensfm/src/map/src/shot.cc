@@ -125,6 +125,9 @@ Shot::UndistortAndComputeBearings()
     slam_data_.undist_keypts_.emplace_back(keypoints_.at(idx));
     auto& obs = slam_data_.undist_keypts_.back();
     obs.point = shot_camera_->Project(slam_data_.bearings_.at(idx));
+    // std::cout << "undist pt: " << obs.point.transpose() << std::endl;
+    // std::cout << "kpts: " << keypoints_[idx].angle << ", "
+              // << slam_data_.undist_keypts_[idx].angle << std::endl;
   }
 }
 
@@ -206,6 +209,13 @@ Shot::RemoveLandmarkObservation(const FeatureId id)
 
 Vec2d Shot::Project(const Vec3d& global_pos) const {
   return shot_camera_->Project(pose_.RotationWorldToCamera()*global_pos + pose_.TranslationWorldToCamera());
+}
+
+
+Vec2d Shot::ProjectInImageCoordinates(const Vec3d& global_pos) const {
+  const Vec3d pt = pose_.RotationWorldToCamera()*global_pos + pose_.TranslationWorldToCamera(); 
+  // return shot_camera_->Project(shot_camera_->GetProjectionMatrixScaled()*pt);
+  return (shot_camera_->GetProjectionMatrixScaled()*pt).hnormalized();
 }
 
 MatX2d Shot::ProjectMany(const MatX3d& points) const {

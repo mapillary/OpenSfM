@@ -114,16 +114,16 @@ class Shot {
     return valid_landmarks;
   }
 
-  // std::vector<FeatureId> ComputeValidLandmarksIndices() const {
-  //   std::vector<FeatureId> valid_landmarks;
-  //   valid_landmarks.reserve(landmarks_.size());
-  //   for (size_t idx = 0; idx < landmarks_.size(); ++idx) {
-  //     if (landmarks_[idx] != nullptr) {
-  //       valid_landmarks.push_back(idx);
-  //     }
-  //   }
-  //   return valid_landmarks;
-  // }
+  std::vector<FeatureId> ComputeValidLandmarksIndices() const {
+    std::vector<FeatureId> valid_landmarks;
+    valid_landmarks.reserve(landmarks_.size());
+    for (size_t idx = 0; idx < landmarks_.size(); ++idx) {
+      if (landmarks_[idx] != nullptr) {
+        valid_landmarks.push_back(idx);
+      }
+    }
+    return valid_landmarks;
+  }
 
   std::vector<std::pair<Landmark*, FeatureId>> ComputeValidLandmarksAndIndices()
       const {
@@ -194,7 +194,8 @@ class Shot {
 
   Vec2d Project(const Vec3d& global_pos) const;
   MatX2d ProjectMany(const MatX3d& points) const;
-
+  Vec2d ProjectInImageCoordinates(const Vec3d& global_pos) const;
+  
   Vec3d Bearing(const Vec2d& point) const;
   MatX3d BearingMany(const MatX2d& points) const;
 

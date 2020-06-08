@@ -140,6 +140,7 @@ GuidedMatcher::FindBestMatchForLandmark(const map::Landmark *const lm, map::Shot
 {
 
   // std::cout << "idx_last: " << idx_last << "lm id: " << lm->lm_id_ << "in pt2D: " << curr_frm.im_name << std::fixed << pt2D << ", " << last_scale_level << " rot_cw: " << rot_cw << " t_cw: " << trans_cw << std::endl;
+  std::cout << "scale_factors.at(scale_level)" <<  scale_factors_.at(scale_level) << "*" << margin << std::endl;
   const auto indices = GetKeypointsInCell(curr_shot.slam_data_.undist_keypts_,
                                           curr_shot.slam_data_.keypt_indices_in_cells_, 
                                           reproj_x, reproj_y,
@@ -148,6 +149,7 @@ GuidedMatcher::FindBestMatchForLandmark(const map::Landmark *const lm, map::Shot
                                         
   if (indices.empty())
   {
+    std::cout << "NO_MATCH, inidices.empty" << std::endl;
     return NO_MATCH;
   }
 
@@ -173,6 +175,10 @@ GuidedMatcher::FindBestMatchForLandmark(const map::Landmark *const lm, map::Shot
       }
       const auto& desc = curr_shot.GetDescriptor(match_idx);
       const auto hamm_dist = compute_descriptor_distance_32(lm_desc, desc);
+      if (compute_descriptor_distance_32(desc,desc) != 0)
+      {
+        std::cout << "compute_descriptor_distance_32 failed!!" << std::endl;
+      }
       if (hamm_dist < best_hamm_dist) {
         second_best_hamm_dist = best_hamm_dist;
         best_hamm_dist = hamm_dist;
@@ -187,16 +193,20 @@ GuidedMatcher::FindBestMatchForLandmark(const map::Landmark *const lm, map::Shot
         }
     }
   }
+  std::cout << "Hamming dist: " << best_hamm_dist << ", " << second_best_hamm_dist << " scale: " << best_scale_level
+            << ", " << second_best_scale_level << "lowe: " << lowe_ratio <<std::endl;
   if (best_hamm_dist <= HAMMING_DIST_THR_HIGH)
   {
-    //preform loew ratio test
+    //perform Lowe ratio test
     if (lowe_ratio > 0.0f && best_scale_level == second_best_scale_level && best_hamm_dist > lowe_ratio * second_best_hamm_dist) 
     {
+      std::cout << "NO_MATCH, lowe ratio" << std::endl;
       return NO_MATCH;
+      
     }
     return best_idx;
   }
-
+  std::cout << "NO_MATCH " << best_hamm_dist << std::endl;
   return NO_MATCH;
   // return HAMMING_DIST_THR_HIGH < best_hamm_dist ? NO_MATCH : best_idx;
 }
@@ -354,7 +364,11 @@ void GuidedMatcher::DistributeUndistKeyptsToGrid(const AlignedVector<Observation
     {
       keypt_indices_in_cells.at(cell_idx_x).at(cell_idx_y).push_back(idx);
     }
+    // std::cout << "cell_idx" << cell_idx_x << "," << cell_idx_y << ", " << keypt.point.transpose() <<
+                //  "grid_params: " << grid_params_.img_max_width_ << "/" << grid_params_.img_min_width_
+                //  << grid_params_.img_max_height_ << "/" << grid_params_.img_min_height_ << std::endl;
   }
+  // exit(0);
 }
 
 std::vector<size_t>
@@ -454,13 +468,14 @@ GuidedMatcher::AssignLandmarksToShot(map::Shot& shot, const std::vector<map::Lan
   }
   
   const auto &cam_pose = shot.GetPose();
-  const Mat3d rot_cw = cam_pose.RotationWorldToCamera(); //  cam_pose_cw.block<3, 3>(0, 0);
+  const Mat3d rot_cw = cam_pose.RotationWorldToCamera();
   const Vec3d trans_cw = cam_pose.TranslationWorldToCamera();
   const Vec3d origin = cam_pose.GetOrigin();
   const auto& cam = shot.shot_camera_;
   const auto n_landmarks{landmarks.size()};
   Vec2d pt2D; // stores the reprojected position
   const auto& undist_kpts = shot.slam_data_.undist_keypts_;
+  size_t n_scales = 0;
 
   for (size_t idx = 0; idx < n_landmarks; ++idx)
   {
@@ -469,13 +484,18 @@ GuidedMatcher::AssignLandmarksToShot(map::Shot& shot, const std::vector<map::Lan
     {
       // Reproject
       const Vec3d& global_pos = lm->GetGlobalPos();
-      const Vec2d pt2D = shot.Project(global_pos);
+      const Vec2d pt2D = shot.ProjectInImageCoordinates(global_pos);
+      // std::cout << idx << "Is pt in image" << pt2D.transpose()
+                // << ", " << global_pos.transpose()
+                // << "rot_cw: " << rot_cw << " t: " << trans_cw<< std::endl;
       if (cam->CheckWithinBoundaries(pt2D))
       // if (cam.ReprojectToImage(rot_cw, trans_cw, global_pos, pt2D))
       {
+        // std::cout << "pt in image" << pt2D.transpose() << std::endl;
         //check if it is within our grid
         if (grid_params_.in_grid(pt2D[0], pt2D[1]))
         {
+          // std::cout << "pt in grid" << pt2D.transpose() << std::endl;
           auto& lm_data = lm->slam_data_;
           int scale_lvl = -1;
           if (!other_undist_kpts.empty()) //take the scale level from the keypts
@@ -499,8 +519,10 @@ GuidedMatcher::AssignLandmarksToShot(map::Shot& shot, const std::vector<map::Lan
               }
             }
           }
+          // std::cout << "Checking scale_lvl: " << scale_lvl << std::endl;
           if (scale_lvl >= 0)
           {
+            ++n_scales;
             lm_data.IncreaseNumObservable();
             const auto best_idx = FindBestMatchForLandmark(lm, shot, float(pt2D[0]), float(pt2D[1]), scale_lvl, margin, lowe_ratio);
             if (best_idx != NO_MATCH)
@@ -512,9 +534,17 @@ GuidedMatcher::AssignLandmarksToShot(map::Shot& shot, const std::vector<map::Lan
               }
               num_matches++;
               shot.AddLandmarkObservation(lm, best_idx);
-              // std::cout << "Adding lm: " << lm->id_ << "," << lm << " to " << best_idx << std::endl;
+              // std::cout << "Adding lm: " << lm->id_ << "," << lm << " to " << best_idx << 
+                          //  "angle: " <<
+                          //  other_undist_kpts.at(idx).angle << "," <<
+                          //  undist_kpts.at(best_idx).angle << std::endl;
             }
+            // else
+            // {
+            //   std::cout << "no match: " << best_idx << "/" << check_orientation << std::endl;
+            // }
           }
+          // std::cout << "n_scales: " << n_scales << std::endl;
         }
       }
     }
@@ -525,6 +555,7 @@ GuidedMatcher::AssignLandmarksToShot(map::Shot& shot, const std::vector<map::Lan
     for (const auto invalid_idx : invalid_matches) {
         shot.RemoveLandmarkObservation(invalid_idx);
         --num_matches;
+        // std::cout << "remove angle_check: " << invalid_idx << std::endl;
     }
   }
   return num_matches;
@@ -781,6 +812,7 @@ GuidedMatcher::ReplaceDuplicatedLandmarks(map::Shot& fuse_shot, const T& landmar
                 {
                   const auto& keypt = fuse_shot.slam_data_.undist_keypts_.at(idx);
                   const size_t scale_level = keypt.scale;
+                  // std::cout << "keypt: " << keypt.point.transpose() << std::endl; 
                   //check the scale level
                   // if (scale_level < pred_scale_level - 1 || pred_scale_level < scale_level) {
                   //   continue;
