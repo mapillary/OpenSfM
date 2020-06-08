@@ -515,27 +515,39 @@ constexpr int GetEnumAsConstExpr(const T &t) {
   return static_cast<int>(t);
 }
 
-
 struct BACameraNew : public BAData<Camera> {
-  using BAData::BAData;
+  BACameraNew(const Camera &value, const Camera &prior, const Camera &sigma)
+      : BAData<Camera>(value, prior, sigma),
+        all_parameters_(value.GetParametersTypes()),
+        parameters_to_optimize_(value.GetParametersTypes()) {}
 
-  std::vector<Camera::Parameters> to_optimize;
+  std::vector<Camera::Parameters> GetParametersToOptimize() {
+    return parameters_to_optimize_;
+  }
+
+  void SetParametersToOptimize(const std::vector<Camera::Parameters> &p) {
+    parameters_to_optimize_ = p;
+  }
+
  private:
   void ValueToData(const Camera &value, VecXd &data) const final {
     if (data.size() == 0) {
-        data = value.GetParametersValues();
+      data = value.GetParametersValues();
     }
   }
 
   void DataToValue(const VecXd &data, Camera &value) const final {
     if (data.size() > 0) {
-      const auto types = value.GetParametersTypes();
       int count = 0;
-      for (const auto t : types) {
+      for (const auto t : all_parameters_) {
         value.SetParameterValue(t, data(count++));
       }
     }
-  };
+  }
+
+  std::vector<Camera::Parameters> parameters_to_optimize_;
+  std::vector<Camera::Parameters> all_parameters_;
+};
 
 struct BAShotNew
     : public BAData<VecNd<GetEnumAsConstExpr(BAShotParameters::COUNT)>> {
