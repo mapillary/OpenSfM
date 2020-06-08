@@ -214,8 +214,6 @@ class SyntheticStreetScene(SyntheticScene):
                                       maximum_depth, noise)
 
 
-import json
-from opensfm import io
 def compare(reference, reconstruction):
     completeness = sm.completeness_errors(reference, reconstruction)
 
@@ -229,8 +227,6 @@ def compare(reference, reconstruction):
     aligned_rotation = sm.rotation_errors(reference, aligned)
     aligned_points = sm.points_errors(reference, aligned)
     aligned_gps = sm.gps_errors(aligned)
-
-    json.dump(io.reconstructions_to_json([reference, reconstruction, aligned]), open('/tmp/mapillary_sfm_test/aligned.json', 'wt'))
 
     return {
         'ratio_cameras': completeness[0],
