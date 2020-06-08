@@ -26,7 +26,7 @@ BundleAdjuster::BundleAdjuster() {
 }
 
 void BundleAdjuster::UpdateSigmas(){
-  for (auto &camera : cameras_new_) {
+  for (auto &camera : cameras_) {
     Camera sigma_camera = camera.second.GetValue();
     const auto parameters_types = sigma_camera.GetParametersTypes();
     std::unordered_map<int, double> std_dev_map;
@@ -46,120 +46,13 @@ void BundleAdjuster::UpdateSigmas(){
     camera.second.SetSigma(sigma_camera);
   }
 }
-void BundleAdjuster::AddCameraNew(const std::string &id, const Camera& camera, const Camera& prior, bool constant){  
+void BundleAdjuster::AddCamera(const std::string &id, const Camera& camera, const Camera& prior, bool constant){  
   Camera sigma = camera;
-  cameras_new_.emplace(id, BACameraNew(camera, prior, sigma));
+  cameras_.emplace(id, BACamera(camera, prior, sigma));
   UpdateSigmas();
 
   if (constant) {
-    cameras_new_.at(id).SetParametersToOptimize({});
-  }
-}
-void BundleAdjuster::AddPerspectiveCamera(const std::string &id, double focal,
-                                          double k1, double k2,
-                                          double focal_prior, double k1_prior,
-                                          double k2_prior, bool constant) {
-  if (use_new_) {
-    AddCameraNew(
-        id, Camera::CreatePerspectiveCamera(focal, k1, k2),
-        Camera::CreatePerspectiveCamera(focal_prior, k1_prior, k2_prior),
-        constant);
-  } else {
-    cameras_[id] =
-        std::unique_ptr<BAPerspectiveCamera>(new BAPerspectiveCamera());
-    BAPerspectiveCamera &c = static_cast<BAPerspectiveCamera &>(*cameras_[id]);
-    c.id = id;
-    c.parameters[BA_CAMERA_FOCAL] = focal;
-    c.parameters[BA_CAMERA_K1] = k1;
-    c.parameters[BA_CAMERA_K2] = k2;
-    c.constant = constant;
-    c.focal_prior = focal_prior;
-    c.k1_prior = k1_prior;
-    c.k2_prior = k2_prior;
-  }
-}
-
-void BundleAdjuster::AddBrownPerspectiveCamera(
-    const BABrownPerspectiveCamera &c) {
-  if (use_new_) {
-    Vec2d principal_point;
-    principal_point << c.GetCX(), c.GetCY();
-    VecXd distortion(static_cast<int>(Disto::COUNT));
-    distortion << c.GetK1(), c.GetK2(), c.GetK3(), c.GetP1(), c.GetP2();
-    Vec2d principal_point_prior;
-    principal_point_prior << c.c_x_prior, c.c_y_prior;
-    VecXd distortion_prior(static_cast<int>(Disto::COUNT));
-    distortion_prior << c.k1_prior, c.k2_prior, c.k3_prior, c.p1_prior, c.p2_prior;
-    AddCameraNew(
-        c.id,
-        Camera::CreateBrownCamera(c.GetFocalX(), c.GetFocalY() / c.GetFocalX(),
-                                  principal_point, distortion),
-        Camera::CreateBrownCamera(c.focal_x_prior,
-                                  c.focal_y_prior / c.focal_x_prior,
-                                  principal_point_prior, distortion_prior),
-        c.constant);
-  } else {
-    cameras_[c.id] = std::unique_ptr<BABrownPerspectiveCamera>(
-        new BABrownPerspectiveCamera(c));
-  }
-}
-
-void BundleAdjuster::AddFisheyeCamera(const std::string &id, double focal,
-                                      double k1, double k2, double focal_prior,
-                                      double k1_prior, double k2_prior,
-                                      bool constant) {
-  if (use_new_) {
-    AddCameraNew(id, Camera::CreateFisheyeCamera(focal, k1, k2),
-                 Camera::CreateFisheyeCamera(focal_prior, k1_prior, k2_prior),
-                 constant);
-  } else {
-    cameras_[id] = std::unique_ptr<BAFisheyeCamera>(new BAFisheyeCamera());
-    BAFisheyeCamera &c = static_cast<BAFisheyeCamera &>(*cameras_[id]);
-    c.id = id;
-    c.parameters[BA_CAMERA_FOCAL] = focal;
-    c.parameters[BA_CAMERA_K1] = k1;
-    c.parameters[BA_CAMERA_K2] = k2;
-    c.constant = constant;
-    c.focal_prior = focal_prior;
-    c.k1_prior = k1_prior;
-    c.k2_prior = k2_prior;
-  }
-}
-
-void BundleAdjuster::AddDualCamera(const std::string &id, double focal,
-                                   double k1, double k2, double focal_prior,
-                                   double k1_prior, double k2_prior,
-                                   double transition, bool constant) {
-  if (use_new_) {
-    AddCameraNew(
-        id, Camera::CreateDualCamera(transition, focal, k1, k2),
-        Camera::CreateDualCamera(transition, focal_prior, k1_prior, k2_prior),
-        constant);
-  } else {
-    cameras_[id] = std::unique_ptr<BADualCamera>(new BADualCamera());
-    BADualCamera &c = static_cast<BADualCamera &>(*cameras_[id]);
-    c.id = id;
-    c.parameters[BA_DUAL_CAMERA_FOCAL] = focal;
-    c.parameters[BA_DUAL_CAMERA_K1] = k1;
-    c.parameters[BA_DUAL_CAMERA_K2] = k2;
-    c.parameters[BA_DUAL_CAMERA_TRANSITION] = transition;
-    c.constant = constant;
-    c.focal_prior = focal_prior;
-    c.k1_prior = k1_prior;
-    c.k2_prior = k2_prior;
-  }
-}
-
-void BundleAdjuster::AddEquirectangularCamera(const std::string &id) {
-  if (use_new_) {
-    AddCameraNew(id, Camera::CreateSphericalCamera(),
-                 Camera::CreateSphericalCamera(), true);
-  } else {
-    cameras_[id] =
-        std::unique_ptr<BAEquirectangularCamera>(new BAEquirectangularCamera());
-    BAEquirectangularCamera &c =
-        static_cast<BAEquirectangularCamera &>(*cameras_[id]);
-    c.id = id;
+    cameras_.at(id).SetParametersToOptimize({});
   }
 }
 
@@ -218,25 +111,14 @@ void BundleAdjuster::AddPointProjectionObservation(const std::string &shot,
                                                    const std::string &point,
                                                    double x, double y,
                                                    double std_deviation) {
-  if (use_new_) {
-    BAPointProjectionObservationNew o;
-    o.shot = &shots_[shot];
-    o.camera = &cameras_new_.at(o.shot->camera);
-    o.point = &points_[point];
-    o.coordinates[0] = x;
-    o.coordinates[1] = y;
-    o.std_deviation = std_deviation;
-    point_projection_observations_new_.push_back(o);
-  } else {
-    BAPointProjectionObservation o;
-    o.shot = &shots_[shot];
-    o.camera = cameras_[o.shot->camera].get();
-    o.point = &points_[point];
-    o.coordinates[0] = x;
-    o.coordinates[1] = y;
-    o.std_deviation = std_deviation;
-    point_projection_observations_.push_back(o);
-  }
+  BAPointProjectionObservation o;
+  o.shot = &shots_[shot];
+  o.camera = &cameras_.at(o.shot->camera);
+  o.point = &points_[point];
+  o.coordinates[0] = x;
+  o.coordinates[1] = y;
+  o.std_deviation = std_deviation;
+  point_projection_observations_.push_back(o);
 }
 
 void BundleAdjuster::AddRotationPrior(
@@ -445,10 +327,6 @@ void BundleAdjuster::SetLinearSolverType(std::string t) {
   linear_solver_type_ = t;
 }
 
-void BundleAdjuster::SetUseNew(bool b){
-  use_new_ = b;
-}
-
 void BundleAdjuster::SetInternalParametersPriorSD(
     double focal_sd,
     double c_sd,
@@ -573,7 +451,7 @@ struct ErrorTraits<SphericalCamera> {
 
 struct DispatchCostFunctionPush : public DispatchHelper {
   template <class T>
-  static void Apply(const BAPointProjectionObservationNew &obs,
+  static void Apply(const BAPointProjectionObservation &obs,
                     ceres::LossFunction *loss, ceres::Problem *problem) {
     ApplyInternal(Type<T>(), obs, loss, problem);
   }
@@ -581,13 +459,13 @@ struct DispatchCostFunctionPush : public DispatchHelper {
  private:
   template <class T>
   static void ApplyInternal(const Type<T> &,
-                            const BAPointProjectionObservationNew &obs,
+                            const BAPointProjectionObservation &obs,
                             ceres::LossFunction *loss,
                             ceres::Problem *problem) {
     using ErrorType = typename ErrorTraits<T>::Type;
     constexpr static int ErrorSize = ErrorTraits<T>::Size;
     constexpr static int CameraSize = SizeTraits<T>::Size;
-    constexpr static int ShotSize = GetEnumAsConstExpr(BAShotParameters::COUNT);
+    constexpr static int ShotSize = 6;
 
     ceres::CostFunction *cost_function =
         new ceres::AutoDiffCostFunction<ErrorType, ErrorSize, CameraSize,
@@ -602,14 +480,14 @@ struct DispatchCostFunctionPush : public DispatchHelper {
 
 struct DispatchCostFunctionResidual : public DispatchHelper {
   template <class T>
-  static void Apply(const BAPointProjectionObservationNew &obs) {
+  static void Apply(const BAPointProjectionObservation &obs) {
     ApplyInternal(Type<T>(), obs);
   }
 
  private:
   template <class T>
   static void ApplyInternal(const Type<T> &,
-                            const BAPointProjectionObservationNew &obs) {
+                            const BAPointProjectionObservation &obs) {
     using ErrorType = typename ErrorTraits<T>::Type;
     constexpr static int ErrorSize = ErrorTraits<T>::Size;
 
@@ -624,13 +502,13 @@ struct DispatchCostFunctionResidual : public DispatchHelper {
 
 struct DispatchCameraPriorResidual : public DispatchHelper {
   template <class T>
-  static void Apply(BACameraNew& camera, ceres::Problem *problem) {
+  static void Apply(BACamera& camera, ceres::Problem *problem) {
     ApplyInternal(Type<T>(), camera, problem);
   }
 
  private:
   template <class T>
-  static void ApplyInternal(const Type<T> &, BACameraNew &camera,
+  static void ApplyInternal(const Type<T> &, BACamera &camera,
                             ceres::Problem *problem) {
     auto* prior_function = new BADataPriorError<Camera>(&camera);
 
@@ -666,83 +544,35 @@ void BundleAdjuster::Run() {
     }
   }
 
-  if(use_new_){
-    for (auto &i : cameras_new_) {
-      auto& data = i.second.GetValueData();
-      problem.AddParameterBlock(data.data(), data.size());
+  for (auto &i : cameras_) {
+    auto& data = i.second.GetValueData();
+    problem.AddParameterBlock(data.data(), data.size());
 
-      // Lock parameters based on bitmask of parameters : only constant for now
-      if (i.second.GetParametersToOptimize().empty()) {
-        problem.SetParameterBlockConstant(data.data());
+    // Lock parameters based on bitmask of parameters : only constant for now
+    if (i.second.GetParametersToOptimize().empty()) {
+      problem.SetParameterBlockConstant(data.data());
+    }
+
+    // Add a barrier for constraining transition of dual to stay in [0, 1]
+    const auto camera = i.second.GetValue();
+    if (camera.GetProjectionType() == ProjectionType::DUAL) {
+      const auto types = camera.GetParametersTypes();
+      int index = -1;
+      for(int i = 0; i < types.size() && index < 0; ++i){
+        if(types[i] == Camera::Parameters::Transition){
+          index = i;
+        }
       }
-
-      // Add a barrier for constraining transition of dual to stay in [0, 1]
-      const auto camera = i.second.GetValue();
-      if (camera.GetProjectionType() == ProjectionType::DUAL) {
-        const auto types = camera.GetParametersTypes();
-        int index = -1;
-        for(int i = 0; i < types.size() && index < 0; ++i){
-          if(types[i] == Camera::Parameters::Transition){
-            index = i;
-          }
-        }
-        if(index >= 0){
-          ceres::CostFunction *transition_barrier =
-              new ceres::AutoDiffCostFunction<BAParameterBarrier, 1,
-                                              SizeTraits<DualCamera>::Size>(
-                  new BAParameterBarrier(0.0, 1.0, index));
-          problem.AddResidualBlock(transition_barrier, NULL, data.data());
-        }
+      if(index >= 0){
+        ceres::CostFunction *transition_barrier =
+            new ceres::AutoDiffCostFunction<BAParameterBarrier, 1,
+                                            SizeTraits<DualCamera>::Size>(
+                new BAParameterBarrier(0.0, 1.0, index));
+        problem.AddResidualBlock(transition_barrier, NULL, data.data());
       }
     }
   }
-  else{
-    for (auto &i : cameras_) {
-      switch (i.second->type()) {
-        case BA_PERSPECTIVE_CAMERA: {
-          BAPerspectiveCamera &c =
-              static_cast<BAPerspectiveCamera &>(*i.second);
-          problem.AddParameterBlock(c.parameters, BA_CAMERA_NUM_PARAMS);
-          if (i.second->constant) {
-            problem.SetParameterBlockConstant(c.parameters);
-          }
-          break;
-        }
-        case BA_BROWN_PERSPECTIVE_CAMERA: {
-          BABrownPerspectiveCamera &c =
-              static_cast<BABrownPerspectiveCamera &>(*i.second);
-          problem.AddParameterBlock(c.parameters, BA_BROWN_CAMERA_NUM_PARAMS);
-          if (i.second->constant) {
-            problem.SetParameterBlockConstant(c.parameters);
-          }
-          break;
-        }
-        case BA_FISHEYE_CAMERA: {
-          BAFisheyeCamera &c = static_cast<BAFisheyeCamera &>(*i.second);
-          problem.AddParameterBlock(c.parameters, BA_CAMERA_NUM_PARAMS);
-          if (i.second->constant) {
-            problem.SetParameterBlockConstant(c.parameters);
-          }
-          break;
-        }
-        case BA_DUAL_CAMERA: {
-          BADualCamera &c = static_cast<BADualCamera &>(*i.second);
-          problem.AddParameterBlock(c.parameters, BA_DUAL_CAMERA_NUM_PARAMS);
-          ceres::CostFunction* transition_barrier =
-              new ceres::AutoDiffCostFunction<BAParameterBarrier, 1, BA_DUAL_CAMERA_NUM_PARAMS>(
-                  new BAParameterBarrier(0.0, 1.0, BA_DUAL_CAMERA_TRANSITION));
-          problem.AddResidualBlock(transition_barrier, NULL, c.parameters);
-          if (i.second->constant) {
-            problem.SetParameterBlockConstant(c.parameters);
-          }
-          break;
-        }
-        case BA_EQUIRECTANGULAR_CAMERA:
-          // No parameters for now
-          break;
-      }
-    }
-  }
+  
   
   for (auto &i : reconstructions_) {
     for (auto &s : i.second.scales) {
@@ -768,17 +598,11 @@ void BundleAdjuster::Run() {
   // Add reprojection error blocks
   ceres::LossFunction *projection_loss = CreateLossFunction(
       point_projection_loss_name_, point_projection_loss_threshold_);
-  if (use_new_) {
-    for (auto &observation : point_projection_observations_new_) {
-      const auto projection_type =
-          observation.camera->GetValue().GetProjectionType();
-      Dispatch<DispatchCostFunctionPush>(projection_type, observation,
-                                         projection_loss, &problem);
-    }
-  } else {
-    for (auto &observation : point_projection_observations_) {
-      AddObservationResidualBlock(observation, projection_loss, &problem);
-    }
+  for (auto &observation : point_projection_observations_) {
+    const auto projection_type =
+        observation.camera->GetValue().GetProjectionType();
+    Dispatch<DispatchCostFunctionPush>(projection_type, observation,
+                                        projection_loss, &problem);
   }
 
   // Add rotation priors
@@ -826,72 +650,10 @@ void BundleAdjuster::Run() {
   }
 
   // Add internal parameter priors blocks
-  if (use_new_) {
-    for (auto &i : cameras_new_) {
-      const auto projection_type =
-          i.second.GetValue().GetProjectionType();
-      Dispatch<DispatchCameraPriorResidual>(projection_type, i.second, &problem);
-    }
-  } else {
-    for (auto &i : cameras_) {
-      switch (i.second->type()) {
-        case BA_PERSPECTIVE_CAMERA: {
-          BAPerspectiveCamera &c =
-              static_cast<BAPerspectiveCamera &>(*i.second);
-
-          ceres::CostFunction *cost_function = new ceres::AutoDiffCostFunction<
-              BasicRadialInternalParametersPriorError, BA_CAMERA_NUM_PARAMS,
-              BA_CAMERA_NUM_PARAMS>(new BasicRadialInternalParametersPriorError(
-              c.focal_prior, focal_prior_sd_, c.k1_prior, k1_sd_, c.k2_prior,
-              k2_sd_));
-
-          problem.AddResidualBlock(cost_function, NULL, c.parameters);
-          break;
-        }
-        case BA_BROWN_PERSPECTIVE_CAMERA: {
-          BABrownPerspectiveCamera &c =
-              static_cast<BABrownPerspectiveCamera &>(*i.second);
-
-          ceres::CostFunction *cost_function = new ceres::AutoDiffCostFunction<
-              BrownInternalParametersPriorError, BA_BROWN_CAMERA_NUM_PARAMS,
-              BA_BROWN_CAMERA_NUM_PARAMS>(new BrownInternalParametersPriorError(
-              c.focal_x_prior, focal_prior_sd_, c.focal_y_prior,
-              focal_prior_sd_, c.c_x_prior, c_prior_sd_, c.c_y_prior,
-              c_prior_sd_, c.k1_prior, k1_sd_, c.k2_prior, k2_sd_, c.p1_prior,
-              p1_sd_, c.p2_prior, p2_sd_, c.k3_prior, k3_sd_));
-
-          problem.AddResidualBlock(cost_function, NULL, c.parameters);
-          break;
-        }
-        case BA_FISHEYE_CAMERA: {
-          BAFisheyeCamera &c = static_cast<BAFisheyeCamera &>(*i.second);
-
-          ceres::CostFunction *cost_function = new ceres::AutoDiffCostFunction<
-              BasicRadialInternalParametersPriorError, BA_CAMERA_NUM_PARAMS,
-              BA_CAMERA_NUM_PARAMS>(new BasicRadialInternalParametersPriorError(
-              c.focal_prior, focal_prior_sd_, c.k1_prior, k1_sd_, c.k2_prior,
-              k2_sd_));
-
-          problem.AddResidualBlock(cost_function, NULL, c.parameters);
-          break;
-        }
-        case BA_DUAL_CAMERA: {
-          BADualCamera &c = static_cast<BADualCamera &>(*i.second);
-
-          ceres::CostFunction *cost_function = new ceres::AutoDiffCostFunction<
-              BasicRadialInternalParametersPriorError, BA_CAMERA_NUM_PARAMS,
-              BA_DUAL_CAMERA_NUM_PARAMS>(
-              new BasicRadialInternalParametersPriorError(
-                  c.focal_prior, focal_prior_sd_, c.k1_prior, k1_sd_,
-                  c.k2_prior, k2_sd_));
-
-          problem.AddResidualBlock(cost_function, NULL, c.parameters);
-          break;
-        }
-        case BA_EQUIRECTANGULAR_CAMERA:
-          break;
-      }
-    }
+  for (auto &i : cameras_) {
+    const auto projection_type =
+        i.second.GetValue().GetProjectionType();
+    Dispatch<DispatchCameraPriorResidual>(projection_type, i.second, &problem);
   }
 
   // Add unit translation block
@@ -1130,93 +892,6 @@ void BundleAdjuster::Run() {
   }
 }
 
-void BundleAdjuster::AddObservationResidualBlock(
-    const BAPointProjectionObservation &observation,
-    ceres::LossFunction *loss,
-    ceres::Problem *problem) {
-  switch (observation.camera->type()) {
-    case BA_PERSPECTIVE_CAMERA:
-    {
-      BAPerspectiveCamera &c = static_cast<BAPerspectiveCamera &>(*observation.camera);
-      ceres::CostFunction* cost_function =
-          new ceres::AutoDiffCostFunction<PerspectiveReprojectionError, 2, 3, 6, 3>(
-              new PerspectiveReprojectionError(observation.coordinates[0],
-                                               observation.coordinates[1],
-                                               observation.std_deviation));
-
-      problem->AddResidualBlock(cost_function,
-                                loss,
-                                c.parameters,
-                                observation.shot->parameters.data(),
-                                observation.point->parameters.data());
-      break;
-    }
-    case BA_BROWN_PERSPECTIVE_CAMERA:
-    {
-      BABrownPerspectiveCamera &c = static_cast<BABrownPerspectiveCamera &>(*observation.camera);
-      ceres::CostFunction* cost_function =
-          new ceres::AutoDiffCostFunction<BrownPerspectiveReprojectionError, 2, 9, 6, 3>(
-              new BrownPerspectiveReprojectionError(observation.coordinates[0],
-                                                    observation.coordinates[1],
-                                                    observation.std_deviation));
-
-      problem->AddResidualBlock(cost_function,
-                                loss,
-                                c.parameters,
-                                observation.shot->parameters.data(),
-                                observation.point->parameters.data());
-      break;
-    }
-    case BA_FISHEYE_CAMERA:
-    {
-      BAFisheyeCamera &c = static_cast<BAFisheyeCamera &>(*observation.camera);
-      ceres::CostFunction* cost_function =
-          new ceres::AutoDiffCostFunction<FisheyeReprojectionError, 2, 3, 6, 3>(
-              new FisheyeReprojectionError(observation.coordinates[0],
-                                           observation.coordinates[1],
-                                           observation.std_deviation));
-
-      problem->AddResidualBlock(cost_function,
-                                loss,
-                                c.parameters,
-                                observation.shot->parameters.data(),
-                                observation.point->parameters.data());
-      break;
-    }
-    case BA_DUAL_CAMERA:
-    {
-      BADualCamera &c = static_cast<BADualCamera &>(*observation.camera);
-      ceres::CostFunction* cost_function =
-          new ceres::AutoDiffCostFunction<DualReprojectionError, 2, 4, 6, 3>(
-              new DualReprojectionError(observation.coordinates[0],
-                                           observation.coordinates[1],
-                                           observation.std_deviation));
-
-      problem->AddResidualBlock(cost_function,
-                                loss,
-                                c.parameters,
-                                observation.shot->parameters.data(),
-                                observation.point->parameters.data());
-      break;
-    }
-    case BA_EQUIRECTANGULAR_CAMERA:
-    {
-      BAEquirectangularCamera &c = static_cast<BAEquirectangularCamera &>(*observation.camera);
-      ceres::CostFunction* cost_function =
-          new ceres::AutoDiffCostFunction<EquirectangularReprojectionError, 3, 6, 3>(
-              new EquirectangularReprojectionError(observation.coordinates[0],
-                                                   observation.coordinates[1],
-                                                   observation.std_deviation));
-
-      problem->AddResidualBlock(cost_function,
-                                loss,
-                                observation.shot->parameters.data(),
-                                observation.point->parameters.data());
-      break;
-    }
-  }
-}
-
 void BundleAdjuster::ComputeCovariances(ceres::Problem *problem) {
   bool computed = false;
 
@@ -1267,116 +942,18 @@ void BundleAdjuster::ComputeReprojectionErrors() {
     i.second.reprojection_errors.clear();
   }
 
-  if (use_new_) {
-    for (auto &observation : point_projection_observations_new_) {
-      const auto projection_type =
-       observation.camera->GetValue().GetProjectionType();
-      Dispatch<DispatchCostFunctionResidual>(projection_type, observation);
-    }
-  } else {
-    // Sum over all observations
-    for (int i = 0; i < point_projection_observations_.size(); ++i) {
-      auto &projection = point_projection_observations_[i];
-      switch (projection.camera->type()) {
-        case BA_PERSPECTIVE_CAMERA: {
-          BAPerspectiveCamera &c =
-              static_cast<BAPerspectiveCamera &>(*projection.camera);
-
-          PerspectiveReprojectionError pre(projection.coordinates[0],
-                                           projection.coordinates[1], 1.0);
-          double residuals[2];
-          pre(c.parameters, projection.shot->parameters.data(),
-              projection.point->parameters.data(), residuals);
-          projection.point->reprojection_errors[projection.shot->id] =
-              Eigen::Vector2d(residuals[0], residuals[1]);
-          break;
-        }
-        case BA_BROWN_PERSPECTIVE_CAMERA: {
-          BABrownPerspectiveCamera &c =
-              static_cast<BABrownPerspectiveCamera &>(*projection.camera);
-
-          BrownPerspectiveReprojectionError bpre(
-              projection.coordinates[0], projection.coordinates[1], 1.0);
-          double residuals[2];
-          bpre(c.parameters, projection.shot->parameters.data(),
-               projection.point->parameters.data(), residuals);
-          projection.point->reprojection_errors[projection.shot->id] =
-              Eigen::Vector2d(residuals[0], residuals[1]);
-          break;
-        }
-        case BA_FISHEYE_CAMERA: {
-          BAFisheyeCamera &c =
-              static_cast<BAFisheyeCamera &>(*projection.camera);
-
-          FisheyeReprojectionError pre(projection.coordinates[0],
-                                       projection.coordinates[1], 1.0);
-          double residuals[2];
-          pre(c.parameters, projection.shot->parameters.data(),
-              projection.point->parameters.data(), residuals);
-          projection.point->reprojection_errors[projection.shot->id] =
-              Eigen::Vector2d(residuals[0], residuals[1]);
-          break;
-        }
-        case BA_DUAL_CAMERA: {
-          BADualCamera &c = static_cast<BADualCamera &>(*projection.camera);
-
-          DualReprojectionError pre(projection.coordinates[0],
-                                    projection.coordinates[1], 1.0);
-
-          double residuals[2];
-          pre(c.parameters, projection.shot->parameters.data(),
-              projection.point->parameters.data(), residuals);
-          projection.point->reprojection_errors[projection.shot->id] =
-              Eigen::Vector2d(residuals[0], residuals[1]);
-          break;
-        }
-        case BA_EQUIRECTANGULAR_CAMERA: {
-          BAEquirectangularCamera &c =
-              static_cast<BAEquirectangularCamera &>(*projection.camera);
-
-          EquirectangularReprojectionError ere(projection.coordinates[0],
-                                               projection.coordinates[1], 1.0);
-          double residuals[3];
-          ere(projection.shot->parameters.data(),
-              projection.point->parameters.data(), residuals);
-          projection.point->reprojection_errors[projection.shot->id] =
-              Eigen::Vector3d(residuals[0], residuals[1], residuals[2]);
-          break;
-        }
-      }
-    }
+  for (auto &observation : point_projection_observations_) {
+    const auto projection_type =
+      observation.camera->GetValue().GetProjectionType();
+    Dispatch<DispatchCostFunctionResidual>(projection_type, observation);
   }
 }
 
 Camera BundleAdjuster::GetCamera(const std::string &id){
-  if(cameras_new_.find(id) == cameras_new_.end()){
+  if(cameras_.find(id) == cameras_.end()){
     throw std::runtime_error("Camera doesn't exists");
   }
-  return cameras_new_.at(id).GetValue();
-}
-BAPerspectiveCamera BundleAdjuster::GetPerspectiveCamera(
-    const std::string &id) {
-  return *(BAPerspectiveCamera *)cameras_[id].get();
-}
-
-BABrownPerspectiveCamera BundleAdjuster::GetBrownPerspectiveCamera(
-    const std::string &id) {
-  return *(BABrownPerspectiveCamera *)cameras_[id].get();
-}
-
-BAFisheyeCamera BundleAdjuster::GetFisheyeCamera(
-    const std::string &id) {
-  return *(BAFisheyeCamera *)cameras_[id].get();
-}
-
-BADualCamera BundleAdjuster::GetDualCamera(
-    const std::string &id) {
-  return *(BADualCamera *)cameras_[id].get();
-}
-
-BAEquirectangularCamera BundleAdjuster::GetEquirectangularCamera(
-    const std::string &id) {
-  return *(BAEquirectangularCamera *)cameras_[id].get();
+  return cameras_.at(id).GetValue();
 }
 
 BAShot BundleAdjuster::GetShot(const std::string &id) {
