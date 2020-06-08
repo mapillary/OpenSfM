@@ -177,7 +177,6 @@ def test_single_vs_many():
 
         b = camera.pixel_bearing_many(pixels)
         b_cpp = camera_cpp.pixel_bearing_many(pixels)
-        print(camera)
         assert np.allclose(b, b_cpp)
 
         if hasattr(camera, 'back_project'):
