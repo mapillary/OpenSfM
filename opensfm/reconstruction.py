@@ -35,8 +35,6 @@ def _get_camera_from_bundle(ba, camera):
     c = ba.get_camera(camera.id)
     for k, v in c.get_parameters_map().items():
         camera.set_parameter_value(k, v)
-    logger.info(camera.focal)
-    logger.info(camera.distortion)
 
 
 def triangulate_gcp(point, shots):
