@@ -57,10 +57,10 @@ void BundleAdjuster::AddCamera(const std::string &id, const Camera& camera, cons
 }
 
 void BundleAdjuster::AddShot(const std::string &id, 
-                                 const std::string &camera,
-                                 const Eigen::Vector3d& rotation,
-                                 const Eigen::Vector3d& translation,
-                                 bool constant) {
+                             const std::string &camera,
+                             const Vec3d& rotation,
+                             const Vec3d& translation,
+                             bool constant) {
   BAShot s;
   s.id = id;
   s.camera = camera;
@@ -78,7 +78,7 @@ void BundleAdjuster::SetScaleSharing(const std::string &id, bool share) {
 }
 
 void BundleAdjuster::AddReconstruction(const std::string &id,
-                                           bool constant) {
+                                       bool constant) {
   BAReconstruction r;
   r.id = id;
   r.constant = constant;
@@ -97,9 +97,9 @@ void BundleAdjuster::AddReconstructionShot(
   find->second.shots[shot_id] = &shots_[shot_id];
 }
 
-void BundleAdjuster::AddPoint(const std::string &id, 
-                                  const Eigen::Vector3d& position,
-                                  bool constant) {
+void BundleAdjuster::AddPoint(const std::string &id,
+                              const Vec3d &position,
+                              bool constant) {
   BAPoint p;
   p.id = id;
   p.parameters = position;
@@ -204,9 +204,9 @@ void BundleAdjuster::AddRelativeRotation(const BARelativeRotation &rr) {
 }
 
 void BundleAdjuster::AddCommonPosition(const std::string &shot_id1,
-                                           const std::string &shot_id2,
-                                           double margin,
-                                           double std_deviation) {
+                                       const std::string &shot_id2,
+                                       double margin,
+                                       double std_deviation) {
   BACommonPosition a;
   a.shot1 = &shots_[shot_id1];
   a.shot2 = &shots_[shot_id2];
@@ -216,9 +216,9 @@ void BundleAdjuster::AddCommonPosition(const std::string &shot_id1,
 }
 
 void BundleAdjuster::AddAbsolutePosition(const std::string &shot_id,
-                                             const Eigen::Vector3d& position,
-                                             double std_deviation,
-                                             const std::string& std_deviation_group) {
+                                         const Vec3d& position,
+                                         double std_deviation,
+                                         const std::string& std_deviation_group) {
   BAAbsolutePosition a;
   a.shot = &shots_[shot_id];
   a.position = position;
@@ -229,7 +229,7 @@ void BundleAdjuster::AddAbsolutePosition(const std::string &shot_id,
 
 void BundleAdjuster::AddAbsoluteUpVector(
     const std::string &shot_id, 
-    const Eigen::Vector3d& up_vector,
+    const Vec3d& up_vector,
     double std_deviation) {
   BAAbsoluteUpVector a;
   a.shot = &shots_[shot_id];
@@ -272,11 +272,11 @@ void BundleAdjuster::AddAbsoluteRoll(
 }
 
 void BundleAdjuster::AddPointPositionShot(const std::string &point_id,
-                                              const std::string &shot_id,
-                                              const std::string &reconstruction_id,
-                                              const Eigen::Vector3d& position,
-                                              double std_deviation,
-                                              const PositionConstraintType& type) {
+                                          const std::string &shot_id,
+                                          const std::string &reconstruction_id,
+                                          const Vec3d &position,
+                                          double std_deviation,
+                                          const PositionConstraintType &type) {
   BAPointPositionShot a;
   a.point_id = point_id;
   a.shot_id = shot_id;
@@ -288,9 +288,9 @@ void BundleAdjuster::AddPointPositionShot(const std::string &point_id,
 }
 
 void BundleAdjuster::AddPointPositionWorld(const std::string &point_id,
-                                               const Eigen::Vector3d& position,
-                                               double std_deviation,
-                                               const PositionConstraintType& type) {
+                                           const Vec3d &position,
+                                           double std_deviation,
+                                           const PositionConstraintType &type) {
   BAPointPositionWorld a;
   a.point_id = point_id;
   a.position = position;
@@ -300,13 +300,13 @@ void BundleAdjuster::AddPointPositionWorld(const std::string &point_id,
 }
 
 void BundleAdjuster::SetPointProjectionLossFunction(std::string name,
-                                                        double threshold) {
+                                                    double threshold) {
   point_projection_loss_name_ = name;
   point_projection_loss_threshold_ = threshold;
 }
 
 void BundleAdjuster::SetRelativeMotionLossFunction(std::string name,
-                                                       double threshold) {
+                                                   double threshold) {
   relative_motion_loss_name_ = name;
   relative_motion_loss_threshold_ = threshold;
 }
@@ -393,11 +393,11 @@ ceres::LinearSolverType LinearSolverTypeFromNamae(std::string name) {
 }
 
 void BundleAdjuster::AddLinearMotion(const std::string &shot0_id,
-                                         const std::string &shot1_id,
-                                         const std::string &shot2_id,
-                                         double alpha,
-                                         double position_std_deviation,
-                                         double orientation_std_deviation) {
+                                     const std::string &shot1_id,
+                                     const std::string &shot2_id,
+                                     double alpha,
+                                     double position_std_deviation,
+                                     double orientation_std_deviation) {
   BALinearMotion a;
   a.shot0 = &shots_[shot0_id];
   a.shot1 = &shots_[shot1_id];
