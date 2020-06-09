@@ -49,18 +49,8 @@ class SlamInitializer(object):
         args = []
         im1 = self.init_shot.id
         im2 = curr_shot.id
-        # norm_p1 = features.\
-            # normalized_image_coordinates(f1_points[matches[:, 0], 0:2], self.camera.width, self.camera.height)
-        # norm_my = self.init_shot.normalize_keypts()
-        # norm_p2 = features.\
-            # normalized_image_coordinates(f2_points[matches[:, 1], 0:2], self.camera.width, self.camera.height)
-        # norm_p1_old = features.\
-        #     normalized_image_coordinates(f1_points[matches[:, 0], 0:2], self.camera.width, self.camera.height)
-        # norm_p1 = np.float64(f1_points[matches[:, 0], 0:3])
-        # norm_p2 = np.float64(f2_points[matches[:, 1], 0:3])
         norm_p1 = f1_points[matches[:, 0], 0:2]
         norm_p2 = f2_points[matches[:, 1], 0:2]
-        # norm_size = max(self.camera[1].width, self.camera[1].height)
         args.append((im1, im2, norm_p1, norm_p2,
                      self.camera, self.camera, threshold))
         chrono = slam_debug.Chronometer()
@@ -69,58 +59,27 @@ class SlamInitializer(object):
         chrono.lap("pair rec")
         if r == 0:
             return False, None
-        # scale_1 = f1_points[matches[:, 0], 2] 
-        # scale_2 = f2_points[matches[:, 1], 2] 
         # create the graph with the new tracks manager
         tracks_graph = pysfm.TracksManager()
         for (track_id, (f1_id, f2_id)) in enumerate(matches):
-            obs = self.init_shot.get_observation(f1_id)
-            # print(obs.id, f1_id)
             tracks_graph.add_observation(
                 im1, str(track_id), self.init_shot.get_observation(f1_id))
             tracks_graph.add_observation(
                 im2, str(track_id), curr_shot.get_observation(f2_id))
 
-        # create the graph with the new tracks manager
-        # tracks_graph = pysfm.TracksManager()
-        # for (track_id, (f1_id, f2_id)) in enumerate(matches):
-        #     x, y = norm_p1[track_id, 0:2]
-        #     s = scale_1[track_id]
-        #     r, g, b = [255, 0, 0]  # self.init_frame.colors[f1_id, :]
-        #     obs1 = pysfm.Observation(x, y, s, int(r), int(g), int(b), f1_id)
-        #     tracks_graph.add_observation(im1, str(track_id), obs1)
-
-        #     x, y = norm_p2[track_id, 0:2]
-        #     s = scale_2[track_id]
-        #     r, g, b = [255, 0, 0]
-        #     obs2 = pysfm.Observation(x, y, s, int(r), int(g), int(b), f2_id)
-        #     tracks_graph.add_observation(im2, str(track_id), obs2)
-        # obs1_test = tracks_graph_test.get_observation(im1, '1271')
-        # obs1 = tracks_graph.get_observation(im1, '1271')
-        # print(obs1_test.octave, obs1.octave)
-        # print(obs1_test.scale, obs1.scale)
-
         chrono.lap("track graph")
         rec_report = {}
-        # reconstruction_init, graph_inliers, rec_report['bootstrap'] = \
-        #     reconstruction_old.bootstrap_reconstruction(self.data, tracks_graph, self.data.load_camera_models(),
-        #                                             im1, im2, norm_p1, norm_p2)
         rec_init, rec_report['bootstrap'] = \
             reconstruction.bootstrap_reconstruction(self.data, tracks_graph, self.data.load_camera_models(),
                                                     im1, im2, norm_p1, norm_p2)
-        # exit(0)
         success = reconstruction is not None
         chrono.lap("boot rec")
         print("Init timings: ", chrono.lap_times())
         if success:
             print("Created init rec from {}<->{} with {} points from {} matches"
                   .format(im1, im2, self.map.number_of_landmarks(), len(matches)))
+        # rec_init.map.set_landmark_unique_id(len(matches))
         return success, rec_init
-        # if reconstruction_init is not None:
-            # print("Created init rec from {}<->{} with {} points from {} matches"
-                #   .format(im1, im2, len(reconstruction_init.points), len(matches)))
-        # slam_debug.visualize_graph(graph_inliers, self.init_shot.id, curr_shot.id, self.data, do_show=True)
-        # return reconstruction_init, graph_inliers, matches
 
     def initialize_openvslam_old(self, curr_shot):
         """Initialize similar to ORB-SLAM and Openvslam"""

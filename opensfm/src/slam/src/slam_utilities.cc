@@ -9,42 +9,42 @@
 namespace slam
 {
 
-// Eigen::Matrix3d
+// Mat3d
 Mat3d
 SlamUtilities::to_skew_symmetric_mat(const Vec3d &vec)
 {
-  Eigen::Matrix3d skew;
+  Mat3d skew;
   skew << 0, -vec(2), vec(1),
       vec(2), 0, -vec(0),
       -vec(1), vec(0), 0;
   return skew;
 }
 
-// Eigen::Matrix3f
-// SlamUtilities::create_E_21(const Eigen::Matrix3f &rot_1w, const Eigen::Vector3f &trans_1w,
-//                            const Eigen::Matrix3f &rot_2w, const Eigen::Vector3f &trans_2w)
+// Mat3f
+// SlamUtilities::create_E_21(const Mat3f &rot_1w, const Vec3f &trans_1w,
+//                            const Mat3f &rot_2w, const Vec3f &trans_2w)
 // {
-//   const Eigen::Matrix3f rot_21 = rot_2w * rot_1w.transpose();
-//   const Eigen::Vector3f trans_21 = -rot_21 * trans_1w + trans_2w;
-//   const Eigen::Matrix3f trans_21_x = to_skew_symmetric_mat(trans_21);
+//   const Mat3f rot_21 = rot_2w * rot_1w.transpose();
+//   const Vec3f trans_21 = -rot_21 * trans_1w + trans_2w;
+//   const Mat3f trans_21_x = to_skew_symmetric_mat(trans_21);
 //   return trans_21_x * rot_21;
 // }
 
 Mat3d
-SlamUtilities::create_E_21(const Eigen::Matrix3d &rot_1w, const Vec3d &trans_1w,
-                           const Eigen::Matrix3d &rot_2w, const Vec3d &trans_2w)
+SlamUtilities::create_E_21(const Mat3d &rot_1w, const Vec3d &trans_1w,
+                           const Mat3d &rot_2w, const Vec3d &trans_2w)
 {
-  const Eigen::Matrix3d rot_21 = rot_2w * rot_1w.transpose();
+  const Mat3d rot_21 = rot_2w * rot_1w.transpose();
   const Vec3d trans_21 = -rot_21 * trans_1w + trans_2w;
-  const Eigen::Matrix3d trans_21_x = to_skew_symmetric_mat(trans_21);
+  const Mat3d trans_21_x = to_skew_symmetric_mat(trans_21);
   return trans_21_x * rot_21;
 }
 
-bool SlamUtilities::check_epipolar_constraint(const Eigen::Vector3f &bearing_1, const Eigen::Vector3f &bearing_2,
-                                              const Eigen::Matrix3f &E_12, const float bearing_1_scale_factor)
+bool SlamUtilities::check_epipolar_constraint(const Vec3f &bearing_1, const Vec3f &bearing_2,
+                                              const Mat3f &E_12, const float bearing_1_scale_factor)
 {
   // keyframe1上のtエピポーラ平面の法線ベクトル
-  const Eigen::Vector3f epiplane_in_1 = E_12 * bearing_2;
+  const Vec3f epiplane_in_1 = E_12 * bearing_2;
 
   // 法線ベクトルとbearingのなす角を求める
   const auto cos_residual = epiplane_in_1.dot(bearing_1) / epiplane_in_1.norm();
@@ -72,6 +72,7 @@ SlamUtilities::ConvertOpenCVKptsToEigen(const AlignedVector<Observation>& keypts
     {
       const auto &kpt = keypts[i];
       mat.row(i) << kpt.point[0], kpt.point[1], kpt.scale, kpt.angle, kpt.octave;
+      // std::cout << "kpt: " << kpt.point[0] <<"," << kpt.point[1] << "," << kpt.scale << "," <<  kpt.angle << ", " << kpt.octave << std::endl;
     }
     return mat;
   }
@@ -472,6 +473,7 @@ SlamUtilities::SetNormalAndDepthFromObservations(map::Landmark& landmark, const 
   {
     return;
   }
+  // std::cout << "landmark: " << landmark.id_ << std::endl;
   Vec3d mean_normal = Vec3d::Zero();
   unsigned int num_observations = 0;
   for (const auto &observation : observations)
@@ -481,10 +483,13 @@ SlamUtilities::SetNormalAndDepthFromObservations(map::Landmark& landmark, const 
     const Vec3d normal = landmark.GetGlobalPos() - cam_center;
     mean_normal = mean_normal + normal / normal.norm();
     ++num_observations;
+    // std::cout << "shot: " << shot << ", " << shot->id_ << std::endl;
   }
   const auto dist = landmark.ComputeDistanceFromRefFrame();
   auto *ref_shot = landmark.GetRefShot();
+  // std::cout << "ref_shot: "<< ref_shot << ", " << ref_shot->id_ << std::endl;
   const auto ref_obs_idx = observations.at(ref_shot);
+  // std::cout << "res_obs_idx: " << ref_obs_idx << std::endl;
   const auto scale_level = ref_shot->slam_data_.undist_keypts_.at(ref_obs_idx).octave;
   // const auto scale_level = ref_shot_->undist_keypts_.at(observations_.at(ref_shot_)).octave;
   const auto scale_factor = scale_factors.at(scale_level);
@@ -503,7 +508,7 @@ SlamUtilities::ComputeMinMaxDepthInShot(const map::Shot& shot)
     // const Eigen::Matrix4d T_cw = shot.GetWorldToCam();
     const auto& landmarks = shot.GetLandmarks();
     const auto& pose = shot.GetPose();
-    const Eigen::Matrix3d R_cw = pose.RotationWorldToCamera();
+    const Mat3d R_cw = pose.RotationWorldToCamera();
     const Vec3d t_cw = pose.TranslationWorldToCamera();
     const Vec3d last_row = R_cw.row(2);
     const double t_z = t_cw[2];
@@ -657,7 +662,7 @@ void SlamUtilities::TriangulateShotFeatures(const TracksManager& tracks_manager,
   const auto& tracks = tracks_manager.GetShotObservations(shot->id_);
   // AlignedVector<Vec3d> bs;
   const auto& cam = shot->shot_camera_;
-  // std::map<std::string, std::pair<Vec3d, Eigen::Matrix3d>> buffer;
+  // std::map<std::string, std::pair<Vec3d, Mat3d>> buffer;
   // AlignedVector<Vec3d> os;
   // const auto n_shots = map.NumberOfShots();
   // Eigen::Matrix<double, Eigen::Dynamic, 3> os(2, 3);

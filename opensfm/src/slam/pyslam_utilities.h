@@ -47,7 +47,7 @@ public:
       if (landmarks[i] != nullptr)
       {
         const auto& kpt = keypts[i];
-        kpts.row(idx2) = Vec3f(kpt.point[0], kpt.point[1], kpt.octave);
+        kpts.row(idx2) = Vec3f(kpt.point[0], kpt.point[1], kpt.scale);
         idx2++;
       }
     }

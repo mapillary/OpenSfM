@@ -963,11 +963,15 @@ class TrackTriangulator:
                 point = types.Point()
                 point.id = track
                 point.coordinates = X.tolist()
+                # print("track", track)
+                if track in self.reconstruction.points:
+                    print("track: ", track)
+                    exit(0)
                 self.reconstruction.add_point(point)
+                #should be equal to:
+                #   self.reconstruction.create_point(track, X.tolist())
                 for shot_id in ids:
                     self._add_track_to_reconstruction(track, shot_id)
-                    # add_observation_to_reconstruction(self.tracks_manager,self.reconstruction,shot_id, track)
-
 
     def triangulate_dlt(self, track, reproj_threshold, min_ray_angle_degrees):
         """Triangulate track using DLT and add point to reconstruction."""

@@ -62,7 +62,7 @@ class SlamSystem(object):
                                             self.config_slam['feat_scale'],
                                             self.config_slam['feat_pyr_levels'])
         self.slam_mapper = SlamMapper(
-            self.data, self.config_slam, self.camera, self.map, self.extractor, self.matcher)
+            self.data, self.config_slam, self.camera, self.reconstruction, self.extractor, self.matcher)
         self.slam_init =\
             SlamInitializer(self.data, self.camera, self.matcher, self.map)
         self.slam_tracker = SlamTracker(self.matcher)
@@ -88,7 +88,8 @@ class SlamSystem(object):
         pose = self.track_frame(curr_shot)
         chrono.lap("track")
         if pose is not None:
-            curr_shot.get_pose().set_from_world_to_cam(slam_utils.pose_to_mat(pose))
+            curr_shot.set_pose(pose)
+            # curr_shot.get_pose().set_from_world_to_cam(slam_utils.pose_to_mat(pose))
 
         self.slam_mapper.update_with_last_frame(curr_shot)
         self.slam_mapper.num_tracked_lms = self.slam_tracker.num_tracked_lms

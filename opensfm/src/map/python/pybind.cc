@@ -139,7 +139,9 @@ PYBIND11_MODULE(pymap, m) {
            py::return_value_policy::reference_internal)
       .def("get_camera", &map::Map::GetCamera,
            py::return_value_policy::reference_internal)
-
+      .def("current_shot_unique_id", &map::Map::GetCurrentShotUniqueId)
+      .def("current_landmark_unique_id", &map::Map::GetCurrentLandmarkUniqueId)
+      .def("set_landmark_unique_id", &map::Map::SetLandmarkUniqueId)
       ;
 
   py::class_<map::TopoCentricConverter>(m, "TopoCentriConverter")
@@ -259,7 +261,8 @@ PYBIND11_MODULE(pymap, m) {
 
   py::class_<map::SLAMShotData>(m, "SlamShotData")
       .def_readonly("undist_keypts", &map::SLAMShotData::undist_keypts_,
-                    py::return_value_policy::reference_internal);
+                    py::return_value_policy::reference_internal)
+      .def("update_graph_node", &map::SLAMShotData::UpdateGraphNode);
 
   py::class_<map::SLAMLandmarkData>(m, "SlamLandmarkData")
       .def("get_observed_ratio", &map::SLAMLandmarkData::GetObservedRatio);

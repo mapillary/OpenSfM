@@ -2,15 +2,15 @@ from opensfm import types
 import numpy as np
 
 
-def mat_to_pose(mat):
-    pose = types.Pose()
-    pose.set_rotation_matrix(mat[0:3, 0:3])
-    pose.translation = mat[0:3, 3]
-    return pose
+# def mat_to_pose(mat):
+#     pose = types.Pose()
+#     pose.set_rotation_matrix(mat[0:3, 0:3])
+#     pose.translation = mat[0:3, 3]
+#     return pose
 
 
-def pose_to_mat(pose):
-    return np.vstack((pose.get_Rt(), np.array([0, 0, 0, 1])))
+# def pose_to_mat(pose):
+#     return np.vstack((pose.get_Rt(), np.array([0, 0, 0, 1])))
 
 
 def in_image(point, width, height):

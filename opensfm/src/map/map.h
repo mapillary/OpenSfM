@@ -81,7 +81,11 @@ public:
     topo_conv_.long_ = longitude;
     topo_conv_.alt_ = alt;
   }
-
+  // This is currently a workaround for SLAM to avoid
+  // non-unique ids!
+  void SetLandmarkUniqueId(const LandmarkUniqueId id) { landmark_unique_id_ = id; }
+  LandmarkUniqueId GetCurrentLandmarkUniqueId() const { return landmark_unique_id_; }
+  ShotUniqueId GetCurrentShotUniqueId() const { return shot_unique_id_; }
 private:
   std::unordered_map<CameraId, Camera> cameras_;
   // TODO: Think about switching to objects instead of unique_ptrs

@@ -25,8 +25,15 @@ void Map::AddObservation(const ShotId& shot_id, const LandmarkId& lm_id,
 
 void Map::AddObservation(Shot* const shot, Landmark* const lm,
                          const Observation& obs) {
-  lm->AddObservation(shot, obs.id);
-  shot->CreateObservation(lm, obs.point, obs.scale, obs.color, obs.id);
+  if (shot->UseLinearDataStructure())
+  {
+    AddObservation(shot, lm, obs.id);
+  }
+  else
+  {
+    shot->CreateObservation(lm, obs.point, obs.scale, obs.color, obs.id);
+    lm->AddObservation(shot, obs.id);
+  }
 }
 
 void Map::AddObservation(const ShotId& shot_id, const LandmarkId& lm_id, const Observation& obs)

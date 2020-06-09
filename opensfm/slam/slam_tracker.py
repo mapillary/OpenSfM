@@ -51,10 +51,11 @@ class SlamTracker(object):
         # assert(len(local_keyframes) == n_loc_kfs)
         # print("len(local_keyframes) == n_loc_kfs",n_loc_kfs, len(local_keyframes))
         chrono.lap("update_local_landmarks")
-        pose_tracking_2 = pymap.Pose()
-        pose_tracking_2.set_from_world_to_cam(
-            slam_utils.pose_to_mat(pose_tracking))
-        curr_shot.set_pose(pose_tracking_2)
+        # pose_tracking_2 = pymap.Pose()
+        # pose_tracking_2.set_from_world_to_cam(
+            # slam_utils.pose_to_mat(pose_tracking))
+        # curr_shot.set_pose(pose_tracking_2)
+        curr_shot.set_pose(pose_tracking)
         # n_matches = self.guided_matcher.search_local_landmarks(
         #     local_landmarks, curr_shot)
         # TODO: REMOVE DEBUG VISUALIZATION
@@ -91,8 +92,9 @@ class SlamTracker(object):
         points3D = np.zeros((len(lms), 3), dtype=np.float)
         for i, lm in enumerate(lms):
             points3D[i, :] = lm.get_global_pos()
-        observations, _, _ = features.normalize_features(
-            points2D, None, None, camera[1].width, camera[1].height)
+        # Not necessary
+        # observations, _, _ = features.normalize_features(
+        #     points2D, None, None, camera.width, camera.height)
 
         # TODO: Remove debug stuff
         # slam_debug.disable_debug = True
@@ -102,23 +104,16 @@ class SlamTracker(object):
         #                                title="bef tracking: "+curr_shot.id, obs_normalized=True, do_show=False)
         # slam_debug.avg_timings.addTimes(chrono.laps_dict)
 
-        pose_init_sfm = slam_utils.mat_to_pose(curr_shot.get_pose().get_world_to_cam())
-        pose, valid_pts = self.\
-            bundle_tracking(points3D, observations, pose_init_sfm, camera, data.config, data)
-        # print("pose: ", pose, " n_valid: ", len(valid_pts))
-        # chrono.lap("track_local_map")
-        # new_pose, n_valid = pyslam.SlamUtilities.bundle_tracking(curr_shot)
-        # chrono.lap("new_bundle")
-        # print(chrono.lap_times())
-        # print("new_pose: ", new_pose, "valid: ", n_valid)
-        # print("new_pose: ", new_pose.get_world_to_cam(), "vs", pose.get_Rt())
-        # assert(np.allclose(new_pose.get_R_world_to_cam(), pose.get_rotation_matrix()))
-        # exit(0)
-        slam_debug.avg_timings.addTimes(chrono.laps_dict)
+        # pose_init_sfm = slam_utils.mat_to_pose(curr_shot.get_pose().get_world_to_cam())
 
-        slam_debug.reproject_landmarks(points3D, observations,
-                                       slam_utils.pose_to_mat(pose), data.load_image(curr_shot.id), camera[1],
-                                       title="aft tracking: "+curr_shot.id, obs_normalized=True, do_show=True)
+        pose, valid_pts = self.\
+            bundle_tracking(points3D, points2D, curr_shot.get_pose(), camera, data.config, data)
+        slam_debug.avg_timings.addTimes(chrono.laps_dict)
+        slam_debug.disable_debug = False
+        slam_debug.reproject_landmarks(points3D, points2D,
+                                       pose.get_world_to_cam(), data.load_image(
+                                           curr_shot.id), camera,
+                                       title="aft tracking: " + curr_shot.id, obs_normalized=True, do_show=True)
         slam_debug.disable_debug = True
         slam_debug.avg_timings.addTimes(chrono.laps_dict)
         chrono.start()
@@ -168,27 +163,26 @@ class SlamTracker(object):
         # END velocity
         # TODO: REMOVE DEBUG VISUALIZATION
 
-        kf = slam_mapper.keyframes[-1]
-        lms = kf.get_valid_landmarks()
-        points3D = np.zeros((len(lms), 3), dtype=np.float)
-        for idx, lm in enumerate(lms):
-            points3D[idx, :] = lm.get_global_pos()
-        slam_debug.disable_debug = False
-        T_last = last_shot.get_pose().get_world_to_cam()
-        # slam_debug.reproject_landmarks(points3D, pyslam.SlamUtilities.keypts_from_shot(last_shot),
-                                    #    T_last, data.load_image(last_shot.id), camera, title="init_last", obs_normalized=True, do_show=False)
-        slam_debug.reproject_landmarks(points3D, pyslam.SlamUtilities.keypts_from_shot(curr_shot),
-                                       T_init, data.load_image(curr_shot.id), camera, title="init", obs_normalized=True, do_show=True)
-        slam_debug.disable_debug = True
+        # kf = slam_mapper.keyframes[-1]
+        # lms = kf.get_valid_landmarks()
+        # points3D = np.zeros((len(lms), 3), dtype=np.float)
+        # for idx, lm in enumerate(lms):
+        #     points3D[idx, :] = lm.get_global_pos()
+        # slam_debug.disable_debug = False
+        # T_last = last_shot.get_pose().get_world_to_cam()
+        # # slam_debug.reproject_landmarks(points3D, pyslam.SlamUtilities.keypts_from_shot(last_shot),
+        #                             #    T_last, data.load_image(last_shot.id), camera, title="init_last", obs_normalized=True, do_show=False)
+        # slam_debug.reproject_landmarks(points3D, pyslam.SlamUtilities.keypts_from_shot(curr_shot),
+        #                                T_init, data.load_image(curr_shot.id), camera, title="init", obs_normalized=True, do_show=True)
+        # slam_debug.disable_debug = True
         # TODO: REMOVE DEBUG VISUALIZATION
 
-
-        pose_init = pymap.Pose()
-        pose_init.set_from_world_to_cam(T_init)
-        curr_shot.set_pose(pose_init)
+        curr_shot.pose.set_from_world_to_cam(T_init)
         slam_debug.check_shot_for_double_entries(curr_shot)  # TODO: Remove debug stuff
         slam_debug.check_shot_for_double_entries(last_shot)  # TODO: Remove debug stuff
-        n_matches = self.guided_matcher.assign_shot_landmarks_to_kpts_new(slam_mapper.last_shot, curr_shot, margin)
+        n_matches = self.guided_matcher.\
+            assign_shot_landmarks_to_kpts_new(slam_mapper.last_shot,
+                                              curr_shot, margin)
         print("found matches: ", n_matches)
         if n_matches < 10:  # not enough matches found, increase margin
             print("matches2: ", margin)
@@ -204,31 +198,28 @@ class SlamTracker(object):
         valid_ids = curr_shot.get_valid_landmarks_indices()
 
         print("got: ", len(lms), " landmarks and ", len(points2D))
-        pts1 = []
-        # pts2 = []
-        for lm in lms:
-            pts1.append(lm.get_observation_in_shot(slam_mapper.last_shot))
-            # pts2.append(lm.get_observation_in_shot(curr_shot))
-        slam_debug.disable_debug = False
-        slam_debug.visualize_matches_pts(
-            pts1, points2D, np.column_stack((np.arange(len(lms), dtype=np.int), np.arange(len(lms), dtype=np.int))), 
-            data.load_image(slam_mapper.last_shot.id), 
-            data.load_image(curr_shot.id), is_normalized=True, do_show=True)
+        # TODO: REMOVE DEBUG VISUALIZATION
 
-    
-
-        # normalize -> not necessary I think!
-        # points2D, _, _ = features.\
-        #     normalize_features(points2D, None, None,
-        #                        camera.width, camera.height)
+        # pts1 = []
+        # # pts2 = []
+        # for lm in lms:
+        #     pts1.append(lm.get_observation_in_shot(slam_mapper.last_shot))
+        #     # pts2.append(lm.get_observation_in_shot(curr_shot))
+        # slam_debug.disable_debug = False
+        # slam_debug.visualize_matches_pts(
+        #     pts1, points2D, np.column_stack((np.arange(len(lms), dtype=np.int), np.arange(len(lms), dtype=np.int))), 
+        #     data.load_image(slam_mapper.last_shot.id), 
+        #     data.load_image(curr_shot.id), is_normalized=True, do_show=True)
+        # TODO: REMOVE DEBUG VISUALIZATION
 
         points3D = np.zeros((len(lms), 3), dtype=np.float)
         for i, lm in enumerate(lms):
             points3D[i, :] = lm.get_global_pos()
-        pose_init_sfm = slam_utils.mat_to_pose(T_init)
+        pose_init = pymap.Pose()
+        pose_init.set_from_world_to_cam(T_init)
         # Set up bundle adjustment problem
         pose, valid_pts = self.bundle_tracking(
-            points3D, points2D, pose_init_sfm, camera, config, data)
+            points3D, points2D, pose_init, camera, config, data)
 
         # TODO: REMOVE DEBUG VISUALIZATION
         kf = slam_mapper.keyframes[-1]
@@ -240,10 +231,10 @@ class SlamTracker(object):
         slam_debug.disable_debug = False
         slam_debug.\
             reproject_landmarks(points3D, points2D,
-                                slam_utils.pose_to_mat(pose),
+                                pose.get_world_to_cam(),
                                 data.load_image(curr_shot.id),
                                 camera, title="reproj",
-                                obs_normalized=False, do_show=True)
+                                obs_normalized=True, do_show=True)
         slam_debug.disable_debug = True
         # TODO: REMOVE DEBUG VISUALIZATION
 
@@ -336,9 +327,9 @@ class SlamTracker(object):
         chrono.lap('run_track')
         print("Tracking report: ", ba.full_report())
         s = ba.get_shot(shot_id)
-        pose = types.Pose()
-        pose.rotation = [s.r[0], s.r[1], s.r[2]]
-        pose.translation = [s.t[0], s.t[1], s.t[2]]
+        pose = pymap.Pose()
+        pose.set_from_world_to_cam([s.r[0], s.r[1], s.r[2]],
+                                   [s.t[0], s.t[1], s.t[2]])
         valid_pts = self.discard_outliers(ba, len(points3D), pose, camera)
         chrono.lap('discard_outliers')
         print(chrono.lap_times())

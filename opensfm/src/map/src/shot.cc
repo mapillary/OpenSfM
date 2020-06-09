@@ -114,21 +114,20 @@ Shot::NormalizeKeypts()
 }
 
 //For SLAM
-void
-Shot::UndistortAndComputeBearings()
-{
+void Shot::UndistortAndComputeBearings() {
   slam_data_.bearings_.reserve(keypoints_.size());
   slam_data_.undist_keypts_.reserve(keypoints_.size());
-  for (size_t idx = 0; idx < keypoints_.size(); ++idx)
-  {
-    slam_data_.bearings_.push_back(shot_camera_->Bearing(keypoints_[idx].point));
+
+  for (size_t idx = 0; idx < keypoints_.size(); ++idx) {
+    // slam_data_.bearings_.push_back(shot_camera_->Bearing(keypoints_[idx].point));
+    slam_data_.bearings_.push_back(shot_camera_->Bearing(shot_camera_->NormalizeImageCoordinate(keypoints_[idx].point)));
     slam_data_.undist_keypts_.emplace_back(keypoints_.at(idx));
+    
     auto& obs = slam_data_.undist_keypts_.back();
-    obs.point = shot_camera_->Project(slam_data_.bearings_.at(idx));
-    // std::cout << "undist pt: " << obs.point.transpose() << std::endl;
-    // std::cout << "kpts: " << keypoints_[idx].angle << ", "
-              // << slam_data_.undist_keypts_[idx].angle << std::endl;
+    obs.point = shot_camera_->Project(shot_camera_->Bearing(keypoints_[idx].point));
+    // std::cout << "idx: " << idx << " b: " << slam_data_.bearings_.back().transpose() <<", kp" << keypoints_[idx].point.transpose() << ",undist" << obs.point.transpose() << std::endl;
   }
+  // exit(0);
 }
 
 void

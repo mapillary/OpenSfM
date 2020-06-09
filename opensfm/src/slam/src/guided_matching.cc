@@ -140,7 +140,7 @@ GuidedMatcher::FindBestMatchForLandmark(const map::Landmark *const lm, map::Shot
 {
 
   // std::cout << "idx_last: " << idx_last << "lm id: " << lm->lm_id_ << "in pt2D: " << curr_frm.im_name << std::fixed << pt2D << ", " << last_scale_level << " rot_cw: " << rot_cw << " t_cw: " << trans_cw << std::endl;
-  std::cout << "scale_factors.at(scale_level)" <<  scale_factors_.at(scale_level) << "*" << margin << std::endl;
+  // std::cout << "scale_factors.at(scale_level)" <<  scale_factors_.at(scale_level) << "*" << margin << std::endl;
   const auto indices = GetKeypointsInCell(curr_shot.slam_data_.undist_keypts_,
                                           curr_shot.slam_data_.keypt_indices_in_cells_, 
                                           reproj_x, reproj_y,
@@ -149,7 +149,7 @@ GuidedMatcher::FindBestMatchForLandmark(const map::Landmark *const lm, map::Shot
                                         
   if (indices.empty())
   {
-    std::cout << "NO_MATCH, inidices.empty" << std::endl;
+    // std::cout << "NO_MATCH, inidices.empty" << std::endl;
     return NO_MATCH;
   }
 
@@ -175,10 +175,10 @@ GuidedMatcher::FindBestMatchForLandmark(const map::Landmark *const lm, map::Shot
       }
       const auto& desc = curr_shot.GetDescriptor(match_idx);
       const auto hamm_dist = compute_descriptor_distance_32(lm_desc, desc);
-      if (compute_descriptor_distance_32(desc,desc) != 0)
-      {
-        std::cout << "compute_descriptor_distance_32 failed!!" << std::endl;
-      }
+      // if (compute_descriptor_distance_32(desc,desc) != 0)
+      // {
+      //   std::cout << "compute_descriptor_distance_32 failed!!" << std::endl;
+      // }
       if (hamm_dist < best_hamm_dist) {
         second_best_hamm_dist = best_hamm_dist;
         best_hamm_dist = hamm_dist;
@@ -193,20 +193,20 @@ GuidedMatcher::FindBestMatchForLandmark(const map::Landmark *const lm, map::Shot
         }
     }
   }
-  std::cout << "Hamming dist: " << best_hamm_dist << ", " << second_best_hamm_dist << " scale: " << best_scale_level
-            << ", " << second_best_scale_level << "lowe: " << lowe_ratio <<std::endl;
+  // std::cout << "Hamming dist: " << best_hamm_dist << ", " << second_best_hamm_dist << " scale: " << best_scale_level
+            // << ", " << second_best_scale_level << "lowe: " << lowe_ratio <<std::endl;
   if (best_hamm_dist <= HAMMING_DIST_THR_HIGH)
   {
     //perform Lowe ratio test
     if (lowe_ratio > 0.0f && best_scale_level == second_best_scale_level && best_hamm_dist > lowe_ratio * second_best_hamm_dist) 
     {
-      std::cout << "NO_MATCH, lowe ratio" << std::endl;
+      // std::cout << "NO_MATCH, lowe ratio" << std::endl;
       return NO_MATCH;
       
     }
     return best_idx;
   }
-  std::cout << "NO_MATCH " << best_hamm_dist << std::endl;
+  // std::cout << "NO_MATCH " << best_hamm_dist << std::endl;
   return NO_MATCH;
   // return HAMMING_DIST_THR_HIGH < best_hamm_dist ? NO_MATCH : best_idx;
 }
@@ -580,6 +580,7 @@ GuidedMatcher::MatchingForTriangulationEpipolar(const map::Shot& kf1, const map:
   const Vec3d trans_2w = kf2_pose.TranslationWorldToCamera();
   // Compute relative position between the frames and project from kf1 to kf2
   // this has the benefit that we only have to compute the median depth once
+  // TODO: Make Make rewrite with relative to...
   const Mat4d T_kf2_kf1 = T_cw * kf1_pose.CameraToWorld();
   const Mat3d R_kf2_kf1 = T_kf2_kf1.block<3, 3>(0, 0);
   const Vec3d t_kf2_kf1 = T_kf2_kf1.block<3, 1>(0, 3);
@@ -615,7 +616,7 @@ GuidedMatcher::MatchingForTriangulationEpipolar(const map::Shot& kf1, const map:
   const auto inv_fy = 1.0 / K(1, 1);  // 1/fy;
   const auto cx = K(0, 2);            // cam->cx_p;
   const auto cy = K(1, 2);            // cam->cy_p;
-
+  std::cout << "fx: " << K(0,0) << ", " << K(1,1) << " cx: " << cx << " cy: " << cy << std::endl;
   //Now, we draw the original points, then the matches in the other image
   //Then, we the reprojection and serach!
   // const float median_depth = (max_depth+min_depth)*0.5;
@@ -629,6 +630,7 @@ GuidedMatcher::MatchingForTriangulationEpipolar(const map::Shot& kf1, const map:
   const auto inv_max_depth  = 1.0f/max_depth;
   const auto& undist_kpts1 = kf1.slam_data_.undist_keypts_;
   const auto& undist_kpts2 = kf2.slam_data_.undist_keypts_;
+  // std::cout << "inv_min_depth: " << inv_min_depth << "/" << inv_max_depth << std::endl;
   for (size_t idx_1 = 0; idx_1 < lms1.size(); ++idx_1)
   {
     const auto* lm_1 = lms1[idx_1];
@@ -639,6 +641,7 @@ GuidedMatcher::MatchingForTriangulationEpipolar(const map::Shot& kf1, const map:
     AlignedVector<Vec2d> pts2D;
     if (scale_1 >= 0)
     {
+      // std::cout << "u_kpt_1.point" << u_kpt_1.point.transpose() << "/" << scale_1 << std::endl;
       const Vec3d pt3D((u_kpt_1.point[0]-cx)*inv_fx, (u_kpt_1.point[1]-cy)*inv_fy, 1.0);
       const Vec3d ptTrans = KRK_i * Vec3d(u_kpt_1.point[0], u_kpt_1.point[1],1.0);
       const Vec2d start_pt = (ptTrans + Kt*inv_min_depth).hnormalized();
@@ -656,6 +659,7 @@ GuidedMatcher::MatchingForTriangulationEpipolar(const map::Shot& kf1, const map:
               pts2D.push_back(ptStep);
           else
               break; //Stop, once it's out of bounds!
+          //TODO: Rethink the contFlag
           // if (start_pt[0] < end_pt[1])
           bool contFlag = (start_pt[0] < end_pt[0] ? ptStep[0] < end_pt[0] : ptStep[0] > end_pt[0]);
           contFlag = contFlag && (start_pt[1] < end_pt[1] ? ptStep[1] < end_pt[1] : ptStep[1] > end_pt[1]);
@@ -663,6 +667,7 @@ GuidedMatcher::MatchingForTriangulationEpipolar(const map::Shot& kf1, const map:
           //     break;
       }
     }
+
     std::unordered_set<size_t> unique_indices;
     //assemble the indices
     for (const auto& pt2D : pts2D)
@@ -699,7 +704,10 @@ GuidedMatcher::MatchingForTriangulationEpipolar(const map::Shot& kf1, const map:
 
         // E行列による整合性チェック
         const bool is_inlier = CheckEpipolarConstraint(bearing_1, bearing_2, E_12,
-                                                       scale_factors_.at(u_kpt_1.scale));
+                                                       scale_factors_.at(u_kpt_1.octave));
+        // std::cout << "bearings: " << bearing_1.transpose() << ", " << bearing_2.transpose() << ","
+        //           << u_kpt_1.point.transpose() << ", is_inlier" << is_inlier << " scale:" <<
+        //           u_kpt_1.scale << ", " << u_kpt_1.octave << std::endl;
         if (is_inlier) {
             best_idx_2 = idx_2;
             best_hamm_dist = hamm_dist;
@@ -717,12 +725,14 @@ GuidedMatcher::MatchingForTriangulationEpipolar(const map::Shot& kf1, const map:
     matched_indices_2_in_keyfrm_1.at(idx_1) = best_idx_2;
     ++num_matches;
   }
+  // exit(0);
   matches.reserve(num_matches);
   //We do not check the orientation
   for (unsigned int idx_1 = 0; idx_1 < matched_indices_2_in_keyfrm_1.size(); ++idx_1) {
       if (matched_indices_2_in_keyfrm_1.at(idx_1) >= 0) 
       {
         matches.emplace_back(std::make_pair(idx_1, matched_indices_2_in_keyfrm_1.at(idx_1)));
+        std::cout << matches.size() << "m: " << idx_1 << "<->" << matched_indices_2_in_keyfrm_1.at(idx_1) << std::endl;
         if (idx_1 >= kf1.NumberOfKeyPoints() || matched_indices_2_in_keyfrm_1.at(idx_1) >= kf2.NumberOfKeyPoints())
         {
           std::cout << "OUT OF BOUNDS!" << idx_1 << "/" << matched_indices_2_in_keyfrm_1.at(idx_1) << " # tot: "
@@ -731,6 +741,7 @@ GuidedMatcher::MatchingForTriangulationEpipolar(const map::Shot& kf1, const map:
         }
       }
   }
+  
   return matches;
 }
 bool 

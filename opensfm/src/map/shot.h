@@ -18,14 +18,16 @@ class SLAMShotData {
   SLAMShotData() = delete;
   SLAMShotData(Shot* shot) : graph_node_(new data::graph_node(shot, false)) {}
   AlignedVector<Observation> undist_keypts_;
-  AlignedVector<Eigen::Vector3d> bearings_;
+  AlignedVector<Vec3d> bearings_;
   CellIndices keypt_indices_in_cells_;
   const std::unique_ptr<data::graph_node> graph_node_ = nullptr;
   SLAMShotData(const SLAMShotData&& sd):
-  undist_keypts_(sd.undist_keypts_),
-  bearings_(sd.bearings_)
+    undist_keypts_(sd.undist_keypts_),
+    bearings_(sd.bearings_)
   {
     // TODO: fix constructor
+    std::cout << "Move constructor" << std::endl;
+    exit(0);
   }
   void UpdateGraphNode() { graph_node_->update_connections(); }
 };
@@ -203,12 +205,13 @@ class Shot {
   {
     return landmarks_.empty() ? landmark_observations_.size() : landmarks_.size();
   }
+
+  bool UseLinearDataStructure() const { return !landmarks_.empty(); }
   void NormalizeKeypts();
  public:
   SLAMShotData slam_data_;
   const ShotId id_;  // the file name
   ShotUniqueId unique_id_;
-  // const Camera& shot_camera_;
   const Camera* const shot_camera_;
   ShotMeasurements shot_measurements_;  // metadata
   ShotMesh mesh;
