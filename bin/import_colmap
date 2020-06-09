@@ -12,6 +12,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import argparse
+import logging
 import math
 import os
 import sqlite3
@@ -33,6 +34,7 @@ from opensfm import types
 from opensfm import pygeometry
 
 EXPORT_DIR_NAME = 'opensfm_export'
+logger = logging.getLogger(__name__)
 
 camera_models = {
     0: ("SIMPLE_PINHOLE", 3),
@@ -231,7 +233,7 @@ def import_cameras_reconstruction(path_cameras):
     """
     Imports cameras from a COLMAP reconstruction cameras.bin file
     """
-    print("Importing cameras from {}".format(path_cameras))
+    logger.info("Importing cameras from {}".format(path_cameras))
     r_cams = {}
     with open(path_cameras, 'rb') as f:
         n_cameras = unpack('<Q', f.read(8))[0]
@@ -269,7 +271,7 @@ def cam_from_colmap_params(camera_model_id, width, height, params, prior_focal=1
 
 
 def import_points_reconstruction(path_points):
-    print("Importing points from {}".format(path_points))
+    logger.info("Importing points from {}".format(path_points))
     points3d = {}
     with open(path_points, 'rb') as f:
         n_points = unpack('<Q', f.read(8))[0]
@@ -297,7 +299,7 @@ def read_colmap_ply(path_ply):
     Reads the ply output from COLMAP.
     This is not a generic ply binary reader but a quick hack to read only this file
     """
-    print("Reading fused pointcloud {}".format(path_ply))
+    logger.info("Reading fused pointcloud {}".format(path_ply))
     header_should_be = ["ply\n",
                         "format binary_little_endian 1.0\n",
                         "element vertex\n",
@@ -350,7 +352,7 @@ def import_images_reconstruction(path_images, camera_map, keypoints, points3D):
     """
     Read images.bin, building shots and tracks graph
     """
-    print("Importing images from {}".format(path_images))
+    logger.info("Importing images from {}".format(path_images))
     tracks_manager = pysfm.TracksManager()
     shots = {}
     image_ix_to_shot_id = {}
@@ -398,7 +400,7 @@ def import_images_reconstruction(path_images, camera_map, keypoints, points3D):
 
 
 def read_vis(path_vis, image_ix_to_shot_id):
-    print("Reading visibility file {}".format(path_vis))
+    logger.info("Reading visibility file {}".format(path_vis))
     points_seen = defaultdict(list)
     with open(path_vis, 'rb') as f:
         n_points = unpack('<Q', f.read(8))[0]
@@ -426,7 +428,7 @@ def import_depthmaps_from_fused_pointcloud(udata, urec, image_ix_to_shot_id, pat
     # Project to shots and save as depthmaps
     max_size = udata.config['depthmap_resolution']
     for shot_id, points_seen_ixs in points_seen.items():
-        print("Projecting shot {}".format(shot_id))
+        logger.info("Projecting shot {}".format(shot_id))
         project_pointcloud_save_depth(udata,
                                       urec,
                                       points[points_seen_ixs],
@@ -564,10 +566,10 @@ def main():
                                                                      points3D)
             import_depthmaps_from_fused_pointcloud(udata, urec, image_ix_to_shot_id, path_ply)
         else:
-            print("Not importing dense reconstruction: Didn't find {}".format(path_ply))
+            logger.info("Not importing dense reconstruction: Didn't find {}".format(path_ply))
 
     else:
-        print("Didn't find some of the reconstruction files at {}".format(p_db.parent))
+        logger.info("Didn't find some of the reconstruction files at {}".format(p_db.parent))
 
     db.close()
 
