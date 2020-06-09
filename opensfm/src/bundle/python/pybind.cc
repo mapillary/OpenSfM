@@ -21,6 +21,7 @@ PYBIND11_MODULE(pybundle, m) {
     .def("run", &BundleAdjusterRun)
     .def("set_point_projection_loss_function", &BundleAdjuster::SetPointProjectionLossFunction)
     .def("set_relative_motion_loss_function", &BundleAdjuster::SetRelativeMotionLossFunction)
+    .def("add_camera", &BundleAdjuster::AddCamera)
     .def("get_camera", &BundleAdjuster::GetCamera)
     .def("get_shot", &BundleAdjuster::GetShot)
     .def("get_point", &BundleAdjuster::GetPoint)
@@ -62,12 +63,12 @@ PYBIND11_MODULE(pybundle, m) {
   ;
 
   py::enum_<PositionConstraintType>(m, "PositionConstraintType")
-        .value("X", PositionConstraintType::X)
-        .value("Y", PositionConstraintType::Y)
-        .value("Z", PositionConstraintType::Z)
-        .value("XY", PositionConstraintType::XY)
-        .value("XYZ", PositionConstraintType::XYZ)
-        .export_values()
+    .value("X", PositionConstraintType::X)
+    .value("Y", PositionConstraintType::Y)
+    .value("Z", PositionConstraintType::Z)
+    .value("XY", PositionConstraintType::XY)
+    .value("XYZ", PositionConstraintType::XYZ)
+    .export_values()
   ;
 
   py::class_<BAShot>(m, "BAShot")
