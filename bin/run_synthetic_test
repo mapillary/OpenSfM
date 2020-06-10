@@ -41,7 +41,7 @@ if __name__ == "__main__":
                 scene and evaluate its quality over different image noise\
                 and different GPS noise')
     parser.add_argument('--type',
-                        choices=['ellipse', 'line', 'curve'],
+                        choices=['circle', 'ellipse', 'line', 'curve'],
                         default='ellipse',
                         help='type of street geometry')
     parser.add_argument('--length',
@@ -77,7 +77,7 @@ if __name__ == "__main__":
         dataset.config['processes'] = multiprocessing.cpu_count()
         _, reconstructed_scene = reconstruction.\
             incremental_reconstruction(dataset, graph)
-        errors = scene.compare(reconstructed_scene[0])
+        errors = synthetic_scene.compare(reference, reconstructed_scene[0])
 
         position_file.write('%f, %f\n' % (projection_noise,
                                           errors['position_average'] +
