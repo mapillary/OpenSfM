@@ -203,53 +203,61 @@ PYBIND11_MODULE(pymap, m) {
           [](py::tuple s) {
             // Create camera
             auto t = s[3].cast<py::tuple>();
-            const auto values = t[0].cast<std::map<Camera::Parameters, double>>();
-          const auto type = t[1].cast<ProjectionType>();
-          const auto width = t[2].cast<int>();
-          const auto height = t[3].cast<int>();
-          const auto id = t[4].cast<std::string>();
-          
-          Camera camera = Camera::CreatePerspectiveCamera(0, 0, 0);
-          switch (type) {
-            case ProjectionType::PERSPECTIVE:{
-              camera = Camera::CreatePerspectiveCamera(values.at(Camera::Parameters::Focal),
-                                                        values.at(Camera::Parameters::K1),
-                                                        values.at(Camera::Parameters::K2));
-              break;
+            const auto values =
+                t[0].cast<std::map<Camera::Parameters, double>>();
+            const auto type = t[1].cast<ProjectionType>();
+            const auto width = t[2].cast<int>();
+            const auto height = t[3].cast<int>();
+            const auto id = t[4].cast<std::string>();
+
+            Camera camera = Camera::CreatePerspectiveCamera(0, 0, 0);
+            switch (type) {
+              case ProjectionType::PERSPECTIVE: {
+                camera = Camera::CreatePerspectiveCamera(
+                    values.at(Camera::Parameters::Focal),
+                    values.at(Camera::Parameters::K1),
+                    values.at(Camera::Parameters::K2));
+                break;
+              }
+              case ProjectionType::BROWN: {
+                Vec2d principal_point = Vec2d::Zero();
+                principal_point << values.at(Camera::Parameters::Cx),
+                    values.at(Camera::Parameters::Cy);
+                VecXd distortion(5);
+                distortion << values.at(Camera::Parameters::K1),
+                    values.at(Camera::Parameters::K2),
+                    values.at(Camera::Parameters::K3),
+                    values.at(Camera::Parameters::P1),
+                    values.at(Camera::Parameters::P2);
+                camera = Camera::CreateBrownCamera(
+                    values.at(Camera::Parameters::Focal),
+                    values.at(Camera::Parameters::AspectRatio), principal_point,
+                    distortion);
+                break;
+              }
+              case ProjectionType::FISHEYE: {
+                camera = Camera::CreateFisheyeCamera(
+                    values.at(Camera::Parameters::Focal),
+                    values.at(Camera::Parameters::K1),
+                    values.at(Camera::Parameters::K2));
+                break;
+              }
+              case ProjectionType::DUAL: {
+                camera = Camera::CreateDualCamera(
+                    values.at(Camera::Parameters::Transition),
+                    values.at(Camera::Parameters::Focal),
+                    values.at(Camera::Parameters::K1),
+                    values.at(Camera::Parameters::K2));
+                break;
+              }
+              case ProjectionType::SPHERICAL: {
+                camera = Camera::CreateSphericalCamera();
+                break;
+              }
             }
-            case ProjectionType::BROWN:{
-              Vec2d principal_point = Vec2d::Zero();
-              principal_point << values.at(Camera::Parameters::Cx), values.at(Camera::Parameters::Cy);
-              VecXd distortion(5);
-              principal_point << values.at(Camera::Parameters::K1), values.at(Camera::Parameters::K2),
-                                  values.at(Camera::Parameters::K3), values.at(Camera::Parameters::P1),
-                                  values.at(Camera::Parameters::P2);
-              camera = Camera::CreateBrownCamera(values.at(Camera::Parameters::Focal),
-                                                  values.at(Camera::Parameters::AspectRatio),
-                                                  principal_point, distortion);
-              break;
-            }
-            case ProjectionType::FISHEYE:{
-              camera = Camera::CreateFisheyeCamera(values.at(Camera::Parameters::Focal),
-                                                    values.at(Camera::Parameters::K1),
-                                                    values.at(Camera::Parameters::K2));
-              break;
-            }
-            case ProjectionType::DUAL:{
-              camera = Camera::CreateDualCamera(values.at(Camera::Parameters::Transition),
-                                                values.at(Camera::Parameters::Focal),
-                                                values.at(Camera::Parameters::K1),
-                                                values.at(Camera::Parameters::K2));
-              break;
-            }
-            case ProjectionType::SPHERICAL:{
-              camera = Camera::CreateSphericalCamera();
-              break;
-            }
-          }
-          camera.width = width;
-          camera.height = height;
-          camera.id = id;
+            camera.width = width;
+            camera.height = height;
+            camera.id = id;
             // create unique_ptr
             auto cam_ptr = std::unique_ptr<Camera>(new Camera(camera));
             auto pose = map::Pose();
@@ -324,22 +332,6 @@ PYBIND11_MODULE(pymap, m) {
       .def("remove_reprojection_error", &map::Landmark::RemoveReprojectionError)
       .def_property("color", &map::Landmark::GetColor,
                     &map::Landmark::SetColor);
-
-  //   py::class_<map::TestView>(m, "TestView")
-  //       .def(py::init<>())
-  //       .def("__len__",
-  //            [](const map::TestView &t) { return t.test_vector.size(); })
-  //       .def("__iter__",
-  //            [](const map::TestView &t) {
-  //              return py::make_key_iterator(t.test_map.begin(),
-  //              t.test_map.end());
-  //            })
-  //       .def("items", [](const map::TestView &t) {
-  //         return py::make_iterator(t.test_map.begin(), t.test_map.end());
-  //       });
-
-  //   py::class_<map::TestShot>(m, "TestShot")
-  //       .def_readonly("shot_id", &map::TestShot::shot_id);
 
   py::class_<map::ShotView>(m, "ShotView")
       .def(py::init<map::Map &>())

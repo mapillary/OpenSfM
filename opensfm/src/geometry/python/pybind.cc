@@ -148,8 +148,8 @@ PYBIND11_MODULE(pygeometry, m) {
               principal_point << values.at(Camera::Parameters::Cx), values.at(Camera::Parameters::Cy);
               VecXd distortion(5);
               distortion << values.at(Camera::Parameters::K1), values.at(Camera::Parameters::K2),
-                                  values.at(Camera::Parameters::K3), values.at(Camera::Parameters::P1),
-                                  values.at(Camera::Parameters::P2);
+                            values.at(Camera::Parameters::K3), values.at(Camera::Parameters::P1),
+                            values.at(Camera::Parameters::P2);
               camera = Camera::CreateBrownCamera(values.at(Camera::Parameters::Focal),
                                                   values.at(Camera::Parameters::AspectRatio),
                                                   principal_point, distortion);
