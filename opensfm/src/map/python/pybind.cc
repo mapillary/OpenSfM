@@ -50,6 +50,7 @@ PYBIND11_MODULE(pymap, m) {
       .def("get_R_world_to_cam_min", &map::Pose::RotationWorldToCameraMin)
       .def("get_t_cam_to_world", &map::Pose::TranslationCameraToWorld)
       .def("get_t_world_to_cam", &map::Pose::TranslationWorldToCamera)
+      .def("get_Rt", &map::Pose::WorldToCameraRt)
       .def_property("rotation", &map::Pose::RotationWorldToCameraMin,
                     &map::Pose::SetWorldToCamRotation)
       .def_property("translation", &map::Pose::TranslationWorldToCamera,
