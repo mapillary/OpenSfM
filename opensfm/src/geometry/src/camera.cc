@@ -2,12 +2,16 @@
 #include <geometry/camera_functions.h>
 #include <iostream>
 
+Camera::Camera(const std::vector<Camera::Parameters>& types, const VecXd& values){
+
+}
+
 Camera Camera::CreatePerspectiveCamera(double focal, double k1, double k2) {
   Camera camera;
   camera.type_ = ProjectionType::PERSPECTIVE;
-  camera.parameters_[Camera::Parameters::Focal] = focal;
-  camera.parameters_[Camera::Parameters::K1] = k1;
-  camera.parameters_[Camera::Parameters::K2] = k2;
+  camera.types_= {Camera::Parameters::Focal, Camera::Parameters::K1, Camera::Parameters::K2};
+  camera.values_.resize(3);
+  camera.values_ << focal, k1, k2;
   return camera;
 };
 
@@ -19,24 +23,23 @@ Camera Camera::CreateBrownCamera(double focal, double aspect_ratio,
     throw std::runtime_error("Invalid distortion coefficients size");
   }
   camera.type_ = ProjectionType::BROWN;
-  camera.parameters_[Camera::Parameters::Focal] = focal;
-  camera.parameters_[Camera::Parameters::AspectRatio] = aspect_ratio;
-  camera.parameters_[Camera::Parameters::K1] = distortion(0);
-  camera.parameters_[Camera::Parameters::K2] = distortion(1);
-  camera.parameters_[Camera::Parameters::K3] = distortion(2);
-  camera.parameters_[Camera::Parameters::P1] = distortion(3);
-  camera.parameters_[Camera::Parameters::P2] = distortion(4);
-  camera.parameters_[Camera::Parameters::Cx] = principal_point(0);
-  camera.parameters_[Camera::Parameters::Cy] = principal_point(1);
+  camera.types_ = {Camera::Parameters::Focal, Camera::Parameters::AspectRatio,
+                   Camera::Parameters::Cx,    Camera::Parameters::Cy,
+                   Camera::Parameters::K1,    Camera::Parameters::K2,
+                   Camera::Parameters::K3,    Camera::Parameters::P1,
+                   Camera::Parameters::P2};
+  camera.values_.resize(9);
+  camera.values_ << focal, aspect_ratio, principal_point[0], principal_point[1],
+      distortion[0], distortion[1], distortion[2], distortion[3], distortion[4];
   return camera;
 };
 
 Camera Camera::CreateFisheyeCamera(double focal, double k1, double k2) {
   Camera camera;
   camera.type_ = ProjectionType::FISHEYE;
-  camera.parameters_[Camera::Parameters::Focal] = focal;
-  camera.parameters_[Camera::Parameters::K1] = k1;
-  camera.parameters_[Camera::Parameters::K2] = k2;
+  camera.types_= {Camera::Parameters::Focal, Camera::Parameters::K1, Camera::Parameters::K2};
+  camera.values_.resize(3);
+  camera.values_ << focal, k1, k2;
   return camera;
 };
 
@@ -44,54 +47,57 @@ Camera Camera::CreateDualCamera(double transition, double focal, double k1,
                                 double k2) {
   Camera camera;
   camera.type_ = ProjectionType::DUAL;
-  camera.parameters_[Camera::Parameters::Focal] = focal;
-  camera.parameters_[Camera::Parameters::K1] = k1;
-  camera.parameters_[Camera::Parameters::K2] = k2;
-  camera.parameters_[Camera::Parameters::Transition] = transition;
+  camera.types_= {Camera::Parameters::Focal, Camera::Parameters::K1, Camera::Parameters::K2, Camera::Parameters::Transition};
+  camera.values_.resize(4);
+  camera.values_ << focal, k1, k2, transition;
   return camera;
 };
 
 Camera Camera::CreateSphericalCamera() {
   Camera camera;
-  camera.type_ = ProjectionType::SPHERICAL;
-  camera.parameters_[Camera::Parameters::None] = 0.;
+  camera.types_= {Camera::Parameters::None};
+  camera.values_.resize(1);
+  camera.values_ << 0.0;
   return camera;
 };
 
 std::vector<Camera::Parameters> Camera::GetParametersTypes() const {
-  std::vector<Camera::Parameters> types;
-  for (const auto p : parameters_) {
-    types.push_back(p.first);
-  }
-  return types;
+  return types_;
 }
 
 VecXd Camera::GetParametersValues() const {
-  VecXd values(parameters_.size());
-  int count = 0;
-  for (const auto p : parameters_) {
-    values[count++] = p.second;
-  }
-  return values;
+  return values_;
 }
 
 std::map<Camera::Parameters, double, Camera::CompParameters>
 Camera::GetParametersMap() const {
-  return parameters_;
+  std::map<Camera::Parameters, double, Camera::CompParameters> params_map;
+  for(int i = 0; i < values_.size(); ++i){
+    params_map[types_[i]] = values_[i];
+
+  }
+  return params_map;
 }
 
 void Camera::SetParameterValue(const Parameters& parameter, double value) {
-  if (parameters_.find(parameter) == parameters_.end()) {
-    throw std::runtime_error("Unknown parameter for this camera model");
+  for(int i = 0; i < values_.size(); ++i){
+    const auto type = types_[i];
+    if(type == parameter){
+      values_[i] = value;
+      return;
+    }
   }
-  parameters_[parameter] = value;
+  throw std::runtime_error("Unknown parameter for this camera model");
 }
 
 double Camera::GetParameterValue(const Parameters& parameter) const {
-  if (parameters_.find(parameter) == parameters_.end()) {
-    throw std::runtime_error("Unknown parameter for this camera model");
+  for(int i = 0; i < values_.size(); ++i){
+    const auto type = types_[i];
+    if(type == parameter){
+      return values_[i];
+    }
   }
-  return parameters_.at(parameter);
+  throw std::runtime_error("Unknown parameter for this camera model");
 }
 
 ProjectionType Camera::GetProjectionType() const { return type_; }
@@ -116,25 +122,27 @@ std::string Camera::GetProjectionString() const {
 Mat3d Camera::GetProjectionMatrix() const {
   Mat3d unnormalized = Mat3d::Zero();
 
+  const auto params_map = GetParametersMap();
+
   double focal = 1.0;
-  const auto find_focal = parameters_.find(Camera::Parameters::Focal);
-  if(find_focal != parameters_.end()){
+  const auto find_focal = params_map.find(Camera::Parameters::Focal);
+  if(find_focal != params_map.end()){
     focal = find_focal->second;
   }
 
   double aspect_ratio = 1.0;
-  const auto find_aspect_ratio = parameters_.find(Camera::Parameters::AspectRatio);
-  if(find_aspect_ratio != parameters_.end()){
+  const auto find_aspect_ratio = params_map.find(Camera::Parameters::AspectRatio);
+  if(find_aspect_ratio != params_map.end()){
     aspect_ratio = find_aspect_ratio->second;
   }
 
   Vec2d principal_point = Vec2d::Zero();
-  const auto find_principal_point_x = parameters_.find(Camera::Parameters::Cx);
-  if(find_principal_point_x != parameters_.end()){
+  const auto find_principal_point_x = params_map.find(Camera::Parameters::Cx);
+  if(find_principal_point_x != params_map.end()){
     principal_point(0) = find_principal_point_x->second;
   }
-  const auto find_principal_point_y = parameters_.find(Camera::Parameters::Cy);
-  if(find_principal_point_y != parameters_.end()){
+  const auto find_principal_point_y = params_map.find(Camera::Parameters::Cy);
+  if(find_principal_point_y != params_map.end()){
     principal_point(1) = find_principal_point_y->second;
   }
 
@@ -157,8 +165,7 @@ Mat3d Camera::GetProjectionMatrixScaled(int width, int height) const {
 
 Vec2d Camera::Project(const Vec3d& point) const {
   Vec2d projected;
-  const auto parameters = GetParametersValues();
-  Dispatch<ProjectFunction>(type_, point.data(), parameters.data(),
+  Dispatch<ProjectFunction>(type_, point.data(), values_.data(),
                             projected.data());
   return projected;
 }
@@ -173,8 +180,7 @@ Eigen::MatrixX2d Camera::ProjectMany(const Eigen::MatrixX3d& points) const {
 
 Vec3d Camera::Bearing(const Vec2d& point) const {
   Vec3d bearing;
-  const auto parameters = GetParametersValues();
-  Dispatch<BearingFunction>(type_, point.data(), parameters.data(),
+  Dispatch<BearingFunction>(type_, point.data(), values_.data(),
                             bearing.data());
   return bearing;
 }
