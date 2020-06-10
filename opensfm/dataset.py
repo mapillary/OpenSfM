@@ -6,17 +6,16 @@ import logging
 import pickle
 import gzip
 
+import cv2
 import numpy as np
 import six
 
 from opensfm import io
 from opensfm import config
 from opensfm import geo
-from opensfm import tracking
 from opensfm import features
 from opensfm import upright
 from opensfm import pysfm
-
 
 logger = logging.getLogger(__name__)
 
@@ -213,7 +212,16 @@ class DataSet(object):
             if smask is None:
                 return mask
             else:
+                mask, smask = self._resize_masks_to_match(mask, smask)
                 return mask & smask
+
+    def _resize_masks_to_match(self, im1, im2):
+        h, w = max(im1.shape, im2.shape)
+        if im1.shape != (h, w):
+            im1 = cv2.resize(im1, (w, h), interpolation=cv2.INTER_NEAREST)
+        if im2.shape != (h, w):
+            im2 = cv2.resize(im2, (w, h), interpolation=cv2.INTER_NEAREST)
+        return im1, im2
 
     def _is_image_file(self, filename):
         extensions = {'jpg', 'jpeg', 'png', 'tif', 'tiff', 'pgm', 'pnm', 'gif'}
