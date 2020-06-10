@@ -419,19 +419,6 @@ def scale_down_image(image, width, height, interpolation=cv2.INTER_AREA):
     return cv2.resize(image, (width, height), interpolation=interpolation)
 
 
-def scale_images_to_match(im1, im2, mode, interpolation=cv2.INTER_AREA):
-    assert mode in ('enlarge', 'shrink')
-    if mode == 'enlarge':
-        h, w = max(im1.shape, im2.shape)
-    else:
-        h, w = min(im1.shape, im2.shape)
-    if im1.shape[0] != h:
-        im1 = cv2.resize(im1, (w, h), interpolation=interpolation)
-    else:
-        im2 = cv2.resize(im2, (w, h), interpolation=interpolation)
-    return im1, im2
-
-
 def depthmap_to_ply(shot, depth, image):
     """Export depthmap points as a PLY string"""
     height, width = depth.shape

@@ -17,8 +17,6 @@ from opensfm import features
 from opensfm import upright
 from opensfm import pysfm
 
-from opensfm.dense import scale_images_to_match
-
 logger = logging.getLogger(__name__)
 
 
@@ -214,8 +212,16 @@ class DataSet(object):
             if smask is None:
                 return mask
             else:
-                mask, smask = scale_images_to_match(mask, smask, 'enlarge', cv2.INTER_NEAREST)
+                mask, smask = self._resize_masks_to_match(mask, smask)
                 return mask & smask
+
+    def _resize_masks_to_match(self, im1, im2):
+        h, w = max(im1.shape, im2.shape)
+        if im1.shape != (h, w):
+            im1 = cv2.resize(im1, (w, h), interpolation=cv2.INTER_NEAREST)
+        if im2.shape != (h, w):
+            im2 = cv2.resize(im2, (w, h), interpolation=cv2.INTER_NEAREST)
+        return im1, im2
 
     def _is_image_file(self, filename):
         extensions = {'jpg', 'jpeg', 'png', 'tif', 'tiff', 'pgm', 'pnm', 'gif'}
