@@ -455,7 +455,7 @@ struct AddProjectionError {
                     ceres::LossFunction *loss, ceres::Problem *problem) {
     using ErrorType = typename ErrorTraits<T>::Type;
     constexpr static int ErrorSize = ErrorTraits<T>::Size;
-    constexpr static int CameraSize = SizeTraits<T>::Size;
+    constexpr static int CameraSize = T::Size;
     constexpr static int ShotSize = 6;
 
     ceres::CostFunction *cost_function =
@@ -501,7 +501,7 @@ struct AddCameraPriorlError {
       }
     }
 
-    constexpr static int CameraSize = SizeTraits<T>::Size;
+    constexpr static int CameraSize = T::Size;
     ceres::CostFunction *cost_function =
         new ceres::AutoDiffCostFunction<BADataPriorError<Camera>, CameraSize,
                                         CameraSize>(prior_function);
@@ -545,7 +545,7 @@ void BundleAdjuster::Run() {
       if(index >= 0){
         ceres::CostFunction *transition_barrier =
             new ceres::AutoDiffCostFunction<BAParameterBarrier, 1,
-                                            SizeTraits<DualCamera>::Size>(
+                                            DualCamera::Size>(
                 new BAParameterBarrier(0.0, 1.0, index));
         problem.AddResidualBlock(transition_barrier, NULL, data.data());
       }
