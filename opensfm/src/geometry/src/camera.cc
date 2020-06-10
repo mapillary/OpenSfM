@@ -55,6 +55,7 @@ Camera Camera::CreateDualCamera(double transition, double focal, double k1,
 
 Camera Camera::CreateSphericalCamera() {
   Camera camera;
+  camera.type_ = ProjectionType::SPHERICAL;
   camera.types_= {Camera::Parameters::None};
   camera.values_.resize(1);
   camera.values_ << 0.0;
