@@ -473,25 +473,3 @@ template <>
 struct SizeTraits<SphericalCamera> {
   static constexpr int Size = 1;  // Dummy as we cant' allocate zero-size vector
 };
-
-/* Struct that can help overcomes the member template specialization */
-struct DispatchHelper {
-  template <class T>
-  struct Type {};
-};
-
-/* Here's an example that uses some specialization 
- * by using overloading and DispatchHelper.
- * 
-struct DispatchMySTuff : public DispatchHelper {
-  template <class CAMERA>
-  static void DoMySTuff(MyArg1 arg1, MyArg2 arg2, ...) {
-    DoMyStuffInternal(Type<CAMERA>(), arg1, arg2, ...);
-  }
-
- private:
-  static void DoMySTuffInternal(const Type<PerspectiveCamera> &, MyArg1 arg1, MyArg2 arg2, ...)) {
-    constexpr int num_parameters = SizeTraits<PerspectiveCamera>::Size;
-  }
-};
-*/
