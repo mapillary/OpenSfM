@@ -58,6 +58,11 @@ template <int N>
 using VecNi = Eigen::Matrix<int, N, 1>;
 
 template <class T>
+using Vec1 = Eigen::Matrix<T, 1, 1>;
+using Vec1f = Eigen::Matrix<float, 1, 1>;
+using Vec1d = Eigen::Matrix<double, 1, 1>;
+
+template <class T>
 using Vec2 = Eigen::Matrix<T, 2, 1>;
 using Vec2f = Eigen::Matrix<float, 2, 1>;
 using Vec2d = Eigen::Matrix<double, 2, 1>;

@@ -106,8 +106,6 @@ class SlamSystem(object):
             self.system_initialized = success
 
             if self.system_initialized:
-                # print("CONTINUE FROM HERE! -> most of create init map shouldn't be necessary!")
-                # exit(0)
                 self.slam_mapper.create_init_map(rec_init,
                                                  self.slam_init.init_shot,
                                                  curr_shot)

@@ -167,7 +167,7 @@ def add_shots_to_reconstruction(positions, rotations,
     reconstruction.add_camera(camera)
     for i, item in enumerate(zip(positions, rotations)):
         shot = types.Shot()
-        shot.id = 'shot' + str(shift+i)
+        shot.id = 'shot%04d' % (shift + i)
         shot.camera = camera
         shot.pose = types.Pose()
         shot.pose.set_rotation_matrix(item[1])

@@ -30,6 +30,13 @@ class SLAMShotData {
     exit(0);
   }
   void UpdateGraphNode() { graph_node_->update_connections(); }
+  // std::vector<Vec3d> GetBearings() const
+  // {
+  //   std::vector<Vec3d> out;
+  //   out.reserve(bearings_.size());
+  //   std::copy(bearings_.cbegin(), bearings_.cend(), out.begin());
+  //   return out;
+  // }
 };
 
 struct ShotMesh {

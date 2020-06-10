@@ -55,6 +55,7 @@ class SlamInitializer(object):
                      self.camera, self.camera, threshold))
         chrono = slam_debug.Chronometer()
         chrono.lap("others")
+        # np.random.seed(None)
         i1, i2, r = reconstruction._compute_pair_reconstructability(args[0])
         chrono.lap("pair rec")
         if r == 0:
@@ -77,7 +78,7 @@ class SlamInitializer(object):
         print("Init timings: ", chrono.lap_times())
         if success:
             print("Created init rec from {}<->{} with {} points from {} matches"
-                  .format(im1, im2, self.map.number_of_landmarks(), len(matches)))
+                  .format(im1, im2, len(rec_init.points), len(matches)))
         # rec_init.map.set_landmark_unique_id(len(matches))
         return success, rec_init
 

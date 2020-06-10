@@ -7,7 +7,7 @@ from timeit import default_timer as timer
 from collections import defaultdict
 from opensfm import features
 from opensfm import types
-
+from opensfm import pyslam
 logger = logging.getLogger(__name__)
 
 disable_debug = True
@@ -189,3 +189,19 @@ def visualize_tracked_lms(points2D, shot, data, is_normalized=False):
             cv2.drawMarker(im1, (x, y), (255, 0, 0),
                            markerType=cv2.MARKER_SQUARE, markerSize=10)
     cv2.imwrite("./debug/track_" + shot.id, im1)
+
+
+def visualize_lms_shot(shot, im, title="reproj", show=True):
+    if disable_debug is False:
+        pose = shot.get_pose()
+        lms = shot.get_valid_landmarks()
+        points2D = pyslam.SlamUtilities.get_valid_kpts_from_shot(shot)
+        points3D = np.zeros((len(lms), 3), dtype=np.float)
+        for idx, lm in enumerate(lms):
+            points3D[idx, :] = lm.get_global_pos()
+        # camera = shot.camera()
+        reproject_landmarks(points3D, points2D,
+                            pose.get_world_to_cam(),
+                            im,
+                            shot.camera, title="reproj",
+                            obs_normalized=True, do_show=shot)

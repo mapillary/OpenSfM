@@ -109,7 +109,7 @@ class SlamTracker(object):
         pose, valid_pts = self.\
             bundle_tracking(points3D, points2D, curr_shot.get_pose(), camera, data.config, data)
         slam_debug.avg_timings.addTimes(chrono.laps_dict)
-        slam_debug.disable_debug = False
+        slam_debug.disable_debug = True
         slam_debug.reproject_landmarks(points3D, points2D,
                                        pose.get_world_to_cam(), data.load_image(
                                            curr_shot.id), camera,
@@ -199,7 +199,6 @@ class SlamTracker(object):
 
         print("got: ", len(lms), " landmarks and ", len(points2D))
         # TODO: REMOVE DEBUG VISUALIZATION
-
         # pts1 = []
         # # pts2 = []
         # for lm in lms:
@@ -221,22 +220,9 @@ class SlamTracker(object):
         pose, valid_pts = self.bundle_tracking(
             points3D, points2D, pose_init, camera, config, data)
 
-        # TODO: REMOVE DEBUG VISUALIZATION
-        kf = slam_mapper.keyframes[-1]
-        lms = curr_shot.get_valid_landmarks()
-        points2D = pyslam.SlamUtilities.get_valid_kpts_from_shot(curr_shot)
-        points3D = np.zeros((len(lms), 3), dtype=np.float)
-        for idx, lm in enumerate(lms):
-            points3D[idx, :] = lm.get_global_pos()
-        slam_debug.disable_debug = False
-        slam_debug.\
-            reproject_landmarks(points3D, points2D,
-                                pose.get_world_to_cam(),
-                                data.load_image(curr_shot.id),
-                                camera, title="reproj",
-                                obs_normalized=True, do_show=True)
         slam_debug.disable_debug = True
-        # TODO: REMOVE DEBUG VISUALIZATION
+        slam_debug.visualize_lms_shot(curr_shot, data.load_image(curr_shot.id))
+        slam_debug.disable_debug = False
 
         # Remove outliers
         print("valid: ", curr_shot.compute_num_valid_pts(1))
@@ -254,7 +240,8 @@ class SlamTracker(object):
             logger.error("Tracking lost!!")
             # TODO: ROBUST MATCHING
             exit()
-        slam_debug.visualize_tracked_lms(points2D[valid_pts, :], curr_shot, data)
+        slam_debug.visualize_tracked_lms(
+            points2D[valid_pts, :], curr_shot, data, is_normalized=True)
         return pose
 
     def bundle_tracking(self, points3D, observations, init_pose, camera,
@@ -288,13 +275,9 @@ class SlamTracker(object):
         chrono = slam_debug.Chronometer()
 
         ba = pybundle.BundleAdjuster()
-        # for camera in reconstruction.cameras.values():
-        reconstruction.\
-            _add_camera_to_bundle(ba, camera, camera, fix_cameras)
-
+        ba.add_camera(camera.id, camera, camera, fix_cameras)
         # constant motion velocity -> just say id
         shot_id = str(0)
-        # camera_id = str(camera[0])
         camera_id = camera.id
         camera_const = False
         ba.add_shot(shot_id, str(camera_id), init_pose.rotation,
@@ -304,7 +287,6 @@ class SlamTracker(object):
         for (pt_id, pt_coord) in enumerate(points3D):
             ba.add_point(str(pt_id), pt_coord, points_3D_constant)
             ft = observations[pt_id, :]
-            # ft[2] -> "should be the size and not the scale!!"
             ba.add_point_projection_observation(shot_id, str(pt_id),
                                                 ft[0], ft[1], ft[2])
         # Assume observations N x 3 (x,y,s)

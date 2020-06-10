@@ -85,131 +85,86 @@ TEST_F(CameraFixture, SphericalIsConsistent){
   ASSERT_EQ(projected(1), 0.2);
 }
 
-TEST_F(CameraFixture, PerspectiveCanSetDistortion){
-  Camera camera = Camera::CreatePerspectiveCamera(focal, distortion[0], distortion[1]);
-  camera.SetDistortion(new_distortion);
-
-  Eigen::VectorXd expected_distortion(5);
-  expected_distortion << 1, 1, 0, 0, 0;
-  ASSERT_EQ(expected_distortion, camera.GetDistortion());
-}
-
-TEST_F(CameraFixture, FisheyeCanSetDistortion){
-  Camera camera = Camera::CreateFisheyeCamera(focal, distortion[0], distortion[1]);
-  camera.SetDistortion(new_distortion);
-
-  Eigen::VectorXd expected_distortion(5);
-  expected_distortion << 1, 1, 0, 0, 0;
-  ASSERT_EQ(expected_distortion, camera.GetDistortion());
-}
-
-TEST_F(CameraFixture, DualCanSetDistortion){
-  Camera camera = Camera::CreateDualCamera(0.5, focal, distortion[0], distortion[1]);
-  camera.SetDistortion(new_distortion);
-
-  Eigen::VectorXd expected_distortion(5);
-  expected_distortion << 1, 1, 0, 0, 0;
-  ASSERT_EQ(expected_distortion, camera.GetDistortion());
-}
-
-TEST_F(CameraFixture, BrownCanSetDistortion){
-  Camera camera = Camera::CreateBrownCamera(focal, 1.0, principal_point, distortion);
-  camera.SetDistortion(new_distortion);
-
-  ASSERT_EQ(new_distortion, camera.GetDistortion());
-}
-
-TEST_F(CameraFixture, SphericalCanSetDistortion){
+TEST_F(CameraFixture, SphericalReturnCorrectTypes){
   Camera camera = Camera::CreateSphericalCamera();
-  camera.SetDistortion(new_distortion);
-
-  Eigen::VectorXd expected_distortion(5);
-  expected_distortion << 0, 0, 0, 0, 0;
-  ASSERT_EQ(expected_distortion, camera.GetDistortion());
+  const auto types = camera.GetParametersTypes();
+  ASSERT_EQ(1, types.size());
+  ASSERT_EQ(Camera::Parameters::None, types[0]);
 }
 
-TEST_F(CameraFixture, PerspectiveCanSetPrincipalPoint){
+TEST_F(CameraFixture, PerspectiveReturnCorrectTypes){
   Camera camera = Camera::CreatePerspectiveCamera(focal, distortion[0], distortion[1]);
-  camera.SetPrincipalPoint(new_principal_point);
-
-  const auto expected_principal_point = Eigen::Vector2d::Zero();
-  ASSERT_EQ(expected_principal_point, camera.GetPrincipalPoint());
+  const auto types = camera.GetParametersTypes();
+  const auto expected = std::vector<Camera::Parameters>(
+      {Camera::Parameters::Focal, Camera::Parameters::K1,
+       Camera::Parameters::K2});
+  ASSERT_THAT(expected, ::testing::ContainerEq(types));
 }
 
-TEST_F(CameraFixture, FisheyeCanSetPrincipalPoint){
-  Camera camera = Camera::CreateFisheyeCamera(focal, distortion[0], distortion[1]);
-  camera.SetPrincipalPoint(new_principal_point);
-
-  const auto expected_principal_point = Eigen::Vector2d::Zero();
-  ASSERT_EQ(expected_principal_point, camera.GetPrincipalPoint());
-}
-
-TEST_F(CameraFixture, DualCanSetPrincipalPoint){
-  Camera camera = Camera::CreateDualCamera(0.5, focal, distortion[0], distortion[1]);
-  camera.SetPrincipalPoint(new_principal_point);
-
-  const auto expected_principal_point = Eigen::Vector2d::Zero();
-  ASSERT_EQ(expected_principal_point, camera.GetPrincipalPoint());
-}
-
-TEST_F(CameraFixture, BrownCanSetPrincipalPoint){
-  Camera camera = Camera::CreateBrownCamera(focal, 1.0, principal_point, distortion);
-  camera.SetPrincipalPoint(new_principal_point);
-
-  ASSERT_EQ(new_principal_point, camera.GetPrincipalPoint());
-}
-
-TEST_F(CameraFixture, SphericalCanSetPrincipalPoint){
-  Camera camera = Camera::CreateSphericalCamera();
-  camera.SetPrincipalPoint(new_principal_point);
-
-  const auto expected_principal_point = Eigen::Vector2d::Zero();
-  ASSERT_EQ(expected_principal_point, camera.GetPrincipalPoint());
-}
-
-TEST_F(CameraFixture, PerspectiveCanSetFocalAndAspectRatio){
+TEST_F(CameraFixture, FisheyeReturnCorrectTypes) {
   Camera camera = Camera::CreatePerspectiveCamera(focal, distortion[0], distortion[1]);
-  camera.SetFocal(new_focal);
-  camera.SetAspectRatio(new_ar);
-
-  ASSERT_EQ(new_focal, camera.GetFocal());
-  ASSERT_EQ(1.0, camera.GetAspectRatio());
+  const auto types = camera.GetParametersTypes();
+  const auto expected = std::vector<Camera::Parameters>(
+      {Camera::Parameters::Focal, Camera::Parameters::K1,
+       Camera::Parameters::K2});
+  ASSERT_THAT(expected, ::testing::ContainerEq(types));
 }
 
-TEST_F(CameraFixture, FisheyeCanSetFocalAndAspectRatio){
-  Camera camera = Camera::CreateFisheyeCamera(focal, distortion[0], distortion[1]);
-  camera.SetFocal(new_focal);
-  camera.SetAspectRatio(new_ar);
-
-  ASSERT_EQ(new_focal, camera.GetFocal());
-  ASSERT_EQ(1.0, camera.GetAspectRatio());
-}
-
-TEST_F(CameraFixture, DualCanSetFocalAndAspectRatio){
-  Camera camera = Camera::CreateDualCamera(0.5, focal, distortion[0], distortion[1]);
-  camera.SetFocal(new_focal);
-  camera.SetAspectRatio(new_ar);
-
-  ASSERT_EQ(new_focal, camera.GetFocal());
-  ASSERT_EQ(1.0, camera.GetAspectRatio());
-}
-
-TEST_F(CameraFixture, BrownCanSetFocalAndAspectRatio){
+TEST_F(CameraFixture, BrownReturnCorrectTypes){
   Camera camera = Camera::CreateBrownCamera(focal, 1.0, principal_point, distortion);
-  camera.SetFocal(new_focal);
-  camera.SetAspectRatio(new_ar);
+  const auto types = camera.GetParametersTypes();
 
-  ASSERT_EQ(new_focal, camera.GetFocal());
-  ASSERT_EQ(new_ar, camera.GetAspectRatio());
+  const auto expected = std::vector<Camera::Parameters>(
+      {Camera::Parameters::Focal, Camera::Parameters::AspectRatio,
+       Camera::Parameters::Cx, Camera::Parameters::Cy, Camera::Parameters::K1,
+       Camera::Parameters::K2, Camera::Parameters::K3, Camera::Parameters::P1,
+       Camera::Parameters::P2});
+  ASSERT_THAT(expected, ::testing::ContainerEq(types));
 }
 
-TEST_F(CameraFixture, SphericalCanSetFocalAndAspectRatio){
-  Camera camera = Camera::CreateSphericalCamera();
-  camera.SetFocal(new_focal);
-  camera.SetAspectRatio(new_ar);
+TEST_F(CameraFixture, DualReturnCorrectTypes){
+  Camera camera = Camera::Camera::CreateDualCamera(0.5, focal, distortion[0], distortion[1]);
+  const auto types = camera.GetParametersTypes();
+  const auto expected = std::vector<Camera::Parameters>(
+      {Camera::Parameters::Focal, Camera::Parameters::K1,
+       Camera::Parameters::K2, Camera::Parameters::Transition});
+  ASSERT_THAT(expected, ::testing::ContainerEq(types));
+}
 
-  ASSERT_EQ(1.0, camera.GetFocal());
-  ASSERT_EQ(1.0, camera.GetAspectRatio());
+TEST_F(CameraFixture, PerspectiveReturnCorrectValues){
+  Camera camera = Camera::CreatePerspectiveCamera(focal, distortion[0], distortion[1]);
+  const auto values = camera.GetParametersValues();
+
+  Eigen::VectorXd expected(3);
+  expected << focal, distortion[0], distortion[1];
+  ASSERT_EQ(expected, values);
+}
+
+TEST_F(CameraFixture, FisheyeReturnCorrectValues) {
+  Camera camera = Camera::CreatePerspectiveCamera(focal, distortion[0], distortion[1]);
+  const auto values = camera.GetParametersValues();
+
+  Eigen::VectorXd expected(3);
+  expected << focal, distortion[0], distortion[1];
+  ASSERT_EQ(expected, values);
+}
+
+TEST_F(CameraFixture, BrownReturnCorrectValues){
+  Camera camera = Camera::CreateBrownCamera(focal, 1.0, principal_point, distortion);
+  const auto values = camera.GetParametersValues();
+
+  Eigen::VectorXd expected(9);
+  expected << focal, 1.0, principal_point, distortion;
+  ASSERT_EQ(expected, values);
+}
+
+TEST_F(CameraFixture, DualReturnCorrectValues){
+  Camera camera = Camera::Camera::CreateDualCamera(0.5, focal, distortion[0], distortion[1]);
+  const auto values = camera.GetParametersValues();
+
+  Eigen::VectorXd expected(4);
+  expected << focal, distortion[0], distortion[1], 0.5;
+  ASSERT_EQ(expected, values);
 }
 
 TEST_F(CameraFixture, PerspectiveReturnCorrectK){
@@ -218,6 +173,30 @@ TEST_F(CameraFixture, PerspectiveReturnCorrectK){
   Eigen::Matrix3d expected = Eigen::Matrix3d::Identity();
   expected(0, 0) = expected(1, 1) = focal;
   ASSERT_EQ(expected, camera.GetProjectionMatrix());
+}
+
+TEST_F(CameraFixture, CanSetParameter){
+  Camera camera = Camera::CreatePerspectiveCamera(focal, distortion[0], distortion[1]);
+
+  const double new_focal = 0.1;
+  camera.SetParameterValue(Camera::Parameters::Focal, new_focal);
+  const auto values = camera.GetParametersValues();
+
+  Eigen::VectorXd expected(3);
+  expected << new_focal, distortion[0], distortion[1];
+  ASSERT_EQ(expected, values);
+}
+
+TEST_F(CameraFixture, DoSetParameter){
+  Camera camera = Camera::CreatePerspectiveCamera(focal, distortion[0], distortion[1]);
+  const auto values = camera.GetParametersValues();
+  EXPECT_NO_THROW(camera.SetParameterValue(Camera::Parameters::Focal, 0.1));
+}
+
+TEST_F(CameraFixture, DoesntSetParameter){
+  Camera camera = Camera::CreatePerspectiveCamera(focal, distortion[0], distortion[1]);
+  const auto values = camera.GetParametersValues();
+  EXPECT_ANY_THROW(camera.SetParameterValue(Camera::Parameters::AspectRatio, 0.0));
 }
 
 TEST_F(CameraFixture, PerspectiveReturnCorrectKScaled){

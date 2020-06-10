@@ -732,7 +732,7 @@ GuidedMatcher::MatchingForTriangulationEpipolar(const map::Shot& kf1, const map:
       if (matched_indices_2_in_keyfrm_1.at(idx_1) >= 0) 
       {
         matches.emplace_back(std::make_pair(idx_1, matched_indices_2_in_keyfrm_1.at(idx_1)));
-        std::cout << matches.size() << "m: " << idx_1 << "<->" << matched_indices_2_in_keyfrm_1.at(idx_1) << std::endl;
+        // std::cout << matches.size() << "m: " << idx_1 << "<->" << matched_indices_2_in_keyfrm_1.at(idx_1) << std::endl;
         if (idx_1 >= kf1.NumberOfKeyPoints() || matched_indices_2_in_keyfrm_1.at(idx_1) >= kf2.NumberOfKeyPoints())
         {
           std::cout << "OUT OF BOUNDS!" << idx_1 << "/" << matched_indices_2_in_keyfrm_1.at(idx_1) << " # tot: "

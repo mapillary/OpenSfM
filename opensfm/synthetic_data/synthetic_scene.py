@@ -30,8 +30,10 @@ def get_camera(type, id, focal, k1, k2):
 
 def get_scene_generator(type, length):
     generator = None
+    if type == 'circle':
+        generator = functools.partial(sg.ellipse_generator, length, length)
     if type == 'ellipse':
-        ellipse_ratio = 4
+        ellipse_ratio = 2
         generator = functools.partial(sg.ellipse_generator, length,
                                       length / ellipse_ratio)
     if type == 'line':
@@ -86,7 +88,7 @@ class SyntheticCubeScene(SyntheticScene):
         self.cameras = {}
         for i in range(num_cameras):
             camera = camera = pygeometry.Camera.create_perspective(0.9, -0.1, 0.01)
-            camera.id = 'camera' + str(i)
+            camera.id = 'camera%04d' % i
             camera.height = 600
             camera.width = 800
             self.cameras[camera.id] = camera
@@ -106,8 +108,8 @@ class SyntheticCubeScene(SyntheticScene):
             up = [alpha * 0.2, alpha * 0.2, 1.0]
 
             shot = types.Shot()
-            shot.id = 'shot' + str(i)
-            shot.camera = self.cameras['camera' + str(i)]
+            shot.id = 'shot%04d' % i
+            shot.camera = self.cameras['camera%04d' % i]
             shot.pose = camera_pose(position, lookat, up)
             self.shots[shot.id] = shot
 
@@ -212,34 +214,31 @@ class SyntheticStreetScene(SyntheticScene):
                                       maximum_depth, noise)
 
 
-def pairs_from_track_data(reconstruction, graph, features):
-    pairs = defaultdict(list)
-    for track in reconstruction.points:
-        for im1, im2 in combinations(graph[track].keys(), 2):
-            f1 = features[im1][graph[track][im1]['feature_id']][:2]
-            f2 = features[im2][graph[track][im2]['feature_id']][:2]
-            if im1 < im2:
-                pairs[im1, im2].append((f1, f2))
-            else:
-                pairs[im1, im2].append((f2, f1))
-    return pairs
-
-
 def compare(reference, reconstruction):
-    position = sm.position_errors(reference, reconstruction)
-    gps = sm.gps_errors(reconstruction)
-    rotation = sm.rotation_errors(reference, reconstruction)
-    points = sm.points_errors(reference, reconstruction)
     completeness = sm.completeness_errors(reference, reconstruction)
+
+    absolute_position = sm.position_errors(reference, reconstruction)
+    absolute_rotation = sm.rotation_errors(reference, reconstruction)
+    absolute_points = sm.points_errors(reference, reconstruction)
+    absolute_gps = sm.gps_errors(reconstruction)
+
+    aligned = sm.aligned_to_reference(reference, reconstruction)
+    aligned_position = sm.position_errors(reference, aligned)
+    aligned_rotation = sm.rotation_errors(reference, aligned)
+    aligned_points = sm.points_errors(reference, aligned)
+    aligned_gps = sm.gps_errors(aligned)
+
     return {
-        'position_average': np.linalg.norm(np.average(position, axis=0)),
-        'position_std': np.linalg.norm(np.std(position, axis=0)),
-        'gps_average': np.linalg.norm(np.average(gps, axis=0)),
-        'gps_std': np.linalg.norm(np.std(gps, axis=0)),
-        'rotation_average': np.average(rotation),
-        'rotation_std': np.std(rotation),
-        'points_average': np.linalg.norm(np.average(points, axis=0)),
-        'points_std': np.linalg.norm(np.std(points, axis=0)),
         'ratio_cameras': completeness[0],
-        'ratio_points': completeness[1]
+        'ratio_points': completeness[1],
+
+        'absolute_position_rmse': sm.rmse(absolute_position),
+        'absolute_rotation_rmse': sm.rmse(absolute_rotation),
+        'absolute_points_rmse': sm.rmse(absolute_points),
+        'absolute_gps_rmse': sm.rmse(absolute_gps),
+
+        'aligned_position_rmse': sm.rmse(aligned_position),
+        'aligned_rotation_rmse': sm.rmse(aligned_rotation),
+        'aligned_points_rmse': sm.rmse(aligned_points),
+        'aligned_gps_rmse': sm.rmse(aligned_gps),
     }

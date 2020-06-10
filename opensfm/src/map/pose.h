@@ -104,6 +104,7 @@ public:
            cam_to_world_.block<3, 1>(0, 3);
   }
 
+  // T_pose_base = pose_CW*base_pose_WC
   Pose RelativeTo(const Pose &base_pose) const {
     Pose relpose;
     relpose.SetFromWorldToCamera(world_to_cam_ * base_pose.cam_to_world_);
