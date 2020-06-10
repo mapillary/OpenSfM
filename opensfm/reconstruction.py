@@ -231,9 +231,6 @@ def bundle_single_view(graph, reconstruction, shot_id, camera_priors, config):
     shot.pose.rotation = [s.r[0], s.r[1], s.r[2]]
     shot.pose.translation = [s.t[0], s.t[1], s.t[2]]
 
-    dummy = copy.deepcopy(shot.camera)
-    _get_camera_from_bundle(ba, dummy)
-
 
 def bundle_local(graph, reconstruction, camera_priors, gcp, central_shot_id, config):
     """Bundle adjust the local neighborhood of a shot."""
