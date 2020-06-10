@@ -23,7 +23,7 @@ def use_legacy_numpy_printoptions():
 @pytest.fixture(scope='module')
 def scene_synthetic():
     np.random.seed(42)
-    data = synthetic_examples.synthetic_ellipse_scene()
+    data = synthetic_examples.synthetic_circle_scene()
 
     maximum_depth = 40
     projection_noise = 1.0
