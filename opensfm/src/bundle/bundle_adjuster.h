@@ -6,6 +6,8 @@
 #include <vector>
 #include <string>
 
+#include <geometry/camera.h>
+
 #include "ceres/ceres.h"
 #include "ceres/rotation.h"
 
@@ -31,134 +33,6 @@ enum PositionConstraintType {
   XYZ = XY | Z
 };
 
-enum BACameraType {
-  BA_PERSPECTIVE_CAMERA,
-  BA_BROWN_PERSPECTIVE_CAMERA,
-  BA_FISHEYE_CAMERA,
-  BA_DUAL_CAMERA,
-  BA_EQUIRECTANGULAR_CAMERA
-};
-
-struct BACamera {
-  std::string id;
-  bool constant;
-
-  virtual ~BACamera() {}
-  virtual BACameraType type() = 0;
-};
-
-enum {
-  BA_CAMERA_FOCAL,
-  BA_CAMERA_K1,
-  BA_CAMERA_K2,
-  BA_CAMERA_NUM_PARAMS
-};
-
-enum {
-  BA_DUAL_CAMERA_FOCAL,
-  BA_DUAL_CAMERA_K1,
-  BA_DUAL_CAMERA_K2,
-  BA_DUAL_CAMERA_TRANSITION,
-  BA_DUAL_CAMERA_NUM_PARAMS
-};
-
-enum {
-  BA_BROWN_CAMERA_FOCAL_X,
-  BA_BROWN_CAMERA_FOCAL_Y,
-  BA_BROWN_CAMERA_C_X,
-  BA_BROWN_CAMERA_C_Y,
-  BA_BROWN_CAMERA_K1,
-  BA_BROWN_CAMERA_K2,
-  BA_BROWN_CAMERA_P1,
-  BA_BROWN_CAMERA_P2,
-  BA_BROWN_CAMERA_K3,
-  BA_BROWN_CAMERA_NUM_PARAMS
-};
-
-struct BAPerspectiveCamera : public BACamera {
-  double parameters[BA_CAMERA_NUM_PARAMS];
-  double focal_prior;
-  double k1_prior;
-  double k2_prior;
-
-  BACameraType type() { return BA_PERSPECTIVE_CAMERA; }
-  double GetFocal() { return parameters[BA_CAMERA_FOCAL]; }
-  double GetK1() { return parameters[BA_CAMERA_K1]; }
-  double GetK2() { return parameters[BA_CAMERA_K2]; }
-  void SetFocal(double v) { parameters[BA_CAMERA_FOCAL] = v; }
-  void SetK1(double v) { parameters[BA_CAMERA_K1] = v; }
-  void SetK2(double v) { parameters[BA_CAMERA_K2] = v; }
-};
-
-struct BABrownPerspectiveCamera : public BACamera {
-  double parameters[BA_BROWN_CAMERA_NUM_PARAMS];
-  double focal_x_prior;
-  double focal_y_prior;
-  double c_x_prior;
-  double c_y_prior;
-  double k1_prior;
-  double k2_prior;
-  double p1_prior;
-  double p2_prior;
-  double k3_prior;
-
-  BACameraType type() { return BA_BROWN_PERSPECTIVE_CAMERA; }
-  double GetFocalX() { return parameters[BA_BROWN_CAMERA_FOCAL_X]; }
-  double GetFocalY() { return parameters[BA_BROWN_CAMERA_FOCAL_Y]; }
-  double GetCX() { return parameters[BA_BROWN_CAMERA_C_X]; }
-  double GetCY() { return parameters[BA_BROWN_CAMERA_C_Y]; }
-  double GetK1() { return parameters[BA_BROWN_CAMERA_K1]; }
-  double GetK2() { return parameters[BA_BROWN_CAMERA_K2]; }
-  double GetP1() { return parameters[BA_BROWN_CAMERA_P1]; }
-  double GetP2() { return parameters[BA_BROWN_CAMERA_P2]; }
-  double GetK3() { return parameters[BA_BROWN_CAMERA_K3]; }
-  void SetFocalX(double v) { parameters[BA_BROWN_CAMERA_FOCAL_X] = v; }
-  void SetFocalY(double v) { parameters[BA_BROWN_CAMERA_FOCAL_Y] = v; }
-  void SetCX(double v) { parameters[BA_BROWN_CAMERA_C_X] = v; }
-  void SetCY(double v) { parameters[BA_BROWN_CAMERA_C_Y] = v; }
-  void SetK1(double v) { parameters[BA_BROWN_CAMERA_K1] = v; }
-  void SetK2(double v) { parameters[BA_BROWN_CAMERA_K2] = v; }
-  void SetP1(double v) { parameters[BA_BROWN_CAMERA_P1] = v; }
-  void SetP2(double v) { parameters[BA_BROWN_CAMERA_P2] = v; }
-  void SetK3(double v) { parameters[BA_BROWN_CAMERA_K3] = v; }
-};
-
-struct BAFisheyeCamera : public BACamera{
-  double parameters[BA_CAMERA_NUM_PARAMS];
-  double focal_prior;
-  double k1_prior;
-  double k2_prior;
-
-  BACameraType type() { return BA_FISHEYE_CAMERA; }
-  double GetFocal() { return parameters[BA_CAMERA_FOCAL]; }
-  double GetK1() { return parameters[BA_CAMERA_K1]; }
-  double GetK2() { return parameters[BA_CAMERA_K2]; }
-  void SetFocal(double v) { parameters[BA_CAMERA_FOCAL] = v; }
-  void SetK1(double v) { parameters[BA_CAMERA_K1] = v; }
-  void SetK2(double v) { parameters[BA_CAMERA_K2] = v; }
-};
-
-struct BADualCamera : public BACamera{
-  double parameters[BA_DUAL_CAMERA_NUM_PARAMS];
-  double focal_prior;
-  double k1_prior;
-  double k2_prior;
-
-  BACameraType type() { return BA_DUAL_CAMERA; }
-  double GetFocal() { return parameters[BA_DUAL_CAMERA_FOCAL]; }
-  double GetK1() { return parameters[BA_DUAL_CAMERA_K1]; }
-  double GetK2() { return parameters[BA_DUAL_CAMERA_K2]; }
-  double GetTransition() { return parameters[BA_DUAL_CAMERA_TRANSITION]; }
-  void SetFocal(double v) { parameters[BA_DUAL_CAMERA_FOCAL] = v; }
-  void SetK1(double v) { parameters[BA_DUAL_CAMERA_K1] = v; }
-  void SetK2(double v) { parameters[BA_DUAL_CAMERA_K2] = v; }
-  void SetTransition(double t) { parameters[BA_DUAL_CAMERA_TRANSITION] = t; }
-};
-
-struct BAEquirectangularCamera : public BACamera {
-  BACameraType type() { return BA_EQUIRECTANGULAR_CAMERA; }
-};
-
 struct BAShot {
   std::string id;
   std::string camera;
@@ -166,21 +40,21 @@ struct BAShot {
   double covariance[BA_SHOT_NUM_PARAMS * BA_SHOT_NUM_PARAMS];
   bool constant;
 
-  Eigen::Vector3d GetRotation() const {
-    Eigen::Vector3d r;
-    Eigen::Vector3d t;
+  Vec3d GetRotation() const {
+    Vec3d r;
+    Vec3d t;
     InvertTransform_(&parameters[BA_SHOT_RX], &parameters[BA_SHOT_TX], &r[0], &t[0]);
     return r;
   }
-  Eigen::Vector3d GetTranslation() const {
-    Eigen::Vector3d r;
-    Eigen::Vector3d t;
+  Vec3d GetTranslation() const {
+    Vec3d r;
+    Vec3d t;
     InvertTransform_(&parameters[BA_SHOT_RX], &parameters[BA_SHOT_TX], &r[0], &t[0]);
     return t;
   }
   double GetCovarianceInvParam(int i, int j) { return covariance[i * BA_SHOT_NUM_PARAMS + j]; }
 
-  void SetRotationAndTranslation(const Eigen::Vector3d &r, const Eigen::Vector3d &t) {
+  void SetRotationAndTranslation(const Vec3d &r, const Vec3d &t) {
     InvertTransform_(&r[0], &t[0], &parameters[BA_SHOT_RX], &parameters[BA_SHOT_TX]);
   }
 
@@ -200,10 +74,10 @@ struct BAPoint {
   std::string id;
   Eigen::Matrix<double, 3, 1> parameters;
   bool constant;
-  std::map<std::string, Eigen::VectorXd> reprojection_errors;
+  std::map<std::string, VecXd> reprojection_errors;
 
-  Eigen::Vector3d GetPoint() const {return parameters;}
-  void SetPoint(const Eigen::Vector3d &p) {parameters = p;}
+  Vec3d GetPoint() const {return parameters;}
+  void SetPoint(const Vec3d &p) {parameters = p;}
 };
 
 struct BAReconstruction {
@@ -235,8 +109,85 @@ struct BAReconstruction {
   }
 };
 
+template <class T>
+struct BAData {
+ public:
+  using ValueType = T;
+
+  BAData(const T &value, const T &prior, const T &sigma)
+      : value_(value), prior_(prior), sigma_(sigma) {}
+
+  VecXd &GetValueData() {
+    ValueToData(value_, value_data_);
+    return value_data_;
+  }
+
+  Camera GetValue() {
+    Camera v = value_;
+    DataToValue(value_data_, v);
+    return v;
+  }
+
+  VecXd GetPriorData() const {
+    VecXd prior_data;
+    ValueToData(prior_, prior_data);
+    return prior_data;
+  }
+
+  VecXd GetSigmaData() const {
+    VecXd sigma_data;
+    ValueToData(sigma_, sigma_data);
+    return sigma_data;
+  }
+  void SetSigma(const T &sigma) { sigma_ = sigma; }
+
+  virtual void ValueToData(const T &value, VecXd &data) const = 0;
+  virtual void DataToValue(const VecXd &data, T &value) const = 0;
+
+ protected:
+  VecXd value_data_;
+
+  T value_;
+  T prior_;
+  T sigma_;
+};
+
+struct BACamera : public BAData<Camera> {
+  BACamera(const Camera &value, const Camera &prior, const Camera &sigma)
+      : BAData<Camera>(value, prior, sigma),
+        all_parameters_(value.GetParametersTypes()),
+        parameters_to_optimize_(value.GetParametersTypes()) {}
+
+  std::vector<Camera::Parameters> GetParametersToOptimize() {
+    return parameters_to_optimize_;
+  }
+
+  void SetParametersToOptimize(const std::vector<Camera::Parameters> &p) {
+    parameters_to_optimize_ = p;
+  }
+
+ private:
+  void ValueToData(const Camera &value, VecXd &data) const final {
+    if (data.size() == 0) {
+      data = value.GetParametersValues();
+    }
+  }
+
+  void DataToValue(const VecXd &data, Camera &value) const final {
+    if (data.size() > 0) {
+      int count = 0;
+      for (const auto t : all_parameters_) {
+        value.SetParameterValue(t, data(count++));
+      }
+    }
+  }
+
+  std::vector<Camera::Parameters> parameters_to_optimize_;
+  std::vector<Camera::Parameters> all_parameters_;
+};
+
 struct BAPointProjectionObservation {
-  double coordinates[2];
+  Vec2d coordinates;
   BACamera *camera;
   BAShot *shot;
   BAPoint *point;
@@ -272,8 +223,8 @@ struct BARelativeMotion {
                    const std::string &shot_i,
                    const std::string &reconstruction_j,
                    const std::string &shot_j,
-                   const Eigen::Vector3d &rotation,
-                   const Eigen::Vector3d &translation,
+                   const Vec3d &rotation,
+                   const Vec3d &translation,
                    double robust_multiplier) {
     reconstruction_id_i = reconstruction_i;
     shot_id_i = shot_i;
@@ -287,18 +238,18 @@ struct BARelativeMotion {
     this->robust_multiplier = robust_multiplier;
   }
 
-  Eigen::Vector3d GetRotation() const {return parameters.segment(BA_SHOT_RX, 3);}
-  Eigen::Vector3d GetTranslation() const {return parameters.segment(BA_SHOT_TX, 3);}
-  void SetRotation(const Eigen::Vector3d &r) {parameters.segment(BA_SHOT_RX, 3) = r;}
-  void SetTranslation(const Eigen::Vector3d &t) {parameters.segment(BA_SHOT_TX, 3) = t;}
-  void SetScaleMatrix(const Eigen::MatrixXd& s) {scale_matrix = s;}
-
+  Vec3d GetRotation() const {return parameters.segment(BA_SHOT_RX, 3);}
+  Vec3d GetTranslation() const {return parameters.segment(BA_SHOT_TX, 3);}
+  void SetRotation(const Vec3d &r) {parameters.segment(BA_SHOT_RX, 3) = r;}
+  void SetTranslation(const Vec3d &t) {parameters.segment(BA_SHOT_TX, 3) = t;}
+  void SetScaleMatrix(const MatXd& s) {scale_matrix = s;}
+  
   std::string reconstruction_id_i;
   std::string shot_id_i;
   std::string reconstruction_id_j;
   std::string shot_id_j;
-  Eigen::VectorXd parameters;
-  Eigen::MatrixXd scale_matrix;
+  VecXd parameters;
+  MatXd scale_matrix;
   double robust_multiplier;
 };
 
@@ -307,8 +258,8 @@ struct BARelativeSimilarity : public BARelativeMotion {
                        const std::string &shot_i,
                        const std::string &reconstruction_j,
                        const std::string &shot_j,
-                       const Eigen::Vector3d &rotation,
-                       const Eigen::Vector3d &translation,
+                       const Vec3d &rotation,
+                       const Vec3d &translation,
                        double s, double robust_multiplier)
       : BARelativeMotion(reconstruction_i, shot_i, 
                          reconstruction_j, shot_j,
@@ -324,10 +275,10 @@ struct BARelativeSimilarity : public BARelativeMotion {
 struct BARelativeSimilarityCovariance
 {
   static const int Size = BA_SHOT_NUM_PARAMS+1;
-  std::vector<Eigen::Vector3d> points;
+  std::vector<Vec3d> points;
   Eigen::Matrix<double, Size, Size> covariance;
 
-  void AddPoint(const Eigen::Vector3d& v){points.push_back(v);}
+  void AddPoint(const Vec3d& v){points.push_back(v);}
 
   void Compute(){
     covariance.setZero();
@@ -359,20 +310,20 @@ struct BARelativeSimilarityCovariance
 struct BARelativeRotation {
   BARelativeRotation(const std::string &shot_i,
                      const std::string &shot_j,
-                     const Eigen::Vector3d &r) {
+                     const Vec3d &r) {
     shot_id_i = shot_i;
     shot_id_j = shot_j;
     rotation = r;
     scale_matrix.setIdentity();
   }
-  Eigen::Vector3d GetRotation() const {return rotation;}
-  void SetRotation(const Eigen::Vector3d& r) {rotation = r;}
-  void SetScaleMatrix(const Eigen::Matrix3d& s) {scale_matrix = s;}
+  Vec3d GetRotation() const {return rotation;}
+  void SetRotation(const Vec3d& r) {rotation = r;}
+  void SetScaleMatrix(const Mat3d& s) {scale_matrix = s;}
 
   std::string shot_id_i;
   std::string shot_id_j;
-  Eigen::Vector3d rotation;
-  Eigen::Matrix3d scale_matrix;
+  Vec3d rotation;
+  Mat3d scale_matrix;
 };
 
 struct BACommonPosition {
@@ -384,14 +335,14 @@ struct BACommonPosition {
 
 struct BAAbsolutePosition {
   BAShot *shot;
-  Eigen::Vector3d position;
+  Vec3d position;
   double std_deviation;
   std::string std_deviation_group;
 };
 
 struct BAAbsoluteUpVector {
   BAShot *shot;
-  Eigen::Vector3d up_vector;
+  Vec3d up_vector;
   double std_deviation;
 };
 
@@ -414,14 +365,14 @@ struct BAPointPositionShot {
   std::string shot_id;
   std::string reconstruction_id;
   std::string point_id;
-  Eigen::Vector3d position;
+  Vec3d position;
   double std_deviation;
   PositionConstraintType type;
 };
 
 struct BAPointPositionWorld {
   std::string point_id;
-  Eigen::Vector3d position;
+  Vec3d position;
   double std_deviation;
   PositionConstraintType type;
 };
@@ -433,46 +384,13 @@ class BundleAdjuster {
 
   // Bundle variables
 
-  void AddPerspectiveCamera(
-      const std::string &id,
-      double focal,
-      double k1,
-      double k2,
-      double focal_prior,
-      double k1_prior,
-      double k2_prior,
-      bool constant);
-
-  void AddBrownPerspectiveCamera(const BABrownPerspectiveCamera &c);
-
-  void AddFisheyeCamera(
-      const std::string &id,
-      double focal,
-      double k1,
-      double k2,
-      double focal_prior,
-      double k1_prior,
-      double k2_prior,
-      bool constant);
-
-  void AddDualCamera(
-      const std::string &id,
-      double focal,
-      double k1,
-      double k2,
-      double focal_prior,
-      double k1_prior,
-      double k2_prior,
-      double transition,
-      bool constant);
-
-  void AddEquirectangularCamera(const std::string &id);
-
+  void AddCamera(const std::string &id, const Camera& camera, const Camera& prior, bool constant);
+  void UpdateSigmas();
   void AddShot(
       const std::string &id,
       const std::string &camera,
-      const Eigen::Vector3d& rotation,
-      const Eigen::Vector3d& translation,
+      const Vec3d& rotation,
+      const Vec3d& translation,
       bool constant);
   void AddReconstruction(
       const std::string &id,
@@ -481,7 +399,7 @@ class BundleAdjuster {
                              const std::string& shot_id);
   void SetScaleSharing(const std::string &id, bool share);
   void AddPoint(const std::string &id, 
-                const Eigen::Vector3d& position,
+                const Vec3d& position,
                 bool constant);
 
   // averaging constraints
@@ -534,12 +452,12 @@ class BundleAdjuster {
       double std_deviation);
   void AddAbsolutePosition(
       const std::string &shot_id,
-      const Eigen::Vector3d& position,
+      const Vec3d& position,
       double std_deviation,
       const std::string& std_deviation_group);
   void AddAbsoluteUpVector(
       const std::string &shot_id,
-      const Eigen::Vector3d& up_vector,
+      const Vec3d& up_vector,
       double std_deviation);
   void AddAbsolutePan(
       const std::string &shot_id,
@@ -567,11 +485,11 @@ class BundleAdjuster {
   void AddPointPositionShot(const std::string &point_id,
                             const std::string &shot_id,
                             const std::string &reconstruction_id,
-                            const Eigen::Vector3d& position,
+                            const Vec3d& position,
                             double std_deviation,
                             const PositionConstraintType& type);
   void AddPointPositionWorld(const std::string &point_id,
-                             const Eigen::Vector3d& position,
+                             const Vec3d& position,
                              double std_deviation,
                              const PositionConstraintType& type);
 
@@ -607,11 +525,7 @@ class BundleAdjuster {
   void ComputeReprojectionErrors();
 
   // getters
-  BAPerspectiveCamera GetPerspectiveCamera(const std::string &id);
-  BABrownPerspectiveCamera GetBrownPerspectiveCamera(const std::string &id);
-  BAFisheyeCamera GetFisheyeCamera(const std::string &id);
-  BADualCamera GetDualCamera(const std::string &id);
-  BAEquirectangularCamera GetEquirectangularCamera(const std::string &id);
+  Camera GetCamera(const std::string &id);
   BAShot GetShot(const std::string &id);
   BAReconstruction GetReconstruction(const std::string &id);
   BAPoint GetPoint(const std::string &id);
@@ -622,11 +536,14 @@ class BundleAdjuster {
 
  private:
   // minimized data
-  std::map<std::string, std::unique_ptr<BACamera> > cameras_;
+  std::map<std::string, BACamera> cameras_;
   std::map<std::string, BAShot> shots_;
   std::map<std::string, BAReconstruction> reconstructions_;
   std::map<std::string, BAPoint> points_;
+
   
+  bool use_new_{false};
+
   // minimization constraints
 
   // reprojection observation

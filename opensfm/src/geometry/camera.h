@@ -1,45 +1,60 @@
 #pragma once
 
 #include <geometry/camera_functions.h>
+
 #include <Eigen/Eigen>
+#include <unordered_map>
 
 class Camera {
  public:
+  enum class Parameters : int {
+    Focal,
+    AspectRatio,
+    Cx,
+    Cy,
+    K1,
+    K2,
+    K3,
+    P1,
+    P2,
+    Transition,
+    None
+  };
+
+  struct CompParameters {
+    size_t operator()(const Parameters& p1, const Parameters& p2) const {
+      return static_cast<size_t>(p1) < static_cast<size_t>(p2);
+    }
+  };
+
   static Camera CreatePerspectiveCamera(double focal, double k1, double k2);
   static Camera CreateBrownCamera(double focal, double aspect_ratio,
-                                  const Eigen::Vector2d& principal_point,
-                                  const Eigen::VectorXd& distortion);
+                                  const Vec2d& principal_point,
+                                  const VecXd& distortion);
   static Camera CreateFisheyeCamera(double focal, double k1, double k2);
-  static Camera CreateDualCamera(double transition, double focal, double k1, double k2);
+  static Camera CreateDualCamera(double transition, double focal, double k1,
+                                 double k2);
   static Camera CreateSphericalCamera();
 
-  Eigen::Vector2d Project(const Eigen::Vector3d& point) const;
+  Vec2d Project(const Vec3d& point) const;
   Eigen::MatrixX2d ProjectMany(const Eigen::MatrixX3d& points) const;
 
-  Eigen::Vector3d Bearing(const Eigen::Vector2d& point) const;
+  Vec3d Bearing(const Vec2d& point) const;
   Eigen::MatrixX3d BearingsMany(const Eigen::MatrixX2d& points) const;
 
-  void SetProjectionParams(const Eigen::VectorXd& projection);
-  const Eigen::VectorXd& GetProjectionParams() const;
+  std::vector<Parameters> GetParametersTypes() const;
+  VecXd GetParametersValues() const;
+  std::map<Parameters, double, CompParameters> GetParametersMap()const;
 
-  void SetDistortion(const Eigen::VectorXd& distortion);
-  const Eigen::VectorXd& GetDistortion() const;
+  double GetParameterValue(const Parameters& parameter) const;
+  void SetParameterValue(const Parameters& parameter, double value);
 
-  void SetPrincipalPoint(const Eigen::Vector2d& principal_point);
-  Eigen::Vector2d GetPrincipalPoint() const;
+  ProjectionType GetProjectionType() const;
+  std::string GetProjectionString() const;
 
-  void SetFocal(double focal);
-  double GetFocal() const;
+  Mat3d GetProjectionMatrix() const;
+  Mat3d GetProjectionMatrixScaled(int width, int height) const;
 
-  void SetAspectRatio(double focal);
-  double GetAspectRatio() const;
-
-  ProjectionType GetProjectionType()const;
-  std::string GetProjectionString()const;
-
-  Eigen::Matrix3d GetProjectionMatrix()const;
-  Eigen::Matrix3d GetProjectionMatrixScaled(int width, int height)const;
-  
   int width{1};
   int height{1};
   std::string id;
@@ -48,10 +63,9 @@ class Camera {
   Camera();
 
   ProjectionType type_;
-  Eigen::VectorXd projection_;      // dual transition (1 = perspective, 0 = fisheye)
-  Eigen::Matrix2d affine_;          // fx, skew, skew, fy = (ar*fx)
-  Eigen::Vector2d principal_point_; // cx, cy
-  Eigen::VectorXd distortion_;      // r^2, r^4, r^6, p1, p2
+  std::map<Parameters, double, CompParameters> parameters_;
 };
 
-std::pair<Eigen::MatrixXf, Eigen::MatrixXf> ComputeCameraMapping(const Camera& from, const Camera& to, int width, int height);
+std::pair<MatXf, MatXf> ComputeCameraMapping(const Camera& from,
+                                             const Camera& to, int width,
+                                             int height);

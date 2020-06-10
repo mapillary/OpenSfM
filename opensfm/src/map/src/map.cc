@@ -268,21 +268,35 @@ void Map::ReplaceLandmark(Landmark* old_lm, Landmark* new_lm) {
 
 Camera* Map::CreateCamera(const Camera& cam) {
   auto make_cam = [](const Camera& cam) {
-    const VecXd& projection_params = cam.GetProjectionParams();
-    const VecXd& distortion = cam.GetDistortion();
-    const auto focal = cam.GetFocal();
     switch (cam.GetProjectionType()) {
       case ProjectionType::PERSPECTIVE:
-        return Camera::CreatePerspectiveCamera(focal, distortion[0],
-                                               distortion[1]);
-      case ProjectionType::BROWN:
-        return Camera::CreateBrownCamera(focal, cam.GetAspectRatio(),
-                                         cam.GetPrincipalPoint(), distortion);
+        return Camera::CreatePerspectiveCamera(
+            cam.GetParameterValue(Camera::Parameters::Focal),
+            cam.GetParameterValue(Camera::Parameters::K1),
+            cam.GetParameterValue(Camera::Parameters::K2));
+      case ProjectionType::BROWN: {
+        VecXd distortion(5);
+        distortion << cam.GetParameterValue(Camera::Parameters::K1),
+            cam.GetParameterValue(Camera::Parameters::K2),
+            cam.GetParameterValue(Camera::Parameters::K3),
+            cam.GetParameterValue(Camera::Parameters::P1),
+            cam.GetParameterValue(Camera::Parameters::P2);
+        return Camera::CreateBrownCamera(
+            cam.GetParameterValue(Camera::Parameters::Focal),
+            cam.GetParameterValue(Camera::Parameters::AspectRatio),
+            Vec2d(Camera::Parameters::Cx, Camera::Parameters::Cy), distortion);
+      }
       case ProjectionType::FISHEYE:
-        return Camera::CreateFisheyeCamera(focal, distortion[0], distortion[1]);
+        return Camera::CreateFisheyeCamera(
+            cam.GetParameterValue(Camera::Parameters::Focal),
+            cam.GetParameterValue(Camera::Parameters::K1),
+            cam.GetParameterValue(Camera::Parameters::K2));
       case ProjectionType::DUAL:
-        return Camera::CreateDualCamera(cam.GetProjectionParams()[0], focal,
-                                        distortion[0], distortion[1]);
+        return Camera::CreateDualCamera(
+            cam.GetParameterValue(Camera::Parameters::Transition),
+            cam.GetParameterValue(Camera::Parameters::Focal),
+            cam.GetParameterValue(Camera::Parameters::K1),
+            cam.GetParameterValue(Camera::Parameters::K2));
       case ProjectionType::SPHERICAL:
         return Camera::CreateSphericalCamera();
       default:

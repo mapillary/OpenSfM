@@ -5,30 +5,38 @@
 Camera Camera::CreatePerspectiveCamera(double focal, double k1, double k2) {
   Camera camera;
   camera.type_ = ProjectionType::PERSPECTIVE;
-  camera.affine_ << focal, 0, 0, focal;
-  camera.distortion_ << k1, k2, 0, 0, 0;
+  camera.parameters_[Camera::Parameters::Focal] = focal;
+  camera.parameters_[Camera::Parameters::K1] = k1;
+  camera.parameters_[Camera::Parameters::K2] = k2;
   return camera;
 };
 
 Camera Camera::CreateBrownCamera(double focal, double aspect_ratio,
-                                 const Eigen::Vector2d& principal_point,
-                                 const Eigen::VectorXd& distortion) {
+                                 const Vec2d& principal_point,
+                                 const VecXd& distortion) {
   Camera camera;
-  if (distortion.size() != camera.distortion_.size()) {
+  if (distortion.size() != 5) {
     throw std::runtime_error("Invalid distortion coefficients size");
   }
   camera.type_ = ProjectionType::BROWN;
-  camera.affine_ << focal, 0, 0, focal * aspect_ratio;
-  camera.distortion_ = distortion;
-  camera.principal_point_ = principal_point;
+  camera.parameters_[Camera::Parameters::Focal] = focal;
+  camera.parameters_[Camera::Parameters::AspectRatio] = aspect_ratio;
+  camera.parameters_[Camera::Parameters::K1] = distortion(0);
+  camera.parameters_[Camera::Parameters::K2] = distortion(1);
+  camera.parameters_[Camera::Parameters::K3] = distortion(2);
+  camera.parameters_[Camera::Parameters::P1] = distortion(3);
+  camera.parameters_[Camera::Parameters::P2] = distortion(4);
+  camera.parameters_[Camera::Parameters::Cx] = principal_point(0);
+  camera.parameters_[Camera::Parameters::Cy] = principal_point(1);
   return camera;
 };
 
 Camera Camera::CreateFisheyeCamera(double focal, double k1, double k2) {
   Camera camera;
   camera.type_ = ProjectionType::FISHEYE;
-  camera.affine_ << focal, 0, 0, focal;
-  camera.distortion_ << k1, k2, 0, 0, 0;
+  camera.parameters_[Camera::Parameters::Focal] = focal;
+  camera.parameters_[Camera::Parameters::K1] = k1;
+  camera.parameters_[Camera::Parameters::K2] = k2;
   return camera;
 };
 
@@ -36,76 +44,55 @@ Camera Camera::CreateDualCamera(double transition, double focal, double k1,
                                 double k2) {
   Camera camera;
   camera.type_ = ProjectionType::DUAL;
-  camera.projection_[0] = transition;
-  camera.affine_ << focal, 0, 0, focal;
-  camera.distortion_ << k1, k2, 0, 0, 0;
+  camera.parameters_[Camera::Parameters::Focal] = focal;
+  camera.parameters_[Camera::Parameters::K1] = k1;
+  camera.parameters_[Camera::Parameters::K2] = k2;
+  camera.parameters_[Camera::Parameters::Transition] = transition;
   return camera;
 };
 
 Camera Camera::CreateSphericalCamera() {
   Camera camera;
   camera.type_ = ProjectionType::SPHERICAL;
+  camera.parameters_[Camera::Parameters::None] = 0.;
   return camera;
 };
 
-void Camera::SetProjectionParams(const Eigen::VectorXd& projection) {
-  if (type_ != ProjectionType::DUAL) {
-    return;
+std::vector<Camera::Parameters> Camera::GetParametersTypes() const {
+  std::vector<Camera::Parameters> types;
+  for (const auto p : parameters_) {
+    types.push_back(p.first);
   }
-  if (type_ == ProjectionType::DUAL && projection.size() > 1) {
-    throw std::runtime_error("Incorrect size of projection parameters");
-  }
-  projection_ = projection;
+  return types;
 }
 
-const Eigen::VectorXd& Camera::GetProjectionParams() const {
-  return projection_;
+VecXd Camera::GetParametersValues() const {
+  VecXd values(parameters_.size());
+  int count = 0;
+  for (const auto p : parameters_) {
+    values[count++] = p.second;
+  }
+  return values;
 }
 
-void Camera::SetDistortion(const Eigen::VectorXd& distortion) {
-  std::vector<int> coeffs;
-  if (type_ != ProjectionType::SPHERICAL) {
-    coeffs.push_back(Disto::K1);
-    coeffs.push_back(Disto::K2);
-  }
-  if (type_ == ProjectionType::BROWN) {
-    coeffs.push_back(Disto::K3);
-    coeffs.push_back(Disto::P1);
-    coeffs.push_back(Disto::P2);
-  }
-  for (const auto idx : coeffs) {
-    distortion_[idx] = distortion[idx];
-  }
-}
-const Eigen::VectorXd& Camera::GetDistortion() const { return distortion_; }
-
-void Camera::SetPrincipalPoint(const Eigen::Vector2d& principal_point) {
-  if (type_ != ProjectionType::BROWN) {
-    return;
-  }
-  principal_point_ = principal_point;
-}
-Eigen::Vector2d Camera::GetPrincipalPoint() const { return principal_point_; }
-
-void Camera::SetFocal(double focal) {
-  if (type_ == ProjectionType::SPHERICAL) {
-    return;
-  }
-
-  const auto ar = GetAspectRatio();
-  affine_(1, 1) = ar * focal;
-  affine_(0, 0) = focal;
-}
-double Camera::GetFocal() const { return affine_(0, 0); }
-
-void Camera::SetAspectRatio(double ar) {
-  if (type_ != ProjectionType::BROWN) {
-    return;
-  }
-  affine_(1, 1) = ar * GetFocal();
+std::map<Camera::Parameters, double, Camera::CompParameters>
+Camera::GetParametersMap() const {
+  return parameters_;
 }
 
-double Camera::GetAspectRatio() const { return affine_(1, 1) / affine_(0, 0); }
+void Camera::SetParameterValue(const Parameters& parameter, double value) {
+  if (parameters_.find(parameter) == parameters_.end()) {
+    throw std::runtime_error("Unknown parameter for this camera model");
+  }
+  parameters_[parameter] = value;
+}
+
+double Camera::GetParameterValue(const Parameters& parameter) const {
+  if (parameters_.find(parameter) == parameters_.end()) {
+    throw std::runtime_error("Unknown parameter for this camera model");
+  }
+  return parameters_.at(parameter);
+}
 
 ProjectionType Camera::GetProjectionType() const { return type_; }
 
@@ -126,26 +113,54 @@ std::string Camera::GetProjectionString() const {
   }
 }
 
-Eigen::Matrix3d Camera::GetProjectionMatrix() const {
-  Eigen::Matrix3d unnormalized = Eigen::Matrix3d::Zero();
-  unnormalized << affine_;
-  unnormalized.col(2) << principal_point_, 1.0;
+Mat3d Camera::GetProjectionMatrix() const {
+  Mat3d unnormalized = Mat3d::Zero();
+
+  double focal = 1.0;
+  const auto find_focal = parameters_.find(Camera::Parameters::Focal);
+  if(find_focal != parameters_.end()){
+    focal = find_focal->second;
+  }
+
+  double aspect_ratio = 1.0;
+  const auto find_aspect_ratio = parameters_.find(Camera::Parameters::AspectRatio);
+  if(find_aspect_ratio != parameters_.end()){
+    aspect_ratio = find_aspect_ratio->second;
+  }
+
+  Vec2d principal_point = Vec2d::Zero();
+  const auto find_principal_point_x = parameters_.find(Camera::Parameters::Cx);
+  if(find_principal_point_x != parameters_.end()){
+    principal_point(0) = find_principal_point_x->second;
+  }
+  const auto find_principal_point_y = parameters_.find(Camera::Parameters::Cy);
+  if(find_principal_point_y != parameters_.end()){
+    principal_point(1) = find_principal_point_y->second;
+  }
+
+  unnormalized(0, 0) = focal;
+  unnormalized(1, 1) = focal*aspect_ratio;
+  unnormalized.col(2) << principal_point, 1.0;
   return unnormalized;
 }
 
-Eigen::Matrix3d Camera::GetProjectionMatrixScaled(int width, int height) const {
+Mat3d Camera::GetProjectionMatrixScaled(int width, int height) const {
   const auto unnormalizer = std::max(width, height);
+  Mat3d unnormalized = Mat3d::Zero();
 
-  Eigen::Matrix3d unnormalized = Eigen::Matrix3d::Zero();
-  unnormalized << unnormalizer * affine_;
-  unnormalized.col(2) << principal_point_[0] * unnormalizer + 0.5 * width,
-      principal_point_[1] * unnormalizer + 0.5 * height, 1.0;
+  const auto projection_matrix = GetProjectionMatrix();
+  unnormalized.block<2, 2>(0, 0) << unnormalizer * projection_matrix.block<2, 2>(0, 0);
+  unnormalized.col(2) << projection_matrix(0, 2) * unnormalizer + 0.5 * width,
+      projection_matrix(1, 2)  * unnormalizer + 0.5 * height, 1.0;
   return unnormalized;
 }
 
-Eigen::Vector2d Camera::Project(const Eigen::Vector3d& point) const {
-  return Dispatch<Eigen::Vector2d, ProjectFunction>(
-      type_, point, projection_, affine_, principal_point_, distortion_);
+Vec2d Camera::Project(const Vec3d& point) const {
+  Vec2d projected;
+  const auto parameters = GetParametersValues();
+  Dispatch<ProjectFunction>(type_, point.data(), parameters.data(),
+                            projected.data());
+  return projected;
 }
 
 Eigen::MatrixX2d Camera::ProjectMany(const Eigen::MatrixX3d& points) const {
@@ -156,9 +171,12 @@ Eigen::MatrixX2d Camera::ProjectMany(const Eigen::MatrixX3d& points) const {
   return projected;
 }
 
-Eigen::Vector3d Camera::Bearing(const Eigen::Vector2d& point) const {
-  return Dispatch<Eigen::Vector3d, BearingFunction>(
-      type_, point, projection_, affine_, principal_point_, distortion_);
+Vec3d Camera::Bearing(const Vec2d& point) const {
+  Vec3d bearing;
+  const auto parameters = GetParametersValues();
+  Dispatch<BearingFunction>(type_, point.data(), parameters.data(),
+                            bearing.data());
+  return bearing;
 }
 
 Eigen::MatrixX3d Camera::BearingsMany(const Eigen::MatrixX2d& points) const {
@@ -170,28 +188,22 @@ Eigen::MatrixX3d Camera::BearingsMany(const Eigen::MatrixX2d& points) const {
 }
 
 Camera::Camera() : type_(ProjectionType::PERSPECTIVE) {
-  projection_.resize(1);
-  projection_[0] = 1.0;
-  affine_.setIdentity();
-  principal_point_.setZero();
-  distortion_.resize(Disto::COUNT);
-  distortion_.setZero();
 }
 
-std::pair<Eigen::MatrixXf, Eigen::MatrixXf> ComputeCameraMapping(const Camera& from, const Camera& to, int width, int height){
+std::pair<MatXf, MatXf> ComputeCameraMapping(const Camera& from, const Camera& to, int width, int height){
   const auto normalizer_factor = std::max(width, height);
   const auto inv_normalizer_factor = 1.0/normalizer_factor;
 
-  Eigen::MatrixXf u_from(height, width);
-  Eigen::MatrixXf v_from(height, width);
+  MatXf u_from(height, width);
+  MatXf v_from(height, width);
 
   const auto half_width = width*0.5;
   const auto half_height = height*0.5;
 
   for(int v = 0; v < height; ++v){
     for(int u = 0; u < width; ++u){
-      const auto uv = Eigen::Vector2d(u-half_width, v-half_height);
-      const Eigen::Vector2d point_uv_from = normalizer_factor*from.Project(to.Bearing(inv_normalizer_factor*uv));
+      const auto uv = Vec2d(u-half_width, v-half_height);
+      const Vec2d point_uv_from = normalizer_factor*from.Project(to.Bearing(inv_normalizer_factor*uv));
       u_from(v, u) = point_uv_from(0) + half_width;
       v_from(v, u) = point_uv_from(1) + half_height;
     }

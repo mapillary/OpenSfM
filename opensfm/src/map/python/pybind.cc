@@ -198,48 +198,58 @@ PYBIND11_MODULE(pymap, m) {
             auto c = s.GetCamera();
             return py::make_tuple(
                 s.id_, s.unique_id_, s.GetPose().CameraToWorld(),
-                py::make_tuple(c->GetProjectionParams(), c->GetDistortion(),
-                               c->GetFocal(), c->GetPrincipalPoint(),
-                               c->GetAspectRatio(), c->GetProjectionType(),
-                               c->width, c->height, c->id));
+                py::make_tuple(c->GetParametersMap(), c->GetProjectionType(), c->width, c->height, c->id));
           },
           [](py::tuple s) {
             // Create camera
             auto t = s[3].cast<py::tuple>();
-            const auto projection_params = t[0].cast<Eigen::VectorXd>();
-            const auto distortion = t[1].cast<Eigen::VectorXd>();
-            const auto focal = t[2].cast<double>();
-            const auto principal_point = t[3].cast<Eigen::Vector2d>();
-            const auto aspect_ratio = t[4].cast<double>();
-            const auto type = t[5].cast<ProjectionType>();
-            const auto width = t[6].cast<int>();
-            const auto height = t[7].cast<int>();
-            const auto id = t[8].cast<std::string>();
-            Camera camera = Camera::CreatePerspectiveCamera(0, 0, 0);
-            switch (type) {
-              case ProjectionType::PERSPECTIVE:
-                camera = Camera::CreatePerspectiveCamera(focal, distortion[0],
-                                                         distortion[1]);
-                break;
-              case ProjectionType::BROWN:
-                camera = Camera::CreateBrownCamera(focal, aspect_ratio,
-                                                   principal_point, distortion);
-                break;
-              case ProjectionType::FISHEYE:
-                camera = Camera::CreateFisheyeCamera(focal, distortion[0],
-                                                     distortion[1]);
-                break;
-              case ProjectionType::DUAL:
-                camera = Camera::CreateDualCamera(projection_params[0], focal,
-                                                  distortion[0], distortion[1]);
-                break;
-              case ProjectionType::SPHERICAL:
-                camera = Camera::CreateSphericalCamera();
-                break;
+            const auto values = t[0].cast<std::map<Camera::Parameters, double>>();
+          const auto type = t[1].cast<ProjectionType>();
+          const auto width = t[2].cast<int>();
+          const auto height = t[3].cast<int>();
+          const auto id = t[4].cast<std::string>();
+          
+          Camera camera = Camera::CreatePerspectiveCamera(0, 0, 0);
+          switch (type) {
+            case ProjectionType::PERSPECTIVE:{
+              camera = Camera::CreatePerspectiveCamera(values.at(Camera::Parameters::Focal),
+                                                        values.at(Camera::Parameters::K1),
+                                                        values.at(Camera::Parameters::K2));
+              break;
             }
-            camera.width = width;
-            camera.height = height;
-            camera.id = id;
+            case ProjectionType::BROWN:{
+              Vec2d principal_point = Vec2d::Zero();
+              principal_point << values.at(Camera::Parameters::Cx), values.at(Camera::Parameters::Cy);
+              VecXd distortion(5);
+              principal_point << values.at(Camera::Parameters::K1), values.at(Camera::Parameters::K2),
+                                  values.at(Camera::Parameters::K3), values.at(Camera::Parameters::P1),
+                                  values.at(Camera::Parameters::P2);
+              camera = Camera::CreateBrownCamera(values.at(Camera::Parameters::Focal),
+                                                  values.at(Camera::Parameters::AspectRatio),
+                                                  principal_point, distortion);
+              break;
+            }
+            case ProjectionType::FISHEYE:{
+              camera = Camera::CreateFisheyeCamera(values.at(Camera::Parameters::Focal),
+                                                    values.at(Camera::Parameters::K1),
+                                                    values.at(Camera::Parameters::K2));
+              break;
+            }
+            case ProjectionType::DUAL:{
+              camera = Camera::CreateDualCamera(values.at(Camera::Parameters::Transition),
+                                                values.at(Camera::Parameters::Focal),
+                                                values.at(Camera::Parameters::K1),
+                                                values.at(Camera::Parameters::K2));
+              break;
+            }
+            case ProjectionType::SPHERICAL:{
+              camera = Camera::CreateSphericalCamera();
+              break;
+            }
+          }
+          camera.width = width;
+          camera.height = height;
+          camera.id = id;
             // create unique_ptr
             auto cam_ptr = std::unique_ptr<Camera>(new Camera(camera));
             auto pose = map::Pose();
