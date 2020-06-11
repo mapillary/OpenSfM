@@ -401,7 +401,7 @@ SlamUtilities::MatchShotToLocalMap(map::Shot &shot, const slam::GuidedMatcher& m
 
   //Assign landmarks to current frame
   // return local_keyframes.size();
-  
+  std::cout << "AssignLandmarksToShot local_landmarks" << local_landmarks.size() << std::endl;
   constexpr float margin{5};
   constexpr float lowe_ratio{10};
   return matcher.AssignLandmarksToShot(shot, local_landmarks, margin,

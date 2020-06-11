@@ -486,8 +486,8 @@ GuidedMatcher::AssignLandmarksToShot(map::Shot& shot, const std::vector<map::Lan
       const Vec3d& global_pos = lm->GetGlobalPos();
       const Vec2d pt2D = shot.ProjectInImageCoordinates(global_pos);
       // std::cout << idx << "Is pt in image" << pt2D.transpose()
-                // << ", " << global_pos.transpose()
-                // << "rot_cw: " << rot_cw << " t: " << trans_cw<< std::endl;
+      //           << ", " << global_pos.transpose()
+      //           << "rot_cw: " << rot_cw << " t: " << trans_cw<< std::endl;
       if (cam->CheckWithinBoundaries(pt2D))
       // if (cam.ReprojectToImage(rot_cw, trans_cw, global_pos, pt2D))
       {
@@ -772,6 +772,7 @@ GuidedMatcher::ReplaceDuplicatedLandmarks(map::Shot& fuse_shot, const T& landmar
 {
   if (landmarks_to_check.empty())
   {
+    std::cout << "landmarks_to_check: " << landmarks_to_check.size() << std::endl;
     return 0;
   }
   unsigned int num_fused = 0;
@@ -788,9 +789,10 @@ GuidedMatcher::ReplaceDuplicatedLandmarks(map::Shot& fuse_shot, const T& landmar
     {
       const auto& lm_data = lm->slam_data_;
       const Vec3d& global_pos = lm->GetGlobalPos();
-      const Vec2d pt2D = fuse_shot.Project(global_pos);
+      const Vec2d pt2D = fuse_shot.ProjectInImageCoordinates(global_pos);
       // if (cam.ReprojectToImage(R_cw, t_cw, global_pos, pt2D))
       // if 
+      // std::cout << "Repl: " << pt2D.transpose() << std::endl;
       {
         if (grid_params_.in_grid(pt2D[0], pt2D[1]))
         {
@@ -814,6 +816,7 @@ GuidedMatcher::ReplaceDuplicatedLandmarks(map::Shot& fuse_shot, const T& landmar
                                                       pt2D[0], pt2D[1],
                                                       scale_factors_.at(pred_scale_lvl)*margin ,
                                                       pred_scale_lvl - 1, pred_scale_lvl + 1);
+              // std::cout << "indices: " << indices.size() << "/ pred_scale_lvl" << pred_scale_lvl << std::endl;
               if (!indices.empty())
               {
                 const auto& lm_desc = lm->slam_data_.descriptor_;
@@ -822,7 +825,7 @@ GuidedMatcher::ReplaceDuplicatedLandmarks(map::Shot& fuse_shot, const T& landmar
                 for (const auto idx : indices)
                 {
                   const auto& keypt = fuse_shot.slam_data_.undist_keypts_.at(idx);
-                  const size_t scale_level = keypt.scale;
+                  const size_t scale_level = keypt.octave;
                   // std::cout << "keypt: " << keypt.point.transpose() << std::endl; 
                   //check the scale level
                   // if (scale_level < pred_scale_level - 1 || pred_scale_level < scale_level) {
@@ -848,6 +851,7 @@ GuidedMatcher::ReplaceDuplicatedLandmarks(map::Shot& fuse_shot, const T& landmar
                     }
                     // 自由度n=2
                     constexpr float chi_sq_2D = 5.99146;
+                    
                     if (chi_sq_2D >= reproj_error_sq * inv_level_sigma_sq_.at(scale_level)) {
                       const auto& desc = fuse_shot.GetDescriptor(idx);
                       const auto hamm_dist = compute_descriptor_distance_32(lm_desc, desc);
@@ -857,6 +861,10 @@ GuidedMatcher::ReplaceDuplicatedLandmarks(map::Shot& fuse_shot, const T& landmar
                         best_idx = idx;
                       }
                     }
+                    // else
+                    // {
+                    //   std::cout << "Chi-squared error problem" << std::endl;
+                    // }
                   }
                 }
                 //check if the match is valid

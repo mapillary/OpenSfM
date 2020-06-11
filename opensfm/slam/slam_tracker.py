@@ -313,6 +313,7 @@ class SlamTracker(object):
         pose.set_from_world_to_cam([s.r[0], s.r[1], s.r[2]],
                                    [s.t[0], s.t[1], s.t[2]])
         valid_pts = self.discard_outliers(ba, len(points3D), pose, camera)
+        print("invalid points: ", len(points3D) - np.sum(valid_pts), " outliers")
         chrono.lap('discard_outliers')
         print(chrono.lap_times())
         return pose, valid_pts

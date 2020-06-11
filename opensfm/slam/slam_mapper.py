@@ -637,6 +637,7 @@ class SlamMapper(object):
             kf = self.map.get_shot(kf_id)
             lms = kf.get_valid_landmarks()
             points2D = pyslam.SlamUtilities.get_valid_kpts_from_shot(kf)
+            print("points2D: ", points2D)
             for (lm, pt2D) in zip(lms, points2D):
                 lm_id = lm.id
                 ba.add_point(lm_id, lm.get_global_pos(), False)
@@ -709,7 +710,7 @@ class SlamMapper(object):
         points3D = np.zeros((len(lms), 3))
         for idx, lm in enumerate(lms):
             point = ba.get_point(lm.id)
-            print("point.reprojection_errors: ", point.reprojection_errors)
+            # print("point.reprojection_errors: ", point.reprojection_errors)
             pos_w = point.p
             n_th = 0
             th = 0.006
