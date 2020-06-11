@@ -10,9 +10,9 @@ struct ShotPositionShotParam{
   ShotPositionShotParam(int index) : index_(index) {}
 
   template <typename T>
-  Eigen::Matrix<T,3,1> operator()(T const* const* p)const{
+  Vec3<T> operator()(T const* const* p)const{
     const T* const shot = p[index_];
-    Eigen::Map< const Eigen::Matrix<T,3,1> > t(shot + BA_SHOT_TX);
+    Eigen::Map< const Vec3<T> > t(shot + BA_SHOT_TX);
     return t;
   }
   const int index_{-1};
@@ -23,9 +23,9 @@ struct ShotPositionWorldParam{
   ShotPositionWorldParam(int index) : index_(index) {}
 
   template <typename T>
-  Eigen::Matrix<T,3,1> operator()(T const* const* p)const{
+  Vec3<T> operator()(T const* const* p)const{
     const T* const shot = p[index_];
-    Eigen::Map< const Eigen::Matrix<T,3,1> > t(shot + BA_SHOT_TX);
+    Eigen::Map< const Vec3<T> > t(shot + BA_SHOT_TX);
     return t;
   }
   const int index_{-1};
@@ -39,17 +39,17 @@ struct PointPositionScaledShot{
         point_index_(point_index) {}
 
   template <typename T>
-  Eigen::Matrix<T,3,1> operator()(T const* const* p)const{
+  Vec3<T> operator()(T const* const* p)const{
     const T* const shot = p[shot_index_];
-    Eigen::Map< const Eigen::Matrix<T,3,1> > R(shot + BA_SHOT_RX);
-    Eigen::Map< const Eigen::Matrix<T,3,1> > t(shot + BA_SHOT_TX);
+    Eigen::Map< const Vec3<T> > R(shot + BA_SHOT_RX);
+    Eigen::Map< const Vec3<T> > t(shot + BA_SHOT_TX);
 
     const T* const point = p[point_index_];
-    Eigen::Map< const Eigen::Matrix<T,3,1> > p_world(point);
+    Eigen::Map< const Vec3<T> > p_world(point);
 
     const T* const scale = p[scale_index_];
 
-    return ApplySimilarity(scale[0], R, t, p_world);
+    return ApplySimilarity(scale[0], R.eval(), t.eval(), p_world.eval());
   }
 
   const int shot_index_{-1};
@@ -63,9 +63,9 @@ struct PointPositionWorld{
       : index_(index) {}
 
   template <typename T>
-  Eigen::Matrix<T,3,1> operator()(T const* const* p)const{
+  Vec3<T> operator()(T const* const* p)const{
     const T* const point = p[index_];
-    Eigen::Map< const Eigen::Matrix<T,3,1> > p_world(point);
+    Eigen::Map< const Vec3<T> > p_world(point);
     return p_world;
   }
 

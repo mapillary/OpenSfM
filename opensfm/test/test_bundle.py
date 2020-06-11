@@ -18,8 +18,13 @@ def test_unicode_strings_in_bundle():
     unicode_id = u"A\xb2"
     byte_id = b"A_2"
 
-    ba.add_equirectangular_camera(unicode_id)
-    ba.add_equirectangular_camera(byte_id)
+    camera = pygeometry.Camera.create_perspective(0.4, 0.1, -0.01)
+
+    camera.id = unicode_id
+    ba.add_camera(camera.id, camera, camera, True)
+
+    camera.id = byte_id
+    ba.add_camera(camera.id, camera, camera, True)
 
 
 def test_sigleton():

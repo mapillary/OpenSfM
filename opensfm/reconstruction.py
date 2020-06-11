@@ -30,71 +30,11 @@ from opensfm.context import parallel_map, current_memory_usage
 logger = logging.getLogger(__name__)
 
 
-def _add_camera_to_bundle(ba, camera, camera_prior, constant):
-    """Add camera to a bundle adjustment problem."""
-    if camera.projection_type == 'perspective':
-        ba.add_perspective_camera(
-            camera.id, camera.focal, camera.k1, camera.k2,
-            camera_prior.focal, camera_prior.k1, camera_prior.k2,
-            constant)
-    elif camera.projection_type == 'brown':
-        c = pybundle.BABrownPerspectiveCamera()
-        c.id = camera.id
-        c.focal_x = camera.focal
-        c.focal_y = camera.focal*camera.aspect_ratio
-        c.c_x = camera.principal_point[0]
-        c.c_y = camera.principal_point[1]
-        c.k1 = camera.k1
-        c.k2 = camera.k2
-        c.p1 = camera.p1
-        c.p2 = camera.p2
-        c.k3 = camera.k3
-        c.focal_x_prior = camera_prior.focal
-        c.focal_y_prior = camera_prior.focal*camera_prior.aspect_ratio
-        c.c_x_prior = camera_prior.principal_point[0]
-        c.c_y_prior = camera_prior.principal_point[1]
-        c.k1_prior = camera_prior.k1
-        c.k2_prior = camera_prior.k2
-        c.p1_prior = camera_prior.p1
-        c.p2_prior = camera_prior.p2
-        c.k3_prior = camera_prior.k3
-        c.constant = constant
-        ba.add_brown_perspective_camera(c)
-    elif camera.projection_type == 'fisheye':
-        ba.add_fisheye_camera(
-            camera.id, camera.focal, camera.k1, camera.k2,
-            camera_prior.focal, camera_prior.k1, camera_prior.k2,
-            constant)
-    elif camera.projection_type == 'dual':
-        ba.add_dual_camera(
-            camera.id, camera.focal, camera.k1, camera.k2,
-            camera_prior.focal, camera_prior.k1, camera_prior.k2,
-            camera.transition, constant)     
-    elif camera.projection_type in ['equirectangular', 'spherical']:
-        ba.add_equirectangular_camera(camera.id)
-
-
 def _get_camera_from_bundle(ba, camera):
     """Read camera parameters from a bundle adjustment problem."""
-    if camera.projection_type == 'perspective':
-        c = ba.get_perspective_camera(camera.id)
-        camera.focal = c.focal
-        camera.distortion = [c.k1, c.k2]
-    elif camera.projection_type == 'brown':
-        c = ba.get_brown_perspective_camera(camera.id)
-        camera.principal_point = [c.c_x, c.c_y]
-        camera.focal = c.focal_x
-        camera.aspect_ratio = c.focal_y/c.focal_x
-        camera.distortion = [c.k1, c.k2, c.k3, c.p1, c.p2]
-    elif camera.projection_type == 'fisheye':
-        c = ba.get_fisheye_camera(camera.id)
-        camera.focal = c.focal
-        camera.distortion = [c.k1, c.k2]
-    elif camera.projection_type == 'dual':
-        c = ba.get_dual_camera(camera.id)
-        camera.focal = c.focal
-        camera.distortion = [c.k1, c.k2]
-        camera.projection_params = [c.transition]
+    c = ba.get_camera(camera.id)
+    for k, v in c.get_parameters_map().items():
+        camera.set_parameter_value(k, v)
 
 
 def triangulate_gcp(point, shots):
@@ -163,7 +103,7 @@ def bundle(graph, reconstruction, camera_priors, gcp, config):
 
     for camera in reconstruction.cameras.values():
         camera_prior = camera_priors[camera.id]
-        _add_camera_to_bundle(ba, camera, camera_prior, fix_cameras)
+        ba.add_camera(camera.id, camera, camera_prior, fix_cameras)
 
     for shot in reconstruction.shots.values():
         r = shot.pose.rotation
@@ -250,7 +190,7 @@ def bundle_single_view(graph, reconstruction, shot_id, camera_priors, config):
     camera = shot.camera
     camera_prior = camera_priors[camera.id]
 
-    _add_camera_to_bundle(ba, camera, camera_prior, constant=True)
+    ba.add_camera(camera.id, camera, camera_prior, True)
 
     r = shot.pose.rotation
     t = shot.pose.translation
@@ -318,7 +258,7 @@ def bundle_local(graph, reconstruction, camera_priors, gcp, central_shot_id, con
 
     for camera in reconstruction.cameras.values():
         camera_prior = camera_priors[camera.id]
-        _add_camera_to_bundle(ba, camera, camera_prior, constant=True)
+        ba.add_camera(camera.id, camera, camera_prior, True)
 
     for shot_id in interior | boundary:
         shot = reconstruction.shots[shot_id]
