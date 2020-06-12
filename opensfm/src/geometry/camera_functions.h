@@ -36,12 +36,37 @@ struct FisheyeProjection {
   }
 };
 
+
+template< int IN, int P, int OUT>
+struct CameraFunctor{
+  constexpr static int InSize = IN;
+  constexpr static int ParamSize = P;
+  constexpr static int OutSize = OUT;
+  template <bool C>
+  static constexpr int Stride(){return C * ParamSize + InSize;};
+};
+
 /* Parameters are : none used */
-struct PerspectiveProjection {
+struct PerspectiveProjection : CameraFunctor<3, 0, 2> {
   template <class T>
   static void Forward(const T* point, const T* /* p */, T* projected) {
     projected[0] = point[0] / point[2];
     projected[1] = point[1] / point[2];
+  }
+
+  template <class T, bool COMP_PARAM>
+  static void ForwardDerivatives(const T* point, const T* /* p */, T* projected,
+                                 T* jacobian) {
+    // dx, dy, dz
+    constexpr int Stride = COMP_PARAM*ParamSize + InSize;
+    jacobian[0] = T(1.0) / point[2];
+    jacobian[1] = T(0.0);
+    jacobian[2] = -point[0] / (point[2] * point[2]);
+    jacobian[Stride] = T(0.0);
+    jacobian[Stride + 1] = jacobian[0];
+    jacobian[Stride + 2] = -point[1] / (point[2] * point[2]);
+    T* dummy = NULL;
+    Forward(point, dummy, projected);
   }
 
   template <class T>
@@ -125,7 +150,7 @@ struct SphericalProjection {
 };
 
 /* Parameters are : k1, k2 */
-struct Disto24 {
+struct Disto24  : CameraFunctor<2, 2, 2>{
   template <class T>
   static void Forward(const T* point, const T* k, T* distorted) {
     const T r2 = SquaredNorm(point);
@@ -133,6 +158,40 @@ struct Disto24 {
                                        k[static_cast<int>(Disto::K2)]);
     distorted[0] = point[0] * distortion;
     distorted[1] = point[1] * distortion;
+  }
+
+  template <class T, bool COMP_PARAM>
+  static void ForwardDerivatives(const T* point, const T* k, T* distorted,
+                                 T* jacobian) {
+    // dx, dy, dk1, dk2
+    constexpr int Stride = COMP_PARAM*ParamSize + InSize;
+    const auto& k1 = k[static_cast<int>(Disto::K1)];
+    const auto& k2 = k[static_cast<int>(Disto::K2)];
+    const auto& x = point[0];
+    const auto& y = point[1];
+    const auto& z = point[2];
+
+    const auto x2 = x * x;
+    const auto x4 = x2 * x2;
+    const auto y2 = y * y;
+    const auto y4 = y2 * y2;
+    const auto r2 = x2 + y2;
+
+    jacobian[0] = T(5.0) * k2 * x4 + T(3.0) * k1 * x2 + T(6.0) * k2 * x2 * y2 +
+                  k2 * y4 + k1 * y2 + T(1.0);
+    jacobian[1] = x * (T(2.0) * k1 * y + T(4.0) * k2 * y * r2);
+    jacobian[Stride] = y * (T(2.0) * k1 * x + T(4.0) * k2 * x * r2);
+    jacobian[Stride + 1] = T(5.0) * k2 * y4 + T(3.0) * k1 * y2 +
+                           T(6.0) * k2 * y2 * x2 + k2 * x4 + k1 * x2 + T(1.0);
+
+    if (COMP_PARAM) {
+      jacobian[2] = x * r2;
+      jacobian[3] = x * r2 * r2;
+      jacobian[Stride + 2] = y * r2;
+      jacobian[Stride + 3] = y * r2 * r2;
+    }
+
+    Forward(point, k, distorted);
   }
 
   template <class T>
@@ -312,11 +371,25 @@ struct Affine {
 };
 
 /* Parameters are : focal */
-struct UniformScale {
+struct UniformScale : CameraFunctor<2, 1, 2>{
   template <class T>
   static void Forward(const T* point, const T* scale, T* transformed) {
     transformed[0] = scale[0] * point[0];
     transformed[1] = scale[0] * point[1];
+  }
+
+  template <class T, bool COMP_PARAM>
+  static void ForwardDerivatives(const T* point, const T* scale, T* transformed,
+                                 T* jacobian) {
+    // dx, dy, dscale
+    constexpr int Stride = COMP_PARAM*ParamSize + InSize;
+    jacobian[0] = jacobian[Stride+1] = scale[0];
+    jacobian[1] = jacobian[Stride] = T(0.0);
+    if(COMP_PARAM){
+      jacobian[2] = point[0];
+      jacobian[Stride+2] = point[1];
+    }
+    Forward(point, scale, transformed);
   }
 
   template <class T>
@@ -348,6 +421,13 @@ struct ProjectFunction {
   }
 };
 
+struct ProjectDerivativesFunction {
+  template <class TYPE, class T>
+  static void Apply(const T* point, const T* parameters, T* projected, T* jacobian) {
+    TYPE::ForwardDerivatives(point, parameters, projected, jacobian);
+  }
+};
+
 struct BearingFunction {
   template <class TYPE, class T>
   static void Apply(const T* point, const T* parameters, T* bearing) {
@@ -363,7 +443,7 @@ struct BearingFunction {
 /* Here's some trait that defines where to look for parameters that follows the
  * generic scheme */
 template <class T> struct FunctorTraits { static constexpr int Size = 0;};
-template <> struct FunctorTraits<SphericalProjection> { static constexpr int Size = 1;};
+template <> struct FunctorTraits<SphericalProjection> { static constexpr int Size = 0;};
 template <> struct FunctorTraits<DualProjection> { static constexpr int Size = 1;};
 template <> struct FunctorTraits<Disto24> { static constexpr int Size = 2;};
 template <> struct FunctorTraits<DistoBrown> {static constexpr int Size = 5;};
@@ -372,15 +452,36 @@ template <> struct FunctorTraits<Affine> { static constexpr int Size = 4;};
 
 template <class PROJ, class DISTO, class AFF>
 struct ParametersIndexTraits {
-  static constexpr int Affine = 0;    // Always first
-  static constexpr int Distorsion = FunctorTraits<AFF>::Size;
-  static constexpr int Projection = FunctorTraits<AFF>::Size + FunctorTraits<DISTO>::Size;
+  static constexpr int Projection = 0;    // Always first
+  static constexpr int Distorsion = FunctorTraits<PROJ>::Size;
+  static constexpr int Affine = FunctorTraits<PROJ>::Size + FunctorTraits<DISTO>::Size;
 };
 
 template <class PROJ, class DISTO, class AFF>
 struct SizeTraits {
-  static constexpr int Size = FunctorTraits<PROJ>::Size + FunctorTraits<AFF>::Size + FunctorTraits<DISTO>::Size;
+  static constexpr const int ConstexprMax(int a, int b) {
+    return (a < b) ? b : a;
+  }
+  static constexpr int Size =
+      ConstexprMax(1, FunctorTraits<PROJ>::Size + FunctorTraits<AFF>::Size +
+                          FunctorTraits<DISTO>::Size);
 };
+
+// /* Given two function f(x, a) and g(y, b), composed as f o g = f( g(x, b), a)
+//  * for which have jacobian stored as df/(dx | da) and dg/(dy | db), apply the
+//  * derivative chain-rule in order to get the derivative of
+//  *
+//  *     (f o g) = d(f o g)/d(dx | db | da).
+//  */
+template <class T, int OutSize1, int Stride1, int ParamSize1, int OutSize2,
+          int Stride2, int ParamSize2, class OUT>
+void ComposeDerivatives(
+    const Eigen::Matrix<T, OutSize1, Stride1, Eigen::RowMajor>& jacobian1,
+    const Eigen::Matrix<T, OutSize2, Stride2, Eigen::RowMajor>& jacobian2,
+    OUT* jacobian) {
+  jacobian->template block<OutSize2, Stride1>(0, 0) = jacobian2.template block<OutSize2, OutSize1>(0, 0) * jacobian1;
+  jacobian->template block<OutSize2, ParamSize2>(0, Stride1) = jacobian2.template block<OutSize2, ParamSize2>(0, OutSize1);
+}
 
 template <class PROJ, class DISTO, class AFF>
 struct ProjectGeneric {
@@ -395,6 +496,48 @@ struct ProjectGeneric {
   };
 
   template <class T>
+  static void ForwardDerivatives(const T* point, const T* parameters, T* projected, T* jacobian) {
+    constexpr int ProjStride = PROJ::template Stride<true>();
+    constexpr int DistoStride = DISTO::template Stride<true>();
+    constexpr int AffStride = AFF::template Stride<true>();
+
+    /* Compute local jacobian of d(projected)/d(point) */
+    Eigen::Matrix<T, PROJ::OutSize, ProjStride, Eigen::RowMajor> projection_jacobian;
+    PROJ::template ForwardDerivatives<T, true>(
+        point, parameters + Indexes::Projection, projected,
+        projection_jacobian.data());
+
+    /* Compute local jacobian of d(distorted)/d(projected | disto) */
+    Eigen::Matrix<T, DISTO::OutSize, DistoStride, Eigen::RowMajor> distortion_jacobian;
+    DISTO::template ForwardDerivatives<T, true>(
+        projected, parameters + Indexes::Distorsion, projected,
+        distortion_jacobian.data());
+
+    /* Compose d(distorted)/d(projected) . d(projected)/d(point) in order to get
+     * d(distorted)/d(point | disto) */
+    Eigen::Matrix<T, DISTO::OutSize, PROJ::InSize + DISTO::ParamSize, Eigen::RowMajor>
+        jacobian_projection_distortion;
+    ComposeDerivatives<T, PROJ::OutSize, ProjStride, PROJ::ParamSize,
+                       DISTO::OutSize, DistoStride, DISTO::ParamSize>(
+        projection_jacobian, distortion_jacobian,
+        &jacobian_projection_distortion);
+
+    /* Compute local jacobian of d(transformed)/d(distorted | affine) */
+    Eigen::Matrix<T, AFF::OutSize, AffStride, Eigen::RowMajor> affine_jacobian;
+    AFF::template ForwardDerivatives<T, true>(
+        projected, parameters + Indexes::Affine, projected,
+        affine_jacobian.data());
+
+    /* Compose d(transformed)/d(distorted | affine) . d(distorted)/d(point |
+     * disto) in order to get d(transformed)/d(point | disto | affine) */
+    Eigen::Map<Eigen::Matrix<T, AFF::OutSize, PROJ::InSize + DISTO::ParamSize + AFF::ParamSize, Eigen::RowMajor> > jacobian_final(jacobian);
+    ComposeDerivatives<T, DISTO::OutSize, PROJ::InSize + DISTO::ParamSize,
+                       DISTO::ParamSize, AFF::OutSize, AffStride,
+                       AFF::ParamSize>(jacobian_projection_distortion,
+                                       affine_jacobian, &jacobian_final);
+  };
+
+  template <class T>
   static void Backward(const T* point, const T* parameters, T* bearing) {
     T tmp[2];
     AFF::Backward(point, parameters + Indexes::Affine, tmp);
@@ -404,10 +547,10 @@ struct ProjectGeneric {
 };
 
 using PerspectiveCamera = ProjectGeneric<PerspectiveProjection, Disto24, UniformScale>;
-using BrownCamera = ProjectGeneric<PerspectiveProjection, DistoBrown, Affine>;
-using FisheyeCamera = ProjectGeneric<FisheyeProjection, Disto24, UniformScale>;
-using DualCamera = ProjectGeneric<DualProjection, Disto24, UniformScale>;
-using SphericalCamera = ProjectGeneric<SphericalProjection, Identity, Identity>;
+// using BrownCamera = ProjectGeneric<PerspectiveProjection, DistoBrown, Affine>;
+// using FisheyeCamera = ProjectGeneric<FisheyeProjection, Disto24, UniformScale>;
+// using DualCamera = ProjectGeneric<DualProjection, Disto24, UniformScale>;
+// using SphericalCamera = ProjectGeneric<SphericalProjection, Identity, Identity>;
 
 /* This is where the pseudo-strategy pattern takes place. If you want to add
  * your own new camera model, just add a new enum value, the corresponding
@@ -418,17 +561,17 @@ void Dispatch(const ProjectionType& type, IN&&... args) {
     case ProjectionType::PERSPECTIVE:
       FUNC::template Apply<PerspectiveCamera>(std::forward<IN>(args)...);
       break;
-    case ProjectionType::BROWN:
-      FUNC::template Apply<BrownCamera>(std::forward<IN>(args)...);
-      break;
-    case ProjectionType::FISHEYE:
-      FUNC::template Apply<FisheyeCamera>(std::forward<IN>(args)...);
-      break;
-    case ProjectionType::DUAL:
-      FUNC::template Apply<DualCamera>(std::forward<IN>(args)...);
-      break;
-    case ProjectionType::SPHERICAL:
-      FUNC::template Apply<SphericalCamera>(std::forward<IN>(args)...);
+    // case ProjectionType::BROWN:
+    //   FUNC::template Apply<BrownCamera>(std::forward<IN>(args)...);
+    //   break;
+    // case ProjectionType::FISHEYE:
+    //   FUNC::template Apply<FisheyeCamera>(std::forward<IN>(args)...);
+    //   break;
+    // case ProjectionType::DUAL:
+    //   FUNC::template Apply<DualCamera>(std::forward<IN>(args)...);
+    //   break;
+    // case ProjectionType::SPHERICAL:
+    //   FUNC::template Apply<SphericalCamera>(std::forward<IN>(args)...);
       break;
     default:
       throw std::runtime_error("Invalid ProjectionType");
