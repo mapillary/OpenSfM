@@ -3,8 +3,13 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <Eigen/Dense>
+#include <unsupported/Eigen/AutoDiff>
 
 #include <geometry/camera.h>
+#include <ceres/jet.h>
+
+#include <chrono> 
+using namespace std::chrono; 
 
 class CameraFixture : public ::testing::Test {
  public:
@@ -96,8 +101,8 @@ TEST_F(CameraFixture, PerspectiveReturnCorrectTypes){
   Camera camera = Camera::CreatePerspectiveCamera(focal, distortion[0], distortion[1]);
   const auto types = camera.GetParametersTypes();
   const auto expected = std::vector<Camera::Parameters>(
-      {Camera::Parameters::Focal, Camera::Parameters::K1,
-       Camera::Parameters::K2});
+      {Camera::Parameters::K1, Camera::Parameters::K2,
+       Camera::Parameters::Focal});
   ASSERT_THAT(expected, ::testing::ContainerEq(types));
 }
 
@@ -105,8 +110,8 @@ TEST_F(CameraFixture, FisheyeReturnCorrectTypes) {
   Camera camera = Camera::CreatePerspectiveCamera(focal, distortion[0], distortion[1]);
   const auto types = camera.GetParametersTypes();
   const auto expected = std::vector<Camera::Parameters>(
-      {Camera::Parameters::Focal, Camera::Parameters::K1,
-       Camera::Parameters::K2});
+      {Camera::Parameters::K1, Camera::Parameters::K2,
+       Camera::Parameters::Focal});
   ASSERT_THAT(expected, ::testing::ContainerEq(types));
 }
 
@@ -115,10 +120,10 @@ TEST_F(CameraFixture, BrownReturnCorrectTypes){
   const auto types = camera.GetParametersTypes();
 
   const auto expected = std::vector<Camera::Parameters>(
-      {Camera::Parameters::Focal, Camera::Parameters::AspectRatio,
-       Camera::Parameters::Cx, Camera::Parameters::Cy, Camera::Parameters::K1,
-       Camera::Parameters::K2, Camera::Parameters::K3, Camera::Parameters::P1,
-       Camera::Parameters::P2});
+      {Camera::Parameters::K1, Camera::Parameters::K2, Camera::Parameters::K3,
+       Camera::Parameters::P1, Camera::Parameters::P2,
+       Camera::Parameters::Focal, Camera::Parameters::AspectRatio,
+       Camera::Parameters::Cx, Camera::Parameters::Cy});
   ASSERT_THAT(expected, ::testing::ContainerEq(types));
 }
 
@@ -126,8 +131,8 @@ TEST_F(CameraFixture, DualReturnCorrectTypes){
   Camera camera = Camera::Camera::CreateDualCamera(0.5, focal, distortion[0], distortion[1]);
   const auto types = camera.GetParametersTypes();
   const auto expected = std::vector<Camera::Parameters>(
-      {Camera::Parameters::Focal, Camera::Parameters::K1,
-       Camera::Parameters::K2, Camera::Parameters::Transition});
+      {Camera::Parameters::Transition, Camera::Parameters::K1,
+       Camera::Parameters::K2, Camera::Parameters::Focal});
   ASSERT_THAT(expected, ::testing::ContainerEq(types));
 }
 
@@ -231,4 +236,117 @@ TEST_F(CameraFixture, BrownReturnCorrectKScaled){
   expected(1, 2) = principal_point(1)*normalizer + pixel_height*0.5;
 
   ASSERT_EQ(expected, camera.GetProjectionMatrixScaled(pixel_width, pixel_height));
+}
+
+TEST_F(CameraFixture, ComputeAnalyticalDerivatives){
+  const Camera camera = Camera::CreatePerspectiveCamera(focal, -0.1, 0.01);
+  const VecXd camera_params = camera.GetParametersValues();
+  const int size_params = 3 + camera_params.size();
+
+  typedef Eigen::AutoDiffScalar<Eigen::VectorXd> AScalar;
+
+  auto start_ceres = high_resolution_clock::now(); 
+  double point_d_ceres[3];
+
+  double a = 0.;
+  ceres::Jet<double, 6> projected_ceres[2];
+  const int count = 10000000;
+  for (int k = 0; k < count; ++k) {
+    ceres::Jet<double, 6> point_ceres[3];
+    for(int i = 0; i < 3; ++i){
+      point_ceres[i].a = (i+1)/10.0;
+      point_ceres[i].v = Eigen::VectorXd::Unit(size_params, i);
+      point_d_ceres[i] = (i+1)/10.0;
+    }
+
+    VecX<ceres::Jet<double, 6>> camera_adiff_ceres(camera_params.size());
+    for(int i = 0; i < camera_params.size(); ++i){
+      camera_adiff_ceres(i).a = camera_params(i);
+      camera_adiff_ceres(i).v = Eigen::VectorXd::Unit(size_params, 3+i);
+    }
+  
+    Dispatch<ProjectFunction>(ProjectionType::PERSPECTIVE, point_ceres,
+                              camera_adiff_ceres.data(), projected_ceres);
+    for(int i = 0; i < 2; ++i){
+      for(int j = 0; j < size_params; ++j){
+        a += projected_ceres[i].a;
+        a += projected_ceres[i].v(j);
+      }
+    }
+  }
+  auto stop_ceres = high_resolution_clock::now(); 
+  auto duration_ceres = duration_cast<microseconds>(stop_ceres - start_ceres); 
+  std::cout << "CERES AUTODIFF TIME " << duration_ceres.count() << std::endl;
+  for(int i = 0; i < 2; ++i){
+    for(int j = 0; j < size_params; ++j){
+      std::cout << projected_ceres[i].v(j) << " ";
+    }
+    std::cout << std::endl;
+  }
+
+  auto start_auto = high_resolution_clock::now(); 
+  
+
+  AScalar projected_eigen[2];
+  for (int k = 0; k < count; ++k) {
+    AScalar point[3];
+    for(int i = 0; i < 3; ++i){
+      point[i].value() = (i+1)/10.0;
+      point[i].derivatives() = Eigen::VectorXd::Unit(size_params, i);
+    }
+
+    VecX<AScalar> camera_adiff(camera_params.size());
+    for(int i = 0; i < camera_params.size(); ++i){
+      camera_adiff(i).value() = camera_params(i);
+      camera_adiff(i).derivatives() = Eigen::VectorXd::Unit(size_params, 3+i);
+    }
+
+    Dispatch<ProjectFunction>(ProjectionType::PERSPECTIVE, point,
+                              camera_adiff.data(), projected_eigen);
+    for(int i = 0; i < 2; ++i){
+      for(int j = 0; j < size_params; ++j){
+        a += camera_adiff(i).value();
+        a += camera_adiff(i).derivatives()(j);
+      }
+    }
+  }
+  auto stop_auto = high_resolution_clock::now(); 
+  auto duration_auto = duration_cast<microseconds>(stop_auto - start_auto); 
+  std::cout << "EIGEN AUTODIFF TIME " << duration_auto.count() << std::endl; 
+  for(int i = 0; i < 2; ++i){
+    for(int j = 0; j < size_params; ++j){
+      std::cout << projected_eigen[i].derivatives()(j) << " ";
+    }
+    std::cout << std::endl;
+  }
+
+  auto start_ana = high_resolution_clock::now(); 
+  double projected_d[2];
+  for (int k = 0; k < count; ++k) {
+    double point_d[3];
+    AScalar point[3];
+    for(int i = 0; i < 3; ++i){
+      point_d[i] = (i+1)/10.0;
+    }
+
+    Eigen::Matrix<double, 2, 6, Eigen::RowMajor> jacobian;
+    Dispatch<ProjectDerivativesFunction>(ProjectionType::PERSPECTIVE, point_d,
+                                         camera_params.data(), projected_d,
+                                         jacobian.data());
+    for(int i = 0; i < jacobian.rows(); ++i){
+      for(int j = 0; j < jacobian.cols(); ++j){
+        a += jacobian(i, j);
+      }
+    }
+  }
+  auto stop_ana = high_resolution_clock::now(); 
+  auto duration_ana = duration_cast<microseconds>(stop_ana - start_ana); 
+  std::cout << "ANALYTICAL TIME " << duration_ana.count() << std::endl; 
+  // for(int i = 0; i < jacobian.rows(); ++i){
+  //   for(int j = 0; j < jacobian.cols(); ++j){
+  //     std::cout << jacobian(i, j) << " ";
+  //   }
+  //   std::cout << std::endl;
+  // }
+  std::cout << a << std::endl;
 }

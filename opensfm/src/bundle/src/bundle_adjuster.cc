@@ -443,11 +443,11 @@ struct ErrorTraits {
   using Type = ReprojectionError2D;
   static constexpr int Size = 2;
 };
-template <>
-struct ErrorTraits<SphericalCamera> {
-  using Type = ReprojectionError3D;
-  static constexpr int Size = 3;
-};
+// template <>
+// struct ErrorTraits<SphericalCamera> {
+//   using Type = ReprojectionError3D;
+//   static constexpr int Size = 3;
+// };
 
 struct AddProjectionError {
   template <class T>
@@ -542,13 +542,13 @@ void BundleAdjuster::Run() {
           index = i;
         }
       }
-      if(index >= 0){
-        ceres::CostFunction *transition_barrier =
-            new ceres::AutoDiffCostFunction<BAParameterBarrier, 1,
-                                            DualCamera::Size>(
-                new BAParameterBarrier(0.0, 1.0, index));
-        problem.AddResidualBlock(transition_barrier, NULL, data.data());
-      }
+      // if(index >= 0){
+      //   ceres::CostFunction *transition_barrier =
+      //       new ceres::AutoDiffCostFunction<BAParameterBarrier, 1,
+                                            //SizeTraits<DualCamera>::Size>(
+      //           new BAParameterBarrier(0.0, 1.0, index));
+      //   problem.AddResidualBlock(transition_barrier, NULL, data.data());
+      // }
     }
   }
   
