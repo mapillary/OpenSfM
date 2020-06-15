@@ -31,6 +31,10 @@ class CameraFixture : public ::testing::Test {
     new_distortion.resize(5);
     new_distortion << 1, 1, 1, 1, 1;
     new_principal_point << 0.02, -0.01;
+
+    for (int i = 0; i < 3; ++i) {
+      point_adiff[i].value() = point[i] = (i + 1) / 10.0;
+    }
   }
 
   double ComputeError(const Eigen::MatrixX2d& other) {
@@ -39,6 +43,17 @@ class CameraFixture : public ::testing::Test {
       error += (other.row(i) - pixels.row(i)).norm();
     }
     return error/pixels_count;
+  }
+
+  template <class MAT>
+  void CheckJacobian(const MAT& jacobian, int size_params) {
+    const double eps = 17e-4;
+    for (int i = 0; i < 2; ++i) {
+      for (int j = 0; j < size_params; ++j) {
+        ASSERT_NEAR(projection_expected[i].derivatives()(j), jacobian(i, j), eps);
+      }
+      ASSERT_NEAR(projection_expected[i].value(), projected[i], eps);
+    }
   }
 
   int pixels_count{10000};
@@ -57,6 +72,14 @@ class CameraFixture : public ::testing::Test {
   Eigen::VectorXd new_distortion;
   Eigen::Vector2d principal_point;
   Eigen::Vector2d new_principal_point;
+
+  double point[3];
+  typedef Eigen::AutoDiffScalar<Eigen::VectorXd> AScalar;
+  AScalar point_adiff[3];
+  VecX<AScalar> camera_adiff;
+
+  AScalar projection_expected[2];
+  double projected[2];
 };
 
 TEST_F(CameraFixture, PerspectiveIsConsistent){
@@ -141,7 +164,7 @@ TEST_F(CameraFixture, PerspectiveReturnCorrectValues){
   const auto values = camera.GetParametersValues();
 
   Eigen::VectorXd expected(3);
-  expected << focal, distortion[0], distortion[1];
+  expected << distortion[0], distortion[1], focal;
   ASSERT_EQ(expected, values);
 }
 
@@ -150,7 +173,7 @@ TEST_F(CameraFixture, FisheyeReturnCorrectValues) {
   const auto values = camera.GetParametersValues();
 
   Eigen::VectorXd expected(3);
-  expected << focal, distortion[0], distortion[1];
+  expected << distortion[0], distortion[1], focal;
   ASSERT_EQ(expected, values);
 }
 
@@ -159,7 +182,7 @@ TEST_F(CameraFixture, BrownReturnCorrectValues){
   const auto values = camera.GetParametersValues();
 
   Eigen::VectorXd expected(9);
-  expected << focal, 1.0, principal_point, distortion;
+  expected << distortion, focal, 1.0, principal_point;
   ASSERT_EQ(expected, values);
 }
 
@@ -168,7 +191,7 @@ TEST_F(CameraFixture, DualReturnCorrectValues){
   const auto values = camera.GetParametersValues();
 
   Eigen::VectorXd expected(4);
-  expected << focal, distortion[0], distortion[1], 0.5;
+  expected << 0.5, distortion[0], distortion[1], focal;
   ASSERT_EQ(expected, values);
 }
 
@@ -188,7 +211,7 @@ TEST_F(CameraFixture, CanSetParameter){
   const auto values = camera.GetParametersValues();
 
   Eigen::VectorXd expected(3);
-  expected << new_focal, distortion[0], distortion[1];
+  expected << distortion[0], distortion[1], new_focal;
   ASSERT_EQ(expected, values);
 }
 
@@ -238,8 +261,92 @@ TEST_F(CameraFixture, BrownReturnCorrectKScaled){
   ASSERT_EQ(expected, camera.GetProjectionMatrixScaled(pixel_width, pixel_height));
 }
 
-TEST_F(CameraFixture, ComputeAnalyticalDerivatives){
+TEST_F(CameraFixture, ComputePerspectiveAnalyticalDerivatives){
   const Camera camera = Camera::CreatePerspectiveCamera(focal, -0.1, 0.01);
+  
+  const VecXd camera_params = camera.GetParametersValues();
+  const int size_params = 3 + camera_params.size();
+
+  // Prepare Eigen's Autodiff structures
+  for (int i = 0; i < 3; ++i) {
+    point_adiff[i].derivatives() = Eigen::VectorXd::Unit(size_params, i);
+  }
+  camera_adiff.resize(camera_params.size());
+  for (int i = 0; i < camera_params.size(); ++i) {
+    camera_adiff(i).value() = camera_params(i);
+    camera_adiff(i).derivatives() = Eigen::VectorXd::Unit(size_params, 3 + i);
+  }
+
+  // Run project with Autodiff types to get expected jacobian
+  Dispatch<ProjectFunction>(ProjectionType::PERSPECTIVE, point_adiff,
+                            camera_adiff.data(), projection_expected);
+
+  // Analytical derivatives
+  Eigen::Matrix<double, 2, 6, Eigen::RowMajor> jacobian;
+  Dispatch<ProjectDerivativesFunction>(ProjectionType::PERSPECTIVE, point,
+                                       camera_params.data(), projected,
+                                       jacobian.data());
+  CheckJacobian(jacobian, size_params);
+}
+
+TEST_F(CameraFixture, ComputeFisheyeAnalyticalDerivatives){
+  const Camera camera = Camera::CreateFisheyeCamera(focal, -0.1, 0.01);
+  
+  const VecXd camera_params = camera.GetParametersValues();
+  const int size_params = 3 + camera_params.size();
+
+  // Prepare Eigen's Autodiff structures
+  for (int i = 0; i < 3; ++i) {
+    point_adiff[i].derivatives() = Eigen::VectorXd::Unit(size_params, i);
+  }
+  camera_adiff.resize(camera_params.size());
+  for (int i = 0; i < camera_params.size(); ++i) {
+    camera_adiff(i).value() = camera_params(i);
+    camera_adiff(i).derivatives() = Eigen::VectorXd::Unit(size_params, 3 + i);
+  }
+
+  // Run project with Autodiff types to get expected jacobian
+  Dispatch<ProjectFunction>(ProjectionType::FISHEYE, point_adiff,
+                            camera_adiff.data(), projection_expected);
+
+  // Analytical derivatives
+  Eigen::Matrix<double, 2, 6, Eigen::RowMajor> jacobian;
+  Dispatch<ProjectDerivativesFunction>(ProjectionType::FISHEYE, point,
+                                       camera_params.data(), projected,
+                                       jacobian.data());
+  CheckJacobian(jacobian, size_params);
+}
+
+TEST_F(CameraFixture, ComputeBrownAnalyticalDerivatives){
+  const Camera camera = Camera::CreateBrownCamera(focal, new_ar, principal_point, distortion);
+  
+  const VecXd camera_params = camera.GetParametersValues();
+  const int size_params = 3 + camera_params.size();
+
+  // Prepare Eigen's Autodiff structures
+  for (int i = 0; i < 3; ++i) {
+    point_adiff[i].derivatives() = Eigen::VectorXd::Unit(size_params, i);
+  }
+  camera_adiff.resize(camera_params.size());
+  for (int i = 0; i < camera_params.size(); ++i) {
+    camera_adiff(i).value() = camera_params(i);
+    camera_adiff(i).derivatives() = Eigen::VectorXd::Unit(size_params, 3 + i);
+  }
+
+  // Run project with Autodiff types to get expected jacobian
+  Dispatch<ProjectFunction>(ProjectionType::BROWN, point_adiff,
+                            camera_adiff.data(), projection_expected);
+
+  // Analytical derivatives
+  Eigen::Matrix<double, 2, 12, Eigen::RowMajor> jacobian;
+  Dispatch<ProjectDerivativesFunction>(ProjectionType::BROWN, point,
+                                       camera_params.data(), projected,
+                                       jacobian.data());
+  CheckJacobian(jacobian, size_params);
+}
+
+TEST_F(CameraFixture, PerfTest){
+  const Camera camera = Camera::CreateBrownCamera(focal, new_ar, principal_point, distortion);
   const VecXd camera_params = camera.GetParametersValues();
   const int size_params = 3 + camera_params.size();
 
@@ -249,23 +356,23 @@ TEST_F(CameraFixture, ComputeAnalyticalDerivatives){
   double point_d_ceres[3];
 
   double a = 0.;
-  ceres::Jet<double, 6> projected_ceres[2];
-  const int count = 10000000;
+  ceres::Jet<double, 12> projected_ceres[2];
+  const int count = 100000;
   for (int k = 0; k < count; ++k) {
-    ceres::Jet<double, 6> point_ceres[3];
+    ceres::Jet<double, 12> point_ceres[3];
     for(int i = 0; i < 3; ++i){
       point_ceres[i].a = (i+1)/10.0;
       point_ceres[i].v = Eigen::VectorXd::Unit(size_params, i);
       point_d_ceres[i] = (i+1)/10.0;
     }
 
-    VecX<ceres::Jet<double, 6>> camera_adiff_ceres(camera_params.size());
+    VecX<ceres::Jet<double, 12>> camera_adiff_ceres(camera_params.size());
     for(int i = 0; i < camera_params.size(); ++i){
       camera_adiff_ceres(i).a = camera_params(i);
       camera_adiff_ceres(i).v = Eigen::VectorXd::Unit(size_params, 3+i);
     }
   
-    Dispatch<ProjectFunction>(ProjectionType::PERSPECTIVE, point_ceres,
+    Dispatch<ProjectFunction>(ProjectionType::BROWN, point_ceres,
                               camera_adiff_ceres.data(), projected_ceres);
     for(int i = 0; i < 2; ++i){
       for(int j = 0; j < size_params; ++j){
@@ -301,7 +408,7 @@ TEST_F(CameraFixture, ComputeAnalyticalDerivatives){
       camera_adiff(i).derivatives() = Eigen::VectorXd::Unit(size_params, 3+i);
     }
 
-    Dispatch<ProjectFunction>(ProjectionType::PERSPECTIVE, point,
+    Dispatch<ProjectFunction>(ProjectionType::BROWN, point,
                               camera_adiff.data(), projected_eigen);
     for(int i = 0; i < 2; ++i){
       for(int j = 0; j < size_params; ++j){
@@ -322,6 +429,7 @@ TEST_F(CameraFixture, ComputeAnalyticalDerivatives){
 
   auto start_ana = high_resolution_clock::now(); 
   double projected_d[2];
+  Eigen::Matrix<double, 2, 12, Eigen::RowMajor> jacobian;
   for (int k = 0; k < count; ++k) {
     double point_d[3];
     AScalar point[3];
@@ -329,8 +437,8 @@ TEST_F(CameraFixture, ComputeAnalyticalDerivatives){
       point_d[i] = (i+1)/10.0;
     }
 
-    Eigen::Matrix<double, 2, 6, Eigen::RowMajor> jacobian;
-    Dispatch<ProjectDerivativesFunction>(ProjectionType::PERSPECTIVE, point_d,
+    
+    Dispatch<ProjectDerivativesFunction>(ProjectionType::BROWN, point_d,
                                          camera_params.data(), projected_d,
                                          jacobian.data());
     for(int i = 0; i < jacobian.rows(); ++i){
@@ -342,11 +450,11 @@ TEST_F(CameraFixture, ComputeAnalyticalDerivatives){
   auto stop_ana = high_resolution_clock::now(); 
   auto duration_ana = duration_cast<microseconds>(stop_ana - start_ana); 
   std::cout << "ANALYTICAL TIME " << duration_ana.count() << std::endl; 
-  // for(int i = 0; i < jacobian.rows(); ++i){
-  //   for(int j = 0; j < jacobian.cols(); ++j){
-  //     std::cout << jacobian(i, j) << " ";
-  //   }
-  //   std::cout << std::endl;
-  // }
+  for(int i = 0; i < jacobian.rows(); ++i){
+    for(int j = 0; j < jacobian.cols(); ++j){
+      std::cout << jacobian(i, j) << " ";
+    }
+    std::cout << std::endl;
+  }
   std::cout << a << std::endl;
 }
