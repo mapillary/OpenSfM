@@ -173,10 +173,6 @@ Landmark* Map::CreateLandmark(
     const LandmarkId& lm_id,
     const Vec3d& global_pos)  //, const std::string& name)
 {
-  // C++14
-  // auto it = landmarks_.emplace(lm_id, std::make_unique<Landmark>(lm_id,
-  // global_pos));
-  // C++11
   auto it_exist = landmarks_.find(lm_id);
   if (it_exist == landmarks_.end()) //create
   {
@@ -337,6 +333,23 @@ Camera* Map::GetCamera(const CameraId& cam_id)
     return nullptr;
   }
   return &it->second; 
+}
+
+void 
+Map::ColorMap()
+{
+  //color all the landmarks
+  for (auto& lm_id : landmarks_)
+  {
+    auto& lm = lm_id.second;
+    //get the first observation
+    const auto& shot_obs = lm->GetObservations();
+    const auto& first_obs_pair = shot_obs.cbegin();
+    auto* first_shot = (*first_obs_pair).first;
+    auto feat_id = (*first_obs_pair).second;
+    const auto& first_obs = first_shot->GetObservation(shot_obs.at(first_shot));
+    lm->SetColor(first_obs.color);
+  }
 }
 
 };  // namespace map

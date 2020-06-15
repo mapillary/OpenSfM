@@ -23,11 +23,9 @@ public:
     const cv::Mat mask_img = (mask.shape(0) == 0 ? cv::Mat{} : cv::Mat(mask.shape(0), mask.shape(1), CV_8U, (void *)mask.data()));
     AlignedVector<Observation> kpts;
     DescriptorMatrix desc;
-    // cv::Mat desc;
     
     extractor_.extract(img, mask_img, kpts, desc);//, dmat);
     shot.InitAndTakeDatastructures(kpts, desc);
-    // std::swap(dmat, shot.descriptors_eig_);
   }
 
   // py::list extract(foundation::pyarray_uint8 image, foundation::pyarray_uint8 mask)

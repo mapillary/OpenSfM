@@ -16,8 +16,6 @@
 #include <geometry/camera.h>
 namespace map
 {
-// class Shot;
-// class Landmark;
 
 class Map 
 {
@@ -86,6 +84,7 @@ public:
   void SetLandmarkUniqueId(const LandmarkUniqueId id) { landmark_unique_id_ = id; }
   LandmarkUniqueId GetCurrentLandmarkUniqueId() const { return landmark_unique_id_; }
   ShotUniqueId GetCurrentShotUniqueId() const { return shot_unique_id_; }
+  void ColorMap();
 private:
   std::unordered_map<CameraId, Camera> cameras_;
   // TODO: Think about switching to objects instead of unique_ptrs

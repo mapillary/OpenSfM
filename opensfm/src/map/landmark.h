@@ -49,7 +49,8 @@ class Landmark {
   void SetColor(const Vec3i& color) { color_ = color; }
   void SetRefShot(Shot* ref_shot) { ref_shot_ = ref_shot; }
   Shot* GetRefShot() { return ref_shot_; }
-
+  
+  
   // Utility functions
   bool IsObservedInShot(Shot* shot) const { return observations_.count(shot) > 0; }
   void AddObservation(Shot* shot, const FeatureId feat_id) { observations_.emplace(shot, feat_id); }

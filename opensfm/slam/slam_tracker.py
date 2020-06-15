@@ -232,6 +232,7 @@ class SlamTracker(object):
                 curr_shot.remove_observation(valid_ids[idx])
             else:
                 n_tracked += 1
+        curr_shot.increase_observed_of_landmarks()
         assert(curr_shot.compute_num_valid_pts(1) == np.sum(valid_pts)) # TODO: Remove debug stuff
         assert(curr_shot.compute_num_valid_pts(1) == n_tracked) # TODO: Remove debug stuff
         self.num_tracked_lms = n_tracked

@@ -71,6 +71,7 @@ PYBIND11_MODULE(pymap, m) {
       .def(py::init())
       .def("number_of_shots", &map::Map::NumberOfShots,
            "Returns the number of shots")
+      .def("color_map", &map::Map::ColorMap)
       .def("number_of_landmarks", &map::Map::NumberOfLandmarks)
       .def("number_of_cameras", &map::Map::NumberOfCameras)
       .def("create_camera", &map::Map::CreateCamera, py::arg("camera"),
@@ -193,6 +194,7 @@ PYBIND11_MODULE(pymap, m) {
       .def_property_readonly("camera", &map::Shot::GetCamera,
                              py::return_value_policy::reference_internal)
       .def("create_observation", &map::Shot::CreateObservation)
+      .def("increase_observed_of_landmarks", &map::Shot::IncreaseObservedOfLandmarks)
       .def("get_landmark_observation", &map::Shot::GetLandmarkObservation,
            py::return_value_policy::reference_internal)
       .def("project", &map::Shot::Project)
@@ -285,7 +287,9 @@ PYBIND11_MODULE(pymap, m) {
       .def_readonly("bearings", &map::SLAMShotData::bearings_);
 
   py::class_<map::SLAMLandmarkData>(m, "SlamLandmarkData")
-      .def("get_observed_ratio", &map::SLAMLandmarkData::GetObservedRatio);
+      .def("get_observed_ratio", &map::SLAMLandmarkData::GetObservedRatio)
+      .def("get_num_observable", &map::SLAMLandmarkData::GetNumObservable)
+      .def("get_num_observed", &map::SLAMLandmarkData::GetNumObserved);
 
   py::class_<map::ShotMeasurements>(m, "ShotMeasurements")
       .def_readwrite("gps_dop", &map::ShotMeasurements::gps_dop_)

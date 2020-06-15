@@ -92,33 +92,30 @@ class Shot {
   std::vector<Landmark*>& GetLandmarks() { return landmarks_; }
 
   const Observation& GetObservation(const FeatureId id) const {
-    return landmarks_.empty() ? landmark_observations_.at(landmark_id_.at(id))
-                              : keypoints_.at(id);
+    return UseLinearDataStructure()
+               ? keypoints_.at(id)
+               : landmark_observations_.at(landmark_id_.at(id));
   }
 
-//  const Observation& GetKeyPoint(const FeatureId id) const {
-//     return keypoints_.at(id);
-//   }
+  void IncreaseObservedOfLandmarks();
 
   std::vector<Landmark*> ComputeValidLandmarks() {
     std::vector<Landmark*> valid_landmarks;
 
     // we use the landmark observation
-    if (landmarks_.empty()) {
-      valid_landmarks.reserve(landmark_observations_.size());
-      // C++ 14
-      // std::transform(landmark_observations_.begin(),
-      // landmark_observations_.end(),
-      //           std::back_inserter(valid_landmarks), [](const auto& p){
-      //           return p.first; });
-      for (const auto& lm_obs : landmark_observations_) {
-        valid_landmarks.push_back(lm_obs.first);
-      }
-    } else {
+    if (UseLinearDataStructure())
+    {
       valid_landmarks.reserve(landmarks_.size());
       std::copy_if(landmarks_.begin(), landmarks_.end(),
                    std::back_inserter(valid_landmarks),
                    [](const Landmark* lm) { return lm != nullptr; });
+    }
+    else
+    {
+      valid_landmarks.reserve(landmark_observations_.size());
+      for (const auto& lm_obs : landmark_observations_) {
+        valid_landmarks.push_back(lm_obs.first);
+      }
     }
     return valid_landmarks;
   }
@@ -187,7 +184,7 @@ class Shot {
 
   // SLAM stuff
   void UndistortedKeyptsToBearings();
-  void UndistortKeypts();
+  // void UndistortKeypts();
   void UndistortAndComputeBearings();
   void ScalePose(const double scale);
   void ScaleLandmarks(const double scale);

@@ -4,58 +4,71 @@
 #include <numeric>
 namespace map
 {
-Shot::Shot(const ShotId& shot_id, const Camera* const shot_camera, const Pose& pose):
-            id_(shot_id), shot_camera_(shot_camera), slam_data_(this), pose_(pose)
-{
-}
-Shot::Shot(const ShotId& shot_id, std::unique_ptr<Camera> shot_camera, const Pose& pose):
-            id_(shot_id), shot_camera_(shot_camera.get()), slam_data_(this), pose_(pose)
-{
+Shot::Shot(const ShotId& shot_id, const Camera* const shot_camera,
+           const Pose& pose)
+    : id_(shot_id), shot_camera_(shot_camera), slam_data_(this), pose_(pose) {}
+Shot::Shot(const ShotId& shot_id, std::unique_ptr<Camera> shot_camera,
+           const Pose& pose)
+    : id_(shot_id),
+      shot_camera_(shot_camera.get()),
+      slam_data_(this),
+      pose_(pose) {
   own_camera_ = std::move(shot_camera);
 }
-size_t
-Shot::ComputeNumValidLandmarks(const int min_obs_thr) const
-{
-  if (landmarks_.empty())
-  {
-      return std::accumulate(landmark_observations_.cbegin(), landmark_observations_.cend(), 0,
-                    [min_obs_thr](const size_t prior, const std::pair<Landmark*, Observation>& lm)
-                    {
-                        if (min_obs_thr <= lm.first->NumberOfObservations())
-                          return prior + 1;
-                        return prior;
-                    });
-  }
-  else
-  {
-    return std::accumulate(landmarks_.cbegin(), landmarks_.cend(), 0,
-                    [min_obs_thr](const size_t prior, const Landmark* lm)
-                    {
-                        if (lm != nullptr && min_obs_thr <= lm->NumberOfObservations())
-                          return prior + 1;
-                        return prior;
-                    });
+
+size_t Shot::ComputeNumValidLandmarks(const int min_obs_thr) const {
+  if (UseLinearDataStructure()) {
+    return std::accumulate(
+        landmarks_.cbegin(), landmarks_.cend(), 0,
+        [min_obs_thr](const size_t prior, const Landmark* lm) {
+          if (lm != nullptr && min_obs_thr <= lm->NumberOfObservations())
+            return prior + 1;
+          return prior;
+        });
+  } else {
+    return std::accumulate(
+        landmark_observations_.cbegin(), landmark_observations_.cend(), 0,
+        [min_obs_thr](const size_t prior,
+                      const std::pair<Landmark*, Observation>& lm) {
+          if (min_obs_thr <= lm.first->NumberOfObservations()) return prior + 1;
+          return prior;
+        });
   }
 }
 
 float
 Shot::ComputeMedianDepthOfLandmarks(const bool take_abs) const
 {
-  if (landmarks_.empty())
-    return 1.0f;
+  // if (landmarks_.empty())
+  //   return 1.0f;
+  
   std::vector<float> depths;
-  depths.reserve(landmarks_.size());
+  const auto n_landmarks = UseLinearDataStructure() ? landmarks_.size() : landmark_observations_.size();
+  depths.reserve(n_landmarks);
   const Mat4d T_cw = pose_.WorldToCamera();
   const Vec3d rot_cw_z_row = T_cw.block<1, 3>(2, 0);
   const double trans_cw_z = T_cw(2, 3);
-  for (const auto& lm : landmarks_)
+  if (UseLinearDataStructure())
   {
-      if (lm != nullptr)
-      {
-        const double pos_c_z = rot_cw_z_row.dot(lm->GetGlobalPos())+trans_cw_z;
-        depths.push_back(float(take_abs ? std::abs(pos_c_z) : pos_c_z));
-      }
+    for (const auto& lm : landmarks_)
+    {
+        if (lm != nullptr)
+        {
+          const double pos_c_z = rot_cw_z_row.dot(lm->GetGlobalPos())+trans_cw_z;
+          depths.push_back(float(take_abs ? std::abs(pos_c_z) : pos_c_z));
+        }
+    }
   }
+  else
+  {
+    for (const auto& lm_pair : landmark_observations_)
+    {
+      auto* lm = lm_pair.first;
+      const double pos_c_z = rot_cw_z_row.dot(lm->GetGlobalPos())+trans_cw_z;
+      depths.push_back(float(take_abs ? std::abs(pos_c_z) : pos_c_z));
+    }
+  }
+
   std::sort(depths.begin(), depths.end());
   return depths.at((depths.size() - 1) / 2);
 }
@@ -96,18 +109,18 @@ Shot::NormalizeKeypts()
     obs.scale = norm_pt[2];
   };
 
-  if (landmarks_.empty())
+  if (UseLinearDataStructure())
   {
-    for (auto& lm_obs : landmark_observations_)
+    for (auto& obs : keypoints_)
     {
-      auto& obs = lm_obs.second;
       normalize_obseration(obs);
     }
   }
   else
   {
-    for (auto& obs : keypoints_)
+    for (auto& lm_obs : landmark_observations_)
     {
+      auto& obs = lm_obs.second;
       normalize_obseration(obs);
     }
   }
@@ -130,9 +143,9 @@ void Shot::UndistortAndComputeBearings() {
   // exit(0);
 }
 
-void
-Shot::UndistortKeypts()
-{
+// void
+// Shot::UndistortKeypts()
+// {
   
   // slam_data_.undist_keypts_.reserve(slam_data_.bearings_.size());
   // if (slam_data_.bearings_.size() == keypoints_.size())
@@ -157,20 +170,12 @@ Shot::UndistortKeypts()
   // {
   //   shot_camera_.camera_model_.UndistortKeypts(keypoints_, slam_data_.undist_keypts_);
   // }
-}
+// }
 
 void
 Shot::ScaleLandmarks(const double scale)
 {
-  if (landmarks_.empty())
-  {
-    for (auto& lm_obs : landmark_observations_)
-    {
-      auto* lm = lm_obs.first;
-      lm->SetGlobalPos(lm->GetGlobalPos()*scale);
-    }
-  }
-  else
+  if (UseLinearDataStructure())
   {
     for (auto* lm : landmarks_) 
     {
@@ -178,6 +183,36 @@ Shot::ScaleLandmarks(const double scale)
       {
         lm->SetGlobalPos(lm->GetGlobalPos()*scale);
       }
+    }
+  }
+  else
+  {
+    for (auto& lm_obs : landmark_observations_)
+    {
+      auto* lm = lm_obs.first;
+      lm->SetGlobalPos(lm->GetGlobalPos()*scale);
+    }
+  }
+}
+
+void
+Shot::IncreaseObservedOfLandmarks()
+{
+  if (UseLinearDataStructure()) // for SLAM
+  {
+    for (auto* lm : landmarks_)
+    {
+      if (lm != nullptr) 
+      {
+        lm->slam_data_.IncreaseNumObserved();
+      }
+    }
+  }
+  else // for OpenSfM
+  {
+    for (auto& lm_pair : landmark_observations_)
+    {
+      lm_pair.first->slam_data_.IncreaseNumObserved();
     }
   }
 }
@@ -193,16 +228,15 @@ Shot::ScalePose(const double scale)
 void 
 Shot::RemoveLandmarkObservation(const FeatureId id) 
 {
-  // for OpenSfM
-  if (landmarks_.empty())
+  if (UseLinearDataStructure()) // for SLAM
+  {
+    landmarks_.at(id) = nullptr; 
+  }
+  else // for OpenSfM
   {
     auto* lm = landmark_id_.at(id);
     landmark_id_.erase(id);
     landmark_observations_.erase(lm);
-  }
-  else //for SLAM
-  {
-    landmarks_.at(id) = nullptr; 
   }
 }
 
@@ -213,7 +247,6 @@ Vec2d Shot::Project(const Vec3d& global_pos) const {
 
 Vec2d Shot::ProjectInImageCoordinates(const Vec3d& global_pos) const {
   const Vec3d pt = pose_.RotationWorldToCamera()*global_pos + pose_.TranslationWorldToCamera(); 
-  // return shot_camera_->Project(shot_camera_->GetProjectionMatrixScaled()*pt);
   return (shot_camera_->GetProjectionMatrixScaled()*pt).hnormalized();
 }
 

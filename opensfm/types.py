@@ -897,20 +897,12 @@ class Reconstruction(object):
 
         :param shot: The shot.
         """
-
         pose = pymap.Pose()
         if shot.pose is not None:
             pose.set_from_world_to_cam(
                 shot.pose.rotation, shot.pose.translation)
         map_shot = self.map.create_shot(shot.id, shot.camera.id, pose)
         self.set_shot_metadata(map_shot, shot.metadata)
-        # if shot.metadata is not None:
-        #     if shot.metadata.gps_dop is not None:
-        #         map_shot.shot_measurement.gps_dop = shot.metadata.gps_dop
-        #     if shot.metadata.gps_position is not None:
-        #         map_shot.shot_measurement.gps_position = shot.metadata.gps_position
-        #     if shot.metadata.orientation is not None:
-        #         map_shot.shot_measurement.orientation = shot.metadata.orientation
 
     def set_shot_metadata(self, map_shot: pymap.Shot, metadata):
         if metadata is not None:

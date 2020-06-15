@@ -1141,8 +1141,12 @@ def merge_reconstructions(reconstructions, config):
 
 def paint_reconstruction(data, tracks_manager, reconstruction):
     """Set the color of the points from the color of the tracks."""
-    for k, point in reconstruction.points.items():
-        point.color = list(map(float, next(iter(tracks_manager.get_track_observations(str(k)).values())).color))
+    if tracks_manager is None:  # in the SLAM case
+        reconstruction.map.color_map()
+    else:
+        for k, point in reconstruction.points.items():
+            point.color =\
+                list(map(float, next(iter(tracks_manager.get_track_observations(str(k)).values())).color))
 
 
 class ShouldBundle:
