@@ -474,15 +474,70 @@ struct SizeTraits {
 //  *     (f o g) = d(f o g)/d(dx | db | da).
 //  */
 template <class T, int OutSize1, int Stride1, int ParamSize1, int OutSize2,
-          int Stride2, int ParamSize2, class OUT>
+          int Stride2, int ParamSize2>
 void ComposeDerivatives(
     const Eigen::Matrix<T, OutSize1, Stride1, Eigen::RowMajor>& jacobian1,
     const Eigen::Matrix<T, OutSize2, Stride2, Eigen::RowMajor>& jacobian2,
-    OUT* jacobian) {
-  jacobian->template block<OutSize2, Stride1>(0, 0) = jacobian2.template block<OutSize2, OutSize1>(0, 0) * jacobian1;
-  jacobian->template block<OutSize2, ParamSize2>(0, Stride1) = jacobian2.template block<OutSize2, ParamSize2>(0, OutSize1);
+    T* jacobian) {
+  Eigen::Map<Eigen::Matrix<T, OutSize2, Stride1 + ParamSize2, Eigen::RowMajor>>
+      jacobian_mapped(jacobian);
+  jacobian_mapped.template block<OutSize2, Stride1>(0, 0) =
+      jacobian2.template block<OutSize2, OutSize1>(0, 0) * jacobian1;
+  jacobian_mapped.template block<OutSize2, ParamSize2>(0, Stride1) =
+      jacobian2.template block<OutSize2, ParamSize2>(0, OutSize1);
 }
 
+/* Below are some utilities to generalize computation of jacobian of
+ * composition of functions f(g(h(i ... ))). Most of the implementation
+ * consists in recursing variadic template arguments. Usage is then
+ * summarized as : ComposeForwardDerivatives<Func1, Func2, ... FuncN>() */
+template <class FUNC>
+static constexpr int ComposeStrides() {
+  return FUNC::template Stride<true>();
+}
+
+template <class FUNC1, class FUNC2, class... FUNCS>
+static constexpr int ComposeStrides() {
+  return FUNC1::ParamSize + ComposeStrides<FUNC2, FUNCS...>();
+}
+
+template <class FUNC>
+static constexpr int ComposeIndex() {
+  return 0;
+}
+
+template <class FUNC1, class FUNC2, class... FUNCS>
+static constexpr int ComposeIndex() {
+  return FUNC1::ParamSize + ComposeIndex<FUNC2, FUNCS...>();
+}
+
+template <class T, class FUNC>
+static void ComposeForwardDerivatives(const T* in, const T* parameters, T* out,
+                                      T* jacobian) {
+  FUNC::template ForwardDerivatives<T, true>(in, parameters, out, jacobian);
+}
+
+template <class T, class FUNC1, class FUNC2, class... FUNCS>
+static void ComposeForwardDerivatives(const T* in, const T* parameters, T* out,
+                                      T* jacobian) {
+  constexpr int StrideSub = ComposeStrides<FUNC2, FUNCS...>();
+  Eigen::Matrix<T, FUNC2::OutSize, StrideSub, Eigen::RowMajor> sub_jacobian;
+  ComposeForwardDerivatives<T, FUNC2, FUNCS...>(in, parameters, out,
+                                                sub_jacobian.data());
+
+  constexpr int Index = ComposeIndex<FUNC2, FUNCS...>();
+  constexpr int StrideFunc1 = FUNC1::template Stride<true>();
+  Eigen::Matrix<T, FUNC1::OutSize, StrideFunc1, Eigen::RowMajor>
+      current_jacobian;
+  FUNC1::template ForwardDerivatives<T, true>(out, parameters + Index, out,
+                                              current_jacobian.data());
+
+  ComposeDerivatives<T, FUNC2::OutSize, StrideSub, FUNC2::ParamSize,
+                     FUNC1::OutSize, StrideFunc1, FUNC1::ParamSize>(
+      sub_jacobian, current_jacobian, jacobian);
+}
+
+/* Finally, here's the generic camera that implements the PROJ - > DISTO -> AFFINE pattern. */
 template <class PROJ, class DISTO, class AFF>
 struct ProjectGeneric {
   using Indexes = ParametersIndexTraits<PROJ, DISTO, AFF>;
@@ -496,46 +551,10 @@ struct ProjectGeneric {
   };
 
   template <class T>
-  static void ForwardDerivatives(const T* point, const T* parameters, T* projected, T* jacobian) {
-    constexpr int ProjStride = PROJ::template Stride<true>();
-    constexpr int DistoStride = DISTO::template Stride<true>();
-    constexpr int AffStride = AFF::template Stride<true>();
-
-    /* Compute local jacobian of d(projected)/d(point) */
-    Eigen::Matrix<T, PROJ::OutSize, ProjStride, Eigen::RowMajor> projection_jacobian;
-    PROJ::template ForwardDerivatives<T, true>(
-        point, parameters + Indexes::Projection, projected,
-        projection_jacobian.data());
-
-    /* Compute local jacobian of d(distorted)/d(projected | disto) */
-    Eigen::Matrix<T, DISTO::OutSize, DistoStride, Eigen::RowMajor> distortion_jacobian;
-    DISTO::template ForwardDerivatives<T, true>(
-        projected, parameters + Indexes::Distorsion, projected,
-        distortion_jacobian.data());
-
-    /* Compose d(distorted)/d(projected) . d(projected)/d(point) in order to get
-     * d(distorted)/d(point | disto) */
-    Eigen::Matrix<T, DISTO::OutSize, PROJ::InSize + DISTO::ParamSize, Eigen::RowMajor>
-        jacobian_projection_distortion;
-    ComposeDerivatives<T, PROJ::OutSize, ProjStride, PROJ::ParamSize,
-                       DISTO::OutSize, DistoStride, DISTO::ParamSize>(
-        projection_jacobian, distortion_jacobian,
-        &jacobian_projection_distortion);
-
-    /* Compute local jacobian of d(transformed)/d(distorted | affine) */
-    Eigen::Matrix<T, AFF::OutSize, AffStride, Eigen::RowMajor> affine_jacobian;
-    AFF::template ForwardDerivatives<T, true>(
-        projected, parameters + Indexes::Affine, projected,
-        affine_jacobian.data());
-
-    /* Compose d(transformed)/d(distorted | affine) . d(distorted)/d(point |
-     * disto) in order to get d(transformed)/d(point | disto | affine) */
-    Eigen::Map<Eigen::Matrix<T, AFF::OutSize, PROJ::InSize + DISTO::ParamSize + AFF::ParamSize, Eigen::RowMajor> > jacobian_final(jacobian);
-    ComposeDerivatives<T, DISTO::OutSize, PROJ::InSize + DISTO::ParamSize,
-                       DISTO::ParamSize, AFF::OutSize, AffStride,
-                       AFF::ParamSize>(jacobian_projection_distortion,
-                                       affine_jacobian, &jacobian_final);
-  };
+  static void ForwardDerivatives(const T* in, const T* parameters, T* out,
+                                 T* jacobian) {
+    ComposeForwardDerivatives<T, AFF, DISTO, PROJ>(in, parameters, out, jacobian);
+  }
 
   template <class T>
   static void Backward(const T* point, const T* parameters, T* bearing) {
