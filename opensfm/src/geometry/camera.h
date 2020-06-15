@@ -27,6 +27,7 @@ class Camera {
     }
   };
 
+  Camera(const std::vector<Camera::Parameters>& types, const VecXd& values);
   static Camera CreatePerspectiveCamera(double focal, double k1, double k2);
   static Camera CreateBrownCamera(double focal, double aspect_ratio,
                                   const Vec2d& principal_point,
@@ -70,7 +71,8 @@ class Camera {
   Camera();
 
   ProjectionType type_;
-  std::map<Parameters, double, CompParameters> parameters_;
+  std::vector<Parameters> types_;
+  VecXd values_;
 };
 
 std::pair<MatXf, MatXf> ComputeCameraMapping(const Camera& from,

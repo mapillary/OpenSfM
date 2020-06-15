@@ -1,10 +1,9 @@
-import copy
-
 import numpy as np
 import cv2
 
 import opensfm.transformations as tf
 from opensfm import align
+from opensfm import types
 
 
 def points_errors(reference, candidate):
@@ -84,9 +83,20 @@ def aligned_to_reference(reference, reconstruction):
             coords2.append(point2.coordinates)
 
     s, A, b = find_alignment(coords1, coords2)
-    aligned = copy.deepcopy(reconstruction)
+    aligned = _copy_reconstruction(reconstruction)
     align.apply_similarity(aligned, s, A, b)
     return aligned
+
+
+def _copy_reconstruction(reconstruction):
+    copy = types.Reconstruction()
+    for camera in reconstruction.cameras.values():
+        copy.add_camera(camera)
+    for shot in reconstruction.shots.values():
+        copy.add_shot(shot)
+    for point in reconstruction.points.values():
+        copy.add_point(point)
+    return copy
 
 
 def rmse(errors):
