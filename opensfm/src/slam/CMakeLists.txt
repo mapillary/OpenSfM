@@ -14,8 +14,8 @@ set(SLAM_FILES
   guided_matching_bind.h
   guided_matching.h
   src/guided_matching.cc
-  slam_map.h
-  src/slam_map.cc
+  #slam_map.h
+  #src/slam_map.cc
   pyslam_utilities.h
 )
 add_library(slam ${SLAM_FILES} ${ORB_FILES})
