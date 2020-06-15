@@ -5,25 +5,29 @@
 #include "ceres/ceres.h"
 #include "ceres/rotation.h"
 
-/* multiply a set of N rotation R1*R2*...Rn-1=R rotations are expected to be
- * angle-axis */
 template <class T>
-Vec3<T> MultRotations(const Vec3<T>& R1, const std::initializer_list<Vec3<T>>& Rs) {
-  // hence why we split the variadic with a 1st argument
-  Vec4<T> qPrevious_Ri;
-  ceres::AngleAxisToQuaternion(R1.data(), qPrevious_Ri.data());
+Vec3<T> MultRotations(const Vec3<T>& R1, const Vec3<T>& R2) {
+  T qR1[4], qR2[4], qResult[4];
+  ceres::AngleAxisToQuaternion(R1.data(), qR1);
+  ceres::AngleAxisToQuaternion(R2.data(), qR2);
+  ceres::QuaternionProduct(qR1, qR2, qResult);
 
-  // accumulate rotations in quaternion space
-  for (const auto Ri : Rs) {
-    Vec4<T> qRi, qResult;
-    ceres::AngleAxisToQuaternion(Ri.data(), qRi.data());
-    ceres::QuaternionProduct(qPrevious_Ri.data(), qRi.data(), qResult.data());
-    qPrevious_Ri = qResult;
-  }
-
-  // back to angle axis
   Vec3<T> result;
-  ceres::QuaternionToAngleAxis(qPrevious_Ri.data(), result.data());
+  ceres::QuaternionToAngleAxis(qResult, result.data());
+  return result;
+}
+
+template <class T>
+Vec3<T> MultRotations(const Vec3<T>& R1, const Vec3<T>& R2, const Vec3<T>& R3) {
+  T qR1[4], qR2[4], qR3[4], qR1R2[4], qResult[4];
+  ceres::AngleAxisToQuaternion(R1.data(), qR1);
+  ceres::AngleAxisToQuaternion(R2.data(), qR2);
+  ceres::AngleAxisToQuaternion(R3.data(), qR3);
+  ceres::QuaternionProduct(qR1, qR2, qR1R2);
+  ceres::QuaternionProduct(qR1R2, qR3, qResult);
+
+  Vec3<T> result;
+  ceres::QuaternionToAngleAxis(qResult, result.data());
   return result;
 }
 
@@ -40,7 +44,7 @@ Vec3<T> RotatePoint(const Vec3<T>& R, const Vec3<T>& x) {
  * center in world coordinates being respectively R and c such : x(camera) =
  * R(t).(x(world) - c) */
 template <typename T>
-Vec3<T>  WorldToCamera(const Vec3<T>& R, const Vec3<T>& c, const Vec3<T>& x) {
+Vec3<T> WorldToCamera(const Vec3<T>& R, const Vec3<T>& c, const Vec3<T>& x) {
   return RotatePoint((-R).eval(), (x - c).eval());
 }
 
