@@ -537,6 +537,20 @@ static void ComposeForwardDerivatives(const T* in, const T* parameters, T* out,
       sub_jacobian, current_jacobian, jacobian);
 }
 
+template <class T, class FUNC>
+static void ComposeForward(const T* in, const T* parameters, T* out) {
+  FUNC::template Forward<T>(in, parameters, out);
+}
+
+template <class T, class FUNC1, class FUNC2, class... FUNCS>
+static void ComposeForward(const T* in, const T* parameters, T* out) {
+  T tmp[FUNC2::OutSize];
+  ComposeForward<T, FUNC2, FUNCS...>(in, parameters, tmp);
+
+  constexpr int Index = ComposeIndex<FUNC2, FUNCS...>();
+  FUNC1::template Forward<T>(&tmp[0], parameters + Index, out);
+}
+
 /* Finally, here's the generic camera that implements the PROJ - > DISTO -> AFFINE pattern. */
 template <class PROJ, class DISTO, class AFF>
 struct ProjectGeneric {
@@ -545,15 +559,14 @@ struct ProjectGeneric {
 
   template <class T>
   static void Forward(const T* point, const T* parameters, T* projected) {
-    PROJ::Forward(point, parameters + Indexes::Projection, projected);
-    DISTO::Forward(projected, parameters + Indexes::Distorsion, projected);
-    AFF::Forward(projected, parameters + Indexes::Affine, projected);
+    ComposeForward<T, AFF, DISTO, PROJ>(point, parameters, projected);
   };
 
   template <class T>
-  static void ForwardDerivatives(const T* in, const T* parameters, T* out,
-                                 T* jacobian) {
-    ComposeForwardDerivatives<T, AFF, DISTO, PROJ>(in, parameters, out, jacobian);
+  static void ForwardDerivatives(const T* point, const T* parameters,
+                                 T* projected, T* jacobian) {
+    ComposeForwardDerivatives<T, AFF, DISTO, PROJ>(point, parameters, projected,
+                                                   jacobian);
   }
 
   template <class T>
