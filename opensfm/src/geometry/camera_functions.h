@@ -13,14 +13,55 @@ inline T SquaredNorm(T* point){
   return point[0]*point[0] + point[1]*point[1];
 }
 
+template< int IN, int P, int OUT>
+struct CameraFunctor{
+  constexpr static int InSize = IN;
+  constexpr static int ParamSize = P;
+  constexpr static int OutSize = OUT;
+  template <bool C>
+  static constexpr int Stride(){return C * ParamSize + InSize;};
+};
+
 /* Parameters are : none used */
-struct FisheyeProjection {
+struct FisheyeProjection : CameraFunctor<3, 0, 2>{
   template <class T>
   static void Forward(const T* point, const T* /* p */, T* projected) {
     const T r = sqrt(SquaredNorm(point));
     const auto theta = atan2(r, point[2]);
     projected[0] = theta / r * point[0];
     projected[1] = theta / r * point[1];
+  }
+
+  template <class T, bool COMP_PARAM>
+  static void ForwardDerivatives(const T* point, const T* /* p */, T* projected,
+                                 T* jacobian) {
+    // dx, dy, dz
+    constexpr int Stride = COMP_PARAM*ParamSize + InSize;
+    const T r2 = SquaredNorm(point);
+    const T r = sqrt(r2);
+    const T R2 = r2 + point[2] * point[2];
+    const T theta = atan2(r, point[2]);
+    const T x2 = point[0]*point[0];
+    const T y2 = point[1]*point[1];
+    const T z2 = point[2]*point[2];
+
+    const T inv_denom = T(1.0) / (r2 * R2 * r);
+    jacobian[0] = (x2 * y2 * theta + y2 * y2 * theta + y2 * z2 * theta +
+                   x2 * point[2] * r) *
+                  inv_denom;
+    jacobian[1] = point[0] * (point[1] * point[2] * r - point[1] * theta * R2) *
+                  inv_denom;
+    jacobian[2] = -point[0] / R2;
+    jacobian[Stride] = point[1] *
+                       (point[0] * point[2] * r - point[0] * theta * R2) *
+                       inv_denom;
+    jacobian[Stride + 1] = (x2 * y2 * theta + x2 * x2 * theta +
+                            x2 * z2 * theta + y2 * point[2] * r) *
+                           inv_denom;
+    jacobian[Stride + 2] = -point[1] / R2;
+
+    T* dummy = nullptr;
+    Forward(point, dummy, projected);
   }
 
   template <class T>
@@ -34,16 +75,6 @@ struct FisheyeProjection {
     bearing[1] = y * inv_norm;
     bearing[2] = inv_norm;
   }
-};
-
-
-template< int IN, int P, int OUT>
-struct CameraFunctor{
-  constexpr static int InSize = IN;
-  constexpr static int ParamSize = P;
-  constexpr static int OutSize = OUT;
-  template <bool C>
-  static constexpr int Stride(){return C * ParamSize + InSize;};
 };
 
 /* Parameters are : none used */
@@ -65,7 +96,7 @@ struct PerspectiveProjection : CameraFunctor<3, 0, 2> {
     jacobian[Stride] = T(0.0);
     jacobian[Stride + 1] = jacobian[0];
     jacobian[Stride + 2] = -point[1] / (point[2] * point[2]);
-    T* dummy = NULL;
+    T* dummy = nullptr;
     Forward(point, dummy, projected);
   }
 
@@ -150,7 +181,7 @@ struct SphericalProjection {
 };
 
 /* Parameters are : k1, k2 */
-struct Disto24  : CameraFunctor<2, 2, 2>{
+struct Disto24 : CameraFunctor<2, 2, 2>{
   template <class T>
   static void Forward(const T* point, const T* k, T* distorted) {
     const T r2 = SquaredNorm(point);
@@ -249,7 +280,7 @@ struct Disto24  : CameraFunctor<2, 2, 2>{
 };
 
 /* Parameters are : k1, k2, k3, p1, p2 */
-struct DistoBrown {
+struct DistoBrown : CameraFunctor<2, 5, 2>{
   template <class T>
   static void Forward(const T* point, const T* k, T* distorted) {
     const auto r2 = SquaredNorm(point);
@@ -261,6 +292,59 @@ struct DistoBrown {
         k[static_cast<int>(Disto::P2)]);
     distorted[0] = point[0] * distortion_radial + distortion_tangential[0];
     distorted[1] = point[1] * distortion_radial + distortion_tangential[1];
+  }
+
+  template <class T, bool COMP_PARAM>
+  static void ForwardDerivatives(const T* point, const T* k, T* distorted,
+                                 T* jacobian) {
+    // dx, dy, dk1, dk2
+    constexpr int Stride = COMP_PARAM*ParamSize + InSize;
+    const auto& k1 = k[static_cast<int>(Disto::K1)];
+    const auto& k2 = k[static_cast<int>(Disto::K2)];
+    const auto& k3 = k[static_cast<int>(Disto::K3)];
+    const auto& p1 = k[static_cast<int>(Disto::P1)];
+    const auto& p2 = k[static_cast<int>(Disto::P2)];
+    const auto& x = point[0];
+    const auto& y = point[1];
+    const auto& z = point[2];
+
+    const auto x2 = x * x;
+    const auto x4 = x2 * x2;
+    const auto y2 = y * y;
+    const auto y4 = y2 * y2;
+    const auto r2 = x2 + y2;
+
+    jacobian[0] = T(7.0) * k3 * x4 * x2 + T(5.0) * k2 * x4 +
+                  T(15.0) * k3 * y2 * x4 + T(3.0) * k1 * x2 +
+                  T(9.0) * k3 * y4 * x2 + T(6.0) * k2 * y2 * x2 + k3 * y2 * y4 +
+                  k2 * y4 + k1 * y2 + T(1.0) + p1 * y + T(6.0) * p2 * x;
+    jacobian[1] = x * (T(6.0) * k3 * y * y4 + T(4.0) * k2 * y * y2 +
+                       T(12.0) * k3 * x2 * y2 * y + T(2.0) * k1 * y +
+                       T(6.0) * k3 * x4 * y + T(4.0) * k2 * x2 * y) +
+                  p1 * x + T(2.0) * p2 * y;
+    jacobian[Stride] = y * (T(6.0) * k3 * x * x4 + T(4.0) * k2 * x * x2 +
+                            T(12.0) * k3 * y2 * x2 * x + T(2.0) * k1 * x +
+                            T(6.0) * k3 * y4 * x + T(4.0) * k2 * y2 * x) +
+                       p2 * y + T(2.0) * p1 * x;
+    jacobian[Stride + 1] =
+        T(7.0) * k3 * y4 * y2 + T(5.0) * k2 * y4 + T(15.0) * k3 * x2 * y4 +
+        T(3.0) * k1 * y2 + T(9.0) * k3 * x4 * y2 + T(6.0) * k2 * x2 * y2 +
+        k3 * x2 * x4 + k2 * x4 + k1 * x2 + T(1.0) + p2 * x + T(6.0) * p1 * y;
+
+    if (COMP_PARAM) {
+      jacobian[2] = x * r2;
+      jacobian[3] = x * r2 * r2;
+      jacobian[4] = x * r2 * r2 * r2;
+      jacobian[5] = T(2.0) * x * y;
+      jacobian[6] = T(3.0) * x2 + y2;
+      jacobian[Stride + 2] = y * r2;
+      jacobian[Stride + 3] = y * r2 * r2;
+      jacobian[Stride + 4] = y * r2 * r2 * r2;
+      jacobian[Stride + 5] = T(3.0) * y2 + x2;
+      jacobian[Stride + 6] = T(2.0) * x * y;
+    }
+
+    Forward(point, k, distorted);
   }
 
   template <class T>
@@ -356,11 +440,32 @@ struct DistoBrown {
 };
 
 /* Parameters are : focal, aspect ratio, cx, cy */
-struct Affine {
+struct Affine : CameraFunctor<2, 4, 2>{
   template <class T>
   static void Forward(const T* point, const T* affine, T* transformed) {
     transformed[0] = affine[0] * point[0] + affine[2];
     transformed[1] = affine[0] * affine[1] * point[1] + affine[3];
+  }
+
+  template <class T, bool COMP_PARAM>
+  static void ForwardDerivatives(const T* point, const T* affine, T* transformed,
+                                 T* jacobian) {
+    // dx, dy, dscale
+    constexpr int Stride = COMP_PARAM*ParamSize + InSize;
+    jacobian[0] = affine[0];
+    jacobian[Stride+1] = affine[0] * affine[1];
+    jacobian[1] = jacobian[Stride] = T(0.0);
+    if(COMP_PARAM){
+      jacobian[2] = point[0];
+      jacobian[3] = jacobian[5] = T(0.0);
+      jacobian[4] = T(1.0);
+
+      jacobian[Stride+2] = point[1]*affine[1];
+      jacobian[Stride+3] = point[1]*affine[0];
+      jacobian[Stride+4] = T(0.0);
+      jacobian[Stride+5] = T(1.0);
+    }
+    Forward(point, affine, transformed);
   }
 
   template <class T>
@@ -471,7 +576,7 @@ struct SizeTraits {
 //  * for which have jacobian stored as df/(dx | da) and dg/(dy | db), apply the
 //  * derivative chain-rule in order to get the derivative of
 //  *
-//  *     (f o g) = d(f o g)/d(dx | db | da).
+//  *     (f o g) = d(f o g)/d(x | b | a).
 //  */
 template <class T, int OutSize1, int Stride1, int ParamSize1, int OutSize2,
           int Stride2, int ParamSize2>
@@ -579,8 +684,8 @@ struct ProjectGeneric {
 };
 
 using PerspectiveCamera = ProjectGeneric<PerspectiveProjection, Disto24, UniformScale>;
-// using BrownCamera = ProjectGeneric<PerspectiveProjection, DistoBrown, Affine>;
-// using FisheyeCamera = ProjectGeneric<FisheyeProjection, Disto24, UniformScale>;
+using BrownCamera = ProjectGeneric<PerspectiveProjection, DistoBrown, Affine>;
+using FisheyeCamera = ProjectGeneric<FisheyeProjection, Disto24, UniformScale>;
 // using DualCamera = ProjectGeneric<DualProjection, Disto24, UniformScale>;
 // using SphericalCamera = ProjectGeneric<SphericalProjection, Identity, Identity>;
 
@@ -593,12 +698,12 @@ void Dispatch(const ProjectionType& type, IN&&... args) {
     case ProjectionType::PERSPECTIVE:
       FUNC::template Apply<PerspectiveCamera>(std::forward<IN>(args)...);
       break;
-    // case ProjectionType::BROWN:
-    //   FUNC::template Apply<BrownCamera>(std::forward<IN>(args)...);
-    //   break;
-    // case ProjectionType::FISHEYE:
-    //   FUNC::template Apply<FisheyeCamera>(std::forward<IN>(args)...);
-    //   break;
+    case ProjectionType::BROWN:
+      FUNC::template Apply<BrownCamera>(std::forward<IN>(args)...);
+      break;
+    case ProjectionType::FISHEYE:
+      FUNC::template Apply<FisheyeCamera>(std::forward<IN>(args)...);
+      break;
     // case ProjectionType::DUAL:
     //   FUNC::template Apply<DualCamera>(std::forward<IN>(args)...);
     //   break;
