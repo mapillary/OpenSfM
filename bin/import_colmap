@@ -506,6 +506,7 @@ def main():
     parser.add_argument('database', help='path to the database to be processed')
     parser.add_argument('images', help='path to the images')
     args = parser.parse_args()
+    logger.info(f"Converting {args.database} to COLMAP format")
 
     p_db = Path(args.database)
     assert p_db.is_file()
@@ -564,6 +565,7 @@ def main():
                                                                      cameras,
                                                                      keypoints,
                                                                      points3D)
+            logger.info(f"Projecting {path_ply} to depth images")
             import_depthmaps_from_fused_pointcloud(udata, urec, image_ix_to_shot_id, path_ply)
         else:
             logger.info("Not importing dense reconstruction: Didn't find {}".format(path_ply))

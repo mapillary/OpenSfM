@@ -8,17 +8,13 @@
 /* multiply a set of N rotation R1*R2*...Rn-1=R rotations are expected to be
  * angle-axis */
 template <class T>
-Vec3<T> MultRotations(const Vec3<T>& R1, const Vec3<T>& R...) {
-  // work-around to run over variadic
-  std::initializer_list<Vec3<T> > rotations = {
-      R};
-
+Vec3<T> MultRotations(const Vec3<T>& R1, const std::initializer_list<Vec3<T>>& Rs) {
   // hence why we split the variadic with a 1st argument
   Vec4<T> qPrevious_Ri;
   ceres::AngleAxisToQuaternion(R1.data(), qPrevious_Ri.data());
 
   // accumulate rotations in quaternion space
-  for (const auto Ri : rotations) {
+  for (const auto Ri : Rs) {
     Vec4<T> qRi, qResult;
     ceres::AngleAxisToQuaternion(Ri.data(), qRi.data());
     ceres::QuaternionProduct(qPrevious_Ri.data(), qRi.data(), qResult.data());

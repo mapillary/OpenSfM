@@ -362,42 +362,30 @@ struct BearingFunction {
 
 /* Here's some trait that defines where to look for parameters that follows the
  * generic scheme */
+template <class T> struct FunctorTraits { static constexpr int Size = 0;};
+template <> struct FunctorTraits<SphericalProjection> { static constexpr int Size = 1;};
+template <> struct FunctorTraits<DualProjection> { static constexpr int Size = 1;};
+template <> struct FunctorTraits<Disto24> { static constexpr int Size = 2;};
+template <> struct FunctorTraits<DistoBrown> {static constexpr int Size = 5;};
+template <> struct FunctorTraits<UniformScale> {static constexpr int Size = 1;};
+template <> struct FunctorTraits<Affine> { static constexpr int Size = 4;};
+
 template <class PROJ, class DISTO, class AFF>
-struct ParametersIndexTraits {};
-template <>
-struct ParametersIndexTraits<PerspectiveProjection, Disto24, UniformScale> {
-  static constexpr int Projection = 0;  /* Unused in that case */
-  static constexpr int Distorsion = 1;
-  static constexpr int Affine = 0;
+struct ParametersIndexTraits {
+  static constexpr int Affine = 0;    // Always first
+  static constexpr int Distorsion = FunctorTraits<AFF>::Size;
+  static constexpr int Projection = FunctorTraits<AFF>::Size + FunctorTraits<DISTO>::Size;
 };
-template <>
-struct ParametersIndexTraits<FisheyeProjection, Disto24, UniformScale> {
-  static constexpr int Projection = 0;  /* Unused in that case */
-  static constexpr int Distorsion = 1;
-  static constexpr int Affine = 0;
-};
-template <>
-struct ParametersIndexTraits<DualProjection, Disto24, UniformScale> {
-  static constexpr int Projection = 3;
-  static constexpr int Distorsion = 1;
-  static constexpr int Affine = 0;
-};
-template <>
-struct ParametersIndexTraits<PerspectiveProjection, DistoBrown, Affine> {
-  static constexpr int Projection = 0;  /* Unused in that case */
-  static constexpr int Distorsion = 4;
-  static constexpr int Affine = 0;
-};
-template <>
-struct ParametersIndexTraits<SphericalProjection, Identity, Identity> {
-  static constexpr int Projection = 0; /* Unused in that case */
-  static constexpr int Distorsion = 0; /* Unused in that case */
-  static constexpr int Affine = 0;     /* Unused in that case */
+
+template <class PROJ, class DISTO, class AFF>
+struct SizeTraits {
+  static constexpr int Size = FunctorTraits<PROJ>::Size + FunctorTraits<AFF>::Size + FunctorTraits<DISTO>::Size;
 };
 
 template <class PROJ, class DISTO, class AFF>
 struct ProjectGeneric {
   using Indexes = ParametersIndexTraits<PROJ, DISTO, AFF>;
+   static constexpr int Size = SizeTraits<PROJ, DISTO, AFF>::Size;
 
   template <class T>
   static void Forward(const T* point, const T* parameters, T* projected) {
@@ -446,52 +434,3 @@ void Dispatch(const ProjectionType& type, IN&&... args) {
       throw std::runtime_error("Invalid ProjectionType");
   }
 };
-
-/* Here's some conveniancy functions, so the dispatch function can be re-used for
- * applyting any camera-type-dependant function. */
-template <class T>
-struct SizeTraits {};
-
-/* Some traits that statically defines the sie of the parameter vector */
-template <>
-struct SizeTraits<PerspectiveCamera> {
-  static constexpr int Size = 3;
-};
-template <>
-struct SizeTraits<FisheyeCamera> {
-  static constexpr int Size = 3;
-};
-template <>
-struct SizeTraits<BrownCamera> {
-  static constexpr int Size = 9;
-};
-template <>
-struct SizeTraits<DualCamera> {
-  static constexpr int Size = 4;
-};
-template <>
-struct SizeTraits<SphericalCamera> {
-  static constexpr int Size = 1;  // Dummy as we cant' allocate zero-size vector
-};
-
-/* Struct that can help overcomes the member template specialization */
-struct DispatchHelper {
-  template <class T>
-  struct Type {};
-};
-
-/* Here's an example that uses some specialization 
- * by using overloading and DispatchHelper.
- * 
-struct DispatchMySTuff : public DispatchHelper {
-  template <class CAMERA>
-  static void DoMySTuff(MyArg1 arg1, MyArg2 arg2, ...) {
-    DoMyStuffInternal(Type<CAMERA>(), arg1, arg2, ...);
-  }
-
- private:
-  static void DoMySTuffInternal(const Type<PerspectiveCamera> &, MyArg1 arg1, MyArg2 arg2, ...)) {
-    constexpr int num_parameters = SizeTraits<PerspectiveCamera>::Size;
-  }
-};
-*/

@@ -90,20 +90,20 @@ PYBIND11_MODULE(pygeometry, m) {
               disto_values.push_back(find_param->second);
             }
           }
-          VecXd distorsion(disto_values.size());
+          VecXd distortion(disto_values.size());
           for (int i = 0; i < disto_values.size(); ++i) {
-            distorsion[i] = disto_values[i];
+            distortion[i] = disto_values[i];
           }
-          return distorsion;
+          return distortion;
         },
-        [](Camera& p, const VecXd& distorsion) {
+        [](Camera& p, const VecXd& distortion) {
           const auto types = p.GetParametersTypes();
           int count = 0;
           for (int i = 0; i < types.size(); ++i) {
             const int type_int = static_cast<int>(types[i]);
             if (type_int >= static_cast<int>(Camera::Parameters::K1) &&
                 type_int <= static_cast<int>(Camera::Parameters::P2)) {
-              p.SetParameterValue(types[i], distorsion(count++));
+              p.SetParameterValue(types[i], distortion(count++));
             }
           }
         })
@@ -151,8 +151,8 @@ PYBIND11_MODULE(pygeometry, m) {
                             values.at(Camera::Parameters::K3), values.at(Camera::Parameters::P1),
                             values.at(Camera::Parameters::P2);
               camera = Camera::CreateBrownCamera(values.at(Camera::Parameters::Focal),
-                                                  values.at(Camera::Parameters::AspectRatio),
-                                                  principal_point, distortion);
+                                                 values.at(Camera::Parameters::AspectRatio),
+                                                 principal_point, distortion);
               break;
             }
             case ProjectionType::FISHEYE:{

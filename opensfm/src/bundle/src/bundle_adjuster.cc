@@ -449,22 +449,13 @@ struct ErrorTraits<SphericalCamera> {
   static constexpr int Size = 3;
 };
 
-struct DispatchCostFunctionPush : public DispatchHelper {
+struct AddProjectionError {
   template <class T>
   static void Apply(const BAPointProjectionObservation &obs,
                     ceres::LossFunction *loss, ceres::Problem *problem) {
-    ApplyInternal(Type<T>(), obs, loss, problem);
-  }
-
- private:
-  template <class T>
-  static void ApplyInternal(const Type<T> &,
-                            const BAPointProjectionObservation &obs,
-                            ceres::LossFunction *loss,
-                            ceres::Problem *problem) {
     using ErrorType = typename ErrorTraits<T>::Type;
     constexpr static int ErrorSize = ErrorTraits<T>::Size;
-    constexpr static int CameraSize = SizeTraits<T>::Size;
+    constexpr static int CameraSize = T::Size;
     constexpr static int ShotSize = 6;
 
     ceres::CostFunction *cost_function =
@@ -478,56 +469,44 @@ struct DispatchCostFunctionPush : public DispatchHelper {
   }
 };
 
-struct DispatchCostFunctionResidual : public DispatchHelper {
+struct ComputeResidualError {
   template <class T>
   static void Apply(const BAPointProjectionObservation &obs) {
-    ApplyInternal(Type<T>(), obs);
-  }
-
- private:
-  template <class T>
-  static void ApplyInternal(const Type<T> &,
-                            const BAPointProjectionObservation &obs) {
     using ErrorType = typename ErrorTraits<T>::Type;
     constexpr static int ErrorSize = ErrorTraits<T>::Size;
 
     VecNd<ErrorSize> residuals;
-    ErrorType error(obs.camera->GetValue().GetProjectionType(),
-                         obs.coordinates, 1.0);
+    ErrorType error(obs.camera->GetValue().GetProjectionType(), obs.coordinates,
+                    1.0);
     error(obs.camera->GetValueData().data(), obs.shot->parameters.data(),
           obs.point->parameters.data(), residuals.data());
     obs.point->reprojection_errors[obs.shot->id] = residuals;
   }
 };
 
-struct DispatchCameraPriorResidual : public DispatchHelper {
+struct AddCameraPriorlError {
   template <class T>
-  static void Apply(BACamera& camera, ceres::Problem *problem) {
-    ApplyInternal(Type<T>(), camera, problem);
-  }
-
- private:
-  template <class T>
-  static void ApplyInternal(const Type<T> &, BACamera &camera,
-                            ceres::Problem *problem) {
-    auto* prior_function = new BADataPriorError<Camera>(&camera);
+  static void Apply(BACamera &camera, ceres::Problem *problem) {
+    auto *prior_function = new BADataPriorError<Camera>(&camera);
 
     // Set some logarithmic prior for Focal and Aspect ratio (if any)
     const auto camera_object = camera.GetValue();
     const auto types = camera_object.GetParametersTypes();
-    for(int i = 0; i < types.size(); ++i){
+    for (int i = 0; i < types.size(); ++i) {
       const auto t = types[i];
-      if(t == Camera::Parameters::Focal || t == Camera::Parameters::AspectRatio){
+      if (t == Camera::Parameters::Focal ||
+          t == Camera::Parameters::AspectRatio) {
         prior_function->SetScaleType(
             i, BADataPriorError<Camera>::ScaleType::LOGARITHMIC);
       }
     }
 
-    constexpr static int CameraSize = SizeTraits<T>::Size;
-    ceres::CostFunction *cost_function = new ceres::AutoDiffCostFunction<
-        BADataPriorError<Camera>, CameraSize, CameraSize>(
-        prior_function);
-    problem->AddResidualBlock(cost_function, NULL, camera.GetValueData().data());
+    constexpr static int CameraSize = T::Size;
+    ceres::CostFunction *cost_function =
+        new ceres::AutoDiffCostFunction<BADataPriorError<Camera>, CameraSize,
+                                        CameraSize>(prior_function);
+    problem->AddResidualBlock(cost_function, NULL,
+                              camera.GetValueData().data());
   }
 };
 
@@ -566,7 +545,7 @@ void BundleAdjuster::Run() {
       if(index >= 0){
         ceres::CostFunction *transition_barrier =
             new ceres::AutoDiffCostFunction<BAParameterBarrier, 1,
-                                            SizeTraits<DualCamera>::Size>(
+                                            DualCamera::Size>(
                 new BAParameterBarrier(0.0, 1.0, index));
         problem.AddResidualBlock(transition_barrier, NULL, data.data());
       }
@@ -601,8 +580,8 @@ void BundleAdjuster::Run() {
   for (auto &observation : point_projection_observations_) {
     const auto projection_type =
         observation.camera->GetValue().GetProjectionType();
-    Dispatch<DispatchCostFunctionPush>(projection_type, observation,
-                                        projection_loss, &problem);
+    Dispatch<AddProjectionError>(projection_type, observation, projection_loss,
+                                 &problem);
   }
 
   // Add rotation priors
@@ -653,7 +632,7 @@ void BundleAdjuster::Run() {
   for (auto &i : cameras_) {
     const auto projection_type =
         i.second.GetValue().GetProjectionType();
-    Dispatch<DispatchCameraPriorResidual>(projection_type, i.second, &problem);
+    Dispatch<AddCameraPriorlError>(projection_type, i.second, &problem);
   }
 
   // Add unit translation block
@@ -945,7 +924,7 @@ void BundleAdjuster::ComputeReprojectionErrors() {
   for (auto &observation : point_projection_observations_) {
     const auto projection_type =
       observation.camera->GetValue().GetProjectionType();
-    Dispatch<DispatchCostFunctionResidual>(projection_type, observation);
+    Dispatch<ComputeResidualError>(projection_type, observation);
   }
 }
 

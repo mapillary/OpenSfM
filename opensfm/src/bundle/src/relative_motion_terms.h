@@ -23,7 +23,7 @@ struct BARelativeMotionError {
 
     // Compute rotation residual: log( Rij Ri Rj^t )  ->  log( Rij Ri^t Rj)
     const Eigen::Matrix<T,3,1> Rij = Rtij_.segment<3>(BA_SHOT_RX).cast<T>();
-    residual.segment(0, 3) = MultRotations(Rij, (-Ri).eval(), Rj);
+    residual.segment(0, 3) = MultRotations(Rij, {(-Ri).eval(), Rj.eval()});
 
     // Compute translation residual: tij - scale * ( tj - Rj Ri^t ti )  ->  tij - scale * Rj^t * (ti - tj)
     const auto tij = Rtij_.segment<3>(BA_SHOT_TX).cast<T>();
@@ -82,7 +82,7 @@ struct BARelativeRotationError {
 
     // Compute rotation residual: log( Rij Ri Rj^t ) -> log( Rij Ri^t Rj)
     const Eigen::Matrix<T,3,1> Rij = Rij_.cast<T>();
-    residual = scale_matrix_.cast<T>() * MultRotations(Rij, (-Ri).eval(), Rj);
+    residual = scale_matrix_.cast<T>() * MultRotations(Rij, {(-Ri).eval(), Rj.eval()});
     return true;
   }
 
