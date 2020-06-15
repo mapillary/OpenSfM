@@ -96,7 +96,3 @@ def test_matching():
 
     assert len(matches) == len(kpts1)
     assert len(matches) == len(kpts2)
-
-
-# test_matching()
-# test_camera_functions()

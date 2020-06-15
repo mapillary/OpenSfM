@@ -16,9 +16,6 @@ namespace slam
 class SlamUtilities
 {
 public:
-  static bool check_epipolar_constraint(const Eigen::Vector3f& bearing_1, const Eigen::Vector3f& bearing_2,
-                                        const Eigen::Matrix3f& E_12, const float bearing_1_scale_factor);
-
   static Mat3d to_skew_symmetric_mat(const Vec3d& vec);
 
   static Mat3d create_E_21(const Mat3d& rot_1w, const Vec3d& trans_1w,
@@ -44,7 +41,7 @@ public:
                                       const slam::GuidedMatcher& matcher,
                                       const float margin, map::Map& slam_map);
 
-  // static std::set<map::Shot*, map::KeyCompare>
+  
   static std::vector<map::Shot*> GetSecondOrderCovisibilityForShot(
       const map::Shot& shot, const size_t first_order_thr,
       const size_t second_order_thr);

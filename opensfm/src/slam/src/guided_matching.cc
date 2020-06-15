@@ -21,41 +21,6 @@ GridParameters::GridParameters(unsigned int grid_cols, unsigned int grid_rows,
 {
 }
 
-// size_t
-// GuidedMatcher::ComputeMedianDescriptorIdx(const std::vector<cv::Mat> &descriptors)
-// {
-//   // First, calculate the distance between features in all combinations
-//   const auto num_descs = descriptors.size();
-//   // std::cout << "Computing: " << num_descs << std::endl;
-//   std::vector<std::vector<unsigned int>> hamm_dists(num_descs, std::vector<unsigned int>(num_descs));
-//   for (unsigned int i = 0; i < num_descs; ++i)
-//   {
-//     hamm_dists.at(i).at(i) = 0;
-//     for (unsigned int j = i + 1; j < num_descs; ++j)
-//     {
-//       const auto dist = compute_descriptor_distance_32(descriptors.at(i), descriptors.at(j));
-//       hamm_dists.at(i).at(j) = dist;
-//       hamm_dists.at(j).at(i) = dist;
-//     }
-//   }
-
-//   // 中央値に最も近いものを求める
-//   // Find the closest to the median
-//   unsigned int best_median_dist = MAX_HAMMING_DIST;
-//   unsigned int best_idx = 0;
-//   for (unsigned idx = 0; idx < num_descs; ++idx)
-//   {
-//     std::vector<unsigned int> partial_hamm_dists(hamm_dists.at(idx).begin(), hamm_dists.at(idx).begin() + num_descs);
-//     std::sort(partial_hamm_dists.begin(), partial_hamm_dists.end());
-//     const auto median_dist = partial_hamm_dists.at(static_cast<unsigned int>(0.5 * (num_descs - 1)));
-//     if (median_dist < best_median_dist)
-//     {
-//       best_median_dist = median_dist;
-//       best_idx = idx;
-//     }
-//   }
-//   return best_idx;
-// }
 
 size_t
 GuidedMatcher::ComputeMedianDescriptorIdx(const AlignedVector<DescriptorType> &descriptors)
@@ -92,46 +57,6 @@ GuidedMatcher::ComputeMedianDescriptorIdx(const AlignedVector<DescriptorType> &d
 }
 
 
-// size_t 
-// GuidedMatcher::FindBestMatchForLandmark(const map::Landmark *const lm, map::Shot& curr_shot,
-//                                         const float reproj_x, const float reproj_y,
-//                                         const int last_scale_level, const float scaled_margin) const
-// {
-
-//   // std::cout << "idx_last: " << idx_last << "lm id: " << lm->lm_id_ << "in pt2D: " << curr_frm.im_name << std::fixed << pt2D << ", " << last_scale_level << " rot_cw: " << rot_cw << " t_cw: " << trans_cw << std::endl;
-//   const auto indices = GetKeypointsInCell(curr_shot.slam_data_.undist_keypts_,
-//                                           curr_shot.slam_data_.keypt_indices_in_cells_, reproj_x, reproj_y,
-//                                           scaled_margin ,
-//                                           last_scale_level - 1, last_scale_level + 1);
-                                        
-//   if (indices.empty())
-//   {
-//     return NO_MATCH;
-//   }
-
-//   const auto lm_desc = lm->slam_data_.descriptor_;
-//   unsigned int best_hamm_dist = MAX_HAMMING_DIST;
-//   int best_idx = -1;
-
-//   for (const auto curr_idx : indices)
-//   {
-//     const auto* curr_lm = curr_shot.GetLandmark(curr_idx);
-//     //prevent adding to already set landmarks
-//     // if (!( curr_lm != nullptr && curr_lm->HasObservations()))
-//     if (curr_lm == nullptr || (curr_lm != nullptr && !curr_lm->HasObservations()))
-//     {
-//       const auto& desc = curr_shot.GetDescriptor(curr_idx);
-//       const auto hamm_dist = compute_descriptor_distance_32(lm_desc, desc);
-//       if (hamm_dist < best_hamm_dist)
-//       {
-//         best_hamm_dist = hamm_dist;
-//         best_idx = curr_idx;
-//       }
-//     }
-//   }
-//   return HAMMING_DIST_THR_HIGH < best_hamm_dist ? NO_MATCH : best_idx;
-// }
-
 size_t 
 GuidedMatcher::FindBestMatchForLandmark(const map::Landmark *const lm, map::Shot& curr_shot,
                                         const float reproj_x, const float reproj_y,
@@ -139,8 +64,6 @@ GuidedMatcher::FindBestMatchForLandmark(const map::Landmark *const lm, map::Shot
                                         const float lowe_ratio) const //lowe ratio == 0.0 if no test
 {
 
-  // std::cout << "idx_last: " << idx_last << "lm id: " << lm->lm_id_ << "in pt2D: " << curr_frm.im_name << std::fixed << pt2D << ", " << last_scale_level << " rot_cw: " << rot_cw << " t_cw: " << trans_cw << std::endl;
-  // std::cout << "scale_factors.at(scale_level)" <<  scale_factors_.at(scale_level) << "*" << margin << std::endl;
   const auto indices = GetKeypointsInCell(curr_shot.slam_data_.undist_keypts_,
                                           curr_shot.slam_data_.keypt_indices_in_cells_, 
                                           reproj_x, reproj_y,
@@ -149,7 +72,6 @@ GuidedMatcher::FindBestMatchForLandmark(const map::Landmark *const lm, map::Shot
                                         
   if (indices.empty())
   {
-    // std::cout << "NO_MATCH, inidices.empty" << std::endl;
     return NO_MATCH;
   }
 
@@ -166,19 +88,10 @@ GuidedMatcher::FindBestMatchForLandmark(const map::Landmark *const lm, map::Shot
   {
     const auto* curr_lm = curr_shot.GetLandmark(match_idx);
     //prevent adding to already set landmarks
-    // if (!( curr_lm != nullptr && curr_lm->HasObservations()))
     if (curr_lm == nullptr || (curr_lm != nullptr && !curr_lm->HasObservations()))
     {
-      if (curr_lm != nullptr)
-      {
-        std::cout << "Matching to " << lm->id_ << " to already matched!" << std::endl;
-      }
       const auto& desc = curr_shot.GetDescriptor(match_idx);
       const auto hamm_dist = compute_descriptor_distance_32(lm_desc, desc);
-      // if (compute_descriptor_distance_32(desc,desc) != 0)
-      // {
-      //   std::cout << "compute_descriptor_distance_32 failed!!" << std::endl;
-      // }
       if (hamm_dist < best_hamm_dist) {
         second_best_hamm_dist = best_hamm_dist;
         best_hamm_dist = hamm_dist;
@@ -193,34 +106,19 @@ GuidedMatcher::FindBestMatchForLandmark(const map::Landmark *const lm, map::Shot
         }
     }
   }
-  // std::cout << "Hamming dist: " << best_hamm_dist << ", " << second_best_hamm_dist << " scale: " << best_scale_level
-            // << ", " << second_best_scale_level << "lowe: " << lowe_ratio <<std::endl;
   if (best_hamm_dist <= HAMMING_DIST_THR_HIGH)
   {
     //perform Lowe ratio test
     if (lowe_ratio > 0.0f && best_scale_level == second_best_scale_level && best_hamm_dist > lowe_ratio * second_best_hamm_dist) 
     {
-      // std::cout << "NO_MATCH, lowe ratio" << std::endl;
       return NO_MATCH;
       
     }
     return best_idx;
   }
-  // std::cout << "NO_MATCH " << best_hamm_dist << std::endl;
   return NO_MATCH;
-  // return HAMMING_DIST_THR_HIGH < best_hamm_dist ? NO_MATCH : best_idx;
 }
 
-// MatchIndices
-// GuidedMatcher::MatchKptsToKpts(const std::vector<cv::KeyPoint> &undist_keypts_1, const cv::Mat &descriptors_1,
-//                                const std::vector<cv::KeyPoint> &undist_keypts_2, const cv::Mat &descriptors_2,
-//                                const CellIndices &keypts_indices_in_cells_2,
-//                                const Eigen::MatrixX2f &prevMatched, const size_t margin) const
-// MatchIndices
-// GuidedMatcher::MatchKptsToKpts(const AlignedVector<Observation>& undist_keypts_1, const cv::Mat& descriptors_1,
-//                                const AlignedVector<Observation>& undist_keypts_2, const cv::Mat& descriptors_2,
-//                                const CellIndices& keypts_indices_in_cells_2,
-//                                const Eigen::MatrixX2f& prevMatched, const size_t margin) const
 MatchIndices
 GuidedMatcher::MatchKptsToKpts(const AlignedVector<Observation>& undist_keypts_1, const DescriptorMatrix& descriptors_1,
                                const AlignedVector<Observation>& undist_keypts_2, const DescriptorMatrix& descriptors_2,
@@ -230,7 +128,6 @@ GuidedMatcher::MatchKptsToKpts(const AlignedVector<Observation>& undist_keypts_1
   MatchIndices match_indices; // Index in 1, Index in 2
   if (undist_keypts_1.empty() || undist_keypts_2.empty() || keypts_indices_in_cells_2.empty())
   {
-    std::cout << "Return empty!" << std::endl;
     return match_indices;
   }
   constexpr auto check_orientation_{true};
@@ -251,8 +148,6 @@ GuidedMatcher::MatchKptsToKpts(const AlignedVector<Observation>& undist_keypts_1
     const auto scale_1 = u_kpt_1.octave;
     if (scale_1 < 0)
       continue;
-    // const auto indices = get_keypoints_in_cell(frame2.undist_keypts_, frame2.keypts_indices_in_cells_,
-    //                                            u_kpt_1.pt.x, u_kpt_1.pt.y, margin, scale_1, scale_1);
     const auto indices = GetKeypointsInCell(undist_keypts_2, keypts_indices_in_cells_2,
                                             pt2D[0], pt2D[1], margin, scale_1, scale_1);
     if (indices.empty())
@@ -340,7 +235,6 @@ GuidedMatcher::MatchKptsToKpts(const AlignedVector<Observation>& undist_keypts_1
   return match_indices;
 }
 
-// void GuidedMatcher::DistributeUndistKeyptsToGrid(const std::vector<cv::KeyPoint> &undist_keypts, CellIndices &keypt_indices_in_cells) const
 void GuidedMatcher::DistributeUndistKeyptsToGrid(const AlignedVector<Observation>& undist_keypts, CellIndices& keypt_indices_in_cells) const
 
 {
@@ -364,11 +258,7 @@ void GuidedMatcher::DistributeUndistKeyptsToGrid(const AlignedVector<Observation
     {
       keypt_indices_in_cells.at(cell_idx_x).at(cell_idx_y).push_back(idx);
     }
-    // std::cout << "cell_idx" << cell_idx_x << "," << cell_idx_y << ", " << keypt.point.transpose() <<
-                //  "grid_params: " << grid_params_.img_max_width_ << "/" << grid_params_.img_min_width_
-                //  << grid_params_.img_max_height_ << "/" << grid_params_.img_min_height_ << std::endl;
   }
-  // exit(0);
 }
 
 std::vector<size_t>
@@ -433,7 +323,8 @@ GuidedMatcher::GetKeypointsInCell(const AlignedVector<Observation>& undist_keypt
           indices.push_back(idx);
           if (idx >= undist_keypts.size())
           {
-            std::cout << "keypts idx error!" << idx << std::endl;
+            std::runtime_error("keypts idx error!"+std::to_string(idx));
+            // std::cout << "keypts idx error!" << idx << std::endl;
             // exit(0);
           }
         }
@@ -452,7 +343,6 @@ GuidedMatcher::AssignLandmarksToShot(map::Shot& shot, const std::vector<map::Lan
 {
   size_t num_matches{0};
   std::unique_ptr<openvslam::match::angle_checker<int>> angle_checker;
-  std::cout << "AssignLandmarksToShot: " << shot.id_ << ", " << shot.unique_id_ << " local_lm: " << landmarks.size() << std::endl;
   if (landmarks.empty())
   {
     return 0;
@@ -463,7 +353,6 @@ GuidedMatcher::AssignLandmarksToShot(map::Shot& shot, const std::vector<map::Lan
   }
   if (check_orientation)    
   {
-    // angle_checker = std::make_unique<openvslam::match::angle_checker<int>>();
     angle_checker = std::unique_ptr<openvslam::match::angle_checker<int>>(new openvslam::match::angle_checker<int>());
   }
   
@@ -485,17 +374,11 @@ GuidedMatcher::AssignLandmarksToShot(map::Shot& shot, const std::vector<map::Lan
       // Reproject
       const Vec3d& global_pos = lm->GetGlobalPos();
       const Vec2d pt2D = shot.ProjectInImageCoordinates(global_pos);
-      // std::cout << idx << "Is pt in image" << pt2D.transpose()
-      //           << ", " << global_pos.transpose()
-      //           << "rot_cw: " << rot_cw << " t: " << trans_cw<< std::endl;
       if (cam->CheckWithinBoundaries(pt2D))
-      // if (cam.ReprojectToImage(rot_cw, trans_cw, global_pos, pt2D))
       {
-        // std::cout << "pt in image" << pt2D.transpose() << std::endl;
         //check if it is within our grid
         if (grid_params_.in_grid(pt2D[0], pt2D[1]))
         {
-          // std::cout << "pt in grid" << pt2D.transpose() << std::endl;
           auto& lm_data = lm->slam_data_;
           int scale_lvl = -1;
           if (!other_undist_kpts.empty()) //take the scale level from the keypts
@@ -519,7 +402,6 @@ GuidedMatcher::AssignLandmarksToShot(map::Shot& shot, const std::vector<map::Lan
               }
             }
           }
-          // std::cout << "Checking scale_lvl: " << scale_lvl << std::endl;
           if (scale_lvl >= 0)
           {
             ++n_scales;
@@ -534,17 +416,8 @@ GuidedMatcher::AssignLandmarksToShot(map::Shot& shot, const std::vector<map::Lan
               }
               num_matches++;
               shot.AddLandmarkObservation(lm, best_idx);
-              // std::cout << "Adding lm: " << lm->id_ << "," << lm << " to " << best_idx << 
-                          //  "angle: " <<
-                          //  other_undist_kpts.at(idx).angle << "," <<
-                          //  undist_kpts.at(best_idx).angle << std::endl;
             }
-            // else
-            // {
-            //   std::cout << "no match: " << best_idx << "/" << check_orientation << std::endl;
-            // }
           }
-          // std::cout << "n_scales: " << n_scales << std::endl;
         }
       }
     }
@@ -555,7 +428,6 @@ GuidedMatcher::AssignLandmarksToShot(map::Shot& shot, const std::vector<map::Lan
     for (const auto invalid_idx : invalid_matches) {
         shot.RemoveLandmarkObservation(invalid_idx);
         --num_matches;
-        // std::cout << "remove angle_check: " << invalid_idx << std::endl;
     }
   }
   return num_matches;
@@ -580,7 +452,6 @@ GuidedMatcher::MatchingForTriangulationEpipolar(const map::Shot& kf1, const map:
   const Vec3d trans_2w = kf2_pose.TranslationWorldToCamera();
   // Compute relative position between the frames and project from kf1 to kf2
   // this has the benefit that we only have to compute the median depth once
-  // TODO: Make Make rewrite with relative to...
   const Mat4d T_kf2_kf1 = T_cw * kf1_pose.CameraToWorld();
   const Mat3d R_kf2_kf1 = T_kf2_kf1.block<3, 3>(0, 0);
   const Vec3d t_kf2_kf1 = T_kf2_kf1.block<3, 1>(0, 3);
@@ -588,22 +459,10 @@ GuidedMatcher::MatchingForTriangulationEpipolar(const map::Shot& kf1, const map:
   std::vector<bool> is_already_matched_in_keyfrm_2(lms2.size(), false);
   // indices of KF 2 kpts in KF 1
   std::vector<int> matched_indices_2_in_keyfrm_1(lms1.size(), -1);
-  // Vec3d epiplane_in_keyfrm_2;
-  // TODO: Think about the problem, when the shots have different cameras!
-  // const map::BrownPerspectiveCamera* cam = (map::BrownPerspectiveCamera*)&kf1.shot_camera_.camera_model_;
+  
   const auto& cam1 = kf1.shot_camera_;
   const auto& cam2 = kf2.shot_camera_;
-  //TODO: Reproject to bearing
-  // Vec2d reproj;
-  // cam->ReprojectToBearing(rot_2w, trans_2w, cam_center_1, epiplane_in_keyfrm_2, reproj);
-  // //first, transform pt3D into cam
-  // bearing = R_cw*ptWorld + t_cw;
-  // //check z coordinate
-  // if (bearing[2] < 0.0) return false;
-  // // //now reproject to image
-  // pt2D = (K_pixel_eig*bearing).hnormalized();
-  // bearing.normalized();
-  // return true;
+  
   Vec3d epiplane_in_keyfrm_2 = rot_2w * cam_center_1 + trans_2w;
   const Vec2d reproj =
       (cam2->GetProjectionMatrixScaled() * epiplane_in_keyfrm_2).hnormalized();
@@ -616,13 +475,8 @@ GuidedMatcher::MatchingForTriangulationEpipolar(const map::Shot& kf1, const map:
   const auto inv_fy = 1.0 / K(1, 1);  // 1/fy;
   const auto cx = K(0, 2);            // cam->cx_p;
   const auto cy = K(1, 2);            // cam->cy_p;
-  std::cout << "fx: " << K(0,0) << ", " << K(1,1) << " cx: " << cx << " cy: " << cy << std::endl;
-  //Now, we draw the original points, then the matches in the other image
-  //Then, we the reprojection and serach!
-  // const float median_depth = (max_depth+min_depth)*0.5;
-  // cam2->GetProjectionMatrixScaled().inverse();
-  // const Mat3d KRK_i = cam->K_pixel_eig.cast<double>()*R_kf2_kf1*cam->K_pixel_eig.cast<double>().inverse();
-  // const Vec3d Kt = cam->K_pixel_eig.cast<double>()*t_kf2_kf1;
+  // Now, we draw the original points, then the matches in the other image
+  // Then, we the reprojection and serach!
   const Mat3d KRK_i = cam1->GetProjectionMatrixScaled() * R_kf2_kf1 *
                       cam2->GetProjectionMatrixScaled().inverse();
   const Vec3d Kt = cam1->GetProjectionMatrixScaled() * t_kf2_kf1;
@@ -641,7 +495,6 @@ GuidedMatcher::MatchingForTriangulationEpipolar(const map::Shot& kf1, const map:
     AlignedVector<Vec2d> pts2D;
     if (scale_1 >= 0)
     {
-      // std::cout << "u_kpt_1.point" << u_kpt_1.point.transpose() << "/" << scale_1 << std::endl;
       const Vec3d pt3D((u_kpt_1.point[0]-cx)*inv_fx, (u_kpt_1.point[1]-cy)*inv_fy, 1.0);
       const Vec3d ptTrans = KRK_i * Vec3d(u_kpt_1.point[0], u_kpt_1.point[1],1.0);
       const Vec2d start_pt = (ptTrans + Kt*inv_min_depth).hnormalized();
@@ -702,12 +555,9 @@ GuidedMatcher::MatchingForTriangulationEpipolar(const map::Shot& kf1, const map:
         if (cos_dist_thr < cos_dist) continue; 
         else n_cos_disc++;
 
-        // E行列による整合性チェック
+        // Consistency check with E matrix
         const bool is_inlier = CheckEpipolarConstraint(bearing_1, bearing_2, E_12,
                                                        scale_factors_.at(u_kpt_1.octave));
-        // std::cout << "bearings: " << bearing_1.transpose() << ", " << bearing_2.transpose() << ","
-        //           << u_kpt_1.point.transpose() << ", is_inlier" << is_inlier << " scale:" <<
-        //           u_kpt_1.scale << ", " << u_kpt_1.octave << std::endl;
         if (is_inlier) {
             best_idx_2 = idx_2;
             best_hamm_dist = hamm_dist;
@@ -725,14 +575,13 @@ GuidedMatcher::MatchingForTriangulationEpipolar(const map::Shot& kf1, const map:
     matched_indices_2_in_keyfrm_1.at(idx_1) = best_idx_2;
     ++num_matches;
   }
-  // exit(0);
+
   matches.reserve(num_matches);
   //We do not check the orientation
   for (unsigned int idx_1 = 0; idx_1 < matched_indices_2_in_keyfrm_1.size(); ++idx_1) {
       if (matched_indices_2_in_keyfrm_1.at(idx_1) >= 0) 
       {
         matches.emplace_back(std::make_pair(idx_1, matched_indices_2_in_keyfrm_1.at(idx_1)));
-        // std::cout << matches.size() << "m: " << idx_1 << "<->" << matched_indices_2_in_keyfrm_1.at(idx_1) << std::endl;
         if (idx_1 >= kf1.NumberOfKeyPoints() || matched_indices_2_in_keyfrm_1.at(idx_1) >= kf2.NumberOfKeyPoints())
         {
           std::cout << "OUT OF BOUNDS!" << idx_1 << "/" << matched_indices_2_in_keyfrm_1.at(idx_1) << " # tot: "
@@ -748,21 +597,23 @@ bool
 GuidedMatcher::CheckEpipolarConstraint(const Vec3d& bearing_1, const Vec3d& bearing_2,
                                        const Mat3d& E_12, const float bearing_1_scale_factor)
 {
-    // keyframe1上のtエピポーラ平面の法線ベクトル
+  
+  // normal vector of t epipolar plane on keyframe1
   const Vec3d epiplane_in_1 = E_12 * bearing_2;
 
-  // 法線ベクトルとbearingのなす角を求める
+  // Find the angle between normal vector and bearing
   const auto cos_residual = epiplane_in_1.dot(bearing_1) / epiplane_in_1.norm();
   const auto residual_rad = M_PI / 2.0 - std::abs(std::acos(cos_residual));
 
-  // inlierの閾値(=0.2deg)
-  // (e.g. FOV=90deg,横900pixのカメラにおいて,0.2degは横方向の2pixに相当)
-  // TODO: 閾値のパラメータ化
+
+  // threshold of inlier (=0.2deg)
+  // (e.g. FOV=90deg, 900deg horizontal camera, 0.2deg corresponds to 2pix in horizontal direction)
+  // TODO: Threshold parameterization
   constexpr double residual_deg_thr = 0.2;
   constexpr double residual_rad_thr = residual_deg_thr * M_PI / 180.0;
 
-  // 特徴点スケールが大きいほど閾値を緩くする
-  // TODO: thresholdの重み付けの検討
+  // The larger the feature point scale, the looser the threshold
+  // Consider TODO: threshold weighting
   return residual_rad < residual_rad_thr * bearing_1_scale_factor;
 }
 
@@ -784,15 +635,11 @@ GuidedMatcher::ReplaceDuplicatedLandmarks(map::Shot& fuse_shot, const T& landmar
   const auto& cam = fuse_shot.shot_camera_;
   for (const auto& lm : landmarks_to_check)
   {
-    // map::Landmark* lm;
     if (lm != nullptr && !lm->IsObservedInShot(&fuse_shot))
     {
       const auto& lm_data = lm->slam_data_;
       const Vec3d& global_pos = lm->GetGlobalPos();
       const Vec2d pt2D = fuse_shot.ProjectInImageCoordinates(global_pos);
-      // if (cam.ReprojectToImage(R_cw, t_cw, global_pos, pt2D))
-      // if 
-      // std::cout << "Repl: " << pt2D.transpose() << std::endl;
       {
         if (grid_params_.in_grid(pt2D[0], pt2D[1]))
         {
@@ -808,7 +655,7 @@ GuidedMatcher::ReplaceDuplicatedLandmarks(map::Shot& fuse_shot, const T& landmar
             if (ray_cos > ray_cos_thr)
             {
               const auto pred_scale_lvl = PredScaleLevel(lm_data.GetMaxValidDistance(), cam_to_lm_dist);
-              //TODO: check scale level!
+              // TODO: check scale level!
               // TODO: This part is very similar to the FindBestMatchForLandmark!!
               // This can probably be combined to a new function
               const auto indices = GetKeypointsInCell(fuse_shot.slam_data_.undist_keypts_,
@@ -816,7 +663,6 @@ GuidedMatcher::ReplaceDuplicatedLandmarks(map::Shot& fuse_shot, const T& landmar
                                                       pt2D[0], pt2D[1],
                                                       scale_factors_.at(pred_scale_lvl)*margin ,
                                                       pred_scale_lvl - 1, pred_scale_lvl + 1);
-              // std::cout << "indices: " << indices.size() << "/ pred_scale_lvl" << pred_scale_lvl << std::endl;
               if (!indices.empty())
               {
                 const auto& lm_desc = lm->slam_data_.descriptor_;
@@ -826,11 +672,6 @@ GuidedMatcher::ReplaceDuplicatedLandmarks(map::Shot& fuse_shot, const T& landmar
                 {
                   const auto& keypt = fuse_shot.slam_data_.undist_keypts_.at(idx);
                   const size_t scale_level = keypt.octave;
-                  // std::cout << "keypt: " << keypt.point.transpose() << std::endl; 
-                  //check the scale level
-                  // if (scale_level < pred_scale_level - 1 || pred_scale_level < scale_level) {
-                  //   continue;
-                  // }
                   if (!(scale_level < pred_scale_lvl - 1 || pred_scale_lvl < scale_level)
                       != (scale_level >= pred_scale_lvl-1 && pred_scale_lvl >= scale_level))
                   {
@@ -839,16 +680,8 @@ GuidedMatcher::ReplaceDuplicatedLandmarks(map::Shot& fuse_shot, const T& landmar
                   }
                   if (scale_level >= pred_scale_lvl-1 && pred_scale_lvl >= scale_level)
                   {
-                    const auto e_x = pt2D(0) - keypt.point[0];
-                    const auto e_y = pt2D(1) - keypt.point[1];
-                    // const auto reproj_error_sq = e_x * e_x + e_y * e_y;
-
                     const auto reproj_error_sq = (pt2D - keypt.point).squaredNorm();
-                    if (reproj_error_sq != (e_x * e_x + e_y * e_y))
-                    {
-                      std::cout << "reproj_error_sq != (e_x * e_x + e_y * e_y): " << std::endl;
-                      exit(0);
-                    }
+
                     // 自由度n=2
                     constexpr float chi_sq_2D = 5.99146;
                     
@@ -861,10 +694,6 @@ GuidedMatcher::ReplaceDuplicatedLandmarks(map::Shot& fuse_shot, const T& landmar
                         best_idx = idx;
                       }
                     }
-                    // else
-                    // {
-                    //   std::cout << "Chi-squared error problem" << std::endl;
-                    // }
                   }
                 }
                 //check if the match is valid
@@ -899,94 +728,10 @@ GuidedMatcher::ReplaceDuplicatedLandmarks(map::Shot& fuse_shot, const T& landmar
       }
     }
   }
-  std::cout << "num_fused: " << num_fused << " num_cam_disc: " << n_cam_disc << " n_cam_to_lm_dist: " << n_cam_to_lm_dist << std::endl;
+  // std::cout << "num_fused: " << num_fused << " num_cam_disc: " << n_cam_disc << " n_cam_to_lm_dist: " << n_cam_to_lm_dist << std::endl;
   return num_fused;
 }
 
-
-// size_t
-// GuidedMatcher::AssignShot1LandmarksToShot2Kpts(const map::Shot &last_shot, map::Shot &curr_shot, const float margin) const
-// {
-//   size_t num_matches = 0;
-//   constexpr auto check_orientation_{true};
-//   openvslam::match::angle_checker<int> angle_checker;
-
-//   const auto &cam_pose = curr_shot.GetPose();
-//   const Eigen::Matrix3f rot_cw = cam_pose.RotationWorldToCamera().cast<float>(); //  cam_pose_cw.block<3, 3>(0, 0);
-//   const Eigen::Vector3f trans_cw = cam_pose.TranslationWorldToCamera().cast<float>();
-
-//   std::cout << "last_frm: " << last_shot.id_ << " nK: " << last_shot.NumberOfKeyPoints() << std::endl;
-//   MatchIndices matches;
-//   auto &landmarks = last_shot.GetLandmarks();
-//   const auto num_keypts = landmarks.size();
-//   const auto& cam = last_shot.shot_camera_.camera_model_;
-//   std::cout << "N valid: " << last_shot.ComputeNumValidLandmarks(1) << " for " << last_shot.id_ << std::endl;
-//   for (unsigned int idx_last = 0; idx_last < num_keypts; ++idx_last)
-//   {
-//     auto lm = landmarks.at(idx_last);
-//     std::cout << "lm: " << lm << "idx_last: " << idx_last <<","<< landmarks.size() << std::endl;
-
-//     if (lm != nullptr)
-//     {
-//       // Global standard 3D point coordinates
-//       const Eigen::Vector3f pos_w = lm->GetGlobalPos().cast<float>();
-//       // Reproject to find visibility
-//       Eigen::Vector2f pt2D;
-      
-//       if (cam.ReprojectToImage(rot_cw, trans_cw, pos_w, pt2D))
-//       {
-//         //check if it is within our grid
-//         if (grid_params_.in_grid(pt2D[0], pt2D[1]))
-//         {
-//           std::cout << "Getting KP!" << std::endl;
-//           const auto last_scale_level = last_shot.GetKeyPoint(idx_last).octave;
-//           std::cout << "Got KP!" << std::endl;
-//           const auto scaled_margin = margin * scale_factors_.at(last_scale_level);
-//           std::cout << "scale_factors_:" << scale_factors_.size() << std::endl;
-          
-//           const auto best_idx = FindBestMatchForLandmark(lm, curr_shot, pt2D[0], pt2D[1], last_scale_level, margin, NO_LOWE_TEST);
-//           if (best_idx != NO_MATCH)
-//           {
-//             std::cout << "Trigger: " << best_idx << "/" << curr_shot.NumberOfKeyPoints() << std::endl;
-//             // Valid matching
-//             curr_shot.AddLandmarkObservation(lm, best_idx);
-//             std::cout << "Triggered: " << best_idx << std::endl;
-//             ++num_matches;
-//             // std::cout << "num_matches: " << num_matches << std::endl;
-//             if (check_orientation_)
-//             {
-//               const auto delta_angle = last_shot.slam_data_.undist_keypts_.at(idx_last).angle -
-//                                        curr_shot.slam_data_.undist_keypts_.at(best_idx).angle;
-//               angle_checker.append_delta_angle(delta_angle, best_idx);
-//             }
-//           }
-//         }
-//         else
-//         {
-//           std::cout << "Not in grid" << pt2D.transpose() << std::endl;
-//         }
-//       }
-//       else
-//       {
-//         std::cout << "Reprojection failed: " << pt2D.transpose() << std::endl;
-//       }
-//     }
-//   }
-
-//   // Clean-up step
-
-//   if (check_orientation_)
-//   {
-//     const auto invalid_matches = angle_checker.get_invalid_matches();
-//     for (const auto invalid_idx : invalid_matches)
-//     {
-//       // curr_frm.landmarks_.at(invalid_idx) = nullptr;
-//       curr_shot.RemoveLandmarkObservation(invalid_idx);
-//       --num_matches;
-//     }
-//   }
-//   return num_matches;
-// }
 
 bool 
 GuidedMatcher::IsObservable(map::Landmark* lm, const map::Shot& shot, const float ray_cos_thr,
@@ -994,14 +739,7 @@ GuidedMatcher::IsObservable(map::Landmark* lm, const map::Shot& shot, const floa
 {
   
   const Vec3d pos_w = lm->GetGlobalPos();
-  // const auto& pose = shot.GetPose();
-  // const Mat3d rot_cw = pose.RotationWorldToCamera();
-  // const Vec3d trans_cw = pose.TranslationWorldToCamera();
-  // const auto& cam = shot.shot_camera_;
-  // const Vec3d pos_w = pose.RotationWorldToCamera()*lm->GetGlobalPos() + pose.TranslationWorldToCamera();
   reproj = shot.Project(pos_w);
-  // const bool in_image = cam->Project(rot_cw, trans_cw, pos_w, reproj);
-  
   const auto& lm_data = lm->slam_data_;
   if (shot.shot_camera_->CheckWithinBoundaries(reproj))
   {

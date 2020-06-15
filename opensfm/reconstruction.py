@@ -973,7 +973,6 @@ def triangulate_shot_features(tracks_manager, reconstruction, shot_id, config):
     min_ray_angle = config['triangulation_min_ray_angle']
 
     triangulator = TrackTriangulator(tracks_manager, reconstruction)
-    print("tri: ", shot_id)
     for track in tracks_manager.get_shot_observations(shot_id):
         if track not in reconstruction.points:
             triangulator.triangulate(track, reproj_threshold, min_ray_angle)

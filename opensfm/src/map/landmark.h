@@ -14,10 +14,8 @@ class SLAMLandmarkData{
 
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  // cv::Mat descriptor_;
   DescriptorType descriptor_;
   size_t num_observations_ = 0;
-
   Vec3d mean_normal_ = Vec3d::Zero();
   float GetMinValidDistance() const { return 0.7 * min_valid_dist_; }
   float GetMaxValidDistance() const { return 1.3 * max_valid_dist_; }
@@ -49,7 +47,6 @@ class Landmark {
   void SetColor(const Vec3i& color) { color_ = color; }
   void SetRefShot(Shot* ref_shot) { ref_shot_ = ref_shot; }
   Shot* GetRefShot() { return ref_shot_; }
-  
   
   // Utility functions
   bool IsObservedInShot(Shot* shot) const { return observations_.count(shot) > 0; }

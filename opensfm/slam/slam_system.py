@@ -44,7 +44,6 @@ class SlamSystem(object):
                                [0, self.camera.height],  # left bottom
                                [self.camera.width, self.camera.height]])  # right bottom
 
-        # corners = self.camera.undistort_many(corner_pts).reshape((4, 2))
         corners = self.camera.undistort_many(corner_pts)
         bounds = np.array([np.min((corners[0, 0], corners[2, 0])),
                            np.max((corners[1, 0], corners[3, 0])),
@@ -81,26 +80,24 @@ class SlamSystem(object):
         chrono = slam_debug.Chronometer()
         if not self.system_initialized:
             self.system_initialized = self.init_slam_system(curr_shot)
-            chrono.lap("init_slam_system_all")
+            # chrono.lap("init_slam_system_all")
             return self.system_initialized
 
         # Tracking
         pose = self.track_frame(curr_shot)
-        chrono.lap("track")
+        # chrono.lap("track")
         if pose is not None:
             curr_shot.set_pose(pose)
-            # curr_shot.get_pose().set_from_world_to_cam(slam_utils.pose_to_mat(pose))
 
         self.slam_mapper.update_with_last_frame(curr_shot)
         self.slam_mapper.num_tracked_lms = self.slam_tracker.num_tracked_lms
         if self.slam_mapper.new_keyframe_is_needed(curr_shot):
             self.slam_mapper.insert_new_keyframe(curr_shot)
-        slam_debug.avg_timings.addTimes(chrono.laps_dict)
+        # slam_debug.avg_timings.addTimes(chrono.laps_dict)
         return pose is not None
 
     def init_slam_system(self, curr_shot: pymap.Shot):
         """Find the initial depth estimates for the slam map"""
-        print("init_slam_system: ", curr_shot.id)
         if not self.system_initialized:
             success, rec_init = self.slam_init.initialize(curr_shot)
             self.system_initialized = success
@@ -111,19 +108,13 @@ class SlamSystem(object):
                                                  curr_shot)
                 self.slam_mapper.velocity = np.eye(4)
             if self.system_initialized:
-                print("Initialized with ", curr_shot.id)
+                logger.info("Initialized with {} ".format(curr_shot.id))
                 return True
 
     def track_frame(self, curr_shot: pymap.Shot):
         """ Tracks a frame
         """
         data = self.data
-        logger.debug("Tracking: {}, {}".format(curr_shot.id, curr_shot.id))
-        # Maybe move most of the slam_mapper stuff to tracking
-        # TODO: Landmark replac!
-        # Maybe not even necessary!
-        # self.map.apply_landmark_replace(self.slam_mapper.last_shot)
+        logger.info("Tracking: {}, {}".format(curr_shot.id, curr_shot.id))
         return self.slam_tracker.track(self.slam_mapper, curr_shot,
                                        self.config, self.camera, data)
-
-        return self.system_initialized

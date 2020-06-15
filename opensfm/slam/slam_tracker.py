@@ -16,7 +16,6 @@ logger = logging.getLogger(__name__)
 
 class SlamTracker(object):
     def __init__(self, guided_matcher):
-        print("init slam tracker")
         self.guided_matcher = guided_matcher
         self.scale_factors = None
         self.num_tracked_lms = 0
@@ -33,38 +32,16 @@ class SlamTracker(object):
         """
 
         # Try to match to last frame first
-        init_pose = slam_mapper.last_shot.get_pose()
-        print("init_pose: ", init_pose.get_cam_to_world())
-        chrono = slam_debug.Chronometer()
         pose_tracking = self.track_motion(slam_mapper, curr_shot,
                                           camera, config, data)
-        chrono.lap("track_motion")
-        
-        
-        # Update local map!
-        # local_keyframes = pyslam.SlamUtilities.update_local_keyframes(
-            # curr_shot)
-        # print("new lk: ", len(local_keyframes), " old_lk: ")
-        # local_landmarks = pyslam.SlamUtilities.update_local_landmarks(
-            # local_keyframes)
-        # n_loc_kfs = pyslam.SlamUtilities.match_shot_to_local_lms(curr_shot, self.guided_matcher)
-        # assert(len(local_keyframes) == n_loc_kfs)
-        # print("len(local_keyframes) == n_loc_kfs",n_loc_kfs, len(local_keyframes))
-        chrono.lap("update_local_landmarks")
-        # pose_tracking_2 = pymap.Pose()
-        # pose_tracking_2.set_from_world_to_cam(
-            # slam_utils.pose_to_mat(pose_tracking))
-        # curr_shot.set_pose(pose_tracking_2)
         curr_shot.set_pose(pose_tracking)
-        # n_matches = self.guided_matcher.search_local_landmarks(
-        #     local_landmarks, curr_shot)
         # TODO: REMOVE DEBUG VISUALIZATION
-        slam_debug.check_shot_for_double_entries(curr_shot)
-        n_valid_pts_bef = curr_shot.compute_num_valid_pts(1) # TODO: Remove debug stuff
-        n_matches = pyslam.SlamUtilities.match_shot_to_local_lms(curr_shot, self.guided_matcher)
-        n_valid_pts_aft = curr_shot.compute_num_valid_pts(1) # TODO: Remove debug stuff
-        print("n_matches {} found in current frame. bef{} aft {}".format(n_matches, n_valid_pts_bef, n_valid_pts_aft))
-        assert(n_matches + n_valid_pts_bef == n_valid_pts_aft)
+        # slam_debug.check_shot_for_double_entries(curr_shot)
+        # n_valid_pts_bef = curr_shot.compute_num_valid_pts(1) # TODO: Remove debug stuff
+        # n_matches = pyslam.SlamUtilities.match_shot_to_local_lms(curr_shot, self.guided_matcher)
+        # n_valid_pts_aft = curr_shot.compute_num_valid_pts(1) # TODO: Remove debug stuff
+        # print("n_matches {} found in current frame. bef{} aft {}".format(n_matches, n_valid_pts_bef, n_valid_pts_aft))
+        # assert(n_matches + n_valid_pts_bef == n_valid_pts_aft)
         # TODO: REMOVE DEBUG VISUALIZATION
         slam_debug.check_shot_for_double_entries(curr_shot)  # TODO: Remove debug stuff
         # val_lms = curr_shot.get_valid_landmarks()
@@ -82,13 +59,13 @@ class SlamTracker(object):
         # slam_debug.visualize_matches_pts(pts1, pts2, matches_last, data.load_image(slam_mapper.last_shot.id), data.load_image(curr_shot.id),
         #                                  is_normalized=False, do_show=True)
         # TODO: REMOVE DEBUG STUFF
-        chrono.lap("search_local_landmarks")
+        # chrono.lap("search_local_landmarks")
         # Now, local optimization
         lms = curr_shot.get_valid_landmarks()
         points2D = pyslam.SlamUtilities.get_valid_kpts_from_shot(curr_shot)
         valid_ids = curr_shot.get_valid_landmarks_indices()
-        print("got: ", len(lms), " landmarks and ", len(points2D))
-        chrono.start()
+        # print("got: ", len(lms), " landmarks and ", len(points2D))
+        # chrono.start()
         points3D = np.zeros((len(lms), 3), dtype=np.float)
         for i, lm in enumerate(lms):
             points3D[i, :] = lm.get_global_pos()
@@ -108,16 +85,16 @@ class SlamTracker(object):
 
         pose, valid_pts = self.\
             bundle_tracking(points3D, points2D, curr_shot.get_pose(), camera, data.config, data)
-        slam_debug.avg_timings.addTimes(chrono.laps_dict)
-        slam_debug.disable_debug = True
-        slam_debug.reproject_landmarks(points3D, points2D,
-                                       pose.get_world_to_cam(), data.load_image(
-                                           curr_shot.id), camera,
-                                       title="aft tracking: " + curr_shot.id, obs_normalized=True, do_show=True)
-        slam_debug.disable_debug = True
-        slam_debug.avg_timings.addTimes(chrono.laps_dict)
-        chrono.start()
-        print("valid: ", curr_shot.compute_num_valid_pts(1))
+        # slam_debug.avg_timings.addTimes(chrono.laps_dict)
+        # slam_debug.disable_debug = True
+        # slam_debug.reproject_landmarks(points3D, points2D,
+        #                                pose.get_world_to_cam(), data.load_image(
+        #                                    curr_shot.id), camera,
+        #                                title="aft tracking: " + curr_shot.id, obs_normalized=True, do_show=True)
+        # slam_debug.disable_debug = True
+        # slam_debug.avg_timings.addTimes(chrono.laps_dict)
+        # chrono.start()
+        # print("valid: ", curr_shot.compute_num_valid_pts(1))
         n_tracked = 0
         for idx, is_valid in enumerate(valid_pts):
             if not is_valid:
@@ -126,9 +103,9 @@ class SlamTracker(object):
                 n_tracked += 1
         assert(curr_shot.compute_num_valid_pts(1) == np.sum(valid_pts)) # TODO: Remove debug stuff
 
-        slam_debug.check_shot_for_double_entries(curr_shot) # TODO: Remove debug stuff
+        # slam_debug.check_shot_for_double_entries(curr_shot) # TODO: Remove debug stuff
         self.num_tracked_lms = n_tracked
-        chrono.lap("filter_outliers")
+        # chrono.lap("filter_outliers")
         return pose
 
     def track_motion(self, slam_mapper: SlamMapper, curr_shot: pymap.Shot,
@@ -138,8 +115,6 @@ class SlamTracker(object):
         to frame and estimate the relative 6 DOF motion between
         the two by minimizing the reprojection error.
         """
-        print("track_motion: ", slam_mapper.last_shot.id, "<->",
-              curr_shot.id)
         # TODO: Make an actual update on the closest frames in the map
         # For now, simply take the last 10 keyframes
         # return
@@ -183,7 +158,7 @@ class SlamTracker(object):
         n_matches = self.guided_matcher.\
             assign_shot_landmarks_to_kpts_new(slam_mapper.last_shot,
                                               curr_shot, margin)
-        print("found matches: ", n_matches)
+        # print("found matches: ", n_matches)
         if n_matches < 10:  # not enough matches found, increase margin
             print("matches2: ", margin)
             exit()
@@ -197,7 +172,7 @@ class SlamTracker(object):
         points2D = pyslam.SlamUtilities.get_valid_kpts_from_shot(curr_shot)
         valid_ids = curr_shot.get_valid_landmarks_indices()
 
-        print("got: ", len(lms), " landmarks and ", len(points2D))
+        # print("got: ", len(lms), " landmarks and ", len(points2D))
         # TODO: REMOVE DEBUG VISUALIZATION
         # pts1 = []
         # # pts2 = []
@@ -225,7 +200,6 @@ class SlamTracker(object):
         slam_debug.disable_debug = False
 
         # Remove outliers
-        print("valid: ", curr_shot.compute_num_valid_pts(1))
         n_tracked = 0
         for idx, is_valid in enumerate(valid_pts):
             if not is_valid:
@@ -273,7 +247,7 @@ class SlamTracker(object):
         # somehow match world points/landmarks seen in last frame
         # to feature matches
         fix_cameras = True
-        chrono = slam_debug.Chronometer()
+        # chrono = slam_debug.Chronometer()
 
         ba = pybundle.BundleAdjuster()
         ba.add_camera(camera.id, camera, camera, fix_cameras)
@@ -305,18 +279,19 @@ class SlamTracker(object):
         ba.set_num_threads(config['processes'])
         ba.set_max_num_iterations(50)
         ba.set_linear_solver_type("SPARSE_SCHUR")
-        chrono.lap('setup')
+        # chrono.lap('setup')
         ba.run()
-        chrono.lap('run_track')
-        print("Tracking report: ", ba.full_report())
+        # chrono.lap('run_track')
+        # print("Tracking report: ", ba.full_report())
+        logger.debug(ba.brief_report())
         s = ba.get_shot(shot_id)
         pose = pymap.Pose()
         pose.set_from_world_to_cam([s.r[0], s.r[1], s.r[2]],
                                    [s.t[0], s.t[1], s.t[2]])
         valid_pts = self.discard_outliers(ba, len(points3D), pose, camera)
-        print("invalid points: ", len(points3D) - np.sum(valid_pts), " outliers")
-        chrono.lap('discard_outliers')
-        print(chrono.lap_times())
+        # print("invalid points: ", len(points3D) - np.sum(valid_pts), " outliers")
+        # chrono.lap('discard_outliers')
+        # print(chrono.lap_times())
         return pose, valid_pts
 
     def discard_outliers(self, ba, n_pts, pose, camera):
@@ -350,6 +325,6 @@ class SlamTracker(object):
                     pts_outside += 1
                     pts_outside_new += 1
 
-        print("pts inside {} and outside {}/ {}".
-              format(pts_inside, pts_outside, pts_outside_new))
+        # print("pts inside {} and outside {}/ {}".
+        #       format(pts_inside, pts_outside, pts_outside_new))
         return valid_pts

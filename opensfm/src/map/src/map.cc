@@ -106,10 +106,6 @@ void Map::ClearObservationsAndLandmarks() {
  */
 Shot* Map::CreateShot(const ShotId& shot_id, const Camera* const cam,
                       const Pose& pose) {
-  // C++14
-  // auto it = shots_.emplace(shot_id, std::make_unique<Shot>(shot_id, cam,
-  // pose));
-  // C++11
   auto it_exist = shots_.find(shot_id);
   if (it_exist == shots_.end())  // create
   {
@@ -135,13 +131,8 @@ Shot* Map::CreateShot(const ShotId& shot_id, const Camera* const cam,
 Shot* Map::CreateShot(const ShotId& shot_id, const CameraId& camera_id,
                       const Pose& pose) {
   
-  // auto* cam = ;
   return CreateShot(shot_id, GetCamera(camera_id), pose);
 }
-
-// void Map::UpdateShotPose(const ShotId& shot_id, const Pose& pose) {
-//   shots_.at(shot_id)->SetPose(pose);
-// }
 
 void Map::RemoveShot(const ShotId& shot_id) {
   // 1) Find the point
@@ -171,7 +162,7 @@ void Map::RemoveShot(const ShotId& shot_id) {
  */
 Landmark* Map::CreateLandmark(
     const LandmarkId& lm_id,
-    const Vec3d& global_pos)  //, const std::string& name)
+    const Vec3d& global_pos)  
 {
   auto it_exist = landmarks_.find(lm_id);
   if (it_exist == landmarks_.end()) //create

@@ -7,6 +7,8 @@ from opensfm import pymap
 from opensfm import features
 from opensfm import reconstruction
 from opensfm import pysfm
+import logging
+logger = logging.getLogger(__name__)
 # from opensfm import reconstruction_map
 class SlamInitializer(object):
 
@@ -37,13 +39,14 @@ class SlamInitializer(object):
         matches = np.array(matches)
         if (len(matches) < 100):
             return False, None
-        print("Matches: ", len(matches), self.init_shot.id, "<->", curr_shot.id)
+        
         # Update pts
         self.prev_pts[matches[0, :], :] =\
             pyslam.SlamUtilities.undist_keypts_from_shot(curr_shot)[matches[1, :], 0:2]
 
         f1_points = pyslam.SlamUtilities.keypts_from_shot(self.init_shot)
         f2_points = pyslam.SlamUtilities.keypts_from_shot(curr_shot)
+        
         # test reconstructability
         threshold = 4 * self.data.config['five_point_algo_threshold']
         args = []
@@ -53,11 +56,11 @@ class SlamInitializer(object):
         norm_p2 = f2_points[matches[:, 1], 0:2]
         args.append((im1, im2, norm_p1, norm_p2,
                      self.camera, self.camera, threshold))
-        chrono = slam_debug.Chronometer()
-        chrono.lap("others")
+        # chrono = slam_debug.Chronometer()
+        # chrono.lap("others")
         # np.random.seed(None)
         i1, i2, r = reconstruction._compute_pair_reconstructability(args[0])
-        chrono.lap("pair rec")
+        # chrono.lap("pair rec")
         if r == 0:
             return False, None
         # create the graph with the new tracks manager
@@ -68,16 +71,14 @@ class SlamInitializer(object):
             tracks_graph.add_observation(
                 im2, str(track_id), curr_shot.get_observation(f2_id))
 
-        chrono.lap("track graph")
+        # chrono.lap("track graph")
         rec_report = {}
         rec_init, rec_report['bootstrap'] = \
             reconstruction.bootstrap_reconstruction(self.data, tracks_graph, self.data.load_camera_models(),
                                                     im1, im2, norm_p1, norm_p2)
         success = reconstruction is not None
-        chrono.lap("boot rec")
-        print("Init timings: ", chrono.lap_times())
+        # chrono.lap("boot rec")
         if success:
-            print("Created init rec from {}<->{} with {} points from {} matches"
-                  .format(im1, im2, len(rec_init.points), len(matches)))
-        # rec_init.map.set_landmark_unique_id(len(matches))
+            logger.info("Created init rec from {}<->{} with {} points from {} matches"
+                        .format(im1, im2, len(rec_init.points), len(matches)))
         return success, rec_init

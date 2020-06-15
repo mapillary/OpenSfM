@@ -13,7 +13,7 @@
 #include <pybind11/stl.h>
 
 namespace py = pybind11;
-// PYBIND11_MAKE_OPAQUE(std::unordered_map<std::string, map::TestShot>)
+
 PYBIND11_MODULE(pymap, m) {
   py::class_<map::Pose>(m, "Pose")
       .def(py::init())
@@ -81,7 +81,6 @@ PYBIND11_MODULE(pymap, m) {
       .def("create_landmark", &map::Map::CreateLandmark, py::arg("lm_id"),
            py::arg("global_position"),
            py::return_value_policy::reference_internal)
-      //  .def("update_landmark", &map::Map::UpdateLandmark)
       .def("remove_landmark", (void (map::Map::*)(const map::Landmark *const)) &
                                   map::Map::RemoveLandmark)
       .def("remove_landmark", (void (map::Map::*)(const map::LandmarkId &)) &

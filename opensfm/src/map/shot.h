@@ -26,17 +26,10 @@ class SLAMShotData {
     bearings_(sd.bearings_)
   {
     // TODO: fix constructor
-    std::cout << "Move constructor" << std::endl;
-    exit(0);
+    // std::cout << "Move constructor" << std::endl;
+    // exit(0);
   }
   void UpdateGraphNode() { graph_node_->update_connections(); }
-  // std::vector<Vec3d> GetBearings() const
-  // {
-  //   std::vector<Vec3d> out;
-  //   out.reserve(bearings_.size());
-  //   std::copy(bearings_.cbegin(), bearings_.cend(), out.begin());
-  //   return out;
-  // }
 };
 
 struct ShotMesh {
@@ -153,10 +146,6 @@ class Shot {
   void CreateObservation(Landmark* lm, const Vec2d& pt,
                          const double scale, const Eigen::Vector3i& color,
                          FeatureId id) {
-    // C++ 14
-    // landmark_observations_.insert(std::make_pair(lm,
-    // std::make_unique<Observation>(pt[0], pt[1], scale, color[0], color[1],
-    // color[2], id)));
     landmark_observations_.insert(std::make_pair(
         lm,
         Observation(pt[0], pt[1], scale, color[0], color[1], color[2], id)));

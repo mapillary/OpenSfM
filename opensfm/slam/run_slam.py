@@ -30,5 +30,5 @@ for idx, im_name in enumerate(sorted(data.image_list)):
         logger.info("Successfully tracked {}".format(im_name))
     else:
         logger.info("Trying to init with {}".format(im_name))
-# slam_system.slam_mapper.create_reconstruction()
+
 slam_system.slam_mapper.save_reconstruction(im_name + "_finished")
