@@ -308,28 +308,27 @@ struct DistoBrown : CameraFunctor<2, 5, 2>{
     const auto& y = point[1];
     const auto& z = point[2];
 
-    const auto x2 = x * x;
-    const auto x4 = x2 * x2;
-    const auto y2 = y * y;
-    const auto y4 = y2 * y2;
-    const auto r2 = x2 + y2;
+    const T x2 = x * x;
+    const T x4 = x2 * x2;
+    const T y2 = y * y;
+    const T y4 = y2 * y2;
+    const T r2 = x2 + y2;
+    const T r4 = r2 * r2;
+    const T r6 = r4 * r2;
 
-    jacobian[0] = T(7.0) * k3 * x4 * x2 + T(5.0) * k2 * x4 +
-                  T(15.0) * k3 * y2 * x4 + T(3.0) * k1 * x2 +
-                  T(9.0) * k3 * y4 * x2 + T(6.0) * k2 * y2 * x2 + k3 * y2 * y4 +
-                  k2 * y4 + k1 * y2 + T(1.0) + p1 * y + T(6.0) * p2 * x;
-    jacobian[1] = x * (T(6.0) * k3 * y * y4 + T(4.0) * k2 * y * y2 +
-                       T(12.0) * k3 * x2 * y2 * y + T(2.0) * k1 * y +
-                       T(6.0) * k3 * x4 * y + T(4.0) * k2 * x2 * y) +
-                  p1 * x + T(2.0) * p2 * y;
-    jacobian[Stride] = y * (T(6.0) * k3 * x * x4 + T(4.0) * k2 * x * x2 +
-                            T(12.0) * k3 * y2 * x2 * x + T(2.0) * k1 * x +
-                            T(6.0) * k3 * y4 * x + T(4.0) * k2 * y2 * x) +
-                       p2 * y + T(2.0) * p1 * x;
-    jacobian[Stride + 1] =
-        T(7.0) * k3 * y4 * y2 + T(5.0) * k2 * y4 + T(15.0) * k3 * x2 * y4 +
-        T(3.0) * k1 * y2 + T(9.0) * k3 * x4 * y2 + T(6.0) * k2 * x2 * y2 +
-        k3 * x2 * x4 + k2 * x4 + k1 * x2 + T(1.0) + p2 * x + T(6.0) * p1 * y;
+    jacobian[0] = T(5.0) * k2 * x4 + T(3.0) * k1 * x2 + T(6.0) * k3 * x2 * r4 +
+                  T(6.0) * k2 * x2 * y2 + k3 * r6 + k2 * y4 + k1 * y2 + T(1.0) +
+                  T(2.0) * p1 * y + T(6.0) * p2 * x;
+    jacobian[1] =
+        x * (T(2.0) * k1 * y + T(4.0) * k2 * y * r2 + T(6.0) * k3 * y * r4) +
+        T(2.0) * p1 * x + T(2.0) * p2 * y;
+    jacobian[Stride + 1] = T(5.0) * k2 * y4 + T(3.0) * k1 * y2 +
+                           T(6.0) * k3 * y2 * r4 + T(6.0) * k2 * x2 * y2 +
+                           k3 * r6 + k2 * x4 + k1 * x2 + T(1.0) +
+                           T(2.0) * p2 * x + T(6.0) * p1 * y;
+    jacobian[Stride] =
+        y * (T(2.0) * k1 * x + T(4.0) * k2 * x * r2 + T(6.0) * k3 * x * r4) +
+        T(2.0) * p2 * y + T(2.0) * p1 * x;
 
     if (COMP_PARAM) {
       jacobian[2] = x * r2;

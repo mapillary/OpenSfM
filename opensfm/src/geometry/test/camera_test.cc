@@ -47,7 +47,7 @@ class CameraFixture : public ::testing::Test {
 
   template <class MAT>
   void CheckJacobian(const MAT& jacobian, int size_params) {
-    const double eps = 17e-4;
+    const double eps = 1e-12;
     for (int i = 0; i < 2; ++i) {
       for (int j = 0; j < size_params; ++j) {
         ASSERT_NEAR(projection_expected[i].derivatives()(j), jacobian(i, j), eps);
