@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+set -e
+
+DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+PYTHON=${2:-python3}
+
+echo "Running using Python command: $PYTHON"
+
+$PYTHON $DIR/../opensfm/slam/run_slam.py $1
