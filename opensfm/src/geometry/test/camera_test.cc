@@ -46,6 +46,31 @@ class CameraFixture : public ::testing::Test {
   }
 
   template <class MAT>
+  void RunJacobianEval(const Camera& camera, ProjectionType projection,
+                       MAT* jacobian) {
+    const VecXd camera_params = camera.GetParametersValues();
+    const int size_params = 3 + camera_params.size();
+
+    // Prepare Eigen's Autodiff structures
+    for (int i = 0; i < 3; ++i) {
+      point_adiff[i].derivatives() = Eigen::VectorXd::Unit(size_params, i);
+    }
+    camera_adiff.resize(camera_params.size());
+    for (int i = 0; i < camera_params.size(); ++i) {
+      camera_adiff(i).value() = camera_params(i);
+      camera_adiff(i).derivatives() = Eigen::VectorXd::Unit(size_params, 3 + i);
+    }
+
+    // Run project with Autodiff types to get expected jacobian
+    Dispatch<ProjectFunction>(projection, point_adiff, camera_adiff.data(),
+                              projection_expected);
+
+    // Analytical derivatives
+    Dispatch<ProjectDerivativesFunction>(
+        projection, point, camera_params.data(), projected, jacobian->data());
+  }
+
+  template <class MAT>
   void CheckJacobian(const MAT& jacobian, int size_params) {
     const double eps = 1e-12;
     for (int i = 0; i < 2; ++i) {
@@ -267,25 +292,8 @@ TEST_F(CameraFixture, ComputePerspectiveAnalyticalDerivatives){
   const VecXd camera_params = camera.GetParametersValues();
   const int size_params = 3 + camera_params.size();
 
-  // Prepare Eigen's Autodiff structures
-  for (int i = 0; i < 3; ++i) {
-    point_adiff[i].derivatives() = Eigen::VectorXd::Unit(size_params, i);
-  }
-  camera_adiff.resize(camera_params.size());
-  for (int i = 0; i < camera_params.size(); ++i) {
-    camera_adiff(i).value() = camera_params(i);
-    camera_adiff(i).derivatives() = Eigen::VectorXd::Unit(size_params, 3 + i);
-  }
-
-  // Run project with Autodiff types to get expected jacobian
-  Dispatch<ProjectFunction>(ProjectionType::PERSPECTIVE, point_adiff,
-                            camera_adiff.data(), projection_expected);
-
-  // Analytical derivatives
   Eigen::Matrix<double, 2, 6, Eigen::RowMajor> jacobian;
-  Dispatch<ProjectDerivativesFunction>(ProjectionType::PERSPECTIVE, point,
-                                       camera_params.data(), projected,
-                                       jacobian.data());
+  RunJacobianEval(camera, ProjectionType::PERSPECTIVE, &jacobian);
   CheckJacobian(jacobian, size_params);
 }
 
@@ -295,58 +303,36 @@ TEST_F(CameraFixture, ComputeFisheyeAnalyticalDerivatives){
   const VecXd camera_params = camera.GetParametersValues();
   const int size_params = 3 + camera_params.size();
 
-  // Prepare Eigen's Autodiff structures
-  for (int i = 0; i < 3; ++i) {
-    point_adiff[i].derivatives() = Eigen::VectorXd::Unit(size_params, i);
-  }
-  camera_adiff.resize(camera_params.size());
-  for (int i = 0; i < camera_params.size(); ++i) {
-    camera_adiff(i).value() = camera_params(i);
-    camera_adiff(i).derivatives() = Eigen::VectorXd::Unit(size_params, 3 + i);
-  }
-
-  // Run project with Autodiff types to get expected jacobian
-  Dispatch<ProjectFunction>(ProjectionType::FISHEYE, point_adiff,
-                            camera_adiff.data(), projection_expected);
-
-  // Analytical derivatives
   Eigen::Matrix<double, 2, 6, Eigen::RowMajor> jacobian;
-  Dispatch<ProjectDerivativesFunction>(ProjectionType::FISHEYE, point,
-                                       camera_params.data(), projected,
-                                       jacobian.data());
+  RunJacobianEval(camera, ProjectionType::FISHEYE, &jacobian);
   CheckJacobian(jacobian, size_params);
 }
 
 TEST_F(CameraFixture, ComputeBrownAnalyticalDerivatives){
-  const Camera camera = Camera::CreateBrownCamera(focal, new_ar, principal_point, distortion);
-  
+  const Camera camera =
+      Camera::CreateBrownCamera(focal, new_ar, principal_point, distortion);
+
   const VecXd camera_params = camera.GetParametersValues();
   const int size_params = 3 + camera_params.size();
 
-  // Prepare Eigen's Autodiff structures
-  for (int i = 0; i < 3; ++i) {
-    point_adiff[i].derivatives() = Eigen::VectorXd::Unit(size_params, i);
-  }
-  camera_adiff.resize(camera_params.size());
-  for (int i = 0; i < camera_params.size(); ++i) {
-    camera_adiff(i).value() = camera_params(i);
-    camera_adiff(i).derivatives() = Eigen::VectorXd::Unit(size_params, 3 + i);
-  }
-
-  // Run project with Autodiff types to get expected jacobian
-  Dispatch<ProjectFunction>(ProjectionType::BROWN, point_adiff,
-                            camera_adiff.data(), projection_expected);
-
-  // Analytical derivatives
   Eigen::Matrix<double, 2, 12, Eigen::RowMajor> jacobian;
-  Dispatch<ProjectDerivativesFunction>(ProjectionType::BROWN, point,
-                                       camera_params.data(), projected,
-                                       jacobian.data());
+  RunJacobianEval(camera, ProjectionType::BROWN, &jacobian);
+  CheckJacobian(jacobian, size_params);
+}
+
+TEST_F(CameraFixture, ComputeSphericalAnalyticalDerivatives){
+  const Camera camera = Camera::CreateSphericalCamera();
+
+  const VecXd camera_params = camera.GetParametersValues();
+  const int size_params = 3;
+
+  Eigen::Matrix<double, 2, 3, Eigen::RowMajor> jacobian;
+  RunJacobianEval(camera, ProjectionType::SPHERICAL, &jacobian);
   CheckJacobian(jacobian, size_params);
 }
 
 TEST_F(CameraFixture, PerfTest){
-  const Camera camera = Camera::CreateBrownCamera(focal, new_ar, principal_point, distortion);
+  const Camera camera = Camera::CreateSphericalCamera();
   const VecXd camera_params = camera.GetParametersValues();
   const int size_params = 3 + camera_params.size();
 
@@ -356,23 +342,23 @@ TEST_F(CameraFixture, PerfTest){
   double point_d_ceres[3];
 
   double a = 0.;
-  ceres::Jet<double, 12> projected_ceres[2];
-  const int count = 100000;
+  const int count = 10000;
+  ceres::Jet<double, 3> projected_ceres[2];
   for (int k = 0; k < count; ++k) {
-    ceres::Jet<double, 12> point_ceres[3];
+    ceres::Jet<double, 3> point_ceres[3];
     for(int i = 0; i < 3; ++i){
       point_ceres[i].a = (i+1)/10.0;
       point_ceres[i].v = Eigen::VectorXd::Unit(size_params, i);
       point_d_ceres[i] = (i+1)/10.0;
     }
 
-    VecX<ceres::Jet<double, 12>> camera_adiff_ceres(camera_params.size());
+    VecX<ceres::Jet<double, 3>> camera_adiff_ceres(camera_params.size());
     for(int i = 0; i < camera_params.size(); ++i){
       camera_adiff_ceres(i).a = camera_params(i);
       camera_adiff_ceres(i).v = Eigen::VectorXd::Unit(size_params, 3+i);
     }
   
-    Dispatch<ProjectFunction>(ProjectionType::BROWN, point_ceres,
+    Dispatch<ProjectFunction>(ProjectionType::SPHERICAL, point_ceres,
                               camera_adiff_ceres.data(), projected_ceres);
     for(int i = 0; i < 2; ++i){
       for(int j = 0; j < size_params; ++j){
@@ -408,12 +394,12 @@ TEST_F(CameraFixture, PerfTest){
       camera_adiff(i).derivatives() = Eigen::VectorXd::Unit(size_params, 3+i);
     }
 
-    Dispatch<ProjectFunction>(ProjectionType::BROWN, point,
+    Dispatch<ProjectFunction>(ProjectionType::SPHERICAL, point,
                               camera_adiff.data(), projected_eigen);
     for(int i = 0; i < 2; ++i){
       for(int j = 0; j < size_params; ++j){
-        a += camera_adiff(i).value();
-        a += camera_adiff(i).derivatives()(j);
+        a += projected_eigen[i].value();
+        a += projected_eigen[i].derivatives()(j);
       }
     }
   }
@@ -429,16 +415,15 @@ TEST_F(CameraFixture, PerfTest){
 
   auto start_ana = high_resolution_clock::now(); 
   double projected_d[2];
-  Eigen::Matrix<double, 2, 12, Eigen::RowMajor> jacobian;
+  Eigen::Matrix<double, 2, 3, Eigen::RowMajor> jacobian;
   for (int k = 0; k < count; ++k) {
     double point_d[3];
-    AScalar point[3];
     for(int i = 0; i < 3; ++i){
       point_d[i] = (i+1)/10.0;
     }
 
     
-    Dispatch<ProjectDerivativesFunction>(ProjectionType::BROWN, point_d,
+    Dispatch<ProjectDerivativesFunction>(ProjectionType::SPHERICAL, point_d,
                                          camera_params.data(), projected_d,
                                          jacobian.data());
     for(int i = 0; i < jacobian.rows(); ++i){
