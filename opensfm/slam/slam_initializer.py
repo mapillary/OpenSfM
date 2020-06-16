@@ -1,19 +1,14 @@
 import numpy as np
-import networkx as nx
-import slam_debug
-from slam_mapper import SlamMapper
 from opensfm import pyslam
-from opensfm import pymap
-from opensfm import features
 from opensfm import reconstruction
 from opensfm import pysfm
 import logging
 logger = logging.getLogger(__name__)
-# from opensfm import reconstruction_map
+
+
 class SlamInitializer(object):
 
     def __init__(self, data, camera, matcher, reconstruction):
-        print("initializer")
         self.init_shot = None
         self.prev_pts = None
         self.data = data
@@ -56,11 +51,7 @@ class SlamInitializer(object):
         norm_p2 = f2_points[matches[:, 1], 0:2]
         args.append((im1, im2, norm_p1, norm_p2,
                      self.camera, self.camera, threshold))
-        # chrono = slam_debug.Chronometer()
-        # chrono.lap("others")
-        # np.random.seed(None)
         i1, i2, r = reconstruction._compute_pair_reconstructability(args[0])
-        # chrono.lap("pair rec")
         if r == 0:
             return False, None
         # create the graph with the new tracks manager
@@ -71,13 +62,11 @@ class SlamInitializer(object):
             tracks_graph.add_observation(
                 im2, str(track_id), curr_shot.get_observation(f2_id))
 
-        # chrono.lap("track graph")
         rec_report = {}
         rec_init, rec_report['bootstrap'] = \
             reconstruction.bootstrap_reconstruction(self.data, tracks_graph, self.data.load_camera_models(),
                                                     im1, im2, norm_p1, norm_p2)
         success = reconstruction is not None
-        # chrono.lap("boot rec")
         if success:
             logger.info("Created init rec from {}<->{} with {} points from {} matches"
                         .format(im1, im2, len(rec_init.points), len(matches)))

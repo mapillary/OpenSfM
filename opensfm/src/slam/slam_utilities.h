@@ -24,9 +24,9 @@ public:
   static MatXd ConvertOpenCVKptsToEigen(const AlignedVector<Observation>& keypts);
   
 
-  static std::vector<map::Landmark*> update_local_landmarks(const std::vector<map::Shot*>& local_keyframes); //, const size_t curr_frm_id);
+  // static std::vector<map::Landmark*> update_local_landmarks(const std::vector<map::Shot*>& local_keyframes); //, const size_t curr_frm_id);
 
-  static std::vector<map::Shot*> update_local_keyframes(const map::Shot& curr_shot);
+  // static std::vector<map::Shot*> update_local_keyframes(const map::Shot& curr_shot);
 
   static size_t MatchShotToLocalMap(map::Shot &curr_shot, const slam::GuidedMatcher& matcher);
 

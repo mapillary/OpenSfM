@@ -54,17 +54,17 @@ public:
     return kpts.topRows(idx2);
   }
 
-  static std::vector<map::Shot*>
-  UpdateLocalKeyframes(const map::Shot &shot)
-  {
-    return SlamUtilities::update_local_keyframes(shot);
-  }
+  // static std::vector<map::Shot*>
+  // UpdateLocalKeyframes(const map::Shot &shot)
+  // {
+  //   return SlamUtilities::update_local_keyframes(shot);
+  // }
 
-  static std::vector<map::Landmark*>
-  UpdateLocalLandmarks(const std::vector<map::Shot *> &local_keyframes)
-  {
-    return SlamUtilities::update_local_landmarks(local_keyframes);
-  }
+  // static std::vector<map::Landmark*>
+  // UpdateLocalLandmarks(const std::vector<map::Shot *> &local_keyframes)
+  // {
+  //   return SlamUtilities::update_local_landmarks(local_keyframes);
+  // }
 
   static size_t
   MatchShotToLocalLandmarks(map::Shot &shot, const GuidedMatchingWrapper &matcher)

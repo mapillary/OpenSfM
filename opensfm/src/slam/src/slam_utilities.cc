@@ -47,118 +47,117 @@ SlamUtilities::ConvertOpenCVKptsToEigen(const AlignedVector<Observation>& keypts
   return MatXd();
 }
 
-std::vector<map::Landmark *>
-SlamUtilities::update_local_landmarks(const std::vector<map::Shot *> &local_keyframes)
-{
-  std::unordered_set<map::Landmark *> local_landmarks;
-  for (auto keyframe : local_keyframes)
-  {
-    for (auto lm : keyframe->GetLandmarks())
-    {
-      if (lm != nullptr)
-      {
-        local_landmarks.emplace(lm);
-      }
-    }
-  }
-  return std::vector<map::Landmark *>(local_landmarks.begin(), local_landmarks.end());
-}
+// std::vector<map::Landmark *>
+// SlamUtilities::update_local_landmarks(const std::vector<map::Shot *> &local_keyframes)
+// {
+//   std::unordered_set<map::Landmark *> local_landmarks;
+//   for (auto keyframe : local_keyframes)
+//   {
+//     for (auto lm : keyframe->GetLandmarks())
+//     {
+//       if (lm != nullptr)
+//       {
+//         local_landmarks.emplace(lm);
+//       }
+//     }
+//   }
+//   return std::vector<map::Landmark *>(local_landmarks.begin(), local_landmarks.end());
+// }
 
-std::vector<map::Shot *>
-SlamUtilities::update_local_keyframes(const map::Shot &curr_shot)
-{
-  constexpr unsigned int max_num_local_keyfrms{60};
+// std::vector<map::Shot *>
+// SlamUtilities::update_local_keyframes(const map::Shot &curr_shot)
+// {
+//   constexpr unsigned int max_num_local_keyfrms{60};
 
-  // count the number of sharing landmarks between the current frame and each of the neighbor keyframes
-  // key: keyframe, value: number of sharing landmarks
-  // std::unordered_map<KeyFrame*, unsigned int, KeyFrameCompare> keyfrm_weights;
-  std::unordered_map<map::Shot *, unsigned int> keyfrm_weights;
-  const auto &landmarks = curr_shot.GetLandmarks();
-  const auto n_keypts = landmarks.size();
-  for (unsigned int idx = 0; idx < n_keypts; ++idx)
-  {
-    auto lm = landmarks.at(idx);
-    if (lm != nullptr)
-    {
-      const auto &observations = lm->GetObservations();
-      for (const auto &obs : observations)
-      {
-        ++keyfrm_weights[obs.first];
-      }
-    }
-  }
+//   // count the number of sharing landmarks between the current frame and each of the neighbor keyframes
+//   // key: keyframe, value: number of sharing landmarks
+//   std::unordered_map<map::Shot *, unsigned int> keyfrm_weights;
+//   const auto &landmarks = curr_shot.GetLandmarks();
+//   const auto n_keypts = landmarks.size();
+//   for (unsigned int idx = 0; idx < n_keypts; ++idx)
+//   {
+//     auto lm = landmarks.at(idx);
+//     if (lm != nullptr)
+//     {
+//       const auto &observations = lm->GetObservations();
+//       for (const auto &obs : observations)
+//       {
+//         ++keyfrm_weights[obs.first];
+//       }
+//     }
+//   }
 
-  if (keyfrm_weights.empty())
-  {
-    return std::vector<map::Shot *>();
-  }
+//   if (keyfrm_weights.empty())
+//   {
+//     return std::vector<map::Shot *>();
+//   }
 
-  // set the aforementioned keyframes as local keyframes
-  // and find the nearest keyframe
-  unsigned int max_weight = 0;
+//   // set the aforementioned keyframes as local keyframes
+//   // and find the nearest keyframe
+//   unsigned int max_weight = 0;
 
-  //ptr to Shot,
-  std::unordered_set<map::Shot *> local_keyfrms;
+//   //ptr to Shot,
+//   std::unordered_set<map::Shot *> local_keyfrms;
 
-  for (auto &keyfrm_weight : keyfrm_weights)
-  {
-    auto keyfrm = keyfrm_weight.first;
-    const auto weight = keyfrm_weight.second;
-    local_keyfrms.emplace(keyfrm);
+//   for (auto &keyfrm_weight : keyfrm_weights)
+//   {
+//     auto keyfrm = keyfrm_weight.first;
+//     const auto weight = keyfrm_weight.second;
+//     local_keyfrms.emplace(keyfrm);
 
 
-    // update the nearest keyframe
-    if (max_weight < weight)
-    {
-      max_weight = weight;
-    }
-  }
-  // add the second-order keyframes to the local landmarks
-  auto add_local_keyframe = [&](map::Shot *keyfrm) {
-    if (keyfrm == nullptr)
-    {
-      return false;
-    }
-    local_keyfrms.emplace(keyfrm);
-    return true;
-  };
+//     // update the nearest keyframe
+//     if (max_weight < weight)
+//     {
+//       max_weight = weight;
+//     }
+//   }
+//   // add the second-order keyframes to the local landmarks
+//   auto add_local_keyframe = [&](map::Shot *keyfrm) {
+//     if (keyfrm == nullptr)
+//     {
+//       return false;
+//     }
+//     local_keyfrms.emplace(keyfrm);
+//     return true;
+//   };
 
-  const auto n_local_keyfrms = local_keyfrms.size();
-  for (auto iter = local_keyfrms.cbegin(), end = local_keyfrms.cend(); iter != end; ++iter)
-  {
-    if (max_num_local_keyfrms < n_local_keyfrms)
-    {
-      break;
-    }
+//   const auto n_local_keyfrms = local_keyfrms.size();
+//   for (auto iter = local_keyfrms.cbegin(), end = local_keyfrms.cend(); iter != end; ++iter)
+//   {
+//     if (max_num_local_keyfrms < n_local_keyfrms)
+//     {
+//       break;
+//     }
 
-    auto keyfrm = *iter;
+//     auto keyfrm = *iter;
 
-    // covisibilities of the neighbor keyframe
-    const auto neighbors = keyfrm->slam_data_.graph_node_->get_top_n_covisibilities(10);
-    for (auto neighbor : neighbors)
-    {
-      if (add_local_keyframe(neighbor))
-      {
-        break;
-      }
-    }
+//     // covisibilities of the neighbor keyframe
+//     const auto neighbors = keyfrm->slam_data_.graph_node_->get_top_n_covisibilities(10);
+//     for (auto neighbor : neighbors)
+//     {
+//       if (add_local_keyframe(neighbor))
+//       {
+//         break;
+//       }
+//     }
 
-    // children of the spanning tree
-    const auto spanning_children = keyfrm->slam_data_.graph_node_->get_spanning_children();
-    for (auto child : spanning_children)
-    {
-      if (add_local_keyframe(child))
-      {
-        break;
-      }
-    }
+//     // children of the spanning tree
+//     const auto spanning_children = keyfrm->slam_data_.graph_node_->get_spanning_children();
+//     for (auto child : spanning_children)
+//     {
+//       if (add_local_keyframe(child))
+//       {
+//         break;
+//       }
+//     }
 
-    // parent of the spanning tree
-    auto parent = keyfrm->slam_data_.graph_node_->get_spanning_parent();
-    add_local_keyframe(parent);
-  }
-  return std::vector<map::Shot *>(local_keyfrms.begin(), local_keyfrms.end());
-}
+//     // parent of the spanning tree
+//     auto parent = keyfrm->slam_data_.graph_node_->get_spanning_parent();
+//     add_local_keyframe(parent);
+//   }
+//   return std::vector<map::Shot *>(local_keyfrms.begin(), local_keyfrms.end());
+// }
 
 size_t
 SlamUtilities::MatchShotToLocalMap(map::Shot &shot, const slam::GuidedMatcher& matcher)

@@ -11,7 +11,8 @@ from opensfm import pysfm
 import slam_utils
 import slam_debug
 import logging
-# import cv2
+import matplotlib.pyplot as plt
+
 logger = logging.getLogger(__name__)
 
 from collections import defaultdict
@@ -67,23 +68,20 @@ class SlamMapper(object):
 
     def create_init_map(self, rec_init,
                         init_shot: pymap.Shot, curr_shot: pymap.Shot):
-        """The graph contains the KFs/shots and landmarks.
-        Edges are connections between keyframes and landmarks and
-        basically "observations"
         """
-        # Now, take the init reconstruction
-        # create the full reconstruction!
-        # The reason, why we cannot simply switch is that the 
-        # shots with their keypoints, etc. are in "main" map
+        Now, take the init reconstruction
+        create the full reconstruction!
+        The reason, why we cannot simply switch is that the
+        shots with their keypoints, etc. are in "main" map
+        """
 
         # We need the following steps
-        # Update the poses
+        # (1) Update the poses
         kf1 = init_shot
         kf2 = curr_shot
         kf1.set_pose(rec_init.shots[kf1.id].pose)
         kf2.set_pose(rec_init.shots[kf2.id].pose)
-        # Add the observations
-        # Add to data and covisibility
+        # (2) Add observations and landmarks to the reconstruction
         self.add_keyframe(kf1)
         self.add_keyframe(kf2)
         self.update_with_last_frame(kf1)
@@ -103,24 +101,10 @@ class SlamMapper(object):
         self.map.set_landmark_unique_id(
             rec_init.map.current_landmark_unique_id())
 
-        # slam_debug.disable_debug = False                
-        # slam_debug.reproject_landmarks(np.asarray(points3D), pyslam.SlamUtilities.keypts_from_shot(kf1),
-        #                         kf1.pose.get_world_to_cam(), self.data.load_image(kf1.id), self.camera[1], title="init_1", obs_normalized=True, do_show=False)
-
-        # slam_debug.reproject_landmarks(np.asarray(points3D), pyslam.SlamUtilities.keypts_from_shot(kf2),
-        #                         T2, self.data.load_image(kf2.name), self.camera[1], title="init_2", obs_normalized=False, do_show=False)
-        # slam_debug.reproject_landmarks(np.asarray(points3D), pyslam.SlamUtilities.keypts_from_shot(kf2),
-        #                         np.linalg.inv(T2), self.data.load_image(kf2.name), self.camera[1], title="init_inv_2", obs_normalized=False, do_show=False)
-
-        # T3 = np.vstack((np.column_stack([T2[0:3, 0:3], -np.linalg.inv(T2[0:3, 0:3]).dot(T2[0:3,3])]),
-        #                 np.array([0, 0, 0, 1])))
-        # slam_debug.reproject_landmarks(np.asarray(points3D), pyslam.SlamUtilities.keypts_from_shot(kf2),
-        #                         T3, self.data.load_image(kf2.name), self.camera[1], title="init_3", obs_normalized=False, do_show=True)
-
-        # Change that according to cam model
         median_depth = kf1.compute_median_depth(False)
         min_num_triangulated = 100
-        if kf2.compute_num_valid_pts(1) < min_num_triangulated and median_depth < 0:
+        if kf2.compute_num_valid_pts(1) < min_num_triangulated\
+                and median_depth < 0:
             logger.info("Something wrong in the initialization")
         else:
             scale = 1.0 / median_depth
@@ -147,27 +131,18 @@ class SlamMapper(object):
         # previous key frame
         cond_a3 = self.num_tracked_lms < (num_reliable_lms * 0.25)
 
-        # print("self.num_tracked_lms_thr {} self.num_tracked_lms {}\n \
-        #        num_reliable_lms {} * self.lms_ratio_th={}".
-        #       format(self.num_tracked_lms_thr, self.num_tracked_lms,
-        #              num_reliable_lms, num_reliable_lms * self.lms_ratio_thr))
         # Condition B: (Requirement for adding keyframes)
         # Add a keyframe if 3D points are observed above the threshold and
         # the percentage of 3D points is below a certain percentage
         cond_b = (self.num_tracked_lms_thr <= self.num_tracked_lms) and \
                  (self.num_tracked_lms < num_reliable_lms * self.lms_ratio_thr)
 
-        # print("cond_a1: {}, cond_a2: {}, cond_a3: {}, cond_b: {}"
-        #       .format(cond_a1, cond_a2, cond_a3, cond_b))
-
-        # Do not add if B is not satisfied
+        # Do not add KF if enough points are observed
         if not cond_b:
-            # print("not cond_b -> no kf")
             return False
 
         # Do not add if none of A is satisfied
         if not cond_a1 and not cond_a2 and not cond_a3:
-            # print("not cond_a1 and not cond_a2 and not cond_a3 -> no kf")
             return False
         logger.debug("Adding new key frame {}".format(shot.id))
         return True
@@ -178,7 +153,6 @@ class SlamMapper(object):
 
     def remove_redundant_lms(self):
         # TODO: Implement in C++
-        # return
         observed_ratio_th = 0.3
         num_reliable_kfs = 2
         num_obs_thr = 2
@@ -189,25 +163,18 @@ class SlamMapper(object):
             lm = self.reconstruction.points[lm_id]
             if lm is None:
                 continue
-            # print("lm: ", lm.slam_data.get_observed_ratio())
-            # print("get_num_observable: ", lm.slam_data.get_num_observable(),
-                #   "get_num_observed", lm.slam_data.get_num_observed())
             if (lm.slam_data.get_observed_ratio() < observed_ratio_th):
-                # print("remove lm cond1: ", lm.slam_data.get_observed_ratio(), " id: ", lm.id)
                 self.map.remove_landmark(lm)
                 n_removed += 1
             elif (num_reliable_kfs + self.frame_id_to_kf_id[lm.get_ref_shot().id]) < self.curr_kf_id\
                     and lm.number_of_observations() <= num_obs_thr:
-                # print("remove lm cond2 #obs: ", lm.number_of_observations(), lm.id)
                 self.map.remove_landmark(lm)
                 n_removed += 1
             elif num_reliable_kfs + 1 + self.frame_id_to_kf_id[lm.get_ref_shot().id] < self.curr_kf_id:
-                # valid
+                # valid, do nothing
                 pass
             else:  # not clear
                 unclear_lms.append(lm_id)
-        # print("Removed {} out of {} redundant landmarks with {} unclear lms!"
-            #   .format(n_removed, len(self.fresh_landmarks), len(unclear_lms)))
         self.fresh_landmarks = set(unclear_lms)
 
     def insert_new_keyframe(self, shot: pymap.Shot):
@@ -223,11 +190,15 @@ class SlamMapper(object):
             # Triggers only for replaced landmarks
             if lm.is_observed_in_shot(shot):
                 self.fresh_landmarks.add(lm.id)
+                # TODO: REMOVE DEBUG
                 if lm.id in matched:
                     print("Already in there!!", matched[lm.id], " now: ", idx)
+                    exit(0)
             else:
+                # TODO: REMOVE DEBUG
                 if lm.id in matched:
                     print("Already in there!!")
+                    exit(0)
                 matched[lm.id] = idx
                 # add observation it
                 self.map.add_observation(shot, lm, idx)
@@ -238,80 +209,47 @@ class SlamMapper(object):
         shot.slam_data.update_graph_node()
 
         self.remove_redundant_lms()
-
-        # self.slam_map_cleaner.remove_redundant_lms(new_kf.kf_id)
         self.create_new_landmarks()
         self.update_new_keyframe(shot)
         if self.n_keyframes % self.config_slam["run_local_ba_every_nth"] == 0:
             self.local_bundle_adjustment(shot)
 
         if self.n_keyframes % 20 == 0:
-            # chrono.start()
-            self.save_reconstruction("rec"+str(self.n_keyframes)+".json")
-            # slam_debug.avg_timings.addTimes(chrono.laps_dict)
+            self.save_reconstruction("rec" + str(self.n_keyframes) + ".json")
 
         self.remove_redundant_kfs()
 
-
     def update_new_keyframe(self, shot: pymap.Shot):
         """ update new keyframe
-        detect and resolve the duplication of the landmarks observed in the current frame
+        detect and resolve the duplication of the landmarks observed
+        in the current frame
         """      
         # again, check the last 10 frames
-        fuse_shots = pyslam.SlamUtilities.get_second_order_covisibility_for_shot(shot, 20, 5)
-        # print("update_new_keyframe fuse")
-        # for fuse_shot in fuse_shots:
-        #     print("get_second_order_covisibilities_for_kf kf: ", fuse_shot.id)
-        # slam_debug.visualize_tracked_lms(self.curr_kf.ckf.get_valid_kpts(), frame, data)
-        # im = self.data.load_image(self.curr_kf.ckf.im_name)
-        # slam_debug.disable_debug = False
-        # slam_debug.draw_obs_in_image_no_norm(self.curr_kf.ckf.get_valid_keypts(), im, title="bef fuse", do_show=False)
-        # self.slam_map_cleaner.\
-        #     fuse_landmark_duplication(self.curr_kf.ckf, list(fuse_kfs))
+        fuse_shots = pyslam.SlamUtilities.\
+            get_second_order_covisibility_for_shot(shot, 20, 5)
         fuse_margin = 3
         pyslam.SlamUtilities.fuse_duplicated_landmarks(
             shot, fuse_shots, self.guided_matcher, fuse_margin, self.map)
-        # slam_debug.draw_obs_in_image_no_norm(self.curr_kf.ckf.get_valid_keypts(), im, title="aft fuse", do_show=True)
-        # slam_debug.disable_debug = False
-        # print("update_new_keyframe fuse done")
-        # cslam.SlamUtilities.update_new_keyframe(self.curr_kf.ckf)
-        # update all the visible landmarks
         landmarks = shot.get_valid_landmarks()
         scale_factors = self.extractor.get_scale_levels()
-        # print("computing_descriptors")
         for lm in landmarks:
             pyslam.SlamUtilities.compute_descriptor(lm)
             pyslam.SlamUtilities.compute_normal_and_depth(lm, scale_factors)
-        # self.curr_kf.ckf.get_graph_node().update_connections()
-        # print("update_graph_node")
         shot.slam_data.update_graph_node()
-        # print("update_new_keyframe done")
 
     def create_new_landmarks(self):
         """Creates a new landmarks with using the newly added KF
         """
-        # new_kf = self.c_keyframes[-1]
         new_kf = self.keyframes[-1]
-        # new_im = self.data.load_image(new_kf.name)
         kf_pose: pymap.Pose = new_kf.get_pose()
         new_cam_center = kf_pose.get_origin()
-        new_Tcw = kf_pose.get_world_to_cam()
-        new_R = new_Tcw[0:3, 0:3]
-        new_t = new_Tcw[0:3, 3]
-        # Again, just take the last 10 frames
-        # but not the current one!
-        # num_covisibilities = 10
+        new_R = kf_pose.get_R_world_to_cam()
+        new_t = kf_pose.get_t_world_to_cam()
         # TODO: replace "local" keyframes by that
         # cov_kfs = new_kf.get_graph_node().get_top_n_covisibilities(2 * num_covisibilities)
         local_keyframes = self.keyframes[-5:-1]
 
-        # TODO! check new_kf pose
-        # for (old_kf, old_kf_py) in zip(local_keyframes, py_kfs):
-        n_baseline_reject = 0
-        # chrono = slam_debug.Chronometer()
         min_d, max_d = pyslam.SlamUtilities.compute_min_max_depth(new_kf)
-        # min_d *= 0.5
-        # max_d *= 2
         for old_kf in local_keyframes:
             old_kf_pose = old_kf.pose
             baseline_vec = old_kf_pose.get_origin() - new_cam_center
@@ -320,24 +258,16 @@ class SlamMapper(object):
             # check the baseline
             if baseline_dist >= 0.02 * median_depth_in_old:
                 # Compute essential matrix!
-                old_R = old_kf_pose.get_R_world_to_cam()
-                old_t = old_kf_pose.get_t_world_to_cam()
-
-                # chrono.start()
                 E_old_to_new = pyslam.SlamUtilities.\
-                    create_E_21(new_R, new_t, old_R, old_t)
-                # chrono.lap("compute E")
+                    create_E_21(new_R, new_t,
+                                old_kf_pose.get_R_world_to_cam(),
+                                old_kf_pose.get_t_world_to_cam())
                 matches = self.guided_matcher.\
                     match_for_triangulation_epipolar(
                         new_kf, old_kf, E_old_to_new, min_d, max_d, False, 10)
-                # chrono.lap("match_for_triangulation_line_10")
                 self.triangulate_from_two_kfs(new_kf, old_kf, matches)
-                # chrono.lap("triangulate_from_two_kfs")
-                # slam_debug.avg_timings.addTimes(chrono.laps_dict)
-            else:
-                n_baseline_reject += 1
 
-    def triangulate_from_two_kfs(self, new_kf: pymap.Shot, old_kf: pymap.Shot, matches):
+    def triangulate_from_two_kfs(self, new_kf, old_kf, matches):
         if (len(matches) == 0):
             return
         new_kf_name = new_kf.id
@@ -359,8 +289,8 @@ class SlamMapper(object):
                                                  new_kf_name,
                                                  self.data.config)
         np_after = len(self.reconstruction.points)
-        logger.debug("Successfully triangulated {} out of {} points.".
-                     format(np_after - np_before, np_after))
+        logger.debug("Successfully triangulated {} new points between {} and {}.".
+                     format(np_after - np_before, new_kf_name, old_kf_name))
 
         kf2 = old_kf
         scale_factors = self.extractor.get_scale_levels()
@@ -420,6 +350,7 @@ class SlamMapper(object):
         # and the non-local keyframes
         lm_kf_added = set()
         lm_added = set()
+        lm_ids = set()
         for kf_id in local_kfs_idx:
             kf = self.map.get_shot(kf_id)
             lms = kf.get_valid_landmarks()
@@ -432,15 +363,9 @@ class SlamMapper(object):
                                                     pt2D[0], pt2D[1], pt2D[2])
                 lm_kf_added.add((lm_id, kf_id))
                 lm_added.add(lm)
+                lm_ids.add(lm_id)
 
-        # print("test something")
-        # # test something
-        # kf = self.keyframes[-1]
-        # slam_debug.disable_debug = True
-        # slam_debug.visualize_lms_shot(kf, self.data.load_image(kf.id))
-        # slam_debug.disable_debug = True
-        # # End test something
-
+        assert(len(lm_ids) == len(lm_added))
         # Go through the added landmarks and add the keyframes
         # that are not in local keyframes
         # Now, get all the keyframes that are not in local keyframes
@@ -485,48 +410,37 @@ class SlamMapper(object):
         # TODO: check outliers!
         logger.debug("Local BA  {}".format(ba.brief_report()))
 
-        # Update landmarks
-        lms = shot.get_valid_landmarks()
-        for lm in lms:
-            pos_w = ba.get_point(lm.id).p
-            lm.set_global_pos(pos_w)
-
-        # DEBUG
-        points3D = np.zeros((len(lms), 3))
-        for idx, lm in enumerate(lms):
+        th = 0.006
+        # Here, we should update the all landmarks!
+        for lm in lm_added:
+            # Check for outliers and discard them
             point = ba.get_point(lm.id)
-            # print("point.reprojection_errors: ", point.reprojection_errors)
-            pos_w = point.p
-            n_th = 0
-            th = 0.006
-            for (k, v) in point.reprojection_errors.items():
-                if np.linalg.norm(v) > th:
-                    n_th += 1
-            points3D[idx, :] = pos_w
-        # slam_debug.disable_debug = True
-        # slam_debug.reproject_landmarks(points3D, None, shot.pose.get_world_to_cam(),
-        #                                self.data.load_image(
-        #                                    shot.id), self.camera,
-        #                                do_show=False, title="bef", obs_normalized=True)
-        # ba_shot = ba.get_shot(shot.id)
-        # pose = pymap.Pose()
-        # pose.set_from_world_to_cam(ba_shot.r, ba_shot.t)
-        # slam_debug.reproject_landmarks(points3D, None, pose.get_world_to_cam(),
-        #                                self.data.load_image(
-        #                                    shot.id), self.camera,
-        #                                do_show=True, title="aft", obs_normalized=True)
-        # slam_debug.disable_debug = True
-        # DEBUG END
+            # print(point.reprojection_errors)
+            for error in point.reprojection_errors.values():
+                if np.linalg.norm(error) > th:
+                    # pts_outside += 1
+                    # TODO: REMOVE DEBUG
+                    # visualize the wrong landmarks
+                    # for shot, feat_id in lm.get_observations().items():
+                    #     fig, ax = plt.subplots(1)
+                    #     ax.imshow(self.data.load_image(shot.id))
+                    #     ax.set_title(shot.id)
+                    #     pt1 = shot.get_obs_by_idx(feat_id).reshape((1,3))
+                        
+                    #     pt_denorm = features.denormalized_image_coordinates(pt1, self.camera.width, self.camera.height)
+                    #     ax.scatter(pt_denorm[0, 0], pt_denorm[0, 1],
+                    #                c=[[0, 1, 0]])
+                    # plt.show()
+                    self.reconstruction.remove_point(lm.id)
+                    break
+            else:
+                lm.set_global_pos(ba.get_point(lm.id).p)
 
         # Update keyframes
         for kf_id, constant in kfs_dict_constant.items():
             if not constant:
                 kf = self.map.get_shot(kf_id)
                 ba_shot = ba.get_shot(kf_id)
-                # pose = types.Pose(ba_shot.r, ba_shot.t)
-                # new_pose = pymap.Pose()
-                # new_pose.set_from_world_to_cam(np.vstack((pose.get_Rt(), np.array([0, 0, 0, 1]))))
-                # kf.set_pose(new_pose)
                 kf.pose.rotation = ba_shot.r
                 kf.pose.translation = ba_shot.t
 

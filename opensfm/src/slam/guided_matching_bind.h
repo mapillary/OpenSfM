@@ -28,6 +28,14 @@ public:
   //   return matcher_.AssignShot1LandmarksToShot2Kpts(shot1, shot2, margin);
   // }
 
+  size_t 
+  AssignLandmarksToShot(map::Shot& shot, const std::vector<map::Landmark*>& landmarks) {
+    constexpr float margin{5};
+    constexpr float lowe_ratio{10};
+    return matcher_.AssignLandmarksToShot(
+        shot, landmarks, margin, AlignedVector<Observation>(),
+        GuidedMatcher::NO_ORIENTATION_CHECK, lowe_ratio);
+  }
   size_t
   AssignShot1LandmarksToShot2KptsLM(const map::Shot& shot1, map::Shot& shot2, const float margin) const
   {

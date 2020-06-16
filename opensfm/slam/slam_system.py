@@ -1,17 +1,13 @@
 import numpy as np
+import slam_config
 from opensfm import pyslam
 from opensfm import pymap
 from opensfm import dataset
 from opensfm import reconstruction
-from opensfm import pygeometry
-from opensfm import features
 from opensfm import types
 from slam_initializer import SlamInitializer
 from slam_mapper import SlamMapper
 from slam_tracker import SlamTracker
-import slam_config
-import slam_debug
-import slam_utils
 
 import logging
 logger = logging.getLogger(__name__)
@@ -75,25 +71,23 @@ class SlamSystem(object):
         self.extractor.extract_to_shot(curr_shot, gray_scale_img, np.array([]))
         curr_shot.undistort_and_compute_bearings()
         self.matcher.distribute_undist_keypts_to_grid(curr_shot)
+
         # Normalize the original detections
         curr_shot.normalize_keypts()
-        chrono = slam_debug.Chronometer()
         if not self.system_initialized:
             self.system_initialized = self.init_slam_system(curr_shot)
-            # chrono.lap("init_slam_system_all")
             return self.system_initialized
 
         # Tracking
         pose = self.track_frame(curr_shot)
-        # chrono.lap("track")
         if pose is not None:
             curr_shot.set_pose(pose)
 
+        # Check if new KF needed
         self.slam_mapper.update_with_last_frame(curr_shot)
         self.slam_mapper.num_tracked_lms = self.slam_tracker.num_tracked_lms
         if self.slam_mapper.new_keyframe_is_needed(curr_shot):
             self.slam_mapper.insert_new_keyframe(curr_shot)
-        # slam_debug.avg_timings.addTimes(chrono.laps_dict)
         return pose is not None
 
     def init_slam_system(self, curr_shot: pymap.Shot):

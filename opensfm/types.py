@@ -948,6 +948,9 @@ class Reconstruction(object):
 
     def create_point(self, id, coordinates):
         self.map.create_landmark(id, coordinates)
+    
+    def remove_point(self, id):
+        self.map.remove_landmark(id)
 
     def add_observation(self, shot_id, lm_id, observation):
         """ Adds an observation between a shot and a landmark
