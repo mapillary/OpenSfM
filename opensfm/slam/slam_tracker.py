@@ -80,7 +80,6 @@ class SlamTracker(object):
                 assign_shot_landmarks_to_kpts(slam_mapper.last_shot, curr_shot, margin * 2)
             if n_matches < 10:
                 logger.error("Tracking lost!!, Implement robust matching!")
-        # slam_debug.check_shot_for_double_entries(curr_shot) # TODO: Remove debug stuff
         lms = curr_shot.get_valid_landmarks()
         points2D = pyslam.SlamUtilities.get_valid_kpts_from_shot(curr_shot)
         valid_ids = curr_shot.get_valid_landmarks_indices()
@@ -105,7 +104,6 @@ class SlamTracker(object):
         assert(curr_shot.compute_num_valid_pts(1) == np.sum(valid_pts)) # TODO: Remove debug stuff
         assert(curr_shot.compute_num_valid_pts(1) == n_tracked) # TODO: Remove debug stuff
         self.num_tracked_lms = n_tracked
-        slam_debug.check_shot_for_double_entries(curr_shot) # TODO: Remove debug stuff
         if np.sum(valid_pts) < 10:
             logger.error("Tracking lost!!")
             # TODO: ROBUST MATCHING

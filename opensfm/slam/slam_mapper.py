@@ -1,17 +1,15 @@
 import numpy as np
-import networkx as nx
 from opensfm import pymap
 from opensfm import pyslam
-from opensfm import features
 from opensfm import types
 from opensfm import reconstruction
 from opensfm import pybundle
 from opensfm import pysfm
 # from opensfm import dataset
-import slam_utils
-import slam_debug
+# import slam_utils
+# import slam_debug
 import logging
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 logger = logging.getLogger(__name__)
 
