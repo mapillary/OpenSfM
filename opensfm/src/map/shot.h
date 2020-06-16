@@ -210,6 +210,7 @@ class Shot {
   const Camera* const shot_camera_;
   ShotMeasurements shot_measurements_;  // metadata
   ShotMesh mesh;
+  MatXd covariance;
 
  private:
   Pose pose_;
