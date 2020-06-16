@@ -32,16 +32,16 @@ class SlamInitializer(object):
         # TODO: think about prev_matches!
         matches = self.matcher.match_shot_to_shot(self.init_shot, curr_shot, self.prev_pts, 100)
         matches = np.array(matches)
-        if (len(matches) < 100):
+        if len(matches) < 100:
             return False, None
-        
+
         # Update pts
         self.prev_pts[matches[0, :], :] =\
             pyslam.SlamUtilities.undist_keypts_from_shot(curr_shot)[matches[1, :], 0:2]
 
         f1_points = pyslam.SlamUtilities.keypts_from_shot(self.init_shot)
         f2_points = pyslam.SlamUtilities.keypts_from_shot(curr_shot)
-        
+
         # test reconstructability
         threshold = 4 * self.data.config['five_point_algo_threshold']
         args = []

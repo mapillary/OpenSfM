@@ -26,7 +26,7 @@ class SlamTracker(object):
         (2) then estimates a refined pose with all the local landmarks
         """
 
-        # (1) Estimate initial pose with respect to last shat
+        # (1) Estimate initial pose with respect to last shot
         pose_tracking = self.track_motion(slam_mapper, curr_shot,
                                           camera, config, data)
         curr_shot.set_pose(pose_tracking)
@@ -64,13 +64,11 @@ class SlamTracker(object):
         """
         # TODO: Make an actual update on the closest frames in the map
         # For now, simply take the last 10 keyframes
-        # return
 
         margin = 20
-        init_shot = slam_mapper.pre_last
         last_shot = slam_mapper.last_shot
-        # TODO: Use the velocity from the slam mapper!!
-        T_init = slam_mapper.velocity.dot(last_shot.get_pose().get_world_to_cam())
+        T_init = slam_mapper.velocity.dot(
+            last_shot.get_pose().get_world_to_cam())
 
         curr_shot.pose.set_from_world_to_cam(T_init)
         # Match landmarks seen in last frame to current one
@@ -78,14 +76,11 @@ class SlamTracker(object):
             assign_shot_landmarks_to_kpts_new(slam_mapper.last_shot,
                                               curr_shot, margin)
         if n_matches < 10:  # not enough matches found, increase margin
-            print("matches2: ", margin)
-            exit()
             n_matches = self.guided_matcher.\
                 assign_shot_landmarks_to_kpts(slam_mapper.last_shot, curr_shot, margin * 2)
             if n_matches < 10:
-                logger.error("Tracking lost!!")
-                exit()
-        slam_debug.check_shot_for_double_entries(curr_shot) # TODO: Remove debug stuff
+                logger.error("Tracking lost!!, Implement robust matching!")
+        # slam_debug.check_shot_for_double_entries(curr_shot) # TODO: Remove debug stuff
         lms = curr_shot.get_valid_landmarks()
         points2D = pyslam.SlamUtilities.get_valid_kpts_from_shot(curr_shot)
         valid_ids = curr_shot.get_valid_landmarks_indices()

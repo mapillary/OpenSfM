@@ -64,6 +64,7 @@ class SlamSystem(object):
         self.system_initialized = False
 
     def process_frame(self, im_name, gray_scale_img):
+        # (1) Preprocessing
         curr_shot: pymap.Shot = self.reconstruction.create_shot(
             im_name, self.camera.id)
         metadata = reconstruction.get_image_metadata(self.data, im_name)
@@ -74,6 +75,8 @@ class SlamSystem(object):
 
         # Normalize the original detections
         curr_shot.normalize_keypts()
+
+        # (2) Initialize if not yet initialiozed
         if not self.system_initialized:
             self.system_initialized = self.init_slam_system(curr_shot)
             return self.system_initialized
@@ -109,6 +112,6 @@ class SlamSystem(object):
         """ Tracks a frame
         """
         data = self.data
-        logger.info("Tracking: {}, {}".format(curr_shot.id, curr_shot.id))
+        logger.info("Tracking: {}".format(curr_shot.id))
         return self.slam_tracker.track(self.slam_mapper, curr_shot,
                                        self.config, self.camera, data)

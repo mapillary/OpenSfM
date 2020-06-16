@@ -61,7 +61,7 @@ def test_matching():
                            [0, camera.height],  # left bottom
                            [camera.width, camera.height]])  # right bottom
 
-    # corners = self.camera.undistort_many(corner_pts).reshape((4, 2))
+    
     corners = camera.undistort_many(corner_pts)
     bounds = np.array([np.min((corners[0, 0], corners[2, 0])),
                        np.max((corners[1, 0], corners[3, 0])),
@@ -94,5 +94,4 @@ def test_matching():
     matches = matcher.match_shot_to_shot(shot1, shot2, prev_pts, margin)
     matches = np.array(matches)
 
-    assert len(matches) == len(kpts1)
-    assert len(matches) == len(kpts2)
+    assert len(matches) == len(kpts1) and len(matches) == len(kpts2)

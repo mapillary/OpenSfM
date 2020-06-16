@@ -912,8 +912,8 @@ class Reconstruction(object):
                 map_shot.shot_measurement.gps_position = metadata.gps_position
             if metadata.orientation is not None:
                 map_shot.shot_measurement.orientation = metadata.orientation
-    
-    def create_shot(self, shot_id, camera_id, pose = pymap.Pose()):
+
+    def create_shot(self, shot_id, camera_id, pose=pymap.Pose()):
         """Creates a shot with shot_id
 
         :return The created or already existing shot
@@ -948,7 +948,7 @@ class Reconstruction(object):
 
     def create_point(self, id, coordinates):
         self.map.create_landmark(id, coordinates)
-    
+
     def remove_point(self, id):
         self.map.remove_landmark(id)
 

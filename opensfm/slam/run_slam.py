@@ -16,7 +16,6 @@ logger.setLevel(logging.DEBUG)
 parser = argparse.ArgumentParser()
 parser.add_argument('dataset', help='dataset to process')
 args = parser.parse_args()
-args.dataset = "/home/fschenk/software/mapillary_repos/mapillary_sfm_evaluation/sfm_evaluation_workspace/kitti_05"
 slam_system = SlamSystem(args)
 data = dataset.DataSet(args.dataset)
 start_id = 0
@@ -31,4 +30,4 @@ for idx, im_name in enumerate(sorted(data.image_list)):
     else:
         logger.info("Trying to init with {}".format(im_name))
 
-slam_system.slam_mapper.save_reconstruction(im_name + "_finished")
+slam_system.slam_mapper.save_reconstruction(im_name + "_finished.json")

@@ -635,6 +635,9 @@ GuidedMatcher::ReplaceDuplicatedLandmarks(map::Shot& fuse_shot, const T& landmar
   const auto& cam = fuse_shot.shot_camera_;
   for (const auto& lm : landmarks_to_check)
   {
+    // if the landmark is valid and doesn't see the fuse_shot yet
+    // This happens with new triangulated features that have not
+    // been matched the other frame
     if (lm != nullptr && !lm->IsObservedInShot(&fuse_shot))
     {
       const auto& lm_data = lm->slam_data_;
@@ -672,12 +675,6 @@ GuidedMatcher::ReplaceDuplicatedLandmarks(map::Shot& fuse_shot, const T& landmar
                 {
                   const auto& keypt = fuse_shot.slam_data_.undist_keypts_.at(idx);
                   const size_t scale_level = keypt.octave;
-                  if (!(scale_level < pred_scale_lvl - 1 || pred_scale_lvl < scale_level)
-                      != (scale_level >= pred_scale_lvl-1 && pred_scale_lvl >= scale_level))
-                  {
-                    std::cout << "Problem with pred_scale if!!" << std::endl;
-                    exit(0);
-                  }
                   if (scale_level >= pred_scale_lvl-1 && pred_scale_lvl >= scale_level)
                   {
                     const auto reproj_error_sq = (pt2D - keypt.point).squaredNorm();

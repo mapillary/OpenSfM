@@ -190,15 +190,7 @@ class SlamMapper(object):
             # Triggers only for replaced landmarks
             if lm.is_observed_in_shot(shot):
                 self.fresh_landmarks.add(lm.id)
-                # TODO: REMOVE DEBUG
-                if lm.id in matched:
-                    print("Already in there!!", matched[lm.id], " now: ", idx)
-                    exit(0)
             else:
-                # TODO: REMOVE DEBUG
-                if lm.id in matched:
-                    print("Already in there!!")
-                    exit(0)
                 matched[lm.id] = idx
                 # add observation it
                 self.map.add_observation(shot, lm, idx)
@@ -228,6 +220,12 @@ class SlamMapper(object):
         fuse_shots = pyslam.SlamUtilities.\
             get_second_order_covisibility_for_shot(shot, 20, 5)
         fuse_margin = 3
+        # Get a set of covisible KFs and try to fuse the visible landmarks in the current
+        # shot with the old ones.
+        # If a visible landmark in the current frame is not visible in a fuse_shot
+        # but can be matched to a feature, there are two cases:
+        # - No landmark matched to this particular feature -> add observation
+        # - Feature already part of landmark -> fuse the landmarks (replace one by the other)
         pyslam.SlamUtilities.fuse_duplicated_landmarks(
             shot, fuse_shots, self.guided_matcher, fuse_margin, self.map)
         landmarks = shot.get_valid_landmarks()
