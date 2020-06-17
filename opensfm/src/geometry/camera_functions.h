@@ -36,7 +36,7 @@ struct FisheyeProjection : CameraFunctor<3, 0, 2>{
   static void ForwardDerivatives(const T* point, const T* /* p */, T* projected,
                                  T* jacobian) {
     // dx, dy, dz
-    constexpr int Stride = COMP_PARAM*ParamSize + InSize;
+    constexpr int stride = COMP_PARAM*ParamSize + InSize;
     const T r2 = SquaredNorm(point);
     const T r = sqrt(r2);
     const T R2 = r2 + point[2] * point[2];
@@ -52,13 +52,13 @@ struct FisheyeProjection : CameraFunctor<3, 0, 2>{
     jacobian[1] = point[0] * (point[1] * point[2] * r - point[1] * theta * R2) *
                   inv_denom;
     jacobian[2] = -point[0] / R2;
-    jacobian[Stride] = point[1] *
+    jacobian[stride] = point[1] *
                        (point[0] * point[2] * r - point[0] * theta * R2) *
                        inv_denom;
-    jacobian[Stride + 1] = (x2 * y2 * theta + x2 * x2 * theta +
+    jacobian[stride + 1] = (x2 * y2 * theta + x2 * x2 * theta +
                             x2 * z2 * theta + y2 * point[2] * r) *
                            inv_denom;
-    jacobian[Stride + 2] = -point[1] / R2;
+    jacobian[stride + 2] = -point[1] / R2;
 
     T* dummy = nullptr;
     Forward(point, dummy, projected);
@@ -89,13 +89,13 @@ struct PerspectiveProjection : CameraFunctor<3, 0, 2> {
   static void ForwardDerivatives(const T* point, const T* /* p */, T* projected,
                                  T* jacobian) {
     // dx, dy, dz
-    constexpr int Stride = COMP_PARAM*ParamSize + InSize;
+    constexpr int stride = COMP_PARAM*ParamSize + InSize;
     jacobian[0] = T(1.0) / point[2];
     jacobian[1] = T(0.0);
     jacobian[2] = -point[0] / (point[2] * point[2]);
-    jacobian[Stride] = T(0.0);
-    jacobian[Stride + 1] = jacobian[0];
-    jacobian[Stride + 2] = -point[1] / (point[2] * point[2]);
+    jacobian[stride] = T(0.0);
+    jacobian[stride + 1] = jacobian[0];
+    jacobian[stride + 2] = -point[1] / (point[2] * point[2]);
     T* dummy = nullptr;
     Forward(point, dummy, projected);
   }
@@ -125,7 +125,7 @@ struct DualProjection : CameraFunctor<3, 1, 2> {
   static void ForwardDerivatives(const T* point, const T* p, T* projected,
                                  T* jacobian) {
     // dx, dy, dtransition
-    constexpr int Stride = COMP_PARAM * ParamSize + InSize;
+    constexpr int stride = Stride<COMP_PARAM>();
     T jac_persp[PerspectiveProjection::OutSize*PerspectiveProjection::Stride<false>()];
     PerspectiveProjection::ForwardDerivatives<T, false>(point, p, projected, &jac_persp[0]);
     T jac_fish[FisheyeProjection::OutSize*FisheyeProjection::Stride<false>()];
@@ -134,7 +134,7 @@ struct DualProjection : CameraFunctor<3, 1, 2> {
     int count = 0;
     for(int i = 0; i < OutSize; ++i){
       for(int j = 0; j < InSize; ++j){
-        jacobian[i*Stride+j] = p[0]*jac_persp[count] + (1.0 - p[0]) * jac_fish[count];
+        jacobian[i*stride+j] = p[0]*jac_persp[count] + (1.0 - p[0]) * jac_fish[count];
         ++count;
       }
     }
@@ -145,7 +145,7 @@ struct DualProjection : CameraFunctor<3, 1, 2> {
       T p_fish[2];
       FisheyeProjection::Forward(point, p, p_fish);
       jacobian[3] = p_persp[0] - p_fish[0];
-      jacobian[Stride + 3] = p_persp[1] - p_fish[1];
+      jacobian[stride + 3] = p_persp[1] - p_fish[1];
       projected[0] = p[0] * p_persp[0] + (1.0 - p[0]) * p_fish[0];
       projected[1] = p[0] * p_persp[1] + (1.0 - p[0]) * p_fish[1];
     }
@@ -208,16 +208,16 @@ struct SphericalProjection : CameraFunctor<3, 0, 2> {
   static void ForwardDerivatives(const T* point, const T* /* p */, T* projected,
                                  T* jacobian) {
     // dx, dy
-    constexpr int Stride = COMP_PARAM * ParamSize + InSize;
+    constexpr int stride = Stride<COMP_PARAM>();
     const T rt2 = point[0] * point[0] + point[2] * point[2];
     const T rt = sqrt(rt2);
     const T R2 = SquaredNorm(point) + point[2] * point[2];
     jacobian[0] = point[2] / (T(2.0 * M_PI) * rt2);
     jacobian[1] = T(0.0);
     jacobian[2] = -point[0] / (T(2.0 * M_PI) * rt2);
-    jacobian[Stride] = -(point[0] * point[1]) / (T(2.0 * M_PI) * R2 * rt);
-    jacobian[Stride + 1] = rt / (T(2.0 * M_PI) * R2);
-    jacobian[Stride + 2] = -(point[1] * point[2]) / (T(2.0 * M_PI) * R2 * rt);
+    jacobian[stride] = -(point[0] * point[1]) / (T(2.0 * M_PI) * R2 * rt);
+    jacobian[stride + 1] = rt / (T(2.0 * M_PI) * R2);
+    jacobian[stride + 2] = -(point[1] * point[2]) / (T(2.0 * M_PI) * R2 * rt);
     T* dummy = nullptr;
     Forward(point, dummy, projected);
   }
@@ -247,7 +247,7 @@ struct Disto24 : CameraFunctor<2, 2, 2>{
   static void ForwardDerivatives(const T* point, const T* k, T* distorted,
                                  T* jacobian) {
     // dx, dy, dk1, dk2
-    constexpr int Stride = COMP_PARAM*ParamSize + InSize;
+    constexpr int stride = Stride<COMP_PARAM>();
     const auto& k1 = k[static_cast<int>(Disto::K1)];
     const auto& k2 = k[static_cast<int>(Disto::K2)];
     const auto& x = point[0];
@@ -262,15 +262,15 @@ struct Disto24 : CameraFunctor<2, 2, 2>{
     jacobian[0] = T(5.0) * k2 * x4 + T(3.0) * k1 * x2 + T(6.0) * k2 * x2 * y2 +
                   k2 * y4 + k1 * y2 + T(1.0);
     jacobian[1] = x * (T(2.0) * k1 * y + T(4.0) * k2 * y * r2);
-    jacobian[Stride] = y * (T(2.0) * k1 * x + T(4.0) * k2 * x * r2);
-    jacobian[Stride + 1] = T(5.0) * k2 * y4 + T(3.0) * k1 * y2 +
+    jacobian[stride] = y * (T(2.0) * k1 * x + T(4.0) * k2 * x * r2);
+    jacobian[stride + 1] = T(5.0) * k2 * y4 + T(3.0) * k1 * y2 +
                            T(6.0) * k2 * y2 * x2 + k2 * x4 + k1 * x2 + T(1.0);
 
     if (COMP_PARAM) {
       jacobian[2] = x * r2;
       jacobian[3] = x * r2 * r2;
-      jacobian[Stride + 2] = y * r2;
-      jacobian[Stride + 3] = y * r2 * r2;
+      jacobian[stride + 2] = y * r2;
+      jacobian[stride + 3] = y * r2 * r2;
     }
 
     Forward(point, k, distorted);
@@ -349,7 +349,7 @@ struct DistoBrown : CameraFunctor<2, 5, 2>{
   static void ForwardDerivatives(const T* point, const T* k, T* distorted,
                                  T* jacobian) {
     // dx, dy, dk1, dk2, dk3, dp1, dp2
-    constexpr int Stride = COMP_PARAM*ParamSize + InSize;
+    constexpr int stride = Stride<COMP_PARAM>();
     const auto& k1 = k[static_cast<int>(Disto::K1)];
     const auto& k2 = k[static_cast<int>(Disto::K2)];
     const auto& k3 = k[static_cast<int>(Disto::K3)];
@@ -373,11 +373,11 @@ struct DistoBrown : CameraFunctor<2, 5, 2>{
     jacobian[1] =
         x * (T(2.0) * k1 * y + T(4.0) * k2 * y * r2 + T(6.0) * k3 * y * r4) +
         T(2.0) * p1 * x + T(2.0) * p2 * y;
-    jacobian[Stride + 1] = T(5.0) * k2 * y4 + T(3.0) * k1 * y2 +
+    jacobian[stride + 1] = T(5.0) * k2 * y4 + T(3.0) * k1 * y2 +
                            T(6.0) * k3 * y2 * r4 + T(6.0) * k2 * x2 * y2 +
                            k3 * r6 + k2 * x4 + k1 * x2 + T(1.0) +
                            T(2.0) * p2 * x + T(6.0) * p1 * y;
-    jacobian[Stride] =
+    jacobian[stride] =
         y * (T(2.0) * k1 * x + T(4.0) * k2 * x * r2 + T(6.0) * k3 * x * r4) +
         T(2.0) * p2 * y + T(2.0) * p1 * x;
 
@@ -387,11 +387,11 @@ struct DistoBrown : CameraFunctor<2, 5, 2>{
       jacobian[4] = x * r2 * r2 * r2;
       jacobian[5] = T(2.0) * x * y;
       jacobian[6] = T(3.0) * x2 + y2;
-      jacobian[Stride + 2] = y * r2;
-      jacobian[Stride + 3] = y * r2 * r2;
-      jacobian[Stride + 4] = y * r2 * r2 * r2;
-      jacobian[Stride + 5] = T(3.0) * y2 + x2;
-      jacobian[Stride + 6] = T(2.0) * x * y;
+      jacobian[stride + 2] = y * r2;
+      jacobian[stride + 3] = y * r2 * r2;
+      jacobian[stride + 4] = y * r2 * r2 * r2;
+      jacobian[stride + 5] = T(3.0) * y2 + x2;
+      jacobian[stride + 6] = T(2.0) * x * y;
     }
 
     Forward(point, k, distorted);
@@ -477,19 +477,19 @@ struct Affine : CameraFunctor<2, 4, 2>{
   static void ForwardDerivatives(const T* point, const T* affine, T* transformed,
                                  T* jacobian) {
     // dx, dy, dfocal, daspect_ratio, dcx, dcy
-    constexpr int Stride = COMP_PARAM*ParamSize + InSize;
+    constexpr int stride = Stride<COMP_PARAM>();
     jacobian[0] = affine[0];
-    jacobian[Stride+1] = affine[0] * affine[1];
-    jacobian[1] = jacobian[Stride] = T(0.0);
+    jacobian[stride+1] = affine[0] * affine[1];
+    jacobian[1] = jacobian[stride] = T(0.0);
     if(COMP_PARAM){
       jacobian[2] = point[0];
       jacobian[3] = jacobian[5] = T(0.0);
       jacobian[4] = T(1.0);
 
-      jacobian[Stride+2] = point[1]*affine[1];
-      jacobian[Stride+3] = point[1]*affine[0];
-      jacobian[Stride+4] = T(0.0);
-      jacobian[Stride+5] = T(1.0);
+      jacobian[stride+2] = point[1]*affine[1];
+      jacobian[stride+3] = point[1]*affine[0];
+      jacobian[stride+4] = T(0.0);
+      jacobian[stride+5] = T(1.0);
     }
     Forward(point, affine, transformed);
   }
@@ -513,12 +513,12 @@ struct UniformScale : CameraFunctor<2, 1, 2>{
   static void ForwardDerivatives(const T* point, const T* scale, T* transformed,
                                  T* jacobian) {
     // dx, dy, dscale
-    constexpr int Stride = COMP_PARAM*ParamSize + InSize;
-    jacobian[0] = jacobian[Stride+1] = scale[0];
-    jacobian[1] = jacobian[Stride] = T(0.0);
+    constexpr int stride = Stride<COMP_PARAM>();
+    jacobian[0] = jacobian[stride+1] = scale[0];
+    jacobian[1] = jacobian[stride] = T(0.0);
     if(COMP_PARAM){
       jacobian[2] = point[0];
-      jacobian[Stride+2] = point[1];
+      jacobian[stride+2] = point[1];
     }
     Forward(point, scale, transformed);
   }
@@ -542,9 +542,9 @@ struct Identity : CameraFunctor<2, 0, 2>{
   static void ForwardDerivatives(const T* point, const T* /* k */, T* transformed,
                                  T* jacobian) {
     // dx, dy
-    constexpr int Stride = COMP_PARAM*ParamSize + InSize;
-    jacobian[0] = jacobian[Stride+1] = T(1.0);
-    jacobian[1] = jacobian[Stride] = T(0.0);
+    constexpr int stride = Stride<COMP_PARAM>();
+    jacobian[0] = jacobian[stride+1] = T(1.0);
+    jacobian[1] = jacobian[stride] = T(0.0);
     T* dummy = nullptr;
     Forward(point, dummy, transformed);
   }
