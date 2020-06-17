@@ -622,10 +622,10 @@ void ComposeDerivatives(
       jacobian2.template block<OutSize2, ParamSize2>(0, OutSize1);
 }
 
-/* Below are some utilities to generalize computation of jacobian of
- * composition of functions f(g(h(i ... ))). Most of the implementation
- * consists in recursing variadic template arguments. Usage is then
- * summarized as : ComposeForwardDerivatives<Func1, Func2, ... FuncN>() */
+/* Below are some utilities to generalize computation of functions (or their
+ * jacobian) of composition of functions f(g(h(i ... ))). Most of the
+ * implementation consists in recursing variadic template arguments. Usage is
+ * then summarized as : ComposeForwardDerivatives<Func1, Func2, ... FuncN>() */
 template <class FUNC>
 static constexpr int ComposeStrides() {
   return FUNC::template Stride<true>();
