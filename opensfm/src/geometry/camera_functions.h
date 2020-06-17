@@ -110,7 +110,7 @@ struct PerspectiveProjection : CameraFunctor<3, 0, 2> {
 };
 
 /* Parameters are : transition */
-struct DualProjection {
+struct DualProjection : CameraFunctor<3, 1, 2> {
   template <class T>
   static void Forward(const T* point, const T* p, T* projected) {
     T p_persp[2];
@@ -119,6 +119,39 @@ struct DualProjection {
     FisheyeProjection::Forward(point, p, p_fish);
     projected[0] = p[0] * p_persp[0] + (1.0 - p[0]) * p_fish[0];
     projected[1] = p[0] * p_persp[1] + (1.0 - p[0]) * p_fish[1];
+  }
+
+  template <class T, bool COMP_PARAM>
+  static void ForwardDerivatives(const T* point, const T* p, T* projected,
+                                 T* jacobian) {
+    // dx, dy, dtransition
+    constexpr int Stride = COMP_PARAM * ParamSize + InSize;
+    T jac_persp[PerspectiveProjection::OutSize*PerspectiveProjection::Stride<false>()];
+    PerspectiveProjection::ForwardDerivatives<T, false>(point, p, projected, &jac_persp[0]);
+    T jac_fish[FisheyeProjection::OutSize*FisheyeProjection::Stride<false>()];
+    FisheyeProjection::ForwardDerivatives<T, false>(point, p, projected, &jac_fish[0]);
+
+    int count = 0;
+    for(int i = 0; i < OutSize; ++i){
+      for(int j = 0; j < InSize; ++j){
+        jacobian[i*Stride+j] = p[0]*jac_persp[count] + (1.0 - p[0]) * jac_fish[count];
+        ++count;
+      }
+    }
+
+    if(COMP_PARAM){
+      T p_persp[2];
+      PerspectiveProjection::Forward(point, p, p_persp);
+      T p_fish[2];
+      FisheyeProjection::Forward(point, p, p_fish);
+      jacobian[3] = p_persp[0] - p_fish[0];
+      jacobian[Stride + 3] = p_persp[1] - p_fish[1];
+      projected[0] = p[0] * p_persp[0] + (1.0 - p[0]) * p_fish[0];
+      projected[1] = p[0] * p_persp[1] + (1.0 - p[0]) * p_fish[1];
+    }
+    else{
+      Forward(point, p, projected);
+    }
   }
 
   template <class T>
@@ -219,7 +252,6 @@ struct Disto24 : CameraFunctor<2, 2, 2>{
     const auto& k2 = k[static_cast<int>(Disto::K2)];
     const auto& x = point[0];
     const auto& y = point[1];
-    const auto& z = point[2];
 
     const auto x2 = x * x;
     const auto x4 = x2 * x2;
@@ -613,7 +645,7 @@ static constexpr int ComposeStrides() {
 
 template <class FUNC>
 static constexpr int ComposeIndex() {
-  return 0;
+  return FUNC::ParamSize;
 }
 
 template <class FUNC1, class FUNC2, class... FUNCS>
@@ -691,7 +723,7 @@ struct ProjectGeneric {
 using PerspectiveCamera = ProjectGeneric<PerspectiveProjection, Disto24, UniformScale>;
 using BrownCamera = ProjectGeneric<PerspectiveProjection, DistoBrown, Affine>;
 using FisheyeCamera = ProjectGeneric<FisheyeProjection, Disto24, UniformScale>;
-// using DualCamera = ProjectGeneric<DualProjection, Disto24, UniformScale>;
+using DualCamera = ProjectGeneric<DualProjection, Disto24, UniformScale>;
 using SphericalCamera = ProjectGeneric<SphericalProjection, Identity, Identity>;
 
 /* This is where the pseudo-strategy pattern takes place. If you want to add
@@ -709,9 +741,9 @@ void Dispatch(const ProjectionType& type, IN&&... args) {
     case ProjectionType::FISHEYE:
       FUNC::template Apply<FisheyeCamera>(std::forward<IN>(args)...);
       break;
-    // case ProjectionType::DUAL:
-    //   FUNC::template Apply<DualCamera>(std::forward<IN>(args)...);
-    //   break;
+    case ProjectionType::DUAL:
+      FUNC::template Apply<DualCamera>(std::forward<IN>(args)...);
+      break;
     case ProjectionType::SPHERICAL:
       FUNC::template Apply<SphericalCamera>(std::forward<IN>(args)...);
       break;
