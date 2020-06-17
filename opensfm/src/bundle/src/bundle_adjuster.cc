@@ -545,7 +545,7 @@ void BundleAdjuster::Run() {
       if(index >= 0){
         ceres::CostFunction *transition_barrier =
             new ceres::AutoDiffCostFunction<BAParameterBarrier, 1,
-                                            SizeTraits<DualCamera>::Size>(
+                                            DualCamera::Size>(
                 new BAParameterBarrier(0.0, 1.0, index));
         problem.AddResidualBlock(transition_barrier, NULL, data.data());
       }

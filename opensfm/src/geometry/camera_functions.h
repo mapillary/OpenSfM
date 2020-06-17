@@ -593,13 +593,6 @@ template <> struct FunctorTraits<UniformScale> {static constexpr int Size = 1;};
 template <> struct FunctorTraits<Affine> { static constexpr int Size = 4;};
 
 template <class PROJ, class DISTO, class AFF>
-struct ParametersIndexTraits {
-  static constexpr int Projection = 0;    // Always first
-  static constexpr int Distorsion = FunctorTraits<PROJ>::Size;
-  static constexpr int Affine = FunctorTraits<PROJ>::Size + FunctorTraits<DISTO>::Size;
-};
-
-template <class PROJ, class DISTO, class AFF>
 struct SizeTraits {
   static constexpr const int ConstexprMax(int a, int b) {
     return (a < b) ? b : a;
@@ -680,28 +673,44 @@ static void ComposeForwardDerivatives(const T* in, const T* parameters, T* out,
 }
 
 template <class T, class FUNC>
-static void ComposeForward(const T* in, const T* parameters, T* out) {
-  FUNC::template Forward<T>(in, parameters, out);
+static void ComposeFunctions(const T* in, const T* parameters, T* out) {
+  FUNC::template Apply<T>(in, parameters, out);
 }
 
 template <class T, class FUNC1, class FUNC2, class... FUNCS>
-static void ComposeForward(const T* in, const T* parameters, T* out) {
+static void ComposeFunctions(const T* in, const T* parameters, T* out) {
   T tmp[FUNC2::OutSize];
-  ComposeForward<T, FUNC2, FUNCS...>(in, parameters, tmp);
+  ComposeFunctions<T, FUNC2, FUNCS...>(in, parameters, tmp);
 
   constexpr int Index = ComposeIndex<FUNC2, FUNCS...>();
-  FUNC1::template Forward<T>(&tmp[0], parameters + Index, out);
+  FUNC1::template Apply<T>(&tmp[0], parameters + Index, out);
 }
 
 /* Finally, here's the generic camera that implements the PROJ - > DISTO -> AFFINE pattern. */
 template <class PROJ, class DISTO, class AFF>
 struct ProjectGeneric {
-  using Indexes = ParametersIndexTraits<PROJ, DISTO, AFF>;
-   static constexpr int Size = SizeTraits<PROJ, DISTO, AFF>::Size;
+  static constexpr int Size = SizeTraits<PROJ, DISTO, AFF>::Size;
+
+  template <class FUNC>
+  struct ForwardWrapper : public FUNC {
+    template <class T>
+    static void Apply(const T* in, const T* parameters, T* out) {
+      Forward(in, parameters, out);
+    }
+  };
+
+  template <class FUNC>
+  struct BackwardWrapper : public FUNC {
+    template <class T>
+    static void Apply(const T* in, const T* parameters, T* out) {
+      Backward(in, parameters, out);
+    }
+  };
 
   template <class T>
   static void Forward(const T* point, const T* parameters, T* projected) {
-    ComposeForward<T, AFF, DISTO, PROJ>(point, parameters, projected);
+    ComposeFunctions<T, ForwardWrapper<AFF>, ForwardWrapper<DISTO>,
+                     ForwardWrapper<PROJ>>(point, parameters, projected);
   };
 
   template <class T>
@@ -713,10 +722,29 @@ struct ProjectGeneric {
 
   template <class T>
   static void Backward(const T* point, const T* parameters, T* bearing) {
-    T tmp[2];
-    AFF::Backward(point, parameters + Indexes::Affine, tmp);
-    DISTO::Backward(tmp, parameters + Indexes::Distorsion, tmp);
-    PROJ::Backward(tmp, parameters + Indexes::Projection, bearing);
+    T parameters_backward[Size];
+    ConstructReversedParams(parameters, parameters_backward);
+    ComposeFunctions<T, BackwardWrapper<PROJ>, BackwardWrapper<DISTO>,
+                     BackwardWrapper<AFF>>(point, parameters_backward, bearing);
+  }
+
+ private:
+  template <class T>
+  static void ConstructReversedParams(const T* parameters_forward,
+                                      T* parameters_backward) {
+    int count = 0;
+    int index = Size - FunctorTraits<PROJ>::Size;
+    for (int i = 0; i < FunctorTraits<PROJ>::Size; ++i) {
+      parameters_backward[index + i] = parameters_forward[count++];
+    }
+    index -= FunctorTraits<DISTO>::Size;
+    for (int i = 0; i < FunctorTraits<DISTO>::Size; ++i) {
+      parameters_backward[index + i] = parameters_forward[count++];
+    }
+    index -= FunctorTraits<AFF>::Size;
+    for (int i = 0; i < FunctorTraits<AFF>::Size; ++i) {
+      parameters_backward[index + i] = parameters_forward[count++];
+    }
   }
 };
 
