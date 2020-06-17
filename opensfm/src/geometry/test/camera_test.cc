@@ -331,115 +331,127 @@ TEST_F(CameraFixture, ComputeSphericalAnalyticalDerivatives){
   CheckJacobian(jacobian, size_params);
 }
 
-TEST_F(CameraFixture, PerfTest){
-  const Camera camera = Camera::CreateSphericalCamera();
+TEST_F(CameraFixture, ComputeDualAnalyticalDerivatives){
+  const Camera camera = Camera::Camera::CreateDualCamera(0.5, focal, distortion[0], distortion[1]);
+
   const VecXd camera_params = camera.GetParametersValues();
   const int size_params = 3 + camera_params.size();
 
-  typedef Eigen::AutoDiffScalar<Eigen::VectorXd> AScalar;
+  Eigen::Matrix<double, 2, 7, Eigen::RowMajor> jacobian;
+  RunJacobianEval(camera, ProjectionType::DUAL, &jacobian);
+  CheckJacobian(jacobian, size_params);
+}
 
-  auto start_ceres = high_resolution_clock::now(); 
-  double point_d_ceres[3];
+// TEST_F(CameraFixture, PerfTest){
+//   const Camera camera = Camera::Camera::CreateDualCamera(0.5, focal, distortion[0], distortion[1]);
+//   const VecXd camera_params = camera.GetParametersValues();
+//   std::cout << camera_params << std::endl;
+//   const int size_params = 3 + camera_params.size();
 
-  double a = 0.;
-  const int count = 10000;
-  ceres::Jet<double, 3> projected_ceres[2];
-  for (int k = 0; k < count; ++k) {
-    ceres::Jet<double, 3> point_ceres[3];
-    for(int i = 0; i < 3; ++i){
-      point_ceres[i].a = (i+1)/10.0;
-      point_ceres[i].v = Eigen::VectorXd::Unit(size_params, i);
-      point_d_ceres[i] = (i+1)/10.0;
-    }
+//   typedef Eigen::AutoDiffScalar<Eigen::VectorXd> AScalar;
 
-    VecX<ceres::Jet<double, 3>> camera_adiff_ceres(camera_params.size());
-    for(int i = 0; i < camera_params.size(); ++i){
-      camera_adiff_ceres(i).a = camera_params(i);
-      camera_adiff_ceres(i).v = Eigen::VectorXd::Unit(size_params, 3+i);
-    }
+//   auto start_ceres = high_resolution_clock::now(); 
+//   double point_d_ceres[3];
+
+//   double a = 0.;
+//   const int count = 1;
+//   ceres::Jet<double, 7> projected_ceres[2];
+//   for (int k = 0; k < count; ++k) {
+//     ceres::Jet<double, 7> point_ceres[3];
+//     for(int i = 0; i < 3; ++i){
+//       point_ceres[i].a = (i+1)/10.0;
+//       point_ceres[i].v = Eigen::VectorXd::Unit(size_params, i);
+//       point_d_ceres[i] = (i+1)/10.0;
+//     }
+
+//     VecX<ceres::Jet<double, 7>> camera_adiff_ceres(camera_params.size());
+//     for(int i = 0; i < camera_params.size(); ++i){
+//       camera_adiff_ceres(i).a = camera_params(i);
+//       camera_adiff_ceres(i).v = Eigen::VectorXd::Unit(size_params, 3+i);
+//     }
   
-    Dispatch<ProjectFunction>(ProjectionType::SPHERICAL, point_ceres,
-                              camera_adiff_ceres.data(), projected_ceres);
-    for(int i = 0; i < 2; ++i){
-      for(int j = 0; j < size_params; ++j){
-        a += projected_ceres[i].a;
-        a += projected_ceres[i].v(j);
-      }
-    }
-  }
-  auto stop_ceres = high_resolution_clock::now(); 
-  auto duration_ceres = duration_cast<microseconds>(stop_ceres - start_ceres); 
-  std::cout << "CERES AUTODIFF TIME " << duration_ceres.count() << std::endl;
-  for(int i = 0; i < 2; ++i){
-    for(int j = 0; j < size_params; ++j){
-      std::cout << projected_ceres[i].v(j) << " ";
-    }
-    std::cout << std::endl;
-  }
+//     Dispatch<ProjectFunction>(ProjectionType::DUAL, point_ceres,
+//                               camera_adiff_ceres.data(), projected_ceres);
+//     for(int i = 0; i < 2; ++i){
+//       for(int j = 0; j < size_params; ++j){
+//         a += projected_ceres[i].a;
+//         a += projected_ceres[i].v(j);
+//       }
+//     }
+//   }
+//   auto stop_ceres = high_resolution_clock::now(); 
+//   auto duration_ceres = duration_cast<microseconds>(stop_ceres - start_ceres); 
+//   std::cout << "CERES AUTODIFF TIME " << duration_ceres.count() << std::endl;
+//   for(int i = 0; i < 2; ++i){
+//     for(int j = 0; j < size_params; ++j){
+//       std::cout << projected_ceres[i].v(j) << " ";
+//     }
+//     std::cout << std::endl;
+//   }
 
-  auto start_auto = high_resolution_clock::now(); 
+//   auto start_auto = high_resolution_clock::now(); 
   
 
-  AScalar projected_eigen[2];
-  for (int k = 0; k < count; ++k) {
-    AScalar point[3];
-    for(int i = 0; i < 3; ++i){
-      point[i].value() = (i+1)/10.0;
-      point[i].derivatives() = Eigen::VectorXd::Unit(size_params, i);
-    }
+//   AScalar projected_eigen[2];
+//   for (int k = 0; k < count; ++k) {
+//     AScalar point[3];
+//     for(int i = 0; i < 3; ++i){
+//       point[i].value() = (i+1)/10.0;
+//       point[i].derivatives() = Eigen::VectorXd::Unit(size_params, i);
+//     }
 
-    VecX<AScalar> camera_adiff(camera_params.size());
-    for(int i = 0; i < camera_params.size(); ++i){
-      camera_adiff(i).value() = camera_params(i);
-      camera_adiff(i).derivatives() = Eigen::VectorXd::Unit(size_params, 3+i);
-    }
+//     VecX<AScalar> camera_adiff(camera_params.size());
+//     for(int i = 0; i < camera_params.size(); ++i){
+//       camera_adiff(i).value() = camera_params(i);
+//       camera_adiff(i).derivatives() = Eigen::VectorXd::Unit(size_params, 3+i);
+//     }
 
-    Dispatch<ProjectFunction>(ProjectionType::SPHERICAL, point,
-                              camera_adiff.data(), projected_eigen);
-    for(int i = 0; i < 2; ++i){
-      for(int j = 0; j < size_params; ++j){
-        a += projected_eigen[i].value();
-        a += projected_eigen[i].derivatives()(j);
-      }
-    }
-  }
-  auto stop_auto = high_resolution_clock::now(); 
-  auto duration_auto = duration_cast<microseconds>(stop_auto - start_auto); 
-  std::cout << "EIGEN AUTODIFF TIME " << duration_auto.count() << std::endl; 
-  for(int i = 0; i < 2; ++i){
-    for(int j = 0; j < size_params; ++j){
-      std::cout << projected_eigen[i].derivatives()(j) << " ";
-    }
-    std::cout << std::endl;
-  }
+//     Dispatch<ProjectFunction>(ProjectionType::DUAL, point,
+//                               camera_adiff.data(), projected_eigen);
+//     for(int i = 0; i < 2; ++i){
+//       for(int j = 0; j < size_params; ++j){
+//         a += projected_eigen[i].value();
+//         a += projected_eigen[i].derivatives()(j);
+//       }
+//     }
+//   }
+//   auto stop_auto = high_resolution_clock::now(); 
+//   auto duration_auto = duration_cast<microseconds>(stop_auto - start_auto); 
+//   std::cout << "EIGEN AUTODIFF TIME " << duration_auto.count() << std::endl; 
+//   for(int i = 0; i < 2; ++i){
+//     for(int j = 0; j < size_params; ++j){
+//       std::cout << projected_eigen[i].derivatives()(j) << " ";
+//     }
+//     std::cout << std::endl;
+//   }
 
-  auto start_ana = high_resolution_clock::now(); 
-  double projected_d[2];
-  Eigen::Matrix<double, 2, 3, Eigen::RowMajor> jacobian;
-  for (int k = 0; k < count; ++k) {
-    double point_d[3];
-    for(int i = 0; i < 3; ++i){
-      point_d[i] = (i+1)/10.0;
-    }
+//   auto start_ana = high_resolution_clock::now(); 
+//   double projected_d[2];
+//   Eigen::Matrix<double, 2, 7, Eigen::RowMajor> jacobian;
+//   for (int k = 0; k < count; ++k) {
+//     double point_d[3];
+//     for(int i = 0; i < 3; ++i){
+//       point_d[i] = (i+1)/10.0;
+//     }
 
     
-    Dispatch<ProjectDerivativesFunction>(ProjectionType::SPHERICAL, point_d,
-                                         camera_params.data(), projected_d,
-                                         jacobian.data());
-    for(int i = 0; i < jacobian.rows(); ++i){
-      for(int j = 0; j < jacobian.cols(); ++j){
-        a += jacobian(i, j);
-      }
-    }
-  }
-  auto stop_ana = high_resolution_clock::now(); 
-  auto duration_ana = duration_cast<microseconds>(stop_ana - start_ana); 
-  std::cout << "ANALYTICAL TIME " << duration_ana.count() << std::endl; 
-  for(int i = 0; i < jacobian.rows(); ++i){
-    for(int j = 0; j < jacobian.cols(); ++j){
-      std::cout << jacobian(i, j) << " ";
-    }
-    std::cout << std::endl;
-  }
-  std::cout << a << std::endl;
-}
+//     Dispatch<ProjectDerivativesFunction>(ProjectionType::DUAL, point_d,
+//                                          camera_params.data(), projected_d,
+//                                          jacobian.data());
+//     for(int i = 0; i < jacobian.rows(); ++i){
+//       for(int j = 0; j < jacobian.cols(); ++j){
+//         a += jacobian(i, j);
+//       }
+//     }
+//   }
+//   auto stop_ana = high_resolution_clock::now(); 
+//   auto duration_ana = duration_cast<microseconds>(stop_ana - start_ana); 
+//   std::cout << "ANALYTICAL TIME " << duration_ana.count() << std::endl; 
+//   for(int i = 0; i < jacobian.rows(); ++i){
+//     for(int j = 0; j < jacobian.cols(); ++j){
+//       std::cout << jacobian(i, j) << " ";
+//     }
+//     std::cout << std::endl;
+//   }
+//   std::cout << a << std::endl;
+// }
