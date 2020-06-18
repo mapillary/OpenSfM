@@ -751,14 +751,18 @@ class Shot(object):
 
         The plane is defined by z = depth in the shot reference frame.
         """
-        point_in_cam_coords = self.camera.back_project(pixel, depth)
+        bearing = self.camera.pixel_bearing(pixel)
+        scale = depth / bearing[2]
+        point_in_cam_coords = scale * bearing
         return self.pose.transform_inverse(point_in_cam_coords)
 
     def back_project_many(self, pixels, depths):
         """Project pixels to fronto-parallel planes at given depths.
         The planes are defined by z = depth in the shot reference frame.
         """
-        points_in_cam_coords = self.camera.back_project_many(pixels, depths)
+        bearings = self.camera.pixel_bearing_many(pixels)
+        scales = depths.ravel() / bearings[:, 2]
+        points_in_cam_coords = scales[:, np.newaxis] * bearings
         return self.pose.transform_inverse_many(points_in_cam_coords)
 
     def viewing_direction(self):

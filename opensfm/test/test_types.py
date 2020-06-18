@@ -148,6 +148,34 @@ def test_pose_inverse():
     assert np.allclose(identity.translation, [0, 0, 0])
 
 
+def test_shot_project_back_project():
+    pixels = np.array([[0.1, 0.2], [-0.1, 0.2]], dtype=float)
+    depths = np.array([1, 2], dtype=float)
+    pose = types.Pose([1, 2, 3], [4, 5, 6])
+    cameras = [
+        _get_perspective_camera(),
+        _get_brown_perspective_camera(),
+        _get_spherical_camera(),
+    ]
+    if context.OPENCV3:
+        cameras.append(_get_fisheye_camera())
+
+    shot = types.Shot()
+    shot.pose = pose
+    for pair in cameras:
+        for cam in pair:
+            shot.camera = cam
+            bp_single = [shot.back_project(p,d) for p,d in zip(pixels, depths)]
+            bp_many = shot.back_project_many(pixels, depths)
+            assert np.allclose(bp_single, bp_many), cam.projection_type
+
+            px_single = [shot.project(p) for p in bp_single]
+            px_many = shot.project_many(bp_many)
+
+            assert np.allclose(pixels, px_single), cam.projection_type
+            assert np.allclose(pixels, px_many), cam.projection_type
+
+
 def test_single_vs_many():
     points = np.array([[1, 2, 3], [4, 5, 6]], dtype=float)
     pixels = np.array([[0.1, 0.2], [0.3, 0.4]], dtype=float)
