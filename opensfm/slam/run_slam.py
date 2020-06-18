@@ -14,12 +14,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
-# For visualization
-RUN_VISUALIZATION = True
-if RUN_VISUALIZATION:
-    from opensfm import visualization
-    import numpy as np
-    import threading
+
 
 
 def run_slam(slam_vis = None):
@@ -44,6 +39,8 @@ def run_slam(slam_vis = None):
                 slam_system.reconstruction.map.color_map()
                 slam_vis.update_reconstruction(slam_system.reconstruction, slam_system.slam_mapper.keyframes)
                 n_kfs = len(slam_system.slam_mapper.keyframes)
+            if not slam_vis.is_running:
+                break
 
         slam_debug.avg_timings.printAvgTimings()
         if ret:
@@ -52,10 +49,20 @@ def run_slam(slam_vis = None):
             logger.info("Trying to init with {}".format(im_name))
 
     slam_system.slam_mapper.save_reconstruction(im_name + "_finished.json")
-if RUN_VISUALIZATION:
-    vis = visualization.Visualization(np.array([370, 1226]))
-    th = threading.Thread(target=run_slam, args=(vis,))
-    th.start()
-    vis.run_visualization()
-else:
-    run_slam()
+
+
+if __name__ == "__main__":
+    # For visualization
+    RUN_VISUALIZATION = True
+    if RUN_VISUALIZATION:
+        from opensfm import visualization
+        import numpy as np
+        import threading
+
+    if RUN_VISUALIZATION:
+        vis = visualization.Visualization(np.array([370, 1226]))
+        th = threading.Thread(target=run_slam, args=(vis,))
+        th.start()
+        vis.run_visualization()
+    else:
+        run_slam()
