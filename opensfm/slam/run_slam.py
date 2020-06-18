@@ -15,9 +15,11 @@ logger.setLevel(logging.DEBUG)
 
 
 # For visualization
-from opensfm import visualization
-import numpy as np
-import threading
+RUN_VISUALIZATION = True
+if RUN_VISUALIZATION:
+    from opensfm import visualization
+    import numpy as np
+    import threading
 
 
 def run_slam(slam_vis = None):
@@ -35,7 +37,7 @@ def run_slam(slam_vis = None):
         gray_scale_img = io.imread(data._image_file(im_name), grayscale=True)  # The gray-scale image
         ret = slam_system.process_frame(im_name, gray_scale_img)
 
-        if slam_vis is not None:
+        if slam_vis is not None and RUN_VISUALIZATION:
             slam_vis.update_image(gray_scale_img)
             # Update map only after KF insertion
             if n_kfs != len(slam_system.slam_mapper.keyframes):
@@ -50,8 +52,10 @@ def run_slam(slam_vis = None):
             logger.info("Trying to init with {}".format(im_name))
 
     slam_system.slam_mapper.save_reconstruction(im_name + "_finished.json")
-
-vis = visualization.Visualization(np.array([370, 1226]))
-th = threading.Thread(target=run_slam, args=(vis,))
-th.start()
-vis.run_visualization()
+if RUN_VISUALIZATION:
+    vis = visualization.Visualization(np.array([370, 1226]))
+    th = threading.Thread(target=run_slam, args=(vis,))
+    th.start()
+    vis.run_visualization()
+else:
+    run_slam()
