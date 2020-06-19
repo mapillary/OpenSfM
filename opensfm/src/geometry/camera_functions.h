@@ -36,7 +36,7 @@ struct FisheyeProjection : CameraFunctor<3, 0, 2>{
   static void ForwardDerivatives(const T* point, const T* /* p */, T* projected,
                                  T* jacobian) {
     // dx, dy, dz
-    constexpr int stride = COMP_PARAM*ParamSize + InSize;
+    constexpr int stride = Stride<COMP_PARAM>();
     const T r2 = SquaredNorm(point);
     const T r = sqrt(r2);
     const T R2 = r2 + point[2] * point[2];
@@ -89,7 +89,7 @@ struct PerspectiveProjection : CameraFunctor<3, 0, 2> {
   static void ForwardDerivatives(const T* point, const T* /* p */, T* projected,
                                  T* jacobian) {
     // dx, dy, dz
-    constexpr int stride = COMP_PARAM*ParamSize + InSize;
+    constexpr int stride = Stride<COMP_PARAM>();
     jacobian[0] = T(1.0) / point[2];
     jacobian[1] = T(0.0);
     jacobian[2] = -point[0] / (point[2] * point[2]);
