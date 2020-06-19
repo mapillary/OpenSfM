@@ -112,11 +112,15 @@ def unescape_string(s):
 
 
 def parse_xmp_string(xmp_str):
-    for _ in range(2):
+    for i in range(3):
         try:
             return x2d.parse(xmp_str)
-        except Exception:
-            xmp_str = unescape_string(xmp_str)
+        except:
+            if i == 0:
+                xmp_str = unescape_string(xmp_str)
+            elif i == 1:
+                from bs4 import BeautifulSoup
+                xmp_str = str(BeautifulSoup(xmp_str, 'xml'))
     return None
 
 
