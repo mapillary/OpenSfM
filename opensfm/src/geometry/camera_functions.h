@@ -695,7 +695,7 @@ struct ProjectGeneric {
   struct ForwardWrapper : public FUNC {
     template <class T>
     static void Apply(const T* in, const T* parameters, T* out) {
-      Forward(in, parameters, out);
+      FUNC::Forward(in, parameters, out);
     }
   };
 
@@ -703,7 +703,7 @@ struct ProjectGeneric {
   struct BackwardWrapper : public FUNC {
     template <class T>
     static void Apply(const T* in, const T* parameters, T* out) {
-      Backward(in, parameters, out);
+      FUNC::Backward(in, parameters, out);
     }
   };
 
