@@ -361,11 +361,30 @@ class FunctionFixture : public ::testing::Test {
     static void Apply(const T* in, const T* p, T* out) {
       out[0] = p[0] * exp(in[0]);
     }
+    template <class T, bool COMP_PARAM>
+    static void ForwardDerivatives(const T* in, const T* p,
+                                   T* out, T* jacobian) {
+      jacobian[0] = p[0] * exp(in[0]);
+      if (COMP_PARAM) {
+        jacobian[1] = exp(in[0]);
+      }
+      Apply(in, p, out);
+    }
   };
   struct F2 : public CameraFunctor<1, 2, 1>{
     template <class T>
     static void Apply(const T* in, const T* p, T* out) {
       out[0] = p[0] - p[1] * log(in[0]);
+    }
+    template <class T, bool COMP_PARAM>
+    static void ForwardDerivatives(const T* in, const T* p,
+                                   T* out, T* jacobian) {
+      jacobian[0] = -p[1]/in[0];
+      if (COMP_PARAM) {
+        jacobian[1] = T(1.0);
+        jacobian[2] = -log(in[0]);
+      }
+      Apply(in, p, out);
     }
   };
   struct F3 : public CameraFunctor<1, 1, 1>{
@@ -373,11 +392,30 @@ class FunctionFixture : public ::testing::Test {
     static void Apply(const T* in, const T* p, T* out) {
       out[0] = p[0] * in[0] * in[0];
     }
+    template <class T, bool COMP_PARAM>
+    static void ForwardDerivatives(const T* in, const T* p,
+                                   T* out, T* jacobian) {
+      jacobian[0] = T(2.0) * p[0] * in[0];
+      if (COMP_PARAM) {
+        jacobian[1] = in[0] * in[0];
+      }
+      Apply(in, p, out);
+    }
   };
   struct F4 : public CameraFunctor<1, 2, 1>{
     template <class T>
     static void Apply(const T* in, const T* p, T* out) {
       out[0] = p[0] / in[0] - p[1];
+    }
+    template <class T, bool COMP_PARAM>
+    static void ForwardDerivatives(const T* in, const T* p,
+                                   T* out, T* jacobian) {
+      jacobian[0] = -p[0] / (in[0] * in[0] );
+      if (COMP_PARAM) {
+        jacobian[1] = T(1.0)/in[0];
+        jacobian[2] = -T(1.0);
+      }
+      Apply(in, p, out);
     }
   };
 };
@@ -394,116 +432,35 @@ TEST_F(FunctionFixture, EvaluatesCorrectly) {
   const double expected = 3.0 * exp( 1.0 - 2.0 * log( 3.0 * std::pow(4.0/in[0] - 2.0, 2) ) );
   ASSERT_NEAR(expected, evaluated, 1e-20);
 }
-// TEST_F(CameraFixture, PerfTest){
-//   const Camera camera = Camera::Camera::CreateDualCamera(0.5, focal, distortion[0], distortion[1]);
-//   const VecXd camera_params = camera.GetParametersValues();
-//   std::cout << camera_params << std::endl;
-//   const int size_params = 3 + camera_params.size();
 
-//   typedef Eigen::AutoDiffScalar<Eigen::VectorXd> AScalar;
+TEST_F(FunctionFixture, EvaluatesDerivativesCorrectly) {
+  double in[] = {1.0};
 
-//   auto start_ceres = high_resolution_clock::now(); 
-//   double point_d_ceres[3];
+  /* Parameters needs to be stored in the order of evaluation :
+   * params f4 |params f3 | params f2 | params f1 */
+  double parameters[] = {4.0, 2.0, 3.0, 1.0, 2.0, 3.0};
+  double evaluated = 0;
+  double jacobian[7];
+  ComposeForwardDerivatives<double, F1, F2, F3, F4>(in, parameters, &evaluated, &jacobian[0]);
 
-//   double a = 0.;
-//   const int count = 1;
-//   ceres::Jet<double, 7> projected_ceres[2];
-//   for (int k = 0; k < count; ++k) {
-//     ceres::Jet<double, 7> point_ceres[3];
-//     for(int i = 0; i < 3; ++i){
-//       point_ceres[i].a = (i+1)/10.0;
-//       point_ceres[i].v = Eigen::VectorXd::Unit(size_params, i);
-//       point_d_ceres[i] = (i+1)/10.0;
-//     }
+  const double expected = 3.0 * exp( 1.0 - 2.0 * log( 3.0 * std::pow(4.0/in[0] - 2.0, 2) ) );
+  ASSERT_NEAR(expected, evaluated, 1e-20);
 
-//     VecX<ceres::Jet<double, 7>> camera_adiff_ceres(camera_params.size());
-//     for(int i = 0; i < camera_params.size(); ++i){
-//       camera_adiff_ceres(i).a = camera_params(i);
-//       camera_adiff_ceres(i).v = Eigen::VectorXd::Unit(size_params, 3+i);
-//     }
-  
-//     Dispatch<ProjectFunction>(ProjectionType::DUAL, point_ceres,
-//                               camera_adiff_ceres.data(), projected_ceres);
-//     for(int i = 0; i < 2; ++i){
-//       for(int j = 0; j < size_params; ++j){
-//         a += projected_ceres[i].a;
-//         a += projected_ceres[i].v(j);
-//       }
-//     }
-//   }
-//   auto stop_ceres = high_resolution_clock::now(); 
-//   auto duration_ceres = duration_cast<microseconds>(stop_ceres - start_ceres); 
-//   std::cout << "CERES AUTODIFF TIME " << duration_ceres.count() << std::endl;
-//   for(int i = 0; i < 2; ++i){
-//     for(int j = 0; j < size_params; ++j){
-//       std::cout << projected_ceres[i].v(j) << " ";
-//     }
-//     std::cout << std::endl;
-//   }
+  /* Jacobian ordering : d_input | d_parameters */
+  typedef Eigen::AutoDiffScalar<Eigen::VectorXd> AScalar;
+  VecX<AScalar> eval_adiff(1);
+  eval_adiff(0).value() = in[0];
+  eval_adiff(0).derivatives() = Eigen::VectorXd::Unit(7, 0);
+  VecX<AScalar> parameters_adiff(6);
+  for (int i = 0; i < 6; ++i) {
+    parameters_adiff[i].value() = parameters[i];
+    parameters_adiff[i].derivatives() = Eigen::VectorXd::Unit(7, i+1);
+  }
 
-//   auto start_auto = high_resolution_clock::now(); 
-  
-
-//   AScalar projected_eigen[2];
-//   for (int k = 0; k < count; ++k) {
-//     AScalar point[3];
-//     for(int i = 0; i < 3; ++i){
-//       point[i].value() = (i+1)/10.0;
-//       point[i].derivatives() = Eigen::VectorXd::Unit(size_params, i);
-//     }
-
-//     VecX<AScalar> camera_adiff(camera_params.size());
-//     for(int i = 0; i < camera_params.size(); ++i){
-//       camera_adiff(i).value() = camera_params(i);
-//       camera_adiff(i).derivatives() = Eigen::VectorXd::Unit(size_params, 3+i);
-//     }
-
-//     Dispatch<ProjectFunction>(ProjectionType::DUAL, point,
-//                               camera_adiff.data(), projected_eigen);
-//     for(int i = 0; i < 2; ++i){
-//       for(int j = 0; j < size_params; ++j){
-//         a += projected_eigen[i].value();
-//         a += projected_eigen[i].derivatives()(j);
-//       }
-//     }
-//   }
-//   auto stop_auto = high_resolution_clock::now(); 
-//   auto duration_auto = duration_cast<microseconds>(stop_auto - start_auto); 
-//   std::cout << "EIGEN AUTODIFF TIME " << duration_auto.count() << std::endl; 
-//   for(int i = 0; i < 2; ++i){
-//     for(int j = 0; j < size_params; ++j){
-//       std::cout << projected_eigen[i].derivatives()(j) << " ";
-//     }
-//     std::cout << std::endl;
-//   }
-
-//   auto start_ana = high_resolution_clock::now(); 
-//   double projected_d[2];
-//   Eigen::Matrix<double, 2, 7, Eigen::RowMajor> jacobian;
-//   for (int k = 0; k < count; ++k) {
-//     double point_d[3];
-//     for(int i = 0; i < 3; ++i){
-//       point_d[i] = (i+1)/10.0;
-//     }
-
-    
-//     Dispatch<ProjectDerivativesFunction>(ProjectionType::DUAL, point_d,
-//                                          camera_params.data(), projected_d,
-//                                          jacobian.data());
-//     for(int i = 0; i < jacobian.rows(); ++i){
-//       for(int j = 0; j < jacobian.cols(); ++j){
-//         a += jacobian(i, j);
-//       }
-//     }
-//   }
-//   auto stop_ana = high_resolution_clock::now(); 
-//   auto duration_ana = duration_cast<microseconds>(stop_ana - start_ana); 
-//   std::cout << "ANALYTICAL TIME " << duration_ana.count() << std::endl; 
-//   for(int i = 0; i < jacobian.rows(); ++i){
-//     for(int j = 0; j < jacobian.cols(); ++j){
-//       std::cout << jacobian(i, j) << " ";
-//     }
-//     std::cout << std::endl;
-//   }
-//   std::cout << a << std::endl;
-// }
+  AScalar evaluated_addif;
+  ComposeFunctions<AScalar, F1, F2, F3, F4>(
+      eval_adiff.data(), parameters_adiff.data(), &evaluated_addif);
+  for(int i = 0; i < 7; ++i){
+    ASSERT_NEAR(evaluated_addif.derivatives()(i), jacobian[i], 1e-20);
+  }
+}
