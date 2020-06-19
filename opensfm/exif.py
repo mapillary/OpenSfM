@@ -119,8 +119,12 @@ def parse_xmp_string(xmp_str):
             if i == 0:
                 xmp_str = unescape_string(xmp_str)
             elif i == 1:
-                from bs4 import BeautifulSoup
-                xmp_str = str(BeautifulSoup(xmp_str, 'xml'))
+                try:
+                    from bs4 import BeautifulSoup
+                    xmp_str = str(BeautifulSoup(xmp_str, 'xml'))
+                except:
+                    # Do nothing
+                    pass
     return None
 
 
