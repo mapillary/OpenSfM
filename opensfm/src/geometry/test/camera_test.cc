@@ -342,6 +342,58 @@ TEST_F(CameraFixture, ComputeDualAnalyticalDerivatives){
   CheckJacobian(jacobian, size_params);
 }
 
+class FunctionFixture : public ::testing::Test {
+ public:
+  /* Evaluates the following function :
+   *
+   * f = a * exp( b - c * log( d * (e/x - f)^2 ) )
+   *
+   * Decomposed as follows :
+   *
+   * f1 = a * exp(x)
+   * f2 = b - c * log(x)
+   * f3 = d * x^2
+   * f4 = e/x - f
+   * f = f1(f2(f3(f4))) */
+
+  struct F1 : public CameraFunctor<1, 1, 1>{
+    template <class T>
+    static void Apply(const T* in, const T* p, T* out) {
+      out[0] = p[0] * exp(in[0]);
+    }
+  };
+  struct F2 : public CameraFunctor<1, 2, 1>{
+    template <class T>
+    static void Apply(const T* in, const T* p, T* out) {
+      out[0] = p[0] - p[1] * log(in[0]);
+    }
+  };
+  struct F3 : public CameraFunctor<1, 1, 1>{
+    template <class T>
+    static void Apply(const T* in, const T* p, T* out) {
+      out[0] = p[0] * in[0] * in[0];
+    }
+  };
+  struct F4 : public CameraFunctor<1, 2, 1>{
+    template <class T>
+    static void Apply(const T* in, const T* p, T* out) {
+      out[0] = p[0] / in[0] - p[1];
+    }
+  };
+};
+
+TEST_F(FunctionFixture, EvaluatesCorrectly) {
+  double in[] = {1.0};
+
+  /* Parameters needs to be stored in the order of evaluation :
+   * params f4 |params f3 | params f2 | params f1 */
+  double parameters[] = {4.0, 2.0, 3.0, 1.0, 2.0, 3.0};
+  double evaluated = 0;
+  ComposeFunctions<double, F1, F2, F3, F4>(in, parameters, &evaluated);
+
+  const double expected = 3.0 * exp( 1.0 - 2.0 * log( 3.0 * std::pow(4.0/in[0] - 2.0, 2) ) );
+  ASSERT_NEAR(expected, evaluated, 1e-20);
+}
 // TEST_F(CameraFixture, PerfTest){
 //   const Camera camera = Camera::Camera::CreateDualCamera(0.5, focal, distortion[0], distortion[1]);
 //   const VecXd camera_params = camera.GetParametersValues();
