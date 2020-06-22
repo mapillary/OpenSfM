@@ -10,7 +10,7 @@ class Visualization(object):
     def __init__(self, img_shape):
         # self.points = []
         self.shots = []
-        self.orig_img_shape = img_shape
+        self.orig_img_shape = np.array(img_shape)
         self.new_img_shape = self.orig_img_shape.copy()
         # must be divisible by four
         w = self.orig_img_shape[1]

@@ -10,7 +10,7 @@ from opensfm import types
 from opensfm import pyslam
 logger = logging.getLogger(__name__)
 
-disable_debug = True
+disable_debug = False
 
 
 class AvgTimings(object):

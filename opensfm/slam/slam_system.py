@@ -64,6 +64,7 @@ class SlamSystem(object):
         self.system_initialized = False
 
     def process_frame(self, im_name, gray_scale_img):
+
         # (1) Preprocessing
         curr_shot: pymap.Shot = self.reconstruction.create_shot(
             im_name, self.camera.id)
@@ -83,8 +84,14 @@ class SlamSystem(object):
 
         # Tracking
         pose = self.track_frame(curr_shot)
-        if pose is not None:
+        if pose is None:
+            # set the previous frame as KF to triangulate more landmarks.
+            # if that is not possible, reinitialize.
+            self.slam_mapper.insert_new_keyframe(self.slam_mapper.last_shot)
+            pose = self.track_frame(curr_shot)
+        else:
             curr_shot.set_pose(pose)
+          
 
         # Check if new KF needed
         self.slam_mapper.update_with_last_frame(curr_shot)

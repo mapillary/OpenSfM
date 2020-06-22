@@ -3,7 +3,6 @@
 #include <vector>
 #include <unordered_map>
 #include <iostream>
-#include <opencv2/core.hpp>
 #include <map/shot.h>
 #include <map/landmark.h>
 #include <map/map.h>
@@ -108,7 +107,6 @@ public:
                            const float lowe_ratio) const;
   std::vector<size_t>
   GetKeypointsInCell(const AlignedVector<Observation> &undist_keypts,
-                     //  const std::vector<cv::KeyPoint> &undist_keypts,
                      const CellIndices &keypt_indices_in_cells,
                      const float ref_x, const float ref_y, const float margin,
                      const int min_level = -1, const int max_level = -1) const;

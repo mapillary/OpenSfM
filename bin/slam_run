@@ -3,8 +3,6 @@
 set -e
 
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
-PYTHON=${2:-python3}
-
+PYTHON=${3:-python3}
 echo "Running using Python command: $PYTHON"
-
-$PYTHON $DIR/../opensfm/slam/run_slam.py $1
+$PYTHON $DIR/../opensfm/slam/run_slam.py $1 $2

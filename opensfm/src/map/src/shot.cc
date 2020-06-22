@@ -65,9 +65,15 @@ Shot::ComputeMedianDepthOfLandmarks(const bool take_abs) const
       depths.push_back(float(take_abs ? std::abs(pos_c_z) : pos_c_z));
     }
   }
-
-  std::sort(depths.begin(), depths.end());
-  return depths.at((depths.size() - 1) / 2);
+  if (depths.empty())
+  {
+    return 0;
+  }
+  else
+  {
+    std::sort(depths.begin(), depths.end());
+    return depths.at((depths.size() - 1) / 2);
+  }
 }
 
 void

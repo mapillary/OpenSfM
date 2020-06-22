@@ -13,17 +13,19 @@ from opensfm import io
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
+parser = argparse.ArgumentParser()
+parser.add_argument('dataset', help='dataset to process')
+parser.add_argument('--visualize', dest='visualize', action='store_const',
+                    const=True, default=False, help='run SLAM visualization')
+args = parser.parse_args()
+slam_system = SlamSystem(args)
+data = dataset.DataSet(args.dataset)
 
 
 
-
-def run_slam(slam_vis = None):
+def run_slam(data, slam_vis = None):
     # Create the top-level parser
-    parser = argparse.ArgumentParser()
-    parser.add_argument('dataset', help='dataset to process')
-    args = parser.parse_args()
-    slam_system = SlamSystem(args)
-    data = dataset.DataSet(args.dataset)
+    
     start_id = 0
     n_kfs = 0
     for idx, im_name in enumerate(sorted(data.image_list)):
@@ -53,16 +55,17 @@ def run_slam(slam_vis = None):
 
 if __name__ == "__main__":
     # For visualization
-    RUN_VISUALIZATION = True
+    RUN_VISUALIZATION = args.visualize
     if RUN_VISUALIZATION:
         from opensfm import visualization
         import numpy as np
         import threading
 
     if RUN_VISUALIZATION:
-        vis = visualization.Visualization(np.array([370, 1226]))
-        th = threading.Thread(target=run_slam, args=(vis,))
+        vis = visualization.Visualization(
+            data.load_image(data.image_list[0]).shape)
+        th = threading.Thread(target=run_slam, args=(data, vis,))
         th.start()
         vis.run_visualization()
     else:
-        run_slam()
+        run_slam(data)

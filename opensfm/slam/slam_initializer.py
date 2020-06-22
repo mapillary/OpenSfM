@@ -32,6 +32,9 @@ class SlamInitializer(object):
         # TODO: think about prev_matches!
         matches = self.matcher.match_shot_to_shot(self.init_shot, curr_shot, self.prev_pts, 100)
         matches = np.array(matches)
+        print("matches: ", curr_shot.id, len(matches), matches.shape)
+        print("self.init_shot", self.init_shot.id, len(self.init_shot.get_keypoints()))
+        print("curr_shot", curr_shot.id, len(curr_shot.get_keypoints()))
         if len(matches) < 100:
             return False, None
 
@@ -54,6 +57,7 @@ class SlamInitializer(object):
         i1, i2, r = reconstruction._compute_pair_reconstructability(args[0])
         if r == 0:
             return False, None
+
         # create the graph with the new tracks manager
         tracks_graph = pysfm.TracksManager()
         for (track_id, (f1_id, f2_id)) in enumerate(matches):

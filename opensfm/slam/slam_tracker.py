@@ -29,6 +29,8 @@ class SlamTracker(object):
         # (1) Estimate initial pose with respect to last shot
         pose_tracking = self.track_motion(slam_mapper, curr_shot,
                                           camera, config, data)
+        if pose_tracking is None:
+            return None
         curr_shot.set_pose(pose_tracking)
         
         # (2) Compute the refined pose with local landmarks
@@ -89,6 +91,11 @@ class SlamTracker(object):
             points3D[i, :] = lm.get_global_pos()
         pose_init = pymap.Pose()
         pose_init.set_from_world_to_cam(T_init)
+
+        # #TODO: debug
+        # slam_debug.reproject_landmarks(points3D, None, T_init, data.load_image(curr_shot.id), camera)
+        # # TODO: 
+
         # Set up bundle adjustment problem
         pose, valid_pts = self.bundle_tracking(
             points3D, points2D, pose_init, camera, config, data)
@@ -105,9 +112,11 @@ class SlamTracker(object):
         assert(curr_shot.compute_num_valid_pts(1) == n_tracked) # TODO: Remove debug stuff
         self.num_tracked_lms = n_tracked
         if np.sum(valid_pts) < 10:
-            logger.error("Tracking lost!!")
+            logger.error("Tracking lost!!, Start robust tracking")
+
             # TODO: ROBUST MATCHING
-            exit()
+            return None
+            # exit()
         # Save LMS to img
         slam_debug.visualize_tracked_lms(
             points2D[valid_pts, :], curr_shot, data, is_normalized=True)
