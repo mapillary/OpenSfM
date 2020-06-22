@@ -3,6 +3,8 @@
 #include <foundation/newton_raphson.h>
 #include <foundation/types.h>
 
+#include <unsupported/Eigen/AutoDiff>
+
 #include <iostream>
 
 enum class ProjectionType { PERSPECTIVE, BROWN, FISHEYE, SPHERICAL, DUAL };
@@ -357,7 +359,6 @@ struct DistoBrown : CameraFunctor<2, 5, 2>{
     const auto& p2 = k[static_cast<int>(Disto::P2)];
     const auto& x = point[0];
     const auto& y = point[1];
-    const auto& z = point[2];
 
     const T x2 = x * x;
     const T x4 = x2 * x2;
@@ -556,6 +557,15 @@ struct Identity : CameraFunctor<2, 0, 2>{
   }
 };
 
+// template<class PROJ>
+// struct PoseAndProjectionDerivatives{
+//   template <class TYPE, class T>
+//   static void Apply(const T* point, const T* parameters, T* projected) {
+//     ComposeForwardDerivatives<T, PROJ, Pose>(point, parameters, projected,
+//                                              jacobian);
+//   }
+// };
+
 struct ProjectFunction {
   template <class TYPE, class T>
   static void Apply(const T* point, const T* parameters, T* projected) {
@@ -685,6 +695,150 @@ static void ComposeFunctions(const T* in, const T* parameters, T* out) {
   constexpr int Index = ComposeIndex<FUNC2, FUNCS...>();
   FUNC1::template Apply<T>(&tmp[0], parameters + Index, out);
 }
+
+struct Pose : CameraFunctor<3, 6, 3> {
+  /* Rotation and translation being stored as angle-axis | translation, apply
+   the transformation : x_world = R(t)*(x_camera - translation) by directly
+   applying the angle-axis rotation */
+  enum { Rx = 0, Ry = 1, Rz = 2, Tx = 3, Ty = 4, Tz = 5 };
+  template <class T>
+  static void Forward(const T* point, const T* rt, T* transformed) {
+    const T x = point[0] - rt[Tx];
+    const T y = point[1] - rt[Ty];
+    const T z = point[2] - rt[Tz];
+
+    const T a = -rt[Rx];
+    const T b = -rt[Ry];
+    const T c = -rt[Rz];
+
+    // Dot product of angle-axis and the point
+    const T cp_x = b * z - c * y;
+    const T cp_y = c * x - a * z;
+    const T cp_z = a * y - b * x;
+
+    const T theta2 = a * a + b * b + c * c;
+    // Regular angle-axis transformation
+    if (theta2 > T(std::numeric_limits<double>::epsilon())) {
+      const T theta = sqrt(theta2);
+      const T inv_theta = T(1.0) / theta;
+      const T cos_theta = cos(theta);
+      const T sin_theta = sin(theta) / theta;
+      const T dot_pt_p =
+          (a * x + b * y + c * z) * (T(1.0) - cos_theta) / theta2;
+      transformed[0] = x * cos_theta + sin_theta * cp_x + a * dot_pt_p;
+      transformed[1] = y * cos_theta + sin_theta * cp_y + b * dot_pt_p;
+      transformed[2] = z * cos_theta + sin_theta * cp_z + c * dot_pt_p;
+      // Apply taylor approximation for small angles
+    } else {
+      transformed[0] = x + cp_x;
+      transformed[1] = y + cp_y;
+      transformed[2] = z + cp_z;
+    }
+  }
+
+  template <class T, bool COMP_PARAM>
+  static void ForwardDerivatives(const T* point, const T* rt, T* transformed,
+                                 T* jacobian) {
+    // dx, dy, dz, drx, dry, drz, dtz, dty, dtz
+    constexpr int stride = Stride<COMP_PARAM>();
+    using Dual = Eigen::AutoDiffScalar<Vec3d>;
+
+    /* Get jacobian or R wrt. angle-axis using Dual */
+    Dual r_diff[InSize];
+    r_diff[0].value() = -rt[Rx];
+    r_diff[0].derivatives() = -Vec3d::Unit(Rx);
+    r_diff[1].value() = -rt[Ry];
+    r_diff[1].derivatives() = -Vec3d::Unit(Ry);
+    r_diff[2].value() = -rt[Rz];
+    r_diff[2].derivatives() = -Vec3d::Unit(Rz);
+
+    Eigen::Matrix<Dual, 3, 3, Eigen::RowMajor> rotation;
+    RotationToAngleAxis(&r_diff[0], rotation.data());
+
+    /* Storage is row-ordered : R00, R01, R02, R10, ... R22 */
+    Eigen::Matrix<T, 9, 3, Eigen::RowMajor> rotation_angleaxis;
+    for (int i = 0; i < 3; ++i) {
+      for (int j = 0; j < 3; ++j) {
+        for (int k = 0; k < 3; ++k) {
+          rotation_angleaxis(i * 3 + j, k) = rotation(i, j).derivatives()(k);
+        }
+      }
+    }
+
+    /* R.(x-t) derivatives are pretty straightfoward : dR00, dR01, ... dR22,
+     * dx, dy, dz, dtx, dty, dtz */
+    const T xyz[] = {point[0] - rt[Tx], point[1] - rt[Ty], point[2] - rt[Tz]};
+    Eigen::Matrix<T, 3, 15, Eigen::RowMajor> point_rotation =
+        Eigen::Matrix<T, 3, 15, Eigen::RowMajor>::Zero();
+    for (int i = 0; i < 3; ++i) {
+      // dRij
+      for (int j = 0; j < 3; ++j) {
+        point_rotation(i, i * 3 + j) = xyz[j];
+      }
+      // dx, dy, dz
+      for (int j = 0; j < 3; ++j) {
+        point_rotation(i, 9 + j) = rotation(i, j).value();
+      }
+      // dtx, dty, dtz
+      for (int j = 0; j < 3; ++j) {
+        point_rotation(i, 12 + j) = -point_rotation(i, 9 + j);
+      }
+    }
+
+    /* Compose d(R) / d(angle axis) with d(pose) / d(R | t | x) in order to get
+     * d(pose) / d(angle axis | t | x) */
+    ComposeDerivatives<T, 9, 3, 0, 3, 15, 6>(rotation_angleaxis, point_rotation,
+                                             jacobian);
+
+    /* Re-orde from angle-axis | x | t to x | angle-axis | t */
+    for (int i = 0; i < 3; ++i) {
+      // Swap dai and dxi
+      for (int j = 0; j < 3; ++j) {
+        std::swap(jacobian[i * 9 + j], jacobian[i * 9 + 3 + j]);
+      }
+    }
+  }
+
+ private:
+  template <class T>
+  static void RotationToAngleAxis(const T* angle_axis, T* rotation) {
+    /* From
+     * https://www.euclideanspace.com/maths/geometry/rotations/conversions/angleToMatrix/
+     */
+
+    const T theta2 = SquaredNorm(angle_axis) + angle_axis[2] * angle_axis[2];
+    const T theta = sqrt(theta2);
+    const T c = cos(theta);
+    const T s = sin(theta);
+    const T t = T(1.0) - c;
+
+    const T inv_theta2 = T(1.0) / theta2;
+    const T inv_theta = T(1.0) / theta;
+
+    const T xx = angle_axis[0] * angle_axis[0] * inv_theta2;
+    const T xy = angle_axis[0] * angle_axis[1] * inv_theta2;
+    const T xz = angle_axis[0] * angle_axis[2] * inv_theta2;
+    const T yy = angle_axis[1] * angle_axis[1] * inv_theta2;
+    const T yz = angle_axis[1] * angle_axis[2] * inv_theta2;
+    const T zz = angle_axis[2] * angle_axis[2] * inv_theta2;
+
+    const T xs = angle_axis[0] * inv_theta * s;
+    const T ys = angle_axis[1] * inv_theta * s;
+    const T zs = angle_axis[2] * inv_theta * s;
+
+    rotation[0] = t * xx + c;
+    rotation[1] = t * xy - zs;
+    rotation[2] = t * xz + ys;
+
+    rotation[3] = t * xy + zs;
+    rotation[4] = t * yy + c;
+    rotation[5] = t * yz - xs;
+
+    rotation[6] = t * xz - ys;
+    rotation[7] = t * yz + xs;
+    rotation[8] = t * zz + c;
+  }
+};
 
 /* Finally, here's the generic camera that implements the PROJ - > DISTO -> AFFINE pattern. */
 template <class PROJ, class DISTO, class AFF>
