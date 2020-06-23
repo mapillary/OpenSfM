@@ -557,15 +557,6 @@ struct Identity : CameraFunctor<2, 0, 2>{
   }
 };
 
-// template<class PROJ>
-// struct PoseAndProjectionDerivatives{
-//   template <class TYPE, class T>
-//   static void Apply(const T* point, const T* parameters, T* projected) {
-//     ComposeForwardDerivatives<T, PROJ, Pose>(point, parameters, projected,
-//                                              jacobian);
-//   }
-// };
-
 struct ProjectFunction {
   template <class TYPE, class T>
   static void Apply(const T* point, const T* parameters, T* projected) {
@@ -797,6 +788,7 @@ struct Pose : CameraFunctor<3, 6, 3> {
         std::swap(jacobian[i * 9 + j], jacobian[i * 9 + 3 + j]);
       }
     }
+    Forward(point, rt, transformed);
   }
 
  private:
