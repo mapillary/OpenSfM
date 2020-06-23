@@ -115,7 +115,7 @@ class ReprojectionError2D : public ReprojectionError{
    using ReprojectionError::ReprojectionError;
    constexpr static int Size = 2;
 
-   template <typename T>
+  template <typename T>
   bool operator()(const T* const camera, const T* const shot,
                   const T* const point, T* residuals) const {
      T camera_point[3];
@@ -131,6 +131,85 @@ class ReprojectionError2D : public ReprojectionError{
      }
 
      return true;
+  }
+};
+
+template<int C>
+class ReprojectionError2DAnalytic : public ReprojectionError,
+                                    public ceres::SizedCostFunction<2, C, 6, 3> {
+ public:
+  using ReprojectionError::ReprojectionError;
+  constexpr static int Size = 2;
+  
+  bool Evaluate(double const* const* parameters, double* residuals,
+                double** jacobians) const {
+    const double* camera = parameters[0];
+    const double* shot = parameters[1];
+    const double* point = parameters[2];
+
+    constexpr int PointSize = 3;
+    double transformed[PointSize];
+    double predicted[Size];
+
+    /* Error only */
+    if (!jacobians) {
+      Pose::Forward(point, shot, &transformed[0]);
+      Dispatch<ProjectFunction>(type_, transformed, camera, predicted);
+    } /* Jacobian + Error */
+    else {
+      double* jac_camera = jacobians[0], * jac_pose = jacobians[1], * jac_point = jacobians[2];
+
+      // Pose jacobian
+      constexpr int PoseSize = 6;
+      const int StridePose = PointSize + PoseSize;
+      Eigen::Matrix<double, PointSize, StridePose, Eigen::RowMajor> jacobian_pose;
+      Pose::ForwardDerivatives<double, true>(point, shot, &transformed[0],
+                                             jacobian_pose.data());
+      // Projection jacobian
+      constexpr int CameraSize = 9;
+      const int StrideProj = PointSize + CameraSize;
+      Eigen::Matrix<double, Size, StrideProj, Eigen::RowMajor> jacobian_proj;
+      Dispatch<ProjectDerivativesFunction>(type_, transformed, camera,
+                                           predicted, jacobian_proj.data());
+      // Compose them
+      constexpr int StrideFull = CameraSize + PoseSize + PointSize;
+      double jacobian[Size * StrideFull];
+      ComposeDerivatives<double, PointSize, StridePose, PoseSize, Size,
+                         StrideProj, CameraSize>(jacobian_pose, jacobian_proj,
+                                                 &jacobian[0]);
+      // Unfold big jacobian stored as | point | pose | camera | per block
+      // We also take the opportunity to apply the scale
+      if (jac_point) {
+        for (int i = 0; i < Size; ++i) {
+          for (int j = 0; j < PointSize; ++j) {
+            jac_point[i * PointSize + j] = 
+                scale_ * jacobian[i * StrideFull + j];
+          }
+        }
+      }
+      if (jac_pose) {
+        for (int i = 0; i < Size; ++i) {
+          for (int j = 0; j < PoseSize; ++j) {
+            jac_pose[i * PoseSize + j] = 
+                scale_ * jacobian[i * StrideFull + PointSize + j];
+          }
+        }
+      }
+      if (jac_camera) {
+        for (int i = 0; i < Size; ++i) {
+          for (int j = 0; j < CameraSize; ++j) {
+            jac_camera[i * CameraSize + j] = 
+                scale_ * jacobian[i * StrideFull + PointSize + PoseSize + j];
+          }
+        }
+      }
+    }
+
+    // The error is the difference between the predicted and observed position
+    for (int i = 0; i < Size; ++i) {
+      residuals[i] = scale_ * (predicted[i] - observed_[i]);
+    }
+    return true;
   }
 };
 
