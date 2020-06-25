@@ -154,6 +154,22 @@ class ShotMetadata(object):
         self.capture_time = None
         self.skey = None
 
+    def add_to_map_shot(self, shot: pymap.Shot):
+        if self.orientation is not None:
+            shot.shot_measurement.orientation.value = self.orientation
+        if self.gps_dop is not None:
+            shot.shot_measurement.gps_accuracy.value = self.gps_dop
+        if self.gps_position is not None:
+            shot.shot_measurement.gps_position.value = self.gps_position
+        if self.accelerometer is not None:
+            shot.shot_measurement.accelerometer.value = self.accelerometer
+        if self.compass is not None:
+            shot.shot_measurement.compass_angle.value = self.compass["angle"]
+        if self.capture_time is not None:
+            shot.shot_measurement.capture_time.value = self.capture_time
+        if self.skey is not None:
+            shot.shot_measurement.sequence_key.value = self.skey
+
 
 class ShotMesh(object):
     """Triangular mesh of points visible in a shot
@@ -895,12 +911,10 @@ class Reconstruction(object):
                 shot.pose.rotation, shot.pose.translation)
         map_shot = self.map.create_shot(shot.id, shot.camera.id, pose)
         if shot.metadata is not None:
-            if shot.metadata.gps_dop is not None:
-                map_shot.shot_measurement.gps_dop = shot.metadata.gps_dop
-            if shot.metadata.gps_position is not None:
-                map_shot.shot_measurement.gps_position = shot.metadata.gps_position
-            if shot.metadata.orientation is not None:
-                map_shot.shot_measurement.orientation = shot.metadata.orientation
+            try:  # Ugly handling of both pymap.Shot and types.Shot
+                map_shot.metadata = shot.metadata
+            except TypeError:
+                shot.metadata.add_to_map_shot(map_shot)
 
     def get_shot(self, id):
         """Return a shot by id.

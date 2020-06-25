@@ -1,8 +1,9 @@
 import numpy as np
 
 from opensfm import context
-from opensfm import types
 from opensfm import pygeometry
+from opensfm import pymap
+from opensfm import types
 
 """
 Trying to imitate the following structure
@@ -54,6 +55,9 @@ def test_reconstruction_class_initialization():
     metadata.gps_position = [1.0815875281451939,
                              -0.96510451436708888,
                              1.2042133903991235]
+    metadata.accelerometer = [0.1, 0.9, 0.0]
+    metadata.compass = {"angle": 270.0, "accuracy": 15.0}
+    metadata.skey = 'a_sequence_key'
 
     # Instantiate shots
     pose0 = types.Pose([0.0, 0.0, 0.0], [0.0, 0.0, 0.0])
@@ -250,4 +254,10 @@ def _get_spherical_camera():
     camera_cpp = pygeometry.Camera.create_spherical()
     return camera, camera_cpp
 
-test_reconstruction_class_initialization()
+
+def test_shot_measurement():
+    m = pymap.ShotMeasurementInt()
+    assert not m.has_value
+    m.value = 4
+    assert m.has_value
+    assert m.value == 4

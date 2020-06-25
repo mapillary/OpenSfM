@@ -119,9 +119,9 @@ def bundle(reconstruction, camera_priors, gcp, config):
 
     if config['bundle_use_gps']:
         for shot in reconstruction.shots.values():
-            g = shot.metadata.gps_position
+            g = shot.metadata.gps_position.value
             ba.add_position_prior(shot.id, g[0], g[1], g[2],
-                                  shot.metadata.gps_dop)
+                                  shot.metadata.gps_accuracy.value)
 
     if config['bundle_use_gcp'] and gcp:
         _add_gcp_to_bundle(ba, gcp, reconstruction.shots)
@@ -200,9 +200,9 @@ def bundle_single_view(reconstruction, shot_id, camera_priors, config):
             shot_id, track_id, point[0], point[1], obs.scale)
 
     if config['bundle_use_gps']:
-        g = shot.metadata.gps_position
+        g = shot.metadata.gps_position.value
         ba.add_position_prior(shot_id, g[0], g[1], g[2],
-                              shot.metadata.gps_dop)
+                              shot.metadata.gps_accuracy.value)
 
     ba.set_point_projection_loss_function(config['loss_function'],
                                           config['loss_function_threshold'])
@@ -280,9 +280,9 @@ def bundle_local(reconstruction, camera_priors, gcp, central_shot_id, config):
     if config['bundle_use_gps']:
         for shot_id in interior:
             shot = reconstruction.shots[shot_id]
-            g = shot.metadata.gps_position
+            g = shot.metadata.gps_position.value
             ba.add_position_prior(shot.id, g[0], g[1], g[2],
-                                  shot.metadata.gps_dop)
+                                  shot.metadata.gps_accuracy.value)
 
     if config['bundle_use_gcp'] and gcp:
         _add_gcp_to_bundle(ba, gcp, reconstruction.shots)

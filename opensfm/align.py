@@ -81,7 +81,7 @@ def alignment_constraints(config, reconstruction, gcp):
     if config['bundle_use_gps']:
         for shot in reconstruction.shots.values():
             X.append(shot.pose.get_origin())
-            Xp.append(shot.metadata.gps_position)
+            Xp.append(shot.metadata.gps_position.value)
 
     return X, Xp
 
@@ -212,7 +212,7 @@ def estimate_ground_plane(reconstruction, config):
     for shot in reconstruction.shots.values():
         R = shot.pose.get_rotation_matrix()
         x, y, z = get_horizontal_and_vertical_directions(
-            R, shot.metadata.orientation)
+            R, shot.metadata.orientation.value)
         if orientation_type == 'no_roll':
             onplane.append(x)
             verticals.append(-y)

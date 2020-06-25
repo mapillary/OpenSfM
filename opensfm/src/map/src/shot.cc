@@ -4,15 +4,25 @@
 #include <numeric>
 namespace map
 {
-Shot::Shot(const ShotId& shot_id, const Camera* const shot_camera, const Pose& pose):
-            id_(shot_id), shot_camera_(shot_camera), slam_data_(this), pose_(pose)
-{
-}
-Shot::Shot(const ShotId& shot_id, std::unique_ptr<Camera> shot_camera, const Pose& pose):
-            id_(shot_id), shot_camera_(shot_camera.get()), slam_data_(this), pose_(pose)
-{
+
+Shot::Shot(const ShotId& shot_id, const Camera* const shot_camera,
+           const Pose& pose)
+    : id_(shot_id),
+      shot_camera_(shot_camera),
+      slam_data_(this),
+      pose_(pose),
+      merge_cc(0) {}
+
+Shot::Shot(const ShotId& shot_id, std::unique_ptr<Camera> shot_camera,
+           const Pose& pose)
+    : id_(shot_id),
+      shot_camera_(shot_camera.get()),
+      slam_data_(this),
+      pose_(pose),
+      merge_cc(0) {
   own_camera_ = std::move(shot_camera);
 }
+
 size_t
 Shot::ComputeNumValidLandmarks(const int min_obs_thr) const
 {

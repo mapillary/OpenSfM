@@ -21,6 +21,7 @@ from opensfm import features
 from opensfm import types
 from opensfm import context
 from opensfm import pygeometry
+from opensfm import pymap
 
 
 logger = logging.getLogger(__name__)
@@ -231,21 +232,13 @@ def shot_to_json(shot):
         'translation': list(shot.pose.translation),
         'camera': shot.camera.id
     }
+
     if shot.metadata is not None:
-        if shot.metadata.orientation is not None:
-            obj['orientation'] = shot.metadata.orientation
-        if shot.metadata.capture_time is not None:
-            obj['capture_time'] = shot.metadata.capture_time
-        if shot.metadata.gps_dop is not None:
-            obj['gps_dop'] = shot.metadata.gps_dop
-        if shot.metadata.gps_position is not None:
-            obj['gps_position'] = list(shot.metadata.gps_position)
-        if shot.metadata.accelerometer is not None:
-            obj['accelerometer'] = shot.metadata.accelerometer
-        if shot.metadata.compass is not None:
-            obj['compass'] = shot.metadata.compass
-        if shot.metadata.skey is not None:
-            obj['skey'] = shot.metadata.skey
+        if isinstance(shot, types.Shot):
+            obj.update(types_metadata_to_json(shot.metadata))
+        elif isinstance(shot, pymap.Shot):
+            obj.update(pymap_metadata_to_json(shot.metadata))
+
     if shot.mesh is not None:
         obj['vertices'] = [list(vertice) for vertice in shot.mesh.vertices]
         obj['faces'] = [list(face) for face in shot.mesh.faces]
@@ -255,6 +248,45 @@ def shot_to_json(shot):
         obj['covariance'] = shot.covariance.tolist()
     if hasattr(shot, 'merge_cc'):
         obj['merge_cc'] = shot.merge_cc
+
+    return obj
+
+
+def types_metadata_to_json(metadata: types.ShotMetadata):
+    obj = {}
+    if metadata.orientation is not None:
+        obj['orientation'] = metadata.orientation
+    if metadata.capture_time is not None:
+        obj['capture_time'] = metadata.capture_time
+    if metadata.gps_dop is not None:
+        obj['gps_dop'] = metadata.gps_dop
+    if metadata.gps_position is not None:
+        obj['gps_position'] = list(metadata.gps_position)
+    if metadata.accelerometer is not None:
+        obj['accelerometer'] = metadata.accelerometer
+    if metadata.compass is not None:
+        obj['compass'] = metadata.compass
+    if metadata.skey is not None:
+        obj['skey'] = metadata.skey
+    return obj
+
+
+def pymap_metadata_to_json(metadata: pymap.ShotMeasurements):
+    obj = {}
+    if metadata.orientation.has_value:
+        obj['orientation'] = metadata.orientation.value
+    if metadata.capture_time.has_value:
+        obj['capture_time'] = metadata.capture_time.value
+    if metadata.gps_accuracy.has_value:
+        obj['gps_dop'] = metadata.gps_accuracy.value
+    if metadata.gps_position.has_value:
+        obj['gps_position'] = list(metadata.gps_position.value)
+    if metadata.accelerometer.has_value:
+        obj['accelerometer'] = list(metadata.accelerometer.value)
+    if metadata.compass_angle.has_value:
+        obj['compass'] = {"angle": metadata.compass_angle.value}
+    if metadata.sequence_key.has_value:
+        obj['skey'] = metadata.sequence_key.value
     return obj
 
 

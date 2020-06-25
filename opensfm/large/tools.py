@@ -116,8 +116,8 @@ def add_camera_constraints_soft(ra, reconstruction_shots, reconstruction_name):
                 ra.add_shot(shot_name, R[0], R[1], R[2],
                             t[0], t[1], t[2], False)
 
-                gps = shot.metadata.gps_position
-                gps_sd = shot.metadata.gps_dop
+                gps = shot.metadata.gps_position.value
+                gps_sd = shot.metadata.gps_accuracy.value
 
                 ra.add_absolute_position_constraint(
                         shot_name, gps[0], gps[1], gps[2], gps_sd)
@@ -152,8 +152,8 @@ def add_camera_constraints_hard(ra, reconstruction_shots,
             ra.add_shot(shot_name, R[0], R[1], R[2],
                         t[0], t[1], t[2], True)
 
-            gps = shot.metadata.gps_position
-            gps_sd = shot.metadata.gps_dop
+            gps = shot.metadata.gps_position.value
+            gps_sd = shot.metadata.gps_accuracy.value
             ra.add_relative_absolute_position_constraint(
                 rec_name, shot_name, gps[0], gps[1], gps[2], gps_sd)
 
