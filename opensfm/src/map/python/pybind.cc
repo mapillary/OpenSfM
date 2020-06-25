@@ -14,6 +14,19 @@
 
 namespace py = pybind11;
 // PYBIND11_MAKE_OPAQUE(std::unordered_map<std::string, map::TestShot>)
+
+template <typename T>
+void DeclareShotMeasurement(py::module &m, const std::string &type_name) {
+  using SM = map::ShotMeasurement<T>;
+  std::string class_name = std::string("ShotMeasurement") + type_name;
+
+  py::class_<SM>(m, class_name.c_str())
+      .def(py::init<>())
+      .def_property_readonly("has_value", &SM::HasValue)
+      .def_property("value", &SM::Value, &SM::SetValue)
+      .def("reset", &SM::Reset);
+}
+
 PYBIND11_MODULE(pymap, m) {
   py::class_<map::Pose>(m, "Pose")
       .def(py::init())
@@ -277,29 +290,34 @@ PYBIND11_MODULE(pymap, m) {
   py::class_<map::SLAMLandmarkData>(m, "SlamLandmarkData")
       .def("get_observed_ratio", &map::SLAMLandmarkData::GetObservedRatio);
 
+  DeclareShotMeasurement<int>(m, "Int");
+  DeclareShotMeasurement<double>(m, "Double");
+  DeclareShotMeasurement<Vec3d>(m, "Vec3d");
+  DeclareShotMeasurement<std::string>(m, "String");
+
   py::class_<map::ShotMeasurements>(m, "ShotMeasurements")
-      .def_readwrite("gps_dop", &map::ShotMeasurements::gps_dop_)
+      .def_readwrite("gps_accuracy", &map::ShotMeasurements::gps_accuracy_)
       .def_readwrite("gps_position", &map::ShotMeasurements::gps_position_)
       .def_readwrite("orientation", &map::ShotMeasurements::orientation_)
       .def_readwrite("capture_time", &map::ShotMeasurements::capture_time_)
       .def_readwrite("accelerometer", &map::ShotMeasurements::accelerometer_)
-      .def_readwrite("compass", &map::ShotMeasurements::compass_)
-      .def_readwrite("skey", &map::ShotMeasurements::skey_)
+      .def_readwrite("compass_angle", &map::ShotMeasurements::compass_angle_)
+      .def_readwrite("sequence_key", &map::ShotMeasurements::sequence_key_)
       .def(py::pickle(
           [](const map::ShotMeasurements &s) {
-            return py::make_tuple(s.gps_dop_, s.gps_position_, s.orientation_,
-                                  s.capture_time_, s.accelerometer_, s.compass_,
-                                  s.skey_);
+            return py::make_tuple(s.gps_accuracy_, s.gps_position_, s.orientation_,
+                                  s.capture_time_, s.accelerometer_, s.compass_angle_,
+                                  s.sequence_key_);
           },
           [](py::tuple s) {
             map::ShotMeasurements sm;
-            sm.gps_dop_ = s[0].cast<decltype(sm.gps_dop_)>();
+            sm.gps_accuracy_ = s[0].cast<decltype(sm.gps_accuracy_)>();
             sm.gps_position_ = s[1].cast<decltype(sm.gps_position_)>();
             sm.orientation_ = s[2].cast<decltype(sm.orientation_)>();
             sm.capture_time_ = s[3].cast<decltype(sm.capture_time_)>();
             sm.accelerometer_ = s[4].cast<decltype(sm.accelerometer_)>();
-            sm.compass_ = s[5].cast<decltype(sm.compass_)>();
-            sm.skey_ = s[6].cast<decltype(sm.skey_)>();
+            sm.compass_angle_ = s[5].cast<decltype(sm.compass_angle_)>();
+            sm.sequence_key_ = s[6].cast<decltype(sm.sequence_key_)>();
             return sm;
           }));
 
