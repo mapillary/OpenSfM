@@ -24,7 +24,13 @@ void DeclareShotMeasurement(py::module &m, const std::string &type_name) {
       .def(py::init<>())
       .def_property_readonly("has_value", &SM::HasValue)
       .def_property("value", &SM::Value, &SM::SetValue)
-      .def("reset", &SM::Reset);
+      .def("reset", &SM::Reset)
+      .def(py::pickle([](const SM &sm) { return py::make_tuple(sm.Value()); },
+                      [](py::tuple p) {
+                        SM sm;
+                        sm.SetValue(p[0].cast<T>());
+                        return sm;
+                      }));
 }
 
 PYBIND11_MODULE(pymap, m) {
