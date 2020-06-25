@@ -178,6 +178,7 @@ PYBIND11_MODULE(pymap, m) {
                     py::return_value_policy::reference_internal)
       .def_readwrite("mesh", &map::Shot::mesh)
       .def_readwrite("covariance", &map::Shot::covariance)
+      .def_readwrite("merge_cc", &map::Shot::merge_cc)
       .def("get_observation", &map::Shot::GetObservation,
            py::return_value_policy::reference_internal)
       .def("get_keypoints", &map::Shot::GetKeyPoints,

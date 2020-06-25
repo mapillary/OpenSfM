@@ -227,6 +227,7 @@ class Shot {
   ShotMeasurements shot_measurements_;  // metadata
   ShotMesh mesh;
   MatXd covariance;
+  long int merge_cc;
 
  private:
   Pose pose_;
