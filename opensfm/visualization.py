@@ -104,10 +104,11 @@ class Visualization(object):
         self.shots.clear()
         if kfs is not None:
             for shot in kfs:
-                self.shots.append((shot.id, shot.pose.get_cam_to_world().T))
+                self.shots.append((shot.unique_id, shot.pose.get_cam_to_world().T))
         else:
             for shot in rec.shots.values():
-                self.shots.append((shot.id, shot.pose.get_cam_to_world().T))
+                self.shots.append((shot.unique_id, shot.pose.get_cam_to_world().T))
+        self.shots.sort()
         self.scene_lock.release()
 
     def update_texture(self):
@@ -190,39 +191,44 @@ class Visualization(object):
             self.color_buffer.Unbind()
             glPopMatrix()
 
-    # def draw_points(self):
-    #     if len(self.points) == 0:
-    #         return
-    #     glPointSize(self.point_size)
-    #     glBegin(GL_POINTS)
-        
-    #     for point, color in self.points:
-    #         glColor3f(color[0], color[1], color[2])
-    #         glVertex3f(point[0], point[1], point[2])
+    # def draw_trajectory(self, pos1, pos2):
+    #     glLineWidth(3)
+    #     glColor3f(0, 1, 0)
+    #     glBegin(GL_LINES)
+    #     glVertex3f(pos1[0], pos1[1], pos1[2])
+    #     glVertex3f(pos2[0], pos2[1], pos2[2])
     #     glEnd()
-        
-
-    def draw_trajectory(self, pos1, pos2):
-        glLineWidth(3)
-        glColor3f(0, 1, 0)
-        glBegin(GL_LINES)
-        glVertex3f(pos1[0], pos1[1], pos1[2])
-        glVertex3f(pos2[0], pos2[1], pos2[2])
-        glEnd()
 
     def draw_shots_and_trajectory(self):
         if len(self.shots) == 0:
             return
-        prev_Twc = self.shots[0][1]
-        self.draw_single_shot(prev_Twc)
-        for idx in range(1, len(self.shots)):
-            shot = self.shots[idx]
-            T_wc = shot[1]
-
+        for _, T_wc in self.shots:
             self.draw_single_shot(T_wc)
-            self.draw_trajectory(T_wc[3, 0:3], prev_Twc[3, 0:3])
-            prev_Twc = self.shots[idx - 1][1]
+        self.draw_trajectory()
+        # prev_Twc = self.shots[0][1]
+        # self.draw_single_shot(prev_Twc)
+        # for idx in range(1, len(self.shots)):
+        #     shot = self.shots[idx]
+        #     T_wc = shot[1]
 
+        #     self.draw_single_shot(T_wc)
+        #     self.draw_trajectory(T_wc[3, 0:3], prev_Twc[3, 0:3])
+        #     prev_Twc = self.shots[idx - 1][1]
+        #     print(shot[0], ", ", self.shots[idx - 1][0])
+
+    def draw_trajectory(self):
+        if len(self.shots) > 1:
+            glLineWidth(3)
+            glColor3f(0, 1, 0)
+            glBegin(GL_LINES)
+            for idx in range(1, len(self.shots)):
+                T_wc1 = self.shots[idx-1][1]
+                T_wc2 = self.shots[idx][1]
+                pos1 = T_wc1[3, 0:3]
+                pos2= T_wc2[3, 0:3]
+                glVertex3f(pos1[0], pos1[1], pos1[2])
+                glVertex3f(pos2[0], pos2[1], pos2[2])
+            glEnd()
 
     def draw_single_shot(self, T_wc):
         sz = self.size_factor

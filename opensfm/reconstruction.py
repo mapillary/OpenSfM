@@ -604,7 +604,10 @@ def two_view_reconstruction_general(p1, p2, camera1, camera2,
     """
     R_5p, t_5p, inliers_5p = two_view_reconstruction(
         p1, p2, camera1, camera2, threshold, iterations)
-
+    print("first: ", R_5p)
+    # R_5p, t_5p, inliers_5p = two_view_reconstruction(
+    #     p1, p2, camera1, camera2, threshold, iterations)
+    # print("second: ", R_5p)
     R_plane, t_plane, inliers_plane = two_view_reconstruction_plane_based(
         p1, p2, camera1, camera2, threshold)
 

@@ -140,6 +140,7 @@ void Shot::UndistortAndComputeBearings() {
     auto& obs = slam_data_.undist_keypts_.back();
     obs.point = shot_camera_->Project(shot_camera_->Bearing(keypoints_[idx].point));
   }
+  std::cout << id_ << "slam_data_.undist_keypts_: " << slam_data_.undist_keypts_.size() << std::endl;
 }
 
 void
@@ -217,6 +218,8 @@ Vec2d Shot::Project(const Vec3d& global_pos) const {
 
 Vec2d Shot::ProjectInImageCoordinates(const Vec3d& global_pos) const {
   const Vec3d pt = pose_.RotationWorldToCamera()*global_pos + pose_.TranslationWorldToCamera(); 
+  // if ((shot_camera_->GetProjectionMatrixScaled()*pt)[2] < 0)
+    // std::cout << "out of bounds" << (shot_camera_->GetProjectionMatrixScaled()*pt).hnormalized().transpose() << std::endl;
   return (shot_camera_->GetProjectionMatrixScaled()*pt).hnormalized();
 }
 

@@ -63,7 +63,10 @@ GuidedMatcher::FindBestMatchForLandmark(const map::Landmark *const lm, map::Shot
                                         const int scale_level, const float margin,
                                         const float lowe_ratio) const //lowe ratio == 0.0 if no test
 {
-
+  // std::cout << "margin * scale_factors_.at(scale_level): " << margin * scale_factors_.at(scale_level)
+  //                 << ", " << margin << ", "<< scale_level << std::endl;
+  // std::cout << "curr_shot.slam_data_.undist_keypts_: " << curr_shot.slam_data_.undist_keypts_.size()
+  //           << std::endl;
   const auto indices = GetKeypointsInCell(curr_shot.slam_data_.undist_keypts_,
                                           curr_shot.slam_data_.keypt_indices_in_cells_, 
                                           reproj_x, reproj_y,
@@ -72,6 +75,7 @@ GuidedMatcher::FindBestMatchForLandmark(const map::Landmark *const lm, map::Shot
                                         
   if (indices.empty())
   {
+    // std::cout << "indices.empty(), no match" << std::endl;
     return NO_MATCH;
   }
 
@@ -92,6 +96,10 @@ GuidedMatcher::FindBestMatchForLandmark(const map::Landmark *const lm, map::Shot
     {
       const auto& desc = curr_shot.GetDescriptor(match_idx);
       const auto hamm_dist = compute_descriptor_distance_32(lm_desc, desc);
+      // if (match_idx == 3140)
+      // {
+      //   std::cout << "matching: " << match_idx << ",  hamm: " << hamm_dist << std::endl;
+      // }
       if (hamm_dist < best_hamm_dist) {
         second_best_hamm_dist = best_hamm_dist;
         best_hamm_dist = hamm_dist;
@@ -111,11 +119,12 @@ GuidedMatcher::FindBestMatchForLandmark(const map::Landmark *const lm, map::Shot
     //perform Lowe ratio test
     if (lowe_ratio > 0.0f && best_scale_level == second_best_scale_level && best_hamm_dist > lowe_ratio * second_best_hamm_dist) 
     {
+      std::cout <<"Discard (lowe_ratio > 0.0f && best_scale_level == second_best_scale_level && best_hamm_dist > lowe_ratio * second_best_hamm_dist)" << std::endl;
       return NO_MATCH;
-      
     }
     return best_idx;
   }
+  // std::cout << "Discard HAMMING_DIST_THR_HIGH" << std::endl;
   return NO_MATCH;
 }
 
@@ -334,9 +343,6 @@ GuidedMatcher::GetKeypointsInCell(const AlignedVector<Observation>& undist_keypt
   return indices;
 }
 
-
-
-
 size_t
 GuidedMatcher::AssignLandmarksToShot(map::Shot& shot, const std::vector<map::Landmark*>& landmarks, const float margin,
                                      const AlignedVector<Observation>& other_undist_kpts, bool check_orientation, const float lowe_ratio) const
@@ -365,16 +371,25 @@ GuidedMatcher::AssignLandmarksToShot(map::Shot& shot, const std::vector<map::Lan
   Vec2d pt2D; // stores the reprojected position
   const auto& undist_kpts = shot.slam_data_.undist_keypts_;
   size_t n_scales = 0;
-
+  size_t num_perfect_matches = 0;
+  size_t discard_grid = 0, total = 0, no_match_disc = 0;
+  // if (landmarks.size() != undist_kpts.size())
+  // {
+  //   std::runtime_error("landmarks.size() != undist_kpts.size()");
+  // }
+  // std::cout << "n_landmarks: " << n_landmarks << std::endl;
   for (size_t idx = 0; idx < n_landmarks; ++idx)
   {
+    // std::cout << "idx: " << idx << std::endl;
     auto lm = landmarks[idx];
     if (lm != nullptr)
     {
       // Reproject
       const Vec3d& global_pos = lm->GetGlobalPos();
       const Vec2d pt2D = shot.ProjectInImageCoordinates(global_pos);
-      if (cam->CheckWithinBoundaries(pt2D))
+      // std::cout << "idx: " << idx << " pt2D: " << pt2D.transpose() << std::endl;
+      ++total;
+      // if (cam->CheckWithinBoundaries(pt2D))
       {
         //check if it is within our grid
         if (grid_params_.in_grid(pt2D[0], pt2D[1]))
@@ -404,32 +419,71 @@ GuidedMatcher::AssignLandmarksToShot(map::Shot& shot, const std::vector<map::Lan
           }
           if (scale_lvl >= 0)
           {
-            ++n_scales;
             lm_data.IncreaseNumObservable();
             const auto best_idx = FindBestMatchForLandmark(lm, shot, float(pt2D[0]), float(pt2D[1]), scale_lvl, margin, lowe_ratio);
+            // if (best_idx == 3140)
+            // {
+            //   std::cout << "pt2D: " << pt2D.transpose() << ", " << other_undist_kpts[best_idx].point.transpose() << std::endl;
+            // }
             if (best_idx != NO_MATCH)
             {
               if (check_orientation)
               {
+                // std::cout << "best_idx: " << best_idx << "/" << idx << std::endl;
                 const auto delta_angle = other_undist_kpts.at(idx).angle - undist_kpts.at(best_idx).angle;
                 angle_checker->append_delta_angle(delta_angle, best_idx);
+                std::cout << idx << "<->" << best_idx <<
+                         "delta_angle: " << delta_angle << " langle: " << other_undist_kpts.at(idx).angle
+                      << " rangle: " << undist_kpts.at(best_idx).angle << 
+                      std::endl;
+
+                const DescriptorType d1 = shot.GetDescriptor(best_idx);
+                const DescriptorType d2 = lm->slam_data_.descriptor_;
+                const DescriptorType d3 = shot.GetDescriptor(idx);
+                std::cout << "best_idx<->desc: " << GuidedMatcher::compute_descriptor_distance_32(d1,d2)
+                          << "\nbest_idx<->idx: " << GuidedMatcher::compute_descriptor_distance_32(d1,d3)
+                          << "\ndesc<->idx:" << GuidedMatcher::compute_descriptor_distance_32(d2,d3) << std::endl;
+              }
+              if (idx == best_idx) {
+                num_perfect_matches++;
               }
               num_matches++;
               shot.AddLandmarkObservation(lm, best_idx);
             }
+            // else
+            // {
+            //   std::cout << "Couldn't match " << idx << std::endl; 
+            //   ++no_match_disc;
+            // }
           }
+          // else
+          // {
+          //   std::cout << "Couldn't match " << idx << "because of scale" << std::endl; 
+          //   ++n_scales;
+          // }
         }
+        // else
+        // {
+        //   std::cout << "Couldn't match " << idx << "because of grid" << std::endl; 
+        //   ++discard_grid;
+        // }
       }
     }
   }
+  // std::cout << "discarded because of grid: " << discard_grid << "/" << n_scales << "/" << no_match_disc << "/" << total << std::endl;
+  std::cout << "Number of matches before angle: " << num_matches << std::endl;
   if (check_orientation) 
   {
     const auto invalid_matches = angle_checker->get_invalid_matches();
     for (const auto invalid_idx : invalid_matches) {
         shot.RemoveLandmarkObservation(invalid_idx);
         --num_matches;
+        // std::cout << "Remove match: " << invalid_idx << " because of angle!" << std::endl;
     }
   }
+  std::cout << "Number of matches after angle: " << num_matches << std::endl;
+  std::cout << "Number of perfect matches" << num_perfect_matches << std::endl;
+  // exit(0);
   return num_matches;
 }
 

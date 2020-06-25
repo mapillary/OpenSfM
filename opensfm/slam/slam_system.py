@@ -71,6 +71,7 @@ class SlamSystem(object):
         metadata = reconstruction.get_image_metadata(self.data, im_name)
         self.reconstruction.set_shot_metadata(curr_shot, metadata)
         self.extractor.extract_to_shot(curr_shot, gray_scale_img, np.array([]))
+        print("frame: ", curr_shot.id, " kpts: ", len(curr_shot.get_keypoints()))
         curr_shot.undistort_and_compute_bearings()
         self.matcher.distribute_undist_keypts_to_grid(curr_shot)
 
@@ -91,13 +92,15 @@ class SlamSystem(object):
             pose = self.track_frame(curr_shot)
         else:
             curr_shot.set_pose(pose)
-          
+        
 
         # Check if new KF needed
         self.slam_mapper.update_with_last_frame(curr_shot)
         self.slam_mapper.num_tracked_lms = self.slam_tracker.num_tracked_lms
-        if self.slam_mapper.new_keyframe_is_needed(curr_shot):
+        # Insert a KF immediately after init
+        if self.slam_mapper.new_keyframe_is_needed(curr_shot) or self.slam_mapper.just_initialized:
             self.slam_mapper.insert_new_keyframe(curr_shot)
+        self.slam_mapper.just_initialized = False
         return pose is not None
 
     def init_slam_system(self, curr_shot: pymap.Shot):

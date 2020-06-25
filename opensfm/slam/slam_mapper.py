@@ -7,7 +7,7 @@ from opensfm import pybundle
 from opensfm import pysfm
 # from opensfm import dataset
 # import slam_utils
-# import slam_debug
+import slam_debug
 import logging
 # import matplotlib.pyplot as plt
 
@@ -40,6 +40,7 @@ class SlamMapper(object):
         self.guided_matcher = matcher
         self.curr_kf_id = 0
         self.frame_id_to_kf_id = {}  # converts the frame id to kf id
+        self.just_initialized = False
 
     def add_keyframe(self, kf):
         """Adds a keyframe to the map graph
@@ -96,6 +97,7 @@ class SlamMapper(object):
             pyslam.SlamUtilities.compute_descriptor(lm)
             pyslam.SlamUtilities.compute_normal_and_depth(
                 lm, self.extractor.get_scale_levels())
+
         self.map.set_landmark_unique_id(
             rec_init.map.current_landmark_unique_id())
 
@@ -108,6 +110,26 @@ class SlamMapper(object):
             scale = 1.0 / median_depth
             kf2.scale_pose(scale)
             kf2.scale_landmarks(scale)
+        
+
+        # points1 = []
+        # points2 = []
+        # points3D = []
+        # for lm in self.reconstruction.points.values(): #curr_shot.get_valid_landmarks():
+        #     points1.append(lm.get_observation_in_shot(kf1)[0:2])
+        #     points2.append(lm.get_observation_in_shot(kf2)[0:2])
+        #     points3D.append(lm.coordinates)
+
+        # slam_debug.reproject_landmarks(np.array(points3D), None, kf2.pose.get_world_to_cam(),
+        #                                self.data.load_image(kf2.id), self.camera)
+        # slam_debug.visualize_matches_pts(np.array(points1), np.array(points2), None,
+        #                                  self.data.load_image(kf1.id),
+        #                                  self.data.load_image(kf2.id),
+        #                                  is_normalized=True, do_show=True)
+
+        # visualize the 3D points
+
+        self.just_initialized = True
 
     def new_keyframe_is_needed(self, shot: pymap.Shot):
         num_keyfrms = len(self.keyframes)
@@ -243,7 +265,7 @@ class SlamMapper(object):
         new_t = kf_pose.get_t_world_to_cam()
         # TODO: replace "local" keyframes by that
         # cov_kfs = new_kf.get_graph_node().get_top_n_covisibilities(2 * num_covisibilities)
-        local_keyframes = self.keyframes[-5:-1]
+        local_keyframes = self.keyframes[-10:-1]
 
         min_d, max_d = pyslam.SlamUtilities.compute_min_max_depth(new_kf)
         for old_kf in local_keyframes:
@@ -262,6 +284,18 @@ class SlamMapper(object):
                     match_for_triangulation_epipolar(
                         new_kf, old_kf, E_old_to_new, min_d, max_d, False, 10)
                 self.triangulate_from_two_kfs(new_kf, old_kf, matches)
+        
+        lm_idx = new_kf.get_valid_landmarks_and_indices()
+
+        points2D = []
+        points3D = []
+        for lm, idx in lm_idx:
+            points2D.append(new_kf.get_observation(idx).point)
+            points3D.append(lm.coordinates)
+
+        slam_debug.reproject_landmarks(np.array(points3D), np.array(points2D), new_kf.pose.get_world_to_cam(),
+                                       self.data.load_image(new_kf.id), self.camera, title="triang")
+
 
     def triangulate_from_two_kfs(self, new_kf, old_kf, matches):
         if (len(matches) == 0):
@@ -285,6 +319,7 @@ class SlamMapper(object):
                                                  new_kf_name,
                                                  self.data.config)
         np_after = len(self.reconstruction.points)
+
         logger.debug("Successfully triangulated {} new points between {} and {}.".
                      format(np_after - np_before, new_kf_name, old_kf_name))
 
@@ -406,14 +441,25 @@ class SlamMapper(object):
         # TODO: check outliers!
         logger.debug("Local BA  {}".format(ba.brief_report()))
 
-        th = 0.006
+        lm_idx = shot.get_valid_landmarks_and_indices()
+
+        points2D = []
+        points3D = []
+        for lm, idx in lm_idx:
+            points2D.append(shot.get_observation(idx).point)
+            points3D.append(lm.coordinates)
+        slam_debug.reproject_landmarks(np.array(points3D), np.array(points2D), shot.pose.get_world_to_cam(),
+                                       self.data.load_image(shot.id), self.camera, title="loc ba bef", do_show=False)
+
+        th = 0.006**2
         # Here, we should update the all landmarks!
         for lm in lm_added:
             # Check for outliers and discard them
             point = ba.get_point(lm.id)
             # print(point.reprojection_errors)
             for error in point.reprojection_errors.values():
-                if np.linalg.norm(error) > th:
+                error_sq = error[0]**2+error[1]**2
+                if error_sq > th:
                     # pts_outside += 1
                     # TODO: REMOVE DEBUG
                     # visualize the wrong landmarks
@@ -439,6 +485,18 @@ class SlamMapper(object):
                 ba_shot = ba.get_shot(kf_id)
                 kf.pose.rotation = ba_shot.r
                 kf.pose.translation = ba_shot.t
+
+        lm_idx = shot.get_valid_landmarks_and_indices()
+
+        points2D = []
+        points3D = []
+        for lm, idx in lm_idx:
+            points2D.append(shot.get_observation(idx).point)
+            points3D.append(lm.coordinates)
+        slam_debug.reproject_landmarks(np.array(points3D), np.array(points2D), shot.pose.get_world_to_cam(),
+                                       self.data.load_image(shot.id), self.camera, title="loc ba aft", do_show=True)
+
+
 
     def create_reconstruction(self):
         # now we create the reconstruction

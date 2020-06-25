@@ -41,6 +41,7 @@ public:
   {
     const auto& lms = shot1.GetLandmarks();
     return matcher_.AssignLandmarksToShot(shot2, lms, margin, shot1.slam_data_.undist_keypts_,true, GuidedMatcher::NO_LOWE_TEST);
+    // return matcher_.AssignLandmarksToShot(shot2, lms, margin, shot1.slam_data_.undist_keypts_, GuidedMatcher::N, 0.9);
   }
 
   MatchIndices

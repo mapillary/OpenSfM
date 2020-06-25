@@ -25,13 +25,15 @@ data = dataset.DataSet(args.dataset)
 
 def run_slam(data, slam_vis = None):
     # Create the top-level parser
-    
     start_id = 0
     n_kfs = 0
     for idx, im_name in enumerate(sorted(data.image_list)):
         if idx < start_id:
             continue
+        # if (idx == 2): 
+            # im_name = "000001.png"
         gray_scale_img = io.imread(data._image_file(im_name), grayscale=True)  # The gray-scale image
+        
         ret = slam_system.process_frame(im_name, gray_scale_img)
 
         if slam_vis is not None and RUN_VISUALIZATION:

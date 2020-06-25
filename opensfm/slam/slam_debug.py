@@ -144,12 +144,15 @@ def reproject_landmarks(points3D, observations, T_world_to_cam,
 def visualize_matches_pts(pts1, pts2, matches, im1, im2, is_normalized= True, do_show=True, title = ""):
     if disable_debug:
         return
+    if matches is None:
+        matches = np.column_stack((np.arange(len(pts1)), np.arange(len(pts1))))
     if len(matches) == 0:
         return
     if len(im1.shape) == 3:
         h1, w1, c = im1.shape
     else:
         h1, w1 = im1.shape
+
     pts1 = np.asarray(pts1)
     pts2 = np.asarray(pts2)
     fig, ax = plt.subplots(1)
@@ -162,9 +165,11 @@ def visualize_matches_pts(pts1, pts2, matches, im1, im2, is_normalized= True, do
     else:
         obs_d1, obs_d2 = pts1[matches[:, 0]], pts2[matches[:, 1]]
     ax.imshow(im)
-    skip = 5
+    skip = 1
     ax.scatter(obs_d1[:, 0], obs_d1[:, 1], c=[[0, 1, 0]])
     ax.scatter(w1+obs_d2[:, 0], obs_d2[:, 1], c=[[0, 1, 0]])
+    # for i1, i2 in matches:
+    #     ax.text(w1+obs_d2[i2, 0], obs_d2[i2, 1], str(i2))
     for a, b in zip(obs_d1[::skip, :], obs_d2[::skip, :]):
         ax.plot([a[0], b[0] + w1], [a[1], b[1]])
     ax.set_title(title)
