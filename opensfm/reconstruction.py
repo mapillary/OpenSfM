@@ -18,6 +18,7 @@ from six import iteritems
 from opensfm import pybundle
 from opensfm import pygeometry
 from opensfm import align
+from opensfm import exif as oexif
 from opensfm import log
 from opensfm import tracking
 from opensfm import multiview
@@ -437,7 +438,7 @@ def get_image_metadata(data, image):
         lat = exif['gps']['latitude']
         lon = exif['gps']['longitude']
         if data.config['use_altitude_tag']:
-            alt = exif['gps'].get('altitude', 2.0)
+            alt = min([oexif.maximum_altitude, exif['gps'].get('altitude', 2.0)])
         else:
             alt = 2.0  # Arbitrary value used to align the reconstruction
         x, y, z = reference.to_topocentric(lat, lon, alt)
