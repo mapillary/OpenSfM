@@ -1,6 +1,7 @@
 #pragma once
 
 #include <foundation/newton_raphson.h>
+#include <foundation/numeric.h>
 #include <foundation/types.h>
 
 #include <unsupported/Eigen/AutoDiff>
@@ -794,41 +795,49 @@ struct Pose : CameraFunctor<3, 6, 3> {
  private:
   template <class T>
   static void RotationToAngleAxis(const T* angle_axis, T* rotation) {
-    /* From
-     * https://www.euclideanspace.com/maths/geometry/rotations/conversions/angleToMatrix/
-     */
-
     const T theta2 = SquaredNorm(angle_axis) + angle_axis[2] * angle_axis[2];
-    const T theta = sqrt(theta2);
-    const T c = cos(theta);
-    const T s = sin(theta);
-    const T t = T(1.0) - c;
 
-    const T inv_theta2 = T(1.0) / theta2;
-    const T inv_theta = T(1.0) / theta;
+    // Use Taylor approximation near zero angle : R = I + [angle_axis]x
+    if (theta2 < T(std::numeric_limits<double>::epsilon())) {
+      Eigen::Map<Mat3<T>> mapped_rotation(rotation);
+      const Eigen::Map<const Vec3<T>> mapped_angle_axis(angle_axis);
+      SkewMatrixT(mapped_angle_axis, &mapped_rotation);
+      for (int i = 0; i < 3; ++i) {
+        rotation[i * 3 + i] = T(1.0);
+      }
+    // From https://www.euclideanspace.com/maths/geometry/rotations/conversions/angleToMatrix/
+    } else {
+      const T theta = sqrt(theta2);
+      const T c = cos(theta);
+      const T s = sin(theta);
+      const T t = T(1.0) - c;
 
-    const T xx = angle_axis[0] * angle_axis[0] * inv_theta2;
-    const T xy = angle_axis[0] * angle_axis[1] * inv_theta2;
-    const T xz = angle_axis[0] * angle_axis[2] * inv_theta2;
-    const T yy = angle_axis[1] * angle_axis[1] * inv_theta2;
-    const T yz = angle_axis[1] * angle_axis[2] * inv_theta2;
-    const T zz = angle_axis[2] * angle_axis[2] * inv_theta2;
+      const T inv_theta2 = T(1.0) / theta2;
+      const T inv_theta = T(1.0) / theta;
 
-    const T xs = angle_axis[0] * inv_theta * s;
-    const T ys = angle_axis[1] * inv_theta * s;
-    const T zs = angle_axis[2] * inv_theta * s;
+      const T xx = angle_axis[0] * angle_axis[0] * inv_theta2;
+      const T xy = angle_axis[0] * angle_axis[1] * inv_theta2;
+      const T xz = angle_axis[0] * angle_axis[2] * inv_theta2;
+      const T yy = angle_axis[1] * angle_axis[1] * inv_theta2;
+      const T yz = angle_axis[1] * angle_axis[2] * inv_theta2;
+      const T zz = angle_axis[2] * angle_axis[2] * inv_theta2;
 
-    rotation[0] = t * xx + c;
-    rotation[1] = t * xy - zs;
-    rotation[2] = t * xz + ys;
+      const T xs = angle_axis[0] * inv_theta * s;
+      const T ys = angle_axis[1] * inv_theta * s;
+      const T zs = angle_axis[2] * inv_theta * s;
 
-    rotation[3] = t * xy + zs;
-    rotation[4] = t * yy + c;
-    rotation[5] = t * yz - xs;
+      rotation[0] = t * xx + c;
+      rotation[1] = t * xy - zs;
+      rotation[2] = t * xz + ys;
 
-    rotation[6] = t * xz - ys;
-    rotation[7] = t * yz + xs;
-    rotation[8] = t * zz + c;
+      rotation[3] = t * xy + zs;
+      rotation[4] = t * yy + c;
+      rotation[5] = t * yz - xs;
+
+      rotation[6] = t * xz - ys;
+      rotation[7] = t * yz + xs;
+      rotation[8] = t * zz + c;
+    }
   }
 };
 
