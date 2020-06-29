@@ -113,7 +113,7 @@ TEST_F(ReprojectionError2DFixture, FisheyeAnalyticErrorEvaluatesOK) {
 TEST_F(ReprojectionError2DFixture, DualAnalyticErrorEvaluatesOK) {
   constexpr int size = 4;
   
-  // focal k1, k2
+  // transtion, focal, k1, k2
   const double camera[size] = {0.5, 0.3, 0.1, -0.03};
   RunTest<size>(ProjectionType::DUAL, &camera[0]);
 }
