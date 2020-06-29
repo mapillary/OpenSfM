@@ -1,18 +1,27 @@
 #pragma once
 #include <Eigen/Core>
 #include <Eigen/Geometry>
-
-namespace map
-{
-
+#include <iostream>
 class Pose 
 {
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  Pose():
-    cam_to_world_(Mat4d::Identity()), world_to_cam_(Mat4d::Identity())
+  Pose()
   {
-
+    Mat4d T_cw = Mat4d::Identity();
+    SetFromWorldToCamera(T_cw);
+  }
+  Pose(const Vec3d& R, const Vec3d& t = Vec3d::Zero())
+  {
+    Mat4d T_cw = Mat4d::Identity();
+    SetFromWorldToCamera(R, t);
+  }
+  Pose(const Mat3d& R, const Vec3d& t = Vec3d::Zero())
+  {
+    Mat4d T_cw = Mat4d::Identity();
+    T_cw.block<3, 3>(0, 0) = R;
+    T_cw.block<3, 1>(0, 3) = t;
+    SetFromWorldToCamera(T_cw);
   }
   // Transformation Matrices
   Mat4d WorldToCamera() const { return world_to_cam_; }
@@ -31,6 +40,13 @@ public:
   Vec3d TranslationWorldToCamera() const { return world_to_cam_.block<3,1>(0,3); }
   Vec3d TranslationCameraToWorld() const { return cam_to_world_.block<3,1>(0,3); };
   Vec3d GetOrigin() const { return TranslationCameraToWorld(); }  
+  void SetOrigin(const Vec3d& origin)
+  {
+    // 
+    SetWorldToCamTranslation(-RotationWorldToCamera()*origin);
+    // self.translation = -self.get_rotation_matrix().dot(origin)
+  }
+
 
   void SetFromWorldToCamera(const Mat4d& world_to_camera)
   {
@@ -46,6 +62,7 @@ public:
 
   void SetFromWorldToCamera(const Mat3d& R_cw, const Vec3d& t_cw)
   {
+    world_to_cam_.setIdentity();
     world_to_cam_.block<3,3>(0,0) = R_cw;
     world_to_cam_.block<3,1>(0,3) = t_cw;
     cam_to_world_ = world_to_cam_.inverse();
@@ -54,6 +71,7 @@ public:
 
   void SetFromCameraToWorld(const Mat3d& R_wc, const Vec3d& t_wc)
   {
+    cam_to_world_.setIdentity();
     cam_to_world_.block<3,3>(0,0) = R_wc;
     cam_to_world_.block<3,1>(0,3) = t_wc;
     world_to_cam_ = cam_to_world_.inverse();
@@ -104,6 +122,20 @@ public:
            cam_to_world_.block<3, 1>(0, 3);
   }
 
+  MatX3d TransformWorldToCameraMany(const MatX3d& points) const
+  {
+    const Mat3d R_cw = world_to_cam_.block<3, 3>(0, 0);
+    const Vec3d t_cw = world_to_cam_.block<3, 1>(0, 3);
+    return (points*R_cw.transpose()).rowwise() + t_cw.transpose(); //(R_cw*points.transpose()).transpose();
+  }
+
+  MatX3d TransformCameraToWorldMany(const MatX3d& points) const
+  {
+    const Mat3d R_wc = cam_to_world_.block<3, 3>(0, 0);
+    const Vec3d t_wc = cam_to_world_.block<3, 1>(0, 3);
+    return (points*R_wc.transpose()).rowwise() + t_wc.transpose(); //(R_cw*points.transpose()).transpose();
+  }
+
   // T_pose_base = pose_CW*base_pose_WC
   Pose RelativeTo(const Pose &base_pose) const {
     Pose relpose;
@@ -140,4 +172,3 @@ private:
     r_min_world_to_cam_ = -r_min_cam_to_world_;
   }
 };
-}; //namespace map

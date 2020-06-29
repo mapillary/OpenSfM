@@ -7,7 +7,8 @@ import sys
 from opensfm import dataset
 from opensfm import transformations as tf
 from opensfm import io
-from opensfm import types
+# from opensfm import types
+from opensfm import pygeometry
 from six import iteritems
 
 logger = logging.getLogger(__name__)
@@ -63,8 +64,9 @@ class Command:
             shot_size_cache[shot.id] = udata.undistorted_image_size(shot.id)
             shot_index[shot.id] = i
             i += 1
-
-            if type(shot.camera) == types.BrownPerspectiveCamera:
+            # if type(shot.camera) == pygeometry.BrownPerspectiveCamera:
+            # print(shot.camera.projection_type, pygeometry.BROWN)
+            if shot.camera.projection_type == "brown":
                 # Will approximate Brown model, not optimal
                 focal_normalized = (shot.camera.focal_x + shot.camera.focal_y) / 2.0
             else:

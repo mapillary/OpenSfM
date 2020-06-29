@@ -1,8 +1,7 @@
 #include <map/landmark.h>
 #include <map/map.h>
-#include <map/pose.h>
 #include <map/shot.h>
-
+#include <geometry/pose.h>
 #include <unordered_set>
 
 namespace map {
@@ -87,6 +86,12 @@ void Map::ClearObservationsAndLandmarks() {
   // then clear the landmarks_
   landmarks_.clear();
 }
+
+Shot* Map::CreateShot(const ShotId& shot_id, const CameraId& camera_id)
+{
+  return CreateShot(shot_id, camera_id, Pose());
+}
+
 
 /**
  * Creates a shot and returns a pointer to it

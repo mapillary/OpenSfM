@@ -1,23 +1,24 @@
 #include <foundation/types.h>
+#include <geometry/pose.h>
 #include <glog/logging.h>
 #include <map/TestView.h>
 #include <map/dataviews.h>
 #include <map/defines.h>
 #include <map/landmark.h>
 #include <map/map.h>
-#include <map/pose.h>
 #include <map/pybind_utils.h>
 #include <map/shot.h>
 #include <pybind11/eigen.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <typeinfo>
 
 namespace py = pybind11;
-// PYBIND11_MAKE_OPAQUE(std::unordered_map<std::string, map::TestShot>)
 
 template <typename T>
 void DeclareShotMeasurement(py::module &m, const std::string &type_name) {
   using SM = map::ShotMeasurement<T>;
+  
   std::string class_name = std::string("ShotMeasurement") + type_name;
 
   py::class_<SM>(m, class_name.c_str())
@@ -32,60 +33,7 @@ void DeclareShotMeasurement(py::module &m, const std::string &type_name) {
                         return sm;
                       }));
 }
-
 PYBIND11_MODULE(pymap, m) {
-  py::class_<map::Pose>(m, "Pose")
-      .def(py::init())
-      .def("get_cam_to_world", &map::Pose::CameraToWorld)
-      .def("get_world_to_cam", &map::Pose::WorldToCamera)
-      // C++11
-      .def("set_from_world_to_cam",
-           (void (map::Pose::*)(const Eigen::Matrix4d &)) &
-               map::Pose::SetFromWorldToCamera)
-      .def("set_from_world_to_cam",
-           (void (map::Pose::*)(const Eigen::Matrix3d &,
-                                const Eigen::Vector3d &)) &
-               map::Pose::SetFromWorldToCamera)
-      .def("set_from_world_to_cam",
-           (void (map::Pose::*)(const Eigen::Vector3d &,
-                                const Eigen::Vector3d &)) &
-               map::Pose::SetFromWorldToCamera)
-      .def("set_from_cam_to_world",
-           (void (map::Pose::*)(const Eigen::Matrix4d &)) &
-               map::Pose::SetFromCameraToWorld)
-      .def("set_from_cam_to_world",
-           (void (map::Pose::*)(const Eigen::Matrix3d &,
-                                const Eigen::Vector3d &)) &
-               map::Pose::SetFromCameraToWorld)
-      .def("set_from_cam_to_world",
-           (void (map::Pose::*)(const Eigen::Vector3d &,
-                                const Eigen::Vector3d &)) &
-               map::Pose::SetFromCameraToWorld)
-      .def("get_origin", &map::Pose::GetOrigin)
-      .def("get_R_cam_to_world", &map::Pose::RotationCameraToWorld)
-      .def("get_rotation_matrix", &map::Pose::RotationWorldToCamera)
-      .def("get_R_world_to_cam", &map::Pose::RotationWorldToCamera)
-      .def("get_R_cam_to_world_min", &map::Pose::RotationCameraToWorldMin)
-      .def("get_R_world_to_cam_min", &map::Pose::RotationWorldToCameraMin)
-      .def("get_t_cam_to_world", &map::Pose::TranslationCameraToWorld)
-      .def("get_t_world_to_cam", &map::Pose::TranslationWorldToCamera)
-      .def("get_Rt", &map::Pose::WorldToCameraRt)
-      .def_property("rotation", &map::Pose::RotationWorldToCameraMin,
-                    &map::Pose::SetWorldToCamRotation)
-      .def_property("translation", &map::Pose::TranslationWorldToCamera,
-                    &map::Pose::SetWorldToCamTranslation)
-      .def("set_rotation_matrix", &map::Pose::SetWorldToCamRotationMatrix)
-      .def("transform", &map::Pose::TransformWorldToCamera)
-      .def("transform_inverse", &map::Pose::TransformCameraToWorld)
-      .def("relative_to", &map::Pose::RelativeTo)
-      .def(py::pickle(
-          [](const map::Pose &p) { return py::make_tuple(p.CameraToWorld()); },
-          [](py::tuple p) {
-            map::Pose pose;
-            pose.SetFromCameraToWorld(p[0].cast<Mat4d>());
-            return pose;
-          }));
-
   py::class_<map::Map>(m, "Map")
       .def(py::init())
       .def("number_of_shots", &map::Map::NumberOfShots,
@@ -94,12 +42,10 @@ PYBIND11_MODULE(pymap, m) {
       .def("number_of_cameras", &map::Map::NumberOfCameras)
       .def("create_camera", &map::Map::CreateCamera, py::arg("camera"),
            py::return_value_policy::reference_internal)
-      //  .def("remove_shot_camera", &map::Map::RemoveShotCamera)
       // Landmark
       .def("create_landmark", &map::Map::CreateLandmark, py::arg("lm_id"),
            py::arg("global_position"),
            py::return_value_policy::reference_internal)
-      //  .def("update_landmark", &map::Map::UpdateLandmark)
       .def("remove_landmark", (void (map::Map::*)(const map::Landmark *const)) &
                                   map::Map::RemoveLandmark)
       .def("remove_landmark", (void (map::Map::*)(const map::LandmarkId &)) &
@@ -107,10 +53,15 @@ PYBIND11_MODULE(pymap, m) {
       .def(
           "create_shot",
           (map::Shot * (map::Map::*)(const map::ShotId &, const map::CameraId &,
-                                     const map::Pose &)) &
+                                     const Pose &)) &
+              map::Map::CreateShot,
+          py::arg("shot_id"), py::arg("camera_id"), py::arg("pose"),
+          py::return_value_policy::reference_internal)
+      .def(
+          "create_shot",
+          (map::Shot * (map::Map::*)(const map::ShotId &, const map::CameraId &)) &
               map::Map::CreateShot,
           py::arg("shot_id"), py::arg("camera_id"),
-          py::arg("pose") = map::Pose(),
           py::return_value_policy::reference_internal)
       .def("remove_shot", &map::Map::RemoveShot)
       .def("get_shot", &map::Map::GetShot,
@@ -170,8 +121,9 @@ PYBIND11_MODULE(pymap, m) {
       .def_readonly("alt", &map::TopoCentricConverter::lat_);
 
   py::class_<map::Shot>(m, "Shot")
-      .def(py::init<const map::ShotId &, const Camera *const,
-                    const map::Pose &>())
+      // .def(py::init<const map::ShotId &, const Camera *const>())
+      // .def(py::init<const map::ShotId &, const Camera *const,
+      //               const Pose &>())
       .def_readonly("id", &map::Shot::id_)
       .def_readonly("unique_id", &map::Shot::unique_id_)
       .def_readonly("slam_data", &map::Shot::slam_data_,
@@ -282,7 +234,7 @@ PYBIND11_MODULE(pymap, m) {
             camera.id = id;
             // create unique_ptr
             auto cam_ptr = std::unique_ptr<Camera>(new Camera(camera));
-            auto pose = map::Pose();
+            auto pose = Pose();
             pose.SetFromCameraToWorld(s[2].cast<Mat4d>());
             auto shot =
                 map::Shot(s[0].cast<map::ShotId>(), std::move(cam_ptr), pose);
@@ -303,18 +255,20 @@ PYBIND11_MODULE(pymap, m) {
   DeclareShotMeasurement<std::string>(m, "String");
 
   py::class_<map::ShotMeasurements>(m, "ShotMeasurements")
+      .def(py::init<>())
       .def_readwrite("gps_accuracy", &map::ShotMeasurements::gps_accuracy_)
       .def_readwrite("gps_position", &map::ShotMeasurements::gps_position_)
       .def_readwrite("orientation", &map::ShotMeasurements::orientation_)
       .def_readwrite("capture_time", &map::ShotMeasurements::capture_time_)
       .def_readwrite("accelerometer", &map::ShotMeasurements::accelerometer_)
       .def_readwrite("compass_angle", &map::ShotMeasurements::compass_angle_)
+      .def_readwrite("compass_accuracy", &map::ShotMeasurements::compass_accuracy_)
       .def_readwrite("sequence_key", &map::ShotMeasurements::sequence_key_)
       .def(py::pickle(
           [](const map::ShotMeasurements &s) {
             return py::make_tuple(s.gps_accuracy_, s.gps_position_, s.orientation_,
                                   s.capture_time_, s.accelerometer_, s.compass_angle_,
-                                  s.sequence_key_);
+                                  s.compass_accuracy_, s.sequence_key_);
           },
           [](py::tuple s) {
             map::ShotMeasurements sm;
@@ -324,6 +278,7 @@ PYBIND11_MODULE(pymap, m) {
             sm.capture_time_ = s[3].cast<decltype(sm.capture_time_)>();
             sm.accelerometer_ = s[4].cast<decltype(sm.accelerometer_)>();
             sm.compass_angle_ = s[5].cast<decltype(sm.compass_angle_)>();
+            sm.compass_accuracy_ = s[5].cast<decltype(sm.compass_angle_)>();
             sm.sequence_key_ = s[6].cast<decltype(sm.sequence_key_)>();
             return sm;
           }));
@@ -334,7 +289,7 @@ PYBIND11_MODULE(pymap, m) {
                     &map::ShotMesh::SetVertices);
 
   py::class_<map::Landmark>(m, "Landmark")
-      .def(py::init<const map::LandmarkId &, const Eigen::Vector3d &>())
+      .def(py::init<const map::LandmarkId &, const Vec3d &>())
       .def_readonly("id", &map::Landmark::id_)
       .def_readonly("unique_id", &map::Landmark::unique_id_)
       .def_readwrite("slam_data", &map::Landmark::slam_data_)

@@ -1,19 +1,20 @@
 
 import numpy as np
-from opensfm import types
+# from opensfm import types
+from opensfm import pygeometry
 from opensfm import pybundle
 
 
 def get_shot_origin(shot):
     """Compute the origin of a shot."""
-    pose = types.Pose([shot.rx, shot.ry, shot.rz], [shot.tx, shot.ty, shot.tz])
+    pose = pygeometry.Pose([shot.rx, shot.ry, shot.rz], [shot.tx, shot.ty, shot.tz])
     return pose.get_origin()
 
 
 def get_reconstruction_origin(r):
     """Compute the origin of a reconstruction."""
     s = r.scale
-    pose = types.Pose([r.rx, r.ry, r.rz], [r.tx / s, r.ty / s, r.tz / s])
+    pose = pygeometry.Pose([r.rx, r.ry, r.rz], [r.tx / s, r.ty / s, r.tz / s])
     return pose.get_origin()
 
 

@@ -22,7 +22,7 @@ from opensfm import types
 from opensfm import pysfm
 from opensfm.align import align_reconstruction, apply_similarity
 from opensfm.context import parallel_map, current_memory_usage
-
+from opensfm import pymap
 
 logger = logging.getLogger(__name__)
 
@@ -430,7 +430,8 @@ def _compute_pair_reconstructability(args):
 
 def get_image_metadata(data, image):
     """Get image metadata as a ShotMetadata object."""
-    metadata = types.ShotMetadata()
+    # metadata = types.ShotMetadata()
+    metadata = pymap.ShotMeasurements()
     exif = data.load_exif(image)
     reference = data.load_reference()
     if ('gps' in exif and
@@ -443,27 +444,30 @@ def get_image_metadata(data, image):
         else:
             alt = 2.0  # Arbitrary value used to align the reconstruction
         x, y, z = reference.to_topocentric(lat, lon, alt)
-        metadata.gps_position = [x, y, z]
-        metadata.gps_dop = exif['gps'].get('dop', 15.0)
-        if metadata.gps_dop == 0.0:
-            metadata.gps_dop = 15.0
+        metadata.gps_position.value = [x, y, z]
+        # metadata.gps_dop = exif['gps'].get('dop', 15.0)
+        metadata.gps_accuracy.value = exif['gps'].get('dop', 15.0)
+        if metadata.gps_accuracy.value == 0.0:
+            metadata.gps_accuracy.value = 15.0
     else:
-        metadata.gps_position = [0.0, 0.0, 0.0]
-        metadata.gps_dop = 999999.0
+        metadata.gps_position.value = [0.0, 0.0, 0.0]
+        metadata.gps_accuracy.value = 999999.0
 
-    metadata.orientation = exif.get('orientation', 1)
+    metadata.orientation.value = exif.get('orientation', 1)
 
     if 'accelerometer' in exif:
         metadata.accelerometer = exif['accelerometer']
 
     if 'compass' in exif:
-        metadata.compass = exif['compass']
+        metadata.compass_angle.value = exif['compass']['angle']
+        if 'accuracy' in exif['compass']:
+            metadata.compass_accuracy.value = exif['compass']['accuracy']
 
     if 'capture_time' in exif:
-        metadata.capture_time = exif['capture_time']
+        metadata.capture_time.value = exif['capture_time']
 
     if 'skey' in exif:
-        metadata.skey = exif['skey']
+        metadata.sequence_key_.value = exif['skey']
 
     return metadata
 
@@ -651,20 +655,10 @@ def bootstrap_reconstruction(data, tracks_manager, camera_priors, im1, im2, p1, 
     reconstruction = types.Reconstruction()
     reconstruction.reference = data.load_reference()
     reconstruction.cameras = camera_priors
-
-    shot1 = types.Shot()
-    shot1.id = im1
-    shot1.camera = reconstruction.cameras[camera_id1]
-    shot1.pose = types.Pose()
+    shot1 = reconstruction.create_shot(im1, camera_id1, pygeometry.Pose())
     shot1.metadata = get_image_metadata(data, im1)
-    reconstruction.add_shot(shot1)
-
-    shot2 = types.Shot()
-    shot2.id = im2
-    shot2.camera = reconstruction.cameras[camera_id2]
-    shot2.pose = types.Pose(R, t)
+    shot2 = reconstruction.create_shot(im2, camera_id2, pygeometry.Pose(R, t))
     shot2.metadata = get_image_metadata(data, im2)
-    reconstruction.add_shot(shot2)
 
     triangulate_shot_features(tracks_manager, reconstruction, im1, data.config)
 
@@ -745,17 +739,10 @@ def resect(tracks_manager, reconstruction, shot_id,
     if ninliers >= min_inliers:
         R = T[:, :3].T
         t = -R.dot(T[:, 3])
-        shot = types.Shot()
-        shot.id = shot_id
-        shot.camera = camera
-        shot.pose = types.Pose()
-        shot.pose.set_rotation_matrix(R)
-        shot.pose.translation = t
+        shot = reconstruction.create_shot(shot_id, camera.id, pygeometry.Pose(R,t))
         shot.metadata = metadata
-        reconstruction.add_shot(shot)
         for i, succeed in enumerate(inliers):
             if succeed:
-                # add_observation_to_reconstruction(tracks_manager, graph_inliers, shot_id, ids[i])
                 add_observation_to_reconstruction(tracks_manager, reconstruction, shot_id, ids[i])
         return True, report
     else:
@@ -903,13 +890,9 @@ class TrackTriangulator:
             e, X = pygeometry.triangulate_bearings_midpoint(
                 os, bs, thresholds, np.radians(min_ray_angle_degrees))
             if X is not None:
-                point = types.Point()
-                point.id = track
-                point.coordinates = X.tolist()
-                self.reconstruction.add_point(point)
+                pt = self.reconstruction.create_point(track, X.tolist())
                 for shot_id in ids:
                     self._add_track_to_reconstruction(track, shot_id)
-                    # add_observation_to_reconstruction(self.tracks_manager,self.reconstruction,shot_id, track)
 
 
     def triangulate_dlt(self, track, reproj_threshold, min_ray_angle_degrees):
@@ -927,10 +910,7 @@ class TrackTriangulator:
             e, X = pygeometry.triangulate_bearings_dlt(
                 Rts, bs, reproj_threshold, np.radians(min_ray_angle_degrees))
             if X is not None:
-                point = types.Point()
-                point.id = track
-                point.coordinates = X.tolist()
-                self.reconstruction.add_point(point)
+                self.reconstruction.create_point(track, X.tolist())
                 for shot_id in ids:
                     self._add_track_to_reconstruction(track, shot_id)
 

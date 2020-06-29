@@ -64,7 +64,7 @@ def camera_pose(position, lookat, up):
     ez = normalized(np.array(lookat) - np.array(position))
     ex = normalized(np.cross(ez, up))
     ey = normalized(np.cross(ez, ex))
-    pose = types.Pose()
+    pose = pygeometry.Pose()
     pose.set_rotation_matrix([ex, ey, ez])
     pose.set_origin(position)
     return pose
@@ -85,6 +85,7 @@ class SyntheticScene(object):
 class SyntheticCubeScene(SyntheticScene):
     """ Scene consisting in of cameras looking at point in a cube. """
     def __init__(self, num_cameras, num_points, noise):
+        self.reconstruction = types.Reconstruction()
         self.cameras = {}
         for i in range(num_cameras):
             camera = camera = pygeometry.Camera.create_perspective(0.9, -0.1, 0.01)
@@ -93,7 +94,9 @@ class SyntheticCubeScene(SyntheticScene):
             camera.width = 800
             self.cameras[camera.id] = camera
 
-        self.shots = {}
+        self.reconstruction.cameras = self.cameras
+
+        # self.shots = {}
         r = 2.0
         for i in range(num_cameras):
             phi = np.random.rand()*math.pi
@@ -106,30 +109,38 @@ class SyntheticCubeScene(SyntheticScene):
             alpha = np.random.rand()
             lookat = [0.0, 0, 0]
             up = [alpha * 0.2, alpha * 0.2, 1.0]
-
-            shot = types.Shot()
-            shot.id = 'shot%04d' % i
-            shot.camera = self.cameras['camera%04d' % i]
-            shot.pose = camera_pose(position, lookat, up)
-            self.shots[shot.id] = shot
+            shot_id = 'shot%04d' % i
+            camera_id = 'camera%04d' % i
+            pose = camera_pose(position, lookat, up)
+            self.reconstruction.create_shot(shot_id, camera_id, pose)
+            # shot = types.Shot()
+            # shot.id = 'shot%04d' % i
+            # shot.camera = self.cameras['camera%04d' % i]
+            # shot.pose = camera_pose(position, lookat, up)
+            # self.shots[shot.id] = shot
 
         points = np.random.rand(num_points, 3)-[0.5, 0.5, 0.5]
-        self.points = {}
+        # self.points = {}
         for i, p in enumerate(points):
-            pt = types.Point()
-            pt.id = 'point' + str(i)
-            pt.coordinates = p
+            point_id = 'point' + str(i)
+            pt = self.reconstruction.create_point(point_id, p)
             pt.color = [100, 100, 20]
-            self.points[pt.id] = pt
 
     def get_reconstruction(self, rotation_noise=0.0,
                            position_noise=0.0,
                            camera_noise=0.0):
         reconstruction = types.Reconstruction()
+        # Copy our original reconstruction
+        # since we do not want to modify the reference
         reconstruction.cameras = self.cameras
-        reconstruction.shots = self.shots
-        reconstruction.points = self.points
+        for shot in self.reconstruction.shots.values():
+            reconstruction.create_shot(shot.id, shot.camera.id, shot.pose)
+        for point in self.reconstruction.points.values():
+            pt = reconstruction.create_point(point.id, point.coordinates)
+            pt.color = point.color
         return reconstruction
+
+
 
     def get_tracks_data(self, maximum_depth, noise):
         return sg.generate_track_data(self.get_reconstruction(),
