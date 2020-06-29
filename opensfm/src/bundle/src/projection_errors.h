@@ -1,7 +1,9 @@
 #pragma once
 
+#include <ceres/sized_cost_function.h>
 #include <foundation/types.h>
 #include <geometry/camera_functions.h>
+#include <bundle/bundle_adjuster.h>
 
 template <class PointFunc> 
 struct BABearingError {
@@ -166,7 +168,7 @@ class ReprojectionError2DAnalytic : public ReprojectionError,
       Pose::ForwardDerivatives<double, true>(point, shot, &transformed[0],
                                              jacobian_pose.data());
       // Projection jacobian
-      constexpr int CameraSize = 9;
+      constexpr int CameraSize = C;
       const int StrideProj = PointSize + CameraSize;
       Eigen::Matrix<double, Size, StrideProj, Eigen::RowMajor> jacobian_proj;
       Dispatch<ProjectDerivativesFunction>(type_, transformed, camera,

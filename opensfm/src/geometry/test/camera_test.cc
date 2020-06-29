@@ -9,9 +9,6 @@
 #include <ceres/jet.h>
 #include <ceres/rotation.h>
 
-#include <chrono> 
-using namespace std::chrono; 
-
 class CameraFixture : public ::testing::Test {
  public:
   CameraFixture() {
