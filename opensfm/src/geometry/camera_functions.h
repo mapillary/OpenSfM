@@ -25,6 +25,91 @@ struct CameraFunctor{
   static constexpr int Stride(){return C * ParamSize + InSize;};
 };
 
+
+/* Given two function f(x, a) and g(y, b), composed as f o g = f( g(x, b), a)
+ * for which have jacobian stored as df/(dx | da) and dg/(dy | db), apply the
+ * derivative chain-rule in order to get the derivative of
+ *
+ *     (f o g) = d(f o g)/d(x | b | a).
+ */
+template <class T, int OutSize1, int Stride1, int ParamSize1, int OutSize2,
+          int Stride2, int ParamSize2>
+void ComposeDerivatives(
+    const Eigen::Matrix<T, OutSize1, Stride1, Eigen::RowMajor>& jacobian1,
+    const Eigen::Matrix<T, OutSize2, Stride2, Eigen::RowMajor>& jacobian2,
+    T* jacobian) {
+  Eigen::Map<Eigen::Matrix<T, OutSize2, Stride1 + ParamSize2, Eigen::RowMajor>>
+      jacobian_mapped(jacobian);
+  jacobian_mapped.template block<OutSize2, Stride1>(0, 0) =
+      jacobian2.template block<OutSize2, OutSize1>(0, 0) * jacobian1;
+  jacobian_mapped.template block<OutSize2, ParamSize2>(0, Stride1) =
+      jacobian2.template block<OutSize2, ParamSize2>(0, OutSize1);
+}
+
+/* Below are some utilities to generalize computation of functions (or their
+ * jacobian) of composition of functions f(g(h(i ... ))). Most of the
+ * implementation consists in recursing variadic template arguments. Usage is
+ * then summarized as : ComposeForwardDerivatives<Func1, Func2, ... FuncN>() */
+template <class FUNC>
+static constexpr int ComposeStrides() {
+  return FUNC::template Stride<true>();
+}
+
+template <class FUNC1, class FUNC2, class... FUNCS>
+static constexpr int ComposeStrides() {
+  return FUNC1::ParamSize + ComposeStrides<FUNC2, FUNCS...>();
+}
+
+template <class FUNC>
+static constexpr int ComposeIndex() {
+  return FUNC::ParamSize;
+}
+
+template <class FUNC1, class FUNC2, class... FUNCS>
+static constexpr int ComposeIndex() {
+  return FUNC1::ParamSize + ComposeIndex<FUNC2, FUNCS...>();
+}
+
+template <class T, class FUNC>
+static void ComposeForwardDerivatives(const T* in, const T* parameters, T* out,
+                                      T* jacobian) {
+  FUNC::template ForwardDerivatives<T, true>(in, parameters, out, jacobian);
+}
+
+template <class T, class FUNC1, class FUNC2, class... FUNCS>
+static void ComposeForwardDerivatives(const T* in, const T* parameters, T* out,
+                                      T* jacobian) {
+  constexpr int StrideSub = ComposeStrides<FUNC2, FUNCS...>();
+  Eigen::Matrix<T, FUNC2::OutSize, StrideSub, Eigen::RowMajor> sub_jacobian;
+  T tmp[FUNC2::OutSize];
+  ComposeForwardDerivatives<T, FUNC2, FUNCS...>(in, parameters, &tmp[0],
+                                                sub_jacobian.data());
+
+  constexpr int Index = ComposeIndex<FUNC2, FUNCS...>();
+  constexpr int StrideFunc1 = FUNC1::template Stride<true>();
+  Eigen::Matrix<T, FUNC1::OutSize, StrideFunc1, Eigen::RowMajor> current_jacobian;
+  FUNC1::template ForwardDerivatives<T, true>(&tmp[0], parameters + Index, out,
+                                              current_jacobian.data());
+
+  ComposeDerivatives<T, FUNC2::OutSize, StrideSub, FUNC2::ParamSize,
+                     FUNC1::OutSize, StrideFunc1, FUNC1::ParamSize>(
+      sub_jacobian, current_jacobian, jacobian);
+}
+
+template <class T, class FUNC>
+static void ComposeFunctions(const T* in, const T* parameters, T* out) {
+  FUNC::template Apply<T>(in, parameters, out);
+}
+
+template <class T, class FUNC1, class FUNC2, class... FUNCS>
+static void ComposeFunctions(const T* in, const T* parameters, T* out) {
+  T tmp[FUNC2::OutSize];
+  ComposeFunctions<T, FUNC2, FUNCS...>(in, parameters, tmp);
+
+  constexpr int Index = ComposeIndex<FUNC2, FUNCS...>();
+  FUNC1::template Apply<T>(&tmp[0], parameters + Index, out);
+}
+
 /* Parameters are : none used */
 struct FisheyeProjection : CameraFunctor<3, 0, 2>{
   template <class T>
@@ -558,136 +643,6 @@ struct Identity : CameraFunctor<2, 0, 2>{
   }
 };
 
-struct ProjectFunction {
-  template <class TYPE, class T>
-  static void Apply(const T* point, const T* parameters, T* projected) {
-    TYPE::Forward(point, parameters, projected);
-  }
-};
-
-struct ProjectDerivativesFunction {
-  template <class TYPE, class T>
-  static void Apply(const T* point, const T* parameters, T* projected, T* jacobian) {
-    TYPE::ForwardDerivatives(point, parameters, projected, jacobian);
-  }
-};
-
-struct BearingFunction {
-  template <class TYPE, class T>
-  static void Apply(const T* point, const T* parameters, T* bearing) {
-    TYPE::Backward(point, parameters, bearing);
-  }
-};
-
-/* This struct helps define most cameras models as they tend to follow the
- * pattern PROJ - > DISTO -> AFFINE. However, its is not mandatory for any
- * camera model to follow it. You can add any new camera models as long as it
- * implements the Forward and Backward functions. */
-
-/* Here's some trait that defines where to look for parameters that follows the
- * generic scheme */
-template <class T> struct FunctorTraits { static constexpr int Size = 0;};
-template <> struct FunctorTraits<SphericalProjection> { static constexpr int Size = 0;};
-template <> struct FunctorTraits<DualProjection> { static constexpr int Size = 1;};
-template <> struct FunctorTraits<Disto24> { static constexpr int Size = 2;};
-template <> struct FunctorTraits<DistoBrown> {static constexpr int Size = 5;};
-template <> struct FunctorTraits<UniformScale> {static constexpr int Size = 1;};
-template <> struct FunctorTraits<Affine> { static constexpr int Size = 4;};
-
-template <class PROJ, class DISTO, class AFF>
-struct SizeTraits {
-  static constexpr const int ConstexprMax(int a, int b) {
-    return (a < b) ? b : a;
-  }
-  static constexpr int Size =
-      ConstexprMax(1, FunctorTraits<PROJ>::Size + FunctorTraits<AFF>::Size +
-                          FunctorTraits<DISTO>::Size);
-};
-
-// /* Given two function f(x, a) and g(y, b), composed as f o g = f( g(x, b), a)
-//  * for which have jacobian stored as df/(dx | da) and dg/(dy | db), apply the
-//  * derivative chain-rule in order to get the derivative of
-//  *
-//  *     (f o g) = d(f o g)/d(x | b | a).
-//  */
-template <class T, int OutSize1, int Stride1, int ParamSize1, int OutSize2,
-          int Stride2, int ParamSize2>
-void ComposeDerivatives(
-    const Eigen::Matrix<T, OutSize1, Stride1, Eigen::RowMajor>& jacobian1,
-    const Eigen::Matrix<T, OutSize2, Stride2, Eigen::RowMajor>& jacobian2,
-    T* jacobian) {
-  Eigen::Map<Eigen::Matrix<T, OutSize2, Stride1 + ParamSize2, Eigen::RowMajor>>
-      jacobian_mapped(jacobian);
-  jacobian_mapped.template block<OutSize2, Stride1>(0, 0) =
-      jacobian2.template block<OutSize2, OutSize1>(0, 0) * jacobian1;
-  jacobian_mapped.template block<OutSize2, ParamSize2>(0, Stride1) =
-      jacobian2.template block<OutSize2, ParamSize2>(0, OutSize1);
-}
-
-/* Below are some utilities to generalize computation of functions (or their
- * jacobian) of composition of functions f(g(h(i ... ))). Most of the
- * implementation consists in recursing variadic template arguments. Usage is
- * then summarized as : ComposeForwardDerivatives<Func1, Func2, ... FuncN>() */
-template <class FUNC>
-static constexpr int ComposeStrides() {
-  return FUNC::template Stride<true>();
-}
-
-template <class FUNC1, class FUNC2, class... FUNCS>
-static constexpr int ComposeStrides() {
-  return FUNC1::ParamSize + ComposeStrides<FUNC2, FUNCS...>();
-}
-
-template <class FUNC>
-static constexpr int ComposeIndex() {
-  return FUNC::ParamSize;
-}
-
-template <class FUNC1, class FUNC2, class... FUNCS>
-static constexpr int ComposeIndex() {
-  return FUNC1::ParamSize + ComposeIndex<FUNC2, FUNCS...>();
-}
-
-template <class T, class FUNC>
-static void ComposeForwardDerivatives(const T* in, const T* parameters, T* out,
-                                      T* jacobian) {
-  FUNC::template ForwardDerivatives<T, true>(in, parameters, out, jacobian);
-}
-
-template <class T, class FUNC1, class FUNC2, class... FUNCS>
-static void ComposeForwardDerivatives(const T* in, const T* parameters, T* out,
-                                      T* jacobian) {
-  constexpr int StrideSub = ComposeStrides<FUNC2, FUNCS...>();
-  Eigen::Matrix<T, FUNC2::OutSize, StrideSub, Eigen::RowMajor> sub_jacobian;
-  ComposeForwardDerivatives<T, FUNC2, FUNCS...>(in, parameters, out,
-                                                sub_jacobian.data());
-
-  constexpr int Index = ComposeIndex<FUNC2, FUNCS...>();
-  constexpr int StrideFunc1 = FUNC1::template Stride<true>();
-  Eigen::Matrix<T, FUNC1::OutSize, StrideFunc1, Eigen::RowMajor>
-      current_jacobian;
-  FUNC1::template ForwardDerivatives<T, true>(out, parameters + Index, out,
-                                              current_jacobian.data());
-
-  ComposeDerivatives<T, FUNC2::OutSize, StrideSub, FUNC2::ParamSize,
-                     FUNC1::OutSize, StrideFunc1, FUNC1::ParamSize>(
-      sub_jacobian, current_jacobian, jacobian);
-}
-
-template <class T, class FUNC>
-static void ComposeFunctions(const T* in, const T* parameters, T* out) {
-  FUNC::template Apply<T>(in, parameters, out);
-}
-
-template <class T, class FUNC1, class FUNC2, class... FUNCS>
-static void ComposeFunctions(const T* in, const T* parameters, T* out) {
-  T tmp[FUNC2::OutSize];
-  ComposeFunctions<T, FUNC2, FUNCS...>(in, parameters, tmp);
-
-  constexpr int Index = ComposeIndex<FUNC2, FUNCS...>();
-  FUNC1::template Apply<T>(&tmp[0], parameters + Index, out);
-}
-
 struct Pose : CameraFunctor<3, 6, 3> {
   /* Rotation and translation being stored as angle-axis | translation, apply
    the transformation : x_world = R(t)*(x_camera - translation) by directly
@@ -883,26 +838,91 @@ struct Normalize : CameraFunctor<3, 0, 3> {
   }
 };
 
+template <class FUNC>
+struct ForwardWrapper : public FUNC {
+  template <class T>
+  static void Apply(const T* in, const T* parameters, T* out) {
+    FUNC::Forward(in, parameters, out);
+  }
+};
+
+template <class FUNC>
+struct BackwardWrapper : public FUNC {
+  template <class T>
+  static void Apply(const T* in, const T* parameters, T* out) {
+    FUNC::Backward(in, parameters, out);
+  }
+};
+
+struct ProjectPoseDerivatives {
+  template <class TYPE, class T>
+  static void Apply(const T* point, const T* parameters, T* projected, T* jacobian) {
+    ComposeForwardDerivatives<T, TYPE, Pose>(
+        point, parameters, projected, jacobian);
+  }
+};
+
+struct PoseNormalizedDerivatives{
+  template <class TYPE, class T>
+  static void Apply(const T* point, const T* parameters, T* projected, T* jacobian) {
+    ComposeForwardDerivatives<T, Normalize, Pose>(point, parameters, projected, jacobian);
+  }
+};
+
+struct ProjectFunction {
+  template <class TYPE, class T>
+  static void Apply(const T* point, const T* parameters, T* projected) {
+    TYPE::Forward(point, parameters, projected);
+  }
+};
+
+struct ProjectDerivativesFunction {
+  template <class TYPE, class T>
+  static void Apply(const T* point, const T* parameters, T* projected, T* jacobian) {
+    TYPE::template ForwardDerivatives<T, true>(point, parameters, projected, jacobian);
+  }
+};
+
+struct BearingFunction {
+  template <class TYPE, class T>
+  static void Apply(const T* point, const T* parameters, T* bearing) {
+    TYPE::Backward(point, parameters, bearing);
+  }
+};
+
+/* This struct helps define most cameras models as they tend to follow the
+ * pattern PROJ - > DISTO -> AFFINE. However, its is not mandatory for any
+ * camera model to follow it. You can add any new camera models as long as it
+ * implements the Forward and Backward functions. */
+
+/* Here's some trait that defines where to look for parameters that follows the
+ * generic scheme */
+template <class T> struct FunctorTraits { static constexpr int Size = 0;};
+template <> struct FunctorTraits<SphericalProjection> { static constexpr int Size = 0;};
+template <> struct FunctorTraits<DualProjection> { static constexpr int Size = 1;};
+template <> struct FunctorTraits<Disto24> { static constexpr int Size = 2;};
+template <> struct FunctorTraits<DistoBrown> {static constexpr int Size = 5;};
+template <> struct FunctorTraits<UniformScale> {static constexpr int Size = 1;};
+template <> struct FunctorTraits<Affine> { static constexpr int Size = 4;};
+
+template <class PROJ, class DISTO, class AFF>
+struct SizeTraits {
+  static constexpr const int ConstexprMax(int a, int b) {
+    return (a < b) ? b : a;
+  }
+  static constexpr int Size =
+      ConstexprMax(1, FunctorTraits<PROJ>::Size + FunctorTraits<AFF>::Size +
+                          FunctorTraits<DISTO>::Size);
+};
+
 /* Finally, here's the generic camera that implements the PROJ - > DISTO -> AFFINE pattern. */
 template <class PROJ, class DISTO, class AFF>
-struct ProjectGeneric {
+struct ProjectGeneric : CameraFunctor<3, SizeTraits<PROJ, DISTO, AFF>::Size, 2> {
+  using ProjectionType = PROJ;
+  using DistoType = DISTO;
+  using AffineType = AFF;
+
   static constexpr int Size = SizeTraits<PROJ, DISTO, AFF>::Size;
-
-  template <class FUNC>
-  struct ForwardWrapper : public FUNC {
-    template <class T>
-    static void Apply(const T* in, const T* parameters, T* out) {
-      FUNC::Forward(in, parameters, out);
-    }
-  };
-
-  template <class FUNC>
-  struct BackwardWrapper : public FUNC {
-    template <class T>
-    static void Apply(const T* in, const T* parameters, T* out) {
-      FUNC::Backward(in, parameters, out);
-    }
-  };
 
   template <class T>
   static void Forward(const T* point, const T* parameters, T* projected) {
@@ -910,7 +930,7 @@ struct ProjectGeneric {
                      ForwardWrapper<PROJ>>(point, parameters, projected);
   };
 
-  template <class T>
+  template <class T, bool COMP_PARAM>
   static void ForwardDerivatives(const T* point, const T* parameters,
                                  T* projected, T* jacobian) {
     ComposeForwardDerivatives<T, AFF, DISTO, PROJ>(point, parameters, projected,
