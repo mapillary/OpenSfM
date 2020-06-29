@@ -159,28 +159,24 @@ class ReprojectionError2DAnalytic : public ReprojectionError,
       Dispatch<ProjectFunction>(type_, transformed, camera, predicted);
     } /* Jacobian + Error */
     else {
-      double* jac_camera = jacobians[0], * jac_pose = jacobians[1], * jac_point = jacobians[2];
-
-      // Pose jacobian
-      constexpr int PoseSize = 6;
-      const int StridePose = PointSize + PoseSize;
-      Eigen::Matrix<double, PointSize, StridePose, Eigen::RowMajor> jacobian_pose;
-      Pose::ForwardDerivatives<double, true>(point, shot, &transformed[0],
-                                             jacobian_pose.data());
-      // Projection jacobian
       constexpr int CameraSize = C;
-      const int StrideProj = PointSize + CameraSize;
-      Eigen::Matrix<double, Size, StrideProj, Eigen::RowMajor> jacobian_proj;
-      Dispatch<ProjectDerivativesFunction>(type_, transformed, camera,
-                                           predicted, jacobian_proj.data());
-      // Compose them
-      constexpr int StrideFull = CameraSize + PoseSize + PointSize;
+      constexpr int PoseSize = 6;
+      
+      double all_params[PoseSize + CameraSize];
+      for (int i = 0; i < PoseSize; ++i) {
+        all_params[i] = shot[i];
+      }
+      for (int i = 0; i < CameraSize; ++i) {
+        all_params[PoseSize + i] = camera[i];
+      }
+
+      constexpr int StrideFull = PointSize + CameraSize + PoseSize;
       double jacobian[Size * StrideFull];
-      ComposeDerivatives<double, PointSize, StridePose, PoseSize, Size,
-                         StrideProj, CameraSize>(jacobian_pose, jacobian_proj,
-                                                 &jacobian[0]);
+      Dispatch<ProjectPoseDerivatives>(type_, point, &all_params[0], &predicted[0], &jacobian[0]);
+
       // Unfold big jacobian stored as | point | pose | camera | per block
       // We also take the opportunity to apply the scale
+      double* jac_camera = jacobians[0], * jac_pose = jacobians[1], * jac_point = jacobians[2];
       if (jac_point) {
         for (int i = 0; i < Size; ++i) {
           for (int j = 0; j < PointSize; ++j) {
@@ -267,27 +263,16 @@ class ReprojectionError3DAnalytic
       transformed.normalize();
     } /* Jacobian + Error */
     else {
-      double* jac_camera = jacobians[0], * jac_pose = jacobians[1], * jac_point = jacobians[2];
-
-      // Pose jacobian
-      constexpr int PoseSize = 6;
       constexpr int PointSize = 3;
-      const int StridePose = PointSize + PoseSize;
-      Eigen::Matrix<double, PointSize, StridePose, Eigen::RowMajor> jacobian_pose;
-      Pose::ForwardDerivatives<double, true>(point, shot, &transformed[0],
-                                             jacobian_pose.data());
+      constexpr int PoseSize = 6;
+      constexpr int StrideFull = PoseSize + PointSize;
+      double jacobian[Size * StrideFull];
+      Dispatch<PoseNormalizedDerivatives>(type_, point, shot,
+                                          transformed.data(), &jacobian[0]);
 
-      // Normalize jacobian
-      Eigen::Matrix<double, Size, PointSize, Eigen::RowMajor> jacobian_norm;
-      Normalize::ForwardDerivatives<double, true>(&transformed[0], shot, &transformed[0],
-                                                  jacobian_norm.data());
-      // Compose them
-      double jacobian[Size * StridePose];
-      ComposeDerivatives<double, PointSize, StridePose, PoseSize, Size,
-                         PointSize, 0>(jacobian_pose, jacobian_norm,
-                                        &jacobian[0]);
       // Unfold big jacobian stored as | point | pose | per block
       // We also take the opportunity to apply the scale
+      double* jac_camera = jacobians[0], * jac_pose = jacobians[1], * jac_point = jacobians[2];
       if (jac_camera) {
         for (int i = 0; i < Size; ++i) {
           jac_camera[i] = 0.;
@@ -297,7 +282,7 @@ class ReprojectionError3DAnalytic
         for (int i = 0; i < Size; ++i) {
           for (int j = 0; j < PointSize; ++j) {
             jac_point[i * PointSize + j] = 
-                scale_ * jacobian[i * StridePose + j];
+                scale_ * jacobian[i * StrideFull + j];
           }
         }
       }
@@ -305,7 +290,7 @@ class ReprojectionError3DAnalytic
         for (int i = 0; i < Size; ++i) {
           for (int j = 0; j < PoseSize; ++j) {
             jac_pose[i * PoseSize + j] = 
-                scale_ * jacobian[i * StridePose + PointSize + j];
+                scale_ * jacobian[i * StrideFull + PointSize + j];
           }
         }
       }    
