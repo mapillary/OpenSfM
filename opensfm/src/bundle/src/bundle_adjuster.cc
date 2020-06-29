@@ -456,6 +456,11 @@ struct ErrorTraitsAnalytic {
   using Type = ReprojectionError2DAnalytic<C>;
 };
 
+template <>
+struct ErrorTraitsAnalytic<SphericalCamera, 1> {
+  using Type = ReprojectionError3DAnalytic;
+};
+
 struct AddProjectionError {
   template <class T>
   static void Apply(bool use_analytical, const BAPointProjectionObservation &obs,
