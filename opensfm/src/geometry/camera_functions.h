@@ -841,6 +841,48 @@ struct Pose : CameraFunctor<3, 6, 3> {
   }
 };
 
+struct Normalize : CameraFunctor<3, 0, 3> {
+  template <class T>
+  static void Forward(const T* point, const T* /* k */, T* transformed) {
+    const T inv_norm = T(1.0) / sqrt(SquaredNorm(point) + point[2] * point[2]);
+    for (int i = 0; i < 3; ++i) {
+      transformed[i] = point[i] * inv_norm;
+    }
+  }
+
+  template <class T, bool COMP_PARAM>
+  static void ForwardDerivatives(const T* point, const T* /* k */, T* transformed,
+                                 T* jacobian) {
+    // dx, dy
+    constexpr int stride = Stride<COMP_PARAM>();
+
+    const T& x = point[0];
+    const T& y = point[1];
+    const T& z = point[2];
+    const T x2 = x * x;
+    const T y2 = y * y;
+    const T z2 = z * z;
+    const T norm2 = x2 + y2 + z2;
+    const T norm = sqrt(norm2);
+    const T inv_norm32 = T(1.0) / (norm * norm2);
+
+    jacobian[0] = (y2 + z2) * inv_norm32;
+    jacobian[1] = (-x * y) * inv_norm32;
+    jacobian[2] = (-x * z) * inv_norm32;
+
+    jacobian[stride] = (-y * x) * inv_norm32;
+    jacobian[stride + 1] = (x2 + z2) * inv_norm32;
+    jacobian[stride + 2] = (-y * z) * inv_norm32;
+
+    jacobian[2 * stride] = (-z * x) * inv_norm32;
+    jacobian[2 * stride + 1] = (-z * y) * inv_norm32;
+    jacobian[2 * stride + 2] = (x2 + y2) * inv_norm32;
+
+    T* dummy = nullptr;
+    Forward(point, dummy, transformed);
+  }
+};
+
 /* Finally, here's the generic camera that implements the PROJ - > DISTO -> AFFINE pattern. */
 template <class PROJ, class DISTO, class AFF>
 struct ProjectGeneric {

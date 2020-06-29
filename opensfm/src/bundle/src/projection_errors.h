@@ -244,6 +244,77 @@ class ReprojectionError3D : public ReprojectionError {
     return true;
   }
 
- private:
+ protected:
   Vec3d bearing_vector_;
+};
+
+class ReprojectionError3DAnalytic
+    : protected ReprojectionError3D,
+      public ceres::SizedCostFunction<2, 1, 6, 3> {
+ public:
+  constexpr static int Size = 3;
+  using ReprojectionError3D::ReprojectionError3D;
+
+  bool Evaluate(double const* const* parameters, double* residuals,
+                double** jacobians) const {
+    const double* shot = parameters[1];
+    const double* point = parameters[2];
+
+    Vec3d transformed;
+    /* Error only */
+    if (!jacobians) {
+      Pose::Forward(point, shot, transformed.data());
+      transformed.normalize();
+    } /* Jacobian + Error */
+    else {
+      double* jac_camera = jacobians[0], * jac_pose = jacobians[1], * jac_point = jacobians[2];
+
+      // Pose jacobian
+      constexpr int PoseSize = 6;
+      constexpr int PointSize = 3;
+      const int StridePose = PointSize + PoseSize;
+      Eigen::Matrix<double, PointSize, StridePose, Eigen::RowMajor> jacobian_pose;
+      Pose::ForwardDerivatives<double, true>(point, shot, &transformed[0],
+                                             jacobian_pose.data());
+
+      // Normalize jacobian
+      Eigen::Matrix<double, Size, PointSize, Eigen::RowMajor> jacobian_norm;
+      Normalize::ForwardDerivatives<double, true>(&transformed[0], shot, &transformed[0],
+                                                  jacobian_norm.data());
+      // Compose them
+      double jacobian[Size * StridePose];
+      ComposeDerivatives<double, PointSize, StridePose, PoseSize, Size,
+                         PointSize, 0>(jacobian_pose, jacobian_norm,
+                                        &jacobian[0]);
+      // Unfold big jacobian stored as | point | pose | per block
+      // We also take the opportunity to apply the scale
+      if (jac_camera) {
+        for (int i = 0; i < Size; ++i) {
+          jac_camera[i] = 0.;
+        }
+      }
+      if (jac_point) {
+        for (int i = 0; i < Size; ++i) {
+          for (int j = 0; j < PointSize; ++j) {
+            jac_point[i * PointSize + j] = 
+                scale_ * jacobian[i * StridePose + j];
+          }
+        }
+      }
+      if (jac_pose) {
+        for (int i = 0; i < Size; ++i) {
+          for (int j = 0; j < PoseSize; ++j) {
+            jac_pose[i * PoseSize + j] = 
+                scale_ * jacobian[i * StridePose + PointSize + j];
+          }
+        }
+      }    
+    }
+
+    // The error is the difference between the predicted and observed position
+    for (int i = 0; i < Size; ++i) {
+      residuals[i] = scale_ * (transformed[i] - bearing_vector_[i]);
+    }
+    return true;
+  }
 };
