@@ -31,7 +31,7 @@ from opensfm.context import parallel_map, current_memory_usage
 logger = logging.getLogger(__name__)
 
 
-USE_ANALYTIC_DERIVATIVES = True
+USE_ANALYTIC_DERIVATIVES = False
 
 
 def _get_camera_from_bundle(ba, camera):
