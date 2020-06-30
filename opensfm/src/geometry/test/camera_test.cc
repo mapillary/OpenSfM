@@ -494,9 +494,6 @@ TEST_F(PoseFixture, EvaluatesCorrectly) {
   }
 }
 
-#include <chrono> 
-using namespace std::chrono; 
-
 TEST_F(PoseFixture, EvaluatesDerivativesCorrectly) {
   typedef Eigen::AutoDiffScalar<Eigen::VectorXd> AScalar;
 
