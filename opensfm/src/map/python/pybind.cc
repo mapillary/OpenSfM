@@ -121,9 +121,6 @@ PYBIND11_MODULE(pymap, m) {
       .def_readonly("alt", &map::TopoCentricConverter::lat_);
 
   py::class_<map::Shot>(m, "Shot")
-      // .def(py::init<const map::ShotId &, const Camera *const>())
-      // .def(py::init<const map::ShotId &, const Camera *const,
-      //               const Pose &>())
       .def_readonly("id", &map::Shot::id_)
       .def_readonly("unique_id", &map::Shot::unique_id_)
       .def_readonly("slam_data", &map::Shot::slam_data_,
@@ -131,6 +128,7 @@ PYBIND11_MODULE(pymap, m) {
       .def_readwrite("mesh", &map::Shot::mesh)
       .def_readwrite("covariance", &map::Shot::covariance)
       .def_readwrite("merge_cc", &map::Shot::merge_cc)
+      .def_readwrite("scale", &map::Shot::scale)
       .def("get_observation", &map::Shot::GetObservation,
            py::return_value_policy::reference_internal)
       .def("get_keypoints", &map::Shot::GetKeyPoints,

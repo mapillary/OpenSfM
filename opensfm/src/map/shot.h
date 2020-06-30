@@ -236,7 +236,7 @@ class Shot {
   ShotMesh mesh;
   MatXd covariance;
   long int merge_cc;
-
+  double scale;
  private:
   Pose pose_;
   size_t num_keypts_;

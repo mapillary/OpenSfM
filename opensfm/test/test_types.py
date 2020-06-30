@@ -1130,3 +1130,18 @@ def test_pose_minimal_representation():
     assert np.allclose(pose.get_t_cam_to_world(), t_cw)
     assert np.allclose(pose.get_cam_to_world(), T_cw)
 
+
+
+R_cw = special_ortho_group.rvs(3)
+t_cw = np.random.rand(3)
+py_pose = Pose(cv2.Rodrigues(R_cw)[0].flatten(), t_cw)
+cpp_pose = pygeometry.Pose(R_cw, t_cw)
+# _helper_compare_poses(py_pose, cpp_pose)
+
+
+R_cw2 = special_ortho_group.rvs(3)
+t_cw2 = np.random.rand(3)
+py_pose2 = Pose(cv2.Rodrigues(R_cw2)[0].flatten(), t_cw2)
+cpp_pose2 = pygeometry.Pose(R_cw2, t_cw2)
+
+# _helper_compare_poses(py_pose2, cpp_pose2)
