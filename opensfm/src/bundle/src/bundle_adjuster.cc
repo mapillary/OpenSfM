@@ -323,6 +323,10 @@ void BundleAdjuster::SetNumThreads(int n) {
   num_threads_ = n;
 }
 
+void BundleAdjuster::SetUseAnalyticDerivatives(bool use){
+  use_analytic_ = use;
+}
+
 void BundleAdjuster::SetLinearSolverType(std::string t) {
   linear_solver_type_ = t;
 }
@@ -441,28 +445,43 @@ struct BAParameterBarrier {
 template <class T>
 struct ErrorTraits {
   using Type = ReprojectionError2D;
-  static constexpr int Size = 2;
 };
 template <>
 struct ErrorTraits<SphericalCamera> {
   using Type = ReprojectionError3D;
-  static constexpr int Size = 3;
+};
+
+template <class T, int C>
+struct ErrorTraitsAnalytic {
+  using Type = ReprojectionError2DAnalytic<C>;
+};
+
+template <>
+struct ErrorTraitsAnalytic<SphericalCamera, 1> {
+  using Type = ReprojectionError3DAnalytic;
 };
 
 struct AddProjectionError {
   template <class T>
-  static void Apply(const BAPointProjectionObservation &obs,
+  static void Apply(bool use_analytical, const BAPointProjectionObservation &obs,
                     ceres::LossFunction *loss, ceres::Problem *problem) {
-    using ErrorType = typename ErrorTraits<T>::Type;
-    constexpr static int ErrorSize = ErrorTraits<T>::Size;
+    constexpr static int ErrorSize = ErrorTraits<T>::Type::Size;
     constexpr static int CameraSize = T::Size;
     constexpr static int ShotSize = 6;
 
-    ceres::CostFunction *cost_function =
-        new ceres::AutoDiffCostFunction<ErrorType, ErrorSize, CameraSize,
-                                        ShotSize, 3>(
-            new ErrorType(obs.camera->GetValue().GetProjectionType(),
-                          obs.coordinates, obs.std_deviation));
+    ceres::CostFunction *cost_function = nullptr;
+    if(use_analytical){
+      using ErrorType = typename ErrorTraitsAnalytic<T, CameraSize>::Type;
+      cost_function = new ErrorType(obs.camera->GetValue().GetProjectionType(),
+                                    obs.coordinates, obs.std_deviation);
+    }
+    else{
+      using ErrorType = typename ErrorTraits<T>::Type;
+      cost_function = new ceres::AutoDiffCostFunction<ErrorType, ErrorSize,
+                                                      CameraSize, ShotSize, 3>(
+          new ErrorType(obs.camera->GetValue().GetProjectionType(),
+                        obs.coordinates, obs.std_deviation));
+    }
     problem->AddResidualBlock(
         cost_function, loss, obs.camera->GetValueData().data(),
         obs.shot->parameters.data(), obs.point->parameters.data());
@@ -471,16 +490,32 @@ struct AddProjectionError {
 
 struct ComputeResidualError {
   template <class T>
-  static void Apply(const BAPointProjectionObservation &obs) {
-    using ErrorType = typename ErrorTraits<T>::Type;
-    constexpr static int ErrorSize = ErrorTraits<T>::Size;
+  static void Apply(bool use_analytical,
+                    const BAPointProjectionObservation &obs) {
+    if (use_analytical) {
+      constexpr static int CameraSize = T::Size;
+      using ErrorType = typename ErrorTraitsAnalytic<T, CameraSize>::Type;
+      constexpr static int ErrorSize = ErrorTraitsAnalytic<T, CameraSize>::Type::Size;
 
-    VecNd<ErrorSize> residuals;
-    ErrorType error(obs.camera->GetValue().GetProjectionType(), obs.coordinates,
-                    1.0);
-    error(obs.camera->GetValueData().data(), obs.shot->parameters.data(),
-          obs.point->parameters.data(), residuals.data());
-    obs.point->reprojection_errors[obs.shot->id] = residuals;
+      VecNd<ErrorSize> residuals;
+      ErrorType error(obs.camera->GetValue().GetProjectionType(),
+                      obs.coordinates, 1.0);
+      const double *params[] = {obs.camera->GetValueData().data(),
+                                obs.shot->parameters.data(),
+                                obs.point->parameters.data()};
+      error.Evaluate(params, residuals.data(), nullptr);
+      obs.point->reprojection_errors[obs.shot->id] = residuals;
+    } else {
+      using ErrorType = typename ErrorTraits<T>::Type;
+      constexpr static int ErrorSize = ErrorTraits<T>::Type::Size;
+
+      VecNd<ErrorSize> residuals;
+      ErrorType error(obs.camera->GetValue().GetProjectionType(),
+                      obs.coordinates, 1.0);
+      error(obs.camera->GetValueData().data(), obs.shot->parameters.data(),
+            obs.point->parameters.data(), residuals.data());
+      obs.point->reprojection_errors[obs.shot->id] = residuals;
+    }
   }
 };
 
@@ -580,8 +615,8 @@ void BundleAdjuster::Run() {
   for (auto &observation : point_projection_observations_) {
     const auto projection_type =
         observation.camera->GetValue().GetProjectionType();
-    Dispatch<AddProjectionError>(projection_type, observation, projection_loss,
-                                 &problem);
+    Dispatch<AddProjectionError>(projection_type, use_analytic_, observation,
+                                 projection_loss, &problem);
   }
 
   // Add rotation priors
@@ -924,7 +959,7 @@ void BundleAdjuster::ComputeReprojectionErrors() {
   for (auto &observation : point_projection_observations_) {
     const auto projection_type =
       observation.camera->GetValue().GetProjectionType();
-    Dispatch<ComputeResidualError>(projection_type, observation);
+    Dispatch<ComputeResidualError>(projection_type, use_analytic_, observation);
   }
 }
 

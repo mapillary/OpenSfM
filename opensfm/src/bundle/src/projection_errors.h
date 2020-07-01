@@ -1,7 +1,9 @@
 #pragma once
 
+#include <ceres/sized_cost_function.h>
 #include <foundation/types.h>
 #include <geometry/camera_functions.h>
+#include <bundle/bundle_adjuster.h>
 
 template <class PointFunc> 
 struct BABearingError {
@@ -115,7 +117,7 @@ class ReprojectionError2D : public ReprojectionError{
    using ReprojectionError::ReprojectionError;
    constexpr static int Size = 2;
 
-   template <typename T>
+  template <typename T>
   bool operator()(const T* const camera, const T* const shot,
                   const T* const point, T* residuals) const {
      T camera_point[3];
@@ -131,6 +133,81 @@ class ReprojectionError2D : public ReprojectionError{
      }
 
      return true;
+  }
+};
+
+template<int C>
+class ReprojectionError2DAnalytic : public ReprojectionError,
+                                    public ceres::SizedCostFunction<2, C, 6, 3> {
+ public:
+  using ReprojectionError::ReprojectionError;
+  constexpr static int Size = 2;
+  
+  bool Evaluate(double const* const* parameters, double* residuals,
+                double** jacobians) const {
+    const double* camera = parameters[0];
+    const double* shot = parameters[1];
+    const double* point = parameters[2];
+
+    constexpr int PointSize = 3;
+    double transformed[PointSize];
+    double predicted[Size];
+
+    /* Error only */
+    if (!jacobians) {
+      Pose::Forward(point, shot, &transformed[0]);
+      Dispatch<ProjectFunction>(type_, transformed, camera, predicted);
+    } /* Jacobian + Error */
+    else {
+      constexpr int CameraSize = C;
+      constexpr int PoseSize = 6;
+      
+      double all_params[PoseSize + CameraSize];
+      for (int i = 0; i < PoseSize; ++i) {
+        all_params[i] = shot[i];
+      }
+      for (int i = 0; i < CameraSize; ++i) {
+        all_params[PoseSize + i] = camera[i];
+      }
+
+      constexpr int StrideFull = PointSize + CameraSize + PoseSize;
+      double jacobian[Size * StrideFull];
+      Dispatch<ProjectPoseDerivatives>(type_, point, &all_params[0], &predicted[0], &jacobian[0]);
+
+      // Unfold big jacobian stored as | point | pose | camera | per block
+      // We also take the opportunity to apply the scale
+      double* jac_camera = jacobians[0], * jac_pose = jacobians[1], * jac_point = jacobians[2];
+      if (jac_point) {
+        for (int i = 0; i < Size; ++i) {
+          for (int j = 0; j < PointSize; ++j) {
+            jac_point[i * PointSize + j] = 
+                scale_ * jacobian[i * StrideFull + j];
+          }
+        }
+      }
+      if (jac_pose) {
+        for (int i = 0; i < Size; ++i) {
+          for (int j = 0; j < PoseSize; ++j) {
+            jac_pose[i * PoseSize + j] = 
+                scale_ * jacobian[i * StrideFull + PointSize + j];
+          }
+        }
+      }
+      if (jac_camera) {
+        for (int i = 0; i < Size; ++i) {
+          for (int j = 0; j < CameraSize; ++j) {
+            jac_camera[i * CameraSize + j] = 
+                scale_ * jacobian[i * StrideFull + PointSize + PoseSize + j];
+          }
+        }
+      }
+    }
+
+    // The error is the difference between the predicted and observed position
+    for (int i = 0; i < Size; ++i) {
+      residuals[i] = scale_ * (predicted[i] - observed_[i]);
+    }
+    return true;
   }
 };
 
@@ -163,6 +240,66 @@ class ReprojectionError3D : public ReprojectionError {
     return true;
   }
 
- private:
+ protected:
   Vec3d bearing_vector_;
+};
+
+class ReprojectionError3DAnalytic
+    : protected ReprojectionError3D,
+      public ceres::SizedCostFunction<2, 1, 6, 3> {
+ public:
+  constexpr static int Size = 3;
+  using ReprojectionError3D::ReprojectionError3D;
+
+  bool Evaluate(double const* const* parameters, double* residuals,
+                double** jacobians) const {
+    const double* shot = parameters[1];
+    const double* point = parameters[2];
+
+    Vec3d transformed;
+    /* Error only */
+    if (!jacobians) {
+      Pose::Forward(point, shot, transformed.data());
+      transformed.normalize();
+    } /* Jacobian + Error */
+    else {
+      constexpr int PointSize = 3;
+      constexpr int PoseSize = 6;
+      constexpr int StrideFull = PoseSize + PointSize;
+      double jacobian[Size * StrideFull];
+      Dispatch<PoseNormalizedDerivatives>(type_, point, shot,
+                                          transformed.data(), &jacobian[0]);
+
+      // Unfold big jacobian stored as | point | pose | per block
+      // We also take the opportunity to apply the scale
+      double* jac_camera = jacobians[0], * jac_pose = jacobians[1], * jac_point = jacobians[2];
+      if (jac_camera) {
+        for (int i = 0; i < Size; ++i) {
+          jac_camera[i] = 0.;
+        }
+      }
+      if (jac_point) {
+        for (int i = 0; i < Size; ++i) {
+          for (int j = 0; j < PointSize; ++j) {
+            jac_point[i * PointSize + j] = 
+                scale_ * jacobian[i * StrideFull + j];
+          }
+        }
+      }
+      if (jac_pose) {
+        for (int i = 0; i < Size; ++i) {
+          for (int j = 0; j < PoseSize; ++j) {
+            jac_pose[i * PoseSize + j] = 
+                scale_ * jacobian[i * StrideFull + PointSize + j];
+          }
+        }
+      }    
+    }
+
+    // The error is the difference between the predicted and observed position
+    for (int i = 0; i < Size; ++i) {
+      residuals[i] = scale_ * (transformed[i] - bearing_vector_[i]);
+    }
+    return true;
+  }
 };
