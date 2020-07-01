@@ -57,6 +57,7 @@ PYBIND11_MODULE(pybundle, m) {
     .def("set_max_num_iterations", &BundleAdjuster::SetMaxNumIterations)
     .def("set_adjust_absolute_position_std", &BundleAdjuster::SetAdjustAbsolutePositionStd)
     .def("set_num_threads", &BundleAdjuster::SetNumThreads)
+    .def("set_use_analytic_derivatives", &BundleAdjuster::SetUseAnalyticDerivatives)
     .def("set_linear_solver_type", &BundleAdjuster::SetLinearSolverType)
     .def("brief_report", &BundleAdjuster::BriefReport)
     .def("full_report", &BundleAdjuster::FullReport)

@@ -109,6 +109,7 @@ bundle_max_iterations: 100      # Maximum optimizer iterations.
 
 retriangulation: yes                # Retriangulate all points from time to time
 retriangulation_ratio: 1.2          # Retriangulate when the number of points grows by this ratio
+bundle_analytic_derivatives: yes    # Use analytic derivatives or auto-differentiated ones during bundle adjustment
 bundle_interval: 999999             # Bundle after adding 'bundle_interval' cameras
 bundle_new_points_ratio: 1.2        # Bundle when the number of points grows by this ratio
 local_bundle_radius: 3              # Max image graph distance for images to be included in local bundle adjustment

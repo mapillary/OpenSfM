@@ -7,9 +7,7 @@
 
 #include <geometry/camera.h>
 #include <ceres/jet.h>
-
-#include <chrono> 
-using namespace std::chrono; 
+#include <ceres/rotation.h>
 
 class CameraFixture : public ::testing::Test {
  public:
@@ -462,5 +460,68 @@ TEST_F(FunctionFixture, EvaluatesDerivativesCorrectly) {
       eval_adiff.data(), parameters_adiff.data(), &evaluated_addif);
   for(int i = 0; i < 7; ++i){
     ASSERT_NEAR(evaluated_addif.derivatives()(i), jacobian[i], 1e-20);
+  }
+}
+
+class PoseFixture : public ::testing::Test {
+ public:
+  const double point[3] = {1.0, 2.0, 3.0};
+  const double rt[6] = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6};
+};
+
+TEST_F(PoseFixture, EvaluatesCorrectly) {
+  double transformed[3] = {0., 0., 0.};
+
+  /* Parameters order : angle_axis | pose_center */
+  Pose::Forward(point, rt, transformed);
+
+  /* Use Ceres as groundtruth */
+  const double pt[3] = {
+    point[0] - rt[Pose::Tx],
+    point[1] - rt[Pose::Ty],
+    point[2] - rt[Pose::Tz],
+  };
+  const double Rt[3] = {
+    -rt[Pose::Rx],
+    -rt[Pose::Ry],
+    -rt[Pose::Rz]
+  };
+  double expected[] = {1., 1., 1.};
+  ceres::AngleAxisRotatePoint(Rt, pt, expected);
+
+  for(int i = 0; i < 3; ++i){
+    ASSERT_NEAR(expected[i], transformed[i], 1e-15);
+  }
+}
+
+TEST_F(PoseFixture, EvaluatesDerivativesCorrectly) {
+  typedef Eigen::AutoDiffScalar<Eigen::VectorXd> AScalar;
+
+  VecX<AScalar> point_adiff(3);
+  constexpr int size = 9;
+
+  /* Autodifferentaied as a reference */
+  for (int i = 0; i < 3; ++i) {
+    point_adiff(i).value() = point[i];
+    point_adiff(i).derivatives() = Eigen::VectorXd::Unit(size, i);
+  }
+  VecX<AScalar> rt_adiff(6);
+  for (int i = 0; i < 6; ++i) {
+    rt_adiff[i].value() = rt[i];
+    rt_adiff[i].derivatives() = Eigen::VectorXd::Unit(size, 3 + i);
+  }
+  VecX<AScalar> expected_adiff(3);
+  Pose::Forward(point_adiff.data(), rt_adiff.data(), expected_adiff.data());
+
+  /* Analytic version */
+  double transformed[] = {0., 0., 0.};
+  double jacobian[size * 3];
+  Pose::ForwardDerivatives<double, true>(&point[0], &rt[0], &transformed[0],
+                                         &jacobian[0]);
+
+  for (int i = 0; i < 3; ++i) {
+    for (int j = 0; j < size; ++j) {
+      ASSERT_NEAR(expected_adiff(i).derivatives()(j), jacobian[i * size + j], 1e-15);
+    }
   }
 }

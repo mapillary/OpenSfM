@@ -2,6 +2,7 @@
 
 #include <array>
 #include <Eigen/Dense>
+#include <foundation/types.h>
 
 #define SQUARE(x) ((x)*(x))
 
@@ -41,6 +42,11 @@ bool SolveAX0(const MAT& A, VEC* solution){
 
 
 Eigen::Matrix3d SkewMatrix(const Eigen::Vector3d& v);
+template <class V, class M>
+void SkewMatrixT(const V& v, M* matrix) {
+  (*matrix) << 0, -v(2), v(1), v(2), 0, -v(0), -v(1), v(0), 0;
+}
+
 Eigen::Matrix3d ClosestRotationMatrix(const Eigen::Matrix3d& matrix);
 
 std::array<double, 4> SolveQuartic(const std::array<double, 5>& coefficients);

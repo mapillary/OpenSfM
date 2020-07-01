@@ -1,3 +1,5 @@
+#pragma once
+
 #include <cmath>
 #include <cstdio>
 #include <iostream>
@@ -500,6 +502,7 @@ class BundleAdjuster {
 
   void SetMaxNumIterations(int miter);
   void SetNumThreads(int n);
+  void SetUseAnalyticDerivatives(bool use);
   void SetLinearSolverType(std::string t);
 
   void SetInternalParametersPriorSD(
@@ -542,7 +545,7 @@ class BundleAdjuster {
   std::map<std::string, BAPoint> points_;
 
   
-  bool use_new_{false};
+  bool use_analytic_{false};
 
   // minimization constraints
 
