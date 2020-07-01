@@ -31,9 +31,6 @@ from opensfm.context import parallel_map, current_memory_usage
 logger = logging.getLogger(__name__)
 
 
-USE_ANALYTIC_DERIVATIVES = False
-
-
 def _get_camera_from_bundle(ba, camera):
     """Read camera parameters from a bundle adjustment problem."""
     c = ba.get_camera(camera.id)
@@ -101,10 +98,11 @@ def _add_gcp_to_bundle(ba, gcp, shots):
 def bundle(graph, reconstruction, camera_priors, gcp, config):
     """Bundle adjust a reconstruction."""
     fix_cameras = not config['optimize_camera_parameters']
+    use_analytic_derivatives = config['bundle_analytic_derivatives']
 
     chrono = Chronometer()
     ba = pybundle.BundleAdjuster()
-    ba.set_use_analytic_derivatives(USE_ANALYTIC_DERIVATIVES)
+    ba.set_use_analytic_derivatives(use_analytic_derivatives)
 
     for camera in reconstruction.cameras.values():
         camera_prior = camera_priors[camera.id]
@@ -191,7 +189,7 @@ def bundle(graph, reconstruction, camera_priors, gcp, config):
 def bundle_single_view(graph, reconstruction, shot_id, camera_priors, config):
     """Bundle adjust a single camera."""
     ba = pybundle.BundleAdjuster()
-    ba.set_use_analytic_derivatives(USE_ANALYTIC_DERIVATIVES)
+    ba.set_use_analytic_derivatives(config['bundle_analytic_derivatives'])
     shot = reconstruction.shots[shot_id]
     camera = shot.camera
     camera_prior = camera_priors[camera.id]
@@ -261,7 +259,7 @@ def bundle_local(graph, reconstruction, camera_priors, gcp, central_shot_id, con
                     point_ids.add(track)
 
     ba = pybundle.BundleAdjuster()
-    ba.set_use_analytic_derivatives(USE_ANALYTIC_DERIVATIVES)
+    ba.set_use_analytic_derivatives(config['bundle_analytic_derivatives'])
 
     for camera in reconstruction.cameras.values():
         camera_prior = camera_priors[camera.id]
