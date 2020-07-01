@@ -35,6 +35,23 @@ class Camera(object):
         self.has_altitude = None
         self.observations = []
 
+class GroundControlPoint(object):
+    """A ground control point with its observations.
+
+    Attributes:
+        lla: latitue, longitude and altitude
+        coordinates: x, y, z coordinates in topocentric reference frame
+        has_altitude: true if z coordinate is known
+        observations: list of observations of the point on images
+    """
+
+    def __init__(self):
+        self.id = None
+        self.lla = None
+        self.coordinates = None
+        self.has_altitude = None
+        self.observations = []
+
 
 class GroundControlPointObservation(object):
     """A ground control point observation.
@@ -139,8 +156,8 @@ class Reconstruction(object):
         """
         return self.shots.get(id)
 
-    def create_point(self, point_id, coord = [0, 0, 0]):
-        return self.map.create_landmark(point_id, coord) 
+    def create_point(self, point_id, coord=[0, 0, 0]):
+        return self.map.create_landmark(point_id, coord)
 
     def add_point(self, point):
         """Add a point in the list
@@ -160,9 +177,6 @@ class Reconstruction(object):
         :return: If exists returns the point, otherwise None.
         """
         return self.points.get(id)
-
-    def create_point(self, id, coordinates):
-        self.map.create_landmark(id, coordinates)
 
     def remove_point(self, id):
         self.map.remove_landmark(id)

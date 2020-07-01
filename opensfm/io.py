@@ -127,7 +127,6 @@ def reconstruction_from_json(obj):
     # Extract points
     if 'points' in obj:
         for key, value in iteritems(obj['points']):
-            # point = 
             point_from_json(reconstruction, key, value)
 
     # Extract pano_shots
