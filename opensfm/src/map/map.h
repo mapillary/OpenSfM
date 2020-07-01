@@ -36,8 +36,8 @@ public:
 
   // Shot Methods
   Shot* CreateShot(const ShotId& shot_id, const CameraId& camera_id);
-  Shot* CreateShot(const ShotId& shot_id, const CameraId& camera_id, const Pose& pose);
-  Shot* CreateShot(const ShotId& shot_id, const Camera* const cam, const Pose& pose = Pose());
+  Shot* CreateShot(const ShotId& shot_id, const CameraId& camera_id, const  geometry::Pose& pose);
+  Shot* CreateShot(const ShotId& shot_id, const Camera* const cam, const  geometry::Pose& pose =  geometry::Pose());
   Shot* GetShot(const ShotId& shot_id);
   void RemoveShot(const ShotId& shot_id);
   bool HasLandmark(const LandmarkId& lm_id) const { return landmarks_.count(lm_id) > 0; }
