@@ -6,7 +6,7 @@ namespace map
 {
 
 Shot::Shot(const ShotId& shot_id, const Camera* const shot_camera,
-           const Pose& pose)
+           const geometry::Pose& pose)
     : id_(shot_id),
       shot_camera_(shot_camera),
       slam_data_(this),
@@ -14,7 +14,7 @@ Shot::Shot(const ShotId& shot_id, const Camera* const shot_camera,
       merge_cc(0), scale(0) {}
 
 Shot::Shot(const ShotId& shot_id, std::unique_ptr<Camera> shot_camera,
-           const Pose& pose)
+           const geometry::Pose& pose)
     : id_(shot_id),
       shot_camera_(shot_camera.get()),
       slam_data_(this),

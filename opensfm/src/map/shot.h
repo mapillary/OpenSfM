@@ -76,10 +76,10 @@ class Shot {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  Shot(const ShotId& shot_id, const Camera* const shot_camera, const Pose& pose);
+  Shot(const ShotId& shot_id, const Camera* const shot_camera, const geometry::Pose& pose);
   // Workaround for pickle that makes it possible for the shot to have camera
   // outside of the reconstruction.
-  Shot(const ShotId& shot_id, std::unique_ptr<Camera> cam, const Pose& pose);  
+  Shot(const ShotId& shot_id, std::unique_ptr<Camera> cam, const geometry::Pose& pose);  
   // Shot(const ShotId& shot_id, const Camera* const shot_camera);
 
   const DescriptorType GetDescriptor(const FeatureId id) const {
@@ -188,8 +188,8 @@ class Shot {
     }
   }
 
-  void SetPose(const Pose& pose) { pose_ = pose; }
-  const Pose& GetPose() const { return pose_; }
+  void SetPose(const geometry::Pose& pose) { pose_ = pose; }
+  const geometry::Pose& GetPose() const { return pose_; }
   Mat4d GetWorldToCam() const { return pose_.WorldToCamera(); }
   Mat4d GetCamToWorld() const { return pose_.CameraToWorld(); }
 
@@ -238,7 +238,7 @@ class Shot {
   long int merge_cc;
   double scale;
  private:
-  Pose pose_;
+  geometry::Pose pose_;
   size_t num_keypts_;
   // In SLAM, the vectors have the same size as the number of detected feature
   // points and landmarks, keypoints, descriptors, etc. are linked by their

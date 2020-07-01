@@ -53,7 +53,7 @@ PYBIND11_MODULE(pymap, m) {
       .def(
           "create_shot",
           (map::Shot * (map::Map::*)(const map::ShotId &, const map::CameraId &,
-                                     const Pose &)) &
+                                     const geometry::Pose &)) &
               map::Map::CreateShot,
           py::arg("shot_id"), py::arg("camera_id"), py::arg("pose"),
           py::return_value_policy::reference_internal)
@@ -232,7 +232,7 @@ PYBIND11_MODULE(pymap, m) {
             camera.id = id;
             // create unique_ptr
             auto cam_ptr = std::unique_ptr<Camera>(new Camera(camera));
-            auto pose = Pose();
+            auto pose = geometry::Pose();
             pose.SetFromCameraToWorld(s[2].cast<Mat4d>());
             auto shot =
                 map::Shot(s[0].cast<map::ShotId>(), std::move(cam_ptr), pose);

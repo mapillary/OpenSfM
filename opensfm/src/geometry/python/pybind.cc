@@ -200,54 +200,54 @@ PYBIND11_MODULE(pygeometry, m) {
 
 
 
-  py::class_<Pose>(m, "Pose")
+  py::class_<geometry::Pose>(m, "Pose")
       .def(py::init<const Mat3d&, const Vec3d&>(),
       py::arg("R_cw") = Mat3d::Identity(), py::arg("t_cw") = Vec3d::Zero())
       .def(py::init<const Vec3d&, const Vec3d&>())
       .def(py::init<const Vec3d&>())
-      .def("get_cam_to_world", &Pose::CameraToWorld)
-      .def("get_world_to_cam", &Pose::WorldToCamera)
+      .def("get_cam_to_world", &geometry::Pose::CameraToWorld)
+      .def("get_world_to_cam", &geometry::Pose::WorldToCamera)
       // C++11
-      .def("set_from_world_to_cam", (void (Pose::*)(const Mat4d &)) &
-                                        Pose::SetFromWorldToCamera)
+      .def("set_from_world_to_cam", (void (geometry::Pose::*)(const Mat4d &)) &
+                                        geometry::Pose::SetFromWorldToCamera)
       .def("set_from_world_to_cam",
-           (void (Pose::*)(const Mat3d &, const Vec3d &)) &
-               Pose::SetFromWorldToCamera)
+           (void (geometry::Pose::*)(const Mat3d &, const Vec3d &)) &
+               geometry::Pose::SetFromWorldToCamera)
       .def("set_from_world_to_cam",
-           (void (Pose::*)(const Vec3d &, const Vec3d &)) &
-               Pose::SetFromWorldToCamera)
-      .def("set_from_cam_to_world", (void (Pose::*)(const Mat4d &)) &
-                                        Pose::SetFromCameraToWorld)
+           (void (geometry::Pose::*)(const Vec3d &, const Vec3d &)) &
+               geometry::Pose::SetFromWorldToCamera)
+      .def("set_from_cam_to_world", (void (geometry::Pose::*)(const Mat4d &)) &
+                                        geometry::Pose::SetFromCameraToWorld)
       .def("set_from_cam_to_world",
-           (void (Pose::*)(const Mat3d &, const Vec3d &)) &
-               Pose::SetFromCameraToWorld)
+           (void (geometry::Pose::*)(const Mat3d &, const Vec3d &)) &
+               geometry::Pose::SetFromCameraToWorld)
       .def("set_from_cam_to_world",
-           (void (Pose::*)(const Vec3d &, const Vec3d &)) &
-               Pose::SetFromCameraToWorld)
-      .def("get_origin", &Pose::GetOrigin)
-      .def("set_origin", &Pose::SetOrigin)
-      .def("get_R_cam_to_world", &Pose::RotationCameraToWorld)
-      .def("get_rotation_matrix", &Pose::RotationWorldToCamera)
-      .def("get_R_world_to_cam", &Pose::RotationWorldToCamera)
-      .def("get_R_cam_to_world_min", &Pose::RotationCameraToWorldMin)
-      .def("get_R_world_to_cam_min", &Pose::RotationWorldToCameraMin)
-      .def("get_t_cam_to_world", &Pose::TranslationCameraToWorld)
-      .def("get_t_world_to_cam", &Pose::TranslationWorldToCamera)
-      .def("get_Rt", &Pose::WorldToCameraRt)
-      .def_property("rotation", &Pose::RotationWorldToCameraMin,
-                    &Pose::SetWorldToCamRotation)
-      .def_property("translation", &Pose::TranslationWorldToCamera,
-                    &Pose::SetWorldToCamTranslation)
-      .def("set_rotation_matrix", &Pose::SetWorldToCamRotationMatrix)
-      .def("transform", &Pose::TransformWorldToCamera)
-      .def("transform_inverse", &Pose::TransformCameraToWorld)
-      .def("transform_many", &Pose::TransformWorldToCameraMany)
-      .def("transform_inverse_many", &Pose::TransformCameraToWorldMany)
-      .def("relative_to", &Pose::RelativeTo)
+           (void (geometry::Pose::*)(const Vec3d &, const Vec3d &)) &
+               geometry::Pose::SetFromCameraToWorld)
+      .def("get_origin", &geometry::Pose::GetOrigin)
+      .def("set_origin", &geometry::Pose::SetOrigin)
+      .def("get_R_cam_to_world", &geometry::Pose::RotationCameraToWorld)
+      .def("get_rotation_matrix", &geometry::Pose::RotationWorldToCamera)
+      .def("get_R_world_to_cam", &geometry::Pose::RotationWorldToCamera)
+      .def("get_R_cam_to_world_min", &geometry::Pose::RotationCameraToWorldMin)
+      .def("get_R_world_to_cam_min", &geometry::Pose::RotationWorldToCameraMin)
+      .def("get_t_cam_to_world", &geometry::Pose::TranslationCameraToWorld)
+      .def("get_t_world_to_cam", &geometry::Pose::TranslationWorldToCamera)
+      .def("get_Rt", &geometry::Pose::WorldToCameraRt)
+      .def_property("rotation", &geometry::Pose::RotationWorldToCameraMin,
+                    &geometry::Pose::SetWorldToCamRotation)
+      .def_property("translation", &geometry::Pose::TranslationWorldToCamera,
+                    &geometry::Pose::SetWorldToCamTranslation)
+      .def("set_rotation_matrix", &geometry::Pose::SetWorldToCamRotationMatrix)
+      .def("transform", &geometry::Pose::TransformWorldToCamera)
+      .def("transform_inverse", &geometry::Pose::TransformCameraToWorld)
+      .def("transform_many", &geometry::Pose::TransformWorldToCameraMany)
+      .def("transform_inverse_many", &geometry::Pose::TransformCameraToWorldMany)
+      .def("relative_to", &geometry::Pose::RelativeTo)
       .def(py::pickle(
-          [](const Pose &p) { return py::make_tuple(p.CameraToWorld()); },
+          [](const geometry::Pose &p) { return py::make_tuple(p.CameraToWorld()); },
           [](py::tuple p) {
-            Pose pose;
+            geometry::Pose pose;
             pose.SetFromCameraToWorld(p[0].cast<Mat4d>());
             return pose;
           }));
