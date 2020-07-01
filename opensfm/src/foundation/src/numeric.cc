@@ -4,9 +4,7 @@
 
 Eigen::Matrix3d SkewMatrix(const Eigen::Vector3d& v){
   Eigen::Matrix3d m;
-  m <<    0, -v(2),  v(1),
-       v(2),     0, -v(0),
-      -v(1),  v(0),     0;
+  SkewMatrixT(v, &m);
   return m;
 }
 

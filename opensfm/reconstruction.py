@@ -15,6 +15,7 @@ from timeit import default_timer as timer
 from opensfm import pybundle
 from opensfm import pygeometry
 from opensfm import align
+from opensfm import exif as oexif
 from opensfm import log
 from opensfm import tracking
 from opensfm import multiview
@@ -94,9 +95,11 @@ def _add_gcp_to_bundle(ba, gcp, shots):
 def bundle(reconstruction, camera_priors, gcp, config):
     """Bundle adjust a reconstruction."""
     fix_cameras = not config['optimize_camera_parameters']
+    use_analytic_derivatives = config['bundle_analytic_derivatives']
 
     chrono = Chronometer()
     ba = pybundle.BundleAdjuster()
+    ba.set_use_analytic_derivatives(use_analytic_derivatives)
 
     for camera in reconstruction.cameras.values():
         camera_prior = camera_priors[camera.id]
@@ -181,6 +184,7 @@ def bundle(reconstruction, camera_priors, gcp, config):
 def bundle_single_view(reconstruction, shot_id, camera_priors, config):
     """Bundle adjust a single camera."""
     ba = pybundle.BundleAdjuster()
+    ba.set_use_analytic_derivatives(config['bundle_analytic_derivatives'])
     shot = reconstruction.shots[shot_id]
     camera = shot.camera
     camera_prior = camera_priors[camera.id]
@@ -254,6 +258,7 @@ def bundle_local(reconstruction, camera_priors, gcp, central_shot_id, config):
             point_ids.add(lm.id)
 
     ba = pybundle.BundleAdjuster()
+    ba.set_use_analytic_derivatives(config['bundle_analytic_derivatives'])
 
     for camera in reconstruction.cameras.values():
         camera_prior = camera_priors[camera.id]
@@ -440,7 +445,7 @@ def get_image_metadata(data, image):
         lat = exif['gps']['latitude']
         lon = exif['gps']['longitude']
         if data.config['use_altitude_tag']:
-            alt = exif['gps'].get('altitude', 2.0)
+            alt = min([oexif.maximum_altitude, exif['gps'].get('altitude', 2.0)])
         else:
             alt = 2.0  # Arbitrary value used to align the reconstruction
         x, y, z = reference.to_topocentric(lat, lon, alt)

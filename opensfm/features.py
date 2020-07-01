@@ -299,13 +299,21 @@ def build_flann_index(features, config):
     FLANN_INDEX_LSH             = 6
 
     if features.dtype.type is np.float32:
-        FLANN_INDEX_METHOD = FLANN_INDEX_KMEANS
+        algorithm_type = config['flann_algorithm'].upper()
+        if algorithm_type == 'KMEANS':
+            FLANN_INDEX_METHOD = FLANN_INDEX_KMEANS
+        elif algorithm_type == 'KDTREE':
+            FLANN_INDEX_METHOD = FLANN_INDEX_KDTREE
+        else:
+            raise ValueError('Unknown flann algorithm type '
+                             'must be KMEANS, KDTREE')
     else:
         FLANN_INDEX_METHOD = FLANN_INDEX_LSH
 
     flann_params = dict(algorithm=FLANN_INDEX_METHOD,
                         branching=config['flann_branching'],
-                        iterations=config['flann_iterations'])
+                        iterations=config['flann_iterations'],
+                        tree=config['flann_tree'])
 
     return context.flann_Index(features, flann_params)
 

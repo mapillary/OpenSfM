@@ -19,6 +19,7 @@ inch_in_mm = 25.4
 cm_in_mm = 10
 um_in_mm = 0.001
 default_projection = 'perspective'
+maximum_altitude = 1e4
 
 
 def eval_frac(value):
@@ -324,7 +325,7 @@ class EXIF:
             d['latitude'] = lat
             d['longitude'] = lon
         if altitude is not None:
-            d['altitude'] = altitude
+            d['altitude'] = min([maximum_altitude, altitude])
         if dop is not None:
             d['dop'] = dop
         return d

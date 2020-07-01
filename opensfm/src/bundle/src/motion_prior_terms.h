@@ -34,9 +34,9 @@ struct BALinearMotionError {
     residual.segment(0, 3) = T(position_scale_) * (T(alpha_) * (t2 - t0) + (t0 - t1));
 
     // Rotation residual : op is rotation
-    const Vec3<T> R2_R0t = T(alpha_) * MultRotations(R2.eval(), {(-R0).eval()});
-    const Vec3<T> R0_R1t = MultRotations(R0.eval(), {(-R1).eval()});
-    residual.segment(3, 3) = T(position_scale_) * MultRotations(R2_R0t.eval(), {R0_R1t});
+    const Vec3<T> R2_R0t = T(alpha_) * MultRotations(R2.eval(), (-R0).eval());
+    const Vec3<T> R0_R1t = MultRotations(R0.eval(), (-R1).eval());
+    residual.segment(3, 3) = T(position_scale_) * MultRotations(R2_R0t.eval(), R0_R1t);
     return true;
   }
 

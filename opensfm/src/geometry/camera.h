@@ -8,16 +8,16 @@
 class Camera {
  public:
   enum class Parameters : int {
-    Focal,
-    AspectRatio,
-    Cx,
-    Cy,
+    Transition,
     K1,
     K2,
     K3,
     P1,
     P2,
-    Transition,
+    Focal,
+    AspectRatio,
+    Cx,
+    Cy,
     None
   };
 

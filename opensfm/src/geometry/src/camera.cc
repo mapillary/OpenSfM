@@ -9,9 +9,9 @@ Camera::Camera(const std::vector<Camera::Parameters>& types, const VecXd& values
 Camera Camera::CreatePerspectiveCamera(double focal, double k1, double k2) {
   Camera camera;
   camera.type_ = ProjectionType::PERSPECTIVE;
-  camera.types_= {Camera::Parameters::Focal, Camera::Parameters::K1, Camera::Parameters::K2};
+  camera.types_= {Camera::Parameters::K1, Camera::Parameters::K2, Camera::Parameters::Focal};
   camera.values_.resize(3);
-  camera.values_ << focal, k1, k2;
+  camera.values_ << k1, k2, focal;
   return camera;
 };
 
@@ -23,23 +23,25 @@ Camera Camera::CreateBrownCamera(double focal, double aspect_ratio,
     throw std::runtime_error("Invalid distortion coefficients size");
   }
   camera.type_ = ProjectionType::BROWN;
-  camera.types_ = {Camera::Parameters::Focal, Camera::Parameters::AspectRatio,
-                   Camera::Parameters::Cx,    Camera::Parameters::Cy,
-                   Camera::Parameters::K1,    Camera::Parameters::K2,
-                   Camera::Parameters::K3,    Camera::Parameters::P1,
-                   Camera::Parameters::P2};
+  camera.types_ = {Camera::Parameters::K1,          Camera::Parameters::K2,
+                   Camera::Parameters::K3,          Camera::Parameters::P1,
+                   Camera::Parameters::P2,          Camera::Parameters::Focal,
+                   Camera::Parameters::AspectRatio, Camera::Parameters::Cx,
+                   Camera::Parameters::Cy};
   camera.values_.resize(9);
-  camera.values_ << focal, aspect_ratio, principal_point[0], principal_point[1],
-      distortion[0], distortion[1], distortion[2], distortion[3], distortion[4];
+  camera.values_ << distortion[0], distortion[1], distortion[2], distortion[3],
+      distortion[4], focal, aspect_ratio, principal_point[0],
+      principal_point[1];
   return camera;
 };
 
 Camera Camera::CreateFisheyeCamera(double focal, double k1, double k2) {
   Camera camera;
   camera.type_ = ProjectionType::FISHEYE;
-  camera.types_= {Camera::Parameters::Focal, Camera::Parameters::K1, Camera::Parameters::K2};
+  camera.types_ = {Camera::Parameters::K1, Camera::Parameters::K2,
+                   Camera::Parameters::Focal};
   camera.values_.resize(3);
-  camera.values_ << focal, k1, k2;
+  camera.values_ << k1, k2, focal;
   return camera;
 };
 
@@ -47,9 +49,10 @@ Camera Camera::CreateDualCamera(double transition, double focal, double k1,
                                 double k2) {
   Camera camera;
   camera.type_ = ProjectionType::DUAL;
-  camera.types_= {Camera::Parameters::Focal, Camera::Parameters::K1, Camera::Parameters::K2, Camera::Parameters::Transition};
+  camera.types_ = {Camera::Parameters::Transition, Camera::Parameters::K1,
+                   Camera::Parameters::K2, Camera::Parameters::Focal};
   camera.values_.resize(4);
-  camera.values_ << focal, k1, k2, transition;
+  camera.values_ << transition, k1, k2, focal;
   return camera;
 };
 
