@@ -295,8 +295,8 @@ class SlamMapper(object):
             points2D.append(new_kf.get_observation(idx).point)
             points3D.append(lm.coordinates)
 
-        slam_debug.reproject_landmarks(np.array(points3D), np.array(points2D), new_kf.pose.get_world_to_cam(),
-                                       self.data.load_image(new_kf.id), self.camera, title="triang")
+        # slam_debug.reproject_landmarks(np.array(points3D), np.array(points2D), new_kf.pose.get_world_to_cam(),
+        #                                self.data.load_image(new_kf.id), self.camera, title="triang")
 
 
     def triangulate_from_two_kfs(self, new_kf, old_kf, matches):
@@ -450,8 +450,8 @@ class SlamMapper(object):
         for lm, idx in lm_idx:
             points2D.append(shot.get_observation(idx).point)
             points3D.append(lm.coordinates)
-        slam_debug.reproject_landmarks(np.array(points3D), np.array(points2D), shot.pose.get_world_to_cam(),
-                                       self.data.load_image(shot.id), self.camera, title="loc ba bef", do_show=False)
+        # slam_debug.reproject_landmarks(np.array(points3D), np.array(points2D), shot.pose.get_world_to_cam(),
+        #                                self.data.load_image(shot.id), self.camera, title="loc ba bef", do_show=False)
 
         th = 0.006**2
         # Here, we should update the all landmarks!
@@ -495,8 +495,8 @@ class SlamMapper(object):
         for lm, idx in lm_idx:
             points2D.append(shot.get_observation(idx).point)
             points3D.append(lm.coordinates)
-        slam_debug.reproject_landmarks(np.array(points3D), np.array(points2D), shot.pose.get_world_to_cam(),
-                                       self.data.load_image(shot.id), self.camera, title="loc ba aft", do_show=True)
+        # slam_debug.reproject_landmarks(np.array(points3D), np.array(points2D), shot.pose.get_world_to_cam(),
+        #                                self.data.load_image(shot.id), self.camera, title="loc ba aft", do_show=True)
 
 
 

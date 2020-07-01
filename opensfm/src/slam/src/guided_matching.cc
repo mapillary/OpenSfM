@@ -439,17 +439,17 @@ GuidedMatcher::AssignLandmarksToShot(map::Shot& shot, const std::vector<map::Lan
                 // std::cout << "best_idx: " << best_idx << "/" << idx << std::endl;
                 const auto delta_angle = other_undist_kpts.at(idx).angle - undist_kpts.at(best_idx).angle;
                 angle_checker->append_delta_angle(delta_angle, best_idx);
-                std::cout << idx << "<->" << best_idx <<
-                         "delta_angle: " << delta_angle << " langle: " << other_undist_kpts.at(idx).angle
-                      << " rangle: " << undist_kpts.at(best_idx).angle << 
-                      std::endl;
+                // std::cout << idx << "<->" << best_idx <<
+                //          "delta_angle: " << delta_angle << " langle: " << other_undist_kpts.at(idx).angle
+                //       << " rangle: " << undist_kpts.at(best_idx).angle << 
+                //       std::endl;
 
-                const DescriptorType d1 = shot.GetDescriptor(best_idx);
-                const DescriptorType d2 = lm->slam_data_.descriptor_;
-                const DescriptorType d3 = shot.GetDescriptor(idx);
-                std::cout << "best_idx<->desc: " << GuidedMatcher::compute_descriptor_distance_32(d1,d2)
-                          << "\nbest_idx<->idx: " << GuidedMatcher::compute_descriptor_distance_32(d1,d3)
-                          << "\ndesc<->idx:" << GuidedMatcher::compute_descriptor_distance_32(d2,d3) << std::endl;
+                // const DescriptorType d1 = shot.GetDescriptor(best_idx);
+                // const DescriptorType d2 = lm->slam_data_.descriptor_;
+                // const DescriptorType d3 = shot.GetDescriptor(idx);
+                // std::cout << "best_idx<->desc: " << GuidedMatcher::compute_descriptor_distance_32(d1,d2)
+                //           << "\nbest_idx<->idx: " << GuidedMatcher::compute_descriptor_distance_32(d1,d3)
+                //           << "\ndesc<->idx:" << GuidedMatcher::compute_descriptor_distance_32(d2,d3) << std::endl;
               }
               if (idx == best_idx) {
                 num_perfect_matches++;

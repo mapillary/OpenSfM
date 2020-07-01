@@ -126,9 +126,9 @@ class SlamTracker(object):
         # #                                      slam_mapper.last_shot.id),
         # #                                  data.load_image(curr_shot.id))
         # # #TODO: debug
-        slam_debug.reproject_landmarks(points3D, np.array(points2D), T_init, data.load_image(curr_shot.id), camera, obs_normalized=True, do_show=False, title="curr"+curr_shot.id)
-        slam_debug.reproject_landmarks(points3D, np.array(points2D), pose.get_world_to_cam(), data.load_image(curr_shot.id), camera, obs_normalized=True, do_show=False, title="bundle")
-        slam_debug.reproject_landmarks(points3D, np.array(points2D), slam_mapper.last_shot.pose.get_world_to_cam(), data.load_image(slam_mapper.last_shot.id), camera, obs_normalized=True, do_show=True, title="last")
+        # slam_debug.reproject_landmarks(points3D, np.array(points2D), T_init, data.load_image(curr_shot.id), camera, obs_normalized=True, do_show=False, title="curr"+curr_shot.id)
+        # slam_debug.reproject_landmarks(points3D, np.array(points2D), pose.get_world_to_cam(), data.load_image(curr_shot.id), camera, obs_normalized=True, do_show=False, title="bundle")
+        # slam_debug.reproject_landmarks(points3D, np.array(points2D), slam_mapper.last_shot.pose.get_world_to_cam(), data.load_image(slam_mapper.last_shot.id), camera, obs_normalized=True, do_show=True, title="last")
         # # # TODO: 
 
         # # points1 = []

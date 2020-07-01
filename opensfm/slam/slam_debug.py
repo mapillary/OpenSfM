@@ -6,7 +6,7 @@ import cv2
 from timeit import default_timer as timer
 from collections import defaultdict
 from opensfm import features
-from opensfm import types
+from opensfm import pygeometry
 from opensfm import pyslam
 logger = logging.getLogger(__name__)
 
@@ -114,7 +114,7 @@ def reproject_landmarks(points3D, observations, T_world_to_cam,
         return
     if len(points3D) == 0:  # or len(observations) == 0:
         return
-    pose_world_to_cam = types.Pose()
+    pose_world_to_cam = pygeometry.Pose()
     pose_world_to_cam.set_rotation_matrix(T_world_to_cam[0:3, 0:3])
     pose_world_to_cam.translation = T_world_to_cam[0:3, 3]
     legend = ['reproj']

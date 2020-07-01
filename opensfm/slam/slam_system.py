@@ -114,7 +114,7 @@ class SlamSystem(object):
                 self.slam_mapper.create_init_map(rec_init,
                                                  self.slam_init.init_shot,
                                                  curr_shot)
-                self.slam_mapper.velocity = np.eye(4)
+                # self.slam_mapper.velocity = np.eye(4)
             if self.system_initialized:
                 logger.info("Initialized with {} ".format(curr_shot.id))
                 return True
