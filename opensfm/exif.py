@@ -5,6 +5,7 @@ import exifread
 import logging
 import xmltodict as x2d
 from codecs import encode, decode
+from bs4 import BeautifulSoup
 
 from six import string_types
 
@@ -112,19 +113,18 @@ def unescape_string(s):
 
 
 def parse_xmp_string(xmp_str):
-    for i in range(3):
+    try:
+        return x2d.parse(xmp_str)
+    except:
+        xmp_str = unescape_string(xmp_str)
         try:
             return x2d.parse(xmp_str)
         except:
-            if i == 0:
-                xmp_str = unescape_string(xmp_str)
-            elif i == 1:
-                try:
-                    from bs4 import BeautifulSoup
-                    xmp_str = str(BeautifulSoup(xmp_str, 'xml'))
-                except:
-                    # Do nothing
-                    pass
+            xmp_str = str(BeautifulSoup(xmp_str, 'xml'))
+            try:
+                return x2d.parse(xmp_str)
+            except:
+                pass
     return None
 
 
