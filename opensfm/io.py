@@ -21,6 +21,7 @@ from opensfm import features
 from opensfm import types
 from opensfm import context
 from opensfm import pygeometry
+from opensfm import pymap
 
 
 logger = logging.getLogger(__name__)
@@ -57,27 +58,30 @@ def camera_from_json(key, obj):
     return camera
 
 
-def shot_from_json(key, obj, cameras):
+def shot_from_json(reconstruction, key, obj, cameras):
     """
     Read shot from a json object
     """
-    pose = types.Pose()
+    pose = pygeometry.Pose()
     pose.rotation = obj["rotation"]
     if "translation" in obj:
         pose.translation = obj["translation"]
 
-    metadata = types.ShotMetadata()
-    metadata.orientation = obj.get("orientation")
-    metadata.capture_time = obj.get("capture_time")
-    metadata.gps_dop = obj.get("gps_dop")
-    metadata.gps_position = obj.get("gps_position")
-    metadata.skey = obj.get("skey")
 
-    shot = types.Shot()
-    shot.id = key
+    metadata = pymap.ShotMeasurements()
+    if obj.get("orientation") is not None:
+        metadata.orientation.value = obj.get("orientation")
+    if obj.get("capture_time") is not None:
+        metadata.capture_time.value = obj.get("capture_time")
+    if obj.get("gps_dop") is not None:
+        metadata.gps_accuracy.value = obj.get("gps_dop")
+    if obj.get("gps_position") is not None:
+        metadata.gps_position.value = obj.get("gps_position")
+    if obj.get("skey") is not None:
+        metadata.sequence_key.value = obj.get("skey")
+
+    shot = reconstruction.create_shot(key, obj["camera"], pose)
     shot.metadata = metadata
-    shot.pose = pose
-    shot.camera = cameras.get(obj["camera"])
 
     if 'scale' in obj:
         shot.scale = obj['scale']
@@ -86,21 +90,21 @@ def shot_from_json(key, obj, cameras):
     if 'merge_cc' in obj:
         shot.merge_cc = obj['merge_cc']
     if 'vertices' in obj and 'faces' in obj:
-        shot.mesh = types.ShotMesh()
         shot.mesh.vertices = obj['vertices']
         shot.mesh.faces = obj['faces']
 
     return shot
 
 
-def point_from_json(key, obj):
+def point_from_json(reconstruction, key, obj):
     """
     Read a point from a json object
     """
-    point = types.Point()
-    point.id = key
+    # point = types.Point()
+    point = reconstruction.create_point(key, obj["coordinates"])
+    # point.id = key
     point.color = obj["color"]
-    point.coordinates = obj["coordinates"]
+    # point.coordinates = obj["coordinates"]
     return point
 
 
@@ -117,16 +121,17 @@ def reconstruction_from_json(obj):
 
     # Extract shots
     for key, value in iteritems(obj['shots']):
-        shot = shot_from_json(key, value, reconstruction.cameras)
+        shot = shot_from_json(reconstruction, key, value, reconstruction.cameras)
         reconstruction.add_shot(shot)
 
     # Extract points
     if 'points' in obj:
         for key, value in iteritems(obj['points']):
-            point = point_from_json(key, value)
-            reconstruction.add_point(point)
+            # point = 
+            point_from_json(reconstruction, key, value)
 
     # Extract pano_shots
+    # TODO: Fix pano shot!
     if 'pano_shots' in obj:
         reconstruction.pano_shots = {}
         for key, value in iteritems(obj['pano_shots']):
@@ -231,21 +236,14 @@ def shot_to_json(shot):
         'translation': list(shot.pose.translation),
         'camera': shot.camera.id
     }
+
     if shot.metadata is not None:
-        if shot.metadata.orientation is not None:
-            obj['orientation'] = shot.metadata.orientation
-        if shot.metadata.capture_time is not None:
-            obj['capture_time'] = shot.metadata.capture_time
-        if shot.metadata.gps_dop is not None:
-            obj['gps_dop'] = shot.metadata.gps_dop
-        if shot.metadata.gps_position is not None:
-            obj['gps_position'] = list(shot.metadata.gps_position)
-        if shot.metadata.accelerometer is not None:
-            obj['accelerometer'] = shot.metadata.accelerometer
-        if shot.metadata.compass is not None:
-            obj['compass'] = shot.metadata.compass
-        if shot.metadata.skey is not None:
-            obj['skey'] = shot.metadata.skey
+        # if isinstance(shot, types.Shot):
+        #     obj.update(types_metadata_to_json(shot.metadata))
+        # elif isinstance(shot, pymap.Shot):
+        obj.update(pymap_metadata_to_json(shot.metadata))
+
+
     if shot.mesh is not None:
         obj['vertices'] = [list(vertice) for vertice in shot.mesh.vertices]
         obj['faces'] = [list(face) for face in shot.mesh.faces]
@@ -255,6 +253,44 @@ def shot_to_json(shot):
         obj['covariance'] = shot.covariance.tolist()
     if hasattr(shot, 'merge_cc'):
         obj['merge_cc'] = shot.merge_cc
+    return obj
+
+
+# def types_metadata_to_json(metadata: types.ShotMetadata):
+#     obj = {}
+#     if metadata.orientation is not None:
+#         obj['orientation'] = metadata.orientation
+#     if metadata.capture_time is not None:
+#         obj['capture_time'] = metadata.capture_time
+#     if metadata.gps_dop is not None:
+#         obj['gps_dop'] = metadata.gps_dop
+#     if metadata.gps_position is not None:
+#         obj['gps_position'] = list(metadata.gps_position)
+#     if metadata.accelerometer is not None:
+#         obj['accelerometer'] = metadata.accelerometer
+#     if metadata.compass is not None:
+#         obj['compass'] = metadata.compass
+#     if metadata.skey is not None:
+#         obj['skey'] = metadata.skey
+#     return obj
+
+
+def pymap_metadata_to_json(metadata: pymap.ShotMeasurements):
+    obj = {}
+    if metadata.orientation.has_value:
+        obj['orientation'] = metadata.orientation.value
+    if metadata.capture_time.has_value:
+        obj['capture_time'] = metadata.capture_time.value
+    if metadata.gps_accuracy.has_value:
+        obj['gps_dop'] = metadata.gps_accuracy.value
+    if metadata.gps_position.has_value:
+        obj['gps_position'] = list(metadata.gps_position.value)
+    if metadata.accelerometer.has_value:
+        obj['accelerometer'] = list(metadata.accelerometer.value)
+    if metadata.compass_angle.has_value:
+        obj['compass'] = {"angle": metadata.compass_angle.value}
+    if metadata.sequence_key.has_value:
+        obj['skey'] = metadata.sequence_key.value
     return obj
 
 
@@ -719,7 +755,7 @@ def export_bundler(image_list, reconstructions, track_manager,
             if shot_id in shots:
                 shot = shots[shot_id]
                 camera = shot.camera
-                if type(camera) == types.BrownPerspectiveCamera:
+                if shot.camera.projection_type == "brown":
                     # Will aproximate Brown model, not optimal
                     focal_normalized = camera.focal_x
                 else:

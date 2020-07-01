@@ -1,6 +1,7 @@
 from opensfm import pyslam
 from opensfm import pymap
 from opensfm import pybundle
+from opensfm import pygeometry
 from opensfm import reconstruction
 from slam_mapper import SlamMapper
 
@@ -99,7 +100,7 @@ class SlamTracker(object):
         points3D = np.zeros((len(lms), 3), dtype=np.float)
         for i, lm in enumerate(lms):
             points3D[i, :] = lm.get_global_pos()
-        pose_init = pymap.Pose()
+        pose_init = pygeometry.Pose()
         pose_init.set_from_world_to_cam(T_init)
         
         pose, valid_pts = self.bundle_tracking(
@@ -227,9 +228,9 @@ class SlamTracker(object):
             # print("error: ", pt_r, ft[0:2], np.linalg.norm(pt_r-ft[0:2]))
         
         if config['bundle_use_gps']:
-            g = shot.metadata.gps_position
+            g = shot.metadata.gps_position.value
             ba.add_position_prior(shot_id, g[0], g[1], g[2],
-                                  shot.metadata.gps_dop)
+                                  shot.metadata.gps_accuracy.value)
 
         # Assume observations N x 3 (x,y,s)
         ba.add_absolute_up_vector(shot_id, [0, 0, -1], 1e-3)
@@ -249,7 +250,7 @@ class SlamTracker(object):
         ba.run()
         logger.debug(ba.brief_report())
         s = ba.get_shot(shot_id)
-        pose = pymap.Pose()
+        pose = pygeometry.Pose()
         pose.set_from_world_to_cam([s.r[0], s.r[1], s.r[2]],
                                    [s.t[0], s.t[1], s.t[2]])
         valid_pts = self.discard_outliers(ba, len(points3D), pose, camera)

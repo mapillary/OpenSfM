@@ -1,16 +1,16 @@
 #pragma once
 #include <geometry/camera.h>
+#include <geometry/pose.h>
 #include <map/defines.h>
 #include <map/landmark.h>
-#include <map/pose.h>
 #include <map/third_party/data/graph_node.h>
 #include <sfm/observation.h>
 
 #include <Eigen/Eigen>
 #include <unordered_map>
 
+
 namespace map {
-class Pose;
 class Map;
 class SLAMShotData {
  public:
@@ -42,16 +42,40 @@ struct ShotMesh {
   MatXd faces_;
 };
 
+template <typename T>
+class ShotMeasurement {
+ public:
+  // T &operator=(const T &v) { SetValue(v); }
+
+  // ShotMeasurement(){}
+  // ShotMeasurement(const T& val)
+  // {
+  //   SetValue(val);
+  // }
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+  bool HasValue() const { return has_value_; }
+  T Value() const { return value_; }
+  void SetValue(const T& v) {
+    value_ = v;
+    has_value_ = true;
+  }
+  void Reset() { has_value_ = false; }
+
+ private:
+  bool has_value_{false};
+  T value_;
+};
+
 struct ShotMeasurements {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  double capture_time_;
-  // TODO: Correct data types for compass,....
-  double compass_;
-  double accelerometer_;
-  double gps_dop_{0};
-  Vec3d gps_position_;
-  int orientation_;
-  std::string skey_;
+  ShotMeasurement<double> capture_time_;
+  ShotMeasurement<Vec3d> gps_position_;
+  ShotMeasurement<double> gps_accuracy_;
+  ShotMeasurement<double> compass_accuracy_;
+  ShotMeasurement<double> compass_angle_;
+  ShotMeasurement<Vec3d> accelerometer_;
+  ShotMeasurement<int> orientation_;
+  ShotMeasurement<std::string> sequence_key_;
 };
 
 class Shot {
@@ -61,8 +85,8 @@ class Shot {
   Shot(const ShotId& shot_id, const Camera* const shot_camera, const Pose& pose);
   // Workaround for pickle that makes it possible for the shot to have camera
   // outside of the reconstruction.
-  Shot(const ShotId& shot_id, std::unique_ptr<Camera> cam, const Pose& pose);
-  
+  Shot(const ShotId& shot_id, std::unique_ptr<Camera> cam, const Pose& pose);  
+  // Shot(const ShotId& shot_id, const Camera* const shot_camera);
 
   const DescriptorType GetDescriptor(const FeatureId id) const {
     return descriptors_.row(id);
@@ -208,7 +232,9 @@ class Shot {
   const Camera* const shot_camera_;
   ShotMeasurements shot_measurements_;  // metadata
   ShotMesh mesh;
-
+  MatXd covariance;
+  long int merge_cc;
+  double scale;
  private:
   Pose pose_;
   size_t num_keypts_;

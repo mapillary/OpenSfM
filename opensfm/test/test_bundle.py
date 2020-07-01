@@ -7,6 +7,7 @@ from opensfm import pygeometry
 from opensfm import geometry
 from opensfm import config
 from opensfm import types
+from opensfm import pymap
 from opensfm import tracking
 from opensfm import reconstruction
 from opensfm import pysfm
@@ -52,7 +53,7 @@ def test_sigleton_pan_tilt_roll():
 
     sa.run()
     s1 = sa.get_shot('1')
-    pose = types.Pose(s1.r, s1.t)
+    pose = pygeometry.Pose(s1.r, s1.t)
 
     assert np.allclose(pose.get_origin(), [1, 0, 0], atol=1e-6)
 
@@ -72,7 +73,6 @@ def test_bundle_projection_fixed_internals(scene_synthetic):
     camera_priors = {c.id: c for c in scene_synthetic[0].cameras}
     graph = tracking.as_graph(scene_synthetic[5])
     # Create the connnections in the reference
-    graph.nodes
     for point_id in reference.points.keys():
         if point_id in graph:
             for shot_id, g_obs in graph[point_id].items():
@@ -328,18 +328,14 @@ def test_bundle_alignment_prior():
     """Test that cameras are aligned to have the Y axis pointing down."""
     camera = pygeometry.Camera.create_perspective(1.0, 0.0, 0.0)
     camera.id = 'camera1'
-
-    shot = types.Shot()
-    shot.id = '1'
-    shot.camera = camera
-    shot.pose = types.Pose(np.random.rand(3), np.random.rand(3))
-    shot.metadata = types.ShotMetadata()
-    shot.metadata.gps_position = [0, 0, 0]
-    shot.metadata.gps_dop = 1
-
+    
     r = types.Reconstruction()
     r.add_camera(camera)
-    r.add_shot(shot)
+    shot = r.create_shot('1', camera.id, pygeometry.Pose(
+        np.random.rand(3), np.random.rand(3)))
+    shot.metadata.gps_position.value = [0, 0, 0]
+    shot.metadata.gps_accuracy.value = 1
+
     camera_priors = {camera.id: camera}
     gcp = []
     myconfig = config.default_config()

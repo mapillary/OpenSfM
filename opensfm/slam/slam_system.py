@@ -69,7 +69,8 @@ class SlamSystem(object):
         curr_shot: pymap.Shot = self.reconstruction.create_shot(
             im_name, self.camera.id)
         metadata = reconstruction.get_image_metadata(self.data, im_name)
-        self.reconstruction.set_shot_metadata(curr_shot, metadata)
+        # self.reconstruction.set_shot_metadata(curr_shot, metadata)
+        curr_shot.metadata = metadata
         self.extractor.extract_to_shot(curr_shot, gray_scale_img, np.array([]))
         print("frame: ", curr_shot.id, " kpts: ", len(curr_shot.get_keypoints()))
         curr_shot.undistort_and_compute_bearings()

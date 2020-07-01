@@ -6,7 +6,7 @@
 #include <memory>
 
 #include <map/defines.h>
-#include <map/pose.h>
+
 #include <map/geo.h>
 #include <map/shot.h>
 #include <map/landmark.h>
@@ -14,6 +14,7 @@
 #include <map/dataviews.h>
 #include <sfm/tracks_manager.h>
 #include <geometry/camera.h>
+#include <geometry/pose.h>
 namespace map
 {
 
@@ -34,7 +35,8 @@ public:
   }
 
   // Shot Methods
-  Shot* CreateShot(const ShotId& shot_id, const CameraId& camera_id, const Pose& pose = Pose());
+  Shot* CreateShot(const ShotId& shot_id, const CameraId& camera_id);
+  Shot* CreateShot(const ShotId& shot_id, const CameraId& camera_id, const Pose& pose);
   Shot* CreateShot(const ShotId& shot_id, const Camera* const cam, const Pose& pose = Pose());
   Shot* GetShot(const ShotId& shot_id);
   void RemoveShot(const ShotId& shot_id);

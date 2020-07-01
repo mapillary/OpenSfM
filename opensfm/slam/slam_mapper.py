@@ -110,6 +110,8 @@ class SlamMapper(object):
             scale = 1.0 / median_depth
             kf2.scale_pose(scale)
             kf2.scale_landmarks(scale)
+            self.velocity = kf2.pose.get_world_to_cam().dot(
+                kf1.pose.get_cam_to_world())
         
 
         # points1 = []

@@ -22,6 +22,13 @@ GridParameters::GridParameters(unsigned int grid_cols, unsigned int grid_rows,
 }
 
 
+ constexpr unsigned int GuidedMatcher::HAMMING_DIST_THR_LOW;
+ constexpr unsigned int GuidedMatcher::HAMMING_DIST_THR_HIGH;
+ constexpr unsigned int GuidedMatcher::MAX_HAMMING_DIST;
+ constexpr float GuidedMatcher::NO_LOWE_TEST;
+ constexpr bool GuidedMatcher::NO_ORIENTATION_CHECK;
+ constexpr size_t GuidedMatcher::NO_MATCH;
+
 size_t
 GuidedMatcher::ComputeMedianDescriptorIdx(const AlignedVector<DescriptorType> &descriptors)
 {

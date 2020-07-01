@@ -7,16 +7,11 @@ from opensfm import pysfm
 
 
 def _add_shot(rec, shot_id, cam):
-    shot = types.Shot()
-    shot.id = shot_id
-    shot.camera = cam
-    rec.add_shot(shot)
+    rec.create_shot(shot_id, cam.id)
 
 
 def _add_point(rec, point_id, observations):
-    point = types.Point()
-    point.id = point_id
-    rec.add_point(point)
+    rec.create_point(point_id)
     for shot_id in observations:
         obs = pysfm.Observation(100, 200, 0.5, 255, 0, 0, int(point_id))
         rec.add_observation(shot_id, point_id, obs)
