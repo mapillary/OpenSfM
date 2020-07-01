@@ -139,6 +139,12 @@ class ReprojectionError3DFixture : public ::testing::Test {
 
   void CheckJacobians() {
     for (int i = 0; i < size; ++i) {
+      for (int j = 0; j < size_point; ++j) {
+        ASSERT_NEAR(residual_adiff[i].derivatives()(j),
+                    jac_point[i * size_point + j], 1e-14);
+      }
+    }
+    for (int i = 0; i < size; ++i) {
       for (int j = 0; j < size_rt; ++j) {
         ASSERT_NEAR(residual_adiff[i].derivatives()(size_point + j),
                     jac_rt[i * size_rt + j], 1e-14);
