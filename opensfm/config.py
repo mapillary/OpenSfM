@@ -99,6 +99,7 @@ principal_point_sd: 0.01        # The standard deviation of the principal point 
 radial_distorsion_k1_sd: 0.01   # The standard deviation of the first radial distortion parameter
 radial_distorsion_k2_sd: 0.01   # The standard deviation of the second radial distortion parameter
 radial_distorsion_k3_sd: 0.01   # The standard deviation of the third radial distortion parameter
+radial_distorsion_k4_sd: 0.01   # The standard deviation of the fourth radial distortion parameter
 radial_distorsion_p1_sd: 0.01   # The standard deviation of the first tangential distortion parameter
 radial_distorsion_p2_sd: 0.01   # The standard deviation of the second tangential distortion parameter
 bundle_outlier_filtering_type: FIXED    # Type of threshold for filtering outlier : either fixed value (FIXED) or based on actual distribution (AUTO)

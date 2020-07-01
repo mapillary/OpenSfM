@@ -200,9 +200,14 @@
             varying vec4 vRstq;
             uniform sampler2D projectorTex;
             uniform float opacity;
-            uniform float focal;
+            uniform float focal_x;
+            uniform float focal_y;
+            uniform float c_x;
+            uniform float c_y;
             uniform float k1;
             uniform float k2;
+            uniform float k3;
+            uniform float k4;
             uniform float scale_x;
             uniform float scale_y;
 
@@ -212,14 +217,18 @@
                 float y = vRstq.y;
                 float z = vRstq.z;
 
-                float l = sqrt(x * x + y * y);
-                float theta = atan(l, z);
-                float theta2 = theta * theta;
-                float theta_d = theta * (1.0 + theta2 * (k1 + theta2 * k2));
-                float s = focal * theta_d / l;
+                float a = x / z;
+                float b = y / z;
 
-                float u = scale_x * s * x + 0.5;
-                float v = -scale_y * s * y + 0.5;
+                float r = sqrt(a * a + b * b);
+                float theta = atan(r);
+                float theta2 = theta * theta;
+                float theta_d = theta * (1.0 + theta2 * (k1 + theta2 * (k2 + theta2 * (k3 + theta2 * k4)));
+                float x_p = theta_d / r * a
+                float y_p = theta_d / r * b
+
+                float u = focal_x * x_p + c_x;
+                float v = focal_y * y_p + c_y;
 
                 vec4 baseColor = texture2D(projectorTex, vec2(u, v));
                 baseColor.a = opacity;

@@ -12,6 +12,7 @@ class Camera {
     K1,
     K2,
     K3,
+    K4,
     P1,
     P2,
     Focal,
@@ -32,7 +33,9 @@ class Camera {
   static Camera CreateBrownCamera(double focal, double aspect_ratio,
                                   const Vec2d& principal_point,
                                   const VecXd& distortion);
-  static Camera CreateFisheyeCamera(double focal, double k1, double k2);
+  static Camera CreateFisheyeCamera(double focal, double aspect_ratio,
+                                    const Vec2d& principal_point,
+                                    const VecXd& distortion);
   static Camera CreateDualCamera(double transition, double focal, double k1,
                                  double k2);
   static Camera CreateSphericalCamera();

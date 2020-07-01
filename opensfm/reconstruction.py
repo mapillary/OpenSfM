@@ -154,7 +154,8 @@ def bundle(graph, reconstruction, camera_priors, gcp, config):
         config['radial_distorsion_k2_sd'],
         config['radial_distorsion_p1_sd'],
         config['radial_distorsion_p2_sd'],
-        config['radial_distorsion_k3_sd'])
+        config['radial_distorsion_k3_sd'],
+        config['radial_distorsion_k4_sd'])
     ba.set_num_threads(config['processes'])
     ba.set_max_num_iterations(config['bundle_max_iterations'])
     ba.set_linear_solver_type("SPARSE_SCHUR")
@@ -222,7 +223,8 @@ def bundle_single_view(graph, reconstruction, shot_id, camera_priors, config):
         config['radial_distorsion_k2_sd'],
         config['radial_distorsion_p1_sd'],
         config['radial_distorsion_p2_sd'],
-        config['radial_distorsion_k3_sd'])
+        config['radial_distorsion_k3_sd'],
+        config['radial_distorsion_k4_sd'])
     ba.set_num_threads(config['processes'])
     ba.set_max_num_iterations(10)
     ba.set_linear_solver_type("DENSE_QR")
@@ -303,7 +305,8 @@ def bundle_local(graph, reconstruction, camera_priors, gcp, central_shot_id, con
         config['radial_distorsion_k2_sd'],
         config['radial_distorsion_p1_sd'],
         config['radial_distorsion_p2_sd'],
-        config['radial_distorsion_k3_sd'])
+        config['radial_distorsion_k3_sd'],
+        config['radial_distorsion_k4_sd'])
     ba.set_num_threads(config['processes'])
     ba.set_max_num_iterations(10)
     ba.set_linear_solver_type("DENSE_SCHUR")

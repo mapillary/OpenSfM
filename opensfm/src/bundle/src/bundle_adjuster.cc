@@ -16,6 +16,7 @@ BundleAdjuster::BundleAdjuster() {
   p1_sd_ = 1;
   p2_sd_ = 1;
   k3_sd_ = 1;
+  k4_sd_ = 1;
   compute_covariances_ = false;
   covariance_estimation_valid_ = false;
   compute_reprojection_errors_ = true;
@@ -338,7 +339,8 @@ void BundleAdjuster::SetInternalParametersPriorSD(
     double k2_sd,
     double p1_sd,
     double p2_sd,
-    double k3_sd) {
+    double k3_sd,
+    double k4_sd) {
   focal_prior_sd_ = focal_sd;
   c_prior_sd_ = c_sd;
   k1_sd_ = k1_sd;
@@ -346,6 +348,7 @@ void BundleAdjuster::SetInternalParametersPriorSD(
   p1_sd_ = p1_sd;
   p2_sd_ = p2_sd;
   k3_sd_ = k3_sd;
+  k4_sd_ = k4_sd;
   UpdateSigmas();
 }
 

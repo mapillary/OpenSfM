@@ -98,6 +98,15 @@ def test_perspective_camera_projection():
         assert np.allclose(pixel, projected)
 
 
+def test_brown_camera_projection():
+    """Test brown projection--backprojection loop."""
+    for camera in _get_brown_perspective_camera():
+        pixel = [0.1, 0.2]
+        bearing = camera.pixel_bearing(pixel)
+        projected = camera.project(bearing)
+        assert np.allclose(pixel, projected)
+
+
 def test_fisheye_camera_projection():
     """Test fisheye projection--backprojection loop."""
     if not context.OPENCV3:
@@ -250,11 +259,18 @@ def _get_fisheye_camera():
     camera = types.FisheyeCamera()
     camera.width = 800
     camera.height = 600
-    camera.focal = 0.6
+    camera.focal_x = 0.6
+    camera.focal_y = 0.7
+    camera.c_x = 0.1
+    camera.c_y = -0.05
     camera.k1 = -0.1
     camera.k2 = 0.01
+    camera.k3 = 0.0002
+    camera.k4 = 0.0005
     camera_cpp = pygeometry.Camera.create_fisheye(
-        camera.focal, camera.k1, camera.k2)
+        camera.focal_x, camera.focal_y / camera.focal_x,
+        [camera.c_x, camera.c_y],
+        [camera.k1, camera.k2, camera.k3, camera.k4])
     return camera, camera_cpp
 
 

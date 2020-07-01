@@ -395,7 +395,7 @@ class BrownPerspectiveCamera(Camera):
         and (width - 1, height - 1) to the center of bottom-right pixel.
 
         You can optionally pass the width and height of the image, in case
-        you are using a resized versior of the original image.
+        you are using a resized version of the original image.
         """
         w = width or self.width
         h = height or self.height
@@ -414,9 +414,14 @@ class FisheyeCamera(Camera):
     Attributes:
         width (int): image width.
         height (int): image height.
-        focal (real): estimated focal length.
-        k1 (real): estimated first distortion parameter.
-        k2 (real): estimated second distortion parameter.
+        focal_x (real): estimated focal length for the X axis.
+        focal_y (real): estimated focal length for the Y axis.
+        c_x (real): estimated principal point X.
+        c_y (real): estimated principal point Y.
+        k1 (real): estimated first radial distortion parameter.
+        k2 (real): estimated second radial distortion parameter.
+        k3 (real): estimated third radial distortion parameter.
+        k4 (real): estimated fourth radial distortion parameter.
     """
 
     def __init__(self):
@@ -425,23 +430,36 @@ class FisheyeCamera(Camera):
         self.projection_type = 'fisheye'
         self.width = None
         self.height = None
-        self.focal = None
+        self.focal_x = None
+        self.focal_y = None
+        self.c_x = None
+        self.c_y = None
         self.k1 = None
         self.k2 = None
+        self.k3 = None
+        self.k4 = None
 
     def project(self, point):
         """Project a 3D point in camera coordinates to the image plane."""
         x, y, z = point
-        l = np.sqrt(x**2 + y**2)
-        theta = np.arctan2(l, z)
-        theta_d = theta * (1.0 + theta**2 * (self.k1 + theta**2 * self.k2))
-        s = self.focal * theta_d / l
-        return np.array([s * x, s * y])
+        a = x / z
+        b = y / z
+
+        r = np.sqrt(a**2 + b**2)
+        theta = np.arctan(r)
+        theta2 = theta**2
+        theta_d = theta * (1.0 + theta2 * (self.k1 + theta2 * (self.k2 + theta2 * (self.k3 + theta2 * self.k4))))
+
+        x_p = theta_d / r * a
+        y_p = theta_d / r * b
+
+        return np.array([self.focal_x * x_p + self.c_x,
+                         self.focal_y * y_p + self.c_y])
 
     def project_many(self, points):
         """Project 3D points in camera coordinates to the image plane."""
         points = points.reshape((-1, 1, 3)).astype(np.float64)
-        distortion = np.array([self.k1, self.k2, 0., 0.])
+        distortion = np.array([self.k1, self.k2, self.k3, self.k4])
         K, R, t = self.get_K(), np.zeros(3), np.zeros(3)
         pixels, _ = cv2.fisheye.projectPoints(points, R, t, K, distortion)
         return pixels.reshape((-1, 2))
@@ -449,7 +467,7 @@ class FisheyeCamera(Camera):
     def pixel_bearing(self, pixel):
         """Unit vector pointing to the pixel viewing direction."""
         point = np.asarray(pixel).reshape((1, 1, 2))
-        distortion = np.array([self.k1, self.k2, 0., 0.])
+        distortion = np.array([self.k1, self.k2, self.k3, self.k4])
         x, y = cv2.fisheye.undistortPoints(point, self.get_K(), distortion).flat
         l = np.sqrt(x * x + y * y + 1.0)
         return np.array([x / l, y / l, 1.0 / l])
@@ -457,7 +475,7 @@ class FisheyeCamera(Camera):
     def pixel_bearing_many(self, pixels):
         """Unit vector pointing to the pixel viewing directions."""
         points = pixels.reshape((-1, 1, 2)).astype(np.float64)
-        distortion = np.array([self.k1, self.k2, 0., 0.])
+        distortion = np.array([self.k1, self.k2, self.k3, self.k4])
         up = cv2.fisheye.undistortPoints(points, self.get_K(), distortion)
         up = up.reshape((-1, 2))
         x = up[:, 0]
@@ -483,8 +501,8 @@ class FisheyeCamera(Camera):
 
     def get_K(self):
         """The calibration matrix."""
-        return np.array([[self.focal, 0., 0.],
-                         [0., self.focal, 0.],
+        return np.array([[self.focal_x, 0., self.c_x],
+                         [0., self.focal_y, self.c_y],
                          [0., 0., 1.]])
 
     def get_K_in_pixel_coordinates(self, width=None, height=None):
@@ -498,10 +516,13 @@ class FisheyeCamera(Camera):
         """
         w = width or self.width
         h = height or self.height
-        f = self.focal * max(w, h)
-        return np.array([[f, 0, 0.5 * (w - 1)],
-                         [0, f, 0.5 * (h - 1)],
-                         [0, 0, 1.0]])
+        s = max(w, h)
+        normalized_to_pixel = np.array([
+            [s, 0, (w - 1) / 2.0],
+            [0, s, (h - 1) / 2.0],
+            [0, 0, 1],
+        ])
+        return np.dot(normalized_to_pixel, self.get_K())
 
 
 class DualCamera(Camera):
@@ -514,10 +535,13 @@ class DualCamera(Camera):
         focal (real): estimated focal length.
         k1 (real): estimated first distortion parameter.
         k2 (real): estimated second distortion parameter.
+        focal_prior (real): prior focal length.
+        k1_prior (real): prior first distortion parameter.
+        k2_prior (real): prior second distortion parameter.
         transition (real): parametrize between perpective (1.0) and fisheye (0.0)
     """
     def __init__(self, projection_type='unknown'):
-        """Defaut constructor."""
+        """Default constructor."""
         self.id = None
         self.projection_type = 'dual'
         self.width = None

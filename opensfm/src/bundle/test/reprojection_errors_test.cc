@@ -97,16 +97,16 @@ TEST_F(ReprojectionError2DFixture, BrownAnalyticErrorEvaluatesOK) {
 TEST_F(ReprojectionError2DFixture, PerspectiveAnalyticErrorEvaluatesOK) {
   constexpr int size = 3;
   
-  // focal k1, k2
+  // focal, k1, k2
   const double camera[size] = {0.3, 0.1, -0.03};
   RunTest<size>(ProjectionType::PERSPECTIVE, &camera[0]);
 }
 
 TEST_F(ReprojectionError2DFixture, FisheyeAnalyticErrorEvaluatesOK) {
-  constexpr int size = 3;
+  constexpr int size = 8;
   
-  // focal k1, k2
-  const double camera[size] = {0.3, 0.1, -0.03};
+  // focal, ar, cx, cy, k1, k2, k3, k4
+  const double camera[size] = {0.3, 1.0, 0.001, -0.02, 0.1, -0.03, 0.001, -0.005};
   RunTest<size>(ProjectionType::FISHEYE, &camera[0]);
 }
 

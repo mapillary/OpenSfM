@@ -211,7 +211,7 @@ def perspective_camera_from_perspective(distorted):
 
 
 def perspective_camera_from_brown(brown):
-    """Create a perspective camera froma a Brown camera."""
+    """Create a perspective camera from a Brown camera."""
     camera = pygeometry.Camera.create_perspective(
         brown.focal * (1 + brown.aspect_ratio) / 2.0, 0.0, 0.0)
     camera.id = brown.id
@@ -222,7 +222,8 @@ def perspective_camera_from_brown(brown):
 
 def perspective_camera_from_fisheye(fisheye):
     """Create a perspective camera from a fisheye."""
-    camera = pygeometry.Camera.create_perspective(fisheye.focal, 0.0, 0.0)
+    camera = pygeometry.Camera.create_perspective(
+        fisheye.focal * (1 + fisheye.aspect_ratio) / 2.0, 0.0, 0.0)
     camera.id = fisheye.id
     camera.width = fisheye.width
     camera.height = fisheye.height
