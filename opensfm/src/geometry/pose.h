@@ -1,7 +1,6 @@
 #pragma once
 #include <Eigen/Core>
 #include <Eigen/Geometry>
-
 namespace geometry {
 class Pose {
  public:

@@ -242,7 +242,7 @@ PYBIND11_MODULE(pymap, m) {
             camera.id = id;
             // create unique_ptr
             auto cam_ptr = std::unique_ptr<Camera>(new Camera(camera));
-            auto pose =  geometry::Pose();
+            auto pose = geometry::Pose();
             pose.SetFromCameraToWorld(s[2].cast<Mat4d>());
             map::Shot shot(s[0].cast<map::ShotId>(), std::move(cam_ptr), pose);
             // auto shot =

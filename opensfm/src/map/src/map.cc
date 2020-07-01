@@ -96,7 +96,7 @@ void Map::ClearObservationsAndLandmarks() {
 
 Shot* Map::CreateShot(const ShotId& shot_id, const CameraId& camera_id)
 {
-  return CreateShot(shot_id, camera_id,  geometry::Pose());
+  return CreateShot(shot_id, camera_id, geometry::Pose());
 }
 
 
@@ -110,7 +110,7 @@ Shot* Map::CreateShot(const ShotId& shot_id, const CameraId& camera_id)
  * @returns             returns pointer to created or existing shot
  */
 Shot* Map::CreateShot(const ShotId& shot_id, const Camera* const cam,
-                      const  geometry::Pose& pose) {
+                      const geometry::Pose& pose) {
   auto it_exist = shots_.find(shot_id);
   if (it_exist == shots_.end())  // create
   {

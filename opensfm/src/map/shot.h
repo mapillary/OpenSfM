@@ -75,10 +75,10 @@ class Shot {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  Shot(const ShotId& shot_id, const Camera* const shot_camera, const  geometry::Pose& pose);
+  Shot(const ShotId& shot_id, const Camera* const shot_camera, const geometry::Pose& pose);
   // Workaround for pickle that makes it possible for the shot to have camera
   // outside of the reconstruction.
-  Shot(const ShotId& shot_id, std::unique_ptr<Camera> cam, const  geometry::Pose& pose);  
+  Shot(const ShotId& shot_id, std::unique_ptr<Camera> cam, const geometry::Pose& pose);  
   // Shot(const ShotId& shot_id, const Camera* const shot_camera);
 
   const DescriptorType GetDescriptor(const FeatureId id) const {
