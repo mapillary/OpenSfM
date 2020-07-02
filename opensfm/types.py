@@ -130,6 +130,9 @@ class Reconstruction(object):
         """
         return self.cameras.get(id)
 
+    def remove_shot(self, shot_id):
+        self.map.remove_shot(shot_id)
+
     def create_shot(self, shot_id, camera_id, pose=pygeometry.Pose()):
         return self.map.create_shot(shot_id, camera_id, pose)
 
@@ -139,11 +142,12 @@ class Reconstruction(object):
         :param shot: The shot.
         """
 
-        pose = pygeometry.Pose()
-        if shot.pose is not None:
-            pose.set_from_world_to_cam(
-                shot.pose.rotation, shot.pose.translation)
-        map_shot = self.map.create_shot(shot.id, shot.camera.id, pose)
+        # pose = pygeometry.Pose()
+        # if shot.pose is not None:
+        #     pose.set_from_world_to_cam(
+        #         shot.pose.rotation, shot.pose.translation)
+        
+        map_shot = self.map.create_shot(shot.id, shot.camera.id, shot.pose)
         map_shot.metadata = shot.metadata
         # self.set_shot_metadata(map_shot, shot.metadata)
 

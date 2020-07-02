@@ -500,38 +500,38 @@ class SlamMapper(object):
 
 
 
-    def create_reconstruction(self):
-        # now we create the reconstruction
-        # add only gray points
+    # def create_reconstruction(self):
+    #     # now we create the reconstruction
+    #     # add only gray points
         
-        all_kfs = self.map.get_all_keyframes()
-        all_landmarks = self.mapmap.get_all_landmarks()
-        # reconstruction = self.reconstruction
-        # add all kfs to reconstruction
-        rec = types.Reconstruction()
-        rec.reference = self.data.load_reference()
-        rec.cameras = self.data.load_camera_models() 
+    #     all_kfs = self.map.get_all_keyframes()
+    #     all_landmarks = self.mapmap.get_all_landmarks()
+    #     # reconstruction = self.reconstruction
+    #     # add all kfs to reconstruction
+    #     rec = types.Reconstruction()
+    #     rec.reference = self.data.load_reference()
+    #     rec.cameras = self.data.load_camera_models() 
 
-        for kf in all_kfs:
-            shot1 = types.Shot()
-            shot1.id = kf.im_name
-            shot1.camera = rec.cameras[self.camera[0]]
+    #     for kf in all_kfs:
+    #         shot1 = types.Shot()
+    #         shot1.id = kf.im_name
+    #         shot1.camera = rec.cameras[self.camera[0]]
 
-            T_cw = kf.get_Tcw()
-            pose = types.Pose()
-            pose.set_rotation_matrix(T_cw[0:3, 0:3])
-            pose.translation = T_cw[0:3, 3]
-            shot1.pose = pose
-            shot1.metadata = reconstruction.\
-                get_image_metadata(self.data, kf.im_name)
-            rec.add_shot(shot1)
+    #         T_cw = kf.get_Tcw()
+    #         pose = types.Pose()
+    #         pose.set_rotation_matrix(T_cw[0:3, 0:3])
+    #         pose.translation = T_cw[0:3, 3]
+    #         shot1.pose = pose
+    #         shot1.metadata = reconstruction.\
+    #             get_image_metadata(self.data, kf.im_name)
+    #         rec.add_shot(shot1)
 
-        for lm in all_landmarks:
-            point = types.Point()
-            point.id = lm.lm_id
-            point.color = [255, 0, 0]
-            pos_w = lm.get_pos_in_world()
-            point.coordinates = pos_w.tolist()
-            rec.add_point(point)
+    #     for lm in all_landmarks:
+    #         point = types.Point()
+    #         point.id = lm.lm_id
+    #         point.color = [255, 0, 0]
+    #         pos_w = lm.get_pos_in_world()
+    #         point.coordinates = pos_w.tolist()
+    #         rec.add_point(point)
 
-        self.reconstruction = rec
+    #     self.reconstruction = rec

@@ -7,7 +7,7 @@ import opensfm.synthetic_data.synthetic_scene as ss
 
 
 def synthetic_circle_scene():
-    scene_length = 60
+    scene_length = 15 #60
     points_count = 5000
     generator = ss.get_scene_generator('circle', scene_length)
     scene = ss.SyntheticStreetScene(generator)
