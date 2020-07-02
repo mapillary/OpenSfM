@@ -152,8 +152,8 @@ def bundle(graph, reconstruction, camera_priors, gcp, config):
         config['principal_point_sd'],
         config['radial_distortion_k1_sd'],
         config['radial_distortion_k2_sd'],
-        config['radial_distortion_p1_sd'],
-        config['radial_distortion_p2_sd'],
+        config['tangential_distortion_p1_sd'],
+        config['tangential_distortion_p2_sd'],
         config['radial_distortion_k3_sd'],
         config['radial_distortion_k4_sd'])
     ba.set_num_threads(config['processes'])
@@ -221,8 +221,8 @@ def bundle_single_view(graph, reconstruction, shot_id, camera_priors, config):
         config['principal_point_sd'],
         config['radial_distortion_k1_sd'],
         config['radial_distortion_k2_sd'],
-        config['radial_distortion_p1_sd'],
-        config['radial_distortion_p2_sd'],
+        config['tangential_distortion_p1_sd'],
+        config['tangential_distortion_p2_sd'],
         config['radial_distortion_k3_sd'],
         config['radial_distortion_k4_sd'])
     ba.set_num_threads(config['processes'])
@@ -303,8 +303,8 @@ def bundle_local(graph, reconstruction, camera_priors, gcp, central_shot_id, con
         config['principal_point_sd'],
         config['radial_distortion_k1_sd'],
         config['radial_distortion_k2_sd'],
-        config['radial_distortion_p1_sd'],
-        config['radial_distortion_p2_sd'],
+        config['tangential_distortion_p1_sd'],
+        config['tangential_distortion_p2_sd'],
         config['radial_distortion_k3_sd'],
         config['radial_distortion_k4_sd'])
     ba.set_num_threads(config['processes'])

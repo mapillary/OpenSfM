@@ -100,8 +100,8 @@ radial_distortion_k1_sd: 0.01   # The standard deviation of the first radial dis
 radial_distortion_k2_sd: 0.01   # The standard deviation of the second radial distortion parameter
 radial_distortion_k3_sd: 0.01   # The standard deviation of the third radial distortion parameter
 radial_distortion_k4_sd: 0.01   # The standard deviation of the fourth radial distortion parameter
-radial_distortion_p1_sd: 0.01   # The standard deviation of the first tangential distortion parameter
-radial_distortion_p2_sd: 0.01   # The standard deviation of the second tangential distortion parameter
+tangential_distortion_p1_sd: 0.01   # The standard deviation of the first tangential distortion parameter
+tangential_distortion_p2_sd: 0.01   # The standard deviation of the second tangential distortion parameter
 bundle_outlier_filtering_type: FIXED    # Type of threshold for filtering outlier : either fixed value (FIXED) or based on actual distribution (AUTO)
 bundle_outlier_auto_ratio: 3.0          # For AUTO filtering type, projections with larger reprojection than ratio-times-mean, are removed
 bundle_outlier_fixed_threshold: 0.006   # For FIXED filtering type, projections with larger reprojection error after bundle adjustment are removed
