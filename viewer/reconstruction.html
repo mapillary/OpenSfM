@@ -224,11 +224,13 @@
                 float theta = atan(r);
                 float theta2 = theta * theta;
                 float theta_d = theta * (1.0 + theta2 * (k1 + theta2 * (k2 + theta2 * (k3 + theta2 * k4))));
-                float x_p = theta_d / r * a;
-                float y_p = theta_d / r * b;
+                float inv_r = r > 1e-8 ? 1.0 / r : 1.0;
+                float cdist = r > 1e-8 ? theta_d * inv_r : 1.0;
+                float x_p = cdist * a;
+                float y_p = cdist * b;
 
-                float u = focal_x * x_p + c_x;
-                float v = focal_y * y_p + c_y;
+                float u = scale_x * focal_x * x_p + c_x + 0.5;
+                float v = -scale_y * focal_y * y_p + c_y + 0.5;
 
                 vec4 baseColor = texture2D(projectorTex, vec2(u, v));
                 baseColor.a = opacity;
