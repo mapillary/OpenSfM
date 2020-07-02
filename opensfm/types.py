@@ -450,8 +450,11 @@ class FisheyeCamera(Camera):
         theta2 = theta**2
         theta_d = theta * (1.0 + theta2 * (self.k1 + theta2 * (self.k2 + theta2 * (self.k3 + theta2 * self.k4))))
 
-        x_p = theta_d / r * a
-        y_p = theta_d / r * b
+        inv_r = 1.0 / r if r > 1e-8 else 1.0
+        cdist = theta_d * inv_r if r > 1e-8 else 1.0
+
+        x_p = cdist * a
+        y_p = cdist * b
 
         return np.array([self.focal_x * x_p + self.c_x,
                          self.focal_y * y_p + self.c_y])
