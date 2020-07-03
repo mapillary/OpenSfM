@@ -118,22 +118,38 @@ class Reconstruction(object):
     def create_shot(self, shot_id, camera_id, pose=pygeometry.Pose()):
         return self.map.create_shot(shot_id, camera_id, pose)
 
+    # def add_shot(self, shot):
+    #     """Add a shot in the list
+
+    #     :param shot: The shot.
+    #     """
+
+    #     pose = pygeometry.Pose()
+    #     if shot.pose is not None:
+    #         pose.set_from_world_to_cam(
+    #             shot.pose.rotation, shot.pose.translation)
+    #     map_shot = self.map.create_shot(shot.id, shot.camera.id, pose)
+    #     if shot.metadata is not None:
+    #         try:  # Ugly handling of both pymap.Shot and types.Shot
+    #             map_shot.metadata = shot.metadata
+    #         except TypeError:
+    #             shot.metadata.add_to_map_shot(map_shot)
+
     def add_shot(self, shot):
-        """Add a shot in the list
+        """Creates a copy of the passed shot
+            in the current reconstruction"""
+        
+        if shot.camera.id not in self.cameras:
+            self.map.add_camera(shot.camera)
+        map_shot = self.map.create_shot(shot.id, shot.camera.id, shot.pose)
 
-        :param shot: The shot.
-        """
+        # copy the scale
+        map_shot.scale = shot.scale
+        map_shot.metadata = shot.metadata
+        map_shot.merge_cc = map_shot.merge_cc
+        
+        return map_shot
 
-        pose = pygeometry.Pose()
-        if shot.pose is not None:
-            pose.set_from_world_to_cam(
-                shot.pose.rotation, shot.pose.translation)
-        map_shot = self.map.create_shot(shot.id, shot.camera.id, pose)
-        if shot.metadata is not None:
-            try:  # Ugly handling of both pymap.Shot and types.Shot
-                map_shot.metadata = shot.metadata
-            except TypeError:
-                shot.metadata.add_to_map_shot(map_shot)
 
     def get_shot(self, id):
         """Return a shot by id.

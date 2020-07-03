@@ -548,11 +548,13 @@ def mkdir_p(path):
 
 def open_wt(path):
     """Open a file in text mode for writing utf-8."""
+    # print("Trying to open for write", path)
     return io.open(path, 'w', encoding='utf-8')
 
 
 def open_rt(path):
     """Open a file in text mode for reading utf-8."""
+    # print("Trying to open ", path)
     return io.open(path, 'r', encoding='utf-8')
 
 

@@ -472,7 +472,7 @@ def get_image_metadata(data, image):
         metadata.capture_time.value = exif['capture_time']
 
     if 'skey' in exif:
-        metadata.sequence_key_.value = exif['skey']
+        metadata.sequence_key.value = exif['skey']
 
     return metadata
 
