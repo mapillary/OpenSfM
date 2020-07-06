@@ -79,6 +79,15 @@ def shot_from_json(reconstruction, key, obj, cameras):
         metadata.gps_position.value = obj.get("gps_position")
     if obj.get("skey") is not None:
         metadata.sequence_key.value = obj.get("skey")
+    if obj.get("accelerometer") is not None:
+        metadata.accelerometer.value = obj.get("accelerometer")
+    if obj.get("compass") is not None:
+        compass = obj.get("compass")
+        if "angle" in compass:
+            metadata.compass_angle.value = compass['angle']
+        if "accuracy" in compass:
+            metadata.compass_accuracy.value = compas['accuracy']
+
 
     shot = reconstruction.create_shot(key, obj["camera"], pose)
     shot.metadata = metadata
@@ -286,9 +295,16 @@ def pymap_metadata_to_json(metadata: pymap.ShotMeasurements):
     if metadata.gps_position.has_value:
         obj['gps_position'] = list(metadata.gps_position.value)
     if metadata.accelerometer.has_value:
+        print("Storing acc: ", shot.metadata.accelerometer)
         obj['accelerometer'] = list(metadata.accelerometer.value)
-    if metadata.compass_angle.has_value:
-        obj['compass'] = {"angle": metadata.compass_angle.value}
+    if metadata.compass_angle.has_value and metadata.compass_accuracy.has_value:
+        obj['compass'] = {"angle": metadata.compass_angle.value,
+                          "accuracy": metadata.compass_accuracy.value}
+    else:
+        if metadata.compass_angle.has_value:
+            obj['compass'] = {"angle": metadata.compass_angle.value}
+        elif metadata.compass_accuracy.has_value:
+            obj['compass'] = {"accuracy": metadata.compass_accuracy.value}
     if metadata.sequence_key.has_value:
         obj['skey'] = metadata.sequence_key.value
     return obj
