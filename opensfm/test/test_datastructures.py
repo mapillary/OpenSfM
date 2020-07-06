@@ -6,15 +6,14 @@ from opensfm import pygeometry
 from opensfm import types
 from opensfm import reconstruction
 
-
 def test_camera():
-    m = pymap.Map()
+    rec = types.Reconstruction()
     cam1 = pygeometry.Camera.create_perspective(0.5, 0, 0)
     cam1.id = "cam1"
     cam2 = pygeometry.Camera.create_perspective(1, 0, 0)
     cam2.id = "cam2"
-    map_cam1 = m.create_camera(cam1)
-    map_cam2 = m.create_camera(cam2)
+    map_cam1 = rec.add_camera(cam1)
+    map_cam2 = rec.add_camera(cam2)
     assert cam1.focal == map_cam1.focal
     assert cam2.focal == map_cam2.focal
     assert map_cam1.k1 == cam1.k1
@@ -22,13 +21,24 @@ def test_camera():
     assert cam1.id == map_cam1.id and map_cam1.id == "cam1"
     assert cam2.id == map_cam2.id and map_cam2.id == "cam2"
 
-    assert map_cam1 == m.get_camera("cam1")
-    assert map_cam2 == m.get_camera("cam2")
-    assert len(m.get_cameras()) == 2
-    assert m.number_of_cameras() == 2
+    assert map_cam1 == rec.get_camera("cam1")
+    assert map_cam2 == rec.get_camera("cam2")
+    assert len(rec.get_cameras()) == 2
+    assert len(rec.cameras) == 2
     cams = set([map_cam1, map_cam2])
-    for cam in m.get_cameras():
+    for id, cam in rec.cameras.items():
         assert cam in cams
+    for id, cam in rec.cameras.items():
+        cam.focal = 0.5
+        assert cam.focal == rec.cameras[cam.id].focal
+
+    for cam in rec.cameras.values():
+        assert cam in cams
+
+    # TODO ADD TEST to set camera parameters from the iterators
+    for cam in rec.cameras.values():
+        cam.focal = 0.5
+        assert cam.focal == rec.cameras[cam.id].focal
 
 
 def test_shot_sfm():
@@ -200,3 +210,5 @@ def test_map():
         n_total_obs += shot.compute_num_valid_pts(1)
 
     assert m.number_of_landmarks() == 0 and n_total_obs == 0
+
+test_camera()

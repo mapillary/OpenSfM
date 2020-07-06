@@ -397,11 +397,11 @@ PYBIND11_MODULE(pymap, m) {
           },
           py::return_value_policy::reference_internal)
       .def(
-          "values",
-          [](const map::CameraView &sv) {
-            const auto &cams = sv.GetCameras();
-            return py::make_value_iterator(cams.begin(), cams.end());
-          },
+          "values", &map::CameraView::GetCameraPointers,
+          // [](const map::CameraView &sv) {
+          //   const auto &cams = sv.GetCameraPointers();
+          //   return py::make_ptr_iterator(cams.begin(), cams.end());
+          // },
           py::return_value_policy::reference_internal)
       .def(
           "__iter__",

@@ -33,6 +33,7 @@ def match_images(data, ref_images, cand_images):
 
     # Get EXIFs data
     all_images = list(set(ref_images+cand_images))
+    all_images.sort()
     exifs = {im: data.load_exif(im) for im in all_images}
 
     # Generate pairs for matching
@@ -62,7 +63,8 @@ def match_images_with_pairs(data, exifs, ref_images, pairs):
     logger.info('Matching {} image pairs'.format(len(pairs)))
     mem_per_process = 512
     jobs_per_process = 2
-    processes = context.processes_that_fit_in_memory(data.config['processes'], mem_per_process)
+    # processes = context.processes_that_fit_in_memory(data.config['processes'], mem_per_process)
+    processes = 1
     logger.info("Computing pair matching with %d processes" % processes)
     matches = context.parallel_map(match_unwrap_args, args, processes, jobs_per_process)
     logger.info(

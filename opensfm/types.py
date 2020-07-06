@@ -106,7 +106,7 @@ class Reconstruction(object):
 
         :param camera: The camera.
         """
-        self.map.create_camera(camera)
+        return self.map.create_camera(camera)
 
     def get_camera(self, id):
         """Return a camera by id.
