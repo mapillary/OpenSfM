@@ -5,7 +5,7 @@ from opensfm import pymap
 from opensfm import pygeometry
 import cv2
 import math
-
+import copy
 
 class ShotMesh(object):
     """Triangular mesh of points visible in a shot
@@ -129,6 +129,7 @@ class Reconstruction(object):
         map_shot.scale = shot.scale
         map_shot.metadata = shot.metadata
         map_shot.merge_cc = shot.merge_cc
+        map_shot.covariance = copy.deepcopy(shot.covariance)
         return map_shot
 
     def get_shot(self, id):
