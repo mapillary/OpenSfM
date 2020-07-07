@@ -12,7 +12,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <typeinfo>
-
+#include <iostream>
 namespace py = pybind11;
 
 template <typename T>
@@ -26,10 +26,16 @@ void DeclareShotMeasurement(py::module &m, const std::string &type_name) {
       .def_property_readonly("has_value", &SM::HasValue)
       .def_property("value", &SM::Value, &SM::SetValue)
       .def("reset", &SM::Reset)
-      .def(py::pickle([](const SM &sm) { return py::make_tuple(sm.Value()); },
+      .def(py::pickle([](const SM &sm) { 
+                        return py::make_tuple(sm.HasValue(), sm.Value()); 
+                      },
                       [](py::tuple p) {
                         SM sm;
-                        sm.SetValue(p[0].cast<T>());
+                        const auto has_value = p[0].cast<bool>();
+                        if (has_value)
+                        {
+                          sm.SetValue(p[1].cast<T>());
+                        }
                         return sm;
                       }));
 }
@@ -152,8 +158,9 @@ PYBIND11_MODULE(pymap, m) {
       // TODO: Move completely away from opencv
       .def("get_obs_by_idx", &map::Shot::GetKeyPointEigen)
       .def("get_camera_name", &map::Shot::GetCameraName)
-      .def_readwrite("shot_measurement", &map::Shot::shot_measurements_)
-      .def_readwrite("metadata", &map::Shot::shot_measurements_)
+      .def_property("metadata", &map::Shot::GetShotMeasurements,
+                    &map::Shot::SetShotMeasurements, py::return_value_policy::reference_internal)
+      // .def_readwrite("metadata", &map::Shot::shot_measurements_)
       .def_property("pose", &map::Shot::GetPose, &map::Shot::SetPose)
       .def_property_readonly("camera", &map::Shot::GetCamera,
                              py::return_value_policy::reference_internal)
@@ -264,9 +271,21 @@ PYBIND11_MODULE(pymap, m) {
       .def_readwrite("sequence_key", &map::ShotMeasurements::sequence_key_)
       .def(py::pickle(
           [](const map::ShotMeasurements &s) {
+            // std::cout << "Pickling: "
+            //           << s.gps_accuracy_.HasValue()<< ","
+            //           << s.gps_position_.HasValue()<< ","
+            //           << s.orientation_.HasValue()<< ","
+            //           << s.capture_time_.HasValue()<< ","
+            //           << s.accelerometer_.HasValue()<< ","
+            //           << s.compass_angle_.HasValue()<< ","
+            //           << s.compass_accuracy_.HasValue()<< ","
+            //           << s.sequence_key_.HasValue()<< ","
+            //           << std::endl;
+            py::print("PICKLING!\n");
+
             return py::make_tuple(s.gps_accuracy_, s.gps_position_, s.orientation_,
                                   s.capture_time_, s.accelerometer_, s.compass_angle_,
-                                  s.compass_accuracy_, s.sequence_key_);
+                                  s.compass_accuracy_, s.sequence_key_);                              
           },
           [](py::tuple s) {
             map::ShotMeasurements sm;
@@ -278,8 +297,38 @@ PYBIND11_MODULE(pymap, m) {
             sm.compass_angle_ = s[5].cast<decltype(sm.compass_angle_)>();
             sm.compass_accuracy_ = s[5].cast<decltype(sm.compass_angle_)>();
             sm.sequence_key_ = s[6].cast<decltype(sm.sequence_key_)>();
+            std::cout << "Unpickling: "
+                      << sm.gps_accuracy_.HasValue()<< ","
+                      << sm.gps_position_.HasValue()<< ","
+                      << sm.orientation_.HasValue()<< ","
+                      << sm.capture_time_.HasValue()<< ","
+                      << sm.accelerometer_.HasValue()<< ","
+                      << sm.compass_angle_.HasValue()<< ","
+                      << sm.compass_accuracy_.HasValue()<< ","
+                      << sm.sequence_key_.HasValue()<< ","
+                      << std::endl;
+            py::print("UNPICKLING!\n");
             return sm;
-          }));
+          }))
+  
+    // .def("__copy__", [](const map::ShotMeasurements& c, 
+    //                     const map::ShotMeasurements& d)
+    //                     { 
+    //                       std::cout << "Copy!!" << std::endl;
+    //                       py::print("CPPY!\n");
+    //                       return c; 
+    //                     }, 
+    //                     py::return_value_policy::copy)
+    .def("__copy__", [](const map::ShotMeasurements& to_copy)
+                        { 
+                          map::ShotMeasurements copy;
+                          copy.Set(to_copy);
+                          return copy; 
+                        }, 
+                        py::return_value_policy::copy)
+    
+    .def("set", &map::ShotMeasurements::Set)
+  ;
 
   py::class_<map::ShotMesh>(m, "ShotMesh")
       .def_property("faces", &map::ShotMesh::GetFaces, &map::ShotMesh::SetFaces)
@@ -398,10 +447,6 @@ PYBIND11_MODULE(pymap, m) {
           py::return_value_policy::reference_internal)
       .def(
           "values", &map::CameraView::GetCameraPointers,
-          // [](const map::CameraView &sv) {
-          //   const auto &cams = sv.GetCameraPointers();
-          //   return py::make_ptr_iterator(cams.begin(), cams.end());
-          // },
           py::return_value_policy::reference_internal)
       .def(
           "__iter__",

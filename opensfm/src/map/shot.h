@@ -7,7 +7,7 @@
 
 #include <Eigen/Eigen>
 #include <unordered_map>
-
+#include <iostream>
 
 namespace map {
 class Map;
@@ -39,13 +39,6 @@ struct ShotMesh {
 template <typename T>
 class ShotMeasurement {
  public:
-  // T &operator=(const T &v) { SetValue(v); }
-
-  // ShotMeasurement(){}
-  // ShotMeasurement(const T& val)
-  // {
-  //   SetValue(val);
-  // }
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   bool HasValue() const { return has_value_; }
   T Value() const { return value_; }
@@ -70,6 +63,8 @@ struct ShotMeasurements {
   ShotMeasurement<Vec3d> accelerometer_;
   ShotMeasurement<int> orientation_;
   ShotMeasurement<std::string> sequence_key_;
+  void Set(const ShotMeasurements& other);
+
 };
 
 class Shot {
@@ -186,6 +181,16 @@ class Shot {
     {
       return &keypoints_.at(lm->GetObservationIdInShot(this));
     }
+  }
+
+  ShotMeasurements&
+  GetShotMeasurements()
+  {
+    return shot_measurements_;
+  }
+  void SetShotMeasurements(const ShotMeasurements& other)
+  {
+    shot_measurements_.Set(other);
   }
 
   void SetPose(const geometry::Pose& pose) { pose_ = pose; }

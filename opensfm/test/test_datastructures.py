@@ -211,4 +211,69 @@ def test_map():
 
     assert m.number_of_landmarks() == 0 and n_total_obs == 0
 
-test_camera()
+
+def _help_measurement_test(measurement, attr, val):
+    # Test metadata's has_value properties
+    assert getattr(measurement, attr).has_value is False
+    getattr(measurement, attr).value = val
+    if np.shape(val) == ():  # just a value
+        assert getattr(measurement, attr).value == val
+    else:
+        assert np.allclose(getattr(measurement, attr).value, val)
+    # Test metadata's has_value properties!
+    assert getattr(measurement, attr).has_value is True
+    # Test reset
+    getattr(measurement, attr).reset()
+    assert getattr(measurement, attr).has_value is False
+
+
+def test_metadata():
+    m = pymap.ShotMeasurements()
+    # Test basic functionality
+    _help_measurement_test(m, 'capture_time', 126)
+    _help_measurement_test(m, 'gps_position', np.array([1, 2, 3]))
+    _help_measurement_test(m, 'gps_accuracy', 34)
+    _help_measurement_test(m, 'compass_accuracy', 89)
+    _help_measurement_test(m, 'compass_angle', 100)
+    _help_measurement_test(m, 'accelerometer', np.array([4, 5, 6]))
+    _help_measurement_test(m, 'orientation', 5)
+    _help_measurement_test(m, 'sequence_key', "key_test")
+
+    # Test setting metadata with other metadata
+    m2 = pymap.ShotMeasurements()
+    m2.capture_time.value = 8910
+    m2.gps_accuracy.value = 5
+    m1 = pymap.ShotMeasurements()
+    m1.set(m2)
+    assert m1.capture_time.value == m2.capture_time.value
+    m1.capture_time.value = 518
+    # Test if two different objects
+    assert m1.capture_time != m2.capture_time
+    assert m1.capture_time.value != m2.capture_time.value
+    assert m1.gps_accuracy.value == m2.gps_accuracy.value
+
+
+def test_metadata_with_shot():
+    # Set up the shots
+    rec = types.Reconstruction()
+    cam1 = pygeometry.Camera.create_perspective(0.5, 0, 0)
+    cam1.id = "cam1"
+    cam2 = pygeometry.Camera.create_perspective(1, 0, 0)
+    cam2.id = "cam2"
+    rec.add_camera(cam1)
+    rec.add_camera(cam2)
+    shot1 = rec.create_shot('1', "cam1")
+    shot2 = rec.create_shot('2', "cam2")
+    shot1.metadata.capture_time.value = 10
+    assert shot1.metadata.capture_time.value == 10
+    # Test assignment
+    shot2.metadata = shot1.metadata
+    assert shot1.metadata.capture_time.has_value
+    assert shot2.metadata.capture_time.has_value
+    assert shot1.metadata.capture_time.value == shot2.metadata.capture_time.value
+    shot1.metadata.capture_time.value = 518
+
+    # Test if two different objects
+    assert shot1.metadata.capture_time != shot2.metadata.capture_time
+    assert shot1.metadata.capture_time.value != shot2.metadata.capture_time.value
+    assert shot1.metadata.capture_time.value == 518 and shot2.metadata.capture_time.value == 10
