@@ -75,7 +75,6 @@ class Shot {
   // Workaround for pickle that makes it possible for the shot to have camera
   // outside of the reconstruction.
   Shot(const ShotId& shot_id, std::unique_ptr<Camera> cam, const geometry::Pose& pose);  
-  // Shot(const ShotId& shot_id, const Camera* const shot_camera);
 
   const DescriptorType GetDescriptor(const FeatureId id) const {
     return descriptors_.row(id);
@@ -90,7 +89,6 @@ class Shot {
   const AlignedVector<Observation>& GetKeyPoints() const { return keypoints_; }
   const DescriptorMatrix& GetDescriptors() const { return descriptors_; }
 
-  // size_t NumberOfKeyPoints() const { return keypoints_.size(); }
   size_t ComputeNumValidLandmarks(const int min_obs_thr = 1) const;
   float ComputeMedianDepthOfLandmarks(const bool take_abs) const;
 
@@ -102,21 +100,12 @@ class Shot {
                               : keypoints_.at(id);
   }
 
-//  const Observation& GetKeyPoint(const FeatureId id) const {
-//     return keypoints_.at(id);
-//   }
-
   std::vector<Landmark*> ComputeValidLandmarks() {
     std::vector<Landmark*> valid_landmarks;
 
     // we use the landmark observation
     if (landmarks_.empty()) {
       valid_landmarks.reserve(landmark_observations_.size());
-      // C++ 14
-      // std::transform(landmark_observations_.begin(),
-      // landmark_observations_.end(),
-      //           std::back_inserter(valid_landmarks), [](const auto& p){
-      //           return p.first; });
       for (const auto& lm_obs : landmark_observations_) {
         valid_landmarks.push_back(lm_obs.first);
       }
@@ -162,10 +151,6 @@ class Shot {
   void CreateObservation(Landmark* lm, const Vec2d& pt,
                          const double scale, const Eigen::Vector3i& color,
                          FeatureId id) {
-    // C++ 14
-    // landmark_observations_.insert(std::make_pair(lm,
-    // std::make_unique<Observation>(pt[0], pt[1], scale, color[0], color[1],
-    // color[2], id)));
     landmark_observations_.insert(std::make_pair(
         lm,
         Observation(pt[0], pt[1], scale, color[0], color[1], color[2], id)));
@@ -215,8 +200,6 @@ class Shot {
   bool operator<=(const Shot& shot) const { return id_ <= shot.id_; }
   bool operator>(const Shot& shot) const { return id_ > shot.id_; }
   bool operator>=(const Shot& shot) const { return id_ >= shot.id_; }
-  // std::string GetCameraName() const { return shot_camera_.id; }
-  // const Camera& GetCamera() const { return shot_camera_; }
   std::string GetCameraName() const { return shot_camera_->id; }
   const Camera* const GetCamera() const { return shot_camera_; }
 
@@ -226,16 +209,10 @@ class Shot {
   Vec3d Bearing(const Vec2d& point) const;
   MatX3d BearingMany(const MatX2d& points) const;
 
-
-  // void TransferCamOwnership(std::unique_ptr<Camera> cam)
-  // {
-  //   own_camera_ = std::move(cam);
-  // }
  public:
   SLAMShotData slam_data_;
   const ShotId id_;  // the file name
   ShotUniqueId unique_id_;
-  // const Camera& shot_camera_;
   const Camera* const shot_camera_;
   ShotMeasurements shot_measurements_;  // metadata
   ShotMesh mesh;
