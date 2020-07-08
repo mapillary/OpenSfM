@@ -126,6 +126,7 @@ class Reconstruction(object):
 
     # Shot
     def create_shot(self, shot_id, camera_id, pose=pygeometry.Pose()):
+        print("Creating normal shot: ", shot_id)
         return self.map.create_shot(shot_id, camera_id, pose)
 
     def add_shot(self, shot):
@@ -151,6 +152,7 @@ class Reconstruction(object):
 
     # PanoShot
     def create_pano_shot(self, shot_id, camera_id, pose=pygeometry.Pose()):
+        print("Creating pano_shot: ", shot_id)
         return self.map.create_pano_shot(shot_id, camera_id, pose)
 
     def add_pano_shot(self, pshot):

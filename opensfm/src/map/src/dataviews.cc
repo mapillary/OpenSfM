@@ -17,16 +17,16 @@ size_t ShotView::NumberOfShots() const { return map_.NumberOfShots(); }
 
 PanoShotView::PanoShotView(Map& map) : map_(map) {}
 Shot* PanoShotView::GetShot(const map::ShotId& shot_id) {
-  return map_.GetShot(shot_id);
+  return map_.GetPanoShot(shot_id);
 }
 bool PanoShotView::HasShot(const map::ShotId& shot_id) {
-  return map_.HasShot(shot_id);
+  return map_.HasPanoShot(shot_id);
 }
 const std::unordered_map<ShotId, std::unique_ptr<Shot>>&
 PanoShotView::GetShots() const {
-  return map_.GetAllShots();
+  return map_.GetAllPanoShots();
 }
-size_t PanoShotView::NumberOfShots() const { return map_.NumberOfShots(); }
+size_t PanoShotView::NumberOfShots() const { return map_.NumberOfPanoShots(); }
 
 LandmarkView::LandmarkView(Map& map) : map_(map) {}
 Landmark* LandmarkView::GetLandmark(const LandmarkId& lm_id) {

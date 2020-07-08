@@ -147,7 +147,6 @@ PYBIND11_MODULE(pymap, m) {
       .def_readonly("slam_data", &map::Shot::slam_data_,
                     py::return_value_policy::reference_internal)
       .def_readwrite("mesh", &map::Shot::mesh)
-      // .def_readwrite("covariance", &map::Shot::covariance)
       .def_property("covariance", &map::Shot::GetCovariance, &map::Shot::SetCovariance)
       .def_readwrite("merge_cc", &map::Shot::merge_cc)
       .def_readwrite("scale", &map::Shot::scale)
