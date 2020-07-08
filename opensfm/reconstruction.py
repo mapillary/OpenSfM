@@ -435,7 +435,6 @@ def _compute_pair_reconstructability(args):
 
 def get_image_metadata(data, image):
     """Get image metadata as a ShotMetadata object."""
-    # metadata = types.ShotMetadata()
     metadata = pymap.ShotMeasurements()
     exif = data.load_exif(image)
     reference = data.load_reference()
@@ -848,11 +847,9 @@ class TrackTriangulator:
             return
 
         best_inliers = []
-        best_point = types.Point()
-        best_point.id = track
-
+        best_point = None
         combinatiom_tried = set()
-        ransac_tries = 11 # 0.99 proba, 60% inliers
+        ransac_tries = 11  # 0.99 proba, 60% inliers
         all_combinations = list(combinations(range(len(ids)), 2))
 
         thresholds = len(os) * [reproj_threshold]
@@ -871,24 +868,25 @@ class TrackTriangulator:
                 os_t, bs_t, thresholds, np.radians(min_ray_angle_degrees))
 
             if X is not None:
-                reprojected_bs = X-os
+                reprojected_bs = X - os
                 reprojected_bs /= np.linalg.norm(reprojected_bs, axis=1)[:, np.newaxis]
                 inliers = np.linalg.norm(reprojected_bs - bs, axis=1) < reproj_threshold
 
                 if sum(inliers) > sum(best_inliers):
                     best_inliers = inliers
-                    best_point.coordinates = X.tolist()
+                    best_point = X.tolist()
 
                     pout = 0.99
                     inliers_ratio = float(sum(best_inliers))/len(ids)
                     if inliers_ratio == 1.0:
                         break
-                    optimal_iter = math.log(1.0-pout)/math.log(1.0-inliers_ratio*inliers_ratio)
+                    optimal_iter = math.log(
+                        1.0 - pout) / math.log(1.0 - inliers_ratio * inliers_ratio)
                     if optimal_iter <= ransac_tries:
                         break
 
         if len(best_inliers) > 1:
-            self.reconstruction.add_point(best_point)
+            self.reconstruction.create_point(track, best_point)
             for i, succeed in enumerate(best_inliers):
                 if succeed:
                     self._add_track_to_reconstruction(track, ids[i])
@@ -913,7 +911,6 @@ class TrackTriangulator:
                 pt = self.reconstruction.create_point(track, X.tolist())
                 for shot_id in ids:
                     self._add_track_to_reconstruction(track, shot_id)
-
 
     def triangulate_dlt(self, track, reproj_threshold, min_ray_angle_degrees):
         """Triangulate track using DLT and add point to reconstruction."""

@@ -96,7 +96,6 @@ class SyntheticCubeScene(SyntheticScene):
 
         self.reconstruction.cameras = self.cameras
 
-        # self.shots = {}
         r = 2.0
         for i in range(num_cameras):
             phi = np.random.rand()*math.pi
@@ -113,14 +112,8 @@ class SyntheticCubeScene(SyntheticScene):
             camera_id = 'camera%04d' % i
             pose = camera_pose(position, lookat, up)
             self.reconstruction.create_shot(shot_id, camera_id, pose)
-            # shot = types.Shot()
-            # shot.id = 'shot%04d' % i
-            # shot.camera = self.cameras['camera%04d' % i]
-            # shot.pose = camera_pose(position, lookat, up)
-            # self.shots[shot.id] = shot
 
         points = np.random.rand(num_points, 3)-[0.5, 0.5, 0.5]
-        # self.points = {}
         for i, p in enumerate(points):
             point_id = 'point' + str(i)
             pt = self.reconstruction.create_point(point_id, p)
@@ -139,8 +132,6 @@ class SyntheticCubeScene(SyntheticScene):
             pt = reconstruction.create_point(point.id, point.coordinates)
             pt.color = point.color
         return reconstruction
-
-
 
     def get_tracks_data(self, maximum_depth, noise):
         return sg.generate_track_data(self.get_reconstruction(),
@@ -180,7 +171,7 @@ class SyntheticStreetScene(SyntheticScene):
     def add_camera_sequence(self, camera, start, length, height, interval,
                             position_noise=None, rotation_noise=None,
                             gps_noise=None):
-        default_noise_interval = 0.25*interval
+        default_noise_interval = 0.25 * interval
         positions, rotations = sg.generate_cameras(
             sg.samples_generator_interval(start, length, interval,
                                           default_noise_interval),
