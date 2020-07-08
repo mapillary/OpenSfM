@@ -58,7 +58,7 @@ def camera_from_json(key, obj):
     return camera
 
 
-def shot_from_json(reconstruction, key, obj, cameras):
+def shot_from_json(reconstruction, key, obj, is_pano_shot=False):
     """
     Read shot from a json object
     """
@@ -66,7 +66,6 @@ def shot_from_json(reconstruction, key, obj, cameras):
     pose.rotation = obj["rotation"]
     if "translation" in obj:
         pose.translation = obj["translation"]
-
 
     metadata = pymap.ShotMeasurements()
     if obj.get("orientation") is not None:
@@ -86,10 +85,11 @@ def shot_from_json(reconstruction, key, obj, cameras):
         if "angle" in compass:
             metadata.compass_angle.value = compass['angle']
         if "accuracy" in compass:
-            metadata.compass_accuracy.value = compas['accuracy']
-
-
-    shot = reconstruction.create_shot(key, obj["camera"], pose)
+            metadata.compass_accuracy.value = compass['accuracy']
+    if is_pano_shot:
+        shot = reconstruction.create_pano_shot(key, obj["camera"], pose)
+    else:
+        shot = reconstruction.create_shot(key, obj["camera"], pose)
     shot.metadata = metadata
 
     if 'scale' in obj:
@@ -109,11 +109,8 @@ def point_from_json(reconstruction, key, obj):
     """
     Read a point from a json object
     """
-    # point = types.Point()
     point = reconstruction.create_point(key, obj["coordinates"])
-    # point.id = key
     point.color = obj["color"]
-    # point.coordinates = obj["coordinates"]
     return point
 
 
@@ -130,22 +127,18 @@ def reconstruction_from_json(obj):
 
     # Extract shots
     for key, value in iteritems(obj['shots']):
-        shot = shot_from_json(reconstruction, key, value, reconstruction.cameras)
-        reconstruction.add_shot(shot)
+        shot_from_json(reconstruction, key, value)
 
     # Extract points
     if 'points' in obj:
         for key, value in iteritems(obj['points']):
-            # point = 
             point_from_json(reconstruction, key, value)
 
     # Extract pano_shots
-    # TODO: Fix pano shot!
     if 'pano_shots' in obj:
-        reconstruction.pano_shots = {}
         for key, value in iteritems(obj['pano_shots']):
-            shot = shot_from_json(key, value, reconstruction.cameras)
-            reconstruction.pano_shots[shot.id] = shot
+            is_pano_shot = True
+            shot_from_json(reconstruction, key, value, is_pano_shot)
 
     # Extract main and unit shots
     if 'main_shot' in obj:
@@ -247,12 +240,7 @@ def shot_to_json(shot):
     }
 
     if shot.metadata is not None:
-        # if isinstance(shot, types.Shot):
-        #     obj.update(types_metadata_to_json(shot.metadata))
-        # elif isinstance(shot, pymap.Shot):
         obj.update(pymap_metadata_to_json(shot.metadata))
-
-
     if shot.mesh is not None:
         obj['vertices'] = [list(vertice) for vertice in shot.mesh.vertices]
         obj['faces'] = [list(face) for face in shot.mesh.faces]
@@ -324,9 +312,10 @@ def reconstruction_to_json(reconstruction):
 
     # Extract pano_shots
     if hasattr(reconstruction, 'pano_shots'):
-        obj['pano_shots'] = {}
-        for shot in reconstruction.pano_shots.values():
-            obj['pano_shots'][shot.id] = shot_to_json(shot)
+        if len(reconstruction.pano_shots) > 0:
+            obj['pano_shots'] = {}
+            for shot in reconstruction.pano_shots.values():
+                obj['pano_shots'][shot.id] = shot_to_json(shot)
 
     # Extract main and unit shots
     if hasattr(reconstruction, 'main_shot'):
@@ -870,14 +859,11 @@ def import_bundler(data_path, bundle_file, list_file, track_file,
             t = np.array(list(map(float, t)))
             R[1], R[2] = -R[1], -R[2]  # Reverse y and z
             t[1], t[2] = -t[1], -t[2]
+            pose = pygeometry.Pose()
+            pose.set_rotation_matrix(R)
+            pose.translation = t
 
-            shot = types.Shot()
-            shot.id = shot_key
-            shot.camera = camera
-            shot.pose = types.Pose()
-            shot.pose.set_rotation_matrix(R)
-            shot.pose.translation = t
-            reconstruction.add_shot(shot)
+            reconstruction.create_shot(shot_key, camera.id, pose)
         else:
             logger.warning('ignoring failed image {}'.format(shot_key))
         offset += 5
@@ -887,11 +873,8 @@ def import_bundler(data_path, bundle_file, list_file, track_file,
     for i in range(num_point):
         coordinates = lines[offset].rstrip('\n').split(' ')
         color = lines[offset + 1].rstrip('\n').split(' ')
-        point = types.Point()
-        point.id = i
-        point.coordinates = list(map(float, coordinates))
+        point = reconstruction.create_point(i, list(map(float, coordinates)))
         point.color = list(map(int, color))
-        reconstruction.add_point(point)
 
         view_line = lines[offset + 2].rstrip('\n').split(' ')
 
