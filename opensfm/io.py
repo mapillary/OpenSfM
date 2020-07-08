@@ -265,25 +265,6 @@ def shot_to_json(shot):
     return obj
 
 
-# def types_metadata_to_json(metadata: types.ShotMetadata):
-#     obj = {}
-#     if metadata.orientation is not None:
-#         obj['orientation'] = metadata.orientation
-#     if metadata.capture_time is not None:
-#         obj['capture_time'] = metadata.capture_time
-#     if metadata.gps_dop is not None:
-#         obj['gps_dop'] = metadata.gps_dop
-#     if metadata.gps_position is not None:
-#         obj['gps_position'] = list(metadata.gps_position)
-#     if metadata.accelerometer is not None:
-#         obj['accelerometer'] = metadata.accelerometer
-#     if metadata.compass is not None:
-#         obj['compass'] = metadata.compass
-#     if metadata.skey is not None:
-#         obj['skey'] = metadata.skey
-#     return obj
-
-
 def pymap_metadata_to_json(metadata: pymap.ShotMeasurements):
     obj = {}
     if metadata.orientation.has_value:
@@ -295,7 +276,6 @@ def pymap_metadata_to_json(metadata: pymap.ShotMeasurements):
     if metadata.gps_position.has_value:
         obj['gps_position'] = list(metadata.gps_position.value)
     if metadata.accelerometer.has_value:
-        print("Storing acc: ", shot.metadata.accelerometer)
         obj['accelerometer'] = list(metadata.accelerometer.value)
     if metadata.compass_angle.has_value and metadata.compass_accuracy.has_value:
         obj['compass'] = {"angle": metadata.compass_angle.value,
