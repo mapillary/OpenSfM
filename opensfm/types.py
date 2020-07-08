@@ -83,6 +83,15 @@ class Reconstruction(object):
 
     shots = property(get_shots, set_shots)
 
+    def get_pano_shots(self):
+        return pymap.PanoShotView(self.map)
+
+    def set_pano_shots(self, value):
+        for shot in value.values():
+            self.add_pano_shot(shot)
+
+    pano_shots = property(get_pano_shots, set_pano_shots)
+
     def get_points(self):
         return pymap.LandmarkView(self.map)
 
@@ -115,13 +124,14 @@ class Reconstruction(object):
         """
         return self.cameras.get(id)
 
+    # Shot
     def create_shot(self, shot_id, camera_id, pose=pygeometry.Pose()):
         return self.map.create_shot(shot_id, camera_id, pose)
 
     def add_shot(self, shot):
         """Creates a copy of the passed shot
             in the current reconstruction"""
-        
+
         if shot.camera.id not in self.cameras:
             self.map.add_camera(shot.camera)
         map_shot = self.map.create_shot(shot.id, shot.camera.id, shot.pose)
@@ -139,8 +149,33 @@ class Reconstruction(object):
         """
         return self.shots.get(id)
 
-    def create_point(self, point_id, coord = [0, 0, 0]):
-        return self.map.create_landmark(point_id, coord) 
+    # PanoShot
+    def create_pano_shot(self, shot_id, camera_id, pose=pygeometry.Pose()):
+        return self.map.create_pano_shot(shot_id, camera_id, pose)
+
+    def add_pano_shot(self, pshot):
+        """Creates a copy of the passed shot
+            in the current reconstruction"""
+
+        if pshot.camera.id not in self.cameras:
+            self.map.add_camera(pshot.camera)
+        map_pshot = self.map.create_pano_shot(pshot.id, pshot.camera.id, pshot.pose)
+        # copy the other shot data
+        map_pshot.scale = pshot.scale
+        map_pshot.metadata = pshot.metadata
+        map_pshot.merge_cc = pshot.merge_cc
+        map_pshot.covariance = copy.deepcopy(pshot.covariance)
+        return map_pshot
+
+    def get_pano_shot(self, id):
+        """Return a shot by id.
+
+        :return: If exists returns the shot, otherwise None.
+        """
+        return self.pano_shots.get(id)
+
+    def create_point(self, point_id, coord=[0, 0, 0]):
+        return self.map.create_landmark(point_id, coord)
 
     def add_point(self, point):
         """Add a point in the list

@@ -63,10 +63,15 @@ void Map::RemoveObservation(const ShotId& shot_id, const LandmarkId& lm_id)
   }
 }
 
-Shot* Map::GetShot(const ShotId& shot_id)  // const
+Shot* Map::GetShot(const ShotId& shot_id)
 {
   const auto& it = shots_.find(shot_id);
   return (it != shots_.end() ? it->second.get() : nullptr);
+}
+Shot* Map::GetPanoShot(const ShotId& shot_id)
+{
+  const auto& it = pano_shots_.find(shot_id);
+  return (it != pano_shots_.end() ? it->second.get() : nullptr);
 }
 
 Landmark* Map::GetLandmark(const LandmarkId& lm_id) {
@@ -157,6 +162,62 @@ void Map::RemoveShot(const ShotId& shot_id) {
     shots_.erase(shot_it);
   }
 }
+
+
+Shot* Map::CreatePanoShot(const ShotId& shot_id, const CameraId& camera_id)
+{
+  return CreatePanoShot(shot_id, camera_id, geometry::Pose());
+}
+
+
+/**
+ * Creates a pano shot and returns a pointer to it
+ *
+ * @param shot_id       unique id of the shot
+ * @param camera        previously created camera
+ * @param global_pos    position in the 3D world
+ *
+ * @returns             returns pointer to created or existing shot
+ */
+Shot* Map::CreatePanoShot(const ShotId& shot_id, const Camera* const cam,
+                      const geometry::Pose& pose) {
+  auto it_exist = pano_shots_.find(shot_id);
+  if (it_exist == pano_shots_.end())  // create
+  {
+    auto it = pano_shots_.emplace(
+        shot_id, std::unique_ptr<Shot>(new Shot(shot_id, cam, pose)));
+    it.first->second->unique_id_ = pano_shot_unique_id_;
+    pano_shot_unique_id_++;
+    return it.first->second.get();
+  } else {
+    return it_exist->second.get();
+  }
+}
+
+Shot* Map::CreatePanoShot(const ShotId& shot_id, const CameraId& camera_id,
+                      const geometry::Pose& pose) {
+  
+  // auto* cam = ;
+  return CreatePanoShot(shot_id, GetCamera(camera_id), pose);
+}
+
+void Map::RemovePanoShot(const ShotId& shot_id) {
+  // 1) Find the point
+  const auto& shot_it = pano_shots_.find(shot_id);
+  if (shot_it != pano_shots_.end()) {
+    const auto& shot = shot_it->second;
+    // 2) Remove it from all the points
+    for (const auto& lm : shot->GetLandmarks()) {
+      if (lm != nullptr) {
+        lm->RemoveObservation(shot.get());
+      }
+    }
+
+    // 3) Remove from shots
+    pano_shots_.erase(shot_it);
+  }
+}
+
 
 /**
  * Creates a landmark and returns a pointer to it

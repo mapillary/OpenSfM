@@ -94,6 +94,65 @@ def test_shot_sfm():
         m.remove_shot("shot" + str(n))
     assert m.number_of_shots() == 0
 
+def test_pano_shot_sfm():
+    m = pymap.Map()
+    cam1 = pygeometry.Camera.create_perspective(0.5, 0, 0)
+    cam1.id = "cam1"
+    map_cam1 = m.create_camera(cam1)
+    cam1.id = "cam2"
+    map_cam2 = m.create_camera(cam1)
+    map_shot1 = m.create_pano_shot("shot1", "cam1")
+    map_shot2 = m.create_pano_shot("shot2", "cam1")
+    assert m.number_of_pano_shots() == 2
+    # check that already existing shot is returned
+    assert map_shot1 == m.create_pano_shot("shot1", "cam1")
+    # check that already existing shot is returned even with different camera
+    assert map_shot1 == m.create_pano_shot("shot1", "cam2")
+    # test getters
+    print(m.get_pano_shot("shot1"))
+    assert map_shot1 == m.get_pano_shot("shot1")
+    print(m.get_pano_shot("shot2"))
+    assert map_shot2 == m.get_pano_shot("shot2")
+    assert m.get_pano_shot("ab") is None
+    assert m.number_of_cameras() == 2 and m.number_of_pano_shots() == 2
+    assert map_shot1.unique_id == 0 and map_shot2.unique_id == 1
+    assert map_shot1.camera.id == "cam1"
+    assert map_shot1.get_camera_name() == "cam1"
+    assert map_shot2.camera.id == "cam1"
+    assert map_shot2.get_camera_name() == "cam1"
+    # test delete
+    m.remove_pano_shot("shot1")
+    m.remove_pano_shot("shot1")
+    assert m.get_pano_shot("shot1") is None
+    assert m.number_of_pano_shots() == 1
+    map_shot3 = m.create_pano_shot("shot1", "cam2")
+    assert m.number_of_pano_shots() == 2
+    assert map_shot3 == m.get_pano_shot("shot1")
+    assert map_shot3.camera.id == "cam2"
+    assert map_shot3.get_camera_name() == "cam2"
+    assert map_shot3.unique_id == 2
+    m.remove_pano_shot("shot1")
+    m.remove_pano_shot("shot2")
+    assert m.number_of_pano_shots() == 0
+
+    for n in range(5):
+        m.create_pano_shot("shot" + str(n), "cam1")
+    for n in range(5, 10):
+        m.create_pano_shot("shot" + str(n), "cam2")
+    assert m.number_of_pano_shots() == 10
+    # try to create them again
+    for n in range(5):
+        m.create_pano_shot("shot" + str(n), "cam1")
+    for n in range(5, 10):
+        m.create_pano_shot("shot" + str(n), "cam2")
+    assert m.number_of_pano_shots() == 10
+    # now remove all
+    for n in range(5):
+        m.remove_pano_shot("shot" + str(n))
+    for n in range(5, 10):
+        m.remove_pano_shot("shot" + str(n))
+    assert m.number_of_pano_shots() == 0
+
 
 def test_shot_slam():
     pass

@@ -19,6 +19,17 @@ class ShotView {
   Map& map_;
 };
 
+class PanoShotView {
+ public:
+  PanoShotView(Map& map);
+  Shot* GetShot(const map::ShotId& shot_id);
+  bool HasShot(const map::ShotId& shot_id);
+  const std::unordered_map<ShotId, std::unique_ptr<Shot>>& GetShots() const;
+  size_t NumberOfShots() const;
+ private:
+  Map& map_;
+};
+
 class LandmarkView {
  public:
   LandmarkView(Map& map);

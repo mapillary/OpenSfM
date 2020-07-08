@@ -44,6 +44,7 @@ PYBIND11_MODULE(pymap, m) {
       .def(py::init())
       .def("number_of_shots", &map::Map::NumberOfShots,
            "Returns the number of shots")
+      .def("number_of_pano_shots", &map::Map::NumberOfPanoShots)
       .def("number_of_landmarks", &map::Map::NumberOfLandmarks)
       .def("number_of_cameras", &map::Map::NumberOfCameras)
       .def("create_camera", &map::Map::CreateCamera, py::arg("camera"),
@@ -63,15 +64,27 @@ PYBIND11_MODULE(pymap, m) {
               map::Map::CreateShot,
           py::arg("shot_id"), py::arg("camera_id"), py::arg("pose"),
           py::return_value_policy::reference_internal)
-      .def(
-          "create_shot",
-          (map::Shot * (map::Map::*)(const map::ShotId &, const map::CameraId &)) &
-              map::Map::CreateShot,
-          py::arg("shot_id"), py::arg("camera_id"),
-          py::return_value_policy::reference_internal)
+      .def("create_shot",
+           (map::Shot *
+            (map::Map::*)(const map::ShotId &, const map::CameraId &)) &
+               map::Map::CreateShot,
+           py::arg("shot_id"), py::arg("camera_id"),
+           py::return_value_policy::reference_internal)
+      .def("create_pano_shot",
+          (map::Shot * (map::Map::*)(const map::ShotId &, const map::CameraId &,
+                                     const geometry::Pose &)) &
+              map::Map::CreatePanoShot, py::return_value_policy::reference_internal)
+      .def("create_pano_shot",
+           (map::Shot *
+            (map::Map::*)(const map::ShotId &, const map::CameraId &)) &
+               map::Map::CreatePanoShot, py::return_value_policy::reference_internal)
       .def("remove_shot", &map::Map::RemoveShot)
       .def("get_shot", &map::Map::GetShot,
            py::return_value_policy::reference_internal)
+      .def("remove_pano_shot", &map::Map::RemovePanoShot)
+      .def("get_pano_shot", &map::Map::GetPanoShot,
+           py::return_value_policy::reference_internal)
+
       .def("add_observation",
            (void (map::Map::*)(map::Shot *const, map::Landmark *const,
                                const map::FeatureId)) &
@@ -99,6 +112,8 @@ PYBIND11_MODULE(pymap, m) {
 
       .def("get_all_shots", &map::Map::GetShotView)
       .def("get_shot_view", &map::Map::GetShotView)
+      .def("get_all_pano_shots", &map::Map::GetPanoShotView)
+      .def("get_pano_shot_view", &map::Map::GetPanoShotView)
       .def("get_all_cameras", &map::Map::GetCameraView)
       .def("get_camera_view", &map::Map::GetCameraView)
       .def("get_all_landmarks", &map::Map::GetLandmarkView)
@@ -271,18 +286,6 @@ PYBIND11_MODULE(pymap, m) {
       .def_readwrite("sequence_key", &map::ShotMeasurements::sequence_key_)
       .def(py::pickle(
           [](const map::ShotMeasurements &s) {
-            // std::cout << "Pickling: "
-            //           << s.gps_accuracy_.HasValue()<< ","
-            //           << s.gps_position_.HasValue()<< ","
-            //           << s.orientation_.HasValue()<< ","
-            //           << s.capture_time_.HasValue()<< ","
-            //           << s.accelerometer_.HasValue()<< ","
-            //           << s.compass_angle_.HasValue()<< ","
-            //           << s.compass_accuracy_.HasValue()<< ","
-            //           << s.sequence_key_.HasValue()<< ","
-            //           << std::endl;
-            py::print("PICKLING!\n");
-
             return py::make_tuple(s.gps_accuracy_, s.gps_position_, s.orientation_,
                                   s.capture_time_, s.accelerometer_, s.compass_angle_,
                                   s.compass_accuracy_, s.sequence_key_);                              
@@ -297,28 +300,8 @@ PYBIND11_MODULE(pymap, m) {
             sm.compass_angle_ = s[5].cast<decltype(sm.compass_angle_)>();
             sm.compass_accuracy_ = s[5].cast<decltype(sm.compass_angle_)>();
             sm.sequence_key_ = s[6].cast<decltype(sm.sequence_key_)>();
-            std::cout << "Unpickling: "
-                      << sm.gps_accuracy_.HasValue()<< ","
-                      << sm.gps_position_.HasValue()<< ","
-                      << sm.orientation_.HasValue()<< ","
-                      << sm.capture_time_.HasValue()<< ","
-                      << sm.accelerometer_.HasValue()<< ","
-                      << sm.compass_angle_.HasValue()<< ","
-                      << sm.compass_accuracy_.HasValue()<< ","
-                      << sm.sequence_key_.HasValue()<< ","
-                      << std::endl;
-            py::print("UNPICKLING!\n");
             return sm;
           }))
-  
-    // .def("__copy__", [](const map::ShotMeasurements& c, 
-    //                     const map::ShotMeasurements& d)
-    //                     { 
-    //                       std::cout << "Copy!!" << std::endl;
-    //                       py::print("CPPY!\n");
-    //                       return c; 
-    //                     }, 
-    //                     py::return_value_policy::copy)
     .def("__copy__", [](const map::ShotMeasurements& to_copy)
                         { 
                           map::ShotMeasurements copy;
@@ -362,6 +345,44 @@ PYBIND11_MODULE(pymap, m) {
       .def_property("color", &map::Landmark::GetColor,
                     &map::Landmark::SetColor);
 
+  py::class_<map::PanoShotView>(m, "PanoShotView")
+      .def(py::init<map::Map &>())
+      .def("__len__", &map::PanoShotView::NumberOfShots)
+      .def(
+          "items",
+          [](const map::PanoShotView &sv) {
+            const auto &shots = sv.GetShots();
+            return py::make_unique_ptr_iterator(shots.begin(), shots.end());
+          },
+          py::return_value_policy::reference_internal)
+      .def(
+          "values",
+          [](const map::PanoShotView &sv) {
+            const auto &shots = sv.GetShots();
+            return py::make_unique_ptr_value_iterator(shots.begin(),
+                                                      shots.end());
+          },
+          py::return_value_policy::reference_internal)
+      .def(
+          "__iter__",
+          [](const map::PanoShotView &sv) {
+            const auto &shots = sv.GetShots();
+            return py::make_key_iterator(shots.begin(), shots.end());
+          },
+          py::return_value_policy::reference_internal)
+      .def(
+          "keys",
+          [](const map::PanoShotView &sv) {
+            const auto &shots = sv.GetShots();
+            return py::make_key_iterator(shots.begin(), shots.end());
+          },
+          py::return_value_policy::reference_internal)
+      .def("get", &map::PanoShotView::GetShot,
+           py::return_value_policy::reference_internal)
+      .def("__getitem__", &map::PanoShotView::GetShot,
+           py::return_value_policy::reference_internal)
+      .def("__contains__", &map::PanoShotView::HasShot);
+
   py::class_<map::ShotView>(m, "ShotView")
       .def(py::init<map::Map &>())
       .def("__len__", &map::ShotView::NumberOfShots)
@@ -399,6 +420,7 @@ PYBIND11_MODULE(pymap, m) {
       .def("__getitem__", &map::ShotView::GetShot,
            py::return_value_policy::reference_internal)
       .def("__contains__", &map::ShotView::HasShot);
+
   py::class_<map::LandmarkView>(m, "LandmarkView")
       .def(py::init<map::Map &>())
       .def("__len__", &map::LandmarkView::NumberOfLandmarks)
