@@ -50,6 +50,19 @@ def test_shot_sfm():
     map_cam2 = m.create_camera(cam1)
     map_shot1 = m.create_shot("shot1", "cam1")
     map_shot2 = m.create_shot("shot2", "cam1")
+
+    # test attributes
+    map_shot1.merge_cc = 0
+    assert map_shot1.merge_cc == 0
+    map_shot1.covariance = np.diag([1, 2, 3])
+    assert np.allclose(map_shot1.covariance, np.diag([1, 2, 3]))
+    map_shot2.covariance = map_shot1.covariance
+    assert np.allclose(map_shot2.covariance, np.diag([1, 2, 3]))
+    map_shot2.covariance = np.diag([2, 2, 2])
+    assert np.allclose(map_shot2.covariance, np.diag([1, 2, 3])) is False
+    map_shot1.merge_cc = 100
+    assert map_shot1.merge_cc == 100
+
     # check that already existing shot is returned
     assert map_shot1 == m.create_shot("shot1", "cam1")
     # check that already existing shot is returned even with different camera
@@ -93,6 +106,8 @@ def test_shot_sfm():
     for n in range(5, 10):
         m.remove_shot("shot" + str(n))
     assert m.number_of_shots() == 0
+
+
 
 def test_pano_shot_sfm():
     m = pymap.Map()

@@ -209,6 +209,9 @@ class Shot {
   Vec3d Bearing(const Vec2d& point) const;
   MatX3d BearingMany(const MatX2d& points) const;
 
+  MatXd GetCovariance() const { return covariance; };
+  void SetCovariance(const MatXd& cov) { covariance = cov; };
+
  public:
   SLAMShotData slam_data_;
   const ShotId id_;  // the file name
