@@ -23,7 +23,7 @@ def test_camera():
 
     assert map_cam1 == rec.get_camera("cam1")
     assert map_cam2 == rec.get_camera("cam2")
-    assert len(rec.get_cameras()) == 2
+    assert rec.map.number_of_cameras() == 2
     assert len(rec.cameras) == 2
     cams = set([map_cam1, map_cam2])
     for id, cam in rec.cameras.items():

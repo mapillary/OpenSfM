@@ -8,8 +8,6 @@
 #include <map/defines.h>
 
 #include <map/geo.h>
-// #include <map/shot.h>
-// #include <map/landmark.h>
 #include <map/defines.h>
 #include <map/dataviews.h>
 #include <sfm/tracks_manager.h>
@@ -43,7 +41,9 @@ public:
   void RemoveShot(const ShotId& shot_id);
   bool HasLandmark(const LandmarkId& lm_id) const { return landmarks_.count(lm_id) > 0; }
   bool HasShot(const ShotId& shot_id) const { return shots_.find(shot_id) != shots_.end(); }
-  const std::unordered_map<ShotId, std::unique_ptr<Shot>>& GetAllShots() const { return shots_; }
+  const std::unordered_map<ShotId, Shot>& GetAllShots() const { return shots_; }
+  std::unordered_map<ShotId, Shot>& GetAllShots() { return shots_; }
+
   ShotView GetShotView() { return ShotView(*this); }
 
   //PanoShots
@@ -54,7 +54,7 @@ public:
   Shot* GetPanoShot(const ShotId& shot_id);
   void RemovePanoShot(const ShotId& shot_id);
   bool HasPanoShot(const ShotId& shot_id) const { return pano_shots_.find(shot_id) != pano_shots_.end(); }
-  const std::unordered_map<ShotId, std::unique_ptr<Shot>>& GetAllPanoShots() const { return shots_; }
+  const std::unordered_map<ShotId, Shot>& GetAllPanoShots() const { return pano_shots_; }
   PanoShotView GetPanoShotView() { return PanoShotView(*this); }
 
   // Landmark
@@ -63,7 +63,7 @@ public:
   void RemoveLandmark(const Landmark* const lm);
   void RemoveLandmark(const LandmarkId& lm_id);
   void ReplaceLandmark(Landmark* old_lm, Landmark* new_lm);
-  const std::unordered_map<LandmarkId, std::unique_ptr<Landmark>>& GetAllLandmarks() const { return landmarks_; };
+  const std::unordered_map<LandmarkId, Landmark>& GetAllLandmarks() const { return landmarks_; };
   LandmarkView GetLandmarkView() { return LandmarkView(*this); }
 
   //Observation methods
@@ -97,13 +97,9 @@ public:
 
 private:
   std::unordered_map<CameraId, Camera> cameras_;
-  // TODO: Think about switching to objects instead of unique_ptrs
-  std::unordered_map<ShotId, std::unique_ptr<Shot>> shots_;
-  std::unordered_map<ShotId, std::unique_ptr<Shot>> pano_shots_;
-  std::unordered_map<LandmarkId, std::unique_ptr<Landmark>> landmarks_;
-  // std::unordered_map<ShotId, Shot> shots_;
-  // std::unordered_map<ShotId, Shot> pano_shots_;
-  // std::unordered_map<LandmarkId, Landmark> landmarks_;
+  std::unordered_map<ShotId, Shot> shots_;
+  std::unordered_map<ShotId, Shot> pano_shots_;
+  std::unordered_map<LandmarkId, Landmark> landmarks_;
   
   TopoCentricConverter topo_conv_;
 

@@ -111,9 +111,9 @@ PYBIND11_MODULE(pymap, m) {
            py::arg("shot"), py::arg("landmark"))
 
       .def("get_all_shots", &map::Map::GetShotView)
-      .def("get_shot_view", &map::Map::GetShotView)
+      // .def("get_shot_view", &map::Map::GetShotView)
       .def("get_all_pano_shots", &map::Map::GetPanoShotView)
-      .def("get_pano_shot_view", &map::Map::GetPanoShotView)
+      // .def("get_pano_shot_view", &map::Map::GetPanoShotView)
       .def("get_all_cameras", &map::Map::GetCameraView)
       .def("get_camera_view", &map::Map::GetCameraView)
       .def("get_all_landmarks", &map::Map::GetLandmarkView)
@@ -351,16 +351,15 @@ PYBIND11_MODULE(pymap, m) {
       .def(
           "items",
           [](const map::PanoShotView &sv) {
-            const auto &shots = sv.GetShots();
-            return py::make_unique_ptr_iterator(shots.begin(), shots.end());
+            auto &shots = sv.GetShots();
+            return py::make_ref_iterator(shots.begin(), shots.end());
           },
           py::return_value_policy::reference_internal)
       .def(
           "values",
           [](const map::PanoShotView &sv) {
-            const auto &shots = sv.GetShots();
-            return py::make_unique_ptr_value_iterator(shots.begin(),
-                                                      shots.end());
+            auto &shots = sv.GetShots();
+            return py::make_ref_value_iterator(shots.begin(), shots.end());
           },
           py::return_value_policy::reference_internal)
       .def(
@@ -390,15 +389,14 @@ PYBIND11_MODULE(pymap, m) {
           "items",
           [](const map::ShotView &sv) {
             const auto &shots = sv.GetShots();
-            return py::make_unique_ptr_iterator(shots.begin(), shots.end());
+            return py::make_ref_iterator(shots.begin(), shots.end());
           },
           py::return_value_policy::reference_internal)
       .def(
           "values",
           [](const map::ShotView &sv) {
             const auto &shots = sv.GetShots();
-            return py::make_unique_ptr_value_iterator(shots.begin(),
-                                                      shots.end());
+            return py::make_ref_value_iterator(shots.begin(), shots.end());
           },
           py::return_value_policy::reference_internal)
       .def(
@@ -427,15 +425,15 @@ PYBIND11_MODULE(pymap, m) {
       .def(
           "items",
           [](const map::LandmarkView &sv) {
-            const auto &lms = sv.GetLandmarks();
-            return py::make_unique_ptr_iterator(lms.begin(), lms.end());
+            auto &lms = sv.GetLandmarks();
+            return py::make_ref_iterator(lms.begin(), lms.end());
           },
           py::return_value_policy::reference_internal)
       .def(
           "values",
           [](const map::LandmarkView &sv) {
-            const auto &lms = sv.GetLandmarks();
-            return py::make_unique_ptr_value_iterator(lms.begin(), lms.end());
+            auto &lms = sv.GetLandmarks();
+            return py::make_ref_value_iterator(lms.begin(), lms.end());
           },
           py::return_value_policy::reference_internal)
       .def(
@@ -467,9 +465,6 @@ PYBIND11_MODULE(pymap, m) {
             return py::make_iterator(cams.begin(), cams.end());
           },
           py::return_value_policy::reference_internal)
-      // .def(
-      //     "values", &map::CameraView::GetCameraPointers,
-      //     py::return_value_policy::reference_internal)
       .def(
           "values",
           [](map::CameraView &sv) {

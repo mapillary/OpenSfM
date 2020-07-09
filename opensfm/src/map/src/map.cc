@@ -19,7 +19,7 @@ void Map::AddObservation(const ShotId& shot_id, const LandmarkId& lm_id,
     throw std::runtime_error("Accessing invalid ShotID " + shot_id);
   }
   auto& lm = landmarks_.at(lm_id);
-  AddObservation(shot, lm.get(), feat_id);
+  AddObservation(shot, &lm, feat_id);
 }
 
 void Map::AddObservation(Shot* const shot, Landmark* const lm,
@@ -66,27 +66,27 @@ void Map::RemoveObservation(const ShotId& shot_id, const LandmarkId& lm_id)
 Shot* Map::GetShot(const ShotId& shot_id)
 {
   const auto& it = shots_.find(shot_id);
-  return (it != shots_.end() ? it->second.get() : nullptr);
+  return (it != shots_.end() ? &it->second : nullptr);
 }
 Shot* Map::GetPanoShot(const ShotId& shot_id)
 {
   const auto& it = pano_shots_.find(shot_id);
-  return (it != pano_shots_.end() ? it->second.get() : nullptr);
+  return (it != pano_shots_.end() ? &it->second : nullptr);
 }
 
 Landmark* Map::GetLandmark(const LandmarkId& lm_id) {
   const auto& it = landmarks_.find(lm_id);
-  return (it != landmarks_.end() ? it->second.get() : nullptr);
+  return (it != landmarks_.end() ? &it->second : nullptr);
 }
 
 void Map::ClearObservationsAndLandmarks() {
   // first JUST delete the observations of the landmark
   for (auto& id_lm : landmarks_) {
-    auto& observations = id_lm.second->GetObservations();
+    auto& observations = id_lm.second.GetObservations();
     for (const auto& obs : observations) {
       obs.first->RemoveLandmarkObservation(obs.second);
     }
-    id_lm.second->ClearObservations();
+    id_lm.second.ClearObservations();
   }
   // then clear the landmarks_
   landmarks_.clear();
@@ -109,20 +109,19 @@ Shot* Map::CreateShot(const ShotId& shot_id, const CameraId& camera_id)
  */
 Shot* Map::CreateShot(const ShotId& shot_id, const Camera* const cam,
                       const geometry::Pose& pose) {
-  // C++14
-  // auto it = shots_.emplace(shot_id, std::make_unique<Shot>(shot_id, cam,
-  // pose));
-  // C++11
   auto it_exist = shots_.find(shot_id);
   if (it_exist == shots_.end())  // create
   {
     auto it = shots_.emplace(
-        shot_id, std::unique_ptr<Shot>(new Shot(shot_id, cam, pose)));
-    it.first->second->unique_id_ = shot_unique_id_;
+      std::piecewise_construct,
+      std::forward_as_tuple(shot_id),
+      std::forward_as_tuple(shot_id, cam, pose));
+
+    it.first->second.unique_id_ = shot_unique_id_;
     shot_unique_id_++;
-    return it.first->second.get();
+    return &it.first->second;
   } else {
-    return it_exist->second.get();
+    return &it_exist->second;
   }
 }
 
@@ -138,26 +137,20 @@ Shot* Map::CreateShot(const ShotId& shot_id, const Camera* const cam,
 Shot* Map::CreateShot(const ShotId& shot_id, const CameraId& camera_id,
                       const geometry::Pose& pose) {
   
-  // auto* cam = ;
   return CreateShot(shot_id, GetCamera(camera_id), pose);
 }
-
-// void Map::UpdateShotPose(const ShotId& shot_id, const Pose& pose) {
-//   shots_.at(shot_id)->SetPose(pose);
-// }
 
 void Map::RemoveShot(const ShotId& shot_id) {
   // 1) Find the point
   const auto& shot_it = shots_.find(shot_id);
   if (shot_it != shots_.end()) {
-    const auto& shot = shot_it->second;
+    auto& shot = shot_it->second;
     // 2) Remove it from all the points
-    for (const auto& lm : shot->GetLandmarks()) {
+    for (const auto& lm : shot.GetLandmarks()) {
       if (lm != nullptr) {
-        lm->RemoveObservation(shot.get());
+        lm->RemoveObservation(&shot);
       }
     }
-
     // 3) Remove from shots
     shots_.erase(shot_it);
   }
@@ -185,19 +178,19 @@ Shot* Map::CreatePanoShot(const ShotId& shot_id, const Camera* const cam,
   if (it_exist == pano_shots_.end())  // create
   {
     auto it = pano_shots_.emplace(
-        shot_id, std::unique_ptr<Shot>(new Shot(shot_id, cam, pose)));
-    it.first->second->unique_id_ = pano_shot_unique_id_;
+      std::piecewise_construct,
+      std::forward_as_tuple(shot_id),
+      std::forward_as_tuple(shot_id, cam, pose));
+    it.first->second.unique_id_ = pano_shot_unique_id_;
     pano_shot_unique_id_++;
-    return it.first->second.get();
+    return &(it.first->second);
   } else {
-    return it_exist->second.get();
+    return &(it_exist->second);
   }
 }
 
 Shot* Map::CreatePanoShot(const ShotId& shot_id, const CameraId& camera_id,
                       const geometry::Pose& pose) {
-  
-  // auto* cam = ;
   return CreatePanoShot(shot_id, GetCamera(camera_id), pose);
 }
 
@@ -207,9 +200,10 @@ void Map::RemovePanoShot(const ShotId& shot_id) {
   if (shot_it != pano_shots_.end()) {
     const auto& shot = shot_it->second;
     // 2) Remove it from all the points
-    for (const auto& lm : shot->GetLandmarks()) {
+    for (const auto& lm : shot.GetLandmarks()) {
       if (lm != nullptr) {
-        lm->RemoveObservation(shot.get());
+        // TODO: Update remove observation
+        // lm->RemoveObservation(&shot);
       }
     }
 
@@ -239,15 +233,19 @@ Landmark* Map::CreateLandmark(
   auto it_exist = landmarks_.find(lm_id);
   if (it_exist == landmarks_.end()) //create
   {
+    // auto it = landmarks_.emplace(
+    //     lm_id, std::unique_ptr<Landmark>(new Landmark(lm_id, global_pos)));
     auto it = landmarks_.emplace(
-        lm_id, std::unique_ptr<Landmark>(new Landmark(lm_id, global_pos)));
-    it.first->second->unique_id_ = landmark_unique_id_;
+      std::piecewise_construct,
+      std::forward_as_tuple(lm_id),
+      std::forward_as_tuple(lm_id, global_pos));
+    it.first->second.unique_id_ = landmark_unique_id_;
     landmark_unique_id_++;
-    return it.first->second.get();  // the raw pointer
+    return &it.first->second;  // the raw pointer
   }
   else
   {
-    return it_exist->second.get();
+    return &it_exist->second;
   }
   
 }
@@ -274,7 +272,7 @@ void Map::RemoveLandmark(const LandmarkId& lm_id) {
     const auto& landmark = lm_it->second;
 
     // 2) Remove all its observation
-    const auto& observations = landmark->GetObservations();
+    const auto& observations = landmark.GetObservations();
     for (const auto& obs : observations) {
       Shot* shot = obs.first;
       const auto feat_id = obs.second;
@@ -321,16 +319,6 @@ void Map::ReplaceLandmark(Landmark* old_lm, Landmark* new_lm) {
   landmarks_.erase(old_lm->id_);
 }
 
-// TODO: Removing the camera might be problematic when it is still in use
-// void
-// Map::RemoveCamera(const CameraId cam_id)
-// {
-//   const auto& cam_it = cameras_.find(cam_id);
-//   if (cam_it != cameras_.end())
-//   {
-//     cameras_.erase(cam_it);
-//   }
-// }
 
 Camera* Map::CreateCamera(const Camera& cam) {
   auto make_cam = [](const Camera& cam) {
@@ -377,15 +365,6 @@ Camera* Map::CreateCamera(const Camera& cam) {
   new_cam.id = cam.id;
   return &new_cam;
 }
-
-// std::vector<Camera*> Map::GetCameras() {
-//   std::vector<Camera*> cameras;
-//   cameras.reserve(cameras_.size());
-//   for (auto& cam_mod : cameras_) {
-//     cameras.push_back(&cam_mod.second);
-//   }
-//   return cameras;
-// }
 
 Camera* Map::GetCamera(const CameraId& cam_id) 
 { 
