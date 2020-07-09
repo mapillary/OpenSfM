@@ -69,12 +69,17 @@ def detect(args):
         data.feature_type().upper(), image))
 
     start = timer()
-
-    p_unmasked, f_unmasked, c_unmasked = features.extract_features(
-        data.load_image(image), data.config)
+    if data.config["feature_type"] == "SIFT_GPU":
+        unmasked, keypoints = features.extract_features(
+            data.load_image(image), data.config)
+        p_unmasked, f_unmasked, c_unmasked = unmasked
+    else:
+        p_unmasked, f_unmasked, c_unmasked = features.extract_features(
+            data.load_image(image), data.config)
 
     fmask = data.load_features_mask(image, p_unmasked)
-
+    if data.config["feature_type"] == "SIFT_GPU":
+        keypoints = keypoints[fmask]
     p_unsorted = p_unmasked[fmask]
     f_unsorted = f_unmasked[fmask]
     c_unsorted = c_unmasked[fmask]
@@ -88,6 +93,9 @@ def detect(args):
     p_sorted = p_unsorted[order, :]
     f_sorted = f_unsorted[order, :]
     c_sorted = c_unsorted[order, :]
+    if data.config["feature_type"] == "SIFT_GPU":
+        keypoints_sorted = keypoints[order]
+        data.save_gpu_features(image, keypoints_sorted)
     data.save_features(image, p_sorted, f_sorted, c_sorted)
 
     if need_words:

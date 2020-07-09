@@ -8,6 +8,7 @@ import cv2
 
 from opensfm import context
 from opensfm import csfm
+from silx.image import sift
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +41,7 @@ def root_feature_surf(desc, l2_normalization=False, partial=False):
     if desc.shape[1] == 64:
         if l2_normalization:
             s2 = np.linalg.norm(desc, axis=1)
-            desc = (desc.T/s2).T
+            desc = (desc.T / s2).T
         if partial:
             ii = np.array([i for i in range(64) if (i % 4 == 2 or i % 4 == 3)])
         else:
@@ -50,7 +51,7 @@ def root_feature_surf(desc, l2_normalization=False, partial=False):
         # s_sub = np.sum(desc_sub, 1)  # This partial normalization gives slightly better results for AKAZE surf
         s_sub = np.sum(np.abs(desc), 1)
         desc_sub = np.sqrt(desc_sub.T / s_sub).T
-        desc[:, ii] = desc_sub*desc_sub_sign
+        desc[:, ii] = desc_sub * desc_sub_sign
     return desc
 
 
@@ -123,6 +124,28 @@ def extract_features_sift(image, config):
         desc = root_feature(desc)
     points = np.array([(i.pt[0], i.pt[1], i.size, i.angle) for i in points])
     return points, desc
+
+
+def check_gpu_initialization(image):
+    if 'gpu_sift' not in globals() or 'gpu_matching' not in globals():
+        global gpu_sift
+        gpu_sift = sift.SiftPlan(template=image, devicetype="GPU")
+        global gpu_matching
+        gpu_matching = sift.MatchPlan()
+
+
+def extract_features_sift_gpu(image, config):
+    check_gpu_initialization(image)
+    keypoints = gpu_sift(image)
+
+    points = np.concatenate([np.expand_dims(keypoints[:].x, axis=1),
+                             np.expand_dims(keypoints[:].y, axis=1),
+                             np.expand_dims(keypoints[:].scale, axis=1),
+                             np.expand_dims(keypoints[:].angle, axis=1)], axis=1)
+    desc = np.array(keypoints[:].desc)
+    if config['feature_root']:
+        desc = root_feature(desc)
+    return points, desc, keypoints
 
 
 def extract_features_surf(image, config):
@@ -265,7 +288,7 @@ def extract_features(color_image, config):
     assert len(color_image.shape) == 3
     color_image = resized_image(color_image, config)
     image = cv2.cvtColor(color_image, cv2.COLOR_RGB2GRAY)
-
+    keypoints = None
     feature_type = config['feature_type'].upper()
     if feature_type == 'SIFT':
         points, desc = extract_features_sift(image, config)
@@ -277,26 +300,30 @@ def extract_features(color_image, config):
         points, desc = extract_features_hahog(image, config)
     elif feature_type == 'ORB':
         points, desc = extract_features_orb(image, config)
+    elif feature_type == 'SIFT_GPU':
+        points, desc, keypoints = extract_features_sift_gpu(image, config)
     else:
         raise ValueError('Unknown feature type '
-                         '(must be SURF, SIFT, AKAZE, HAHOG or ORB)')
+                         '(must be SURF, SIFT, AKAZE, HAHOG, SIFT_GPU or ORB)')
 
     xs = points[:, 0].round().astype(int)
     ys = points[:, 1].round().astype(int)
     colors = color_image[ys, xs]
-
+    if keypoints is not None:
+        return normalize_features(points, desc, colors,
+                                  image.shape[1], image.shape[0]), keypoints
     return normalize_features(points, desc, colors,
                               image.shape[1], image.shape[0])
 
 
 def build_flann_index(features, config):
-    FLANN_INDEX_LINEAR          = 0
-    FLANN_INDEX_KDTREE          = 1
-    FLANN_INDEX_KMEANS          = 2
-    FLANN_INDEX_COMPOSITE       = 3
-    FLANN_INDEX_KDTREE_SINGLE   = 4
-    FLANN_INDEX_HIERARCHICAL    = 5
-    FLANN_INDEX_LSH             = 6
+    FLANN_INDEX_LINEAR = 0
+    FLANN_INDEX_KDTREE = 1
+    FLANN_INDEX_KMEANS = 2
+    FLANN_INDEX_COMPOSITE = 3
+    FLANN_INDEX_KDTREE_SINGLE = 4
+    FLANN_INDEX_HIERARCHICAL = 5
+    FLANN_INDEX_LSH = 6
 
     if features.dtype.type is np.float32:
         FLANN_INDEX_METHOD = FLANN_INDEX_KMEANS
