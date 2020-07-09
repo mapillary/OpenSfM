@@ -6,7 +6,6 @@ set(MAP_FILES
   src/landmark.cc
   src/map.cc
   src/shot.cc
-  TestView.h
   dataviews.h
   src/dataviews.cc
 )

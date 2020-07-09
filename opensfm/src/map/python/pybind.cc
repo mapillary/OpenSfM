@@ -1,7 +1,6 @@
 #include <foundation/types.h>
 #include <geometry/pose.h>
 #include <glog/logging.h>
-#include <map/TestView.h>
 #include <map/dataviews.h>
 #include <map/defines.h>
 #include <map/landmark.h>
