@@ -350,4 +350,38 @@ def test_metadata_with_shot():
     # Test if two different objects
     assert shot1.metadata.capture_time != shot2.metadata.capture_time
     assert shot1.metadata.capture_time.value != shot2.metadata.capture_time.value
-    assert shot1.metadata.capture_time.value == 518 and shot2.metadata.capture_time.value == 10
+    assert shot1.metadata.capture_time.value == 518
+    assert shot2.metadata.capture_time.value == 10
+
+
+import random
+def test_cam_iterator():
+    rec = types.Reconstruction()
+    cam1 = pygeometry.Camera.create_perspective(0.5, 0, 0)
+    cam1.id = "cam1"
+    cam2 = pygeometry.Camera.create_perspective(1, 0, 0)
+    cam2.id = "cam2"
+    rec.add_camera(cam1)
+    rec.add_camera(cam2)
+
+    for cam in rec.cameras.values():
+        foc = random.random()
+        cam.focal = foc
+        assert(cam.focal == rec.cameras[cam.id].focal)
+        assert(cam.focal == foc)
+        assert foc == rec.cameras[cam.id].focal
+
+    for k, cam in rec.cameras.items():
+        foc = random.random()
+        cam.focal = foc
+        assert(cam.focal == rec.cameras[cam.id].focal)
+        assert(cam.focal == foc)
+        assert foc == rec.cameras[cam.id].focal
+
+    for k in rec.cameras.keys():
+        foc = random.random()
+        cam = rec.cameras[k]
+        cam.focal = foc
+        assert(cam.focal == rec.cameras[k].focal)
+        assert(cam.focal == foc)
+        assert foc == rec.cameras[k].focal

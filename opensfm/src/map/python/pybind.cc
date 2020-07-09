@@ -127,8 +127,8 @@ PYBIND11_MODULE(pymap, m) {
            py::return_value_policy::reference_internal)
       .def("clear_observations_and_landmarks",
            &map::Map::ClearObservationsAndLandmarks)
-      .def("get_cameras", &map::Map::GetCameras,
-           py::return_value_policy::reference_internal)
+      // .def("get_cameras", &map::Map::GetCameras,
+      //      py::return_value_policy::reference_internal)
       .def("get_camera", &map::Map::GetCamera,
            py::return_value_policy::reference_internal)
 
@@ -467,8 +467,15 @@ PYBIND11_MODULE(pymap, m) {
             return py::make_iterator(cams.begin(), cams.end());
           },
           py::return_value_policy::reference_internal)
+      // .def(
+      //     "values", &map::CameraView::GetCameraPointers,
+      //     py::return_value_policy::reference_internal)
       .def(
-          "values", &map::CameraView::GetCameraPointers,
+          "values",
+          [](map::CameraView &sv) {
+            auto &cams = sv.GetCameras();
+            return py::make_ref_value_iterator(cams.begin(), cams.end());
+          },
           py::return_value_policy::reference_internal)
       .def(
           "__iter__",

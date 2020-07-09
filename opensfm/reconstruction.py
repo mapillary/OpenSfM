@@ -660,22 +660,9 @@ def bootstrap_reconstruction(data, tracks_manager, camera_priors, im1, im2, p1, 
     reconstruction.reference = data.load_reference()
     reconstruction.cameras = camera_priors
     shot1 = reconstruction.create_shot(im1, camera_id1, pygeometry.Pose())
-    # shot1.metadata.set(get_image_metadata(data, im1))
     shot1.metadata = get_image_metadata(data, im1)
-    # m = get_image_metadata(data, im1)
-    # assert shot1.metadata.sequence_key.value == m.sequence_key.value
-    # assert shot1.metadata.capture_time.value == m.capture_time.value
-    # if (m.compass_accuracy.has_value):
-    #     assert shot1.metadata.compass_accuracy.value == m.compass_accuracy.value
-    # if m.compass_angle.has_value:
-    #     assert shot1.metadata.compass_angle.value == m.compass_angle.value
-    # if m.accelerometer.has_value:
-    #     assert np.allclose(shot1.metadata.accelerometer.value, m.accelerometer.value)
-    # assert np.allclose(shot1.metadata.gps_position.value, m.gps_position.value)
-    # assert shot1.metadata.gps_accuracy.value == m.gps_accuracy.value
 
     shot2 = reconstruction.create_shot(im2, camera_id2, pygeometry.Pose(R, t))
-    # shot2.metadata.set(get_image_metadata(data, im2))
     shot2.metadata = get_image_metadata(data, im1)
 
 

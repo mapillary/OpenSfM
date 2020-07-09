@@ -51,9 +51,9 @@ Camera* CameraView::GetCamera(const CameraId& cam_id) {
 const std::unordered_map<CameraId, Camera>& CameraView::GetCameras() const {
   return map_.GetAllCameras();
 }
-const std::vector<Camera*> CameraView::GetCameraPointers() const {
-  return map_.GetCameras();
-}
+// const std::vector<Camera*> CameraView::GetCameraPointers() const {
+//   return map_.GetCameras();
+// }
 bool CameraView::HasCamera(const CameraId& cam_id) const {
   return map_.HasCamera(cam_id);
 }

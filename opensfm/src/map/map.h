@@ -25,7 +25,7 @@ class Map
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   // Camera Methods
-  std::vector<Camera*> GetCameras();
+  // std::vector<Camera*> GetCameras();
   Camera* GetCamera(const CameraId& cam_id);
   Camera* CreateCamera(const Camera& cam);
   const std::unordered_map<CameraId, Camera>& GetAllCameras() const { return cameras_; };
@@ -39,6 +39,7 @@ public:
   Shot* CreateShot(const ShotId& shot_id, const CameraId& camera_id, const geometry::Pose& pose);
   Shot* CreateShot(const ShotId& shot_id, const Camera* const cam, const geometry::Pose& pose = geometry::Pose());
   Shot* GetShot(const ShotId& shot_id);
+  Shot* AddShot(const Shot& other_shot);
   void RemoveShot(const ShotId& shot_id);
   bool HasLandmark(const LandmarkId& lm_id) const { return landmarks_.count(lm_id) > 0; }
   bool HasShot(const ShotId& shot_id) const { return shots_.find(shot_id) != shots_.end(); }
@@ -49,6 +50,7 @@ public:
   Shot* CreatePanoShot(const ShotId& shot_id, const CameraId&, const geometry::Pose& pose);
   Shot* CreatePanoShot(const ShotId& shot_id, const CameraId&);
   Shot* CreatePanoShot(const ShotId& shot_id, const Camera* const cam, const geometry::Pose& pose);
+  Shot* AddPanoShot(const Shot& other_pano_shot);
   Shot* GetPanoShot(const ShotId& shot_id);
   void RemovePanoShot(const ShotId& shot_id);
   bool HasPanoShot(const ShotId& shot_id) const { return pano_shots_.find(shot_id) != pano_shots_.end(); }
@@ -99,6 +101,10 @@ private:
   std::unordered_map<ShotId, std::unique_ptr<Shot>> shots_;
   std::unordered_map<ShotId, std::unique_ptr<Shot>> pano_shots_;
   std::unordered_map<LandmarkId, std::unique_ptr<Landmark>> landmarks_;
+  // std::unordered_map<ShotId, Shot> shots_;
+  // std::unordered_map<ShotId, Shot> pano_shots_;
+  // std::unordered_map<LandmarkId, Landmark> landmarks_;
+  
   TopoCentricConverter topo_conv_;
 
   LandmarkUniqueId landmark_unique_id_ = 0;

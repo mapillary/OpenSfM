@@ -47,6 +47,34 @@ iterator make_value_iterator(Iterator first, Sentinel last, Extra &&... extra) {
 
     return cast(state{first, last, true});
 }
+
+template <return_value_policy Policy = return_value_policy::reference_internal,
+          typename Iterator,
+          typename Sentinel,
+          typename KeyType = decltype(&((*std::declval<Iterator>()).second)),
+          typename... Extra>
+iterator make_ref_value_iterator(Iterator first, Sentinel last, Extra &&... extra) {
+    typedef detail::sfm_iterator_state<Iterator, Sentinel, detail::ValueIterator, Policy> state;
+
+    if (!detail::get_type_info(typeid(state), false)) {
+        class_<state>(handle(), "ref_value_iterator", pybind11::module_local())
+            .def("__iter__", [](state &s) -> state& { return s; })
+            .def("__next__", [](state &s) -> KeyType {
+                if (!s.first_or_done)
+                    ++s.it;
+                else
+                    s.first_or_done = false;
+                if (s.it == s.end) {
+                    s.first_or_done = true;
+                    throw stop_iteration();
+                }
+                return &(s.it->second);
+            }, std::forward<Extra>(extra)..., Policy);
+    }
+
+    return cast(state{first, last, true});
+}
+
 template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Iterator,
           typename Sentinel,
@@ -100,7 +128,6 @@ iterator make_unique_ptr_value_iterator(Iterator first, Sentinel last, Extra &&.
                 return s.it->second.get();
             }, std::forward<Extra>(extra)..., Policy);
     }
-
     return cast(state{first, last, true});
 }
 
@@ -174,5 +201,10 @@ template <return_value_policy Policy = return_value_policy::reference_internal,
 template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Type, typename... Extra> iterator make_unique_ptr_iterator(Type &value, Extra&&... extra) {
     return make_unique_ptr_iterator<Policy>(std::begin(value), std::end(value), extra...);
+}
+
+template <return_value_policy Policy = return_value_policy::reference_internal,
+          typename Type, typename... Extra> iterator make_ref_value_iterator(Type &value, Extra&&... extra) {
+    return make_ref_value_iterator<Policy>(std::begin(value), std::end(value), extra...);
 }
 NAMESPACE_END(PYBIND11_NAMESPACE)

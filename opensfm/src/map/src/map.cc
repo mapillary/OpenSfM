@@ -378,14 +378,14 @@ Camera* Map::CreateCamera(const Camera& cam) {
   return &new_cam;
 }
 
-std::vector<Camera*> Map::GetCameras() {
-  std::vector<Camera*> cameras;
-  cameras.reserve(cameras_.size());
-  for (auto& cam_mod : cameras_) {
-    cameras.push_back(&cam_mod.second);
-  }
-  return cameras;
-}
+// std::vector<Camera*> Map::GetCameras() {
+//   std::vector<Camera*> cameras;
+//   cameras.reserve(cameras_.size());
+//   for (auto& cam_mod : cameras_) {
+//     cameras.push_back(&cam_mod.second);
+//   }
+//   return cameras;
+// }
 
 Camera* Map::GetCamera(const CameraId& cam_id) 
 { 

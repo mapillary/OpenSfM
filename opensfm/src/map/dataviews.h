@@ -49,7 +49,7 @@ class CameraView {
   size_t NumberOfCameras() const;
   Camera* GetCamera(const CameraId& cam_id);
   const std::unordered_map<CameraId, Camera>& GetCameras() const;
-  const std::vector<Camera*> GetCameraPointers() const;
+  // const std::vector<Camera*> GetCameraPointers() const;
   bool HasCamera(const CameraId& cam_id) const;
 
  private:
