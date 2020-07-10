@@ -125,9 +125,7 @@ def test_pano_shot_sfm():
     # check that already existing shot is returned even with different camera
     assert map_shot1 == m.create_pano_shot("shot1", "cam2")
     # test getters
-    print(m.get_pano_shot("shot1"))
     assert map_shot1 == m.get_pano_shot("shot1")
-    print(m.get_pano_shot("shot2"))
     assert map_shot2 == m.get_pano_shot("shot2")
     assert m.get_pano_shot("ab") is None
     assert m.number_of_cameras() == 2 and m.number_of_pano_shots() == 2
@@ -411,10 +409,10 @@ def test_add_shot():
 
     rec_copy = types.Reconstruction()
     shot1_cpy = rec_copy.add_shot(shot1)
-    
+
     assert shot1 != shot1_cpy
-    assert shot1.id == shot1_cpy.id 
-    
+    assert shot1.id == shot1_cpy.id
+
     dir(shot1.metadata)
     meta = shot1.metadata
     meta_cpy = shot1_cpy.metadata
@@ -519,3 +517,94 @@ def test_add_pano_shot():
     assert np.allclose(meta2_cpy.accelerometer.value, np.array([5, 6, 7]))
     assert meta2_cpy.orientation.value == 1
     assert meta2_cpy.sequence_key.value == "skey2"
+
+
+def __helper_metadata_cmp(m1, m2):
+    # Asserts if both are correct and if the exist
+    assert m1.capture_time.has_value == m2.capture_time.has_value
+    if m1.capture_time.has_value:
+        assert m1.capture_time.value == m2.capture_time.value
+
+    assert m1.gps_position.has_value == m2.gps_position.has_value
+    if m1.gps_position.has_value:
+        assert np.allclose(m1.gps_position.value, m2.gps_position.value)
+
+    assert m1.gps_accuracy.has_value == m2.gps_accuracy.has_value
+    if m1.gps_accuracy.has_value:
+        assert m1.gps_accuracy.value == m2.gps_accuracy.value
+
+    assert m1.compass_accuracy.has_value == m2.compass_accuracy.has_value
+    if m1.compass_accuracy.has_value:
+        assert m1.compass_accuracy.value == m2.compass_accuracy.value
+
+    assert m1.compass_angle.has_value == m2.compass_angle.has_value
+    if m1.compass_angle.has_value:
+        assert m1.compass_angle.value == m2.compass_angle.value
+
+    assert m1.accelerometer.has_value == m2.accelerometer.has_value
+    if m1.accelerometer.has_value:
+        assert np.allclose(m1.accelerometer.value, m2.accelerometer.value)
+
+    assert m1.orientation.has_value == m2.orientation.has_value
+    if m1.orientation.has_value:
+        assert m1.orientation.value == m2.orientation.value
+
+    assert m1.sequence_key.has_value == m2.sequence_key.has_value
+    if m1.sequence_key.has_value:
+        assert m1.sequence_key.value == m2.sequence_key.value
+
+
+def test_rec_deepcopy():
+    rec = types.Reconstruction()
+    cam1 = pygeometry.Camera.create_perspective(0.5, 0, 0)
+    cam1.id = "cam1"
+    cam2 = pygeometry.Camera.create_perspective(1, 0, 0)
+    cam2.id = "cam2"
+    rec.add_camera(cam1)
+    rec.add_camera(cam2)
+
+    # Add a few shots
+    shot1 = rec.create_shot(
+        "s1", cam1.id, pygeometry.Pose(np.eye(3), [1, 2, 3]))
+    shot2 = rec.create_shot(
+        "s2", cam2.id, pygeometry.Pose(np.eye(3), [4, 5, 6]))
+
+    # Add points
+    n_points = 10
+    for pid in range(n_points):
+        pt = rec.create_point("pt" + str(pid), np.random.rand(3))
+        obs = pysfm.Observation(100, 200, 0.5, 255, 0, 0, int(pid))
+        rec.add_observation(shot1, pt, obs)
+        rec.add_observation(shot2, pt, obs)
+        pt.color = np.random.rand(3)
+
+    rec_cpy = copy.deepcopy(rec)
+    assert len(rec.cameras) == len(rec_cpy.cameras)
+    for k in rec.cameras:
+        cam = rec.cameras[k]
+        cam_cpy = rec_cpy.cameras[k]
+        assert cam != cam_cpy
+        assert cam.id == cam_cpy.id
+        assert cam.focal == cam_cpy.focal
+
+    assert len(rec.shots) == len(rec_cpy.shots)
+    for shot_id in rec.shots:
+        shot = rec.shots[shot_id]
+        shot_cpy = rec_cpy.shots[shot_id]
+        assert shot != shot_cpy
+        assert shot.id == shot_cpy.id
+        __helper_metadata_cmp(shot.metadata, shot_cpy.metadata)
+        # compare the poses
+        assert np.allclose(shot.pose.rotation, shot_cpy.pose.rotation)
+        assert np.allclose(shot.pose.translation, shot_cpy.pose.translation)
+
+    for ptid in rec.points:
+        pt = rec.points[ptid]
+        pt_cpy = rec_cpy.points[ptid]
+        assert pt != pt_cpy
+        assert pt.id == pt_cpy.id
+        assert np.allclose(pt.coordinates, pt_cpy.coordinates)
+        if pt.color is None:
+            assert pt_cpy.color is None
+        else:
+            assert np.allclose(pt.color, pt_cpy.color)

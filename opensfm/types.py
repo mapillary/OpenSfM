@@ -189,3 +189,28 @@ class Reconstruction(object):
         :param observation: The observation
         """
         self.map.add_observation(shot_id, lm_id, observation)
+    
+    def __deepcopy__(self, d):
+        # create new reconstruction
+        rec_cpy = Reconstruction()
+        copy_observations = False
+        # Check if we also need the observations
+        if "copy_observations" in d:
+            copy_observations = d["copy_observations"]
+
+        # Copy the cameras
+        rec_cpy.cameras = self.cameras
+
+        # Copy the shots
+        for shot in self.shots.values():
+            rec_cpy.add_shot(shot)
+
+        # Copy the points
+        for point in self.points.values():
+            rec_cpy.add_point(point)
+            if copy_observations:
+                for shot, obs_id in shot.get_observations():
+                    obs = shot.get_observation(obs_id)
+                    rec_cpy.add_observation(shot.id, point.id, obs)
+
+        return rec_cpy
