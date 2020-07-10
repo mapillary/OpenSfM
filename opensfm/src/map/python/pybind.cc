@@ -449,6 +449,28 @@ PYBIND11_MODULE(pymap, m) {
             return py::make_key_iterator(lms.begin(), lms.end());
           },
           py::return_value_policy::reference_internal)
+      //Python 2
+      // .def(
+      //     "__iteritems__",
+      //     [](const map::LandmarkView &sv) {
+      //       auto &lms = sv.GetLandmarks();
+      //       return py::make_ref_iterator(lms.begin(), lms.end());
+      //     },
+      //     py::return_value_policy::reference_internal)
+      // .def(
+      //     "iterkeys",
+      //     [](const map::LandmarkView &sv) {
+      //       const auto &lms = sv.GetLandmarks();
+      //       return py::make_key_iterator(lms.begin(), lms.end());
+      //     },
+      //     py::return_value_policy::reference_internal)
+      // .def(
+      //     "itervalues",
+      //     [](const map::LandmarkView &sv) {
+      //       auto &lms = sv.GetLandmarks();
+      //       return py::make_ref_value_iterator(lms.begin(), lms.end());
+      //     },
+      //     py::return_value_policy::reference_internal)
       .def("get", &map::LandmarkView::GetLandmark,
            py::return_value_policy::reference_internal)
       .def("__getitem__", &map::LandmarkView::GetLandmark,

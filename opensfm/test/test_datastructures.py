@@ -385,3 +385,19 @@ def test_cam_iterator():
         assert(cam.focal == rec.cameras[k].focal)
         assert(cam.focal == foc)
         assert foc == rec.cameras[k].focal
+
+import copy
+def test_copy():
+    pose = pygeometry.Pose()
+    p2 = copy.copy(pose)
+    p3 = copy.deepcopy(pose)
+
+    cam1 = pygeometry.Camera.create_perspective(0.5, 0, 0)
+    cam2 = copy.deepcopy(cam1)
+    assert cam1.focal == cam2.focal
+    cam2.focal = 0.7
+    assert cam1.focal != cam2.focal
+    cam3 = copy.deepcopy(cam2)
+    assert cam3.focal == cam2.focal
+
+test_copy()

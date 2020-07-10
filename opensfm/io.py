@@ -253,7 +253,7 @@ def shot_to_json(shot):
     return obj
 
 
-def pymap_metadata_to_json(metadata: pymap.ShotMeasurements):
+def pymap_metadata_to_json(metadata):
     obj = {}
     if metadata.orientation.has_value:
         obj['orientation'] = metadata.orientation.value
@@ -765,7 +765,7 @@ def export_bundler(image_list, reconstructions, track_manager,
                     lines.append("0 0 0")
 
         # tracks
-        for point_id, point in iteritems(points):
+        for point_id, point in points.items():  #iteritems(points):
             coord = point.coordinates
             color = list(map(int, point.color))
             view_list = track_manager.get_track_observations(point.id)
