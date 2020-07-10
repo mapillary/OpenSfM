@@ -23,7 +23,6 @@ class Map
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   // Camera Methods
-  // std::vector<Camera*> GetCameras();
   Camera* GetCamera(const CameraId& cam_id);
   Camera* CreateCamera(const Camera& cam);
   const std::unordered_map<CameraId, Camera>& GetAllCameras() const { return cameras_; };

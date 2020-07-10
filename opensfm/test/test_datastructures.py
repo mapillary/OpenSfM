@@ -1,5 +1,6 @@
 import numpy as np
 import copy
+import random
 from opensfm import pymap
 from opensfm import pysfm
 from opensfm import pygeometry
@@ -354,7 +355,6 @@ def test_metadata_with_shot():
     assert shot2.metadata.capture_time.value == 10
 
 
-import random
 def test_cam_iterator():
     rec = types.Reconstruction()
     cam1 = pygeometry.Camera.create_perspective(0.5, 0, 0)
@@ -386,6 +386,7 @@ def test_cam_iterator():
         assert(cam.focal == foc)
         assert foc == rec.cameras[k].focal
 
+
 def test_copy():
     pose = pygeometry.Pose()
     p2 = copy.copy(pose)
@@ -398,3 +399,123 @@ def test_copy():
     assert cam1.focal != cam2.focal
     cam3 = copy.deepcopy(cam2)
     assert cam3.focal == cam2.focal
+
+
+def test_add_shot():
+    rec = types.Reconstruction()
+    cam = pygeometry.Camera.create_perspective(0.5, 0, 0)
+    cam.id = "cam1"
+    rec.add_camera(cam)
+    shot1 = rec.create_shot("shot1", cam.id)
+    shot2 = rec.create_shot("shot2", cam.id)
+
+    rec_copy = types.Reconstruction()
+    shot1_cpy = rec_copy.add_shot(shot1)
+    
+    assert shot1 != shot1_cpy
+    assert shot1.id == shot1_cpy.id 
+    
+    dir(shot1.metadata)
+    meta = shot1.metadata
+    meta_cpy = shot1_cpy.metadata
+    for a in dir(meta):
+        if not callable(getattr(meta, a))\
+                and not a.startswith("__"):
+            assert getattr(meta, a).has_value is False
+            assert getattr(meta_cpy, a).has_value is False
+
+    # Do something with shot2
+    shot2.scale = 10
+    shot2.merge_cc = 123
+    cov = np.random.rand(3, 3)
+    shot2.covariance = cov
+
+    # Set the metadata
+    meta2 = shot2.metadata
+    meta2.capture_time.value = 15
+    meta2.gps_position.value = np.array([1, 2, 3])
+    meta2.gps_accuracy.value = 0.3
+    meta2.compass_accuracy.value = 0.7
+    meta2.compass_angle.value = 0.15
+    meta2.accelerometer.value = np.array([5, 6, 7])
+    meta2.orientation.value = 1
+    meta2.sequence_key.value = "skey2"
+
+    shot2_cpy = rec_copy.add_shot(shot2)
+    assert shot2_cpy.scale == 10
+    assert shot2_cpy.merge_cc == 123
+    assert np.allclose(shot2_cpy.covariance, cov)
+    assert shot2 != shot2_cpy
+    assert shot2.id == shot2_cpy.id
+
+    meta2_cpy = shot2_cpy.metadata
+    assert shot2.metadata != shot2_cpy.metadata
+    # Now assert the metadata
+    assert meta2_cpy.capture_time.value == 15
+    assert np.allclose(meta2_cpy.gps_position.value, np.array([1, 2, 3]))
+    assert meta2_cpy.gps_accuracy.value == 0.3
+    assert meta2_cpy.compass_accuracy.value == 0.7
+    assert meta2_cpy.compass_angle.value == 0.15
+    assert np.allclose(meta2_cpy.accelerometer.value, np.array([5, 6, 7]))
+    assert meta2_cpy.orientation.value == 1
+    assert meta2_cpy.sequence_key.value == "skey2"
+
+
+def test_add_pano_shot():
+    rec = types.Reconstruction()
+    cam = pygeometry.Camera.create_perspective(0.5, 0, 0)
+    cam.id = "cam1"
+    rec.add_camera(cam)
+    shot1 = rec.create_pano_shot("shot1", cam.id)
+    shot2 = rec.create_pano_shot("shot2", cam.id)
+
+    rec_copy = types.Reconstruction()
+    shot1_cpy = rec_copy.add_pano_shot(shot1)
+
+    assert shot1 != shot1_cpy
+    assert shot1.id == shot1_cpy.id
+
+    dir(shot1.metadata)
+    meta = shot1.metadata
+    meta_cpy = shot1_cpy.metadata
+    for a in dir(meta):
+        if not callable(getattr(meta, a))\
+                and not a.startswith("__"):
+            assert getattr(meta, a).has_value is False
+            assert getattr(meta_cpy, a).has_value is False
+
+    # Do something with shot2
+    shot2.scale = 10
+    shot2.merge_cc = 123
+    cov = np.random.rand(3, 3)
+    shot2.covariance = cov
+
+    # Set the metadata
+    meta2 = shot2.metadata
+    meta2.capture_time.value = 15
+    meta2.gps_position.value = np.array([1, 2, 3])
+    meta2.gps_accuracy.value = 0.3
+    meta2.compass_accuracy.value = 0.7
+    meta2.compass_angle.value = 0.15
+    meta2.accelerometer.value = np.array([5, 6, 7])
+    meta2.orientation.value = 1
+    meta2.sequence_key.value = "skey2"
+
+    shot2_cpy = rec_copy.add_pano_shot(shot2)
+    assert shot2_cpy.scale == 10
+    assert shot2_cpy.merge_cc == 123
+    assert np.allclose(shot2_cpy.covariance, cov)
+    assert shot2 != shot2_cpy
+    assert shot2.id == shot2_cpy.id
+
+    meta2_cpy = shot2_cpy.metadata
+    assert shot2.metadata != shot2_cpy.metadata
+    # Now assert the metadata
+    assert meta2_cpy.capture_time.value == 15
+    assert np.allclose(meta2_cpy.gps_position.value, np.array([1, 2, 3]))
+    assert meta2_cpy.gps_accuracy.value == 0.3
+    assert meta2_cpy.compass_accuracy.value == 0.7
+    assert meta2_cpy.compass_angle.value == 0.15
+    assert np.allclose(meta2_cpy.accelerometer.value, np.array([5, 6, 7]))
+    assert meta2_cpy.orientation.value == 1
+    assert meta2_cpy.sequence_key.value == "skey2"

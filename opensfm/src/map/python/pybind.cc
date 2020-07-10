@@ -110,9 +110,7 @@ PYBIND11_MODULE(pymap, m) {
            py::arg("shot"), py::arg("landmark"))
 
       .def("get_all_shots", &map::Map::GetShotView)
-      // .def("get_shot_view", &map::Map::GetShotView)
       .def("get_all_pano_shots", &map::Map::GetPanoShotView)
-      // .def("get_pano_shot_view", &map::Map::GetPanoShotView)
       .def("get_all_cameras", &map::Map::GetCameraView)
       .def("get_camera_view", &map::Map::GetCameraView)
       .def("get_all_landmarks", &map::Map::GetLandmarkView)
@@ -126,11 +124,10 @@ PYBIND11_MODULE(pymap, m) {
            py::return_value_policy::reference_internal)
       .def("clear_observations_and_landmarks",
            &map::Map::ClearObservationsAndLandmarks)
-      // .def("get_cameras", &map::Map::GetCameras,
-      //      py::return_value_policy::reference_internal)
       .def("get_camera", &map::Map::GetCamera,
            py::return_value_policy::reference_internal)
-
+      .def("add_shot", &map::Map::AddShot, py::return_value_policy::reference_internal)
+      .def("add_pano_shot", &map::Map::AddShot, py::return_value_policy::reference_internal)
       ;
 
   py::class_<map::TopoCentricConverter>(m, "TopoCentriConverter")

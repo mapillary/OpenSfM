@@ -376,4 +376,26 @@ Camera* Map::GetCamera(const CameraId& cam_id)
   return &it->second; 
 }
 
+Shot*
+Map::AddShot(const Shot& other_shot)
+{
+  Shot* new_shot = CreateShot(other_shot.id_, other_shot.shot_camera_->id, other_shot.GetPose());
+  new_shot->merge_cc = other_shot.merge_cc;
+  new_shot->scale = other_shot.scale;
+  new_shot->SetShotMeasurements(other_shot.shot_measurements_);
+  new_shot->covariance = other_shot.covariance;
+  return new_shot;
+}
+
+Shot*
+Map::AddPanoShot(const Shot& other_shot)
+{
+  Shot* new_shot = CreatePanoShot(other_shot.id_, other_shot.shot_camera_->id, other_shot.GetPose());
+  new_shot->merge_cc = other_shot.merge_cc;
+  new_shot->scale = other_shot.scale;
+  new_shot->SetShotMeasurements(other_shot.shot_measurements_);
+  new_shot->covariance = other_shot.covariance;
+  return new_shot;
+}
+
 };  // namespace map

@@ -133,14 +133,8 @@ class Reconstruction(object):
             in the current reconstruction"""
 
         if shot.camera.id not in self.cameras:
-            self.map.add_camera(shot.camera)
-        map_shot = self.map.create_shot(shot.id, shot.camera.id, shot.pose)
-        # copy the other shot data
-        map_shot.scale = shot.scale
-        map_shot.metadata = shot.metadata
-        map_shot.merge_cc = shot.merge_cc
-        map_shot.covariance = copy.deepcopy(shot.covariance)
-        return map_shot
+            self.add_camera(shot.camera)
+        return self.map.add_shot(shot)
 
     def get_shot(self, id):
         """Return a shot by id.
@@ -154,18 +148,9 @@ class Reconstruction(object):
         return self.map.create_pano_shot(shot_id, camera_id, pose)
 
     def add_pano_shot(self, pshot):
-        """Creates a copy of the passed shot
-            in the current reconstruction"""
-
         if pshot.camera.id not in self.cameras:
-            self.map.add_camera(pshot.camera)
-        map_pshot = self.map.create_pano_shot(pshot.id, pshot.camera.id, pshot.pose)
-        # copy the other shot data
-        map_pshot.scale = pshot.scale
-        map_pshot.metadata = pshot.metadata
-        map_pshot.merge_cc = pshot.merge_cc
-        map_pshot.covariance = copy.deepcopy(pshot.covariance)
-        return map_pshot
+            self.add_camera(pshot.camera)
+        return self.map.add_pano_shot(pshot)
 
     def get_pano_shot(self, id):
         """Return a shot by id.
