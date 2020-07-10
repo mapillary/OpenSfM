@@ -1,10 +1,10 @@
 import numpy as np
-import scipy
+import copy
 from opensfm import pymap
 from opensfm import pysfm
 from opensfm import pygeometry
 from opensfm import types
-from opensfm import reconstruction
+
 
 def test_camera():
     rec = types.Reconstruction()
@@ -386,8 +386,6 @@ def test_cam_iterator():
         assert(cam.focal == foc)
         assert foc == rec.cameras[k].focal
 
-
-import copy
 def test_copy():
     pose = pygeometry.Pose()
     p2 = copy.copy(pose)
