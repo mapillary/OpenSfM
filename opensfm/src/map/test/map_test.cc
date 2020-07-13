@@ -125,7 +125,7 @@ TEST(Map, SmallProblem)
     const auto shot_id = "shot"+std::to_string(i);
     map.CreateShot(shot_id, camera.id);
   }
-  const auto& shots = map.GetAllShots();
+  auto& shots = map.GetAllShots();
   for (auto i = 0; i < n_points; ++i)
   {
     Eigen::Vector3d pos = Eigen::Vector3d::Random();
@@ -133,15 +133,15 @@ TEST(Map, SmallProblem)
     auto* lm = map.CreateLandmark(std::to_string(i), pos);
     //all shots see all landmarks
     Observation obs(100,200, 0.5, 255,255,255,i);
-    for (const auto& shot_pair : shots)
+    for (auto& shot_pair : shots)
     {
-      map.AddObservation(shot_pair.second.get(),lm,obs);
+      map.AddObservation(&shot_pair.second,lm,obs);
     }
     ASSERT_EQ(lm->NumberOfObservations(), n_shots);
   }
   for (const auto& shot_pair : shots)
   {
-    ASSERT_EQ(shot_pair.second->ComputeNumValidLandmarks(), n_points);
+    ASSERT_EQ(shot_pair.second.ComputeNumValidLandmarks(), n_points);
   }
 }
 }  // namespace

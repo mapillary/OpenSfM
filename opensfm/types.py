@@ -5,7 +5,7 @@ from opensfm import pymap
 from opensfm import pygeometry
 import cv2
 import math
-
+import copy
 
 class ShotMesh(object):
     """Triangular mesh of points visible in a shot
@@ -98,6 +98,15 @@ class Reconstruction(object):
 
     shots = property(get_shots, set_shots)
 
+    def get_pano_shots(self):
+        return pymap.PanoShotView(self.map)
+
+    def set_pano_shots(self, value):
+        for shot in value.values():
+            self.add_pano_shot(shot)
+
+    pano_shots = property(get_pano_shots, set_pano_shots)
+
     def get_points(self):
         return pymap.LandmarkView(self.map)
 
@@ -121,7 +130,7 @@ class Reconstruction(object):
 
         :param camera: The camera.
         """
-        self.map.create_camera(camera)
+        return self.map.create_camera(camera)
 
     def get_camera(self, id):
         """Return a camera by id.
@@ -130,35 +139,39 @@ class Reconstruction(object):
         """
         return self.cameras.get(id)
 
-    def remove_shot(self, shot_id):
-        self.map.remove_shot(shot_id)
-
+    # Shot
     def create_shot(self, shot_id, camera_id, pose=pygeometry.Pose()):
         return self.map.create_shot(shot_id, camera_id, pose)
 
     def add_shot(self, shot):
-        """Add a shot in the list
+        """Creates a copy of the passed shot
+            in the current reconstruction"""
 
-        :param shot: The shot.
-        """
-
-        # pose = pygeometry.Pose()
-        # if shot.pose is not None:
-        #     pose.set_from_world_to_cam(
-        #         shot.pose.rotation, shot.pose.translation)
-        
-        map_shot = self.map.create_shot(shot.id, shot.camera.id, shot.pose)
-        map_shot.metadata = shot.metadata
-        # self.set_shot_metadata(map_shot, shot.metadata)
-
-    # def set_shot_metadata(self, map_shot: pymap.Shot, metadata):
-    #     shot.metadata.add_to_map_shot(map_shot)
+        if shot.camera.id not in self.cameras:
+            self.add_camera(shot.camera)
+        return self.map.add_shot(shot)
 
     def get_shot(self, id):
         """Return a shot by id.
         :return: If exists returns the shot, otherwise None.
         """
         return self.shots.get(id)
+
+    # PanoShot
+    def create_pano_shot(self, shot_id, camera_id, pose=pygeometry.Pose()):
+        return self.map.create_pano_shot(shot_id, camera_id, pose)
+
+    def add_pano_shot(self, pshot):
+        if pshot.camera.id not in self.cameras:
+            self.add_camera(pshot.camera)
+        return self.map.add_pano_shot(pshot)
+
+    def get_pano_shot(self, id):
+        """Return a shot by id.
+
+        :return: If exists returns the shot, otherwise None.
+        """
+        return self.pano_shots.get(id)
 
     def create_point(self, point_id, coord=[0, 0, 0]):
         return self.map.create_landmark(point_id, coord)
@@ -174,6 +187,7 @@ class Reconstruction(object):
             new_pt = self.map.create_landmark(point.id, point.coordinates)
         if point.color is not None:
             new_pt.color = point.color
+        return new_pt
 
     def get_point(self, id):
         """Return a point by id.
@@ -192,3 +206,28 @@ class Reconstruction(object):
         :param observation: The observation
         """
         self.map.add_observation(shot_id, lm_id, observation)
+
+    def __deepcopy__(self, d):
+        # create new reconstruction
+        rec_cpy = Reconstruction()
+        copy_observations = False
+        # Check if we also need the observations
+        if "copy_observations" in d:
+            copy_observations = d["copy_observations"]
+
+        # Copy the cameras
+        rec_cpy.cameras = self.cameras
+
+        # Copy the shots
+        for shot in self.shots.values():
+            rec_cpy.add_shot(shot)
+
+        # Copy the points
+        for point in self.points.values():
+            rec_cpy.add_point(point)
+            if copy_observations:
+                for shot, obs_id in shot.get_observations():
+                    obs = shot.get_observation(obs_id)
+                    rec_cpy.add_observation(shot.id, point.id, obs)
+
+        return rec_cpy

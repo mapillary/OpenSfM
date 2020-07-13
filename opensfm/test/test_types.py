@@ -822,7 +822,7 @@ def test_spherical_camera_projection():
 def test_shot_project_back_project():
     pixels = np.array([[0.1, 0.2], [-0.1, 0.2]], dtype=float)
     depths = np.array([1, 2], dtype=float)
-    pose = types.Pose([1, 2, 3], [4, 5, 6])
+    pose = pygeometry.Pose([1, 2, 3], [4, 5, 6])
     cameras = [
         _get_perspective_camera(),
         _get_brown_perspective_camera(),
@@ -830,12 +830,14 @@ def test_shot_project_back_project():
     ]
     if context.OPENCV3:
         cameras.append(_get_fisheye_camera())
-
-    shot = types.Shot()
-    shot.pose = pose
-    for pair in cameras:
-        for cam in pair:
-            shot.camera = cam
+    rec = types.Reconstruction()
+    for id, pair in enumerate(cameras):
+        # only use the cpp cam since the Python cam is only used for testing
+        cam = pair[1]
+        cam.id = "cam" + str(id)
+        rec.add_camera(cam)
+        shot = rec.create_shot("shot" + str(id), cam.id, pose)
+        if hasattr(shot, 'back_project'):
             bp_single = [shot.back_project(p,d) for p,d in zip(pixels, depths)]
             bp_many = shot.back_project_many(pixels, depths)
             assert np.allclose(bp_single, bp_many), cam.projection_type
@@ -855,8 +857,6 @@ def test_single_vs_many():
     pose = pygeometry.Pose([1, 2, 3], [4, 5, 6])
     t_single = [pose.transform(p) for p in points]
     t_many = pose.transform_many(points)
-    print("t_single", t_single)
-    print("t_many", t_many)
     assert np.allclose(t_single, t_many)
 
     t_single = [pose.transform_inverse(p) for p in points]
@@ -961,9 +961,6 @@ def test_shot_measurement():
 
 
 def _helper_compare_poses(py_pose, cpp_pose):
-    # print(py_pose.translation, cpp_pose.translation)
-    print("R: ", py_pose.get_rotation_matrix(), " R: ", cpp_pose.get_rotation_matrix())
-
     assert np.allclose(py_pose.translation, cpp_pose.translation)
     assert np.allclose(py_pose.rotation, cpp_pose.rotation)
     assert np.allclose(py_pose.get_rotation_matrix(), cpp_pose.get_rotation_matrix())
@@ -987,13 +984,13 @@ def test_python_vs_cpp_pose():
     cpp_pose.set_origin(new_origin)
     _helper_compare_poses(py_pose, cpp_pose)
 
-    # R_cw_2 = special_ortho_group.rvs(3)
-    # t_cw_2 = np.random.rand(3)
-    # py_pose_2 = Pose(cv2.Rodrigues(R_cw_2)[0].flatten(), t_cw_2)
-    # cpp_pose_2 = pygeometry.Pose(R_cw_2, t_cw_2)
-    # _helper_compare_poses(py_pose_2, cpp_pose_2)
+    R_cw_2 = special_ortho_group.rvs(3)
+    t_cw_2 = np.random.rand(3)
+    py_pose_2 = Pose(cv2.Rodrigues(R_cw_2)[0].flatten(), t_cw_2)
+    cpp_pose_2 = pygeometry.Pose(R_cw_2, t_cw_2)
+    _helper_compare_poses(py_pose_2, cpp_pose_2)
     # _helper_compare_poses(py_pose_2.compose(py_pose), cpp_pose.relative_to(cpp_pose_2))
-    # _helper_compare_poses(py_pose.compose(py_pose_2), cpp_pose.relative_to(cpp_pose_2))
+    _helper_compare_poses(py_pose.compose(py_pose_2.inverse()), cpp_pose.relative_to(cpp_pose_2))
     # # print("cpp_pose.relative_to(cpp_pose_2): ", cpp_pose_2.relative_to(cpp_pose))
     # # print("py_pose.relative_to(py_pose_2): ", py_pose.compose(py_pose_2))
     # # assert np.allclose(cpp_pose.relative_to(cpp_pose_2), py_pose_2.compose(py_pose))
@@ -1159,17 +1156,17 @@ def test_pose_minimal_representation():
     assert np.allclose(pose.get_cam_to_world(), T_cw)
 
 
+test_python_vs_cpp_pose()
+# R_cw = special_ortho_group.rvs(3)
+# t_cw = np.random.rand(3)
+# py_pose = Pose(cv2.Rodrigues(R_cw)[0].flatten(), t_cw)
+# cpp_pose = pygeometry.Pose(R_cw, t_cw)
+# # _helper_compare_poses(py_pose, cpp_pose)
 
-R_cw = special_ortho_group.rvs(3)
-t_cw = np.random.rand(3)
-py_pose = Pose(cv2.Rodrigues(R_cw)[0].flatten(), t_cw)
-cpp_pose = pygeometry.Pose(R_cw, t_cw)
-# _helper_compare_poses(py_pose, cpp_pose)
 
-
-R_cw2 = special_ortho_group.rvs(3)
-t_cw2 = np.random.rand(3)
-py_pose2 = Pose(cv2.Rodrigues(R_cw2)[0].flatten(), t_cw2)
-cpp_pose2 = pygeometry.Pose(R_cw2, t_cw2)
+# R_cw2 = special_ortho_group.rvs(3)
+# t_cw2 = np.random.rand(3)
+# py_pose2 = Pose(cv2.Rodrigues(R_cw2)[0].flatten(), t_cw2)
+# cpp_pose2 = pygeometry.Pose(R_cw2, t_cw2)
 
 # _helper_compare_poses(py_pose2, cpp_pose2)

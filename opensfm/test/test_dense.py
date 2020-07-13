@@ -35,11 +35,6 @@ def test_depthmap_to_ply():
     shot = r.create_shot('shot1', camera.id, pygeometry.Pose(
         [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]))
 
-    # shot = types.Shot()
-    # shot.id = 'shot1'
-    # shot.camera = camera
-    # shot.pose = pygeometry.Pose([0.0, 0.0, 0.0], [0.0, 0.0, 0.0])
-
     image = np.zeros((height, width, 3))
     depth = np.ones((height, width))
 

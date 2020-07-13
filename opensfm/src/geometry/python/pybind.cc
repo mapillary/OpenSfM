@@ -183,7 +183,7 @@ PYBIND11_MODULE(pygeometry, m) {
           return camera;
         }))
     // Python2 + copy/deepcopy + pybind11 workaround
-    .def("__copy__", [](const Camera& c, const py::dict& d) { return c; }, py::return_value_policy::copy)
+    .def("__copy__", [](const Camera& c) { return c; }, py::return_value_policy::copy)
     .def("__deepcopy__", [](const Camera& c, const py::dict& d) { return c; }, py::return_value_policy::copy)
   ;
   m.def("compute_camera_mapping", ComputeCameraMapping);
@@ -254,5 +254,13 @@ PYBIND11_MODULE(pygeometry, m) {
             geometry::Pose pose;
             pose.SetFromCameraToWorld(p[0].cast<Mat4d>());
             return pose;
-          }));
+          }))
+      .def(
+          "__copy__", [](const geometry::Pose& p) { return p; },
+          py::return_value_policy::copy)
+      .def(
+          "__deepcopy__",
+          [](const geometry::Pose& p, const py::dict& d) { return p; },
+          py::return_value_policy::copy);
+      ;
 }

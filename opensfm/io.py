@@ -58,7 +58,7 @@ def camera_from_json(key, obj):
     return camera
 
 
-def shot_from_json(reconstruction, key, obj, cameras):
+def shot_from_json(reconstruction, key, obj, is_pano_shot=False):
     """
     Read shot from a json object
     """
@@ -66,7 +66,6 @@ def shot_from_json(reconstruction, key, obj, cameras):
     pose.rotation = obj["rotation"]
     if "translation" in obj:
         pose.translation = obj["translation"]
-
 
     metadata = pymap.ShotMeasurements()
     if obj.get("orientation") is not None:
@@ -79,8 +78,18 @@ def shot_from_json(reconstruction, key, obj, cameras):
         metadata.gps_position.value = obj.get("gps_position")
     if obj.get("skey") is not None:
         metadata.sequence_key.value = obj.get("skey")
-
-    shot = reconstruction.create_shot(key, obj["camera"], pose)
+    if obj.get("accelerometer") is not None:
+        metadata.accelerometer.value = obj.get("accelerometer")
+    if obj.get("compass") is not None:
+        compass = obj.get("compass")
+        if "angle" in compass:
+            metadata.compass_angle.value = compass['angle']
+        if "accuracy" in compass:
+            metadata.compass_accuracy.value = compass['accuracy']
+    if is_pano_shot:
+        shot = reconstruction.create_pano_shot(key, obj["camera"], pose)
+    else:
+        shot = reconstruction.create_shot(key, obj["camera"], pose)
     shot.metadata = metadata
 
     if 'scale' in obj:
@@ -100,11 +109,8 @@ def point_from_json(reconstruction, key, obj):
     """
     Read a point from a json object
     """
-    # point = types.Point()
     point = reconstruction.create_point(key, obj["coordinates"])
-    # point.id = key
     point.color = obj["color"]
-    # point.coordinates = obj["coordinates"]
     return point
 
 
@@ -121,8 +127,7 @@ def reconstruction_from_json(obj):
 
     # Extract shots
     for key, value in iteritems(obj['shots']):
-        shot = shot_from_json(reconstruction, key, value, reconstruction.cameras)
-        reconstruction.add_shot(shot)
+        shot_from_json(reconstruction, key, value)
 
     # Extract points
     if 'points' in obj:
@@ -130,12 +135,10 @@ def reconstruction_from_json(obj):
             point_from_json(reconstruction, key, value)
 
     # Extract pano_shots
-    # TODO: Fix pano shot!
     if 'pano_shots' in obj:
-        reconstruction.pano_shots = {}
         for key, value in iteritems(obj['pano_shots']):
-            shot = shot_from_json(key, value, reconstruction.cameras)
-            reconstruction.pano_shots[shot.id] = shot
+            is_pano_shot = True
+            shot_from_json(reconstruction, key, value, is_pano_shot)
 
     # Extract main and unit shots
     if 'main_shot' in obj:
@@ -237,12 +240,7 @@ def shot_to_json(shot):
     }
 
     if shot.metadata is not None:
-        # if isinstance(shot, types.Shot):
-        #     obj.update(types_metadata_to_json(shot.metadata))
-        # elif isinstance(shot, pymap.Shot):
         obj.update(pymap_metadata_to_json(shot.metadata))
-
-
     if shot.mesh is not None:
         obj['vertices'] = [list(vertice) for vertice in shot.mesh.vertices]
         obj['faces'] = [list(face) for face in shot.mesh.faces]
@@ -255,26 +253,7 @@ def shot_to_json(shot):
     return obj
 
 
-# def types_metadata_to_json(metadata: types.ShotMetadata):
-#     obj = {}
-#     if metadata.orientation is not None:
-#         obj['orientation'] = metadata.orientation
-#     if metadata.capture_time is not None:
-#         obj['capture_time'] = metadata.capture_time
-#     if metadata.gps_dop is not None:
-#         obj['gps_dop'] = metadata.gps_dop
-#     if metadata.gps_position is not None:
-#         obj['gps_position'] = list(metadata.gps_position)
-#     if metadata.accelerometer is not None:
-#         obj['accelerometer'] = metadata.accelerometer
-#     if metadata.compass is not None:
-#         obj['compass'] = metadata.compass
-#     if metadata.skey is not None:
-#         obj['skey'] = metadata.skey
-#     return obj
-
-
-def pymap_metadata_to_json(metadata: pymap.ShotMeasurements):
+def pymap_metadata_to_json(metadata):
     obj = {}
     if metadata.orientation.has_value:
         obj['orientation'] = metadata.orientation.value
@@ -286,8 +265,14 @@ def pymap_metadata_to_json(metadata: pymap.ShotMeasurements):
         obj['gps_position'] = list(metadata.gps_position.value)
     if metadata.accelerometer.has_value:
         obj['accelerometer'] = list(metadata.accelerometer.value)
-    if metadata.compass_angle.has_value:
-        obj['compass'] = {"angle": metadata.compass_angle.value}
+    if metadata.compass_angle.has_value and metadata.compass_accuracy.has_value:
+        obj['compass'] = {"angle": metadata.compass_angle.value,
+                          "accuracy": metadata.compass_accuracy.value}
+    else:
+        if metadata.compass_angle.has_value:
+            obj['compass'] = {"angle": metadata.compass_angle.value}
+        elif metadata.compass_accuracy.has_value:
+            obj['compass'] = {"accuracy": metadata.compass_accuracy.value}
     if metadata.sequence_key.has_value:
         obj['skey'] = metadata.sequence_key.value
     return obj
@@ -327,9 +312,10 @@ def reconstruction_to_json(reconstruction):
 
     # Extract pano_shots
     if hasattr(reconstruction, 'pano_shots'):
-        obj['pano_shots'] = {}
-        for shot in reconstruction.pano_shots.values():
-            obj['pano_shots'][shot.id] = shot_to_json(shot)
+        if len(reconstruction.pano_shots) > 0:
+            obj['pano_shots'] = {}
+            for shot in reconstruction.pano_shots.values():
+                obj['pano_shots'][shot.id] = shot_to_json(shot)
 
     # Extract main and unit shots
     if hasattr(reconstruction, 'main_shot'):
@@ -547,11 +533,13 @@ def mkdir_p(path):
 
 def open_wt(path):
     """Open a file in text mode for writing utf-8."""
+    # print("Trying to open for write", path)
     return io.open(path, 'w', encoding='utf-8')
 
 
 def open_rt(path):
     """Open a file in text mode for reading utf-8."""
+    # print("Trying to open ", path)
     return io.open(path, 'r', encoding='utf-8')
 
 
@@ -777,7 +765,7 @@ def export_bundler(image_list, reconstructions, track_manager,
                     lines.append("0 0 0")
 
         # tracks
-        for point_id, point in iteritems(points):
+        for point_id, point in points.items():  #iteritems(points):
             coord = point.coordinates
             color = list(map(int, point.color))
             view_list = track_manager.get_track_observations(point.id)
@@ -871,14 +859,11 @@ def import_bundler(data_path, bundle_file, list_file, track_file,
             t = np.array(list(map(float, t)))
             R[1], R[2] = -R[1], -R[2]  # Reverse y and z
             t[1], t[2] = -t[1], -t[2]
+            pose = pygeometry.Pose()
+            pose.set_rotation_matrix(R)
+            pose.translation = t
 
-            shot = types.Shot()
-            shot.id = shot_key
-            shot.camera = camera
-            shot.pose = types.Pose()
-            shot.pose.set_rotation_matrix(R)
-            shot.pose.translation = t
-            reconstruction.add_shot(shot)
+            reconstruction.create_shot(shot_key, camera.id, pose)
         else:
             logger.warning('ignoring failed image {}'.format(shot_key))
         offset += 5
@@ -888,11 +873,8 @@ def import_bundler(data_path, bundle_file, list_file, track_file,
     for i in range(num_point):
         coordinates = lines[offset].rstrip('\n').split(' ')
         color = lines[offset + 1].rstrip('\n').split(' ')
-        point = types.Point()
-        point.id = i
-        point.coordinates = list(map(float, coordinates))
+        point = reconstruction.create_point(i, list(map(float, coordinates)))
         point.color = list(map(int, color))
-        reconstruction.add_point(point)
 
         view_line = lines[offset + 2].rstrip('\n').split(' ')
 

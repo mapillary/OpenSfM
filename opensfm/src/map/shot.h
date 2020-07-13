@@ -8,7 +8,7 @@
 
 #include <Eigen/Eigen>
 #include <unordered_map>
-
+#include <iostream>
 
 namespace map {
 class Map;
@@ -69,6 +69,8 @@ struct ShotMeasurements {
   ShotMeasurement<Vec3d> accelerometer_;
   ShotMeasurement<int> orientation_;
   ShotMeasurement<std::string> sequence_key_;
+  void Set(const ShotMeasurements& other);
+
 };
 
 class Shot {
@@ -79,7 +81,6 @@ class Shot {
   // Workaround for pickle that makes it possible for the shot to have camera
   // outside of the reconstruction.
   Shot(const ShotId& shot_id, std::unique_ptr<Camera> cam, const geometry::Pose& pose);  
-  // Shot(const ShotId& shot_id, const Camera* const shot_camera);
 
   const DescriptorType GetDescriptor(const FeatureId id) const {
     return descriptors_.row(id);
@@ -94,7 +95,6 @@ class Shot {
   const AlignedVector<Observation>& GetKeyPoints() const { return keypoints_; }
   const DescriptorMatrix& GetDescriptors() const { return descriptors_; }
 
-  // size_t NumberOfKeyPoints() const { return keypoints_.size(); }
   size_t ComputeNumValidLandmarks(const int min_obs_thr = 1) const;
   float ComputeMedianDepthOfLandmarks(const bool take_abs) const;
 
@@ -180,6 +180,16 @@ class Shot {
     }
   }
 
+  ShotMeasurements&
+  GetShotMeasurements()
+  {
+    return shot_measurements_;
+  }
+  void SetShotMeasurements(const ShotMeasurements& other)
+  {
+    shot_measurements_.Set(other);
+  }
+
   void SetPose(const geometry::Pose& pose) { pose_ = pose; }
   const geometry::Pose& GetPose() const { return pose_; }
   Mat4d GetWorldToCam() const { return pose_.WorldToCamera(); }
@@ -218,6 +228,9 @@ class Shot {
 
   bool UseLinearDataStructure() const { return !landmarks_.empty(); }
   void NormalizeKeypts();
+  MatXd GetCovariance() const { return covariance; };
+  void SetCovariance(const MatXd& cov) { covariance = cov; };
+
  public:
   SLAMShotData slam_data_;
   const ShotId id_;  // the file name
