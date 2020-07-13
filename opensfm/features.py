@@ -34,6 +34,19 @@ def root_feature(desc, l2_normalization=False):
     return desc
 
 
+def root_feature_sift_gpu(desc, l2_normalization=False):
+    if l2_normalization:
+        s2 = np.linalg.norm(desc, axis=1)
+        idx = np.where(s2 == 0)
+        s2[idx] = 1
+        desc = (desc.T / s2).T
+    s = np.max(desc, 1)
+    idx = np.where(s == 0)
+    s[idx] = 1
+    desc = np.sqrt(desc.T / s).T
+    return desc
+
+
 def root_feature_surf(desc, l2_normalization=False, partial=False):
     """
     Experimental square root mapping of surf-like feature, only work for 64-dim surf now
@@ -129,7 +142,7 @@ def extract_features_sift(image, config):
 def check_gpu_initialization(image):
     if 'gpu_sift' not in globals() or 'gpu_matching' not in globals():
         global gpu_sift
-        gpu_sift = sift.SiftPlan(template=image, devicetype="GPU")
+        gpu_sift = sift.SiftPlan(template=image, devicetype="GPU", init_sigma=1.2)
         global gpu_matching
         gpu_matching = sift.MatchPlan()
 
@@ -137,14 +150,16 @@ def check_gpu_initialization(image):
 def extract_features_sift_gpu(image, config):
     check_gpu_initialization(image)
     keypoints = gpu_sift(image)
+    idx = np.where(np.sum(keypoints.desc, 1) != 0)
+    keypoints = keypoints[idx]
 
     points = np.concatenate([np.expand_dims(keypoints[:].x, axis=1),
                              np.expand_dims(keypoints[:].y, axis=1),
                              np.expand_dims(keypoints[:].scale, axis=1),
                              np.expand_dims(keypoints[:].angle, axis=1)], axis=1)
-    desc = np.array(keypoints[:].desc)
+    desc = np.array(keypoints[:].desc, dtype=np.float32)
     if config['feature_root']:
-        desc = root_feature(desc)
+        desc = root_feature_sift_gpu(desc)
     return points, desc, keypoints
 
 

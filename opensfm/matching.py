@@ -24,7 +24,7 @@ def clear_cache():
 def check_gpu_initialization(image):
     if 'gpu_sift' not in globals() or 'gpu_matching' not in globals():
         global gpu_sift
-        gpu_sift = sift.SiftPlan(template=image, devicetype="GPU")
+        gpu_sift = sift.SiftPlan(template=image, devicetype="GPU", init_sigma=1.2)
         global gpu_matching
         gpu_matching = sift.MatchPlan()
 
