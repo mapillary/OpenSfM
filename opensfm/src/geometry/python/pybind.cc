@@ -258,6 +258,11 @@ PYBIND11_MODULE(pygeometry, m) {
       .def(
           "__deepcopy__",
           [](const geometry::Pose& p, const py::dict& d) { return p; },
-          py::return_value_policy::copy);
+          py::return_value_policy::copy)
+      .def("inverse", [](const geometry::Pose& p){
+        geometry::Pose new_pose;
+        new_pose.SetFromWorldToCamera(p.CameraToWorld());
+        return new_pose;
+      })
       ;
 }
