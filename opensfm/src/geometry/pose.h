@@ -130,10 +130,18 @@ class Pose {
   }
 
   // T_pose_base = pose_CW*base_pose_WC
+  // pose1.compose(pose2.inverse()) == pose1.relative_to(pose2)
   Pose RelativeTo(const Pose& base_pose) const {
     Pose relpose;
     relpose.SetFromWorldToCamera(world_to_cam_ * base_pose.cam_to_world_);
     return relpose;
+  }
+
+  // pose1.compose(pose2.inverse()) == pose1.relative_to(pose2)
+  Pose Compose(const Pose& base_pose) const {
+    const Mat3d selfR = RotationWorldToCamera();
+    const Mat3d R = selfR*base_pose.RotationWorldToCamera();
+    return Pose(R, t);
   }
 
  private:

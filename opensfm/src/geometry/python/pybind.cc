@@ -244,6 +244,7 @@ PYBIND11_MODULE(pygeometry, m) {
       .def("transform_inverse_many",
            &geometry::Pose::TransformCameraToWorldMany)
       .def("relative_to", &geometry::Pose::RelativeTo)
+      .def("compose", &geometry::Pose::Compose)
       .def(py::pickle(
           [](const geometry::Pose& p) {
             return py::make_tuple(p.CameraToWorld());

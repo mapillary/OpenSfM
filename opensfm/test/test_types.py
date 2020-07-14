@@ -1159,3 +1159,33 @@ def test_pose_inverse():
     pose_inv = pose.inverse()
     assert np.allclose(pose_inv.get_cam_to_world(), pose.get_world_to_cam())
     assert np.allclose(pose_inv.rotation, -pose.rotation)
+
+
+def test_pose_relative_to():
+    r1 = Rotation.from_dcm(special_ortho_group.rvs(3)).as_rotvec()
+    r2 = Rotation.from_dcm(special_ortho_group.rvs(3)).as_rotvec()
+    t1 = np.random.rand(3)
+    t2 = np.random.rand(3)
+    
+    pose_old_1 = Pose(r1, t1)
+    pose_old_2 = Pose(r2, t2)
+
+    pose_new_1 = pygeometry.Pose(r1, t1)
+    pose_new_2 = pygeometry.Pose(r2, t2)
+
+    pose_3 = pose_old_1.compose(pose_old_2.inverse())
+    pose_new_3 = pose_new_1.relative_to(pose_new_2)
+
+    _helper_compare_poses(pose_3, pose_new_3)
+    _helper_compare_poses(pose_3, pose_new_1.compose(pose_new_2.inverse()))
+
+    print(pose_old_1.compose(pose_old_2).rotation)
+    print(pose_new_1.relative_to(pose_new_2.inverse()).rotation)
+    # print(pose_old_1.inverse().compose(pose_old_2).rotation)
+    # print(pose_new_1.relative_to(pose_new_2.inverse()).rotation)
+    # print(pose_new_1.inverse().relative_to(pose_new_2.inverse()).rotation)
+    # print((pose_new_1.relative_to(pose_new_2)).inverse().rotation)
+    # print((pose_new_2.relative_to(pose_new_1)).rotation)
+
+
+test_pose_relative_to()
