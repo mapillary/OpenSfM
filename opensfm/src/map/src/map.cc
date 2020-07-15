@@ -341,7 +341,7 @@ Camera* Map::CreateCamera(const Camera& cam) {
         return Camera::CreateBrownCamera(
             cam.GetParameterValue(Camera::Parameters::Focal),
             cam.GetParameterValue(Camera::Parameters::AspectRatio),
-            Vec2d(cam.GetParameterValue(Camera::Parameters::Cx), 
+            Vec2d(cam.GetParameterValue(Camera::Parameters::Cx),
                   cam.GetParameterValue(Camera::Parameters::Cy)), distortion);
       }
       case ProjectionType::FISHEYE:

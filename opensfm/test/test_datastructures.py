@@ -608,3 +608,106 @@ def test_rec_deepcopy():
             assert pt_cpy.color is None
         else:
             assert np.allclose(pt.color, pt_cpy.color)
+
+
+def _check_common_cam_properties(cam1, cam2):
+    assert cam1.id == cam2.id
+    assert cam1.width == cam2.width
+    assert cam1.height == cam2.height
+    assert cam1.projection_type == cam2.projection_type
+
+
+def test_brown_camera():
+    rec = types.Reconstruction()
+    focal_x = 0.6
+    focal_y = 0.7
+    c_x = 0.1
+    c_y = -0.05
+    k1 = -0.1
+    k2 = 0.01
+    p1 = 0.001
+    p2 = 0.002
+    k3 = 0.01
+    cam_cpp = pygeometry.Camera.create_brown(
+        focal_x, focal_y / focal_x,
+        [c_x, c_y],
+        [k1, k2, k3, p1, p2])
+    cam_cpp.width = 800
+    cam_cpp.height = 600
+    cam_cpp.id = "cam"
+    c = rec.add_camera(cam_cpp)
+    _check_common_cam_properties(cam_cpp, c)
+
+    # The specific parameters
+    assert cam_cpp.k1 == c.k1 and cam_cpp.k2 == c.k2 and cam_cpp.k3 == c.k3
+    assert cam_cpp.p2 == c.p2 and cam_cpp.p1 == c.p1
+    assert np.allclose(cam_cpp.principal_point, c.principal_point)
+    assert np.allclose(cam_cpp.distortion, c.distortion)
+    assert cam_cpp.focal == c.focal
+    assert cam_cpp.aspect_ratio == c.aspect_ratio
+
+
+def test_fisheye_camera():
+    rec = types.Reconstruction()
+    focal = 0.6
+    k1 = -0.1
+    k2 = 0.01
+    cam_cpp = pygeometry.Camera.create_fisheye(focal, k1, k2)
+    cam_cpp.width = 800
+    cam_cpp.height = 600
+    cam_cpp.id = "cam"
+    c = rec.add_camera(cam_cpp)
+    _check_common_cam_properties(cam_cpp, c)
+
+    # The specific parameters
+    assert cam_cpp.k1 == c.k1 and cam_cpp.k2 == c.k2
+    assert np.allclose(cam_cpp.distortion, c.distortion)
+    assert cam_cpp.focal == c.focal
+
+
+def test_dual_camera():
+    rec = types.Reconstruction()
+    focal = 0.6
+    k1 = -0.1
+    k2 = 0.01
+    transition = 0.5
+    cam_cpp = pygeometry.Camera.create_dual(transition, focal, k1, k2)
+    cam_cpp.width = 800
+    cam_cpp.height = 600
+    cam_cpp.id = "cam"
+    c = rec.add_camera(cam_cpp)
+    _check_common_cam_properties(cam_cpp, c)
+
+    # The specific parameters
+    assert cam_cpp.k1 == c.k1 and cam_cpp.k2 == c.k2
+    assert np.allclose(cam_cpp.distortion, c.distortion)
+    assert cam_cpp.focal == c.focal
+    assert cam_cpp.transition == c.transition
+
+
+def test_perspective_camera():
+    rec = types.Reconstruction()
+    focal = 0.6
+    k1 = -0.1
+    k2 = 0.01
+    cam_cpp = pygeometry.Camera.create_perspective(focal, k1, k2)
+    cam_cpp.width = 800
+    cam_cpp.height = 600
+    cam_cpp.id = "cam"
+    c = rec.add_camera(cam_cpp)
+    _check_common_cam_properties(cam_cpp, c)
+
+    # The specific parameters
+    assert cam_cpp.k1 == c.k1 and cam_cpp.k2 == c.k2
+    assert np.allclose(cam_cpp.distortion, c.distortion)
+    assert cam_cpp.focal == c.focal
+
+
+def test_spherical_camera():
+    rec = types.Reconstruction()
+    cam_cpp = pygeometry.Camera.create_spherical()
+    cam_cpp.width = 800
+    cam_cpp.height = 600
+    cam_cpp.id = "cam"
+    c = rec.add_camera(cam_cpp)
+    _check_common_cam_properties(cam_cpp, c)
