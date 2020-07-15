@@ -139,8 +139,9 @@ class Pose {
 
   // pose1.compose(pose2.inverse()) == pose1.relative_to(pose2)
   Pose Compose(const Pose& base_pose) const {
-    const Mat3d selfR = RotationWorldToCamera();
+    const Mat3d& selfR = RotationWorldToCamera();
     const Mat3d R = selfR*base_pose.RotationWorldToCamera();
+    const Vec3d t = selfR*base_pose.TranslationWorldToCamera()+TranslationWorldToCamera();
     return Pose(R, t);
   }
 
