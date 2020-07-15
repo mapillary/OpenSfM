@@ -21,8 +21,6 @@ args = parser.parse_args()
 slam_system = SlamSystem(args)
 data = dataset.DataSet(args.dataset)
 
-
-
 def run_slam(data, slam_vis = None):
     # Create the top-level parser
     start_id = 0
@@ -51,8 +49,8 @@ def run_slam(data, slam_vis = None):
             logger.info("Successfully tracked {}".format(im_name))
         else:
             logger.info("Trying to init with {}".format(im_name))
-
-    slam_system.slam_mapper.save_reconstruction(im_name + "_finished.json")
+        
+    slam_system.slam_mapper.save_reconstruction(im_name + "_new_slam.json")
 
 
 if __name__ == "__main__":

@@ -114,20 +114,20 @@ class SlamMapper(object):
                 kf1.pose.get_cam_to_world())
         
 
-        # points1 = []
-        # points2 = []
-        # points3D = []
-        # for lm in self.reconstruction.points.values(): #curr_shot.get_valid_landmarks():
-        #     points1.append(lm.get_observation_in_shot(kf1)[0:2])
-        #     points2.append(lm.get_observation_in_shot(kf2)[0:2])
-        #     points3D.append(lm.coordinates)
+        points1 = []
+        points2 = []
+        points3D = []
+        for lm in self.reconstruction.points.values(): #curr_shot.get_valid_landmarks():
+            points1.append(lm.get_observation_in_shot(kf1)[0:2])
+            points2.append(lm.get_observation_in_shot(kf2)[0:2])
+            points3D.append(lm.coordinates)
 
-        # slam_debug.reproject_landmarks(np.array(points3D), None, kf2.pose.get_world_to_cam(),
-        #                                self.data.load_image(kf2.id), self.camera)
-        # slam_debug.visualize_matches_pts(np.array(points1), np.array(points2), None,
-        #                                  self.data.load_image(kf1.id),
-        #                                  self.data.load_image(kf2.id),
-        #                                  is_normalized=True, do_show=True)
+        slam_debug.reproject_landmarks(np.array(points3D), None, kf2.pose.get_world_to_cam(),
+                                       self.data.load_image(kf2.id), self.camera)
+        slam_debug.visualize_matches_pts(np.array(points1), np.array(points2), None,
+                                         self.data.load_image(kf1.id),
+                                         self.data.load_image(kf2.id),
+                                         is_normalized=True, do_show=True)
 
         # visualize the 3D points
 
@@ -139,6 +139,17 @@ class SlamMapper(object):
         last_kf: pymap.Shot = self.keyframes[-1]
         
         num_reliable_lms = last_kf.compute_num_valid_pts(min_obs_thr)
+        
+        # Condition B: (Requirement for adding keyframes)
+        # Add a keyframe if 3D points are observed above the threshold and
+        # the percentage of 3D points is below a certain percentage
+        cond_b = (self.num_tracked_lms_thr <= self.num_tracked_lms) and \
+                 (self.num_tracked_lms < num_reliable_lms * self.lms_ratio_thr)
+
+        # Do not add KF if enough points are observed
+        if not cond_b:
+            return False
+
         max_num_frms_ = 10  # the fps
         min_num_frms_ = 2
         frm_id_of_last_keyfrm_ = self.curr_kf.unique_id
@@ -153,20 +164,10 @@ class SlamMapper(object):
         # previous key frame
         cond_a3 = self.num_tracked_lms < (num_reliable_lms * 0.25)
 
-        # Condition B: (Requirement for adding keyframes)
-        # Add a keyframe if 3D points are observed above the threshold and
-        # the percentage of 3D points is below a certain percentage
-        cond_b = (self.num_tracked_lms_thr <= self.num_tracked_lms) and \
-                 (self.num_tracked_lms < num_reliable_lms * self.lms_ratio_thr)
-
-        # Do not add KF if enough points are observed
-        if not cond_b:
-            return False
-
         # Do not add if none of A is satisfied
         if not cond_a1 and not cond_a2 and not cond_a3:
             return False
-        logger.debug("Adding new key frame {}".format(shot.id))
+
         return True
 
     def remove_redundant_kfs(self):
@@ -228,7 +229,7 @@ class SlamMapper(object):
         if self.n_keyframes % self.config_slam["run_local_ba_every_nth"] == 0:
             self.local_bundle_adjustment(shot)
 
-        if self.n_keyframes % 20 == 0:
+        if self.n_keyframes % 10 == 0:
             self.save_reconstruction("rec" + str(self.n_keyframes) + ".json")
 
         self.remove_redundant_kfs()
@@ -270,6 +271,8 @@ class SlamMapper(object):
         local_keyframes = self.keyframes[-10:-1]
 
         min_d, max_d = pyslam.SlamUtilities.compute_min_max_depth(new_kf)
+        # get lms before triangulation
+        lm_idx_old = set(new_kf.get_valid_landmarks_indices())
         for old_kf in local_keyframes:
             old_kf_pose = old_kf.pose
             baseline_vec = old_kf_pose.get_origin() - new_cam_center
@@ -288,15 +291,17 @@ class SlamMapper(object):
                 self.triangulate_from_two_kfs(new_kf, old_kf, matches)
         
         lm_idx = new_kf.get_valid_landmarks_and_indices()
-
+        print("Triangulated points: ", len(lm_idx) - len(lm_idx_old))
         points2D = []
         points3D = []
+        
         for lm, idx in lm_idx:
-            points2D.append(new_kf.get_observation(idx).point)
-            points3D.append(lm.coordinates)
+            if idx not in lm_idx_old:
+                points2D.append(new_kf.get_observation(idx).point)
+                points3D.append(lm.coordinates)
 
-        # slam_debug.reproject_landmarks(np.array(points3D), np.array(points2D), new_kf.pose.get_world_to_cam(),
-        #                                self.data.load_image(new_kf.id), self.camera, title="triang")
+        slam_debug.reproject_landmarks(np.array(points3D), np.array(points2D), new_kf.pose.get_world_to_cam(),
+                                       self.data.load_image(new_kf.id), self.camera, title="triang")
 
 
     def triangulate_from_two_kfs(self, new_kf, old_kf, matches):
@@ -374,9 +379,9 @@ class SlamMapper(object):
             local_kfs.append(kf)
             # add them directly to BA problem
             ba.add_shot(kf_id, cam_id, kf_pose.get_R_world_to_cam_min(),
-                        kf_pose.get_t_world_to_cam(), kf_id == 0)
+                        kf_pose.get_t_world_to_cam(), kf.unique_id == 0)
             kf_added[kf_id] = True
-            kfs_dict_constant[kf_id] = True if kf_id == 0 else False
+            kfs_dict_constant[kf_id] = True if kf.unique_id == 0 else False
 
         # Get the landmarks from the keyframes
         # From the local keyframes, get the landmarks
@@ -450,8 +455,8 @@ class SlamMapper(object):
         for lm, idx in lm_idx:
             points2D.append(shot.get_observation(idx).point)
             points3D.append(lm.coordinates)
-        # slam_debug.reproject_landmarks(np.array(points3D), np.array(points2D), shot.pose.get_world_to_cam(),
-        #                                self.data.load_image(shot.id), self.camera, title="loc ba bef", do_show=False)
+        slam_debug.reproject_landmarks(np.array(points3D), np.array(points2D), shot.pose.get_world_to_cam(),
+                                       self.data.load_image(shot.id), self.camera, title="loc ba bef", do_show=False)
 
         th = 0.006**2
         # Here, we should update the all landmarks!
@@ -495,8 +500,8 @@ class SlamMapper(object):
         for lm, idx in lm_idx:
             points2D.append(shot.get_observation(idx).point)
             points3D.append(lm.coordinates)
-        # slam_debug.reproject_landmarks(np.array(points3D), np.array(points2D), shot.pose.get_world_to_cam(),
-        #                                self.data.load_image(shot.id), self.camera, title="loc ba aft", do_show=True)
+        slam_debug.reproject_landmarks(np.array(points3D), np.array(points2D), shot.pose.get_world_to_cam(),
+                                       self.data.load_image(shot.id), self.camera, title="loc ba aft", do_show=True)
 
 
 

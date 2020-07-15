@@ -64,7 +64,6 @@ class SlamSystem(object):
         self.system_initialized = False
 
     def process_frame(self, im_name, gray_scale_img):
-
         # (1) Preprocessing
         curr_shot: pymap.Shot = self.reconstruction.create_shot(
             im_name, self.camera.id)
@@ -72,7 +71,8 @@ class SlamSystem(object):
         # self.reconstruction.set_shot_metadata(curr_shot, metadata)
         curr_shot.metadata = metadata
         self.extractor.extract_to_shot(curr_shot, gray_scale_img, np.array([]))
-        print("frame: ", curr_shot.id, " kpts: ", len(curr_shot.get_keypoints()))
+        logger.debug("Processing frame {} with {} keypoints".format(
+            curr_shot.id, len(curr_shot.get_keypoints())))
         curr_shot.undistort_and_compute_bearings()
         self.matcher.distribute_undist_keypts_to_grid(curr_shot)
 
@@ -99,7 +99,8 @@ class SlamSystem(object):
         self.slam_mapper.update_with_last_frame(curr_shot)
         self.slam_mapper.num_tracked_lms = self.slam_tracker.num_tracked_lms
         # Insert a KF immediately after init
-        if self.slam_mapper.new_keyframe_is_needed(curr_shot) or self.slam_mapper.just_initialized:
+        if self.slam_mapper.new_keyframe_is_needed(curr_shot): #or self.slam_mapper.just_initialized:
+            logger.debug("Adding new key frame {}".format(curr_shot.id))
             self.slam_mapper.insert_new_keyframe(curr_shot)
         self.slam_mapper.just_initialized = False
         return pose is not None
@@ -107,6 +108,7 @@ class SlamSystem(object):
     def init_slam_system(self, curr_shot: pymap.Shot):
         """Find the initial depth estimates for the slam map"""
         if not self.system_initialized:
+
             success, rec_init = self.slam_init.initialize(curr_shot)
             self.system_initialized = success
 

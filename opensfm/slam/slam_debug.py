@@ -10,7 +10,7 @@ from opensfm import pygeometry
 from opensfm import pyslam
 logger = logging.getLogger(__name__)
 
-disable_debug = False
+disable_debug = True
 
 
 class AvgTimings(object):
