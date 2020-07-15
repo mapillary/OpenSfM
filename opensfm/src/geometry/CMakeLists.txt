@@ -13,11 +13,11 @@ set(GEOMETRY_FILES
     src/relative_pose.cc
 )
 add_library(geometry ${GEOMETRY_FILES})
-target_link_libraries(geometry 
-  PRIVATE 
+target_link_libraries(geometry
+  PRIVATE
     foundation
 )
-target_include_directories(geometry PUBLIC ${CMAKE_SOURCE_DIR})
+target_include_directories(geometry PUBLIC ${CMAKE_SOURCE_DIR} ${CERES_INCLUDE_DIR})
 
 set(GEOMETRY_TEST_FILES
     test/camera_test.cc
@@ -31,7 +31,7 @@ target_link_libraries(geometry_test
 add_test(geometry_test geometry_test)
 
 pybind11_add_module(pygeometry python/pybind.cc)
-target_link_libraries(pygeometry 
+target_link_libraries(pygeometry
   PRIVATE
     geometry
     foundation

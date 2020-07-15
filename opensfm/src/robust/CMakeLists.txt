@@ -16,7 +16,7 @@ set(ROBUST_FILES
     src/instanciations.cc
 )
 add_library(robust ${ROBUST_FILES})
-target_link_libraries(robust 
+target_link_libraries(robust
   PRIVATE
     foundation
     geometry
@@ -24,8 +24,9 @@ target_link_libraries(robust
 target_include_directories(robust PUBLIC ${CMAKE_SOURCE_DIR})
 
 pybind11_add_module(pyrobust python/pybind.cc)
-target_link_libraries(pyrobust 
-  PRIVATE 
+target_include_directories(pyrobust PRIVATE ${GLOG_INCLUDE_DIR})
+target_link_libraries(pyrobust
+  PRIVATE
     robust
     foundation
     pybind11
