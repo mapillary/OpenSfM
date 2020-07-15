@@ -167,6 +167,7 @@ class Pose(object):
         inverse.translation = -R.T.dot(self.translation)
         return inverse
 
+
 class Camera(object):
     """Abstract camera class.
 
@@ -800,25 +801,6 @@ def test_spherical_camera_projection():
         assert np.allclose(pixel, projected)
 
 
-# def test_pose_properties():
-#     """Test pose constructor, getters and setters."""
-#     p = pygeometry.Pose([1, 2, 3], [4, 5, 6])
-#     assert np.allclose(p.rotation, [1, 2, 3])
-#     assert type(p.rotation) == np.ndarray
-#     assert p.rotation.dtype == float
-#     assert np.allclose(p.translation, [4, 5, 6])
-#     assert type(p.translation) == np.ndarray
-#     assert p.translation.dtype == float
-
-
-# def test_pose_inverse():
-#     p = pygeometry.Pose([1, 2, 3], [4, 5, 6])
-#     inverse = p.inverse()
-#     identity = p.compose(inverse)
-#     assert np.allclose(identity.rotation, [0, 0, 0])
-#     assert np.allclose(identity.translation, [0, 0, 0])
-
-
 def test_shot_project_back_project():
     pixels = np.array([[0.1, 0.2], [-0.1, 0.2]], dtype=float)
     depths = np.array([1, 2], dtype=float)
@@ -916,6 +898,8 @@ def _get_brown_perspective_camera():
         camera.focal_x, camera.focal_y / camera.focal_x,
         [camera.c_x, camera.c_y],
         [camera.k1, camera.k2, camera.k3, camera.p1, camera.p2])
+    camera_cpp.width = camera.width
+    camera_cpp.height = camera.height
     return camera, camera_cpp
 
 
@@ -928,6 +912,8 @@ def _get_fisheye_camera():
     camera.k2 = 0.01
     camera_cpp = pygeometry.Camera.create_fisheye(
         camera.focal, camera.k1, camera.k2)
+    camera_cpp.width = camera.width
+    camera_cpp.height = camera.height
     return camera, camera_cpp
 
 
@@ -941,6 +927,8 @@ def _get_dual_camera():
     camera.transition = 0.5
     camera_cpp = pygeometry.Camera.create_dual(
         camera.transition, camera.focal, camera.k1, camera.k2)
+    camera_cpp.width = camera.width
+    camera_cpp.height = camera.height
     return camera, camera_cpp
 
 
@@ -949,6 +937,8 @@ def _get_spherical_camera():
     camera.width = 800
     camera.height = 600
     camera_cpp = pygeometry.Camera.create_spherical()
+    camera_cpp.width = camera.width
+    camera_cpp.height = camera.height
     return camera, camera_cpp
 
 
@@ -1043,9 +1033,7 @@ def test_pose():
     assert np.allclose(pose.get_t_world_to_cam(), t_cw)
 
 
-
 def test_pose_minimal_representation():
-
     p1 = pygeometry.Pose()
     # Check identity pose
     p1.set_from_world_to_cam(np.array([0, 0, 0]), np.array([0, 0, 0]))
@@ -1159,6 +1147,9 @@ def test_pose_inverse():
     pose_inv = pose.inverse()
     assert np.allclose(pose_inv.get_cam_to_world(), pose.get_world_to_cam())
     assert np.allclose(pose_inv.rotation, -pose.rotation)
+    identity = pose.compose(pose_inv)
+    assert np.allclose(identity.rotation, [0, 0, 0])
+    assert np.allclose(identity.translation, [0, 0, 0])
 
 
 def test_pose_relative_to():
@@ -1166,7 +1157,7 @@ def test_pose_relative_to():
     r2 = Rotation.from_dcm(special_ortho_group.rvs(3)).as_rotvec()
     t1 = np.random.rand(3)
     t2 = np.random.rand(3)
-    
+
     pose_old_1 = Pose(r1, t1)
     pose_old_2 = Pose(r2, t2)
 
@@ -1179,13 +1170,3 @@ def test_pose_relative_to():
     _helper_compare_poses(pose_3, pose_new_3)
     _helper_compare_poses(pose_3, pose_new_1.compose(pose_new_2.inverse()))
 
-    print(pose_old_1.compose(pose_old_2).rotation)
-    print(pose_new_1.relative_to(pose_new_2.inverse()).rotation)
-    # print(pose_old_1.inverse().compose(pose_old_2).rotation)
-    # print(pose_new_1.relative_to(pose_new_2.inverse()).rotation)
-    # print(pose_new_1.inverse().relative_to(pose_new_2.inverse()).rotation)
-    # print((pose_new_1.relative_to(pose_new_2)).inverse().rotation)
-    # print((pose_new_2.relative_to(pose_new_1)).rotation)
-
-
-test_pose_relative_to()
