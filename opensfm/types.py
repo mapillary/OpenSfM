@@ -209,6 +209,10 @@ class Reconstruction(object):
         for shot in self.shots.values():
             rec_cpy.add_shot(shot)
 
+        # Copy the pano shots
+        for shot in self.pano_shots.values():
+            rec_cpy.add_pano_shot(shot)
+
         # Copy the points
         for point in self.points.values():
             rec_cpy.add_point(point)

@@ -569,6 +569,10 @@ def test_rec_deepcopy():
     shot2 = rec.create_shot(
         "s2", cam2.id, pygeometry.Pose(np.eye(3), [4, 5, 6]))
 
+    # Add a pano shot
+    pano_shot1 = rec.create_pano_shot(
+        "ps1", cam1.id, pygeometry.Pose(np.eye(3), [0, 0, 0]))
+
     # Add points
     n_points = 10
     for pid in range(n_points):
@@ -576,6 +580,7 @@ def test_rec_deepcopy():
         obs = pysfm.Observation(100, 200, 0.5, 255, 0, 0, int(pid))
         rec.add_observation(shot1, pt, obs)
         rec.add_observation(shot2, pt, obs)
+        rec.add_observation(pano_shot1, pt, obs)
         pt.color = np.random.rand(3)
 
     rec_cpy = copy.deepcopy(rec)
@@ -597,6 +602,13 @@ def test_rec_deepcopy():
         # compare the poses
         assert np.allclose(shot.pose.rotation, shot_cpy.pose.rotation)
         assert np.allclose(shot.pose.translation, shot_cpy.pose.translation)
+
+    assert len(rec.pano_shots) == len(rec_cpy.pano_shots)
+    for shot_id in rec.pano_shots:
+        shot = rec.pano_shots[shot_id]
+        shot_cpy = rec_cpy.pano_shots[shot_id]
+        assert shot != shot_cpy
+        assert shot.id == shot_cpy.id
 
     for ptid in rec.points:
         pt = rec.points[ptid]
