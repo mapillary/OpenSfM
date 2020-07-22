@@ -932,6 +932,24 @@ void BundleAdjuster::ComputeCovariances(ceres::Problem *problem) {
     }
   }
 
+  if (computed)
+  {
+    //Check for NaNs
+    for (auto &i : shots_) {
+      for (int k = 0; k < 6 * 6; ++k) {
+          // if we find one nan entry, we can already stop
+          if (std::isnan(i.second.covariance[k]))
+          {
+            covariance_estimation_valid_ = false;
+            computed = false;
+            break;
+          }
+      }
+      //stop after first Nan value
+      if (!computed) break;
+    }
+  }
+
   if (!computed) { // If covariance estimation failed, use a default value
     for (auto &i : shots_) {
       covariance_estimation_valid_ = false;
