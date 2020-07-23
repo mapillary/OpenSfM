@@ -42,7 +42,8 @@ class Command:
                     export_only[image.strip()] = True
 
         if reconstructions:
-            self.export(reconstructions[0], tracks_manager, udata, args.points, export_only)
+            self.export(reconstructions[0], tracks_manager,
+                        udata, args.points, export_only)
 
     def export(self, reconstruction, tracks_manager, udata, with_points, export_only):
         lines = ['NVM_V3', '', len(reconstruction.shots)]
@@ -76,7 +77,7 @@ class Command:
                 '0', '0',
             ]
             lines.append(' '.join(map(str, words)))
-        
+
         # Adjust shots count
         lines[2] = str(lines[2] - skipped_shots)
 
@@ -103,14 +104,14 @@ class Command:
                         y = (0.5 + v[1]) * shot_size_cache[shot_key][0]
                         view_line.append(' '.join(
                             map(str, [shot_index[shot_key], obs.id, x, y])))
-                
+
                 if len(view_line) > 1:
-                    lines.append(' '.join(map(str, coord)) + ' ' + 
-                                ' '.join(map(str, color)) + ' ' + 
-                                str(len(view_line)) + ' ' + ' '.join(view_line))
+                    lines.append(' '.join(map(str, coord)) + ' ' +
+                                 ' '.join(map(str, color)) + ' ' +
+                                 str(len(view_line)) + ' ' + ' '.join(view_line))
                 else:
                     skipped_points += 1
-            
+
             # Adjust points count
             lines[points_count_index] = str(lines[points_count_index] - skipped_points)
         else:
