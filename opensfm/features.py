@@ -297,7 +297,6 @@ def build_flann_index(features, config):
     FLANN_INDEX_KDTREE_SINGLE   = 4
     FLANN_INDEX_HIERARCHICAL    = 5
     FLANN_INDEX_LSH             = 6
-
     if features.dtype.type is np.float32:
         algorithm_type = config['flann_algorithm'].upper()
         if algorithm_type == 'KMEANS':

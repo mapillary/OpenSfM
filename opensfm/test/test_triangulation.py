@@ -39,13 +39,12 @@ def test_track_triangulator_equirectangular():
         },
     })
 
-    graph_inliers = nx.Graph()
-    triangulator = reconstruction.TrackTriangulator(tracks_manager, graph_inliers, rec)
+    triangulator = reconstruction.TrackTriangulator(tracks_manager, rec)
     triangulator.triangulate('1', 0.01, 2.0)
     assert '1' in rec.points
     p = rec.points['1'].coordinates
     assert np.allclose(p, [0, 0, 1.3763819204711])
-    assert len(graph_inliers.edges()) == 2
+    assert len(rec.points['1'].get_observations()) == 2
 
 
 def unit_vector(x):

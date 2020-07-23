@@ -2,6 +2,7 @@
 set(GEOMETRY_FILES
     essential.h
     absolute_pose.h
+    pose.h
     camera.h
     camera_functions.h
     relative_pose.h

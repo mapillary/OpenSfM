@@ -166,7 +166,10 @@ Mat3d Camera::GetProjectionMatrixScaled(int width, int height) const {
       projection_matrix(1, 2)  * unnormalizer + 0.5 * height, 1.0;
   return unnormalized;
 }
-
+Mat3d Camera::GetProjectionMatrixScaled() const
+{
+  return GetProjectionMatrixScaled(width, height);
+}
 Vec2d Camera::Project(const Vec3d& point) const {
   Vec2d projected;
   Dispatch<ProjectFunction>(type_, point.data(), values_.data(),
@@ -174,8 +177,8 @@ Vec2d Camera::Project(const Vec3d& point) const {
   return projected;
 }
 
-Eigen::MatrixX2d Camera::ProjectMany(const Eigen::MatrixX3d& points) const {
-  Eigen::MatrixX2d projected(points.rows(), 2);
+MatX2d Camera::ProjectMany(const MatX3d& points) const {
+  MatX2d projected(points.rows(), 2);
   for (int i = 0; i < points.rows(); ++i) {
     projected.row(i) = Project(points.row(i));
   }
@@ -189,12 +192,39 @@ Vec3d Camera::Bearing(const Vec2d& point) const {
   return bearing;
 }
 
-Eigen::MatrixX3d Camera::BearingsMany(const Eigen::MatrixX2d& points) const {
-  Eigen::MatrixX3d projected(points.rows(), 3);
+MatX3d Camera::BearingsMany(const MatX2d& points) const {
+  MatX3d projected(points.rows(), 3);
   for (int i = 0; i < points.rows(); ++i) {
     projected.row(i) = Bearing(points.row(i));
   }
   return projected;
+}
+
+Vec2d Camera::NormalizeImageCoordinate(const Vec2d& pt) const {
+  const auto size = std::max(width, height);
+  return Vec2d(pt[0] + 0.5 - width / 2.0,
+                         pt[1] + 0.5 - height / 2.0) / size;
+}
+
+Vec3d Camera::NormalizeImageCoordinateAndScale(const Vec3d& pt_scale) const
+{
+  const auto size = std::max(width, height);
+  return Vec3d(pt_scale[0] + 0.5 - width / 2.0,
+                         pt_scale[1] + 0.5 - height / 2.0,
+                         pt_scale[2]) / size;
+}
+
+Vec2d Camera::UndistortImageCoordinates(const Vec2d& pt) const
+{
+  return Project(Bearing(pt));
+}
+
+MatX2d Camera::UndistortImageCoordinatesMany(const MatX2d& pts) const {
+  MatX2d output(pts.rows(), 2);
+  for (size_t row = 0; row < pts.rows(); ++row) {
+    output.row(row) = UndistortImageCoordinates(pts.row(row));
+  }
+  return output;
 }
 
 Camera::Camera() : type_(ProjectionType::PERSPECTIVE) {
@@ -219,4 +249,8 @@ std::pair<MatXf, MatXf> ComputeCameraMapping(const Camera& from, const Camera& t
     }
   }
   return std::make_pair(u_from, v_from);
+}
+
+bool Camera::CheckWithinBoundaries(const Vec2d& pt) const {
+  return pt[0] >= 0 && pt[0] < width && pt[1] >= 0 && pt[1] < height;
 }

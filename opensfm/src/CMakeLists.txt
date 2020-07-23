@@ -7,7 +7,6 @@ if(NOT CMAKE_BUILD_TYPE)
       "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel."
       FORCE)
 endif()
-
 set(CMAKE_MODULE_PATH ${opensfm_SOURCE_DIR}/cmake)
 
 ####### Compilation Options #######
@@ -92,3 +91,5 @@ add_subdirectory(features)
 add_subdirectory(geometry)
 add_subdirectory(robust)
 add_subdirectory(sfm)
+add_subdirectory(map)
+add_subdirectory(slam)

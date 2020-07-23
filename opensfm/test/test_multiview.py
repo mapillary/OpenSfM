@@ -59,7 +59,7 @@ def test_absolute_pose_three_points(shots_and_their_points):
     for pose, bearings, points in shots_and_their_points:
         result = pygeometry.absolute_pose_three_points(bearings, points)
 
-        expected = pose.get_Rt()
+        expected = pose.get_world_to_cam()[:3]
         for Rt in result:
             exact_found += (np.linalg.norm(expected-Rt, ord='fro') < 1e-6)
 
@@ -71,7 +71,7 @@ def test_absolute_pose_n_points(shots_and_their_points):
     for pose, bearings, points in shots_and_their_points:
         result = pygeometry.absolute_pose_n_points(bearings, points)
 
-        expected = pose.get_Rt()
+        expected = pose.get_world_to_cam()[:3]
         assert np.linalg.norm(expected-result, ord='fro') < 1e-5
 
 
@@ -108,7 +108,7 @@ def test_relative_pose_from_essential(pairs_and_their_E):
         pose = copy.deepcopy(pose)
         pose.translation /= np.linalg.norm(pose.translation)
 
-        expected = pose.get_Rt()
+        expected = pose.get_world_to_cam()[:3]
         assert np.allclose(expected, result, rtol=1e-10)
 
 
@@ -140,9 +140,10 @@ def test_relative_pose_refinement(pairs_and_their_E):
         noisy_pose = copy.deepcopy(pose)
         noisy_pose.translation += np.random.rand(3)*1e-1
         noisy_pose.rotation += np.random.rand(3)*1e-2
-        result = pygeometry.relative_pose_refinement(noisy_pose.get_Rt(), f1, f2, 1000)
+        Rt = noisy_pose.get_world_to_cam()[:3]
+        result = pygeometry.relative_pose_refinement(Rt, f1, f2, 1000)
 
-        expected = pose.get_Rt()
+        expected = pose.get_world_to_cam()[:3]
         exact_found += np.linalg.norm(expected-result) < 1.8e-1
 
     exacts = len(pairs_and_their_E)-1

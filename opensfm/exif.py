@@ -422,6 +422,7 @@ class EXIF:
 def hard_coded_calibration(exif):
     focal = exif['focal_ratio']
     fmm35 = int(round(focal * 36.0))
+    print("exif: ", exif)
     make = exif['make'].strip().lower()
     model = exif['model'].strip().lower()
     if 'gopro' in make:

@@ -17,6 +17,7 @@ PYBIND11_MODULE(pysfm, m) {
     .def_readwrite("scale", &Observation::scale)
     .def_readwrite("id", &Observation::id)
     .def_readwrite("color", &Observation::color)
+    .def_readwrite("octave", &Observation::octave)
   ;
 
   py::class_<TracksManager>(m, "TracksManager")

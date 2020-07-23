@@ -55,7 +55,14 @@ class Camera {
 
   Mat3d GetProjectionMatrix() const;
   Mat3d GetProjectionMatrixScaled(int width, int height) const;
+  Mat3d GetProjectionMatrixScaled() const;
 
+  bool CheckWithinBoundaries(const Vec2d& pt) const;
+  Vec2d NormalizeImageCoordinate(const Vec2d& pt) const;
+  Vec3d NormalizeImageCoordinateAndScale(const Vec3d& pt_scale) const;
+  Vec2d UndistortImageCoordinates(const Vec2d& pt) const;
+  
+  MatX2d UndistortImageCoordinatesMany(const MatX2d& pts) const;
   int width{1};
   int height{1};
   std::string id;

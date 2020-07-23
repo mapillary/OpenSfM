@@ -39,8 +39,9 @@ ScoreInfo<typename MODEL::Type> Estimate(
     const std::vector<typename MODEL::Data>& samples, const SCORING& scorer,
     const RobustEstimatorParams& params) {
   // For now, we use this default one, we could be extended to PROSAC sampling
+  // auto seed = 99;
   RandomSamplesGenerator<std::mt19937> random_generator;
-
+  // printf("rand: %d\n", seed );
   ScoreInfo<typename MODEL::Type> best_score;
   bool should_stop = false;
   for (int i = 0; i < params.iterations && !should_stop; ++i) {
@@ -67,7 +68,10 @@ ScoreInfo<typename MODEL::Type> Estimate(
       const bool best_found =
           score.score == best_score.score &&
           score.inliers_indices.size() >= MODEL::MINIMAL_SAMPLES;
-
+      if (!best_found && score.score == best_score.score)
+      {
+        std::runtime_error("best_score error!!");
+      }
       // Run local optimization (inner non-minimal RANSAC on inliers)
       if (best_found && params.use_local_optimization) {
         for (int k = 0; k < params.local_optimization_iterations; ++k) {
