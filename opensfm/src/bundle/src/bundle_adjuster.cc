@@ -924,6 +924,8 @@ void BundleAdjuster::ComputeCovariances(ceres::Problem *problem) {
     if (worked) {
       for (auto &i : shots_) {
         covariance_estimation_valid_ = true;
+
+        // TODO: There is a boolean return value that we could check
         covariance.GetCovarianceBlock(i.second.parameters.data(),
                                       i.second.parameters.data(),
                                       i.second.covariance);
@@ -932,8 +934,11 @@ void BundleAdjuster::ComputeCovariances(ceres::Problem *problem) {
     }
   }
 
+  // TODO: It might be slow to check everything for NaNs
+  //       So maybe we can find a better solution
   if (computed)
   {
+
     //Check for NaNs
     for (auto &i : shots_) {
       for (int k = 0; k < 6 * 6; ++k) {
