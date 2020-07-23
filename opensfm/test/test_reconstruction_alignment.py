@@ -1,6 +1,5 @@
 
 import numpy as np
-# from opensfm import types
 from opensfm import pygeometry
 from opensfm import pybundle
 
