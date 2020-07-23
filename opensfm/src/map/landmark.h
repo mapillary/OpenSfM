@@ -5,7 +5,6 @@
 #include <memory>
 #include <map/defines.h>
 #include <iostream>
-// #include <map/shot.h>
 namespace map
 {
 class Shot;
@@ -14,7 +13,6 @@ class SLAMLandmarkData{
 
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  // cv::Mat descriptor_;
   DescriptorType descriptor_;
   size_t num_observations_ = 0;
 
