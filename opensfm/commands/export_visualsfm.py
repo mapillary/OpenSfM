@@ -7,8 +7,6 @@ import sys
 from opensfm import dataset
 from opensfm import transformations as tf
 from opensfm import io
-# from opensfm import types
-from opensfm import pygeometry
 from six import iteritems
 
 logger = logging.getLogger(__name__)
