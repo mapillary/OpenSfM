@@ -26,42 +26,34 @@ Shot::Shot(const ShotId& shot_id, std::unique_ptr<Camera> shot_camera,
 void
 ShotMeasurements::Set(const ShotMeasurements& other)
 {
-  // ShotMeasurement<double> capture_time_;
   if (other.capture_time_.HasValue())
   {
     capture_time_.SetValue(other.capture_time_.Value());
   }
-  // ShotMeasurement<Vec3d> gps_position_;
   if (other.gps_position_.HasValue())
   {
     gps_position_.SetValue(other.gps_position_.Value());
   }
-  // ShotMeasurement<double> gps_accuracy_;
   if (other.gps_accuracy_.HasValue())
   {
     gps_accuracy_.SetValue(other.gps_accuracy_.Value());
   }
-  // ShotMeasurement<double> compass_accuracy_;
   if (other.compass_accuracy_.HasValue())
   {
     compass_accuracy_.SetValue(other.compass_accuracy_.Value());
   }
-  // ShotMeasurement<double> compass_angle_;
   if (other.compass_angle_.HasValue())
   {
     compass_angle_.SetValue(other.compass_angle_.Value());
   }
-  // ShotMeasurement<Vec3d> accelerometer_;
   if (other.accelerometer_.HasValue())
   {
     accelerometer_.SetValue(other.accelerometer_.Value());
   }
-  // ShotMeasurement<int> orientation_;
   if (other.orientation_.HasValue())
   {
     orientation_.SetValue(other.orientation_.Value());
   }
-  // ShotMeasurement<std::string> sequence_key_;
   if (other.sequence_key_.HasValue())
   {
     sequence_key_.SetValue(other.sequence_key_.Value());
@@ -137,26 +129,6 @@ Shot::InitAndTakeDatastructures(AlignedVector<Observation> keypts, DescriptorMat
   num_keypts_ = keypoints_.size();
   landmarks_.resize(num_keypts_, nullptr);
 }
-
-//For SLAM
-// void
-// Shot::UndistortedKeyptsToBearings()
-// {
-//   if (!slam_data_.undist_keypts_.empty())
-//   {
-    
-//     shot_camera_.camera_model_.UndistortedKeyptsToBearings(slam_data_.undist_keypts_, slam_data_.bearings_);
-//   }
-// }
-
-// void
-// Shot::UndistortKeypts()
-// {
-//   if (!keypoints_.empty())
-//   {
-//     shot_camera_.camera_model_.UndistortKeypts(keypoints_, slam_data_.undist_keypts_);
-//   }
-// }
 
 void
 Shot::ScaleLandmarks(const double scale)
