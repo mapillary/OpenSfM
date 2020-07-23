@@ -5,7 +5,7 @@ ShotView::ShotView(Map& map) : map_(map) {}
 Shot* ShotView::GetShot(const map::ShotId& shot_id) {
   return map_.GetShot(shot_id);
 }
-bool ShotView::HasShot(const map::ShotId& shot_id) {
+bool ShotView::HasShot(const map::ShotId& shot_id) const {
   return map_.HasShot(shot_id);
 }
 const std::unordered_map<ShotId, Shot>& ShotView::GetShots() const {
@@ -17,7 +17,7 @@ PanoShotView::PanoShotView(Map& map) : map_(map) {}
 Shot* PanoShotView::GetShot(const map::ShotId& shot_id) {
   return map_.GetPanoShot(shot_id);
 }
-bool PanoShotView::HasShot(const map::ShotId& shot_id) {
+bool PanoShotView::HasShot(const map::ShotId& shot_id) const {
   return map_.HasPanoShot(shot_id);
 }
 const std::unordered_map<ShotId, Shot>& PanoShotView::GetShots() const {
@@ -29,7 +29,7 @@ LandmarkView::LandmarkView(Map& map) : map_(map) {}
 Landmark* LandmarkView::GetLandmark(const LandmarkId& lm_id) {
   return map_.GetLandmark(lm_id);
 }
-bool LandmarkView::HasLandmark(const LandmarkId& lm_id) {
+bool LandmarkView::HasLandmark(const LandmarkId& lm_id) const {
   return map_.HasLandmark(lm_id);
 }
 const std::unordered_map<LandmarkId, Landmark>& LandmarkView::GetLandmarks()

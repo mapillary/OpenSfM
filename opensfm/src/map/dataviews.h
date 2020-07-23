@@ -11,7 +11,7 @@ class ShotView {
  public:
   ShotView(Map& map);
   Shot* GetShot(const map::ShotId& shot_id);
-  bool HasShot(const map::ShotId& shot_id);
+  bool HasShot(const map::ShotId& shot_id) const;
   const std::unordered_map<ShotId, Shot>& GetShots() const;
   size_t NumberOfShots() const;
 
@@ -23,7 +23,7 @@ class PanoShotView {
  public:
   PanoShotView(Map& map);
   Shot* GetShot(const map::ShotId& shot_id);
-  bool HasShot(const map::ShotId& shot_id);
+  bool HasShot(const map::ShotId& shot_id) const;
   const std::unordered_map<ShotId, Shot>& GetShots() const;
   size_t NumberOfShots() const;
  private:
@@ -34,7 +34,7 @@ class LandmarkView {
  public:
   LandmarkView(Map& map);
   Landmark* GetLandmark(const LandmarkId& lm_id);
-  bool HasLandmark(const LandmarkId& lm_id);
+  bool HasLandmark(const LandmarkId& lm_id) const;
   const std::unordered_map<LandmarkId, Landmark>&
   GetLandmarks() const;
   size_t NumberOfLandmarks() const;
