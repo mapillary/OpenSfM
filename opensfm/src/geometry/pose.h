@@ -42,14 +42,14 @@ class Pose {
   Vec3d TranslationWorldToCamera() const {
     return world_to_cam_.block<3, 1>(0, 3);
   }
+
   Vec3d TranslationCameraToWorld() const {
     return cam_to_world_.block<3, 1>(0, 3);
   };
+
   Vec3d GetOrigin() const { return TranslationCameraToWorld(); }
   void SetOrigin(const Vec3d& origin) {
-    //
     SetWorldToCamTranslation(-RotationWorldToCamera() * origin);
-    // self.translation = -self.get_rotation_matrix().dot(origin)
   }
 
   void SetFromWorldToCamera(const Mat4d& world_to_camera) {
@@ -119,26 +119,37 @@ class Pose {
     const Mat3d R_cw = world_to_cam_.block<3, 3>(0, 0);
     const Vec3d t_cw = world_to_cam_.block<3, 1>(0, 3);
     return (points * R_cw.transpose()).rowwise() +
-           t_cw.transpose();  //(R_cw*points.transpose()).transpose();
+           t_cw.transpose();
   }
 
   MatX3d TransformCameraToWorldMany(const MatX3d& points) const {
     const Mat3d R_wc = cam_to_world_.block<3, 3>(0, 0);
     const Vec3d t_wc = cam_to_world_.block<3, 1>(0, 3);
     return (points * R_wc.transpose()).rowwise() +
-           t_wc.transpose();  //(R_cw*points.transpose()).transpose();
+           t_wc.transpose();
   }
 
-  // T_pose_base = pose_CW*base_pose_WC
-  // pose1.compose(pose2.inverse()) == pose1.relative_to(pose2)
+  
   Pose RelativeTo(const Pose& base_pose) const {
+    /*
+      Computes the relative transformation between base and this post
+        T_this_base = T_this_w * T_w_base
+      The relation to compose is the following:
+        T_pose_base = pose_CW*base_pose
+        pose1.compose(pose2.inverse()) == pose1.RelativeTo(pose2)
+    */
     Pose relpose;
     relpose.SetFromWorldToCamera(world_to_cam_ * base_pose.cam_to_world_);
     return relpose;
   }
 
-  // pose1.compose(pose2.inverse()) == pose1.relative_to(pose2)
+  
   Pose Compose(const Pose& base_pose) const {
+    /*
+      This is the C++ version of the original Python version
+      The relation to relativeTo ist the following  
+      pose1.compose(pose2.inverse()) == pose1.RelativeTo(pose2)
+    */
     const Mat3d& selfR = RotationWorldToCamera();
     const Mat3d R = selfR*base_pose.RotationWorldToCamera();
     const Vec3d t = selfR*base_pose.TranslationWorldToCamera()+TranslationWorldToCamera();
