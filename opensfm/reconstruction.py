@@ -278,9 +278,10 @@ def bundle_local(reconstruction, camera_priors, gcp, central_shot_id, config):
         shot = reconstruction.get_shot(shot_id)
         if shot is not None:
             for point in shot.get_valid_landmarks():
-                obs = shot.get_landmark_observation(point)
-                ba.add_point_projection_observation(
-                    shot.id, point.id, obs.point[0], obs.point[1], obs.scale)
+                if point.id in point_ids:
+                    obs = shot.get_landmark_observation(point)
+                    ba.add_point_projection_observation(
+                        shot.id, point.id, obs.point[0], obs.point[1], obs.scale)
 
     if config['bundle_use_gps']:
         for shot_id in interior:

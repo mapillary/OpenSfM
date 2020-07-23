@@ -127,7 +127,7 @@ PYBIND11_MODULE(pymap, m) {
       .def("get_camera", &map::Map::GetCamera,
            py::return_value_policy::reference_internal)
       .def("add_shot", &map::Map::AddShot, py::return_value_policy::reference_internal)
-      .def("add_pano_shot", &map::Map::AddShot, py::return_value_policy::reference_internal)
+      .def("add_pano_shot", &map::Map::AddPanoShot, py::return_value_policy::reference_internal)
       ;
 
   py::class_<map::TopoCentricConverter>(m, "TopoCentriConverter")

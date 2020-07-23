@@ -64,9 +64,13 @@ class Reconstruction(object):
     def __init__(self):
         """Defaut constructor"""
         self.map = pymap.Map()
+        self.camera_view = pymap.CameraView(self.map)
+        self.shot_view = pymap.ShotView(self.map)
+        self.pano_shot_view = pymap.PanoShotView(self.map)
+        self.landmark_view = pymap.LandmarkView(self.map)
 
     def get_cameras(self):
-        return pymap.CameraView(self.map)
+        return self.camera_view
 
     def set_cameras(self, value):
         for cam in value.values():
@@ -75,7 +79,7 @@ class Reconstruction(object):
     cameras = property(get_cameras, set_cameras)
 
     def get_shots(self):
-        return pymap.ShotView(self.map)
+        return self.shot_view
 
     def set_shots(self, value):
         for shot in value.values():
@@ -84,7 +88,7 @@ class Reconstruction(object):
     shots = property(get_shots, set_shots)
 
     def get_pano_shots(self):
-        return pymap.PanoShotView(self.map)
+        return self.pano_shot_view
 
     def set_pano_shots(self, value):
         for shot in value.values():
@@ -93,7 +97,7 @@ class Reconstruction(object):
     pano_shots = property(get_pano_shots, set_pano_shots)
 
     def get_points(self):
-        return pymap.LandmarkView(self.map)
+        return self.landmark_view
 
     def set_points(self, value):
         self.map.clear_observations_and_landmarks()
@@ -204,6 +208,10 @@ class Reconstruction(object):
         # Copy the shots
         for shot in self.shots.values():
             rec_cpy.add_shot(shot)
+
+        # Copy the pano shots
+        for shot in self.pano_shots.values():
+            rec_cpy.add_pano_shot(shot)
 
         # Copy the points
         for point in self.points.values():
