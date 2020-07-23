@@ -447,7 +447,6 @@ def get_image_metadata(data, image):
             alt = 2.0  # Arbitrary value used to align the reconstruction
         x, y, z = reference.to_topocentric(lat, lon, alt)
         metadata.gps_position.value = [x, y, z]
-        # metadata.gps_dop = exif['gps'].get('dop', 15.0)
         metadata.gps_accuracy.value = exif['gps'].get('dop', 15.0)
         if metadata.gps_accuracy.value == 0.0:
             metadata.gps_accuracy.value = 15.0
@@ -966,7 +965,6 @@ def retriangulate(tracks_manager, reconstruction, config):
     threshold = config['triangulation_threshold']
     min_ray_angle = config['triangulation_min_ray_angle']
 
-    # graph_inliers.clear()
     reconstruction.points = {}
 
     all_shots_ids = set(tracks_manager.get_shot_ids())
