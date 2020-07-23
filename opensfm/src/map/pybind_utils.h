@@ -104,63 +104,6 @@ iterator make_ref_iterator(Iterator first, Sentinel last, Extra &&... extra) {
     return cast(state{first, last, true});
 }
 
-// template <return_value_policy Policy = return_value_policy::reference_internal,
-//           typename Iterator,
-//           typename Sentinel,
-//           typename ValueType = pybind11::tuple, 
-//           typename... Extra>
-// iterator make_unique_ptr_iterator(Iterator first, Sentinel last,
-//                                   Extra &&... extra) {
-// typedef detail::sfm_iterator_state<Iterator, Sentinel, detail::UniquePtrIterator, Policy> state;
-
-//   const std::type_index tp = typeid(state);
-//   if (!detail::get_type_info(typeid(state), false)) {
-//     class_<state>(handle(), "unique_ptr_iterator", pybind11::module_local())
-//         .def("__iter__", [](state &s) -> state & { return s; })
-//         .def("__next__",
-//             [](state &s) -> ValueType {
-//               if (!s.first_or_done)
-//                 ++s.it;
-//               else
-//                 s.first_or_done = false;
-//               if (s.it == s.end) {
-//                 s.first_or_done = true;
-//                 throw stop_iteration();
-//               }
-//               return pybind11::make_tuple(s.it->first, s.it->second.get());
-//             },
-//             std::forward<Extra>(extra)..., Policy);
-//   }
-
-//   return cast(state{first, last, true});
-// }
-
-// template <return_value_policy Policy = return_value_policy::reference_internal,
-//           typename Iterator,
-//           typename Sentinel,
-//           typename ValueType = decltype((*std::declval<Iterator>()).second.get()),
-//           typename... Extra>
-// iterator make_unique_ptr_value_iterator(Iterator first, Sentinel last, Extra &&... extra) {
-//     typedef detail::sfm_iterator_state<Iterator, Sentinel, detail::UniquePtrValueIterator, Policy> state;
-//     if (!detail::get_type_info(typeid(state), false)) {
-//         class_<state>(handle(), "unique_ptr_value_iterator", pybind11::module_local())
-//             .def("__iter__", [](state &s) -> state& { return s; })
-//             .def("__next__", [](state &s) -> ValueType {
-//                 if (!s.first_or_done)
-//                     ++s.it;
-//                 else
-//                     s.first_or_done = false;
-//                 if (s.it == s.end) {
-//                     s.first_or_done = true;
-//                     throw stop_iteration();
-//                 }
-//                 return s.it->second.get();
-//             }, std::forward<Extra>(extra)..., Policy);
-//     }
-//     return cast(state{first, last, true});
-// }
-
-
 /// Makes a python iterator from a first and past-the-end C++ InputIterator.
 template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Iterator,
