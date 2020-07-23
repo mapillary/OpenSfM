@@ -664,7 +664,7 @@ def bootstrap_reconstruction(data, tracks_manager, camera_priors, im1, im2, p1, 
     shot1.metadata = get_image_metadata(data, im1)
 
     shot2 = reconstruction.create_shot(im2, camera_id2, pygeometry.Pose(R, t))
-    shot2.metadata = get_image_metadata(data, im1)
+    shot2.metadata = get_image_metadata(data, im2)
 
 
     triangulate_shot_features(tracks_manager, reconstruction, im1, data.config)
