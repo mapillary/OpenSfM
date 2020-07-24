@@ -146,9 +146,21 @@ void Map::RemoveShot(const ShotId& shot_id) {
   if (shot_it != shots_.end()) {
     auto& shot = shot_it->second;
     // 2) Remove it from all the points
-    for (const auto& lm : shot.GetLandmarks()) {
-      if (lm != nullptr) {
-        lm->RemoveObservation(&shot);
+    auto& lms = shot.GetLandmarks();
+    if (lms.empty())
+    {
+      auto& lms_map = shot.GetLandmarkObservations();
+      for (auto& lm_obs : lms_map)
+      {
+        lm_obs.first->RemoveObservation(&shot);
+      }
+    }
+    else
+    {
+      for (const auto& lm : shot.GetLandmarks()) {
+        if (lm != nullptr) {
+          lm->RemoveObservation(&shot);
+        }
       }
     }
     // 3) Remove from shots
