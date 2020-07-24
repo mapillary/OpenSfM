@@ -62,7 +62,7 @@ def test_triangulate_bearings_dlt():
     res, X = pygeometry.triangulate_bearings_dlt(
         [rt1, rt2], [b1, b2], max_reprojection, min_ray_angle)
     assert np.allclose(X, [0, 0, 1.0])
-    assert res == 0
+    assert res is True
 
 
 def test_triangulate_bearings_midpoint():
@@ -75,7 +75,7 @@ def test_triangulate_bearings_midpoint():
     res, X = pygeometry.triangulate_bearings_midpoint(
         [o1, o2], [b1, b2], 2 * [max_reprojection], min_ray_angle)
     assert np.allclose(X, [0, 0, 1.0])
-    assert res == 0
+    assert res is True
 
 
 def test_triangulate_two_bearings_midpoint():

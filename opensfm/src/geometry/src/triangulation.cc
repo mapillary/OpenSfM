@@ -1,21 +1,12 @@
 
 #include <geometry/triangulation.h>
 
-namespace geometry {
-
 double AngleBetweenVectors(const Eigen::Vector3d &u, const Eigen::Vector3d &v) {
   double c = (u.dot(v)) / sqrt(u.dot(u) * v.dot(v));
   if (std::fabs(c) >= 1.0)
     return 0.0;
   else
     return acos(c);
-}
-
-py::list TriangulateReturn(int error, py::object value) {
-  py::list retn;
-  retn.append(error);
-  retn.append(value);
-  return retn;
 }
 
 Eigen::Vector4d TriangulateBearingsDLTSolve(
@@ -40,10 +31,12 @@ Eigen::Vector4d TriangulateBearingsDLTSolve(
   return worldPoint;
 }
 
-py::object TriangulateBearingsDLT(const std::vector<Eigen::Matrix<double, 3, 4>> &Rts,
-                                  const Eigen::Matrix<double, -1, 3> &bearings, 
-                                  double threshold,
-                                  double min_angle) {
+namespace geometry {
+
+std::pair<bool, Eigen::Vector3d> TriangulateBearingsDLT(
+    const std::vector<Eigen::Matrix<double, 3, 4>> &Rts,
+    const Eigen::Matrix<double, -1, 3> &bearings, double threshold,
+    double min_angle) {
   const int count = Rts.size();
   Eigen::MatrixXd world_bearings(count, 3);
   bool angle_ok = false;
@@ -59,7 +52,7 @@ py::object TriangulateBearingsDLT(const std::vector<Eigen::Matrix<double, 3, 4>>
   }
 
   if (!angle_ok) {
-    return TriangulateReturn(TRIANGULATION_SMALL_ANGLE, py::none());
+    return std::make_pair(false, Eigen::Vector3d());
   }
 
   Eigen::Vector4d X = TriangulateBearingsDLTSolve(bearings, Rts);
@@ -68,11 +61,11 @@ py::object TriangulateBearingsDLT(const std::vector<Eigen::Matrix<double, 3, 4>>
   for (int i = 0; i < count; ++i) {
     const Eigen::Vector3d projected = Rts[i] * X;
     if (AngleBetweenVectors(projected, bearings.row(i)) > threshold) {
-      return TriangulateReturn(TRIANGULATION_BAD_REPROJECTION, py::none());
+      return std::make_pair(false, Eigen::Vector3d());
     }
   }
 
-  return TriangulateReturn(TRIANGULATION_OK, foundation::py_array_from_data(X.data(), 3));
+  return std::make_pair(true, X.head<3>());
 }
 
 std::vector<Eigen::Vector3d> TriangulateTwoBearingsMidpointMany(
@@ -92,10 +85,10 @@ std::vector<Eigen::Vector3d> TriangulateTwoBearingsMidpointMany(
   return triangulated;
 }
 
-py::object TriangulateBearingsMidpoint(const Eigen::Matrix<double, -1, 3> &centers,
-                                       const Eigen::Matrix<double, -1, 3> &bearings,
-                                       const std::vector<double>&threshold_list,
-                                       double min_angle) {
+std::pair<bool, Eigen::Vector3d> TriangulateBearingsMidpoint(
+    const Eigen::Matrix<double, -1, 3> &centers,
+    const Eigen::Matrix<double, -1, 3> &bearings,
+    const std::vector<double> &threshold_list, double min_angle) {
   const int count = centers.rows();
 
   // Check angle between rays
@@ -109,7 +102,7 @@ py::object TriangulateBearingsMidpoint(const Eigen::Matrix<double, -1, 3> &cente
     }
   }
   if (!angle_ok) {
-    return TriangulateReturn(TRIANGULATION_SMALL_ANGLE, py::none());
+    return std::make_pair(false, Eigen::Vector3d());
   }
 
   // Triangulate
@@ -120,11 +113,11 @@ py::object TriangulateBearingsMidpoint(const Eigen::Matrix<double, -1, 3> &cente
     const Eigen::Vector3d projected = X - centers.row(i).transpose();
     const Eigen::Vector3d measured = bearings.row(i);
     if (AngleBetweenVectors(projected, measured) > threshold_list[i]) {
-      return TriangulateReturn(TRIANGULATION_BAD_REPROJECTION, py::none());
+      return std::make_pair(false, Eigen::Vector3d());
     }
   }
 
-  return TriangulateReturn(TRIANGULATION_OK, foundation::py_array_from_data(X.data(), 3));
+  return std::make_pair(true, X.head<3>());
 }
 
 }  // namespace geometry
