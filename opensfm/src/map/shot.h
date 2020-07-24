@@ -88,12 +88,15 @@ class Shot {
   // read-only access
   const AlignedVector<Observation>& GetKeyPoints() const { return keypoints_; }
   const DescriptorMatrix& GetDescriptors() const { return descriptors_; }
-
   size_t ComputeNumValidLandmarks(const int min_obs_thr = 1) const;
   float ComputeMedianDepthOfLandmarks(const bool take_abs) const;
 
   const std::vector<Landmark*>& GetLandmarks() const { return landmarks_; }
   std::vector<Landmark*>& GetLandmarks() { return landmarks_; }
+  const std::map<Landmark*, Observation, KeyCompare,
+           Eigen::aligned_allocator<Observation>>& GetLandmarkObservations() const { return landmark_observations_; }
+  std::map<Landmark*, Observation, KeyCompare,
+           Eigen::aligned_allocator<Observation>>& GetLandmarkObservations() { return landmark_observations_; }
 
   const Observation& GetObservation(const FeatureId id) const {
     return landmarks_.empty() ? landmark_observations_.at(landmark_id_.at(id))
