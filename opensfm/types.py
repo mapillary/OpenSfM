@@ -104,6 +104,9 @@ class Reconstruction(object):
         for point in value.values():
             self.add_point(point)
 
+    def remove_point(self, point_id):
+        self.map.remove_landmark(point_id)
+
     points = property(get_points, set_points)
 
     def get_reference(self):
@@ -147,6 +150,9 @@ class Reconstruction(object):
         """
         return self.shots.get(id)
 
+    def remove_shot(self, shot_id):
+        self.map.remove_shot(shot_id)
+
     # PanoShot
     def create_pano_shot(self, shot_id, camera_id, pose=pygeometry.Pose()):
         return self.map.create_pano_shot(shot_id, camera_id, pose)
@@ -162,6 +168,9 @@ class Reconstruction(object):
         :return: If exists returns the shot, otherwise None.
         """
         return self.pano_shots.get(id)
+
+    def remove_pano_shot(self, shot_id):
+        self.map.remove_pano_shot(shot_id)
 
     def create_point(self, point_id, coord=[0, 0, 0]):
         return self.map.create_landmark(point_id, coord)
@@ -194,6 +203,9 @@ class Reconstruction(object):
         """
         self.map.add_observation(shot_id, lm_id, observation)
     
+    def remove_observation(self, shot_id, lm_id):
+        self.map.remove_observation(shot_id, lm_id)
+
     def __deepcopy__(self, d):
         # create new reconstruction
         rec_cpy = Reconstruction()
@@ -217,7 +229,7 @@ class Reconstruction(object):
         for point in self.points.values():
             rec_cpy.add_point(point)
             if copy_observations:
-                for shot, obs_id in shot.get_observations():
+                for shot, obs_id in point.get_observations().items():
                     obs = shot.get_observation(obs_id)
                     rec_cpy.add_observation(shot.id, point.id, obs)
 
