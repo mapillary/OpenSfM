@@ -30,33 +30,66 @@ ShotMeasurements::Set(const ShotMeasurements& other)
   {
     capture_time_.SetValue(other.capture_time_.Value());
   }
+  else
+  {
+    capture_time_.Reset();
+  }
   if (other.gps_position_.HasValue())
   {
     gps_position_.SetValue(other.gps_position_.Value());
+  }
+  else
+  {
+    gps_position_.Reset();
   }
   if (other.gps_accuracy_.HasValue())
   {
     gps_accuracy_.SetValue(other.gps_accuracy_.Value());
   }
+  else
+  {
+    gps_accuracy_.Reset();
+  }
   if (other.compass_accuracy_.HasValue())
   {
     compass_accuracy_.SetValue(other.compass_accuracy_.Value());
   }
+  else
+  {
+    compass_accuracy_.Reset();
+  }
+  
   if (other.compass_angle_.HasValue())
   {
     compass_angle_.SetValue(other.compass_angle_.Value());
+  }
+  else
+  {
+    compass_angle_.Reset();
   }
   if (other.accelerometer_.HasValue())
   {
     accelerometer_.SetValue(other.accelerometer_.Value());
   }
+  else
+  {
+    accelerometer_.Reset();
+  }
   if (other.orientation_.HasValue())
   {
     orientation_.SetValue(other.orientation_.Value());
   }
+  else
+  {
+    orientation_.Reset();
+  }
   if (other.sequence_key_.HasValue())
   {
     sequence_key_.SetValue(other.sequence_key_.Value());
+  }
+  else
+  {
+    sequence_key_.Reset();
   }
 }
 
