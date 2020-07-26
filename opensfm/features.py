@@ -8,7 +8,7 @@ import cv2
 
 from opensfm import context
 from opensfm import csfm
-from silx.image import sift
+from sift_gpu import SiftGpu
 
 logger = logging.getLogger(__name__)
 
@@ -139,17 +139,14 @@ def extract_features_sift(image, config):
     return points, desc
 
 
-def check_gpu_initialization(image):
-    if 'gpu_sift' not in globals() or 'gpu_matching' not in globals():
-        global gpu_sift
-        gpu_sift = sift.SiftPlan(template=image, devicetype="GPU", init_sigma=1.2)
-        global gpu_matching
-        gpu_matching = sift.MatchPlan()
-
+def check_gpu_initialization(config, image):
+    if 'sift_gpu' not in globals():
+        global sift_gpu
+        sift_gpu = SiftGpu.sift_gpu_from_config(config, image)
 
 def extract_features_sift_gpu(image, config):
-    check_gpu_initialization(image)
-    keypoints = gpu_sift(image)
+    check_gpu_initialization(config, image)
+    keypoints = sift_gpu.detect_image(image)
     idx = np.where(np.sum(keypoints.desc, 1) != 0)
     keypoints = keypoints[idx]
 

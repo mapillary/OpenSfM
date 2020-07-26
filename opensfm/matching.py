@@ -12,7 +12,7 @@ from opensfm import log
 from opensfm import multiview
 from opensfm import pairs_selection
 from opensfm import feature_loader
-from silx.image import sift
+from sift_gpu import SiftGpu
 
 logger = logging.getLogger(__name__)
 
@@ -21,12 +21,10 @@ def clear_cache():
     feature_loader.instance.clear_cache()
 
 
-def check_gpu_initialization(image):
-    if 'gpu_sift' not in globals() or 'gpu_matching' not in globals():
-        global gpu_sift
-        gpu_sift = sift.SiftPlan(template=image, devicetype="GPU", init_sigma=1.2)
-        global gpu_matching
-        gpu_matching = sift.MatchPlan()
+def check_gpu_initialization(config, image):
+    if 'sift_gpu' not in globals():
+        global sift_gpu
+        sift_gpu = SiftGpu.sift_gpu_from_config(config, image)
 
 
 def match_images(data, ref_images, cand_images):
@@ -118,7 +116,7 @@ def match_images_sift_gpu(data, img1, img2, camera1, camera2):
 
     if p1 is None or len(p1) < 2 or p2 is None or len(p2) < 2:
         return []
-    matches = gpu_matching(keypoints1, keypoints2, raw_results=True)
+    matches = sift_gpu.match_images(keypoints1, keypoints2)
 
     # Adhoc filters
     if config['matching_use_filters']:
@@ -170,7 +168,7 @@ def match_images_with_pairs_gpu(data, exifs, ref_images, pairs):
 
     # Store per each image in ref for processing
     per_image = {im: [] for im in ref_images}
-    check_gpu_initialization(data.load_image(pairs[0][0]))
+    check_gpu_initialization(data.config, data.load_image(pairs[0][0]))
     for im1, im2 in pairs:
         per_image[im1].append(im2)
 
