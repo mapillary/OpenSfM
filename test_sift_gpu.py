@@ -56,9 +56,11 @@ def draw_matches(img1, kp1, img2, kp2, matches, color=None):
 
 
 if __name__ == '__main__':
+    img1_path = 'data_1/berlin/images/01.jpg'
+    img2_path = 'data_1/berlin/images/02.jpg'
     # read images
-    img1 = cv2.imread('data_1/berlin/images/01.jpg')  # load img1
-    img2 = cv2.imread('data_1/berlin/images/02.jpg')  # load img1
+    img1 = cv2.imread(img1_path)  # load img1
+    img2 = cv2.imread(img2_path)  # load img1
     img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2RGB)  # change to rgb
     img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2RGB)  # change to rgb
     # sift
@@ -81,9 +83,9 @@ if __name__ == '__main__':
 
     # draw the N first matches
     N = 50
-    # draw_matches(img1, cv_kp1, img2, cv_kp2, matches[:N])
+    draw_matches(img1, cv_kp1, img2, cv_kp2, matches[:N])
 
     # draw the features on img 1
-    img3 = np.array([])
-    img3 = cv2.drawKeypoints(img2, cv_kp2, img3, color=(0, 0, 255))
-    plt.imshow(img3), plt.show()
+    # img3 = np.array([])
+    # img3 = cv2.drawKeypoints(img2, cv_kp2, img3, color=(0, 0, 255))
+    # plt.imshow(img3), plt.show()
