@@ -25,3 +25,5 @@ data/berlin/*
 
 # Ignore virtualenv files
 env/*
+/data
+data_1/*
