@@ -77,5 +77,6 @@ Here you can see the results of the Sift_GPU implementation.
 
 #### Speed
 Feature Matching on image (3264x2448) took 0.28 sec
+
 Feature Matching took 0.025 sec
 
