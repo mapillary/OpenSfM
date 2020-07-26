@@ -26,9 +26,10 @@ class SiftGpu:
         self.sigma = sigma
         self.pix_per_kp = pix_per_kp
         self.device = device
-        self.init_feature_extractor(image)
         self.gpu_matching = sift.MatchPlan()
-        self.width, self.height, _ = image.shape
+        img_shape = image.shape
+        self.width, self.height = img_shape[:2]
+        self.init_feature_extractor(image)
 
     @classmethod
     def sift_gpu_from_config(cls, config, image):
@@ -50,7 +51,8 @@ class SiftGpu:
         :param image: The image we want to detect
         :return: Keypoints of the detection
         """
-        width, height, _ = image.shape
+        img_shape = image.shape
+        width, height = img_shape[:2]
         if width != self.width or height != self.height:
             self.init_feature_extractor(image)
         return self.gpu_sift(image)

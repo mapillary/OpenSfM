@@ -14,3 +14,4 @@ repoze.lru==0.7
 scipy
 six
 xmltodict==0.10.2
+silx

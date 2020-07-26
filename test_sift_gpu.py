@@ -2,6 +2,7 @@ import cv2
 import matplotlib.pyplot as plt
 from opensfm.sift_gpu import SiftGpu
 import numpy as np
+import time
 
 
 def draw_matches(img1, kp1, img2, kp2, matches, color=None):
@@ -56,8 +57,8 @@ def draw_matches(img1, kp1, img2, kp2, matches, color=None):
 
 
 if __name__ == '__main__':
-    img1_path = 'data_1/berlin/images/01.jpg'
-    img2_path = 'data_1/berlin/images/02.jpg'
+    img1_path = 'data/berlin/images/01.jpg'
+    img2_path = 'data/berlin/images/02.jpg'
     # read images
     img1 = cv2.imread(img1_path)  # load img1
     img2 = cv2.imread(img2_path)  # load img1
@@ -66,7 +67,9 @@ if __name__ == '__main__':
     # sift
     sift = SiftGpu(img1)  # initialize the sift_gpu class
 
+    s_time = time.time()
     keypoints_1 = sift.detect_image(img1)  # detect features
+    print("Feature Extraction took {} sec".format(time.time() - s_time))
     idx = np.where(np.sum(keypoints_1.desc, 1) != 0)  # remove zero descriptors from keypoints
     keypoints_1 = keypoints_1[idx]
 
@@ -75,7 +78,9 @@ if __name__ == '__main__':
     keypoints_2 = keypoints_2[idx]
 
     # feature matching
+    s_time = time.time()
     matches = sift.match_images(keypoints_1, keypoints_2)  # matching between 2 keypoints
+    print("Feature Matching took took {} sec".format(time.time() - s_time))
 
     # transform into cv2 keypoints
     cv_kp1 = [cv2.KeyPoint(x=keypoints_1.x[i], y=keypoints_1.y[i], _size=20) for i in range(len(keypoints_1.x))]
