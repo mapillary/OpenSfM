@@ -14,26 +14,20 @@ class Map;
 class SLAMShotData {
  public:
   SLAMShotData() = delete;
-  SLAMShotData(Shot* shot) {
-  }  //:graph_node_(std::make_unique<data::graph_node>(shot, false)){}
+  SLAMShotData(Shot* shot) {}
   AlignedVector<Observation> undist_keypts_;
   AlignedVector<Eigen::Vector3d> bearings_;
   std::vector<std::vector<std::vector<size_t>>> keypt_indices_in_cells_;
-  // const std::unique_ptr<data::graph_node> graph_node_ = nullptr;
-  // void UpdateGraphNode()
-  // {
-  //   graph_node_->update_connections();
-  // }
 };
 
 struct ShotMesh {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  void SetVertices(const Eigen::MatrixXd& vertices) { vertices_ = vertices; }
-  void SetFaces(const Eigen::MatrixXd& faces) { faces_ = faces; }
-  Eigen::MatrixXd GetFaces() const { return faces_; }
-  Eigen::MatrixXd GetVertices() const { return vertices_; }
-  Eigen::MatrixXd vertices_;
-  Eigen::MatrixXd faces_;
+  void SetVertices(const MatXd& vertices) { vertices_ = vertices; }
+  void SetFaces(const MatXd& faces) { faces_ = faces; }
+  MatXd GetFaces() const { return faces_; }
+  MatXd GetVertices() const { return vertices_; }
+  MatXd vertices_;
+  MatXd faces_;
 };
 
 template <typename T>
