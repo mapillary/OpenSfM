@@ -67,30 +67,11 @@ def shot_from_json(reconstruction, key, obj, is_pano_shot=False):
     if "translation" in obj:
         pose.translation = obj["translation"]
 
-    metadata = pymap.ShotMeasurements()
-    if obj.get("orientation") is not None:
-        metadata.orientation.value = obj.get("orientation")
-    if obj.get("capture_time") is not None:
-        metadata.capture_time.value = obj.get("capture_time")
-    if obj.get("gps_dop") is not None:
-        metadata.gps_accuracy.value = obj.get("gps_dop")
-    if obj.get("gps_position") is not None:
-        metadata.gps_position.value = obj.get("gps_position")
-    if obj.get("skey") is not None:
-        metadata.sequence_key.value = obj.get("skey")
-    if obj.get("accelerometer") is not None:
-        metadata.accelerometer.value = obj.get("accelerometer")
-    if obj.get("compass") is not None:
-        compass = obj.get("compass")
-        if "angle" in compass:
-            metadata.compass_angle.value = compass['angle']
-        if "accuracy" in compass:
-            metadata.compass_accuracy.value = compass['accuracy']
     if is_pano_shot:
         shot = reconstruction.create_pano_shot(key, obj["camera"], pose)
     else:
         shot = reconstruction.create_shot(key, obj["camera"], pose)
-    shot.metadata = metadata
+    shot.metadata = json_to_pymap_metadata(obj)
 
     if 'scale' in obj:
         shot.scale = obj['scale']
@@ -276,6 +257,29 @@ def pymap_metadata_to_json(metadata):
     if metadata.sequence_key.has_value:
         obj['skey'] = metadata.sequence_key.value
     return obj
+
+
+def json_to_pymap_metadata(obj):
+    metadata = pymap.ShotMeasurements()
+    if obj.get("orientation") is not None:
+        metadata.orientation.value = obj.get("orientation")
+    if obj.get("capture_time") is not None:
+        metadata.capture_time.value = obj.get("capture_time")
+    if obj.get("gps_dop") is not None:
+        metadata.gps_accuracy.value = obj.get("gps_dop")
+    if obj.get("gps_position") is not None:
+        metadata.gps_position.value = obj.get("gps_position")
+    if obj.get("skey") is not None:
+        metadata.sequence_key.value = obj.get("skey")
+    if obj.get("accelerometer") is not None:
+        metadata.accelerometer.value = obj.get("accelerometer")
+    if obj.get("compass") is not None:
+        compass = obj.get("compass")
+        if "angle" in compass:
+            metadata.compass_angle.value = compass['angle']
+        if "accuracy" in compass:
+            metadata.compass_accuracy.value = compass['accuracy']
+    return metadata
 
 
 def point_to_json(point):
