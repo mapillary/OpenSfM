@@ -23,7 +23,6 @@ Install dependencies
 OpenSfM depends on the following libraries that need to be installed before building it.
 
 * OpenCV_
-* OpenGV_
 * `Ceres Solver`_
 * NumPy_, SciPy_, Networkx_, PyYAML, exifread
 
@@ -31,16 +30,9 @@ OpenSfM depends on the following libraries that need to be installed before buil
 Installing dependencies on Ubuntu
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If using Python 3, see this `Dockerfile <https://github.com/paulinus/opensfm-docker-base/blob/master/Dockerfile.python2>`_ for the commands to install all dependencies on Ubuntu 18.04.
+If using Python 3, see this `Dockerfile <https://github.com/mapillary/OpenSfM/blob/master/Dockerfile>`_ for the commands to install all dependencies on Ubuntu 20.04.
 
-If using Python 2, follow the process here `Dockerfile.python2 <https://github.com/paulinus/opensfm-docker-base/blob/master/Dockerfile.python2>`_.
-
-The main steps are
-
-1. Install OpenCV, NumPy, SciPy using apt-get
-2. Install python requirements using pip
-3. Clone, build and install OpenGV following the receipt in the Dockerfile
-4. `Build and Install <http://ceres-solver.org/installation.html>`_ the Ceres solver from its source using the ``-fPIC`` compilation flag.
+If using Python 2, follow the process here `Dockerfile.python2 <https://github.com/mapillary/OpenSfM/blob/master/Dockerfile.python2>`_.  For earlier Ubuntu versions, you may need to `install ceres manually <http://ceres-solver.org/installation.html>`_.
 
 
 Installing dependencies on MacOSX
@@ -52,18 +44,15 @@ Install OpenCV and the Ceres solver using::
     brew install ceres-solver
     sudo pip install -r requirements.txt
 
-And install OpenGV using::
+Make sure you update your ``PYTHONPATH`` to include ``/usr/local/lib/python3.7/site-packages`` where OpenCV have been installed. For example with::
 
-    brew install eigen
-    git clone --recurse-submodules -j8 https://github.com/paulinus/opengv.git
-    cd opengv/build
-    cmake .. -DBUILD_TESTS=OFF -DBUILD_PYTHON=ON
-    make install
+    export PYTHONPATH=/usr/local/lib/python3.7/site-packages:$PYTHONPATH
 
-Make sure you update your ``PYTHONPATH`` to include ``/usr/local/lib/python2.7/site-packages`` where OpenCV and OpenGV have been installed. For example with::
+Also, in order for Cmake to recognize the libraries installed by Brew, make sure that C_INCLUDE_PATH, CPLUS_INCLUDE_PATH, DYLD_LIBRARY_PATH environment variables are set correctly. For example, you can run::
 
-    export PYTHONPATH=/usr/local/lib/python2.7/site-packages:$PYTHONPATH
-
+    export C_INCLUDE_PATH=/usr/local/include
+    export CPLUS_INCLUDE_PATH=/usr/local/include
+    export DYLD_LIBRARY_PATH=$HOME/local/lib64
 
 .. note:: Note on OpenCV 3
     When running OpenSfM on top of OpenCV version 3.0 the `OpenCV Contrib`_ modules are required for extracting SIFT or SURF features.
@@ -92,7 +81,6 @@ and browse `http://localhost:8001/ <http://localhost:8001/>`_
 .. _release: https://github.com/mapillary/OpenSfM/releases
 .. _OpenCV: http://opencv.org/
 .. _OpenCV Contrib: https://github.com/itseez/opencv_contrib
-.. _OpenGV: http://laurentkneip.github.io/opengv/
 .. _NumPy: http://www.numpy.org/
 .. _SciPy: http://www.scipy.org/
 .. _Ceres solver: http://ceres-solver.org/

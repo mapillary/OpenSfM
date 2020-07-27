@@ -9,6 +9,7 @@ import cv2
 from opensfm import context
 from opensfm import csfm
 from sift_gpu import SiftGpu
+from opensfm import pyfeatures
 
 logger = logging.getLogger(__name__)
 
@@ -206,7 +207,7 @@ def extract_features_surf(image, config):
 
 
 def akaze_descriptor_type(name):
-    d = csfm.AkazeDescriptorType.__dict__
+    d = pyfeatures.AkazeDescriptorType.__dict__
     if name in d:
         return d[name]
     else:
@@ -215,7 +216,7 @@ def akaze_descriptor_type(name):
 
 
 def extract_features_akaze(image, config):
-    options = csfm.AKAZEOptions()
+    options = pyfeatures.AKAZEOptions()
     options.omax = config['akaze_omax']
     akaze_descriptor_name = config['akaze_descriptor']
     options.descriptor = akaze_descriptor_type(akaze_descriptor_name)
@@ -229,7 +230,7 @@ def extract_features_akaze(image, config):
 
     logger.debug('Computing AKAZE with threshold {0}'.format(options.dthreshold))
     t = time.time()
-    points, desc = csfm.akaze(image, options)
+    points, desc = pyfeatures.akaze(image, options)
     logger.debug('Found {0} points in {1}s'.format(len(points), time.time() - t))
 
     if config['feature_root']:
@@ -243,7 +244,7 @@ def extract_features_akaze(image, config):
 
 def extract_features_hahog(image, config):
     t = time.time()
-    points, desc = csfm.hahog(image.astype(np.float32) / 255,  # VlFeat expects pixel values between 0, 1
+    points, desc = pyfeatures.hahog(image.astype(np.float32) / 255,  # VlFeat expects pixel values between 0, 1
                               peak_threshold=config['hahog_peak_threshold'],
                               edge_threshold=config['hahog_edge_threshold'],
                               target_num_features=config['feature_min_frames'],
@@ -338,13 +339,21 @@ def build_flann_index(features, config):
     FLANN_INDEX_LSH = 6
 
     if features.dtype.type is np.float32:
-        FLANN_INDEX_METHOD = FLANN_INDEX_KMEANS
+        algorithm_type = config['flann_algorithm'].upper()
+        if algorithm_type == 'KMEANS':
+            FLANN_INDEX_METHOD = FLANN_INDEX_KMEANS
+        elif algorithm_type == 'KDTREE':
+            FLANN_INDEX_METHOD = FLANN_INDEX_KDTREE
+        else:
+            raise ValueError('Unknown flann algorithm type '
+                             'must be KMEANS, KDTREE')
     else:
         FLANN_INDEX_METHOD = FLANN_INDEX_LSH
 
     flann_params = dict(algorithm=FLANN_INDEX_METHOD,
                         branching=config['flann_branching'],
-                        iterations=config['flann_iterations'])
+                        iterations=config['flann_iterations'],
+                        tree=config['flann_tree'])
 
     return context.flann_Index(features, flann_params)
 

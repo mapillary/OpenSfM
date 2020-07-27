@@ -188,7 +188,7 @@ class PerspectiveCamera(Camera):
     Attributes:
         width (int): image width.
         height (int): image height.
-        focal (real): estimated focal lenght.
+        focal (real): estimated focal length.
         k1 (real): estimated first distortion parameter.
         k2 (real): estimated second distortion parameter.
     """
@@ -414,7 +414,7 @@ class FisheyeCamera(Camera):
     Attributes:
         width (int): image width.
         height (int): image height.
-        focal (real): estimated focal lenght.
+        focal (real): estimated focal length.
         k1 (real): estimated first distortion parameter.
         k2 (real): estimated second distortion parameter.
     """
@@ -511,12 +511,9 @@ class DualCamera(Camera):
     Attributes:
         width (int): image width.
         height (int): image height.
-        focal (real): estimated focal lenght.
+        focal (real): estimated focal length.
         k1 (real): estimated first distortion parameter.
         k2 (real): estimated second distortion parameter.
-        focal_prior (real): prior focal lenght.
-        k1_prior (real): prior first distortion parameter.
-        k2_prior (real): prior second distortion parameter.
         transition (real): parametrize between perpective (1.0) and fisheye (0.0)
     """
     def __init__(self, projection_type='unknown'):
@@ -571,25 +568,26 @@ class DualCamera(Camera):
                          [0., 1., 0.],
                          [0., 0., 1.]])
 
-        point /= self.focal
+        point = point / self.focal
         x_u, y_u = cv2.undistortPoints(point, no_K, distortion).flat
         r = np.sqrt(x_u**2 + y_u**2)
 
         # inverse iteration for finding theta from r
-        theta_fish = r
-        theta_persp = np.arctan2(r, 1.0)
-        theta_0 = self.transition*theta_persp + (1.0 - self.transition)*theta_fish
-        for i in range(3):
-            r_0 = self.transition*math.tan(theta_0) + (1.0 - self.transition)*theta_0
-            secant = 1.0/math.cos(theta_0)
-            d_theta = (self.transition*secant**2 - self.transition + 1)
-            theta_0 = (r - r_0)/d_theta + theta_0
+        theta = 0
+        for i in range(5):
+            f = self.transition*math.tan(theta) + (1.0 - self.transition)*theta - r
+            secant = 1.0/math.cos(theta)
+            d = (self.transition*secant**2 - self.transition + 1)
+            if i < 1:
+                theta -= 0.5*f/d
+            else:
+                theta -= f/d
 
-        s = math.tan(theta_0)/(self.transition*math.tan(theta_0) + (1.0 - self.transition)*theta_0)
+        s = math.tan(theta)/(self.transition*math.tan(theta) + (1.0 - self.transition)*theta)
         x_dual = x_u*s
         y_dual = y_u*s
 
-        l = np.sqrt(x_dual * x_dual + y_dual * y_dual + 1.0)
+        l = math.sqrt(x_dual * x_dual + y_dual * y_dual + 1.0)
         return np.array([x_dual / l, y_dual / l, 1.0 / l])
 
     def pixel_bearing_many(self, pixels):
@@ -600,21 +598,23 @@ class DualCamera(Camera):
                          [0., 1., 0.],
                          [0., 0., 1.]])
 
+        points = points / self.focal
         undistorted = cv2.undistortPoints(points, no_K, distortion)
         undistorted = undistorted.reshape((-1, 2))
         r = np.sqrt(undistorted[:, 0]**2 + undistorted[:, 1]**2)
 
         # inverse iteration for finding theta from r
-        theta_fish = r
-        theta_persp = np.arctan2(r, 1.0)
-        theta_0 = self.transition*theta_persp + (1.0 - self.transition)*theta_fish
-        for i in range(3):
-            r_0 = self.transition*np.tan(theta_0) + (1.0 - self.transition)*theta_0
-            secant = 1.0/np.cos(theta_0)
-            d_theta = (self.transition*secant**2 - self.transition + 1)
-            theta_0 = (r - r_0)/d_theta + theta_0
+        theta = 0
+        for i in range(5):
+            f = self.transition*np.tan(theta) + (1.0 - self.transition)*theta - r
+            secant = 1.0/np.cos(theta)
+            d = (self.transition*secant**2 - self.transition + 1)
+            if i < 1:
+                theta -= 0.5*f/d
+            else:
+                theta -= f/d
 
-        s = np.tan(theta_0)/(self.transition*np.tan(theta_0) + (1.0 - self.transition)*theta_0)
+        s = np.tan(theta)/(self.transition*np.tan(theta) + (1.0 - self.transition)*theta)
         x_dual = undistorted[:, 0]*s
         y_dual = undistorted[:, 1]*s
 
@@ -751,14 +751,18 @@ class Shot(object):
 
         The plane is defined by z = depth in the shot reference frame.
         """
-        point_in_cam_coords = self.camera.back_project(pixel, depth)
+        bearing = self.camera.pixel_bearing(pixel)
+        scale = depth / bearing[2]
+        point_in_cam_coords = scale * bearing
         return self.pose.transform_inverse(point_in_cam_coords)
 
     def back_project_many(self, pixels, depths):
         """Project pixels to fronto-parallel planes at given depths.
         The planes are defined by z = depth in the shot reference frame.
         """
-        points_in_cam_coords = self.camera.back_project_many(pixels, depths)
+        bearings = self.camera.pixel_bearing_many(pixels)
+        scales = depths.ravel() / bearings[:, 2]
+        points_in_cam_coords = scales[:, np.newaxis] * bearings
         return self.pose.transform_inverse_many(points_in_cam_coords)
 
     def viewing_direction(self):

@@ -3,6 +3,7 @@ import time
 
 import opensfm.reconstruction as orec
 from opensfm import dataset
+from opensfm import tracking
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +24,8 @@ class Command:
     def run(self, args):
         start = time.time()
         data = dataset.DataSet(args.dataset)
-        graph = data.load_tracks_graph()
+        tracks_manager = data.load_tracks_manager()
+        graph = tracking.as_graph(tracks_manager)
         reconstructions = data.load_reconstruction(args.input)
         camera_priors = data.load_camera_models()
         gcp = data.load_ground_control_points()

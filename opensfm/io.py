@@ -20,6 +20,7 @@ from opensfm import geo
 from opensfm import features
 from opensfm import types
 from opensfm import context
+from opensfm import pygeometry
 
 
 logger = logging.getLogger(__name__)
@@ -29,58 +30,31 @@ def camera_from_json(key, obj):
     """
     Read camera from a json object
     """
+    camera = None
     pt = obj.get('projection_type', 'perspective')
     if pt == 'perspective':
-        camera = types.PerspectiveCamera()
-        camera.id = key
-        camera.width = obj.get('width', 0)
-        camera.height = obj.get('height', 0)
-        camera.focal = obj['focal']
-        camera.k1 = obj.get('k1', 0.0)
-        camera.k2 = obj.get('k2', 0.0)
-        return camera
-    if pt == 'brown':
-        camera = types.BrownPerspectiveCamera()
-        camera.id = key
-        camera.width = obj.get('width', 0)
-        camera.height = obj.get('height', 0)
-        camera.focal_x = obj['focal_x']
-        camera.focal_y = obj['focal_y']
-        camera.c_x = obj.get('c_x', 0.0)
-        camera.c_y = obj.get('c_y', 0.0)
-        camera.k1 = obj.get('k1', 0.0)
-        camera.k2 = obj.get('k2', 0.0)
-        camera.p1 = obj.get('p1', 0.0)
-        camera.p2 = obj.get('p2', 0.0)
-        camera.k3 = obj.get('k3', 0.0)
-        return camera
+        camera = pygeometry.Camera.create_perspective(
+            obj['focal'], obj.get('k1', 0.0), obj.get('k2', 0.0))
+    elif pt == 'brown':
+        camera = pygeometry.Camera.create_brown(
+            obj['focal_x'], obj['focal_y'] / obj['focal_x'],
+            [obj.get('c_x', 0.0), obj.get('c_y', 0.0)],
+            [obj.get('k1', 0.0), obj.get('k2', 0.0), obj.get('k3', 0.0),
+             obj.get('p1', 0.0), obj.get('p2', 0.0)])
     elif pt == 'fisheye':
-        camera = types.FisheyeCamera()
-        camera.id = key
-        camera.width = obj.get('width', 0)
-        camera.height = obj.get('height', 0)
-        camera.focal = obj['focal']
-        camera.k1 = obj.get('k1', 0.0)
-        camera.k2 = obj.get('k2', 0.0)
-        return camera
+        camera = pygeometry.Camera.create_fisheye(
+            obj['focal'], obj.get('k1', 0.0), obj.get('k2', 0.0))
     elif pt == 'dual':
-        camera = types.DualCamera()
-        camera.id = key
-        camera.width = obj.get('width', 0)
-        camera.height = obj.get('height', 0)
-        camera.focal = obj['focal']
-        camera.k1 = obj.get('k1', 0.0)
-        camera.k2 = obj.get('k2', 0.0)
-        camera.transition = obj.get('transition', 0.5)
-        return camera
+        camera = pygeometry.Camera.create_dual(obj.get('transition', 0.5), obj['focal'],
+                                               obj.get('k1', 0.0), obj.get('k2', 0.0))
     elif pt in ['equirectangular', 'spherical']:
-        camera = types.SphericalCamera()
-        camera.id = key
-        camera.width = obj['width']
-        camera.height = obj['height']
-        return camera
+        camera = pygeometry.Camera.create_spherical()
     else:
         raise NotImplementedError
+    camera.id = key
+    camera.width = int(obj.get('width', 0))
+    camera.height = int(obj.get('height', 0))
+    return camera
 
 
 def shot_from_json(key, obj, cameras):
@@ -209,10 +183,10 @@ def camera_to_json(camera):
             'projection_type': camera.projection_type,
             'width': camera.width,
             'height': camera.height,
-            'focal_x': camera.focal_x,
-            'focal_y': camera.focal_y,
-            'c_x': camera.c_x,
-            'c_y': camera.c_y,
+            'focal_x': camera.focal,
+            'focal_y': camera.focal*camera.aspect_ratio,
+            'c_x': camera.principal_point[0],
+            'c_y': camera.principal_point[1],
             'k1': camera.k1,
             'k2': camera.k2,
             'p1': camera.p1,
@@ -476,9 +450,14 @@ def read_ground_control_points(fileobj, reference):
                 point.coordinates = None
 
         point.observations = []
+        observing_images = set()
         for o_dict in point_dict['observations']:
             o = types.GroundControlPointObservation()
             o.shot_id = o_dict['shot_id']
+            if o.shot_id in observing_images:
+                logger.warning("GCP {} has multiple observations in image {}"
+                               .format(point.id, o.shot_id))
+            observing_images.add(o.shot_id)
             if 'projection' in o_dict:
                 o.projection = np.array(o_dict['projection'])
             point.observations.append(o)
@@ -654,7 +633,7 @@ def json_loads(text):
     return json.loads(text)
 
 
-def imread(filename, grayscale=False, unchanged=False):
+def imread(filename, grayscale=False, unchanged=False, anydepth=False):
     """Load image as an array ignoring EXIF orientation."""
     if context.OPENCV3:
         if grayscale:
@@ -671,6 +650,9 @@ def imread(filename, grayscale=False, unchanged=False):
                 "OpenCV version {} does not support loading images without "
                 "rotating them according to EXIF. Please upgrade OpenCV to "
                 "version 3.2 or newer.".format(cv2.__version__))
+        
+        if anydepth:
+            flags |= cv2.IMREAD_ANYDEPTH
     else:
         if grayscale:
             flags = cv2.CV_LOAD_IMAGE_GRAYSCALE
@@ -678,6 +660,9 @@ def imread(filename, grayscale=False, unchanged=False):
             flags = cv2.CV_LOAD_IMAGE_UNCHANGED
         else:
             flags = cv2.CV_LOAD_IMAGE_COLOR
+
+        if anydepth:
+            flags |= cv2.CV_LOAD_IMAGE_ANYDEPTH
 
     image = cv2.imread(filename, flags)
 
@@ -710,8 +695,8 @@ def image_size(filename):
 
 # Bundler
 
-def export_bundler(image_list, reconstructions, track_graph, bundle_file_path,
-                   list_file_path):
+def export_bundler(image_list, reconstructions, track_manager,
+                   bundle_file_path, list_file_path):
     """
     Generate a reconstruction file that is consistent with Bundler's format
     """
@@ -760,20 +745,20 @@ def export_bundler(image_list, reconstructions, track_graph, bundle_file_path,
         for point_id, point in iteritems(points):
             coord = point.coordinates
             color = list(map(int, point.color))
-            view_list = track_graph[point_id]
+            view_list = track_manager.get_track_observations(point.id)
             lines.append(' '.join(map(str, coord)))
             lines.append(' '.join(map(str, color)))
             view_line = []
-            for shot_key, view in iteritems(view_list):
+            for shot_key, obs in view_list.items():
                 if shot_key in shots.keys():
-                    v = view['feature']
+                    v = obs.point
                     shot_index = shots_order[shot_key]
                     camera = shots[shot_key].camera
                     scale = max(camera.width, camera.height)
                     x = v[0] * scale
                     y = -v[1] * scale
                     view_line.append(' '.join(
-                        map(str, [shot_index, view['feature_id'], x, y])))
+                        map(str, [shot_index, obs.id, x, y])))
 
             lines.append(str(len(view_line)) + ' ' + ' '.join(view_line))
 
@@ -835,13 +820,10 @@ def import_bundler(data_path, bundle_file, list_file, track_file,
         if focal > 0:
             im = imread(os.path.join(data_path, image_list[i]))
             height, width = im.shape[0:2]
-            camera = types.PerspectiveCamera()
+            camera = pygeometry.Camera.create_perspective(focal / max(width, height), k1, k2)
             camera.id = 'camera_' + str(i)
             camera.width = width
             camera.height = height
-            camera.focal = focal / max(width, height)
-            camera.k1 = k1
-            camera.k2 = k2
             reconstruction.add_camera(camera)
 
             # Shots

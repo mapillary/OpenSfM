@@ -16,14 +16,14 @@ logger = logging.getLogger(__name__)
 class SyntheticDataSet(DataSet):
 
     def __init__(self, reconstruction, exifs, features=None,
-                 descriptors=None, colors=None, graph=None):
+                 descriptors=None, colors=None, tracks_manager=None):
         super(SyntheticDataSet, self).__init__('')
         self.reconstruction = reconstruction
         self.exifs = exifs
         self.features = features
         self.descriptors = descriptors
         self.colors = colors
-        self.graph = graph
+        self.tracks_manager = tracks_manager
         self.image_list = list(reconstruction.shots.keys())
         self.reference_lla = {'latitude': 0, 'longitude': 0, 'altitude': 0}
         self.matches = None
@@ -79,20 +79,21 @@ class SyntheticDataSet(DataSet):
                 if im1 == im2:
                     continue
                 image_matches = matches.setdefault(im1, {})
-                tracks = tracking.common_tracks(self.graph,
+                tracks = tracking.common_tracks(self.tracks_manager,
                                                 im1, im2)[0]
                 if len(tracks) > 10:
-                    pair_matches = np.array(
-                        [np.array([self.graph[t][im1]['feature_id'],
-                                   self.graph[t][im2]['feature_id']])
-                         for t in tracks])
-                    image_matches[im2] = pair_matches
+                    pair_matches = []
+                    for t in tracks:
+                        observations = self.tracks_manager.get_track_observations(t)
+                        pair_matches.append(np.array([observations[im1].id,
+                                                      observations[im2].id]))
+                    image_matches[im2] = np.array(pair_matches)
         return matches
 
-    def load_tracks_graph(self, filename=None):
-        return self.graph
+    def load_tracks_manager(self, filename=None):
+        return self.tracks_manager
 
-    def save_tracks_graph(self, graph, filename=None):
+    def save_tracks_manager(self, manager, filename=None):
         pass
 
     def invent_reference_lla(self, images=None):

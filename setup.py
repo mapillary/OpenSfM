@@ -50,7 +50,7 @@ build_c_extension()
 
 setuptools.setup(
     name='opensfm',
-    version='0.3.0',
+    version='0.4.0',
     description='A Structure from Motion library',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
@@ -67,7 +67,13 @@ setuptools.setup(
     ],
     package_data={
         'opensfm': [
-            'csfm.*',
+            'pybundle.*',
+            'pygeometry.*',
+            'pyrobust.*',
+            'pyfeatures.*',
+            'pydense.*',
+            'pysfm.*',
+            'pyfoundation.*',
             'data/sensor_data.json',
             'data/bow/bow_hahog_root_uchar_10000.npz',
             'data/bow/bow_hahog_root_uchar_64.npz',

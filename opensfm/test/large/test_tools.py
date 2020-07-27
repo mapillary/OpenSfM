@@ -19,8 +19,7 @@ def test_connected_reconstructions():
     connections = tools.connected_reconstructions(reconstruction_shots)
 
     assert len(connections) == 1
-    assert "r1" in connections[0]
-    assert "r2" in connections[0]
+    assert ("r1", "r2") in connections
 
     reconstruction_shots = {}
     reconstruction_shots["r1"] = { "s1": True }

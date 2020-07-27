@@ -83,37 +83,41 @@ if __name__ == "__main__":
                         help='path to the dataset to be processed')
     parser.add_argument('--image',
                         help='name of the image to show')
+    parser.add_argument('--subfolder',
+                        help='undistorted subfolder',
+                        default='undistorted')
     parser.add_argument('--save-figs',
                         help='save figures istead of showing them',
                         action='store_true')
     args = parser.parse_args()
 
     data = dataset.DataSet(args.dataset)
+    udata = dataset.UndistortedDataSet(data, args.subfolder)
 
     if args.image:
         images = [args.image]
     else:
-        reconstructions = data.load_undistorted_reconstruction()
+        reconstructions = udata.load_undistorted_reconstruction()
         images = []
         for reconstruction in reconstructions:
             images.extend(reconstruction.shots.keys())
 
     for image in images:
-        if not data.raw_depthmap_exists(image):
+        if not udata.raw_depthmap_exists(image):
             continue
 
-        depth, plane, score, nghbr, nghbrs = data.load_raw_depthmap(image)
-        clean_depth, clean_plane, clean_score = data.load_clean_depthmap(image)
+        depth, plane, score, nghbr, nghbrs = udata.load_raw_depthmap(image)
+        clean_depth, clean_plane, clean_score = udata.load_clean_depthmap(image)
 
         print("Plotting depthmap for {0}".format(image))
         pl.close("all")
         pl.figure(figsize=(30, 16), dpi=90, facecolor='w', edgecolor='k')
         title = "Shot: " + image + "\n" + "\n".join(wrap("Neighbors: " + ', '.join(nghbrs), 80))
-        plot_depthmap(data.load_undistorted_image(image), title, depth, clean_depth, plane, score, nghbr)
+        plot_depthmap(udata.load_undistorted_image(image), title, depth, clean_depth, plane, score, nghbr)
         pl.tight_layout()
 
         if args.save_figs:
-            p = args.dataset + '/plot_depthmaps'
+            p = udata.data_path + '/plot_depthmaps'
             io.mkdir_p(p)
             pl.savefig(p + '/' + image + '.png')
             pl.close()
