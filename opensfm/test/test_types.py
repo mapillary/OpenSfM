@@ -1,6 +1,7 @@
 import numpy as np
 import cv2
 import math
+import copy
 
 from opensfm import context
 from opensfm import pygeometry
@@ -942,6 +943,16 @@ def _get_spherical_camera():
     return camera, camera_cpp
 
 
+def test_camera_deepcopy():
+    cam1 = pygeometry.Camera.create_perspective(0.5, 0, 0)
+    cam2 = copy.deepcopy(cam1)
+    assert cam1.focal == cam2.focal
+    cam2.focal = 0.7
+    assert cam1.focal != cam2.focal
+    cam3 = copy.deepcopy(cam2)
+    assert cam3.focal == cam2.focal
+
+
 def test_shot_measurement():
     m = pymap.ShotMeasurementInt()
     assert not m.has_value
@@ -950,7 +961,25 @@ def test_shot_measurement():
     assert m.value == 4
 
 
-def _helper_compare_poses(py_pose, cpp_pose):
+def _helper_pose_equal_to_T(pose, T_cw):
+    assert np.allclose(pose.get_R_world_to_cam(), T_cw[0:3, 0:3])
+    assert np.allclose(pose.get_t_world_to_cam(), T_cw[0:3, 3].reshape(3))
+    assert np.allclose(pose.translation, T_cw[0:3, 3].reshape(3))
+    # compute the min rotation
+    # r_cw = cv2.Rodrigues(T_cw[0:3, 0:3])[0].flatten()
+    r_cw = Rotation.from_dcm(T_cw[0:3, 0:3]).as_rotvec()
+    assert np.allclose(pose.rotation, r_cw)
+    assert np.allclose(pose.get_R_world_to_cam_min(), r_cw)
+
+    T_wc = np.linalg.inv(T_cw)
+    assert np.allclose(pose.get_R_cam_to_world(), T_wc[0:3, 0:3])
+    assert np.allclose(pose.get_t_cam_to_world(), T_wc[0:3, 3].reshape(3))
+    assert np.allclose(pose.get_origin(), T_wc[0:3, 3].reshape(3))
+    assert np.allclose(pose.get_R_cam_to_world_min(), -r_cw)
+    assert np.allclose(pose.get_Rt(), T_cw[0:3, 0:4])
+
+
+def _helper_poses_equal_py_cpp(py_pose, cpp_pose):
     assert np.allclose(py_pose.translation, cpp_pose.translation)
     assert np.allclose(py_pose.rotation, cpp_pose.rotation)
     assert np.allclose(py_pose.get_rotation_matrix(),
@@ -958,198 +987,139 @@ def _helper_compare_poses(py_pose, cpp_pose):
     assert np.allclose(py_pose.get_origin(), cpp_pose.get_origin())
 
 
+def _heper_poses_equal(pose1, pose2):
+    assert np.allclose(pose1.translation, pose2.translation)
+    assert np.allclose(pose1.rotation, pose2.rotation)
+    assert np.allclose(pose1.get_rotation_matrix(),
+                       pose2.get_rotation_matrix())
+    assert np.allclose(pose1.get_origin(), pose2.get_origin())
+    assert np.allclose(pose1.get_R_cam_to_world(), pose2.get_R_cam_to_world())
+    assert np.allclose(pose1.get_R_world_to_cam(), pose2.get_R_world_to_cam())
+    assert np.allclose(pose1.get_t_cam_to_world(), pose2.get_t_cam_to_world())
+    assert np.allclose(pose1.get_t_world_to_cam(), pose2.get_t_world_to_cam())
+    assert np.allclose(pose1.get_world_to_cam(), pose2.get_world_to_cam())
+    assert np.allclose(pose1.get_cam_to_world(), pose2.get_cam_to_world())
+    assert np.allclose(pose1.get_Rt(), pose2.get_Rt())
+
+
+def test_pose_setter():
+    R_cw = special_ortho_group.rvs(3)
+    t_cw = np.random.rand(3)
+    T_cw = np.vstack((np.column_stack((R_cw, t_cw)), np.array([0, 0, 0, 1])))
+    T_wc = np.linalg.inv(T_cw)
+    r_cw = Rotation.from_dcm(R_cw).as_rotvec()
+    r_wc = -r_cw
+
+    # set world to cam
+    p1 = pygeometry.Pose()
+    p1.set_from_world_to_cam(T_cw)
+    _helper_pose_equal_to_T(p1, T_cw)
+
+    p2 = pygeometry.Pose()
+    p2.set_from_world_to_cam(R_cw, t_cw)
+    _helper_pose_equal_to_T(p2, T_cw)
+
+    p3 = pygeometry.Pose()
+    p3.set_from_world_to_cam(r_cw, t_cw)
+    _helper_pose_equal_to_T(p3, T_cw)
+
+    # set cam to world
+    p4 = pygeometry.Pose()
+    p4.set_from_cam_to_world(T_wc)
+    _helper_pose_equal_to_T(p4, T_cw)
+
+    p5 = pygeometry.Pose()
+    p5.set_from_cam_to_world(T_wc[0:3, 0:3], T_wc[0:3, 3])
+    _helper_pose_equal_to_T(p5, T_cw)
+
+    p6 = pygeometry.Pose()
+    p6.set_from_cam_to_world(r_wc, T_wc[0:3, 3])
+    _helper_pose_equal_to_T(p6, T_cw)
+    
+    # set rotation, translation
+    p7 = pygeometry.Pose()
+    p7.rotation = r_cw
+    p7.translation = t_cw
+    _helper_pose_equal_to_T(p7, T_cw)
+
+    p8 = pygeometry.Pose()
+    p8.set_rotation_matrix(R_cw)
+    p8.translation = t_cw
+    _helper_pose_equal_to_T(p7, T_cw)
+
+
+def test_pose_transform():
+    pt = np.random.rand(3)
+    pts = np.random.rand(10, 3)
+    R_cw = special_ortho_group.rvs(3)
+    t_cw = np.random.rand(3)
+    T_cw = np.vstack((np.column_stack((R_cw, t_cw)), np.array([0, 0, 0, 1])))
+    T_wc = np.linalg.inv(T_cw)
+    p = pygeometry.Pose(R_cw, t_cw)
+    p_inv = pygeometry.Pose(T_wc[0:3, 0:3], T_wc[0:3, 3])
+    # Test via transform and inverse transform
+    assert np.allclose(p_inv.transform_many(p.transform_many(pts)), pts)
+    assert np.allclose(p_inv.transform(p.transform(pt)), pt)
+    assert np.allclose(p.transform(p.transform_inverse(pt)), pt)
+    assert np.allclose(p.transform_many(p.transform_inverse_many(pts)), pts)
+
+
+def test_pose_init():
+    R_cw = special_ortho_group.rvs(3)
+    t_cw = np.random.rand(3)
+    T_cw = np.vstack((np.column_stack((R_cw, t_cw)), np.array([0, 0, 0, 1])))
+    pose = pygeometry.Pose(R_cw, t_cw)
+    _helper_pose_equal_to_T(pose, T_cw)
+
+    r_cw = cv2.Rodrigues(T_cw[0:3, 0:3])[0].flatten()
+    pose2 = pygeometry.Pose(r_cw, t_cw)
+    _helper_pose_equal_to_T(pose2, T_cw)
+    _heper_poses_equal(pose, pose2)
+
+    # Test default init
+    pose3 = pygeometry.Pose()
+    _helper_pose_equal_to_T(pose3, np.eye(4))
+    pose4 = pygeometry.Pose(T_cw[0:3, 0:3])
+    _helper_pose_equal_to_T(pose4, np.vstack((np.column_stack((T_cw[0:3, 0:3], np.zeros((3,1)))), np.array([0, 0, 0, 1]))))
+    pose5 = pygeometry.Pose(r_cw)
+    _helper_pose_equal_to_T(pose5, np.vstack((np.column_stack((T_cw[0:3, 0:3], np.zeros((3,1)))), np.array([0, 0, 0, 1]))))
+
+
 def test_python_vs_cpp_pose():
     # identity pose
     py_pose = Pose()
     cpp_pose = pygeometry.Pose()
-    _helper_compare_poses(py_pose, cpp_pose)
+    _helper_poses_equal_py_cpp(py_pose, cpp_pose)
 
     R_cw = special_ortho_group.rvs(3)
     t_cw = np.random.rand(3)
     py_pose = Pose(cv2.Rodrigues(R_cw)[0].flatten(), t_cw)
     cpp_pose = pygeometry.Pose(R_cw, t_cw)
-    _helper_compare_poses(py_pose, cpp_pose)
+    _helper_poses_equal_py_cpp(py_pose, cpp_pose)
 
-    new_origin =  np.random.rand(3)
+    new_origin = np.random.rand(3)
     py_pose.set_origin(new_origin)
     cpp_pose.set_origin(new_origin)
-    _helper_compare_poses(py_pose, cpp_pose)
+    _helper_poses_equal_py_cpp(py_pose, cpp_pose)
 
     R_cw_2 = special_ortho_group.rvs(3)
     t_cw_2 = np.random.rand(3)
     py_pose_2 = Pose(cv2.Rodrigues(R_cw_2)[0].flatten(), t_cw_2)
     cpp_pose_2 = pygeometry.Pose(R_cw_2, t_cw_2)
-    _helper_compare_poses(py_pose_2, cpp_pose_2)
-    _helper_compare_poses(py_pose.compose(py_pose_2.inverse()), cpp_pose.relative_to(cpp_pose_2))
-
-
-def test_pose():
-    pose = pygeometry.Pose()
-    # Test default
-    assert np.allclose(pose.get_cam_to_world(), np.eye(4), 1e-10)
-    assert np.allclose(pose.get_world_to_cam(), np.eye(4), 1e-10)
-
-    # Test setters and getters for translation
-    R_cw = special_ortho_group.rvs(3)
-    t_cw = np.random.rand(3)
-    T_cw = np.vstack((np.column_stack((R_cw, t_cw)), np.array([0, 0, 0, 1])))
-    pose = pygeometry.Pose()
-    pose.set_from_world_to_cam(T_cw)
-    assert np.allclose(pose.get_world_to_cam(), T_cw)
-    assert np.allclose(pose.get_cam_to_world(), np.linalg.inv(T_cw))
-    assert np.allclose(pose.get_origin(), pose.get_t_cam_to_world())
-
-    pose2 = pygeometry.Pose()
-    pose2.set_from_world_to_cam(R_cw, t_cw)
-    assert np.allclose(pose2.get_world_to_cam(), T_cw)
-    assert np.allclose(pose2.get_cam_to_world(), np.linalg.inv(T_cw))
-    assert np.allclose(pose2.get_origin(), pose.get_t_cam_to_world())
-
-    # test the rotation matrix
-    assert np.allclose(pose.get_rotation_matrix(), R_cw)
-    assert np.allclose(pose.get_R_world_to_cam(), R_cw)
-    assert np.allclose(pose.get_R_cam_to_world(), R_cw.transpose())
-
-    pose = pygeometry.Pose()
-    R_wc = special_ortho_group.rvs(3)
-    t_wc = np.random.rand(3)
-    T_wc = np.vstack((np.column_stack((R_wc, t_wc)), np.array([0, 0, 0, 1])))
-    pose.set_from_cam_to_world(T_wc)
-    assert np.allclose(pose.get_cam_to_world(), T_wc)
-    assert np.allclose(pose.get_world_to_cam(), np.linalg.inv(T_wc))
-    assert np.allclose(pose.get_R_cam_to_world(), R_wc)
-    assert np.allclose(pose.get_R_world_to_cam(), R_wc.transpose())
-    assert np.allclose(pose.get_t_cam_to_world(), t_wc)
-    assert np.allclose(pose.get_t_world_to_cam(), -R_wc.transpose().dot(t_wc))
-
-    pose2 = pygeometry.Pose()
-    pose2.set_from_cam_to_world(R_wc, t_wc)
-    assert np.allclose(pose2.get_cam_to_world(), T_wc)
-    assert np.allclose(pose2.get_world_to_cam(), np.linalg.inv(T_wc))
-    assert np.allclose(pose2.get_origin(), pose.get_t_cam_to_world())
-
-    pose.translation = t_cw
-    assert np.allclose(pose.translation, t_cw)
-    assert np.allclose(pose.get_t_world_to_cam(), t_cw)
-
-
-def test_pose_minimal_representation():
-    p1 = pygeometry.Pose()
-    # Check identity pose
-    p1.set_from_world_to_cam(np.array([0, 0, 0]), np.array([0, 0, 0]))
-    assert np.allclose(p1.get_rotation_matrix(), np.eye(3))
-    assert np.allclose(p1.get_R_world_to_cam_min(), np.zeros((1, 3)))
-    assert np.allclose(p1.get_R_cam_to_world_min(), np.zeros((1, 3)))
-    assert np.allclose(p1.get_cam_to_world(), np.eye(4))
-    assert np.allclose(p1.get_world_to_cam(), np.eye(4))
-
-    R_wc = special_ortho_group.rvs(3)
-    t_wc = np.random.rand(3)
-    pose = pygeometry.Pose()
-    r_wc = Rotation.from_dcm(R_wc).as_rotvec()  # same as cv2.Rodrigues
-    pose.set_from_cam_to_world(R_wc, t_wc)
-    assert np.allclose(pose.get_R_cam_to_world_min(), r_wc)
-    pose.set_from_world_to_cam(R_wc, t_wc)
-    assert np.allclose(pose.get_R_world_to_cam_min(), r_wc)
-
-    R_wc = special_ortho_group.rvs(3)
-    t_wc = np.random.rand(3)
-    pose = pygeometry.Pose()
-    r_wc = Rotation.from_dcm(R_wc).as_rotvec()  # same as cv2.Rodrigues
-    pose.set_from_world_to_cam(r_wc, t_wc)
-    assert np.allclose(R_wc, pose.get_R_world_to_cam())
-    assert np.allclose(pose.get_R_world_to_cam_min(), r_wc)
-    assert np.allclose(pose.get_R_cam_to_world_min(), -r_wc)
-    assert np.allclose(R_wc.transpose(), pose.get_R_cam_to_world())
-
-    R_wc = special_ortho_group.rvs(3)
-    pose = pygeometry.Pose()
-    pose.set_rotation_matrix(R_wc)
-    assert np.allclose(R_wc, pose.get_R_world_to_cam())
-    r_wc = Rotation.from_dcm(R_wc).as_rotvec()
-    assert np.allclose(r_wc, pose.get_R_world_to_cam_min())
-
-    R_wc = special_ortho_group.rvs(3)
-    pose = pygeometry.Pose()
-    r_wc = Rotation.from_dcm(R_wc).as_rotvec()
-    pose.rotation = r_wc
-
-    assert np.allclose(R_wc, pose.get_R_world_to_cam())
-    assert np.allclose(r_wc, pose.get_R_world_to_cam_min())
-    r_cw = Rotation.from_dcm(R_wc.transpose()).as_rotvec()
-    assert np.allclose(r_cw, pose.get_R_cam_to_world_min())
-
-    # Test again all the setters and getters!
-    R_wc = special_ortho_group.rvs(3)
-    r_wc = Rotation.from_dcm(R_wc).as_rotvec()
-    t_wc = np.random.rand(3)
-    pose = pygeometry.Pose()
-    pose.set_from_cam_to_world(r_wc, t_wc)
-    assert np.allclose(pose.get_R_cam_to_world(), R_wc)
-    assert np.allclose(pose.get_R_world_to_cam(), R_wc.transpose())
-    assert np.allclose(pose.get_R_cam_to_world_min(), r_wc)
-    assert np.allclose(pose.get_t_cam_to_world(), t_wc)
-
-    pose = pygeometry.Pose()
-    pose.set_from_cam_to_world(R_wc, t_wc)
-    assert np.allclose(pose.get_R_cam_to_world(), R_wc)
-    assert np.allclose(pose.get_R_world_to_cam(), R_wc.transpose())
-    assert np.allclose(pose.get_R_cam_to_world_min(), r_wc)
-    assert np.allclose(pose.get_t_cam_to_world(), t_wc)
-
-    pose = pygeometry.Pose()
-    T_wc = np.vstack((np.column_stack((R_wc, t_wc)), np.array([0, 0, 0, 1])))
-    pose.set_from_cam_to_world(T_wc)
-    assert np.allclose(pose.get_R_cam_to_world(), R_wc)
-    assert np.allclose(pose.get_R_world_to_cam(), R_wc.transpose())
-    assert np.allclose(pose.get_R_cam_to_world_min(), r_wc)
-    assert np.allclose(pose.get_t_cam_to_world(), t_wc)
-    assert np.allclose(pose.get_cam_to_world(), T_wc)
-
-    # Test again
-    R_cw = special_ortho_group.rvs(3)
-    r_cw = Rotation.from_dcm(R_cw).as_rotvec()
-    t_cw = np.random.rand(3)
-    pose = pygeometry.Pose()
-    pose.set_from_world_to_cam(r_cw, t_cw)
-    assert np.allclose(pose.get_R_cam_to_world(), R_cw.transpose())
-    assert np.allclose(pose.get_R_world_to_cam(), R_cw)
-    assert np.allclose(pose.get_R_cam_to_world_min(), -r_cw)
-    assert np.allclose(pose.get_R_world_to_cam_min(), r_cw)
-    assert np.allclose(pose.get_t_world_to_cam(), t_cw)
-
-    pose = pygeometry.Pose()
-    pose.set_from_cam_to_world(R_cw, t_cw)
-    assert np.allclose(pose.get_R_cam_to_world(), R_cw)
-    assert np.allclose(pose.get_R_world_to_cam(), R_cw.transpose())
-    assert np.allclose(pose.get_R_cam_to_world_min(), r_cw)
-    assert np.allclose(pose.get_R_world_to_cam_min(), -r_cw)
-    assert np.allclose(pose.get_t_cam_to_world(), t_cw)
-
-    pose = pygeometry.Pose()
-    T_cw = np.vstack((np.column_stack((R_cw, t_cw)), np.array([0, 0, 0, 1])))
-    pose.set_from_cam_to_world(T_cw)
-    assert np.allclose(pose.get_R_cam_to_world(), R_cw)
-    assert np.allclose(pose.get_R_world_to_cam(), R_cw.transpose())
-    assert np.allclose(pose.get_R_cam_to_world_min(), r_cw)
-    assert np.allclose(pose.get_R_world_to_cam_min(), -r_cw)
-    assert np.allclose(pose.get_t_cam_to_world(), t_cw)
-    assert np.allclose(pose.get_cam_to_world(), T_cw)
+    _helper_poses_equal_py_cpp(py_pose_2, cpp_pose_2)
+    _helper_poses_equal_py_cpp(py_pose.compose(
+        py_pose_2.inverse()), cpp_pose.relative_to(cpp_pose_2))
 
 
 def test_pose_inverse():
-    R_wc = special_ortho_group.rvs(3)
-    pose = pygeometry.Pose()
-    r_wc = Rotation.from_dcm(R_wc).as_rotvec()
-    pose.rotation = r_wc
-    pose.translation = np.random.rand(3)
-
+    R_cw = special_ortho_group.rvs(3)
+    t_cw = np.random.rand(3)
+    T_cw = np.vstack((np.column_stack((R_cw, t_cw)), np.array([0, 0, 0, 1])))
+    T_wc = np.linalg.inv(T_cw)
+    pose = pygeometry.Pose(T_cw[0:3, 0:3], T_cw[0:3, 3])
     pose_inv = pose.inverse()
-    assert np.allclose(pose_inv.get_cam_to_world(), pose.get_world_to_cam())
-    assert np.allclose(pose_inv.rotation, -pose.rotation)
-    identity = pose.compose(pose_inv)
-    assert np.allclose(identity.rotation, [0, 0, 0])
-    assert np.allclose(identity.translation, [0, 0, 0])
+    pose_inv2 = pygeometry.Pose(T_wc[0:3, 0:3], T_wc[0:3, 3])
+    _heper_poses_equal(pose_inv, pose_inv2)
 
 
 def test_pose_relative_to():
@@ -1167,6 +1137,6 @@ def test_pose_relative_to():
     pose_3 = pose_old_1.compose(pose_old_2.inverse())
     pose_new_3 = pose_new_1.relative_to(pose_new_2)
 
-    _helper_compare_poses(pose_3, pose_new_3)
-    _helper_compare_poses(pose_3, pose_new_1.compose(pose_new_2.inverse()))
-
+    _helper_poses_equal_py_cpp(pose_3, pose_new_3)
+    _helper_poses_equal_py_cpp(
+        pose_3, pose_new_1.compose(pose_new_2.inverse()))
