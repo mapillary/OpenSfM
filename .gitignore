@@ -16,13 +16,6 @@ launch.json
 .pytest_cache
 eval
 
-# Ignore the data folder, but not the berlin example.
-data/*
-data/berlin/*
-!data/berlin
-!data/berlin/config.yaml
-!data/berlin/images
 
 # Ignore virtualenv files
 env/*
-data

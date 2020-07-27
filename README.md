@@ -24,6 +24,16 @@ Checkout this [blog post with more demos](http://blog.mapillary.com/update/2014/
 
 ## Update Sift_GPU version
 
+### Changes:
+* added SIFT_GPU parameters to the config file.
+* added SiftGPU class.
+* added feature detection function in features.py file.
+* added matching functions to the matching.py file.
+* changed the commands to support the sift_gpu option.
+* added functions to of save and load sift_gpu keypoints to the dataset.py file.
+ 
+
+
 ### Requirements:
 This update relay on the silx python package.
 
@@ -76,7 +86,11 @@ Here you can see the results of the Sift_GPU implementation.
 </p>
 
 #### Speed
-Feature Matching on image (3264x2448) took 0.28 sec
+Feature Matching on image (3264x2448) on 1080-TI-GTX took 0.28 sec
 
 Feature Matching took 0.025 sec
+
+#### Contact Me
+
+For more information, you can contact me via [Email](mailto:cojosef@gmail.com)
 
