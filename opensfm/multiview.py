@@ -5,8 +5,9 @@ import random
 
 import cv2
 import numpy as np
-import pyopengv
 
+from opensfm import pyrobust
+from opensfm import pygeometry
 from opensfm import transformations as tf
 
 
@@ -38,6 +39,13 @@ def euclidean(x):
     '''
     return x[..., :-1] / x[..., -1:]
 
+
+def cross_product_matrix(x):
+    '''Return the matrix representation of x's cross product
+    '''
+    return np.array([[0, -x[2], x[1]],
+                     [x[2], 0, -x[0]],
+                     [-x[1], x[0], 0]])
 
 def P_from_KRt(K, R, t):
     '''P = K[R|t].
@@ -109,15 +117,15 @@ def vector_angle(u, v):
     """Angle between two vectors.
 
     >>> u = [ 0.99500417, -0.33333333, -0.09983342]
-    >>> v = [ 0.99500417, -0.33333333, -0.09983342]
-    >>> vector_angle(u, v)
+    >>> v = [ -0.99500417, +0.33333333, +0.09983342]
+    >>> vector_angle(u, u)
     0.0
+    >>> np.isclose(vector_angle(u, v), np.pi)
+    True
     """
     cos = np.dot(u, v) / math.sqrt(np.dot(u, u) * np.dot(v, v))
-    if cos >= 1.0:
-        return 0.0
-    else:
-        return math.acos(cos)
+    cos = np.clip(cos, -1, 1)
+    return math.acos(cos)
 
 
 def vector_angle_many(u, v):
@@ -559,41 +567,55 @@ def motion_from_plane_homography(H):
     return solutions
 
 
-def absolute_pose_ransac(bs, Xs, method, threshold, iterations, probabilty):
-    try:
-        return pyopengv.absolute_pose_ransac(
-            bs, Xs, method, threshold,
-            iterations=iterations,
-            probabilty=probabilty)
-    except Exception:
-        # Older versions of pyopengv do not accept the probability argument.
-        return pyopengv.absolute_pose_ransac(
-            bs, Xs, method, threshold, iterations)
+def absolute_pose_known_rotation_ransac(bs, Xs, threshold, iterations, probabilty):
+    params = pyrobust.RobustEstimatorParams()
+    params.iterations = 1000
+    result = pyrobust.ransac_absolute_pose_known_rotation(bs, Xs, threshold, params, pyrobust.RansacType.RANSAC)
+
+    t = -result.lo_model.copy()
+    R = np.identity(3)
+    return np.concatenate((R, [[t[0]], [t[1]], [t[2]]]), axis=1)
 
 
-def relative_pose_ransac(b1, b2, method, threshold, iterations, probability):
-    try:
-        return pyopengv.relative_pose_ransac(b1, b2, method, threshold,
-                                             iterations=iterations,
-                                             probability=probability)
-    except Exception:
-        # Older versions of pyopengv do not accept the probability argument.
-        return pyopengv.relative_pose_ransac(b1, b2, method, threshold,
-                                             iterations)
+def absolute_pose_ransac(bs, Xs, threshold, iterations, probabilty):
+    params = pyrobust.RobustEstimatorParams()
+    params.iterations = 1000
+    result = pyrobust.ransac_absolute_pose(bs, Xs, threshold, params, pyrobust.RansacType.RANSAC)
+
+    Rt = result.lo_model.copy()
+    R, t = Rt[:3, :3].copy(), Rt[:, 3].copy()
+    Rt[:3, :3] = R.T
+    Rt[:, 3] = -R.T.dot(t)
+    return Rt
+
+
+def relative_pose_ransac(b1, b2, threshold, iterations, probability):
+    params = pyrobust.RobustEstimatorParams()
+    params.iterations = 1000
+    result = pyrobust.ransac_relative_pose(b1, b2, threshold, params, pyrobust.RansacType.RANSAC)
+
+    Rt = result.lo_model.copy()
+    R, t = Rt[:3, :3].copy(), Rt[:, 3].copy()
+    Rt[:3, :3] = R.T
+    Rt[:, 3] = -R.T.dot(t)
+    return Rt
 
 
 def relative_pose_ransac_rotation_only(b1, b2, threshold, iterations,
                                        probability):
-    try:
-        return pyopengv.relative_pose_ransac_rotation_only(
-            b1, b2, threshold,
-            iterations=iterations,
-            probability=probability)
-    except Exception:
-        # Older versions of pyopengv do not accept the probability argument.
-        return pyopengv.relative_pose_ransac_rotation_only(
-            b1, b2, threshold, iterations)
+    params = pyrobust.RobustEstimatorParams()
+    params.iterations = 1000
+    result = pyrobust.ransac_relative_rotation(b1, b2, threshold, params, pyrobust.RansacType.RANSAC)
+    return result.lo_model.T
 
 
-def relative_pose_optimize_nonlinear(b1, b2, t, R):
-    return pyopengv.relative_pose_optimize_nonlinear(b1, b2, t, R)
+def relative_pose_optimize_nonlinear(b1, b2, t, R, iterations):
+    Rt = np.zeros((3, 4))
+    Rt[:3, :3] = R.T
+    Rt[:, 3] = -R.T.dot(t)
+    Rt_refined = pygeometry.relative_pose_refinement(Rt, b1, b2, iterations)
+
+    R, t = Rt_refined[:3, :3].copy(), Rt_refined[:, 3].copy()
+    Rt[:3, :3] = R.T
+    Rt[:, 3] = -R.T.dot(t)
+    return Rt

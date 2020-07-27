@@ -50,8 +50,10 @@ matcher_type: FLANN           # FLANN, BRUTEFORCE, or WORDS
 symmetric_matching: yes       # Match symmetricly or one-way
 
 # Params for FLANN matching
+flann_algorithm: KMEANS      # Algorithm type (KMEANS, KDTREE)
 flann_branching: 8           # See OpenCV doc
 flann_iterations: 10          # See OpenCV doc
+flann_tree: 8                # See OpenCV doc
 flann_checks: 20             # Smaller -> Faster (but might lose good matches)
 
 # Params for BoW matching
@@ -73,9 +75,9 @@ matching_bow_gps_distance: 0          # Maximum GPS distance for preempting imag
 matching_bow_gps_neighbors: 0         # Number of images (selected by GPS distance) to preempt before using selection by BoW distance. Set to 0 to use no limit (or disable if matching_bow_gps_distance is also 0)
 matching_bow_other_cameras: False     # If True, BoW image selection will use N neighbors from the same camera + N neighbors from any different camera.
 matching_vlad_neighbors: 0            # Number of images to match selected by VLAD distance. Set to 0 to disable
-matching_vlad_gps_distance: 0          # Maximum GPS distance for preempting images before using selection by VLAD distance. Set to 0 to disable
-matching_vlad_gps_neighbors: 0         # Number of images (selected by GPS distance) to preempt before using selection by VLAD distance. Set to 0 to use no limit (or disable if matching_vlad_gps_distance is also 0)
-matching_vlad_other_cameras: False     # If True, VLAD image selection will use N neighbors from the same camera + N neighbors from any different camera.
+matching_vlad_gps_distance: 0         # Maximum GPS distance for preempting images before using selection by VLAD distance. Set to 0 to disable
+matching_vlad_gps_neighbors: 0        # Number of images (selected by GPS distance) to preempt before using selection by VLAD distance. Set to 0 to use no limit (or disable if matching_vlad_gps_distance is also 0)
+matching_vlad_other_cameras: False    # If True, VLAD image selection will use N neighbors from the same camera + N neighbors from any different camera.
 matching_use_filters: False           # If True, removes static matches using ad-hoc heuristics
 
 # Params for geometric estimation
@@ -84,6 +86,8 @@ robust_matching_calib_threshold: 0.004  # Outlier threshold for essential matrix
 robust_matching_min_match: 20           # Minimum number of matches to accept matches between two images
 five_point_algo_threshold: 0.004        # Outlier threshold for essential matrix estimation during incremental reconstruction in radians
 five_point_algo_min_inliers: 20         # Minimum number of inliers for considering a two view reconstruction valid
+five_point_refine_match_iterations: 10  # Number of LM iterations to run when refining relative pose during matching
+five_point_refine_rec_iterations: 1000  # Number of LM iterations to run when refining relative pose during reconstruction
 triangulation_threshold: 0.006          # Outlier threshold for accepting a triangulated point in radians
 triangulation_min_ray_angle: 1.0        # Minimum angle between views to accept a triangulated point
 triangulation_type: FULL                # Triangulation type : either considering all rays (FULL), or sing a RANSAC variant (ROBUST)
@@ -108,9 +112,11 @@ bundle_outlier_filtering_type: FIXED    # Type of threshold for filtering outlie
 bundle_outlier_auto_ratio: 3.0          # For AUTO filtering type, projections with larger reprojection than ratio-times-mean, are removed
 bundle_outlier_fixed_threshold: 0.006   # For FIXED filtering type, projections with larger reprojection error after bundle adjustment are removed
 optimize_camera_parameters: yes         # Optimize internal camera parameters during bundle
+bundle_max_iterations: 100      # Maximum optimizer iterations.
 
 retriangulation: yes                # Retriangulate all points from time to time
 retriangulation_ratio: 1.2          # Retriangulate when the number of points grows by this ratio
+bundle_analytic_derivatives: yes    # Use analytic derivatives or auto-differentiated ones during bundle adjustment
 bundle_interval: 999999             # Bundle after adding 'bundle_interval' cameras
 bundle_new_points_ratio: 1.2        # Bundle when the number of points grows by this ratio
 local_bundle_radius: 3              # Max image graph distance for images to be included in local bundle adjustment

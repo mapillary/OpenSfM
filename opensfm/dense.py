@@ -9,7 +9,7 @@ import cv2
 import numpy as np
 from six import iteritems
 
-from opensfm import csfm
+from opensfm import pydense
 from opensfm import io
 from opensfm import log
 from opensfm import tracking
@@ -20,7 +20,13 @@ logger = logging.getLogger(__name__)
 
 
 def compute_depthmaps(data, graph, reconstruction):
-    """Compute and refine depthmaps for all shots."""
+    """Compute and refine depthmaps for all shots.
+
+    Args:
+        data: an UndistortedDataset
+        graph: the tracks graph
+        reconstruction: the undistorted reconstruction
+    """
     logger.info('Computing neighbors')
     config = data.config
     processes = config['processes']
@@ -93,7 +99,7 @@ def compute_depthmap(arguments):
         return
     logger.info("Computing depthmap for image {0} with {1}".format(shot.id, method))
 
-    de = csfm.DepthmapEstimator()
+    de = pydense.DepthmapEstimator()
     de.set_depth_range(min_depth, max_depth, 100)
     de.set_patchmatch_iterations(data.config['depthmap_patchmatch_iterations'])
     de.set_patch_size(data.config['depthmap_patch_size'])
@@ -156,7 +162,7 @@ def clean_depthmap(arguments):
         return
     logger.info("Cleaning depthmap for image {}".format(shot.id))
 
-    dc = csfm.DepthmapCleaner()
+    dc = pydense.DepthmapCleaner()
     dc.set_same_depth_threshold(data.config['depthmap_same_depth_threshold'])
     dc.set_min_consistent_views(data.config['depthmap_min_consistent_views'])
     add_views_to_depth_cleaner(data, neighbors, dc)
@@ -197,7 +203,7 @@ def prune_depthmap(arguments):
         return
     logger.info("Pruning depthmap for image {}".format(shot.id))
 
-    dp = csfm.DepthmapPruner()
+    dp = pydense.DepthmapPruner()
     dp.set_same_depth_threshold(data.config['depthmap_same_depth_threshold'])
     add_views_to_depth_pruner(data, neighbors, dp)
     points, normals, colors, labels, detections = dp.prune()
@@ -330,10 +336,10 @@ def add_views_to_depth_pruner(data, neighbors, dp):
         dp.add_view(K, R, t, depth, plane, image, labels, detections)
 
 
-def compute_depth_range(graph, reconstruction, shot, config):
+def compute_depth_range(tracks_manager, reconstruction, shot, config):
     """Compute min and max depth based on reconstruction points."""
     depths = []
-    for track in graph[shot.id]:
+    for track in tracks_manager.get_shot_observations(shot.id):
         if track in reconstruction.points:
             p = reconstruction.points[track].coordinates
             z = shot.pose.transform(p)[2]
@@ -347,16 +353,15 @@ def compute_depth_range(graph, reconstruction, shot, config):
     return config_min_depth or min_depth, config_max_depth or max_depth
 
 
-def common_tracks_double_dict(graph):
+def common_tracks_double_dict(tracks_manager):
     """List of track ids observed by each image pair.
 
     Return a dict, ``res``, such that ``res[im1][im2]`` is the list of
     common tracks between ``im1`` and ``im2``.
     """
-    tracks, images = tracking.tracks_and_images(graph)
     common_tracks_per_pair = tracking.all_common_tracks(
-        graph, tracks, include_features=False)
-    res = {image: {} for image in images}
+        tracks_manager, include_features=False)
+    res = {image: {} for image in tracks_manager.get_shot_ids()}
     for (im1, im2), v in iteritems(common_tracks_per_pair):
         res[im1][im2] = v
         res[im2][im1] = v

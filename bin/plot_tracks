@@ -6,7 +6,6 @@ from itertools import combinations
 import matplotlib.pyplot as pl
 import networkx as nx
 import numpy as np
-from networkx.algorithms import bipartite
 
 from opensfm import dataset
 from opensfm import features
@@ -48,9 +47,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     data = dataset.DataSet(args.dataset)
-    graph = data.load_tracks_graph()
-    tracks, images = tracking.tracks_and_images(graph)
-    image_graph = bipartite.weighted_projected_graph(graph, images)
+    tracks_manager = data.load_tracks_manager()
+    images = tracks_manager.get_shot_ids()
+    image_graph = tracking.as_weighted_graph(tracks_manager)
 
     if args.graph:
         # Plot graph
@@ -73,7 +72,7 @@ if __name__ == "__main__":
 
         i = 0
         for im1, im2 in pairs:
-            t, p1, p2 = tracking.common_tracks(graph, im1, im2)
+            t, p1, p2 = tracking.common_tracks(tracks_manager, im1, im2)
             if len(t) >= 10:
                 pl.figure(figsize=(20, 10))
                 pl.title('Images: ' + im1 + ' - ' + im2 +

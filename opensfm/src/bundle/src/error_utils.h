@@ -1,70 +1,57 @@
 #pragma once
 
 #include <initializer_list>
+
 #include "ceres/ceres.h"
 #include "ceres/rotation.h"
 
-// helper to entangle Eigen stuff and get base type
-template<class T>
-using MatrixType = typename Eigen::MatrixBase<T>::Scalar;
+template <class T>
+Vec3<T> MultRotations(const Vec3<T>& R1, const Vec3<T>& R2) {
+  T qR1[4], qR2[4], qResult[4];
+  ceres::AngleAxisToQuaternion(R1.data(), qR1);
+  ceres::AngleAxisToQuaternion(R2.data(), qR2);
+  ceres::QuaternionProduct(qR1, qR2, qResult);
 
-// multiply a set of N rotation R1*R2*...Rn-1=R
-// rotations are expected to be angle-axis
-template <class T1, class... T>
-Eigen::Matrix<MatrixType<T1>, 3, 1> MultRotations(const T1& R1, T... R){
-  // work-around to run over variadic
-  std::initializer_list<Eigen::Matrix<MatrixType<T1>, 3, 1> > rotations = {R...};
-
-  // hence why we split the variadic with a 1st argument
-  Eigen::Array<MatrixType<T1>, 4, 1> qPrevious_Ri;
-  ceres::AngleAxisToQuaternion(R1.data(), qPrevious_Ri.data());
-
-  // accumulate rotations in quaternion space
-  for (const auto Ri : rotations) {
-    Eigen::Array<MatrixType<T1>, 4, 1> qRi, qResult;
-    ceres::AngleAxisToQuaternion(Ri.data(), qRi.data());
-    ceres::QuaternionProduct(qPrevious_Ri.data(), qRi.data(), qResult.data());
-    qPrevious_Ri = qResult;
-  }
-
-  // back to angle axis
-  Eigen::Matrix<MatrixType<T1>, 3, 1> result;
-  ceres::QuaternionToAngleAxis(qPrevious_Ri.data(), result.data());
+  Vec3<T> result;
+  ceres::QuaternionToAngleAxis(qResult, result.data());
   return result;
 }
 
-// compute the relative rotation error between two
-// global rotation Ri and Rj, such as Rij = Rj*Ri^t
-// rotations are expected to be angle-axis
-template <class T1, class T2, class T3>
-Eigen::Matrix<MatrixType<T1>, 3, 1> RelativeRotationError(const T1& Ri,
-                                                          const T2& Rj,
-                                                          const T3& Rij) {
-  return MultRotations(Rij, Ri, (-Rj).eval());
+template <class T>
+Vec3<T> MultRotations(const Vec3<T>& R1, const Vec3<T>& R2, const Vec3<T>& R3) {
+  T qR1[4], qR2[4], qR3[4], qR1R2[4], qResult[4];
+  ceres::AngleAxisToQuaternion(R1.data(), qR1);
+  ceres::AngleAxisToQuaternion(R2.data(), qR2);
+  ceres::AngleAxisToQuaternion(R3.data(), qR3);
+  ceres::QuaternionProduct(qR1, qR2, qR1R2);
+  ceres::QuaternionProduct(qR1R2, qR3, qResult);
+
+  Vec3<T> result;
+  ceres::QuaternionToAngleAxis(qResult, result.data());
+  return result;
 }
 
-// apply a rotation R to a vector x as R*x
-// rotations is expected to be angle-axis
-template <class T1, class T2>
-Eigen::Matrix<MatrixType<T1>, 3, 1> RotatePoint(const T1& R, const T2& x) {
-  Eigen::Matrix<MatrixType<T1>, 3, 1> rotated;
+/* apply a rotation R to a vector x as R*x rotations is expected to be
+ * angle-axis */
+template <typename T>
+Vec3<T> RotatePoint(const Vec3<T>& R, const Vec3<T>& x) {
+  Vec3<T> rotated;
   ceres::AngleAxisRotatePoint(R.data(), x.data(), rotated.data());
   return rotated;
 }
 
-// given a rotation R and a translation t representating
-// a camera in 'projection' (or camera) convention, such that R.x + t
-// brings a point x to the camera frame, compute the camera center c
-// in world coordinates : c = -R^t*t
-template <class T1, class T2>
-Eigen::Matrix<MatrixType<T1>, 3, 1> OriginFromRT(const T1& R, const T2& t) {
-  return -RotatePoint((-R).eval(), t);
+/* bring a point x in the coordinate frame of a camera with rotation and camera
+ * center in world coordinates being respectively R and c such : x(camera) =
+ * R(t).(x(world) - c) */
+template <typename T>
+Vec3<T> WorldToCamera(const Vec3<T>& R, const Vec3<T>& c, const Vec3<T>& x) {
+  return RotatePoint((-R).eval(), (x - c).eval());
 }
 
-// apply a similarity transform of scale s, rotation R and translation t
-// to some point x as s * R * x + t
-template <class T1, class T2, class T3, class T4>
-Eigen::Matrix<MatrixType<T2>, 3, 1> ApplySimilarity(const T1& s, const T2& R, 
-                                                    const T3& t, const T4& x) {
-  return s * RotatePoint(R, x) + t;
+/* apply a similarity transform of scale s, rotation R and translation t to some
+ * point x as s * R * x + t */
+template <class T>
+Vec3<T> ApplySimilarity(const T& s, const Vec3<T>& R, const Vec3<T>& t,
+                        const Vec3<T>& x) {
+  return RotatePoint((-R).eval(), (s * x - t).eval());
 }

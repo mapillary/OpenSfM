@@ -14,7 +14,7 @@ An example dataset is available at ``data/berlin``.  You can reconstruct it usin
 
 This will run the entire SfM pipeline and produce the file ``data/berlin/reconstruction.meshed.json`` as output. To visualize the result you can start a HTTP server running::
 
-    python -m SimpleHTTPServer
+    python3 -m http.server
 
 and then browse `<http://localhost:8000/viewer/reconstruction.html#file=/data/berlin/reconstruction.meshed.json>`_
 You should see something like
@@ -28,7 +28,7 @@ If you want to get a denser point cloud, you can run::
     bin/opensfm undistort data/berlin
     bin/opensfm compute_depthmaps data/berlin
 
-This will run dense multiview stereo matching and produce a denser point cloud stored in ``data/berlin/depthmaps/merged.ply``.  You can visualize that point cloud using MeshLab_ or any other viewer that supports PLY_ files.
+This will run dense multiview stereo matching and produce a denser point cloud stored in ``data/berlin/unidtorted/depthmaps/merged.ply``.  You can visualize that point cloud using MeshLab_ or any other viewer that supports PLY_ files.
 
 For the Berlin dataset you should get something similar to this
 
@@ -221,7 +221,7 @@ This command creates undistorted version of the reconstruction, tracks and image
 
 compute_depthmaps
 ~~~~~~~~~~~~~~~~~
-This commands computes a dense point cloud of the scene by computing and merging depthmaps.  It requires an undistorted reconstructions.  The resulting depthmaps are stored in the ``depthmaps`` folder and the merged point cloud is stored in ``depthmaps/merged.ply``
+This commands computes a dense point cloud of the scene by computing and merging depthmaps.  It requires an undistorted reconstructions.  The resulting depthmaps are stored in the ``depthmaps`` folder and the merged point cloud is stored in ``undistorted/depthmaps/merged.ply``
 
 
 Configuration

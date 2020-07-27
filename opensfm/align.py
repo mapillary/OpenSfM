@@ -5,7 +5,7 @@ import math
 
 import numpy as np
 
-from opensfm import csfm
+from opensfm import pygeometry
 from opensfm import multiview
 from opensfm import transformations as tf
 
@@ -111,7 +111,7 @@ def detect_alignment_constraints(config, reconstruction, gcp):
                        config['align_orientation_prior'])
         return 'orientation_prior'
     else:
-        logger.info('Shots and/or GCPs are well-conditionned. Using naive 3D-3D alignment.')
+        logger.info('Shots and/or GCPs are well-conditioned. Using naive 3D-3D alignment.')
         return 'naive'
 
 
@@ -179,6 +179,7 @@ def align_reconstruction_orientation_prior_similarity(reconstruction, config, gc
     X = Rplane.dot(X.T).T
 
     # Estimate 2d similarity to align to GPS
+    two_shots = len(X) == 2
     single_shot = len(X) < 2
     same_shots = (X.std(axis=0).max() < 1e-8 or     # All points are the same.
                   Xp.std(axis=0).max() < 0.01)      # All GPS points are the same.
@@ -186,6 +187,14 @@ def align_reconstruction_orientation_prior_similarity(reconstruction, config, gc
         s = 1.0
         A = Rplane
         b = Xp.mean(axis=0) - X.mean(axis=0)
+
+        # Clamp shots pair scale to 1km, so the
+        # optimizer can still catch-up acceptable error
+        max_scale = 1000
+        current_scale = np.linalg.norm(b)
+        if two_shots and current_scale > max_scale:
+            b = max_scale*b/current_scale
+            s = max_scale/current_scale
     else:
         T = tf.affine_matrix_from_points(X.T[:2], Xp.T[:2], shear=False)
         s = np.linalg.det(T[:2, :2])**0.5
@@ -279,7 +288,7 @@ def triangulate_single_gcp(reconstruction, observations):
     if len(os) >= 2:
         thresholds = len(os) * [reproj_threshold]
         angle = np.radians(min_ray_angle_degrees)
-        e, X = csfm.triangulate_bearings_midpoint(os, bs, thresholds, angle)
+        e, X = pygeometry.triangulate_bearings_midpoint(os, bs, thresholds, angle)
         return X
 
 

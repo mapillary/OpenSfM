@@ -10,7 +10,7 @@ from opensfm import config
 from opensfm import matching
 from opensfm import pairs_selection
 from opensfm import bow
-from opensfm import csfm
+from opensfm import pyfeatures
 from opensfm.synthetic_data import synthetic_dataset
 from opensfm.test import data_generation
 
@@ -56,10 +56,10 @@ def test_match_using_words():
     nfeatures = 1000
 
     features, words = example_features(nfeatures, configuration)
-    matches = csfm.match_using_words(features[0], words[0],
-                                     features[1], words[1][:, 0],
-                                     configuration['lowes_ratio'],
-                                     configuration['bow_num_checks'])
+    matches = pyfeatures.match_using_words(features[0], words[0],
+                                           features[1], words[1][:, 0],
+                                           configuration['lowes_ratio'],
+                                           configuration['bow_num_checks'])
     assert len(matches) == nfeatures
     for i, j in matches:
         assert i == j
@@ -95,18 +95,20 @@ def test_match_images(scene_synthetic):
     synthetic.matches_exists = lambda im: False
     synthetic.save_matches = lambda im, m: False
 
-    num_neighbors = 5
-    synthetic.config['matching_gps_neighbors'] = num_neighbors
-    synthetic.config['bow_words_to_match'] = 8
-    synthetic.config['matcher_type'] = 'FLANN'
+    synthetic.config['matching_gps_neighbors'] = 0
+    synthetic.config['matching_gps_distance'] = 0
+    synthetic.config['matching_time_neighbors'] = 2
 
-    images = synthetic.images()
+    images = sorted(synthetic.images())
     pairs, _ = matching.match_images(synthetic, images, images)
     matching.save_matches(synthetic, images, pairs)
 
-    assert len(pairs) == 62
-    value, margin = 11842, 0.01
-    assert value*(1-margin) < sum([len(m) for m in pairs.values()]) < value*(1+margin)
+    for i in range(len(images) - 1):
+        pair = images[i], images[i + 1]
+        matches = pairs.get(pair)
+        if matches is None or len(matches) == 1:
+            matches = pairs.get(pair[::-1])
+        assert len(matches) > 25
 
 
 def test_ordered_pairs():
@@ -120,18 +122,3 @@ def test_ordered_pairs():
     images = [1, 2, 3]
     pairs = pairs_selection.ordered_pairs(neighbors, images)
     assert set(pairs) == {(1, 2), (1, 3), (2, 5), (3, 2)}
-
-
-def test_robust_match():
-    d = data_generation.CubeDataset(2, 100, 0.0, 0.3)
-    p1 = np.array([v['feature'] for k, v in iteritems(d.tracks['shot0'])])
-    p2 = np.array([v['feature'] for k, v in iteritems(d.tracks['shot1'])])
-    camera1 = d.shots['shot0'].camera
-    camera2 = d.shots['shot1'].camera
-    num_points = len(p1)
-    inlier_matches = np.array([(i, i) for i in range(num_points)])
-    outlier_matches = np.random.randint(num_points, size=(num_points // 2, 2))
-    matches = np.concatenate((inlier_matches, outlier_matches))
-    rmatches = matching.robust_match(p1, p2, camera1, camera2, matches,
-                                     config.default_config())
-    assert num_points <= len(rmatches) <= len(matches)

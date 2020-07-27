@@ -4,16 +4,22 @@ import datetime
 import exifread
 import logging
 import xmltodict as x2d
+from codecs import encode, decode
 
 from six import string_types
 
 from opensfm.sensors import sensor_data
 from opensfm import types
+from opensfm import pygeometry
 
 
 logger = logging.getLogger(__name__)
 
 inch_in_mm = 25.4
+cm_in_mm = 10
+um_in_mm = 0.001
+default_projection = 'perspective'
+maximum_altitude = 1e4
 
 
 def eval_frac(value):
@@ -31,11 +37,17 @@ def gps_to_decimal(values, reference):
     return sign * (degrees + minutes / 60 + seconds / 3600)
 
 
-def get_tag_as_float(tags, key):
+def get_tag_as_float(tags, key, index=0):
     if key in tags:
-        val = tags[key].values[0]
+        val = tags[key].values[index]
         if isinstance(val, exifread.utils.Ratio):
-            return eval_frac(val)
+            ret_val = eval_frac(val)
+            if ret_val is None:
+                logger.error(
+                    'The rational "{2}" of tag "{0:s}" at index {1:d} c'
+                    'aused a division by zero error'.format(
+                        key, index, val))
+            return ret_val
         else:
             return float(val)
     else:
@@ -61,7 +73,7 @@ def sensor_string(make, model):
     if make != 'unknown':
         # remove duplicate 'make' information in 'model'
         model = model.replace(make, '')
-    return (make.strip() + ' ' + model.strip()).lower()
+    return (make.strip() + ' ' + model.strip()).strip().lower()
 
 
 def camera_id(exif):
@@ -96,6 +108,19 @@ def extract_exif_from_file(fileobj):
     return d
 
 
+def unescape_string(s):
+    return decode(encode(s, 'latin-1', 'backslashreplace'), 'unicode-escape')
+
+
+def parse_xmp_string(xmp_str):
+    for _ in range(2):
+        try:
+            return x2d.parse(xmp_str)
+        except:
+            xmp_str = unescape_string(xmp_str)
+    return None
+
+
 def get_xmp(fileobj):
     '''Extracts XMP metadata from and image fileobj
     '''
@@ -105,7 +130,9 @@ def get_xmp(fileobj):
 
     if xmp_start < xmp_end:
         xmp_str = img_str[xmp_start:xmp_end + 12]
-        xdict = x2d.parse(xmp_str)
+        xdict = parse_xmp_string(xmp_str)
+        if xdict is None:
+            return []
         xdict = xdict.get('x:xmpmeta', {})
         xdict = xdict.get('rdf:RDF', {})
         xdict = xdict.get('rdf:Description', {})
@@ -126,8 +153,8 @@ def get_gpano_from_xmp(xmp):
 
 
 class EXIF:
-
     def __init__(self, fileobj):
+        self.fileobj = fileobj
         self.tags = exifread.process_file(fileobj, details=False)
         fileobj.seek(0)
         self.xmp = get_xmp(fileobj)
@@ -135,7 +162,7 @@ class EXIF:
     def extract_image_size(self):
         # Image Width and Image Height
         if ('EXIF ExifImageWidth' in self.tags and # PixelXDimension
-            'EXIF ExifImageLength' in self.tags):  # PixelYDimension
+                'EXIF ExifImageLength' in self.tags):  # PixelYDimension
             width, height = (int(self.tags['EXIF ExifImageWidth'].values[0]),
                              int(self.tags['EXIF ExifImageLength'].values[0]))
         elif ('Image ImageWidth' in self.tags and
@@ -198,11 +225,15 @@ class EXIF:
         if not mm_per_unit:
             return None
         pixels_per_unit = get_tag_as_float(self.tags, 'EXIF FocalPlaneXResolution')
+        if pixels_per_unit <= 0:
+            pixels_per_unit = get_tag_as_float(self.tags, 'EXIF FocalPlaneYResolution')
+            if pixels_per_unit <= 0:
+                return None
         units_per_pixel = 1 / pixels_per_unit
         width_in_pixels = self.extract_image_size()[0]
         return width_in_pixels * units_per_pixel * mm_per_unit
 
-    def get_mm_per_unit(self,resolution_unit):
+    def get_mm_per_unit(self, resolution_unit):
         """Length of a resolution unit in millimeters.
 
         Uses the values from the EXIF specs in
@@ -214,7 +245,11 @@ class EXIF:
         if resolution_unit == 2:    # inch
             return inch_in_mm
         elif resolution_unit == 3:  # cm
-            return 10
+            return cm_in_mm
+        elif resolution_unit == 4:  # mm
+            return 1
+        elif resolution_unit == 5:  # um
+            return um_in_mm
         else:
             logger.warning('Unknown EXIF resolution unit value: {}'.format(resolution_unit))
             return None
@@ -290,25 +325,75 @@ class EXIF:
             d['latitude'] = lat
             d['longitude'] = lon
         if altitude is not None:
-            d['altitude'] = altitude
+            d['altitude'] = min([maximum_altitude, altitude])
         if dop is not None:
             d['dop'] = dop
         return d
 
     def extract_capture_time(self):
-        time_strings = [('EXIF DateTimeOriginal', 'EXIF SubSecTimeOriginal'),
-                        ('EXIF DateTimeDigitized', 'EXIF SubSecTimeDigitized'),
-                        ('Image DateTime', 'EXIF SubSecTime')]
-        for ts in time_strings:
-            if ts[0] in self.tags:
-                s = str(self.tags[ts[0]].values)
+        if ('GPS GPSDate' in self.tags and  # Actually GPSDateStamp
+                'GPS GPSTimeStamp' in self.tags):
+            try:
+                hours = int(get_tag_as_float(self.tags, 'GPS GPSTimeStamp', 0))
+                minutes = int(get_tag_as_float(self.tags, 'GPS GPSTimeStamp', 1))
+                seconds = get_tag_as_float(self.tags, 'GPS GPSTimeStamp', 2)
+                gps_timestamp_string = ('{0:s} {1:02d}:{2:02d}:{3:02f}'.format(
+                    self.tags['GPS GPSDate'].values,
+                    hours,
+                    minutes,
+                    seconds))
+                return (datetime.datetime.strptime(
+                    gps_timestamp_string, '%Y:%m:%d %H:%M:%S.%f') -
+                    datetime.datetime(1970, 1, 1)).total_seconds()
+            except (TypeError, ValueError):
+                logger.info(
+                    'The GPS time stamp in image file "{0:s}" is invalid. '
+                    'Falling back to DateTime*'.format(self.fileobj.name))
+
+        time_strings = [('EXIF DateTimeOriginal', 'EXIF SubSecTimeOriginal', 'EXIF Tag 0x9011'),
+                        ('EXIF DateTimeDigitized', 'EXIF SubSecTimeDigitized', 'EXIF Tag 0x9012'),
+                        ('Image DateTime', 'Image SubSecTime', 'Image Tag 0x9010')]
+        for datetime_tag, subsec_tag, offset_tag in time_strings:
+            if datetime_tag in self.tags:
+                date_time = self.tags[datetime_tag].values
+                if subsec_tag in self.tags:
+                    subsec_time = self.tags[subsec_tag].values
+                else:
+                    subsec_time = '0'
                 try:
-                    d = datetime.datetime.strptime(s, '%Y:%m:%d %H:%M:%S')
+                    s = '{0:s}.{1:s}'.format(date_time, subsec_time)
+                    d = datetime.datetime.strptime(s, '%Y:%m:%d %H:%M:%S.%f')
                 except ValueError:
+                    logger.debug(
+                        'The "{1:s}" time stamp or \"{2:s}\" tag is invalid in '
+                        'image file "{0:s}"'.format(
+                            self.fileobj.name, datetime_tag, subsec_tag))
                     continue
-                timestamp = (d - datetime.datetime(1970, 1, 1)).total_seconds()   # Assuming d is in UTC
-                timestamp += int(str(self.tags.get(ts[1], 0))) / 1000.0;
-                return timestamp
+                # Test for OffsetTimeOriginal | OffsetTimeDigitized | OffsetTime
+                if offset_tag in self.tags:
+                    offset_time = self.tags[offset_tag].values
+                    try:
+                        d += datetime.timedelta(hours=-int(offset_time[0:3]),
+                                                minutes=int(offset_time[4:6]))
+                    except (TypeError, ValueError):
+                        logger.debug(
+                            'The "{0:s}" time zone offset in image file "{1:s}"'
+                            ' is invalid'.format(
+                                offset_tag, self.fileobj.name))
+                        logger.debug(
+                            'Naively assuming UTC on "{0:s}" in image file '
+                            '"{1:s}"'.format(datetime_tag, self.fileobj.name))
+                else:
+                    logger.debug(
+                        'No GPS time stamp and no time zone offset in image '
+                        'file "{0:s}"'.format(self.fileobj.name))
+                    logger.debug(
+                        'Naively assuming UTC on "{0:s}" in image file "{1:s}"'
+                        .format(datetime_tag, self.fileobj.name))
+                return (d - datetime.datetime(1970, 1, 1)).total_seconds()
+        logger.info(
+            'Image file "{0:s}" has no valid time stamp'.format(
+                self.fileobj.name))
         return 0.0
 
     def extract_exif(self):
@@ -412,6 +497,10 @@ def focal_xy_calibration(exif):
 def default_calibration(data):
     return {
         'focal': data.config['default_focal_prior'],
+        'focal_x': data.config['default_focal_prior'],
+        'focal_y': data.config['default_focal_prior'],
+        'c_x': 0.0,
+        'c_y': 0.0,
         'k1': 0.0,
         'k2': 0.0,
         'p1': 0.0,
@@ -420,75 +509,53 @@ def default_calibration(data):
     }
 
 
-def camera_from_exif_metadata(metadata, data):
-    '''
-    Create a camera object from exif metadata
-    '''
-    pt = metadata.get('projection_type', 'perspective').lower()
-    if pt == 'perspective':
-        calib = (hard_coded_calibration(metadata)
-                 or focal_ratio_calibration(metadata)
-                 or default_calibration(data))
-        camera = types.PerspectiveCamera()
-        camera.id = metadata['camera']
-        camera.width = metadata['width']
-        camera.height = metadata['height']
-        camera.projection_type = pt
-        camera.focal = calib['focal']
-        camera.k1 = calib['k1']
-        camera.k2 = calib['k2']
-        return camera
-    elif pt == 'brown':
+def calibration_from_metadata(metadata, data):
+    """Finds the best calibration in one of the calibration sources."""
+    pt = metadata.get('projection_type', default_projection).lower()
+    if pt == 'brown':
         calib = (hard_coded_calibration(metadata)
                  or focal_xy_calibration(metadata)
                  or default_calibration(data))
-        camera = types.BrownPerspectiveCamera()
-        camera.id = metadata['camera']
-        camera.width = metadata['width']
-        camera.height = metadata['height']
-        camera.projection_type = pt
-        camera.focal_x = calib['focal_x']
-        camera.focal_y = calib['focal_y']
-        camera.c_x = calib['c_x']
-        camera.c_y = calib['c_y']
-        camera.k1 = calib['k1']
-        camera.k2 = calib['k2']
-        camera.p1 = calib['p1']
-        camera.p2 = calib['p2']
-        camera.k3 = calib['k3']
-        return camera
-    elif pt == 'fisheye':
+    else:
         calib = (hard_coded_calibration(metadata)
                  or focal_ratio_calibration(metadata)
                  or default_calibration(data))
-        camera = types.FisheyeCamera()
-        camera.id = metadata['camera']
-        camera.width = metadata['width']
-        camera.height = metadata['height']
-        camera.projection_type = pt
-        camera.focal = calib['focal']
-        camera.k1 = calib['k1']
-        camera.k2 = calib['k2']
-        return camera
-    elif pt == 'dual':
-        calib = (hard_coded_calibration(metadata)
-                 or focal_ratio_calibration(metadata)
-                 or default_calibration(data))
-        camera = types.DualCamera()
-        camera.id = metadata['camera']
-        camera.width = metadata['width']
-        camera.height = metadata['height']
-        camera.projection_type = pt
-        camera.focal = calib['focal']
-        camera.k1 = calib['k1']
-        camera.k2 = calib['k2']
-        camera.transition = calib['transition']
-        return camera
-    elif pt in ['equirectangular', 'spherical']:
-        camera = types.SphericalCamera()
-        camera.id = metadata['camera']
-        camera.width = metadata['width']
-        camera.height = metadata['height']
-        return camera
+    calib['projection_type'] = pt
+    return calib
+
+
+def camera_from_exif_metadata(metadata, data,
+                              calibration_func=calibration_from_metadata):
+    '''
+    Create a camera object from exif metadata and the calibration
+    function that turns metadata into usable calibration parameters.
+    '''
+
+    calib = calibration_func(metadata, data)
+    calib_pt = calib.get('projection_type', default_projection).lower()
+
+    camera = None
+    if calib_pt == 'perspective':
+        camera = pygeometry.Camera.create_perspective(
+            calib['focal'], calib['k1'], calib['k2'])
+    elif calib_pt == 'brown':
+        camera = pygeometry.Camera.create_brown(
+            calib['focal_x'], calib['focal_y'] / calib['focal_x'],
+            [calib['c_x'], calib['c_y']],
+            [calib['k1'], calib['k3'], calib['k3'],
+             calib['p1'], calib['p2']])
+    elif calib_pt == 'fisheye':
+        camera = pygeometry.Camera.create_fisheye(
+            calib['focal'], calib['k1'], calib['k2'])
+    elif calib_pt == 'dual':
+        camera = pygeometry.Camera.create_dual(
+            calib['transition'], calib['focal'], calib['k1'], calib['k2'])
+    elif calib_pt in ['equirectangular', 'spherical']:
+        camera = pygeometry.Camera.create_spherical()
     else:
         raise ValueError("Unknown projection type: {}".format(pt))
+
+    camera.id = metadata['camera']
+    camera.width = metadata['width']
+    camera.height = metadata['height']
+    return camera
