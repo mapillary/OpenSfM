@@ -1,5 +1,4 @@
 *.pyc
-*.so
 xcode
 .DS_Store
 launch.json
