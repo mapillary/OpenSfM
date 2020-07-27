@@ -49,6 +49,20 @@ To run this Code simply write:
 cd OpenSfm_sift_gpu
 python test_sift_gpu.py
 ```
+### Run OpenSfm
+
+If all the dependencies were installed correctly.
+To run the opensfm pipeline enter this commands:
+```
+cd OpenSfm_sift_gpu
+./bin/opensfm_run_all data/berlin_gpu
+```
+
+To check the sfm, enter:
+
+`python3 -m http.server`
+
+and click on this [link](http://localhost:8000/viewer/reconstruction.html#file=/data/berlin_gpu/reconstruction.meshed.json) to see the reconstruction. 
 
 ### Benchmark
 Here you can see the results of the Sift_GPU implementation.
