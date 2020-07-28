@@ -15,9 +15,6 @@ void Map::AddObservation(Shot* const shot, Landmark* const lm,
 void Map::AddObservation(const ShotId& shot_id, const LandmarkId& lm_id,
                          const FeatureId feat_id) {
   auto* const shot = GetShot(shot_id);
-  if (shot == nullptr) {
-    throw std::runtime_error("Accessing invalid ShotID " + shot_id);
-  }
   auto& lm = landmarks_.at(lm_id);
   AddObservation(shot, &lm, feat_id);
 }
@@ -31,14 +28,7 @@ void Map::AddObservation(Shot* const shot, Landmark* const lm,
 void Map::AddObservation(const ShotId& shot_id, const LandmarkId& lm_id, const Observation& obs)
 {
   auto* const shot = GetShot(shot_id);
-  if (shot == nullptr) {
-    throw std::runtime_error("Accessing invalid ShotID " + shot_id);
-  }
   auto* const lm = GetLandmark(lm_id);
-  if (lm == nullptr)
-  {
-    throw std::runtime_error("Accessing invalid LandmarkID" + lm_id);
-  }
   AddObservation(shot, lm, obs);
 }
 
@@ -54,29 +44,38 @@ void Map::RemoveObservation(const ShotId& shot_id, const LandmarkId& lm_id)
   auto* shot = GetShot(shot_id);
   //get the landmark
   auto* lm = GetLandmark(lm_id);
-  if (shot != nullptr && lm != nullptr)
-  {
-    //get observation
-    shot->RemoveLandmarkObservation(lm->GetObservationIdInShot(shot));
-    //remove
-    lm->RemoveObservation(shot);
-  }
+  //get observation
+  shot->RemoveLandmarkObservation(lm->GetObservationIdInShot(shot));
+  //remove
+  lm->RemoveObservation(shot);
 }
 
 Shot* Map::GetShot(const ShotId& shot_id)
 {
   const auto& it = shots_.find(shot_id);
-  return (it != shots_.end() ? &it->second : nullptr);
+  if (it == shots_.end())
+  {
+    throw std::runtime_error("Accessing invalid ShotID " + shot_id);
+  }
+  return &it->second;
 }
 Shot* Map::GetPanoShot(const ShotId& shot_id)
 {
   const auto& it = pano_shots_.find(shot_id);
-  return (it != pano_shots_.end() ? &it->second : nullptr);
+  if (it == pano_shots_.end())
+  {
+    throw std::runtime_error("Accessing invalid PanoShotID " + shot_id);
+  }
+  return &it->second;
 }
 
 Landmark* Map::GetLandmark(const LandmarkId& lm_id) {
   const auto& it = landmarks_.find(lm_id);
-  return (it != landmarks_.end() ? &it->second : nullptr);
+  if (it == landmarks_.end())
+  {
+    throw std::runtime_error("Accessing invalid LandmarkId " + lm_id);
+  }
+  return &it->second;
 }
 
 void Map::ClearObservationsAndLandmarks() {
@@ -212,12 +211,12 @@ void Map::RemovePanoShot(const ShotId& shot_id) {
   if (shot_it != pano_shots_.end()) {
     const auto& shot = shot_it->second;
     // 2) Remove it from all the points
-    for (const auto& lm : shot.GetLandmarks()) {
-      if (lm != nullptr) {
-        // TODO: Update remove observation
-        // lm->RemoveObservation(&shot);
-      }
-    }
+    // Currently, there are no observations for pano shots
+    // for (const auto& lm : shot.GetLandmarks()) {
+    //   if (lm != nullptr) {
+    //     // lm->RemoveObservation(&shot);
+    //   }
+    // }
 
     // 3) Remove from shots
     pano_shots_.erase(shot_it);
@@ -238,15 +237,9 @@ Landmark* Map::CreateLandmark(
     const LandmarkId& lm_id,
     const Vec3d& global_pos)  //, const std::string& name)
 {
-  // C++14
-  // auto it = landmarks_.emplace(lm_id, std::make_unique<Landmark>(lm_id,
-  // global_pos));
-  // C++11
   auto it_exist = landmarks_.find(lm_id);
   if (it_exist == landmarks_.end()) //create
   {
-    // auto it = landmarks_.emplace(
-    //     lm_id, std::unique_ptr<Landmark>(new Landmark(lm_id, global_pos)));
     auto it = landmarks_.emplace(
       std::piecewise_construct,
       std::forward_as_tuple(lm_id),
@@ -384,7 +377,7 @@ Camera* Map::GetCamera(const CameraId& cam_id)
   auto it = cameras_.find(cam_id);
   if (it == cameras_.end())
   {
-    return nullptr;
+    throw std::runtime_error("Accessing invalid CameraId " + cam_id);
   }
   return &it->second; 
 }
