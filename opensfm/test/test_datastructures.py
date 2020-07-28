@@ -1,6 +1,7 @@
 import numpy as np
 import copy
 import random
+import pytest
 from opensfm import pymap
 from opensfm import pysfm
 from opensfm import pygeometry
@@ -342,7 +343,6 @@ def test_shot_add():
     for i in range(n_shots):
         assert shot1 == rec.create_shot("shot0", "0")
         assert shot1 == rec.create_shot("shot0", "1")
-        assert shot1 == rec.create_shot("shot0", "3")
     assert len(rec.shots) == 1
 
     # add new shots
@@ -391,7 +391,6 @@ def test_pano_shot_add():
     for i in range(n_shots):
         assert shot1 == rec.create_pano_shot("shot0", "0")
         assert shot1 == rec.create_pano_shot("shot0", "1")
-        assert shot1 == rec.create_pano_shot("shot0", "3")
     assert len(rec.pano_shots) == 1
 
     # add new shots
@@ -500,15 +499,11 @@ def test_add_pano_shot_from_pano_shot():
         _helper_shots_equal(rec.pano_shots[k], rec_new.pano_shots[k])
 
 
-def test_shot_slam():
-    pass
-
-
 def test_single_point_add():
     rec = types.Reconstruction()
     pt = rec.create_point("0")
     assert pt == rec.points["0"] and pt == rec.get_point("0")
-    assert rec.get_point("123") is None
+    
     assert len(rec.points) == 1 and rec.map.number_of_landmarks() == 1
     assert pt.id == "0"
     assert pt.unique_id == 0
@@ -594,62 +589,6 @@ def test_single_observation():
     assert pt.number_of_observations() == 0
 
 
-def test_large_example():
-    pass
-
-# def test_points():
-#     m = pymap.Map()
-#     n_landmarks = 20
-#     for n in range(n_landmarks):
-#         pos = np.random.rand(3)
-#         lm = m.create_landmark(str(n), pos)
-#         assert lm == m.create_landmark(str(n), pos)
-#         assert np.allclose(pos, lm.get_global_pos())
-#         assert np.allclose(pos, lm.coordinates)
-#         assert lm.unique_id == n
-#         assert lm.id == str(n)
-#         assert m.has_landmark(str(n))
-
-#     assert m.number_of_landmarks() == n_landmarks
-#     for n in range(n_landmarks):
-#         m.remove_landmark(str(n))
-#     assert m.number_of_landmarks() == 0
-#     m2 = pymap.Map()
-#     for n in range(n_landmarks):
-#         pos = np.random.rand(3)
-#         lm = m2.create_landmark(str(n), pos)
-#         assert lm == m2.create_landmark(str(n), pos)
-#         assert np.allclose(pos, lm.get_global_pos())
-#         assert np.allclose(pos, lm.coordinates)
-#         assert lm.unique_id == n
-#         assert lm.id == str(n)
-#         assert lm == m2.get_landmark(str(n))
-#         color = (np.random.rand(3) * 255).astype(int)
-#         lm.color = color
-#         assert np.allclose(lm.color, color)
-#         assert lm.has_observations() == 0
-#         new_pos = np.random.rand(3)
-#         lm.coordinates = new_pos
-#         assert np.allclose(new_pos, lm.get_global_pos())
-#         assert np.allclose(new_pos, lm.coordinates)
-#         new_pos = np.random.rand(3)
-#         lm.set_global_pos(new_pos)
-#         assert np.allclose(new_pos, lm.get_global_pos())
-#         assert np.allclose(new_pos, lm.coordinates)
-#         # reprojection errors
-#         reproj_errors = dict(
-#             {"shot1": np.random.rand(2), "shot2": np.random.rand(2)})
-#         lm.reprojection_errors = reproj_errors
-#         errors = lm.reprojection_errors
-#         for k in reproj_errors.keys():
-#             assert np.allclose(errors[k], reproj_errors[k])
-
-#         for k in reproj_errors.keys():
-#             lm.remove_reprojection_error(k)
-#         errors = lm.reprojection_errors
-#         assert len(errors) == 0
-
-
 def test_map():
     m = pymap.Map()
     n_cams = 2
@@ -727,11 +666,9 @@ def test_observation_shot_removal():
                                  n_points=200, dist_to_shots=True)
     rec.remove_shot("0")
     for p in rec.points.values():
-        print(p.get_observations())
         assert len(p.get_observations()) <= 1
     rec.remove_shot("1")
     for p in rec.points.values():
-        print(p.get_observations())
         assert len(p.get_observations()) == 0
 
 
@@ -752,7 +689,6 @@ def test_observation_point_removal():
             shots.append((shot, shot.compute_num_valid_pts()))
         rec.remove_point(pt_id)
         for shot, n_shots in shots:
-            print(shot.compute_num_valid_pts(1), n_shots)
             # Check that the point really was deleted
             assert n_shots - 1 == shot.compute_num_valid_pts(1)
 

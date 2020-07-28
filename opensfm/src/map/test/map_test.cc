@@ -91,7 +91,7 @@ TEST(Map, TestShotGetter)
   auto* shot1 = map.CreateShot(shot_id, "0");
   ASSERT_EQ(shot1, map.GetShot(shot_id));
   ASSERT_TRUE(map.HasShot(shot_id));
-  ASSERT_EQ(map.GetShot("invalid_shot_id"), nullptr);
+  ASSERT_ANY_THROW(map.GetShot("invalid_shot_id"));
 }
 
 TEST(Map, TestLandmarkGetter)
@@ -124,9 +124,9 @@ TEST(Map, TestCreatePoints)
 TEST(Map, TestInvalidIdAccess)
 {
   auto map = map::Map();
-  ASSERT_EQ(map.GetCamera("invalid"), nullptr);
-  ASSERT_EQ(map.GetLandmark("invalid"), nullptr);
-  ASSERT_EQ(map.GetShot("invalid"), nullptr);
+  ASSERT_ANY_THROW(map.GetCamera("invalid"));
+  ASSERT_ANY_THROW(map.GetLandmark("invalid"));
+  ASSERT_ANY_THROW(map.GetShot("invalid"));
 }
 
 

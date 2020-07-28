@@ -756,10 +756,8 @@ def test_reconstruction_class_initialization():
     assert len(reconstruction.points) == 0
     assert reconstruction.get_camera(camera.id) is not None
 
-    assert reconstruction.get_camera('1') is None
     assert reconstruction.get_shot(shot0.id) is not None
     assert reconstruction.get_shot(shot1.id) is not None
-    assert reconstruction.get_shot('2') is None
 
 
 def test_perspective_camera_projection():
