@@ -93,48 +93,54 @@ ShotMeasurements::Set(const ShotMeasurements& other)
   }
 }
 
-size_t
-Shot::ComputeNumValidLandmarks(const int min_obs_thr) const
-{
-  if (landmarks_.empty())
-  {
-      return std::accumulate(landmark_observations_.cbegin(), landmark_observations_.cend(), 0,
-                    [min_obs_thr](const size_t prior, const std::pair<Landmark*, Observation>& lm)
-                    {
-                        if (min_obs_thr <= lm.first->NumberOfObservations())
-                          return prior + 1;
-                        return prior;
-                    });
-  }
-  else
-  {
-    return std::accumulate(landmarks_.cbegin(), landmarks_.cend(), 0,
-                    [min_obs_thr](const size_t prior, const Landmark* lm)
-                    {
-                        if (lm != nullptr && min_obs_thr <= lm->NumberOfObservations())
-                          return prior + 1;
-                        return prior;
-                    });
+size_t Shot::ComputeNumValidLandmarks(const int min_obs_thr) const {
+  if (UseLinearDataStructure()) {
+    return std::accumulate(
+        landmarks_.cbegin(), landmarks_.cend(), 0,
+        [min_obs_thr](const size_t prior, const Landmark* lm) {
+          if (lm != nullptr && min_obs_thr <= lm->NumberOfObservations())
+            return prior + 1;
+          return prior;
+        });
+  } else {
+    return std::accumulate(
+        landmark_observations_.cbegin(), landmark_observations_.cend(), 0,
+        [min_obs_thr](const size_t prior,
+                      const std::pair<Landmark*, Observation>& lm) {
+          if (min_obs_thr <= lm.first->NumberOfObservations()) return prior + 1;
+          return prior;
+        });
   }
 }
 
 float
 Shot::ComputeMedianDepthOfLandmarks(const bool take_abs) const
 {
-  if (landmarks_.empty())
-    return 1.0f;
   std::vector<float> depths;
   depths.reserve(landmarks_.size());
   const Mat4d T_cw = pose_.WorldToCamera();
   const Vec3d rot_cw_z_row = T_cw.block<1, 3>(2, 0);
   const double trans_cw_z = T_cw(2, 3);
-  for (const auto& lm : landmarks_)
-  {
-      if (lm != nullptr)
+  if (UseLinearDataStructure()) {
+    for (const auto& lm : landmarks_) {
+      if (lm != nullptr) 
       {
-        const double pos_c_z = rot_cw_z_row.dot(lm->GetGlobalPos())+trans_cw_z;
+        const double pos_c_z =
+            rot_cw_z_row.dot(lm->GetGlobalPos()) + trans_cw_z;
         depths.push_back(float(take_abs ? std::abs(pos_c_z) : pos_c_z));
       }
+    }
+  } else {
+    for (const auto& lm_pair : landmark_observations_)
+    {
+      auto* lm = lm_pair.first;
+      const double pos_c_z = rot_cw_z_row.dot(lm->GetGlobalPos())+trans_cw_z;
+      depths.push_back(float(take_abs ? std::abs(pos_c_z) : pos_c_z));
+    }
+  }
+  if (depths.empty())
+  {
+    return 0;
   }
   std::sort(depths.begin(), depths.end());
   return depths.at((depths.size() - 1) / 2);
@@ -166,15 +172,7 @@ Shot::InitAndTakeDatastructures(AlignedVector<Observation> keypts, DescriptorMat
 void
 Shot::ScaleLandmarks(const double scale)
 {
-  if (landmarks_.empty())
-  {
-    for (auto& lm_obs : landmark_observations_)
-    {
-      auto* lm = lm_obs.first;
-      lm->SetGlobalPos(lm->GetGlobalPos()*scale);
-    }
-  }
-  else
+  if (UseLinearDataStructure())
   {
     for (auto* lm : landmarks_) 
     {
@@ -182,6 +180,15 @@ Shot::ScaleLandmarks(const double scale)
       {
         lm->SetGlobalPos(lm->GetGlobalPos()*scale);
       }
+    }
+  }
+  else
+  {
+
+    for (auto& lm_obs : landmark_observations_)
+    {
+      auto* lm = lm_obs.first;
+      lm->SetGlobalPos(lm->GetGlobalPos()*scale);
     }
   }
 }
@@ -197,16 +204,16 @@ Shot::ScalePose(const double scale)
 void 
 Shot::RemoveLandmarkObservation(const FeatureId id) 
 {
-  // for OpenSfM
-  if (landmarks_.empty())
+  //for SLAM
+  if (UseLinearDataStructure())
+  {
+    landmarks_.at(id) = nullptr; 
+  }
+  else   // for OpenSfM
   {
     auto* lm = landmark_id_.at(id);
     landmark_id_.erase(id);
     landmark_observations_.erase(lm);
-  }
-  else //for SLAM
-  {
-    landmarks_.at(id) = nullptr; 
   }
 }
 

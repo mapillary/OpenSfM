@@ -93,24 +93,25 @@ class Shot {
            Eigen::aligned_allocator<Observation>>& GetLandmarkObservations() { return landmark_observations_; }
 
   const Observation& GetObservation(const FeatureId id) const {
-    return landmarks_.empty() ? landmark_observations_.at(landmark_id_.at(id))
-                              : keypoints_.at(id);
+    return UseLinearDataStructure()
+               ? keypoints_.at(id)
+               : landmark_observations_.at(landmark_id_.at(id));
   }
 
   std::vector<Landmark*> ComputeValidLandmarks() {
     std::vector<Landmark*> valid_landmarks;
 
     // we use the landmark observation
-    if (landmarks_.empty()) {
-      valid_landmarks.reserve(landmark_observations_.size());
-      for (const auto& lm_obs : landmark_observations_) {
-        valid_landmarks.push_back(lm_obs.first);
-      }
-    } else {
+    if (UseLinearDataStructure()) {
       valid_landmarks.reserve(landmarks_.size());
       std::copy_if(landmarks_.begin(), landmarks_.end(),
                    std::back_inserter(valid_landmarks),
                    [](const Landmark* lm) { return lm != nullptr; });
+    } else {
+      valid_landmarks.reserve(landmark_observations_.size());
+      for (const auto& lm_obs : landmark_observations_) {
+        valid_landmarks.push_back(lm_obs.first);
+      }
     }
     return valid_landmarks;
   }
@@ -183,6 +184,8 @@ class Shot {
 
   MatXd GetCovariance() const { return covariance; };
   void SetCovariance(const MatXd& cov) { covariance = cov; };
+
+  bool UseLinearDataStructure() const { return !landmarks_.empty(); }
 
  public:
   SLAMShotData slam_data_;
