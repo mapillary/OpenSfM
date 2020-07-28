@@ -7,7 +7,7 @@ use_exif_size: yes
 default_focal_prior: 0.85
 
 # Params for features
-feature_type: HAHOG           # Feature type (AKAZE, SURF, SIFT, HAHOG, ORB)
+feature_type: HAHOG           # Feature type (AKAZE, SURF, SIFT, HAHOG, ORB, SIFT_GPU)
 feature_root: 1               # If 1, apply square root mapping to features
 feature_min_frames: 4000      # If fewer frames are detected, sift_peak_threshold/surf_hessian_threshold is reduced.
 feature_process_size: 2048    # Resize the image if its size is larger than specified. Set to -1 for original size
@@ -16,6 +16,13 @@ feature_use_adaptive_suppression: no
 # Params for SIFT
 sift_peak_threshold: 0.1     # Smaller value -> more features
 sift_edge_threshold: 10       # See OpenCV doc
+
+# Params for SIFT_GPU  
+# More information on Feature detection http://www.silx.org/doc/silx/dev/_modules/silx/opencl/sift/plan.html#SiftPlan
+# More information on Feature Matching http://www.silx.org/doc/silx/dev/_modules/silx/opencl/sift/match.html
+sift_gpu_init_sigma: 1.6  # blurring width, you should have good reasons to modify the 1.6 default value 
+pix_per_keypoints: 10  # Number of key-point pre-allocated: 1 for 10 pixel
+sift_gpu_device_type: GPU  # Can be 'CPU' or 'GPU'
 
 # Params for SURF
 surf_hessian_threshold: 3000  # Smaller value -> more features
