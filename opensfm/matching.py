@@ -12,7 +12,7 @@ from opensfm import log
 from opensfm import multiview
 from opensfm import pairs_selection
 from opensfm import feature_loader
-from sift_gpu import SiftGpu
+from opensfm.sift_gpu import SiftGpu
 
 logger = logging.getLogger(__name__)
 
