@@ -7,7 +7,7 @@ import sys
 import cv2
 
 from opensfm import context
-from sift_gpu import SiftGpu
+from opensfm.sift_gpu import SiftGpu
 from opensfm import pyfeatures
 
 logger = logging.getLogger(__name__)
