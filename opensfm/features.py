@@ -7,7 +7,6 @@ import sys
 import cv2
 
 from opensfm import context
-from opensfm import csfm
 from sift_gpu import SiftGpu
 from opensfm import pyfeatures
 
