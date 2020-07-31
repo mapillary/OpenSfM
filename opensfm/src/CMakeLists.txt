@@ -39,7 +39,6 @@ find_package(Eigen REQUIRED)
 find_package(Ceres REQUIRED)
 find_package(Gflags REQUIRED)
 find_package(Glog REQUIRED)
-find_package(Gmock REQUIRED)
 
 find_package(OpenCV)
 # OpenCV's OpenCVConfig will enforce imgcodecs for < 3.0
