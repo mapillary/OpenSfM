@@ -7,7 +7,7 @@ set(FEATURES_FILES
     src/matching.cc
 )
 add_library(features ${FEATURES_FILES})
-target_link_libraries(features 
+target_link_libraries(features
   PRIVATE
     ${OpenCV_LIBS}
     akaze
@@ -17,6 +17,7 @@ target_link_libraries(features
 target_include_directories(features PRIVATE ${CMAKE_SOURCE_DIR})
 
 pybind11_add_module(pyfeatures python/pybind.cc)
+target_include_directories(pyfeatures PRIVATE ${GLOG_INCLUDE_DIR})
 target_link_libraries(pyfeatures
   PRIVATE
     features

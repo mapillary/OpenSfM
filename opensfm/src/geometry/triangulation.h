@@ -9,27 +9,11 @@
 #include <string>
 #include <foundation/python_types.h>
 
-namespace geometry {
-
-enum {
-  TRIANGULATION_OK = 0,
-  TRIANGULATION_SMALL_ANGLE,
-  TRIANGULATION_BEHIND_CAMERA,
-  TRIANGULATION_BAD_REPROJECTION
-};
-
 double AngleBetweenVectors(const Eigen::Vector3d &u, const Eigen::Vector3d &v);
-
-py::list TriangulateReturn(int error, py::object value);
 
 Eigen::Vector4d TriangulateBearingsDLTSolve(
     const Eigen::Matrix<double, -1, 3> &bs,
     const std::vector< Eigen::Matrix<double, 3, 4> > &Rts);
-
-py::object TriangulateBearingsDLT(const std::vector<Eigen::Matrix<double, 3, 4>> &Rts,
-                                  const Eigen::Matrix<double, -1, 3> &bearings,
-                                  double threshold,
-                                  double min_angle);
 
 // Point minimizing the squared distance to all rays
 // Closed for solution from
@@ -59,6 +43,13 @@ Eigen::Matrix<T, 3, 1> TriangulateBearingsMidpointSolve(
   return (Eigen::Matrix<T, 3, 3>::Identity() + BBt * Cinv) * A / T(nviews) - Cinv * BBtA;
 }
 
+namespace geometry {
+
+std::pair<bool, Eigen::Vector3d> TriangulateBearingsDLT(
+    const std::vector<Eigen::Matrix<double, 3, 4>> &Rts,
+    const Eigen::Matrix<double, -1, 3> &bearings, double threshold,
+    double min_angle);
+
 template< class T >
 Eigen::Matrix<T, 3, 1> TriangulateTwoBearingsMidpointSolve(
     const Eigen::Matrix<T, 2, 3> &centers,
@@ -85,9 +76,9 @@ std::vector<Eigen::Vector3d> TriangulateTwoBearingsMidpointMany(
     const Eigen::Matrix3d& rotation,
     const Eigen::Vector3d& translation);
 
-py::object TriangulateBearingsMidpoint(const Eigen::Matrix<double, -1, 3> &centers,
-                                       const Eigen::Matrix<double, -1, 3> &bearings,
-                                       const std::vector<double> &threshold_list,
-                                       double min_angle);
+std::pair<bool, Eigen::Vector3d> TriangulateBearingsMidpoint(
+    const Eigen::Matrix<double, -1, 3> &centers,
+    const Eigen::Matrix<double, -1, 3> &bearings,
+    const std::vector<double> &threshold_list, double min_angle);
 
 }  // namespace geometry
