@@ -12,19 +12,13 @@ from opensfm import log
 from opensfm import multiview
 from opensfm import pairs_selection
 from opensfm import feature_loader
-from sift_gpu import SiftGpu
+from opensfm.sift_gpu import SiftGpu, check_gpu_initialization
 
 logger = logging.getLogger(__name__)
 
 
 def clear_cache():
     feature_loader.instance.clear_cache()
-
-
-def check_gpu_initialization(config, image):
-    if 'sift_gpu' not in globals():
-        global sift_gpu
-        sift_gpu = SiftGpu.sift_gpu_from_config(config, image)
 
 
 def match_images(data, ref_images, cand_images):
@@ -69,6 +63,9 @@ def match_images_with_pairs(data, exifs, ref_images, pairs):
     logger.info('Matching {} image pairs'.format(len(pairs)))
     mem_per_process = 512
     jobs_per_process = 2
+    if data.config['feature_type'] is 'SIFT_GPU':
+        data.config['processes'] = 1  # GPU cant run in parallel but it faster even when it does not run in parallel
+        check_gpu_initialization(data.config, pairs[0][0], data=data)
     processes = context.processes_that_fit_in_memory(data.config['processes'], mem_per_process)
     logger.info("Computing pair matching with %d processes" % processes)
     matches = context.parallel_map(match_unwrap_args, args, processes, jobs_per_process)
@@ -249,11 +246,9 @@ def match_unwrap_args(args):
     im1, candidates, ctx = args
 
     im1_matches = {}
-    p1, f1, _ = feature_loader.instance.load_points_features_colors(ctx.data, im1)
     camera1 = ctx.cameras[ctx.exifs[im1]['camera']]
 
     for im2 in candidates:
-        p2, f2, _ = feature_loader.instance.load_points_features_colors(ctx.data, im2)
         camera2 = ctx.cameras[ctx.exifs[im2]['camera']]
 
         im1_matches[im2] = match(im1, im2, camera1, camera2, ctx.data)
@@ -303,6 +298,13 @@ def match(im1, im2, camera1, camera2, data):
             matches = match_brute_force_symmetric(f1, f2, config)
         else:
             matches = match_brute_force(f1, f2, config)
+    elif matcher_type == 'SIFT_GPU':
+        k1 = data.load_gpu_features(im1)
+        k2 = data.load_gpu_features(im2)
+        if k1 is None or k2 is None:
+            k1 = feature_loader.instance.create_gpu_keypoints_from_features(f1, p1)
+            k2 = feature_loader.instance.create_gpu_keypoints_from_features(f2, p2)
+        matches = sift_gpu.match_images(k1, k2)
     else:
         raise ValueError("Invalid matcher_type: {}".format(matcher_type))
 

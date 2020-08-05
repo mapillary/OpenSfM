@@ -5,6 +5,15 @@ except ImportError:
                       'please change the config file or install the silx library via pip')
 
 
+def check_gpu_initialization(config, image, data=None):
+    if 'sift_gpu' not in globals():
+        global sift_gpu
+        if data is not None and isinstance(image, str):
+            sift_gpu = SiftGpu.sift_gpu_from_config(config, data.load_image(image))
+        else:
+            sift_gpu = SiftGpu.sift_gpu_from_config(config, image)
+
+
 class SiftGpu:
     """
     This Class contain the implementation of sift feature detector and matching on GPU

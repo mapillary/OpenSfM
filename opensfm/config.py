@@ -46,7 +46,7 @@ hahog_normalize_to_uchar: yes
 
 # Params for general matching
 lowes_ratio: 0.8              # Ratio test for matches
-matcher_type: FLANN           # FLANN, BRUTEFORCE, or WORDS
+matcher_type: FLANN           # FLANN, BRUTEFORCE, SIFT_GPU or WORDS
 symmetric_matching: yes       # Match symmetricly or one-way
 
 # Params for FLANN matching
