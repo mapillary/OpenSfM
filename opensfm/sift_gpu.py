@@ -1,4 +1,8 @@
-from silx.image import sift
+try:
+    from silx.image import sift
+except ImportError:
+    raise ImportError('Cant import silx library for running SIFT_GPU feature extractor or matching,'
+                      'please change the config file or install the silx library via pip')
 
 
 class SiftGpu:
