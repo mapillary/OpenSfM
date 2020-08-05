@@ -242,11 +242,6 @@ def bundle_local(reconstruction, camera_priors, gcp, central_shot_id, config):
         config['local_bundle_min_common_points'],
         config['local_bundle_max_shots'])
 
-    logger.debug(
-        'Local bundle sets: interior {}  boundary {}  other {}'.format(
-            len(interior), len(boundary),
-            len(reconstruction.shots) - len(interior) - len(boundary)))
-
     point_ids = set()
     for shot_id in interior:
         shot = reconstruction.shots[shot_id]
@@ -271,6 +266,7 @@ def bundle_local(reconstruction, camera_priors, gcp, central_shot_id, config):
         point = reconstruction.points[point_id]
         ba.add_point(point.id, point.coordinates, False)
 
+    obs_count = 0
     for shot_id in interior | boundary:
         shot = reconstruction.get_shot(shot_id)
         if shot is not None:
@@ -279,6 +275,13 @@ def bundle_local(reconstruction, camera_priors, gcp, central_shot_id, config):
                     obs = shot.get_landmark_observation(point)
                     ba.add_point_projection_observation(
                         shot.id, point.id, obs.point[0], obs.point[1], obs.scale)
+                    obs_count += 1
+
+    logger.debug(
+        'Local bundle sets: interior {}  boundary {}  other {} ({} points / {} obs)'.format(
+            len(interior), len(boundary),
+            len(reconstruction.shots) - len(interior) - len(boundary),
+            len(point_ids), obs_count))
 
     if config['bundle_use_gps']:
         for shot_id in interior:
