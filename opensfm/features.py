@@ -7,10 +7,19 @@ import sys
 import cv2
 
 from opensfm import context
-from opensfm.sift_gpu import check_gpu_initialization
+from opensfm.sift_gpu import SiftGpu
 from opensfm import pyfeatures
 
 logger = logging.getLogger(__name__)
+
+
+def check_gpu_initialization(config, image, data=None):
+    if 'sift_gpu' not in globals():
+        global sift_gpu
+        if data is not None:
+            sift_gpu = SiftGpu.sift_gpu_from_config(config, data.load_image(image))
+        else:
+            sift_gpu = SiftGpu.sift_gpu_from_config(config, image)
 
 
 def resized_image(image, config):
