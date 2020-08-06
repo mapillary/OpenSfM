@@ -99,32 +99,34 @@ def bundle(reconstruction, camera_priors, gcp, config):
 
     chrono = Chronometer()
     ba = pybundle.BundleAdjuster()
-    ba.set_use_analytic_derivatives(use_analytic_derivatives)
+    # ba.set_use_analytic_derivatives(use_analytic_derivatives)
 
-    for camera in reconstruction.cameras.values():
-        camera_prior = camera_priors[camera.id]
-        ba.add_camera(camera.id, camera, camera_prior, fix_cameras)
+    # for camera in reconstruction.cameras.values():
+    #     camera_prior = camera_priors[camera.id]
+    #     ba.add_camera(camera.id, camera, camera_prior, fix_cameras)
 
-    for shot in reconstruction.shots.values():
-        r = shot.pose.rotation
-        t = shot.pose.translation
-        ba.add_shot(shot.id, shot.camera.id, r, t, False)
+    # for shot in reconstruction.shots.values():
+    #     r = shot.pose.rotation
+    #     t = shot.pose.translation
+    #     ba.add_shot(shot.id, shot.camera.id, r, t, False)
 
-    for point in reconstruction.points.values():
-        ba.add_point(point.id, point.coordinates, False)
+    # for point in reconstruction.points.values():
+    #     ba.add_point(point.id, point.coordinates, False)
 
-    for shot_id in reconstruction.shots:
-        shot = reconstruction.get_shot(shot_id)
-        for point in shot.get_valid_landmarks():
-            obs = shot.get_landmark_observation(point)
-            ba.add_point_projection_observation(
-                shot.id, point.id, obs.point[0], obs.point[1], obs.scale)
+    # for shot_id in reconstruction.shots:
+    #     shot = reconstruction.get_shot(shot_id)
+    #     for point in shot.get_valid_landmarks():
+    #         obs = shot.get_landmark_observation(point)
+    #         ba.add_point_projection_observation(
+    #             shot.id, point.id, obs.point[0], obs.point[1], obs.scale)
 
-    if config['bundle_use_gps']:
-        for shot in reconstruction.shots.values():
-            g = shot.metadata.gps_position.value
-            ba.add_position_prior(shot.id, g[0], g[1], g[2],
-                                  shot.metadata.gps_accuracy.value)
+    # if config['bundle_use_gps']:
+    #     for shot in reconstruction.shots.values():
+    #         g = shot.metadata.gps_position.value
+    #         ba.add_position_prior(shot.id, g[0], g[1], g[2],
+    #                               shot.metadata.gps_accuracy.value)
+    
+    pymap.BAHelpers.setup_ba(reconstruction.map, ba)
 
     if config['bundle_use_gcp'] and gcp:
         _add_gcp_to_bundle(ba, gcp, reconstruction.shots)

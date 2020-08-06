@@ -7,6 +7,7 @@
 #include <map/map.h>
 #include <map/pybind_utils.h>
 #include <map/shot.h>
+#include <map/ba_helpers.h>
 #include <pybind11/eigen.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -509,4 +510,8 @@ PYBIND11_MODULE(pymap, m) {
       .def("__getitem__", &map::CameraView::GetCamera,
            py::return_value_policy::reference_internal)
       .def("__contains__", &map::CameraView::HasCamera);
+  
+  py::class_<BAHelpers>(m, "BAHelpers")
+      .def("setup_ba", &BAHelpers::SetUpBAFromReconstruction)
+  ;
 }

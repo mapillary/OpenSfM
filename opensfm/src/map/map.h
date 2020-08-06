@@ -30,6 +30,9 @@ public:
   bool HasCamera(const CameraId& cam_id) const {
     return cameras_.count(cam_id) > 0;
   }
+  const std::unordered_map<CameraId, Camera> GetCameras() const {
+    return cameras_;
+  }
 
   // Shot Methods
   Shot* CreateShot(const ShotId& shot_id, const CameraId& camera_id);
