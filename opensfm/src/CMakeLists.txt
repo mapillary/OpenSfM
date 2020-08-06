@@ -41,7 +41,7 @@ find_package(Gflags REQUIRED)
 find_package(Glog REQUIRED)
 
 find_package(OpenCV)
-# OpenCV's OpenCVConfig will enforce imgcodecs for < 3.0 
+# OpenCV's OpenCVConfig will enforce imgcodecs for < 3.0
 # (even if OPTIONAL_COMPONENTS) so we remove it as we don't need it
 # Cause is imread/imwrite moved to imgcodecs on > 3.0
 if(${OpenCV_VERSION} LESS 3.0)
@@ -75,6 +75,7 @@ if (OPENSFM_BUILD_TESTS)
   add_library(gtest
               third_party/gtest/gmock_gtest_all.cc
               third_party/gtest/gmock_main.cc)
+  target_include_directories(gtest PRIVATE ${GFLAGS_INCLUDE_DIR})
 
   set(TEST_MAIN test_main)
   add_library(${TEST_MAIN} testing_main.cc)
