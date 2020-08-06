@@ -13,6 +13,15 @@ from opensfm import pyfeatures
 logger = logging.getLogger(__name__)
 
 
+def check_gpu_initialization(config, image, data=None):
+    if 'sift_gpu' not in globals():
+        global sift_gpu
+        if data is not None:
+            sift_gpu = SiftGpu.sift_gpu_from_config(config, data.load_image(image))
+        else:
+            sift_gpu = SiftGpu.sift_gpu_from_config(config, image)
+
+
 def resized_image(image, config):
     """Resize image to feature_process_size."""
     max_size = config['feature_process_size']
@@ -139,11 +148,6 @@ def extract_features_sift(image, config):
     return points, desc
 
 
-def check_gpu_initialization(config, image):
-    if 'sift_gpu' not in globals():
-        global sift_gpu
-        sift_gpu = SiftGpu.sift_gpu_from_config(config, image)
-
 def extract_features_sift_gpu(image, config):
     check_gpu_initialization(config, image)
     keypoints = sift_gpu.detect_image(image)
@@ -244,10 +248,10 @@ def extract_features_akaze(image, config):
 def extract_features_hahog(image, config):
     t = time.time()
     points, desc = pyfeatures.hahog(image.astype(np.float32) / 255,  # VlFeat expects pixel values between 0, 1
-                              peak_threshold=config['hahog_peak_threshold'],
-                              edge_threshold=config['hahog_edge_threshold'],
-                              target_num_features=config['feature_min_frames'],
-                              use_adaptive_suppression=config['feature_use_adaptive_suppression'])
+                                    peak_threshold=config['hahog_peak_threshold'],
+                                    edge_threshold=config['hahog_edge_threshold'],
+                                    target_num_features=config['feature_min_frames'],
+                                    use_adaptive_suppression=config['feature_use_adaptive_suppression'])
 
     if config['feature_root']:
         desc = np.sqrt(desc)

@@ -1,9 +1,9 @@
-#!/usr/bin/env bash
+ #!/usr/bin/env bash
 
 set -e
 
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
-PYTHON=python2.7
+PYTHON=${2:-python3}
 
 echo "Running using Python command: $PYTHON"
 
@@ -13,5 +13,5 @@ $PYTHON $DIR/opensfm match_features $1
 $PYTHON $DIR/opensfm create_tracks $1
 $PYTHON $DIR/opensfm reconstruct $1
 $PYTHON $DIR/opensfm mesh $1
-#$PYTHON $DIR/opensfm undistort $1
-#$PYTHON $DIR/opensfm compute_depthmaps $1
+$PYTHON $DIR/opensfm undistort $1
+$PYTHON $DIR/opensfm compute_depthmaps $1

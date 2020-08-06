@@ -17,14 +17,17 @@ from opensfm.sift_gpu import SiftGpu
 logger = logging.getLogger(__name__)
 
 
-def clear_cache():
-    feature_loader.instance.clear_cache()
-
-
-def check_gpu_initialization(config, image):
+def check_gpu_initialization(config, image, data=None):
     if 'sift_gpu' not in globals():
         global sift_gpu
-        sift_gpu = SiftGpu.sift_gpu_from_config(config, image)
+        if data is not None:
+            sift_gpu = SiftGpu.sift_gpu_from_config(config, data.load_image(image))
+        else:
+            sift_gpu = SiftGpu.sift_gpu_from_config(config, image)
+
+
+def clear_cache():
+    feature_loader.instance.clear_cache()
 
 
 def match_images(data, ref_images, cand_images):
@@ -46,8 +49,6 @@ def match_images(data, ref_images, cand_images):
         ref_images, cand_images, exifs, data)
 
     # Match them !
-    if config["feature_type"] == "SIFT_GPU":
-        return match_images_with_pairs_gpu(data, exifs, ref_images, pairs), preport
     return match_images_with_pairs(data, exifs, ref_images, pairs), preport
 
 
@@ -87,107 +88,6 @@ def match_images_with_pairs(data, exifs, ref_images, pairs):
         for im2, m in im1_matches.items():
             resulting_pairs[im1, im2] = m
 
-    return resulting_pairs
-
-
-def match_all_images_gpu(data, exifs, per_images):
-    cameras = data.load_camera_models()
-    pairs = sorted(per_images.items(), key=lambda x: -len(x[1]))
-    matches = []
-    for img1, candidates in pairs:
-        img1_matches = {}
-        camera1 = cameras[exifs[img1]['camera']]
-        for img2 in candidates:
-            camera2 = cameras[exifs[img2]['camera']]
-            img1_matches[img2] = match_images_sift_gpu(data, img1, img2, camera1, camera2)
-        matches.append([img1, img1_matches])
-    return matches
-
-
-def match_images_sift_gpu(data, img1, img2, camera1, camera2):
-    config = data.config
-    time_start = timer()
-    p1, f1, _ = feature_loader.instance.load_points_features_colors(
-        data, img1, masked=False)
-    p2, f2, _ = feature_loader.instance.load_points_features_colors(
-        data, img2, masked=False)
-    keypoints1 = data.load_gpu_features(img1)
-    keypoints2 = data.load_gpu_features(img2)
-
-    if p1 is None or len(p1) < 2 or p2 is None or len(p2) < 2:
-        return []
-    matches = sift_gpu.match_images(keypoints1, keypoints2)
-
-    # Adhoc filters
-    if config['matching_use_filters']:
-        matches = apply_adhoc_filters(data, matches,
-                                      img1, camera1, p1,
-                                      img2, camera2, p2)
-    matches = np.array(matches, dtype=int)
-    time_2d_matching = timer() - time_start
-    t = timer()
-    robust_matching_min_match = config['robust_matching_min_match']
-    if len(matches) < robust_matching_min_match:
-        logger.debug(
-            'Matching {} and {}.  Matcher: {} T-desc: {:1.3f} '
-            'Matches: FAILED'.format(
-                img1, img2,
-                "SIFT_GPU",
-                time_2d_matching))
-        return []
-
-    # robust matching
-    rmatches = robust_match(p1, p2, camera1, camera2, matches, config)
-    rmatches = np.array([[a, b] for a, b in rmatches])
-    time_robust_matching = timer() - t
-    time_total = timer() - time_start
-
-    # From indexes in filtered sets, to indexes in original sets of features
-    m1 = feature_loader.instance.load_mask(data, img1)
-    m2 = feature_loader.instance.load_mask(data, img2)
-    if m1 is not None and m2 is not None:
-        rmatches = unfilter_matches(rmatches, m1, m2)
-
-    logger.debug(
-        'Matching {} and {}.  Matcher: {}  '
-        'T-desc: {:1.3f} T-robust: {:1.3f} T-total: {:1.3f} '
-        'Matches: {} Robust: {} Success: {}'.format(
-            img1, img2, "SIFT_GPU",
-            time_2d_matching, time_robust_matching, time_total,
-            len(matches), len(rmatches),
-            len(rmatches) >= robust_matching_min_match))
-
-    if len(rmatches) < robust_matching_min_match:
-        return []
-
-    return np.array(rmatches, dtype=int)
-
-
-def match_images_with_pairs_gpu(data, exifs, ref_images, pairs):
-    """ Perform pair matchings given pairs. """
-
-    # Store per each image in ref for processing
-    per_image = {im: [] for im in ref_images}
-    check_gpu_initialization(data.config, data.load_image(pairs[0][0]))
-    for im1, im2 in pairs:
-        per_image[im1].append(im2)
-
-    start = timer()
-    matches = match_all_images_gpu(data, exifs, per_image)
-
-    logger.info(
-        'Matched {} pairs for {} ref_images '
-        'in {} seconds ({} seconds/pair).'.format(
-            len(pairs),
-            len(ref_images),
-            timer() - start,
-            (timer() - start) / len(pairs) if pairs else 0))
-
-    # Index results per pair
-    resulting_pairs = {}
-    for im1, im1_matches in matches:
-        for im2, m in im1_matches.items():
-            resulting_pairs[im1, im2] = m
     return resulting_pairs
 
 
@@ -249,11 +149,9 @@ def match_unwrap_args(args):
     im1, candidates, ctx = args
 
     im1_matches = {}
-    p1, f1, _ = feature_loader.instance.load_points_features_colors(ctx.data, im1)
     camera1 = ctx.cameras[ctx.exifs[im1]['camera']]
 
     for im2 in candidates:
-        p2, f2, _ = feature_loader.instance.load_points_features_colors(ctx.data, im2)
         camera2 = ctx.cameras[ctx.exifs[im2]['camera']]
 
         im1_matches[im2] = match(im1, im2, camera1, camera2, ctx.data)
@@ -303,6 +201,14 @@ def match(im1, im2, camera1, camera2, data):
             matches = match_brute_force_symmetric(f1, f2, config)
         else:
             matches = match_brute_force(f1, f2, config)
+    elif matcher_type == 'SIFT_GPU':
+        check_gpu_initialization(config, im1, data)
+        k1 = data.load_gpu_features(im1)
+        k2 = data.load_gpu_features(im2)
+        if k1 is None or k2 is None:
+            k1 = feature_loader.instance.create_gpu_keypoints_from_features(p1, f1)
+            k2 = feature_loader.instance.create_gpu_keypoints_from_features(p2, f2)
+        matches = sift_gpu.match_images(k1, k2)
     else:
         raise ValueError("Invalid matcher_type: {}".format(matcher_type))
 
