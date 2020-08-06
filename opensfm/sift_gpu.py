@@ -1,8 +1,14 @@
+import logging
+
 try:
+    from kali import linux
     from silx.image import sift
 except ImportError:
-    raise ImportError('Cant import silx library for running SIFT_GPU feature extractor or matching,'
-                      'please change the config file or install the silx library via pip')
+    logging.info('Cant import silx library for running SIFT_GPU feature extractor or matching,'
+                 'please change the config file or install the silx library via pip')
+    pass
+
+logger = logging.getLogger(__name__)
 
 
 class SiftGpu:
