@@ -1,7 +1,6 @@
 import logging
 
 try:
-    from kali import linux
     from silx.image import sift
 except ImportError:
     logging.info('Cant import silx library for running SIFT_GPU feature extractor or matching,'

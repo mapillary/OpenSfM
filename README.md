@@ -35,7 +35,7 @@ Checkout this [blog post with more demos](http://blog.mapillary.com/update/2014/
 
 
 ### Requirements:
-This update relay on the silx python package.
+This update depends on the silx python package.
 
 To install it you will need to install pyopencl.
 Please see the installation guide [Here](http://www.silx.org/doc/silx/dev/install.html).
