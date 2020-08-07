@@ -553,7 +553,7 @@ def two_view_reconstruction(p1, p2, camera1, camera2,
 
     if inliers.sum() > 5:
         T = multiview.relative_pose_optimize_nonlinear(b1[inliers],
-                                                       b2[inliers], 
+                                                       b2[inliers],
                                                        t, R,
                                                        iterations)
         R = T[:, :3]
@@ -876,7 +876,7 @@ class TrackTriangulator:
             e, X = pygeometry.triangulate_bearings_midpoint(
                 os_t, bs_t, thresholds, np.radians(min_ray_angle_degrees))
 
-            if X is not None:
+            if e:
                 reprojected_bs = X-os
                 reprojected_bs /= np.linalg.norm(reprojected_bs, axis=1)[:, np.newaxis]
                 inliers = np.linalg.norm(reprojected_bs - bs, axis=1) < reproj_threshold
@@ -915,7 +915,7 @@ class TrackTriangulator:
             thresholds = len(os) * [reproj_threshold]
             e, X = pygeometry.triangulate_bearings_midpoint(
                 os, bs, thresholds, np.radians(min_ray_angle_degrees))
-            if X is not None:
+            if e:
                 point = types.Point()
                 point.id = track
                 point.coordinates = X.tolist()
@@ -937,7 +937,7 @@ class TrackTriangulator:
         if len(Rts) >= 2:
             e, X = pygeometry.triangulate_bearings_dlt(
                 Rts, bs, reproj_threshold, np.radians(min_ray_angle_degrees))
-            if X is not None:
+            if e:
                 point = types.Point()
                 point.id = track
                 point.coordinates = X.tolist()
@@ -1317,7 +1317,7 @@ def incremental_reconstruction(data, tracks_manager):
     chrono = Chronometer()
 
     images = tracks_manager.get_shot_ids()
-    
+
     if not data.reference_lla_exists():
         data.invent_reference_lla(images)
 
