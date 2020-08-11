@@ -299,5 +299,5 @@ def triangulate_all_gcp(reconstruction, gcp):
         x = triangulate_single_gcp(reconstruction, point.observations)
         if x is not None:
             triangulated.append(x)
-            measured.append(point.coordinates)
+            measured.append(point.coordinates.value)
     return triangulated, measured

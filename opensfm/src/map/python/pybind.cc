@@ -535,14 +535,15 @@ PYBIND11_MODULE(pymap, m) {
     .def(py::init())
     .def(py::init<const map::ShotId&, const Vec2d&>())
     .def_readwrite("shot_id", &map::GroundControlPointObservation::shot_id_)
-    .def_readwrite("projection_", &map::GroundControlPointObservation::projection_)
+    .def_readwrite("projection", &map::GroundControlPointObservation::projection_)
   ;
-  py::class_<map::GroundControlPoints>(m ,"GroundControlPoints")
-    .def(py::init())
-    .def(py::init<const map::LandmarkId&, const Vec3d&, const bool, const Vec3d&>())
-    .def_readwrite("id", &map::GroundControlPoints::id_)
-    .def_readwrite("coordinates", &map::GroundControlPoints::coordinates_)
-    .def_readwrite("has_altitude", &map::GroundControlPoints::has_altitude_)
-    .def_readwrite("lla", &map::GroundControlPoints::lla_)
+  py::class_<map::GroundControlPoint>(m, "GroundControlPoint")
+      .def(py::init())
+      .def_readwrite("id", &map::GroundControlPoint::id_)
+      .def_readwrite("coordinates", &map::GroundControlPoint::coordinates_)
+      .def_readwrite("has_altitude", &map::GroundControlPoint::has_altitude_)
+      .def_readwrite("lla", &map::GroundControlPoint::lla_)
+      .def_property("observations", &map::GroundControlPoint::GetObservations, &map::GroundControlPoint::SetObservations)
+      .def("add_observation", &map::GroundControlPoint::AddObservation)
   ;
 }

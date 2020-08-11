@@ -1,6 +1,7 @@
 #include <map/ba_helpers.h>
 #include <bundle/bundle_adjuster.h>
 #include <map/map.h>
+#include <map/ground_control_points.h>
 #include <chrono>
 #include <map/config.h>
 #include <foundation/types.h>
@@ -23,7 +24,6 @@ void BAHelpers::SetUpBAFromReconstruction(map::Map& map, BundleAdjuster& ba) {
     const auto& pose = shot.GetPose();
     ba.AddShot(shot.id_, shot.shot_camera_->id, pose.RotationWorldToCameraMin(),
                pose.TranslationWorldToCamera(), false);
-    std::cout << "shot: " << shot.id_ << ", " << pose.RotationWorldToCameraMin() << ", " << pose.TranslationWorldToCamera() << std::endl;
     if (bundle_use_gps) {
       const Vec3d g = shot.shot_measurements_.gps_position_.Value();
       ba.AddPositionPrior(shot.id_, g[0], g[1], g[2],
@@ -31,30 +31,29 @@ void BAHelpers::SetUpBAFromReconstruction(map::Map& map, BundleAdjuster& ba) {
     }
     // Now, divide betwen linear datastructure and map
     if (shot.UseLinearDataStructure()) {
-        const auto& keypts = shot.GetKeyPoints();
-        const auto& landmarks = shot.GetLandmarks();
-        assert(keypts.size() == landmarks.size());
-        for (size_t idx = 0; idx < landmarks.size(); ++idx)
-        {
-            const auto* lm = landmarks[idx];
-            if (lm != nullptr)
-            {
-                //add
-                const auto& obs = keypts[idx];
-                ba.AddPointProjectionObservation(shot.id_, lm->id_, obs.point[0], obs.point[1], obs.scale);
-                std::cout << "point obs" << shot.id_ << ", " << lm->id_ << ", " << obs.point.transpose() << ", " << obs.scale << std::endl;
-            }
+      const auto& keypts = shot.GetKeyPoints();
+      const auto& landmarks = shot.GetLandmarks();
+      assert(keypts.size() == landmarks.size());
+      for (size_t idx = 0; idx < landmarks.size(); ++idx) {
+        const auto* lm = landmarks[idx];
+        if (lm != nullptr) {
+          // add
+          const auto& obs = keypts[idx];
+          ba.AddPointProjectionObservation(shot.id_, lm->id_, obs.point[0],
+                                           obs.point[1], obs.scale);
+          // std::cout << "point obs" << shot.id_ << ", " << lm->id_ << ", "
+          //           << obs.point.transpose() << ", " << obs.scale << std::endl;
         }
-    }
-    else
-    {
-        for (const auto& lm_obs : shot.GetLandmarkObservations())
-        {
-            const auto& obs = lm_obs.second;
-            ba.AddPointProjectionObservation(shot.id_, lm_obs.first->id_, obs.point[0], obs.point[1], obs.scale);
-            std::cout << "point obs" << shot.id_ << ", " << lm_obs.first->id_ << ", " << obs.point.transpose() << ", " << obs.scale << std::endl;
-
-        }
+      }
+    } else {
+      for (const auto& lm_obs : shot.GetLandmarkObservations()) {
+        const auto& obs = lm_obs.second;
+        ba.AddPointProjectionObservation(shot.id_, lm_obs.first->id_,
+                                         obs.point[0], obs.point[1], obs.scale);
+        // std::cout << "point obs" << shot.id_ << ", " << lm_obs.first->id_
+        //           << ", " << obs.point.transpose() << ", " << obs.scale
+        //           << std::endl;
+      }
     }
   }
 }
@@ -314,6 +313,86 @@ BAHelpers::BundleLocal(map::Map& map, const map::ShotId& central_shot_id, const 
   return py::make_tuple(pt_ids, report);
 }
 
+bool BAHelpers::TriangulateGCP(const map::GroundControlPoint& point,
+                                const std::unordered_map<ShotId, Shot>& shots,
+                                Vec3d& coordinates) 
+{
+  
+  constexpr auto reproj_threshold{1.0};
+  constexpr auto min_ray_angle =  0.1 * 180.0 / M_PI;
+  MatX3d os, bs;
+  size_t added = 0;
+  coordinates = Vec3d::Zero();
+  for (const auto& obs : point.observations_)
+  {
+    const auto shot_it = shots.find(obs.shot_id_);
+    if (shot_it != shots.end())
+    {
+      const auto* shot = *shot_it.second;
+      const Vec3d bearing = shot->shot_camera_->Bearing(obs.projection_);
+      const auto& shot_pose = shot->GetPose();
+      //TODO: avoid constant resizing but simply allocate a matrix
+      //      with len(point.observations_)
+      bs.conservativeResize(added + 1, Eigen::NoChange);
+      os.conservativeResize(added + 1, Eigen::NoChange);
+      bs.row(added) = shot_pose.RotationCameraToWorld() * bearing;
+      os.row(added) = shot_pose.GetOrigin();
+      ++added;
+    }
+  }
+
+  if (added >= 2)
+  {
+    
+  }
+
+
+  return true;
+}
+
+// Add Ground Control Points constraints to the bundle problem
+void BAHelpers::AddGCPToBundle(
+    BundleAdjuster& ba, const AlignedVector<map::GroundControlPoint>& gcp,
+    const std::unordered_map<ShotId, Shot>& shots) {
+  const auto& shots = map.GetAllShots();
+  for (const auto& point : gcp) {
+    const auto point_id = 'gcp-' + point.id_;
+    Vec3d coordinates;
+    if (!TriangulateGCP(point, shots, coordinates))
+    {
+      if (point.coordinates_.HasValue())
+      {
+        coordinates = point.coordinates_;
+      }
+      else
+      {
+        continue;
+      }
+    }
+    constexpr auto point_constant{false};
+    ba.AddPoint(point_id, coordinates, point_constant);
+    if (point.coordinates_.HasValue())
+    {
+      const auto point_type = point.has_altitude_ ? PositionConstraintType::XYZ : PositionConstraintType::XY;
+      ba.AddPointPositionWorld(point_id, point.coordinates.value(), 0.1, point_type);
+    }
+
+    //Now iterate through the observations
+    for (const auto& obs : point.observations_)
+    {
+      const auto& shot_id = obs.shot_id_;
+
+      if (shots.count(shot_id) > 0)
+      {
+        constexpr double scale{0.0001};
+        ba.AddPointProjectionObservation(
+          shot_id, point_id,
+          obs.projection_[0], obs.projection_[1],
+          scale)
+      }
+    }
+  }
+}
 
 py::dict
 BAHelpers::Bundle(map::Map& map, const OpenSfMConfig& config)
@@ -410,12 +489,8 @@ BAHelpers::Bundle(map::Map& map, const OpenSfMConfig& config)
     //TODO: GCP
     if (config.bundle_use_gcp)
     {
-      std::runtime_error("TODO: Implement GCP");
-    }
-    // if (config.bundle_use_gcp && !gcp.empty())
-    // {
-    //   ba.
-    // }
+      AddGCPToBundle(ba, gcp, map.GetAllShots());
+    }    
     
     ba.SetPointProjectionLossFunction(config.loss_function,
                                       config.loss_function_threshold);
