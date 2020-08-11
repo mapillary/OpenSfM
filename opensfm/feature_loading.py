@@ -10,7 +10,6 @@ from repoze.lru import LRUCache
 
 from opensfm import features as ft
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -103,3 +102,24 @@ class FeatureLoader(object):
         else:
             points = np.array(points[:, :3], dtype=float)
         return points, features, colors
+
+    def create_gpu_keypoints_from_features(self, p1, f1):
+        ########################################################################
+        # Merge keypoints in central memory
+        ########################################################################
+        if type(f1[0][0]) is not int:
+            f1 = np.uint8(f1 * 512)
+        total_size = len(p1)
+        dtype_kp = np.dtype([('x', np.float32),
+                             ('y', np.float32),
+                             ('scale', np.float32),
+                             ('angle', np.float32),
+                             ('desc', (np.uint8, 128))
+                             ])
+        output = np.recarray(shape=(total_size,), dtype=dtype_kp)
+        output[:total_size].x = p1[:, 0]
+        output[:total_size].y = p1[:, 1]
+        output[:total_size].scale = p1[:, 2]
+        # output[:total_size].angle = p1[:, 3]
+        output[:total_size].desc = f1
+        return output

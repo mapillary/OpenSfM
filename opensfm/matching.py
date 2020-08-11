@@ -12,9 +12,18 @@ from opensfm import log
 from opensfm import multiview
 from opensfm import pairs_selection
 from opensfm import feature_loader
-
+from opensfm.sift_gpu import SiftGpu
 
 logger = logging.getLogger(__name__)
+
+
+def check_gpu_initialization(config, image, data=None):
+    if 'sift_gpu' not in globals():
+        global sift_gpu
+        if data is not None:
+            sift_gpu = SiftGpu.sift_gpu_from_config(config, data.load_image(image))
+        else:
+            sift_gpu = SiftGpu.sift_gpu_from_config(config, image)
 
 
 def clear_cache():
@@ -30,9 +39,9 @@ def match_images(data, ref_images, cand_images):
     non-symmetric matching options like WORDS. Data will be
     stored in i matching only.
     """
-
+    config = data.config
     # Get EXIFs data
-    all_images = list(set(ref_images+cand_images))
+    all_images = list(set(ref_images + cand_images))
     exifs = {im: data.load_exif(im) for im in all_images}
 
     # Generate pairs for matching
@@ -45,7 +54,6 @@ def match_images(data, ref_images, cand_images):
 
 def match_images_with_pairs(data, exifs, ref_images, pairs):
     """ Perform pair matchings given pairs. """
-
     # Store per each image in ref for processing
     per_image = {im: [] for im in ref_images}
     for im1, im2 in pairs:
@@ -113,7 +121,6 @@ def save_matches(data, images_ref, matched_pairs):
     """ Given pairwise matches (image 1, image 2) - > matches,
     save them such as only {image E images_ref} will store the matches.
     """
-
     matches_per_im1 = {im: {} for im in images_ref}
     for (im1, im2), m in matched_pairs.items():
         matches_per_im1[im1][im2] = m
@@ -142,11 +149,9 @@ def match_unwrap_args(args):
     im1, candidates, ctx = args
 
     im1_matches = {}
-    p1, f1, _ = feature_loader.instance.load_points_features_colors(ctx.data, im1)
     camera1 = ctx.cameras[ctx.exifs[im1]['camera']]
 
     for im2 in candidates:
-        p2, f2, _ = feature_loader.instance.load_points_features_colors(ctx.data, im2)
         camera2 = ctx.cameras[ctx.exifs[im2]['camera']]
 
         im1_matches[im2] = match(im1, im2, camera1, camera2, ctx.data)
@@ -196,6 +201,14 @@ def match(im1, im2, camera1, camera2, data):
             matches = match_brute_force_symmetric(f1, f2, config)
         else:
             matches = match_brute_force(f1, f2, config)
+    elif matcher_type == 'SIFT_GPU':
+        check_gpu_initialization(config, im1, data)
+        k1 = data.load_gpu_features(im1)
+        k2 = data.load_gpu_features(im2)
+        if k1 is None or k2 is None:
+            k1 = feature_loader.instance.create_gpu_keypoints_from_features(p1, f1)
+            k2 = feature_loader.instance.create_gpu_keypoints_from_features(p2, f2)
+        matches = sift_gpu.match_images(k1, k2)
     else:
         raise ValueError("Invalid matcher_type: {}".format(matcher_type))
 
@@ -292,7 +305,7 @@ def match_flann(index, f2, config):
     """
     search_params = dict(checks=config['flann_checks'])
     results, dists = index.knnSearch(f2, 2, params=search_params)
-    squared_ratio = config['lowes_ratio']**2  # Flann returns squared L2 distances
+    squared_ratio = config['lowes_ratio'] ** 2  # Flann returns squared L2 distances
     good = dists[:, 0] < squared_ratio * dists[:, 1]
     return list(zip(results[good, 0], good.nonzero()[0]))
 
@@ -321,7 +334,7 @@ def match_brute_force(f1, f2, config):
         f2: feature descriptors of the second image
         config: config parameters
     """
-    assert(f1.dtype.type == f2.dtype.type)
+    assert (f1.dtype.type == f2.dtype.type)
     if (f1.dtype.type == np.uint8):
         matcher_type = 'BruteForce-Hamming'
     else:
@@ -471,7 +484,7 @@ def _non_static_matches(p1, p2, matches, config):
     res = []
     for match in matches:
         d = p1[match[0]] - p2[match[1]]
-        if d[0]**2 + d[1]**2 >= threshold**2:
+        if d[0] ** 2 + d[1] ** 2 >= threshold ** 2:
             res.append(match)
 
     static_ratio_threshold = 0.85
