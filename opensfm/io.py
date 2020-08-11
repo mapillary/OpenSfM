@@ -378,16 +378,16 @@ def _read_gcp_list_lines(lines, projection, reference, exif):
             else:
                 lon, lat = easting, northing
 
-            point = types.GroundControlPoint()
+            point = pymap.GroundControlPoint()
             point.id = "unnamed-%d" % len(points)
-            point.lla = np.array([lat, lon, alt])
+            point.lla = {"latitude": lat, "longitude": lon, "altitude": alt}
             point.has_altitude = has_altitude
 
             if reference:
                 x, y, z = reference.to_topocentric(lat, lon, alt)
-                point.coordinates = np.array([x, y, z])
+                point.coordinates.value = np.array([x, y, z])
             else:
-                point.coordinates = None
+                point.coordinates.reset()
 
             points[key] = point
 
@@ -396,10 +396,10 @@ def _read_gcp_list_lines(lines, projection, reference, exif):
         coordinates = features.normalized_image_coordinates(
             np.array([[pixel_x, pixel_y]]), d['width'], d['height'])[0]
 
-        o = types.GroundControlPointObservation()
+        o = pymap.GroundControlPointObservation()
         o.shot_id = shot_id
         o.projection = coordinates
-        point.observations.append(o)
+        point.add_observation(o)
 
     return list(points.values())
 
@@ -461,23 +461,24 @@ def read_ground_control_points(fileobj, reference):
 
     points = []
     for point_dict in obj['points']:
-        point = types.GroundControlPoint()
+        point = pymap.GroundControlPoint()
         point.id = point_dict['id']
-        point.lla = point_dict.get('position')
-        if point.lla:
+        lla = point_dict.get('position')
+        if lla:
+            point.lla = lla
             point.has_altitude = ('altitude' in point.lla)
             if reference:
-                point.coordinates = reference.to_topocentric(
+                point.coordinates.value = reference.to_topocentric(
                     point.lla['latitude'],
                     point.lla['longitude'],
                     point.lla.get('altitude', 0))
             else:
-                point.coordinates = None
+                point.coordinates.reset()
 
-        point.observations = []
+        observations = []
         observing_images = set()
         for o_dict in point_dict['observations']:
-            o = types.GroundControlPointObservation()
+            o = pymap.GroundControlPointObservation()
             o.shot_id = o_dict['shot_id']
             if o.shot_id in observing_images:
                 logger.warning("GCP {} has multiple observations in image {}"
@@ -485,7 +486,8 @@ def read_ground_control_points(fileobj, reference):
             observing_images.add(o.shot_id)
             if 'projection' in o_dict:
                 o.projection = np.array(o_dict['projection'])
-            point.observations.append(o)
+            observations.append(o)
+        point.observations = observations
         points.append(point)
     return points
 
@@ -504,8 +506,8 @@ def write_ground_control_points(gcp, fileobj, reference):
             }
             if point.has_altitude:
                 point_obj['position']['altitude'] = point.lla['altitude']
-        elif point.coordinates:
-            lat, lon, alt = reference.to_lla(*point.coordinates)
+        elif point.coordinates.has_value:
+            lat, lon, alt = reference.to_lla(*point.coordinates.value)
             point_obj['position'] = {
                 'latitude': lat,
                 'longitude': lon,

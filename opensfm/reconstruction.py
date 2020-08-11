@@ -66,8 +66,8 @@ def _add_gcp_to_bundle(ba, gcp, shots):
 
         coordinates = triangulate_gcp(point, shots)
         if coordinates is None:
-            if point.coordinates is not None:
-                coordinates = point.coordinates
+            if point.coordinates.has_value:
+                coordinates = point.coordinates.value
             else:
                 logger.warning("Cannot initialize GCP '{}'."
                                "  Ignoring it".format(point.id))
@@ -75,9 +75,9 @@ def _add_gcp_to_bundle(ba, gcp, shots):
 
         ba.add_point(point_id, coordinates, False)
 
-        if point.coordinates is not None:
+        if point.coordinates.has_value:
             point_type = pybundle.XYZ if point.has_altitude else pybundle.XY
-            ba.add_point_position_world(point_id, point.coordinates, 0.1,
+            ba.add_point_position_world(point_id, point.coordinates.value, 0.1,
                                         point_type)
 
         for observation in point.observations:

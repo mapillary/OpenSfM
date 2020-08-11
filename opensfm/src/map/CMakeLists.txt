@@ -2,6 +2,7 @@ set(MAP_FILES
   shot.h
   landmark.h
   map.h
+  ground_control_points.h
   defines.h
   src/landmark.cc
   src/map.cc
@@ -28,6 +29,7 @@ target_link_libraries(pymap
   PRIVATE
     map
     geometry
+    bundle
 )
 
 set(MAP_TEST_FILES

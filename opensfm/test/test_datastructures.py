@@ -741,3 +741,25 @@ def test_rec_deepcopy():
             shot_cpy = rec2.shots[shot.id]
             obs_cpy = shot_cpy.get_observation(obs_id)
             assert obs1 is not obs_cpy
+
+
+def test_gcp():
+    gcp = []
+    for i in range(0, 10):
+        p = pymap.GroundControlPoint()
+        p.id = 'p' + str(i)
+        o1 = pymap.GroundControlPointObservation()
+        o1.shot_id = 'p1'
+        o2 = pymap.GroundControlPointObservation()
+        o2.shot_id = 'p2'
+        obs = [o1, o2]
+        p.observations = obs
+        gcp.append(p)
+        assert(p.observations[0].shot_id == "p1")
+        assert(p.observations[1].shot_id == 'p2')
+        p.add_observation(o2)
+        p.add_observation(o2)
+        assert len(p.observations) == 4
+    for pt in gcp:
+        assert(pt.observations[0].shot_id == "p1")
+        assert(pt.observations[1].shot_id == 'p2')

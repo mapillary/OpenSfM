@@ -1,17 +1,21 @@
+#include <pybind11/eigen.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
+#include <glog/logging.h>
+#include <typeinfo>
+#include <iostream>
+
 #include <foundation/types.h>
 #include <geometry/pose.h>
-#include <glog/logging.h>
+#include <map/config.h>
 #include <map/dataviews.h>
 #include <map/defines.h>
+#include <map/ground_control_points.h>
 #include <map/landmark.h>
 #include <map/map.h>
 #include <map/pybind_utils.h>
 #include <map/shot.h>
-#include <pybind11/eigen.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-#include <typeinfo>
-#include <iostream>
+
 namespace py = pybind11;
 
 template <typename T>
@@ -158,7 +162,12 @@ PYBIND11_MODULE(pymap, m) {
            &map::Shot::InitAndTakeDatastructures)
       .def("init_keypts_and_descriptors", &map::Shot::InitKeyptsAndDescriptors)
       .def("set_pose", &map::Shot::SetPose)
-      .def("get_pose", &map::Shot::GetPose,
+              //    (void (map::Map::*)(map::Shot *const, map::Landmark *const,
+              //                  const map::FeatureId)) &
+              //  map::Map::AddObservation,
+      .def("get_pose", 
+      (const geometry::Pose& (map::Shot::*) () const)  &map::Shot::GetPose,
+      // &map::Shot::GetPose,
            py::return_value_policy::reference_internal)
       .def("compute_median_depth", &map::Shot::ComputeMedianDepthOfLandmarks)
       .def("scale_landmarks", &map::Shot::ScaleLandmarks)
@@ -172,7 +181,8 @@ PYBIND11_MODULE(pymap, m) {
       .def_property("metadata", &map::Shot::GetShotMeasurements,
                     &map::Shot::SetShotMeasurements, py::return_value_policy::reference_internal)
       // .def_readwrite("metadata", &map::Shot::shot_measurements_)
-      .def_property("pose", &map::Shot::GetPose, &map::Shot::SetPose)
+      // .def_property("pose", &map::Shot::GetPose, &map::Shot::SetPose)
+      .def_property("pose", (const geometry::Pose& (map::Shot::*) () const)  &map::Shot::GetPose, &map::Shot::SetPose)
       .def_property_readonly("camera", &map::Shot::GetCamera,
                              py::return_value_policy::reference_internal)
       .def("create_observation", &map::Shot::CreateObservation)
@@ -509,4 +519,23 @@ PYBIND11_MODULE(pymap, m) {
       .def("__getitem__", &map::CameraView::GetCamera,
            py::return_value_policy::reference_internal)
       .def("__contains__", &map::CameraView::HasCamera);
+  
+  py::class_<OpenSfMConfig>(m, "OpenSfMConfig")
+    .def(py::init())
+  ;
+  py::class_<map::GroundControlPointObservation>(m ,"GroundControlPointObservation")
+    .def(py::init())
+    .def(py::init<const map::ShotId&, const Vec2d&>())
+    .def_readwrite("shot_id", &map::GroundControlPointObservation::shot_id_)
+    .def_readwrite("projection", &map::GroundControlPointObservation::projection_)
+  ;
+  py::class_<map::GroundControlPoint>(m, "GroundControlPoint")
+      .def(py::init())
+      .def_readwrite("id", &map::GroundControlPoint::id_)
+      .def_readwrite("coordinates", &map::GroundControlPoint::coordinates_)
+      .def_readwrite("has_altitude", &map::GroundControlPoint::has_altitude_)
+      .def_readwrite("lla", &map::GroundControlPoint::lla_)
+      .def_property("observations", &map::GroundControlPoint::GetObservations, &map::GroundControlPoint::SetObservations)
+      .def("add_observation", &map::GroundControlPoint::AddObservation)
+  ;
 }
