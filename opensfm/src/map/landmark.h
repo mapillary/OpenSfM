@@ -77,8 +77,10 @@ class Landmark {
   bool operator>=(const Landmark& lm) const { return id_ >= lm.id_; }
 
   // Reprojection Errors
-  void SetReprojectionErrors(const std::unordered_map<ShotId, Eigen::VectorXd> reproj_errors);
-  std::unordered_map<ShotId, Eigen::VectorXd> GetReprojectionErrors() const { return reproj_errors_; }
+  // void SetReprojectionErrors(const std::unordered_map<ShotId, Eigen::VectorXd> reproj_errors);
+  void SetReprojectionErrors(const std::map<ShotId, Eigen::VectorXd> reproj_errors);
+  std::map<ShotId, Eigen::VectorXd> GetReprojectionErrors() const { return reproj_errors_; }
+  // std::unordered_map<ShotId, Eigen::VectorXd> GetReprojectionErrors() const { return reproj_errors_; }
   void RemoveReprojectionError(const ShotId& shot_id)
   {
     auto it = reproj_errors_.find(shot_id);
@@ -97,7 +99,8 @@ private:
   std::map<Shot*, FeatureId, KeyCompare> observations_;
   Shot* ref_shot_; //shot in which the landmark was first seen
   Vec3i color_;
-  std::unordered_map<ShotId, Eigen::VectorXd> reproj_errors_;
+  // std::unordered_map<ShotId, Eigen::VectorXd> reproj_errors_;
+  std::map<ShotId, Eigen::VectorXd> reproj_errors_;
 
 };
 }

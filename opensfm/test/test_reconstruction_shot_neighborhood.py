@@ -39,7 +39,7 @@ def test_shot_neighborhood_linear_graph():
         radius=2, min_common_points=1, max_interior_size=10)
     assert interior == set(['im1', 'im2', 'im3'])
     assert boundary == set(['im0'])
-
+    
     interior, boundary = reconstruction.shot_neighborhood(
         rec, 'im2',
         radius=3, min_common_points=1, max_interior_size=10)
@@ -49,6 +49,51 @@ def test_shot_neighborhood_linear_graph():
     interior, boundary = reconstruction.shot_neighborhood(
         rec, 'im2',
         radius=3, min_common_points=1, max_interior_size=3)
+    assert interior == set(['im1', 'im2', 'im3'])
+    assert boundary == set(['im0'])
+
+from opensfm import pymap
+
+def test_shot_neighborhood_linear_graph_cpp():
+    rec = types.Reconstruction()
+    cam = pygeometry.Camera.create_perspective(0.5, 0, 0)
+    cam.id = "cam1"
+    rec.add_camera(cam)
+    _add_shot(rec, 'im0', cam)
+    for i in range(1, 4):
+        p, n = 'im' + str(i - 1), 'im' + str(i)
+        _add_shot(rec, n, cam)
+        _add_point(rec, str(i), [p, n])
+
+    interior1, boundary1 = pymap.BAHelpers.shot_neighborhood(
+        rec.map, 'im2',
+        1, 1, 10)
+    interior = set(x.id for x in interior1)
+    boundary = set(x.id for x in boundary1)
+    assert interior == set(['im2'])
+    assert boundary == set(['im1', 'im3'])
+
+    interior2, boundary2 = pymap.BAHelpers.shot_neighborhood(
+        rec.map, 'im2',
+        2, 1, 10)
+    interior = set(x.id for x in interior2)
+    boundary = set(x.id for x in boundary2)
+    assert interior == set(['im1', 'im2', 'im3'])
+    assert boundary == set(['im0'])
+
+    interior3, boundary3 = pymap.BAHelpers.shot_neighborhood(
+        rec.map, 'im2',
+        3, 1, 10)
+    interior = set(x.id for x in interior3)
+    boundary = set(x.id for x in boundary3)
+    assert interior == set(['im0', 'im1', 'im2', 'im3'])
+    assert boundary == set()
+
+    interior4, boundary4 = pymap.BAHelpers.shot_neighborhood(
+        rec.map, 'im2',
+        3, 1, 3)
+    interior = set(x.id for x in interior4)
+    boundary = set(x.id for x in boundary4)
     assert interior == set(['im1', 'im2', 'im3'])
     assert boundary == set(['im0'])
 
@@ -95,3 +140,44 @@ def test_shot_neighborhood_sorted_results():
         radius=2, min_common_points=1, max_interior_size=2)
     assert interior == set(['im0', 'im2'])
     assert boundary == set(['im1'])
+
+
+def test_shot_neighborhood_complete_graph_cpp():
+    rec = types.Reconstruction()
+    cam = pygeometry.Camera.create_perspective(0.5, 0, 0)
+    cam.id = "cam1"
+    rec.add_camera(cam)
+    for i in range(4):
+        _add_shot(rec, 'im' + str(i), cam)
+    _add_point(rec, '1', rec.shots.keys())
+
+    interior, boundary = pymap.BAHelpers.shot_neighborhood(
+        rec.map, 'im2', 2, 1, 10)
+    assert set([x.id for x in interior]) == set(['im0', 'im1', 'im2', 'im3'])
+    assert set([x.id for x in boundary]) == set()
+
+
+def test_shot_neighborhood_sorted_results_cpp():
+    rec = types.Reconstruction()
+    cam = pygeometry.Camera.create_perspective(0.5, 0, 0)
+    cam.id = "cam1"
+    rec.add_camera(cam)
+    _add_shot(rec, 'im0', cam)
+    _add_shot(rec, 'im1', cam)
+    _add_shot(rec, 'im2', cam)
+    _add_point(rec, '1', ['im0', 'im1'])
+    _add_point(rec, '2', ['im0', 'im1'])
+    _add_point(rec, '3', ['im0', 'im2'])
+
+    interior, boundary = pymap.BAHelpers.shot_neighborhood(
+        rec.map, 'im0', 2, 1, 2)
+    assert set([x.id for x in interior]) == set(['im0', 'im1'])
+    assert set([x.id for x in boundary]) == set(['im2'])
+
+    _add_point(rec, '4', ['im0', 'im2'])
+    _add_point(rec, '5', ['im0', 'im2'])
+
+    interior, boundary = pymap.BAHelpers.shot_neighborhood(
+        rec.map, 'im0', 2, 1, 2)
+    assert set([x.id for x in interior]) == set(['im0', 'im2'])
+    assert set([x.id for x in boundary]) == set(['im1'])

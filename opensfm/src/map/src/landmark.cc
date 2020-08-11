@@ -16,8 +16,12 @@ Vec3f Landmark::GetObservationInShot(Shot* shot) const {
   return shot->GetKeyPointEigen(it->second);
 }
 
+// void Landmark::SetReprojectionErrors(
+//     const std::unordered_map<ShotId, Eigen::VectorXd> reproj_errors) {
+//   reproj_errors_ = reproj_errors;
+// }
 void Landmark::SetReprojectionErrors(
-    const std::unordered_map<ShotId, Eigen::VectorXd> reproj_errors) {
+    const std::map<ShotId, Eigen::VectorXd> reproj_errors) {
   reproj_errors_ = reproj_errors;
 }
 

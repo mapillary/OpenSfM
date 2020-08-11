@@ -26,7 +26,7 @@ from opensfm.context import parallel_map, current_memory_usage
 from opensfm import pymap
 
 logger = logging.getLogger(__name__)
-
+USE_CPP_BUNDLE = True
 
 def _get_camera_from_bundle(ba, camera):
     """Read camera parameters from a bundle adjustment problem."""
@@ -94,39 +94,43 @@ def _add_gcp_to_bundle(ba, gcp, shots):
 
 def bundle(reconstruction, camera_priors, gcp, config):
     """Bundle adjust a reconstruction."""
+    if (USE_CPP_BUNDLE):
+        config_cpp = pymap.OpenSfMConfig()
+        return pymap.BAHelpers.bundle(reconstruction.map, config_cpp)
+
     fix_cameras = not config['optimize_camera_parameters']
     use_analytic_derivatives = config['bundle_analytic_derivatives']
 
     chrono = Chronometer()
     ba = pybundle.BundleAdjuster()
-    # ba.set_use_analytic_derivatives(use_analytic_derivatives)
+    ba.set_use_analytic_derivatives(use_analytic_derivatives)
 
-    # for camera in reconstruction.cameras.values():
-    #     camera_prior = camera_priors[camera.id]
-    #     ba.add_camera(camera.id, camera, camera_prior, fix_cameras)
+    for camera in reconstruction.cameras.values():
+        camera_prior = camera_priors[camera.id]
+        ba.add_camera(camera.id, camera, camera_prior, fix_cameras)
 
-    # for shot in reconstruction.shots.values():
-    #     r = shot.pose.rotation
-    #     t = shot.pose.translation
-    #     ba.add_shot(shot.id, shot.camera.id, r, t, False)
+    for shot in reconstruction.shots.values():
+        r = shot.pose.rotation
+        t = shot.pose.translation
+        ba.add_shot(shot.id, shot.camera.id, r, t, False)
+        print("shot: ", shot.id, r, t)
+    for point in reconstruction.points.values():
+        ba.add_point(point.id, point.coordinates, False)
+        print("point: ", point.id, point.coordinates)
+    for shot_id in reconstruction.shots:
+        shot = reconstruction.get_shot(shot_id)
+        for point in shot.get_valid_landmarks():
+            obs = shot.get_landmark_observation(point)
+            ba.add_point_projection_observation(
+                shot.id, point.id, obs.point[0], obs.point[1], obs.scale)
+            print("point, obs: ",shot.id, point.id, obs.point[0], obs.point[1], obs.scale)
 
-    # for point in reconstruction.points.values():
-    #     ba.add_point(point.id, point.coordinates, False)
-
-    # for shot_id in reconstruction.shots:
-    #     shot = reconstruction.get_shot(shot_id)
-    #     for point in shot.get_valid_landmarks():
-    #         obs = shot.get_landmark_observation(point)
-    #         ba.add_point_projection_observation(
-    #             shot.id, point.id, obs.point[0], obs.point[1], obs.scale)
-
-    # if config['bundle_use_gps']:
-    #     for shot in reconstruction.shots.values():
-    #         g = shot.metadata.gps_position.value
-    #         ba.add_position_prior(shot.id, g[0], g[1], g[2],
-    #                               shot.metadata.gps_accuracy.value)
-    
-    pymap.BAHelpers.setup_ba(reconstruction.map, ba)
+    if config['bundle_use_gps']:
+        for shot in reconstruction.shots.values():
+            g = shot.metadata.gps_position.value
+            ba.add_position_prior(shot.id, g[0], g[1], g[2],
+                                  shot.metadata.gps_accuracy.value)
+            print("pos prior: ", g)
 
     if config['bundle_use_gcp'] and gcp:
         _add_gcp_to_bundle(ba, gcp, reconstruction.shots)
@@ -155,7 +159,7 @@ def bundle(reconstruction, camera_priors, gcp, config):
     ba.set_num_threads(config['processes'])
     ba.set_max_num_iterations(config['bundle_max_iterations'])
     ba.set_linear_solver_type("SPARSE_SCHUR")
-
+    
     chrono.lap('setup')
     ba.run()
     chrono.lap('run')
@@ -178,7 +182,7 @@ def bundle(reconstruction, camera_priors, gcp, config):
     logger.debug(ba.brief_report())
     report = {
         'wall_times': dict(chrono.lap_times()),
-        'brief_report': ba.brief_report(),
+        'brief_report': ba.full_report(), #brief_report(),
     }
     return report
 
@@ -324,7 +328,8 @@ def bundle_local(reconstruction, camera_priors, gcp, central_shot_id, config):
 
     chrono.lap('teardown')
 
-    logger.debug(ba.brief_report())
+    # logger.debug(ba.brief_report())
+    logger.debug(ba.full_report())
     report = {
         'wall_times': dict(chrono.lap_times()),
         'brief_report': ba.brief_report(),
@@ -383,6 +388,7 @@ def direct_shot_neighbors(reconstruction, shot_ids,
                 common_points[neighbor] += 1
 
     pairs = sorted(common_points.items(), key=lambda x: -x[1])
+    print(pairs)
     neighbors = set()
     for neighbor, num_points in pairs[:max_neighbors]:
         if num_points >= min_common_points:
@@ -1234,8 +1240,13 @@ def grow_reconstruction(data, tracks_manager, reconstruction, images, camera_pri
                 step['bundle'] = brep
                 should_bundle.done()
             elif config['local_bundle_radius'] > 0:
-                bundled_points, brep = bundle_local(
-                    reconstruction, camera_priors, None, image, config)
+                if USE_CPP_BUNDLE:
+                    config_cpp = pymap.OpenSfMConfig()
+                    bundled_points, brep = pymap.BAHelpers.bundle_local(
+                        reconstruction.map, image, config_cpp)
+                else:
+                    bundled_points, brep = bundle_local(
+                        reconstruction, camera_priors, None, image, config)
                 remove_outliers(
                     reconstruction, config, bundled_points)
                 step['local_bundle'] = brep

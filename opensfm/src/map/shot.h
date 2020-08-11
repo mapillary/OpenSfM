@@ -153,6 +153,7 @@ class Shot {
 
   void SetPose(const geometry::Pose& pose) { pose_ = pose; }
   const geometry::Pose& GetPose() const { return pose_; }
+  geometry::Pose& GetPose() { return pose_; }
   Mat4d GetWorldToCam() const { return pose_.WorldToCamera(); }
   Mat4d GetCamToWorld() const { return pose_.CameraToWorld(); }
 
