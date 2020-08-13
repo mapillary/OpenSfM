@@ -7,6 +7,7 @@
 
 #include <foundation/types.h>
 #include <geometry/pose.h>
+#include <geometry/camera.h>
 #include <map/ba_helpers.h>
 #include <map/config.h>
 #include <map/dataviews.h>
@@ -522,15 +523,11 @@ PYBIND11_MODULE(pymap, m) {
       .def("__contains__", &map::CameraView::HasCamera);
   
   py::class_<BAHelpers>(m, "BAHelpers")
-      .def("setup_ba", &BAHelpers::SetUpBAFromReconstruction)
       .def("bundle", &BAHelpers::Bundle)
-      .def("direct_shot_neighbors", &BAHelpers::DirectShotNeighbors, py::return_value_policy::reference_internal)
       .def("shot_neighborhood", &BAHelpers::ShotNeighborhood, py::return_value_policy::reference_internal)
       .def("bundle_local", &BAHelpers::BundleLocal)
   ;
-  py::class_<OpenSfMConfig>(m, "OpenSfMConfig")
-    .def(py::init())
-  ;
+
   py::class_<map::GroundControlPointObservation>(m ,"GroundControlPointObservation")
     .def(py::init())
     .def(py::init<const map::ShotId&, const Vec2d&>())
