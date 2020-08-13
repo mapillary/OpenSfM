@@ -675,7 +675,7 @@ def imread(filename, grayscale=False, unchanged=False, anydepth=False):
                 "OpenCV version {} does not support loading images without "
                 "rotating them according to EXIF. Please upgrade OpenCV to "
                 "version 3.2 or newer.".format(cv2.__version__))
-        
+
         if anydepth:
             flags |= cv2.IMREAD_ANYDEPTH
     else:
@@ -767,7 +767,7 @@ def export_bundler(image_list, reconstructions, track_manager,
                     lines.append("0 0 0")
 
         # tracks
-        for point_id, point in points.items():  #iteritems(points):
+        for point_id, point in points.items():
             coord = point.coordinates
             color = list(map(int, point.color))
             view_list = track_manager.get_track_observations(point.id)

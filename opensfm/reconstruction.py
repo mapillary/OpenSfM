@@ -196,12 +196,11 @@ def bundle_single_view(reconstruction, shot_id, camera_priors, config):
     ba.add_shot(shot_id, camera.id, r, t, False)
 
     for track in shot.get_valid_landmarks():
-        track_id = track.id
-        ba.add_point(track_id, track.coordinates, True)
+        ba.add_point(track.id, track.coordinates, True)
         obs = shot.get_landmark_observation(track)
         point = obs.point
         ba.add_point_projection_observation(
-            shot_id, track_id, point[0], point[1], obs.scale)
+            shot_id, track.id, point[0], point[1], obs.scale)
 
     if config['bundle_use_gps']:
         g = shot.metadata.gps_position.value
@@ -235,7 +234,6 @@ def bundle_local(reconstruction, camera_priors, gcp, central_shot_id, config):
     """Bundle adjust the local neighborhood of a shot."""
     chrono = Chronometer()
 
-    # shot neighborhodd?
     interior, boundary = shot_neighborhood(
         reconstruction, central_shot_id,
         config['local_bundle_radius'],
@@ -371,8 +369,7 @@ def direct_shot_neighbors(reconstruction, shot_ids,
         shot = reconstruction.shots[shot_id]
         valid_landmarks = shot.get_valid_landmarks()
         for track in valid_landmarks:
-            track_id = track.id
-            if track_id in reconstruction.points:
+            if track.id in reconstruction.points:
                 points.add(track)
 
     candidate_shots = set(reconstruction.shots) - set(shot_ids)
