@@ -3,6 +3,21 @@
 
 ## [Unreleased]
 
+## 0.5.1
+
+### Added
+ - Switch from python+OpenCV to internal C++ camera models
+ - Switch from python to internal C++ tracks manager
+ - COLMAP import script
+
+### Changed
+ - Docker images : Ubuntu 20.04 (python3), Ubuntu 19.10 (python2)
+
+### Improved
+ - Reprojection derivatives are now computed analytically instead of autodiff-ed (20%-45% speed-up on opensfm reconstruct)
+ - Phantom4 sensor width @pierotofy
+ - Fixed CLANG compilation
+
 
 ## 0.4.0
 
@@ -31,7 +46,7 @@
 - Local bundle adjustment is used by default
 - extract_metadata extracts exif only once
 - Changed default FLANN parameters for faster, less precise matching
-- Require cmake version 3 or later 
+- Require cmake version 3 or later
 
 ### Improved
 - Faster local bundle adjustment by limiting the neighborhood and the number of iterations
@@ -42,17 +57,17 @@
 
 ### Added
 - Python 3 support. @spease
-- Brown-Conrady camera model. @bdholt1 
+- Brown-Conrady camera model. @bdholt1
 - reporting
-- docs on coordinates systems and incremental reconstruction pipeline. @jdjakub, @bryanibit 
+- docs on coordinates systems and incremental reconstruction pipeline. @jdjakub, @bryanibit
 - export reconstruction in proj4 geographic coordinates
 
 ### Improved
 - improved initialization for planar scenes
 - support for recent (1.65+) versions of boost python. @spease
-- fix bug when using GCP. @jhacsonmeza 
+- fix bug when using GCP. @jhacsonmeza
 - better navigation for 360 images. @mpetroff
-- use loky for better exception handling when using multi-processing. @pierotofy 
+- use loky for better exception handling when using multi-processing. @pierotofy
 
 
 ## 0.1.0
