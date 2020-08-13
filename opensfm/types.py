@@ -141,7 +141,9 @@ class Reconstruction(object):
 
         if shot.camera.id not in self.cameras:
             self.add_camera(shot.camera)
-        return self.map.add_shot(shot)
+        if shot.id not in self.shots:
+            self.create_shot(shot.id, shot.camera.id, shot.pose)
+        return self.map.update_shot(shot)
 
     def get_shot(self, id):
         """Return a shot by id.
@@ -160,7 +162,9 @@ class Reconstruction(object):
     def add_pano_shot(self, pshot):
         if pshot.camera.id not in self.cameras:
             self.add_camera(pshot.camera)
-        return self.map.add_pano_shot(pshot)
+        if pshot.id not in self.pano_shots:
+            self.create_pano_shot(pshot.id, pshot.camera.id, pshot.pose)
+        return self.map.update_pano_shot(pshot)
 
     def get_pano_shot(self, id):
         """Return a shot by id.
@@ -202,7 +206,7 @@ class Reconstruction(object):
         :param observation: The observation
         """
         self.map.add_observation(shot_id, lm_id, observation)
-    
+
     def remove_observation(self, shot_id, lm_id):
         self.map.remove_observation(shot_id, lm_id)
 

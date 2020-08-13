@@ -17,7 +17,7 @@ namespace py = pybind11;
 template <typename T>
 void DeclareShotMeasurement(py::module &m, const std::string &type_name) {
   using SM = map::ShotMeasurement<T>;
-  
+
   std::string class_name = std::string("ShotMeasurement") + type_name;
 
   py::class_<SM>(m, class_name.c_str())
@@ -25,8 +25,8 @@ void DeclareShotMeasurement(py::module &m, const std::string &type_name) {
       .def_property_readonly("has_value", &SM::HasValue)
       .def_property("value", &SM::Value, &SM::SetValue)
       .def("reset", &SM::Reset)
-      .def(py::pickle([](const SM &sm) { 
-                        return py::make_tuple(sm.HasValue(), sm.Value()); 
+      .def(py::pickle([](const SM &sm) {
+                        return py::make_tuple(sm.HasValue(), sm.Value());
                       },
                       [](py::tuple p) {
                         SM sm;
@@ -126,8 +126,8 @@ PYBIND11_MODULE(pymap, m) {
            &map::Map::ClearObservationsAndLandmarks)
       .def("get_camera", &map::Map::GetCamera,
            py::return_value_policy::reference_internal)
-      .def("add_shot", &map::Map::AddShot, py::return_value_policy::reference_internal)
-      .def("add_pano_shot", &map::Map::AddPanoShot, py::return_value_policy::reference_internal)
+      .def("update_shot", &map::Map::UpdateShot, py::return_value_policy::reference_internal)
+      .def("update_pano_shot", &map::Map::UpdatePanoShot, py::return_value_policy::reference_internal)
       ;
 
   py::class_<map::TopoCentricConverter>(m, "TopoCentriConverter")
@@ -284,7 +284,7 @@ PYBIND11_MODULE(pymap, m) {
           [](const map::ShotMeasurements &s) {
             return py::make_tuple(s.gps_accuracy_, s.gps_position_, s.orientation_,
                                   s.capture_time_, s.accelerometer_, s.compass_angle_,
-                                  s.compass_accuracy_, s.sequence_key_);                              
+                                  s.compass_accuracy_, s.sequence_key_);
           },
           [](py::tuple s) {
             map::ShotMeasurements sm;
@@ -299,13 +299,13 @@ PYBIND11_MODULE(pymap, m) {
             return sm;
           }))
     .def("__copy__", [](const map::ShotMeasurements& to_copy)
-                        { 
+                        {
                           map::ShotMeasurements copy;
                           copy.Set(to_copy);
-                          return copy; 
-                        }, 
+                          return copy;
+                        },
                         py::return_value_policy::copy)
-    
+
     .def("set", &map::ShotMeasurements::Set)
   ;
 
