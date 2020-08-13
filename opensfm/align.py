@@ -122,7 +122,7 @@ def align_reconstruction_naive_similarity(config, reconstruction, gcp):
     if len(X) == 0:
         return 1.0, np.identity(3), np.zeros((3))
 
-    # Translation-only case, either : 
+    # Translation-only case, either :
     #  - a single value
     #  - identical values
     same_values = (np.linalg.norm(np.std(Xp, axis=0)) < 1e-10)
@@ -211,7 +211,7 @@ def align_reconstruction_orientation_prior_similarity(reconstruction, config, gc
 
 def estimate_ground_plane(reconstruction, config):
     """Estimate ground plane orientation.
-    
+
     It assumes cameras are all at a similar height and uses the
     align_orientation_prior option to enforce cameras to look
     horizontally or vertically.
@@ -239,10 +239,10 @@ def estimate_ground_plane(reconstruction, config):
         ground_points.append(shot.pose.get_origin())
     ground_points = np.array(ground_points)
     ground_points -= ground_points.mean(axis=0)
-    
+
     plane = multiview.fit_plane(ground_points, onplane, verticals)
     return plane
-    
+
 
 def get_horizontal_and_vertical_directions(R, orientation):
     """Get orientation vectors from camera rotation matrix and orientation tag.
@@ -288,16 +288,16 @@ def triangulate_single_gcp(reconstruction, observations):
     if len(os) >= 2:
         thresholds = len(os) * [reproj_threshold]
         angle = np.radians(min_ray_angle_degrees)
-        e, X = pygeometry.triangulate_bearings_midpoint(os, bs, thresholds, angle)
-        return X
+        return pygeometry.triangulate_bearings_midpoint(os, bs, thresholds, angle)
+    return False, None
 
 
 def triangulate_all_gcp(reconstruction, gcp):
     """Group and triangulate Ground Control Points seen in 2+ images."""
     triangulated, measured = [], []
     for point in gcp:
-        x = triangulate_single_gcp(reconstruction, point.observations)
-        if x is not None:
+        e, x = triangulate_single_gcp(reconstruction, point.observations)
+        if e:
             triangulated.append(x)
             measured.append(point.coordinates)
     return triangulated, measured
