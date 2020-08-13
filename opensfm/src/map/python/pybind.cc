@@ -9,7 +9,6 @@
 #include <geometry/pose.h>
 #include <geometry/camera.h>
 #include <map/ba_helpers.h>
-#include <map/config.h>
 #include <map/dataviews.h>
 #include <map/defines.h>
 #include <map/ground_control_points.h>

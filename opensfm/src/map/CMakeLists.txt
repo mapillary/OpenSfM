@@ -2,7 +2,6 @@ set(MAP_FILES
   shot.h
   landmark.h
   map.h
-  config.h
   ground_control_points.h
   defines.h
   src/landmark.cc

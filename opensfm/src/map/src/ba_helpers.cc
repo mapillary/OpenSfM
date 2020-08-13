@@ -3,7 +3,6 @@
 #include <map/map.h>
 #include <map/ground_control_points.h>
 #include <chrono>
-#include <map/config.h>
 #include <foundation/types.h>
 #include <geometry/triangulation.h>
 /**Reconstructed shots near a given shot.
