@@ -10,8 +10,9 @@
 #include <pybind11/eigen.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-#include <typeinfo>
+
 #include <iostream>
+#include <typeinfo>
 namespace py = pybind11;
 
 template <typename T>
@@ -25,18 +26,18 @@ void DeclareShotMeasurement(py::module &m, const std::string &type_name) {
       .def_property_readonly("has_value", &SM::HasValue)
       .def_property("value", &SM::Value, &SM::SetValue)
       .def("reset", &SM::Reset)
-      .def(py::pickle([](const SM &sm) {
-                        return py::make_tuple(sm.HasValue(), sm.Value());
-                      },
-                      [](py::tuple p) {
-                        SM sm;
-                        const auto has_value = p[0].cast<bool>();
-                        if (has_value)
-                        {
-                          sm.SetValue(p[1].cast<T>());
-                        }
-                        return sm;
-                      }));
+      .def(py::pickle(
+          [](const SM &sm) {
+            return py::make_tuple(sm.HasValue(), sm.Value());
+          },
+          [](py::tuple p) {
+            SM sm;
+            const auto has_value = p[0].cast<bool>();
+            if (has_value) {
+              sm.SetValue(p[1].cast<T>());
+            }
+            return sm;
+          }));
 }
 PYBIND11_MODULE(pymap, m) {
   py::class_<map::Map>(m, "Map")
@@ -72,11 +73,13 @@ PYBIND11_MODULE(pymap, m) {
       .def("create_pano_shot",
           (map::Shot * (map::Map::*)(const map::ShotId &, const map::CameraId &,
                                      const geometry::Pose &)) &
-              map::Map::CreatePanoShot, py::return_value_policy::reference_internal)
+              map::Map::CreatePanoShot,
+          py::return_value_policy::reference_internal)
       .def("create_pano_shot",
            (map::Shot *
             (map::Map::*)(const map::ShotId &, const map::CameraId &)) &
-               map::Map::CreatePanoShot, py::return_value_policy::reference_internal)
+               map::Map::CreatePanoShot,
+           py::return_value_policy::reference_internal)
       .def("remove_shot", &map::Map::RemoveShot)
       .def("get_shot", &map::Map::GetShot,
            py::return_value_policy::reference_internal)
@@ -126,9 +129,10 @@ PYBIND11_MODULE(pymap, m) {
            &map::Map::ClearObservationsAndLandmarks)
       .def("get_camera", &map::Map::GetCamera,
            py::return_value_policy::reference_internal)
-      .def("update_shot", &map::Map::UpdateShot, py::return_value_policy::reference_internal)
-      .def("update_pano_shot", &map::Map::UpdatePanoShot, py::return_value_policy::reference_internal)
-      ;
+      .def("update_shot", &map::Map::UpdateShot,
+           py::return_value_policy::reference_internal)
+      .def("update_pano_shot", &map::Map::UpdatePanoShot,
+           py::return_value_policy::reference_internal);
 
   py::class_<map::TopoCentricConverter>(m, "TopoCentriConverter")
       .def(py::init<>())
@@ -143,7 +147,8 @@ PYBIND11_MODULE(pymap, m) {
       .def_readonly("slam_data", &map::Shot::slam_data_,
                     py::return_value_policy::reference_internal)
       .def_readwrite("mesh", &map::Shot::mesh)
-      .def_property("covariance", &map::Shot::GetCovariance, &map::Shot::SetCovariance)
+      .def_property("covariance", &map::Shot::GetCovariance,
+                    &map::Shot::SetCovariance)
       .def_readwrite("merge_cc", &map::Shot::merge_cc)
       .def_readwrite("scale", &map::Shot::scale)
       .def("get_observation", &map::Shot::GetObservation,
@@ -170,7 +175,8 @@ PYBIND11_MODULE(pymap, m) {
       .def("get_obs_by_idx", &map::Shot::GetKeyPointEigen)
       .def("get_camera_name", &map::Shot::GetCameraName)
       .def_property("metadata", &map::Shot::GetShotMeasurements,
-                    &map::Shot::SetShotMeasurements, py::return_value_policy::reference_internal)
+                    &map::Shot::SetShotMeasurements,
+                    py::return_value_policy::reference_internal)
       // .def_readwrite("metadata", &map::Shot::shot_measurements_)
       .def_property("pose", &map::Shot::GetPose, &map::Shot::SetPose)
       .def_property_readonly("camera", &map::Shot::GetCamera,
@@ -188,7 +194,8 @@ PYBIND11_MODULE(pymap, m) {
             auto c = s.GetCamera();
             return py::make_tuple(
                 s.id_, s.unique_id_, s.GetPose().CameraToWorld(),
-                py::make_tuple(c->GetParametersMap(), c->GetProjectionType(), c->width, c->height, c->id));
+                py::make_tuple(c->GetParametersMap(), c->GetProjectionType(),
+                               c->width, c->height, c->id));
           },
           [](py::tuple s) {
             // Create camera
@@ -282,8 +289,9 @@ PYBIND11_MODULE(pymap, m) {
       .def_readwrite("sequence_key", &map::ShotMeasurements::sequence_key_)
       .def(py::pickle(
           [](const map::ShotMeasurements &s) {
-            return py::make_tuple(s.gps_accuracy_, s.gps_position_, s.orientation_,
-                                  s.capture_time_, s.accelerometer_, s.compass_angle_,
+            return py::make_tuple(s.gps_accuracy_, s.gps_position_,
+                                  s.orientation_, s.capture_time_,
+                                  s.accelerometer_, s.compass_angle_,
                                   s.compass_accuracy_, s.sequence_key_);
           },
           [](py::tuple s) {
@@ -298,16 +306,14 @@ PYBIND11_MODULE(pymap, m) {
             sm.sequence_key_ = s[6].cast<decltype(sm.sequence_key_)>();
             return sm;
           }))
-    .def("__copy__", [](const map::ShotMeasurements& to_copy)
-                        {
-                          map::ShotMeasurements copy;
-                          copy.Set(to_copy);
-                          return copy;
-                        },
-                        py::return_value_policy::copy)
+      .def("__copy__", [](const map::ShotMeasurements &to_copy) {
+            map::ShotMeasurements copy;
+            copy.Set(to_copy);
+            return copy;
+          },
+          py::return_value_policy::copy)
 
-    .def("set", &map::ShotMeasurements::Set)
-  ;
+      .def("set", &map::ShotMeasurements::Set);
 
   py::class_<map::ShotMesh>(m, "ShotMesh")
       .def_property("faces", &map::ShotMesh::GetFaces, &map::ShotMesh::SetFaces)
@@ -446,7 +452,7 @@ PYBIND11_MODULE(pymap, m) {
             return py::make_key_iterator(lms.begin(), lms.end());
           },
           py::return_value_policy::reference_internal)
-      //Python 2
+      // Python 2
       // .def(
       //     "__iteritems__",
       //     [](const map::LandmarkView &sv) {
