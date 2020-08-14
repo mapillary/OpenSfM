@@ -336,7 +336,7 @@
                 f1.add(options, 'cameraSize', 0, 2)
                     .listen()
                     .onChange(setCameraSize);
-                f1.add(options, 'imagePlaneSize', 1, 200)
+                f1.add(options, 'imagePlaneSize', 1, 400)
                     .onChange(function(value) {
                         options.imagePlaneSize *= 1.5;
                         imagePlane.geometry = imagePlaneGeo(imagePlaneCameraOld.reconstruction, imagePlaneCameraOld.shot_id);
@@ -673,7 +673,7 @@
                 var shot = reconstruction.shots[shot_id];
                 var cam = reconstruction.cameras[shot.camera];
 
-                if ('vertices' in shot) {
+                if ('vertices' in shot && shot['vertices'].length > 0) {
                     var geometry = new THREE.Geometry();
                     for (var i = 0; i < shot['vertices'].length; ++i) {
                         geometry.vertices.push(
