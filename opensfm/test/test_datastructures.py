@@ -716,7 +716,7 @@ def test_single_point_color():
     pt = rec.create_point("0")
 
      # When assiging color
-    color = np.random.randint((255, 255, 255))
+    color = np.random.randint(low=0, high=255, size=(3, ))
     pt.color = color
 
     # It should be set
