@@ -7,9 +7,10 @@ from opensfm import pygeometry
 from opensfm import geometry
 from opensfm import config
 from opensfm import types
+from opensfm import pymap
 from opensfm import tracking
 from opensfm import reconstruction
-
+from opensfm import pysfm
 
 def test_unicode_strings_in_bundle():
     """Test that byte and unicode strings can be used as camera ids."""
@@ -52,7 +53,7 @@ def test_sigleton_pan_tilt_roll():
 
     sa.run()
     s1 = sa.get_shot('1')
-    pose = types.Pose(s1.r, s1.t)
+    pose = pygeometry.Pose(s1.r, s1.t)
 
     assert np.allclose(pose.get_origin(), [1, 0, 0], atol=1e-6)
 
@@ -71,17 +72,29 @@ def test_bundle_projection_fixed_internals(scene_synthetic):
     reference = scene_synthetic[0].get_reconstruction()
     camera_priors = {c.id: c for c in scene_synthetic[0].cameras}
     graph = tracking.as_graph(scene_synthetic[5])
-    adjusted = copy.deepcopy(reference)
+    # Create the connnections in the reference
+    for point_id in reference.points.keys():
+        if point_id in graph:
+            for shot_id, g_obs in graph[point_id].items():
+                color = g_obs['feature_color']
+                pt = g_obs['feature']
+                obs = pysfm.Observation(pt[0], pt[1], g_obs['feature_scale'],
+                                        g_obs['feature_id'],
+                                        color[0], color[1], color[2])
+                reference.map.add_observation(shot_id, point_id, obs)
+
+    
+    orig_camera = copy.deepcopy(reference.cameras['1'])
 
     custom_config = config.default_config()
     custom_config['bundle_use_gps'] = False
     custom_config['optimize_camera_parameters'] = False
-    reconstruction.bundle(graph, adjusted, camera_priors, {}, custom_config)
+    reconstruction.bundle(reference, camera_priors, {}, custom_config)
 
-    assert _projection_errors_std(adjusted.points) < 5e-3
-    assert reference.cameras['1'].focal == adjusted.cameras['1'].focal
-    assert reference.cameras['1'].k1 == adjusted.cameras['1'].k1
-    assert reference.cameras['1'].k2 == adjusted.cameras['1'].k2
+    assert _projection_errors_std(reference.points) < 5e-3
+    assert reference.cameras['1'].focal == orig_camera.focal
+    assert reference.cameras['1'].k1 == orig_camera.k1
+    assert reference.cameras['1'].k2 == orig_camera.k2
 
 
 def test_pair():
@@ -315,25 +328,20 @@ def test_bundle_alignment_prior():
     """Test that cameras are aligned to have the Y axis pointing down."""
     camera = pygeometry.Camera.create_perspective(1.0, 0.0, 0.0)
     camera.id = 'camera1'
-
-    shot = types.Shot()
-    shot.id = '1'
-    shot.camera = camera
-    shot.pose = types.Pose(np.random.rand(3), np.random.rand(3))
-    shot.metadata = types.ShotMetadata()
-    shot.metadata.gps_position = [0, 0, 0]
-    shot.metadata.gps_dop = 1
-
+    
     r = types.Reconstruction()
     r.add_camera(camera)
-    r.add_shot(shot)
-    graph = nx.Graph()
+    shot = r.create_shot('1', camera.id, pygeometry.Pose(
+        np.random.rand(3), np.random.rand(3)))
+    shot.metadata.gps_position.value = [0, 0, 0]
+    shot.metadata.gps_accuracy.value = 1
+
     camera_priors = {camera.id: camera}
     gcp = []
     myconfig = config.default_config()
 
-    reconstruction.bundle(graph, r, camera_priors, gcp, myconfig)
-
+    reconstruction.bundle(r, camera_priors, gcp, myconfig)
+    shot = r.shots[shot.id]
     assert np.allclose(shot.pose.translation, np.zeros(3))
     # up vector in camera coordinates is (0, -1, 0)
     assert np.allclose(shot.pose.transform([0, 0, 1]), [0, -1, 0])

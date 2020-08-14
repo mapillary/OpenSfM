@@ -140,7 +140,7 @@ def create_optical_center_graph(reconstructions, config):
     for r in reconstructions:
         for shot in r.shots.values():
             optical_centers.append(shot.pose.get_origin())
-            viewing_directions.append(shot.viewing_direction())
+            viewing_directions.append(shot.pose.get_R_cam_to_world()[:, 2])
             rotation_matrices.append(shot.pose.get_rotation_matrix())
             shot_ids.append(shot.id)
 

@@ -42,21 +42,21 @@ struct BAShot {
   double covariance[BA_SHOT_NUM_PARAMS * BA_SHOT_NUM_PARAMS];
   bool constant;
 
-  Eigen::Vector3d GetRotation() const {
-    Eigen::Vector3d r;
-    Eigen::Vector3d t;
+  Vec3d GetRotation() const {
+    Vec3d r;
+    Vec3d t;
     InvertTransform_(&parameters[BA_SHOT_RX], &parameters[BA_SHOT_TX], &r[0], &t[0]);
     return r;
   }
-  Eigen::Vector3d GetTranslation() const {
-    Eigen::Vector3d r;
-    Eigen::Vector3d t;
+  Vec3d GetTranslation() const {
+    Vec3d r;
+    Vec3d t;
     InvertTransform_(&parameters[BA_SHOT_RX], &parameters[BA_SHOT_TX], &r[0], &t[0]);
     return t;
   }
   double GetCovarianceInvParam(int i, int j) { return covariance[i * BA_SHOT_NUM_PARAMS + j]; }
 
-  void SetRotationAndTranslation(const Eigen::Vector3d &r, const Eigen::Vector3d &t) {
+  void SetRotationAndTranslation(const Vec3d &r, const Vec3d &t) {
     InvertTransform_(&r[0], &t[0], &parameters[BA_SHOT_RX], &parameters[BA_SHOT_TX]);
   }
 
@@ -76,10 +76,10 @@ struct BAPoint {
   std::string id;
   Eigen::Matrix<double, 3, 1> parameters;
   bool constant;
-  std::map<std::string, Eigen::VectorXd> reprojection_errors;
+  std::map<std::string, VecXd> reprojection_errors;
 
-  Eigen::Vector3d GetPoint() const {return parameters;}
-  void SetPoint(const Eigen::Vector3d &p) {parameters = p;}
+  Vec3d GetPoint() const {return parameters;}
+  void SetPoint(const Vec3d &p) {parameters = p;}
 };
 
 struct BAReconstruction {
@@ -225,8 +225,8 @@ struct BARelativeMotion {
                    const std::string &shot_i,
                    const std::string &reconstruction_j,
                    const std::string &shot_j,
-                   const Eigen::Vector3d &rotation,
-                   const Eigen::Vector3d &translation,
+                   const Vec3d &rotation,
+                   const Vec3d &translation,
                    double robust_multiplier) {
     reconstruction_id_i = reconstruction_i;
     shot_id_i = shot_i;
@@ -240,18 +240,18 @@ struct BARelativeMotion {
     this->robust_multiplier = robust_multiplier;
   }
 
-  Eigen::Vector3d GetRotation() const {return parameters.segment(BA_SHOT_RX, 3);}
-  Eigen::Vector3d GetTranslation() const {return parameters.segment(BA_SHOT_TX, 3);}
-  void SetRotation(const Eigen::Vector3d &r) {parameters.segment(BA_SHOT_RX, 3) = r;}
-  void SetTranslation(const Eigen::Vector3d &t) {parameters.segment(BA_SHOT_TX, 3) = t;}
-  void SetScaleMatrix(const Eigen::MatrixXd& s) {scale_matrix = s;}
-
+  Vec3d GetRotation() const {return parameters.segment(BA_SHOT_RX, 3);}
+  Vec3d GetTranslation() const {return parameters.segment(BA_SHOT_TX, 3);}
+  void SetRotation(const Vec3d &r) {parameters.segment(BA_SHOT_RX, 3) = r;}
+  void SetTranslation(const Vec3d &t) {parameters.segment(BA_SHOT_TX, 3) = t;}
+  void SetScaleMatrix(const MatXd& s) {scale_matrix = s;}
+  
   std::string reconstruction_id_i;
   std::string shot_id_i;
   std::string reconstruction_id_j;
   std::string shot_id_j;
-  Eigen::VectorXd parameters;
-  Eigen::MatrixXd scale_matrix;
+  VecXd parameters;
+  MatXd scale_matrix;
   double robust_multiplier;
 };
 
@@ -260,8 +260,8 @@ struct BARelativeSimilarity : public BARelativeMotion {
                        const std::string &shot_i,
                        const std::string &reconstruction_j,
                        const std::string &shot_j,
-                       const Eigen::Vector3d &rotation,
-                       const Eigen::Vector3d &translation,
+                       const Vec3d &rotation,
+                       const Vec3d &translation,
                        double s, double robust_multiplier)
       : BARelativeMotion(reconstruction_i, shot_i, 
                          reconstruction_j, shot_j,
@@ -277,10 +277,10 @@ struct BARelativeSimilarity : public BARelativeMotion {
 struct BARelativeSimilarityCovariance
 {
   static const int Size = BA_SHOT_NUM_PARAMS+1;
-  std::vector<Eigen::Vector3d> points;
+  std::vector<Vec3d> points;
   Eigen::Matrix<double, Size, Size> covariance;
 
-  void AddPoint(const Eigen::Vector3d& v){points.push_back(v);}
+  void AddPoint(const Vec3d& v){points.push_back(v);}
 
   void Compute(){
     covariance.setZero();
@@ -312,20 +312,20 @@ struct BARelativeSimilarityCovariance
 struct BARelativeRotation {
   BARelativeRotation(const std::string &shot_i,
                      const std::string &shot_j,
-                     const Eigen::Vector3d &r) {
+                     const Vec3d &r) {
     shot_id_i = shot_i;
     shot_id_j = shot_j;
     rotation = r;
     scale_matrix.setIdentity();
   }
-  Eigen::Vector3d GetRotation() const {return rotation;}
-  void SetRotation(const Eigen::Vector3d& r) {rotation = r;}
-  void SetScaleMatrix(const Eigen::Matrix3d& s) {scale_matrix = s;}
+  Vec3d GetRotation() const {return rotation;}
+  void SetRotation(const Vec3d& r) {rotation = r;}
+  void SetScaleMatrix(const Mat3d& s) {scale_matrix = s;}
 
   std::string shot_id_i;
   std::string shot_id_j;
-  Eigen::Vector3d rotation;
-  Eigen::Matrix3d scale_matrix;
+  Vec3d rotation;
+  Mat3d scale_matrix;
 };
 
 struct BACommonPosition {
@@ -337,14 +337,14 @@ struct BACommonPosition {
 
 struct BAAbsolutePosition {
   BAShot *shot;
-  Eigen::Vector3d position;
+  Vec3d position;
   double std_deviation;
   std::string std_deviation_group;
 };
 
 struct BAAbsoluteUpVector {
   BAShot *shot;
-  Eigen::Vector3d up_vector;
+  Vec3d up_vector;
   double std_deviation;
 };
 
@@ -367,14 +367,14 @@ struct BAPointPositionShot {
   std::string shot_id;
   std::string reconstruction_id;
   std::string point_id;
-  Eigen::Vector3d position;
+  Vec3d position;
   double std_deviation;
   PositionConstraintType type;
 };
 
 struct BAPointPositionWorld {
   std::string point_id;
-  Eigen::Vector3d position;
+  Vec3d position;
   double std_deviation;
   PositionConstraintType type;
 };
@@ -391,8 +391,8 @@ class BundleAdjuster {
   void AddShot(
       const std::string &id,
       const std::string &camera,
-      const Eigen::Vector3d& rotation,
-      const Eigen::Vector3d& translation,
+      const Vec3d& rotation,
+      const Vec3d& translation,
       bool constant);
   void AddReconstruction(
       const std::string &id,
@@ -401,7 +401,7 @@ class BundleAdjuster {
                              const std::string& shot_id);
   void SetScaleSharing(const std::string &id, bool share);
   void AddPoint(const std::string &id, 
-                const Eigen::Vector3d& position,
+                const Vec3d& position,
                 bool constant);
 
   // averaging constraints
@@ -454,12 +454,12 @@ class BundleAdjuster {
       double std_deviation);
   void AddAbsolutePosition(
       const std::string &shot_id,
-      const Eigen::Vector3d& position,
+      const Vec3d& position,
       double std_deviation,
       const std::string& std_deviation_group);
   void AddAbsoluteUpVector(
       const std::string &shot_id,
-      const Eigen::Vector3d& up_vector,
+      const Vec3d& up_vector,
       double std_deviation);
   void AddAbsolutePan(
       const std::string &shot_id,
@@ -487,11 +487,11 @@ class BundleAdjuster {
   void AddPointPositionShot(const std::string &point_id,
                             const std::string &shot_id,
                             const std::string &reconstruction_id,
-                            const Eigen::Vector3d& position,
+                            const Vec3d& position,
                             double std_deviation,
                             const PositionConstraintType& type);
   void AddPointPositionWorld(const std::string &point_id,
-                             const Eigen::Vector3d& position,
+                             const Vec3d& position,
                              double std_deviation,
                              const PositionConstraintType& type);
 

@@ -48,10 +48,9 @@ def copy_cluster_points(cluster, tracks_manager, points, noise):
     for shot in cluster.shots:
         for point in tracks_manager.get_shot_observations(shot):
             base = points[point]
-            copy = types.Point()
-            copy.id = base.id
-            copy.coordinates = base.coordinates+np.random.rand()*noise
-            cluster.add_point(copy)
+            coordinates = base.coordinates+np.random.rand()*noise
+            if base.id not in cluster.points:
+                cluster.create_point(base.id, coordinates)
     return cluster
 
 

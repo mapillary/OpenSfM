@@ -229,12 +229,11 @@ def import_matches(db, data, image_map):
     cursor.close()
 
 
-def import_cameras_reconstruction(path_cameras):
+def import_cameras_reconstruction(path_cameras, rec):
     """
     Imports cameras from a COLMAP reconstruction cameras.bin file
     """
     logger.info("Importing cameras from {}".format(path_cameras))
-    r_cams = {}
     with open(path_cameras, 'rb') as f:
         n_cameras = unpack('<Q', f.read(8))[0]
         for _ in range(n_cameras):
@@ -247,8 +246,8 @@ def import_cameras_reconstruction(path_cameras):
             for _ in range(n_params):
                 params.append(unpack('<d', f.read(8))[0])
             cam = cam_from_colmap_params(camera_model_id, width, height, params)
-            r_cams[camera_id] = cam
-    return r_cams
+            cam.id = camera_id
+            new_cam = rec.add_camera(cam)
 
 
 def cam_from_colmap_params(camera_model_id, width, height, params, prior_focal=1):
@@ -270,14 +269,12 @@ def cam_from_colmap_params(camera_model_id, width, height, params, prior_focal=1
     return cam
 
 
-def import_points_reconstruction(path_points):
+def import_points_reconstruction(path_points, rec):
     logger.info("Importing points from {}".format(path_points))
-    points3d = {}
     with open(path_points, 'rb') as f:
         n_points = unpack('<Q', f.read(8))[0]
         for point_ix in range(n_points):
-            p = types.Point()
-            p.id = unpack('<Q', f.read(8))[0]
+            pid = unpack('<Q', f.read(8))[0]
             x = unpack('<d', f.read(8))[0]
             y = unpack('<d', f.read(8))[0]
             z = unpack('<d', f.read(8))[0]
@@ -288,10 +285,8 @@ def import_points_reconstruction(path_points):
             track_len = unpack('<Q', f.read(8))[0]
             # Ignore track info
             f.seek(8 * track_len, 1)
-            p.coordinates = (x, y, z)
+            p = rec.create_point(pid, (x, y, z))
             p.color = (r, g, b)
-            points3d[p.id] = p
-    return points3d
 
 
 def read_colmap_ply(path_ply):
@@ -348,13 +343,12 @@ def read_colmap_ply(path_ply):
     return np.array(points), np.array(normals), np.array(colors)
 
 
-def import_images_reconstruction(path_images, camera_map, keypoints, points3D):
+def import_images_reconstruction(path_images, camera_map, keypoints, points3D, rec):
     """
     Read images.bin, building shots and tracks graph
     """
     logger.info("Importing images from {}".format(path_images))
     tracks_manager = pysfm.TracksManager()
-    shots = {}
     image_ix_to_shot_id = {}
     with open(path_images, 'rb') as f:
         n_ims = unpack('<Q', f.read(8))[0]
@@ -378,11 +372,8 @@ def import_images_reconstruction(path_images, camera_map, keypoints, points3D):
             q /= np.linalg.norm(q)
             t = np.array([t0, t1, t2])
 
-            shot = types.Shot()
-            shot.pose = types.Pose(rotation=quaternion_to_angle_axis(q), translation=t)
-            shot.camera = camera_map[camera_id]
-            shot.id = filename
-            shots[shot.id] = shot
+            pose = pygeometry.Pose(rotation=quaternion_to_angle_axis(q), translation=t)
+            shot = rec.create_shot(filename, camera_id, pose)
             image_ix_to_shot_id[image_ix] = shot.id
 
             n_points_2d = unpack('<Q', f.read(8))[0]
@@ -396,7 +387,7 @@ def import_images_reconstruction(path_images, camera_map, keypoints, points3D):
                     obs = pysfm.Observation(x, y, kp[2], int(r), int(g), int(b), point2d_ix)
                     tracks_manager.add_observation(shot.id, str(point3d_id), obs)
 
-    return shots, tracks_manager, image_ix_to_shot_id
+    return tracks_manager, image_ix_to_shot_id
 
 
 def read_vis(path_vis, image_ix_to_shot_id):
@@ -539,17 +530,15 @@ def main():
     rec_points = p_db.parent / 'points3D.bin'
     rec_images = p_db.parent / 'images.bin'
     if rec_cameras.exists() and rec_images.exists() and rec_points.exists():
-        cameras = import_cameras_reconstruction(rec_cameras)
-        points3D = import_points_reconstruction(rec_points)
-        shots, tracks_manager, _ = import_images_reconstruction(rec_images,
-                                                                cameras,
-                                                                keypoints,
-                                                                points3D)
-
         reconstruction = types.Reconstruction()
-        reconstruction.cameras = cameras
-        reconstruction.shots = shots
-        reconstruction.points = points3D
+        import_cameras_reconstruction(rec_cameras, reconstruction)
+        import_points_reconstruction(rec_points, reconstruction)
+        tracks_manager, _ = import_images_reconstruction(rec_images,
+                                                         cameras,
+                                                         keypoints,
+                                                         points3D,
+                                                         reconstruction)
+
         data.save_reconstruction([reconstruction])
         data.save_tracks_manager(tracks_manager)
 
@@ -561,10 +550,12 @@ def main():
         path_ply = p_db.parent / 'dense/fused.ply'
         path_images = p_db.parent / 'dense/sparse/images.bin'
         if path_ply.is_file():
-            _, _, image_ix_to_shot_id = import_images_reconstruction(path_images,
-                                                                     cameras,
-                                                                     keypoints,
-                                                                     points3D)
+            reconstruction = types.Reconstruction()
+            _, image_ix_to_shot_id = import_images_reconstruction(path_images,
+                                                                  cameras,
+                                                                  keypoints,
+                                                                  points3D,
+                                                                  reconstruction)
             logger.info(f"Projecting {path_ply} to depth images")
             import_depthmaps_from_fused_pointcloud(udata, urec, image_ix_to_shot_id, path_ply)
         else:

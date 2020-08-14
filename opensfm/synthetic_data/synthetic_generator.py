@@ -8,6 +8,7 @@ from opensfm import geo
 from opensfm import types
 from opensfm import reconstruction as rc
 from opensfm import pysfm
+from opensfm import pygeometry
 
 
 def derivative(func, x):
@@ -138,9 +139,8 @@ def generate_exifs(reconstruction, gps_noise, speed_ms=10):
 
         perturb_points([pose], [gps_noise, gps_noise, gps_noise])
 
-        shot_copy = copy.deepcopy(shot)
-        shot_copy.pose.set_origin(pose)
-        lat, lon, alt, comp = rc.shot_lla_and_compass(shot_copy, reference)
+        _, _, _, comp = rc.shot_lla_and_compass(shot, reference)
+        lat, lon, alt = reference.to_lla(*pose)
 
         exif['gps'] = {}
         exif['gps']['latitude'] = lat
@@ -165,25 +165,19 @@ def perturb_rotations(rotations, angle_sigma):
 def add_shots_to_reconstruction(positions, rotations,
                                 camera, reconstruction):
     shift = len(reconstruction.shots)
-    for i, item in enumerate(zip(positions, rotations)):
-        shot = types.Shot()
-        shot.id = 'shot%04d' % (shift + i)
-        shot.camera = camera
-        shot.pose = types.Pose()
-        shot.pose.set_rotation_matrix(item[1])
-        shot.pose.set_origin(item[0])
-        reconstruction.add_shot(shot)
     reconstruction.add_camera(camera)
+    for i, item in enumerate(zip(positions, rotations)):
+        reconstruction.create_shot('shot%04d' % (shift + i), camera.id,
+                                   pygeometry.Pose(item[1],
+                                                   -item[1].dot(item[0])))
+
 
 
 def add_points_to_reconstruction(points, color, reconstruction):
     shift = len(reconstruction.points)
     for i in range(points.shape[0]):
-        point = types.Point()
-        point.id = str(shift+i)
-        point.coordinates = points[i, :]
+        point = reconstruction.create_point(str(shift+i), points[i, :])
         point.color = color
-        reconstruction.add_point(point)
 
 
 def create_reconstruction(points, colors,

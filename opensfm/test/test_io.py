@@ -125,3 +125,25 @@ def test_read_write_ground_control_points():
     freread = StringIO(fwrite.getvalue())
     points_reread = io.read_ground_control_points(freread, reference)
     check_points(points_reread)
+
+
+def test_json_to_and_from_metadata():
+    obj = {
+        "orientation": 10,
+        "capture_time": 1,
+        "gps_dop": 2,
+        "gps_position": [4, 5, 6],
+        "skey": "test",
+        "accelerometer": [7, 8, 9],
+        "compass": {"angle": 10, "accuracy": 45}
+    }
+    m = io.json_to_pymap_metadata(obj)
+    assert m.orientation.value == 10
+    assert m.capture_time.value == 1
+    assert m.gps_accuracy.value == 2
+    assert np.allclose(m.gps_position.value, [4, 5, 6])
+    assert m.sequence_key.value == "test"
+    assert np.allclose(m.accelerometer.value, [7, 8, 9])
+    assert m.compass_angle.value == 10
+    assert m.compass_accuracy.value == 45
+    assert obj == io.pymap_metadata_to_json(m)
