@@ -118,7 +118,13 @@ TEST_F(CameraFixture, BrownIsConsistent){
 }
 
 TEST_F(CameraFixture, FisheyeIsConsistent){
-  Camera camera = Camera::CreateFisheyeCamera(focal, 1.0, principal_point, distortion_fisheye);
+  Camera camera = Camera::CreateFisheyeCamera(focal, distortion[0], distortion[1]);
+  const auto projected = camera.ProjectMany(camera.BearingsMany(pixels));
+  ASSERT_LT(ComputeError(projected), 2e-7);
+}
+
+TEST_F(CameraFixture, FisheyeExtendedIsConsistent){
+  Camera camera = Camera::CreateFisheyeExtendedCamera(focal, 1.0, principal_point, distortion_fisheye);
   const auto projected = camera.ProjectMany(camera.BearingsMany(pixels));
   ASSERT_LT(ComputeError(projected), 2e-7);
 }
@@ -153,7 +159,16 @@ TEST_F(CameraFixture, PerspectiveReturnCorrectTypes){
 }
 
 TEST_F(CameraFixture, FisheyeReturnCorrectTypes) {
-  Camera camera = Camera::CreateFisheyeCamera(focal, 1.0, principal_point, distortion_fisheye);
+  Camera camera = Camera::CreateFisheyeCamera(focal, distortion[0], distortion[1]);
+  const auto types = camera.GetParametersTypes();
+  const auto expected = std::vector<Camera::Parameters>(
+      {Camera::Parameters::K1, Camera::Parameters::K2,
+       Camera::Parameters::Focal});
+  ASSERT_THAT(expected, ::testing::ContainerEq(types));
+}
+
+TEST_F(CameraFixture, FisheyeExtendedReturnCorrectTypes) {
+  Camera camera = Camera::CreateFisheyeExtendedCamera(focal, 1.0, principal_point, distortion_fisheye);
   const auto types = camera.GetParametersTypes();
   const auto expected = std::vector<Camera::Parameters>(
       {Camera::Parameters::K1, Camera::Parameters::K2, Camera::Parameters::K3,
@@ -193,7 +208,16 @@ TEST_F(CameraFixture, PerspectiveReturnCorrectValues){
 }
 
 TEST_F(CameraFixture, FisheyeReturnCorrectValues) {
-  Camera camera = Camera::CreateFisheyeCamera(focal, 1.0, principal_point, distortion_fisheye);
+  Camera camera = Camera::CreateFisheyeCamera(focal, distortion[0], distortion[1]);
+  const auto values = camera.GetParametersValues();
+
+  Eigen::VectorXd expected(3);
+  expected << distortion[0], distortion[1], focal;
+  ASSERT_EQ(expected, values);
+}
+
+TEST_F(CameraFixture, FisheyeExtendedReturnCorrectValues) {
+  Camera camera = Camera::CreateFisheyeExtendedCamera(focal, 1.0, principal_point, distortion_fisheye);
   const auto values = camera.GetParametersValues();
 
   Eigen::VectorXd expected(8);
@@ -297,13 +321,24 @@ TEST_F(CameraFixture, ComputePerspectiveAnalyticalDerivatives){
 }
 
 TEST_F(CameraFixture, ComputeFisheyeAnalyticalDerivatives){
-  const Camera camera = Camera::CreateFisheyeCamera(focal, new_ar, principal_point, distortion_fisheye);
+  const Camera camera = Camera::CreateFisheyeCamera(focal, -0.1, 0.01);
+
+  const VecXd camera_params = camera.GetParametersValues();
+  const int size_params = 3 + camera_params.size();
+
+  Eigen::Matrix<double, 2, 6, Eigen::RowMajor> jacobian;
+  RunJacobianEval(camera, ProjectionType::FISHEYE, &jacobian);
+  CheckJacobian(jacobian, size_params);
+}
+
+TEST_F(CameraFixture, ComputeFisheyeExtendedAnalyticalDerivatives){
+  const Camera camera = Camera::CreateFisheyeExtendedCamera(focal, new_ar, principal_point, distortion_fisheye);
 
   const VecXd camera_params = camera.GetParametersValues();
   const int size_params = 3 + camera_params.size();
 
   Eigen::Matrix<double, 2, 11, Eigen::RowMajor> jacobian;
-  RunJacobianEval(camera, ProjectionType::FISHEYE, &jacobian);
+  RunJacobianEval(camera, ProjectionType::FISHEYE_EXTENDED, &jacobian);
   CheckJacobian(jacobian, size_params);
 }
 

@@ -200,6 +200,49 @@
             varying vec4 vRstq;
             uniform sampler2D projectorTex;
             uniform float opacity;
+            uniform float focal;
+            uniform float k1;
+            uniform float k2;
+            uniform float scale_x;
+            uniform float scale_y;
+
+            void main()
+            {
+                float x = vRstq.x;
+                float y = vRstq.y;
+                float z = vRstq.z;
+
+                float a = x / z;
+                float b = y / z;
+
+                float r = sqrt(a * a + b * b);
+                float theta = atan(r);
+                float theta2 = theta * theta;
+                float theta_d = theta * (1.0 + theta2 * (k1 + theta2 * k2));
+                float inv_r = r > 1e-8 ? 1.0 / r : 1.0;
+                float cdist = r > 1e-8 ? theta_d * inv_r : 1.0;
+                float x_p = cdist * a;
+                float y_p = cdist * b;
+
+                float u = scale_x * focal * x_p + 0.5;
+                float v = -scale_y * focal * y_p + 0.5;
+
+                vec4 baseColor = texture2D(projectorTex, vec2(u, v));
+                baseColor.a = opacity;
+                gl_FragColor = baseColor;
+            }
+
+        </script>
+
+        <script type="x-shader/x-fragment" id="fragmentshader_fisheye_extended">
+
+            #ifdef GL_ES
+            precision highp float;
+            #endif
+
+            varying vec4 vRstq;
+            uniform sampler2D projectorTex;
+            uniform float opacity;
             uniform float focal_x;
             uniform float focal_y;
             uniform float c_x;
@@ -827,6 +870,8 @@
                     return $('#fragmentshader_equirectangular').text();
                 else if (cam.projection_type == 'fisheye')
                     return $('#fragmentshader_fisheye').text();
+                else if (cam.projection_type == 'fisheye_extended')
+                    return $('#fragmentshader_fisheye_extended').text();
                 else
                     return $('#fragmentshader').text();
             }

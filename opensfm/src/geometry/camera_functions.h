@@ -8,8 +8,8 @@
 
 #include <iostream>
 
-enum class ProjectionType { PERSPECTIVE, BROWN, FISHEYE, SPHERICAL, DUAL };
-enum class Disto { K1 = 0, K2 = 1, K3 = 2, K4 = 3, P1 = 3, P2 = 4 }; // Brown model has P1 = 3, Fisheye has K4 = 3
+enum class ProjectionType { PERSPECTIVE, BROWN, FISHEYE, FISHEYE_EXTENDED, SPHERICAL, DUAL };
+enum class Disto { K1 = 0, K2 = 1, K3 = 2, K4 = 3, P1 = 3, P2 = 4 }; // Brown model has P1 = 3, Fisheye extended has K4 = 3
 
 template <class T>
 inline T SquaredNorm(T* point){
@@ -419,7 +419,7 @@ struct Disto24 : CameraFunctor<2, 2, 2>{
 };
 
 /* Parameters are : k1, k2, k3, k4 */
-struct DistoFisheye : CameraFunctor<2, 4, 2>{
+struct Disto2468 : CameraFunctor<2, 4, 2>{
   template <class T>
   static void Forward(const T* point, const T* k, T* distorted) {
     const T r2 = SquaredNorm(point);
@@ -511,11 +511,11 @@ struct DistoFisheye : CameraFunctor<2, 4, 2>{
     const T& k4;
     T operator()(const T& x) const {
       const auto r2 = x * x;
-      return x * DistoFisheye::Distortion(r2, k1, k2, k3, k4) - rd;
+      return x * Disto2468::Distortion(r2, k1, k2, k3, k4) - rd;
     }
     T derivative(const T& x) const {
       const auto r2 = x * x;
-      return DistoFisheye::DistortionDerivative(r2, k1, k2, k3, k4);
+      return Disto2468::DistortionDerivative(r2, k1, k2, k3, k4);
     }
   };
 
@@ -1013,7 +1013,7 @@ template <class T> struct FunctorTraits { static constexpr int Size = 0;};
 template <> struct FunctorTraits<SphericalProjection> { static constexpr int Size = 0;};
 template <> struct FunctorTraits<DualProjection> { static constexpr int Size = 1;};
 template <> struct FunctorTraits<Disto24> { static constexpr int Size = 2;};
-template <> struct FunctorTraits<DistoFisheye> { static constexpr int Size = 4;};
+template <> struct FunctorTraits<Disto2468> { static constexpr int Size = 4;};
 template <> struct FunctorTraits<DistoBrown> {static constexpr int Size = 5;};
 template <> struct FunctorTraits<UniformScale> {static constexpr int Size = 1;};
 template <> struct FunctorTraits<Affine> { static constexpr int Size = 4;};
@@ -1080,7 +1080,8 @@ struct ProjectGeneric : CameraFunctor<3, SizeTraits<PROJ, DISTO, AFF>::Size, 2> 
 
 using PerspectiveCamera = ProjectGeneric<PerspectiveProjection, Disto24, UniformScale>;
 using BrownCamera = ProjectGeneric<PerspectiveProjection, DistoBrown, Affine>;
-using FisheyeCamera = ProjectGeneric<FisheyeProjection, DistoFisheye, Affine>;
+using FisheyeCamera = ProjectGeneric<FisheyeProjection, Disto24, UniformScale>;
+using FisheyeExtendedCamera = ProjectGeneric<FisheyeProjection, Disto2468, Affine>;
 using DualCamera = ProjectGeneric<DualProjection, Disto24, UniformScale>;
 using SphericalCamera = ProjectGeneric<SphericalProjection, Identity, Identity>;
 
@@ -1098,6 +1099,9 @@ void Dispatch(const ProjectionType& type, IN&&... args) {
       break;
     case ProjectionType::FISHEYE:
       FUNC::template Apply<FisheyeCamera>(std::forward<IN>(args)...);
+      break;
+    case ProjectionType::FISHEYE_EXTENDED:
+      FUNC::template Apply<FisheyeExtendedCamera>(std::forward<IN>(args)...);
       break;
     case ProjectionType::DUAL:
       FUNC::template Apply<DualCamera>(std::forward<IN>(args)...);

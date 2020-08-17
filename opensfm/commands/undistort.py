@@ -74,7 +74,7 @@ class Command:
             elif shot.camera.projection_type == 'brown':
                 camera = perspective_camera_from_brown(shot.camera)
                 subshots = [get_shot_with_different_camera(shot, camera)]
-            elif shot.camera.projection_type == 'fisheye':
+            elif shot.camera.projection_type in ['fisheye', 'fisheye_extended']:
                 camera = perspective_camera_from_fisheye(shot.camera)
                 subshots = [get_shot_with_different_camera(shot, camera)]
             elif shot.camera.projection_type in ['equirectangular', 'spherical']:
@@ -156,7 +156,7 @@ def undistort_image(shot, undistorted_shots, original, interpolation,
         return
 
     projection_type = shot.camera.projection_type
-    if projection_type in ['perspective', 'brown', 'fisheye']:
+    if projection_type in ['perspective', 'brown', 'fisheye', 'fisheye_extended']:
         new_camera = undistorted_shots[0].camera
         height, width = original.shape[:2]
         map1, map2 = pygeometry.compute_camera_mapping(shot.camera, new_camera, width, height)
@@ -222,11 +222,20 @@ def perspective_camera_from_brown(brown):
 
 def perspective_camera_from_fisheye(fisheye):
     """Create a perspective camera from a fisheye."""
-    camera = pygeometry.Camera.create_perspective(
-        fisheye.focal * (1 + fisheye.aspect_ratio) / 2.0, 0.0, 0.0)
+    camera = pygeometry.Camera.create_perspective(fisheye.focal, 0.0, 0.0)
     camera.id = fisheye.id
     camera.width = fisheye.width
     camera.height = fisheye.height
+    return camera
+
+
+def perspective_camera_from_fisheye_extended(fisheye_extended):
+    """Create a perspective camera from a fisheye extended."""
+    camera = pygeometry.Camera.create_perspective(
+        fisheye_extended.focal * (1 + fisheye_extended.aspect_ratio) / 2.0, 0.0, 0.0)
+    camera.id = fisheye_extended.id
+    camera.width = fisheye_extended.width
+    camera.height = fisheye_extended.height
     return camera
 
 

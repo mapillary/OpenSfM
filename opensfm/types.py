@@ -414,6 +414,115 @@ class FisheyeCamera(Camera):
     Attributes:
         width (int): image width.
         height (int): image height.
+        focal (real): estimated focal length.
+        k1 (real): estimated first radial distortion parameter.
+        k2 (real): estimated second radial distortion parameter.
+    """
+
+    def __init__(self):
+        """Defaut constructor."""
+        self.id = None
+        self.projection_type = 'fisheye'
+        self.width = None
+        self.height = None
+        self.focal = None
+        self.k1 = None
+        self.k2 = None
+
+    def project(self, point):
+        """Project a 3D point in camera coordinates to the image plane."""
+        x, y, z = point
+        a = x / z
+        b = y / z
+
+        r = np.sqrt(a**2 + b**2)
+        theta = np.arctan(r)
+        theta2 = theta**2
+        theta_d = theta * (1.0 + theta2 * (self.k1 + theta2 * self.k2))
+
+        inv_r = 1.0 / r if r > 1e-8 else 1.0
+        cdist = theta_d * inv_r if r > 1e-8 else 1.0
+
+        x_p = cdist * a
+        y_p = cdist * b
+
+        return np.array([self.focal * x_p, self.focal * y_p])
+
+    def project_many(self, points):
+        """Project 3D points in camera coordinates to the image plane."""
+        points = points.reshape((-1, 1, 3)).astype(np.float64)
+        distortion = np.array([self.k1, self.k2, 0.0, 0.0])
+        K, R, t = self.get_K(), np.zeros(3), np.zeros(3)
+        pixels, _ = cv2.fisheye.projectPoints(points, R, t, K, distortion)
+        return pixels.reshape((-1, 2))
+
+    def pixel_bearing(self, pixel):
+        """Unit vector pointing to the pixel viewing direction."""
+        point = np.asarray(pixel).reshape((1, 1, 2))
+        distortion = np.array([self.k1, self.k2, 0.0, 0.0])
+        x, y = cv2.fisheye.undistortPoints(point, self.get_K(), distortion).flat
+        l = np.sqrt(x * x + y * y + 1.0)
+        return np.array([x / l, y / l, 1.0 / l])
+
+    def pixel_bearing_many(self, pixels):
+        """Unit vector pointing to the pixel viewing directions."""
+        points = pixels.reshape((-1, 1, 2)).astype(np.float64)
+        distortion = np.array([self.k1, self.k2, 0.0, 0.0])
+        up = cv2.fisheye.undistortPoints(points, self.get_K(), distortion)
+        up = up.reshape((-1, 2))
+        x = up[:, 0]
+        y = up[:, 1]
+        l = np.sqrt(x * x + y * y + 1.0)
+        return np.column_stack((x / l, y / l, 1.0 / l))
+
+    def pixel_bearings(self, pixels):
+        """Deprecated: use pixel_bearing_many."""
+        return self.pixel_bearing_many(pixels)
+
+    def back_project(self, pixel, depth):
+        """Project a pixel to a fronto-parallel plane at a given depth."""
+        bearing = self.pixel_bearing(pixel)
+        scale = depth / bearing[2]
+        return scale * bearing
+
+    def back_project_many(self, pixels, depths):
+        """Project pixels to fronto-parallel planes at given depths."""
+        bearings = self.pixel_bearing_many(pixels)
+        scales = depths / bearings[:, 2]
+        return scales[:, np.newaxis] * bearings
+
+    def get_K(self):
+        """The calibration matrix."""
+        return np.array([[self.focal, 0., 0.],
+                         [0., self.focal, 0.],
+                         [0., 0., 1.]])
+
+    def get_K_in_pixel_coordinates(self, width=None, height=None):
+        """The calibration matrix that maps to pixel coordinates.
+
+        Coordinates (0,0) correspond to the center of the top-left pixel,
+        and (width - 1, height - 1) to the center of bottom-right pixel.
+
+        You can optionally pass the width and height of the image, in case
+        you are using a resized version of the original image.
+        """
+        w = width or self.width
+        h = height or self.height
+        s = max(w, h)
+        normalized_to_pixel = np.array([
+            [s, 0, (w - 1) / 2.0],
+            [0, s, (h - 1) / 2.0],
+            [0, 0, 1],
+        ])
+        return np.dot(normalized_to_pixel, self.get_K())
+
+
+class FisheyeExtendedCamera(Camera):
+    """Define a fisheye camera using full OpenCV model.
+
+    Attributes:
+        width (int): image width.
+        height (int): image height.
         focal_x (real): estimated focal length for the X axis.
         focal_y (real): estimated focal length for the Y axis.
         c_x (real): estimated principal point X.
@@ -427,7 +536,7 @@ class FisheyeCamera(Camera):
     def __init__(self):
         """Defaut constructor."""
         self.id = None
-        self.projection_type = 'fisheye'
+        self.projection_type = 'fisheye_extended'
         self.width = None
         self.height = None
         self.focal_x = None

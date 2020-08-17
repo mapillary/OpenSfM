@@ -118,6 +118,17 @@ def test_fisheye_camera_projection():
         assert np.allclose(pixel, projected)
 
 
+def test_fisheye_extended_camera_projection():
+    """Test fisheye extended projection--backprojection loop."""
+    if not context.OPENCV3:
+        return
+    for camera in _get_fisheye_extended_camera():
+        pixel = [0.1, 0.2]
+        bearing = camera.pixel_bearing(pixel)
+        projected = camera.project(bearing)
+        assert np.allclose(pixel, projected)
+
+
 def test_dual_camera_projection():
     """Test dual projection--backprojection loop."""
     if not context.OPENCV3:
@@ -168,6 +179,7 @@ def test_shot_project_back_project():
     ]
     if context.OPENCV3:
         cameras.append(_get_fisheye_camera())
+        cameras.append(_get_fisheye_extended_camera())
 
     shot = types.Shot()
     shot.pose = pose
@@ -206,6 +218,7 @@ def test_single_vs_many():
     ]
     if context.OPENCV3:
         cameras.append(_get_fisheye_camera())
+        cameras.append(_get_fisheye_extended_camera())
 
     for camera, camera_cpp in cameras:
         p = camera.project_many(points)
@@ -259,6 +272,18 @@ def _get_fisheye_camera():
     camera = types.FisheyeCamera()
     camera.width = 800
     camera.height = 600
+    camera.focal = 0.6
+    camera.k1 = -0.1
+    camera.k2 = 0.01
+    camera_cpp = pygeometry.Camera.create_fisheye(
+        camera.focal, camera.k1, camera.k2)
+    return camera, camera_cpp
+
+
+def _get_fisheye_extended_camera():
+    camera = types.FisheyeExtendedCamera()
+    camera.width = 800
+    camera.height = 600
     camera.focal_x = 0.6
     camera.focal_y = 0.7
     camera.c_x = 0.1
@@ -267,7 +292,7 @@ def _get_fisheye_camera():
     camera.k2 = 0.01
     camera.k3 = 0.0002
     camera.k4 = 0.0005
-    camera_cpp = pygeometry.Camera.create_fisheye(
+    camera_cpp = pygeometry.Camera.create_fisheye_extended(
         camera.focal_x, camera.focal_y / camera.focal_x,
         [camera.c_x, camera.c_y],
         [camera.k1, camera.k2, camera.k3, camera.k4])

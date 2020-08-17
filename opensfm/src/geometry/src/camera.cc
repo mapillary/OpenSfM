@@ -34,14 +34,23 @@ Camera Camera::CreateBrownCamera(double focal, double aspect_ratio,
   return camera;
 };
 
-Camera Camera::CreateFisheyeCamera(double focal, double aspect_ratio,
-                                   const Eigen::Vector2d& principal_point,
-                                   const Eigen::VectorXd& distortion) {
+Camera Camera::CreateFisheyeCamera(double focal, double k1, double k2) {
+  Camera camera;
+  camera.type_ = ProjectionType::FISHEYE;
+  camera.types_= {Camera::Parameters::K1, Camera::Parameters::K2, Camera::Parameters::Focal};
+  camera.values_.resize(3);
+  camera.values_ << k1, k2, focal;
+  return camera;
+};
+
+Camera Camera::CreateFisheyeExtendedCamera(double focal, double aspect_ratio,
+                                           const Eigen::Vector2d& principal_point,
+                                           const Eigen::VectorXd& distortion) {
   Camera camera;
   if (distortion.size() != 4) {
     throw std::runtime_error("Invalid distortion coefficients size");
   }
-  camera.type_ = ProjectionType::FISHEYE;
+  camera.type_ = ProjectionType::FISHEYE_EXTENDED;
   camera.types_ = {Camera::Parameters::K1,          Camera::Parameters::K2,
                    Camera::Parameters::K3,          Camera::Parameters::K4,
                    Camera::Parameters::Focal,       Camera::Parameters::AspectRatio,
@@ -120,6 +129,8 @@ std::string Camera::GetProjectionString() const {
       return "brown";
     case ProjectionType::FISHEYE:
       return "fisheye";
+    case ProjectionType::FISHEYE_EXTENDED:
+      return "fisheye_extended";
     case ProjectionType::DUAL:
       return "dual";
     case ProjectionType::SPHERICAL:
