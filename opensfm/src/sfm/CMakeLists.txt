@@ -7,7 +7,7 @@ set(SFM_FILES
     src/sfm_helpers.cc
 )
 add_library(sfm ${SFM_FILES})
-target_link_libraries(sfm 
+target_link_libraries(sfm
   PRIVATE
     foundation
 )
@@ -25,8 +25,9 @@ target_link_libraries(sfm_test
 add_test(sfm_test sfm_test)
 
 pybind11_add_module(pysfm python/pybind.cc)
-target_link_libraries(pysfm 
-  PRIVATE 
+target_include_directories(pysfm PRIVATE ${GLOG_INCLUDE_DIR})
+target_link_libraries(pysfm
+  PRIVATE
     foundation
     pybind11
     sfm

@@ -32,7 +32,7 @@ def match_images(data, ref_images, cand_images):
     """
 
     # Get EXIFs data
-    all_images = list(set(ref_images+cand_images))
+    all_images = list(set(ref_images + cand_images))
     exifs = {im: data.load_exif(im) for im in all_images}
 
     # Generate pairs for matching

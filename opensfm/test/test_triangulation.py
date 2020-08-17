@@ -39,13 +39,12 @@ def test_track_triangulator_equirectangular():
         },
     })
 
-    graph_inliers = nx.Graph()
-    triangulator = reconstruction.TrackTriangulator(tracks_manager, graph_inliers, rec)
+    triangulator = reconstruction.TrackTriangulator(tracks_manager, rec)
     triangulator.triangulate('1', 0.01, 2.0)
     assert '1' in rec.points
     p = rec.points['1'].coordinates
     assert np.allclose(p, [0, 0, 1.3763819204711])
-    assert len(graph_inliers.edges()) == 2
+    assert len(rec.points['1'].get_observations()) == 2
 
 
 def unit_vector(x):
@@ -62,7 +61,7 @@ def test_triangulate_bearings_dlt():
     res, X = pygeometry.triangulate_bearings_dlt(
         [rt1, rt2], [b1, b2], max_reprojection, min_ray_angle)
     assert np.allclose(X, [0, 0, 1.0])
-    assert res == 0
+    assert res is True
 
 
 def test_triangulate_bearings_midpoint():
@@ -75,7 +74,7 @@ def test_triangulate_bearings_midpoint():
     res, X = pygeometry.triangulate_bearings_midpoint(
         [o1, o2], [b1, b2], 2 * [max_reprojection], min_ray_angle)
     assert np.allclose(X, [0, 0, 1.0])
-    assert res == 0
+    assert res is True
 
 
 def test_triangulate_two_bearings_midpoint():

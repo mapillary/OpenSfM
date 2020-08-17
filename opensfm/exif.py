@@ -9,7 +9,6 @@ from codecs import encode, decode
 from six import string_types
 
 from opensfm.sensors import sensor_data
-from opensfm import types
 from opensfm import pygeometry
 
 
@@ -161,7 +160,7 @@ class EXIF:
 
     def extract_image_size(self):
         # Image Width and Image Height
-        if ('EXIF ExifImageWidth' in self.tags and # PixelXDimension
+        if ('EXIF ExifImageWidth' in self.tags and  # PixelXDimension
                 'EXIF ExifImageLength' in self.tags):  # PixelYDimension
             width, height = (int(self.tags['EXIF ExifImageWidth'].values[0]),
                              int(self.tags['EXIF ExifImageLength'].values[0]))

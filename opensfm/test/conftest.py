@@ -59,8 +59,9 @@ def pairs_and_poses():
         f1 = [p.point for k, p, _ in tuples if k in points_keys]
         f2 = [p.point for k, _, p in tuples if k in points_keys]
         pairs[im1, im2].append((f1, f2))
-        poses[im1, im2] = reconstruction.shots[im2].pose.\
-            compose(reconstruction.shots[im1].pose.inverse())
+        pose1 = reconstruction.shots[im1].pose
+        pose2 = reconstruction.shots[im2].pose
+        poses[im1, im2] = pose2.relative_to(pose1)
 
     camera = list(reconstruction.cameras.values())[0]
     return pairs, poses, camera, features, tracks_manager, reconstruction
