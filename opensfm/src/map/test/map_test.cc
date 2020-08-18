@@ -62,7 +62,7 @@ TEST(Map, TestDeleteShots)
   ASSERT_TRUE(map.NumberOfShots() == 3) << map.NumberOfShots() << "== " << 3;
   map.RemoveShot("1");
   ASSERT_TRUE(map.NumberOfShots() == 2) << map.NumberOfShots() << "== " << 2;
-  map.RemoveShot("1");
+  ASSERT_THROW(map.RemoveShot("1"), std::runtime_error);
   ASSERT_TRUE(map.NumberOfShots() == 2) << map.NumberOfShots() << "== " << 2;
   map.RemoveShot("2");
   ASSERT_TRUE(map.NumberOfShots() == 1) << map.NumberOfShots() << "== " << 1;
@@ -74,8 +74,7 @@ TEST(Map, TestCreateShots)
 {
   auto map = CreateDefaultMap(1);
   auto* shot1 = map.CreateShot("0", "0");
-  auto* shot1_1 = map.CreateShot("0", "0");
-  ASSERT_EQ(shot1, shot1_1);
+  ASSERT_THROW(map.CreateShot("0", "0"), std::runtime_error);
   auto* shot2 = map.CreateShot("1", "0");
   ASSERT_EQ(map.NumberOfShots(), 2) << map.NumberOfShots() << "==" << 2 ;
   const auto shot_id = "0";
@@ -137,7 +136,7 @@ TEST(Map, TestDeletePoints)
   map.RemoveLandmark("0");
   ASSERT_FALSE(map.HasLandmark("0"));
   ASSERT_EQ(map.NumberOfLandmarks(), 4);
-  map.RemoveLandmark("0");
+  ASSERT_THROW(map.RemoveLandmark("0"), std::runtime_error);
   ASSERT_EQ(map.NumberOfLandmarks(), 4);
   map.RemoveLandmark("1");
   ASSERT_FALSE(map.HasLandmark("1"));
