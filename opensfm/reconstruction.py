@@ -457,7 +457,7 @@ def get_image_metadata(data, image):
     metadata.orientation.value = exif.get('orientation', 1)
 
     if 'accelerometer' in exif:
-        metadata.accelerometer = exif['accelerometer']
+        metadata.accelerometer.value = exif['accelerometer']
 
     if 'compass' in exif:
         metadata.compass_angle.value = exif['compass']['angle']
@@ -1021,10 +1021,12 @@ def remove_outliers(reconstruction, config, points=None):
             if error_sqr > threshold_sqr:
                 outliers.append((point_id, shot_id))
 
+    track_ids = set()
     for track, shot_id in outliers:
         reconstruction.map.remove_observation(shot_id, track)
+        track_ids.add(track)
 
-    for track, _ in outliers:
+    for track in track_ids:
         lm = reconstruction.points[track]
         if lm is not None and lm.number_of_observations() < 2:
             reconstruction.map.remove_landmark(lm)
