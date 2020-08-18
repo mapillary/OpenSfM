@@ -555,6 +555,6 @@ def camera_from_exif_metadata(metadata, data,
         raise ValueError("Unknown projection type: {}".format(pt))
 
     camera.id = metadata['camera']
-    camera.width = metadata['width']
-    camera.height = metadata['height']
+    camera.width = int(metadata['width'])
+    camera.height = int(metadata['height'])
     return camera
