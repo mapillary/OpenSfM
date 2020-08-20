@@ -18,7 +18,7 @@ def triangle_mesh(shot_id, r, tracks_manager, data):
 
     if shot.camera.projection_type in ['perspective', 'brown']:
         return triangle_mesh_perspective(shot_id, r, tracks_manager)
-    elif shot.camera.projection_type in ['fisheye', 'fisheye_extended', 'dual']:
+    elif shot.camera.projection_type in ['fisheye', 'fisheye_opencv', 'dual']:
         return triangle_mesh_fisheye(shot_id, r, tracks_manager)
     elif shot.camera.projection_type in ['equirectangular', 'spherical']:
         return triangle_mesh_equirectangular(shot_id, r, tracks_manager)

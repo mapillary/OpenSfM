@@ -75,7 +75,7 @@ class Command:
                 camera = perspective_camera_from_brown(shot.camera)
                 urec.add_camera(camera)
                 subshots = [get_shot_with_different_camera(urec, shot, camera)]
-            elif shot.camera.projection_type in ['fisheye', 'fisheye_extended']:
+            elif shot.camera.projection_type in ['fisheye', 'fisheye_opencv']:
                 camera = perspective_camera_from_fisheye(shot.camera)
                 urec.add_camera(camera)
                 subshots = [get_shot_with_different_camera(urec, shot, camera)]
@@ -156,7 +156,7 @@ def undistort_image(shot, undistorted_shots, original, interpolation,
         return
 
     projection_type = shot.camera.projection_type
-    if projection_type in ['perspective', 'brown', 'fisheye', 'fisheye_extended']:
+    if projection_type in ['perspective', 'brown', 'fisheye', 'fisheye_opencv']:
         new_camera = undistorted_shots[0].camera
         height, width = original.shape[:2]
         map1, map2 = pygeometry.compute_camera_mapping(shot.camera, new_camera, width, height)
@@ -225,13 +225,13 @@ def perspective_camera_from_fisheye(fisheye):
     return camera
 
 
-def perspective_camera_from_fisheye_extended(fisheye_extended):
+def perspective_camera_from_fisheye_opencv(fisheye_extended):
     """Create a perspective camera from a fisheye extended."""
     camera = pygeometry.Camera.create_perspective(
-        fisheye_extended.focal * (1 + fisheye_extended.aspect_ratio) / 2.0, 0.0, 0.0)
-    camera.id = fisheye_extended.id
-    camera.width = fisheye_extended.width
-    camera.height = fisheye_extended.height
+        fisheye_opencv.focal * (1 + fisheye_extended.aspect_ratio) / 2.0, 0.0, 0.0)
+    camera.id = fisheye_opencv.id
+    camera.width = fisheye_opencv.width
+    camera.height = fisheye_opencv.height
     return camera
 
 

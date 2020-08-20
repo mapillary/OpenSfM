@@ -234,7 +234,7 @@
 
         </script>
 
-        <script type="x-shader/x-fragment" id="fragmentshader_fisheye_extended">
+        <script type="x-shader/x-fragment" id="fragmentshader_fisheye_opencv">
 
             #ifdef GL_ES
             precision highp float;
@@ -870,8 +870,8 @@
                     return $('#fragmentshader_equirectangular').text();
                 else if (cam.projection_type == 'fisheye')
                     return $('#fragmentshader_fisheye').text();
-                else if (cam.projection_type == 'fisheye_extended')
-                    return $('#fragmentshader_fisheye_extended').text();
+                else if (cam.projection_type == 'fisheye_opencv')
+                    return $('#fragmentshader_fisheye_opencv').text();
                 else
                     return $('#fragmentshader').text();
             }

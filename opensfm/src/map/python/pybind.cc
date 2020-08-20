@@ -239,7 +239,7 @@ PYBIND11_MODULE(pymap, m) {
                     values.at(Camera::Parameters::K2));
                 break;
               }
-              case ProjectionType::FISHEYE_EXTENDED: {
+              case ProjectionType::FISHEYE_OPENCV: {
                 Vec2d principal_point = Vec2d::Zero();
                 principal_point << values.at(Camera::Parameters::Cx),
                     values.at(Camera::Parameters::Cy);

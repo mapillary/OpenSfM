@@ -18,7 +18,7 @@ PYBIND11_MODULE(pygeometry, m) {
     .value("PERSPECTIVE", ProjectionType::PERSPECTIVE)
     .value("BROWN", ProjectionType::BROWN)
     .value("FISHEYE", ProjectionType::FISHEYE)
-    .value("FISHEYE_EXTENDED", ProjectionType::FISHEYE_EXTENDED)
+    .value("FISHEYE_OPENCV", ProjectionType::FISHEYE_OPENCV)
     .value("DUAL", ProjectionType::DUAL)
     .value("SPHERICAL", ProjectionType::SPHERICAL)
     .export_values()
@@ -41,7 +41,7 @@ PYBIND11_MODULE(pygeometry, m) {
     .def_static("create_perspective", &Camera::CreatePerspectiveCamera)
     .def_static("create_brown", &Camera::CreateBrownCamera)
     .def_static("create_fisheye", &Camera::CreateFisheyeCamera)
-    .def_static("create_fisheye_extended", &Camera::CreateFisheyeExtendedCamera)
+    .def_static("create_fisheye_opencv", &Camera::CreateFisheyeExtendedCamera)
     .def_static("create_dual", &Camera::CreateDualCamera)
     .def_static("create_spherical", &Camera::CreateSphericalCamera)
     .def("project", &Camera::Project)
@@ -139,7 +139,7 @@ PYBIND11_MODULE(pygeometry, m) {
           const auto width = t[2].cast<int>();
           const auto height = t[3].cast<int>();
           const auto id = t[4].cast<std::string>();
-          
+
           Camera camera = Camera::CreatePerspectiveCamera(0, 0, 0);
           switch (type) {
             case ProjectionType::PERSPECTIVE:{
@@ -166,7 +166,7 @@ PYBIND11_MODULE(pygeometry, m) {
                                                    values.at(Camera::Parameters::K2));
               break;
             }
-            case ProjectionType::FISHEYE_EXTENDED:{
+            case ProjectionType::FISHEYE_OPENCV:{
               Vec2d principal_point = Vec2d::Zero();
               principal_point << values.at(Camera::Parameters::Cx), values.at(Camera::Parameters::Cy);
               VecXd distortion(4);

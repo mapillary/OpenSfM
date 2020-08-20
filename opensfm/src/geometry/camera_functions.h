@@ -8,7 +8,7 @@
 
 #include <iostream>
 
-enum class ProjectionType { PERSPECTIVE, BROWN, FISHEYE, FISHEYE_EXTENDED, SPHERICAL, DUAL };
+enum class ProjectionType { PERSPECTIVE, BROWN, FISHEYE, FISHEYE_OPENCV, SPHERICAL, DUAL };
 enum class Disto { K1 = 0, K2 = 1, K3 = 2, K4 = 3, P1 = 3, P2 = 4 }; // Brown model has P1 = 3, Fisheye extended has K4 = 3
 
 template <class T>
@@ -1100,7 +1100,7 @@ void Dispatch(const ProjectionType& type, IN&&... args) {
     case ProjectionType::FISHEYE:
       FUNC::template Apply<FisheyeCamera>(std::forward<IN>(args)...);
       break;
-    case ProjectionType::FISHEYE_EXTENDED:
+    case ProjectionType::FISHEYE_OPENCV:
       FUNC::template Apply<FisheyeExtendedCamera>(std::forward<IN>(args)...);
       break;
     case ProjectionType::DUAL:

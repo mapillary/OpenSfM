@@ -332,7 +332,7 @@ Camera* Map::CreateCamera(const Camera& cam) {
             cam.GetParameterValue(Camera::Parameters::Focal),
             cam.GetParameterValue(Camera::Parameters::K1),
             cam.GetParameterValue(Camera::Parameters::K2));
-      case ProjectionType::FISHEYE_EXTENDED: {
+      case ProjectionType::FISHEYE_OPENCV: {
         VecXd distortion(4);
         distortion << cam.GetParameterValue(Camera::Parameters::K1),
             cam.GetParameterValue(Camera::Parameters::K2),

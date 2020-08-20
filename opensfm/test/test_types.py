@@ -525,7 +525,7 @@ class FisheyeExtendedCamera(Camera):
     def __init__(self):
         """Defaut constructor."""
         self.id = None
-        self.projection_type = 'fisheye_extended'
+        self.projection_type = 'fisheye_opencv'
         self.width = None
         self.height = None
         self.focal_x = None
@@ -858,7 +858,7 @@ def test_reconstruction_class_initialization():
                                    1.2042133903991235]
     metadata.accelerometer.value = [0.1, 0.9, 0.0]
     metadata.compass_angle.value = 270.0
-    metadata.compass_accuracy.value = 15.0 
+    metadata.compass_accuracy.value = 15.0
     metadata.sequence_key.value = 'a_sequence_key'
 
     # Instantiate shots
@@ -909,11 +909,11 @@ def test_fisheye_camera_projection():
         assert np.allclose(pixel, projected)
 
 
-def test_fisheye_extended_camera_projection():
+def test_fisheye_opencv_camera_projection():
     """Test fisheye extended projection--backprojection loop."""
     if not context.OPENCV3:
         return
-    for camera in _get_fisheye_extended_camera():
+    for camera in _get_fisheye_opencv_camera():
         pixel = [0.1, 0.2]
         bearing = camera.pixel_bearing(pixel)
         projected = camera.project(bearing)
@@ -951,7 +951,7 @@ def test_shot_project_back_project():
     ]
     if context.OPENCV3:
         cameras.append(_get_fisheye_camera())
-        cameras.append(_get_fisheye_extended_camera())
+        cameras.append(_get_fisheye_opencv_camera())
 
     rec = types.Reconstruction()
     for id, pair in enumerate(cameras):
@@ -993,7 +993,7 @@ def test_single_vs_many():
     ]
     if context.OPENCV3:
         cameras.append(_get_fisheye_camera())
-        cameras.append(_get_fisheye_extended_camera())
+        cameras.append(_get_fisheye_opencv_camera())
 
     for camera, camera_cpp in cameras:
         p = camera.project_many(points)
@@ -1059,7 +1059,7 @@ def _get_fisheye_camera():
     return camera, camera_cpp
 
 
-def _get_fisheye_extended_camera():
+def _get_fisheye_opencv_camera():
     camera = FisheyeExtendedCamera()
     camera.width = 800
     camera.height = 600
@@ -1071,7 +1071,7 @@ def _get_fisheye_extended_camera():
     camera.k2 = 0.01
     camera.k3 = 0.0002
     camera.k4 = 0.0005
-    camera_cpp = pygeometry.Camera.create_fisheye_extended(
+    camera_cpp = pygeometry.Camera.create_fisheye_opencv(
         camera.focal_x, camera.focal_y / camera.focal_x,
         [camera.c_x, camera.c_y],
         [camera.k1, camera.k2, camera.k3, camera.k4])
@@ -1195,7 +1195,7 @@ def test_pose_setter():
     p6 = pygeometry.Pose()
     p6.set_from_cam_to_world(r_wc, T_wc[0:3, 3])
     _helper_pose_equal_to_T(p6, T_cw)
-    
+
     # set rotation, translation
     p7 = pygeometry.Pose()
     p7.rotation = r_cw

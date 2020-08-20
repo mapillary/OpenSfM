@@ -311,7 +311,7 @@ TEST_F(CameraFixture, BrownReturnCorrectKScaled){
 
 TEST_F(CameraFixture, ComputePerspectiveAnalyticalDerivatives){
   const Camera camera = Camera::CreatePerspectiveCamera(focal, -0.1, 0.01);
-  
+
   const VecXd camera_params = camera.GetParametersValues();
   const int size_params = 3 + camera_params.size();
 
@@ -338,7 +338,7 @@ TEST_F(CameraFixture, ComputeFisheyeExtendedAnalyticalDerivatives){
   const int size_params = 3 + camera_params.size();
 
   Eigen::Matrix<double, 2, 11, Eigen::RowMajor> jacobian;
-  RunJacobianEval(camera, ProjectionType::FISHEYE_EXTENDED, &jacobian);
+  RunJacobianEval(camera, ProjectionType::FISHEYE_OPENCV, &jacobian);
   CheckJacobian(jacobian, size_params);
 }
 

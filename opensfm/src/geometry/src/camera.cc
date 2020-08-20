@@ -50,7 +50,7 @@ Camera Camera::CreateFisheyeExtendedCamera(double focal, double aspect_ratio,
   if (distortion.size() != 4) {
     throw std::runtime_error("Invalid distortion coefficients size");
   }
-  camera.type_ = ProjectionType::FISHEYE_EXTENDED;
+  camera.type_ = ProjectionType::FISHEYE_OPENCV;
   camera.types_ = {Camera::Parameters::K1,          Camera::Parameters::K2,
                    Camera::Parameters::K3,          Camera::Parameters::K4,
                    Camera::Parameters::Focal,       Camera::Parameters::AspectRatio,
@@ -129,8 +129,8 @@ std::string Camera::GetProjectionString() const {
       return "brown";
     case ProjectionType::FISHEYE:
       return "fisheye";
-    case ProjectionType::FISHEYE_EXTENDED:
-      return "fisheye_extended";
+    case ProjectionType::FISHEYE_OPENCV:
+      return "fisheye_opencv";
     case ProjectionType::DUAL:
       return "dual";
     case ProjectionType::SPHERICAL:
