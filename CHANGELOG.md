@@ -3,6 +3,11 @@
 
 ## [Unreleased]
 
+### Breaking
+ - Main datastructures moved to C++ with Python bindings
+ - Drop Python 2 support.  OpenSfM 0.5.x is the latest to support Python2.
+
+
 ## 0.5.1
 
 ### Added
