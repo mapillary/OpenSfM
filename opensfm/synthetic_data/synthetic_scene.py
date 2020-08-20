@@ -18,8 +18,7 @@ def get_camera(type, id, focal, k1, k2):
     camera = None
     if type == 'perspective':
         camera = pygeometry.Camera.create_perspective(focal, k1, k2)
-    if type == 'fisheye':
-        camera = pygeometry.Camera.create_fisheye(focal, k1, k2)
+
     camera.id = id
 
     camera.height = 1600

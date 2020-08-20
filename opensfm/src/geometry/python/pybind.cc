@@ -18,6 +18,7 @@ PYBIND11_MODULE(pygeometry, m) {
     .value("PERSPECTIVE", ProjectionType::PERSPECTIVE)
     .value("BROWN", ProjectionType::BROWN)
     .value("FISHEYE", ProjectionType::FISHEYE)
+    .value("FISHEYE_EXTENDED", ProjectionType::FISHEYE_EXTENDED)
     .value("DUAL", ProjectionType::DUAL)
     .value("SPHERICAL", ProjectionType::SPHERICAL)
     .export_values()
@@ -29,6 +30,7 @@ PYBIND11_MODULE(pygeometry, m) {
     .value("k1", Camera::Parameters::K1)
     .value("k2", Camera::Parameters::K2)
     .value("k3", Camera::Parameters::K3)
+    .value("k4", Camera::Parameters::K4)
     .value("p1", Camera::Parameters::P1)
     .value("p2", Camera::Parameters::P2)
     .value("transition", Camera::Parameters::Transition)
@@ -39,6 +41,7 @@ PYBIND11_MODULE(pygeometry, m) {
     .def_static("create_perspective", &Camera::CreatePerspectiveCamera)
     .def_static("create_brown", &Camera::CreateBrownCamera)
     .def_static("create_fisheye", &Camera::CreateFisheyeCamera)
+    .def_static("create_fisheye_extended", &Camera::CreateFisheyeExtendedCamera)
     .def_static("create_dual", &Camera::CreateDualCamera)
     .def_static("create_spherical", &Camera::CreateSphericalCamera)
     .def("project", &Camera::Project)
@@ -122,6 +125,7 @@ PYBIND11_MODULE(pygeometry, m) {
     .def_property_readonly("k1",[](const Camera& c) {return c.GetParameterValue(Camera::Parameters::K1);})
     .def_property_readonly("k2",[](const Camera& c) {return c.GetParameterValue(Camera::Parameters::K2);})
     .def_property_readonly("k3",[](const Camera& c) {return c.GetParameterValue(Camera::Parameters::K3);})
+    .def_property_readonly("k4",[](const Camera& c) {return c.GetParameterValue(Camera::Parameters::K4);})
     .def_property_readonly("p1",[](const Camera& c) {return c.GetParameterValue(Camera::Parameters::P1);})
     .def_property_readonly("p2",[](const Camera& c) {return c.GetParameterValue(Camera::Parameters::P2);})
     .def(py::pickle(
@@ -158,8 +162,19 @@ PYBIND11_MODULE(pygeometry, m) {
             }
             case ProjectionType::FISHEYE:{
               camera = Camera::CreateFisheyeCamera(values.at(Camera::Parameters::Focal),
-                                                    values.at(Camera::Parameters::K1),
-                                                    values.at(Camera::Parameters::K2));
+                                                   values.at(Camera::Parameters::K1),
+                                                   values.at(Camera::Parameters::K2));
+              break;
+            }
+            case ProjectionType::FISHEYE_EXTENDED:{
+              Vec2d principal_point = Vec2d::Zero();
+              principal_point << values.at(Camera::Parameters::Cx), values.at(Camera::Parameters::Cy);
+              VecXd distortion(4);
+              distortion << values.at(Camera::Parameters::K1), values.at(Camera::Parameters::K2),
+                            values.at(Camera::Parameters::K3), values.at(Camera::Parameters::K4);
+              camera = Camera::CreateFisheyeExtendedCamera(values.at(Camera::Parameters::Focal),
+                                                           values.at(Camera::Parameters::AspectRatio),
+                                                           principal_point, distortion);
               break;
             }
             case ProjectionType::DUAL:{

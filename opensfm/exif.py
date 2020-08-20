@@ -546,6 +546,11 @@ def camera_from_exif_metadata(metadata, data,
     elif calib_pt == 'fisheye':
         camera = pygeometry.Camera.create_fisheye(
             calib['focal'], calib['k1'], calib['k2'])
+    elif calib_pt == 'fisheye_extended':
+        camera = pygeometry.Camera.create_fisheye_extended(
+            calib['focal_x'], calib['focal_y'] / calib['focal_x'],
+            [calib['c_x'], calib['c_y']],
+            [calib['k1'], calib['k3'], calib['k3'], calib['k4']])
     elif calib_pt == 'dual':
         camera = pygeometry.Camera.create_dual(
             calib['transition'], calib['focal'], calib['k1'], calib['k2'])

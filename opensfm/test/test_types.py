@@ -506,6 +506,126 @@ class FisheyeCamera(Camera):
                          [0, 0, 1.0]])
 
 
+class FisheyeExtendedCamera(Camera):
+    """Define a fisheye camera using full OpenCV model.
+
+    Attributes:
+        width (int): image width.
+        height (int): image height.
+        focal_x (real): estimated focal length for the X axis.
+        focal_y (real): estimated focal length for the Y axis.
+        c_x (real): estimated principal point X.
+        c_y (real): estimated principal point Y.
+        k1 (real): estimated first radial distortion parameter.
+        k2 (real): estimated second radial distortion parameter.
+        k3 (real): estimated third radial distortion parameter.
+        k4 (real): estimated fourth radial distortion parameter.
+    """
+
+    def __init__(self):
+        """Defaut constructor."""
+        self.id = None
+        self.projection_type = 'fisheye_extended'
+        self.width = None
+        self.height = None
+        self.focal_x = None
+        self.focal_y = None
+        self.c_x = None
+        self.c_y = None
+        self.k1 = None
+        self.k2 = None
+        self.k3 = None
+        self.k4 = None
+
+    def project(self, point):
+        """Project a 3D point in camera coordinates to the image plane."""
+        x, y, z = point
+        a = x / z
+        b = y / z
+
+        r = np.sqrt(a**2 + b**2)
+        theta = np.arctan(r)
+        theta2 = theta**2
+        theta_d = theta * (1.0 + theta2 * (self.k1 + theta2 * (self.k2 + theta2 * (self.k3 + theta2 * self.k4))))
+
+        inv_r = 1.0 / r if r > 1e-8 else 1.0
+        cdist = theta_d * inv_r if r > 1e-8 else 1.0
+
+        x_p = cdist * a
+        y_p = cdist * b
+
+        return np.array([self.focal_x * x_p + self.c_x,
+                         self.focal_y * y_p + self.c_y])
+
+    def project_many(self, points):
+        """Project 3D points in camera coordinates to the image plane."""
+        points = points.reshape((-1, 1, 3)).astype(np.float64)
+        distortion = np.array([self.k1, self.k2, self.k3, self.k4])
+        K, R, t = self.get_K(), np.zeros(3), np.zeros(3)
+        pixels, _ = cv2.fisheye.projectPoints(points, R, t, K, distortion)
+        return pixels.reshape((-1, 2))
+
+    def pixel_bearing(self, pixel):
+        """Unit vector pointing to the pixel viewing direction."""
+        point = np.asarray(pixel).reshape((1, 1, 2))
+        distortion = np.array([self.k1, self.k2, self.k3, self.k4])
+        x, y = cv2.fisheye.undistortPoints(point, self.get_K(), distortion).flat
+        l = np.sqrt(x * x + y * y + 1.0)
+        return np.array([x / l, y / l, 1.0 / l])
+
+    def pixel_bearing_many(self, pixels):
+        """Unit vector pointing to the pixel viewing directions."""
+        points = pixels.reshape((-1, 1, 2)).astype(np.float64)
+        distortion = np.array([self.k1, self.k2, self.k3, self.k4])
+        up = cv2.fisheye.undistortPoints(points, self.get_K(), distortion)
+        up = up.reshape((-1, 2))
+        x = up[:, 0]
+        y = up[:, 1]
+        l = np.sqrt(x * x + y * y + 1.0)
+        return np.column_stack((x / l, y / l, 1.0 / l))
+
+    def pixel_bearings(self, pixels):
+        """Deprecated: use pixel_bearing_many."""
+        return self.pixel_bearing_many(pixels)
+
+    def back_project(self, pixel, depth):
+        """Project a pixel to a fronto-parallel plane at a given depth."""
+        bearing = self.pixel_bearing(pixel)
+        scale = depth / bearing[2]
+        return scale * bearing
+
+    def back_project_many(self, pixels, depths):
+        """Project pixels to fronto-parallel planes at given depths."""
+        bearings = self.pixel_bearing_many(pixels)
+        scales = depths / bearings[:, 2]
+        return scales[:, np.newaxis] * bearings
+
+    def get_K(self):
+        """The calibration matrix."""
+        return np.array([[self.focal_x, 0., self.c_x],
+                         [0., self.focal_y, self.c_y],
+                         [0., 0., 1.]])
+
+    def get_K_in_pixel_coordinates(self, width=None, height=None):
+        """The calibration matrix that maps to pixel coordinates.
+
+        Coordinates (0,0) correspond to the center of the top-left pixel,
+        and (width - 1, height - 1) to the center of bottom-right pixel.
+
+        You can optionally pass the width and height of the image, in case
+        you are using a resized version of the original image.
+        """
+        w = width or self.width
+        h = height or self.height
+        s = max(w, h)
+        normalized_to_pixel = np.array([
+            [s, 0, (w - 1) / 2.0],
+            [0, s, (h - 1) / 2.0],
+            [0, 0, 1],
+        ])
+        return np.dot(normalized_to_pixel, self.get_K())
+
+
 class DualCamera(Camera):
     """Define a camera that seamlessly transition
         between fisheye and perspective camera.
@@ -769,11 +889,31 @@ def test_perspective_camera_projection():
         assert np.allclose(pixel, projected)
 
 
+def test_brown_camera_projection():
+    """Test brown projection--backprojection loop."""
+    for camera in _get_brown_perspective_camera():
+        pixel = [0.1, 0.2]
+        bearing = camera.pixel_bearing(pixel)
+        projected = camera.project(bearing)
+        assert np.allclose(pixel, projected)
+
+
 def test_fisheye_camera_projection():
     """Test fisheye projection--backprojection loop."""
     if not context.OPENCV3:
         return
     for camera in _get_fisheye_camera():
+        pixel = [0.1, 0.2]
+        bearing = camera.pixel_bearing(pixel)
+        projected = camera.project(bearing)
+        assert np.allclose(pixel, projected)
+
+
+def test_fisheye_extended_camera_projection():
+    """Test fisheye extended projection--backprojection loop."""
+    if not context.OPENCV3:
+        return
+    for camera in _get_fisheye_extended_camera():
         pixel = [0.1, 0.2]
         bearing = camera.pixel_bearing(pixel)
         projected = camera.project(bearing)
@@ -811,6 +951,8 @@ def test_shot_project_back_project():
     ]
     if context.OPENCV3:
         cameras.append(_get_fisheye_camera())
+        cameras.append(_get_fisheye_extended_camera())
+
     rec = types.Reconstruction()
     for id, pair in enumerate(cameras):
         # only use the cpp cam since the Python cam is only used for testing
@@ -851,6 +993,7 @@ def test_single_vs_many():
     ]
     if context.OPENCV3:
         cameras.append(_get_fisheye_camera())
+        cameras.append(_get_fisheye_extended_camera())
 
     for camera, camera_cpp in cameras:
         p = camera.project_many(points)
@@ -913,6 +1056,25 @@ def _get_fisheye_camera():
         camera.focal, camera.k1, camera.k2)
     camera_cpp.width = camera.width
     camera_cpp.height = camera.height
+    return camera, camera_cpp
+
+
+def _get_fisheye_extended_camera():
+    camera = FisheyeExtendedCamera()
+    camera.width = 800
+    camera.height = 600
+    camera.focal_x = 0.6
+    camera.focal_y = 0.7
+    camera.c_x = 0.1
+    camera.c_y = -0.05
+    camera.k1 = -0.1
+    camera.k2 = 0.01
+    camera.k3 = 0.0002
+    camera.k4 = 0.0005
+    camera_cpp = pygeometry.Camera.create_fisheye_extended(
+        camera.focal_x, camera.focal_y / camera.focal_x,
+        [camera.c_x, camera.c_y],
+        [camera.k1, camera.k2, camera.k3, camera.k4])
     return camera, camera_cpp
 
 

@@ -239,6 +239,21 @@ PYBIND11_MODULE(pymap, m) {
                     values.at(Camera::Parameters::K2));
                 break;
               }
+              case ProjectionType::FISHEYE_EXTENDED: {
+                Vec2d principal_point = Vec2d::Zero();
+                principal_point << values.at(Camera::Parameters::Cx),
+                    values.at(Camera::Parameters::Cy);
+                VecXd distortion(4);
+                distortion << values.at(Camera::Parameters::K1),
+                    values.at(Camera::Parameters::K2),
+                    values.at(Camera::Parameters::K3),
+                    values.at(Camera::Parameters::K4);
+                camera = Camera::CreateFisheyeExtendedCamera(
+                    values.at(Camera::Parameters::Focal),
+                    values.at(Camera::Parameters::AspectRatio), principal_point,
+                    distortion);
+                break;
+              }
               case ProjectionType::DUAL: {
                 camera = Camera::CreateDualCamera(
                     values.at(Camera::Parameters::Transition),

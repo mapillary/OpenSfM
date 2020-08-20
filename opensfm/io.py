@@ -45,6 +45,12 @@ def camera_from_json(key, obj):
     elif pt == 'fisheye':
         camera = pygeometry.Camera.create_fisheye(
             obj['focal'], obj.get('k1', 0.0), obj.get('k2', 0.0))
+    elif pt == 'fisheye_extended':
+        camera = pygeometry.Camera.create_fisheye_extended(
+            obj['focal_x'], obj['focal_y'] / obj['focal_x'],
+            [obj.get('c_x', 0.0), obj.get('c_y', 0.0)],
+            [obj.get('k1', 0.0), obj.get('k2', 0.0),
+             obj.get('k3', 0.0), obj.get('k4', 0.0)])
     elif pt == 'dual':
         camera = pygeometry.Camera.create_dual(obj.get('transition', 0.5), obj['focal'],
                                                obj.get('k1', 0.0), obj.get('k2', 0.0))
@@ -189,6 +195,20 @@ def camera_to_json(camera):
             'focal': camera.focal,
             'k1': camera.k1,
             'k2': camera.k2,
+        }
+    elif camera.projection_type == 'fisheye_extended':
+        return {
+            'projection_type': camera.projection_type,
+            'width': camera.width,
+            'height': camera.height,
+            'focal_x': camera.focal,
+            'focal_y': camera.focal*camera.aspect_ratio,
+            'c_x': camera.principal_point[0],
+            'c_y': camera.principal_point[1],
+            'k1': camera.k1,
+            'k2': camera.k2,
+            'k3': camera.k3,
+            'k4': camera.k4,
         }
     elif camera.projection_type == 'dual':
         return {
