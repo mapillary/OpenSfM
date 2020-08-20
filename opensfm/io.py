@@ -45,6 +45,12 @@ def camera_from_json(key, obj):
     elif pt == 'fisheye':
         camera = pygeometry.Camera.create_fisheye(
             obj['focal'], obj.get('k1', 0.0), obj.get('k2', 0.0))
+    elif pt == 'fisheye_opencv':
+        camera = pygeometry.Camera.create_fisheye_opencv(
+            obj['focal_x'], obj['focal_y'] / obj['focal_x'],
+            [obj.get('c_x', 0.0), obj.get('c_y', 0.0)],
+            [obj.get('k1', 0.0), obj.get('k2', 0.0),
+             obj.get('k3', 0.0), obj.get('k4', 0.0)])
     elif pt == 'dual':
         camera = pygeometry.Camera.create_dual(obj.get('transition', 0.5), obj['focal'],
                                                obj.get('k1', 0.0), obj.get('k2', 0.0))
@@ -189,6 +195,20 @@ def camera_to_json(camera):
             'focal': camera.focal,
             'k1': camera.k1,
             'k2': camera.k2,
+        }
+    elif camera.projection_type == 'fisheye_opencv':
+        return {
+            'projection_type': camera.projection_type,
+            'width': camera.width,
+            'height': camera.height,
+            'focal_x': camera.focal,
+            'focal_y': camera.focal*camera.aspect_ratio,
+            'c_x': camera.principal_point[0],
+            'c_y': camera.principal_point[1],
+            'k1': camera.k1,
+            'k2': camera.k2,
+            'k3': camera.k3,
+            'k4': camera.k4,
         }
     elif camera.projection_type == 'dual':
         return {
@@ -677,7 +697,7 @@ def imread(filename, grayscale=False, unchanged=False, anydepth=False):
                 "OpenCV version {} does not support loading images without "
                 "rotating them according to EXIF. Please upgrade OpenCV to "
                 "version 3.2 or newer.".format(cv2.__version__))
-        
+
         if anydepth:
             flags |= cv2.IMREAD_ANYDEPTH
     else:
@@ -769,7 +789,7 @@ def export_bundler(image_list, reconstructions, track_manager,
                     lines.append("0 0 0")
 
         # tracks
-        for point_id, point in points.items():  #iteritems(points):
+        for point_id, point in points.items():
             coord = point.coordinates
             color = list(map(int, point.color))
             view_list = track_manager.get_track_observations(point.id)

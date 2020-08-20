@@ -246,8 +246,8 @@ def import_cameras_reconstruction(path_cameras, rec):
             for _ in range(n_params):
                 params.append(unpack('<d', f.read(8))[0])
             cam = cam_from_colmap_params(camera_model_id, width, height, params)
+            cam.id = camera_id
             new_cam = rec.add_camera(cam)
-            new_cam.id = camera_id
 
 
 def cam_from_colmap_params(camera_model_id, width, height, params, prior_focal=1):

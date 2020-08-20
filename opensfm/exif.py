@@ -546,6 +546,11 @@ def camera_from_exif_metadata(metadata, data,
     elif calib_pt == 'fisheye':
         camera = pygeometry.Camera.create_fisheye(
             calib['focal'], calib['k1'], calib['k2'])
+    elif calib_pt == 'fisheye_opencv':
+        camera = pygeometry.Camera.create_fisheye_opencv(
+            calib['focal_x'], calib['focal_y'] / calib['focal_x'],
+            [calib['c_x'], calib['c_y']],
+            [calib['k1'], calib['k3'], calib['k3'], calib['k4']])
     elif calib_pt == 'dual':
         camera = pygeometry.Camera.create_dual(
             calib['transition'], calib['focal'], calib['k1'], calib['k2'])
@@ -555,6 +560,6 @@ def camera_from_exif_metadata(metadata, data,
         raise ValueError("Unknown projection type: {}".format(pt))
 
     camera.id = metadata['camera']
-    camera.width = metadata['width']
-    camera.height = metadata['height']
+    camera.width = int(metadata['width'])
+    camera.height = int(metadata['height'])
     return camera

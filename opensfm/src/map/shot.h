@@ -68,12 +68,12 @@ class Shot {
   Shot(const ShotId& shot_id, const Camera* const shot_camera, const geometry::Pose& pose);
   // Workaround for pickle that makes it possible for the shot to have camera
   // outside of the reconstruction.
-  Shot(const ShotId& shot_id, std::unique_ptr<Camera> cam, const geometry::Pose& pose);  
+  Shot(const ShotId& shot_id, std::unique_ptr<Camera> cam, const geometry::Pose& pose);
 
   const DescriptorType GetDescriptor(const FeatureId id) const {
     return descriptors_.row(id);
   }
- 
+
   Eigen::Vector3f GetKeyPointEigen(const FeatureId id) const {
     const auto kpt = keypoints_.at(id);
     return Eigen::Vector3f(kpt.point[0], kpt.point[1], kpt.size);
@@ -87,10 +87,17 @@ class Shot {
 
   const std::vector<Landmark*>& GetLandmarks() const { return landmarks_; }
   std::vector<Landmark*>& GetLandmarks() { return landmarks_; }
-  const std::map<Landmark*, Observation, KeyCompare,
-           Eigen::aligned_allocator<Observation>>& GetLandmarkObservations() const { return landmark_observations_; }
+  const std::map<
+      Landmark*, Observation, KeyCompare,
+      Eigen::aligned_allocator<std::pair<Landmark* const, Observation>>>&
+  GetLandmarkObservations() const {
+    return landmark_observations_;
+  }
   std::map<Landmark*, Observation, KeyCompare,
-           Eigen::aligned_allocator<Observation>>& GetLandmarkObservations() { return landmark_observations_; }
+           Eigen::aligned_allocator<std::pair<Landmark* const, Observation>>>&
+  GetLandmarkObservations() {
+    return landmark_observations_;
+  }
 
   const Observation& GetObservation(const FeatureId id) const {
     return UseLinearDataStructure()
@@ -209,7 +216,7 @@ class Shot {
   DescriptorMatrix descriptors_;
   // In OpenSfM, we use a map to reproduce a similar behaviour
   std::map<Landmark*, Observation, KeyCompare,
-           Eigen::aligned_allocator<Observation>>
+           Eigen::aligned_allocator<std::pair<Landmark* const, Observation>> >
       landmark_observations_;
   std::unordered_map<FeatureId, Landmark*> landmark_id_;
   // Workaround for pickle that makes it possible for the shot to have camera

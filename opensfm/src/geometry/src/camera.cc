@@ -30,18 +30,34 @@ Camera Camera::CreateBrownCamera(double focal, double aspect_ratio,
                    Camera::Parameters::Cy};
   camera.values_.resize(9);
   camera.values_ << distortion[0], distortion[1], distortion[2], distortion[3],
-      distortion[4], focal, aspect_ratio, principal_point[0],
-      principal_point[1];
+      distortion[4], focal, aspect_ratio, principal_point[0], principal_point[1];
   return camera;
 };
 
 Camera Camera::CreateFisheyeCamera(double focal, double k1, double k2) {
   Camera camera;
   camera.type_ = ProjectionType::FISHEYE;
-  camera.types_ = {Camera::Parameters::K1, Camera::Parameters::K2,
-                   Camera::Parameters::Focal};
+  camera.types_= {Camera::Parameters::K1, Camera::Parameters::K2, Camera::Parameters::Focal};
   camera.values_.resize(3);
   camera.values_ << k1, k2, focal;
+  return camera;
+};
+
+Camera Camera::CreateFisheyeExtendedCamera(double focal, double aspect_ratio,
+                                           const Eigen::Vector2d& principal_point,
+                                           const Eigen::VectorXd& distortion) {
+  Camera camera;
+  if (distortion.size() != 4) {
+    throw std::runtime_error("Invalid distortion coefficients size");
+  }
+  camera.type_ = ProjectionType::FISHEYE_OPENCV;
+  camera.types_ = {Camera::Parameters::K1,          Camera::Parameters::K2,
+                   Camera::Parameters::K3,          Camera::Parameters::K4,
+                   Camera::Parameters::Focal,       Camera::Parameters::AspectRatio,
+                   Camera::Parameters::Cx,          Camera::Parameters::Cy};
+  camera.values_.resize(8);
+  camera.values_ << distortion[0], distortion[1], distortion[2], distortion[3],
+      focal, aspect_ratio, principal_point[0], principal_point[1];
   return camera;
 };
 
@@ -78,7 +94,6 @@ Camera::GetParametersMap() const {
   std::map<Camera::Parameters, double, Camera::CompParameters> params_map;
   for(int i = 0; i < values_.size(); ++i){
     params_map[types_[i]] = values_[i];
-
   }
   return params_map;
 }
@@ -114,6 +129,8 @@ std::string Camera::GetProjectionString() const {
       return "brown";
     case ProjectionType::FISHEYE:
       return "fisheye";
+    case ProjectionType::FISHEYE_OPENCV:
+      return "fisheye_opencv";
     case ProjectionType::DUAL:
       return "dual";
     case ProjectionType::SPHERICAL:

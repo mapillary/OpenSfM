@@ -96,11 +96,12 @@ loss_function_threshold: 1      # Threshold on the squared residuals.  Usually c
 reprojection_error_sd: 0.004    # The standard deviation of the reprojection error
 exif_focal_sd: 0.01             # The standard deviation of the exif focal length in log-scale
 principal_point_sd: 0.01        # The standard deviation of the principal point coordinates
-radial_distorsion_k1_sd: 0.01   # The standard deviation of the first radial distortion parameter
-radial_distorsion_k2_sd: 0.01   # The standard deviation of the second radial distortion parameter
-radial_distorsion_k3_sd: 0.01   # The standard deviation of the third radial distortion parameter
-radial_distorsion_p1_sd: 0.01   # The standard deviation of the first tangential distortion parameter
-radial_distorsion_p2_sd: 0.01   # The standard deviation of the second tangential distortion parameter
+radial_distortion_k1_sd: 0.01   # The standard deviation of the first radial distortion parameter
+radial_distortion_k2_sd: 0.01   # The standard deviation of the second radial distortion parameter
+radial_distortion_k3_sd: 0.01   # The standard deviation of the third radial distortion parameter
+radial_distortion_k4_sd: 0.01   # The standard deviation of the fourth radial distortion parameter
+tangential_distortion_p1_sd: 0.01   # The standard deviation of the first tangential distortion parameter
+tangential_distortion_p2_sd: 0.01   # The standard deviation of the second tangential distortion parameter
 bundle_outlier_filtering_type: FIXED    # Type of threshold for filtering outlier : either fixed value (FIXED) or based on actual distribution (AUTO)
 bundle_outlier_auto_ratio: 3.0          # For AUTO filtering type, projections with larger reprojection than ratio-times-mean, are removed
 bundle_outlier_fixed_threshold: 0.006   # For FIXED filtering type, projections with larger reprojection error after bundle adjustment are removed

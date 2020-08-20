@@ -30,9 +30,7 @@ OpenSfM depends on the following libraries that need to be installed before buil
 Installing dependencies on Ubuntu
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If using Python 3, see this `Dockerfile <https://github.com/mapillary/OpenSfM/blob/master/Dockerfile>`_ for the commands to install all dependencies on Ubuntu 20.04.
-
-If using Python 2, follow the process here `Dockerfile.python2 <https://github.com/mapillary/OpenSfM/blob/master/Dockerfile.python2>`_.  For earlier Ubuntu versions, you may need to `install ceres manually <http://ceres-solver.org/installation.html>`_.
+See this `Dockerfile <https://github.com/mapillary/OpenSfM/blob/master/Dockerfile>`_ for the commands to install all dependencies on Ubuntu 20.04.
 
 
 Installing dependencies on MacOSX
@@ -63,9 +61,8 @@ Building the library
 
 Once the dependencies have been installed, you can build OpenSfM by running the following command from the main folder::
 
-    python setup.py build
+    python3 setup.py build
 
-or ``python3 setup.py build`` for a Python 3 build.
 
 Building the documentation
 --------------------------

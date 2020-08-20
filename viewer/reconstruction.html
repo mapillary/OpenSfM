@@ -212,14 +212,68 @@
                 float y = vRstq.y;
                 float z = vRstq.z;
 
-                float l = sqrt(x * x + y * y);
-                float theta = atan(l, z);
+                float a = x / z;
+                float b = y / z;
+
+                float r = sqrt(a * a + b * b);
+                float theta = atan(r);
                 float theta2 = theta * theta;
                 float theta_d = theta * (1.0 + theta2 * (k1 + theta2 * k2));
-                float s = focal * theta_d / l;
+                float inv_r = r > 1e-8 ? 1.0 / r : 1.0;
+                float cdist = r > 1e-8 ? theta_d * inv_r : 1.0;
+                float x_p = cdist * a;
+                float y_p = cdist * b;
 
-                float u = scale_x * s * x + 0.5;
-                float v = -scale_y * s * y + 0.5;
+                float u = scale_x * focal * x_p + 0.5;
+                float v = -scale_y * focal * y_p + 0.5;
+
+                vec4 baseColor = texture2D(projectorTex, vec2(u, v));
+                baseColor.a = opacity;
+                gl_FragColor = baseColor;
+            }
+
+        </script>
+
+        <script type="x-shader/x-fragment" id="fragmentshader_fisheye_opencv">
+
+            #ifdef GL_ES
+            precision highp float;
+            #endif
+
+            varying vec4 vRstq;
+            uniform sampler2D projectorTex;
+            uniform float opacity;
+            uniform float focal_x;
+            uniform float focal_y;
+            uniform float c_x;
+            uniform float c_y;
+            uniform float k1;
+            uniform float k2;
+            uniform float k3;
+            uniform float k4;
+            uniform float scale_x;
+            uniform float scale_y;
+
+            void main()
+            {
+                float x = vRstq.x;
+                float y = vRstq.y;
+                float z = vRstq.z;
+
+                float a = x / z;
+                float b = y / z;
+
+                float r = sqrt(a * a + b * b);
+                float theta = atan(r);
+                float theta2 = theta * theta;
+                float theta_d = theta * (1.0 + theta2 * (k1 + theta2 * (k2 + theta2 * (k3 + theta2 * k4))));
+                float inv_r = r > 1e-8 ? 1.0 / r : 1.0;
+                float cdist = r > 1e-8 ? theta_d * inv_r : 1.0;
+                float x_p = cdist * a;
+                float y_p = cdist * b;
+
+                float u = scale_x * focal_x * x_p + c_x + 0.5;
+                float v = -scale_y * focal_y * y_p + c_y + 0.5;
 
                 vec4 baseColor = texture2D(projectorTex, vec2(u, v));
                 baseColor.a = opacity;
@@ -336,7 +390,7 @@
                 f1.add(options, 'cameraSize', 0, 2)
                     .listen()
                     .onChange(setCameraSize);
-                f1.add(options, 'imagePlaneSize', 1, 200)
+                f1.add(options, 'imagePlaneSize', 1, 400)
                     .onChange(function(value) {
                         options.imagePlaneSize *= 1.5;
                         imagePlane.geometry = imagePlaneGeo(imagePlaneCameraOld.reconstruction, imagePlaneCameraOld.shot_id);
@@ -673,7 +727,7 @@
                 var shot = reconstruction.shots[shot_id];
                 var cam = reconstruction.cameras[shot.camera];
 
-                if ('vertices' in shot) {
+                if ('vertices' in shot && shot['vertices'].length > 0) {
                     var geometry = new THREE.Geometry();
                     for (var i = 0; i < shot['vertices'].length; ++i) {
                         geometry.vertices.push(
@@ -759,6 +813,22 @@
                             type: 'f',
                             value: cam.focal
                         },
+                        focal_x: {
+                            type: 'f',
+                            value: cam.focal_x
+                        },
+                        focal_y: {
+                            type: 'f',
+                            value: cam.focal_y
+                        },
+                        c_x: {
+                            type: 'f',
+                            value: cam.c_x
+                        },
+                        c_y: {
+                            type: 'f',
+                            value: cam.c_y
+                        },
                         k1: {
                             type: 'f',
                             value: cam.k1
@@ -766,6 +836,14 @@
                         k2: {
                             type: 'f',
                             value: cam.k2
+                        },
+                        k3: {
+                            type: 'f',
+                            value: cam.k3
+                        },
+                        k4: {
+                            type: 'f',
+                            value: cam.k4
                         },
                         scale_x: {
                             type: 'f',
@@ -792,6 +870,8 @@
                     return $('#fragmentshader_equirectangular').text();
                 else if (cam.projection_type == 'fisheye')
                     return $('#fragmentshader_fisheye').text();
+                else if (cam.projection_type == 'fisheye_opencv')
+                    return $('#fragmentshader_fisheye_opencv').text();
                 else
                     return $('#fragmentshader').text();
             }
@@ -1071,8 +1151,14 @@
                             imagePlaneOld.material.uniforms.projectorTex.value = imagePlane.material.uniforms.projectorTex.value;
                             imagePlaneOld.material.uniforms.projectorMat.value = imagePlane.material.uniforms.projectorMat.value;
                             imagePlane.material.uniforms.focal.value = imagePlane.material.uniforms.focal.value;
+                            imagePlane.material.uniforms.focal_x.value = imagePlane.material.uniforms.focal_x.value;
+                            imagePlane.material.uniforms.focal_y.value = imagePlane.material.uniforms.focal_y.value;
+                            imagePlane.material.uniforms.c_x.value = imagePlane.material.uniforms.c_x.value;
+                            imagePlane.material.uniforms.c_y.value = imagePlane.material.uniforms.c_y.value;
                             imagePlane.material.uniforms.k1.value = imagePlane.material.uniforms.k1.value;
                             imagePlane.material.uniforms.k2.value = imagePlane.material.uniforms.k2.value;
+                            imagePlane.material.uniforms.k3.value = imagePlane.material.uniforms.k3.value;
+                            imagePlane.material.uniforms.k4.value = imagePlane.material.uniforms.k4.value;
                             imagePlane.material.uniforms.scale_x.value = imagePlane.material.uniforms.scale_x.value;
                             imagePlane.material.uniforms.scale_y.value = imagePlane.material.uniforms.scale_y.value;
                             imagePlaneOld.material.vertexShader = imagePlane.material.vertexShader;

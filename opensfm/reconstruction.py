@@ -119,12 +119,11 @@ def bundle_single_view(reconstruction, shot_id, camera_priors, config):
     ba.add_shot(shot_id, camera.id, r, t, False)
 
     for track in shot.get_valid_landmarks():
-        track_id = track.id
-        ba.add_point(track_id, track.coordinates, True)
+        ba.add_point(track.id, track.coordinates, True)
         obs = shot.get_landmark_observation(track)
         point = obs.point
         ba.add_point_projection_observation(
-            shot_id, track_id, point[0], point[1], obs.scale)
+            shot_id, track.id, point[0], point[1], obs.scale)
 
     if config['bundle_use_gps']:
         g = shot.metadata.gps_position.value
@@ -136,11 +135,12 @@ def bundle_single_view(reconstruction, shot_id, camera_priors, config):
     ba.set_internal_parameters_prior_sd(
         config['exif_focal_sd'],
         config['principal_point_sd'],
-        config['radial_distorsion_k1_sd'],
-        config['radial_distorsion_k2_sd'],
-        config['radial_distorsion_p1_sd'],
-        config['radial_distorsion_p2_sd'],
-        config['radial_distorsion_k3_sd'])
+        config['radial_distortion_k1_sd'],
+        config['radial_distortion_k2_sd'],
+        config['tangential_distortion_p1_sd'],
+        config['tangential_distortion_p2_sd'],
+        config['radial_distortion_k3_sd'],
+        config['radial_distortion_k4_sd'])
     ba.set_num_threads(config['processes'])
     ba.set_max_num_iterations(10)
     ba.set_linear_solver_type("DENSE_QR")
@@ -198,8 +198,7 @@ def direct_shot_neighbors(reconstruction, shot_ids,
         shot = reconstruction.shots[shot_id]
         valid_landmarks = shot.get_valid_landmarks()
         for track in valid_landmarks:
-            track_id = track.id
-            if track_id in reconstruction.points:
+            if track.id in reconstruction.points:
                 points.add(track)
 
     candidate_shots = set(reconstruction.shots) - set(shot_ids)
@@ -288,7 +287,7 @@ def get_image_metadata(data, image):
     metadata.orientation.value = exif.get('orientation', 1)
 
     if 'accelerometer' in exif:
-        metadata.accelerometer = exif['accelerometer']
+        metadata.accelerometer.value = exif['accelerometer']
 
     if 'compass' in exif:
         metadata.compass_angle.value = exif['compass']['angle']
@@ -688,7 +687,7 @@ class TrackTriangulator:
                 os_t, bs_t, thresholds, np.radians(min_ray_angle_degrees))
 
             if e:
-                reprojected_bs = X-os
+                reprojected_bs = X - os
                 reprojected_bs /= np.linalg.norm(reprojected_bs, axis=1)[:, np.newaxis]
                 inliers = np.linalg.norm(reprojected_bs - bs, axis=1) < reproj_threshold
 
@@ -727,15 +726,8 @@ class TrackTriangulator:
             thresholds = len(os) * [reproj_threshold]
             e, X = pygeometry.triangulate_bearings_midpoint(
                 os, bs, thresholds, np.radians(min_ray_angle_degrees))
-            # if X is not None:
-                # pt = self.reconstruction.create_point(track, X.tolist())
             if e:
-                # point = types.Point()
-                # point.id = track
-                # point.coordinates = X.tolist()
-                # pt = 
                 self.reconstruction.create_point(track, X.tolist())
-                # self.reconstruction.add_point(point)
                 for shot_id in ids:
                     self._add_track_to_reconstruction(track, shot_id)
 
@@ -753,15 +745,8 @@ class TrackTriangulator:
         if len(Rts) >= 2:
             e, X = pygeometry.triangulate_bearings_dlt(
                 Rts, bs, reproj_threshold, np.radians(min_ray_angle_degrees))
-            # if X is not None:
-                # self.reconstruction.create_point(track, X.tolist())
             if e:
                 self.reconstruction.create_point(track, X.tolist())
-
-                # point = types.Point()
-                # point.id = track
-                # point.coordinates = X.tolist()
-                # self.reconstruction.add_point(point)
                 for shot_id in ids:
                     self._add_track_to_reconstruction(track, shot_id)
 
@@ -871,10 +856,12 @@ def remove_outliers(reconstruction, config, points=None):
             if error_sqr > threshold_sqr:
                 outliers.append((point_id, shot_id))
 
+    track_ids = set()
     for track, shot_id in outliers:
         reconstruction.map.remove_observation(shot_id, track)
+        track_ids.add(track)
 
-    for track, _ in outliers:
+    for track in track_ids:
         lm = reconstruction.points[track]
         if lm is not None and lm.number_of_observations() < 2:
             reconstruction.map.remove_landmark(lm)

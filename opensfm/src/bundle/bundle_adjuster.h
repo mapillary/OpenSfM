@@ -512,7 +512,8 @@ class BundleAdjuster {
       double k2_sd,
       double p1_sd,
       double p2_sd,
-      double k3_sd);
+      double k3_sd,
+      double k4_sd);
 
   void SetComputeCovariances(bool v);
   bool GetCovarianceEstimationValid();
@@ -587,6 +588,7 @@ class BundleAdjuster {
   double p1_sd_;
   double p2_sd_;
   double k3_sd_;
+  double k4_sd_;
 
   // minimization setup
   std::string point_projection_loss_name_;

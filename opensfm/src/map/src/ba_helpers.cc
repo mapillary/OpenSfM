@@ -1,10 +1,11 @@
-#include <map/ba_helpers.h>
 #include <bundle/bundle_adjuster.h>
-#include <map/map.h>
-#include <map/ground_control_points.h>
-#include <chrono>
 #include <foundation/types.h>
 #include <geometry/triangulation.h>
+#include <map/ba_helpers.h>
+#include <map/ground_control_points.h>
+#include <map/map.h>
+
+#include <chrono>
 /**Reconstructed shots near a given shot.
 
 Returns:
@@ -16,8 +17,7 @@ Central shot is at distance 0.  Shots at distance n + 1 share at least
 min_common_points points with shots at distance n.
 */
 std::pair<std::unordered_set<map::Shot*>, std::unordered_set<map::Shot*>>
-BAHelpers::ShotNeighborhood(map::Map& map,
-                            const map::ShotId& central_shot_id,
+BAHelpers::ShotNeighborhood(map::Map& map, const map::ShotId& central_shot_id,
                             const size_t radius, const size_t min_common_points,
                             const size_t max_interior_size) {
   constexpr size_t MaxBoundarySize{1000000};
@@ -37,29 +37,22 @@ BAHelpers::ShotNeighborhood(map::Map& map,
 
 std::unordered_set<map::Shot*> BAHelpers::DirectShotNeighbors(
     map::Map& map, const std::unordered_set<map::Shot*>& shot_ids,
-    const size_t min_common_points, const size_t max_neighbors)
-{
+    const size_t min_common_points, const size_t max_neighbors) {
   std::unordered_set<map::Landmark*> points;
-  for (auto* shot : shot_ids)
-  {
-    //TODO: implement const GetShot....
+  for (auto* shot : shot_ids) {
+    // TODO: implement const GetShot....
     if (shot->UseLinearDataStructure()) {
-        const auto& landmarks = shot->GetLandmarks();
-        for (size_t idx = 0; idx < landmarks.size(); ++idx)
-        {
-            auto* lm = landmarks[idx];
-            if (lm != nullptr)
-            {
-              points.insert(lm);
-            }
+      const auto& landmarks = shot->GetLandmarks();
+      for (size_t idx = 0; idx < landmarks.size(); ++idx) {
+        auto* lm = landmarks[idx];
+        if (lm != nullptr) {
+          points.insert(lm);
         }
-    }
-    else
-    {
-        for (const auto& lm_obs : shot->GetLandmarkObservations())
-        {
-          points.insert(lm_obs.first);
-        }
+      }
+    } else {
+      for (const auto& lm_obs : shot->GetLandmarkObservations()) {
+        points.insert(lm_obs.first);
+      }
     }
   }
   std::unordered_set<map::Shot*> candidate_shots;
@@ -71,37 +64,30 @@ std::unordered_set<map::Shot*> BAHelpers::DirectShotNeighbors(
   }
 
   std::unordered_map<map::Shot*, size_t> common_points;
-  for (auto* pt : points)
-  {
-    for (const auto& neighbor_p : pt->GetObservations())
-    {
+  for (auto* pt : points) {
+    for (const auto& neighbor_p : pt->GetObservations()) {
       auto* shot = neighbor_p.first;
-      if (candidate_shots.find(shot) != candidate_shots.end())
-      {
+      if (candidate_shots.find(shot) != candidate_shots.end()) {
         ++common_points[shot];
       }
     }
   }
 
-
-  std::vector<std::pair<map::Shot*, size_t>> pairs(common_points.begin(), common_points.end());
-  std::sort(pairs.begin(), pairs.end(), 
-            [](const std::pair<map::Shot*, size_t>& val1, const std::pair<map::Shot*, size_t>& val2)
-            {
+  std::vector<std::pair<map::Shot*, size_t>> pairs(common_points.begin(),
+                                                   common_points.end());
+  std::sort(pairs.begin(), pairs.end(),
+            [](const std::pair<map::Shot*, size_t>& val1,
+               const std::pair<map::Shot*, size_t>& val2) {
               return val1.second > val2.second;
             });
 
   const size_t max_n = std::min(max_neighbors, pairs.size());
   std::unordered_set<map::Shot*> neighbors;
   size_t idx = 0;
-  for (auto& p : pairs)
-  {
-    if (p.second >= min_common_points && idx < max_n)
-    {
+  for (auto& p : pairs) {
+    if (p.second >= min_common_points && idx < max_n) {
       neighbors.insert(p.first);
-    }
-    else
-    {
+    } else {
       break;
     }
     ++idx;
@@ -109,13 +95,11 @@ std::unordered_set<map::Shot*> BAHelpers::DirectShotNeighbors(
   return neighbors;
 }
 
-py::tuple
-BAHelpers::BundleLocal(
+py::tuple BAHelpers::BundleLocal(
     map::Map& map,
     const std::unordered_map<map::CameraId, Camera>& camera_priors,
     const AlignedVector<map::GroundControlPoint>& gcp,
-    const map::ShotId& central_shot_id, const py::dict& config) 
-{
+    const map::ShotId& central_shot_id, const py::dict& config) {
   py::dict report;
   const auto start = std::chrono::high_resolution_clock::now();
   auto neighborhood = ShotNeighborhood(
@@ -125,25 +109,27 @@ BAHelpers::BundleLocal(
   auto& interior = neighborhood.first;
   auto& boundary = neighborhood.second;
 
-  //set up BA
+  // set up BA
   auto ba = BundleAdjuster();
-  ba.SetUseAnalyticDerivatives(config["bundle_analytic_derivatives"].cast<bool>());
-  
+  ba.SetUseAnalyticDerivatives(
+      config["bundle_analytic_derivatives"].cast<bool>());
+
   for (const auto& cam_pair : map.GetCameras()) {
     const auto& cam = cam_pair.second;
     const auto& cam_prior = camera_priors.at(cam.id);
     constexpr bool fix_cameras{true};
     ba.AddCamera(cam.id, cam, cam_prior, fix_cameras);
   }
-  //Combine the sets
-  std::unordered_set<map::Shot*> int_and_bound(interior.cbegin(), interior.cend());
+  // Combine the sets
+  std::unordered_set<map::Shot*> int_and_bound(interior.cbegin(),
+                                               interior.cend());
   int_and_bound.insert(boundary.cbegin(), boundary.cend());
   std::unordered_set<map::Landmark*> points;
   py::list pt_ids;
 
   constexpr bool point_constant{false};
-  
-  //Add interior shots
+
+  // Add interior shots
   for (auto* shot : interior) {
     const auto& pose = shot->GetPose();
     constexpr auto shot_constant{false};
@@ -158,9 +144,8 @@ BAHelpers::BundleLocal(
     }
   }
 
-  //add boundary shots
-  for (auto* shot: boundary)
-  {
+  // add boundary shots
+  for (auto* shot : boundary) {
     const auto& pose = shot->GetPose();
     constexpr auto shot_constant{true};
     ba.AddShot(shot->id_, shot->shot_camera_->id,
@@ -227,18 +212,22 @@ BAHelpers::BundleLocal(
     }
   }
 
-  if (config["bundle_use_gps"].cast<bool>() && !gcp.empty())
-  {
+  if (config["bundle_use_gps"].cast<bool>() && !gcp.empty()) {
     AddGCPToBundle(ba, gcp, map.GetAllShots());
-  }  
+  }
 
-  ba.SetPointProjectionLossFunction(config["loss_function"].cast<std::string>(),
-                                    config["loss_function_threshold"].cast<double>());
+  ba.SetPointProjectionLossFunction(
+      config["loss_function"].cast<std::string>(),
+      config["loss_function_threshold"].cast<double>());
   ba.SetInternalParametersPriorSD(
-      config["exif_focal_sd"].cast<double>(), config["principal_point_sd"].cast<double>(),
-      config["radial_distorsion_k1_sd"].cast<double>(), config["radial_distorsion_k2_sd"].cast<double>(),
-      config["radial_distorsion_p1_sd"].cast<double>(), config["radial_distorsion_p2_sd"].cast<double>(),
-      config["radial_distorsion_k3_sd"].cast<double>());
+      config["exif_focal_sd"].cast<double>(),
+      config["principal_point_sd"].cast<double>(),
+      config["radial_distortion_k1_sd"].cast<double>(),
+      config["radial_distortion_k2_sd"].cast<double>(),
+      config["tangential_distortion_p1_sd"].cast<double>(),
+      config["tangential_distortion_p2_sd"].cast<double>(),
+      config["radial_distortion_k3_sd"].cast<double>(),
+      config["radial_distortion_k4_sd"].cast<double>());
 
   ba.SetNumThreads(config["processes"].cast<int>());
   ba.SetMaxNumIterations(10);
@@ -246,14 +235,12 @@ BAHelpers::BundleLocal(
   const auto timer_setup = std::chrono::high_resolution_clock::now();
   ba.Run();
   const auto timer_run = std::chrono::high_resolution_clock::now();
-  for (auto* shot : interior)
-  {
+  for (auto* shot : interior) {
     const auto& s = ba.GetShot(shot->id_);
     shot->GetPose().SetFromWorldToCamera(s.GetRotation(), s.GetTranslation());
   }
 
-  for (auto* point : points)
-  {
+  for (auto* point : points) {
     const auto& pt = ba.GetPoint(point->id_);
     point->SetGlobalPos(pt.GetPoint());
     point->SetReprojectionErrors(pt.reprojection_errors);
@@ -261,36 +248,45 @@ BAHelpers::BundleLocal(
   const auto timer_teardown = std::chrono::high_resolution_clock::now();
   report["brief_report"] = ba.BriefReport();
   report["wall_times"] = py::dict();
-  report["wall_times"]["setup"] = std::chrono::duration_cast<std::chrono::microseconds>(timer_setup - start).count()/1000000.0;
-  report["wall_times"]["run"] = std::chrono::duration_cast<std::chrono::microseconds>(timer_run - timer_setup).count()/1000000.0;
-  report["wall_times"]["teardown"] = std::chrono::duration_cast<std::chrono::microseconds>(timer_teardown - timer_run).count()/1000000.0;
+  report["wall_times"]["setup"] =
+      std::chrono::duration_cast<std::chrono::microseconds>(timer_setup - start)
+          .count() /
+      1000000.0;
+  report["wall_times"]["run"] =
+      std::chrono::duration_cast<std::chrono::microseconds>(timer_run -
+                                                            timer_setup)
+          .count() /
+      1000000.0;
+  report["wall_times"]["teardown"] =
+      std::chrono::duration_cast<std::chrono::microseconds>(timer_teardown -
+                                                            timer_run)
+          .count() /
+      1000000.0;
   report["num_interior_images"] = interior.size();
   report["num_boundary_images"] = boundary.size();
-  report["num_other_images"] = map.NumberOfShots() - interior.size() - boundary.size();
+  report["num_other_images"] =
+      map.NumberOfShots() - interior.size() - boundary.size();
   return py::make_tuple(pt_ids, report);
 }
 
-bool BAHelpers::TriangulateGCP(const map::GroundControlPoint& point,
-                                const std::unordered_map<map::ShotId, map::Shot>& shots,
-                                Vec3d& coordinates) 
-{
+bool BAHelpers::TriangulateGCP(
+    const map::GroundControlPoint& point,
+    const std::unordered_map<map::ShotId, map::Shot>& shots,
+    Vec3d& coordinates) {
   constexpr auto reproj_threshold{1.0};
-  constexpr auto min_ray_angle =  0.1 * M_PI / 180.0;
+  constexpr auto min_ray_angle = 0.1 * M_PI / 180.0;
   MatX3d os, bs;
   size_t added = 0;
   coordinates = Vec3d::Zero();
   bs.conservativeResize(point.observations_.size(), Eigen::NoChange);
   os.conservativeResize(point.observations_.size(), Eigen::NoChange);
-  for (const auto& obs : point.observations_)
-  {
+  for (const auto& obs : point.observations_) {
     const auto shot_it = shots.find(obs.shot_id_);
-    if (shot_it != shots.end())
-    {
-      
+    if (shot_it != shots.end()) {
       const auto& shot = (shot_it->second);
       const Vec3d bearing = shot.shot_camera_->Bearing(obs.projection_);
       const auto& shot_pose = shot.GetPose();
-      //TODO: avoid constant resizing but simply allocate a matrix
+      // TODO: avoid constant resizing but simply allocate a matrix
       //      with len(point.observations_)
       bs.row(added) = shot_pose.RotationCameraToWorld() * bearing;
       os.row(added) = shot_pose.GetOrigin();
@@ -299,10 +295,10 @@ bool BAHelpers::TriangulateGCP(const map::GroundControlPoint& point,
   }
   bs.conservativeResize(added, Eigen::NoChange);
   os.conservativeResize(added, Eigen::NoChange);
-  if (added >= 2)
-  {
+  if (added >= 2) {
     const std::vector<double> thresholds(added, reproj_threshold);
-    const auto& res = geometry::TriangulateBearingsMidpoint(os, bs, thresholds, min_ray_angle);
+    const auto& res = geometry::TriangulateBearingsMidpoint(os, bs, thresholds,
+                                                            min_ray_angle);
     coordinates = res.second;
     return res.first;
   }
@@ -434,11 +430,12 @@ py::dict BAHelpers::Bundle(
   ba.SetInternalParametersPriorSD(
       config["exif_focal_sd"].cast<double>(),
       config["principal_point_sd"].cast<double>(),
-      config["radial_distorsion_k1_sd"].cast<double>(),
-      config["radial_distorsion_k2_sd"].cast<double>(),
-      config["radial_distorsion_p1_sd"].cast<double>(),
-      config["radial_distorsion_p2_sd"].cast<double>(),
-      config["radial_distorsion_k3_sd"].cast<double>());
+      config["radial_distortion_k1_sd"].cast<double>(),
+      config["radial_distortion_k2_sd"].cast<double>(),
+      config["tangential_distortion_p1_sd"].cast<double>(),
+      config["tangential_distortion_p2_sd"].cast<double>(),
+      config["radial_distortion_k3_sd"].cast<double>(),
+      config["radial_distortion_k4_sd"].cast<double>());
 
   ba.SetNumThreads(config["processes"].cast<int>());
   ba.SetMaxNumIterations(config["bundle_max_iterations"].cast<int>());
@@ -472,8 +469,19 @@ py::dict BAHelpers::Bundle(
   const auto timer_teardown = std::chrono::high_resolution_clock::now();
   report["brief_report"] = ba.BriefReport();
   report["wall_times"] = py::dict();
-  report["wall_times"]["setup"] = std::chrono::duration_cast<std::chrono::microseconds>(timer_setup - start).count()/1000000.0;
-  report["wall_times"]["run"] = std::chrono::duration_cast<std::chrono::microseconds>(timer_run - timer_setup).count()/1000000.0;
-  report["wall_times"]["teardown"] = std::chrono::duration_cast<std::chrono::microseconds>(timer_teardown - timer_run).count()/1000000.0;
+  report["wall_times"]["setup"] =
+      std::chrono::duration_cast<std::chrono::microseconds>(timer_setup - start)
+          .count() /
+      1000000.0;
+  report["wall_times"]["run"] =
+      std::chrono::duration_cast<std::chrono::microseconds>(timer_run -
+                                                            timer_setup)
+          .count() /
+      1000000.0;
+  report["wall_times"]["teardown"] =
+      std::chrono::duration_cast<std::chrono::microseconds>(timer_teardown -
+                                                            timer_run)
+          .count() /
+      1000000.0;
   return report;
 }
