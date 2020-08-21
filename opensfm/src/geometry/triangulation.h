@@ -7,7 +7,6 @@
 #include <fstream>
 #include <iostream>
 #include <string>
-#include <foundation/python_types.h>
 
 double AngleBetweenVectors(const Eigen::Vector3d &u, const Eigen::Vector3d &v);
 
