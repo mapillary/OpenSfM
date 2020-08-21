@@ -43,4 +43,11 @@ class BAHelpers {
       const map::GroundControlPoint& point,
       const std::unordered_map<map::ShotId, map::Shot>& shots,
       Vec3d& coordinates);
+
+  static std::string DetectAlignmentConstraints(
+      const map::Map& map, const py::dict& config,
+      const AlignedVector<map::GroundControlPoint>& gcp);
+  static void AlignmentConstraints(
+    const map::Map& map, const py::dict& config,
+    const AlignedVector<map::GroundControlPoint>& gcp);
 };

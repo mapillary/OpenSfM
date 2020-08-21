@@ -211,7 +211,7 @@ py::tuple BAHelpers::BundleLocal(
     }
   }
 
-  if (config["bundle_use_gps"].cast<bool>() && !gcp.empty()) {
+  if (config["bundle_use_gcp"].cast<bool>() && !gcp.empty()) {
     AddGCPToBundle(ba, gcp, map.GetAllShots());
   }
 
@@ -416,7 +416,7 @@ py::dict BAHelpers::Bundle(
       }
     }
   }
-  if (config["bundle_use_gps"].cast<bool>() && !gcp.empty()) {
+  if (config["bundle_use_gcp"].cast<bool>() && !gcp.empty()) {
     AddGCPToBundle(ba, gcp, map.GetAllShots());
   }
 
@@ -480,4 +480,49 @@ py::dict BAHelpers::Bundle(
           .count() /
       1000000.0;
   return report;
+}
+
+void BAHelpers::AlignmentConstraints(
+    const map::Map& map, const py::dict& config,
+    const AlignedVector<map::GroundControlPoint>& gcp) {
+  MatX3d all_measured, all_triang;
+  size_t reserve_size = 0;
+  if (!gcp.empty() && config["bundle_use_gcp"].cast<bool>()) {
+    reserve_size += gcp.size();
+  }
+  if (config["bundle_use_gps"].cast<bool>()) {
+    reserve_size += map.NumberOfShots();
+  }
+  all_measured.conservativeResize(reserve_size, Eigen::NoChange);
+  all_triang.conservativeResize(reserve_size, Eigen::NoChange);
+  size_t idx = 0;
+  const auto& shots = map.GetAllShots();
+  // Triangulated vs measured points
+  if (!gcp.empty() && config["bundle_use_gcp"].cast<bool>()) {
+    for (const auto& point : gcp) {
+      Vec3d coordinates;
+      if (TriangulateGCP(point, shots, coordinates)) {
+        all_measured.row(idx) = point.coordinates_.Value();
+        all_triang.row(idx) = coordinates;
+        ++idx;
+      }
+    }
+  }
+  if (config["bundle_use_gps"].cast<bool>()) {
+    for (const auto& shot : shots) {
+    }
+  }
+}
+
+std::string BAHelpers::DetectAlignmentConstraints(
+    const map::Map& map, const py::dict& config,
+    const AlignedVector<map::GroundControlPoint>& gcp) {
+  constexpr double epsilon_abs = 1e-10;
+  constexpr double epsilon_ratio = 5e3;
+  bool is_inline;
+  if (is_inline) {
+    return "orientation";
+  }
+
+  return "naive";
 }
