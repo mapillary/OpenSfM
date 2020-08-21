@@ -40,7 +40,6 @@ std::unordered_set<map::Shot*> BAHelpers::DirectShotNeighbors(
     const size_t min_common_points, const size_t max_neighbors) {
   std::unordered_set<map::Landmark*> points;
   for (auto* shot : shot_ids) {
-    // TODO: implement const GetShot....
     if (shot->UseLinearDataStructure()) {
       const auto& landmarks = shot->GetLandmarks();
       for (size_t idx = 0; idx < landmarks.size(); ++idx) {
@@ -286,8 +285,6 @@ bool BAHelpers::TriangulateGCP(
       const auto& shot = (shot_it->second);
       const Vec3d bearing = shot.shot_camera_->Bearing(obs.projection_);
       const auto& shot_pose = shot.GetPose();
-      // TODO: avoid constant resizing but simply allocate a matrix
-      //      with len(point.observations_)
       bs.row(added) = shot_pose.RotationCameraToWorld() * bearing;
       os.row(added) = shot_pose.GetOrigin();
       ++added;
@@ -319,7 +316,6 @@ void BAHelpers::AddGCPToBundle(
         continue;
       }
     }
-    // TODO: WHY NOT GCP-1!
     constexpr auto point_constant{false};
     ba.AddPoint(point_id, coordinates, point_constant);
     if (point.coordinates_.HasValue()) {

@@ -166,12 +166,8 @@ PYBIND11_MODULE(pymap, m) {
            &map::Shot::InitAndTakeDatastructures)
       .def("init_keypts_and_descriptors", &map::Shot::InitKeyptsAndDescriptors)
       .def("set_pose", &map::Shot::SetPose)
-              //    (void (map::Map::*)(map::Shot *const, map::Landmark *const,
-              //                  const map::FeatureId)) &
-              //  map::Map::AddObservation,
       .def("get_pose", 
       (const geometry::Pose& (map::Shot::*) () const)  &map::Shot::GetPose,
-      // &map::Shot::GetPose,
            py::return_value_policy::reference_internal)
       .def("compute_median_depth", &map::Shot::ComputeMedianDepthOfLandmarks)
       .def("scale_landmarks", &map::Shot::ScaleLandmarks)
