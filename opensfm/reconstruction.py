@@ -1030,9 +1030,10 @@ def remove_outliers(reconstruction, config, points=None):
         track_ids.add(track)
 
     for track in track_ids:
-        lm = reconstruction.points[track]
-        if lm is not None and lm.number_of_observations() < 2:
-            reconstruction.map.remove_landmark(lm)
+        if track in reconstruction.points:
+            lm = reconstruction.points[track]
+            if lm.number_of_observations() < 2:
+                reconstruction.map.remove_landmark(lm)
 
     logger.info("Removed outliers: {}".format(len(outliers)))
     return len(outliers)
