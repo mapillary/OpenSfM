@@ -17,6 +17,7 @@ add_library(map ${MAP_FILES})
 target_link_libraries(map
   PUBLIC
     geometry
+    pybind11
 )
 
 target_include_directories(map 
@@ -32,6 +33,7 @@ target_link_libraries(pymap
     map
     geometry
     bundle
+    pybind11
 )
 
 set(MAP_TEST_FILES
