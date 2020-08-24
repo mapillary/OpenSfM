@@ -132,7 +132,9 @@ class Reconstruction(object):
         return self.cameras.get(id)
 
     # Shot
-    def create_shot(self, shot_id, camera_id, pose=pygeometry.Pose()):
+    def create_shot(self, shot_id, camera_id, pose=None):
+        if pose is None:
+            pose = pygeometry.Pose()
         return self.map.create_shot(shot_id, camera_id, pose)
 
     def add_shot(self, shot):
@@ -156,7 +158,9 @@ class Reconstruction(object):
         self.map.remove_shot(shot_id)
 
     # PanoShot
-    def create_pano_shot(self, shot_id, camera_id, pose=pygeometry.Pose()):
+    def create_pano_shot(self, shot_id, camera_id, pose=None):
+        if pose is None:
+            pose = pygeometry.Pose()
         return self.map.create_pano_shot(shot_id, camera_id, pose)
 
     def add_pano_shot(self, pshot):

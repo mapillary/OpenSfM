@@ -53,7 +53,7 @@ class Pose(object):
         translation (vector): the rotation vector.
     """
 
-    def __init__(self, rotation=np.zeros(3), translation=np.zeros(3)):
+    def __init__(self, rotation=(0, 0, 0), translation=(0, 0, 0)):
         self.rotation = rotation
         self.translation = translation
 
