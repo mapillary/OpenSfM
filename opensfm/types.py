@@ -176,7 +176,7 @@ class Reconstruction(object):
     def remove_pano_shot(self, shot_id):
         self.map.remove_pano_shot(shot_id)
 
-    def create_point(self, point_id, coord=[0, 0, 0]):
+    def create_point(self, point_id, coord=(0, 0, 0)):
         return self.map.create_landmark(point_id, coord)
 
     def add_point(self, point):
