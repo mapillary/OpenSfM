@@ -142,13 +142,10 @@ def match_unwrap_args(args):
     im1, candidates, ctx = args
 
     im1_matches = {}
-    p1, f1, _ = feature_loader.instance.load_points_features_colors(ctx.data, im1)
     camera1 = ctx.cameras[ctx.exifs[im1]['camera']]
 
     for im2 in candidates:
-        p2, f2, _ = feature_loader.instance.load_points_features_colors(ctx.data, im2)
         camera2 = ctx.cameras[ctx.exifs[im2]['camera']]
-
         im1_matches[im2] = match(im1, im2, camera1, camera2, ctx.data)
 
     num_matches = sum(1 for m in im1_matches.values() if len(m) > 0)
@@ -185,10 +182,10 @@ def match(im1, im2, camera1, camera2, data):
         else:
             matches = match_words(f1, w1, f2, w2, config)
     elif matcher_type == 'FLANN':
-        i1 = feature_loader.instance.load_features_index(data, im1, masked=True)
+        fi1, i1 = feature_loader.instance.load_features_index(data, im1, masked=True)
         if symmetric_matching:
-            i2 = feature_loader.instance.load_features_index(data, im2, masked=True)
-            matches = match_flann_symmetric(f1, i1, f2, i2, config)
+            fi2, i2 = feature_loader.instance.load_features_index(data, im2, masked=True)
+            matches = match_flann_symmetric(fi1, i1, fi2, i2, config)
         else:
             matches = match_flann(i1, f2, config)
     elif matcher_type == 'BRUTEFORCE':
