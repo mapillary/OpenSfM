@@ -7,7 +7,7 @@ import scipy.spatial as spatial
 
 from collections import namedtuple
 from networkx.algorithms import bipartite
-from repoze.lru import lru_cache
+from functools import lru_cache
 
 from opensfm import align
 from opensfm import context

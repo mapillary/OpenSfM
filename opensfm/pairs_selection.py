@@ -392,17 +392,11 @@ def vlad_histograms(images, data):
 
         Returns a dictionary of VLAD vectors for the images.
     """
-    if len(images) == 0:
-        return {}
-
-    words = vlad.instance.load_words(data)
     vlads = {}
     for im in images:
-        _, features, _ = feature_loader.instance.load_points_features_colors(
-            data, im, masked=True)
-        if features is not None:
-            vlads[im] = vlad.instance.vlad_histogram(im, features, words)
-
+        im_vlad = vlad.instance.vlad_histogram(data, im)
+        if im_vlad is not None:
+            vlads[im] = im_vlad
     return vlads
 
 

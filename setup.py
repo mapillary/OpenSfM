@@ -91,7 +91,6 @@ setuptools.setup(
     #     'pytest>=3.0.7',
     #     'python-dateutil>=2.6.0',
     #     'PyYAML>=3.12',
-    #     'repoze.lru>=0.7',
     #     'scipy',
     #     'six',
     #     'xmltodict>=0.10.2',
