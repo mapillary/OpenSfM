@@ -225,10 +225,10 @@ def perspective_camera_from_fisheye(fisheye):
     return camera
 
 
-def perspective_camera_from_fisheye_opencv(fisheye_extended):
+def perspective_camera_from_fisheye_opencv(fisheye_opencv):
     """Create a perspective camera from a fisheye extended."""
     camera = pygeometry.Camera.create_perspective(
-        fisheye_opencv.focal * (1 + fisheye_extended.aspect_ratio) / 2.0, 0.0, 0.0)
+        fisheye_opencv.focal * (1 + fisheye_opencv.aspect_ratio) / 2.0, 0.0, 0.0)
     camera.id = fisheye_opencv.id
     camera.width = fisheye_opencv.width
     camera.height = fisheye_opencv.height

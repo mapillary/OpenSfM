@@ -557,7 +557,7 @@ def camera_from_exif_metadata(metadata, data,
     elif calib_pt in ['equirectangular', 'spherical']:
         camera = pygeometry.Camera.create_spherical()
     else:
-        raise ValueError("Unknown projection type: {}".format(pt))
+        raise ValueError("Unknown projection type: {}".format(calib_pt))
 
     camera.id = metadata['camera']
     camera.width = int(metadata['width'])
