@@ -540,6 +540,7 @@ PYBIND11_MODULE(pymap, m) {
       .def("bundle", &BAHelpers::Bundle)
       .def("shot_neighborhood", &BAHelpers::ShotNeighborhood, py::return_value_policy::reference_internal)
       .def("bundle_local", &BAHelpers::BundleLocal)
+      .def("detect_alignment_constraints", &BAHelpers::DetectAlignmentConstraints)
   ;
 
   py::class_<map::GroundControlPointObservation>(m ,"GroundControlPointObservation")

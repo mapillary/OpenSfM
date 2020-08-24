@@ -362,9 +362,9 @@ py::dict BAHelpers::Bundle(
 
   // Alignemnt method
   // TODO: Alignment method, auto and vertical
-  const auto& align_method = config["align_method"].cast<std::string>();
+  auto align_method = config["align_method"].cast<std::string>();
   if (align_method.compare("auto") == 0) {
-    std::runtime_error("Implement Auto alignment");
+    align_method = DetectAlignmentConstraints(map, config, gcp);
   }
   bool do_add_align_vector = false;
   Vec3d up_vector(0);
@@ -484,8 +484,8 @@ py::dict BAHelpers::Bundle(
 
 void BAHelpers::AlignmentConstraints(
     const map::Map& map, const py::dict& config,
-    const AlignedVector<map::GroundControlPoint>& gcp) {
-  MatX3d all_measured, all_triang;
+    const AlignedVector<map::GroundControlPoint>& gcp,
+    MatX3d& Xp, MatX3d& X) {
   size_t reserve_size = 0;
   if (!gcp.empty() && config["bundle_use_gcp"].cast<bool>()) {
     reserve_size += gcp.size();
@@ -493,8 +493,8 @@ void BAHelpers::AlignmentConstraints(
   if (config["bundle_use_gps"].cast<bool>()) {
     reserve_size += map.NumberOfShots();
   }
-  all_measured.conservativeResize(reserve_size, Eigen::NoChange);
-  all_triang.conservativeResize(reserve_size, Eigen::NoChange);
+  Xp.conservativeResize(reserve_size, Eigen::NoChange);
+  X.conservativeResize(reserve_size, Eigen::NoChange);
   size_t idx = 0;
   const auto& shots = map.GetAllShots();
   // Triangulated vs measured points
@@ -502,26 +502,60 @@ void BAHelpers::AlignmentConstraints(
     for (const auto& point : gcp) {
       Vec3d coordinates;
       if (TriangulateGCP(point, shots, coordinates)) {
-        all_measured.row(idx) = point.coordinates_.Value();
-        all_triang.row(idx) = coordinates;
+        Xp.row(idx) = point.coordinates_.Value();
+        X.row(idx) = coordinates;
         ++idx;
       }
     }
   }
   if (config["bundle_use_gps"].cast<bool>()) {
-    for (const auto& shot : shots) {
+    for (const auto& shot_p : shots) {
+      const auto& shot = shot_p.second;
+      Xp.row(idx) = shot.shot_measurements_.gps_position_.Value();
+      X.row(idx) = shot.GetPose().GetOrigin();
     }
   }
 }
 
+// void BAHelpers::ComputeXXp(const MatX3d& X) {
+//   const Vec3d X_mean = X.colwise().mean();
+//   const MatX3d X_zero = X.rowwise() - X_mean.transpose();
+//   const Mat3d input = X_zero.transpose() * X_zero;
+//   Eigen::SelfAdjointEigenSolver<Mat3d> ses(input, false);
+//   std::cout << "X_mean: " << X_mean << " X_zero: " << X_zero
+//             << "," << ses.eigenvalues()
+//             << std::endl;
+//   const Vec3d evals = ses.eigenvalues();
+//   const auto ratio_1st_2nd = std::abs(evals[2] / evals[1]);
+//   constexpr double epsilon_abs = 1e-10;
+//   constexpr double epsilon_ratio = 5e3;
+//   const uint8_t cond1 = (evals[0] < epsilon_abs) + (evals[1] < epsilon_abs) + (evals[2] < epsilon_abs);
+//   const bool is_inline = cond1 > 1 || ratio_1st_2nd > epsilon_ratio;
+//   std::cout << "cond1: " << cond1 << ", " << is_inline << ", " << ratio_1st_2nd << std::endl;
+// }
+
 std::string BAHelpers::DetectAlignmentConstraints(
     const map::Map& map, const py::dict& config,
     const AlignedVector<map::GroundControlPoint>& gcp) {
+  
+  MatX3d X, Xp;
+  AlignmentConstraints(map, config, gcp, Xp, X);
+  if (X.rows() < 3)
+  {
+    return "orientation_prior";
+  }
+  const Vec3d X_mean = X.colwise().mean();
+  const MatX3d X_zero = X.rowwise() - X_mean.transpose();
+  const Mat3d input = X_zero.transpose() * X_zero;
+  Eigen::SelfAdjointEigenSolver<MatXd> ses(input, false);
+  const Vec3d evals = ses.eigenvalues();
+  const auto ratio_1st_2nd = std::abs(evals[2] / evals[1]);
   constexpr double epsilon_abs = 1e-10;
   constexpr double epsilon_ratio = 5e3;
-  bool is_inline;
-  if (is_inline) {
-    return "orientation";
+  const uint8_t cond1 = (evals[0] < epsilon_abs) + (evals[1] < epsilon_abs) + (evals[2] < epsilon_abs);
+  const bool is_line = cond1 > 1 || ratio_1st_2nd > epsilon_ratio;
+  if (is_line) {
+    return "orientation_prior";
   }
 
   return "naive";

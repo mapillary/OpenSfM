@@ -31,7 +31,9 @@ class BAHelpers {
   ShotNeighborhood(map::Map& map, const map::ShotId& central_shot_id,
                    const size_t radius, const size_t min_common_points,
                    const size_t max_interior_size);
-
+  static std::string DetectAlignmentConstraints(
+      const map::Map& map, const py::dict& config,
+      const AlignedVector<map::GroundControlPoint>& gcp);
  private:
   static std::unordered_set<map::Shot*> DirectShotNeighbors(
       map::Map& map, const std::unordered_set<map::Shot*>& shot_ids,
@@ -44,10 +46,10 @@ class BAHelpers {
       const std::unordered_map<map::ShotId, map::Shot>& shots,
       Vec3d& coordinates);
 
-  static std::string DetectAlignmentConstraints(
-      const map::Map& map, const py::dict& config,
-      const AlignedVector<map::GroundControlPoint>& gcp);
   static void AlignmentConstraints(
     const map::Map& map, const py::dict& config,
-    const AlignedVector<map::GroundControlPoint>& gcp);
+    const AlignedVector<map::GroundControlPoint>& gcp,
+    MatX3d& Xp, MatX3d& X);
+
+
 };
