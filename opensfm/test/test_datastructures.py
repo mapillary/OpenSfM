@@ -355,7 +355,7 @@ def test_shot_create_existing():
 
     n_shots = 10
     # When re-adding the same shot
-    for i in range(n_shots):
+    for _ in range(n_shots):
         # It should throw
         with pytest.raises(RuntimeError):
             shot1 == rec.create_shot("shot0", "0")
@@ -468,7 +468,7 @@ def test_pano_shot_create_existing():
 
     n_shots = 10
     # When re-adding the same pano shot
-    for i in range(n_shots):
+    for _ in range(n_shots):
         # It should throw
         with pytest.raises(RuntimeError):
             rec.create_pano_shot("shot0", "0")

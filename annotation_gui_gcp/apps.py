@@ -64,7 +64,7 @@ def pix_coords(x, image):
 
 def convert_tuple_cords_to_list(matched_points):
     list_form = [[] for i in range(2)]
-    for point, observations in matched_points.items():
+    for _, observations in matched_points.items():
         list_form[0].append(observations[0])
         list_form[1].append(observations[1])
 

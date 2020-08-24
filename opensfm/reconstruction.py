@@ -352,7 +352,7 @@ def shot_neighborhood(reconstruction, central_shot_id, radius,
     """
     max_boundary_size = 1000000
     interior = set([central_shot_id])
-    for distance in range(1, radius):
+    for _distance in range(1, radius):
         remaining = max_interior_size - len(interior)
         if remaining <= 0:
             break
@@ -418,7 +418,7 @@ def compute_image_pairs(track_dict, cameras, data):
 def _pair_reconstructability_arguments(track_dict, cameras, data):
     threshold = 4 * data.config['five_point_algo_threshold']
     args = []
-    for (im1, im2), (tracks, p1, p2) in iteritems(track_dict):
+    for (im1, im2), (_, p1, p2) in track_dict.items():
         camera1 = cameras[data.load_exif(im1)['camera']]
         camera2 = cameras[data.load_exif(im2)['camera']]
         args.append((im1, im2, p1, p2, camera1, camera2, threshold))
@@ -524,7 +524,7 @@ def two_view_reconstruction_plane_based(p1, p2, camera1, camera2, threshold):
         return None, None, []
 
     motion_inliers = []
-    for R, t, n, d in motions:
+    for R, t, _, _ in motions:
         inliers = _two_view_reconstruction_inliers(
             b1, b2, R.T, -R.T.dot(t), threshold)
         motion_inliers.append(inliers)
@@ -1190,7 +1190,7 @@ def grow_reconstruction(data, tracks_manager, reconstruction, images, camera_pri
         logger.info("-------------------------------------------------------")
         threshold = data.config['resection_threshold']
         min_inliers = data.config['resection_min_inliers']
-        for image, num_tracks in candidates:
+        for image, _ in candidates:
 
             camera = reconstruction.cameras[data.load_exif(image)['camera']]
             metadata = get_image_metadata(data, image)

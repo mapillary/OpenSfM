@@ -699,11 +699,11 @@ def export_bundler(image_list, reconstructions, track_manager,
                 t = ' '.join(map(str, t))
                 lines.append(t)
             else:
-                for i in range(5):
+                for _ in range(5):
                     lines.append("0 0 0")
 
         # tracks
-        for point_id, point in points.items():
+        for point in points.values():
             coord = point.coordinates
             color = list(map(int, point.color))
             view_list = track_manager.get_track_observations(point.id)

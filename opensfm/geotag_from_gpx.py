@@ -349,7 +349,7 @@ if __name__ == '__main__':
     else:
         # folder(s)
         file_list = []
-        for root, sub_folders, files in os.walk(path):
+        for root, _, files in os.walk(path):
             file_list += [os.path.join(root, filename) for filename in files if filename.lower().endswith(".jpg")]
 
     # start time
