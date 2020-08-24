@@ -648,7 +648,7 @@ def image_size(filename):
         with Image.open(filename) as img:
             width, height = img.size
             return height, width
-    except:
+    except Exception:
         # Slower fallback
         image = imread(filename)
         return image.shape[:2]

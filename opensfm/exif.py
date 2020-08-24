@@ -115,7 +115,7 @@ def parse_xmp_string(xmp_str):
     for _ in range(2):
         try:
             return x2d.parse(xmp_str)
-        except:
+        except Exception:
             xmp_str = unescape_string(xmp_str)
     return None
 

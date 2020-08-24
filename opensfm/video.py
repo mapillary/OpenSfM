@@ -40,14 +40,14 @@ def import_video_with_gpx(video_file, gpx_file, output_path, dx, dt=None, start_
         try:
             exifdate = Popen(['exiftool', '-CreateDate', '-b', video_file], stdout=PIPE).stdout.read()
             video_start_time = datetime.datetime.strptime(exifdate,'%Y:%m:%d %H:%M:%S')
-        except:
+        except Exception:
             print('Video recording timestamp not found. Using first GPS point time.')
             video_start_time = points[0][0]
         try:
             duration = Popen(['exiftool', '-MediaDuration', '-b', video_file], stdout=PIPE).stdout.read()
             video_duration = float(duration)
             video_end_time = video_start_time + datetime.timedelta(seconds=video_duration)
-        except:
+        except Exception:
             print('Video end time not found. Using last GPS point time.')
             video_end_time = points[-1][0]
 
