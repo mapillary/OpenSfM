@@ -7,6 +7,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <foundation/types.h>
 #include <foundation/python_types.h>
 
 double AngleBetweenVectors(const Eigen::Vector3d &u, const Eigen::Vector3d &v);
@@ -81,4 +82,8 @@ std::pair<bool, Eigen::Vector3d> TriangulateBearingsMidpoint(
     const Eigen::Matrix<double, -1, 3> &bearings,
     const std::vector<double> &threshold_list, double min_angle);
 
+Vec3d PointRefinement(const MatX3d &centers, const MatX3d &bearings,
+                      const Vec3d &point, int iterations);
+Vec3d PointRefinementMany(const MatX3d &centers, const MatX3d &bearings,
+                      const Vec3d &point, int iterations);
 }  // namespace geometry

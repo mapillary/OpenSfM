@@ -204,6 +204,7 @@ PYBIND11_MODULE(pygeometry, m) {
   m.def("triangulate_bearings_midpoint", geometry::TriangulateBearingsMidpoint);
   m.def("triangulate_two_bearings_midpoint", geometry::TriangulateTwoBearingsMidpointSolve<double>);
   m.def("triangulate_two_bearings_midpoint_many", geometry::TriangulateTwoBearingsMidpointMany);
+  m.def("point_refinement", geometry::PointRefinement);
   m.def("essential_five_points", geometry::EssentialFivePoints);
   m.def("absolute_pose_three_points", geometry::AbsolutePoseThreePoints);
   m.def("absolute_pose_n_points", geometry::AbsolutePoseNPoints);

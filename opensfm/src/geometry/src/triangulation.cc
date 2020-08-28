@@ -1,5 +1,11 @@
 
 #include <geometry/triangulation.h>
+#include <geometry/camera_functions.h>
+
+#include <ceres/tiny_solver.h>
+#include <ceres/rotation.h>
+#include <ceres/cost_function.h>
+#include <ceres/tiny_solver_cost_function_adapter.h>
 
 double AngleBetweenVectors(const Eigen::Vector3d &u, const Eigen::Vector3d &v) {
   double c = (u.dot(v)) / sqrt(u.dot(u) * v.dot(v));
@@ -118,6 +124,69 @@ std::pair<bool, Eigen::Vector3d> TriangulateBearingsMidpoint(
   }
 
   return std::make_pair(true, X.head<3>());
+}
+
+struct BearingErrorCost : public ceres::CostFunction {
+  constexpr static int Size = 3;
+
+  BearingErrorCost(const MatX3d &centers, const MatX3d &bearings,
+                   const Vec3d &point)
+      : centers_(centers), bearings_(bearings), point_(point) {
+    mutable_parameter_block_sizes()->push_back(Size);
+    set_num_residuals(bearings_.rows() * 3);
+  }
+  bool Evaluate(double const *const *parameters, double *residuals,
+                double **jacobians) const {
+    const double *point = parameters[0];
+    for (int i = 0; i < bearings_.rows(); ++i) {
+      const Vec3d &center = centers_.row(i);
+      const Vec3d &bearing = bearings_.row(i);
+
+      /* Error only */
+      double *dummy = nullptr;
+      double projected[] = {point[0] - center(0), point[1] - center(1),
+                            point[2] - center(2)};
+      if (!jacobians) {
+        Normalize::Forward(&projected[0], dummy, &projected[0]);
+      } else {
+        constexpr int JacobianSize = Size * Size;
+        double jacobian[JacobianSize];
+        Normalize::ForwardDerivatives<double, true>(&projected[0], dummy, &projected[0], &jacobian[0]);
+        double *jac_point = jacobians[0];
+        if (jac_point) {
+          for (int j = 0; j < Size; ++j) {
+            for (int k = 0; k < Size; ++k) {
+              jac_point[i * JacobianSize + j * Size + k] = jacobian[j * Size + k];
+            }
+          }
+        }
+      }
+
+      // The error is the difference between the predicted and observed position
+      for (int j = 0; j < Size; ++j) {
+        residuals[i * 3 + j] = (projected[j] - bearing[j]);
+      }
+    }
+    return true;
+  }
+
+  std::vector<ceres::int32> parameter_blocks;
+  const MatX3d &centers_;
+  const MatX3d &bearings_;
+  const Vec3d &point_;
+};
+
+Vec3d PointRefinement(const MatX3d &centers, const MatX3d &bearings,
+                      const Vec3d &point, int iterations){
+  using BearingCostFunction = ceres::TinySolverCostFunctionAdapter<Eigen::Dynamic, 3>;
+  BearingErrorCost cost(centers, bearings, point);
+  BearingCostFunction f(cost);
+
+  Vec3d refined = point;
+  ceres::TinySolver<BearingCostFunction> solver;
+  solver.options.max_num_iterations = iterations;
+  solver.Solve(f, &refined);
+  return refined;
 }
 
 }  // namespace geometry

@@ -5,7 +5,7 @@
 #include <geometry/camera_functions.h>
 #include <bundle/bundle_adjuster.h>
 
-template <class PointFunc> 
+template <class PointFunc>
 struct BABearingError {
   BABearingError(const Eigen::Vector3d& bearing,
                  double bearing_std_deviation,
@@ -142,7 +142,7 @@ class ReprojectionError2DAnalytic : public ReprojectionError,
  public:
   using ReprojectionError::ReprojectionError;
   constexpr static int Size = 2;
-  
+
   bool Evaluate(double const* const* parameters, double* residuals,
                 double** jacobians) const {
     const double* camera = parameters[0];
@@ -161,7 +161,7 @@ class ReprojectionError2DAnalytic : public ReprojectionError,
     else {
       constexpr int CameraSize = C;
       constexpr int PoseSize = 6;
-      
+
       double all_params[PoseSize + CameraSize];
       for (int i = 0; i < PoseSize; ++i) {
         all_params[i] = shot[i];
@@ -180,7 +180,7 @@ class ReprojectionError2DAnalytic : public ReprojectionError,
       if (jac_point) {
         for (int i = 0; i < Size; ++i) {
           for (int j = 0; j < PointSize; ++j) {
-            jac_point[i * PointSize + j] = 
+            jac_point[i * PointSize + j] =
                 scale_ * jacobian[i * StrideFull + j];
           }
         }
@@ -188,7 +188,7 @@ class ReprojectionError2DAnalytic : public ReprojectionError,
       if (jac_pose) {
         for (int i = 0; i < Size; ++i) {
           for (int j = 0; j < PoseSize; ++j) {
-            jac_pose[i * PoseSize + j] = 
+            jac_pose[i * PoseSize + j] =
                 scale_ * jacobian[i * StrideFull + PointSize + j];
           }
         }
@@ -196,7 +196,7 @@ class ReprojectionError2DAnalytic : public ReprojectionError,
       if (jac_camera) {
         for (int i = 0; i < Size; ++i) {
           for (int j = 0; j < CameraSize; ++j) {
-            jac_camera[i * CameraSize + j] = 
+            jac_camera[i * CameraSize + j] =
                 scale_ * jacobian[i * StrideFull + PointSize + PoseSize + j];
           }
         }
@@ -246,7 +246,7 @@ class ReprojectionError3D : public ReprojectionError {
 
 class ReprojectionError3DAnalytic
     : protected ReprojectionError3D,
-      public ceres::SizedCostFunction<2, 1, 6, 3> {
+      public ceres::SizedCostFunction<3, 1, 6, 3> {
  public:
   constexpr static int Size = 3;
   using ReprojectionError3D::ReprojectionError3D;
@@ -281,7 +281,7 @@ class ReprojectionError3DAnalytic
       if (jac_point) {
         for (int i = 0; i < Size; ++i) {
           for (int j = 0; j < PointSize; ++j) {
-            jac_point[i * PointSize + j] = 
+            jac_point[i * PointSize + j] =
                 scale_ * jacobian[i * StrideFull + j];
           }
         }
@@ -289,11 +289,11 @@ class ReprojectionError3DAnalytic
       if (jac_pose) {
         for (int i = 0; i < Size; ++i) {
           for (int j = 0; j < PoseSize; ++j) {
-            jac_pose[i * PoseSize + j] = 
+            jac_pose[i * PoseSize + j] =
                 scale_ * jacobian[i * StrideFull + PointSize + j];
           }
         }
-      }    
+      }
     }
 
     // The error is the difference between the predicted and observed position
