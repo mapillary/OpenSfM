@@ -92,7 +92,7 @@ def _add_gcp_to_bundle(ba, gcp, shots):
                     scale)
 
 
-def bundle(reconstruction, camera_priors, gcp, config):
+def bundle(tracks_manager, reconstruction, camera_priors, gcp, config):
     """Bundle adjust a reconstruction."""
     fix_cameras = not config['optimize_camera_parameters']
     use_analytic_derivatives = config['bundle_analytic_derivatives']
@@ -101,76 +101,83 @@ def bundle(reconstruction, camera_priors, gcp, config):
     ba = pybundle.BundleAdjuster()
     ba.set_use_analytic_derivatives(use_analytic_derivatives)
 
-    for camera in reconstruction.cameras.values():
-        camera_prior = camera_priors[camera.id]
-        ba.add_camera(camera.id, camera, camera_prior, fix_cameras)
+    srep = {}
+    with TrackSubsetForBundle(tracks_manager, reconstruction, config, srep) as subset:
 
-    for shot in reconstruction.shots.values():
-        r = shot.pose.rotation
-        t = shot.pose.translation
-        ba.add_shot(shot.id, shot.camera.id, r, t, False)
+        for camera in reconstruction.cameras.values():
+            camera_prior = camera_priors[camera.id]
+            ba.add_camera(camera.id, camera, camera_prior, fix_cameras)
 
-    for point in reconstruction.points.values():
-        ba.add_point(point.id, point.coordinates, False)
-
-    for shot_id in reconstruction.shots:
-        shot = reconstruction.get_shot(shot_id)
-        for point in shot.get_valid_landmarks():
-            obs = shot.get_landmark_observation(point)
-            ba.add_point_projection_observation(
-                shot.id, point.id, obs.point[0], obs.point[1], obs.scale)
-
-    if config['bundle_use_gps']:
         for shot in reconstruction.shots.values():
-            g = shot.metadata.gps_position.value
-            ba.add_position_prior(shot.id, g[0], g[1], g[2],
-                                  shot.metadata.gps_accuracy.value)
+            r = shot.pose.rotation
+            t = shot.pose.translation
+            ba.add_shot(shot.id, shot.camera.id, r, t, False)
 
-    if config['bundle_use_gcp'] and gcp:
-        _add_gcp_to_bundle(ba, gcp, reconstruction.shots)
+        for point_id in subset.selection():
+            ba.add_point(point_id, reconstruction.points[point_id].coordinates, False)
 
-    align_method = config['align_method']
-    if align_method == 'auto':
-        align_method = align.detect_alignment_constraints(config, reconstruction, gcp)
-    if align_method == 'orientation_prior':
-        if config['align_orientation_prior'] == 'vertical':
-            for shot_id in reconstruction.shots:
-                ba.add_absolute_up_vector(shot_id, [0, 0, -1], 1e-3)
-        if config['align_orientation_prior'] == 'horizontal':
-            for shot_id in reconstruction.shots:
-                ba.add_absolute_up_vector(shot_id, [0, -1, 0], 1e-3)
+        for shot_id in reconstruction.shots:
+            shot = reconstruction.get_shot(shot_id)
+            for point in shot.get_valid_landmarks():
+                if point.id not in subset.selection():
+                    continue
+                obs = shot.get_landmark_observation(point)
+                ba.add_point_projection_observation(
+                    shot.id, point.id, obs.point[0], obs.point[1], obs.scale)
 
-    ba.set_point_projection_loss_function(config['loss_function'],
-                                          config['loss_function_threshold'])
-    ba.set_internal_parameters_prior_sd(
-        config['exif_focal_sd'],
-        config['principal_point_sd'],
-        config['radial_distortion_k1_sd'],
-        config['radial_distortion_k2_sd'],
-        config['tangential_distortion_p1_sd'],
-        config['tangential_distortion_p2_sd'],
-        config['radial_distortion_k3_sd'],
-        config['radial_distortion_k4_sd'])
-    ba.set_num_threads(config['processes'])
-    ba.set_max_num_iterations(config['bundle_max_iterations'])
-    ba.set_linear_solver_type("SPARSE_SCHUR")
+        if config['bundle_use_gps']:
+            for shot in reconstruction.shots.values():
+                g = shot.metadata.gps_position.value
+                ba.add_position_prior(shot.id, g[0], g[1], g[2],
+                                    shot.metadata.gps_accuracy.value)
 
-    chrono.lap('setup')
-    ba.run()
-    chrono.lap('run')
+        if config['bundle_use_gcp'] and gcp:
+            _add_gcp_to_bundle(ba, gcp, reconstruction.shots)
 
-    for camera in reconstruction.cameras.values():
-        _get_camera_from_bundle(ba, camera)
+        align_method = config['align_method']
+        if align_method == 'auto':
+            align_method = align.detect_alignment_constraints(config, reconstruction, gcp)
+        if align_method == 'orientation_prior':
+            if config['align_orientation_prior'] == 'vertical':
+                for shot_id in reconstruction.shots:
+                    ba.add_absolute_up_vector(shot_id, [0, 0, -1], 1e-3)
+            if config['align_orientation_prior'] == 'horizontal':
+                for shot_id in reconstruction.shots:
+                    ba.add_absolute_up_vector(shot_id, [0, -1, 0], 1e-3)
 
-    for shot in reconstruction.shots.values():
-        s = ba.get_shot(shot.id)
-        shot.pose.rotation = [s.r[0], s.r[1], s.r[2]]
-        shot.pose.translation = [s.t[0], s.t[1], s.t[2]]
+        ba.set_point_projection_loss_function(config['loss_function'],
+                                            config['loss_function_threshold'])
+        ba.set_internal_parameters_prior_sd(
+            config['exif_focal_sd'],
+            config['principal_point_sd'],
+            config['radial_distortion_k1_sd'],
+            config['radial_distortion_k2_sd'],
+            config['tangential_distortion_p1_sd'],
+            config['tangential_distortion_p2_sd'],
+            config['radial_distortion_k3_sd'],
+            config['radial_distortion_k4_sd'])
+        ba.set_num_threads(config['processes'])
+        ba.set_max_num_iterations(config['bundle_max_iterations'])
+        ba.set_linear_solver_type("SPARSE_SCHUR")
 
-    for point in reconstruction.points.values():
-        p = ba.get_point(point.id)
-        point.coordinates = [p.p[0], p.p[1], p.p[2]]
-        point.reprojection_errors = p.reprojection_errors
+        chrono.lap('setup')
+        ba.run()
+        chrono.lap('run')
+
+        for camera in reconstruction.cameras.values():
+            _get_camera_from_bundle(ba, camera)
+
+        for shot in reconstruction.shots.values():
+            s = ba.get_shot(shot.id)
+            shot.pose.rotation = [s.r[0], s.r[1], s.r[2]]
+            shot.pose.translation = [s.t[0], s.t[1], s.t[2]]
+
+        for point in reconstruction.points.values():
+            if point.id not in subset.selection():
+                continue
+            p = ba.get_point(point.id)
+            point.coordinates = [p.p[0], p.p[1], p.p[2]]
+            point.reprojection_errors = p.reprojection_errors
 
     chrono.lap('teardown')
 
@@ -178,6 +185,7 @@ def bundle(reconstruction, camera_priors, gcp, config):
     report = {
         'wall_times': dict(chrono.lap_times()),
         'brief_report': ba.brief_report(),
+        'subset': srep,
     }
     return report
 
@@ -288,13 +296,13 @@ def bundle_local(reconstruction, camera_priors, gcp, central_shot_id, config):
             shot = reconstruction.shots[shot_id]
             g = shot.metadata.gps_position.value
             ba.add_position_prior(shot.id, g[0], g[1], g[2],
-                                  shot.metadata.gps_accuracy.value)
+                                shot.metadata.gps_accuracy.value)
 
     if config['bundle_use_gcp'] and gcp:
         _add_gcp_to_bundle(ba, gcp, reconstruction.shots)
 
     ba.set_point_projection_loss_function(config['loss_function'],
-                                          config['loss_function_threshold'])
+                                        config['loss_function_threshold'])
     ba.set_internal_parameters_prior_sd(
         config['exif_focal_sd'],
         config['principal_point_sd'],
@@ -895,32 +903,17 @@ class TrackTriangulator:
             e, X = pygeometry.triangulate_bearings_midpoint(
                 os, bs, thresholds, np.radians(min_ray_angle_degrees))
             if e:
+                X = pygeometry.point_refinement(os, bs, X, 100)
                 pt = self.reconstruction.create_point(track, X.tolist())
                 for shot_id in ids:
-                    self._add_track_to_reconstruction(track, shot_id)
-
-    def triangulate_dlt(self, track, reproj_threshold, min_ray_angle_degrees):
-        """Triangulate track using DLT and add point to reconstruction."""
-        Rts, bs, ids = [], [], []
-        for shot_id, obs in self.tracks_manager.get_track_observations(track).items():
-            if shot_id in self.reconstruction.shots:
-                shot = self.reconstruction.shots[shot_id]
-                Rts.append(self._shot_Rt(shot))
-                b = shot.camera.pixel_bearing(np.array(obs.point))
-                bs.append(b)
-                ids.append(shot_id)
-
-        if len(Rts) >= 2:
-            e, X = pygeometry.triangulate_bearings_dlt(
-                Rts, bs, reproj_threshold, np.radians(min_ray_angle_degrees))
-            if e:
-                self.reconstruction.create_point(track, X.tolist())
-                for shot_id in ids:
-                    self._add_track_to_reconstruction(track, shot_id)
+                    observed = self._add_track_to_reconstruction(track, shot_id).point
+                    # projected = self.reconstruction.shots[shot_id].camera.project(X)
+                    # pt.reprojection_errors[shot_id] = np.linalg.norm(observed-projected)
 
     def _add_track_to_reconstruction(self, track_id, shot_id):
         observation = self.tracks_manager.get_observation(shot_id, track_id)
         self.reconstruction.add_observation(shot_id, track_id, observation)
+        return observation
 
     def _shot_origin(self, shot):
         if shot.id in self.origins:
@@ -945,6 +938,89 @@ class TrackTriangulator:
             r = shot.pose.get_Rt()
             self.Rts[shot.id] = r
             return r
+
+
+class TrackSubsetForBundle:
+    """Returns a subset of tracks suitable for bundle adjust.
+
+    Re-triangulate non-selected ones on exit
+    """
+
+    def __init__(self, tracks_manager, reconstruction, config, report, shots=None, points=None):
+        """Build a subset selector for a specific reconstruction."""
+        self.tracks_manager = tracks_manager
+        self.reconstruction = reconstruction
+        self.selected = set()
+        self.unselected = set()
+        self.buckets = 20
+        self.config = config
+        self.report = report
+        if shots:
+            self.shots = shots
+        else:
+            self.shots = set(reconstruction.shots.keys())
+        if points:
+            self.points = points
+        else:
+            self.points = set(reconstruction.points.keys())
+
+    def selection(self):
+        return self.selected
+
+    def __enter__(self):
+        chrono = Chronometer()
+        for shot_id in self.shots:
+            selection_length = np.zeros((self.buckets**2))
+            selected_ids = np.full((self.buckets**2), -1, dtype=int)
+            shot = self.reconstruction.get_shot(shot_id)
+            width = shot.camera.width
+            height = shot.camera.height
+            normalizer = max(width, height)
+            for point in shot.get_valid_landmarks():
+                if point.id not in self.points:
+                    continue
+                bucket = (shot.get_landmark_observation(point).point*normalizer + [width/2.0, height/2.0])
+                bucket[0] /= width/self.buckets
+                bucket[1] /= height/self.buckets
+                x = max([0, min([int(bucket[0]), self.buckets-1])])
+                y = max([0, min([int(bucket[1]), self.buckets-1])])
+                bucket_id = y*self.buckets+x
+                length = point.number_of_observations()
+                if length > selection_length[bucket_id]:
+                    selection_length[bucket_id] = length
+                    selected_ids[bucket_id] = point.id
+            for point_id in selected_ids:
+                if point_id != -1:
+                    self.selected.add(str(point_id))
+
+        for point_id in self.points:
+            if point_id not in self.selected:
+                self.unselected.add(point_id)
+        chrono.lap('dummy')
+
+        logger.info("Subset selection : {} points ({} total)".format(
+            len(self.selected), len(list(self.reconstruction.points.keys()))))
+
+        self.report['selected'] = len(self.selected)
+        self.report['total'] = len(list(self.reconstruction.points.keys()))
+        self.report['selection_time'] = chrono.total_time()
+
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        threshold = self.config['triangulation_threshold']
+        min_ray_angle = self.config['triangulation_min_ray_angle']
+
+        chrono = Chronometer()
+        triangulator = TrackTriangulator(self.tracks_manager, self.reconstruction)
+        for track in self.unselected:
+            self.reconstruction.remove_point(track)
+            if self.config['triangulation_type'] == 'ROBUST':
+                triangulator.triangulate_robust(track, threshold, min_ray_angle)
+            elif self.config['triangulation_type'] == 'FULL':
+                triangulator.triangulate(track, threshold, min_ray_angle)
+        chrono.lap('dummy')
+        self.report['triangulation_time'] = chrono.total_time()
 
 
 def triangulate_shot_features(tracks_manager, reconstruction, shot_id, config):
@@ -1170,7 +1246,7 @@ def grow_reconstruction(data, tracks_manager, reconstruction, images, camera_pri
     report = {'steps': []}
 
     align_reconstruction(reconstruction, gcp, config)
-    bundle(reconstruction, camera_priors, None, config)
+    bundle(tracks_manager, reconstruction, camera_priors, None, config)
     remove_outliers(reconstruction, config)
 
     should_bundle = ShouldBundle(data, reconstruction)
@@ -1220,10 +1296,10 @@ def grow_reconstruction(data, tracks_manager, reconstruction, images, camera_pri
             if should_retriangulate.should():
                 logger.info("Re-triangulating")
                 align_reconstruction(reconstruction, gcp, config)
-                b1rep = bundle(reconstruction, camera_priors,
+                b1rep = bundle(tracks_manager, reconstruction, camera_priors,
                                None, config)
                 rrep = retriangulate(tracks_manager, reconstruction, config)
-                b2rep = bundle(reconstruction, camera_priors,
+                b2rep = bundle(tracks_manager, reconstruction, camera_priors,
                                None, config)
                 remove_outliers(reconstruction, config)
                 step['bundle'] = b1rep
@@ -1233,7 +1309,7 @@ def grow_reconstruction(data, tracks_manager, reconstruction, images, camera_pri
                 should_bundle.done()
             elif should_bundle.should():
                 align_reconstruction(reconstruction, gcp, config)
-                brep = bundle(reconstruction, camera_priors,
+                brep = bundle(tracks_manager, reconstruction, camera_priors,
                               None, config)
                 remove_outliers(reconstruction, config)
                 step['bundle'] = brep
@@ -1253,7 +1329,7 @@ def grow_reconstruction(data, tracks_manager, reconstruction, images, camera_pri
     logger.info("-------------------------------------------------------")
 
     align_reconstruction(reconstruction, gcp, config)
-    bundle(reconstruction, camera_priors, gcp, config)
+    bundle(tracks_manager, reconstruction, camera_priors, gcp, config)
     remove_outliers(reconstruction, config)
 
     paint_reconstruction(data, tracks_manager, reconstruction)
