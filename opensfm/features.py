@@ -93,7 +93,7 @@ def extract_features_sift(image, config):
                 edgeThreshold=sift_edge_threshold,
                 contrastThreshold=sift_peak_threshold)
         except AttributeError as ae:
-            if "no attribute 'xfeatures2d'" in ae.message:
+            if "no attribute 'xfeatures2d'" in str(ae):
                 logger.error('OpenCV Contrib modules are required to extract SIFT features')
             raise
         descriptor = detector
@@ -131,7 +131,7 @@ def extract_features_surf(image, config):
         try:
             detector = cv2.xfeatures2d.SURF_create()
         except AttributeError as ae:
-            if "no attribute 'xfeatures2d'" in ae.message:
+            if "no attribute 'xfeatures2d'" in str(ae):
                 logger.error('OpenCV Contrib modules are required to extract SURF features')
             raise
         descriptor = detector

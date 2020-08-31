@@ -1,3 +1,4 @@
+/* @lint-ignore-every TXT2 Tab Literal */
 /**
  * @author Eberhard Graether / http://egraether.com/
  * @author Mark Lundin 		 / http://mark-lundin.com
@@ -136,7 +137,7 @@ THREE.TrackballControls = function ( object, domElement ) {
 				} else {
 
 					mouseOnBall.z = .5 / length;
-					
+
 				}
 
 			} else if ( length > 1.0 ) {

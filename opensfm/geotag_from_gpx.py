@@ -7,7 +7,6 @@ import shutil
 import sys
 import time
 
-import gpxpy
 import numpy as np
 try:
     import pyexiv2
@@ -17,6 +16,11 @@ except ImportError as e:
     # so that py.test can load this module anyway.
     # TODO(pau): find an alternative package. Probably py3exiv2.
     print("ERROR: pyexiv2 module not available")
+
+try:
+    import gpxpy
+except ImportError as e:
+    print("ERROR: gpxpy module not available")
 
 from opensfm import geo
 
@@ -345,7 +349,7 @@ if __name__ == '__main__':
     else:
         # folder(s)
         file_list = []
-        for root, sub_folders, files in os.walk(path):
+        for root, _, files in os.walk(path):
             file_list += [os.path.join(root, filename) for filename in files if filename.lower().endswith(".jpg")]
 
     # start time

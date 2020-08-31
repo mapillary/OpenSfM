@@ -304,27 +304,27 @@ var GraphHelper = (function () {
 
 var LinearCurve = THREE.Curve.create(
 
-	function (points) {
+    function (points) {
 
-		this.points = (points == undefined) ? [] : points;
-	},
+        this.points = (points == undefined) ? [] : points;
+    },
 
-	function (t) {
+    function (t) {
 
-		var points = this.points;
-		var point = (points.length - 1) * t;
+        var points = this.points;
+        var point = (points.length - 1) * t;
 
-		var intPoint = Math.floor(point);
-		var weight = point - intPoint;
+        var intPoint = Math.floor(point);
+        var weight = point - intPoint;
 
-		var point1 = points[intPoint];
-		var point2 = points[intPoint > points.length - 2 ? points.length - 1 : intPoint + 1];
+        var point1 = points[intPoint];
+        var point2 = points[intPoint > points.length - 2 ? points.length - 1 : intPoint + 1];
 
-		var vector = new THREE.Vector3();
-		vector.copy(point1).lerp(point2, weight);
+        var vector = new THREE.Vector3();
+        vector.copy(point1).lerp(point2, weight);
 
-		return vector;
-	}
+        return vector;
+    }
 );
 
 var JourneyBase = (function () {

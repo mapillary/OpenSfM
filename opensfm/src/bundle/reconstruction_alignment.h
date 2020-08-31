@@ -159,7 +159,7 @@ struct RARelativeMotionError {
 
   template <typename T>
   bool operator()(const T* const reconstruction_a,
-  				  const T* const shot_i,
+                  const T* const shot_i,
                   T* residuals) const {
     T r[6];
 
@@ -624,5 +624,3 @@ class ReconstructionAlignment {
 
   ceres::Solver::Summary last_run_summary_;
 };
-
-

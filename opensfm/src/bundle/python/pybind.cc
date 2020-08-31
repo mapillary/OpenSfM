@@ -96,8 +96,8 @@ PYBIND11_MODULE(pybundle, m) {
   ;
 
   py::class_<BARelativeMotion>(m, "BARelativeMotion")
-    .def(py::init<const std::string &, const std::string &, 
-	        const std::string &, const std::string &, 
+    .def(py::init<const std::string &, const std::string &,
+          const std::string &, const std::string &,
           const Eigen::Vector3d &, const Eigen::Vector3d &,
           double>())
     .def_readwrite("reconstruction_i", &BARelativeMotion::reconstruction_id_i)
@@ -110,14 +110,14 @@ PYBIND11_MODULE(pybundle, m) {
   ;
 
   py::class_<BARelativeSimilarity>(m, "BARelativeSimilarity")
-    .def(py::init<const std::string &, const std::string &, 
-	        const std::string &, const std::string &, 
-	        const Eigen::Vector3d &, const Eigen::Vector3d &,
+    .def(py::init<const std::string &, const std::string &,
+          const std::string &, const std::string &,
+          const Eigen::Vector3d &, const Eigen::Vector3d &,
           double, double>())
     .def_readwrite("scale", &BARelativeSimilarity::scale)
     .def("set_scale_matrix", &BARelativeSimilarity::SetScaleMatrix)
   ;
-  
+
   py::class_<BARelativeSimilarityCovariance>(m, "BARelativeSimilarityCovariance")
     .def(py::init())
     .def("add_point", &BARelativeSimilarityCovariance::AddPoint)

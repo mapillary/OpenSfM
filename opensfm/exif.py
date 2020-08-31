@@ -115,7 +115,7 @@ def parse_xmp_string(xmp_str):
     for _ in range(2):
         try:
             return x2d.parse(xmp_str)
-        except:
+        except Exception:
             xmp_str = unescape_string(xmp_str)
     return None
 
@@ -557,7 +557,7 @@ def camera_from_exif_metadata(metadata, data,
     elif calib_pt in ['equirectangular', 'spherical']:
         camera = pygeometry.Camera.create_spherical()
     else:
-        raise ValueError("Unknown projection type: {}".format(pt))
+        raise ValueError("Unknown projection type: {}".format(calib_pt))
 
     camera.id = metadata['camera']
     camera.width = int(metadata['width'])

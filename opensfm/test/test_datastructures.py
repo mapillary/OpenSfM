@@ -9,8 +9,8 @@ from opensfm import types
 
 
 def _create_reconstruction(n_cameras=0,
-                           n_shots_cam={},
-                           n_pano_shots_cam={},
+                           n_shots_cam=None,
+                           n_pano_shots_cam=None,
                            n_points=0,
                            dist_to_shots=False,
                            dist_to_pano_shots=False):
@@ -31,6 +31,11 @@ def _create_reconstruction(n_cameras=0,
         if we have three shots the distribution could be
         something like: [1,2,2], [0,1,2]. We avoid things like [3,3,3]
         """
+    if n_shots_cam is None:
+        n_shots_cam = {}
+    if n_pano_shots_cam is None:
+        n_pano_shots_cam = {}
+
     rec = types.Reconstruction()
     if n_cameras > 0:
         for i in range(n_cameras):
@@ -350,7 +355,7 @@ def test_shot_create_existing():
 
     n_shots = 10
     # When re-adding the same shot
-    for i in range(n_shots):
+    for _ in range(n_shots):
         # It should throw
         with pytest.raises(RuntimeError):
             shot1 == rec.create_shot("shot0", "0")
@@ -463,7 +468,7 @@ def test_pano_shot_create_existing():
 
     n_shots = 10
     # When re-adding the same pano shot
-    for i in range(n_shots):
+    for _ in range(n_shots):
         # It should throw
         with pytest.raises(RuntimeError):
             rec.create_pano_shot("shot0", "0")

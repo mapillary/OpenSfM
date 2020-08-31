@@ -376,8 +376,7 @@ def fit_similarity_transform(p1, p2, max_iterations=1000, threshold=1):
     assert(p1.shape[0]==p2.shape[0])
 
     best_inliers = []
-    for i in range(max_iterations):
-
+    for _ in range(max_iterations):
         rnd = np.random.permutation(num_points)
         rnd = rnd[0:dim]
 

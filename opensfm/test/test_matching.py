@@ -64,7 +64,7 @@ def test_match_using_words():
     for i, j in matches:
         assert i == j
 
-        
+
 def test_unfilter_matches():
     matches = np.array([])
     m1 = np.array([], dtype=bool)

@@ -200,9 +200,9 @@ def generate_track_data(reconstruction, maximum_depth, noise):
     track_descriptors = {}
     for track_index in reconstruction.points:
         descriptor = np.zeros(desc_size)
-        for i in range(non_zeroes):
+        for _ in range(non_zeroes):
             index = np.random.randint(0, desc_size)
-            descriptor[index] = np.random.random()*255
+            descriptor[index] = np.random.random() * 255
         track_descriptors[track_index] = descriptor.round().\
             astype(feature_data_type)
 

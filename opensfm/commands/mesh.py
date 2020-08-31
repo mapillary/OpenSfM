@@ -22,7 +22,7 @@ class Command:
         reconstructions = data.load_reconstruction()
 
         all_shot_ids = set(tracks_manager.get_shot_ids())
-        for i, r in enumerate(reconstructions):
+        for r in reconstructions:
             for shot in r.shots.values():
                 if shot.id in all_shot_ids:
                     vertices, faces = mesh.triangle_mesh(
