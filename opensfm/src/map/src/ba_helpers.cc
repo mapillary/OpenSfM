@@ -54,22 +54,15 @@ std::unordered_set<map::Shot*> BAHelpers::DirectShotNeighbors(
       }
     }
   }
-  // std::unordered_set<map::Shot*> candidate_shots;
-  // for (auto& shot_p : map.GetAllShots()) {
-  //   auto* shot = &shot_p.second;
-  //   if (shot_ids.find(shot) == shot_ids.end()) {
-  //     candidate_shots.insert(shot);
-  //   }
-  // }
 
   std::unordered_map<map::Shot*, size_t> common_points;
   for (auto* pt : points) {
     for (const auto& neighbor_p : pt->GetObservations()) {
       auto* shot = neighbor_p.first;
-      // if (candidate_shots.find(shot) != candidate_shots.end())
-      // {
-      ++common_points[shot];
-      // }
+      if (shot_ids.find(shot) == shot_ids.end())
+      {
+        ++common_points[shot];
+      }
     }
   }
 
