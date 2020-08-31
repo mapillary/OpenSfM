@@ -166,7 +166,7 @@ PYBIND11_MODULE(pymap, m) {
            &map::Shot::InitAndTakeDatastructures)
       .def("init_keypts_and_descriptors", &map::Shot::InitKeyptsAndDescriptors)
       .def("set_pose", &map::Shot::SetPose)
-      .def("get_pose", 
+      .def("get_pose",
       (const geometry::Pose& (map::Shot::*) () const)  &map::Shot::GetPose,
            py::return_value_policy::reference_internal)
       .def("compute_median_depth", &map::Shot::ComputeMedianDepthOfLandmarks)
@@ -175,14 +175,11 @@ PYBIND11_MODULE(pymap, m) {
       .def("remove_observation", &map::Shot::RemoveLandmarkObservation)
       .def("get_camera_to_world", &map::Shot::GetCamToWorld)
       .def("get_world_to_camera", &map::Shot::GetWorldToCam)
-      // TODO: Move completely away from opencv
       .def("get_obs_by_idx", &map::Shot::GetKeyPointEigen)
       .def("get_camera_name", &map::Shot::GetCameraName)
       .def_property("metadata", &map::Shot::GetShotMeasurements,
                     &map::Shot::SetShotMeasurements,
                     py::return_value_policy::reference_internal)
-      // .def_readwrite("metadata", &map::Shot::shot_measurements_)
-      // .def_property("pose", &map::Shot::GetPose, &map::Shot::SetPose)
       .def_property("pose", (const geometry::Pose& (map::Shot::*) () const)  &map::Shot::GetPose, &map::Shot::SetPose)
       .def_property_readonly("camera", &map::Shot::GetCamera,
                              py::return_value_policy::reference_internal)
@@ -535,7 +532,7 @@ PYBIND11_MODULE(pymap, m) {
       .def("__getitem__", &map::CameraView::GetCamera,
            py::return_value_policy::reference_internal)
       .def("__contains__", &map::CameraView::HasCamera);
-  
+
   py::class_<BAHelpers>(m, "BAHelpers")
       .def("bundle", &BAHelpers::Bundle)
       .def("shot_neighborhood", &BAHelpers::ShotNeighborhood, py::return_value_policy::reference_internal)

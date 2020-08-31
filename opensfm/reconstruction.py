@@ -210,7 +210,6 @@ def direct_shot_neighbors(reconstruction, shot_ids,
                 common_points[neighbor] += 1
 
     pairs = sorted(common_points.items(), key=lambda x: -x[1])
-    print(pairs)
     neighbors = set()
     for neighbor, num_points in pairs[:max_neighbors]:
         if num_points >= min_common_points:
@@ -575,7 +574,7 @@ def resect(tracks_manager, reconstruction, shot_id,
         assert shot_id not in reconstruction.shots
         shot = reconstruction.create_shot(shot_id, camera.id, pygeometry.Pose(R, t))
         shot.metadata = metadata
-        
+
         for i, succeed in enumerate(inliers):
             if succeed:
                 add_observation_to_reconstruction(tracks_manager, reconstruction, shot_id, ids[i])
@@ -630,10 +629,7 @@ def resect_reconstruction(reconstruction1, reconstruction2, tracks_manager1,
 def add_observation_to_reconstruction(tracks_manager, reconstruction,
                                       shot_id, track_id):
     observation = tracks_manager.get_observation(shot_id, track_id)
-    n_bef = reconstruction.shots[shot_id].compute_num_valid_pts()
     reconstruction.add_observation(shot_id, track_id, observation)
-    n_aft = reconstruction.shots[shot_id].compute_num_valid_pts()
-    assert n_bef+1 == n_aft
 
 
 class TrackTriangulator:

@@ -54,21 +54,22 @@ std::unordered_set<map::Shot*> BAHelpers::DirectShotNeighbors(
       }
     }
   }
-  std::unordered_set<map::Shot*> candidate_shots;
-  for (auto& shot_p : map.GetAllShots()) {
-    auto* shot = &shot_p.second;
-    if (shot_ids.find(shot) == shot_ids.end()) {
-      candidate_shots.insert(shot);
-    }
-  }
+  // std::unordered_set<map::Shot*> candidate_shots;
+  // for (auto& shot_p : map.GetAllShots()) {
+  //   auto* shot = &shot_p.second;
+  //   if (shot_ids.find(shot) == shot_ids.end()) {
+  //     candidate_shots.insert(shot);
+  //   }
+  // }
 
   std::unordered_map<map::Shot*, size_t> common_points;
   for (auto* pt : points) {
     for (const auto& neighbor_p : pt->GetObservations()) {
       auto* shot = neighbor_p.first;
-      if (candidate_shots.find(shot) != candidate_shots.end()) {
-        ++common_points[shot];
-      }
+      // if (candidate_shots.find(shot) != candidate_shots.end())
+      // {
+      ++common_points[shot];
+      // }
     }
   }
 
@@ -360,8 +361,6 @@ py::dict BAHelpers::Bundle(
     ba.AddPoint(pt.id_, pt.GetGlobalPos(), false);
   }
 
-  // Alignemnt method
-  // TODO: Alignment method, auto and vertical
   auto align_method = config["align_method"].cast<std::string>();
   if (align_method.compare("auto") == 0) {
     align_method = DetectAlignmentConstraints(map, config, gcp);
@@ -517,27 +516,10 @@ void BAHelpers::AlignmentConstraints(
   }
 }
 
-// void BAHelpers::ComputeXXp(const MatX3d& X) {
-//   const Vec3d X_mean = X.colwise().mean();
-//   const MatX3d X_zero = X.rowwise() - X_mean.transpose();
-//   const Mat3d input = X_zero.transpose() * X_zero;
-//   Eigen::SelfAdjointEigenSolver<Mat3d> ses(input, false);
-//   std::cout << "X_mean: " << X_mean << " X_zero: " << X_zero
-//             << "," << ses.eigenvalues()
-//             << std::endl;
-//   const Vec3d evals = ses.eigenvalues();
-//   const auto ratio_1st_2nd = std::abs(evals[2] / evals[1]);
-//   constexpr double epsilon_abs = 1e-10;
-//   constexpr double epsilon_ratio = 5e3;
-//   const uint8_t cond1 = (evals[0] < epsilon_abs) + (evals[1] < epsilon_abs) + (evals[2] < epsilon_abs);
-//   const bool is_inline = cond1 > 1 || ratio_1st_2nd > epsilon_ratio;
-//   std::cout << "cond1: " << cond1 << ", " << is_inline << ", " << ratio_1st_2nd << std::endl;
-// }
-
 std::string BAHelpers::DetectAlignmentConstraints(
     const map::Map& map, const py::dict& config,
     const AlignedVector<map::GroundControlPoint>& gcp) {
-  
+
   MatX3d X, Xp;
   AlignmentConstraints(map, config, gcp, Xp, X);
   if (X.rows() < 3)
