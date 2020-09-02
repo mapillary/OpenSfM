@@ -4,8 +4,9 @@ from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import matplotlib.patches as mpatches
-from mytk import tk
-from mytk import filedialog
+import tkinter as tk
+from tkinter import filedialog
+import time
 import matplotlib
 import os
 
@@ -100,11 +101,14 @@ class Gui:
 
     def set_title(self, idx):
         shot = self.curr_images[idx]
+        seq = self.database.seqs[idx]
+        seq_ix = seq.index(shot)
+
         if shot in self.shot_std:
             shot_std_rank, shot_std = self.shot_std[shot]
-            title = "{}\n#{} (std = {:.2f})".format(shot, shot_std_rank, shot_std)
+            title = "[{}/{}]: {}\n#{} (std = {:.2f})".format(seq_ix+1, len(seq), shot, shot_std_rank, shot_std)
         else:
-            title = "{}\n - ".format(shot)
+            title = "[{}/{}]: {}\n - ".format(seq_ix+1, len(seq), shot)
         self.subplots[idx].set_title(title)
 
     def init_image_pair_frames(self, master):
@@ -335,9 +339,12 @@ class Gui:
 
         x2, y2 = self.database.gcp_reprojections[point_id][shot]['reprojection']
         self.subplots[image_idx].plot([x, x2], [y, y2], 'r-')
-        self.canvases[image_idx].draw()
+        self.canvases[image_idx].draw_idle()
 
     def go_to_worst_gcp(self):
+        if len(self.database.gcp_reprojections) == 0:
+            print("No GCP reprojections available. Can't jump to worst GCP")
+            return
         worst_gcp, shot_worst_gcp, worst_gcp_error = self.database.get_worst_gcp()
         idx_worst_gcp = 0 if shot_worst_gcp in self.database.seqs[0] else 1
         print("Worst GCP observation: {} in shot {}".format(worst_gcp, shot_worst_gcp))
@@ -355,6 +362,7 @@ class Gui:
         self.highlight_gcp_reprojection(idx_worst_gcp, shot_worst_gcp, worst_gcp)
 
     def bring_new_image(self, new_image, image_idx):
+        t0 = time.time()
         self.curr_images[image_idx] = new_image
         self.subplots[image_idx].clear()
         self.subplots[image_idx].imshow(self.database.get_image(self.curr_images[image_idx]))
@@ -368,11 +376,4 @@ class Gui:
             self.display_points(idx, image)
             if self.if_show_epipolar.get():
                 self.show_epipolar_lines(idx)
-
-        self.canvases[image_idx].draw()
-
-    def print_all(self):
-        for image1 in self.database.get_seqs()[0]:
-            for image2 in self.database.get_seqs()[1]:
-                print(image1, image2)
-                print(self.database.get_visible_points_coords(image1))
+        print("Took {:.2f}s to bring_new_image {}".format(time.time()-t0, new_image))

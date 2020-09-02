@@ -6,6 +6,7 @@ from __future__ import unicode_literals
 
 from PIL import Image
 from tqdm import tqdm
+import time
 
 from opensfm import features
 import numpy as np

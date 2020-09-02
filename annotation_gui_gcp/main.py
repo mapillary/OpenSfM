@@ -5,7 +5,9 @@ from __future__ import unicode_literals
 
 from GUI import Gui
 from Database import Database
-from mytk import tk
+
+import tkinter as tk
+
 from pathlib import Path
 from imageSugestion import get_most_common_seqs, load_from_pair_list, get_all_images
 from opensfm import dataset
@@ -38,7 +40,6 @@ def parse_args():
 if __name__ == '__main__':
     args = parse_args()
     path = args.dataset
-    selected_pairs_path = args.selected_pairs_path
     if args.select_most_common_seqs:
         seqs = get_most_common_seqs(path)
     elif selected_pairs_path:
