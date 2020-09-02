@@ -18,6 +18,7 @@ from opensfm import tracking
 from opensfm import multiview
 from opensfm import types
 from opensfm import pysfm
+from opensfm import stats
 from opensfm.align import align_reconstruction, apply_similarity
 from opensfm.context import parallel_map, current_memory_usage
 from opensfm import pymap
@@ -1084,33 +1085,6 @@ def grow_reconstruction(data, tracks_manager, reconstruction, images, camera_pri
     return reconstruction, report
 
 
-def _length_histogram(points):
-    hist = defaultdict(int)
-    for point in points.values():
-        hist[point.number_of_observations()] += 1
-    return np.array(list(hist.keys())), np.array(list(hist.values()))
-
-
-def compute_statistics(reconstruction):
-    stats = {}
-    stats['points_count'] = len(reconstruction.points)
-    stats['cameras_count'] = len(reconstruction.shots)
-
-    hist, values = _length_histogram(reconstruction.points)
-    stats['observations_count'] = int(sum(hist * values))
-    if len(reconstruction.points) > 0:
-        stats['average_track_length'] = float(stats['observations_count'])/len(reconstruction.points)
-    else:
-        stats['average_track_length'] = -1
-    tracks_notwo = sum([1 if p.number_of_observations() > 2 else 0 for p in reconstruction.points.values()])
-
-    if tracks_notwo > 0:
-        stats['average_track_length_notwo'] = float(sum(hist[1:]*values[1:]))/tracks_notwo
-    else:
-        stats['average_track_length_notwo'] = -1
-    return stats
-
-
 def incremental_reconstruction(data, tracks_manager):
     """Run the entire incremental reconstruction pipeline."""
     logger.info("Starting incremental reconstruction")
@@ -1147,8 +1121,7 @@ def incremental_reconstruction(data, tracks_manager):
                 reconstructions.append(reconstruction)
                 reconstructions = sorted(reconstructions,
                                          key=lambda x: -len(x.shots))
-                rec_report['stats'] = compute_statistics(reconstruction)
-                logger.info(rec_report['stats'])
+                logger.info(stats.compute_overall_statistics(reconstruction))
 
     for k, r in enumerate(reconstructions):
         logger.info("Reconstruction {}: {} images, {} points".format(

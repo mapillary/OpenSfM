@@ -14,6 +14,7 @@ from . import export_pmvs
 from . import export_bundler
 from . import export_colmap
 from . import export_geocoords
+from . import export_statistics
 from . import create_submodels
 from . import align_submodels
 
@@ -39,6 +40,7 @@ opensfm_commands = [
     export_bundler,
     export_colmap,
     export_geocoords,
+    export_statistics,
     create_submodels,
     align_submodels,
 ]
