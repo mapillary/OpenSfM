@@ -1,8 +1,3 @@
-from __future__ import print_function
-from __future__ import division
-from __future__ import absolute_import
-from __future__ import unicode_literals
-
 import matplotlib.patches as mpatches
 import tkinter as tk
 from tkinter import filedialog
@@ -35,16 +30,17 @@ class NavigationToolbar(NavigationToolbar2Tk):
 
 class Gui:
 
-    def __init__(self, master, database):
+    def __init__(self, master, database, n_views, sequence_groups=[]):
         self.database = database
         self.point_idx = 0
         self.match_idx = 0
         self.curr_point = None
         self.last_saved_filename = None
         self.shot_std = {}
+        self.sequence_groups = sequence_groups
 
         master.bind('q', lambda event: self.go_to_worst_gcp())
-        self.create_ui(master, n_views=5)
+        self.create_ui(master, n_views=n_views)
 
         p_default_gcp = self.database.get_path() + '/ground_control_points.json'
         if os.path.exists(p_default_gcp):
@@ -101,9 +97,9 @@ class Gui:
             artist.set_visible(False)
             del artist
 
-    def set_title(self, idx):
-        shot = self.views[idx].current_image
-        seq = self.database.seqs[idx]
+    def set_title(self, view):
+        shot = view.current_image
+        seq = self.database.seqs[view.current_sequence]
         seq_ix = seq.index(shot)
 
         if shot in self.shot_std:
@@ -111,7 +107,7 @@ class Gui:
             title = "[{}/{}]: {} - #{} (std = {:.2f})".format(seq_ix+1, len(seq), shot, shot_std_rank, shot_std)
         else:
             title = "[{}/{}]: {}".format(seq_ix+1, len(seq), shot)
-        self.views[idx].title(title)
+        view.title(title)
 
 
     def init_image_windows(self, nav_buttons=False):
@@ -123,15 +119,17 @@ class Gui:
                 button_frame = tk.Frame(nth_viewer_frame)
                 button_frame.pack(side='top')
                 prv_btn = tk.Button(button_frame, text=PREVIOUS_UNICODE,
-                                    command=lambda _idx=idx: self.go_to_previous_image(_idx))
+                                    command=lambda _idx=idx: self.go_to_prev_image(self.views[_idx]))
                 prv_btn.pack(side='left')
                 nxt_btn = tk.Button(button_frame, text=NEXT_UNICODE,
-                                    command=lambda _idx=idx: self.go_to_next_image(_idx))
+                                    command=lambda _idx=idx: self.go_to_next_image(self.views[_idx]))
                 nxt_btn.pack(side='left')
+
+            window.current_sequence = list(self.database.seqs.keys())[idx]
+            window.current_image = self.database.seqs[window.current_sequence][0]
 
             window.figure = Figure()
             window.subplot = window.figure.add_subplot(111)
-            window.current_image = self.database.get_seqs()[idx][0]  # in init, init the first pair = pairs[0] # TODO update
             window.subplot.imshow(self.database.get_image(window.current_image), aspect='auto')
             window.subplot.axis('scaled')
             window.figure.set_tight_layout(True)
@@ -149,7 +147,7 @@ class Gui:
 
             window.zoomed_in = False
             window.plt_artists = []
-            self.set_title(idx)
+            self.set_title(window)
 
     def load_shot_std(self, path):
         with open(path, 'r') as f:
@@ -214,9 +212,9 @@ class Gui:
         if event.xdata is None or event.ydata is None:
             return
         if event.button == 'up':
-            self.go_to_next_image(idx)
+            self.go_to_next_image(self.views[idx])
         elif event.button == 'down':
-            self.go_to_previous_image(idx)
+            self.go_to_prev_image(self.views[idx])
 
     def zoom_in(self, view, x, y):
         xlim = view.subplot.get_xlim()
@@ -324,17 +322,24 @@ class Gui:
             color_idx = color_idx + 1
         self.views[not main_image_idx].figure.canvas.draw_idle()
 
-    def go_to_next_image(self, image_idx):
-        current_image = self.views[image_idx].current_image
-        new_image = self.database.bring_next_image(current_image, image_idx)
-        if current_image != new_image:
-            self.bring_new_image(new_image, image_idx)
+    def go_to_adjacent_image(self, view, offset):
+        views_to_update = set([view])
+        target_ix = self.database.get_image_index(view.current_image, view.current_sequence) + offset
 
-    def go_to_previous_image(self, image_idx):
-        current_image = self.views[image_idx].current_image
-        new_image = self.database.bring_previous_image(current_image, image_idx)
-        if current_image != new_image:
-            self.bring_new_image(new_image, image_idx)
+        for v in self.views:
+            for group in self.sequence_groups:
+                if view.current_sequence in group:
+                    views_to_update.add(v)
+
+        for v in views_to_update:
+            new_image = self.database.bring_image(v.current_sequence, target_ix)
+            self.bring_new_image(new_image, v)
+
+    def go_to_next_image(self, view):
+        self.go_to_adjacent_image(view, +1)
+
+    def go_to_prev_image(self, view):
+        self.go_to_adjacent_image(view, -1)
 
     def highlight_gcp_reprojection(self, image_idx, shot, point_id):
         x, y = 0,0
@@ -351,7 +356,9 @@ class Gui:
             print("No GCP reprojections available. Can't jump to worst GCP")
             return
         worst_gcp, shot_worst_gcp, worst_gcp_error = self.database.get_worst_gcp()
-        idx_worst_gcp = 0 if shot_worst_gcp in self.database.seqs[0] else 1
+        for i, sequence_images in enumerate(self.database.seqs.values()):
+            if shot_worst_gcp in sequence_images:
+                idx_worst_gcp = i
         print("Worst GCP observation: {} in shot {}".format(worst_gcp, shot_worst_gcp))
 
         self.curr_point = worst_gcp
@@ -361,19 +368,18 @@ class Gui:
                 self.gcp_list_box.selection_set(ix)
                 break
 
-        if self.views[idx_worst_gcp].current_image != shot_worst_gcp:
-            self.bring_new_image(shot_worst_gcp, idx_worst_gcp)
-
+        self.bring_new_image(shot_worst_gcp, self.views[idx_worst_gcp])
         self.highlight_gcp_reprojection(idx_worst_gcp, shot_worst_gcp, worst_gcp)
 
-    def bring_new_image(self, new_image, image_idx):
+    def bring_new_image(self, new_image, view):
+        if new_image == view.current_image:
+            return
         t0 = time.time()
-        view = self.views[image_idx]
         view.current_image = new_image
         view.subplot.clear()
         view.subplot.imshow(self.database.get_image(new_image))
         view.subplot.axis('off')
-        self.set_title(image_idx)
+        self.set_title(view)
         view.zoomed_in = False
         view.subplot.axis('scaled')
         view.figure.set_tight_layout(True)

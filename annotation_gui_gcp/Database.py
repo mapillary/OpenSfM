@@ -1,9 +1,4 @@
 
-from __future__ import print_function
-from __future__ import division
-from __future__ import absolute_import
-from __future__ import unicode_literals
-
 from PIL import Image
 import time
 
@@ -16,17 +11,17 @@ from matplotlib.image import _rgb_to_rgba
 
 
 class Database:
-    def __init__(self, _seqs, path, preload_images=True):
+    def __init__(self, seqs, path, preload_images=True):
         self.points = OrderedDict()
+        self.seqs = seqs
         self.path = path
-        self.seqs = _seqs
         self.image_cache = {}
 
         if preload_images:
-            images = set(self.seqs[0] + self.seqs[1])
-            print(f"Preloading {len(images)} images")
-            for image in images:
-                self.get_image(image)
+            print("Preloading images")
+            for keys in self.seqs.values():
+                for k in keys:
+                    self.get_image(k)
 
         p_gcp_errors = self.get_path() + '/gcp_reprojections.json'
         if os.path.exists(p_gcp_errors):
@@ -53,9 +48,6 @@ class Database:
 
     def get_path(self):
         return self.path
-
-    def get_seqs(self):
-        return self.seqs
 
     def init_points(self, points):
         for point in points:
@@ -93,7 +85,6 @@ class Database:
         for point_id, observations in self.points.items():
             pair_images = [obs["shot_id"] for obs in observations]
             for observation in observations:
-                # if observation["shot_id"] == main_image and pair_image in pair_images or len(pair_images) == 1:
                 if observation["shot_id"] == main_image:
                     visible_points_coords[point_id] = observation["projection"]
 
@@ -164,12 +155,15 @@ class Database:
             if shot_id in self.gcp_reprojections[point_id]:
                 self.gcp_reprojections[point_id][shot_id]['error'] = 0
 
-    def bring_next_image(self, image, image_idx):
-        seq = self.seqs[image_idx]
-        next_idx = seq.index(image) + 1
-        return seq[min(next_idx, len(seq) - 1)]
+    def bring_adjacent_image(self, image, skey, offset):
+        self.get_image_index(image, skey)
+        next_idx = self.get_image_index + offset
+        return self.bring_image(skey, next_idx)
 
-    def bring_previous_image(self, image, image_idx):
-        seq = self.seqs[image_idx]
-        previous_idx = seq.index(image) - 1
-        return seq[max(previous_idx, 0)]
+    def get_image_index(self, image, skey):
+        seq = self.seqs[skey]
+        return seq.index(image)
+
+    def bring_image(self, skey, idx):
+        seq = self.seqs[skey]
+        return seq[max(0, min(idx, len(seq) - 1))]
