@@ -5,7 +5,6 @@ from __future__ import absolute_import
 from __future__ import unicode_literals
 
 from PIL import Image
-from tqdm import tqdm
 import time
 
 from opensfm import features
@@ -24,9 +23,9 @@ class Database:
         self.image_cache = {}
 
         if preload_images:
-            print("Preloading images")
             images = set(self.seqs[0] + self.seqs[1])
-            for image in tqdm(images):
+            print(f"Preloading {len(images)} images")
+            for image in images:
                 self.get_image(image)
 
         p_gcp_errors = self.get_path() + '/gcp_reprojections.json'

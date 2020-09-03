@@ -39,32 +39,34 @@ class Gui:
         self.database = database
         self.point_idx = 0
         self.match_idx = 0
-        self.curr_images = [None, None]
         self.curr_point = None
-        self.plt_artists = [[], []]
-        self.figures = []
-        self.subplots = []
-        self.canvases = []
-        self.filename = None
+        self.last_saved_filename = None
         self.shot_std = {}
+
+        master.bind('q', lambda event: self.go_to_worst_gcp())
+        self.create_ui(master, n_views=5)
+
+        p_default_gcp = self.database.get_path() + '/ground_control_points.json'
+        if os.path.exists(p_default_gcp):
+            self.load_gcps(p_default_gcp)
         p_shot_std = self.database.get_path() + '/shots_std.csv'
         if os.path.exists(p_shot_std):
             self.load_shot_std(p_shot_std)
 
-        master.bind('q', lambda event: self.go_to_worst_gcp())
-        self.create_ui(master)
+    def create_ui(self, master, n_views):
+        self.master = master
 
-    def create_ui(self, master):
         tools_frame = tk.Frame(master)
         tools_frame.pack(side='left', expand=0, fill=tk.Y)
         self.create_tools(tools_frame)
 
-        viewer_frame = tk.Frame(master)
-        viewer_frame.pack(side='right', fill=tk.BOTH, expand=1)
-        self.init_image_pair_frames(viewer_frame)
-        p_default_gcp = self.database.get_path() + '/ground_control_points.json'
-        if os.path.exists(p_default_gcp):
-            self.load_gcps(p_default_gcp)
+        self.views = []
+        for view_ix in range(n_views):
+            new_window = tk.Toplevel(self.master)
+            new_window.title(f"View {view_ix+1}")
+            self.views.append(new_window)
+
+        self.init_image_windows()
 
     def create_tools(self, master):
         gcp_list_frame = tk.Frame(master)
@@ -94,59 +96,60 @@ class Gui:
         self.save_button = tk.Button(io_frame, text="Save As", command=self.save_gcps_as)
         self.save_button.pack(side='top')
 
-    def clear_images(self, idx):
-        for artist in self.plt_artists[idx]:
+    def clear_artists(self, view):
+        for artist in view.plt_artists:
             artist.set_visible(False)
             del artist
 
     def set_title(self, idx):
-        shot = self.curr_images[idx]
+        shot = self.views[idx].current_image
         seq = self.database.seqs[idx]
         seq_ix = seq.index(shot)
 
         if shot in self.shot_std:
             shot_std_rank, shot_std = self.shot_std[shot]
-            title = "[{}/{}]: {}\n#{} (std = {:.2f})".format(seq_ix+1, len(seq), shot, shot_std_rank, shot_std)
+            title = "[{}/{}]: {} - #{} (std = {:.2f})".format(seq_ix+1, len(seq), shot, shot_std_rank, shot_std)
         else:
-            title = "[{}/{}]: {}\n - ".format(seq_ix+1, len(seq), shot)
-        self.subplots[idx].set_title(title)
+            title = "[{}/{}]: {}".format(seq_ix+1, len(seq), shot)
+        self.views[idx].title(title)
 
-    def init_image_pair_frames(self, master):
-        for idx in range(2):
-            nth_viewer_frame = tk.Frame(master)
+
+    def init_image_windows(self, nav_buttons=False):
+        for idx, window in enumerate(self.views):
+            nth_viewer_frame = tk.Frame(window)
             nth_viewer_frame.pack(side='left', fill=tk.BOTH, expand=1)
 
-            button_frame = tk.Frame(nth_viewer_frame)
-            button_frame.pack(side='top')
-            prv_btn = tk.Button(button_frame, text=PREVIOUS_UNICODE,
-                                command=lambda _idx=idx: self.go_to_previous_image(_idx))
-            prv_btn.pack(side='left')
-            nxt_btn = tk.Button(button_frame, text=NEXT_UNICODE,
-                                command=lambda _idx=idx: self.go_to_next_image(_idx))
-            nxt_btn.pack(side='left')
+            if nav_buttons:
+                button_frame = tk.Frame(nth_viewer_frame)
+                button_frame.pack(side='top')
+                prv_btn = tk.Button(button_frame, text=PREVIOUS_UNICODE,
+                                    command=lambda _idx=idx: self.go_to_previous_image(_idx))
+                prv_btn.pack(side='left')
+                nxt_btn = tk.Button(button_frame, text=NEXT_UNICODE,
+                                    command=lambda _idx=idx: self.go_to_next_image(_idx))
+                nxt_btn.pack(side='left')
 
-            figure = Figure()
-            self.figures.append(figure)
-            subplot = self.figures[idx].add_subplot(111)
-            self.subplots.append(subplot)
-            self.curr_images[idx] = self.database.get_seqs()[idx][0]  # in init, init the first pair = pairs[0]
-            self.subplots[idx].imshow(self.database.get_image(self.curr_images[idx]), aspect='auto')
+            window.figure = Figure()
+            window.subplot = window.figure.add_subplot(111)
+            window.current_image = self.database.get_seqs()[idx][0]  # in init, init the first pair = pairs[0] # TODO update
+            window.subplot.imshow(self.database.get_image(window.current_image), aspect='auto')
+            window.subplot.axis('scaled')
+            window.figure.set_tight_layout(True)
+            window.subplot.axis('off')
+
+            window.canvas = FigureCanvasTkAgg(window.figure, nth_viewer_frame)
+            window.canvas.draw()
+            window.canvas.get_tk_widget().pack(side='top', fill=tk.BOTH, expand=1)
+            window.canvas.mpl_connect('button_press_event',
+                                       lambda event:
+                                       self.on_press(event))
+            window.canvas.mpl_connect('scroll_event',
+                                       lambda event:
+                                       self.on_scroll(event))
+
+            window.zoomed_in = False
+            window.plt_artists = []
             self.set_title(idx)
-            self.subplots[idx].axis('scaled')
-            self.figures[idx].set_tight_layout(True)
-            self.subplots[idx].axis('off')
-            conv = FigureCanvasTkAgg(self.figures[idx], nth_viewer_frame)
-            self.canvases.append(conv)
-            self.canvases[idx].draw()
-            self.canvases[idx].get_tk_widget().pack(side='top', fill=tk.BOTH, expand=1)
-            self.canvases[idx].mpl_connect('button_press_event',
-                                           lambda event:
-                                           self.on_press_fig_modify(event))
-            self.canvases[idx].mpl_connect('scroll_event',
-                                           lambda event:
-                                           self.on_scroll(event))
-
-            self.zoomed_in = [False, False]
 
     def load_shot_std(self, path):
         with open(path, 'r') as f:
@@ -164,21 +167,17 @@ class Gui:
         if filename is None:
             return
         points = read_gcp_file(filename)
-        self.filename = filename
+        self.last_saved_filename = filename
         self.database.init_points(points)
-        for image_idx, image in enumerate(self.curr_images):
-            self.display_points(image_idx, image)
+        for view_ix, view in enumerate(self.views):
+            self.display_points(view)
             if self.if_show_epipolar.get():
-                self.show_epipolar_lines(image_idx)
+                self.show_epipolar_lines(view_ix)
         self.repopulate_modify_list()
-        # for idx in range(2):
-        #    for point_id in self.database.get_visible_points_coords(self.curr_images[idx]).keys():
-        #        if point_id not in self.gcp_list_box:
-        #            self.gcp_list_box.insert(tk.END, point_id)
 
-    def display_points(self, image_idx, image):
-        visible_points_coords = self.database.get_visible_points_coords(image)
-        self.clear_images(image_idx)
+    def display_points(self, view):
+        visible_points_coords = self.database.get_visible_points_coords(view.current_image)
+        self.clear_artists(view)
 
         for point_id, coords in visible_points_coords.items():
             color = distinct_colors[divmod(hash(point_id), 19)[1]]
@@ -189,12 +188,12 @@ class Gui:
             ab = AnnotationBbox(offsetbox2, ((coords[0] + 30), (coords[1] + 30)), bboxprops=dict(alpha=0.05))
             circle = mpatches.Circle((coords[0], coords[1]), 20, color=color, fill=False)
 
-            self.plt_artists[image_idx].append(ab)
-            self.plt_artists[image_idx].append(circle)
+            view.plt_artists.append(ab)
+            view.plt_artists.append(circle)
 
-            self.subplots[image_idx].add_artist(ab)
-            self.subplots[image_idx].add_artist(circle)
-        self.figures[image_idx].canvas.draw_idle()
+            view.subplot.add_artist(ab)
+            view.subplot.add_artist(circle)
+        view.figure.canvas.draw()
 
     def add_gcp(self):
         new_id = id_generator()
@@ -205,13 +204,10 @@ class Gui:
         self.gcp_list_box.selection_set(tk.END)
 
     def which_canvas(self, event):
-        if event.canvas == self.canvases[0]:
-            idx = 0
-        elif event.canvas == self.canvases[1]:
-            idx = 1
-        else:
-            idx = None
-        return idx
+        for ix, view in enumerate(self.views):
+            if event.canvas == view.canvas:
+                return ix
+        return None
 
     def on_scroll(self, event):
         idx = self.which_canvas(event)
@@ -222,39 +218,41 @@ class Gui:
         elif event.button == 'down':
             self.go_to_previous_image(idx)
 
-    def zoom_in(self, image_idx, x, y):
-        xlim = self.subplots[image_idx].get_xlim()
+    def zoom_in(self, view, x, y):
+        xlim = view.subplot.get_xlim()
         width = max(xlim) - min(xlim)
-        self.subplots[image_idx].set_xlim(x - width / 20, x + width / 20)
-        self.subplots[image_idx].set_ylim(y + width / 20, y - width / 20)
-        self.zoomed_in[image_idx] = True
+        view.subplot.set_xlim(x - width / 20, x + width / 20)
+        view.subplot.set_ylim(y + width / 20, y - width / 20)
+        view.zoomed_in = True
 
-    def zoom_out(self, image_idx):
-        self.subplots[image_idx].autoscale()
-        self.zoomed_in[image_idx] = False
+    def zoom_out(self, view):
+        view.subplot.autoscale()
+        view.zoomed_in = False
 
-    def on_press_fig_modify(self, event):
+    def on_press(self, event):
         idx = self.which_canvas(event)
+        view = self.views[idx]
         x, y = event.xdata, event.ydata
+        current_image = view.current_image
         if None in (x, y):
             return
         if event.button == 2:  # Middle / wheel click:
-            if self.zoomed_in[idx]:
-                self.zoom_out(idx)
+            if view.zoomed_in:
+                self.zoom_out(view)
             else:
-                self.zoom_in(idx, x, y)
-            self.figures[idx].canvas.draw_idle()
+                self.zoom_in(view, x, y)
+            view.figure.canvas.draw_idle()
         elif self.curr_point is not None and event.button in (1, 3):
             if not self.curr_point:
                 return
-            self.database.remove_point_observation(self.curr_point, self.curr_images[idx])
+            self.database.remove_point_observation(self.curr_point, current_image)
 
-            for l in self.subplots[idx].lines:
-                l.remove()
+            for line in self.views[idx].subplot.lines:
+                line.remove()
             if event.button == 1: # Left click
-                self.database.add_point_observation(self.curr_point, self.curr_images[idx], (x, y))
+                self.database.add_point_observation(self.curr_point, current_image, (x, y))
 
-            self.display_points(idx, self.curr_images[idx])
+            self.display_points(view)
             if self.if_show_epipolar.get():
                 self.show_epipolar_lines(idx)
         else:
@@ -272,8 +270,8 @@ class Gui:
         self.curr_point = None
 
         self.database.remove_gcp(to_be_removed_point)
-        for image_idx, image in enumerate(self.curr_images):
-            self.display_points(image_idx, image)
+        for image_idx, view in enumerate(self.views):
+            self.display_points(view)
             if self.if_show_epipolar.get():
                 self.show_epipolar_lines(image_idx)
 
@@ -285,10 +283,10 @@ class Gui:
         self.curr_point = value
 
     def save_gcps(self):
-        if self.filename is None:
+        if self.last_saved_filename is None:
             return self.save_gcps_as()
         else:
-            return self.database.write_to_file(self.filename)
+            return self.database.write_to_file(self.last_saved_filename)
 
     def save_gcps_as(self):
         filename = filedialog.asksaveasfilename(
@@ -300,35 +298,42 @@ class Gui:
         if filename is None:
             return
         else:
-            self.filename = filename
+            self.last_saved_filename = filename
             return self.save_gcps()
 
     def show_epipolar_lines(self, main_image_idx):
-        img1_size = self.database.get_image_size(self.curr_images[0])
-        img2_size = self.database.get_image_size(self.curr_images[1])
-        matched_points = self.database.get_visible_points_coords(self.curr_images[main_image_idx])
+        if len(self.views) > 2:
+            raise NotImplementedError("Not implemented yet for >2 views")
+        img1 = self.views[0].current_image
+        img2 = self.views[1].current_image
+        img1_size = self.database.get_image_size(img1)
+        img2_size = self.database.get_image_size(img2)
+        matched_points = self.database.get_visible_points_coords(self.views[main_image_idx].current_image)
         matched_points_coords = convert_tuple_cords_to_list(matched_points)
         matched_points_coords = features.normalized_image_coordinates(matched_points_coords, img1_size[1], img1_size[0])
         color_idx = 0
         for point_idx, point in enumerate(matched_points_coords):
-            line = calc_epipol_line(point, self.curr_images, self.database.get_path(), main_image_idx)
+            image_pair = [img1, img2]
+            line = calc_epipol_line(point, image_pair, self.database.get_path(), main_image_idx)
             denormalized_lines = features.denormalized_image_coordinates(line, img2_size[1], img2_size[0])
             for line_segment in denormalized_lines:
                 circle = mpatches.Circle((line_segment[0], line_segment[1]), 3,
                                          color=distinct_colors[divmod(hash(list(matched_points.keys())[point_idx]), 19)[1]])
-                self.plt_artists[main_image_idx].append(circle)
-                self.subplots[not main_image_idx].add_artist(circle)
+                self.views[main_image_idx].plt_artists.append(circle)
+                self.views[not main_image_idx].subplot.add_artist(circle)
             color_idx = color_idx + 1
-        self.figures[not main_image_idx].canvas.draw_idle()
+        self.views[not main_image_idx].figure.canvas.draw_idle()
 
     def go_to_next_image(self, image_idx):
-        new_image = self.database.bring_next_image(self.curr_images[image_idx], image_idx)
-        if self.curr_images[image_idx] != new_image:
+        current_image = self.views[image_idx].current_image
+        new_image = self.database.bring_next_image(current_image, image_idx)
+        if current_image != new_image:
             self.bring_new_image(new_image, image_idx)
 
     def go_to_previous_image(self, image_idx):
-        new_image = self.database.bring_previous_image(self.curr_images[image_idx], image_idx)
-        if self.curr_images[image_idx] != new_image:
+        current_image = self.views[image_idx].current_image
+        new_image = self.database.bring_previous_image(current_image, image_idx)
+        if current_image != new_image:
             self.bring_new_image(new_image, image_idx)
 
     def highlight_gcp_reprojection(self, image_idx, shot, point_id):
@@ -338,7 +343,7 @@ class Gui:
                 x, y = obs['projection']
 
         x2, y2 = self.database.gcp_reprojections[point_id][shot]['reprojection']
-        self.subplots[image_idx].plot([x, x2], [y, y2], 'r-')
+        self.views[image_idx].subplot.plot([x, x2], [y, y2], 'r-')
         self.canvases[image_idx].draw_idle()
 
     def go_to_worst_gcp(self):
@@ -356,24 +361,25 @@ class Gui:
                 self.gcp_list_box.selection_set(ix)
                 break
 
-        if self.curr_images[idx_worst_gcp] != shot_worst_gcp:
+        if self.views[idx_worst_gcp].current_image != shot_worst_gcp:
             self.bring_new_image(shot_worst_gcp, idx_worst_gcp)
 
         self.highlight_gcp_reprojection(idx_worst_gcp, shot_worst_gcp, worst_gcp)
 
     def bring_new_image(self, new_image, image_idx):
         t0 = time.time()
-        self.curr_images[image_idx] = new_image
-        self.subplots[image_idx].clear()
-        self.subplots[image_idx].imshow(self.database.get_image(self.curr_images[image_idx]))
-        self.subplots[image_idx].axis('off')
+        view = self.views[image_idx]
+        view.current_image = new_image
+        view.subplot.clear()
+        view.subplot.imshow(self.database.get_image(new_image))
+        view.subplot.axis('off')
         self.set_title(image_idx)
-        self.zoomed_in[image_idx] = False
-        self.subplots[image_idx].axis('scaled')
-        self.figures[image_idx].set_tight_layout(True)
-        self.subplots[image_idx].axis('off')
-        for idx, image in enumerate(self.curr_images):
-            self.display_points(idx, image)
-            if self.if_show_epipolar.get():
-                self.show_epipolar_lines(idx)
+        view.zoomed_in = False
+        view.subplot.axis('scaled')
+        view.figure.set_tight_layout(True)
+        view.subplot.axis('off')
+        self.display_points(view)
+        if self.if_show_epipolar.get():
+            for idx, view in enumerate(self.views):
+                    self.show_epipolar_lines(idx)
         print("Took {:.2f}s to bring_new_image {}".format(time.time()-t0, new_image))

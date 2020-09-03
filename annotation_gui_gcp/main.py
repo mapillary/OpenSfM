@@ -27,7 +27,12 @@ def parse_args():
         '-n',
         '--no-preload',
         help='skip preloading',
-        action='store_true'
+        action='store_true',
+    )
+    parser.add_argument(
+        '--n_views',
+        help='Number of image views',
+        default=2,
     )
     parser.add_argument('--select_most_common_seqs',
                         help='brings images from most common seqs side by side',
@@ -41,16 +46,17 @@ if __name__ == '__main__':
     args = parse_args()
     path = args.dataset
     if args.select_most_common_seqs:
-        seqs = get_most_common_seqs(path)
-    elif selected_pairs_path:
-        seqs = load_from_pair_list(selected_pairs_path)
+        seqs = get_most_common_seqs(path, args.n_views)
+    elif args.selected_pairs_path:
+        assert args.n_views == 2
+        seqs = load_from_pair_list(args.selected_pairs_path)
     else:
-        seqs = get_all_images(path)
+        seqs = get_all_images(path, args.n_views)
     database = Database(seqs, path, preload_images=not args.no_preload)
     root = tk.Tk()
     root.resizable(True, True)
     my_gui = Gui(root, database)
     root.grid_columnconfigure(0, weight=1)
     root.grid_rowconfigure(0, weight=1)
-    root.title("ANNOTATION GUI")
+    root.title("Tools")
     root.mainloop()
