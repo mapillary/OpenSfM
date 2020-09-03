@@ -1,3 +1,4 @@
+import os
 import numpy as np
 
 from collections import defaultdict
@@ -40,39 +41,46 @@ def _grid_buckets(camera):
         return buckets, buckets
 
 
-def compute_residual_grids(tracks_manager, reconstruction):
+def save_residual_grids(tracks_manager, reconstructions, output_path):
     all_errors = {}
-    all_points = reconstruction.points
-    all_points_keys = set(all_points.keys())
 
-    for camera_id in reconstruction.cameras:
-        all_errors[camera_id] = []
-    for shot_id in reconstruction.shots:
-        shot = reconstruction.get_shot(shot_id)
-        w = shot.camera.width
-        h = shot.camera.height
-        center = [w/2.0, h/2.0]
-        normalizer = max(w, h)
+    scaling = 2e4
+    cutoff = 0.0005
 
-        buckets_x, buckets_y = _grid_buckets(shot.camera)
-        w_bucket = buckets_x/w
-        h_bucket = buckets_y/h
-        if shot_id not in tracks_manager.get_shot_ids():
-            continue
-        for point_id, obs in tracks_manager.get_shot_observations(shot_id).items():
-            if point_id not in all_points_keys:
+    for rec in reconstructions:
+        for camera_id in rec.cameras:
+            all_errors[camera_id] = []
+    for rec in reconstructions:
+        all_points = rec.points
+        all_points_keys = set(all_points.keys())
+        for shot_id in rec.shots:
+            shot = rec.get_shot(shot_id)
+            w = shot.camera.width
+            h = shot.camera.height
+            center = [w/2.0, h/2.0]
+            normalizer = max(w, h)
+
+            buckets_x, buckets_y = _grid_buckets(shot.camera)
+            w_bucket = buckets_x/w
+            h_bucket = buckets_y/h
+            if shot_id not in tracks_manager.get_shot_ids():
                 continue
-            proj = shot.camera.project(all_points[point_id].coordinates)
-            error = obs.point-proj
+            for point_id, obs in tracks_manager.get_shot_observations(shot_id).items():
+                if point_id not in all_points_keys:
+                    continue
+                proj = shot.project(all_points[point_id].coordinates)
+                error = obs.point-proj
+                if np.linalg.norm(error) > cutoff:
+                    continue
 
-            bucket = (obs.point*normalizer + center)
-            x = max([0, min([int(bucket[0]*w_bucket), buckets_x-1])])
-            y = max([0, min([int(bucket[1]*h_bucket), buckets_y-1])])
+                bucket = (obs.point*normalizer + center)
+                x = max([0, min([int(bucket[0]*w_bucket), buckets_x-1])])
+                y = max([0, min([int(bucket[1]*h_bucket), buckets_y-1])])
 
-            all_errors[shot.camera.id].append(((x, y), error*3))
+                all_errors[shot.camera.id].append(((x, y), error*scaling))
 
     for camera_id, errors in all_errors.items():
-        buckets_x, buckets_y = _grid_buckets(reconstruction.cameras[camera_id])
+        buckets_x, buckets_y = _grid_buckets(rec.cameras[camera_id])
         camera_array_res = np.zeros((buckets_y, buckets_x, 2))
         camera_array_count = np.full((buckets_y, buckets_x, 1), 1)
         for (x, y), e in errors:
@@ -80,6 +88,6 @@ def compute_residual_grids(tracks_manager, reconstruction):
             camera_array_count[y, x, 0] += 1
         camera_array_res = np.divide(camera_array_res, camera_array_count)
         plt.quiver(camera_array_res[:, :, 0], camera_array_res[:, :, 1],
-                   units='xy', scale=1, width=0.1)
+                   units='xy', angles='xy', scale_units='xy', scale=1, width=0.1)
         plt.grid(True)
-        plt.show()
+        plt.savefig(os.path.join(output_path, 'residuals_' + str(camera_id) + '.png'), dpi=300, bbox_inches='tight')
