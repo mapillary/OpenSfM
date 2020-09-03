@@ -18,7 +18,7 @@ Trying to imitate the following structure
 reconstruction = {
     "cameras": {
         "theta": {
-            "projection_type": "equirectangular"
+            "projection_type": "spherical"
         }
     },
 
@@ -783,7 +783,7 @@ class DualCamera(Camera):
 
 
 class SphericalCamera(Camera):
-    """A spherical camera generating equirectangular projections.
+    """A spherical camera generating spherical projections.
 
     Attributes:
         width (int): image width.
@@ -793,7 +793,7 @@ class SphericalCamera(Camera):
     def __init__(self):
         """Defaut constructor."""
         self.id = None
-        self.projection_type = 'equirectangular'
+        self.projection_type = 'spherical'
         self.width = None
         self.height = None
 
@@ -938,6 +938,13 @@ def test_spherical_camera_projection():
         bearing = camera.pixel_bearing(pixel)
         projected = camera.project(bearing)
         assert np.allclose(pixel, projected)
+
+
+def test_is_panorama():
+    """Test spherical projection--backprojection loop."""
+    assert pygeometry.Camera.is_panorama("spherical")
+    assert pygeometry.Camera.is_panorama("equirectangular")
+    assert not pygeometry.Camera.is_panorama("fisheye")
 
 
 def test_shot_project_back_project():

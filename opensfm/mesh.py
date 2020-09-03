@@ -4,6 +4,10 @@ import numpy as np
 import scipy.spatial
 import logging
 
+
+from opensfm import pygeometry
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -20,8 +24,8 @@ def triangle_mesh(shot_id, r, tracks_manager, data):
         return triangle_mesh_perspective(shot_id, r, tracks_manager)
     elif shot.camera.projection_type in ['fisheye', 'fisheye_opencv', 'dual']:
         return triangle_mesh_fisheye(shot_id, r, tracks_manager)
-    elif shot.camera.projection_type in ['equirectangular', 'spherical']:
-        return triangle_mesh_equirectangular(shot_id, r, tracks_manager)
+    elif pygeometry.Camera.is_panorama(shot.camera.projection_type):
+        return triangle_mesh_spherical(shot_id, r, tracks_manager)
     else:
         raise NotImplementedError
 
@@ -129,7 +133,7 @@ def triangle_mesh_fisheye(shot_id, r, tracks_manager):
     return vertices, faces
 
 
-def triangle_mesh_equirectangular(shot_id, r, tracks_manager):
+def triangle_mesh_spherical(shot_id, r, tracks_manager):
     shot = r.shots[shot_id]
 
     bearings = []

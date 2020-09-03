@@ -554,7 +554,7 @@ def camera_from_exif_metadata(metadata, data,
     elif calib_pt == 'dual':
         camera = pygeometry.Camera.create_dual(
             calib['transition'], calib['focal'], calib['k1'], calib['k2'])
-    elif calib_pt in ['equirectangular', 'spherical']:
+    elif pygeometry.Camera.is_panorama(calib_pt):
         camera = pygeometry.Camera.create_spherical()
     else:
         raise ValueError("Unknown projection type: {}".format(calib_pt))

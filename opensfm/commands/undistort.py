@@ -79,7 +79,7 @@ class Command:
                 camera = perspective_camera_from_fisheye(shot.camera)
                 urec.add_camera(camera)
                 subshots = [get_shot_with_different_camera(urec, shot, camera)]
-            elif shot.camera.projection_type in ['equirectangular', 'spherical']:
+            elif pygeometry.Camera.is_panorama(shot.camera.projection_type):
                 subshot_width = int(data.config['depthmap_resolution'])
                 subshots = perspective_views_of_a_panorama(shot, subshot_width, urec)
 
@@ -147,7 +147,7 @@ def undistort_image(shot, undistorted_shots, original, interpolation,
         shot: the distorted shot
         undistorted_shots: the set of undistorted shots covering the
             distorted shot field of view. That is 1 for most camera
-            types and 6 for equirectangular cameras.
+            types and 6 for spherical cameras.
         original: the original distorted image array.
         interpolation: the opencv interpolation flag to use.
         max_size: maximum size of the undistorted image.
@@ -162,7 +162,7 @@ def undistort_image(shot, undistorted_shots, original, interpolation,
         map1, map2 = pygeometry.compute_camera_mapping(shot.camera, new_camera, width, height)
         undistorted = cv2.remap(original, map1, map2, interpolation)
         return {shot.id: scale_image(undistorted, max_size)}
-    elif projection_type in ['equirectangular', 'spherical']:
+    elif pygeometry.Camera.is_panorama(projection_type):
         subshot_width = undistorted_shots[0].camera.width
         width = 4 * subshot_width
         height = width // 2
@@ -307,7 +307,7 @@ def add_subshot_tracks(tracks_manager, utracks_manager, shot, subshot):
     if shot.id not in tracks_manager.get_shot_ids():
         return
 
-    if shot.camera.projection_type in ['equirectangular', 'spherical']:
+    if pygeometry.Camera.is_panorama(shot.camera.projection_type):
         add_pano_subshot_tracks(tracks_manager, utracks_manager, shot, subshot)
     else:
         for track_id, obs in tracks_manager.get_shot_observations(shot.id).items():

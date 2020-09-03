@@ -486,8 +486,8 @@ def _not_on_pano_poles_matches(p1, p2, matches, camera1, camera2):
     """
     min_lat = -0.125
     max_lat = 0.125
-    is_pano1 = (camera1.projection_type == 'equirectangular')
-    is_pano2 = (camera2.projection_type == 'equirectangular')
+    is_pano1 = pygeometry.Camera.is_panorama(camera1.projection_type)
+    is_pano2 = pygeometry.Camera.is_panorama(camera2.projection_type)
     if is_pano1 or is_pano2:
         res = []
         for match in matches:
