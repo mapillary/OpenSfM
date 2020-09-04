@@ -10,8 +10,7 @@ from opensfm import geo
 from opensfm import io
 
 
-filename = os.path.join(os.path.dirname(__file__),
-                        'reconstruction_berlin.json')
+filename = os.path.join('data/berlin/reconstruction_example.json')
 
 
 def test_reconstructions_from_json():
