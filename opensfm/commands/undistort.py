@@ -259,9 +259,9 @@ def perspective_views_of_a_panorama(spherical_shot, width, reconstruction):
         pose = pygeometry.Pose()
         pose.set_rotation_matrix(R)
         pose.set_origin(o)
-        reconstruction.\
-            create_shot('{}_perspective_view_{}'.format(spherical_shot.id, name),
-                        camera.id, pose)
+        shots.append(reconstruction.
+                     create_shot('{}_perspective_view_{}'.format(spherical_shot.id, name),
+                                 camera.id, pose))
     return shots
 
 
