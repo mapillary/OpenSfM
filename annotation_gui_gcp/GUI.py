@@ -39,8 +39,10 @@ class Gui:
         self.shot_std = {}
         self.sequence_groups = sequence_groups
 
-        master.bind('q', lambda event: self.go_to_worst_gcp())
+        master.bind_all('q', lambda event: self.go_to_worst_gcp())
+        master.bind_all('z', lambda event: self.toggle_zoom_on_key())
         self.create_ui(master, n_views=n_views)
+        master.lift()
 
         p_default_gcp = self.database.get_path() + '/ground_control_points.json'
         if os.path.exists(p_default_gcp):
@@ -99,14 +101,16 @@ class Gui:
 
     def set_title(self, view):
         shot = view.current_image
-        seq = self.database.seqs[view.current_sequence]
+        seq_key = view.current_sequence
+        seq = self.database.seqs[seq_key]
         seq_ix = seq.index(shot)
 
         if shot in self.shot_std:
             shot_std_rank, shot_std = self.shot_std[shot]
-            title = "[{}/{}]: {} - #{} (std = {:.2f})".format(seq_ix+1, len(seq), shot, shot_std_rank, shot_std)
+            title = "{} [{}/{}]: {} - #{} (std = {:.2f})".format(
+                seq_key, seq_ix+1, len(seq), shot, shot_std_rank, shot_std)
         else:
-            title = "[{}/{}]: {}".format(seq_ix+1, len(seq), shot)
+            title = "{} [{}/{}]: {}".format(seq_key, seq_ix+1, len(seq), shot)
         view.title(title)
 
 
@@ -184,13 +188,12 @@ class Gui:
             offsetbox2 = AuxTransformBox(IdentityTransform())
             offsetbox2.add_artist(p1)
             ab = AnnotationBbox(offsetbox2, ((coords[0] + 30), (coords[1] + 30)), bboxprops=dict(alpha=0.05))
-            circle = mpatches.Circle((coords[0], coords[1]), 20, color=color, fill=False)
+            circle = mpatches.Circle((coords[0], coords[1]), 10, color=color, fill=False)
+            dot = mpatches.Circle((coords[0], coords[1]), 2, color=color, fill=False)
+            for art in (ab, circle, dot):
+                view.plt_artists.append(art)
+                view.subplot.add_artist(art)
 
-            view.plt_artists.append(ab)
-            view.plt_artists.append(circle)
-
-            view.subplot.add_artist(ab)
-            view.subplot.add_artist(circle)
         view.figure.canvas.draw()
 
     def add_gcp(self):
@@ -227,6 +230,21 @@ class Gui:
         view.subplot.autoscale()
         view.zoomed_in = False
 
+    def toggle_zoom_on_key(self):
+        # Zoom in/out on every view, centered on the location of the current GCP
+        if self.curr_point is None:
+            return
+        any_zoomed_in = any([view.zoomed_in for view in self.views])
+        for view in self.views:
+            if any_zoomed_in:
+                self.zoom_out(view)
+            else:
+                for projection in self.database.points[self.curr_point]:
+                    if projection["shot_id"] == view.current_image:
+                        x, y = projection["projection"]
+                        self.zoom_in(view, x, y)
+            view.canvas.draw_idle()
+
     def on_press(self, event):
         idx = self.which_canvas(event)
         view = self.views[idx]
@@ -241,6 +259,7 @@ class Gui:
                 self.zoom_in(view, x, y)
             view.figure.canvas.draw_idle()
         elif self.curr_point is not None and event.button in (1, 3):
+            # Left click or right click
             if not self.curr_point:
                 return
             self.database.remove_point_observation(self.curr_point, current_image)
@@ -258,8 +277,11 @@ class Gui:
 
     def repopulate_modify_list(self):
         self.gcp_list_box.delete(0, tk.END)
-        for point_id in self.database.get_points():
-            self.gcp_list_box.insert(tk.END, point_id)
+        errors = self.database.compute_gcp_errors()[-1]
+        sorted_gcp_ids = sorted(errors, key=lambda k: -errors[k])
+        for point_id in sorted_gcp_ids:
+            self.gcp_list_box.insert(tk.END, "{}".format(point_id))
+
 
     def remove_gcp(self):
         to_be_removed_point = self.curr_point
@@ -343,7 +365,7 @@ class Gui:
 
     def highlight_gcp_reprojection(self, image_idx, shot, point_id):
         x, y = 0,0
-        for obs in self.database.get_points()[point_id]:
+        for obs in self.database.points[point_id]:
             if obs['shot_id'] == shot:
                 x, y = obs['projection']
 
@@ -364,7 +386,7 @@ class Gui:
         self.curr_point = worst_gcp
         self.gcp_list_box.selection_clear(0, "end")
         for ix, gcp_id in enumerate(self.gcp_list_box.get(0, "end")):
-            if gcp_id == worst_gcp:
+            if worst_gcp in gcp_id:
                 self.gcp_list_box.selection_set(ix)
                 break
 

@@ -58,19 +58,16 @@ class Database:
                     np.array([observation["projection"]]), w, h)[0]
             self.points[point_id] = observations
 
-    def get_points(self):
-        return self.points
-
-    def get_image(self, img_name):
+    def get_image(self, img_name, max_size=1000):
         if img_name not in self.image_cache:
             rgb = Image.open(self.go_to_image_path() + img_name)
 
             # Reduce to some reasonable maximum size
-            scale = max(rgb.size) / 3000
+            scale = max(rgb.size) / max_size
             if scale > 1:
                 new_w = int(round(rgb.size[0] / scale))
                 new_h = int(round(rgb.size[1] / scale))
-                rgb = rgb.resize((new_w, new_h), resample=Image.NEAREST)
+                rgb = rgb.resize((new_w, new_h), resample=Image.BILINEAR)
 
             # Matplotlib will transform to rgba when plotting
             self.image_cache[img_name] = _rgb_to_rgba(np.asarray(rgb))
@@ -131,16 +128,27 @@ class Database:
         with open(filename, 'wt') as fp:
             json.dump(data, fp, indent=4, sort_keys=True)
 
-    def get_worst_gcp(self):
+    def compute_gcp_errors(self):
+        error_avg = {}
         worst_gcp_error = 0
+        worst_gcp = None
+        shot_worst_gcp = None
+        for gcp_id in self.points:
+            error_avg[gcp_id] = 0
         for gcp_id in self.gcp_reprojections:
             for shot_id in self.gcp_reprojections[gcp_id]:
                 err = self.gcp_reprojections[gcp_id][shot_id]['error']
+                error_avg[gcp_id] += err
                 if err > worst_gcp_error:
                     worst_gcp_error = err
                     shot_worst_gcp = shot_id
                     worst_gcp = gcp_id
-        return worst_gcp, shot_worst_gcp, worst_gcp_error
+            error_avg[gcp_id] /= len(self.gcp_reprojections[gcp_id])
+
+        return worst_gcp, shot_worst_gcp, worst_gcp_error, error_avg
+
+    def get_worst_gcp(self):
+        return self.compute_gcp_errors()[:3]
 
     def remove_gcp(self, point_id):
         if self.point_exists(point_id):
