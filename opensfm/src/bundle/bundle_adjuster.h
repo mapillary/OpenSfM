@@ -102,12 +102,12 @@ struct BAReconstruction {
     }
     return scales[shot];
   }
-  void SetScale(const std::string& shot, double v) 
-  { 
+  void SetScale(const std::string& shot, double v)
+  {
     if (shared) {
       scales.begin()->second = v;
     }
-    scales[shot] = v; 
+    scales[shot] = v;
   }
 };
 
@@ -118,6 +118,8 @@ struct BAData {
 
   BAData(const T &value, const T &prior, const T &sigma)
       : value_(value), prior_(prior), sigma_(sigma) {}
+
+  virtual ~BAData() {}
 
   VecXd &GetValueData() {
     ValueToData(value_, value_data_);
@@ -184,8 +186,8 @@ struct BACamera : public BAData<Camera> {
     }
   }
 
-  std::vector<Camera::Parameters> parameters_to_optimize_;
   std::vector<Camera::Parameters> all_parameters_;
+  std::vector<Camera::Parameters> parameters_to_optimize_;
 };
 
 struct BAPointProjectionObservation {
@@ -245,7 +247,7 @@ struct BARelativeMotion {
   void SetRotation(const Vec3d &r) {parameters.segment(BA_SHOT_RX, 3) = r;}
   void SetTranslation(const Vec3d &t) {parameters.segment(BA_SHOT_TX, 3) = t;}
   void SetScaleMatrix(const MatXd& s) {scale_matrix = s;}
-  
+
   std::string reconstruction_id_i;
   std::string shot_id_i;
   std::string reconstruction_id_j;
@@ -263,7 +265,7 @@ struct BARelativeSimilarity : public BARelativeMotion {
                        const Vec3d &rotation,
                        const Vec3d &translation,
                        double s, double robust_multiplier)
-      : BARelativeMotion(reconstruction_i, shot_i, 
+      : BARelativeMotion(reconstruction_i, shot_i,
                          reconstruction_j, shot_j,
                          rotation, translation,
                          robust_multiplier),
@@ -290,7 +292,7 @@ struct BARelativeSimilarityCovariance
       const auto& z = p[2];
       Eigen::Matrix<double, 3, BA_SHOT_NUM_PARAMS+1> local_jacobian;
       local_jacobian.block(0, BA_SHOT_TX, 3, 3) = Eigen::Matrix<double,3,3>::Identity();
-      local_jacobian.block(0, BA_SHOT_RX, 3, 3) <<  0, z, -y, 
+      local_jacobian.block(0, BA_SHOT_RX, 3, 3) <<  0, z, -y,
                                                     -z, 0, x,
                                                      y, -x, 0;
       local_jacobian.block(0, BA_SHOT_NUM_PARAMS, 3, 1) << x, y, z;
@@ -301,7 +303,7 @@ struct BARelativeSimilarityCovariance
     }
     else{
       covariance = covariance.inverse();
-    }    
+    }
   }
 
   Eigen::Matrix<double, Size, Size> GetCovariance()const{
@@ -400,7 +402,7 @@ class BundleAdjuster {
   void AddReconstructionShot(const std::string& reconstruction_id, double scale,
                              const std::string& shot_id);
   void SetScaleSharing(const std::string &id, bool share);
-  void AddPoint(const std::string &id, 
+  void AddPoint(const std::string &id,
                 const Vec3d& position,
                 bool constant);
 
@@ -545,7 +547,7 @@ class BundleAdjuster {
   std::map<std::string, BAReconstruction> reconstructions_;
   std::map<std::string, BAPoint> points_;
 
-  
+
   bool use_analytic_{false};
 
   // minimization constraints
@@ -608,5 +610,3 @@ class BundleAdjuster {
   // internal
   ceres::Solver::Summary last_run_summary_;
 };
-
-

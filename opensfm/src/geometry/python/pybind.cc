@@ -9,8 +9,8 @@
 #include <geometry/relative_pose.h>
 #include <geometry/absolute_pose.h>
 #include <geometry/triangulation.h>
-#include <foundation/python_types.h>
 
+namespace py = pybind11;
 
 PYBIND11_MODULE(pygeometry, m) {
 
