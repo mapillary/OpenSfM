@@ -195,10 +195,11 @@ class Shot {
   bool UseLinearDataStructure() const { return !landmarks_.empty(); }
 
  public:
-  SLAMShotData slam_data_;
   const ShotId id_;  // the file name
-  ShotUniqueId unique_id_;
   const Camera* const shot_camera_;
+  SLAMShotData slam_data_;
+  ShotUniqueId unique_id_;
+
   ShotMeasurements shot_measurements_;  // metadata
   ShotMesh mesh;
   MatXd covariance;

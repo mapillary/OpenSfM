@@ -1,4 +1,3 @@
-#include <foundation/python_types.h>
 #include <features/hahog.h>
 
 #include <vector>
@@ -109,7 +108,7 @@ py::object hahog(foundation::pyarray_f image,
     py::list retn;
     retn.append(foundation::py_array_from_data(&points[0], numFeatures, 4));
     retn.append(foundation::py_array_from_data(&desc[0], numFeatures, dimension));
-    return retn;
+    return std::move(retn);
   }
   return py::none();
 }

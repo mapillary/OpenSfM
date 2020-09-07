@@ -2,93 +2,68 @@
 #include <map/landmark.h>
 #include <algorithm>
 #include <numeric>
-namespace map
-{
+namespace map {
 
 Shot::Shot(const ShotId& shot_id, const Camera* const shot_camera,
            const geometry::Pose& pose)
     : id_(shot_id),
       shot_camera_(shot_camera),
       slam_data_(this),
-      pose_(pose),
-      merge_cc(0), scale(1.0) {}
+      merge_cc(0),
+      scale(1.0),
+      pose_(pose) {}
 
 Shot::Shot(const ShotId& shot_id, std::unique_ptr<Camera> shot_camera,
            const geometry::Pose& pose)
     : id_(shot_id),
       shot_camera_(shot_camera.get()),
       slam_data_(this),
-      pose_(pose),
-      merge_cc(0), scale(1.0) {
+      merge_cc(0),
+      scale(1.0),
+      pose_(pose) {
   own_camera_ = std::move(shot_camera);
 }
 
-void
-ShotMeasurements::Set(const ShotMeasurements& other)
-{
-  if (other.capture_time_.HasValue())
-  {
+void ShotMeasurements::Set(const ShotMeasurements& other) {
+  if (other.capture_time_.HasValue()) {
     capture_time_.SetValue(other.capture_time_.Value());
-  }
-  else
-  {
+  } else {
     capture_time_.Reset();
   }
-  if (other.gps_position_.HasValue())
-  {
+  if (other.gps_position_.HasValue()) {
     gps_position_.SetValue(other.gps_position_.Value());
-  }
-  else
-  {
+  } else {
     gps_position_.Reset();
   }
-  if (other.gps_accuracy_.HasValue())
-  {
+  if (other.gps_accuracy_.HasValue()) {
     gps_accuracy_.SetValue(other.gps_accuracy_.Value());
-  }
-  else
-  {
+  } else {
     gps_accuracy_.Reset();
   }
-  if (other.compass_accuracy_.HasValue())
-  {
+  if (other.compass_accuracy_.HasValue()) {
     compass_accuracy_.SetValue(other.compass_accuracy_.Value());
-  }
-  else
-  {
+  } else {
     compass_accuracy_.Reset();
   }
-  
-  if (other.compass_angle_.HasValue())
-  {
+
+  if (other.compass_angle_.HasValue()) {
     compass_angle_.SetValue(other.compass_angle_.Value());
-  }
-  else
-  {
+  } else {
     compass_angle_.Reset();
   }
-  if (other.accelerometer_.HasValue())
-  {
+  if (other.accelerometer_.HasValue()) {
     accelerometer_.SetValue(other.accelerometer_.Value());
-  }
-  else
-  {
+  } else {
     accelerometer_.Reset();
   }
-  if (other.orientation_.HasValue())
-  {
+  if (other.orientation_.HasValue()) {
     orientation_.SetValue(other.orientation_.Value());
-  }
-  else
-  {
+  } else {
     orientation_.Reset();
   }
-  if (other.sequence_key_.HasValue())
-  {
+  if (other.sequence_key_.HasValue()) {
     sequence_key_.SetValue(other.sequence_key_.Value());
-  }
-  else
-  {
+  } else {
     sequence_key_.Reset();
   }
 }
@@ -113,9 +88,7 @@ size_t Shot::ComputeNumValidLandmarks(const int min_obs_thr) const {
   }
 }
 
-float
-Shot::ComputeMedianDepthOfLandmarks(const bool take_abs) const
-{
+float Shot::ComputeMedianDepthOfLandmarks(const bool take_abs) const {
   std::vector<float> depths;
   depths.reserve(landmarks_.size());
   const Mat4d T_cw = pose_.WorldToCamera();
@@ -123,34 +96,28 @@ Shot::ComputeMedianDepthOfLandmarks(const bool take_abs) const
   const double trans_cw_z = T_cw(2, 3);
   if (UseLinearDataStructure()) {
     for (const auto& lm : landmarks_) {
-      if (lm != nullptr) 
-      {
+      if (lm != nullptr) {
         const double pos_c_z =
             rot_cw_z_row.dot(lm->GetGlobalPos()) + trans_cw_z;
         depths.push_back(float(take_abs ? std::abs(pos_c_z) : pos_c_z));
       }
     }
   } else {
-    for (const auto& lm_pair : landmark_observations_)
-    {
+    for (const auto& lm_pair : landmark_observations_) {
       auto* lm = lm_pair.first;
-      const double pos_c_z = rot_cw_z_row.dot(lm->GetGlobalPos())+trans_cw_z;
+      const double pos_c_z = rot_cw_z_row.dot(lm->GetGlobalPos()) + trans_cw_z;
       depths.push_back(float(take_abs ? std::abs(pos_c_z) : pos_c_z));
     }
   }
-  if (depths.empty())
-  {
+  if (depths.empty()) {
     return 0;
   }
   std::sort(depths.begin(), depths.end());
   return depths.at((depths.size() - 1) / 2);
 }
 
-void
-Shot::InitKeyptsAndDescriptors(const size_t n_keypts)
-{
-  if (n_keypts > 0)
-  {
+void Shot::InitKeyptsAndDescriptors(const size_t n_keypts) {
+  if (n_keypts > 0) {
     num_keypts_ = n_keypts;
     landmarks_.resize(num_keypts_, nullptr);
     keypoints_.resize(num_keypts_);
@@ -158,9 +125,8 @@ Shot::InitKeyptsAndDescriptors(const size_t n_keypts)
   }
 }
 
-void
-Shot::InitAndTakeDatastructures(AlignedVector<Observation> keypts, DescriptorMatrix descriptors)
-{
+void Shot::InitAndTakeDatastructures(AlignedVector<Observation> keypts,
+                                     DescriptorMatrix descriptors) {
   assert(keypts.size() == descriptors.rows());
 
   std::swap(keypts, keypoints_);
@@ -169,47 +135,32 @@ Shot::InitAndTakeDatastructures(AlignedVector<Observation> keypts, DescriptorMat
   landmarks_.resize(num_keypts_, nullptr);
 }
 
-void
-Shot::ScaleLandmarks(const double scale)
-{
-  if (UseLinearDataStructure())
-  {
-    for (auto* lm : landmarks_) 
-    {
-      if (lm != nullptr)
-      {
-        lm->SetGlobalPos(lm->GetGlobalPos()*scale);
+void Shot::ScaleLandmarks(const double scale) {
+  if (UseLinearDataStructure()) {
+    for (auto* lm : landmarks_) {
+      if (lm != nullptr) {
+        lm->SetGlobalPos(lm->GetGlobalPos() * scale);
       }
     }
-  }
-  else
-  {
-
-    for (auto& lm_obs : landmark_observations_)
-    {
+  } else {
+    for (auto& lm_obs : landmark_observations_) {
       auto* lm = lm_obs.first;
-      lm->SetGlobalPos(lm->GetGlobalPos()*scale);
+      lm->SetGlobalPos(lm->GetGlobalPos() * scale);
     }
   }
 }
 
-void
-Shot::ScalePose(const double scale)
-{
-    Mat4d cam_pose_cw = pose_.WorldToCamera();
-    cam_pose_cw.block<3, 1>(0, 3) *= scale;
-    pose_.SetFromWorldToCamera(cam_pose_cw);
+void Shot::ScalePose(const double scale) {
+  Mat4d cam_pose_cw = pose_.WorldToCamera();
+  cam_pose_cw.block<3, 1>(0, 3) *= scale;
+  pose_.SetFromWorldToCamera(cam_pose_cw);
 }
 
-void 
-Shot::RemoveLandmarkObservation(const FeatureId id) 
-{
-  //for SLAM
-  if (UseLinearDataStructure())
-  {
-    landmarks_.at(id) = nullptr; 
-  }
-  else   // for OpenSfM
+void Shot::RemoveLandmarkObservation(const FeatureId id) {
+  // for SLAM
+  if (UseLinearDataStructure()) {
+    landmarks_.at(id) = nullptr;
+  } else  // for OpenSfM
   {
     auto* lm = landmark_id_.at(id);
     landmark_id_.erase(id);
@@ -218,7 +169,8 @@ Shot::RemoveLandmarkObservation(const FeatureId id)
 }
 
 Vec2d Shot::Project(const Vec3d& global_pos) const {
-  return shot_camera_->Project(pose_.RotationWorldToCamera()*global_pos + pose_.TranslationWorldToCamera());
+  return shot_camera_->Project(pose_.RotationWorldToCamera() * global_pos +
+                               pose_.TranslationWorldToCamera());
 }
 
 MatX2d Shot::ProjectMany(const MatX3d& points) const {
@@ -241,5 +193,4 @@ MatX3d Shot::BearingMany(const MatX2d& points) const {
   return bearings;
 }
 
-} //namespace map
-
+}  // namespace map

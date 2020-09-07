@@ -65,7 +65,7 @@ class DepthmapEstimatorWrapper {
     retn.append(py_array_from_data(result.plane.ptr<float>(0), result.plane.rows, result.plane.cols, 3));
     retn.append(py_array_from_data(result.score.ptr<float>(0), result.score.rows, result.score.cols));
     retn.append(py_array_from_data(result.nghbr.ptr<int>(0), result.nghbr.rows, result.nghbr.cols));
-    return retn;
+    return std::move(retn);
   }
 
  private:
@@ -143,7 +143,7 @@ class DepthmapPrunerWrapper {
     retn.append(py_array_from_data(&colors[0], n, 3));
     retn.append(py_array_from_data(&labels[0], n));
     retn.append(py_array_from_data(&detections[0], n));
-    return retn;
+    return std::move(retn);
   }
 
  private:
@@ -151,4 +151,3 @@ class DepthmapPrunerWrapper {
 };
 
 }
-
