@@ -9,7 +9,6 @@ from opensfm import pymap
 from opensfm import types
 
 from scipy.stats import special_ortho_group
-from scipy.spatial.transform import Rotation
 
 
 """
@@ -1133,8 +1132,7 @@ def _helper_pose_equal_to_T(pose, T_cw):
     assert np.allclose(pose.get_t_world_to_cam(), T_cw[0:3, 3].reshape(3))
     assert np.allclose(pose.translation, T_cw[0:3, 3].reshape(3))
     # compute the min rotation
-    # r_cw = cv2.Rodrigues(T_cw[0:3, 0:3])[0].flatten()
-    r_cw = Rotation.from_dcm(T_cw[0:3, 0:3]).as_rotvec()
+    r_cw = cv2.Rodrigues(T_cw[0:3, 0:3])[0].flatten()
     assert np.allclose(pose.rotation, r_cw)
     assert np.allclose(pose.get_R_world_to_cam_min(), r_cw)
 
@@ -1174,7 +1172,7 @@ def test_pose_setter():
     t_cw = np.random.rand(3)
     T_cw = np.vstack((np.column_stack((R_cw, t_cw)), np.array([0, 0, 0, 1])))
     T_wc = np.linalg.inv(T_cw)
-    r_cw = Rotation.from_dcm(R_cw).as_rotvec()
+    r_cw = cv2.Rodrigues(R_cw)[0].flatten()
     r_wc = -r_cw
 
     # set world to cam
@@ -1290,8 +1288,8 @@ def test_pose_inverse():
 
 
 def test_pose_relative_to():
-    r1 = Rotation.from_dcm(special_ortho_group.rvs(3)).as_rotvec()
-    r2 = Rotation.from_dcm(special_ortho_group.rvs(3)).as_rotvec()
+    r1 = cv2.Rodrigues(special_ortho_group.rvs(3))[0].flatten()
+    r2 = cv2.Rodrigues(special_ortho_group.rvs(3))[0].flatten()
     t1 = np.random.rand(3)
     t2 = np.random.rand(3)
 
