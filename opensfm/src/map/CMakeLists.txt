@@ -32,7 +32,7 @@ target_link_libraries(pymap
 
 if (OPENSFM_BUILD_TESTS)
     set(MAP_TEST_FILES
-    test/map_test.cc
+        test/map_test.cc
     )
 
     add_executable(map_test ${MAP_TEST_FILES})
