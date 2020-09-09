@@ -30,18 +30,20 @@ target_link_libraries(pymap
     geometry
 )
 
-set(MAP_TEST_FILES
-  test/map_test.cc
-)
+if (OPENSFM_BUILD_TESTS)
+    set(MAP_TEST_FILES
+    test/map_test.cc
+    )
 
-add_executable(map_test ${MAP_TEST_FILES})
-target_include_directories(map_test PRIVATE ${CMAKE_SOURCE_DIR})
-target_link_libraries(map_test
-                      PUBLIC
-                      geometry
-                      map
-                      ${TEST_MAIN})
-add_test(map_test map_test)
+    add_executable(map_test ${MAP_TEST_FILES})
+    target_include_directories(map_test PRIVATE ${CMAKE_SOURCE_DIR})
+    target_link_libraries(map_test
+                        PUBLIC
+                        geometry
+                        map
+                        ${TEST_MAIN})
+    add_test(map_test map_test)
+endif()
 
 set_target_properties(pymap PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${opensfm_SOURCE_DIR}/.."
