@@ -27,7 +27,8 @@ static std::complex<double> ComplexCbrt(const std::complex<double> & z){
 }
 
 std::array<double, 4> SolveQuartic(const std::array<double, 5>& coefficients){
-  const double a = coefficients[4];
+  constexpr double eps = std::numeric_limits<double>::epsilon();
+  const double a = std::abs(coefficients[4]) > eps ? coefficients[4] : eps; //Avoid division by zero
   const double b = coefficients[3] / a;
   const double c = coefficients[2] / a;
   const double d = coefficients[1] / a;
