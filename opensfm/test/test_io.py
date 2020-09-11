@@ -6,17 +6,10 @@ from io import StringIO
 
 import numpy as np
 from opensfm import geo, io
+from opensfm.test import data_generation
 
 
-try:
-    from libfb.py import parutil
-
-    prefix = "mapillary/opensfm/opensfm/test"
-    filename = parutil.get_file_path(
-        os.path.join(prefix, "reconstruction_example.json")
-    )
-except ImportError:
-    filename = os.path.join("data/berlin/reconstruction_example.json")
+filename = os.path.join(data_generation.DATA_PATH, "berlin", "reconstruction_example.json")
 
 
 def test_reconstructions_from_json():

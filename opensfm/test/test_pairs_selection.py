@@ -7,14 +7,6 @@ from opensfm import commands, dataset, feature_loader, pairs_selection
 from opensfm.test import data_generation
 
 
-try:
-    from libfb.py import parutil
-
-    prefix = "mapillary/opensfm/opensfm/test/data/lund"
-    LUND_PATH = parutil.get_dir_path(os.path.join(prefix, "images"))
-except ImportError:
-    LUND_PATH = "data/lund/images"
-
 NEIGHBORS = 6
 
 
@@ -41,9 +33,9 @@ def lund_path(tmpdir_factory):
     Precompute exif and features to avoid doing
     it for every test which is time consuming.
     """
+    src = os.path.join(data_generation.DATA_PATH, "lund", "images")
     path = str(tmpdir_factory.mktemp("lund"))
-
-    os.symlink(LUND_PATH, os.path.join(path, "images"))
+    os.symlink(src, os.path.join(path, "images"))
 
     # Use words matcher type to support the bow retrieval test
     data_generation.save_config({"matcher_type": "WORDS"}, path)
