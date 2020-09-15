@@ -6,3 +6,8 @@ Local modifications:
 
 * Strip the library to contain only relevant source files.
 
+* Set vl_size to be signed.  This avoids some UndefinedBehaviorSanitizer runtime errors.  The following code is common inside the library:
+
+   ptr = ptr - some_negative_signed_int * some_vl_size ;
+
+The UBSAN complains about possible overflow errors when substracting an unsigned int.  Explicitly casting the vl_size var to int solves the issue.  Instead, we switch vl_size to be signed from the begining.  It would otherwise be difficult to find all the instances of this problem since it is only found at runtime.
