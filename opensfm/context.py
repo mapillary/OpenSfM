@@ -11,7 +11,7 @@ from joblib import Parallel, parallel_backend, delayed
 logger = logging.getLogger(__name__)
 
 
-abspath = os.path.abspath(os.path.dirname(__file__))
+abspath = os.path.dirname(os.path.realpath(__file__))
 SENSOR = os.path.join(abspath, 'data', 'sensor_data.json')
 BOW_PATH = os.path.join(abspath, 'data', 'bow')
 
