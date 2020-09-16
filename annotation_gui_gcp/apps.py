@@ -123,6 +123,7 @@ def save_gcp(gcp_test, gcp_train, path):
 
 
 def read_gcp_file(file_path):
-    file = open(file_path)
-    data = json.load(file)
-    return data['points']
+    if file_path:
+        with open(file_path, 'r') as f:
+            data = json.load(f)
+            return data['points']

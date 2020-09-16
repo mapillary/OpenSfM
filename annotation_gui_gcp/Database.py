@@ -23,7 +23,7 @@ class Database:
                 for k in keys:
                     self.get_image(k)
 
-        p_gcp_errors = self.get_path() + '/gcp_reprojections.json'
+        p_gcp_errors = self.path + '/gcp_reprojections.json'
         if os.path.exists(p_gcp_errors):
             self.load_gcp_reprojections(p_gcp_errors)
         else:
@@ -45,9 +45,6 @@ class Database:
     def go_to_image_path(self):
         img_folder = self.path + "/images/"
         return img_folder
-
-    def get_path(self):
-        return self.path
 
     def init_points(self, points):
         for point in points:
@@ -80,7 +77,6 @@ class Database:
     def get_visible_points_coords(self, main_image):
         visible_points_coords = OrderedDict()
         for point_id, observations in self.points.items():
-            pair_images = [obs["shot_id"] for obs in observations]
             for observation in observations:
                 if observation["shot_id"] == main_image:
                     visible_points_coords[point_id] = observation["projection"]
@@ -136,6 +132,8 @@ class Database:
         for gcp_id in self.points:
             error_avg[gcp_id] = 0
         for gcp_id in self.gcp_reprojections:
+            if gcp_id not in self.points:
+                continue
             for shot_id in self.gcp_reprojections[gcp_id]:
                 err = self.gcp_reprojections[gcp_id][shot_id]['error']
                 error_avg[gcp_id] += err
@@ -147,8 +145,11 @@ class Database:
 
         return worst_gcp, shot_worst_gcp, worst_gcp_error, error_avg
 
-    def get_worst_gcp(self):
-        return self.compute_gcp_errors()[:3]
+    def shot_with_max_gcp_error(self, image_keys, gcp):
+        # Return they key with most reprojection error for this GCP
+        annotated_images = set(self.gcp_reprojections[gcp]).intersection(set(image_keys))
+        errors = {k: self.gcp_reprojections[gcp][k]['error'] for k in annotated_images}
+        return max(errors, key=lambda k: errors[k])
 
     def remove_gcp(self, point_id):
         if self.point_exists(point_id):

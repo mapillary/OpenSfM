@@ -5,7 +5,7 @@ from pathlib import Path
 
 from Database import Database
 from GUI import Gui
-from opensfm import dataset, io
+from opensfm import io
 
 
 def parse_args():
@@ -31,6 +31,7 @@ def parse_args():
         "from the group will always show the same frame index. "
         "Useful for camera rigs. usage: -g sequence_key_1 sequence_key_2. "
         "Can be used multiple times to define several groups",
+        default=[],
     )
     return parser.parse_args()
 
