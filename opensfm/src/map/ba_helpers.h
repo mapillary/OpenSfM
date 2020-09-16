@@ -36,7 +36,7 @@ class BAHelpers {
       const AlignedVector<map::GroundControlPoint>& gcp);
  private:
   static std::unordered_set<map::Shot*> DirectShotNeighbors(
-      map::Map& map, const std::unordered_set<map::Shot*>& shot_ids,
+      const std::unordered_set<map::Shot*>& shot_ids,
       const size_t min_common_points, const size_t max_neighbors);
   static void AddGCPToBundle(
       BundleAdjuster& ba, const AlignedVector<map::GroundControlPoint>& gcp,

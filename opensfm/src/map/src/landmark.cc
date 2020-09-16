@@ -17,7 +17,7 @@ Vec3f Landmark::GetObservationInShot(Shot* shot) const {
 }
 
 void Landmark::SetReprojectionErrors(
-    const std::map<ShotId, Eigen::VectorXd> reproj_errors) {
+    const std::map<ShotId, Eigen::VectorXd> &reproj_errors) {
   reproj_errors_ = reproj_errors;
 }
 
@@ -26,11 +26,10 @@ double Landmark::ComputeDistanceFromRefFrame() const {
   return cam_to_lm_vec.norm();
 }
 
-void Landmark::RemoveObservation(Shot* shot) 
-{ 
-  //Remove reprojection errors if present
+void Landmark::RemoveObservation(Shot* shot) {
+  // Remove reprojection errors if present
   RemoveReprojectionError(shot->id_);
-  observations_.erase(shot);   
+  observations_.erase(shot);
 }
 
 };  // namespace map

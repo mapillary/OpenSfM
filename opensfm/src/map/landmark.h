@@ -77,7 +77,7 @@ class Landmark {
   bool operator>=(const Landmark& lm) const { return id_ >= lm.id_; }
 
   // Reprojection Errors
-  void SetReprojectionErrors(const std::map<ShotId, Eigen::VectorXd> reproj_errors);
+  void SetReprojectionErrors(const std::map<ShotId, Eigen::VectorXd> &reproj_errors);
   std::map<ShotId, Eigen::VectorXd> GetReprojectionErrors() const { return reproj_errors_; }
   void RemoveReprojectionError(const ShotId& shot_id)
   {

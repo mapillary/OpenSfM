@@ -27,16 +27,16 @@ BAHelpers::ShotNeighborhood(map::Map& map, const map::ShotId& central_shot_id,
        distance < radius && interior.size() < max_interior_size; ++distance) {
     const auto remaining = max_interior_size - interior.size();
     const auto neighbors =
-        DirectShotNeighbors(map, interior, min_common_points, remaining);
+        DirectShotNeighbors(interior, min_common_points, remaining);
     interior.insert(neighbors.begin(), neighbors.end());
   }
 
-  const auto boundary = DirectShotNeighbors(map, interior, 1, MaxBoundarySize);
+  const auto boundary = DirectShotNeighbors(interior, 1, MaxBoundarySize);
   return std::make_pair(interior, boundary);
 }
 
 std::unordered_set<map::Shot*> BAHelpers::DirectShotNeighbors(
-    map::Map& map, const std::unordered_set<map::Shot*>& shot_ids,
+    const std::unordered_set<map::Shot*>& shot_ids,
     const size_t min_common_points, const size_t max_neighbors) {
   std::unordered_set<map::Landmark*> points;
   for (auto* shot : shot_ids) {
@@ -522,12 +522,12 @@ std::string BAHelpers::DetectAlignmentConstraints(
   const Vec3d X_mean = X.colwise().mean();
   const MatX3d X_zero = X.rowwise() - X_mean.transpose();
   const Mat3d input = X_zero.transpose() * X_zero;
-  Eigen::SelfAdjointEigenSolver<MatXd> ses(input, false);
+  Eigen::SelfAdjointEigenSolver<MatXd> ses(input, Eigen::EigenvaluesOnly);
   const Vec3d evals = ses.eigenvalues();
   const auto ratio_1st_2nd = std::abs(evals[2] / evals[1]);
   constexpr double epsilon_abs = 1e-10;
   constexpr double epsilon_ratio = 5e3;
-  const uint8_t cond1 = (evals[0] < epsilon_abs) + (evals[1] < epsilon_abs) + (evals[2] < epsilon_abs);
+  const int cond1 = int(evals[0] < epsilon_abs) + int(evals[1] < epsilon_abs) + int(evals[2] < epsilon_abs);
   const bool is_line = cond1 > 1 || ratio_1st_2nd > epsilon_ratio;
   if (is_line) {
     return "orientation_prior";
