@@ -2,8 +2,9 @@
 #include <vector>
 #include <opencv2/core/core.hpp>
 #include <pybind11/pybind11.h>
+#include <features/matching.h>
 
-#include <foundation/python_types.h>
+namespace py = pybind11;
 
 
 namespace features {

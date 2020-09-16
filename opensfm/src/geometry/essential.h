@@ -1,15 +1,15 @@
 // Copyright (c) 2011 libmv authors.
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
 // deal in the Software without restriction, including without limitation the
 // rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
 // sell copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -27,7 +27,7 @@
 
 // In the following code, polynomials are expressed as vectors containing
 // their coeficients in the basis of monomials:
-// 
+//
 //   [xxx xxy xyy yyy xxz xyz yyz xzz yzz zzz xx xy yy xz yz zz x y z 1]
 //
 // Note that there is an error in Stewenius' paper.  In equation (9) they
@@ -93,7 +93,7 @@ Eigen::Matrix<double, -1, 1>  o2(const Eigen::Matrix<double, -1, 1>  &a, const E
 Eigen::MatrixXd FivePointsPolynomialConstraints(const Eigen::MatrixXd &E_basis);
 
 // Gauss--Jordan elimination for the constraint matrix.
-void FivePointsGaussJordan(Eigen::MatrixXd *Mp);
+bool FivePointsGaussJordan(Eigen::MatrixXd *Mp);
 
 template <class IT>
 std::vector<Eigen::Matrix<double, 3, 3>> EssentialFivePoints(IT begin, IT end) {
@@ -104,7 +104,9 @@ std::vector<Eigen::Matrix<double, 3, 3>> EssentialFivePoints(IT begin, IT end) {
   Eigen::MatrixXd M = FivePointsPolynomialConstraints(E_basis);
 
   // Step 3: Gauss-Jordan elimination.
-  FivePointsGaussJordan(&M);
+  if( !FivePointsGaussJordan(&M)){
+    return std::vector<Eigen::Matrix<double, 3, 3> >();
+  }
 
   // For the next steps, follow the matlab code given in Stewenius et al [1].
 
@@ -166,7 +168,7 @@ std::vector<Eigen::Matrix<double, 3, 3>> EssentialNPoints(IT begin, IT end) {
   Eigen::MatrixXd A(count, 9);
   A.setZero();
   EncodeEpipolarEquation(begin, end, &A);
-  
+
   Eigen::VectorXd solution;
   std::vector<Eigen::Matrix<double, 3, 3>> Es;
   if(SolveAX0(A, &solution)){

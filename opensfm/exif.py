@@ -489,7 +489,8 @@ def focal_xy_calibration(exif):
             'k2': 0.0,
             'p1': 0.0,
             'p2': 0.0,
-            'k3': 0.0
+            'k3': 0.0,
+            'k4': 0.0
         }
 
 
@@ -504,14 +505,15 @@ def default_calibration(data):
         'k2': 0.0,
         'p1': 0.0,
         'p2': 0.0,
-        'k3': 0.0
+        'k3': 0.0,
+        'k4': 0.0
     }
 
 
 def calibration_from_metadata(metadata, data):
     """Finds the best calibration in one of the calibration sources."""
     pt = metadata.get('projection_type', default_projection).lower()
-    if pt == 'brown':
+    if pt == 'brown' or pt == 'fisheye_opencv':
         calib = (hard_coded_calibration(metadata)
                  or focal_xy_calibration(metadata)
                  or default_calibration(data))
@@ -541,7 +543,7 @@ def camera_from_exif_metadata(metadata, data,
         camera = pygeometry.Camera.create_brown(
             calib['focal_x'], calib['focal_y'] / calib['focal_x'],
             [calib['c_x'], calib['c_y']],
-            [calib['k1'], calib['k3'], calib['k3'],
+            [calib['k1'], calib['k2'], calib['k3'],
              calib['p1'], calib['p2']])
     elif calib_pt == 'fisheye':
         camera = pygeometry.Camera.create_fisheye(
@@ -550,11 +552,11 @@ def camera_from_exif_metadata(metadata, data,
         camera = pygeometry.Camera.create_fisheye_opencv(
             calib['focal_x'], calib['focal_y'] / calib['focal_x'],
             [calib['c_x'], calib['c_y']],
-            [calib['k1'], calib['k3'], calib['k3'], calib['k4']])
+            [calib['k1'], calib['k2'], calib['k3'], calib['k4']])
     elif calib_pt == 'dual':
         camera = pygeometry.Camera.create_dual(
             calib['transition'], calib['focal'], calib['k1'], calib['k2'])
-    elif calib_pt in ['equirectangular', 'spherical']:
+    elif pygeometry.Camera.is_panorama(calib_pt):
         camera = pygeometry.Camera.create_spherical()
     else:
         raise ValueError("Unknown projection type: {}".format(calib_pt))

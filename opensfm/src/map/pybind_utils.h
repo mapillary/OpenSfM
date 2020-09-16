@@ -1,8 +1,25 @@
 #pragma once
+#include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 #include <map/shot.h>
 NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 NAMESPACE_BEGIN(detail)
+
+// See https://github.com/pybind/pybind11/issues/637
+// Also fbsource/fbcode/caffe2/torch/csrc/jit/python/pybind.h
+
+using ListCasterBase = pybind11::detail::list_caster<std::vector<map::Landmark *>, map::Landmark *>;
+template<> struct type_caster<std::vector<map::Landmark *>> : ListCasterBase {
+    static handle cast(const std::vector<map::Landmark *> &src, return_value_policy, handle parent) {
+        return ListCasterBase::cast(src, return_value_policy::reference, parent);
+    }
+    static handle cast(const std::vector<map::Landmark *> *src, return_value_policy pol, handle parent) {
+        return cast(*src, pol, parent);
+    }
+};
+
+
 enum IteratorType
 {
     // KeyIterator,

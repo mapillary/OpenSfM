@@ -7,7 +7,7 @@ from opensfm import reconstruction
 from opensfm import pysfm
 
 
-def test_track_triangulator_equirectangular():
+def test_track_triangulator_spherical():
     """Test triangulating tracks of spherical images."""
     tracks_manager = pysfm.TracksManager()
     tracks_manager.add_observation('im1', '1', pysfm.Observation(0, 0, 1.0, 0, 0, 0, 0))
@@ -16,7 +16,7 @@ def test_track_triangulator_equirectangular():
     rec = io.reconstruction_from_json({
         "cameras": {
             "theta": {
-                "projection_type": "equirectangular",
+                "projection_type": "spherical",
                 "width": 800,
                 "height": 400,
             }

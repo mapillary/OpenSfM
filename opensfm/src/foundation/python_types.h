@@ -1,5 +1,4 @@
 #pragma once
-
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 
@@ -64,19 +63,8 @@ cv::Mat pyarray_cv_mat_view_typed(T &array, int type) {
   return cv::Mat(height, width, type, array.mutable_data());
 }
 
-template<typename T>
-cv::Mat pyarray_cv_mat_view(T &array);
-
-template<>
 cv::Mat pyarray_cv_mat_view(pyarray_f &array);
-
-template<>
 cv::Mat pyarray_cv_mat_view(pyarray_d &array);
-
-template<>
 cv::Mat pyarray_cv_mat_view(pyarray_int &array);
-
-template<>
 cv::Mat pyarray_cv_mat_view(pyarray_uint8 &array);
-
 }

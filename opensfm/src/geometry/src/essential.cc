@@ -91,8 +91,8 @@ Eigen::MatrixXd FivePointsPolynomialConstraints(const Eigen::MatrixXd &E_basis) 
   int mrow = 0;
 
   // Determinant constraint det(E) = 0; equation (19) of Nister [2].
-  M.row(mrow++) = o2(o1(E[0][1], E[1][2]) - o1(E[0][2], E[1][1]), E[2][0]) + 
-                  o2(o1(E[0][2], E[1][0]) - o1(E[0][0], E[1][2]), E[2][1]) + 
+  M.row(mrow++) = o2(o1(E[0][1], E[1][2]) - o1(E[0][2], E[1][1]), E[2][0]) +
+                  o2(o1(E[0][2], E[1][0]) - o1(E[0][0], E[1][2]), E[2][1]) +
                   o2(o1(E[0][0], E[1][1]) - o1(E[0][1], E[1][0]), E[2][2]);
 
   // Cubic singular values constraint.
@@ -131,12 +131,16 @@ Eigen::MatrixXd FivePointsPolynomialConstraints(const Eigen::MatrixXd &E_basis) 
 }
 
 // Gauss--Jordan elimination for the constraint matrix.
-void FivePointsGaussJordan(Eigen::MatrixXd *Mp) {
+bool FivePointsGaussJordan(Eigen::MatrixXd *Mp) {
   Eigen::MatrixXd &M = *Mp;
 
   // Gauss Elimination.
   for (int i = 0; i < 10; ++i) {
-    M.row(i) /= M(i,i);
+    const auto diagonal = M(i,i);
+    if(diagonal == 0.0){
+      return false;
+    }
+    M.row(i) /= diagonal;
     for (int j = i + 1; j < 10; ++j) {
       M.row(j) = M.row(j) / M(j,i) - M.row(i);
     }
@@ -148,6 +152,7 @@ void FivePointsGaussJordan(Eigen::MatrixXd *Mp) {
       M.row(j) = M.row(j) - M(j,i) * M.row(i);
     }
   }
+  return true;
 }
 
 namespace geometry {

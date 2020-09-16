@@ -1276,7 +1276,7 @@
                     var shot = r['shots'][shot_id];
                     var cam = r['cameras'][shot['camera']];
                     var oc = opticalCenter(shot);
-                    var dir = cam.projection_type == 'equirectangular' ? currentDir : viewingDirection(shot);
+                    var dir = (cam.projection_type == 'spherical' || cam.projection_type == 'equirectangular') ? currentDir : viewingDirection(shot);
                     var motion = oc.clone().sub(currentPosition);
                     var d = currentPosition.distanceTo(oc);
                     var rid = reconstruction_id_of_shot(reconstructions, shot_id);

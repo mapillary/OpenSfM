@@ -26,7 +26,7 @@ public:
   //! max valid distance between landmark and camera
   float min_valid_dist_ = 0;
   //! min valid distance between landmark and camera
-  float max_valid_dist_ = 0; 
+  float max_valid_dist_ = 0;
   size_t GetNumObserved() const { return num_observed_; }
   size_t GetNumObservable() const { return num_observable_; }
 private:
@@ -50,7 +50,7 @@ class Landmark {
 
   // Utility functions
   bool IsObservedInShot(Shot* shot) const { return observations_.count(shot) > 0; }
-  void AddObservation(Shot* shot, const FeatureId feat_id) { observations_.emplace(shot, feat_id); }
+  void AddObservation(Shot* shot, const FeatureId& feat_id) { observations_.emplace(shot, feat_id); }
   void RemoveObservation(Shot* shot);
   bool HasObservations() const { return !observations_.empty(); }
   size_t NumberOfObservations() const { return observations_.size(); }

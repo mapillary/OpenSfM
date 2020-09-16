@@ -54,7 +54,7 @@ def camera_from_json(key, obj):
     elif pt == 'dual':
         camera = pygeometry.Camera.create_dual(obj.get('transition', 0.5), obj['focal'],
                                                obj.get('k1', 0.0), obj.get('k2', 0.0))
-    elif pt in ['equirectangular', 'spherical']:
+    elif pygeometry.Camera.is_panorama(pt):
         camera = pygeometry.Camera.create_spherical()
     else:
         raise NotImplementedError
@@ -220,7 +220,7 @@ def camera_to_json(camera):
             'k2': camera.k2,
             'transition': camera.transition
         }
-    elif camera.projection_type in ['equirectangular', 'spherical']:
+    elif pygeometry.Camera.is_panorama(camera.projection_type):
         return {
             'projection_type': camera.projection_type,
             'width': camera.width,

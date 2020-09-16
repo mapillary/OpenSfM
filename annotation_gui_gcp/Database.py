@@ -1,11 +1,6 @@
 
-from __future__ import print_function
-from __future__ import division
-from __future__ import absolute_import
-from __future__ import unicode_literals
-
 from PIL import Image
-from tqdm import tqdm
+import time
 
 from opensfm import features
 import numpy as np
@@ -16,17 +11,17 @@ from matplotlib.image import _rgb_to_rgba
 
 
 class Database:
-    def __init__(self, _seqs, path, preload_images=True):
+    def __init__(self, seqs, path, preload_images=True):
         self.points = OrderedDict()
+        self.seqs = seqs
         self.path = path
-        self.seqs = _seqs
         self.image_cache = {}
 
         if preload_images:
             print("Preloading images")
-            images = set(self.seqs[0] + self.seqs[1])
-            for image in tqdm(images):
-                self.get_image(image)
+            for keys in self.seqs.values():
+                for k in keys:
+                    self.get_image(k)
 
         p_gcp_errors = self.get_path() + '/gcp_reprojections.json'
         if os.path.exists(p_gcp_errors):
@@ -54,9 +49,6 @@ class Database:
     def get_path(self):
         return self.path
 
-    def get_seqs(self):
-        return self.seqs
-
     def init_points(self, points):
         for point in points:
             point_id, observations = point['id'], point['observations']
@@ -66,19 +58,16 @@ class Database:
                     np.array([observation["projection"]]), w, h)[0]
             self.points[point_id] = observations
 
-    def get_points(self):
-        return self.points
-
-    def get_image(self, img_name):
+    def get_image(self, img_name, max_size=1000):
         if img_name not in self.image_cache:
             rgb = Image.open(self.go_to_image_path() + img_name)
 
             # Reduce to some reasonable maximum size
-            scale = max(rgb.size) / 3000
+            scale = max(rgb.size) / max_size
             if scale > 1:
                 new_w = int(round(rgb.size[0] / scale))
                 new_h = int(round(rgb.size[1] / scale))
-                rgb = rgb.resize((new_w, new_h), resample=Image.NEAREST)
+                rgb = rgb.resize((new_w, new_h), resample=Image.BILINEAR)
 
             # Matplotlib will transform to rgba when plotting
             self.image_cache[img_name] = _rgb_to_rgba(np.asarray(rgb))
@@ -93,7 +82,6 @@ class Database:
         for point_id, observations in self.points.items():
             pair_images = [obs["shot_id"] for obs in observations]
             for observation in observations:
-                # if observation["shot_id"] == main_image and pair_image in pair_images or len(pair_images) == 1:
                 if observation["shot_id"] == main_image:
                     visible_points_coords[point_id] = observation["projection"]
 
@@ -140,16 +128,27 @@ class Database:
         with open(filename, 'wt') as fp:
             json.dump(data, fp, indent=4, sort_keys=True)
 
-    def get_worst_gcp(self):
+    def compute_gcp_errors(self):
+        error_avg = {}
         worst_gcp_error = 0
+        worst_gcp = None
+        shot_worst_gcp = None
+        for gcp_id in self.points:
+            error_avg[gcp_id] = 0
         for gcp_id in self.gcp_reprojections:
             for shot_id in self.gcp_reprojections[gcp_id]:
                 err = self.gcp_reprojections[gcp_id][shot_id]['error']
+                error_avg[gcp_id] += err
                 if err > worst_gcp_error:
                     worst_gcp_error = err
                     shot_worst_gcp = shot_id
                     worst_gcp = gcp_id
-        return worst_gcp, shot_worst_gcp, worst_gcp_error
+            error_avg[gcp_id] /= len(self.gcp_reprojections[gcp_id])
+
+        return worst_gcp, shot_worst_gcp, worst_gcp_error, error_avg
+
+    def get_worst_gcp(self):
+        return self.compute_gcp_errors()[:3]
 
     def remove_gcp(self, point_id):
         if self.point_exists(point_id):
@@ -164,12 +163,15 @@ class Database:
             if shot_id in self.gcp_reprojections[point_id]:
                 self.gcp_reprojections[point_id][shot_id]['error'] = 0
 
-    def bring_next_image(self, image, image_idx):
-        seq = self.seqs[image_idx]
-        next_idx = seq.index(image) + 1
-        return seq[min(next_idx, len(seq) - 1)]
+    def bring_adjacent_image(self, image, skey, offset):
+        self.get_image_index(image, skey)
+        next_idx = self.get_image_index + offset
+        return self.bring_image(skey, next_idx)
 
-    def bring_previous_image(self, image, image_idx):
-        seq = self.seqs[image_idx]
-        previous_idx = seq.index(image) - 1
-        return seq[max(previous_idx, 0)]
+    def get_image_index(self, image, skey):
+        seq = self.seqs[skey]
+        return seq.index(image)
+
+    def bring_image(self, skey, idx):
+        seq = self.seqs[skey]
+        return seq[max(0, min(idx, len(seq) - 1))]

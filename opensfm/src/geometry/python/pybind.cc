@@ -9,8 +9,8 @@
 #include <geometry/relative_pose.h>
 #include <geometry/absolute_pose.h>
 #include <geometry/triangulation.h>
-#include <foundation/python_types.h>
 
+namespace py = pybind11;
 
 PYBIND11_MODULE(pygeometry, m) {
 
@@ -122,6 +122,7 @@ PYBIND11_MODULE(pygeometry, m) {
           p.SetParameterValue(Camera::Parameters::Cy, principal_point[1]);
         })
     .def_property_readonly("projection_type", &Camera::GetProjectionString)
+    .def_static("is_panorama", [](const std::string& s) {return !s.compare("spherical") || !s.compare("equirectangular");})
     .def_property_readonly("k1",[](const Camera& c) {return c.GetParameterValue(Camera::Parameters::K1);})
     .def_property_readonly("k2",[](const Camera& c) {return c.GetParameterValue(Camera::Parameters::K2);})
     .def_property_readonly("k3",[](const Camera& c) {return c.GetParameterValue(Camera::Parameters::K3);})

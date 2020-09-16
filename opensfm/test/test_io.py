@@ -5,13 +5,11 @@ import os.path
 from io import StringIO
 
 import numpy as np
+from opensfm import geo, io
+from opensfm.test import data_generation
 
-from opensfm import geo
-from opensfm import io
 
-
-filename = os.path.join(os.path.dirname(__file__),
-                        'reconstruction_berlin.json')
+filename = os.path.join(data_generation.DATA_PATH, "berlin", "reconstruction_example.json")
 
 
 def test_reconstructions_from_json():
@@ -35,10 +33,10 @@ def test_reconstruction_to_ply():
 
 
 def test_parse_projection():
-    proj = io._parse_projection('WGS84')
+    proj = io._parse_projection("WGS84")
     assert proj is None
 
-    proj = io._parse_projection('WGS84 UTM 31N')
+    proj = io._parse_projection("WGS84 UTM 31N")
     easting, northing = 431760, 4582313.7
     lat, lon = 41.38946, 2.18378
     plon, plat = proj(easting, northing, inverse=True)
@@ -53,8 +51,8 @@ def test_read_gcp_list():
     """
     fp = StringIO(text)
     reference = geo.TopocentricConverter(52.51913, 13.4007, 0)
-    images = ['01.jpg', '02.jpg']
-    exif = {i: {'width': 3000, 'height': 2000} for i in images}
+    images = ["01.jpg", "02.jpg"]
+    exif = {i: {"width": 3000, "height": 2000} for i in images}
 
     points = io.read_gcp_list(fp, reference, exif)
     assert len(points) == 2
@@ -102,13 +100,13 @@ def test_read_write_ground_control_points():
     def check_points(points):
         assert len(points) == 2
         p1, p2 = points
-        if p1.id != '1':
+        if p1.id != "1":
             p1, p2 = p2, p1
 
         assert p1.coordinates.has_value is False
         assert len(p1.observations) == 2
-        assert np.allclose(p2.lla['latitude'], 52.519251158)
-        assert np.allclose(p2.lla['longitude'], 13.400502446)
+        assert np.allclose(p2.lla["latitude"], 52.519251158)
+        assert np.allclose(p2.lla["longitude"], 13.400502446)
         assert np.allclose(p2.coordinates.value[2], 16.7021233002)
         assert len(p2.observations) == 1
 
@@ -135,7 +133,7 @@ def test_json_to_and_from_metadata():
         "gps_position": [4, 5, 6],
         "skey": "test",
         "accelerometer": [7, 8, 9],
-        "compass": {"angle": 10, "accuracy": 45}
+        "compass": {"angle": 10, "accuracy": 45},
     }
     m = io.json_to_pymap_metadata(obj)
     assert m.orientation.value == 10

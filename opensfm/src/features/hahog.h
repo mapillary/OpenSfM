@@ -1,5 +1,4 @@
-#ifndef __HAHOG_H__
-#define __HAHOG_H__
+#pragma once
 
 #include <foundation/python_types.h>
 
@@ -12,5 +11,3 @@ py::object hahog(foundation::pyarray_f image,
                  bool use_adaptive_suppression);
 
 }
-
-#endif // __HAHOG_H__

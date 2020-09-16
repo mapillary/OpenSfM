@@ -1,47 +1,40 @@
 #pragma once
 
+#include <bundle/bundle_adjuster.h>
 #include <ceres/sized_cost_function.h>
 #include <foundation/types.h>
 #include <geometry/camera_functions.h>
-#include <bundle/bundle_adjuster.h>
 
-template <class PointFunc> 
+template <class PointFunc>
 struct BABearingError {
-  BABearingError(const Eigen::Vector3d& bearing,
-                 double bearing_std_deviation,
+  BABearingError(const Eigen::Vector3d& bearing, double bearing_std_deviation,
                  const PointFunc& pos_func)
-      : bearing_(bearing)
-      , bearing_scale_(1.0 / bearing_std_deviation)
-      , pos_func_(pos_func)
-  {}
+      : bearing_(bearing),
+        bearing_scale_(1.0 / bearing_std_deviation),
+        pos_func_(pos_func) {}
 
   template <typename T>
   bool operator()(T const* const* p, T* r) const {
-    Eigen::Map< Eigen::Matrix<T,3,1> > residual(r);
+    Eigen::Map<Eigen::Matrix<T, 3, 1>> residual(r);
     const auto shot_point = pos_func_(p);
-    residual = (bearing_.normalized().template cast<T>() - shot_point.normalized()) * T(bearing_scale_);
+    residual =
+        (bearing_.normalized().template cast<T>() - shot_point.normalized()) *
+        T(bearing_scale_);
     return true;
   }
 
-  Eigen::Vector3d bearing_;
   double bearing_scale_;
+  Eigen::Vector3d bearing_;
   PointFunc pos_func_;
 };
 
 template <typename T>
-void WorldToCameraCoordinates(const T* const shot,
-                              const T world_point[3],
+void WorldToCameraCoordinates(const T* const shot, const T world_point[3],
                               T camera_point[3]) {
-  const T pt[3] = {
-    world_point[0] - shot[BA_SHOT_TX],
-    world_point[1] - shot[BA_SHOT_TY],
-    world_point[2] - shot[BA_SHOT_TZ]
-  };
-  const T Rt[3] = {
-    -shot[BA_SHOT_RX],
-    -shot[BA_SHOT_RY],
-    -shot[BA_SHOT_RZ]
-  };
+  const T pt[3] = {world_point[0] - shot[BA_SHOT_TX],
+                   world_point[1] - shot[BA_SHOT_TY],
+                   world_point[2] - shot[BA_SHOT_TZ]};
+  const T Rt[3] = {-shot[BA_SHOT_RX], -shot[BA_SHOT_RY], -shot[BA_SHOT_RZ]};
   ceres::AngleAxisRotatePoint(Rt, pt, camera_point);
 }
 
@@ -56,12 +49,13 @@ struct BADataPriorError {
     const auto sigma = ba_data->GetSigmaData();
     scales_.resize(sigma.rows(), 1);
     for (int i = 0; i < count_; ++i) {
-      scales_(i) = 1.0 / std::max(sigma(i), std::numeric_limits<double>::epsilon());
+      scales_(i) =
+          1.0 / std::max(sigma(i), std::numeric_limits<double>::epsilon());
     }
   }
 
   void SetScaleType(int index, const ScaleType& type) {
-    if(index > count_){
+    if (index > count_) {
       throw std::runtime_error("Parameter index out-of-range");
     }
     scale_types_[index] = type;
@@ -94,55 +88,57 @@ struct BADataPriorError {
   }
 
  private:
+  BAData<DATA>* ba_data_;
   int count_;
   VecXd scales_;
   std::unordered_map<int, ScaleType>
       scale_types_;  // Per-parameter prior scaling (default is linear)
-  BAData<DATA>* ba_data_;
 };
 
-class ReprojectionError{
-public:
-  ReprojectionError(const ProjectionType& type, const Vec2d& observed, double std_deviation)
+class ReprojectionError {
+ public:
+  ReprojectionError(const ProjectionType& type, const Vec2d& observed,
+                    double std_deviation)
       : type_(type), observed_(observed), scale_(1.0 / std_deviation) {}
 
-protected:
+ protected:
   ProjectionType type_;
   Vec2d observed_;
   double scale_;
 };
 
-class ReprojectionError2D : public ReprojectionError{
-  public:
-   using ReprojectionError::ReprojectionError;
-   constexpr static int Size = 2;
+class ReprojectionError2D : public ReprojectionError {
+ public:
+  using ReprojectionError::ReprojectionError;
+  constexpr static int Size = 2;
 
   template <typename T>
   bool operator()(const T* const camera, const T* const shot,
                   const T* const point, T* residuals) const {
-     T camera_point[3];
-     WorldToCameraCoordinates(shot, point, camera_point);
+    T camera_point[3];
+    WorldToCameraCoordinates(shot, point, camera_point);
 
-     // Apply camera projection
-     T predicted[2];
-     Dispatch<ProjectFunction>(type_, camera_point, camera, predicted);
+    // Apply camera projection
+    T predicted[2];
+    Dispatch<ProjectFunction>(type_, camera_point, camera, predicted);
 
-     // The error is the difference between the predicted and observed position
-     for (int i = 0; i < 2; ++i) {
-       residuals[i] = T(scale_) * (predicted[i] - T(observed_[i]));
-     }
+    // The error is the difference between the predicted and observed position
+    for (int i = 0; i < 2; ++i) {
+      residuals[i] = T(scale_) * (predicted[i] - T(observed_[i]));
+    }
 
-     return true;
+    return true;
   }
 };
 
-template<int C>
-class ReprojectionError2DAnalytic : public ReprojectionError,
-                                    public ceres::SizedCostFunction<2, C, 6, 3> {
+template <int C>
+class ReprojectionError2DAnalytic
+    : public ReprojectionError,
+      public ceres::SizedCostFunction<2, C, 6, 3> {
  public:
   using ReprojectionError::ReprojectionError;
   constexpr static int Size = 2;
-  
+
   bool Evaluate(double const* const* parameters, double* residuals,
                 double** jacobians) const {
     const double* camera = parameters[0];
@@ -161,7 +157,7 @@ class ReprojectionError2DAnalytic : public ReprojectionError,
     else {
       constexpr int CameraSize = C;
       constexpr int PoseSize = 6;
-      
+
       double all_params[PoseSize + CameraSize];
       for (int i = 0; i < PoseSize; ++i) {
         all_params[i] = shot[i];
@@ -172,15 +168,17 @@ class ReprojectionError2DAnalytic : public ReprojectionError,
 
       constexpr int StrideFull = PointSize + CameraSize + PoseSize;
       double jacobian[Size * StrideFull];
-      Dispatch<ProjectPoseDerivatives>(type_, point, &all_params[0], &predicted[0], &jacobian[0]);
+      Dispatch<ProjectPoseDerivatives>(type_, point, &all_params[0],
+                                       &predicted[0], &jacobian[0]);
 
       // Unfold big jacobian stored as | point | pose | camera | per block
       // We also take the opportunity to apply the scale
-      double* jac_camera = jacobians[0], * jac_pose = jacobians[1], * jac_point = jacobians[2];
+      double *jac_camera = jacobians[0], *jac_pose = jacobians[1],
+             *jac_point = jacobians[2];
       if (jac_point) {
         for (int i = 0; i < Size; ++i) {
           for (int j = 0; j < PointSize; ++j) {
-            jac_point[i * PointSize + j] = 
+            jac_point[i * PointSize + j] =
                 scale_ * jacobian[i * StrideFull + j];
           }
         }
@@ -188,7 +186,7 @@ class ReprojectionError2DAnalytic : public ReprojectionError,
       if (jac_pose) {
         for (int i = 0; i < Size; ++i) {
           for (int j = 0; j < PoseSize; ++j) {
-            jac_pose[i * PoseSize + j] = 
+            jac_pose[i * PoseSize + j] =
                 scale_ * jacobian[i * StrideFull + PointSize + j];
           }
         }
@@ -196,7 +194,7 @@ class ReprojectionError2DAnalytic : public ReprojectionError,
       if (jac_camera) {
         for (int i = 0; i < Size; ++i) {
           for (int j = 0; j < CameraSize; ++j) {
-            jac_camera[i * CameraSize + j] = 
+            jac_camera[i * CameraSize + j] =
                 scale_ * jacobian[i * StrideFull + PointSize + PoseSize + j];
           }
         }
@@ -213,7 +211,7 @@ class ReprojectionError2DAnalytic : public ReprojectionError,
 
 class ReprojectionError3D : public ReprojectionError {
  public:
- constexpr static int Size = 3;
+  constexpr static int Size = 3;
 
   ReprojectionError3D(const ProjectionType& type, const Vec2d& observed,
                       double std_deviation)
@@ -272,7 +270,8 @@ class ReprojectionError3DAnalytic
 
       // Unfold big jacobian stored as | point | pose | per block
       // We also take the opportunity to apply the scale
-      double* jac_camera = jacobians[0], * jac_pose = jacobians[1], * jac_point = jacobians[2];
+      double *jac_camera = jacobians[0], *jac_pose = jacobians[1],
+             *jac_point = jacobians[2];
       if (jac_camera) {
         for (int i = 0; i < Size; ++i) {
           jac_camera[i] = 0.;
@@ -281,7 +280,7 @@ class ReprojectionError3DAnalytic
       if (jac_point) {
         for (int i = 0; i < Size; ++i) {
           for (int j = 0; j < PointSize; ++j) {
-            jac_point[i * PointSize + j] = 
+            jac_point[i * PointSize + j] =
                 scale_ * jacobian[i * StrideFull + j];
           }
         }
@@ -289,11 +288,11 @@ class ReprojectionError3DAnalytic
       if (jac_pose) {
         for (int i = 0; i < Size; ++i) {
           for (int j = 0; j < PoseSize; ++j) {
-            jac_pose[i * PoseSize + j] = 
+            jac_pose[i * PoseSize + j] =
                 scale_ * jacobian[i * StrideFull + PointSize + j];
           }
         }
-      }    
+      }
     }
 
     // The error is the difference between the predicted and observed position
