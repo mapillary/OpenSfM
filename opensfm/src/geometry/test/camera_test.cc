@@ -248,7 +248,8 @@ TEST_F(CameraFixture, PerspectiveReturnCorrectK){
 
   Eigen::Matrix3d expected = Eigen::Matrix3d::Identity();
   expected(0, 0) = expected(1, 1) = focal;
-  ASSERT_EQ(expected, camera.GetProjectionMatrix());
+
+  ASSERT_TRUE(expected.isApprox(camera.GetProjectionMatrix()));
 }
 
 TEST_F(CameraFixture, CanSetParameter){
@@ -282,7 +283,8 @@ TEST_F(CameraFixture, PerspectiveReturnCorrectKScaled){
   expected(0, 0) = expected(1, 1) = focal*std::max(pixel_width, pixel_height);
   expected(0, 2) = pixel_width*0.5;
   expected(1, 2) = pixel_height*0.5;
-  ASSERT_EQ(expected, camera.GetProjectionMatrixScaled(pixel_width, pixel_height));
+
+  ASSERT_TRUE(expected.isApprox(camera.GetProjectionMatrixScaled(pixel_width, pixel_height)));
 }
 
 TEST_F(CameraFixture, BrownReturnCorrectK){
@@ -293,7 +295,8 @@ TEST_F(CameraFixture, BrownReturnCorrectK){
   expected(1, 1) = new_ar*focal;
   expected(0, 2) = principal_point(0);
   expected(1, 2) = principal_point(1);
-  ASSERT_EQ(expected, camera.GetProjectionMatrix());
+
+  ASSERT_TRUE(expected.isApprox(camera.GetProjectionMatrix()));
 }
 
 TEST_F(CameraFixture, BrownReturnCorrectKScaled){
@@ -306,7 +309,8 @@ TEST_F(CameraFixture, BrownReturnCorrectKScaled){
   expected(0, 2) = principal_point(0)*normalizer + pixel_width*0.5;
   expected(1, 2) = principal_point(1)*normalizer + pixel_height*0.5;
 
-  ASSERT_EQ(expected, camera.GetProjectionMatrixScaled(pixel_width, pixel_height));
+  ASSERT_TRUE(expected.isApprox(camera.GetProjectionMatrixScaled(pixel_width, pixel_height)));
+
 }
 
 TEST_F(CameraFixture, ComputePerspectiveAnalyticalDerivatives){
