@@ -359,7 +359,7 @@ py::dict BAHelpers::Bundle(
     align_method = DetectAlignmentConstraints(map, config, gcp);
   }
   bool do_add_align_vector = false;
-  Vec3d up_vector(0);
+  Vec3d up_vector = Vec3d::Zero();
   if (align_method.compare("orientation_prior") == 0) {
     const std::string align_orientation_prior =
         config["align_orientation_prior"].cast<std::string>();
