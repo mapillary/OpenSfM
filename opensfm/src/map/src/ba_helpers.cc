@@ -527,7 +527,10 @@ std::string BAHelpers::DetectAlignmentConstraints(
   const auto ratio_1st_2nd = std::abs(evals[2] / evals[1]);
   constexpr double epsilon_abs = 1e-10;
   constexpr double epsilon_ratio = 5e3;
-  const int cond1 = int(evals[0] < epsilon_abs) + int(evals[1] < epsilon_abs) + int(evals[2] < epsilon_abs);
+  int cond1 = 0;
+  for (int i = 0; i < 3; ++i) {
+    cond1 += (evals[i] < epsilon_abs) ? 1 : 0;
+  }
   const bool is_line = cond1 > 1 || ratio_1st_2nd > epsilon_ratio;
   if (is_line) {
     return "orientation_prior";
