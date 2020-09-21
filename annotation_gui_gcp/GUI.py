@@ -185,8 +185,8 @@ class Gui:
 
             toolbox = tk.Frame(canvas_frame)
             toolbox.pack(side='left', expand=False, fill=tk.Y)
-            show_tracks_button = tk.Button(toolbox, text="Auto GCP", command=lambda view=view: self.show_tracks(view))
-            show_tracks_button.pack(side="top")
+            auto_gcp_button = tk.Button(toolbox, text="Auto GCP", command=lambda view=view: self.auto_gcp_show_tracks(view))
+            auto_gcp_button.pack(side="top")
             view.visible_tracks = None
             view.sequence_list_box = CustomListbox(toolbox, font=FONT, width=12)
             view.sequence_list_box.pack(side='top', expand=True, fill=tk.Y)
@@ -211,12 +211,12 @@ class Gui:
                                        self.on_scroll(event))
 
             view.zoomed_in = False
-            view.last_clicked = None
+            view.last_seen_px = {}
             view.plt_artists = []
             self.set_title(view)
 
 
-    def show_tracks(self, view):
+    def auto_gcp_show_tracks(self, view):
         h, w = self.database.get_image_size(view.current_image)
         tracks = get_tracks_visible_in_image(self.database, view.current_image)
 
@@ -246,7 +246,7 @@ class Gui:
         view.visible_tracks = tracks
 
 
-    def create_gcp_from_track(self, view, x, y, add):
+    def auto_gcp_create(self, view, x, y, add):
         # Find track closest to click location and create a GCP from it
         if add:
             points, track_ids = [], []
@@ -265,9 +265,16 @@ class Gui:
         view.visible_tracks = None
         view.tracks_scatter.remove()
         view.canvas.draw()
+        self.populate_sequence_list(view)
 
 
     def analyze(self):
+        # Check that there is a recent ground_control_points.json file
+        t = time.time() - os.path.getmtime(self.database.path + '/ground_control_points.json')
+        if t > 30:
+            print("Please save before running the analysis")
+            return
+
         # Call the run_ba script
         subprocess.run([
             sys.executable,
@@ -427,9 +434,9 @@ class Gui:
             view.figure.canvas.draw_idle()
         elif event.button in (1, 3):
             # Left click or right click
-            view.last_clicked = x, y
+            view.last_seen_px[self.curr_point] = x, y
             if view.visible_tracks:
-                self.create_gcp_from_track(view, x, y, event.button == 1)
+                self.auto_gcp_create(view, x, y, event.button == 1)
             elif self.curr_point is not None:
                 self.add_move_or_remove_gcp(view, x, y, event.button == 1)
             self.populate_sequence_list(view)
@@ -587,15 +594,10 @@ class Gui:
 
     def zoom_logic(self, view):
         gcp_visible = self.point_in_view(view, self.curr_point)
-        if self.sticky_zoom.get() and (self.curr_point and view.last_clicked or gcp_visible):
-            if gcp_visible is not None:
-                # Zoom in to the currently selected GCP if visible
-                x, y = gcp_visible
-                self.zoom_in(view, x, y)
-            else:
-                # Zoom in to the last clicked location if there is a selected GCP
-                x, y = view.last_clicked
-                self.zoom_in(view, x, y)
+        if self.sticky_zoom.get() and self.curr_point in view.last_seen_px:
+            # Zoom in to the last seen location of this GCP
+            x, y = view.last_seen_px[self.curr_point]
+            self.zoom_in(view, x, y)
         else:
             # Show the whole image
             view.subplot.axis("scaled")
@@ -615,6 +617,12 @@ class Gui:
         # if self.if_show_epipolar.get():
         #     for idx, view in enumerate(self.views):
         #             self.show_epipolar_lines(idx)
+
+        # Update 'last seen' coordinates for all gcps in this view
+        for gcp_id in self.database.points:
+            gcp_visible = self.point_in_view(view, gcp_id)
+            if gcp_visible is not None:
+                view.last_seen_px[gcp_id] = gcp_visible
 
         self.zoom_logic(view)
 

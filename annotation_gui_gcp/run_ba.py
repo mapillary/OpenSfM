@@ -91,6 +91,20 @@ def reproject_gcps(gcps, reconstruction):
     return output
 
 
+def get_mean_max_reprojection_errors(gcp_reprojections):
+    max_gcp_reprojection_error = 0
+    mean_gcp_reprojection_error = []
+    for gcp_id in gcp_reprojections:
+        for shot_id in gcp_reprojections[gcp_id]:
+            e = gcp_reprojections[gcp_id][shot_id]['error']
+            mean_gcp_reprojection_error.append(e)
+            if e > max_gcp_reprojection_error:
+                max_gcp_reprojection_error = e
+    mean_gcp_reprojection_error = np.mean(mean_gcp_reprojection_error)
+    median_gcp_reprojection_error = np.median(mean_gcp_reprojection_error)
+    return mean_gcp_reprojection_error, max_gcp_reprojection_error, median_gcp_reprojection_error
+
+
 def compute_gcp_std(gcp_errors):
     """Compute the standard deviation of reprojection errors of all gcps."""
     all_errors = []
@@ -270,11 +284,12 @@ def main():
     data.save_reconstruction([merged], 'reconstruction_gcp_ba.json')
 
     gcp_reprojections = reproject_gcps(gcps, merged)
+    mean_reprojection_error, max_reprojection_error, median_reprojection_error = get_mean_max_reprojection_errors(gcp_reprojections)
     with open(data.data_path + '/gcp_reprojections.json', 'w') as f:
         json.dump(gcp_reprojections, f, indent=4, sort_keys=True)
 
     gcp_std = compute_gcp_std(gcp_reprojections)
-    print("GCP standard deviation:", gcp_std)
+    print("GCP reprojection error STD:", gcp_std)
 
     resplit = resplit_reconstruction(merged, reconstructions)
     data.save_reconstruction(resplit, 'reconstruction_gcp_ba_resplit.json')
@@ -290,7 +305,10 @@ def main():
             if shot.id in reconstructions[rec_ixs[1]].shots:
                 u, std = decompose_covariance(shot.covariance[3:, 3:])
                 all_shots_std.append((shot.id, np.linalg.norm(std)))
-                print(shot.id, 'position std:', std)
+                print(shot.id, 'position std:', np.linalg.norm(std))
+    # Average positional STD
+    average_shot_std = np.mean([t[1] for t in all_shots_std])
+    median_shot_std = np.median([t[1] for t in all_shots_std])
 
     # Save the shot STD to a file
     with open(data.data_path + '/shots_std.csv', 'w') as f:
@@ -298,7 +316,18 @@ def main():
         for t in s:
             line = "{}, {}".format(*t)
             f.write(line + '\n')
-    print("Worst shot: {} with std norm: {}".format(s[0][0], s[0][1]))
+
+    print("=============== Key metrics ================")
+
+    print("Position STD")
+    print(f"   max: {s[0][1]} ({s[0][0]})")
+    print(f"  mean: {average_shot_std}")
+    print(f"median: {median_shot_std}")
+
+    print("Reprojection errors [in px / max(w,h)]")
+    print(f"   max: {max_reprojection_error}")
+    print(f"  mean: {mean_reprojection_error}")
+    print(f"median: {median_reprojection_error}")
 
 
 if __name__ == "__main__":
