@@ -10,11 +10,11 @@ bool IsInsideImage(const cv::Mat &image, int i, int j) {
 
 template<typename T>
 float LinearInterpolation(const cv::Mat &image, float y, float x) {
-  int ix = int(x);
-  int iy = int(y);
-  if (ix < 0 || ix + 1 >= image.cols || iy < 0 || iy + 1 >= image.rows) {
+  if (x < 0.0f || x >= image.cols-1 || y < 0.0f || y >= image.rows-1) {
     return 0.0f;
   }
+  int ix = int(x);
+  int iy = int(y);
   float dx = x - ix;
   float dy = y - iy;
   float im00 = image.at<T>(iy, ix);
@@ -53,6 +53,9 @@ void NCCEstimator::Push(float x, float y, float w) {
 }
 
 float NCCEstimator::Get() {
+  if(sumw_ == 0.0){
+    return -1;
+  }
   float meanx = sumx_ / sumw_;
   float meany = sumy_ / sumw_;
   float meanxx = sumxx_ / sumw_;
@@ -71,6 +74,11 @@ void ApplyHomography(const cv::Matx33f &H,
                      float x1, float y1,
                      float *x2, float *y2) {
   float w = H(2, 0) * x1 + H(2, 1) * y1 + H(2, 2);
+  if(w == 0.0){
+    *x2 = 0.0f;
+    *y2 = 0.0f;
+    return;
+  }
   *x2 = (H(0, 0) * x1 + H(0, 1) * y1 + H(0, 2)) / w;
   *y2 = (H(1, 0) * x1 + H(1, 1) * y1 + H(1, 2)) / w;
 }
@@ -333,6 +341,9 @@ void DepthmapEstimator::PatchMatchUpdatePixel(DepthmapEstimatorResult *result,
     float depth = current_depth * exp(depth_range * unit_normal_(rng_));
 
     cv::Vec3f current_plane = result->plane.at<cv::Vec3f>(i, j);
+    if(current_plane(2) == 0.0){
+      continue;
+    }
     cv::Vec3f normal(-current_plane(0) / current_plane(2)
                        + normal_range * unit_normal_(rng_),
                      -current_plane(1) / current_plane(2)
@@ -440,6 +451,10 @@ float DepthmapEstimator::ComputePlaneImageScore(int i, int j,
   float v = H(1, 0) * j + H(1, 1) * i + H(1, 2);
   float w = H(2, 0) * j + H(2, 1) * i + H(2, 2);
 
+  if (w == 0.0) {
+    return -1.0f;
+  }
+
   float dfdx_x = (H(0, 0) * w - H(2, 0) * u) / (w * w);
   float dfdx_y = (H(1, 0) * w - H(2, 0) * v) / (w * w);
   float dfdy_x = (H(0, 1) * w - H(2, 1) * u) / (w * w);
@@ -483,7 +498,7 @@ void DepthmapEstimator::PostProcess(DepthmapEstimatorResult *result) {
     for (int j = 0; j < result->depth.cols; ++j) {
       float d = result->depth.at<float>(i, j);
       float m = depth_filtered.at<float>(i, j);
-      if (fabs(d - m) / d > 0.05) {
+      if (d == 0.0 || fabs(d - m) / d > 0.05) {
         result->depth.at<float>(i, j) = 0;
       }
     }
@@ -520,6 +535,9 @@ void DepthmapCleaner::Clean(cv::Mat *clean_depth) {
       int consistent_views = 1;
       for (int other = 1; other < depths_.size(); ++other) {
         cv::Vec3f reprojection = Project(point, Ks_[other], Rs_[other], ts_[other]);
+        if(reprojection(2) == 0.0){
+          continue;
+        }
         float u = reprojection(0) / reprojection(2);
         float v = reprojection(1) / reprojection(2);
         float depth_of_point = reprojection(2);
@@ -577,6 +595,9 @@ void DepthmapPruner::Prune(std::vector<float> *merged_points,
       bool keep = true;
       for (int other = 1; other < depths_.size(); ++other) {
         cv::Vec3d reprojection = Project(point, Ks_[other], Rs_[other], ts_[other]);
+        if(reprojection(2) == 0.0){
+          continue;
+        }
         int iu = int(reprojection(0) / reprojection(2) + 0.5f);
         int iv = int(reprojection(1) / reprojection(2) + 0.5f);
         float depth_of_point = reprojection(2);
@@ -586,8 +607,10 @@ void DepthmapPruner::Prune(std::vector<float> *merged_points,
         float depth_at_reprojection = depths_[other].at<float>(iv, iu);
         if (depth_at_reprojection > (1 - same_depth_threshold_) * depth_of_point) {
           cv::Vec3f normal_at_reprojection = cv::normalize(planes_[other].at<cv::Vec3f>(iv, iu));
-          float area_at_reprojection = -normal_at_reprojection(2) / depth_at_reprojection * Ks_[other](0, 0);
-          if (area_at_reprojection > area) {
+          if ((depth_at_reprojection == 0.0) ||
+              (-normal_at_reprojection(2) / depth_at_reprojection *
+                   Ks_[other](0, 0) >
+               area)) {
             keep = false;
             break;
           }

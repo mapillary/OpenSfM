@@ -75,7 +75,7 @@ def test_normal_line_msac():
 
     confidence = 0.95   # 1.96*MAD -> 95% rejecting inliers
     assert np.isclose(len(result.inliers_indices), samples,
-                      rtol=(1 - confidence), atol=7)
+                      rtol=(1 - confidence), atol=8)
 
 
 def test_outliers_line_msac():
@@ -116,7 +116,7 @@ def test_normal_line_LMedS():
 
     confidence = 0.95   # 1.96*MAD -> 95% rejecting inliers
     assert np.isclose(len(result.inliers_indices), samples,
-                      rtol=(1 - confidence), atol=8)
+                      rtol=(1 - confidence), atol=11)
 
 
 def test_outliers_line_LMedS():
