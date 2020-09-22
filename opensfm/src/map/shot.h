@@ -70,6 +70,8 @@ class Shot {
   // outside of the reconstruction.
   Shot(const ShotId& shot_id, std::unique_ptr<Camera> cam, const geometry::Pose& pose);
 
+  ShotId GetId() const { return id_; }
+
   const DescriptorType GetDescriptor(const FeatureId id) const {
     return descriptors_.row(id);
   }

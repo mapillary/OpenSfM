@@ -6,6 +6,24 @@
 #include <map/map.h>
 
 #include <chrono>
+
+std::pair<std::unordered_set<map::ShotId>, std::unordered_set<map::ShotId>>
+BAHelpers::ShotNeighborhoodIds(map::Map& map, const map::ShotId& central_shot_id,
+                               size_t radius, size_t min_common_points,
+                               size_t max_interior_size) {
+  auto res = ShotNeighborhood(map, central_shot_id, radius, min_common_points, max_interior_size);
+  std::unordered_set<map::ShotId> interior;
+  for (map::Shot *shot : res.first) {
+    interior.insert(shot->GetId());
+  }
+  std::unordered_set<map::ShotId> boundary;
+  for (map::Shot *shot : res.second) {
+    boundary.insert(shot->GetId());
+  }
+  return std::make_pair(interior, boundary);
+}
+
+
 /**Reconstructed shots near a given shot.
 
 Returns:
@@ -18,8 +36,8 @@ min_common_points points with shots at distance n.
 */
 std::pair<std::unordered_set<map::Shot*>, std::unordered_set<map::Shot*>>
 BAHelpers::ShotNeighborhood(map::Map& map, const map::ShotId& central_shot_id,
-                            const size_t radius, const size_t min_common_points,
-                            const size_t max_interior_size) {
+                            size_t radius, size_t min_common_points,
+                            size_t max_interior_size) {
   constexpr size_t MaxBoundarySize{1000000};
   std::unordered_set<map::Shot*> interior;
   interior.insert(map.GetShot(central_shot_id));

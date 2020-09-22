@@ -26,11 +26,16 @@ class BAHelpers {
       const map::ShotId& central_shot_id,
       const py::dict& config);
 
+  static std::pair<std::unordered_set<map::ShotId>,
+                   std::unordered_set<map::ShotId>>
+  ShotNeighborhoodIds(map::Map& map, const map::ShotId& central_shot_id,
+                      size_t radius, size_t min_common_points,
+                      size_t max_interior_size);
   static std::pair<std::unordered_set<map::Shot*>,
                    std::unordered_set<map::Shot*>>
   ShotNeighborhood(map::Map& map, const map::ShotId& central_shot_id,
-                   const size_t radius, const size_t min_common_points,
-                   const size_t max_interior_size);
+                   size_t radius, size_t min_common_points,
+                   size_t max_interior_size);
   static std::string DetectAlignmentConstraints(
       const map::Map& map, const py::dict& config,
       const AlignedVector<map::GroundControlPoint>& gcp);
