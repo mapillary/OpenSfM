@@ -30,6 +30,12 @@ public:
   bool HasCamera(const CameraId& cam_id) const {
     return cameras_.count(cam_id) > 0;
   }
+  const std::unordered_map<CameraId, Camera>& GetCameras() const {
+    return cameras_;
+  }
+  std::unordered_map<CameraId, Camera>& GetCameras() {
+    return cameras_;
+  }
 
   // Shot Methods
   Shot* CreateShot(const ShotId& shot_id, const CameraId& camera_id);
@@ -63,6 +69,7 @@ public:
   void RemoveLandmark(const LandmarkId& lm_id);
   void ReplaceLandmark(Landmark* old_lm, Landmark* new_lm);
   const std::unordered_map<LandmarkId, Landmark>& GetAllLandmarks() const { return landmarks_; };
+  std::unordered_map<LandmarkId, Landmark>& GetAllLandmarks() { return landmarks_; };
   LandmarkView GetLandmarkView() { return LandmarkView(*this); }
 
   //Observation methods

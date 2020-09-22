@@ -83,13 +83,12 @@ def test_bundle_projection_fixed_internals(scene_synthetic):
                                         color[0], color[1], color[2])
                 reference.map.add_observation(shot_id, point_id, obs)
 
-    
     orig_camera = copy.deepcopy(reference.cameras['1'])
 
     custom_config = config.default_config()
     custom_config['bundle_use_gps'] = False
     custom_config['optimize_camera_parameters'] = False
-    reconstruction.bundle(reference, camera_priors, {}, custom_config)
+    reconstruction.bundle(reference, camera_priors, [], custom_config)
 
     assert _projection_errors_std(reference.points) < 5e-3
     assert reference.cameras['1'].focal == orig_camera.focal

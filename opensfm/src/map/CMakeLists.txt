@@ -2,18 +2,22 @@ set(MAP_FILES
   shot.h
   landmark.h
   map.h
+  ground_control_points.h
   defines.h
   src/landmark.cc
   src/map.cc
   src/shot.cc
   dataviews.h
   src/dataviews.cc
+  ba_helpers.h
+  src/ba_helpers.cc
 )
 
 add_library(map ${MAP_FILES})
 target_link_libraries(map
   PUBLIC
     geometry
+    pybind11
 )
 
 target_include_directories(map 
@@ -28,6 +32,8 @@ target_link_libraries(pymap
   PRIVATE
     map
     geometry
+    bundle
+    pybind11
 )
 
 set(MAP_TEST_FILES
