@@ -303,6 +303,9 @@ class EXIF:
             altitude = self.extract_dji_altitude()
         elif 'GPS GPSAltitude' in self.tags:
             altitude = eval_frac(self.tags['GPS GPSAltitude'].values[0])
+            # Check if GPSAltitudeRef is equal to 1, which means GPSAltitude should be negative, reference: http://www.exif.org/Exif2-2.PDF#page=53
+            if 'GPS GPSAltitudeRef' in self.tags and self.tags['GPS GPSAltitudeRef'].values[0] == 1:
+                altitude = -altitude
         else:
             altitude = None
         return altitude
