@@ -9,10 +9,12 @@
 
 Eigen::Matrix3d RotationMatrixAroundAxis(const double cos_theta, const double sin_theta, const Eigen::Vector3d& v);
 
-// Implements "An Efficient Algebraic Solution to the 
+// Implements "An Efficient Algebraic Solution to the
 // Perspective-Three-Point Problem" from Ke and al.
 template <class IT>
 std::vector<Eigen::Matrix<double, 3, 4>> AbsolutePoseThreePoints(IT begin, IT end) {
+  std::vector<Eigen::Matrix<double, 3, 4>> RTs;
+
   const Eigen::Vector3d  b1 = begin->first;
   const Eigen::Vector3d b2 = (begin+1)->first;
   const Eigen::Vector3d b3 = (begin+2)->first;
@@ -38,6 +40,9 @@ std::vector<Eigen::Matrix<double, 3, 4>> AbsolutePoseThreePoints(IT begin, IT en
 
   // Compute fij's
   const auto k3_b3 = k3.dot(b3);
+  if (k3_b3 == 0.0) {
+    return RTs;
+  }
   const auto b1_b2 = b1.cross(b2).norm();
   const auto f11 = sigma*k3_b3;
   const auto f21 = sigma*b1.dot(b2)*k3_b3;
@@ -78,14 +83,12 @@ std::vector<Eigen::Matrix<double, 3, 4>> AbsolutePoseThreePoints(IT begin, IT en
   e1 << 1, 0, 0;
   e2 << 0, 1, 0;
 
-  std::vector<Eigen::Matrix<double, 3, 4>> RTs;
-
   constexpr double eps = 1e-20;
   for(const auto& root : roots){
     const auto cos_theta_1 = root;
     const auto sin_theta_1 = Sign(k3_b3)*std::sqrt(1.0-SQUARE(cos_theta_1));
     const auto t = sin_theta_1/(g5*SQUARE(cos_theta_1) + g6*cos_theta_1 + g7);
-    
+
     const auto cos_theta_3 = t*(g1*cos_theta_1 + g2);
     const auto sin_theta_3 = t*(g3*cos_theta_1 + g4);
 

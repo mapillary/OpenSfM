@@ -32,9 +32,9 @@ struct BARelativeMotionError {
   }
 
   template <typename T>
-  bool operator()(const T* const shot_i, 
+  bool operator()(const T* const shot_i,
                   const T* const scale,
-                  const T* const shot_j, 
+                  const T* const shot_j,
                   T* r) const {
     Eigen::Map< Eigen::Matrix<T,6,1> > residual(r);
     residual = scale_matrix_.cast<T>()*Error(shot_i, scale, shot_j);
@@ -56,6 +56,9 @@ struct BARelativeSimilarityError : public BARelativeMotionError {
                   T* r) const {
     Eigen::Map< Eigen::Matrix<T,7,1> > residual(r);
     residual.segment(0, 6) = BARelativeMotionError::Error(shot_i, scale_j, shot_j);
+    if(scale_i[0] == T(0.0)){
+      return false;
+    }
     residual(6) = (T(Sij_) - scale_j[0] / scale_i[0]);
     residual = scale_matrix_.cast<T>()*residual;
     return true;

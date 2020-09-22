@@ -13,7 +13,6 @@ def run_command(command, args):
 
 def test_run_all(tmpdir):
     data = data_generation.create_berlin_test_folder(tmpdir)
-
     run_all_commands = [
         commands.extract_metadata,
         commands.detect_features,
