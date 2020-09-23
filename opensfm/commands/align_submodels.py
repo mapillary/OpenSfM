@@ -1,19 +1,13 @@
-from opensfm.large import metadataset
-from opensfm.large import tools
+from . import command
+from opensfm.actions import align_submodels
 
 
-class Command:
+class Command(command.CommandBase):
     name = 'align_submodels'
     help = 'Align submodel reconstructions'
 
-    def add_arguments(self, parser):
-        parser.add_argument('dataset', help='dataset to process')
+    def run_impl(self, dataset, args):
+        align_submodels.run_dataset(dataset)
 
-    def run(self, args):
-        meta_data = metadataset.MetaDataSet(args.dataset)
-        reconstruction_shots = tools.load_reconstruction_shots(meta_data)
-        transformations = \
-            tools.align_reconstructions(reconstruction_shots,
-                                        tools.partial_reconstruction_name,
-                                        True)
-        tools.apply_transformations(transformations)
+    def add_arguments_impl(self, parser):
+        pass

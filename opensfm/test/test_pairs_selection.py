@@ -41,9 +41,8 @@ def lund_path(tmpdir_factory):
     data_generation.save_config({"matcher_type": "WORDS"}, path)
 
     args = Args(path)
-    data = dataset.DataSet(path)
-    commands.extract_metadata.Command().run_dataset(args, data)
-    commands.detect_features.Command().run_dataset(args, data)
+    commands.extract_metadata.Command().run(args)
+    commands.detect_features.Command().run(args)
 
     return path
 

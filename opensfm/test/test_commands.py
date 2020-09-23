@@ -1,5 +1,14 @@
+import argparse
+
 from opensfm import commands
 from opensfm.test import data_generation
+
+
+def run_command(command, args):
+    parser = argparse.ArgumentParser()
+    command.add_arguments(parser)
+    parsed_args = parser.parse_args(args)
+    command.run(parsed_args)
 
 
 def test_run_all(tmpdir):
@@ -24,7 +33,7 @@ def test_run_all(tmpdir):
 
     for module in run_all_commands:
         command = module.Command()
-        command.run_dataset(command.options_type(), data)
+        run_command(command, [data.data_path])
 
     reconstruction = data.load_reconstruction()
     assert len(reconstruction[0].shots) == 3
