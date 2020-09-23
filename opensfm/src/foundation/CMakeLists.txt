@@ -24,13 +24,15 @@ target_include_directories(foundation
     ${CMAKE_SOURCE_DIR}
 )
 
-set(FOUNDATION_TEST_FILES
-    test/newton_raphson_test.cc
-)
-add_executable(foundation_test ${FOUNDATION_TEST_FILES})
-target_include_directories(foundation_test PRIVATE ${CMAKE_SOURCE_DIR} ${GMOCK_INCLUDE_DIRS})
-target_link_libraries(foundation_test
-                      PUBLIC
-                      foundation
-                      ${TEST_MAIN})
-add_test(foundation_test foundation_test)
+if (OPENSFM_BUILD_TESTS)
+    set(FOUNDATION_TEST_FILES
+        test/newton_raphson_test.cc
+    )
+    add_executable(foundation_test ${FOUNDATION_TEST_FILES})
+    target_include_directories(foundation_test PRIVATE ${CMAKE_SOURCE_DIR} ${GMOCK_INCLUDE_DIRS})
+    target_link_libraries(foundation_test
+                          PUBLIC
+                          foundation
+                          ${TEST_MAIN})
+    add_test(foundation_test foundation_test)
+endif()
