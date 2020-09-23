@@ -4,24 +4,23 @@ from timeit import default_timer as timer
 import numpy as np
 
 from opensfm import bow
-from opensfm import dataset
 from opensfm import features
 from opensfm import io
 from opensfm import log
 from opensfm.context import parallel_map
+from . import command
+
 
 logger = logging.getLogger(__name__)
 
 
-class Command:
-    name = 'detect_features'
-    help = 'Compute features for all images'
+class Command(command.CommandBase):
+    def __init__(self):
+        super(Command, self).__init__()
+        self.name = "detect_features"
+        self.help = "Compute features for all images"
 
-    def add_arguments(self, parser):
-        parser.add_argument('dataset', help='dataset to process')
-
-    def run(self, args):
-        data = dataset.DataSet(args.dataset)
+    def run_dataset(self, options, data):
         images = data.images()
 
         arguments = [(image, data) for image in images]

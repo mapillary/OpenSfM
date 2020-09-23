@@ -3,41 +3,46 @@ import os
 
 import numpy as np
 
-from opensfm import dataset, io
+from opensfm import dataset
+from opensfm import io
 from opensfm.dense import depthmap_to_ply, scale_down_image
+from . import command
+
 
 logger = logging.getLogger(__name__)
 
 
-class Command:
-    name = 'export_ply'
-    help = "Export reconstruction to PLY format"
+class Command(command.CommandBase):
+    def __init__(self):
+        super(Command, self).__init__()
+        self.name = "export_ply"
+        self.help = "Export reconstruction to PLY format"
 
-    def add_arguments(self, parser):
-        parser.add_argument('dataset', help='dataset to process')
-        parser.add_argument('--no-cameras',
-                            action='store_true',
-                            default=False,
-                            help='Do not save camera positions')
-        parser.add_argument('--no-points',
-                            action='store_true',
-                            default=False,
-                            help='Do not save points')
-        parser.add_argument('--depthmaps',
-                            action='store_true',
-                            default=False,
-                            help='Export per-image depthmaps as pointclouds')
+        self.args["--no-cameras"] = {
+            "help": "Do not save camera positions",
+            "action": "store_true",
+            "default": False,
+        }
+        self.args["--no-points"] = {
+            "help": "Do not save points",
+            "action": "store_true",
+            "default": False,
+        }
+        self.args["--depthmaps"] = {
+            "help": "Export per-image depthmaps as pointclouds",
+            "action": "store_true",
+            "default": False,
+        }
 
-    def run(self, args):
-        data = dataset.DataSet(args.dataset)
+    def run_dataset(self, options, data):
         reconstructions = data.load_reconstruction()
-        no_cameras = args.no_cameras
-        no_points = args.no_points
+        no_cameras = options.no_cameras
+        no_points = options.no_points
 
         if reconstructions:
             data.save_ply(reconstructions[0], None, no_cameras, no_points)
 
-        if args.depthmaps and reconstructions:
+        if options.depthmaps and reconstructions:
             udata = dataset.UndistortedDataSet(data, 'undistorted')
             for id, shot in reconstructions[0].shots.items():
                 rgb = udata.load_undistorted_image(id)

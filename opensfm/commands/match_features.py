@@ -1,28 +1,21 @@
 import logging
 from timeit import default_timer as timer
 
-import numpy as np
-
-from opensfm import dataset
 from opensfm import io
-from opensfm import log
 from opensfm import matching
-from opensfm import pairs_selection
-from opensfm.context import parallel_map
+from . import command
 
 
 logger = logging.getLogger(__name__)
 
 
-class Command:
-    name = 'match_features'
-    help = 'Match features between image pairs'
+class Command(command.CommandBase):
+    def __init__(self):
+        super(Command, self).__init__()
+        self.name = "match_features"
+        self.help = "Match features between image pairs"
 
-    def add_arguments(self, parser):
-        parser.add_argument('dataset', help='dataset to process')
-
-    def run(self, args):
-        data = dataset.DataSet(args.dataset)
+    def run_dataset(self, options, data):
         images = data.images()
 
         start = timer()

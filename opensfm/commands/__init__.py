@@ -18,6 +18,7 @@ from . import export_geocoords
 from . import create_submodels
 from . import align_submodels
 
+from .command_runner import command_runner
 
 opensfm_commands = [
     extract_metadata,

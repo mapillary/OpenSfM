@@ -45,25 +45,27 @@ from struct import pack
 
 import numpy as np
 
-from opensfm import dataset
 from opensfm import features
 from opensfm import io
 from opensfm import matching
+from . import command
+
 
 logger = logging.getLogger(__name__)
 
 
-class Command:
-    name = 'export_colmap'
-    help = "Export reconstruction to colmap format"
+class Command(command.CommandBase):
+    def __init__(self):
+        super(Command, self).__init__()
+        self.name = "export_colmap"
+        self.help = "Export reconstruction to COLMAP format"
 
-    def add_arguments(self, parser):
-        parser.add_argument('dataset', help='dataset to process')
-        parser.add_argument('--binary', help='export using binary format', action='store_true')
+        self.args["binary"] = {
+            "help": "Export using binary format'",
+            "action": "store_true",
+        }
 
-    def run(self, args):
-        data = dataset.DataSet(args.dataset)
-
+    def run_dataset(self, options, data):
         export_folder = os.path.join(data.data_path, 'colmap_export')
         io.mkdir_p(export_folder)
 
@@ -81,10 +83,10 @@ class Command:
 
         if data.reconstruction_exists():
             export_ini_file(export_folder, database_path, images_path)
-            export_cameras_reconstruction(data, export_folder, camera_map, args.binary)
-            points_map = export_points_reconstruction(data, export_folder, images_map, args.binary)
+            export_cameras_reconstruction(data, export_folder, camera_map, options.binary)
+            points_map = export_points_reconstruction(data, export_folder, images_map, options.binary)
             export_images_reconstruction(data, export_folder, camera_map, images_map,
-                                         features_map, points_map, args.binary)
+                                         features_map, points_map, options.binary)
         db.commit()
         db.close()
 

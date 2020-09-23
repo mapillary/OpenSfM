@@ -1,23 +1,22 @@
 import logging
 import time
 
-from opensfm import dataset
 from opensfm import io
 from opensfm import reconstruction
+from . import command
+
 
 logger = logging.getLogger(__name__)
 
 
-class Command:
-    name = 'reconstruct'
-    help = "Compute the reconstruction"
+class Command(command.CommandBase):
+    def __init__(self):
+        super(Command, self).__init__()
+        self.name = "reconstruct"
+        self.help = "Compute the reconstruction"
 
-    def add_arguments(self, parser):
-        parser.add_argument('dataset', help='dataset to process')
-
-    def run(self, args):
+    def run_dataset(self, options, data):
         start = time.time()
-        data = dataset.DataSet(args.dataset)
         tracks_manager = data.load_tracks_manager()
         report, reconstructions = reconstruction.\
             incremental_reconstruction(data, tracks_manager)

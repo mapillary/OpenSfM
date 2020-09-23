@@ -41,18 +41,15 @@ def lund_path(tmpdir_factory):
     data_generation.save_config({"matcher_type": "WORDS"}, path)
 
     args = Args(path)
-    commands.extract_metadata.Command().run(args)
-    commands.detect_features.Command().run(args)
+    data = dataset.DataSet(path)
+    commands.extract_metadata.Command().run_dataset(args, data)
+    commands.detect_features.Command().run_dataset(args, data)
 
     return path
 
 
 def match_candidates_from_metadata(data, neighbors=NEIGHBORS, assert_count=NEIGHBORS):
     assert neighbors >= assert_count
-
-    args = Args(data.data_path)
-    commands.extract_metadata.Command().run(args)
-    commands.detect_features.Command().run(args)
 
     ims = sorted(data.images())
     ims_ref = ims[:1]

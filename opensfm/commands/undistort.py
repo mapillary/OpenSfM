@@ -13,51 +13,44 @@ from opensfm import types
 from opensfm import pysfm
 from opensfm import pygeometry
 from opensfm.context import parallel_map
+from . import command
 
 
 logger = logging.getLogger(__name__)
 
 
-class Command:
-    name = 'undistort'
-    help = "Save radially undistorted images"
+class Command(command.CommandBase):
+    def __init__(self):
+        super(Command, self).__init__()
+        self.name = "undistort"
+        self.help = "Save radially undistorted images"
 
-    def add_arguments(self, parser):
-        parser.add_argument(
-            'dataset',
-            help='dataset to process',
-        )
-        parser.add_argument(
-            '--reconstruction',
-            help='reconstruction to undistort',
-        )
-        parser.add_argument(
-            '--reconstruction-index',
-            help='index of the reconstruction component to undistort',
-            type=int,
-            default=0,
-        )
-        parser.add_argument(
-            '--tracks',
-            help='tracks graph of the reconstruction',
-        )
-        parser.add_argument(
-            '--output',
-            help='output folder',
-            default='undistorted',
-        )
+        self.args["--reconstruction"] = {
+            "help": "reconstruction to undistort",
+        }
+        self.args["--reconstruction-index"] = {
+            "help": "index of the reconstruction component to undistort",
+            "default": 0,
+            "type": int,
+        }
+        self.args["--tracks"] = {
+            "help": "tracks graph of the reconstruction",
+        }
+        self.args["--output"] = {
+            "help": "output folder",
+            "default": "undistorted"
+        }
 
-    def run(self, args):
-        data = dataset.DataSet(args.dataset)
-        udata = dataset.UndistortedDataSet(data, args.output)
-        reconstructions = data.load_reconstruction(args.reconstruction)
-        if data.tracks_exists(args.tracks):
-            tracks_manager = data.load_tracks_manager(args.tracks)
+    def run_dataset(self, options, data):
+        udata = dataset.UndistortedDataSet(data, options.output)
+        reconstructions = data.load_reconstruction(options.reconstruction)
+        if data.tracks_exists(options.tracks):
+            tracks_manager = data.load_tracks_manager(options.tracks)
         else:
             tracks_manager = None
 
         if reconstructions:
-            r = reconstructions[args.reconstruction_index]
+            r = reconstructions[options.reconstruction_index]
             self.undistort_reconstruction(tracks_manager, r, data, udata)
 
     def undistort_reconstruction(self, tracks_manager, reconstruction, data, udata):

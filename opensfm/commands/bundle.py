@@ -2,35 +2,35 @@ import logging
 import time
 
 import opensfm.reconstruction as orec
-from opensfm import dataset
+from . import command
+
 
 logger = logging.getLogger(__name__)
 
 
-class Command:
-    name = 'bundle'
-    help = "Bundle a reconstruction"
+class Command(command.CommandBase):
+    def __init__(self):
+        super(Command, self).__init__()
+        self.name = "bundle"
+        self.help = "Bundle a reconstruction"
 
-    def add_arguments(self, parser):
-        parser.add_argument('dataset', help="dataset to process")
-        parser.add_argument(
-            '--input',
-            help="file name of the reconstruction to bundle")
-        parser.add_argument(
-            '--output',
-            help="file name where to store the bundled reconstruction")
+        self.args["--input"] = {
+            "help": "File name of the reconstruction to bundle",
+        }
+        self.args["--output"] = {
+            "help": "File name where to store the bundled reconstruction'",
+        }
 
-    def run(self, args):
+    def run_dataset(self, options, dataset):
         start = time.time()
-        data = dataset.DataSet(args.dataset)
-        reconstructions = data.load_reconstruction(args.input)
-        camera_priors = data.load_camera_models()
-        gcp = data.load_ground_control_points()
+        reconstructions = dataset.load_reconstruction(options.input)
+        camera_priors = dataset.load_camera_models()
+        gcp = dataset.load_ground_control_points()
 
         for reconstruction in reconstructions:
-            orec.bundle(reconstruction, camera_priors, gcp, data.config)
+            orec.bundle(reconstruction, camera_priors, gcp, dataset.config)
 
         end = time.time()
-        with open(data.profile_log(), 'a') as fout:
+        with open(dataset.profile_log(), 'a') as fout:
             fout.write('bundle: {0}\n'.format(end - start))
-        data.save_reconstruction(reconstructions, args.output)
+        dataset.save_reconstruction(reconstructions, options.output)

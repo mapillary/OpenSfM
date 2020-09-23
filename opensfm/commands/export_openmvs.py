@@ -3,22 +3,22 @@ import os
 
 import numpy as np
 
-from opensfm import pydense
 from opensfm import dataset
+from opensfm import pydense
 from opensfm import io
+from . import command
+
 
 logger = logging.getLogger(__name__)
 
 
-class Command:
-    name = 'export_openmvs'
-    help = "Export reconstruction to openMVS format"
+class Command(command.CommandBase):
+    def __init__(self):
+        super(Command, self).__init__()
+        self.name = "export_openmvs"
+        self.help = "Export reconstruction to openMVS format"
 
-    def add_arguments(self, parser):
-        parser.add_argument('dataset', help='dataset to process')
-
-    def run(self, args):
-        data = dataset.DataSet(args.dataset)
+    def run_dataset(self, options, data):
         udata = dataset.UndistortedDataSet(data, 'undistorted')
         reconstructions = udata.load_undistorted_reconstruction()
         tracks_manager = udata.load_undistorted_tracks_manager()

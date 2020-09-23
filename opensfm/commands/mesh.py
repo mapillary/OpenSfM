@@ -1,23 +1,21 @@
 import logging
 import time
 
-from opensfm import dataset
 from opensfm import mesh
-from opensfm import types
+from . import command
+
 
 logger = logging.getLogger(__name__)
 
 
-class Command:
-    name = 'mesh'
-    help = "Add delaunay meshes to the reconstruction"
+class Command(command.CommandBase):
+    def __init__(self):
+        super(Command, self).__init__()
+        self.name = "mesh"
+        self.help = "Add delaunay meshes to the reconstruction"
 
-    def add_arguments(self, parser):
-        parser.add_argument('dataset', help='dataset to process')
-
-    def run(self, args):
+    def run_dataset(self, options, data):
         start = time.time()
-        data = dataset.DataSet(args.dataset)
         tracks_manager = data.load_tracks_manager()
         reconstructions = data.load_reconstruction()
 
@@ -31,8 +29,8 @@ class Command:
                     shot.mesh.faces = faces
 
         data.save_reconstruction(reconstructions,
-                                 filename='reconstruction.meshed.json',
-                                 minify=True)
+                                    filename='reconstruction.meshed.json',
+                                    minify=True)
 
         end = time.time()
         with open(data.profile_log(), 'a') as fout:

@@ -2,24 +2,22 @@ import copy
 import logging
 import time
 
-from opensfm import dataset
 from opensfm import exif
+from . import command
 
 
 logger = logging.getLogger(__name__)
 logging.getLogger("exifread").setLevel(logging.WARNING)
 
 
-class Command:
-    name = 'extract_metadata'
-    help = "Extract metadata from images' EXIF tag"
+class Command(command.CommandBase):
+    def __init__(self):
+        super(Command, self).__init__()
+        self.name = "extract_metadata"
+        self.help = "Extract metadata from images' EXIF tag"
 
-    def add_arguments(self, parser):
-        parser.add_argument('dataset', help='dataset to process')
-
-    def run(self, args):
+    def run_dataset(self, options, data):
         start = time.time()
-        data = dataset.DataSet(args.dataset)
 
         exif_overrides = {}
         if data.exif_overrides_exists():

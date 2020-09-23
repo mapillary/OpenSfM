@@ -6,80 +6,80 @@ import pyproj
 
 from opensfm import dataset
 from opensfm import io
+from . import command
+
 
 logger = logging.getLogger(__name__)
 
 
-class Command:
-    name = 'export_geocoords'
-    help = "Export reconstructions in geographic coordinates"
+class Command(command.CommandBase):
+    def __init__(self):
+        super(Command, self).__init__()
+        self.name = "export_geocoords"
+        self.help = "Export reconstructions in geographic coordinates"
 
-    def add_arguments(self, parser):
-        parser.add_argument('dataset', help='dataset to process')
-        parser.add_argument(
-            '--proj',
-            help='PROJ.4 projection string',
-            required=True)
-        parser.add_argument(
-            '--transformation',
-            help='Print cooordinate transformation matrix',
-            action='store_true',
-            default=False)
-        parser.add_argument(
-            '--image-positions',
-            help='Export image positions',
-            action='store_true',
-            default=False)
-        parser.add_argument(
-            '--reconstruction',
-            help='Export reconstruction.json',
-            action='store_true',
-            default=False)
-        parser.add_argument(
-            '--dense',
-            help='Export dense point cloud (depthmaps/merged.ply)',
-            action='store_true',
-            default=False)
-        parser.add_argument(
-            '--output',
-            help='Path of the output file relative to the dataset'
-        )
+        self.args["--proj"] = {
+            "help": "PROJ.4 projection string",
+            "required": True,
+        }
+        self.args["--transformation"] = {
+            "help": "Print cooordinate transformation matrix'",
+            "action": "store_true",
+            "default": False,
+        }
+        self.args["--image-positions"] = {
+            "help": "Export image positions'",
+            "action": "store_true",
+            "default": False,
+        }
+        self.args["--reconstruction"] = {
+            "help": "Export reconstruction.json'",
+            "action": "store_true",
+            "default": False,
+        }
+        self.args["--dense"] = {
+            "help": "Export dense point cloud (depthmaps/merged.ply)'",
+            "action": "store_true",
+            "default": False,
+        }
+        self.args["--output"] = {
+            "help": "Path of the output file relative to the dataset'",
+        }
 
-    def run(self, args):
-        if not (args.transformation or
-                args.image_positions or
-                args.reconstruction or
-                args.dense):
+    def run_dataset(self, options, data):
+        if not (options.transformation
+                or options.image_positions
+                or options.reconstruction
+                or options.dense):
             print('Nothing to do. At least on of the options: ')
             print(' --transformation, --image-positions, --reconstruction, --dense')
 
-        data = dataset.DataSet(args.dataset)
         reference = data.load_reference()
 
-        projection = pyproj.Proj(args.proj)
+        projection = pyproj.Proj(options.proj)
         transformation = self._get_transformation(reference, projection)
 
-        if args.transformation:
-            output = args.output or 'geocoords_transformation.txt'
+        if options.transformation:
+            output = options.output or 'geocoords_transformation.txt'
             output_path = os.path.join(data.data_path, output)
             self._write_transformation(transformation, output_path)
 
-        if args.image_positions:
+        if options.image_positions:
             reconstructions = data.load_reconstruction()
-            output = args.output or 'image_geocoords.tsv'
+            output = options.output or 'image_geocoords.tsv'
             output_path = os.path.join(data.data_path, output)
             self._transform_image_positions(reconstructions, transformation,
                                             output_path)
 
-        if args.reconstruction:
+        if options.reconstruction:
             reconstructions = data.load_reconstruction()
             for r in reconstructions:
                 self._transform_reconstruction(r, transformation)
-            output = args.output or 'reconstruction.geocoords.json'
+            output = options.output or 'reconstruction.geocoords.json'
             data.save_reconstruction(reconstructions, output)
 
-        if args.dense:
-            output = args.output or 'undistorted/depthmaps/merged.geocoords.ply'
+        if options.dense:
+            output = options.output or 'undistorted/depthmaps/merged.geocoords.ply'
             output_path = os.path.join(data.data_path, output)
             udata = dataset.UndistortedDataSet(data, 'undistorted')
             self._transform_dense_point_cloud(udata, transformation, output_path)

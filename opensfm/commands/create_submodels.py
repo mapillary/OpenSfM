@@ -2,23 +2,22 @@ import logging
 import numpy as np
 from collections import defaultdict
 
-from opensfm import dataset
 from opensfm.large import metadataset
 from opensfm.large import tools
+from . import command
+
 
 logger = logging.getLogger(__name__)
 
 
-class Command:
-    name = 'create_submodels'
-    help = 'Split the dataset into smaller submodels'
+class Command(command.CommandBase):
+    def __init__(self):
+        super(Command, self).__init__()
+        self.name = "create_submodels"
+        self.help = "Split the dataset into smaller submodels"
 
-    def add_arguments(self, parser):
-        parser.add_argument('dataset', help='dataset to process')
-
-    def run(self, args):
-        data = dataset.DataSet(args.dataset)
-        meta_data = metadataset.MetaDataSet(args.dataset)
+    def run_dataset(self, options, data):
+        meta_data = metadataset.MetaDataSet(data.data_path)
 
         meta_data.remove_submodels()
         data.invent_reference_lla()
@@ -165,4 +164,3 @@ class Command:
             "features": features
         }
         meta_data.save_clusters_geojson(geojson)
-

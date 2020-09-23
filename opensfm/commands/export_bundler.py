@@ -1,36 +1,39 @@
 import logging
 import os
 
-import numpy as np
-
-from opensfm import pydense
 from opensfm import dataset
 from opensfm import io
+from . import command
+
 
 logger = logging.getLogger(__name__)
 
 
-class Command:
-    name = 'export_bundler'
-    help = "Export reconstruction to bundler format"
+class Command(command.CommandBase):
+    def __init__(self):
+        super(Command, self).__init__()
+        self.name = "export_bundler"
+        self.help = "Export reconstruction to bundler format"
 
-    def add_arguments(self, parser):
-        parser.add_argument('dataset', help='dataset to process')
-        parser.add_argument('--list_path', help='path to the list.txt file')
-        parser.add_argument('--bundle_path', help='path to the bundle.out file')
-        parser.add_argument('--undistorted',
-                            action='store_true',
-                            help='export the undistorted reconstruction')
+        self.args["--list_path"] = {
+            "help": "Path to the list.txt file",
+        }
+        self.args["--bundle_path"] = {
+            "help": "Path to the bundle.out file'",
+        }
+        self.args["--undistorted"] = {
+            "help": "Export the undistorted reconstruction'",
+            "action": "store_true",
+        }
 
-    def run(self, args):
-        data = dataset.DataSet(args.dataset)
+    def run_dataset(self, options, data):
         udata = dataset.UndistortedDataSet(data, 'undistorted')
 
         default_path = os.path.join(data.data_path, 'bundler')
-        list_file_path = args.list_path if args.list_path else default_path
-        bundle_file_path = args.bundle_path if args.bundle_path else default_path
+        list_file_path = options.list_path if options.list_path else default_path
+        bundle_file_path = options.bundle_path if options.bundle_path else default_path
 
-        if args.undistorted:
+        if options.undistorted:
             reconstructions = udata.load_undistorted_reconstruction()
             track_manager = udata.load_undistorted_tracks_manager()
             images = reconstructions[0].shots.keys()

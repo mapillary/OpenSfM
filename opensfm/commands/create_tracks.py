@@ -1,24 +1,21 @@
 import logging
 from timeit import default_timer as timer
 
-
-from opensfm import dataset
 from opensfm import io
 from opensfm import tracking
+from . import command
+
 
 logger = logging.getLogger(__name__)
 
 
-class Command:
-    name = 'create_tracks'
-    help = "Link matches pair-wise matches into tracks"
+class Command(command.CommandBase):
+    def __init__(self):
+        super(Command, self).__init__()
+        self.name = "create_tracks"
+        self.help = "Link matches pair-wise matches into tracks"
 
-    def add_arguments(self, parser):
-        parser.add_argument('dataset', help='dataset to process')
-
-    def run(self, args):
-        data = dataset.DataSet(args.dataset)
-
+    def run_dataset(self, options, data):
         start = timer()
         features, colors = tracking.load_features(data, data.images())
         features_end = timer()

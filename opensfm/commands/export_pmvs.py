@@ -2,56 +2,58 @@ from __future__ import unicode_literals
 
 import logging
 import os
-import sys
 import cv2
 
 import numpy as np
 
 from opensfm import dataset
-from opensfm import transformations as tf
 from opensfm import io
-from opensfm import types
 from opensfm import tracking
 from opensfm import features
-from six import iteritems
+from . import command
+
 
 logger = logging.getLogger(__name__)
 
 
-class Command:
-    name = 'export_pmvs'
-    help = "Export reconstruction to PMVS"
+class Command(command.CommandBase):
+    def __init__(self):
+        super(Command, self).__init__()
+        self.name = "export_pmvs"
+        self.help = "Export reconstruction to PMVS"
 
-    def add_arguments(self, parser):
-        parser.add_argument('dataset', help='dataset to process')
-        parser.add_argument('--points',
-                            action='store_true',
-                            help='export points')
-        parser.add_argument('--image_list',
-                            type=str,
-                            help='Export only the shots included in this file (path to .txt file)')
-        parser.add_argument('--output', help='output pmvs directory')
-        parser.add_argument('--undistorted',
-                            action='store_true',
-                            help='export the undistorted reconstruction')
+        self.args["--points"] = {
+            "help": "Export points",
+            "action": "store_true",
+        }
+        self.args["--image_list"] = {
+            "help": "Export only the shots included in this file (path to .txt file)",
+            "type": str,
+        }
+        self.args["--output"] = {
+            "help": "Output pmvs directory",
+        }
+        self.args["--undistorted"] = {
+            "help": "Export the undistorted reconstruction",
+            "action": "store_true",
+        }
 
-    def run(self, args):
-        data = dataset.DataSet(args.dataset)
+    def run_dataset(self, options, data):
         udata = dataset.UndistortedDataSet(data, 'undistorted')
 
-        base_output_path = args.output if args.output else os.path.join(data.data_path, 'pmvs')
+        base_output_path = options.output if options.output else os.path.join(data.data_path, 'pmvs')
         io.mkdir_p(base_output_path)
         logger.info("Converting dataset [%s] to PMVS dir [%s]" % (
             data.data_path, base_output_path))
 
-        if args.undistorted:
+        if options.undistorted:
             reconstructions = udata.load_undistorted_reconstruction()
         else:
             reconstructions = data.load_reconstruction()
 
         # load tracks for vis.dat
         try:
-            if args.undistorted:
+            if options.undistorted:
                 tracks_manager = udata.load_undistorted_tracks_manager()
             else:
                 tracks_manager = data.load_tracks_manager()
@@ -60,9 +62,9 @@ class Command:
             image_graph = None
 
         export_only = None
-        if args.image_list:
+        if options.image_list:
             export_only = {}
-            with open(args.image_list, 'r') as f:
+            with open(options.image_list, 'r') as f:
                 for image in f:
                     export_only[image.strip()] = True
 
@@ -70,8 +72,8 @@ class Command:
             self.export(reconstruction, h,
                         image_graph, tracks_manager,
                         base_output_path, data,
-                        args.undistorted, udata,
-                        args.points, export_only)
+                        options.undistorted, udata,
+                        options.points, export_only)
 
     def export(self, reconstruction, index,
                image_graph, tracks_manager,

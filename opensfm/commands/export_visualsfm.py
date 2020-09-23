@@ -8,25 +8,28 @@ from opensfm import dataset
 from opensfm import transformations as tf
 from opensfm import io
 from six import iteritems
+from . import command
+
 
 logger = logging.getLogger(__name__)
 
 
-class Command:
-    name = 'export_visualsfm'
-    help = "Export reconstruction to NVM_V3 format from VisualSfM"
+class Command(command.CommandBase):
+    def __init__(self):
+        super(Command, self).__init__()
+        self.name = "export_visualsfm"
+        self.help = "Export reconstruction to NVM_V3 format from VisualSfM"
 
-    def add_arguments(self, parser):
-        parser.add_argument('dataset', help='dataset to process')
-        parser.add_argument('--points',
-                            action='store_true',
-                            help='export points')
-        parser.add_argument('--image_list',
-                            type=str,
-                            help='Export only the shots included in this file (path to .txt file)')
+        self.args["--points"] = {
+            "help": "Export points",
+            "action": "store_true",
+        }
+        self.args["--image_list"] = {
+            "help": "Export only the shots included in this file (path to .txt file)",
+            "type": str,
+        }
 
-    def run(self, args):
-        data = dataset.DataSet(args.dataset)
+    def run_dataset(self, options, data):
         udata = dataset.UndistortedDataSet(data, 'undistorted')
 
         self.validate_image_names(data, udata)
@@ -35,15 +38,15 @@ class Command:
         tracks_manager = udata.load_undistorted_tracks_manager()
 
         export_only = None
-        if args.image_list:
+        if options.image_list:
             export_only = {}
-            with open(args.image_list, 'r') as f:
+            with open(options.image_list, 'r') as f:
                 for image in f:
                     export_only[image.strip()] = True
 
         if reconstructions:
             self.export(reconstructions[0], tracks_manager,
-                        udata, args.points, export_only)
+                        udata, options.points, export_only)
 
     def export(self, reconstruction, tracks_manager, udata, with_points, export_only):
         lines = ['NVM_V3', '', len(reconstruction.shots)]
