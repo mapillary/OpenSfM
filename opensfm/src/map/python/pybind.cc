@@ -142,7 +142,7 @@ PYBIND11_MODULE(pymap, m) {
       .def(py::init<const double, const double, const double>())
       .def_readonly("lat", &map::TopoCentricConverter::lat_)
       .def_readonly("lon", &map::TopoCentricConverter::long_)
-      .def_readonly("alt", &map::TopoCentricConverter::lat_);
+      .def_readonly("alt", &map::TopoCentricConverter::alt_);
 
   py::class_<map::Shot>(m, "Shot")
       .def_readonly("id", &map::Shot::id_)
