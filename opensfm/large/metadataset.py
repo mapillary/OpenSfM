@@ -112,10 +112,10 @@ class MetaDataSet():
         filepath = self._clusters_with_neighbors_path()
         np.savez_compressed(
             filepath,
-            clusters=clusters)
+            clusters=np.array(clusters, dtype=object))
 
     def load_clusters_with_neighbors(self):
-        c = np.load(self._clusters_with_neighbors_path())
+        c = np.load(self._clusters_with_neighbors_path(), allow_pickle=True)
         return c['clusters']
 
     def save_cluster_with_neighbors_geojson(self, geojson):

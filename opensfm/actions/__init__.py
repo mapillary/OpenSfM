@@ -16,29 +16,3 @@ from . import export_colmap
 from . import export_geocoords
 from . import create_submodels
 from . import align_submodels
-
-
-from . import command
-from .command_runner import command_runner
-
-
-opensfm_commands = [
-    extract_metadata,
-    detect_features,
-    match_features,
-    create_tracks,
-    reconstruct,
-    bundle,
-    mesh,
-    undistort,
-    compute_depthmaps,
-    export_ply,
-    export_openmvs,
-    export_visualsfm,
-    export_pmvs,
-    export_bundler,
-    export_colmap,
-    export_geocoords,
-    create_submodels,
-    align_submodels,
-]
