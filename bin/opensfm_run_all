@@ -3,15 +3,12 @@
 set -e
 
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
-PYTHON=${2:-python3}
 
-echo "Running using Python command: $PYTHON"
-
-"$PYTHON" "$DIR"/opensfm.py extract_metadata "$1"
-"$PYTHON" "$DIR"/opensfm.py detect_features "$1"
-"$PYTHON" "$DIR"/opensfm.py match_features "$1"
-"$PYTHON" "$DIR"/opensfm.py create_tracks "$1"
-"$PYTHON" "$DIR"/opensfm.py reconstruct "$1"
-"$PYTHON" "$DIR"/opensfm.py mesh "$1"
-"$PYTHON" "$DIR"/opensfm.py undistort "$1"
-"$PYTHON" "$DIR"/opensfm.py compute_depthmaps "$1"
+"$DIR"/opensfm extract_metadata "$1"
+"$DIR"/opensfm detect_features "$1"
+"$DIR"/opensfm match_features "$1"
+"$DIR"/opensfm create_tracks "$1"
+"$DIR"/opensfm reconstruct "$1"
+"$DIR"/opensfm mesh "$1"
+"$DIR"/opensfm undistort "$1"
+"$DIR"/opensfm compute_depthmaps "$1"
