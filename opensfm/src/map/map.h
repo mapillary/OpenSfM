@@ -89,12 +89,12 @@ public:
   std::map<Landmark*, FeatureId> GetObservationsOfShot(const Shot* shot);
   std::map<Shot*, FeatureId> GetObservationsOfPoint(const Landmark* point);
 
-  // TopoCentriConverter
-  const TopoCentricConverter& GetTopoCentricConverter() const {
+  // TopocentricConverter
+  const TopocentricConverter& GetTopocentricConverter() const {
     return topo_conv_;
   }
 
-  void SetTopoCentricConverter(const double lat, const double longitude,
+  void SetTopocentricConverter(const double lat, const double longitude,
                                const double alt) {
     topo_conv_.lat_ = lat;
     topo_conv_.long_ = longitude;
@@ -107,7 +107,7 @@ private:
   std::unordered_map<ShotId, Shot> pano_shots_;
   std::unordered_map<LandmarkId, Landmark> landmarks_;
 
-  TopoCentricConverter topo_conv_;
+  TopocentricConverter topo_conv_;
 
   LandmarkUniqueId landmark_unique_id_ = 0;
   ShotUniqueId shot_unique_id_ = 0;

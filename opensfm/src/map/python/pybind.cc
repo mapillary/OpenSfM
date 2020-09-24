@@ -121,8 +121,8 @@ PYBIND11_MODULE(pymap, m) {
       .def("get_camera_view", &map::Map::GetCameraView)
       .def("get_all_landmarks", &map::Map::GetLandmarkView)
       .def("get_landmark_view", &map::Map::GetLandmarkView)
-      .def("set_reference", &map::Map::SetTopoCentricConverter)
-      .def("get_reference", &map::Map::GetTopoCentricConverter)
+      .def("set_reference", &map::Map::SetTopocentricConverter)
+      .def("get_reference", &map::Map::GetTopocentricConverter)
       .def("create_camera", &map::Map::CreateCamera,
            py::return_value_policy::reference_internal)
       .def("has_landmark", &map::Map::HasLandmark)
@@ -137,12 +137,12 @@ PYBIND11_MODULE(pymap, m) {
       .def("update_pano_shot", &map::Map::UpdatePanoShot,
            py::return_value_policy::reference_internal);
 
-  py::class_<map::TopoCentricConverter>(m, "TopoCentriConverter")
+  py::class_<map::TopocentricConverter>(m, "TopocentricConverter")
       .def(py::init<>())
       .def(py::init<const double, const double, const double>())
-      .def_readonly("lat", &map::TopoCentricConverter::lat_)
-      .def_readonly("lon", &map::TopoCentricConverter::long_)
-      .def_readonly("alt", &map::TopoCentricConverter::alt_);
+      .def_readonly("lat", &map::TopocentricConverter::lat_)
+      .def_readonly("lon", &map::TopocentricConverter::long_)
+      .def_readonly("alt", &map::TopocentricConverter::alt_);
 
   py::class_<map::Shot>(m, "Shot")
       .def_readonly("id", &map::Shot::id_)
