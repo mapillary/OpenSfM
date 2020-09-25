@@ -36,15 +36,15 @@ class DataSet(object):
     def __init__(self, data_path):
         """Init dataset associated to a folder."""
         self.data_path = data_path
-        self._load_config()
-        self._load_image_list()
-        self._load_mask_list()
+        self.load_config()
+        self.load_image_list()
+        self.load_mask_list()
 
-    def _load_config(self):
+    def load_config(self):
         config_file = os.path.join(self.data_path, 'config.yaml')
         self.config = config.load_config(config_file)
 
-    def _load_image_list(self):
+    def load_image_list(self):
         """Load image list from image_list.txt or list images/ folder."""
         image_list_file = os.path.join(self.data_path, 'image_list.txt')
         if os.path.isfile(image_list_file):
@@ -78,7 +78,7 @@ class DataSet(object):
         """Height and width of the image."""
         return io.image_size(self._image_file(image))
 
-    def _load_mask_list(self):
+    def load_mask_list(self):
         """Load mask list from mask_list.txt or list masks/ folder."""
         mask_list_file = os.path.join(self.data_path, 'mask_list.txt')
         if os.path.isfile(mask_list_file):

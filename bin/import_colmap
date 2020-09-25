@@ -520,7 +520,7 @@ def main():
     with open(export_folder / 'image_list.txt', 'w') as f:
         for image_id, (filename, camera_id) in image_map.items():
             f.write('images/' + filename + '\n')
-    data._load_image_list()
+    data.load_image_list()
 
     keypoints = import_features(db, data, image_map, camera_map)
     import_matches(db, data, image_map)

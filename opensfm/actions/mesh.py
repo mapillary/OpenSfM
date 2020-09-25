@@ -1,12 +1,9 @@
-import time
-
 from opensfm import mesh
 
 
 def run_dataset(data):
     """ Add delaunay meshes to the reconstruction. """
 
-    start = time.time()
     tracks_manager = data.load_tracks_manager()
     reconstructions = data.load_reconstruction()
 
@@ -22,7 +19,3 @@ def run_dataset(data):
     data.save_reconstruction(reconstructions,
                                 filename='reconstruction.meshed.json',
                                 minify=True)
-
-    end = time.time()
-    with open(data.profile_log(), 'a') as fout:
-        fout.write('mesh: {0}\n'.format(end - start))

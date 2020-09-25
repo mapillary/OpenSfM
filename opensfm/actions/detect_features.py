@@ -24,9 +24,6 @@ def run_dataset(data):
     processes = data.config['processes']
     parallel_map(detect, arguments, processes, 1)
     end = timer()
-    with open(data.profile_log(), 'a') as fout:
-        fout.write('detect_features: {0}\n'.format(end - start))
-
     write_report(data, end - start)
 
 def write_report(data, wall_time):

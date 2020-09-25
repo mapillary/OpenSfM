@@ -16,11 +16,6 @@ def run_dataset(data):
                                                     data.config)
     tracks_end = timer()
     data.save_tracks_manager(tracks_manager)
-    end = timer()
-
-    with open(data.profile_log(), 'a') as fout:
-        fout.write('create_tracks: {0}\n'.format(end - start))
-
     write_report(data,tracks_manager,
                  features_end - start,
                  matches_end - features_end,

@@ -14,8 +14,6 @@ def run_dataset(data):
     matching.save_matches(data, images, pairs_matches)
     end = timer()
 
-    with open(data.profile_log(), 'a') as fout:
-        fout.write('match_features: {0}\n'.format(end - start))
     write_report(data, preport, list(pairs_matches.keys()), end - start)
 
 def write_report(data, preport, pairs, wall_time):
