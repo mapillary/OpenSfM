@@ -321,12 +321,12 @@ def main():
 
     print("Position STD")
     print(f"   max: {s[0][1]} ({s[0][0]})")
-    print(f"  mean: {average_shot_std}")
+    #print(f"  mean: {average_shot_std}")
     print(f"median: {median_shot_std}")
 
     print("Reprojection errors [in px / max(w,h)]")
     print(f"   max: {max_reprojection_error}")
-    print(f"  mean: {mean_reprojection_error}")
+    #print(f"  mean: {mean_reprojection_error}")
     print(f"median: {median_reprojection_error}")
 
 

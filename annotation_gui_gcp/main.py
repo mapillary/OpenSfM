@@ -1,11 +1,11 @@
 import argparse
 import tkinter as tk
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from pathlib import Path
 
 from Database import Database
 from GUI import Gui
-from opensfm import io
+from opensfm import io, dataset
 
 
 def parse_args():
@@ -13,6 +13,12 @@ def parse_args():
     parser.add_argument("dataset", help="dataset")
     parser.add_argument(
         "-n", "--no-preload", help="skip preloading", action="store_true"
+    )
+    parser.add_argument(
+        "--group-by-reconstruction",
+        action="store_true",
+        help="If set, the UI will show one window per reconstruction, "
+        "otherwise, it will use sequences as specified by 'sequence-file'",
     )
     parser.add_argument(
         "--sequence-file",
@@ -81,10 +87,27 @@ def load_sequence_database_from_file(
     return seq_dict
 
 
+def group_images_by_reconstruction(path):
+    data = dataset.DataSet(path)
+    reconstructions = data.load_reconstruction()
+    seq_dict = defaultdict(list)
+    for recons in reconstructions:
+        for shot in recons.shots.values():
+            skey = shot.metadata.sequence_key.value
+            seq_dict[skey].append(shot)
+    for skey in seq_dict:
+        sorted_ims = sorted(seq_dict[skey], key=lambda x: x.metadata.capture_time.value)
+        seq_dict[skey] = [shot.id for shot in sorted_ims]
+    return seq_dict
+
+
 if __name__ == "__main__":
     args = parse_args()
     path = args.dataset
-    seqs = load_sequence_database_from_file(path, args.sequence_file, skip_missing=True)
+    if args.group_by_reconstruction:
+        seqs = group_images_by_reconstruction(path)
+    else:
+        seqs = load_sequence_database_from_file(path, args.sequence_file, skip_missing=True)
     database = Database(seqs, path, preload_images=not args.no_preload)
     root = tk.Tk()
     root.resizable(True, True)
