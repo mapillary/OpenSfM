@@ -34,8 +34,7 @@ def merge_reconstructions(reconstructions, tracks_manager):
             new_point.color = point.color
 
         for shot in reconstruction.shots.values():
-            merged.create_shot(shot.id, shot.camera.id, shot.pose)
-            merged.shots[shot.id].metadata.set(shot.metadata)
+            merged.add_shot(shot)
             obsdict = tracks_manager.get_shot_observations(shot.id)
             for track_id, obs in obsdict.items():
                 merged_track_id = f"R{ix_r}_{track_id}"
