@@ -423,7 +423,7 @@ class DataSet(object):
                     walt += w
 
         if not wlat and not wlon:
-            for gcp in self._load_ground_control_points(None):
+            for gcp in self.load_ground_control_points_impl(None):
                 lat += gcp.lla[0]
                 lon += gcp.lla[1]
                 alt += gcp.lla[2]
@@ -555,9 +555,9 @@ class DataSet(object):
         """
 
         reference = self.load_reference()
-        return self._load_ground_control_points(reference)
+        return self.load_ground_control_points_impl(reference)
 
-    def _load_ground_control_points(self, reference):
+    def load_ground_control_points_impl(self, reference):
         """Load ground control points.
 
         It might use reference to convert the coordinates
