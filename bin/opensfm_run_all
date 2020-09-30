@@ -12,6 +12,6 @@ $PYTHON $DIR/opensfm detect_features $1
 $PYTHON $DIR/opensfm match_features $1
 $PYTHON $DIR/opensfm create_tracks $1
 $PYTHON $DIR/opensfm reconstruct $1
-$PYTHON $DIR/opensfm mesh $1
-$PYTHON $DIR/opensfm undistort $1
-$PYTHON $DIR/opensfm compute_depthmaps $1
+#$PYTHON $DIR/opensfm mesh $1
+#$PYTHON $DIR/opensfm undistort $1
+#$PYTHON $DIR/opensfm compute_depthmaps $1

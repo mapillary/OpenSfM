@@ -1,5 +1,6 @@
 import argparse
 import json
+import os
 
 import numpy as np
 import logging
@@ -259,6 +260,14 @@ def main():
     args = parse_args()
     path = args.dataset
     data = dataset.DataSet(path)
+    for fn in (
+        'reconstruction.json',
+        'ground_control_points.json',
+        'tracks.csv'
+    ):
+        if not (os.path.exists(os.path.join(path, fn))):
+            print(f"Missing file: {fn}")
+            return
 
     camera_models = data.load_camera_models()
     tracks_manager = data.load_tracks_manager()
@@ -319,15 +328,16 @@ def main():
 
     print("=============== Key metrics ================")
 
-    print("Position STD")
-    print(f"   max: {s[0][1]} ({s[0][0]})")
-    #print(f"  mean: {average_shot_std}")
-    print(f"median: {median_shot_std}")
+    metrics = {
+        'median_shot_std' : median_shot_std,
+        'max_shot_std': s[0][1],
+        'max_reprojection_error': max_reprojection_error,
+        'median_reprojection_error': median_reprojection_error,
+    }
 
-    print("Reprojection errors [in px / max(w,h)]")
-    print(f"   max: {max_reprojection_error}")
-    #print(f"  mean: {mean_reprojection_error}")
-    print(f"median: {median_reprojection_error}")
+    print(metrics)
+    with open(data.data_path + '/run_ba_metrics.json', 'w') as f:
+        json.dump(metrics, f, indent=4, sort_keys=True)
 
 
 if __name__ == "__main__":
