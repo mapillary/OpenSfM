@@ -1,12 +1,7 @@
 import logging
-import sys
 
 import numpy as np
 import networkx as nx
-
-from collections import defaultdict
-from itertools import combinations
-from six import iteritems
 
 from opensfm.unionfind import UnionFind
 from opensfm import pysfm

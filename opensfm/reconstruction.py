@@ -1,12 +1,10 @@
-# -*- coding: utf-8 -*-
 """Incremental reconstruction pipeline"""
-import copy
+
 import datetime
 import logging
 import math
 from collections import defaultdict
 from itertools import combinations
-from six import iteritems
 
 import cv2
 import numpy as np
@@ -14,7 +12,6 @@ from timeit import default_timer as timer
 
 from opensfm import pybundle
 from opensfm import pygeometry
-from opensfm import align
 from opensfm import exif as oexif
 from opensfm import log
 from opensfm import tracking

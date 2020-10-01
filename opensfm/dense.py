@@ -2,7 +2,6 @@ import logging
 
 import cv2
 import numpy as np
-from six import iteritems
 
 from opensfm import pydense
 from opensfm import io
@@ -357,7 +356,7 @@ def common_tracks_double_dict(tracks_manager):
     common_tracks_per_pair = tracking.all_common_tracks(
         tracks_manager, include_features=False)
     res = {image: {} for image in tracks_manager.get_shot_ids()}
-    for (im1, im2), v in iteritems(common_tracks_per_pair):
+    for (im1, im2), v in common_tracks_per_pair.items():
         res[im1][im2] = v
         res[im2][im1] = v
     return res
@@ -369,7 +368,7 @@ def find_neighboring_images(shot, common_tracks, reconstruction, num_neighbors):
     theta_max = np.pi / 6
     ns = []
     C1 = shot.pose.get_origin()
-    for other_id, tracks in iteritems(common_tracks.get(shot.id, {})):
+    for other_id, tracks in common_tracks.get(shot.id, {}).items():
         if other_id not in reconstruction.shots:
             continue
         other = reconstruction.shots[other_id]

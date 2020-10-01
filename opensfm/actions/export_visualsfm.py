@@ -5,7 +5,6 @@ import sys
 from opensfm import dataset
 from opensfm import transformations as tf
 from opensfm import io
-from six import iteritems
 
 
 logger = logging.getLogger(__name__)
@@ -73,7 +72,7 @@ def export(reconstruction, tracks_manager, udata, with_points, export_only):
         lines.append(len(points))
         points_count_index = len(lines) - 1
 
-        for point_id, point in iteritems(points):
+        for point_id, point in points.items():
             shots = reconstruction.shots
             coord = point.coordinates
             color = list(map(int, point.color))

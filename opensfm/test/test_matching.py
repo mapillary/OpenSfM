@@ -1,5 +1,4 @@
 import numpy as np
-from six import iteritems
 
 from opensfm import config
 from opensfm import matching
@@ -7,7 +6,6 @@ from opensfm import pairs_selection
 from opensfm import bow
 from opensfm import pyfeatures
 from opensfm.synthetic_data import synthetic_dataset
-from opensfm.test import data_generation
 
 
 def compute_words(features, bag_of_words, num_words, bow_matcher_type):

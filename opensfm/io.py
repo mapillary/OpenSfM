@@ -9,7 +9,6 @@ import cv2
 import numpy as np
 import pyproj
 from PIL import Image
-from six import iteritems
 
 from opensfm import geo
 from opensfm import features
@@ -103,22 +102,22 @@ def reconstruction_from_json(obj):
     reconstruction = types.Reconstruction()
 
     # Extract cameras
-    for key, value in iteritems(obj['cameras']):
+    for key, value in obj['cameras'].items():
         camera = camera_from_json(key, value)
         reconstruction.add_camera(camera)
 
     # Extract shots
-    for key, value in iteritems(obj['shots']):
+    for key, value in obj['shots'].items():
         shot_from_json(reconstruction, key, value)
 
     # Extract points
     if 'points' in obj:
-        for key, value in iteritems(obj['points']):
+        for key, value in obj['points'].items():
             point_from_json(reconstruction, key, value)
 
     # Extract pano_shots
     if 'pano_shots' in obj:
-        for key, value in iteritems(obj['pano_shots']):
+        for key, value in obj['pano_shots'].items():
             is_pano_shot = True
             shot_from_json(reconstruction, key, value, is_pano_shot)
 
@@ -149,7 +148,7 @@ def cameras_from_json(obj):
     Read cameras from a json object
     """
     cameras = {}
-    for key, value in iteritems(obj):
+    for key, value in obj.items():
         cameras[key] = camera_from_json(key, value)
     return cameras
 

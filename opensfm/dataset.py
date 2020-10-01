@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import os
 import json
 import logging
@@ -8,7 +6,6 @@ import gzip
 
 import cv2
 import numpy as np
-import six
 
 from opensfm import io
 from opensfm import config
@@ -233,7 +230,6 @@ class DataSet(object):
         self.image_files = {}
         if os.path.exists(path):
             for name in os.listdir(path):
-                name = six.text_type(name)
                 if self._is_image_file(name):
                     self.image_list.append(name)
                     self.image_files[name] = os.path.join(path, name)
