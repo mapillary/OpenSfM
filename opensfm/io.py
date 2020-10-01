@@ -1,9 +1,6 @@
-import errno
-import io
 import json
 import logging
 import os
-import sys
 
 import cv2
 import numpy as np
@@ -542,23 +539,18 @@ def write_ground_control_points(gcp, fileobj, reference):
 
 
 def mkdir_p(path):
-    '''Make a directory including parent directories.
-    '''
-    try:
-        os.makedirs(path)
-    except os.error as exc:
-        if exc.errno != errno.EEXIST or not os.path.isdir(path):
-            raise
+    """Make a directory including parent directories."""
+    return os.makedirs(path, exist_ok=True)
 
 
 def open_wt(path):
     """Open a file in text mode for writing utf-8."""
-    return io.open(path, 'w', encoding='utf-8')
+    return open(path, 'w', encoding='utf-8')
 
 
 def open_rt(path):
     """Open a file in text mode for reading utf-8."""
-    return io.open(path, 'r', encoding='utf-8')
+    return open(path, 'r', encoding='utf-8')
 
 
 def json_dump_kwargs(minify=False):
@@ -572,13 +564,11 @@ def json_dump_kwargs(minify=False):
 
 def json_dump(data, fout, minify=False):
     kwargs = json_dump_kwargs(minify)
-    assert sys.version_info >= (3, 0)
     return json.dump(data, fout, **kwargs)
 
 
 def json_dumps(data, minify=False):
     kwargs = json_dump_kwargs(minify)
-    assert sys.version_info >= (3, 0)
     return json.dumps(data, **kwargs)
 
 
