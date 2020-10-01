@@ -1,5 +1,3 @@
-from __future__ import division
-
 import cv2
 import numpy as np
 
@@ -48,7 +46,7 @@ def roll_from_rotation(rotation_matrix):
 
 def rotation_from_ptr_v2(pan, tilt, roll):
     """Camera rotation matrix from pan, tilt and roll.
-    
+
     This is the implementation used in the Single Image Calibration code.
     """
     tilt += np.pi / 2
