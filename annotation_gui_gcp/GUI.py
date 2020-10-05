@@ -149,6 +149,7 @@ class Gui:
         image_keys = view.image_keys
         view.sequence_list_box.delete(0, tk.END)
         n_digits = len(str(len(image_keys)))
+        defaultbg = view.cget('bg')
         for ix, shot in enumerate(image_keys):
             points = self.database.get_visible_points_coords(shot)
             txt = "{:0{n_digits}} {}".format(ix+1, len(points), n_digits=n_digits)
@@ -156,6 +157,9 @@ class Gui:
             if shot_std:
                 txt += " {:.2f}".format(shot_std)
             view.sequence_list_box.insert(tk.END, txt)
+            # Highlight current frame
+            if shot == view.current_image:
+                view.sequence_list_box.itemconfig(ix, bg='green')
 
     def onclick_sequence_list(self, event):
         widget = event.widget
@@ -353,9 +357,7 @@ class Gui:
             new_id = id_generator()
         self.database.add_point(new_id)
         self.curr_point = new_id
-        self.gcp_list_box.insert(tk.END, new_id)
-        self.gcp_list_box.selection_clear(0, tk.END)
-        self.gcp_list_box.selection_set(tk.END)
+        self.populate_gcp_list()
         return new_id
 
     def which_view(self, event):
@@ -446,10 +448,12 @@ class Gui:
                 self.auto_gcp_create(view, x, y, event.button == 1)
             elif self.curr_point is not None:
                 self.add_move_or_remove_gcp(view, x, y, event.button == 1)
+            self.populate_gcp_list()
             self.populate_sequence_list(view)
             self.display_points(view)
         else:
             return
+
 
     def populate_gcp_list(self):
         self.gcp_list_box.delete(0, tk.END)
@@ -457,9 +461,20 @@ class Gui:
         sorted_gcp_ids = sorted(errors, key=lambda k: -errors[k])
         self.gcps = sorted_gcp_ids
         for point_id in self.gcps:
-            self.gcp_list_box.insert(tk.END, "{}".format(point_id))
+            if point_id in self.database.points:
+                n_annotations = len(self.database.points[point_id])
+            else:
+                n_annotations = 0
+            self.gcp_list_box.insert(tk.END, f"{point_id} {n_annotations}")
         self.gcp_list_box.insert(tk.END, "none")
         self.gcp_list_box.selection_clear(0, tk.END)
+
+        # Re-select the currently selected point
+        if self.curr_point:
+            for ix, gcp_id in enumerate(self.gcp_list_box.get(0, "end")):
+                if self.curr_point in gcp_id:
+                    self.gcp_list_box.selection_set(ix)
+                    break
         self.master.update_idletasks()
 
 
@@ -484,7 +499,7 @@ class Gui:
         if value == 'none':
             self.curr_point = None
         else:
-            self.curr_point = value
+            self.curr_point = value.split(' ')[0]
 
         for view in self.views:
             self.display_points(view)
@@ -644,14 +659,7 @@ class Gui:
 
         self.zoom_logic(view)
 
-        # Update frame list so that this frame is highlighted
-        row_new_image = view.image_keys.index(new_image)
-        defaultbg = view.cget('bg')
-        for ix, _ in enumerate(view.image_keys):
-            if ix == row_new_image:
-                view.sequence_list_box.itemconfig(ix, bg='green')
-            else:
-                view.sequence_list_box.itemconfig(ix, bg=defaultbg)
+        self.populate_sequence_list(view)
 
         self.display_points(view)
         print("Took {:.2f}s to bring_new_image {}".format(time.time()-t0, new_image))
