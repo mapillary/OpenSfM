@@ -591,7 +591,7 @@ class Gui:
         """
         Jumps to the currently selected GCP in all views where it was not visible
         """
-        shots_gcp_seen = set(self.database.gcp_reprojections[self.curr_point].keys())
+        shots_gcp_seen = set(p['shot_id'] for p in self.database.points[self.curr_point])
         for view in self.views:
             shots_gcp_seen_this_view = list(shots_gcp_seen.intersection(view.image_keys))
             if len(shots_gcp_seen_this_view) > 0 and view.current_image not in shots_gcp_seen:
