@@ -2,9 +2,7 @@ set(FOUNDATION_FILES
     types.h
     newton_raphson.h
     numeric.h
-    logger.h
     src/types.cc
-    src/logger.cc
     src/newton_raphson.cc
     src/numeric.cc
 )

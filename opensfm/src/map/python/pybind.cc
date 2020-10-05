@@ -1,4 +1,3 @@
-#include <glog/logging.h>
 #include <foundation/types.h>
 #include <geometry/pose.h>
 #include <geometry/camera.h>
