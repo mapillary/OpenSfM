@@ -92,18 +92,13 @@ def reproject_gcps(gcps, reconstruction):
     return output
 
 
-def get_mean_max_reprojection_errors(gcp_reprojections):
-    max_gcp_reprojection_error = 0
-    mean_gcp_reprojection_error = []
+def get_all_reprojection_errors(gcp_reprojections):
+    output = []
     for gcp_id in gcp_reprojections:
         for shot_id in gcp_reprojections[gcp_id]:
             e = gcp_reprojections[gcp_id][shot_id]['error']
-            mean_gcp_reprojection_error.append(e)
-            if e > max_gcp_reprojection_error:
-                max_gcp_reprojection_error = e
-    mean_gcp_reprojection_error = np.mean(mean_gcp_reprojection_error)
-    median_gcp_reprojection_error = np.median(mean_gcp_reprojection_error)
-    return mean_gcp_reprojection_error, max_gcp_reprojection_error, median_gcp_reprojection_error
+            output.append((gcp_id, shot_id, e))
+    return sorted(output, key=lambda t:-t[2])
 
 
 def compute_gcp_std(gcp_errors):
@@ -111,7 +106,7 @@ def compute_gcp_std(gcp_errors):
     all_errors = []
     for gcp_id in gcp_errors:
         errors = [e['error'] for e in gcp_errors[gcp_id].values()]
-        print(f"gcp {gcp_id} mean reprojection error = {np.mean(errors)}")
+        logger.info(f"gcp {gcp_id} mean reprojection error = {np.mean(errors)}")
         all_errors.extend(errors)
     return np.sqrt(np.mean(np.array(all_errors)**2))
 
@@ -232,8 +227,8 @@ def bundle_with_fixed_images(reconstruction, camera_priors, gcp, gcp_std,
 
     chrono.lap('teardown')
 
-    print(ba.full_report())
-    print(ba.brief_report())
+    logger.info(ba.full_report())
+    logger.info(ba.brief_report())
     report = {
         'wall_times': dict(chrono.lap_times()),
         'brief_report': ba.brief_report(),
@@ -253,6 +248,16 @@ def parse_args():
         'dataset',
         help='dataset to process',
     )
+    parser.add_argument(
+        '--std-threshold',
+        default=0.3,
+        help='positional threshold (m) above which we consider an image to be badly localized',
+    )
+    parser.add_argument(
+        '--px-threshold',
+        default=0.008, # a little bit over 5 pixels at VGA resolution
+        help='threshold in normalized pixels above which we consider a GCP annotation to be wrong',
+    )
     return parser.parse_args()
 
 
@@ -266,13 +271,18 @@ def main():
         'tracks.csv'
     ):
         if not (os.path.exists(os.path.join(path, fn))):
-            print(f"Missing file: {fn}")
+            logger.error(f"Missing file: {fn}")
             return
 
     camera_models = data.load_camera_models()
     tracks_manager = data.load_tracks_manager()
 
-    reconstructions = [data.load_reconstruction()[index] for index in (0, 1)]
+    all_reconstructions = data.load_reconstruction()
+
+    if len(all_reconstructions) > 2:
+        logger.warning(f"WARNING: There are more than two reconstructions in {path}")
+
+    reconstructions = all_reconstructions[:2]
     gcps = data.load_ground_control_points()
 
     coords0 = triangulate_gcps(gcps, reconstructions[0])
@@ -293,12 +303,18 @@ def main():
     data.save_reconstruction([merged], 'reconstruction_gcp_ba.json')
 
     gcp_reprojections = reproject_gcps(gcps, merged)
-    mean_reprojection_error, max_reprojection_error, median_reprojection_error = get_mean_max_reprojection_errors(gcp_reprojections)
+    reprojection_errors = get_all_reprojection_errors(gcp_reprojections)
+    n_bad_gcp_annotations = sum(t[2] > args.px_threshold for t in reprojection_errors)
+    err_values = [t[2] for t in reprojection_errors]
+    mean_reprojection_error = np.mean(err_values)
+    max_reprojection_error = np.max(err_values)
+    median_reprojection_error = np.median(err_values)
+
     with open(data.data_path + '/gcp_reprojections.json', 'w') as f:
         json.dump(gcp_reprojections, f, indent=4, sort_keys=True)
 
     gcp_std = compute_gcp_std(gcp_reprojections)
-    print("GCP reprojection error STD:", gcp_std)
+    logger.info(f"GCP reprojection error STD: {gcp_std}")
 
     resplit = resplit_reconstruction(merged, reconstructions)
     data.save_reconstruction(resplit, 'reconstruction_gcp_ba_resplit.json')
@@ -309,12 +325,20 @@ def main():
         bundle_with_fixed_images(merged, camera_models, gcp=gcps, gcp_std=gcp_std,
                                  fixed_images=fixed_images, config=data.config)
 
-        print("STD in the position of shots in rec {} w.r.t rec {}".format(rec_ixs[1], rec_ixs[0]))
+        logger.info(f"STD in the position of shots in rec {rec_ixs[1]} w.r.t rec {rec_ixs[0]}")
         for shot in merged.shots.values():
             if shot.id in reconstructions[rec_ixs[1]].shots:
                 u, std = decompose_covariance(shot.covariance[3:, 3:])
                 all_shots_std.append((shot.id, np.linalg.norm(std)))
-                print(shot.id, 'position std:', np.linalg.norm(std))
+                logger.info(f"{shot.id} position std: {np.linalg.norm(std)}")
+
+    # If the STD of all shots is the same, replace by nan
+    std_values = [x[1] for x in all_shots_std]
+    n_bad_std = sum(std > args.std_threshold for std in std_values)
+    if np.allclose(std_values, std_values[0]):
+        all_shots_std = [(x[0], np.nan) for x in all_shots_std]
+        n_bad_std = len(std_values)
+
     # Average positional STD
     average_shot_std = np.mean([t[1] for t in all_shots_std])
     median_shot_std = np.median([t[1] for t in all_shots_std])
@@ -326,18 +350,43 @@ def main():
             line = "{}, {}".format(*t)
             f.write(line + '\n')
 
-    print("=============== Key metrics ================")
 
     metrics = {
+        'n_reconstructions': len(all_reconstructions),
         'median_shot_std' : median_shot_std,
         'max_shot_std': s[0][1],
         'max_reprojection_error': max_reprojection_error,
         'median_reprojection_error': median_reprojection_error,
+        'n_gcp': len(gcps),
+        'n_bad_gcp_annotations': int(n_bad_gcp_annotations),
+        'n_bad_position_std': int(n_bad_std),
     }
 
-    print(metrics)
-    with open(data.data_path + '/run_ba_metrics.json', 'w') as f:
+    logger.info(metrics)
+    p_metrics = data.data_path + '/run_ba_metrics.json'
+    logger.info(f"Saved metrics to {p_metrics}")
+    with open(p_metrics, 'w') as f:
         json.dump(metrics, f, indent=4, sort_keys=True)
+
+    logger.info("========================================")
+    logger.info("=============== Summary ================")
+    logger.info("========================================")
+    if n_bad_std == 0 and n_bad_gcp_annotations == 0:
+        logger.info(
+            f"No issues. All gcp reprojections are under {args.px_threshold}"
+            "and all frames are localized within {args.std_threshold}m"
+        )
+    else:
+        if np.isnan(all_shots_std[0][1]):
+            logger.info(
+                f"There is an issue while analyzing. It could be because: a) there are not enough GCPs."
+                " b) they are badly distributed in 3D. c) there are some wrong annotations"
+            )
+        else:
+            logger.info(f"{n_bad_std} badly localized images (error>{args.std_threshold}). Use the frame list on each view to find these")
+        logger.info(f"{n_bad_gcp_annotations} annotations with large reprojection error. Press Q to jump to the worst. Here are the top 5:")
+        for ix, t in enumerate(reprojection_errors[:5]):
+            logger.info(f"#{ix+1}: GCP[{t[0]}] on image {t[1]}")
 
 
 if __name__ == "__main__":
