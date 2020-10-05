@@ -7,6 +7,7 @@ import os
 import subprocess
 import sys
 import numpy as np
+import random
 
 from apps import distinct_colors, read_gcp_file, id_generator
 
@@ -46,6 +47,7 @@ class Gui:
         master.bind_all('q', lambda event: self.go_to_worst_gcp())
         master.bind_all('z', lambda event: self.toggle_zoom_on_key())
         master.bind_all('x', lambda event: self.toggle_sticky_zoom())
+        master.bind_all('a', lambda event: self.go_to_current_gcp())
         master.bind_all('w', lambda event: self.go_to_next_image_all())
         master.bind_all('s', lambda event: self.go_to_prev_image_all())
         self.create_ui(master, n_views=n_views)
@@ -323,20 +325,21 @@ class Gui:
 
         for point_id, coords in visible_points_coords.items():
             color = distinct_colors[divmod(hash(point_id), 19)[1]]
-            text_path = TextPath((0, 0), point_id, size=10)
+            text_path = TextPath((0, 0), point_id, size=12)
             p1 = PathPatch(text_path, transform=IdentityTransform(), alpha=1, color=color)
             offsetbox2 = AuxTransformBox(IdentityTransform())
             offsetbox2.add_artist(p1)
             artists = [
                 AnnotationBbox(offsetbox2, ((coords[0] + 30), (coords[1] + 30)), bboxprops={"alpha":0.05}),
-                mpatches.Circle((coords[0], coords[1]), 10, color=color, fill=False),
-                mpatches.Circle((coords[0], coords[1]), 2, color=color, fill=False),
+                mpatches.Circle((coords[0], coords[1]), 5, color=color, fill=False),
+                mpatches.Circle((coords[0], coords[1]), 0.5, color=color, fill=True),
             ]
 
             if point_id == self.curr_point:
                 artists.extend([
+                    mpatches.Circle((coords[0], coords[1]), 10, color=color, fill=False),
+                    mpatches.Circle((coords[0], coords[1]), 11, color=color, fill=False),
                     mpatches.Circle((coords[0], coords[1]), 12, color=color, fill=False),
-                    mpatches.Circle((coords[0], coords[1]), 14, color=color, fill=False),
                 ])
             for art in artists:
                 view.plt_artists.append(art)
@@ -346,6 +349,8 @@ class Gui:
 
     def add_gcp(self):
         new_id = id_generator()
+        while self.database.point_exists(new_id):
+            new_id = id_generator()
         self.database.add_point(new_id)
         self.curr_point = new_id
         self.gcp_list_box.insert(tk.END, new_id)
@@ -373,8 +378,10 @@ class Gui:
             return
         xlim = view.subplot.get_xlim()
         width = max(xlim) - min(xlim)
-        view.subplot.set_xlim(x - width / 20, x + width / 20)
-        view.subplot.set_ylim(y + width / 20, y - width / 20)
+        window_size = width / 10
+        window_size = 100
+        view.subplot.set_xlim(x - window_size/2, x + window_size/2)
+        view.subplot.set_ylim(y + window_size/2, y - window_size/2)
         view.zoomed_in = True
 
     def zoom_out(self, view):
@@ -472,7 +479,8 @@ class Gui:
 
     def onclick_gcp_list(self, event):
         widget = event.widget
-        value = widget.get(int(widget.curselection()[0]))
+        selected_row = int(widget.curselection()[0])
+        value = widget.get(selected_row)
         if value == 'none':
             self.curr_point = None
         else:
@@ -564,6 +572,17 @@ class Gui:
         view.canvas.draw_idle()
         self.zoom_in(view, x, y)
 
+    def go_to_current_gcp(self):
+        """
+        Jumps to the currently selected GCP in all views where it was not visible
+        """
+        shots_gcp_seen = set(self.database.gcp_reprojections[self.curr_point].keys())
+        for view in self.views:
+            shots_gcp_seen_this_view = list(shots_gcp_seen.intersection(view.image_keys))
+            if len(shots_gcp_seen_this_view) > 0 and view.current_image not in shots_gcp_seen:
+                target_shot = random.choice(shots_gcp_seen_this_view)
+                self.bring_new_image(target_shot, view)
+
     def go_to_worst_gcp(self):
         if len(self.database.gcp_reprojections) == 0:
             print("No GCP reprojections available. Can't jump to worst GCP")
@@ -577,7 +596,6 @@ class Gui:
                 self.gcp_list_box.selection_set(ix)
                 break
 
-        # For each view
         for view in self.views:
             # Get the shot with worst reprojection error that in this view
             shot_worst_gcp = self.database.shot_with_max_gcp_error(view.image_keys, worst_gcp)
@@ -625,6 +643,15 @@ class Gui:
                 view.last_seen_px[gcp_id] = gcp_visible
 
         self.zoom_logic(view)
+
+        # Update frame list so that this frame is highlighted
+        row_new_image = view.image_keys.index(new_image)
+        defaultbg = view.cget('bg')
+        for ix, _ in enumerate(view.image_keys):
+            if ix == row_new_image:
+                view.sequence_list_box.itemconfig(ix, bg='green')
+            else:
+                view.sequence_list_box.itemconfig(ix, bg=defaultbg)
 
         self.display_points(view)
         print("Took {:.2f}s to bring_new_image {}".format(time.time()-t0, new_image))

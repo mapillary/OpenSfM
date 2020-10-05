@@ -23,17 +23,26 @@ distinct_colors = ['#46f0f0', '#f032e6', '#bcf60c', '#fabebe', '#008080',
                    '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4',
                    '#000075', '#808080', '#ffffff', '#000000']
 
-
-class Imageset:
-
-    def __init__(self):
-        self.prev = None
-        self.img = None
-        self.next = None
-
+words = None
 
 def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
-    return ''.join(random.choice(chars) for _ in range(size))
+    global words
+    if words is None:
+        try:
+            import urllib.request
+            word_url = "http://www.gutenberg.org/files/3201/files/NAMES.TXT"
+            response = urllib.request.urlopen(word_url)
+            long_txt = response.read().decode('unicode_escape')
+            words = long_txt.splitlines()
+        except Exception as e:
+            print(e)
+            words = []
+    if len(words) > 0:
+        firstname = random.choice(words)
+        lastname = random.choice(words)
+        return '_'.join((firstname, lastname)).upper()
+    else:
+        return ''.join(random.choice(chars) for _ in range(size))
 
 
 def normalize_img_coords(pixel_coords, img_size):
