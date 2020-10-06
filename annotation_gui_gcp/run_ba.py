@@ -9,6 +9,8 @@ import opensfm.reconstruction as orec
 from opensfm import align
 from opensfm import dataset
 from opensfm import log
+from opensfm import multiview
+from opensfm import pygeometry
 from opensfm import transformations as tf
 from opensfm import types
 
@@ -84,6 +86,8 @@ def reproject_gcps(gcps, reconstruction):
             point = np.nan
         output[gcp.id] = {}
         for observation in gcp.observations:
+            if observation.shot_id not in reconstruction.shots:
+                continue
             shot = reconstruction.shots[observation.shot_id]
             reproj = shot.project(point)
             error = np.linalg.norm(reproj - observation.projection)
@@ -242,6 +246,89 @@ def decompose_covariance(covariance):
     return u, np.sqrt(s)
 
 
+def resect_annotated_single_images(reconstruction, gcps, camera_models, data):
+    """Resect images that do not belong to reconstruction but have enough GCPs annotated.
+
+    Returns:
+        A reconstruction with all the resected images.
+    """
+    not_in_rec = set()
+    for gcp in gcps:
+        for obs in gcp.observations:
+            im = obs.shot_id
+            if im not in reconstruction.shots:
+                not_in_rec.add(im)
+
+    resected = types.Reconstruction()
+    for im in not_in_rec:
+        exif = data.load_exif(im)
+        camera = camera_models[exif["camera"]]
+        shot = resect_image(im, camera, gcps, reconstruction, data)
+        if shot is not None:
+            resected.add_shot(shot)
+
+    print(f"Resected: {len(resected.shots)} shots and {len(resected.cameras)} cameras")
+    return resected
+
+
+def _gcp_image_observation(gcp, image):
+    for obs in gcp.observations:
+        if image == obs.shot_id:
+            return obs
+    return None
+
+
+def resect_image(im, camera, gcps, reconstruction, data):
+    """Resect an image based only on GCPs annotations.
+
+    Returns:
+        The resected shot.
+    """
+    threshold = 0.01
+    min_inliers = 3
+
+    bs, Xs = [], []
+    for gcp in gcps:
+        obs = _gcp_image_observation(gcp, im)
+        if not obs:
+            continue
+        gcp_3d_coords = orec.triangulate_gcp(gcp, reconstruction.shots)
+        if gcp_3d_coords is None:
+            continue
+
+        b = camera.pixel_bearing(obs.projection)
+        bs.append(b)
+        Xs.append(gcp_3d_coords)
+    bs = np.array(bs)
+    Xs = np.array(Xs)
+
+    if len(bs) < min_inliers:
+        print(f"Not enough annotations to resect image {im}")
+        return None
+
+    T = multiview.absolute_pose_ransac(bs, Xs, threshold, 1000, 0.999)
+    R = T[:, :3]
+    t = T[:, 3]
+
+    reprojected_bs = R.T.dot((Xs - t).T).T
+    reprojected_bs /= np.linalg.norm(reprojected_bs, axis=1)[:, np.newaxis]
+
+    inliers = np.linalg.norm(reprojected_bs - bs, axis=1) < threshold
+    ninliers = int(sum(inliers))
+
+    logger.info(f"{im} resection inliers: {ninliers} / {len(bs)}")
+
+    if ninliers >= min_inliers:
+        R = T[:, :3].T
+        t = -R.dot(T[:, 3])
+        shot = reconstruction.create_shot(im, camera.id, pygeometry.Pose(R,t))
+        shot.metadata = orec.get_image_metadata(data, im)
+        return shot
+    else:
+        print(f"Not enough inliers to resect image {im}")
+        return None
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description='Merge reconstructions and run BA with GCPs')
     parser.add_argument(
@@ -285,12 +372,16 @@ def main():
     reconstructions = all_reconstructions[:2]
     gcps = data.load_ground_control_points()
 
-    coords0 = triangulate_gcps(gcps, reconstructions[0])
-    coords1 = triangulate_gcps(gcps, reconstructions[1])
+    if False:
+        coords0 = triangulate_gcps(gcps, reconstructions[0])
+        coords1 = triangulate_gcps(gcps, reconstructions[1])
 
-    s, A, b = find_alignment(coords1, coords0)
-    align.apply_similarity(reconstructions[1], s, A, b)
-
+        s, A, b = find_alignment(coords1, coords0)
+        align.apply_similarity(reconstructions[1], s, A, b)
+    else:
+        base = reconstructions[0]
+        resected = resect_annotated_single_images(base, gcps, camera_models, data)
+        reconstructions = [base, resected]
     data.save_reconstruction(reconstructions, 'reconstruction_gcp_rigid.json')
 
     merged = merge_reconstructions(reconstructions, tracks_manager)
