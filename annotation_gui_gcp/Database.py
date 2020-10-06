@@ -149,7 +149,10 @@ class Database:
         # Return they key with most reprojection error for this GCP
         annotated_images = set(self.gcp_reprojections[gcp]).intersection(set(image_keys))
         errors = {k: self.gcp_reprojections[gcp][k]['error'] for k in annotated_images}
-        return max(errors, key=lambda k: errors[k])
+        if len(errors) > 0:
+            return max(errors, key=lambda k: errors[k])
+        else:
+            return None
 
     def remove_gcp(self, point_id):
         if self.point_exists(point_id):

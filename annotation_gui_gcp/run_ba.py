@@ -336,6 +336,13 @@ def parse_args():
         help='dataset to process',
     )
     parser.add_argument(
+        '--mode',
+        default="3d_to_3d",
+        help="If '3d_to_2d': the largest reconstruction is used as a fixed reference: "
+             "Images not belonging to it are resected into it using the ground control points. "
+             "If '3d_to_3d': The two largest reconstructions are aligned to each other using the ground control points."
+    )
+    parser.add_argument(
         '--std-threshold',
         default=0.3,
         help='positional threshold (m) above which we consider an image to be badly localized',
@@ -345,7 +352,9 @@ def parse_args():
         default=0.008, # a little bit over 5 pixels at VGA resolution
         help='threshold in normalized pixels above which we consider a GCP annotation to be wrong',
     )
-    return parser.parse_args()
+    args = parser.parse_args()
+    assert args.mode in ("3d_to_3d", "3d_to_2d")
+    return args
 
 
 def main():
@@ -367,15 +376,14 @@ def main():
     all_reconstructions = data.load_reconstruction()
 
     if len(all_reconstructions) > 2:
-        logger.warning(f"WARNING: There are more than two reconstructions in {path}")
+        logger.warning(f"There are more than two reconstructions in {path}")
 
     reconstructions = all_reconstructions[:2]
     gcps = data.load_ground_control_points()
 
-    if False:
+    if args.mode == "3d_to_3d":
         coords0 = triangulate_gcps(gcps, reconstructions[0])
         coords1 = triangulate_gcps(gcps, reconstructions[1])
-
         s, A, b = find_alignment(coords1, coords0)
         align.apply_similarity(reconstructions[1], s, A, b)
     else:
@@ -411,7 +419,10 @@ def main():
     data.save_reconstruction(resplit, 'reconstruction_gcp_ba_resplit.json')
 
     all_shots_std = []
-    for rec_ixs in ((0,1), (1,0)):
+    # We run bundle by fixing one reconstruction.
+    # If we have two reconstructions, we do this twice, fixing each one.
+    _rec_ixs = [(0,1), (1,0)] if args.mode == "3d_to_3d" else [(0,1)]
+    for rec_ixs in _rec_ixs:
         fixed_images = set(reconstructions[rec_ixs[0]].shots.keys())
         bundle_with_fixed_images(merged, camera_models, gcp=gcps, gcp_std=gcp_std,
                                  fixed_images=fixed_images, config=data.config)

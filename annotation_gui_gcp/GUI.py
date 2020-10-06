@@ -120,17 +120,23 @@ class Gui:
 
         # self.check_button.pack(side='top')
 
-        load_button = tk.Button(master, text="Analyze", command=self.analyze)
-        load_button.pack(side="top")
+        txt = tk.Label(master, text="Analysis")
+        txt.pack(side="top")
+        analysis_frame = tk.Frame(master)
+        analysis_frame.pack(side="top")
+        button = tk.Button(analysis_frame, text="3d-to-3d", command=self.analyze_3d_to_3d)
+        button.pack(side="left")
+        button = tk.Button(analysis_frame, text="3d-to-2d", command=self.analyze_3d_to_2d)
+        button.pack(side="left")
 
         io_frame = tk.Frame(master)
         io_frame.pack(side="top")
-        load_button = tk.Button(io_frame, text="Load", command=self.load_gcps)
-        load_button.pack(side="left")
-        save_button = tk.Button(io_frame, text="Save", command=self.save_gcps)
-        save_button.pack(side="left")
-        save_button = tk.Button(io_frame, text="Save As", command=self.save_gcps_as)
-        save_button.pack(side="left")
+        button = tk.Button(io_frame, text="Load", command=self.load_gcps)
+        button.pack(side="left")
+        button = tk.Button(io_frame, text="Save", command=self.save_gcps)
+        button.pack(side="left")
+        button = tk.Button(io_frame, text="Save As", command=self.save_gcps_as)
+        button.pack(side="left")
 
     def clear_artists(self, view):
         for artist in view.plt_artists:
@@ -274,7 +280,12 @@ class Gui:
         self.populate_sequence_list(view)
 
 
-    def analyze(self):
+    def analyze_3d_to_3d(self):
+        self.analyze(mode="3d_to_3d")
+    def analyze_3d_to_2d(self):
+        self.analyze(mode="3d_to_2d")
+
+    def analyze(self, mode):
         # Check that there is a recent ground_control_points.json file
         t = time.time() - os.path.getmtime(self.database.path + '/ground_control_points.json')
         if t > 30:
@@ -285,7 +296,8 @@ class Gui:
         subprocess.run([
             sys.executable,
             os.path.dirname(__file__) + '/run_ba.py',
-            self.database.path
+            self.database.path,
+            '--mode', mode,
             ]
         )
         self.shot_std = {}
@@ -614,8 +626,9 @@ class Gui:
         for view in self.views:
             # Get the shot with worst reprojection error that in this view
             shot_worst_gcp = self.database.shot_with_max_gcp_error(view.image_keys, worst_gcp)
-            self.bring_new_image(shot_worst_gcp, view)
-            self.highlight_gcp_reprojection(view, shot_worst_gcp, worst_gcp)
+            if shot_worst_gcp:
+                self.bring_new_image(shot_worst_gcp, view)
+                self.highlight_gcp_reprojection(view, shot_worst_gcp, worst_gcp)
 
     def point_in_view(self, view, point):
         if point is None:
