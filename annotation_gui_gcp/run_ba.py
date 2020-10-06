@@ -263,9 +263,7 @@ def resect_annotated_single_images(reconstruction, gcps, camera_models, data):
     for im in not_in_rec:
         exif = data.load_exif(im)
         camera = camera_models[exif["camera"]]
-        shot = resect_image(im, camera, gcps, reconstruction, data)
-        if shot is not None:
-            resected.add_shot(shot)
+        resect_image(im, camera, gcps, reconstruction, data, resected)
 
     print(f"Resected: {len(resected.shots)} shots and {len(resected.cameras)} cameras")
     return resected
@@ -278,8 +276,11 @@ def _gcp_image_observation(gcp, image):
     return None
 
 
-def resect_image(im, camera, gcps, reconstruction, data):
-    """Resect an image based only on GCPs annotations.
+def resect_image(im, camera, gcps, reconstruction, data, dst_reconstruction=None):
+    """
+    Resect an image into a reconstruction based only on GCPs annotations.
+    Pass another reconstruction to dst_reconstruction
+    if you want the resected points to be added there instead
 
     Returns:
         The resected shot.
@@ -318,10 +319,14 @@ def resect_image(im, camera, gcps, reconstruction, data):
 
     logger.info(f"{im} resection inliers: {ninliers} / {len(bs)}")
 
+    if dst_reconstruction is None:
+        dst_reconstruction = reconstruction
+
     if ninliers >= min_inliers:
         R = T[:, :3].T
         t = -R.dot(T[:, 3])
-        shot = reconstruction.create_shot(im, camera.id, pygeometry.Pose(R,t))
+        dst_reconstruction.add_camera(camera)
+        shot = dst_reconstruction.create_shot(im, camera.id, pygeometry.Pose(R,t))
         shot.metadata = orec.get_image_metadata(data, im)
         return shot
     else:
@@ -349,7 +354,7 @@ def parse_args():
     )
     parser.add_argument(
         '--px-threshold',
-        default=0.008, # a little bit over 5 pixels at VGA resolution
+        default=0.016, # a little bit over 10 pixels at VGA resolution
         help='threshold in normalized pixels above which we consider a GCP annotation to be wrong',
     )
     args = parser.parse_args()
@@ -389,6 +394,9 @@ def main():
     else:
         base = reconstructions[0]
         resected = resect_annotated_single_images(base, gcps, camera_models, data)
+        for shot in resected.shots.values():
+            shot.metadata.gps_accuracy.value = 1E12
+            shot.metadata.gps_position.value = shot.pose.get_origin()
         reconstructions = [base, resected]
     data.save_reconstruction(reconstructions, 'reconstruction_gcp_rigid.json')
 
@@ -396,6 +404,7 @@ def main():
     data.save_reconstruction([merged], 'reconstruction_merged.json')
 
     data.config['bundle_max_iterations'] = 200
+    data.config['bundle_use_gcp'] = True
     orec.bundle(merged, camera_models, gcp=gcps, config=data.config)
     # rigid rotation to put images on the ground
     orec.align_reconstruction(merged, None, data.config)
