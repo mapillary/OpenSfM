@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
 
-from __future__ import print_function
-
-import errno
 import os
 import setuptools
 import subprocess
@@ -17,20 +14,11 @@ class platform_bdist_wheel(bdist_wheel):
         self.root_is_pure = False
 
 
-def mkdir_p(path):
-    """Make a directory including parent directories."""
-    try:
-        os.makedirs(path)
-    except os.error as exc:
-        if exc.errno != errno.EEXIST or not os.path.isdir(path):
-            raise
-
-
 def configure_c_extension():
     """Configure cmake project to C extension."""
     print("Configuring for python {}.{}...".format(sys.version_info.major,
                                                    sys.version_info.minor))
-    mkdir_p('cmake_build')
+    os.makedirs('cmake_build', exist_ok=True)
     cmake_command = [
         'cmake',
         '../opensfm/src',

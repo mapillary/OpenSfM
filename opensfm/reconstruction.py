@@ -1,12 +1,10 @@
-# -*- coding: utf-8 -*-
 """Incremental reconstruction pipeline"""
-import copy
+
 import datetime
 import logging
 import math
 from collections import defaultdict
 from itertools import combinations
-from six import iteritems
 
 import cv2
 import numpy as np
@@ -14,7 +12,6 @@ from timeit import default_timer as timer
 
 from opensfm import pybundle
 from opensfm import pygeometry
-from opensfm import align
 from opensfm import exif as oexif
 from opensfm import log
 from opensfm import tracking
@@ -66,8 +63,8 @@ def _add_gcp_to_bundle(ba, gcp, shots):
 
         coordinates = triangulate_gcp(point, shots)
         if coordinates is None:
-            if point.coordinates is not None:
-                coordinates = point.coordinates
+            if point.coordinates.has_value:
+                coordinates = point.coordinates.value
             else:
                 logger.warning("Cannot initialize GCP '{}'."
                                "  Ignoring it".format(point.id))
@@ -75,9 +72,9 @@ def _add_gcp_to_bundle(ba, gcp, shots):
 
         ba.add_point(point_id, coordinates, False)
 
-        if point.coordinates is not None:
+        if point.coordinates.has_value:
             point_type = pybundle.XYZ if point.has_altitude else pybundle.XY
-            ba.add_point_position_world(point_id, point.coordinates, 0.1,
+            ba.add_point_position_world(point_id, point.coordinates.value, 0.1,
                                         point_type)
 
         for observation in point.observations:
@@ -94,91 +91,13 @@ def _add_gcp_to_bundle(ba, gcp, shots):
 
 def bundle(reconstruction, camera_priors, gcp, config):
     """Bundle adjust a reconstruction."""
-    fix_cameras = not config['optimize_camera_parameters']
-    use_analytic_derivatives = config['bundle_analytic_derivatives']
+    report = pymap.BAHelpers.\
+        bundle(reconstruction.map,
+               dict(camera_priors),
+               gcp if gcp is not None else [],
+               config)
 
-    chrono = Chronometer()
-    ba = pybundle.BundleAdjuster()
-    ba.set_use_analytic_derivatives(use_analytic_derivatives)
-
-    for camera in reconstruction.cameras.values():
-        camera_prior = camera_priors[camera.id]
-        ba.add_camera(camera.id, camera, camera_prior, fix_cameras)
-
-    for shot in reconstruction.shots.values():
-        r = shot.pose.rotation
-        t = shot.pose.translation
-        ba.add_shot(shot.id, shot.camera.id, r, t, False)
-
-    for point in reconstruction.points.values():
-        ba.add_point(point.id, point.coordinates, False)
-
-    for shot_id in reconstruction.shots:
-        shot = reconstruction.get_shot(shot_id)
-        for point in shot.get_valid_landmarks():
-            obs = shot.get_landmark_observation(point)
-            ba.add_point_projection_observation(
-                shot.id, point.id, obs.point[0], obs.point[1], obs.scale)
-
-    if config['bundle_use_gps']:
-        for shot in reconstruction.shots.values():
-            g = shot.metadata.gps_position.value
-            ba.add_position_prior(shot.id, g[0], g[1], g[2],
-                                  shot.metadata.gps_accuracy.value)
-
-    if config['bundle_use_gcp'] and gcp:
-        _add_gcp_to_bundle(ba, gcp, reconstruction.shots)
-
-    align_method = config['align_method']
-    if align_method == 'auto':
-        align_method = align.detect_alignment_constraints(config, reconstruction, gcp)
-    if align_method == 'orientation_prior':
-        if config['align_orientation_prior'] == 'vertical':
-            for shot_id in reconstruction.shots:
-                ba.add_absolute_up_vector(shot_id, [0, 0, -1], 1e-3)
-        if config['align_orientation_prior'] == 'horizontal':
-            for shot_id in reconstruction.shots:
-                ba.add_absolute_up_vector(shot_id, [0, -1, 0], 1e-3)
-
-    ba.set_point_projection_loss_function(config['loss_function'],
-                                          config['loss_function_threshold'])
-    ba.set_internal_parameters_prior_sd(
-        config['exif_focal_sd'],
-        config['principal_point_sd'],
-        config['radial_distortion_k1_sd'],
-        config['radial_distortion_k2_sd'],
-        config['tangential_distortion_p1_sd'],
-        config['tangential_distortion_p2_sd'],
-        config['radial_distortion_k3_sd'],
-        config['radial_distortion_k4_sd'])
-    ba.set_num_threads(config['processes'])
-    ba.set_max_num_iterations(config['bundle_max_iterations'])
-    ba.set_linear_solver_type("SPARSE_SCHUR")
-
-    chrono.lap('setup')
-    ba.run()
-    chrono.lap('run')
-
-    for camera in reconstruction.cameras.values():
-        _get_camera_from_bundle(ba, camera)
-
-    for shot in reconstruction.shots.values():
-        s = ba.get_shot(shot.id)
-        shot.pose.rotation = [s.r[0], s.r[1], s.r[2]]
-        shot.pose.translation = [s.t[0], s.t[1], s.t[2]]
-
-    for point in reconstruction.points.values():
-        p = ba.get_point(point.id)
-        point.coordinates = [p.p[0], p.p[1], p.p[2]]
-        point.reprojection_errors = p.reprojection_errors
-
-    chrono.lap('teardown')
-
-    logger.debug(ba.brief_report())
-    report = {
-        'wall_times': dict(chrono.lap_times()),
-        'brief_report': ba.brief_report(),
-    }
+    logger.debug(report["brief_report"])
     return report
 
 
@@ -234,108 +153,12 @@ def bundle_single_view(reconstruction, shot_id, camera_priors, config):
 
 def bundle_local(reconstruction, camera_priors, gcp, central_shot_id, config):
     """Bundle adjust the local neighborhood of a shot."""
-    chrono = Chronometer()
-
-    interior, boundary = shot_neighborhood(
-        reconstruction, central_shot_id,
-        config['local_bundle_radius'],
-        config['local_bundle_min_common_points'],
-        config['local_bundle_max_shots'])
-
-    point_ids = set()
-    for shot_id in interior:
-        shot = reconstruction.shots[shot_id]
-        valid_landmarks = shot.get_valid_landmarks()
-        for lm in valid_landmarks:
-            point_ids.add(lm.id)
-
-    ba = pybundle.BundleAdjuster()
-    ba.set_use_analytic_derivatives(config['bundle_analytic_derivatives'])
-
-    for camera in reconstruction.cameras.values():
-        camera_prior = camera_priors[camera.id]
-        ba.add_camera(camera.id, camera, camera_prior, True)
-
-    for shot_id in interior | boundary:
-        shot = reconstruction.shots[shot_id]
-        r = shot.pose.rotation
-        t = shot.pose.translation
-        ba.add_shot(shot.id, shot.camera.id, r, t, shot.id in boundary)
-
-    for point_id in point_ids:
-        point = reconstruction.points[point_id]
-        ba.add_point(point.id, point.coordinates, False)
-
-    obs_count = 0
-    for shot_id in interior | boundary:
-        shot = reconstruction.get_shot(shot_id)
-        if shot is not None:
-            for point in shot.get_valid_landmarks():
-                if point.id in point_ids:
-                    obs = shot.get_landmark_observation(point)
-                    ba.add_point_projection_observation(
-                        shot.id, point.id, obs.point[0], obs.point[1], obs.scale)
-                    obs_count += 1
-
-    logger.debug(
-        'Local bundle sets: interior {}  boundary {}  other {} ({} points / {} obs)'.format(
-            len(interior), len(boundary),
-            len(reconstruction.shots) - len(interior) - len(boundary),
-            len(point_ids), obs_count))
-
-    if config['bundle_use_gps']:
-        for shot_id in interior:
-            shot = reconstruction.shots[shot_id]
-            g = shot.metadata.gps_position.value
-            ba.add_position_prior(shot.id, g[0], g[1], g[2],
-                                  shot.metadata.gps_accuracy.value)
-
-    if config['bundle_use_gcp'] and gcp:
-        _add_gcp_to_bundle(ba, gcp, reconstruction.shots)
-
-    ba.set_point_projection_loss_function(config['loss_function'],
-                                          config['loss_function_threshold'])
-    ba.set_internal_parameters_prior_sd(
-        config['exif_focal_sd'],
-        config['principal_point_sd'],
-        config['radial_distortion_k1_sd'],
-        config['radial_distortion_k2_sd'],
-        config['tangential_distortion_p1_sd'],
-        config['tangential_distortion_p2_sd'],
-        config['radial_distortion_k3_sd'],
-        config['radial_distortion_k4_sd'])
-    ba.set_num_threads(config['processes'])
-    ba.set_max_num_iterations(10)
-    ba.set_linear_solver_type("DENSE_SCHUR")
-
-    chrono.lap('setup')
-    ba.run()
-    chrono.lap('run')
-
-    for shot_id in interior:
-        shot = reconstruction.shots[shot_id]
-        s = ba.get_shot(shot.id)
-        shot.pose.rotation = [s.r[0], s.r[1], s.r[2]]
-        shot.pose.translation = [s.t[0], s.t[1], s.t[2]]
-
-    for point in point_ids:
-        point = reconstruction.points[point]
-        p = ba.get_point(point.id)
-        point.coordinates = [p.p[0], p.p[1], p.p[2]]
-        point.reprojection_errors = p.reprojection_errors
-
-    chrono.lap('teardown')
-
-    logger.debug(ba.brief_report())
-    report = {
-        'wall_times': dict(chrono.lap_times()),
-        'brief_report': ba.brief_report(),
-        'num_interior_images': len(interior),
-        'num_boundary_images': len(boundary),
-        'num_other_images': (len(reconstruction.shots)
-                             - len(interior) - len(boundary)),
-    }
-    return point_ids, report
+    pt_ids, report = pymap.BAHelpers.\
+        bundle_local(reconstruction.map, dict(camera_priors),
+                     gcp if gcp is not None else [],
+                     central_shot_id, config)
+    logger.debug(report["brief_report"])
+    return pt_ids, report
 
 
 def shot_neighborhood(reconstruction, central_shot_id, radius,
@@ -745,8 +568,10 @@ def resect(tracks_manager, reconstruction, shot_id,
     if ninliers >= min_inliers:
         R = T[:, :3].T
         t = -R.dot(T[:, 3])
-        shot = reconstruction.create_shot(shot_id, camera.id, pygeometry.Pose(R,t))
+        assert shot_id not in reconstruction.shots
+        shot = reconstruction.create_shot(shot_id, camera.id, pygeometry.Pose(R, t))
         shot.metadata = metadata
+
         for i, succeed in enumerate(inliers):
             if succeed:
                 add_observation_to_reconstruction(tracks_manager, reconstruction, shot_id, ids[i])
@@ -895,7 +720,7 @@ class TrackTriangulator:
             e, X = pygeometry.triangulate_bearings_midpoint(
                 os, bs, thresholds, np.radians(min_ray_angle_degrees))
             if e:
-                pt = self.reconstruction.create_point(track, X.tolist())
+                self.reconstruction.create_point(track, X.tolist())
                 for shot_id in ids:
                     self._add_track_to_reconstruction(track, shot_id)
 

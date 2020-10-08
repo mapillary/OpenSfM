@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # transformations.py
 
 # Copyright (c) 2006-2013, Christoph Gohlke
@@ -185,8 +184,6 @@ True
 True
 
 """
-
-from __future__ import division, print_function
 
 import math
 

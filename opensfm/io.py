@@ -1,20 +1,11 @@
-from __future__ import absolute_import
-from __future__ import unicode_literals
-from __future__ import division
-from __future__ import print_function
-
-import errno
-import io
 import json
 import logging
 import os
-import sys
 
 import cv2
 import numpy as np
 import pyproj
 from PIL import Image
-from six import iteritems
 
 from opensfm import geo
 from opensfm import features
@@ -108,22 +99,22 @@ def reconstruction_from_json(obj):
     reconstruction = types.Reconstruction()
 
     # Extract cameras
-    for key, value in iteritems(obj['cameras']):
+    for key, value in obj['cameras'].items():
         camera = camera_from_json(key, value)
         reconstruction.add_camera(camera)
 
     # Extract shots
-    for key, value in iteritems(obj['shots']):
+    for key, value in obj['shots'].items():
         shot_from_json(reconstruction, key, value)
 
     # Extract points
     if 'points' in obj:
-        for key, value in iteritems(obj['points']):
+        for key, value in obj['points'].items():
             point_from_json(reconstruction, key, value)
 
     # Extract pano_shots
     if 'pano_shots' in obj:
-        for key, value in iteritems(obj['pano_shots']):
+        for key, value in obj['pano_shots'].items():
             is_pano_shot = True
             shot_from_json(reconstruction, key, value, is_pano_shot)
 
@@ -154,7 +145,7 @@ def cameras_from_json(obj):
     Read cameras from a json object
     """
     cameras = {}
-    for key, value in iteritems(obj):
+    for key, value in obj.items():
         cameras[key] = camera_from_json(key, value)
     return cameras
 
@@ -398,16 +389,16 @@ def _read_gcp_list_lines(lines, projection, reference, exif):
             else:
                 lon, lat = easting, northing
 
-            point = types.GroundControlPoint()
+            point = pymap.GroundControlPoint()
             point.id = "unnamed-%d" % len(points)
-            point.lla = np.array([lat, lon, alt])
+            point.lla = {"latitude": lat, "longitude": lon, "altitude": alt}
             point.has_altitude = has_altitude
 
             if reference:
                 x, y, z = reference.to_topocentric(lat, lon, alt)
-                point.coordinates = np.array([x, y, z])
+                point.coordinates.value = np.array([x, y, z])
             else:
-                point.coordinates = None
+                point.coordinates.reset()
 
             points[key] = point
 
@@ -416,10 +407,10 @@ def _read_gcp_list_lines(lines, projection, reference, exif):
         coordinates = features.normalized_image_coordinates(
             np.array([[pixel_x, pixel_y]]), d['width'], d['height'])[0]
 
-        o = types.GroundControlPointObservation()
+        o = pymap.GroundControlPointObservation()
         o.shot_id = shot_id
         o.projection = coordinates
-        point.observations.append(o)
+        point.add_observation(o)
 
     return list(points.values())
 
@@ -481,23 +472,24 @@ def read_ground_control_points(fileobj, reference):
 
     points = []
     for point_dict in obj['points']:
-        point = types.GroundControlPoint()
+        point = pymap.GroundControlPoint()
         point.id = point_dict['id']
-        point.lla = point_dict.get('position')
-        if point.lla:
+        lla = point_dict.get('position')
+        if lla:
+            point.lla = lla
             point.has_altitude = ('altitude' in point.lla)
             if reference:
-                point.coordinates = reference.to_topocentric(
+                point.coordinates.value = reference.to_topocentric(
                     point.lla['latitude'],
                     point.lla['longitude'],
                     point.lla.get('altitude', 0))
             else:
-                point.coordinates = None
+                point.coordinates.reset()
 
-        point.observations = []
+        observations = []
         observing_images = set()
         for o_dict in point_dict['observations']:
-            o = types.GroundControlPointObservation()
+            o = pymap.GroundControlPointObservation()
             o.shot_id = o_dict['shot_id']
             if o.shot_id in observing_images:
                 logger.warning("GCP {} has multiple observations in image {}"
@@ -505,7 +497,8 @@ def read_ground_control_points(fileobj, reference):
             observing_images.add(o.shot_id)
             if 'projection' in o_dict:
                 o.projection = np.array(o_dict['projection'])
-            point.observations.append(o)
+            observations.append(o)
+        point.observations = observations
         points.append(point)
     return points
 
@@ -524,8 +517,8 @@ def write_ground_control_points(gcp, fileobj, reference):
             }
             if point.has_altitude:
                 point_obj['position']['altitude'] = point.lla['altitude']
-        elif point.coordinates:
-            lat, lon, alt = reference.to_lla(*point.coordinates)
+        elif point.coordinates.has_value:
+            lat, lon, alt = reference.to_lla(*point.coordinates.value)
             point_obj['position'] = {
                 'latitude': lat,
                 'longitude': lon,
@@ -546,23 +539,18 @@ def write_ground_control_points(gcp, fileobj, reference):
 
 
 def mkdir_p(path):
-    '''Make a directory including parent directories.
-    '''
-    try:
-        os.makedirs(path)
-    except os.error as exc:
-        if exc.errno != errno.EEXIST or not os.path.isdir(path):
-            raise
+    """Make a directory including parent directories."""
+    return os.makedirs(path, exist_ok=True)
 
 
 def open_wt(path):
     """Open a file in text mode for writing utf-8."""
-    return io.open(path, 'w', encoding='utf-8')
+    return open(path, 'w', encoding='utf-8')
 
 
 def open_rt(path):
     """Open a file in text mode for reading utf-8."""
-    return io.open(path, 'r', encoding='utf-8')
+    return open(path, 'r', encoding='utf-8')
 
 
 def json_dump_kwargs(minify=False):
@@ -576,13 +564,11 @@ def json_dump_kwargs(minify=False):
 
 def json_dump(data, fout, minify=False):
     kwargs = json_dump_kwargs(minify)
-    assert sys.version_info >= (3, 0)
     return json.dump(data, fout, **kwargs)
 
 
 def json_dumps(data, minify=False):
     kwargs = json_dump_kwargs(minify)
-    assert sys.version_info >= (3, 0)
     return json.dumps(data, **kwargs)
 
 

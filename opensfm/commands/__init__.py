@@ -1,4 +1,3 @@
-
 from . import extract_metadata
 from . import detect_features
 from . import match_features
@@ -17,6 +16,10 @@ from . import export_colmap
 from . import export_geocoords
 from . import create_submodels
 from . import align_submodels
+
+
+from . import command
+from .command_runner import command_runner
 
 
 opensfm_commands = [

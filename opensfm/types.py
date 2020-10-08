@@ -1,11 +1,7 @@
 """Basic types for building a reconstruction."""
-
-import numpy as np
 from opensfm import pymap
 from opensfm import pygeometry
-import cv2
-import math
-import copy
+
 
 class ShotMesh(object):
     """Triangular mesh of points visible in a shot
@@ -18,37 +14,6 @@ class ShotMesh(object):
     def __init__(self):
         self.vertices = None
         self.faces = None
-
-
-class GroundControlPoint(object):
-    """A ground control point with its observations.
-
-    Attributes:
-        lla: latitue, longitude and altitude
-        coordinates: x, y, z coordinates in topocentric reference frame
-        has_altitude: true if z coordinate is known
-        observations: list of observations of the point on images
-    """
-
-    def __init__(self):
-        self.id = None
-        self.lla = None
-        self.coordinates = None
-        self.has_altitude = None
-        self.observations = []
-
-
-class GroundControlPointObservation(object):
-    """A ground control point observation.
-
-    Attributes:
-        shot_id: the shot where the point is observed
-        projection: 2d coordinates of the observation
-    """
-
-    def __init__(self):
-        self.shot_id = None
-        self.projection = None
 
 
 class Reconstruction(object):

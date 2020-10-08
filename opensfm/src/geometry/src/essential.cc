@@ -142,7 +142,11 @@ bool FivePointsGaussJordan(Eigen::MatrixXd *Mp) {
     }
     M.row(i) /= diagonal;
     for (int j = i + 1; j < 10; ++j) {
-      M.row(j) = M.row(j) / M(j,i) - M.row(i);
+      const auto elem = M(j,i);
+      if(elem == 0.0){
+        return false;
+      }
+      M.row(j) = M.row(j) / elem - M.row(i);
     }
   }
 

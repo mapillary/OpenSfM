@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # OpenSfM documentation build configuration file, created by
 # sphinx-quickstart on Sat Dec 19 09:17:37 2015.

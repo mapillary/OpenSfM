@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import os
 import json
 import logging
@@ -8,7 +6,6 @@ import gzip
 
 import cv2
 import numpy as np
-import six
 
 from opensfm import io
 from opensfm import config
@@ -36,15 +33,15 @@ class DataSet(object):
     def __init__(self, data_path):
         """Init dataset associated to a folder."""
         self.data_path = data_path
-        self._load_config()
-        self._load_image_list()
-        self._load_mask_list()
+        self.load_config()
+        self.load_image_list()
+        self.load_mask_list()
 
-    def _load_config(self):
+    def load_config(self):
         config_file = os.path.join(self.data_path, 'config.yaml')
         self.config = config.load_config(config_file)
 
-    def _load_image_list(self):
+    def load_image_list(self):
         """Load image list from image_list.txt or list images/ folder."""
         image_list_file = os.path.join(self.data_path, 'image_list.txt')
         if os.path.isfile(image_list_file):
@@ -78,7 +75,7 @@ class DataSet(object):
         """Height and width of the image."""
         return io.image_size(self._image_file(image))
 
-    def _load_mask_list(self):
+    def load_mask_list(self):
         """Load mask list from mask_list.txt or list masks/ folder."""
         mask_list_file = os.path.join(self.data_path, 'mask_list.txt')
         if os.path.isfile(mask_list_file):
@@ -233,7 +230,6 @@ class DataSet(object):
         self.image_files = {}
         if os.path.exists(path):
             for name in os.listdir(path):
-                name = six.text_type(name)
                 if self._is_image_file(name):
                     self.image_list.append(name)
                     self.image_files[name] = os.path.join(path, name)
@@ -423,7 +419,7 @@ class DataSet(object):
                     walt += w
 
         if not wlat and not wlon:
-            for gcp in self._load_ground_control_points(None):
+            for gcp in self.load_ground_control_points_impl(None):
                 lat += gcp.lla[0]
                 lon += gcp.lla[1]
                 alt += gcp.lla[2]
@@ -555,9 +551,9 @@ class DataSet(object):
         """
 
         reference = self.load_reference()
-        return self._load_ground_control_points(reference)
+        return self.load_ground_control_points_impl(reference)
 
-    def _load_ground_control_points(self, reference):
+    def load_ground_control_points_impl(self, reference):
         """Load ground control points.
 
         It might use reference to convert the coordinates

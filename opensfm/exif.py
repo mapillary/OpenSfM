@@ -1,12 +1,8 @@
-from __future__ import division
-
 import datetime
 import exifread
 import logging
 import xmltodict as x2d
 from codecs import encode, decode
-
-from six import string_types
 
 from opensfm.sensors import sensor_data
 from opensfm import pygeometry
@@ -97,7 +93,7 @@ def camera_id_(make, model, width, height, projection_type, focal):
 
 
 def extract_exif_from_file(fileobj):
-    if isinstance(fileobj, string_types):
+    if isinstance(fileobj, str):
         with open(fileobj) as f:
             exif_data = EXIF(f)
     else:
