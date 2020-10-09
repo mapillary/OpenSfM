@@ -207,3 +207,11 @@ class Reconstruction(object):
                     rec_cpy.add_observation(shot.id, point.id, obs)
 
         return rec_cpy
+
+    def add_correspondences_from_tracks_manager(self, tracks_manager):
+        for track_id in self.points.keys():
+            track_obs = tracks_manager.get_track_observations(track_id)
+            for shot_id in track_obs.keys():
+                if shot_id in self.shots:
+                    observation = tracks_manager.get_observation(shot_id, track_id)
+                    self.add_observation(shot_id, track_id, observation)
