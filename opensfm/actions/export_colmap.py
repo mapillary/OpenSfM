@@ -43,6 +43,7 @@ from opensfm import features
 from opensfm import io
 from opensfm import matching
 
+I_3 = np.eye(3)
 
 def run_dataset(data, binary):
     """ Export reconstruction to COLMAP format."""
@@ -242,7 +243,7 @@ class COLMAPDatabase(sqlite3.Connection):
             (pair_id,) + matches.shape + (array_to_blob(matches),))
 
     def add_two_view_geometry(self, image_id1, image_id2, matches,
-                              F=np.eye(3), E=np.eye(3), H=np.eye(3), config=2):
+                              F=I_3, E=I_3, H=I_3, config=2):
         assert(len(matches.shape) == 2)
         assert(matches.shape[1] == 2)
 
