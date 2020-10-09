@@ -38,7 +38,10 @@ def get_tracks_visible_in_image(gcp_database, image_key, min_len=5):
     print(f"Getting track observations visible in {image_key}")
     data = dataset.DataSet(gcp_database.path)
     tracks_manager = data.load_tracks_manager()
-    reconstruction = data.load_reconstruction()[0]
+    reconstructions = data.load_reconstruction()
+    for reconstruction in reconstructions:
+        if image_key in reconstruction.shots:
+            break
 
     out = {}
     for track_id in reconstruction.points:

@@ -485,17 +485,17 @@ def main():
     if n_bad_std == 0 and n_bad_gcp_annotations == 0:
         logger.info(
             f"No issues. All gcp reprojections are under {args.px_threshold}"
-            "and all frames are localized within {args.std_threshold}m"
+            f" and all frames are localized within {args.std_threshold}m"
         )
     else:
         if np.isnan(all_shots_std[0][1]):
             logger.info(
-                f"There is an issue while analyzing. It could be because: a) there are not enough GCPs."
+                f"Could not get positional uncertainty. It could be because: a) there are not enough GCPs."
                 " b) they are badly distributed in 3D. c) there are some wrong annotations"
             )
         else:
             logger.info(f"{n_bad_std} badly localized images (error>{args.std_threshold}). Use the frame list on each view to find these")
-        logger.info(f"{n_bad_gcp_annotations} annotations with large reprojection error. Press Q to jump to the worst. Here are the top 5:")
+        logger.info(f"{n_bad_gcp_annotations} annotations with large reprojection error. Press Q to jump to the worst, correct it and repeat. Here are the top 5:")
         for ix, t in enumerate(reprojection_errors[:5]):
             logger.info(f"#{ix+1}: GCP[{t[0]}] on image {t[1]}")
 
