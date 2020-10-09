@@ -500,7 +500,7 @@ def main():
     export_folder.mkdir(exist_ok=True)
     images_path = export_folder / 'images'
     if not images_path.exists():
-        os.symlink(args.images, images_path, target_is_directory=True)
+        os.symlink(os.path.abspath(args.images), images_path, target_is_directory=True)
 
     # Copy the config if this is an colmap export of an opensfm export
     if p_db.parent.name == 'colmap_export' and not (export_folder/'config.yaml').exists():

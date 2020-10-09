@@ -10,4 +10,4 @@ class Command(command.CommandBase):
         export_colmap.run_dataset(dataset, args.binary)
 
     def add_arguments_impl(self, parser):
-        parser.add_argument('binary', help='export using binary format', action='store_true')
+        parser.add_argument('--binary', help='export using binary format', action='store_true')
