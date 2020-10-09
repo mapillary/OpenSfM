@@ -105,6 +105,14 @@ def get_all_reprojection_errors(gcp_reprojections):
     return sorted(output, key=lambda t:-t[2])
 
 
+def get_number_of_wrong_annotations_per_gcp(gcp_reprojections, wrong_threshold):
+    output = {}
+    for gcp_id, reprojections in gcp_reprojections.items():
+        errors = [reprojections[shot_id]['error'] for shot_id in reprojections]
+        output[gcp_id] = sum(e>wrong_threshold for e in errors)
+    return output
+
+
 def compute_gcp_std(gcp_errors):
     """Compute the standard deviation of reprojection errors of all gcps."""
     all_errors = []
@@ -163,7 +171,7 @@ def add_gcp_to_bundle(ba, gcp, gcp_std, shots):
 def bundle_with_fixed_images(reconstruction, camera_priors, gcp, gcp_std,
                              fixed_images, config):
     """Bundle adjust a reconstruction while keeping some images fixed."""
-    fix_cameras = False
+    fix_cameras = True
 
     chrono = orec.Chronometer()
     ba = orec.pybundle.BundleAdjuster()
@@ -412,7 +420,6 @@ def main():
 
     gcp_reprojections = reproject_gcps(gcps, merged)
     reprojection_errors = get_all_reprojection_errors(gcp_reprojections)
-    n_bad_gcp_annotations = sum(t[2] > args.px_threshold for t in reprojection_errors)
     err_values = [t[2] for t in reprojection_errors]
     mean_reprojection_error = np.mean(err_values)
     max_reprojection_error = np.max(err_values)
@@ -462,6 +469,7 @@ def main():
             f.write(line + '\n')
 
 
+    n_bad_gcp_annotations = int(sum(t[2] > args.px_threshold for t in reprojection_errors))
     metrics = {
         'n_reconstructions': len(all_reconstructions),
         'median_shot_std' : median_shot_std,
@@ -469,7 +477,7 @@ def main():
         'max_reprojection_error': max_reprojection_error,
         'median_reprojection_error': median_reprojection_error,
         'n_gcp': len(gcps),
-        'n_bad_gcp_annotations': int(n_bad_gcp_annotations),
+        'n_bad_gcp_annotations': n_bad_gcp_annotations,
         'n_bad_position_std': int(n_bad_std),
     }
 
@@ -496,8 +504,11 @@ def main():
         else:
             logger.info(f"{n_bad_std} badly localized images (error>{args.std_threshold}). Use the frame list on each view to find these")
         logger.info(f"{n_bad_gcp_annotations} annotations with large reprojection error. Press Q to jump to the worst, correct it and repeat. Here are the top 5:")
-        for ix, t in enumerate(reprojection_errors[:5]):
-            logger.info(f"#{ix+1}: GCP[{t[0]}] on image {t[1]}")
+
+        stats_bad_reprojections = get_number_of_wrong_annotations_per_gcp(gcp_reprojections, args.px_threshold)
+        gcps_sorted = sorted(stats_bad_reprojections, key=lambda k:-stats_bad_reprojections[k])[:5]
+        for ix, gcp_id in enumerate(gcps_sorted):
+            logger.info(f"#{ix+1}: GCP: {gcp_id} with {stats_bad_reprojections[gcp_id]} bad annotations")
 
 
 if __name__ == "__main__":
