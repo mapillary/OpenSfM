@@ -1,7 +1,7 @@
 """Basic types for building a reconstruction."""
 from opensfm import pymap
 from opensfm import pygeometry
-
+from opensfm.geo import TopocentricConverter
 
 class ShotMesh(object):
     """Triangular mesh of points visible in a shot
@@ -75,7 +75,8 @@ class Reconstruction(object):
     points = property(get_points, set_points)
 
     def get_reference(self):
-        return self.map.get_reference()
+        ref = self.map.get_reference()
+        return TopocentricConverter(ref.lat, ref.lon, ref.alt)
 
     def set_reference(self, value):
         self.map.set_reference(value.lat, value.lon, value.alt)
