@@ -1,6 +1,5 @@
 import matplotlib.patches as mpatches
 import tkinter as tk
-from tkinter import filedialog
 import time
 import matplotlib
 import os
@@ -162,6 +161,7 @@ class Gui:
         view.sequence_list_box.delete(0, tk.END)
         n_digits = len(str(len(image_keys)))
         defaultbg = view.cget('bg')
+        ix_selected = None
         for ix, shot in enumerate(image_keys):
             points = self.database.get_visible_points_coords(shot)
             txt = "{:0{n_digits}} {}".format(ix+1, len(points), n_digits=n_digits)
@@ -172,6 +172,13 @@ class Gui:
             # Highlight current frame
             if shot == view.current_image:
                 view.sequence_list_box.itemconfig(ix, bg='green')
+                ix_selected = ix
+
+        # Focus on the current frame in the list
+        if ix_selected:
+            #view.sequence_list_box.selection_set(sel)
+            view.sequence_list_box.see(ix_selected)
+
 
     def onclick_sequence_list(self, event):
         widget = event.widget
@@ -325,7 +332,7 @@ class Gui:
 
     def load_gcps(self, filename=None):
         if filename is None:
-            filename = filedialog.askopenfilename(
+            filename = tk.filedialog.askopenfilename(
                 title="Open GCP file",
                 initialdir=self.database.path,
                 filetypes=(("JSON files", "*.json"), ("all files", "*.*")),
@@ -541,7 +548,7 @@ class Gui:
             return self.database.write_to_file(self.last_saved_filename)
 
     def save_gcps_as(self):
-        filename = filedialog.asksaveasfilename(
+        filename = tk.filedialog.asksaveasfilename(
             initialfile="ground_control_points.json",
             title="Save GCP file",
             initialdir=self.database.path,
