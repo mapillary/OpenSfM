@@ -8,7 +8,22 @@ import os
 from collections import OrderedDict
 import json
 from matplotlib.image import _rgb_to_rgba
+import multiprocessing
 
+IMAGE_MAX_SIZE = 1000
+
+def load_image(path):
+    print(f"Loading {path}")
+    rgb = Image.open(path)
+
+    # Reduce to some reasonable maximum size
+    scale = max(rgb.size) / IMAGE_MAX_SIZE
+    if scale > 1:
+        new_w = int(round(rgb.size[0] / scale))
+        new_h = int(round(rgb.size[1] / scale))
+        rgb = rgb.resize((new_w, new_h), resample=Image.BILINEAR)
+    # Matplotlib will transform to rgba when plotting
+    return _rgb_to_rgba(np.asarray(rgb))
 
 class Database:
     def __init__(self, seqs, path, preload_images=True):
@@ -18,10 +33,7 @@ class Database:
         self.image_cache = {}
 
         if preload_images:
-            print("Preloading images")
-            for keys in self.seqs.values():
-                for k in keys:
-                    self.get_image(k)
+            self.preload_images()
 
         p_gcp_errors = self.path + '/gcp_reprojections.json'
         if os.path.exists(p_gcp_errors):
@@ -55,20 +67,25 @@ class Database:
                     np.array([observation["projection"]]), w, h)[0]
             self.points[point_id] = observations
 
-    def get_image(self, img_name, max_size=1000):
+    def get_image(self, img_name):
         if img_name not in self.image_cache:
-            rgb = Image.open(self.go_to_image_path() + img_name)
-
-            # Reduce to some reasonable maximum size
-            scale = max(rgb.size) / max_size
-            if scale > 1:
-                new_w = int(round(rgb.size[0] / scale))
-                new_h = int(round(rgb.size[1] / scale))
-                rgb = rgb.resize((new_w, new_h), resample=Image.BILINEAR)
-
-            # Matplotlib will transform to rgba when plotting
-            self.image_cache[img_name] = _rgb_to_rgba(np.asarray(rgb))
+            path = self.go_to_image_path() + img_name
+            self.image_cache[img_name] = self.load_image(path)
         return self.image_cache[img_name]
+
+    def preload_images(self):
+        n_cpu = multiprocessing.cpu_count()
+        print(f"Preloading images with {n_cpu} processes")
+        paths = []
+        img_names = []
+        for keys in self.seqs.values():
+            for k in keys:
+                img_names.append(k)
+                paths.append(self.go_to_image_path() + k)
+        pool = multiprocessing.Pool(processes=n_cpu)
+        images = pool.map(load_image, paths)
+        for img_name, im in zip(img_names, images):
+            self.image_cache[img_name] = im
 
     def get_image_size(self, img_name):
         img = self.get_image(img_name)
