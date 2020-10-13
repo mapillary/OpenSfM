@@ -176,7 +176,6 @@ class Gui:
 
         # Focus on the current frame in the list
         if ix_selected:
-            #view.sequence_list_box.selection_set(sel)
             view.sequence_list_box.see(ix_selected)
 
 
@@ -540,6 +539,8 @@ class Gui:
 
         for view in self.views:
             self.display_points(view)
+            if self.curr_point:
+                self.highlight_gcp_reprojection(view, self.curr_point, zoom=False)
 
     def save_gcps(self):
         if self.last_saved_filename is None:
@@ -613,16 +614,23 @@ class Gui:
     def go_to_prev_image(self, view):
         self.go_to_adjacent_image(view, -1)
 
-    def highlight_gcp_reprojection(self, view, shot, point_id):
-        x, y = 0,0
+    def highlight_gcp_reprojection(self, view, point_id, zoom=True):
+        if point_id not in self.database.gcp_reprojections:
+            return
+        shot = view.current_image
+        x, y = None, None
         for obs in self.database.points[point_id]:
             if obs['shot_id'] == shot:
                 x, y = obs['projection']
+        if x is None:
+            return
 
         x2, y2 = self.database.gcp_reprojections[point_id][shot]['reprojection']
-        view.subplot.plot([x, x2], [y, y2], 'r-')
+        artists = view.subplot.plot([x, x2], [y, y2], 'r-')
+        view.plt_artists.extend(artists)
+        if zoom:
+            self.zoom_in(view, x, y)
         view.canvas.draw_idle()
-        self.zoom_in(view, x, y)
 
     def go_to_current_gcp(self):
         """
@@ -653,7 +661,6 @@ class Gui:
             shot_worst_gcp = self.database.shot_with_max_gcp_error(view.image_keys, worst_gcp)
             if shot_worst_gcp:
                 self.bring_new_image(shot_worst_gcp, view)
-                self.highlight_gcp_reprojection(view, shot_worst_gcp, worst_gcp)
 
     def point_in_view(self, view, point):
         if point is None:
@@ -700,3 +707,6 @@ class Gui:
         self.populate_sequence_list(view)
 
         self.display_points(view)
+
+        if self.curr_point:
+            self.highlight_gcp_reprojection(view, self.curr_point, zoom=False)
