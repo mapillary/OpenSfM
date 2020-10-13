@@ -248,14 +248,16 @@ def cam_from_colmap_params(camera_model_id, width, height, params, prior_focal=1
     """
     Helper function to map from colmap parameters to an OpenSfM camera
     """
-    if camera_model_id not in (3, 9):
+    mapping = {1: 'pinhole', 3: 'perspective', 9: 'fisheye'}
+    if camera_model_id not in mapping.keys():
         raise ValueError("Not supported: " + camera_models[camera_model_id][0])
-    mapping = {3: 'perspective', 9: 'fisheye'}
     projection_type = mapping[camera_model_id]
     normalizer = max(width, height)
     focal = params[0] / normalizer if prior_focal else 0.85
     if projection_type == 'perspective':
         cam = pygeometry.Camera.create_perspective(focal, params[3], params[4])
+    elif projection_type == 'pinhole':
+        cam = pygeometry.Camera.create_perspective(focal, 0, 0)
     else:  # projection_type == 'fisheye'
         cam = pygeometry.Camera.create_fisheye(focal, params[3], 0)
     cam.width = width
@@ -540,10 +542,14 @@ def main():
 
         # Project colmap's fused pointcloud to save depths in opensfm format
         path_ply = p_db.parent / 'dense/fused.ply'
-        path_images = p_db.parent / 'dense/sparse/images.bin'
         if path_ply.is_file():
+            rec_cameras = p_db.parent / 'dense/sparse/cameras.bin'
+            rec_images = p_db.parent / 'dense/sparse/images.bin'
+            rec_points = p_db.parent / 'points3D.bin'
             reconstruction = types.Reconstruction()
-            _, image_ix_to_shot_id = import_images_reconstruction(path_images,
+            import_cameras_reconstruction(rec_cameras, reconstruction)
+            import_points_reconstruction(rec_points, reconstruction)
+            _, image_ix_to_shot_id = import_images_reconstruction(rec_images,
                                                                   keypoints,
                                                                   reconstruction)
             logger.info(f"Projecting {path_ply} to depth images")
