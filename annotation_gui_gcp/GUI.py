@@ -8,16 +8,19 @@ import subprocess
 import sys
 import numpy as np
 import random
+import colorsys
 
 from apps import distinct_colors, read_gcp_file, id_generator
 
 matplotlib.use('TkAgg')
-from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 from matplotlib.patches import PathPatch
 from matplotlib.text import TextPath
 from matplotlib.transforms import IdentityTransform
 from matplotlib.offsetbox import AnnotationBbox, AuxTransformBox
+from matplotlib import patheffects
+
 from matplotlib import pyplot as plt
 from geometry import get_all_track_observations, get_tracks_visible_in_image
 
@@ -27,11 +30,12 @@ PREVIOUS_UNICODE = u"\u2193"
 NEXT_UNICODE = u"\u2191"
 FONT = "TkFixedFont"
 
-
-class NavigationToolbar(NavigationToolbar2Tk):
-    def set_message(self, m):
-        pass
-
+def comp_color(color):
+    r,g,b = color[1:3], color[3:5], color[5:7]
+    r,g,b = [int(c, 16) for c in (r,g,b)]
+    h, s, v = colorsys.rgb_to_hsv(r,g,b)
+    comp_color = 'black' if v > 128 else 'white'
+    return comp_color
 
 class Gui:
 
@@ -115,10 +119,12 @@ class Gui:
         #                                    var=self.if_show_epipolar)
         # self.check_button.pack(side='top')
         self.sticky_zoom = tk.BooleanVar(value=True)
-        sticky_zoom_button = tk.Checkbutton(master, text="Sticky zoom (x)", var=self.sticky_zoom)
-        sticky_zoom_button.pack(side='top')
+        button = tk.Checkbutton(master, text="Sticky zoom (x)", var=self.sticky_zoom)
+        button.pack(side='top')
 
-        # self.check_button.pack(side='top')
+        self.show_gcp_names = tk.BooleanVar(value=False)
+        button = tk.Checkbutton(master, text="Show GCP names", var=self.show_gcp_names)
+        button.pack(side='top')
 
         txt = tk.Label(master, text="Analysis")
         txt.pack(side="top")
@@ -341,18 +347,30 @@ class Gui:
 
         for point_id, coords in visible_points_coords.items():
             color = distinct_colors[divmod(hash(point_id), 19)[1]]
-            text_path = TextPath((0, 0), point_id, size=12)
-            p1 = PathPatch(text_path, transform=IdentityTransform(), alpha=1, color=color)
-            offsetbox2 = AuxTransformBox(IdentityTransform())
-            offsetbox2.add_artist(p1)
             artists = [
-                AnnotationBbox(offsetbox2, ((coords[0] + 30), (coords[1] + 30)), bboxprops={"alpha":0.05}),
                 mpatches.Circle((coords[0], coords[1]), 5, color=color, fill=False),
-                mpatches.Circle((coords[0], coords[1]), 0.5, color=color, fill=True),
             ]
+
+            if self.show_gcp_names.get() or point_id == self.curr_point:
+                text = matplotlib.text.Annotation(
+                    point_id,
+                    coords,
+                    xytext=[0, 7],
+                    #fontsize=9,
+                    textcoords='offset points',
+                    ha='center',
+                    va='bottom',
+                    color=color,
+                    )
+                text.set_path_effects([
+                    patheffects.Stroke(linewidth=3, foreground=comp_color(color)),
+                    patheffects.Normal(),
+                    ])
+                artists.append(text)
 
             if point_id == self.curr_point:
                 artists.extend([
+                    mpatches.Circle((coords[0], coords[1]), 0.5, color=color, fill=True),
                     mpatches.Circle((coords[0], coords[1]), 10, color=color, fill=False),
                     mpatches.Circle((coords[0], coords[1]), 11, color=color, fill=False),
                     mpatches.Circle((coords[0], coords[1]), 12, color=color, fill=False),
@@ -675,4 +693,3 @@ class Gui:
         self.populate_sequence_list(view)
 
         self.display_points(view)
-        print("Took {:.2f}s to bring_new_image {}".format(time.time()-t0, new_image))
