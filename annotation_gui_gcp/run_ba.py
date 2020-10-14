@@ -453,6 +453,7 @@ def main():
     # If the STD of all shots is the same, replace by nan
     std_values = [x[1] for x in all_shots_std]
     n_bad_std = sum(std > args.std_threshold for std in std_values)
+    n_good_std = sum(std <= args.std_threshold for std in std_values)
     if np.allclose(std_values, std_values[0]):
         all_shots_std = [(x[0], np.nan) for x in all_shots_std]
         n_bad_std = len(std_values)
@@ -479,6 +480,7 @@ def main():
         'n_gcp': len(gcps),
         'n_bad_gcp_annotations': n_bad_gcp_annotations,
         'n_bad_position_std': int(n_bad_std),
+        'n_good_position_std': int(n_good_std),
     }
 
     logger.info(metrics)
