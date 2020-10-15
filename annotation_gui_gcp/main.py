@@ -3,9 +3,11 @@ import tkinter as tk
 from collections import OrderedDict, defaultdict
 from pathlib import Path
 
-from Database import Database
-from GUI import Gui
-from opensfm import io, dataset
+from opensfm import dataset, io
+
+import GUI
+from gcp_manager import GroundControlPointManager
+from image_manager import ImageManager
 
 
 def parse_args():
@@ -23,7 +25,7 @@ def parse_args():
     parser.add_argument(
         "--sequence-file",
         help="dict-of-image-keys JSON file describing each sequence. "
-             "Format: {'sequence_key': ['im_key_1', 'im_key_2', ...], ...}",
+        "Format: {'sequence_key': ['im_key_1', 'im_key_2', ...], ...}",
         default="sequence_database.json",
     )
     parser.add_argument(
@@ -44,20 +46,16 @@ def parse_args():
 
 def file_sanity_check(root, seq_dict, fname):
     # Images available under ./images for a sanity check
-    available_images = set([p.name for p in (root / "images").iterdir()])
-    keys_in_seq_dict = set(
-        [im_key for seq_keys in seq_dict.values() for im_key in seq_keys]
-    )
+    available_images = {p.name for p in (root / "images").iterdir()}
+    keys_in_seq_dict = {im_key for seq_keys in seq_dict.values() for im_key in seq_keys}
 
     images_not_in_seq_file = available_images - keys_in_seq_dict
     if len(images_not_in_seq_file) > 0:
         print(f"{len(images_not_in_seq_file)} images not in {fname}")
 
-    missing_image_files = keys_in_seq_dict - available_images
-    if len(missing_image_files) > 0:
-        print(
-            f"There are {len(missing_image_files)} images from {fname} missing in {(root/'images')}"
-        )
+    n_missing = len(keys_in_seq_dict - available_images)
+    if n_missing > 0:
+        print(f"There are {n_missing} images from {fname} missing in {(root/'images')}")
 
     return available_images
 
@@ -107,11 +105,14 @@ if __name__ == "__main__":
     if args.group_by_reconstruction:
         seqs = group_images_by_reconstruction(path)
     else:
-        seqs = load_sequence_database_from_file(path, args.sequence_file, skip_missing=True)
-    database = Database(seqs, path, preload_images=not args.no_preload)
+        seqs = load_sequence_database_from_file(
+            path, args.sequence_file, skip_missing=True
+        )
+    image_manager = ImageManager(seqs, path, preload_images=not args.no_preload)
+    gcp_manager = GroundControlPointManager(path)
     root = tk.Tk()
     root.resizable(True, True)
-    my_gui = Gui(root, database, len(seqs), args.sequence_group)
+    GUI.Gui(root, gcp_manager, image_manager, args.sequence_group)
     root.grid_columnconfigure(0, weight=1)
     root.grid_rowconfigure(0, weight=1)
     root.title("Tools")
