@@ -123,6 +123,13 @@ TEST_F(CameraFixture, FisheyeIsConsistent){
   ASSERT_LT(ComputeError(projected), 2e-7);
 }
 
+TEST_F(CameraFixture, FisheyeIsConsistentLargeFov){
+  double short_focal = 0.3;
+  Camera camera = Camera::CreateFisheyeCamera(short_focal, 0.001, 0.001);
+  const auto projected = camera.ProjectMany(camera.BearingsMany(pixels));
+  ASSERT_LT(ComputeError(projected), 2e-7);
+}
+
 TEST_F(CameraFixture, FisheyeExtendedIsConsistent){
   Camera camera = Camera::CreateFisheyeExtendedCamera(focal, 1.0, principal_point, distortion_fisheye);
   const auto projected = camera.ProjectMany(camera.BearingsMany(pixels));
