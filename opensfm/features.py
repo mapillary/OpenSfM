@@ -87,7 +87,12 @@ def _in_mask(point, width, height, mask):
 def extract_features_sift(image, config):
     sift_edge_threshold = config['sift_edge_threshold']
     sift_peak_threshold = float(config['sift_peak_threshold'])
-    if context.OPENCV3:
+    # SIFT support is in cv2 main from version 4.4.0
+    if context.OPENCV44 or context.OPENCV5:
+        detector = cv2.SIFT_create(
+            edgeThreshold=sift_edge_threshold,
+            contrastThreshold=sift_peak_threshold)
+    elif context.OPENCV3:
         try:
             detector = cv2.xfeatures2d.SIFT_create(
                 edgeThreshold=sift_edge_threshold,
@@ -104,7 +109,12 @@ def extract_features_sift(image, config):
     while True:
         logger.debug('Computing sift with threshold {0}'.format(sift_peak_threshold))
         t = time.time()
-        if context.OPENCV3:
+        # SIFT support is in cv2 main from version 4.4.0
+        if context.OPENCV44 or context.OPENCV5:
+            detector = cv2.SIFT_create(
+                edgeThreshold=sift_edge_threshold,
+                contrastThreshold=sift_peak_threshold)
+        elif context.OPENCV3:
             detector = cv2.xfeatures2d.SIFT_create(
                 edgeThreshold=sift_edge_threshold,
                 contrastThreshold=sift_peak_threshold)
