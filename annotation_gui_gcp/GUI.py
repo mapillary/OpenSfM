@@ -196,6 +196,7 @@ class Gui:
         self.gcp_manager.load_from_file(filename)
         for view in self.sequence_views:
             view.display_points()
+            view.populate_image_list()
         self.populate_gcp_list()
 
     def add_gcp(self):
