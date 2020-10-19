@@ -41,6 +41,18 @@ def parse_args():
         "Can be used multiple times to define several groups",
         default=[],
     )
+    parser.add_argument(
+        "-o",
+        "--ortho",
+        type=str,
+        action="append",
+        help="Specify one or more groups of linked sequences. "
+        "Linked sequences are synchronized such that all views "
+        "from the group will always show the same frame index. "
+        "Useful for camera rigs. usage: -g sequence_key_1 sequence_key_2. "
+        "Can be used multiple times to define several groups",
+        default=[],
+    )
     return parser.parse_args()
 
 
@@ -112,7 +124,7 @@ if __name__ == "__main__":
     gcp_manager = GroundControlPointManager(path)
     root = tk.Tk()
     root.resizable(True, True)
-    GUI.Gui(root, gcp_manager, image_manager, args.sequence_group)
+    ui = GUI.Gui(root, gcp_manager, image_manager, args.sequence_group, args.ortho)
     root.grid_columnconfigure(0, weight=1)
     root.grid_rowconfigure(0, weight=1)
     root.title("Tools")

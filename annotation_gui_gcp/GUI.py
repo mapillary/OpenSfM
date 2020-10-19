@@ -10,12 +10,15 @@ import matplotlib
 matplotlib.use("TkAgg")
 
 from image_sequence_view import ImageSequenceView
+from orthophoto_view import OrthoPhotoView
 
 FONT = "TkFixedFont"
 
 
 class Gui:
-    def __init__(self, master, gcp_manager, image_manager, sequence_groups=()):
+    def __init__(
+        self, master, gcp_manager, image_manager, sequence_groups=(), ortho_paths=[]
+    ):
         self.master = master
         self.gcp_manager = gcp_manager
         self.image_manager = image_manager
@@ -29,9 +32,7 @@ class Gui:
         master.bind_all("z", lambda event: self.toggle_zoom_all_views())
         master.bind_all("x", lambda event: self.toggle_sticky_zoom())
         master.bind_all("a", lambda event: self.go_to_current_gcp())
-        master.bind_all("w", lambda event: self.go_to_next_image_all())
-        master.bind_all("s", lambda event: self.go_to_prev_image_all())
-        self.create_ui()
+        self.create_ui(ortho_paths)
         master.lift()
 
         p_default_gcp = self.path + "/ground_control_points.json"
@@ -41,15 +42,17 @@ class Gui:
         if os.path.exists(p_shot_std):
             self.load_shot_std(p_shot_std)
 
-        for view in self.views:
-            view.populate_image_list()
-            view.bring_new_image(view.images_in_list[0])
-
-    def create_ui(self):
+    def create_ui(self, ortho_paths):
         tools_frame = tk.Frame(self.master)
         tools_frame.pack(side="left", expand=0, fill=tk.Y)
         self.create_tools(tools_frame)
-        self.create_image_views()
+        self.create_sequence_views(show_ortho_track=len(ortho_paths) > 0)
+        self.ortho_views = []
+        if ortho_paths:
+            v = self.sequence_views[0]
+            k = v.current_image
+            latlon = v.latlons[k]
+            self.create_ortho_views(ortho_paths, latlon["lat"], latlon["lon"])
         self.master.update_idletasks()
         self.arrange_ui_onerow()
 
@@ -64,9 +67,9 @@ class Gui:
         x, y = 0, y + h
         screen_width = master.winfo_screenwidth()
         screen_height = master.winfo_screenheight()
-        w = screen_width / len(self.views)
+        w = screen_width / len(self.sequence_views)
         h = screen_height - y
-        for view in self.views:
+        for view in self.sequence_views:
             view.window.geometry("%dx%d+%d+%d" % (w, h, x, y))
             x += w
 
@@ -124,13 +127,22 @@ class Gui:
         button = tk.Button(io_frame, text="Save As", command=self.save_gcps_as)
         button.pack(side="left")
 
-    def create_image_views(self):
-        self.views = []
-        for sequence_key, image_keys in self.image_manager.seqs.items():
-            v = ImageSequenceView(
-                self, f"view {len(self.views)+1}", sequence_key, image_keys
+    def create_ortho_views(self, ortho_paths, lat, lon):
+        for ortho_p in ortho_paths:
+            v = OrthoPhotoView(
+                self,
+                ortho_p,
+                init_lat=lat,
+                init_lon=lon,
+                is_geo_reference=ortho_p is ortho_paths[0],
             )
-            self.views.append(v)
+            self.ortho_views.append(v)
+
+    def create_sequence_views(self, show_ortho_track):
+        self.sequence_views = []
+        for sequence_key, image_keys in self.image_manager.seqs.items():
+            v = ImageSequenceView(self, sequence_key, image_keys, show_ortho_track)
+            self.sequence_views.append(v)
 
     def analyze_3d_to_3d(self):
         self.analyze(mode="3d_to_3d")
@@ -160,7 +172,7 @@ class Gui:
         p_gcp_errors = self.path + "/gcp_reprojections.json"
         self.gcp_manager.load_gcp_reprojections(p_gcp_errors)
 
-        for view in self.views:
+        for view in self.sequence_views:
             view.populate_image_list()
 
         print("Done analyzing")
@@ -182,7 +194,7 @@ class Gui:
             return
         self.quick_save_filename = filename
         self.gcp_manager.load_from_file(filename)
-        for view in self.views:
+        for view in self.sequence_views:
             view.display_points()
         self.populate_gcp_list()
 
@@ -201,8 +213,8 @@ class Gui:
         # Zoom in/out on every view, centered on the location of the current GCP
         if self.curr_point is None:
             return
-        any_zoomed_in = any(view.zoomed_in for view in self.views)
-        for view in self.views:
+        any_zoomed_in = any(view.zoomed_in for view in self.sequence_views)
+        for view in self.sequence_views:
             if any_zoomed_in:
                 view.zoom_out()
             else:
@@ -244,7 +256,7 @@ class Gui:
         self.curr_point = None
 
         self.gcp_manager.remove_gcp(to_be_removed_point)
-        for view in self.views:
+        for view in self.sequence_views:
             view.display_points()
 
         self.populate_gcp_list()
@@ -260,7 +272,7 @@ class Gui:
         else:
             self.curr_point = value.split(" ")[1]
 
-        for view in self.views:
+        for view in self.sequence_views:
             view.display_points()
             if self.curr_point:
                 view.highlight_gcp_reprojection(self.curr_point, zoom=False)
@@ -286,14 +298,6 @@ class Gui:
             self.quick_save_filename = filename
             return self.save_gcps()
 
-    def go_to_next_image_all(self):
-        for view in self.views:
-            view.go_to_adjacent_image(+1, linked=False)
-
-    def go_to_prev_image_all(self):
-        for view in self.views:
-            view.go_to_adjacent_image(-1, linked=False)
-
     def go_to_current_gcp(self):
         """
         Jumps to the currently selected GCP in all views where it was not visible
@@ -303,9 +307,9 @@ class Gui:
         shots_gcp_seen = {
             p["shot_id"] for p in self.gcp_manager.points[self.curr_point]
         }
-        for view in self.views:
+        for view in self.sequence_views:
             shots_gcp_seen_this_view = list(
-                shots_gcp_seen.intersection(view.image_keys)
+                shots_gcp_seen.intersection(view.images_in_list)
             )
             if (
                 len(shots_gcp_seen_this_view) > 0
@@ -329,10 +333,20 @@ class Gui:
                 self.gcp_list_box.selection_set(ix)
                 break
 
-        for view in self.views:
+        for view in self.sequence_views:
             # Get the shot with worst reprojection error that in this view
             shot_worst_gcp = self.gcp_manager.shot_with_max_gcp_error(
-                view.image_keys, worst_gcp
+                view.images_in_list, worst_gcp
             )
             if shot_worst_gcp:
                 view.bring_new_image(shot_worst_gcp)
+
+    def clear_latlon_sources(self, view):
+        # The user has activated the 'Track this' checkbox in some view
+        for v in self.sequence_views + self.ortho_views:
+            if v is not view:
+                v.is_latlon_source.set(False)
+
+    def refocus_overhead_views(self, lat, lon):
+        for view in self.ortho_views:
+            view.refocus(lat, lon)

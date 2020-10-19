@@ -20,7 +20,11 @@ class OrthoPhotoManager:
         row_center, col_center = t.index(xs[0], ys[0])
         window = rasterio.windows.Window(row_center, col_center, 1, 1)
         mask = t.read_masks(1, window=window, boundless=True)
-        return mask.item != 0
+        return mask.item() != 0
+
+    def load_latlons(self):
+        # We don't have a 'canonical' lat/lon for orthophotos
+        return {}
 
     def read_image_around_latlon(self, img: str, lat: float, lon: float, size: float):
         t = rasterio.open(self.path / img)
@@ -40,8 +44,6 @@ class OrthoPhotoManager:
         return tw, window, t
 
     def get_candidate_images(self, lat: float, lon: float):
-        # Returns only the images that cover this lat/lon
-        # TODO actually filter around latlon, update list
         return [k for k in self.image_keys if self.check_latlon_covered(k, lat, lon)]
 
     def get_image(self, img, lat: float, lon: float, size: float):

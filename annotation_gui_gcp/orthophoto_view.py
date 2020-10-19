@@ -4,32 +4,38 @@ import numpy as np
 import rasterio.warp
 from opensfm import features
 
-import GUI
 from orthophoto_manager import OrthoPhotoManager
 from view import View
 
 
 class OrthoPhotoView(View):
-    def __init__(self, main_ui: GUI.Gui, path: str, is_geo_reference: bool = False):
+    def __init__(
+        self,
+        main_ui,
+        path: str,
+        init_lat: float,
+        init_lon: float,
+        is_geo_reference: bool = False,
+    ):
         """[summary]
 
         Args:
             main_ui (GUI.Gui)
             path (str): path containing geotiffs
         """
-        self.name = path.split("/")[-1]
         self.image_manager = OrthoPhotoManager(path, 100.0)
-        self.image_keys = self.image_manager.image_keys
+        self.images_in_list = self.image_manager.image_keys
         self.zoom_window_size_px = 500
-        self.current_image = self.image_keys[0]
         self.is_geo_reference = is_geo_reference
 
-        lon, lat = -122.33500709776536, 47.61825766649998
-        self.center_lat, self.center_lon = lat, lon
-        self.group_name = "Images covering lat:{:.4f}, lon:{:.4f}".format(lat, lon)
-
         self.size = 50  # TODO add widget for zoom level
-        super(OrthoPhotoView, self).__init__(main_ui, self.name)
+
+        super(OrthoPhotoView, self).__init__(main_ui, False)
+        self.refocus(init_lat, init_lon)
+        self.populate_image_list()
+        if self.images_in_list:
+            self.bring_new_image(self.images_in_list[0])
+        self.set_title()
 
     def get_image(self, new_image):
         image, image_window, geot = self.image_manager.read_image_around_latlon(
@@ -76,3 +82,38 @@ class OrthoPhotoView(View):
         h, w = self.image_manager.get_image_size(self.current_image)
         coords = features.normalized_image_coordinates(np.array([[x, y]]), w, h)[0]
         return coords.tolist()
+
+    def refocus(self, lat, lon):
+        self.center_lat = lat
+        self.center_lon = lon
+        self.populate_image_list()
+        if self.images_in_list:
+            if self.current_image not in self.images_in_list:
+                self.bring_new_image(self.images_in_list[0])
+            else:
+                self.bring_new_image(self.current_image)
+        self.set_title()
+
+    def bring_new_image(self, new_image):
+        super(OrthoPhotoView, self).bring_new_image(new_image, force=True)
+        xlim = self.ax.get_xlim()
+        ylim = self.ax.get_ylim()
+        artists = self.ax.plot(np.mean(xlim), np.mean(ylim), "rx")
+        self.plt_artists.extend(artists)
+        self.canvas.draw_idle()
+
+    def set_title(self):
+        lat, lon = self.center_lat, self.center_lon
+        if self.images_in_list:
+            t = "Images covering lat:{:.4f}, lon:{:.4f}".format(lat, lon)
+            shot = self.current_image
+            seq_ix = self.images_in_list.index(shot)
+            title = f"{t} [{seq_ix+1}/{len(self.images_in_list)}]: {shot}"
+        else:
+            title = f"No orthophotos around {lat}, {lon}"
+            self.current_image = None
+            self.ax.clear()
+            self.ax.axis("off")
+            self.canvas.draw_idle()
+
+        self.window.title(title)

@@ -2,6 +2,7 @@ import multiprocessing
 
 import numpy as np
 from matplotlib.image import _rgb_to_rgba
+from opensfm import dataset
 from PIL import Image
 
 IMAGE_MAX_SIZE = 1000
@@ -37,6 +38,23 @@ class ImageManager:
             path = self.image_path(image_name)
             self.image_cache[image_name] = load_image(path)
         return self.image_cache[image_name]
+
+    def load_latlons(self):
+        data = dataset.DataSet(self.path)
+        latlons = {}
+        for keys in self.seqs.values():
+            for k in keys:
+                exif = data.load_exif(k)
+                if "l" in exif:
+                    latlons[k] = exif["l"]
+                elif "gps" in exif:
+                    latlons[k] = {
+                        "lat": exif["gps"]["latitude"],
+                        "lon": exif["gps"]["longitude"],
+                    }
+                elif "cl" in exif:
+                    latlons[k] = exif["cl"]
+        return latlons
 
     def preload_images(self):
         n_cpu = multiprocessing.cpu_count()

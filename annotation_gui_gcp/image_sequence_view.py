@@ -11,13 +11,12 @@ from view import View
 
 
 class ImageSequenceView(View):
-    def __init__(self, main_ui, name, sequence_key, image_keys):
+    def __init__(self, main_ui, sequence_key, image_keys, show_ortho_track):
         self.group_name = sequence_key
-        self.current_image = image_keys[0]
-        self.image_keys = image_keys
+        self.images_in_list = image_keys
         self.zoom_window_size_px = 200
         self.image_manager = main_ui.image_manager
-        super(ImageSequenceView, self).__init__(main_ui, name)
+        super(ImageSequenceView, self).__init__(main_ui, show_ortho_track)
 
         # Auto GCP - related stuff
         auto_gcp_button = tk.Button(
@@ -27,11 +26,15 @@ class ImageSequenceView(View):
         )
         auto_gcp_button.pack(side="top")
 
+        self.populate_image_list()
+        self.bring_new_image(self.images_in_list[0])
+        self.set_title()
+
     def get_image(self, new_image):
         return self.image_manager.get_image(new_image)
 
     def get_candidate_images(self):
-        return self.image_keys
+        return self.images_in_list
 
     def auto_gcp_show_tracks(self):
         h, w = self.image_manager.get_image_size(self.current_image)
@@ -58,7 +61,7 @@ class ImageSequenceView(View):
         points = np.array(points)
         norm = matplotlib.colors.Normalize()
         colors = plt.cm.viridis(norm(track_lengths))
-        self.tracks_scatter = self.subplot.scatter(
+        self.tracks_scatter = self.ax.scatter(
             points[:, 0], points[:, 1], s=10, c=colors, marker="x"
         )
         self.canvas.draw_idle()
@@ -114,3 +117,21 @@ class ImageSequenceView(View):
         h, w = self.image_manager.get_image_size(self.current_image)
         coords = features.normalized_image_coordinates(np.array([[x, y]]), w, h)[0]
         return coords.tolist()
+
+    def set_title(self):
+        shot = self.current_image
+        seq_ix = self.images_in_list.index(shot)
+        title = f"{self.group_name} [{seq_ix+1}/{len(self.images_in_list)}]: {shot}"
+        self.window.title(title)
+
+    def go_to_image_index(self, idx):
+        views_to_update = {self}
+        groups_this_view = [
+            g for g in self.main_ui.sequence_groups if self.group_name in g
+        ]
+        for g in groups_this_view:
+            for v in self.main_ui.sequence_views:
+                if v.group_name in g and v.images_in_list:
+                    views_to_update.add(v)
+        for v in views_to_update:
+            v.bring_new_image(v.images_in_list[idx])

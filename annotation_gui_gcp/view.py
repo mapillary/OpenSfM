@@ -43,16 +43,31 @@ def comp_color(color):
 
 
 class View:
-    def __init__(self, main_ui, name):
+    def __init__(self, main_ui, show_ortho_track):
         self.main_ui = main_ui
-        window = tk.Toplevel(self.main_ui.master, name=name)
+        window = tk.Toplevel(self.main_ui.master)
         self.window = window
+        self.current_image = None
 
         canvas_frame = tk.Frame(window)
         canvas_frame.pack(side="left", fill=tk.BOTH, expand=1)
 
         self.toolbox = tk.Frame(canvas_frame)
-        self.toolbox.pack(side="left", expand=False, fill=tk.Y)
+        self.toolbox.pack(side="left", expand=False, fill=tk.BOTH)
+
+        self.is_latlon_source = tk.BooleanVar(value=False)
+        if show_ortho_track:
+            self.latlons = self.load_latlons()
+            if self.latlons:
+                button = tk.Checkbutton(
+                    self.toolbox,
+                    text="Overhead focus",
+                    var=self.is_latlon_source,
+                    command=self.trackToggle,
+                )
+                button.pack(side="top")
+        else:
+            self.latlons = {}
 
         self.visible_tracks = None
         self.image_list = tk.StringVar()
@@ -67,7 +82,7 @@ class View:
         self.image_list_box.bind("<<ListboxSelect>>", self.onclick_image_list)
 
         self.figure = Figure()
-        self.subplot = self.figure.add_subplot(111)
+        self.ax = self.figure.add_subplot(111)
 
         self.canvas = FigureCanvasTkAgg(self.figure, canvas_frame)
         self.canvas.get_tk_widget().pack(side="top", fill=tk.BOTH, expand=1)
@@ -79,11 +94,18 @@ class View:
         self.zoomed_in = False
         self.last_seen_px = {}
         self.plt_artists = []
-        self.set_title()
+
+    def load_latlons(self):
+        """Loads a latlon associated with each image key"""
+        return self.image_manager.load_latlons()
+
+    def trackToggle(self):
+        if self.is_latlon_source.get():
+            self.main_ui.clear_latlon_sources(self)
 
     def onclick_image(self, event):
         x, y = event.xdata, event.ydata
-        if None in (x, y):
+        if None in (x, y) or self.current_image is None:
             return
         if event.button == 2:  # Middle / wheel click:
             if self.zoomed_in:
@@ -143,12 +165,12 @@ class View:
         if self.zoomed_in:
             return
         radius = self.zoom_window_size_px / 2
-        self.subplot.set_xlim(x - radius, x + radius)
-        self.subplot.set_ylim(y + radius, y - radius)
+        self.ax.set_xlim(x - radius, x + radius)
+        self.ax.set_ylim(y + radius, y - radius)
         self.zoomed_in = True
 
     def zoom_out(self):
-        self.subplot.autoscale()
+        self.ax.autoscale()
         self.zoomed_in = False
 
     def zoom_logic(self):
@@ -159,9 +181,9 @@ class View:
             self.zoom_in(x, y)
         else:
             # Show the whole image
-            self.subplot.axis("scaled")
+            self.ax.axis("scaled")
             self.figure.set_tight_layout(True)
-            self.subplot.axis("off")
+            self.ax.axis("off")
 
     def point_in_view(self, point):
         if point is None:
@@ -214,7 +236,7 @@ class View:
                 )
             for art in artists:
                 self.plt_artists.append(art)
-                self.subplot.add_artist(art)
+                self.ax.add_artist(art)
 
         self.figure.canvas.draw()
 
@@ -242,19 +264,19 @@ class View:
 
     def update_image_list_highlight(self):
         defaultbg = self.window.cget("bg")
-        for ix, shot in enumerate(self.image_keys):
+        for ix, shot in enumerate(self.images_in_list):
             bg = "green" if shot == self.current_image else defaultbg
             self.image_list_box.itemconfig(ix, bg=bg)
 
-    def bring_new_image(self, new_image):
-        if new_image == self.current_image:
+    def bring_new_image(self, new_image, force=False):
+        if new_image == self.current_image and not force:
             return
         self.current_image = new_image
-        self.subplot.clear()
+        self.ax.clear()
         img = self.get_image(new_image)
-        self.subplot.imshow(img)
-        self.subplot.axis("on")
-        self.subplot.axis("scaled")
+        self.ax.imshow(img)
+        self.ax.axis("on")
+        self.ax.axis("scaled")
         self.zoomed_in = False
         self.set_title()
 
@@ -273,6 +295,10 @@ class View:
         if self.main_ui.curr_point:
             self.highlight_gcp_reprojection(self.main_ui.curr_point, zoom=False)
 
+        latlon = self.latlons.get(new_image)
+        if self.is_latlon_source.get() and latlon:
+            self.main_ui.refocus_overhead_views(latlon["lat"], latlon["lon"])
+
     def highlight_gcp_reprojection(self, point_id, zoom=True):
         if point_id not in self.main_ui.gcp_manager.gcp_reprojections:
             return
@@ -288,7 +314,9 @@ class View:
         if not reproj:
             return
         x2, y2 = reproj["reprojection"]
-        artists = self.subplot.plot([x, x2], [y, y2], "r-")
+        x, y = self.gcp_to_pixel_coordinates(x, y)
+        x2, y2 = self.gcp_to_pixel_coordinates(x2, y2)
+        artists = self.ax.plot([x, x2], [y, y2], "r-")
         self.plt_artists.extend(artists)
         if zoom:
             self.zoom_in(x, y)
@@ -300,26 +328,12 @@ class View:
     def go_to_prev_image(self):
         self.go_to_adjacent_image(-1)
 
-    def go_to_adjacent_image(self, offset, linked=True):
+    def go_to_adjacent_image(self, offset):
+        if not self.images_in_list:
+            return
         target_ix = self.images_in_list.index(self.current_image) + offset
         if 0 <= target_ix < len(self.images_in_list):
-            self.go_to_image_index(target_ix, linked)
+            self.go_to_image_index(target_ix)
 
-    def go_to_image_index(self, idx, linked=True):
-        views_to_update = {self}
-        if linked:
-            groups_this_view = [
-                g for g in self.main_ui.sequence_groups if self.group_name in g
-            ]
-            for g in groups_this_view:
-                for v in self.main_ui.views:
-                    if v.group_name in g:
-                        views_to_update.add(v)
-        for v in views_to_update:
-            v.bring_new_image(self.images_in_list[idx])
-
-    def set_title(self):
-        shot = self.current_image
-        seq_ix = self.image_keys.index(shot)
-        title = f"{self.group_name} [{seq_ix+1}/{len(self.image_keys)}]: {shot}"
-        self.window.title(title)
+    def go_to_image_index(self, idx):
+        self.bring_new_image(self.images_in_list[idx])
