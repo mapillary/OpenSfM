@@ -35,24 +35,24 @@ def run_dataset(data, proj, transformation, image_positions,
     reference = data.load_reference()
 
     projection = pyproj.Proj(proj)
-    transformation = _get_transformation(reference, projection)
+    t = _get_transformation(reference, projection)
 
     if transformation:
         output = output or 'geocoords_transformation.txt'
         output_path = os.path.join(data.data_path, output)
-        _write_transformation(transformation, output_path)
+        _write_transformation(t, output_path)
 
     if image_positions:
         reconstructions = data.load_reconstruction()
         output = output or 'image_geocoords.tsv'
         output_path = os.path.join(data.data_path, output)
-        _transform_image_positions(reconstructions, transformation,
+        _transform_image_positions(reconstructions, t,
                                         output_path)
 
     if reconstruction:
         reconstructions = data.load_reconstruction()
         for r in reconstructions:
-            _transform_reconstruction(r, transformation)
+            _transform_reconstruction(r, t)
         output = output or 'reconstruction.geocoords.json'
         data.save_reconstruction(reconstructions, output)
 
@@ -60,7 +60,7 @@ def run_dataset(data, proj, transformation, image_positions,
         output = output or 'undistorted/depthmaps/merged.geocoords.ply'
         output_path = os.path.join(data.data_path, output)
         udata = dataset.UndistortedDataSet(data, 'undistorted')
-        _transform_dense_point_cloud(udata, transformation, output_path)
+        _transform_dense_point_cloud(udata, t, output_path)
 
 def _get_transformation(reference, projection):
     """Get the linear transform from reconstruction coords to geocoords."""
