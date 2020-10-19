@@ -83,11 +83,11 @@ def undistort_image_and_masks(arguments):
     shot, undistorted_shots, data, udata = arguments
     log.setup()
     logger.debug('Undistorting image {}'.format(shot.id))
-
+    max_size = data.config['undistorted_image_max_size']
+    
     # Undistort image
     image = data.load_image(shot.id, unchanged=True, anydepth=True)
     if image is not None:
-        max_size = data.config['undistorted_image_max_size']
         undistorted = undistort_image(shot, undistorted_shots, image,
                                       cv2.INTER_AREA, max_size)
         for k, v in undistorted.items():
@@ -97,7 +97,7 @@ def undistort_image_and_masks(arguments):
     mask = data.load_mask(shot.id)
     if mask is not None:
         undistorted = undistort_image(shot, undistorted_shots, mask,
-                                      cv2.INTER_NEAREST, 1e9)
+                                      cv2.INTER_NEAREST, max_size)
         for k, v in undistorted.items():
             udata.save_undistorted_mask(k, v)
 
@@ -105,7 +105,7 @@ def undistort_image_and_masks(arguments):
     segmentation = data.load_segmentation(shot.id)
     if segmentation is not None:
         undistorted = undistort_image(shot, undistorted_shots, segmentation,
-                                      cv2.INTER_NEAREST, 1e9)
+                                      cv2.INTER_NEAREST, max_size)
         for k, v in undistorted.items():
             udata.save_undistorted_segmentation(k, v)
 
@@ -113,7 +113,7 @@ def undistort_image_and_masks(arguments):
     detection = data.load_detection(shot.id)
     if detection is not None:
         undistorted = undistort_image(shot, undistorted_shots, detection,
-                                      cv2.INTER_NEAREST, 1e9)
+                                      cv2.INTER_NEAREST, max_size)
         for k, v in undistorted.items():
             udata.save_undistorted_detection(k, v)
 
