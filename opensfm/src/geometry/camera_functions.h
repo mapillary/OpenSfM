@@ -154,13 +154,17 @@ struct FisheyeProjection : CameraFunctor<3, 0, 2>{
   template <class T>
   static void Backward(const T* point, const T* /* p */, T* bearing) {
     const T theta = sqrt(SquaredNorm(point));
-    const auto s = tan(theta) / theta;
-    const T x = s * point[0];
-    const T y = s * point[1];
-    const T inv_norm = T(1.0) / sqrt(x*x + y*y + T(1.0));
-    bearing[0] = x * inv_norm;
-    bearing[1] = y * inv_norm;
-    bearing[2] = inv_norm;
+    T r_div_theta{1.0};
+    if (theta > T(1e-8)) {
+      const T r = sin(theta);  // r = |(x, y)|
+      r_div_theta = r / theta;
+    }
+    const T x = point[0] * r_div_theta;
+    const T y = point[1] * r_div_theta;
+    const T z = cos(theta);
+    bearing[0] = x;
+    bearing[1] = y;
+    bearing[2] = z;
   }
 };
 
