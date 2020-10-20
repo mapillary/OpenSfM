@@ -147,7 +147,7 @@ def add_gcp_to_bundle(ba, gcp, gcp_std, shots):
         coordinates = orec.triangulate_gcp(point, shots)
         if coordinates is None:
             if point.coordinates is not None:
-                coordinates = point.coordinates
+                coordinates = point.coordinates.value
             else:
                 logger.warning(
                     "Cannot initialize GCP '{}'." "  Ignoring it".format(point.id)
@@ -528,7 +528,7 @@ def main():
             )
         logger.info(
             f"{n_bad_gcp_annotations} annotations with large reprojection error."
-            " Press Q to jump to the worst, correct it and repeat. Here are the top 5:"
+            " Press Q to jump to the worst, correct it and repeat. Worst offenders:"
         )
 
         stats_bad_reprojections = get_number_of_wrong_annotations_per_gcp(
@@ -538,9 +538,9 @@ def main():
             stats_bad_reprojections, key=lambda k: -stats_bad_reprojections[k]
         )[:5]
         for ix, gcp_id in enumerate(gcps_sorted):
-            logger.info(
-                f"#{ix+1} - {gcp_id}: {stats_bad_reprojections[gcp_id]} bad annotations"
-            )
+            n = stats_bad_reprojections[gcp_id]
+            if n > 0:
+                logger.info(f"#{ix+1} - {gcp_id}: {n} bad annotations")
 
 
 if __name__ == "__main__":

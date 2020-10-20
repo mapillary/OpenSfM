@@ -46,11 +46,7 @@ def parse_args():
         "--ortho",
         type=str,
         action="append",
-        help="Specify one or more groups of linked sequences. "
-        "Linked sequences are synchronized such that all views "
-        "from the group will always show the same frame index. "
-        "Useful for camera rigs. usage: -g sequence_key_1 sequence_key_2. "
-        "Can be used multiple times to define several groups",
+        help="Specify one or more directories containing geotiffs",
         default=[],
     )
     return parser.parse_args()
