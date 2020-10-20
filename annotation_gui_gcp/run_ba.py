@@ -1,16 +1,11 @@
 import argparse
 import json
+import logging
 import os
 
 import numpy as np
-import logging
-
 import opensfm.reconstruction as orec
-from opensfm import align
-from opensfm import dataset
-from opensfm import log
-from opensfm import multiview
-from opensfm import pygeometry
+from opensfm import align, dataset, log, multiview, pygeometry
 from opensfm import transformations as tf
 from opensfm import types
 
@@ -91,8 +86,10 @@ def reproject_gcps(gcps, reconstruction):
             shot = reconstruction.shots[observation.shot_id]
             reproj = shot.project(point)
             error = np.linalg.norm(reproj - observation.projection)
-            output[gcp.id][observation.shot_id] = {'error': error,
-                                                   'reprojection': [reproj[0], reproj[1]]}
+            output[gcp.id][observation.shot_id] = {
+                "error": error,
+                "reprojection": [reproj[0], reproj[1]],
+            }
     return output
 
 
@@ -100,16 +97,16 @@ def get_all_reprojection_errors(gcp_reprojections):
     output = []
     for gcp_id in gcp_reprojections:
         for shot_id in gcp_reprojections[gcp_id]:
-            e = gcp_reprojections[gcp_id][shot_id]['error']
+            e = gcp_reprojections[gcp_id][shot_id]["error"]
             output.append((gcp_id, shot_id, e))
-    return sorted(output, key=lambda t:-t[2])
+    return sorted(output, key=lambda t: -t[2])
 
 
 def get_number_of_wrong_annotations_per_gcp(gcp_reprojections, wrong_threshold):
     output = {}
     for gcp_id, reprojections in gcp_reprojections.items():
-        errors = [reprojections[shot_id]['error'] for shot_id in reprojections]
-        output[gcp_id] = sum(e>wrong_threshold for e in errors)
+        errors = [reprojections[shot_id]["error"] for shot_id in reprojections]
+        output[gcp_id] = sum(e > wrong_threshold for e in errors)
     return output
 
 
@@ -117,10 +114,10 @@ def compute_gcp_std(gcp_errors):
     """Compute the standard deviation of reprojection errors of all gcps."""
     all_errors = []
     for gcp_id in gcp_errors:
-        errors = [e['error'] for e in gcp_errors[gcp_id].values()]
+        errors = [e["error"] for e in gcp_errors[gcp_id].values()]
         logger.info(f"gcp {gcp_id} mean reprojection error = {np.mean(errors)}")
         all_errors.extend(errors)
-    return np.sqrt(np.mean(np.array(all_errors)**2))
+    return np.sqrt(np.mean(np.array(all_errors) ** 2))
 
 
 def find_alignment(points0, points1):
@@ -136,7 +133,7 @@ def find_alignment(points0, points1):
     v0 = np.array(v0).T
     v1 = np.array(v1).T
     M = tf.affine_matrix_from_points(v0, v1, shear=False)
-    s = np.linalg.det(M[:3, :3])**(1. / 3.)
+    s = np.linalg.det(M[:3, :3]) ** (1.0 / 3.0)
     A = M[:3, :3] / s
     b = M[:3, 3]
     return s, A, b
@@ -145,15 +142,16 @@ def find_alignment(points0, points1):
 def add_gcp_to_bundle(ba, gcp, gcp_std, shots):
     """Add Ground Control Points constraints to the bundle problem."""
     for point in gcp:
-        point_id = 'gcp-' + point.id
+        point_id = "gcp-" + point.id
 
         coordinates = orec.triangulate_gcp(point, shots)
         if coordinates is None:
             if point.coordinates is not None:
                 coordinates = point.coordinates
             else:
-                logger.warning("Cannot initialize GCP '{}'."
-                               "  Ignoring it".format(point.id))
+                logger.warning(
+                    "Cannot initialize GCP '{}'." "  Ignoring it".format(point.id)
+                )
                 continue
 
         ba.add_point(point_id, coordinates, False)
@@ -165,11 +163,13 @@ def add_gcp_to_bundle(ba, gcp, gcp_std, shots):
                     point_id,
                     observation.projection[0],
                     observation.projection[1],
-                    gcp_std)
+                    gcp_std,
+                )
 
 
-def bundle_with_fixed_images(reconstruction, camera_priors, gcp, gcp_std,
-                             fixed_images, config):
+def bundle_with_fixed_images(
+    reconstruction, camera_priors, gcp, gcp_std, fixed_images, config
+):
     """Bundle adjust a reconstruction while keeping some images fixed."""
     fix_cameras = True
 
@@ -195,32 +195,35 @@ def bundle_with_fixed_images(reconstruction, camera_priors, gcp, gcp_std,
         for point in shot.get_valid_landmarks():
             obs = shot.get_landmark_observation(point)
             ba.add_point_projection_observation(
-                shot.id, point.id, obs.point[0], obs.point[1], obs.scale)
+                shot.id, point.id, obs.point[0], obs.point[1], obs.scale
+            )
 
     add_gcp_to_bundle(ba, gcp, gcp_std, reconstruction.shots)
 
-    ba.set_point_projection_loss_function(config['loss_function'],
-                                          config['loss_function_threshold'])
+    ba.set_point_projection_loss_function(
+        config["loss_function"], config["loss_function_threshold"]
+    )
     ba.set_internal_parameters_prior_sd(
-        config['exif_focal_sd'],
-        config['principal_point_sd'],
-        config['radial_distortion_k1_sd'],
-        config['radial_distortion_k2_sd'],
-        config['tangential_distortion_p1_sd'],
-        config['tangential_distortion_p2_sd'],
-        config['radial_distortion_k3_sd'],
-        config['radial_distortion_k4_sd'])
-    ba.set_num_threads(config['processes'])
-    ba.set_max_num_iterations(config['bundle_max_iterations'])
+        config["exif_focal_sd"],
+        config["principal_point_sd"],
+        config["radial_distortion_k1_sd"],
+        config["radial_distortion_k2_sd"],
+        config["tangential_distortion_p1_sd"],
+        config["tangential_distortion_p2_sd"],
+        config["radial_distortion_k3_sd"],
+        config["radial_distortion_k4_sd"],
+    )
+    ba.set_num_threads(config["processes"])
+    ba.set_max_num_iterations(config["bundle_max_iterations"])
     ba.set_linear_solver_type("SPARSE_SCHUR")
     ba.set_compute_covariances(True)
 
-    chrono.lap('setup')
+    chrono.lap("setup")
     ba.run()
-    chrono.lap('run')
+    chrono.lap("run")
 
     if not ba.get_covariance_estimation_valid():
-        logger.warning('Could not compute covariance')
+        logger.warning("Could not compute covariance")
 
     for camera in reconstruction.cameras.values():
         orec._get_camera_from_bundle(ba, camera)
@@ -229,21 +232,22 @@ def bundle_with_fixed_images(reconstruction, camera_priors, gcp, gcp_std,
         s = ba.get_shot(shot.id)
         shot.pose.rotation = [s.r[0], s.r[1], s.r[2]]
         shot.pose.translation = [s.t[0], s.t[1], s.t[2]]
-        shot.covariance = np.array([[s.get_covariance_inv_param(i, j)
-                                     for j in range(6)] for i in range(6)])
+        shot.covariance = np.array(
+            [[s.get_covariance_inv_param(i, j) for j in range(6)] for i in range(6)]
+        )
 
     for point in reconstruction.points.values():
         p = ba.get_point(point.id)
         point.coordinates = [p.p[0], p.p[1], p.p[2]]
         point.reprojection_errors = p.reprojection_errors
 
-    chrono.lap('teardown')
+    chrono.lap("teardown")
 
     logger.info(ba.full_report())
     logger.info(ba.brief_report())
     report = {
-        'wall_times': dict(chrono.lap_times()),
-        'brief_report': ba.brief_report(),
+        "wall_times": dict(chrono.lap_times()),
+        "brief_report": ba.brief_report(),
     }
     return report
 
@@ -334,7 +338,7 @@ def resect_image(im, camera, gcps, reconstruction, data, dst_reconstruction=None
         R = T[:, :3].T
         t = -R.dot(T[:, 3])
         dst_reconstruction.add_camera(camera)
-        shot = dst_reconstruction.create_shot(im, camera.id, pygeometry.Pose(R,t))
+        shot = dst_reconstruction.create_shot(im, camera.id, pygeometry.Pose(R, t))
         shot.metadata = orec.get_image_metadata(data, im)
         return shot
     else:
@@ -343,27 +347,30 @@ def resect_image(im, camera, gcps, reconstruction, data, dst_reconstruction=None
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='Merge reconstructions and run BA with GCPs')
-    parser.add_argument(
-        'dataset',
-        help='dataset to process',
+    parser = argparse.ArgumentParser(
+        description="Merge reconstructions and run BA with GCPs"
     )
     parser.add_argument(
-        '--mode',
+        "dataset",
+        help="dataset to process",
+    )
+    parser.add_argument(
+        "--mode",
         default="3d_to_3d",
         help="If '3d_to_2d': the largest reconstruction is used as a fixed reference: "
-             "Images not belonging to it are resected into it using the ground control points. "
-             "If '3d_to_3d': The two largest reconstructions are aligned to each other using the ground control points."
+        "Images not belonging to it are resected into it using the GCPs. "
+        "If '3d_to_3d': The two largest reconstructions are aligned to"
+        " each other using the ground control points.",
     )
     parser.add_argument(
-        '--std-threshold',
+        "--std-threshold",
         default=0.3,
-        help='positional threshold (m) above which we consider an image to be badly localized',
+        help="Positional threshold (m) to classify images as well-localized",
     )
     parser.add_argument(
-        '--px-threshold',
-        default=0.016, # a little bit over 10 pixels at VGA resolution
-        help='threshold in normalized pixels above which we consider a GCP annotation to be wrong',
+        "--px-threshold",
+        default=0.016,  # a little bit over 10 pixels at VGA resolution
+        help="threshold in normalized pixels to classify a GCP annotation as correct",
     )
     args = parser.parse_args()
     assert args.mode in ("3d_to_3d", "3d_to_2d")
@@ -374,11 +381,7 @@ def main():
     args = parse_args()
     path = args.dataset
     data = dataset.DataSet(path)
-    for fn in (
-        'reconstruction.json',
-        'ground_control_points.json',
-        'tracks.csv'
-    ):
+    for fn in ("reconstruction.json", "ground_control_points.json", "tracks.csv"):
         if not (os.path.exists(os.path.join(path, fn))):
             logger.error(f"Missing file: {fn}")
             return
@@ -403,47 +406,54 @@ def main():
         base = reconstructions[0]
         resected = resect_annotated_single_images(base, gcps, camera_models, data)
         for shot in resected.shots.values():
-            shot.metadata.gps_accuracy.value = 1E12
+            shot.metadata.gps_accuracy.value = 1e12
             shot.metadata.gps_position.value = shot.pose.get_origin()
         reconstructions = [base, resected]
-    data.save_reconstruction(reconstructions, 'reconstruction_gcp_rigid.json')
+    data.save_reconstruction(reconstructions, "reconstruction_gcp_rigid.json")
 
     merged = merge_reconstructions(reconstructions, tracks_manager)
-    data.save_reconstruction([merged], 'reconstruction_merged.json')
+    data.save_reconstruction([merged], "reconstruction_merged.json")
 
-    data.config['bundle_max_iterations'] = 200
-    data.config['bundle_use_gcp'] = True
+    data.config["bundle_max_iterations"] = 200
+    data.config["bundle_use_gcp"] = True
     orec.bundle(merged, camera_models, gcp=gcps, config=data.config)
     # rigid rotation to put images on the ground
     orec.align_reconstruction(merged, None, data.config)
-    data.save_reconstruction([merged], 'reconstruction_gcp_ba.json')
+    data.save_reconstruction([merged], "reconstruction_gcp_ba.json")
 
     gcp_reprojections = reproject_gcps(gcps, merged)
     reprojection_errors = get_all_reprojection_errors(gcp_reprojections)
     err_values = [t[2] for t in reprojection_errors]
-    mean_reprojection_error = np.mean(err_values)
     max_reprojection_error = np.max(err_values)
     median_reprojection_error = np.median(err_values)
 
-    with open(data.data_path + '/gcp_reprojections.json', 'w') as f:
+    with open(data.data_path + "/gcp_reprojections.json", "w") as f:
         json.dump(gcp_reprojections, f, indent=4, sort_keys=True)
 
     gcp_std = compute_gcp_std(gcp_reprojections)
     logger.info(f"GCP reprojection error STD: {gcp_std}")
 
     resplit = resplit_reconstruction(merged, reconstructions)
-    data.save_reconstruction(resplit, 'reconstruction_gcp_ba_resplit.json')
+    data.save_reconstruction(resplit, "reconstruction_gcp_ba_resplit.json")
 
     all_shots_std = []
     # We run bundle by fixing one reconstruction.
     # If we have two reconstructions, we do this twice, fixing each one.
-    _rec_ixs = [(0,1), (1,0)] if args.mode == "3d_to_3d" else [(0,1)]
+    _rec_ixs = [(0, 1), (1, 0)] if args.mode == "3d_to_3d" else [(0, 1)]
     for rec_ixs in _rec_ixs:
         fixed_images = set(reconstructions[rec_ixs[0]].shots.keys())
-        bundle_with_fixed_images(merged, camera_models, gcp=gcps, gcp_std=gcp_std,
-                                 fixed_images=fixed_images, config=data.config)
+        bundle_with_fixed_images(
+            merged,
+            camera_models,
+            gcp=gcps,
+            gcp_std=gcp_std,
+            fixed_images=fixed_images,
+            config=data.config,
+        )
 
-        logger.info(f"STD in the position of shots in rec {rec_ixs[1]} w.r.t rec {rec_ixs[0]}")
+        logger.info(
+            f"STD in the position of shots in rec {rec_ixs[1]} w.r.t rec {rec_ixs[0]}"
+        )
         for shot in merged.shots.values():
             if shot.id in reconstructions[rec_ixs[1]].shots:
                 u, std = decompose_covariance(shot.covariance[3:, 3:])
@@ -459,34 +469,34 @@ def main():
         n_bad_std = len(std_values)
 
     # Average positional STD
-    average_shot_std = np.mean([t[1] for t in all_shots_std])
     median_shot_std = np.median([t[1] for t in all_shots_std])
 
     # Save the shot STD to a file
-    with open(data.data_path + '/shots_std.csv', 'w') as f:
-        s = sorted(all_shots_std, key=lambda t:-t[-1])
+    with open(data.data_path + "/shots_std.csv", "w") as f:
+        s = sorted(all_shots_std, key=lambda t: -t[-1])
         for t in s:
             line = "{}, {}".format(*t)
-            f.write(line + '\n')
+            f.write(line + "\n")
 
-
-    n_bad_gcp_annotations = int(sum(t[2] > args.px_threshold for t in reprojection_errors))
+    n_bad_gcp_annotations = int(
+        sum(t[2] > args.px_threshold for t in reprojection_errors)
+    )
     metrics = {
-        'n_reconstructions': len(all_reconstructions),
-        'median_shot_std' : median_shot_std,
-        'max_shot_std': s[0][1],
-        'max_reprojection_error': max_reprojection_error,
-        'median_reprojection_error': median_reprojection_error,
-        'n_gcp': len(gcps),
-        'n_bad_gcp_annotations': n_bad_gcp_annotations,
-        'n_bad_position_std': int(n_bad_std),
-        'n_good_position_std': int(n_good_std),
+        "n_reconstructions": len(all_reconstructions),
+        "median_shot_std": median_shot_std,
+        "max_shot_std": s[0][1],
+        "max_reprojection_error": max_reprojection_error,
+        "median_reprojection_error": median_reprojection_error,
+        "n_gcp": len(gcps),
+        "n_bad_gcp_annotations": n_bad_gcp_annotations,
+        "n_bad_position_std": int(n_bad_std),
+        "n_good_position_std": int(n_good_std),
     }
 
     logger.info(metrics)
-    p_metrics = data.data_path + '/run_ba_metrics.json'
+    p_metrics = data.data_path + "/run_ba_metrics.json"
     logger.info(f"Saved metrics to {p_metrics}")
-    with open(p_metrics, 'w') as f:
+    with open(p_metrics, "w") as f:
         json.dump(metrics, f, indent=4, sort_keys=True)
 
     logger.info("========================================")
@@ -500,17 +510,31 @@ def main():
     else:
         if np.isnan(all_shots_std[0][1]):
             logger.info(
-                f"Could not get positional uncertainty. It could be because: a) there are not enough GCPs."
-                " b) they are badly distributed in 3D. c) there are some wrong annotations"
+                "Could not get positional uncertainty. It could be because:"
+                "\na) there are not enough GCPs."
+                "\nb) they are badly distributed in 3D."
+                "\nc) there are some wrong annotations"
             )
         else:
-            logger.info(f"{n_bad_std} badly localized images (error>{args.std_threshold}). Use the frame list on each view to find these")
-        logger.info(f"{n_bad_gcp_annotations} annotations with large reprojection error. Press Q to jump to the worst, correct it and repeat. Here are the top 5:")
+            logger.info(
+                f"{n_bad_std} badly localized images (error>{args.std_threshold})."
+                " Use the frame list on each view to find these"
+            )
+        logger.info(
+            f"{n_bad_gcp_annotations} annotations with large reprojection error."
+            " Press Q to jump to the worst, correct it and repeat. Here are the top 5:"
+        )
 
-        stats_bad_reprojections = get_number_of_wrong_annotations_per_gcp(gcp_reprojections, args.px_threshold)
-        gcps_sorted = sorted(stats_bad_reprojections, key=lambda k:-stats_bad_reprojections[k])[:5]
+        stats_bad_reprojections = get_number_of_wrong_annotations_per_gcp(
+            gcp_reprojections, args.px_threshold
+        )
+        gcps_sorted = sorted(
+            stats_bad_reprojections, key=lambda k: -stats_bad_reprojections[k]
+        )[:5]
         for ix, gcp_id in enumerate(gcps_sorted):
-            logger.info(f"#{ix+1}: GCP: {gcp_id} with {stats_bad_reprojections[gcp_id]} bad annotations")
+            logger.info(
+                f"#{ix+1} - {gcp_id}: {stats_bad_reprojections[gcp_id]} bad annotations"
+            )
 
 
 if __name__ == "__main__":
