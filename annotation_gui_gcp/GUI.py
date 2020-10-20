@@ -4,8 +4,10 @@ import subprocess
 import sys
 import time
 import tkinter as tk
+from collections import defaultdict
 
 import matplotlib
+from opensfm import dataset
 
 matplotlib.use("TkAgg")
 
@@ -32,6 +34,7 @@ class Gui:
         master.bind_all("z", lambda event: self.toggle_zoom_all_views())
         master.bind_all("x", lambda event: self.toggle_sticky_zoom())
         master.bind_all("a", lambda event: self.go_to_current_gcp())
+        self.get_reconstruction_options()
         self.create_ui(ortho_paths)
         master.lift()
 
@@ -41,6 +44,23 @@ class Gui:
         p_shot_std = self.path + "/shots_std.csv"
         if os.path.exists(p_shot_std):
             self.load_shot_std(p_shot_std)
+
+    def get_reconstruction_options(self):
+        p_recs = self.path + "/reconstruction.json"
+        print(p_recs)
+        if not os.path.exists(p_recs):
+            return {}
+        data = dataset.DataSet(self.path)
+        recs = data.load_reconstruction()
+        options = []
+        for ix, rec in enumerate(recs):
+            camcount = defaultdict(int)
+            for shot in rec.shots.values():
+                camcount[shot.camera.id] += 1
+            str_repr = f"#{ix}: " + ", ".join(f"{k}({v})" for k, v in camcount.items())
+            options.append(str_repr)
+        options.append("None (3d-to-2d)")
+        self.reconstruction_options = options
 
     def create_ui(self, ortho_paths):
         tools_frame = tk.Frame(self.master)
@@ -74,6 +94,7 @@ class Gui:
             x += w
 
     def create_tools(self, master):
+        width = 15
         gcp_list_frame = tk.Frame(master)
         gcp_list_frame.pack(side="top", fill=tk.BOTH, expand=1)
 
@@ -81,7 +102,7 @@ class Gui:
         self.gcp_list_box = tk.Listbox(
             gcp_list_frame,
             font=FONT,
-            width=12,
+            width=width,
             selectmode="browse",
             listvariable=self.gcp_list,
         )
@@ -109,14 +130,22 @@ class Gui:
         txt.pack(side="top")
         analysis_frame = tk.Frame(master)
         analysis_frame.pack(side="top")
-        button = tk.Button(
-            analysis_frame, text="3d-to-3d", command=self.analyze_3d_to_3d
-        )
-        button.pack(side="left")
-        button = tk.Button(
-            analysis_frame, text="3d-to-2d", command=self.analyze_3d_to_2d
-        )
-        button.pack(side="left")
+
+        options = self.reconstruction_options
+        self.rec_a = tk.StringVar(master)
+        self.rec_a.set(options[0])
+        w = tk.OptionMenu(analysis_frame, self.rec_a, *options[:-1])
+        w.pack(side="top", fill=tk.X)
+        w.config(width=width)
+
+        self.rec_b = tk.StringVar(master)
+        self.rec_b.set(options[1])
+        w = tk.OptionMenu(analysis_frame, self.rec_b, *options)
+        w.pack(side="top", fill=tk.X)
+        w.config(width=width)
+
+        button = tk.Button(analysis_frame, text="Analyze", command=self.analyze)
+        button.pack(side="top")
 
         io_frame = tk.Frame(master)
         io_frame.pack(side="top")
@@ -144,29 +173,29 @@ class Gui:
             v = ImageSequenceView(self, sequence_key, image_keys, show_ortho_track)
             self.sequence_views.append(v)
 
-    def analyze_3d_to_3d(self):
-        self.analyze(mode="3d_to_3d")
-
-    def analyze_3d_to_2d(self):
-        self.analyze(mode="3d_to_2d")
-
-    def analyze(self, mode):
-        # Check that there is a recent ground_control_points.json file
+    def analyze(self):
         t = time.time() - os.path.getmtime(self.path + "/ground_control_points.json")
-        if t > 30:
-            print("Please save before running the analysis")
+        ix_a = self.reconstruction_options.index(self.rec_a.get())
+        ix_b = self.reconstruction_options.index(self.rec_b.get())
+        if t > 30 or ix_a == ix_b:
+            print(
+                "Please select different reconstructions in the drop-down menus"
+                " and save before running the analysis"
+            )
             return
 
+        args = [
+            sys.executable,
+            os.path.dirname(__file__) + "/run_ba.py",
+            self.path,
+            "--rec_a",
+            str(ix_a),
+        ]
+        if ix_b < len(self.reconstruction_options) - 1:
+            args.extend(("--rec_b", str(ix_b)))
+
         # Call the run_ba script
-        subprocess.run(
-            [
-                sys.executable,
-                os.path.dirname(__file__) + "/run_ba.py",
-                self.path,
-                "--mode",
-                mode,
-            ]
-        )
+        subprocess.run(args)
         self.shot_std = {}
         self.load_shot_std(self.path + "/shots_std.csv")
         p_gcp_errors = self.path + "/gcp_reprojections.json"

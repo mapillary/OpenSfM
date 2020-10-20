@@ -355,12 +355,20 @@ def parse_args():
         help="dataset to process",
     )
     parser.add_argument(
-        "--mode",
-        default="3d_to_3d",
-        help="If '3d_to_2d': the largest reconstruction is used as a fixed reference: "
-        "Images not belonging to it are resected into it using the GCPs. "
-        "If '3d_to_3d': The two largest reconstructions are aligned to"
-        " each other using the ground control points.",
+        "--rec_a",
+        default=0,
+        type=int,
+        help="Index of reconstruction A."
+        "\nIf rec_b is set to None, the rec_a is used as a fixed reference:"
+        " all annotated images not belonging to it are resected into it using the GCPs."
+        "\nIf reconstruction B is set to a number, the pair of reconstructions (A,B)"
+        " will be aligned to each other using the ground control points.",
+    )
+    parser.add_argument(
+        "--rec_b",
+        default=None,
+        type=int,
+        help="Index of reconstruction B. Read the help for rec_a",
     )
     parser.add_argument(
         "--std-threshold",
@@ -373,7 +381,6 @@ def parse_args():
         help="threshold in normalized pixels to classify a GCP annotation as correct",
     )
     args = parser.parse_args()
-    assert args.mode in ("3d_to_3d", "3d_to_2d")
     return args
 
 
@@ -389,21 +396,20 @@ def main():
     camera_models = data.load_camera_models()
     tracks_manager = data.load_tracks_manager()
 
-    all_reconstructions = data.load_reconstruction()
-
-    if len(all_reconstructions) > 2:
-        logger.warning(f"There are more than two reconstructions in {path}")
-
-    reconstructions = all_reconstructions[:2]
+    reconstructions = data.load_reconstruction()
+    n_reconstructions = len(reconstructions)
     gcps = data.load_ground_control_points()
 
-    if args.mode == "3d_to_3d":
+    assert args.rec_a != args.rec_b, "rec_a and rec_b should be different"
+
+    if args.rec_b:
+        reconstructions = [reconstructions[args.rec_a], reconstructions[args.rec_b]]
         coords0 = triangulate_gcps(gcps, reconstructions[0])
         coords1 = triangulate_gcps(gcps, reconstructions[1])
         s, A, b = find_alignment(coords1, coords0)
         align.apply_similarity(reconstructions[1], s, A, b)
     else:
-        base = reconstructions[0]
+        base = reconstructions[args.rec_a]
         resected = resect_annotated_single_images(base, gcps, camera_models, data)
         for shot in resected.shots.values():
             shot.metadata.gps_accuracy.value = 1e12
@@ -439,7 +445,7 @@ def main():
     all_shots_std = []
     # We run bundle by fixing one reconstruction.
     # If we have two reconstructions, we do this twice, fixing each one.
-    _rec_ixs = [(0, 1), (1, 0)] if args.mode == "3d_to_3d" else [(0, 1)]
+    _rec_ixs = [(0, 1), (1, 0)] if args.rec_b else [(0, 1)]
     for rec_ixs in _rec_ixs:
         fixed_images = set(reconstructions[rec_ixs[0]].shots.keys())
         bundle_with_fixed_images(
@@ -482,7 +488,7 @@ def main():
         sum(t[2] > args.px_threshold for t in reprojection_errors)
     )
     metrics = {
-        "n_reconstructions": len(all_reconstructions),
+        "n_reconstructions": n_reconstructions,
         "median_shot_std": median_shot_std,
         "max_shot_std": s[0][1],
         "max_reprojection_error": max_reprojection_error,
