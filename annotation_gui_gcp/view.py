@@ -3,11 +3,15 @@ import tkinter as tk
 
 import matplotlib
 import matplotlib.patches as mpatches
+import numpy as np
 
 matplotlib.use("TkAgg")
+from typing import Tuple
+
 from matplotlib import patheffects
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
+from opensfm import features
 
 FONT = "TkFixedFont"
 
@@ -321,6 +325,28 @@ class View:
         if zoom:
             self.zoom_in(x, y)
         self.canvas.draw_idle()
+
+    def gcp_to_pixel_coordinates(self, x: float, y: float) -> Tuple[float, float]:
+        """
+        Transforms from normalized coordinates to pixels
+
+        The view displays images at a reduced resolution for speed. We use the image
+        manager to obtain the reduced coordinates to use for de-normalization.
+        """
+        h, w = self.image_manager.get_image_size(self.current_image)
+        px = features.denormalized_image_coordinates(np.array([[x, y]]), w, h)[0]
+        return px.tolist()
+
+    def pixel_to_gcp_coordinates(self, x: float, y: float) -> Tuple[float, float]:
+        """
+        Transforms from pixels to normalized coordinates
+
+        The view displays images at a reduced resolution for speed. We use the image
+        manager to obtain the reduced coordinates to use for normalization.
+        """
+        h, w = self.image_manager.get_image_size(self.current_image)
+        coords = features.normalized_image_coordinates(np.array([[x, y]]), w, h)[0]
+        return coords.tolist()
 
     def go_to_next_image(self):
         self.go_to_adjacent_image(+1)

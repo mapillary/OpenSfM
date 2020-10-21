@@ -1,10 +1,8 @@
 import tkinter as tk
-from typing import Tuple
 
 import matplotlib
 import numpy as np
 from matplotlib import pyplot as plt
-from opensfm import features
 
 from geometry import get_all_track_observations, get_tracks_visible_in_image
 from view import View
@@ -95,28 +93,6 @@ class ImageSequenceView(View):
 
     def pixel_to_latlon(self, x: float, y: float):
         return None
-
-    def gcp_to_pixel_coordinates(self, x: float, y: float) -> Tuple[float, float]:
-        """
-        Transforms from normalized coordinates to pixels
-
-        The view displays images at a reduced resolution for speed. We use the image
-        manager to obtain the reduced coordinates to use for de-normalization.
-        """
-        h, w = self.image_manager.get_image_size(self.current_image)
-        px = features.denormalized_image_coordinates(np.array([[x, y]]), w, h)[0]
-        return px.tolist()
-
-    def pixel_to_gcp_coordinates(self, x: float, y: float) -> Tuple[float, float]:
-        """
-        Transforms from pixels to normalized coordinates
-
-        The view displays images at a reduced resolution for speed. We use the image
-        manager to obtain the reduced coordinates to use for normalization.
-        """
-        h, w = self.image_manager.get_image_size(self.current_image)
-        coords = features.normalized_image_coordinates(np.array([[x, y]]), w, h)[0]
-        return coords.tolist()
 
     def set_title(self):
         shot = self.current_image
