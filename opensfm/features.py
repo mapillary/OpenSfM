@@ -92,6 +92,7 @@ def extract_features_sift(image, config):
         detector = cv2.SIFT_create(
             edgeThreshold=sift_edge_threshold,
             contrastThreshold=sift_peak_threshold)
+        descriptor = detector
     elif context.OPENCV3:
         try:
             detector = cv2.xfeatures2d.SIFT_create(
