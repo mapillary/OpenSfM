@@ -89,15 +89,18 @@ def extract_features_sift(image, config):
     sift_peak_threshold = float(config['sift_peak_threshold'])
     # SIFT support is in cv2 main from version 4.4.0
     if context.OPENCV44 or context.OPENCV5:
+        # OpenCV versions concerned /** 3.4.11, >= 4.4.0 **/  ==> Sift became free since March 2020
         detector = cv2.SIFT_create(
             edgeThreshold=sift_edge_threshold,
             contrastThreshold=sift_peak_threshold)
-    elif context.OPENCV3:
+    elif context.OPENCV3 or context.OPENCV4:
         try:
+            # OpenCV versions concerned /** 3.2.x, 3.3.x, 3.4.0, 3.4.1, 3.4.2, 3.4.10, 4.3.0, 4.4.0 **/
             detector = cv2.xfeatures2d.SIFT_create(
                 edgeThreshold=sift_edge_threshold,
                 contrastThreshold=sift_peak_threshold)
         except AttributeError as ae:
+            # OpenCV versions concerned /** 3.4.3, 3.4.4, 3.4.5, 3.4.6, 3.4.7, 3.4.8, 3.4.9, 4.0.x, 4.1.x, 4.2.x **/
             if "no attribute 'xfeatures2d'" in str(ae):
                 logger.error('OpenCV Contrib modules are required to extract SIFT features')
             raise
