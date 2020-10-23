@@ -18,6 +18,7 @@ BOW_PATH = os.path.join(abspath, 'data', 'bow')
 # Handle different OpenCV versions
 OPENCV5 = int(cv2.__version__.split('.')[0]) >= 5 #future proofing SIFT support test (see features.py)
 OPENCV4 = int(cv2.__version__.split('.')[0]) >= 4
+OPENCV43 = int(cv2.__version__.split('.')[0]) == 4 and int(cv2.__version__.split('.')[1])==3 # for SIFT support (see features.py)
 OPENCV44 = int(cv2.__version__.split('.')[0]) == 4 and int(cv2.__version__.split('.')[1]) >= 4 # for SIFT support (see features.py)
 OPENCV3 = int(cv2.__version__.split('.')[0]) >= 3
 
