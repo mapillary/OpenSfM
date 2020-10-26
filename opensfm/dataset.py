@@ -422,10 +422,12 @@ class DataSet(object):
             for gcp in self.load_ground_control_points_impl(None):
                 lat += gcp.lla['latitude']
                 lon += gcp.lla['longitude']
-                alt += gcp.lla['altitude']
                 wlat += 1
                 wlon += 1
-                walt += 1
+
+                if gcp.has_altitude:
+                    alt += gcp.lla['altitude']
+                    walt += 1
 
         if wlat: lat /= wlat
         if wlon: lon /= wlon
