@@ -224,7 +224,7 @@ py::tuple BAHelpers::BundleLocal(
   }
 
   if (config["bundle_use_gcp"].cast<bool>() && !gcp.empty()) {
-    AddGCPToBundle(ba, gcp, map.GetAllShots());
+    AddGCPToBundle(ba, gcp, map.GetShots());
   }
 
   ba.SetPointProjectionLossFunction(
@@ -367,7 +367,7 @@ py::dict BAHelpers::Bundle(
     ba.AddCamera(cam.id, cam, cam_prior, fix_cameras);
   }
 
-  for (const auto& pt_pair : map.GetAllLandmarks()) {
+  for (const auto& pt_pair : map.GetLandmarks()) {
     const auto& pt = pt_pair.second;
     ba.AddPoint(pt.id_, pt.GetGlobalPos(), false);
   }
@@ -390,7 +390,7 @@ py::dict BAHelpers::Bundle(
     }
   }
 
-  for (const auto& shot_pair : map.GetAllShots()) {
+  for (const auto& shot_pair : map.GetShots()) {
     const auto& shot = shot_pair.second;
     const auto& pose = shot.GetPose();
     constexpr auto fix_shot = false;
@@ -427,7 +427,7 @@ py::dict BAHelpers::Bundle(
     }
   }
   if (config["bundle_use_gcp"].cast<bool>() && !gcp.empty()) {
-    AddGCPToBundle(ba, gcp, map.GetAllShots());
+    AddGCPToBundle(ba, gcp, map.GetShots());
   }
 
   ba.SetPointProjectionLossFunction(
@@ -460,14 +460,14 @@ py::dict BAHelpers::Bundle(
   }
 
   // Update shots
-  for (auto& shot : map.GetAllShots()) {
+  for (auto& shot : map.GetShots()) {
     const auto& s = ba.GetShot(shot.first);
     shot.second.GetPose().SetFromWorldToCamera(s.GetRotation(),
                                                s.GetTranslation());
   }
 
   // Update points
-  for (auto& point : map.GetAllLandmarks()) {
+  for (auto& point : map.GetLandmarks()) {
     const auto& pt = ba.GetPoint(point.first);
     point.second.SetGlobalPos(pt.GetPoint());
     point.second.SetReprojectionErrors(pt.reprojection_errors);
@@ -506,7 +506,7 @@ void BAHelpers::AlignmentConstraints(
   Xp.conservativeResize(reserve_size, Eigen::NoChange);
   X.conservativeResize(reserve_size, Eigen::NoChange);
   size_t idx = 0;
-  const auto& shots = map.GetAllShots();
+  const auto& shots = map.GetShots();
   // Triangulated vs measured points
   if (!gcp.empty() && config["bundle_use_gcp"].cast<bool>()) {
     for (const auto& point : gcp) {

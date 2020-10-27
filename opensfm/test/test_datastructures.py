@@ -878,9 +878,9 @@ def test_many_observations_delete():
 
     # ... and random connections (observations) between shots and points
     n_total_obs = 0
-    for lm in m.get_all_landmarks().values():
+    for lm in m.get_landmarks().values():
         n_obs = 0
-        for shot in m.get_all_shots().values():
+        for shot in m.get_shots().values():
             # create a new observation
             obs = pysfm.Observation(100, 200, 0.5, 255, 0, 0, int(lm.id))
             m.add_observation(shot, lm, obs)
@@ -888,12 +888,12 @@ def test_many_observations_delete():
             n_total_obs += 1
 
     # (we expect it to be created correctly)
-    for lm in m.get_all_landmarks().values():
+    for lm in m.get_landmarks().values():
         n_total_obs -= lm.number_of_observations()
     assert n_total_obs == 0
 
     # When we remove the observations for half of the shots
-    for lm in m.get_all_landmarks().values():
+    for lm in m.get_landmarks().values():
         for shot_id in range(int(n_shots / 2)):
             m.remove_observation(str(shot_id), lm.id)
         # Then each each landmark has N/2 observations
@@ -901,7 +901,7 @@ def test_many_observations_delete():
 
     # Then there #shots x #points observations remaning
     n_total_obs = 0
-    for shot in m.get_all_shots().values():
+    for shot in m.get_shots().values():
         n_total_obs += shot.compute_num_valid_pts(1)
     assert n_total_obs == int((n_shots * n_landmarks) / 2)
 

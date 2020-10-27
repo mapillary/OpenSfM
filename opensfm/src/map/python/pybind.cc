@@ -114,11 +114,11 @@ PYBIND11_MODULE(pymap, m) {
                map::Map::RemoveObservation,
            py::arg("shot"), py::arg("landmark"))
 
-      .def("get_all_shots", &map::Map::GetShotView)
-      .def("get_all_pano_shots", &map::Map::GetPanoShotView)
-      .def("get_all_cameras", &map::Map::GetCameraView)
+      .def("get_shots", &map::Map::GetShotView)
+      .def("get_pano_shots", &map::Map::GetPanoShotView)
+      .def("get_cameras", &map::Map::GetCameraView)
       .def("get_camera_view", &map::Map::GetCameraView)
-      .def("get_all_landmarks", &map::Map::GetLandmarkView)
+      .def("get_landmarks", &map::Map::GetLandmarkView)
       .def("get_landmark_view", &map::Map::GetLandmarkView)
       .def("set_reference", &map::Map::SetTopocentricConverter)
       .def("get_reference", &map::Map::GetTopocentricConverter)
