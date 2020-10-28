@@ -285,7 +285,7 @@ def extract_features(image, config, is_panorama):
     if len(image.shape) == 2: # convert (h, w) to (h, w, 1)
         image = np.expand_dims(image, axis=2)
 
-    image = resized_image(image, config)
+    image = resized_image(image, extraction_size)
 
     # convert color to gray-scale if necessary
     if image.shape[2] == 3:
