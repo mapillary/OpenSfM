@@ -110,7 +110,7 @@ def export(reconstruction, index,
             undistorted_image = cv2.undistort(original_image, K, distortion)
 
         # resize and save the undistorted to visualize/%08d.jpg
-        resized_image = features.resized_image(undistorted_image, data.config)
+        resized_image = features.resized_image(undistorted_image, data.config['feature_process_size'])
         new_image_path = os.path.join(output_path, "visualize", base + ".jpg")
         cv2.imwrite(new_image_path, resized_image)
 
