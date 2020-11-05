@@ -1,15 +1,22 @@
 import os
+import math
+from functools import lru_cache
 import numpy as np
 
 from collections import defaultdict
 
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+import matplotlib.colors as colors
 
 
-def _length_histogram(points):
+def _length_histogram(tracks_manager, points):
     hist = defaultdict(int)
     for point in points.values():
-        hist[point.number_of_observations()] += 1
+        obs_count = point.number_of_observations()
+        if not obs_count:
+            obs_count = len(tracks_manager.get_track_observations(point.id))
+        hist[obs_count] += 1
     return np.array(list(hist.keys())), np.array(list(hist.values()))
 
 
@@ -20,52 +27,147 @@ def _gps_errors(reconstruction):
             errors.append(
                 np.array(shot.metadata.gps_position.value - shot.pose.get_origin())
             )
-    return np.array(errors)
+    return errors
 
 
-def compute_overall_statistics(reconstruction):
+def gps_errors(reconstructions):
+    all_errors = []
+    for rec in reconstructions:
+        all_errors += _gps_errors(rec)
+    squared = np.multiply(all_errors, all_errors)
+    mean = np.mean(all_errors, 0)
+    std_dev = np.std(all_errors, 0)
+    average = np.average(np.linalg.norm(all_errors, axis=1))
+
     stats = {}
-    stats["points_count"] = len(reconstruction.points)
-    stats["cameras_count"] = len(reconstruction.shots)
-
-    hist, values = _length_histogram(reconstruction.points)
-    stats["observations_count"] = int(sum(hist * values))
-    if len(reconstruction.points) > 0:
-        stats["average_track_length"] = float(stats["observations_count"]) / len(
-            reconstruction.points
-        )
-    else:
-        stats["average_track_length"] = -1
-    tracks_notwo = sum(
-        [
-            1 if p.number_of_observations() > 2 else 0
-            for p in reconstruction.points.values()
-        ]
-    )
-
-    if tracks_notwo > 0:
-        stats["average_track_length_notwo"] = (
-            float(sum(hist[1:] * values[1:])) / tracks_notwo
-        )
-    else:
-        stats["average_track_length_notwo"] = -1
-
-    gps_errors = _gps_errors(reconstruction)
-    mean = np.mean(gps_errors, 0)
-    std_dev = np.std(gps_errors, 0)
-    average = np.average(np.linalg.norm(gps_errors, axis=1))
-
-    gps_errors_dict = {}
-    if gps_errors.any():
-        gps_errors_dict["mean"] = {"x": mean[0], "y": mean[1], "z": mean[2]}
-        gps_errors_dict["std"] = {"x": std_dev[0], "y": std_dev[1], "z": std_dev[2]}
-        gps_errors_dict["error"] = {
-            "x": np.abs(mean[0]) + std_dev[0],
-            "y": np.abs(mean[1]) + std_dev[1],
-            "z": np.abs(mean[2]) + std_dev[2],
+    if all_errors:
+        stats["mean"] = {"x": mean[0], "y": mean[1], "z": mean[2]}
+        stats["std"] = {"x": std_dev[0], "y": std_dev[1], "z": std_dev[2]}
+        stats["error"] = {
+            "x": math.sqrt(np.mean(squared, 0)[0]),
+            "y": math.sqrt(np.mean(squared, 0)[1]),
+            "z": math.sqrt(np.mean(squared, 0)[2]),
         }
-    gps_errors_dict["average_error"] = average
-    stats["gps_errors"] = gps_errors_dict
+        stats["average_error"] = average
+    return stats
+
+
+def reconstruction_statistics(data, tracks_manager, reconstructions):
+    stats = {}
+
+    stats["initial_points_count"] = tracks_manager.num_tracks()
+    stats["initial_shots_count"] = len(data.images())
+
+    stats["reconstructed_points_count"] = 0
+    stats["reconstructed_shots_count"] = 0
+    stats["observations_count"] = 0
+    obs_notwo, count_notwo = 0, 0
+    for rec in reconstructions:
+        if len(rec.points) > 0:
+            stats["reconstructed_points_count"] += len(rec.points)
+        stats["reconstructed_shots_count"] += len(rec.shots)
+
+        hist, values = _length_histogram(tracks_manager, rec.points)
+        stats["observations_count"] += int(sum(hist * values))
+        obs_notwo += int(sum(hist[1:] * values[1:]))
+        count_notwo += sum(values[1:])
+    stats["average_track_length"] = (
+        stats["observations_count"] / stats["reconstructed_points_count"]
+    )
+    stats["average_track_length_over_two"] = obs_notwo / count_notwo
+
+    length_histogram = {}
+    for length, count_tracks in zip(hist, values):
+        length_histogram[int(length)] = int(count_tracks)
+    stats["histogram_track_length"] = length_histogram
+
+    return stats
+
+
+@lru_cache(1)
+def _load_matches(data):
+    matches = {}
+    images = data.images()
+    for im1 in images:
+        try:
+            im1_matches = data.load_matches(im1)
+        except IOError:
+            continue
+        for im2 in im1_matches:
+            if im2 in images:
+                matches[im1, im2] = len(im1_matches[im2])
+    return matches
+
+
+def features_statistics(data, tracks_manager, reconstructions):
+    stats = {}
+    detected = [len(data.load_features(im)[0]) for im in data.images()]
+    stats["detected_features"] = {
+        "min": min(detected),
+        "max": max(detected),
+        "mean": int(np.mean(detected)),
+        "median": int(np.median(detected)),
+    }
+
+    per_shots = defaultdict(int)
+    for rec in reconstructions:
+        all_points_keys = set(rec.points.keys())
+        for shot_id in rec.shots:
+            if shot_id not in tracks_manager.get_shot_ids():
+                continue
+            for point_id in tracks_manager.get_shot_observations(shot_id):
+                if point_id not in all_points_keys:
+                    continue
+                per_shots[shot_id] += 1
+    per_shots = list(per_shots.values())
+
+    stats["reconstructed_features"] = {
+        "min": int(min(per_shots)),
+        "max": int(max(per_shots)),
+        "mean": int(np.mean(per_shots)),
+        "median": int(np.median(per_shots)),
+    }
+    return stats
+
+
+def matching_statistics(data):
+    return {}
+
+
+def _cameras_statistics(camera_model):
+    camera_stats = {}
+    for param_type, param_value in camera_model.get_parameters_map().items():
+        camera_stats[str(param_type).split(".")[1]] = param_value
+    return camera_stats
+
+
+def cameras_statistics(data, reconstructions):
+    stats = {}
+    permutation = np.argsort([-len(r.shots) for r in reconstructions])
+    for camera_id, camera_model in data.load_camera_models().items():
+        stats[camera_id] = {"initial_values": _cameras_statistics(camera_model)}
+
+    for idx in permutation:
+        rec = reconstructions[idx]
+        for camera in rec.cameras.values():
+            if "optimized_values" in stats[camera.id]:
+                continue
+            stats[camera_id]["optimized_values"] = _cameras_statistics(camera)
+    return stats
+
+
+def compute_all_statistics(data, tracks_manager, reconstructions):
+    stats = {}
+
+    stats["features_statistics"] = features_statistics(
+        data, tracks_manager, reconstructions
+    )
+    stats["matching_statistics"] = matching_statistics(data)
+    stats["reconstruction_statistics"] = reconstruction_statistics(
+        data, tracks_manager, reconstructions
+    )
+    stats["camera_errors"] = cameras_statistics(data, reconstructions)
+    stats["gps_errors"] = gps_errors(reconstructions)
 
     return stats
 
@@ -94,7 +196,57 @@ def _get_gaussian_kernel(radius):
     return kernel / sum(np.ndarray.flatten(kernel))
 
 
-def save_heat_map(data, tracks_manager, reconstructions, output_path):
+def save_matchgraph(data, tracks_manager, reconstructions, output_path):
+    all_shots = []
+    all_points = []
+    shot_component = {}
+    for i, rec in enumerate(reconstructions):
+        all_points += rec.points
+        all_shots += rec.shots
+        for shot in rec.shots:
+            shot_component[shot] = i
+
+    connectivity = tracks_manager.get_all_pairs_connectivity(all_shots, all_points)
+    all_values = connectivity.values()
+    lowest = np.percentile(list(all_values), 5)
+    highest = np.percentile(list(all_values), 95)
+
+    plt.clf()
+    cmap = cm.get_cmap("viridis")
+    for (node1, node2), edge in sorted(connectivity.items(), key=lambda x: x[1]):
+        if edge < 2 * data.config["resection_min_inliers"]:
+            continue
+        comp1 = shot_component[node1]
+        comp2 = shot_component[node2]
+        if comp1 != comp2:
+            continue
+        o1 = reconstructions[comp1].shots[node1].pose.get_origin()
+        o2 = reconstructions[comp2].shots[node2].pose.get_origin()
+        c = max(0, min(1.0, 1 - (edge - lowest) / (highest - lowest)))
+        plt.plot([o1[0], o2[0]], [o1[1], o2[1]], linestyle="-", color=cmap(c))
+
+    for i, rec in enumerate(reconstructions):
+        for shot in rec.shots.values():
+            o = shot.pose.get_origin()
+            c = i / len(reconstructions)
+            plt.plot(o[0], o[1], linestyle="", marker="o", color=cmap(c))
+
+    plt.xticks([])
+    plt.yticks([])
+    norm = colors.Normalize(vmin=lowest, vmax=highest)
+    plt.colorbar(
+        cm.ScalarMappable(norm=norm, cmap=cmap.reversed()),
+        orientation="horizontal",
+        label="Number of matches between images",
+    )
+    plt.savefig(
+        os.path.join(output_path, "matchgraph.png"),
+        dpi=300,
+        bbox_inches="tight",
+    )
+
+
+def save_heatmap(data, tracks_manager, reconstructions, output_path):
     all_projections = {}
 
     scaling = 1e4

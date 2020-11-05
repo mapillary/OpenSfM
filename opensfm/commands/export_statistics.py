@@ -33,13 +33,13 @@ class Command:
         io.mkdir_p(output_path)
 
         stats_dict = {}
-        overall_stats = []
-        for rec in reconstructions:
-            overall_stats.append(stats.compute_overall_statistics(rec))
-        stats_dict["overall_stats"] = overall_stats
+        stats_dict["overall_stats"] = stats.compute_all_statistics(
+            data, tracks_manager, reconstructions
+        )
 
+        stats.save_matchgraph(data, tracks_manager, reconstructions, output_path)
         stats.save_residual_grids(data, tracks_manager, reconstructions, output_path)
-        stats.save_heat_map(data, tracks_manager, reconstructions, output_path)
+        stats.save_heatmap(data, tracks_manager, reconstructions, output_path)
 
         with io.open_wt(os.path.join(output_path, "stats.json")) as fout:
             io.json_dump(stats_dict, fout)
