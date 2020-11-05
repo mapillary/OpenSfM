@@ -86,11 +86,21 @@ def _heatmap_buckets(camera):
         return buckets, int(buckets / camera.width * camera.height)
 
 
+def _get_gaussian_kernel(radius):
+    std_dev = radius / 2
+    half_kernel = list(range(1, radius + 1))
+    kernel = np.array(half_kernel + [radius + 1] + list(reversed(half_kernel)))
+    kernel = np.exp(np.outer(kernel.T, kernel) / (2 * std_dev * std_dev))
+    return kernel / sum(np.ndarray.flatten(kernel))
+
+
 def save_heat_map(data, tracks_manager, reconstructions, output_path):
     all_projections = {}
 
     scaling = 1e4
-    splatting = 3
+    splatting = 15
+    size = 2 * splatting + 1
+    kernel = _get_gaussian_kernel(splatting)
 
     for rec in reconstructions:
         for camera_id in rec.cameras:
@@ -116,32 +126,50 @@ def save_heat_map(data, tracks_manager, reconstructions, output_path):
                     continue
 
                 bucket = obs.point * normalizer + center
-                x = max(
-                    [
-                        splatting,
-                        min([int(bucket[0] * w_bucket), buckets_x - 1 - splatting]),
-                    ]
-                )
-                y = max(
-                    [
-                        splatting,
-                        min([int(bucket[1] * h_bucket), buckets_y - 1 - splatting]),
-                    ]
-                )
-                for i in range(-splatting, splatting):
-                    for j in range(-splatting, splatting):
-                        all_projections[shot.camera.id].append((x + i, y + j))
+                x = max([0, min([int(bucket[0] * w_bucket), buckets_x - 1])])
+                y = max([0, min([int(bucket[1] * h_bucket), buckets_y - 1])])
+                all_projections[shot.camera.id].append((x, y))
 
     for camera_id, projections in all_projections.items():
         buckets_x, buckets_y = _heatmap_buckets(rec.cameras[camera_id])
         camera_heatmap = np.zeros((buckets_y, buckets_x))
         for x, y in projections:
-            camera_heatmap[y, x] += 1
+            k_low_x, k_low_y = -min(x - splatting, 0), -min(y - splatting, 0)
+            k_high_x, k_high_y = (
+                size - max(x + splatting - (buckets_x - 2), 0),
+                size - max(y + splatting - (buckets_y - 2), 0),
+            )
+            h_low_x, h_low_y = max(x - splatting, 0), max(y - splatting, 0)
+            h_high_x, h_high_y = min(x + splatting + 1, buckets_x - 1), min(
+                y + splatting + 1, buckets_y - 1
+            )
+            camera_heatmap[h_low_y:h_high_y, h_low_x:h_high_x] += kernel[
+                k_low_y:k_high_y, k_low_x:k_high_x
+            ]
 
         highest = np.max(camera_heatmap)
         lowest = np.min(camera_heatmap)
+
+        plt.clf()
         plt.imshow((camera_heatmap - lowest) / (highest - lowest) * 255)
-        plt.show()
+
+        plt.title(
+            f"Detected features heatmap for camera {camera_id}",
+            fontsize="x-small",
+        )
+
+        plt.xticks(
+            [0, buckets_x / 2, buckets_x], [0, int(w / 2), w], fontsize="x-small"
+        )
+        plt.yticks(
+            [buckets_y, buckets_y / 2, 0], [0, int(h / 2), h], fontsize="x-small"
+        )
+
+        plt.savefig(
+            os.path.join(output_path, "heatmap_" + str(camera_id) + ".png"),
+            dpi=300,
+            bbox_inches="tight",
+        )
 
 
 def save_residual_grids(data, tracks_manager, reconstructions, output_path):
@@ -197,6 +225,7 @@ def save_residual_grids(data, tracks_manager, reconstructions, output_path):
         h = shot.camera.height
         normalizer = max(w, h)
 
+        plt.clf()
         colors = np.linalg.norm(camera_array_res[:, :, :1], axis=2)
         Q = plt.quiver(
             camera_array_res[:, :, 0] * scaling,

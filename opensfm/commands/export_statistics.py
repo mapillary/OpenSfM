@@ -38,6 +38,7 @@ class Command:
             overall_stats.append(stats.compute_overall_statistics(rec))
         stats_dict["overall_stats"] = overall_stats
 
+        stats.save_residual_grids(data, tracks_manager, reconstructions, output_path)
         stats.save_heat_map(data, tracks_manager, reconstructions, output_path)
 
         with io.open_wt(os.path.join(output_path, "stats.json")) as fout:
