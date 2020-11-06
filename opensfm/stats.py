@@ -3,6 +3,7 @@ import math
 from functools import lru_cache
 import numpy as np
 import datetime
+import statistics
 
 from opensfm import io
 from collections import defaultdict
@@ -267,8 +268,8 @@ def _heatmap_buckets(camera):
         return buckets, int(buckets / camera.width * camera.height)
 
 
-def _get_gaussian_kernel(radius):
-    std_dev = radius / 2
+def _get_gaussian_kernel(radius, ratio):
+    std_dev = radius / ratio
     half_kernel = list(range(1, radius + 1))
     kernel = np.array(half_kernel + [radius + 1] + list(reversed(half_kernel)))
     kernel = np.exp(np.outer(kernel.T, kernel) / (2 * std_dev * std_dev))
@@ -325,13 +326,151 @@ def save_matchgraph(data, tracks_manager, reconstructions, output_path):
     )
 
 
+def save_topview(data, tracks_manager, reconstructions, output_path):
+    points = []
+    colors = []
+    for rec in reconstructions:
+        for point in rec.points.values():
+            track = tracks_manager.get_track_observations(point.id)
+            if len(track) < 2:
+                continue
+            coords = point.coordinates
+            points.append(coords)
+
+            r, g, b = [], [], []
+            for obs in track.values():
+                r.append(obs.color[0])
+                g.append(obs.color[1])
+                b.append(obs.color[2])
+            colors.append(
+                (statistics.median(r), statistics.median(g), statistics.median(b))
+            )
+
+    all_x = []
+    all_y = []
+    for i, rec in enumerate(reconstructions):
+        for shot in rec.shots.values():
+            o = shot.pose.get_origin()
+            all_x.append(o[0])
+            all_y.append(o[1])
+            if not shot.metadata.gps_position.has_value:
+                continue
+            gps = shot.metadata.gps_position.value
+            all_x.append(gps[0])
+            all_y.append(gps[1])
+
+    # compute camera's XY bounding box
+    low_x, high_x = np.min(all_x), np.max(all_x)
+    low_y, high_y = np.min(all_y), np.max(all_y)
+
+    # get its size
+    size_x = high_x - low_x
+    size_y = high_y - low_y
+
+    # expand bounding box by some margin
+    margin = 0.05
+    low_x -= size_x * margin
+    high_x += size_y * margin
+    low_y -= size_x * margin
+    high_y += size_y * margin
+
+    # update size
+    size_x = high_x - low_x
+    size_y = high_y - low_y
+
+    im_size_x = 2000
+    im_size_y = int(im_size_x * size_y / size_x)
+    topview = np.zeros((im_size_y, im_size_x, 3))
+
+    # splat points using gaussian + max-pool
+    splatting = 15
+    size = 2 * splatting + 1
+    kernel = _get_gaussian_kernel(splatting, 2)
+    kernel /= kernel[splatting, splatting]
+    for point, color in zip(points, colors):
+        x, y = int((point[0] - low_x) / size_x * im_size_x), int(
+            (point[1] - low_y) / size_y * im_size_y
+        )
+        if not ((0 < x < (im_size_x - 1)) and (0 < y < (im_size_y - 1))):
+            continue
+
+        k_low_x, k_low_y = -min(x - splatting, 0), -min(y - splatting, 0)
+        k_high_x, k_high_y = (
+            size - max(x + splatting - (im_size_x - 2), 0),
+            size - max(y + splatting - (im_size_y - 2), 0),
+        )
+        h_low_x, h_low_y = max(x - splatting, 0), max(y - splatting, 0)
+        h_high_x, h_high_y = min(x + splatting + 1, im_size_x - 1), min(
+            y + splatting + 1, im_size_y - 1
+        )
+
+        for i in range(3):
+            current = topview[h_low_y:h_high_y, h_low_x:h_high_x, i]
+            splat = kernel[k_low_y:k_high_y, k_low_x:k_high_x]
+            topview[h_low_y:h_high_y, h_low_x:h_high_x, i] = np.maximum(
+                splat * (color[i] / 255.0), current
+            )
+
+    plt.clf()
+    plt.imshow(topview)
+
+    # display computed camera's XY
+    for i, rec in enumerate(reconstructions):
+        sorted_shots = sorted(
+            rec.shots.values(), key=lambda x: x.metadata.capture_time.value
+        )
+        c_camera = cm.get_cmap("cool")(0 / len(reconstructions))
+        c_gps = cm.get_cmap("autumn")(0 / len(reconstructions))
+        for j, shot in enumerate(sorted_shots):
+            o = shot.pose.get_origin()
+            x, y = int((o[0] - low_x) / size_x * im_size_x), int(
+                (o[1] - low_y) / size_y * im_size_y
+            )
+            plt.plot(x, y, linestyle="", marker="o", color=c_camera)
+
+            # also display camera path using capture time
+            if j < len(sorted_shots) - 1:
+                n = sorted_shots[j + 1].pose.get_origin()
+                nx, ny = int((n[0] - low_x) / size_x * im_size_x), int(
+                    (n[1] - low_y) / size_y * im_size_y
+                )
+                plt.plot([x, nx], [y, ny], linestyle="-", color=c_camera)
+
+            # display GPS error
+            if not shot.metadata.gps_position.has_value:
+                continue
+            gps = shot.metadata.gps_position.value
+            gps_x, gps_y = int((gps[0] - low_x) / size_x * im_size_x), int(
+                (gps[1] - low_y) / size_y * im_size_y
+            )
+            plt.plot(gps_x, gps_y, linestyle="", marker="v", color=c_gps)
+            plt.plot([x, gps_x], [y, gps_y], linestyle="-", color=c_gps)
+
+    plt.xticks(
+        [0, im_size_x / 2, im_size_x],
+        [0, f"{int(size_x / 2):.0f}", f"{size_x:.0f} meters"],
+        fontsize="small",
+    )
+    plt.yticks(
+        [im_size_y, im_size_y / 2, 0],
+        [0, f"{int(size_y / 2):.0f}", f"{size_y:.0f} meters"],
+        fontsize="small",
+    )
+
+    plt.savefig(
+        os.path.join(output_path, "topview.png"),
+        dpi=300,
+        bbox_inches="tight",
+    )
+
+
 def save_heatmap(data, tracks_manager, reconstructions, output_path):
     all_projections = {}
 
     scaling = 1e4
     splatting = 15
     size = 2 * splatting + 1
-    kernel = _get_gaussian_kernel(splatting)
+    kernel = _get_gaussian_kernel(splatting, 2)
 
     for rec in reconstructions:
         for camera_id in rec.cameras:

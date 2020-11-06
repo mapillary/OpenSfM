@@ -1121,7 +1121,6 @@ def incremental_reconstruction(data, tracks_manager):
                 reconstructions.append(reconstruction)
                 reconstructions = sorted(reconstructions,
                                          key=lambda x: -len(x.shots))
-                logger.info(stats.compute_overall_statistics(reconstruction))
 
     for k, r in enumerate(reconstructions):
         logger.info("Reconstruction {}: {} images, {} points".format(

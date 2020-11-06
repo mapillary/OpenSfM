@@ -93,6 +93,10 @@ class Report:
     def _make_centered_image(self, image_path, desired_height):
         width, height = PIL.Image.open(image_path).size
         resized_width = width * desired_height / height
+        if resized_width > self.total_size:
+            resized_width = self.total_size
+            desired_height = height * resized_width / width
+
         self.pdf.image(
             image_path,
             self.pdf.get_x() + self.total_size / 2 - resized_width / 2,
@@ -133,7 +137,7 @@ class Report:
             ],
         ]
         self._make_table(None, rows)
-        self.pdf.set_xy(self.margin, self.pdf.get_y() + 2 * self.margin)
+        self.pdf.set_xy(self.margin, self.pdf.get_y() + self.margin)
 
     def make_processing_summary(self):
         self._make_section("Processing Summary")
@@ -185,7 +189,17 @@ class Report:
                 ]
             )
         self._make_table(None, rows)
-        self.pdf.set_xy(self.margin, self.pdf.get_y() + 2 * self.margin)
+        self.pdf.set_xy(self.margin, self.pdf.get_y() + self.margin / 2)
+
+        topview_height = 130
+        topview_grids = [
+            f for f in os.listdir(self.output_path) if f.startswith("topview")
+        ]
+        self._make_centered_image(
+            os.path.join(self.output_path, topview_grids[0]), topview_height
+        )
+
+        self.pdf.set_xy(self.margin, self.pdf.get_y() + self.margin)
 
     def make_processing_time_details(self):
         self._make_section("Processing Time Details")
@@ -214,7 +228,7 @@ class Report:
             ["Total", "", "", f"{self.stats['gps_errors']['average_error']:.2f}"]
         )
         self._make_table(columns_names, rows)
-        self.pdf.set_xy(self.margin, self.pdf.get_y() + 2 * self.margin)
+        self.pdf.set_xy(self.margin, self.pdf.get_y() + self.margin)
 
     def make_features_details(self):
         self._make_section("Features Details")
@@ -240,7 +254,7 @@ class Report:
             rows.append(row)
         self._make_table(columns_names, rows)
 
-        self.pdf.set_xy(self.margin, self.pdf.get_y() + 2 * self.margin)
+        self.pdf.set_xy(self.margin, self.pdf.get_y() + self.margin)
 
     def make_reconstruction_details(self):
         self._make_section("Reconstruction Details")
@@ -262,7 +276,7 @@ class Report:
         self._make_table(None, rows)
         self.pdf.set_xy(self.margin, self.pdf.get_y() + self.margin)
 
-        residual_grid_height = 90
+        residual_grid_height = 110
         residual_grids = [
             f for f in os.listdir(self.output_path) if f.startswith("residual")
         ]
@@ -270,7 +284,7 @@ class Report:
             os.path.join(self.output_path, residual_grids[0]), residual_grid_height
         )
 
-        self.pdf.set_xy(self.margin, self.pdf.get_y() + 2 * self.margin)
+        self.pdf.set_xy(self.margin, self.pdf.get_y() + self.margin)
 
     def make_tracks_details(self):
         self._make_section("Tracks Details")
@@ -297,7 +311,7 @@ class Report:
 
         self._make_table(None, [row_length, row_count])
 
-        self.pdf.set_xy(self.margin, self.pdf.get_y() + 2 * self.margin)
+        self.pdf.set_xy(self.margin, self.pdf.get_y() + self.margin)
 
     def add_page_break(self):
         self.pdf.add_page("P")

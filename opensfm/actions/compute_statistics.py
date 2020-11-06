@@ -26,6 +26,7 @@ def run_dataset(data):
     stats.save_residual_grids(data, tracks_manager, reconstructions, output_path)
     stats.save_matchgraph(data, tracks_manager, reconstructions, output_path)
     stats.save_heatmap(data, tracks_manager, reconstructions, output_path)
+    stats.save_topview(data, tracks_manager, reconstructions, output_path)
 
     with io.open_wt(os.path.join(output_path, "stats.json")) as fout:
         io.json_dump(stats_dict, fout)
