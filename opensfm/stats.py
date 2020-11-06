@@ -536,7 +536,9 @@ def save_heatmap(data, tracks_manager, reconstructions, output_path):
         )
 
         plt.savefig(
-            os.path.join(output_path, "heatmap_" + str(camera_id) + ".png"),
+            os.path.join(
+                output_path, "heatmap_" + str(camera_id.replace("/", "_")) + ".png"
+            ),
             dpi=300,
             bbox_inches="tight",
         )
@@ -623,7 +625,9 @@ def save_residual_grids(data, tracks_manager, reconstructions, output_path):
             [0, buckets_y / 2, buckets_y], [0, int(h / 2), h], fontsize="x-small"
         )
         plt.savefig(
-            os.path.join(output_path, "residuals_" + str(camera_id) + ".png"),
+            os.path.join(
+                output_path, "residuals_" + str(camera_id.replace("/", "_")) + ".png"
+            ),
             dpi=300,
             bbox_inches="tight",
         )
