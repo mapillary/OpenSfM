@@ -268,7 +268,7 @@ def resect_annotated_single_images(reconstruction, gcps, camera_models, data):
     for gcp in gcps:
         for obs in gcp.observations:
             im = obs.shot_id
-            if im not in reconstruction.shots:
+            if im not in reconstruction.shots and im in data.images():
                 not_in_rec.add(im)
 
     resected = types.Reconstruction()

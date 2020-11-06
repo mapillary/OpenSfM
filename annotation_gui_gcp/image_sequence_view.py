@@ -84,6 +84,7 @@ class ImageSequenceView(View):
             new_gcp = self.main_ui.add_gcp()
             print(f"New GCP {new_gcp} with {len(observations)} observations")
             for shot_id, point in observations.items():
+                point = point.tolist()
                 self.main_ui.gcp_manager.add_point_observation(new_gcp, shot_id, point)
 
         self.visible_tracks = None

@@ -44,6 +44,7 @@ class OrthoPhotoManager:
         return tw, window, t
 
     def get_candidate_images(self, lat: float, lon: float):
+        # lat, lon -> nearmap file id + nearmap pixel coordinates
         return [k for k in self.image_keys if self.check_latlon_covered(k, lat, lon)]
 
     def get_image(self, img, lat: float, lon: float, size: float):

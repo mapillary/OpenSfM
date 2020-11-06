@@ -11,6 +11,7 @@ from typing import Tuple
 from matplotlib import patheffects
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
+from matplotlib.transforms import Affine2D
 from opensfm import features
 
 FONT = "TkFixedFont"
