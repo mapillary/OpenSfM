@@ -2,7 +2,9 @@ import os
 import math
 from functools import lru_cache
 import numpy as np
+import datetime
 
+from opensfm import io
 from collections import defaultdict
 
 import matplotlib.pyplot as plt
@@ -52,8 +54,38 @@ def gps_errors(reconstructions):
     return stats
 
 
+def _projection_error(data, tracks_manager, reconstructions):
+    average_error, error_count = 0, 0
+    for rec in reconstructions:
+        all_points = rec.points
+        all_points_keys = set(all_points.keys())
+        for shot_id in rec.shots:
+            shot = rec.get_shot(shot_id)
+            normalizer = max(shot.camera.width, shot.camera.height)
+            if shot_id not in tracks_manager.get_shot_ids():
+                continue
+            for point_id, obs in tracks_manager.get_shot_observations(shot_id).items():
+                if point_id not in all_points_keys:
+                    continue
+                proj = shot.project(all_points[point_id].coordinates)
+                error = np.linalg.norm(obs.point - proj)
+                if error > data.config["bundle_outlier_fixed_threshold"]:
+                    continue
+                average_error += error * normalizer
+                error_count += 1
+    return average_error / error_count
+
+
 def reconstruction_statistics(data, tracks_manager, reconstructions):
     stats = {}
+
+    stats["components"] = len(reconstructions)
+    gps_count = 0
+    for rec in reconstructions:
+        for shot in rec.shots.values():
+            gps_count += shot.metadata.gps_position.has_value
+    stats["has_gps"] = gps_count > 2
+    stats["has_gcp"] = True if data.load_ground_control_points() else False
 
     stats["initial_points_count"] = tracks_manager.num_tracks()
     stats["initial_shots_count"] = len(data.images())
@@ -81,6 +113,10 @@ def reconstruction_statistics(data, tracks_manager, reconstructions):
         length_histogram[int(length)] = int(count_tracks)
     stats["histogram_track_length"] = length_histogram
 
+    stats["reprojection_error"] = _projection_error(
+        data, tracks_manager, reconstructions
+    )
+
     return stats
 
 
@@ -97,6 +133,48 @@ def _load_matches(data):
             if im2 in images:
                 matches[im1, im2] = len(im1_matches[im2])
     return matches
+
+
+def processing_statistics(data, reconstructions):
+    steps = {
+        "Feature Extraction": "features.json",
+        "Features Matching": "matches.json",
+        "Tracks Merging": "tracks.json",
+        "Reconstruction": "reconstruction.json",
+    }
+
+    steps_times = {}
+    for step_name, report_file in steps.items():
+        file_path = os.path.join(data.data_path, "reports", report_file)
+        with io.open_rt(file_path) as fin:
+            obj = io.json_load(fin)
+            if "wall_time" in obj:
+                steps_times[step_name] = obj["wall_time"]
+            elif "wall_times" in obj:
+                steps_times[step_name] = sum(obj["wall_times"].values())
+            else:
+                steps_times[step_name] = -1
+
+    stats = {}
+    stats["steps_times"] = steps_times
+    stats["steps_times"]["Total Time"] = sum(
+        filter(lambda x: x >= 0, steps_times.values())
+    )
+
+    stats["date"] = datetime.datetime.fromtimestamp(
+        os.path.getmtime(data._reconstruction_file(None))
+    ).strftime("%d/%m/%Y at %H:%M:%S")
+
+    min_x, min_y, max_x, max_y = 1e30, 1e30, 0, 0
+    for rec in reconstructions:
+        for shot in rec.shots.values():
+            o = shot.pose.get_origin()
+            min_x = min(min_x, o[0])
+            min_y = min(min_y, o[1])
+            max_x = max(max_x, o[0])
+            max_y = max(max_y, o[1])
+    stats["area"] = (max_x - min_x) * (max_y - min_y)
+    return stats
 
 
 def features_statistics(data, tracks_manager, reconstructions):
@@ -159,6 +237,7 @@ def cameras_statistics(data, reconstructions):
 def compute_all_statistics(data, tracks_manager, reconstructions):
     stats = {}
 
+    stats["processing_statistics"] = processing_statistics(data, reconstructions)
     stats["features_statistics"] = features_statistics(
         data, tracks_manager, reconstructions
     )
@@ -391,9 +470,10 @@ def save_residual_grids(data, tracks_manager, reconstructions, output_path):
             cmap="viridis",
         )
 
+        average_proj_error = np.average(np.ndarray.flatten(colors)) * normalizer
         plt.quiverkey(Q, 0.9, 1.2, 1, "toto", labelpos="E", coordinates="figure")
         plt.title(
-            f"Reprojection error for camera {camera_id}\n\nAverage error : {np.average(np.ndarray.flatten(colors))*normalizer:.3f} pixels",
+            f"Reprojection error for camera {camera_id}",
             fontsize="x-small",
         )
 

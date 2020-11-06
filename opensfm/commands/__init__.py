@@ -7,14 +7,15 @@ from . import bundle
 from . import mesh
 from . import undistort
 from . import compute_depthmaps
+from . import compute_statistics
 from . import export_ply
 from . import export_openmvs
 from . import export_visualsfm
 from . import export_pmvs
 from . import export_bundler
 from . import export_colmap
+from . import export_report
 from . import export_geocoords
-from . import export_statistics
 from . import create_submodels
 from . import align_submodels
 
@@ -33,6 +34,7 @@ opensfm_commands = [
     mesh,
     undistort,
     compute_depthmaps,
+    compute_statistics,
     export_ply,
     export_openmvs,
     export_visualsfm,
@@ -40,7 +42,7 @@ opensfm_commands = [
     export_bundler,
     export_colmap,
     export_geocoords,
-    export_statistics,
+    export_report,
     create_submodels,
     align_submodels,
 ]
