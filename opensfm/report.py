@@ -93,6 +93,7 @@ class Report:
         self.pdf.set_xy(self.margin, self.pdf.get_y() + 1.5 * self.margin)
 
     def _make_subsection(self, title):
+        self.pdf.set_xy(self.margin, self.pdf.get_y() - 0.5 * self.margin)
         self.pdf.set_font("Helvetica", "B", self.h2)
         self.pdf.set_text_color(*self.mapi_dark_grey)
         self.pdf.cell(0, self.margin, title, align="L")
@@ -147,6 +148,9 @@ class Report:
         self._make_table(None, rows, True)
         self.pdf.set_xy(self.margin, self.pdf.get_y() + self.margin)
 
+    def _has_meaningful_gcp(self):
+        return self.stats["reconstruction_statistics"]["has_gcp"] and 'average_error' in self.stats['gcp_errors']
+
     def make_processing_summary(self):
         self._make_section("Processing Summary")
 
@@ -162,9 +166,8 @@ class Report:
         geo_string = []
         if self.stats["reconstruction_statistics"]["has_gps"]:
             geo_string.append("GPS")
-        if self.stats["reconstruction_statistics"]["has_gcp"]:
+        if self._has_meaningful_gcp():
             geo_string.append("GCP")
-        geo_string = "and".join(geo_string)
 
         rows = [
             [
@@ -187,15 +190,18 @@ class Report:
                 "Reconstructed Features",
                 f"{self.stats['features_statistics']['reconstructed_features']['median']} features",
             ],
-            ["Geographic Reference", geo_string],
+            ["Geographic Reference", " and ".join(geo_string)],
         ]
+
+        row_gps_gcp = [" / ".join(geo_string) + " errors"]
+        geo_errors = []
         if self.stats["reconstruction_statistics"]["has_gps"]:
-            rows.append(
-                [
-                    "GPS error",
-                    f"{self.stats['gps_errors']['average_error']:.2f} meters",
-                ]
-            )
+            geo_errors.append(f"{self.stats['gps_errors']['average_error']:.2f}")
+        if self._has_meaningful_gcp():
+            geo_errors.append(f"{self.stats['gcp_errors']['average_error']:.2f}")
+        row_gps_gcp.append(" / ".join(geo_errors) + " meters")
+        rows.append(row_gps_gcp)
+
         self._make_table(None, rows, True)
         self.pdf.set_xy(self.margin, self.pdf.get_y() + self.margin / 2)
 
@@ -221,22 +227,29 @@ class Report:
         self.pdf.set_xy(self.margin, self.pdf.get_y() + 2 * self.margin)
 
     def make_gps_details(self):
-        self._make_section("GPS Errors Details")
+        self._make_section("GPS/GCP Errors Details")
 
-        columns_names = ["", "Mean", "Sigma", "RMS Error"]
-        rows = []
-        for comp in ["x", "y", "z"]:
-            row = [comp.upper() + " Error (meters)"]
-            row.append(f"{self.stats['gps_errors']['mean'][comp]:.3f}")
-            row.append(f"{self.stats['gps_errors']['std'][comp]:.3f}")
-            row.append(f"{self.stats['gps_errors']['error'][comp]:.3f}")
-            rows.append(row)
+        # GPS
+        for error_type in ["gps", "gcp"]:
+            rows = []
+            columns_names = [error_type.upper(), "Mean", "Sigma", "RMS Error"]
+            if 'average_error' not in self.stats[error_type + '_errors']:
+                continue
+            for comp in ["x", "y", "z"]:
+                row = [comp.upper() + " Error (meters)"]
+                row.append(f"{self.stats[error_type + '_errors']['mean'][comp]:.3f}")
+                row.append(f"{self.stats[error_type +'_errors']['std'][comp]:.3f}")
+                row.append(f"{self.stats[error_type +'_errors']['error'][comp]:.3f}")
+                rows.append(row)
 
-        rows.append(
-            ["Total", "", "", f"{self.stats['gps_errors']['average_error']:.3f}"]
-        )
-        self._make_table(columns_names, rows)
-        self.pdf.set_xy(self.margin, self.pdf.get_y() + self.margin)
+            rows.append(
+                ["Total", "", "", f"{self.stats[error_type +'_errors']['average_error']:.3f}"]
+            )
+            self._make_table(columns_names, rows)
+            self.pdf.set_xy(self.margin, self.pdf.get_y() + self.margin/2)
+
+        self.pdf.set_xy(self.margin, self.pdf.get_y() + self.margin/2)
+
 
     def make_features_details(self):
         self._make_section("Features Details")
@@ -307,7 +320,7 @@ class Report:
             self._make_table(names, rows)
             self.pdf.set_xy(self.margin, self.pdf.get_y() + self.margin / 2)
 
-            residual_grid_height = 90
+            residual_grid_height = 80
             self._make_centered_image(
                 os.path.join(self.output_path, residual_grids[0]), residual_grid_height
             )

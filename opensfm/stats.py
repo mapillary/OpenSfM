@@ -5,7 +5,7 @@ import numpy as np
 import datetime
 import statistics
 
-from opensfm import io
+from opensfm import io, reconstruction as orec
 from collections import defaultdict
 
 import matplotlib.pyplot as plt
@@ -33,26 +33,58 @@ def _gps_errors(reconstruction):
     return errors
 
 
+def _gps_gcp_errors_stats(errors):
+    if not errors:
+        return {}
+
+    stats = {}
+    squared = np.multiply(errors, errors)
+    mean = np.mean(errors, 0)
+    std_dev = np.std(errors, 0)
+    average = np.average(np.linalg.norm(errors, axis=1))
+
+    stats["mean"] = {"x": mean[0], "y": mean[1], "z": mean[2]}
+    stats["std"] = {"x": std_dev[0], "y": std_dev[1], "z": std_dev[2]}
+    stats["error"] = {
+        "x": math.sqrt(np.mean(squared, 0)[0]),
+        "y": math.sqrt(np.mean(squared, 0)[1]),
+        "z": math.sqrt(np.mean(squared, 0)[2]),
+    }
+    stats["average_error"] = average
+    return stats
+
+
 def gps_errors(reconstructions):
     all_errors = []
     for rec in reconstructions:
         all_errors += _gps_errors(rec)
-    squared = np.multiply(all_errors, all_errors)
-    mean = np.mean(all_errors, 0)
-    std_dev = np.std(all_errors, 0)
-    average = np.average(np.linalg.norm(all_errors, axis=1))
+    return _gps_gcp_errors_stats(all_errors)
 
-    stats = {}
-    if all_errors:
-        stats["mean"] = {"x": mean[0], "y": mean[1], "z": mean[2]}
-        stats["std"] = {"x": std_dev[0], "y": std_dev[1], "z": std_dev[2]}
-        stats["error"] = {
-            "x": math.sqrt(np.mean(squared, 0)[0]),
-            "y": math.sqrt(np.mean(squared, 0)[1]),
-            "z": math.sqrt(np.mean(squared, 0)[2]),
-        }
-        stats["average_error"] = average
-    return stats
+
+def gcp_errors(data, reconstructions):
+    all_errors = []
+
+    gcp = data.load_ground_control_points()
+    if not gcp:
+        return {}
+
+    all_errors = []
+    for gcp in gcp:
+        if not gcp.coordinates.has_value:
+            continue
+
+        for rec in reconstructions:
+            triangulated = orec.triangulate_gcp(gcp, rec.shots)
+            if triangulated is None:
+                continue
+            else:
+                break
+
+        if triangulated is None:
+            continue
+        all_errors.append(triangulated - gcp.coordinates.value)
+
+    return _gps_gcp_errors_stats(all_errors)
 
 
 def _projection_error(data, tracks_manager, reconstructions):
@@ -253,6 +285,7 @@ def compute_all_statistics(data, tracks_manager, reconstructions):
     )
     stats["camera_errors"] = cameras_statistics(data, reconstructions)
     stats["gps_errors"] = gps_errors(reconstructions)
+    stats["gcp_errors"] = gcp_errors(data, reconstructions)
 
     return stats
 
