@@ -32,7 +32,10 @@ PYBIND11_MODULE(pygeometry, m) {
     .value("k4", Camera::Parameters::K4)
     .value("p1", Camera::Parameters::P1)
     .value("p2", Camera::Parameters::P2)
+    .value("cx", Camera::Parameters::Cx)
+    .value("cy", Camera::Parameters::Cy)
     .value("transition", Camera::Parameters::Transition)
+    .value("none", Camera::Parameters::None)
     .export_values()
   ;
 

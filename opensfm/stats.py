@@ -231,7 +231,12 @@ def cameras_statistics(data, reconstructions):
         for camera in rec.cameras.values():
             if "optimized_values" in stats[camera.id]:
                 continue
-            stats[camera_id]["optimized_values"] = _cameras_statistics(camera)
+            stats[camera.id]["optimized_values"] = _cameras_statistics(camera)
+
+    for camera_id in data.load_camera_models():
+        if "optimized_values" not in stats[camera_id]:
+            del stats[camera_id]
+
     return stats
 
 
@@ -313,11 +318,16 @@ def save_matchgraph(data, tracks_manager, reconstructions, output_path):
 
     plt.xticks([])
     plt.yticks([])
+    ax = plt.gca()
+    for b in ["top", "bottom", "left", "right"]:
+        ax.spines[b].set_visible(False)
+
     norm = colors.Normalize(vmin=lowest, vmax=highest)
     plt.colorbar(
         cm.ScalarMappable(norm=norm, cmap=cmap.reversed()),
         orientation="horizontal",
         label="Number of matches between images",
+        pad=0.0,
     )
     plt.savefig(
         os.path.join(output_path, "matchgraph.png"),
@@ -415,6 +425,8 @@ def save_topview(data, tracks_manager, reconstructions, output_path):
     plt.imshow(topview)
 
     # display computed camera's XY
+    linewidth = 1
+    markersize = 4
     for i, rec in enumerate(reconstructions):
         sorted_shots = sorted(
             rec.shots.values(), key=lambda x: x.metadata.capture_time.value
@@ -426,7 +438,15 @@ def save_topview(data, tracks_manager, reconstructions, output_path):
             x, y = int((o[0] - low_x) / size_x * im_size_x), int(
                 (o[1] - low_y) / size_y * im_size_y
             )
-            plt.plot(x, y, linestyle="", marker="o", color=c_camera)
+            plt.plot(
+                x,
+                y,
+                linestyle="",
+                marker="o",
+                color=c_camera,
+                markersize=markersize,
+                linewidth=1,
+            )
 
             # also display camera path using capture time
             if j < len(sorted_shots) - 1:
@@ -434,7 +454,9 @@ def save_topview(data, tracks_manager, reconstructions, output_path):
                 nx, ny = int((n[0] - low_x) / size_x * im_size_x), int(
                     (n[1] - low_y) / size_y * im_size_y
                 )
-                plt.plot([x, nx], [y, ny], linestyle="-", color=c_camera)
+                plt.plot(
+                    [x, nx], [y, ny], linestyle="-", color=c_camera, linewidth=linewidth
+                )
 
             # display GPS error
             if not shot.metadata.gps_position.has_value:
@@ -443,8 +465,18 @@ def save_topview(data, tracks_manager, reconstructions, output_path):
             gps_x, gps_y = int((gps[0] - low_x) / size_x * im_size_x), int(
                 (gps[1] - low_y) / size_y * im_size_y
             )
-            plt.plot(gps_x, gps_y, linestyle="", marker="v", color=c_gps)
-            plt.plot([x, gps_x], [y, gps_y], linestyle="-", color=c_gps)
+            plt.plot(
+                gps_x,
+                gps_y,
+                linestyle="",
+                marker="v",
+                color=c_gps,
+                markersize=markersize,
+                linewidth=1,
+            )
+            plt.plot(
+                [x, gps_x], [y, gps_y], linestyle="-", color=c_gps, linewidth=linewidth
+            )
 
     plt.xticks(
         [0, im_size_x / 2, im_size_x],
@@ -547,9 +579,8 @@ def save_heatmap(data, tracks_manager, reconstructions, output_path):
 def save_residual_grids(data, tracks_manager, reconstructions, output_path):
     all_errors = {}
 
-    scaling = 1e4
+    scaling = 2
     cutoff = data.config["bundle_outlier_fixed_threshold"]
-
     for rec in reconstructions:
         for camera_id in rec.cameras:
             all_errors[camera_id] = []
@@ -581,9 +612,11 @@ def save_residual_grids(data, tracks_manager, reconstructions, output_path):
                 x = max([0, min([int(bucket[0] * w_bucket), buckets_x - 1])])
                 y = max([0, min([int(bucket[1] * h_bucket), buckets_y - 1])])
 
-                all_errors[shot.camera.id].append(((x, y), error))
+                all_errors[shot.camera.id].append(((x, y), error * normalizer))
 
     for camera_id, errors in all_errors.items():
+        if not errors:
+            continue
         buckets_x, buckets_y = _grid_buckets(rec.cameras[camera_id])
         camera_array_res = np.zeros((buckets_y, buckets_x, 2))
         camera_array_count = np.full((buckets_y, buckets_x, 1), 1)
@@ -597,12 +630,18 @@ def save_residual_grids(data, tracks_manager, reconstructions, output_path):
         h = shot.camera.height
         normalizer = max(w, h)
 
+        clamp = 0.1
+        res_colors = np.linalg.norm(camera_array_res[:, :, :1], axis=2)
+        lowest = np.percentile(res_colors, 100 * clamp)
+        highest = np.percentile(res_colors, 100 * (1 - clamp))
+        np.clip(res_colors, lowest, highest, res_colors)
+        res_colors /= highest - lowest
+
         plt.clf()
-        colors = np.linalg.norm(camera_array_res[:, :, :1], axis=2)
         Q = plt.quiver(
             camera_array_res[:, :, 0] * scaling,
             camera_array_res[:, :, 1] * scaling,
-            colors,
+            res_colors,
             units="xy",
             angles="xy",
             scale_units="xy",
@@ -611,11 +650,28 @@ def save_residual_grids(data, tracks_manager, reconstructions, output_path):
             cmap="viridis",
         )
 
-        average_proj_error = np.average(np.ndarray.flatten(colors)) * normalizer
-        plt.quiverkey(Q, 0.9, 1.2, 1, "toto", labelpos="E", coordinates="figure")
+        scale = 1
+        plt.quiverkey(
+            Q,
+            X=0.5,
+            Y=1.04,
+            U=scale * scaling,
+            label=f"Residual grid scale : {scale} pixels",
+            labelpos="E",
+        )
         plt.title(
-            f"Reprojection error for camera {camera_id}",
-            fontsize="x-small",
+            f"                      ",
+            fontsize="large",
+        )
+
+        norm = colors.Normalize(vmin=lowest * scaling, vmax=highest * scaling)
+        cmap = cm.get_cmap("viridis")
+        plt.colorbar(
+            cm.ScalarMappable(norm=norm, cmap=cmap),
+            orientation="horizontal",
+            label="Residual Norm",
+            pad=0.08,
+            aspect=40,
         )
 
         plt.xticks(

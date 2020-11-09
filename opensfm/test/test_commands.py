@@ -28,7 +28,9 @@ def test_run_all(tmpdir):
         commands.export_openmvs,
         commands.export_pmvs,
         commands.export_bundler,
-        commands.export_colmap
+        commands.export_colmap,
+        commands.compute_statistics,
+        commands.export_report,
     ]
 
     for module in run_all_commands:

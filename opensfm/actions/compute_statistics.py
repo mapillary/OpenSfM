@@ -22,7 +22,6 @@ def run_dataset(data):
 
     stats_dict = stats.compute_all_statistics(data, tracks_manager, reconstructions)
 
-    # that's a bit hacky but recomputing projection error doesn't come for free
     stats.save_residual_grids(data, tracks_manager, reconstructions, output_path)
     stats.save_matchgraph(data, tracks_manager, reconstructions, output_path)
     stats.save_heatmap(data, tracks_manager, reconstructions, output_path)

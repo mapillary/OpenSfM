@@ -1,9 +1,13 @@
 import os
+import logging
 import subprocess
 import PIL
 
 from fpdf import FPDF
 from opensfm import io
+
+
+logger = logging.getLogger(__name__)
 
 
 class Report:
@@ -13,18 +17,16 @@ class Report:
 
         self.mapi_light_light_green = [210, 245, 226]
         self.mapi_light_green = [5, 203, 99]
-        self.mapi_dark_green = [5, 183, 89]
         self.mapi_light_grey = [218, 222, 228]
         self.mapi_dark_grey = [99, 115, 129]
-        self.mapi_text_grey = [72, 87, 101]
 
         self.pdf = FPDF("P", "mm", "A4")
         self.pdf.add_page()
 
         self.title_size = 20
         self.h1 = 16
-        self.h2 = 14
-        self.h3 = 12
+        self.h2 = 13
+        self.h3 = 10
         self.text = 10
         self.small_text = 8
         self.margin = 10
@@ -89,6 +91,12 @@ class Report:
         self.pdf.set_text_color(*self.mapi_dark_grey)
         self.pdf.cell(0, self.margin, title, align="L")
         self.pdf.set_xy(self.margin, self.pdf.get_y() + 1.5 * self.margin)
+
+    def _make_subsection(self, title):
+        self.pdf.set_font("Helvetica", "B", self.h2)
+        self.pdf.set_text_color(*self.mapi_dark_grey)
+        self.pdf.cell(0, self.margin, title, align="L")
+        self.pdf.set_xy(self.margin, self.pdf.get_y() + self.margin)
 
     def _make_centered_image(self, image_path, desired_height):
         width, height = PIL.Image.open(image_path).size
@@ -219,13 +227,13 @@ class Report:
         rows = []
         for comp in ["x", "y", "z"]:
             row = [comp.upper() + " Error (meters)"]
-            row.append(f"{self.stats['gps_errors']['mean'][comp]:.2f}")
-            row.append(f"{self.stats['gps_errors']['std'][comp]:.2f}")
-            row.append(f"{self.stats['gps_errors']['error'][comp]:.2f}")
+            row.append(f"{self.stats['gps_errors']['mean'][comp]:.3f}")
+            row.append(f"{self.stats['gps_errors']['std'][comp]:.3f}")
+            row.append(f"{self.stats['gps_errors']['error'][comp]:.3f}")
             rows.append(row)
 
         rows.append(
-            ["Total", "", "", f"{self.stats['gps_errors']['average_error']:.2f}"]
+            ["Total", "", "", f"{self.stats['gps_errors']['average_error']:.3f}"]
         )
         self._make_table(columns_names, rows)
         self.pdf.set_xy(self.margin, self.pdf.get_y() + self.margin)
@@ -234,14 +242,13 @@ class Report:
         self._make_section("Features Details")
 
         cols = 2
-        heatmap_height = 70
+        heatmap_height = 60
         heatmaps = [f for f in os.listdir(self.output_path) if f.startswith("heatmap")]
-        if len(heatmaps) == 1:
-            self._make_centered_image(
-                os.path.join(self.output_path, heatmaps[0]), heatmap_height
-            )
-        else:
-            raise RuntimeError("Please implemted multi-model display")
+        self._make_centered_image(
+            os.path.join(self.output_path, heatmaps[0]), heatmap_height
+        )
+        if len(heatmaps) > 1:
+            logger.warning("Please implement multi-model display")
 
         columns_names = ["", "Min.", "Max.", "Mean", "Median"]
         rows = []
@@ -276,19 +283,38 @@ class Report:
         self._make_table(None, rows)
         self.pdf.set_xy(self.margin, self.pdf.get_y() + self.margin)
 
-        residual_grid_height = 110
-        residual_grids = [
-            f for f in os.listdir(self.output_path) if f.startswith("residual")
-        ]
-        self._make_centered_image(
-            os.path.join(self.output_path, residual_grids[0]), residual_grid_height
-        )
+    def make_camera_models_details(self):
+        self._make_section("Camera Models Details")
 
-        self.pdf.set_xy(self.margin, self.pdf.get_y() + self.margin)
+        for camera, params in self.stats["camera_errors"].items():
+            residual_grids = [
+                f
+                for f in os.listdir(self.output_path)
+                if f.startswith("residuals_" + str(camera.replace("/", "_")))
+            ]
+            if not residual_grids:
+                continue
+
+            initial = params["initial_values"]
+            optimized = params["optimized_values"]
+            names = [""] + list(initial.keys())
+
+            rows = []
+            rows.append(["Initial"] + [f"{x:.4f}" for x in initial.values()])
+            rows.append(["Optimized"] + [f"{x:.4f}" for x in optimized.values()])
+
+            self._make_subsection(camera)
+            self._make_table(names, rows)
+            self.pdf.set_xy(self.margin, self.pdf.get_y() + self.margin / 2)
+
+            residual_grid_height = 90
+            self._make_centered_image(
+                os.path.join(self.output_path, residual_grids[0]), residual_grid_height
+            )
 
     def make_tracks_details(self):
         self._make_section("Tracks Details")
-        matchgraph_height = 90
+        matchgraph_height = 60
         matchgraph = [
             f for f in os.listdir(self.output_path) if f.startswith("matchgraph")
         ]
@@ -324,8 +350,9 @@ class Report:
 
         self.make_features_details()
         self.make_reconstruction_details()
+        self.make_tracks_details()
         self.add_page_break()
 
-        self.make_tracks_details()
+        self.make_camera_models_details()
         self.make_gps_details()
         self.make_processing_time_details()
