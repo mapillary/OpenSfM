@@ -122,9 +122,9 @@ class Report:
         self.pdf.set_xy(self.margin, self.title_size)
 
         # version number
-        version = (
-            subprocess.check_output(["git", "describe", "--tags"]).strip().decode()
-        )
+        out, _ = subprocess.Popen(["git", "describe", "--tags"],stdout = subprocess.PIPE, stderr = subprocess.PIPE).communicate()
+        version = out.strip().decode()
+
         self.pdf.set_font("Helvetica", "", self.small_text)
         self.pdf.set_text_color(*self.mapi_dark_grey)
         self.pdf.cell(0, self.margin, f"Processed with OpenSfM {version}", align="R")
