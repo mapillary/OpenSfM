@@ -237,10 +237,10 @@ def align_reconstructions(reconstruction_shots,
                           camera_constraint_type='soft_camera_constraint'):
     ra = pybundle.ReconstructionAlignment()
 
-    if camera_constraint_type is 'soft_camera_constraint':
+    if camera_constraint_type == 'soft_camera_constraint':
         add_camera_constraints_soft(ra, reconstruction_shots,
                                     reconstruction_name)
-    if camera_constraint_type is 'hard_camera_constraint':
+    if camera_constraint_type == 'hard_camera_constraint':
         add_camera_constraints_hard(ra, reconstruction_shots,
                                     reconstruction_name, True)
     if use_points_constraints:

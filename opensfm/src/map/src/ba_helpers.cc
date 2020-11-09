@@ -523,6 +523,7 @@ void BAHelpers::AlignmentConstraints(
       const auto& shot = shot_p.second;
       Xp.row(idx) = shot.shot_measurements_.gps_position_.Value();
       X.row(idx) = shot.GetPose().GetOrigin();
+      ++idx;
     }
   }
 }
