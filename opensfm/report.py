@@ -122,7 +122,7 @@ class Report:
 
         # version number
         version = (
-            subprocess.check_output(["git", "describe", "--always"]).strip().decode()
+            subprocess.check_output(["git", "describe", "--tags"]).strip().decode()
         )
         self.pdf.set_font("Helvetica", "", self.small_text)
         self.pdf.set_text_color(*self.mapi_dark_grey)
@@ -144,7 +144,7 @@ class Report:
                 f"{self.stats['processing_statistics']['steps_times']['Total Time']:.2f} seconds",
             ],
         ]
-        self._make_table(None, rows)
+        self._make_table(None, rows, True)
         self.pdf.set_xy(self.margin, self.pdf.get_y() + self.margin)
 
     def make_processing_summary(self):
@@ -196,7 +196,7 @@ class Report:
                     f"{self.stats['gps_errors']['average_error']:.2f} meters",
                 ]
             )
-        self._make_table(None, rows)
+        self._make_table(None, rows, True)
         self.pdf.set_xy(self.margin, self.pdf.get_y() + self.margin / 2)
 
         topview_height = 130
@@ -280,7 +280,7 @@ class Report:
                 f"{self.stats['reconstruction_statistics']['average_track_length_over_two']:.2f} images",
             ],
         ]
-        self._make_table(None, rows)
+        self._make_table(None, rows, True)
         self.pdf.set_xy(self.margin, self.pdf.get_y() + self.margin)
 
     def make_camera_models_details(self):
@@ -335,7 +335,7 @@ class Report:
                 continue
             row_count.append(f"{count}")
 
-        self._make_table(None, [row_length, row_count])
+        self._make_table(None, [row_length, row_count], True)
 
         self.pdf.set_xy(self.margin, self.pdf.get_y() + self.margin)
 
