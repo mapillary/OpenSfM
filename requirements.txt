@@ -1,6 +1,6 @@
 cloudpickle==0.4.0
 exifread==2.1.2
-fpdf
+fpdf2
 joblib==0.14.1
 matplotlib
 networkx==1.11
