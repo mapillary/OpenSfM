@@ -10,6 +10,7 @@ from collections import defaultdict
 
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
+import matplotlib.patches as mpatches
 import matplotlib.colors as colors
 
 
@@ -457,6 +458,9 @@ def save_topview(data, tracks_manager, reconstructions, output_path):
     plt.clf()
     plt.imshow(topview)
 
+    c_camera = cm.get_cmap("cool")(0)
+    c_gps = cm.get_cmap("autumn")(0)
+
     # display computed camera's XY
     linewidth = 1
     markersize = 4
@@ -464,8 +468,6 @@ def save_topview(data, tracks_manager, reconstructions, output_path):
         sorted_shots = sorted(
             rec.shots.values(), key=lambda x: x.metadata.capture_time.value
         )
-        c_camera = cm.get_cmap("cool")(0 / len(reconstructions))
-        c_gps = cm.get_cmap("autumn")(0 / len(reconstructions))
         for j, shot in enumerate(sorted_shots):
             o = shot.pose.get_origin()
             x, y = int((o[0] - low_x) / size_x * im_size_x), int(
@@ -521,6 +523,10 @@ def save_topview(data, tracks_manager, reconstructions, output_path):
         [0, f"{int(size_y / 2):.0f}", f"{size_y:.0f} meters"],
         fontsize="small",
     )
+
+    gps_legend = mpatches.Patch(color=c_gps, label='GPS Position')
+    camera_legend = mpatches.Patch(color=c_camera, label='Computed Position')
+    plt.legend(handles=[gps_legend, camera_legend], fontsize='xx-small')
 
     plt.savefig(
         os.path.join(output_path, "topview.png"),
