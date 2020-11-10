@@ -53,10 +53,10 @@ def export(reconstruction, tracks_manager, udata, data, export_only):
         observations = tracks_manager.get_track_observations(point.id)
 
         if export_only is not None:
-            shots = [k for k in observations if k not in export_only]
+            shots = [k for k in observations if k in export_only]
         else:
             shots = list(observations)
-
+        
         if shots:
             coordinates = np.array(point.coordinates, dtype=np.float64)
             exporter.add_point(coordinates, shots)
