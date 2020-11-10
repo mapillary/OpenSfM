@@ -90,7 +90,6 @@ def detect(args):
 
     if len(p_unsorted) == 0:
         logger.warning("No features found in image {}".format(image))
-        return
 
     size = p_unsorted[:, 2]
     order = np.argsort(size)
