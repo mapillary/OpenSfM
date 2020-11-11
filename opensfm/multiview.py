@@ -126,20 +126,6 @@ def vector_angle(u, v):
     return math.acos(cos)
 
 
-def vector_angle_many(u, v):
-    """Angles between to lists of vectors.
-
-    >>> u = [[0.99500417, -0.33333333, -0.09983342], [0, -1, 0], [0, 1, 0]]
-    >>> v = [[0.99500417, -0.33333333, -0.09983342], [0, +1, 0], [0, 0, 1]]
-    >>> angles = vector_angle_many(u, v)
-    >>> np.allclose(angles, [0., 3.1416, 1.5708])
-    True
-    """
-    ua = np.array(u, dtype=np.float64, copy=False).reshape(-1, 3)
-    va = np.array(v, dtype=np.float64, copy=False).reshape(-1, 3)
-    return tf.angle_between_vectors(ua, va, axis=1)
-
-
 def decompose_similarity_transform(T):
     ''' Decompose the similarity transform to scale, rotation and translation
     '''

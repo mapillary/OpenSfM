@@ -82,7 +82,17 @@ def test_triangulate_two_bearings_midpoint():
     b1 = unit_vector([0.0, 0, 1])
     o2 = np.array([1.0, 0, 0])
     b2 = unit_vector([-1.0, 0, 1])
-    max_reprojection = 0.01
-    min_ray_angle = np.radians(2.0)
-    X = pygeometry.triangulate_two_bearings_midpoint([o1, o2], [b1, b2])
+    ok, X = pygeometry.triangulate_two_bearings_midpoint([o1, o2], [b1, b2])
+    assert ok is True
     assert np.allclose(X, [0, 0, 1.0])
+
+def test_triangulate_two_bearings_midpoint_failed():
+    o1 = np.array([0.0, 0, 0])
+    b1 = unit_vector([0.0, 0, 1])
+    o2 = np.array([1.0, 0, 0])
+
+    # almost parralel. 1e-5 will make it triangulate again.
+    b2 = b1 + np.array([-1e-10, 0, 0])
+
+    ok, X = pygeometry.triangulate_two_bearings_midpoint([o1, o2], [b1, b2])
+    assert ok is False

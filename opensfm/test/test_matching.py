@@ -115,3 +115,17 @@ def test_ordered_pairs():
     images = [1, 2, 3]
     pairs = pairs_selection.ordered_pairs(neighbors, images)
     assert set(pairs) == {(1, 2), (1, 3), (2, 5), (3, 2)}
+
+def test_triangulation_reprojection_bearings(pairs_and_their_E):
+    for f1, f2, _, pose in pairs_and_their_E:
+        Rt = pose.get_cam_to_world()[:3]
+
+        R = Rt[:, :3]
+        t = Rt[:, 3]
+        br1, br2, idx = matching.triangulation_reprojection_bearings(f1, f2, R, t)
+
+        assert len(idx) == len(f1)
+        assert len(br1) == len(f1)
+        assert len(br2) == len(f1)
+        assert sum(np.linalg.norm(br1[idx] - f1[idx], axis=1))/len(idx) < 1e-9
+        assert sum(np.linalg.norm(br2[idx] - f2[idx], axis=1))/len(idx)  < 1e-9

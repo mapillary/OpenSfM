@@ -25,8 +25,8 @@ Eigen::Matrix<double, 3, 4> RelativePoseFromEssential(
   }
 
   Eigen::Matrix3d W;
-  W << 0, -1, 0, 
-       1, 0, 0, 
+  W << 0, -1, 0,
+       1, 0, 0,
        0, 0, 1;
 
   Eigen::Matrix<double, 2, 3> bearings;
@@ -57,10 +57,13 @@ Eigen::Matrix<double, 3, 4> RelativePoseFromEssential(
       for (IT it = begin; it != end; ++it) {
         bearings.row(0) = it->first;
         bearings.row(1) = rotation.transpose()*it->second;
-        const Eigen::Vector3d point = geometry::TriangulateTwoBearingsMidpointSolve(centers, bearings);
-        
-        const Eigen::Vector3d projected_x = point.normalized();
-        const Eigen::Vector3d projected_y = (rotation*point+translation).normalized();
+        const auto point = geometry::TriangulateTwoBearingsMidpointSolve(centers, bearings);
+        if(!point.first){
+          continue;
+        }
+
+        const Eigen::Vector3d projected_x = point.second.normalized();
+        const Eigen::Vector3d projected_y = (rotation*point.second+translation).normalized();
         score += ((projected_x.dot(it->first) + projected_y.dot(it->second))*0.5);
       }
 
@@ -112,11 +115,15 @@ struct RelativePoseCost {
       bearings.row(1) = some_tmp;
 
       // Triangulate
-      auto point = geometry::TriangulateTwoBearingsMidpointSolve(centers, bearings);
+      const auto point = geometry::TriangulateTwoBearingsMidpointSolve(centers, bearings);
+      if (!point.first) {
+        residuals[i] = T(1.0);
+        continue;
+      }
 
       // Point in x stays at identity, y is brought in second camera with R*(y-t)
-      const Eigen::Matrix<T, 3, 1> projected_x = point.normalized();
-      const Eigen::Matrix<T, 3, 1> y_centered = point-translation;
+      const Eigen::Matrix<T, 3, 1> projected_x = point.second.normalized();
+      const Eigen::Matrix<T, 3, 1> y_centered = point.second-translation;
       ceres::AngleAxisRotatePoint(rotation.data(), y_centered.data(), some_tmp.data());
       const Eigen::Matrix<T, 3, 1> projected_y = some_tmp.normalized();
       residuals[i] = 1.0 - ((projected_x.dot(x) + projected_y.dot(y))*T(0.5));

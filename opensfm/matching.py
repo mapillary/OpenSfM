@@ -383,18 +383,33 @@ def robust_match_fundamental(p1, p2, matches, config):
 def _compute_inliers_bearings(b1, b2, T, threshold=0.01):
     R = T[:, :3]
     t = T[:, 3]
-    p = np.array(pygeometry.triangulate_two_bearings_midpoint_many(b1, b2, R, t))
+    br1, br2, idx = triangulation_reprojection_bearings(b1, b2, R, t)
+    return triangulation_inliers(b1[idx], br1[idx], b2[idx], br2[idx], threshold)
 
-    br1 = p.copy()
+
+def triangulation_reprojection_bearings(b1, b2, R, t):
+    """Return two-views bearings reprojections given their relative pose."""
+    p = pygeometry.triangulate_two_bearings_midpoint_many(b1, b2, R, t)
+
+    good_idx = [i for i in range(len(p)) if p[i][0]]
+    points = np.array([p[i][1] for i in range(len(p)) if p[i][0]])
+
+    br1 = points.copy()
     br1 /= np.linalg.norm(br1, axis=1)[:, np.newaxis]
 
-    br2 = R.T.dot((p - t).T).T
+    br2 = R.T.dot((points - t).T).T
     br2 /= np.linalg.norm(br2, axis=1)[:, np.newaxis]
+    return br1, br2, good_idx
 
-    ok1 = multiview.vector_angle_many(br1, b1) < threshold
-    ok2 = multiview.vector_angle_many(br2, b2) < threshold
+
+def triangulation_inliers(b1, br1, b2, br2, threshold):
+    """Given pairs of bearings ('b1' and 'b2') and their reprojected counterparts,
+    ('br1' and 'br2'), return a boolean vector indicating the ones which reprojection
+    error is below the given threshold.
+    """
+    ok1 = np.linalg.norm(br1 - b1, axis=1) < threshold
+    ok2 = np.linalg.norm(br2 - b2, axis=1) < threshold
     return ok1 * ok2
-
 
 def robust_match_calibrated(p1, p2, camera1, camera2, matches, config):
     """Filter matches by estimating the Essential matrix via RANSAC."""

@@ -49,11 +49,15 @@ class RelativePose : public Model<RelativePose, 1, 10> {
     bearings.row(1) = rotation.transpose() * y;
     const auto point =
         geometry::TriangulateTwoBearingsMidpointSolve(centers, bearings);
-    const auto projected_x = point.normalized();
-    const auto projected_y = (rotation * point + translation).normalized();
 
     Error e;
-    e[0] = 1.0 - ((projected_x.dot(x) + projected_y.dot(y)) * 0.5);
+    if (!point.first) {
+      e[0] = 1.0;
+    } else {
+      const auto projected_x = point.second.normalized();
+      const auto projected_y = (rotation * point.second + translation).normalized();
+      e[0] = 1.0 - ((projected_x.dot(x) + projected_y.dot(y)) * 0.5);
+    }
     return e;
   }
 };

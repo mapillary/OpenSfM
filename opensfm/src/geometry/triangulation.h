@@ -50,7 +50,7 @@ std::pair<bool, Eigen::Vector3d> TriangulateBearingsDLT(
     double min_angle);
 
 template< class T >
-Eigen::Matrix<T, 3, 1> TriangulateTwoBearingsMidpointSolve(
+std::pair<bool, Eigen::Matrix<T, 3, 1>> TriangulateTwoBearingsMidpointSolve(
     const Eigen::Matrix<T, 2, 3> &centers,
     const Eigen::Matrix<T, 2, 3> &bearings)
 {
@@ -63,17 +63,23 @@ Eigen::Matrix<T, 3, 1> TriangulateTwoBearingsMidpointSolve(
   A(1,0) = bearings.row(0).dot(bearings.row(1));
   A(0,1) = -A(1,0);
   A(1,1) = -bearings.row(1).dot(bearings.row(1));
+
+  const T eps = T(1e-30);
+  const T det = A.determinant();
+  if (abs(det) < eps) {
+    return std::make_pair(false, Eigen::Matrix<T, 3, 1>());
+  }
   const auto lambdas = A.inverse() * b;
   const auto x1 = centers.row(0) + lambdas[0] * bearings.row(0);
   const auto x2 = centers.row(1) + lambdas[1] * bearings.row(1);
-  return (x1 + x2)/T(2.0);
+  return std::make_pair(true, (x1 + x2)/T(2.0));
 };
 
-std::vector<Eigen::Vector3d> TriangulateTwoBearingsMidpointMany(
+std::vector<std::pair<bool, Eigen::Vector3d>>
+TriangulateTwoBearingsMidpointMany(
     const Eigen::Matrix<double, -1, 3> &bearings1,
     const Eigen::Matrix<double, -1, 3> &bearings2,
-    const Eigen::Matrix3d& rotation,
-    const Eigen::Vector3d& translation);
+    const Eigen::Matrix3d &rotation, const Eigen::Vector3d &translation);
 
 std::pair<bool, Eigen::Vector3d> TriangulateBearingsMidpoint(
     const Eigen::Matrix<double, -1, 3> &centers,

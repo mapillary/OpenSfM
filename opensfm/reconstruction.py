@@ -15,6 +15,7 @@ from opensfm import pygeometry
 from opensfm import exif as oexif
 from opensfm import log
 from opensfm import tracking
+from opensfm import matching
 from opensfm import multiview
 from opensfm import types
 from opensfm import pysfm
@@ -311,17 +312,9 @@ def _two_view_reconstruction_inliers(b1, b2, R, t, threshold):
     Returns:
         array: Inlier indices.
     """
-    p = np.array(pygeometry.triangulate_two_bearings_midpoint_many(b1, b2, R, t))
-
-    br1 = p.copy()
-    br1 /= np.linalg.norm(br1, axis=1)[:, np.newaxis]
-
-    br2 = R.T.dot((p - t).T).T
-    br2 /= np.linalg.norm(br2, axis=1)[:, np.newaxis]
-
-    ok1 = np.linalg.norm(br1 - b1, axis=1) < threshold
-    ok2 = np.linalg.norm(br2 - b2, axis=1) < threshold
-    return np.nonzero(ok1 * ok2)[0]
+    br1, br2, idx = matching.triangulation_reprojection_bearings(b1, b2, R, t)
+    ok = matching.triangulation_inliers(b1[idx], br1[idx], b2[idx], br2[idx], threshold)
+    return np.nonzero(ok)[0]
 
 
 def two_view_reconstruction_plane_based(p1, p2, camera1, camera2, threshold):
