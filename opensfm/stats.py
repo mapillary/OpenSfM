@@ -1,17 +1,16 @@
-import os
-import math
-from functools import lru_cache
-import numpy as np
 import datetime
+import math
+import os
 import statistics
-
-from opensfm import io, reconstruction as orec
 from collections import defaultdict
+from functools import lru_cache
 
-import matplotlib.pyplot as plt
 import matplotlib.cm as cm
-import matplotlib.patches as mpatches
 import matplotlib.colors as colors
+import matplotlib.patches as mpatches
+import matplotlib.pyplot as plt
+import numpy as np
+from opensfm import io, reconstruction as orec
 
 
 def _length_histogram(tracks_manager, points):
@@ -21,7 +20,8 @@ def _length_histogram(tracks_manager, points):
         if not obs_count:
             obs_count = len(tracks_manager.get_track_observations(point.id))
         hist[obs_count] += 1
-    return np.array(list(hist.keys())), np.array(list(hist.values()))
+    hist_sorted = sorted(hist.items(), key=lambda x: x[0])
+    return np.array([x[0] for x in hist_sorted]), np.array([x[1] for x in hist_sorted])
 
 
 def _gps_errors(reconstruction):
@@ -43,15 +43,19 @@ def _gps_gcp_errors_stats(errors):
     mean = np.mean(errors, 0)
     std_dev = np.std(errors, 0)
     average = np.average(np.linalg.norm(errors, axis=1))
+    median = np.median(np.linalg.norm(errors, axis=1))
+    mad = np.median(np.abs(errors - np.median(errors, 0)), 0)
 
     stats["mean"] = {"x": mean[0], "y": mean[1], "z": mean[2]}
     stats["std"] = {"x": std_dev[0], "y": std_dev[1], "z": std_dev[2]}
+    stats["mad"] = {"x": mad[0], "y": mad[1], "z": mad[2]}
     stats["error"] = {
         "x": math.sqrt(np.mean(squared, 0)[0]),
         "y": math.sqrt(np.mean(squared, 0)[1]),
         "z": math.sqrt(np.mean(squared, 0)[2]),
     }
     stats["average_error"] = average
+    stats["median_error"] = median
     return stats
 
 
@@ -524,9 +528,9 @@ def save_topview(data, tracks_manager, reconstructions, output_path):
         fontsize="small",
     )
 
-    gps_legend = mpatches.Patch(color=c_gps, label='GPS Position')
-    camera_legend = mpatches.Patch(color=c_camera, label='Computed Position')
-    plt.legend(handles=[gps_legend, camera_legend], fontsize='xx-small')
+    gps_legend = mpatches.Patch(color=c_gps, label="GPS Position")
+    camera_legend = mpatches.Patch(color=c_camera, label="Computed Position")
+    plt.legend(handles=[gps_legend, camera_legend], fontsize="xx-small")
 
     plt.savefig(
         os.path.join(output_path, "topview.png"),

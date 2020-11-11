@@ -1,8 +1,8 @@
-import os
 import logging
+import os
 import subprocess
-import PIL
 
+import PIL
 from fpdf import FPDF
 from opensfm import io
 
@@ -122,7 +122,11 @@ class Report:
         self.pdf.set_xy(self.margin, self.title_size)
 
         # version number
-        out, _ = subprocess.Popen(["git", "describe", "--tags"],stdout = subprocess.PIPE, stderr = subprocess.PIPE).communicate()
+        out, _ = subprocess.Popen(
+            ["git", "describe", "--tags"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        ).communicate()
         version = out.strip().decode()
 
         self.pdf.set_font("Helvetica", "", self.small_text)
@@ -149,7 +153,10 @@ class Report:
         self.pdf.set_xy(self.margin, self.pdf.get_y() + self.margin)
 
     def _has_meaningful_gcp(self):
-        return self.stats["reconstruction_statistics"]["has_gcp"] and 'average_error' in self.stats['gcp_errors']
+        return (
+            self.stats["reconstruction_statistics"]["has_gcp"]
+            and "average_error" in self.stats["gcp_errors"]
+        )
 
     def make_processing_summary(self):
         self._make_section("Processing Summary")
@@ -232,24 +239,30 @@ class Report:
         # GPS
         for error_type in ["gps", "gcp"]:
             rows = []
-            columns_names = [error_type.upper(), "Mean", "Sigma", "RMS Error"]
-            if 'average_error' not in self.stats[error_type + '_errors']:
+            columns_names = [error_type.upper(), "Mean", "Sigma", "RMS Error", "Median"]
+            if "average_error" not in self.stats[error_type + "_errors"]:
                 continue
             for comp in ["x", "y", "z"]:
                 row = [comp.upper() + " Error (meters)"]
                 row.append(f"{self.stats[error_type + '_errors']['mean'][comp]:.3f}")
                 row.append(f"{self.stats[error_type +'_errors']['std'][comp]:.3f}")
                 row.append(f"{self.stats[error_type +'_errors']['error'][comp]:.3f}")
+                row.append(f"{self.stats[error_type +'_errors']['mad'][comp]:.3f}")
                 rows.append(row)
 
             rows.append(
-                ["Total", "", "", f"{self.stats[error_type +'_errors']['average_error']:.3f}"]
+                [
+                    "Total",
+                    "",
+                    "",
+                    f"{self.stats[error_type +'_errors']['average_error']:.3f}",
+                    f"{self.stats[error_type +'_errors']['median_error']:.3f}",
+                ]
             )
             self._make_table(columns_names, rows)
-            self.pdf.set_xy(self.margin, self.pdf.get_y() + self.margin/2)
+            self.pdf.set_xy(self.margin, self.pdf.get_y() + self.margin / 2)
 
-        self.pdf.set_xy(self.margin, self.pdf.get_y() + self.margin/2)
-
+        self.pdf.set_xy(self.margin, self.pdf.get_y() + self.margin / 2)
 
     def make_features_details(self):
         self._make_section("Features Details")
