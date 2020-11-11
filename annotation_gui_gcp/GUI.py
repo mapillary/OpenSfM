@@ -57,7 +57,9 @@ class Gui:
             camcount = defaultdict(int)
             for shot in rec.shots.values():
                 camcount[shot.camera.id] += 1
-            str_repr = f"#{ix}: " + ", ".join(f"{k}({v})" for k, v in camcount.items())
+            str_repr = f"REC#{ix}: " + ", ".join(
+                f"{k}({v})" for k, v in camcount.items()
+            )
             options.append(str_repr)
         options.append("None (3d-to-2d)")
         self.reconstruction_options = options
