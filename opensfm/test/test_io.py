@@ -143,3 +143,20 @@ def test_json_to_and_from_metadata():
     assert m.compass_angle.value == 10
     assert m.compass_accuracy.value == 45
     assert obj == io.pymap_metadata_to_json(m)
+
+
+def test_camera_from_to_vector():
+    w, h = 640, 480
+    camera_sizes = [
+        ("perspective", 3),
+        ("brown", 9),
+        ("fisheye", 3),
+        ("fisheye_opencv", 8),
+        ("dual", 4),
+        ("spherical", 0),
+    ]
+    for projection_type, num_params in camera_sizes:
+        params = [float(i + 1) for i in range(num_params)]
+        camera = io.camera_from_vector("cam1", w, h, projection_type, params)
+        params_out = io.camera_to_vector(camera)
+        assert params == params_out

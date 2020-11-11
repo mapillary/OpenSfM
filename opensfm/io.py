@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+from typing import List
 
 import cv2
 import numpy as np
@@ -365,6 +366,87 @@ def cameras_to_json(cameras):
     for camera in cameras.values():
         obj[camera.id] = camera_to_json(camera)
     return obj
+
+
+def camera_from_vector(
+    camera_id: str,
+    width: int,
+    height: int,
+    projection_type: str,
+    parameters: List[float],
+) -> pygeometry.Camera:
+    """Build a camera from a serialized vector of parameters."""
+    if projection_type == "perspective":
+        focal, k1, k2 = parameters
+        camera = pygeometry.Camera.create_perspective(focal, k1, k2)
+    elif projection_type == "brown":
+        fx, fy, cx, cy, k1, k2, p1, p2, k3 = parameters
+        camera = pygeometry.Camera.create_brown(
+            fx, fy / fx, [cx, cy], [k1, k2, k3, p1, p2]
+        )
+    elif projection_type == "fisheye":
+        focal, k1, k2 = parameters
+        camera = pygeometry.Camera.create_fisheye(focal, k1, k2)
+    elif projection_type == "fisheye_opencv":
+        fx, fy, cx, cy, k1, k2, k3, k4 = parameters
+        camera = pygeometry.Camera.create_fisheye_opencv(
+            fx, fy / fx, [cx, cy], [k1, k2, k3, k4]
+        )
+    elif projection_type == "dual":
+        focal, k1, k2, transition = parameters
+        camera = pygeometry.Camera.create_dual(transition, focal, k1, k2)
+    elif pygeometry.Camera.is_panorama(projection_type):
+        camera = pygeometry.Camera.create_spherical()
+    else:
+        raise NotImplementedError
+    camera.id = camera_id
+    camera.width = width
+    camera.height = height
+    return camera
+
+
+def camera_to_vector(camera: pygeometry.Camera) -> List[float]:
+    """Serialize camera parameters to a vector of floats."""
+    if camera.projection_type == "perspective":
+        parameters = [camera.focal, camera.k1, camera.k2]
+    elif camera.projection_type == "brown":
+        parameters = [
+            camera.focal,
+            camera.focal * camera.aspect_ratio,
+            camera.principal_point[0],
+            camera.principal_point[1],
+            camera.k1,
+            camera.k2,
+            camera.p1,
+            camera.p2,
+            camera.k3,
+        ]
+    elif camera.projection_type == "fisheye":
+        parameters = [camera.focal, camera.k1, camera.k2]
+    elif camera.projection_type == "fisheye_opencv":
+        parameters = [
+            camera.focal,
+            camera.focal * camera.aspect_ratio,
+            camera.principal_point[0],
+            camera.principal_point[1],
+            camera.k1,
+            camera.k2,
+            camera.k3,
+            camera.k4,
+        ]
+    elif camera.projection_type == "dual":
+        parameters = [
+            camera.focal,
+            camera.k1,
+            camera.k2,
+            camera.transition,
+        ]
+    elif pygeometry.Camera.is_panorama(camera.projection_type):
+        parameters = []
+    else:
+        raise NotImplementedError
+
+    return parameters
 
 
 def _read_gcp_list_lines(lines, projection, reference, exif):
