@@ -572,3 +572,26 @@ TEST_F(PoseFixture, EvaluatesDerivativesCorrectly) {
     }
   }
 }
+
+TEST(Camera, TestPixelNormalizedCoordinatesConversion) {
+  constexpr auto width{640}, height{480};
+  auto cam = Camera::CreatePerspectiveCamera(1.0, 0.0, 0.0);
+  cam.width = width;
+  cam.height = height;
+  constexpr auto inv_normalizer = 1.0 / std::max(width, height);
+  const Vec2d px_coord_def(200, 100);
+  const Vec2d norm_coord_comp = cam.PixelToNormalizedCoordinates(px_coord_def);
+  ASSERT_EQ(norm_coord_comp[0],
+            (px_coord_def[0] - (width - 1) / 2.0) * inv_normalizer);
+  ASSERT_EQ(norm_coord_comp[1],
+            (px_coord_def[1] - (height - 1) / 2.0) * inv_normalizer);
+  const Vec2d px_coord_comp = cam.NormalizedToPixelCoordinates(norm_coord_comp);
+  ASSERT_EQ(px_coord_comp, px_coord_def);
+
+  const Vec2d norm_coord_static = Camera::PixelToNormalizedCoordinates(px_coord_def, width, height);
+  ASSERT_EQ(norm_coord_comp[0], norm_coord_static[0]);
+  ASSERT_EQ(norm_coord_comp[1], norm_coord_static[1]);
+  const Vec2d px_coord_static = Camera::NormalizedToPixelCoordinates(norm_coord_static, width, height);
+  ASSERT_EQ(px_coord_comp[0], px_coord_static[0]);
+  ASSERT_EQ(px_coord_comp[1], px_coord_static[1]);
+}

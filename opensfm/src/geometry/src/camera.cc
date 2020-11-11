@@ -237,3 +237,23 @@ std::pair<MatXf, MatXf> ComputeCameraMapping(const Camera& from, const Camera& t
   }
   return std::make_pair(u_from, v_from);
 }
+
+Vec2d Camera::PixelToNormalizedCoordinates(const Vec2d& px_coord) const {
+ return PixelToNormalizedCoordinates(px_coord, width, height);
+}
+
+Vec2d Camera::NormalizedToPixelCoordinates(const Vec2d& norm_coord) const {
+  return NormalizedToPixelCoordinates(norm_coord, width, height);
+}
+
+Vec2d Camera::NormalizedToPixelCoordinates(const Vec2d &norm_coord, const int width, const int height) {
+  const auto size = std::max(width, height);
+  return Vec2d(norm_coord[0] * size - 0.5 + width / 2.0,
+               norm_coord[1] * size - 0.5 + height / 2.0);
+}
+
+Vec2d Camera::PixelToNormalizedCoordinates(const Vec2d& px_coord, const int width, const int height) {
+  const auto inv_size = 1.0 / std::max(width, height);
+  return Vec2d((px_coord[0] + 0.5 - width / 2.0) * inv_size,
+               (px_coord[1] + 0.5 - height / 2.0) * inv_size);
+}
