@@ -1305,3 +1305,25 @@ def test_pose_relative_to():
     _helper_poses_equal_py_cpp(pose_3, pose_new_3)
     _helper_poses_equal_py_cpp(
         pose_3, pose_new_1.compose(pose_new_2.inverse()))
+
+
+def test_pixel_to_normalized_conversion():
+    cam = pygeometry.Camera.create_perspective(1, 0, 0)
+    width, height = 400, 150
+    cam.width, cam.height = width, height
+    px_coord = np.array([50, 300])
+    norm_coord_comp = cam.pixel_to_normalized_coordinates(px_coord)
+    norm_coord_static = pygeometry.Camera.pixel_to_normalized_coordinates_common(
+        px_coord, width, height
+    )
+    norm_coord_gt = px_coord - np.array([(width - 1.0) / 2.0, (height - 1.0) / 2.0])
+    norm_coord_gt /= max(width, height)
+    assert np.allclose(norm_coord_comp, norm_coord_gt)
+    assert np.allclose(norm_coord_static, norm_coord_gt)
+
+    px_coord_comp1 = cam.normalized_to_pixel_coordinates(norm_coord_comp)
+    px_coord_comp2 = pygeometry.Camera.normalized_to_pixel_coordinates_common(
+        norm_coord_comp, width, height
+    )
+    assert np.allclose(px_coord, px_coord_comp1)
+    assert np.allclose(px_coord, px_coord_comp2)

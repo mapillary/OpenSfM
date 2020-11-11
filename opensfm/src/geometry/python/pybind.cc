@@ -43,6 +43,12 @@ PYBIND11_MODULE(pygeometry, m) {
     .def_static("create_fisheye_opencv", &Camera::CreateFisheyeExtendedCamera)
     .def_static("create_dual", &Camera::CreateDualCamera)
     .def_static("create_spherical", &Camera::CreateSphericalCamera)
+    .def("pixel_to_normalized_coordinates_common",
+          (Vec2d(*)(const Vec2d&, const int, const int)) &
+              Camera::PixelToNormalizedCoordinates)
+    .def("normalized_to_pixel_coordinates_common",
+          (Vec2d(*)(const Vec2d&, const int, const int)) &
+              Camera::NormalizedToPixelCoordinates)
     .def("project", &Camera::Project)
     .def("project_many", &Camera::ProjectMany)
     .def("pixel_bearing", &Camera::Bearing)
@@ -53,6 +59,12 @@ PYBIND11_MODULE(pygeometry, m) {
     .def("get_parameters_values", &Camera::GetParametersValues)
     .def("get_parameters_types", &Camera::GetParametersTypes)
     .def("get_parameters_map", &Camera::GetParametersMap)
+    .def("pixel_to_normalized_coordinates",
+          (Vec2d(Camera::*)(const Vec2d&) const) &
+              Camera::PixelToNormalizedCoordinates)
+    .def("normalized_to_pixel_coordinates",
+          (Vec2d(Camera::*)(const Vec2d&) const) &
+              Camera::NormalizedToPixelCoordinates)
     .def_readwrite("width", &Camera::width)
     .def_readwrite("height", &Camera::height)
     .def_readwrite("id", &Camera::id)
