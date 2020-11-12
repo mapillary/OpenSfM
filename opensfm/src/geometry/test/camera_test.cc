@@ -130,8 +130,8 @@ TEST_F(CameraFixture, FisheyeIsConsistentLargeFov){
   ASSERT_LT(ComputeError(projected), 2e-7);
 }
 
-TEST_F(CameraFixture, FisheyeExtendedIsConsistent){
-  Camera camera = Camera::CreateFisheyeExtendedCamera(focal, 1.0, principal_point, distortion_fisheye);
+TEST_F(CameraFixture, FisheyeOpencvIsConsistent){
+  Camera camera = Camera::CreateFisheyeOpencvCamera(focal, 1.0, principal_point, distortion_fisheye);
   const auto projected = camera.ProjectMany(camera.BearingsMany(pixels));
   ASSERT_LT(ComputeError(projected), 2e-7);
 }
@@ -174,8 +174,8 @@ TEST_F(CameraFixture, FisheyeReturnCorrectTypes) {
   ASSERT_THAT(expected, ::testing::ContainerEq(types));
 }
 
-TEST_F(CameraFixture, FisheyeExtendedReturnCorrectTypes) {
-  Camera camera = Camera::CreateFisheyeExtendedCamera(focal, 1.0, principal_point, distortion_fisheye);
+TEST_F(CameraFixture, FisheyeOpencvReturnCorrectTypes) {
+  Camera camera = Camera::CreateFisheyeOpencvCamera(focal, 1.0, principal_point, distortion_fisheye);
   const auto types = camera.GetParametersTypes();
   const auto expected = std::vector<Camera::Parameters>(
       {Camera::Parameters::K1, Camera::Parameters::K2, Camera::Parameters::K3,
@@ -223,8 +223,8 @@ TEST_F(CameraFixture, FisheyeReturnCorrectValues) {
   ASSERT_EQ(expected, values);
 }
 
-TEST_F(CameraFixture, FisheyeExtendedReturnCorrectValues) {
-  Camera camera = Camera::CreateFisheyeExtendedCamera(focal, 1.0, principal_point, distortion_fisheye);
+TEST_F(CameraFixture, FisheyeOpencvReturnCorrectValues) {
+  Camera camera = Camera::CreateFisheyeOpencvCamera(focal, 1.0, principal_point, distortion_fisheye);
   const auto values = camera.GetParametersValues();
 
   Eigen::VectorXd expected(8);
@@ -342,8 +342,8 @@ TEST_F(CameraFixture, ComputeFisheyeAnalyticalDerivatives){
   CheckJacobian(jacobian, size_params);
 }
 
-TEST_F(CameraFixture, ComputeFisheyeExtendedAnalyticalDerivatives){
-  const Camera camera = Camera::CreateFisheyeExtendedCamera(focal, new_ar, principal_point, distortion_fisheye);
+TEST_F(CameraFixture, ComputeFisheyeOpencvAnalyticalDerivatives){
+  const Camera camera = Camera::CreateFisheyeOpencvCamera(focal, new_ar, principal_point, distortion_fisheye);
 
   const VecXd camera_params = camera.GetParametersValues();
   const int size_params = 3 + camera_params.size();

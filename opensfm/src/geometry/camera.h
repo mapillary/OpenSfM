@@ -34,7 +34,7 @@ class Camera {
                                   const Vec2d& principal_point,
                                   const VecXd& distortion);
   static Camera CreateFisheyeCamera(double focal, double k1, double k2);
-  static Camera CreateFisheyeExtendedCamera(double focal, double aspect_ratio,
+  static Camera CreateFisheyeOpencvCamera(double focal, double aspect_ratio,
                                             const Vec2d& principal_point,
                                             const VecXd& distortion);
   static Camera CreateDualCamera(double transition, double focal, double k1,

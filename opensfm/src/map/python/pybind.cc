@@ -249,7 +249,7 @@ PYBIND11_MODULE(pymap, m) {
                     values.at(Camera::Parameters::K2),
                     values.at(Camera::Parameters::K3),
                     values.at(Camera::Parameters::K4);
-                camera = Camera::CreateFisheyeExtendedCamera(
+                camera = Camera::CreateFisheyeOpencvCamera(
                     values.at(Camera::Parameters::Focal),
                     values.at(Camera::Parameters::AspectRatio), principal_point,
                     distortion);

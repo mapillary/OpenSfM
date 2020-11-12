@@ -338,7 +338,7 @@ Camera* Map::CreateCamera(const Camera& cam) {
             cam.GetParameterValue(Camera::Parameters::K2),
             cam.GetParameterValue(Camera::Parameters::K3),
             cam.GetParameterValue(Camera::Parameters::K4);
-        return Camera::CreateFisheyeExtendedCamera(
+        return Camera::CreateFisheyeOpencvCamera(
             cam.GetParameterValue(Camera::Parameters::Focal),
             cam.GetParameterValue(Camera::Parameters::AspectRatio),
             Vec2d(cam.GetParameterValue(Camera::Parameters::Cx),

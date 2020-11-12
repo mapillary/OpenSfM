@@ -110,7 +110,7 @@ TEST_F(ReprojectionError2DFixture, FisheyeAnalyticErrorEvaluatesOK) {
   RunTest<size>(ProjectionType::FISHEYE, &camera[0]);
 }
 
-TEST_F(ReprojectionError2DFixture, FisheyeExtendedAnalyticErrorEvaluatesOK) {
+TEST_F(ReprojectionError2DFixture, FisheyeOpencvAnalyticErrorEvaluatesOK) {
   constexpr int size = 8;
 
   // focal, ar, cx, cy, k1, k2, k3, k4

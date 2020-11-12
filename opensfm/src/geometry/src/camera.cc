@@ -43,7 +43,7 @@ Camera Camera::CreateFisheyeCamera(double focal, double k1, double k2) {
   return camera;
 };
 
-Camera Camera::CreateFisheyeExtendedCamera(double focal, double aspect_ratio,
+Camera Camera::CreateFisheyeOpencvCamera(double focal, double aspect_ratio,
                                            const Eigen::Vector2d& principal_point,
                                            const Eigen::VectorXd& distortion) {
   Camera camera;

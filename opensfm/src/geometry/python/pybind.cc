@@ -40,7 +40,7 @@ PYBIND11_MODULE(pygeometry, m) {
     .def_static("create_perspective", &Camera::CreatePerspectiveCamera)
     .def_static("create_brown", &Camera::CreateBrownCamera)
     .def_static("create_fisheye", &Camera::CreateFisheyeCamera)
-    .def_static("create_fisheye_opencv", &Camera::CreateFisheyeExtendedCamera)
+    .def_static("create_fisheye_opencv", &Camera::CreateFisheyeOpencvCamera)
     .def_static("create_dual", &Camera::CreateDualCamera)
     .def_static("create_spherical", &Camera::CreateSphericalCamera)
     .def("pixel_to_normalized_coordinates_common",
@@ -184,7 +184,7 @@ PYBIND11_MODULE(pygeometry, m) {
               VecXd distortion(4);
               distortion << values.at(Camera::Parameters::K1), values.at(Camera::Parameters::K2),
                             values.at(Camera::Parameters::K3), values.at(Camera::Parameters::K4);
-              camera = Camera::CreateFisheyeExtendedCamera(values.at(Camera::Parameters::Focal),
+              camera = Camera::CreateFisheyeOpencvCamera(values.at(Camera::Parameters::Focal),
                                                            values.at(Camera::Parameters::AspectRatio),
                                                            principal_point, distortion);
               break;

@@ -505,7 +505,7 @@ class FisheyeCamera(Camera):
                          [0, 0, 1.0]])
 
 
-class FisheyeExtendedCamera(Camera):
+class FisheyeOpencvCamera(Camera):
     """Define a fisheye camera using full OpenCV model.
 
     Attributes:
@@ -1066,7 +1066,7 @@ def _get_fisheye_camera():
 
 
 def _get_fisheye_opencv_camera():
-    camera = FisheyeExtendedCamera()
+    camera = FisheyeOpencvCamera()
     camera.width = 800
     camera.height = 600
     camera.focal_x = 0.6

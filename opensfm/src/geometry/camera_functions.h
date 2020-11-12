@@ -1097,7 +1097,7 @@ struct ProjectGeneric : CameraFunctor<3, SizeTraits<PROJ, DISTO, AFF>::Size, 2> 
 using PerspectiveCamera = ProjectGeneric<PerspectiveProjection, Disto24, UniformScale>;
 using BrownCamera = ProjectGeneric<PerspectiveProjection, DistoBrown, Affine>;
 using FisheyeCamera = ProjectGeneric<FisheyeProjection, Disto24, UniformScale>;
-using FisheyeExtendedCamera = ProjectGeneric<FisheyeProjection, Disto2468, Affine>;
+using FisheyeOpencvCamera = ProjectGeneric<FisheyeProjection, Disto2468, Affine>;
 using DualCamera = ProjectGeneric<DualProjection, Disto24, UniformScale>;
 using SphericalCamera = ProjectGeneric<SphericalProjection, Identity, Identity>;
 
@@ -1117,7 +1117,7 @@ void Dispatch(const ProjectionType& type, IN&&... args) {
       FUNC::template Apply<FisheyeCamera>(std::forward<IN>(args)...);
       break;
     case ProjectionType::FISHEYE_OPENCV:
-      FUNC::template Apply<FisheyeExtendedCamera>(std::forward<IN>(args)...);
+      FUNC::template Apply<FisheyeOpencvCamera>(std::forward<IN>(args)...);
       break;
     case ProjectionType::DUAL:
       FUNC::template Apply<DualCamera>(std::forward<IN>(args)...);
