@@ -578,7 +578,7 @@ TEST(Camera, TestPixelNormalizedCoordinatesConversion) {
   auto cam = Camera::CreatePerspectiveCamera(1.0, 0.0, 0.0);
   cam.width = width;
   cam.height = height;
-  constexpr auto inv_normalizer = 1.0 / std::max(width, height);
+  const auto inv_normalizer = 1.0 / std::max(width, height);
   const Vec2d px_coord_def(200, 100);
   const Vec2d norm_coord_comp = cam.PixelToNormalizedCoordinates(px_coord_def);
   ASSERT_EQ(norm_coord_comp[0],
