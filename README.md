@@ -1,4 +1,4 @@
-OpenSfM [![Build Status](https://travis-ci.org/mapillary/OpenSfM.svg?branch=master)](https://travis-ci.org/mapillary/OpenSfM)
+OpenSfM
 =======
 
 ## Overview
