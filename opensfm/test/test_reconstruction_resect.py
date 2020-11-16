@@ -1,11 +1,10 @@
-import numpy as np
 import networkx as nx
-
-from opensfm import reconstruction
-from opensfm import multiview
+import numpy as np
 from opensfm import config
-from opensfm import types
+from opensfm import multiview
 from opensfm import pysfm
+from opensfm import reconstruction
+from opensfm import types
 from opensfm.synthetic_data import synthetic_scene
 
 
@@ -23,19 +22,27 @@ def test_corresponding_tracks():
     assert len(correspondences) == 1
     assert correspondences[0] == (1, 2)
 
-    t1 = {1: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 3),
-          2: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 4)}
-    t2 = {1: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 4),
-          2: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 5)}
+    t1 = {
+        1: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 3),
+        2: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 4),
+    }
+    t2 = {
+        1: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 4),
+        2: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 5),
+    }
 
     correspondences = reconstruction.corresponding_tracks(t1, t2)
     assert len(correspondences) == 1
     assert correspondences[0] == (2, 1)
 
-    t1 = {1: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 5),
-          2: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 6)}
-    t2 = {3: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 5),
-          4: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 6)}
+    t1 = {
+        1: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 5),
+        2: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 6),
+    }
+    t2 = {
+        3: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 5),
+        4: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 6),
+    }
 
     correspondences = reconstruction.corresponding_tracks(t1, t2)
     correspondences.sort(key=lambda c: c[0] + c[1])
@@ -48,32 +55,25 @@ def copy_cluster_points(cluster, tracks_manager, points, noise):
     for shot in cluster.shots:
         for point in tracks_manager.get_shot_observations(shot):
             base = points[point]
-            coordinates = base.coordinates+np.random.rand()*noise
+            coordinates = base.coordinates + np.random.rand() * noise
             if base.id not in cluster.points:
                 cluster.create_point(base.id, coordinates)
     return cluster
 
 
-def split_synthetic_reconstruction(scene, tracks_manager,
-                                   cluster_size,
-                                   point_noise):
+def split_synthetic_reconstruction(scene, tracks_manager, cluster_size, point_noise):
     cluster1 = types.Reconstruction()
     cluster2 = types.Reconstruction()
     cluster1.cameras = scene.cameras
     cluster2.cameras = scene.cameras
-    for (i, shot) in zip(range(len(scene.shots)),
-                         scene.shots.values()):
-        if(i >= cluster_size):
+    for (i, shot) in zip(range(len(scene.shots)), scene.shots.values()):
+        if i >= cluster_size:
             cluster2.add_shot(shot)
-        if(i <= cluster_size):
+        if i <= cluster_size:
             cluster1.add_shot(shot)
 
-    cluster1 = copy_cluster_points(
-        cluster1, tracks_manager, scene.points,
-        point_noise)
-    cluster2 = copy_cluster_points(
-        cluster2, tracks_manager, scene.points,
-        point_noise)
+    cluster1 = copy_cluster_points(cluster1, tracks_manager, scene.points, point_noise)
+    cluster2 = copy_cluster_points(cluster2, tracks_manager, scene.points, point_noise)
     return cluster1, cluster2
 
 
@@ -81,7 +81,7 @@ def move_and_scale_cluster(cluster):
     scale = np.random.rand(1)
     translation = np.random.rand(3)
     for point in cluster.points.values():
-        point.coordinates = scale*point.coordinates + translation
+        point.coordinates = scale * point.coordinates + translation
     return cluster, translation, scale
 
 
@@ -91,15 +91,17 @@ def test_absolute_pose_generalized_shot(scene_synthetic_cube):
     noise = 0.01
     parameters = config.default_config()
     scene, tracks_manager = scene_synthetic_cube
-    cluster1, cluster2 = split_synthetic_reconstruction(
-        scene, tracks_manager, 3, noise)
+    cluster1, cluster2 = split_synthetic_reconstruction(scene, tracks_manager, 3, noise)
     cluster2, translation, scale = move_and_scale_cluster(cluster2)
 
-    status, T, inliers = reconstruction.\
-        resect_reconstruction(cluster1, cluster2,
-                              tracks_manager, tracks_manager,
-                              2*noise,
-                              parameters['resection_min_inliers'])
+    status, T, inliers = reconstruction.resect_reconstruction(
+        cluster1,
+        cluster2,
+        tracks_manager,
+        tracks_manager,
+        2 * noise,
+        parameters["resection_min_inliers"],
+    )
 
     assert status is True
     s, A, b = multiview.decompose_similarity_transform(T)

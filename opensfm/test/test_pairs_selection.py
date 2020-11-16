@@ -8,7 +8,7 @@ from opensfm.test import data_generation
 NEIGHBORS = 6
 
 
-class Args():
+class Args:
     def __init__(self, dataset):
         self.dataset = dataset
 

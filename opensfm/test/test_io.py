@@ -7,7 +7,9 @@ from opensfm import geo, io
 from opensfm.test import data_generation
 
 
-filename = os.path.join(data_generation.DATA_PATH, "berlin", "reconstruction_example.json")
+filename = os.path.join(
+    data_generation.DATA_PATH, "berlin", "reconstruction_example.json"
+)
 
 
 def test_reconstructions_from_json():

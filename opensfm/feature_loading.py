@@ -2,7 +2,6 @@ import logging
 from functools import lru_cache
 
 import numpy as np
-
 from opensfm import features as ft
 
 
@@ -43,7 +42,9 @@ class FeatureLoader(object):
 
     @lru_cache(200)
     def _load_points_features_colors_masked(self, data, image):
-        points, features, colors = self._load_points_features_colors_unmasked(data, image)
+        points, features, colors = self._load_points_features_colors_unmasked(
+            data, image
+        )
         mask = self.load_mask(data, image)
         if mask is not None:
             points = points[mask]
@@ -68,7 +69,7 @@ class FeatureLoader(object):
     def _load_features_nocache(self, data, image):
         points, features, colors = data.load_features(image)
         if points is None:
-            logger.error('Could not load features for image {}'.format(image))
+            logger.error("Could not load features for image {}".format(image))
         else:
             points = np.array(points[:, :3], dtype=float)
         return points, features, colors

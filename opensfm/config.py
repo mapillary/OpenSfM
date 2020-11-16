@@ -1,7 +1,8 @@
 import os
+
 import yaml
 
-default_config_yaml = '''
+default_config_yaml = """
 # Metadata
 use_exif_size: yes
 default_focal_prior: 0.85
@@ -168,7 +169,7 @@ submodel_overlap: 30.0                                               # Radius of
 submodels_relpath: "submodels"                                       # Relative path to the submodels directory
 submodel_relpath_template: "submodels/submodel_%04d"                 # Template to generate the relative path to a submodel directory
 submodel_images_relpath_template: "submodels/submodel_%04d/images"   # Template to generate the relative path to a submodel images directory
-'''
+"""
 
 
 def default_config():

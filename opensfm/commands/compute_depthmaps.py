@@ -1,9 +1,10 @@
-from . import command
 from opensfm.actions import compute_depthmaps
+
+from . import command
 
 
 class Command(command.CommandBase):
-    name = 'compute_depthmaps'
+    name = "compute_depthmaps"
     help = "Compute depthmap"
 
     def run_impl(self, dataset, args):
@@ -11,12 +12,12 @@ class Command(command.CommandBase):
 
     def add_arguments_impl(self, parser):
         parser.add_argument(
-            '--subfolder',
-            help='undistorted subfolder where to load and store data',
-            default='undistorted'
+            "--subfolder",
+            help="undistorted subfolder where to load and store data",
+            default="undistorted",
         )
         parser.add_argument(
-            '--interactive',
-            help='plot results as they are being computed',
-            action='store_true',
+            "--interactive",
+            help="plot results as they are being computed",
+            action="store_true",
         )

@@ -1,9 +1,10 @@
-from . import command
 from opensfm.actions import mesh
+
+from . import command
 
 
 class Command(command.CommandBase):
-    name = 'mesh'
+    name = "mesh"
     help = "Add delaunay meshes to the reconstruction"
 
     def run_impl(self, dataset, args):

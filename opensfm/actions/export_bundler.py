@@ -5,7 +5,7 @@ from opensfm import io
 
 
 def run_dataset(data, list_path, bundle_path, undistorted):
-    """ Export reconstruction to bundler format.
+    """Export reconstruction to bundler format.
 
     Args:
         list_path: txt list of images to export
@@ -14,9 +14,9 @@ def run_dataset(data, list_path, bundle_path, undistorted):
 
     """
 
-    udata = dataset.UndistortedDataSet(data, 'undistorted')
+    udata = dataset.UndistortedDataSet(data, "undistorted")
 
-    default_path = os.path.join(data.data_path, 'bundler')
+    default_path = os.path.join(data.data_path, "bundler")
     list_file_path = list_path if list_path else default_path
     bundle_file_path = bundle_path if bundle_path else default_path
 
@@ -29,5 +29,6 @@ def run_dataset(data, list_path, bundle_path, undistorted):
         track_manager = data.load_tracks_manager()
         images = data.images()
 
-    io.export_bundler(images, reconstructions, track_manager,
-                        bundle_file_path, list_file_path)
+    io.export_bundler(
+        images, reconstructions, track_manager, bundle_file_path, list_file_path
+    )

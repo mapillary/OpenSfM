@@ -1,36 +1,39 @@
-import numpy as np
 import copy
 import random
+
+import numpy as np
 import pytest
+from opensfm import pygeometry
 from opensfm import pymap
 from opensfm import pysfm
-from opensfm import pygeometry
 from opensfm import types
 
 
-def _create_reconstruction(n_cameras=0,
-                           n_shots_cam=None,
-                           n_pano_shots_cam=None,
-                           n_points=0,
-                           dist_to_shots=False,
-                           dist_to_pano_shots=False):
-    """ Creates a reconstruction with n_cameras random cameras and
-        shots, where n_shots_cam is a dictionary, containing the
-        camera_id and the number of shots.
+def _create_reconstruction(
+    n_cameras=0,
+    n_shots_cam=None,
+    n_pano_shots_cam=None,
+    n_points=0,
+    dist_to_shots=False,
+    dist_to_pano_shots=False,
+):
+    """Creates a reconstruction with n_cameras random cameras and
+    shots, where n_shots_cam is a dictionary, containing the
+    camera_id and the number of shots.
 
-        Example:
-        shot_cams = {"0": 50, "1": 30}
-        _create_reconstruction(2, shot_cams)
+    Example:
+    shot_cams = {"0": 50, "1": 30}
+    _create_reconstruction(2, shot_cams)
 
-        Will create a reconstruction with two cameras and 80 shots,
-        50 are associated with cam "0" and 30 with cam "1".
+    Will create a reconstruction with two cameras and 80 shots,
+    50 are associated with cam "0" and 30 with cam "1".
 
-        n_points_in_shots is the number of points to create.
-        If dist_to_shots, then observations are created and randomly
-        distributed to all shots. We pick with the repeat option, thus
-        if we have three shots the distribution could be
-        something like: [1,2,2], [0,1,2]. We avoid things like [3,3,3]
-        """
+    n_points_in_shots is the number of points to create.
+    If dist_to_shots, then observations are created and randomly
+    distributed to all shots. We pick with the repeat option, thus
+    if we have three shots the distribution could be
+    something like: [1,2,2], [0,1,2]. We avoid things like [3,3,3]
+    """
     if n_shots_cam is None:
         n_shots_cam = {}
     if n_pano_shots_cam is None:
@@ -162,9 +165,8 @@ def test_brown_camera():
     p2 = 0.002
     k3 = 0.01
     cam_cpp = pygeometry.Camera.create_brown(
-        focal_x, focal_y / focal_x,
-        [c_x, c_y],
-        [k1, k2, k3, p1, p2])
+        focal_x, focal_y / focal_x, [c_x, c_y], [k1, k2, k3, p1, p2]
+    )
     cam_cpp.width = 800
     cam_cpp.height = 600
     cam_cpp.id = "cam"
@@ -302,14 +304,14 @@ def _help_measurement_test(measurement, attr, val):
 def test_shot_measurement_setter_and_getter():
     m1 = pymap.ShotMeasurements()
     # Test basic functionality
-    _help_measurement_test(m1, 'capture_time', np.random.rand(1))
-    _help_measurement_test(m1, 'gps_position', np.random.rand(3))
-    _help_measurement_test(m1, 'gps_accuracy', np.random.rand(1))
-    _help_measurement_test(m1, 'compass_accuracy', np.random.rand(1))
-    _help_measurement_test(m1, 'compass_angle', np.random.rand(1))
-    _help_measurement_test(m1, 'accelerometer', np.random.rand(3))
-    _help_measurement_test(m1, 'orientation', random.randint(0, 100))
-    _help_measurement_test(m1, 'sequence_key', "key_test")
+    _help_measurement_test(m1, "capture_time", np.random.rand(1))
+    _help_measurement_test(m1, "gps_position", np.random.rand(3))
+    _help_measurement_test(m1, "gps_accuracy", np.random.rand(1))
+    _help_measurement_test(m1, "compass_accuracy", np.random.rand(1))
+    _help_measurement_test(m1, "compass_angle", np.random.rand(1))
+    _help_measurement_test(m1, "accelerometer", np.random.rand(3))
+    _help_measurement_test(m1, "orientation", random.randint(0, 100))
+    _help_measurement_test(m1, "sequence_key", "key_test")
 
 
 def _helper_populate_metadata(m):
@@ -421,9 +423,9 @@ def test_shot_get_non_existing():
 
     # When getting a non_existing one, it should throw
     with pytest.raises(RuntimeError):
-        assert shot1 is rec.get_shot('toto')
+        assert shot1 is rec.get_shot("toto")
     with pytest.raises(RuntimeError):
-        assert shot1 is rec.shots['toto']
+        assert shot1 is rec.shots["toto"]
 
 
 def test_pano_shot_get():
@@ -445,9 +447,9 @@ def test_pano_shot_get_non_existing():
 
     # When getting a non_existing one, it should throw
     with pytest.raises(RuntimeError):
-        assert shot1 is rec.get_shot('toto')
+        assert shot1 is rec.get_shot("toto")
     with pytest.raises(RuntimeError):
-        assert shot1 is rec.shots['toto']
+        assert shot1 is rec.shots["toto"]
 
 
 def test_shot_create():
@@ -505,7 +507,7 @@ def test_pano_shot_delete_existing():
     # Given some created reconstruction
     n_shots = 10
     rec = _create_reconstruction(2)
-    rec = _create_reconstruction(1, n_pano_shots_cam = {"0": n_shots})
+    rec = _create_reconstruction(1, n_pano_shots_cam={"0": n_shots})
 
     # When deleting existing pano shot
     n_shots = 10
@@ -720,8 +722,8 @@ def test_single_point_color():
     rec = types.Reconstruction()
     pt = rec.create_point("0")
 
-     # When assiging color
-    color = np.random.randint(low=0, high=255, size=(3, ))
+    # When assiging color
+    color = np.random.randint(low=0, high=255, size=(3,))
     pt.color = color
 
     # It should be set
@@ -759,8 +761,7 @@ def test_point_reproj_errors_assign():
     pt = rec.points["0"]
 
     # When assigning reprojections errors
-    reproj_errors = dict(
-        {"shot1": np.random.rand(2), "shot2": np.random.rand(2)})
+    reproj_errors = dict({"shot1": np.random.rand(2), "shot2": np.random.rand(2)})
     pt.reprojection_errors = reproj_errors
 
     # They should be correct
@@ -772,8 +773,7 @@ def test_point_reproj_errors_remove():
     # Given some created point with reproj errors
     rec = _create_reconstruction(n_points=1)
     pt = rec.points["0"]
-    reproj_errors = dict(
-        {"shot1": np.random.rand(2), "shot2": np.random.rand(2)})
+    reproj_errors = dict({"shot1": np.random.rand(2), "shot2": np.random.rand(2)})
     pt.reprojection_errors = reproj_errors
 
     # When we delete all of them
@@ -791,7 +791,7 @@ def test_point_delete_non_existing():
 
     # When we delete a non-existing one
     with pytest.raises(RuntimeError):
-         # It should throw
+        # It should throw
         rec.remove_point("abcdef")
 
 
@@ -870,8 +870,7 @@ def test_many_observations_delete():
         m.create_camera(cam)
 
     for shot_id in range(n_shots):
-        m.create_shot(str(shot_id), "cam" +
-                      str(int(np.random.rand(1) * 10 % n_cams)))
+        m.create_shot(str(shot_id), "cam" + str(int(np.random.rand(1) * 10 % n_cams)))
 
     for point_id in range(n_landmarks):
         m.create_landmark(str(point_id), np.random.rand(3))
@@ -950,9 +949,9 @@ def test_camera_deepcopy_assign():
 
 def test_observation_shot_removal():
     # Given a reconstruction with 2 shots
-    rec = _create_reconstruction(n_cameras=2,
-                                 n_shots_cam={"0": 1, "1": 1},
-                                 n_points=200, dist_to_shots=True)
+    rec = _create_reconstruction(
+        n_cameras=2, n_shots_cam={"0": 1, "1": 1}, n_points=200, dist_to_shots=True
+    )
 
     # When removing one of them
     rec.remove_shot("0")
@@ -971,10 +970,13 @@ def test_observation_shot_removal():
 
 def test_observation_point_removal():
     # Given a reconstruction with many shots
-    rec = _create_reconstruction(n_cameras=2,
-                                 n_shots_cam={"0": 50, "1": 40},
-                                 n_pano_shots_cam={"0": 20, "1": 30},
-                                 n_points=200, dist_to_shots=True)
+    rec = _create_reconstruction(
+        n_cameras=2,
+        n_shots_cam={"0": 50, "1": 40},
+        n_pano_shots_cam={"0": 20, "1": 30},
+        n_points=200,
+        dist_to_shots=True,
+    )
 
     # For each point we remove ...
     pt_list = list(rec.points.keys())
@@ -992,10 +994,13 @@ def test_observation_point_removal():
 
 def test_rec_deepcopy():
     # Given a reconstruction with everything (shots, pano shots, metadata)
-    rec = _create_reconstruction(n_cameras=2,
-                                 n_shots_cam={"0": 50, "1": 40},
-                                 n_pano_shots_cam={"0": 20, "1": 30},
-                                 n_points=200, dist_to_shots=True)
+    rec = _create_reconstruction(
+        n_cameras=2,
+        n_shots_cam={"0": 50, "1": 40},
+        n_pano_shots_cam={"0": 20, "1": 30},
+        n_points=200,
+        dist_to_shots=True,
+    )
     for shot in rec.shots.values():
         _helper_populate_metadata(shot.metadata)
     for shot in rec.pano_shots.values():
@@ -1051,19 +1056,19 @@ def test_gcp():
     gcp = []
     for i in range(0, 10):
         p = pymap.GroundControlPoint()
-        p.id = 'p' + str(i)
+        p.id = "p" + str(i)
         o1 = pymap.GroundControlPointObservation()
-        o1.shot_id = 'p1'
+        o1.shot_id = "p1"
         o2 = pymap.GroundControlPointObservation()
-        o2.shot_id = 'p2'
+        o2.shot_id = "p2"
         obs = [o1, o2]
         p.observations = obs
         gcp.append(p)
-        assert(p.observations[0].shot_id == "p1")
-        assert(p.observations[1].shot_id == 'p2')
+        assert p.observations[0].shot_id == "p1"
+        assert p.observations[1].shot_id == "p2"
         p.add_observation(o2)
         p.add_observation(o2)
         assert len(p.observations) == 4
     for pt in gcp:
-        assert(pt.observations[0].shot_id == "p1")
-        assert(pt.observations[1].shot_id == 'p2')
+        assert pt.observations[0].shot_id == "p1"
+        assert pt.observations[1].shot_id == "p2"

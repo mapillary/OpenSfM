@@ -1,9 +1,10 @@
-from . import command
 from opensfm.actions import create_tracks
+
+from . import command
 
 
 class Command(command.CommandBase):
-    name = 'create_tracks'
+    name = "create_tracks"
     help = "Link matches pair-wise matches into tracks"
 
     def run_impl(self, dataset, args):

@@ -1,9 +1,10 @@
-from . import command
 from opensfm.actions import reconstruct
+
+from . import command
 
 
 class Command(command.CommandBase):
-    name = 'reconstruct'
+    name = "reconstruct"
     help = "Compute the reconstruction"
 
     def run_impl(self, dataset, args):

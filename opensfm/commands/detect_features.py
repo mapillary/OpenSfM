@@ -1,5 +1,6 @@
-from . import command
 from opensfm.actions import detect_features
+
+from . import command
 
 
 class Command(command.CommandBase):

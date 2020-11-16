@@ -2,7 +2,7 @@ import opensfm.reconstruction as orec
 
 
 def run_dataset(dataset, input, output):
-    """ Bundle a reconstructions.
+    """Bundle a reconstructions.
 
     Args:
         input: input reconstruction JSON in the dataset

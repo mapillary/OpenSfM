@@ -1,4 +1,5 @@
 import argparse
+
 from opensfm import log
 
 
@@ -9,13 +10,13 @@ def command_runner(all_commands_types):
     # Create the top-level parser
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(
-        help='Command to run', dest='command', metavar='command')
+        help="Command to run", dest="command", metavar="command"
+    )
 
     command_objects = [c.Command() for c in all_commands_types]
 
     for command in command_objects:
-        subparser = subparsers.add_parser(
-            command.name, help=command.help)
+        subparser = subparsers.add_parser(command.name, help=command.help)
         command.add_arguments(subparser)
 
     # Parse arguments

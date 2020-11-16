@@ -1,9 +1,9 @@
-import pytest
 import copy
-import numpy as np
 
-from opensfm import pyrobust
+import numpy as np
+import pytest
 from opensfm import multiview
+from opensfm import pyrobust
 from opensfm.synthetic_data import synthetic_examples
 
 
@@ -15,21 +15,21 @@ def line_data():
 
 
 def add_outliers(ratio_outliers, x, min, max):
-    for index in np.random.permutation(len(x))[:int(ratio_outliers*len(x))]:
+    for index in np.random.permutation(len(x))[: int(ratio_outliers * len(x))]:
         shape = x[index].shape
         noise = np.random.uniform(min, max, size=shape)
         if len(shape) == 0:
             sign = 1 if np.random.randint(2) > 0 else -1
         else:
             sign = [1 if r > 0 else -1 for r in np.random.randint(2, size=shape)]
-        x[int(index)] += sign*noise
+        x[int(index)] += sign * noise
 
 
 def test_uniform_line_ransac():
     a, b, x, samples = line_data()
 
     scale = 2.0
-    y = a*x + b + np.random.rand(x.shape[0])*scale
+    y = a * x + b + np.random.rand(x.shape[0]) * scale
 
     data = np.array([x, y]).transpose()
 
@@ -44,7 +44,7 @@ def test_outliers_line_ransac():
     a, b, x, samples = line_data()
 
     scale = 2.0
-    y = a*x + b + np.random.rand(x.shape[0])*scale
+    y = a * x + b + np.random.rand(x.shape[0]) * scale
 
     ratio_outliers = 0.4
     outliers_max = 5.0
@@ -55,7 +55,7 @@ def test_outliers_line_ransac():
     params = pyrobust.RobustEstimatorParams()
     result = pyrobust.ransac_line(data, scale, params, pyrobust.RansacType.RANSAC)
 
-    inliers_count = (1-ratio_outliers)*samples
+    inliers_count = (1 - ratio_outliers) * samples
     assert result.score == inliers_count
     assert len(result.inliers_indices) == inliers_count
 
@@ -64,48 +64,54 @@ def test_normal_line_msac():
     a, b, x, samples = line_data()
 
     sigma = 2.0
-    y = a*x + b + np.random.normal(scale=sigma, size=x.shape[0])
+    y = a * x + b + np.random.normal(scale=sigma, size=x.shape[0])
 
     multiplier = 1.96
 
     data = np.array([x, y]).transpose()
 
     params = pyrobust.RobustEstimatorParams()
-    result = pyrobust.ransac_line(data, multiplier*sigma, params, pyrobust.RansacType.MSAC)
+    result = pyrobust.ransac_line(
+        data, multiplier * sigma, params, pyrobust.RansacType.MSAC
+    )
 
-    confidence = 0.95   # 1.96*MAD -> 95% rejecting inliers
-    assert np.isclose(len(result.inliers_indices), samples,
-                      rtol=(1 - confidence), atol=8)
+    confidence = 0.95  # 1.96*MAD -> 95% rejecting inliers
+    assert np.isclose(
+        len(result.inliers_indices), samples, rtol=(1 - confidence), atol=8
+    )
 
 
 def test_outliers_line_msac():
     a, b, x, samples = line_data()
 
     sigma = 2.0
-    y = a*x + b + np.random.normal(scale=sigma, size=x.shape[0])
+    y = a * x + b + np.random.normal(scale=sigma, size=x.shape[0])
 
     multiplier = 1.96
 
     ratio_outliers = 0.4
     outliers_max = 5.0
-    add_outliers(ratio_outliers, x, multiplier*sigma, multiplier*outliers_max)
+    add_outliers(ratio_outliers, x, multiplier * sigma, multiplier * outliers_max)
 
     data = np.array([x, y]).transpose()
 
     params = pyrobust.RobustEstimatorParams()
-    result = pyrobust.ransac_line(data, multiplier*sigma, params, pyrobust.RansacType.MSAC)
+    result = pyrobust.ransac_line(
+        data, multiplier * sigma, params, pyrobust.RansacType.MSAC
+    )
 
-    inliers_count = (1-ratio_outliers)*samples
-    confidence = 0.95   # 1.96*MAD -> 95% rejecting inliers
-    assert np.isclose(len(result.inliers_indices), inliers_count,
-                      rtol=(1 - confidence), atol=5)
+    inliers_count = (1 - ratio_outliers) * samples
+    confidence = 0.95  # 1.96*MAD -> 95% rejecting inliers
+    assert np.isclose(
+        len(result.inliers_indices), inliers_count, rtol=(1 - confidence), atol=5
+    )
 
 
 def test_normal_line_LMedS():
     a, b, x, samples = line_data()
 
     sigma = 2.0
-    y = a*x + b + np.random.normal(scale=sigma, size=x.shape[0])
+    y = a * x + b + np.random.normal(scale=sigma, size=x.shape[0])
 
     multiplier = 1.96
 
@@ -114,22 +120,23 @@ def test_normal_line_LMedS():
     params = pyrobust.RobustEstimatorParams()
     result = pyrobust.ransac_line(data, multiplier, params, pyrobust.RansacType.LMedS)
 
-    confidence = 0.95   # 1.96*MAD -> 95% rejecting inliers
-    assert np.isclose(len(result.inliers_indices), samples,
-                      rtol=(1 - confidence), atol=11)
+    confidence = 0.95  # 1.96*MAD -> 95% rejecting inliers
+    assert np.isclose(
+        len(result.inliers_indices), samples, rtol=(1 - confidence), atol=11
+    )
 
 
 def test_outliers_line_LMedS():
     a, b, x, samples = line_data()
 
     sigma = 2.0
-    y = a*x + b + np.random.normal(scale=sigma, size=x.shape[0])
+    y = a * x + b + np.random.normal(scale=sigma, size=x.shape[0])
 
     multiplier = 1.96
 
     ratio_outliers = 0.4
     outliers_max = 5.0
-    add_outliers(ratio_outliers, x, multiplier*sigma, multiplier*outliers_max)
+    add_outliers(ratio_outliers, x, multiplier * sigma, multiplier * outliers_max)
 
     data = np.array([x, y]).transpose()
 
@@ -140,10 +147,11 @@ def test_outliers_line_LMedS():
 
     result = pyrobust.ransac_line(data, multiplier, params, pyrobust.RansacType.LMedS)
 
-    inliers_count = (1-ratio_outliers)*samples
-    confidence = 0.95   # 1.96*MAD -> 95% rejecting inliers
-    assert np.isclose(len(result.inliers_indices), inliers_count,
-                      rtol=(1 - confidence), atol=8)
+    inliers_count = (1 - ratio_outliers) * samples
+    confidence = 0.95  # 1.96*MAD -> 95% rejecting inliers
+    assert np.isclose(
+        len(result.inliers_indices), inliers_count, rtol=(1 - confidence), atol=8
+    )
 
 
 def test_uniform_essential_ransac(pairs_and_their_E):
@@ -161,7 +169,8 @@ def test_uniform_essential_ransac(pairs_and_their_E):
         params = pyrobust.RobustEstimatorParams()
         params.use_iteration_reduction = False
         result = pyrobust.ransac_essential(
-            f1, f2, scale*(1.0+scale_eps_ratio), params, pyrobust.RansacType.RANSAC)
+            f1, f2, scale * (1.0 + scale_eps_ratio), params, pyrobust.RansacType.RANSAC
+        )
 
         assert len(result.inliers_indices) == len(f1) == len(f2)
 
@@ -183,12 +192,12 @@ def test_outliers_essential_ransac(pairs_and_their_E):
         scale_eps_ratio = 0.5
         params = pyrobust.RobustEstimatorParams()
         result = pyrobust.ransac_essential(
-            f1, f2, scale*(1.0+scale_eps_ratio), params, pyrobust.RansacType.RANSAC)
+            f1, f2, scale * (1.0 + scale_eps_ratio), params, pyrobust.RansacType.RANSAC
+        )
 
-        tolerance = 0.12    # some outliers might have been moved along the epipolar
+        tolerance = 0.12  # some outliers might have been moved along the epipolar
         inliers_count = (1 - ratio_outliers) * len(points)
-        assert np.isclose(len(result.inliers_indices),
-                          inliers_count, rtol=tolerance)
+        assert np.isclose(len(result.inliers_indices), inliers_count, rtol=tolerance)
 
 
 def test_outliers_relative_pose_ransac(pairs_and_their_E):
@@ -209,17 +218,17 @@ def test_outliers_relative_pose_ransac(pairs_and_their_E):
         params = pyrobust.RobustEstimatorParams()
         params.iterations = 1000
         result = pyrobust.ransac_relative_pose(
-            f1, f2, scale*(1.0+scale_eps_ratio), params, pyrobust.RansacType.RANSAC)
+            f1, f2, scale * (1.0 + scale_eps_ratio), params, pyrobust.RansacType.RANSAC
+        )
 
         expected = pose.get_world_to_cam()[:3]
         expected[:, 3] /= np.linalg.norm(expected[:, 3])
 
         tolerance = 0.1
         inliers_count = (1 - ratio_outliers) * len(points)
-        assert np.isclose(len(result.inliers_indices),
-                          inliers_count, rtol=tolerance)
+        assert np.isclose(len(result.inliers_indices), inliers_count, rtol=tolerance)
 
-    assert np.linalg.norm(expected-result.lo_model, ord='fro')  < 16e-2
+    assert np.linalg.norm(expected - result.lo_model, ord="fro") < 16e-2
 
 
 def test_outliers_relative_rotation_ransac(pairs_and_their_E):
@@ -227,7 +236,7 @@ def test_outliers_relative_rotation_ransac(pairs_and_their_E):
 
         vec_x = np.random.rand(3)
         vec_x /= np.linalg.norm(vec_x)
-        vec_y = np.array([-vec_x[1], vec_x[0], 0.])
+        vec_y = np.array([-vec_x[1], vec_x[0], 0.0])
         vec_y /= np.linalg.norm(vec_y)
         vec_z = np.cross(vec_x, vec_y)
 
@@ -251,22 +260,22 @@ def test_outliers_relative_rotation_ransac(pairs_and_their_E):
         params = pyrobust.RobustEstimatorParams()
         params.iterations = 1000
 
-        result = pyrobust.ransac_relative_rotation(f1, f2, np.sqrt(
-            3 * scale * scale), params, pyrobust.RansacType.RANSAC)
+        result = pyrobust.ransac_relative_rotation(
+            f1, f2, np.sqrt(3 * scale * scale), params, pyrobust.RansacType.RANSAC
+        )
 
         tolerance = 0.04
         inliers_count = (1 - ratio_outliers) * len(points)
-        assert np.isclose(len(result.inliers_indices),
-                          inliers_count, rtol=tolerance)
+        assert np.isclose(len(result.inliers_indices), inliers_count, rtol=tolerance)
 
-        assert np.linalg.norm(rotation - result.lo_model, ord='fro') < 8e-2
+        assert np.linalg.norm(rotation - result.lo_model, ord="fro") < 8e-2
 
 
 def test_outliers_absolute_pose_ransac(shots_and_their_points):
     for pose, bearings, points in shots_and_their_points:
         scale = 1e-3
         bearings = copy.deepcopy(bearings)
-        bearings += np.random.rand(*bearings.shape)*scale
+        bearings += np.random.rand(*bearings.shape) * scale
 
         ratio_outliers = 0.3
         add_outliers(ratio_outliers, bearings, 0.1, 1.0)
@@ -274,23 +283,24 @@ def test_outliers_absolute_pose_ransac(shots_and_their_points):
 
         params = pyrobust.RobustEstimatorParams()
         params.iterations = 1000
-        result = pyrobust.ransac_absolute_pose(bearings, points, scale, params, pyrobust.RansacType.RANSAC)
+        result = pyrobust.ransac_absolute_pose(
+            bearings, points, scale, params, pyrobust.RansacType.RANSAC
+        )
 
         expected = pose.get_world_to_cam()[:3]
 
         tolerance = 0.05
         inliers_count = (1 - ratio_outliers) * len(points)
-        assert np.isclose(len(result.inliers_indices),
-                          inliers_count, rtol=tolerance)
+        assert np.isclose(len(result.inliers_indices), inliers_count, rtol=tolerance)
 
-        assert np.linalg.norm(expected-result.lo_model, ord='fro')  < 8e-2
+        assert np.linalg.norm(expected - result.lo_model, ord="fro") < 8e-2
 
 
 def test_outliers_absolute_pose_known_rotation_ransac(shots_and_their_points):
     for pose, bearings, points in shots_and_their_points:
         scale = 1e-3
         bearings = copy.deepcopy(bearings)
-        bearings += np.random.rand(*bearings.shape)*scale
+        bearings += np.random.rand(*bearings.shape) * scale
 
         ratio_outliers = 0.3
         add_outliers(ratio_outliers, bearings, 0.1, 1.0)
@@ -301,11 +311,12 @@ def test_outliers_absolute_pose_known_rotation_ransac(shots_and_their_points):
 
         params = pyrobust.RobustEstimatorParams()
         params.iterations = 1000
-        result = pyrobust.ransac_absolute_pose_known_rotation(bearings, p_rotated, scale, params, pyrobust.RansacType.RANSAC)
+        result = pyrobust.ransac_absolute_pose_known_rotation(
+            bearings, p_rotated, scale, params, pyrobust.RansacType.RANSAC
+        )
 
         tolerance = 0.05
         inliers_count = (1 - ratio_outliers) * len(points)
-        assert np.isclose(len(result.inliers_indices),
-                          inliers_count, rtol=tolerance)
+        assert np.isclose(len(result.inliers_indices), inliers_count, rtol=tolerance)
 
-        assert np.linalg.norm(pose.translation-result.lo_model)  < 8e-2
+        assert np.linalg.norm(pose.translation - result.lo_model) < 8e-2
