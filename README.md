@@ -1,4 +1,4 @@
-OpenSfM
+OpenSfM ![Docker workflow](https://github.com/mapillary/opensfm/workflows/Docker%20CI/badge.svg)
 =======
 
 ## Overview
