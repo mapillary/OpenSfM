@@ -9,7 +9,7 @@ bool ShotView::HasShot(const map::ShotId& shot_id) const {
   return map_.HasShot(shot_id);
 }
 const std::unordered_map<ShotId, Shot>& ShotView::GetShots() const {
-  return map_.GetAllShots();
+  return map_.GetShots();
 }
 size_t ShotView::NumberOfShots() const { return map_.NumberOfShots(); }
 
@@ -21,7 +21,7 @@ bool PanoShotView::HasShot(const map::ShotId& shot_id) const {
   return map_.HasPanoShot(shot_id);
 }
 const std::unordered_map<ShotId, Shot>& PanoShotView::GetShots() const {
-  return map_.GetAllPanoShots();
+  return map_.GetPanoShots();
 }
 size_t PanoShotView::NumberOfShots() const { return map_.NumberOfPanoShots(); }
 
@@ -34,7 +34,7 @@ bool LandmarkView::HasLandmark(const LandmarkId& lm_id) const {
 }
 const std::unordered_map<LandmarkId, Landmark>& LandmarkView::GetLandmarks()
     const {
-  return map_.GetAllLandmarks();
+  return map_.GetLandmarks();
 }
 size_t LandmarkView::NumberOfLandmarks() const {
   return map_.NumberOfLandmarks();
@@ -46,7 +46,7 @@ Camera* CameraView::GetCamera(const CameraId& cam_id) {
   return map_.GetCamera(cam_id);
 }
 const std::unordered_map<CameraId, Camera>& CameraView::GetCameras() const {
-  return map_.GetAllCameras();
+  return map_.GetCameras();
 }
 bool CameraView::HasCamera(const CameraId& cam_id) const {
   return map_.HasCamera(cam_id);

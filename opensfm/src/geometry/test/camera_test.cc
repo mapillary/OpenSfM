@@ -123,8 +123,15 @@ TEST_F(CameraFixture, FisheyeIsConsistent){
   ASSERT_LT(ComputeError(projected), 2e-7);
 }
 
-TEST_F(CameraFixture, FisheyeExtendedIsConsistent){
-  Camera camera = Camera::CreateFisheyeExtendedCamera(focal, 1.0, principal_point, distortion_fisheye);
+TEST_F(CameraFixture, FisheyeIsConsistentLargeFov){
+  double short_focal = 0.3;
+  Camera camera = Camera::CreateFisheyeCamera(short_focal, 0.001, 0.001);
+  const auto projected = camera.ProjectMany(camera.BearingsMany(pixels));
+  ASSERT_LT(ComputeError(projected), 2e-7);
+}
+
+TEST_F(CameraFixture, FisheyeOpencvIsConsistent){
+  Camera camera = Camera::CreateFisheyeOpencvCamera(focal, 1.0, principal_point, distortion_fisheye);
   const auto projected = camera.ProjectMany(camera.BearingsMany(pixels));
   ASSERT_LT(ComputeError(projected), 2e-7);
 }
@@ -167,8 +174,8 @@ TEST_F(CameraFixture, FisheyeReturnCorrectTypes) {
   ASSERT_THAT(expected, ::testing::ContainerEq(types));
 }
 
-TEST_F(CameraFixture, FisheyeExtendedReturnCorrectTypes) {
-  Camera camera = Camera::CreateFisheyeExtendedCamera(focal, 1.0, principal_point, distortion_fisheye);
+TEST_F(CameraFixture, FisheyeOpencvReturnCorrectTypes) {
+  Camera camera = Camera::CreateFisheyeOpencvCamera(focal, 1.0, principal_point, distortion_fisheye);
   const auto types = camera.GetParametersTypes();
   const auto expected = std::vector<Camera::Parameters>(
       {Camera::Parameters::K1, Camera::Parameters::K2, Camera::Parameters::K3,
@@ -216,8 +223,8 @@ TEST_F(CameraFixture, FisheyeReturnCorrectValues) {
   ASSERT_EQ(expected, values);
 }
 
-TEST_F(CameraFixture, FisheyeExtendedReturnCorrectValues) {
-  Camera camera = Camera::CreateFisheyeExtendedCamera(focal, 1.0, principal_point, distortion_fisheye);
+TEST_F(CameraFixture, FisheyeOpencvReturnCorrectValues) {
+  Camera camera = Camera::CreateFisheyeOpencvCamera(focal, 1.0, principal_point, distortion_fisheye);
   const auto values = camera.GetParametersValues();
 
   Eigen::VectorXd expected(8);
@@ -335,8 +342,8 @@ TEST_F(CameraFixture, ComputeFisheyeAnalyticalDerivatives){
   CheckJacobian(jacobian, size_params);
 }
 
-TEST_F(CameraFixture, ComputeFisheyeExtendedAnalyticalDerivatives){
-  const Camera camera = Camera::CreateFisheyeExtendedCamera(focal, new_ar, principal_point, distortion_fisheye);
+TEST_F(CameraFixture, ComputeFisheyeOpencvAnalyticalDerivatives){
+  const Camera camera = Camera::CreateFisheyeOpencvCamera(focal, new_ar, principal_point, distortion_fisheye);
 
   const VecXd camera_params = camera.GetParametersValues();
   const int size_params = 3 + camera_params.size();
@@ -564,4 +571,27 @@ TEST_F(PoseFixture, EvaluatesDerivativesCorrectly) {
       ASSERT_NEAR(expected_adiff(i).derivatives()(j), jacobian[i * size + j], 1e-15);
     }
   }
+}
+
+TEST(Camera, TestPixelNormalizedCoordinatesConversion) {
+  constexpr auto width{640}, height{480};
+  auto cam = Camera::CreatePerspectiveCamera(1.0, 0.0, 0.0);
+  cam.width = width;
+  cam.height = height;
+  const auto inv_normalizer = 1.0 / std::max(width, height);
+  const Vec2d px_coord_def(200, 100);
+  const Vec2d norm_coord_comp = cam.PixelToNormalizedCoordinates(px_coord_def);
+  ASSERT_EQ(norm_coord_comp[0],
+            (px_coord_def[0] - (width - 1) / 2.0) * inv_normalizer);
+  ASSERT_EQ(norm_coord_comp[1],
+            (px_coord_def[1] - (height - 1) / 2.0) * inv_normalizer);
+  const Vec2d px_coord_comp = cam.NormalizedToPixelCoordinates(norm_coord_comp);
+  ASSERT_EQ(px_coord_comp, px_coord_def);
+
+  const Vec2d norm_coord_static = Camera::PixelToNormalizedCoordinates(px_coord_def, width, height);
+  ASSERT_EQ(norm_coord_comp[0], norm_coord_static[0]);
+  ASSERT_EQ(norm_coord_comp[1], norm_coord_static[1]);
+  const Vec2d px_coord_static = Camera::NormalizedToPixelCoordinates(norm_coord_static, width, height);
+  ASSERT_EQ(px_coord_comp[0], px_coord_static[0]);
+  ASSERT_EQ(px_coord_comp[1], px_coord_static[1]);
 }

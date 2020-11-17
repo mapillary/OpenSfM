@@ -1,34 +1,12 @@
-#!/usr/bin/env python3
+#!/bin/bash
+set -e
 
-from os.path import abspath, join, dirname
-import sys
-sys.path.insert(0, abspath(join(dirname(__file__), "..")))
+DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
-import argparse
-import logging
+if [ -x "$(command -v python3)" ]; then
+    PYTHON=python3
+else
+    PYTHON=python
+fi
 
-from opensfm import commands
-from opensfm import log
-
-log.setup()
-
-# Create the top-level parser
-parser = argparse.ArgumentParser()
-subparsers = parser.add_subparsers(
-    help='Command to run', dest='command', metavar='command')
-
-# Create one subparser for each subcommand
-subcommands = [module.Command() for module in commands.opensfm_commands]
-
-for command in subcommands:
-    subparser = subparsers.add_parser(
-        command.name, help=command.help)
-    command.add_arguments(subparser)
-
-# Parse arguments
-args = parser.parse_args()
-
-# Run the selected subcommand
-for command in subcommands:
-    if args.command == command.name:
-        command.run(args)
+"$PYTHON" "$DIR"/opensfm_main.py "$@"

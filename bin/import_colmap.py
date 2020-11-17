@@ -6,11 +6,6 @@
 # scripts/python/read_write_model.py
 # License is that derived from those files.
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import argparse
 import logging
 import math
@@ -26,7 +21,7 @@ import numpy as np
 from matplotlib import cm
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-import opensfm.commands.undistort as osfm_u
+import opensfm.actions.undistort as osfm_u
 from opensfm import dataset
 from opensfm import features
 from opensfm import pysfm
@@ -64,10 +59,8 @@ def compute_and_save_undistorted_reconstruction(reconstruction, tracks_manager, 
             ucamera = osfm_u.perspective_camera_from_fisheye(shot.camera)
         else:
             raise ValueError
-
-        ushot = osfm_u.get_shot_with_different_camera(shot, ucamera)
-        urec.add_camera(ushot.camera)
-        urec.add_shot(ushot)
+        urec.add_camera(ucamera)
+        ushot = osfm_u.get_shot_with_different_camera(urec, shot, ucamera)
         if tracks_manager:
             osfm_u.add_subshot_tracks(tracks_manager, utracks_manager, shot, ushot)
         undistorted_shots.append(ushot)
@@ -124,7 +117,8 @@ def import_cameras_images(db, data):
         image_id, camera_id, filename = int(row[0]), int(row[1]), row[2]
         images_map[image_id] = (filename, camera_id)
         cam = cameras[camera_id]
-        focal_ratio = cam.focal_x if isinstance(cam, types.BrownPerspectiveCamera) else cam.focal
+
+        focal_ratio = cam.focal_x if cam.projection_type == "brown" else cam.focal
         exif_data = {
             "make": "unknown",
             "model": "unknown",
@@ -246,22 +240,24 @@ def import_cameras_reconstruction(path_cameras, rec):
             for _ in range(n_params):
                 params.append(unpack('<d', f.read(8))[0])
             cam = cam_from_colmap_params(camera_model_id, width, height, params)
-            cam.id = camera_id
-            new_cam = rec.add_camera(cam)
+            cam.id = str(camera_id)
+            rec.add_camera(cam)
 
 
 def cam_from_colmap_params(camera_model_id, width, height, params, prior_focal=1):
     """
     Helper function to map from colmap parameters to an OpenSfM camera
     """
-    if camera_model_id not in (3, 9):
+    mapping = {1: 'pinhole', 3: 'perspective', 9: 'fisheye'}
+    if camera_model_id not in mapping.keys():
         raise ValueError("Not supported: " + camera_models[camera_model_id][0])
-    mapping = {3: 'perspective', 9: 'fisheye'}
     projection_type = mapping[camera_model_id]
     normalizer = max(width, height)
     focal = params[0] / normalizer if prior_focal else 0.85
     if projection_type == 'perspective':
         cam = pygeometry.Camera.create_perspective(focal, params[3], params[4])
+    elif projection_type == 'pinhole':
+        cam = pygeometry.Camera.create_perspective(focal, 0, 0)
     else:  # projection_type == 'fisheye'
         cam = pygeometry.Camera.create_fisheye(focal, params[3], 0)
     cam.width = width
@@ -273,7 +269,7 @@ def import_points_reconstruction(path_points, rec):
     logger.info("Importing points from {}".format(path_points))
     with open(path_points, 'rb') as f:
         n_points = unpack('<Q', f.read(8))[0]
-        for point_ix in range(n_points):
+        for _ in range(n_points):
             pid = unpack('<Q', f.read(8))[0]
             x = unpack('<d', f.read(8))[0]
             y = unpack('<d', f.read(8))[0]
@@ -281,11 +277,11 @@ def import_points_reconstruction(path_points, rec):
             r = unpack('<B', f.read(1))[0]
             g = unpack('<B', f.read(1))[0]
             b = unpack('<B', f.read(1))[0]
-            error = unpack('<d', f.read(8))[0]
+            _ = unpack('<d', f.read(8))[0] # error
             track_len = unpack('<Q', f.read(8))[0]
             # Ignore track info
             f.seek(8 * track_len, 1)
-            p = rec.create_point(pid, (x, y, z))
+            p = rec.create_point(str(pid), (x, y, z))
             p.color = (r, g, b)
 
 
@@ -343,7 +339,7 @@ def read_colmap_ply(path_ply):
     return np.array(points), np.array(normals), np.array(colors)
 
 
-def import_images_reconstruction(path_images, camera_map, keypoints, points3D, rec):
+def import_images_reconstruction(path_images, keypoints, rec):
     """
     Read images.bin, building shots and tracks graph
     """
@@ -373,7 +369,7 @@ def import_images_reconstruction(path_images, camera_map, keypoints, points3D, r
             t = np.array([t0, t1, t2])
 
             pose = pygeometry.Pose(rotation=quaternion_to_angle_axis(q), translation=t)
-            shot = rec.create_shot(filename, camera_id, pose)
+            shot = rec.create_shot(filename, str(camera_id), pose)
             image_ix_to_shot_id[image_ix] = shot.id
 
             n_points_2d = unpack('<Q', f.read(8))[0]
@@ -383,7 +379,7 @@ def import_images_reconstruction(path_images, camera_map, keypoints, points3D, r
                 point3d_id = unpack('<Q', f.read(8))[0]
                 if point3d_id != np.iinfo(np.uint64).max:
                     kp = keypoints[image_id][point2d_ix]
-                    r, g, b = points3D[point3d_id].color
+                    r, g, b = rec.points[str(point3d_id)].color
                     obs = pysfm.Observation(x, y, kp[2], int(r), int(g), int(b), point2d_ix)
                     tracks_manager.add_observation(shot.id, str(point3d_id), obs)
 
@@ -397,7 +393,7 @@ def read_vis(path_vis, image_ix_to_shot_id):
         n_points = unpack('<Q', f.read(8))[0]
         for point_ix in range(n_points):
             n_images = unpack('<I', f.read(4))[0]
-            for i in range(n_images):
+            for _ in range(n_images):
                 image_ix = unpack('<I', f.read(4))[0]
                 shot_id = image_ix_to_shot_id[image_ix]
                 points_seen[shot_id].append(point_ix)
@@ -506,7 +502,7 @@ def main():
     export_folder.mkdir(exist_ok=True)
     images_path = export_folder / 'images'
     if not images_path.exists():
-        os.symlink(args.images, images_path, target_is_directory=True)
+        os.symlink(os.path.abspath(args.images), images_path, target_is_directory=True)
 
     # Copy the config if this is an colmap export of an opensfm export
     if p_db.parent.name == 'colmap_export' and not (export_folder/'config.yaml').exists():
@@ -518,9 +514,9 @@ def main():
 
     # Create image_list.txt
     with open(export_folder / 'image_list.txt', 'w') as f:
-        for image_id, (filename, camera_id) in image_map.items():
+        for _, (filename, _) in image_map.items():
             f.write('images/' + filename + '\n')
-    data._load_image_list()
+    data.load_image_list()
 
     keypoints = import_features(db, data, image_map, camera_map)
     import_matches(db, data, image_map)
@@ -534,9 +530,7 @@ def main():
         import_cameras_reconstruction(rec_cameras, reconstruction)
         import_points_reconstruction(rec_points, reconstruction)
         tracks_manager, _ = import_images_reconstruction(rec_images,
-                                                         cameras,
                                                          keypoints,
-                                                         points3D,
                                                          reconstruction)
 
         data.save_reconstruction([reconstruction])
@@ -548,13 +542,15 @@ def main():
 
         # Project colmap's fused pointcloud to save depths in opensfm format
         path_ply = p_db.parent / 'dense/fused.ply'
-        path_images = p_db.parent / 'dense/sparse/images.bin'
         if path_ply.is_file():
+            rec_cameras = p_db.parent / 'dense/sparse/cameras.bin'
+            rec_images = p_db.parent / 'dense/sparse/images.bin'
+            rec_points = p_db.parent / 'points3D.bin'
             reconstruction = types.Reconstruction()
-            _, image_ix_to_shot_id = import_images_reconstruction(path_images,
-                                                                  cameras,
+            import_cameras_reconstruction(rec_cameras, reconstruction)
+            import_points_reconstruction(rec_points, reconstruction)
+            _, image_ix_to_shot_id = import_images_reconstruction(rec_images,
                                                                   keypoints,
-                                                                  points3D,
                                                                   reconstruction)
             logger.info(f"Projecting {path_ply} to depth images")
             import_depthmaps_from_fused_pointcloud(udata, urec, image_ix_to_shot_id, path_ply)

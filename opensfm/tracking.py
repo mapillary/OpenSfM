@@ -1,22 +1,16 @@
 import logging
-import sys
 
-import numpy as np
 import networkx as nx
-
-from collections import defaultdict
-from itertools import combinations
-from six import iteritems
-
-from opensfm.unionfind import UnionFind
+import numpy as np
 from opensfm import pysfm
+from opensfm.unionfind import UnionFind
 
 
 logger = logging.getLogger(__name__)
 
 
 def load_features(dataset, images):
-    logging.info('reading features')
+    logging.info("reading features")
     features = {}
     colors = {}
     for im in images:
@@ -41,7 +35,7 @@ def load_matches(dataset, images):
 
 def create_tracks_manager(features, colors, matches, config):
     """Link matches into tracks."""
-    logger.debug('Merging features onto tracks')
+    logger.debug("Merging features onto tracks")
     uf = UnionFind()
     for im1, im2 in matches:
         for f1, f2 in matches[im1, im2]:
@@ -55,9 +49,9 @@ def create_tracks_manager(features, colors, matches, config):
         else:
             sets[p] = [i]
 
-    min_length = config['min_track_length']
+    min_length = config["min_track_length"]
     tracks = [t for t in sets.values() if _good_track(t, min_length)]
-    logger.debug('Good tracks: {}'.format(len(tracks)))
+    logger.debug("Good tracks: {}".format(len(tracks)))
 
     tracks_manager = pysfm.TracksManager()
     for track_id, track in enumerate(tracks):
@@ -109,15 +103,17 @@ def all_common_tracks(tracks_manager, include_features=True, min_common=50):
         from second image
     """
     common_tracks = {}
-    for(im1, im2), size in tracks_manager.get_all_pairs_connectivity().items():
+    for (im1, im2), size in tracks_manager.get_all_pairs_connectivity().items():
         if size < min_common:
             continue
 
         tuples = tracks_manager.get_all_common_observations(im1, im2)
         if include_features:
-            common_tracks[im1, im2] = ([v for v, _, _ in tuples],
-                                       np.array([p.point for _, p, _ in tuples]),
-                                       np.array([p.point for _, _, p in tuples]))
+            common_tracks[im1, im2] = (
+                [v for v, _, _ in tuples],
+                np.array([p.point for _, p, _ in tuples]),
+                np.array([p.point for _, _, p in tuples]),
+            )
         else:
             common_tracks[im1, im2] = [v for v, _, _ in tuples]
     return common_tracks
@@ -133,9 +129,9 @@ def _good_track(track, min_length):
 
 
 def as_weighted_graph(tracks_manager):
-    """ Return the tracks manager as a weighted graph
-        having shots a snodes and weighted by the # of
-        common tracks between two nodes.
+    """Return the tracks manager as a weighted graph
+    having shots a snodes and weighted by the # of
+    common tracks between two nodes.
     """
     images = tracks_manager.get_shot_ids()
     image_graph = nx.Graph()
@@ -158,6 +154,12 @@ def as_graph(tracks_manager):
         graph.add_node(shot_id, bipartite=0)
     for track_id in tracks:
         for im, obs in tracks_manager.get_track_observations(track_id).items():
-            graph.add_edge(im, track_id, feature=obs.point, feature_scale=obs.scale,
-                           feature_id=obs.id, feature_color=obs.color)
+            graph.add_edge(
+                im,
+                track_id,
+                feature=obs.point,
+                feature_scale=obs.scale,
+                feature_id=obs.id,
+                feature_color=obs.color,
+            )
     return graph

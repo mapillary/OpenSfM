@@ -50,17 +50,41 @@ Observation InstanciateObservation(double x, double y, double scale, int id,
   return observation;
 }
 
+void SeparateLineByTabs(const std::string& line, std::vector<std::string>& elems)
+{
+    elems.clear();
+    std::stringstream stst(line);
+    std::string elem;
+    while (std::getline(stst, elem, '\t')) //separate by tabs
+    {
+        elems.push_back(elem);
+    }
+}
+
 template <class S>
 TracksManager InstanciateFromStreamV0(S& fstream) {
-  ShotId image = "";
-  TrackId trackID = "";
-  int featureID = -1;
-  double x = -1.0, y = -1.0;
-  int r = 0, g = 0, b = 0;
-
   TracksManager manager;
-  while (fstream >> image >> trackID >> featureID >> x >> y >> r >> g >> b) {
-    auto observation = InstanciateObservation(x, y, 0., featureID, r, g, b);
+  std::string line;
+  std::vector<std::string> elems;
+  constexpr auto N_ENTRIES{8};
+  elems.reserve(N_ENTRIES);
+  while (std::getline(fstream, line))
+  {
+    SeparateLineByTabs(line, elems);
+    if (elems.size() != N_ENTRIES) // process only valid lines
+    {
+      std::runtime_error("Encountered invalid line. A line must contain exactly " + std::to_string(N_ENTRIES) + " values!");
+    }
+    const ShotId image = elems[0];
+    const TrackId trackID = elems[1];
+    const int featureID = std::stoi(elems[2]);
+    const double x = std::stod(elems[3]);
+    const double y = std::stod(elems[4]);
+    const double scale = 0.0;
+    const int r = std::stoi(elems[5]);
+    const int g = std::stoi(elems[6]);
+    const int b = std::stoi(elems[7]);
+    auto observation = InstanciateObservation(x, y, scale, featureID, r, g, b);
     manager.AddObservation(image, trackID, observation);
   }
   return manager;
@@ -68,15 +92,27 @@ TracksManager InstanciateFromStreamV0(S& fstream) {
 
 template <class S>
 TracksManager InstanciateFromStreamV1(S& fstream) {
-  ShotId image = "";
-  TrackId trackID = "";
-  int featureID = -1;
-  double x = -1.0, y = -1.0, scale = 0.;
-  int r = 0, g = 0, b = 0;
-
   TracksManager manager;
-  while (fstream >> image >> trackID >> featureID >> x >> y >> scale >> r >>
-         g >> b) {
+  std::string line;
+  std::vector<std::string> elems;
+  constexpr auto N_ENTRIES{9};
+  elems.reserve(N_ENTRIES);
+  while (std::getline(fstream, line))
+  {
+    SeparateLineByTabs(line, elems);
+    if (elems.size() != N_ENTRIES) // process only valid lines
+    {
+      std::runtime_error("Encountered invalid line. A line must contain exactly " + std::to_string(N_ENTRIES) + " values!");
+    }
+    const ShotId image = elems[0];
+    const TrackId trackID = elems[1];
+    const int featureID = std::stoi(elems[2]);
+    const double x = std::stod(elems[3]);
+    const double y = std::stod(elems[4]);
+    const double scale = std::stod(elems[5]);
+    const int r = std::stoi(elems[6]);
+    const int g = std::stoi(elems[7]);
+    const int b = std::stoi(elems[8]);
     auto observation = InstanciateObservation(x, y, scale, featureID, r, g, b);
     manager.AddObservation(image, trackID, observation);
   }

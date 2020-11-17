@@ -1,5 +1,3 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import os.path
 
 import pytest
@@ -10,7 +8,7 @@ from opensfm.test import data_generation
 NEIGHBORS = 6
 
 
-class Args():
+class Args:
     def __init__(self, dataset):
         self.dataset = dataset
 
@@ -49,10 +47,6 @@ def lund_path(tmpdir_factory):
 
 def match_candidates_from_metadata(data, neighbors=NEIGHBORS, assert_count=NEIGHBORS):
     assert neighbors >= assert_count
-
-    args = Args(data.data_path)
-    commands.extract_metadata.Command().run(args)
-    commands.detect_features.Command().run(args)
 
     ims = sorted(data.images())
     ims_ref = ims[:1]

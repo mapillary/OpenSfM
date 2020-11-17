@@ -52,7 +52,7 @@ TEST(Map, TestCreateCamera) {
     ASSERT_EQ(my_cam->height, camera.height);
   }
   ASSERT_EQ(map.NumberOfCameras(), n_cameras);
-  ASSERT_EQ(map.GetAllCameras().size(), n_cameras);
+  ASSERT_EQ(map.GetCameras().size(), n_cameras);
 }
 
 TEST(Map, TestDeleteShots)
@@ -164,7 +164,7 @@ TEST(Map, SmallProblem)
     map.CreateShot(shot_id, camera.id);
   }
   ASSERT_EQ(map.NumberOfShots(), n_shots);
-  auto& shots = map.GetAllShots();
+  auto& shots = map.GetShots();
   ASSERT_EQ(shots.size(), n_shots);
   for (auto i = 0; i < n_points; ++i)
   {
@@ -180,7 +180,7 @@ TEST(Map, SmallProblem)
     ASSERT_EQ(lm->NumberOfObservations(), n_shots);
   }
   ASSERT_EQ(map.NumberOfLandmarks(), n_points);
-  ASSERT_EQ(map.GetAllLandmarks().size(), n_points);
+  ASSERT_EQ(map.GetLandmarks().size(), n_points);
   for (const auto& shot_pair : shots)
   {
     ASSERT_EQ(shot_pair.second.ComputeNumValidLandmarks(), n_points);

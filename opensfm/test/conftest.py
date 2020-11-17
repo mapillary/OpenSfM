@@ -1,11 +1,9 @@
-from distutils.version import LooseVersion
-
-import pytest
-import numpy as np
-
 from collections import defaultdict
+from distutils.version import LooseVersion
 from itertools import combinations
 
+import numpy as np
+import pytest
 from opensfm import multiview
 from opensfm.synthetic_data import synthetic_examples
 
@@ -17,10 +15,10 @@ def pytest_configure(config):
 def use_legacy_numpy_printoptions():
     """Ensure numpy use legacy print formant."""
     if LooseVersion(np.__version__).version[:2] > [1, 13]:
-        np.set_printoptions(legacy='1.13')
+        np.set_printoptions(legacy="1.13")
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 def scene_synthetic():
     np.random.seed(42)
     data = synthetic_examples.synthetic_circle_scene()
@@ -30,12 +28,13 @@ def scene_synthetic():
     gps_noise = 5.0
 
     exifs = data.get_scene_exifs(gps_noise)
-    features, desc, colors, graph = data.get_tracks_data(maximum_depth,
-                                                         projection_noise)
+    features, desc, colors, graph = data.get_tracks_data(
+        maximum_depth, projection_noise
+    )
     return data, exifs, features, desc, colors, graph
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope="session")
 def scene_synthetic_cube():
     np.random.seed(42)
     data = synthetic_examples.synthetic_cube_scene()
@@ -43,7 +42,7 @@ def scene_synthetic_cube():
     return data.get_reconstruction(), tracks_manager
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 def pairs_and_poses():
     np.random.seed(42)
     data = synthetic_examples.synthetic_cube_scene()
@@ -67,14 +66,14 @@ def pairs_and_poses():
     return pairs, poses, camera, features, tracks_manager, reconstruction
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 def pairs_and_their_E(pairs_and_poses):
     pairs, poses, camera, _, _, _ = pairs_and_poses
 
     pairs = list(sorted(zip(pairs.values(), poses.values()), key=lambda x: -len(x[0])))
 
     num_pairs = 20
-    indices = [np.random.randint(0, len(pairs)-1) for i in range(num_pairs)]
+    indices = [np.random.randint(0, len(pairs) - 1) for i in range(num_pairs)]
 
     ret_pairs = []
     for idx in indices:
@@ -97,7 +96,7 @@ def pairs_and_their_E(pairs_and_poses):
     return ret_pairs
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 def shots_and_their_points(pairs_and_poses):
     _, _, _, _, tracks_manager, reconstruction = pairs_and_poses
 

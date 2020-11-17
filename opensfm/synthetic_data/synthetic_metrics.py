@@ -1,23 +1,28 @@
-import numpy as np
 import cv2
-
+import numpy as np
 import opensfm.transformations as tf
 from opensfm import align
 from opensfm import types
 
 
 def points_errors(reference, candidate):
-    common_points = set(reference.points.keys()).\
-         intersection(set(candidate.points.keys()))
+    common_points = set(reference.points.keys()).intersection(
+        set(candidate.points.keys())
+    )
 
-    return np.array([reference.points[p].coordinates -
-                     candidate.points[p].coordinates
-                     for p in common_points])
+    return np.array(
+        [
+            reference.points[p].coordinates - candidate.points[p].coordinates
+            for p in common_points
+        ]
+    )
 
 
 def completeness_errors(reference, candidate):
-    return float(len(candidate.shots))/float(len(reference.shots)),\
-            float(len(candidate.points))/float(len(reference.points))
+    return (
+        float(len(candidate.shots)) / float(len(reference.shots)),
+        float(len(candidate.points)) / float(len(reference.points)),
+    )
 
 
 def gps_errors(candidate):
@@ -25,24 +30,22 @@ def gps_errors(candidate):
     for shot in candidate.shots.values():
         pose1 = shot.metadata.gps_position.value
         pose2 = shot.pose.get_origin()
-        errors.append(pose1-pose2)
+        errors.append(pose1 - pose2)
     return np.array(errors)
 
 
 def position_errors(reference, candidate):
-    common_shots = set(reference.shots.keys()).\
-        intersection(set(candidate.shots.keys()))
+    common_shots = set(reference.shots.keys()).intersection(set(candidate.shots.keys()))
     errors = []
     for s in common_shots:
         pose1 = reference.shots[s].pose.get_origin()
         pose2 = candidate.shots[s].pose.get_origin()
-        errors.append(pose1-pose2)
+        errors.append(pose1 - pose2)
     return np.array(errors)
 
 
 def rotation_errors(reference, candidate):
-    common_shots = set(reference.shots.keys()).\
-        intersection(set(candidate.shots.keys()))
+    common_shots = set(reference.shots.keys()).intersection(set(candidate.shots.keys()))
     errors = []
     for s in common_shots:
         pose1 = reference.shots[s].pose.get_rotation_matrix()
@@ -56,7 +59,7 @@ def rotation_errors(reference, candidate):
 
 def find_alignment(points0, points1):
     """Compute similarity transform between point sets.
-    
+
     Returns (s, A, b) such that ``points1 = s * A * points0 + b``
     """
     v0, v1 = [], []
@@ -67,7 +70,7 @@ def find_alignment(points0, points1):
     v0 = np.array(v0).T
     v1 = np.array(v1).T
     M = tf.affine_matrix_from_points(v0, v1, shear=False)
-    s = np.linalg.det(M[:3, :3])**(1. / 3.)
+    s = np.linalg.det(M[:3, :3]) ** (1.0 / 3.0)
     A = M[:3, :3] / s
     b = M[:3, 3]
     return s, A, b
@@ -100,4 +103,4 @@ def _copy_reconstruction(reconstruction):
 
 
 def rmse(errors):
-    return np.sqrt(np.mean(errors**2))
+    return np.sqrt(np.mean(errors ** 2))

@@ -36,7 +36,11 @@ std::vector<Eigen::Matrix<double, 3, 4>> AbsolutePoseThreePoints(IT begin, IT en
   // Compute sigma and k3"
   const Eigen::Vector3d u1_k1 = u1.cross(k1);
   const auto sigma = u1_k1.norm();
-  const Eigen::Vector3d k3_second = u1_k1/sigma;
+  if (sigma == 0.0)
+  {
+    return RTs;
+  }
+  const Eigen::Vector3d k3_second = u1_k1 / sigma;
 
   // Compute fij's
   const auto k3_b3 = k3.dot(b3);

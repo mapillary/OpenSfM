@@ -1,5 +1,4 @@
 import numpy as np
-
 from opensfm.test import data_generation
 
 
@@ -8,7 +7,7 @@ def test_dataset_load_features_sift(tmpdir):
 
     assert len(data.images()) == 3
 
-    data.config['feature_type'] = 'SIFT'
+    data.config["feature_type"] = "SIFT"
 
     image = data.images()[0]
     points = np.random.random((3, 4))

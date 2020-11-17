@@ -1,21 +1,17 @@
-# -*- coding: utf-8 -*-
-
-import os
+import gzip
 import json
 import logging
+import os
 import pickle
-import gzip
 
 import cv2
 import numpy as np
-import six
-
-from opensfm import io
 from opensfm import config
-from opensfm import geo
 from opensfm import features
-from opensfm import upright
+from opensfm import geo
+from opensfm import io
 from opensfm import pysfm
+from opensfm import upright
 
 logger = logging.getLogger(__name__)
 
@@ -33,26 +29,27 @@ class DataSet(object):
     It is possible to store data remotely or in different formats
     by subclassing this class and overloading its methods.
     """
+
     def __init__(self, data_path):
         """Init dataset associated to a folder."""
         self.data_path = data_path
-        self._load_config()
-        self._load_image_list()
-        self._load_mask_list()
+        self.load_config()
+        self.load_image_list()
+        self.load_mask_list()
 
-    def _load_config(self):
-        config_file = os.path.join(self.data_path, 'config.yaml')
+    def load_config(self):
+        config_file = os.path.join(self.data_path, "config.yaml")
         self.config = config.load_config(config_file)
 
-    def _load_image_list(self):
+    def load_image_list(self):
         """Load image list from image_list.txt or list images/ folder."""
-        image_list_file = os.path.join(self.data_path, 'image_list.txt')
+        image_list_file = os.path.join(self.data_path, "image_list.txt")
         if os.path.isfile(image_list_file):
             with io.open_rt(image_list_file) as fin:
                 lines = fin.read().splitlines()
             self._set_image_list(lines)
         else:
-            self._set_image_path(os.path.join(self.data_path, 'images'))
+            self._set_image_path(os.path.join(self.data_path, "images"))
 
     def images(self):
         """List of file names of all images in the dataset."""
@@ -64,29 +61,34 @@ class DataSet(object):
 
     def open_image_file(self, image):
         """Open image file and return file object."""
-        return open(self._image_file(image), 'rb')
+        return open(self._image_file(image), "rb")
 
-    def load_image(self, image, unchanged=False, anydepth=False):
+    def load_image(self, image, unchanged=False, anydepth=False, grayscale=False):
         """Load image pixels as numpy array.
 
         The array is 3D, indexed by y-coord, x-coord, channel.
         The channels are in RGB order.
         """
-        return io.imread(self._image_file(image), unchanged=unchanged, anydepth=anydepth)
+        return io.imread(
+            self._image_file(image),
+            unchanged=unchanged,
+            anydepth=anydepth,
+            grayscale=grayscale,
+        )
 
     def image_size(self, image):
         """Height and width of the image."""
         return io.image_size(self._image_file(image))
 
-    def _load_mask_list(self):
+    def load_mask_list(self):
         """Load mask list from mask_list.txt or list masks/ folder."""
-        mask_list_file = os.path.join(self.data_path, 'mask_list.txt')
+        mask_list_file = os.path.join(self.data_path, "mask_list.txt")
         if os.path.isfile(mask_list_file):
             with io.open_rt(mask_list_file) as fin:
                 lines = fin.read().splitlines()
             self._set_mask_list(lines)
         else:
-            self._set_mask_path(os.path.join(self.data_path, 'masks'))
+            self._set_mask_path(os.path.join(self.data_path, "masks"))
 
     def load_mask(self, image):
         """Load image mask if it exists, otherwise return None."""
@@ -94,8 +96,10 @@ class DataSet(object):
             mask_path = self.mask_files[image]
             mask = io.imread(mask_path, grayscale=True)
             if mask is None:
-                raise IOError("Unable to load mask for image {} "
-                              "from file {}".format(image, mask_path))
+                raise IOError(
+                    "Unable to load mask for image {} "
+                    "from file {}".format(image, mask_path)
+                )
         else:
             mask = None
         return mask
@@ -112,7 +116,7 @@ class DataSet(object):
 
         mask_image = self.load_combined_mask(image)
         if mask_image is None:
-            logger.debug('No segmentation for {}, no features masked.'.format(image))
+            logger.debug("No segmentation for {}, no features masked.".format(image))
             return np.ones((points.shape[0],), dtype=bool)
 
         exif = self.load_exif(image)
@@ -122,21 +126,29 @@ class DataSet(object):
 
         new_height, new_width = mask_image.shape
         ps = upright.opensfm_to_upright(
-            points[:, :2], width, height, orientation,
-            new_width=new_width, new_height=new_height).astype(int)
+            points[:, :2],
+            width,
+            height,
+            orientation,
+            new_width=new_width,
+            new_height=new_height,
+        ).astype(int)
         mask = mask_image[ps[:, 1], ps[:, 0]]
 
         n_removed = np.sum(mask == 0)
-        logger.debug('Masking {} / {} ({:.2f}) features for {}'.format(
-            n_removed, len(mask), n_removed / len(mask), image))
+        logger.debug(
+            "Masking {} / {} ({:.2f}) features for {}".format(
+                n_removed, len(mask), n_removed / len(mask), image
+            )
+        )
 
         return np.array(mask, dtype=bool)
 
     def _detection_path(self):
-        return os.path.join(self.data_path, 'detections')
+        return os.path.join(self.data_path, "detections")
 
     def _detection_file(self, image):
-        return os.path.join(self._detection_path(), image + '.png')
+        return os.path.join(self._detection_path(), image + ".png")
 
     def load_detection(self, image):
         """Load image detection if it exists, otherwise return None."""
@@ -148,10 +160,10 @@ class DataSet(object):
         return detection
 
     def _segmentation_path(self):
-        return os.path.join(self.data_path, 'segmentations')
+        return os.path.join(self.data_path, "segmentations")
 
     def _segmentation_file(self, image):
-        return os.path.join(self._segmentation_path(), image + '.png')
+        return os.path.join(self._segmentation_path(), image + ".png")
 
     def load_segmentation(self, image):
         """Load image segmentation if it exists, otherwise return None."""
@@ -168,7 +180,7 @@ class DataSet(object):
         Pixels with this labels values will be masked out and won't be
         processed when extracting features or computing depthmaps.
         """
-        return self.config.get('segmentation_ignore_values', [])
+        return self.config.get("segmentation_ignore_values", [])
 
     def load_segmentation_mask(self, image):
         """Build a mask from segmentation ignore values.
@@ -189,7 +201,7 @@ class DataSet(object):
     def _mask_from_segmentation(self, segmentation, ignore_values):
         mask = np.ones(segmentation.shape, dtype=np.uint8)
         for value in ignore_values:
-            mask &= (segmentation != value)
+            mask &= segmentation != value
         return mask
 
     def load_combined_mask(self, image):
@@ -224,8 +236,8 @@ class DataSet(object):
         return im1, im2
 
     def _is_image_file(self, filename):
-        extensions = {'jpg', 'jpeg', 'png', 'tif', 'tiff', 'pgm', 'pnm', 'gif'}
-        return filename.split('.')[-1].lower() in extensions
+        extensions = {"jpg", "jpeg", "png", "tif", "tiff", "pgm", "pnm", "gif"}
+        return filename.split(".")[-1].lower() in extensions
 
     def _set_image_path(self, path):
         """Set image path and find all images in there"""
@@ -233,7 +245,6 @@ class DataSet(object):
         self.image_files = {}
         if os.path.exists(path):
             for name in os.listdir(path):
-                name = six.text_type(name)
                 if self._is_image_file(name):
                     self.image_list.append(name)
                     self.image_files[name] = os.path.join(path, name)
@@ -251,7 +262,7 @@ class DataSet(object):
         """Set mask path and find all masks in there"""
         self.mask_files = {}
         for image in self.images():
-            filepath = os.path.join(path, image + '.png')
+            filepath = os.path.join(path, image + ".png")
             if os.path.isfile(filepath):
                 self.mask_files[image] = filepath
 
@@ -264,14 +275,14 @@ class DataSet(object):
 
     def _exif_path(self):
         """Return path of extracted exif directory"""
-        return os.path.join(self.data_path, 'exif')
+        return os.path.join(self.data_path, "exif")
 
     def _exif_file(self, image):
         """
         Return path of exif information for given image
         :param image: Image name, with extension (i.e. 123.jpg)
         """
-        return os.path.join(self._exif_path(), image + '.exif')
+        return os.path.join(self._exif_path(), image + ".exif")
 
     def load_exif(self, image):
         """Load pre-extracted image exif metadata."""
@@ -288,9 +299,9 @@ class DataSet(object):
 
     def feature_type(self):
         """Return the type of local features (e.g. AKAZE, SURF, SIFT)"""
-        feature_name = self.config['feature_type'].lower()
-        if self.config['feature_root']:
-            feature_name = 'root_' + feature_name
+        feature_name = self.config["feature_type"].lower()
+        if self.config["feature_root"]:
+            feature_name = "root_" + feature_name
         return feature_name
 
     def _feature_path(self):
@@ -302,22 +313,23 @@ class DataSet(object):
         Return path of feature file for specified image
         :param image: Image name, with extension (i.e. 123.jpg)
         """
-        return os.path.join(self._feature_path(), image + '.features.npz')
+        return os.path.join(self._feature_path(), image + ".features.npz")
 
     def _feature_file_legacy(self, image):
         """
         Return path of a legacy feature file for specified image
         :param image: Image name, with extension (i.e. 123.jpg)
         """
-        return os.path.join(self._feature_path(), image + '.npz')
+        return os.path.join(self._feature_path(), image + ".npz")
 
     def _save_features(self, filepath, points, descriptors, colors=None):
         io.mkdir_p(self._feature_path())
         features.save_features(filepath, points, descriptors, colors, self.config)
 
     def features_exist(self, image):
-        return os.path.isfile(self._feature_file(image)) or\
-            os.path.isfile(self._feature_file_legacy(image))
+        return os.path.isfile(self._feature_file(image)) or os.path.isfile(
+            self._feature_file_legacy(image)
+        )
 
     def load_features(self, image):
         if os.path.isfile(self._feature_file_legacy(image)):
@@ -328,37 +340,37 @@ class DataSet(object):
         self._save_features(self._feature_file(image), points, descriptors, colors)
 
     def _words_file(self, image):
-        return os.path.join(self._feature_path(), image + '.words.npz')
+        return os.path.join(self._feature_path(), image + ".words.npz")
 
     def words_exist(self, image):
         return os.path.isfile(self._words_file(image))
 
     def load_words(self, image):
         s = np.load(self._words_file(image))
-        return s['words'].astype(np.int32)
+        return s["words"].astype(np.int32)
 
     def save_words(self, image, words):
         np.savez_compressed(self._words_file(image), words=words.astype(np.uint16))
 
     def _matches_path(self):
         """Return path of matches directory"""
-        return os.path.join(self.data_path, 'matches')
+        return os.path.join(self.data_path, "matches")
 
     def _matches_file(self, image):
         """File for matches for an image"""
-        return os.path.join(self._matches_path(), '{}_matches.pkl.gz'.format(image))
+        return os.path.join(self._matches_path(), "{}_matches.pkl.gz".format(image))
 
     def matches_exists(self, image):
         return os.path.isfile(self._matches_file(image))
 
     def load_matches(self, image):
-        with gzip.open(self._matches_file(image), 'rb') as fin:
+        with gzip.open(self._matches_file(image), "rb") as fin:
             matches = pickle.load(fin)
         return matches
 
     def save_matches(self, image, matches):
         io.mkdir_p(self._matches_path())
-        with gzip.open(self._matches_file(image), 'wb') as fout:
+        with gzip.open(self._matches_file(image), "wb") as fout:
             pickle.dump(matches, fout)
 
     def find_matches(self, im1, im2):
@@ -375,11 +387,13 @@ class DataSet(object):
 
     def _tracks_manager_file(self, filename=None):
         """Return path of tracks file"""
-        return os.path.join(self.data_path, filename or 'tracks.csv')
+        return os.path.join(self.data_path, filename or "tracks.csv")
 
     def load_tracks_manager(self, filename=None):
         """Return the tracks manager"""
-        return pysfm.TracksManager.instanciate_from_file(self._tracks_manager_file(filename))
+        return pysfm.TracksManager.instanciate_from_file(
+            self._tracks_manager_file(filename)
+        )
 
     def tracks_exists(self, filename=None):
         return os.path.isfile(self._tracks_manager_file(filename))
@@ -389,7 +403,7 @@ class DataSet(object):
 
     def _reconstruction_file(self, filename):
         """Return path of reconstruction file"""
-        return os.path.join(self.data_path, filename or 'reconstruction.json')
+        return os.path.join(self.data_path, filename or "reconstruction.json")
 
     def reconstruction_exists(self, filename=None):
         return os.path.isfile(self._reconstruction_file(filename))
@@ -404,37 +418,47 @@ class DataSet(object):
             io.json_dump(io.reconstructions_to_json(reconstruction), fout, minify)
 
     def _reference_lla_path(self):
-        return os.path.join(self.data_path, 'reference_lla.json')
+        return os.path.join(self.data_path, "reference_lla.json")
 
     def invent_reference_lla(self, images=None):
         lat, lon, alt = 0.0, 0.0, 0.0
         wlat, wlon, walt = 0.0, 0.0, 0.0
-        if images is None: images = self.images()
+        if images is None:
+            images = self.images()
         for image in images:
             d = self.load_exif(image)
-            if 'gps' in d and 'latitude' in d['gps'] and 'longitude' in d['gps']:
-                w = 1.0 / max(0.01, d['gps'].get('dop', 15))
-                lat += w * d['gps']['latitude']
-                lon += w * d['gps']['longitude']
+            if "gps" in d and "latitude" in d["gps"] and "longitude" in d["gps"]:
+                w = 1.0 / max(0.01, d["gps"].get("dop", 15))
+                lat += w * d["gps"]["latitude"]
+                lon += w * d["gps"]["longitude"]
                 wlat += w
                 wlon += w
-                if 'altitude' in d['gps']:
-                    alt += w * d['gps']['altitude']
+                if "altitude" in d["gps"]:
+                    alt += w * d["gps"]["altitude"]
                     walt += w
 
         if not wlat and not wlon:
-            for gcp in self._load_ground_control_points(None):
-                lat += gcp.lla[0]
-                lon += gcp.lla[1]
-                alt += gcp.lla[2]
+            for gcp in self.load_ground_control_points_impl(None):
+                lat += gcp.lla["latitude"]
+                lon += gcp.lla["longitude"]
                 wlat += 1
                 wlon += 1
-                walt += 1
 
-        if wlat: lat /= wlat
-        if wlon: lon /= wlon
-        if walt: alt /= walt
-        reference = {'latitude': lat, 'longitude': lon, 'altitude': 0}  # Set altitude manually.
+                if gcp.has_altitude:
+                    alt += gcp.lla["altitude"]
+                    walt += 1
+
+        if wlat:
+            lat /= wlat
+        if wlon:
+            lon /= wlon
+        if walt:
+            alt /= walt
+        reference = {
+            "latitude": lat,
+            "longitude": lon,
+            "altitude": 0,
+        }  # Set altitude manually.
         self.save_reference_lla(reference)
         return reference
 
@@ -450,14 +474,15 @@ class DataSet(object):
         """Load reference as a topocentric converter."""
         lla = self.load_reference_lla()
         return geo.TopocentricConverter(
-            lla['latitude'], lla['longitude'], lla['altitude'])
+            lla["latitude"], lla["longitude"], lla["altitude"]
+        )
 
     def reference_lla_exists(self):
         return os.path.isfile(self._reference_lla_path())
 
     def _camera_models_file(self):
         """Return path of camera model file"""
-        return os.path.join(self.data_path, 'camera_models.json')
+        return os.path.join(self.data_path, "camera_models.json")
 
     def load_camera_models(self):
         """Return camera models data"""
@@ -473,7 +498,7 @@ class DataSet(object):
 
     def _camera_models_overrides_file(self):
         """Path to the camera model overrides file."""
-        return os.path.join(self.data_path, 'camera_models_overrides.json')
+        return os.path.join(self.data_path, "camera_models_overrides.json")
 
     def camera_models_overrides_exists(self):
         """Check if camera overrides file exists."""
@@ -493,7 +518,7 @@ class DataSet(object):
 
     def _exif_overrides_file(self):
         """Path to the EXIF overrides file."""
-        return os.path.join(self.data_path, 'exif_overrides.json')
+        return os.path.join(self.data_path, "exif_overrides.json")
 
     def exif_overrides_exists(self):
         """Check if EXIF overrides file exists."""
@@ -506,10 +531,10 @@ class DataSet(object):
 
     def profile_log(self):
         "Filename where to write timings."
-        return os.path.join(self.data_path, 'profile.log')
+        return os.path.join(self.data_path, "profile.log")
 
     def _report_path(self):
-        return os.path.join(self.data_path, 'reports')
+        return os.path.join(self.data_path, "reports")
 
     def load_report(self, path):
         """Load a report file as a string."""
@@ -525,27 +550,28 @@ class DataSet(object):
 
     def _navigation_graph_file(self):
         "Return the path of the navigation graph."
-        return os.path.join(self.data_path, 'navigation_graph.json')
+        return os.path.join(self.data_path, "navigation_graph.json")
 
     def save_navigation_graph(self, navigation_graphs):
         with io.open_wt(self._navigation_graph_file()) as fout:
             io.json_dump(navigation_graphs, fout)
 
     def _ply_file(self, filename):
-        return os.path.join(self.data_path, filename or 'reconstruction.ply')
+        return os.path.join(self.data_path, filename or "reconstruction.ply")
 
-    def save_ply(self, reconstruction, filename=None,
-                 no_cameras=False, no_points=False):
+    def save_ply(
+        self, reconstruction, filename=None, no_cameras=False, no_points=False
+    ):
         """Save a reconstruction in PLY format."""
         ply = io.reconstruction_to_ply(reconstruction, no_cameras, no_points)
         with io.open_wt(self._ply_file(filename)) as fout:
             fout.write(ply)
 
     def _ground_control_points_file(self):
-        return os.path.join(self.data_path, 'ground_control_points.json')
+        return os.path.join(self.data_path, "ground_control_points.json")
 
     def _gcp_list_file(self):
-        return os.path.join(self.data_path, 'gcp_list.txt')
+        return os.path.join(self.data_path, "gcp_list.txt")
 
     def load_ground_control_points(self):
         """Load ground control points.
@@ -555,9 +581,9 @@ class DataSet(object):
         """
 
         reference = self.load_reference()
-        return self._load_ground_control_points(reference)
+        return self.load_ground_control_points_impl(reference)
 
-    def _load_ground_control_points(self, reference):
+    def load_ground_control_points_impl(self, reference):
         """Load ground control points.
 
         It might use reference to convert the coordinates
@@ -597,6 +623,7 @@ class UndistortedDataSet(object):
     All data is stored inside a single folder which should be a subfolder
     of the base, distorted dataset.
     """
+
     def __init__(self, base_dataset, undistorted_subfolder):
         """Init dataset associated to a folder."""
         self.base = base_dataset
@@ -605,12 +632,12 @@ class UndistortedDataSet(object):
         self.data_path = os.path.join(self.base.data_path, self.subfolder)
 
     def _undistorted_image_path(self):
-        return os.path.join(self.data_path, 'images')
+        return os.path.join(self.data_path, "images")
 
     def _undistorted_image_file(self, image):
         """Path of undistorted version of an image."""
-        image_format = self.config['undistorted_image_format']
-        filename = image + '.' + image_format
+        image_format = self.config["undistorted_image_format"]
+        filename = image + "." + image_format
         return os.path.join(self._undistorted_image_path(), filename)
 
     def load_undistorted_image(self, image):
@@ -627,11 +654,11 @@ class UndistortedDataSet(object):
         return io.image_size(self._undistorted_image_file(image))
 
     def _undistorted_mask_path(self):
-        return os.path.join(self.data_path, 'masks')
+        return os.path.join(self.data_path, "masks")
 
     def _undistorted_mask_file(self, image):
         """Path of undistorted version of a mask."""
-        return os.path.join(self._undistorted_mask_path(), image + '.png')
+        return os.path.join(self._undistorted_mask_path(), image + ".png")
 
     def undistorted_mask_exists(self, image):
         """Check if the undistorted mask file exists."""
@@ -647,11 +674,11 @@ class UndistortedDataSet(object):
         io.imwrite(self._undistorted_mask_file(image), array)
 
     def _undistorted_detection_path(self):
-        return os.path.join(self.data_path, 'detections')
+        return os.path.join(self.data_path, "detections")
 
     def _undistorted_detection_file(self, image):
         """Path of undistorted version of a detection."""
-        return os.path.join(self._undistorted_detection_path(), image + '.png')
+        return os.path.join(self._undistorted_detection_path(), image + ".png")
 
     def undistorted_detection_exists(self, image):
         """Check if the undistorted detection file exists."""
@@ -659,8 +686,7 @@ class UndistortedDataSet(object):
 
     def load_undistorted_detection(self, image):
         """Load an undistorted image detection."""
-        return io.imread(self._undistorted_detection_file(image),
-                         grayscale=True)
+        return io.imread(self._undistorted_detection_file(image), grayscale=True)
 
     def save_undistorted_detection(self, image, array):
         """Save the undistorted image detection."""
@@ -668,11 +694,11 @@ class UndistortedDataSet(object):
         io.imwrite(self._undistorted_detection_file(image), array)
 
     def _undistorted_segmentation_path(self):
-        return os.path.join(self.data_path, 'segmentations')
+        return os.path.join(self.data_path, "segmentations")
 
     def _undistorted_segmentation_file(self, image):
         """Path of undistorted version of a segmentation."""
-        return os.path.join(self._undistorted_segmentation_path(), image + '.png')
+        return os.path.join(self._undistorted_segmentation_path(), image + ".png")
 
     def undistorted_segmentation_exists(self, image):
         """Check if the undistorted segmentation file exists."""
@@ -680,8 +706,7 @@ class UndistortedDataSet(object):
 
     def load_undistorted_segmentation(self, image):
         """Load an undistorted image segmentation."""
-        return io.imread(self._undistorted_segmentation_file(image),
-                         grayscale=True)
+        return io.imread(self._undistorted_segmentation_file(image), grayscale=True)
 
     def save_undistorted_segmentation(self, image, array):
         """Save the undistorted image segmentation."""
@@ -719,65 +744,81 @@ class UndistortedDataSet(object):
         return self.base._combine_masks(mask, smask)
 
     def _depthmap_path(self):
-        return os.path.join(self.data_path, 'depthmaps')
+        return os.path.join(self.data_path, "depthmaps")
 
     def _depthmap_file(self, image, suffix):
         """Path to the depthmap file"""
-        return os.path.join(self._depthmap_path(), image + '.' + suffix)
+        return os.path.join(self._depthmap_path(), image + "." + suffix)
 
     def raw_depthmap_exists(self, image):
-        return os.path.isfile(self._depthmap_file(image, 'raw.npz'))
+        return os.path.isfile(self._depthmap_file(image, "raw.npz"))
 
     def save_raw_depthmap(self, image, depth, plane, score, nghbr, nghbrs):
         io.mkdir_p(self._depthmap_path())
-        filepath = self._depthmap_file(image, 'raw.npz')
-        np.savez_compressed(filepath, depth=depth, plane=plane, score=score, nghbr=nghbr, nghbrs=nghbrs)
+        filepath = self._depthmap_file(image, "raw.npz")
+        np.savez_compressed(
+            filepath, depth=depth, plane=plane, score=score, nghbr=nghbr, nghbrs=nghbrs
+        )
 
     def load_raw_depthmap(self, image):
-        o = np.load(self._depthmap_file(image, 'raw.npz'))
-        return o['depth'], o['plane'], o['score'], o['nghbr'], o['nghbrs']
+        o = np.load(self._depthmap_file(image, "raw.npz"))
+        return o["depth"], o["plane"], o["score"], o["nghbr"], o["nghbrs"]
 
     def clean_depthmap_exists(self, image):
-        return os.path.isfile(self._depthmap_file(image, 'clean.npz'))
+        return os.path.isfile(self._depthmap_file(image, "clean.npz"))
 
     def save_clean_depthmap(self, image, depth, plane, score):
         io.mkdir_p(self._depthmap_path())
-        filepath = self._depthmap_file(image, 'clean.npz')
+        filepath = self._depthmap_file(image, "clean.npz")
         np.savez_compressed(filepath, depth=depth, plane=plane, score=score)
 
     def load_clean_depthmap(self, image):
-        o = np.load(self._depthmap_file(image, 'clean.npz'))
-        return o['depth'], o['plane'], o['score']
+        o = np.load(self._depthmap_file(image, "clean.npz"))
+        return o["depth"], o["plane"], o["score"]
 
     def pruned_depthmap_exists(self, image):
-        return os.path.isfile(self._depthmap_file(image, 'pruned.npz'))
+        return os.path.isfile(self._depthmap_file(image, "pruned.npz"))
 
     def save_pruned_depthmap(self, image, points, normals, colors, labels, detections):
         io.mkdir_p(self._depthmap_path())
-        filepath = self._depthmap_file(image, 'pruned.npz')
-        np.savez_compressed(filepath,
-                            points=points, normals=normals,
-                            colors=colors, labels=labels,
-                            detections=detections)
+        filepath = self._depthmap_file(image, "pruned.npz")
+        np.savez_compressed(
+            filepath,
+            points=points,
+            normals=normals,
+            colors=colors,
+            labels=labels,
+            detections=detections,
+        )
 
     def load_pruned_depthmap(self, image):
-        o = np.load(self._depthmap_file(image, 'pruned.npz'))
-        if 'detections' not in o:
-            return o['points'], o['normals'], o['colors'], o['labels'], np.zeros(o['labels'].shape)
+        o = np.load(self._depthmap_file(image, "pruned.npz"))
+        if "detections" not in o:
+            return (
+                o["points"],
+                o["normals"],
+                o["colors"],
+                o["labels"],
+                np.zeros(o["labels"].shape),
+            )
         else:
-            return o['points'], o['normals'], o['colors'], o['labels'], o['detections']
+            return o["points"], o["normals"], o["colors"], o["labels"], o["detections"]
 
     def load_undistorted_tracks_manager(self):
-        return self.base.load_tracks_manager(os.path.join(self.subfolder, 'tracks.csv'))
+        return self.base.load_tracks_manager(os.path.join(self.subfolder, "tracks.csv"))
 
     def save_undistorted_tracks_manager(self, tracks_manager):
-        return self.base.save_tracks_manager(tracks_manager, os.path.join(self.subfolder, 'tracks.csv'))
+        return self.base.save_tracks_manager(
+            tracks_manager, os.path.join(self.subfolder, "tracks.csv")
+        )
 
     def load_undistorted_reconstruction(self):
         return self.base.load_reconstruction(
-            filename=os.path.join(self.subfolder, 'reconstruction.json'))
+            filename=os.path.join(self.subfolder, "reconstruction.json")
+        )
 
     def save_undistorted_reconstruction(self, reconstruction):
         io.mkdir_p(self.data_path)
         return self.base.save_reconstruction(
-            reconstruction, filename=os.path.join(self.subfolder, 'reconstruction.json'))
+            reconstruction, filename=os.path.join(self.subfolder, "reconstruction.json")
+        )

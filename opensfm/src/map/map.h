@@ -25,7 +25,6 @@ public:
   // Camera Methods
   Camera* GetCamera(const CameraId& cam_id);
   Camera* CreateCamera(const Camera& cam);
-  const std::unordered_map<CameraId, Camera>& GetAllCameras() const { return cameras_; };
   CameraView GetCameraView() { return CameraView(*this);}
   bool HasCamera(const CameraId& cam_id) const {
     return cameras_.count(cam_id) > 0;
@@ -46,8 +45,8 @@ public:
   void RemoveShot(const ShotId& shot_id);
   bool HasLandmark(const LandmarkId& lm_id) const { return landmarks_.count(lm_id) > 0; }
   bool HasShot(const ShotId& shot_id) const { return shots_.find(shot_id) != shots_.end(); }
-  const std::unordered_map<ShotId, Shot>& GetAllShots() const { return shots_; }
-  std::unordered_map<ShotId, Shot>& GetAllShots() { return shots_; }
+  const std::unordered_map<ShotId, Shot>& GetShots() const { return shots_; }
+  std::unordered_map<ShotId, Shot>& GetShots() { return shots_; }
 
   ShotView GetShotView() { return ShotView(*this); }
 
@@ -59,7 +58,8 @@ public:
   Shot* GetPanoShot(const ShotId& shot_id);
   void RemovePanoShot(const ShotId& shot_id);
   bool HasPanoShot(const ShotId& shot_id) const { return pano_shots_.find(shot_id) != pano_shots_.end(); }
-  const std::unordered_map<ShotId, Shot>& GetAllPanoShots() const { return pano_shots_; }
+  const std::unordered_map<ShotId, Shot>& GetPanoShots() const { return pano_shots_; }
+  std::unordered_map<ShotId, Shot>& GetPanoShots() { return pano_shots_; }
   PanoShotView GetPanoShotView() { return PanoShotView(*this); }
 
   // Landmark
@@ -68,8 +68,8 @@ public:
   void RemoveLandmark(const Landmark* const lm);
   void RemoveLandmark(const LandmarkId& lm_id);
   void ReplaceLandmark(Landmark* old_lm, Landmark* new_lm);
-  const std::unordered_map<LandmarkId, Landmark>& GetAllLandmarks() const { return landmarks_; };
-  std::unordered_map<LandmarkId, Landmark>& GetAllLandmarks() { return landmarks_; };
+  const std::unordered_map<LandmarkId, Landmark>& GetLandmarks() const { return landmarks_; };
+  std::unordered_map<LandmarkId, Landmark>& GetLandmarks() { return landmarks_; };
   LandmarkView GetLandmarkView() { return LandmarkView(*this); }
 
   //Observation methods
@@ -89,12 +89,12 @@ public:
   std::map<Landmark*, FeatureId> GetObservationsOfShot(const Shot* shot);
   std::map<Shot*, FeatureId> GetObservationsOfPoint(const Landmark* point);
 
-  // TopoCentriConverter
-  const TopoCentricConverter& GetTopoCentricConverter() const {
+  // TopocentricConverter
+  const TopocentricConverter& GetTopocentricConverter() const {
     return topo_conv_;
   }
 
-  void SetTopoCentricConverter(const double lat, const double longitude,
+  void SetTopocentricConverter(const double lat, const double longitude,
                                const double alt) {
     topo_conv_.lat_ = lat;
     topo_conv_.long_ = longitude;
@@ -107,7 +107,7 @@ private:
   std::unordered_map<ShotId, Shot> pano_shots_;
   std::unordered_map<LandmarkId, Landmark> landmarks_;
 
-  TopoCentricConverter topo_conv_;
+  TopocentricConverter topo_conv_;
 
   LandmarkUniqueId landmark_unique_id_ = 0;
   ShotUniqueId shot_unique_id_ = 0;

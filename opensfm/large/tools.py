@@ -1,21 +1,20 @@
-import cv2
 import itertools
 import logging
+from collections import namedtuple
+from functools import lru_cache
+
+import cv2
 import networkx as nx
 import numpy as np
 import scipy.spatial as spatial
-
-from collections import namedtuple
 from networkx.algorithms import bipartite
-from functools import lru_cache
-
 from opensfm import align
 from opensfm import context
-from opensfm import pybundle
 from opensfm import dataset
 from opensfm import geo
-from opensfm import reconstruction
 from opensfm import multiview
+from opensfm import pybundle
+from opensfm import reconstruction
 
 logger = logging.getLogger(__name__)
 
@@ -51,8 +50,7 @@ def add_cluster_neighbors(positions, labels, centers, max_distance):
 
         neighbors = []
         for i in cluster_indices:
-            neighbors.extend(
-                topo_tree.query_ball_point(topocentrics[i], max_distance))
+            neighbors.extend(topo_tree.query_ball_point(topocentrics[i], max_distance))
 
         cluster = list(np.union1d(cluster_indices, neighbors))
         clusters.append(cluster)
@@ -78,8 +76,8 @@ def scale_matrix(covariance):
         L = np.linalg.cholesky(covariance)
     except Exception as e:
         logger.error(
-            'Could not compute Cholesky of covariance matrix {}'
-                .format(covariance))
+            "Could not compute Cholesky of covariance matrix {}".format(covariance)
+        )
 
         d = np.diag(np.diag(covariance).clip(1e-8, None))
         L = np.linalg.cholesky(d)
@@ -113,21 +111,22 @@ def add_camera_constraints_soft(ra, reconstruction_shots, reconstruction_name):
             t = shot.pose.translation
 
             if shot_id not in added_shots:
-                ra.add_shot(shot_name, R[0], R[1], R[2],
-                            t[0], t[1], t[2], False)
+                ra.add_shot(shot_name, R[0], R[1], R[2], t[0], t[1], t[2], False)
 
                 gps = shot.metadata.gps_position.value
                 gps_sd = shot.metadata.gps_accuracy.value
 
                 ra.add_absolute_position_constraint(
-                        shot_name, gps[0], gps[1], gps[2], gps_sd)
+                    shot_name, gps[0], gps[1], gps[2], gps_sd
+                )
 
                 added_shots.add(shot_id)
 
             covariance = np.diag([1e-5, 1e-5, 1e-5, 1e-2, 1e-2, 1e-2])
             sm = scale_matrix(covariance)
             rmc = pybundle.RARelativeMotionConstraint(
-                   rec_name, shot_name, R[0], R[1], R[2], t[0], t[1], t[2])
+                rec_name, shot_name, R[0], R[1], R[2], t[0], t[1], t[2]
+            )
 
             for i in range(6):
                 for j in range(6):
@@ -136,9 +135,9 @@ def add_camera_constraints_soft(ra, reconstruction_shots, reconstruction_name):
             ra.add_relative_motion_constraint(rmc)
 
 
-def add_camera_constraints_hard(ra, reconstruction_shots,
-                                reconstruction_name,
-                                add_common_camera_constraint):
+def add_camera_constraints_hard(
+    ra, reconstruction_shots, reconstruction_name, add_common_camera_constraint
+):
     for key in reconstruction_shots:
         shots = reconstruction_shots[key]
         rec_name = reconstruction_name(key)
@@ -149,13 +148,13 @@ def add_camera_constraints_hard(ra, reconstruction_shots,
 
             R = shot.pose.rotation
             t = shot.pose.translation
-            ra.add_shot(shot_name, R[0], R[1], R[2],
-                        t[0], t[1], t[2], True)
+            ra.add_shot(shot_name, R[0], R[1], R[2], t[0], t[1], t[2], True)
 
             gps = shot.metadata.gps_position.value
             gps_sd = shot.metadata.gps_accuracy.value
             ra.add_relative_absolute_position_constraint(
-                rec_name, shot_name, gps[0], gps[1], gps[2], gps_sd)
+                rec_name, shot_name, gps[0], gps[1], gps[2], gps_sd
+            )
 
     if add_common_camera_constraint:
         connections = connected_reconstructions(reconstruction_shots)
@@ -168,11 +167,16 @@ def add_camera_constraints_hard(ra, reconstruction_shots,
 
             common_images = set(shots1.keys()).intersection(shots2.keys())
             for image in common_images:
-                ra.add_common_camera_constraint(rec_name1, rec_name1 +
-                                                str(image),
-                                                rec_name2, rec_name2 +
-                                                str(image),
-                                                1, 0.1)
+                ra.add_common_camera_constraint(
+                    rec_name1,
+                    rec_name1 + str(image),
+                    rec_name2,
+                    rec_name2 + str(image),
+                    1,
+                    0.1,
+                )
+
+
 @lru_cache(25)
 def load_reconstruction(path, index):
     d1 = dataset.DataSet(path)
@@ -186,9 +190,11 @@ def add_point_constraints(ra, reconstruction_shots, reconstruction_name):
     for connection in connections:
 
         i1, (r1, g1) = load_reconstruction(
-            connection[0].submodel_path, connection[0].index)
+            connection[0].submodel_path, connection[0].index
+        )
         i2, (r2, g2) = load_reconstruction(
-            connection[1].submodel_path, connection[1].index)
+            connection[1].submodel_path, connection[1].index
+        )
 
         rec_name1 = reconstruction_name(connection[0])
         rec_name2 = reconstruction_name(connection[1])
@@ -197,13 +203,17 @@ def add_point_constraints(ra, reconstruction_shots, reconstruction_name):
         treshold_in_meter = 0.3
         minimum_inliers = 20
         status, T, inliers = reconstruction.resect_reconstruction(
-            r1, r2, g1, g2, treshold_in_meter, minimum_inliers)
+            r1, r2, g1, g2, treshold_in_meter, minimum_inliers
+        )
         if not status:
             continue
 
         s, R, t = multiview.decompose_similarity_transform(T)
-        if s > scale_treshold or s < (1.0/scale_treshold) or \
-                len(inliers) < minimum_inliers:
+        if (
+            s > scale_treshold
+            or s < (1.0 / scale_treshold)
+            or len(inliers) < minimum_inliers
+        ):
             continue
 
         for t1, t2 in inliers:
@@ -211,9 +221,8 @@ def add_point_constraints(ra, reconstruction_shots, reconstruction_name):
             c2 = r2.points[t2].coordinates
 
             ra.add_common_point_constraint(
-                rec_name1, c1[0], c1[1], c1[2],
-                rec_name2, c2[0], c2[1], c2[2],
-                1e-1)
+                rec_name1, c1[0], c1[1], c1[2], rec_name2, c2[0], c2[1], c2[2], 1e-1
+            )
 
 
 def load_reconstruction_shots(meta_data):
@@ -231,18 +240,18 @@ def load_reconstruction_shots(meta_data):
     return reconstruction_shots
 
 
-def align_reconstructions(reconstruction_shots,
-                          reconstruction_name,
-                          use_points_constraints,
-                          camera_constraint_type='soft_camera_constraint'):
+def align_reconstructions(
+    reconstruction_shots,
+    reconstruction_name,
+    use_points_constraints,
+    camera_constraint_type="soft_camera_constraint",
+):
     ra = pybundle.ReconstructionAlignment()
 
-    if camera_constraint_type is 'soft_camera_constraint':
-        add_camera_constraints_soft(ra, reconstruction_shots,
-                                    reconstruction_name)
-    if camera_constraint_type is 'hard_camera_constraint':
-        add_camera_constraints_hard(ra, reconstruction_shots,
-                                    reconstruction_name, True)
+    if camera_constraint_type == "soft_camera_constraint":
+        add_camera_constraints_soft(ra, reconstruction_shots, reconstruction_name)
+    if camera_constraint_type == "hard_camera_constraint":
+        add_camera_constraints_hard(ra, reconstruction_shots, reconstruction_name, True)
     if use_points_constraints:
         add_point_constraints(ra, reconstruction_shots, reconstruction_name)
 
@@ -263,7 +272,10 @@ def align_reconstructions(reconstruction_shots,
 
 
 def apply_transformations(transformations):
-    submodels = itertools.groupby(sorted(transformations.keys(), key=lambda key: key.submodel_path), lambda key: key.submodel_path)
+    submodels = itertools.groupby(
+        sorted(transformations.keys(), key=lambda key: key.submodel_path),
+        lambda key: key.submodel_path,
+    )
     for submodel_path, keys in submodels:
         data = dataset.DataSet(submodel_path)
         if not data.reconstruction_exists():
@@ -275,4 +287,4 @@ def apply_transformations(transformations):
             s, A, b = transformations[key]
             align.apply_similarity(partial_reconstruction, s, A, b)
 
-        data.save_reconstruction(reconstruction, 'reconstruction.aligned.json')
+        data.save_reconstruction(reconstruction, "reconstruction.aligned.json")

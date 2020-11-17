@@ -1,7 +1,6 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/eigen.h>
-#include <glog/logging.h>
 
 #include <geometry/essential.h>
 #include <geometry/camera.h>
@@ -41,9 +40,15 @@ PYBIND11_MODULE(pygeometry, m) {
     .def_static("create_perspective", &Camera::CreatePerspectiveCamera)
     .def_static("create_brown", &Camera::CreateBrownCamera)
     .def_static("create_fisheye", &Camera::CreateFisheyeCamera)
-    .def_static("create_fisheye_opencv", &Camera::CreateFisheyeExtendedCamera)
+    .def_static("create_fisheye_opencv", &Camera::CreateFisheyeOpencvCamera)
     .def_static("create_dual", &Camera::CreateDualCamera)
     .def_static("create_spherical", &Camera::CreateSphericalCamera)
+    .def("pixel_to_normalized_coordinates_common",
+          (Vec2d(*)(const Vec2d&, const int, const int)) &
+              Camera::PixelToNormalizedCoordinates)
+    .def("normalized_to_pixel_coordinates_common",
+          (Vec2d(*)(const Vec2d&, const int, const int)) &
+              Camera::NormalizedToPixelCoordinates)
     .def("project", &Camera::Project)
     .def("project_many", &Camera::ProjectMany)
     .def("pixel_bearing", &Camera::Bearing)
@@ -54,6 +59,12 @@ PYBIND11_MODULE(pygeometry, m) {
     .def("get_parameters_values", &Camera::GetParametersValues)
     .def("get_parameters_types", &Camera::GetParametersTypes)
     .def("get_parameters_map", &Camera::GetParametersMap)
+    .def("pixel_to_normalized_coordinates",
+          (Vec2d(Camera::*)(const Vec2d&) const) &
+              Camera::PixelToNormalizedCoordinates)
+    .def("normalized_to_pixel_coordinates",
+          (Vec2d(Camera::*)(const Vec2d&) const) &
+              Camera::NormalizedToPixelCoordinates)
     .def_readwrite("width", &Camera::width)
     .def_readwrite("height", &Camera::height)
     .def_readwrite("id", &Camera::id)
@@ -173,7 +184,7 @@ PYBIND11_MODULE(pygeometry, m) {
               VecXd distortion(4);
               distortion << values.at(Camera::Parameters::K1), values.at(Camera::Parameters::K2),
                             values.at(Camera::Parameters::K3), values.at(Camera::Parameters::K4);
-              camera = Camera::CreateFisheyeExtendedCamera(values.at(Camera::Parameters::Focal),
+              camera = Camera::CreateFisheyeOpencvCamera(values.at(Camera::Parameters::Focal),
                                                            values.at(Camera::Parameters::AspectRatio),
                                                            principal_point, distortion);
               break;

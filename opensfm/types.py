@@ -1,6 +1,7 @@
 """Basic types for building a reconstruction."""
-from opensfm import pymap
 from opensfm import pygeometry
+from opensfm import pymap
+from opensfm.geo import TopocentricConverter
 
 
 class ShotMesh(object):
@@ -75,7 +76,8 @@ class Reconstruction(object):
     points = property(get_points, set_points)
 
     def get_reference(self):
-        return self.map.get_reference()
+        ref = self.map.get_reference()
+        return TopocentricConverter(ref.lat, ref.lon, ref.alt)
 
     def set_reference(self, value):
         self.map.set_reference(value.lat, value.lon, value.alt)
@@ -104,7 +106,7 @@ class Reconstruction(object):
 
     def add_shot(self, shot):
         """Creates a copy of the passed shot
-            in the current reconstruction"""
+        in the current reconstruction"""
 
         if shot.camera.id not in self.cameras:
             self.add_camera(shot.camera)
@@ -169,7 +171,7 @@ class Reconstruction(object):
         return self.points.get(id)
 
     def add_observation(self, shot_id, lm_id, observation):
-        """ Adds an observation between a shot and a landmark
+        """Adds an observation between a shot and a landmark
         :param shot_id: The id of the shot
         :param lm_id: The id of the landmark
         :param observation: The observation
@@ -207,3 +209,11 @@ class Reconstruction(object):
                     rec_cpy.add_observation(shot.id, point.id, obs)
 
         return rec_cpy
+
+    def add_correspondences_from_tracks_manager(self, tracks_manager):
+        for track_id in self.points.keys():
+            track_obs = tracks_manager.get_track_observations(track_id)
+            for shot_id in track_obs.keys():
+                if shot_id in self.shots:
+                    observation = tracks_manager.get_observation(shot_id, track_id)
+                    self.add_observation(shot_id, track_id, observation)

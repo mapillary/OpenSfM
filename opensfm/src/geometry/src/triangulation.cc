@@ -68,12 +68,12 @@ std::pair<bool, Eigen::Vector3d> TriangulateBearingsDLT(
   return std::make_pair(true, X.head<3>());
 }
 
-std::vector<Eigen::Vector3d> TriangulateTwoBearingsMidpointMany(
+std::vector<std::pair<bool, Eigen::Vector3d>>
+TriangulateTwoBearingsMidpointMany(
     const Eigen::Matrix<double, -1, 3> &bearings1,
     const Eigen::Matrix<double, -1, 3> &bearings2,
-    const Eigen::Matrix3d &rotation,
-    const Eigen::Vector3d &translation) {
-  std::vector<Eigen::Vector3d> triangulated(bearings1.rows());
+    const Eigen::Matrix3d &rotation, const Eigen::Vector3d &translation) {
+  std::vector<std::pair<bool, Eigen::Vector3d>> triangulated(bearings1.rows());
   Eigen::Matrix<double, 2, 3> os, bs;
   os.row(0) = Eigen::Vector3d::Zero();
   os.row(1) = translation;

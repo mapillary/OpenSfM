@@ -1,13 +1,9 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import numpy as np
 
 
-def opensfm_to_upright(coords, width, height, orientation,
-                       new_width=None, new_height=None):
+def opensfm_to_upright(
+    coords, width, height, orientation, new_width=None, new_height=None
+):
     """
     Transform opensfm coordinates to upright coordinates, correcting for EXIF orientation.
 
@@ -40,9 +36,7 @@ def opensfm_to_upright(coords, width, height, orientation,
     h = float(height)
     s = max(w, h)
 
-    H = np.array([[s / w,     0, 0.5],
-                  [    0, s / h, 0.5],
-                  [    0,     0,   1]])
+    H = np.array([[s / w, 0, 0.5], [0, s / h, 0.5], [0, 0, 1]])
 
     T = np.dot(R[orientation], H)
 

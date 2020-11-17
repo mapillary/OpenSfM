@@ -7,6 +7,7 @@ from opensfm import io
 
 try:
     from libfb.py import parutil
+
     DATA_PATH = parutil.get_dir_path("mapillary/opensfm/opensfm/test/data")
 except ImportError:
     DATA_PATH = os.path.abspath("data")
