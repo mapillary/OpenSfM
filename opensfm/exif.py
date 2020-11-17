@@ -317,7 +317,7 @@ class EXIF:
         return lon, lat
 
     def extract_altitude(self):
-        if self.has_dji_latlon():
+        if self.has_dji_altitude():
             altitude = self.extract_dji_altitude()
         elif 'GPS GPSAltitude' in self.tags:
             altitude = eval_frac(self.tags['GPS GPSAltitude'].values[0])
