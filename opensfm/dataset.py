@@ -63,14 +63,17 @@ class DataSet(object):
         """Open image file and return file object."""
         return open(self._image_file(image), "rb")
 
-    def load_image(self, image, unchanged=False, anydepth=False):
+    def load_image(self, image, unchanged=False, anydepth=False, grayscale=False):
         """Load image pixels as numpy array.
 
         The array is 3D, indexed by y-coord, x-coord, channel.
         The channels are in RGB order.
         """
         return io.imread(
-            self._image_file(image), unchanged=unchanged, anydepth=anydepth
+            self._image_file(image),
+            unchanged=unchanged,
+            anydepth=anydepth,
+            grayscale=grayscale,
         )
 
     def image_size(self, image):
