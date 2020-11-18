@@ -4,7 +4,6 @@
 #include <sfm/tracks_manager.h>
 #include <sfm/types.h>
 
-
 namespace sfm_helpers {
 
 std::unordered_map<ShotId, int> CountTracksPerShot(

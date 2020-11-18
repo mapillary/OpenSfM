@@ -50,15 +50,15 @@ Observation InstanciateObservation(double x, double y, double scale, int id,
   return observation;
 }
 
-void SeparateLineByTabs(const std::string& line, std::vector<std::string>& elems)
-{
-    elems.clear();
-    std::stringstream stst(line);
-    std::string elem;
-    while (std::getline(stst, elem, '\t')) //separate by tabs
-    {
-        elems.push_back(elem);
-    }
+void SeparateLineByTabs(const std::string& line,
+                        std::vector<std::string>& elems) {
+  elems.clear();
+  std::stringstream stst(line);
+  std::string elem;
+  while (std::getline(stst, elem, '\t'))  // separate by tabs
+  {
+    elems.push_back(elem);
+  }
 }
 
 template <class S>
@@ -68,12 +68,13 @@ TracksManager InstanciateFromStreamV0(S& fstream) {
   std::vector<std::string> elems;
   constexpr auto N_ENTRIES{8};
   elems.reserve(N_ENTRIES);
-  while (std::getline(fstream, line))
-  {
+  while (std::getline(fstream, line)) {
     SeparateLineByTabs(line, elems);
-    if (elems.size() != N_ENTRIES) // process only valid lines
+    if (elems.size() != N_ENTRIES)  // process only valid lines
     {
-      std::runtime_error("Encountered invalid line. A line must contain exactly " + std::to_string(N_ENTRIES) + " values!");
+      std::runtime_error(
+          "Encountered invalid line. A line must contain exactly " +
+          std::to_string(N_ENTRIES) + " values!");
     }
     const ShotId image = elems[0];
     const TrackId trackID = elems[1];
@@ -97,12 +98,13 @@ TracksManager InstanciateFromStreamV1(S& fstream) {
   std::vector<std::string> elems;
   constexpr auto N_ENTRIES{9};
   elems.reserve(N_ENTRIES);
-  while (std::getline(fstream, line))
-  {
+  while (std::getline(fstream, line)) {
     SeparateLineByTabs(line, elems);
-    if (elems.size() != N_ENTRIES) // process only valid lines
+    if (elems.size() != N_ENTRIES)  // process only valid lines
     {
-      std::runtime_error("Encountered invalid line. A line must contain exactly " + std::to_string(N_ENTRIES) + " values!");
+      std::runtime_error(
+          "Encountered invalid line. A line must contain exactly " +
+          std::to_string(N_ENTRIES) + " values!");
     }
     const ShotId image = elems[0];
     const TrackId trackID = elems[1];
@@ -159,7 +161,9 @@ int TracksManager::NumShots() const { return tracks_per_shot_.size(); }
 
 int TracksManager::NumTracks() const { return shots_per_track_.size(); }
 
-bool TracksManager::HasShotObservations(const ShotId& shot) const { return tracks_per_shot_.count(shot) > 0; }
+bool TracksManager::HasShotObservations(const ShotId& shot) const {
+  return tracks_per_shot_.count(shot) > 0;
+}
 
 std::vector<ShotId> TracksManager::GetShotIds() const {
   std::vector<ShotId> shots;

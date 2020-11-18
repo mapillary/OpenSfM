@@ -4,48 +4,42 @@
 
 #include <Eigen/Eigen>
 
-
-template< class PosFunc >
+template <class PosFunc>
 struct BAAbsolutePositionError {
-  BAAbsolutePositionError(const PosFunc& pos_func, 
-                          const Vec3d& pos_prior,
-                          double std_deviation,
-                          bool has_std_deviation_param,
+  BAAbsolutePositionError(const PosFunc& pos_func, const Vec3d& pos_prior,
+                          double std_deviation, bool has_std_deviation_param,
                           const PositionConstraintType& type)
-      : pos_func_(pos_func)
-      , pos_prior_(pos_prior)
-      , scale_(1.0 / std_deviation)
-      , has_std_deviation_param_(has_std_deviation_param)
-      , type_(type)
-  {}
+      : pos_func_(pos_func),
+        pos_prior_(pos_prior),
+        scale_(1.0 / std_deviation),
+        has_std_deviation_param_(has_std_deviation_param),
+        type_(type) {}
 
   template <typename T>
   bool operator()(T const* const* p, T* r) const {
-    Eigen::Map< Vec3<T> > residual(r);
+    Eigen::Map<Vec3<T> > residual(r);
 
     // error is : position_prior - adjusted_position
     residual = pos_prior_.cast<T>() - pos_func_(p);
-    if(has_std_deviation_param_){
+    if (has_std_deviation_param_) {
       residual /= p[1][0];
-    }
-    else{
+    } else {
       residual *= T(scale_);
     }
 
     // filter axises to use
     const std::vector<PositionConstraintType> axises = {
-        PositionConstraintType::X, 
-        PositionConstraintType::Y,
+        PositionConstraintType::X, PositionConstraintType::Y,
         PositionConstraintType::Z};
     for (int i = 0; i < axises.size(); ++i) {
-      if(!HasFlag(axises[i])){
+      if (!HasFlag(axises[i])) {
         residual(i) *= T(0.);
       }
     }
     return true;
   }
 
-  inline bool HasFlag(const PositionConstraintType& flag)const{
+  inline bool HasFlag(const PositionConstraintType& flag) const {
     return (int(type_) & int(flag)) == int(flag);
   }
 
@@ -70,19 +64,18 @@ T diff_between_angles(T a, T b) {
 
 struct BAUpVectorError {
   BAUpVectorError(const Vec3d& acceleration, double std_deviation)
-      : scale_(1.0 / std_deviation)
-  {
+      : scale_(1.0 / std_deviation) {
     acceleration_ = acceleration.normalized();
   }
 
   template <typename T>
   bool operator()(const T* const shot, T* r) const {
-    Eigen::Map< const Vec3<T> > R(shot + BA_SHOT_RX);
-    Eigen::Map< Vec3<T> > residual(r);
+    Eigen::Map<const Vec3<T> > R(shot + BA_SHOT_RX);
+    Eigen::Map<Vec3<T> > residual(r);
 
     const Vec3<T> acceleration = acceleration_.cast<T>();
     const Vec3<T> z_world = RotatePoint(R.eval(), acceleration);
-    const Vec3<T> z_axis =  Vec3d(0, 0, 1).cast<T>();
+    const Vec3<T> z_axis = Vec3d(0, 0, 1).cast<T>();
     residual = T(scale_) * (z_world - z_axis);
     return true;
   }
@@ -93,14 +86,11 @@ struct BAUpVectorError {
 
 struct BAPanAngleError {
   BAPanAngleError(double angle, double std_deviation)
-      : angle_(angle)
-      , scale_(1.0 / std_deviation)
-  {}
+      : angle_(angle), scale_(1.0 / std_deviation) {}
 
   template <typename T>
-  bool operator()(const T* const shot,
-                  T* residuals) const {
-    Eigen::Map< const Vec3<T> > R(shot + BA_SHOT_RX);
+  bool operator()(const T* const shot, T* residuals) const {
+    Eigen::Map<const Vec3<T> > R(shot + BA_SHOT_RX);
 
     const Vec3<T> z_axis = Vec3d(0, 0, 1).cast<T>();
     const auto z_world = RotatePoint(R.eval(), z_axis);
@@ -109,7 +99,8 @@ struct BAPanAngleError {
       residuals[0] = T(0.0);
     } else {
       const T predicted_angle = atan2(z_world(0), z_world(1));
-      residuals[0] = T(scale_) * diff_between_angles(predicted_angle, T(angle_));
+      residuals[0] =
+          T(scale_) * diff_between_angles(predicted_angle, T(angle_));
     }
     return true;
   }
@@ -120,15 +111,12 @@ struct BAPanAngleError {
 
 struct BATiltAngleError {
   BATiltAngleError(double angle, double std_deviation)
-      : angle_(angle)
-      , scale_(1.0 / std_deviation)
-  {}
+      : angle_(angle), scale_(1.0 / std_deviation) {}
 
   template <typename T>
-  bool operator()(const T* const shot,
-                  T* residuals) const {
+  bool operator()(const T* const shot, T* residuals) const {
     const T* const R = shot + BA_SHOT_RX;
-    T ez[3] = { T(0), T(0), T(1) }; // ez: A point in front of the camera (z=1)
+    T ez[3] = {T(0), T(0), T(1)};  // ez: A point in front of the camera (z=1)
     T Rt_ez[3];
     ceres::AngleAxisRotatePoint(R, ez, Rt_ez);
 
@@ -145,16 +133,13 @@ struct BATiltAngleError {
 
 struct BARollAngleError {
   BARollAngleError(double angle, double std_deviation)
-      : angle_(angle)
-      , scale_(1.0 / std_deviation)
-  {}
+      : angle_(angle), scale_(1.0 / std_deviation) {}
 
   template <typename T>
-  bool operator()(const T* const shot,
-                  T* residuals) const {
+  bool operator()(const T* const shot, T* residuals) const {
     const T* const R = shot + BA_SHOT_RX;
-    T ex[3] = { T(1), T(0), T(0) }; // A point to the right of the camera (x=1)
-    T ez[3] = { T(0), T(0), T(1) }; // A point in front of the camera (z=1)
+    T ex[3] = {T(1), T(0), T(0)};  // A point to the right of the camera (x=1)
+    T ez[3] = {T(0), T(0), T(1)};  // A point in front of the camera (z=1)
     T Rt_ex[3], Rt_ez[3];
     T tangle_ = T(angle_);
     ceres::AngleAxisRotatePoint(R, ex, Rt_ex);
@@ -184,22 +169,14 @@ struct BARollAngleError {
 };
 
 struct RotationPriorError {
-  RotationPriorError(double *R_prior, double std_deviation)
-      : R_prior_(R_prior)
-      , scale_(1.0 / std_deviation)
-  {}
+  RotationPriorError(double* R_prior, double std_deviation)
+      : R_prior_(R_prior), scale_(1.0 / std_deviation) {}
 
   template <typename T>
   bool operator()(const T* const shot, T* residuals) const {
     // Get rotation and translation values.
-    const T R[3] = {
-      -shot[BA_SHOT_RX],
-      -shot[BA_SHOT_RY],
-      -shot[BA_SHOT_RZ]
-    };
-    T Rpt[3] = { -T(R_prior_[0]),
-                 -T(R_prior_[1]),
-                 -T(R_prior_[2]) };
+    const T R[3] = {-shot[BA_SHOT_RX], -shot[BA_SHOT_RY], -shot[BA_SHOT_RZ]};
+    T Rpt[3] = {-T(R_prior_[0]), -T(R_prior_[1]), -T(R_prior_[2])};
 
     // Compute rotation residual: log( R Rp^t )
     T qR[4], qRpt[4], qR_Rpt[4];
@@ -216,28 +193,18 @@ struct RotationPriorError {
     return true;
   }
 
-  double *R_prior_;
+  double* R_prior_;
   double scale_;
 };
 
 struct TranslationPriorError {
-  TranslationPriorError(double *translation_prior, double std_deviation)
-      : translation_prior_(translation_prior)
-      , scale_(1.0 / std_deviation)
-  {}
+  TranslationPriorError(double* translation_prior, double std_deviation)
+      : translation_prior_(translation_prior), scale_(1.0 / std_deviation) {}
 
   template <typename T>
   bool operator()(const T* const shot, T* residuals) const {
-    const T mt[3] = {
-      -shot[BA_SHOT_TX],
-      -shot[BA_SHOT_TY],
-      -shot[BA_SHOT_TZ]
-    };
-    const T Rt[3] = {
-      -shot[BA_SHOT_RX],
-      -shot[BA_SHOT_RY],
-      -shot[BA_SHOT_RZ]
-    };
+    const T mt[3] = {-shot[BA_SHOT_TX], -shot[BA_SHOT_TY], -shot[BA_SHOT_TZ]};
+    const T Rt[3] = {-shot[BA_SHOT_RX], -shot[BA_SHOT_RY], -shot[BA_SHOT_RZ]};
     T translation[3];
     ceres::AngleAxisRotatePoint(Rt, mt, translation);
 
@@ -247,15 +214,13 @@ struct TranslationPriorError {
     return true;
   }
 
-  double *translation_prior_;
+  double* translation_prior_;
   double scale_;
 };
 
 struct PositionPriorError {
-  PositionPriorError(double *position_prior, double std_deviation)
-      : position_prior_(position_prior)
-      , scale_(1.0 / std_deviation)
-  {}
+  PositionPriorError(double* position_prior, double std_deviation)
+      : position_prior_(position_prior), scale_(1.0 / std_deviation) {}
 
   template <typename T>
   bool operator()(const T* const shot, T* residuals) const {
@@ -265,7 +230,7 @@ struct PositionPriorError {
     return true;
   }
 
-  double *position_prior_;
+  double* position_prior_;
   double scale_;
 };
 
@@ -281,10 +246,8 @@ struct UnitTranslationPriorError {
 };
 
 struct PointPositionPriorError {
-  PointPositionPriorError(double *position, double std_deviation)
-      : position_(position)
-      , scale_(1.0 / std_deviation)
-  {}
+  PointPositionPriorError(double* position, double std_deviation)
+      : position_(position), scale_(1.0 / std_deviation) {}
 
   template <typename T>
   bool operator()(const T* const p, T* residuals) const {
@@ -294,6 +257,6 @@ struct PointPositionPriorError {
     return true;
   }
 
-  double *position_;
+  double* position_;
   double scale_;
 };

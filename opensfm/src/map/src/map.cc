@@ -1,7 +1,7 @@
-#include <map/landmark.h>
 #include <map/map.h>
-#include <map/shot.h>
 #include <geometry/pose.h>
+#include <map/landmark.h>
+#include <map/shot.h>
 #include <unordered_set>
 
 namespace map {
@@ -25,8 +25,8 @@ void Map::AddObservation(Shot* const shot, Landmark* const lm,
   shot->CreateObservation(lm, obs.point, obs.scale, obs.color, obs.id);
 }
 
-void Map::AddObservation(const ShotId& shot_id, const LandmarkId& lm_id, const Observation& obs)
-{
+void Map::AddObservation(const ShotId& shot_id, const LandmarkId& lm_id,
+                         const Observation& obs) {
   auto* const shot = GetShot(shot_id);
   auto* const lm = GetLandmark(lm_id);
   AddObservation(shot, lm, obs);
@@ -38,15 +38,14 @@ void Map::RemoveObservation(Shot* const shot, Landmark* const lm,
   lm->RemoveObservation(shot);
 }
 
-void Map::RemoveObservation(const ShotId& shot_id, const LandmarkId& lm_id)
-{
-  //get the shot
+void Map::RemoveObservation(const ShotId& shot_id, const LandmarkId& lm_id) {
+  // get the shot
   auto* shot = GetShot(shot_id);
-  //get the landmark
+  // get the landmark
   auto* lm = GetLandmark(lm_id);
-  //get observation
+  // get observation
   shot->RemoveLandmarkObservation(lm->GetObservationIdInShot(shot));
-  //remove
+  // remove
   lm->RemoveObservation(shot);
 }
 
@@ -105,10 +104,9 @@ Shot* Map::CreateShot(const ShotId& shot_id, const Camera* const cam,
   auto it_exist = shots_.find(shot_id);
   if (it_exist == shots_.end())  // create
   {
-    auto it = shots_.emplace(
-      std::piecewise_construct,
-      std::forward_as_tuple(shot_id),
-      std::forward_as_tuple(shot_id, cam, pose));
+    auto it =
+        shots_.emplace(std::piecewise_construct, std::forward_as_tuple(shot_id),
+                       std::forward_as_tuple(shot_id, cam, pose));
 
     it.first->second.unique_id_ = shot_unique_id_;
     shot_unique_id_++;
@@ -187,7 +185,7 @@ Shot* Map::CreatePanoShot(const ShotId& shot_id, const Camera* const cam,
 }
 
 Shot* Map::CreatePanoShot(const ShotId& shot_id, const CameraId& camera_id,
-                      const geometry::Pose& pose) {
+                          const geometry::Pose& pose) {
   return CreatePanoShot(shot_id, GetCamera(camera_id), pose);
 }
 
@@ -305,7 +303,6 @@ void Map::ReplaceLandmark(Landmark* old_lm, Landmark* new_lm) {
   landmarks_.erase(old_lm->id_);
 }
 
-
 Camera* Map::CreateCamera(const Camera& cam) {
   auto make_cam = [](const Camera& cam) {
     switch (cam.GetProjectionType()) {
@@ -325,7 +322,8 @@ Camera* Map::CreateCamera(const Camera& cam) {
             cam.GetParameterValue(Camera::Parameters::Focal),
             cam.GetParameterValue(Camera::Parameters::AspectRatio),
             Vec2d(cam.GetParameterValue(Camera::Parameters::Cx),
-                  cam.GetParameterValue(Camera::Parameters::Cy)), distortion);
+                  cam.GetParameterValue(Camera::Parameters::Cy)),
+            distortion);
       }
       case ProjectionType::FISHEYE:
         return Camera::CreateFisheyeCamera(
@@ -342,7 +340,8 @@ Camera* Map::CreateCamera(const Camera& cam) {
             cam.GetParameterValue(Camera::Parameters::Focal),
             cam.GetParameterValue(Camera::Parameters::AspectRatio),
             Vec2d(cam.GetParameterValue(Camera::Parameters::Cx),
-                  cam.GetParameterValue(Camera::Parameters::Cy)), distortion);
+                  cam.GetParameterValue(Camera::Parameters::Cy)),
+            distortion);
       }
       case ProjectionType::DUAL:
         return Camera::CreateDualCamera(
@@ -391,7 +390,8 @@ Shot* Map::UpdateShot(const Shot& other_shot) {
 Shot* Map::UpdatePanoShot(const Shot& other_shot) {
   auto it_exist = pano_shots_.find(other_shot.id_);
   if (it_exist == pano_shots_.end()) {
-    throw std::runtime_error("Pano shot " + other_shot.id_ + " does not exists.");
+    throw std::runtime_error("Pano shot " + other_shot.id_ +
+                             " does not exists.");
   } else {
     auto shot = &it_exist->second;
     shot->merge_cc = other_shot.merge_cc;

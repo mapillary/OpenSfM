@@ -11,14 +11,16 @@ double AngleBetweenVectors(const Eigen::Vector3d &u, const Eigen::Vector3d &v) {
 
 Eigen::Vector4d TriangulateBearingsDLTSolve(
     const Eigen::Matrix<double, -1, 3> &bearings,
-    const std::vector<Eigen::Matrix<double, 3, 4> > &Rts) {
+    const std::vector<Eigen::Matrix<double, 3, 4>> &Rts) {
   const int nviews = bearings.rows();
   assert(nviews == Rts.size());
 
   Eigen::MatrixXd A(2 * nviews, 4);
   for (int i = 0; i < nviews; i++) {
-    A.row(2 * i) = bearings(i, 0) * Rts[i].row(2) - bearings(i, 2) * Rts[i].row(0);
-    A.row(2 * i + 1) = bearings(i, 1) * Rts[i].row(2) - bearings(i, 2) * Rts[i].row(1);
+    A.row(2 * i) =
+        bearings(i, 0) * Rts[i].row(2) - bearings(i, 2) * Rts[i].row(0);
+    A.row(2 * i + 1) =
+        bearings(i, 1) * Rts[i].row(2) - bearings(i, 2) * Rts[i].row(1);
   }
 
   Eigen::JacobiSVD<Eigen::MatrixXd> mySVD(A, Eigen::ComputeFullV);
@@ -42,9 +44,11 @@ std::pair<bool, Eigen::Vector3d> TriangulateBearingsDLT(
   bool angle_ok = false;
   for (int i = 0; i < count && !angle_ok; ++i) {
     const Eigen::Matrix<double, 3, 4> Rt = Rts[i];
-    world_bearings.row(i) = Rt.block<3, 3>(0, 0).transpose() * bearings.row(i).transpose();
+    world_bearings.row(i) =
+        Rt.block<3, 3>(0, 0).transpose() * bearings.row(i).transpose();
     for (int j = 0; j < i && !angle_ok; ++j) {
-      const double angle = AngleBetweenVectors(world_bearings.row(i), world_bearings.row(j));
+      const double angle =
+          AngleBetweenVectors(world_bearings.row(i), world_bearings.row(j));
       if (angle >= min_angle) {
         angle_ok = true;
       }
@@ -77,9 +81,9 @@ TriangulateTwoBearingsMidpointMany(
   Eigen::Matrix<double, 2, 3> os, bs;
   os.row(0) = Eigen::Vector3d::Zero();
   os.row(1) = translation;
-  for(int i = 0; i < bearings1.rows(); ++i){
+  for (int i = 0; i < bearings1.rows(); ++i) {
     bs.row(0) = bearings1.row(i);
-    bs.row(1) = rotation*bearings2.row(i).transpose();
+    bs.row(1) = rotation * bearings2.row(i).transpose();
     triangulated[i] = TriangulateTwoBearingsMidpointSolve(os, bs);
   }
   return triangulated;

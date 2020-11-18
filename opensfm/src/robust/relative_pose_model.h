@@ -55,7 +55,8 @@ class RelativePose : public Model<RelativePose, 1, 10> {
       e[0] = 1.0;
     } else {
       const auto projected_x = point.second.normalized();
-      const auto projected_y = (rotation * point.second + translation).normalized();
+      const auto projected_y =
+          (rotation * point.second + translation).normalized();
       e[0] = 1.0 - ((projected_x.dot(x) + projected_y.dot(y)) * 0.5);
     }
     return e;

@@ -39,7 +39,7 @@ struct FiniteDiff {
 };
 
 template <class F>
-struct FiniteDiff<F,1,1> {
+struct FiniteDiff<F, 1, 1> {
   static typename TypeTraits<1, 1>::Jacobian Derivative(
       const F& func, typename TypeTraits<1, 1>::Values& x) {
     typename TypeTraits<1, 1>::Jacobian jacobian;

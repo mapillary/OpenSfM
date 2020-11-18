@@ -52,5 +52,4 @@ bool CameraView::HasCamera(const CameraId& cam_id) const {
   return map_.HasCamera(cam_id);
 }
 
-
 }  // namespace map

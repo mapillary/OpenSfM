@@ -1,9 +1,9 @@
 #include "../bundle_adjuster.h"
 #include "absolute_motion_terms.h"
-#include "position_functors.h"
 #include "motion_prior_terms.h"
-#include "relative_motion_terms.h"
+#include "position_functors.h"
 #include "projection_errors.h"
+#include "relative_motion_terms.h"
 
 BundleAdjuster::BundleAdjuster() {
   SetPointProjectionLossFunction("CauchyLoss", 1.0);
@@ -26,13 +26,14 @@ BundleAdjuster::BundleAdjuster() {
   linear_solver_type_ = "SPARSE_NORMAL_CHOLESKY";
 }
 
-void BundleAdjuster::UpdateSigmas(){
+void BundleAdjuster::UpdateSigmas() {
   for (auto &camera : cameras_) {
     Camera sigma_camera = camera.second.GetValue();
     const auto parameters_types = sigma_camera.GetParametersTypes();
     std::unordered_map<int, double> std_dev_map;
     std_dev_map[static_cast<int>(Camera::Parameters::Focal)] = focal_prior_sd_;
-    std_dev_map[static_cast<int>(Camera::Parameters::AspectRatio)] = focal_prior_sd_;
+    std_dev_map[static_cast<int>(Camera::Parameters::AspectRatio)] =
+        focal_prior_sd_;
     std_dev_map[static_cast<int>(Camera::Parameters::Cx)] = c_prior_sd_;
     std_dev_map[static_cast<int>(Camera::Parameters::Cy)] = c_prior_sd_;
     std_dev_map[static_cast<int>(Camera::Parameters::K1)] = k1_sd_;
@@ -41,13 +42,14 @@ void BundleAdjuster::UpdateSigmas(){
     std_dev_map[static_cast<int>(Camera::Parameters::P1)] = p1_sd_;
     std_dev_map[static_cast<int>(Camera::Parameters::P2)] = p2_sd_;
     std_dev_map[static_cast<int>(Camera::Parameters::Transition)] = 1.0;
-    for(const auto type : parameters_types){
+    for (const auto type : parameters_types) {
       sigma_camera.SetParameterValue(type, std_dev_map[static_cast<int>(type)]);
     }
     camera.second.SetSigma(sigma_camera);
   }
 }
-void BundleAdjuster::AddCamera(const std::string &id, const Camera& camera, const Camera& prior, bool constant){  
+void BundleAdjuster::AddCamera(const std::string &id, const Camera &camera,
+                               const Camera &prior, bool constant) {
   Camera sigma = camera;
   cameras_.emplace(id, BACamera(camera, prior, sigma));
   UpdateSigmas();
@@ -57,10 +59,8 @@ void BundleAdjuster::AddCamera(const std::string &id, const Camera& camera, cons
   }
 }
 
-void BundleAdjuster::AddShot(const std::string &id, 
-                             const std::string &camera,
-                             const Vec3d& rotation,
-                             const Vec3d& translation,
+void BundleAdjuster::AddShot(const std::string &id, const std::string &camera,
+                             const Vec3d &rotation, const Vec3d &translation,
                              bool constant) {
   BAShot s;
   s.id = id;
@@ -78,8 +78,7 @@ void BundleAdjuster::SetScaleSharing(const std::string &id, bool share) {
   find->second.shared = share;
 }
 
-void BundleAdjuster::AddReconstruction(const std::string &id,
-                                       bool constant) {
+void BundleAdjuster::AddReconstruction(const std::string &id, bool constant) {
   BAReconstruction r;
   r.id = id;
   r.constant = constant;
@@ -87,9 +86,9 @@ void BundleAdjuster::AddReconstruction(const std::string &id,
   reconstructions_[id] = r;
 }
 
-void BundleAdjuster::AddReconstructionShot(
-    const std::string &reconstruction_id, double scale,
-    const std::string &shot_id) {
+void BundleAdjuster::AddReconstructionShot(const std::string &reconstruction_id,
+                                           double scale,
+                                           const std::string &shot_id) {
   const auto find = reconstructions_.find(reconstruction_id);
   if (find == reconstructions_.end()) {
     return;
@@ -98,8 +97,7 @@ void BundleAdjuster::AddReconstructionShot(
   find->second.shots[shot_id] = &shots_[shot_id];
 }
 
-void BundleAdjuster::AddPoint(const std::string &id,
-                              const Vec3d &position,
+void BundleAdjuster::AddPoint(const std::string &id, const Vec3d &position,
                               bool constant) {
   BAPoint p;
   p.id = id;
@@ -122,12 +120,9 @@ void BundleAdjuster::AddPointProjectionObservation(const std::string &shot,
   point_projection_observations_.push_back(o);
 }
 
-void BundleAdjuster::AddRotationPrior(
-    const std::string &shot_id,
-    double rx,
-    double ry,
-    double rz,
-    double std_deviation) {
+void BundleAdjuster::AddRotationPrior(const std::string &shot_id, double rx,
+                                      double ry, double rz,
+                                      double std_deviation) {
   BARotationPrior p;
   p.shot = &shots_[shot_id];
   p.rotation[0] = rx;
@@ -137,12 +132,9 @@ void BundleAdjuster::AddRotationPrior(
   rotation_priors_.push_back(p);
 }
 
-void BundleAdjuster::AddTranslationPrior(
-    const std::string &shot_id,
-    double tx,
-    double ty,
-    double tz,
-    double std_deviation) {
+void BundleAdjuster::AddTranslationPrior(const std::string &shot_id, double tx,
+                                         double ty, double tz,
+                                         double std_deviation) {
   BATranslationPrior p;
   p.shot = &shots_[shot_id];
   p.translation[0] = tx;
@@ -152,12 +144,9 @@ void BundleAdjuster::AddTranslationPrior(
   translation_priors_.push_back(p);
 }
 
-void BundleAdjuster::AddPositionPrior(
-    const std::string &shot_id,
-    double x,
-    double y,
-    double z,
-    double std_deviation) {
+void BundleAdjuster::AddPositionPrior(const std::string &shot_id, double x,
+                                      double y, double z,
+                                      double std_deviation) {
   BAPositionPrior p;
   p.shot = &shots_[shot_id];
   p.position[0] = x;
@@ -167,12 +156,9 @@ void BundleAdjuster::AddPositionPrior(
   position_priors_.push_back(p);
 }
 
-void BundleAdjuster::AddPointPositionPrior(
-    const std::string &point_id,
-    double x,
-    double y,
-    double z,
-    double std_deviation) {
+void BundleAdjuster::AddPointPositionPrior(const std::string &point_id,
+                                           double x, double y, double z,
+                                           double std_deviation) {
   BAPointPositionPrior p;
   p.point = &points_[point_id];
   p.position[0] = x;
@@ -206,8 +192,7 @@ void BundleAdjuster::AddRelativeRotation(const BARelativeRotation &rr) {
 
 void BundleAdjuster::AddCommonPosition(const std::string &shot_id1,
                                        const std::string &shot_id2,
-                                       double margin,
-                                       double std_deviation) {
+                                       double margin, double std_deviation) {
   BACommonPosition a;
   a.shot1 = &shots_[shot_id1];
   a.shot2 = &shots_[shot_id2];
@@ -216,10 +201,9 @@ void BundleAdjuster::AddCommonPosition(const std::string &shot_id1,
   common_positions_.push_back(a);
 }
 
-void BundleAdjuster::AddAbsolutePosition(const std::string &shot_id,
-                                         const Vec3d& position,
-                                         double std_deviation,
-                                         const std::string& std_deviation_group) {
+void BundleAdjuster::AddAbsolutePosition(
+    const std::string &shot_id, const Vec3d &position, double std_deviation,
+    const std::string &std_deviation_group) {
   BAAbsolutePosition a;
   a.shot = &shots_[shot_id];
   a.position = position;
@@ -228,10 +212,9 @@ void BundleAdjuster::AddAbsolutePosition(const std::string &shot_id,
   absolute_positions_.push_back(a);
 }
 
-void BundleAdjuster::AddAbsoluteUpVector(
-    const std::string &shot_id, 
-    const Vec3d& up_vector,
-    double std_deviation) {
+void BundleAdjuster::AddAbsoluteUpVector(const std::string &shot_id,
+                                         const Vec3d &up_vector,
+                                         double std_deviation) {
   BAAbsoluteUpVector a;
   a.shot = &shots_[shot_id];
   a.up_vector = up_vector;
@@ -239,10 +222,8 @@ void BundleAdjuster::AddAbsoluteUpVector(
   absolute_up_vectors_.push_back(a);
 }
 
-void BundleAdjuster::AddAbsolutePan(
-    const std::string &shot_id,
-    double angle,
-    double std_deviation) {
+void BundleAdjuster::AddAbsolutePan(const std::string &shot_id, double angle,
+                                    double std_deviation) {
   BAAbsoluteAngle a;
   a.shot = &shots_[shot_id];
   a.angle = angle;
@@ -250,10 +231,8 @@ void BundleAdjuster::AddAbsolutePan(
   absolute_pans_.push_back(a);
 }
 
-void BundleAdjuster::AddAbsoluteTilt(
-    const std::string &shot_id,
-    double angle,
-    double std_deviation) {
+void BundleAdjuster::AddAbsoluteTilt(const std::string &shot_id, double angle,
+                                     double std_deviation) {
   BAAbsoluteAngle a;
   a.shot = &shots_[shot_id];
   a.angle = angle;
@@ -261,10 +240,8 @@ void BundleAdjuster::AddAbsoluteTilt(
   absolute_tilts_.push_back(a);
 }
 
-void BundleAdjuster::AddAbsoluteRoll(
-    const std::string &shot_id,
-    double angle,
-    double std_deviation) {
+void BundleAdjuster::AddAbsoluteRoll(const std::string &shot_id, double angle,
+                                     double std_deviation) {
   BAAbsoluteAngle a;
   a.shot = &shots_[shot_id];
   a.angle = angle;
@@ -312,7 +289,7 @@ void BundleAdjuster::SetRelativeMotionLossFunction(std::string name,
   relative_motion_loss_threshold_ = threshold;
 }
 
-void BundleAdjuster::SetAdjustAbsolutePositionStd(bool adjust){
+void BundleAdjuster::SetAdjustAbsolutePositionStd(bool adjust) {
   adjust_absolute_position_std_ = adjust;
 }
 
@@ -320,11 +297,9 @@ void BundleAdjuster::SetMaxNumIterations(int miter) {
   max_num_iterations_ = miter;
 }
 
-void BundleAdjuster::SetNumThreads(int n) {
-  num_threads_ = n;
-}
+void BundleAdjuster::SetNumThreads(int n) { num_threads_ = n; }
 
-void BundleAdjuster::SetUseAnalyticDerivatives(bool use){
+void BundleAdjuster::SetUseAnalyticDerivatives(bool use) {
   use_analytic_ = use;
 }
 
@@ -332,15 +307,10 @@ void BundleAdjuster::SetLinearSolverType(std::string t) {
   linear_solver_type_ = t;
 }
 
-void BundleAdjuster::SetInternalParametersPriorSD(
-    double focal_sd,
-    double c_sd,
-    double k1_sd,
-    double k2_sd,
-    double p1_sd,
-    double p2_sd,
-    double k3_sd,
-    double k4_sd) {
+void BundleAdjuster::SetInternalParametersPriorSD(double focal_sd, double c_sd,
+                                                  double k1_sd, double k2_sd,
+                                                  double p1_sd, double p2_sd,
+                                                  double k3_sd, double k4_sd) {
   focal_prior_sd_ = focal_sd;
   c_prior_sd_ = c_sd;
   k1_sd_ = k1_sd;
@@ -352,9 +322,7 @@ void BundleAdjuster::SetInternalParametersPriorSD(
   UpdateSigmas();
 }
 
-void BundleAdjuster::SetComputeCovariances(bool v) {
-  compute_covariances_ = v;
-}
+void BundleAdjuster::SetComputeCovariances(bool v) { compute_covariances_ = v; }
 
 bool BundleAdjuster::GetCovarianceEstimationValid() {
   return covariance_estimation_valid_;
@@ -363,7 +331,6 @@ bool BundleAdjuster::GetCovarianceEstimationValid() {
 void BundleAdjuster::SetComputeReprojectionErrors(bool v) {
   compute_reprojection_errors_ = v;
 }
-
 
 ceres::LossFunction *CreateLossFunction(std::string name, double threshold) {
   if (name.compare("TrivialLoss") == 0) {
@@ -401,8 +368,7 @@ ceres::LinearSolverType LinearSolverTypeFromNamae(std::string name) {
 
 void BundleAdjuster::AddLinearMotion(const std::string &shot0_id,
                                      const std::string &shot1_id,
-                                     const std::string &shot2_id,
-                                     double alpha,
+                                     const std::string &shot2_id, double alpha,
                                      double position_std_deviation,
                                      double orientation_std_deviation) {
   BALinearMotion a;
@@ -419,9 +385,9 @@ struct BAStdDeviationConstraint {
   BAStdDeviationConstraint() = default;
 
   template <typename T>
-  bool operator()(const T* const std_deviation, T* residuals) const {
+  bool operator()(const T *const std_deviation, T *residuals) const {
     T std = std_deviation[0];
-    residuals[0] = ceres::log(T(1.0)/ceres::sqrt(T(2.0*M_PI)*std*std));
+    residuals[0] = ceres::log(T(1.0) / ceres::sqrt(T(2.0 * M_PI) * std * std));
     return true;
   }
 };
@@ -431,11 +397,12 @@ struct BAParameterBarrier {
       : lower_bound_(lower_bound), upper_bound_(upper_bound), index_(index) {}
 
   template <typename T>
-  bool operator()(const T* const parameters, T* residuals) const {
+  bool operator()(const T *const parameters, T *residuals) const {
     T eps = T(1e-10);
     T value = parameters[index_];
-    T zero = 2.0*ceres::log((T(upper_bound_)-T(lower_bound_))*0.5);
-    T penalty = ceres::log(value-T(lower_bound_)+eps)+ceres::log(T(upper_bound_)-value+eps);
+    T zero = 2.0 * ceres::log((T(upper_bound_) - T(lower_bound_)) * 0.5);
+    T penalty = ceres::log(value - T(lower_bound_) + eps) +
+                ceres::log(T(upper_bound_) - value + eps);
     residuals[0] = penalty + zero;
     return true;
   }
@@ -466,19 +433,19 @@ struct ErrorTraitsAnalytic<SphericalCamera, 1> {
 
 struct AddProjectionError {
   template <class T>
-  static void Apply(bool use_analytical, const BAPointProjectionObservation &obs,
+  static void Apply(bool use_analytical,
+                    const BAPointProjectionObservation &obs,
                     ceres::LossFunction *loss, ceres::Problem *problem) {
     constexpr static int ErrorSize = ErrorTraits<T>::Type::Size;
     constexpr static int CameraSize = T::Size;
     constexpr static int ShotSize = 6;
 
     ceres::CostFunction *cost_function = nullptr;
-    if(use_analytical){
+    if (use_analytical) {
       using ErrorType = typename ErrorTraitsAnalytic<T, CameraSize>::Type;
       cost_function = new ErrorType(obs.camera->GetValue().GetProjectionType(),
                                     obs.coordinates, obs.std_deviation);
-    }
-    else{
+    } else {
       using ErrorType = typename ErrorTraits<T>::Type;
       cost_function = new ceres::AutoDiffCostFunction<ErrorType, ErrorSize,
                                                       CameraSize, ShotSize, 3>(
@@ -498,7 +465,8 @@ struct ComputeResidualError {
     if (use_analytical) {
       constexpr static int CameraSize = T::Size;
       using ErrorType = typename ErrorTraitsAnalytic<T, CameraSize>::Type;
-      constexpr static int ErrorSize = ErrorTraitsAnalytic<T, CameraSize>::Type::Size;
+      constexpr static int ErrorSize =
+          ErrorTraitsAnalytic<T, CameraSize>::Type::Size;
 
       VecNd<ErrorSize> residuals;
       ErrorType error(obs.camera->GetValue().GetProjectionType(),
@@ -562,7 +530,7 @@ void BundleAdjuster::Run() {
   }
 
   for (auto &i : cameras_) {
-    auto& data = i.second.GetValueData();
+    auto &data = i.second.GetValueData();
     problem.AddParameterBlock(data.data(), data.size());
 
     // Lock parameters based on bitmask of parameters : only constant for now
@@ -575,12 +543,12 @@ void BundleAdjuster::Run() {
     if (camera.GetProjectionType() == ProjectionType::DUAL) {
       const auto types = camera.GetParametersTypes();
       int index = -1;
-      for(int i = 0; i < types.size() && index < 0; ++i){
-        if(types[i] == Camera::Parameters::Transition){
+      for (int i = 0; i < types.size() && index < 0; ++i) {
+        if (types[i] == Camera::Parameters::Transition) {
           index = i;
         }
       }
-      if(index >= 0){
+      if (index >= 0) {
         ceres::CostFunction *transition_barrier =
             new ceres::AutoDiffCostFunction<BAParameterBarrier, 1,
                                             DualCamera::Size>(
@@ -589,8 +557,7 @@ void BundleAdjuster::Run() {
       }
     }
   }
-  
-  
+
   for (auto &i : reconstructions_) {
     for (auto &s : i.second.scales) {
       if (i.second.constant) {
@@ -624,76 +591,66 @@ void BundleAdjuster::Run() {
 
   // Add rotation priors
   for (auto &rp : rotation_priors_) {
-    ceres::CostFunction* cost_function =
+    ceres::CostFunction *cost_function =
         new ceres::AutoDiffCostFunction<RotationPriorError, 3, 6>(
             new RotationPriorError(rp.rotation, rp.std_deviation));
 
-    problem.AddResidualBlock(cost_function,
-                             NULL,
-                             rp.shot->parameters.data());
+    problem.AddResidualBlock(cost_function, NULL, rp.shot->parameters.data());
   }
 
   // Add translation priors
   for (auto &tp : translation_priors_) {
-    ceres::CostFunction* cost_function =
+    ceres::CostFunction *cost_function =
         new ceres::AutoDiffCostFunction<TranslationPriorError, 3, 6>(
             new TranslationPriorError(tp.translation, tp.std_deviation));
 
-    problem.AddResidualBlock(cost_function,
-                             NULL,
-                             tp.shot->parameters.data());
+    problem.AddResidualBlock(cost_function, NULL, tp.shot->parameters.data());
   }
 
   // Add position priors
   for (auto &pp : position_priors_) {
-    ceres::CostFunction* cost_function =
+    ceres::CostFunction *cost_function =
         new ceres::AutoDiffCostFunction<PositionPriorError, 3, 6>(
             new PositionPriorError(pp.position, pp.std_deviation));
 
-    problem.AddResidualBlock(cost_function,
-                             NULL,
-                             pp.shot->parameters.data());
+    problem.AddResidualBlock(cost_function, NULL, pp.shot->parameters.data());
   }
 
   // Add point position priors
   for (auto &pp : point_position_priors_) {
-    ceres::CostFunction* cost_function =
+    ceres::CostFunction *cost_function =
         new ceres::AutoDiffCostFunction<PointPositionPriorError, 3, 3>(
             new PointPositionPriorError(pp.position, pp.std_deviation));
 
-    problem.AddResidualBlock(cost_function,
-                             NULL,
-                             pp.point->parameters.data());
+    problem.AddResidualBlock(cost_function, NULL, pp.point->parameters.data());
   }
 
   // Add internal parameter priors blocks
   for (auto &i : cameras_) {
-    const auto projection_type =
-        i.second.GetValue().GetProjectionType();
+    const auto projection_type = i.second.GetValue().GetProjectionType();
     Dispatch<AddCameraPriorlError>(projection_type, i.second, &problem);
   }
 
   // Add unit translation block
   if (unit_translation_shot_) {
-    ceres::CostFunction* cost_function =
+    ceres::CostFunction *cost_function =
         new ceres::AutoDiffCostFunction<UnitTranslationPriorError, 1, 6>(
             new UnitTranslationPriorError());
 
-    problem.AddResidualBlock(cost_function,
-                             NULL,
+    problem.AddResidualBlock(cost_function, NULL,
                              unit_translation_shot_->parameters.data());
   }
 
   // Add relative motion errors
   for (auto &rp : relative_motions_) {
-    double robust_threshold = relative_motion_loss_threshold_*rp.robust_multiplier;
-    ceres::LossFunction *relative_motion_loss = CreateLossFunction(
-      relative_motion_loss_name_, robust_threshold);
+    double robust_threshold =
+        relative_motion_loss_threshold_ * rp.robust_multiplier;
+    ceres::LossFunction *relative_motion_loss =
+        CreateLossFunction(relative_motion_loss_name_, robust_threshold);
 
     auto *cost_function =
         new ceres::AutoDiffCostFunction<BARelativeMotionError, 6, 6, 1, 6>(
-            new BARelativeMotionError(rp.parameters,
-                                      rp.scale_matrix));
+            new BARelativeMotionError(rp.parameters, rp.scale_matrix));
     double *scale =
         reconstructions_[rp.reconstruction_id_i].GetScalePtr(rp.shot_id_i);
     problem.AddResidualBlock(cost_function, relative_motion_loss,
@@ -703,9 +660,10 @@ void BundleAdjuster::Run() {
 
   // Add relative similarity errors
   for (auto &rp : relative_similarity_) {
-    double robust_threshold = relative_motion_loss_threshold_*rp.robust_multiplier;
-    ceres::LossFunction *relative_similarity_loss = CreateLossFunction(
-      relative_motion_loss_name_, robust_threshold);
+    double robust_threshold =
+        relative_motion_loss_threshold_ * rp.robust_multiplier;
+    ceres::LossFunction *relative_similarity_loss =
+        CreateLossFunction(relative_motion_loss_name_, robust_threshold);
 
     auto *cost_function =
         new ceres::AutoDiffCostFunction<BARelativeSimilarityError, 7, 6, 1, 6,
@@ -721,7 +679,7 @@ void BundleAdjuster::Run() {
   }
 
   // Add relative rotation errors
-    ceres::LossFunction *relative_rotation_loss = CreateLossFunction(
+  ceres::LossFunction *relative_rotation_loss = CreateLossFunction(
       relative_motion_loss_name_, relative_motion_loss_threshold_);
   for (auto &rr : relative_rotations_) {
     auto *cost_function =
@@ -744,21 +702,22 @@ void BundleAdjuster::Run() {
   }
 
   // Add absolute position errors
-  std::map<std::string,int> std_dev_group_remap;
-  for (const auto& a : absolute_positions_){
-    if(std_dev_group_remap.find(a.std_deviation_group) != std_dev_group_remap.end()){
+  std::map<std::string, int> std_dev_group_remap;
+  for (const auto &a : absolute_positions_) {
+    if (std_dev_group_remap.find(a.std_deviation_group) !=
+        std_dev_group_remap.end()) {
       continue;
     }
     const int index = std_dev_group_remap.size();
     std_dev_group_remap[a.std_deviation_group] = index;
   }
   std::vector<double> std_deviations(std_dev_group_remap.size());
-  for (const auto& a : absolute_positions_){
-    std_deviations[std_dev_group_remap[a.std_deviation_group]] = a.std_deviation;
+  for (const auto &a : absolute_positions_) {
+    std_deviations[std_dev_group_remap[a.std_deviation_group]] =
+        a.std_deviation;
   }
 
   for (auto &a : absolute_positions_) {
-
     ceres::DynamicCostFunction *cost_function = nullptr;
 
     // camera parametrization
@@ -766,8 +725,7 @@ void BundleAdjuster::Run() {
     cost_function = new ceres::DynamicAutoDiffCostFunction<
         BAAbsolutePositionError<ShotPositionShotParam>>(
         new BAAbsolutePositionError<ShotPositionShotParam>(
-            pos_func, a.position, 1.0, true,
-            PositionConstraintType::XYZ));
+            pos_func, a.position, 1.0, true, PositionConstraintType::XYZ));
 
     // world parametrization
     // ShotPositionWorldParam pos_func(0);
@@ -778,20 +736,21 @@ void BundleAdjuster::Run() {
     cost_function->AddParameterBlock(6);
     cost_function->AddParameterBlock(1);
     cost_function->SetNumResiduals(3);
-    problem.AddResidualBlock(cost_function, NULL, a.shot->parameters.data(),
-                             &std_deviations[std_dev_group_remap[a.std_deviation_group]]);
+    problem.AddResidualBlock(
+        cost_function, NULL, a.shot->parameters.data(),
+        &std_deviations[std_dev_group_remap[a.std_deviation_group]]);
   }
 
-  // Add regularizer term if we're adjusting for standart deviation, or lock them up.
-  if(adjust_absolute_position_std_){
+  // Add regularizer term if we're adjusting for standart deviation, or lock
+  // them up.
+  if (adjust_absolute_position_std_) {
     for (int i = 0; i < std_deviations.size(); ++i) {
-      ceres::CostFunction* std_dev_cost_function =
-            new ceres::AutoDiffCostFunction<BAStdDeviationConstraint, 1, 1>(
-                new BAStdDeviationConstraint());
+      ceres::CostFunction *std_dev_cost_function =
+          new ceres::AutoDiffCostFunction<BAStdDeviationConstraint, 1, 1>(
+              new BAStdDeviationConstraint());
       problem.AddResidualBlock(std_dev_cost_function, NULL, &std_deviations[i]);
     }
-  }
-  else{
+  } else {
     for (int i = 0; i < std_deviations.size(); ++i) {
       problem.SetParameterBlockConstant(&std_deviations[i]);
     }
@@ -812,9 +771,9 @@ void BundleAdjuster::Run() {
 
   // Add absolute pan (compass) errors
   ceres::LossFunction *pan_loss = new ceres::CauchyLoss(1);
-  for (auto &a: absolute_pans_) {
+  for (auto &a : absolute_pans_) {
     if (a.std_deviation > 0) {
-      ceres::CostFunction* pan_cost_function =
+      ceres::CostFunction *pan_cost_function =
           new ceres::AutoDiffCostFunction<BAPanAngleError, 1, 6>(
               new BAPanAngleError(a.angle, a.std_deviation));
       problem.AddResidualBlock(pan_cost_function, pan_loss,
@@ -824,9 +783,9 @@ void BundleAdjuster::Run() {
 
   // Add absolute tilt errors
   ceres::LossFunction *tilt_loss = new ceres::CauchyLoss(1);
-  for (auto &a: absolute_tilts_) {
+  for (auto &a : absolute_tilts_) {
     if (a.std_deviation > 0) {
-      ceres::CostFunction* tilt_cost_function =
+      ceres::CostFunction *tilt_cost_function =
           new ceres::AutoDiffCostFunction<BATiltAngleError, 1, 6>(
               new BATiltAngleError(a.angle, a.std_deviation));
       problem.AddResidualBlock(tilt_cost_function, tilt_loss,
@@ -836,9 +795,9 @@ void BundleAdjuster::Run() {
 
   // Add absolute roll errors
   ceres::LossFunction *roll_loss = new ceres::CauchyLoss(1);
-  for (auto &a: absolute_rolls_) {
+  for (auto &a : absolute_rolls_) {
     if (a.std_deviation > 0) {
-      ceres::CostFunction* roll_cost_function =
+      ceres::CostFunction *roll_cost_function =
           new ceres::AutoDiffCostFunction<BARollAngleError, 1, 6>(
               new BARollAngleError(a.angle, a.std_deviation));
       problem.AddResidualBlock(roll_cost_function, roll_loss,
@@ -854,10 +813,9 @@ void BundleAdjuster::Run() {
             new BALinearMotionError(a.alpha, a.position_std_deviation,
                                     a.orientation_std_deviation));
 
-    problem.AddResidualBlock(cost_function, linear_motion_prior_loss_,
-                             a.shot0->parameters.data(), 
-                             a.shot1->parameters.data(),
-                             a.shot2->parameters.data());
+    problem.AddResidualBlock(
+        cost_function, linear_motion_prior_loss_, a.shot0->parameters.data(),
+        a.shot1->parameters.data(), a.shot2->parameters.data());
   }
 
   // Add point positions with shot position priors
@@ -873,10 +831,10 @@ void BundleAdjuster::Run() {
     cost_function->AddParameterBlock(3);
     cost_function->SetNumResiduals(3);
 
-    problem.AddResidualBlock(cost_function, NULL, 
-                             shots_[p.shot_id].parameters.data(),
-                             reconstructions_[p.reconstruction_id].GetScalePtr(p.shot_id), 
-                             points_[p.point_id].parameters.data());
+    problem.AddResidualBlock(
+        cost_function, NULL, shots_[p.shot_id].parameters.data(),
+        reconstructions_[p.reconstruction_id].GetScalePtr(p.shot_id),
+        points_[p.point_id].parameters.data());
   }
 
   // Add point positions with world position priors
@@ -884,11 +842,12 @@ void BundleAdjuster::Run() {
     PointPositionWorld pos_func(0);
     auto *cost_function = new ceres::DynamicAutoDiffCostFunction<
         BAAbsolutePositionError<PointPositionWorld>>(
-        new BAAbsolutePositionError<PointPositionWorld>(pos_func, p.position, p.std_deviation, false, p.type));
+        new BAAbsolutePositionError<PointPositionWorld>(
+            pos_func, p.position, p.std_deviation, false, p.type));
 
     cost_function->AddParameterBlock(3);
     cost_function->SetNumResiduals(3);
-    problem.AddResidualBlock(cost_function, NULL, 
+    problem.AddResidualBlock(cost_function, NULL,
                              points_[p.point_id].parameters.data());
   }
 
@@ -916,7 +875,7 @@ void BundleAdjuster::ComputeCovariances(ceres::Problem *problem) {
     ceres::Covariance::Options options;
     ceres::Covariance covariance(options);
 
-    std::vector<std::pair<const double*, const double*> > covariance_blocks;
+    std::vector<std::pair<const double *, const double *>> covariance_blocks;
     for (auto &i : shots_) {
       covariance_blocks.push_back(std::make_pair(i.second.parameters.data(),
                                                  i.second.parameters.data()));
@@ -939,26 +898,23 @@ void BundleAdjuster::ComputeCovariances(ceres::Problem *problem) {
 
   // TODO: It might be slow to check everything for NaNs
   //       So maybe we can find a better solution
-  if (computed)
-  {
-
-    //Check for NaNs
+  if (computed) {
+    // Check for NaNs
     for (auto &i : shots_) {
       for (int k = 0; k < 6 * 6; ++k) {
-          // if we find one nan entry, we can already stop
-          if (std::isnan(i.second.covariance[k]))
-          {
-            covariance_estimation_valid_ = false;
-            computed = false;
-            break;
-          }
+        // if we find one nan entry, we can already stop
+        if (std::isnan(i.second.covariance[k])) {
+          covariance_estimation_valid_ = false;
+          computed = false;
+          break;
+        }
       }
-      //stop after first Nan value
+      // stop after first Nan value
       if (!computed) break;
     }
   }
 
-  if (!computed) { // If covariance estimation failed, use a default value
+  if (!computed) {  // If covariance estimation failed, use a default value
     for (auto &i : shots_) {
       covariance_estimation_valid_ = false;
       for (int k = 0; k < 6 * 6; ++k) {
@@ -984,25 +940,21 @@ void BundleAdjuster::ComputeReprojectionErrors() {
 
   for (auto &observation : point_projection_observations_) {
     const auto projection_type =
-      observation.camera->GetValue().GetProjectionType();
+        observation.camera->GetValue().GetProjectionType();
     Dispatch<ComputeResidualError>(projection_type, use_analytic_, observation);
   }
 }
 
-Camera BundleAdjuster::GetCamera(const std::string &id){
-  if(cameras_.find(id) == cameras_.end()){
+Camera BundleAdjuster::GetCamera(const std::string &id) {
+  if (cameras_.find(id) == cameras_.end()) {
     throw std::runtime_error("Camera doesn't exists");
   }
   return cameras_.at(id).GetValue();
 }
 
-BAShot BundleAdjuster::GetShot(const std::string &id) {
-  return shots_[id];
-}
+BAShot BundleAdjuster::GetShot(const std::string &id) { return shots_[id]; }
 
-BAPoint BundleAdjuster::GetPoint(const std::string &id) {
-  return points_[id];
-}
+BAPoint BundleAdjuster::GetPoint(const std::string &id) { return points_[id]; }
 
 BAReconstruction BundleAdjuster::GetReconstruction(const std::string &id) {
   return reconstructions_[id];

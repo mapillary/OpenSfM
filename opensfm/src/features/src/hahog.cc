@@ -1,30 +1,28 @@
 #include <features/hahog.h>
 
-#include <vector>
 #include <iostream>
+#include <vector>
 
 extern "C" {
-  #include <third_party/vlfeat/vl/covdet.h>
-  #include <third_party/vlfeat/vl/sift.h>
-  #include <time.h>
+#include <third_party/vlfeat/vl/covdet.h>
+#include <third_party/vlfeat/vl/sift.h>
+#include <time.h>
 }
 
 namespace features {
 
-py::object hahog(foundation::pyarray_f image,
-                 float peak_threshold,
-                 float edge_threshold,
-                 int target_num_features,
+py::object hahog(foundation::pyarray_f image, float peak_threshold,
+                 float edge_threshold, int target_num_features,
                  bool use_adaptive_suppression) {
   py::gil_scoped_release release;
 
   if (image.size()) {
-    //clock_t t_start = clock();
+    // clock_t t_start = clock();
     // create a detector object
-    VlCovDet * covdet = vl_covdet_new(VL_COVDET_METHOD_HESSIAN);
+    VlCovDet *covdet = vl_covdet_new(VL_COVDET_METHOD_HESSIAN);
     // set various parameters (optional)
     vl_covdet_set_first_octave(covdet, 0);
-    //vl_covdet_set_octave_resolution(covdet, octaveResolution);
+    // vl_covdet_set_octave_resolution(covdet, octaveResolution);
     vl_covdet_set_peak_threshold(covdet, peak_threshold);
     vl_covdet_set_edge_threshold(covdet, edge_threshold);
     vl_covdet_set_target_num_features(covdet, target_num_features);
@@ -33,25 +31,26 @@ py::object hahog(foundation::pyarray_f image,
     // process the image and run the detector
     vl_covdet_put_image(covdet, image.data(), image.shape(1), image.shape(0));
 
-    //clock_t t_scalespace = clock();
+    // clock_t t_scalespace = clock();
 
     vl_covdet_detect(covdet);
 
-    //clock_t t_detect = clock();
+    // clock_t t_detect = clock();
 
     // compute the affine shape of the features (optional)
-    //vl_covdet_extract_affine_shape(covdet);
+    // vl_covdet_extract_affine_shape(covdet);
 
-    //clock_t t_affine = clock();
+    // clock_t t_affine = clock();
 
     // compute the orientation of the features (optional)
     vl_covdet_extract_orientations(covdet);
 
-    //clock_t t_orient = clock();
+    // clock_t t_orient = clock();
 
     // get feature descriptors
     vl_size numFeatures = vl_covdet_get_num_features(covdet);
-    VlCovDetFeature const *feature = (VlCovDetFeature const *)vl_covdet_get_features(covdet);
+    VlCovDetFeature const *feature =
+        (VlCovDetFeature const *)vl_covdet_get_features(covdet);
     VlSiftFilt *sift = vl_sift_new(16, 16, 1, 3, 0);
     vl_index i;
     vl_size dimension = 128;
@@ -76,41 +75,39 @@ py::object hahog(foundation::pyarray_f image,
       points[4 * i + 2] = size;
       points[4 * i + 3] = angle;
 
-      vl_covdet_extract_patch_for_frame(covdet,
-                                        &patch[0],
-                                        patchResolution,
+      vl_covdet_extract_patch_for_frame(covdet, &patch[0], patchResolution,
                                         patchRelativeExtent,
-                                        patchRelativeSmoothing,
-                                        frame);
+                                        patchRelativeSmoothing, frame);
 
-      vl_imgradient_polar_f(&patchXY[0], &patchXY[1],
-                            2, 2 * patchSide,
+      vl_imgradient_polar_f(&patchXY[0], &patchXY[1], 2, 2 * patchSide,
                             &patch[0], patchSide, patchSide, patchSide);
 
-      vl_sift_calc_raw_descriptor(sift,
-                                  &patchXY[0],
-                                  &desc[dimension * i],
-                                  (int)patchSide, (int)patchSide,
-                                  (double)(patchSide - 1) / 2, (double)(patchSide - 1) / 2,
-                                  (double)patchRelativeExtent / (3.0 * (4 + 1) / 2) / patchStep,
-                                  VL_PI / 2);
+      vl_sift_calc_raw_descriptor(
+          sift, &patchXY[0], &desc[dimension * i], (int)patchSide,
+          (int)patchSide, (double)(patchSide - 1) / 2,
+          (double)(patchSide - 1) / 2,
+          (double)patchRelativeExtent / (3.0 * (4 + 1) / 2) / patchStep,
+          VL_PI / 2);
     }
     vl_sift_delete(sift);
     vl_covdet_delete(covdet);
 
     // clock_t t_description = clock();
-    // std::cout << "t_scalespace " << float(t_scalespace - t_start)/CLOCKS_PER_SEC << "\n";
-    // std::cout << "t_detect " << float(t_detect - t_scalespace)/CLOCKS_PER_SEC << "\n";
-    // std::cout << "t_affine " << float(t_affine - t_detect)/CLOCKS_PER_SEC << "\n";
-    // std::cout << "t_orient " << float(t_orient - t_affine)/CLOCKS_PER_SEC << "\n";
-    // std::cout << "description " << float(t_description - t_orient)/CLOCKS_PER_SEC << "\n";
+    // std::cout << "t_scalespace " << float(t_scalespace -
+    // t_start)/CLOCKS_PER_SEC << "\n"; std::cout << "t_detect " <<
+    // float(t_detect - t_scalespace)/CLOCKS_PER_SEC << "\n"; std::cout <<
+    // "t_affine " << float(t_affine - t_detect)/CLOCKS_PER_SEC << "\n";
+    // std::cout << "t_orient " << float(t_orient - t_affine)/CLOCKS_PER_SEC <<
+    // "\n"; std::cout << "description " << float(t_description -
+    // t_orient)/CLOCKS_PER_SEC << "\n";
 
     py::list retn;
     retn.append(foundation::py_array_from_data(&points[0], numFeatures, 4));
-    retn.append(foundation::py_array_from_data(&desc[0], numFeatures, dimension));
+    retn.append(
+        foundation::py_array_from_data(&desc[0], numFeatures, dimension));
     return std::move(retn);
   }
   return py::none();
 }
 
-}
+}  // namespace features

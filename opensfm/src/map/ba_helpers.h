@@ -23,8 +23,7 @@ class BAHelpers {
       map::Map& map,
       const std::unordered_map<map::CameraId, Camera>& camera_priors,
       const AlignedVector<map::GroundControlPoint>& gcp,
-      const map::ShotId& central_shot_id,
-      const py::dict& config);
+      const map::ShotId& central_shot_id, const py::dict& config);
 
   static std::pair<std::unordered_set<map::ShotId>,
                    std::unordered_set<map::ShotId>>
@@ -39,6 +38,7 @@ class BAHelpers {
   static std::string DetectAlignmentConstraints(
       const map::Map& map, const py::dict& config,
       const AlignedVector<map::GroundControlPoint>& gcp);
+
  private:
   static std::unordered_set<map::Shot*> DirectShotNeighbors(
       const std::unordered_set<map::Shot*>& shot_ids,
@@ -52,9 +52,6 @@ class BAHelpers {
       Vec3d& coordinates);
 
   static void AlignmentConstraints(
-    const map::Map& map, const py::dict& config,
-    const AlignedVector<map::GroundControlPoint>& gcp,
-    MatX3d& Xp, MatX3d& X);
-
-
+      const map::Map& map, const py::dict& config,
+      const AlignedVector<map::GroundControlPoint>& gcp, MatX3d& Xp, MatX3d& X);
 };

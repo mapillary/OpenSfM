@@ -35,8 +35,8 @@ class Camera {
                                   const VecXd& distortion);
   static Camera CreateFisheyeCamera(double focal, double k1, double k2);
   static Camera CreateFisheyeOpencvCamera(double focal, double aspect_ratio,
-                                            const Vec2d& principal_point,
-                                            const VecXd& distortion);
+                                          const Vec2d& principal_point,
+                                          const VecXd& distortion);
   static Camera CreateDualCamera(double transition, double focal, double k1,
                                  double k2);
   static Camera CreateSphericalCamera();
@@ -49,7 +49,7 @@ class Camera {
 
   std::vector<Parameters> GetParametersTypes() const;
   VecXd GetParametersValues() const;
-  std::map<Parameters, double, CompParameters> GetParametersMap()const;
+  std::map<Parameters, double, CompParameters> GetParametersMap() const;
 
   double GetParameterValue(const Parameters& parameter) const;
   void SetParameterValue(const Parameters& parameter, double value);
@@ -66,8 +66,10 @@ class Camera {
 
   Vec2d PixelToNormalizedCoordinates(const Vec2d& px_coord) const;
   Vec2d NormalizedToPixelCoordinates(const Vec2d& norm_coord) const;
-  static Vec2d NormalizedToPixelCoordinates(const Vec2d& norm_coord, const int width, const int height);
-  static Vec2d PixelToNormalizedCoordinates(const Vec2d& px_coord, const int width, const int height);
+  static Vec2d NormalizedToPixelCoordinates(const Vec2d& norm_coord,
+                                            const int width, const int height);
+  static Vec2d PixelToNormalizedCoordinates(const Vec2d& px_coord,
+                                            const int width, const int height);
 
  private:
   Camera();
