@@ -1,10 +1,7 @@
 import copy
 
 import numpy as np
-import pytest
-from opensfm import multiview
 from opensfm import pyrobust
-from opensfm.synthetic_data import synthetic_examples
 
 
 def line_data():

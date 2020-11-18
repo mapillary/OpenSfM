@@ -1,5 +1,3 @@
-import numpy as np
-import pytest
 from opensfm import reconstruction
 from opensfm.synthetic_data import synthetic_dataset
 from opensfm.synthetic_data import synthetic_scene
