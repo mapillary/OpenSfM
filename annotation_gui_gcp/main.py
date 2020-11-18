@@ -133,9 +133,10 @@ def group_by_reconstruction(args, groups_from_sequence_database):
     grouped_skeys = [skey for g in args.sequence_group for skey in g]
 
     map_key_to_skey = {}
-    for skey, keys in groups_from_sequence_database.items():
-        for k in keys:
-            map_key_to_skey[k] = skey
+    if groups_from_sequence_database:
+        for skey, keys in groups_from_sequence_database.items():
+            for k in keys:
+                map_key_to_skey[k] = skey
 
     groups = defaultdict(list)
     sequence_groups = []
@@ -144,7 +145,7 @@ def group_by_reconstruction(args, groups_from_sequence_database):
             [f"REC#{ix_rec}_{skey}" for group in args.sequence_group for skey in group]
         )
         for key in rec_shots:
-            skey = map_key_to_skey[key]
+            skey = map_key_to_skey.get(key)
             if skey in grouped_skeys:
                 # If this sequence is in any of the sequence groups, we want to
                 # re-split each reconstruction into different views if they belong
