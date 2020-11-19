@@ -18,6 +18,7 @@ from . import (
     reconstruct,
     undistort,
 )
+from .command_runner import command_runner
 
 
 opensfm_commands = [
