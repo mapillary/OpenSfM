@@ -87,7 +87,7 @@ if __name__ == "__main__":
                         help='undistorted subfolder',
                         default='undistorted')
     parser.add_argument('--save-figs',
-                        help='save figures istead of showing them',
+                        help='save figures instead of showing them',
                         action='store_true')
     args = parser.parse_args()
 
