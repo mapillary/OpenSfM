@@ -36,7 +36,7 @@ if __name__ == "__main__":
     parser.add_argument('--image',
                         help='name of the image to show')
     parser.add_argument('--save_figs',
-                        help='save figures istead of showing them',
+                        help='save figures instead of showing them',
                         action='store_true')
     args = parser.parse_args()
 
