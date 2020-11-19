@@ -10,11 +10,11 @@ bool IsInsideImage(const cv::Mat &image, int i, int j) {
 
 template <typename T>
 float LinearInterpolation(const cv::Mat &image, float y, float x) {
-  if (x < 0.0f || x >= image.cols - 1 || y < 0.0f || y >= image.rows - 1) {
-    return 0.0f;
-  }
   int ix = int(x);
   int iy = int(y);
+  if (ix < 0.0f || ix >= image.cols - 1 || iy < 0.0f || iy >= image.rows - 1) {
+    return 0.0f;
+  }
   float dx = x - ix;
   float dy = y - iy;
   float im00 = image.at<T>(iy, ix);
