@@ -29,7 +29,9 @@ def gps_to_decimal(values, reference):
     degrees = eval_frac(values[0])
     minutes = eval_frac(values[1])
     seconds = eval_frac(values[2])
-    return sign * (degrees + minutes / 60 + seconds / 3600)
+    if degrees is not None and minutes is not None and seconds is not None:
+        return sign * (degrees + minutes / 60 + seconds / 3600)
+    return None
 
 
 def get_tag_as_float(tags, key, index=0):
