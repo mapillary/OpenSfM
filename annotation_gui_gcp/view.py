@@ -11,7 +11,6 @@ from typing import Tuple
 from matplotlib import patheffects
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
-from matplotlib.transforms import Affine2D
 from opensfm import features
 
 FONT = "TkFixedFont"
@@ -53,6 +52,7 @@ class View:
         window = tk.Toplevel(self.main_ui.master)
         self.window = window
         self.current_image = None
+        self.rotation = 0
 
         canvas_frame = tk.Frame(window)
         canvas_frame.pack(side="left", fill=tk.BOTH, expand=1)
@@ -279,6 +279,7 @@ class View:
         self.current_image = new_image
         self.ax.clear()
         img = self.get_image(new_image)
+        img = np.rot90(img, k=-self.rotation)
         self.ax.imshow(img)
         self.ax.axis("on")
         self.ax.axis("scaled")
@@ -327,6 +328,18 @@ class View:
             self.zoom_in(x, y)
         self.canvas.draw_idle()
 
+    def rotate_point(self, x, y, h, w, reverse):
+        if self.rotation == 0:
+            return (x, y)
+        elif self.rotation == 1:
+            return (y, h - x) if reverse else (h - y, x)
+        elif self.rotation == 2:
+            return (w - x, h - y)
+        elif self.rotation == 3:
+            return (w - y, x) if reverse else (y, w - x)
+        else:
+            raise ValueError
+
     def gcp_to_pixel_coordinates(self, x: float, y: float) -> Tuple[float, float]:
         """
         Transforms from normalized coordinates to pixels
@@ -336,7 +349,7 @@ class View:
         """
         h, w = self.image_manager.get_image_size(self.current_image)
         px = features.denormalized_image_coordinates(np.array([[x, y]]), w, h)[0]
-        return px.tolist()
+        return self.rotate_point(px[0], px[1], h, w, reverse=False)
 
     def pixel_to_gcp_coordinates(self, x: float, y: float) -> Tuple[float, float]:
         """
@@ -346,7 +359,8 @@ class View:
         manager to obtain the reduced coordinates to use for normalization.
         """
         h, w = self.image_manager.get_image_size(self.current_image)
-        coords = features.normalized_image_coordinates(np.array([[x, y]]), w, h)[0]
+        point = self.rotate_point(x, y, h, w, reverse=True)
+        coords = features.normalized_image_coordinates(np.array([point]), w, h)[0]
         return coords.tolist()
 
     def go_to_next_image(self):

@@ -24,6 +24,13 @@ class ImageSequenceView(View):
         )
         auto_gcp_button.pack(side="top")
 
+        rotate_button = tk.Button(
+            self.toolbox,
+            text="Rotate",
+            command=lambda window=self.window: self.rotate(),
+        )
+        rotate_button.pack(side="top")
+
         self.populate_image_list()
         self.bring_new_image(self.images_in_list[0])
         self.set_title()
@@ -33,6 +40,10 @@ class ImageSequenceView(View):
 
     def get_candidate_images(self):
         return self.images_in_list
+
+    def rotate(self):
+        self.rotation = (self.rotation + 1) % 4
+        self.bring_new_image(self.current_image, force=True)
 
     def auto_gcp_show_tracks(self):
         h, w = self.image_manager.get_image_size(self.current_image)
