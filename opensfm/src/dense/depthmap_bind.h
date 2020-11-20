@@ -26,26 +26,29 @@ class DepthmapEstimatorWrapper {
   void SetMinPatchSD(float sd) { de_.SetMinPatchSD(sd); }
 
   py::object ComputePatchMatch() {
-    py::gil_scoped_release release;
-
     DepthmapEstimatorResult result;
-    de_.ComputePatchMatch(&result);
+    {
+      py::gil_scoped_release release;
+      de_.ComputePatchMatch(&result);
+    }
     return ComputeReturnValues(result);
   }
 
   py::object ComputePatchMatchSample() {
-    py::gil_scoped_release release;
-
     DepthmapEstimatorResult result;
-    de_.ComputePatchMatchSample(&result);
+    {
+      py::gil_scoped_release release;
+      de_.ComputePatchMatchSample(&result);
+    }
     return ComputeReturnValues(result);
   }
 
   py::object ComputeBruteForce() {
-    py::gil_scoped_release release;
-
     DepthmapEstimatorResult result;
-    de_.ComputeBruteForce(&result);
+    {
+      py::gil_scoped_release release;
+      de_.ComputeBruteForce(&result);
+    }
     return ComputeReturnValues(result);
   }
 
@@ -78,10 +81,11 @@ class DepthmapCleanerWrapper {
   }
 
   py::object Clean() {
-    py::gil_scoped_release release;
-
     cv::Mat depth;
-    dc_.Clean(&depth);
+    {
+      py::gil_scoped_release release;
+      dc_.Clean(&depth);
+    }
     return py_array_from_data(depth.ptr<float>(0), depth.rows, depth.cols);
   }
 
@@ -102,15 +106,16 @@ class DepthmapPrunerWrapper {
   }
 
   py::object Prune() {
-    py::gil_scoped_release release;
-
     std::vector<float> points;
     std::vector<float> normals;
     std::vector<unsigned char> colors;
     std::vector<unsigned char> labels;
     std::vector<unsigned char> detections;
 
-    dp_.Prune(&points, &normals, &colors, &labels, &detections);
+    {
+      py::gil_scoped_release release;
+      dp_.Prune(&points, &normals, &colors, &labels, &detections);
+    }
 
     py::list retn;
     int n = int(points.size()) / 3;

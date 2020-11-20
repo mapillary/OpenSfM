@@ -11,6 +11,7 @@
 
 namespace py = pybind11;
 
+
 PYBIND11_MODULE(pygeometry, m) {
   py::enum_<ProjectionType>(m, "ProjectionType")
       .value("PERSPECTIVE", ProjectionType::PERSPECTIVE)
@@ -251,8 +252,7 @@ PYBIND11_MODULE(pygeometry, m) {
            py::return_value_policy::copy)
       .def("__deepcopy__", [](const Camera& c, const py::dict& d) { return c; },
            py::return_value_policy::copy);
-  m.def("compute_camera_mapping", ComputeCameraMapping);
-
+  m.def("compute_camera_mapping", ComputeCameraMapping, py::call_guard<py::gil_scoped_release>());
   m.def("triangulate_bearings_dlt", geometry::TriangulateBearingsDLT);
   m.def("triangulate_bearings_midpoint", geometry::TriangulateBearingsMidpoint);
   m.def("triangulate_two_bearings_midpoint",
