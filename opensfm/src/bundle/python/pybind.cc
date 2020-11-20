@@ -6,15 +6,11 @@
 #include <bundle/reconstruction_alignment.h>
 #include <foundation/python_types.h>
 
-void BundleAdjusterRun(BundleAdjuster *bundle_adjuster) {
-  py::gil_scoped_release release;
-  bundle_adjuster->Run();
-}
 
 PYBIND11_MODULE(pybundle, m) {
   py::class_<BundleAdjuster>(m, "BundleAdjuster")
       .def(py::init())
-      .def("run", &BundleAdjusterRun)
+      .def("run", &BundleAdjuster::Run, py::call_guard<py::gil_scoped_release>())
       .def("set_point_projection_loss_function",
            &BundleAdjuster::SetPointProjectionLossFunction)
       .def("set_relative_motion_loss_function",
