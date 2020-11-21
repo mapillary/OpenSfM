@@ -163,9 +163,10 @@ class Gui:
         button = tk.Button(io_frame, text="Save As", command=self.save_gcps_as)
         button.pack(side="left")
 
-    def create_oblique_views(self, lat, lon):
-        #need to get actual lat lon
-        v = self.oblique_view.oblique_selection(lat, lon)
+    def create_oblique_views(self, latlon):
+        if latlon is None:
+            return
+        v = self.oblique_view.oblique_selection(latlon[0], latlon[1])
         #self.oblique_views.extend(v)
         
     def create_ortho_views(self, ortho_paths, lat, lon):
@@ -243,13 +244,6 @@ class Gui:
     def add_gcp(self):
         self.curr_point = self.gcp_manager.add_point()
         self.populate_gcp_list()
-
-        #TODO: move this to views.add_or_remove_gcp
-        #self.oblique_views=[]
-        if self.oblique_path:
-            lat=47.614
-            lon=-122.34677
-            self.create_oblique_views(lat,lon)
         return self.curr_point
 
     def toggle_sticky_zoom(self):

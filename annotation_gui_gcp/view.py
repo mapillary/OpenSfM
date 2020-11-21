@@ -156,13 +156,16 @@ class View:
             self.main_ui.curr_point, self.current_image
         )
         if add:
+            latlon=self.pixel_to_latlon(x, y)
             self.main_ui.gcp_manager.add_point_observation(
                 self.main_ui.curr_point,
                 self.current_image,
                 self.pixel_to_gcp_coordinates(x, y),
-                latlon=self.pixel_to_latlon(x, y),
+                latlon=latlon,
             )
             self.zoom_in(x, y)
+            if self.main_ui.oblique_view:
+                self.main_ui.create_oblique_views(latlon)
         else:
             self.zoom_out()
 

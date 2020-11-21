@@ -93,8 +93,10 @@ class ImageSequenceView(View):
         self.update_image_list_text()
 
     def pixel_to_latlon(self, x: float, y: float):
-        #for obliques, maybe grab the nearest featere to pixel x,y?
-        return None
+        #TODO: for obliques, maybe grab the nearest featere to pixel x,y?
+        lat=47.614
+        lon=-122.34677
+        return lat, lon
 
     def set_title(self):
         shot = self.current_image
