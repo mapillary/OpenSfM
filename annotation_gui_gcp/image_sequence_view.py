@@ -93,6 +93,7 @@ class ImageSequenceView(View):
         self.update_image_list_text()
 
     def pixel_to_latlon(self, x: float, y: float):
+        #for obliques, maybe grab the nearest featere to pixel x,y?
         return None
 
     def set_title(self):

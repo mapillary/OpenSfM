@@ -13,13 +13,14 @@ matplotlib.use("TkAgg")
 
 from image_sequence_view import ImageSequenceView
 from orthophoto_view import OrthoPhotoView
+from oblique_view import ObliqueView
 
 FONT = "TkFixedFont"
 
 
 class Gui:
     def __init__(
-        self, master, gcp_manager, image_manager, sequence_groups=(), ortho_paths=[]
+            self, master, gcp_manager, image_manager, sequence_groups=(), ortho_paths=[], oblique_path=[]
     ):
         self.master = master
         self.gcp_manager = gcp_manager
@@ -29,7 +30,8 @@ class Gui:
         self.shot_std = {}
         self.sequence_groups = sequence_groups
         self.path = self.gcp_manager.path
-
+        self.oblique_path = oblique_path
+        
         master.bind_all("q", lambda event: self.go_to_worst_gcp())
         master.bind_all("z", lambda event: self.toggle_zoom_all_views())
         master.bind_all("x", lambda event: self.toggle_sticky_zoom())
@@ -75,6 +77,9 @@ class Gui:
             k = v.current_image
             latlon = v.latlons[k]
             self.create_ortho_views(ortho_paths, latlon["lat"], latlon["lon"])
+        if self.oblique_path:
+            self.oblique_view=ObliqueView(self, self.oblique_path)
+
         self.master.update_idletasks()
         self.arrange_ui_onerow()
 
@@ -158,6 +163,11 @@ class Gui:
         button = tk.Button(io_frame, text="Save As", command=self.save_gcps_as)
         button.pack(side="left")
 
+    def create_oblique_views(self, lat, lon):
+        #need to get actual lat lon
+        v = self.oblique_view.oblique_selection(lat, lon)
+        #self.oblique_views.extend(v)
+        
     def create_ortho_views(self, ortho_paths, lat, lon):
         for ortho_p in ortho_paths:
             v = OrthoPhotoView(
@@ -233,6 +243,13 @@ class Gui:
     def add_gcp(self):
         self.curr_point = self.gcp_manager.add_point()
         self.populate_gcp_list()
+
+        #TODO: move this to views.add_or_remove_gcp
+        #self.oblique_views=[]
+        if self.oblique_path:
+            lat=47.614
+            lon=-122.34677
+            self.create_oblique_views(lat,lon)
         return self.curr_point
 
     def toggle_sticky_zoom(self):

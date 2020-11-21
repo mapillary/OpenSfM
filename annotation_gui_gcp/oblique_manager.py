@@ -93,6 +93,7 @@ class ObliqueManager:
     def __init__(self, path: str, preload_images=True):
         self.path = Path(path)
         self.image_cache = {}
+        self.image_coord = {}
         self.preload_bol = preload_images
         self.build_rtree_index()
 
@@ -102,7 +103,9 @@ class ObliqueManager:
     def get_image(self, image_name):
         if image_name not in self.image_cache:
             path = self.image_path(image_name)
-            self.image_cache[image_name] = load_image(path)
+            px=image_name.split('_')[-2]
+            py=image_name.split('_')[-1]
+            self.image_cache[image_name] = load_image((path,px,py))
         return self.image_cache[image_name]
 
     def load_latlons(self):
@@ -121,16 +124,19 @@ class ObliqueManager:
              lon + cross_buf, lat + cross_buf), objects=True))
 
         self.aerial_matches = [x.object['images'] for x in aerial_matches]
+        self.image_names=[x['image_name'] for xx in self.aerial_matches for x in xx]
         print(f"Found {len(self.aerial_matches)} aerial images")
         # TODO: sort by distance between lat, lon, alt of ground and aerial
         # and limit to nearest
 
         if self.preload_bol:
             self.preload_images()
+            
+        return self.image_names
 
-        return
 
     def build_rtree_index(self):
+        print("building oblique SfM rtree...")
         buf = 1.0e-13  # what is this?
 
         ds = DataSet(self.path)
@@ -169,12 +175,20 @@ class ObliqueManager:
                     (self.image_path(match['image_id']), match['x_px_int'], (match['y_px_int'])))
         pool = multiprocessing.Pool(processes=n_cpu)
         images = pool.map(load_image, paths)
-        for image_name, im in zip(image_names, images):
+        for image_name, im, path in zip(image_names, images, paths):
             self.image_cache[image_name] = im
+            self.image_coord[image_name] = (path[1:])
 
     def get_image_size(self, image_name):
         return self.get_image(image_name).shape[:2]
 
+    def get_offsets(self, image_name):
+        px,py = self.image_coord[image_name]
+        height, width=self.get_image_size(image_name)
+        win=int(IMAGE_MAX_SIZE/2)
+        y1 = np.max([py-win, 0])
+        x1 = np.max([px-win, 0])
+        return x1, y1
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
@@ -184,7 +198,7 @@ if __name__ == "__main__":
     # https://stackoverflow.com/questions/45720153/python-multiprocessing-error-attributeerror-module-main-has-no-attribute
     __spec__ = None
     image_manager = ObliqueManager(path)
-    image_manager.get_candidate_images(47.614, -122.34677)
+    names=image_manager.get_candidate_images(47.614, -122.34677)
     for i, im in image_manager.image_cache.items():
         plt.figure()
         plt.imshow(im)
