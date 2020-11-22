@@ -170,7 +170,7 @@ def create_optical_center_graph(reconstructions, config):
     vertical_threshold = thresholds[4]
     rotation_threshold = thresholds[5]
 
-    step_right_left_threshold = np.min(np.pi / 2 - step_drift_threshold, np.pi / 4)
+    step_right_left_threshold = np.min([np.pi / 2 - step_drift_threshold, np.pi / 4])
 
     direction = 'direction'
     motion = 'motion'
