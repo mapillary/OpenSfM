@@ -10,6 +10,7 @@ from view import View
 
 class ImageSequenceView(View):
     def __init__(self, main_ui, sequence_key, image_keys, show_ortho_track):
+        self.name='sequence'
         self.group_name = sequence_key
         self.images_in_list = image_keys
         self.zoom_window_size_px = 200
@@ -93,7 +94,10 @@ class ImageSequenceView(View):
         self.update_image_list_text()
 
     def pixel_to_latlon(self, x: float, y: float):
-        return None
+        print(self.current_image)
+        px, py = self.pixel_to_gcp_coordinates(x,y)
+        latlon=self.image_manager.get_nearest_feature(self.current_image, px, py)
+        return latlon[0], latlon[1]
 
     def set_title(self):
         shot = self.current_image

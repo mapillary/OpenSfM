@@ -1,3 +1,9 @@
+from opensfm import features
+from matplotlib.transforms import Affine2D
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib import patheffects
+from typing import Tuple
 import colorsys
 import tkinter as tk
 
@@ -6,13 +12,7 @@ import matplotlib.patches as mpatches
 import numpy as np
 
 matplotlib.use("TkAgg")
-from typing import Tuple
 
-from matplotlib import patheffects
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from matplotlib.figure import Figure
-from matplotlib.transforms import Affine2D
-from opensfm import features
 
 FONT = "TkFixedFont"
 
@@ -94,7 +94,8 @@ class View:
         self.canvas.mpl_connect(
             "button_press_event", lambda event: self.onclick_image(event)
         )
-        self.canvas.mpl_connect("scroll_event", lambda event: self.on_scroll(event))
+        self.canvas.mpl_connect(
+            "scroll_event", lambda event: self.on_scroll(event))
 
         self.zoomed_in = False
         self.last_seen_px = {}
@@ -149,20 +150,24 @@ class View:
     def add_move_or_remove_gcp(self, x, y, add):
         if self.main_ui.curr_point is None:
             return
-        reproj = self.main_ui.gcp_manager.gcp_reprojections.get(self.main_ui.curr_point)
+        reproj = self.main_ui.gcp_manager.gcp_reprojections.get(
+            self.main_ui.curr_point)
         if reproj:
             reproj.pop(self.current_image, None)
         self.main_ui.gcp_manager.remove_point_observation(
             self.main_ui.curr_point, self.current_image
         )
         if add:
+            latlon=self.pixel_to_latlon(x, y)
             self.main_ui.gcp_manager.add_point_observation(
                 self.main_ui.curr_point,
                 self.current_image,
                 self.pixel_to_gcp_coordinates(x, y),
-                latlon=self.pixel_to_latlon(x, y),
+                latlon=latlon,
             )
             self.zoom_in(x, y)
+            if self.name!='oblique' and self.main_ui.oblique_path:
+                self.main_ui.create_oblique_views(latlon)
         else:
             self.zoom_out()
 
