@@ -24,6 +24,8 @@ def test_main():
 def test_oblique_manager():
     path = '/Users/jetolan/src/OpenSfM/data/aerial_sfm/test'
     image_manager = ObliqueManager(path)
+    image_manager.get_candidates(47.6147, -122.3449)
+    assert(len(image_manager.aerial_matches)==3)
     return image_manager
 
 def test_image_manager():
@@ -32,8 +34,6 @@ def test_image_manager():
     ob = args.oblique
     groups, sequence_groups = main.group_images(args)
     image_manager = ImageManager(groups, path, preload_images=not args.no_preload)
-    #latlon = image_manager.get_nearest_feature('3221-1572996250_back_0000004966.jpg', 100,100)
-    #assert(latlon[0]== 47.61549848234247)
     latlon = image_manager.get_nearest_feature('3221-1572996250_front_0000004951.jpg', -.2079, .2462)
     assert(latlon[0]==47.61557121074083)
     return image_manager

@@ -107,11 +107,11 @@ class ImageManager:
                         self.image_keypoints[im['image_id']] = index.Index(
                             properties=index.Property())
                         self.image_keypoints[im['image_id']].insert(
-                            0, (x_px, y_px, x_px, y_px), obj=pt)
+                            0, (x_px, y_px), obj=pt)
                     else:
                         idx = self.image_keypoints[im['image_id']].get_size()+1
                         self.image_keypoints[im['image_id']].insert(
-                            idx, (x_px, y_px, x_px, y_px), obj=pt)
+                            idx, (x_px, y_px), obj=pt)
 
     def get_nearest_feature(self, image_name, x, y):
         # arguably could just find the min distance here, but rtree makes repeated queires faster?
@@ -131,5 +131,5 @@ class ImageManager:
             print(f'No features within {dispixels} fraction of the image')
             return (None, None)
         latlon = (objs['lat'], objs['lon'])
-
+        print(f"nearest feature at ({latlon[0]},{latlon[1]})")
         return latlon

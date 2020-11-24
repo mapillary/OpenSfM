@@ -83,23 +83,18 @@ class ObliqueManager:
     def get_candidates(self, lat: float, lon: float):
         """
         Given a lat lon alt, find prospective oblique images
-        TODO: add alt as arg
+        TODO: add alt as arg, make 3d
         """
-        cross_buf = 1.0e-4  # what is this?
-        print('get_candidate_images-manager')
         if lat is None or lon is None:
             return []
 
-        aerial_matches = list(self.aerial_idx.intersection(
-            (lon - cross_buf, lat - cross_buf,
-             lon + cross_buf, lat + cross_buf), objects=True))
+        aerial_match = self.aerial_idx.nearest(
+            (lon, lat), objects=True)
 
-        self.aerial_matches = [x.object['images'] for x in aerial_matches]
+        self.aerial_matches = [x.object['images'] for x in aerial_match][0]
         self.image_names = [x['image_name']
-                            for xx in self.aerial_matches for x in xx]
+                            for x in self.aerial_matches]
         print(f"Found {len(self.aerial_matches)} aerial images")
-        # TODO: sort by distance between lat, lon, alt of ground and aerial
-        # and limit to nearest
 
         if self.preload_bol:
             self.preload_images()
@@ -108,7 +103,6 @@ class ObliqueManager:
 
     def build_rtree_index(self):
         print("building oblique SfM rtree...")
-        buf = 1.0e-13  # what is this?
 
         ds = DataSet(self.path)
         data = world_points(ds)
@@ -130,7 +124,7 @@ class ObliqueManager:
             pt = {'key': key, 'lat': lat, 'lon': lon,
                   'alt': alt, 'images': ims}
             aerial_keypoints.append(pt)
-            aerial_idx.insert(i, (lon-buf, lat-buf, lon+buf, lat+buf), obj=pt)
+            aerial_idx.insert(i, (lon, lat), obj=pt)
 
         self.aerial_idx = aerial_idx
 
@@ -139,11 +133,10 @@ class ObliqueManager:
         print(f"Preloading images with {n_cpu} processes")
         paths = []
         image_names = []
-        for matches in self.aerial_matches:
-            for match in matches:
-                image_names.append(match['image_name'])
-                paths.append(
-                    (self.image_path(match['image_id']), match['x_px_int'], (match['y_px_int'])))
+        for match in self.aerial_matches:
+            image_names.append(match['image_name'])
+            paths.append(
+                (self.image_path(match['image_id']), match['x_px_int'], (match['y_px_int'])))
         pool = multiprocessing.Pool(processes=n_cpu)
         images = pool.map(load_image, paths)
         for image_name, im, path in zip(image_names, images, paths):
