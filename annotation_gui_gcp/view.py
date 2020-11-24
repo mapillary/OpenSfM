@@ -94,7 +94,8 @@ class View:
         self.canvas.mpl_connect(
             "button_press_event", lambda event: self.onclick_image(event)
         )
-        self.canvas.mpl_connect("scroll_event", lambda event: self.on_scroll(event))
+        self.canvas.mpl_connect(
+            "scroll_event", lambda event: self.on_scroll(event))
 
         self.zoomed_in = False
         self.last_seen_px = {}
@@ -149,7 +150,8 @@ class View:
     def add_move_or_remove_gcp(self, x, y, add):
         if self.main_ui.curr_point is None:
             return
-        reproj = self.main_ui.gcp_manager.gcp_reprojections.get(self.main_ui.curr_point)
+        reproj = self.main_ui.gcp_manager.gcp_reprojections.get(
+            self.main_ui.curr_point)
         if reproj:
             reproj.pop(self.current_image, None)
         self.main_ui.gcp_manager.remove_point_observation(
@@ -164,7 +166,7 @@ class View:
                 latlon=latlon,
             )
             self.zoom_in(x, y)
-            if self.name!='oblique' and self.main_ui.oblique_view:
+            if self.name!='oblique' and self.main_ui.oblique_path:
                 self.main_ui.create_oblique_views(latlon)
         else:
             self.zoom_out()
