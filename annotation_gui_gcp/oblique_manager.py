@@ -1,3 +1,11 @@
+from opensfm.features import denormalized_image_coordinates
+from opensfm.dataset import DataSet
+from rtree import index
+from PIL import Image
+from opensfm import dataset
+from matplotlib.image import _rgb_to_rgba
+import numpy as np
+import sys
 from pathlib import Path
 import multiprocessing
 import os
@@ -180,7 +188,7 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
 
     # show cached images
-    path = '/Users/jetolan/src/OpenSfM/data/aerial_sfm/bing_sfm'
+    path = sys.argv[1]
     # https://stackoverflow.com/questions/45720153/python-multiprocessing-error-attributeerror-module-main-has-no-attribute
     __spec__ = None
     image_manager = ObliqueManager(path)
@@ -189,13 +197,3 @@ if __name__ == "__main__":
         plt.figure()
         plt.imshow(im)
         plt.show()
-
-    # load_image demo
-    '''
-    image = '/Users/jetolan/src/OpenSfM/data/aerial_sfm/bing_sfm/images/4389226.jpg'
-    px = 122
-    py = 826
-    im = load_image((image, px, py))
-    plt.imshow(im)
-    plt.show()
-    '''
