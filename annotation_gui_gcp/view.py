@@ -1,3 +1,9 @@
+from opensfm import features
+from matplotlib.transforms import Affine2D
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib import patheffects
+from typing import Tuple
 import colorsys
 import tkinter as tk
 
@@ -6,13 +12,7 @@ import matplotlib.patches as mpatches
 import numpy as np
 
 matplotlib.use("TkAgg")
-from typing import Tuple
 
-from matplotlib import patheffects
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from matplotlib.figure import Figure
-from matplotlib.transforms import Affine2D
-from opensfm import features
 
 FONT = "TkFixedFont"
 
@@ -164,7 +164,7 @@ class View:
                 latlon=latlon,
             )
             self.zoom_in(x, y)
-            if self.main_ui.oblique_view:
+            if self.name!='oblique' and self.main_ui.oblique_view:
                 self.main_ui.create_oblique_views(latlon)
         else:
             self.zoom_out()

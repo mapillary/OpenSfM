@@ -9,9 +9,9 @@ from PIL import Image
 from rtree import index
 
 from opensfm.dataset import DataSet
-from opensfm.features import denormalized_image_coordinates
+from export_reconstruction_points import world_points
 
-IMAGE_MAX_SIZE = 1000
+IMAGE_MAX_SIZE = 2000
 
 
 def load_image(in_tuple, win=int(IMAGE_MAX_SIZE/2)):
@@ -46,39 +46,6 @@ def load_image(in_tuple, win=int(IMAGE_MAX_SIZE/2)):
     return _rgb_to_rgba(np.asarray(rgb))
 
 
-def world_points(ds: DataSet):
-    # this is taken from export_reconstruction_points.py
-    # not in public opensfm?
-
-    output = {}
-
-    tracks_manager = ds.load_tracks_manager()
-    for reconstruction in ds.load_reconstruction():
-        print(reconstruction.reference)
-        for point in reconstruction.points.values():
-            x, y, z = point.coordinates
-            lat, lon, alt = reconstruction.reference.to_lla(x, y, z)
-            images = []
-            for shot_id, obs in tracks_manager.get_track_observations(point.id).items():
-                if shot_id in reconstruction.shots:
-                    shot = reconstruction.shots[shot_id]
-
-                    image_id = shot_id
-                    x_px, y_px = obs.point
-                    x_px, y_px = denormalized_image_coordinates(
-                        np.array([[x_px, y_px]]
-                                 ), shot.camera.width, shot.camera.height
-                    )[0]
-                    images.append(
-                        {"image_id": image_id, "x_px": x_px, "y_px": y_px})
-            point_id = f"{point.id}"
-            output[point_id] = {
-                "location": {"lat": lat, "lon": lon, "alt": alt},
-                "images": images,
-            }
-    return output
-
-
 def get_distance(lat1, lon1, alt1, lat2, lon2, alt2):
     ecef_str = 'epsg:4978'
     ll_str = 'epsg:4326'
@@ -94,6 +61,7 @@ class ObliqueManager:
         self.path = Path(path)
         self.image_cache = {}
         self.image_coord = {}
+        self.candidate_images = []
         self.preload_bol = preload_images
         self.build_rtree_index()
 
@@ -103,37 +71,40 @@ class ObliqueManager:
     def get_image(self, image_name):
         if image_name not in self.image_cache:
             path = self.image_path(image_name)
-            px=image_name.split('_')[-2]
-            py=image_name.split('_')[-1]
-            self.image_cache[image_name] = load_image((path,px,py))
+            px = image_name.split('_')[-2]
+            py = image_name.split('_')[-1]
+            self.image_cache[image_name] = load_image((path, px, py))
         return self.image_cache[image_name]
 
     def load_latlons(self):
         # 'canonical' latlon not as useful for obliques
         return {}
 
-    def get_candidate_images(self, lat: float, lon: float):
+    def get_candidates(self, lat: float, lon: float):
         """
         Given a lat lon alt, find prospective oblique images
         TODO: add alt as arg
         """
         cross_buf = 1.0e-4  # what is this?
+        print('get_candidate_images-manager')
+        if lat is None or lon is None:
+            return []
 
         aerial_matches = list(self.aerial_idx.intersection(
             (lon - cross_buf, lat - cross_buf,
              lon + cross_buf, lat + cross_buf), objects=True))
 
         self.aerial_matches = [x.object['images'] for x in aerial_matches]
-        self.image_names=[x['image_name'] for xx in self.aerial_matches for x in xx]
+        self.image_names = [x['image_name']
+                            for xx in self.aerial_matches for x in xx]
         print(f"Found {len(self.aerial_matches)} aerial images")
         # TODO: sort by distance between lat, lon, alt of ground and aerial
         # and limit to nearest
 
         if self.preload_bol:
             self.preload_images()
-            
-        return self.image_names
 
+        return self.image_names
 
     def build_rtree_index(self):
         print("building oblique SfM rtree...")
@@ -183,33 +154,12 @@ class ObliqueManager:
         return self.get_image(image_name).shape[:2]
 
     def get_offsets(self, image_name):
-        px,py = self.image_coord[image_name]
-        height, width=self.get_image_size(image_name)
-        win=int(IMAGE_MAX_SIZE/2)
+        px, py = self.image_coord[image_name]
+        height, width = self.get_image_size(image_name)
+        win = int(IMAGE_MAX_SIZE/2)
         y1 = np.max([py-win, 0])
         x1 = np.max([px-win, 0])
         return x1, y1
 
-if __name__ == "__main__":
-    import matplotlib.pyplot as plt
-
-    # show cached images
-    path = '/Users/jetolan/src/OpenSfM/data/aerial_sfm/bing_sfm'
-    # https://stackoverflow.com/questions/45720153/python-multiprocessing-error-attributeerror-module-main-has-no-attribute
-    __spec__ = None
-    image_manager = ObliqueManager(path)
-    names=image_manager.get_candidate_images(47.614, -122.34677)
-    for i, im in image_manager.image_cache.items():
-        plt.figure()
-        plt.imshow(im)
-        plt.show()
-
-    # load_image demo
-    '''
-    image = '/Users/jetolan/src/OpenSfM/data/aerial_sfm/bing_sfm/images/4389226.jpg'
-    px = 122
-    py = 826
-    im = load_image((image, px, py))
-    plt.imshow(im)
-    plt.show()
-    '''
+    def get_nearest_feature(self, image_name, x, y):
+        return None

@@ -20,24 +20,28 @@ class ObliqueView(View):
             path (str): path containing oblique sfm folder
         """
         self.zoom_window_size_px = 500
+        self.name = 'oblique'
         self.image_manager = ObliqueManager(path)
         super(ObliqueView, self).__init__(main_ui, False)
 
     def oblique_selection(self, lat, lon):
-        self.lat=lat
-        self.lon=lon
+        self.lat = lat
+        self.lon = lon
         self.get_candidate_images()
         self.populate_image_list()
         if self.images_in_list:
             self.bring_new_image(self.images_in_list[0])
         self.set_title()
         return
-    
+
     def get_image(self, new_image):
         return self.image_manager.get_image(new_image)
 
     def get_candidate_images(self):
-        return self.image_manager.get_candidate_images(self.lat, self.lon)
+        if not self.image_manager.candidate_images:
+            self.image_manager.candidate_images = self.image_manager.get_candidates(
+                self.lat, self.lon)
+        return self.image_manager.candidate_images
 
     def pixel_to_latlon(self, x: float, y: float):
         """
@@ -54,12 +58,13 @@ class ObliqueView(View):
         manager to obtain the reduced coordinates to use for de-normalization.
         """
         h, w = self.image_manager.get_image_size(self.current_image)
-        px = features.denormalized_image_coordinates(np.array([[x, y]]), w, h)[0]
+        px = features.denormalized_image_coordinates(
+            np.array([[x, y]]), w, h)[0]
         x1, y1 = self.image_manager.get_offsets(self.current_image)
         x = px[0] - x1
-        y = px[1] - y1 
+        y = px[1] - y1
         return [x, y]
-    
+
     def pixel_to_gcp_coordinates(self, x: float, y: float) -> Tuple[float, float]:
         """
         Transforms from pixels (in the viewing window) to normalized coordinates
@@ -67,12 +72,11 @@ class ObliqueView(View):
         """
         x1, y1 = self.image_manager.get_offsets(self.current_image)
         x += x1
-        y += y1 
+        y += y1
         h, w = self.image_manager.get_image_size(self.current_image)
-        coords = features.normalized_image_coordinates(np.array([[x, y]]), w, h)[0]
+        coords = features.normalized_image_coordinates(
+            np.array([[x, y]]), w, h)[0]
         return coords.tolist()
-
-
 
     def set_title(self):
         lat, lon = self.lat, self.lon

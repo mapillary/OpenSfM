@@ -23,6 +23,7 @@ class OrthoPhotoView(View):
             main_ui (GUI.Gui)
             path (str): path containing geotiffs
         """
+        self.name='ortho'
         self.image_manager = OrthoPhotoManager(path, 100.0)
         self.images_in_list = self.image_manager.image_keys
         self.zoom_window_size_px = 500
