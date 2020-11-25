@@ -11,7 +11,7 @@ class ObliqueView(View):
     def __init__(
         self,
         main_ui,
-        path: str,
+        oblique_manager,
     ):
         """[summary]
 
@@ -21,13 +21,14 @@ class ObliqueView(View):
         """
         self.zoom_window_size_px = 500
         self.name = 'oblique'
-        self.image_manager = ObliqueManager(path)
+        self.image_manager = oblique_manager
         super(ObliqueView, self).__init__(main_ui, False)
 
     def oblique_selection(self, lat, lon):
         self.lat = lat
         self.lon = lon
-        self.get_candidate_images()
+        self.image_names = self.image_manager.get_candidates(
+            self.lat, self.lon)
         self.populate_image_list()
         if self.images_in_list:
             self.bring_new_image(self.images_in_list[0])
@@ -38,10 +39,10 @@ class ObliqueView(View):
         return self.image_manager.get_image(new_image)
 
     def get_candidate_images(self):
-        if not self.image_manager.candidate_images:
-            self.image_manager.candidate_images = self.image_manager.get_candidates(
+        if not self.image_names:
+            self.image_names = self.image_manager.get_candidates(
                 self.lat, self.lon)
-        return self.image_manager.candidate_images
+        return self.image_names
 
     def pixel_to_latlon(self, x: float, y: float):
         """

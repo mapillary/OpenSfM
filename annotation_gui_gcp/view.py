@@ -158,7 +158,7 @@ class View:
             self.main_ui.curr_point, self.current_image
         )
         if add:
-            latlon=self.pixel_to_latlon(x, y)
+            latlon = self.pixel_to_latlon(x, y)
             self.main_ui.gcp_manager.add_point_observation(
                 self.main_ui.curr_point,
                 self.current_image,
@@ -166,7 +166,7 @@ class View:
                 latlon=latlon,
             )
             self.zoom_in(x, y)
-            if self.name!='oblique' and self.main_ui.oblique_path:
+            if self.name != 'oblique' and self.main_ui.oblique_path:
                 self.main_ui.create_oblique_views(latlon)
         else:
             self.zoom_out()
@@ -229,7 +229,8 @@ class View:
                 )
                 text.set_path_effects(
                     [
-                        patheffects.Stroke(linewidth=3, foreground=comp_color(color)),
+                        patheffects.Stroke(
+                            linewidth=3, foreground=comp_color(color)),
                         patheffects.Normal(),
                     ]
                 )
@@ -264,8 +265,10 @@ class View:
         self.images_in_list = self.get_candidate_images()
         n_digits = len(str(len(self.images_in_list)))
         for ix, image_name in enumerate(self.images_in_list):
-            points = self.main_ui.gcp_manager.get_visible_points_coords(image_name)
-            txt = "{:0{n_digits}} {}".format(ix + 1, len(points), n_digits=n_digits)
+            points = self.main_ui.gcp_manager.get_visible_points_coords(
+                image_name)
+            txt = "{:0{n_digits}} {}".format(
+                ix + 1, len(points), n_digits=n_digits)
             shot_std = self.main_ui.shot_std.get(image_name, None)
             if shot_std:
                 txt += " {:.2f}".format(shot_std)
@@ -303,7 +306,8 @@ class View:
         self.display_points()
 
         if self.main_ui.curr_point:
-            self.highlight_gcp_reprojection(self.main_ui.curr_point, zoom=False)
+            self.highlight_gcp_reprojection(
+                self.main_ui.curr_point, zoom=False)
 
         latlon = self.latlons.get(new_image)
         if self.is_latlon_source.get() and latlon:
@@ -340,7 +344,8 @@ class View:
         manager to obtain the reduced coordinates to use for de-normalization.
         """
         h, w = self.image_manager.get_image_size(self.current_image)
-        px = features.denormalized_image_coordinates(np.array([[x, y]]), w, h)[0]
+        px = features.denormalized_image_coordinates(
+            np.array([[x, y]]), w, h)[0]
         return px.tolist()
 
     def pixel_to_gcp_coordinates(self, x: float, y: float) -> Tuple[float, float]:
@@ -351,7 +356,8 @@ class View:
         manager to obtain the reduced coordinates to use for normalization.
         """
         h, w = self.image_manager.get_image_size(self.current_image)
-        coords = features.normalized_image_coordinates(np.array([[x, y]]), w, h)[0]
+        coords = features.normalized_image_coordinates(
+            np.array([[x, y]]), w, h)[0]
         return coords.tolist()
 
     def go_to_next_image(self):

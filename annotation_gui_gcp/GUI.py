@@ -1,4 +1,5 @@
 from oblique_view import ObliqueView
+from oblique_manager import ObliqueManager
 from orthophoto_view import OrthoPhotoView
 from image_sequence_view import ImageSequenceView
 import os
@@ -38,7 +39,7 @@ class Gui:
         master.bind_all("x", lambda event: self.toggle_sticky_zoom())
         master.bind_all("a", lambda event: self.go_to_current_gcp())
         self.get_reconstruction_options()
-        self.create_ui(ortho_paths)
+        self.create_ui(ortho_paths, oblique_path)
         master.lift()
 
         p_default_gcp = self.path + "/ground_control_points.json"
@@ -67,7 +68,7 @@ class Gui:
         options.append("None (3d-to-2d)")
         self.reconstruction_options = options
 
-    def create_ui(self, ortho_paths):
+    def create_ui(self, ortho_paths, oblique_path):
         tools_frame = tk.Frame(self.master)
         tools_frame.pack(side="left", expand=0, fill=tk.Y)
         self.create_tools(tools_frame)
@@ -78,6 +79,9 @@ class Gui:
             k = v.current_image
             latlon = v.latlons[k]
             self.create_ortho_views(ortho_paths, latlon["lat"], latlon["lon"])
+        if oblique_path:
+            self.oblique_manager = ObliqueManager(oblique_path)
+            self.oblique_views = []
 
         self.master.update_idletasks()
         self.arrange_ui_onerow()
@@ -117,7 +121,8 @@ class Gui:
 
         plus_minus_frame = tk.Frame(master)
         plus_minus_frame.pack(side="top")
-        add_button = tk.Button(plus_minus_frame, text="Add GCP", command=self.add_gcp)
+        add_button = tk.Button(
+            plus_minus_frame, text="Add GCP", command=self.add_gcp)
         add_button.pack(side="left")
         remove_button = tk.Button(
             plus_minus_frame, text="Remove GCP", command=self.remove_gcp
@@ -125,11 +130,13 @@ class Gui:
         remove_button.pack(side="left")
 
         self.sticky_zoom = tk.BooleanVar(value=True)
-        button = tk.Checkbutton(master, text="Sticky zoom (x)", var=self.sticky_zoom)
+        button = tk.Checkbutton(
+            master, text="Sticky zoom (x)", var=self.sticky_zoom)
         button.pack(side="top")
 
         self.show_gcp_names = tk.BooleanVar(value=False)
-        button = tk.Checkbutton(master, text="Show GCP names", var=self.show_gcp_names)
+        button = tk.Checkbutton(
+            master, text="Show GCP names", var=self.show_gcp_names)
         button.pack(side="top")
 
         txt = tk.Label(master, text="Analysis")
@@ -150,7 +157,8 @@ class Gui:
         w.pack(side="top", fill=tk.X)
         w.config(width=width)
 
-        button = tk.Button(analysis_frame, text="Analyze", command=self.analyze)
+        button = tk.Button(analysis_frame, text="Analyze",
+                           command=self.analyze)
         button.pack(side="top")
 
         io_frame = tk.Frame(master)
@@ -165,10 +173,10 @@ class Gui:
     def create_oblique_views(self, latlon):
         if latlon is None:
             return
-        self.oblique_view=ObliqueView(self, self.oblique_path)
+        self.oblique_view = ObliqueView(self, self.oblique_manager)
         v = self.oblique_view.oblique_selection(latlon[0], latlon[1])
-        #self.oblique_views.extend(v)
-        
+        self.oblique_views.append(v)
+
     def create_ortho_views(self, ortho_paths, lat, lon):
         for ortho_p in ortho_paths:
             v = OrthoPhotoView(
@@ -183,7 +191,8 @@ class Gui:
     def create_sequence_views(self, show_ortho_track):
         self.sequence_views = []
         for sequence_key, image_keys in self.image_manager.seqs.items():
-            v = ImageSequenceView(self, sequence_key, image_keys, show_ortho_track)
+            v = ImageSequenceView(self, sequence_key,
+                                  image_keys, show_ortho_track)
             self.sequence_views.append(v)
 
     def analyze(self):
@@ -277,7 +286,8 @@ class Gui:
         if not self.gcp_manager.points:
             return
         items = []
-        n_digits = max(len(str(len(v))) for v in self.gcp_manager.points.values())
+        n_digits = max(len(str(len(v)))
+                       for v in self.gcp_manager.points.values())
         for point_id in sorted(self.gcp_manager.points):
             n_annotations = len(self.gcp_manager.points[point_id])
             txt = "{:0{n}} {}".format(n_annotations, point_id, n=n_digits)
