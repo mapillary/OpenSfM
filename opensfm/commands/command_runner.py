@@ -3,7 +3,7 @@ import argparse
 from opensfm import log
 
 
-def command_runner(all_commands_types):
+def command_runner(all_commands_types, dataset_factory):
     """ Main entry point for running the passed SfM commands types."""
     log.setup()
 
@@ -22,7 +22,10 @@ def command_runner(all_commands_types):
     # Parse arguments
     args = parser.parse_args()
 
+    # Instanciate datast
+    data = dataset_factory(args.dataset)
+
     # Run the selected subcommand
     for command in command_objects:
         if args.command == command.name:
-            command.run(args)
+            command.run(data, args)

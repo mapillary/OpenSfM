@@ -1,6 +1,6 @@
 import argparse
 
-from opensfm import commands
+from opensfm import commands, dataset
 from opensfm.test import data_generation
 
 
@@ -8,7 +8,7 @@ def run_command(command, args):
     parser = argparse.ArgumentParser()
     command.add_arguments(parser)
     parsed_args = parser.parse_args(args)
-    command.run(parsed_args)
+    command.run(dataset.DataSet(parsed_args.dataset), parsed_args)
 
 
 def test_run_all(tmpdir):

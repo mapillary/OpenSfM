@@ -1,7 +1,5 @@
 from timeit import default_timer as timer
 
-from opensfm.dataset import DataSet
-
 
 class CommandBase:
     """ Base class for executable commands."""
@@ -9,9 +7,8 @@ class CommandBase:
     name = "Undefined command"
     help = "Undefined command help"
 
-    def run(self, args):
+    def run(self, data, args):
         start = timer()
-        data = DataSet(args.dataset)
         self.run_impl(data, args)
         end = timer()
         with open(data.profile_log(), "a") as fout:
