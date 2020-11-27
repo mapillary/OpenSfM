@@ -394,15 +394,18 @@ def robust_match_fundamental(p1, p2, matches, config):
     return F, matches[inliers]
 
 
-def _compute_inliers_bearings(b1, b2, T, threshold=0.01):
-    R = T[:, :3]
-    t = T[:, 3]
-    br1, br2, idx = triangulation_reprojection_bearings(b1, b2, R, t)
-    return triangulation_inliers(b1[idx], br1[idx], b2[idx], br2[idx], threshold)
+def compute_inliers_bearings(b1, b2, R, t, threshold=0.01):
+    """Compute points that can be triangulated.
 
-
-def triangulation_reprojection_bearings(b1, b2, R, t):
-    """Return two-views bearings reprojections given their relative pose."""
+    Args:
+        b1, b2: Bearings in the two images.
+        R, t: Rotation and translation from the second image to the first.
+              That is the convention and the opposite of many
+              functions in this module.
+        threshold: max reprojection error in radians.
+    Returns:
+        array: Aray of boolean indicating inliers/outliers
+    """
     p = pygeometry.triangulate_two_bearings_midpoint_many(b1, b2, R, t)
 
     good_idx = [i for i in range(len(p)) if p[i][0]]
@@ -410,20 +413,17 @@ def triangulation_reprojection_bearings(b1, b2, R, t):
 
     br1 = points.copy()
     br1 /= np.linalg.norm(br1, axis=1)[:, np.newaxis]
-
     br2 = R.T.dot((points - t).T).T
     br2 /= np.linalg.norm(br2, axis=1)[:, np.newaxis]
-    return br1, br2, good_idx
 
+    ok1 = np.linalg.norm(br1 - b1[good_idx], axis=1) < threshold
+    ok2 = np.linalg.norm(br2 - b2[good_idx], axis=1) < threshold
+    is_ok = ok1 * ok2
 
-def triangulation_inliers(b1, br1, b2, br2, threshold):
-    """Given pairs of bearings ('b1' and 'b2') and their reprojected counterparts,
-    ('br1' and 'br2'), return a boolean vector indicating the ones which reprojection
-    error is below the given threshold.
-    """
-    ok1 = np.linalg.norm(br1 - b1, axis=1) < threshold
-    ok2 = np.linalg.norm(br2 - b2, axis=1) < threshold
-    return ok1 * ok2
+    inliers = [False] * len(b1)
+    for i, ok in enumerate(is_ok):
+        inliers[good_idx[i]] = ok
+    return inliers
 
 
 def robust_match_calibrated(p1, p2, camera1, camera2, matches, config):
@@ -441,7 +441,7 @@ def robust_match_calibrated(p1, p2, camera1, camera2, matches, config):
     T = multiview.relative_pose_ransac(b1, b2, threshold, 1000, 0.999)
 
     for relax in [4, 2, 1]:
-        inliers = _compute_inliers_bearings(b1, b2, T, relax * threshold)
+        inliers = compute_inliers_bearings(b1, b2, T[:, :3], T[:, 3], relax * threshold)
         if np.sum(inliers) < 8:
             return np.array([])
         iterations = config["five_point_refine_match_iterations"]
@@ -449,7 +449,7 @@ def robust_match_calibrated(p1, p2, camera1, camera2, matches, config):
             b1[inliers], b2[inliers], T[:3, 3], T[:3, :3], iterations
         )
 
-    inliers = _compute_inliers_bearings(b1, b2, T, threshold)
+    inliers = compute_inliers_bearings(b1, b2, T[:, :3], T[:, 3], threshold)
 
     return matches[inliers]
 

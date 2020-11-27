@@ -311,19 +311,8 @@ def get_image_metadata(data, image):
 
 
 def _two_view_reconstruction_inliers(b1, b2, R, t, threshold):
-    """Compute number of points that can be triangulated.
-
-    Args:
-        b1, b2: Bearings in the two images.
-        R, t: Rotation and translation from the second image to the first.
-              That is the convention and the opposite of many
-              functions in this module.
-        threshold: max reprojection error in radians.
-    Returns:
-        array: Inlier indices.
-    """
-    br1, br2, idx = matching.triangulation_reprojection_bearings(b1, b2, R, t)
-    ok = matching.triangulation_inliers(b1[idx], br1[idx], b2[idx], br2[idx], threshold)
+    """ Returns indices of matches that can be triangulated. """
+    ok = matching.compute_inliers_bearings(b1, b2, R, t, threshold)
     return np.nonzero(ok)[0]
 
 

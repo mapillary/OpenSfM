@@ -119,16 +119,12 @@ def test_ordered_pairs():
     assert set(pairs) == {(1, 2), (1, 3), (2, 5), (3, 2)}
 
 
-def test_triangulation_reprojection_bearings(pairs_and_their_E):
+def test_triangulation_inliers(pairs_and_their_E):
     for f1, f2, _, pose in pairs_and_their_E:
         Rt = pose.get_cam_to_world()[:3]
 
-        R = Rt[:, :3]
-        t = Rt[:, 3]
-        br1, br2, idx = matching.triangulation_reprojection_bearings(f1, f2, R, t)
+        count_outliers = np.random.randint(0, len(f1) / 10)
+        f1[:count_outliers, :] += np.random.uniform(0, 1e-1, size=(count_outliers, 3))
 
-        assert len(idx) == len(f1)
-        assert len(br1) == len(f1)
-        assert len(br2) == len(f1)
-        assert sum(np.linalg.norm(br1[idx] - f1[idx], axis=1)) / len(idx) < 1e-9
-        assert sum(np.linalg.norm(br2[idx] - f2[idx], axis=1)) / len(idx) < 1e-9
+        inliers = matching.compute_inliers_bearings(f1, f2, Rt[:, :3], Rt[:, 3])
+        assert sum(inliers) >= len(f1) - count_outliers
