@@ -11,7 +11,6 @@
 
 namespace py = pybind11;
 
-
 PYBIND11_MODULE(pygeometry, m) {
   py::enum_<ProjectionType>(m, "ProjectionType")
       .value("PERSPECTIVE", ProjectionType::PERSPECTIVE)
@@ -48,9 +47,12 @@ PYBIND11_MODULE(pygeometry, m) {
            (Vec2d(*)(const Vec2d&, const int, const int)) &
                Camera::NormalizedToPixelCoordinates)
       .def("project", &Camera::Project)
-      .def("project_many", &Camera::ProjectMany)
-      .def("pixel_bearing", &Camera::Bearing)
-      .def("pixel_bearing_many", &Camera::BearingsMany)
+      .def("project_many", &Camera::ProjectMany,
+           py::call_guard<py::gil_scoped_release>())
+      .def("pixel_bearing", &Camera::Bearing,
+           py::call_guard<py::gil_scoped_release>())
+      .def("pixel_bearing_many", &Camera::BearingsMany,
+           py::call_guard<py::gil_scoped_release>())
       .def("get_K", &Camera::GetProjectionMatrix)
       .def("get_K_in_pixel_coordinates", &Camera::GetProjectionMatrixScaled)
       .def("set_parameter_value", &Camera::SetParameterValue)
@@ -252,13 +254,18 @@ PYBIND11_MODULE(pygeometry, m) {
            py::return_value_policy::copy)
       .def("__deepcopy__", [](const Camera& c, const py::dict& d) { return c; },
            py::return_value_policy::copy);
-  m.def("compute_camera_mapping", ComputeCameraMapping, py::call_guard<py::gil_scoped_release>());
-  m.def("triangulate_bearings_dlt", geometry::TriangulateBearingsDLT);
-  m.def("triangulate_bearings_midpoint", geometry::TriangulateBearingsMidpoint);
+  m.def("compute_camera_mapping", ComputeCameraMapping,
+        py::call_guard<py::gil_scoped_release>());
+  m.def("triangulate_bearings_dlt", geometry::TriangulateBearingsDLT,
+        py::call_guard<py::gil_scoped_release>());
+  m.def("triangulate_bearings_midpoint", geometry::TriangulateBearingsMidpoint,
+        py::call_guard<py::gil_scoped_release>());
   m.def("triangulate_two_bearings_midpoint",
-        geometry::TriangulateTwoBearingsMidpointSolve<double>);
+        geometry::TriangulateTwoBearingsMidpointSolve<double>,
+        py::call_guard<py::gil_scoped_release>());
   m.def("triangulate_two_bearings_midpoint_many",
-        geometry::TriangulateTwoBearingsMidpointMany);
+        geometry::TriangulateTwoBearingsMidpointMany,
+        py::call_guard<py::gil_scoped_release>());
   m.def("essential_five_points", geometry::EssentialFivePoints);
   m.def("absolute_pose_three_points", geometry::AbsolutePoseThreePoints);
   m.def("absolute_pose_n_points", geometry::AbsolutePoseNPoints);
