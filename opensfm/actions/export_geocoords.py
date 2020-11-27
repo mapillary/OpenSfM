@@ -55,7 +55,7 @@ def run_dataset(
     if dense:
         output = output or "undistorted/depthmaps/merged.geocoords.ply"
         output_path = os.path.join(data.data_path, output)
-        udata = dataset.UndistortedDataSet(data, "undistorted")
+        udata = dataset.UndistortedDataSet(data)
         _transform_dense_point_cloud(udata, t, output_path)
 
 

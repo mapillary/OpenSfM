@@ -9,7 +9,7 @@ from opensfm import pydense
 def run_dataset(data, image_list):
     """ Export reconstruction to OpenMVS format. """
 
-    udata = dataset.UndistortedDataSet(data, "undistorted")
+    udata = dataset.UndistortedDataSet(data)
     reconstructions = udata.load_undistorted_reconstruction()
     tracks_manager = udata.load_undistorted_tracks_manager()
 

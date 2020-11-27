@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 def run_dataset(data, points, image_list):
-    udata = dataset.UndistortedDataSet(data, "undistorted")
+    udata = dataset.UndistortedDataSet(data)
 
     validate_image_names(data, udata)
 

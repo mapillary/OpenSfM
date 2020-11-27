@@ -537,7 +537,7 @@ def main():
         data.save_tracks_manager(tracks_manager)
 
         # Save undistorted reconstruction as well
-        udata = dataset.UndistortedDataSet(data, 'undistorted')
+        udata = dataset.UndistortedDataSet(data)
         urec = compute_and_save_undistorted_reconstruction(reconstruction, tracks_manager, data, udata)
 
         # Project colmap's fused pointcloud to save depths in opensfm format

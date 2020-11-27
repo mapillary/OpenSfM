@@ -24,7 +24,7 @@ def run_dataset(data, no_cameras, no_points, depthmaps):
         data.save_ply(reconstructions[0], None, no_cameras, no_points)
 
     if depthmaps and reconstructions:
-        udata = dataset.UndistortedDataSet(data, "undistorted")
+        udata = dataset.UndistortedDataSet(data)
         for id, shot in reconstructions[0].shots.items():
             rgb = udata.load_undistorted_image(id)
             for t in ("clean", "raw"):

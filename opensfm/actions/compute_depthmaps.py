@@ -1,3 +1,5 @@
+import os
+
 from opensfm import dataset
 from opensfm import dense
 
@@ -11,7 +13,8 @@ def run_dataset(data, subfolder, interactive):
 
     """
 
-    udataset = dataset.UndistortedDataSet(data, subfolder)
+    udata_path = os.path.join(data.data_path, subfolder)
+    udataset = dataset.UndistortedDataSet(data, udata_path)
     data.config["interactive"] = interactive
     reconstructions = udataset.load_undistorted_reconstruction()
     tracks_manager = udataset.load_undistorted_tracks_manager()

@@ -620,16 +620,18 @@ class UndistortedDataSet(object):
     Data include undistorted images, masks, and segmentation as well
     the undistorted reconstruction, tracks graph and computed depth maps.
 
-    All data is stored inside a single folder which should be a subfolder
-    of the base, distorted dataset.
+    All data is stored inside the single folder ``undistorted_data_path``.
+    By default, this path is set to the ``undistorted`` subfolder.
     """
 
-    def __init__(self, base_dataset, undistorted_subfolder):
+    def __init__(self, base_dataset, undistorted_data_path=None):
         """Init dataset associated to a folder."""
         self.base = base_dataset
         self.config = self.base.config
-        self.subfolder = undistorted_subfolder
-        self.data_path = os.path.join(self.base.data_path, self.subfolder)
+        if undistorted_data_path:
+            self.data_path = undistorted_data_path
+        else:
+            self.data_path = os.path.join(self.base.data_path, "undistorted")
 
     def _undistorted_image_path(self):
         return os.path.join(self.data_path, "images")
@@ -805,20 +807,20 @@ class UndistortedDataSet(object):
             return o["points"], o["normals"], o["colors"], o["labels"], o["detections"]
 
     def load_undistorted_tracks_manager(self):
-        return self.base.load_tracks_manager(os.path.join(self.subfolder, "tracks.csv"))
+        filename = os.path.join(self.data_path, "tracks.csv")
+        return pysfm.TracksManager.instanciate_from_file(filename)
 
     def save_undistorted_tracks_manager(self, tracks_manager):
-        return self.base.save_tracks_manager(
-            tracks_manager, os.path.join(self.subfolder, "tracks.csv")
-        )
+        filename = os.path.join(self.data_path, "tracks.csv")
+        return tracks_manager.write_to_file(filename)
 
     def load_undistorted_reconstruction(self):
-        return self.base.load_reconstruction(
-            filename=os.path.join(self.subfolder, "reconstruction.json")
-        )
+        filename = os.path.join(self.data_path, "reconstruction.json")
+        with io.open_rt(filename) as fin:
+            return io.reconstructions_from_json(io.json_load(fin))
 
     def save_undistorted_reconstruction(self, reconstruction):
+        filename = os.path.join(self.data_path, "reconstruction.json")
         io.mkdir_p(self.data_path)
-        return self.base.save_reconstruction(
-            reconstruction, filename=os.path.join(self.subfolder, "reconstruction.json")
-        )
+        with io.open_wt(filename) as fout:
+            io.json_dump(io.reconstructions_to_json(reconstruction), fout, minify=True)

@@ -1,4 +1,5 @@
 import logging
+import os
 
 import cv2
 import numpy as np
@@ -25,8 +26,8 @@ def run_dataset(data, reconstruction, reconstruction_index, tracks, output):
         output: undistorted
 
     """
-
-    udata = dataset.UndistortedDataSet(data, output)
+    undistorted_data_path = os.path.join(data.data_path, output)
+    udata = dataset.UndistortedDataSet(data, undistorted_data_path)
     reconstructions = data.load_reconstruction(reconstruction)
     if data.tracks_exists(tracks):
         tracks_manager = data.load_tracks_manager(tracks)

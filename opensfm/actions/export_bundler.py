@@ -14,7 +14,7 @@ def run_dataset(data, list_path, bundle_path, undistorted):
 
     """
 
-    udata = dataset.UndistortedDataSet(data, "undistorted")
+    udata = dataset.UndistortedDataSet(data)
 
     default_path = os.path.join(data.data_path, "bundler")
     list_file_path = list_path if list_path else default_path

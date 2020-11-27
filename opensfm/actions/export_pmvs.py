@@ -23,7 +23,7 @@ def run_dataset(data, points, image_list, output, undistorted):
 
     """
 
-    udata = dataset.UndistortedDataSet(data, "undistorted")
+    udata = dataset.UndistortedDataSet(data)
 
     base_output_path = output if output else os.path.join(data.data_path, "pmvs")
     io.mkdir_p(base_output_path)
