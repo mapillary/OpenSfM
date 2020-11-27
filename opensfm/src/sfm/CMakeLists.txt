@@ -11,7 +11,12 @@ target_link_libraries(sfm
   PRIVATE
     foundation
 )
-target_include_directories(sfm PUBLIC ${EIGEN_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR})
+target_include_directories(sfm
+    PUBLIC
+        ${EIGEN_INCLUDE_DIRS}
+        ${CMAKE_SOURCE_DIR}
+    PRIVATE
+        ${OpenMP_CXX_INCLUDE_DIR})
 
 if (OPENSFM_BUILD_TESTS)
     set(SFM_TEST_FILES
