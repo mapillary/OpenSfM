@@ -29,7 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-"""Homogeneous Transformation Matrices and Quaternions.
+r"""Homogeneous Transformation Matrices and Quaternions.
 
 A library for calculating 4x4 matrices for translating, rotating, reflecting,
 scaling, shearing, projecting, orthogonalizing, and superimposing arrays of
@@ -887,7 +887,7 @@ def orthogonalization_matrix(lengths, angles):
 
 
 def affine_matrix_from_points(v0, v1, shear=True, scale=True, usesvd=True):
-    """Return affine transform matrix to register two point sets.
+    r"""Return affine transform matrix to register two point sets.
 
     v0 and v1 are shape (ndims, \*) arrays of at least ndims non-homogeneous
     coordinates, where ndims is the dimensionality of the coordinate space.
@@ -999,7 +999,7 @@ def affine_matrix_from_points(v0, v1, shear=True, scale=True, usesvd=True):
 
 
 def superimposition_matrix(v0, v1, scale=False, usesvd=True):
-    """Return matrix to transform given 3D point set into second point set.
+    r"""Return matrix to transform given 3D point set into second point set.
 
     v0 and v1 are shape (3, \*) or (4, \*) arrays of at least 3 points.
 

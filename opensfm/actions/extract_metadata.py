@@ -55,7 +55,8 @@ def run_dataset(data):
 
 def _extract_exif(image, data):
     # EXIF data in Image
-    d = exif.extract_exif_from_file(data.open_image_file(image))
+    with data.open_image_file(image) as fp:
+        d = exif.extract_exif_from_file(fp)
 
     # Image Height and Image Width
     if d["width"] <= 0 or not data.config["use_exif_size"]:
