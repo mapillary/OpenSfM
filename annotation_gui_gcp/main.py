@@ -23,6 +23,10 @@ def parse_args():
         "otherwise, it will use sequences as specified by 'sequence-file'",
     )
     parser.add_argument(
+        "--strict-missing",
+        action="store_true",
+    )
+    parser.add_argument(
         "--min-images-in-reconstruction",
         type=int,
         default=50,
@@ -111,7 +115,7 @@ def load_shots_from_reconstructions(path, min_ims):
 
     n_recs = len(reconstructions)
     if len(reconstructions) > 2:
-        reconstructions = [r for r in reconstructions if len(r) >= min_ims]
+        reconstructions = [r for r in reconstructions if len(r.shots) >= min_ims]
     if len(reconstructions) < n_recs:
         print(
             "Kept {}/{} reconstructions (min images: {})".format(
@@ -160,7 +164,7 @@ def group_by_reconstruction(args, groups_from_sequence_database):
 
 def group_images(args):
     groups_from_sequence_database = load_sequence_database_from_file(
-        args.dataset, args.sequence_file, skip_missing=True
+        args.dataset, args.sequence_file, skip_missing=not args.strict_missing,
     )
     if args.group_by_reconstruction:
         return group_by_reconstruction(args, groups_from_sequence_database)
