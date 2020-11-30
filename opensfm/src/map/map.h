@@ -7,11 +7,11 @@
 
 #include <map/defines.h>
 
+#include <geo/geo.h>
 #include <geometry/camera.h>
 #include <geometry/pose.h>
 #include <map/dataviews.h>
 #include <map/defines.h>
-#include <map/geo.h>
 #include <sfm/tracks_manager.h>
 namespace map {
 class Shot;
@@ -107,7 +107,7 @@ class Map {
   std::map<Shot*, FeatureId> GetObservationsOfPoint(const Landmark* point);
 
   // TopocentricConverter
-  const TopocentricConverter& GetTopocentricConverter() const {
+  const geo::TopocentricConverter& GetTopocentricConverter() const {
     return topo_conv_;
   }
 
@@ -124,7 +124,7 @@ class Map {
   std::unordered_map<ShotId, Shot> pano_shots_;
   std::unordered_map<LandmarkId, Landmark> landmarks_;
 
-  TopocentricConverter topo_conv_;
+  geo::TopocentricConverter topo_conv_;
 
   LandmarkUniqueId landmark_unique_id_ = 0;
   ShotUniqueId shot_unique_id_ = 0;

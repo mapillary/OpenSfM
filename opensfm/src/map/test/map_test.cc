@@ -161,4 +161,17 @@ TEST(Map, SmallProblem) {
     ASSERT_EQ(shot_pair.second.ComputeNumValidLandmarks(), n_points);
   }
 }
+
+TEST(Map, TopoCentricConverterAccess)
+{
+  auto map = map::Map();
+  const auto& topo_default = map.GetTopocentricConverter();
+  ASSERT_EQ(topo_default.alt_, 0.0);
+  ASSERT_EQ(topo_default.lat_, 0.0);
+  ASSERT_EQ(topo_default.long_, 0.0);
+  map.SetTopocentricConverter(1.0, 2.0, 3.0);
+  ASSERT_EQ(topo_default.lat_, 1.0);
+  ASSERT_EQ(topo_default.long_, 2.0);
+  ASSERT_EQ(topo_default.alt_, 3.0);
+}
 }  // namespace

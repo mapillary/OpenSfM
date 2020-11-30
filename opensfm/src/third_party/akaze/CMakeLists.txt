@@ -12,8 +12,8 @@ set(AKAZE_SRCS
 add_library(akaze ${AKAZE_SRCS})
 target_link_libraries(akaze ${OpenCV_LIBS})
 target_include_directories(akaze
-  PUBLIC 
+  PUBLIC
     ${CMAKE_SOURCE_DIR}/third_party/akaze/lib
   PRIVATE
     ${OpenCV_INCLUDE_DIRS}
-)
+    ${OpenMP_CXX_INCLUDE_DIR})

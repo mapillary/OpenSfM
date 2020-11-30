@@ -56,6 +56,7 @@ setuptools.setup(
     package_data={
         'opensfm': [
             'pybundle.*',
+            'pygeo.*',
             'pygeometry.*',
             'pyrobust.*',
             'pyfeatures.*',

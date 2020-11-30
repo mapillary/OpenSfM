@@ -122,7 +122,11 @@ PYBIND11_MODULE(pymap, m) {
       .def("get_landmarks", &map::Map::GetLandmarkView)
       .def("get_landmark_view", &map::Map::GetLandmarkView)
       .def("set_reference", &map::Map::SetTopocentricConverter)
-      .def("get_reference", &map::Map::GetTopocentricConverter)
+      .def("get_reference",
+           [](const map::Map &map) {
+             py::module::import("opensfm.pygeo");
+             return map.GetTopocentricConverter();
+           })
       .def("create_camera", &map::Map::CreateCamera,
            py::return_value_policy::reference_internal)
       .def("has_landmark", &map::Map::HasLandmark)
@@ -136,13 +140,6 @@ PYBIND11_MODULE(pymap, m) {
            py::return_value_policy::reference_internal)
       .def("update_pano_shot", &map::Map::UpdatePanoShot,
            py::return_value_policy::reference_internal);
-
-  py::class_<map::TopocentricConverter>(m, "TopocentricConverter")
-      .def(py::init<>())
-      .def(py::init<const double, const double, const double>())
-      .def_readonly("lat", &map::TopocentricConverter::lat_)
-      .def_readonly("lon", &map::TopocentricConverter::long_)
-      .def_readonly("alt", &map::TopocentricConverter::alt_);
 
   py::class_<map::Shot>(m, "Shot")
       .def_readonly("id", &map::Shot::id_)
