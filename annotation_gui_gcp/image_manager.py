@@ -126,7 +126,7 @@ class ImageManager:
 
         dis = np.sqrt((x-xx)**2+(y-yy)**2)
         print(f'feature {dis} fraction of image away')
-        dispixels = 0.05
+        dispixels = 0.1 #add as arg?
         if dis > dispixels:
             print(f'No features within {dispixels} fraction of the image')
             return (None, None)

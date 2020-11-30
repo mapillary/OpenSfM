@@ -200,12 +200,8 @@ def parse_my_args(argv=None):
 
 if __name__ == "__main__":
     
-    #args = parse_args()
-    #TODO remove - just for debug
-    __spec__ = None
-    args=parse_args(["/Users/jetolan/src/OpenSfM/data/ground_sfm/test", "--oblique", "/Users/jetolan/src/OpenSfM/data/aerial_sfm/bing_sfm"])
+    args = parse_args()
     path = args.dataset
-
     groups, sequence_groups = group_images(args)
     image_manager = ImageManager(groups, path, preload_images=not args.no_preload)
     gcp_manager = GroundControlPointManager(path)
