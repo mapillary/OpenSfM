@@ -127,7 +127,9 @@ def load_shots_from_reconstructions(path, min_ims):
 
     output = []
     for rec in reconstructions:
-        shots = sorted(rec.shots.values(), key=lambda x: x.metadata.capture_time.value)
+        shots = sorted(
+            rec.shots.values(), key=lambda x: (x.metadata.capture_time.value, x.id)
+        )
         output.append([shot.id for shot in shots])
     return output
 
@@ -164,7 +166,9 @@ def group_by_reconstruction(args, groups_from_sequence_database):
 
 def group_images(args):
     groups_from_sequence_database = load_sequence_database_from_file(
-        args.dataset, args.sequence_file, skip_missing=not args.strict_missing,
+        args.dataset,
+        args.sequence_file,
+        skip_missing=not args.strict_missing,
     )
     if args.group_by_reconstruction:
         return group_by_reconstruction(args, groups_from_sequence_database)
