@@ -14,9 +14,18 @@ namespace features {
 py::object hahog(foundation::pyarray_f image, float peak_threshold,
                  float edge_threshold, int target_num_features,
                  bool use_adaptive_suppression) {
-  py::gil_scoped_release release;
+  if (!image.size()) {
+    return py::none();
+  }
 
-  if (image.size()) {
+  std::vector<float> points;
+  std::vector<float> desc;
+  vl_size numFeatures;
+  vl_size dimension = 128;
+
+  {
+    py::gil_scoped_release release;
+
     // clock_t t_start = clock();
     // create a detector object
     VlCovDet *covdet = vl_covdet_new(VL_COVDET_METHOD_HESSIAN);
@@ -48,19 +57,18 @@ py::object hahog(foundation::pyarray_f image, float peak_threshold,
     // clock_t t_orient = clock();
 
     // get feature descriptors
-    vl_size numFeatures = vl_covdet_get_num_features(covdet);
+    numFeatures = vl_covdet_get_num_features(covdet);
     VlCovDetFeature const *feature =
         (VlCovDetFeature const *)vl_covdet_get_features(covdet);
     VlSiftFilt *sift = vl_sift_new(16, 16, 1, 3, 0);
     vl_index i;
-    vl_size dimension = 128;
     vl_index patchResolution = 15;
     double patchRelativeExtent = 7.5;
     double patchRelativeSmoothing = 1;
     vl_size patchSide = 2 * patchResolution + 1;
     double patchStep = (double)patchRelativeExtent / patchResolution;
-    std::vector<float> points(4 * numFeatures);
-    std::vector<float> desc(dimension * numFeatures);
+    points.resize(4 * numFeatures);
+    desc.resize(dimension * numFeatures);
     std::vector<float> patch(patchSide * patchSide);
     std::vector<float> patchXY(2 * patchSide * patchSide);
 
@@ -100,14 +108,12 @@ py::object hahog(foundation::pyarray_f image, float peak_threshold,
     // std::cout << "t_orient " << float(t_orient - t_affine)/CLOCKS_PER_SEC <<
     // "\n"; std::cout << "description " << float(t_description -
     // t_orient)/CLOCKS_PER_SEC << "\n";
-
-    py::list retn;
-    retn.append(foundation::py_array_from_data(&points[0], numFeatures, 4));
-    retn.append(
-        foundation::py_array_from_data(&desc[0], numFeatures, dimension));
-    return std::move(retn);
   }
-  return py::none();
+
+  py::list retn;
+  retn.append(foundation::py_array_from_data(&points[0], numFeatures, 4));
+  retn.append(foundation::py_array_from_data(&desc[0], numFeatures, dimension));
+  return std::move(retn);
 }
 
 }  // namespace features

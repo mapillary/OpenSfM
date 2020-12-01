@@ -40,6 +40,8 @@ py::object akaze(foundation::pyarray_uint8 image, AKAZEOptions options) {
     keys.at<float>(i, 3) = kpts[i].angle;
   }
 
+  py::gil_scoped_acquire acquire;
+
   py::list retn;
   retn.append(
       foundation::py_array_from_data(keys.ptr<float>(0), keys.rows, keys.cols));
