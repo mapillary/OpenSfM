@@ -67,11 +67,12 @@ def get_distance(lat1, lon1, alt1, lat2, lon2, alt2):
 class ObliqueManager:
     def __init__(self, path: str, preload_images=True):
         self.path = Path(path)
+        self.rtree_path=f'{self.path}/rtree_index'
         self.image_cache = {}
         self.image_coord = {}
         self.candidate_images = []
         self.preload_bol = preload_images
-        self.build_rtree_index()
+        self.get_rtree_index()
 
     def image_path(self, image_name):
         return f"{self.path}/images/{image_name}"
@@ -109,13 +110,23 @@ class ObliqueManager:
 
         return self.image_names
 
+    def get_rtree_index(self):
+
+        if os.path.exists(f'{self.rtree_path}.dat'):
+            self.aerial_idx = index.Index(self.rtree_path)
+        else:
+            self.build_rtree_index()
+            self.aerial_idx = index.Index(self.rtree_path)
+            
     def build_rtree_index(self):
         print("building oblique SfM rtree...")
 
         ds = DataSet(self.path)
         data = world_points(ds)
         aerial_keypoints = []
-        aerial_idx = index.Index(properties=index.Property())
+        p = index.Property()
+        p.dimensions = 2
+        aerial_idx = index.Index(self.rtree_path, properties=p)
         for i, (key, val) in enumerate(data.items()):
             images = val['images']
             ims = []
@@ -134,8 +145,8 @@ class ObliqueManager:
             aerial_keypoints.append(pt)
             aerial_idx.insert(i, (lon, lat), obj=pt)
 
-        self.aerial_idx = aerial_idx
-
+        aerial_idx.close()
+        
     def preload_images(self):
         n_cpu = multiprocessing.cpu_count()
         print(f"Preloading images with {n_cpu} processes")
