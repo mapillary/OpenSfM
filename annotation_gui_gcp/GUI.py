@@ -220,10 +220,12 @@ class Gui:
         print("Done analyzing")
 
     def load_shot_std(self, path):
-        with open(path, "r") as f:
-            for line in f:
-                shot, std = line[:-1].split(",")
-                self.shot_std[shot] = float(std)
+        self.shot_std = {}
+        if os.path.isfile(path):
+            with open(path, "r") as f:
+                for line in f:
+                    shot, std = line[:-1].split(",")
+                    self.shot_std[shot] = float(std)
 
     def load_gcps(self, filename=None):
         if filename is None:
