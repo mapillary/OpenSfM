@@ -146,8 +146,14 @@ class Gui:
         w.pack(side="top", fill=tk.X)
         w.config(width=width)
 
-        button = tk.Button(analysis_frame, text="Analyze", command=self.analyze)
-        button.pack(side="top")
+        analysis_buttons_frame = tk.Frame(analysis_frame)
+        analysis_buttons_frame.pack(side="top")
+        button = tk.Button(
+            analysis_buttons_frame, text="Fast", command=self.analyze_fast
+        )
+        button.pack(side="left")
+        button = tk.Button(analysis_buttons_frame, text="Full", command=self.analyze)
+        button.pack(side="right")
 
         io_frame = tk.Frame(master)
         io_frame.pack(side="top")
@@ -175,7 +181,10 @@ class Gui:
             v = ImageSequenceView(self, sequence_key, image_keys, show_ortho_track)
             self.sequence_views.append(v)
 
-    def analyze(self):
+    def analyze_fast(self):
+        self.analyze(fast=True)
+
+    def analyze(self, fast=False):
         t = time.time() - os.path.getmtime(self.path + "/ground_control_points.json")
         ix_a = self.reconstruction_options.index(self.rec_a.get())
         ix_b = self.reconstruction_options.index(self.rec_b.get())
@@ -195,6 +204,8 @@ class Gui:
         ]
         if ix_b < len(self.reconstruction_options) - 1:
             args.extend(("--rec_b", str(ix_b)))
+        if fast:
+            args.extend(["--fast"])
 
         # Call the run_ba script
         subprocess.run(args)

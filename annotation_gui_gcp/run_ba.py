@@ -380,6 +380,11 @@ def parse_args():
         default=0.016,  # a little bit over 10 pixels at VGA resolution
         help="threshold in normalized pixels to classify a GCP annotation as correct",
     )
+    parser.add_argument(
+        "--fast",
+        action="store_true",
+        help="Skip BA",
+    )
     args = parser.parse_args()
     return args
 
@@ -415,17 +420,19 @@ def main():
             shot.metadata.gps_accuracy.value = 1e12
             shot.metadata.gps_position.value = shot.pose.get_origin()
         reconstructions = [base, resected]
+
     data.save_reconstruction(reconstructions, "reconstruction_gcp_rigid.json")
-
     merged = merge_reconstructions(reconstructions, tracks_manager)
-    data.save_reconstruction([merged], "reconstruction_merged.json")
+    # data.save_reconstruction([merged], "reconstruction_merged.json")
 
-    data.config["bundle_max_iterations"] = 200
-    data.config["bundle_use_gcp"] = True
-    orec.bundle(merged, camera_models, gcp=gcps, config=data.config)
-    # rigid rotation to put images on the ground
-    orec.align_reconstruction(merged, None, data.config)
-    data.save_reconstruction([merged], "reconstruction_gcp_ba.json")
+    if not args.fast:
+        data.config["bundle_max_iterations"] = 200
+        data.config["bundle_use_gcp"] = True
+        print("Running BA ...")
+        orec.bundle(merged, camera_models, gcp=gcps, config=data.config)
+        # rigid rotation to put images on the ground
+        orec.align_reconstruction(merged, None, data.config)
+        # data.save_reconstruction([merged], "reconstruction_gcp_ba.json")
 
     gcp_reprojections = reproject_gcps(gcps, merged)
     reprojection_errors = get_all_reprojection_errors(gcp_reprojections)
@@ -439,58 +446,70 @@ def main():
     gcp_std = compute_gcp_std(gcp_reprojections)
     logger.info(f"GCP reprojection error STD: {gcp_std}")
 
-    resplit = resplit_reconstruction(merged, reconstructions)
-    data.save_reconstruction(resplit, "reconstruction_gcp_ba_resplit.json")
+    if not args.fast:
+        resplit = resplit_reconstruction(merged, reconstructions)
+        data.save_reconstruction(resplit, "reconstruction_gcp_ba_resplit.json")
+        all_shots_std = []
+        # We run bundle by fixing one reconstruction.
+        # If we have two reconstructions, we do this twice, fixing each one.
+        _rec_ixs = [(0, 1), (1, 0)] if args.rec_b else [(0, 1)]
+        for rec_ixs in _rec_ixs:
+            fixed_images = set(reconstructions[rec_ixs[0]].shots.keys())
+            bundle_with_fixed_images(
+                merged,
+                camera_models,
+                gcp=gcps,
+                gcp_std=gcp_std,
+                fixed_images=fixed_images,
+                config=data.config,
+            )
 
-    all_shots_std = []
-    # We run bundle by fixing one reconstruction.
-    # If we have two reconstructions, we do this twice, fixing each one.
-    _rec_ixs = [(0, 1), (1, 0)] if args.rec_b else [(0, 1)]
-    for rec_ixs in _rec_ixs:
-        fixed_images = set(reconstructions[rec_ixs[0]].shots.keys())
-        bundle_with_fixed_images(
-            merged,
-            camera_models,
-            gcp=gcps,
-            gcp_std=gcp_std,
-            fixed_images=fixed_images,
-            config=data.config,
-        )
+            logger.info(
+                f"STD in the position of shots in rec {rec_ixs[1]} w.r.t rec {rec_ixs[0]}"
+            )
+            for shot in merged.shots.values():
+                if shot.id in reconstructions[rec_ixs[1]].shots:
+                    u, std = decompose_covariance(shot.covariance[3:, 3:])
+                    all_shots_std.append((shot.id, np.linalg.norm(std)))
+                    logger.info(f"{shot.id} position std: {np.linalg.norm(std)}")
 
-        logger.info(
-            f"STD in the position of shots in rec {rec_ixs[1]} w.r.t rec {rec_ixs[0]}"
-        )
-        for shot in merged.shots.values():
-            if shot.id in reconstructions[rec_ixs[1]].shots:
-                u, std = decompose_covariance(shot.covariance[3:, 3:])
-                all_shots_std.append((shot.id, np.linalg.norm(std)))
-                logger.info(f"{shot.id} position std: {np.linalg.norm(std)}")
+        # If the STD of all shots is the same, replace by nan
+        std_values = [x[1] for x in all_shots_std]
+        n_bad_std = sum(std > args.std_threshold for std in std_values)
+        n_good_std = sum(std <= args.std_threshold for std in std_values)
+        if np.allclose(std_values, std_values[0]):
+            all_shots_std = [(x[0], np.nan) for x in all_shots_std]
+            n_bad_std = len(std_values)
 
-    # If the STD of all shots is the same, replace by nan
-    std_values = [x[1] for x in all_shots_std]
-    n_bad_std = sum(std > args.std_threshold for std in std_values)
-    n_good_std = sum(std <= args.std_threshold for std in std_values)
-    if np.allclose(std_values, std_values[0]):
-        all_shots_std = [(x[0], np.nan) for x in all_shots_std]
-        n_bad_std = len(std_values)
+        # Average positional STD
+        median_shot_std = np.median([t[1] for t in all_shots_std])
 
-    # Average positional STD
-    median_shot_std = np.median([t[1] for t in all_shots_std])
+        # Save the shot STD to a file
+        with open(data.data_path + "/shots_std.csv", "w") as f:
+            s = sorted(all_shots_std, key=lambda t: -t[-1])
+            for t in s:
+                line = "{}, {}".format(*t)
+                f.write(line + "\n")
 
-    # Save the shot STD to a file
-    with open(data.data_path + "/shots_std.csv", "w") as f:
-        s = sorted(all_shots_std, key=lambda t: -t[-1])
-        for t in s:
-            line = "{}, {}".format(*t)
-            f.write(line + "\n")
+        max_shot_std = s[0][1]
+        got_shots_std = not np.isnan(all_shots_std[0][1])
+    else:
+        n_bad_std = -1
+        n_good_std = -1
+        median_shot_std = -1
+        max_shot_std = -1
+        got_shots_std = False
 
     n_bad_gcp_annotations = int(
         sum(t[2] > args.px_threshold for t in reprojection_errors)
     )
+    for t in reprojection_errors:
+        if t[2] > args.px_threshold:
+            print(t)
     metrics = {
         "n_reconstructions": n_reconstructions,
         "median_shot_std": median_shot_std,
-        "max_shot_std": s[0][1],
+        "max_shot_std": max_shot_std,
         "max_reprojection_error": max_reprojection_error,
         "median_reprojection_error": median_reprojection_error,
         "n_gcp": len(gcps),
@@ -513,8 +532,17 @@ def main():
             f"No issues. All gcp reprojections are under {args.px_threshold}"
             f" and all frames are localized within {args.std_threshold}m"
         )
-    else:
-        if np.isnan(all_shots_std[0][1]):
+    if n_bad_std == 0 and n_bad_gcp_annotations == 0:
+        logger.info(
+            f"No issues. All gcp reprojections are under {args.px_threshold}"
+            f" and all frames are localized within {args.std_threshold}m"
+        )
+    if n_bad_std != 0 or n_bad_gcp_annotations != 0:
+        if args.fast:
+            logger.info(
+                "Positional uncertainty unknown since analysis ran in fast mode."
+            )
+        elif not got_shots_std:
             logger.info(
                 "Could not get positional uncertainty. It could be because:"
                 "\na) there are not enough GCPs."
@@ -528,7 +556,7 @@ def main():
             )
         logger.info(
             f"{n_bad_gcp_annotations} annotations with large reprojection error."
-            " Press Q to jump to the worst, correct it and repeat. Worst offenders:"
+            " Worst offenders:"
         )
 
         stats_bad_reprojections = get_number_of_wrong_annotations_per_gcp(
