@@ -56,6 +56,8 @@ class GroundControlPointManager:
             self.gcp_reprojections = json.load(f)
 
     def load_from_file(self, file_path):
+        self.points = OrderedDict()
+        self.latlons = {}
         with open(file_path, "r") as f:
             input_points = json.load(f)["points"]
         for point in input_points:
