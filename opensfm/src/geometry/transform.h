@@ -31,7 +31,7 @@ Eigen::Matrix3d RotationBetweenPoints(IT begin, IT end) {
   const Eigen::Matrix3d U = svd.matrixU();
   const Eigen::Matrix3d V = svd.matrixV();
   Eigen::Matrix3d rotation = U * V.transpose();
-  if(rotation.determinant() < 0.){
+  if (rotation.determinant() < 0.) {
     rotation *= -1.0;
   }
   return rotation;

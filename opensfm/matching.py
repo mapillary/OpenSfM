@@ -1,17 +1,16 @@
-import numpy as np
-import cv2
 import logging
-
-from timeit import default_timer as timer
 from collections import defaultdict
+from timeit import default_timer as timer
 
-from opensfm import pygeometry
-from opensfm import pyfeatures
+import cv2
+import numpy as np
 from opensfm import context
+from opensfm import feature_loader
 from opensfm import log
 from opensfm import multiview
 from opensfm import pairs_selection
-from opensfm import feature_loader
+from opensfm import pyfeatures
+from opensfm import pygeometry
 
 
 logger = logging.getLogger(__name__)
@@ -22,7 +21,7 @@ def clear_cache():
 
 
 def match_images(data, ref_images, cand_images):
-    """ Perform pair matchings between two sets of images.
+    """Perform pair matchings between two sets of images.
 
     It will do matching for each pair (i, j), i being in
     ref_images and j in cand_images, taking assumption that
@@ -37,7 +36,8 @@ def match_images(data, ref_images, cand_images):
 
     # Generate pairs for matching
     pairs, preport = pairs_selection.match_candidates_from_metadata(
-        ref_images, cand_images, exifs, data)
+        ref_images, cand_images, exifs, data
+    )
 
     # Match them !
     return match_images_with_pairs(data, exifs, ref_images, pairs), preport
@@ -59,20 +59,24 @@ def match_images_with_pairs(data, exifs, ref_images, pairs):
 
     # Perform all pair matchings in parallel
     start = timer()
-    logger.info('Matching {} image pairs'.format(len(pairs)))
+    logger.info("Matching {} image pairs".format(len(pairs)))
     mem_per_process = 512
     jobs_per_process = 2
-    processes = context.processes_that_fit_in_memory(data.config['processes'], mem_per_process)
+    processes = context.processes_that_fit_in_memory(
+        data.config["processes"], mem_per_process
+    )
     logger.info("Computing pair matching with %d processes" % processes)
     matches = context.parallel_map(match_unwrap_args, args, processes, jobs_per_process)
     logger.info(
-        'Matched {} pairs for {} ref_images {} '
-        'in {} seconds ({} seconds/pair).'.format(
+        "Matched {} pairs for {} ref_images {} "
+        "in {} seconds ({} seconds/pair).".format(
             len(pairs),
             len(ref_images),
             log_projection_types(pairs, ctx.exifs, ctx.cameras),
             timer() - start,
-            (timer() - start) / len(pairs) if pairs else 0))
+            (timer() - start) / len(pairs) if pairs else 0,
+        )
+    )
 
     # Index results per pair
     resulting_pairs = {}
@@ -89,8 +93,8 @@ def log_projection_types(pairs, exifs, cameras):
 
     projection_type_pairs = {}
     for im1, im2 in pairs:
-        pt1 = cameras[exifs[im1]['camera']].projection_type
-        pt2 = cameras[exifs[im2]['camera']].projection_type
+        pt1 = cameras[exifs[im1]["camera"]].projection_type
+        pt2 = cameras[exifs[im2]["camera"]].projection_type
 
         if pt1 not in projection_type_pairs:
             projection_type_pairs[pt1] = {}
@@ -104,13 +108,14 @@ def log_projection_types(pairs, exifs, cameras):
     for pt1 in projection_type_pairs:
         for pt2 in projection_type_pairs[pt1]:
             output += "{}-{}: {}, ".format(
-                pt1, pt2, len(projection_type_pairs[pt1][pt2]))
+                pt1, pt2, len(projection_type_pairs[pt1][pt2])
+            )
 
     return output[:-2] + ")"
 
 
 def save_matches(data, images_ref, matched_pairs):
-    """ Given pairwise matches (image 1, image 2) - > matches,
+    """Given pairwise matches (image 1, image 2) - > matches,
     save them such as only {image E images_ref} will store the matches.
     """
 
@@ -142,15 +147,16 @@ def match_unwrap_args(args):
     im1, candidates, ctx = args
 
     im1_matches = {}
-    camera1 = ctx.cameras[ctx.exifs[im1]['camera']]
+    camera1 = ctx.cameras[ctx.exifs[im1]["camera"]]
 
     for im2 in candidates:
-        camera2 = ctx.cameras[ctx.exifs[im2]['camera']]
+        camera2 = ctx.cameras[ctx.exifs[im2]["camera"]]
         im1_matches[im2] = match(im1, im2, camera1, camera2, ctx.data)
 
     num_matches = sum(1 for m in im1_matches.values() if len(m) > 0)
-    logger.debug('Image {} matches: {} out of {}'.format(
-        im1, num_matches, len(candidates)))
+    logger.debug(
+        "Image {} matches: {} out of {}".format(im1, num_matches, len(candidates))
+    )
 
     return im1, im1_matches
 
@@ -160,18 +166,20 @@ def match(im1, im2, camera1, camera2, data):
     # Apply mask to features if any
     time_start = timer()
     p1, f1, _ = feature_loader.instance.load_points_features_colors(
-        data, im1, masked=True)
+        data, im1, masked=True
+    )
     p2, f2, _ = feature_loader.instance.load_points_features_colors(
-        data, im2, masked=True)
+        data, im2, masked=True
+    )
 
     if p1 is None or len(p1) < 2 or p2 is None or len(p2) < 2:
         return []
 
     config = data.config
-    matcher_type = config['matcher_type'].upper()
-    symmetric_matching = config['symmetric_matching']
+    matcher_type = config["matcher_type"].upper()
+    symmetric_matching = config["symmetric_matching"]
 
-    if matcher_type == 'WORDS':
+    if matcher_type == "WORDS":
         w1 = feature_loader.instance.load_words(data, im1, masked=True)
         w2 = feature_loader.instance.load_words(data, im2, masked=True)
         if w1 is None or w2 is None:
@@ -181,14 +189,16 @@ def match(im1, im2, camera1, camera2, data):
             matches = match_words_symmetric(f1, w1, f2, w2, config)
         else:
             matches = match_words(f1, w1, f2, w2, config)
-    elif matcher_type == 'FLANN':
+    elif matcher_type == "FLANN":
         fi1, i1 = feature_loader.instance.load_features_index(data, im1, masked=True)
         if symmetric_matching:
-            fi2, i2 = feature_loader.instance.load_features_index(data, im2, masked=True)
+            fi2, i2 = feature_loader.instance.load_features_index(
+                data, im2, masked=True
+            )
             matches = match_flann_symmetric(fi1, i1, fi2, i2, config)
         else:
             matches = match_flann(i1, f2, config)
-    elif matcher_type == 'BRUTEFORCE':
+    elif matcher_type == "BRUTEFORCE":
         if symmetric_matching:
             matches = match_brute_force_symmetric(f1, f2, config)
         else:
@@ -197,25 +207,22 @@ def match(im1, im2, camera1, camera2, data):
         raise ValueError("Invalid matcher_type: {}".format(matcher_type))
 
     # Adhoc filters
-    if config['matching_use_filters']:
-        matches = apply_adhoc_filters(data, matches,
-                                      im1, camera1, p1,
-                                      im2, camera2, p2)
+    if config["matching_use_filters"]:
+        matches = apply_adhoc_filters(data, matches, im1, camera1, p1, im2, camera2, p2)
 
     matches = np.array(matches, dtype=int)
     time_2d_matching = timer() - time_start
     t = timer()
 
-    symmetric = 'symmetric' if config['symmetric_matching'] \
-        else 'one-way'
-    robust_matching_min_match = config['robust_matching_min_match']
+    symmetric = "symmetric" if config["symmetric_matching"] else "one-way"
+    robust_matching_min_match = config["robust_matching_min_match"]
     if len(matches) < robust_matching_min_match:
         logger.debug(
-            'Matching {} and {}.  Matcher: {} ({}) T-desc: {:1.3f} '
-            'Matches: FAILED'.format(
-                im1, im2,
-                matcher_type, symmetric,
-                time_2d_matching))
+            "Matching {} and {}.  Matcher: {} ({}) T-desc: {:1.3f} "
+            "Matches: FAILED".format(
+                im1, im2, matcher_type, symmetric, time_2d_matching
+            )
+        )
         return []
 
     # robust matching
@@ -231,13 +238,21 @@ def match(im1, im2, camera1, camera2, data):
         rmatches = unfilter_matches(rmatches, m1, m2)
 
     logger.debug(
-        'Matching {} and {}.  Matcher: {} ({}) '
-        'T-desc: {:1.3f} T-robust: {:1.3f} T-total: {:1.3f} '
-        'Matches: {} Robust: {} Success: {}'.format(
-            im1, im2, matcher_type, symmetric,
-            time_2d_matching, time_robust_matching, time_total,
-            len(matches), len(rmatches),
-            len(rmatches) >= robust_matching_min_match))
+        "Matching {} and {}.  Matcher: {} ({}) "
+        "T-desc: {:1.3f} T-robust: {:1.3f} T-total: {:1.3f} "
+        "Matches: {} Robust: {} Success: {}".format(
+            im1,
+            im2,
+            matcher_type,
+            symmetric,
+            time_2d_matching,
+            time_robust_matching,
+            time_total,
+            len(matches),
+            len(rmatches),
+            len(rmatches) >= robust_matching_min_match,
+        )
+    )
 
     if len(rmatches) < robust_matching_min_match:
         return []
@@ -255,10 +270,9 @@ def match_words(f1, words1, f2, words2, config):
         w2: the nth closest words for each feature in the second image
         config: config parameters
     """
-    ratio = config['lowes_ratio']
-    num_checks = config['bow_num_checks']
-    return pyfeatures.match_using_words(f1, words1, f2, words2[:, 0],
-                                        ratio, num_checks)
+    ratio = config["lowes_ratio"]
+    num_checks = config["bow_num_checks"]
+    return pyfeatures.match_using_words(f1, words1, f2, words2[:, 0], ratio, num_checks)
 
 
 def match_words_symmetric(f1, words1, f2, words2, config):
@@ -287,9 +301,9 @@ def match_flann(index, f2, config):
         f2: feature descriptors of the second image
         config: config parameters
     """
-    search_params = dict(checks=config['flann_checks'])
+    search_params = dict(checks=config["flann_checks"])
     results, dists = index.knnSearch(f2, 2, params=search_params)
-    squared_ratio = config['lowes_ratio']**2  # Flann returns squared L2 distances
+    squared_ratio = config["lowes_ratio"] ** 2  # Flann returns squared L2 distances
     good = dists[:, 0] < squared_ratio * dists[:, 1]
     return list(zip(results[good, 0], good.nonzero()[0]))
 
@@ -318,15 +332,15 @@ def match_brute_force(f1, f2, config):
         f2: feature descriptors of the second image
         config: config parameters
     """
-    assert(f1.dtype.type == f2.dtype.type)
-    if (f1.dtype.type == np.uint8):
-        matcher_type = 'BruteForce-Hamming'
+    assert f1.dtype.type == f2.dtype.type
+    if f1.dtype.type == np.uint8:
+        matcher_type = "BruteForce-Hamming"
     else:
-        matcher_type = 'BruteForce'
+        matcher_type = "BruteForce"
     matcher = cv2.DescriptorMatcher_create(matcher_type)
     matches = matcher.knnMatch(f1, f2, k=2)
 
-    ratio = config['lowes_ratio']
+    ratio = config["lowes_ratio"]
     good_matches = []
     for match in matches:
         if match and len(match) == 2:
@@ -370,7 +384,7 @@ def robust_match_fundamental(p1, p2, matches, config):
     p2 = p2[matches[:, 1]][:, :2].copy()
 
     FM_RANSAC = cv2.FM_RANSAC if context.OPENCV3 else cv2.cv.CV_FM_RANSAC
-    threshold = config['robust_matching_threshold']
+    threshold = config["robust_matching_threshold"]
     F, mask = cv2.findFundamentalMat(p1, p2, FM_RANSAC, threshold, 0.9999)
     inliers = mask.ravel().nonzero()
 
@@ -380,20 +394,36 @@ def robust_match_fundamental(p1, p2, matches, config):
     return F, matches[inliers]
 
 
-def _compute_inliers_bearings(b1, b2, T, threshold=0.01):
-    R = T[:, :3]
-    t = T[:, 3]
-    p = np.array(pygeometry.triangulate_two_bearings_midpoint_many(b1, b2, R, t))
+def compute_inliers_bearings(b1, b2, R, t, threshold=0.01):
+    """Compute points that can be triangulated.
 
-    br1 = p.copy()
+    Args:
+        b1, b2: Bearings in the two images.
+        R, t: Rotation and translation from the second image to the first.
+              That is the convention and the opposite of many
+              functions in this module.
+        threshold: max reprojection error in radians.
+    Returns:
+        array: Aray of boolean indicating inliers/outliers
+    """
+    p = pygeometry.triangulate_two_bearings_midpoint_many(b1, b2, R, t)
+
+    good_idx = [i for i in range(len(p)) if p[i][0]]
+    points = np.array([p[i][1] for i in range(len(p)) if p[i][0]])
+
+    br1 = points.copy()
     br1 /= np.linalg.norm(br1, axis=1)[:, np.newaxis]
-
-    br2 = R.T.dot((p - t).T).T
+    br2 = R.T.dot((points - t).T).T
     br2 /= np.linalg.norm(br2, axis=1)[:, np.newaxis]
 
-    ok1 = multiview.vector_angle_many(br1, b1) < threshold
-    ok2 = multiview.vector_angle_many(br2, b2) < threshold
-    return ok1 * ok2
+    ok1 = np.linalg.norm(br1 - b1[good_idx], axis=1) < threshold
+    ok2 = np.linalg.norm(br2 - b2[good_idx], axis=1) < threshold
+    is_ok = ok1 * ok2
+
+    inliers = [False] * len(b1)
+    for i, ok in enumerate(is_ok):
+        inliers[good_idx[i]] = ok
+    return inliers
 
 
 def robust_match_calibrated(p1, p2, camera1, camera2, matches, config):
@@ -407,19 +437,19 @@ def robust_match_calibrated(p1, p2, camera1, camera2, matches, config):
     b1 = camera1.pixel_bearing_many(p1)
     b2 = camera2.pixel_bearing_many(p2)
 
-    threshold = config['robust_matching_calib_threshold']
-    T = multiview.relative_pose_ransac(
-        b1, b2, threshold, 1000, 0.999)
+    threshold = config["robust_matching_calib_threshold"]
+    T = multiview.relative_pose_ransac(b1, b2, threshold, 1000, 0.999)
 
     for relax in [4, 2, 1]:
-        inliers = _compute_inliers_bearings(b1, b2, T, relax * threshold)
+        inliers = compute_inliers_bearings(b1, b2, T[:, :3], T[:, 3], relax * threshold)
         if np.sum(inliers) < 8:
             return np.array([])
-        iterations = config['five_point_refine_match_iterations']
+        iterations = config["five_point_refine_match_iterations"]
         T = multiview.relative_pose_optimize_nonlinear(
-            b1[inliers], b2[inliers], T[:3, 3], T[:3, :3], iterations)
+            b1[inliers], b2[inliers], T[:3, 3], T[:3, :3], iterations
+        )
 
-    inliers = _compute_inliers_bearings(b1, b2, T, threshold)
+    inliers = compute_inliers_bearings(b1, b2, T[:, :3], T[:, 3], threshold)
 
     return matches[inliers]
 
@@ -430,10 +460,14 @@ def robust_match(p1, p2, camera1, camera2, matches, config):
     If cameras are perspective without distortion, then the Fundamental
     matrix is used.  Otherwise, we use the Essential matrix.
     """
-    if (camera1.projection_type == 'perspective'
-            and camera1.k1 == 0.0 and camera1.k2 == 0.0
-            and camera2.projection_type == 'perspective'
-            and camera2.k1 == 0.0 and camera2.k2 == 0.0):
+    if (
+        camera1.projection_type == "perspective"
+        and camera1.k1 == 0.0
+        and camera1.k2 == 0.0
+        and camera2.projection_type == "perspective"
+        and camera2.k1 == 0.0
+        and camera2.k2 == 0.0
+    ):
         return robust_match_fundamental(p1, p2, matches, config)[1]
     else:
         return robust_match_calibrated(p1, p2, camera1, camera2, matches, config)
@@ -447,8 +481,8 @@ def unfilter_matches(matches, m1, m2):
 
 
 def apply_adhoc_filters(data, matches, im1, camera1, p1, im2, camera2, p2):
-    """ Apply a set of filters functions defined further below
-        for removing static data in images.
+    """Apply a set of filters functions defined further below
+    for removing static data in images.
 
     """
     matches = _non_static_matches(p1, p2, matches, data.config)
@@ -468,7 +502,7 @@ def _non_static_matches(p1, p2, matches, config):
     res = []
     for match in matches:
         d = p1[match[0]] - p2[match[1]]
-        if d[0]**2 + d[1]**2 >= threshold**2:
+        if d[0] ** 2 + d[1] ** 2 >= threshold ** 2:
             res.append(match)
 
     static_ratio_threshold = 0.85
@@ -491,8 +525,9 @@ def _not_on_pano_poles_matches(p1, p2, matches, camera1, camera2):
     if is_pano1 or is_pano2:
         res = []
         for match in matches:
-            if ((not is_pano1 or min_lat < p1[match[0]][1] < max_lat) and
-                    (not is_pano2 or min_lat < p2[match[1]][1] < max_lat)):
+            if (not is_pano1 or min_lat < p1[match[0]][1] < max_lat) and (
+                not is_pano2 or min_lat < p2[match[1]][1] < max_lat
+            ):
                 res.append(match)
         return res
     else:
@@ -504,9 +539,9 @@ def _not_on_vermont_watermark(p1, p2, matches, im1, im2, data):
     meta1 = data.load_exif(im1)
     meta2 = data.load_exif(im2)
 
-    if meta1['make'] == 'VTrans_Camera' and meta1['model'] == 'VTrans_Camera':
+    if meta1["make"] == "VTrans_Camera" and meta1["model"] == "VTrans_Camera":
         matches = [m for m in matches if _vermont_valid_mask(p1[m[0]])]
-    if meta2['make'] == 'VTrans_Camera' and meta2['model'] == 'VTrans_Camera':
+    if meta2["make"] == "VTrans_Camera" and meta2["model"] == "VTrans_Camera":
         matches = [m for m in matches if _vermont_valid_mask(p2[m[1]])]
     return matches
 
@@ -525,9 +560,9 @@ def _not_on_blackvue_watermark(p1, p2, matches, im1, im2, data):
     meta1 = data.load_exif(im1)
     meta2 = data.load_exif(im2)
 
-    if meta1['make'].lower() == 'blackvue':
+    if meta1["make"].lower() == "blackvue":
         matches = [m for m in matches if _blackvue_valid_mask(p1[m[0]])]
-    if meta2['make'].lower() == 'blackvue':
+    if meta2["make"].lower() == "blackvue":
         matches = [m for m in matches if _blackvue_valid_mask(p2[m[1]])]
     return matches
 

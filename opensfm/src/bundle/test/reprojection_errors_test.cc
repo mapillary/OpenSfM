@@ -22,7 +22,8 @@ class ReprojectionError2DFixture : public ::testing::Test {
     }
     for (int i = 0; i < size; ++i) {
       camera_adiff[i].value() = camera[i];
-      camera_adiff[i].derivatives() = VecXd::Unit(total_size, size_point + size_rt + i);
+      camera_adiff[i].derivatives() =
+          VecXd::Unit(total_size, size_point + size_rt + i);
     }
   }
 
@@ -90,7 +91,8 @@ TEST_F(ReprojectionError2DFixture, BrownAnalyticErrorEvaluatesOK) {
   constexpr int size = 9;
 
   // focal, ar, cx, cy, k1, k2, k3, p1, p2
-  const double camera[size] = {0.3, 1.0, 0.001, -0.02, 0.1, -0.03, 0.001, -0.005, 0.001};
+  const double camera[size] = {0.3,   1.0,   0.001,  -0.02, 0.1,
+                               -0.03, 0.001, -0.005, 0.001};
   RunTest<size>(ProjectionType::BROWN, &camera[0]);
 }
 
@@ -110,11 +112,12 @@ TEST_F(ReprojectionError2DFixture, FisheyeAnalyticErrorEvaluatesOK) {
   RunTest<size>(ProjectionType::FISHEYE, &camera[0]);
 }
 
-TEST_F(ReprojectionError2DFixture, FisheyeExtendedAnalyticErrorEvaluatesOK) {
+TEST_F(ReprojectionError2DFixture, FisheyeOpencvAnalyticErrorEvaluatesOK) {
   constexpr int size = 8;
 
   // focal, ar, cx, cy, k1, k2, k3, k4
-  const double camera[size] = {0.3, 1.0, 0.001, -0.02, 0.1, -0.03, 0.001, -0.005};
+  const double camera[size] = {0.3, 1.0,   0.001, -0.02,
+                               0.1, -0.03, 0.001, -0.005};
   RunTest<size>(ProjectionType::FISHEYE_OPENCV, &camera[0]);
 }
 
@@ -128,21 +131,21 @@ TEST_F(ReprojectionError2DFixture, DualAnalyticErrorEvaluatesOK) {
 
 class ReprojectionError3DFixture : public ::testing::Test {
  public:
- static constexpr int size = 3;
+  static constexpr int size = 3;
 
- typedef Eigen::AutoDiffScalar<Eigen::VectorXd> AScalar;
- ReprojectionError3DFixture() { observed << 0.5, 0.5; }
+  typedef Eigen::AutoDiffScalar<Eigen::VectorXd> AScalar;
+  ReprojectionError3DFixture() { observed << 0.5, 0.5; }
 
- void SetupADiff() {
-   const int total_size = size_point + size_rt;
-   for (int i = 0; i < size_point; ++i) {
-     point_adiff[i].value() = point[i];
-     point_adiff[i].derivatives() = VecXd::Unit(total_size, i);
-   }
-   for (int i = 0; i < size_rt; ++i) {
-     rt_adiff[i].value() = rt[i];
-     rt_adiff[i].derivatives() = VecXd::Unit(total_size, size_point + i);
-   }
+  void SetupADiff() {
+    const int total_size = size_point + size_rt;
+    for (int i = 0; i < size_point; ++i) {
+      point_adiff[i].value() = point[i];
+      point_adiff[i].derivatives() = VecXd::Unit(total_size, i);
+    }
+    for (int i = 0; i < size_rt; ++i) {
+      rt_adiff[i].value() = rt[i];
+      rt_adiff[i].derivatives() = VecXd::Unit(total_size, size_point + i);
+    }
   }
 
   void CheckJacobians() {
@@ -179,19 +182,20 @@ class ReprojectionError3DFixture : public ::testing::Test {
 
 TEST_F(ReprojectionError3DFixture, AnalyticErrorEvaluatesOK) {
   // Autodiff-ed version will be used as reference/expected values
-    SetupADiff();
-    AScalar dummy_adiff;
-    ReprojectionError3D autodiff(ProjectionType::SPHERICAL, observed, scale);
-    autodiff(&dummy_adiff, rt_adiff, point_adiff, residual_adiff);
+  SetupADiff();
+  AScalar dummy_adiff;
+  ReprojectionError3D autodiff(ProjectionType::SPHERICAL, observed, scale);
+  autodiff(&dummy_adiff, rt_adiff, point_adiff, residual_adiff);
 
-    // We test for analytic evaluation
-    double dummy = 0.;
-    double dummy_jac[] = {0., 0., 0.};
-    const double* params[] = {&dummy, rt, point};
-    double* jacobians[] = {&dummy_jac[0], jac_rt, jac_point};
-    ReprojectionError3DAnalytic analytic(ProjectionType::SPHERICAL, observed, scale);
-    analytic.Evaluate(params, residuals, &jacobians[0]);
+  // We test for analytic evaluation
+  double dummy = 0.;
+  double dummy_jac[] = {0., 0., 0.};
+  const double* params[] = {&dummy, rt, point};
+  double* jacobians[] = {&dummy_jac[0], jac_rt, jac_point};
+  ReprojectionError3DAnalytic analytic(ProjectionType::SPHERICAL, observed,
+                                       scale);
+  analytic.Evaluate(params, residuals, &jacobians[0]);
 
-    // Check
-    CheckJacobians();
+  // Check
+  CheckJacobians();
 }

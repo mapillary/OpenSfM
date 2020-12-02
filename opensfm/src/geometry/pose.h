@@ -10,7 +10,7 @@ class Pose {
     Mat4d T_cw = Mat4d::Identity();
     SetFromWorldToCamera(T_cw);
   }
-  
+
   Pose(const Vec3d& R, const Vec3d& t = Vec3d::Zero()) {
     Mat4d T_cw = Mat4d::Identity();
     SetFromWorldToCamera(R, t);
@@ -118,18 +118,15 @@ class Pose {
   MatX3d TransformWorldToCameraMany(const MatX3d& points) const {
     const Mat3d R_cw = world_to_cam_.block<3, 3>(0, 0);
     const Vec3d t_cw = world_to_cam_.block<3, 1>(0, 3);
-    return (points * R_cw.transpose()).rowwise() +
-           t_cw.transpose();
+    return (points * R_cw.transpose()).rowwise() + t_cw.transpose();
   }
 
   MatX3d TransformCameraToWorldMany(const MatX3d& points) const {
     const Mat3d R_wc = cam_to_world_.block<3, 3>(0, 0);
     const Vec3d t_wc = cam_to_world_.block<3, 1>(0, 3);
-    return (points * R_wc.transpose()).rowwise() +
-           t_wc.transpose();
+    return (points * R_wc.transpose()).rowwise() + t_wc.transpose();
   }
 
-  
   Pose RelativeTo(const Pose& base_pose) const {
     /*
       Computes the relative transformation between base and this post
@@ -143,16 +140,16 @@ class Pose {
     return relpose;
   }
 
-  
   Pose Compose(const Pose& base_pose) const {
     /*
       This is the C++ version of the original Python version
-      The relation to relativeTo ist the following  
+      The relation to relativeTo ist the following
       pose1.compose(pose2.inverse()) == pose1.RelativeTo(pose2)
     */
     const Mat3d& selfR = RotationWorldToCamera();
-    const Mat3d R = selfR*base_pose.RotationWorldToCamera();
-    const Vec3d t = selfR*base_pose.TranslationWorldToCamera()+TranslationWorldToCamera();
+    const Mat3d R = selfR * base_pose.RotationWorldToCamera();
+    const Vec3d t = selfR * base_pose.TranslationWorldToCamera() +
+                    TranslationWorldToCamera();
     return Pose(R, t);
   }
 

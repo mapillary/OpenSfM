@@ -2,7 +2,6 @@
 
 #include <Eigen/Eigen>
 
-
 template <class T>
 using MatX = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>;
 using MatXf = Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic>;

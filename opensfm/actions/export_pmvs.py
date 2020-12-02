@@ -1,20 +1,19 @@
 import logging
 import os
+
 import cv2
-
 import numpy as np
-
 from opensfm import dataset
+from opensfm import features
 from opensfm import io
 from opensfm import tracking
-from opensfm import features
 
 
 logger = logging.getLogger(__name__)
 
 
 def run_dataset(data, points, image_list, output, undistorted):
-    """ Export reconstruction to PLY format
+    """Export reconstruction to PLY format
 
     Args:
         points: export points
@@ -24,12 +23,13 @@ def run_dataset(data, points, image_list, output, undistorted):
 
     """
 
-    udata = dataset.UndistortedDataSet(data, 'undistorted')
+    udata = dataset.UndistortedDataSet(data)
 
-    base_output_path = output if output else os.path.join(data.data_path, 'pmvs')
+    base_output_path = output if output else os.path.join(data.data_path, "pmvs")
     io.mkdir_p(base_output_path)
-    logger.info("Converting dataset [%s] to PMVS dir [%s]" % (
-        data.data_path, base_output_path))
+    logger.info(
+        "Converting dataset [%s] to PMVS dir [%s]" % (data.data_path, base_output_path)
+    )
 
     if undistorted:
         reconstructions = udata.load_undistorted_reconstruction()
@@ -49,22 +49,37 @@ def run_dataset(data, points, image_list, output, undistorted):
     export_only = None
     if image_list:
         export_only = {}
-        with open(image_list, 'r') as f:
+        with open(image_list, "r") as f:
             for image in f:
                 export_only[image.strip()] = True
 
     for h, reconstruction in enumerate(reconstructions):
-        export(reconstruction, h,
-                    image_graph, tracks_manager,
-                    base_output_path, data,
-                    undistorted, udata,
-                    points, export_only)
+        export(
+            reconstruction,
+            h,
+            image_graph,
+            tracks_manager,
+            base_output_path,
+            data,
+            undistorted,
+            udata,
+            points,
+            export_only,
+        )
 
-def export(reconstruction, index,
-            image_graph, tracks_manager,
-            base_output_path, data,
-            undistorted, udata,
-            with_points, export_only):
+
+def export(
+    reconstruction,
+    index,
+    image_graph,
+    tracks_manager,
+    base_output_path,
+    data,
+    undistorted,
+    udata,
+    with_points,
+    export_only,
+):
     logger.info("Reconstruction %d" % index)
     output_path = os.path.join(base_output_path, "recon%d" % index)
     io.mkdir_p(output_path)
@@ -110,7 +125,9 @@ def export(reconstruction, index,
             undistorted_image = cv2.undistort(original_image, K, distortion)
 
         # resize and save the undistorted to visualize/%08d.jpg
-        resized_image = features.resized_image(undistorted_image, data.config)
+        resized_image = features.resized_image(
+            undistorted_image, data.config["feature_process_size"]
+        )
         new_image_path = os.path.join(output_path, "visualize", base + ".jpg")
         cv2.imwrite(new_image_path, resized_image)
 
@@ -121,7 +138,7 @@ def export(reconstruction, index,
 
         new_txt = os.path.join(output_path, "txt", base + ".txt")
         with open(new_txt, "wb") as f:
-            np.savetxt(f, P, str('%f'), header="CONTOUR")
+            np.savetxt(f, P, str("%f"), header="CONTOUR")
 
     fvis.close()
 

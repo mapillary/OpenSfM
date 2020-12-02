@@ -21,10 +21,10 @@ def run_dataset(data):
     camera_models = {}
     for image in data.images():
         if data.exif_exists(image):
-            logging.info('Loading existing EXIF for {}'.format(image))
+            logging.info("Loading existing EXIF for {}".format(image))
             d = data.load_exif(image)
         else:
-            logging.info('Extracting EXIF for {}'.format(image))
+            logging.info("Extracting EXIF for {}".format(image))
             d = _extract_exif(image, data)
 
             if image in exif_overrides:
@@ -32,9 +32,9 @@ def run_dataset(data):
 
             data.save_exif(image, d)
 
-        if d['camera'] not in camera_models:
+        if d["camera"] not in camera_models:
             camera = exif.camera_from_exif_metadata(d, data)
-            camera_models[d['camera']] = camera
+            camera_models[d["camera"]] = camera
 
     # Override any camera specified in the camera models overrides file.
     if data.camera_models_overrides_exists():
@@ -49,17 +49,19 @@ def run_dataset(data):
     data.save_camera_models(camera_models)
 
     end = time.time()
-    with open(data.profile_log(), 'a') as fout:
-        fout.write('extract_metadata: {0}\n'.format(end - start))
+    with open(data.profile_log(), "a") as fout:
+        fout.write("extract_metadata: {0}\n".format(end - start))
+
 
 def _extract_exif(image, data):
-        # EXIF data in Image
-    d = exif.extract_exif_from_file(data.open_image_file(image))
+    # EXIF data in Image
+    with data.open_image_file(image) as fp:
+        d = exif.extract_exif_from_file(fp)
 
     # Image Height and Image Width
-    if d['width'] <= 0 or not data.config['use_exif_size']:
-        d['height'], d['width'] = data.image_size(image)
+    if d["width"] <= 0 or not data.config["use_exif_size"]:
+        d["height"], d["width"] = data.image_size(image)
 
-    d['camera'] = exif.camera_id(d)
+    d["camera"] = exif.camera_id(d)
 
     return d

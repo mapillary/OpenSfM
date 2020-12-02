@@ -1,28 +1,29 @@
+#include <map/ba_helpers.h>
 #include <bundle/bundle_adjuster.h>
 #include <foundation/types.h>
 #include <geometry/triangulation.h>
-#include <map/ba_helpers.h>
 #include <map/ground_control_points.h>
 #include <map/map.h>
 
 #include <chrono>
 
 std::pair<std::unordered_set<map::ShotId>, std::unordered_set<map::ShotId>>
-BAHelpers::ShotNeighborhoodIds(map::Map& map, const map::ShotId& central_shot_id,
+BAHelpers::ShotNeighborhoodIds(map::Map& map,
+                               const map::ShotId& central_shot_id,
                                size_t radius, size_t min_common_points,
                                size_t max_interior_size) {
-  auto res = ShotNeighborhood(map, central_shot_id, radius, min_common_points, max_interior_size);
+  auto res = ShotNeighborhood(map, central_shot_id, radius, min_common_points,
+                              max_interior_size);
   std::unordered_set<map::ShotId> interior;
-  for (map::Shot *shot : res.first) {
+  for (map::Shot* shot : res.first) {
     interior.insert(shot->GetId());
   }
   std::unordered_set<map::ShotId> boundary;
-  for (map::Shot *shot : res.second) {
+  for (map::Shot* shot : res.second) {
     boundary.insert(shot->GetId());
   }
   return std::make_pair(interior, boundary);
 }
-
 
 /**Reconstructed shots near a given shot.
 
@@ -77,8 +78,7 @@ std::unordered_set<map::Shot*> BAHelpers::DirectShotNeighbors(
   for (auto* pt : points) {
     for (const auto& neighbor_p : pt->GetObservations()) {
       auto* shot = neighbor_p.first;
-      if (shot_ids.find(shot) == shot_ids.end())
-      {
+      if (shot_ids.find(shot) == shot_ids.end()) {
         ++common_points[shot];
       }
     }
@@ -224,7 +224,7 @@ py::tuple BAHelpers::BundleLocal(
   }
 
   if (config["bundle_use_gcp"].cast<bool>() && !gcp.empty()) {
-    AddGCPToBundle(ba, gcp, map.GetAllShots());
+    AddGCPToBundle(ba, gcp, map.GetShots());
   }
 
   ba.SetPointProjectionLossFunction(
@@ -367,7 +367,7 @@ py::dict BAHelpers::Bundle(
     ba.AddCamera(cam.id, cam, cam_prior, fix_cameras);
   }
 
-  for (const auto& pt_pair : map.GetAllLandmarks()) {
+  for (const auto& pt_pair : map.GetLandmarks()) {
     const auto& pt = pt_pair.second;
     ba.AddPoint(pt.id_, pt.GetGlobalPos(), false);
   }
@@ -390,7 +390,7 @@ py::dict BAHelpers::Bundle(
     }
   }
 
-  for (const auto& shot_pair : map.GetAllShots()) {
+  for (const auto& shot_pair : map.GetShots()) {
     const auto& shot = shot_pair.second;
     const auto& pose = shot.GetPose();
     constexpr auto fix_shot = false;
@@ -427,7 +427,7 @@ py::dict BAHelpers::Bundle(
     }
   }
   if (config["bundle_use_gcp"].cast<bool>() && !gcp.empty()) {
-    AddGCPToBundle(ba, gcp, map.GetAllShots());
+    AddGCPToBundle(ba, gcp, map.GetShots());
   }
 
   ba.SetPointProjectionLossFunction(
@@ -460,14 +460,14 @@ py::dict BAHelpers::Bundle(
   }
 
   // Update shots
-  for (auto& shot : map.GetAllShots()) {
+  for (auto& shot : map.GetShots()) {
     const auto& s = ba.GetShot(shot.first);
     shot.second.GetPose().SetFromWorldToCamera(s.GetRotation(),
                                                s.GetTranslation());
   }
 
   // Update points
-  for (auto& point : map.GetAllLandmarks()) {
+  for (auto& point : map.GetLandmarks()) {
     const auto& pt = ba.GetPoint(point.first);
     point.second.SetGlobalPos(pt.GetPoint());
     point.second.SetReprojectionErrors(pt.reprojection_errors);
@@ -494,8 +494,7 @@ py::dict BAHelpers::Bundle(
 
 void BAHelpers::AlignmentConstraints(
     const map::Map& map, const py::dict& config,
-    const AlignedVector<map::GroundControlPoint>& gcp,
-    MatX3d& Xp, MatX3d& X) {
+    const AlignedVector<map::GroundControlPoint>& gcp, MatX3d& Xp, MatX3d& X) {
   size_t reserve_size = 0;
   if (!gcp.empty() && config["bundle_use_gcp"].cast<bool>()) {
     reserve_size += gcp.size();
@@ -506,7 +505,7 @@ void BAHelpers::AlignmentConstraints(
   Xp.conservativeResize(reserve_size, Eigen::NoChange);
   X.conservativeResize(reserve_size, Eigen::NoChange);
   size_t idx = 0;
-  const auto& shots = map.GetAllShots();
+  const auto& shots = map.GetShots();
   // Triangulated vs measured points
   if (!gcp.empty() && config["bundle_use_gcp"].cast<bool>()) {
     for (const auto& point : gcp) {
@@ -523,6 +522,7 @@ void BAHelpers::AlignmentConstraints(
       const auto& shot = shot_p.second;
       Xp.row(idx) = shot.shot_measurements_.gps_position_.Value();
       X.row(idx) = shot.GetPose().GetOrigin();
+      ++idx;
     }
   }
 }
@@ -530,11 +530,9 @@ void BAHelpers::AlignmentConstraints(
 std::string BAHelpers::DetectAlignmentConstraints(
     const map::Map& map, const py::dict& config,
     const AlignedVector<map::GroundControlPoint>& gcp) {
-
   MatX3d X, Xp;
   AlignmentConstraints(map, config, gcp, Xp, X);
-  if (X.rows() < 3)
-  {
+  if (X.rows() < 3) {
     return "orientation_prior";
   }
   const Vec3d X_mean = X.colwise().mean();

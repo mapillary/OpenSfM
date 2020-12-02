@@ -1,7 +1,8 @@
 """Basic types for building a reconstruction."""
-from opensfm import pymap
 from opensfm import pygeometry
+from opensfm import pymap
 from opensfm.geo import TopocentricConverter
+
 
 class ShotMesh(object):
     """Triangular mesh of points visible in a shot
@@ -105,7 +106,7 @@ class Reconstruction(object):
 
     def add_shot(self, shot):
         """Creates a copy of the passed shot
-            in the current reconstruction"""
+        in the current reconstruction"""
 
         if shot.camera.id not in self.cameras:
             self.add_camera(shot.camera)
@@ -170,7 +171,7 @@ class Reconstruction(object):
         return self.points.get(id)
 
     def add_observation(self, shot_id, lm_id, observation):
-        """ Adds an observation between a shot and a landmark
+        """Adds an observation between a shot and a landmark
         :param shot_id: The id of the shot
         :param lm_id: The id of the landmark
         :param observation: The observation

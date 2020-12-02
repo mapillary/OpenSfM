@@ -13,16 +13,16 @@
 //
 //      where module is the name of the module that you wrote.
 
-#include <iostream>
 #include <pybind11/embed.h>
+#include <iostream>
 namespace py = pybind11;
 
 int main(int argc, char *argv[]) {
-    py::scoped_interpreter guard{};
+  py::scoped_interpreter guard{};
 
-    if (argc != 2) {
-        std::cout << "Usage: " << argv[0] << " module" << std::endl;
-    } else {
-        py::module sys = py::module::import(argv[1]);
-    }
+  if (argc != 2) {
+    std::cout << "Usage: " << argv[0] << " module" << std::endl;
+  } else {
+    py::module sys = py::module::import(argv[1]);
+  }
 }

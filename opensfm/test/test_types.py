@@ -1,13 +1,9 @@
-import numpy as np
-import cv2
-import math
 import copy
+import math
 
-from opensfm import context
-from opensfm import pygeometry
-from opensfm import pymap
-from opensfm import types
-
+import cv2
+import numpy as np
+from opensfm import context, pygeometry, pymap, types
 from scipy.stats import special_ortho_group
 
 
@@ -116,10 +112,10 @@ class Pose(object):
         """
         R = np.array(rotation_matrix, dtype=float)
         if not permissive:
-          if not np.isclose(np.linalg.det(R), 1):
-              raise ValueError("Determinant not 1")
-          if not np.allclose(np.linalg.inv(R), R.T):
-              raise ValueError("Not orthogonal")
+            if not np.isclose(np.linalg.det(R), 1):
+                raise ValueError("Determinant not 1")
+            if not np.allclose(np.linalg.inv(R), R.T):
+                raise ValueError("Not orthogonal")
         self.rotation = cv2.Rodrigues(R)[0].ravel()
 
     def get_origin(self):
@@ -197,7 +193,7 @@ class PerspectiveCamera(Camera):
     def __init__(self):
         """Defaut constructor."""
         self.id = None
-        self.projection_type = 'perspective'
+        self.projection_type = "perspective"
         self.width = None
         self.height = None
         self.focal = None
@@ -205,10 +201,16 @@ class PerspectiveCamera(Camera):
         self.k2 = None
 
     def __repr__(self):
-        return '{}({!r}, {!r}, {!r}, {!r}, {!r}, {!r}, {!r})'.format(
+        return "{}({!r}, {!r}, {!r}, {!r}, {!r}, {!r}, {!r})".format(
             self.__class__.__name__,
-            self.id, self.projection_type, self.width, self.height,
-            self.focal, self.k1, self.k2)
+            self.id,
+            self.projection_type,
+            self.width,
+            self.height,
+            self.focal,
+            self.k1,
+            self.k2,
+        )
 
     def project(self, point):
         """Project a 3D point in camera coordinates to the image plane."""
@@ -220,8 +222,7 @@ class PerspectiveCamera(Camera):
         r2 = xn * xn + yn * yn
         distortion = 1.0 + r2 * (self.k1 + self.k2 * r2)
 
-        return np.array([self.focal * distortion * xn,
-                         self.focal * distortion * yn])
+        return np.array([self.focal * distortion * xn, self.focal * distortion * yn])
 
     def project_many(self, points):
         """Project 3D points in camera coordinates to the image plane."""
@@ -233,21 +234,21 @@ class PerspectiveCamera(Camera):
     def pixel_bearing(self, pixel):
         """Unit vector pointing to the pixel viewing direction."""
         point = np.asarray(pixel).reshape((1, 1, 2))
-        distortion = np.array([self.k1, self.k2, 0., 0.])
+        distortion = np.array([self.k1, self.k2, 0.0, 0.0])
         x, y = cv2.undistortPoints(point, self.get_K(), distortion).flat
-        l = np.sqrt(x * x + y * y + 1.0)
-        return np.array([x / l, y / l, 1.0 / l])
+        length = np.sqrt(x * x + y * y + 1.0)
+        return np.array([x / length, y / length, 1.0 / length])
 
     def pixel_bearing_many(self, pixels):
         """Unit vectors pointing to the pixel viewing directions."""
         points = pixels.reshape((-1, 1, 2)).astype(np.float64)
-        distortion = np.array([self.k1, self.k2, 0., 0.])
+        distortion = np.array([self.k1, self.k2, 0.0, 0.0])
         up = cv2.undistortPoints(points, self.get_K(), distortion)
         up = up.reshape((-1, 2))
         x = up[:, 0]
         y = up[:, 1]
-        l = np.sqrt(x * x + y * y + 1.0)
-        return np.column_stack((x / l, y / l, 1.0 / l))
+        length = np.sqrt(x * x + y * y + 1.0)
+        return np.column_stack((x / length, y / length, 1.0 / length))
 
     def pixel_bearings(self, pixels):
         """Deprecated: use pixel_bearing_many."""
@@ -267,9 +268,9 @@ class PerspectiveCamera(Camera):
 
     def get_K(self):
         """The calibration matrix."""
-        return np.array([[self.focal, 0., 0.],
-                         [0., self.focal, 0.],
-                         [0., 0., 1.]])
+        return np.array(
+            [[self.focal, 0.0, 0.0], [0.0, self.focal, 0.0], [0.0, 0.0, 1.0]]
+        )
 
     def get_K_in_pixel_coordinates(self, width=None, height=None):
         """The calibration matrix that maps to pixel coordinates.
@@ -283,9 +284,7 @@ class PerspectiveCamera(Camera):
         w = width or self.width
         h = height or self.height
         f = self.focal * max(w, h)
-        return np.array([[f, 0, 0.5 * (w - 1)],
-                         [0, f, 0.5 * (h - 1)],
-                         [0, 0, 1.0]])
+        return np.array([[f, 0, 0.5 * (w - 1)], [0, f, 0.5 * (h - 1)], [0, 0, 1.0]])
 
 
 class BrownPerspectiveCamera(Camera):
@@ -308,7 +307,7 @@ class BrownPerspectiveCamera(Camera):
     def __init__(self):
         """Defaut constructor."""
         self.id = None
-        self.projection_type = 'brown'
+        self.projection_type = "brown"
         self.width = None
         self.height = None
         self.focal_x = None
@@ -322,7 +321,7 @@ class BrownPerspectiveCamera(Camera):
         self.k3 = None
 
     def __repr__(self):
-        return '{}({})'.format(self.__class__.__name__, self.__dict__)
+        return "{}({})".format(self.__class__.__name__, self.__dict__)
 
     def project(self, point):
         """Project a 3D point in camera coordinates to the image plane."""
@@ -338,8 +337,12 @@ class BrownPerspectiveCamera(Camera):
         y_tangential_distortion = self.p1 * (r2 + 2 * yn * yn) + 2 * self.p2 * xn * yn
         y_distorted = yn * radial_distortion + y_tangential_distortion
 
-        return np.array([self.focal_x * x_distorted + self.c_x,
-                         self.focal_y * y_distorted + self.c_y])
+        return np.array(
+            [
+                self.focal_x * x_distorted + self.c_x,
+                self.focal_y * y_distorted + self.c_y,
+            ]
+        )
 
     def project_many(self, points):
         """Project 3D points in camera coordinates to the image plane."""
@@ -353,8 +356,8 @@ class BrownPerspectiveCamera(Camera):
         point = np.asarray(pixel).reshape((1, 1, 2))
         distortion = np.array([self.k1, self.k2, self.p1, self.p2, self.k3])
         x, y = cv2.undistortPoints(point, self.get_K(), distortion).flat
-        l = np.sqrt(x * x + y * y + 1.0)
-        return np.array([x / l, y / l, 1.0 / l])
+        length = np.sqrt(x * x + y * y + 1.0)
+        return np.array([x / length, y / length, 1.0 / length])
 
     def pixel_bearing_many(self, pixels):
         """Unit vector pointing to the pixel viewing directions."""
@@ -364,8 +367,8 @@ class BrownPerspectiveCamera(Camera):
         up = up.reshape((-1, 2))
         x = up[:, 0]
         y = up[:, 1]
-        l = np.sqrt(x * x + y * y + 1.0)
-        return np.column_stack((x / l, y / l, 1.0 / l))
+        length = np.sqrt(x * x + y * y + 1.0)
+        return np.column_stack((x / length, y / length, 1.0 / length))
 
     def pixel_bearings(self, pixels):
         """Deprecated: use pixel_bearing_many."""
@@ -385,9 +388,13 @@ class BrownPerspectiveCamera(Camera):
 
     def get_K(self):
         """The calibration matrix."""
-        return np.array([[self.focal_x, 0., self.c_x],
-                         [0., self.focal_y, self.c_y],
-                         [0., 0., 1.]])
+        return np.array(
+            [
+                [self.focal_x, 0.0, self.c_x],
+                [0.0, self.focal_y, self.c_y],
+                [0.0, 0.0, 1.0],
+            ]
+        )
 
     def get_K_in_pixel_coordinates(self, width=None, height=None):
         """The calibration matrix that maps to pixel coordinates.
@@ -401,11 +408,13 @@ class BrownPerspectiveCamera(Camera):
         w = width or self.width
         h = height or self.height
         s = max(w, h)
-        normalized_to_pixel = np.array([
-            [s, 0, (w - 1) / 2.0],
-            [0, s, (h - 1) / 2.0],
-            [0, 0, 1],
-        ])
+        normalized_to_pixel = np.array(
+            [
+                [s, 0, (w - 1) / 2.0],
+                [0, s, (h - 1) / 2.0],
+                [0, 0, 1],
+            ]
+        )
         return np.dot(normalized_to_pixel, self.get_K())
 
 
@@ -423,7 +432,7 @@ class FisheyeCamera(Camera):
     def __init__(self):
         """Defaut constructor."""
         self.id = None
-        self.projection_type = 'fisheye'
+        self.projection_type = "fisheye"
         self.width = None
         self.height = None
         self.focal = None
@@ -433,16 +442,16 @@ class FisheyeCamera(Camera):
     def project(self, point):
         """Project a 3D point in camera coordinates to the image plane."""
         x, y, z = point
-        l = np.sqrt(x**2 + y**2)
-        theta = np.arctan2(l, z)
-        theta_d = theta * (1.0 + theta**2 * (self.k1 + theta**2 * self.k2))
-        s = self.focal * theta_d / l
+        length = np.sqrt(x ** 2 + y ** 2)
+        theta = np.arctan2(length, z)
+        theta_d = theta * (1.0 + theta ** 2 * (self.k1 + theta ** 2 * self.k2))
+        s = self.focal * theta_d / length
         return np.array([s * x, s * y])
 
     def project_many(self, points):
         """Project 3D points in camera coordinates to the image plane."""
         points = points.reshape((-1, 1, 3)).astype(np.float64)
-        distortion = np.array([self.k1, self.k2, 0., 0.])
+        distortion = np.array([self.k1, self.k2, 0.0, 0.0])
         K, R, t = self.get_K(), np.zeros(3), np.zeros(3)
         pixels, _ = cv2.fisheye.projectPoints(points, R, t, K, distortion)
         return pixels.reshape((-1, 2))
@@ -450,21 +459,21 @@ class FisheyeCamera(Camera):
     def pixel_bearing(self, pixel):
         """Unit vector pointing to the pixel viewing direction."""
         point = np.asarray(pixel).reshape((1, 1, 2))
-        distortion = np.array([self.k1, self.k2, 0., 0.])
+        distortion = np.array([self.k1, self.k2, 0.0, 0.0])
         x, y = cv2.fisheye.undistortPoints(point, self.get_K(), distortion).flat
-        l = np.sqrt(x * x + y * y + 1.0)
-        return np.array([x / l, y / l, 1.0 / l])
+        length = np.sqrt(x * x + y * y + 1.0)
+        return np.array([x / length, y / length, 1.0 / length])
 
     def pixel_bearing_many(self, pixels):
         """Unit vector pointing to the pixel viewing directions."""
         points = pixels.reshape((-1, 1, 2)).astype(np.float64)
-        distortion = np.array([self.k1, self.k2, 0., 0.])
+        distortion = np.array([self.k1, self.k2, 0.0, 0.0])
         up = cv2.fisheye.undistortPoints(points, self.get_K(), distortion)
         up = up.reshape((-1, 2))
         x = up[:, 0]
         y = up[:, 1]
-        l = np.sqrt(x * x + y * y + 1.0)
-        return np.column_stack((x / l, y / l, 1.0 / l))
+        length = np.sqrt(x * x + y * y + 1.0)
+        return np.column_stack((x / length, y / length, 1.0 / length))
 
     def pixel_bearings(self, pixels):
         """Deprecated: use pixel_bearing_many."""
@@ -484,9 +493,9 @@ class FisheyeCamera(Camera):
 
     def get_K(self):
         """The calibration matrix."""
-        return np.array([[self.focal, 0., 0.],
-                         [0., self.focal, 0.],
-                         [0., 0., 1.]])
+        return np.array(
+            [[self.focal, 0.0, 0.0], [0.0, self.focal, 0.0], [0.0, 0.0, 1.0]]
+        )
 
     def get_K_in_pixel_coordinates(self, width=None, height=None):
         """The calibration matrix that maps to pixel coordinates.
@@ -500,12 +509,10 @@ class FisheyeCamera(Camera):
         w = width or self.width
         h = height or self.height
         f = self.focal * max(w, h)
-        return np.array([[f, 0, 0.5 * (w - 1)],
-                         [0, f, 0.5 * (h - 1)],
-                         [0, 0, 1.0]])
+        return np.array([[f, 0, 0.5 * (w - 1)], [0, f, 0.5 * (h - 1)], [0, 0, 1.0]])
 
 
-class FisheyeExtendedCamera(Camera):
+class FisheyeOpencvCamera(Camera):
     """Define a fisheye camera using full OpenCV model.
 
     Attributes:
@@ -524,7 +531,7 @@ class FisheyeExtendedCamera(Camera):
     def __init__(self):
         """Defaut constructor."""
         self.id = None
-        self.projection_type = 'fisheye_opencv'
+        self.projection_type = "fisheye_opencv"
         self.width = None
         self.height = None
         self.focal_x = None
@@ -542,10 +549,14 @@ class FisheyeExtendedCamera(Camera):
         a = x / z
         b = y / z
 
-        r = np.sqrt(a**2 + b**2)
+        r = np.sqrt(a ** 2 + b ** 2)
         theta = np.arctan(r)
-        theta2 = theta**2
-        theta_d = theta * (1.0 + theta2 * (self.k1 + theta2 * (self.k2 + theta2 * (self.k3 + theta2 * self.k4))))
+        theta2 = theta ** 2
+        theta_d = theta * (
+            1.0
+            + theta2
+            * (self.k1 + theta2 * (self.k2 + theta2 * (self.k3 + theta2 * self.k4)))
+        )
 
         inv_r = 1.0 / r if r > 1e-8 else 1.0
         cdist = theta_d * inv_r if r > 1e-8 else 1.0
@@ -553,8 +564,7 @@ class FisheyeExtendedCamera(Camera):
         x_p = cdist * a
         y_p = cdist * b
 
-        return np.array([self.focal_x * x_p + self.c_x,
-                         self.focal_y * y_p + self.c_y])
+        return np.array([self.focal_x * x_p + self.c_x, self.focal_y * y_p + self.c_y])
 
     def project_many(self, points):
         """Project 3D points in camera coordinates to the image plane."""
@@ -569,8 +579,8 @@ class FisheyeExtendedCamera(Camera):
         point = np.asarray(pixel).reshape((1, 1, 2))
         distortion = np.array([self.k1, self.k2, self.k3, self.k4])
         x, y = cv2.fisheye.undistortPoints(point, self.get_K(), distortion).flat
-        l = np.sqrt(x * x + y * y + 1.0)
-        return np.array([x / l, y / l, 1.0 / l])
+        length = np.sqrt(x * x + y * y + 1.0)
+        return np.array([x / length, y / length, 1.0 / length])
 
     def pixel_bearing_many(self, pixels):
         """Unit vector pointing to the pixel viewing directions."""
@@ -580,8 +590,8 @@ class FisheyeExtendedCamera(Camera):
         up = up.reshape((-1, 2))
         x = up[:, 0]
         y = up[:, 1]
-        l = np.sqrt(x * x + y * y + 1.0)
-        return np.column_stack((x / l, y / l, 1.0 / l))
+        length = np.sqrt(x * x + y * y + 1.0)
+        return np.column_stack((x / length, y / length, 1.0 / length))
 
     def pixel_bearings(self, pixels):
         """Deprecated: use pixel_bearing_many."""
@@ -601,9 +611,13 @@ class FisheyeExtendedCamera(Camera):
 
     def get_K(self):
         """The calibration matrix."""
-        return np.array([[self.focal_x, 0., self.c_x],
-                         [0., self.focal_y, self.c_y],
-                         [0., 0., 1.]])
+        return np.array(
+            [
+                [self.focal_x, 0.0, self.c_x],
+                [0.0, self.focal_y, self.c_y],
+                [0.0, 0.0, 1.0],
+            ]
+        )
 
     def get_K_in_pixel_coordinates(self, width=None, height=None):
         """The calibration matrix that maps to pixel coordinates.
@@ -617,11 +631,13 @@ class FisheyeExtendedCamera(Camera):
         w = width or self.width
         h = height or self.height
         s = max(w, h)
-        normalized_to_pixel = np.array([
-            [s, 0, (w - 1) / 2.0],
-            [0, s, (h - 1) / 2.0],
-            [0, 0, 1],
-        ])
+        normalized_to_pixel = np.array(
+            [
+                [s, 0, (w - 1) / 2.0],
+                [0, s, (h - 1) / 2.0],
+                [0, 0, 1],
+            ]
+        )
         return np.dot(normalized_to_pixel, self.get_K())
 
 
@@ -637,18 +653,19 @@ class DualCamera(Camera):
         k2 (real): estimated second distortion parameter.
         transition (real): parametrize between perpective (1.0) and fisheye (0.0)
     """
-    def __init__(self, projection_type='unknown'):
+
+    def __init__(self, projection_type="unknown"):
         """Defaut constructor."""
         self.id = None
-        self.projection_type = 'dual'
+        self.projection_type = "dual"
         self.width = None
         self.height = None
         self.focal = None
         self.k1 = None
         self.k2 = None
-        if projection_type == 'perspective':
+        if projection_type == "perspective":
             self.transition = 1.0
-        elif projection_type == 'fisheye':
+        elif projection_type == "fisheye":
             self.transition = 0.0
         else:
             self.transition = 0.5
@@ -656,22 +673,23 @@ class DualCamera(Camera):
     def project(self, point):
         """Project a 3D point in camera coordinates to the image plane."""
         x, y, z = point
-        l = np.sqrt(x**2 + y**2)
-        theta = np.arctan2(l, z)
-        x_fish = theta / l * x
-        y_fish = theta / l * y
+        length = np.sqrt(x ** 2 + y ** 2)
+        theta = np.arctan2(length, z)
+        x_fish = theta / length * x
+        y_fish = theta / length * y
 
         x_persp = point[0] / point[2]
         y_persp = point[1] / point[2]
 
-        x_dual = self.transition*x_persp + (1.0 - self.transition)*x_fish
-        y_dual = self.transition*y_persp + (1.0 - self.transition)*y_fish
+        x_dual = self.transition * x_persp + (1.0 - self.transition) * x_fish
+        y_dual = self.transition * y_persp + (1.0 - self.transition) * y_fish
 
         r2 = x_dual * x_dual + y_dual * y_dual
         distortion = 1.0 + r2 * (self.k1 + self.k2 * r2)
 
-        return np.array([self.focal * distortion * x_dual,
-                         self.focal * distortion * y_dual])
+        return np.array(
+            [self.focal * distortion * x_dual, self.focal * distortion * y_dual]
+        )
 
     def project_many(self, points):
         """Project 3D points in camera coordinates to the image plane."""
@@ -684,63 +702,63 @@ class DualCamera(Camera):
         """Unit vector pointing to the pixel viewing direction."""
 
         point = np.asarray(pixel).reshape((1, 1, 2))
-        distortion = np.array([self.k1, self.k2, 0., 0.])
-        no_K = np.array([[1., 0., 0.],
-                         [0., 1., 0.],
-                         [0., 0., 1.]])
+        distortion = np.array([self.k1, self.k2, 0.0, 0.0])
+        no_K = np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
 
         point = point / self.focal
         x_u, y_u = cv2.undistortPoints(point, no_K, distortion).flat
-        r = np.sqrt(x_u**2 + y_u**2)
+        r = np.sqrt(x_u ** 2 + y_u ** 2)
 
         # inverse iteration for finding theta from r
         theta = 0
         for i in range(5):
-            f = self.transition*math.tan(theta) + (1.0 - self.transition)*theta - r
-            secant = 1.0/math.cos(theta)
-            d = (self.transition*secant**2 - self.transition + 1)
+            f = self.transition * math.tan(theta) + (1.0 - self.transition) * theta - r
+            secant = 1.0 / math.cos(theta)
+            d = self.transition * secant ** 2 - self.transition + 1
             if i < 1:
-                theta -= 0.5*f/d
+                theta -= 0.5 * f / d
             else:
-                theta -= f/d
+                theta -= f / d
 
-        s = math.tan(theta)/(self.transition*math.tan(theta) + (1.0 - self.transition)*theta)
-        x_dual = x_u*s
-        y_dual = y_u*s
+        s = math.tan(theta) / (
+            self.transition * math.tan(theta) + (1.0 - self.transition) * theta
+        )
+        x_dual = x_u * s
+        y_dual = y_u * s
 
-        l = math.sqrt(x_dual * x_dual + y_dual * y_dual + 1.0)
-        return np.array([x_dual / l, y_dual / l, 1.0 / l])
+        length = math.sqrt(x_dual * x_dual + y_dual * y_dual + 1.0)
+        return np.array([x_dual / length, y_dual / length, 1.0 / length])
 
     def pixel_bearing_many(self, pixels):
         """Unit vector pointing to the pixel viewing directions."""
         points = pixels.reshape((-1, 1, 2)).astype(np.float64)
-        distortion = np.array([self.k1, self.k2, 0., 0.])
-        no_K = np.array([[1., 0., 0.],
-                         [0., 1., 0.],
-                         [0., 0., 1.]])
+        distortion = np.array([self.k1, self.k2, 0.0, 0.0])
+        no_K = np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
 
         points = points / self.focal
         undistorted = cv2.undistortPoints(points, no_K, distortion)
         undistorted = undistorted.reshape((-1, 2))
-        r = np.sqrt(undistorted[:, 0]**2 + undistorted[:, 1]**2)
+        r = np.sqrt(undistorted[:, 0] ** 2 + undistorted[:, 1] ** 2)
 
         # inverse iteration for finding theta from r
         theta = 0
         for i in range(5):
-            f = self.transition*np.tan(theta) + (1.0 - self.transition)*theta - r
-            secant = 1.0/np.cos(theta)
-            d = (self.transition*secant**2 - self.transition + 1)
+            f = self.transition * np.tan(theta) + (1.0 - self.transition) * theta - r
+            secant = 1.0 / np.cos(theta)
+            d = self.transition * secant ** 2 - self.transition + 1
             if i < 1:
-                theta -= 0.5*f/d
+                theta -= 0.5 * f / d
             else:
-                theta -= f/d
+                theta -= f / d
 
-        s = np.tan(theta)/(self.transition*np.tan(theta) + (1.0 - self.transition)*theta)
-        x_dual = undistorted[:, 0]*s
-        y_dual = undistorted[:, 1]*s
+        s = np.tan(theta) / (
+            self.transition * np.tan(theta) + (1.0 - self.transition) * theta
+        )
+        x_dual = undistorted[:, 0] * s
+        y_dual = undistorted[:, 1] * s
 
-        l = np.sqrt(x_dual * x_dual + y_dual * y_dual + 1.0)
-        return np.column_stack([x_dual / l, y_dual / l, 1.0 / l])
+        length = np.sqrt(x_dual * x_dual + y_dual * y_dual + 1.0)
+        return np.column_stack([x_dual / length, y_dual / length, 1.0 / length])
 
     def pixel_bearings(self, pixels):
         """Deprecated: use pixel_bearing_many."""
@@ -760,9 +778,9 @@ class DualCamera(Camera):
 
     def get_K(self):
         """The calibration matrix."""
-        return np.array([[self.focal, 0., 0.],
-                         [0., self.focal, 0.],
-                         [0., 0., 1.]])
+        return np.array(
+            [[self.focal, 0.0, 0.0], [0.0, self.focal, 0.0], [0.0, 0.0, 1.0]]
+        )
 
     def get_K_in_pixel_coordinates(self, width=None, height=None):
         """The calibration matrix that maps to pixel coordinates.
@@ -776,9 +794,7 @@ class DualCamera(Camera):
         w = width or self.width
         h = height or self.height
         f = self.focal * max(w, h)
-        return np.array([[f, 0, 0.5 * (w - 1)],
-                         [0, f, 0.5 * (h - 1)],
-                         [0, 0, 1.0]])
+        return np.array([[f, 0, 0.5 * (w - 1)], [0, f, 0.5 * (h - 1)], [0, 0, 1.0]])
 
 
 class SphericalCamera(Camera):
@@ -792,7 +808,7 @@ class SphericalCamera(Camera):
     def __init__(self):
         """Defaut constructor."""
         self.id = None
-        self.projection_type = 'spherical'
+        self.projection_type = "spherical"
         self.width = None
         self.height = None
 
@@ -800,14 +816,14 @@ class SphericalCamera(Camera):
         """Project a 3D point in camera coordinates to the image plane."""
         x, y, z = point
         lon = np.arctan2(x, z)
-        lat = np.arctan2(-y, np.sqrt(x**2 + z**2))
+        lat = np.arctan2(-y, np.sqrt(x ** 2 + z ** 2))
         return np.array([lon / (2 * np.pi), -lat / (2 * np.pi)])
 
     def project_many(self, points):
         """Project 3D points in camera coordinates to the image plane."""
         x, y, z = points.T
         lon = np.arctan2(x, z)
-        lat = np.arctan2(-y, np.sqrt(x**2 + z**2))
+        lat = np.arctan2(-y, np.sqrt(x ** 2 + z ** 2))
         return np.column_stack([lon / (2 * np.pi), -lat / (2 * np.pi)])
 
     def pixel_bearing(self, pixel):
@@ -842,7 +858,7 @@ def test_reconstruction_class_initialization():
     k2 = -0.0004952058188617129
     # Instantiate camera instrinsics
     camera = pygeometry.Camera.create_perspective(focal, k1, k2)
-    camera.id = 'apple iphone 4s back camera 4.28mm f/2.4'
+    camera.id = "apple iphone 4s back camera 4.28mm f/2.4"
     camera.height = 2448
     camera.width = 3264
     reconstruction.add_camera(camera)
@@ -852,21 +868,23 @@ def test_reconstruction_class_initialization():
     metadata.orientation.value = 1
     metadata.capture_time.value = 0.0
     metadata.gps_accuracy.value = 5.0
-    metadata.gps_position.value = [1.0815875281451939,
-                                   -0.96510451436708888,
-                                   1.2042133903991235]
+    metadata.gps_position.value = [
+        1.0815875281451939,
+        -0.96510451436708888,
+        1.2042133903991235,
+    ]
     metadata.accelerometer.value = [0.1, 0.9, 0.0]
     metadata.compass_angle.value = 270.0
     metadata.compass_accuracy.value = 15.0
-    metadata.sequence_key.value = 'a_sequence_key'
+    metadata.sequence_key.value = "a_sequence_key"
 
     # Instantiate shots
     pose0 = pygeometry.Pose([0.0, 0.0, 0.0], [0.0, 0.0, 0.0])
-    shot0 = reconstruction.create_shot('0', camera.id, pose0)
+    shot0 = reconstruction.create_shot("0", camera.id, pose0)
     shot0.metadata = metadata
 
     pose1 = pygeometry.Pose([0.0, 0.0, 0.0], [-1.0, 0.0, 0.0])
-    shot1 = reconstruction.create_shot('1', camera.id, pose1)
+    shot1 = reconstruction.create_shot("1", camera.id, pose1)
     shot1.metadata = metadata
 
     # TEST
@@ -966,8 +984,8 @@ def test_shot_project_back_project():
         cam.id = "cam" + str(id)
         rec.add_camera(cam)
         shot = rec.create_shot("shot" + str(id), cam.id, pose)
-        if hasattr(shot, 'back_project'):
-            bp_single = [shot.back_project(p,d) for p,d in zip(pixels, depths)]
+        if hasattr(shot, "back_project"):
+            bp_single = [shot.back_project(p, d) for p, d in zip(pixels, depths)]
             bp_many = shot.back_project_many(pixels, depths)
             assert np.allclose(bp_single, bp_many), cam.projection_type
 
@@ -1010,9 +1028,8 @@ def test_single_vs_many():
         b_cpp = camera_cpp.pixel_bearing_many(pixels)
         assert np.allclose(b, b_cpp)
 
-        if hasattr(camera, 'back_project'):
-            q_single = [camera.back_project(p, d)
-                        for p, d in zip(pixels, depths)]
+        if hasattr(camera, "back_project"):
+            q_single = [camera.back_project(p, d) for p, d in zip(pixels, depths)]
             q_many = camera.back_project_many(pixels, depths)
             assert np.allclose(q_single, q_many)
 
@@ -1025,7 +1042,8 @@ def _get_perspective_camera():
     camera.k1 = -0.1
     camera.k2 = 0.01
     camera_cpp = pygeometry.Camera.create_perspective(
-        camera.focal, camera.k1, camera.k2)
+        camera.focal, camera.k1, camera.k2
+    )
     return camera, camera_cpp
 
 
@@ -1043,9 +1061,11 @@ def _get_brown_perspective_camera():
     camera.p2 = 0.002
     camera.k3 = 0.01
     camera_cpp = pygeometry.Camera.create_brown(
-        camera.focal_x, camera.focal_y / camera.focal_x,
+        camera.focal_x,
+        camera.focal_y / camera.focal_x,
         [camera.c_x, camera.c_y],
-        [camera.k1, camera.k2, camera.k3, camera.p1, camera.p2])
+        [camera.k1, camera.k2, camera.k3, camera.p1, camera.p2],
+    )
     camera_cpp.width = camera.width
     camera_cpp.height = camera.height
     return camera, camera_cpp
@@ -1058,15 +1078,14 @@ def _get_fisheye_camera():
     camera.focal = 0.6
     camera.k1 = -0.1
     camera.k2 = 0.01
-    camera_cpp = pygeometry.Camera.create_fisheye(
-        camera.focal, camera.k1, camera.k2)
+    camera_cpp = pygeometry.Camera.create_fisheye(camera.focal, camera.k1, camera.k2)
     camera_cpp.width = camera.width
     camera_cpp.height = camera.height
     return camera, camera_cpp
 
 
 def _get_fisheye_opencv_camera():
-    camera = FisheyeExtendedCamera()
+    camera = FisheyeOpencvCamera()
     camera.width = 800
     camera.height = 600
     camera.focal_x = 0.6
@@ -1078,9 +1097,11 @@ def _get_fisheye_opencv_camera():
     camera.k3 = 0.0002
     camera.k4 = 0.0005
     camera_cpp = pygeometry.Camera.create_fisheye_opencv(
-        camera.focal_x, camera.focal_y / camera.focal_x,
+        camera.focal_x,
+        camera.focal_y / camera.focal_x,
         [camera.c_x, camera.c_y],
-        [camera.k1, camera.k2, camera.k3, camera.k4])
+        [camera.k1, camera.k2, camera.k3, camera.k4],
+    )
     return camera, camera_cpp
 
 
@@ -1093,7 +1114,8 @@ def _get_dual_camera():
     camera.k2 = 0.01
     camera.transition = 0.5
     camera_cpp = pygeometry.Camera.create_dual(
-        camera.transition, camera.focal, camera.k1, camera.k2)
+        camera.transition, camera.focal, camera.k1, camera.k2
+    )
     camera_cpp.width = camera.width
     camera_cpp.height = camera.height
     return camera, camera_cpp
@@ -1147,16 +1169,14 @@ def _helper_pose_equal_to_T(pose, T_cw):
 def _helper_poses_equal_py_cpp(py_pose, cpp_pose):
     assert np.allclose(py_pose.translation, cpp_pose.translation)
     assert np.allclose(py_pose.rotation, cpp_pose.rotation)
-    assert np.allclose(py_pose.get_rotation_matrix(),
-                       cpp_pose.get_rotation_matrix())
+    assert np.allclose(py_pose.get_rotation_matrix(), cpp_pose.get_rotation_matrix())
     assert np.allclose(py_pose.get_origin(), cpp_pose.get_origin())
 
 
 def _heper_poses_equal(pose1, pose2):
     assert np.allclose(pose1.translation, pose2.translation)
     assert np.allclose(pose1.rotation, pose2.rotation)
-    assert np.allclose(pose1.get_rotation_matrix(),
-                       pose2.get_rotation_matrix())
+    assert np.allclose(pose1.get_rotation_matrix(), pose2.get_rotation_matrix())
     assert np.allclose(pose1.get_origin(), pose2.get_origin())
     assert np.allclose(pose1.get_R_cam_to_world(), pose2.get_R_cam_to_world())
     assert np.allclose(pose1.get_R_world_to_cam(), pose2.get_R_world_to_cam())
@@ -1245,9 +1265,25 @@ def test_pose_init():
     pose3 = pygeometry.Pose()
     _helper_pose_equal_to_T(pose3, np.eye(4))
     pose4 = pygeometry.Pose(T_cw[0:3, 0:3])
-    _helper_pose_equal_to_T(pose4, np.vstack((np.column_stack((T_cw[0:3, 0:3], np.zeros((3,1)))), np.array([0, 0, 0, 1]))))
+    _helper_pose_equal_to_T(
+        pose4,
+        np.vstack(
+            (
+                np.column_stack((T_cw[0:3, 0:3], np.zeros((3, 1)))),
+                np.array([0, 0, 0, 1]),
+            )
+        ),
+    )
     pose5 = pygeometry.Pose(r_cw)
-    _helper_pose_equal_to_T(pose5, np.vstack((np.column_stack((T_cw[0:3, 0:3], np.zeros((3,1)))), np.array([0, 0, 0, 1]))))
+    _helper_pose_equal_to_T(
+        pose5,
+        np.vstack(
+            (
+                np.column_stack((T_cw[0:3, 0:3], np.zeros((3, 1)))),
+                np.array([0, 0, 0, 1]),
+            )
+        ),
+    )
 
 
 def test_python_vs_cpp_pose():
@@ -1272,8 +1308,9 @@ def test_python_vs_cpp_pose():
     py_pose_2 = Pose(cv2.Rodrigues(R_cw_2)[0].flatten(), t_cw_2)
     cpp_pose_2 = pygeometry.Pose(R_cw_2, t_cw_2)
     _helper_poses_equal_py_cpp(py_pose_2, cpp_pose_2)
-    _helper_poses_equal_py_cpp(py_pose.compose(
-        py_pose_2.inverse()), cpp_pose.relative_to(cpp_pose_2))
+    _helper_poses_equal_py_cpp(
+        py_pose.compose(py_pose_2.inverse()), cpp_pose.relative_to(cpp_pose_2)
+    )
 
 
 def test_pose_inverse():
@@ -1303,5 +1340,26 @@ def test_pose_relative_to():
     pose_new_3 = pose_new_1.relative_to(pose_new_2)
 
     _helper_poses_equal_py_cpp(pose_3, pose_new_3)
-    _helper_poses_equal_py_cpp(
-        pose_3, pose_new_1.compose(pose_new_2.inverse()))
+    _helper_poses_equal_py_cpp(pose_3, pose_new_1.compose(pose_new_2.inverse()))
+
+
+def test_pixel_to_normalized_conversion():
+    cam = pygeometry.Camera.create_perspective(1, 0, 0)
+    width, height = 400, 150
+    cam.width, cam.height = width, height
+    px_coord = np.array([50, 300])
+    norm_coord_comp = cam.pixel_to_normalized_coordinates(px_coord)
+    norm_coord_static = pygeometry.Camera.pixel_to_normalized_coordinates_common(
+        px_coord, width, height
+    )
+    norm_coord_gt = px_coord - np.array([(width - 1.0) / 2.0, (height - 1.0) / 2.0])
+    norm_coord_gt /= max(width, height)
+    assert np.allclose(norm_coord_comp, norm_coord_gt)
+    assert np.allclose(norm_coord_static, norm_coord_gt)
+
+    px_coord_comp1 = cam.normalized_to_pixel_coordinates(norm_coord_comp)
+    px_coord_comp2 = pygeometry.Camera.normalized_to_pixel_coordinates_common(
+        norm_coord_comp, width, height
+    )
+    assert np.allclose(px_coord, px_coord_comp1)
+    assert np.allclose(px_coord, px_coord_comp2)

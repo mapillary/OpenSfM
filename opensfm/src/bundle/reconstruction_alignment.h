@@ -1,7 +1,7 @@
 #include <cmath>
 #include <cstdio>
-#include <iostream>
 #include <fstream>
+#include <iostream>
 #include <map>
 #include <string>
 
@@ -10,9 +10,8 @@ extern "C" {
 }
 
 #include "ceres/ceres.h"
-#include "ceres/rotation.h"
 #include "ceres/loss_function.h"
-
+#include "ceres/rotation.h"
 
 enum {
   RA_SHOT_RX,
@@ -77,13 +76,8 @@ struct RAReconstruction {
 
 struct RARelativeMotionConstraint {
   RARelativeMotionConstraint(const std::string &reconstruction,
-                   const std::string &shot,
-                   double rx,
-                   double ry,
-                   double rz,
-                   double tx,
-                   double ty,
-                   double tz) {
+                             const std::string &shot, double rx, double ry,
+                             double rz, double tx, double ty, double tz) {
     reconstruction_id = reconstruction;
     shot_id = shot;
     parameters[RA_SHOT_RX] = rx;
@@ -150,33 +144,27 @@ struct RACommonPointConstraint {
   double std_deviation;
 };
 
-
 struct RARelativeMotionError {
   RARelativeMotionError(double *Rtai, double *scale_matrix)
-      : Rtai_(Rtai)
-      , scale_matrix_(scale_matrix)
-  {}
+      : Rtai_(Rtai), scale_matrix_(scale_matrix) {}
 
   template <typename T>
-  bool operator()(const T* const reconstruction_a,
-                  const T* const shot_i,
-                  T* residuals) const {
+  bool operator()(const T *const reconstruction_a, const T *const shot_i,
+                  T *residuals) const {
     T r[6];
 
     // Get rotation and translation values.
-    const T* const Ri = shot_i + RA_SHOT_RX;
-    const T* const Ra = reconstruction_a + RA_RECONSTRUCTION_RX;
-    T Rit[3] = { -Ri[0], -Ri[1], -Ri[2] };
-    const T* const ti = shot_i + RA_SHOT_TX;
-    const T* const ta = reconstruction_a + RA_RECONSTRUCTION_TX;
-    const T* const scale_a = reconstruction_a + RA_RECONSTRUCTION_SCALE;
-    T Rai[3] = { T(Rtai_[RA_SHOT_RX]),
-                 T(Rtai_[RA_SHOT_RY]),
-                 T(Rtai_[RA_SHOT_RZ]) };
-    T tai[3] = { T(Rtai_[RA_SHOT_TX]),
-                 T(Rtai_[RA_SHOT_TY]),
-                 T(Rtai_[RA_SHOT_TZ]) };
-    T Rait[3] = { -Rai[0], -Rai[1], -Rai[2] };
+    const T *const Ri = shot_i + RA_SHOT_RX;
+    const T *const Ra = reconstruction_a + RA_RECONSTRUCTION_RX;
+    T Rit[3] = {-Ri[0], -Ri[1], -Ri[2]};
+    const T *const ti = shot_i + RA_SHOT_TX;
+    const T *const ta = reconstruction_a + RA_RECONSTRUCTION_TX;
+    const T *const scale_a = reconstruction_a + RA_RECONSTRUCTION_SCALE;
+    T Rai[3] = {T(Rtai_[RA_SHOT_RX]), T(Rtai_[RA_SHOT_RY]),
+                T(Rtai_[RA_SHOT_RZ])};
+    T tai[3] = {T(Rtai_[RA_SHOT_TX]), T(Rtai_[RA_SHOT_TY]),
+                T(Rtai_[RA_SHOT_TZ])};
+    T Rait[3] = {-Rai[0], -Rai[1], -Rai[2]};
 
     // Compute rotation residual: log( Rai Ra Ri^t )
     T qRai[4], qRa[4], qRit[4], qRa_Rit[4], qRai_Ra_Rit[4];
@@ -215,20 +203,16 @@ struct RARelativeMotionError {
   double *scale_matrix_;
 };
 
-
 struct RAAbsolutePositionError {
   RAAbsolutePositionError(double *c_prior, double std_deviation)
-      : c_prior_(c_prior)
-      , scale_(1.0 / std_deviation)
-  {}
+      : c_prior_(c_prior), scale_(1.0 / std_deviation) {}
 
   template <typename T>
-  bool operator()(const T* const shot_i,
-                  T* residuals) const {
+  bool operator()(const T *const shot_i, T *residuals) const {
     // error: c + R^t t
-    const T* const Ri = shot_i + RA_SHOT_RX;
-    const T* const ti = shot_i + RA_SHOT_TX;
-    T Rit[3] = { -Ri[0], -Ri[1], -Ri[2] };
+    const T *const Ri = shot_i + RA_SHOT_RX;
+    const T *const ti = shot_i + RA_SHOT_TX;
+    T Rit[3] = {-Ri[0], -Ri[1], -Ri[2]};
 
     T Rit_ti[3];
     ceres::AngleAxisRotatePoint(Rit, ti, Rit_ti);
@@ -289,27 +273,26 @@ struct RARelativeAbsolutePositionError {
 
 struct RACommonPointError {
   RACommonPointError(double *pai, double *pbi, double std_deviation)
-      : pai_(pai)
-      , pbi_(pbi)
-      , inv_std_(1.0 / std_deviation)
-  {}
+      : pai_(pai), pbi_(pbi), inv_std_(1.0 / std_deviation) {}
 
   template <typename T>
-  bool operator()(const T* const reconstruction_a,
-                  const T* const reconstruction_b,
-                  T* residuals) const {
+  bool operator()(const T *const reconstruction_a,
+                  const T *const reconstruction_b, T *residuals) const {
     T transformed_pai[3];
     transform_point(reconstruction_a, pai_, transformed_pai);
 
     T transformed_pbi[3];
     transform_point(reconstruction_b, pbi_, transformed_pbi);
 
-   T scale_factor = reconstruction_a[RA_RECONSTRUCTION_SCALE] + \
+    T scale_factor = reconstruction_a[RA_RECONSTRUCTION_SCALE] +
                      reconstruction_b[RA_RECONSTRUCTION_SCALE];
 
-    residuals[0] = T(inv_std_) * scale_factor * (transformed_pai[0] - transformed_pbi[0]);
-    residuals[1] = T(inv_std_) * scale_factor * (transformed_pai[1] - transformed_pbi[1]);
-    residuals[2] = T(inv_std_) * scale_factor * (transformed_pai[2] - transformed_pbi[2]);
+    residuals[0] =
+        T(inv_std_) * scale_factor * (transformed_pai[0] - transformed_pbi[0]);
+    residuals[1] =
+        T(inv_std_) * scale_factor * (transformed_pai[1] - transformed_pbi[1]);
+    residuals[2] =
+        T(inv_std_) * scale_factor * (transformed_pai[2] - transformed_pbi[2]);
 
     return true;
   }
@@ -377,7 +360,7 @@ struct RACommonCameraError {
     ceres::QuaternionToAngleAxis(qRai_qRa_qRbt_qRbit, residuals);
     for (int i = 0; i < 3; ++i) {
       residuals[i] *= T(inv_std_rotation_);
-      residuals[3+i] =
+      residuals[3 + i] =
           T(inv_std_center_) * (world_pose_ai[i] - world_pose_bi[i]);
     }
 
@@ -395,23 +378,14 @@ class ReconstructionAlignment {
   ReconstructionAlignment() {}
   virtual ~ReconstructionAlignment() {}
 
-  RAShot GetShot(const std::string &id) {
-    return shots_[id];
-  }
+  RAShot GetShot(const std::string &id) { return shots_[id]; }
 
   RAReconstruction GetReconstruction(const std::string &id) {
     return reconstructions_[id];
   }
 
-  void AddShot(
-      const std::string &id,
-      double rx,
-      double ry,
-      double rz,
-      double tx,
-      double ty,
-      double tz,
-      bool constant) {
+  void AddShot(const std::string &id, double rx, double ry, double rz,
+               double tx, double ty, double tz, bool constant) {
     RAShot s;
     s.id = id;
     s.parameters[RA_SHOT_RX] = rx;
@@ -424,16 +398,9 @@ class ReconstructionAlignment {
     shots_[id] = s;
   }
 
-  void AddReconstruction(
-      const std::string &id,
-      double rx,
-      double ry,
-      double rz,
-      double tx,
-      double ty,
-      double tz,
-      double scale,
-      bool constant) {
+  void AddReconstruction(const std::string &id, double rx, double ry, double rz,
+                         double tx, double ty, double tz, double scale,
+                         bool constant) {
     RAReconstruction r;
     r.id = id;
     r.parameters[RA_RECONSTRUCTION_RX] = rx;
@@ -451,12 +418,8 @@ class ReconstructionAlignment {
     relative_motions_.push_back(rm);
   }
 
-  void AddAbsolutePositionConstraint(
-      const std::string &shot_id,
-      double x,
-      double y,
-      double z,
-      double std_deviation) {
+  void AddAbsolutePositionConstraint(const std::string &shot_id, double x,
+                                     double y, double z, double std_deviation) {
     RAAbsolutePositionConstraint a;
     a.shot = &shots_[shot_id];
     a.position[0] = x;
@@ -479,12 +442,11 @@ class ReconstructionAlignment {
     relative_absolute_positions_.push_back(a);
   }
 
-  void AddCommonPointConstraint(
-    const std::string &reconstruction_a_id,
-    double xa, double ya, double za,
-    const std::string &reconstruction_b_id,
-    double xb, double yb, double zb,
-    double std_deviation) {
+  void AddCommonPointConstraint(const std::string &reconstruction_a_id,
+                                double xa, double ya, double za,
+                                const std::string &reconstruction_b_id,
+                                double xb, double yb, double zb,
+                                double std_deviation) {
     RACommonPointConstraint c;
     c.reconstruction_a = &reconstructions_[reconstruction_a_id];
     c.point_a[0] = xa;
@@ -498,10 +460,12 @@ class ReconstructionAlignment {
     common_points_.push_back(c);
   }
 
-  void AddCommonCameraConstraint(
-    const std::string &reconstruction_a_id, const std::string &shot_a_id,
-    const std::string &reconstruction_b_id, const std::string &shot_b_id,
-    double std_deviation_center, double std_deviation_rotation) {
+  void AddCommonCameraConstraint(const std::string &reconstruction_a_id,
+                                 const std::string &shot_a_id,
+                                 const std::string &reconstruction_b_id,
+                                 const std::string &shot_b_id,
+                                 double std_deviation_center,
+                                 double std_deviation_rotation) {
     RACommonCameraConstraint c;
     c.reconstruction_a = &reconstructions_[reconstruction_a_id];
     c.shot_a = &shots_[shot_a_id];
@@ -513,7 +477,6 @@ class ReconstructionAlignment {
   }
 
   void Run() {
-
     ceres::Problem problem;
 
     // Init paramater blocks.
@@ -525,37 +488,39 @@ class ReconstructionAlignment {
     }
 
     for (auto &i : reconstructions_) {
-      problem.AddParameterBlock(i.second.parameters, RA_RECONSTRUCTION_NUM_PARAMS);
+      problem.AddParameterBlock(i.second.parameters,
+                                RA_RECONSTRUCTION_NUM_PARAMS);
       if (i.second.constant) {
         problem.SetParameterBlockConstant(i.second.parameters);
       } else {
-        problem.SetParameterLowerBound(i.second.parameters, RA_RECONSTRUCTION_SCALE, 0.1);
-        problem.SetParameterUpperBound(i.second.parameters, RA_RECONSTRUCTION_SCALE, std::numeric_limits<double>::max());
+        problem.SetParameterLowerBound(i.second.parameters,
+                                       RA_RECONSTRUCTION_SCALE, 0.1);
+        problem.SetParameterUpperBound(i.second.parameters,
+                                       RA_RECONSTRUCTION_SCALE,
+                                       std::numeric_limits<double>::max());
       }
     }
 
     // Add relative motion errors
     ceres::LossFunction *loss = new ceres::CauchyLoss(1.0);
-    for (auto &rp: relative_motions_) {
-      ceres::CostFunction* cost_function =
+    for (auto &rp : relative_motions_) {
+      ceres::CostFunction *cost_function =
           new ceres::AutoDiffCostFunction<RARelativeMotionError, 6, 7, 6>(
               new RARelativeMotionError(rp.parameters, rp.scale_matrix));
 
-      problem.AddResidualBlock(cost_function,
-                               loss,
-                               reconstructions_[rp.reconstruction_id].parameters,
-                               shots_[rp.shot_id].parameters);
+      problem.AddResidualBlock(
+          cost_function, loss,
+          reconstructions_[rp.reconstruction_id].parameters,
+          shots_[rp.shot_id].parameters);
     }
 
     // Add absolute position errors
-    for (auto &a: absolute_positions_) {
-      ceres::CostFunction* cost_function =
+    for (auto &a : absolute_positions_) {
+      ceres::CostFunction *cost_function =
           new ceres::AutoDiffCostFunction<RAAbsolutePositionError, 3, 6>(
               new RAAbsolutePositionError(a.position, a.std_deviation));
 
-      problem.AddResidualBlock(cost_function,
-                               NULL,
-                               a.shot->parameters);
+      problem.AddResidualBlock(cost_function, NULL, a.shot->parameters);
     }
 
     // Add relative-absolute position errors
@@ -575,9 +540,9 @@ class ReconstructionAlignment {
     for (auto &a : common_cameras_) {
       ceres::CostFunction *cost_function =
           new ceres::AutoDiffCostFunction<RACommonCameraError, 6, 7, 7>(
-              new RACommonCameraError(a.shot_a->parameters, a.shot_b->parameters,
-                                           a.std_deviation_center,
-                                           a.std_deviation_rotation));
+              new RACommonCameraError(
+                  a.shot_a->parameters, a.shot_b->parameters,
+                  a.std_deviation_center, a.std_deviation_rotation));
 
       problem.AddResidualBlock(cost_function, loss,
                                a.reconstruction_a->parameters,
@@ -585,13 +550,12 @@ class ReconstructionAlignment {
     }
 
     // Add common point errors
-    for (auto &a: common_points_) {
-      ceres::CostFunction* cost_function =
+    for (auto &a : common_points_) {
+      ceres::CostFunction *cost_function =
           new ceres::AutoDiffCostFunction<RACommonPointError, 3, 7, 7>(
               new RACommonPointError(a.point_a, a.point_b, a.std_deviation));
 
-      problem.AddResidualBlock(cost_function,
-                               l1_loss,
+      problem.AddResidualBlock(cost_function, l1_loss,
                                a.reconstruction_a->parameters,
                                a.reconstruction_b->parameters);
     }
@@ -605,20 +569,17 @@ class ReconstructionAlignment {
     ceres::Solve(options, &problem, &last_run_summary_);
   }
 
-  std::string BriefReport() {
-    return last_run_summary_.BriefReport();
-  }
+  std::string BriefReport() { return last_run_summary_.BriefReport(); }
 
-  std::string FullReport() {
-    return last_run_summary_.FullReport();
-  }
+  std::string FullReport() { return last_run_summary_.FullReport(); }
 
  private:
   std::map<std::string, RAReconstruction> reconstructions_;
   std::map<std::string, RAShot> shots_;
   std::vector<RARelativeMotionConstraint> relative_motions_;
   std::vector<RAAbsolutePositionConstraint> absolute_positions_;
-  std::vector<RARelativeAbsolutePositionConstraint> relative_absolute_positions_;
+  std::vector<RARelativeAbsolutePositionConstraint>
+      relative_absolute_positions_;
   std::vector<RACommonPointConstraint> common_points_;
   std::vector<RACommonCameraConstraint> common_cameras_;
 

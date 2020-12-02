@@ -16,11 +16,13 @@ set(MAP_FILES
 add_library(map ${MAP_FILES})
 target_link_libraries(map
   PUBLIC
-    geometry
     pybind11
+  PRIVATE
+    geo
+    geometry
 )
 
-target_include_directories(map 
+target_include_directories(map
   PUBLIC
     ${EIGEN_INCLUDE_DIRS}
     ${PYTHON_INCLUDE_DIRS}
@@ -28,7 +30,7 @@ target_include_directories(map
 )
 
 pybind11_add_module(pymap python/pybind.cc)
-target_link_libraries(pymap 
+target_link_libraries(pymap
   PRIVATE
     map
     geometry

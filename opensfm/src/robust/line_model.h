@@ -9,18 +9,18 @@ class Line : public Model<Line, 1, 1> {
   static const int MINIMAL_SAMPLES = 2;
 
   template <class IT>
-  static int Estimate(IT begin, IT end, Type* models){
+  static int Estimate(IT begin, IT end, Type* models) {
     const auto x1 = *begin;
     const auto x2 = *(++begin);
-    const auto b = (x1[0]*x2[1] - x1[1]*x2[0])/(x1[0]-x2[0]);
+    const auto b = (x1[0] * x2[1] - x1[1] * x2[0]) / (x1[0] - x2[0]);
 
-    if(x1[0] == 0.0){
+    if (x1[0] == 0.0) {
       return 0;
     }
 
-    const auto a = (x1[1] - b)/x1[0];
+    const auto a = (x1[1] - b) / x1[0];
 
-    if(std::isnan(a) || std::isnan(b)){
+    if (std::isnan(a) || std::isnan(b)) {
       return 0;
     }
 
@@ -29,15 +29,15 @@ class Line : public Model<Line, 1, 1> {
   }
 
   template <class IT>
-  static int EstimateNonMinimal(IT begin, IT end, Type* models){
+  static int EstimateNonMinimal(IT begin, IT end, Type* models) {
     return Estimate(begin, end, models);
   }
 
-  static Error Evaluate(const Type& model, const Data& d){
+  static Error Evaluate(const Type& model, const Data& d) {
     const auto a = model[0];
     const auto b = model[1];
     Error e;
-    e << d[1] - (a*d[0] + b);
+    e << d[1] - (a * d[0] + b);
     return e;
   }
 };

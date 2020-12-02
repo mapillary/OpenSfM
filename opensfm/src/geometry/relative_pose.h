@@ -1,17 +1,17 @@
 #pragma once
 
+#include <ceres/rotation.h>
+#include <ceres/tiny_solver.h>
+#include <ceres/tiny_solver_autodiff_function.h>
 #include <Eigen/Eigen>
 #include <Eigen/SVD>
-#include <ceres/tiny_solver.h>
-#include <ceres/rotation.h>
-#include <ceres/tiny_solver_autodiff_function.h>
 #include "triangulation.h"
 
 template <class IT>
 Eigen::Matrix<double, 3, 4> RelativePoseFromEssential(
     const Eigen::Matrix3d& essential, IT begin, IT end) {
-
-  Eigen::JacobiSVD<Eigen::Matrix3d> SVD(essential, Eigen::ComputeFullV | Eigen::ComputeFullU);
+  Eigen::JacobiSVD<Eigen::Matrix3d> SVD(
+      essential, Eigen::ComputeFullV | Eigen::ComputeFullU);
   Eigen::Matrix3d U = SVD.matrixU();
   Eigen::Matrix3d Vt = SVD.matrixV().transpose();
 
@@ -25,9 +25,7 @@ Eigen::Matrix<double, 3, 4> RelativePoseFromEssential(
   }
 
   Eigen::Matrix3d W;
-  W << 0, -1, 0, 
-       1, 0, 0, 
-       0, 0, 1;
+  W << 0, -1, 0, 1, 0, 0, 0, 0, 1;
 
   Eigen::Matrix<double, 2, 3> bearings;
   Eigen::Matrix<double, 2, 3> centers;
@@ -51,17 +49,23 @@ Eigen::Matrix<double, 3, 4> RelativePoseFromEssential(
       }
 
       // Since rotation=Rcamera and translation=Tcamera parametrization
-      centers.row(1) = -rotation.transpose()*translation;
+      centers.row(1) = -rotation.transpose() * translation;
 
       double score = 0;
       for (IT it = begin; it != end; ++it) {
         bearings.row(0) = it->first;
-        bearings.row(1) = rotation.transpose()*it->second;
-        const Eigen::Vector3d point = geometry::TriangulateTwoBearingsMidpointSolve(centers, bearings);
-        
-        const Eigen::Vector3d projected_x = point.normalized();
-        const Eigen::Vector3d projected_y = (rotation*point+translation).normalized();
-        score += ((projected_x.dot(it->first) + projected_y.dot(it->second))*0.5);
+        bearings.row(1) = rotation.transpose() * it->second;
+        const auto point =
+            geometry::TriangulateTwoBearingsMidpointSolve(centers, bearings);
+        if (!point.first) {
+          continue;
+        }
+
+        const Eigen::Vector3d projected_x = point.second.normalized();
+        const Eigen::Vector3d projected_y =
+            (rotation * point.second + translation).normalized();
+        score +=
+            ((projected_x.dot(it->first) + projected_y.dot(it->second)) * 0.5);
       }
 
       if (score > best_decomposition.first) {
@@ -77,21 +81,21 @@ Eigen::Matrix<double, 3, 4> RelativePoseFromEssential(
   return best_decomposition.second;
 }
 
-template< class IT >
+template <class IT>
 struct RelativePoseCost {
-  RelativePoseCost(IT begin, IT end): begin_(begin), end_(end){
+  RelativePoseCost(IT begin, IT end) : begin_(begin), end_(end) {
     std::srand(42);
     const int count = end_ - begin_;
-    for(int i = 0; i < MAX_ERRORS; ++i){
-      const int index = (float(std::rand())/RAND_MAX)*count;
-      picked_errors_.push_back(begin_+index);
+    for (int i = 0; i < MAX_ERRORS; ++i) {
+      const int index = (float(std::rand()) / RAND_MAX) * count;
+      picked_errors_.push_back(begin_ + index);
     }
   }
 
-  template<typename T>
+  template <typename T>
   bool operator()(const T* const parameters, T* residuals) const {
     Eigen::Map<const Eigen::Matrix<T, 3, 1>> rotation(parameters);
-    Eigen::Map<const Eigen::Matrix<T, 3, 1>> translation(parameters+3);
+    Eigen::Map<const Eigen::Matrix<T, 3, 1>> translation(parameters + 3);
     Eigen::Matrix<T, 3, 1> rotation_transpose = -rotation;
 
     Eigen::Matrix<T, 2, 3> bearings;
@@ -108,18 +112,26 @@ struct RelativePoseCost {
 
       // Bearing : x stay at identity, y is brought to the world with R(t)
       bearings.row(0) = x;
-      ceres::AngleAxisRotatePoint(rotation_transpose.data(), y.data(), some_tmp.data());
+      ceres::AngleAxisRotatePoint(rotation_transpose.data(), y.data(),
+                                  some_tmp.data());
       bearings.row(1) = some_tmp;
 
       // Triangulate
-      auto point = geometry::TriangulateTwoBearingsMidpointSolve(centers, bearings);
+      const auto point =
+          geometry::TriangulateTwoBearingsMidpointSolve(centers, bearings);
+      if (!point.first) {
+        residuals[i] = T(1.0);
+        continue;
+      }
 
-      // Point in x stays at identity, y is brought in second camera with R*(y-t)
-      const Eigen::Matrix<T, 3, 1> projected_x = point.normalized();
-      const Eigen::Matrix<T, 3, 1> y_centered = point-translation;
-      ceres::AngleAxisRotatePoint(rotation.data(), y_centered.data(), some_tmp.data());
+      // Point in x stays at identity, y is brought in second camera with
+      // R*(y-t)
+      const Eigen::Matrix<T, 3, 1> projected_x = point.second.normalized();
+      const Eigen::Matrix<T, 3, 1> y_centered = point.second - translation;
+      ceres::AngleAxisRotatePoint(rotation.data(), y_centered.data(),
+                                  some_tmp.data());
       const Eigen::Matrix<T, 3, 1> projected_y = some_tmp.normalized();
-      residuals[i] = 1.0 - ((projected_x.dot(x) + projected_y.dot(y))*T(0.5));
+      residuals[i] = 1.0 - ((projected_x.dot(x) + projected_y.dot(y)) * T(0.5));
     }
     residuals[MAX_ERRORS] = 1.0 - translation.norm();
 
@@ -132,18 +144,21 @@ struct RelativePoseCost {
   std::vector<IT> picked_errors_;
 };
 
-
 template <class IT>
 Eigen::Matrix<double, 3, 4> RelativePoseRefinement(
-  const Eigen::Matrix<double, 3, 4>& relative_pose, IT begin, IT end, int iterations) {
+    const Eigen::Matrix<double, 3, 4>& relative_pose, IT begin, IT end,
+    int iterations) {
   Eigen::Matrix<double, 6, 1> parameters;
   parameters.setZero();
 
   // Use Rcamera and Tworld parametrization
-  ceres::RotationMatrixToAngleAxis(relative_pose.block<3, 3>(0, 0).data(), parameters.data());
-  parameters.segment<3>(3) = -relative_pose.block<3, 3>(0, 0).transpose()*relative_pose.col(3);
+  ceres::RotationMatrixToAngleAxis(relative_pose.block<3, 3>(0, 0).data(),
+                                   parameters.data());
+  parameters.segment<3>(3) =
+      -relative_pose.block<3, 3>(0, 0).transpose() * relative_pose.col(3);
 
-  using RelativePoseFunction = ceres::TinySolverAutoDiffFunction<RelativePoseCost<IT>, RelativePoseCost<IT>::MAX_ERRORS+1, 6>;
+  using RelativePoseFunction = ceres::TinySolverAutoDiffFunction<
+      RelativePoseCost<IT>, RelativePoseCost<IT>::MAX_ERRORS + 1, 6>;
   RelativePoseCost<IT> cost(begin, end);
   RelativePoseFunction f(cost);
 
@@ -153,21 +168,20 @@ Eigen::Matrix<double, 3, 4> RelativePoseRefinement(
 
   // Back with Tcamera parametrization
   Eigen::Matrix<double, 3, 4> relative_pose_result;
-  ceres::AngleAxisToRotationMatrix(parameters.data(), relative_pose_result.block<3, 3>(0, 0).data());
-  relative_pose_result.col(3) = -relative_pose_result.block<3, 3>(0, 0)*parameters.tail<3>(3);
+  ceres::AngleAxisToRotationMatrix(
+      parameters.data(), relative_pose_result.block<3, 3>(0, 0).data());
+  relative_pose_result.col(3) =
+      -relative_pose_result.block<3, 3>(0, 0) * parameters.tail<3>(3);
   return relative_pose_result;
 }
 namespace geometry {
 Eigen::Matrix<double, 3, 4> RelativePoseFromEssential(
-    const Eigen::Matrix3d& essential,
-    const Eigen::Matrix<double, -1, 3> &x1,
-    const Eigen::Matrix<double, -1, 3> &x2);
+    const Eigen::Matrix3d& essential, const Eigen::Matrix<double, -1, 3>& x1,
+    const Eigen::Matrix<double, -1, 3>& x2);
 Eigen::Matrix<double, 3, 4> RelativePoseRefinement(
     const Eigen::Matrix<double, 3, 4>& relative_pose,
-    const Eigen::Matrix<double, -1, 3> &x1,
-    const Eigen::Matrix<double, -1, 3> &x2,
-    int iterations);
-Eigen::Matrix3d RelativeRotationNPoints(
-    const Eigen::Matrix<double, -1, 3> &x1,
-    const Eigen::Matrix<double, -1, 3> &x2);
-}
+    const Eigen::Matrix<double, -1, 3>& x1,
+    const Eigen::Matrix<double, -1, 3>& x2, int iterations);
+Eigen::Matrix3d RelativeRotationNPoints(const Eigen::Matrix<double, -1, 3>& x1,
+                                        const Eigen::Matrix<double, -1, 3>& x2);
+}  // namespace geometry

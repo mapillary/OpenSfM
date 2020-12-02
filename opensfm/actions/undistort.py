@@ -1,15 +1,15 @@
 import logging
+import os
 
 import cv2
 import numpy as np
-
 from opensfm import dataset
 from opensfm import features
 from opensfm import log
+from opensfm import pygeometry
+from opensfm import pysfm
 from opensfm import transformations as tf
 from opensfm import types
-from opensfm import pysfm
-from opensfm import pygeometry
 from opensfm.context import parallel_map
 
 
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 def run_dataset(data, reconstruction, reconstruction_index, tracks, output):
-    """ Export reconstruction to NVM_V3 format from VisualSfM
+    """Export reconstruction to NVM_V3 format from VisualSfM
 
     Args:
         reconstruction: reconstruction to undistort
@@ -26,8 +26,8 @@ def run_dataset(data, reconstruction, reconstruction_index, tracks, output):
         output: undistorted
 
     """
-
-    udata = dataset.UndistortedDataSet(data, output)
+    undistorted_data_path = os.path.join(data.data_path, output)
+    udata = dataset.UndistortedDataSet(data, undistorted_data_path)
     reconstructions = data.load_reconstruction(reconstruction)
     if data.tracks_exists(tracks):
         tracks_manager = data.load_tracks_manager(tracks)
@@ -43,23 +43,23 @@ def undistort_reconstruction(tracks_manager, reconstruction, data, udata):
     urec = types.Reconstruction()
     urec.points = reconstruction.points
     utracks_manager = pysfm.TracksManager()
-    logger.debug('Undistorting the reconstruction')
+    logger.debug("Undistorting the reconstruction")
     undistorted_shots = {}
     for shot in reconstruction.shots.values():
-        if shot.camera.projection_type == 'perspective':
+        if shot.camera.projection_type == "perspective":
             camera = perspective_camera_from_perspective(shot.camera)
             urec.add_camera(camera)
             subshots = [get_shot_with_different_camera(urec, shot, camera)]
-        elif shot.camera.projection_type == 'brown':
+        elif shot.camera.projection_type == "brown":
             camera = perspective_camera_from_brown(shot.camera)
             urec.add_camera(camera)
             subshots = [get_shot_with_different_camera(urec, shot, camera)]
-        elif shot.camera.projection_type in ['fisheye', 'fisheye_opencv']:
+        elif shot.camera.projection_type in ["fisheye", "fisheye_opencv"]:
             camera = perspective_camera_from_fisheye(shot.camera)
             urec.add_camera(camera)
             subshots = [get_shot_with_different_camera(urec, shot, camera)]
         elif pygeometry.Camera.is_panorama(shot.camera.projection_type):
-            subshot_width = int(data.config['depthmap_resolution'])
+            subshot_width = int(data.config["depthmap_resolution"])
             subshots = perspective_views_of_a_panorama(shot, subshot_width, urec)
 
         for subshot in subshots:
@@ -75,51 +75,54 @@ def undistort_reconstruction(tracks_manager, reconstruction, data, udata):
     for shot in reconstruction.shots.values():
         arguments.append((shot, undistorted_shots[shot.id], data, udata))
 
-    processes = data.config['processes']
+    processes = data.config["processes"]
     parallel_map(undistort_image_and_masks, arguments, processes)
 
 
 def undistort_image_and_masks(arguments):
     shot, undistorted_shots, data, udata = arguments
     log.setup()
-    logger.debug('Undistorting image {}'.format(shot.id))
+    logger.debug("Undistorting image {}".format(shot.id))
+    max_size = data.config["undistorted_image_max_size"]
 
     # Undistort image
     image = data.load_image(shot.id, unchanged=True, anydepth=True)
     if image is not None:
-        max_size = data.config['undistorted_image_max_size']
-        undistorted = undistort_image(shot, undistorted_shots, image,
-                                      cv2.INTER_AREA, max_size)
+        undistorted = undistort_image(
+            shot, undistorted_shots, image, cv2.INTER_AREA, max_size
+        )
         for k, v in undistorted.items():
             udata.save_undistorted_image(k, v)
 
     # Undistort mask
     mask = data.load_mask(shot.id)
     if mask is not None:
-        undistorted = undistort_image(shot, undistorted_shots, mask,
-                                      cv2.INTER_NEAREST, 1e9)
+        undistorted = undistort_image(
+            shot, undistorted_shots, mask, cv2.INTER_NEAREST, max_size
+        )
         for k, v in undistorted.items():
             udata.save_undistorted_mask(k, v)
 
     # Undistort segmentation
     segmentation = data.load_segmentation(shot.id)
     if segmentation is not None:
-        undistorted = undistort_image(shot, undistorted_shots, segmentation,
-                                      cv2.INTER_NEAREST, 1e9)
+        undistorted = undistort_image(
+            shot, undistorted_shots, segmentation, cv2.INTER_NEAREST, max_size
+        )
         for k, v in undistorted.items():
             udata.save_undistorted_segmentation(k, v)
 
     # Undistort detections
     detection = data.load_detection(shot.id)
     if detection is not None:
-        undistorted = undistort_image(shot, undistorted_shots, detection,
-                                      cv2.INTER_NEAREST, 1e9)
+        undistorted = undistort_image(
+            shot, undistorted_shots, detection, cv2.INTER_NEAREST, max_size
+        )
         for k, v in undistorted.items():
             udata.save_undistorted_detection(k, v)
 
 
-def undistort_image(shot, undistorted_shots, original, interpolation,
-                    max_size):
+def undistort_image(shot, undistorted_shots, original, interpolation, max_size):
     """Undistort an image into a set of undistorted ones.
 
     Args:
@@ -135,10 +138,12 @@ def undistort_image(shot, undistorted_shots, original, interpolation,
         return
 
     projection_type = shot.camera.projection_type
-    if projection_type in ['perspective', 'brown', 'fisheye', 'fisheye_opencv']:
+    if projection_type in ["perspective", "brown", "fisheye", "fisheye_opencv"]:
         new_camera = undistorted_shots[0].camera
         height, width = original.shape[:2]
-        map1, map2 = pygeometry.compute_camera_mapping(shot.camera, new_camera, width, height)
+        map1, map2 = pygeometry.compute_camera_mapping(
+            shot.camera, new_camera, width, height
+        )
         undistorted = cv2.remap(original, map1, map2, interpolation)
         return {shot.id: scale_image(undistorted, max_size)}
     elif pygeometry.Camera.is_panorama(projection_type):
@@ -150,13 +155,16 @@ def undistort_image(shot, undistorted_shots, original, interpolation,
         res = {}
         for subshot in undistorted_shots:
             undistorted = render_perspective_view_of_a_panorama(
-                image, shot, subshot, mint)
+                image, shot, subshot, mint
+            )
             res[subshot.id] = scale_image(undistorted, max_size)
         return res
     else:
         raise NotImplementedError(
-            'Undistort not implemented for projection type: {}'.format(
-                shot.camera.projection_type))
+            "Undistort not implemented for projection type: {}".format(
+                shot.camera.projection_type
+            )
+        )
 
 
 def scale_image(image, max_size):
@@ -188,7 +196,8 @@ def perspective_camera_from_perspective(distorted):
 def perspective_camera_from_brown(brown):
     """Create a perspective camera from a Brown camera."""
     camera = pygeometry.Camera.create_perspective(
-        brown.focal * (1 + brown.aspect_ratio) / 2.0, 0.0, 0.0)
+        brown.focal * (1 + brown.aspect_ratio) / 2.0, 0.0, 0.0
+    )
     camera.id = brown.id
     camera.width = brown.width
     camera.height = brown.height
@@ -207,7 +216,8 @@ def perspective_camera_from_fisheye(fisheye):
 def perspective_camera_from_fisheye_opencv(fisheye_opencv):
     """Create a perspective camera from a fisheye extended."""
     camera = pygeometry.Camera.create_perspective(
-        fisheye_opencv.focal * (1 + fisheye_opencv.aspect_ratio) / 2.0, 0.0, 0.0)
+        fisheye_opencv.focal * (1 + fisheye_opencv.aspect_ratio) / 2.0, 0.0, 0.0
+    )
     camera.id = fisheye_opencv.id
     camera.width = fisheye_opencv.width
     camera.height = fisheye_opencv.height
@@ -217,12 +227,12 @@ def perspective_camera_from_fisheye_opencv(fisheye_opencv):
 def perspective_views_of_a_panorama(spherical_shot, width, reconstruction):
     """Create 6 perspective views of a panorama."""
     camera = pygeometry.Camera.create_perspective(0.5, 0.0, 0.0)
-    camera.id = 'perspective_panorama_camera'
+    camera.id = "perspective_panorama_camera"
     camera.width = width
     camera.height = width
     reconstruction.add_camera(camera)
 
-    names = ['front', 'left', 'back', 'right', 'top', 'bottom']
+    names = ["front", "left", "back", "right", "top", "bottom"]
     rotations = [
         tf.rotation_matrix(-0 * np.pi / 2, (0, 1, 0)),
         tf.rotation_matrix(-1 * np.pi / 2, (0, 1, 0)),
@@ -238,15 +248,23 @@ def perspective_views_of_a_panorama(spherical_shot, width, reconstruction):
         pose = pygeometry.Pose()
         pose.set_rotation_matrix(R)
         pose.set_origin(o)
-        shots.append(reconstruction.
-                     create_shot('{}_perspective_view_{}'.format(spherical_shot.id, name),
-                                 camera.id, pose))
+        shots.append(
+            reconstruction.create_shot(
+                "{}_perspective_view_{}".format(spherical_shot.id, name),
+                camera.id,
+                pose,
+            )
+        )
     return shots
 
 
-def render_perspective_view_of_a_panorama(image, panoshot, perspectiveshot,
-                                          interpolation=cv2.INTER_LINEAR,
-                                          borderMode=cv2.BORDER_WRAP):
+def render_perspective_view_of_a_panorama(
+    image,
+    panoshot,
+    perspectiveshot,
+    interpolation=cv2.INTER_LINEAR,
+    borderMode=cv2.BORDER_WRAP,
+):
     """Render a perspective view of a panorama."""
     # Get destination pixel coordinates
     dst_shape = (perspectiveshot.camera.height, perspectiveshot.camera.width)
@@ -256,20 +274,24 @@ def render_perspective_view_of_a_panorama(image, panoshot, perspectiveshot,
     dst_pixels = features.normalized_image_coordinates(
         dst_pixels_denormalized,
         perspectiveshot.camera.width,
-        perspectiveshot.camera.height)
+        perspectiveshot.camera.height,
+    )
 
     # Convert to bearing
     dst_bearings = perspectiveshot.camera.pixel_bearing_many(dst_pixels)
 
     # Rotate to panorama reference frame
-    rotation = np.dot(panoshot.pose.get_rotation_matrix(),
-                      perspectiveshot.pose.get_rotation_matrix().T)
+    rotation = np.dot(
+        panoshot.pose.get_rotation_matrix(),
+        perspectiveshot.pose.get_rotation_matrix().T,
+    )
     rotated_bearings = np.dot(dst_bearings, rotation.T)
 
     # Project to panorama pixels
     src_pixels = panoshot.camera.project_many(rotated_bearings)
     src_pixels_denormalized = features.denormalized_image_coordinates(
-        src_pixels, image.shape[1], image.shape[0])
+        src_pixels, image.shape[1], image.shape[0]
+    )
 
     src_pixels_denormalized.shape = dst_shape + (2,)
 
@@ -297,18 +319,22 @@ def add_pano_subshot_tracks(tracks_manager, utracks_manager, panoshot, perspecti
     """Add edges between subshots and visible tracks."""
     for track_id, obs in tracks_manager.get_shot_observations(panoshot.id).items():
         bearing = panoshot.camera.pixel_bearing(obs.point)
-        rotation = np.dot(perspectiveshot.pose.get_rotation_matrix(),
-                          panoshot.pose.get_rotation_matrix().T)
+        rotation = np.dot(
+            perspectiveshot.pose.get_rotation_matrix(),
+            panoshot.pose.get_rotation_matrix().T,
+        )
 
         rotated_bearing = np.dot(bearing, rotation.T)
         if rotated_bearing[2] <= 0:
             continue
 
         perspective_feature = perspectiveshot.camera.project(rotated_bearing)
-        if (perspective_feature[0] < -0.5
+        if (
+            perspective_feature[0] < -0.5
             or perspective_feature[0] > 0.5
             or perspective_feature[1] < -0.5
-            or perspective_feature[1] > 0.5):
+            or perspective_feature[1] > 0.5
+        ):
             continue
 
         obs.point = perspective_feature

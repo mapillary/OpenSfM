@@ -11,11 +11,10 @@ def run_dataset(data):
     for r in reconstructions:
         for shot in r.shots.values():
             if shot.id in all_shot_ids:
-                vertices, faces = mesh.triangle_mesh(
-                    shot.id, r, tracks_manager, data)
+                vertices, faces = mesh.triangle_mesh(shot.id, r, tracks_manager, data)
                 shot.mesh.vertices = vertices
                 shot.mesh.faces = faces
 
-    data.save_reconstruction(reconstructions,
-                                filename='reconstruction.meshed.json',
-                                minify=True)
+    data.save_reconstruction(
+        reconstructions, filename="reconstruction.meshed.json", minify=True
+    )

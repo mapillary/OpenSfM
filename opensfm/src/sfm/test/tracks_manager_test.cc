@@ -1,6 +1,6 @@
+#include <sfm/tracks_manager.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include <sfm/tracks_manager.h>
 
 namespace {
 
@@ -23,9 +23,9 @@ class TempFile {
 class TracksManagerTest : public ::testing::Test {
  protected:
   void SetUp() {
-    const auto o1 =  Observation(1.0, 1.0, 1.0, 1, 1, 1, 1);
-    const auto o2 =  Observation(2.0, 2.0, 2.0, 2, 2, 2, 2);
-    const auto o3 =  Observation(3.0, 3.0, 3.0, 3, 3, 3, 3);
+    const auto o1 = Observation(1.0, 1.0, 1.0, 1, 1, 1, 1);
+    const auto o2 = Observation(2.0, 2.0, 2.0, 2, 2, 2, 2);
+    const auto o3 = Observation(3.0, 3.0, 3.0, 3, 3, 3, 3);
     manager.AddObservation("1", "1", o1);
     manager.AddObservation("2", "1", o2);
     manager.AddObservation("3", "1", o3);
@@ -50,7 +50,8 @@ TEST_F(TracksManagerTest, ReturnsTracksIDs) {
 }
 
 TEST_F(TracksManagerTest, ReturnsObservation) {
-  EXPECT_EQ(manager.GetObservation("1", "1"), Observation(1.0, 1.0, 1.0, 1, 1, 1, 1));
+  EXPECT_EQ(manager.GetObservation("1", "1"),
+            Observation(1.0, 1.0, 1.0, 1, 1, 1, 1));
 }
 
 TEST_F(TracksManagerTest, AddsObservation) {
@@ -68,7 +69,8 @@ TEST_F(TracksManagerTest, RemoveObservation) {
 
 TEST_F(TracksManagerTest, ReturnsAllCommonObservations) {
   const auto tuple =
-      std::make_tuple("1", Observation(1.0, 1.0, 1.0, 1, 1, 1, 1), Observation(2.0, 2.0, 2.0, 2, 2, 2, 2));
+      std::make_tuple("1", Observation(1.0, 1.0, 1.0, 1, 1, 1, 1),
+                      Observation(2.0, 2.0, 2.0, 2, 2, 2, 2));
   std::vector<std::tuple<TrackId, Observation, Observation> > one_tuple{tuple};
   EXPECT_EQ(manager.GetAllCommonObservations("1", "2"), one_tuple);
 }

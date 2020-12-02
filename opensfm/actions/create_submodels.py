@@ -1,7 +1,7 @@
 import logging
-import numpy as np
 from collections import defaultdict
 
+import numpy as np
 from opensfm.large import metadataset
 from opensfm.large import tools
 
@@ -21,31 +21,33 @@ def run_dataset(data):
     if meta_data.image_groups_exists():
         _read_image_groups(meta_data)
     else:
-        _cluster_images(meta_data, data.config['submodel_size'])
+        _cluster_images(meta_data, data.config["submodel_size"])
 
-    _add_cluster_neighbors(meta_data, data.config['submodel_overlap'])
+    _add_cluster_neighbors(meta_data, data.config["submodel_overlap"])
     _save_clusters_geojson(meta_data)
     _save_cluster_neighbors_geojson(meta_data)
 
-    meta_data.create_submodels(
-        meta_data.load_clusters_with_neighbors())
+    meta_data.create_submodels(meta_data.load_clusters_with_neighbors())
+
 
 def _create_image_list(data, meta_data):
     ills = []
     for image in data.images():
         exif = data.load_exif(image)
-        if ('gps' not in exif
-            or 'latitude' not in exif['gps']
-            or 'longitude' not in exif['gps']):
-            logger.warning(
-                'Skipping {} because of missing GPS'.format(image))
+        if (
+            "gps" not in exif
+            or "latitude" not in exif["gps"]
+            or "longitude" not in exif["gps"]
+        ):
+            logger.warning("Skipping {} because of missing GPS".format(image))
             continue
 
-        lat = exif['gps']['latitude']
-        lon = exif['gps']['longitude']
+        lat = exif["gps"]["latitude"]
+        lon = exif["gps"]["longitude"]
         ills.append((image, lat, lon))
 
     meta_data.create_image_list(ills)
+
 
 def _read_image_groups(meta_data):
     image_cluster = {}
@@ -78,6 +80,7 @@ def _read_image_groups(meta_data):
 
     meta_data.save_clusters(images, positions, labels, centers)
 
+
 def _cluster_images(meta_data, cluster_size):
     images = []
     positions = []
@@ -98,16 +101,17 @@ def _cluster_images(meta_data, cluster_size):
 
     meta_data.save_clusters(images, positions, labels, centers)
 
+
 def _add_cluster_neighbors(meta_data, max_distance):
     images, positions, labels, centers = meta_data.load_clusters()
-    clusters = tools.add_cluster_neighbors(
-        positions, labels, centers, max_distance)
+    clusters = tools.add_cluster_neighbors(positions, labels, centers, max_distance)
 
     image_clusters = []
     for cluster in clusters:
         image_clusters.append(list(np.take(images, np.array(cluster))))
 
     meta_data.save_clusters_with_neighbors(image_clusters)
+
 
 def _save_cluster_neighbors_geojson(meta_data):
     image_coordinates = {}
@@ -118,22 +122,19 @@ def _save_cluster_neighbors_geojson(meta_data):
     clusters = meta_data.load_clusters_with_neighbors()
     for cluster_idx, images in enumerate(clusters):
         for image in images:
-            features.append({
-                "type": "Feature",
-                "geometry": {
-                    "type": "Point",
-                    "coordinates": image_coordinates[image]
-                },
-                "properties": {
-                    "name": image,
-                    "submodel": cluster_idx
+            features.append(
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": image_coordinates[image],
+                    },
+                    "properties": {"name": image, "submodel": cluster_idx},
                 }
-            })
-    geojson = {
-        "type": "FeatureCollection",
-        "features": features
-    }
+            )
+    geojson = {"type": "FeatureCollection", "features": features}
     meta_data.save_cluster_with_neighbors_geojson(geojson)
+
 
 def _save_clusters_geojson(meta_data):
     image_coordinates = {}
@@ -143,19 +144,12 @@ def _save_clusters_geojson(meta_data):
     features = []
     images, positions, labels, centers = meta_data.load_clusters()
     for image, label in zip(images, labels):
-        features.append({
-            "type": "Feature",
-            "geometry": {
-                "type": "Point",
-                "coordinates": image_coordinates[image]
-            },
-            "properties": {
-                "name": image,
-                "submodel": int(label)  # cluster_idx
+        features.append(
+            {
+                "type": "Feature",
+                "geometry": {"type": "Point", "coordinates": image_coordinates[image]},
+                "properties": {"name": image, "submodel": int(label)},  # cluster_idx
             }
-        })
-    geojson = {
-        "type": "FeatureCollection",
-        "features": features
-    }
+        )
+    geojson = {"type": "FeatureCollection", "features": features}
     meta_data.save_clusters_geojson(geojson)

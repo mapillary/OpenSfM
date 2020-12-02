@@ -1,16 +1,19 @@
 import os
+
 import yaml
 
-default_config_yaml = '''
+default_config_yaml = """
 # Metadata
 use_exif_size: yes
 default_focal_prior: 0.85
 
 # Params for features
-feature_type: HAHOG           # Feature type (AKAZE, SURF, SIFT, HAHOG, ORB)
-feature_root: 1               # If 1, apply square root mapping to features
-feature_min_frames: 4000      # If fewer frames are detected, sift_peak_threshold/surf_hessian_threshold is reduced.
-feature_process_size: 2048    # Resize the image if its size is larger than specified. Set to -1 for original size
+feature_type: HAHOG                     # Feature type (AKAZE, SURF, SIFT, HAHOG, ORB)
+feature_root: 1                         # If 1, apply square root mapping to features
+feature_min_frames: 4000                # If fewer frames are detected, sift_peak_threshold/surf_hessian_threshold is reduced.
+feature_min_frames_panorama: 16000      # Same as above but for panorama images
+feature_process_size: 2048              # Resize the image if its size is larger than specified. Set to -1 for original size
+feature_process_size_panorama: 4096     # Same as above but for panorama images
 feature_use_adaptive_suppression: no
 
 # Params for SIFT
@@ -166,7 +169,7 @@ submodel_overlap: 30.0                                               # Radius of
 submodels_relpath: "submodels"                                       # Relative path to the submodels directory
 submodel_relpath_template: "submodels/submodel_%04d"                 # Template to generate the relative path to a submodel directory
 submodel_images_relpath_template: "submodels/submodel_%04d/images"   # Template to generate the relative path to a submodel images directory
-'''
+"""
 
 
 def default_config():

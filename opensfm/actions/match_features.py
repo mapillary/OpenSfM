@@ -16,6 +16,7 @@ def run_dataset(data):
 
     write_report(data, preport, list(pairs_matches.keys()), end - start)
 
+
 def write_report(data, preport, pairs, wall_time):
     report = {
         "wall_time": wall_time,
@@ -23,4 +24,4 @@ def write_report(data, preport, pairs, wall_time):
         "pairs": pairs,
     }
     report.update(preport)
-    data.save_report(io.json_dumps(report), 'matches.json')
+    data.save_report(io.json_dumps(report), "matches.json")

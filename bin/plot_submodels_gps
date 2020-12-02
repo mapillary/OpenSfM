@@ -43,7 +43,7 @@ if __name__ == '__main__':
                         default='positions',
                         choices=['clusters', 'centers', 'neighbors', 'positions', 'hist', 'submodels'])
     parser.add_argument('-s', '--save-figs',
-                        help='save figures istead of showing them',
+                        help='save figures instead of showing them',
                         action='store_true')
     args = parser.parse_args()
 

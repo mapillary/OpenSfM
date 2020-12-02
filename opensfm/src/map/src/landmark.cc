@@ -17,7 +17,7 @@ Vec3f Landmark::GetObservationInShot(Shot* shot) const {
 }
 
 void Landmark::SetReprojectionErrors(
-    const std::map<ShotId, Eigen::VectorXd> &reproj_errors) {
+    const std::map<ShotId, Eigen::VectorXd>& reproj_errors) {
   reproj_errors_ = reproj_errors;
 }
 

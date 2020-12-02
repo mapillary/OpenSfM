@@ -20,10 +20,9 @@
 
 #pragma once
 
-
+#include <foundation/numeric.h>
 #include <Eigen/Eigen>
 #include <Eigen/SVD>
-#include <foundation/numeric.h>
 
 // In the following code, polynomials are expressed as vectors containing
 // their coeficients in the basis of monomials:
@@ -62,8 +61,7 @@ enum {
 };
 
 template <class IT, class MAT>
-inline void EncodeEpipolarEquation(IT begin, IT end,
-                                   MAT *A) {
+inline void EncodeEpipolarEquation(IT begin, IT end, MAT *A) {
   for (IT it = begin; it != end; ++it) {
     int i = (it - begin);
     const auto x1 = it->first;
@@ -74,20 +72,22 @@ inline void EncodeEpipolarEquation(IT begin, IT end,
 }
 
 // Compute the nullspace of the linear constraints given by the matches.
-template<class IT>
+template <class IT>
 Eigen::MatrixXd FivePointsNullspaceBasis(IT begin, IT end) {
   Eigen::Matrix<double, 9, 9> A;
   A.setZero();  // Make A square until Eigen supports rectangular SVD.
   EncodeEpipolarEquation(begin, end, &A);
-  Eigen::JacobiSVD<Eigen::Matrix<double, 9, 9> > svd;
-  return svd.compute(A, Eigen::ComputeFullV).matrixV().topRightCorner<9,4>();
+  Eigen::JacobiSVD<Eigen::Matrix<double, 9, 9>> svd;
+  return svd.compute(A, Eigen::ComputeFullV).matrixV().topRightCorner<9, 4>();
 }
 
 // Multiply two polynomials of degree 1.
-Eigen::Matrix<double, -1, 1>  o1(const Eigen::Matrix<double, -1, 1>  &a, const Eigen::Matrix<double, -1, 1>  &b);
+Eigen::Matrix<double, -1, 1> o1(const Eigen::Matrix<double, -1, 1> &a,
+                                const Eigen::Matrix<double, -1, 1> &b);
 
 // Multiply a polynomial of degree 2, a, by a polynomial of degree 1, b.
-Eigen::Matrix<double, -1, 1>  o2(const Eigen::Matrix<double, -1, 1>  &a, const Eigen::Matrix<double, -1, 1>  &b);
+Eigen::Matrix<double, -1, 1> o2(const Eigen::Matrix<double, -1, 1> &a,
+                                const Eigen::Matrix<double, -1, 1> &b);
 
 // Builds the polynomial constraint matrix M.
 Eigen::MatrixXd FivePointsPolynomialConstraints(const Eigen::MatrixXd &E_basis);
@@ -104,25 +104,25 @@ std::vector<Eigen::Matrix<double, 3, 3>> EssentialFivePoints(IT begin, IT end) {
   Eigen::MatrixXd M = FivePointsPolynomialConstraints(E_basis);
 
   // Step 3: Gauss-Jordan elimination.
-  if( !FivePointsGaussJordan(&M)){
-    return std::vector<Eigen::Matrix<double, 3, 3> >();
+  if (!FivePointsGaussJordan(&M)) {
+    return std::vector<Eigen::Matrix<double, 3, 3>>();
   }
 
   // For the next steps, follow the matlab code given in Stewenius et al [1].
 
   // Build the action matrix.
-  Eigen::MatrixXd B = M.topRightCorner<10,10>();
-  Eigen::MatrixXd At = Eigen::MatrixXd::Zero(10,10);
+  Eigen::MatrixXd B = M.topRightCorner<10, 10>();
+  Eigen::MatrixXd At = Eigen::MatrixXd::Zero(10, 10);
   At.row(0) = -B.row(0);
   At.row(1) = -B.row(1);
   At.row(2) = -B.row(2);
   At.row(3) = -B.row(4);
   At.row(4) = -B.row(5);
   At.row(5) = -B.row(7);
-  At(6,0) = 1;
-  At(7,1) = 1;
-  At(8,3) = 1;
-  At(9,6) = 1;
+  At(6, 0) = 1;
+  At(7, 1) = 1;
+  At(8, 3) = 1;
+  At(9, 6) = 1;
 
   // Compute the solutions from action matrix's eigenvectors.
   Eigen::EigenSolver<Eigen::MatrixXd> es(At);
@@ -138,7 +138,7 @@ std::vector<Eigen::Matrix<double, 3, 3>> EssentialFivePoints(IT begin, IT end) {
   Matc Evec = E_basis * solutions;
 
   // Build the essential matrices for the real solutions.
-  std::vector<Eigen::Matrix<double, 3, 3> >  Es;
+  std::vector<Eigen::Matrix<double, 3, 3>> Es;
   Es.reserve(10);
   for (int s = 0; s < 10; ++s) {
     Evec.col(s) /= Evec.col(s).norm();
@@ -150,7 +150,7 @@ std::vector<Eigen::Matrix<double, 3, 3>> EssentialFivePoints(IT begin, IT end) {
       }
     }
     if (is_real) {
-      Eigen::Matrix<double, 3, 3>  E;
+      Eigen::Matrix<double, 3, 3> E;
       for (int i = 0; i < 3; ++i) {
         for (int j = 0; j < 3; ++j) {
           E(i, j) = Evec(3 * i + j, s).real();
@@ -164,23 +164,25 @@ std::vector<Eigen::Matrix<double, 3, 3>> EssentialFivePoints(IT begin, IT end) {
 
 template <class IT>
 std::vector<Eigen::Matrix<double, 3, 3>> EssentialNPoints(IT begin, IT end) {
-  const int count = end-begin;
+  const int count = end - begin;
   Eigen::MatrixXd A(count, 9);
   A.setZero();
   EncodeEpipolarEquation(begin, end, &A);
 
   Eigen::VectorXd solution;
   std::vector<Eigen::Matrix<double, 3, 3>> Es;
-  if(SolveAX0(A, &solution)){
-    Eigen::Matrix3d E = Eigen::Map<Eigen::Matrix3d>(solution.data()).transpose();
+  if (SolveAX0(A, &solution)) {
+    Eigen::Matrix3d E =
+        Eigen::Map<Eigen::Matrix3d>(solution.data()).transpose();
     if (count > 8) {
-      Eigen::JacobiSVD<Eigen::Matrix3d> USV(E, Eigen::ComputeFullU | Eigen::ComputeFullV);
+      Eigen::JacobiSVD<Eigen::Matrix3d> USV(
+          E, Eigen::ComputeFullU | Eigen::ComputeFullV);
 
       // Enforce essential matrix constraints
       auto d = USV.singularValues();
       const auto a = d[0];
       const auto b = d[1];
-      d << (a+b)/2., (a+b)/2., 0.0;
+      d << (a + b) / 2., (a + b) / 2., 0.0;
       E = USV.matrixU() * d.asDiagonal() * USV.matrixV().transpose();
     }
     Es.push_back(E);
@@ -196,4 +198,4 @@ std::vector<Eigen::Matrix<double, 3, 3>> EssentialFivePoints(
 std::vector<Eigen::Matrix<double, 3, 3>> EssentialNPoints(
     const Eigen::Matrix<double, -1, 3> &x1,
     const Eigen::Matrix<double, -1, 3> &x2);
-}
+}  // namespace geometry

@@ -7,8 +7,7 @@ def run_dataset(data):
 
     meta_data = metadataset.MetaDataSet(data.data_path)
     reconstruction_shots = tools.load_reconstruction_shots(meta_data)
-    transformations = \
-        tools.align_reconstructions(reconstruction_shots,
-                                    tools.partial_reconstruction_name,
-                                    True)
+    transformations = tools.align_reconstructions(
+        reconstruction_shots, tools.partial_reconstruction_name, True
+    )
     tools.apply_transformations(transformations)

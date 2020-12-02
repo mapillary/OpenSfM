@@ -42,7 +42,7 @@ if __name__ == "__main__":
                         help='display image graph',
                         action='store_true')
     parser.add_argument('--save_figs',
-                        help='save figures istead of showing them',
+                        help='save figures instead of showing them',
                         action='store_true')
     args = parser.parse_args()
 

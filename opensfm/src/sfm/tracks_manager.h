@@ -10,7 +10,6 @@
 
 class TracksManager {
  public:
-
   void AddObservation(const ShotId& shot_id, const TrackId& track_id,
                       const Observation& observation);
   void RemoveObservation(const ShotId& shot_id, const TrackId& track_id);
@@ -40,10 +39,10 @@ class TracksManager {
       const std::vector<TrackId>& tracks) const;
 
   static TracksManager InstanciateFromFile(const std::string& filename);
-  void WriteToFile(const std::string& filename)const;
+  void WriteToFile(const std::string& filename) const;
 
   static TracksManager InstanciateFromString(const std::string& str);
-  std::string AsSring()const;
+  std::string AsSring() const;
 
   bool HasShotObservations(const ShotId& shot) const;
 

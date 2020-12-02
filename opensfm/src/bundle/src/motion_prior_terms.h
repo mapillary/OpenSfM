@@ -41,5 +41,4 @@ struct BALinearMotionError {
   Vec3d acceleration_;
   double position_scale_;
   double orientation_scale_;
-
 };

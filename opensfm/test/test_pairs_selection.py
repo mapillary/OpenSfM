@@ -8,7 +8,7 @@ from opensfm.test import data_generation
 NEIGHBORS = 6
 
 
-class Args():
+class Args:
     def __init__(self, dataset):
         self.dataset = dataset
 
@@ -39,8 +39,9 @@ def lund_path(tmpdir_factory):
     data_generation.save_config({"matcher_type": "WORDS"}, path)
 
     args = Args(path)
-    commands.extract_metadata.Command().run(args)
-    commands.detect_features.Command().run(args)
+    data = dataset.DataSet(path)
+    commands.extract_metadata.Command().run(data, args)
+    commands.detect_features.Command().run(data, args)
 
     return path
 

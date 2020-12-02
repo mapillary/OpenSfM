@@ -6,8 +6,8 @@
 #include <sfm/observation.h>
 
 #include <Eigen/Eigen>
-#include <unordered_map>
 #include <iostream>
+#include <unordered_map>
 
 namespace map {
 class Map;
@@ -58,17 +58,18 @@ struct ShotMeasurements {
   ShotMeasurement<int> orientation_;
   ShotMeasurement<std::string> sequence_key_;
   void Set(const ShotMeasurements& other);
-
 };
 
 class Shot {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  Shot(const ShotId& shot_id, const Camera* const shot_camera, const geometry::Pose& pose);
+  Shot(const ShotId& shot_id, const Camera* const shot_camera,
+       const geometry::Pose& pose);
   // Workaround for pickle that makes it possible for the shot to have camera
   // outside of the reconstruction.
-  Shot(const ShotId& shot_id, std::unique_ptr<Camera> cam, const geometry::Pose& pose);
+  Shot(const ShotId& shot_id, std::unique_ptr<Camera> cam,
+       const geometry::Pose& pose);
 
   ShotId GetId() const { return id_; }
 
@@ -130,9 +131,8 @@ class Shot {
     landmarks_.at(feat_id) = lm;
   }
 
-  void CreateObservation(Landmark* lm, const Vec2d& pt,
-                         const double scale, const Eigen::Vector3i& color,
-                         FeatureId id) {
+  void CreateObservation(Landmark* lm, const Vec2d& pt, const double scale,
+                         const Eigen::Vector3i& color, FeatureId id) {
     landmark_observations_.insert(std::make_pair(
         lm,
         Observation(pt[0], pt[1], scale, color[0], color[1], color[2], id)));
@@ -140,23 +140,16 @@ class Shot {
   }
 
   Observation* GetLandmarkObservation(Landmark* lm) {
-    if (landmarks_.empty()) //SfM
+    if (landmarks_.empty())  // SfM
     {
       return &landmark_observations_.at(lm);
-    }
-    else
-    {
+    } else {
       return &keypoints_.at(lm->GetObservationIdInShot(this));
     }
   }
 
-  ShotMeasurements&
-  GetShotMeasurements()
-  {
-    return shot_measurements_;
-  }
-  void SetShotMeasurements(const ShotMeasurements& other)
-  {
+  ShotMeasurements& GetShotMeasurements() { return shot_measurements_; }
+  void SetShotMeasurements(const ShotMeasurements& other) {
     shot_measurements_.Set(other);
   }
 
@@ -208,6 +201,7 @@ class Shot {
   MatXd covariance;
   long int merge_cc;
   double scale;
+
  private:
   geometry::Pose pose_;
   size_t num_keypts_;
@@ -219,7 +213,7 @@ class Shot {
   DescriptorMatrix descriptors_;
   // In OpenSfM, we use a map to reproduce a similar behaviour
   std::map<Landmark*, Observation, KeyCompare,
-           Eigen::aligned_allocator<std::pair<Landmark* const, Observation>> >
+           Eigen::aligned_allocator<std::pair<Landmark* const, Observation>>>
       landmark_observations_;
   std::unordered_map<FeatureId, Landmark*> landmark_id_;
   // Workaround for pickle that makes it possible for the shot to have camera
