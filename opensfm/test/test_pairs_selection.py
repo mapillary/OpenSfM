@@ -56,7 +56,11 @@ def match_candidates_from_metadata(data, neighbors=NEIGHBORS, assert_count=NEIGH
     exifs = {im: data.load_exif(im) for im in ims}
 
     pairs, _ = pairs_selection.match_candidates_from_metadata(
-        ims_ref, ims_cand, exifs, data
+        ims_ref,
+        ims_cand,
+        exifs,
+        data,
+        {},
     )
 
     matches = [p[1] for p in pairs]

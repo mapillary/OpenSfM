@@ -10,7 +10,7 @@ def run_dataset(data):
     images = data.images()
 
     start = timer()
-    pairs_matches, preport = matching.match_images(data, images, images)
+    pairs_matches, preport = matching.match_images(data, {}, images, images)
     matching.save_matches(data, images, pairs_matches)
     end = timer()
 
