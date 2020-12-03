@@ -99,10 +99,7 @@ class ImageSequenceView(View):
         self.update_image_list_text()
 
     def pixel_to_latlon(self, x: float, y: float):
-        print(self.current_image)
-        px, py = self.pixel_to_gcp_coordinates(x,y)
-        latlon=self.image_manager.get_nearest_feature(self.current_image, px, py)
-        return latlon[0], latlon[1]
+        return None
 
     def set_title(self):
         shot = self.current_image
