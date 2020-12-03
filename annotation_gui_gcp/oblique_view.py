@@ -35,6 +35,14 @@ class ObliqueView(View):
         self.set_title()
         return
 
+    def bring_new_image(self, new_image):
+        super(ObliqueView, self).bring_new_image(new_image, force=True)
+        xlim = self.ax.get_xlim()
+        ylim = self.ax.get_ylim()
+        artists = self.ax.plot(np.mean(xlim), np.mean(ylim), "rx")
+        self.plt_artists.extend(artists)
+        self.canvas.draw_idle()
+    
     def get_image(self, new_image):
         return self.image_manager.get_image(new_image)
 
