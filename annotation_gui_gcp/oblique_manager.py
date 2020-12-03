@@ -125,7 +125,7 @@ class ObliqueManager:
         data = world_points(ds)
         aerial_keypoints = []
         p = index.Property()
-        p.dimensions = 2
+        p.dimension = 2
         aerial_idx = index.Index(self.rtree_path, properties=p)
         for i, (key, val) in enumerate(data.items()):
             images = val['images']
