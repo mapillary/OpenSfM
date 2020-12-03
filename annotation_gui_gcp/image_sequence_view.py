@@ -53,7 +53,7 @@ class ImageSequenceView(View):
         # Draw track projections
         points = []
         track_lengths = []
-        for point, track_length in tracks.values():
+        for point, track_length, coord in tracks.values():
             points.append(self.gcp_to_pixel_coordinates(*point))
             track_lengths.append(track_length)
 
@@ -72,15 +72,20 @@ class ImageSequenceView(View):
         # Find track closest to click location and create a GCP from it
         x, y = self.pixel_to_gcp_coordinates(x, y)
         if add:
-            points, track_ids = [], []
+            points, track_ids, coords = [], [], []
             for tid, t in self.visible_tracks.items():
                 points.append(t[0])
                 track_ids.append(tid)
+                coords.append(t[2])
             dists = np.linalg.norm(np.array(points) - np.array([[x, y]]), axis=1)
             closest_track = track_ids[np.argmin(dists)]
             observations = get_all_track_observations(
                 self.main_ui.gcp_manager, closest_track
             )
+
+            latlonalt = self.visible_tracks[closest_track][2]
+            if self.main_ui.oblique_path:
+                self.main_ui.create_oblique_views(latlonalt)
 
             new_gcp = self.main_ui.add_gcp()
             print(f"New GCP {new_gcp} with {len(observations)} observations")

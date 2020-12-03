@@ -170,11 +170,11 @@ class Gui:
         button = tk.Button(io_frame, text="Save As", command=self.save_gcps_as)
         button.pack(side="left")
 
-    def create_oblique_views(self, latlon):
-        if latlon is None:
+    def create_oblique_views(self, latlonalt):
+        if latlonalt is None:
             return
         self.oblique_view = ObliqueView(self, self.oblique_manager)
-        v = self.oblique_view.oblique_selection(latlon[0], latlon[1])
+        v = self.oblique_view.oblique_selection(latlonalt[0], latlonalt[1])
         self.oblique_views.append(v)
 
     def create_ortho_views(self, ortho_paths, lat, lon):

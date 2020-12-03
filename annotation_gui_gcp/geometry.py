@@ -19,11 +19,13 @@ def get_tracks_visible_in_image(gcp_database, image_key, min_len=5):
             break
 
     out = {}
-    for track_id in reconstruction.points:
+    for track_id, point in reconstruction.points.items():
+        x, y, z = point.coordinates
+        lat, lon, alt = reconstruction.reference.to_lla(x, y, z)
         track_obs = tracks_manager.get_track_observations(track_id)
         if len(track_obs) < min_len:
             continue
         for shot_id, obs in track_obs.items():
             if shot_id == image_key:
-                out[track_id] = obs.point, len(track_obs)
+                out[track_id] = obs.point, len(track_obs), (lat, lon, alt)
     return out
