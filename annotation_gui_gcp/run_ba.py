@@ -398,22 +398,27 @@ def main():
             logger.error(f"Missing file: {fn}")
             return
 
-    camera_models = data.load_camera_models()
-    tracks_manager = data.load_tracks_manager()
-
-    reconstructions = data.load_reconstruction()
-    n_reconstructions = len(reconstructions)
-    gcps = data.load_ground_control_points()
-
     assert args.rec_a != args.rec_b, "rec_a and rec_b should be different"
 
-    if args.rec_b:
-        reconstructions = [reconstructions[args.rec_a], reconstructions[args.rec_b]]
+    camera_models = data.load_camera_models()
+    tracks_manager = data.load_tracks_manager()
+    gcps = data.load_ground_control_points()
+
+    fn_resplit = f"reconstruction_gcp_ba_resplit_{args.rec_a}x{args.rec_b}.json"
+    fn_rigid = f"reconstruction_gcp_rigid_{args.rec_a}x{args.rec_b}.json"
+
+    if args.rec_b:  # reconstruction - to - reconstruction annotation
+        if args.fast and os.path.exists(data._reconstruction_file(fn_resplit)):
+            reconstructions = data.load_reconstruction(fn_resplit)
+        else:
+            reconstructions = data.load_reconstruction()
+            reconstructions = [reconstructions[args.rec_a], reconstructions[args.rec_b]]
         coords0 = triangulate_gcps(gcps, reconstructions[0])
         coords1 = triangulate_gcps(gcps, reconstructions[1])
         s, A, b = find_alignment(coords1, coords0)
         align.apply_similarity(reconstructions[1], s, A, b)
-    else:
+    else:  # Image - to - reconstruction annotation
+        reconstructions = data.load_reconstruction()
         base = reconstructions[args.rec_a]
         resected = resect_annotated_single_images(base, gcps, camera_models, data)
         for shot in resected.shots.values():
@@ -421,9 +426,9 @@ def main():
             shot.metadata.gps_position.value = shot.pose.get_origin()
         reconstructions = [base, resected]
 
-    data.save_reconstruction(reconstructions, "reconstruction_gcp_rigid.json")
+    data.save_reconstruction(reconstructions, fn_rigid)
     merged = merge_reconstructions(reconstructions, tracks_manager)
-    # data.save_reconstruction([merged], "reconstruction_merged.json")
+    # data.save_reconstruction([merged], f"reconstruction_merged_{args.rec_a}x{args.rec_b}.json")
 
     if not args.fast:
         data.config["bundle_max_iterations"] = 200
@@ -432,7 +437,7 @@ def main():
         orec.bundle(merged, camera_models, gcp=gcps, config=data.config)
         # rigid rotation to put images on the ground
         orec.align_reconstruction(merged, None, data.config)
-        # data.save_reconstruction([merged], "reconstruction_gcp_ba.json")
+        # data.save_reconstruction([merged], "reconstruction_gcp_ba_{args.rec_a}x{args.rec_b}.json")
 
     gcp_reprojections = reproject_gcps(gcps, merged)
     reprojection_errors = get_all_reprojection_errors(gcp_reprojections)
@@ -448,7 +453,7 @@ def main():
 
     if not args.fast:
         resplit = resplit_reconstruction(merged, reconstructions)
-        data.save_reconstruction(resplit, "reconstruction_gcp_ba_resplit.json")
+        data.save_reconstruction(resplit, fn_resplit)
         all_shots_std = []
         # We run bundle by fixing one reconstruction.
         # If we have two reconstructions, we do this twice, fixing each one.
@@ -507,7 +512,7 @@ def main():
         if t[2] > args.px_threshold:
             print(t)
     metrics = {
-        "n_reconstructions": n_reconstructions,
+        "n_reconstructions": len(data.load_reconstruction()),
         "median_shot_std": median_shot_std,
         "max_shot_std": max_shot_std,
         "max_reprojection_error": max_reprojection_error,
