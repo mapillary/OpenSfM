@@ -35,13 +35,11 @@ class OrthoPhotoManager:
         # Create the corners of the viewing window in pixels
         top, right = t.index(xs[0] + size / 2, ys[0] + size / 2)
         bottom, left = t.index(xs[0] - size / 2, ys[0] - size / 2)
-
         window = rasterio.windows.Window(left, top, right - left, bottom - top)
-        self.current_window = window
 
         # TODO downsample image if the zoom level is too low / the image too large
         tw = reshape_as_image(t.read(window=window, boundless=True))
-        return tw, window, t
+        return tw, window
 
     def get_candidate_images(self, lat: float, lon: float):
         # lat, lon -> nearmap file id + nearmap pixel coordinates
@@ -51,4 +49,5 @@ class OrthoPhotoManager:
         return self.read_image_around_latlon(img, lat, lon, size)
 
     def get_image_size(self, img):
-        return self.current_window.height, self.current_window.width
+        t = rasterio.open(self.path / img)
+        return t.height, t.width

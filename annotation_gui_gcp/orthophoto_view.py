@@ -38,12 +38,11 @@ class OrthoPhotoView(View):
         self.set_title()
 
     def get_image(self, new_image):
-        image, image_window, geot = self.image_manager.read_image_around_latlon(
+        crop, image_window = self.image_manager.read_image_around_latlon(
             new_image, self.center_lat, self.center_lon, self.size
         )
         self.image_window = image_window
-        self.geot = geot
-        return image
+        return crop
 
     def get_candidate_images(self):
         return self.image_manager.get_candidate_images(self.center_lat, self.center_lon)
