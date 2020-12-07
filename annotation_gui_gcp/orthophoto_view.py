@@ -45,7 +45,9 @@ class OrthoPhotoView(View):
         return crop
 
     def get_candidate_images(self):
-        return self.image_manager.get_candidate_images(self.center_lat, self.center_lon)
+        return self.image_manager.get_candidate_images(
+            self.center_lat, self.center_lon, self.size
+        )
 
     def pixel_to_latlon(self, x: float, y: float):
         """

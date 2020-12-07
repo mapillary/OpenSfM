@@ -6,6 +6,7 @@ import rasterio.plot
 import rasterio.warp
 import rasterio.windows
 from rasterio.plot import reshape_as_image
+from rasterio.io import DatasetReader
 
 
 class OrthoPhotoManager:
@@ -14,13 +15,23 @@ class OrthoPhotoManager:
         self.size = size
         self.image_keys = [p.name for p in self.path.iterdir() if p.suffix == ".tif"]
 
-    def check_latlon_covered(self, img: str, lat: float, lon: float):
-        t = rasterio.open(self.path / img)
+    def window_around_latlon(
+        self, t: DatasetReader, lat: float, lon: float, size: float
+    ):
+        # From latlon to the coordinate reference system of the image in m
         xs, ys = rasterio.warp.transform("EPSG:4326", t.crs, [lon], [lat], zs=None)
-        row_center, col_center = t.index(xs[0], ys[0])
-        window = rasterio.windows.Window(row_center, col_center, 1, 1)
+
+        # Create the corners of the viewing window in pixels
+        top, right = t.index(xs[0] + size / 2, ys[0] + size / 2)
+        bottom, left = t.index(xs[0] - size / 2, ys[0] - size / 2)
+        window = rasterio.windows.Window(left, top, right - left, bottom - top)
+        return window
+
+    def check_latlon_covered(self, img: str, lat: float, lon: float, size: float):
+        t = rasterio.open(self.path / img)
+        window = self.window_around_latlon(t, lat, lon, size)
         mask = t.read_masks(1, window=window, boundless=True)
-        return mask.item() != 0
+        return mask.sum() > 0
 
     def load_latlons(self):
         # We don't have a 'canonical' lat/lon for orthophotos
@@ -29,21 +40,17 @@ class OrthoPhotoManager:
     def read_image_around_latlon(self, img: str, lat: float, lon: float, size: float):
         t = rasterio.open(self.path / img)
 
-        # From latlon to the coordinate reference system of the image in m
-        xs, ys = rasterio.warp.transform("EPSG:4326", t.crs, [lon], [lat], zs=None)
-
-        # Create the corners of the viewing window in pixels
-        top, right = t.index(xs[0] + size / 2, ys[0] + size / 2)
-        bottom, left = t.index(xs[0] - size / 2, ys[0] - size / 2)
-        window = rasterio.windows.Window(left, top, right - left, bottom - top)
+        window = self.window_around_latlon(t, lat, lon, size)
 
         # TODO downsample image if the zoom level is too low / the image too large
         tw = reshape_as_image(t.read(window=window, boundless=True))
         return tw, window
 
-    def get_candidate_images(self, lat: float, lon: float):
+    def get_candidate_images(self, lat: float, lon: float, size: float):
         # lat, lon -> nearmap file id + nearmap pixel coordinates
-        return [k for k in self.image_keys if self.check_latlon_covered(k, lat, lon)]
+        return [
+            k for k in self.image_keys if self.check_latlon_covered(k, lat, lon, size)
+        ]
 
     def get_image(self, img, lat: float, lon: float, size: float):
         return self.read_image_around_latlon(img, lat, lon, size)
