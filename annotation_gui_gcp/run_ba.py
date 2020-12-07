@@ -77,9 +77,11 @@ def reproject_gcps(gcps, reconstruction):
     output = {}
     for gcp in gcps:
         point = orec.triangulate_gcp(gcp, reconstruction.shots)
-        if point is None:
-            point = np.nan
         output[gcp.id] = {}
+        n_obs = len(gcp.observations)
+        if point is None:
+            print(f"Could not triangulate {gcp.id} with {n_obs} annotations")
+            continue
         for observation in gcp.observations:
             if observation.shot_id not in reconstruction.shots:
                 continue
@@ -459,6 +461,7 @@ def main():
         # If we have two reconstructions, we do this twice, fixing each one.
         _rec_ixs = [(0, 1), (1, 0)] if args.rec_b else [(0, 1)]
         for rec_ixs in _rec_ixs:
+            print(f"Running BA with fixed images. Fixing rec #{rec_ixs[0]}")
             fixed_images = set(reconstructions[rec_ixs[0]].shots.keys())
             bundle_with_fixed_images(
                 merged,
@@ -470,7 +473,7 @@ def main():
             )
 
             logger.info(
-                f"STD in the position of shots in rec {rec_ixs[1]} w.r.t rec {rec_ixs[0]}"
+                f"STD in the position of shots in R#{rec_ixs[1]} w.r.t R#{rec_ixs[0]}"
             )
             for shot in merged.shots.values():
                 if shot.id in reconstructions[rec_ixs[1]].shots:
