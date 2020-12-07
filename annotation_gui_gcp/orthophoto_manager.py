@@ -14,6 +14,7 @@ class OrthoPhotoManager:
         self.path = Path(path)
         self.size = size
         self.image_keys = [p.name for p in self.path.iterdir() if p.suffix == ".tif"]
+        self.candidate_cache = {}
 
     def window_around_latlon(
         self, t: DatasetReader, lat: float, lon: float, size: float
@@ -44,13 +45,17 @@ class OrthoPhotoManager:
 
         # TODO downsample image if the zoom level is too low / the image too large
         tw = reshape_as_image(t.read(window=window, boundless=True))
-        return tw, window
+        return tw, window, t
 
     def get_candidate_images(self, lat: float, lon: float, size: float):
         # lat, lon -> nearmap file id + nearmap pixel coordinates
-        return [
-            k for k in self.image_keys if self.check_latlon_covered(k, lat, lon, size)
-        ]
+        if (lat, lon, size) not in self.candidate_cache:
+            self.candidate_cache[(lat, lon, size)] = [
+                k
+                for k in self.image_keys
+                if self.check_latlon_covered(k, lat, lon, size)
+            ]
+        return self.candidate_cache[(lat, lon, size)]
 
     def get_image(self, img, lat: float, lon: float, size: float):
         return self.read_image_around_latlon(img, lat, lon, size)
