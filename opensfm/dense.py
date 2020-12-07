@@ -213,16 +213,7 @@ def prune_depthmap(arguments):
             point_cloud_to_ply(points, normals, colors, labels, detections, fp)
 
 
-def merge_depthmaps(data, reconstruction):
-    """Merge depthmaps into a single point cloud."""
-    logger.info("Merging depthmaps")
-
-    shot_ids = [s for s in reconstruction.shots if data.pruned_depthmap_exists(s)]
-
-    if not shot_ids:
-        logger.warning("Depthmaps contain no points.  Try using more images.")
-        return
-
+def aggregate_depthmaps(data, shot_ids):
     points = []
     normals = []
     colors = []
@@ -236,12 +227,26 @@ def merge_depthmaps(data, reconstruction):
         labels.append(l)
         detections.append(d)
 
-    points = np.concatenate(points)
-    normals = np.concatenate(normals)
-    colors = np.concatenate(colors)
-    labels = np.concatenate(labels)
-    detections = np.concatenate(detections)
+    return (
+        np.concatenate(points),
+        np.concatenate(normals),
+        np.concatenate(colors),
+        np.concatenate(labels),
+        np.concatenate(detections),
+    )
 
+
+def merge_depthmaps(data, reconstruction):
+    """Merge depthmaps into a single point cloud."""
+    logger.info("Merging depthmaps")
+
+    shot_ids = [s for s in reconstruction.shots if data.pruned_depthmap_exists(s)]
+
+    if not shot_ids:
+        logger.warning("Depthmaps contain no points.  Try using more images.")
+        return
+
+    points, normals, colors, labels, detections = aggregate_depthmaps(data, shot_ids)
     with io.open_wt(data._depthmap_path() + "/merged.ply") as fp:
         point_cloud_to_ply(points, normals, colors, labels, detections, fp)
 
