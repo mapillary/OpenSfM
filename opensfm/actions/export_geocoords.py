@@ -125,7 +125,7 @@ def _transform_reconstruction(reconstruction, transformation):
 def _transform_dense_point_cloud(udata, transformation, output_path):
     """Apply a transformation to the merged point cloud."""
     A, b = transformation[:3, :3], transformation[:3, 3]
-    input_path = os.path.join(udata._depthmap_path(), "merged.ply")
+    input_path = udata.point_cloud_file()
     with io.open_rt(input_path) as fin:
         with io.open_wt(output_path) as fout:
             for i, line in enumerate(fin):

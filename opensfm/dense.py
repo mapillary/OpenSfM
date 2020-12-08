@@ -123,7 +123,7 @@ def compute_depthmap(arguments):
         image = data.load_undistorted_image(shot.id)
         image = scale_down_image(image, depth.shape[1], depth.shape[0])
         ply = depthmap_to_ply(shot, depth, image)
-        with io.open_wt(data._depthmap_file(shot.id, "raw.npz.ply")) as fout:
+        with io.open_wt(data.depthmap_file(shot.id, "raw.npz.ply")) as fout:
             fout.write(ply)
 
     if data.config.get("interactive"):
@@ -172,7 +172,7 @@ def clean_depthmap(arguments):
         image = data.load_undistorted_image(shot.id)
         image = scale_down_image(image, depth.shape[1], depth.shape[0])
         ply = depthmap_to_ply(shot, depth, image)
-        with io.open_wt(data._depthmap_file(shot.id, "clean.npz.ply")) as fout:
+        with io.open_wt(data.depthmap_file(shot.id, "clean.npz.ply")) as fout:
             fout.write(ply)
 
     if data.config.get("interactive"):
@@ -209,7 +209,7 @@ def prune_depthmap(arguments):
     data.save_pruned_depthmap(shot.id, points, normals, colors, labels, detections)
 
     if data.config["depthmap_save_debug_files"]:
-        with io.open_wt(data._depthmap_file(shot.id, "pruned.npz.ply")) as fp:
+        with io.open_wt(data.depthmap_file(shot.id, "pruned.npz.ply")) as fp:
             point_cloud_to_ply(points, normals, colors, labels, detections, fp)
 
 
@@ -247,7 +247,7 @@ def merge_depthmaps(data, reconstruction):
         return
 
     points, normals, colors, labels, detections = aggregate_depthmaps(data, shot_ids)
-    with io.open_wt(data._depthmap_path() + "/merged.ply") as fp:
+    with io.open_wt(data.point_cloud_file()) as fp:
         point_cloud_to_ply(points, normals, colors, labels, detections, fp)
 
 

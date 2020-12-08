@@ -28,11 +28,11 @@ def run_dataset(data, no_cameras, no_points, depthmaps):
         for id, shot in reconstructions[0].shots.items():
             rgb = udata.load_undistorted_image(id)
             for t in ("clean", "raw"):
-                path_depth = udata._depthmap_file(id, t + ".npz")
+                path_depth = udata.depthmap_file(id, t + ".npz")
                 if not os.path.exists(path_depth):
                     continue
                 depth = np.load(path_depth)["depth"]
                 rgb = scale_down_image(rgb, depth.shape[1], depth.shape[0])
                 ply = depthmap_to_ply(shot, depth, rgb)
-                with io.open_wt(udata._depthmap_file(id, t + ".ply")) as fout:
+                with io.open_wt(udata.depthmap_file(id, t + ".ply")) as fout:
                     fout.write(ply)
