@@ -752,8 +752,8 @@ class UndistortedDataSet(object):
         """Path to the depthmap file"""
         return os.path.join(self._depthmap_path(), image + "." + suffix)
 
-    def point_cloud_file(self):
-        return os.path.join(self._depthmap_path(), "merged.ply")
+    def point_cloud_file(self, filename="merged.ply"):
+        return os.path.join(self._depthmap_path(), filename)
 
     def raw_depthmap_exists(self, image):
         return os.path.isfile(self.depthmap_file(image, "raw.npz"))

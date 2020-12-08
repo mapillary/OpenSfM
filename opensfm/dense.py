@@ -213,14 +213,16 @@ def prune_depthmap(arguments):
             point_cloud_to_ply(points, normals, colors, labels, detections, fp)
 
 
-def aggregate_depthmaps(data, shot_ids):
+def aggregate_depthmaps(data, shot_ids, depthmap_provider):
+    """ Aggregate depthmaps by concatenation."""
+
     points = []
     normals = []
     colors = []
     labels = []
     detections = []
     for shot_id in shot_ids:
-        p, n, c, l, d = data.load_pruned_depthmap(shot_id)
+        p, n, c, l, d = depthmap_provider(shot_id)
         points.append(p)
         normals.append(n)
         colors.append(c)
@@ -246,8 +248,26 @@ def merge_depthmaps(data, reconstruction):
         logger.warning("Depthmaps contain no points.  Try using more images.")
         return
 
-    points, normals, colors, labels, detections = aggregate_depthmaps(data, shot_ids)
-    with io.open_wt(data.point_cloud_file()) as fp:
+    def depthmap_provider(shot_id):
+        return data.load_pruned_depthmap(shot_id)
+
+    merge_depthmaps_from_provider(
+        data, shot_ids, depthmap_provider, data.point_cloud_file()
+    )
+
+
+def merge_depthmaps_from_provider(data, shot_ids, depthmap_provider, output):
+    """Merge depthmaps into a single point cloud."""
+    logger.info("Merging depthmaps")
+
+    if not shot_ids:
+        logger.warning("Depthmaps contain no points.  Try using more images.")
+        return
+
+    points, normals, colors, labels, detections = aggregate_depthmaps(
+        data, shot_ids, depthmap_provider
+    )
+    with io.open_wt(output) as fp:
         point_cloud_to_ply(points, normals, colors, labels, detections, fp)
 
 
