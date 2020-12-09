@@ -8,6 +8,7 @@ set(GEOMETRY_FILES
     relative_pose.h
     triangulation.h
     src/camera.cc
+    src/camera_functions.cc
     src/essential.cc
     src/triangulation.cc
     src/absolute_pose.cc
