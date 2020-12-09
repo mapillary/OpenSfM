@@ -463,9 +463,7 @@ py::dict BAHelpers::Bundle(
   if (!fix_cameras) {
     for (auto& cam : map.GetCameras()) {
       const auto& ba_cam = ba.GetCamera(cam.first);
-      for (const auto& p : ba_cam.GetParametersMap()) {
-        cam.second.SetParameterValue(p.first, p.second);
-      }
+      cam.second.SetParametersValues(ba_cam.GetParametersValues());
     }
   }
 

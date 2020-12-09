@@ -164,7 +164,6 @@ struct BAData {
 struct BACamera : public BAData<Camera> {
   BACamera(const Camera &value, const Camera &prior, const Camera &sigma)
       : BAData<Camera>(value, prior, sigma),
-        all_parameters_(value.GetParametersTypes()),
         parameters_to_optimize_(value.GetParametersTypes()) {}
 
   std::vector<Camera::Parameters> GetParametersToOptimize() {
@@ -184,10 +183,7 @@ struct BACamera : public BAData<Camera> {
 
   void DataToValue(const VecXd &data, Camera &value) const final {
     if (data.size() > 0) {
-      int count = 0;
-      for (const auto t : all_parameters_) {
-        value.SetParameterValue(t, data(count++));
-      }
+      value.SetParametersValues(data);
     }
   }
 
