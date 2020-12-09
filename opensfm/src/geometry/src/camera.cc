@@ -75,11 +75,12 @@ Camera Camera::CreateDualCamera(double transition, double focal, double k1,
 };
 
 Camera Camera::CreateSphericalCamera() {
+  std::cout << "CreateSphericalCamera" << std::endl;
   Camera camera;
   camera.type_ = ProjectionType::SPHERICAL;
   camera.types_ = {Camera::Parameters::None};
-  camera.values_.resize(1);
-  camera.values_ << 0.0;
+  camera.values_.resize(200);
+  camera.values_.setZero();
   return camera;
 };
 
@@ -88,6 +89,10 @@ std::vector<Camera::Parameters> Camera::GetParametersTypes() const {
 }
 
 VecXd Camera::GetParametersValues() const { return values_; }
+}
+
+void Camera::SetParametersValues(const VecXd& values) {
+  values_ = values;
 
 std::map<Camera::Parameters, double, Camera::CompParameters>
 Camera::GetParametersMap() const {
@@ -106,7 +111,7 @@ void Camera::SetParameterValue(const Parameters& parameter, double value) {
       return;
     }
   }
-  throw std::runtime_error("Unknown parameter for this camera model");
+  throw std::runtime_error("SetParameterValue: Unknown parameter for this camera model");
 }
 
 double Camera::GetParameterValue(const Parameters& parameter) const {
@@ -116,7 +121,7 @@ double Camera::GetParameterValue(const Parameters& parameter) const {
       return values_[i];
     }
   }
-  throw std::runtime_error("Unknown parameter for this camera model");
+  throw std::runtime_error("GetParameterValue: Unknown parameter for this camera model");
 }
 
 ProjectionType Camera::GetProjectionType() const { return type_; }
