@@ -213,7 +213,7 @@ def prune_depthmap(arguments):
             point_cloud_to_ply(points, normals, colors, labels, detections, fp)
 
 
-def aggregate_depthmaps(data, shot_ids, depthmap_provider):
+def aggregate_depthmaps(shot_ids, depthmap_provider):
     """ Aggregate depthmaps by concatenation."""
 
     points = []
@@ -265,7 +265,7 @@ def merge_depthmaps_from_provider(data, shot_ids, depthmap_provider, output):
         return
 
     points, normals, colors, labels, detections = aggregate_depthmaps(
-        data, shot_ids, depthmap_provider
+        shot_ids, depthmap_provider
     )
     with io.open_wt(output) as fp:
         point_cloud_to_ply(points, normals, colors, labels, detections, fp)
