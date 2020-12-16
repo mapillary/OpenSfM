@@ -9,6 +9,7 @@
 #include <ceres/rotation.h>
 #include <geometry/camera.h>
 
+
 class CameraFixture : public ::testing::Test {
  public:
   CameraFixture() {

@@ -32,6 +32,7 @@ if (OPENSFM_BUILD_TESTS)
     target_link_libraries(bundle_test
                         PUBLIC
                         bundle
+                        geometry
                         ${TEST_MAIN})
     add_test(bundle_test bundle_test)
 endif()

@@ -48,8 +48,10 @@ class Camera {
   Eigen::MatrixX3d BearingsMany(const Eigen::MatrixX2d& points) const;
 
   std::vector<Parameters> GetParametersTypes() const;
+  std::map<Parameters, double, CompParameters> GetParametersMap()const;
+
   VecXd GetParametersValues() const;
-  std::map<Parameters, double, CompParameters> GetParametersMap() const;
+  void SetParametersValues(const VecXd& values);
 
   double GetParameterValue(const Parameters& parameter) const;
   void SetParameterValue(const Parameters& parameter, double value);

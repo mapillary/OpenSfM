@@ -568,6 +568,137 @@ struct Disto2468 : CameraFunctor<2, 4, 2> {
 };
 
 /* Parameters are : k1, k2, k3, p1, p2 */
+template< class T>
+int GetIntValue(const T& x){
+  return int(x.a);
+}
+int GetIntValue(const double& x);
+int GetIntValue(const Eigen::AutoDiffScalar<Eigen::VectorXd>& x);
+
+template<int NX, int NY>
+struct DistoGenericBilinear : CameraFunctor<2, 2*NX*NY, 2> {
+  template <class T>
+  static void Forward(const T* point, const T* params, T* distorted) {
+    Bilinear<T>(point, params, distorted);
+  }
+
+  template <class T>
+  static void Backward(const T* point, const T* params, T* undistorted) {
+    Eigen::Map<const Vec2<T>> mapped_point(point);
+    BilinearEval<T> eval_function{mapped_point, params};
+    Eigen::Map<Vec2<T>> mapped_undistorted(undistorted);
+    mapped_undistorted =
+        NewtonRaphson<BilinearEval<T>, 2, 2, ManualDiff<BilinearEval<T>, 2, 2>>(
+            eval_function, mapped_point, iterations);
+  }
+
+  template <class T, bool COMP_PARAM>
+  static void ForwardDerivatives(const T* point, const T* params, T* distorted,
+                                 T* jacobian) {
+    // dx, dy, dparams(i)
+    constexpr int stride = CameraFunctor<2, 2*NX*NY, 2>::template Stride<COMP_PARAM>();
+
+    // set everything to zero
+    memset(jacobian, 0, sizeof(double)*stride*2);
+
+    const double div_x = 1.0/(NX-1);
+    const double div_y = 1.0/(NY-1);
+
+    const T px = (point[0] + T(0.5))/T(div_x);
+    const T py = (point[1] + T(0.5))/T(div_y);
+    const int ix = GetIntValue(px);
+    const int iy = GetIntValue(py);
+
+    T x = point[0];
+    T y = point[1];
+    T dx = px - T(ix);
+    T dy = py - T(iy);
+
+    // params indexes
+    const int k_index = iy * NX + ix;
+    const int l_index = iy * NX + ix + 1;
+    const int m_index = (iy+1) * NX + ix;
+    const int n_index = (iy+1) * NX + ix + 1;
+
+    // dx/d(x,y)
+    T k = params[k_index];
+    T l = params[l_index];
+    T m = params[m_index];
+    T n = params[n_index];
+    jacobian[0] = T(1.0) + (T(1.0) - dy)*(-k+l) + dy*(-m + n);
+    jacobian[1] = k*x - l*x + n*dx + m*(T(1.0) - dx) + l*ix -k -k*ix;
+
+    // dy/d(x,y)
+    k = params[k_index + NX*NY];
+    l = params[l_index + NX*NY];
+    m = params[m_index + NX*NY];
+    n = params[n_index + NX*NY];
+    jacobian[stride] = dy*(n-m) + (l-k)*(T(1.0) - dy);
+    jacobian[stride + 1] = T(1.0) - k +x*k - ix*k -l*x +l*ix + m*(T(1.0) - dx) + n*dx;
+
+    if (COMP_PARAM) {
+      jacobian[2 + k_index] = jacobian[stride + 2 + k_index + NX*NY] = (1.0-dy)*(1.0-dx);
+      jacobian[2 + l_index] = jacobian[stride + 2 + l_index + NX*NY] = (1.0-dy)*dx;
+      jacobian[2 + m_index] = jacobian[stride + 2 + m_index + NX*NY] = dy*(1.0-dx);
+      jacobian[2 + n_index] = jacobian[stride + 2 + n_index + NX*NY] = dy*dx;
+    }
+
+    Forward(point, params, distorted);
+  }
+
+  static constexpr int iterations = 10;
+
+  template <class T>
+  struct BilinearEval {
+    const Vec2<T>& point_distorted;
+    const T * params;
+
+    Vec2<T> operator()(const Vec2<T>& point) const {
+      // Apply bilinear
+      Vec2<T> distorted;
+      Bilinear<T>(point.data(), params, distorted.data());
+      return distorted - point_distorted;
+    }
+
+    Mat2<T> derivative(const Vec2<T>& point) const {
+      // Compute jacobian
+      Mat2<T> jacobian;
+      double dummy[2];
+      DistoGenericBilinear::ForwardDerivatives<T, false>(point.data(), params, dummy, jacobian.data());
+
+      return jacobian;
+    }
+  };
+
+  template <class T>
+  static void Bilinear(const T* point, const T* k, T* distorted) {
+    const double div_x = 1.0/(NX-1);
+    const double div_y = 1.0/(NY-1);
+
+    const T px = (point[0] + T(0.5))/T(div_x);
+    const T py = (point[1] + T(0.5))/T(div_y);
+    const int ix = GetIntValue(px);
+    const int iy = GetIntValue(py);
+
+    T x = point[0];
+    T y = point[1];
+    T dx = px - T(ix);
+    T dy = py - T(iy);
+
+    for(int i = 0; i < 2;++i){
+      T k00 = k[iy * (2 * NX) + ix + i];
+      T k01 = k[iy * (2 * NX) + ix + 1 + i];
+      T k10 = k[(iy+1) * (2 * NX) + ix + i];
+      T k11 = k[(iy+1) * (2 * NX) + ix + 1 + i];
+      T b0 = T(T(1.0) - dx) * k00 + dx * k01;
+      T b1 = T(T(1.0) - dx) * k10 + dx * k11;
+      distorted[i] = point[i] + T(1.0 - dy) * b0 + dy * b1;
+    }
+  }
+};
+
+
+/* Parameters are : k1, k2, k3, p1, p2 */
 struct DistoBrown : CameraFunctor<2, 5, 2> {
   enum { K1 = 0, K2 = 1, K3 = 2, P1 = 3, P2 = 4 };
 
@@ -1059,49 +1190,13 @@ struct BearingFunction {
  * camera model to follow it. You can add any new camera models as long as it
  * implements the Forward and Backward functions. */
 
-/* Here's some trait that defines where to look for parameters that follows the
- * generic scheme */
-template <class T>
-struct FunctorTraits {
-  static constexpr int Size = 0;
-};
-template <>
-struct FunctorTraits<SphericalProjection> {
-  static constexpr int Size = 0;
-};
-template <>
-struct FunctorTraits<DualProjection> {
-  static constexpr int Size = 1;
-};
-template <>
-struct FunctorTraits<Disto24> {
-  static constexpr int Size = 2;
-};
-template <>
-struct FunctorTraits<Disto2468> {
-  static constexpr int Size = 4;
-};
-template <>
-struct FunctorTraits<DistoBrown> {
-  static constexpr int Size = 5;
-};
-template <>
-struct FunctorTraits<UniformScale> {
-  static constexpr int Size = 1;
-};
-template <>
-struct FunctorTraits<Affine> {
-  static constexpr int Size = 4;
-};
-
 template <class PROJ, class DISTO, class AFF>
 struct SizeTraits {
   static constexpr const int ConstexprMax(int a, int b) {
     return (a < b) ? b : a;
   }
   static constexpr int Size =
-      ConstexprMax(1, FunctorTraits<PROJ>::Size + FunctorTraits<AFF>::Size +
-                          FunctorTraits<DISTO>::Size);
+      ConstexprMax(1, PROJ::ParamSize + AFF::ParamSize + DISTO::ParamSize);
 };
 
 /* Finally, here's the generic camera that implements the PROJ - > DISTO ->
@@ -1141,16 +1236,16 @@ struct ProjectGeneric
   static void ConstructReversedParams(const T* parameters_forward,
                                       T* parameters_backward) {
     int count = 0;
-    int index = Size - FunctorTraits<PROJ>::Size;
-    for (int i = 0; i < FunctorTraits<PROJ>::Size; ++i) {
+    int index = Size - PROJ::ParamSize;
+    for (int i = 0; i < PROJ::ParamSize; ++i) {
       parameters_backward[index + i] = parameters_forward[count++];
     }
-    index -= FunctorTraits<DISTO>::Size;
-    for (int i = 0; i < FunctorTraits<DISTO>::Size; ++i) {
+    index -= DISTO::ParamSize;
+    for (int i = 0; i < DISTO::ParamSize; ++i) {
       parameters_backward[index + i] = parameters_forward[count++];
     }
-    index -= FunctorTraits<AFF>::Size;
-    for (int i = 0; i < FunctorTraits<AFF>::Size; ++i) {
+    index -= AFF::ParamSize;
+    for (int i = 0; i < AFF::ParamSize; ++i) {
       parameters_backward[index + i] = parameters_forward[count++];
     }
   }
@@ -1163,7 +1258,7 @@ using FisheyeCamera = ProjectGeneric<FisheyeProjection, Disto24, UniformScale>;
 using FisheyeOpencvCamera =
     ProjectGeneric<FisheyeProjection, Disto2468, Affine>;
 using DualCamera = ProjectGeneric<DualProjection, Disto24, UniformScale>;
-using SphericalCamera = ProjectGeneric<SphericalProjection, Identity, Identity>;
+using SphericalCamera = ProjectGeneric<SphericalProjection, DistoGenericBilinear<10,10>, Identity>;
 
 /* This is where the pseudo-strategy pattern takes place. If you want to add
  * your own new camera model, just add a new enum value, the corresponding
