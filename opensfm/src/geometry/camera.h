@@ -13,6 +13,8 @@ class Camera {
     K2,
     K3,
     K4,
+    K5,
+    K6,
     P1,
     P2,
     Focal,
@@ -37,6 +39,9 @@ class Camera {
   static Camera CreateFisheyeOpencvCamera(double focal, double aspect_ratio,
                                           const Vec2d& principal_point,
                                           const VecXd& distortion);
+  static Camera CreateFisheye62Camera(double focal, double aspect_ratio,
+                                      const Eigen::Vector2d& principal_point,
+                                      const Eigen::VectorXd& distortion);
   static Camera CreateDualCamera(double transition, double focal, double k1,
                                  double k2);
   static Camera CreateSphericalCamera();

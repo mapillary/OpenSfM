@@ -63,6 +63,33 @@ Camera Camera::CreateFisheyeOpencvCamera(double focal, double aspect_ratio,
   return camera;
 };
 
+/**
+  Create a Fisheye62 camera with 11 parameters:
+  - params: f, cx, cy, (radial) k1, k2, k3, k4, k5, k6 (tangential) p1, p2
+  Note that in arvr, the parameters start at 0 and p1/p2 are reversed
+  See: https://fburl.com/diffusion/xnhraa2z
+*/
+Camera Camera::CreateFisheye62Camera(double focal, double aspect_ratio,
+                                     const Eigen::Vector2d& principal_point,
+                                     const Eigen::VectorXd& distortion) {
+  if (distortion.size() != 8) {
+    throw std::runtime_error("Invalid distortion coefficients size");
+  }
+  Camera camera;
+  camera.type_ = ProjectionType::FISHEYE62;
+  camera.types_ = {Camera::Parameters::K1,    Camera::Parameters::K2,
+                   Camera::Parameters::K3,    Camera::Parameters::K4,
+                   Camera::Parameters::K5,    Camera::Parameters::K6,
+                   Camera::Parameters::P1,    Camera::Parameters::P2,
+                   Camera::Parameters::Focal, Camera::Parameters::AspectRatio,
+                   Camera::Parameters::Cx,    Camera::Parameters::Cy};
+  camera.values_.resize(12);
+  camera.values_ << distortion[0], distortion[1], distortion[2], distortion[3],
+      distortion[4], distortion[5], distortion[6], distortion[7], focal, aspect_ratio,
+      principal_point[0], principal_point[1];
+  return camera;
+}
+
 Camera Camera::CreateDualCamera(double transition, double focal, double k1,
                                 double k2) {
   Camera camera;
@@ -131,6 +158,8 @@ std::string Camera::GetProjectionString() const {
       return "fisheye";
     case ProjectionType::FISHEYE_OPENCV:
       return "fisheye_opencv";
+    case ProjectionType::FISHEYE62:
+      return "fisheye62";
     case ProjectionType::DUAL:
       return "dual";
     case ProjectionType::SPHERICAL:

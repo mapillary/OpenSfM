@@ -91,8 +91,8 @@ TEST_F(ReprojectionError2DFixture, BrownAnalyticErrorEvaluatesOK) {
   constexpr int size = 9;
 
   // focal, ar, cx, cy, k1, k2, k3, p1, p2
-  const double camera[size] = {0.3,   1.0,   0.001,  -0.02, 0.1,
-                               -0.03, 0.001, -0.005, 0.001};
+  constexpr std::array<double, size> camera{0.3,   1.0,   0.001,  -0.02, 0.1,
+                                            -0.03, 0.001, -0.005, 0.001};
   RunTest<size>(ProjectionType::BROWN, &camera[0]);
 }
 
@@ -100,7 +100,7 @@ TEST_F(ReprojectionError2DFixture, PerspectiveAnalyticErrorEvaluatesOK) {
   constexpr int size = 3;
 
   // focal, k1, k2
-  const double camera[size] = {0.3, 0.1, -0.03};
+  constexpr std::array<double, size> camera{0.3, 0.1, -0.03};
   RunTest<size>(ProjectionType::PERSPECTIVE, &camera[0]);
 }
 
@@ -108,7 +108,7 @@ TEST_F(ReprojectionError2DFixture, FisheyeAnalyticErrorEvaluatesOK) {
   constexpr int size = 3;
 
   // focal, k1, k2, k3
-  const double camera[size] = {0.3, 0.1, -0.03};
+  constexpr std::array<double, size> camera{0.3, 0.1, -0.03};
   RunTest<size>(ProjectionType::FISHEYE, &camera[0]);
 }
 
@@ -116,16 +116,26 @@ TEST_F(ReprojectionError2DFixture, FisheyeOpencvAnalyticErrorEvaluatesOK) {
   constexpr int size = 8;
 
   // focal, ar, cx, cy, k1, k2, k3, k4
-  const double camera[size] = {0.3, 1.0,   0.001, -0.02,
-                               0.1, -0.03, 0.001, -0.005};
+  constexpr std::array<double, size> camera{0.3, 1.0,   0.001, -0.02,
+                                            0.1, -0.03, 0.001, -0.005};
   RunTest<size>(ProjectionType::FISHEYE_OPENCV, &camera[0]);
+}
+
+TEST_F(ReprojectionError2DFixture, Fisheye62AnalyticErrorEvaluatesOK) {
+  constexpr int size = 12;
+
+  // focal, ar, cx, cy, k1, k2, k3, k4, k5, k6, p1, p2
+  constexpr std::array<double, size> camera{0.3,  1.0,   0.001, -0.02,
+                                            0.1,  -0.03, 0.001, -0.005,
+                                            0.01, 0.006, 0.02,  0.003};
+  RunTest<size>(ProjectionType::FISHEYE62, &camera[0]);
 }
 
 TEST_F(ReprojectionError2DFixture, DualAnalyticErrorEvaluatesOK) {
   constexpr int size = 4;
 
   // transtion, focal, k1, k2
-  const double camera[size] = {0.5, 0.3, 0.1, -0.03};
+  constexpr std::array<double, size> camera{0.5, 0.3, 0.1, -0.03};
   RunTest<size>(ProjectionType::DUAL, &camera[0]);
 }
 

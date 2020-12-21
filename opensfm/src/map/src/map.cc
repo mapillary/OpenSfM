@@ -343,6 +343,23 @@ Camera* Map::CreateCamera(const Camera& cam) {
                   cam.GetParameterValue(Camera::Parameters::Cy)),
             distortion);
       }
+      case ProjectionType::FISHEYE62: {
+        VecXd distortion(8);
+        distortion << cam.GetParameterValue(Camera::Parameters::K1),
+            cam.GetParameterValue(Camera::Parameters::K2),
+            cam.GetParameterValue(Camera::Parameters::K3),
+            cam.GetParameterValue(Camera::Parameters::K4),
+            cam.GetParameterValue(Camera::Parameters::K5),
+            cam.GetParameterValue(Camera::Parameters::K6),
+            cam.GetParameterValue(Camera::Parameters::P1),
+            cam.GetParameterValue(Camera::Parameters::P2);
+        return Camera::CreateFisheye62Camera(
+            cam.GetParameterValue(Camera::Parameters::Focal),
+            cam.GetParameterValue(Camera::Parameters::AspectRatio),
+            Vec2d(cam.GetParameterValue(Camera::Parameters::Cx),
+                  cam.GetParameterValue(Camera::Parameters::Cy)),
+            distortion);
+      }
       case ProjectionType::DUAL:
         return Camera::CreateDualCamera(
             cam.GetParameterValue(Camera::Parameters::Transition),

@@ -256,6 +256,25 @@ PYBIND11_MODULE(pymap, m) {
                     distortion);
                 break;
               }
+              case ProjectionType::FISHEYE62: {
+                Vec2d principal_point = Vec2d::Zero();
+                principal_point << values.at(Camera::Parameters::Cx),
+                    values.at(Camera::Parameters::Cy);
+                VecXd distortion(8);
+                distortion << values.at(Camera::Parameters::K1),
+                    values.at(Camera::Parameters::K2),
+                    values.at(Camera::Parameters::K3),
+                    values.at(Camera::Parameters::K4),
+                    values.at(Camera::Parameters::K5),
+                    values.at(Camera::Parameters::K6),
+                    values.at(Camera::Parameters::P1),
+                    values.at(Camera::Parameters::P2);
+                camera = Camera::CreateFisheye62Camera(
+                    values.at(Camera::Parameters::Focal),
+                    values.at(Camera::Parameters::AspectRatio), principal_point,
+                    distortion);
+                break;
+              }
               case ProjectionType::DUAL: {
                 camera = Camera::CreateDualCamera(
                     values.at(Camera::Parameters::Transition),

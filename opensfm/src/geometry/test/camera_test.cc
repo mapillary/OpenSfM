@@ -28,6 +28,8 @@ class CameraFixture : public ::testing::Test {
     distortion_brown << -0.1, 0.03, 0.001, 0.001, 0.002;
     distortion_fisheye.resize(4);
     distortion_fisheye << -0.1, 0.03, 0.001, 0.005;
+    distortion_fisheye62.resize(8);
+    distortion_fisheye62 << -0.1, 0.03, 0.001, 0.005, 0.02,0.001, 0.0007, -0.01;
     principal_point << 0.1, -0.05;
 
     for (int i = 0; i < 3; ++i) {
@@ -95,6 +97,7 @@ class CameraFixture : public ::testing::Test {
   Eigen::VectorXd distortion;
   Eigen::VectorXd distortion_brown;
   Eigen::VectorXd distortion_fisheye;
+  Eigen::VectorXd distortion_fisheye62;
   Eigen::Vector2d principal_point;
 
   double point[3];
@@ -137,6 +140,13 @@ TEST_F(CameraFixture, FisheyeIsConsistentLargeFov) {
 TEST_F(CameraFixture, FisheyeOpencvIsConsistent) {
   Camera camera = Camera::CreateFisheyeOpencvCamera(focal, 1.0, principal_point,
                                                     distortion_fisheye);
+  const auto projected = camera.ProjectMany(camera.BearingsMany(pixels));
+  ASSERT_LT(ComputeError(projected), 2e-7);
+}
+
+TEST_F(CameraFixture, Fisheye62IsConsistent) {
+  Camera camera = Camera::CreateFisheye62Camera(focal, 1.0, principal_point,
+                                                distortion_fisheye62);
   const auto projected = camera.ProjectMany(camera.BearingsMany(pixels));
   ASSERT_LT(ComputeError(projected), 2e-7);
 }
@@ -195,6 +205,19 @@ TEST_F(CameraFixture, FisheyeOpencvReturnCorrectTypes) {
   ASSERT_THAT(expected, ::testing::ContainerEq(types));
 }
 
+TEST_F(CameraFixture, Fisheye62ReturnCorrectTypes) {
+  Camera camera = Camera::CreateFisheye62Camera(focal, 1.0, principal_point,
+                                                distortion_fisheye62);
+  const auto types = camera.GetParametersTypes();
+  const auto expected = std::vector<Camera::Parameters>(
+      {Camera::Parameters::K1, Camera::Parameters::K2, Camera::Parameters::K3,
+       Camera::Parameters::K4, Camera::Parameters::K5, Camera::Parameters::K6,
+       Camera::Parameters::P1, Camera::Parameters::P2,
+       Camera::Parameters::Focal, Camera::Parameters::AspectRatio,
+       Camera::Parameters::Cx, Camera::Parameters::Cy});
+  ASSERT_THAT(expected, ::testing::ContainerEq(types));
+}
+
 TEST_F(CameraFixture, BrownReturnCorrectTypes) {
   Camera camera =
       Camera::CreateBrownCamera(focal, 1.0, principal_point, distortion_brown);
@@ -245,6 +268,16 @@ TEST_F(CameraFixture, FisheyeOpencvReturnCorrectValues) {
 
   Eigen::VectorXd expected(8);
   expected << distortion_fisheye, focal, 1.0, principal_point;
+  ASSERT_EQ(expected, values);
+}
+
+TEST_F(CameraFixture, Fisheye62ReturnCorrectValues) {
+  Camera camera = Camera::CreateFisheye62Camera(focal, 1.0, principal_point,
+                                                distortion_fisheye62);
+  const auto values = camera.GetParametersValues();
+
+  Eigen::VectorXd expected(12);
+  expected << distortion_fisheye62, focal, 1.0, principal_point;
   ASSERT_EQ(expected, values);
 }
 
@@ -381,6 +414,18 @@ TEST_F(CameraFixture, ComputeFisheyeOpencvAnalyticalDerivatives) {
   CheckJacobian(jacobian, size_params);
 }
 
+TEST_F(CameraFixture, ComputeFisheye62AnalyticalDerivatives) {
+  const Camera camera = Camera::CreateFisheye62Camera(
+      focal, 1.0, principal_point, distortion_fisheye62);
+
+  const VecXd camera_params = camera.GetParametersValues();
+  const int size_params = 3 + camera_params.size();
+
+  Eigen::Matrix<double, 2, 15, Eigen::RowMajor> jacobian;
+  RunJacobianEval(camera, ProjectionType::FISHEYE62, &jacobian);
+  CheckJacobian(jacobian, size_params);
+}
+
 TEST_F(CameraFixture, ComputeBrownAnalyticalDerivatives) {
   const Camera camera = Camera::CreateBrownCamera(
       focal, new_ar, principal_point, distortion_brown);
@@ -414,6 +459,22 @@ TEST_F(CameraFixture, ComputeDualAnalyticalDerivatives) {
   Eigen::Matrix<double, 2, 7, Eigen::RowMajor> jacobian;
   RunJacobianEval(camera, ProjectionType::DUAL, &jacobian);
   CheckJacobian(jacobian, size_params);
+}
+
+TEST_F(CameraFixture, FisheyeOpencvAsFisheye62) {
+  Eigen::Matrix<double, 8, 1> dist_62;
+  dist_62 << distortion_fisheye[0], distortion_fisheye[1],
+      distortion_fisheye[2], distortion_fisheye[3], 0, 0, 0, 0;
+  Camera cam62 =
+      Camera::CreateFisheye62Camera(focal, 1.0, principal_point, dist_62);
+  Camera camcv = Camera::CreateFisheyeOpencvCamera(focal, 1.0, principal_point,
+                                                   distortion_fisheye);
+  const MatX3d bear1 = cam62.BearingsMany(pixels);
+  const MatX3d bear2 = camcv.BearingsMany(pixels);
+  ASSERT_TRUE(bear1.isApprox(bear2, 1e-6));
+  const auto proj1 = cam62.ProjectMany(bear1);
+  const auto proj2 = camcv.ProjectMany(bear2);
+  ASSERT_TRUE(proj1.isApprox(proj2, 1e-6));
 }
 
 class FunctionFixture : public ::testing::Test {
