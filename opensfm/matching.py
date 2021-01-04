@@ -473,10 +473,10 @@ def robust_match(p1, p2, camera1, camera2, matches, config):
     matrix is used.  Otherwise, we use the Essential matrix.
     """
     if (
-        camera1.projection_type == "perspective"
+        camera1.projection_type in ["perspective", "brown"]
         and camera1.k1 == 0.0
         and camera1.k2 == 0.0
-        and camera2.projection_type == "perspective"
+        and camera2.projection_type in ["perspective", "brown"]
         and camera2.k1 == 0.0
         and camera2.k2 == 0.0
     ):

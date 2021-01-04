@@ -1,5 +1,7 @@
 import copy
 import logging
+import random
+import string
 import time
 
 from opensfm import exif
@@ -57,6 +59,15 @@ def _extract_exif(image, data):
     # EXIF data in Image
     with data.open_image_file(image) as fp:
         d = exif.extract_exif_from_file(fp)
+
+    if data.config["unknown_camera_models_are_different"] and (
+        not d["model"] or d["model"] == "unknown"
+    ):
+        d["model"] = f"unknown_{image}"
+
+    # TODO(pau): Undocumented hack. Replace with a cleaner solution.
+    if data.config.get("use_brown_camera"):
+        d["projection_type"] = "brown"
 
     # Image Height and Image Width
     if d["width"] <= 0 or not data.config["use_exif_size"]:
