@@ -1,5 +1,7 @@
 #include <sfm/tracks_manager.h>
 
+#include <foundation/union_find.h>
+
 #include <sstream>
 #include <unordered_set>
 
@@ -305,6 +307,65 @@ TracksManager::GetAllPairsConnectivity(
     }
   }
   return common_per_pair;
+}
+
+TracksManager TracksManager::MergeTracksManager(
+    const std::vector<TracksManager>& tracks_managers) {
+  // Some typedefs claryfying the aggregations
+  using FeatureId = std::pair<ShotId, int>;
+  using SingleTrackId = std::pair<TrackId, int>;
+
+  // Union-find main data
+  std::vector<std::unique_ptr<UnionFindElement<SingleTrackId>>>
+      union_find_elements;
+
+  // Aggregate tracks be merged using (shot_id, feature_id)
+  std::unordered_map<FeatureId, std::vector<int>, HashPair>
+      observations_per_feature_id;
+  for (int i = 0; i < tracks_managers.size(); ++i) {
+    const auto& manager = tracks_managers[i];
+    for (const auto& track_obses : manager.shots_per_track_) {
+      const auto element_id = union_find_elements.size();
+      for (const auto& shot_obs : track_obses.second) {
+        observations_per_feature_id[std::make_pair(shot_obs.first,
+                                                   shot_obs.second.id)]
+            .push_back(element_id);
+      }
+      union_find_elements.emplace_back(
+          std::make_unique<UnionFindElement<SingleTrackId>>(
+              std::make_pair(track_obses.first, i)));
+    }
+  }
+
+  // Union-find any two tracks sharing a common FeatureId
+  // For N tracks, make 0 the parent of [1, ... N-1[
+  for (const auto& tracks_agg : observations_per_feature_id) {
+    const auto e1 = union_find_elements[tracks_agg.second[0]].get();
+    for (int i = 1; i < tracks_agg.second.size(); ++i) {
+      const auto e2 = union_find_elements[tracks_agg.second[i]].get();
+      Union(e1, e2);
+    }
+  }
+
+  TracksManager merged;
+
+  // Get clusters and construct new tracks
+  const auto clusters = GetUnionFindClusters(&union_find_elements);
+  for (int i = 0; i < clusters.size(); ++i) {
+    const auto& tracks_agg = clusters[i];
+    const auto merged_track_id = std::to_string(i);
+    // Run over tracks to merged into a new single track
+    for (const auto& manager_n_track_id : tracks_agg) {
+      const auto manager_id = manager_n_track_id->data.second;
+      const auto track_id = manager_n_track_id->data.first;
+      const auto track =
+          tracks_managers[manager_id].shots_per_track_.at(track_id);
+      for (const auto& shot_obs : track) {
+        merged.AddObservation(shot_obs.first, merged_track_id, shot_obs.second);
+      }
+    }
+  }
+  return merged;
 }
 
 TracksManager TracksManager::InstanciateFromFile(const std::string& filename) {

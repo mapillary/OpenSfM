@@ -20,6 +20,7 @@ PYBIND11_MODULE(pysfm, m) {
       .def_static("instanciate_from_file", &TracksManager::InstanciateFromFile)
       .def_static("instanciate_from_string",
                   &TracksManager::InstanciateFromString)
+      .def_static("merge_tracks_manager", &TracksManager::MergeTracksManager)
       .def("add_observation", &TracksManager::AddObservation)
       .def("remove_observation", &TracksManager::RemoveObservation)
       .def("num_shots", &TracksManager::NumShots)

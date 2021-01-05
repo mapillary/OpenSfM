@@ -2,6 +2,7 @@
 #include <foundation/newton_raphson.h>
 #include <iostream>
 
+namespace foundation {
 Eigen::Matrix3d SkewMatrix(const Eigen::Vector3d& v) {
   Eigen::Matrix3d m;
   SkewMatrixT(v, &m);
@@ -90,3 +91,4 @@ std::array<double, 4> RefineQuarticRoots(
   }
   return refined_roots;
 }
+}  // namespace foundation

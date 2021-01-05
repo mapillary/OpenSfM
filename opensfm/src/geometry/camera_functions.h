@@ -270,7 +270,8 @@ struct DualProjection : CameraFunctor<3, 1, 2> {
     const T r = sqrt(SquaredNorm(point));
     ThetaEval<T> eval_function{0, r, p[Transition]};
     const auto theta_refined =
-        NewtonRaphson<ThetaEval<T>, 1, 1, ManualDiff<ThetaEval<T>, 1, 1>>(
+        foundation::NewtonRaphson<ThetaEval<T>, 1, 1,
+                                  foundation::ManualDiff<ThetaEval<T>, 1, 1>>(
             eval_function, 0, iterations);
 
     const auto s = tan(theta_refined) / (p[Transition] * tan(theta_refined) +
@@ -403,7 +404,8 @@ struct Disto24 : CameraFunctor<2, 2, 2> {
     DistoEval<T> eval_function{rd, k[static_cast<int>(K1)],
                                k[static_cast<int>(K2)]};
     const auto ru_refined =
-        NewtonRaphson<DistoEval<T>, 1, 1, ManualDiff<DistoEval<T>, 1, 1>>(
+        foundation::NewtonRaphson<DistoEval<T>, 1, 1,
+                                  foundation::ManualDiff<DistoEval<T>, 1, 1>>(
             eval_function, rd, iterations);
 
     // Compute distortion factor from undistorted radius
@@ -521,7 +523,8 @@ struct Disto2468 : CameraFunctor<2, 4, 2> {
                                k[static_cast<int>(K2)], k[static_cast<int>(K3)],
                                k[static_cast<int>(K4)]};
     const auto ru_refined =
-        NewtonRaphson<DistoEval<T>, 1, 1, ManualDiff<DistoEval<T>, 1, 1>>(
+        foundation::NewtonRaphson<DistoEval<T>, 1, 1,
+                                  foundation::ManualDiff<DistoEval<T>, 1, 1>>(
             eval_function, rd, iterations);
 
     // Compute distortion factor from undistorted radius
@@ -680,7 +683,8 @@ struct Disto62 : CameraFunctor<2, 8, 2> {
                                k[static_cast<int>(P2)]};
     Eigen::Map<Vec2<T>> mapped_undistorted(undistorted);
     mapped_undistorted =
-        NewtonRaphson<DistoEval<T>, 2, 2, ManualDiff<DistoEval<T>, 2, 2>>(
+        foundation::NewtonRaphson<DistoEval<T>, 2, 2,
+                                  foundation::ManualDiff<DistoEval<T>, 2, 2>>(
             eval_function, mapped_point, iterations);
   }
 
@@ -711,8 +715,8 @@ struct Disto62 : CameraFunctor<2, 8, 2> {
       Mat2<T> jacobian;
       std::array<double, 2> dummy;
       std::array<double, 8> ks{k1, k2, k3, k4, k5, k6, p1, p2};
-      Disto62::ForwardDerivatives<T, false>(point.data(), ks.data(), dummy.data(),
-                                            jacobian.data());
+      Disto62::ForwardDerivatives<T, false>(point.data(), ks.data(),
+                                            dummy.data(), jacobian.data());
       return jacobian;
     }
   };
@@ -819,7 +823,8 @@ struct DistoBrown : CameraFunctor<2, 5, 2> {
                                k[static_cast<int>(P2)]};
     Eigen::Map<Vec2<T>> mapped_undistorted(undistorted);
     mapped_undistorted =
-        NewtonRaphson<DistoEval<T>, 2, 2, ManualDiff<DistoEval<T>, 2, 2>>(
+        foundation::NewtonRaphson<DistoEval<T>, 2, 2,
+                                  foundation::ManualDiff<DistoEval<T>, 2, 2>>(
             eval_function, mapped_point, iterations);
   }
 
@@ -850,8 +855,8 @@ struct DistoBrown : CameraFunctor<2, 5, 2> {
       Mat2<T> jacobian;
       std::array<double, 2> dummy;
       std::array<double, 5> ks{k1, k2, k3, p1, p2};
-      DistoBrown::ForwardDerivatives<T, false>(point.data(), ks.data(), dummy.data(),
-                                               jacobian.data());
+      DistoBrown::ForwardDerivatives<T, false>(point.data(), ks.data(),
+                                               dummy.data(), jacobian.data());
       return jacobian;
     }
   };
@@ -1079,7 +1084,7 @@ struct Pose : CameraFunctor<3, 6, 3> {
     if (theta2 < T(std::numeric_limits<double>::epsilon())) {
       Eigen::Map<Mat3<T>> mapped_rotation(rotation);
       const Eigen::Map<const Vec3<T>> mapped_angle_axis(angle_axis);
-      SkewMatrixT(mapped_angle_axis, &mapped_rotation);
+      foundation::SkewMatrixT(mapped_angle_axis, &mapped_rotation);
       for (int i = 0; i < 3; ++i) {
         rotation[i * 3 + i] = T(1.0);
       }
