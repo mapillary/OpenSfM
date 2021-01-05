@@ -45,7 +45,7 @@ class TracksManager {
   std::string AsSring() const;
 
   static TracksManager MergeTracksManager(
-      const std::vector<TracksManager>& tracks_manager);
+      const std::vector<const TracksManager*>& tracks_manager);
 
   bool HasShotObservations(const ShotId& shot) const;
 

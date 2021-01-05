@@ -126,7 +126,7 @@ TEST_F(TracksManagerTest, MergeThreeTracksManager) {
   manager3.AddObservation("8", "2", o8);
 
   auto merged =
-      TracksManager::MergeTracksManager({manager1, manager2, manager3});
+      TracksManager::MergeTracksManager({&manager1, &manager2, &manager3});
 
   std::unordered_map<ShotId, Observation> track0;
   track0["1"] = o1;

@@ -310,7 +310,7 @@ TracksManager::GetAllPairsConnectivity(
 }
 
 TracksManager TracksManager::MergeTracksManager(
-    const std::vector<TracksManager>& tracks_managers) {
+    const std::vector<const TracksManager*>& tracks_managers) {
   // Some typedefs claryfying the aggregations
   using FeatureId = std::pair<ShotId, int>;
   using SingleTrackId = std::pair<TrackId, int>;
@@ -324,7 +324,7 @@ TracksManager TracksManager::MergeTracksManager(
       observations_per_feature_id;
   for (int i = 0; i < tracks_managers.size(); ++i) {
     const auto& manager = tracks_managers[i];
-    for (const auto& track_obses : manager.shots_per_track_) {
+    for (const auto& track_obses : manager->shots_per_track_) {
       const auto element_id = union_find_elements.size();
       for (const auto& shot_obs : track_obses.second) {
         observations_per_feature_id[std::make_pair(shot_obs.first,
@@ -337,17 +337,23 @@ TracksManager TracksManager::MergeTracksManager(
     }
   }
 
+  TracksManager merged;
+  if (union_find_elements.empty()) {
+    return merged;
+  }
+
   // Union-find any two tracks sharing a common FeatureId
   // For N tracks, make 0 the parent of [1, ... N-1[
   for (const auto& tracks_agg : observations_per_feature_id) {
+    if (tracks_agg.second.empty()) {
+      continue;
+    }
     const auto e1 = union_find_elements[tracks_agg.second[0]].get();
     for (int i = 1; i < tracks_agg.second.size(); ++i) {
       const auto e2 = union_find_elements[tracks_agg.second[i]].get();
       Union(e1, e2);
     }
   }
-
-  TracksManager merged;
 
   // Get clusters and construct new tracks
   const auto clusters = GetUnionFindClusters(&union_find_elements);
@@ -359,7 +365,7 @@ TracksManager TracksManager::MergeTracksManager(
       const auto manager_id = manager_n_track_id->data.second;
       const auto track_id = manager_n_track_id->data.first;
       const auto track =
-          tracks_managers[manager_id].shots_per_track_.at(track_id);
+          tracks_managers[manager_id]->shots_per_track_.at(track_id);
       for (const auto& shot_obs : track) {
         merged.AddObservation(shot_obs.first, merged_track_id, shot_obs.second);
       }
