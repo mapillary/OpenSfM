@@ -331,9 +331,8 @@ TracksManager TracksManager::MergeTracksManager(
                                                    shot_obs.second.id)]
             .push_back(element_id);
       }
-      union_find_elements.emplace_back(
-          std::make_unique<UnionFindElement<SingleTrackId>>(
-              std::make_pair(track_obses.first, i)));
+      union_find_elements.emplace_back(std::unique_ptr<UnionFindElement<SingleTrackId>>(
+        new UnionFindElement<SingleTrackId>(std::make_pair(track_obses.first, i))));
     }
   }
 
