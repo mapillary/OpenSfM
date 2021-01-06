@@ -7,7 +7,8 @@ class UnionFindFixture : public ::testing::Test {
  public:
   UnionFindFixture() {
     for (int i = 0; i < count; ++i) {
-      elements.emplace_back(std::make_unique<UnionFindElement<int>>(i));
+      elements.emplace_back(std::unique_ptr<UnionFindElement<int>>(
+        new UnionFindElement<int>(i)));
     }
   }
 
