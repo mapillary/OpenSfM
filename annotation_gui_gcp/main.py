@@ -115,7 +115,11 @@ def load_shots_from_reconstructions(path, min_ims):
 
     n_recs = len(reconstructions)
     if len(reconstructions) > 2:
-        reconstructions = [r for r in reconstructions if len(r.shots) >= min_ims]
+        reconstructions = [
+            r
+            for ix_r, r in enumerate(reconstructions)
+            if len(r.shots) >= min_ims or ix_r < 2
+        ]
     if len(reconstructions) < n_recs:
         print(
             "Kept {}/{} reconstructions (min images: {})".format(
@@ -135,7 +139,9 @@ def load_shots_from_reconstructions(path, min_ims):
 
 
 def group_by_reconstruction(args, groups_from_sequence_database):
-    all_recs_shots = load_shots_from_reconstructions(path, min_ims=50)
+    all_recs_shots = load_shots_from_reconstructions(
+        path, min_ims=args.min_images_in_reconstruction
+    )
     grouped_skeys = [skey for g in args.sequence_group for skey in g]
 
     map_key_to_skey = {}
