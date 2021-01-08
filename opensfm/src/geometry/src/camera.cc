@@ -149,7 +149,11 @@ double Camera::GetParameterValue(const Parameters& parameter) const {
 ProjectionType Camera::GetProjectionType() const { return type_; }
 
 std::string Camera::GetProjectionString() const {
-  switch (type_) {
+  return Camera::GetProjectionString(type_);
+}
+
+std::string Camera::GetProjectionString(const ProjectionType& type) {
+  switch (type) {
     case ProjectionType::PERSPECTIVE:
       return "perspective";
     case ProjectionType::BROWN:

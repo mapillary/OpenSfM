@@ -142,7 +142,9 @@ PYBIND11_MODULE(pygeometry, m) {
             p.SetParameterValue(Camera::Parameters::Cx, principal_point[0]);
             p.SetParameterValue(Camera::Parameters::Cy, principal_point[1]);
           })
-      .def_property_readonly("projection_type", &Camera::GetProjectionString)
+      .def_property_readonly(
+          "projection_type",
+          (std::string(Camera::*)() const) & Camera::GetProjectionString)
       .def_static("is_panorama",
                   [](const std::string& s) {
                     return !s.compare("spherical") ||

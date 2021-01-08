@@ -687,3 +687,17 @@ TEST(Camera, TestPixelNormalizedCoordinatesConversion) {
   ASSERT_EQ(px_coord_comp[0], px_coord_static[0]);
   ASSERT_EQ(px_coord_comp[1], px_coord_static[1]);
 }
+
+TEST(Camera, TestCameraProjectionTypes)
+{
+  ASSERT_EQ(Camera::GetProjectionString(ProjectionType::BROWN),"brown");
+  ASSERT_EQ(Camera::GetProjectionString(ProjectionType::PERSPECTIVE),"perspective");
+  ASSERT_EQ(Camera::GetProjectionString(ProjectionType::DUAL),"dual");
+  ASSERT_EQ(Camera::GetProjectionString(ProjectionType::FISHEYE),"fisheye");
+  ASSERT_EQ(Camera::GetProjectionString(ProjectionType::FISHEYE_OPENCV),"fisheye_opencv");
+  ASSERT_EQ(Camera::GetProjectionString(ProjectionType::FISHEYE62),"fisheye62");
+  ASSERT_EQ(Camera::GetProjectionString(ProjectionType::SPHERICAL),"spherical");
+
+  // One test to ensure that it is passed correctly from the cam to the static method
+  ASSERT_EQ(Camera::CreatePerspectiveCamera(0, 0, 0).GetProjectionString(), "perspective");
+}

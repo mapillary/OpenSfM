@@ -61,6 +61,7 @@ class Camera {
 
   ProjectionType GetProjectionType() const;
   std::string GetProjectionString() const;
+  static std::string GetProjectionString(const ProjectionType& type);
 
   Mat3d GetProjectionMatrix() const;
   Mat3d GetProjectionMatrixScaled(int width, int height) const;
