@@ -326,9 +326,12 @@ class Gui:
 
     def save_gcps(self):
         if self.quick_save_filename is None:
-            return self.save_gcps_as()
+            self.save_gcps_as()
         else:
-            return self.gcp_manager.write_to_file(self.quick_save_filename)
+            self.gcp_manager.write_to_file(self.quick_save_filename)
+            parent = os.path.dirname(self.quick_save_filename)
+            dirname = os.path.basename(parent)
+            self.gcp_manager.write_to_file(os.path.join(parent, dirname + ".json"))
 
     def save_gcps_as(self):
         filename = tk.filedialog.asksaveasfilename(
