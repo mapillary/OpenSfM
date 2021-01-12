@@ -4,9 +4,8 @@
 #include <foundation/numeric.h>
 #include <foundation/types.h>
 
-#include <unsupported/Eigen/AutoDiff>
-
 #include <iostream>
+#include <unsupported/Eigen/AutoDiff>
 
 enum class ProjectionType {
   PERSPECTIVE,
@@ -15,7 +14,9 @@ enum class ProjectionType {
   FISHEYE_OPENCV,
   FISHEYE62,
   SPHERICAL,
-  DUAL
+  DUAL,
+  RADIAL,
+  SIMPLE_RADIAL
 };
 
 template <class T>

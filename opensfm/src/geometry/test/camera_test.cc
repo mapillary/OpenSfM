@@ -697,6 +697,8 @@ TEST(Camera, TestCameraProjectionTypes)
   ASSERT_EQ(Camera::GetProjectionString(ProjectionType::FISHEYE_OPENCV),"fisheye_opencv");
   ASSERT_EQ(Camera::GetProjectionString(ProjectionType::FISHEYE62),"fisheye62");
   ASSERT_EQ(Camera::GetProjectionString(ProjectionType::SPHERICAL),"spherical");
+  ASSERT_EQ(Camera::GetProjectionString(ProjectionType::RADIAL),"radial");
+  ASSERT_EQ(Camera::GetProjectionString(ProjectionType::SIMPLE_RADIAL),"simple_radial");
 
   // One test to ensure that it is passed correctly from the cam to the static method
   ASSERT_EQ(Camera::CreatePerspectiveCamera(0, 0, 0).GetProjectionString(), "perspective");

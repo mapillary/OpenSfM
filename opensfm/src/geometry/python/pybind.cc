@@ -19,6 +19,8 @@ PYBIND11_MODULE(pygeometry, m) {
       .value("FISHEYE62", ProjectionType::FISHEYE62)
       .value("DUAL", ProjectionType::DUAL)
       .value("SPHERICAL", ProjectionType::SPHERICAL)
+      .value("RADIAL", ProjectionType::RADIAL)
+      .value("SIMPLE_RADIAL", ProjectionType::SIMPLE_RADIAL)
       .export_values();
 
   py::enum_<Camera::Parameters>(m, "CameraParameters")
@@ -46,6 +48,8 @@ PYBIND11_MODULE(pygeometry, m) {
       .def_static("create_fisheye62", &Camera::CreateFisheye62Camera)
       .def_static("create_dual", &Camera::CreateDualCamera)
       .def_static("create_spherical", &Camera::CreateSphericalCamera)
+      .def_static("create_radial", &Camera::CreateRadialCamera)
+      .def_static("create_simple_radial", &Camera::CreateSimpleRadialCamera)
       .def("pixel_to_normalized_coordinates_common",
            (Vec2d(*)(const Vec2d&, const int, const int)) &
                Camera::PixelToNormalizedCoordinates)
@@ -74,7 +78,8 @@ PYBIND11_MODULE(pygeometry, m) {
       .def_readwrite("width", &Camera::width)
       .def_readwrite("height", &Camera::height)
       .def_readwrite("id", &Camera::id)
-      .def_property("focal",
+      .def_property(
+          "focal",
           [](const Camera& p) {
             return p.GetParameterValue(Camera::Parameters::Focal);
           },
@@ -269,6 +274,27 @@ PYBIND11_MODULE(pygeometry, m) {
                     distortion);
                 break;
               }
+              case ProjectionType::RADIAL: {
+                const Vec2d principal_point(values.at(Camera::Parameters::Cx),
+                                            values.at(Camera::Parameters::Cy));
+                const Vec2d distortion(values.at(Camera::Parameters::K1),
+                                       values.at(Camera::Parameters::K2));
+                camera = Camera::CreateRadialCamera(
+                    values.at(Camera::Parameters::Focal),
+                    values.at(Camera::Parameters::AspectRatio), principal_point,
+                    distortion);
+                break;
+              }
+              case ProjectionType::SIMPLE_RADIAL: {
+                const Vec2d principal_point(values.at(Camera::Parameters::Cx),
+                                            values.at(Camera::Parameters::Cy));
+
+                camera = Camera::CreateSimpleRadialCamera(
+                    values.at(Camera::Parameters::Focal),
+                    values.at(Camera::Parameters::AspectRatio), principal_point,
+                    values.at(Camera::Parameters::K1));
+                break;
+              }
               case ProjectionType::DUAL: {
                 camera = Camera::CreateDualCamera(
                     values.at(Camera::Parameters::Transition),
@@ -288,9 +314,11 @@ PYBIND11_MODULE(pygeometry, m) {
             return camera;
           }))
       // Python2 + copy/deepcopy + pybind11 workaround
-      .def("__copy__", [](const Camera& c) { return c; },
+      .def(
+          "__copy__", [](const Camera& c) { return c; },
           py::return_value_policy::copy)
-      .def("__deepcopy__", [](const Camera& c, const py::dict& d) { return c; },
+      .def(
+          "__deepcopy__", [](const Camera& c, const py::dict& d) { return c; },
           py::return_value_policy::copy);
   m.def("compute_camera_mapping", ComputeCameraMapping,
         py::call_guard<py::gil_scoped_release>());
@@ -372,9 +400,11 @@ PYBIND11_MODULE(pygeometry, m) {
             pose.SetFromCameraToWorld(p[0].cast<Mat4d>());
             return pose;
           }))
-      .def("__copy__", [](const geometry::Pose& p) { return p; },
+      .def(
+          "__copy__", [](const geometry::Pose& p) { return p; },
           py::return_value_policy::copy)
-      .def("__deepcopy__",
+      .def(
+          "__deepcopy__",
           [](const geometry::Pose& p, const py::dict& d) { return p; },
           py::return_value_policy::copy)
       .def("inverse", [](const geometry::Pose& p) {

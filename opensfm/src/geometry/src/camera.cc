@@ -1,5 +1,6 @@
 #include <geometry/camera.h>
 #include <geometry/camera_functions.h>
+
 #include <iostream>
 
 Camera::Camera(const std::vector<Camera::Parameters>& types,
@@ -85,8 +86,8 @@ Camera Camera::CreateFisheye62Camera(double focal, double aspect_ratio,
                    Camera::Parameters::Cx,    Camera::Parameters::Cy};
   camera.values_.resize(12);
   camera.values_ << distortion[0], distortion[1], distortion[2], distortion[3],
-      distortion[4], distortion[5], distortion[6], distortion[7], focal, aspect_ratio,
-      principal_point[0], principal_point[1];
+      distortion[4], distortion[5], distortion[6], distortion[7], focal,
+      aspect_ratio, principal_point[0], principal_point[1];
   return camera;
 }
 
@@ -109,6 +110,34 @@ Camera Camera::CreateSphericalCamera() {
   camera.values_ << 0.0;
   return camera;
 };
+
+Camera Camera::CreateRadialCamera(double focal, double aspect_ratio,
+                                  const Vec2d& principal_point,
+                                  const Vec2d& distortion) {
+  Camera camera;
+  camera.type_ = ProjectionType::RADIAL;
+  camera.types_ = {Camera::Parameters::K1,    Camera::Parameters::K2,
+                   Camera::Parameters::Focal, Camera::Parameters::AspectRatio,
+                   Camera::Parameters::Cx,    Camera::Parameters::Cy};
+  camera.values_.resize(camera.types_.size());
+  camera.values_ << distortion[0], distortion[1], focal, aspect_ratio,
+      principal_point[0], principal_point[1];
+  return camera;
+}
+
+Camera Camera::CreateSimpleRadialCamera(double focal, double aspect_ratio,
+                                        const Vec2d& principal_point,
+                                        double k1) {
+  Camera camera;
+  camera.type_ = ProjectionType::SIMPLE_RADIAL;
+  camera.types_ = {Camera::Parameters::K1, Camera::Parameters::Focal,
+                   Camera::Parameters::AspectRatio, Camera::Parameters::Cx,
+                   Camera::Parameters::Cy};
+  camera.values_.resize(camera.types_.size());
+  camera.values_ << k1, focal, aspect_ratio, principal_point[0],
+      principal_point[1];
+  return camera;
+}
 
 std::vector<Camera::Parameters> Camera::GetParametersTypes() const {
   return types_;
@@ -168,6 +197,10 @@ std::string Camera::GetProjectionString(const ProjectionType& type) {
       return "dual";
     case ProjectionType::SPHERICAL:
       return "spherical";
+    case ProjectionType::RADIAL:
+      return "radial";
+    case ProjectionType::SIMPLE_RADIAL:
+      return "simple_radial";
     default:
       throw std::runtime_error("Invalid ProjectionType");
   }

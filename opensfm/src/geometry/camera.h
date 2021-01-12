@@ -44,6 +44,12 @@ class Camera {
   static Camera CreateDualCamera(double transition, double focal, double k1,
                                  double k2);
   static Camera CreateSphericalCamera();
+  static Camera CreateRadialCamera(double focal, double aspect_ratio,
+                                   const Vec2d& principal_point,
+                                   const Vec2d& distortion);
+  static Camera CreateSimpleRadialCamera(double focal, double aspect_ratio,
+                                         const Vec2d& principal_point,
+                                         double k1);
 
   Vec2d Project(const Vec3d& point) const;
   MatX2d ProjectMany(const MatX3d& points) const;

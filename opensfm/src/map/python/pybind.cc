@@ -275,6 +275,26 @@ PYBIND11_MODULE(pymap, m) {
                     distortion);
                 break;
               }
+              case ProjectionType::RADIAL: {
+                const Vec2d principal_point(values.at(Camera::Parameters::Cx),
+                                            values.at(Camera::Parameters::Cy));
+                const Vec2d distortion(values.at(Camera::Parameters::K1),
+                                       values.at(Camera::Parameters::K2));
+                camera = Camera::CreateRadialCamera(
+                    values.at(Camera::Parameters::Focal),
+                    values.at(Camera::Parameters::AspectRatio), principal_point,
+                    distortion);
+                break;
+              }
+              case ProjectionType::SIMPLE_RADIAL: {
+                const Vec2d principal_point(values.at(Camera::Parameters::Cx),
+                                            values.at(Camera::Parameters::Cy));
+                camera = Camera::CreateSimpleRadialCamera(
+                    values.at(Camera::Parameters::Focal),
+                    values.at(Camera::Parameters::AspectRatio), principal_point,
+                    values.at(Camera::Parameters::K1));
+                break;
+              }
               case ProjectionType::DUAL: {
                 camera = Camera::CreateDualCamera(
                     values.at(Camera::Parameters::Transition),

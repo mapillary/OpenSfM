@@ -360,6 +360,23 @@ Camera* Map::CreateCamera(const Camera& cam) {
                   cam.GetParameterValue(Camera::Parameters::Cy)),
             distortion);
       }
+      case ProjectionType::RADIAL: {
+        return Camera::CreateRadialCamera(
+            cam.GetParameterValue(Camera::Parameters::Focal),
+            cam.GetParameterValue(Camera::Parameters::AspectRatio),
+            Vec2d(cam.GetParameterValue(Camera::Parameters::Cx),
+                  cam.GetParameterValue(Camera::Parameters::Cy)),
+            Vec2d(cam.GetParameterValue(Camera::Parameters::K1),
+                  cam.GetParameterValue(Camera::Parameters::K2)));
+      }
+      case ProjectionType::SIMPLE_RADIAL: {
+        return Camera::CreateSimpleRadialCamera(
+            cam.GetParameterValue(Camera::Parameters::Focal),
+            cam.GetParameterValue(Camera::Parameters::AspectRatio),
+            Vec2d(cam.GetParameterValue(Camera::Parameters::Cx),
+                  cam.GetParameterValue(Camera::Parameters::Cy)),
+            cam.GetParameterValue(Camera::Parameters::K1));
+      }
       case ProjectionType::DUAL:
         return Camera::CreateDualCamera(
             cam.GetParameterValue(Camera::Parameters::Transition),
