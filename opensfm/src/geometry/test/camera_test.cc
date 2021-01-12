@@ -1,13 +1,12 @@
-#include <random>
-
-#include <gmock/gmock.h>
-#include <gtest/gtest.h>
-#include <Eigen/Dense>
-#include <unsupported/Eigen/AutoDiff>
-
 #include <ceres/jet.h>
 #include <ceres/rotation.h>
 #include <geometry/camera.h>
+#include <gmock/gmock.h>
+#include <gtest/gtest.h>
+
+#include <Eigen/Dense>
+#include <random>
+#include <unsupported/Eigen/AutoDiff>
 
 class CameraFixture : public ::testing::Test {
  public:
@@ -29,7 +28,9 @@ class CameraFixture : public ::testing::Test {
     distortion_fisheye.resize(4);
     distortion_fisheye << -0.1, 0.03, 0.001, 0.005;
     distortion_fisheye62.resize(8);
-    distortion_fisheye62 << -0.1, 0.03, 0.001, 0.005, 0.02,0.001, 0.0007, -0.01;
+    distortion_fisheye62 << -0.1, 0.03, 0.001, 0.005, 0.02, 0.001, 0.0007,
+        -0.01;
+    distortion_radial << 0.1, 0.03;
     principal_point << 0.1, -0.05;
 
     for (int i = 0; i < 3; ++i) {
@@ -98,6 +99,7 @@ class CameraFixture : public ::testing::Test {
   Eigen::VectorXd distortion_brown;
   Eigen::VectorXd distortion_fisheye;
   Eigen::VectorXd distortion_fisheye62;
+  Eigen::Vector2d distortion_radial;
   Eigen::Vector2d principal_point;
 
   double point[3];
@@ -166,6 +168,20 @@ TEST_F(CameraFixture, SphericalIsConsistent) {
   ASSERT_EQ(projected(1), 0.2);
 }
 
+TEST_F(CameraFixture, RadialIsConsistent) {
+  Camera camera = Camera::CreateRadialCamera(focal, 1.0, principal_point,
+                                             distortion_radial);
+  const auto projected = camera.ProjectMany(camera.BearingsMany(pixels));
+  ASSERT_LT(ComputeError(projected), 2e-7);
+}
+
+TEST_F(CameraFixture, SimpleRadialIsConsistent) {
+  Camera camera = Camera::CreateSimpleRadialCamera(focal, 1.0, principal_point,
+                                                   distortion_radial[0]);
+  const auto projected = camera.ProjectMany(camera.BearingsMany(pixels));
+  ASSERT_LT(ComputeError(projected), 2e-7);
+}
+
 TEST_F(CameraFixture, SphericalReturnCorrectTypes) {
   Camera camera = Camera::CreateSphericalCamera();
   const auto types = camera.GetParametersTypes();
@@ -215,6 +231,28 @@ TEST_F(CameraFixture, Fisheye62ReturnCorrectTypes) {
        Camera::Parameters::P1, Camera::Parameters::P2,
        Camera::Parameters::Focal, Camera::Parameters::AspectRatio,
        Camera::Parameters::Cx, Camera::Parameters::Cy});
+  ASSERT_THAT(expected, ::testing::ContainerEq(types));
+}
+
+TEST_F(CameraFixture, RadialReturnCorrectTypes) {
+  Camera camera = Camera::CreateRadialCamera(focal, 1.0, principal_point,
+                                             distortion_radial);
+  const auto types = camera.GetParametersTypes();
+  const auto expected = std::vector<Camera::Parameters>(
+      {Camera::Parameters::K1, Camera::Parameters::K2,
+       Camera::Parameters::Focal, Camera::Parameters::AspectRatio,
+       Camera::Parameters::Cx, Camera::Parameters::Cy});
+  ASSERT_THAT(expected, ::testing::ContainerEq(types));
+}
+
+TEST_F(CameraFixture, SimpleRadialReturnCorrectTypes) {
+  Camera camera = Camera::CreateSimpleRadialCamera(focal, 1.0, principal_point,
+                                                   distortion_radial[0]);
+  const auto types = camera.GetParametersTypes();
+  const auto expected = std::vector<Camera::Parameters>(
+      {Camera::Parameters::K1, Camera::Parameters::Focal,
+       Camera::Parameters::AspectRatio, Camera::Parameters::Cx,
+       Camera::Parameters::Cy});
   ASSERT_THAT(expected, ::testing::ContainerEq(types));
 }
 
@@ -278,6 +316,26 @@ TEST_F(CameraFixture, Fisheye62ReturnCorrectValues) {
 
   Eigen::VectorXd expected(12);
   expected << distortion_fisheye62, focal, 1.0, principal_point;
+  ASSERT_EQ(expected, values);
+}
+
+TEST_F(CameraFixture, RadialReturnCorrectValues) {
+  Camera camera = Camera::CreateRadialCamera(focal, 1.0, principal_point,
+                                                distortion_radial);
+  const auto values = camera.GetParametersValues();
+
+  Eigen::VectorXd expected(6);
+  expected << distortion_radial, focal, 1.0, principal_point;
+  ASSERT_EQ(expected, values);
+}
+
+TEST_F(CameraFixture, SimpleRadialReturnCorrectValues) {
+  Camera camera = Camera::CreateSimpleRadialCamera(focal, 1.0, principal_point,
+                                                distortion_radial[0]);
+  const auto values = camera.GetParametersValues();
+
+  Eigen::VectorXd expected(5);
+  expected << distortion_radial[0], focal, 1.0, principal_point;
   ASSERT_EQ(expected, values);
 }
 
@@ -423,6 +481,30 @@ TEST_F(CameraFixture, ComputeFisheye62AnalyticalDerivatives) {
 
   Eigen::Matrix<double, 2, 15, Eigen::RowMajor> jacobian;
   RunJacobianEval(camera, ProjectionType::FISHEYE62, &jacobian);
+  CheckJacobian(jacobian, size_params);
+}
+
+TEST_F(CameraFixture, ComputeRadialAnalyticalDerivatives) {
+  const Camera camera = Camera::CreateRadialCamera(
+      focal, 1.0, principal_point, distortion_radial);
+
+  const VecXd camera_params = camera.GetParametersValues();
+  const int size_params = 3 + camera_params.size();
+
+  Eigen::Matrix<double, 2, 9, Eigen::RowMajor> jacobian;
+  RunJacobianEval(camera, ProjectionType::RADIAL, &jacobian);
+  CheckJacobian(jacobian, size_params);
+}
+
+TEST_F(CameraFixture, ComputeSimpleRadialAnalyticalDerivatives) {
+  const Camera camera = Camera::CreateSimpleRadialCamera(
+      focal, 1.0, principal_point, distortion_radial[0]);
+
+  const VecXd camera_params = camera.GetParametersValues();
+  const int size_params = 3 + camera_params.size();
+
+  Eigen::Matrix<double, 2, 8, Eigen::RowMajor> jacobian;
+  RunJacobianEval(camera, ProjectionType::SIMPLE_RADIAL, &jacobian);
   CheckJacobian(jacobian, size_params);
 }
 
@@ -688,18 +770,24 @@ TEST(Camera, TestPixelNormalizedCoordinatesConversion) {
   ASSERT_EQ(px_coord_comp[1], px_coord_static[1]);
 }
 
-TEST(Camera, TestCameraProjectionTypes)
-{
-  ASSERT_EQ(Camera::GetProjectionString(ProjectionType::BROWN),"brown");
-  ASSERT_EQ(Camera::GetProjectionString(ProjectionType::PERSPECTIVE),"perspective");
-  ASSERT_EQ(Camera::GetProjectionString(ProjectionType::DUAL),"dual");
-  ASSERT_EQ(Camera::GetProjectionString(ProjectionType::FISHEYE),"fisheye");
-  ASSERT_EQ(Camera::GetProjectionString(ProjectionType::FISHEYE_OPENCV),"fisheye_opencv");
-  ASSERT_EQ(Camera::GetProjectionString(ProjectionType::FISHEYE62),"fisheye62");
-  ASSERT_EQ(Camera::GetProjectionString(ProjectionType::SPHERICAL),"spherical");
-  ASSERT_EQ(Camera::GetProjectionString(ProjectionType::RADIAL),"radial");
-  ASSERT_EQ(Camera::GetProjectionString(ProjectionType::SIMPLE_RADIAL),"simple_radial");
+TEST(Camera, TestCameraProjectionTypes) {
+  ASSERT_EQ(Camera::GetProjectionString(ProjectionType::BROWN), "brown");
+  ASSERT_EQ(Camera::GetProjectionString(ProjectionType::PERSPECTIVE),
+            "perspective");
+  ASSERT_EQ(Camera::GetProjectionString(ProjectionType::DUAL), "dual");
+  ASSERT_EQ(Camera::GetProjectionString(ProjectionType::FISHEYE), "fisheye");
+  ASSERT_EQ(Camera::GetProjectionString(ProjectionType::FISHEYE_OPENCV),
+            "fisheye_opencv");
+  ASSERT_EQ(Camera::GetProjectionString(ProjectionType::FISHEYE62),
+            "fisheye62");
+  ASSERT_EQ(Camera::GetProjectionString(ProjectionType::SPHERICAL),
+            "spherical");
+  ASSERT_EQ(Camera::GetProjectionString(ProjectionType::RADIAL), "radial");
+  ASSERT_EQ(Camera::GetProjectionString(ProjectionType::SIMPLE_RADIAL),
+            "simple_radial");
 
-  // One test to ensure that it is passed correctly from the cam to the static method
-  ASSERT_EQ(Camera::CreatePerspectiveCamera(0, 0, 0).GetProjectionString(), "perspective");
+  // One test to ensure that it is passed correctly from the cam to the static
+  // method
+  ASSERT_EQ(Camera::CreatePerspectiveCamera(0, 0, 0).GetProjectionString(),
+            "perspective");
 }

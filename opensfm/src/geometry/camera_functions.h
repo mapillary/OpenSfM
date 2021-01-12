@@ -345,6 +345,97 @@ struct SphericalProjection : CameraFunctor<3, 0, 2> {
   }
 };
 
+/* Parameter is : k1 */
+struct Disto2 : CameraFunctor<2, 1, 2> {
+  enum { K1 = 0 };
+
+  template <class T>
+  static void Forward(const T* point, const T* k, T* distorted) {
+    const T r2 = SquaredNorm(point);
+    const auto distortion =
+        Distortion(r2, k[static_cast<int>(K1)]);
+    distorted[0] = point[0] * distortion;
+    distorted[1] = point[1] * distortion;
+  }
+
+  template <class T, bool COMP_PARAM>
+  static void ForwardDerivatives(const T* point, const T* k, T* distorted,
+                                 T* jacobian) {
+    // dx, dy, dk1
+    constexpr int stride = Stride<COMP_PARAM>();
+    const auto& k1 = k[static_cast<int>(K1)];
+    const auto& x = point[0];
+    const auto& y = point[1];
+
+    const auto x2 = x * x;
+    const auto y2 = y * y;
+    const auto r2 = x2 + y2;
+
+    jacobian[0] = T(3.0) * k1 * x2 + k1 * y2 + T(1.0);
+    jacobian[1] = x * T(2.0) * k1 * y;
+    jacobian[stride] = y * T(2.0) * k1 * x;
+    jacobian[stride + 1] = k1 * (T(3.0) * y2 + x2) + T(1.0);
+
+    if (COMP_PARAM) {
+      jacobian[2] = x * r2;
+      jacobian[stride + 2] = y * r2;
+    }
+
+    Forward(point, k, distorted);
+  }
+
+  template <class T>
+  static void Backward(const T* point, const T* k, T* undistorted) {
+    /* Beware if you use Backward together with autodiff. You'll need to remove
+     * the line below, otherwise, derivatives won't be propagated */
+    const T rd = sqrt(SquaredNorm(point));
+    if (rd < T(std::numeric_limits<double>::epsilon())) {
+      undistorted[0] = point[0];
+      undistorted[1] = point[1];
+    }
+
+    // Compute undistorted radius
+    DistoEval<T> eval_function{rd, k[static_cast<int>(K1)]};
+    const auto ru_refined =
+        foundation::NewtonRaphson<DistoEval<T>, 1, 1,
+                                  foundation::ManualDiff<DistoEval<T>, 1, 1>>(
+            eval_function, rd, iterations);
+
+    // Compute distortion factor from undistorted radius
+    const T r2 = ru_refined * ru_refined;
+    const auto distortion = Distortion(r2, k[static_cast<int>(K1)]);
+
+    // Unapply undistortion
+    undistorted[0] = point[0] / distortion;
+    undistorted[1] = point[1] / distortion;
+  }
+
+  static constexpr int iterations = 10;
+  template <class T>
+  struct DistoEval {
+    const T& rd;
+    const T& k1;
+    T operator()(const T& x) const {
+      const auto r2 = x * x;
+      return x * Disto2::Distortion(r2, k1) - rd;
+    }
+    T derivative(const T& x) const {
+      const auto r2 = x * x;
+      return Disto2::DistortionDerivative(r2, k1);
+    }
+  };
+
+  template <class T>
+  static inline T Distortion(const T& r2, const T& k1) {
+    return T(1.0) + r2 * k1;
+  }
+
+  template <class T>
+  static T DistortionDerivative(const T& r2, const T& k1) {
+    return T(1.0) + r2 * T(2.0) * k1;
+  }
+};
+
 /* Parameters are : k1, k2 */
 struct Disto24 : CameraFunctor<2, 2, 2> {
   enum { K1 = 0, K2 = 1 };
@@ -1245,6 +1336,10 @@ struct FunctorTraits<DualProjection> {
   static constexpr int Size = 1;
 };
 template <>
+struct FunctorTraits<Disto2> {
+  static constexpr int Size = 1;
+};
+template <>
 struct FunctorTraits<Disto24> {
   static constexpr int Size = 2;
 };
@@ -1333,6 +1428,9 @@ struct ProjectGeneric
 
 using PerspectiveCamera =
     ProjectGeneric<PerspectiveProjection, Disto24, UniformScale>;
+using RadialCamera = ProjectGeneric<PerspectiveProjection, Disto24, Affine>;
+using SimpleRadialCamera =
+    ProjectGeneric<PerspectiveProjection, Disto2, Affine>;
 using BrownCamera = ProjectGeneric<PerspectiveProjection, DistoBrown, Affine>;
 using FisheyeCamera = ProjectGeneric<FisheyeProjection, Disto24, UniformScale>;
 using FisheyeOpencvCamera =
@@ -1361,6 +1459,12 @@ void Dispatch(const ProjectionType& type, IN&&... args) {
       break;
     case ProjectionType::FISHEYE62:
       FUNC::template Apply<Fisheye62Camera>(std::forward<IN>(args)...);
+      break;
+    case ProjectionType::RADIAL:
+      FUNC::template Apply<RadialCamera>(std::forward<IN>(args)...);
+      break;
+    case ProjectionType::SIMPLE_RADIAL:
+      FUNC::template Apply<SimpleRadialCamera>(std::forward<IN>(args)...);
       break;
     case ProjectionType::DUAL:
       FUNC::template Apply<DualCamera>(std::forward<IN>(args)...);
