@@ -2,7 +2,6 @@
 
 #include <geometry/camera_functions.h>
 
-#include <Eigen/Eigen>
 #include <unordered_map>
 
 class Camera {
@@ -40,17 +39,17 @@ class Camera {
                                           const Vec2d& principal_point,
                                           const VecXd& distortion);
   static Camera CreateFisheye62Camera(double focal, double aspect_ratio,
-                                      const Eigen::Vector2d& principal_point,
-                                      const Eigen::VectorXd& distortion);
+                                      const Vec2d& principal_point,
+                                      const VecXd& distortion);
   static Camera CreateDualCamera(double transition, double focal, double k1,
                                  double k2);
   static Camera CreateSphericalCamera();
 
   Vec2d Project(const Vec3d& point) const;
-  Eigen::MatrixX2d ProjectMany(const Eigen::MatrixX3d& points) const;
+  MatX2d ProjectMany(const MatX3d& points) const;
 
   Vec3d Bearing(const Vec2d& point) const;
-  Eigen::MatrixX3d BearingsMany(const Eigen::MatrixX2d& points) const;
+  MatX3d BearingsMany(const MatX2d& points) const;
 
   std::vector<Parameters> GetParametersTypes() const;
   VecXd GetParametersValues() const;

@@ -46,8 +46,8 @@ Camera Camera::CreateFisheyeCamera(double focal, double k1, double k2) {
 };
 
 Camera Camera::CreateFisheyeOpencvCamera(double focal, double aspect_ratio,
-                                         const Eigen::Vector2d& principal_point,
-                                         const Eigen::VectorXd& distortion) {
+                                         const Vec2d& principal_point,
+                                         const VecXd& distortion) {
   Camera camera;
   if (distortion.size() != 4) {
     throw std::runtime_error("Invalid distortion coefficients size");
@@ -70,8 +70,8 @@ Camera Camera::CreateFisheyeOpencvCamera(double focal, double aspect_ratio,
   See: https://fburl.com/diffusion/xnhraa2z
 */
 Camera Camera::CreateFisheye62Camera(double focal, double aspect_ratio,
-                                     const Eigen::Vector2d& principal_point,
-                                     const Eigen::VectorXd& distortion) {
+                                     const Vec2d& principal_point,
+                                     const VecXd& distortion) {
   if (distortion.size() != 8) {
     throw std::runtime_error("Invalid distortion coefficients size");
   }
@@ -226,8 +226,8 @@ Vec2d Camera::Project(const Vec3d& point) const {
   return projected;
 }
 
-Eigen::MatrixX2d Camera::ProjectMany(const Eigen::MatrixX3d& points) const {
-  Eigen::MatrixX2d projected(points.rows(), 2);
+MatX2d Camera::ProjectMany(const MatX3d& points) const {
+  MatX2d projected(points.rows(), 2);
   for (int i = 0; i < points.rows(); ++i) {
     projected.row(i) = Project(points.row(i));
   }
@@ -241,8 +241,8 @@ Vec3d Camera::Bearing(const Vec2d& point) const {
   return bearing;
 }
 
-Eigen::MatrixX3d Camera::BearingsMany(const Eigen::MatrixX2d& points) const {
-  Eigen::MatrixX3d projected(points.rows(), 3);
+MatX3d Camera::BearingsMany(const MatX2d& points) const {
+  MatX3d projected(points.rows(), 3);
   for (int i = 0; i < points.rows(); ++i) {
     projected.row(i) = Bearing(points.row(i));
   }
