@@ -321,7 +321,7 @@ TEST_F(CameraFixture, Fisheye62ReturnCorrectValues) {
 
 TEST_F(CameraFixture, RadialReturnCorrectValues) {
   Camera camera = Camera::CreateRadialCamera(focal, 1.0, principal_point,
-                                                distortion_radial);
+                                             distortion_radial);
   const auto values = camera.GetParametersValues();
 
   Eigen::VectorXd expected(6);
@@ -331,7 +331,7 @@ TEST_F(CameraFixture, RadialReturnCorrectValues) {
 
 TEST_F(CameraFixture, SimpleRadialReturnCorrectValues) {
   Camera camera = Camera::CreateSimpleRadialCamera(focal, 1.0, principal_point,
-                                                distortion_radial[0]);
+                                                   distortion_radial[0]);
   const auto values = camera.GetParametersValues();
 
   Eigen::VectorXd expected(5);
@@ -485,8 +485,8 @@ TEST_F(CameraFixture, ComputeFisheye62AnalyticalDerivatives) {
 }
 
 TEST_F(CameraFixture, ComputeRadialAnalyticalDerivatives) {
-  const Camera camera = Camera::CreateRadialCamera(
-      focal, 1.0, principal_point, distortion_radial);
+  const Camera camera = Camera::CreateRadialCamera(focal, 1.0, principal_point,
+                                                   distortion_radial);
 
   const VecXd camera_params = camera.GetParametersValues();
   const int size_params = 3 + camera_params.size();
@@ -556,6 +556,20 @@ TEST_F(CameraFixture, FisheyeOpencvAsFisheye62) {
   ASSERT_TRUE(bear1.isApprox(bear2, 1e-6));
   const auto proj1 = cam62.ProjectMany(bear1);
   const auto proj2 = camcv.ProjectMany(bear2);
+  ASSERT_TRUE(proj1.isApprox(proj2, 1e-6));
+}
+
+TEST_F(CameraFixture, SimpleRadialAsRadial) {
+  const double k1 = distortion_radial[0];
+  Camera cam_simple =
+      Camera::CreateSimpleRadialCamera(focal, 1.0, principal_point, k1);
+  Camera cam_radial =
+      Camera::CreateRadialCamera(focal, 1.0, principal_point, Vec2d(k1, 0));
+  const MatX3d bear1 = cam_simple.BearingsMany(pixels);
+  const MatX3d bear2 = cam_radial.BearingsMany(pixels);
+  ASSERT_TRUE(bear1.isApprox(bear2, 1e-6));
+  const auto proj1 = cam_simple.ProjectMany(bear1);
+  const auto proj2 = cam_radial.ProjectMany(bear2);
   ASSERT_TRUE(proj1.isApprox(proj2, 1e-6));
 }
 
