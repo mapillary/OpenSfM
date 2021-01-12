@@ -38,7 +38,7 @@ class CameraFixture : public ::testing::Test {
     }
   }
 
-  double ComputeError(const Eigen::MatrixX2d& other) {
+  double ComputeError(const MatX2d& other) {
     double error = 0;
     for (int i = 0; i < pixels_count; ++i) {
       error += (other.row(i) - pixels.row(i)).norm();
@@ -54,12 +54,12 @@ class CameraFixture : public ::testing::Test {
 
     // Prepare Eigen's Autodiff structures
     for (int i = 0; i < 3; ++i) {
-      point_adiff[i].derivatives() = Eigen::VectorXd::Unit(size_params, i);
+      point_adiff[i].derivatives() = VecXd::Unit(size_params, i);
     }
     camera_adiff.resize(camera_params.size());
     for (int i = 0; i < camera_params.size(); ++i) {
       camera_adiff(i).value() = camera_params(i);
-      camera_adiff(i).derivatives() = Eigen::VectorXd::Unit(size_params, 3 + i);
+      camera_adiff(i).derivatives() = VecXd::Unit(size_params, 3 + i);
     }
 
     // Run project with Autodiff types to get expected jacobian
@@ -83,27 +83,26 @@ class CameraFixture : public ::testing::Test {
     }
   }
 
-  int pixels_count{10000};
-  Eigen::MatrixX2d pixels;
+  static constexpr int pixels_count{10000};
+  static constexpr int pixel_width{4000};
+  static constexpr int pixel_height{3000};
 
-  double max_width{0.90};
-  double max_height{0.75};
-  double focal{0.4};
-  double new_focal{0.8};
-  double new_ar{0.9};
+  static constexpr double max_width{0.90};
+  static constexpr double max_height{0.75};
+  static constexpr double focal{0.4};
+  static constexpr double new_focal{0.8};
+  static constexpr double new_ar{0.9};
 
-  int pixel_width{4000};
-  int pixel_height{3000};
-
-  Eigen::VectorXd distortion;
-  Eigen::VectorXd distortion_brown;
-  Eigen::VectorXd distortion_fisheye;
-  Eigen::VectorXd distortion_fisheye62;
-  Eigen::Vector2d distortion_radial;
-  Eigen::Vector2d principal_point;
+  MatX2d pixels;
+  VecXd distortion;
+  VecXd distortion_brown;
+  VecXd distortion_fisheye;
+  VecXd distortion_fisheye62;
+  Vec2d distortion_radial;
+  Vec2d principal_point;
 
   double point[3];
-  typedef Eigen::AutoDiffScalar<Eigen::VectorXd> AScalar;
+  typedef Eigen::AutoDiffScalar<VecXd> AScalar;
   AScalar point_adiff[3];
   VecX<AScalar> camera_adiff;
 
@@ -162,8 +161,7 @@ TEST_F(CameraFixture, DualIsConsistent) {
 
 TEST_F(CameraFixture, SphericalIsConsistent) {
   Camera camera = Camera::CreateSphericalCamera();
-  const auto projected =
-      camera.Project(camera.Bearing(Eigen::Vector2d(0.2, 0.2)));
+  const auto projected = camera.Project(camera.Bearing(Vec2d(0.2, 0.2)));
   ASSERT_EQ(projected(0), 0.2);
   ASSERT_EQ(projected(1), 0.2);
 }
@@ -284,7 +282,7 @@ TEST_F(CameraFixture, PerspectiveReturnCorrectValues) {
       Camera::CreatePerspectiveCamera(focal, distortion[0], distortion[1]);
   const auto values = camera.GetParametersValues();
 
-  Eigen::VectorXd expected(3);
+  VecXd expected(3);
   expected << distortion[0], distortion[1], focal;
   ASSERT_EQ(expected, values);
 }
@@ -294,7 +292,7 @@ TEST_F(CameraFixture, FisheyeReturnCorrectValues) {
       Camera::CreateFisheyeCamera(focal, distortion[0], distortion[1]);
   const auto values = camera.GetParametersValues();
 
-  Eigen::VectorXd expected(3);
+  VecXd expected(3);
   expected << distortion[0], distortion[1], focal;
   ASSERT_EQ(expected, values);
 }
@@ -304,7 +302,7 @@ TEST_F(CameraFixture, FisheyeOpencvReturnCorrectValues) {
                                                     distortion_fisheye);
   const auto values = camera.GetParametersValues();
 
-  Eigen::VectorXd expected(8);
+  VecXd expected(8);
   expected << distortion_fisheye, focal, 1.0, principal_point;
   ASSERT_EQ(expected, values);
 }
@@ -314,7 +312,7 @@ TEST_F(CameraFixture, Fisheye62ReturnCorrectValues) {
                                                 distortion_fisheye62);
   const auto values = camera.GetParametersValues();
 
-  Eigen::VectorXd expected(12);
+  VecXd expected(12);
   expected << distortion_fisheye62, focal, 1.0, principal_point;
   ASSERT_EQ(expected, values);
 }
@@ -324,7 +322,7 @@ TEST_F(CameraFixture, RadialReturnCorrectValues) {
                                              distortion_radial);
   const auto values = camera.GetParametersValues();
 
-  Eigen::VectorXd expected(6);
+  VecXd expected(6);
   expected << distortion_radial, focal, 1.0, principal_point;
   ASSERT_EQ(expected, values);
 }
@@ -334,7 +332,7 @@ TEST_F(CameraFixture, SimpleRadialReturnCorrectValues) {
                                                    distortion_radial[0]);
   const auto values = camera.GetParametersValues();
 
-  Eigen::VectorXd expected(5);
+  VecXd expected(5);
   expected << distortion_radial[0], focal, 1.0, principal_point;
   ASSERT_EQ(expected, values);
 }
@@ -344,7 +342,7 @@ TEST_F(CameraFixture, BrownReturnCorrectValues) {
       Camera::CreateBrownCamera(focal, 1.0, principal_point, distortion_brown);
   const auto values = camera.GetParametersValues();
 
-  Eigen::VectorXd expected(9);
+  VecXd expected(9);
   expected << distortion_brown, focal, 1.0, principal_point;
   ASSERT_EQ(expected, values);
 }
@@ -354,7 +352,7 @@ TEST_F(CameraFixture, DualReturnCorrectValues) {
                                                    distortion[1]);
   const auto values = camera.GetParametersValues();
 
-  Eigen::VectorXd expected(4);
+  VecXd expected(4);
   expected << 0.5, distortion[0], distortion[1], focal;
   ASSERT_EQ(expected, values);
 }
@@ -363,7 +361,7 @@ TEST_F(CameraFixture, PerspectiveReturnCorrectK) {
   Camera camera =
       Camera::CreatePerspectiveCamera(focal, distortion[0], distortion[1]);
 
-  Eigen::Matrix3d expected = Eigen::Matrix3d::Identity();
+  Mat3d expected = Mat3d::Identity();
   expected(0, 0) = expected(1, 1) = focal;
 
   ASSERT_TRUE(expected.isApprox(camera.GetProjectionMatrix()));
@@ -377,7 +375,7 @@ TEST_F(CameraFixture, CanSetParameter) {
   camera.SetParameterValue(Camera::Parameters::Focal, new_focal);
   const auto values = camera.GetParametersValues();
 
-  Eigen::VectorXd expected(3);
+  VecXd expected(3);
   expected << distortion[0], distortion[1], new_focal;
   ASSERT_EQ(expected, values);
 }
@@ -401,7 +399,7 @@ TEST_F(CameraFixture, PerspectiveReturnCorrectKScaled) {
   Camera camera =
       Camera::CreatePerspectiveCamera(focal, distortion[0], distortion[1]);
 
-  Eigen::Matrix3d expected = Eigen::Matrix3d::Identity();
+  Mat3d expected = Mat3d::Identity();
   expected(0, 0) = expected(1, 1) = focal * std::max(pixel_width, pixel_height);
   expected(0, 2) = pixel_width * 0.5;
   expected(1, 2) = pixel_height * 0.5;
@@ -414,7 +412,7 @@ TEST_F(CameraFixture, BrownReturnCorrectK) {
   Camera camera = Camera::CreateBrownCamera(focal, new_ar, principal_point,
                                             distortion_brown);
 
-  Eigen::Matrix3d expected = Eigen::Matrix3d::Identity();
+  Mat3d expected = Mat3d::Identity();
   expected(0, 0) = focal;
   expected(1, 1) = new_ar * focal;
   expected(0, 2) = principal_point(0);
@@ -427,7 +425,7 @@ TEST_F(CameraFixture, BrownReturnCorrectKScaled) {
   Camera camera = Camera::CreateBrownCamera(focal, new_ar, principal_point,
                                             distortion_brown);
 
-  Eigen::Matrix3d expected = Eigen::Matrix3d::Identity();
+  Mat3d expected = Mat3d::Identity();
   const auto normalizer = std::max(pixel_width, pixel_height);
   expected(0, 0) = focal * normalizer;
   expected(1, 1) = (focal * new_ar) * normalizer;
@@ -681,14 +679,14 @@ TEST_F(FunctionFixture, EvaluatesDerivativesCorrectly) {
   ASSERT_NEAR(expected, evaluated, 1e-20);
 
   /* Jacobian ordering : d_input | d_parameters */
-  typedef Eigen::AutoDiffScalar<Eigen::VectorXd> AScalar;
+  typedef Eigen::AutoDiffScalar<VecXd> AScalar;
   VecX<AScalar> eval_adiff(1);
   eval_adiff(0).value() = in[0];
-  eval_adiff(0).derivatives() = Eigen::VectorXd::Unit(7, 0);
+  eval_adiff(0).derivatives() = VecXd::Unit(7, 0);
   VecX<AScalar> parameters_adiff(6);
   for (int i = 0; i < 6; ++i) {
     parameters_adiff[i].value() = parameters[i];
-    parameters_adiff[i].derivatives() = Eigen::VectorXd::Unit(7, i + 1);
+    parameters_adiff[i].derivatives() = VecXd::Unit(7, i + 1);
   }
 
   AScalar evaluated_addif;
@@ -727,7 +725,7 @@ TEST_F(PoseFixture, EvaluatesCorrectly) {
 }
 
 TEST_F(PoseFixture, EvaluatesDerivativesCorrectly) {
-  typedef Eigen::AutoDiffScalar<Eigen::VectorXd> AScalar;
+  typedef Eigen::AutoDiffScalar<VecXd> AScalar;
 
   VecX<AScalar> point_adiff(3);
   constexpr int size = 9;
@@ -735,12 +733,12 @@ TEST_F(PoseFixture, EvaluatesDerivativesCorrectly) {
   /* Autodifferentaied as a reference */
   for (int i = 0; i < 3; ++i) {
     point_adiff(i).value() = point[i];
-    point_adiff(i).derivatives() = Eigen::VectorXd::Unit(size, i);
+    point_adiff(i).derivatives() = VecXd::Unit(size, i);
   }
   VecX<AScalar> rt_adiff(6);
   for (int i = 0; i < 6; ++i) {
     rt_adiff[i].value() = rt[i];
-    rt_adiff[i].derivatives() = Eigen::VectorXd::Unit(size, 3 + i);
+    rt_adiff[i].derivatives() = VecXd::Unit(size, 3 + i);
   }
   VecX<AScalar> expected_adiff(3);
   Pose::Forward(point_adiff.data(), rt_adiff.data(), expected_adiff.data());
