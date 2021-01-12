@@ -1,13 +1,12 @@
-#include <pybind11/eigen.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-
 #include <geometry/absolute_pose.h>
 #include <geometry/camera.h>
 #include <geometry/essential.h>
 #include <geometry/pose.h>
 #include <geometry/relative_pose.h>
 #include <geometry/triangulation.h>
+#include <pybind11/eigen.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 
 namespace py = pybind11;
 
@@ -76,12 +75,12 @@ PYBIND11_MODULE(pygeometry, m) {
       .def_readwrite("height", &Camera::height)
       .def_readwrite("id", &Camera::id)
       .def_property("focal",
-                    [](const Camera& p) {
-                      return p.GetParameterValue(Camera::Parameters::Focal);
-                    },
-                    [](Camera& p, double focal) {
-                      p.SetParameterValue(Camera::Parameters::Focal, focal);
-                    })
+          [](const Camera& p) {
+            return p.GetParameterValue(Camera::Parameters::Focal);
+          },
+          [](Camera& p, double focal) {
+            p.SetParameterValue(Camera::Parameters::Focal, focal);
+          })
       .def_property(
           "aspect_ratio",
           [](const Camera& p) {
@@ -106,8 +105,9 @@ PYBIND11_MODULE(pygeometry, m) {
             std::vector<double> disto_values;
             const auto disto_types = {
                 Camera::Parameters::K1, Camera::Parameters::K2,
-                Camera::Parameters::K3, Camera::Parameters::P1,
-                Camera::Parameters::P2};
+                Camera::Parameters::K3, Camera::Parameters::K4,
+                Camera::Parameters::K5, Camera::Parameters::K6,
+                Camera::Parameters::P1, Camera::Parameters::P2};
             for (const auto type : disto_types) {
               auto find_param = values_map.find(type);
               if (find_param != values_map.end()) {
@@ -289,9 +289,9 @@ PYBIND11_MODULE(pygeometry, m) {
           }))
       // Python2 + copy/deepcopy + pybind11 workaround
       .def("__copy__", [](const Camera& c) { return c; },
-           py::return_value_policy::copy)
+          py::return_value_policy::copy)
       .def("__deepcopy__", [](const Camera& c, const py::dict& d) { return c; },
-           py::return_value_policy::copy);
+          py::return_value_policy::copy);
   m.def("compute_camera_mapping", ComputeCameraMapping,
         py::call_guard<py::gil_scoped_release>());
   m.def("triangulate_bearings_dlt", geometry::TriangulateBearingsDLT,
@@ -373,10 +373,10 @@ PYBIND11_MODULE(pygeometry, m) {
             return pose;
           }))
       .def("__copy__", [](const geometry::Pose& p) { return p; },
-           py::return_value_policy::copy)
+          py::return_value_policy::copy)
       .def("__deepcopy__",
-           [](const geometry::Pose& p, const py::dict& d) { return p; },
-           py::return_value_policy::copy)
+          [](const geometry::Pose& p, const py::dict& d) { return p; },
+          py::return_value_policy::copy)
       .def("inverse", [](const geometry::Pose& p) {
         geometry::Pose new_pose;
         new_pose.SetFromWorldToCamera(p.CameraToWorld());
