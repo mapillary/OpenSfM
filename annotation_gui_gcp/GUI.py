@@ -76,7 +76,7 @@ class Gui:
             latlon = v.latlons[k]
             self.create_ortho_views(ortho_paths, latlon["lat"], latlon["lon"])
         self.master.update_idletasks()
-        self.arrange_ui_onerow()
+        # self.arrange_ui_onerow()
 
     def arrange_ui_onerow(self):
         master = self.master
