@@ -560,10 +560,10 @@ class DataSet(object):
         return os.path.join(self.data_path, filename or "reconstruction.ply")
 
     def save_ply(
-        self, reconstruction, filename=None, no_cameras=False, no_points=False
+        self, reconstruction, tracks_manager, filename=None, no_cameras=False, no_points=False, point_num_views=False
     ):
         """Save a reconstruction in PLY format."""
-        ply = io.reconstruction_to_ply(reconstruction, no_cameras, no_points)
+        ply = io.reconstruction_to_ply(reconstruction, tracks_manager, no_cameras, no_points, point_num_views)
         with io.open_wt(self._ply_file(filename)) as fout:
             fout.write(ply)
 
