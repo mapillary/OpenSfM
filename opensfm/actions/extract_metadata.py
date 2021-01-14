@@ -65,9 +65,8 @@ def _extract_exif(image, data):
     ):
         d["model"] = f"unknown_{image}"
 
-    # TODO(pau): Undocumented hack. Replace with a cleaner solution.
-    if data.config.get("use_brown_camera"):
-        d["projection_type"] = "brown"
+    if data.config.get("default_projection_type"):
+        d["projection_type"] = data.config.get("default_projection_type")
 
     # Image Height and Image Width
     if d["width"] <= 0 or not data.config["use_exif_size"]:

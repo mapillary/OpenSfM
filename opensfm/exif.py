@@ -518,6 +518,8 @@ def focal_xy_calibration(exif):
             "p2": 0.0,
             "k3": 0.0,
             "k4": 0.0,
+            "k5": 0.0,
+            "k6": 0.0
         }
 
 
@@ -540,7 +542,13 @@ def default_calibration(data):
 def calibration_from_metadata(metadata, data):
     """Finds the best calibration in one of the calibration sources."""
     pt = metadata.get("projection_type", default_projection).lower()
-    if pt == "brown" or pt == "fisheye_opencv":
+    if (
+        pt == "brown"
+        or pt == "fisheye_opencv"
+        or pt == "radial"
+        or pt == "simple_radial"
+        or pt == "fisheye62"
+    ):
         calib = (
             hard_coded_calibration(metadata)
             or focal_xy_calibration(metadata)
@@ -589,6 +597,36 @@ def camera_from_exif_metadata(
             calib["focal_y"] / calib["focal_x"],
             [calib["c_x"], calib["c_y"]],
             [calib["k1"], calib["k2"], calib["k3"], calib["k4"]],
+        )
+    elif calib_pt == "fisheye62":
+        camera = pygeometry.Camera.create_fisheye62(
+            calib["focal_x"],
+            calib["focal_y"] / calib["focal_x"],
+            [calib["c_x"], calib["c_y"]],
+            [
+                calib["k1"],
+                calib["k2"],
+                calib["k3"],
+                calib["k4"],
+                calib["k5"],
+                calib["k6"],
+                calib["p1"],
+                calib["p2"],
+            ],
+        )
+    elif calib_pt == "radial":
+        camera = pygeometry.Camera.create_radial(
+            calib["focal_x"],
+            calib["focal_y"] / calib["focal_x"],
+            [calib["c_x"], calib["c_y"]],
+            [calib["k1"], calib["k2"]],
+        )
+    elif calib_pt == "simple_radial":
+        camera = pygeometry.Camera.create_simple_radial(
+            calib["focal_x"],
+            calib["focal_y"] / calib["focal_x"],
+            [calib["c_x"], calib["c_y"]],
+            calib["k1"],
         )
     elif calib_pt == "dual":
         camera = pygeometry.Camera.create_dual(
