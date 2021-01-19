@@ -13,10 +13,11 @@ function configure(name, config, spatial) {
     spatial.configure(c);
 }
 
-function bindDatGui(config, modeConfig, spatial, viewer) {
+function bindDatGui(config, modeConfig, spatial, provider, viewer) {
     const gui = new dat.GUI();
     gui.width = 300;
     const optionsFolder = gui.addFolder('Options');
+    const reconstructionsFolder = gui.addFolder('Reconstructions');
 
     function setValue(name, size) {
         config[name] = size;
@@ -93,7 +94,73 @@ function bindDatGui(config, modeConfig, spatial, viewer) {
         .listen()
         .onChange(m => { onChange('originalPositionMode', opm[m]); });
 
+    const recConfig = {
+        toggle: () => {
+            const recs = recConfig.reconstructions;
+            const all = checkAllEnabled(recs);
+            for (const key of Object.keys(recs)) {
+                recs[key] = !all;
+            }
+            setToggleText();
+            const filter = createFilter(recs);
+            viewer.setFilter(filter);
+        },
+        reconstructions: {},
+    }
+
+    function checkAllEnabled(recs) {
+        const keys = Object.keys(recs);
+        return keys.length &&
+            keys
+                .map(k => recConfig.reconstructions[k])
+                .reduce((acc, val) => acc && val, true);
+    }
+
+    function createFilter(recs) {
+        const all = checkAllEnabled(recs);
+        if (all) { return []; }
+
+        const enabled = Object.keys(recs)
+            .filter(k => recConfig.reconstructions[k]);
+        return ['in', 'clusterKey', ...enabled];
+    }
+
+    function setToggleText() {
+        const all = checkAllEnabled(recConfig.reconstructions);
+        if (all) { toggle.name('Hide all'); }
+        else { toggle.name('Show all'); }
+    }
+
+    const toggle = reconstructionsFolder.add(recConfig, 'toggle');
+    setToggleText();
+
+    function createReconstructionControllers(data) {
+        const recs = recConfig.reconstructions;
+        for (const key in data.clusters) {
+            if (!data.clusters.hasOwnProperty(key)) { continue; }
+            recs[key] = true;
+            reconstructionsFolder
+                .add(recs, key)
+                .listen()
+                .onChange(() => {
+                    setToggleText();
+                    const filter = createFilter(recs);
+                    viewer.setFilter(filter);
+                });
+        }
+        setToggleText();
+    }
+
+    if (provider.loaded) {
+        createReconstructionControllers(provider.data);
+    } else {
+        provider.on(
+            'loaded',
+            event => { createReconstructionControllers(event.target.data); });
+    }
+
     optionsFolder.open();
+    reconstructionsFolder.open();
     gui.close()
 }
 
@@ -180,7 +247,7 @@ function bindKeys(config, modeConfig, spatial, viewer) {
         });
 }
 
-function bindOptions(viewer, initialConfig) {
+function bindOptions(provider, viewer, initialConfig) {
     const spatial = viewer.getComponent('spatialData');
 
     const config = Object.assign(
@@ -197,7 +264,7 @@ function bindOptions(viewer, initialConfig) {
     };
 
     bindKeys(config, modeConfig, spatial, viewer);
-    bindDatGui(config, modeConfig, spatial, viewer);
+    bindDatGui(config, modeConfig, spatial, provider, viewer);
 }
 
 function parseHash(hash) {
@@ -216,16 +283,6 @@ function parseHash(hash) {
     }
 
     return params;
-}
-
-function getRandomKey(reconstructions) {
-    return Object.keys(reconstructions[0].shots)[0];
-}
-
-function moveToKey(viewer, key) {
-    viewer
-        .moveToKey(key)
-        .catch(error => console.error(error));
 }
 
 function createProviderOptions(params) {
@@ -275,7 +332,17 @@ function initializeViewer(provider, params) {
 
     window.addEventListener('resize', () => viewer.resize());
 
-    bindOptions(viewer, spatialDataConfiguration);
+    bindOptions(provider, viewer, spatialDataConfiguration);
+
+    function getRandomKey(reconstructions) {
+        return Object.keys(reconstructions[0].shots)[0];
+    }
+
+    function moveToKey(viewer, key) {
+        viewer
+            .moveToKey(key)
+            .catch(error => console.error(error));
+    }
 
     if (!!params.img) {
         moveToKey(viewer, params.img);
