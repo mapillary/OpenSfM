@@ -524,13 +524,19 @@ def main():
         "n_bad_gcp_annotations": n_bad_gcp_annotations,
         "n_bad_position_std": int(n_bad_std),
         "n_good_position_std": int(n_good_std),
+        "rec_a": args.rec_a,
+        "rec_b": args.rec_b,
     }
 
     logger.info(metrics)
-    p_metrics = data.data_path + "/run_ba_metrics.json"
-    logger.info(f"Saved metrics to {p_metrics}")
-    with open(p_metrics, "w") as f:
-        json.dump(metrics, f, indent=4, sort_keys=True)
+    for out_name in (
+        "run_ba_metrics.json",
+        f"run_ba_metrics_{args.rec_a}x{args.rec_b}.json",
+    ):
+        p_metrics = data.data_path + "/" + out_name
+        with open(p_metrics, "w") as f:
+            json.dump(metrics, f, indent=4, sort_keys=True)
+        logger.info(f"Saved metrics to {p_metrics}")
 
     logger.info("========================================")
     logger.info("=============== Summary ================")
