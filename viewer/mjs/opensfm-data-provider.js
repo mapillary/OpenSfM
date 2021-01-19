@@ -314,7 +314,13 @@ class OpenSfmDataProvider extends Mapillary.API.DataProviderBase {
                     reference);
 
                 nodes[key] = node;
-                sequences[key] = this._createSequence(key);
+
+                const sequenceKey = node.sequence_key;
+                if (!(sequenceKey in sequences)) {
+                    sequences[sequenceKey] = { key: sequenceKey, keys: [] };
+                }
+                sequences[sequenceKey].keys.push(key);
+
                 meshes[key] = this._createMesh(shot);
 
                 const cellId = this._geometry.latLonToCellId(node.cl);
@@ -408,6 +414,8 @@ class OpenSfmDataProvider extends Mapillary.API.DataProviderBase {
 
         const meshUrl = key;
         const clusterUrl = clusterKey;
+        const sequenceKey = !!shot.sequence_key ?
+            shot.sequence_key : key;
 
         return {
             altitude: alt,
@@ -437,7 +445,7 @@ class OpenSfmDataProvider extends Mapillary.API.DataProviderBase {
             private: null,
             project: null,
             quality_score: 1,
-            sequence_key: key,
+            sequence_key: sequenceKey,
             thumb320_url: thumbUrl,
             thumb640_url: thumbUrl,
             thumb1024_url: thumbUrl,
@@ -458,13 +466,6 @@ class OpenSfmDataProvider extends Mapillary.API.DataProviderBase {
                 longitude: 0,
                 altitud: 0,
             };
-    }
-
-    _createSequence(key) {
-        return {
-            key: key,
-            keys: [key],
-        };
     }
 
     _convertProjectionType(projectionType) {
