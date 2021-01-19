@@ -298,11 +298,17 @@ class EXIF:
     def extract_dji_altitude(self):
         return float(self.xmp[0]["@drone-dji:AbsoluteAltitude"])
 
-    def has_dji_xmp(self):
-        return (len(self.xmp) > 0) and ("@drone-dji:Latitude" in self.xmp[0])
+    def has_xmp(self):
+        return (len(self.xmp) > 0)
+
+    def has_dji_latlon(self):
+        return self.has_xmp() and '@drone-dji:Latitude' in self.xmp[0] and '@drone-dji:Longitude' in self.xmp[0]
+
+    def has_dji_altitude(self):
+        return self.has_xmp() and '@drone-dji:AbsoluteAltitude' in self.xmp[0]
 
     def extract_lon_lat(self):
-        if self.has_dji_xmp():
+        if self.has_dji_latlon():
             lon, lat = self.extract_dji_lon_lat()
         elif "GPS GPSLatitude" in self.tags:
             reflon, reflat = self.extract_ref_lon_lat()
@@ -313,10 +319,13 @@ class EXIF:
         return lon, lat
 
     def extract_altitude(self):
-        if self.has_dji_xmp():
+        if self.has_dji_altitude():
             altitude = self.extract_dji_altitude()
-        elif "GPS GPSAltitude" in self.tags:
-            altitude = eval_frac(self.tags["GPS GPSAltitude"].values[0])
+        elif 'GPS GPSAltitude' in self.tags:
+            altitude = eval_frac(self.tags['GPS GPSAltitude'].values[0])
+            # Check if GPSAltitudeRef is equal to 1, which means GPSAltitude should be negative, reference: http://www.exif.org/Exif2-2.PDF#page=53
+            if 'GPS GPSAltitudeRef' in self.tags and self.tags['GPS GPSAltitudeRef'].values[0] == 1:
+                altitude = -altitude
         else:
             altitude = None
         return altitude
