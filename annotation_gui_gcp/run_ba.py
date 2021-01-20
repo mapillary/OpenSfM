@@ -2,6 +2,7 @@ import argparse
 import json
 import logging
 import os
+import sys
 
 import numpy as np
 import opensfm.reconstruction as orec
@@ -430,7 +431,9 @@ def main():
 
     data.save_reconstruction(reconstructions, fn_rigid)
     merged = merge_reconstructions(reconstructions, tracks_manager)
-    # data.save_reconstruction([merged], f"reconstruction_merged_{args.rec_a}x{args.rec_b}.json")
+    # data.save_reconstruction(
+    #     [merged], f"reconstruction_merged_{args.rec_a}x{args.rec_b}.json"
+    # )
 
     if not args.fast:
         data.config["bundle_max_iterations"] = 200
@@ -439,7 +442,9 @@ def main():
         orec.bundle(merged, camera_models, gcp=gcps, config=data.config)
         # rigid rotation to put images on the ground
         orec.align_reconstruction(merged, None, data.config)
-        # data.save_reconstruction([merged], "reconstruction_gcp_ba_{args.rec_a}x{args.rec_b}.json")
+        # data.save_reconstruction(
+        #     [merged], "reconstruction_gcp_ba_{args.rec_a}x{args.rec_b}.json"
+        # )
 
     gcp_reprojections = reproject_gcps(gcps, merged)
     reprojection_errors = get_all_reprojection_errors(gcp_reprojections)
@@ -587,4 +592,4 @@ def main():
 
 if __name__ == "__main__":
     log.setup()
-    exit(main())
+    sys.exit(main())
