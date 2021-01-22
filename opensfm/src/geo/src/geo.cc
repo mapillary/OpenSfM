@@ -32,8 +32,8 @@ Vec3d EcefFromLla(const double lat, const double lon, const double alt) {
                (a2 * L + alt) * cos_lat * sin_lon, (b2 * L + alt) * sin_lat);
 }
 
-Vec3d EcefFromLla(const Vec3d& ecef) {
-  return EcefFromLla(ecef[0], ecef[1], ecef[2]);
+Vec3d EcefFromLla(const Vec3d& lla) {
+  return EcefFromLla(lla[0], lla[1], lla[2]);
 }
 
 
@@ -59,8 +59,8 @@ Vec3d LlaFromEcef(const double x, const double y, const double z) {
   const auto alt = p / std::cos(lat) - N;
   return Vec3d(ToDegrees(lat), ToDegrees(lon), alt);
 }
-Vec3d LlaFromEcef(const Vec3d& lla) {
-  return LlaFromEcef(lla[0], lla[1], lla[2]);
+Vec3d LlaFromEcef(const Vec3d& ecef) {
+  return LlaFromEcef(ecef[0], ecef[1], ecef[2]);
 }
 
 /**
@@ -84,8 +84,8 @@ Mat4d EcefFromTopocentricTransform(const double lat, const double lon,
   return ecefT;
 }
 
-Mat4d EcefFromTopocentricTransform(const Vec3d& ecef) {
-  return EcefFromTopocentricTransform(ecef[0], ecef[1], ecef[2]);
+Mat4d EcefFromTopocentricTransform(const Vec3d& lla) {
+  return EcefFromTopocentricTransform(lla[0], lla[1], lla[2]);
 }
 
 
@@ -118,8 +118,8 @@ Mat4d EcefFromTopocentricTransformFiniteDiff(const double lat, const double lon,
   return ecefT;
 }
 
-Mat4d EcefFromTopocentricTransformFiniteDiff(const Vec3d& ecef) {
-  return EcefFromTopocentricTransformFiniteDiff(ecef[0], ecef[1], ecef[2]);
+Mat4d EcefFromTopocentricTransformFiniteDiff(const Vec3d& lla) {
+  return EcefFromTopocentricTransformFiniteDiff(lla[0], lla[1], lla[2]);
 }
 
 
