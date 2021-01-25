@@ -24,6 +24,29 @@ function bindDatGui(config, modeConfig, spatial, provider, viewer) {
         configure(name, config, spatial);
     }
 
+    const infoContainer =
+        window.document.getElementById('info-container');
+
+    viewer.on(Mapillary.Viewer.nodechanged, n => {
+        infoContainer.firstElementChild.src = n.image.src;
+        const infoText = `${n.clusterKey}::${n.sequenceKey}::${n.key}`;
+        infoContainer.lastElementChild.textContent = infoText;
+    });
+
+    function setThumbnail(value) {
+        if (value) {
+            infoContainer.classList.remove('hidden');
+        } else {
+            infoContainer.classList.add('hidden');
+        }
+    }
+
+    function setThumbnailSize(value) {
+        infoContainer.style.width = `${100 * value}%`;
+    }
+
+    setThumbnailSize(config.thumbnailSize);
+
     function onChange(name, value) {
         switch (name) {
             case 'camerasVisible':
@@ -44,6 +67,11 @@ function bindDatGui(config, modeConfig, spatial, provider, viewer) {
             case 'pointSize':
                 setValue(name, value, config, spatial);
                 break;
+            case 'thumbnailVisible':
+                setThumbnail(value);
+                break;
+            case 'thumbnailSize':
+                setThumbnailSize(value);
             default:
                 break;
         }
@@ -60,7 +88,7 @@ function bindDatGui(config, modeConfig, spatial, provider, viewer) {
         folder
             .add(options, name)
             .listen()
-            .onChange(() => { onChange(name); });
+            .onChange(v => { onChange(name, v); });
     }
 
     addNumericOption('pointSize', config, optionsFolder);
@@ -150,6 +178,9 @@ function bindDatGui(config, modeConfig, spatial, provider, viewer) {
         }
         setToggleText();
     }
+
+    addBooleanOption('thumbnailVisible', config, optionsFolder);
+    addNumericOption('thumbnailSize', config, optionsFolder);
 
     if (provider.loaded) {
         createReconstructionControllers(provider.data);
@@ -253,7 +284,11 @@ function bindOptions(provider, viewer, initialConfig) {
     const config = Object.assign(
         {},
         spatial.defaultConfiguration,
-        { imagesVisible: false },
+        {
+            imagesVisible: false,
+            thumbnailVisible: false,
+            thumbnailSize: 0.2,
+        },
         initialConfig);
 
     const cvm = Mapillary.SpatialDataComponent.CameraVisualizationMode;

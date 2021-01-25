@@ -28,6 +28,7 @@
     }
 
     .file-container.hidden,
+    .info-container.hidden,
     input[type='file'] {
       display: none;
     }
@@ -76,6 +77,35 @@
       font-family: sans-serif;
       pointer-events: none;
     }
+
+    .info-container {
+      display: block;
+      position: absolute;
+      top: 0;
+      left: 0;
+      margin-left: 17px;
+      min-width: 100px;
+      max-width: calc(100% - 347px);
+      background-color: black;
+      border: 1px solid #555;
+    }
+
+    @media screen and (max-width: 640px) {
+      .info-container {
+        max-width: calc(100% - 34px);
+      }
+    }
+
+    .info-image {
+      width: 100%;
+      display: block;
+    }
+
+    .info-text {
+      overflow-wrap: break-word;
+      color: #eee;
+      font: 11px 'Lucida Grande', sans-serif;
+    }
   </style>
 </head>
 
@@ -91,6 +121,10 @@
     <span class='file-text'>Drop file</span>
   </div>
 
+  <div id='info-container' class='info-container hidden'>
+    <img class='info-image' />
+    <span id='info-text' class='info-text'></span>
+  </div>
 </body>
 
 </html>
