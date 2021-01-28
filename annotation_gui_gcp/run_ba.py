@@ -452,7 +452,9 @@ def main():
     max_reprojection_error = np.max(err_values)
     median_reprojection_error = np.median(err_values)
 
-    with open(data.data_path + "/gcp_reprojections.json", "w") as f:
+    with open(
+        f"{data.data_path}/gcp_reprojections_{args.rec_a}x{args.rec_b}.json", "w"
+    ) as f:
         json.dump(gcp_reprojections, f, indent=4, sort_keys=True)
 
     gcp_std = compute_gcp_std(gcp_reprojections)
@@ -498,7 +500,9 @@ def main():
         median_shot_std = np.median([t[1] for t in all_shots_std])
 
         # Save the shot STD to a file
-        with open(data.data_path + "/shots_std.csv", "w") as f:
+        with open(
+            f"{data.data_path}/shots_std_{args.rec_a}x{args.rec_b}.csv", "w"
+        ) as f:
             s = sorted(all_shots_std, key=lambda t: -t[-1])
             for t in s:
                 line = "{}, {}".format(*t)
@@ -534,14 +538,10 @@ def main():
     }
 
     logger.info(metrics)
-    for out_name in (
-        "run_ba_metrics.json",
-        f"run_ba_metrics_{args.rec_a}x{args.rec_b}.json",
-    ):
-        p_metrics = data.data_path + "/" + out_name
-        with open(p_metrics, "w") as f:
-            json.dump(metrics, f, indent=4, sort_keys=True)
-        logger.info(f"Saved metrics to {p_metrics}")
+    p_metrics = f"{data.data_path}/run_ba_metrics_{args.rec_a}x{args.rec_b}.json"
+    with open(p_metrics, "w") as f:
+        json.dump(metrics, f, indent=4, sort_keys=True)
+    logger.info(f"Saved metrics to {p_metrics}")
 
     logger.info("========================================")
     logger.info("=============== Summary ================")
