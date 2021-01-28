@@ -188,10 +188,15 @@ class Gui:
         t = time.time() - os.path.getmtime(self.path + "/ground_control_points.json")
         ix_a = self.reconstruction_options.index(self.rec_a.get())
         ix_b = self.reconstruction_options.index(self.rec_b.get())
-        if t > 30 or ix_a == ix_b:
+        if ix_a == ix_b:
             print(
                 "Please select different reconstructions in the drop-down menus"
-                " and save before running the analysis"
+                " before running the analysis"
+            )
+            return
+        if t > 30:
+            print(
+                "Please save to ground_control_points.json before running the analysis"
             )
             return
 
