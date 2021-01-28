@@ -298,11 +298,17 @@ class EXIF:
     def extract_dji_altitude(self):
         return float(self.xmp[0]["@drone-dji:AbsoluteAltitude"])
 
-    def has_dji_xmp(self):
-        return (len(self.xmp) > 0) and ("@drone-dji:Latitude" in self.xmp[0])
+    def has_xmp(self):
+        return (len(self.xmp) > 0)
+
+    def has_dji_latlon(self):
+        return self.has_xmp() and '@drone-dji:Latitude' in self.xmp[0] and '@drone-dji:Longitude' in self.xmp[0]
+
+    def has_dji_altitude(self):
+        return self.has_xmp() and '@drone-dji:AbsoluteAltitude' in self.xmp[0]
 
     def extract_lon_lat(self):
-        if self.has_dji_xmp():
+        if self.has_dji_latlon():
             lon, lat = self.extract_dji_lon_lat()
         elif "GPS GPSLatitude" in self.tags:
             reflon, reflat = self.extract_ref_lon_lat()
@@ -313,10 +319,13 @@ class EXIF:
         return lon, lat
 
     def extract_altitude(self):
-        if self.has_dji_xmp():
+        if self.has_dji_altitude():
             altitude = self.extract_dji_altitude()
-        elif "GPS GPSAltitude" in self.tags:
-            altitude = eval_frac(self.tags["GPS GPSAltitude"].values[0])
+        elif 'GPS GPSAltitude' in self.tags:
+            altitude = eval_frac(self.tags['GPS GPSAltitude'].values[0])
+            # Check if GPSAltitudeRef is equal to 1, which means GPSAltitude should be negative, reference: http://www.exif.org/Exif2-2.PDF#page=53
+            if 'GPS GPSAltitudeRef' in self.tags and self.tags['GPS GPSAltitudeRef'].values[0] == 1:
+                altitude = -altitude
         else:
             altitude = None
         return altitude
@@ -518,6 +527,8 @@ def focal_xy_calibration(exif):
             "p2": 0.0,
             "k3": 0.0,
             "k4": 0.0,
+            "k5": 0.0,
+            "k6": 0.0
         }
 
 
@@ -540,7 +551,13 @@ def default_calibration(data):
 def calibration_from_metadata(metadata, data):
     """Finds the best calibration in one of the calibration sources."""
     pt = metadata.get("projection_type", default_projection).lower()
-    if pt == "brown" or pt == "fisheye_opencv":
+    if (
+        pt == "brown"
+        or pt == "fisheye_opencv"
+        or pt == "radial"
+        or pt == "simple_radial"
+        or pt == "fisheye62"
+    ):
         calib = (
             hard_coded_calibration(metadata)
             or focal_xy_calibration(metadata)
@@ -589,6 +606,36 @@ def camera_from_exif_metadata(
             calib["focal_y"] / calib["focal_x"],
             [calib["c_x"], calib["c_y"]],
             [calib["k1"], calib["k2"], calib["k3"], calib["k4"]],
+        )
+    elif calib_pt == "fisheye62":
+        camera = pygeometry.Camera.create_fisheye62(
+            calib["focal_x"],
+            calib["focal_y"] / calib["focal_x"],
+            [calib["c_x"], calib["c_y"]],
+            [
+                calib["k1"],
+                calib["k2"],
+                calib["k3"],
+                calib["k4"],
+                calib["k5"],
+                calib["k6"],
+                calib["p1"],
+                calib["p2"],
+            ],
+        )
+    elif calib_pt == "radial":
+        camera = pygeometry.Camera.create_radial(
+            calib["focal_x"],
+            calib["focal_y"] / calib["focal_x"],
+            [calib["c_x"], calib["c_y"]],
+            [calib["k1"], calib["k2"]],
+        )
+    elif calib_pt == "simple_radial":
+        camera = pygeometry.Camera.create_simple_radial(
+            calib["focal_x"],
+            calib["focal_y"] / calib["focal_x"],
+            [calib["c_x"], calib["c_y"]],
+            calib["k1"],
         )
     elif calib_pt == "dual":
         camera = pygeometry.Camera.create_dual(

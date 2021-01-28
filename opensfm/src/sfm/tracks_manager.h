@@ -44,6 +44,9 @@ class TracksManager {
   static TracksManager InstanciateFromString(const std::string& str);
   std::string AsSring() const;
 
+  static TracksManager MergeTracksManager(
+      const std::vector<const TracksManager*>& tracks_manager);
+
   bool HasShotObservations(const ShotId& shot) const;
 
   static std::string TRACKS_HEADER;

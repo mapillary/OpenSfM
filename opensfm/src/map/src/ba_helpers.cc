@@ -244,7 +244,12 @@ py::tuple BAHelpers::BundleLocal(
   ba.SetMaxNumIterations(10);
   ba.SetLinearSolverType("DENSE_SCHUR");
   const auto timer_setup = std::chrono::high_resolution_clock::now();
-  ba.Run();
+
+  {
+    py::gil_scoped_release release;
+    ba.Run();
+  }
+
   const auto timer_run = std::chrono::high_resolution_clock::now();
   for (auto* shot : interior) {
     const auto& s = ba.GetShot(shot->id_);
@@ -447,7 +452,12 @@ py::dict BAHelpers::Bundle(
   ba.SetMaxNumIterations(config["bundle_max_iterations"].cast<int>());
   ba.SetLinearSolverType("SPARSE_SCHUR");
   const auto timer_setup = std::chrono::high_resolution_clock::now();
-  ba.Run();
+
+  {
+    py::gil_scoped_release release;
+    ba.Run();
+  }
+
   const auto timer_run = std::chrono::high_resolution_clock::now();
   // update cameras if optimized
   if (!fix_cameras) {

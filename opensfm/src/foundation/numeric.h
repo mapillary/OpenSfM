@@ -6,6 +6,7 @@
 
 #define SQUARE(x) ((x) * (x))
 
+namespace foundation {
 template <class T>
 T Sign(const T& a) {
   if (a < T(0)) {
@@ -51,3 +52,4 @@ std::array<double, 4> SolveQuartic(const std::array<double, 5>& coefficients);
 std::array<double, 4> RefineQuarticRoots(
     const std::array<double, 5>& coefficients,
     const std::array<double, 4>& roots);
+}  // namespace foundation

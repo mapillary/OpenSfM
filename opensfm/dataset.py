@@ -748,42 +748,45 @@ class UndistortedDataSet(object):
     def _depthmap_path(self):
         return os.path.join(self.data_path, "depthmaps")
 
-    def _depthmap_file(self, image, suffix):
+    def depthmap_file(self, image, suffix):
         """Path to the depthmap file"""
         return os.path.join(self._depthmap_path(), image + "." + suffix)
 
+    def point_cloud_file(self, filename="merged.ply"):
+        return os.path.join(self._depthmap_path(), filename)
+
     def raw_depthmap_exists(self, image):
-        return os.path.isfile(self._depthmap_file(image, "raw.npz"))
+        return os.path.isfile(self.depthmap_file(image, "raw.npz"))
 
     def save_raw_depthmap(self, image, depth, plane, score, nghbr, nghbrs):
         io.mkdir_p(self._depthmap_path())
-        filepath = self._depthmap_file(image, "raw.npz")
+        filepath = self.depthmap_file(image, "raw.npz")
         np.savez_compressed(
             filepath, depth=depth, plane=plane, score=score, nghbr=nghbr, nghbrs=nghbrs
         )
 
     def load_raw_depthmap(self, image):
-        o = np.load(self._depthmap_file(image, "raw.npz"))
+        o = np.load(self.depthmap_file(image, "raw.npz"))
         return o["depth"], o["plane"], o["score"], o["nghbr"], o["nghbrs"]
 
     def clean_depthmap_exists(self, image):
-        return os.path.isfile(self._depthmap_file(image, "clean.npz"))
+        return os.path.isfile(self.depthmap_file(image, "clean.npz"))
 
     def save_clean_depthmap(self, image, depth, plane, score):
         io.mkdir_p(self._depthmap_path())
-        filepath = self._depthmap_file(image, "clean.npz")
+        filepath = self.depthmap_file(image, "clean.npz")
         np.savez_compressed(filepath, depth=depth, plane=plane, score=score)
 
     def load_clean_depthmap(self, image):
-        o = np.load(self._depthmap_file(image, "clean.npz"))
+        o = np.load(self.depthmap_file(image, "clean.npz"))
         return o["depth"], o["plane"], o["score"]
 
     def pruned_depthmap_exists(self, image):
-        return os.path.isfile(self._depthmap_file(image, "pruned.npz"))
+        return os.path.isfile(self.depthmap_file(image, "pruned.npz"))
 
     def save_pruned_depthmap(self, image, points, normals, colors, labels, detections):
         io.mkdir_p(self._depthmap_path())
-        filepath = self._depthmap_file(image, "pruned.npz")
+        filepath = self.depthmap_file(image, "pruned.npz")
         np.savez_compressed(
             filepath,
             points=points,
@@ -794,7 +797,7 @@ class UndistortedDataSet(object):
         )
 
     def load_pruned_depthmap(self, image):
-        o = np.load(self._depthmap_file(image, "pruned.npz"))
+        o = np.load(self.depthmap_file(image, "pruned.npz"))
         if "detections" not in o:
             return (
                 o["points"],

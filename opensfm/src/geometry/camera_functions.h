@@ -4,17 +4,19 @@
 #include <foundation/numeric.h>
 #include <foundation/types.h>
 
-#include <unsupported/Eigen/AutoDiff>
-
 #include <iostream>
+#include <unsupported/Eigen/AutoDiff>
 
 enum class ProjectionType {
   PERSPECTIVE,
   BROWN,
   FISHEYE,
   FISHEYE_OPENCV,
+  FISHEYE62,
   SPHERICAL,
-  DUAL
+  DUAL,
+  RADIAL,
+  SIMPLE_RADIAL
 };
 
 template <class T>
@@ -269,7 +271,8 @@ struct DualProjection : CameraFunctor<3, 1, 2> {
     const T r = sqrt(SquaredNorm(point));
     ThetaEval<T> eval_function{0, r, p[Transition]};
     const auto theta_refined =
-        NewtonRaphson<ThetaEval<T>, 1, 1, ManualDiff<ThetaEval<T>, 1, 1>>(
+        foundation::NewtonRaphson<ThetaEval<T>, 1, 1,
+                                  foundation::ManualDiff<ThetaEval<T>, 1, 1>>(
             eval_function, 0, iterations);
 
     const auto s = tan(theta_refined) / (p[Transition] * tan(theta_refined) +
@@ -342,6 +345,97 @@ struct SphericalProjection : CameraFunctor<3, 0, 2> {
   }
 };
 
+/* Parameter is : k1 */
+struct Disto2 : CameraFunctor<2, 1, 2> {
+  enum { K1 = 0 };
+
+  template <class T>
+  static void Forward(const T* point, const T* k, T* distorted) {
+    const T r2 = SquaredNorm(point);
+    const auto distortion =
+        Distortion(r2, k[static_cast<int>(K1)]);
+    distorted[0] = point[0] * distortion;
+    distorted[1] = point[1] * distortion;
+  }
+
+  template <class T, bool COMP_PARAM>
+  static void ForwardDerivatives(const T* point, const T* k, T* distorted,
+                                 T* jacobian) {
+    // dx, dy, dk1
+    constexpr int stride = Stride<COMP_PARAM>();
+    const auto& k1 = k[static_cast<int>(K1)];
+    const auto& x = point[0];
+    const auto& y = point[1];
+
+    const auto x2 = x * x;
+    const auto y2 = y * y;
+    const auto r2 = x2 + y2;
+
+    jacobian[0] = T(3.0) * k1 * x2 + k1 * y2 + T(1.0);
+    jacobian[1] = x * T(2.0) * k1 * y;
+    jacobian[stride] = y * T(2.0) * k1 * x;
+    jacobian[stride + 1] = k1 * (T(3.0) * y2 + x2) + T(1.0);
+
+    if (COMP_PARAM) {
+      jacobian[2] = x * r2;
+      jacobian[stride + 2] = y * r2;
+    }
+
+    Forward(point, k, distorted);
+  }
+
+  template <class T>
+  static void Backward(const T* point, const T* k, T* undistorted) {
+    /* Beware if you use Backward together with autodiff. You'll need to remove
+     * the line below, otherwise, derivatives won't be propagated */
+    const T rd = sqrt(SquaredNorm(point));
+    if (rd < T(std::numeric_limits<double>::epsilon())) {
+      undistorted[0] = point[0];
+      undistorted[1] = point[1];
+    }
+
+    // Compute undistorted radius
+    DistoEval<T> eval_function{rd, k[static_cast<int>(K1)]};
+    const auto ru_refined =
+        foundation::NewtonRaphson<DistoEval<T>, 1, 1,
+                                  foundation::ManualDiff<DistoEval<T>, 1, 1>>(
+            eval_function, rd, iterations);
+
+    // Compute distortion factor from undistorted radius
+    const T r2 = ru_refined * ru_refined;
+    const auto distortion = Distortion(r2, k[static_cast<int>(K1)]);
+
+    // Unapply undistortion
+    undistorted[0] = point[0] / distortion;
+    undistorted[1] = point[1] / distortion;
+  }
+
+  static constexpr int iterations = 10;
+  template <class T>
+  struct DistoEval {
+    const T& rd;
+    const T& k1;
+    T operator()(const T& x) const {
+      const auto r2 = x * x;
+      return x * Disto2::Distortion(r2, k1) - rd;
+    }
+    T derivative(const T& x) const {
+      const auto r2 = x * x;
+      return Disto2::DistortionDerivative(r2, k1);
+    }
+  };
+
+  template <class T>
+  static inline T Distortion(const T& r2, const T& k1) {
+    return T(1.0) + r2 * k1;
+  }
+
+  template <class T>
+  static T DistortionDerivative(const T& r2, const T& k1) {
+    return T(1.0) + r2 * T(2.0) * k1;
+  }
+};
+
 /* Parameters are : k1, k2 */
 struct Disto24 : CameraFunctor<2, 2, 2> {
   enum { K1 = 0, K2 = 1 };
@@ -402,7 +496,8 @@ struct Disto24 : CameraFunctor<2, 2, 2> {
     DistoEval<T> eval_function{rd, k[static_cast<int>(K1)],
                                k[static_cast<int>(K2)]};
     const auto ru_refined =
-        NewtonRaphson<DistoEval<T>, 1, 1, ManualDiff<DistoEval<T>, 1, 1>>(
+        foundation::NewtonRaphson<DistoEval<T>, 1, 1,
+                                  foundation::ManualDiff<DistoEval<T>, 1, 1>>(
             eval_function, rd, iterations);
 
     // Compute distortion factor from undistorted radius
@@ -520,7 +615,8 @@ struct Disto2468 : CameraFunctor<2, 4, 2> {
                                k[static_cast<int>(K2)], k[static_cast<int>(K3)],
                                k[static_cast<int>(K4)]};
     const auto ru_refined =
-        NewtonRaphson<DistoEval<T>, 1, 1, ManualDiff<DistoEval<T>, 1, 1>>(
+        foundation::NewtonRaphson<DistoEval<T>, 1, 1,
+                                  foundation::ManualDiff<DistoEval<T>, 1, 1>>(
             eval_function, rd, iterations);
 
     // Compute distortion factor from undistorted radius
@@ -564,6 +660,171 @@ struct Disto2468 : CameraFunctor<2, 4, 2> {
     return T(1.0) +
            r2 * (T(3.0) * k1 +
                  r2 * (T(5.0) * k2 + r2 * (T(7.0) * k3 + r2 * T(9.0) * k4)));
+  }
+};
+
+/* Parameters are : k1, k2, k3, k4, k5, k6, p1, p2 */
+struct Disto62 : CameraFunctor<2, 8, 2> {
+  enum { K1 = 0, K2 = 1, K3 = 2, K4 = 3, K5 = 4, K6 = 5, P1 = 6, P2 = 7 };
+
+  template <class T>
+  static void Forward(const T* point, const T* k, T* distorted) {
+    const auto r2 = SquaredNorm(point);
+    // Radial
+    const auto distortion_radial =
+        RadialDistortion(r2, k[static_cast<int>(K1)], k[static_cast<int>(K2)],
+                         k[static_cast<int>(K3)], k[static_cast<int>(K4)],
+                         k[static_cast<int>(K5)], k[static_cast<int>(K6)]);
+
+    // Tangential
+    const auto distortion_tangential =
+        TangentialDistortion(r2, point[0], point[1], k[static_cast<int>(P1)],
+                             k[static_cast<int>(P2)]);
+    distorted[0] = point[0] * distortion_radial + distortion_tangential[0];
+    distorted[1] = point[1] * distortion_radial + distortion_tangential[1];
+  }
+
+  template <class T, bool COMP_PARAM>
+  static void ForwardDerivatives(const T* point, const T* k, T* distorted,
+                                 T* jacobian) {
+    constexpr int stride = Stride<COMP_PARAM>();
+    const auto& k1 = k[static_cast<int>(K1)];
+    const auto& k2 = k[static_cast<int>(K2)];
+    const auto& k3 = k[static_cast<int>(K3)];
+    const auto& k4 = k[static_cast<int>(K4)];
+    const auto& k5 = k[static_cast<int>(K5)];
+    const auto& k6 = k[static_cast<int>(K6)];
+    const auto& p1 = k[static_cast<int>(P1)];
+    const auto& p2 = k[static_cast<int>(P2)];
+    const auto& x = point[0];
+    const auto& y = point[1];
+
+    const auto x2 = x * x;
+    const auto y2 = y * y;
+    const auto r2 = x2 + y2;
+    const auto r2_2 = r2 * r2;
+    const auto r2_3 = r2_2 * r2;
+    const auto r2_4 = r2_3 * r2;
+    const auto r2_5 = r2_4 * r2;
+
+    // Compute tangential distortion separatedly
+    const auto dx_dxt = T(2.0) * y * p1 + T(6.0) * p2 * x;
+    const auto dx_dyt = T(2.0) * x * p1 + T(2.0) * p2 * y;
+    const auto dy_dxt = dx_dyt;  // == dx_dyt
+    const auto dy_dyt = T(2.0) * x * p2 + T(6.0) * p1 * y;
+    // Computing the deriv. of the rad dist. p(x,y):
+    // For x: d x * p(x,y)/ dx = p(x,y) + x * dp(x,y)/dy
+    // and simplify dp(x,y)/dx = dp/dr * dr/dx
+    const auto p = RadialDistortion(r2, k1, k2, k3, k4, k5, k6);
+    const auto dr_dx = T(2.0) * x;  // dr/dx = (x^2 + y^2)' = 2x
+    const auto dr_dy = T(2.0) * y;  // dr/dy = (x^2 + y^2)' = 2y
+    const auto dp_dr = k1 + T(2.0) * k2 * r2 + T(3.0) * k3 * r2_2 +
+                       T(4.0) * k4 * r2_3 + T(5.0) * k5 * r2_4 +
+                       T(6.0) * k6 * r2_5;
+    jacobian[0] = p + x * dp_dr * dr_dx + dx_dxt;
+    jacobian[1] = x * dp_dr * dr_dy + dx_dyt;
+    jacobian[stride + 0] = y * dp_dr * dr_dx + dy_dxt;
+    jacobian[stride + 1] = p + y * dp_dr * dr_dy + dy_dyt;
+
+    if (COMP_PARAM) {
+      const auto r2_6 = r2_5 * r2;
+      // K1 - K6
+      jacobian[2] = x * r2;
+      jacobian[3] = x * r2_2;
+      jacobian[4] = x * r2_3;
+      jacobian[5] = x * r2_4;
+      jacobian[6] = x * r2_5;
+      jacobian[7] = x * r2_6;
+      // P1 - P2
+      jacobian[8] = T(2.0) * x * y;
+      jacobian[9] = T(3.0) * x2 + y2;
+      // K1 - K6
+      jacobian[stride + 2] = y * r2;
+      jacobian[stride + 3] = y * r2_2;
+      jacobian[stride + 4] = y * r2_3;
+      jacobian[stride + 5] = y * r2_4;
+      jacobian[stride + 6] = y * r2_5;
+      jacobian[stride + 7] = y * r2_6;
+      // P1 - P2
+      jacobian[stride + 8] = T(3.0) * y2 + x2;
+      jacobian[stride + 9] = jacobian[8];
+    }
+
+    Forward(point, k, distorted);
+  }
+
+  template <class T>
+  static void Backward(const T* point, const T* k, T* undistorted) {
+    /* Beware if you use Backward together with autodiff. You'll need to remove
+     * the line below, otherwise, derivatives won't be propagated */
+    const T rd = sqrt(SquaredNorm(point));
+    if (rd < T(std::numeric_limits<double>::epsilon())) {
+      undistorted[0] = point[0];
+      undistorted[1] = point[1];
+    }
+    Eigen::Map<const Vec2<T>> mapped_point(point);
+    // Compute undistorted radius
+    DistoEval<T> eval_function{mapped_point,
+                               k[static_cast<int>(K1)],
+                               k[static_cast<int>(K2)],
+                               k[static_cast<int>(K3)],
+                               k[static_cast<int>(K4)],
+                               k[static_cast<int>(K5)],
+                               k[static_cast<int>(K6)],
+                               k[static_cast<int>(P1)],
+                               k[static_cast<int>(P2)]};
+    Eigen::Map<Vec2<T>> mapped_undistorted(undistorted);
+    mapped_undistorted =
+        foundation::NewtonRaphson<DistoEval<T>, 2, 2,
+                                  foundation::ManualDiff<DistoEval<T>, 2, 2>>(
+            eval_function, mapped_point, iterations);
+  }
+
+  static constexpr int iterations = 10;
+  template <class T>
+  struct DistoEval {
+    const Vec2<T>& point_distorted;
+    const T& k1;
+    const T& k2;
+    const T& k3;
+    const T& k4;
+    const T& k5;
+    const T& k6;
+    const T& p1;
+    const T& p2;
+    Vec2<T> operator()(const Vec2<T>& point) const {
+      const T r2 = point.squaredNorm();
+      const auto distortion_radial =
+          RadialDistortion(r2, k1, k2, k3, k4, k5, k6);
+
+      const auto distortion_tangential =
+          TangentialDistortion(r2, point[0], point[1], p1, p2);
+      return point * distortion_radial + distortion_tangential -
+             point_distorted;
+    }
+
+    Mat2<T> derivative(const Vec2<T>& point) const {
+      Mat2<T> jacobian;
+      std::array<double, 2> dummy;
+      std::array<double, 8> ks{k1, k2, k3, k4, k5, k6, p1, p2};
+      Disto62::ForwardDerivatives<T, false>(point.data(), ks.data(),
+                                            dummy.data(), jacobian.data());
+      return jacobian;
+    }
+  };
+
+  template <class T>
+  static T RadialDistortion(const T& r2, const T& k1, const T& k2, const T& k3,
+                            const T& k4, const T& k5, const T& k6) {
+    return T(1.0) +
+           r2 * (k1 + r2 * (k2 + r2 * (k3 + r2 * (k4 + r2 * (k5 + r2 * k6)))));
+  }
+
+  template <class T>
+  static Vec2<T> TangentialDistortion(const T& r2, const T& x, const T& y,
+                                      const T& p1, const T& p2) {
+    return Vec2<T>(T(2.0) * p1 * x * y + p2 * (r2 + T(2.0) * x * x),
+                   T(2.0) * p2 * x * y + p1 * (r2 + T(2.0) * y * y));
   }
 };
 
@@ -654,7 +915,8 @@ struct DistoBrown : CameraFunctor<2, 5, 2> {
                                k[static_cast<int>(P2)]};
     Eigen::Map<Vec2<T>> mapped_undistorted(undistorted);
     mapped_undistorted =
-        NewtonRaphson<DistoEval<T>, 2, 2, ManualDiff<DistoEval<T>, 2, 2>>(
+        foundation::NewtonRaphson<DistoEval<T>, 2, 2,
+                                  foundation::ManualDiff<DistoEval<T>, 2, 2>>(
             eval_function, mapped_point, iterations);
   }
 
@@ -683,10 +945,10 @@ struct DistoBrown : CameraFunctor<2, 5, 2> {
 
     Mat2<T> derivative(const Vec2<T>& point) const {
       Mat2<T> jacobian;
-      double dummy[2];
-      double ks[] = {k1, k2, k3, p1, p2};
-      DistoBrown::ForwardDerivatives<T, false>(point.data(), ks, dummy,
-                                               jacobian.data());
+      std::array<double, 2> dummy;
+      std::array<double, 5> ks{k1, k2, k3, p1, p2};
+      DistoBrown::ForwardDerivatives<T, false>(point.data(), ks.data(),
+                                               dummy.data(), jacobian.data());
       return jacobian;
     }
   };
@@ -914,7 +1176,7 @@ struct Pose : CameraFunctor<3, 6, 3> {
     if (theta2 < T(std::numeric_limits<double>::epsilon())) {
       Eigen::Map<Mat3<T>> mapped_rotation(rotation);
       const Eigen::Map<const Vec3<T>> mapped_angle_axis(angle_axis);
-      SkewMatrixT(mapped_angle_axis, &mapped_rotation);
+      foundation::SkewMatrixT(mapped_angle_axis, &mapped_rotation);
       for (int i = 0; i < 3; ++i) {
         rotation[i * 3 + i] = T(1.0);
       }
@@ -1074,12 +1336,20 @@ struct FunctorTraits<DualProjection> {
   static constexpr int Size = 1;
 };
 template <>
+struct FunctorTraits<Disto2> {
+  static constexpr int Size = 1;
+};
+template <>
 struct FunctorTraits<Disto24> {
   static constexpr int Size = 2;
 };
 template <>
 struct FunctorTraits<Disto2468> {
   static constexpr int Size = 4;
+};
+template <>
+struct FunctorTraits<Disto62> {
+  static constexpr int Size = 8;
 };
 template <>
 struct FunctorTraits<DistoBrown> {
@@ -1158,10 +1428,14 @@ struct ProjectGeneric
 
 using PerspectiveCamera =
     ProjectGeneric<PerspectiveProjection, Disto24, UniformScale>;
+using RadialCamera = ProjectGeneric<PerspectiveProjection, Disto24, Affine>;
+using SimpleRadialCamera =
+    ProjectGeneric<PerspectiveProjection, Disto2, Affine>;
 using BrownCamera = ProjectGeneric<PerspectiveProjection, DistoBrown, Affine>;
 using FisheyeCamera = ProjectGeneric<FisheyeProjection, Disto24, UniformScale>;
 using FisheyeOpencvCamera =
     ProjectGeneric<FisheyeProjection, Disto2468, Affine>;
+using Fisheye62Camera = ProjectGeneric<FisheyeProjection, Disto62, Affine>;
 using DualCamera = ProjectGeneric<DualProjection, Disto24, UniformScale>;
 using SphericalCamera = ProjectGeneric<SphericalProjection, Identity, Identity>;
 
@@ -1182,6 +1456,15 @@ void Dispatch(const ProjectionType& type, IN&&... args) {
       break;
     case ProjectionType::FISHEYE_OPENCV:
       FUNC::template Apply<FisheyeOpencvCamera>(std::forward<IN>(args)...);
+      break;
+    case ProjectionType::FISHEYE62:
+      FUNC::template Apply<Fisheye62Camera>(std::forward<IN>(args)...);
+      break;
+    case ProjectionType::RADIAL:
+      FUNC::template Apply<RadialCamera>(std::forward<IN>(args)...);
+      break;
+    case ProjectionType::SIMPLE_RADIAL:
+      FUNC::template Apply<SimpleRadialCamera>(std::forward<IN>(args)...);
       break;
     case ProjectionType::DUAL:
       FUNC::template Apply<DualCamera>(std::forward<IN>(args)...);

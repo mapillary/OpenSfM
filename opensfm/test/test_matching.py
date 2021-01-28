@@ -90,12 +90,13 @@ def test_match_images(scene_synthetic):
     synthetic.matches_exists = lambda im: False
     synthetic.save_matches = lambda im, m: False
 
-    synthetic.config["matching_gps_neighbors"] = 0
-    synthetic.config["matching_gps_distance"] = 0
-    synthetic.config["matching_time_neighbors"] = 2
+    override = {}
+    override["matching_gps_neighbors"] = 0
+    override["matching_gps_distance"] = 0
+    override["matching_time_neighbors"] = 2
 
     images = sorted(synthetic.images())
-    pairs, _ = matching.match_images(synthetic, images, images)
+    pairs, _ = matching.match_images(synthetic, override, images, images)
     matching.save_matches(synthetic, images, pairs)
 
     for i in range(len(images) - 1):

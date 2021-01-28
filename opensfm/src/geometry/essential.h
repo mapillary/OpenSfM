@@ -171,7 +171,7 @@ std::vector<Eigen::Matrix<double, 3, 3>> EssentialNPoints(IT begin, IT end) {
 
   Eigen::VectorXd solution;
   std::vector<Eigen::Matrix<double, 3, 3>> Es;
-  if (SolveAX0(A, &solution)) {
+  if (foundation::SolveAX0(A, &solution)) {
     Eigen::Matrix3d E =
         Eigen::Map<Eigen::Matrix3d>(solution.data()).transpose();
     if (count > 8) {

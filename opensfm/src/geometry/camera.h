@@ -2,7 +2,6 @@
 
 #include <geometry/camera_functions.h>
 
-#include <Eigen/Eigen>
 #include <unordered_map>
 
 class Camera {
@@ -13,6 +12,8 @@ class Camera {
     K2,
     K3,
     K4,
+    K5,
+    K6,
     P1,
     P2,
     Focal,
@@ -37,15 +38,24 @@ class Camera {
   static Camera CreateFisheyeOpencvCamera(double focal, double aspect_ratio,
                                           const Vec2d& principal_point,
                                           const VecXd& distortion);
+  static Camera CreateFisheye62Camera(double focal, double aspect_ratio,
+                                      const Vec2d& principal_point,
+                                      const VecXd& distortion);
   static Camera CreateDualCamera(double transition, double focal, double k1,
                                  double k2);
   static Camera CreateSphericalCamera();
+  static Camera CreateRadialCamera(double focal, double aspect_ratio,
+                                   const Vec2d& principal_point,
+                                   const Vec2d& distortion);
+  static Camera CreateSimpleRadialCamera(double focal, double aspect_ratio,
+                                         const Vec2d& principal_point,
+                                         double k1);
 
   Vec2d Project(const Vec3d& point) const;
-  Eigen::MatrixX2d ProjectMany(const Eigen::MatrixX3d& points) const;
+  MatX2d ProjectMany(const MatX3d& points) const;
 
   Vec3d Bearing(const Vec2d& point) const;
-  Eigen::MatrixX3d BearingsMany(const Eigen::MatrixX2d& points) const;
+  MatX3d BearingsMany(const MatX2d& points) const;
 
   std::vector<Parameters> GetParametersTypes() const;
   VecXd GetParametersValues() const;
@@ -56,6 +66,7 @@ class Camera {
 
   ProjectionType GetProjectionType() const;
   std::string GetProjectionString() const;
+  static std::string GetProjectionString(const ProjectionType& type);
 
   Mat3d GetProjectionMatrix() const;
   Mat3d GetProjectionMatrixScaled(int width, int height) const;

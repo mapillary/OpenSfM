@@ -76,8 +76,8 @@ std::vector<Eigen::Matrix<double, 3, 4>> AbsolutePoseThreePoints(IT begin,
   const auto alpha0 = SQUARE(g7) - SQUARE(g2) - SQUARE(g4);
 
   std::array<double, 5> coefficients = {alpha0, alpha1, alpha2, alpha3, alpha4};
-  std::array<double, 4> roots = SolveQuartic(coefficients);
-  roots = RefineQuarticRoots(coefficients, roots);
+  std::array<double, 4> roots = foundation::SolveQuartic(coefficients);
+  roots = foundation::RefineQuarticRoots(coefficients, roots);
 
   Eigen::Matrix3d c_barre, c_barre_barre;
   c_barre << k1, k3_second, k1.cross(k3_second);
@@ -91,7 +91,8 @@ std::vector<Eigen::Matrix<double, 3, 4>> AbsolutePoseThreePoints(IT begin,
   constexpr double eps = 1e-20;
   for (const auto &root : roots) {
     const auto cos_theta_1 = root;
-    const auto sin_theta_1 = Sign(k3_b3) * std::sqrt(1.0 - SQUARE(cos_theta_1));
+    const auto sin_theta_1 =
+        foundation::Sign(k3_b3) * std::sqrt(1.0 - SQUARE(cos_theta_1));
     const auto t =
         sin_theta_1 / (g5 * SQUARE(cos_theta_1) + g6 * cos_theta_1 + g7);
 
@@ -104,7 +105,7 @@ std::vector<Eigen::Matrix<double, 3, 4>> AbsolutePoseThreePoints(IT begin,
         RotationMatrixAroundAxis(cos_theta_3, sin_theta_3, e2);
 
     const Eigen::Matrix3d rotation =
-        ClosestRotationMatrix(c_barre * c1 * c2 * c_barre_barre);
+        foundation::ClosestRotationMatrix(c_barre * c1 * c2 * c_barre_barre);
     const Eigen::Vector3d translation =
         p3 - (sigma * sin_theta_1) / k3_b3 * (rotation * b3);
 

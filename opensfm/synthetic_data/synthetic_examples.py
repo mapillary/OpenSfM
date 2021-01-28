@@ -14,7 +14,7 @@ def synthetic_circle_scene():
     camera_interval = 3
     position_perturbation = [0.2, 0.2, 0.01]
     rotation_perturbation = 0.2
-    camera = ss.get_camera("perspective", "1", 0.9, -0.1, 0.01)
+    camera = ss.get_camera("perspective", "1", 0.7, -0.1, 0.01)
     scene.add_camera_sequence(
         camera,
         0,

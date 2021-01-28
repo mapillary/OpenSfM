@@ -154,6 +154,9 @@ def test_camera_from_to_vector():
         ("brown", 9),
         ("fisheye", 3),
         ("fisheye_opencv", 8),
+        ("fisheye62", 12),
+        ("radial", 6),
+        ("simple_radial", 5),
         ("dual", 4),
         ("spherical", 0),
     ]

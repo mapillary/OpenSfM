@@ -3,6 +3,8 @@
 #include <Eigen/Eigen>
 #include <limits>
 
+namespace foundation {
+
 // Unfortunately we need these traits because we want to use
 // straight double fo the scalar (N=1, M=1) case. Otherwise,
 // wrapping in an Eigen object is killing the performance
@@ -88,3 +90,4 @@ typename TypeTraits<N, M>::Values NewtonRaphson(
   }
   return current_value;
 }
+}  // namespace foundation

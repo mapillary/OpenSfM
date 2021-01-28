@@ -4,6 +4,8 @@
 
 namespace dense {
 
+static const double z_epsilon = 1e-8;
+
 bool IsInsideImage(const cv::Mat &image, int i, int j) {
   return i >= 0 && i < image.rows && j >= 0 && j < image.cols;
 }
@@ -522,7 +524,7 @@ void DepthmapCleaner::Clean(cv::Mat *clean_depth) {
       for (int other = 1; other < depths_.size(); ++other) {
         cv::Vec3f reprojection =
             Project(point, Ks_[other], Rs_[other], ts_[other]);
-        if (reprojection(2) == 0.0) {
+        if (reprojection(2) < z_epsilon || isnan(reprojection(2))) {
           continue;
         }
         float u = reprojection(0) / reprojection(2);
@@ -587,7 +589,7 @@ void DepthmapPruner::Prune(std::vector<float> *merged_points,
       for (int other = 1; other < depths_.size(); ++other) {
         cv::Vec3d reprojection =
             Project(point, Ks_[other], Rs_[other], ts_[other]);
-        if (reprojection(2) == 0.0) {
+        if (reprojection(2) < z_epsilon || isnan(reprojection(2))) {
           continue;
         }
         int iu = int(reprojection(0) / reprojection(2) + 0.5f);

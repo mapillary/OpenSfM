@@ -98,6 +98,62 @@ TEST_F(TracksManagerTest, ConstructSubTracksManager) {
   EXPECT_EQ(subtrack, subset.GetTrackObservations("1"));
 }
 
+TEST_F(TracksManagerTest, MergeThreeTracksManager) {
+  TracksManager manager1;
+  const auto o0 = Observation(1.0, 1.0, 1.0, 1, 1, 1, 0);
+  const auto o1 = Observation(1.0, 1.0, 1.0, 1, 1, 1, 1);
+  const auto o2 = Observation(1.0, 1.0, 1.0, 1, 1, 1, 2);
+  const auto o3 = Observation(1.0, 1.0, 1.0, 1, 1, 1, 3);
+  manager1.AddObservation("1", "0", o0);
+  manager1.AddObservation("1", "1", o1);
+  manager1.AddObservation("2", "1", o2);
+  manager1.AddObservation("3", "1", o3);
+
+  TracksManager manager2;
+  const auto o4 = Observation(1.0, 1.0, 1.0, 1, 1, 1, 4);
+  const auto o5 = Observation(1.0, 1.0, 1.0, 1, 1, 1, 5);
+  const auto o6 = Observation(1.0, 1.0, 1.0, 1, 1, 1, 6);
+  manager2.AddObservation("3", "1", o3);
+  manager2.AddObservation("4", "1", o4);
+  manager2.AddObservation("5", "1", o5);
+  manager2.AddObservation("6", "2", o6);
+
+  TracksManager manager3;
+  const auto o7 = Observation(1.0, 1.0, 1.0, 1, 1, 1, 7);
+  const auto o8 = Observation(1.0, 1.0, 1.0, 1, 1, 1, 8);
+  manager3.AddObservation("6", "1", o6);
+  manager3.AddObservation("7", "1", o7);
+  manager3.AddObservation("8", "2", o8);
+
+  auto merged =
+      TracksManager::MergeTracksManager({&manager1, &manager2, &manager3});
+
+  std::unordered_map<ShotId, Observation> track0;
+  track0["1"] = o1;
+  track0["2"] = o2;
+  track0["3"] = o3;
+  track0["4"] = o4;
+  track0["5"] = o5;
+
+  std::unordered_map<ShotId, Observation> track1;
+  track1["6"] = o6;
+  track1["7"] = o7;
+
+  std::unordered_map<ShotId, Observation> track2;
+  track2["8"] = o8;
+
+  std::unordered_map<ShotId, Observation> track3;
+  track3["1"] = o0;
+
+  EXPECT_THAT(
+      merged.GetTrackIds(),
+      ::testing::WhenSorted(::testing::ElementsAre("0", "1", "2", "3")));
+  EXPECT_EQ(merged.GetTrackObservations("0"), track2);
+  EXPECT_EQ(merged.GetTrackObservations("1"), track3);
+  EXPECT_EQ(merged.GetTrackObservations("2"), track1);
+  EXPECT_EQ(merged.GetTrackObservations("3"), track0);
+}
+
 TEST_F(TracksManagerTest, HasIOFileConsistency) {
   manager.WriteToFile(tmpfile.Name());
   const TracksManager manager_new =

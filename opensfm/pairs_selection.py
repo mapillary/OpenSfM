@@ -309,24 +309,30 @@ def match_candidates_by_order(images_ref, images_cand, max_neighbors):
     return pairs
 
 
-def match_candidates_from_metadata(images_ref, images_cand, exifs, data):
+def match_candidates_from_metadata(
+    images_ref, images_cand, exifs, data, config_override
+):
     """Compute candidate matching pairs between between images_ref and images_cand
 
     Returns a list of pairs (im1, im2) such that (im1 in images_ref) is true.
     Returned pairs are unique given that (i, j) == (j, i).
     """
-    max_distance = data.config["matching_gps_distance"]
-    gps_neighbors = data.config["matching_gps_neighbors"]
-    time_neighbors = data.config["matching_time_neighbors"]
-    order_neighbors = data.config["matching_order_neighbors"]
-    bow_neighbors = data.config["matching_bow_neighbors"]
-    bow_gps_distance = data.config["matching_bow_gps_distance"]
-    bow_gps_neighbors = data.config["matching_bow_gps_neighbors"]
-    bow_other_cameras = data.config["matching_bow_other_cameras"]
-    vlad_neighbors = data.config["matching_vlad_neighbors"]
-    vlad_gps_distance = data.config["matching_vlad_gps_distance"]
-    vlad_gps_neighbors = data.config["matching_vlad_gps_neighbors"]
-    vlad_other_cameras = data.config["matching_vlad_other_cameras"]
+
+    overriden_config = data.config.copy()
+    overriden_config.update(config_override)
+
+    max_distance = overriden_config["matching_gps_distance"]
+    gps_neighbors = overriden_config["matching_gps_neighbors"]
+    time_neighbors = overriden_config["matching_time_neighbors"]
+    order_neighbors = overriden_config["matching_order_neighbors"]
+    bow_neighbors = overriden_config["matching_bow_neighbors"]
+    bow_gps_distance = overriden_config["matching_bow_gps_distance"]
+    bow_gps_neighbors = overriden_config["matching_bow_gps_neighbors"]
+    bow_other_cameras = overriden_config["matching_bow_other_cameras"]
+    vlad_neighbors = overriden_config["matching_vlad_neighbors"]
+    vlad_gps_distance = overriden_config["matching_vlad_gps_distance"]
+    vlad_gps_neighbors = overriden_config["matching_vlad_gps_neighbors"]
+    vlad_other_cameras = overriden_config["matching_vlad_other_cameras"]
 
     if not data.reference_lla_exists():
         data.invent_reference_lla()

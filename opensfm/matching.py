@@ -20,7 +20,7 @@ def clear_cache():
     feature_loader.instance.clear_cache()
 
 
-def match_images(data, ref_images, cand_images):
+def match_images(data, config_override, ref_images, cand_images):
     """Perform pair matchings between two sets of images.
 
     It will do matching for each pair (i, j), i being in
@@ -36,14 +36,21 @@ def match_images(data, ref_images, cand_images):
 
     # Generate pairs for matching
     pairs, preport = pairs_selection.match_candidates_from_metadata(
-        ref_images, cand_images, exifs, data
+        ref_images,
+        cand_images,
+        exifs,
+        data,
+        config_override,
     )
 
     # Match them !
-    return match_images_with_pairs(data, exifs, ref_images, pairs), preport
+    return (
+        match_images_with_pairs(data, config_override, exifs, ref_images, pairs),
+        preport,
+    )
 
 
-def match_images_with_pairs(data, exifs, ref_images, pairs):
+def match_images_with_pairs(data, config_override, exifs, ref_images, pairs):
     """ Perform pair matchings given pairs. """
 
     # Store per each image in ref for processing
@@ -53,6 +60,7 @@ def match_images_with_pairs(data, exifs, ref_images, pairs):
 
     ctx = Context()
     ctx.data = data
+    ctx.config_override = config_override
     ctx.cameras = ctx.data.load_camera_models()
     ctx.exifs = exifs
     args = list(match_arguments(per_image, ctx))
@@ -151,7 +159,9 @@ def match_unwrap_args(args):
 
     for im2 in candidates:
         camera2 = ctx.cameras[ctx.exifs[im2]["camera"]]
-        im1_matches[im2] = match(im1, im2, camera1, camera2, ctx.data)
+        im1_matches[im2] = match(
+            im1, im2, camera1, camera2, ctx.data, ctx.config_override
+        )
 
     num_matches = sum(1 for m in im1_matches.values() if len(m) > 0)
     logger.debug(
@@ -161,7 +171,7 @@ def match_unwrap_args(args):
     return im1, im1_matches
 
 
-def match(im1, im2, camera1, camera2, data):
+def match(im1, im2, camera1, camera2, data, config_override):
     """Perform matching for a pair of images."""
     # Apply mask to features if any
     time_start = timer()
@@ -175,9 +185,11 @@ def match(im1, im2, camera1, camera2, data):
     if p1 is None or len(p1) < 2 or p2 is None or len(p2) < 2:
         return []
 
-    config = data.config
-    matcher_type = config["matcher_type"].upper()
-    symmetric_matching = config["symmetric_matching"]
+    overriden_config = data.config.copy()
+    overriden_config.update(config_override)
+
+    matcher_type = overriden_config["matcher_type"].upper()
+    symmetric_matching = overriden_config["symmetric_matching"]
 
     if matcher_type == "WORDS":
         w1 = feature_loader.instance.load_words(data, im1, masked=True)
@@ -186,36 +198,36 @@ def match(im1, im2, camera1, camera2, data):
             return []
 
         if symmetric_matching:
-            matches = match_words_symmetric(f1, w1, f2, w2, config)
+            matches = match_words_symmetric(f1, w1, f2, w2, overriden_config)
         else:
-            matches = match_words(f1, w1, f2, w2, config)
+            matches = match_words(f1, w1, f2, w2, overriden_config)
     elif matcher_type == "FLANN":
         fi1, i1 = feature_loader.instance.load_features_index(data, im1, masked=True)
         if symmetric_matching:
             fi2, i2 = feature_loader.instance.load_features_index(
                 data, im2, masked=True
             )
-            matches = match_flann_symmetric(fi1, i1, fi2, i2, config)
+            matches = match_flann_symmetric(fi1, i1, fi2, i2, overriden_config)
         else:
-            matches = match_flann(i1, f2, config)
+            matches = match_flann(i1, f2, overriden_config)
     elif matcher_type == "BRUTEFORCE":
         if symmetric_matching:
-            matches = match_brute_force_symmetric(f1, f2, config)
+            matches = match_brute_force_symmetric(f1, f2, overriden_config)
         else:
-            matches = match_brute_force(f1, f2, config)
+            matches = match_brute_force(f1, f2, overriden_config)
     else:
         raise ValueError("Invalid matcher_type: {}".format(matcher_type))
 
     # Adhoc filters
-    if config["matching_use_filters"]:
+    if overriden_config["matching_use_filters"]:
         matches = apply_adhoc_filters(data, matches, im1, camera1, p1, im2, camera2, p2)
 
     matches = np.array(matches, dtype=int)
     time_2d_matching = timer() - time_start
     t = timer()
 
-    symmetric = "symmetric" if config["symmetric_matching"] else "one-way"
-    robust_matching_min_match = config["robust_matching_min_match"]
+    symmetric = "symmetric" if overriden_config["symmetric_matching"] else "one-way"
+    robust_matching_min_match = overriden_config["robust_matching_min_match"]
     if len(matches) < robust_matching_min_match:
         logger.debug(
             "Matching {} and {}.  Matcher: {} ({}) T-desc: {:1.3f} "
@@ -226,7 +238,7 @@ def match(im1, im2, camera1, camera2, data):
         return []
 
     # robust matching
-    rmatches = robust_match(p1, p2, camera1, camera2, matches, config)
+    rmatches = robust_match(p1, p2, camera1, camera2, matches, overriden_config)
     rmatches = np.array([[a, b] for a, b in rmatches])
     time_robust_matching = timer() - t
     time_total = timer() - time_start
@@ -461,10 +473,10 @@ def robust_match(p1, p2, camera1, camera2, matches, config):
     matrix is used.  Otherwise, we use the Essential matrix.
     """
     if (
-        camera1.projection_type == "perspective"
+        camera1.projection_type in ["perspective", "brown"]
         and camera1.k1 == 0.0
         and camera1.k2 == 0.0
-        and camera2.projection_type == "perspective"
+        and camera2.projection_type in ["perspective", "brown"]
         and camera2.k1 == 0.0
         and camera2.k2 == 0.0
     ):
@@ -485,14 +497,14 @@ def apply_adhoc_filters(data, matches, im1, camera1, p1, im2, camera2, p2):
     for removing static data in images.
 
     """
-    matches = _non_static_matches(p1, p2, matches, data.config)
+    matches = _non_static_matches(p1, p2, matches)
     matches = _not_on_pano_poles_matches(p1, p2, matches, camera1, camera2)
     matches = _not_on_vermont_watermark(p1, p2, matches, im1, im2, data)
     matches = _not_on_blackvue_watermark(p1, p2, matches, im1, im2, data)
     return matches
 
 
-def _non_static_matches(p1, p2, matches, config):
+def _non_static_matches(p1, p2, matches):
     """Remove matches with same position in both images.
 
     That should remove matches on that are likely belong to rig occluders,

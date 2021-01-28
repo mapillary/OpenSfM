@@ -4,15 +4,15 @@
 namespace geo {
 constexpr double WGS84_a = 6378137.0;
 constexpr double WGS84_b = 6356752.314245;
-Vec3d EcefFromLla(const Vec3d& ecef);
+Vec3d EcefFromLla(const Vec3d& lla);
 Vec3d EcefFromLla(const double lat, const double lon, const double alt);
-Vec3d LlaFromEcef(const Vec3d& lla);
+Vec3d LlaFromEcef(const Vec3d& ecef);
 Vec3d LlaFromEcef(const double x, const double y, const double z);
 
-Mat4d EcefFromTopocentricTransform(const Vec3d& ecef);
+Mat4d EcefFromTopocentricTransform(const Vec3d& lla);
 Mat4d EcefFromTopocentricTransform(const double lat, const double lon,
                                    const double alt);
-Mat4d EcefFromTopocentricTransformFiniteDiff(const Vec3d& ecef);
+Mat4d EcefFromTopocentricTransformFiniteDiff(const Vec3d& lla);
 Mat4d EcefFromTopocentricTransformFiniteDiff(const double lat, const double lon,
                                              const double alt);
 Vec3d TopocentricFromLla(const double lat, const double lon, const double alt,
