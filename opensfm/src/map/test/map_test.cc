@@ -1,7 +1,7 @@
-#include <map/map.h>
 #include <geometry/camera.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include <map/map.h>
 #include <sfm/observation.h>
 
 namespace {
@@ -162,8 +162,7 @@ TEST(Map, SmallProblem) {
   }
 }
 
-TEST(Map, TopoCentricConverterAccess)
-{
+TEST(Map, TopoCentricConverterAccess) {
   auto map = map::Map();
   const auto& topo_default = map.GetTopocentricConverter();
   ASSERT_EQ(topo_default.alt_, 0.0);
@@ -173,5 +172,6 @@ TEST(Map, TopoCentricConverterAccess)
   ASSERT_EQ(topo_default.lat_, 1.0);
   ASSERT_EQ(topo_default.long_, 2.0);
   ASSERT_EQ(topo_default.alt_, 3.0);
+  ASSERT_EQ(topo_default.GetLlaRef(), Vec3d(1, 2, 3));
 }
 }  // namespace
