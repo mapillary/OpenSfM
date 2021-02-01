@@ -1,15 +1,16 @@
-#include <map/map.h>
 #include <geometry/pose.h>
 #include <map/landmark.h>
+#include <map/map.h>
 #include <map/shot.h>
+
 #include <unordered_set>
 
 namespace map {
 
 void Map::AddObservation(Shot* const shot, Landmark* const lm,
                          const Observation& obs) {
-  lm->AddObservation(shot, obs.id);
-  shot->CreateObservation(lm, obs.point, obs.scale, obs.color, obs.id);
+  lm->AddObservation(shot, obs.feature_id);
+  shot->CreateObservation(lm, obs);
 }
 
 void Map::AddObservation(const ShotId& shot_id, const LandmarkId& lm_id,

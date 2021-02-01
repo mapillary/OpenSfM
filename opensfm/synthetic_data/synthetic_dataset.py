@@ -53,7 +53,12 @@ class SyntheticDataSet(DataSet):
         return [image] * n_closest
 
     def load_features(self, image):
-        return self.features[image], self.descriptors[image], self.colors[image]
+        return (
+            self.features[image],
+            self.descriptors[image],
+            self.colors[image],
+            {"segmentations": None, "instances": None, "segmentation_labels": None},
+        )
 
     def save_features(self, image, points, descriptors, colors):
         pass

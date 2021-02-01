@@ -90,20 +90,17 @@ class Shot {
 
   std::vector<Landmark*> ComputeValidLandmarks() {
     std::vector<Landmark*> valid_landmarks;
-      valid_landmarks.reserve(landmark_observations_.size());
-      for (const auto& lm_obs : landmark_observations_) {
-        valid_landmarks.push_back(lm_obs.first);
-      }
+    valid_landmarks.reserve(landmark_observations_.size());
+    for (const auto& lm_obs : landmark_observations_) {
+      valid_landmarks.push_back(lm_obs.first);
+    }
     return valid_landmarks;
   }
   void RemoveLandmarkObservation(const FeatureId id);
 
-  void CreateObservation(Landmark* lm, const Vec2d& pt, const double scale,
-                         const Eigen::Vector3i& color, FeatureId id) {
-    landmark_observations_.insert(std::make_pair(
-        lm,
-        Observation(pt[0], pt[1], scale, color[0], color[1], color[2], id)));
-    landmark_id_.insert(std::make_pair(id, lm));
+  void CreateObservation(Landmark* lm, const Observation& obs) {
+    landmark_observations_.insert(std::make_pair(lm, obs));
+    landmark_id_.insert(std::make_pair(obs.feature_id, lm));
   }
 
   Observation* GetLandmarkObservation(Landmark* lm) {

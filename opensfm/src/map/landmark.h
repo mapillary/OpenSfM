@@ -1,5 +1,6 @@
 #pragma once
 #include <map/defines.h>
+
 #include <Eigen/Eigen>
 #include <iostream>
 #include <map>

@@ -379,7 +379,7 @@ def export_features(data, db, images_map):
     for image in data.images():
         width = data.load_exif(image)["width"]
         height = data.load_exif(image)["height"]
-        feat, _, _ = data.load_features(image)
+        feat, _, _, _ = data.load_features(image)
         feat = features.denormalized_image_coordinates(feat, width, height)
         features_map[image] = feat
         db.add_keypoints(images_map[image], feat)

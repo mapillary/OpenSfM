@@ -159,11 +159,29 @@ class DataSet(object):
             detection = None
         return detection
 
+    def _instances_path(self):
+        return os.path.join(self.data_path, "instances")
+
+    def _instances_file(self, image):
+        return os.path.join(self._instances_path(), image + ".png")
+
+    def load_instances(self, image):
+        """Load image instances file if it exists, otherwise return None."""
+        instances_file = self._instances_file(image)
+        if os.path.isfile(instances_file):
+            instances = io.imread(instances_file, grayscale=True)
+        else:
+            instances = None
+        return instances
+
     def _segmentation_path(self):
         return os.path.join(self.data_path, "segmentations")
 
     def _segmentation_file(self, image):
         return os.path.join(self._segmentation_path(), image + ".png")
+
+    def segmentation_labels(self):
+        return []
 
     def load_segmentation(self, image):
         """Load image segmentation if it exists, otherwise return None."""
@@ -322,9 +340,26 @@ class DataSet(object):
         """
         return os.path.join(self._feature_path(), image + ".npz")
 
-    def _save_features(self, filepath, points, descriptors, colors=None):
+    def _save_features(
+        self,
+        filepath,
+        points,
+        descriptors,
+        colors=None,
+        segmentations=None,
+        instances=None,
+    ):
         io.mkdir_p(self._feature_path())
-        features.save_features(filepath, points, descriptors, colors, self.config)
+        features.save_features(
+            filepath,
+            points,
+            descriptors,
+            colors,
+            segmentations,
+            instances,
+            self.segmentation_labels(),
+            self.config,
+        )
 
     def features_exist(self, image):
         return os.path.isfile(self._feature_file(image)) or os.path.isfile(
@@ -336,8 +371,17 @@ class DataSet(object):
             return features.load_features(self._feature_file_legacy(image), self.config)
         return features.load_features(self._feature_file(image), self.config)
 
-    def save_features(self, image, points, descriptors, colors):
-        self._save_features(self._feature_file(image), points, descriptors, colors)
+    def save_features(
+        self, image, points, descriptors, colors, segmentations, instances
+    ):
+        self._save_features(
+            self._feature_file(image),
+            points,
+            descriptors,
+            colors,
+            segmentations,
+            instances,
+        )
 
     def _words_file(self, image):
         return os.path.join(self._feature_path(), image + ".words.npz")

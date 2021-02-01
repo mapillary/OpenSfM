@@ -60,7 +60,7 @@ class VladCache(object):
     @lru_cache(1000)
     def vlad_histogram(self, data, image):
         words = self.load_words(data)
-        _, features, _ = feature_loader.instance.load_points_features_colors(
+        _, features, _, _, _ = feature_loader.instance.load_all_data(
             data, image, masked=True
         )
         if features is None:
