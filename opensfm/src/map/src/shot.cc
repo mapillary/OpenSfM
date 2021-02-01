@@ -8,7 +8,6 @@ Shot::Shot(const ShotId& shot_id, const Camera* const shot_camera,
            const geometry::Pose& pose)
     : id_(shot_id),
       shot_camera_(shot_camera),
-      slam_data_(this),
       merge_cc(0),
       scale(1.0),
       pose_(pose) {}
@@ -17,7 +16,6 @@ Shot::Shot(const ShotId& shot_id, std::unique_ptr<Camera> shot_camera,
            const geometry::Pose& pose)
     : id_(shot_id),
       shot_camera_(shot_camera.get()),
-      slam_data_(this),
       merge_cc(0),
       scale(1.0),
       pose_(pose) {
@@ -69,84 +67,19 @@ void ShotMeasurements::Set(const ShotMeasurements& other) {
 }
 
 size_t Shot::ComputeNumValidLandmarks(const int min_obs_thr) const {
-  if (UseLinearDataStructure()) {
-    return std::accumulate(
-        landmarks_.cbegin(), landmarks_.cend(), 0,
-        [min_obs_thr](const size_t prior, const Landmark* lm) {
-          if (lm != nullptr && min_obs_thr <= lm->NumberOfObservations())
-            return prior + 1;
-          return prior;
-        });
-  } else {
-    return std::accumulate(
-        landmark_observations_.cbegin(), landmark_observations_.cend(), 0,
-        [min_obs_thr](const size_t prior,
-                      const std::pair<Landmark*, Observation>& lm) {
-          if (min_obs_thr <= lm.first->NumberOfObservations()) return prior + 1;
-          return prior;
-        });
-  }
-}
-
-float Shot::ComputeMedianDepthOfLandmarks(const bool take_abs) const {
-  std::vector<float> depths;
-  depths.reserve(landmarks_.size());
-  const Mat4d T_cw = pose_.WorldToCamera();
-  const Vec3d rot_cw_z_row = T_cw.block<1, 3>(2, 0);
-  const double trans_cw_z = T_cw(2, 3);
-  if (UseLinearDataStructure()) {
-    for (const auto& lm : landmarks_) {
-      if (lm != nullptr) {
-        const double pos_c_z =
-            rot_cw_z_row.dot(lm->GetGlobalPos()) + trans_cw_z;
-        depths.push_back(float(take_abs ? std::abs(pos_c_z) : pos_c_z));
-      }
-    }
-  } else {
-    for (const auto& lm_pair : landmark_observations_) {
-      auto* lm = lm_pair.first;
-      const double pos_c_z = rot_cw_z_row.dot(lm->GetGlobalPos()) + trans_cw_z;
-      depths.push_back(float(take_abs ? std::abs(pos_c_z) : pos_c_z));
-    }
-  }
-  if (depths.empty()) {
-    return 0;
-  }
-  std::sort(depths.begin(), depths.end());
-  return depths.at((depths.size() - 1) / 2);
-}
-
-void Shot::InitKeyptsAndDescriptors(const size_t n_keypts) {
-  if (n_keypts > 0) {
-    num_keypts_ = n_keypts;
-    landmarks_.resize(num_keypts_, nullptr);
-    keypoints_.resize(num_keypts_);
-    descriptors_ = DescriptorMatrix(n_keypts, 32);
-  }
-}
-
-void Shot::InitAndTakeDatastructures(AlignedVector<Observation> keypts,
-                                     DescriptorMatrix descriptors) {
-  assert(keypts.size() == descriptors.rows());
-
-  std::swap(keypts, keypoints_);
-  std::swap(descriptors, descriptors_);
-  num_keypts_ = keypoints_.size();
-  landmarks_.resize(num_keypts_, nullptr);
+  return std::accumulate(
+      landmark_observations_.cbegin(), landmark_observations_.cend(), 0,
+      [min_obs_thr](const size_t prior,
+                    const std::pair<Landmark*, Observation>& lm) {
+        if (min_obs_thr <= lm.first->NumberOfObservations()) return prior + 1;
+        return prior;
+      });
 }
 
 void Shot::ScaleLandmarks(const double scale) {
-  if (UseLinearDataStructure()) {
-    for (auto* lm : landmarks_) {
-      if (lm != nullptr) {
-        lm->SetGlobalPos(lm->GetGlobalPos() * scale);
-      }
-    }
-  } else {
-    for (auto& lm_obs : landmark_observations_) {
-      auto* lm = lm_obs.first;
-      lm->SetGlobalPos(lm->GetGlobalPos() * scale);
-    }
+  for (auto& lm_obs : landmark_observations_) {
+    auto* lm = lm_obs.first;
+    lm->SetGlobalPos(lm->GetGlobalPos() * scale);
   }
 }
 
@@ -157,15 +90,9 @@ void Shot::ScalePose(const double scale) {
 }
 
 void Shot::RemoveLandmarkObservation(const FeatureId id) {
-  // for SLAM
-  if (UseLinearDataStructure()) {
-    landmarks_.at(id) = nullptr;
-  } else  // for OpenSfM
-  {
-    auto* lm = landmark_id_.at(id);
-    landmark_id_.erase(id);
-    landmark_observations_.erase(lm);
-  }
+  auto* lm = landmark_id_.at(id);
+  landmark_id_.erase(id);
+  landmark_observations_.erase(lm);
 }
 
 Vec2d Shot::Project(const Vec3d& global_pos) const {

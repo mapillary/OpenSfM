@@ -75,7 +75,6 @@ class Map {
   Landmark* GetLandmark(const LandmarkId& lm_id);
   void RemoveLandmark(const Landmark* const lm);
   void RemoveLandmark(const LandmarkId& lm_id);
-  void ReplaceLandmark(Landmark* old_lm, Landmark* new_lm);
   const std::unordered_map<LandmarkId, Landmark>& GetLandmarks() const {
     return landmarks_;
   }
@@ -86,15 +85,9 @@ class Map {
 
   // Observation methods
   void AddObservation(Shot* const shot, Landmark* const lm,
-                      const FeatureId feat_id);
-  void AddObservation(const ShotId& shot_id, const LandmarkId& lm_id,
-                      const FeatureId feat_id);
-  void AddObservation(Shot* const shot, Landmark* const lm,
                       const Observation& obs);
   void AddObservation(const ShotId& shot_id, const LandmarkId& lm_id,
                       const Observation& obs);
-  void RemoveObservation(Shot* const shot, Landmark* const lm,
-                         const FeatureId feat_id);
   void RemoveObservation(const ShotId& shot_id, const LandmarkId& lm_id);
   void ClearObservationsAndLandmarks();
 
@@ -103,8 +96,6 @@ class Map {
   size_t NumberOfPanoShots() const { return pano_shots_.size(); }
   size_t NumberOfLandmarks() const { return landmarks_.size(); }
   size_t NumberOfCameras() const { return cameras_.size(); }
-  std::map<Landmark*, FeatureId> GetObservationsOfShot(const Shot* shot);
-  std::map<Shot*, FeatureId> GetObservationsOfPoint(const Landmark* point);
 
   // TopocentricConverter
   const geo::TopocentricConverter& GetTopocentricConverter() const {

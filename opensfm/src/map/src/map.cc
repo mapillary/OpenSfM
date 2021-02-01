@@ -7,19 +7,6 @@
 namespace map {
 
 void Map::AddObservation(Shot* const shot, Landmark* const lm,
-                         const FeatureId feat_id) {
-  shot->AddLandmarkObservation(lm, feat_id);
-  lm->AddObservation(shot, feat_id);
-}
-
-void Map::AddObservation(const ShotId& shot_id, const LandmarkId& lm_id,
-                         const FeatureId feat_id) {
-  auto* const shot = GetShot(shot_id);
-  auto& lm = landmarks_.at(lm_id);
-  AddObservation(shot, &lm, feat_id);
-}
-
-void Map::AddObservation(Shot* const shot, Landmark* const lm,
                          const Observation& obs) {
   lm->AddObservation(shot, obs.id);
   shot->CreateObservation(lm, obs.point, obs.scale, obs.color, obs.id);
@@ -32,20 +19,10 @@ void Map::AddObservation(const ShotId& shot_id, const LandmarkId& lm_id,
   AddObservation(shot, lm, obs);
 }
 
-void Map::RemoveObservation(Shot* const shot, Landmark* const lm,
-                            const FeatureId feat_id) {
-  shot->RemoveLandmarkObservation(feat_id);
-  lm->RemoveObservation(shot);
-}
-
 void Map::RemoveObservation(const ShotId& shot_id, const LandmarkId& lm_id) {
-  // get the shot
   auto* shot = GetShot(shot_id);
-  // get the landmark
   auto* lm = GetLandmark(lm_id);
-  // get observation
   shot->RemoveLandmarkObservation(lm->GetObservationIdInShot(shot));
-  // remove
   lm->RemoveObservation(shot);
 }
 
@@ -136,18 +113,9 @@ void Map::RemoveShot(const ShotId& shot_id) {
   if (shot_it != shots_.end()) {
     auto& shot = shot_it->second;
     // 2) Remove it from all the points
-    auto& lms = shot.GetLandmarks();
-    if (lms.empty()) {
-      auto& lms_map = shot.GetLandmarkObservations();
-      for (auto& lm_obs : lms_map) {
-        lm_obs.first->RemoveObservation(&shot);
-      }
-    } else {
-      for (const auto& lm : shot.GetLandmarks()) {
-        if (lm != nullptr) {
-          lm->RemoveObservation(&shot);
-        }
-      }
+    auto& lms_map = shot.GetLandmarkObservations();
+    for (auto& lm_obs : lms_map) {
+      lm_obs.first->RemoveObservation(&shot);
     }
     // 3) Remove from shots
     shots_.erase(shot_it);
@@ -210,7 +178,7 @@ void Map::RemovePanoShot(const ShotId& shot_id) {
  */
 Landmark* Map::CreateLandmark(
     const LandmarkId& lm_id,
-    const Vec3d& global_pos)  //, const std::string& name)
+    const Vec3d& global_pos)
 {
   auto it_exist = landmarks_.find(lm_id);
   if (it_exist == landmarks_.end()) {
@@ -227,21 +195,7 @@ Landmark* Map::CreateLandmark(
 
 void Map::RemoveLandmark(const Landmark* const lm) {
   if (lm != nullptr) {
-    const auto& lm_it = landmarks_.find(lm->id_);
-    if (lm_it == landmarks_.end()) {
-      throw std::runtime_error("Accessing invalid LandmarkId " + lm->id_);
-    }
-
-    // 1) Remove all its observation
-    const auto& observations = lm->GetObservations();
-    for (const auto& obs : observations) {
-      Shot* shot = obs.first;
-      const auto feat_id = obs.second;
-      shot->RemoveLandmarkObservation(feat_id);
-    }
-
-    // 2) Remove from landmarks
-    landmarks_.erase(lm->id_);
+    RemoveLandmark(lm->id_);
   } else {
     throw std::runtime_error("Nullptr landmark");
   }
@@ -266,41 +220,6 @@ void Map::RemoveLandmark(const LandmarkId& lm_id) {
   } else {
     throw std::runtime_error("Accessing invalid LandmarkId " + lm_id);
   }
-}
-
-/**
- * Replaces landmark old_lm by new_lm
- *
- */
-
-void Map::ReplaceLandmark(Landmark* old_lm, Landmark* new_lm) {
-  if (old_lm == nullptr || new_lm == nullptr || old_lm->id_ == new_lm->id_) {
-    return;
-  }
-  // go through the observations of old_lm
-  for (const auto& observation : old_lm->GetObservations()) {
-    Shot* obs_shot = observation.first;
-    FeatureId obs_feat_id = observation.second;
-
-    // if the new one is seen in obs_shot, there was a mismatch
-    // Thus, erase the observation of the old_lm
-    if (new_lm->IsObservedInShot(obs_shot)) {
-      obs_shot->RemoveLandmarkObservation(obs_feat_id);
-    } else {
-      // replace, should be the same as AddObservation
-      obs_shot->AddLandmarkObservation(new_lm, obs_feat_id);
-      new_lm->AddObservation(obs_shot, obs_feat_id);
-    }
-  }
-  // TODO: This basically takes all the observations from the old lm
-  // Similar to OpenVSLAM but might not be completely correct
-  // because the old and the replaced landmark might have coinciding
-  // observations
-  new_lm->slam_data_.IncreaseNumObserved(old_lm->slam_data_.GetNumObserved());
-  new_lm->slam_data_.IncreaseNumObservable(
-      old_lm->slam_data_.GetNumObservable());
-  // 3) Remove from landmarks
-  landmarks_.erase(old_lm->id_);
 }
 
 Camera* Map::CreateCamera(const Camera& cam) {

@@ -8,38 +8,6 @@
 namespace map {
 class Shot;
 
-class SLAMLandmarkData {
- public:
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  DescriptorType descriptor_;
-  size_t num_observations_ = 0;
-
-  Vec3d mean_normal_ = Vec3d::Zero();
-  float GetMinValidDistance() const { return 0.7 * min_valid_dist_; }
-  float GetMaxValidDistance() const { return 1.3 * max_valid_dist_; }
-  void IncreaseNumObservable(unsigned int num_observable = 1) {
-    num_observable_ += num_observable;
-  }
-  void IncreaseNumObserved(unsigned int num_observed = 1) {
-    num_observed_ += num_observed;
-  }
-  float GetObservedRatio() const {
-    return static_cast<float>(num_observed_) / num_observable_;
-  }
-  // ORB scale variances
-  //! max valid distance between landmark and camera
-  float min_valid_dist_ = 0;
-  //! min valid distance between landmark and camera
-  float max_valid_dist_ = 0;
-  size_t GetNumObserved() const { return num_observed_; }
-  size_t GetNumObservable() const { return num_observable_; }
-
- private:
-  // track counter
-  size_t num_observable_ = 1;
-  size_t num_observed_ = 1;
-};
-
 class Landmark {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -51,7 +19,6 @@ class Landmark {
   Vec3i GetColor() const { return color_; }
   void SetColor(const Vec3i& color) { color_ = color; }
   void SetRefShot(Shot* ref_shot) { ref_shot_ = ref_shot; }
-  Shot* GetRefShot() { return ref_shot_; }
 
   // Utility functions
   bool IsObservedInShot(Shot* shot) const {
@@ -63,7 +30,6 @@ class Landmark {
   void RemoveObservation(Shot* shot);
   bool HasObservations() const { return !observations_.empty(); }
   size_t NumberOfObservations() const { return observations_.size(); }
-  Vec3f GetObservationInShot(Shot* shot) const;
   FeatureId GetObservationIdInShot(Shot* shot) const {
     auto obs_it = observations_.find(shot);
     if (obs_it == observations_.end()) {
@@ -101,7 +67,6 @@ class Landmark {
  public:
   const LandmarkId id_;
   LandmarkUniqueId unique_id_;
-  SLAMLandmarkData slam_data_;
 
  private:
   Vec3d global_pos_;  // point in global
