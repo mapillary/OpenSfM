@@ -13,11 +13,6 @@ void Landmark::SetReprojectionErrors(
   reproj_errors_ = reproj_errors;
 }
 
-double Landmark::ComputeDistanceFromRefFrame() const {
-  const Vec3d cam_to_lm_vec = global_pos_ - ref_shot_->GetPose().GetOrigin();
-  return cam_to_lm_vec.norm();
-}
-
 void Landmark::RemoveObservation(Shot* shot) {
   // Remove reprojection errors if present
   RemoveReprojectionError(shot->id_);

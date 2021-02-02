@@ -19,7 +19,6 @@ class Landmark {
   void SetGlobalPos(const Vec3d& global_pos) { global_pos_ = global_pos; }
   Vec3i GetColor() const { return color_; }
   void SetColor(const Vec3i& color) { color_ = color; }
-  void SetRefShot(Shot* ref_shot) { ref_shot_ = ref_shot; }
 
   // Utility functions
   bool IsObservedInShot(Shot* shot) const {
@@ -42,7 +41,6 @@ class Landmark {
     return observations_;
   }
   void ClearObservations() { observations_.clear(); }
-  double ComputeDistanceFromRefFrame() const;
 
   // Comparisons
   bool operator==(const Landmark& lm) const { return id_ == lm.id_; }
@@ -72,7 +70,6 @@ class Landmark {
  private:
   Vec3d global_pos_;  // point in global
   std::map<Shot*, FeatureId, KeyCompare> observations_;
-  Shot* ref_shot_;  // shot in which the landmark was first seen
   Vec3i color_;
   std::map<ShotId, Eigen::VectorXd> reproj_errors_;
 };
