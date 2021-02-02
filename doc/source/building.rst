@@ -24,7 +24,10 @@ OpenSfM depends on the following libraries that need to be installed before buil
 
 * OpenCV_
 * `Ceres Solver`_
-* NumPy_, SciPy_, Networkx_, PyYAML, exifread
+
+Python dependencies can be installed with::
+
+    pip install -r requirements
 
 
 Installing dependencies on Ubuntu
@@ -82,5 +85,3 @@ and browse `http://localhost:8001/ <http://localhost:8001/>`_
 .. _SciPy: http://www.scipy.org/
 .. _Ceres solver: http://ceres-solver.org/
 .. _Networkx: https://github.com/networkx/networkx
-
-
