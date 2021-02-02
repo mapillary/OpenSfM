@@ -41,7 +41,7 @@ BAHelpers::ShotNeighborhood(map::Map& map, const map::ShotId& central_shot_id,
                             size_t max_interior_size) {
   constexpr size_t MaxBoundarySize{1000000};
   std::unordered_set<map::Shot*> interior;
-  interior.insert(map.GetShot(central_shot_id));
+  interior.insert(&map.GetShot(central_shot_id));
   for (size_t distance = 1;
        distance < radius && interior.size() < max_interior_size; ++distance) {
     const auto remaining = max_interior_size - interior.size();

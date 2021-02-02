@@ -108,6 +108,7 @@ class Shot {
   }
 
   ShotMeasurements& GetShotMeasurements() { return shot_measurements_; }
+  const ShotMeasurements& GetShotMeasurements() const { return shot_measurements_; }
   void SetShotMeasurements(const ShotMeasurements& other) {
     shot_measurements_.Set(other);
   }

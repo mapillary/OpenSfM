@@ -59,35 +59,30 @@ PYBIND11_MODULE(pymap, m) {
                                   map::Map::RemoveLandmark)
       .def("remove_landmark", (void (map::Map::*)(const map::LandmarkId &)) &
                                   map::Map::RemoveLandmark)
-      .def(
-          "create_shot",
-          (map::Shot * (map::Map::*)(const map::ShotId &, const map::CameraId &,
-                                     const geometry::Pose &)) &
-              map::Map::CreateShot,
-          py::arg("shot_id"), py::arg("camera_id"), py::arg("pose"),
-          py::return_value_policy::reference_internal)
       .def("create_shot",
-           (map::Shot *
-            (map::Map::*)(const map::ShotId &, const map::CameraId &)) &
-               map::Map::CreateShot,
+           py::overload_cast<const map::ShotId &, const map::CameraId &,
+                             const geometry::Pose &>(&map::Map::CreateShot),
+           py::arg("shot_id"), py::arg("camera_id"), py::arg("pose"),
+           py::return_value_policy::reference_internal)
+      .def("create_shot",
+           py::overload_cast<const map::ShotId &, const map::CameraId &>(
+               &map::Map::CreateShot),
            py::arg("shot_id"), py::arg("camera_id"),
            py::return_value_policy::reference_internal)
-      .def(
-          "create_pano_shot",
-          (map::Shot * (map::Map::*)(const map::ShotId &, const map::CameraId &,
-                                     const geometry::Pose &)) &
-              map::Map::CreatePanoShot,
-          py::return_value_policy::reference_internal)
       .def("create_pano_shot",
-           (map::Shot *
-            (map::Map::*)(const map::ShotId &, const map::CameraId &)) &
-               map::Map::CreatePanoShot,
+           py::overload_cast<const map::ShotId &, const map::CameraId &,
+                             const geometry::Pose &>(&map::Map::CreatePanoShot),
+           py::return_value_policy::reference_internal)
+      .def("create_pano_shot",
+           py::overload_cast<const map::ShotId &, const map::CameraId &>(
+               &map::Map::CreatePanoShot),
            py::return_value_policy::reference_internal)
       .def("remove_shot", &map::Map::RemoveShot)
-      .def("get_shot", &map::Map::GetShot,
+      .def("get_shot", py::overload_cast<const ShotId &>(&map::Map::GetShot),
            py::return_value_policy::reference_internal)
       .def("remove_pano_shot", &map::Map::RemovePanoShot)
-      .def("get_pano_shot", &map::Map::GetPanoShot,
+      .def("get_pano_shot",
+           py::overload_cast<const ShotId &>(&map::Map::GetPanoShot),
            py::return_value_policy::reference_internal)
 
       .def("add_observation",
@@ -118,11 +113,12 @@ PYBIND11_MODULE(pymap, m) {
              return map.GetTopocentricConverter();
            })
       .def("has_landmark", &map::Map::HasLandmark)
-      .def("get_landmark", &map::Map::GetLandmark,
+      .def("get_landmark",
+           py::overload_cast<const map::LandmarkId &>(&map::Map::GetLandmark),
            py::return_value_policy::reference_internal)
       .def("clear_observations_and_landmarks",
            &map::Map::ClearObservationsAndLandmarks)
-      .def("get_camera", &map::Map::GetCamera,
+      .def("get_camera", py::overload_cast<const map::CameraId&>(&map::Map::GetCamera),
            py::return_value_policy::reference_internal)
       .def("update_shot", &map::Map::UpdateShot,
            py::return_value_policy::reference_internal)
@@ -153,7 +149,8 @@ PYBIND11_MODULE(pymap, m) {
       .def("get_camera_to_world", &map::Shot::GetCamToWorld)
       .def("get_world_to_camera", &map::Shot::GetWorldToCam)
       .def("get_camera_name", &map::Shot::GetCameraName)
-      .def_property("metadata", &map::Shot::GetShotMeasurements,
+      .def_property("metadata",
+      py::overload_cast<>(&map::Shot::GetShotMeasurements),
                     &map::Shot::SetShotMeasurements,
                     py::return_value_policy::reference_internal)
       .def_property(
