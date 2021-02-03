@@ -43,6 +43,7 @@ Install OpenCV and the Ceres solver using::
 
     brew install opencv
     brew install ceres-solver
+    brew install libomp
     sudo pip install -r requirements.txt
 
 Make sure you update your ``PYTHONPATH`` to include ``/usr/local/lib/python3.7/site-packages`` where OpenCV have been installed. For example with::
