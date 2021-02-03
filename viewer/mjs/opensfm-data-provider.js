@@ -400,10 +400,10 @@ class OpenSfmDataProvider extends Mapillary.API.DataProviderBase {
             {
                 CroppedAreaLeftPixels: 0,
                 CroppedAreaTopPixels: 0,
-                CroppedAreaImageHeightPixels: shot.height,
-                CroppedAreaImageWidthPixels: shot.width,
-                FullPanoHeightPixels: shot.height,
-                FullPanoWidthPixels: shot.width,
+                CroppedAreaImageHeightPixels: camera.height,
+                CroppedAreaImageWidthPixels: camera.width,
+                FullPanoHeightPixels: camera.height,
+                FullPanoWidthPixels: camera.width,
             } : null;
 
         let imagesUrl = new URL(
