@@ -3,6 +3,7 @@ set(SFM_FILES
     tracks_manager.h
     sfm_helpers.h
     types.h
+    src/observation.cc
     src/tracks_manager.cc
     src/sfm_helpers.cc
 )
