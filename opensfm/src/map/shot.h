@@ -65,10 +65,6 @@ class Shot {
 
   ShotId GetId() const { return id_; }
 
-  const DescriptorType GetDescriptor(const FeatureId id) const {
-    return descriptors_.row(id);
-  }
-
   // read-only access
   size_t ComputeNumValidLandmarks(const int min_obs_thr = 1) const;
 
@@ -119,7 +115,6 @@ class Shot {
   Mat4d GetWorldToCam() const { return pose_.WorldToCamera(); }
   Mat4d GetCamToWorld() const { return pose_.CameraToWorld(); }
 
-  void InitKeyptsAndDescriptors(const size_t n_keypts);
   void ScalePose(const double scale);
   void ScaleLandmarks(const double scale);
   // Comparisons
@@ -154,9 +149,6 @@ class Shot {
 
  private:
   geometry::Pose pose_;
-  size_t num_keypts_;
-
-  DescriptorMatrix descriptors_;
   // In OpenSfM, we use a map to reproduce a similar behaviour
   std::map<Landmark*, Observation, KeyCompare,
            Eigen::aligned_allocator<std::pair<Landmark* const, Observation>>>
