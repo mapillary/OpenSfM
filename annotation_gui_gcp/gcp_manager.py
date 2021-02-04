@@ -103,8 +103,7 @@ class GroundControlPointManager:
             x["error"] for x in self.gcp_reprojections[worst_gcp].values()
         ]
         n = len(errors_worst_gcp)
-        n_checked = sum(x == 0 for x in errors_worst_gcp)
-        print(f"Worst GCP: {worst_gcp} checked in {n_checked}/{n} images")
+        print(f"Worst GCP: {worst_gcp} unconfirmed in {n} images")
         return worst_gcp
 
     def shot_with_max_gcp_error(self, image_keys, gcp):

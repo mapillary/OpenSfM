@@ -149,6 +149,9 @@ class View:
     def add_move_or_remove_gcp(self, x, y, add):
         if self.main_ui.curr_point is None:
             return
+        reproj = self.main_ui.gcp_manager.gcp_reprojections.get(self.main_ui.curr_point)
+        if reproj:
+            reproj.pop(self.current_image, None)
         self.main_ui.gcp_manager.remove_point_observation(
             self.main_ui.curr_point, self.current_image
         )
