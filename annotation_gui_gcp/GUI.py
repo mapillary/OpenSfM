@@ -11,8 +11,8 @@ from opensfm import dataset
 
 matplotlib.use("TkAgg")
 
-from .image_sequence_view import ImageSequenceView
-from .orthophoto_view import OrthoPhotoView
+from image_sequence_view import ImageSequenceView
+from orthophoto_view import OrthoPhotoView
 
 FONT = "TkFixedFont"
 
@@ -392,7 +392,7 @@ class Gui:
         if len(self.gcp_manager.gcp_reprojections) == 0:
             print("No GCP reprojections available. Can't jump to worst GCP")
             return
-        worst_gcp = self.gcp_manager.compute_gcp_errors()[0]
+        worst_gcp = self.gcp_manager.get_worst_gcp()
         if worst_gcp is None:
             return
 

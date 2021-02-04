@@ -87,26 +87,25 @@ class GroundControlPointManager:
             }
         )
 
-    def compute_gcp_errors(self):
-        error_avg = {}
+    def get_worst_gcp(self):
         worst_gcp_error = 0
         worst_gcp = None
-        shot_worst_gcp = None
-        for gcp_id in self.points:
-            error_avg[gcp_id] = 0
         for gcp_id in self.gcp_reprojections:
             if gcp_id not in self.points:
                 continue
             for shot_id in self.gcp_reprojections[gcp_id]:
                 err = self.gcp_reprojections[gcp_id][shot_id]["error"]
-                error_avg[gcp_id] += err
                 if err > worst_gcp_error:
                     worst_gcp_error = err
-                    shot_worst_gcp = shot_id
                     worst_gcp = gcp_id
-            error_avg[gcp_id] /= len(self.gcp_reprojections[gcp_id])
 
-        return worst_gcp, shot_worst_gcp, worst_gcp_error, error_avg
+        errors_worst_gcp = [
+            x["error"] for x in self.gcp_reprojections[worst_gcp].values()
+        ]
+        n = len(errors_worst_gcp)
+        n_checked = sum(x == 0 for x in errors_worst_gcp)
+        print(f"Worst GCP: {worst_gcp} checked in {n_checked}/{n} images")
+        return worst_gcp
 
     def shot_with_max_gcp_error(self, image_keys, gcp):
         # Return they key with most reprojection error for this GCP
