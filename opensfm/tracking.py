@@ -13,11 +13,15 @@ def load_features(dataset, images):
     logging.info("reading features")
     features = {}
     colors = {}
+    segmentations = {}
+    instances = {}
     for im in images:
-        p, f, c = dataset.load_features(im)
+        p, f, c, s = dataset.load_features(im)
         features[im] = p[:, :3]
         colors[im] = c
-    return features, colors
+        segmentations[im] = s["segmentations"] if s else None
+        instances[im] = s["instances"] if s else None
+    return features, colors, segmentations, instances
 
 
 def load_matches(dataset, images):
@@ -33,7 +37,7 @@ def load_matches(dataset, images):
     return matches
 
 
-def create_tracks_manager(features, colors, matches, config):
+def create_tracks_manager(features, colors, segmentations, instances, matches, config):
     """Link matches into tracks."""
     logger.debug("Merging features onto tracks")
     uf = UnionFind()
@@ -53,6 +57,7 @@ def create_tracks_manager(features, colors, matches, config):
     tracks = [t for t in sets.values() if _good_track(t, min_length)]
     logger.debug("Good tracks: {}".format(len(tracks)))
 
+    NO_VALUE = pysfm.Observation.NO_SEMANTIC_VALUE
     tracks_manager = pysfm.TracksManager()
     for track_id, track in enumerate(tracks):
         for image, featureid in track:
@@ -60,7 +65,17 @@ def create_tracks_manager(features, colors, matches, config):
                 continue
             x, y, s = features[image][featureid]
             r, g, b = colors[image][featureid]
-            obs = pysfm.Observation(x, y, s, int(r), int(g), int(b), featureid)
+            segmentation, instance = (
+                segmentations[image][featureid]
+                if segmentations[image] is not None
+                else NO_VALUE,
+                instances[image][featureid]
+                if instances[image] is not None
+                else NO_VALUE,
+            )
+            obs = pysfm.Observation(
+                x, y, s, int(r), int(g), int(b), featureid, segmentation, instance
+            )
             tracks_manager.add_observation(image, str(track_id), obs)
     return tracks_manager
 
@@ -161,5 +176,7 @@ def as_graph(tracks_manager):
                 feature_scale=obs.scale,
                 feature_id=obs.id,
                 feature_color=obs.color,
+                feature_segmentation=obs.segmentation,
+                feature_instance=obs.instance,
             )
     return graph

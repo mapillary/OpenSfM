@@ -368,13 +368,13 @@ def build_flann_index(features, config):
     return context.flann_Index(features, flann_params)
 
 
-FEATURES_VERSION = 1
+FEATURES_VERSION = 2
 FEATURES_HEADER = "OPENSFM_FEATURES_VERSION"
 
 
 def load_features(filepath, config):
     """ Load features from filename """
-    s = np.load(filepath)
+    s = np.load(filepath, allow_pickle=True)
     version = _features_file_version(s)
     return getattr(sys.modules[__name__], "_load_features_v%d" % version)(s, config)
 
@@ -399,7 +399,7 @@ def _load_features_v0(s, config):
         descriptors = s["descriptors"]
     points = s["points"]
     points[:, 2:3] = config["reprojection_error_sd"]
-    return points, descriptors, s["colors"].astype(float)
+    return points, descriptors, s["colors"].astype(float), None
 
 
 def _load_features_v1(s, config):
@@ -412,10 +412,43 @@ def _load_features_v1(s, config):
         descriptors = s["descriptors"].astype(np.float32)
     else:
         descriptors = s["descriptors"]
-    return s["points"], descriptors, s["colors"].astype(float)
+    return s["points"], descriptors, s["colors"].astype(float), None
 
 
-def save_features(filepath, points, desc, colors, config):
+def _load_features_v2(s, config):
+    """Version 2 of features file
+
+    Added segmentation and segmentation labels.
+    """
+    feature_type = config["feature_type"]
+    if feature_type == "HAHOG" and config["hahog_normalize_to_uchar"]:
+        descriptors = s["descriptors"].astype(np.float32)
+    else:
+        descriptors = s["descriptors"]
+    has_segmentation = s["segmentations"].any()
+    has_instances = s["instances"].any()
+    return (
+        s["points"],
+        descriptors,
+        s["colors"].astype(float),
+        {
+            "segmentations": s["segmentations"] if has_segmentation else None,
+            "instances": s["instances"] if has_instances else None,
+            "segmentation_labels": s["segmentation_labels"],
+        },
+    )
+
+
+def save_features(
+    filepath,
+    points,
+    desc,
+    colors,
+    segmentations,
+    instances,
+    segmentation_labels,
+    config,
+):
     feature_type = config["feature_type"]
     if (
         (
@@ -433,5 +466,9 @@ def save_features(filepath, points, desc, colors, config):
         points=points.astype(np.float32),
         descriptors=desc.astype(feature_data_type),
         colors=colors,
+        segmentations=segmentations,
+        instances=instances,
+        segmentation_labels=segmentation_labels,
         OPENSFM_FEATURES_VERSION=FEATURES_VERSION,
+        allow_pickle=True,
     )

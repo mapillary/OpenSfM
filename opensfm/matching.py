@@ -175,12 +175,8 @@ def match(im1, im2, camera1, camera2, data, config_override):
     """Perform matching for a pair of images."""
     # Apply mask to features if any
     time_start = timer()
-    p1, f1, _ = feature_loader.instance.load_points_features_colors(
-        data, im1, masked=True
-    )
-    p2, f2, _ = feature_loader.instance.load_points_features_colors(
-        data, im2, masked=True
-    )
+    p1, f1, _, _, _ = feature_loader.instance.load_all_data(data, im1, masked=True)
+    p2, f2, _, _, _ = feature_loader.instance.load_all_data(data, im2, masked=True)
 
     if p1 is None or len(p1) < 2 or p2 is None or len(p2) < 2:
         return []

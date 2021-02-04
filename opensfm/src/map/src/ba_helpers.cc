@@ -41,7 +41,7 @@ BAHelpers::ShotNeighborhood(map::Map& map, const map::ShotId& central_shot_id,
                             size_t max_interior_size) {
   constexpr size_t MaxBoundarySize{1000000};
   std::unordered_set<map::Shot*> interior;
-  interior.insert(map.GetShot(central_shot_id));
+  interior.insert(&map.GetShot(central_shot_id));
   for (size_t distance = 1;
        distance < radius && interior.size() < max_interior_size; ++distance) {
     const auto remaining = max_interior_size - interior.size();
@@ -59,18 +59,8 @@ std::unordered_set<map::Shot*> BAHelpers::DirectShotNeighbors(
     const size_t min_common_points, const size_t max_neighbors) {
   std::unordered_set<map::Landmark*> points;
   for (auto* shot : shot_ids) {
-    if (shot->UseLinearDataStructure()) {
-      const auto& landmarks = shot->GetLandmarks();
-      for (size_t idx = 0; idx < landmarks.size(); ++idx) {
-        auto* lm = landmarks[idx];
-        if (lm != nullptr) {
-          points.insert(lm);
-        }
-      }
-    } else {
-      for (const auto& lm_obs : shot->GetLandmarkObservations()) {
-        points.insert(lm_obs.first);
-      }
+    for (const auto& lm_obs : shot->GetLandmarkObservations()) {
+      points.insert(lm_obs.first);
     }
   }
 
@@ -166,59 +156,26 @@ py::tuple BAHelpers::BundleLocal(
 
   for (auto* shot : interior) {
     // Add all points of the shots that are in the interior
-    if (shot->UseLinearDataStructure()) {
-      const auto& landmarks = shot->GetLandmarks();
-      const auto& keypts = shot->GetKeyPoints();
-      for (size_t idx = 0; idx < landmarks.size(); ++idx) {
-        auto* lm = landmarks[idx];
-        if (lm != nullptr) {
-          if (points.count(lm) == 0) {
-            points.insert(lm);
-            pt_ids.append(lm->id_);
-            ba.AddPoint(lm->id_, lm->GetGlobalPos(), point_constant);
-          }
-          const auto& obs = keypts[idx];
-          ba.AddPointProjectionObservation(shot->id_, lm->id_, obs.point[0],
-                                           obs.point[1], obs.scale);
-        }
+    for (const auto& lm_obs : shot->GetLandmarkObservations()) {
+      auto* lm = lm_obs.first;
+      if (points.count(lm) == 0) {
+        points.insert(lm);
+        pt_ids.append(lm->id_);
+        ba.AddPoint(lm->id_, lm->GetGlobalPos(), point_constant);
       }
-    } else {
-      for (const auto& lm_obs : shot->GetLandmarkObservations()) {
-        auto* lm = lm_obs.first;
-        if (points.count(lm) == 0) {
-          points.insert(lm);
-          pt_ids.append(lm->id_);
-          ba.AddPoint(lm->id_, lm->GetGlobalPos(), point_constant);
-        }
-        const auto& obs = lm_obs.second;
-        ba.AddPointProjectionObservation(shot->id_, lm_obs.first->id_,
-                                         obs.point[0], obs.point[1], obs.scale);
-      }
+      const auto& obs = lm_obs.second;
+      ba.AddPointProjectionObservation(shot->id_, lm_obs.first->id_,
+                                        obs.point[0], obs.point[1], obs.scale);
     }
   }
   for (auto* shot : boundary) {
-    if (shot->UseLinearDataStructure()) {
-      const auto& landmarks = shot->GetLandmarks();
-      const auto& keypts = shot->GetKeyPoints();
-      for (size_t idx = 0; idx < landmarks.size(); ++idx) {
-        auto* lm = landmarks[idx];
-        if (lm != nullptr) {
-          if (points.count(lm) > 0) {
-            const auto& obs = keypts[idx];
-            ba.AddPointProjectionObservation(shot->id_, lm->id_, obs.point[0],
-                                             obs.point[1], obs.scale);
-          }
-        }
-      }
-    } else {
-      for (const auto& lm_obs : shot->GetLandmarkObservations()) {
-        auto* lm = lm_obs.first;
-        if (points.count(lm) > 0) {
-          const auto& obs = lm_obs.second;
-          ba.AddPointProjectionObservation(shot->id_, lm_obs.first->id_,
-                                           obs.point[0], obs.point[1],
-                                           obs.scale);
-        }
+    for (const auto& lm_obs : shot->GetLandmarkObservations()) {
+      auto* lm = lm_obs.first;
+      if (points.count(lm) > 0) {
+        const auto& obs = lm_obs.second;
+        ba.AddPointProjectionObservation(shot->id_, lm_obs.first->id_,
+                                          obs.point[0], obs.point[1],
+                                          obs.scale);
       }
     }
   }
@@ -411,24 +368,10 @@ py::dict BAHelpers::Bundle(
       constexpr double std_dev = 1e-3;
       ba.AddAbsoluteUpVector(shot.id_, up_vector, std_dev);
     }
-    // Now, divide betwen linear datastructure and map
-    if (shot.UseLinearDataStructure()) {
-      const auto& keypts = shot.GetKeyPoints();
-      const auto& landmarks = shot.GetLandmarks();
-      for (size_t idx = 0; idx < landmarks.size(); ++idx) {
-        const auto* lm = landmarks[idx];
-        if (lm != nullptr) {
-          const auto& obs = keypts[idx];
-          ba.AddPointProjectionObservation(shot.id_, lm->id_, obs.point[0],
-                                           obs.point[1], obs.scale);
-        }
-      }
-    } else {
-      for (const auto& lm_obs : shot.GetLandmarkObservations()) {
-        const auto& obs = lm_obs.second;
-        ba.AddPointProjectionObservation(shot.id_, lm_obs.first->id_,
-                                         obs.point[0], obs.point[1], obs.scale);
-      }
+    for (const auto& lm_obs : shot.GetLandmarkObservations()) {
+      const auto& obs = lm_obs.second;
+      ba.AddPointProjectionObservation(shot.id_, lm_obs.first->id_,
+                                        obs.point[0], obs.point[1], obs.scale);
     }
   }
   if (config["bundle_use_gcp"].cast<bool>() && !gcp.empty()) {

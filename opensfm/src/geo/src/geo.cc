@@ -36,7 +36,6 @@ Vec3d EcefFromLla(const Vec3d& lla) {
   return EcefFromLla(lla[0], lla[1], lla[2]);
 }
 
-
 /**
 Compute latitude, longitude and altitude from ECEF XYZ.
 
@@ -88,7 +87,6 @@ Mat4d EcefFromTopocentricTransform(const Vec3d& lla) {
   return EcefFromTopocentricTransform(lla[0], lla[1], lla[2]);
 }
 
-
 /**
     Transformation from a topocentric frame at reference position to ECEF.
 
@@ -122,7 +120,6 @@ Mat4d EcefFromTopocentricTransformFiniteDiff(const Vec3d& lla) {
   return EcefFromTopocentricTransformFiniteDiff(lla[0], lla[1], lla[2]);
 }
 
-
 Vec3d TopocentricFromLla(const double lat, const double lon, const double alt,
                          const double reflat, const double reflon,
                          const double refalt) {
@@ -135,7 +132,6 @@ Vec3d TopocentricFromLla(const Vec3d& lla, const Vec3d& ref) {
   const Vec3d xyz = EcefFromLla(lla);
   return T.block<3, 4>(0, 0) * xyz.homogeneous();
 }
-
 
 /**
     Transform from topocentric XYZ to lat, lon, alt.
@@ -150,7 +146,6 @@ Vec3d LlaFromTopocentric(const double x, const double y, const double z,
                          const double refalt) {
   return LlaFromTopocentric(Vec3d(x, y, z), Vec3d(reflat, reflon, refalt));
 }
-
 
 /**
     Distance between two (lat,lon) pairs.
@@ -168,21 +163,29 @@ TopocentricConverter::TopocentricConverter(const double lat,
                                            const double longitude,
                                            const double alt)
     : lat_(lat), long_(longitude), alt_(alt) {}
+
 TopocentricConverter::TopocentricConverter(const Vec3d& lla)
     : TopocentricConverter(lla[0], lla[1], lla[2]){};
+
 Vec3d TopocentricConverter::ToTopocentric(const double lat, const double lon,
                                           const double alt) const {
   return ToTopocentric(Vec3d(lat, lon, alt));
 }
+
 Vec3d TopocentricConverter::ToTopocentric(const Vec3d& lla) const {
-  return TopocentricFromLla(lla, Vec3d(lat_, long_, alt_));
+  return TopocentricFromLla(lla, GetLlaRef());
 }
+
 Vec3d TopocentricConverter::ToLla(const double x, const double y,
                                   const double z) const {
   return ToLla(Vec3d(x, y, z));
 }
+
 Vec3d TopocentricConverter::ToLla(const Vec3d& xyz) const {
-  return LlaFromTopocentric(xyz, Vec3d(lat_, long_, alt_));
+  return LlaFromTopocentric(xyz, GetLlaRef());
 }
 
+Vec3d TopocentricConverter::GetLlaRef() const {
+  return Vec3d(lat_, long_, alt_);
+}
 }  // namespace geo

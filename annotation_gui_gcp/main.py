@@ -5,9 +5,9 @@ from pathlib import Path
 
 from opensfm import dataset, io
 
-import GUI
-from gcp_manager import GroundControlPointManager
-from image_manager import ImageManager
+from . import GUI
+from .gcp_manager import GroundControlPointManager
+from .image_manager import ImageManager
 
 
 def parse_args():

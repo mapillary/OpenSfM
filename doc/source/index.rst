@@ -14,6 +14,7 @@ OpenSfM
    reconstruction_module
    large
    reporting
+   quality_report
    api
 
 Indices and tables

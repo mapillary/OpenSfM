@@ -1,0 +1,23 @@
+name: Docker CI
+
+on: [push, pull_request]
+
+jobs:
+
+  build-test:
+    name: Build docker installing CeresSolver 2 and run tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: Build the Docker image
+        run: docker build . --file Dockerfile.ceres2 --tag mapillary/opensfm.ceres2:$GITHUB_SHA
+
+      - name: Run C++ tests
+        run: docker run mapillary/opensfm.ceres2:$GITHUB_SHA /bin/sh -c "cd cmake_build && ctest"
+
+      - name: Run Python tests
+        run: docker run mapillary/opensfm.ceres2:$GITHUB_SHA python3 -m pytest

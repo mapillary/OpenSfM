@@ -393,7 +393,13 @@ def import_images_reconstruction(path_images, keypoints, rec):
                     kp = keypoints[image_id][point2d_ix]
                     r, g, b = rec.points[str(point3d_id)].color
                     obs = pysfm.Observation(
-                        x, y, kp[2], int(r), int(g), int(b), point2d_ix
+                        x,
+                        y,
+                        kp[2],
+                        int(r),
+                        int(g),
+                        int(b),
+                        point2d_ix,
                     )
                     tracks_manager.add_observation(shot.id, str(point3d_id), obs)
 

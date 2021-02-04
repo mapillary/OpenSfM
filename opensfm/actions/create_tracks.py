@@ -8,12 +8,19 @@ def run_dataset(data):
     """ Link matches pair-wise matches into tracks. """
 
     start = timer()
-    features, colors = tracking.load_features(data, data.images())
+    features, colors, segmentations, instances = tracking.load_features(
+        data, data.images()
+    )
     features_end = timer()
     matches = tracking.load_matches(data, data.images())
     matches_end = timer()
     tracks_manager = tracking.create_tracks_manager(
-        features, colors, matches, data.config
+        features,
+        colors,
+        segmentations,
+        instances,
+        matches,
+        data.config,
     )
     tracks_end = timer()
     data.save_tracks_manager(tracks_manager)

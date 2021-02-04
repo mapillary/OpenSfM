@@ -13,10 +13,14 @@ def test_dataset_load_features_sift(tmpdir):
     points = np.random.random((3, 4))
     descriptors = np.random.random((128, 4))
     colors = np.random.random((3, 4))
-    data.save_features(image, points, descriptors, colors)
+    segmentations = np.random.random((3, 4))
+    instances = np.random.random((3, 4))
+    data.save_features(image, points, descriptors, colors, segmentations, instances)
 
-    p, d, c = data.load_features(image)
+    p, d, c, s = data.load_features(image)
 
     assert np.allclose(p, points)
     assert np.allclose(d, descriptors)
     assert np.allclose(c, colors)
+    assert np.allclose(s["segmentations"], segmentations)
+    assert np.allclose(s["instances"], instances)

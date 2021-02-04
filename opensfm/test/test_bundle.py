@@ -83,10 +83,12 @@ def test_bundle_projection_fixed_internals(scene_synthetic):
                     pt[0],
                     pt[1],
                     g_obs["feature_scale"],
-                    g_obs["feature_id"],
                     color[0],
                     color[1],
                     color[2],
+                    g_obs["feature_id"],
+                    g_obs["feature_segmentation"],
+                    g_obs["feature_instance"],
                 )
                 reference.map.add_observation(shot_id, point_id, obs)
 

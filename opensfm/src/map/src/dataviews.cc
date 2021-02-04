@@ -2,7 +2,7 @@
 
 namespace map {
 ShotView::ShotView(Map& map) : map_(map) {}
-Shot* ShotView::GetShot(const map::ShotId& shot_id) {
+Shot& ShotView::GetShot(const map::ShotId& shot_id) {
   return map_.GetShot(shot_id);
 }
 bool ShotView::HasShot(const map::ShotId& shot_id) const {
@@ -14,7 +14,7 @@ const std::unordered_map<ShotId, Shot>& ShotView::GetShots() const {
 size_t ShotView::NumberOfShots() const { return map_.NumberOfShots(); }
 
 PanoShotView::PanoShotView(Map& map) : map_(map) {}
-Shot* PanoShotView::GetShot(const map::ShotId& shot_id) {
+Shot& PanoShotView::GetShot(const map::ShotId& shot_id) {
   return map_.GetPanoShot(shot_id);
 }
 bool PanoShotView::HasShot(const map::ShotId& shot_id) const {
@@ -26,7 +26,7 @@ const std::unordered_map<ShotId, Shot>& PanoShotView::GetShots() const {
 size_t PanoShotView::NumberOfShots() const { return map_.NumberOfPanoShots(); }
 
 LandmarkView::LandmarkView(Map& map) : map_(map) {}
-Landmark* LandmarkView::GetLandmark(const LandmarkId& lm_id) {
+Landmark& LandmarkView::GetLandmark(const LandmarkId& lm_id) {
   return map_.GetLandmark(lm_id);
 }
 bool LandmarkView::HasLandmark(const LandmarkId& lm_id) const {
@@ -42,7 +42,7 @@ size_t LandmarkView::NumberOfLandmarks() const {
 
 CameraView::CameraView(Map& map) : map_(map) {}
 size_t CameraView::NumberOfCameras() const { return map_.NumberOfCameras(); }
-Camera* CameraView::GetCamera(const CameraId& cam_id) {
+Camera& CameraView::GetCamera(const CameraId& cam_id) {
   return map_.GetCamera(cam_id);
 }
 const std::unordered_map<CameraId, Camera>& CameraView::GetCameras() const {

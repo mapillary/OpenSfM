@@ -16,6 +16,7 @@ feature_min_frames_panorama: 16000      # Same as above but for panorama images
 feature_process_size: 2048              # Resize the image if its size is larger than specified. Set to -1 for original size
 feature_process_size_panorama: 4096     # Same as above but for panorama images
 feature_use_adaptive_suppression: no
+features_bake_segmentation: no          # Bake segmentation info (class and instance) in the feature data. Thus it is done once for all at extraction time.
 
 # Params for SIFT
 sift_peak_threshold: 0.1     # Smaller value -> more features

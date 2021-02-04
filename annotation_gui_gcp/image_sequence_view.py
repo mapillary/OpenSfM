@@ -4,8 +4,8 @@ import matplotlib
 import numpy as np
 from matplotlib import pyplot as plt
 
-from geometry import get_all_track_observations, get_tracks_visible_in_image
-from view import View
+from .geometry import get_all_track_observations, get_tracks_visible_in_image
+from .view import View
 
 
 class ImageSequenceView(View):

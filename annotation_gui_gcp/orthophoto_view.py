@@ -4,8 +4,8 @@ import numpy as np
 import rasterio.warp
 from opensfm import features
 
-from orthophoto_manager import OrthoPhotoManager
-from view import View
+from .orthophoto_manager import OrthoPhotoManager
+from .view import View
 
 
 class OrthoPhotoView(View):

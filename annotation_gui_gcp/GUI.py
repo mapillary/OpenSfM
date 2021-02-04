@@ -11,15 +11,15 @@ from opensfm import dataset
 
 matplotlib.use("TkAgg")
 
-from image_sequence_view import ImageSequenceView
-from orthophoto_view import OrthoPhotoView
+from .image_sequence_view import ImageSequenceView
+from .orthophoto_view import OrthoPhotoView
 
 FONT = "TkFixedFont"
 
 
 class Gui:
     def __init__(
-        self, master, gcp_manager, image_manager, sequence_groups=(), ortho_paths=[]
+        self, master, gcp_manager, image_manager, sequence_groups=(), ortho_paths=()
     ):
         self.master = master
         self.gcp_manager = gcp_manager
