@@ -1,208 +1,312 @@
-function setImagesComponent(config, viewer) {
-    if (config.imagesVisible) { viewer.activateComponent('imagePlane'); }
-    else { viewer.deactivateComponent('imagePlane'); }
-}
+class ThumbnailHelper {
+    constructor(options) {
+        this._viewer = options.viewer;
+        this._config = options.config;
+        this._infoContainer =
+            window.document.getElementById('info-container');
 
-function setDirectionComponent(config, viewer) {
-    if (config.earthControls) { viewer.deactivateComponent('direction'); }
-    else { viewer.activateComponent('direction'); }
-}
-
-function configure(name, config, spatial) {
-    const c = {}; c[name] = config[name];
-    spatial.configure(c);
-}
-
-function bindDatGui(config, modeConfig, spatial, provider, viewer) {
-    const gui = new dat.GUI();
-    gui.width = 300;
-    const optionsFolder = gui.addFolder('Options');
-    const reconstructionsFolder = gui.addFolder('Reconstructions');
-
-    function setValue(name, size) {
-        config[name] = size;
-        configure(name, config, spatial);
+        this._node = null;
     }
 
-    const infoContainer =
-        window.document.getElementById('info-container');
+    get infoContainer() { return this._infoContainer; }
 
-    viewer.on(Mapillary.Viewer.nodechanged, n => {
-        infoContainer.firstElementChild.src = n.image.src;
-        const infoText = `${n.clusterKey}::${n.sequenceKey}::${n.key}`;
-        infoContainer.lastElementChild.textContent = infoText;
-    });
+    listen() {
+        const Viewer = Mapillary.Viewer;
+        this._viewer.on(Viewer.nodechanged, node => {
+            this._node = node;
+            this.change();
+        });
+    }
 
-    function setThumbnail(value) {
-        if (value) {
-            infoContainer.classList.remove('hidden');
+    change() {
+        if (!this._node || !this._config.thumbnailVisible) { return; }
+        const node = this._node;
+        this._infoContainer.firstElementChild.src = node.image.src;
+        const infoText = `${node.clusterKey}::${node.sequenceKey}::${node.key}`;
+        this._infoContainer.lastElementChild.textContent = infoText;
+    }
+}
+
+class DatGuiHelper {
+    constructor(options) {
+        this._provider = options.provider;
+        this._viewer = options.viewer;
+        this._spatial = options.viewer.getComponent('spatialData');
+        this._thumbnailHelper = new ThumbnailHelper(options);
+
+        this._config = options.config;
+        this._modeConfig = options.modeConfig;
+        this._recConfig = { reconstructions: {}, toggle: null };
+        this._gui = null;
+    }
+
+    createGui() {
+        this._thumbnailHelper.listen();
+
+        const gui = new dat.GUI();
+        gui.width = 300;
+        const optionsFolder = gui.addFolder('Options');
+        const reconstructionsFolder = gui.addFolder('Reconstructions');
+
+        this._setThumbnailSize(this._config.thumbnailSize);
+
+        this._addNumericOption('pointSize', optionsFolder);
+        this._addNumericOption('cameraSize', optionsFolder);
+
+        this._addBooleanOption('camerasVisible', optionsFolder);
+        this._addBooleanOption('earthControls', optionsFolder);
+        this._addBooleanOption('imagesVisible', optionsFolder);
+        this._addBooleanOption('pointsVisible', optionsFolder);
+        this._addBooleanOption('tilesVisible', optionsFolder);
+
+        this._addCameraVizualizationOption(optionsFolder);
+        this._addPositionVisualizationOption(optionsFolder);
+
+        const recConfig = this._recConfig;
+        const recs = recConfig.reconstructions;
+        this._recConfig.toggle = () => {
+            this._filter(recs, toggle);
+            this._setToggleText(recs, toggle);
+        };
+        const toggle = reconstructionsFolder.add(recConfig, 'toggle');
+        this._setToggleText(recs, toggle);
+
+        this._addBooleanOption('thumbnailVisible', optionsFolder);
+        this._addNumericOption('thumbnailSize', optionsFolder);
+
+        if (this._provider.loaded) {
+            this._createReconstructionControllers(
+                this._provider.data,
+                recs,
+                reconstructionsFolder,
+                toggle);
         } else {
-            infoContainer.classList.add('hidden');
+            this._provider.on(
+                'loaded',
+                event => {
+                    this._createReconstructionControllers(
+                        event.target.data,
+                        recs,
+                        reconstructionsFolder,
+                        toggle);
+                });
         }
+
+        optionsFolder.open();
+        reconstructionsFolder.open();
+        gui.close();
+
+        this._gui = gui;
     }
 
-    function setThumbnailSize(value) {
-        infoContainer.style.width = `${100 * value}%`;
+    _addBooleanOption(name, folder) {
+        folder
+            .add(this._config, name)
+            .listen()
+            .onChange(v => { this._onChange(name, v); });
     }
 
-    setThumbnailSize(config.thumbnailSize);
+    _addCameraVizualizationOption(folder) {
+        const Spatial = Mapillary.SpatialDataComponent;
+        const cvm = Spatial.CameraVisualizationMode;
+        const cvms = [
+            cvm[cvm.Default],
+            cvm[cvm.Cluster],
+            cvm[cvm.ConnectedComponent],
+            cvm[cvm.Sequence],
+        ];
+        folder
+            .add(this._modeConfig, 'cameraVisualizationMode', cvms)
+            .listen()
+            .onChange(m => { this._onChange('cameraVisualizationMode', cvm[m]); });
+    }
 
-    function onChange(name, value) {
+    _addNumericOption(name, folder) {
+        folder
+            .add(this._config, name, 0, 1)
+            .listen()
+            .onChange(v => { this._onChange(name, v); });
+    }
+
+    _addPositionVisualizationOption(folder) {
+        const Spatial = Mapillary.SpatialDataComponent;
+        const opm = Spatial.OriginalPositionMode;
+        const opms = [
+            opm[opm.Hidden],
+            opm[opm.Flat],
+            opm[opm.Altitude],
+        ];
+        folder
+            .add(this._modeConfig, 'originalPositionMode', opms)
+            .listen()
+            .onChange(m => { this._onChange('originalPositionMode', opm[m]); });
+    }
+
+    _checkAllEnabled(recs) {
+        const keys = Object.keys(recs);
+        return keys.length &&
+            keys
+                .map(k => recs[k])
+                .reduce((acc, val) => acc && val, true);
+    }
+
+    _configure(name) {
+        const c = {};
+        c[name] = this._config[name];
+        this._spatial.configure(c);
+    }
+
+    _createReconstructionControllers(data, recs, folder, toggle) {
+        for (const key in data.clusters) {
+            if (!data.clusters.hasOwnProperty(key)) { continue; }
+            recs[key] = true;
+            folder
+                .add(recs, key)
+                .listen()
+                .onChange(() => {
+                    this._setToggleText(recs, toggle);
+                    const filter = this._createFilter(recs);
+                    this._viewer.setFilter(filter);
+                });
+        }
+        this._setToggleText(recs, toggle);
+    }
+
+    _createFilter(recs) {
+        const all = this._checkAllEnabled(recs);
+        if (all) { return []; }
+
+        const enabled = Object.keys(recs)
+            .filter(k => recs[k]);
+        return ['in', 'clusterKey', ...enabled];
+    }
+
+    _filter(recs) {
+        const all = this._checkAllEnabled(recs);
+        for (const key of Object.keys(recs)) {
+            recs[key] = !all;
+        }
+
+        const filter = this._createFilter(recs);
+        this._viewer.setFilter(filter);
+    }
+
+    _onChange(name, value) {
         switch (name) {
             case 'camerasVisible':
             case 'pointsVisible':
             case 'tilesVisible':
-                configure(name, config, spatial);
+                this._configure(name);
                 break;
             case 'earthControls':
-                setDirectionComponent(config, viewer);
-                configure(name, config, spatial);
+                this._setDirectionComponent();
+                this._configure(name);
                 break;
             case 'imagesVisible':
-                setImagesComponent(config, viewer);
+                this._setImagesComponent();
                 break;
             case 'originalPositionMode':
             case 'cameraVisualizationMode':
             case 'cameraSize':
             case 'pointSize':
-                setValue(name, value, config, spatial);
+                this._setValue(name, value);
                 break;
             case 'thumbnailVisible':
-                setThumbnail(value);
+                this._setThumbnail(value);
+                this._thumbnailHelper.change();
                 break;
             case 'thumbnailSize':
-                setThumbnailSize(value);
+                this._setThumbnailSize(value);
             default:
                 break;
         }
     }
 
-    function addNumericOption(name, options, folder) {
-        folder
-            .add(options, name, 0, 1)
-            .listen()
-            .onChange(v => { onChange(name, v); });
+    _setDirectionComponent() {
+        if (this._config.earthControls) {
+            this._viewer.deactivateComponent('direction');
+        }
+        else { this._viewer.activateComponent('direction'); }
     }
 
-    function addBooleanOption(name, options, folder) {
-        folder
-            .add(options, name)
-            .listen()
-            .onChange(v => { onChange(name, v); });
+    _setImagesComponent() {
+        if (this._config.imagesVisible) {
+            this._viewer.activateComponent('imagePlane');
+        }
+        else { this._viewer.deactivateComponent('imagePlane'); }
     }
 
-    addNumericOption('pointSize', config, optionsFolder);
-    addNumericOption('cameraSize', config, optionsFolder);
-    addBooleanOption('camerasVisible', config, optionsFolder);
-    addBooleanOption('earthControls', config, optionsFolder);
-    addBooleanOption('imagesVisible', config, optionsFolder);
-    addBooleanOption('pointsVisible', config, optionsFolder);
-    addBooleanOption('tilesVisible', config, optionsFolder);
-
-    const cvm = Mapillary.SpatialDataComponent.CameraVisualizationMode;
-    const cvms = [
-        cvm[cvm.Default],
-        cvm[cvm.Cluster],
-        cvm[cvm.ConnectedComponent],
-        cvm[cvm.Sequence],
-    ];
-    optionsFolder
-        .add(modeConfig, 'cameraVisualizationMode', cvms)
-        .listen()
-        .onChange(m => { onChange('cameraVisualizationMode', cvm[m]); });
-
-    const opm = Mapillary.SpatialDataComponent.OriginalPositionMode;
-    const opms = [
-        opm[opm.Hidden],
-        opm[opm.Flat],
-        opm[opm.Altitude],
-    ];
-    optionsFolder
-        .add(modeConfig, 'originalPositionMode', opms)
-        .listen()
-        .onChange(m => { onChange('originalPositionMode', opm[m]); });
-
-    const recConfig = {
-        toggle: () => {
-            const recs = recConfig.reconstructions;
-            const all = checkAllEnabled(recs);
-            for (const key of Object.keys(recs)) {
-                recs[key] = !all;
-            }
-            setToggleText();
-            const filter = createFilter(recs);
-            viewer.setFilter(filter);
-        },
-        reconstructions: {},
+    _setThumbnail(value) {
+        const infoContainer = this._thumbnailHelper.infoContainer;
+        if (value) { infoContainer.classList.remove('hidden'); }
+        else { infoContainer.classList.add('hidden'); }
     }
 
-    function checkAllEnabled(recs) {
-        const keys = Object.keys(recs);
-        return keys.length &&
-            keys
-                .map(k => recConfig.reconstructions[k])
-                .reduce((acc, val) => acc && val, true);
+    _setThumbnailSize(value) {
+        this._thumbnailHelper.infoContainer.style.width = `${100 * value}%`;
     }
 
-    function createFilter(recs) {
-        const all = checkAllEnabled(recs);
-        if (all) { return []; }
-
-        const enabled = Object.keys(recs)
-            .filter(k => recConfig.reconstructions[k]);
-        return ['in', 'clusterKey', ...enabled];
-    }
-
-    function setToggleText() {
-        const all = checkAllEnabled(recConfig.reconstructions);
+    _setToggleText(recs, toggle) {
+        const all = this._checkAllEnabled(recs);
         if (all) { toggle.name('Hide all'); }
         else { toggle.name('Show all'); }
     }
 
-    const toggle = reconstructionsFolder.add(recConfig, 'toggle');
-    setToggleText();
-
-    function createReconstructionControllers(data) {
-        const recs = recConfig.reconstructions;
-        for (const key in data.clusters) {
-            if (!data.clusters.hasOwnProperty(key)) { continue; }
-            recs[key] = true;
-            reconstructionsFolder
-                .add(recs, key)
-                .listen()
-                .onChange(() => {
-                    setToggleText();
-                    const filter = createFilter(recs);
-                    viewer.setFilter(filter);
-                });
-        }
-        setToggleText();
+    _setValue(name, size) {
+        this._config[name] = size;
+        this._configure(name);
     }
-
-    addBooleanOption('thumbnailVisible', config, optionsFolder);
-    addNumericOption('thumbnailSize', config, optionsFolder);
-
-    if (provider.loaded) {
-        createReconstructionControllers(provider.data);
-    } else {
-        provider.on(
-            'loaded',
-            event => { createReconstructionControllers(event.target.data); });
-    }
-
-    optionsFolder.open();
-    reconstructionsFolder.open();
-    gui.close()
 }
 
-function bindKeys(config, modeConfig, spatial, viewer) {
-    function changeSize(name, coeff) {
-        config[name] *= coeff;
-        config[name] = Math.max(0.01, Math.min(1, config[name]));
-        configure(name, config, spatial);
+class KeyHandler {
+    constructor(options) {
+        this._viewer = options.viewer;
+        this._spatial = options.viewer.getComponent('spatialData');
+
+        this._config = options.config;
+        this._modeConfig = options.modeConfig;
     }
 
-    function rotateCvm() {
+    bindKeys() {
+        window.document.addEventListener(
+            'keydown',
+            e => {
+                let name = null;
+                switch (e.key) {
+                    case 'c': name = 'camerasVisible'; break;
+                    case 'p': name = 'pointsVisible'; break;
+                    case 't': name = 'tilesVisible'; break;
+                    case 'i': this._toggleImages(); break;
+                    case 'v': this._rotateCvm(); break;
+                    case 'o': this._rotateOpm(); break;
+                    case 'q': this._changeSize('pointSize', 0.9); break;
+                    case 'w': this._changeSize('pointSize', 1.1); break;
+                    case 'a': this._changeSize('cameraSize', 0.9); break;
+                    case 's': this._changeSize('cameraSize', 1.1); break;
+                    case 'e':
+                        this._toggleBooleanSetting('earthControls');
+                        this._setDirectionComponent();
+                        break;
+                    default: break;
+                }
+
+                if (!!name) { this._toggleBooleanSetting(name); }
+            });
+    }
+
+    _changeSize(name, coeff) {
+        const config = this._config;
+        config[name] *= coeff;
+        config[name] = Math.max(0.01, Math.min(1, config[name]));
+        this._configure(name);
+    }
+
+    _configure(name) {
+        const c = {}; c[name] = this._config[name];
+        this._spatial.configure(c);
+    }
+
+    _rotateCvm() {
         const mode = Mapillary.SpatialDataComponent.CameraVisualizationMode;
 
         const none = mode.Default;
@@ -216,14 +320,15 @@ function bindKeys(config, modeConfig, spatial, viewer) {
         modeRotation[connectedComponent] = sequence;
         modeRotation[sequence] = none;
 
+        const config = this._config;
         config.cameraVisualizationMode =
             modeRotation[config.cameraVisualizationMode];
-        configure('cameraVisualizationMode', config, spatial);
-        modeConfig.cameraVisualizationMode =
+        this._configure('cameraVisualizationMode');
+        this._modeConfig.cameraVisualizationMode =
             mode[config.cameraVisualizationMode];
     }
 
-    function rotateOpm() {
+    _rotateOpm() {
         const mode = Mapillary.SpatialDataComponent.OriginalPositionMode;
 
         const hidden = mode.Hidden;
@@ -235,47 +340,115 @@ function bindKeys(config, modeConfig, spatial, viewer) {
         modeRotation[flat] = altitude;
         modeRotation[altitude] = hidden;
 
+        const config = this._config;
         config.originalPositionMode =
             modeRotation[config.originalPositionMode];
-        configure('originalPositionMode', config, spatial);
-        modeConfig.originalPositionMode =
+        this._configure('originalPositionMode');
+        this._modeConfig.originalPositionMode =
             mode[config.originalPositionMode];
     }
 
-    function toggleBooleanSetting(name) {
+    _setDirectionComponent() {
+        if (this._config.earthControls) {
+            this._viewer.deactivateComponent('direction');
+        }
+        else { this._viewer.activateComponent('direction'); }
+    }
+
+    _setImagesComponent() {
+        if (this._config.imagesVisible) {
+            this._viewer.activateComponent('imagePlane');
+        }
+        else { this._viewer.deactivateComponent('imagePlane'); }
+    }
+
+    _toggleBooleanSetting(name) {
+        const config = this._config;
         config[name] = !config[name];
-        configure(name, config, spatial);
+        this._configure(name);
     }
 
-    function toggleImages() {
+    _toggleImages() {
+        const config = this._config;
         config.imagesVisible = !config.imagesVisible;
-        setImagesComponent(config, viewer)
+        this._setImagesComponent();
+    }
+}
+
+class FileHandler {
+    constructor() {
+        this._pickFile = document.getElementById('pick-file');
+        this._dropFile = document.getElementById('drop-file');
+        this._preventDefault = event => event.preventDefault();
     }
 
-    window.document.addEventListener(
-        'keydown',
-        e => {
-            let name = undefined;
-            switch (e.key) {
-                case 'c': name = 'camerasVisible'; break;
-                case 'p': name = 'pointsVisible'; break;
-                case 't': name = 'tilesVisible'; break;
-                case 'i': toggleImages(); break;
-                case 'v': rotateCvm(); break;
-                case 'o': rotateOpm(); break;
-                case 'q': changeSize('pointSize', 0.9); break;
-                case 'w': changeSize('pointSize', 1.1); break;
-                case 'a': changeSize('cameraSize', 0.9); break;
-                case 's': changeSize('cameraSize', 1.1); break;
-                case 'e':
-                    toggleBooleanSetting('earthControls');
-                    setDirectionComponent(config, viewer);
-                    break;
-                default: break;
-            }
+    getFile() {
+        const document = window.document;
 
-            if (!!name) { toggleBooleanSetting(name); }
+        const preventDefault = this._preventDefault;
+        document.addEventListener('dragover', preventDefault);
+        document.addEventListener('drop', preventDefault);
+
+        const pickFile = this._pickFile;
+        pickFile.classList.remove('hidden');
+
+        const dropFile = this._dropFile;
+        dropFile.classList.remove('hidden');
+        dropFile.addEventListener('dragenter', event => {
+            dropFile.classList.add('file-drop-hover');
+            event.preventDefault();
         });
+        dropFile.addEventListener('dragleave', event => {
+            dropFile.classList.remove('file-drop-hover');
+            event.preventDefault();
+        });
+        dropFile.addEventListener('dragover', event => {
+            event.dataTransfer.dropEffect = 'copy';
+            event.preventDefault();
+        });
+
+        return new Promise((resolve, reject) => {
+            pickFile.addEventListener(
+                'change',
+                event => {
+                    const file = event.target.files[0];
+                    this._remove();
+                    resolve(file);
+                });
+            dropFile.addEventListener('drop', event => {
+                dropFile.classList.remove('file-drop-hover');
+                event.preventDefault();
+                const items = event.dataTransfer.items;
+
+                if (!items) { return; }
+
+                for (const item of items) {
+                    if (!this._verifyKind(item.kind)) { continue; }
+                    const file = item.getAsFile();
+                    this._remove();
+                    resolve(file);
+                    break;
+                }
+            });
+        });
+    }
+
+    _verifyKind(kind) {
+        if (kind !== 'file') {
+            console.warn(`Unrecognized format: ${kind}`);
+            return false;
+        }
+        return true;
+    }
+
+    _remove() {
+        this._pickFile.classList.add('hidden');
+        this._dropFile.classList.add('hidden');
+
+        const preventDefault = this._preventDefault;
+        document.removeEventListener('dragover', preventDefault);
+        document.removeEventListener('drop', preventDefault);
+    }
 }
 
 function bindOptions(provider, viewer, initialConfig) {
@@ -298,8 +471,12 @@ function bindOptions(provider, viewer, initialConfig) {
         'originalPositionMode': opm[config.originalPositionMode],
     };
 
-    bindKeys(config, modeConfig, spatial, viewer);
-    bindDatGui(config, modeConfig, spatial, provider, viewer);
+    const options = { provider, viewer, config, modeConfig };
+    const keyHandler = new KeyHandler(options);
+    const datGuiHelper = new DatGuiHelper(options);
+
+    keyHandler.bindKeys();
+    datGuiHelper.createGui();
 }
 
 function parseHash(hash) {
@@ -344,7 +521,7 @@ function initializeViewer(provider, params) {
         cameraSize: 0.5,
         camerasVisible: true,
         earthControls: true,
-        pointSize: 0.3,
+        pointSize: 0.2,
         originalPositionMode: opm,
         pointsVisible: true,
         tilesVisible: true,
@@ -396,80 +573,23 @@ function initializeViewer(provider, params) {
     }
 }
 
-function getFile(provider, params) {
-    const preventDefault = event => event.preventDefault();
-    window.document.addEventListener('dragover', preventDefault);
-    window.document.addEventListener('drop', preventDefault);
-
-    const pickFile = window.document
-        .getElementById('pick-file');
-    pickFile.classList.remove('hidden');
-
-    const dropFile = window.document
-        .getElementById('drop-file');
-    dropFile.classList.remove('hidden');
-
-    function setupViewer(file) {
-        try {
-            provider.addFile(file);
-        } catch (error) {
-            console.error(error);
-            return;
-        }
-        initializeViewer(provider, params);
-        pickFile.classList.add('hidden');
-        dropFile.classList.add('hidden');
-        window.document.removeEventListener('dragover', preventDefault);
-        window.document.removeEventListener('drop', preventDefault);
-    }
-
-    pickFile.addEventListener(
-        'change',
-        event => {
-            const file = event.target.files[0];
-            setupViewer(file);
-        });
-
-    dropFile.addEventListener('dragenter', event => {
-        dropFile.classList.add('file-drop-hover');
-        event.preventDefault();
-    });
-    dropFile.addEventListener('dragleave', event => {
-        dropFile.classList.remove('file-drop-hover');
-        event.preventDefault();
-    });
-    dropFile.addEventListener('dragover', event => {
-        event.dataTransfer.dropEffect = 'copy';
-        event.preventDefault();
-    });
-    dropFile.addEventListener('drop', async event => {
-        dropFile.classList.remove('file-drop-hover');
-        event.preventDefault();
-        const items = event.dataTransfer.items;
-
-        if (!items) { return; }
-
-        for (const item of items) {
-            if (item.kind !== 'file') {
-                console.warn(`Unrecognized format: ${item.kind}`);
-                continue;
-            }
-
-            const file = item.getAsFile();
-            setupViewer(file);
-            break;
-        }
-    });
-}
-
-window.document.addEventListener('DOMContentLoaded', () => {
+window.document.addEventListener('DOMContentLoaded', async () => {
     const params = parseHash(window.location.hash);
     const providerOptions = createProviderOptions(params);
     const provider = new OpenSfmDataProvider(providerOptions);
 
-    if (params.file) {
-        initializeViewer(provider, params);
-    } else {
-        getFile(provider, params);
+    if (!params.file) {
+        const fileHandler = new FileHandler();
+        while (!provider.loaded) {
+            const file = await fileHandler.getFile();
+            try {
+                await provider.addFile(file);
+            } catch (error) {
+                console.error(error);
+                console.log("File could not be loaded, please try another reconstruction file.");
+            }
+        }
     }
+
+    initializeViewer(provider, params);
 });

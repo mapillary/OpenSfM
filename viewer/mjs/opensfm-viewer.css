@@ -1,6 +1,7 @@
 body {
     margin: 0;
     padding: 0;
+    background-color: #0F0F0F;
 }
 
 html,
@@ -22,35 +23,35 @@ body,
     right: 10%;
     height: 37%;
     border-radius: 25px;
-    background-color: #DDD;
+    background-color: #202020;
     min-width: 100px;
     display: block;
 }
 
 .file-pick {
     top: 10%;
-    border: 3px solid black;
+    border: 3px solid white;
     cursor: pointer;
 }
 
 .file-drop {
     bottom: 10%;
-    border: 3px dashed black;
+    border: 3px dashed white;
 }
 
 .file-pick:hover {
-    border: 3px solid blue;
-    background-color: rgba(0, 0, 255, 0.1);
+    border: 3px solid cyan;
+    background-color: rgba(0, 0, 255, 0.05);
 }
 
 .file-drop-hover {
-    border: 3px dashed blue;
-    background-color: rgba(0, 0, 255, 0.1);
+    border: 3px dashed cyan;
+    background-color: rgba(0, 0, 255, 0.05);
 }
 
 .file-text {
     text-align: center;
-    color: black;
+    color: white;
     font-size: 18px;
     font-weight: 900;
     position: absolute;

@@ -163,21 +163,34 @@ class OpenSfmDataProvider extends Mapillary.API.DataProviderBase {
     }
 
     get data() { return this._data; }
-    get loaded() { return !this._loaderPromise && this._data; }
+    get loaded() { return !this._loaderPromise && !!this._data; }
     get reconstructions() { return this._reconstructions; }
 
     addFile(file) {
-        if (file.type !== 'application/json') {
-            throw new Error(`Unrecognized file type: ${file.type}`);
-        }
+        return new Promise((resolve, reject) => {
+            if (file.type !== 'application/json') {
+                reject(new Error(`Unrecognized file type: ${file.type}`));
+                return;
+            }
 
-        const reader = new FileReader();
-        reader.onload = event => {
-            const reconstructions = JSON.parse(event.target.result);
-            this._createData(reconstructions);
-            this._eventEmitter.fire('loaded', { target: this });
-        };
-        reader.readAsText(file);
+            const reader = new FileReader();
+            reader.onload = event => {
+                try {
+                    const reconstructions = JSON.parse(event.target.result);
+                    this._createData(reconstructions);
+                } catch (error) {
+                    this._data = null;
+                    this._reconstructions = null;
+                    reject(error);
+                    return;
+                }
+
+                this._eventEmitter.fire('loaded', { target: this });
+                resolve();
+            };
+            reader.onerror = event => { reject(event); };
+            reader.readAsText(file);
+        });
     }
 
     getCoreImages(cellId) {
