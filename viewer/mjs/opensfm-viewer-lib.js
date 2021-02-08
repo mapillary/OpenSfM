@@ -22,9 +22,10 @@ class ThumbnailHelper {
         this._img = this._infoContainer.firstElementChild;
         this._span = this._infoContainer.lastElementChild;
         this._node = null;
+        this._copier = new Copier(this._span);
     }
 
-    hide() { this._infoContainer.classList.add('hidden'); }
+    hide() { this._infoContainer.classList.add('opensfm-hidden'); }
 
     listen() {
         const Viewer = Mapillary.Viewer;
@@ -43,18 +44,18 @@ class ThumbnailHelper {
     }
 
     setWidth(value) { this._infoContainer.style.width = `${100 * value}%`; }
-    show() { this._infoContainer.classList.remove('hidden'); }
+    show() { this._infoContainer.classList.remove('opensfm-hidden'); }
 
     _createContainer() {
         const document = window.document;
         const span = document.createElement('span');
-        span.classList.add('info-text');
+        span.classList.add('opensfm-info-text');
 
         const img = document.createElement('img');
-        img.classList.add('info-image');
+        img.classList.add('opensfm-info-image');
 
         const container = document.createElement('div');
-        container.classList.add('info-container', 'hidden');
+        container.classList.add('opensfm-info-container', 'opensfm-hidden');
         container.appendChild(img);
         container.appendChild(span);
         document.body.appendChild(container);
@@ -453,7 +454,7 @@ class AbortFileLoadError extends Error {
     constructor(message) {
         super(message);
         Object.setPrototypeOf(this, AbortFileLoadError.prototype);
-        this.name = "AbortFileLoadError";
+        this.name = 'AbortFileLoadError';
     }
 }
 
@@ -517,18 +518,18 @@ class FileLoader {
     _createDropper(classNames) {
         const document = window.document;
         const span = document.createElement('span');
-        span.classList.add('file-text');
+        span.classList.add('opensfm-file-text');
 
         const dropper = document.createElement('div');
-        dropper.classList.add('file-drop', ...classNames);
+        dropper.classList.add('opensfm-file-drop', ...classNames);
         dropper.appendChild(span);
 
         dropper.addEventListener('dragenter', event => {
-            dropper.classList.add('file-drop-hover');
+            dropper.classList.add('opensfm-file-drop-hover');
             event.preventDefault();
         });
         dropper.addEventListener('dragleave', event => {
-            dropper.classList.remove('file-drop-hover');
+            dropper.classList.remove('opensfm-file-drop-hover');
             event.preventDefault();
         });
         dropper.addEventListener('dragover', event => {
@@ -542,13 +543,13 @@ class FileLoader {
     _createPicker(classNames) {
         const document = window.document;
         const span = document.createElement('span');
-        span.classList.add('file-text');
+        span.classList.add('opensfm-file-text');
 
         const input = document.createElement('input');
         input.type = 'file';
 
         const picker = document.createElement('label');
-        picker.classList.add('file-pick', ...classNames);
+        picker.classList.add('opensfm-file-pick', ...classNames);
         picker.appendChild(span);
         picker.appendChild(input);
 
@@ -583,7 +584,7 @@ class FileLoader {
         this._reject = null;
 
         this._dropper.removeEventListener('drop', this._onDrop);
-        this._dropper.classList.remove('file-drop-hover');
+        this._dropper.classList.remove('opensfm-file-drop-hover');
         event.preventDefault();
         const items = event.dataTransfer.items;
         if (!items) { reject(new Error('No files loaded')); }
@@ -609,5 +610,119 @@ class FileLoader {
             return false;
         }
         return true;
+    }
+}
+
+class Copier {
+    constructor(container) {
+        if (!window.navigator || !window.navigator.clipboard) {
+            // Clipboard requires secure origin (https or localhost)
+            // or setting a browser flag.
+            return;
+        }
+
+        const onShowTypes = ['pointerenter'];
+        for (const type of onShowTypes) {
+            container.addEventListener(type, this._onShow);
+        }
+
+        window.addEventListener('blur', this._onHide);
+        const onHideTypes = ['pointercancel', 'pointerleave'];
+        for (const type of onHideTypes) {
+            container.addEventListener(type, this._onHide);
+        }
+
+        this._onHideTypes = onHideTypes;
+        this._onShowTypes = onShowTypes;
+        this._container = container;
+        this._resetCursor = this._container.style.cursor;
+        this._container.style.cursor = 'pointer';
+        this._popupContainer = null;
+        this._textContent = 'Copy';
+    }
+
+    dispose() {
+        if (!this._container) { return; }
+
+        this._onHide()
+
+        const container = this._container;
+        container.style.cursor = this._resetCursor;
+
+        const onShowTypes = this._onShowTypes;
+        for (const type in onShowTypes) {
+            container.removeEventListener(type, this._onShow);
+        }
+
+        window.removeEventListener('blur', onHide);
+        const onHideTypes = this._onHideTypes;
+        for (const type in onHideTypes) {
+            container.removeEventListener(type, this._onHide);
+        }
+
+        this._onHideTypes = null;
+        this._onShowTypes = null;
+        this._container = null;
+    }
+
+    _onClick = async () => {
+        const text = this._container.textContent;
+        try {
+            const navigator = window.navigator;
+            await navigator.clipboard.writeText(text);
+            await this._showCopied();
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    _showCopied() {
+        if (!this._popupContainer) { return; }
+        const popup = this._popupContainer.firstElementChild;
+        popup.textContent = 'Copied to clipboard';
+        return new Promise((resolve) => {
+            window.setTimeout(
+                () => {
+                    if (!this._popupContainer) { resolve(); return; }
+                    const popup = this._popupContainer.firstElementChild;
+                    popup.textContent = this._textContent;
+                    resolve();
+                },
+                850);
+        })
+    }
+
+    _onShow = () => {
+        if (!!this._popupContainer) { return; }
+        const container = this._container;
+        const left = container.offsetLeft;
+        const top = container.offsetTop;
+
+        const document = window.document;
+        const popup = document.createElement('div');
+        popup.classList.add('opensfm-popup');
+        popup.textContent = this._textContent;
+        const arrow = document.createElement('div');
+        arrow.classList.add('opensfm-popup-arrow');
+
+        const popupContainer = document.createElement('div');
+        popupContainer.classList.add('opensfm-popup-container');
+        popupContainer.style.position = 'absolute';
+        popupContainer.style.left = `${left + 2}px`;
+        popupContainer.style.top = `${top}px`;
+        popupContainer.appendChild(popup);
+        popupContainer.appendChild(arrow);
+        container.parentNode.appendChild(popupContainer);
+        this._popupContainer = popupContainer;
+
+        container.addEventListener('click', this._onClick);
+    }
+
+    _onHide = () => {
+        const popup = this._popupContainer;
+        if (!popup) { return; }
+        this._container.parentNode.removeChild(popup);
+        this._container.removeEventListener('click', this._onClick);
+        this._popupContainer = null;
     }
 }

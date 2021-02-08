@@ -11,13 +11,13 @@ body,
     height: 100%;
 }
 
-.file-container.hidden,
-.info-container.hidden,
+.opensfm-file-container.opensfm-hidden,
+.opensfm-info-container.opensfm-hidden,
     input[type='file'] {
     display: none;
 }
 
-.file-container {
+.opensfm-file-container {
     position: absolute;
     left: 10%;
     height: 37%;
@@ -28,28 +28,28 @@ body,
     right: 10%;
 }
 
-.file-pick {
+.opensfm-file-pick {
     top: 10%;
     border: 3px solid white;
     cursor: pointer;
 }
 
-.file-drop {
+.opensfm-file-drop {
     bottom: 10%;
     border: 3px dashed white;
 }
 
-.file-pick:hover {
+.opensfm-file-pick:hover {
     border: 3px solid cyan;
     background-color: #101010;
 }
 
-.file-drop-hover {
+.opensfm-file-drop-hover {
     border: 3px dashed cyan;
     background-color: #101010;
 }
 
-.file-text {
+.opensfm-file-text {
     text-align: center;
     color: white;
     font-size: 18px;
@@ -60,9 +60,10 @@ body,
     transform: translate(-50%, -50%);
     font-family: sans-serif;
     pointer-events: none;
+    user-select: none;
 }
 
-.info-container {
+.opensfm-info-container {
     display: block;
     position: absolute;
     top: 0;
@@ -72,22 +73,46 @@ body,
     max-width: calc(100% - 347px);
     background-color: black;
     border: 1px solid #555;
+    font: 11px 'Lucida Grande', sans-serif;
     user-select: none;
 }
 
 @media screen and (max-width: 640px) {
-    .info-container {
+    .opensfm-info-container {
         max-width: calc(100% - 34px);
     }
 }
 
-.info-image {
+.opensfm-info-image {
     width: 100%;
     display: block;
 }
 
-.info-text {
+.opensfm-info-text {
     overflow-wrap: break-word;
     color: #eee;
-    font: 11px 'Lucida Grande', sans-serif;
+    display: block;
+    margin: 2px;
+}
+
+.opensfm-popup-container {
+    transform: translate(0, -96%);
+    pointer-events: none;
+    user-select: none;
+}
+
+.opensfm-popup {
+    color: black;
+    background-color: white;
+    border-radius: 2px;
+    padding: 6px 10px;
+}
+
+.opensfm-popup-arrow {
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid white;
+    margin-left: 10px;
 }

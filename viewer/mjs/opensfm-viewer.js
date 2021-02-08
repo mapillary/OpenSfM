@@ -136,7 +136,7 @@ window.document.addEventListener('DOMContentLoaded', async () => {
     const provider = new OpenSfmDataProvider(providerOptions);
 
     if (!params.file) {
-        const loader = new FileLoader(['file-container']);
+        const loader = new FileLoader(['opensfm-file-container']);
         loader.show();
         while (!provider.loaded) {
             try {
