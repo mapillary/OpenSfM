@@ -47,7 +47,7 @@ class Gui:
         p_recs = self.path + "/reconstruction.json"
         print(p_recs)
         if not os.path.exists(p_recs):
-            return []
+            return ["NONE", "NONE"]
         data = dataset.DataSet(self.path)
         recs = data.load_reconstruction()
         options = []
