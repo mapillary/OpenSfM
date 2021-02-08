@@ -38,8 +38,6 @@ class GroundControlPointManager:
             self.points[point["id"]] = point["observations"]
             latlon = point.get("position")
             if latlon:
-                if "altitude" in latlon:
-                    raise NotImplementedError("Not supported: altitude in GCPs")
                 self.latlons[point["id"]] = latlon
 
     def write_to_file(self, filename):

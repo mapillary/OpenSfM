@@ -34,7 +34,7 @@ class Gui:
         master.bind_all("z", lambda event: self.toggle_zoom_all_views())
         master.bind_all("x", lambda event: self.toggle_sticky_zoom())
         master.bind_all("a", lambda event: self.go_to_current_gcp())
-        self.get_reconstruction_options()
+        self.reconstruction_options = self.get_reconstruction_options()
         self.create_ui(ortho_paths)
         master.lift()
 
@@ -47,7 +47,7 @@ class Gui:
         p_recs = self.path + "/reconstruction.json"
         print(p_recs)
         if not os.path.exists(p_recs):
-            return {}
+            return []
         data = dataset.DataSet(self.path)
         recs = data.load_reconstruction()
         options = []
@@ -60,7 +60,7 @@ class Gui:
             )
             options.append(str_repr)
         options.append("None (3d-to-2d)")
-        self.reconstruction_options = options
+        return options
 
     def create_ui(self, ortho_paths):
         tools_frame = tk.Frame(self.master)
