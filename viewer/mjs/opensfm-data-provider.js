@@ -107,22 +107,6 @@ function wrap(value, min, max) {
     return value;
 }
 
-class EventEmitter {
-    constructor() { this._listeners = {}; }
-
-    on(type, callback) {
-        if (!(type in this._listeners)) { this._listeners[type] = []; }
-        this._listeners[type].push(callback);
-    }
-
-    fire(type, event) {
-        if (!(type in this._listeners)) { return; }
-        for (const callback of this._listeners[type]) {
-            callback.call(this, event);
-        }
-    }
-}
-
 class GeohashGeometryProvider extends Mapillary.API.GeohashGeometryProvider {
     constructor() { super(); this._level = 5; }
 }
@@ -188,7 +172,7 @@ class OpenSfmDataProvider extends Mapillary.API.DataProviderBase {
                 this._eventEmitter.fire('loaded', { target: this });
                 resolve();
             };
-            reader.onerror = event => { reject(event); };
+            reader.onerror = event => reject(event);
             reader.readAsText(file);
         });
     }
@@ -222,7 +206,7 @@ class OpenSfmDataProvider extends Mapillary.API.DataProviderBase {
         if (!!this._options.imagesPath) {
             return Mapillary.API.BufferFetcher
                 .getArrayBuffer(url, abort)
-                .catch(() => { return this._getFallbackBuffer(); });
+                .catch(() => this._getFallbackBuffer());
         }
 
         return this._getFallbackBuffer();
@@ -361,7 +345,7 @@ class OpenSfmDataProvider extends Mapillary.API.DataProviderBase {
                     },
                     'image/jpeg');
             }).then(
-                (buffer) => {
+                buffer => {
                     this._fallbackBuffer = buffer;
                     this._bufferPromise = null;
                     return buffer;
