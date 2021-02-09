@@ -40,6 +40,7 @@ class OpenSfmViewer {
     get optionHandler() { return this._optionHandler; }
     get params() { return this._params; }
     get provider() { return this._provider; }
+    get info() { return this._info; }
     get viewer() { return this._viewer; }
 
     async initialize() {
@@ -81,6 +82,24 @@ class OpenSfmViewer {
 
         const handlerOptions = { provider, spatialConfiguration, viewer };
         this._optionHandler = new OptionChangeHandler(handlerOptions);
+        this._optionHandler.on(
+            'thumbnailvisiblechanged',
+            event => {
+                if (event.visible) { this._info.show(); }
+                else { this._info.hide(); }
+                this._info.change();
+            });
+        this._optionHandler.on(
+            'infosizechanged',
+            event => this._info.setWidth(event.width));
+
+        const infoOptions = Object.assign(
+            { thumbnailVisible: this._optionHandler.config.thumbnailVisible },
+            handlerOptions);
+        this._info = new InfoHelper(infoOptions);
+        this._info.listen();
+        this._info.setWidth(this._optionHandler.config.infoSize);
+
         this._viewer = viewer;
         const target = this;
         const event =

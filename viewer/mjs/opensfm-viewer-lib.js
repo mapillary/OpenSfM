@@ -14,18 +14,25 @@ class EventEmitter {
     }
 }
 
-class ThumbnailHelper {
+class InfoHelper {
     constructor(options) {
         this._viewer = options.viewer;
-        this._config = options.config;
-        this._infoContainer = this._createContainer();
-        this._img = this._infoContainer.firstElementChild;
-        this._span = this._infoContainer.lastElementChild;
+        this._parentContainer = this._createContainer();
+        this._container = this._parentContainer.firstElementChild;
+        this._thumb = this._container.children[1];
+        this._span = this._container.lastElementChild;
         this._node = null;
         this._copier = new Copier(this._span);
+        this._thumbnailVisible = options.thumbnailVisible;
     }
 
-    hide() { this._infoContainer.classList.add('opensfm-hidden'); }
+    get container() { return this._parentContainer; }
+
+    hide() {
+        if (!this._thumbnailVisible) { return; }
+        this._container.classList.add('opensfm-hidden');
+        this._thumbnailVisible = false;
+    }
 
     listen() {
         const Viewer = Mapillary.Viewer;
@@ -36,30 +43,46 @@ class ThumbnailHelper {
     }
 
     change() {
-        if (!this._node || !this._config.thumbnailVisible) { return; }
+        if (!this._node || !this._thumbnailVisible) { return; }
         const node = this._node;
-        this._img.src = node.image.src;
+        this._thumb.src = node.image.src;
         const infoText = `${node.clusterKey}::${node.sequenceKey}::${node.key}`;
         this._span.textContent = infoText;
     }
 
-    setWidth(value) { this._infoContainer.style.width = `${100 * value}%`; }
-    show() { this._infoContainer.classList.remove('opensfm-hidden'); }
+    setWidth(value) { this._container.style.width = `${100 * value}%`; }
+
+    show() {
+        if (this._thumbnailVisible) { return; }
+        this._container.classList.remove('opensfm-hidden');
+        this._thumbnailVisible = true;
+    }
 
     _createContainer() {
         const document = window.document;
-        const span = document.createElement('span');
-        span.classList.add('opensfm-info-text');
+        const text = document.createElement('span');
+        text.classList.add('opensfm-info-text');
 
         const img = document.createElement('img');
-        img.classList.add('opensfm-info-image');
+        img.classList.add('opensfm-thumb');
+
+        const header = document.createElement('span');
+        header.classList.add('opensfm-info-text', 'opensfm-info-text-header');
+        header.textContent = 'Thumbnail';
 
         const container = document.createElement('div');
-        container.classList.add('opensfm-info-container', 'opensfm-hidden');
+        container.classList.add(
+            'opensfm-thumb-container',
+            'opensfm-hidden');
+        container.appendChild(header);
         container.appendChild(img);
-        container.appendChild(span);
-        document.body.appendChild(container);
-        return container;
+        container.appendChild(text);
+
+        const parentContainer = document.createElement('div');
+        parentContainer.classList.add('opensfm-info-container');
+        parentContainer.appendChild(container);
+        this._viewer.getContainer().after(parentContainer);
+        return parentContainer;
     }
 }
 
@@ -136,12 +159,8 @@ class DatGuiHelper {
         this._config = options.config;
         this._modeConfig = options.modeConfig;
 
-        this._thumbnailHelper = new ThumbnailHelper(options);
-        this._thumbnailHelper.listen();
-        this._thumbnailHelper.setWidth(this._config.thumbnailSize);
-
         const gui = new dat.GUI();
-        gui.width = 300;
+        gui.width = 274;
         gui.close();
         this._createSpatialFolder(gui);
         this._createInfoFolder(gui);
@@ -211,7 +230,7 @@ class DatGuiHelper {
         const folder = gui.addFolder('Info');
         folder.open();
         this._addBooleanOption('thumbnailVisible', folder);
-        this._addNumericOption('thumbnailSize', folder);
+        this._addNumericOption('infoSize', folder);
     }
 
     _createReconstructionsController(gui) {
@@ -259,12 +278,13 @@ class DatGuiHelper {
                 this._setValue(name, value);
                 break;
             case 'thumbnailVisible':
-                if (value) { this._thumbnailHelper.show(); }
-                else { this._thumbnailHelper.hide(); }
-                this._thumbnailHelper.change();
+                this._eventEmitter.fire(
+                    'thumbnailvisiblechanged',
+                    { visible: value });
                 break;
-            case 'thumbnailSize':
-                this._thumbnailHelper.setWidth(value);
+            case 'infoSize':
+                this._eventEmitter.fire('infosizechanged', { width: value });
+                break;
             default:
                 break;
         }
@@ -423,7 +443,7 @@ class OptionChangeHandler {
             {
                 imagesVisible: false,
                 thumbnailVisible: false,
-                thumbnailSize: 0.2,
+                infoSize: 0.3,
             },
             options.spatialConfiguration);
 
@@ -442,10 +462,12 @@ class OptionChangeHandler {
         this._keyHandler = new KeyHandler(internalOptions);
         this._keyHandler.bindKeys();
         this._eventEmitter = eventEmitter;
+        this._config = config;
     }
 
     get guiHelper() { return this._guiHelper; }
     get eventEmitter() { return this._eventEmitter; }
+    get config() { return this._config; }
 
     on(type, callback) { this._eventEmitter.on(type, callback); }
 }
