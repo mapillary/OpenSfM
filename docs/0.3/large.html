@@ -1,0 +1,378 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Splitting a large dataset into smaller submodels &mdash; OpenSfM 0.3.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/javascript" src="_static/mathjax_conf.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/graphviz.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Reporting" href="reporting.html" />
+    <link rel="prev" title="Incremental reconstruction algorithm" href="reconstruction_module.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> OpenSfM
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.3
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="building.html">Building</a></li>
+<li class="toctree-l1"><a class="reference internal" href="using.html">Using</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dataset.html">Dataset Structure</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dataset.html#reconstruction-file-format">Reconstruction file format</a></li>
+<li class="toctree-l1"><a class="reference internal" href="geometry.html">Geometric Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cam_coord_system.html">Camera Coordinate System and Conventions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reconstruction_module.html">Incremental reconstruction algorithm</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Splitting a large dataset into smaller submodels</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#creating-submodels">Creating submodels</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#submodels-dataset-structure">Submodels dataset structure</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#config-parameters">Config parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#providing-the-image-groups">Providing the image groups</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#running-the-reconstruction-for-each-submodel">Running the reconstruction for each submodel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#aligning-submodels">Aligning submodels</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="reporting.html">Reporting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">Code Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="python3.html">Python 2 and 3 compatibility</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">OpenSfM</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Splitting a large dataset into smaller submodels</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            
+              <a href="https://github.com/mapillary/OpenSfM/blob/master/doc/source/large.rst" class="fa fa-github"> Edit on GitHub</a>
+            
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="splitting-a-large-dataset-into-smaller-submodels">
+<h1>Splitting a large dataset into smaller submodels<a class="headerlink" href="#splitting-a-large-dataset-into-smaller-submodels" title="Permalink to this headline">¶</a></h1>
+<p>Large datasets can be slow to process.  An option to speed up the reconstruction process is to split them into smaller datasets.  We will call each of the small datasets a <em>submodel</em>.  Smaller datasets run faster because they involve fewer images on each bundle adjustment iteration.  Additionally, the reconstruction of the different submodels can be done in parallel.</p>
+<p>Since the reconstructions of the submodels are done independently, they will not be necessarily aligned with each other.  Only the GPS positions of the images and the ground control points will determine the alignment.  When the neighboring reconstructions share cameras or points, it is possible to enforce the alignment of common cameras and points between the different reconstructions.</p>
+<p>In the following, we describe the commands that help to split a large dataset and aligning the resulting submodels.</p>
+<div class="section" id="creating-submodels">
+<h2>Creating submodels<a class="headerlink" href="#creating-submodels" title="Permalink to this headline">¶</a></h2>
+<p>The command <code class="docutils literal notranslate"><span class="pre">create_submodels</span></code> splits a dataset into submodels.  The splitting is done based on the GPS position of the images.  Therefore, it is required to run <code class="docutils literal notranslate"><span class="pre">extract_metadata</span></code> before so that the GPS positions are read from the image metadata.</p>
+<p>Additionally, the feature extraction and matching can also be done before creating the submodels.  This makes it possible for each submodel to reuse the features and matches of the common images.</p>
+<p>The process to split a dataset into submodels is then:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nb">bin</span><span class="o">/</span><span class="n">opensfm</span> <span class="n">extract_metadata</span> <span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">dataset</span>
+<span class="nb">bin</span><span class="o">/</span><span class="n">opensfm</span> <span class="n">detect_features</span> <span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">dataset</span>
+<span class="nb">bin</span><span class="o">/</span><span class="n">opensfm</span> <span class="n">match_features</span> <span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">dataset</span>
+<span class="nb">bin</span><span class="o">/</span><span class="n">opensfm</span> <span class="n">create_submodels</span> <span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">dataset</span>
+</pre></div>
+</div>
+<div class="section" id="submodels-dataset-structure">
+<h3>Submodels dataset structure<a class="headerlink" href="#submodels-dataset-structure" title="Permalink to this headline">¶</a></h3>
+<p>The submodels are created inside the <code class="docutils literal notranslate"><span class="pre">submodels</span></code> folder.  Each submodel folder is a valid OpenSfM dataset.  The images, EXIF metadata, features, and matches are shared with the global dataset by using symbolic links.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>project/
+├── images/
+├── opensfm/
+├── image_list.txt
+├── image_list_with_gps.csv    # list of original images with GPS position
+├── exif
+├── features                   # eventually
+├── matches                    # eventually
+└── submodels/
+    ├── clusters_with_neighbors.geojson  # geojson file with all images as features with corresponding submodel as a property
+    ├── clusters_with_neighbors.npz
+    ├── clusters.npz
+    ├── image_list_with_gps.tsv
+    ├── submodel_0000/
+    │   ├── image_list.txt        # images of submodel_0000
+    │   ├── config.yaml           # copy from global equivalent
+    │   ├── images/               # link to global equivalent
+    │   ├── exif/                 # link to global equivalent
+    │   ├── features/             # link to global equivalent
+    │   ├── matches/              # link to global equivalent
+    │   ├── camera_models.json    # link to global equivalent
+    │   └── reference_lla.json    # link to global equivalent
+    ├── submodel_0001/
+    └── ...
+</pre></div>
+</div>
+</div>
+<div class="section" id="config-parameters">
+<h3>Config parameters<a class="headerlink" href="#config-parameters" title="Permalink to this headline">¶</a></h3>
+<p>The creation of the submodels can be tuned by different parameters.</p>
+<p>There are two parameters controlling the size and overlap of the submodels.  The parameters need to be adjusted to the size.</p>
+<ul class="simple">
+<li><code class="docutils literal notranslate"><span class="pre">submodel_size</span></code>
+Average number of images per submodel.  The splitting of the dataset is done by clustering image locations into groups.  K-means clustering is used and <code class="docutils literal notranslate"><span class="pre">k</span></code> is set to be the number of images divided by <code class="docutils literal notranslate"><span class="pre">submodel_size</span></code>.</li>
+<li><code class="docutils literal notranslate"><span class="pre">submodel_overlap</span></code>
+Radius of the overlapping region between submodels in meters.  To be able to align the different submodels, there needs to be some common images between the neighboring submodels.  Any image that is closer to a cluster than <code class="docutils literal notranslate"><span class="pre">submodel_overlap</span></code> it is added to that cluster.</li>
+</ul>
+<p>The folder structure of the submodels can also be controlled using the following parameters. You shouldn’t need to do change them.</p>
+<ul class="simple">
+<li><code class="docutils literal notranslate"><span class="pre">submodels_relpath</span></code>
+Relative path to the submodels directory.  Cluster information will be stored in this directory.</li>
+<li><code class="docutils literal notranslate"><span class="pre">submodel_relpath_template</span></code>
+Template to generate the relative path to a submodel directory.</li>
+<li><code class="docutils literal notranslate"><span class="pre">submodel_images_relpath_template</span></code>
+Template to generate the relative path to a submodel images directory.</li>
+</ul>
+</div>
+<div class="section" id="providing-the-image-groups">
+<h3>Providing the image groups<a class="headerlink" href="#providing-the-image-groups" title="Permalink to this headline">¶</a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">create_submodels</span></code> command clusters images into groups to decide the partition into submodels.  If you already know how you want to split the dataset, you can provide that information and it will be used instead of the clustering algorithm.</p>
+<p>The grouping can be provided by adding a file named <code class="docutils literal notranslate"><span class="pre">image_groups.txt</span></code> in the main dataset folder.  The file should have one line per image.  Each line should have two words: first the name of the image and second the name of the group it belongs to.  For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mf">01.</span><span class="n">jpg</span> <span class="n">A</span>
+<span class="mf">02.</span><span class="n">jpg</span> <span class="n">A</span>
+<span class="mf">03.</span><span class="n">jpg</span> <span class="n">B</span>
+<span class="mf">04.</span><span class="n">jpg</span> <span class="n">B</span>
+<span class="mf">05.</span><span class="n">jpg</span> <span class="n">C</span>
+</pre></div>
+</div>
+<p>will create 3 submodels.</p>
+<p>Starting from this groups, <code class="docutils literal notranslate"><span class="pre">create_submodels</span></code> will add to each submodel the images in the overlap area based on the <code class="docutils literal notranslate"><span class="pre">submodels_overlap</span></code> parameter.</p>
+</div>
+</div>
+<div class="section" id="running-the-reconstruction-for-each-submodel">
+<h2>Running the reconstruction for each submodel<a class="headerlink" href="#running-the-reconstruction-for-each-submodel" title="Permalink to this headline">¶</a></h2>
+<p>Since each submodel is a valid OpenSfM dataset, the reconstruction can be run using the standard commands.  Assuming features and matches have already been computed, we will need to run:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nb">bin</span><span class="o">/</span><span class="n">opensfm</span> <span class="n">create_tracks</span> <span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">dataset</span><span class="o">/</span><span class="n">submodels</span><span class="o">/</span><span class="n">submodel_XXXX</span>
+<span class="nb">bin</span><span class="o">/</span><span class="n">opensfm</span> <span class="n">reconstruct</span> <span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">dataset</span><span class="o">/</span><span class="n">submodels</span><span class="o">/</span><span class="n">submodel_XXXX</span>
+</pre></div>
+</div>
+<p>for each submodel.  This can be run in parallel since the submodels are independent.</p>
+</div>
+<div class="section" id="aligning-submodels">
+<h2>Aligning submodels<a class="headerlink" href="#aligning-submodels" title="Permalink to this headline">¶</a></h2>
+<p>Once every submodel has a reconstruction, they can be aligned by using the command:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nb">bin</span><span class="o">/</span><span class="n">opensfm</span> <span class="n">align_submodels</span> <span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">dataset</span>
+</pre></div>
+</div>
+<p>This command will load all the reconstructions, look for cameras and points shared between the reconstructions, and move each reconstruction rigidly in order best align the corresponding cameras and points.</p>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="reporting.html" class="btn btn-neutral float-right" title="Reporting" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="reconstruction_module.html" class="btn btn-neutral float-left" title="Incremental reconstruction algorithm" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Mapillary
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+  
+ 
+<style>
+  @import url('https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,600,700&display=swap');
+  html {
+    font-family: 'Source Sans Pro', sans-serif;
+  }
+  .highlight {
+    font-family: "Lucida Console", Monaco, monospace!important;
+  }
+  .wy-side-nav-search {
+    background: #212b36;
+  }
+  .wy-side-nav-search input[type=text] {
+    border-color: transparent;
+    
+  }
+  .wy-nav-side {
+    background: #212b36;
+  }
+  .wy-menu-vertical a:hover {
+    color: #d9d9d9;
+    background: rgba(255, 255, 255, 0.1);
+  }
+  a, a:hover {
+    color: #05cb63;
+  }
+  body {
+    color: #212b36;
+  }
+  .wy-nav-content-wrap {
+    background: #fcfcfc!important;
+  }
+  .wy-side-nav-search>a:hover {
+    color: #fff!important;
+  }
+  .highlight {
+    background: #dee5ed;
+  }
+  .wy-menu-vertical li.on a, .wy-menu-vertical li.current>a {
+
+  }
+  .wy-menu-vertical li.toctree-l1.current>a {
+    border-top: 0;
+    border-bottom: 0;
+  }
+  .rst-content pre.literal-block, .rst-content div[class^='highlight'] {
+    border-radius: 4px;
+    border-color: #dee5ed!important;  
+  }
+</style>
+
+
+</body>
+</html>

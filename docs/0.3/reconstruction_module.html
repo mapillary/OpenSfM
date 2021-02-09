@@ -1,0 +1,306 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Incremental reconstruction algorithm &mdash; OpenSfM 0.3.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/javascript" src="_static/mathjax_conf.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/graphviz.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Splitting a large dataset into smaller submodels" href="large.html" />
+    <link rel="prev" title="Camera Coordinate System and Conventions" href="cam_coord_system.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> OpenSfM
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.3
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="building.html">Building</a></li>
+<li class="toctree-l1"><a class="reference internal" href="using.html">Using</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dataset.html">Dataset Structure</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dataset.html#reconstruction-file-format">Reconstruction file format</a></li>
+<li class="toctree-l1"><a class="reference internal" href="geometry.html">Geometric Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cam_coord_system.html">Camera Coordinate System and Conventions</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Incremental reconstruction algorithm</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#finding-good-initial-pairs">1. Finding good initial pairs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#bootstraping-the-reconstruction">2. Bootstraping the reconstruction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#growing-the-reconstruction">3. Growing the reconstruction</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="large.html">Splitting a large dataset into smaller submodels</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reporting.html">Reporting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">Code Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="python3.html">Python 2 and 3 compatibility</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">OpenSfM</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Incremental reconstruction algorithm</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            
+              <a href="https://github.com/mapillary/OpenSfM/blob/master/doc/source/reconstruction_module.rst" class="fa fa-github"> Edit on GitHub</a>
+            
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="incremental-reconstruction-algorithm">
+<h1>Incremental reconstruction algorithm<a class="headerlink" href="#incremental-reconstruction-algorithm" title="Permalink to this headline">¶</a></h1>
+<p>OpenSfM implements an incremental structure from motion algorithm.  This is reconstruction algorithm that starts building a reconstruction of a single image pair and then iteratively add the other images to the reconstruction one at a time.</p>
+<p>The algorithm is implemented in the <code class="docutils literal notranslate"><span class="pre">reconstruction.py</span></code> module and the main entry point is the <code class="xref py py-func docutils literal notranslate"><span class="pre">incremental_reconstruction()</span></code> function.</p>
+<p>The algorithm has three main steps:</p>
+<ol class="arabic simple">
+<li>Find good initial pairs</li>
+<li>Bootstrap the reconstruction with two images</li>
+<li>Grow the reconstruction by adding images one at a time</li>
+</ol>
+<p>If after step 3 there are images that have not yet been reconstructed, steps 2 and 3 are repeated to generate more reconstructions.</p>
+<div class="section" id="finding-good-initial-pairs">
+<h2>1. Finding good initial pairs<a class="headerlink" href="#finding-good-initial-pairs" title="Permalink to this headline">¶</a></h2>
+<p>To compute the initial reconstruction using two images, there needs to be enough parallax between them.  That is, the camera should have been displaced between the two shots, and the displacement needs to be large enough compared to the distance to the scene.</p>
+<p>To compute whether there is enough parallax, we start by trying to fit a rotation only camera model to the two images.  We only consider image pairs that have a significant portion of the correspondences that can not be explained by the rotation model.  We compute the number of outliers of the model and accept it only if the portion of outliers is larger than 30%.</p>
+<p>The accepted image pairs are sorted by the number of outliers of the rotation only model.</p>
+<p>This step is done by the <code class="xref py py-func docutils literal notranslate"><span class="pre">compute_image_pairs()</span></code> function.</p>
+</div>
+<div class="section" id="bootstraping-the-reconstruction">
+<h2>2. Bootstraping the reconstruction<a class="headerlink" href="#bootstraping-the-reconstruction" title="Permalink to this headline">¶</a></h2>
+<p>To bootstrap the reconstruction, we use the first image pair.  If initialization fails we try with the next on the list.  If the initialization works, we pass it to the next step to grow it with more images.</p>
+<p>The reconstruction from two views can be done by two algorithms depending on the geometry of the scene.  If the scene is flat, a plane-based initialization is used, if it is not flat, then the five-point algorithm is used.  Since we do not know a priori if the scene is flat, both initializations are computed and the one that produces more points is retained (see the <code class="xref py py-func docutils literal notranslate"><span class="pre">two_view_reconstruction_general()</span></code> function).</p>
+<p>If the pair gives enough inliers we initialize a reconstruction with the corresponding poses, triangulate the matches and bundle adjust it.</p>
+</div>
+<div class="section" id="growing-the-reconstruction">
+<h2>3. Growing the reconstruction<a class="headerlink" href="#growing-the-reconstruction" title="Permalink to this headline">¶</a></h2>
+<p>Given the initial reconstruction with two images, more images are added one by one starting with the one that sees more of the reconstructed points.</p>
+<p>To add an image it needs first needs to be aligned to the reconstruction.  This is done by finding the camera position that makes the reconstructed 3D points project to the corresponding position in the new image.  The process is called resectioning and is done by the <code class="xref py py-func docutils literal notranslate"><span class="pre">resect()</span></code> function.</p>
+<p>If resectioning works, the image is added to the reconstruction. After adding it, all features of the new image that are also seen in other reconstructed images are triangulated.  If needed, the reconstruction is then bundle adjusted and eventually all features are re-triangulated.  The parameters <code class="docutils literal notranslate"><span class="pre">bundle_interval</span></code>, <code class="docutils literal notranslate"><span class="pre">bundle_new_points_ratio</span></code>, <code class="docutils literal notranslate"><span class="pre">retriangulation</span></code> and <code class="docutils literal notranslate"><span class="pre">retriangulation_ratio</span></code> control when bundle and re-triangulation are needed.</p>
+<p>Finally, if the GPS positions of the shots or Ground Control Points (GPS) are available, the reconstruction is rigidly moved to best align to those.</p>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="large.html" class="btn btn-neutral float-right" title="Splitting a large dataset into smaller submodels" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="cam_coord_system.html" class="btn btn-neutral float-left" title="Camera Coordinate System and Conventions" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Mapillary
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+  
+ 
+<style>
+  @import url('https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,600,700&display=swap');
+  html {
+    font-family: 'Source Sans Pro', sans-serif;
+  }
+  .highlight {
+    font-family: "Lucida Console", Monaco, monospace!important;
+  }
+  .wy-side-nav-search {
+    background: #212b36;
+  }
+  .wy-side-nav-search input[type=text] {
+    border-color: transparent;
+    
+  }
+  .wy-nav-side {
+    background: #212b36;
+  }
+  .wy-menu-vertical a:hover {
+    color: #d9d9d9;
+    background: rgba(255, 255, 255, 0.1);
+  }
+  a, a:hover {
+    color: #05cb63;
+  }
+  body {
+    color: #212b36;
+  }
+  .wy-nav-content-wrap {
+    background: #fcfcfc!important;
+  }
+  .wy-side-nav-search>a:hover {
+    color: #fff!important;
+  }
+  .highlight {
+    background: #dee5ed;
+  }
+  .wy-menu-vertical li.on a, .wy-menu-vertical li.current>a {
+
+  }
+  .wy-menu-vertical li.toctree-l1.current>a {
+    border-top: 0;
+    border-bottom: 0;
+  }
+  .rst-content pre.literal-block, .rst-content div[class^='highlight'] {
+    border-radius: 4px;
+    border-color: #dee5ed!important;  
+  }
+</style>
+
+
+</body>
+</html>

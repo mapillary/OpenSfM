@@ -1,0 +1,338 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Dense Matching Notes &mdash; OpenSfM 0.3.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/javascript" src="_static/mathjax_conf.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/graphviz.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> OpenSfM
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.3
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="building.html">Building</a></li>
+<li class="toctree-l1"><a class="reference internal" href="using.html">Using</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dataset.html">Dataset Structure</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dataset.html#reconstruction-file-format">Reconstruction file format</a></li>
+<li class="toctree-l1"><a class="reference internal" href="geometry.html">Geometric Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cam_coord_system.html">Camera Coordinate System and Conventions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reconstruction_module.html">Incremental reconstruction algorithm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="large.html">Splitting a large dataset into smaller submodels</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reporting.html">Reporting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">Code Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="python3.html">Python 2 and 3 compatibility</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">OpenSfM</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Dense Matching Notes</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            
+              <a href="https://github.com/mapillary/OpenSfM/blob/master/doc/source/dense.rst" class="fa fa-github"> Edit on GitHub</a>
+            
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="dense-matching-notes">
+<h1>Dense Matching Notes<a class="headerlink" href="#dense-matching-notes" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="backprojection-at-a-given-depth">
+<h2>Backprojection at a given depth<a class="headerlink" href="#backprojection-at-a-given-depth" title="Permalink to this headline">¶</a></h2>
+<p>The backprojection of a pixel <span class="math notranslate nohighlight">\(q = (q_x, q_y, 1)^T\)</span> at depth <span class="math notranslate nohighlight">\(d\)</span> in camera coordinates is</p>
+<div class="math notranslate nohighlight">
+\[X = d K^{-1} q\]</div>
+</div>
+<div class="section" id="backprojection-to-a-plane">
+<h2>Backprojection to a plane<a class="headerlink" href="#backprojection-to-a-plane" title="Permalink to this headline">¶</a></h2>
+<p>The backprojection of a pixel <span class="math notranslate nohighlight">\(q = (q_x, q_y, 1)^T\)</span> on to the plane <span class="math notranslate nohighlight">\(\pi = (v^T, 1)\)</span> is</p>
+<div class="math notranslate nohighlight">
+\[X = \frac{-K^{-1} q}{v^T K^{-1} q}\]</div>
+<p>and has depth</p>
+<div class="math notranslate nohighlight">
+\[d = \frac{-1}{v^T K^{-1} q}\]</div>
+</div>
+<div class="section" id="plane-given-point-and-normal">
+<h2>Plane given point and normal<a class="headerlink" href="#plane-given-point-and-normal" title="Permalink to this headline">¶</a></h2>
+<p>The plane</p>
+<div class="math notranslate nohighlight">
+\[\pi = \left( \frac{-n^T}{n^T X}, 1 \right)\]</div>
+<p>Contains the point <span class="math notranslate nohighlight">\(X\)</span> and has normal <span class="math notranslate nohighlight">\(n\)</span></p>
+</div>
+<div class="section" id="plane-of-constant-depth">
+<h2>Plane of constant depth<a class="headerlink" href="#plane-of-constant-depth" title="Permalink to this headline">¶</a></h2>
+<p>A plane of constant depth <span class="math notranslate nohighlight">\(d\)</span> is defined by <span class="math notranslate nohighlight">\(z = d\)</span> in camera coordinates.
+So it has de following coordinates</p>
+<div class="math notranslate nohighlight">
+\[\pi_c = (0, 0, -1 / d, 1)\]</div>
+</div>
+<div class="section" id="plane-coordinates-conversion">
+<h2>Plane coordinates conversion<a class="headerlink" href="#plane-coordinates-conversion" title="Permalink to this headline">¶</a></h2>
+<p>The coordinates of a plane in world and camera coordinates are related by</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\pi_w = \begin{pmatrix} R &amp; t \\ 0 &amp; 1 \end{pmatrix} \pi_c\end{split}\]</div>
+</div>
+<div class="section" id="plane-induced-homography">
+<h2>Plane-induced homography<a class="headerlink" href="#plane-induced-homography" title="Permalink to this headline">¶</a></h2>
+<p>Given a plane in camera coordinates <span class="math notranslate nohighlight">\(\pi_c = (v^T 1)\)</span> the homography from image 1 to image 2 is given by</p>
+<div class="math notranslate nohighlight">
+\[H = K_2 [R_2 R_1^T + (R_2 R_1^T t_1 - t_2) v^T] K_1^{-1}\]</div>
+<p>We can pre-compute</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}Q_{12} &amp;= R_2 R_1^T \\
+a_{12} &amp;= R_2 R_1^T t_1 - t_2\end{split}\]</div>
+<p>and then we have</p>
+<div class="math notranslate nohighlight">
+\[H = K_2 [Q_{12} + a_{12} v^T] K_1^{-1}\]</div>
+</div>
+<div class="section" id="local-affine-approximation-of-an-homography">
+<h2>Local, affine approximation of an homography<a class="headerlink" href="#local-affine-approximation-of-an-homography" title="Permalink to this headline">¶</a></h2>
+<p>The homography mapping defined by matrix <span class="math notranslate nohighlight">\(H\)</span> is</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}f(x, y) = \begin{pmatrix} u / w \\
+                          v / w \end{pmatrix}\end{split}\]</div>
+<p>where</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}u &amp;= H_1 (x, y, 1)^T \\
+v &amp;= H_2 (x, y, 1)^T \\
+w &amp;= H_3 (x, y, 1)^T\end{split}\]</div>
+<p>The differential is then</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}Df(x, y) = \frac{1}{w^2}
+   \begin{pmatrix}
+      H_{11} w - H_{31} u  &amp;  H_{12} w - H_{32} u \\
+      H_{21} w - H_{31} v  &amp;  H_{22} w - H_{32} v
+   \end{pmatrix}\end{split}\]</div>
+<p>And the linear approximation around <span class="math notranslate nohighlight">\((x_0, y_0)\)</span> is</p>
+<div class="math notranslate nohighlight">
+\[f(x_0 + dx, y_0 + dy) = f(x_0, y_0) + Df(x_0, y_0)(dx, dy)^T\]</div>
+</div>
+<div class="section" id="undistortion">
+<h2>Undistortion<a class="headerlink" href="#undistortion" title="Permalink to this headline">¶</a></h2>
+<p>The dense module assumes that images are taken with perspective projection and no radial distortion.  For perspective images, undistorted versions can be generated by taking into account the computed distortion parameters, <span class="math notranslate nohighlight">\(k1\)</span> and <span class="math notranslate nohighlight">\(k2\)</span>.</p>
+<p>Equirectangular images (360 panoramas) however can not be unwarped into a single persepective view.  We need to generate multiple perspective views to cover the field of view of a panorama.</p>
+<p>This means that the undistortion process will create new views of the reconstruction.  Thus the undistortion process is one where a reconstruction is taken as input and a new reconstruction is produced as output.  The input may contain radially distorted images and panoramas and the output reconstruction will only have undistorted perspective images.</p>
+<p>Also, because new views are generated, a new track graph is also generated.</p>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Mapillary
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+  
+ 
+<style>
+  @import url('https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,600,700&display=swap');
+  html {
+    font-family: 'Source Sans Pro', sans-serif;
+  }
+  .highlight {
+    font-family: "Lucida Console", Monaco, monospace!important;
+  }
+  .wy-side-nav-search {
+    background: #212b36;
+  }
+  .wy-side-nav-search input[type=text] {
+    border-color: transparent;
+    
+  }
+  .wy-nav-side {
+    background: #212b36;
+  }
+  .wy-menu-vertical a:hover {
+    color: #d9d9d9;
+    background: rgba(255, 255, 255, 0.1);
+  }
+  a, a:hover {
+    color: #05cb63;
+  }
+  body {
+    color: #212b36;
+  }
+  .wy-nav-content-wrap {
+    background: #fcfcfc!important;
+  }
+  .wy-side-nav-search>a:hover {
+    color: #fff!important;
+  }
+  .highlight {
+    background: #dee5ed;
+  }
+  .wy-menu-vertical li.on a, .wy-menu-vertical li.current>a {
+
+  }
+  .wy-menu-vertical li.toctree-l1.current>a {
+    border-top: 0;
+    border-bottom: 0;
+  }
+  .rst-content pre.literal-block, .rst-content div[class^='highlight'] {
+    border-radius: 4px;
+    border-color: #dee5ed!important;  
+  }
+</style>
+
+
+</body>
+</html>

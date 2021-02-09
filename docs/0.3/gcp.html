@@ -1,0 +1,322 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Ground Control Points &mdash; OpenSfM 0.3.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/javascript" src="_static/mathjax_conf.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/graphviz.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> OpenSfM
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.3
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="building.html">Building</a></li>
+<li class="toctree-l1"><a class="reference internal" href="using.html">Using</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dataset.html">Dataset Structure</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dataset.html#reconstruction-file-format">Reconstruction file format</a></li>
+<li class="toctree-l1"><a class="reference internal" href="geometry.html">Geometric Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cam_coord_system.html">Camera Coordinate System and Conventions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reconstruction_module.html">Incremental reconstruction algorithm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="large.html">Splitting a large dataset into smaller submodels</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reporting.html">Reporting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">Code Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="python3.html">Python 2 and 3 compatibility</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">OpenSfM</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Ground Control Points</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            
+              <a href="https://github.com/mapillary/OpenSfM/blob/master/doc/source/gcp.rst" class="fa fa-github"> Edit on GitHub</a>
+            
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="ground-control-points">
+<h1>Ground Control Points<a class="headerlink" href="#ground-control-points" title="Permalink to this headline">¶</a></h1>
+<p>When EXIF data contains GPS location, it is used by OpenSfM to georeference the reconstruction.  Additionally, it is possible to use ground control points.</p>
+<p>Ground control points (GCP) are landmarks visible on the images for which the geospatial position (latitude, longitude and altitude) is known.  A single GCP can be observed in one or more images.</p>
+<p>OpenSfM uses GCP in two steps of the reconstruction process: alignment and bundle adjustment.  In the alignment step, points are used to globaly move the reconstruction so that the observed GCP align with their GPS position.  Two or more observations for each GCP are required for it to be used during the aligment step.</p>
+<p>In the bundle adjustment step, GCP observations are used as a constraint to refine the reconstruction.  In this step, all ground control points are used.  No minimum number of observation is required.</p>
+<p>GPSs can be specified in two file formats.  If existing, both are loaded.</p>
+<div class="section" id="json-file-format">
+<h2>JSON file format<a class="headerlink" href="#json-file-format" title="Permalink to this headline">¶</a></h2>
+<p>GCPs can be specified by adding a text file named <code class="docutils literal notranslate"><span class="pre">ground_control_points.json</span></code> at the root folder of the dataset. The format of the file should be as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+  <span class="s2">&quot;points&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="p">{</span>
+      <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="n">STRING</span><span class="p">,</span>
+      <span class="s2">&quot;position&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;latitude&quot;</span><span class="p">:</span> <span class="n">FLOAT</span><span class="p">,</span>
+        <span class="s2">&quot;longitude&quot;</span><span class="p">:</span> <span class="n">FLOAT</span><span class="p">,</span>
+        <span class="s2">&quot;altitude&quot;</span><span class="p">:</span> <span class="n">FLOAT</span>  <span class="c1"># optional</span>
+      <span class="p">},</span>
+      <span class="s2">&quot;observations&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="p">{</span>
+          <span class="s2">&quot;shot_id&quot;</span><span class="p">:</span> <span class="n">STRING</span><span class="p">,</span>
+          <span class="s2">&quot;projection&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">FLOAT</span><span class="p">,</span> <span class="n">FLOAT</span><span class="p">]</span>  <span class="c1"># in normalized image coordinates</span>
+        <span class="p">},</span>
+        <span class="o">...</span>
+      <span class="p">]</span>
+    <span class="p">},</span>
+    <span class="o">...</span>
+  <span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>For each point, the latitude and longitude in <a class="reference external" href="https://en.wikipedia.org/wiki/World_Geodetic_System">WGS84</a> are required.  The altitude, in meters, is optional.  For each image where the point has been observed, the image id and the coordinates of the observation in <a class="reference internal" href="geometry.html#normalized-image-coordinates"><span class="std std-ref">Normalized Image Coordinates</span></a> are required.</p>
+</div>
+<div class="section" id="txt-file-format">
+<h2>TXT file format<a class="headerlink" href="#txt-file-format" title="Permalink to this headline">¶</a></h2>
+<p>GCPs can be specified by adding a text file named <code class="docutils literal notranslate"><span class="pre">gcp_list.txt</span></code> at the root folder of the dataset. The format of the file should be as follows.</p>
+<ul>
+<li><p class="first">The first line should contain the name of the projection used for the geo coordinates.</p>
+</li>
+<li><p class="first">The following lines should contain the data for each ground control point observation. One per line and in the format:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">geo_x</span><span class="o">&gt;</span> <span class="o">&lt;</span><span class="n">geo_y</span><span class="o">&gt;</span> <span class="o">&lt;</span><span class="n">geo_z</span><span class="o">&gt;</span> <span class="o">&lt;</span><span class="n">im_x</span><span class="o">&gt;</span> <span class="o">&lt;</span><span class="n">im_y</span><span class="o">&gt;</span> <span class="o">&lt;</span><span class="n">image_name</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+<p>Where <code class="docutils literal notranslate"><span class="pre">&lt;geo_x&gt;</span> <span class="pre">&lt;geo_y&gt;</span> <span class="pre">&lt;geo_z&gt;</span></code> are the geospatial coordinates of the GCP and <code class="docutils literal notranslate"><span class="pre">&lt;im_x&gt;</span> <span class="pre">&lt;im_y&gt;</span></code> are the <a class="reference internal" href="geometry.html#pixel-coordinates"><span class="std std-ref">Pixel Coordinates</span></a> where the GCP is observed.  If the altitude of the GCP is not known, set <code class="docutils literal notranslate"><span class="pre">&lt;geo_z&gt;</span></code> to <code class="docutils literal notranslate"><span class="pre">NaN</span></code>.</p>
+</li>
+</ul>
+<p><strong>Supported projections</strong></p>
+<p>The geospatial coordinates can be specified in one the following formats.</p>
+<ul class="simple">
+<li><a class="reference external" href="https://en.wikipedia.org/wiki/World_Geodetic_System">WGS84</a>: This is the standard latitude, longitude coordinates used by most GPS devices. In this case, <code class="docutils literal notranslate"><span class="pre">&lt;geo_x&gt;</span> <span class="pre">=</span> <span class="pre">longitude</span></code>, <code class="docutils literal notranslate"><span class="pre">&lt;geo_y&gt;</span> <span class="pre">=</span> <span class="pre">latitude</span></code> and <code class="docutils literal notranslate"><span class="pre">&lt;geo_z&gt;</span> <span class="pre">=</span> <span class="pre">altitude</span></code></li>
+<li><a class="reference external" href="https://en.wikipedia.org/wiki/Universal_Transverse_Mercator_coordinate_system">UTM</a>: UTM projections can be specified using a string projection string such as <code class="docutils literal notranslate"><span class="pre">WGS84</span> <span class="pre">UTM</span> <span class="pre">32N</span></code>, where 32 is the region and N is . In this case, <code class="docutils literal notranslate"><span class="pre">&lt;geo_x&gt;</span> <span class="pre">=</span> <span class="pre">E</span></code>, <code class="docutils literal notranslate"><span class="pre">&lt;geo_y&gt;</span> <span class="pre">=</span> <span class="pre">N</span></code> and <code class="docutils literal notranslate"><span class="pre">&lt;geo_z&gt;</span> <span class="pre">=</span> <span class="pre">altitude</span></code></li>
+<li><a class="reference external" href="http://proj4.org/">proj4</a>: Any valid proj4 format string can be used. For example, for UTM 32N we can use <code class="docutils literal notranslate"><span class="pre">+proj=utm</span> <span class="pre">+zone=32</span> <span class="pre">+north</span> <span class="pre">+ellps=WGS84</span> <span class="pre">+datum=WGS84</span> <span class="pre">+units=m</span> <span class="pre">+no_defs</span></code></li>
+</ul>
+<p><strong>Example</strong></p>
+<p>This file defines 2 GCP whose coordinates are specified in the WGS84 standard. The first one is observed in both <code class="docutils literal notranslate"><span class="pre">01.jpg</span></code> and <code class="docutils literal notranslate"><span class="pre">02.jpg</span></code>, while the second one is only observed in <code class="docutils literal notranslate"><span class="pre">01.jpg</span></code></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WGS84</span>
+<span class="mf">13.400740745</span> <span class="mf">52.519134104</span> <span class="mf">12.0792090446</span> <span class="mf">2335.0</span> <span class="mf">1416.7</span> <span class="mf">01.</span><span class="n">jpg</span>
+<span class="mf">13.400740745</span> <span class="mf">52.519134104</span> <span class="mf">12.0792090446</span> <span class="mf">2639.1</span> <span class="mf">938.0</span> <span class="mf">02.</span><span class="n">jpg</span>
+<span class="mf">13.400502446</span> <span class="mf">52.519251158</span> <span class="mf">16.7021233002</span> <span class="mf">766.0</span> <span class="mf">1133.1</span> <span class="mf">01.</span><span class="n">jpg</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Mapillary
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+  
+ 
+<style>
+  @import url('https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,600,700&display=swap');
+  html {
+    font-family: 'Source Sans Pro', sans-serif;
+  }
+  .highlight {
+    font-family: "Lucida Console", Monaco, monospace!important;
+  }
+  .wy-side-nav-search {
+    background: #212b36;
+  }
+  .wy-side-nav-search input[type=text] {
+    border-color: transparent;
+    
+  }
+  .wy-nav-side {
+    background: #212b36;
+  }
+  .wy-menu-vertical a:hover {
+    color: #d9d9d9;
+    background: rgba(255, 255, 255, 0.1);
+  }
+  a, a:hover {
+    color: #05cb63;
+  }
+  body {
+    color: #212b36;
+  }
+  .wy-nav-content-wrap {
+    background: #fcfcfc!important;
+  }
+  .wy-side-nav-search>a:hover {
+    color: #fff!important;
+  }
+  .highlight {
+    background: #dee5ed;
+  }
+  .wy-menu-vertical li.on a, .wy-menu-vertical li.current>a {
+
+  }
+  .wy-menu-vertical li.toctree-l1.current>a {
+    border-top: 0;
+    border-bottom: 0;
+  }
+  .rst-content pre.literal-block, .rst-content div[class^='highlight'] {
+    border-radius: 4px;
+    border-color: #dee5ed!important;  
+  }
+</style>
+
+
+</body>
+</html>

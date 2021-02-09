@@ -1,0 +1,1672 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Code Documentation &mdash; OpenSfM 0.3.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/javascript" src="_static/mathjax_conf.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/graphviz.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Python 2 and 3 compatibility" href="python3.html" />
+    <link rel="prev" title="Reporting" href="reporting.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> OpenSfM
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.3
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="building.html">Building</a></li>
+<li class="toctree-l1"><a class="reference internal" href="using.html">Using</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dataset.html">Dataset Structure</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dataset.html#reconstruction-file-format">Reconstruction file format</a></li>
+<li class="toctree-l1"><a class="reference internal" href="geometry.html">Geometric Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cam_coord_system.html">Camera Coordinate System and Conventions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reconstruction_module.html">Incremental reconstruction algorithm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="large.html">Splitting a large dataset into smaller submodels</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reporting.html">Reporting</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Code Documentation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#dataset-i-o">Dataset I/O</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-opensfm.types">Reconstruction Types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#features">Features</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#matching">Matching</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#incremental-reconstruction">Incremental Reconstruction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-opensfm.config">Config</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="python3.html">Python 2 and 3 compatibility</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">OpenSfM</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Code Documentation</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            
+              <a href="https://github.com/mapillary/OpenSfM/blob/master/doc/source/api.rst" class="fa fa-github"> Edit on GitHub</a>
+            
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="code-documentation">
+<h1>Code Documentation<a class="headerlink" href="#code-documentation" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="dataset-i-o">
+<h2>Dataset I/O<a class="headerlink" href="#dataset-i-o" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-opensfm.types">
+<span id="reconstruction-types"></span><h2>Reconstruction Types<a class="headerlink" href="#module-opensfm.types" title="Permalink to this headline">¶</a></h2>
+<p>Basic types for building a reconstruction.</p>
+<dl class="class">
+<dt id="opensfm.types.BrownPerspectiveCamera">
+<em class="property">class </em><code class="descclassname">opensfm.types.</code><code class="descname">BrownPerspectiveCamera</code><a class="reference internal" href="_modules/opensfm/types.html#BrownPerspectiveCamera"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.BrownPerspectiveCamera" title="Permalink to this definition">¶</a></dt>
+<dd><p>Define a perspective camera.</p>
+<dl class="attribute">
+<dt id="opensfm.types.BrownPerspectiveCamera.width">
+<code class="descname">width</code><a class="headerlink" href="#opensfm.types.BrownPerspectiveCamera.width" title="Permalink to this definition">¶</a></dt>
+<dd><p>image width.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">int</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="opensfm.types.BrownPerspectiveCamera.height">
+<code class="descname">height</code><a class="headerlink" href="#opensfm.types.BrownPerspectiveCamera.height" title="Permalink to this definition">¶</a></dt>
+<dd><p>image height.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">int</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="opensfm.types.BrownPerspectiveCamera.focal_x">
+<code class="descname">focal_x</code><a class="headerlink" href="#opensfm.types.BrownPerspectiveCamera.focal_x" title="Permalink to this definition">¶</a></dt>
+<dd><p>estimated focal length for the X axis.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">real</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="opensfm.types.BrownPerspectiveCamera.focal_y">
+<code class="descname">focal_y</code><a class="headerlink" href="#opensfm.types.BrownPerspectiveCamera.focal_y" title="Permalink to this definition">¶</a></dt>
+<dd><p>estimated focal length for the Y axis.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">real</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="opensfm.types.BrownPerspectiveCamera.c_x">
+<code class="descname">c_x</code><a class="headerlink" href="#opensfm.types.BrownPerspectiveCamera.c_x" title="Permalink to this definition">¶</a></dt>
+<dd><p>estimated principal point X.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">real</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="opensfm.types.BrownPerspectiveCamera.c_y">
+<code class="descname">c_y</code><a class="headerlink" href="#opensfm.types.BrownPerspectiveCamera.c_y" title="Permalink to this definition">¶</a></dt>
+<dd><p>estimated principal point Y.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">real</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="opensfm.types.BrownPerspectiveCamera.k1">
+<code class="descname">k1</code><a class="headerlink" href="#opensfm.types.BrownPerspectiveCamera.k1" title="Permalink to this definition">¶</a></dt>
+<dd><p>estimated first radial distortion parameter.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">real</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="opensfm.types.BrownPerspectiveCamera.k2">
+<code class="descname">k2</code><a class="headerlink" href="#opensfm.types.BrownPerspectiveCamera.k2" title="Permalink to this definition">¶</a></dt>
+<dd><p>estimated second radial distortion parameter.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">real</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="opensfm.types.BrownPerspectiveCamera.p1">
+<code class="descname">p1</code><a class="headerlink" href="#opensfm.types.BrownPerspectiveCamera.p1" title="Permalink to this definition">¶</a></dt>
+<dd><p>estimated first tangential distortion parameter.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">real</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="opensfm.types.BrownPerspectiveCamera.p2">
+<code class="descname">p2</code><a class="headerlink" href="#opensfm.types.BrownPerspectiveCamera.p2" title="Permalink to this definition">¶</a></dt>
+<dd><p>estimated second tangential distortion parameter.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">real</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="opensfm.types.BrownPerspectiveCamera.k3">
+<code class="descname">k3</code><a class="headerlink" href="#opensfm.types.BrownPerspectiveCamera.k3" title="Permalink to this definition">¶</a></dt>
+<dd><p>estimated third radial distortion parameter.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">real</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.BrownPerspectiveCamera.back_project">
+<code class="descname">back_project</code><span class="sig-paren">(</span><em>pixel</em>, <em>depth</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#BrownPerspectiveCamera.back_project"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.BrownPerspectiveCamera.back_project" title="Permalink to this definition">¶</a></dt>
+<dd><p>Project a pixel to a fronto-parallel plane at a given depth.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.BrownPerspectiveCamera.back_project_many">
+<code class="descname">back_project_many</code><span class="sig-paren">(</span><em>pixels</em>, <em>depths</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#BrownPerspectiveCamera.back_project_many"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.BrownPerspectiveCamera.back_project_many" title="Permalink to this definition">¶</a></dt>
+<dd><p>Project pixels to fronto-parallel planes at given depths.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.BrownPerspectiveCamera.get_K">
+<code class="descname">get_K</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#BrownPerspectiveCamera.get_K"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.BrownPerspectiveCamera.get_K" title="Permalink to this definition">¶</a></dt>
+<dd><p>The calibration matrix.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.BrownPerspectiveCamera.get_K_in_pixel_coordinates">
+<code class="descname">get_K_in_pixel_coordinates</code><span class="sig-paren">(</span><em>width=None</em>, <em>height=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#BrownPerspectiveCamera.get_K_in_pixel_coordinates"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.BrownPerspectiveCamera.get_K_in_pixel_coordinates" title="Permalink to this definition">¶</a></dt>
+<dd><p>The calibration matrix that maps to pixel coordinates.</p>
+<p>Coordinates (0,0) correspond to the center of the top-left pixel,
+and (width - 1, height - 1) to the center of bottom-right pixel.</p>
+<p>You can optionally pass the width and height of the image, in case
+you are using a resized versior of the original image.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.BrownPerspectiveCamera.pixel_bearing">
+<code class="descname">pixel_bearing</code><span class="sig-paren">(</span><em>pixel</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#BrownPerspectiveCamera.pixel_bearing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.BrownPerspectiveCamera.pixel_bearing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Unit vector pointing to the pixel viewing direction.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.BrownPerspectiveCamera.pixel_bearing_many">
+<code class="descname">pixel_bearing_many</code><span class="sig-paren">(</span><em>pixels</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#BrownPerspectiveCamera.pixel_bearing_many"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.BrownPerspectiveCamera.pixel_bearing_many" title="Permalink to this definition">¶</a></dt>
+<dd><p>Unit vector pointing to the pixel viewing directions.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.BrownPerspectiveCamera.pixel_bearings">
+<code class="descname">pixel_bearings</code><span class="sig-paren">(</span><em>pixels</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#BrownPerspectiveCamera.pixel_bearings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.BrownPerspectiveCamera.pixel_bearings" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deprecated: use pixel_bearing_many.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.BrownPerspectiveCamera.project">
+<code class="descname">project</code><span class="sig-paren">(</span><em>point</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#BrownPerspectiveCamera.project"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.BrownPerspectiveCamera.project" title="Permalink to this definition">¶</a></dt>
+<dd><p>Project a 3D point in camera coordinates to the image plane.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.BrownPerspectiveCamera.project_many">
+<code class="descname">project_many</code><span class="sig-paren">(</span><em>points</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#BrownPerspectiveCamera.project_many"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.BrownPerspectiveCamera.project_many" title="Permalink to this definition">¶</a></dt>
+<dd><p>Project 3D points in camera coordinates to the image plane.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="opensfm.types.Camera">
+<em class="property">class </em><code class="descclassname">opensfm.types.</code><code class="descname">Camera</code><a class="reference internal" href="_modules/opensfm/types.html#Camera"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.Camera" title="Permalink to this definition">¶</a></dt>
+<dd><p>Abstract camera class.</p>
+<p>A camera is unique defined for its identification description (id),
+the projection type (projection_type) and its internal calibration
+parameters, which depend on the particular Camera sub-class.</p>
+<dl class="attribute">
+<dt id="opensfm.types.Camera.id">
+<code class="descname">id</code><a class="headerlink" href="#opensfm.types.Camera.id" title="Permalink to this definition">¶</a></dt>
+<dd><p>camera description.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">str</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="opensfm.types.Camera.projection_type">
+<code class="descname">projection_type</code><a class="headerlink" href="#opensfm.types.Camera.projection_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>projection type.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">str</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="opensfm.types.DualCamera">
+<em class="property">class </em><code class="descclassname">opensfm.types.</code><code class="descname">DualCamera</code><span class="sig-paren">(</span><em>projection_type='unknown'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#DualCamera"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.DualCamera" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="docutils">
+<dt>Define a camera that seamlessly transition</dt>
+<dd>between fisheye and perspective camera.</dd>
+</dl>
+<dl class="attribute">
+<dt id="opensfm.types.DualCamera.width">
+<code class="descname">width</code><a class="headerlink" href="#opensfm.types.DualCamera.width" title="Permalink to this definition">¶</a></dt>
+<dd><p>image width.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">int</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="opensfm.types.DualCamera.height">
+<code class="descname">height</code><a class="headerlink" href="#opensfm.types.DualCamera.height" title="Permalink to this definition">¶</a></dt>
+<dd><p>image height.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">int</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="opensfm.types.DualCamera.focal">
+<code class="descname">focal</code><a class="headerlink" href="#opensfm.types.DualCamera.focal" title="Permalink to this definition">¶</a></dt>
+<dd><p>estimated focal lenght.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">real</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="opensfm.types.DualCamera.k1">
+<code class="descname">k1</code><a class="headerlink" href="#opensfm.types.DualCamera.k1" title="Permalink to this definition">¶</a></dt>
+<dd><p>estimated first distortion parameter.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">real</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="opensfm.types.DualCamera.k2">
+<code class="descname">k2</code><a class="headerlink" href="#opensfm.types.DualCamera.k2" title="Permalink to this definition">¶</a></dt>
+<dd><p>estimated second distortion parameter.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">real</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="opensfm.types.DualCamera.focal_prior">
+<code class="descname">focal_prior</code><a class="headerlink" href="#opensfm.types.DualCamera.focal_prior" title="Permalink to this definition">¶</a></dt>
+<dd><p>prior focal lenght.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">real</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="opensfm.types.DualCamera.k1_prior">
+<code class="descname">k1_prior</code><a class="headerlink" href="#opensfm.types.DualCamera.k1_prior" title="Permalink to this definition">¶</a></dt>
+<dd><p>prior first distortion parameter.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">real</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="opensfm.types.DualCamera.k2_prior">
+<code class="descname">k2_prior</code><a class="headerlink" href="#opensfm.types.DualCamera.k2_prior" title="Permalink to this definition">¶</a></dt>
+<dd><p>prior second distortion parameter.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">real</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="opensfm.types.DualCamera.transition">
+<code class="descname">transition</code><a class="headerlink" href="#opensfm.types.DualCamera.transition" title="Permalink to this definition">¶</a></dt>
+<dd><p>parametrize between perpective (1.0) and fisheye (0.0)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">real</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.DualCamera.back_project">
+<code class="descname">back_project</code><span class="sig-paren">(</span><em>pixel</em>, <em>depth</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#DualCamera.back_project"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.DualCamera.back_project" title="Permalink to this definition">¶</a></dt>
+<dd><p>Project a pixel to a fronto-parallel plane at a given depth.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.DualCamera.back_project_many">
+<code class="descname">back_project_many</code><span class="sig-paren">(</span><em>pixels</em>, <em>depths</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#DualCamera.back_project_many"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.DualCamera.back_project_many" title="Permalink to this definition">¶</a></dt>
+<dd><p>Project pixels to fronto-parallel planes at given depths.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.DualCamera.get_K">
+<code class="descname">get_K</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#DualCamera.get_K"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.DualCamera.get_K" title="Permalink to this definition">¶</a></dt>
+<dd><p>The calibration matrix.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.DualCamera.get_K_in_pixel_coordinates">
+<code class="descname">get_K_in_pixel_coordinates</code><span class="sig-paren">(</span><em>width=None</em>, <em>height=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#DualCamera.get_K_in_pixel_coordinates"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.DualCamera.get_K_in_pixel_coordinates" title="Permalink to this definition">¶</a></dt>
+<dd><p>The calibration matrix that maps to pixel coordinates.</p>
+<p>Coordinates (0,0) correspond to the center of the top-left pixel,
+and (width - 1, height - 1) to the center of bottom-right pixel.</p>
+<p>You can optionally pass the width and height of the image, in case
+you are using a resized version of the original image.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.DualCamera.pixel_bearing">
+<code class="descname">pixel_bearing</code><span class="sig-paren">(</span><em>pixel</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#DualCamera.pixel_bearing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.DualCamera.pixel_bearing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Unit vector pointing to the pixel viewing direction.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.DualCamera.pixel_bearing_many">
+<code class="descname">pixel_bearing_many</code><span class="sig-paren">(</span><em>pixels</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#DualCamera.pixel_bearing_many"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.DualCamera.pixel_bearing_many" title="Permalink to this definition">¶</a></dt>
+<dd><p>Unit vector pointing to the pixel viewing directions.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.DualCamera.pixel_bearings">
+<code class="descname">pixel_bearings</code><span class="sig-paren">(</span><em>pixels</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#DualCamera.pixel_bearings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.DualCamera.pixel_bearings" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deprecated: use pixel_bearing_many.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.DualCamera.project">
+<code class="descname">project</code><span class="sig-paren">(</span><em>point</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#DualCamera.project"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.DualCamera.project" title="Permalink to this definition">¶</a></dt>
+<dd><p>Project a 3D point in camera coordinates to the image plane.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.DualCamera.project_many">
+<code class="descname">project_many</code><span class="sig-paren">(</span><em>points</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#DualCamera.project_many"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.DualCamera.project_many" title="Permalink to this definition">¶</a></dt>
+<dd><p>Project 3D points in camera coordinates to the image plane.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="opensfm.types.FisheyeCamera">
+<em class="property">class </em><code class="descclassname">opensfm.types.</code><code class="descname">FisheyeCamera</code><a class="reference internal" href="_modules/opensfm/types.html#FisheyeCamera"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.FisheyeCamera" title="Permalink to this definition">¶</a></dt>
+<dd><p>Define a fisheye camera.</p>
+<dl class="attribute">
+<dt id="opensfm.types.FisheyeCamera.width">
+<code class="descname">width</code><a class="headerlink" href="#opensfm.types.FisheyeCamera.width" title="Permalink to this definition">¶</a></dt>
+<dd><p>image width.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">int</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="opensfm.types.FisheyeCamera.height">
+<code class="descname">height</code><a class="headerlink" href="#opensfm.types.FisheyeCamera.height" title="Permalink to this definition">¶</a></dt>
+<dd><p>image height.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">int</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="opensfm.types.FisheyeCamera.focal">
+<code class="descname">focal</code><a class="headerlink" href="#opensfm.types.FisheyeCamera.focal" title="Permalink to this definition">¶</a></dt>
+<dd><p>estimated focal lenght.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">real</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="opensfm.types.FisheyeCamera.k1">
+<code class="descname">k1</code><a class="headerlink" href="#opensfm.types.FisheyeCamera.k1" title="Permalink to this definition">¶</a></dt>
+<dd><p>estimated first distortion parameter.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">real</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="opensfm.types.FisheyeCamera.k2">
+<code class="descname">k2</code><a class="headerlink" href="#opensfm.types.FisheyeCamera.k2" title="Permalink to this definition">¶</a></dt>
+<dd><p>estimated second distortion parameter.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">real</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.FisheyeCamera.back_project">
+<code class="descname">back_project</code><span class="sig-paren">(</span><em>pixel</em>, <em>depth</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#FisheyeCamera.back_project"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.FisheyeCamera.back_project" title="Permalink to this definition">¶</a></dt>
+<dd><p>Project a pixel to a fronto-parallel plane at a given depth.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.FisheyeCamera.back_project_many">
+<code class="descname">back_project_many</code><span class="sig-paren">(</span><em>pixels</em>, <em>depths</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#FisheyeCamera.back_project_many"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.FisheyeCamera.back_project_many" title="Permalink to this definition">¶</a></dt>
+<dd><p>Project pixels to fronto-parallel planes at given depths.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.FisheyeCamera.get_K">
+<code class="descname">get_K</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#FisheyeCamera.get_K"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.FisheyeCamera.get_K" title="Permalink to this definition">¶</a></dt>
+<dd><p>The calibration matrix.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.FisheyeCamera.get_K_in_pixel_coordinates">
+<code class="descname">get_K_in_pixel_coordinates</code><span class="sig-paren">(</span><em>width=None</em>, <em>height=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#FisheyeCamera.get_K_in_pixel_coordinates"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.FisheyeCamera.get_K_in_pixel_coordinates" title="Permalink to this definition">¶</a></dt>
+<dd><p>The calibration matrix that maps to pixel coordinates.</p>
+<p>Coordinates (0,0) correspond to the center of the top-left pixel,
+and (width - 1, height - 1) to the center of bottom-right pixel.</p>
+<p>You can optionally pass the width and height of the image, in case
+you are using a resized version of the original image.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.FisheyeCamera.pixel_bearing">
+<code class="descname">pixel_bearing</code><span class="sig-paren">(</span><em>pixel</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#FisheyeCamera.pixel_bearing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.FisheyeCamera.pixel_bearing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Unit vector pointing to the pixel viewing direction.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.FisheyeCamera.pixel_bearing_many">
+<code class="descname">pixel_bearing_many</code><span class="sig-paren">(</span><em>pixels</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#FisheyeCamera.pixel_bearing_many"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.FisheyeCamera.pixel_bearing_many" title="Permalink to this definition">¶</a></dt>
+<dd><p>Unit vector pointing to the pixel viewing directions.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.FisheyeCamera.pixel_bearings">
+<code class="descname">pixel_bearings</code><span class="sig-paren">(</span><em>pixels</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#FisheyeCamera.pixel_bearings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.FisheyeCamera.pixel_bearings" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deprecated: use pixel_bearing_many.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.FisheyeCamera.project">
+<code class="descname">project</code><span class="sig-paren">(</span><em>point</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#FisheyeCamera.project"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.FisheyeCamera.project" title="Permalink to this definition">¶</a></dt>
+<dd><p>Project a 3D point in camera coordinates to the image plane.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.FisheyeCamera.project_many">
+<code class="descname">project_many</code><span class="sig-paren">(</span><em>points</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#FisheyeCamera.project_many"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.FisheyeCamera.project_many" title="Permalink to this definition">¶</a></dt>
+<dd><p>Project 3D points in camera coordinates to the image plane.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="opensfm.types.GroundControlPoint">
+<em class="property">class </em><code class="descclassname">opensfm.types.</code><code class="descname">GroundControlPoint</code><a class="reference internal" href="_modules/opensfm/types.html#GroundControlPoint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.GroundControlPoint" title="Permalink to this definition">¶</a></dt>
+<dd><p>A ground control point with its observations.</p>
+<dl class="attribute">
+<dt id="opensfm.types.GroundControlPoint.lla">
+<code class="descname">lla</code><a class="headerlink" href="#opensfm.types.GroundControlPoint.lla" title="Permalink to this definition">¶</a></dt>
+<dd><p>latitue, longitude and altitude</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="opensfm.types.GroundControlPoint.coordinates">
+<code class="descname">coordinates</code><a class="headerlink" href="#opensfm.types.GroundControlPoint.coordinates" title="Permalink to this definition">¶</a></dt>
+<dd><p>x, y, z coordinates in topocentric reference frame</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="opensfm.types.GroundControlPoint.has_altitude">
+<code class="descname">has_altitude</code><a class="headerlink" href="#opensfm.types.GroundControlPoint.has_altitude" title="Permalink to this definition">¶</a></dt>
+<dd><p>true if z coordinate is known</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="opensfm.types.GroundControlPoint.observations">
+<code class="descname">observations</code><a class="headerlink" href="#opensfm.types.GroundControlPoint.observations" title="Permalink to this definition">¶</a></dt>
+<dd><p>list of observations of the point on images</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="opensfm.types.GroundControlPointObservation">
+<em class="property">class </em><code class="descclassname">opensfm.types.</code><code class="descname">GroundControlPointObservation</code><a class="reference internal" href="_modules/opensfm/types.html#GroundControlPointObservation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.GroundControlPointObservation" title="Permalink to this definition">¶</a></dt>
+<dd><p>A ground control point observation.</p>
+<dl class="attribute">
+<dt id="opensfm.types.GroundControlPointObservation.shot_id">
+<code class="descname">shot_id</code><a class="headerlink" href="#opensfm.types.GroundControlPointObservation.shot_id" title="Permalink to this definition">¶</a></dt>
+<dd><p>the shot where the point is observed</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="opensfm.types.GroundControlPointObservation.projection">
+<code class="descname">projection</code><a class="headerlink" href="#opensfm.types.GroundControlPointObservation.projection" title="Permalink to this definition">¶</a></dt>
+<dd><p>2d coordinates of the observation</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="opensfm.types.PerspectiveCamera">
+<em class="property">class </em><code class="descclassname">opensfm.types.</code><code class="descname">PerspectiveCamera</code><a class="reference internal" href="_modules/opensfm/types.html#PerspectiveCamera"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.PerspectiveCamera" title="Permalink to this definition">¶</a></dt>
+<dd><p>Define a perspective camera.</p>
+<dl class="attribute">
+<dt id="opensfm.types.PerspectiveCamera.width">
+<code class="descname">width</code><a class="headerlink" href="#opensfm.types.PerspectiveCamera.width" title="Permalink to this definition">¶</a></dt>
+<dd><p>image width.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">int</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="opensfm.types.PerspectiveCamera.height">
+<code class="descname">height</code><a class="headerlink" href="#opensfm.types.PerspectiveCamera.height" title="Permalink to this definition">¶</a></dt>
+<dd><p>image height.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">int</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="opensfm.types.PerspectiveCamera.focal">
+<code class="descname">focal</code><a class="headerlink" href="#opensfm.types.PerspectiveCamera.focal" title="Permalink to this definition">¶</a></dt>
+<dd><p>estimated focal lenght.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">real</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="opensfm.types.PerspectiveCamera.k1">
+<code class="descname">k1</code><a class="headerlink" href="#opensfm.types.PerspectiveCamera.k1" title="Permalink to this definition">¶</a></dt>
+<dd><p>estimated first distortion parameter.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">real</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="opensfm.types.PerspectiveCamera.k2">
+<code class="descname">k2</code><a class="headerlink" href="#opensfm.types.PerspectiveCamera.k2" title="Permalink to this definition">¶</a></dt>
+<dd><p>estimated second distortion parameter.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">real</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.PerspectiveCamera.back_project">
+<code class="descname">back_project</code><span class="sig-paren">(</span><em>pixel</em>, <em>depth</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#PerspectiveCamera.back_project"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.PerspectiveCamera.back_project" title="Permalink to this definition">¶</a></dt>
+<dd><p>Project a pixel to a fronto-parallel plane at a given depth.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.PerspectiveCamera.back_project_many">
+<code class="descname">back_project_many</code><span class="sig-paren">(</span><em>pixels</em>, <em>depths</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#PerspectiveCamera.back_project_many"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.PerspectiveCamera.back_project_many" title="Permalink to this definition">¶</a></dt>
+<dd><p>Project pixels to fronto-parallel planes at given depths.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.PerspectiveCamera.get_K">
+<code class="descname">get_K</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#PerspectiveCamera.get_K"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.PerspectiveCamera.get_K" title="Permalink to this definition">¶</a></dt>
+<dd><p>The calibration matrix.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.PerspectiveCamera.get_K_in_pixel_coordinates">
+<code class="descname">get_K_in_pixel_coordinates</code><span class="sig-paren">(</span><em>width=None</em>, <em>height=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#PerspectiveCamera.get_K_in_pixel_coordinates"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.PerspectiveCamera.get_K_in_pixel_coordinates" title="Permalink to this definition">¶</a></dt>
+<dd><p>The calibration matrix that maps to pixel coordinates.</p>
+<p>Coordinates (0,0) correspond to the center of the top-left pixel,
+and (width - 1, height - 1) to the center of bottom-right pixel.</p>
+<p>You can optionally pass the width and height of the image, in case
+you are using a resized versior of the original image.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.PerspectiveCamera.pixel_bearing">
+<code class="descname">pixel_bearing</code><span class="sig-paren">(</span><em>pixel</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#PerspectiveCamera.pixel_bearing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.PerspectiveCamera.pixel_bearing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Unit vector pointing to the pixel viewing direction.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.PerspectiveCamera.pixel_bearing_many">
+<code class="descname">pixel_bearing_many</code><span class="sig-paren">(</span><em>pixels</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#PerspectiveCamera.pixel_bearing_many"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.PerspectiveCamera.pixel_bearing_many" title="Permalink to this definition">¶</a></dt>
+<dd><p>Unit vectors pointing to the pixel viewing directions.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.PerspectiveCamera.pixel_bearings">
+<code class="descname">pixel_bearings</code><span class="sig-paren">(</span><em>pixels</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#PerspectiveCamera.pixel_bearings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.PerspectiveCamera.pixel_bearings" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deprecated: use pixel_bearing_many.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.PerspectiveCamera.project">
+<code class="descname">project</code><span class="sig-paren">(</span><em>point</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#PerspectiveCamera.project"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.PerspectiveCamera.project" title="Permalink to this definition">¶</a></dt>
+<dd><p>Project a 3D point in camera coordinates to the image plane.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.PerspectiveCamera.project_many">
+<code class="descname">project_many</code><span class="sig-paren">(</span><em>points</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#PerspectiveCamera.project_many"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.PerspectiveCamera.project_many" title="Permalink to this definition">¶</a></dt>
+<dd><p>Project 3D points in camera coordinates to the image plane.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="opensfm.types.Point">
+<em class="property">class </em><code class="descclassname">opensfm.types.</code><code class="descname">Point</code><a class="reference internal" href="_modules/opensfm/types.html#Point"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.Point" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines a 3D point.</p>
+<dl class="attribute">
+<dt id="opensfm.types.Point.id">
+<code class="descname">id</code><a class="headerlink" href="#opensfm.types.Point.id" title="Permalink to this definition">¶</a></dt>
+<dd><p>identification number.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">int</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="opensfm.types.Point.color">
+<code class="descname">color</code><a class="headerlink" href="#opensfm.types.Point.color" title="Permalink to this definition">¶</a></dt>
+<dd><p>list containing the RGB values.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">list(int)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="opensfm.types.Point.coordinates">
+<code class="descname">coordinates</code><a class="headerlink" href="#opensfm.types.Point.coordinates" title="Permalink to this definition">¶</a></dt>
+<dd><p>list containing the 3D position.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">list(real)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="opensfm.types.Point.reprojection_errors">
+<code class="descname">reprojection_errors</code><a class="headerlink" href="#opensfm.types.Point.reprojection_errors" title="Permalink to this definition">¶</a></dt>
+<dd><p>the reprojection error per shot.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">dict(real)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="opensfm.types.Pose">
+<em class="property">class </em><code class="descclassname">opensfm.types.</code><code class="descname">Pose</code><span class="sig-paren">(</span><em>rotation=array([0.</em>, <em>0.</em>, <em>0.])</em>, <em>translation=array([0.</em>, <em>0.</em>, <em>0.])</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#Pose"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.Pose" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the pose parameters of a camera.</p>
+<p>The extrinsic parameters are defined by a 3x1 rotation vector which
+maps the camera rotation respect to the origin frame (rotation) and
+a 3x1 translation vector which maps the camera translation respect
+to the origin frame (translation).</p>
+<dl class="attribute">
+<dt id="opensfm.types.Pose.rotation">
+<code class="descname">rotation</code><a class="headerlink" href="#opensfm.types.Pose.rotation" title="Permalink to this definition">¶</a></dt>
+<dd><p>the rotation vector.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">vector</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="opensfm.types.Pose.translation">
+<code class="descname">translation</code><a class="headerlink" href="#opensfm.types.Pose.translation" title="Permalink to this definition">¶</a></dt>
+<dd><p>the rotation vector.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">vector</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.Pose.compose">
+<code class="descname">compose</code><span class="sig-paren">(</span><em>other</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#Pose.compose"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.Pose.compose" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the composition of this pose with another.</p>
+<p>composed = self * other</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.Pose.get_Rt">
+<code class="descname">get_Rt</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#Pose.get_Rt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.Pose.get_Rt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get pose as a 3x4 matrix (R|t).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.Pose.get_origin">
+<code class="descname">get_origin</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#Pose.get_origin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.Pose.get_origin" title="Permalink to this definition">¶</a></dt>
+<dd><p>The origin of the pose in world coordinates.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.Pose.get_rotation_matrix">
+<code class="descname">get_rotation_matrix</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#Pose.get_rotation_matrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.Pose.get_rotation_matrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get rotation as a 3x3 matrix.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.Pose.inverse">
+<code class="descname">inverse</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#Pose.inverse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.Pose.inverse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the inverse of this pose.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">rotation</code></dt>
+<dd><p>Rotation in angle-axis format.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.Pose.set_origin">
+<code class="descname">set_origin</code><span class="sig-paren">(</span><em>origin</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#Pose.set_origin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.Pose.set_origin" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the origin of the pose in world coordinates.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">pose</span> <span class="o">=</span> <span class="n">Pose</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pose</span><span class="o">.</span><span class="n">rotation</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="mf">2.</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">origin</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">2.</span><span class="p">,</span> <span class="mf">3.</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pose</span><span class="o">.</span><span class="n">set_origin</span><span class="p">(</span><span class="n">origin</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">origin</span><span class="p">,</span> <span class="n">pose</span><span class="o">.</span><span class="n">get_origin</span><span class="p">())</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.Pose.set_rotation_matrix">
+<code class="descname">set_rotation_matrix</code><span class="sig-paren">(</span><em>rotation_matrix</em>, <em>permissive=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#Pose.set_rotation_matrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.Pose.set_rotation_matrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set rotation as a 3x3 matrix.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">pose</span> <span class="o">=</span> <span class="n">Pose</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pose</span><span class="o">.</span><span class="n">rotation</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="mf">2.</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">R</span> <span class="o">=</span> <span class="n">pose</span><span class="o">.</span><span class="n">get_rotation_matrix</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pose</span><span class="o">.</span><span class="n">set_rotation_matrix</span><span class="p">(</span><span class="n">R</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">pose</span><span class="o">.</span><span class="n">rotation</span><span class="p">,</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="mf">2.</span><span class="p">])</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">pose</span><span class="o">.</span><span class="n">set_rotation_matrix</span><span class="p">([[</span><span class="mi">3</span><span class="p">,</span><span class="o">-</span><span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span><span class="o">-</span><span class="mi">7</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mi">9</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">6</span><span class="p">]])</span>
+<span class="gt">Traceback (most recent call last):</span>
+<span class="c">...</span>
+<span class="gr">ValueError</span>: <span class="n">Not orthogonal</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">pose</span><span class="o">.</span><span class="n">set_rotation_matrix</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]])</span>
+<span class="gt">Traceback (most recent call last):</span>
+<span class="c">...</span>
+<span class="gr">ValueError</span>: <span class="n">Determinant not 1</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.Pose.transform">
+<code class="descname">transform</code><span class="sig-paren">(</span><em>point</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#Pose.transform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.Pose.transform" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transform a point from world to this pose coordinates.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.Pose.transform_inverse">
+<code class="descname">transform_inverse</code><span class="sig-paren">(</span><em>point</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#Pose.transform_inverse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.Pose.transform_inverse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transform a point from this pose to world coordinates.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.Pose.transform_inverse_many">
+<code class="descname">transform_inverse_many</code><span class="sig-paren">(</span><em>points</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#Pose.transform_inverse_many"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.Pose.transform_inverse_many" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transform points from this pose to world coordinates.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.Pose.transform_many">
+<code class="descname">transform_many</code><span class="sig-paren">(</span><em>points</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#Pose.transform_many"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.Pose.transform_many" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transform points from world coordinates to this pose.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">translation</code></dt>
+<dd><p>Translation vector.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="opensfm.types.Reconstruction">
+<em class="property">class </em><code class="descclassname">opensfm.types.</code><code class="descname">Reconstruction</code><a class="reference internal" href="_modules/opensfm/types.html#Reconstruction"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.Reconstruction" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the reconstructed scene.</p>
+<dl class="attribute">
+<dt id="opensfm.types.Reconstruction.cameras">
+<code class="descname">cameras</code><a class="headerlink" href="#opensfm.types.Reconstruction.cameras" title="Permalink to this definition">¶</a></dt>
+<dd><p>List of cameras.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">Dict(<a class="reference internal" href="#opensfm.types.Camera" title="opensfm.types.Camera">Camera</a>)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="opensfm.types.Reconstruction.shots">
+<code class="descname">shots</code><a class="headerlink" href="#opensfm.types.Reconstruction.shots" title="Permalink to this definition">¶</a></dt>
+<dd><p>List of reconstructed shots.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">Dict(<a class="reference internal" href="#opensfm.types.Shot" title="opensfm.types.Shot">Shot</a>)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="opensfm.types.Reconstruction.points">
+<code class="descname">points</code><a class="headerlink" href="#opensfm.types.Reconstruction.points" title="Permalink to this definition">¶</a></dt>
+<dd><p>List of reconstructed points.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">Dict(<a class="reference internal" href="#opensfm.types.Point" title="opensfm.types.Point">Point</a>)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="opensfm.types.Reconstruction.reference">
+<code class="descname">reference</code><a class="headerlink" href="#opensfm.types.Reconstruction.reference" title="Permalink to this definition">¶</a></dt>
+<dd><p>Topocentric reference converter.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">TopocentricConverter</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.Reconstruction.add_camera">
+<code class="descname">add_camera</code><span class="sig-paren">(</span><em>camera</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#Reconstruction.add_camera"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.Reconstruction.add_camera" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a camera in the list</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>camera</strong> – The camera.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.Reconstruction.add_point">
+<code class="descname">add_point</code><span class="sig-paren">(</span><em>point</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#Reconstruction.add_point"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.Reconstruction.add_point" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a point in the list</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>point</strong> – The point.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.Reconstruction.add_shot">
+<code class="descname">add_shot</code><span class="sig-paren">(</span><em>shot</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#Reconstruction.add_shot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.Reconstruction.add_shot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a shot in the list</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>shot</strong> – The shot.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.Reconstruction.get_camera">
+<code class="descname">get_camera</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#Reconstruction.get_camera"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.Reconstruction.get_camera" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a camera by id.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">If exists returns the camera, otherwise None.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.Reconstruction.get_point">
+<code class="descname">get_point</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#Reconstruction.get_point"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.Reconstruction.get_point" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a point by id.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">If exists returns the point, otherwise None.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.Reconstruction.get_shot">
+<code class="descname">get_shot</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#Reconstruction.get_shot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.Reconstruction.get_shot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a shot by id.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">If exists returns the shot, otherwise None.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="opensfm.types.Shot">
+<em class="property">class </em><code class="descclassname">opensfm.types.</code><code class="descname">Shot</code><a class="reference internal" href="_modules/opensfm/types.html#Shot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.Shot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines a shot in a reconstructed scene.</p>
+<p>A shot here is refered as a unique view inside the scene defined by
+the image filename (id), the used camera with its refined internal
+parameters (camera), the fully camera pose respect to the scene origin
+frame (pose) and the GPS data obtained in the moment that the picture
+was taken (metadata).</p>
+<dl class="attribute">
+<dt id="opensfm.types.Shot.id">
+<code class="descname">id</code><a class="headerlink" href="#opensfm.types.Shot.id" title="Permalink to this definition">¶</a></dt>
+<dd><p>picture filename.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">str</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="opensfm.types.Shot.camera">
+<code class="descname">camera</code><a class="headerlink" href="#opensfm.types.Shot.camera" title="Permalink to this definition">¶</a></dt>
+<dd><p>camera.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference internal" href="#opensfm.types.Camera" title="opensfm.types.Camera">Camera</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="opensfm.types.Shot.pose">
+<code class="descname">pose</code><a class="headerlink" href="#opensfm.types.Shot.pose" title="Permalink to this definition">¶</a></dt>
+<dd><p>extrinsic parameters.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference internal" href="#opensfm.types.Pose" title="opensfm.types.Pose">Pose</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="opensfm.types.Shot.metadata">
+<code class="descname">metadata</code><a class="headerlink" href="#opensfm.types.Shot.metadata" title="Permalink to this definition">¶</a></dt>
+<dd><p>GPS, compass, capture time, etc.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference internal" href="#opensfm.types.ShotMetadata" title="opensfm.types.ShotMetadata">ShotMetadata</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.Shot.back_project">
+<code class="descname">back_project</code><span class="sig-paren">(</span><em>pixel</em>, <em>depth</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#Shot.back_project"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.Shot.back_project" title="Permalink to this definition">¶</a></dt>
+<dd><p>Project a pixel to a fronto-parallel plane at a given depth.</p>
+<p>The plane is defined by z = depth in the shot reference frame.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.Shot.back_project_many">
+<code class="descname">back_project_many</code><span class="sig-paren">(</span><em>pixels</em>, <em>depths</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#Shot.back_project_many"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.Shot.back_project_many" title="Permalink to this definition">¶</a></dt>
+<dd><p>Project pixels to fronto-parallel planes at given depths.
+The planes are defined by z = depth in the shot reference frame.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.Shot.project">
+<code class="descname">project</code><span class="sig-paren">(</span><em>point</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#Shot.project"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.Shot.project" title="Permalink to this definition">¶</a></dt>
+<dd><p>Project a 3D point to the image plane.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.Shot.project_many">
+<code class="descname">project_many</code><span class="sig-paren">(</span><em>points</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#Shot.project_many"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.Shot.project_many" title="Permalink to this definition">¶</a></dt>
+<dd><p>Project 3D points to the image plane.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.Shot.viewing_direction">
+<code class="descname">viewing_direction</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#Shot.viewing_direction"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.Shot.viewing_direction" title="Permalink to this definition">¶</a></dt>
+<dd><p>The viewing direction of the shot.</p>
+<p>That is the positive camera Z axis in world coordinates.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="opensfm.types.ShotMesh">
+<em class="property">class </em><code class="descclassname">opensfm.types.</code><code class="descname">ShotMesh</code><a class="reference internal" href="_modules/opensfm/types.html#ShotMesh"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.ShotMesh" title="Permalink to this definition">¶</a></dt>
+<dd><p>Triangular mesh of points visible in a shot</p>
+<dl class="attribute">
+<dt id="opensfm.types.ShotMesh.vertices">
+<code class="descname">vertices</code><a class="headerlink" href="#opensfm.types.ShotMesh.vertices" title="Permalink to this definition">¶</a></dt>
+<dd><p>(list of vectors) mesh vertices</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="opensfm.types.ShotMesh.faces">
+<code class="descname">faces</code><a class="headerlink" href="#opensfm.types.ShotMesh.faces" title="Permalink to this definition">¶</a></dt>
+<dd><p>(list of triplets) triangles’ topology</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="opensfm.types.ShotMetadata">
+<em class="property">class </em><code class="descclassname">opensfm.types.</code><code class="descname">ShotMetadata</code><a class="reference internal" href="_modules/opensfm/types.html#ShotMetadata"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.ShotMetadata" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines GPS data from a taken picture.</p>
+<dl class="attribute">
+<dt id="opensfm.types.ShotMetadata.orientation">
+<code class="descname">orientation</code><a class="headerlink" href="#opensfm.types.ShotMetadata.orientation" title="Permalink to this definition">¶</a></dt>
+<dd><p>the exif orientation tag (1-8).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">int</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="opensfm.types.ShotMetadata.capture_time">
+<code class="descname">capture_time</code><a class="headerlink" href="#opensfm.types.ShotMetadata.capture_time" title="Permalink to this definition">¶</a></dt>
+<dd><p>the capture time.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">real</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="opensfm.types.ShotMetadata.gps_dop">
+<code class="descname">gps_dop</code><a class="headerlink" href="#opensfm.types.ShotMetadata.gps_dop" title="Permalink to this definition">¶</a></dt>
+<dd><p>the GPS dop.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">real</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="opensfm.types.ShotMetadata.gps_position">
+<code class="descname">gps_position</code><a class="headerlink" href="#opensfm.types.ShotMetadata.gps_position" title="Permalink to this definition">¶</a></dt>
+<dd><p>the GPS position.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">vector</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="opensfm.types.SphericalCamera">
+<em class="property">class </em><code class="descclassname">opensfm.types.</code><code class="descname">SphericalCamera</code><a class="reference internal" href="_modules/opensfm/types.html#SphericalCamera"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.SphericalCamera" title="Permalink to this definition">¶</a></dt>
+<dd><p>A spherical camera generating equirectangular projections.</p>
+<dl class="attribute">
+<dt id="opensfm.types.SphericalCamera.width">
+<code class="descname">width</code><a class="headerlink" href="#opensfm.types.SphericalCamera.width" title="Permalink to this definition">¶</a></dt>
+<dd><p>image width.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">int</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="opensfm.types.SphericalCamera.height">
+<code class="descname">height</code><a class="headerlink" href="#opensfm.types.SphericalCamera.height" title="Permalink to this definition">¶</a></dt>
+<dd><p>image height.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">int</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.SphericalCamera.pixel_bearing">
+<code class="descname">pixel_bearing</code><span class="sig-paren">(</span><em>pixel</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#SphericalCamera.pixel_bearing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.SphericalCamera.pixel_bearing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Unit vector pointing to the pixel viewing direction.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.SphericalCamera.pixel_bearing_many">
+<code class="descname">pixel_bearing_many</code><span class="sig-paren">(</span><em>pixels</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#SphericalCamera.pixel_bearing_many"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.SphericalCamera.pixel_bearing_many" title="Permalink to this definition">¶</a></dt>
+<dd><p>Unit vector pointing to the pixel viewing directions.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.SphericalCamera.pixel_bearings">
+<code class="descname">pixel_bearings</code><span class="sig-paren">(</span><em>pixels</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#SphericalCamera.pixel_bearings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.SphericalCamera.pixel_bearings" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deprecated: use pixel_bearing_many.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.SphericalCamera.project">
+<code class="descname">project</code><span class="sig-paren">(</span><em>point</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#SphericalCamera.project"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.SphericalCamera.project" title="Permalink to this definition">¶</a></dt>
+<dd><p>Project a 3D point in camera coordinates to the image plane.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="opensfm.types.SphericalCamera.project_many">
+<code class="descname">project_many</code><span class="sig-paren">(</span><em>points</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/types.html#SphericalCamera.project_many"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.types.SphericalCamera.project_many" title="Permalink to this definition">¶</a></dt>
+<dd><p>Project 3D points in camera coordinates to the image plane.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="features">
+<h2>Features<a class="headerlink" href="#features" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="matching">
+<h2>Matching<a class="headerlink" href="#matching" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="incremental-reconstruction">
+<h2>Incremental Reconstruction<a class="headerlink" href="#incremental-reconstruction" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-opensfm.config">
+<span id="config"></span><h2>Config<a class="headerlink" href="#module-opensfm.config" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="opensfm.config.default_config">
+<code class="descclassname">opensfm.config.</code><code class="descname">default_config</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/config.html#default_config"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.config.default_config" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return default configuration</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="opensfm.config.load_config">
+<code class="descclassname">opensfm.config.</code><code class="descname">load_config</code><span class="sig-paren">(</span><em>filepath</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/opensfm/config.html#load_config"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#opensfm.config.load_config" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load config from a config.yaml filepath</p>
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="python3.html" class="btn btn-neutral float-right" title="Python 2 and 3 compatibility" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="reporting.html" class="btn btn-neutral float-left" title="Reporting" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Mapillary
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+  
+ 
+<style>
+  @import url('https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,600,700&display=swap');
+  html {
+    font-family: 'Source Sans Pro', sans-serif;
+  }
+  .highlight {
+    font-family: "Lucida Console", Monaco, monospace!important;
+  }
+  .wy-side-nav-search {
+    background: #212b36;
+  }
+  .wy-side-nav-search input[type=text] {
+    border-color: transparent;
+    
+  }
+  .wy-nav-side {
+    background: #212b36;
+  }
+  .wy-menu-vertical a:hover {
+    color: #d9d9d9;
+    background: rgba(255, 255, 255, 0.1);
+  }
+  a, a:hover {
+    color: #05cb63;
+  }
+  body {
+    color: #212b36;
+  }
+  .wy-nav-content-wrap {
+    background: #fcfcfc!important;
+  }
+  .wy-side-nav-search>a:hover {
+    color: #fff!important;
+  }
+  .highlight {
+    background: #dee5ed;
+  }
+  .wy-menu-vertical li.on a, .wy-menu-vertical li.current>a {
+
+  }
+  .wy-menu-vertical li.toctree-l1.current>a {
+    border-top: 0;
+    border-bottom: 0;
+  }
+  .rst-content pre.literal-block, .rst-content div[class^='highlight'] {
+    border-radius: 4px;
+    border-color: #dee5ed!important;  
+  }
+</style>
+
+
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "files": {
+    "main.css": "/static/css/main.9f1e5606.chunk.css",
+    "main.js": "/static/js/main.daae44ae.chunk.js",
+    "main.js.map": "/static/js/main.daae44ae.chunk.js.map",
+    "runtime~main.js": "/static/js/runtime~main.a8a9905a.js",
+    "runtime~main.js.map": "/static/js/runtime~main.a8a9905a.js.map",
+    "static/js/2.84a88849.chunk.js": "/static/js/2.84a88849.chunk.js",
+    "static/js/2.84a88849.chunk.js.map": "/static/js/2.84a88849.chunk.js.map",
+    "index.html": "/index.html",
+    "precache-manifest.0947624fc2163340ceb99f55f5429c3b.js": "/precache-manifest.0947624fc2163340ceb99f55f5429c3b.js",
+    "service-worker.js": "/service-worker.js",
+    "static/css/main.9f1e5606.chunk.css.map": "/static/css/main.9f1e5606.chunk.css.map",
+    "static/media/index.scss": "/static/media/github-17.1bc74753.svg",
+    "static/media/mapillary-logo.svg": "/static/media/mapillary-logo.9a3b3bec.svg"
+  }
+}

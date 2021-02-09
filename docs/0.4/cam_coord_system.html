@@ -1,0 +1,383 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Camera Coordinate System and Conventions &mdash; OpenSfM 0.4.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/javascript" src="_static/mathjax_conf.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/graphviz.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Incremental reconstruction algorithm" href="reconstruction_module.html" />
+    <link rel="prev" title="Geometric Models" href="geometry.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> OpenSfM
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.4
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="building.html">Building</a></li>
+<li class="toctree-l1"><a class="reference internal" href="using.html">Using</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dataset.html">Dataset Structure</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dataset.html#reconstruction-file-format">Reconstruction file format</a></li>
+<li class="toctree-l1"><a class="reference internal" href="geometry.html">Geometric Models</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Camera Coordinate System and Conventions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#camera">Camera</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#local-coordinate-system-of-camera">Local coordinate system of camera</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#where-is-the-camera">Where is the camera?</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="reconstruction_module.html">Incremental reconstruction algorithm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="large.html">Splitting a large dataset into smaller submodels</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reporting.html">Reporting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">Code Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="python3.html">Python 2 and 3 compatibility</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">OpenSfM</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Camera Coordinate System and Conventions</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            
+              <a href="https://github.com/mapillary/OpenSfM/blob/master/doc/source/cam_coord_system.rst" class="fa fa-github"> Edit on GitHub</a>
+            
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="camera-coordinate-system-and-conventions">
+<h1>Camera Coordinate System and Conventions<a class="headerlink" href="#camera-coordinate-system-and-conventions" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="camera">
+<h2>Camera<a class="headerlink" href="#camera" title="Permalink to this headline">¶</a></h2>
+<p>The pose of a camera, conceptually, consists of two things:</p>
+<ol class="arabic simple">
+<li>Which direction does it face in, i.e. its local coordinate axes</li>
+<li>Where is it, i.e. the position of the camera origin</li>
+</ol>
+<div class="section" id="local-coordinate-system-of-camera">
+<h3>Local coordinate system of camera<a class="headerlink" href="#local-coordinate-system-of-camera" title="Permalink to this headline">¶</a></h3>
+<p>These online docs say that, from the POV of a camera (a.k.a. a <code class="docutils literal notranslate"><span class="pre">Shot</span></code>
+object):</p>
+<ul class="simple">
+<li>The z-axis points <strong>forward</strong></li>
+<li>The y-axis points <strong>down</strong></li>
+<li>The x-axis points to the <strong>right</strong></li>
+</ul>
+<p>I can confirm, after experimentation, that this is accurate. (In the
+3D reconstruction viewer, the axes go Red, Green, Blue: x, y, z.)</p>
+<p><img alt="id-rotation" src="_images/id-rotation.png" /></p>
+<p>The OpenSfM <code class="docutils literal notranslate"><span class="pre">Pose</span></code> class contains a <code class="docutils literal notranslate"><span class="pre">rotation</span></code> field, representing
+the local coordinate system as an <strong>axis-angle vector</strong>.</p>
+<ul class="simple">
+<li>The <strong>direction</strong> of this 3D vector represents the <strong>axis</strong> around
+which to rotate.</li>
+<li>The <strong>length</strong> of this vector is the <strong>angle</strong> to rotate around said
+axis.</li>
+</ul>
+<p>Sounds like it makes sense, but when it actually comes to working with
+code, all the hidden conventions crawl out of the shadows.</p>
+<p>First is the obviously unstated <strong>unit of angular measurement</strong>. In
+computer maths libraries it’s generally safe to assume everything’s in
+<strong>radians</strong>, and it certainly looks like that here.</p>
+<p>Next, a “rotation axis” is really just a <em>line</em>. But a vector, even a
+<em>unit</em> vector, defines a line <span class="math notranslate nohighlight">\(\lambda\mathbf{v}\)</span> with
+<em>orientation</em>. One direction is “positive scalar”, the opposite is
+“negative scalar”. Could there be a difference between rotating around
+<span class="math notranslate nohighlight">\(\mathbf{v}\)</span> and rotating around <span class="math notranslate nohighlight">\(-\mathbf{v}\)</span>?</p>
+<p>Look at a clock face-on. Pick the axis from its face to your face. It’s
+rotating clockwise around this axis. Now turn the clock around to face
+the opposite direction. Looking through the back of the clock, the hands
+rotate <em>anticlockwise</em> around the <em>negative</em> of the original axis. So
+rotating by <span class="math notranslate nohighlight">\(\theta\)</span> around <span class="math notranslate nohighlight">\(-\mathbf{v}\)</span> is the
+<strong>same</strong> as rotating <span class="math notranslate nohighlight">\(-\theta\)</span> around <span class="math notranslate nohighlight">\(\mathbf{v}\)</span>.</p>
+<p>Even if we know that two representations are opposite, this still
+doesn’t tell us which is which. What is a “rotation around the z-axis”?
+This sounds like asking whether each axis is clockwise or anticlockwise,
+but even this depends on which way you’re looking…</p>
+<p>Instead, the real question being asked is: Does a rotation by a small
+positive angle, around the positive z axis, rotate in the <em>x-to-y</em>
+direction, or the <em>y-to-x</em> direction? And likewise for the other axes.</p>
+<p>To find out, I set the rotation vectors to rotate 1 radian around each
+of the axes. Results are:</p>
+<p><strong>“Rotate around Z” is Y-to-X</strong></p>
+<p>With <code class="docutils literal notranslate"><span class="pre">pose.rotation</span> <span class="pre">=</span> <span class="pre">[0,</span> <span class="pre">0,</span> <span class="pre">1]</span></code>:</p>
+<p><img alt="z-is-y-to-x" src="_images/z-is-y-to-x.png" /></p>
+<p><strong>“Rotate around Y” is X-to-Z</strong></p>
+<p>With <code class="docutils literal notranslate"><span class="pre">pose.rotation</span> <span class="pre">=</span> <span class="pre">[0,</span> <span class="pre">1,</span> <span class="pre">0]</span></code>:</p>
+<p><img alt="y-is-x-to-z" src="_images/y-is-x-to-z.png" /></p>
+<p><strong>“Rotate around X” is Z-to-Y</strong></p>
+<p>With <code class="docutils literal notranslate"><span class="pre">pose.rotation</span> <span class="pre">=</span> <span class="pre">[1,</span> <span class="pre">0,</span> <span class="pre">0]</span></code>:</p>
+<p><img alt="x-is-z-to-y" src="_images/x-is-z-to-y.png" /></p>
+<p>It basically works like this (apologies for ASCII art):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>     <span class="n">Z</span> <span class="o">----+</span>
+   <span class="o">/</span> <span class="o">|</span>     <span class="o">|</span>
+ <span class="o">/</span>   <span class="o">|</span>     <span class="n">V</span>
+<span class="o">^</span>    <span class="o">|</span><span class="n">_____Y</span>
+<span class="o">|</span>   <span class="o">/</span>     <span class="o">/</span>
+<span class="o">|</span> <span class="o">/</span>      <span class="o">/</span>
+<span class="n">X</span> <span class="o">&lt;-----+</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="where-is-the-camera">
+<h3>Where is the camera?<a class="headerlink" href="#where-is-the-camera" title="Permalink to this headline">¶</a></h3>
+<p>Conceptually, this is a simple translation, in world coordinates, to the
+camera’s origin position.</p>
+<p>OpenSfM, however, chooses <strong>not</strong> to store the “camera origin” in
+<code class="docutils literal notranslate"><span class="pre">Pose</span></code> objects. Instead, it stores the <strong>camera coordinates of the
+world origin</strong> in the <code class="docutils literal notranslate"><span class="pre">translation</span></code> field.</p>
+<p>These obviously depend on the position and, in particular, <strong>rotation</strong>
+of the camera. They are automatically calculated by the
+<code class="docutils literal notranslate"><span class="pre">pose.set_origin(origin)</span></code> method, using the <strong>current</strong>
+<code class="docutils literal notranslate"><span class="pre">pose.rotation</span></code>.</p>
+<p>Because of this dependency, if the camera turns around, the
+<code class="docutils literal notranslate"><span class="pre">translation</span></code> will need updating. But <code class="docutils literal notranslate"><span class="pre">pose.set_rotation_matrix()</span></code>
+<strong>does not do this.</strong> So you should never call <code class="docutils literal notranslate"><span class="pre">set_origin()</span></code>
+<strong>before</strong> <code class="docutils literal notranslate"><span class="pre">set_rotation_matrix()</span></code>. Only set the origin afterwards.</p>
+<p>The case where you only want to change the rotation, while keeping the
+position the same, is a bit subtle. You will have to manually update
+<code class="docutils literal notranslate"><span class="pre">pose.translation</span></code> after setting the rotation, but to what? You can’t
+call <code class="docutils literal notranslate"><span class="pre">get_origin()</span></code> <em>after</em> updating the rotation, because this will
+calculate the origin from <code class="docutils literal notranslate"><span class="pre">translation</span></code> using the <em>new</em> rotation
+instead of the old one. The <code class="docutils literal notranslate"><span class="pre">translation</span></code> value only makes sense the
+coordinate system that set it. It must be kept in sync with
+<code class="docutils literal notranslate"><span class="pre">rotation</span></code>, something that seems to have been overlooked in the version
+at the time of writing.</p>
+<p>Solution to safely set pose rotation:</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">org</span> <span class="o">=</span> <span class="n">pose</span><span class="o">.</span><span class="n">get_origin</span><span class="p">()</span>      <span class="c1"># save where the camera actually is</span>
+<span class="n">pose</span><span class="o">.</span><span class="n">set_rotation_matrix</span><span class="p">(</span><span class="n">R</span><span class="p">)</span>  <span class="c1"># set the rotation</span>
+<span class="n">pose</span><span class="o">.</span><span class="n">set_origin</span><span class="p">(</span><span class="n">org</span><span class="p">)</span>         <span class="c1"># update the translation property accordingly...</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="reconstruction_module.html" class="btn btn-neutral float-right" title="Incremental reconstruction algorithm" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="geometry.html" class="btn btn-neutral float-left" title="Geometric Models" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2020, Mapillary
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+  
+ 
+<style>
+  @import url('https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,600,700&display=swap');
+  html {
+    font-family: 'Source Sans Pro', sans-serif;
+  }
+  .highlight {
+    font-family: "Lucida Console", Monaco, monospace!important;
+  }
+  .wy-side-nav-search {
+    background: #212b36;
+  }
+  .wy-side-nav-search input[type=text] {
+    border-color: transparent;
+    
+  }
+  .wy-nav-side {
+    background: #212b36;
+  }
+  .wy-menu-vertical a:hover {
+    color: #d9d9d9;
+    background: rgba(255, 255, 255, 0.1);
+  }
+  a, a:hover {
+    color: #05cb63;
+  }
+  body {
+    color: #212b36;
+  }
+  .wy-nav-content-wrap {
+    background: #fcfcfc!important;
+  }
+  .wy-side-nav-search>a:hover {
+    color: #fff!important;
+  }
+  .highlight {
+    background: #dee5ed;
+  }
+  .wy-menu-vertical li.on a, .wy-menu-vertical li.current>a {
+
+  }
+  .wy-menu-vertical li.toctree-l1.current>a {
+    border-top: 0;
+    border-bottom: 0;
+  }
+  .rst-content pre.literal-block, .rst-content div[class^='highlight'] {
+    border-radius: 4px;
+    border-color: #dee5ed!important;  
+  }
+</style>
+
+
+</body>
+</html>
