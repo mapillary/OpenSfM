@@ -118,9 +118,15 @@ class OpenSfmDataProvider extends Mapillary.API.DataProviderBase {
         this._geoCoords = new Mapillary.Geo.GeoCoords();
         this._eventEmitter = new EventEmitter();
 
-        this._data = null;
-        this._reconstructions = null;
+        this._reconstructions = [];
         this._fallbackBuffer = null;
+        this._data = {
+            cells: {},
+            clusters: {},
+            meshes: {},
+            nodes: {},
+            sequences: {},
+        };
 
         this._options = Object.assign({}, options);
 
@@ -131,7 +137,7 @@ class OpenSfmDataProvider extends Mapillary.API.DataProviderBase {
                     this._options.endpoint).href)
                 .then(
                     (reconstructions) => {
-                        this._createData(reconstructions);
+                        this._addData(reconstructions);
                         this._loaderPromise = null;
                         this._eventEmitter.fire('loaded', { target: this });
                     },
@@ -147,34 +153,65 @@ class OpenSfmDataProvider extends Mapillary.API.DataProviderBase {
     }
 
     get data() { return this._data; }
-    get loaded() { return !this._loaderPromise && !!this._data; }
+    get loaded() {
+        return !this._loaderPromise && this._reconstructions.length > 0;
+    }
+    get loading() { return !!this._loaderPromise; }
     get reconstructions() { return this._reconstructions; }
 
-    addFile(file) {
-        return new Promise((resolve, reject) => {
-            if (file.type !== 'application/json') {
-                reject(new Error(`Unrecognized file type: ${file.type}`));
-                return;
-            }
+    addFiles(files) {
+        if (this.loading) { throw new Error('Already loading'); }
 
-            const reader = new FileReader();
-            reader.onload = event => {
-                try {
-                    const reconstructions = JSON.parse(event.target.result);
-                    this._createData(reconstructions);
-                } catch (error) {
-                    this._data = null;
-                    this._reconstructions = null;
-                    reject(error);
-                    return;
+        const dataLoads = [];
+        for (const file of files) {
+            dataLoads.push(new Promise(
+                (resolve, reject) => {
+                    if (file.type !== 'application/json') {
+                        reject(
+                            new Error(`Unrecognized file type: ${file.type}`));
+                        return;
+                    }
+
+                    const reader = new FileReader();
+                    reader.onload = event => {
+                        try {
+                            const reconstructions =
+                                JSON.parse(event.target.result);
+                            this._addData(reconstructions);
+                            resolve();
+                            return;
+                        } catch (error) {
+                            reject(error);
+                            return;
+                        }
+                    };
+                    reader.onerror = event => reject(event);
+                    reader.readAsText(file);
+                }));
+        }
+
+        const result = Promise
+            .allSettled(dataLoads)
+            .then(responses => {
+                let succeeded = false;
+                for (const response of responses) {
+                    if (response.status === 'fulfilled') {
+                        succeeded = true;
+                    } else {
+                        console.warn('File load failed', response.reason);
+                    }
                 }
 
-                this._eventEmitter.fire('loaded', { target: this });
-                resolve();
-            };
-            reader.onerror = event => reject(event);
-            reader.readAsText(file);
-        });
+                this._loaderPromise = null;
+                if (succeeded) {
+                    this._eventEmitter.fire('loaded', { target: this });
+                } else {
+                    throw new Error('All file loads failed.')
+                }
+            });
+
+        this._loaderPromise = result;
+        return result;
     }
 
     getCoreImages(cellId) {
@@ -234,7 +271,7 @@ class OpenSfmDataProvider extends Mapillary.API.DataProviderBase {
         const converted = {
             cameras: {},
             key: clusterKey,
-            points: cluster.points,
+            points: !!cluster.points ? cluster.points : {},
             reference_lla: reference,
             shots: {},
         };
@@ -271,34 +308,35 @@ class OpenSfmDataProvider extends Mapillary.API.DataProviderBase {
         return converted;
     }
 
-    _createData(reconstructions) {
-        if (!(reconstructions instanceof Array)) {
-            throw new Error('Reconstruction file must be a JSON array.');
+    _addData(reconstructions) {
+        if (!(reconstructions instanceof Array) ||
+            reconstructions.length === 0) {
+            const message =
+                'Reconstruction file must be a non-empty JSON array.'
+            throw new Error(message);
         }
 
-        const data = {
-            cells: {},
-            clusters: {},
-            meshes: {},
-            nodes: {},
-            sequences: {},
-        };
-        for (let i = 0; i < reconstructions.length; i++) {
-            const cluster = reconstructions[i];
+        const cells = {};
+        const clusters = {};
+        const meshes = {};
+        const nodes = {};
+        const sequences = {};
+        let clusterIndex = Object.keys(this._data.clusters).length;
+        for (const cluster of reconstructions) {
             const reference = this._createReference(cluster.reference_lla);
-            const clusterKey = this._createClusterKey(i);
-            data.clusters[clusterKey] =
+            const clusterKey = this._createClusterKey(clusterIndex++);
+            clusters[clusterKey] =
                 this._createClusterReconstruction(
                     cluster, clusterKey, reference);
 
             const shots = cluster.shots;
             const cameras = cluster.cameras;
-            const nodes = data.nodes;
-            const sequences = data.sequences;
-            const meshes = data.meshes;
             for (const key in shots) {
                 if (!shots.hasOwnProperty(key)) {
                     continue;
+                }
+                if (this._hasNode(key)) {
+                    throw new Error(`Node ${key} already exists`);
                 }
 
                 const shot = shots[key];
@@ -321,15 +359,31 @@ class OpenSfmDataProvider extends Mapillary.API.DataProviderBase {
                 meshes[key] = this._createMesh(shot);
 
                 const cellId = this._geometry.latLonToCellId(node.cl);
-                if (!(cellId in data.cells)) {
-                    data.cells[cellId] = {};
+                if (!(cellId in cells)) {
+                    cells[cellId] = {};
                 }
-                data.cells[cellId][key] = node;
+                cells[cellId][key] = node;
             }
         }
 
-        this._reconstructions = reconstructions;
-        this._data = data;
+        this._reconstructions.push(...reconstructions);
+        this._appendData({ cells, clusters, nodes, meshes, sequences });
+    }
+
+    _appendData(data) {
+        const tData = this._data;
+        for (const cellId of Object.keys(data.cells)) {
+            const cell = data.cells[cellId];
+            if (!(cellId in tData.cells)) {
+                tData.cells[cellId] = cell;
+            } else {
+                Object.assign(tData.cells[cellId], cell);
+            }
+        }
+        Object.assign(tData.clusters, data.clusters);
+        Object.assign(tData.nodes, data.nodes);
+        Object.assign(tData.meshes, data.meshes);
+        Object.assign(tData.sequences, data.sequences);
     }
 
     _createFallbackBuffer() {
@@ -464,6 +518,8 @@ class OpenSfmDataProvider extends Mapillary.API.DataProviderBase {
                 altitud: 0,
             };
     }
+
+    _hasNode(key) { return key in this._data.nodes; }
 
     _convertProjectionType(projectionType) {
         return projectionType === 'spherical' ?

@@ -159,8 +159,8 @@ window.document.addEventListener('DOMContentLoaded', async () => {
         loader.show();
         while (!provider.loaded) {
             try {
-                const file = await loader.getFile();
-                await provider.addFile(file);
+                const files = await loader.getFiles();
+                await provider.addFiles(files);
             } catch (error) {
                 console.error(error);
             }
