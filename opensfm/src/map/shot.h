@@ -1,4 +1,5 @@
 #pragma once
+#include <foundation/optional.h>
 #include <geometry/camera.h>
 #include <geometry/pose.h>
 #include <map/defines.h>
@@ -22,33 +23,17 @@ struct ShotMesh {
   MatXd faces_;
 };
 
-template <typename T>
-class ShotMeasurement {
- public:
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  bool HasValue() const { return has_value_; }
-  T Value() const { return value_; }
-  void SetValue(const T& v) {
-    value_ = v;
-    has_value_ = true;
-  }
-  void Reset() { has_value_ = false; }
-
- private:
-  bool has_value_{false};
-  T value_;
-};
 
 struct ShotMeasurements {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  ShotMeasurement<double> capture_time_;
-  ShotMeasurement<Vec3d> gps_position_;
-  ShotMeasurement<double> gps_accuracy_;
-  ShotMeasurement<double> compass_accuracy_;
-  ShotMeasurement<double> compass_angle_;
-  ShotMeasurement<Vec3d> accelerometer_;
-  ShotMeasurement<int> orientation_;
-  ShotMeasurement<std::string> sequence_key_;
+  foundation::OptionalValue<double> capture_time_;
+  foundation::OptionalValue<Vec3d> gps_position_;
+  foundation::OptionalValue<double> gps_accuracy_;
+  foundation::OptionalValue<double> compass_accuracy_;
+  foundation::OptionalValue<double> compass_angle_;
+  foundation::OptionalValue<Vec3d> accelerometer_;
+  foundation::OptionalValue<int> orientation_;
+  foundation::OptionalValue<std::string> sequence_key_;
   void Set(const ShotMeasurements& other);
 };
 

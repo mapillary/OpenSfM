@@ -1,3 +1,4 @@
+#include <foundation/optional.h>
 #include <foundation/types.h>
 #include <geometry/camera.h>
 #include <geometry/pose.h>
@@ -19,14 +20,15 @@ namespace py = pybind11;
 
 template <typename T>
 void DeclareShotMeasurement(py::module &m, const std::string &type_name) {
-  using SM = map::ShotMeasurement<T>;
+  using SM = foundation::OptionalValue<T>;
 
   std::string class_name = std::string("ShotMeasurement") + type_name;
 
   py::class_<SM>(m, class_name.c_str())
       .def(py::init<>())
       .def_property_readonly("has_value", &SM::HasValue)
-      .def_property("value", &SM::Value, &SM::SetValue)
+      .def_property("value", py::overload_cast<>(&SM::Value, py::const_),
+                    &SM::SetValue)
       .def("reset", &SM::Reset)
       .def(py::pickle(
           [](const SM &sm) {
