@@ -83,15 +83,15 @@ class CameraFixture : public ::testing::Test {
     }
   }
 
-  static constexpr int pixels_count{10000};
-  static constexpr int pixel_width{4000};
-  static constexpr int pixel_height{3000};
+  const int pixels_count{10000};
+  const int pixel_width{4000};
+  const int pixel_height{3000};
 
-  static constexpr double max_width{0.90};
-  static constexpr double max_height{0.75};
-  static constexpr double focal{0.4};
-  static constexpr double new_focal{0.8};
-  static constexpr double new_ar{0.9};
+  const double max_width{0.90};
+  const double max_height{0.75};
+  const double focal{0.4};
+  const double new_focal{0.8};
+  const double new_ar{0.9};
 
   MatX2d pixels;
   VecXd distortion;
