@@ -19,8 +19,6 @@ The following terms define such assembly and capture in OpenSfM terminology :
                     "translation": translation of the rig frame wrt. the RigCamera frame
                     "rotation": rotation bringing a point from rig frame to the RigCamera frame
                     "camera": camera model ID of this RigCamera
-                    "path_type": {"regex", "camera", "auto"},
-                    "path_type_parameter": parameter that define this RigCamera instances
                 },
  - A `RigCamera` is a camera of the rig assembly defined as a combination of an existing camera model (it refers only to its ID) and its pose wrt. the rig coordinate frame.
  - A `RigInstance` is a list of `Shots`, each of which correspond to a `RigCamera` of the `RigModel` and the actual pose of the `RigModel` in the world : it's indeed an instanciation of the `RigModel` by combining `Shots`. These instances are defined in the `rig_assignments.json` file as follows::

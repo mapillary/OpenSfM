@@ -52,4 +52,29 @@ bool CameraView::HasCamera(const CameraId& cam_id) const {
   return map_.HasCamera(cam_id);
 }
 
+RigModelView::RigModelView(Map& map) : map_(map) {}
+size_t RigModelView::NumberOfRigModels() const {
+  return map_.NumberOfRigModels();
+}
+RigModel& RigModelView::GetRigModel(const RigModelId& cam_id) {
+  return map_.GetRigModel(cam_id);
+}
+const std::unordered_map<RigModelId, RigModel>& RigModelView::GetRigModels()
+    const {
+  return map_.GetRigModels();
+}
+bool RigModelView::HasRigModel(const RigModelId& cam_id) const {
+  return map_.HasRigModel(cam_id);
+}
+
+RigInstanceView::RigInstanceView(Map& map) : map_(map) {}
+size_t RigInstanceView::NumberOfRigInstances() const {
+  return map_.NumberOfRigInstances();
+}
+RigInstance& RigInstanceView::GetRigInstance(int index) {
+  return map_.GetRigInstance(index);
+}
+const std::vector<RigInstance>& RigInstanceView::GetRigInstances() const {
+  return map_.GetRigInstances();
+}
 }  // namespace map

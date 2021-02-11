@@ -1,5 +1,6 @@
 #pragma once
 #include <foundation/types.h>
+
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <iostream>
@@ -153,6 +154,16 @@ class Pose {
     const Vec3d t = selfR * base_pose.TranslationWorldToCamera() +
                     TranslationWorldToCamera();
     return Pose(R, t);
+  }
+
+  Pose Inverse() const {
+    /*
+      Computes the inverse transformation such as :
+        pose.compose(pose.inverse()) == Id
+    */
+    Pose invpose;
+    invpose.SetFromWorldToCamera(cam_to_world_);
+    return invpose;
   }
 
  private:

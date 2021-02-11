@@ -206,13 +206,10 @@ def create_rigs_with_pattern(data, patterns):
         rig_model = {}
         for rig_camera_id in model:
             pose, camera_id = model[rig_camera_id]
-            camera_pattern = rig_pattern[rig_camera_id]
             rig_model[rig_camera_id] = {
                 "translation": list(pose.translation),
                 "rotation": list(pose.rotation),
                 "camera": camera_id,
-                "path_type": "regex",
-                "path_type_parameter": camera_pattern,
             }
 
         models[rig_id] = {

@@ -1,5 +1,6 @@
 #pragma once
 #include <foundation/types.h>
+
 #include <Eigen/Core>
 #include <memory>
 #include <vector>
@@ -15,6 +16,8 @@ struct KeyCompare {
   }
 };
 
+using RigModelId = std::string;
+using RigCameraId = std::string;
 using ShotId = std::string;
 using ShotUniqueId = size_t;
 using LandmarkId = std::string;

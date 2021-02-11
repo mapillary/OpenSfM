@@ -1,6 +1,7 @@
 #pragma once
 #include <geometry/camera.h>
 #include <map/landmark.h>
+#include <map/rig.h>
 #include <map/shot.h>
 
 #include <unordered_map>
@@ -49,6 +50,29 @@ class CameraView {
   Camera& GetCamera(const CameraId& cam_id);
   const std::unordered_map<CameraId, Camera>& GetCameras() const;
   bool HasCamera(const CameraId& cam_id) const;
+
+ private:
+  Map& map_;
+};
+
+class RigModelView {
+ public:
+  explicit RigModelView(Map& map);
+  size_t NumberOfRigModels() const;
+  RigModel& GetRigModel(const RigModelId& cam_id);
+  const std::unordered_map<RigModelId, RigModel>& GetRigModels() const;
+  bool HasRigModel(const RigModelId& cam_id) const;
+
+ private:
+  Map& map_;
+};
+
+class RigInstanceView {
+ public:
+  explicit RigInstanceView(Map& map);
+  size_t NumberOfRigInstances() const;
+  RigInstance& GetRigInstance(int index);
+  const std::vector<RigInstance>& GetRigInstances() const;
 
  private:
   Map& map_;
