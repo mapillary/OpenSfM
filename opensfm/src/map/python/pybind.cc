@@ -46,11 +46,6 @@ void DeclareShotMeasurement(py::module &m, const std::string &type_name) {
 PYBIND11_MODULE(pymap, m) {
   py::class_<map::Map>(m, "Map")
       .def(py::init())
-      .def("number_of_shots", &map::Map::NumberOfShots,
-           "Returns the number of shots")
-      .def("number_of_pano_shots", &map::Map::NumberOfPanoShots)
-      .def("number_of_landmarks", &map::Map::NumberOfLandmarks)
-      .def("number_of_cameras", &map::Map::NumberOfCameras)
       .def("create_camera", &map::Map::CreateCamera, py::arg("camera"),
            py::return_value_policy::reference_internal)
       // Landmark
@@ -138,20 +133,9 @@ PYBIND11_MODULE(pymap, m) {
       .def_readwrite("scale", &map::Shot::scale)
       .def("get_observation", &map::Shot::GetObservation,
            py::return_value_policy::reference_internal)
-      .def("compute_num_valid_pts", &map::Shot::ComputeNumValidLandmarks,
-           py::arg("min_obs_thr") = 1)
       .def("get_valid_landmarks", &map::Shot::ComputeValidLandmarks,
            py::return_value_policy::reference_internal)
-      .def("set_pose", &map::Shot::SetPose)
-      .def("get_pose",
-           (const geometry::Pose &(map::Shot::*)() const) & map::Shot::GetPose,
-           py::return_value_policy::reference_internal)
-      .def("scale_landmarks", &map::Shot::ScaleLandmarks)
-      .def("scale_pose", &map::Shot::ScalePose)
       .def("remove_observation", &map::Shot::RemoveLandmarkObservation)
-      .def("get_camera_to_world", &map::Shot::GetCamToWorld)
-      .def("get_world_to_camera", &map::Shot::GetWorldToCam)
-      .def("get_camera_name", &map::Shot::GetCameraName)
       .def_property("metadata",
                     py::overload_cast<>(&map::Shot::GetShotMeasurements),
                     &map::Shot::SetShotMeasurements,
@@ -252,21 +236,14 @@ PYBIND11_MODULE(pymap, m) {
       .def(py::init<const map::LandmarkId &, const Vec3d &>())
       .def_readonly("id", &map::Landmark::id_)
       .def_readonly("unique_id", &map::Landmark::unique_id_)
-      .def("get_global_pos", &map::Landmark::GetGlobalPos)
       .def_property("coordinates", &map::Landmark::GetGlobalPos,
                     &map::Landmark::SetGlobalPos)
-      .def("set_global_pos", &map::Landmark::SetGlobalPos)
-      .def("is_observed_in_shot", &map::Landmark::IsObservedInShot)
-      .def("add_observation", &map::Landmark::AddObservation)
-      .def("remove_observation", &map::Landmark::RemoveObservation)
-      .def("has_observations", &map::Landmark::HasObservations)
       .def("get_observations", &map::Landmark::GetObservations,
            py::return_value_policy::reference_internal)
       .def("number_of_observations", &map::Landmark::NumberOfObservations)
       .def_property("reprojection_errors",
                     &map::Landmark::GetReprojectionErrors,
                     &map::Landmark::SetReprojectionErrors)
-      .def("remove_reprojection_error", &map::Landmark::RemoveReprojectionError)
       .def_property("color", &map::Landmark::GetColor,
                     &map::Landmark::SetColor);
 

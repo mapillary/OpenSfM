@@ -70,8 +70,7 @@ def _create_reconstruction(
                 if len(choice) > 1:
                     for ch in choice:
                         # create a new observation
-                        obs = pysfm.Observation(
-                            100, 200, 0.5, 255, 0, 0, int(pt.id))
+                        obs = pysfm.Observation(100, 200, 0.5, 255, 0, 0, int(pt.id))
                         shot = rec.shots[str(ch)]
                         rec.add_observation(shot, pt, obs)
         # TODO: If required, we have to do the same for pano shots
@@ -107,7 +106,6 @@ def test_create_cameras():
         assert map_cam is rec.get_camera(str(cam_id))
         assert map_cam is rec.cameras[str(cam_id)]
 
-    assert rec.map.number_of_cameras() == n_cameras
     assert len(rec.cameras) == n_cameras
 
 
@@ -418,22 +416,21 @@ def test_shot_create_existing():
 def test_shot_create_more():
     # Given some created shot
     rec = _create_reconstruction(2)
-    shot1 = rec.create_shot("shot0", "0")
+    rec.create_shot("shot0", "0")
 
     # When we create more new shots
     n_shots = 10
     for i in range(1, n_shots):
-        shot1 = rec.create_shot("shot" + str(i), "0")
+        rec.create_shot("shot" + str(i), "0")
 
     # Then we should have more
     assert len(rec.shots) == n_shots
-    assert rec.map.number_of_shots() == n_shots
 
 
 def test_shot_delete_non_existing():
     # Given some created reconstruction
     rec = _create_reconstruction(2)
-    shot1 = rec.create_shot("shot0", "0")
+    rec.create_shot("shot0", "0")
 
     # When deleting non-existing shot
     # It should throw
@@ -503,21 +500,21 @@ def test_pano_shot_get_non_existing():
         assert shot1 is rec.shots["toto"]
 
 
-def test_shot_create():
+def test_pano_shot_create():
     # Given some created shot
     rec = _create_reconstruction(2)
-    shot1 = rec.create_shot("shot0", "0")
+    shot1 = rec.create_pano_shot("shot0", "0")
 
     # When getting it, it should have some properties
     assert shot1.id == "shot0"
     assert shot1.camera.id == "0"
-    assert len(rec.shots) == 1
+    assert len(rec.pano_shots) == 1
 
 
 def test_pano_shot_create_existing():
     # Given some created pano shot
     rec = _create_reconstruction(2)
-    shot1 = rec.create_pano_shot("shot0", "0")
+    rec.create_pano_shot("shot0", "0")
 
     n_shots = 10
     # When re-adding the same pano shot
@@ -531,22 +528,21 @@ def test_pano_shot_create_existing():
 def test_pano_shot_create_more():
     # Given some created pano shot
     rec = _create_reconstruction(2)
-    shot1 = rec.create_pano_shot("shot0", "0")
+    rec.create_pano_shot("shot0", "0")
 
     # When we create more new pano shots
     n_shots = 10
     for i in range(1, n_shots):
-        shot1 = rec.create_pano_shot("shot" + str(i), "0")
+        rec.create_pano_shot("shot" + str(i), "0")
 
     # Then we should have more
     assert len(rec.pano_shots) == n_shots
-    assert rec.map.number_of_pano_shots() == n_shots
 
 
 def test_pano_shot_delete_non_existing():
     # Given some created reconstruction
     rec = _create_reconstruction(2)
-    shot1 = rec.create_pano_shot("shot0", "0")
+    rec.create_pano_shot("shot0", "0")
 
     # When deleting non-existing shot
     # It should throw
@@ -574,7 +570,6 @@ def test_shot_merge_cc():
     # Given some created reconstruction
     rec = _create_reconstruction(1, {"0": 2})
     map_shot1 = rec.shots["0"]
-    map_shot2 = rec.shots["1"]
 
     # When setting some merge_cc
     map_shot1.merge_cc = 10
@@ -587,7 +582,6 @@ def test_shot_covariance():
     # Given some created reconstruction
     rec = _create_reconstruction(1, {"0": 2})
     map_shot1 = rec.shots["0"]
-    map_shot2 = rec.shots["1"]
 
     # When setting some covariance
     map_shot1.covariance = np.diag([1, 2, 3])
@@ -604,7 +598,7 @@ def test_shot_covariance_different():
 
     # When setting some covariance
     map_shot1.covariance = np.diag([1, 2, 3])
-    map_shot1.covariance = np.diag([2, 2, 2])
+    map_shot2.covariance = np.diag([2, 2, 2])
 
     # Then they are different objects
     assert map_shot2.covariance is not map_shot1.covariance
@@ -731,7 +725,7 @@ def test_single_point_create():
     # It should be there
     assert pt.id == "0"
     assert pt.unique_id == 0
-    assert len(rec.points) == 1 and rec.map.number_of_landmarks() == 1
+    assert len(rec.points) == 1
 
 
 def test_single_point_get_existing():
@@ -746,7 +740,7 @@ def test_single_point_get_existing():
 def test_single_point_get_non_existing():
     # Given a created point
     rec = types.Reconstruction()
-    pt = rec.create_point("0")
+    rec.create_point("0")
 
     # When we get a non existing one
     with pytest.raises(RuntimeError):
@@ -765,7 +759,6 @@ def test_single_point_coordinates():
 
     # They should be set
     assert np.allclose(pt.coordinates, coord)
-    assert np.allclose(pt.get_global_pos(), coord)
 
 
 def test_single_point_color():
@@ -794,7 +787,7 @@ def test_point_add_from_point():
     pt2_1 = rec.add_point(pt2)
 
     # Then rec should have it ...
-    assert len(rec.points) == 1 and rec.map.number_of_landmarks() == 1
+    assert len(rec.points) == 1
 
     # ... as a different object
     assert pt2 is not pt2_1
@@ -818,21 +811,6 @@ def test_point_reproj_errors_assign():
     # They should be correct
     for k in reproj_errors.keys():
         assert np.allclose(pt.reprojection_errors[k], reproj_errors[k])
-
-
-def test_point_reproj_errors_remove():
-    # Given some created point with reproj errors
-    rec = _create_reconstruction(n_points=1)
-    pt = rec.points["0"]
-    reproj_errors = dict({"shot1": np.random.rand(2), "shot2": np.random.rand(2)})
-    pt.reprojection_errors = reproj_errors
-
-    # When we delete all of them
-    for k in reproj_errors.keys():
-        pt.remove_reprojection_error(k)
-
-    # Then, there's none
-    assert len(pt.reprojection_errors) == 0
 
 
 def test_point_delete_non_existing():
@@ -881,7 +859,6 @@ def test_single_observation():
     pt = rec.points["0"]
 
     # Then it has one observation ...
-    assert pt.has_observations()
     observations = pt.get_observations()
     assert len(observations) == 1
     assert pt.number_of_observations() == 1
@@ -903,7 +880,6 @@ def test_single_observation_delete():
     rec.remove_observation(shot.id, pt.id)
 
     # Then there's none
-    assert pt.has_observations() is False
     observations = pt.get_observations()
     assert len(observations) == 0
     assert pt.number_of_observations() == 0
@@ -942,37 +918,8 @@ def test_many_observations_delete():
         n_total_obs -= lm.number_of_observations()
     assert n_total_obs == 0
 
-    # When we remove the observations for half of the shots
-    for lm in m.get_landmarks().values():
-        for shot_id in range(int(n_shots / 2)):
-            m.remove_observation(str(shot_id), lm.id)
-        # Then each each landmark has N/2 observations
-        assert lm.number_of_observations() == int(n_shots / 2)
-
-    # Then there #shots x #points observations remaning
-    n_total_obs = 0
-    for shot in m.get_shots().values():
-        n_total_obs += shot.compute_num_valid_pts(1)
-    assert n_total_obs == int((n_shots * n_landmarks) / 2)
-
     # and when we clear all the observations
     m.clear_observations_and_landmarks()
-
-    # Then there's none
-    assert m.number_of_landmarks() == 0
-
-
-def test_valid_landmarks():
-    # Given a reconstruction with one shot
-    rec = _create_reconstruction(1, n_shots_cam={"0": 1}, n_points=100)
-
-    # When coutning the number of 2-shots valid landmarks
-    n_total_obs = 0
-    for shot in rec.shots.values():
-        n_total_obs += shot.compute_num_valid_pts(1)
-
-    # Then there's none
-    assert n_total_obs == 0
 
 
 def test_camera_deepcopy():
@@ -1017,30 +964,6 @@ def test_observation_shot_removal():
     # Thers' none
     for p in rec.points.values():
         assert len(p.get_observations()) == 0
-
-
-def test_observation_point_removal():
-    # Given a reconstruction with many shots
-    rec = _create_reconstruction(
-        n_cameras=2,
-        n_shots_cam={"0": 50, "1": 40},
-        n_pano_shots_cam={"0": 20, "1": 30},
-        n_points=200,
-        dist_to_shots=True,
-    )
-
-    # For each point we remove ...
-    pt_list = list(rec.points.keys())
-    for pt_id in pt_list:
-        p = rec.points[pt_id]
-        shots = []
-        for shot in p.get_observations():
-            shots.append((shot, shot.compute_num_valid_pts()))
-        # ... sequentially
-        rec.remove_point(pt_id)
-        for shot, n_pts in shots:
-            # Then each shot viewing the point has one less valid point
-            assert n_pts - 1 == shot.compute_num_valid_pts(1)
 
 
 def test_rec_deepcopy():
