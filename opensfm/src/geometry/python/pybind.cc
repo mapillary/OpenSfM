@@ -197,117 +197,19 @@ PYBIND11_MODULE(pygeometry, m) {
           })
       .def(py::pickle(
           [](const Camera& p) {
-            return py::make_tuple(p.GetParametersMap(), p.GetProjectionType(),
-                                  p.width, p.height, p.id);
+            return py::make_tuple(
+                p.GetParametersTypes(), p.GetParametersValues(),
+                p.GetProjectionType(), p.width, p.height, p.id);
           },
           [](py::tuple t) {
-            const auto values =
-                t[0].cast<std::map<Camera::Parameters, double>>();
-            const auto type = t[1].cast<ProjectionType>();
-            const auto width = t[2].cast<int>();
-            const auto height = t[3].cast<int>();
-            const auto id = t[4].cast<std::string>();
+            const auto types = t[0].cast<std::vector<Camera::Parameters>>();
+            const auto values = t[1].cast<VecXd>();
+            const auto type = t[2].cast<ProjectionType>();
+            const auto width = t[3].cast<int>();
+            const auto height = t[4].cast<int>();
+            const auto id = t[5].cast<std::string>();
 
-            Camera camera = Camera::CreatePerspectiveCamera(0, 0, 0);
-            switch (type) {
-              case ProjectionType::PERSPECTIVE: {
-                camera = Camera::CreatePerspectiveCamera(
-                    values.at(Camera::Parameters::Focal),
-                    values.at(Camera::Parameters::K1),
-                    values.at(Camera::Parameters::K2));
-                break;
-              }
-              case ProjectionType::BROWN: {
-                Vec2d principal_point = Vec2d::Zero();
-                principal_point << values.at(Camera::Parameters::Cx),
-                    values.at(Camera::Parameters::Cy);
-                VecXd distortion(5);
-                distortion << values.at(Camera::Parameters::K1),
-                    values.at(Camera::Parameters::K2),
-                    values.at(Camera::Parameters::K3),
-                    values.at(Camera::Parameters::P1),
-                    values.at(Camera::Parameters::P2);
-                camera = Camera::CreateBrownCamera(
-                    values.at(Camera::Parameters::Focal),
-                    values.at(Camera::Parameters::AspectRatio), principal_point,
-                    distortion);
-                break;
-              }
-              case ProjectionType::FISHEYE: {
-                camera = Camera::CreateFisheyeCamera(
-                    values.at(Camera::Parameters::Focal),
-                    values.at(Camera::Parameters::K1),
-                    values.at(Camera::Parameters::K2));
-                break;
-              }
-              case ProjectionType::FISHEYE_OPENCV: {
-                Vec2d principal_point = Vec2d::Zero();
-                principal_point << values.at(Camera::Parameters::Cx),
-                    values.at(Camera::Parameters::Cy);
-                VecXd distortion(4);
-                distortion << values.at(Camera::Parameters::K1),
-                    values.at(Camera::Parameters::K2),
-                    values.at(Camera::Parameters::K3),
-                    values.at(Camera::Parameters::K4);
-                camera = Camera::CreateFisheyeOpencvCamera(
-                    values.at(Camera::Parameters::Focal),
-                    values.at(Camera::Parameters::AspectRatio), principal_point,
-                    distortion);
-                break;
-              }
-              case ProjectionType::FISHEYE62: {
-                Vec2d principal_point = Vec2d::Zero();
-                principal_point << values.at(Camera::Parameters::Cx),
-                    values.at(Camera::Parameters::Cy);
-                VecXd distortion(8);
-                distortion << values.at(Camera::Parameters::K1),
-                    values.at(Camera::Parameters::K2),
-                    values.at(Camera::Parameters::K3),
-                    values.at(Camera::Parameters::K4),
-                    values.at(Camera::Parameters::K5),
-                    values.at(Camera::Parameters::K6),
-                    values.at(Camera::Parameters::P1),
-                    values.at(Camera::Parameters::P2);
-                camera = Camera::CreateFisheye62Camera(
-                    values.at(Camera::Parameters::Focal),
-                    values.at(Camera::Parameters::AspectRatio), principal_point,
-                    distortion);
-                break;
-              }
-              case ProjectionType::RADIAL: {
-                const Vec2d principal_point(values.at(Camera::Parameters::Cx),
-                                            values.at(Camera::Parameters::Cy));
-                const Vec2d distortion(values.at(Camera::Parameters::K1),
-                                       values.at(Camera::Parameters::K2));
-                camera = Camera::CreateRadialCamera(
-                    values.at(Camera::Parameters::Focal),
-                    values.at(Camera::Parameters::AspectRatio), principal_point,
-                    distortion);
-                break;
-              }
-              case ProjectionType::SIMPLE_RADIAL: {
-                const Vec2d principal_point(values.at(Camera::Parameters::Cx),
-                                            values.at(Camera::Parameters::Cy));
-
-                camera = Camera::CreateSimpleRadialCamera(
-                    values.at(Camera::Parameters::Focal),
-                    values.at(Camera::Parameters::AspectRatio), principal_point,
-                    values.at(Camera::Parameters::K1));
-                break;
-              }
-              case ProjectionType::DUAL: {
-                camera = Camera::CreateDualCamera(
-                    values.at(Camera::Parameters::Transition),
-                    values.at(Camera::Parameters::Focal),
-                    values.at(Camera::Parameters::K1),
-                    values.at(Camera::Parameters::K2));
-                break;
-              }
-              case ProjectionType::SPHERICAL: {
-                camera = Camera::CreateSphericalCamera();
-                break;
-              }
-            }
+            Camera camera = Camera(type, types, values);
             camera.width = width;
             camera.height = height;
             camera.id = id;

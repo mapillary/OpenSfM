@@ -3,8 +3,10 @@
 
 #include <iostream>
 
-Camera::Camera(const std::vector<Camera::Parameters>& types,
-               const VecXd& values) {}
+Camera::Camera(const ProjectionType& type,
+               const std::vector<Camera::Parameters>& types,
+               const VecXd& values)
+    : type_(type), types_(types), values_(values) {}
 
 Camera Camera::CreatePerspectiveCamera(double focal, double k1, double k2) {
   Camera camera;
@@ -281,8 +283,6 @@ MatX3d Camera::BearingsMany(const MatX2d& points) const {
   }
   return projected;
 }
-
-Camera::Camera() : type_(ProjectionType::PERSPECTIVE) {}
 
 std::pair<MatXf, MatXf> ComputeCameraMapping(const Camera& from,
                                              const Camera& to, int width,

@@ -29,7 +29,9 @@ class Camera {
     }
   };
 
-  Camera(const std::vector<Camera::Parameters>& types, const VecXd& values);
+  Camera() = default;
+  Camera(const ProjectionType& type,
+         const std::vector<Camera::Parameters>& types, const VecXd& values);
   static Camera CreatePerspectiveCamera(double focal, double k1, double k2);
   static Camera CreateBrownCamera(double focal, double aspect_ratio,
                                   const Vec2d& principal_point,
@@ -83,9 +85,7 @@ class Camera {
                                             const int width, const int height);
 
  private:
-  Camera();
-
-  ProjectionType type_;
+  ProjectionType type_{ProjectionType::NONE};
   std::vector<Parameters> types_;
   VecXd values_;
 };
