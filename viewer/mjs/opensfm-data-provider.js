@@ -130,21 +130,13 @@ class OpenSfmDataProvider extends Mapillary.API.DataProviderBase {
 
         this._options = Object.assign({}, options);
 
-        this._loaderPromise = !!this._options.reconstructionPath ?
-            this._fetchReconstruction(
-                new URL(
-                    this._options.reconstructionPath,
-                    this._options.endpoint).href)
-                .then(
-                    (reconstructions) => {
-                        this._addData(reconstructions);
-                        this._loaderPromise = null;
-                        this._eventEmitter.fire('loaded', { target: this });
-                    },
-                    error => {
-                        this._loaderPromise = null;
-                        console.error('Fetching reconstruction failed', error);
-                    }) :
+        const reconstructionPaths = options.reconstructionPaths;
+        const urls = !!reconstructionPaths ?
+            reconstructionPaths
+                .map(path => new URL(path, this._options.endpoint).href) :
+            [];
+        this._loaderPromise = urls.length > 0 ?
+            this._fetchReconstructions(urls) :
             null;
 
         this._bufferPromise = !this._options.imagesPath ?
@@ -192,23 +184,7 @@ class OpenSfmDataProvider extends Mapillary.API.DataProviderBase {
 
         const result = Promise
             .allSettled(dataLoads)
-            .then(responses => {
-                let succeeded = false;
-                for (const response of responses) {
-                    if (response.status === 'fulfilled') {
-                        succeeded = true;
-                    } else {
-                        console.warn('File load failed', response.reason);
-                    }
-                }
-
-                this._loaderPromise = null;
-                if (succeeded) {
-                    this._eventEmitter.fire('loaded', { target: this });
-                } else {
-                    throw new Error('All file loads failed.')
-                }
-            });
+            .then(this._handleLoaderResponses);
 
         this._loaderPromise = result;
         return result;
@@ -550,6 +526,18 @@ class OpenSfmDataProvider extends Mapillary.API.DataProviderBase {
             []);
     }
 
+    _fetchReconstructions(urls) {
+        this._loaderPromise = Promise
+            .allSettled(
+                urls.map(
+                    url => this._fetchReconstruction(url)
+                        .then(
+                            reconstructions => {
+                                this._addData(reconstructions);
+                            })))
+            .then(this._handleLoaderResponses);
+    }
+
     _fetchReconstruction(url) {
         return fetch(
             url,
@@ -578,5 +566,23 @@ class OpenSfmDataProvider extends Mapillary.API.DataProviderBase {
         }
 
         return this._bufferPromise;
+    }
+
+    _handleLoaderResponses = responses => {
+        let succeeded = false;
+        for (const response of responses) {
+            if (response.status === 'fulfilled') {
+                succeeded = true;
+            } else {
+                console.warn('File load failed', response.reason);
+            }
+        }
+
+        this._loaderPromise = null;
+        if (succeeded) {
+            this._eventEmitter.fire('loaded', { target: this });
+        } else {
+            throw new Error('All file loads failed.')
+        }
     }
 }

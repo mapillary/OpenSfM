@@ -10,6 +10,10 @@ function parseHash(hash) {
     while (match = search.exec(hashContent)) {
         params[decode(match[1])] = decode(match[2]);
     }
+    for (const param of Object.keys(params)) {
+        const split = params[param].split(',');
+        params[param] = split.length > 1 ? split : params[param];
+    }
     return params;
 }
 
@@ -19,11 +23,18 @@ function createProviderOptions(params) {
         endpoint: `${location.protocol}//${location.host}`,
     };
     if (!!params.file) {
-        options.reconstructionPath = params.file;
-        options.imagesPath = !!params.images ?
-            params.images :
-            `${params.file.replace(/[^/]*$/, '')}${'images'}`;
-    } else if (!!params.images) {
+        if (params.file instanceof Array) {
+            options.reconstructionPaths = params.file;
+        } else {
+            options.reconstructionPaths = [params.file];
+            // fallback images based on file
+            options.imagesPath =
+                `${params.file.replace(/[^/]*$/, '')}${'images'}`;
+        }
+
+    }
+    if (!!params.images) {
+        // images takes precedence over fallback images
         options.imagesPath = params.images;
     }
     return options;
@@ -54,7 +65,7 @@ class OpenSfmViewer {
             pointSize: 0.2,
             originalPositionMode: opm,
             pointsVisible: true,
-            tilesVisible: true,
+            tilesVisible: false,
             cameraVisualizationMode: cvm,
         };
 
