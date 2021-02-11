@@ -9,7 +9,7 @@ import matplotlib.cm as cm
 import matplotlib.colors as colors
 import matplotlib.pyplot as plt
 import numpy as np
-from opensfm import io, reconstruction as orec
+from opensfm import io, multiview
 
 
 def _length_histogram(tracks_manager, points):
@@ -74,7 +74,7 @@ def gcp_errors(data, reconstructions):
             continue
 
         for rec in reconstructions:
-            triangulated = orec.triangulate_gcp(gcp, rec.shots)
+            triangulated = multiview.triangulate_gcp(gcp, rec.shots, 1.0, 0.1)
             if triangulated is None:
                 continue
             else:
