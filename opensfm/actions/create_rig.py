@@ -1,0 +1,62 @@
+import logging
+
+import numpy as np
+from opensfm import rig, reconstruction as orec, pygeometry, types
+
+logger = logging.getLogger(__name__)
+
+
+def run_dataset(data, method, definition, output_debug):
+    """Given a dataset that contains rigs, construct rig data files.
+
+    Args:
+        data: dataset object
+        method : `auto` will run `reconstruct` process and try to detect rig pattern (TODO)
+                 `camera` will create instances based on the camera model name
+                 'pattern` will create instances based on a REGEX pattern (see below)
+        definition : JSON dict (one for each RigModel) of dict of definition
+                     (one for each RigCamera) as :
+                        - (.*) for `pattern` method where the part outside
+                           of parenthesis defines a RigModel instance
+                        - a camera model ID for the `camera` method
+        output_debug : output a debug JSON reconstruction `rig_instances.json` with rig instances
+    """
+    rig.create_rigs_with_pattern(data, definition)
+    if output_debug:
+        reconstructions = _reconstruction_from_rigs_and_assignments(data)
+        data.save_reconstruction(reconstructions, "rig_instances.json")
+
+
+def _reconstruction_from_rigs_and_assignments(data):
+    assignments = data.load_rig_assignments()
+    models = data.load_rig_models()
+
+    if not data.reference_lla_exists():
+        data.invent_reference_lla()
+
+    base_rotation = np.zeros(3)
+
+    reconstructions = []
+    for rig_id, instances in assignments.items():
+        rig_cameras = models[rig_id]["rig_cameras"]
+
+        reconstruction = types.Reconstruction()
+        reconstruction.cameras = data.load_camera_models()
+        for instance in instances:
+            for image, camera_id in instance:
+                rig_camera = rig_cameras[camera_id]
+                rig_pose = pygeometry.Pose(base_rotation)
+                rig_pose.set_origin(
+                    orec.get_image_metadata(data, image).gps_position.value
+                )
+                rig_camera_pose = pygeometry.Pose(
+                    rig_camera["rotation"], rig_camera["translation"]
+                )
+
+                d = data.load_exif(image)
+                shot = reconstruction.create_shot(image, d["camera"])
+                shot.pose = rig_camera_pose.compose(rig_pose)
+                shot.metadata = orec.get_image_metadata(data, image)
+
+        reconstructions.append(reconstruction)
+    return reconstructions

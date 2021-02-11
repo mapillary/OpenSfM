@@ -37,13 +37,18 @@ class DataSet(object):
         self.load_image_list()
         self.load_mask_list()
 
+    def _config_file(self):
+        return os.path.join(self.data_path, "config.yaml")
+
     def load_config(self):
-        config_file = os.path.join(self.data_path, "config.yaml")
-        self.config = config.load_config(config_file)
+        self.config = config.load_config(self._config_file())
+
+    def _image_list_file(self):
+        return os.path.join(self.data_path, "image_list.txt")
 
     def load_image_list(self):
         """Load image list from image_list.txt or list images/ folder."""
-        image_list_file = os.path.join(self.data_path, "image_list.txt")
+        image_list_file = self._image_list_file()
         if os.path.isfile(image_list_file):
             with io.open_rt(image_list_file) as fin:
                 lines = fin.read().splitlines()
@@ -573,6 +578,34 @@ class DataSet(object):
         with io.open_rt(self._exif_overrides_file()) as fin:
             return json.load(fin)
 
+    def _rig_models_file(self):
+        """Return path of rig models file"""
+        return os.path.join(self.data_path, "rig_models.json")
+
+    def load_rig_models(self):
+        """Return rig models data"""
+        with io.open_rt(self._rig_models_file()) as fin:
+            return json.load(fin)
+
+    def save_rig_models(self, rig_models):
+        """Save rig models data"""
+        with io.open_wt(self._rig_models_file()) as fout:
+            io.json_dump(rig_models, fout)
+
+    def _rig_assignments_file(self):
+        """Return path of rig assignments file"""
+        return os.path.join(self.data_path, "rig_assignments.json")
+
+    def load_rig_assignments(self):
+        """Return rig assignments  data"""
+        with io.open_rt(self._rig_assignments_file()) as fin:
+            return json.load(fin)
+
+    def save_rig_assignments(self, rig_assignments):
+        """Save rig assignments  data"""
+        with io.open_wt(self._rig_assignments_file()) as fout:
+            io.json_dump(rig_assignments, fout)
+
     def profile_log(self):
         "Filename where to write timings."
         return os.path.join(self.data_path, "profile.log")
@@ -656,6 +689,55 @@ class DataSet(object):
     def mask_as_array(self, image):
         logger.warning("mask_as_array() is deprecated. Use load_mask() instead.")
         return self.load_mask(image)
+
+    def subset(self, name, images_subset):
+        """ Create a subset of this dataset by symlinking input data. """
+        subset_dataset_path = os.path.join(self.data_path, name)
+        io.mkdir_p(subset_dataset_path)
+        io.mkdir_p(os.path.join(subset_dataset_path, "images"))
+        io.mkdir_p(os.path.join(subset_dataset_path, "segmentations"))
+        subset_dataset = DataSet(subset_dataset_path)
+
+        files = []
+        for method in [
+            "_camera_models_file",
+            "_config_file",
+            "_camera_models_overrides_file",
+            "_exif_overrides_file",
+            "_image_list_file",
+        ]:
+            files.append(
+                (
+                    getattr(self, method)(),
+                    getattr(subset_dataset, method)(),
+                )
+            )
+        for image in images_subset:
+            files.append(
+                (
+                    self._image_file(image),
+                    os.path.join(subset_dataset_path, "images", image),
+                )
+            )
+            files.append(
+                (
+                    self._segmentation_file(image),
+                    os.path.join(subset_dataset_path, "segmentations", image + ".png"),
+                )
+            )
+
+        for src, dst in files:
+            if not os.path.exists(src):
+                continue
+
+            if os.path.islink(dst):
+                os.unlink(dst)
+            if os.path.exists(dst):
+                os.remove(dst)
+
+            os.symlink(src, dst)
+
+        return DataSet(subset_dataset_path)
 
 
 class UndistortedDataSet(object):
