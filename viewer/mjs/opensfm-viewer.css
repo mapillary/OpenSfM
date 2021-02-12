@@ -101,6 +101,10 @@ input[type='file'] {
     text-align: center;
 }
 
+.opensfm-info-text.opensfm-info-inline {
+    display: inline-block;
+}
+
 .opensfm-info-text-header {
     font-size: 12px;
     font-weight: bold;

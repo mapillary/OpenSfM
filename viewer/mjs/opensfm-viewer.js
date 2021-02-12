@@ -41,17 +41,18 @@ function createProviderOptions(params) {
 }
 
 class OpenSfmViewer {
-    constructor(params, provider) {
-        this._params = params;
+    constructor(options) {
+        this._infoControl = null;
         this._optionController = null;
-        this._provider = provider;
+        this._provider = options.provider;
+        this._params = options.params;
         this._viewer = null;
     }
 
+    get info() { return this._infoControl; }
     get option() { return this._optionController; }
     get params() { return this._params; }
     get provider() { return this._provider; }
-    get info() { return this._infoControl; }
     get viewer() { return this._viewer; }
 
     async initialize() {
@@ -74,68 +75,85 @@ class OpenSfmViewer {
         container.classList.add('opensfm-viewer');
         document.body.appendChild(container);
 
+        const imagesVisible = false;
         const provider = this._provider;
-        const viewer = new Mapillary.Viewer({
+        this._viewer = new Mapillary.Viewer({
             apiClient: provider,
             combinedPanning: false,
             component: {
                 cover: false,
                 direction: false,
-                imagePlane: false,
+                imagePlane: imagesVisible,
                 sequence: false,
                 spatialData: spatialConfiguration,
             },
             container,
             renderMode: Mapillary.RenderMode.Letterbox,
         });
-
         window.addEventListener('resize', () => viewer.resize());
 
-        const handlerOptions = { provider, spatialConfiguration, viewer };
-        this._optionController = new OptionController(handlerOptions);
+        const viewer = this._viewer;
+        const infoSize = 0.3;
+        const thumbnailVisible = false;
+        this._thumbnailControl = new ThumbnailControl({
+            thumbnailVisible,
+            viewer,
+        })
+        this._thumbnailControl.listen();
+        this._thumbnailControl.setWidth(infoSize);
+        this._infoControl = new InfoControl({
+            beforeContainer: viewer.getContainer(),
+        });
+        this._infoControl.addControl(this._thumbnailControl);
+
+        const options = {
+            imagesVisible,
+            infoSize,
+            provider,
+            spatialConfiguration,
+            thumbnailVisible,
+            viewer
+        };
+        this._optionController = new OptionController(options);
         this._optionController.on(
             'thumbnailvisiblechanged',
             event => {
-                if (event.visible) { this._infoControl.show(); }
-                else { this._infoControl.hide(); }
-                this._infoControl.change();
+                if (event.visible) { this._thumbnailControl.show(); }
+                else { this._thumbnailControl.hide(); }
+                this._thumbnailControl.update();
             });
         this._optionController.on(
             'infosizechanged',
-            event => this._infoControl.setWidth(event.width));
+            event => this._thumbnailControl.setWidth(event.width));
 
-        const infoOptions = Object.assign(
-            { thumbnailVisible: this._optionController.config.thumbnailVisible },
-            handlerOptions);
-        this._infoControl = new InfoControl(infoOptions);
-        this._infoControl.listen();
-        this._infoControl.setWidth(this._optionController.config.infoSize);
-
-        this._viewer = viewer;
         const target = this;
         const event =
             new CustomEvent('mapillarycreated', { detail: { target } });
         document.dispatchEvent(event);
 
-        this._addReconstructionItems();
-        if (!!this._params.img) {
-            this._moveToKey(viewer, this._params.img);
-        } else {
-            const loadedProvider = await this._loadProvider();
-            this._moveToKey(
-                viewer,
-                this._getRandomKey(loadedProvider.reconstructions));
-        }
+        this._loadProvider()
+            .then(provider => this._addReconstructionItems(provider));
+        this._move();
     }
 
-    async _addReconstructionItems() {
-        const loadedProvider = await this._loadProvider();
-        const items = Object.keys(loadedProvider.data.clusters);
+    _addReconstructionItems(provider) {
+        const items = Object.keys(provider.data.clusters);
         this._optionController.dat.addReconstructionItems(items);
     }
 
     _getRandomKey(reconstructions) {
         return Object.keys(reconstructions[0].shots)[0];
+    }
+
+    async _move() {
+        if (!!this._params.img) {
+            this._moveToKey(this._viewer, this._params.img);
+        } else {
+            const loadedProvider = await this._loadProvider();
+            this._moveToKey(
+                this._viewer,
+                this._getRandomKey(loadedProvider.reconstructions));
+        }
     }
 
     _moveToKey(viewer, key) {
@@ -179,6 +197,6 @@ window.document.addEventListener('DOMContentLoaded', async () => {
         loader.hide();
     }
 
-    const openSfmViewer = new OpenSfmViewer(params, provider);
+    const openSfmViewer = new OpenSfmViewer({ params, provider });
     openSfmViewer.initialize();
 });

@@ -14,19 +14,24 @@ class EventEmitter {
     }
 }
 
-class InfoControl {
+class ThumbnailControl {
     constructor(options) {
+        this._cluster = this._createText('Cluster: ');
+        this._sequence = this._createText('Sequence: ');
+        this._image = this._createText('Image: ');
+        this._thumb = this._createThumb();
+        const container = this._createContainer();
+        container.appendChild(this._thumb);
+        container.appendChild(this._cluster.element);
+        container.appendChild(this._sequence.element);
+        container.appendChild(this._image.element);
+        this._container = container;
         this._viewer = options.viewer;
-        this._parentContainer = this._createContainer();
-        this._container = this._parentContainer.firstElementChild;
-        this._thumb = this._container.children[1];
-        this._span = this._container.lastElementChild;
-        this._node = null;
-        this._copier = new Copier(this._span);
         this._thumbnailVisible = options.thumbnailVisible;
+        this._node = null;
     }
 
-    get container() { return this._parentContainer; }
+    get container() { return this._container; }
 
     hide() {
         if (!this._thumbnailVisible) { return; }
@@ -38,16 +43,17 @@ class InfoControl {
         const Viewer = Mapillary.Viewer;
         this._viewer.on(Viewer.nodechanged, node => {
             this._node = node;
-            this.change();
+            this.update();
         });
     }
 
-    change() {
+    update() {
         if (!this._node || !this._thumbnailVisible) { return; }
         const node = this._node;
         this._thumb.src = node.image.src;
-        const infoText = `${node.clusterKey}::${node.sequenceKey}::${node.key}`;
-        this._span.textContent = infoText;
+        this._setTextContent(this._cluster, node.clusterKey);
+        this._setTextContent(this._sequence, node.sequenceKey);
+        this._setTextContent(this._image, node.key);
     }
 
     setWidth(value) { this._container.style.width = `${100 * value}%`; }
@@ -59,13 +65,6 @@ class InfoControl {
     }
 
     _createContainer() {
-        const document = window.document;
-        const text = document.createElement('span');
-        text.classList.add('opensfm-info-text');
-
-        const img = document.createElement('img');
-        img.classList.add('opensfm-thumb');
-
         const header = document.createElement('span');
         header.classList.add('opensfm-info-text', 'opensfm-info-text-header');
         header.textContent = 'Thumbnail';
@@ -75,14 +74,41 @@ class InfoControl {
             'opensfm-thumb-container',
             'opensfm-hidden');
         container.appendChild(header);
-        container.appendChild(img);
-        container.appendChild(text);
+        return container;
+    }
 
-        const parentContainer = document.createElement('div');
-        parentContainer.classList.add('opensfm-info-container');
-        parentContainer.appendChild(container);
-        this._viewer.getContainer().after(parentContainer);
-        return parentContainer;
+    _createText(prefix) {
+        const document = window.document;
+        const element = document.createElement('span');
+        element.classList.add('opensfm-info-text', 'opensfm-info-inline');
+        const copier = new Copier({ container: element, copyText: null });
+        return { copier, element, prefix };
+    }
+
+    _createThumb() {
+        const thumb = document.createElement('img');
+        thumb.classList.add('opensfm-thumb');
+        return thumb;
+    }
+
+    _setTextContent(textItem, content) {
+        textItem.element.textContent = textItem.prefix + content;
+        textItem.copier.setCopyText(content);
+    }
+}
+
+class InfoControl {
+    constructor(options) {
+        const container = document.createElement('div');
+        container.classList.add('opensfm-info-container');
+        options.beforeContainer.after(container);
+        this._container = container;
+        this._controls = [];
+    }
+
+    addControl(control) {
+        this._container.appendChild(control.container);
+        this._controls.push(control);
     }
 }
 
@@ -441,9 +467,9 @@ class OptionController {
                 .getComponent('spatialData')
                 .defaultConfiguration,
             {
-                imagesVisible: false,
-                thumbnailVisible: false,
-                infoSize: 0.3,
+                imagesVisible: options.imagesVisible,
+                thumbnailVisible: options.thumbnailVisible,
+                infoSize: options.infoSize,
             },
             options.spatialConfiguration);
 
@@ -636,13 +662,14 @@ class FileLoader {
 }
 
 class Copier {
-    constructor(container) {
+    constructor(options) {
         if (!window.navigator || !window.navigator.clipboard) {
             // Clipboard requires secure origin (https or localhost)
             // or setting a browser flag.
             return;
         }
 
+        const container = options.container;
         const onShowTypes = ['pointerenter'];
         for (const type of onShowTypes) {
             container.addEventListener(type, this._onShow);
@@ -656,11 +683,13 @@ class Copier {
 
         this._onHideTypes = onHideTypes;
         this._onShowTypes = onShowTypes;
+        this._textContent = 'Copy';
+
+        this._copyText = options.copyText;
         this._container = container;
         this._resetCursor = this._container.style.cursor;
         this._container.style.cursor = 'pointer';
         this._popupContainer = null;
-        this._textContent = 'Copy';
     }
 
     dispose() {
@@ -676,7 +705,7 @@ class Copier {
             container.removeEventListener(type, this._onShow);
         }
 
-        window.removeEventListener('blur', onHide);
+        window.removeEventListener('blur', this._onHide);
         const onHideTypes = this._onHideTypes;
         for (const type in onHideTypes) {
             container.removeEventListener(type, this._onHide);
@@ -687,11 +716,14 @@ class Copier {
         this._container = null;
     }
 
+    setCopyText(content) {
+        this._copyText = content;
+    }
+
     _onClick = async () => {
-        const text = this._container.textContent;
         try {
             const navigator = window.navigator;
-            await navigator.clipboard.writeText(text);
+            await navigator.clipboard.writeText(this._copyText);
             await this._showCopied();
         } catch (error) {
             console.error(error);
