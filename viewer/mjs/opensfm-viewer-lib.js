@@ -14,7 +14,7 @@ class EventEmitter {
     }
 }
 
-class InfoHelper {
+class InfoControl {
     constructor(options) {
         this._viewer = options.viewer;
         this._parentContainer = this._createContainer();
@@ -145,7 +145,7 @@ class ListController {
     }
 }
 
-class DatGuiHelper {
+class DatController {
     constructor(options) {
         this._eventEmitter = options.eventEmitter;
         this._provider = options.provider;
@@ -432,7 +432,7 @@ class KeyHandler {
     }
 }
 
-class OptionChangeHandler {
+class OptionController {
     constructor(options) {
         const eventEmitter = new EventEmitter();
         const config = Object.assign(
@@ -458,14 +458,14 @@ class OptionChangeHandler {
             {},
             options,
             { config, eventEmitter, modeConfig });
-        this._guiHelper = new DatGuiHelper(internalOptions);
+        this._datController = new DatController(internalOptions);
         this._keyHandler = new KeyHandler(internalOptions);
         this._keyHandler.bindKeys();
         this._eventEmitter = eventEmitter;
         this._config = config;
     }
 
-    get guiHelper() { return this._guiHelper; }
+    get dat() { return this._datController; }
     get eventEmitter() { return this._eventEmitter; }
     get config() { return this._config; }
 

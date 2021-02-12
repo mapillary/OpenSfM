@@ -43,15 +43,15 @@ function createProviderOptions(params) {
 class OpenSfmViewer {
     constructor(params, provider) {
         this._params = params;
-        this._optionHandler = null;
+        this._optionController = null;
         this._provider = provider;
         this._viewer = null;
     }
 
-    get optionHandler() { return this._optionHandler; }
+    get option() { return this._optionController; }
     get params() { return this._params; }
     get provider() { return this._provider; }
-    get info() { return this._info; }
+    get info() { return this._infoControl; }
     get viewer() { return this._viewer; }
 
     async initialize() {
@@ -92,24 +92,24 @@ class OpenSfmViewer {
         window.addEventListener('resize', () => viewer.resize());
 
         const handlerOptions = { provider, spatialConfiguration, viewer };
-        this._optionHandler = new OptionChangeHandler(handlerOptions);
-        this._optionHandler.on(
+        this._optionController = new OptionController(handlerOptions);
+        this._optionController.on(
             'thumbnailvisiblechanged',
             event => {
-                if (event.visible) { this._info.show(); }
-                else { this._info.hide(); }
-                this._info.change();
+                if (event.visible) { this._infoControl.show(); }
+                else { this._infoControl.hide(); }
+                this._infoControl.change();
             });
-        this._optionHandler.on(
+        this._optionController.on(
             'infosizechanged',
-            event => this._info.setWidth(event.width));
+            event => this._infoControl.setWidth(event.width));
 
         const infoOptions = Object.assign(
-            { thumbnailVisible: this._optionHandler.config.thumbnailVisible },
+            { thumbnailVisible: this._optionController.config.thumbnailVisible },
             handlerOptions);
-        this._info = new InfoHelper(infoOptions);
-        this._info.listen();
-        this._info.setWidth(this._optionHandler.config.infoSize);
+        this._infoControl = new InfoControl(infoOptions);
+        this._infoControl.listen();
+        this._infoControl.setWidth(this._optionController.config.infoSize);
 
         this._viewer = viewer;
         const target = this;
@@ -131,7 +131,7 @@ class OpenSfmViewer {
     async _addReconstructionItems() {
         const loadedProvider = await this._loadProvider();
         const items = Object.keys(loadedProvider.data.clusters);
-        this._optionHandler.guiHelper.addReconstructionItems(items);
+        this._optionController.dat.addReconstructionItems(items);
     }
 
     _getRandomKey(reconstructions) {
