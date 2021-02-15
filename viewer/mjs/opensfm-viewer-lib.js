@@ -498,11 +498,11 @@ class OptionController {
     on(type, callback) { this._eventEmitter.on(type, callback); }
 }
 
-class AbortFileLoadError extends Error {
+class CancelledError extends Error {
     constructor(message) {
         super(message);
-        Object.setPrototypeOf(this, AbortFileLoadError.prototype);
-        this.name = 'AbortFileLoadError';
+        Object.setPrototypeOf(this, CancelledError.prototype);
+        this.name = 'CancelledError';
     }
 }
 
@@ -546,7 +546,7 @@ class FileLoader {
         const reject = this._reject;
         if (!!reject) {
             this._reject = null;
-            reject(new AbortFileLoadError('Aborted file load'));
+            reject(new CancelledError('Cancelled file load'));
         }
     }
 

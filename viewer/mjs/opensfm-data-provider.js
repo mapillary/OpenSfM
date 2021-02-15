@@ -215,10 +215,10 @@ class OpenSfmDataProvider extends Mapillary.API.DataProviderBase {
             .then(() => this._filterItems(ids, this._data.nodes));
     }
 
-    getImage(url, abort) {
+    getImage(url, cancellation) {
         if (!!this._options.imagesPath) {
             return Mapillary.API.BufferFetcher
-                .getArrayBuffer(url, abort)
+                .getArrayBuffer(url, cancellation)
                 .catch(() => this._getFallbackBuffer());
         }
 
@@ -241,7 +241,7 @@ class OpenSfmDataProvider extends Mapillary.API.DataProviderBase {
 
     setToken() { /*noop*/ }
 
-    _createClusterKey(index) { return `cluster_key_${index}`; }
+    _createClusterKey(index) { return `cluster_${index}`; }
 
     _createClusterReconstruction(cluster, clusterKey, reference) {
         const converted = {
@@ -491,7 +491,7 @@ class OpenSfmDataProvider extends Mapillary.API.DataProviderBase {
             {
                 latitude: 0,
                 longitude: 0,
-                altitud: 0,
+                altitude: 0,
             };
     }
 
