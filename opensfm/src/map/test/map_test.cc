@@ -125,6 +125,9 @@ class ToyMapFixture : public EmptyMapFixture {
   std::array<int, 2> num_shots = {5, 3};
 };
 
+const int ToyMapFixture::num_points;
+const int ToyMapFixture::num_cameras;
+
 TEST_F(ToyMapFixture, ReturnsNumberOfShots) {
   ASSERT_EQ(map.NumberOfShots(), 8);
 }

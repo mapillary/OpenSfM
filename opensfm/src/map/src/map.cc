@@ -311,7 +311,8 @@ RigInstance& Map::CreateRigInstance(
   }
 
   // Create instance and add its shots
-  auto& instance = rig_instances_.emplace_back(rig_model);
+  rig_instances_.emplace_back(rig_model);
+  auto& instance = rig_instances_.back();
   for (const auto& shot_id : instance_shots) {
     auto it_shot_exist = shots_.find(shot_id.first);
     if (it_shot_exist == shots_.end()) {

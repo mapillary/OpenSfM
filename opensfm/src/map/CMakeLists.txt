@@ -1,4 +1,5 @@
 set(MAP_FILES
+  rig.h
   shot.h
   landmark.h
   map.h
@@ -6,6 +7,7 @@ set(MAP_FILES
   defines.h
   src/landmark.cc
   src/map.cc
+  src/rig.cc
   src/shot.cc
   dataviews.h
   src/dataviews.cc
@@ -41,6 +43,7 @@ target_link_libraries(pymap
 if (OPENSFM_BUILD_TESTS)
     set(MAP_TEST_FILES
         test/map_test.cc
+        test/rig_test.cc
     )
 
     add_executable(map_test ${MAP_TEST_FILES})
