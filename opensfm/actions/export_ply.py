@@ -6,22 +6,25 @@ from opensfm import io
 from opensfm.dense import depthmap_to_ply, scale_down_image
 
 
-def run_dataset(data, no_cameras, no_points, depthmaps):
+def run_dataset(data, no_cameras, no_points, depthmaps, point_num_views):
     """Export reconstruction to PLY format
 
     Args:
         no_cameras: do not save camera positions
         no_points: do not save points
         depthmaps: export per-image depthmaps as pointclouds
+        point_num_views: Export the number of views associated with each point
 
     """
 
     reconstructions = data.load_reconstruction()
+    tracks_manager = data.load_tracks_manager()
     no_cameras = no_cameras
     no_points = no_points
+    point_num_views = point_num_views
 
     if reconstructions:
-        data.save_ply(reconstructions[0], None, no_cameras, no_points)
+        data.save_ply(reconstructions[0], tracks_manager, None, no_cameras, no_points, point_num_views)
 
     if depthmaps and reconstructions:
         udata = dataset.UndistortedDataSet(data)
