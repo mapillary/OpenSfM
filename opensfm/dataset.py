@@ -759,14 +759,23 @@ class UndistortedDataSet(object):
         else:
             self.data_path = os.path.join(self.base.data_path, "undistorted")
 
+    def load_undistorted_shot_ids(self):
+        filename = os.path.join(self.data_path, "undistorted_shot_ids.json")
+        with io.open_rt(filename) as fin:
+            return io.json_load(fin)
+
+    def save_undistorted_shot_ids(self, ushot_dict):
+        filename = os.path.join(self.data_path, "undistorted_shot_ids.json")
+        io.mkdir_p(self.data_path)
+        with io.open_wt(filename) as fout:
+            io.json_dump(ushot_dict, fout, minify=False)
+
     def _undistorted_image_path(self):
         return os.path.join(self.data_path, "images")
 
     def _undistorted_image_file(self, image):
         """Path of undistorted version of an image."""
-        image_format = self.config["undistorted_image_format"]
-        filename = image + "." + image_format
-        return os.path.join(self._undistorted_image_path(), filename)
+        return os.path.join(self._undistorted_image_path(), image)
 
     def load_undistorted_image(self, image):
         """Load undistorted image pixels as a numpy array."""
