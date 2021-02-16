@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 def undistort_reconstruction(tracks_manager, reconstruction, data, udata):
+    image_format = data.config["undistorted_image_format"]
     urec = types.Reconstruction()
     urec.points = reconstruction.points
     utracks_manager = pysfm.TracksManager()
@@ -24,18 +25,20 @@ def undistort_reconstruction(tracks_manager, reconstruction, data, udata):
         if shot.camera.projection_type == "perspective":
             camera = perspective_camera_from_perspective(shot.camera)
             urec.add_camera(camera)
-            subshots = [get_shot_with_different_camera(urec, shot, camera)]
+            subshots = [get_shot_with_different_camera(urec, shot, camera, image_format)]
         elif shot.camera.projection_type == "brown":
             camera = perspective_camera_from_brown(shot.camera)
             urec.add_camera(camera)
-            subshots = [get_shot_with_different_camera(urec, shot, camera)]
+            subshots = [get_shot_with_different_camera(urec, shot, camera, image_format)]
         elif shot.camera.projection_type in ["fisheye", "fisheye_opencv"]:
             camera = perspective_camera_from_fisheye(shot.camera)
             urec.add_camera(camera)
-            subshots = [get_shot_with_different_camera(urec, shot, camera)]
+            subshots = [get_shot_with_different_camera(urec, shot, camera, image_format)]
         elif pygeometry.Camera.is_panorama(shot.camera.projection_type):
             subshot_width = int(data.config["depthmap_resolution"])
-            subshots = perspective_views_of_a_panorama(shot, subshot_width, urec)
+            subshots = perspective_views_of_a_panorama(
+                shot, subshot_width, urec, image_format
+            )
 
         for subshot in subshots:
             if tracks_manager:
@@ -45,6 +48,13 @@ def undistort_reconstruction(tracks_manager, reconstruction, data, udata):
     udata.save_undistorted_reconstruction([urec])
     if tracks_manager:
         udata.save_undistorted_tracks_manager(utracks_manager)
+
+    udata.save_undistorted_shot_ids(
+        {
+            shot_id: [ushot.id for ushot in ushots]
+            for shot_id, ushots in undistorted_shots.items()
+        }
+    )
 
     return undistorted_shots
 
@@ -122,13 +132,14 @@ def undistort_image(shot, undistorted_shots, original, interpolation, max_size):
 
     projection_type = shot.camera.projection_type
     if projection_type in ["perspective", "brown", "fisheye", "fisheye_opencv"]:
-        new_camera = undistorted_shots[0].camera
+        [undistorted_shot] = undistorted_shots
+        new_camera = undistorted_shot.camera
         height, width = original.shape[:2]
         map1, map2 = pygeometry.compute_camera_mapping(
             shot.camera, new_camera, width, height
         )
         undistorted = cv2.remap(original, map1, map2, interpolation)
-        return {shot.id: scale_image(undistorted, max_size)}
+        return {undistorted_shot.id: scale_image(undistorted, max_size)}
     elif pygeometry.Camera.is_panorama(projection_type):
         subshot_width = undistorted_shots[0].camera.width
         width = 4 * subshot_width
@@ -136,11 +147,11 @@ def undistort_image(shot, undistorted_shots, original, interpolation, max_size):
         image = cv2.resize(original, (width, height), interpolation=interpolation)
         mint = cv2.INTER_LINEAR if interpolation == cv2.INTER_AREA else interpolation
         res = {}
-        for subshot in undistorted_shots:
+        for undistorted_shot in undistorted_shots:
             undistorted = render_perspective_view_of_a_panorama(
-                image, shot, subshot, mint
+                image, shot, undistorted_shot, mint
             )
-            res[subshot.id] = scale_image(undistorted, max_size)
+            res[undistorted_shot.id] = scale_image(undistorted, max_size)
         return res
     else:
         raise NotImplementedError(
@@ -161,8 +172,16 @@ def scale_image(image, max_size):
     return cv2.resize(image, (width, height), interpolation=cv2.INTER_NEAREST)
 
 
-def get_shot_with_different_camera(urec, shot, camera):
-    new_shot = urec.create_shot(shot.id, shot.camera.id, shot.pose)
+def add_image_format_extension(shot_id, image_format):
+    if shot_id.endswith(f".{image_format}"):
+        return shot_id
+    else:
+        return f"{shot_id}.{image_format}"
+
+
+def get_shot_with_different_camera(urec, shot, camera, image_format):
+    new_shot_id = add_image_format_extension(shot.id, image_format)
+    new_shot = urec.create_shot(new_shot_id, shot.camera.id, shot.pose)
     new_shot.metadata = shot.metadata
     return new_shot
 
@@ -206,6 +225,7 @@ def perspective_camera_from_fisheye_opencv(fisheye_opencv):
     camera.height = fisheye_opencv.height
     return camera
 
+
 def perspective_camera_from_fisheye62(fisheye62):
     """Create a perspective camera from a fisheye extended."""
     camera = pygeometry.Camera.create_perspective(
@@ -216,7 +236,8 @@ def perspective_camera_from_fisheye62(fisheye62):
     camera.height = fisheye62.height
     return camera
 
-def perspective_views_of_a_panorama(spherical_shot, width, reconstruction):
+
+def perspective_views_of_a_panorama(spherical_shot, width, reconstruction, image_format):
     """Create 6 perspective views of a panorama."""
     camera = pygeometry.Camera.create_perspective(0.5, 0.0, 0.0)
     camera.id = "perspective_panorama_camera"
@@ -240,9 +261,12 @@ def perspective_views_of_a_panorama(spherical_shot, width, reconstruction):
         pose = pygeometry.Pose()
         pose.set_rotation_matrix(R)
         pose.set_origin(o)
+        shot_id = add_image_format_extension(
+            f"{spherical_shot.id}_perspective_view_{name}", image_format
+        )
         shots.append(
             reconstruction.create_shot(
-                "{}_perspective_view_{}".format(spherical_shot.id, name),
+                shot_id,
                 camera.id,
                 pose,
             )

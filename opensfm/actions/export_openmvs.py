@@ -21,10 +21,10 @@ def run_dataset(data, image_list):
                 export_only[image.strip()] = True
 
     if reconstructions:
-        export(reconstructions[0], tracks_manager, udata, data, export_only)
+        export(reconstructions[0], tracks_manager, udata, export_only)
 
 
-def export(reconstruction, tracks_manager, udata, data, export_only):
+def export(reconstruction, tracks_manager, udata, export_only):
     exporter = pydense.OpenMVSExporter()
     for camera in reconstruction.cameras.values():
         if camera.projection_type == "perspective":

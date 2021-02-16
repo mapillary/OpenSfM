@@ -6,6 +6,11 @@
 ### Breaking
  - Main datastructures moved to C++ with Python bindings
  - Drop Python 2 support.  OpenSfM 0.5.x is the latest to support Python2.
+ - Undistorted image file names only append the image format if it does not match the distorted image source
+ - Undistorted shot ids now match the undistorted image file names and may not match the source shot ids
+
+### Added
+ - The file `undistorted/undistorted_shot_ids.json` stores a map from the original shot ids to their corresponding list of undistorted shot ids.
 
 
 ## 0.5.1
