@@ -150,8 +150,8 @@ class ListController {
         this._setToggleText();
         const items = this._config.items;
         const active = Object.keys(items).filter(id => items[id]);
-        this._eventEmitter.fire(
-            this._eventType, { active });
+        const type = this._eventType;
+        this._eventEmitter.fire(type, { active, type });
     }
 
     _onToggle() {
@@ -171,18 +171,12 @@ class ListController {
 class DatController {
     constructor(options) {
         this._eventEmitter = options.eventEmitter;
-        this._provider = options.provider;
-        this._viewer = options.viewer;
-        this._spatial = options.viewer.getComponent('spatialData');
-
-        this._eventEmitter.on(
-            'reconstructionschanged',
-            event => this._setFilter(event.active.slice()));
+        this._eventTypes = options.eventTypes;
 
         this._config = options.config;
-        this._modeConfig = options.modeConfig;
 
-        const gui = new dat.GUI();
+        this._gui = new dat.GUI();
+        const gui = this._gui;
         gui.width = 274;
         gui.close();
         this._createSpatialFolder(gui);
@@ -190,8 +184,7 @@ class DatController {
 
         this._listControllers = {};
         this._listControllers['reconstruction'] =
-            this._createReconstructionsController(gui);
-        this._gui = gui;
+            this._createClustersController(gui);
     }
 
     get gui() { return this._gui; }
@@ -217,7 +210,7 @@ class DatController {
             cvm[cvm.Sequence],
         ];
         folder
-            .add(this._modeConfig, 'cameraVisualizationMode', cvms)
+            .add(this._config, 'cameraVisualizationMode', cvms)
             .listen()
             .onChange(m => this._onChange('cameraVisualizationMode', cvm[m]));
     }
@@ -238,15 +231,9 @@ class DatController {
             opm[opm.Altitude],
         ];
         folder
-            .add(this._modeConfig, 'originalPositionMode', opms)
+            .add(this._config, 'originalPositionMode', opms)
             .listen()
             .onChange(m => this._onChange('originalPositionMode', opm[m]));
-    }
-
-    _configure(name) {
-        const c = {};
-        c[name] = this._config[name];
-        this._spatial.configure(c);
     }
 
     _createInfoFolder(gui) {
@@ -256,14 +243,14 @@ class DatController {
         this._addNumericOption('infoSize', folder);
     }
 
-    _createReconstructionsController(gui) {
+    _createClustersController(gui) {
         const eventEmitter = this._eventEmitter;
-        const eventType = 'reconstructionschanged';
-        const folder = gui.addFolder('Reconstructions');
+        const eventType = this._eventTypes.clusters;
+        const folder = gui.addFolder('Clusters');
         folder.open();
-        const reconstructionsController =
+        const clustersController =
             new ListController({ eventEmitter, eventType, folder });
-        return reconstructionsController;
+        return clustersController;
     }
 
     _createSpatialFolder(gui) {
@@ -281,118 +268,136 @@ class DatController {
     }
 
     _onChange(name, value) {
+        const emitter = this._eventEmitter;
+        const types = this._eventTypes;
+        const cvm = Mapillary.SpatialDataComponent.CameraVisualizationMode;
+        const opm = Mapillary.SpatialDataComponent.OriginalPositionMode;
+        let mode = null;
+        let type = null;
         switch (name) {
             case 'camerasVisible':
+            case 'imagesVisible':
             case 'pointsVisible':
+            case 'thumbnailVisible':
             case 'tilesVisible':
-                this._configure(name);
+                const visible = value;
+                type = types[name];
+                emitter.fire(type, { type, visible });
                 break;
             case 'earthControls':
-                this._setDirectionComponent();
-                this._configure(name);
+                const active = value;
+                type = types[name];
+                emitter.fire(type, { active, type });
                 break;
-            case 'imagesVisible':
-                this._setImagesComponent();
+            case 'originalPositionMode': mode = value;
+            case 'cameraVisualizationMode': mode = value;
+                type = types[name];
+                emitter.fire(type, { mode, type });
                 break;
-            case 'originalPositionMode':
-            case 'cameraVisualizationMode':
             case 'cameraSize':
             case 'pointSize':
-                this._setValue(name, value);
-                break;
-            case 'thumbnailVisible':
-                this._eventEmitter.fire(
-                    'thumbnailvisiblechanged',
-                    { visible: value });
-                break;
             case 'infoSize':
-                this._eventEmitter.fire('infosizechanged', { width: value });
+                const size = value;
+                type = types[name];
+                emitter.fire(type, { size, type });
                 break;
             default:
                 break;
         }
     }
-
-    _setDirectionComponent() {
-        if (this._config.earthControls) {
-            this._viewer.deactivateComponent('direction');
-        }
-        else { this._viewer.activateComponent('direction'); }
-    }
-
-    _setFilter(reconstructions) {
-        const filter = ['in', 'clusterKey', ...reconstructions];
-        this._viewer.setFilter(filter);
-    }
-
-    _setImagesComponent() {
-        if (this._config.imagesVisible) {
-            this._viewer.activateComponent('imagePlane');
-        }
-        else { this._viewer.deactivateComponent('imagePlane'); }
-    }
-
-    _setValue(name, size) {
-        this._config[name] = size;
-        this._configure(name);
-    }
 }
 
 class KeyHandler {
     constructor(options) {
-        this._viewer = options.viewer;
-        this._spatial = options.viewer.getComponent('spatialData');
+        this._eventEmitter = options.eventEmitter;
+        this._eventTypes = options.eventTypes;
 
         this._config = options.config;
-        this._modeConfig = options.modeConfig;
+
+        const decrease = 0.9;
+        const increase = 1.1;
+        this._commands = {
+            c: { value: 'camerasVisible' },
+            p: { value: 'pointsVisible' },
+            t: { value: 'tilesVisible' },
+            i: { value: 'imagesVisible' },
+            e: { value: 'earthControls' },
+            v: { value: 'cameraVisualizationMode' },
+            o: { value: 'originalPositionMode' },
+            q: { value: 'pointSize', coeff: decrease },
+            w: { value: 'pointSize', coeff: increase },
+            a: { value: 'cameraSize', coeff: decrease },
+            s: { value: 'cameraSize', coeff: increase },
+            z: { value: 'infoSize', coeff: decrease },
+            x: { value: 'infoSize', coeff: increase },
+        }
+
+        this._bindKeys();
     }
 
-    bindKeys() {
+    _bindKeys() {
+        const emitter = this._eventEmitter;
+        const types = this._eventTypes;
+        const commands = this._commands;
+
         window.document.addEventListener(
             'keydown',
-            e => {
-                let name = null;
-                switch (e.key) {
-                    case 'c': name = 'camerasVisible'; break;
-                    case 'p': name = 'pointsVisible'; break;
-                    case 't': name = 'tilesVisible'; break;
-                    case 'i': this._toggleImages(); break;
-                    case 'v': this._rotateCvm(); break;
-                    case 'o': this._rotateOpm(); break;
-                    case 'q': this._changeSize('pointSize', 0.9); break;
-                    case 'w': this._changeSize('pointSize', 1.1); break;
-                    case 'a': this._changeSize('cameraSize', 0.9); break;
-                    case 's': this._changeSize('cameraSize', 1.1); break;
-                    case 'e':
-                        this._toggleBooleanSetting('earthControls');
-                        this._setDirectionComponent();
-                        break;
-                    default: break;
-                }
+            event => {
+                const key = event.key;
+                if (!(key in commands)) { return; }
+                const command = this._commands[key];
+                const type = types[command.value];
 
-                if (!!name) { this._toggleBooleanSetting(name); }
+                switch (key) {
+                    case 'c':
+                    case 'p':
+                    case 't':
+                    case 'i':
+                        const visible = this._toggle(command.value);
+                        emitter.fire(type, { type, visible });
+                        break;
+                    case 'e':
+                        const active = this._toggle(command.value);
+                        emitter.fire(type, { active, type });
+                        break;
+                    case 'v':
+                        const cvm = this._rotateCvm();
+                        emitter.fire(type, { type, mode: cvm });
+                        break;
+                    case 'o':
+                        const opm = this._rotateOpm()
+                        emitter.fire(type, { type, mode: opm });
+                        break;
+                    case 'q':
+                    case 'w':
+                    case 'a':
+                    case 's':
+                    case 'z':
+                    case 'x':
+                        const size = this._changeSize(
+                            command.value,
+                            command.coeff);
+                        emitter.fire(type, { size, type });
+                        break;
+                    default:
+                        break;
+                }
             });
     }
 
-    _changeSize(name, coeff) {
+    _changeSize(command, coeff) {
         const config = this._config;
-        config[name] *= coeff;
-        config[name] = Math.max(0.01, Math.min(1, config[name]));
-        this._configure(name);
-    }
-
-    _configure(name) {
-        const c = {}; c[name] = this._config[name];
-        this._spatial.configure(c);
+        config[command] *= coeff;
+        config[command] = Math.max(0.01, Math.min(1, config[command]));
+        return config[command];
     }
 
     _rotateCvm() {
-        const mode = Mapillary.SpatialDataComponent.CameraVisualizationMode;
-
-        const none = mode.Default;
-        const cluster = mode.Cluster;
-        const connectedComponent = mode.ConnectedComponent;
-        const sequence = mode.Sequence;
+        const cvm = Mapillary.SpatialDataComponent.CameraVisualizationMode;
+        const none = cvm.Default;
+        const cluster = cvm.Cluster;
+        const connectedComponent = cvm.ConnectedComponent;
+        const sequence = cvm.Sequence;
 
         const modeRotation = {};
         modeRotation[none] = cluster;
@@ -401,19 +406,16 @@ class KeyHandler {
         modeRotation[sequence] = none;
 
         const config = this._config;
-        config.cameraVisualizationMode =
-            modeRotation[config.cameraVisualizationMode];
-        this._configure('cameraVisualizationMode');
-        this._modeConfig.cameraVisualizationMode =
-            mode[config.cameraVisualizationMode];
+        const mode = cvm[config.cameraVisualizationMode];
+        config.cameraVisualizationMode = cvm[modeRotation[mode]];
+        return cvm[config.cameraVisualizationMode];
     }
 
     _rotateOpm() {
-        const mode = Mapillary.SpatialDataComponent.OriginalPositionMode;
-
-        const hidden = mode.Hidden;
-        const flat = mode.Flat;
-        const altitude = mode.Altitude;
+        const opm = Mapillary.SpatialDataComponent.OriginalPositionMode;
+        const hidden = opm.Hidden;
+        const flat = opm.Flat;
+        const altitude = opm.Altitude;
 
         const modeRotation = {};
         modeRotation[hidden] = flat;
@@ -421,69 +423,48 @@ class KeyHandler {
         modeRotation[altitude] = hidden;
 
         const config = this._config;
+        const mode = opm[config.originalPositionMode];
         config.originalPositionMode =
-            modeRotation[config.originalPositionMode];
-        this._configure('originalPositionMode');
-        this._modeConfig.originalPositionMode =
-            mode[config.originalPositionMode];
+            opm[modeRotation[mode]];
+        return opm[config.originalPositionMode];
     }
 
-    _setDirectionComponent() {
-        if (this._config.earthControls) {
-            this._viewer.deactivateComponent('direction');
-        }
-        else { this._viewer.activateComponent('direction'); }
-    }
-
-    _setImagesComponent() {
-        if (this._config.imagesVisible) {
-            this._viewer.activateComponent('imagePlane');
-        }
-        else { this._viewer.deactivateComponent('imagePlane'); }
-    }
-
-    _toggleBooleanSetting(name) {
+    _toggle(command) {
         const config = this._config;
-        config[name] = !config[name];
-        this._configure(name);
-    }
-
-    _toggleImages() {
-        const config = this._config;
-        config.imagesVisible = !config.imagesVisible;
-        this._setImagesComponent();
+        config[command] = !config[command];
+        return config[command];
     }
 }
 
 class OptionController {
     constructor(options) {
         const eventEmitter = new EventEmitter();
-        const config = Object.assign(
-            {},
-            options.viewer
-                .getComponent('spatialData')
-                .defaultConfiguration,
-            {
-                imagesVisible: options.imagesVisible,
-                thumbnailVisible: options.thumbnailVisible,
-                infoSize: options.infoSize,
-            },
-            options.spatialConfiguration);
-
         const cvm = Mapillary.SpatialDataComponent.CameraVisualizationMode;
         const opm = Mapillary.SpatialDataComponent.OriginalPositionMode;
-        const modeConfig = {
-            'cameraVisualizationMode': cvm[config.cameraVisualizationMode],
-            'originalPositionMode': opm[config.originalPositionMode],
-        };
-
-        const internalOptions = Object.assign(
+        const config = Object.assign(
             {},
             options,
-            { config, eventEmitter, modeConfig });
-        this._datController = new DatController(internalOptions);
-        this._keyHandler = new KeyHandler(internalOptions);
-        this._keyHandler.bindKeys();
+            {
+                'cameraVisualizationMode': cvm[options.cameraVisualizationMode],
+                'originalPositionMode': opm[options.originalPositionMode],
+            });
+        const eventTypes = {
+            cameraSize: 'camerasize',
+            camerasVisible: 'camerasvisible',
+            cameraVisualizationMode: 'cameravisualizationmode',
+            earthControls: 'earthcontrols',
+            imagesVisible: 'imagesvisible',
+            infoSize: 'infosize',
+            originalPositionMode: 'originalpositionmode',
+            pointSize: 'pointsize',
+            pointsVisible: 'pointsvisible',
+            clusters: 'clusters',
+            thumbnailVisible: 'thumbnailvisible',
+            tilesVisible: 'tilesvisible',
+        };
+        const internal = { config, eventEmitter, eventTypes };
+        this._datController = new DatController(internal);
+        this._keyHandler = new KeyHandler(internal);
         this._eventEmitter = eventEmitter;
         this._config = config;
     }
