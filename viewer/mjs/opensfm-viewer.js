@@ -317,19 +317,25 @@ class KeyHandler {
         const decrease = 0.9;
         const increase = 1.1;
         this._commands = {
-            c: { value: 'camerasVisible' },
-            p: { value: 'pointsVisible' },
-            t: { value: 'tilesVisible' },
-            i: { value: 'imagesVisible' },
-            e: { value: 'earthControls' },
-            v: { value: 'cameraVisualizationMode' },
-            o: { value: 'originalPositionMode' },
-            q: { value: 'pointSize', coeff: decrease },
-            w: { value: 'pointSize', coeff: increase },
-            a: { value: 'cameraSize', coeff: decrease },
-            s: { value: 'cameraSize', coeff: increase },
-            z: { value: 'infoSize', coeff: decrease },
-            x: { value: 'infoSize', coeff: increase },
+            // visibility
+            'c': { value: 'camerasVisible' },
+            'f': { value: 'pointsVisible' },
+            'd': { value: 'tilesVisible' },
+            'r': { value: 'imagesVisible' },
+            'v': { value: 'thumbnailVisible' },
+            // activity
+            'e': { value: 'earthControls' },
+            'g': { value: 'datToggle' },
+            // mode
+            '1': { value: 'cameraVisualizationMode' },
+            '2': { value: 'originalPositionMode' },
+            // size
+            'q': { value: 'pointSize', coeff: decrease },
+            'w': { value: 'pointSize', coeff: increase },
+            'a': { value: 'cameraSize', coeff: decrease },
+            's': { value: 'cameraSize', coeff: increase },
+            'z': { value: 'infoSize', coeff: decrease },
+            'x': { value: 'infoSize', coeff: increase },
         }
 
         this._bindKeys();
@@ -350,21 +356,25 @@ class KeyHandler {
 
                 switch (key) {
                     case 'c':
-                    case 'p':
-                    case 't':
-                    case 'i':
+                    case 'f':
+                    case 'd':
+                    case 'r':
+                    case 'v':
                         const visible = this._toggle(command.value);
                         emitter.fire(type, { type, visible });
+                        break;
+                    case 'g':
+                        emitter.fire(type, { type });
                         break;
                     case 'e':
                         const active = this._toggle(command.value);
                         emitter.fire(type, { active, type });
                         break;
-                    case 'v':
+                    case '1':
                         const cvm = this._rotateCvm();
                         emitter.fire(type, { type, mode: cvm });
                         break;
-                    case 'o':
+                    case '2':
                         const opm = this._rotateOpm()
                         emitter.fire(type, { type, mode: opm });
                         break;
@@ -452,6 +462,7 @@ class OptionController {
             cameraSize: 'camerasize',
             camerasVisible: 'camerasvisible',
             cameraVisualizationMode: 'cameravisualizationmode',
+            datToggle: 'dattoggle',
             earthControls: 'earthcontrols',
             imagesVisible: 'imagesvisible',
             infoSize: 'infosize',
@@ -856,6 +867,7 @@ class OpenSfmViewer {
         optionController.on(
             'cameravisualizationmode', this._onCameraVisualizationMode);
         optionController.on('clusters', this._onClusters);
+        optionController.on('dattoggle', this._onDatToggle);
         optionController.on('earthcontrols', this._onEarthControls);
         optionController.on('imagesvisible', this._onImagesVisible);
         optionController.on('infosize', this._onInfoSize);
@@ -924,6 +936,15 @@ class OpenSfmViewer {
         if (active) { this._viewer.deactivateComponent(direction); }
         else { this._viewer.activateComponent(direction); }
     };
+
+    _onDatToggle = () => {
+        const dat = this._optionController.dat;
+        if (dat.gui.closed) {
+            dat.gui.open();
+        } else {
+            dat.gui.close();
+        }
+    }
 
     _onImagesVisible = event => {
         if (event.visible) { this._viewer.activateComponent('imagePlane'); }
