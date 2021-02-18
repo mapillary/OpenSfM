@@ -42,21 +42,9 @@ function createProviderOptions(params) {
 
 class OpenSfmViewer {
     constructor(options) {
-        this._infoControl = null;
-        this._optionController = null;
         this._params = options.params;
         this._provider = options.provider;
-        this._spatial = null;
-        this._viewer = null;
-    }
 
-    get info() { return this._infoControl; }
-    get option() { return this._optionController; }
-    get params() { return this._params; }
-    get provider() { return this._provider; }
-    get viewer() { return this._viewer; }
-
-    initialize() {
         const document = window.document;
         const container = document.createElement('div');
         container.classList.add('opensfm-viewer');
@@ -76,6 +64,9 @@ class OpenSfmViewer {
             cameraVisualizationMode: cvm,
         };
         const imagesVisible = false;
+        const infoSize = 0.3;
+        const thumbnailVisible = false;
+
         this._viewer = new Mapillary.Viewer({
             apiClient: this._provider,
             combinedPanning: false,
@@ -93,29 +84,35 @@ class OpenSfmViewer {
         this._spatial = viewer.getComponent('spatialData');
         window.addEventListener('resize', () => viewer.resize());
 
-        const infoSize = 0.3;
-        const thumbnailVisible = false;
         this._thumbnailControl = new ThumbnailControl({ thumbnailVisible })
         this._thumbnailControl.setWidth(infoSize);
+
         this._infoControl = new InfoControl({
             beforeContainer: viewer.getContainer(),
         });
         this._infoControl.addControl(this._thumbnailControl);
 
-        const defaultConfiguration = {
-            imagesVisible,
-            infoSize,
-            thumbnailVisible,
-        };
-        const options = Object.assign(
-            {},
-            viewer.getComponent('spatialData').defaultConfiguration,
-            defaultConfiguration,
-            spatialConfiguration);
-        this._optionController = new OptionController(options);
+        this._optionController = new OptionController(
+            Object.assign(
+                {},
+                viewer.getComponent('spatialData').defaultConfiguration,
+                {
+                    imagesVisible,
+                    infoSize,
+                    thumbnailVisible,
+                },
+                spatialConfiguration));
 
         this._listen();
+    }
 
+    get info() { return this._infoControl; }
+    get option() { return this._optionController; }
+    get params() { return this._params; }
+    get provider() { return this._provider; }
+    get viewer() { return this._viewer; }
+
+    initialize() {
         const target = this;
         const event =
             new CustomEvent('mapillarycreated', { detail: { target } });
@@ -126,6 +123,7 @@ class OpenSfmViewer {
                 const items = Object.keys(provider.data.clusters);
                 this._optionController.dat.addReconstructionItems(items);
             });
+
         this._move();
     }
 
