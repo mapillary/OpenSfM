@@ -1,5 +1,6 @@
 import multiprocessing
 
+import os
 import numpy as np
 from matplotlib.image import _rgb_to_rgba
 from opensfm import dataset
@@ -9,6 +10,8 @@ IMAGE_MAX_SIZE = 1000
 
 
 def load_image(path):
+    if '.json' in path:
+        print(path)
     rgb = Image.open(path)
 
     # Reduce to some reasonable maximum size
@@ -17,12 +20,16 @@ def load_image(path):
         new_w = int(round(rgb.size[0] / scale))
         new_h = int(round(rgb.size[1] / scale))
         rgb = rgb.resize((new_w, new_h), resample=Image.BILINEAR)
+
+    if rgb.mode == 'L':
+        rgb = rgb.convert("RGB")
     # Matplotlib will transform to rgba when plotting
     return _rgb_to_rgba(np.asarray(rgb))
 
 
 class ImageManager:
-    def __init__(self, seqs, path, preload_images=True):
+    def __init__(self, seqs, path, preload_images=True, skip_frames=1):
+        self.skip_frames = skip_frames
         self.seqs = seqs
         self.path = path
         self.image_cache = {}
@@ -31,7 +38,8 @@ class ImageManager:
             self.preload_images()
 
     def image_path(self, image_name):
-        return f"{self.path}/images/{image_name}"
+        print(image_name)
+        return f"{self.path}/{image_name}"
 
     def get_image(self, image_name):
         if image_name not in self.image_cache:
@@ -63,8 +71,21 @@ class ImageManager:
         image_names = []
         for keys in self.seqs.values():
             for k in keys:
-                image_names.append(k)
-                paths.append(self.image_path(k))
+                image_path = os.path.join(self.path, k)
+                if os.path.isfile(image_path):
+                    image_filename = os.path.basename(image_path)
+                    # image_folder = os.path.dirname(image_path)
+                    image_names.append(image_filename)
+                    paths.append(image_path)
+                else:
+                    image_names.append(k)
+                    paths.append(self.image_path(k))
+
+        # skip frames
+        if self.skip_frames > 1:
+            image_names = image_names[::self.skip_frames]
+            paths = paths[::self.skip_frames]
+
         pool = multiprocessing.Pool(processes=n_cpu)
         images = pool.map(load_image, paths)
         for image_name, im in zip(image_names, images):

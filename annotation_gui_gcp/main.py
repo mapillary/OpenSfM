@@ -1,8 +1,9 @@
 import argparse
+import os
 import tkinter as tk
 from collections import OrderedDict, defaultdict
 from pathlib import Path
-
+from glob import glob
 from opensfm import dataset, io
 
 import GUI
@@ -21,6 +22,12 @@ def parse_args():
         action="store_true",
         help="If set, the UI will show one window per reconstruction, "
         "otherwise, it will use sequences as specified by 'sequence-file'",
+    )
+    parser.add_argument(
+        "--skip_frames",
+        type=int,
+        default=1,
+        help="Skip frames in sequences",
     )
     parser.add_argument(
         "--strict-missing",
@@ -67,6 +74,19 @@ def parse_args():
 
 def file_sanity_check(root, seq_dict, fname):
     # Images available under ./images for a sanity check
+    is_path_glob_expression = False
+    for seq_keys in seq_dict.values():
+        if '*' in seq_keys:
+            is_path_glob_expression = True
+
+    if is_path_glob_expression:
+        available_images = set()
+        for seq_keys in seq_dict.values():
+            seq_images = sorted(glob(str(root / seq_keys)))
+            available_images.update(seq_images)
+        available_images = {x.replace(str(root) + '/', '') for x in available_images}
+        return available_images
+
     available_images = {p.name for p in (root / "images").iterdir()}
     keys_in_seq_dict = {im_key for seq_keys in seq_dict.values() for im_key in seq_keys}
 
@@ -98,7 +118,12 @@ def load_sequence_database_from_file(
 
     for skey in seq_dict:
         available_image_keys = []
-        for k in seq_dict[skey]:
+        image_list = seq_dict[skey]
+        if '*' in seq_dict[skey]:
+            image_list = sorted(glob(str(root / seq_dict[skey])))
+            seq_dict[skey] = sorted([x.replace(str(root) + '/', '') for x in image_list])
+            continue
+        for k in image_list:
             if k in available_images:
                 available_image_keys.append(k)
             elif not skip_missing:
@@ -193,7 +218,7 @@ if __name__ == "__main__":
     args = parse_args()
     path = args.dataset
     groups, sequence_groups = group_images(args)
-    image_manager = ImageManager(groups, path, preload_images=not args.no_preload)
+    image_manager = ImageManager(groups, path, preload_images=not args.no_preload, skip_frames=args.skip_frames)
     gcp_manager = GroundControlPointManager(path)
     root = tk.Tk()
     root.resizable(True, True)
