@@ -122,12 +122,16 @@ class Report:
         self.pdf.set_xy(self.margin, self.title_size)
 
         # version number
-        out, _ = subprocess.Popen(
-            ["git", "describe", "--tags"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        ).communicate()
-        version = out.strip().decode()
+        try:
+            out, _ = subprocess.Popen(
+                ["git", "describe", "--tags"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            ).communicate()
+            version = out.strip().decode()
+        except BaseException as e:
+            logger.warning(f"Exception thrwon while extracting 'git' version, {e}")
+            version = ""
 
         # indicate we don't know the version
         version = "unknown" if version == "" else version
