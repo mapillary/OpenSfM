@@ -95,11 +95,7 @@ class OpenSfmViewer {
         const viewer = this._viewer;
         const infoSize = 0.3;
         const thumbnailVisible = false;
-        this._thumbnailControl = new ThumbnailControl({
-            thumbnailVisible,
-            viewer,
-        })
-        this._thumbnailControl.listen();
+        this._thumbnailControl = new ThumbnailControl({ thumbnailVisible })
         this._thumbnailControl.setWidth(infoSize);
         this._infoControl = new InfoControl({
             beforeContainer: viewer.getContainer(),
@@ -117,14 +113,11 @@ class OpenSfmViewer {
         this._optionController = new OptionController(options);
         this._optionController.on(
             'thumbnailvisiblechanged',
-            event => {
-                if (event.visible) { this._thumbnailControl.show(); }
-                else { this._thumbnailControl.hide(); }
-                this._thumbnailControl.update();
-            });
-        this._optionController.on(
-            'infosizechanged',
-            event => this._thumbnailControl.setWidth(event.width));
+            this._onThumbnailVisibleChanged);
+        this._optionController.on('infosizechanged', this._onInfoSizeChanged);
+
+        const Viewer = Mapillary.Viewer;
+        this._viewer.on(Viewer.nodechanged, this._onNodeChanged);
 
         const target = this;
         const event =
@@ -145,6 +138,21 @@ class OpenSfmViewer {
         return Object.keys(reconstructions[0].shots)[0];
     }
 
+    _loadProvider() {
+        const provider = this._provider;
+        return new Promise((resolve) => {
+            if (provider.loaded) {
+                resolve(provider);
+                return;
+            }
+            provider.on(
+                'loaded',
+                event => {
+                    resolve(event.target);
+                });
+        })
+    }
+
     async _move() {
         if (!!this._params.img) {
             this._moveToKey(this._viewer, this._params.img);
@@ -162,19 +170,15 @@ class OpenSfmViewer {
             .catch(error => console.error(error));
     }
 
-    _loadProvider() {
-        const provider = this._provider;
-        return new Promise((resolve) => {
-            if (provider.loaded) {
-                resolve(provider);
-                return;
-            }
-            provider.on(
-                'loaded',
-                event => {
-                    resolve(event.target);
-                });
-        })
+    _onInfoSizeChanged = event => {
+        this._thumbnailControl.setWidth(event.width);
+    }
+
+    _onNodeChanged = node => { this._thumbnailControl.update(node); }
+
+    _onThumbnailVisibleChanged = event => {
+        if (event.visible) { this._thumbnailControl.show(); }
+        else { this._thumbnailControl.hide(); }
     }
 }
 

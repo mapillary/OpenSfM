@@ -26,7 +26,6 @@ class ThumbnailControl {
         container.appendChild(this._sequence.element);
         container.appendChild(this._image.element);
         this._container = container;
-        this._viewer = options.viewer;
         this._thumbnailVisible = options.thumbnailVisible;
         this._node = null;
     }
@@ -39,21 +38,9 @@ class ThumbnailControl {
         this._thumbnailVisible = false;
     }
 
-    listen() {
-        const Viewer = Mapillary.Viewer;
-        this._viewer.on(Viewer.nodechanged, node => {
-            this._node = node;
-            this.update();
-        });
-    }
-
-    update() {
-        if (!this._node || !this._thumbnailVisible) { return; }
-        const node = this._node;
-        this._thumb.src = node.image.src;
-        this._setTextContent(this._cluster, node.clusterKey);
-        this._setTextContent(this._sequence, node.sequenceKey);
-        this._setTextContent(this._image, node.key);
+    update(node) {
+        this._node = node;
+        this._render();
     }
 
     setWidth(value) { this._container.style.width = `${100 * value}%`; }
@@ -62,6 +49,7 @@ class ThumbnailControl {
         if (this._thumbnailVisible) { return; }
         this._container.classList.remove('opensfm-hidden');
         this._thumbnailVisible = true;
+        this._render();
     }
 
     _createContainer() {
@@ -94,6 +82,15 @@ class ThumbnailControl {
     _setTextContent(textItem, content) {
         textItem.element.textContent = textItem.prefix + content;
         textItem.copier.setCopyText(content);
+    }
+
+    _render() {
+        if (!this._node || !this._thumbnailVisible) { return; }
+        const node = this._node;
+        this._thumb.src = node.image.src;
+        this._setTextContent(this._cluster, node.clusterKey);
+        this._setTextContent(this._sequence, node.sequenceKey);
+        this._setTextContent(this._image, node.key);
     }
 }
 
