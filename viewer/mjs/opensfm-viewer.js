@@ -14,6 +14,59 @@ class EventEmitter {
     }
 }
 
+class CommandExplainerControl {
+    constructor(options) {
+        this._visible = options.visible;
+        this._container = this._createContainer();
+        this._popup = this._createPopup();
+    }
+
+    get container() { return this._container; }
+
+    addCommands(commands) {
+        const lines = Object
+            .keys(commands)
+            .map(
+                key => {
+                    const value = commands[key].value;
+                    return `'${key}' - ${value}`;
+                });
+        this._popup.setLines(lines);
+    }
+
+    hide() {
+        if (!this._visible) { return; }
+        this._container.classList.add('opensfm-hidden');
+        this._visible = false;
+    }
+
+    show() {
+        if (this._visible) { return; }
+        this._container.classList.remove('opensfm-hidden');
+        this._visible = true;
+    }
+
+    _createContainer() {
+        const header = document.createElement('span');
+        header.classList.add('opensfm-info-text', 'opensfm-info-text-header');
+        header.textContent = 'Commands';
+
+        const container = document.createElement('div');
+        container.classList.add(
+            'opensfm-control-container',
+            'opensfm-hidden');
+        container.appendChild(header);
+        return container;
+    }
+
+    _createPopup() {
+        return new Popup({
+            container: this._container.firstElementChild,
+            up: false,
+        });
+    }
+}
+
 class ThumbnailControl {
     constructor(options) {
         this._cluster = this._createText('Cluster: ');
@@ -26,16 +79,16 @@ class ThumbnailControl {
         container.appendChild(this._sequence.element);
         container.appendChild(this._image.element);
         this._container = container;
-        this._thumbnailVisible = options.thumbnailVisible;
+        this._visible = options.visible;
         this._node = null;
     }
 
     get container() { return this._container; }
 
     hide() {
-        if (!this._thumbnailVisible) { return; }
+        if (!this._visible) { return; }
         this._container.classList.add('opensfm-hidden');
-        this._thumbnailVisible = false;
+        this._visible = false;
     }
 
     update(node) {
@@ -43,12 +96,10 @@ class ThumbnailControl {
         this._render();
     }
 
-    setWidth(value) { this._container.style.width = `${100 * value}%`; }
-
     show() {
-        if (this._thumbnailVisible) { return; }
+        if (this._visible) { return; }
         this._container.classList.remove('opensfm-hidden');
-        this._thumbnailVisible = true;
+        this._visible = true;
         this._render();
     }
 
@@ -59,7 +110,7 @@ class ThumbnailControl {
 
         const container = document.createElement('div');
         container.classList.add(
-            'opensfm-thumb-container',
+            'opensfm-control-container',
             'opensfm-hidden');
         container.appendChild(header);
         return container;
@@ -85,7 +136,7 @@ class ThumbnailControl {
     }
 
     _render() {
-        if (!this._node || !this._thumbnailVisible) { return; }
+        if (!this._node || !this._visible) { return; }
         const node = this._node;
         this._thumb.src = node.image.src;
         this._setTextContent(this._cluster, node.clusterKey);
@@ -106,6 +157,11 @@ class InfoControl {
     addControl(control) {
         this._container.appendChild(control.container);
         this._controls.push(control);
+    }
+
+    setWidth(value) {
+        const width = `${100 * value}%`;
+        this._container.style.width = width;
     }
 }
 
@@ -239,6 +295,7 @@ class DatController {
     _createInfoFolder(gui) {
         const folder = gui.addFolder('Info');
         folder.open();
+        this._addBooleanOption('commandsVisible', folder);
         this._addBooleanOption('thumbnailVisible', folder);
         this._addNumericOption('infoSize', folder);
     }
@@ -276,6 +333,7 @@ class DatController {
         let type = null;
         switch (name) {
             case 'camerasVisible':
+            case 'commandsVisible':
             case 'imagesVisible':
             case 'pointsVisible':
             case 'thumbnailVisible':
@@ -319,12 +377,13 @@ class KeyHandler {
         this._commands = {
             // visibility
             'c': { value: 'camerasVisible' },
+            'e': { value: 'commandsVisible' },
             'f': { value: 'pointsVisible' },
             'd': { value: 'tilesVisible' },
             'r': { value: 'imagesVisible' },
             'v': { value: 'thumbnailVisible' },
             // activity
-            'e': { value: 'earthControls' },
+            't': { value: 'earthControls' },
             'g': { value: 'datToggle' },
             // mode
             '1': { value: 'cameraVisualizationMode' },
@@ -336,10 +395,12 @@ class KeyHandler {
             's': { value: 'cameraSize', coeff: increase },
             'z': { value: 'infoSize', coeff: decrease },
             'x': { value: 'infoSize', coeff: increase },
-        }
+        };
 
         this._bindKeys();
     }
+
+    get commands() { return this._commands; }
 
     _bindKeys() {
         const emitter = this._eventEmitter;
@@ -356,8 +417,9 @@ class KeyHandler {
 
                 switch (key) {
                     case 'c':
-                    case 'f':
                     case 'd':
+                    case 'e':
+                    case 'f':
                     case 'r':
                     case 'v':
                         const visible = this._toggle(command.value);
@@ -366,7 +428,7 @@ class KeyHandler {
                     case 'g':
                         emitter.fire(type, { type });
                         break;
-                    case 'e':
+                    case 't':
                         const active = this._toggle(command.value);
                         emitter.fire(type, { active, type });
                         break;
@@ -378,12 +440,12 @@ class KeyHandler {
                         const opm = this._rotateOpm()
                         emitter.fire(type, { type, mode: opm });
                         break;
-                    case 'q':
-                    case 'w':
                     case 'a':
+                    case 'q':
                     case 's':
-                    case 'z':
+                    case 'w':
                     case 'x':
+                    case 'z':
                         const size = this._changeSize(
                             command.value,
                             command.coeff);
@@ -462,6 +524,7 @@ class OptionController {
             cameraSize: 'camerasize',
             camerasVisible: 'camerasvisible',
             cameraVisualizationMode: 'cameravisualizationmode',
+            commandsVisible: 'commandsvisible',
             datToggle: 'dattoggle',
             earthControls: 'earthcontrols',
             imagesVisible: 'imagesvisible',
@@ -480,9 +543,10 @@ class OptionController {
         this._config = config;
     }
 
+    get config() { return this._config; }
     get dat() { return this._datController; }
     get eventEmitter() { return this._eventEmitter; }
-    get config() { return this._config; }
+    get key() { return this._keyHandler; }
 
     on(type, callback) { this._eventEmitter.on(type, callback); }
 }
@@ -650,15 +714,10 @@ class FileLoader {
     }
 }
 
-class Copier {
+class Popup {
     constructor(options) {
-        if (!window.navigator || !window.navigator.clipboard) {
-            // Clipboard requires secure origin (https or localhost)
-            // or setting a browser flag.
-            return;
-        }
-
         const container = options.container;
+
         const onShowTypes = ['pointerenter'];
         for (const type of onShowTypes) {
             container.addEventListener(type, this._onShow);
@@ -672,13 +731,23 @@ class Copier {
 
         this._onHideTypes = onHideTypes;
         this._onShowTypes = onShowTypes;
-        this._textContent = 'Copy';
 
-        this._copyText = options.copyText;
         this._container = container;
-        this._resetCursor = this._container.style.cursor;
-        this._container.style.cursor = 'pointer';
+        this._lines = [];
+        this._up = options.up;
+        this._popup = null;
         this._popupContainer = null;
+    }
+
+    appendLines(lines) {
+        this._lines.push(...lines);
+        this._appendLines(lines.slice());
+    }
+
+    setLines(lines) {
+        this._lines = lines.slice();
+        this._clearLines();
+        this._appendLines(this._lines);
     }
 
     dispose() {
@@ -705,9 +774,100 @@ class Copier {
         this._container = null;
     }
 
-    setCopyText(content) {
-        this._copyText = content;
+    _appendLines(lines) {
+        const popup = this._popup;
+        if (!popup) { return; }
+        for (const line of lines) {
+            const span = document.createElement('span');
+            span.style.display = 'block';
+            span.textContent = line;
+            popup.appendChild(span);
+        }
     }
+
+    _clearLines() {
+        const popup = this._popup;
+        if (!popup) { return; }
+        while (popup.lastElementChild) {
+            popup.removeChild(popup.lastElementChild);
+        }
+    }
+
+    _onShow = () => {
+        if (!!this._popup) { return; }
+        const container = this._container;
+        const left = container.offsetLeft;
+        const boundingRect = container.getBoundingClientRect();
+        const up = this._up;
+        const top = up ?
+            container.offsetTop :
+            container.offsetTop + boundingRect.height;
+
+        const directionClassname = up ?
+            'opensfm-popup-up' : 'opensfm-popup-down';
+        const document = window.document;
+        const popup = document.createElement('div');
+        popup.classList.add('opensfm-popup');
+
+        const arrow = document.createElement('div');
+        arrow.classList.add('opensfm-popup-arrow', directionClassname);
+
+        const popupContainer = document.createElement('div');
+        popupContainer.classList.add(
+            'opensfm-popup-container',
+            directionClassname);
+        popupContainer.style.position = 'absolute';
+        popupContainer.style.left = `${left + 2}px`;
+        popupContainer.style.top = `${top}px`;
+        popupContainer.appendChild(popup);
+        if (up) { popupContainer.appendChild(arrow); }
+        else { popup.before(arrow); }
+        container.parentNode.appendChild(popupContainer);
+
+        this._popupContainer = popupContainer;
+        this._popup = popup;
+        this._appendLines(this._lines);
+    };
+
+    _onHide = () => {
+        const popupContainer = this._popupContainer;
+        if (!popupContainer) { return; }
+        this._container.parentNode.removeChild(popupContainer);
+        this._popupContainer = null;
+        this._popup = null;
+    };
+}
+
+class Copier {
+    constructor(options) {
+        if (!window.navigator || !window.navigator.clipboard) {
+            // Clipboard requires secure origin (https or localhost)
+            // or setting a browser flag.
+            return;
+        }
+
+        this._copyText = options.copyText;
+        const container = options.container;
+        this._resetCursor = container.style.cursor;
+        container.style.cursor = 'pointer';
+        container.addEventListener('click', this._onClick);
+
+        this._popup = new Popup({ container, up: true });
+        this._popup.setLines(['Copy'])
+        this._container = container;
+    }
+
+    dispose() {
+        if (!this._container) { return; }
+        this._popup.dispose();
+        this._popup = null;
+        const container = this._container;
+        container.removeEventListener('click', this._onClick);
+        container.style.cursor = this._resetCursor;
+        this._container = null;
+    }
+
+    setCopyText(content) { this._copyText = content; }
 
     _onClick = async () => {
         try {
@@ -720,53 +880,17 @@ class Copier {
     }
 
     _showCopied() {
-        if (!this._popupContainer) { return; }
-        const popup = this._popupContainer.firstElementChild;
-        popup.textContent = 'Copied to clipboard';
+        if (!this._popup) { return; }
+        this._popup.setLines(['Copied to clipboard']);
         return new Promise((resolve) => {
             window.setTimeout(
                 () => {
-                    if (!this._popupContainer) { resolve(); return; }
-                    const popup = this._popupContainer.firstElementChild;
-                    popup.textContent = this._textContent;
+                    if (!this._popup) { resolve(); return; }
+                    this._popup.setLines(['Copy']);
                     resolve();
                 },
                 850);
         })
-    }
-
-    _onShow = () => {
-        if (!!this._popupContainer) { return; }
-        const container = this._container;
-        const left = container.offsetLeft;
-        const top = container.offsetTop;
-
-        const document = window.document;
-        const popup = document.createElement('div');
-        popup.classList.add('opensfm-popup');
-        popup.textContent = this._textContent;
-        const arrow = document.createElement('div');
-        arrow.classList.add('opensfm-popup-arrow');
-
-        const popupContainer = document.createElement('div');
-        popupContainer.classList.add('opensfm-popup-container');
-        popupContainer.style.position = 'absolute';
-        popupContainer.style.left = `${left + 2}px`;
-        popupContainer.style.top = `${top}px`;
-        popupContainer.appendChild(popup);
-        popupContainer.appendChild(arrow);
-        container.parentNode.appendChild(popupContainer);
-        this._popupContainer = popupContainer;
-
-        container.addEventListener('click', this._onClick);
-    }
-
-    _onHide = () => {
-        const popup = this._popupContainer;
-        if (!popup) { return; }
-        this._container.parentNode.removeChild(popup);
-        this._container.removeEventListener('click', this._onClick);
-        this._popupContainer = null;
     }
 }
 
@@ -794,8 +918,6 @@ class OpenSfmViewer {
             cameraVisualizationMode: cvm,
         };
         const imagesVisible = false;
-        const infoSize = 0.3;
-        const thumbnailVisible = false;
 
         this._viewer = new Mapillary.Viewer({
             apiClient: this._provider,
@@ -814,28 +936,42 @@ class OpenSfmViewer {
         this._spatial = viewer.getComponent('spatialData');
         window.addEventListener('resize', () => viewer.resize());
 
-        this._thumbnailControl = new ThumbnailControl({ thumbnailVisible })
-        this._thumbnailControl.setWidth(infoSize);
-
-        this._infoControl = new InfoControl({
-            beforeContainer: viewer.getContainer(),
-        });
-        this._infoControl.addControl(this._thumbnailControl);
+        const infoSize = 0.3;
+        const thumbnailVisible = false;
+        const commandsVisible = false;
 
         this._optionController = new OptionController(
             Object.assign(
                 {},
                 viewer.getComponent('spatialData').defaultConfiguration,
                 {
+                    commandsVisible,
                     imagesVisible,
                     infoSize,
                     thumbnailVisible,
                 },
                 spatialConfiguration));
 
+        this._thumbnailControl = new ThumbnailControl({
+            visible: thumbnailVisible,
+        })
+        this._commandExplainerControl = new CommandExplainerControl({
+            visible: commandsVisible,
+        });
+        this._commandExplainerControl.addCommands(
+            this._optionController.key.commands);
+
+        this._infoControl = new InfoControl({
+            beforeContainer: viewer.getContainer(),
+        });
+        this._infoControl.addControl(this._commandExplainerControl);
+        this._infoControl.addControl(this._thumbnailControl);
+        this._infoControl.setWidth(infoSize);
+
         this._listen();
     }
 
+    get commands() { return this._commandExplainerControl; }
     get info() { return this._infoControl; }
     get option() { return this._optionController; }
     get params() { return this._params; }
@@ -867,6 +1003,7 @@ class OpenSfmViewer {
         optionController.on(
             'cameravisualizationmode', this._onCameraVisualizationMode);
         optionController.on('clusters', this._onClusters);
+        optionController.on('commandsvisible', this._onCommandsVisible);
         optionController.on('dattoggle', this._onDatToggle);
         optionController.on('earthcontrols', this._onEarthControls);
         optionController.on('imagesvisible', this._onImagesVisible);
@@ -929,6 +1066,11 @@ class OpenSfmViewer {
         this._viewer.setFilter(filter);
     };
 
+    _onCommandsVisible = event => {
+        if (event.visible) { this._commandExplainerControl.show(); }
+        else { this._commandExplainerControl.hide(); }
+    };
+
     _onEarthControls = event => {
         const active = event.active;
         const direction = 'direction';
@@ -952,7 +1094,7 @@ class OpenSfmViewer {
     };
 
     _onInfoSize = event =>
-        this._thumbnailControl.setWidth(event.size);
+        this._infoControl.setWidth(event.size);
 
     _onOriginalPositionMode = event =>
         this._configure({ originalPositionMode: event.mode });

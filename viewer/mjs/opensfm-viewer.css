@@ -12,7 +12,7 @@ body,
 }
 
 .opensfm-file-container.opensfm-hidden,
-.opensfm-thumb-container.opensfm-hidden,
+.opensfm-control-container.opensfm-hidden,
 input[type='file'] {
     display: none;
 }
@@ -67,15 +67,16 @@ input[type='file'] {
     position: absolute;
     top: 0;
     left: 0;
+    min-width: 200px;
+    max-width: calc(100% - 321px);
     margin-left: 17px;
     user-select: none;
     pointer-events: none;
 }
 
-.opensfm-thumb-container {
+.opensfm-control-container {
     display: block;
-    min-width: 200px;
-    max-width: calc(100% - 304px);
+    width: 100%;
     background-color: black;
     border: 1px solid #555;
     font: 11px 'Lucida Grande', sans-serif;
@@ -83,8 +84,8 @@ input[type='file'] {
 }
 
 @media screen and (max-width: 640px) {
-    .opensfm-thumb-container {
-        max-width: calc(100% - 17px);
+    .opensfm-info-container {
+        max-width: calc(100% - 34px);
     }
 }
 
@@ -111,9 +112,12 @@ input[type='file'] {
 }
 
 .opensfm-popup-container {
-    transform: translate(0, -96%);
     pointer-events: none;
     user-select: none;
+}
+
+.opensfm-popup-container.opensfm-popup-up {
+    transform: translate(0, -100%);
 }
 
 .opensfm-popup {
@@ -128,6 +132,13 @@ input[type='file'] {
     height: 0;
     border-left: 5px solid transparent;
     border-right: 5px solid transparent;
-    border-top: 5px solid white;
     margin-left: 10px;
+}
+
+.opensfm-popup-arrow.opensfm-popup-up {
+    border-top: 5px solid white;
+}
+
+.opensfm-popup-arrow.opensfm-popup-down {
+    border-bottom: 5px solid white;
 }
