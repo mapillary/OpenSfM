@@ -134,7 +134,7 @@ class Reconstruction(object):
         if rig_instance.rig_model.id not in self.rig_models:
             self.map.create_rig_model(rig_instance.rig_model)
         in_any_instance = any(
-            (rig_instance.shots & ri.shots) for ri in self.rig_instances
+            (set(rig_instance.shots) & set(ri.shots)) for ri in self.rig_instances
         )
         if not in_any_instance:
             self.map.create_rig_instance(

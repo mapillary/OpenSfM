@@ -1,3 +1,4 @@
+#include <foundation/stl_extensions.h>
 #include <map/landmark.h>
 #include <map/rig.h>
 #include <map/shot.h>
@@ -8,12 +9,14 @@ namespace map {
 
 Shot::Shot(const ShotId& shot_id, const Camera* const shot_camera,
            const geometry::Pose& pose)
-    : id_(shot_id), pose_(pose), shot_camera_(shot_camera) {}
+    : id_(shot_id),
+      pose_(std::make_unique<geometry::Pose>(pose)),
+      shot_camera_(shot_camera) {}
 
 Shot::Shot(const ShotId& shot_id, const Camera& shot_camera,
            const geometry::Pose& pose)
     : id_(shot_id),
-      pose_(pose),
+      pose_(std::make_unique<geometry::Pose>(pose)),
       own_camera_(shot_camera),
       shot_camera_(&own_camera_.Value()) {}
 
@@ -21,6 +24,7 @@ void Shot::SetRig(const RigInstance* rig_instance,
                   const RigCamera* rig_camera) {
   rig_instance_.SetValue(rig_instance);
   rig_camera_.SetValue(rig_camera);
+  pose_ = std::make_unique<geometry::PoseImmutable>(*pose_);
 }
 
 void ShotMeasurements::Set(const ShotMeasurements& other) {
@@ -78,31 +82,33 @@ void Shot::SetPose(const geometry::Pose& pose) {
     throw std::runtime_error(
         "Can't set the pose of Shot belonging to a RigInstance");
   }
-  pose_ = pose;
+  *pose_ = pose;
 }
 
-const geometry::Pose& Shot::GetPose() const {
-  if (IsInRig()) {
-    // pose(shot) = pose(rig_camera)*pose(instance)
-    const auto& pose_instance = rig_instance_.Value()->GetPose();
-    const auto& rig_camera_pose = rig_camera_.Value()->pose;
-    pose_ = rig_camera_pose.Compose(pose_instance);
-  }
-  return pose_;
+geometry::Pose Shot::GetPoseInRig() const {
+  // pose(shot) = pose(rig_camera)*pose(instance)
+  const auto& pose_instance = rig_instance_.Value()->GetPose();
+  const auto& rig_camera_pose = rig_camera_.Value()->pose;
+  return rig_camera_pose.Compose(pose_instance);
 }
-geometry::Pose& Shot::GetPoseRef() {
-  if (rig_camera_.HasValue()) {
-    throw std::runtime_error(
-        "Can't set the pose of Shot belonging to a RigInstance through "
-        "reference access.");
-  } else {
-    return pose_;
+
+const geometry::Pose* const Shot::GetPose() const {
+  if (IsInRig()) {
+    *pose_ = GetPoseInRig();
   }
+  return pose_.get();
+}
+
+geometry::Pose* const Shot::GetPose() {
+  if (IsInRig()) {
+    *pose_ = GetPoseInRig();
+  }
+  return pose_.get();
 }
 
 Vec2d Shot::Project(const Vec3d& global_pos) const {
-  return shot_camera_->Project(GetPose().RotationWorldToCamera() * global_pos +
-                               GetPose().TranslationWorldToCamera());
+  return shot_camera_->Project(GetPose()->RotationWorldToCamera() * global_pos +
+                               GetPose()->TranslationWorldToCamera());
 }
 
 MatX2d Shot::ProjectMany(const MatX3d& points) const {
@@ -114,7 +120,7 @@ MatX2d Shot::ProjectMany(const MatX3d& points) const {
 }
 
 Vec3d Shot::Bearing(const Vec2d& point) const {
-  return GetPose().RotationCameraToWorld() * shot_camera_->Bearing(point);
+  return GetPose()->RotationCameraToWorld() * shot_camera_->Bearing(point);
 }
 
 MatX3d Shot::BearingMany(const MatX2d& points) const {

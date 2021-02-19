@@ -56,10 +56,10 @@ class Shot {
 
   // Pose
   void SetPose(const geometry::Pose& pose);
-  geometry::Pose& GetPoseRef();
-  const geometry::Pose& GetPose() const;
-  Mat4d GetWorldToCam() const { return GetPose().WorldToCamera(); }
-  Mat4d GetCamToWorld() const { return GetPose().CameraToWorld(); }
+  const geometry::Pose* const GetPose() const;
+  geometry::Pose* const GetPose();
+  Mat4d GetWorldToCam() const { return GetPose()->WorldToCamera(); }
+  Mat4d GetCamToWorld() const { return GetPose()->CameraToWorld(); }
 
   // Landmark management
   const std::map<
@@ -133,8 +133,10 @@ class Shot {
   double scale{1.0};
 
  private:
+  geometry::Pose GetPoseInRig() const;
+
   // Pose
-  mutable geometry::Pose pose_;
+  mutable std::unique_ptr<geometry::Pose> pose_;
   foundation::OptionalValue<MatXd> covariance_;
 
   // Optional rig data

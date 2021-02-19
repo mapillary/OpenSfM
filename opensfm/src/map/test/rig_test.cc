@@ -1,3 +1,4 @@
+#include <foundation/stl_extensions.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <map/rig.h>
@@ -101,13 +102,13 @@ TEST_F(SharedRigInstanceWithShotsFixture, MakesShotThrowWhenSettingPose) {
 }
 
 TEST_F(SharedRigInstanceWithShotsFixture, MakesShotThrowWhenGettingRefPose) {
-  ASSERT_ANY_THROW(shot_instance1.GetPoseRef().SetOrigin(Vec3d::Random()));
+  ASSERT_ANY_THROW(shot_instance1.GetPose()->SetOrigin(Vec3d::Random()));
 }
 
 TEST_F(SharedRigInstanceWithShotsFixture, MakesShotPoseDependsOnRig) {
-  const auto shot_pose = shot_instance1.GetPose();
+  const auto shot_pose = foundation::as_const(shot_instance1).GetPose();
   const auto shot_pose_in_rig = rig_camera_pose.Compose(instance_pose1);
-  ComparePoses(shot_pose_in_rig, shot_pose);
+  ComparePoses(shot_pose_in_rig, *shot_pose);
 }
 
 TEST_F(SharedRigInstanceWithShotsFixture,
@@ -116,8 +117,10 @@ TEST_F(SharedRigInstanceWithShotsFixture,
   new_pose.SetOrigin(Vec3d::Random());
   instance1.UpdateRigCameraPose(rig_camera_id, new_pose);
 
-  ComparePoses(new_pose.Compose(instance_pose1), shot_instance1.GetPose());
-  ComparePoses(new_pose.Compose(instance_pose2), shot_instance2.GetPose());
+  ComparePoses(new_pose.Compose(instance_pose1),
+               *foundation::as_const(shot_instance1).GetPose());
+  ComparePoses(new_pose.Compose(instance_pose2),
+               *foundation::as_const(shot_instance2).GetPose());
 }
 
 TEST_F(SharedRigInstanceWithShotsFixture, UpdatesShotPoseWhenUpdatingShot) {
@@ -125,7 +128,7 @@ TEST_F(SharedRigInstanceWithShotsFixture, UpdatesShotPoseWhenUpdatingShot) {
   new_pose.SetOrigin(Vec3d::Random());
   instance1.UpdateInstancePoseWithShot(shot_instance1.id_, new_pose);
 
-  ComparePoses(new_pose, shot_instance1.GetPose());
+  ComparePoses(new_pose, *foundation::as_const(shot_instance1).GetPose());
 }
 
 TEST_F(SharedRigInstanceWithShotsFixture,
@@ -135,5 +138,6 @@ TEST_F(SharedRigInstanceWithShotsFixture,
   instance1.SetPose(new_pose);
   instance2.SetPose(new_pose);
 
-  ComparePoses(shot_instance2.GetPose(), shot_instance1.GetPose());
+  ComparePoses(*foundation::as_const(shot_instance2).GetPose(),
+               *foundation::as_const(shot_instance1).GetPose());
 }

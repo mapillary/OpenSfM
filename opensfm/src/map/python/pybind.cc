@@ -152,7 +152,8 @@ PYBIND11_MODULE(pymap, m) {
                     py::overload_cast<>(&map::Shot::GetShotMeasurements),
                     &map::Shot::SetShotMeasurements,
                     py::return_value_policy::reference_internal)
-      .def_property("pose", &map::Shot::GetPoseRef, &map::Shot::SetPose,
+      .def_property("pose", py::overload_cast<>(&map::Shot::GetPose),
+                    &map::Shot::SetPose,
                     py::return_value_policy::reference_internal)
       .def_property_readonly("camera", &map::Shot::GetCamera,
                              py::return_value_policy::reference_internal)
@@ -167,7 +168,7 @@ PYBIND11_MODULE(pymap, m) {
           [](const map::Shot &s) {
             auto c = s.GetCamera();
             return py::make_tuple(
-                s.id_, s.unique_id_, s.GetPose().CameraToWorld(),
+                s.id_, s.unique_id_, s.GetPose()->CameraToWorld(),
                 py::make_tuple(c->GetParametersTypes(),
                                c->GetParametersValues(), c->GetProjectionType(),
                                c->width, c->height, c->id));

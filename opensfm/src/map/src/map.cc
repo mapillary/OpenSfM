@@ -276,7 +276,7 @@ Shot& Map::UpdateShot(const Shot& other_shot) {
     shot.scale = other_shot.scale;
     shot.SetShotMeasurements(other_shot.GetShotMeasurements());
     shot.SetCovariance(other_shot.GetCovariance());
-    shot.SetPose(other_shot.GetPose());
+    shot.SetPose(*other_shot.GetPose());
     return shot;
   }
 }
@@ -292,7 +292,7 @@ Shot& Map::UpdatePanoShot(const Shot& other_shot) {
     shot.scale = other_shot.scale;
     shot.SetShotMeasurements(other_shot.GetShotMeasurements());
     shot.SetCovariance(other_shot.GetCovariance());
-    shot.SetPose(other_shot.GetPose());
+    shot.SetPose(*other_shot.GetPose());
     return shot;
   }
 }

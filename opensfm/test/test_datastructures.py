@@ -463,6 +463,17 @@ def test_shot_get():
     assert shot1 is rec.shots[shot_id]
 
 
+def test_shot_pose_set():
+    # Given some created shot
+    rec = _create_reconstruction(1)
+    shot_id = "shot0"
+    shot = rec.create_shot(shot_id, "0")
+
+    origin = np.array([1, 2, 3])
+    shot.pose.set_origin(origin)
+    assert np.allclose(origin, shot.pose.get_origin())
+
+
 def test_shot_get_non_existing():
     # Given some created shot
     rec = _create_reconstruction(1)
@@ -648,6 +659,15 @@ def _create_rig_model():
     return rig_model
 
 
+def _create_rig_instance():
+    rec = _create_reconstruction(1, {"0": 2})
+    rig_model = rec.add_rig_model(_create_rig_model())
+    rig_instance = pymap.RigInstance(rig_model)
+    shot = pymap.Shot("0", pygeometry.Camera.create_spherical(), pygeometry.Pose())
+    rig_instance.add_shot("rig_camera", shot)
+    return rec, rig_instance, shot
+
+
 def test_rig_model():
     rig_model = _create_rig_model()
     rig_camera_retrieved = rig_model.get_rig_camera("rig_camera")
@@ -656,33 +676,34 @@ def test_rig_model():
 
 def test_rig_model_create():
     rec = _create_reconstruction(1, {"0": 2})
-    rig_model = _create_rig_model()
-    rec.add_rig_model(rig_model)
+    rec.add_rig_model(_create_rig_model())
     assert list(rec.rig_models.keys()) == ["rig_model"]
 
 
 def test_rig_instance():
-    rig_model = _create_rig_model()
-
-    rig_instance = pymap.RigInstance(rig_model)
-    shot = pymap.Shot("0", pygeometry.Camera.create_spherical(), pygeometry.Pose())
-    rig_instance.add_shot("rig_camera", shot)
-
+    _, rig_instance, _ = _create_rig_instance()
     assert list(rig_instance.keys()) == ["0"]
 
 
 def test_rig_instance_create():
-    rec = _create_reconstruction(1, {"0": 2})
-
-    rig_model = _create_rig_model()
-    rig_instance = pymap.RigInstance(rig_model)
-    shot = pymap.Shot("0", pygeometry.Camera.create_spherical(), pygeometry.Pose())
-    rig_instance.add_shot("rig_camera", shot)
-
+    rec, rig_instance, _ = _create_rig_instance()
     rec.add_rig_instance(rig_instance)
+
     assert len(rec.rig_instances) == 1
     assert list(rec.rig_models.keys()) == ["rig_model"]
     assert list(rec.rig_instances[0].shots.keys()) == ["0"]
+
+
+def test_rig_shot_modify_pose():
+    _, rig_instance, shot = _create_rig_instance()
+    with pytest.raises(RuntimeError):
+        shot.pose.set_origin(np.array([1, 2, 3]))
+
+
+def test_rig_shot_set_pose():
+    _, rig_instance, shot = _create_rig_instance()
+    with pytest.raises(RuntimeError):
+        shot.pose = pygeometry.Pose()
 
 
 def _helper_shots_equal(shot1, shot2):
