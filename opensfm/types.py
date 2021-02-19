@@ -134,11 +134,15 @@ class Reconstruction(object):
         if rig_instance.rig_model.id not in self.rig_models:
             self.map.create_rig_model(rig_instance.rig_model)
         in_any_instance = any(
-            (set(rig_instance.shots) & set(ri.shots)) for ri in self.rig_instances
+            (set(rig_instance.shots) & set(ri.shots))
+            for ri in self.rig_instances.values()
         )
-        if not in_any_instance:
+        if in_any_instance:
+            raise RuntimeError("Shots already exist in another instance")
+
+        if rig_instance.id not in self.rig_instances:
             self.map.create_rig_instance(
-                rig_instance.rig_model, rig_instance.camera_ids()
+                rig_instance.rig_model, rig_instance.id, rig_instance.camera_ids()
             )
         return self.map.update_rig_instance(rig_instance)
 

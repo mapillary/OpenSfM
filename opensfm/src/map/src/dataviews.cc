@@ -71,10 +71,15 @@ RigInstanceView::RigInstanceView(Map& map) : map_(map) {}
 size_t RigInstanceView::NumberOfRigInstances() const {
   return map_.NumberOfRigInstances();
 }
-RigInstance& RigInstanceView::GetRigInstance(int index) {
-  return map_.GetRigInstance(index);
+RigInstance& RigInstanceView::GetRigInstance(const RigInstanceId& instance_id) {
+  return map_.GetRigInstance(instance_id);
 }
-const std::vector<RigInstance>& RigInstanceView::GetRigInstances() const {
+const std::unordered_map<RigInstanceId, RigInstance>&
+RigInstanceView::GetRigInstances() const {
   return map_.GetRigInstances();
+}
+
+bool RigInstanceView::HasRigInstance(const RigInstanceId& instance_id) const {
+  return map_.HasRigInstance(instance_id);
 }
 }  // namespace map

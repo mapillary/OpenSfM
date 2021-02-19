@@ -662,7 +662,7 @@ def _create_rig_model():
 def _create_rig_instance():
     rec = _create_reconstruction(1, {"0": 2})
     rig_model = rec.add_rig_model(_create_rig_model())
-    rig_instance = pymap.RigInstance(rig_model)
+    rig_instance = pymap.RigInstance(rig_model, 1)
     shot = pymap.Shot("0", pygeometry.Camera.create_spherical(), pygeometry.Pose())
     rig_instance.add_shot("rig_camera", shot)
     return rec, rig_instance, shot
@@ -691,7 +691,7 @@ def test_rig_instance_create():
 
     assert len(rec.rig_instances) == 1
     assert list(rec.rig_models.keys()) == ["rig_model"]
-    assert list(rec.rig_instances[0].shots.keys()) == ["0"]
+    assert list(rec.rig_instances[1].shots.keys()) == ["0"]
 
 
 def test_rig_shot_modify_pose():

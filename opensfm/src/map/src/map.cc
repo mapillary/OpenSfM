@@ -303,7 +303,7 @@ RigModel& Map::CreateRigModel(const map::RigModel& model) {
 }
 
 RigInstance& Map::CreateRigInstance(
-    map::RigModel* rig_model,
+    map::RigModel* rig_model, const map::RigInstanceId& instance_id,
     const std::map<map::ShotId, map::RigCameraId>& instance_shots) {
   auto it_rig_model_exist = rig_models_.find(rig_model->id);
   if (it_rig_model_exist == rig_models_.end()) {
@@ -311,8 +311,10 @@ RigInstance& Map::CreateRigInstance(
   }
 
   // Create instance and add its shots
-  rig_instances_.emplace_back(rig_model);
-  auto& instance = rig_instances_.back();
+  auto it = rig_instances_.emplace(
+      std::piecewise_construct, std::forward_as_tuple(instance_id),
+      std::forward_as_tuple(rig_model, instance_id));
+  auto& instance = it.first->second;
   for (const auto& shot_id : instance_shots) {
     auto it_shot_exist = shots_.find(shot_id.first);
     if (it_shot_exist == shots_.end()) {
@@ -325,18 +327,13 @@ RigInstance& Map::CreateRigInstance(
 }
 
 RigInstance& Map::UpdateRigInstance(const RigInstance& other_rig_instance) {
-  auto cand_keys = other_rig_instance.GetShotIDs();
-  auto it_exist = std::find_if(rig_instances_.begin(), rig_instances_.end(),
-                               [&cand_keys](const auto& p) {
-                                 auto curr_keys = p.GetShotIDs();
-                                 return cand_keys == curr_keys;
-                               });
+  auto it_exist = rig_instances_.find(other_rig_instance.id);
   if (it_exist == rig_instances_.end()) {
     throw std::runtime_error("Rig instance does not exists.");
   } else {
-    auto rig_instance = &(*it_exist);
-    *rig_instance = other_rig_instance;
-    return *rig_instance;
+    auto& rig_instance = it_exist->second;
+    rig_instance = other_rig_instance;
+    return rig_instance;
   }
 }
 
@@ -360,19 +357,21 @@ bool Map::HasRigModel(const RigModelId& rig_model_id) const {
 
 size_t Map::NumberOfRigInstances() const { return rig_instances_.size(); }
 
-RigInstance& Map::GetRigInstance(int index) {
-  if (index >= rig_instances_.size()) {
+RigInstance& Map::GetRigInstance(const RigInstanceId& instance_id) {
+  const auto& it = rig_instances_.find(instance_id);
+  if (it == rig_instances_.end()) {
     throw std::runtime_error("Accessing invalid RIGInstance index");
   }
-  return rig_instances_[index];
+  return it->second;
 }
 
-const std::vector<RigInstance>& Map::GetRigInstances() const {
+const std::unordered_map<RigInstanceId, RigInstance>& Map::GetRigInstances()
+    const {
   return rig_instances_;
 }
 
-bool Map::HasRigInstance(int index) const {
-  return index < rig_instances_.size();
+bool Map::HasRigInstance(const RigInstanceId& instance_id) const {
+  return rig_instances_.find(instance_id) != rig_instances_.end();
 }
 
 };  // namespace map

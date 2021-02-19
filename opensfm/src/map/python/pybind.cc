@@ -209,7 +209,8 @@ PYBIND11_MODULE(pymap, m) {
            py::return_value_policy::reference_internal);
 
   py::class_<map::RigInstance>(m, "RigInstance")
-      .def(py::init<map::RigModel *>())
+      .def(py::init<map::RigModel *, map::RigInstanceId>())
+      .def_readwrite("id", &map::RigInstance::id)
       .def_property_readonly("shots",
                              py::overload_cast<>(&map::RigInstance::GetShots),
                              py::return_value_policy::reference_internal)
@@ -482,21 +483,37 @@ PYBIND11_MODULE(pymap, m) {
       .def(
           "items",
           [](const map::RigInstanceView &sv) {
-            const auto &cams = sv.GetRigInstances();
-            return py::make_iterator(cams.begin(), cams.end());
+            const auto &instances = sv.GetRigInstances();
+            return py::make_iterator(instances.begin(), instances.end());
+          },
+          py::return_value_policy::reference_internal)
+      .def(
+          "values",
+          [](map::RigInstanceView &sv) {
+            auto &instances = sv.GetRigInstances();
+            return py::make_ref_value_iterator(instances.begin(),
+                                               instances.end());
           },
           py::return_value_policy::reference_internal)
       .def(
           "__iter__",
           [](const map::RigInstanceView &sv) {
-            const auto &cams = sv.GetRigInstances();
-            return py::make_iterator(cams.begin(), cams.end());
+            const auto &instances = sv.GetRigInstances();
+            return py::make_iterator(instances.begin(), instances.end());
+          },
+          py::return_value_policy::reference_internal)
+      .def(
+          "keys",
+          [](const map::RigInstanceView &sv) {
+            const auto &instances = sv.GetRigInstances();
+            return py::make_key_iterator(instances.begin(), instances.end());
           },
           py::return_value_policy::reference_internal)
       .def("get", &map::RigInstanceView::GetRigInstance,
            py::return_value_policy::reference_internal)
       .def("__getitem__", &map::RigInstanceView::GetRigInstance,
-           py::return_value_policy::reference_internal);
+           py::return_value_policy::reference_internal)
+      .def("__contains__", &map::RigInstanceView::HasRigInstance);
 
   py::class_<BAHelpers>(m, "BAHelpers")
       .def("bundle", &BAHelpers::Bundle)

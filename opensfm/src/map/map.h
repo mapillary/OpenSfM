@@ -87,7 +87,7 @@ class Map {
   // Creation
   RigModel& CreateRigModel(const map::RigModel& model);
   RigInstance& CreateRigInstance(
-      map::RigModel* model,
+      map::RigModel* model, const map::RigInstanceId& instance_id,
       const std::map<map::ShotId, map::RigCameraId>& instance_shots);
 
   // Update
@@ -100,9 +100,9 @@ class Map {
   bool HasRigModel(const RigModelId& cam_id) const;
 
   size_t NumberOfRigInstances() const;
-  RigInstance& GetRigInstance(int index);
-  const std::vector<RigInstance>& GetRigInstances() const;
-  bool HasRigInstance(int index) const;
+  RigInstance& GetRigInstance(const RigInstanceId& instance_id);
+  const std::unordered_map<RigInstanceId, RigInstance>& GetRigInstances() const;
+  bool HasRigInstance(const RigInstanceId& instance_id) const;
 
   // Landmark
 
@@ -157,7 +157,7 @@ class Map {
   std::unordered_map<ShotId, Shot> shots_;
   std::unordered_map<ShotId, Shot> pano_shots_;
   std::unordered_map<LandmarkId, Landmark> landmarks_;
-  std::vector<RigInstance> rig_instances_;
+  std::unordered_map<RigInstanceId, RigInstance> rig_instances_;
   std::unordered_map<RigModelId, RigModel> rig_models_;
 
   geo::TopocentricConverter topo_conv_;

@@ -4,7 +4,9 @@
 #include <map/rig.h>
 #include <map/shot.h>
 
+#include <deque>
 #include <unordered_map>
+
 namespace map {
 class Map;
 class ShotView {
@@ -71,8 +73,9 @@ class RigInstanceView {
  public:
   explicit RigInstanceView(Map& map);
   size_t NumberOfRigInstances() const;
-  RigInstance& GetRigInstance(int index);
-  const std::vector<RigInstance>& GetRigInstances() const;
+  RigInstance& GetRigInstance(const RigInstanceId& instance_id);
+  const std::unordered_map<RigInstanceId, RigInstance>& GetRigInstances() const;
+  bool HasRigInstance(const RigInstanceId& instance_id) const;
 
  private:
   Map& map_;

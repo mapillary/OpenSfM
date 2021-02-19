@@ -163,7 +163,8 @@ TEST_F(ToyMapFixture, ThrowsWhenRemovingLandmarkTwice) {
 TEST_F(ToyMapFixture, CreateRigInstanceCorrectly) {
   std::map<map::ShotId, map::RigCameraId> instance_shots;
   instance_shots["0"] = rig_camera.id;
-  auto& create_rig_instance = map.CreateRigInstance(&rig_model, instance_shots);
+  auto& create_rig_instance =
+      map.CreateRigInstance(&rig_model, 1, instance_shots);
 
   ASSERT_EQ(1, create_rig_instance.GetShots().size());
 }
@@ -172,7 +173,7 @@ TEST_F(ToyMapFixture, UpdatesRigInstanceCorrectly) {
   std::map<map::ShotId, map::RigCameraId> instance_shots;
   instance_shots["0"] = rig_camera.id;
 
-  auto& instance1 = map.CreateRigInstance(&rig_model, instance_shots);
+  auto& instance1 = map.CreateRigInstance(&rig_model, 1, instance_shots);
   Vec3d rand1 = Vec3d::Random();
   instance1.SetPose(geometry::Pose(rand1));
 
@@ -187,7 +188,7 @@ TEST_F(ToyMapFixture, UpdatesRigInstanceCorrectly) {
 TEST_F(ToyMapFixture, ThrowOnCreateRigInstanceWithInvalidShot) {
   std::map<map::ShotId, map::RigCameraId> instance_shots;
   instance_shots["invalid_shot"] = rig_camera.id;
-  ASSERT_THROW(map.CreateRigInstance(&rig_model, instance_shots),
+  ASSERT_THROW(map.CreateRigInstance(&rig_model, 1, instance_shots),
                std::runtime_error);
 }
 
@@ -195,7 +196,7 @@ TEST_F(ToyMapFixture, ThrowOnCreateRigInstanceWithInvalidRigModel) {
   std::map<map::ShotId, map::RigCameraId> instance_shots;
   instance_shots["0"] = rig_camera.id;
   rig_model.id = "invalid_rig_model";
-  ASSERT_THROW(map.CreateRigInstance(&rig_model, instance_shots),
+  ASSERT_THROW(map.CreateRigInstance(&rig_model, 1, instance_shots),
                std::runtime_error);
 }
 
@@ -260,7 +261,7 @@ class OneRigMapFixture : public EmptyMapFixture {
     map.CreateRigModel(rig_model);
     std::map<map::ShotId, map::RigCameraId> instance_shots;
     instance_shots["0"] = rig_camera.id;
-    map.CreateRigInstance(&rig_model, instance_shots);
+    map.CreateRigInstance(&rig_model, 1, instance_shots);
   }
 };
 
@@ -286,11 +287,11 @@ TEST_F(OneRigMapFixture, ReturnsNumberOfRigInstances) {
 }
 
 TEST_F(OneRigMapFixture, HasRigInstances) {
-  ASSERT_TRUE(map.HasRigInstance(0));
+  ASSERT_TRUE(map.HasRigInstance(1));
 }
 
 TEST_F(OneRigMapFixture, ReturnsRigInstance) {
-  const auto& instance = map.GetRigInstance(0);
+  const auto& instance = map.GetRigInstance(1);
   std::set<ShotId> expected_keys;
   expected_keys.insert("0");
   ASSERT_THAT(instance.GetShotIDs(), ::testing::ContainerEq(expected_keys));

@@ -33,9 +33,9 @@ TEST_F(RigModelFixture, AddRigCamera) {
 class SharedRigInstanceFixture : public RigModelFixture {
  public:
   SharedRigInstanceFixture()
-      : instance1(&rig_model),
+      : instance1(&rig_model, 1),
         shot_instance1("1", camera, geometry::Pose()),
-        instance2(&rig_model),
+        instance2(&rig_model, 2),
         shot_instance2("2", camera, geometry::Pose()) {
     rig_model.AddRigCamera(rig_camera);
     instance_pose1.SetWorldToCamRotation(Vec3d::Random());

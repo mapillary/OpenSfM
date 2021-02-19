@@ -55,7 +55,10 @@ struct RigModel {
 
 class RigInstance {
  public:
-  explicit RigInstance(RigModel* rig_model) : rig_model_(rig_model) {
+  map::RigInstanceId id;
+
+  RigInstance(RigModel* rig_model, const RigInstanceId instance_id)
+      : id(instance_id), rig_model_(rig_model) {
     if (rig_model->relative_type == RigModel::RelativeType::VARIABLE) {
       own_rig_model_.SetValue(*rig_model);
       rig_model_ = &own_rig_model_.Value();
