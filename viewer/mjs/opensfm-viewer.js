@@ -23,7 +23,7 @@ class CommandExplainerControl {
 
     get container() { return this._container; }
 
-    addCommands(commands) {
+    add(commands) {
         const lines = Object
             .keys(commands)
             .map(
@@ -31,7 +31,7 @@ class CommandExplainerControl {
                     const value = commands[key].value;
                     return `'${key}' - ${value}`;
                 });
-        this._popup.setLines(lines);
+        this._popup.appendLines(lines);
     }
 
     hide() {
@@ -240,7 +240,7 @@ class DatController {
 
         this._listControllers = {};
         this._listControllers['reconstruction'] =
-            this._createClustersController(gui);
+            this._createReconstructionsController(gui);
     }
 
     get gui() { return this._gui; }
@@ -300,14 +300,14 @@ class DatController {
         this._addNumericOption('infoSize', folder);
     }
 
-    _createClustersController(gui) {
+    _createReconstructionsController(gui) {
         const eventEmitter = this._eventEmitter;
-        const eventType = this._eventTypes.clusters;
-        const folder = gui.addFolder('Clusters');
+        const eventType = this._eventTypes.reconstructionsSelected;
+        const folder = gui.addFolder('Reconstructions');
         folder.open();
-        const clustersController =
+        const controller =
             new ListController({ eventEmitter, eventType, folder });
-        return clustersController;
+        return controller;
     }
 
     _createSpatialFolder(gui) {
@@ -383,8 +383,8 @@ class KeyHandler {
             'r': { value: 'imagesVisible' },
             'v': { value: 'thumbnailVisible' },
             // activity
-            't': { value: 'earthControls' },
-            'g': { value: 'datToggle' },
+            'o': { value: 'earthControls' },
+            'l': { value: 'datToggle' },
             // mode
             '1': { value: 'cameraVisualizationMode' },
             '2': { value: 'originalPositionMode' },
@@ -398,23 +398,31 @@ class KeyHandler {
         };
 
         this._bindKeys();
+        this._customCommands = {};
     }
 
     get commands() { return this._commands; }
 
-    _bindKeys() {
-        const emitter = this._eventEmitter;
-        const types = this._eventTypes;
-        const commands = this._commands;
+    addCommand(command) {
+        const key = command.key;
+        if (this._has(key)) {
+            throw new Error(`Command already exists ${key}`);
+        }
+        this._customCommands[key] = command.handler;
+    }
 
+    _bindKeys() {
         window.document.addEventListener(
             'keydown',
             event => {
                 const key = event.key;
-                if (!(key in commands)) { return; }
-                const command = this._commands[key];
-                const type = types[command.value];
+                if (!this._has(key)) { return; }
+                const customCommands = this._customCommands;
+                if (key in customCommands) { customCommands[key](); return; }
 
+                const emitter = this._eventEmitter;
+                const command = this._commands[key];
+                const type = this._eventTypes[command.value];
                 switch (key) {
                     case 'c':
                     case 'd':
@@ -425,10 +433,10 @@ class KeyHandler {
                         const visible = this._toggle(command.value);
                         emitter.fire(type, { type, visible });
                         break;
-                    case 'g':
+                    case 'l':
                         emitter.fire(type, { type });
                         break;
-                    case 't':
+                    case 'o':
                         const active = this._toggle(command.value);
                         emitter.fire(type, { active, type });
                         break;
@@ -463,6 +471,8 @@ class KeyHandler {
         config[command] = Math.max(0.01, Math.min(1, config[command]));
         return config[command];
     }
+
+    _has(key) { return key in this._commands || key in this._customCommands; }
 
     _rotateCvm() {
         const cvm = Mapillary.SpatialDataComponent.CameraVisualizationMode;
@@ -532,7 +542,7 @@ class OptionController {
             originalPositionMode: 'originalpositionmode',
             pointSize: 'pointsize',
             pointsVisible: 'pointsvisible',
-            clusters: 'clusters',
+            reconstructionsSelected: 'reconstructionsselected',
             thumbnailVisible: 'thumbnailvisible',
             tilesVisible: 'tilesvisible',
         };
@@ -958,7 +968,7 @@ class OpenSfmViewer {
         this._commandExplainerControl = new CommandExplainerControl({
             visible: commandsVisible,
         });
-        this._commandExplainerControl.addCommands(
+        this._commandExplainerControl.add(
             this._optionController.key.commands);
 
         this._infoControl = new InfoControl({
@@ -1002,7 +1012,8 @@ class OpenSfmViewer {
         optionController.on('camerasvisible', this._onCamerasVisible);
         optionController.on(
             'cameravisualizationmode', this._onCameraVisualizationMode);
-        optionController.on('clusters', this._onClusters);
+        optionController.on(
+            'reconstructionsselected', this._onReconstructionsSelected);
         optionController.on('commandsvisible', this._onCommandsVisible);
         optionController.on('dattoggle', this._onDatToggle);
         optionController.on('earthcontrols', this._onEarthControls);
@@ -1061,7 +1072,7 @@ class OpenSfmViewer {
     _onCameraVisualizationMode = event =>
         this._configure({ cameraVisualizationMode: event.mode });
 
-    _onClusters = event => {
+    _onReconstructionsSelected = event => {
         const filter = ['in', 'clusterKey', ...event.active];
         this._viewer.setFilter(filter);
     };

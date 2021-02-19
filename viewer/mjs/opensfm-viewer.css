@@ -68,30 +68,32 @@ input[type='file'] {
     top: 0;
     left: 0;
     min-width: 200px;
-    max-width: calc(100% - 321px);
-    margin-left: 17px;
+    max-width: calc(100% - 319px);
+    margin-left: 15px;
     user-select: none;
     pointer-events: none;
 }
 
 .opensfm-control-container {
     display: block;
-    width: 100%;
+    width: calc(100% - 2px);
     background-color: black;
-    border: 1px solid #555;
+    border: 1px solid #888;
     font: 11px 'Lucida Grande', sans-serif;
     pointer-events: initial;
 }
 
 @media screen and (max-width: 640px) {
     .opensfm-info-container {
-        max-width: calc(100% - 34px);
+        max-width: calc(100% - 32px);
     }
 }
 
 .opensfm-thumb {
     width: 100%;
     display: block;
+    border-top: 1px solid #444;
+    border-bottom: 1px solid #444
 }
 
 .opensfm-info-text {
@@ -99,7 +101,6 @@ input[type='file'] {
     color: #eee;
     display: block;
     margin: 2px;
-    text-align: center;
 }
 
 .opensfm-info-text.opensfm-info-inline {
@@ -109,11 +110,13 @@ input[type='file'] {
 .opensfm-info-text-header {
     font-size: 12px;
     font-weight: bold;
+    text-align: center;
 }
 
 .opensfm-popup-container {
     pointer-events: none;
     user-select: none;
+    z-index: 1;
 }
 
 .opensfm-popup-container.opensfm-popup-up {
