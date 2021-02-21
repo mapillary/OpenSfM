@@ -28,8 +28,7 @@ def load_image(path):
 
 
 class ImageManager:
-    def __init__(self, seqs, path, preload_images=True, skip_frames=1):
-        self.skip_frames = skip_frames
+    def __init__(self, seqs, path, preload_images=True):
         self.seqs = seqs
         self.path = path
         self.image_cache = {}
@@ -38,7 +37,7 @@ class ImageManager:
             self.preload_images()
 
     def image_path(self, image_name):
-        print(image_name)
+        # print(image_name)
         return f"{self.path}/{image_name}"
 
     def get_image(self, image_name):
@@ -73,18 +72,13 @@ class ImageManager:
             for k in keys:
                 image_path = os.path.join(self.path, k)
                 if os.path.isfile(image_path):
+                    # image_filename = image_path.replace(str(self.path) + '/', '')
                     image_filename = os.path.basename(image_path)
-                    # image_folder = os.path.dirname(image_path)
                     image_names.append(image_filename)
                     paths.append(image_path)
                 else:
                     image_names.append(k)
                     paths.append(self.image_path(k))
-
-        # skip frames
-        if self.skip_frames > 1:
-            image_names = image_names[::self.skip_frames]
-            paths = paths[::self.skip_frames]
 
         pool = multiprocessing.Pool(processes=n_cpu)
         images = pool.map(load_image, paths)
