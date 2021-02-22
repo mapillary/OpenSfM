@@ -77,7 +77,7 @@ input[type='file'] {
 .opensfm-control-container {
     display: block;
     width: calc(100% - 2px);
-    background-color: black;
+    background-color: #1a1a1a;
     border: 1px solid #888;
     font: 11px 'Lucida Grande', sans-serif;
     pointer-events: initial;
@@ -111,6 +111,7 @@ input[type='file'] {
     font-size: 12px;
     font-weight: bold;
     text-align: center;
+    background-color: #000;
 }
 
 .opensfm-popup-container {
