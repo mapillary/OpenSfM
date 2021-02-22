@@ -24,12 +24,6 @@ def parse_args():
         "otherwise, it will use sequences as specified by 'sequence-file'",
     )
     parser.add_argument(
-        "--skip_frames",
-        type=int,
-        default=1,
-        help="Skip frames in sequences",
-    )
-    parser.add_argument(
         "--strict-missing",
         action="store_true",
     )
