@@ -11,8 +11,8 @@ _mapillary_css="mapillary.min.css"
 
 _unpkg="https://unpkg.com"
 
-_dest="$(dirname "$BASH_SOURCE")/mjs/dependencies"
-mkdir -p $_dest
+_dest="$(dirname "${BASH_SOURCE[0]}")/mjs/dependencies"
+mkdir -p "$_dest"
 
 curl -sSL "$_unpkg/dat.gui@$_dat_gui_version/build/$_dat_gui" \
   > "$_dest/$_dat_gui"
