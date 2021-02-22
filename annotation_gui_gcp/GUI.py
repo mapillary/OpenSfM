@@ -13,13 +13,14 @@ matplotlib.use("TkAgg")
 
 from image_sequence_view import ImageSequenceView
 from orthophoto_view import OrthoPhotoView
+from cad_view import CadView
 
 FONT = "TkFixedFont"
 
 
 class Gui:
     def __init__(
-        self, master, gcp_manager, image_manager, sequence_groups=(), ortho_paths=()
+        self, master, gcp_manager, image_manager, sequence_groups=(), ortho_paths=(), cad_path=None,
     ):
         self.master = master
         self.gcp_manager = gcp_manager
@@ -35,7 +36,7 @@ class Gui:
         master.bind_all("x", lambda event: self.toggle_sticky_zoom())
         master.bind_all("a", lambda event: self.go_to_current_gcp())
         self.reconstruction_options = self.get_reconstruction_options()
-        self.create_ui(ortho_paths)
+        self.create_ui(ortho_paths, cad_path)
         master.lift()
 
         p_default_gcp = self.path + "/ground_control_points.json"
@@ -62,7 +63,7 @@ class Gui:
         options.append("None (3d-to-2d)")
         return options
 
-    def create_ui(self, ortho_paths):
+    def create_ui(self, ortho_paths, cad_path):
         tools_frame = tk.Frame(self.master)
         tools_frame.pack(side="left", expand=0, fill=tk.Y)
         self.create_tools(tools_frame)
@@ -73,6 +74,9 @@ class Gui:
             k = v.current_image
             latlon = v.latlons[k]
             self.create_ortho_views(ortho_paths, latlon["lat"], latlon["lon"])
+
+        self.cad_view = CadView(self, cad_path) if cad_path else None
+
         self.master.update_idletasks()
         # self.arrange_ui_onerow()
 
