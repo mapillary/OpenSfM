@@ -3,8 +3,18 @@
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
-NAMESPACE_BEGIN(detail)
+
+#ifdef PYBIND11_NAMESPACE_BEGIN
+#define PYBIND11_NAMESPACE_BEGIN_ PYBIND11_NAMESPACE_BEGIN
+#define PYBIND11_NAMESPACE_END_ PYBIND11_NAMESPACE_END
+#else
+#define PYBIND11_NAMESPACE_BEGIN_ NAMESPACE_BEGIN
+#define PYBIND11_NAMESPACE_END_ NAMESPACE_END
+#endif
+
+
+PYBIND11_NAMESPACE_BEGIN_(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_BEGIN_(detail)
 
 // See https://github.com/pybind/pybind11/issues/637
 // Also fbsource/fbcode/caffe2/torch/csrc/jit/python/pybind.h
@@ -40,7 +50,7 @@ struct sfm_iterator_state {
   Sentinel end;
   bool first_or_done;
 };
-NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END_(detail)
 
 /// Makes an python iterator over the keys (`.first`) of a iterator over pairs
 /// from a first and past-the-end InputIterator.
@@ -193,4 +203,4 @@ iterator make_ref_value_iterator(Type &value, Extra &&... extra) {
   return make_ref_value_iterator<Policy>(std::begin(value), std::end(value),
                                          extra...);
 }
-NAMESPACE_END(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_END_(PYBIND11_NAMESPACE)

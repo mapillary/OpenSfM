@@ -19,7 +19,7 @@ typedef py::array_t<unsigned char, py::array::c_style | py::array::forcecast>
 
 template <typename T>
 py::array_t<T> py_array_from_data(const T *data, size_t shape0) {
-  py::array_t<T> res({shape0});
+  py::array_t<T> res(shape0);
   std::copy(data, data + shape0, res.mutable_data());
   return res;
 }
