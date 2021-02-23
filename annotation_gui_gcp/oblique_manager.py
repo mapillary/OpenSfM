@@ -19,7 +19,7 @@ from rtree import index
 from opensfm.dataset import DataSet
 from export_reconstruction_points import world_points
 
-IMAGE_MAX_SIZE = 2000
+IMAGE_MAX_SIZE = 5000
 
 
 def load_image(in_tuple, win=int(IMAGE_MAX_SIZE/2)):
@@ -67,7 +67,7 @@ def get_distance(lat1, lon1, alt1, lat2, lon2, alt2):
 class ObliqueManager:
     def __init__(self, path: str, preload_images=True):
         self.path = Path(path)
-        self.rtree_path=f'{self.path}/rtree_index'
+        self.rtree_path = f'{self.path}/rtree_index'
         self.image_cache = {}
         self.image_coord = {}
         self.candidate_images = []
@@ -117,7 +117,7 @@ class ObliqueManager:
         else:
             self.build_rtree_index()
             self.aerial_idx = index.Index(self.rtree_path)
-            
+
     def build_rtree_index(self):
         print("building oblique SfM rtree...")
 
@@ -135,7 +135,7 @@ class ObliqueManager:
                 ypx = int(np.round(im['y_px']))
                 imn = {'x_px_int': xpx,
                        'y_px_int': ypx,
-                       'image_name': f"{im['image_id']}_{xpx}_{ypx}"}
+                       'image_name': f"{im['image_id']}"}
                 ims.append(dict(im, **imn))
             lat = val['location']['lat']
             lon = val['location']['lon']
@@ -146,7 +146,7 @@ class ObliqueManager:
             aerial_idx.insert(i, (lon, lat), obj=pt)
 
         aerial_idx.close()
-        
+
     def preload_images(self):
         n_cpu = multiprocessing.cpu_count()
         print(f"Preloading images with {n_cpu} processes")

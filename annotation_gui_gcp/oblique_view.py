@@ -1,10 +1,15 @@
 from typing import Tuple
 
+import matplotlib
 import numpy as np
+from matplotlib import pyplot as plt
 from opensfm import features
 
 from oblique_manager import ObliqueManager
+from geometry import get_all_track_observations, get_tracks_visible_in_image
 from view import View
+
+import tkinter as tk
 
 
 class ObliqueView(View):
@@ -24,6 +29,14 @@ class ObliqueView(View):
         self.image_manager = oblique_manager
         super(ObliqueView, self).__init__(main_ui, False)
 
+        # Auto GCP - related stuff
+        auto_gcp_button = tk.Button(
+            self.toolbox,
+            text="Auto GCP",
+            command=lambda window=self.window: self.auto_gcp_show_tracks(),
+        )
+        auto_gcp_button.pack(side="top")
+
     def oblique_selection(self, lat, lon):
         self.lat = lat
         self.lon = lon
@@ -42,7 +55,7 @@ class ObliqueView(View):
         artists = self.ax.plot(np.mean(xlim), np.mean(ylim), "rx")
         self.plt_artists.extend(artists)
         self.canvas.draw_idle()
-    
+
     def get_image(self, new_image):
         return self.image_manager.get_image(new_image)
 
@@ -52,6 +65,69 @@ class ObliqueView(View):
                 self.lat, self.lon)
         return self.image_names
 
+    def auto_gcp_show_tracks(self):
+        h, w = self.image_manager.get_image_size(self.current_image)
+        tracks = get_tracks_visible_in_image(
+            self.image_manager, self.current_image
+        )
+        # Select some tracks to plot, not all
+        # nice_tracks = sorted(tracks, key=lambda tid: -tracks[tid]['length'])
+        nice_tracks = tracks.keys()  # all tracks
+        tracks = {k: tracks[k] for k in nice_tracks}
+
+        if len(tracks) == 0:
+            print("No valid tracks found")
+            return
+
+        # Draw track projections
+        points = []
+        track_lengths = []
+        for point, track_length, coord in tracks.values():
+            points.append(self.gcp_to_pixel_coordinates(*point))
+            track_lengths.append(track_length)
+
+        points = np.array(points)
+        norm = matplotlib.colors.Normalize()
+        colors = plt.cm.viridis(norm(track_lengths))
+        self.tracks_scatter = self.ax.scatter(
+            points[:, 0], points[:, 1], s=10, c=colors, marker="x"
+        )
+        self.canvas.draw_idle()
+
+        # The next left or right click will be handled differently by setting this:
+        self.visible_tracks = tracks
+
+    def auto_gcp_create(self, x, y, add):
+        # Find track closest to click location and create a GCP from it
+        x, y = self.pixel_to_gcp_coordinates(x, y)
+        if add:
+            points, track_ids, coords = [], [], []
+            for tid, t in self.visible_tracks.items():
+                points.append(t[0])
+                track_ids.append(tid)
+                coords.append(t[2])
+            dists = np.linalg.norm(
+                np.array(points) - np.array([[x, y]]), axis=1)
+            closest_track = track_ids[np.argmin(dists)]
+            observations = get_all_track_observations(
+                self.image_manager, closest_track
+            )
+
+            latlonalt = self.visible_tracks[closest_track][2]
+
+            new_gcp = self.main_ui.add_gcp()
+            print(f"New GCP {new_gcp} with {len(observations)} observations")
+            for shot_id, point in observations.items():
+                point = point.tolist()
+                self.main_ui.gcp_manager.add_point_observation(
+                    new_gcp, shot_id, point, latlonalt, latlonalt[2])
+
+        self.visible_tracks = None
+        self.tracks_scatter.remove()
+        self.canvas.draw()
+        self.update_image_list_text()
+
+        
     def pixel_to_latlon(self, x: float, y: float):
         """
         Todo: From pixels (in the viewing window) to latlon by finding 
