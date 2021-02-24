@@ -18,7 +18,6 @@ from opensfm import (
     pygeometry,
     pymap,
     pysfm,
-    stats,
     tracking,
     types,
 )
@@ -36,37 +35,17 @@ def _get_camera_from_bundle(ba, camera):
         camera.set_parameter_value(k, v)
 
 
-def triangulate_gcp(point, shots):
-    """Compute the reconstructed position of a GCP from observations."""
-    reproj_threshold = 1.0
-    min_ray_angle = np.radians(0.1)
-
-    os, bs, ids = [], [], []
-    for observation in point.observations:
-        shot_id = observation.shot_id
-        if shot_id in shots:
-            shot = shots[shot_id]
-            os.append(shot.pose.get_origin())
-            x = observation.projection
-            b = shot.camera.pixel_bearing(np.array(x))
-            r = shot.pose.get_rotation_matrix().T
-            bs.append(r.dot(b))
-            ids.append(shot_id)
-
-    if len(os) >= 2:
-        thresholds = len(os) * [reproj_threshold]
-        e, X = pygeometry.triangulate_bearings_midpoint(
-            os, bs, thresholds, min_ray_angle
-        )
-        return X
-
-
 def _add_gcp_to_bundle(ba, gcp, shots):
     """Add Ground Control Points constraints to the bundle problem."""
     for point in gcp:
         point_id = "gcp-" + point.id
 
-        coordinates = triangulate_gcp(point, shots)
+        coordinates = multiview.triangulate_gcp(
+            point,
+            shots,
+            reproj_threshold = 1,
+            min_ray_angle_degrees = 0.1,
+            )
         if coordinates is None:
             if point.coordinates.has_value:
                 coordinates = point.coordinates.value
@@ -678,11 +657,11 @@ class TrackTriangulator:
             os_t = [os[i], os[j]]
             bs_t = [bs[i], bs[j]]
 
-            e, X = pygeometry.triangulate_bearings_midpoint(
+            valid_triangulation, X = pygeometry.triangulate_bearings_midpoint(
                 os_t, bs_t, thresholds, np.radians(min_ray_angle_degrees)
             )
 
-            if e:
+            if valid_triangulation:
                 reprojected_bs = X - os
                 reprojected_bs /= np.linalg.norm(reprojected_bs, axis=1)[:, np.newaxis]
                 inliers = np.linalg.norm(reprojected_bs - bs, axis=1) < reproj_threshold
@@ -721,10 +700,10 @@ class TrackTriangulator:
 
         if len(os) >= 2:
             thresholds = len(os) * [reproj_threshold]
-            e, X = pygeometry.triangulate_bearings_midpoint(
+            valid_triangulation, X = pygeometry.triangulate_bearings_midpoint(
                 os, bs, thresholds, np.radians(min_ray_angle_degrees)
             )
-            if e:
+            if valid_triangulation:
                 self.reconstruction.create_point(track, X.tolist())
                 for shot_id in ids:
                     self._add_track_to_reconstruction(track, shot_id)

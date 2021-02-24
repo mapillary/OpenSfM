@@ -627,3 +627,28 @@ def relative_pose_optimize_nonlinear(b1, b2, t, R, iterations):
     Rt[:3, :3] = R.T
     Rt[:, 3] = -R.T.dot(t)
     return Rt
+
+
+def triangulate_gcp(point, shots, reproj_threshold, min_ray_angle_degrees):
+    """Compute the reconstructed position of a GCP from observations."""
+
+    os, bs, ids = [], [], []
+    for observation in point.observations:
+        shot_id = observation.shot_id
+        if shot_id in shots:
+            shot = shots[shot_id]
+            os.append(shot.pose.get_origin())
+            x = observation.projection
+            b = shot.camera.pixel_bearing(np.array(x))
+            r = shot.pose.get_rotation_matrix().T
+            bs.append(r.dot(b))
+            ids.append(shot_id)
+
+    if len(os) >= 2:
+        thresholds = len(os) * [reproj_threshold]
+        valid_triangulation, X = pygeometry.triangulate_bearings_midpoint(
+            os, bs, thresholds, np.radians(min_ray_angle_degrees)
+        )
+        if valid_triangulation:
+            return X
+    return None

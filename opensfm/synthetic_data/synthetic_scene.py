@@ -4,8 +4,7 @@ import math
 import numpy as np
 import opensfm.synthetic_data.synthetic_generator as sg
 import opensfm.synthetic_data.synthetic_metrics as sm
-from opensfm import pygeometry
-from opensfm import types
+from opensfm import pygeometry, types, pymap
 
 
 def get_camera(type, id, focal, k1, k2):
@@ -143,9 +142,14 @@ class SyntheticStreetScene(SyntheticScene):
         self.wall_points = None
         self.floor_points = None
         self.width = None
+        self.shot_ids = []
         self.shot_positions = []
         self.shot_rotations = []
         self.cameras = []
+        self.instances_positions = []
+        self.instances_rotations = []
+        self.rig_instances = []
+        self.rig_models = []
 
     def add_street(self, points_count, height, width):
         self.wall_points, self.floor_points = sg.generate_street(
@@ -188,7 +192,84 @@ class SyntheticStreetScene(SyntheticScene):
         sg.perturb_rotations(rotations, rotation_noise)
         self.shot_rotations.append(rotations)
         self.shot_positions.append(positions)
+        shift = 0 if len(self.shot_ids) == 0 else len(self.shot_ids[-1])
+        self.shot_ids.append([f"Shot {shift+i:04d}" for i in range(len(positions))])
         self.cameras.append(camera)
+        return self
+
+    def add_rig_camera_sequence(
+        self,
+        cameras,
+        relative_positions,
+        relative_rotations,
+        start,
+        length,
+        height,
+        interval,
+        position_noise=None,
+        rotation_noise=None,
+        gps_noise=None,
+    ):
+        default_noise_interval = 0.25 * interval
+
+        instances_positions, instances_rotations = sg.generate_cameras(
+            sg.samples_generator_interval(
+                start, length, interval, default_noise_interval
+            ),
+            self.generator,
+            height,
+        )
+        sg.perturb_points(instances_positions, position_noise)
+        sg.perturb_rotations(instances_rotations, rotation_noise)
+
+        shots_ids_per_camera = []
+        for rig_camera_p, rig_camera_r, camera in zip(
+            relative_positions, relative_rotations, cameras
+        ):
+            pose_rig_camera = pygeometry.Pose(rig_camera_r)
+            pose_rig_camera.set_origin(rig_camera_p)
+
+            rotations = []
+            positions = []
+            for instance_p, instance_r in zip(instances_positions, instances_rotations):
+                pose_instance = pygeometry.Pose(instance_r)
+                pose_instance.set_origin(instance_p)
+                composed = pose_rig_camera.compose(pose_instance)
+                rotations.append(composed.rotation)
+                positions.append(composed.get_origin())
+
+            self.shot_rotations.append(rotations)
+            self.shot_positions.append(positions)
+            shift = sum(len(s) for s in shots_ids_per_camera)
+            shots_ids_per_camera.append(
+                [f"Shot {shift+i:04d}" for i in range(len(positions))]
+            )
+            self.cameras.append(camera)
+        self.shot_ids += shots_ids_per_camera
+
+        rig_camera_ids = []
+        rig_model = pymap.RigModel(f"RigModel {len(self.rig_models)}")
+        for i, (rig_camera_p, rig_camera_r) in enumerate(
+            zip(relative_positions, relative_rotations)
+        ):
+            pose_rig_camera = pygeometry.Pose(rig_camera_r)
+            pose_rig_camera.set_origin(rig_camera_p)
+            rig_camera_id = f"RigCamera {i}"
+            rig_camera = pymap.RigCamera(pose_rig_camera, rig_camera_id)
+            rig_model.add_rig_camera(rig_camera)
+            rig_camera_ids.append(rig_camera_id)
+        self.rig_models.append(rig_model)
+
+        rig_instances = []
+        for i in range(len(instances_positions)):
+            instance = []
+            for j in range(len(shots_ids_per_camera)):
+                instance.append((shots_ids_per_camera[j][i], rig_camera_ids[j]))
+            rig_instances.append(instance)
+        self.rig_instances.append(rig_instances)
+        self.instances_positions.append(instances_positions)
+        self.instances_rotations.append(instances_rotations)
+
         return self
 
     def get_reconstruction(
@@ -214,8 +295,13 @@ class SyntheticStreetScene(SyntheticScene):
             [self.floor_points, self.wall_points],
             [floor_color, wall_color],
             cameras,
+            self.shot_ids,
             positions,
             rotations,
+            self.rig_instances,
+            self.instances_positions,
+            self.instances_rotations,
+            self.rig_models,
         )
 
     def get_scene_exifs(self, gps_noise):

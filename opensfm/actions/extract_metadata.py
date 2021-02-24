@@ -1,7 +1,5 @@
 import copy
 import logging
-import random
-import string
 import time
 
 from opensfm import exif

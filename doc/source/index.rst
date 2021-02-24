@@ -15,6 +15,7 @@ OpenSfM
    large
    reporting
    quality_report
+   rig
    api
 
 Indices and tables

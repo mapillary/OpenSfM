@@ -35,6 +35,24 @@ Installing dependencies on Ubuntu
 
 See this `Dockerfile <https://github.com/mapillary/OpenSfM/blob/master/Dockerfile>`_ for the commands to install all dependencies on Ubuntu 20.04.
 
+Installing dependencies on Fedora
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Tested on Fedora 33
+
+    sudo dnf install zlib-devel libjpeg-devel python3-devel g++ ceres-solver-devel opencv-devel eigen3-devel libomp cmake glog-devel
+    
+There's an `issue <https://github.com/ceres-solver/ceres-solver/issues/491>`_ with the gflags-config.cmake distributed with Fedora. We need to build from scratch instead of relying on the version installed by dnf:
+
+    mkdir ~/src && cd ~/src && clone git@github.com:gflags/gflags.git && checkout v2.2.2
+    
+    mkdir ~/src/gflags/build && cd ~/src/gflags/build && cmake ../ && make -j4
+    
+    sudo make install
+
+Install python dependencies before building:
+
+    cd ~/src/OpenSfM && pip install -r requirements.txt
 
 Installing dependencies on MacOSX
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

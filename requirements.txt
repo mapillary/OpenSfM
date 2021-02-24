@@ -13,3 +13,4 @@ pyyaml==5.1
 scipy
 six
 xmltodict==0.10.2
+wheel

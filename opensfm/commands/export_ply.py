@@ -8,7 +8,7 @@ class Command(command.CommandBase):
     help = "Export reconstruction to PLY format"
 
     def run_impl(self, dataset, args):
-        export_ply.run_dataset(dataset, args.no_cameras, args.no_points, args.depthmaps)
+        export_ply.run_dataset(dataset, args.no_cameras, args.no_points, args.depthmaps, args.point_num_views)
 
     def add_arguments_impl(self, parser):
         parser.add_argument(
@@ -25,4 +25,10 @@ class Command(command.CommandBase):
             action="store_true",
             default=False,
             help="Export per-image depthmaps as pointclouds",
+        )
+        parser.add_argument(
+            "--point-num-views",
+            action="store_true",
+            default=False,
+            help="Export the number of observations associated with each point"
         )

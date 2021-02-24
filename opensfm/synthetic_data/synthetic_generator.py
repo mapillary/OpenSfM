@@ -2,11 +2,7 @@ import math
 
 import cv2
 import numpy as np
-from opensfm import geo
-from opensfm import pygeometry
-from opensfm import pysfm
-from opensfm import reconstruction as rc
-from opensfm import types
+from opensfm import geo, pygeometry, pysfm, reconstruction as rc, types, pymap
 
 
 def derivative(func, x):
@@ -162,15 +158,12 @@ def perturb_rotations(rotations, angle_sigma):
         rotations[i] = cv2.Rodrigues(rodrigues)[0]
 
 
-def add_shots_to_reconstruction(positions, rotations, camera, reconstruction):
-    shift = len(reconstruction.shots)
+def add_shots_to_reconstruction(shot_ids, positions, rotations, camera, reconstruction):
     reconstruction.add_camera(camera)
-    for i, item in enumerate(zip(positions, rotations)):
-        reconstruction.create_shot(
-            "shot%04d" % (shift + i),
-            camera.id,
-            pygeometry.Pose(item[1], -item[1].dot(item[0])),
-        )
+    for shot_id, position, rotation in zip(shot_ids, positions, rotations):
+        pose = pygeometry.Pose(rotation)
+        pose.set_origin(position)
+        reconstruction.create_shot(shot_id, camera.id, pose)
 
 
 def add_points_to_reconstruction(points, color, reconstruction):
@@ -180,12 +173,44 @@ def add_points_to_reconstruction(points, color, reconstruction):
         point.color = color
 
 
-def create_reconstruction(points, colors, cameras, positions, rotations):
+def add_rigs_to_reconstruction(shots, positions, rotations, model, reconstruction):
+    rig_model = reconstruction.add_rig_model(model)
+    for i, (i_shots, position, rotation) in enumerate(zip(shots, positions, rotations)):
+        rig_instance = reconstruction.add_rig_instance(pymap.RigInstance(rig_model, i))
+        for s in i_shots:
+            rig_instance.add_shot(s[1], reconstruction.get_shot(s[0]))
+        rig_instance.pose = pygeometry.Pose(rotation, -rotation.dot(position))
+
+
+def create_reconstruction(
+    points,
+    colors,
+    cameras,
+    shot_ids,
+    positions,
+    rotations,
+    rig_shots=None,
+    rig_positions=None,
+    rig_rotations=None,
+    rig_models=None,
+):
     reconstruction = types.Reconstruction()
-    for item in zip(points, colors):
-        add_points_to_reconstruction(item[0], item[1], reconstruction)
-    for item in zip(positions, rotations, cameras):
-        add_shots_to_reconstruction(item[0], item[1], item[2], reconstruction)
+    for point, color in zip(points, colors):
+        add_points_to_reconstruction(point, color, reconstruction)
+
+    for s_shot_ids, s_positions, s_rotations, s_cameras in zip(
+        shot_ids, positions, rotations, cameras
+    ):
+        add_shots_to_reconstruction(
+            s_shot_ids, s_positions, s_rotations, s_cameras, reconstruction
+        )
+
+    for s_rig_shots, s_rig_positions, s_rig_rotations, s_rig_model in zip(
+        rig_shots, rig_positions, rig_rotations, rig_models
+    ):
+        add_rigs_to_reconstruction(
+            s_rig_shots, s_rig_positions, s_rig_rotations, s_rig_model, reconstruction
+        )
     return reconstruction
 
 
