@@ -95,7 +95,7 @@ class GroundControlPointManager:
         self.points[new_id] = []
         return new_id
 
-    def add_point_observation(self, point_id, shot_id, projection, latlon=None):
+    def add_point_observation(self, point_id, shot_id, projection, latlon=None, oblique_coords=None):
         if not self.point_exists(point_id):
             raise ValueError(f"ERROR: trying to modify a non-existing point {point_id}")
 
@@ -104,12 +104,21 @@ class GroundControlPointManager:
                 "latitude": latlon[0],
                 "longitude": latlon[1],
             }
-        self.points[point_id].append(
-            {
-                "shot_id": shot_id,
-                "projection": projection,
-            }
-        )
+        if oblique_coords:
+            self.points[point_id].append(
+                {
+                    "shot_id": shot_id,
+                    "projection": projection,
+                    "source_xy": oblique_coords
+                }
+            )
+        else:
+            self.points[point_id].append(
+                {
+                    "shot_id": shot_id,
+                    "projection": projection,
+                }
+            )
 
     def compute_gcp_errors(self):
         error_avg = {}

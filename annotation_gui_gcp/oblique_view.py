@@ -3,7 +3,11 @@ from typing import Tuple
 import numpy as np
 from opensfm import features
 
-from oblique_manager import ObliqueManager
+from oblique_manager import (
+    coords_in_rotated_image,
+    invert_coords_from_rotated_image,
+    ObliqueManager
+)
 from view import View
 
 
@@ -39,10 +43,11 @@ class ObliqueView(View):
         super(ObliqueView, self).bring_new_image(new_image, force=True)
         xlim = self.ax.get_xlim()
         ylim = self.ax.get_ylim()
+        # red cross appears in center of image
         artists = self.ax.plot(np.mean(xlim), np.mean(ylim), "rx")
         self.plt_artists.extend(artists)
         self.canvas.draw_idle()
-    
+
     def get_image(self, new_image):
         return self.image_manager.get_image(new_image)
 
@@ -54,7 +59,7 @@ class ObliqueView(View):
 
     def pixel_to_latlon(self, x: float, y: float):
         """
-        Todo: From pixels (in the viewing window) to latlon by finding 
+        Todo: From pixels (in the viewing window) to latlon by finding
         nearest feature
         """
         return None
@@ -62,7 +67,6 @@ class ObliqueView(View):
     def gcp_to_pixel_coordinates(self, x: float, y: float) -> Tuple[float, float]:
         """
         Transforms from normalized coordinates to pixels
-
         The view displays images at a reduced resolution for speed. We use the image
         manager to obtain the reduced coordinates to use for de-normalization.
         """
@@ -102,3 +106,32 @@ class ObliqueView(View):
             self.canvas.draw_idle()
 
         self.window.title(title)
+
+    def view_pixel_to_source_pixel(self, x: float, y: float) ->  Tuple[float, float]:
+        x1, y1 = self.image_manager.get_offsets(self.current_image)
+        x += x1
+        y += y1
+        theta = self.image_manager.get_rotation_angle(self.current_image)
+        px, py = invert_coords_from_rotated_image((x, y), theta)
+        return px, py
+
+    def add_move_or_remove_gcp(self, x, y, add):
+        if self.main_ui.curr_point is None:
+            return
+        reproj = self.main_ui.gcp_manager.gcp_reprojections.get(
+            self.main_ui.curr_point)
+        if reproj:
+            reproj.pop(self.current_image, None)
+        self.main_ui.gcp_manager.remove_point_observation(
+            self.main_ui.curr_point, self.current_image
+        )
+        if add:
+            self.main_ui.gcp_manager.add_point_observation(
+                self.main_ui.curr_point,
+                self.current_image,
+                self.pixel_to_gcp_coordinates(x, y),
+                oblique_coords = self.view_pixel_to_source_pixel(x, y)
+            )
+            self.zoom_in(x, y)
+        else:
+            self.zoom_out()
