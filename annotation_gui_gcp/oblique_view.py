@@ -52,7 +52,10 @@ class ObliqueView(View):
         super(ObliqueView, self).bring_new_image(new_image, force=True)
         xlim = self.ax.get_xlim()
         ylim = self.ax.get_ylim()
-        artists = self.ax.plot(np.mean(xlim), np.mean(ylim), "rx")
+        x1, y1 = self.image_manager.get_normalized_feature(new_image)
+        xx = xlim[0]+x1*(xlim[1]-xlim[0])
+        yy = ylim[1]-y1*(ylim[1]-ylim[0])
+        artists = self.ax.plot(xx, yy, "rx")
         self.plt_artists.extend(artists)
         self.canvas.draw_idle()
 
@@ -145,9 +148,8 @@ class ObliqueView(View):
         h, w = self.image_manager.get_image_size(self.current_image)
         px = features.denormalized_image_coordinates(
             np.array([[x, y]]), w, h)[0]
-        x1, y1 = self.image_manager.get_offsets(self.current_image)
-        x = px[0] - x1
-        y = px[1] - y1
+        x = px[0]
+        y = px[1]
         return [x, y]
 
     def pixel_to_gcp_coordinates(self, x: float, y: float) -> Tuple[float, float]:
@@ -155,9 +157,6 @@ class ObliqueView(View):
         Transforms from pixels (in the viewing window) to normalized coordinates
         (in the whole geotiff)
         """
-        x1, y1 = self.image_manager.get_offsets(self.current_image)
-        x += x1
-        y += y1
         h, w = self.image_manager.get_image_size(self.current_image)
         coords = features.normalized_image_coordinates(
             np.array([[x, y]]), w, h)[0]
