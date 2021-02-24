@@ -114,7 +114,7 @@ def _transform_reconstruction(reconstruction, transformation):
     for shot in reconstruction.shots.values():
         R = shot.pose.get_rotation_matrix()
         shot.pose.set_rotation_matrix(np.dot(R, A1))
-        shot.pose.translation = list(np.dot(A, shot.pose.get_origin()) + b)
+        shot.pose.set_origin(np.dot(A, shot.pose.get_origin()) + b)
 
     for point in reconstruction.points.values():
         point.coordinates = list(np.dot(A, point.coordinates) + b)
