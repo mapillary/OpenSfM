@@ -6,135 +6,228 @@
 
 namespace {
 
-static map::Map CreateDefaultMap(
-    const size_t n_cams, const std::map<map::CameraId, size_t>& cam_shots = {},
-    const size_t n_points = 0) {
-  Camera camera = Camera::CreatePerspectiveCamera(0.5, 0, 0);
-  camera.width = 640;
-  camera.height = 480;
-  auto map = map::Map();
-  for (auto i = 0; i < n_cams; ++i) {
-    camera.id = std::to_string(i);
-    map.CreateCamera(camera);
+class BaseMapFixture : public ::testing::Test {
+ public:
+  BaseMapFixture() {
+    camera = Camera::CreatePerspectiveCamera(0.5, 0, 0);
+    camera.width = 640;
+    camera.height = 480;
+
+    rig_camera.id = "rig_camera";
+    rig_model.id = "rig_model";
+    rig_model.AddRigCamera(rig_camera);
   }
-  if (n_cams > 0) {
-    for (const auto& cam_shot : cam_shots) {
-      for (auto i = 0; i < cam_shot.second; ++i) {
-        map.CreateShot(std::to_string(i), cam_shot.first);
-      }
-    }
-  }
+  map::RigCamera rig_camera;
+  map::RigModel rig_model;
+  Camera camera;
+};
 
-  for (auto i = 0; i < n_points; ++i) {
-    map.CreateLandmark(std::to_string(i), Vec3d::Random());
-  }
-  return map;
+class EmptyMapFixture : public BaseMapFixture {
+ public:
+  map::Map map;
+};
+
+TEST_F(EmptyMapFixture, CreateCameraCorrectly) {
+  const std::string id = "camera1";
+  camera.id = id;
+  const auto& my_cam = map.CreateCamera(camera);
+  ASSERT_EQ(id, my_cam.id);
 }
 
-TEST(Map, TestCreateCamera) {
-  Camera camera = Camera::CreatePerspectiveCamera(0.5, 0, 0);
-  camera.width = 640;
-  camera.height = 480;
-  auto map = map::Map();
-  constexpr auto n_cameras{10};
-  for (auto i = 0; i < n_cameras; ++i) {
-    camera.id = std::to_string(i);
-    const auto& my_cam = map.CreateCamera(camera);
-    ASSERT_EQ(my_cam.id, camera.id);
-    ASSERT_EQ(my_cam.width, camera.width);
-    ASSERT_EQ(my_cam.height, camera.height);
-  }
-  ASSERT_EQ(map.NumberOfCameras(), n_cameras);
-  ASSERT_EQ(map.GetCameras().size(), n_cameras);
+TEST_F(EmptyMapFixture, ReturnsNumberOfCameras) {
+  map.CreateCamera(camera);
+  ASSERT_EQ(1, map.NumberOfCameras());
 }
 
-TEST(Map, TestDeleteShots) {
-  std::map<map::CameraId, size_t> cam_shots{{"0", 3}};
-  auto map = CreateDefaultMap(1, cam_shots);
-  ASSERT_TRUE(map.NumberOfShots() == 3) << map.NumberOfShots() << "== " << 3;
-  map.RemoveShot("1");
-  ASSERT_TRUE(map.NumberOfShots() == 2) << map.NumberOfShots() << "== " << 2;
-  ASSERT_THROW(map.RemoveShot("1"), std::runtime_error);
-  ASSERT_TRUE(map.NumberOfShots() == 2) << map.NumberOfShots() << "== " << 2;
-  map.RemoveShot("2");
-  ASSERT_TRUE(map.NumberOfShots() == 1) << map.NumberOfShots() << "== " << 1;
-  map.RemoveShot("0");
-  ASSERT_TRUE(map.NumberOfShots() == 0) << map.NumberOfShots() << "== " << 0;
+TEST_F(EmptyMapFixture, ReturnsAllCameras) {
+  map.CreateCamera(camera);
+  camera.id = "camera1";
+  map.CreateCamera(camera);
+  camera.id = "camera2";
+  ASSERT_EQ(2, map.GetCameras().size());
 }
 
-TEST(Map, TestCreateShots) {
-  auto map = CreateDefaultMap(1);
-  const auto& shot1 = map.CreateShot("0", "0");
-  ASSERT_THROW(map.CreateShot("0", "0"), std::runtime_error);
-  map.CreateShot("1", "0");
-  ASSERT_EQ(map.NumberOfShots(), 2) << map.NumberOfShots() << "==" << 2;
-  const auto shot_id = "0";
-  ASSERT_EQ(&shot1, &map.GetShot("0"));
-  ASSERT_EQ(shot1.id_, shot_id);
-  ASSERT_EQ(shot1.unique_id_, 0);
+TEST_F(EmptyMapFixture, CreateLandmarkCorrectly) {
+  const std::string id = "0";
+  auto& lm = map.CreateLandmark(id, Vec3d::Random());
+  ASSERT_EQ(id, lm.id_);
 }
 
-TEST(Map, TestShotGetter) {
-  auto map = CreateDefaultMap(1);
-  const auto shot_id = "0";
-  const auto& shot1 = map.CreateShot(shot_id, "0");
-  ASSERT_EQ(&shot1, &map.GetShot(shot_id));
-  ASSERT_TRUE(map.HasShot(shot_id));
-  ASSERT_ANY_THROW(map.GetShot("invalid_shot_id"));
+TEST_F(EmptyMapFixture, CreateAndReturnLandmarkCorrectly) {
+  const std::string id = "0";
+  auto& lm = map.CreateLandmark(id, Vec3d::Random());
+  ASSERT_EQ(&map.GetLandmark(id), &lm);
 }
 
-TEST(Map, TestLandmarkGetter) {
-  auto map = map::Map();
-  auto& lm = map.CreateLandmark("0", Vec3d::Random());
-  ASSERT_EQ(lm.id_, "0");
-  ASSERT_EQ(&lm, &map.GetLandmark("0"));
-  ASSERT_EQ(map.GetLandmark("0").id_, "0");
-  ASSERT_TRUE(map.HasLandmark("0"));
+TEST_F(EmptyMapFixture, HasLandmarkAfterCreation) {
+  const std::string id = "0";
+  map.CreateLandmark(id, Vec3d::Random());
+  ASSERT_TRUE(map.HasLandmark(id));
 }
 
-TEST(Map, TestCreatePoints) {
-  auto map = CreateDefaultMap(1);
-  constexpr auto n_landmarks = 10;
-  for (size_t pt_id = 0; pt_id < n_landmarks; ++pt_id) {
-    const Vec3d coord = Vec3d::Random();
-    const auto s_pt_id = std::to_string(pt_id);
-    auto& pt = map.CreateLandmark(s_pt_id, coord);
-    ASSERT_TRUE(map.HasLandmark(s_pt_id));
-    ASSERT_EQ(s_pt_id, pt.id_);
-    ASSERT_EQ(coord, pt.GetGlobalPos());
-  }
-  ASSERT_EQ(map.NumberOfLandmarks(), n_landmarks);
-}
-
-TEST(Map, TestInvalidIdAccess) {
-  auto map = map::Map();
+TEST_F(EmptyMapFixture, ThrowOnInvalidCameraAccess) {
   ASSERT_ANY_THROW(map.GetCamera("invalid"));
+}
+
+TEST_F(EmptyMapFixture, ThrowOnInvalidLandmarkAccess) {
   ASSERT_ANY_THROW(map.GetLandmark("invalid"));
+}
+
+TEST_F(EmptyMapFixture, ThrowOnInvalidShotAccess) {
   ASSERT_ANY_THROW(map.GetShot("invalid"));
 }
 
-TEST(Map, TestDeletePoints) {
-  auto map = CreateDefaultMap(1, std::map<map::CameraId, size_t>(), 5);
-  ASSERT_EQ(map.NumberOfLandmarks(), 5);
-  map.RemoveLandmark("0");
-  ASSERT_FALSE(map.HasLandmark("0"));
-  ASSERT_EQ(map.NumberOfLandmarks(), 4);
-  ASSERT_THROW(map.RemoveLandmark("0"), std::runtime_error);
-  ASSERT_EQ(map.NumberOfLandmarks(), 4);
-  map.RemoveLandmark("1");
-  ASSERT_FALSE(map.HasLandmark("1"));
-  ASSERT_EQ(map.NumberOfLandmarks(), 3);
-  map.ClearObservationsAndLandmarks();
-  ASSERT_EQ(map.NumberOfLandmarks(), 0);
+TEST_F(EmptyMapFixture, CreatePointCorrectly) {
+  const int id = 0;
+  auto& point = map.CreateLandmark(std::to_string(id), Vec3d::Random());
+  ASSERT_EQ(std::to_string(id), point.id_);
 }
 
-TEST(Map, SmallProblem) {
-  auto map = map::Map();
+TEST_F(EmptyMapFixture, CreatePointWithCorrectCoords) {
+  const Vec3d position = Vec3d::Random();
+  auto& point = map.CreateLandmark(std::to_string(0), position);
+  ASSERT_EQ(position, point.GetGlobalPos());
+}
+
+TEST_F(EmptyMapFixture, ReturnsHasLandmark) {
+  const int id = 0;
+  map.CreateLandmark(std::to_string(id), Vec3d::Random());
+  ASSERT_TRUE(map.HasLandmark(std::to_string(id)));
+}
+
+TEST_F(EmptyMapFixture, CreateRigModelCorrectly) {
+  auto& create_rig_model = map.CreateRigModel(rig_model);
+  ASSERT_EQ(create_rig_model.id, rig_model.id);
+}
+
+class ToyMapFixture : public EmptyMapFixture {
+ public:
+  ToyMapFixture() {
+    int shot_id = 0;
+    for (auto i = 0; i < num_cameras; ++i) {
+      camera.id = std::to_string(i);
+      map.CreateCamera(camera);
+
+      for (auto j = 0; j < num_shots[i]; ++j) {
+        map.CreateShot(std::to_string(shot_id++), camera.id);
+      }
+    }
+
+    for (auto i = 0; i < num_points; ++i) {
+      map.CreateLandmark(std::to_string(i), Vec3d::Random());
+    }
+
+    map.CreateRigModel(rig_model);
+  }
+
+  static constexpr int num_points = 10;
+  static constexpr int num_cameras = 2;
+  std::array<int, 2> num_shots = {5, 3};
+};
+
+const int ToyMapFixture::num_points;
+const int ToyMapFixture::num_cameras;
+
+TEST_F(ToyMapFixture, ReturnsNumberOfShots) {
+  ASSERT_EQ(map.NumberOfShots(), 8);
+}
+
+TEST_F(ToyMapFixture, ReturnsNumberOfLandmarks) {
+  ASSERT_EQ(map.NumberOfLandmarks(), num_points);
+}
+
+TEST_F(ToyMapFixture, RemoveShots) {
+  map.RemoveShot("1");
+  ASSERT_EQ(map.NumberOfShots(), 7);
+}
+
+TEST_F(ToyMapFixture, ThrowsWhenRemovingTwice) {
+  map.RemoveShot("1");
+  ASSERT_THROW(map.RemoveShot("1"), std::runtime_error);
+}
+
+TEST_F(ToyMapFixture, ThrowsWhenCreatingTwice) {
+  ASSERT_THROW(map.CreateShot("0", "0"), std::runtime_error);
+}
+
+TEST_F(ToyMapFixture, RemoveLandmark) {
+  map.RemoveLandmark("1");
+  ASSERT_EQ(map.NumberOfLandmarks(), num_points - 1);
+}
+
+TEST_F(ToyMapFixture, ThrowsWhenRemovingLandmarkTwice) {
+  map.RemoveLandmark("1");
+  ASSERT_THROW(map.RemoveLandmark("1"), std::runtime_error);
+}
+
+TEST_F(ToyMapFixture, CreateRigInstanceCorrectly) {
+  std::map<map::ShotId, map::RigCameraId> instance_shots;
+  instance_shots["0"] = rig_camera.id;
+  auto& create_rig_instance =
+      map.CreateRigInstance(&rig_model, 1, instance_shots);
+
+  ASSERT_EQ(1, create_rig_instance.GetShots().size());
+}
+
+TEST_F(ToyMapFixture, UpdatesRigInstanceCorrectly) {
+  std::map<map::ShotId, map::RigCameraId> instance_shots;
+  instance_shots["0"] = rig_camera.id;
+
+  auto& instance1 = map.CreateRigInstance(&rig_model, 1, instance_shots);
+  Vec3d rand1 = Vec3d::Random();
+  instance1.SetPose(geometry::Pose(rand1));
+
+  auto instance2 = instance1;
+  Vec3d rand2 = Vec3d::Random();
+  instance2.SetPose(geometry::Pose(rand2));
+
+  map.UpdateRigInstance(instance2);
+  ASSERT_EQ(instance1.GetPose().GetOrigin(), instance2.GetPose().GetOrigin());
+}
+
+TEST_F(ToyMapFixture, ThrowOnCreateRigInstanceWithInvalidShot) {
+  std::map<map::ShotId, map::RigCameraId> instance_shots;
+  instance_shots["invalid_shot"] = rig_camera.id;
+  ASSERT_THROW(map.CreateRigInstance(&rig_model, 1, instance_shots),
+               std::runtime_error);
+}
+
+TEST_F(ToyMapFixture, ThrowOnCreateRigInstanceWithInvalidRigModel) {
+  std::map<map::ShotId, map::RigCameraId> instance_shots;
+  instance_shots["0"] = rig_camera.id;
+  rig_model.id = "invalid_rig_model";
+  ASSERT_THROW(map.CreateRigInstance(&rig_model, 1, instance_shots),
+               std::runtime_error);
+}
+
+class OneCameraMapFixture : public EmptyMapFixture {
+ public:
+  OneCameraMapFixture() {
+    camera.id = std::to_string(id);
+    map.CreateCamera(camera);
+  }
+  static int constexpr id = 0;
+};
+
+TEST_F(OneCameraMapFixture, ReturnsNumberOfShots) {
+  const auto& shot = map.CreateShot("0", "0");
+  ASSERT_EQ(shot.id_, "0");
+  ASSERT_EQ(shot.unique_id_, 0);
+}
+
+TEST_F(OneCameraMapFixture, ReturnsShots) {
+  const auto& shot = map.CreateShot("0", "0");
+  ASSERT_EQ(&shot, &map.GetShot("0"));
+}
+
+TEST_F(OneCameraMapFixture, ReturnsHasShots) {
+  map.CreateShot("0", "0");
+  ASSERT_TRUE(map.HasShot("0"));
+}
+
+TEST_F(EmptyMapFixture, ConstructSmallProblem) {
   constexpr auto n_points{300};
   constexpr auto n_shots{20};
-  Camera camera = Camera::CreatePerspectiveCamera(0.5, 0, 0);
-  camera.width = 640;
-  camera.height = 480;
   camera.id = "cam1";
   map.CreateCamera(camera);
   for (auto i = 0; i < n_shots; ++i) {
@@ -157,13 +250,58 @@ TEST(Map, SmallProblem) {
   }
   ASSERT_EQ(map.NumberOfLandmarks(), n_points);
   ASSERT_EQ(map.GetLandmarks().size(), n_points);
-  for (const auto& shot_pair : shots) {
-    ASSERT_EQ(shot_pair.second.ComputeNumValidLandmarks(), n_points);
-  }
 }
 
-TEST(Map, TopoCentricConverterAccess) {
-  auto map = map::Map();
+class OneRigMapFixture : public EmptyMapFixture {
+ public:
+  OneRigMapFixture() {
+    camera.id = "0";
+    map.CreateCamera(camera);
+    map.CreateShot("0", "0");
+    map.CreateRigModel(rig_model);
+    std::map<map::ShotId, map::RigCameraId> instance_shots;
+    instance_shots["0"] = rig_camera.id;
+    map.CreateRigInstance(&rig_model, 1, instance_shots);
+  }
+};
+
+TEST_F(OneRigMapFixture, ReturnsNumberOfRigModels) {
+  ASSERT_EQ(1, map.NumberOfRigModels());
+}
+
+TEST_F(OneRigMapFixture, HasRigModels) {
+  ASSERT_TRUE(map.HasRigModel("rig_model"));
+}
+
+TEST_F(OneRigMapFixture, ReturnsRigModel) {
+  const auto& model = map.GetRigModel("rig_model");
+  ASSERT_EQ("rig_model", model.id);
+}
+
+TEST_F(OneRigMapFixture, ReturnsAllRigModels) {
+  ASSERT_EQ(1, map.GetRigModels().size());
+}
+
+TEST_F(OneRigMapFixture, ReturnsNumberOfRigInstances) {
+  ASSERT_EQ(1, map.NumberOfRigInstances());
+}
+
+TEST_F(OneRigMapFixture, HasRigInstances) {
+  ASSERT_TRUE(map.HasRigInstance(1));
+}
+
+TEST_F(OneRigMapFixture, ReturnsRigInstance) {
+  const auto& instance = map.GetRigInstance(1);
+  std::set<ShotId> expected_keys;
+  expected_keys.insert("0");
+  ASSERT_THAT(instance.GetShotIDs(), ::testing::ContainerEq(expected_keys));
+}
+
+TEST_F(OneRigMapFixture, ReturnsAllRigInstances) {
+  ASSERT_EQ(1, map.GetRigInstances().size());
+}
+
+TEST_F(EmptyMapFixture, TopoCentricConverterAccess) {
   const auto& topo_default = map.GetTopocentricConverter();
   ASSERT_EQ(topo_default.alt_, 0.0);
   ASSERT_EQ(topo_default.lat_, 0.0);

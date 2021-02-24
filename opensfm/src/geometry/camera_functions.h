@@ -16,7 +16,8 @@ enum class ProjectionType {
   SPHERICAL,
   DUAL,
   RADIAL,
-  SIMPLE_RADIAL
+  SIMPLE_RADIAL,
+  NONE,
 };
 
 template <class T>
@@ -352,8 +353,7 @@ struct Disto2 : CameraFunctor<2, 1, 2> {
   template <class T>
   static void Forward(const T* point, const T* k, T* distorted) {
     const T r2 = SquaredNorm(point);
-    const auto distortion =
-        Distortion(r2, k[static_cast<int>(K1)]);
+    const auto distortion = Distortion(r2, k[static_cast<int>(K1)]);
     distorted[0] = point[0] * distortion;
     distorted[1] = point[1] * distortion;
   }
@@ -1472,6 +1472,7 @@ void Dispatch(const ProjectionType& type, IN&&... args) {
     case ProjectionType::SPHERICAL:
       FUNC::template Apply<SphericalCamera>(std::forward<IN>(args)...);
       break;
+    case ProjectionType::NONE:
     default:
       throw std::runtime_error("Invalid ProjectionType");
   }

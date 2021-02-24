@@ -1,7 +1,9 @@
 set(FOUNDATION_FILES
+    stl_extensions.h
     types.h
     newton_raphson.h
     numeric.h
+    optional.h
     union_find.h
     src/types.cc
     src/newton_raphson.cc

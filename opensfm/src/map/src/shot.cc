@@ -1,5 +1,8 @@
-#include <map/shot.h>
+#include <foundation/stl_extensions.h>
 #include <map/landmark.h>
+#include <map/rig.h>
+#include <map/shot.h>
+
 #include <algorithm>
 #include <numeric>
 namespace map {
@@ -7,19 +10,21 @@ namespace map {
 Shot::Shot(const ShotId& shot_id, const Camera* const shot_camera,
            const geometry::Pose& pose)
     : id_(shot_id),
-      shot_camera_(shot_camera),
-      merge_cc(0),
-      scale(1.0),
-      pose_(pose) {}
+      pose_(std::make_unique<geometry::Pose>(pose)),
+      shot_camera_(shot_camera) {}
 
-Shot::Shot(const ShotId& shot_id, std::unique_ptr<Camera> shot_camera,
+Shot::Shot(const ShotId& shot_id, const Camera& shot_camera,
            const geometry::Pose& pose)
     : id_(shot_id),
-      shot_camera_(shot_camera.get()),
-      merge_cc(0),
-      scale(1.0),
-      pose_(pose) {
-  own_camera_ = std::move(shot_camera);
+      pose_(std::make_unique<geometry::Pose>(pose)),
+      own_camera_(shot_camera),
+      shot_camera_(&own_camera_.Value()) {}
+
+void Shot::SetRig(const RigInstance* rig_instance,
+                  const RigCamera* rig_camera) {
+  rig_instance_.SetValue(rig_instance);
+  rig_camera_.SetValue(rig_camera);
+  pose_ = std::make_unique<geometry::PoseImmutable>(*pose_);
 }
 
 void ShotMeasurements::Set(const ShotMeasurements& other) {
@@ -66,38 +71,44 @@ void ShotMeasurements::Set(const ShotMeasurements& other) {
   }
 }
 
-size_t Shot::ComputeNumValidLandmarks(const int min_obs_thr) const {
-  return std::accumulate(
-      landmark_observations_.cbegin(), landmark_observations_.cend(), 0,
-      [min_obs_thr](const size_t prior,
-                    const std::pair<Landmark*, Observation>& lm) {
-        if (min_obs_thr <= lm.first->NumberOfObservations()) return prior + 1;
-        return prior;
-      });
-}
-
-void Shot::ScaleLandmarks(const double scale) {
-  for (auto& lm_obs : landmark_observations_) {
-    auto* lm = lm_obs.first;
-    lm->SetGlobalPos(lm->GetGlobalPos() * scale);
-  }
-}
-
-void Shot::ScalePose(const double scale) {
-  Mat4d cam_pose_cw = pose_.WorldToCamera();
-  cam_pose_cw.block<3, 1>(0, 3) *= scale;
-  pose_.SetFromWorldToCamera(cam_pose_cw);
-}
-
 void Shot::RemoveLandmarkObservation(const FeatureId id) {
   auto* lm = landmark_id_.at(id);
   landmark_id_.erase(id);
   landmark_observations_.erase(lm);
 }
 
+void Shot::SetPose(const geometry::Pose& pose) {
+  if (IsInRig()) {
+    throw std::runtime_error(
+        "Can't set the pose of Shot belonging to a RigInstance");
+  }
+  *pose_ = pose;
+}
+
+geometry::Pose Shot::GetPoseInRig() const {
+  // pose(shot) = pose(rig_camera)*pose(instance)
+  const auto& pose_instance = rig_instance_.Value()->GetPose();
+  const auto& rig_camera_pose = rig_camera_.Value()->pose;
+  return rig_camera_pose.Compose(pose_instance);
+}
+
+const geometry::Pose* const Shot::GetPose() const {
+  if (IsInRig()) {
+    *pose_ = GetPoseInRig();
+  }
+  return pose_.get();
+}
+
+geometry::Pose* const Shot::GetPose() {
+  if (IsInRig()) {
+    *pose_ = GetPoseInRig();
+  }
+  return pose_.get();
+}
+
 Vec2d Shot::Project(const Vec3d& global_pos) const {
-  return shot_camera_->Project(pose_.RotationWorldToCamera() * global_pos +
-                               pose_.TranslationWorldToCamera());
+  return shot_camera_->Project(GetPose()->RotationWorldToCamera() * global_pos +
+                               GetPose()->TranslationWorldToCamera());
 }
 
 MatX2d Shot::ProjectMany(const MatX3d& points) const {
@@ -109,7 +120,7 @@ MatX2d Shot::ProjectMany(const MatX3d& points) const {
 }
 
 Vec3d Shot::Bearing(const Vec2d& point) const {
-  return pose_.RotationCameraToWorld() * shot_camera_->Bearing(point);
+  return GetPose()->RotationCameraToWorld() * shot_camera_->Bearing(point);
 }
 
 MatX3d Shot::BearingMany(const MatX2d& points) const {

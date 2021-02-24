@@ -1,4 +1,5 @@
 #pragma once
+#include <foundation/optional.h>
 #include <map/defines.h>
 #include <map/map.h>
 namespace map {
@@ -26,7 +27,7 @@ struct GroundControlPoint {
      */
   GroundControlPoint() = default;
   LandmarkId id_ = "";
-  ShotMeasurement<Vec3d> coordinates_;
+  foundation::OptionalValue<Vec3d> coordinates_;
   bool has_altitude_ = false;
   AlignedVector<GroundControlPointObservation> observations_;
   std::map<std::string, double> lla_;

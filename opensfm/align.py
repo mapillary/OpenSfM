@@ -5,7 +5,6 @@ import math
 
 import numpy as np
 from opensfm import multiview
-from opensfm import pygeometry
 from opensfm import transformations as tf
 
 logger = logging.getLogger(__name__)
@@ -285,33 +284,17 @@ def get_horizontal_and_vertical_directions(R, orientation):
     return R[0, :], R[1, :], R[2, :]
 
 
-def triangulate_single_gcp(reconstruction, observations):
-    """Triangulate one Ground Control Point."""
-    reproj_threshold = 0.004
-    min_ray_angle_degrees = 2.0
-
-    os, bs = [], []
-    for o in observations:
-        if o.shot_id in reconstruction.shots:
-            shot = reconstruction.shots[o.shot_id]
-            os.append(shot.pose.get_origin())
-            b = shot.camera.pixel_bearing(np.asarray(o.projection))
-            r = shot.pose.get_rotation_matrix().T
-            bs.append(r.dot(b))
-
-    if len(os) >= 2:
-        thresholds = len(os) * [reproj_threshold]
-        angle = np.radians(min_ray_angle_degrees)
-        return pygeometry.triangulate_bearings_midpoint(os, bs, thresholds, angle)
-    return False, None
-
-
 def triangulate_all_gcp(reconstruction, gcp):
     """Group and triangulate Ground Control Points seen in 2+ images."""
     triangulated, measured = [], []
     for point in gcp:
-        e, x = triangulate_single_gcp(reconstruction, point.observations)
-        if e:
+        x = multiview.triangulate_gcp(
+            point,
+            reconstruction.shots,
+            reproj_threshold = 0.004,
+            min_ray_angle_degrees = 2.0,
+        )
+        if x is not None:
             triangulated.append(x)
             measured.append(point.coordinates.value)
     return triangulated, measured
