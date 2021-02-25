@@ -41,6 +41,7 @@ class GroundControlPointManager:
     def __init__(self, path):
         self.points = OrderedDict()
         self.latlons = {}
+        self.alt = {}
         self.path = path
         self.image_cache = {}
         load_or_download_names()
@@ -63,7 +64,7 @@ class GroundControlPointManager:
             latlon = point.get("position")
             if latlon:
                 if "altitude" in latlon:
-                    raise NotImplementedError("Not supported: altitude in GCPs")
+                    self.alt[point["id"]] = {'altitude': latlon['altitude']}
                 self.latlons[point["id"]] = latlon
 
     def write_to_file(self, filename):
@@ -71,7 +72,9 @@ class GroundControlPointManager:
         for point_id in self.points:
             out_point = {"id": point_id, "observations": self.points[point_id]}
             if out_point["id"] in self.latlons:
-                out_point["position"] = self.latlons[point_id]
+                out_point["position"] = {
+                    **self.latlons[point_id],
+                    **self.alt[point_id]}
             output_points.append(out_point)
         with open(filename, "wt") as fp:
             json.dump({"points": output_points}, fp, indent=4, sort_keys=True)
@@ -95,15 +98,18 @@ class GroundControlPointManager:
         self.points[new_id] = []
         return new_id
 
-    def add_point_observation(self, point_id, shot_id, projection, latlon=None, oblique_coords=None):
+
+    def add_point_observation(self, point_id, shot_id, projection, latlon=None, oblique_coords=None, alt=None):
         if not self.point_exists(point_id):
-            raise ValueError(f"ERROR: trying to modify a non-existing point {point_id}")
+            raise ValueError(
+                f"ERROR: trying to modify a non-existing point {point_id}")
 
         if latlon:
             self.latlons[point_id] = {
                 "latitude": latlon[0],
                 "longitude": latlon[1],
             }
+
         if oblique_coords:
             self.points[point_id].append(
                 {
@@ -112,13 +118,22 @@ class GroundControlPointManager:
                     "source_xy": oblique_coords
                 }
             )
+            if alt:
+                self.alt[point_id] = {
+                    "altitude": alt
+                }
         else:
+            if alt:
+                self.alt[point_id] = {
+                    "altitude": alt
+                }
             self.points[point_id].append(
                 {
                     "shot_id": shot_id,
                     "projection": projection,
                 }
             )
+
 
     def compute_gcp_errors(self):
         error_avg = {}
@@ -146,7 +161,8 @@ class GroundControlPointManager:
         annotated_images = set(self.gcp_reprojections[gcp]).intersection(
             set(image_keys)
         )
-        errors = {k: self.gcp_reprojections[gcp][k]["error"] for k in annotated_images}
+        errors = {k: self.gcp_reprojections[gcp]
+                  [k]["error"] for k in annotated_images}
         if len(errors) > 0:
             return max(errors, key=lambda k: errors[k])
         else:

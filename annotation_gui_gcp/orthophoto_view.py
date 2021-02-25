@@ -29,7 +29,7 @@ class OrthoPhotoView(View):
         self.zoom_window_size_px = 500
         self.is_geo_reference = is_geo_reference
 
-        self.size = 50  # TODO add widget for zoom level
+        self.size = 500  # TODO add widget for zoom level
 
         super(OrthoPhotoView, self).__init__(main_ui, False)
         self.refocus(init_lat, init_lon)

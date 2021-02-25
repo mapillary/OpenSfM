@@ -20,6 +20,7 @@ from rtree import index
 from opensfm.dataset import DataSet
 from export_reconstruction_points import world_points
 
+
 IMAGE_MAX_SIZE = 2000
 MIN_OBLIQUE_ANGLE = 10
 MAX_OBLIQUE_ANGLE = 55
@@ -104,35 +105,29 @@ def invert_coords_from_rotated_image(point, theta, original_image_shape=(5120, 5
 
 
 class ObliqueManager:
-    def __init__(self, path: str, preload_images=True):
+    def __init__(self, path: str, preload_images=True, rotate=False):
         self.path = Path(path)
-        self.rtree_path=f'{self.path}/rtree_index'
+        self.rtree_path = f'{self.path}/rtree_index'
         self.image_cache = {}
         self.image_coord = {}
         self.image_rotations = {}
-        self.candidate_images = []
         self.preload_bol = preload_images
         self.ds = DataSet(self.path)
         self.get_rtree_index()
-        self.image_data_path = f"{self.path}/{OBLIQUE_DATA_FILE}"
-        self.image_metadata = pd.read_csv(self.image_data_path, usecols=['PhotoName', 'OmegaDeg', 'PhiDeg', 'KappaDeg'])
-        self.image_metadata.set_index('PhotoName', inplace=True)
+        self.rotate=rotate
+        if self.rotate:
+            self.image_data_path = f"{self.path}/{OBLIQUE_DATA_FILE}"
+            self.image_metadata = pd.read_csv(self.image_data_path, usecols=['PhotoName', 'OmegaDeg', 'PhiDeg', 'KappaDeg'])
+            self.image_metadata.set_index('PhotoName', inplace=True)
 
     def image_path(self, image_name):
         return f"{self.path}/images/{image_name}"
 
     def get_image(self, image_name):
-        # image_name has the convention {root_name}_{px}_{py}
-        # the image retrieved has been cropped
         if image_name not in self.image_cache:
             path = self.image_path(image_name)
-            px = image_name.split('_')[-2]
-            py = image_name.split('_')[-1]
-            self.image_cache[image_name] = self.load_image((path, px, py))
-
-        img_rgb = self.image_cache[image_name]
-
-        return img_rgb
+            self.image_cache[image_name] = self.load_image(path)
+        return self.image_cache[image_name]
 
     def load_latlons(self):
         # 'canonical' latlon not as useful for obliques
@@ -151,8 +146,11 @@ class ObliqueManager:
 
         self.aerial_matches = [x.object['images'] for x in aerial_match][0]
         self.image_names = [x['image_name']
-                            for x in self.aerial_matches ]
+                            for x in self.aerial_matches]
+        self.image_coord = {x['image_name']: (x['x_px_int'] , x['y_px_int'])
+                             for x in self.aerial_matches}
         print(f"Found {len(self.aerial_matches)} aerial images")
+        
         if self.preload_bol:
             self.preload_images()
 
@@ -183,7 +181,7 @@ class ObliqueManager:
                 ypx = int(np.round(im['y_px']))
                 imn = {'x_px_int': xpx,
                        'y_px_int': ypx,
-                       'image_name': f"{im['image_id']}_{xpx}_{ypx}"}
+                       'image_name': f"{im['image_id']}"}
                 ims.append(dict(im, **imn))
             lat = val['location']['lat']
             lon = val['location']['lon']
@@ -200,31 +198,19 @@ class ObliqueManager:
         print(f"Preloading images with {n_cpu} processes")
         paths = []
         image_names = []
+        coords=[]
         for match in self.aerial_matches:
             image_names.append(match['image_name'])
-            paths.append(
-                (self.image_path(match['image_id']), match['x_px_int'], (match['y_px_int'])))
+            paths.append(self.image_path(match['image_id']))
+            coords.append((match['x_px_int'], match['y_px_int']))
         pool = multiprocessing.Pool(processes=n_cpu)
         images = pool.map(self.load_image, paths)
-        for image_name, im, path in zip(image_names, images, paths):
+        for image_name, im, coord in zip(image_names, images, coords):
             self.image_cache[image_name] = im
-            self.image_coord[image_name] = (path[1:])
+            self.image_coord[image_name] = coord
 
     def get_image_size(self, image_name):
         return self.get_image(image_name).shape[:2]
-
-    def get_offsets(self, image_name, rotate=True):
-        px, py = self.image_coord[image_name]
-        height, width = self.get_image_size(image_name)
-
-        if rotate:
-            theta = self.get_rotation_angle(image_name)
-            px, py = coords_in_rotated_image((px, py), theta)
-
-        win = int(IMAGE_MAX_SIZE/2)
-        y1 = np.max([py-win, 0])
-        x1 = np.max([px-win, 0])
-        return x1, y1
 
     def get_nearest_feature(self, image_name, x, y):
         return None
@@ -237,46 +223,39 @@ class ObliqueManager:
         the cropped version, e.g. with {root}_{px}_{py}
 
         """
-        root_name = image_name.split('_')[0] + '_' + image_name.split('_')[1]
-        omega, phi, kappa = self.image_metadata.loc[root_name]
-        theta = oblique_rotation_angle(omega, phi, kappa)
-        return theta
+        if not self.rotate:
+            return 0
+        else:
+            omega, phi, kappa = self.image_metadata.loc[image_name]
+            theta = oblique_rotation_angle(omega, phi, kappa)
+            return theta
 
 
-    def load_image(self, in_tuple, win=int(IMAGE_MAX_SIZE/2), rotate=True):
+    def load_image(self, path, rotate=False):
         '''
-        Load an image around a pixel location. The input px and py are the
-        coordinates of the feature in the original image
+        Load an image and rotate if requested
 
         Inputs
         ------
-        in_tuple : tuple
-            (path, px, py)
-            path: str, px: int, py:int
+        path : str
         '''
 
         # package for pool
-        path, px, py = in_tuple
         rgb = Image.open(path)
-        width, height = rgb.size
-
+        
         if rotate:
             theta = self.get_rotation_angle(os.path.basename(path))
             rgb = rgb.rotate(theta, resample=Image.BICUBIC, expand=True)
-            px, py = coords_in_rotated_image((px, py), theta, (height, width))
-
-        y1 = np.max([py-win, 0])
-        y2 = np.min([py+win, rgb.height])
-        x1 = np.max([px-win, 0])
-        x2 = np.min([px+win, rgb.width])
-
-        # use this to mark feature point?
-        # will need to back out original px, py after click
-        pt_x = np.min([px, win])
-        pt_y = np.min([py, win])
-
-        if win is not None:
-            rgb = rgb.crop((x1, y1, x2, y2))
 
         # Matplotlib will transform to rgba when plotting
         return _rgb_to_rgba(np.asarray(rgb))
+
+
+    def get_nearest_feature(self, image_name, x, y):
+        return None
+
+    def get_normalized_feature(self, image_name):
+        pt_x, pt_y = self.image_coord[image_name]
+        height, width = self.get_image_size(image_name)
+        nx,ny=pt_x/height, pt_y/width
+        return nx,ny
