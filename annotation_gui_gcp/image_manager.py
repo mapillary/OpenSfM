@@ -1,6 +1,5 @@
 import multiprocessing
 
-import os
 import numpy as np
 from matplotlib.image import _rgb_to_rgba
 from opensfm import dataset
@@ -10,8 +9,6 @@ IMAGE_MAX_SIZE = 1000
 
 
 def load_image(path):
-    if '.json' in path:
-        print(path)
     rgb = Image.open(path)
 
     # Reduce to some reasonable maximum size
@@ -37,8 +34,7 @@ class ImageManager:
             self.preload_images()
 
     def image_path(self, image_name):
-        # print(image_name)
-        return f"{self.path}/{image_name}"
+        return f"{self.path}/images/{image_name}"
 
     def get_image(self, image_name):
         if image_name not in self.image_cache:
@@ -70,16 +66,8 @@ class ImageManager:
         image_names = []
         for keys in self.seqs.values():
             for k in keys:
-                image_path = os.path.join(self.path, k)
-                if os.path.isfile(image_path):
-                    # image_filename = image_path.replace(str(self.path) + '/', '')
-                    image_filename = os.path.basename(image_path)
-                    image_names.append(image_filename)
-                    paths.append(image_path)
-                else:
-                    image_names.append(k)
-                    paths.append(self.image_path(k))
-
+                image_names.append(k)
+                paths.append(self.image_path(k))
         pool = multiprocessing.Pool(processes=n_cpu)
         images = pool.map(load_image, paths)
         for image_name, im in zip(image_names, images):

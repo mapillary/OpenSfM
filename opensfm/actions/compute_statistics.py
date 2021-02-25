@@ -22,6 +22,7 @@ def run_dataset(data):
 
     stats_dict = stats.compute_all_statistics(data, tracks_manager, reconstructions)
 
+    stats.save_sequencegraph(data, reconstructions, output_path)
     stats.save_residual_grids(data, tracks_manager, reconstructions, output_path)
     stats.save_matchgraph(data, tracks_manager, reconstructions, output_path)
     stats.save_heatmap(data, tracks_manager, reconstructions, output_path)

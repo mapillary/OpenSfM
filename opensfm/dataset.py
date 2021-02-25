@@ -488,8 +488,8 @@ class DataSet(object):
 
         if not wlat and not wlon:
             for gcp in self.load_ground_control_points_impl(None):
-                lat += gcp.lla["latitude"]
-                lon += gcp.lla["longitude"]
+                lat += gcp.lla.get("latitude", 0.)
+                lon += gcp.lla.get("longitude", 0.)
                 wlat += 1
                 wlon += 1
 

@@ -1,9 +1,7 @@
 import argparse
-import os
 import tkinter as tk
 from collections import OrderedDict, defaultdict
 from pathlib import Path
-from glob import glob
 from opensfm import dataset, io
 
 import GUI
@@ -68,26 +66,26 @@ def parse_args():
 
 def file_sanity_check(root, seq_dict, fname):
     # Images available under ./images for a sanity check
-    is_path_glob_expression = False
-    for seq_keys in seq_dict.values():
-        if '*' in seq_keys or isinstance(seq_keys, dict):
-            is_path_glob_expression = True
-
-    if is_path_glob_expression:
-        available_images = set()
-        for seq_keys in seq_dict.values():
-            if isinstance(seq_keys, dict):
-                folder_glob_expression = seq_keys["folder"]
-                skip_frames = max(seq_keys["skip_frames"], 1)
-                seq_images = sorted(glob(str(root / folder_glob_expression)))
-                seq_images = seq_images[::skip_frames]
-            elif '*' in seq_keys:
-                seq_images = sorted(glob(str(root / seq_keys)))
-            else:
-                raise Exception(f"Input format not supported: {seq_dict}")
-            available_images.update(seq_images)
-        available_images = {x.replace(str(root) + '/', '') for x in available_images}
-        return available_images
+    # is_path_glob_expression = False
+    # for seq_keys in seq_dict.values():
+    #     if '*' in seq_keys or isinstance(seq_keys, dict):
+    #         is_path_glob_expression = True
+    #
+    # if is_path_glob_expression:
+    #     available_images = set()
+    #     for seq_keys in seq_dict.values():
+    #         if isinstance(seq_keys, dict):
+    #             folder_glob_expression = seq_keys["folder"]
+    #             skip_frames = max(seq_keys["skip_frames"], 1)
+    #             seq_images = sorted(glob(str(root / folder_glob_expression)))
+    #             seq_images = seq_images[::skip_frames]
+    #         elif '*' in seq_keys:
+    #             seq_images = sorted(glob(str(root / seq_keys)))
+    #         else:
+    #             raise Exception(f"Input format not supported: {seq_dict}")
+    #         available_images.update(seq_images)
+    #     available_images = {x.replace(str(root) + '/', '') for x in available_images}
+    #     return available_images
 
     available_images = {p.name for p in (root / "images").iterdir()}
     keys_in_seq_dict = {im_key for seq_keys in seq_dict.values() for im_key in seq_keys}
@@ -121,18 +119,18 @@ def load_sequence_database_from_file(
     for skey in seq_dict:
         available_image_keys = []
         image_list = seq_dict[skey]
-        if '*' in seq_dict[skey]:
-            image_list = sorted(glob(str(root / seq_dict[skey])))
-            seq_dict[skey] = sorted([x.replace(str(root) + '/', '') for x in image_list])
-            continue
-        elif isinstance(seq_dict[skey], dict):
-            folder_glob_expression = seq_dict[skey]["folder"]
-            skip_frames = max(seq_dict[skey]["skip_frames"], 1)
-            image_list = sorted(glob(str(root / folder_glob_expression)))
-            image_list = image_list[::skip_frames]
-            assert len(image_list) > 0, f"No valid images found for: {folder_glob_expression}"
-            seq_dict[skey] = sorted([x.replace(str(root) + '/', '') for x in image_list])
-            continue
+        # if '*' in seq_dict[skey]:
+        #     image_list = sorted(glob(str(root / seq_dict[skey])))
+        #     seq_dict[skey] = sorted([x.replace(str(root) + '/', '') for x in image_list])
+        #     continue
+        # elif isinstance(seq_dict[skey], dict):
+        #     folder_glob_expression = seq_dict[skey]["folder"]
+        #     skip_frames = max(seq_dict[skey]["skip_frames"], 1)
+        #     image_list = sorted(glob(str(root / folder_glob_expression)))
+        #     image_list = image_list[::skip_frames]
+        #     assert len(image_list) > 0, f"No valid images found for: {folder_glob_expression}"
+        #     seq_dict[skey] = sorted([x.replace(str(root) + '/', '') for x in image_list])
+        #     continue
         for k in image_list:
             if k in available_images:
                 available_image_keys.append(k)

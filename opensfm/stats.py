@@ -2,7 +2,7 @@ import datetime
 import math
 import os
 import statistics
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 from functools import lru_cache
 
 import matplotlib.cm as cm
@@ -380,6 +380,53 @@ def save_matchgraph(data, tracks_manager, reconstructions, output_path):
     )
 
 
+def load_sequence_database_from_file(data_path, fname="sequence_database.json"):
+    """
+    Simply loads a sequence file and returns it.
+    This doesn't require an existing SfM reconstruction
+    """
+    p_json = os.path.join(data_path, fname)
+    if not os.path.isfile(p_json):
+        return None
+    seq_dict = OrderedDict(io.json_load(open(p_json, "r")))
+
+    return seq_dict
+
+
+def save_sequencegraph(data, reconstructions, output_path):
+    shot_sequences = {}
+    data_path = data.data_path
+    seq_dict = load_sequence_database_from_file(data_path)
+    sequences = list(seq_dict.keys())
+    image_xyz_per_sequences = {seq: [] for seq in sequences}
+
+    for i, rec in enumerate(reconstructions):
+        for shot_name, shot in rec.shots.items():
+            shot_sequence = None
+            shot_sequences[shot_name] = None
+            for seq, shot_list in seq_dict.items():
+                if shot_name in shot_list:
+                    shot_sequence = seq
+                    break
+            xyz = shot.pose.get_origin()
+            image_xyz_per_sequences[shot_sequence].append(xyz)
+
+    plt.clf()
+    cmap = cm.get_cmap("rainbow")
+
+    for seq, image_xyz in image_xyz_per_sequences.items():
+        xyz = np.array(image_xyz)
+        c = sequences.index(seq) / len(sequences)
+        plt.scatter(xyz[:, 0], xyz[:, 2], color=cmap(c), label=seq)
+    plt.legend()
+
+    plt.savefig(
+        os.path.join(output_path, "sequencegraph.png"),
+        dpi=300,
+        bbox_inches="tight",
+    )
+
+
 def save_topview(data, tracks_manager, reconstructions, output_path):
     points = []
     colors = []
@@ -410,6 +457,8 @@ def save_topview(data, tracks_manager, reconstructions, output_path):
             if not shot.metadata.gps_position.has_value:
                 continue
             gps = shot.metadata.gps_position.value
+            if gps[0] == gps[1] == gps[2] == 0.:
+                continue
             all_x.append(gps[0])
             all_y.append(gps[1])
 
@@ -506,6 +555,9 @@ def save_topview(data, tracks_manager, reconstructions, output_path):
             if not shot.metadata.gps_position.has_value:
                 continue
             gps = shot.metadata.gps_position.value
+            if gps[0] == gps[1] == gps[2] == 0.:
+                continue
+
             gps_x, gps_y = int((gps[0] - low_x) / size_x * im_size_x), int(
                 (gps[1] - low_y) / size_y * im_size_y
             )
