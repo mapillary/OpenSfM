@@ -282,7 +282,6 @@ def get_image_metadata(data, image):
             metadata.compass_accuracy.value = exif["compass"]["accuracy"]
 
     if "capture_time" in exif:
-        print(exif)
         metadata.capture_time.value = exif["capture_time"]
 
     if "skey" in exif:
