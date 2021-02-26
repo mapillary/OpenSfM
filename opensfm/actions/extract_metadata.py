@@ -1,6 +1,7 @@
 import copy
 import logging
 import time
+from functools import partial
 
 from opensfm import exif
 
@@ -56,7 +57,7 @@ def run_dataset(data):
 def _extract_exif(image, data):
     # EXIF data in Image
     with data.open_image_file(image) as fp:
-        d = exif.extract_exif_from_file(fp)
+        d = exif.extract_exif_from_file(fp, partial(data.load_image, image))
 
     if data.config["unknown_camera_models_are_different"] and (
         not d["model"] or d["model"] == "unknown"

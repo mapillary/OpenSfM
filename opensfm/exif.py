@@ -101,13 +101,8 @@ def camera_id_(make, model, width, height, projection_type, focal):
     ).lower()
 
 
-def extract_exif_from_file(fileobj):
-    if isinstance(fileobj, str):
-        with open(fileobj) as f:
-            exif_data = EXIF(f)
-    else:
-        exif_data = EXIF(fileobj)
-
+def extract_exif_from_file(fileobj, image_loader):
+    exif_data = EXIF(fileobj, image_loader)
     d = exif_data.extract_exif()
     return d
 
@@ -156,7 +151,8 @@ def get_gpano_from_xmp(xmp):
 
 
 class EXIF:
-    def __init__(self, fileobj):
+    def __init__(self, fileobj, image_loader):
+        self.image_loader = image_loader
         self.fileobj = fileobj
         self.tags = exifread.process_file(fileobj, details=False)
         fileobj.seek(0)
@@ -178,7 +174,8 @@ class EXIF:
                 int(self.tags["Image ImageLength"].values[0]),
             )
         else:
-            width, height = -1, -1
+            image_dims = self.image_loader().shape
+            height, width = image_dims[0], image_dims[1]
         return width, height
 
     def _decode_make_model(self, value):
@@ -299,13 +296,17 @@ class EXIF:
         return float(self.xmp[0]["@drone-dji:AbsoluteAltitude"])
 
     def has_xmp(self):
-        return (len(self.xmp) > 0)
+        return len(self.xmp) > 0
 
     def has_dji_latlon(self):
-        return self.has_xmp() and '@drone-dji:Latitude' in self.xmp[0] and '@drone-dji:Longitude' in self.xmp[0]
+        return (
+            self.has_xmp()
+            and "@drone-dji:Latitude" in self.xmp[0]
+            and "@drone-dji:Longitude" in self.xmp[0]
+        )
 
     def has_dji_altitude(self):
-        return self.has_xmp() and '@drone-dji:AbsoluteAltitude' in self.xmp[0]
+        return self.has_xmp() and "@drone-dji:AbsoluteAltitude" in self.xmp[0]
 
     def extract_lon_lat(self):
         if self.has_dji_latlon():
@@ -321,10 +322,13 @@ class EXIF:
     def extract_altitude(self):
         if self.has_dji_altitude():
             altitude = self.extract_dji_altitude()
-        elif 'GPS GPSAltitude' in self.tags:
-            altitude = eval_frac(self.tags['GPS GPSAltitude'].values[0])
+        elif "GPS GPSAltitude" in self.tags:
+            altitude = eval_frac(self.tags["GPS GPSAltitude"].values[0])
             # Check if GPSAltitudeRef is equal to 1, which means GPSAltitude should be negative, reference: http://www.exif.org/Exif2-2.PDF#page=53
-            if 'GPS GPSAltitudeRef' in self.tags and self.tags['GPS GPSAltitudeRef'].values[0] == 1:
+            if (
+                "GPS GPSAltitudeRef" in self.tags
+                and self.tags["GPS GPSAltitudeRef"].values[0] == 1
+            ):
                 altitude = -altitude
         else:
             altitude = None
@@ -528,7 +532,7 @@ def focal_xy_calibration(exif):
             "k3": 0.0,
             "k4": 0.0,
             "k5": 0.0,
-            "k6": 0.0
+            "k6": 0.0,
         }
 
 
