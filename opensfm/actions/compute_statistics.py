@@ -7,7 +7,7 @@ from opensfm import stats
 logger = logging.getLogger(__name__)
 
 
-def run_dataset(data):
+def run_dataset(data, diagram_max_points = -1):
     """Compute various staistics of a datasets and write them to 'stats' folder
 
     Args:
@@ -24,6 +24,10 @@ def run_dataset(data):
 
     stats.save_residual_grids(data, tracks_manager, reconstructions, output_path)
     stats.save_matchgraph(data, tracks_manager, reconstructions, output_path)
+    
+    if diagram_max_points > 0:
+        stats.decimate_points(reconstructions, diagram_max_points)
+        
     stats.save_heatmap(data, tracks_manager, reconstructions, output_path)
     stats.save_topview(data, tracks_manager, reconstructions, output_path)
 
