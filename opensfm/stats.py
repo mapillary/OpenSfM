@@ -417,8 +417,12 @@ def save_sequencegraph(data, reconstructions, output_path):
     for seq, image_xyz in image_xyz_per_sequences.items():
         xyz = np.array(image_xyz)
         c = sequences.index(seq) / len(sequences)
-        plt.scatter(xyz[:, 0], xyz[:, 2], color=cmap(c), label=seq)
+        plt.scatter(xyz[:, 1], xyz[:, 2], color=cmap(c), label=seq, s=2)
     plt.legend()
+    plt.grid()
+    plt.xlabel('Y[m]')
+    plt.ylabel('Z[m]')
+    plt.axis('equal')
 
     plt.savefig(
         os.path.join(output_path, "sequencegraph.png"),
