@@ -1,4 +1,4 @@
-.. OpenSfM documentation master file
+.. OpenSfM documentation primary file
 
 OpenSfM
 =======

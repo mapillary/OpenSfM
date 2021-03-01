@@ -599,7 +599,7 @@
 #if GTEST_LANG_CXX11 && \
     (!defined(__GLIBCXX__) || ( \
         __GLIBCXX__ >= 20110325ul &&  /* GCC >= 4.6.0 */ \
-        /* Blacklist of patch releases of older branches: */ \
+        /* Block list of patch releases of older branches: */ \
         __GLIBCXX__ != 20110416ul &&  /* GCC 4.4.6 */ \
         __GLIBCXX__ != 20120313ul &&  /* GCC 4.4.7 */ \
         __GLIBCXX__ != 20110428ul &&  /* GCC 4.5.3 */ \
