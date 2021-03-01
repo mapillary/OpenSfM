@@ -104,6 +104,11 @@ def load_sequence_database_from_file(
             elif not skip_missing:
                 raise FileNotFoundError(f"{k} not found")
         seq_dict[skey] = available_image_keys
+
+    empty_seqs = [skey for skey in seq_dict if not seq_dict[skey]]
+    for skey in empty_seqs:
+        del seq_dict[skey]
+
     return seq_dict
 
 
