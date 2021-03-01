@@ -384,9 +384,8 @@ def test_bundle_alignment_prior():
     assert np.allclose(shot.pose.transform([0, 0, 1]), [0, -1, 0])
 
 
-# TODO implement this
 def test_heatmaps_position():
-    """Three cameras, middle has no gps info. Translation only"""
+    """Three cameras. Same heatmap different offsets"""
     sa = pybundle.BundleAdjuster()
     sa.add_shot("1", "cam1", [0, 0, 0], [0, 0, 0], False)
     sa.add_shot("2", "cam1", [0, 0, 0], [0, 0, 0], False)
