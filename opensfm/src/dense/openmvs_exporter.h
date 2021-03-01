@@ -6,10 +6,12 @@ namespace dense {
 
 class OpenMVSExporter {
  public:
-  void AddCamera(const std::string &camera_id, pyarray_d K) {
+  void AddCamera(const std::string &camera_id, pyarray_d K, uint32_t width, uint32_t height) {
     MVS::Interface::Platform platform;
     platform.name = camera_id;
     MVS::Interface::Platform::Camera camera;
+    camera.width = width;
+    camera.height = height;
     camera.K = cv::Matx33d(K.data());
     camera.R = cv::Matx33d::eye();
     camera.C = cv::Point3_<double>(0, 0, 0);

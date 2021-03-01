@@ -88,7 +88,7 @@ class OpenMVSExporter:
     def __init__(self) -> None:
         ...
 
-    def add_camera(self, arg0: str, arg1: numpy.ndarray[float64]) -> None:
+    def add_camera(self, arg0: str, arg1: numpy.ndarray[float64], arg2: int, arg3: int) -> None:
         ...
 
     def add_point(self, arg0: numpy.ndarray[float64], arg1: list) -> None:
