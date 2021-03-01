@@ -3,11 +3,10 @@ import tkinter as tk
 from collections import OrderedDict, defaultdict
 from pathlib import Path
 
-from opensfm import dataset, io
-
 import GUI
 from gcp_manager import GroundControlPointManager
 from image_manager import ImageManager
+from opensfm import dataset, io
 
 
 def parse_args():
@@ -15,6 +14,9 @@ def parse_args():
     parser.add_argument("dataset", help="dataset")
     parser.add_argument(
         "-n", "--no-preload", help="skip preloading", action="store_true"
+    )
+    parser.add_argument(
+        "--max-image-size", help="maximum cached image size", default=1000, type=int,
     )
     parser.add_argument(
         "--group-by-reconstruction",
@@ -198,7 +200,12 @@ if __name__ == "__main__":
     args = parse_args()
     path = args.dataset
     groups, sequence_groups = group_images(args)
-    image_manager = ImageManager(groups, path, preload_images=not args.no_preload)
+    image_manager = ImageManager(
+        groups,
+        path,
+        preload_images=not args.no_preload,
+        max_image_size=args.max_image_size,
+    )
     gcp_manager = GroundControlPointManager(path)
     root = tk.Tk()
     root.resizable(True, True)

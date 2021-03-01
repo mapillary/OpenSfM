@@ -1,18 +1,17 @@
 import multiprocessing
+from functools import partial
 
 import numpy as np
 from matplotlib.image import _rgb_to_rgba
 from opensfm import dataset
 from PIL import Image
 
-IMAGE_MAX_SIZE = 1000
 
-
-def load_image(path):
+def load_image(path, max_image_size):
     rgb = Image.open(path)
 
     # Reduce to some reasonable maximum size
-    scale = max(rgb.size) / IMAGE_MAX_SIZE
+    scale = max(rgb.size) / max_image_size
     if scale > 1:
         new_w = int(round(rgb.size[0] / scale))
         new_h = int(round(rgb.size[1] / scale))
@@ -22,9 +21,10 @@ def load_image(path):
 
 
 class ImageManager:
-    def __init__(self, seqs, path, preload_images=True):
+    def __init__(self, seqs, path, preload_images=True, max_image_size=1000):
         self.seqs = seqs
         self.path = path
+        self.max_image_size = max_image_size
         self.image_cache = {}
 
         if preload_images:
@@ -65,8 +65,10 @@ class ImageManager:
             for k in keys:
                 image_names.append(k)
                 paths.append(self.image_path(k))
+
+        f_pool = partial(load_image, max_image_size=self.max_image_size)
         pool = multiprocessing.Pool(processes=n_cpu)
-        images = pool.map(load_image, paths)
+        images = pool.map(f_pool, paths)
         for image_name, im in zip(image_names, images):
             self.image_cache[image_name] = im
 
