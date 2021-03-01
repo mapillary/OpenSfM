@@ -1,4 +1,5 @@
 #include "../bundle_adjuster.h"
+
 #include "absolute_motion_terms.h"
 #include "motion_prior_terms.h"
 #include "position_functors.h"
@@ -210,6 +211,36 @@ void BundleAdjuster::AddAbsolutePosition(
   a.std_deviation = std_deviation;
   a.std_deviation_group = std_deviation_group;
   absolute_positions_.push_back(a);
+}
+
+HeatmapInterpolator::HeatmapInterpolator(const std::vector<double> &in_heatmap,
+                                         size_t in_width, double in_resolution)
+    : heatmap(in_heatmap),
+      width(in_width),
+      height(heatmap.size() / width),
+      grid(heatmap.data(), 0, height, 0, width),
+      interpolator(grid),
+      resolution(in_resolution) {}
+
+void BundleAdjuster::AddHeatmap(const std::string &heatmap_id,
+                                const std::vector<double> &in_heatmap,
+                                size_t in_width, double resolution) {
+  heatmaps_[heatmap_id] =
+      std::make_shared<HeatmapInterpolator>(in_heatmap, in_width, resolution);
+}
+
+void BundleAdjuster::AddAbsolutePositionHeatmap(const std::string &shot_id,
+                                                const std::string &heatmap_id,
+                                                double x_offset,
+                                                double y_offset,
+                                                double std_deviation) {
+  BAAbsolutePositionHeatmap a;
+  a.shot = &shots_[shot_id];
+  a.heatmap = heatmaps_[heatmap_id];
+  a.x_offset = x_offset;
+  a.y_offset = y_offset;
+  a.std_deviation = std_deviation;
+  absolute_positions_heatmaps_.push_back(a);
 }
 
 void BundleAdjuster::AddAbsoluteUpVector(const std::string &shot_id,
@@ -715,6 +746,14 @@ void BundleAdjuster::Run() {
   for (const auto &a : absolute_positions_) {
     std_deviations[std_dev_group_remap[a.std_deviation_group]] =
         a.std_deviation;
+  }
+
+  // Add heatmap cost
+  for (const auto &a : absolute_positions_heatmaps_) {
+    auto *cost_function = HeatmapdCostFunctor::Create(
+        a.heatmap->interpolator, a.x_offset, a.y_offset, a.heatmap->height,
+        a.heatmap->width, a.heatmap->resolution, a.std_deviation);
+    problem.AddResidualBlock(cost_function, nullptr, a.shot->parameters.data());
   }
 
   for (auto &a : absolute_positions_) {

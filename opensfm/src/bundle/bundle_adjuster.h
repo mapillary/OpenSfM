@@ -1,5 +1,7 @@
 #pragma once
 
+#include <geometry/camera.h>
+
 #include <cmath>
 #include <cstdio>
 #include <fstream>
@@ -8,9 +10,8 @@
 #include <string>
 #include <vector>
 
-#include <geometry/camera.h>
-
 #include "ceres/ceres.h"
+#include "ceres/cubic_interpolation.h"
 #include "ceres/rotation.h"
 
 extern "C" {
@@ -338,6 +339,27 @@ struct BAAbsolutePosition {
   std::string std_deviation_group;
 };
 
+struct HeatmapInterpolator {
+  HeatmapInterpolator(const std::vector<double> &flatten_heatmap, size_t width,
+                      double resolution);
+  std::vector<double> heatmap;
+  size_t width;
+  size_t height;
+  ceres::Grid2D<double> grid;
+  ceres::BiCubicInterpolator<ceres::Grid2D<double>> interpolator;
+  double resolution;
+};
+
+struct BAAbsolutePositionHeatmap {
+  BAShot *shot;
+  std::shared_ptr<HeatmapInterpolator> heatmap;
+  double x_offset;
+  double y_offset;
+  double height;
+  double width;
+  double std_deviation;
+};
+
 struct BAAbsoluteUpVector {
   BAShot *shot;
   Vec3d up_vector;
@@ -423,6 +445,16 @@ class BundleAdjuster {
   void AddAbsolutePosition(const std::string &shot_id, const Vec3d &position,
                            double std_deviation,
                            const std::string &std_deviation_group);
+
+  void AddHeatmap(const std::string &heatmap_id,
+                  const std::vector<double> &in_heatmap, size_t in_width,
+                  double resolution);
+
+  void AddAbsolutePositionHeatmap(const std::string &shot_id,
+                                  const std::string &heatmap_id,
+                                  double x_offset, double y_offset,
+                                  double std_deviation);
+
   void AddAbsoluteUpVector(const std::string &shot_id, const Vec3d &up_vector,
                            double std_deviation);
   void AddAbsolutePan(const std::string &shot_id, double angle,
@@ -497,6 +529,7 @@ class BundleAdjuster {
 
   // reprojection observation
   std::vector<BAPointProjectionObservation> point_projection_observations_;
+  std::map<std::string, std::shared_ptr<HeatmapInterpolator>> heatmaps_;
 
   // relative motion between shots
   std::vector<BARelativeMotion> relative_motions_;
@@ -505,6 +538,7 @@ class BundleAdjuster {
   std::vector<BACommonPosition> common_positions_;
 
   // shots absolute positions
+  std::vector<BAAbsolutePositionHeatmap> absolute_positions_heatmaps_;
   std::vector<BAAbsolutePosition> absolute_positions_;
   std::vector<BAAbsoluteUpVector> absolute_up_vectors_;
   std::vector<BAAbsoluteAngle> absolute_pans_;

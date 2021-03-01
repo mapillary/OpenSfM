@@ -382,3 +382,77 @@ def test_bundle_alignment_prior():
     assert np.allclose(shot.pose.translation, np.zeros(3))
     # up vector in camera coordinates is (0, -1, 0)
     assert np.allclose(shot.pose.transform([0, 0, 1]), [0, -1, 0])
+
+
+# TODO implement this
+def test_heatmaps_position():
+    """Three cameras, middle has no gps info. Translation only"""
+    sa = pybundle.BundleAdjuster()
+    sa.add_shot("1", "cam1", [0, 0, 0], [0, 0, 0], False)
+    sa.add_shot("2", "cam1", [0, 0, 0], [0, 0, 0], False)
+    sa.add_shot("3", "cam1", [0, 0, 0], [0, 0, 0], False)
+    sa.add_reconstruction("123", True)
+    sa.add_reconstruction_shot("123", 1, "1")
+    sa.add_reconstruction_shot("123", 1, "2")
+    sa.add_reconstruction_shot("123", 1, "3")
+    sa.set_scale_sharing("123", True)
+
+    def bell_heatmap(size, r, mu_x, mu_y):
+        sigma_x = r * 0.5
+        sigma_y = r * 0.5
+        x = np.linspace(-r, r, size)
+        y = np.linspace(r, -r, size)
+
+        x, y = np.meshgrid(x, y)
+        z = (
+            1
+            / (2 * np.pi * sigma_x * sigma_y)
+            * np.exp(
+                -(
+                    (x - mu_x) ** 2 / (2 * sigma_x ** 2)
+                    + (y - mu_y) ** 2 / (2 * sigma_y ** 2)
+                )
+            )
+        )
+        z /= max(z.reshape(-1))
+        z = 1 - z
+        return z
+
+    hmap_x, hmap_y = 1, -1
+    hmap_size, hmap_r = 101, 10
+    res = 2 * hmap_r / (hmap_size - 1)
+    hmap = bell_heatmap(size=hmap_size, r=hmap_r, mu_x=hmap_x, mu_y=hmap_y)
+    sa.add_heatmap("hmap1", hmap.flatten(), hmap_size, res)
+    x1_offset, y1_offset = 2, 0
+    x2_offset, y2_offset = 0, 2
+    x3_offset, y3_offset = -2, 0
+    sa.add_absolute_position_heatmap(
+        "1",
+        "hmap1",
+        x1_offset,
+        y1_offset,
+        1.0,
+    )
+    sa.add_absolute_position_heatmap(
+        "2",
+        "hmap1",
+        x2_offset,
+        y2_offset,
+        1.0,
+    )
+    sa.add_absolute_position_heatmap(
+        "3",
+        "hmap1",
+        x3_offset,
+        y3_offset,
+        1.0,
+    )
+
+    sa.run()
+    s1 = sa.get_shot("1")
+    s2 = sa.get_shot("2")
+    s3 = sa.get_shot("3")
+
+    assert np.allclose(-s1.t, [x1_offset + hmap_x, y1_offset + hmap_y, 0], atol=res)
+    assert np.allclose(-s2.t, [x2_offset + hmap_x, y2_offset + hmap_y, 0], atol=res)
+    assert np.allclose(-s3.t, [x3_offset + hmap_x, y3_offset + hmap_y, 0], atol=res)
