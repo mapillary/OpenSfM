@@ -49,7 +49,7 @@ def comp_color(color):
 class View:
     def __init__(self, main_ui, show_ortho_track):
         self.main_ui = main_ui
-        window = tk.Toplevel(self.main_ui.master)
+        window = tk.Toplevel(self.main_ui.parent)
         self.window = window
         self.current_image = None
         self.rotation = 0

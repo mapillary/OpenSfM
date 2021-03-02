@@ -1,6 +1,7 @@
 import copy
 import logging
 import time
+from functools import partial
 
 from opensfm import exif
 
@@ -54,9 +55,10 @@ def run_dataset(data):
 
 
 def _extract_exif(image, data):
-    # EXIF data in Image
     with data.open_image_file(image) as fp:
-        d = exif.extract_exif_from_file(fp)
+        d = exif.extract_exif_from_file(
+            fp, partial(data.image_size, image), data.config["use_exif_size"]
+        )
 
     if data.config["unknown_camera_models_are_different"] and (
         not d["model"] or d["model"] == "unknown"
@@ -65,10 +67,6 @@ def _extract_exif(image, data):
 
     if data.config.get("default_projection_type"):
         d["projection_type"] = data.config.get("default_projection_type")
-
-    # Image Height and Image Width
-    if d["width"] <= 0 or not data.config["use_exif_size"]:
-        d["height"], d["width"] = data.image_size(image)
 
     d["camera"] = exif.camera_id(d)
 
