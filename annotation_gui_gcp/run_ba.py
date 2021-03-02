@@ -69,7 +69,12 @@ def resplit_reconstruction(merged, original_reconstructions):
 def triangulate_gcps(gcps, reconstruction):
     coords = []
     for gcp in gcps:
-        res = orec.triangulate_gcp(gcp, reconstruction.shots)
+        res = multiview.triangulate_gcp(
+            gcp,
+            reconstruction.shots,
+            reproj_threshold = 1,
+            min_ray_angle_degrees = 0.1,
+        )
         coords.append(res)
     return coords
 
@@ -77,7 +82,12 @@ def triangulate_gcps(gcps, reconstruction):
 def reproject_gcps(gcps, reconstruction):
     output = {}
     for gcp in gcps:
-        point = orec.triangulate_gcp(gcp, reconstruction.shots)
+        point = multiview.triangulate_gcp(
+            gcp,
+            reconstruction.shots,
+            reproj_threshold = 1,
+            min_ray_angle_degrees = 0.1,
+        )
         output[gcp.id] = {}
         n_obs = len(gcp.observations)
         if point is None:
@@ -147,7 +157,12 @@ def add_gcp_to_bundle(ba, gcp, gcp_std, shots):
     for point in gcp:
         point_id = "gcp-" + point.id
 
-        coordinates = orec.triangulate_gcp(point, shots)
+        coordinates = multiview.triangulate_gcp(
+            point,
+            shots,
+            reproj_threshold = 1,
+            min_ray_angle_degrees = 0.1,
+        )
         if coordinates is None:
             if point.coordinates is not None:
                 coordinates = point.coordinates.value
