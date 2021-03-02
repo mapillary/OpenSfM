@@ -36,7 +36,7 @@ class ImageManager:
     def get_image(self, image_name):
         if image_name not in self.image_cache:
             path = self.image_path(image_name)
-            self.image_cache[image_name] = load_image(path)
+            self.image_cache[image_name] = load_image(path, self.max_image_size)
         return self.image_cache[image_name]
 
     def load_latlons(self):
