@@ -57,6 +57,10 @@ class OrthoPhotoView(View):
         if not self.is_geo_reference:
             return None
 
+        # Offset by the viewing window
+        x += self.image_window.col_off
+        y += self.image_window.row_off
+
         # Pixel to whatever crs the image is in
         x, y = self.geot.xy(y, x)
         # And then to WSG84 (lat/lon)
