@@ -323,7 +323,12 @@ def resect_image(im, camera, gcps, reconstruction, data, dst_reconstruction=None
         obs = _gcp_image_observation(gcp, im)
         if not obs:
             continue
-        gcp_3d_coords = orec.triangulate_gcp(gcp, reconstruction.shots)
+        gcp_3d_coords = multiview.triangulate_gcp(
+            gcp,
+            reconstruction.shots,
+            reproj_threshold = 1,
+            min_ray_angle_degrees = 0.1,
+        )
         if gcp_3d_coords is None:
             continue
 
