@@ -4,7 +4,7 @@
 
 #include <Eigen/Eigen>
 
-#include "mapillary/opensfm/opensfm/src/bundle/src/error_utils.h"
+#include "error_utils.h"
 
 template <class PosFunc>
 struct BAAbsolutePositionError {
@@ -274,7 +274,7 @@ struct HeatmapdCostFunctor {
         height_(height),
         width_(width),
         resolution_(resolution),
-        scale_(1./std_deviation) {}
+        scale_(1. / std_deviation) {}
 
   template <typename T>
   bool operator()(T const* p, T* residuals) const {
