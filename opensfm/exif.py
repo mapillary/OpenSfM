@@ -101,8 +101,8 @@ def camera_id_(make, model, width, height, projection_type, focal):
     ).lower()
 
 
-def extract_exif_from_file(fileobj, image_loader):
-    exif_data = EXIF(fileobj, image_loader)
+def extract_exif_from_file(fileobj, image_size_loader, use_exif_size):
+    exif_data = EXIF(fileobj, image_size_loader, use_exif_size)
     d = exif_data.extract_exif()
     return d
 
@@ -151,31 +151,35 @@ def get_gpano_from_xmp(xmp):
 
 
 class EXIF:
-    def __init__(self, fileobj, image_loader):
-        self.image_loader = image_loader
+    def __init__(self, fileobj, image_size_loader, use_exif_size=True):
+        self.image_size_loader = image_size_loader
+        self.use_exif_size = use_exif_size
         self.fileobj = fileobj
         self.tags = exifread.process_file(fileobj, details=False)
         fileobj.seek(0)
         self.xmp = get_xmp(fileobj)
 
     def extract_image_size(self):
-        # Image Width and Image Height
         if (
-            "EXIF ExifImageWidth" in self.tags
-            and "EXIF ExifImageLength" in self.tags  # PixelXDimension
-        ):  # PixelYDimension
+            self.use_exif_size
+            and "EXIF ExifImageWidth" in self.tags
+            and "EXIF ExifImageLength" in self.tags
+        ):
             width, height = (
                 int(self.tags["EXIF ExifImageWidth"].values[0]),
                 int(self.tags["EXIF ExifImageLength"].values[0]),
             )
-        elif "Image ImageWidth" in self.tags and "Image ImageLength" in self.tags:
+        elif (
+            self.use_exif_size
+            and "Image ImageWidth" in self.tags
+            and "Image ImageLength" in self.tags
+        ):
             width, height = (
                 int(self.tags["Image ImageWidth"].values[0]),
                 int(self.tags["Image ImageLength"].values[0]),
             )
         else:
-            image_dims = self.image_loader().shape
-            height, width = image_dims[0], image_dims[1]
+            height, width = self.image_size_loader()
         return width, height
 
     def _decode_make_model(self, value):
