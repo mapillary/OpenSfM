@@ -454,7 +454,6 @@ def main():
 
     # Disable the GPS constraint of the moved/resected shots
     for shot in reconstructions[1].shots.values():
-        shot.metadata.gps_accuracy.value = 1e12
         shot.metadata.gps_position.value = shot.pose.get_origin()
 
     data.save_reconstruction(reconstructions, fn_rigid)
@@ -462,6 +461,10 @@ def main():
     # data.save_reconstruction(
     #     [merged], f"reconstruction_merged_{args.rec_a}x{args.rec_b}.json"
     # )
+
+    # Reset the GPS accuracy of all the shots to ensure GCPs are used to align
+    for shot in merged.shots.values():
+        shot.metadata.gps_accuracy.reset()
 
     if not args.fast:
         data.config["bundle_max_iterations"] = 200
