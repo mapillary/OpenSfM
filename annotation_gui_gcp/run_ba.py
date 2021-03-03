@@ -430,7 +430,8 @@ def main():
     fn_resplit = f"reconstruction_gcp_ba_resplit_{args.rec_a}x{args.rec_b}.json"
     fn_rigid = f"reconstruction_gcp_rigid_{args.rec_a}x{args.rec_b}.json"
 
-    if args.rec_b:  # reconstruction - to - reconstruction annotation
+    if args.rec_b is not None:  # reconstruction - to - reconstruction annotation
+        print("Running rigid alignment...")
         if args.fast and os.path.exists(data._reconstruction_file(fn_resplit)):
             reconstructions = data.load_reconstruction(fn_resplit)
         else:
@@ -438,6 +439,10 @@ def main():
             reconstructions = [reconstructions[args.rec_a], reconstructions[args.rec_b]]
         coords0 = triangulate_gcps(gcps, reconstructions[0])
         coords1 = triangulate_gcps(gcps, reconstructions[1])
+        n_valid_0 = sum(c is not None for c in coords0)
+        print(f"Triangulated {n_valid_0}/{len(gcps)} gcps for rec #{args.rec_a}")
+        n_valid_1 = sum(c is not None for c in coords1)
+        print(f"Triangulated {n_valid_1}/{len(gcps)} gcps for rec #{args.rec_b}")
         s, A, b = find_alignment(coords1, coords0)
         align.apply_similarity(reconstructions[1], s, A, b)
     else:  # Image - to - reconstruction annotation
@@ -476,6 +481,14 @@ def main():
         f"{data.data_path}/gcp_reprojections_{args.rec_a}x{args.rec_b}.json", "w"
     ) as f:
         json.dump(gcp_reprojections, f, indent=4, sort_keys=True)
+
+    n_bad_gcp_annotations = int(
+        sum(t[2] > args.px_threshold for t in reprojection_errors)
+    )
+    logger.info(f"{n_bad_gcp_annotations} large reprojection errors:")
+    for t in reprojection_errors:
+        if t[2] > args.px_threshold:
+            logger.info(t)
 
     gcp_std = compute_gcp_std(gcp_reprojections)
     logger.info(f"GCP reprojection error STD: {gcp_std}")
@@ -537,12 +550,6 @@ def main():
         max_shot_std = -1
         got_shots_std = False
 
-    n_bad_gcp_annotations = int(
-        sum(t[2] > args.px_threshold for t in reprojection_errors)
-    )
-    for t in reprojection_errors:
-        if t[2] > args.px_threshold:
-            print(t)
     metrics = {
         "n_reconstructions": len(data.load_reconstruction()),
         "median_shot_std": median_shot_std,
