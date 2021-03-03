@@ -402,6 +402,7 @@ def parse_args():
         "--px-threshold",
         default=0.016,  # a little bit over 10 pixels at VGA resolution
         help="threshold in normalized pixels to classify a GCP annotation as correct",
+        type=float,
     )
     parser.add_argument(
         "--fast",
@@ -449,10 +450,12 @@ def main():
         reconstructions = data.load_reconstruction()
         base = reconstructions[args.rec_a]
         resected = resect_annotated_single_images(base, gcps, camera_models, data)
-        for shot in resected.shots.values():
-            shot.metadata.gps_accuracy.value = 1e12
-            shot.metadata.gps_position.value = shot.pose.get_origin()
         reconstructions = [base, resected]
+
+    # Disable the GPS constraint of the moved/resected shots
+    for shot in reconstructions[1].shots.values():
+        shot.metadata.gps_accuracy.value = 1e12
+        shot.metadata.gps_position.value = shot.pose.get_origin()
 
     data.save_reconstruction(reconstructions, fn_rigid)
     merged = merge_reconstructions(reconstructions, tracks_manager)
@@ -464,9 +467,8 @@ def main():
         data.config["bundle_max_iterations"] = 200
         data.config["bundle_use_gcp"] = True
         print("Running BA ...")
+        # orec.align_reconstruction(merged, None, data.config)
         orec.bundle(merged, camera_models, gcp=gcps, config=data.config)
-        # rigid rotation to put images on the ground
-        orec.align_reconstruction(merged, None, data.config)
         # data.save_reconstruction(
         #     [merged], "reconstruction_gcp_ba_{args.rec_a}x{args.rec_b}.json"
         # )
