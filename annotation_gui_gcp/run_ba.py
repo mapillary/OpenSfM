@@ -523,9 +523,9 @@ def main():
     gcp_std = compute_gcp_std(gcp_reprojections)
     logger.info(f"GCP reprojection error STD: {gcp_std}")
 
+    resplit = resplit_reconstruction(merged, reconstructions)
+    data.save_reconstruction(resplit, fn_resplit)
     if args.covariance:
-        resplit = resplit_reconstruction(merged, reconstructions)
-        data.save_reconstruction(resplit, fn_resplit)
         all_shots_std = []
         # We run bundle by fixing one reconstruction.
         # If we have two reconstructions, we do this twice, fixing each one.
