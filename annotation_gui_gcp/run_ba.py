@@ -56,7 +56,10 @@ def resplit_reconstruction(merged, original_reconstructions):
         for shot_id in original.shots:
             r.add_shot(merged.shots[shot_id])
         for point_id in original.points:
-            merged_point = merged.points[f"R{ix_r}_{point_id}"]
+            merged_id = f"R{ix_r}_{point_id}"
+            if merged_id not in merged.points:
+                continue
+            merged_point = merged.points[merged_id]
             new_point = r.create_point(point_id, merged_point.coordinates)
             new_point.color = merged_point.color
         for camera_id in original.cameras:
@@ -476,8 +479,10 @@ def main():
         #     [merged], "reconstruction_gcp_ba_{args.rec_a}x{args.rec_b}.json"
         # )
 
-    gcp_reprojections = reproject_gcps(gcps, merged)
-    reprojection_errors = get_all_reprojection_errors(gcp_reprojections)
+        # Re-triangulate to remove badly conditioned points
+        logger.info("Re-triangulating points")
+        orec.retriangulate(tracks_manager, merged, data.config)
+
     err_values = [t[2] for t in reprojection_errors]
     max_reprojection_error = np.max(err_values)
     median_reprojection_error = np.median(err_values)
