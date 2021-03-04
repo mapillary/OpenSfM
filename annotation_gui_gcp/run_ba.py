@@ -483,6 +483,10 @@ def main():
         logger.info("Re-triangulating points")
         orec.retriangulate(tracks_manager, merged, data.config)
 
+    # Reproject GCPs with a very loose threshold so that we get a point every time
+    # These reprojections are only used for feedback in any case
+    gcp_reprojections = reproject_gcps(gcps, merged, reproj_threshold=10)
+    reprojection_errors = get_sorted_reprojection_errors(gcp_reprojections)
     err_values = [t[2] for t in reprojection_errors]
     max_reprojection_error = np.max(err_values)
     median_reprojection_error = np.median(err_values)
