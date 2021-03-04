@@ -31,8 +31,8 @@ def export(reconstruction, tracks_manager, udata, export_only):
             w, h = camera.width, camera.height
             K = np.array(
                 [
-                    [camera.focal * max(w, h), 0, w / 2.0],
-                    [0, camera.focal * max(w, h), h / 2.0],
+                    [camera.focal * max(w, h), 0, (w - 1.0) / 2.0],
+                    [0, camera.focal * max(w, h), (h - 1.0) / 2.0],
                     [0, 0, 1],
                 ]
             )
