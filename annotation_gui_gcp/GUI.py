@@ -159,7 +159,11 @@ class Gui:
         analysis_buttons_frame = tk.Frame(analysis_frame)
         analysis_buttons_frame.pack(side="top")
         button = tk.Button(
-            analysis_buttons_frame, text="Fast", command=self.analyze_fast
+            analysis_buttons_frame, text="Rigid", command=self.analyze_rigid
+        )
+        button.pack(side="left")
+        button = tk.Button(
+            analysis_buttons_frame, text="Flex", command=self.analyze_flex
         )
         button.pack(side="left")
         button = tk.Button(analysis_buttons_frame, text="Full", command=self.analyze)
@@ -191,10 +195,13 @@ class Gui:
             v = ImageSequenceView(self, sequence_key, image_keys, show_ortho_track)
             self.sequence_views.append(v)
 
-    def analyze_fast(self):
-        self.analyze(fast=True)
+    def analyze_rigid(self):
+        self.analyze(rigid=True, covariance=False)
 
-    def analyze(self, fast=False):
+    def analyze_flex(self):
+        self.analyze(rigid=False, covariance=False)
+
+    def analyze(self, rigid=False, covariance=True):
         t = time.time() - os.path.getmtime(self.path + "/ground_control_points.json")
         ix_a = self.reconstruction_options.index(self.rec_a.get())
         ix_b = self.reconstruction_options.index(self.rec_b.get())
@@ -222,8 +229,11 @@ class Gui:
         else:
             ix_b = None
 
-        if fast:
-            args.extend(["--fast"])
+        if rigid:
+            args.extend(["--rigid"])
+
+        if covariance:
+            args.extend(["--covariance"])
 
         # Call the run_ba script
         subprocess.run(args)
