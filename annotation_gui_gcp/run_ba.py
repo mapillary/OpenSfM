@@ -149,7 +149,7 @@ def add_gcp_to_bundle(ba, gcp, gcp_std, shots):
 
         coordinates = orec.triangulate_gcp(point, shots)
         if coordinates is None:
-            if point.coordinates is not None:
+            if point.coordinates.has_value:
                 coordinates = point.coordinates.value
             else:
                 logger.warning(
