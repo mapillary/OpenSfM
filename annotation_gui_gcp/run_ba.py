@@ -75,8 +75,8 @@ def triangulate_gcps(gcps, reconstruction):
         res = multiview.triangulate_gcp(
             gcp,
             reconstruction.shots,
-            reproj_threshold = 1,
-            min_ray_angle_degrees = 0.1,
+            reproj_threshold=1,
+            min_ray_angle_degrees=0.1,
         )
         coords.append(res)
     return coords
@@ -88,8 +88,8 @@ def reproject_gcps(gcps, reconstruction, reproj_threshold):
         point = multiview.triangulate_gcp(
             gcp,
             reconstruction.shots,
-            reproj_threshold = reproj_threshold,
-            min_ray_angle_degrees = 0.1,
+            reproj_threshold=reproj_threshold,
+            min_ray_angle_degrees=0.1,
         )
         output[gcp.id] = {}
         n_obs = len(gcp.observations)
@@ -165,8 +165,8 @@ def add_gcp_to_bundle(ba, gcp, gcp_std, shots):
         coordinates = multiview.triangulate_gcp(
             point,
             shots,
-            reproj_threshold = 1,
-            min_ray_angle_degrees = 0.1,
+            reproj_threshold=1,
+            min_ray_angle_degrees=0.1,
         )
         if coordinates is None:
             if point.coordinates.has_value:
@@ -336,8 +336,8 @@ def resect_image(im, camera, gcps, reconstruction, data, dst_reconstruction=None
         gcp_3d_coords = multiview.triangulate_gcp(
             gcp,
             reconstruction.shots,
-            reproj_threshold = 1,
-            min_ray_angle_degrees = 0.1,
+            reproj_threshold=1,
+            min_ray_angle_degrees=0.1,
         )
         if gcp_3d_coords is None:
             continue
@@ -507,18 +507,21 @@ def main():
     max_reprojection_error = np.max(err_values)
     median_reprojection_error = np.median(err_values)
 
-    with open(
-        f"{data.data_path}/gcp_reprojections_{args.rec_a}x{args.rec_b}.json", "w"
-    ) as f:
-        json.dump(gcp_reprojections, f, indent=4, sort_keys=True)
+    json.dump(
+        gcp_reprojections,
+        open(f"{data.data_path}/gcp_reprojections_{args.rec_a}x{args.rec_b}.json", "w"),
+        indent=4,
+        sort_keys=True,
+    )
 
     n_bad_gcp_annotations = int(
         sum(t[2] > args.px_threshold for t in reprojection_errors)
     )
-    logger.info(f"{n_bad_gcp_annotations} large reprojection errors:")
-    for t in reprojection_errors:
-        if t[2] > args.px_threshold:
-            logger.info(t)
+    if n_bad_gcp_annotations > 0:
+        logger.info(f"{n_bad_gcp_annotations} large reprojection errors:")
+        for t in reprojection_errors:
+            if t[2] > args.px_threshold:
+                logger.info(t)
 
     gcp_std = compute_gcp_std(gcp_reprojections)
     logger.info(f"GCP reprojection error STD: {gcp_std}")
@@ -541,9 +544,16 @@ def main():
                 fixed_images=fixed_images,
                 config=data.config,
             )
-
             if not covariance_estimation_valid:
-                shots_std_this_pair = [(shot, np.nan) for shot in reconstructions[rec_ixs[1]].shots]
+                logger.info(
+                    f"Could not get positional uncertainty for pair {rec_ixs} It could be because:"
+                    "\na) there are not enough GCPs."
+                    "\nb) they are badly distributed in 3D."
+                    "\nc) there are some wrong annotations"
+                )
+                shots_std_this_pair = [
+                    (shot, np.nan) for shot in reconstructions[rec_ixs[1]].shots
+                ]
             else:
                 shots_std_this_pair = []
                 for shot in merged.shots.values():
@@ -556,8 +566,11 @@ def main():
             all_shots_std.extend(shots_std_this_pair)
 
         std_values = [x[1] for x in all_shots_std]
-        n_good_std = sum(std <= args.std_threshold for std in std_values)
-        n_bad_std = len(std_values) - n_good_std
+        n_nan_std = sum(np.isnan(std) for std in std_values)
+        n_good_std = sum(
+            std <= args.std_threshold for std in std_values if not np.isnan(std)
+        )
+        n_bad_std = len(std_values) - n_good_std - n_nan_std
 
         # Average positional STD
         median_shot_std = np.median(std_values)
@@ -571,8 +584,9 @@ def main():
                 line = "{}, {}".format(*t)
                 f.write(line + "\n")
 
-        max_shot_std = s[0][1]
+            max_shot_std = s[0][1]
     else:
+        n_nan_std = -1
         n_bad_std = -1
         n_good_std = -1
         median_shot_std = -1
@@ -588,6 +602,7 @@ def main():
         "n_bad_gcp_annotations": n_bad_gcp_annotations,
         "n_bad_position_std": int(n_bad_std),
         "n_good_position_std": int(n_good_std),
+        "n_nan_position_std": int(n_nan_std),
         "rec_a": args.rec_a,
         "rec_b": args.rec_b,
     }
@@ -608,40 +623,36 @@ def main():
         )
     if n_bad_std != 0 or n_bad_gcp_annotations != 0:
         if args.rigid:
-            logger.info(
-                "Positional uncertainty was not calculated. (--rigid was set)."
-            )
+            logger.info("Positional uncertainty was not calculated. (--rigid was set).")
         elif not args.covariance:
             logger.info(
                 "Positional uncertainty was not calculated (--covariance not set)."
             )
-        elif not covariance_estimation_valid:
-            logger.info(
-                "Could not get positional uncertainty. It could be because:"
-                "\na) there are not enough GCPs."
-                "\nb) they are badly distributed in 3D."
-                "\nc) there are some wrong annotations"
-            )
         else:
             logger.info(
-                f"{n_bad_std} badly localized images (error>{args.std_threshold})."
-                " Use the frame list on each view to find these"
+                f"{n_nan_std}/{len(std_values)} images with unknown error."
+                f"\n{n_good_std}/{len(std_values)} well-localized images."
+                f"\n{n_bad_std}/{len(std_values)} badly localized images."
             )
-        logger.info(
-            f"{n_bad_gcp_annotations} annotations with large reprojection error."
-            " Worst offenders:"
-        )
 
-        stats_bad_reprojections = get_number_of_wrong_annotations_per_gcp(
-            gcp_reprojections, args.px_threshold
-        )
-        gcps_sorted = sorted(
-            stats_bad_reprojections, key=lambda k: -stats_bad_reprojections[k]
-        )[:5]
-        for ix, gcp_id in enumerate(gcps_sorted):
-            n = stats_bad_reprojections[gcp_id]
-            if n > 0:
-                logger.info(f"#{ix+1} - {gcp_id}: {n} bad annotations")
+        if n_bad_gcp_annotations > 0:
+            logger.info(
+                f"{n_bad_gcp_annotations} annotations with large reprojection error."
+                " Worst offenders:"
+            )
+
+            stats_bad_reprojections = get_number_of_wrong_annotations_per_gcp(
+                gcp_reprojections, args.px_threshold
+            )
+            gcps_sorted = sorted(
+                stats_bad_reprojections, key=lambda k: -stats_bad_reprojections[k]
+            )
+            for ix, gcp_id in enumerate(gcps_sorted[:5]):
+                n = stats_bad_reprojections[gcp_id]
+                if n > 0:
+                    logger.info(f"#{ix+1} - {gcp_id}: {n} bad annotations")
+        else:
+            logger.info("No images with large reprojection errors")
 
 
 if __name__ == "__main__":

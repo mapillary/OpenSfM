@@ -16,7 +16,10 @@ def parse_args():
         "-n", "--no-preload", help="skip preloading", action="store_true"
     )
     parser.add_argument(
-        "--max-image-size", help="maximum cached image size", default=1000, type=int,
+        "--max-image-size",
+        help="maximum cached image size",
+        default=1000,
+        type=int,
     )
     parser.add_argument(
         "--group-by-reconstruction",
