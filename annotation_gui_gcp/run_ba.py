@@ -75,6 +75,34 @@ def resplit_reconstruction(merged, original_reconstructions):
     return split
 
 
+def gcp_geopositional_error(gcps, reconstruction, verbose=True):
+    coords_reconstruction = triangulate_gcps(gcps, reconstruction)
+    out = {}
+    for ix, gcp in enumerate(gcps):
+        if not gcp.coordinates.has_value:
+            continue
+
+        stats = {"expected": gcp.coordinates.value}
+        stats["triangulated"] = (
+            coords_reconstruction[ix] if coords_reconstruction[ix] is not None else None
+        )
+
+        if stats["expected"] is not None and stats["triangulated"] is not None:
+            stats["error"] = np.linalg.norm(stats["expected"] - stats["triangulated"])
+        else:
+            stats["error"] = np.nan
+
+        if verbose:
+            logger.info(
+                "[{}] is {:.2f}m away from the expected lat,lon".format(
+                    gcp.id, stats["error"]
+                )
+            )
+        out[gcp.id] = stats
+
+    return out
+
+
 def triangulate_gcps(gcps, reconstruction):
     coords = []
     for gcp in gcps:
@@ -496,12 +524,19 @@ def main():
     if not args.rigid:
         data.config["bundle_max_iterations"] = 200
         data.config["bundle_use_gcp"] = True
+
+        logger.info("GCP positions before bundle:")
+        gcp_geopositional_error(gcps, merged)
+
         logger.info("Running BA on merged reconstructions")
         # orec.align_reconstruction(merged, None, data.config)
         orec.bundle(merged, camera_models, gcp=gcps, config=data.config)
         # data.save_reconstruction(
         #     [merged], f"reconstruction_gcp_ba_{args.rec_a}x{args.rec_b}.json"
         # )
+
+        logger.info("GCP positions after bundle:")
+        gcp_geopositional_error(gcps, merged)
 
         # Re-triangulate to remove badly conditioned points
         n_points = len(merged.points)
