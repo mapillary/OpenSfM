@@ -504,8 +504,17 @@ def main():
         # )
 
         # Re-triangulate to remove badly conditioned points
-        logger.info("Re-triangulating points")
+        n_points = len(merged.points)
+
+        logger.info("Re-triangulating...")
+        backup = data.config["triangulation_min_ray_angle"]
+        data.config["triangulation_min_ray_angle"] = 2.0
         orec.retriangulate(tracks_manager, merged, data.config)
+        data.config["triangulation_min_ray_angle"] = backup
+        logger.info(
+            f"Re-triangulated. Removed {n_points - len(merged.points)}."
+            f" Kept {int(100*len(merged.points)/n_points)}%"
+        )
 
     # Reproject GCPs with a very loose threshold so that we get a point every time
     # These reprojections are only used for feedback in any case
