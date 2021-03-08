@@ -538,7 +538,7 @@ def main():
         all_shots_std = []
         # We run bundle by fixing one reconstruction.
         # If we have two reconstructions, we do this twice, fixing each one.
-        _rec_ixs = [(0, 1), (1, 0)] if args.rec_b else [(0, 1)]
+        _rec_ixs = [(0, 1), (1, 0)] if args.rec_b is not None else [(0, 1)]
         for rec_ixs in _rec_ixs:
             print(f"Running BA with fixed images. Fixing rec #{rec_ixs[0]}")
             fixed_images = set(reconstructions[rec_ixs[0]].shots.keys())
