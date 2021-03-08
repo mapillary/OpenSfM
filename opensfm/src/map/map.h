@@ -152,6 +152,13 @@ class Map {
     topo_conv_.alt_ = alt;
   }
 
+  // Tracks manager x Reconstruction intersection functions
+  std::unordered_map<ShotId, std::unordered_map<LandmarkId, Vec2d> >
+  ComputeReprojectionErrors(const TracksManager& tracks_manager,
+                            bool scaled) const;
+  std::unordered_map<ShotId, std::unordered_map<LandmarkId, Observation> >
+  GetValidObservations(const TracksManager& tracks_manager) const;
+
  private:
   std::unordered_map<CameraId, Camera> cameras_;
   std::unordered_map<ShotId, Shot> shots_;

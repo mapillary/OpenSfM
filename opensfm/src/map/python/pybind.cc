@@ -129,10 +129,14 @@ PYBIND11_MODULE(pymap, m) {
       .def("get_landmark_view", &map::Map::GetLandmarkView)
       .def("set_reference", &map::Map::SetTopocentricConverter)
       // Reference
-      .def("get_reference", [](const map::Map &map) {
-        py::module::import("opensfm.pygeo");
-        return map.GetTopocentricConverter();
-      });
+      .def("get_reference",
+           [](const map::Map &map) {
+             py::module::import("opensfm.pygeo");
+             return map.GetTopocentricConverter();
+           })
+      // Tracks manager x Reconstruction intersection
+      .def("compute_reprojection_errors", &map::Map::ComputeReprojectionErrors)
+      .def("get_valid_observations", &map::Map::GetValidObservations);
 
   py::class_<map::Shot>(m, "Shot")
       .def(py::init<const ShotId &, const Camera &, const geometry::Pose &>())
