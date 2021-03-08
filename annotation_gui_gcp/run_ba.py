@@ -457,7 +457,6 @@ def main():
     fn_rigid = f"reconstruction_gcp_rigid_{args.rec_a}x{args.rec_b}.json"
 
     if args.rec_b is not None:  # reconstruction - to - reconstruction annotation
-        print("Running rigid alignment...")
         if args.rigid and os.path.exists(data._reconstruction_file(fn_resplit)):
             reconstructions = data.load_reconstruction(fn_resplit)
         else:
@@ -466,11 +465,12 @@ def main():
         coords0 = triangulate_gcps(gcps, reconstructions[0])
         coords1 = triangulate_gcps(gcps, reconstructions[1])
         n_valid_0 = sum(c is not None for c in coords0)
-        print(f"Triangulated {n_valid_0}/{len(gcps)} gcps for rec #{args.rec_a}")
+        logger.debug(f"Triangulated {n_valid_0}/{len(gcps)} gcps for rec #{args.rec_a}")
         n_valid_1 = sum(c is not None for c in coords1)
-        print(f"Triangulated {n_valid_1}/{len(gcps)} gcps for rec #{args.rec_b}")
+        logger.debug(f"Triangulated {n_valid_1}/{len(gcps)} gcps for rec #{args.rec_b}")
         s, A, b = find_alignment(coords1, coords0)
         align.apply_similarity(reconstructions[1], s, A, b)
+        logger.info(f"Rigidly aligned rec#{args.rec_b} to rec# {args.rec_a}")
     else:  # Image - to - reconstruction annotation
         reconstructions = data.load_reconstruction()
         base = reconstructions[args.rec_a]
@@ -482,7 +482,9 @@ def main():
         shot.metadata.gps_position.value = shot.pose.get_origin()
 
     data.save_reconstruction(reconstructions, fn_rigid)
+
     merged = merge_reconstructions(reconstructions, tracks_manager)
+    logger.info("Merged reconstructions")
     # data.save_reconstruction(
     #     [merged], f"reconstruction_merged_{args.rec_a}x{args.rec_b}.json"
     # )
@@ -498,7 +500,7 @@ def main():
         # orec.align_reconstruction(merged, None, data.config)
         orec.bundle(merged, camera_models, gcp=gcps, config=data.config)
         # data.save_reconstruction(
-        #     [merged], "reconstruction_gcp_ba_{args.rec_a}x{args.rec_b}.json"
+        #     [merged], f"reconstruction_gcp_ba_{args.rec_a}x{args.rec_b}.json"
         # )
 
         # Re-triangulate to remove badly conditioned points
@@ -658,7 +660,7 @@ def main():
                 if n > 0:
                     logger.info(f"#{ix+1} - {gcp_id}: {n} bad annotations")
         else:
-            logger.info("No images with large reprojection errors")
+            logger.info("No annotations with large reprojection errors")
 
 
 if __name__ == "__main__":
