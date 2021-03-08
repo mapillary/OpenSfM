@@ -25,7 +25,7 @@ class OrthoPhotoView(View):
         """
         self.image_manager = OrthoPhotoManager(path, 100.0)
         self.images_in_list = self.image_manager.image_keys
-        self.zoom_window_size_px = 500
+        self.zoom_window_size_px = 300
         self.is_geo_reference = is_geo_reference
 
         self.size = 50  # TODO add widget for zoom level
