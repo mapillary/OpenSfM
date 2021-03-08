@@ -185,10 +185,11 @@ class Report:
         if self._has_meaningful_gcp():
             geo_string.append("GCP")
 
+        ratio_shots = rec_shots / init_shots * 100 if init_shots > 0 else -1
         rows = [
             [
                 "Reconstructed Images",
-                f"{rec_shots} over {init_shots} shots ({rec_shots/init_shots*100:.1f}%)",
+                f"{rec_shots} over {init_shots} shots ({ratio_shots:.1f}%)",
             ],
             [
                 "Reconstructed Points",
@@ -300,8 +301,11 @@ class Report:
 
         rows = [
             [
-                "Average reprojection Error",
-                f"{self.stats['reconstruction_statistics']['reprojection_error']:.2f} pixels",
+                "Average Reprojection Error (normalized / pixels)",
+                (
+                    f"{self.stats['reconstruction_statistics']['reprojection_error_normalized']:.2f} / "
+                    f"{self.stats['reconstruction_statistics']['reprojection_error_pixels']:.2f}"
+                ),
             ],
             [
                 "Average Track Length",
@@ -313,6 +317,18 @@ class Report:
             ],
         ]
         self._make_table(None, rows, True)
+        self.pdf.set_xy(self.margin, self.pdf.get_y() + self.margin / 1.5)
+
+        residual_histogram_height = 60
+        residual_histogram = [
+            f
+            for f in os.listdir(self.output_path)
+            if f.startswith("residual_histogram")
+        ]
+        self._make_centered_image(
+            os.path.join(self.output_path, residual_histogram[0]),
+            residual_histogram_height,
+        )
         self.pdf.set_xy(self.margin, self.pdf.get_y() + self.margin)
 
     def make_camera_models_details(self):
@@ -339,14 +355,14 @@ class Report:
             self._make_table(names, rows)
             self.pdf.set_xy(self.margin, self.pdf.get_y() + self.margin / 2)
 
-            residual_grid_height = 80
+            residual_grid_height = 100
             self._make_centered_image(
                 os.path.join(self.output_path, residual_grids[0]), residual_grid_height
             )
 
     def make_tracks_details(self):
         self._make_section("Tracks Details")
-        matchgraph_height = 60
+        matchgraph_height = 80
         matchgraph = [
             f for f in os.listdir(self.output_path) if f.startswith("matchgraph")
         ]
@@ -382,9 +398,11 @@ class Report:
 
         self.make_features_details()
         self.make_reconstruction_details()
-        self.make_tracks_details()
         self.add_page_break()
 
+        self.make_tracks_details()
         self.make_camera_models_details()
+        self.add_page_break()
+
         self.make_gps_details()
         self.make_processing_time_details()
