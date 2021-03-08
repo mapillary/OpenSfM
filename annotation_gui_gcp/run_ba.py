@@ -23,8 +23,13 @@ def merge_reconstructions(reconstructions, tracks_manager):
     We add a prefix according to the source reconstruction index.
     """
     merged = types.Reconstruction()
+    merged.set_reference(reconstructions[0].reference)
 
     for ix_r, reconstruction in enumerate(reconstructions):
+        assert np.isclose(merged.reference.lat, reconstruction.reference.lat)
+        assert np.isclose(merged.reference.lon, reconstruction.reference.lon)
+        assert np.isclose(merged.reference.alt, reconstruction.reference.alt)
+
         for camera in reconstruction.cameras.values():
             merged.add_camera(camera)
 
@@ -53,6 +58,7 @@ def resplit_reconstruction(merged, original_reconstructions):
 
     for ix_r, original in enumerate(original_reconstructions):
         r = types.Reconstruction()
+        r.set_reference(merged.reference)
         for shot_id in original.shots:
             r.add_shot(merged.shots[shot_id])
         for point_id in original.points:
