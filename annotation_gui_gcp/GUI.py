@@ -13,7 +13,7 @@ matplotlib.use("TkAgg")
 
 from image_sequence_view import ImageSequenceView
 from orthophoto_view import OrthoPhotoView
-from cad_view import CadView
+from cad_viewer.cad_view import CadView
 
 FONT = "TkFixedFont"
 
