@@ -43,9 +43,9 @@ def _add_gcp_to_bundle(ba, gcp, shots):
         coordinates = multiview.triangulate_gcp(
             point,
             shots,
-            reproj_threshold = 1,
-            min_ray_angle_degrees = 0.1,
-            )
+            reproj_threshold=1,
+            min_ray_angle_degrees=0.1,
+        )
         if coordinates is None:
             if point.coordinates.has_value:
                 coordinates = point.coordinates.value
