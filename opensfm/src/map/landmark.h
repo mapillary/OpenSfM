@@ -21,14 +21,10 @@ class Landmark {
   void SetColor(const Vec3i& color) { color_ = color; }
 
   // Utility functions
-  bool IsObservedInShot(Shot* shot) const {
-    return observations_.count(shot) > 0;
-  }
   void AddObservation(Shot* shot, const FeatureId& feat_id) {
     observations_.emplace(shot, feat_id);
   }
   void RemoveObservation(Shot* shot);
-  bool HasObservations() const { return !observations_.empty(); }
   size_t NumberOfObservations() const { return observations_.size(); }
   FeatureId GetObservationIdInShot(Shot* shot) const {
     auto obs_it = observations_.find(shot);

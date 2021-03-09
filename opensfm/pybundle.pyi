@@ -240,6 +240,16 @@ class BundleAdjuster:
     ) -> None:
         ...
 
+    def add_heatmap(
+        self, arg0: str, arg1: numpy.ndarray[float64[m, 1]], arg2: int, arg3: float
+    ) -> None:
+        ...
+
+    def add_absolute_position_heatmap(
+        self, arg0: str, arg1: str, arg2: float, arg3: float, arg4:float
+    ) -> None:
+        ...
+
     def add_absolute_roll(self, arg0: str, arg1: float, arg2: float) -> None:
         ...
 

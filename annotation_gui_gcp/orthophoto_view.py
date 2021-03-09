@@ -25,7 +25,7 @@ class OrthoPhotoView(View):
         """
         self.image_manager = OrthoPhotoManager(path, 100.0)
         self.images_in_list = self.image_manager.image_keys
-        self.zoom_window_size_px = 500
+        self.zoom_window_size_px = 300
         self.is_geo_reference = is_geo_reference
 
         self.size = 50  # TODO add widget for zoom level
@@ -56,6 +56,10 @@ class OrthoPhotoView(View):
         """
         if not self.is_geo_reference:
             return None
+
+        # Offset by the viewing window
+        x += self.image_window.col_off
+        y += self.image_window.row_off
 
         # Pixel to whatever crs the image is in
         x, y = self.geot.xy(y, x)

@@ -11,18 +11,24 @@ from opensfm import dataset
 
 matplotlib.use("TkAgg")
 
+from cad_view import CadView
 from image_sequence_view import ImageSequenceView
 from orthophoto_view import OrthoPhotoView
-from cad_view import CadView
 
 FONT = "TkFixedFont"
 
 
 class Gui:
     def __init__(
-        self, master, gcp_manager, image_manager, sequence_groups=(), ortho_paths=(), cad_path=None,
+        self,
+        parent,
+        gcp_manager,
+        image_manager,
+        sequence_groups=(),
+        ortho_paths=(),
+        cad_path=None,
     ):
-        self.master = master
+        self.parent = parent
         self.gcp_manager = gcp_manager
         self.image_manager = image_manager
         self.curr_point = None
@@ -31,13 +37,13 @@ class Gui:
         self.sequence_groups = sequence_groups
         self.path = self.gcp_manager.path
 
-        master.bind_all("q", lambda event: self.go_to_worst_gcp())
-        master.bind_all("z", lambda event: self.toggle_zoom_all_views())
-        master.bind_all("x", lambda event: self.toggle_sticky_zoom())
-        master.bind_all("a", lambda event: self.go_to_current_gcp())
+        parent.bind_all("q", lambda event: self.go_to_worst_gcp())
+        parent.bind_all("z", lambda event: self.toggle_zoom_all_views())
+        parent.bind_all("x", lambda event: self.toggle_sticky_zoom())
+        parent.bind_all("a", lambda event: self.go_to_current_gcp())
         self.reconstruction_options = self.get_reconstruction_options()
         self.create_ui(ortho_paths, cad_path)
-        master.lift()
+        parent.lift()
 
         p_default_gcp = self.path + "/ground_control_points.json"
         if os.path.exists(p_default_gcp):
@@ -46,7 +52,6 @@ class Gui:
 
     def get_reconstruction_options(self):
         p_recs = self.path + "/reconstruction.json"
-        print(p_recs)
         if not os.path.exists(p_recs):
             return ["NONE", "NONE"]
         data = dataset.DataSet(self.path)
@@ -64,7 +69,7 @@ class Gui:
         return options
 
     def create_ui(self, ortho_paths, cad_path):
-        tools_frame = tk.Frame(self.master)
+        tools_frame = tk.Frame(self.parent)
         tools_frame.pack(side="left", expand=0, fill=tk.Y)
         self.create_tools(tools_frame)
         self.create_sequence_views(show_ortho_track=len(ortho_paths) > 0)
@@ -77,7 +82,7 @@ class Gui:
 
         self.cad_view = CadView(self, cad_path) if cad_path else None
 
-        self.master.update_idletasks()
+        self.parent.update_idletasks()
         # self.arrange_ui_onerow()
 
     def rec_ix_changed(self, *args):
@@ -92,25 +97,25 @@ class Gui:
             view.populate_image_list()
 
     def arrange_ui_onerow(self):
-        master = self.master
+        parent = self.parent
         # Arrange views on the screen. All views on one single row
-        w = master.winfo_width()
-        h = master.winfo_height()
-        master.geometry("%dx%d+%d+%d" % (w, h, 0, 0))
-        x = master.winfo_rootx()
-        y = master.winfo_rooty()
+        w = parent.winfo_width()
+        h = parent.winfo_height()
+        parent.geometry("%dx%d+%d+%d" % (w, h, 0, 0))
+        x = parent.winfo_rootx()
+        y = parent.winfo_rooty()
         x, y = 0, y + h
-        screen_width = master.winfo_screenwidth()
-        screen_height = master.winfo_screenheight()
+        screen_width = parent.winfo_screenwidth()
+        screen_height = parent.winfo_screenheight()
         w = screen_width / len(self.sequence_views)
         h = screen_height - y
         for view in self.sequence_views:
             view.window.geometry("%dx%d+%d+%d" % (w, h, x, y))
             x += w
 
-    def create_tools(self, master):
+    def create_tools(self, parent):
         width = 15
-        gcp_list_frame = tk.Frame(master)
+        gcp_list_frame = tk.Frame(parent)
         gcp_list_frame.pack(side="top", fill=tk.BOTH, expand=1)
 
         self.gcp_list = tk.StringVar()
@@ -124,7 +129,7 @@ class Gui:
         self.gcp_list_box.pack(side="left", expand=True, fill=tk.BOTH)
         self.gcp_list_box.bind("<<ListboxSelect>>", self.onclick_gcp_list)
 
-        plus_minus_frame = tk.Frame(master)
+        plus_minus_frame = tk.Frame(parent)
         plus_minus_frame.pack(side="top")
         add_button = tk.Button(plus_minus_frame, text="Add GCP", command=self.add_gcp)
         add_button.pack(side="left")
@@ -134,27 +139,27 @@ class Gui:
         remove_button.pack(side="left")
 
         self.sticky_zoom = tk.BooleanVar(value=False)
-        button = tk.Checkbutton(master, text="Sticky zoom (x)", var=self.sticky_zoom)
+        button = tk.Checkbutton(parent, text="Sticky zoom (x)", var=self.sticky_zoom)
         button.pack(side="top")
 
         self.show_gcp_names = tk.BooleanVar(value=False)
-        button = tk.Checkbutton(master, text="Show GCP names", var=self.show_gcp_names)
+        button = tk.Checkbutton(parent, text="Show GCP names", var=self.show_gcp_names)
         button.pack(side="top")
 
-        txt = tk.Label(master, text="Analysis")
+        txt = tk.Label(parent, text="Analysis")
         txt.pack(side="top")
-        analysis_frame = tk.Frame(master)
+        analysis_frame = tk.Frame(parent)
         analysis_frame.pack(side="top")
 
         options = self.reconstruction_options
-        self.rec_a = tk.StringVar(master)
+        self.rec_a = tk.StringVar(parent)
         self.rec_a.set(options[0])
         self.rec_a.trace("w", self.rec_ix_changed)
         w = tk.OptionMenu(analysis_frame, self.rec_a, *options[:-1])
         w.pack(side="top", fill=tk.X)
         w.config(width=width)
 
-        self.rec_b = tk.StringVar(master)
+        self.rec_b = tk.StringVar(parent)
         self.rec_b.set(options[1])
         self.rec_b.trace("w", self.rec_ix_changed)
         w = tk.OptionMenu(analysis_frame, self.rec_b, *options)
@@ -164,13 +169,17 @@ class Gui:
         analysis_buttons_frame = tk.Frame(analysis_frame)
         analysis_buttons_frame.pack(side="top")
         button = tk.Button(
-            analysis_buttons_frame, text="Fast", command=self.analyze_fast
+            analysis_buttons_frame, text="Rigid", command=self.analyze_rigid
+        )
+        button.pack(side="left")
+        button = tk.Button(
+            analysis_buttons_frame, text="Flex", command=self.analyze_flex
         )
         button.pack(side="left")
         button = tk.Button(analysis_buttons_frame, text="Full", command=self.analyze)
         button.pack(side="right")
 
-        io_frame = tk.Frame(master)
+        io_frame = tk.Frame(parent)
         io_frame.pack(side="top")
         button = tk.Button(io_frame, text="Load", command=self.load_gcps)
         button.pack(side="left")
@@ -196,10 +205,13 @@ class Gui:
             v = ImageSequenceView(self, sequence_key, image_keys, show_ortho_track)
             self.sequence_views.append(v)
 
-    def analyze_fast(self):
-        self.analyze(fast=True)
+    def analyze_rigid(self):
+        self.analyze(rigid=True, covariance=False)
 
-    def analyze(self, fast=False):
+    def analyze_flex(self):
+        self.analyze(rigid=False, covariance=False)
+
+    def analyze(self, rigid=False, covariance=True):
         t = time.time() - os.path.getmtime(self.path + "/ground_control_points.json")
         ix_a = self.reconstruction_options.index(self.rec_a.get())
         ix_b = self.reconstruction_options.index(self.rec_b.get())
@@ -227,8 +239,11 @@ class Gui:
         else:
             ix_b = None
 
-        if fast:
-            args.extend(["--fast"])
+        if rigid:
+            args.extend(["--rigid"])
+
+        if covariance:
+            args.extend(["--covariance"])
 
         # Call the run_ba script
         subprocess.run(args)
@@ -299,7 +314,7 @@ class Gui:
     def populate_gcp_list(self):
         self.update_gcp_list_text()
         self.update_gcp_list_highlight()
-        self.master.update_idletasks()
+        self.parent.update_idletasks()
 
     def update_gcp_list_text(self):
         if not self.gcp_manager.points:
@@ -315,7 +330,7 @@ class Gui:
     def update_gcp_list_highlight(self):
         if not self.curr_point:
             return
-        defaultbg = self.master.cget("bg")
+        defaultbg = self.parent.cget("bg")
         for ix, point_id in enumerate(sorted(self.gcp_manager.points)):
             bg = "green" if self.curr_point == point_id else defaultbg
             self.gcp_list_box.itemconfig(ix, bg=bg)

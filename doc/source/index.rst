@@ -1,4 +1,4 @@
-.. OpenSfM documentation master file
+.. OpenSfM documentation primary file
 
 OpenSfM
 =======
@@ -15,6 +15,7 @@ OpenSfM
    large
    reporting
    quality_report
+   rig
    api
 
 Indices and tables

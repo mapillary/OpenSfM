@@ -49,7 +49,7 @@ def comp_color(color):
 class View:
     def __init__(self, main_ui, show_ortho_track):
         self.main_ui = main_ui
-        window = tk.Toplevel(self.main_ui.master)
+        window = tk.Toplevel(self.main_ui.parent)
         self.window = window
         self.current_image = None
         self.rotation = 0
@@ -149,18 +149,21 @@ class View:
     def add_move_or_remove_gcp(self, x, y, add):
         if self.main_ui.curr_point is None:
             return
+        latlon = self.pixel_to_latlon(x, y)
         reproj = self.main_ui.gcp_manager.gcp_reprojections.get(self.main_ui.curr_point)
         if reproj:
             reproj.pop(self.current_image, None)
         self.main_ui.gcp_manager.remove_point_observation(
-            self.main_ui.curr_point, self.current_image
+            self.main_ui.curr_point,
+            self.current_image,
+            remove_latlon=latlon is not None,
         )
         if add:
             self.main_ui.gcp_manager.add_point_observation(
                 self.main_ui.curr_point,
                 self.current_image,
                 self.pixel_to_gcp_coordinates(x, y),
-                latlon=self.pixel_to_latlon(x, y),
+                latlon=latlon,
             )
             self.zoom_in(x, y)
         else:

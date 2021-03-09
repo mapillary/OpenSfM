@@ -1,6 +1,7 @@
 #include <geometry/pose.h>
 #include <map/landmark.h>
 #include <map/map.h>
+#include <map/rig.h>
 #include <map/shot.h>
 
 #include <unordered_set>
@@ -244,98 +245,9 @@ void Map::RemoveLandmark(const LandmarkId& lm_id) {
 }
 
 Camera& Map::CreateCamera(const Camera& cam) {
-  auto make_cam = [](const Camera& cam) {
-    switch (cam.GetProjectionType()) {
-      case ProjectionType::PERSPECTIVE:
-        return Camera::CreatePerspectiveCamera(
-            cam.GetParameterValue(Camera::Parameters::Focal),
-            cam.GetParameterValue(Camera::Parameters::K1),
-            cam.GetParameterValue(Camera::Parameters::K2));
-      case ProjectionType::BROWN: {
-        VecXd distortion(5);
-        distortion << cam.GetParameterValue(Camera::Parameters::K1),
-            cam.GetParameterValue(Camera::Parameters::K2),
-            cam.GetParameterValue(Camera::Parameters::K3),
-            cam.GetParameterValue(Camera::Parameters::P1),
-            cam.GetParameterValue(Camera::Parameters::P2);
-        return Camera::CreateBrownCamera(
-            cam.GetParameterValue(Camera::Parameters::Focal),
-            cam.GetParameterValue(Camera::Parameters::AspectRatio),
-            Vec2d(cam.GetParameterValue(Camera::Parameters::Cx),
-                  cam.GetParameterValue(Camera::Parameters::Cy)),
-            distortion);
-      }
-      case ProjectionType::FISHEYE:
-        return Camera::CreateFisheyeCamera(
-            cam.GetParameterValue(Camera::Parameters::Focal),
-            cam.GetParameterValue(Camera::Parameters::K1),
-            cam.GetParameterValue(Camera::Parameters::K2));
-      case ProjectionType::FISHEYE_OPENCV: {
-        VecXd distortion(4);
-        distortion << cam.GetParameterValue(Camera::Parameters::K1),
-            cam.GetParameterValue(Camera::Parameters::K2),
-            cam.GetParameterValue(Camera::Parameters::K3),
-            cam.GetParameterValue(Camera::Parameters::K4);
-        return Camera::CreateFisheyeOpencvCamera(
-            cam.GetParameterValue(Camera::Parameters::Focal),
-            cam.GetParameterValue(Camera::Parameters::AspectRatio),
-            Vec2d(cam.GetParameterValue(Camera::Parameters::Cx),
-                  cam.GetParameterValue(Camera::Parameters::Cy)),
-            distortion);
-      }
-      case ProjectionType::FISHEYE62: {
-        VecXd distortion(8);
-        distortion << cam.GetParameterValue(Camera::Parameters::K1),
-            cam.GetParameterValue(Camera::Parameters::K2),
-            cam.GetParameterValue(Camera::Parameters::K3),
-            cam.GetParameterValue(Camera::Parameters::K4),
-            cam.GetParameterValue(Camera::Parameters::K5),
-            cam.GetParameterValue(Camera::Parameters::K6),
-            cam.GetParameterValue(Camera::Parameters::P1),
-            cam.GetParameterValue(Camera::Parameters::P2);
-        return Camera::CreateFisheye62Camera(
-            cam.GetParameterValue(Camera::Parameters::Focal),
-            cam.GetParameterValue(Camera::Parameters::AspectRatio),
-            Vec2d(cam.GetParameterValue(Camera::Parameters::Cx),
-                  cam.GetParameterValue(Camera::Parameters::Cy)),
-            distortion);
-      }
-      case ProjectionType::RADIAL: {
-        return Camera::CreateRadialCamera(
-            cam.GetParameterValue(Camera::Parameters::Focal),
-            cam.GetParameterValue(Camera::Parameters::AspectRatio),
-            Vec2d(cam.GetParameterValue(Camera::Parameters::Cx),
-                  cam.GetParameterValue(Camera::Parameters::Cy)),
-            Vec2d(cam.GetParameterValue(Camera::Parameters::K1),
-                  cam.GetParameterValue(Camera::Parameters::K2)));
-      }
-      case ProjectionType::SIMPLE_RADIAL: {
-        return Camera::CreateSimpleRadialCamera(
-            cam.GetParameterValue(Camera::Parameters::Focal),
-            cam.GetParameterValue(Camera::Parameters::AspectRatio),
-            Vec2d(cam.GetParameterValue(Camera::Parameters::Cx),
-                  cam.GetParameterValue(Camera::Parameters::Cy)),
-            cam.GetParameterValue(Camera::Parameters::K1));
-      }
-      case ProjectionType::DUAL:
-        return Camera::CreateDualCamera(
-            cam.GetParameterValue(Camera::Parameters::Transition),
-            cam.GetParameterValue(Camera::Parameters::Focal),
-            cam.GetParameterValue(Camera::Parameters::K1),
-            cam.GetParameterValue(Camera::Parameters::K2));
-      case ProjectionType::SPHERICAL:
-        return Camera::CreateSphericalCamera();
-      default:
-        throw std::runtime_error("Could not create unknown camera type: " +
-                                 cam.id);
-    }
-  };
-  auto it = cameras_.emplace(std::make_pair(cam.id, make_cam(cam)));
-  auto& new_cam = it.first->second;
-  new_cam.width = cam.width;
-  new_cam.height = cam.height;
-  new_cam.id = cam.id;
-  return new_cam;
+  auto it = cameras_.emplace(std::make_pair(cam.id, cam));
+  return it.first->second;
+  ;
 }
 
 Camera& Map::GetCamera(const CameraId& cam_id) {
@@ -362,9 +274,9 @@ Shot& Map::UpdateShot(const Shot& other_shot) {
     auto& shot = it_exist->second;
     shot.merge_cc = other_shot.merge_cc;
     shot.scale = other_shot.scale;
-    shot.SetShotMeasurements(other_shot.shot_measurements_);
-    shot.covariance = other_shot.covariance;
-    shot.SetPose(other_shot.GetPose());
+    shot.SetShotMeasurements(other_shot.GetShotMeasurements());
+    shot.SetCovariance(other_shot.GetCovariance());
+    shot.SetPose(*other_shot.GetPose());
     return shot;
   }
 }
@@ -378,11 +290,88 @@ Shot& Map::UpdatePanoShot(const Shot& other_shot) {
     auto& shot = it_exist->second;
     shot.merge_cc = other_shot.merge_cc;
     shot.scale = other_shot.scale;
-    shot.SetShotMeasurements(other_shot.shot_measurements_);
-    shot.covariance = other_shot.covariance;
-    shot.SetPose(other_shot.GetPose());
+    shot.SetShotMeasurements(other_shot.GetShotMeasurements());
+    shot.SetCovariance(other_shot.GetCovariance());
+    shot.SetPose(*other_shot.GetPose());
     return shot;
   }
+}
+
+RigModel& Map::CreateRigModel(const map::RigModel& model) {
+  auto it = rig_models_.emplace(std::make_pair(model.id, model));
+  return it.first->second;
+}
+
+RigInstance& Map::CreateRigInstance(
+    map::RigModel* rig_model, const map::RigInstanceId& instance_id,
+    const std::map<map::ShotId, map::RigCameraId>& instance_shots) {
+  auto it_rig_model_exist = rig_models_.find(rig_model->id);
+  if (it_rig_model_exist == rig_models_.end()) {
+    throw std::runtime_error("Rig model" + rig_model->id + " does not exists.");
+  }
+
+  // Create instance and add its shots
+  auto it = rig_instances_.emplace(
+      std::piecewise_construct, std::forward_as_tuple(instance_id),
+      std::forward_as_tuple(rig_model, instance_id));
+  auto& instance = it.first->second;
+  for (const auto& shot_id : instance_shots) {
+    auto it_shot_exist = shots_.find(shot_id.first);
+    if (it_shot_exist == shots_.end()) {
+      throw std::runtime_error("Instance shot " + shot_id.first +
+                               " does not exists.");
+    }
+    instance.AddShot(shot_id.second, &it_shot_exist->second);
+  }
+  return instance;
+}
+
+RigInstance& Map::UpdateRigInstance(const RigInstance& other_rig_instance) {
+  auto it_exist = rig_instances_.find(other_rig_instance.id);
+  if (it_exist == rig_instances_.end()) {
+    throw std::runtime_error("Rig instance does not exists.");
+  } else {
+    auto& rig_instance = it_exist->second;
+    rig_instance = other_rig_instance;
+    return rig_instance;
+  }
+}
+
+size_t Map::NumberOfRigModels() const { return rig_models_.size(); }
+
+RigModel& Map::GetRigModel(const RigModelId& rig_model_id) {
+  const auto& it = rig_models_.find(rig_model_id);
+  if (it == rig_models_.end()) {
+    throw std::runtime_error("Accessing invalid RigModelID " + rig_model_id);
+  }
+  return it->second;
+}
+
+const std::unordered_map<RigModelId, RigModel>& Map::GetRigModels() const {
+  return rig_models_;
+}
+
+bool Map::HasRigModel(const RigModelId& rig_model_id) const {
+  return rig_models_.find(rig_model_id) != rig_models_.end();
+}
+
+size_t Map::NumberOfRigInstances() const { return rig_instances_.size(); }
+
+RigInstance& Map::GetRigInstance(const RigInstanceId& instance_id) {
+  const auto& it = rig_instances_.find(instance_id);
+  if (it == rig_instances_.end()) {
+    throw std::runtime_error("Accessing invalid RIGInstance index");
+  }
+  return it->second;
+}
+
+const std::unordered_map<RigInstanceId, RigInstance>& Map::GetRigInstances()
+    const {
+  return rig_instances_;
+}
+
+bool Map::HasRigInstance(const RigInstanceId& instance_id) const {
+  return rig_instances_.find(instance_id) != rig_instances_.end();
 }
 
 };  // namespace map

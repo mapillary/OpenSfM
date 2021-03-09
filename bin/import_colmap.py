@@ -48,6 +48,7 @@ camera_models = {
 def compute_and_save_undistorted_reconstruction(
     reconstruction, tracks_manager, data, udata
 ):
+    image_format = data.config["undistorted_image_format"]
     urec = types.Reconstruction()
     utracks_manager = pysfm.TracksManager()
     undistorted_shots = []
@@ -61,7 +62,7 @@ def compute_and_save_undistorted_reconstruction(
         else:
             raise ValueError
         urec.add_camera(ucamera)
-        ushot = osfm_u.get_shot_with_different_camera(urec, shot, ucamera)
+        ushot = osfm_u.get_shot_with_different_camera(urec, shot, ucamera, image_format)
         if tracks_manager:
             osfm_u.add_subshot_tracks(tracks_manager, utracks_manager, shot, ushot)
         undistorted_shots.append(ushot)

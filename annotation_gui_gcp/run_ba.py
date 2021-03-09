@@ -23,8 +23,13 @@ def merge_reconstructions(reconstructions, tracks_manager):
     We add a prefix according to the source reconstruction index.
     """
     merged = types.Reconstruction()
+    merged.set_reference(reconstructions[0].reference)
 
     for ix_r, reconstruction in enumerate(reconstructions):
+        assert np.isclose(merged.reference.lat, reconstruction.reference.lat)
+        assert np.isclose(merged.reference.lon, reconstruction.reference.lon)
+        assert np.isclose(merged.reference.alt, reconstruction.reference.alt)
+
         for camera in reconstruction.cameras.values():
             merged.add_camera(camera)
 
@@ -53,10 +58,14 @@ def resplit_reconstruction(merged, original_reconstructions):
 
     for ix_r, original in enumerate(original_reconstructions):
         r = types.Reconstruction()
+        r.set_reference(merged.reference)
         for shot_id in original.shots:
             r.add_shot(merged.shots[shot_id])
         for point_id in original.points:
-            merged_point = merged.points[f"R{ix_r}_{point_id}"]
+            merged_id = f"R{ix_r}_{point_id}"
+            if merged_id not in merged.points:
+                continue
+            merged_point = merged.points[merged_id]
             new_point = r.create_point(point_id, merged_point.coordinates)
             new_point.color = merged_point.color
         for camera_id in original.cameras:
@@ -66,18 +75,60 @@ def resplit_reconstruction(merged, original_reconstructions):
     return split
 
 
+def gcp_geopositional_error(gcps, reconstruction):
+    coords_reconstruction = triangulate_gcps(gcps, reconstruction)
+    out = {}
+    for ix, gcp in enumerate(gcps):
+        if not gcp.coordinates.has_value:
+            continue
+
+        expected = gcp.coordinates.value
+        triangulated = (
+            coords_reconstruction[ix] if coords_reconstruction[ix] is not None else None
+        )
+
+        if expected is not None and triangulated is not None:
+            error = np.linalg.norm(expected - triangulated)
+        else:
+            error = np.nan
+
+        out[gcp.id] = {
+            "expected_xyz": list(expected),
+            "triangulated_xyz": list(triangulated)
+            if triangulated is not None
+            else None,
+            "expected_lla": reconstruction.reference.to_lla(*expected),
+            "triangulated_lla": reconstruction.reference.to_lla(*triangulated)
+            if triangulated is not None
+            else None,
+            "error": float(error),
+        }
+
+    return out
+
+
 def triangulate_gcps(gcps, reconstruction):
     coords = []
     for gcp in gcps:
-        res = orec.triangulate_gcp(gcp, reconstruction.shots)
+        res = multiview.triangulate_gcp(
+            gcp,
+            reconstruction.shots,
+            reproj_threshold=1,
+            min_ray_angle_degrees=0.1,
+        )
         coords.append(res)
     return coords
 
 
-def reproject_gcps(gcps, reconstruction):
+def reproject_gcps(gcps, reconstruction, reproj_threshold):
     output = {}
     for gcp in gcps:
-        point = orec.triangulate_gcp(gcp, reconstruction.shots)
+        point = multiview.triangulate_gcp(
+            gcp,
+            reconstruction.shots,
+            reproj_threshold=reproj_threshold,
+            min_ray_angle_degrees=0.1,
+        )
         output[gcp.id] = {}
         n_obs = len(gcp.observations)
         if point is None:
@@ -96,7 +147,7 @@ def reproject_gcps(gcps, reconstruction):
     return output
 
 
-def get_all_reprojection_errors(gcp_reprojections):
+def get_sorted_reprojection_errors(gcp_reprojections):
     output = []
     for gcp_id in gcp_reprojections:
         for shot_id in gcp_reprojections[gcp_id]:
@@ -120,6 +171,8 @@ def compute_gcp_std(gcp_errors):
         errors = [e["error"] for e in gcp_errors[gcp_id].values()]
         logger.info(f"gcp {gcp_id} mean reprojection error = {np.mean(errors)}")
         all_errors.extend(errors)
+
+    all_errors = [e for e in all_errors if not np.isnan(e)]
     return np.sqrt(np.mean(np.array(all_errors) ** 2))
 
 
@@ -147,9 +200,18 @@ def add_gcp_to_bundle(ba, gcp, gcp_std, shots):
     for point in gcp:
         point_id = "gcp-" + point.id
 
-        coordinates = orec.triangulate_gcp(point, shots)
+        coordinates = multiview.triangulate_gcp(
+            point,
+            shots,
+            reproj_threshold=1,
+            min_ray_angle_degrees=0.1,
+        )
         if coordinates is None:
-            if point.coordinates is not None:
+            if point.coordinates.has_value:
+                logger.warning(
+                    f"Could not triangulate GCP '{point.id}'."
+                    f"Using {point.coordinates.value} (derived from lat,lon)"
+                )
                 coordinates = point.coordinates.value
             else:
                 logger.warning(
@@ -225,7 +287,8 @@ def bundle_with_fixed_images(
     ba.run()
     chrono.lap("run")
 
-    if not ba.get_covariance_estimation_valid():
+    cov_valid = ba.get_covariance_estimation_valid()
+    if not cov_valid:
         logger.warning("Could not compute covariance")
 
     for camera in reconstruction.cameras.values():
@@ -252,7 +315,7 @@ def bundle_with_fixed_images(
         "wall_times": dict(chrono.lap_times()),
         "brief_report": ba.brief_report(),
     }
-    return report
+    return cov_valid
 
 
 def decompose_covariance(covariance):
@@ -308,7 +371,12 @@ def resect_image(im, camera, gcps, reconstruction, data, dst_reconstruction=None
         obs = _gcp_image_observation(gcp, im)
         if not obs:
             continue
-        gcp_3d_coords = orec.triangulate_gcp(gcp, reconstruction.shots)
+        gcp_3d_coords = multiview.triangulate_gcp(
+            gcp,
+            reconstruction.shots,
+            reproj_threshold=1,
+            min_ray_angle_degrees=0.1,
+        )
         if gcp_3d_coords is None:
             continue
 
@@ -382,13 +450,23 @@ def parse_args():
         "--px-threshold",
         default=0.016,  # a little bit over 10 pixels at VGA resolution
         help="threshold in normalized pixels to classify a GCP annotation as correct",
+        type=float,
     )
     parser.add_argument(
-        "--fast",
+        "--rigid",
         action="store_true",
-        help="Skip BA",
+        help="Skip BA entirely",
+    )
+    parser.add_argument(
+        "--covariance",
+        action="store_true",
+        help="Run BA with fixed images to obtain pose covariances",
     )
     args = parser.parse_args()
+
+    if args.covariance:
+        assert not args.rigid, "rigid and covariance are mutually exclusive"
+
     return args
 
 
@@ -410,67 +488,128 @@ def main():
     fn_resplit = f"reconstruction_gcp_ba_resplit_{args.rec_a}x{args.rec_b}.json"
     fn_rigid = f"reconstruction_gcp_rigid_{args.rec_a}x{args.rec_b}.json"
 
-    if args.rec_b:  # reconstruction - to - reconstruction annotation
-        if args.fast and os.path.exists(data._reconstruction_file(fn_resplit)):
+    if args.rec_b is not None:  # reconstruction - to - reconstruction annotation
+        if args.rigid and os.path.exists(data._reconstruction_file(fn_resplit)):
             reconstructions = data.load_reconstruction(fn_resplit)
         else:
             reconstructions = data.load_reconstruction()
             reconstructions = [reconstructions[args.rec_a], reconstructions[args.rec_b]]
         coords0 = triangulate_gcps(gcps, reconstructions[0])
         coords1 = triangulate_gcps(gcps, reconstructions[1])
+        n_valid_0 = sum(c is not None for c in coords0)
+        logger.debug(f"Triangulated {n_valid_0}/{len(gcps)} gcps for rec #{args.rec_a}")
+        n_valid_1 = sum(c is not None for c in coords1)
+        logger.debug(f"Triangulated {n_valid_1}/{len(gcps)} gcps for rec #{args.rec_b}")
         s, A, b = find_alignment(coords1, coords0)
         align.apply_similarity(reconstructions[1], s, A, b)
+        logger.info(f"Rigidly aligned rec#{args.rec_b} to rec# {args.rec_a}")
     else:  # Image - to - reconstruction annotation
         reconstructions = data.load_reconstruction()
         base = reconstructions[args.rec_a]
         resected = resect_annotated_single_images(base, gcps, camera_models, data)
-        for shot in resected.shots.values():
-            shot.metadata.gps_accuracy.value = 1e12
-            shot.metadata.gps_position.value = shot.pose.get_origin()
         reconstructions = [base, resected]
 
+    # Set the GPS constraint of the moved/resected shots to the manually-aligned position
+    for shot in reconstructions[1].shots.values():
+        shot.metadata.gps_position.value = shot.pose.get_origin()
+
     data.save_reconstruction(reconstructions, fn_rigid)
+
     merged = merge_reconstructions(reconstructions, tracks_manager)
+    logger.info("Merged reconstructions")
     # data.save_reconstruction(
     #     [merged], f"reconstruction_merged_{args.rec_a}x{args.rec_b}.json"
     # )
 
-    if not args.fast:
+    # Scale the GPS DOP with the number of shots to ensure GCPs are used to align
+    for shot in merged.shots.values():
+        shot.metadata.gps_accuracy.value = 0.5 * len(merged.shots)
+
+    gcp_alignment = {"after_rigid": gcp_geopositional_error(gcps, merged)}
+    logger.info(
+        "GCP errors after rigid alignment:\n"
+        + "\n".join(
+            "[{}]: {:.2f}m".format(k, v["error"])
+            for k, v in gcp_alignment["after_rigid"].items()
+        )
+    )
+    if not args.rigid:
         data.config["bundle_max_iterations"] = 200
         data.config["bundle_use_gcp"] = True
-        print("Running BA ...")
-        orec.bundle(merged, camera_models, gcp=gcps, config=data.config)
-        # rigid rotation to put images on the ground
-        orec.align_reconstruction(merged, None, data.config)
-        # data.save_reconstruction(
-        #     [merged], "reconstruction_gcp_ba_{args.rec_a}x{args.rec_b}.json"
-        # )
 
-    gcp_reprojections = reproject_gcps(gcps, merged)
-    reprojection_errors = get_all_reprojection_errors(gcp_reprojections)
+        logger.info("Running BA on merged reconstructions")
+        # orec.align_reconstruction(merged, None, data.config)
+        orec.bundle(merged, camera_models, gcp=gcps, config=data.config)
+        data.save_reconstruction(
+            [merged], f"reconstruction_gcp_ba_{args.rec_a}x{args.rec_b}.json"
+        )
+
+        gcp_alignment["after_bundle"] = gcp_geopositional_error(gcps, merged)
+        logger.info(
+            "GCP errors after rigid alignment:\n"
+            + "\n".join(
+                "[{}]: {:.2f}m".format(k, v["error"])
+                for k, v in gcp_alignment["after_bundle"].items()
+            )
+        )
+        json.dump(
+            gcp_alignment,
+            open(f"{data.data_path}/gcp_alignment_{args.rec_a}x{args.rec_b}.json", "w"),
+            indent=4,
+            sort_keys=True,
+        )
+
+        # Re-triangulate to remove badly conditioned points
+        n_points = len(merged.points)
+
+        logger.info("Re-triangulating...")
+        backup = data.config["triangulation_min_ray_angle"]
+        data.config["triangulation_min_ray_angle"] = 2.0
+        orec.retriangulate(tracks_manager, merged, data.config)
+        data.config["triangulation_min_ray_angle"] = backup
+        logger.info(
+            f"Re-triangulated. Removed {n_points - len(merged.points)}."
+            f" Kept {int(100*len(merged.points)/n_points)}%"
+        )
+
+    # Reproject GCPs with a very loose threshold so that we get a point every time
+    # These reprojections are only used for feedback in any case
+    gcp_reprojections = reproject_gcps(gcps, merged, reproj_threshold=10)
+    reprojection_errors = get_sorted_reprojection_errors(gcp_reprojections)
     err_values = [t[2] for t in reprojection_errors]
     max_reprojection_error = np.max(err_values)
     median_reprojection_error = np.median(err_values)
 
-    with open(
-        f"{data.data_path}/gcp_reprojections_{args.rec_a}x{args.rec_b}.json", "w"
-    ) as f:
-        json.dump(gcp_reprojections, f, indent=4, sort_keys=True)
+    json.dump(
+        gcp_reprojections,
+        open(f"{data.data_path}/gcp_reprojections_{args.rec_a}x{args.rec_b}.json", "w"),
+        indent=4,
+        sort_keys=True,
+    )
+
+    n_bad_gcp_annotations = int(
+        sum(t[2] > args.px_threshold for t in reprojection_errors)
+    )
+    if n_bad_gcp_annotations > 0:
+        logger.info(f"{n_bad_gcp_annotations} large reprojection errors:")
+        for t in reprojection_errors:
+            if t[2] > args.px_threshold:
+                logger.info(t)
 
     gcp_std = compute_gcp_std(gcp_reprojections)
     logger.info(f"GCP reprojection error STD: {gcp_std}")
 
-    if not args.fast:
-        resplit = resplit_reconstruction(merged, reconstructions)
-        data.save_reconstruction(resplit, fn_resplit)
+    resplit = resplit_reconstruction(merged, reconstructions)
+    data.save_reconstruction(resplit, fn_resplit)
+    if args.covariance:
         all_shots_std = []
         # We run bundle by fixing one reconstruction.
         # If we have two reconstructions, we do this twice, fixing each one.
-        _rec_ixs = [(0, 1), (1, 0)] if args.rec_b else [(0, 1)]
+        _rec_ixs = [(0, 1), (1, 0)] if args.rec_b is not None else [(0, 1)]
         for rec_ixs in _rec_ixs:
             print(f"Running BA with fixed images. Fixing rec #{rec_ixs[0]}")
             fixed_images = set(reconstructions[rec_ixs[0]].shots.keys())
-            bundle_with_fixed_images(
+            covariance_estimation_valid = bundle_with_fixed_images(
                 merged,
                 camera_models,
                 gcp=gcps,
@@ -478,26 +617,36 @@ def main():
                 fixed_images=fixed_images,
                 config=data.config,
             )
+            if not covariance_estimation_valid:
+                logger.info(
+                    f"Could not get positional uncertainty for pair {rec_ixs} It could be because:"
+                    "\na) there are not enough GCPs."
+                    "\nb) they are badly distributed in 3D."
+                    "\nc) there are some wrong annotations"
+                )
+                shots_std_this_pair = [
+                    (shot, np.nan) for shot in reconstructions[rec_ixs[1]].shots
+                ]
+            else:
+                shots_std_this_pair = []
+                for shot in merged.shots.values():
+                    if shot.id in reconstructions[rec_ixs[1]].shots:
+                        u, std_v = decompose_covariance(shot.covariance[3:, 3:])
+                        std = np.linalg.norm(std_v)
+                        shots_std_this_pair.append((shot.id, std))
+                        logger.debug(f"{shot.id} std: {std}")
 
-            logger.info(
-                f"STD in the position of shots in R#{rec_ixs[1]} w.r.t R#{rec_ixs[0]}"
-            )
-            for shot in merged.shots.values():
-                if shot.id in reconstructions[rec_ixs[1]].shots:
-                    u, std = decompose_covariance(shot.covariance[3:, 3:])
-                    all_shots_std.append((shot.id, np.linalg.norm(std)))
-                    logger.info(f"{shot.id} position std: {np.linalg.norm(std)}")
+            all_shots_std.extend(shots_std_this_pair)
 
-        # If the STD of all shots is the same, replace by nan
         std_values = [x[1] for x in all_shots_std]
-        n_bad_std = sum(std > args.std_threshold for std in std_values)
-        n_good_std = sum(std <= args.std_threshold for std in std_values)
-        if np.allclose(std_values, std_values[0]):
-            all_shots_std = [(x[0], np.nan) for x in all_shots_std]
-            n_bad_std = len(std_values)
+        n_nan_std = sum(np.isnan(std) for std in std_values)
+        n_good_std = sum(
+            std <= args.std_threshold for std in std_values if not np.isnan(std)
+        )
+        n_bad_std = len(std_values) - n_good_std - n_nan_std
 
         # Average positional STD
-        median_shot_std = np.median([t[1] for t in all_shots_std])
+        median_shot_std = np.median(std_values)
 
         # Save the shot STD to a file
         with open(
@@ -508,21 +657,14 @@ def main():
                 line = "{}, {}".format(*t)
                 f.write(line + "\n")
 
-        max_shot_std = s[0][1]
-        got_shots_std = not np.isnan(all_shots_std[0][1])
+            max_shot_std = s[0][1]
     else:
+        n_nan_std = -1
         n_bad_std = -1
         n_good_std = -1
         median_shot_std = -1
         max_shot_std = -1
-        got_shots_std = False
 
-    n_bad_gcp_annotations = int(
-        sum(t[2] > args.px_threshold for t in reprojection_errors)
-    )
-    for t in reprojection_errors:
-        if t[2] > args.px_threshold:
-            print(t)
     metrics = {
         "n_reconstructions": len(data.load_reconstruction()),
         "median_shot_std": median_shot_std,
@@ -533,6 +675,7 @@ def main():
         "n_bad_gcp_annotations": n_bad_gcp_annotations,
         "n_bad_position_std": int(n_bad_std),
         "n_good_position_std": int(n_good_std),
+        "n_nan_position_std": int(n_nan_std),
         "rec_a": args.rec_a,
         "rec_b": args.rec_b,
     }
@@ -551,43 +694,38 @@ def main():
             f"No issues. All gcp reprojections are under {args.px_threshold}"
             f" and all frames are localized within {args.std_threshold}m"
         )
-    if n_bad_std == 0 and n_bad_gcp_annotations == 0:
-        logger.info(
-            f"No issues. All gcp reprojections are under {args.px_threshold}"
-            f" and all frames are localized within {args.std_threshold}m"
-        )
     if n_bad_std != 0 or n_bad_gcp_annotations != 0:
-        if args.fast:
+        if args.rigid:
+            logger.info("Positional uncertainty was not calculated. (--rigid was set).")
+        elif not args.covariance:
             logger.info(
-                "Positional uncertainty unknown since analysis ran in fast mode."
-            )
-        elif not got_shots_std:
-            logger.info(
-                "Could not get positional uncertainty. It could be because:"
-                "\na) there are not enough GCPs."
-                "\nb) they are badly distributed in 3D."
-                "\nc) there are some wrong annotations"
+                "Positional uncertainty was not calculated (--covariance not set)."
             )
         else:
             logger.info(
-                f"{n_bad_std} badly localized images (error>{args.std_threshold})."
-                " Use the frame list on each view to find these"
+                f"{n_nan_std}/{len(std_values)} images with unknown error."
+                f"\n{n_good_std}/{len(std_values)} well-localized images."
+                f"\n{n_bad_std}/{len(std_values)} badly localized images."
             )
-        logger.info(
-            f"{n_bad_gcp_annotations} annotations with large reprojection error."
-            " Worst offenders:"
-        )
 
-        stats_bad_reprojections = get_number_of_wrong_annotations_per_gcp(
-            gcp_reprojections, args.px_threshold
-        )
-        gcps_sorted = sorted(
-            stats_bad_reprojections, key=lambda k: -stats_bad_reprojections[k]
-        )[:5]
-        for ix, gcp_id in enumerate(gcps_sorted):
-            n = stats_bad_reprojections[gcp_id]
-            if n > 0:
-                logger.info(f"#{ix+1} - {gcp_id}: {n} bad annotations")
+        if n_bad_gcp_annotations > 0:
+            logger.info(
+                f"{n_bad_gcp_annotations} annotations with large reprojection error."
+                " Worst offenders:"
+            )
+
+            stats_bad_reprojections = get_number_of_wrong_annotations_per_gcp(
+                gcp_reprojections, args.px_threshold
+            )
+            gcps_sorted = sorted(
+                stats_bad_reprojections, key=lambda k: -stats_bad_reprojections[k]
+            )
+            for ix, gcp_id in enumerate(gcps_sorted[:5]):
+                n = stats_bad_reprojections[gcp_id]
+                if n > 0:
+                    logger.info(f"#{ix+1} - {gcp_id}: {n} bad annotations")
+        else:
+            logger.info("No annotations with large reprojection errors")
 
 
 if __name__ == "__main__":

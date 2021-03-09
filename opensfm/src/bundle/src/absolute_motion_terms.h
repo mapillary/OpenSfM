@@ -1,8 +1,10 @@
 #pragma once
 
-#include "error_utils.h"
+#include <bundle/bundle_adjuster.h>
 
 #include <Eigen/Eigen>
+
+#include "error_utils.h"
 
 template <class PosFunc>
 struct BAAbsolutePositionError {
@@ -17,7 +19,7 @@ struct BAAbsolutePositionError {
 
   template <typename T>
   bool operator()(T const* const* p, T* r) const {
-    Eigen::Map<Vec3<T> > residual(r);
+    Eigen::Map<Vec3<T>> residual(r);
 
     // error is : position_prior - adjusted_position
     residual = pos_prior_.cast<T>() - pos_func_(p);
@@ -70,8 +72,8 @@ struct BAUpVectorError {
 
   template <typename T>
   bool operator()(const T* const shot, T* r) const {
-    Eigen::Map<const Vec3<T> > R(shot + BA_SHOT_RX);
-    Eigen::Map<Vec3<T> > residual(r);
+    Eigen::Map<const Vec3<T>> R(shot + BA_SHOT_RX);
+    Eigen::Map<Vec3<T>> residual(r);
 
     const Vec3<T> acceleration = acceleration_.cast<T>();
     const Vec3<T> z_world = RotatePoint(R.eval(), acceleration);
@@ -90,7 +92,7 @@ struct BAPanAngleError {
 
   template <typename T>
   bool operator()(const T* const shot, T* residuals) const {
-    Eigen::Map<const Vec3<T> > R(shot + BA_SHOT_RX);
+    Eigen::Map<const Vec3<T>> R(shot + BA_SHOT_RX);
 
     const Vec3<T> z_axis = Vec3d(0, 0, 1).cast<T>();
     const auto z_world = RotatePoint(R.eval(), z_axis);
@@ -259,4 +261,48 @@ struct PointPositionPriorError {
 
   double* position_;
   double scale_;
+};
+
+struct HeatmapdCostFunctor {
+  explicit HeatmapdCostFunctor(
+      const ceres::BiCubicInterpolator<ceres::Grid2D<double>>& interpolator,
+      double x_offset, double y_offset, double height, double width,
+      double resolution, double std_deviation)
+      : interpolator_(interpolator),
+        x_offset_(x_offset),
+        y_offset_(y_offset),
+        height_(height),
+        width_(width),
+        resolution_(resolution),
+        scale_(1. / std_deviation) {}
+
+  template <typename T>
+  bool operator()(T const* p, T* residuals) const {
+    const T x_coor = p[BA_SHOT_TX] - x_offset_;
+    const T y_coor = p[BA_SHOT_TY] - y_offset_;
+    // const T z_coor = x[2]; - Z goes brrrrr
+    const T row = height_ / 2. - (y_coor / resolution_);
+    const T col = width_ / 2. + (x_coor / resolution_);
+    interpolator_.Evaluate(row, col, residuals);
+    residuals[0] *= scale_;
+    return true;
+  }
+
+  static ceres::CostFunction* Create(
+      const ceres::BiCubicInterpolator<ceres::Grid2D<double>>& interpolator,
+      double x_offset, double y_offset, double height, double width,
+      double heatmap_resolution, double std_deviation) {
+    return new ceres::AutoDiffCostFunction<HeatmapdCostFunctor, 1, 6>(
+        new HeatmapdCostFunctor(interpolator, x_offset, y_offset, height, width,
+                                heatmap_resolution, std_deviation));
+  }
+
+ private:
+  const ceres::BiCubicInterpolator<ceres::Grid2D<double>>& interpolator_;
+  const double x_offset_;
+  const double y_offset_;
+  const double height_;
+  const double width_;
+  const double resolution_;
+  const double scale_;
 };

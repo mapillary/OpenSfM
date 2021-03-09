@@ -65,9 +65,9 @@ class MetaDataSet:
     def _clusters_geojson_path(self):
         return os.path.join(self._submodels_path(), self._clusters_geojson_file_name)
 
-    def _create_symlink(self, base_path, filename):
-        src = os.path.join(self.data_path, filename)
-        dst = os.path.join(base_path, filename)
+    def _create_symlink(self, base_path, file_path):
+        src = os.path.join(self.data_path, file_path)
+        dst = os.path.join(base_path, file_path)
 
         if not os.path.exists(src):
             return
@@ -75,7 +75,11 @@ class MetaDataSet:
         if os.path.islink(dst):
             os.unlink(dst)
 
-        os.symlink(os.path.relpath(src, base_path), dst)
+        subfolders = len(file_path.split(os.path.sep)) - 1
+
+        os.symlink(
+            os.path.join(*[".."] * subfolders, os.path.relpath(src, base_path)), dst
+        )
 
     def image_groups_exists(self):
         return os.path.isfile(self._image_groups_path())
@@ -167,8 +171,11 @@ class MetaDataSet:
                     config_file_path, os.path.join(submodel_path, "config.yaml")
                 )
 
+            # Create reports folder
+            io.mkdir_p(os.path.join(submodel_path, "reports"))
+
             # create symlinks to additional files
-            filenames = [
+            filepaths = [
                 "camera_models.json",
                 "reference_lla.json",
                 "exif",
@@ -177,9 +184,12 @@ class MetaDataSet:
                 "masks",
                 "mask_list.txt",
                 "segmentations",
+                os.path.join("reports", "features"),
+                os.path.join("reports", "features.json"),
+                os.path.join("reports", "matches.json"),
             ]
-            for filename in filenames:
-                self._create_symlink(submodel_path, filename)
+            for filepath in filepaths:
+                self._create_symlink(submodel_path, filepath)
 
     def get_submodel_paths(self):
         submodel_paths = []

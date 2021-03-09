@@ -131,6 +131,9 @@ align_orientation_prior: horizontal   # horizontal, vertical or no_roll
 bundle_use_gps: yes                   # Enforce GPS position in bundle adjustment
 bundle_use_gcp: no                    # Enforce Ground Control Point position in bundle adjustment
 
+# Params for rigs
+rig_calibration_subset_size: 15
+
 # Params for navigation graph
 nav_min_distance: 0.01                # Minimum distance for a possible edge between two nodes
 nav_step_pref_distance: 6             # Preferred distance between camera centers

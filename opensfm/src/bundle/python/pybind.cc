@@ -32,6 +32,8 @@ PYBIND11_MODULE(pybundle, m) {
       .def("add_relative_rotation", &BundleAdjuster::AddRelativeRotation)
       .def("add_common_position", &BundleAdjuster::AddCommonPosition)
       .def("add_absolute_position", &BundleAdjuster::AddAbsolutePosition)
+      .def("add_heatmap", &BundleAdjuster::AddHeatmap)
+      .def("add_absolute_position_heatmap", &BundleAdjuster::AddAbsolutePositionHeatmap)
       .def("add_absolute_up_vector", &BundleAdjuster::AddAbsoluteUpVector)
       .def("add_absolute_pan", &BundleAdjuster::AddAbsolutePan)
       .def("add_absolute_tilt", &BundleAdjuster::AddAbsoluteTilt)

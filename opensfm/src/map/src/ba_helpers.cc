@@ -1,7 +1,7 @@
-#include <map/ba_helpers.h>
 #include <bundle/bundle_adjuster.h>
 #include <foundation/types.h>
 #include <geometry/triangulation.h>
+#include <map/ba_helpers.h>
 #include <map/ground_control_points.h>
 #include <map/map.h>
 
@@ -135,13 +135,13 @@ py::tuple BAHelpers::BundleLocal(
     const auto& pose = shot->GetPose();
     constexpr auto shot_constant{false};
 
-    ba.AddShot(shot->id_, shot->shot_camera_->id,
-               pose.RotationWorldToCameraMin(), pose.TranslationWorldToCamera(),
-               shot_constant);
+    ba.AddShot(shot->id_, shot->GetCamera()->id,
+               pose->RotationWorldToCameraMin(),
+               pose->TranslationWorldToCamera(), shot_constant);
     if (config["bundle_use_gps"].cast<bool>()) {
-      const Vec3d g = shot->shot_measurements_.gps_position_.Value();
+      const Vec3d g = shot->GetShotMeasurements().gps_position_.Value();
       ba.AddPositionPrior(shot->id_, g[0], g[1], g[2],
-                          shot->shot_measurements_.gps_accuracy_.Value());
+                          shot->GetShotMeasurements().gps_accuracy_.Value());
     }
   }
 
@@ -149,9 +149,9 @@ py::tuple BAHelpers::BundleLocal(
   for (auto* shot : boundary) {
     const auto& pose = shot->GetPose();
     constexpr auto shot_constant{true};
-    ba.AddShot(shot->id_, shot->shot_camera_->id,
-               pose.RotationWorldToCameraMin(), pose.TranslationWorldToCamera(),
-               shot_constant);
+    ba.AddShot(shot->id_, shot->GetCamera()->id,
+               pose->RotationWorldToCameraMin(),
+               pose->TranslationWorldToCamera(), shot_constant);
   }
 
   for (auto* shot : interior) {
@@ -165,7 +165,7 @@ py::tuple BAHelpers::BundleLocal(
       }
       const auto& obs = lm_obs.second;
       ba.AddPointProjectionObservation(shot->id_, lm_obs.first->id_,
-                                        obs.point[0], obs.point[1], obs.scale);
+                                       obs.point[0], obs.point[1], obs.scale);
     }
   }
   for (auto* shot : boundary) {
@@ -174,8 +174,7 @@ py::tuple BAHelpers::BundleLocal(
       if (points.count(lm) > 0) {
         const auto& obs = lm_obs.second;
         ba.AddPointProjectionObservation(shot->id_, lm_obs.first->id_,
-                                          obs.point[0], obs.point[1],
-                                          obs.scale);
+                                         obs.point[0], obs.point[1], obs.scale);
       }
     }
   }
@@ -210,7 +209,7 @@ py::tuple BAHelpers::BundleLocal(
   const auto timer_run = std::chrono::high_resolution_clock::now();
   for (auto* shot : interior) {
     const auto& s = ba.GetShot(shot->id_);
-    shot->GetPose().SetFromWorldToCamera(s.GetRotation(), s.GetTranslation());
+    shot->GetPose()->SetFromWorldToCamera(s.GetRotation(), s.GetTranslation());
   }
 
   for (auto* point : points) {
@@ -257,10 +256,10 @@ bool BAHelpers::TriangulateGCP(
     const auto shot_it = shots.find(obs.shot_id_);
     if (shot_it != shots.end()) {
       const auto& shot = (shot_it->second);
-      const Vec3d bearing = shot.shot_camera_->Bearing(obs.projection_);
+      const Vec3d bearing = shot.GetCamera()->Bearing(obs.projection_);
       const auto& shot_pose = shot.GetPose();
-      bs.row(added) = shot_pose.RotationCameraToWorld() * bearing;
-      os.row(added) = shot_pose.GetOrigin();
+      bs.row(added) = shot_pose->RotationCameraToWorld() * bearing;
+      os.row(added) = shot_pose->GetOrigin();
       ++added;
     }
   }
@@ -356,12 +355,12 @@ py::dict BAHelpers::Bundle(
     const auto& shot = shot_pair.second;
     const auto& pose = shot.GetPose();
     constexpr auto fix_shot = false;
-    ba.AddShot(shot.id_, shot.shot_camera_->id, pose.RotationWorldToCameraMin(),
-               pose.TranslationWorldToCamera(), fix_shot);
+    ba.AddShot(shot.id_, shot.GetCamera()->id, pose->RotationWorldToCameraMin(),
+               pose->TranslationWorldToCamera(), fix_shot);
     if (config["bundle_use_gps"].cast<bool>()) {
-      const Vec3d g = shot.shot_measurements_.gps_position_.Value();
+      const Vec3d g = shot.GetShotMeasurements().gps_position_.Value();
       ba.AddPositionPrior(shot.id_, g[0], g[1], g[2],
-                          shot.shot_measurements_.gps_accuracy_.Value());
+                          shot.GetShotMeasurements().gps_accuracy_.Value());
     }
 
     if (do_add_align_vector) {
@@ -371,7 +370,7 @@ py::dict BAHelpers::Bundle(
     for (const auto& lm_obs : shot.GetLandmarkObservations()) {
       const auto& obs = lm_obs.second;
       ba.AddPointProjectionObservation(shot.id_, lm_obs.first->id_,
-                                        obs.point[0], obs.point[1], obs.scale);
+                                       obs.point[0], obs.point[1], obs.scale);
     }
   }
   if (config["bundle_use_gcp"].cast<bool>() && !gcp.empty()) {
@@ -415,8 +414,8 @@ py::dict BAHelpers::Bundle(
   // Update shots
   for (auto& shot : map.GetShots()) {
     const auto& s = ba.GetShot(shot.first);
-    shot.second.GetPose().SetFromWorldToCamera(s.GetRotation(),
-                                               s.GetTranslation());
+    shot.second.GetPose()->SetFromWorldToCamera(s.GetRotation(),
+                                                s.GetTranslation());
   }
 
   // Update points
@@ -473,8 +472,8 @@ void BAHelpers::AlignmentConstraints(
   if (config["bundle_use_gps"].cast<bool>()) {
     for (const auto& shot_p : shots) {
       const auto& shot = shot_p.second;
-      Xp.row(idx) = shot.shot_measurements_.gps_position_.Value();
-      X.row(idx) = shot.GetPose().GetOrigin();
+      Xp.row(idx) = shot.GetShotMeasurements().gps_position_.Value();
+      X.row(idx) = shot.GetPose()->GetOrigin();
       ++idx;
     }
   }

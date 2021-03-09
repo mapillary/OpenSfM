@@ -43,6 +43,22 @@ def scene_synthetic_cube():
 
 
 @pytest.fixture(scope="module")
+def scene_synthetic_rig():
+    np.random.seed(42)
+    data = synthetic_examples.synthetic_rig_scene()
+
+    maximum_depth = 40
+    projection_noise = 1.0
+    gps_noise = 5.0
+
+    exifs = data.get_scene_exifs(gps_noise)
+    features, desc, colors, graph = data.get_tracks_data(
+        maximum_depth, projection_noise
+    )
+    return data, exifs, features, desc, colors, graph
+
+
+@pytest.fixture(scope="module")
 def pairs_and_poses():
     np.random.seed(42)
     data = synthetic_examples.synthetic_cube_scene()

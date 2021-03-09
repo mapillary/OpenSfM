@@ -4,12 +4,13 @@ import os
 import statistics
 from collections import defaultdict
 from functools import lru_cache
+import random
 
 import matplotlib.cm as cm
 import matplotlib.colors as colors
 import matplotlib.pyplot as plt
 import numpy as np
-from opensfm import io, reconstruction as orec
+from opensfm import io, multiview
 
 
 def _length_histogram(tracks_manager, points):
@@ -74,7 +75,7 @@ def gcp_errors(data, reconstructions):
             continue
 
         for rec in reconstructions:
-            triangulated = orec.triangulate_gcp(gcp, rec.shots)
+            triangulated = multiview.triangulate_gcp(gcp, rec.shots, 1.0, 0.1)
             if triangulated is None:
                 continue
             else:
@@ -730,3 +731,19 @@ def save_residual_grids(data, tracks_manager, reconstructions, output_path):
             dpi=300,
             bbox_inches="tight",
         )
+
+def decimate_points(reconstructions, max_num_points):
+    """
+    Destructively decimate the points in a reconstruction
+    if they exceed max_num_points by removing points
+    at random
+    """
+    for rec in reconstructions:
+        if len(rec.points) > max_num_points:
+            all_points = rec.points
+            random_ids = list(all_points.keys())
+            random.shuffle(random_ids)
+            random_ids = set(random_ids[:len(all_points) - max_num_points])
+
+            for point_id in random_ids:
+                rec.remove_point(point_id)
