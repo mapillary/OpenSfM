@@ -75,30 +75,34 @@ def resplit_reconstruction(merged, original_reconstructions):
     return split
 
 
-def gcp_geopositional_error(gcps, reconstruction, verbose=True):
+def gcp_geopositional_error(gcps, reconstruction):
     coords_reconstruction = triangulate_gcps(gcps, reconstruction)
     out = {}
     for ix, gcp in enumerate(gcps):
         if not gcp.coordinates.has_value:
             continue
 
-        stats = {"expected": gcp.coordinates.value}
-        stats["triangulated"] = (
+        expected = gcp.coordinates.value
+        triangulated = (
             coords_reconstruction[ix] if coords_reconstruction[ix] is not None else None
         )
 
-        if stats["expected"] is not None and stats["triangulated"] is not None:
-            stats["error"] = np.linalg.norm(stats["expected"] - stats["triangulated"])
+        if expected is not None and triangulated is not None:
+            error = np.linalg.norm(expected - triangulated)
         else:
-            stats["error"] = np.nan
+            error = np.nan
 
-        if verbose:
-            logger.info(
-                "[{}] is {:.2f}m away from the expected lat,lon".format(
-                    gcp.id, stats["error"]
-                )
-            )
-        out[gcp.id] = stats
+        out[gcp.id] = {
+            "expected_xyz": list(expected),
+            "triangulated_xyz": list(triangulated)
+            if triangulated is not None
+            else None,
+            "expected_lla": reconstruction.reference.to_lla(*expected),
+            "triangulated_lla": reconstruction.reference.to_lla(*triangulated)
+            if triangulated is not None
+            else None,
+            "error": float(error),
+        }
 
     return out
 
@@ -521,6 +525,14 @@ def main():
     for shot in merged.shots.values():
         shot.metadata.gps_accuracy.reset()
 
+    gcp_alignment = {"after_rigid": gcp_geopositional_error(gcps, merged)}
+    logger.info(
+        "GCP errors after rigid alignment:\n"
+        + "\n".join(
+            "[{}]: {:.2f}m".format(k, v["error"])
+            for k, v in gcp_alignment["after_rigid"].items()
+        )
+    )
     if not args.rigid:
         data.config["bundle_max_iterations"] = 200
         data.config["bundle_use_gcp"] = True
@@ -531,9 +543,21 @@ def main():
         logger.info("Running BA on merged reconstructions")
         # orec.align_reconstruction(merged, None, data.config)
         orec.bundle(merged, camera_models, gcp=gcps, config=data.config)
-        # data.save_reconstruction(
-        #     [merged], f"reconstruction_gcp_ba_{args.rec_a}x{args.rec_b}.json"
-        # )
+
+        gcp_alignment["after_bundle"] = gcp_geopositional_error(gcps, merged)
+        logger.info(
+            "GCP errors after rigid alignment:\n"
+            + "\n".join(
+                "[{}]: {:.2f}m".format(k, v["error"])
+                for k, v in gcp_alignment["after_bundle"].items()
+            )
+        )
+        json.dump(
+            gcp_alignment,
+            open(f"{data.data_path}/gcp_alignment_{args.rec_a}x{args.rec_b}.json", "w"),
+            indent=4,
+            sort_keys=True,
+        )
 
         logger.info("GCP positions after bundle:")
         gcp_geopositional_error(gcps, merged)
