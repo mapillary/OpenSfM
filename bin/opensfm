@@ -9,4 +9,5 @@ else
     PYTHON=python
 fi
 
+echo "${PYTHON} ${DIR}/opensfm_main.py $@"
 "$PYTHON" "$DIR"/opensfm_main.py "$@"
