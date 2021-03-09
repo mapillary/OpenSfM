@@ -139,9 +139,12 @@ py::tuple BAHelpers::BundleLocal(
                pose->RotationWorldToCameraMin(),
                pose->TranslationWorldToCamera(), shot_constant);
     if (config["bundle_use_gps"].cast<bool>()) {
-      const Vec3d g = shot->GetShotMeasurements().gps_position_.Value();
-      ba.AddPositionPrior(shot->id_, g[0], g[1], g[2],
-                          shot->GetShotMeasurements().gps_accuracy_.Value());
+      const auto pos = shot->GetShotMeasurements().gps_position_;
+      const auto acc = shot->GetShotMeasurements().gps_accuracy_;
+      if (pos.HasValue() && acc.HasValue()) {
+        const Vec3d g = pos.Value();
+        ba.AddPositionPrior(shot->id_, g[0], g[1], g[2], acc.Value());
+      }
     }
   }
 
@@ -358,9 +361,12 @@ py::dict BAHelpers::Bundle(
     ba.AddShot(shot.id_, shot.GetCamera()->id, pose->RotationWorldToCameraMin(),
                pose->TranslationWorldToCamera(), fix_shot);
     if (config["bundle_use_gps"].cast<bool>()) {
-      const Vec3d g = shot.GetShotMeasurements().gps_position_.Value();
-      ba.AddPositionPrior(shot.id_, g[0], g[1], g[2],
-                          shot.GetShotMeasurements().gps_accuracy_.Value());
+      const auto pos = shot.GetShotMeasurements().gps_position_;
+      const auto acc = shot.GetShotMeasurements().gps_accuracy_;
+      if (pos.HasValue() && acc.HasValue()) {
+        const Vec3d g = pos.Value();
+        ba.AddPositionPrior(shot.id_, g[0], g[1], g[2], acc.Value());
+      }
     }
 
     if (do_add_align_vector) {
@@ -448,16 +454,21 @@ void BAHelpers::AlignmentConstraints(
     const map::Map& map, const py::dict& config,
     const AlignedVector<map::GroundControlPoint>& gcp, MatX3d& Xp, MatX3d& X) {
   size_t reserve_size = 0;
+  const auto& shots = map.GetShots();
   if (!gcp.empty() && config["bundle_use_gcp"].cast<bool>()) {
     reserve_size += gcp.size();
   }
   if (config["bundle_use_gps"].cast<bool>()) {
-    reserve_size += map.NumberOfShots();
+    for (const auto& shot_p : shots) {
+      const auto& shot = shot_p.second;
+      if (shot.GetShotMeasurements().gps_position_.HasValue()) {
+        reserve_size += 1;
+      }
+    }
   }
   Xp.conservativeResize(reserve_size, Eigen::NoChange);
   X.conservativeResize(reserve_size, Eigen::NoChange);
   size_t idx = 0;
-  const auto& shots = map.GetShots();
   // Triangulated vs measured points
   if (!gcp.empty() && config["bundle_use_gcp"].cast<bool>()) {
     for (const auto& point : gcp) {
@@ -472,9 +483,12 @@ void BAHelpers::AlignmentConstraints(
   if (config["bundle_use_gps"].cast<bool>()) {
     for (const auto& shot_p : shots) {
       const auto& shot = shot_p.second;
-      Xp.row(idx) = shot.GetShotMeasurements().gps_position_.Value();
-      X.row(idx) = shot.GetPose()->GetOrigin();
-      ++idx;
+      const auto pos = shot.GetShotMeasurements().gps_position_;
+      if (pos.HasValue()) {
+        Xp.row(idx) = pos.Value();
+        X.row(idx) = shot.GetPose()->GetOrigin();
+        ++idx;
+      }
     }
   }
 }

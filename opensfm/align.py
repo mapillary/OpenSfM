@@ -82,8 +82,9 @@ def alignment_constraints(config, reconstruction, gcp):
     # Get camera center correspondences
     if config["bundle_use_gps"]:
         for shot in reconstruction.shots.values():
-            X.append(shot.pose.get_origin())
-            Xp.append(shot.metadata.gps_position.value)
+            if shot.metadata.gps_position.has_value:
+                X.append(shot.pose.get_origin())
+                Xp.append(shot.metadata.gps_position.value)
 
     return X, Xp
 

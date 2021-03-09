@@ -108,7 +108,7 @@ def bundle_single_view(reconstruction, shot_id, camera_priors, config):
             shot_id, track.id, point[0], point[1], obs.scale
         )
 
-    if config["bundle_use_gps"]:
+    if config["bundle_use_gps"] and shot.metadata.gps_accuracy.has_value and shot.metadata.gps_position.has_value:
         g = shot.metadata.gps_position.value
         ba.add_position_prior(
             shot_id, g[0], g[1], g[2], shot.metadata.gps_accuracy.value

@@ -360,6 +360,46 @@ def test_linear_motion_prior_rotation():
     assert np.allclose(s2.r, [0, 0.3, 0], atol=1e-6)
 
 
+def test_bundle_void_gps_ignored():
+    """Test that void gps values are ignored."""
+    camera = pygeometry.Camera.create_perspective(1.0, 0.0, 0.0)
+    camera.id = "camera1"
+
+    r = types.Reconstruction()
+    r.add_camera(camera)
+    shot = r.create_shot(
+        "1", camera.id, pygeometry.Pose(np.random.rand(3), np.random.rand(3))
+    )
+
+    camera_priors = {camera.id: camera}
+    gcp = []
+    myconfig = config.default_config()
+
+
+    # Missing position
+    shot.metadata.gps_position.value = np.zeros(3)
+    shot.metadata.gps_accuracy.value = 1
+    shot.metadata.gps_position.reset()
+    shot.pose.set_origin(np.ones(3))
+    reconstruction.bundle(r, camera_priors, gcp, myconfig)
+    assert np.allclose(shot.pose.get_origin(), np.ones(3))
+
+    # Missing accuracy
+    shot.metadata.gps_position.value = np.zeros(3)
+    shot.metadata.gps_accuracy.value = 1
+    shot.metadata.gps_accuracy.reset()
+    shot.pose.set_origin(np.ones(3))
+    reconstruction.bundle(r, camera_priors, gcp, myconfig)
+    assert np.allclose(shot.pose.get_origin(), np.ones(3))
+
+    # Valid gps position and accuracy
+    shot.metadata.gps_position.value = np.zeros(3)
+    shot.metadata.gps_accuracy.value = 1
+    shot.pose.set_origin(np.ones(3))
+    reconstruction.bundle(r, camera_priors, gcp, myconfig)
+    assert np.allclose(shot.pose.get_origin(), np.zeros(3))
+
+
 def test_bundle_alignment_prior():
     """Test that cameras are aligned to have the Y axis pointing down."""
     camera = pygeometry.Camera.create_perspective(1.0, 0.0, 0.0)
