@@ -521,9 +521,9 @@ def main():
     #     [merged], f"reconstruction_merged_{args.rec_a}x{args.rec_b}.json"
     # )
 
-    # Reset the GPS accuracy of all the shots to ensure GCPs are used to align
+    # Scale the GPS DOP with the number of shots to ensure GCPs are used to align
     for shot in merged.shots.values():
-        shot.metadata.gps_accuracy.reset()
+        shot.metadata.gps_accuracy.value = 0.5 * len(merged.shots)
 
     gcp_alignment = {"after_rigid": gcp_geopositional_error(gcps, merged)}
     logger.info(
@@ -537,12 +537,12 @@ def main():
         data.config["bundle_max_iterations"] = 200
         data.config["bundle_use_gcp"] = True
 
-        logger.info("GCP positions before bundle:")
-        gcp_geopositional_error(gcps, merged)
-
         logger.info("Running BA on merged reconstructions")
         # orec.align_reconstruction(merged, None, data.config)
         orec.bundle(merged, camera_models, gcp=gcps, config=data.config)
+        data.save_reconstruction(
+            [merged], f"reconstruction_gcp_ba_{args.rec_a}x{args.rec_b}.json"
+        )
 
         gcp_alignment["after_bundle"] = gcp_geopositional_error(gcps, merged)
         logger.info(
@@ -558,9 +558,6 @@ def main():
             indent=4,
             sort_keys=True,
         )
-
-        logger.info("GCP positions after bundle:")
-        gcp_geopositional_error(gcps, merged)
 
         # Re-triangulate to remove badly conditioned points
         n_points = len(merged.points)
