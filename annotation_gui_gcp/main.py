@@ -3,10 +3,11 @@ import tkinter as tk
 from collections import OrderedDict, defaultdict
 from pathlib import Path
 
+from opensfm import dataset, io
+
 import GUI
 from gcp_manager import GroundControlPointManager
 from image_manager import ImageManager
-from opensfm import dataset, io
 
 
 def parse_args():
@@ -212,7 +213,14 @@ if __name__ == "__main__":
     gcp_manager = GroundControlPointManager(path)
     root = tk.Tk()
     root.resizable(True, True)
-    ui = GUI.Gui(root, gcp_manager, image_manager, sequence_groups, args.ortho, "cad_demo_path.cadfile")
+    ui = GUI.Gui(
+        root,
+        gcp_manager,
+        image_manager,
+        sequence_groups,
+        args.ortho,
+        "cad_demo_path.cadfile",
+    )
     root.grid_columnconfigure(0, weight=1)
     root.grid_rowconfigure(0, weight=1)
     root.title("Tools")
