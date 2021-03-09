@@ -11,7 +11,8 @@ from opensfm import dataset
 
 matplotlib.use("TkAgg")
 
-from cad_view import CadView
+from cad.viewer.cad_view import CadView
+
 from image_sequence_view import ImageSequenceView
 from orthophoto_view import OrthoPhotoView
 
