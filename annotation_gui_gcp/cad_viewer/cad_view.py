@@ -45,6 +45,10 @@ class CadView:
     def run_server(self, path_cad_model, q, pipe_write):
         cad_app = Flask(__name__)
 
+        @cad_app.route("/")
+        def send_main_page():
+            return send_from_directory("templates", "CADAnnotation.html")
+
         @cad_app.route("/templates/<path:filename>")
         def send_static_resources(filename):
             return send_from_directory("templates", filename)
