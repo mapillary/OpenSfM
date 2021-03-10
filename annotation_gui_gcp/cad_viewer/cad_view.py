@@ -40,14 +40,13 @@ class CadView:
             self.process_message_from_cad_view(data)
 
         # Use pipes and tk's file handler to trigger the UI loop to wake up
-        main_ui.master.tk.createfilehandler(pipe_read, tk.READABLE, new_data_available)
+        main_ui.parent.tk.createfilehandler(pipe_read, tk.READABLE, new_data_available)
 
     def run_server(self, path_cad_model, q, pipe_write):
         cad_app = Flask(__name__)
 
         @cad_app.route("/templates/<path:filename>")
         def send_static_resources(filename):
-            print(filename)
             return send_from_directory("templates", filename)
 
         @cad_app.route("/templates/postdata", methods=["POST"])
