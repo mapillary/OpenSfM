@@ -625,14 +625,6 @@ class DataSet(object):
         with io.open_wt(filepath) as fout:
             return fout.write(report_str)
 
-    def _navigation_graph_file(self):
-        "Return the path of the navigation graph."
-        return os.path.join(self.data_path, "navigation_graph.json")
-
-    def save_navigation_graph(self, navigation_graphs):
-        with io.open_wt(self._navigation_graph_file()) as fout:
-            io.json_dump(navigation_graphs, fout)
-
     def _ply_file(self, filename):
         return os.path.join(self.data_path, filename or "reconstruction.ply")
 
