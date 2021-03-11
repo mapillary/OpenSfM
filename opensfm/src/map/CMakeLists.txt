@@ -21,6 +21,7 @@ target_link_libraries(map
     pybind11
   PRIVATE
     geo
+    sfm
     geometry
 )
 
