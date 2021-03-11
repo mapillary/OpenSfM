@@ -1126,7 +1126,13 @@ def ply_to_points(filename):
     return np.array(points), np.array(normals), np.array(colors)
 
 
-def reconstruction_to_ply(reconstruction, tracks_manager=None, no_cameras=False, no_points=False, point_num_views=False):
+def reconstruction_to_ply(
+    reconstruction,
+    tracks_manager=None,
+    no_cameras=False,
+    no_points=False,
+    point_num_views=False,
+):
     """Export reconstruction points as a PLY string."""
     vertices = []
 

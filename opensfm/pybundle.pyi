@@ -1,6 +1,8 @@
-from typing import overload
+from typing import overload, Any, Dict
 
 import numpy
+
+from opensfm.pygeometry import Camera
 
 X: Any
 XY: Any
@@ -22,19 +24,19 @@ class BAPoint:
         ...
 
     @property
-    def p(self) -> numpy.ndarray[float64[3, 1]]:
+    def p(self) -> numpy.ndarray:
         ...
 
     @p.setter
-    def p(self, val: numpy.ndarray[float64[3, 1]]) -> None:
+    def p(self, val: numpy.ndarray) -> None:
         ...
 
     @property
-    def reprojection_errors(self) -> Dict[str, numpy.ndarray[float64[m, 1]]]:
+    def reprojection_errors(self) -> Dict[str, numpy.ndarray]:
         ...
 
     @reprojection_errors.setter
-    def reprojection_errors(self, val: Dict[str, numpy.ndarray[float64[m, 1]]]) -> None:
+    def reprojection_errors(self, val: Dict[str, numpy.ndarray]) -> None:
         ...
 
 
@@ -64,21 +66,21 @@ class BARelativeMotion:
         arg1: str,
         arg2: str,
         arg3: str,
-        arg4: numpy.ndarray[float64[3, 1]],
-        arg5: numpy.ndarray[float64[3, 1]],
+        arg4: numpy.ndarray,
+        arg5: numpy.ndarray,
         arg6: float,
     ) -> None:
         ...
 
-    def set_scale_matrix(self, arg0: numpy.ndarray[float64[m, n]]) -> None:
+    def set_scale_matrix(self, arg0: numpy.ndarray) -> None:
         ...
 
     @property
-    def r(self) -> numpy.ndarray[float64[3, 1]]:
+    def r(self) -> numpy.ndarray:
         ...
 
     @r.setter
-    def r(self, val: numpy.ndarray[float64[3, 1]]) -> None:
+    def r(self, val: numpy.ndarray) -> None:
         ...
 
     @property
@@ -114,29 +116,29 @@ class BARelativeMotion:
         ...
 
     @property
-    def t(self) -> numpy.ndarray[float64[3, 1]]:
+    def t(self) -> numpy.ndarray:
         ...
 
     @t.setter
-    def t(self, val: numpy.ndarray[float64[3, 1]]) -> None:
+    def t(self, val: numpy.ndarray) -> None:
         ...
 
 
 class BARelativeRotation:
     def __init__(
-        self, arg0: str, arg1: str, arg2: numpy.ndarray[float64[3, 1]]
+        self, arg0: str, arg1: str, arg2: numpy.ndarray
     ) -> None:
         ...
 
-    def set_scale_matrix(self, arg0: numpy.ndarray[float64[3, 3]]) -> None:
+    def set_scale_matrix(self, arg0: numpy.ndarray) -> None:
         ...
 
     @property
-    def r(self) -> numpy.ndarray[float64[3, 1]]:
+    def r(self) -> numpy.ndarray:
         ...
 
     @r.setter
-    def r(self, val: numpy.ndarray[float64[3, 1]]) -> None:
+    def r(self, val: numpy.ndarray) -> None:
         ...
 
     @property
@@ -163,14 +165,14 @@ class BARelativeSimilarity:
         arg1: str,
         arg2: str,
         arg3: str,
-        arg4: numpy.ndarray[float64[3, 1]],
-        arg5: numpy.ndarray[float64[3, 1]],
+        arg4: numpy.ndarray,
+        arg5: numpy.ndarray,
         arg6: float,
         arg7: float,
     ) -> None:
         ...
 
-    def set_scale_matrix(self, arg0: numpy.ndarray[float64[m, n]]) -> None:
+    def set_scale_matrix(self, arg0: numpy.ndarray) -> None:
         ...
 
     @property
@@ -186,13 +188,13 @@ class BARelativeSimilarityCovariance:
     def __init__(self) -> None:
         ...
 
-    def add_point(self, arg0: numpy.ndarray[float64[3, 1]]) -> None:
+    def add_point(self, arg0: numpy.ndarray) -> None:
         ...
 
     def compute(self) -> None:
         ...
 
-    def get_covariance(self) -> numpy.ndarray[float64[7, 7]]:
+    def get_covariance(self) -> numpy.ndarray:
         ...
 
 
@@ -220,11 +222,11 @@ class BAShot:
         ...
 
     @property
-    def r(self) -> numpy.ndarray[float64[3, 1]]:
+    def r(self) -> numpy.ndarray:
         ...
 
     @property
-    def t(self) -> numpy.ndarray[float64[3, 1]]:
+    def t(self) -> numpy.ndarray:
         ...
 
 
@@ -236,12 +238,12 @@ class BundleAdjuster:
         ...
 
     def add_absolute_position(
-        self, arg0: str, arg1: numpy.ndarray[float64[3, 1]], arg2: float, arg3: str
+        self, arg0: str, arg1: numpy.ndarray, arg2: float, arg3: str
     ) -> None:
         ...
 
     def add_heatmap(
-        self, arg0: str, arg1: numpy.ndarray[float64[m, 1]], arg2: int, arg3: float
+        self, arg0: str, arg1: numpy.ndarray, arg2: int, arg3: float
     ) -> None:
         ...
 
@@ -257,7 +259,7 @@ class BundleAdjuster:
         ...
 
     def add_absolute_up_vector(
-        self, arg0: str, arg1: numpy.ndarray[float64[3, 1]], arg2: float
+        self, arg0: str, arg1: numpy.ndarray, arg2: float
     ) -> None:
         ...
 
@@ -275,7 +277,7 @@ class BundleAdjuster:
         ...
 
     def add_point(
-        self, arg0: str, arg1: numpy.ndarray[float64[3, 1]], arg2: bool
+        self, arg0: str, arg1: numpy.ndarray, arg2: bool
     ) -> None:
         ...
 
@@ -289,7 +291,7 @@ class BundleAdjuster:
         arg0: str,
         arg1: str,
         arg2: str,
-        arg3: numpy.ndarray[float64[3, 1]],
+        arg3: numpy.ndarray,
         arg4: float,
         arg5: PositionConstraintType,
     ) -> None:
@@ -298,7 +300,7 @@ class BundleAdjuster:
     def add_point_position_world(
         self,
         arg0: str,
-        arg1: numpy.ndarray[float64[3, 1]],
+        arg1: numpy.ndarray,
         arg2: float,
         arg3: PositionConstraintType,
     ) -> None:
@@ -338,8 +340,8 @@ class BundleAdjuster:
         self,
         arg0: str,
         arg1: str,
-        arg2: numpy.ndarray[float64[3, 1]],
-        arg3: numpy.ndarray[float64[3, 1]],
+        arg2: numpy.ndarray,
+        arg3: numpy.ndarray,
         arg4: bool,
     ) -> None:
         ...

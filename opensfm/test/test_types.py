@@ -3,6 +3,7 @@ import copy
 import cv2
 import numpy as np
 from opensfm import pygeometry, pymap, types
+# pyre-fixme[21]: Could not find name `special_ortho_group` in `scipy.stats`.
 from scipy.stats import special_ortho_group
 
 

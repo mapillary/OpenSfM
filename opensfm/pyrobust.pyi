@@ -1,5 +1,7 @@
-from typing import List
+from typing import List, Any
 from typing import overload
+
+import numpy
 
 LMedS: Any
 MSAC: Any
@@ -129,19 +131,19 @@ class ScoreInfoLine:
         ...
 
     @property
-    def lo_model(self) -> numpy.ndarray[float64[2, 1]]:
+    def lo_model(self) -> numpy.ndarray:
         ...
 
     @lo_model.setter
-    def lo_model(self, val: numpy.ndarray[float64[2, 1]]) -> None:
+    def lo_model(self, val: numpy.ndarray) -> None:
         ...
 
     @property
-    def model(self) -> numpy.ndarray[float64[2, 1]]:
+    def model(self) -> numpy.ndarray:
         ...
 
     @model.setter
-    def model(self, val: numpy.ndarray[float64[2, 1]]) -> None:
+    def model(self, val: numpy.ndarray) -> None:
         ...
 
     @property
@@ -166,19 +168,19 @@ class ScoreInfoMatrix34d:
         ...
 
     @property
-    def lo_model(self) -> numpy.ndarray[float64[3, 4]]:
+    def lo_model(self) -> numpy.ndarray:
         ...
 
     @lo_model.setter
-    def lo_model(self, val: numpy.ndarray[float64[3, 4]]) -> None:
+    def lo_model(self, val: numpy.ndarray) -> None:
         ...
 
     @property
-    def model(self) -> numpy.ndarray[float64[3, 4]]:
+    def model(self) -> numpy.ndarray:
         ...
 
     @model.setter
-    def model(self, val: numpy.ndarray[float64[3, 4]]) -> None:
+    def model(self, val: numpy.ndarray) -> None:
         ...
 
     @property
@@ -203,19 +205,19 @@ class ScoreInfoMatrix3d:
         ...
 
     @property
-    def lo_model(self) -> numpy.ndarray[float64[3, 3]]:
+    def lo_model(self) -> numpy.ndarray:
         ...
 
     @lo_model.setter
-    def lo_model(self, val: numpy.ndarray[float64[3, 3]]) -> None:
+    def lo_model(self, val: numpy.ndarray) -> None:
         ...
 
     @property
-    def model(self) -> numpy.ndarray[float64[3, 3]]:
+    def model(self) -> numpy.ndarray:
         ...
 
     @model.setter
-    def model(self, val: numpy.ndarray[float64[3, 3]]) -> None:
+    def model(self, val: numpy.ndarray) -> None:
         ...
 
     @property
@@ -240,19 +242,19 @@ class ScoreInfoVector3d:
         ...
 
     @property
-    def lo_model(self) -> numpy.ndarray[float64[3, 1]]:
+    def lo_model(self) -> numpy.ndarray:
         ...
 
     @lo_model.setter
-    def lo_model(self, val: numpy.ndarray[float64[3, 1]]) -> None:
+    def lo_model(self, val: numpy.ndarray) -> None:
         ...
 
     @property
-    def model(self) -> numpy.ndarray[float64[3, 1]]:
+    def model(self) -> numpy.ndarray:
         ...
 
     @model.setter
-    def model(self, val: numpy.ndarray[float64[3, 1]]) -> None:
+    def model(self, val: numpy.ndarray) -> None:
         ...
 
     @property

@@ -5,6 +5,7 @@ import matplotlib
 import matplotlib.patches as mpatches
 import numpy as np
 
+# pyre-fixme[16]: Module `matplotlib` has no attribute `use`.
 matplotlib.use("TkAgg")
 from typing import Tuple
 
@@ -347,6 +348,7 @@ class View:
         The view displays images at a reduced resolution for speed. We use the image
         manager to obtain the reduced coordinates to use for de-normalization.
         """
+        # pyre-fixme[16]: `View` has no attribute `image_manager`.
         h, w = self.image_manager.get_image_size(self.current_image)
         px = features.denormalized_image_coordinates(np.array([[x, y]]), w, h)[0]
         return self.rotate_point(px[0], px[1], h, w, reverse=False)
@@ -358,6 +360,7 @@ class View:
         The view displays images at a reduced resolution for speed. We use the image
         manager to obtain the reduced coordinates to use for normalization.
         """
+        # pyre-fixme[16]: `View` has no attribute `image_manager`.
         h, w = self.image_manager.get_image_size(self.current_image)
         point = self.rotate_point(x, y, h, w, reverse=True)
         coords = features.normalized_image_coordinates(np.array([point]), w, h)[0]

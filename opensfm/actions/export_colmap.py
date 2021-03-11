@@ -82,7 +82,7 @@ def run_dataset(data, binary):
     db.close()
 
 
-IS_PYTHON3 = sys.version_info[0] >= 3
+IS_PYTHON3 = int(sys.version_info[0]) >= 3
 
 MAX_IMAGE_ID = 2 ** 31 - 1
 

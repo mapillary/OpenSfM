@@ -58,6 +58,7 @@ class OrthoPhotoView(View):
             return None
 
         # Pixel to whatever crs the image is in
+        # pyre-fixme[16]: `OrthoPhotoView` has no attribute `geot`.
         x, y = self.geot.xy(y, x)
         # And then to WSG84 (lat/lon)
         lons, lats = rasterio.warp.transform(self.geot.crs, "EPSG:4326", [x], [y])
@@ -70,8 +71,10 @@ class OrthoPhotoView(View):
         """
         h, w = self.image_manager.get_image_size(self.current_image)
         px = features.denormalized_image_coordinates(np.array([[x, y]]), w, h)[0]
+        # pyre-fixme[16]: `OrthoPhotoView` has no attribute `image_window`.
         x = px[0] - self.image_window.col_off
         y = px[1] - self.image_window.row_off
+        # pyre-fixme[7]: Expected `Tuple[float, float]` but got `List[typing.Any]`.
         return [x, y]
 
     def pixel_to_gcp_coordinates(self, x: float, y: float) -> Tuple[float, float]:
@@ -79,6 +82,7 @@ class OrthoPhotoView(View):
         Transforms from pixels (in the viewing window) to normalized coordinates
         (in the whole geotiff)
         """
+        # pyre-fixme[16]: `OrthoPhotoView` has no attribute `image_window`.
         x += self.image_window.col_off
         y += self.image_window.row_off
         h, w = self.image_manager.get_image_size(self.current_image)

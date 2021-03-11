@@ -9,6 +9,7 @@ from collections import defaultdict
 import matplotlib
 from opensfm import dataset
 
+# pyre-fixme[16]: Module `matplotlib` has no attribute `use`.
 matplotlib.use("TkAgg")
 
 from .image_sequence_view import ImageSequenceView

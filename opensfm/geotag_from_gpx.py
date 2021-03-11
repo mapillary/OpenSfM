@@ -12,7 +12,9 @@ from opensfm import geo
 
 
 try:
+    # pyre-fixme[21]: Could not find module `pyexiv2`.
     import pyexiv2
+    # pyre-fixme[21]: Could not find module `pyexiv2.utils`.
     from pyexiv2.utils import make_fraction
 except ImportError:
     # pyexiv2 is not available in python 3. We catch the error
@@ -21,6 +23,7 @@ except ImportError:
     print("ERROR: pyexiv2 module not available")
 
 try:
+    # pyre-fixme[21]: Could not find module `gpxpy`.
     import gpxpy
 except ImportError:
     print("ERROR: gpxpy module not available")

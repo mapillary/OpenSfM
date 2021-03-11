@@ -1,14 +1,14 @@
-from typing import overload
+from typing import overload, Any
 
 import numpy
 
 
-def akaze(arg0: numpy.ndarray[uint8], arg1: AKAZEOptions) -> object:
+def akaze(arg0: numpy.ndarray, arg1: AKAZEOptions) -> object:
     ...
 
 
 def hahog(
-    image: numpy.ndarray[float32],
+    image: numpy.ndarray,
     peak_threshold: float = ...,
     edge_threshold: float = ...,
     target_num_features: int = ...,
@@ -18,10 +18,10 @@ def hahog(
 
 
 def match_using_words(
-    arg0: numpy.ndarray[float32],
-    arg1: numpy.ndarray[int32],
-    arg2: numpy.ndarray[float32],
-    arg3: numpy.ndarray[int32],
+    arg0: numpy.ndarray,
+    arg1: numpy.ndarray,
+    arg2: numpy.ndarray,
+    arg3: numpy.ndarray,
     arg4: float,
     arg5: int,
 ) -> object:
@@ -41,11 +41,11 @@ class AKAZEOptions:
         ...
 
     @property
-    def descriptor(self) -> opensfm.pyfeatures.AkazeDescriptorType:
+    def descriptor(self) -> AkazeDescriptorType:
         ...
 
     @descriptor.setter
-    def descriptor(self, val: opensfm.pyfeatures.AkazeDescriptorType) -> None:
+    def descriptor(self, val: AkazeDescriptorType) -> None:
         ...
 
     @property
@@ -73,11 +73,11 @@ class AKAZEOptions:
         ...
 
     @property
-    def diffusivity(self) -> DIFFUSIVITY_TYPE:
+    def diffusivity(self) -> float:
         ...
 
     @diffusivity.setter
-    def diffusivity(self, val: DIFFUSIVITY_TYPE) -> None:
+    def diffusivity(self, val: float) -> None:
         ...
 
     @property

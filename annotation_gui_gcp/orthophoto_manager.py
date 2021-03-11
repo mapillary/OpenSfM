@@ -20,11 +20,13 @@ class OrthoPhotoManager:
         self, t: DatasetReader, lat: float, lon: float, size: float
     ):
         # From latlon to the coordinate reference system of the image in m
+        # pyre-fixme[16]: `DatasetReader` has no attribute `crs`.
         xs, ys = rasterio.warp.transform("EPSG:4326", t.crs, [lon], [lat], zs=None)
 
         # Create the corners of the viewing window in pixels
         top, right = t.index(xs[0] + size / 2, ys[0] + size / 2)
         bottom, left = t.index(xs[0] - size / 2, ys[0] - size / 2)
+        # pyre-fixme[19]: Expected 0 positional arguments.
         window = rasterio.windows.Window(left, top, right - left, bottom - top)
         return window
 
