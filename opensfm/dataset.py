@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import pickle
+from abc import ABC, abstractmethod
 
 import cv2
 import numpy as np
@@ -16,7 +17,203 @@ from opensfm import upright
 logger = logging.getLogger(__name__)
 
 
-class DataSet(object):
+class DataSetBase(ABC):
+    """Base for dataset classes providing i/o access to persistent data.
+
+    It is possible to store data remotely or in different formats
+    by subclassing this class and overloading its methods.
+    """
+
+    @property
+    @abstractmethod
+    def config(self):
+        pass
+
+    @abstractmethod
+    def images(self):
+        pass
+
+    @abstractmethod
+    def open_image_file(self, image):
+        pass
+
+    @abstractmethod
+    def load_image(self, image, unchanged=False, anydepth=False, grayscale=False):
+        pass
+
+    @abstractmethod
+    def image_size(self, image):
+        pass
+
+    @abstractmethod
+    def load_mask(self, image):
+        pass
+
+    @abstractmethod
+    def load_features_mask(self, image, points):
+        pass
+
+    @abstractmethod
+    def load_instances(self, image):
+        pass
+
+    @abstractmethod
+    def segmentation_labels(self):
+        pass
+
+    @abstractmethod
+    def load_segmentation(self, image):
+        pass
+
+    @abstractmethod
+    def segmentation_ignore_values(self, image):
+        pass
+
+    @abstractmethod
+    def load_exif(self, image):
+        pass
+
+    @abstractmethod
+    def save_exif(self, image, data):
+        pass
+
+    @abstractmethod
+    def exif_exists(self, image):
+        pass
+
+    @abstractmethod
+    def feature_type(self):
+        pass
+
+    @abstractmethod
+    def features_exist(self, image):
+        pass
+
+    @abstractmethod
+    def load_features(self, image):
+        pass
+
+    @abstractmethod
+    def save_features(
+        self, image, points, descriptors, colors, segmentations, instances
+    ):
+        pass
+
+    @abstractmethod
+    def words_exist(self, image):
+        pass
+
+    @abstractmethod
+    def load_words(self, image):
+        pass
+
+    @abstractmethod
+    def save_words(self, image, words):
+        pass
+
+    @abstractmethod
+    def matches_exists(self, image):
+        pass
+
+    @abstractmethod
+    def load_matches(self, image):
+        pass
+
+    @abstractmethod
+    def save_matches(self, image, matches):
+        pass
+
+    @abstractmethod
+    def load_tracks_manager(self, filename=None):
+        pass
+
+    @abstractmethod
+    def save_tracks_manager(self, tracks_manager, filename=None):
+        pass
+
+    @abstractmethod
+    def load_reconstruction(self, filename=None):
+        pass
+
+    @abstractmethod
+    def save_reconstruction(self, reconstruction, filename=None, minify=False):
+        pass
+
+    @abstractmethod
+    def invent_reference_lla(self, images=None):
+        pass
+
+    @abstractmethod
+    def load_reference(self):
+        pass
+
+    @abstractmethod
+    def reference_lla_exists(self):
+        pass
+
+    @abstractmethod
+    def load_camera_models(self):
+        pass
+
+    @abstractmethod
+    def save_camera_models(self, camera_models):
+        pass
+
+    @abstractmethod
+    def camera_models_overrides_exists(self):
+        pass
+
+    @abstractmethod
+    def load_camera_models_overrides(self):
+        pass
+
+    @abstractmethod
+    def save_camera_models_overrides(self, camera_models):
+        pass
+
+    @abstractmethod
+    def exif_overrides_exists(self):
+        pass
+
+    @abstractmethod
+    def load_exif_overrides(self):
+        pass
+
+    @abstractmethod
+    def load_rig_models(self):
+        pass
+
+    @abstractmethod
+    def save_rig_models(self, rig_models):
+        pass
+
+    @abstractmethod
+    def load_rig_assignments(self):
+        pass
+
+    @abstractmethod
+    def save_rig_assignments(self, rig_assignments):
+        pass
+
+    # TODO(pau): switch this to save_profile_log
+    @abstractmethod
+    def profile_log(self) -> str:
+        pass
+
+    @abstractmethod
+    def load_report(self, path):
+        pass
+
+    @abstractmethod
+    def save_report(self, report_str, path):
+        pass
+
+    @abstractmethod
+    def load_ground_control_points(self):
+        pass
+
+
+class DataSet(DataSetBase):
     """Accessors to the main input and output data.
 
     Data include input images, masks, and segmentation as well
@@ -29,6 +226,8 @@ class DataSet(object):
     It is possible to store data remotely or in different formats
     by subclassing this class and overloading its methods.
     """
+
+    config = None
 
     def __init__(self, data_path):
         """Init dataset associated to a folder."""
@@ -629,10 +828,18 @@ class DataSet(object):
         return os.path.join(self.data_path, filename or "reconstruction.ply")
 
     def save_ply(
-        self, reconstruction, tracks_manager, filename=None, no_cameras=False, no_points=False, point_num_views=False
+        self,
+        reconstruction,
+        tracks_manager,
+        filename=None,
+        no_cameras=False,
+        no_points=False,
+        point_num_views=False,
     ):
         """Save a reconstruction in PLY format."""
-        ply = io.reconstruction_to_ply(reconstruction, tracks_manager, no_cameras, no_points, point_num_views)
+        ply = io.reconstruction_to_ply(
+            reconstruction, tracks_manager, no_cameras, no_points, point_num_views
+        )
         with io.open_wt(self._ply_file(filename)) as fout:
             fout.write(ply)
 
@@ -730,6 +937,9 @@ class DataSet(object):
             os.symlink(src, dst)
 
         return DataSet(subset_dataset_path)
+
+    def undistorted_dataset(self) -> "UndistortedDataSet":
+        return UndistortedDataSet(self, os.path.join(self.data_path, "undistorted"))
 
 
 class UndistortedDataSet(object):

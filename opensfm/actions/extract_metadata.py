@@ -4,13 +4,14 @@ import time
 from functools import partial
 
 from opensfm import exif
+from opensfm.dataset import DataSetBase
 
 
 logger = logging.getLogger(__name__)
 logging.getLogger("exifread").setLevel(logging.WARNING)
 
 
-def run_dataset(data):
+def run_dataset(data: DataSetBase):
     """ Extract metadata from images' EXIF tag. """
 
     start = time.time()
@@ -54,7 +55,7 @@ def run_dataset(data):
         fout.write("extract_metadata: {0}\n".format(end - start))
 
 
-def _extract_exif(image, data):
+def _extract_exif(image, data: DataSetBase):
     with data.open_image_file(image) as fp:
         d = exif.extract_exif_from_file(
             fp, partial(data.image_size, image), data.config["use_exif_size"]

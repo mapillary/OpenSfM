@@ -5,13 +5,14 @@ import numpy as np
 import pyproj
 from opensfm import dataset
 from opensfm import io
+from opensfm.dataset import DataSet, UndistortedDataSet
 
 
 logger = logging.getLogger(__name__)
 
 
 def run_dataset(
-    data, proj, transformation, image_positions, reconstruction, dense, output
+    data: DataSet, proj, transformation, image_positions, reconstruction, dense, output
 ):
     """Export reconstructions in geographic coordinates
 
@@ -120,7 +121,7 @@ def _transform_reconstruction(reconstruction, transformation):
         point.coordinates = list(np.dot(A, point.coordinates) + b)
 
 
-def _transform_dense_point_cloud(udata, transformation, output_path):
+def _transform_dense_point_cloud(udata: UndistortedDataSet, transformation, output_path):
     """Apply a transformation to the merged point cloud."""
     A, b = transformation[:3, :3], transformation[:3, 3]
     input_path = udata.point_cloud_file()

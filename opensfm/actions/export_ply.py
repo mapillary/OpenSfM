@@ -4,9 +4,10 @@ import numpy as np
 from opensfm import dataset
 from opensfm import io
 from opensfm.dense import depthmap_to_ply, scale_down_image
+from opensfm.dataset import DataSet
 
 
-def run_dataset(data, no_cameras, no_points, depthmaps, point_num_views):
+def run_dataset(data: DataSet, no_cameras, no_points, depthmaps, point_num_views):
     """Export reconstruction to PLY format
 
     Args:

@@ -8,6 +8,7 @@ from itertools import combinations
 import networkx as nx
 import numpy as np
 from opensfm import actions, pygeometry
+from opensfm.dataset import DataSet, DataSetBase
 
 
 logger = logging.getLogger(__name__)
@@ -64,7 +65,7 @@ def create_instances_with_patterns(images, rig_patterns):
     return complete_instances
 
 
-def create_subset_dataset_from_instances(data, instances_per_rig, name):
+def create_subset_dataset_from_instances(data: DataSet, instances_per_rig, name):
     """Given a list of images grouped by rigs instances, pick a subset of images
         and create a dataset subset with the provided name from them.
 
@@ -165,7 +166,7 @@ def create_rig_model_from_reconstruction(reconstruction, instances_per_rig):
     return rig_models_poses
 
 
-def create_rigs_with_pattern(data, patterns):
+def create_rigs_with_pattern(data: DataSet, patterns):
     """Create rig data (`rig_models.json` and `rig_assignments.json`) by performing
     pattern matching to group images belonging to the same instances, followed
     by a bit of ad-hoc SfM to find some initial relative poses.
@@ -238,7 +239,7 @@ def same_rig_shot(meta1, meta2):
     return same_gps and same_time
 
 
-def detect_rigs(images, data):
+def detect_rigs(images, data: DataSetBase):
     """Search for rigs in a set of images.
 
     For each image on a rig, returns rig, rig_camera and rig_pose ids.
@@ -254,6 +255,7 @@ def detect_rigs(images, data):
             sequence_graph.add_edge(meta1["skey"], meta2["skey"])
 
     # Build rigs
+    # pyre-fixme[16]: Module `nx` has no attribute `connected_components`.
     sequence_cc = nx.connected_components(sequence_graph)
     sequence_rig_info = {}
     for i, cc in enumerate(sequence_cc):
@@ -261,6 +263,7 @@ def detect_rigs(images, data):
             sequence_rig_info[sequence] = {"rig": i, "rig_camera": j}
 
     # Build rig poses
+    # pyre-fixme[16]: Module `nx` has no attribute `connected_components`.
     image_cc = nx.connected_components(image_graph)
     rig_info = {}
     for i, cc in enumerate(image_cc):

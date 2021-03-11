@@ -4,6 +4,7 @@ from collections import defaultdict
 import numpy as np
 import scipy.spatial as spatial
 from opensfm import bow, context, feature_loader, vlad
+from opensfm.dataset import DataSetBase
 
 
 logger = logging.getLogger(__name__)
@@ -66,7 +67,7 @@ def match_candidates_by_distance(
 
 
 def match_candidates_with_bow(
-    data,
+    data: DataSetBase,
     images_ref,
     images_cand,
     exifs,
@@ -103,7 +104,13 @@ def match_candidates_with_bow(
 
 
 def compute_bow_affinity(
-    data, images_ref, images_cand, exifs, reference, max_gps_distance, max_gps_neighbors
+    data: DataSetBase,
+    images_ref,
+    images_cand,
+    exifs,
+    reference,
+    max_gps_distance,
+    max_gps_neighbors,
 ):
     """Compute afinity scores between references and candidates
     images using BoW-based distance.
@@ -125,7 +132,7 @@ def compute_bow_affinity(
 
 
 def match_candidates_with_vlad(
-    data,
+    data: DataSetBase,
     images_ref,
     images_cand,
     exifs,
@@ -161,7 +168,13 @@ def match_candidates_with_vlad(
 
 
 def compute_vlad_affinity(
-    data, images_ref, images_cand, exifs, reference, max_gps_distance, max_gps_neighbors
+    data: DataSetBase,
+    images_ref,
+    images_cand,
+    exifs,
+    reference,
+    max_gps_distance,
+    max_gps_neighbors,
 ):
     """Compute afinity scores between references and candidates
     images using VLAD-based distance.
@@ -230,7 +243,7 @@ def construct_pairs(results, max_neighbors, exifs, enforce_other_cameras):
     return pairs
 
 
-def create_parallel_matching_args(data, preempted_cand, histograms):
+def create_parallel_matching_args(data: DataSetBase, preempted_cand, histograms):
     """Create arguments to matching function"""
     args = list(match_histogram_arguments(preempted_cand, histograms))
 
@@ -310,7 +323,7 @@ def match_candidates_by_order(images_ref, images_cand, max_neighbors):
 
 
 def match_candidates_from_metadata(
-    images_ref, images_cand, exifs, data, config_override
+    images_ref, images_cand, exifs, data: DataSetBase, config_override
 ):
     """Compute candidate matching pairs between between images_ref and images_cand
 
@@ -426,7 +439,7 @@ def bow_distances(image, other_images, histograms):
     return image, distances, other
 
 
-def load_histograms(data, images):
+def load_histograms(data: DataSetBase, images):
     """ Load BoW histograms of given images """
     min_num_feature = 8
 
@@ -449,7 +462,7 @@ def load_histograms(data, images):
     return histograms
 
 
-def vlad_histograms(images, data):
+def vlad_histograms(images, data: DataSetBase):
     """Construct VLAD histograms from the image features.
 
     Returns a dictionary of VLAD vectors for the images.

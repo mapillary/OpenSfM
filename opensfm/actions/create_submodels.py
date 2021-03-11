@@ -2,17 +2,18 @@ import logging
 from collections import defaultdict
 
 import numpy as np
-from opensfm.large import metadataset
+from opensfm.dataset import DataSet
+from opensfm.large.metadataset import MetaDataSet
 from opensfm.large import tools
 
 
 logger = logging.getLogger(__name__)
 
 
-def run_dataset(data):
+def run_dataset(data: DataSet):
     """ Split the dataset into smaller submodels. """
 
-    meta_data = metadataset.MetaDataSet(data.data_path)
+    meta_data = MetaDataSet(data.data_path)
 
     meta_data.remove_submodels()
     data.invent_reference_lla()
@@ -30,7 +31,7 @@ def run_dataset(data):
     meta_data.create_submodels(meta_data.load_clusters_with_neighbors())
 
 
-def _create_image_list(data, meta_data):
+def _create_image_list(data: DataSet, meta_data):
     ills = []
     for image in data.images():
         exif = data.load_exif(image)
@@ -49,7 +50,7 @@ def _create_image_list(data, meta_data):
     meta_data.create_image_list(ills)
 
 
-def _read_image_groups(meta_data):
+def _read_image_groups(meta_data: MetaDataSet):
     image_cluster = {}
     cluster_images = defaultdict(list)
     for image, cluster in meta_data.load_image_groups():
@@ -81,7 +82,7 @@ def _read_image_groups(meta_data):
     meta_data.save_clusters(images, positions, labels, centers)
 
 
-def _cluster_images(meta_data, cluster_size):
+def _cluster_images(meta_data: MetaDataSet, cluster_size):
     images = []
     positions = []
     for image, lat, lon in meta_data.images_with_gps():
@@ -102,7 +103,7 @@ def _cluster_images(meta_data, cluster_size):
     meta_data.save_clusters(images, positions, labels, centers)
 
 
-def _add_cluster_neighbors(meta_data, max_distance):
+def _add_cluster_neighbors(meta_data: MetaDataSet, max_distance):
     images, positions, labels, centers = meta_data.load_clusters()
     clusters = tools.add_cluster_neighbors(positions, labels, centers, max_distance)
 
@@ -113,7 +114,7 @@ def _add_cluster_neighbors(meta_data, max_distance):
     meta_data.save_clusters_with_neighbors(image_clusters)
 
 
-def _save_cluster_neighbors_geojson(meta_data):
+def _save_cluster_neighbors_geojson(meta_data: MetaDataSet):
     image_coordinates = {}
     for image, lat, lon in meta_data.images_with_gps():
         image_coordinates[image] = [lon, lat]
@@ -136,7 +137,7 @@ def _save_cluster_neighbors_geojson(meta_data):
     meta_data.save_cluster_with_neighbors_geojson(geojson)
 
 
-def _save_clusters_geojson(meta_data):
+def _save_clusters_geojson(meta_data: MetaDataSet):
     image_coordinates = {}
     for image, lat, lon in meta_data.images_with_gps():
         image_coordinates[image] = [lon, lat]

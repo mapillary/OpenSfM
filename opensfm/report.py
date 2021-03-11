@@ -5,13 +5,13 @@ import subprocess
 import PIL
 from fpdf import FPDF
 from opensfm import io
-
+from opensfm.dataset import DataSet
 
 logger = logging.getLogger(__name__)
 
 
 class Report:
-    def __init__(self, data):
+    def __init__(self, data: DataSet):
         self.output_path = os.path.join(data.data_path, "stats")
         self.dataset_name = os.path.basename(data.data_path)
 

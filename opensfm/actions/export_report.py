@@ -1,7 +1,8 @@
 from opensfm import report
+from opensfm.dataset import DataSet
 
 
-def run_dataset(data):
+def run_dataset(data: DataSet):
     """Export a nice report based on previously generated statistics
 
     Args:

@@ -1,9 +1,10 @@
 import os
 
 from opensfm import dataset, undistort
+from opensfm.dataset import DataSet
 
 
-def run_dataset(data, reconstruction, reconstruction_index, tracks, output):
+def run_dataset(data: DataSet, reconstruction, reconstruction_index, tracks, output):
     """Export reconstruction to NVM_V3 format from VisualSfM
 
     Args:

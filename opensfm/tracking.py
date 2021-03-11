@@ -4,12 +4,13 @@ import networkx as nx
 import numpy as np
 from opensfm import pysfm
 from opensfm.unionfind import UnionFind
+from opensfm.dataset import DataSetBase
 
 
 logger = logging.getLogger(__name__)
 
 
-def load_features(dataset, images):
+def load_features(dataset: DataSetBase, images):
     logging.info("reading features")
     features = {}
     colors = {}
@@ -24,7 +25,7 @@ def load_features(dataset, images):
     return features, colors, segmentations, instances
 
 
-def load_matches(dataset, images):
+def load_matches(dataset: DataSetBase, images):
     matches = {}
     for im1 in images:
         try:

@@ -5,12 +5,13 @@ import sys
 from opensfm import dataset
 from opensfm import io
 from opensfm import transformations as tf
+from opensfm.dataset import DataSet, UndistortedDataSet
 
 
 logger = logging.getLogger(__name__)
 
 
-def run_dataset(data, points, image_list):
+def run_dataset(data: DataSet, points, image_list):
     udata = dataset.UndistortedDataSet(data)
 
     validate_image_names(data, udata)
@@ -29,8 +30,10 @@ def run_dataset(data, points, image_list):
         export(reconstructions[0], tracks_manager, udata, points, export_only)
 
 
-def export(reconstruction, tracks_manager, udata, with_points, export_only):
-    lines = ["NVM_V3", "", len(reconstruction.shots)]
+def export(
+    reconstruction, tracks_manager, udata: UndistortedDataSet, with_points, export_only
+):
+    lines = ["NVM_V3", "", str(len(reconstruction.shots))]
     shot_size_cache = {}
     shot_index = {}
     i = 0
@@ -69,13 +72,13 @@ def export(reconstruction, tracks_manager, udata, with_points, export_only):
         lines.append(" ".join(map(str, words)))
 
     # Adjust shots count
-    lines[2] = str(lines[2] - skipped_shots)
+    lines[2] = str(int(lines[2]) - skipped_shots)
 
     if with_points:
         skipped_points = 0
         lines.append("")
         points = reconstruction.points
-        lines.append(len(points))
+        lines.append(str(len(points)))
         points_count_index = len(lines) - 1
 
         for point_id, point in points.items():
@@ -112,7 +115,7 @@ def export(reconstruction, tracks_manager, udata, with_points, export_only):
                 skipped_points += 1
 
         # Adjust points count
-        lines[points_count_index] = str(lines[points_count_index] - skipped_points)
+        lines[points_count_index] = str(int(lines[points_count_index]) - skipped_points)
     else:
         lines += ["0", ""]
 
@@ -122,13 +125,13 @@ def export(reconstruction, tracks_manager, udata, with_points, export_only):
         fout.write("\n".join(lines))
 
 
-def image_path(image, udata):
+def image_path(image, udata: UndistortedDataSet):
     """Path to the undistorted image relative to the dataset path."""
     path = udata._undistorted_image_file(image)
     return os.path.relpath(path, udata.data_path)
 
 
-def validate_image_names(data, udata):
+def validate_image_names(data: DataSet, udata: UndistortedDataSet):
     """Check that image files do not have spaces."""
     for image in data.images():
         filename = image_path(image, udata)

@@ -2,11 +2,13 @@ import logging
 
 import numpy as np
 from opensfm import rig, reconstruction as orec, pygeometry, types
+from opensfm.dataset import DataSet, DataSetBase
+
 
 logger = logging.getLogger(__name__)
 
 
-def run_dataset(data, method, definition, output_debug):
+def run_dataset(data: DataSet, method, definition, output_debug):
     """Given a dataset that contains rigs, construct rig data files.
 
     Args:
@@ -27,7 +29,7 @@ def run_dataset(data, method, definition, output_debug):
         data.save_reconstruction(reconstructions, "rig_instances.json")
 
 
-def _reconstruction_from_rigs_and_assignments(data):
+def _reconstruction_from_rigs_and_assignments(data: DataSetBase):
     assignments = data.load_rig_assignments()
     models = data.load_rig_models()
 

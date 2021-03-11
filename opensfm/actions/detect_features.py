@@ -1,15 +1,17 @@
 import logging
 from timeit import default_timer as timer
+from typing import Tuple
 
 import numpy as np
 from opensfm import bow, features, io, log, pygeometry, upright
 from opensfm.context import parallel_map
+from opensfm.dataset import DataSetBase
 
 
 logger = logging.getLogger(__name__)
 
 
-def run_dataset(data):
+def run_dataset(data: DataSetBase):
     """ Compute features for all images. """
 
     images = data.images()
@@ -23,7 +25,7 @@ def run_dataset(data):
     write_report(data, end - start)
 
 
-def write_report(data, wall_time):
+def write_report(data: DataSetBase, wall_time):
     image_reports = []
     for image in data.images():
         try:
@@ -36,7 +38,7 @@ def write_report(data, wall_time):
     data.save_report(io.json_dumps(report), "features.json")
 
 
-def is_high_res_panorama(data, image_key, image_array):
+def is_high_res_panorama(data: DataSetBase, image_key, image_array):
     """Detect if image is a panorama."""
     exif = data.load_exif(image_key)
     if exif:
@@ -51,7 +53,7 @@ def is_high_res_panorama(data, image_key, image_array):
     return w == 2 * h or exif_pano
 
 
-def detect(args):
+def detect(args: Tuple[str, DataSetBase]):
     image, data = args
 
     log.setup()
@@ -121,6 +123,7 @@ def detect(args):
     p_sorted = p_unsorted[order, :]
     f_sorted = f_unsorted[order, :]
     c_sorted = c_unsorted[order, :]
+    # pyre-fixme[16]: `None` has no attribute `__getitem__`.
     s_sorted = s_unsorted[order] if s_unsorted is not None else None
     i_sorted = i_unsorted[order] if i_unsorted is not None else None
     data.save_features(image, p_sorted, f_sorted, c_sorted, s_sorted, i_sorted)

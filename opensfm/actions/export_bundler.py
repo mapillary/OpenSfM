@@ -2,9 +2,10 @@ import os
 
 from opensfm import dataset
 from opensfm import io
+from opensfm.dataset import DataSet
 
 
-def run_dataset(data, list_path, bundle_path, undistorted):
+def run_dataset(data: DataSet, list_path, bundle_path, undistorted):
     """Export reconstruction to bundler format.
 
     Args:

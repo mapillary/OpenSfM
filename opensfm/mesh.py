@@ -10,7 +10,7 @@ from opensfm import pygeometry
 logger = logging.getLogger(__name__)
 
 
-def triangle_mesh(shot_id, r, tracks_manager, data):
+def triangle_mesh(shot_id, r, tracks_manager):
     """
     Create triangle meshes in a list
     """

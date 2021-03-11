@@ -2,9 +2,10 @@ from timeit import default_timer as timer
 
 from opensfm import io
 from opensfm import matching
+from opensfm.dataset import DataSetBase
 
 
-def run_dataset(data):
+def run_dataset(data: DataSetBase):
     """ Match features between image pairs. """
 
     images = data.images()
@@ -17,7 +18,7 @@ def run_dataset(data):
     write_report(data, preport, list(pairs_matches.keys()), end - start)
 
 
-def write_report(data, preport, pairs, wall_time):
+def write_report(data: DataSetBase, preport, pairs, wall_time):
     report = {
         "wall_time": wall_time,
         "num_pairs": len(pairs),

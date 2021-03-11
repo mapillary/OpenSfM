@@ -41,11 +41,12 @@ import numpy as np
 from opensfm import features
 from opensfm import io
 from opensfm import matching
+from opensfm.dataset import DataSet
 
 I_3 = np.eye(3)
 
 
-def run_dataset(data, binary):
+def run_dataset(data: DataSet, binary):
     """ Export reconstruction to COLMAP format."""
 
     export_folder = os.path.join(data.data_path, "colmap_export")

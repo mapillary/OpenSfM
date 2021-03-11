@@ -1,7 +1,8 @@
 import opensfm.reconstruction as orec
+from opensfm.dataset import DataSetBase
 
 
-def run_dataset(dataset, input, output):
+def run_dataset(dataset: DataSetBase, input, output):
     """Bundle a reconstructions.
 
     Args:

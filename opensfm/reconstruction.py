@@ -6,6 +6,7 @@ import math
 from collections import defaultdict
 from itertools import combinations
 from timeit import default_timer as timer
+from typing import Dict, Any
 
 import cv2
 import numpy as np
@@ -23,6 +24,7 @@ from opensfm import (
 )
 from opensfm.align import align_reconstruction, apply_similarity
 from opensfm.context import current_memory_usage, parallel_map
+from opensfm.dataset import DataSetBase
 
 
 logger = logging.getLogger(__name__)
@@ -43,9 +45,9 @@ def _add_gcp_to_bundle(ba, gcp, shots):
         coordinates = multiview.triangulate_gcp(
             point,
             shots,
-            reproj_threshold = 1,
-            min_ray_angle_degrees = 0.1,
-            )
+            reproj_threshold=1,
+            min_ray_angle_degrees=0.1,
+        )
         if coordinates is None:
             if point.coordinates.has_value:
                 coordinates = point.coordinates.value
@@ -218,7 +220,7 @@ def pairwise_reconstructability(common_tracks, rotation_inliers):
         return 0
 
 
-def compute_image_pairs(track_dict, cameras, data):
+def compute_image_pairs(track_dict, cameras, data: DataSetBase):
     """All matched image pairs sorted by reconstructability."""
     args = _pair_reconstructability_arguments(track_dict, cameras, data)
     processes = data.config["processes"]
@@ -230,7 +232,7 @@ def compute_image_pairs(track_dict, cameras, data):
     return [pairs[o] for o in order]
 
 
-def _pair_reconstructability_arguments(track_dict, cameras, data):
+def _pair_reconstructability_arguments(track_dict, cameras, data: DataSetBase):
     threshold = 4 * data.config["five_point_algo_threshold"]
     args = []
     for (im1, im2), (_, p1, p2) in track_dict.items():
@@ -250,7 +252,7 @@ def _compute_pair_reconstructability(args):
     return (im1, im2, r)
 
 
-def get_image_metadata(data, image):
+def get_image_metadata(data: DataSetBase, image: str):
     """Get image metadata as a ShotMetadata object."""
     metadata = pymap.ShotMeasurements()
     exif = data.load_exif(image)
@@ -420,10 +422,12 @@ def two_view_reconstruction_general(p1, p2, camera1, camera2, threshold, iterati
         return R_plane, t_plane, inliers_plane, report
 
 
-def bootstrap_reconstruction(data, tracks_manager, camera_priors, im1, im2, p1, p2):
+def bootstrap_reconstruction(
+    data: DataSetBase, tracks_manager, camera_priors, im1, im2, p1, p2
+):
     """Start a reconstruction using two shots."""
     logger.info("Starting reconstruction with {} and {}".format(im1, im2))
-    report = {
+    report: Dict[str, Any] = {
         "image_pair": (im1, im2),
         "common_tracks": len(p1),
     }
@@ -933,7 +937,7 @@ def merge_reconstructions(reconstructions, config):
     return reconstructions_merged
 
 
-def paint_reconstruction(data, tracks_manager, reconstruction):
+def paint_reconstruction(data: DataSetBase, tracks_manager, reconstruction):
     """Set the color of the points from the color of the tracks."""
     for k, point in reconstruction.points.items():
         point.color = list(
@@ -949,7 +953,7 @@ def paint_reconstruction(data, tracks_manager, reconstruction):
 class ShouldBundle:
     """Helper to keep track of when to run bundle."""
 
-    def __init__(self, data, reconstruction):
+    def __init__(self, data: DataSetBase, reconstruction):
         self.interval = data.config["bundle_interval"]
         self.new_points_ratio = data.config["bundle_new_points_ratio"]
         self.reconstruction = reconstruction
@@ -986,7 +990,7 @@ class ShouldRetriangulate:
 
 
 def grow_reconstruction(
-    data, tracks_manager, reconstruction, images, camera_priors, gcp
+    data: DataSetBase, tracks_manager, reconstruction, images, camera_priors, gcp
 ):
     """Incrementally add shots to an initial reconstruction."""
     config = data.config
@@ -1089,7 +1093,7 @@ def grow_reconstruction(
     return reconstruction, report
 
 
-def incremental_reconstruction(data, tracks_manager):
+def incremental_reconstruction(data: DataSetBase, tracks_manager):
     """Run the entire incremental reconstruction pipeline."""
     logger.info("Starting incremental reconstruction")
     report = {}

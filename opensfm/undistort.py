@@ -9,12 +9,14 @@ from opensfm import pysfm
 from opensfm import transformations as tf
 from opensfm import types
 from opensfm.context import parallel_map
-
+from opensfm.dataset import DataSetBase, UndistortedDataSet
 
 logger = logging.getLogger(__name__)
 
 
-def undistort_reconstruction(tracks_manager, reconstruction, data, udata):
+def undistort_reconstruction(
+    tracks_manager, reconstruction, data: DataSetBase, udata: UndistortedDataSet
+):
     image_format = data.config["undistorted_image_format"]
     urec = types.Reconstruction()
     urec.points = reconstruction.points
@@ -25,15 +27,21 @@ def undistort_reconstruction(tracks_manager, reconstruction, data, udata):
         if shot.camera.projection_type == "perspective":
             camera = perspective_camera_from_perspective(shot.camera)
             urec.add_camera(camera)
-            subshots = [get_shot_with_different_camera(urec, shot, camera, image_format)]
+            subshots = [
+                get_shot_with_different_camera(urec, shot, camera, image_format)
+            ]
         elif shot.camera.projection_type == "brown":
             camera = perspective_camera_from_brown(shot.camera)
             urec.add_camera(camera)
-            subshots = [get_shot_with_different_camera(urec, shot, camera, image_format)]
+            subshots = [
+                get_shot_with_different_camera(urec, shot, camera, image_format)
+            ]
         elif shot.camera.projection_type in ["fisheye", "fisheye_opencv"]:
             camera = perspective_camera_from_fisheye(shot.camera)
             urec.add_camera(camera)
-            subshots = [get_shot_with_different_camera(urec, shot, camera, image_format)]
+            subshots = [
+                get_shot_with_different_camera(urec, shot, camera, image_format)
+            ]
         elif pygeometry.Camera.is_panorama(shot.camera.projection_type):
             subshot_width = int(data.config["depthmap_resolution"])
             subshots = perspective_views_of_a_panorama(
@@ -59,7 +67,9 @@ def undistort_reconstruction(tracks_manager, reconstruction, data, udata):
     return undistorted_shots
 
 
-def undistort_reconstruction_and_images(tracks_manager, reconstruction, data, udata):
+def undistort_reconstruction_and_images(
+    tracks_manager, reconstruction, data: DataSetBase, udata: UndistortedDataSet
+):
     undistorted_shots = undistort_reconstruction(
         tracks_manager, reconstruction, data, udata
     )
@@ -237,7 +247,9 @@ def perspective_camera_from_fisheye62(fisheye62):
     return camera
 
 
-def perspective_views_of_a_panorama(spherical_shot, width, reconstruction, image_format):
+def perspective_views_of_a_panorama(
+    spherical_shot, width, reconstruction, image_format
+):
     """Create 6 perspective views of a panorama."""
     camera = pygeometry.Camera.create_perspective(0.5, 0.0, 0.0)
     camera.id = "perspective_panorama_camera"

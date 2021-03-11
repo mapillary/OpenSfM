@@ -6,7 +6,7 @@ import exifread
 import xmltodict as x2d
 from opensfm import pygeometry
 from opensfm.sensors import sensor_data
-
+from opensfm.dataset import DataSetBase
 
 logger = logging.getLogger(__name__)
 
@@ -540,7 +540,7 @@ def focal_xy_calibration(exif):
         }
 
 
-def default_calibration(data):
+def default_calibration(data: DataSetBase):
     return {
         "focal": data.config["default_focal_prior"],
         "focal_x": data.config["default_focal_prior"],
@@ -556,7 +556,7 @@ def default_calibration(data):
     }
 
 
-def calibration_from_metadata(metadata, data):
+def calibration_from_metadata(metadata, data: DataSetBase):
     """Finds the best calibration in one of the calibration sources."""
     pt = metadata.get("projection_type", default_projection).lower()
     if (
@@ -582,7 +582,7 @@ def calibration_from_metadata(metadata, data):
 
 
 def camera_from_exif_metadata(
-    metadata, data, calibration_func=calibration_from_metadata
+    metadata, data: DataSetBase, calibration_func=calibration_from_metadata
 ):
     """
     Create a camera object from exif metadata and the calibration

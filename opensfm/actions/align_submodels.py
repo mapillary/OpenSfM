@@ -1,8 +1,9 @@
 from opensfm.large import metadataset
 from opensfm.large import tools
+from opensfm.dataset import DataSet
 
 
-def run_dataset(data):
+def run_dataset(data: DataSet):
     """ Align submodel reconstructions for of MetaDataSet. """
 
     meta_data = metadataset.MetaDataSet(data.data_path)

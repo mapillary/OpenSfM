@@ -3,6 +3,7 @@ from functools import lru_cache
 import numpy as np
 from opensfm import bow
 from opensfm import feature_loader
+from opensfm.dataset import DataSetBase
 
 
 def unnormalized_vlad(features, centers):
@@ -53,12 +54,12 @@ def vlad_distances(image, other_images, histograms):
 
 class VladCache(object):
     @lru_cache(1)
-    def load_words(self, data):
+    def load_words(self, data: DataSetBase):
         words, _ = bow.load_vlad_words_and_frequencies(data.config)
         return words
 
     @lru_cache(1000)
-    def vlad_histogram(self, data, image):
+    def vlad_histogram(self, data: DataSetBase, image):
         words = self.load_words(data)
         _, features, _, _, _ = feature_loader.instance.load_all_data(
             data, image, masked=True

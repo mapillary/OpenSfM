@@ -12,6 +12,7 @@ import matplotlib.colors as colors
 import matplotlib.pyplot as plt
 import numpy as np
 from opensfm import io, multiview
+from opensfm.dataset import DataSet, DataSetBase
 
 RESIDUAL_PIXEL_CUTOFF = 4
 
@@ -69,7 +70,7 @@ def gps_errors(reconstructions):
     return _gps_gcp_errors_stats(all_errors)
 
 
-def gcp_errors(data, reconstructions):
+def gcp_errors(data: DataSetBase, reconstructions):
     all_errors = []
 
     gcp = data.load_ground_control_points()
@@ -113,7 +114,7 @@ def _get_valid_observations(reconstructions, tracks_manager):
     return _get_valid_observations_cached
 
 
-def _projection_error(data, tracks_manager, reconstructions):
+def _projection_error(data: DataSetBase, tracks_manager, reconstructions):
     all_errors_normalized, all_errors_pixels = [], []
     average_error_normalized, average_error_pixels = 0, 0
     for i in range(len(reconstructions)):
@@ -149,7 +150,7 @@ def _projection_error(data, tracks_manager, reconstructions):
     )
 
 
-def reconstruction_statistics(data, tracks_manager, reconstructions):
+def reconstruction_statistics(data: DataSetBase, tracks_manager, reconstructions):
     stats = {}
 
     stats["components"] = len(reconstructions)
@@ -214,7 +215,7 @@ def reconstruction_statistics(data, tracks_manager, reconstructions):
     return stats
 
 
-def processing_statistics(data, reconstructions):
+def processing_statistics(data: DataSet, reconstructions):
     steps = {
         "Feature Extraction": "features.json",
         "Features Matching": "matches.json",
@@ -259,7 +260,7 @@ def processing_statistics(data, reconstructions):
     return stats
 
 
-def features_statistics(data, tracks_manager, reconstructions):
+def features_statistics(data: DataSetBase, tracks_manager, reconstructions):
     stats = {}
     detected = [len(data.load_features(im)[0]) for im in data.images()]
     if len(detected) > 0:
@@ -293,7 +294,7 @@ def features_statistics(data, tracks_manager, reconstructions):
     return stats
 
 
-def matching_statistics(data):
+def matching_statistics(data: DataSetBase):
     return {}
 
 
@@ -304,7 +305,7 @@ def _cameras_statistics(camera_model):
     return camera_stats
 
 
-def cameras_statistics(data, reconstructions):
+def cameras_statistics(data: DataSetBase, reconstructions):
     stats = {}
     permutation = np.argsort([-len(r.shots) for r in reconstructions])
     for camera_id, camera_model in data.load_camera_models().items():
@@ -324,7 +325,7 @@ def cameras_statistics(data, reconstructions):
     return stats
 
 
-def compute_all_statistics(data, tracks_manager, reconstructions):
+def compute_all_statistics(data: DataSet, tracks_manager, reconstructions):
     stats = {}
 
     stats["processing_statistics"] = processing_statistics(data, reconstructions)
@@ -366,7 +367,7 @@ def _get_gaussian_kernel(radius, ratio):
     return kernel / sum(np.ndarray.flatten(kernel))
 
 
-def save_matchgraph(data, tracks_manager, reconstructions, output_path):
+def save_matchgraph(data: DataSetBase, tracks_manager, reconstructions, output_path):
     all_shots = []
     all_points = []
     shot_component = {}
@@ -452,7 +453,7 @@ def save_residual_histogram(stats, output_path):
     mpl.rcParams = backup
 
 
-def save_topview(data, tracks_manager, reconstructions, output_path):
+def save_topview(data: DataSetBase, tracks_manager, reconstructions, output_path):
     points = []
     colors = []
     for rec in reconstructions:
@@ -612,7 +613,7 @@ def save_topview(data, tracks_manager, reconstructions, output_path):
     )
 
 
-def save_heatmap(data, tracks_manager, reconstructions, output_path):
+def save_heatmap(data: DataSetBase, tracks_manager, reconstructions, output_path):
     all_projections = {}
 
     splatting = 15
@@ -688,7 +689,7 @@ def save_heatmap(data, tracks_manager, reconstructions, output_path):
         )
 
 
-def save_residual_grids(data, tracks_manager, reconstructions, output_path):
+def save_residual_grids(data: DataSetBase, tracks_manager, reconstructions, output_path):
     all_errors = {}
 
     scaling = 4
