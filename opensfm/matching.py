@@ -1,5 +1,4 @@
 import logging
-from collections import defaultdict
 from timeit import default_timer as timer
 
 import cv2
@@ -58,12 +57,8 @@ def match_images_with_pairs(data, config_override, exifs, ref_images, pairs):
     for im1, im2 in pairs:
         per_image[im1].append(im2)
 
-    ctx = Context()
-    ctx.data = data
-    ctx.config_override = config_override
-    ctx.cameras = ctx.data.load_camera_models()
-    ctx.exifs = exifs
-    args = list(match_arguments(per_image, ctx))
+    cameras = data.load_camera_models()
+    args = list(match_arguments(per_image, data, config_override, cameras, exifs))
 
     # Perform all pair matchings in parallel
     start = timer()
@@ -80,7 +75,7 @@ def match_images_with_pairs(data, config_override, exifs, ref_images, pairs):
         "in {} seconds ({} seconds/pair).".format(
             len(pairs),
             len(ref_images),
-            log_projection_types(pairs, ctx.exifs, ctx.cameras),
+            log_projection_types(pairs, exifs, cameras),
             timer() - start,
             (timer() - start) / len(pairs) if pairs else 0,
         )
@@ -135,15 +130,11 @@ def save_matches(data, images_ref, matched_pairs):
         data.save_matches(im1, im1_matches)
 
 
-class Context:
-    pass
-
-
-def match_arguments(pairs, ctx):
+def match_arguments(pairs, data, config_override, cameras, exifs):
     """ Generate arguments for parralel processing of pair matching """
     pairs = sorted(pairs.items(), key=lambda x: -len(x[1]))
     for im, candidates in pairs:
-        yield im, candidates, ctx
+        yield im, candidates, data, config_override, cameras, exifs
 
 
 def match_unwrap_args(args):
@@ -152,16 +143,14 @@ def match_unwrap_args(args):
     Compute all pair matchings of a given image and save them.
     """
     log.setup()
-    im1, candidates, ctx = args
+    im1, candidates, data, config_override, cameras, exifs = args
 
     im1_matches = {}
-    camera1 = ctx.cameras[ctx.exifs[im1]["camera"]]
+    camera1 = cameras[exifs[im1]["camera"]]
 
     for im2 in candidates:
-        camera2 = ctx.cameras[ctx.exifs[im2]["camera"]]
-        im1_matches[im2] = match(
-            im1, im2, camera1, camera2, ctx.data, ctx.config_override
-        )
+        camera2 = cameras[exifs[im2]["camera"]]
+        im1_matches[im2] = match(im1, im2, camera1, camera2, data, config_override)
 
     num_matches = sum(1 for m in im1_matches.values() if len(m) > 0)
     logger.debug(
