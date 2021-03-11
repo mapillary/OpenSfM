@@ -113,9 +113,9 @@ function setup_scene() {
     controls = new FlyControls(camera, renderer.domElement);
     controls.movementSpeed = 1;
     controls.domElement = viewport;
-    controls.rollSpeed = 0.01;
+    controls.rollSpeed = 0.002;
     controls.autoForward = false;
-    controls.dragToLook = true;
+    controls.dragToLook = false;
 
     pointLight.position.set(10, 50, 150);
 
@@ -149,7 +149,7 @@ function initialize() {
 
 
     window.addEventListener('resize', onWindowResize, false);
-    // document.addEventListener( 'pointerdown', onDocumentMouseClick, false );
+    document.addEventListener( 'pointerdown', onDocumentMouseClick, false );
 
     // call update
     update();
