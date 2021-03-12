@@ -3,7 +3,6 @@ import os
 
 import numpy as np
 import pyproj
-from opensfm import dataset
 from opensfm import io
 from opensfm.dataset import DataSet, UndistortedDataSet
 
@@ -56,7 +55,7 @@ def run_dataset(
     if dense:
         output = output or "undistorted/depthmaps/merged.geocoords.ply"
         output_path = os.path.join(data.data_path, output)
-        udata = dataset.UndistortedDataSet(data)
+        udata = data.undistorted_dataset()
         _transform_dense_point_cloud(udata, t, output_path)
 
 

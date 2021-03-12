@@ -2,7 +2,6 @@ import logging
 import os
 import sys
 
-from opensfm import dataset
 from opensfm import io
 from opensfm import transformations as tf
 from opensfm.dataset import DataSet, UndistortedDataSet
@@ -12,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 def run_dataset(data: DataSet, points, image_list):
-    udata = dataset.UndistortedDataSet(data)
+    udata = data.undistorted_dataset()
 
     validate_image_names(data, udata)
 

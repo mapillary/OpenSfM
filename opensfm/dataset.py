@@ -952,14 +952,11 @@ class UndistortedDataSet(object):
     By default, this path is set to the ``undistorted`` subfolder.
     """
 
-    def __init__(self, base_dataset, undistorted_data_path=None):
+    def __init__(self, base_dataset: DataSetBase, undistorted_data_path):
         """Init dataset associated to a folder."""
         self.base = base_dataset
         self.config = self.base.config
-        if undistorted_data_path:
-            self.data_path = undistorted_data_path
-        else:
-            self.data_path = os.path.join(self.base.data_path, "undistorted")
+        self.data_path = undistorted_data_path
 
     def load_undistorted_shot_ids(self):
         filename = os.path.join(self.data_path, "undistorted_shot_ids.json")

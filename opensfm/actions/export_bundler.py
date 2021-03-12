@@ -1,6 +1,5 @@
 import os
 
-from opensfm import dataset
 from opensfm import io
 from opensfm.dataset import DataSet
 
@@ -15,7 +14,7 @@ def run_dataset(data: DataSet, list_path, bundle_path, undistorted):
 
     """
 
-    udata = dataset.UndistortedDataSet(data)
+    udata = data.undistorted_dataset()
 
     default_path = os.path.join(data.data_path, "bundler")
     list_file_path = list_path if list_path else default_path

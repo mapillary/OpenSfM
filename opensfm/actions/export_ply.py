@@ -1,7 +1,6 @@
 import os
 
 import numpy as np
-from opensfm import dataset
 from opensfm import io
 from opensfm.dense import depthmap_to_ply, scale_down_image
 from opensfm.dataset import DataSet
@@ -28,7 +27,7 @@ def run_dataset(data: DataSet, no_cameras, no_points, depthmaps, point_num_views
         data.save_ply(reconstructions[0], tracks_manager, None, no_cameras, no_points, point_num_views)
 
     if depthmaps:
-        udata = dataset.UndistortedDataSet(data)
+        udata = data.undistorted_dataset()
         urec = udata.load_undistorted_reconstruction()[0]
         for shot in urec.shots.values():
             rgb = udata.load_undistorted_image(shot.id)

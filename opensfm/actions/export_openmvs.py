@@ -1,7 +1,6 @@
 import os
 
 import numpy as np
-from opensfm import dataset
 from opensfm import io
 from opensfm import pydense
 from opensfm.dataset import DataSet, UndistortedDataSet
@@ -10,7 +9,7 @@ from opensfm.dataset import DataSet, UndistortedDataSet
 def run_dataset(data: DataSet, image_list):
     """ Export reconstruction to OpenMVS format. """
 
-    udata = dataset.UndistortedDataSet(data)
+    udata = data.undistorted_dataset()
     reconstructions = udata.load_undistorted_reconstruction()
     tracks_manager = udata.load_undistorted_tracks_manager()
 

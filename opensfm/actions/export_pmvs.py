@@ -3,7 +3,6 @@ import os
 
 import cv2
 import numpy as np
-from opensfm import dataset
 from opensfm import features
 from opensfm import io
 from opensfm import tracking
@@ -24,7 +23,7 @@ def run_dataset(data: DataSet, points, image_list, output, undistorted):
 
     """
 
-    udata = dataset.UndistortedDataSet(data)
+    udata = data.undistorted_dataset()
 
     base_output_path = output if output else os.path.join(data.data_path, "pmvs")
     io.mkdir_p(base_output_path)
