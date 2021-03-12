@@ -72,8 +72,7 @@ def _add_gcp_to_bundle(ba, gcp, shots):
                 ba.add_point_projection_observation(
                     observation.shot_id,
                     point_id,
-                    observation.projection[0],
-                    observation.projection[1],
+                    observation.projection,
                     scale,
                 )
 
@@ -107,7 +106,7 @@ def bundle_single_view(reconstruction, shot_id, camera_priors, config):
         obs = shot.get_landmark_observation(track)
         point = obs.point
         ba.add_point_projection_observation(
-            shot_id, track.id, point[0], point[1], obs.scale
+            shot_id, track.id, point, obs.scale
         )
 
     if config["bundle_use_gps"] and shot.metadata.gps_accuracy.has_value and shot.metadata.gps_position.has_value:

@@ -5,6 +5,8 @@
 #include <foundation/types.h>
 #include <geometry/camera_functions.h>
 
+#include <unordered_set>
+
 template <class PointFunc>
 struct BABearingError {
   BABearingError(const Eigen::Vector3d& bearing, double bearing_std_deviation,
@@ -44,31 +46,44 @@ struct BADataPriorError {
   // Parameter scaling
   enum class ScaleType { LINEAR = 0, LOGARITHMIC = 1 };
 
-  BADataPriorError(BAData<DATA>* ba_data)
-      : ba_data_(ba_data), count_(ba_data->GetValueData().rows()) {
+  explicit BADataPriorError(BAData<DATA>* ba_data) : ba_data_(ba_data) {
     const auto sigma = ba_data->GetSigmaData();
+    for (int i = 0; i < sigma.rows(); ++i) {
+      indexes_.insert(i);
+    }
+
     scales_.resize(sigma.rows(), 1);
-    for (int i = 0; i < count_; ++i) {
-      scales_(i) =
-          1.0 / std::max(sigma(i), std::numeric_limits<double>::epsilon());
+    for (const auto& index : indexes_) {
+      scales_(index) =
+          1.0 / std::max(sigma(index), std::numeric_limits<double>::epsilon());
     }
   }
 
   void SetScaleType(int index, const ScaleType& type) {
-    if (index > count_) {
+    if (indexes_.find(index) == indexes_.end()) {
       throw std::runtime_error("Parameter index out-of-range");
     }
     scale_types_[index] = type;
   }
 
+  void SetConstrainedDataIndexes(const std::vector<int>& indexes) {
+    indexes_.clear();
+    indexes_.insert(indexes.begin(), indexes.end());
+  }
+
   template <typename T>
   bool operator()(const T* const parameters, T* residuals) const {
-    Eigen::Map<VecX<T>> residuals_mapped(residuals, count_);
-    Eigen::Map<const VecX<T>> parameters_values(parameters, count_);
+    const auto residual_size = indexes_.size();
+    const auto parameter_size = ba_data_->GetSigmaData().rows();
+
+    Eigen::Map<VecX<T>> residuals_mapped(residuals, residual_size);
+    Eigen::Map<const VecX<T>> parameters_values(parameters, parameter_size);
     const VecX<T> prior_values = ba_data_->GetPriorData().template cast<T>();
-    for (int i = 0; i < count_; ++i) {
+
+    int residual_index = 0;
+    for (const auto& index : indexes_) {
       auto scale_type = ScaleType::LINEAR;
-      const auto scale_type_find = scale_types_.find(i);
+      const auto scale_type_find = scale_types_.find(index);
       if (scale_type_find != scale_types_.end()) {
         scale_type = scale_type_find->second;
       }
@@ -76,20 +91,20 @@ struct BADataPriorError {
       T error = T(0.);
       switch (scale_type) {
         case ScaleType::LINEAR:
-          error = parameters_values(i) - prior_values(i);
+          error = parameters_values(index) - prior_values(index);
           break;
         case ScaleType::LOGARITHMIC:
-          error = log(parameters_values(i) / prior_values(i));
+          error = log(parameters_values(index) / prior_values(index));
           break;
       }
-      residuals_mapped(i) = scales_(i) * error;
+      residuals_mapped(residual_index++) = scales_(index) * error;
     }
     return true;
   }
 
  private:
   BAData<DATA>* ba_data_;
-  int count_;
+  std::set<int> indexes_;
   VecXd scales_;
   std::unordered_map<int, ScaleType>
       scale_types_;  // Per-parameter prior scaling (default is linear)
@@ -307,10 +322,15 @@ class RigReprojectionError2DAnalytic
             map_jac_big.template block<Size, PoseSize>(0, PointSize + PoseSize);
       }
       if (jac_camera) {
-        Eigen::Map<Eigen::Matrix<double, Size, CameraSize, Eigen::RowMajor>>
-            map_jac_camera(jac_camera);
-        map_jac_camera = scale_ * map_jac_big.template block<Size, CameraSize>(
-                                      0, PointSize + 2 * PoseSize);
+        // Eigen doesn't like vectors as 1-dim matrices (CameraSize == 1), using
+        // simple assignments instead of Eigen's Map
+        for (int i = 0; i < Size; ++i) {
+          for (int j = 0; j < CameraSize; ++j) {
+            jac_camera[i * CameraSize + j] =
+                scale_ *
+                jacobian[i * StrideFull + PointSize + 2 * PoseSize + j];
+          }
+        }
       }
     }
 

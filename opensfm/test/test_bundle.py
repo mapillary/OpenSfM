@@ -1,6 +1,7 @@
 import copy
 
 import numpy as np
+import pytest
 from opensfm import (
     config,
     geometry,
@@ -29,9 +30,17 @@ def test_unicode_strings_in_bundle():
     ba.add_camera(camera.id, camera, camera, True)
 
 
-def test_sigleton():
+@pytest.fixture()
+def bundle_adjuster():
+    ba = pybundle.BundleAdjuster()
+    camera = pygeometry.Camera.create_spherical()
+    ba.add_camera("cam1", camera, camera, True)
+    return ba
+
+
+def test_sigleton(bundle_adjuster):
     """Single camera test"""
-    sa = pybundle.BundleAdjuster()
+    sa = bundle_adjuster
     sa.add_shot("1", "cam1", [0.5, 0, 0], [0, 0, 0], False)
     sa.add_absolute_position("1", [1, 0, 0], 1, "1")
     sa.add_absolute_up_vector("1", [0, -1, 0], 1)
@@ -42,10 +51,10 @@ def test_sigleton():
     assert np.allclose(s1.t, [1, 0, 0], atol=1e-6)
 
 
-def test_sigleton_pan_tilt_roll():
+def test_singleton_pan_tilt_roll(bundle_adjuster):
     """Single camera test with pan, tilt, roll priors."""
     pan, tilt, roll = 1, 0.3, 0.2
-    sa = pybundle.BundleAdjuster()
+    sa = bundle_adjuster
     sa.add_shot("1", "cam1", [0.5, 0, 0], [0, 0, 0], False)
     sa.add_absolute_position("1", [1, 0, 0], 1, "1")
     sa.add_absolute_pan("1", pan, 1)
@@ -105,9 +114,9 @@ def test_bundle_projection_fixed_internals(scene_synthetic):
     assert reference.cameras["1"].k2 == orig_camera.k2
 
 
-def test_pair():
+def test_pair(bundle_adjuster):
     """Simple two camera test"""
-    sa = pybundle.BundleAdjuster()
+    sa = bundle_adjuster
     sa.add_shot("1", "cam1", [0, 0, 0], [0, 0, 0], False)
     sa.add_shot("2", "cam1", [0, 0, 0], [0, 0, 0], False)
     sa.add_reconstruction("12", False)
@@ -131,9 +140,9 @@ def test_pair():
     assert np.allclose(r12.get_scale("2"), 0.5)
 
 
-def test_pair_with_shot_point():
+def test_pair_with_shot_point(bundle_adjuster):
     """Simple two camera test with a point constraint for anchoring"""
-    sa = pybundle.BundleAdjuster()
+    sa = bundle_adjuster
     sa.add_shot("1", "cam1", [0, 0, 0], [1e-3, 1e-3, 1e-3], False)
     sa.add_shot("2", "cam1", [0, 0, 0], [1e-3, 1e-3, 1e-3], False)
     sa.add_point("p1", [0, 0, 0], False)
@@ -162,9 +171,9 @@ def test_pair_with_shot_point():
     assert np.allclose(r12.get_scale("2"), 0.5)
 
 
-def test_pair_non_rigid():
+def test_pair_non_rigid(bundle_adjuster):
     """Simple two camera test"""
-    sa = pybundle.BundleAdjuster()
+    sa = bundle_adjuster
     sa.add_shot("1", "cam1", [0, 0, 0], [0, 0, 0], False)
     sa.add_shot("2", "cam1", [0, 0, 0], [0, 0, 0], False)
     sa.add_reconstruction("12", False)
@@ -188,9 +197,9 @@ def test_pair_non_rigid():
     assert np.allclose(r12.get_scale("2"), 0.5)
 
 
-def test_four_cams_single_reconstruction():
+def test_four_cams_single_reconstruction(bundle_adjuster):
     """Four cameras, one reconstruction"""
-    sa = pybundle.BundleAdjuster()
+    sa = bundle_adjuster
     sa.add_shot("1", "cam1", [0, 0, 0], [0, 0, 0], False)
     sa.add_shot("2", "cam1", [0, 0, 0], [0, 0, 0], False)
     sa.add_shot("3", "cam1", [0, 0, 0], [0, 0, 0], False)
@@ -226,9 +235,9 @@ def test_four_cams_single_reconstruction():
     assert np.allclose(s4.t, [0, 0, -2], atol=1e-6)
 
 
-def test_four_cams_single_reconstruction_non_rigid():
+def test_four_cams_single_reconstruction_non_rigid(bundle_adjuster):
     """Four cameras, one reconstruction"""
-    sa = pybundle.BundleAdjuster()
+    sa = bundle_adjuster
     sa.add_shot("1", "cam1", [0, 0, 0], [0, 0, 0], False)
     sa.add_shot("2", "cam1", [0, 0, 0], [0, 0, 0], False)
     sa.add_shot("3", "cam1", [0, 0, 0], [0, 0, 0], False)
@@ -278,9 +287,9 @@ def test_four_cams_single_reconstruction_non_rigid():
     assert np.allclose(r1234.get_scale("4"), 0.5)
 
 
-def test_four_cams_one_fixed():
+def test_four_cams_one_fixed(bundle_adjuster):
     """Four cameras, one reconstruction"""
-    sa = pybundle.BundleAdjuster()
+    sa = bundle_adjuster
     sa.add_shot("1", "cam1", [0, 0, 0], [0, 0, 0], True)
     sa.add_shot("2", "cam1", [0, 0, 0], [0, 0, 0], False)
     sa.add_shot("3", "cam1", [0, 0, 0], [0, 0, 0], False)
@@ -316,9 +325,9 @@ def test_four_cams_one_fixed():
     assert np.allclose(s4.t, [0, 0, -2], atol=1e-6)
 
 
-def test_linear_motion_prior_position():
+def test_linear_motion_prior_position(bundle_adjuster):
     """Three cameras, middle has no gps info. Translation only"""
-    sa = pybundle.BundleAdjuster()
+    sa = bundle_adjuster
     sa.add_shot("1", "cam1", [0, 0, 0], [0, 0, 0], True)
     sa.add_shot("2", "cam1", [0, 0, 0], [0, 0, 0], False)
     sa.add_shot("3", "cam1", [0, 0, 0], [0, 0, 0], False)
@@ -341,9 +350,9 @@ def test_linear_motion_prior_position():
     assert np.allclose(s3.t, [-2, 0, 0], atol=1e-6)
 
 
-def test_linear_motion_prior_rotation():
+def test_linear_motion_prior_rotation(bundle_adjuster):
     """Three cameras, middle has no gps or orientation info"""
-    sa = pybundle.BundleAdjuster()
+    sa = bundle_adjuster
     sa.add_shot("1", "cam1", [0, 0, 0], [0, 0, 0], True)
     sa.add_shot("2", "cam1", [0, 0, 0], [0, 0, 0], False)
     sa.add_shot("3", "cam1", [0, 1, 0], [0, 0, 0], True)
@@ -374,7 +383,6 @@ def test_bundle_void_gps_ignored():
     camera_priors = {camera.id: camera}
     gcp = []
     myconfig = config.default_config()
-
 
     # Missing position
     shot.metadata.gps_position.value = np.zeros(3)
@@ -424,9 +432,9 @@ def test_bundle_alignment_prior():
     assert np.allclose(shot.pose.transform([0, 0, 1]), [0, -1, 0])
 
 
-def test_heatmaps_position():
+def test_heatmaps_position(bundle_adjuster):
     """Three cameras. Same heatmap different offsets"""
-    sa = pybundle.BundleAdjuster()
+    sa = bundle_adjuster
     sa.add_shot("1", "cam1", [0, 0, 0], [0, 0, 0], False)
     sa.add_shot("2", "cam1", [0, 0, 0], [0, 0, 0], False)
     sa.add_shot("3", "cam1", [0, 0, 0], [0, 0, 0], False)
@@ -488,6 +496,7 @@ def test_heatmaps_position():
     )
 
     sa.run()
+    print(sa.brief_report())
     s1 = sa.get_shot("1")
     s2 = sa.get_shot("2")
     s3 = sa.get_shot("3")

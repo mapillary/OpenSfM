@@ -147,6 +147,8 @@ std::vector<Camera::Parameters> Camera::GetParametersTypes() const {
 
 VecXd Camera::GetParametersValues() const { return values_; }
 
+void Camera::SetParametersValues(const VecXd& values) { values_ = values; }
+
 std::map<Camera::Parameters, double, Camera::CompParameters>
 Camera::GetParametersMap() const {
   std::map<Camera::Parameters, double, Camera::CompParameters> params_map;

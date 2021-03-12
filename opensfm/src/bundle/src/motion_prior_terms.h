@@ -1,8 +1,10 @@
 #pragma once
 
-#include "error_utils.h"
+#include <foundation/types.h>
 
 #include <Eigen/Eigen>
+
+#include "error_utils.h"
 
 struct BALinearMotionError {
   BALinearMotionError(double alpha, double position_std_deviation,

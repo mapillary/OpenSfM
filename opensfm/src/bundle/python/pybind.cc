@@ -1,16 +1,15 @@
+#include <bundle/bundle_adjuster.h>
+#include <bundle/reconstruction_alignment.h>
+#include <foundation/python_types.h>
 #include <pybind11/eigen.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-#include <bundle/bundle_adjuster.h>
-#include <bundle/reconstruction_alignment.h>
-#include <foundation/python_types.h>
-
-
 PYBIND11_MODULE(pybundle, m) {
   py::class_<BundleAdjuster>(m, "BundleAdjuster")
       .def(py::init())
-      .def("run", &BundleAdjuster::Run, py::call_guard<py::gil_scoped_release>())
+      .def("run", &BundleAdjuster::Run,
+           py::call_guard<py::gil_scoped_release>())
       .def("set_point_projection_loss_function",
            &BundleAdjuster::SetPointProjectionLossFunction)
       .def("set_relative_motion_loss_function",
@@ -33,7 +32,8 @@ PYBIND11_MODULE(pybundle, m) {
       .def("add_common_position", &BundleAdjuster::AddCommonPosition)
       .def("add_absolute_position", &BundleAdjuster::AddAbsolutePosition)
       .def("add_heatmap", &BundleAdjuster::AddHeatmap)
-      .def("add_absolute_position_heatmap", &BundleAdjuster::AddAbsolutePositionHeatmap)
+      .def("add_absolute_position_heatmap",
+           &BundleAdjuster::AddAbsolutePositionHeatmap)
       .def("add_absolute_up_vector", &BundleAdjuster::AddAbsoluteUpVector)
       .def("add_absolute_pan", &BundleAdjuster::AddAbsolutePan)
       .def("add_absolute_tilt", &BundleAdjuster::AddAbsoluteTilt)
@@ -73,12 +73,21 @@ PYBIND11_MODULE(pybundle, m) {
       .export_values();
 
   py::class_<BAShot>(m, "BAShot")
-      .def(py::init())
-      .def_property_readonly("r", &BAShot::GetRotation)
-      .def_property_readonly("t", &BAShot::GetTranslation)
-      .def_readwrite("id", &BAShot::id)
-      .def_readwrite("camera", &BAShot::camera)
-      .def("get_covariance_inv_param", &BAShot::GetCovarianceInvParam);
+      .def_property_readonly(
+          "r",
+          [](const BAShot &s) {
+            return s.GetPose()->GetValue().RotationWorldToCameraMin();
+          })
+      .def_property_readonly(
+          "t",
+          [](const BAShot &s) {
+            return s.GetPose()->GetValue().TranslationWorldToCamera();
+          })
+      .def_property_readonly("id", [](const BAShot &s) { return s.GetID(); })
+      .def_property_readonly("camera",
+                             [](const BAShot &s) { return s.GetCamera(); })
+      .def("get_covariance_inv_param",
+           [](const BAShot &s) { return s.GetPose()->GetCovariance(); });
 
   py::class_<BAReconstruction>(m, "BAReconstruction")
       .def(py::init())

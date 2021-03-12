@@ -1,5 +1,7 @@
 #pragma once
 
+#include <foundation/types.h>
+
 #include <initializer_list>
 
 #include "ceres/ceres.h"

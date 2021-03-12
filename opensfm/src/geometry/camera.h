@@ -61,6 +61,7 @@ class Camera {
 
   std::vector<Parameters> GetParametersTypes() const;
   VecXd GetParametersValues() const;
+  void SetParametersValues(const VecXd& values);
   std::map<Parameters, double, CompParameters> GetParametersMap() const;
 
   double GetParameterValue(const Parameters& parameter) const;

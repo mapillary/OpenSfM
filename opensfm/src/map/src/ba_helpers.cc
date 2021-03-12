@@ -130,8 +130,11 @@ py::tuple BAHelpers::BundleLocal(
 
   constexpr bool point_constant{false};
 
-  // Add interior shots
+  // add interior shots (non-rig)
   for (auto* shot : interior) {
+    if (shot->IsInRig()) {
+      continue;
+    }
     const auto& pose = shot->GetPose();
     constexpr auto shot_constant{false};
 
@@ -148,8 +151,11 @@ py::tuple BAHelpers::BundleLocal(
     }
   }
 
-  // add boundary shots
+  // add boundary shots (non-rig)
   for (auto* shot : boundary) {
+    if (shot->IsInRig()) {
+      continue;
+    }
     const auto& pose = shot->GetPose();
     constexpr auto shot_constant{true};
     ba.AddShot(shot->id_, shot->GetCamera()->id,
@@ -167,8 +173,8 @@ py::tuple BAHelpers::BundleLocal(
         ba.AddPoint(lm->id_, lm->GetGlobalPos(), point_constant);
       }
       const auto& obs = lm_obs.second;
-      ba.AddPointProjectionObservation(shot->id_, lm_obs.first->id_,
-                                       obs.point[0], obs.point[1], obs.scale);
+      ba.AddPointProjectionObservation(shot->id_, lm_obs.first->id_, obs.point,
+                                       obs.scale);
     }
   }
   for (auto* shot : boundary) {
@@ -177,7 +183,7 @@ py::tuple BAHelpers::BundleLocal(
       if (points.count(lm) > 0) {
         const auto& obs = lm_obs.second;
         ba.AddPointProjectionObservation(shot->id_, lm_obs.first->id_,
-                                         obs.point[0], obs.point[1], obs.scale);
+                                         obs.point, obs.scale);
       }
     }
   }
@@ -211,8 +217,11 @@ py::tuple BAHelpers::BundleLocal(
 
   const auto timer_run = std::chrono::high_resolution_clock::now();
   for (auto* shot : interior) {
-    const auto& s = ba.GetShot(shot->id_);
-    shot->GetPose()->SetFromWorldToCamera(s.GetRotation(), s.GetTranslation());
+    if (shot->IsInRig()) {
+      continue;
+    }
+    auto s = ba.GetShot(shot->id_);
+    shot->SetPose(s.GetPose()->GetValue());
   }
 
   for (auto* point : points) {
@@ -306,8 +315,8 @@ void BAHelpers::AddGCPToBundle(
       const auto& shot_id = obs.shot_id_;
       if (shots.count(shot_id) > 0) {
         constexpr double scale{0.0001};
-        ba.AddPointProjectionObservation(shot_id, point_id, obs.projection_[0],
-                                         obs.projection_[1], scale);
+        ba.AddPointProjectionObservation(shot_id, point_id, obs.projection_,
+                                         scale);
       }
     }
   }
@@ -358,27 +367,38 @@ py::dict BAHelpers::Bundle(
     const auto& shot = shot_pair.second;
     const auto& pose = shot.GetPose();
     constexpr auto fix_shot = false;
-    ba.AddShot(shot.id_, shot.GetCamera()->id, pose->RotationWorldToCameraMin(),
-               pose->TranslationWorldToCamera(), fix_shot);
-    if (config["bundle_use_gps"].cast<bool>()) {
-      const auto pos = shot.GetShotMeasurements().gps_position_;
-      const auto acc = shot.GetShotMeasurements().gps_accuracy_;
-      if (pos.HasValue() && acc.HasValue()) {
-        const Vec3d g = pos.Value();
-        ba.AddPositionPrior(shot.id_, g[0], g[1], g[2], acc.Value());
+
+    // setup shots only for non-rigs
+    const bool is_in_rig = shot.IsInRig();
+    if (!is_in_rig) {
+      ba.AddShot(shot.id_, shot.GetCamera()->id,
+                 pose->RotationWorldToCameraMin(),
+                 pose->TranslationWorldToCamera(), fix_shot);
+      if (config["bundle_use_gps"].cast<bool>()) {
+        const auto pos = shot.GetShotMeasurements().gps_position_;
+        const auto acc = shot.GetShotMeasurements().gps_accuracy_;
+        if (pos.HasValue() && acc.HasValue()) {
+          const Vec3d g = pos.Value();
+          ba.AddPositionPrior(shot.id_, g[0], g[1], g[2],
+                              shot.GetShotMeasurements().gps_accuracy_.Value());
+        }
+      }
+
+      // that one doesn't have it's rig counterpart
+      if (do_add_align_vector) {
+        constexpr double std_dev = 1e-3;
+        ba.AddAbsoluteUpVector(shot.id_, up_vector, std_dev);
       }
     }
 
-    if (do_add_align_vector) {
-      constexpr double std_dev = 1e-3;
-      ba.AddAbsoluteUpVector(shot.id_, up_vector, std_dev);
-    }
+    // setup observations for any shot type
     for (const auto& lm_obs : shot.GetLandmarkObservations()) {
       const auto& obs = lm_obs.second;
-      ba.AddPointProjectionObservation(shot.id_, lm_obs.first->id_,
-                                       obs.point[0], obs.point[1], obs.scale);
+      ba.AddPointProjectionObservation(shot.id_, lm_obs.first->id_, obs.point,
+                                       obs.scale);
     }
   }
+
   if (config["bundle_use_gcp"].cast<bool>() && !gcp.empty()) {
     AddGCPToBundle(ba, gcp, map.GetShots());
   }
@@ -407,6 +427,7 @@ py::dict BAHelpers::Bundle(
   }
 
   const auto timer_run = std::chrono::high_resolution_clock::now();
+
   // update cameras if optimized
   if (!fix_cameras) {
     for (auto& cam : map.GetCameras()) {
@@ -419,9 +440,11 @@ py::dict BAHelpers::Bundle(
 
   // Update shots
   for (auto& shot : map.GetShots()) {
-    const auto& s = ba.GetShot(shot.first);
-    shot.second.GetPose()->SetFromWorldToCamera(s.GetRotation(),
-                                                s.GetTranslation());
+    if (shot.second.IsInRig()) {
+      continue;
+    }
+    auto s = ba.GetShot(shot.first);
+    shot.second.SetPose(s.GetPose()->GetValue());
   }
 
   // Update points

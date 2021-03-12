@@ -1,6 +1,8 @@
 #pragma once
 
+#include <foundation/optional.h>
 #include <geometry/camera.h>
+#include <geometry/pose.h>
 
 #include <cmath>
 #include <cstdio>
@@ -36,49 +38,6 @@ enum PositionConstraintType {
   XYZ = XY | Z
 };
 
-struct BAShot {
-  std::string id;
-  std::string camera;
-  Eigen::Matrix<double, BA_SHOT_NUM_PARAMS, 1> parameters;
-  double covariance[BA_SHOT_NUM_PARAMS * BA_SHOT_NUM_PARAMS];
-  bool constant;
-
-  Vec3d GetRotation() const {
-    Vec3d r;
-    Vec3d t;
-    InvertTransform_(&parameters[BA_SHOT_RX], &parameters[BA_SHOT_TX], &r[0],
-                     &t[0]);
-    return r;
-  }
-  Vec3d GetTranslation() const {
-    Vec3d r;
-    Vec3d t;
-    InvertTransform_(&parameters[BA_SHOT_RX], &parameters[BA_SHOT_TX], &r[0],
-                     &t[0]);
-    return t;
-  }
-  double GetCovarianceInvParam(int i, int j) {
-    return covariance[i * BA_SHOT_NUM_PARAMS + j];
-  }
-
-  void SetRotationAndTranslation(const Vec3d &r, const Vec3d &t) {
-    InvertTransform_(&r[0], &t[0], &parameters[BA_SHOT_RX],
-                     &parameters[BA_SHOT_TX]);
-  }
-
-  void InvertTransform_(const double *r, const double *t, double *rinv,
-                        double *tinv) const {
-    // Rinv = R^t  tinv = -R^t * t
-    rinv[0] = -r[0];
-    rinv[1] = -r[1];
-    rinv[2] = -r[2];
-    ceres::AngleAxisRotatePoint(rinv, t, tinv);
-    tinv[0] = -tinv[0];
-    tinv[1] = -tinv[1];
-    tinv[2] = -tinv[2];
-  }
-};
-
 struct BAPoint {
   std::string id;
   Eigen::Matrix<double, 3, 1> parameters;
@@ -89,10 +48,270 @@ struct BAPoint {
   void SetPoint(const Vec3d &p) { parameters = p; }
 };
 
+struct BADataNode {
+  explicit BADataNode(const std::string &id) : id_(id) {}
+
+  std::string GetID() const { return id_; }
+
+ protected:
+  std::string id_;
+};
+template <class T>
+struct BAData : public BADataNode {
+ public:
+  using ValueType = T;
+
+  BAData(const std::string &id, const T &value, const T &prior, const T &sigma)
+      : BADataNode(id), value_(value), prior_(prior), sigma_(sigma) {}
+
+  BAData(const std::string &id, const T &value)
+      : BADataNode(id), value_(value) {}
+
+  virtual ~BAData() {}
+
+  VecXd &GetValueData() { return value_data_; }
+
+  T GetValue() const {
+    T v = value_;
+    DataToValue(value_data_, v);
+    return v;
+  }
+
+  bool HasPrior() const { return prior_.HasValue(); }
+  VecXd GetPriorData() const {
+    if (!prior_.HasValue()) {
+      throw std::runtime_error(GetID() + " hasn't any prior value");
+    }
+    VecXd prior_data;
+    ValueToData(prior_.Value(), prior_data);
+    return prior_data;
+  }
+  void SetPrior(const T &prior) { prior_.SetValue(prior); }
+
+  VecXd GetSigmaData() const {
+    if (!sigma_.HasValue()) {
+      throw std::runtime_error(GetID() + " hasn't any sigma value");
+    }
+    VecXd sigma_data;
+    ValueToData(sigma_.Value(), sigma_data);
+    return sigma_data;
+  }
+  void SetSigma(const T &sigma) { sigma_.SetValue(sigma); }
+
+  void SetCovariance(const MatXd &covariance) {
+    covariance_.SetValue(covariance);
+  }
+  bool HasCovariance() const { return covariance_.HasValue(); }
+  MatXd GetCovariance() const {
+    if (!HasCovariance()) {
+      throw std::runtime_error(GetID() + " hasn't any covariance");
+    }
+    return covariance_.Value();
+  }
+
+  const std::vector<int> &GetParametersToOptimize() const {
+    return parameters_to_optimize_;
+  }
+  void SetParametersToOptimize(const std::vector<int> &parameters) {
+    parameters_to_optimize_ = parameters;
+  }
+
+  virtual void ValueToData(const T &value, VecXd &data) const = 0;
+  virtual void DataToValue(const VecXd &data, T &value) const = 0;
+
+ protected:
+  VecXd value_data_;
+  std::vector<int> parameters_to_optimize_;
+
+  T value_;
+  foundation::OptionalValue<T> prior_;
+  foundation::OptionalValue<T> sigma_;
+  foundation::OptionalValue<MatXd> covariance_;
+
+  void Init() {
+    ValueToData(value_, value_data_);
+    parameters_to_optimize_.resize(value_data_.size());
+    std::iota(parameters_to_optimize_.begin(), parameters_to_optimize_.end(),
+              0);
+  }
+};
+
+struct BACamera : public BAData<Camera> {
+  BACamera(const std::string &id, const Camera &value, const Camera &prior,
+           const Camera &sigma)
+      : BAData<Camera>(id, value, prior, sigma) {
+    Init();
+  }
+
+ private:
+  void ValueToData(const Camera &value, VecXd &data) const final {
+    data = value.GetParametersValues();
+  }
+
+  void DataToValue(const VecXd &data, Camera &value) const final {
+    value.SetParametersValues(data);
+  }
+};
+
+struct BAPose : public BAData<geometry::Pose> {
+  // Outputted parametrization : CAM_TO_WORLD is preferred
+  enum Parametrization {
+    CAM_TO_WORLD = 0,  // x(cam) = Rt*(x(world) - t))
+    WORLD_TO_CAM = 1,  // x(cam) = R*x(world) + t
+  };
+
+  BAPose(const std::string &id, const geometry::Pose &value,
+         const Parametrization &parametrization = Parametrization::CAM_TO_WORLD)
+      : BAData<geometry::Pose>(id, value), parametrization_(parametrization) {
+    Init();
+  }
+
+  BAPose(const std::string &id, const geometry::Pose &value,
+         const geometry::Pose &prior, const geometry::Pose &sigma,
+         const Parametrization &parametrization = Parametrization::CAM_TO_WORLD)
+      : BAData<geometry::Pose>(id, value, prior, sigma),
+        parametrization_(parametrization) {
+    Init();
+  }
+
+ private:
+  void ValueToData(const geometry::Pose &value, VecXd &data) const final {
+    data.resize(BA_SHOT_NUM_PARAMS);
+    if (parametrization_ == Parametrization::CAM_TO_WORLD) {
+      data.segment<3>(BA_SHOT_TX) = value.TranslationCameraToWorld();
+      data.segment<3>(BA_SHOT_RX) = value.RotationCameraToWorldMin();
+    } else {
+      data.segment<3>(BA_SHOT_TX) = value.TranslationWorldToCamera();
+      data.segment<3>(BA_SHOT_RX) = value.RotationWorldToCameraMin();
+    }
+  }
+
+  void DataToValue(const VecXd &data, geometry::Pose &value) const final {
+    if (parametrization_ == Parametrization::CAM_TO_WORLD) {
+      value.SetFromCameraToWorld(Vec3d(data.segment<3>(BA_SHOT_RX)),
+                                 data.segment<3>(BA_SHOT_TX));
+    } else {
+      value.SetFromWorldToCamera(Vec3d(data.segment<3>(BA_SHOT_RX)),
+                                 data.segment<3>(BA_SHOT_TX));
+    }
+  }
+
+  Parametrization parametrization_;
+};
+
+using BARigCamera = BAPose;
+
+struct BADataContainer : public BADataNode {
+  explicit BADataContainer(const std::string &id) : BADataNode(id) {}
+
+ protected:
+  void RegisterData(const std::string &id, BADataNode *data) {
+    ba_nodes_[id] = data;
+  }
+  BADataNode *GetData(const std::string &id) {
+    const auto find_data = ba_nodes_.find(id);
+    if (find_data == ba_nodes_.end()) {
+      throw std::runtime_error("Data " + id +
+                               " doesn't exist in BADataContainer");
+    }
+    return find_data->second;
+  }
+  const BADataNode *GetData(const std::string &id) const {
+    const auto find_data = ba_nodes_.find(id);
+    if (find_data == ba_nodes_.end()) {
+      throw std::runtime_error("Data " + id +
+                               " doesn't exist in BADataContainer");
+    }
+    return find_data->second;
+  }
+
+ private:
+  std::unordered_map<std::string, BADataNode *> ba_nodes_;
+};
+
+struct BAShot : public BADataContainer {
+  BAShot(const std::string &id, BACamera *camera, const geometry::Pose &pose)
+      : BADataContainer(id),
+        pose_(id, pose, geometry::Pose(), geometry::Pose()) {
+    RegisterData("camera", camera);
+    RegisterData("pose", &pose_);
+  }
+  BAShot(const std::string &id, const geometry::Pose &pose)
+      : BADataContainer(id),
+        pose_(id, pose, geometry::Pose(), geometry::Pose()) {
+    RegisterData("pose", &pose_);
+  }
+
+  BAPose *GetPose() { return static_cast<BAPose *>(GetData("pose")); }
+  const BAPose *GetPose() const {
+    return static_cast<const BAPose *>(GetData("pose"));
+  }
+  BACamera *GetCamera() { return static_cast<BACamera *>(GetData("camera")); }
+  const BACamera *GetCamera() const {
+    return static_cast<const BACamera *>(GetData("camera"));
+  }
+
+ private:
+  BAPose pose_;
+};
+
+struct BARigModel : public BADataContainer {
+  BARigModel(
+      const std::string &id,
+      const std::unordered_map<std::string, geometry::Pose> &rig_cameras_poses,
+      const geometry::Pose &sigma)
+      : BADataContainer(id) {
+    for (const auto &rig_camera : rig_cameras_poses) {
+      const auto rig_camera_id = rig_camera.first;
+      auto &rig_camera_data =
+          rig_cameras_
+              .emplace(std::piecewise_construct,
+                       std::forward_as_tuple(rig_camera_id),
+                       std::forward_as_tuple(rig_camera_id, rig_camera.second,
+                                             rig_camera.second, sigma))
+              .first->second;
+      RegisterData(rig_camera_id, &rig_camera_data);
+    }
+  }
+  BARigCamera *GetRigCamera(const std::string &rig_camera_id) {
+    return static_cast<BARigCamera *>(GetData(rig_camera_id));
+  }
+
+  std::unordered_map<std::string, BARigCamera *> GetRigCameras() {
+    std::unordered_map<std::string, BARigCamera *> cameras;
+    for (const auto &c : rig_cameras_) {
+      cameras[c.first] = GetRigCamera(c.first);
+    }
+    return cameras;
+  }
+
+ private:
+  std::unordered_map<std::string, BARigCamera> rig_cameras_;
+};
+
+using BARigInstance = BAPose;
+
+struct BARigShot : public BADataContainer {
+  BARigShot(const std::string &id, BACamera *camera, BARigCamera *rig_camera,
+            BARigInstance *rig_instance)
+      : BADataContainer(id) {
+    RegisterData("camera", camera);
+    RegisterData("rig_camera", rig_camera);
+    RegisterData("rig_instance", rig_instance);
+  }
+
+  BACamera *GetCamera() { return static_cast<BACamera *>(GetData("camera")); }
+  BARigCamera *GetRigCamera() {
+    return static_cast<BARigCamera *>(GetData("rig_camera"));
+  }
+  BARigInstance *GetRigInstance() {
+    return static_cast<BARigInstance *>(GetData("rig_instance"));
+  }
+};
+
 struct BAReconstruction {
   std::string id;
   std::map<std::string, double> scales;
-  std::map<std::string, BAShot *> shots;
   bool constant;
   bool shared;
 
@@ -117,90 +336,19 @@ struct BAReconstruction {
   }
 };
 
-template <class T>
-struct BAData {
- public:
-  using ValueType = T;
-
-  BAData(const T &value, const T &prior, const T &sigma)
-      : value_(value), prior_(prior), sigma_(sigma) {}
-
-  virtual ~BAData() {}
-
-  VecXd &GetValueData() {
-    ValueToData(value_, value_data_);
-    return value_data_;
-  }
-
-  Camera GetValue() {
-    Camera v = value_;
-    DataToValue(value_data_, v);
-    return v;
-  }
-
-  VecXd GetPriorData() const {
-    VecXd prior_data;
-    ValueToData(prior_, prior_data);
-    return prior_data;
-  }
-
-  VecXd GetSigmaData() const {
-    VecXd sigma_data;
-    ValueToData(sigma_, sigma_data);
-    return sigma_data;
-  }
-  void SetSigma(const T &sigma) { sigma_ = sigma; }
-
-  virtual void ValueToData(const T &value, VecXd &data) const = 0;
-  virtual void DataToValue(const VecXd &data, T &value) const = 0;
-
- protected:
-  VecXd value_data_;
-
-  T value_;
-  T prior_;
-  T sigma_;
-};
-
-struct BACamera : public BAData<Camera> {
-  BACamera(const Camera &value, const Camera &prior, const Camera &sigma)
-      : BAData<Camera>(value, prior, sigma),
-        all_parameters_(value.GetParametersTypes()),
-        parameters_to_optimize_(value.GetParametersTypes()) {}
-
-  std::vector<Camera::Parameters> GetParametersToOptimize() {
-    return parameters_to_optimize_;
-  }
-
-  void SetParametersToOptimize(const std::vector<Camera::Parameters> &p) {
-    parameters_to_optimize_ = p;
-  }
-
- private:
-  void ValueToData(const Camera &value, VecXd &data) const final {
-    if (data.size() == 0) {
-      data = value.GetParametersValues();
-    }
-  }
-
-  void DataToValue(const VecXd &data, Camera &value) const final {
-    if (data.size() > 0) {
-      int count = 0;
-      for (const auto t : all_parameters_) {
-        value.SetParameterValue(t, data(count++));
-      }
-    }
-  }
-
-  std::vector<Camera::Parameters> all_parameters_;
-  std::vector<Camera::Parameters> parameters_to_optimize_;
-};
-
 struct BAPointProjectionObservation {
   Vec2d coordinates;
-  BACamera *camera;
-  BAShot *shot;
   BAPoint *point;
+  BAShot *shot;
+  BACamera *camera;
+  double std_deviation;
+};
+
+struct BAPointRigProjectionObservation {
+  Vec2d coordinates;
+  BAPoint *point;
+  BARigShot *rig_shot;
+  BACamera *camera;
   double std_deviation;
 };
 
@@ -404,23 +552,40 @@ class BundleAdjuster {
 
   // Bundle variables
 
+  // Basic
   void AddCamera(const std::string &id, const Camera &camera,
                  const Camera &prior, bool constant);
-  void UpdateSigmas();
   void AddShot(const std::string &id, const std::string &camera,
                const Vec3d &rotation, const Vec3d &translation, bool constant);
+  void AddPoint(const std::string &id, const Vec3d &position, bool constant);
+
+  // Rigs
+  void AddRigInstance(
+      const std::string &rig_instance_id,
+      const geometry::Pose &rig_instance_pose, const std::string &rig_model,
+      const std::unordered_map<std::string, std::string> &shot_cameras,
+      const std::unordered_map<std::string, std::string> &shot_rig_cameras,
+      bool fixed);
+  void AddRigModel(
+      const std::string &rig_model,
+      const std::unordered_map<std::string, geometry::Pose> &cameras_poses,
+      bool fixed);
+  void AddRigPositionPrior(const std::string &instance_id,
+                           const Vec3d &position, double std_deviation);
+
+  // Cluster-based
   void AddReconstruction(const std::string &id, bool constant);
   void AddReconstructionShot(const std::string &reconstruction_id, double scale,
                              const std::string &shot_id);
   void SetScaleSharing(const std::string &id, bool share);
-  void AddPoint(const std::string &id, const Vec3d &position, bool constant);
 
-  // averaging constraints
+  // Averaging constraints
 
-  // point projection
+  // Point projection
   void AddPointProjectionObservation(const std::string &shot,
-                                     const std::string &point, double x,
-                                     double y, double std_deviation);
+                                     const std::string &point,
+                                     const Vec2d &observation,
+                                     double std_deviation);
   void AddRotationPrior(const std::string &shot_id, double rx, double ry,
                         double rz, double std_deviation);
   void AddTranslationPrior(const std::string &shot_id, double tx, double ty,
@@ -433,12 +598,12 @@ class BundleAdjuster {
   void SetOriginShot(const std::string &shot_id);
   void SetUnitTranslationShot(const std::string &shot_id);
 
-  // relative motion ones
+  // Relative motion ones
   void AddRelativeMotion(const BARelativeMotion &rm);
   void AddRelativeSimilarity(const BARelativeSimilarity &rm);
   void AddRelativeRotation(const BARelativeRotation &rr);
 
-  // absolute motion ones
+  // Absolute motion ones
   void AddCommonPosition(const std::string &shot_id1,
                          const std::string &shot_id2, double margin,
                          double std_deviation);
@@ -464,13 +629,13 @@ class BundleAdjuster {
   void AddAbsoluteRoll(const std::string &shot_id, double angle,
                        double std_deviation);
 
-  // motion priors
+  // Motion priors
   void AddLinearMotion(const std::string &shot0_id, const std::string &shot1_id,
                        const std::string &shot2_id, double alpha,
                        double position_std_deviation,
                        double orientation_std_deviation);
 
-  // point positions
+  // Point positions
   void AddPointPositionShot(const std::string &point_id,
                             const std::string &shot_id,
                             const std::string &reconstruction_id,
@@ -480,7 +645,7 @@ class BundleAdjuster {
                              double std_deviation,
                              const PositionConstraintType &type);
 
-  // minimization setup
+  // Minimization setup
   void SetPointProjectionLossFunction(std::string name, double threshold);
   void SetRelativeMotionLossFunction(std::string name, double threshold);
   void SetAdjustAbsolutePositionStd(bool adjust);
@@ -493,35 +658,43 @@ class BundleAdjuster {
   void SetInternalParametersPriorSD(double focal_sd, double c_sd, double k1_sd,
                                     double k2_sd, double p1_sd, double p2_sd,
                                     double k3_sd, double k4_sd);
+  void SetRigParametersPriorSD(double rig_translation_sd,
+                               double rig_rotation_sd);
 
   void SetComputeCovariances(bool v);
   bool GetCovarianceEstimationValid();
   void SetComputeReprojectionErrors(bool v);
 
-  // minimization
+  // Minimization
   void Run();
-  void AddObservationResidualBlock(
-      const BAPointProjectionObservation &observation,
-      ceres::LossFunction *loss, ceres::Problem *problem);
   void ComputeCovariances(ceres::Problem *problem);
   void ComputeReprojectionErrors();
 
-  // getters
+  // Getters
   Camera GetCamera(const std::string &id);
   BAShot GetShot(const std::string &id);
   BAReconstruction GetReconstruction(const std::string &id);
   BAPoint GetPoint(const std::string &id);
+  BARigModel GetRigModel(const std::string &model_id);
+  BARigInstance GetRigInstance(const std::string &instance_id);
 
-  // minimization details
+  // Minimization details
   std::string BriefReport();
   std::string FullReport();
 
  private:
+  // default sigmas
+  Camera GetDefaultCameraSigma(const Camera &camera) const;
+  geometry::Pose GetDefaultRigPoseSigma() const;
+
   // minimized data
   std::map<std::string, BACamera> cameras_;
   std::map<std::string, BAShot> shots_;
+  std::map<std::string, BARigShot> rig_shots_;
   std::map<std::string, BAReconstruction> reconstructions_;
   std::map<std::string, BAPoint> points_;
+  std::map<std::string, BARigModel> rig_models_;
+  std::map<std::string, BARigInstance> rig_instances_;
 
   bool use_analytic_{false};
 
@@ -529,6 +702,8 @@ class BundleAdjuster {
 
   // reprojection observation
   std::vector<BAPointProjectionObservation> point_projection_observations_;
+  std::vector<BAPointRigProjectionObservation>
+      point_rig_projection_observations_;
   std::map<std::string, std::shared_ptr<HeatmapInterpolator>> heatmaps_;
 
   // relative motion between shots
@@ -568,6 +743,10 @@ class BundleAdjuster {
   double p2_sd_;
   double k3_sd_;
   double k4_sd_;
+
+  // Rig model extrinsics prior
+  double rig_translation_sd_{1.0};
+  double rig_rotation_sd_{1.0};
 
   // minimization setup
   std::string point_projection_loss_name_;
