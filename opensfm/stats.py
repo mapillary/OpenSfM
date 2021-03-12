@@ -305,6 +305,16 @@ def _cameras_statistics(camera_model):
     return camera_stats
 
 
+def _rig_model_statistics(rig_model):
+    rig_model_stats = {}
+    for rig_camera_id, rig_camera in rig_model.get_rig_cameras().items():
+        rig_model_stats[rig_camera_id] = {
+            "rotation": list(rig_camera.pose.rotation),
+            "translation": list(rig_camera.pose.translation),
+        }
+    return rig_model_stats
+
+
 def cameras_statistics(data: DataSetBase, reconstructions):
     stats = {}
     permutation = np.argsort([-len(r.shots) for r in reconstructions])
@@ -325,6 +335,26 @@ def cameras_statistics(data: DataSetBase, reconstructions):
     return stats
 
 
+def rig_statistics(data: DataSetBase, reconstructions):
+    stats = {}
+    permutation = np.argsort([-len(r.shots) for r in reconstructions])
+    for rig_model_id, rig_model in data.load_rig_models().items():
+        stats[rig_model_id] = {"initial_values": _rig_model_statistics(rig_model)}
+
+    for idx in permutation:
+        rec = reconstructions[idx]
+        for rig_model in rec.rig_models.values():
+            if "optimized_values" in stats[rig_model.id]:
+                continue
+            stats[rig_model.id]["optimized_values"] = _rig_model_statistics(rig_model)
+
+    for rig_model_id in data.load_rig_models():
+        if "optimized_values" not in stats[rig_model_id]:
+            del stats[rig_model_id]
+
+    return stats
+
+
 def compute_all_statistics(data: DataSet, tracks_manager, reconstructions):
     stats = {}
 
@@ -337,6 +367,7 @@ def compute_all_statistics(data: DataSet, tracks_manager, reconstructions):
         data, tracks_manager, reconstructions
     )
     stats["camera_errors"] = cameras_statistics(data, reconstructions)
+    stats["rig_errors"] = rig_statistics(data, reconstructions)
     stats["gps_errors"] = gps_errors(reconstructions)
     stats["gcp_errors"] = gcp_errors(data, reconstructions)
 
@@ -689,7 +720,9 @@ def save_heatmap(data: DataSetBase, tracks_manager, reconstructions, output_path
         )
 
 
-def save_residual_grids(data: DataSetBase, tracks_manager, reconstructions, output_path):
+def save_residual_grids(
+    data: DataSetBase, tracks_manager, reconstructions, output_path
+):
     all_errors = {}
 
     scaling = 4

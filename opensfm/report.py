@@ -360,6 +360,54 @@ class Report:
                 os.path.join(self.output_path, residual_grids[0]), residual_grid_height
             )
 
+    def make_rig_models_details(self):
+        self._make_section("Rig Models Details")
+
+        for rig, params in self.stats["rig_errors"].items():
+            initial = params["initial_values"]
+            optimized = params["optimized_values"]
+
+            columns_names = [
+                "Rig Camera",
+                "Translation X",
+                "Translation Y",
+                "Translation Z",
+                "Rotation X",
+                "Rotation Y",
+                "Rotation Z",
+            ]
+            rows = []
+            for rig_camera_name, rt_init in initial.items():
+                rt_opt = optimized[rig_camera_name]
+                r_init, t_init = rt_init["rotation"], rt_init["translation"]
+                r_opt, t_opt = rt_opt["rotation"], rt_opt["translation"]
+                rows.append(
+                    [
+                        f"{rig_camera_name} initial",
+                        f"{t_init[0]:.4f} m",
+                        f"{t_init[1]:.4f} m",
+                        f"{t_init[2]:.4f} m",
+                        f"{r_init[0]:.4f}",
+                        f"{r_init[1]:.4f}",
+                        f"{r_init[2]:.4f}",
+                    ]
+                )
+                rows.append(
+                    [
+                        "",
+                        f"{t_opt[0]:.4f} m",
+                        f"{t_opt[1]:.4f} m",
+                        f"{t_opt[2]:.4f} m",
+                        f"{r_opt[0]:.4f}",
+                        f"{r_opt[1]:.4f}",
+                        f"{r_opt[2]:.4f}",
+                    ]
+                )
+
+            self._make_subsection(rig)
+            self._make_table(columns_names, rows)
+            self.pdf.set_xy(self.margin, self.pdf.get_y() + self.margin / 2)
+
     def make_tracks_details(self):
         self._make_section("Tracks Details")
         matchgraph_height = 80
@@ -402,6 +450,7 @@ class Report:
 
         self.make_tracks_details()
         self.make_camera_models_details()
+        self.make_rig_models_details()
         self.add_page_break()
 
         self.make_gps_details()
