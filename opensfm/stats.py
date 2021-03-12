@@ -134,7 +134,7 @@ def _projection_error(data: DataSetBase, tracks_manager, reconstructions):
                     continue
                 average_error_normalized += norm_normalized
                 average_error_pixels += norm_pixels
-                all_errors_normalized.append(error_normalized)
+                all_errors_normalized.append(norm_normalized)
                 all_errors_pixels.append(norm_pixels)
 
     error_count = len(all_errors_normalized)
