@@ -131,6 +131,33 @@ class ReprojectionError2D : public ReprojectionError {
   }
 };
 
+class RigReprojectionError2D : public ReprojectionError {
+ public:
+  using ReprojectionError::ReprojectionError;
+  constexpr static int Size = 2;
+
+  template <typename T>
+  bool operator()(const T* const camera, const T* const rig_instance,
+                  const T* const rig_camera, const T* const point,
+                  T* residuals) const {
+    T instance_point[3];
+    WorldToCameraCoordinates(rig_instance, point, instance_point);
+
+    T camera_point[3];
+    WorldToCameraCoordinates(rig_camera, instance_point, camera_point);
+
+    // Apply camera projection
+    T predicted[2];
+    Dispatch<ProjectFunction>(type_, camera_point, camera, predicted);
+
+    // The error is the difference between the predicted and observed position
+    residuals[0] = T(scale_) * (predicted[0] - T(observed_[0]));
+    residuals[1] = T(scale_) * (predicted[1] - T(observed_[1]));
+
+    return true;
+  }
+};
+
 template <int C>
 class ReprojectionError2DAnalytic
     : public ReprojectionError,
@@ -175,29 +202,115 @@ class ReprojectionError2DAnalytic
       // We also take the opportunity to apply the scale
       double *jac_camera = jacobians[0], *jac_pose = jacobians[1],
              *jac_point = jacobians[2];
+
+      Eigen::Map<Eigen::Matrix<double, Size, StrideFull, Eigen::RowMajor>>
+          map_jac_big(jacobian);
+
       if (jac_point) {
-        for (int i = 0; i < Size; ++i) {
-          for (int j = 0; j < PointSize; ++j) {
-            jac_point[i * PointSize + j] =
-                scale_ * jacobian[i * StrideFull + j];
-          }
-        }
+        Eigen::Map<Eigen::Matrix<double, Size, PointSize, Eigen::RowMajor>>
+            map_jac_point(jac_point);
+        map_jac_point =
+            scale_ * map_jac_big.template block<Size, PointSize>(0, 0);
       }
       if (jac_pose) {
-        for (int i = 0; i < Size; ++i) {
-          for (int j = 0; j < PoseSize; ++j) {
-            jac_pose[i * PoseSize + j] =
-                scale_ * jacobian[i * StrideFull + PointSize + j];
-          }
-        }
+        Eigen::Map<Eigen::Matrix<double, Size, PoseSize, Eigen::RowMajor>>
+            map_jac_pose(jac_pose);
+        map_jac_pose =
+            scale_ * map_jac_big.template block<Size, PoseSize>(0, PointSize);
       }
       if (jac_camera) {
-        for (int i = 0; i < Size; ++i) {
-          for (int j = 0; j < CameraSize; ++j) {
-            jac_camera[i * CameraSize + j] =
-                scale_ * jacobian[i * StrideFull + PointSize + PoseSize + j];
-          }
-        }
+        Eigen::Map<Eigen::Matrix<double, Size, CameraSize, Eigen::RowMajor>>
+            map_jac_camera(jac_camera);
+        map_jac_camera = scale_ * map_jac_big.template block<Size, CameraSize>(
+                                      0, PointSize + PoseSize);
+      }
+    }
+
+    // The error is the difference between the predicted and observed position
+    for (int i = 0; i < Size; ++i) {
+      residuals[i] = scale_ * (predicted[i] - observed_[i]);
+    }
+    return true;
+  }
+};
+
+template <int C>
+class RigReprojectionError2DAnalytic
+    : public ReprojectionError,
+      public ceres::SizedCostFunction<2, C, 6, 6, 3> {
+ public:
+  using ReprojectionError::ReprojectionError;
+  constexpr static int Size = 2;
+
+  bool Evaluate(double const* const* parameters, double* residuals,
+                double** jacobians) const {
+    const double* camera = parameters[0];
+    const double* rig_instance = parameters[1];
+    const double* rig_camera = parameters[2];
+    const double* point = parameters[3];
+
+    constexpr int PointSize = 3;
+    double transformed[PointSize];
+    double predicted[Size];
+
+    /* Error only */
+    if (!jacobians) {
+      Pose::Forward(point, rig_instance, &transformed[0]);
+      Pose::Forward(&transformed[0], rig_camera, &transformed[0]);
+      Dispatch<ProjectFunction>(type_, transformed, camera, predicted);
+    } /* Jacobian + Error */
+    else {
+      constexpr int CameraSize = C;
+      constexpr int PoseSize = 6;
+
+      double all_params[PoseSize + PoseSize + CameraSize];
+      for (int i = 0; i < PoseSize; ++i) {
+        all_params[i] = rig_instance[i];
+      }
+      for (int i = 0; i < PoseSize; ++i) {
+        all_params[PoseSize + i] = rig_camera[i];
+      }
+      for (int i = 0; i < CameraSize; ++i) {
+        all_params[2 * PoseSize + i] = camera[i];
+      }
+
+      constexpr int StrideFull = PointSize + CameraSize + 2 * PoseSize;
+      double jacobian[Size * StrideFull];
+      Dispatch<ProjectRigPoseDerivatives>(type_, point, &all_params[0],
+                                          &predicted[0], &jacobian[0]);
+
+      // Unfold big jacobian stored as | point | jac_rig_instance |
+      // jac_rig_camera | camera | per block We also take the opportunity to
+      // apply the scale
+      double *jac_camera = jacobians[0], *jac_rig_instance = jacobians[1],
+             *jac_rig_camera = jacobians[2], *jac_point = jacobians[3];
+      Eigen::Map<Eigen::Matrix<double, Size, StrideFull, Eigen::RowMajor>>
+          map_jac_big(jacobian);
+
+      if (jac_point) {
+        Eigen::Map<Eigen::Matrix<double, Size, PointSize, Eigen::RowMajor>>
+            map_jac_point(jac_point);
+        map_jac_point =
+            scale_ * map_jac_big.template block<Size, PointSize>(0, 0);
+      }
+      if (jac_rig_instance) {
+        Eigen::Map<Eigen::Matrix<double, Size, PoseSize, Eigen::RowMajor>>
+            map_jac_rig_instance(jac_rig_instance);
+        map_jac_rig_instance =
+            scale_ * map_jac_big.template block<Size, PoseSize>(0, PointSize);
+      }
+      if (jac_rig_camera) {
+        Eigen::Map<Eigen::Matrix<double, Size, PoseSize, Eigen::RowMajor>>
+            map_jac_rig_camera(jac_rig_camera);
+        map_jac_rig_camera =
+            scale_ *
+            map_jac_big.template block<Size, PoseSize>(0, PointSize + PoseSize);
+      }
+      if (jac_camera) {
+        Eigen::Map<Eigen::Matrix<double, Size, CameraSize, Eigen::RowMajor>>
+            map_jac_camera(jac_camera);
+        map_jac_camera = scale_ * map_jac_big.template block<Size, CameraSize>(
+                                      0, PointSize + 2 * PoseSize);
       }
     }
 
@@ -272,26 +385,25 @@ class ReprojectionError3DAnalytic
       // We also take the opportunity to apply the scale
       double *jac_camera = jacobians[0], *jac_pose = jacobians[1],
              *jac_point = jacobians[2];
+
+      Eigen::Map<Eigen::Matrix<double, Size, StrideFull, Eigen::RowMajor>>
+          map_jac_big(jacobian);
       if (jac_camera) {
         for (int i = 0; i < Size; ++i) {
           jac_camera[i] = 0.;
         }
       }
       if (jac_point) {
-        for (int i = 0; i < Size; ++i) {
-          for (int j = 0; j < PointSize; ++j) {
-            jac_point[i * PointSize + j] =
-                scale_ * jacobian[i * StrideFull + j];
-          }
-        }
+        Eigen::Map<Eigen::Matrix<double, Size, PointSize, Eigen::RowMajor>>
+            map_jac_point(jac_point);
+        map_jac_point =
+            scale_ * map_jac_big.template block<Size, PointSize>(0, 0);
       }
       if (jac_pose) {
-        for (int i = 0; i < Size; ++i) {
-          for (int j = 0; j < PoseSize; ++j) {
-            jac_pose[i * PoseSize + j] =
-                scale_ * jacobian[i * StrideFull + PointSize + j];
-          }
-        }
+        Eigen::Map<Eigen::Matrix<double, Size, PoseSize, Eigen::RowMajor>>
+            map_jac_pose(jac_pose);
+        map_jac_pose =
+            scale_ * map_jac_big.template block<Size, PoseSize>(0, PointSize);
       }
     }
 

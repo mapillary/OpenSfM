@@ -1284,6 +1284,15 @@ struct ProjectPoseDerivatives {
   }
 };
 
+struct ProjectRigPoseDerivatives {
+  template <class TYPE, class T>
+  static void Apply(const T* point, const T* parameters, T* projected,
+                    T* jacobian) {
+    ComposeForwardDerivatives<T, TYPE, Pose, Pose>(point, parameters, projected,
+                                                   jacobian);
+  }
+};
+
 struct PoseNormalizedDerivatives {
   template <class TYPE, class T>
   static void Apply(const T* point, const T* parameters, T* projected,
