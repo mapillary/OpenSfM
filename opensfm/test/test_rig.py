@@ -201,9 +201,17 @@ def test_compute_relative_pose() -> None:
     ]
 
     # Compute rig model poses
-    rig_model = rig.compute_relative_pose(pose_instances)
+    rig_model = rig.compute_relative_pose("dummy", pose_instances)
 
-    assert np.allclose([0, -1, 0], rig_model["camera_id_1"][0].get_origin(), atol=1e-7)
-    assert np.allclose([1, 0, 0], rig_model["camera_id_2"][0].get_origin(), atol=1e-7)
-    assert np.allclose([-1, 0, 0], rig_model["camera_id_3"][0].get_origin(), atol=1e-7)
-    assert np.allclose([0, 1, 0], rig_model["camera_id_4"][0].get_origin(), atol=1e-7)
+    assert np.allclose(
+        [0, -1, 0], rig_model.get_rig_camera("camera_id_1").pose.get_origin(), atol=1e-7
+    )
+    assert np.allclose(
+        [1, 0, 0], rig_model.get_rig_camera("camera_id_2").pose.get_origin(), atol=1e-7
+    )
+    assert np.allclose(
+        [-1, 0, 0], rig_model.get_rig_camera("camera_id_3").pose.get_origin(), atol=1e-7
+    )
+    assert np.allclose(
+        [0, 1, 0], rig_model.get_rig_camera("camera_id_4").pose.get_origin(), atol=1e-7
+    )

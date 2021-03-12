@@ -40,7 +40,7 @@ def _reconstruction_from_rigs_and_assignments(data: DataSetBase):
 
     reconstructions = []
     for rig_id, instances in assignments.items():
-        rig_cameras = models[rig_id]["rig_cameras"]
+        rig_cameras = models[rig_id].get_rig_cameras()
 
         reconstruction = types.Reconstruction()
         reconstruction.cameras = data.load_camera_models()
@@ -51,13 +51,9 @@ def _reconstruction_from_rigs_and_assignments(data: DataSetBase):
                 rig_pose.set_origin(
                     orec.get_image_metadata(data, image).gps_position.value
                 )
-                rig_camera_pose = pygeometry.Pose(
-                    rig_camera["rotation"], rig_camera["translation"]
-                )
-
                 d = data.load_exif(image)
                 shot = reconstruction.create_shot(image, d["camera"])
-                shot.pose = rig_camera_pose.compose(rig_pose)
+                shot.pose = rig_camera.pose.compose(rig_pose)
                 shot.metadata = orec.get_image_metadata(data, image)
 
         reconstructions.append(reconstruction)
