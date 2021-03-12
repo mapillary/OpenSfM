@@ -97,6 +97,19 @@ TEST_F(SharedRigInstanceWithShotsFixture, MakesShotInRig) {
   ASSERT_TRUE(shot_instance1.IsInRig());
 }
 
+TEST_F(SharedRigInstanceWithShotsFixture, MakesShotReturnsRigCamera) {
+  ASSERT_EQ(rig_camera_id, shot_instance1.GetRigCameraId());
+}
+
+TEST_F(SharedRigInstanceWithShotsFixture, MakesShotReturnsRigModel) {
+  ASSERT_EQ(id_model, shot_instance1.GetRigModelId());
+}
+
+TEST_F(SharedRigInstanceWithShotsFixture, MakesShotReturnsRigInstance) {
+  ASSERT_EQ(1, shot_instance1.GetRigInstanceId());
+  ASSERT_EQ(2, shot_instance2.GetRigInstanceId());
+}
+
 TEST_F(SharedRigInstanceWithShotsFixture, MakesShotThrowWhenSettingPose) {
   ASSERT_THROW(shot_instance1.SetPose(geometry::Pose()), std::runtime_error);
 }

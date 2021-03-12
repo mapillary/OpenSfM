@@ -347,10 +347,6 @@ RigModel& Map::GetRigModel(const RigModelId& rig_model_id) {
   return it->second;
 }
 
-const std::unordered_map<RigModelId, RigModel>& Map::GetRigModels() const {
-  return rig_models_;
-}
-
 bool Map::HasRigModel(const RigModelId& rig_model_id) const {
   return rig_models_.find(rig_model_id) != rig_models_.end();
 }
@@ -360,14 +356,9 @@ size_t Map::NumberOfRigInstances() const { return rig_instances_.size(); }
 RigInstance& Map::GetRigInstance(const RigInstanceId& instance_id) {
   const auto& it = rig_instances_.find(instance_id);
   if (it == rig_instances_.end()) {
-    throw std::runtime_error("Accessing invalid RIGInstance index");
+    throw std::runtime_error("Accessing invalid RigInstance index");
   }
   return it->second;
-}
-
-const std::unordered_map<RigInstanceId, RigInstance>& Map::GetRigInstances()
-    const {
-  return rig_instances_;
 }
 
 bool Map::HasRigInstance(const RigInstanceId& instance_id) const {

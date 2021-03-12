@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <numeric>
+#include <stdexcept>
 namespace map {
 
 Shot::Shot(const ShotId& shot_id, const Camera* const shot_camera,
@@ -25,6 +26,27 @@ void Shot::SetRig(const RigInstance* rig_instance,
   rig_instance_.SetValue(rig_instance);
   rig_camera_.SetValue(rig_camera);
   pose_ = std::make_unique<geometry::PoseImmutable>(*pose_);
+}
+
+RigInstanceId Shot::GetRigInstanceId() const {
+  if (!IsInRig()) {
+    throw std::runtime_error("Shot " + id_ + " is not in a Rig.");
+  }
+  return rig_instance_.Value()->id;
+}
+
+RigCameraId Shot::GetRigCameraId() const {
+  if (!IsInRig()) {
+    throw std::runtime_error("Shot " + id_ + " is not in a Rig.");
+  }
+  return rig_camera_.Value()->id;
+}
+
+RigModelId Shot::GetRigModelId() const {
+  if (!IsInRig()) {
+    throw std::runtime_error("Shot " + id_ + " is not in a Rig.");
+  }
+  return rig_instance_.Value()->GetRigModel()->id;
 }
 
 void ShotMeasurements::Set(const ShotMeasurements& other) {

@@ -53,6 +53,9 @@ class Shot {
     return (rig_instance_.HasValue() || rig_camera_.HasValue());
   }
   void SetRig(const RigInstance* rig_instance, const RigCamera* rig_camera);
+  RigInstanceId GetRigInstanceId() const;
+  RigCameraId GetRigCameraId() const;
+  RigModelId GetRigModelId() const;
 
   // Pose
   void SetPose(const geometry::Pose& pose);

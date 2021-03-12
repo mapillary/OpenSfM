@@ -47,6 +47,12 @@ struct RigModel {
   }
   RigCamera& GetRigCamera(const map::RigCameraId& rig_camera_id);
   const RigCamera& GetRigCamera(const map::RigCameraId& rig_camera_id) const;
+  const std::unordered_map<map::RigCameraId, RigCamera>& GetRigCameras() const {
+    return rig_cameras_;
+  }
+  std::unordered_map<map::RigCameraId, RigCamera>& GetRigCameras() {
+    return rig_cameras_;
+  }
 
  private:
   // RigCameras that constitues that rig
@@ -71,6 +77,7 @@ class RigInstance {
   }
   std::unordered_map<map::ShotId, map::Shot*>& GetShots() { return shots_; }
   RigModel* GetRigModel() { return rig_model_; }
+  const RigModel* GetRigModel() const { return rig_model_; }
   std::set<map::ShotId> GetShotIDs() const;
   std::unordered_map<map::ShotId, map::RigCameraId> GetShotRigCameraIDs()
       const {

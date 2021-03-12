@@ -147,6 +147,10 @@ PYBIND11_MODULE(pymap, m) {
                     &map::Shot::SetCovariance)
       .def_readwrite("merge_cc", &map::Shot::merge_cc)
       .def_readwrite("scale", &map::Shot::scale)
+      .def("is_in_rig", &map::Shot::IsInRig)
+      .def_property_readonly("rig_instance_id", &map::Shot::GetRigInstanceId)
+      .def_property_readonly("rig_camera_id", &map::Shot::GetRigCameraId)
+      .def_property_readonly("rig_model_id", &map::Shot::GetRigModelId)
       .def("get_observation", &map::Shot::GetObservation,
            py::return_value_policy::reference_internal)
       .def("get_valid_landmarks", &map::Shot::ComputeValidLandmarks,
@@ -210,6 +214,9 @@ PYBIND11_MODULE(pymap, m) {
       .def("get_rig_camera",
            py::overload_cast<const map::RigCameraId &>(
                &map::RigModel::GetRigCamera),
+           py::return_value_policy::reference_internal)
+      .def("get_rig_cameras",
+           py::overload_cast<>(&map::RigModel::GetRigCameras),
            py::return_value_policy::reference_internal);
 
   py::class_<map::RigInstance>(m, "RigInstance")
@@ -218,10 +225,13 @@ PYBIND11_MODULE(pymap, m) {
       .def_property_readonly("shots",
                              py::overload_cast<>(&map::RigInstance::GetShots),
                              py::return_value_policy::reference_internal)
-      .def_property_readonly("rig_model", &map::RigInstance::GetRigModel,
-                             py::return_value_policy::reference_internal)
+      .def_property_readonly("camera_ids",
+                             &map::RigInstance::GetShotRigCameraIDs)
+      .def_property_readonly(
+          "rig_model",
+          py::overload_cast<>(&map::RigInstance::GetRigModel, py::const_),
+          py::return_value_policy::reference_internal)
       .def("keys", &map::RigInstance::GetShotIDs)
-      .def("camera_ids", &map::RigInstance::GetShotRigCameraIDs)
       .def_property("pose", py::overload_cast<>(&map::RigInstance::GetPose),
                     &map::RigInstance::SetPose,
                     py::return_value_policy::reference_internal)

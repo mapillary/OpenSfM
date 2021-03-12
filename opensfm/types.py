@@ -51,7 +51,7 @@ class Reconstruction(object):
 
     def set_rig_models(self, values):
         for rig_model in values.values():
-            self.create_rig_model(rig_model)
+            self.map.create_rig_model(rig_model)
 
     rig_models = property(get_rig_models, set_rig_models)
 
@@ -142,7 +142,7 @@ class Reconstruction(object):
 
         if rig_instance.id not in self.rig_instances:
             self.map.create_rig_instance(
-                rig_instance.rig_model, rig_instance.id, rig_instance.camera_ids()
+                rig_instance.rig_model, rig_instance.id, rig_instance.camera_ids
             )
         return self.map.update_rig_instance(rig_instance)
 

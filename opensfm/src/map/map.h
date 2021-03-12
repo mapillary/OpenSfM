@@ -96,12 +96,23 @@ class Map {
   // Getters
   size_t NumberOfRigModels() const;
   RigModel& GetRigModel(const RigModelId& cam_id);
-  const std::unordered_map<RigModelId, RigModel>& GetRigModels() const;
+  const std::unordered_map<RigModelId, RigModel>& GetRigModels() const {
+    return rig_models_;
+  }
+  std::unordered_map<RigModelId, RigModel>& GetRigModels() {
+    return rig_models_;
+  }
   bool HasRigModel(const RigModelId& cam_id) const;
 
   size_t NumberOfRigInstances() const;
   RigInstance& GetRigInstance(const RigInstanceId& instance_id);
-  const std::unordered_map<RigInstanceId, RigInstance>& GetRigInstances() const;
+  const std::unordered_map<RigInstanceId, RigInstance>& GetRigInstances()
+      const {
+    return rig_instances_;
+  }
+  std::unordered_map<RigInstanceId, RigInstance>& GetRigInstances() {
+    return rig_instances_;
+  }
   bool HasRigInstance(const RigInstanceId& instance_id) const;
 
   // Landmark
