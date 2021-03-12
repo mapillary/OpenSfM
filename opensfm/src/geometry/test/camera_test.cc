@@ -1,12 +1,9 @@
-#include <ceres/jet.h>
-#include <ceres/rotation.h>
 #include <geometry/camera.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <Eigen/Dense>
 #include <random>
-#include <unsupported/Eigen/AutoDiff>
 
 class CameraFixture : public ::testing::Test {
  public:
@@ -32,10 +29,6 @@ class CameraFixture : public ::testing::Test {
         -0.01;
     distortion_radial << 0.1, 0.03;
     principal_point << 0.1, -0.05;
-
-    for (int i = 0; i < 3; ++i) {
-      point_adiff[i].value() = point[i] = (i + 1) / 10.0;
-    }
   }
 
   double ComputeError(const MatX2d& other) {
@@ -44,43 +37,6 @@ class CameraFixture : public ::testing::Test {
       error += (other.row(i) - pixels.row(i)).norm();
     }
     return error / pixels_count;
-  }
-
-  template <class MAT>
-  void RunJacobianEval(const Camera& camera, ProjectionType projection,
-                       MAT* jacobian) {
-    const VecXd camera_params = camera.GetParametersValues();
-    const int size_params = 3 + camera_params.size();
-
-    // Prepare Eigen's Autodiff structures
-    for (int i = 0; i < 3; ++i) {
-      point_adiff[i].derivatives() = VecXd::Unit(size_params, i);
-    }
-    camera_adiff.resize(camera_params.size());
-    for (int i = 0; i < camera_params.size(); ++i) {
-      camera_adiff(i).value() = camera_params(i);
-      camera_adiff(i).derivatives() = VecXd::Unit(size_params, 3 + i);
-    }
-
-    // Run project with Autodiff types to get expected jacobian
-    Dispatch<ProjectFunction>(projection, point_adiff, camera_adiff.data(),
-                              projection_expected);
-
-    // Analytical derivatives
-    Dispatch<ProjectDerivativesFunction>(
-        projection, point, camera_params.data(), projected, jacobian->data());
-  }
-
-  template <class MAT>
-  void CheckJacobian(const MAT& jacobian, int size_params) {
-    const double eps = 1e-12;
-    for (int i = 0; i < 2; ++i) {
-      for (int j = 0; j < size_params; ++j) {
-        ASSERT_NEAR(projection_expected[i].derivatives()(j), jacobian(i, j),
-                    eps);
-      }
-      ASSERT_NEAR(projection_expected[i].value(), projected[i], eps);
-    }
   }
 
   const int pixels_count{10000};
@@ -102,11 +58,6 @@ class CameraFixture : public ::testing::Test {
   Vec2d principal_point;
 
   double point[3];
-  typedef Eigen::AutoDiffScalar<VecXd> AScalar;
-  AScalar point_adiff[3];
-  VecX<AScalar> camera_adiff;
-
-  AScalar projection_expected[2];
   double projected[2];
 };
 
@@ -436,111 +387,6 @@ TEST_F(CameraFixture, BrownReturnCorrectKScaled) {
       camera.GetProjectionMatrixScaled(pixel_width, pixel_height)));
 }
 
-TEST_F(CameraFixture, ComputePerspectiveAnalyticalDerivatives) {
-  const Camera camera = Camera::CreatePerspectiveCamera(focal, -0.1, 0.01);
-
-  const VecXd camera_params = camera.GetParametersValues();
-  const int size_params = 3 + camera_params.size();
-
-  Eigen::Matrix<double, 2, 6, Eigen::RowMajor> jacobian;
-  RunJacobianEval(camera, ProjectionType::PERSPECTIVE, &jacobian);
-  CheckJacobian(jacobian, size_params);
-}
-
-TEST_F(CameraFixture, ComputeFisheyeAnalyticalDerivatives) {
-  const Camera camera = Camera::CreateFisheyeCamera(focal, -0.1, 0.01);
-
-  const VecXd camera_params = camera.GetParametersValues();
-  const int size_params = 3 + camera_params.size();
-
-  Eigen::Matrix<double, 2, 6, Eigen::RowMajor> jacobian;
-  RunJacobianEval(camera, ProjectionType::FISHEYE, &jacobian);
-  CheckJacobian(jacobian, size_params);
-}
-
-TEST_F(CameraFixture, ComputeFisheyeOpencvAnalyticalDerivatives) {
-  const Camera camera = Camera::CreateFisheyeOpencvCamera(
-      focal, new_ar, principal_point, distortion_fisheye);
-
-  const VecXd camera_params = camera.GetParametersValues();
-  const int size_params = 3 + camera_params.size();
-
-  Eigen::Matrix<double, 2, 11, Eigen::RowMajor> jacobian;
-  RunJacobianEval(camera, ProjectionType::FISHEYE_OPENCV, &jacobian);
-  CheckJacobian(jacobian, size_params);
-}
-
-TEST_F(CameraFixture, ComputeFisheye62AnalyticalDerivatives) {
-  const Camera camera = Camera::CreateFisheye62Camera(
-      focal, 1.0, principal_point, distortion_fisheye62);
-
-  const VecXd camera_params = camera.GetParametersValues();
-  const int size_params = 3 + camera_params.size();
-
-  Eigen::Matrix<double, 2, 15, Eigen::RowMajor> jacobian;
-  RunJacobianEval(camera, ProjectionType::FISHEYE62, &jacobian);
-  CheckJacobian(jacobian, size_params);
-}
-
-TEST_F(CameraFixture, ComputeRadialAnalyticalDerivatives) {
-  const Camera camera = Camera::CreateRadialCamera(focal, 1.0, principal_point,
-                                                   distortion_radial);
-
-  const VecXd camera_params = camera.GetParametersValues();
-  const int size_params = 3 + camera_params.size();
-
-  Eigen::Matrix<double, 2, 9, Eigen::RowMajor> jacobian;
-  RunJacobianEval(camera, ProjectionType::RADIAL, &jacobian);
-  CheckJacobian(jacobian, size_params);
-}
-
-TEST_F(CameraFixture, ComputeSimpleRadialAnalyticalDerivatives) {
-  const Camera camera = Camera::CreateSimpleRadialCamera(
-      focal, 1.0, principal_point, distortion_radial[0]);
-
-  const VecXd camera_params = camera.GetParametersValues();
-  const int size_params = 3 + camera_params.size();
-
-  Eigen::Matrix<double, 2, 8, Eigen::RowMajor> jacobian;
-  RunJacobianEval(camera, ProjectionType::SIMPLE_RADIAL, &jacobian);
-  CheckJacobian(jacobian, size_params);
-}
-
-TEST_F(CameraFixture, ComputeBrownAnalyticalDerivatives) {
-  const Camera camera = Camera::CreateBrownCamera(
-      focal, new_ar, principal_point, distortion_brown);
-
-  const VecXd camera_params = camera.GetParametersValues();
-  const int size_params = 3 + camera_params.size();
-
-  Eigen::Matrix<double, 2, 12, Eigen::RowMajor> jacobian;
-  RunJacobianEval(camera, ProjectionType::BROWN, &jacobian);
-  CheckJacobian(jacobian, size_params);
-}
-
-TEST_F(CameraFixture, ComputeSphericalAnalyticalDerivatives) {
-  const Camera camera = Camera::CreateSphericalCamera();
-
-  const VecXd camera_params = camera.GetParametersValues();
-  const int size_params = 3;
-
-  Eigen::Matrix<double, 2, 3, Eigen::RowMajor> jacobian;
-  RunJacobianEval(camera, ProjectionType::SPHERICAL, &jacobian);
-  CheckJacobian(jacobian, size_params);
-}
-
-TEST_F(CameraFixture, ComputeDualAnalyticalDerivatives) {
-  const Camera camera = Camera::Camera::CreateDualCamera(
-      0.5, focal, distortion[0], distortion[1]);
-
-  const VecXd camera_params = camera.GetParametersValues();
-  const int size_params = 3 + camera_params.size();
-
-  Eigen::Matrix<double, 2, 7, Eigen::RowMajor> jacobian;
-  RunJacobianEval(camera, ProjectionType::DUAL, &jacobian);
-  CheckJacobian(jacobian, size_params);
-}
-
 TEST_F(CameraFixture, FisheyeOpencvAsFisheye62) {
   Eigen::Matrix<double, 8, 1> dist_62;
   dist_62 << distortion_fisheye[0], distortion_fisheye[1],
@@ -569,192 +415,6 @@ TEST_F(CameraFixture, SimpleRadialAsRadial) {
   const auto proj1 = cam_simple.ProjectMany(bear1);
   const auto proj2 = cam_radial.ProjectMany(bear2);
   ASSERT_TRUE(proj1.isApprox(proj2, 1e-6));
-}
-
-class FunctionFixture : public ::testing::Test {
- public:
-  /* Evaluates the following function :
-   *
-   * f = a * exp( b - c * log( d * (e/x - f)^2 ) )
-   *
-   * Decomposed as follows :
-   *
-   * f1 = a * exp(x)
-   * f2 = b - c * log(x)
-   * f3 = d * x^2
-   * f4 = e/x - f
-   * f = f1(f2(f3(f4))) */
-
-  struct F1 : public CameraFunctor<1, 1, 1> {
-    template <class T>
-    static void Apply(const T* in, const T* p, T* out) {
-      out[0] = p[0] * exp(in[0]);
-    }
-    template <class T, bool COMP_PARAM>
-    static void ForwardDerivatives(const T* in, const T* p, T* out,
-                                   T* jacobian) {
-      jacobian[0] = p[0] * exp(in[0]);
-      if (COMP_PARAM) {
-        jacobian[1] = exp(in[0]);
-      }
-      Apply(in, p, out);
-    }
-  };
-  struct F2 : public CameraFunctor<1, 2, 1> {
-    template <class T>
-    static void Apply(const T* in, const T* p, T* out) {
-      out[0] = p[0] - p[1] * log(in[0]);
-    }
-    template <class T, bool COMP_PARAM>
-    static void ForwardDerivatives(const T* in, const T* p, T* out,
-                                   T* jacobian) {
-      jacobian[0] = -p[1] / in[0];
-      if (COMP_PARAM) {
-        jacobian[1] = T(1.0);
-        jacobian[2] = -log(in[0]);
-      }
-      Apply(in, p, out);
-    }
-  };
-  struct F3 : public CameraFunctor<1, 1, 1> {
-    template <class T>
-    static void Apply(const T* in, const T* p, T* out) {
-      out[0] = p[0] * in[0] * in[0];
-    }
-    template <class T, bool COMP_PARAM>
-    static void ForwardDerivatives(const T* in, const T* p, T* out,
-                                   T* jacobian) {
-      jacobian[0] = T(2.0) * p[0] * in[0];
-      if (COMP_PARAM) {
-        jacobian[1] = in[0] * in[0];
-      }
-      Apply(in, p, out);
-    }
-  };
-  struct F4 : public CameraFunctor<1, 2, 1> {
-    template <class T>
-    static void Apply(const T* in, const T* p, T* out) {
-      out[0] = p[0] / in[0] - p[1];
-    }
-    template <class T, bool COMP_PARAM>
-    static void ForwardDerivatives(const T* in, const T* p, T* out,
-                                   T* jacobian) {
-      jacobian[0] = -p[0] / (in[0] * in[0]);
-      if (COMP_PARAM) {
-        jacobian[1] = T(1.0) / in[0];
-        jacobian[2] = -T(1.0);
-      }
-      Apply(in, p, out);
-    }
-  };
-};
-
-TEST_F(FunctionFixture, EvaluatesCorrectly) {
-  double in[] = {1.0};
-
-  /* Parameters needs to be stored in the order of evaluation :
-   * params f4 |params f3 | params f2 | params f1 */
-  double parameters[] = {4.0, 2.0, 3.0, 1.0, 2.0, 3.0};
-  double evaluated = 0;
-  ComposeFunctions<double, F1, F2, F3, F4>(in, parameters, &evaluated);
-
-  const double expected =
-      3.0 * exp(1.0 - 2.0 * log(3.0 * std::pow(4.0 / in[0] - 2.0, 2)));
-  ASSERT_NEAR(expected, evaluated, 1e-20);
-}
-
-TEST_F(FunctionFixture, EvaluatesDerivativesCorrectly) {
-  double in[] = {1.0};
-
-  /* Parameters needs to be stored in the order of evaluation :
-   * params f4 |params f3 | params f2 | params f1 */
-  double parameters[] = {4.0, 2.0, 3.0, 1.0, 2.0, 3.0};
-  double evaluated = 0;
-  double jacobian[7];
-  ComposeForwardDerivatives<double, F1, F2, F3, F4>(in, parameters, &evaluated,
-                                                    &jacobian[0]);
-
-  const double expected =
-      3.0 * exp(1.0 - 2.0 * log(3.0 * std::pow(4.0 / in[0] - 2.0, 2)));
-  ASSERT_NEAR(expected, evaluated, 1e-20);
-
-  /* Jacobian ordering : d_input | d_parameters */
-  typedef Eigen::AutoDiffScalar<VecXd> AScalar;
-  VecX<AScalar> eval_adiff(1);
-  eval_adiff(0).value() = in[0];
-  eval_adiff(0).derivatives() = VecXd::Unit(7, 0);
-  VecX<AScalar> parameters_adiff(6);
-  for (int i = 0; i < 6; ++i) {
-    parameters_adiff[i].value() = parameters[i];
-    parameters_adiff[i].derivatives() = VecXd::Unit(7, i + 1);
-  }
-
-  AScalar evaluated_addif;
-  ComposeFunctions<AScalar, F1, F2, F3, F4>(
-      eval_adiff.data(), parameters_adiff.data(), &evaluated_addif);
-  for (int i = 0; i < 7; ++i) {
-    ASSERT_NEAR(evaluated_addif.derivatives()(i), jacobian[i], 1e-20);
-  }
-}
-
-class PoseFixture : public ::testing::Test {
- public:
-  const double point[3] = {1.0, 2.0, 3.0};
-  const double rt[6] = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6};
-};
-
-TEST_F(PoseFixture, EvaluatesCorrectly) {
-  double transformed[3] = {0., 0., 0.};
-
-  /* Parameters order : angle_axis | pose_center */
-  Pose::Forward(point, rt, transformed);
-
-  /* Use Ceres as groundtruth */
-  const double pt[3] = {
-      point[0] - rt[Pose::Tx],
-      point[1] - rt[Pose::Ty],
-      point[2] - rt[Pose::Tz],
-  };
-  const double Rt[3] = {-rt[Pose::Rx], -rt[Pose::Ry], -rt[Pose::Rz]};
-  double expected[] = {1., 1., 1.};
-  ceres::AngleAxisRotatePoint(Rt, pt, expected);
-
-  for (int i = 0; i < 3; ++i) {
-    ASSERT_NEAR(expected[i], transformed[i], 1e-15);
-  }
-}
-
-TEST_F(PoseFixture, EvaluatesDerivativesCorrectly) {
-  typedef Eigen::AutoDiffScalar<VecXd> AScalar;
-
-  VecX<AScalar> point_adiff(3);
-  constexpr int size = 9;
-
-  /* Autodifferentaied as a reference */
-  for (int i = 0; i < 3; ++i) {
-    point_adiff(i).value() = point[i];
-    point_adiff(i).derivatives() = VecXd::Unit(size, i);
-  }
-  VecX<AScalar> rt_adiff(6);
-  for (int i = 0; i < 6; ++i) {
-    rt_adiff[i].value() = rt[i];
-    rt_adiff[i].derivatives() = VecXd::Unit(size, 3 + i);
-  }
-  VecX<AScalar> expected_adiff(3);
-  Pose::Forward(point_adiff.data(), rt_adiff.data(), expected_adiff.data());
-
-  /* Analytic version */
-  double transformed[] = {0., 0., 0.};
-  double jacobian[size * 3];
-  Pose::ForwardDerivatives<double, true>(&point[0], &rt[0], &transformed[0],
-                                         &jacobian[0]);
-
-  for (int i = 0; i < 3; ++i) {
-    for (int j = 0; j < size; ++j) {
-      ASSERT_NEAR(expected_adiff(i).derivatives()(j), jacobian[i * size + j],
-                  1e-15);
-    }
-  }
 }
 
 TEST(Camera, TestPixelNormalizedCoordinatesConversion) {

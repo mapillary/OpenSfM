@@ -42,32 +42,36 @@ struct CameraFunctor {
  *
  *     (f o g) = d(f o g)/d(x | b | a).
  */
-template <class T, int OutSize1, int Stride1, int ParamSize1, int OutSize2,
-          int Stride2, int ParamSize2>
+template <class T, bool DERIV_PARAMS, int OutSize1, int Stride1, int ParamSize1,
+          int OutSize2, int Stride2, int ParamSize2>
 void ComposeDerivatives(
     const Eigen::Matrix<T, OutSize1, Stride1, Eigen::RowMajor>& jacobian1,
     const Eigen::Matrix<T, OutSize2, Stride2, Eigen::RowMajor>& jacobian2,
     T* jacobian) {
-  Eigen::Map<Eigen::Matrix<T, OutSize2, Stride1 + ParamSize2, Eigen::RowMajor>>
+  Eigen::Map<Eigen::Matrix<T, OutSize2, Stride1 + DERIV_PARAMS * ParamSize2,
+                           Eigen::RowMajor>>
       jacobian_mapped(jacobian);
   jacobian_mapped.template block<OutSize2, Stride1>(0, 0) =
       jacobian2.template block<OutSize2, OutSize1>(0, 0) * jacobian1;
-  jacobian_mapped.template block<OutSize2, ParamSize2>(0, Stride1) =
-      jacobian2.template block<OutSize2, ParamSize2>(0, OutSize1);
+  if (DERIV_PARAMS) {
+    jacobian_mapped.template block<OutSize2, ParamSize2>(0, Stride1) =
+        jacobian2.template block<OutSize2, ParamSize2>(0, OutSize1);
+  }
 }
 
 /* Below are some utilities to generalize computation of functions (or their
  * jacobian) of composition of functions f(g(h(i ... ))). Most of the
  * implementation consists in recursing variadic template arguments. Usage is
  * then summarized as : ComposeForwardDerivatives<Func1, Func2, ... FuncN>() */
-template <class FUNC>
+template <bool DERIV_PARAMS, class FUNC>
 static constexpr int ComposeStrides() {
-  return FUNC::template Stride<true>();
+  return FUNC::template Stride<DERIV_PARAMS>();
 }
 
-template <class FUNC1, class FUNC2, class... FUNCS>
+template <bool DERIV_PARAMS, class FUNC1, class FUNC2, class... FUNCS>
 static constexpr int ComposeStrides() {
-  return FUNC1::ParamSize + ComposeStrides<FUNC2, FUNCS...>();
+  return DERIV_PARAMS * FUNC1::ParamSize +
+         ComposeStrides<DERIV_PARAMS, FUNC2, FUNCS...>();
 }
 
 template <class FUNC>
@@ -80,31 +84,33 @@ static constexpr int ComposeIndex() {
   return FUNC1::ParamSize + ComposeIndex<FUNC2, FUNCS...>();
 }
 
-template <class T, class FUNC>
+template <class T, bool DERIV_PARAMS, class FUNC>
 static void ComposeForwardDerivatives(const T* in, const T* parameters, T* out,
                                       T* jacobian) {
-  FUNC::template ForwardDerivatives<T, true>(in, parameters, out, jacobian);
+  FUNC::template ForwardDerivatives<T, DERIV_PARAMS>(in, parameters, out,
+                                                     jacobian);
 }
 
-template <class T, class FUNC1, class FUNC2, class... FUNCS>
+template <class T, bool DERIV_PARAMS, class FUNC1, class FUNC2, class... FUNCS>
 static void ComposeForwardDerivatives(const T* in, const T* parameters, T* out,
                                       T* jacobian) {
-  constexpr int StrideSub = ComposeStrides<FUNC2, FUNCS...>();
+  constexpr int StrideSub = ComposeStrides<DERIV_PARAMS, FUNC2, FUNCS...>();
   Eigen::Matrix<T, FUNC2::OutSize, StrideSub, Eigen::RowMajor> sub_jacobian;
   T tmp[FUNC2::OutSize];
-  ComposeForwardDerivatives<T, FUNC2, FUNCS...>(in, parameters, &tmp[0],
-                                                sub_jacobian.data());
+  ComposeForwardDerivatives<T, DERIV_PARAMS, FUNC2, FUNCS...>(
+      in, parameters, &tmp[0], sub_jacobian.data());
 
   constexpr int Index = ComposeIndex<FUNC2, FUNCS...>();
-  constexpr int StrideFunc1 = FUNC1::template Stride<true>();
+  constexpr int StrideFunc1 = FUNC1::template Stride<DERIV_PARAMS>();
   Eigen::Matrix<T, FUNC1::OutSize, StrideFunc1, Eigen::RowMajor>
       current_jacobian;
-  FUNC1::template ForwardDerivatives<T, true>(&tmp[0], parameters + Index, out,
-                                              current_jacobian.data());
+  FUNC1::template ForwardDerivatives<T, DERIV_PARAMS>(
+      &tmp[0], parameters + Index, out, current_jacobian.data());
 
-  ComposeDerivatives<T, FUNC2::OutSize, StrideSub, FUNC2::ParamSize,
-                     FUNC1::OutSize, StrideFunc1, FUNC1::ParamSize>(
-      sub_jacobian, current_jacobian, jacobian);
+  ComposeDerivatives<T, DERIV_PARAMS, FUNC2::OutSize, StrideSub,
+                     FUNC2::ParamSize, FUNC1::OutSize, StrideFunc1,
+                     FUNC1::ParamSize>(sub_jacobian, current_jacobian,
+                                       jacobian);
 }
 
 template <class T, class FUNC>
@@ -131,11 +137,11 @@ struct FisheyeProjection : CameraFunctor<3, 0, 2> {
     projected[1] = theta / r * point[1];
   }
 
-  template <class T, bool COMP_PARAM>
+  template <class T, bool DERIV_PARAMS>
   static void ForwardDerivatives(const T* point, const T* /* p */, T* projected,
                                  T* jacobian) {
     // dx, dy, dz
-    constexpr int stride = Stride<COMP_PARAM>();
+    constexpr int stride = Stride<DERIV_PARAMS>();
     const T r2 = SquaredNorm(point);
     const T r = sqrt(r2);
     const T R2 = r2 + point[2] * point[2];
@@ -188,11 +194,11 @@ struct PerspectiveProjection : CameraFunctor<3, 0, 2> {
     projected[1] = point[1] / point[2];
   }
 
-  template <class T, bool COMP_PARAM>
+  template <class T, bool DERIV_PARAMS>
   static void ForwardDerivatives(const T* point, const T* /* p */, T* projected,
                                  T* jacobian) {
     // dx, dy, dz
-    constexpr int stride = Stride<COMP_PARAM>();
+    constexpr int stride = Stride<DERIV_PARAMS>();
     jacobian[0] = T(1.0) / point[2];
     jacobian[1] = T(0.0);
     jacobian[2] = -point[0] / (point[2] * point[2]);
@@ -228,11 +234,11 @@ struct DualProjection : CameraFunctor<3, 1, 2> {
         p[Transition] * p_persp[1] + (1.0 - p[Transition]) * p_fish[1];
   }
 
-  template <class T, bool COMP_PARAM>
+  template <class T, bool DERIV_PARAMS>
   static void ForwardDerivatives(const T* point, const T* p, T* projected,
                                  T* jacobian) {
     // dx, dy, dtransition
-    constexpr int stride = Stride<COMP_PARAM>();
+    constexpr int stride = Stride<DERIV_PARAMS>();
     T jac_persp[PerspectiveProjection::OutSize *
                 PerspectiveProjection::Stride<false>()];
     PerspectiveProjection::ForwardDerivatives<T, false>(point, p, projected,
@@ -250,7 +256,7 @@ struct DualProjection : CameraFunctor<3, 1, 2> {
       }
     }
 
-    if (COMP_PARAM) {
+    if (DERIV_PARAMS) {
       T p_persp[2];
       PerspectiveProjection::Forward(point, p, p_persp);
       T p_fish[2];
@@ -318,11 +324,11 @@ struct SphericalProjection : CameraFunctor<3, 0, 2> {
     projected[1] = -lat * inv_norm;
   }
 
-  template <class T, bool COMP_PARAM>
+  template <class T, bool DERIV_PARAMS>
   static void ForwardDerivatives(const T* point, const T* /* p */, T* projected,
                                  T* jacobian) {
     // dx, dy
-    constexpr int stride = Stride<COMP_PARAM>();
+    constexpr int stride = Stride<DERIV_PARAMS>();
     const T rt2 = point[0] * point[0] + point[2] * point[2];
     const T rt = sqrt(rt2);
     const T R2 = SquaredNorm(point) + point[2] * point[2];
@@ -358,11 +364,11 @@ struct Disto2 : CameraFunctor<2, 1, 2> {
     distorted[1] = point[1] * distortion;
   }
 
-  template <class T, bool COMP_PARAM>
+  template <class T, bool DERIV_PARAMS>
   static void ForwardDerivatives(const T* point, const T* k, T* distorted,
                                  T* jacobian) {
     // dx, dy, dk1
-    constexpr int stride = Stride<COMP_PARAM>();
+    constexpr int stride = Stride<DERIV_PARAMS>();
     const auto& k1 = k[static_cast<int>(K1)];
     const auto& x = point[0];
     const auto& y = point[1];
@@ -376,7 +382,7 @@ struct Disto2 : CameraFunctor<2, 1, 2> {
     jacobian[stride] = y * T(2.0) * k1 * x;
     jacobian[stride + 1] = k1 * (T(3.0) * y2 + x2) + T(1.0);
 
-    if (COMP_PARAM) {
+    if (DERIV_PARAMS) {
       jacobian[2] = x * r2;
       jacobian[stride + 2] = y * r2;
     }
@@ -449,11 +455,11 @@ struct Disto24 : CameraFunctor<2, 2, 2> {
     distorted[1] = point[1] * distortion;
   }
 
-  template <class T, bool COMP_PARAM>
+  template <class T, bool DERIV_PARAMS>
   static void ForwardDerivatives(const T* point, const T* k, T* distorted,
                                  T* jacobian) {
     // dx, dy, dk1, dk2
-    constexpr int stride = Stride<COMP_PARAM>();
+    constexpr int stride = Stride<DERIV_PARAMS>();
     const auto& k1 = k[static_cast<int>(K1)];
     const auto& k2 = k[static_cast<int>(K2)];
     const auto& x = point[0];
@@ -472,7 +478,7 @@ struct Disto24 : CameraFunctor<2, 2, 2> {
     jacobian[stride + 1] = T(5.0) * k2 * y4 + T(3.0) * k1 * y2 +
                            T(6.0) * k2 * y2 * x2 + k2 * x4 + k1 * x2 + T(1.0);
 
-    if (COMP_PARAM) {
+    if (DERIV_PARAMS) {
       jacobian[2] = x * r2;
       jacobian[3] = x * r2 * r2;
       jacobian[stride + 2] = y * r2;
@@ -551,11 +557,11 @@ struct Disto2468 : CameraFunctor<2, 4, 2> {
     distorted[1] = point[1] * distortion;
   }
 
-  template <class T, bool COMP_PARAM>
+  template <class T, bool DERIV_PARAMS>
   static void ForwardDerivatives(const T* point, const T* k, T* distorted,
                                  T* jacobian) {
     // dx, dy, dk1, dk2, dk3, dk4
-    constexpr int stride = Stride<COMP_PARAM>();
+    constexpr int stride = Stride<DERIV_PARAMS>();
     const auto& k1 = k[static_cast<int>(K1)];
     const auto& k2 = k[static_cast<int>(K2)];
     const auto& k3 = k[static_cast<int>(K3)];
@@ -586,7 +592,7 @@ struct Disto2468 : CameraFunctor<2, 4, 2> {
         k1 * r2 + k2 * r2 * r2 + k3 * r2 * r2 * r2 + k4 * r2 * r2 * r2 * r2 +
         T(1.0);
 
-    if (COMP_PARAM) {
+    if (DERIV_PARAMS) {
       jacobian[2] = x * r2;
       jacobian[3] = x * r2 * r2;
       jacobian[4] = x * r2 * r2 * r2;
@@ -684,10 +690,10 @@ struct Disto62 : CameraFunctor<2, 8, 2> {
     distorted[1] = point[1] * distortion_radial + distortion_tangential[1];
   }
 
-  template <class T, bool COMP_PARAM>
+  template <class T, bool DERIV_PARAMS>
   static void ForwardDerivatives(const T* point, const T* k, T* distorted,
                                  T* jacobian) {
-    constexpr int stride = Stride<COMP_PARAM>();
+    constexpr int stride = Stride<DERIV_PARAMS>();
     const auto& k1 = k[static_cast<int>(K1)];
     const auto& k2 = k[static_cast<int>(K2)];
     const auto& k3 = k[static_cast<int>(K3)];
@@ -726,7 +732,7 @@ struct Disto62 : CameraFunctor<2, 8, 2> {
     jacobian[stride + 0] = y * dp_dr * dr_dx + dy_dxt;
     jacobian[stride + 1] = p + y * dp_dr * dr_dy + dy_dyt;
 
-    if (COMP_PARAM) {
+    if (DERIV_PARAMS) {
       const auto r2_6 = r2_5 * r2;
       // K1 - K6
       jacobian[2] = x * r2;
@@ -845,11 +851,11 @@ struct DistoBrown : CameraFunctor<2, 5, 2> {
     distorted[1] = point[1] * distortion_radial + distortion_tangential[1];
   }
 
-  template <class T, bool COMP_PARAM>
+  template <class T, bool DERIV_PARAMS>
   static void ForwardDerivatives(const T* point, const T* k, T* distorted,
                                  T* jacobian) {
     // dx, dy, dk1, dk2, dk3, dp1, dp2
-    constexpr int stride = Stride<COMP_PARAM>();
+    constexpr int stride = Stride<DERIV_PARAMS>();
     const auto& k1 = k[static_cast<int>(K1)];
     const auto& k2 = k[static_cast<int>(K2)];
     const auto& k3 = k[static_cast<int>(K3)];
@@ -880,7 +886,7 @@ struct DistoBrown : CameraFunctor<2, 5, 2> {
         y * (T(2.0) * k1 * x + T(4.0) * k2 * x * r2 + T(6.0) * k3 * x * r4) +
         T(2.0) * p2 * y + T(2.0) * p1 * x;
 
-    if (COMP_PARAM) {
+    if (DERIV_PARAMS) {
       jacobian[2] = x * r2;
       jacobian[3] = x * r2 * r2;
       jacobian[4] = x * r2 * r2 * r2;
@@ -977,15 +983,15 @@ struct Affine : CameraFunctor<2, 4, 2> {
         affine[Focal] * affine[AspectRatio] * point[1] + affine[Cy];
   }
 
-  template <class T, bool COMP_PARAM>
+  template <class T, bool DERIV_PARAMS>
   static void ForwardDerivatives(const T* point, const T* affine,
                                  T* transformed, T* jacobian) {
     // dx, dy, dfocal, daspect_ratio, dcx, dcy
-    constexpr int stride = Stride<COMP_PARAM>();
+    constexpr int stride = Stride<DERIV_PARAMS>();
     jacobian[0] = affine[Focal];
     jacobian[stride + 1] = affine[Focal] * affine[AspectRatio];
     jacobian[1] = jacobian[stride] = T(0.0);
-    if (COMP_PARAM) {
+    if (DERIV_PARAMS) {
       jacobian[2] = point[0];
       jacobian[3] = jacobian[5] = T(0.0);
       jacobian[4] = T(1.0);
@@ -1016,14 +1022,14 @@ struct UniformScale : CameraFunctor<2, 1, 2> {
     transformed[1] = scale[Focal] * point[1];
   }
 
-  template <class T, bool COMP_PARAM>
+  template <class T, bool DERIV_PARAMS>
   static void ForwardDerivatives(const T* point, const T* scale, T* transformed,
                                  T* jacobian) {
     // dx, dy, dscale
-    constexpr int stride = Stride<COMP_PARAM>();
+    constexpr int stride = Stride<DERIV_PARAMS>();
     jacobian[0] = jacobian[stride + 1] = scale[Focal];
     jacobian[1] = jacobian[stride] = T(0.0);
-    if (COMP_PARAM) {
+    if (DERIV_PARAMS) {
       jacobian[2] = point[0];
       jacobian[stride + 2] = point[1];
     }
@@ -1045,11 +1051,11 @@ struct Identity : CameraFunctor<2, 0, 2> {
     transformed[1] = point[1];
   }
 
-  template <class T, bool COMP_PARAM>
+  template <class T, bool DERIV_PARAMS>
   static void ForwardDerivatives(const T* point, const T* /* k */,
                                  T* transformed, T* jacobian) {
     // dx, dy
-    constexpr int stride = Stride<COMP_PARAM>();
+    constexpr int stride = Stride<DERIV_PARAMS>();
     jacobian[0] = jacobian[stride + 1] = T(1.0);
     jacobian[1] = jacobian[stride] = T(0.0);
     T* dummy = nullptr;
@@ -1103,73 +1109,78 @@ struct Pose : CameraFunctor<3, 6, 3> {
     }
   }
 
-  template <class T, bool COMP_PARAM>
+  template <class T, bool DERIV_PARAMS>
   static void ForwardDerivatives(const T* point, const T* rt, T* transformed,
                                  T* jacobian) {
     // dx, dy, dz, drx, dry, drz, dtz, dty, dtz
-    constexpr int stride = Stride<COMP_PARAM>();
-    using Dual = Eigen::AutoDiffScalar<Vec3d>;
+    if (DERIV_PARAMS) {
+      using Dual = Eigen::AutoDiffScalar<Vec3d>;
 
-    /* Get jacobian or R wrt. angle-axis using Dual */
-    Dual r_diff[InSize];
-    r_diff[0].value() = -rt[Rx];
-    r_diff[0].derivatives() = -Vec3d::Unit(Rx);
-    r_diff[1].value() = -rt[Ry];
-    r_diff[1].derivatives() = -Vec3d::Unit(Ry);
-    r_diff[2].value() = -rt[Rz];
-    r_diff[2].derivatives() = -Vec3d::Unit(Rz);
+      /* Get jacobian or R wrt. angle-axis using Dual */
+      Dual r_diff[InSize];
+      r_diff[0].value() = -rt[Rx];
+      r_diff[0].derivatives() = -Vec3d::Unit(Rx);
+      r_diff[1].value() = -rt[Ry];
+      r_diff[1].derivatives() = -Vec3d::Unit(Ry);
+      r_diff[2].value() = -rt[Rz];
+      r_diff[2].derivatives() = -Vec3d::Unit(Rz);
 
-    Eigen::Matrix<Dual, 3, 3, Eigen::RowMajor> rotation;
-    RotationToAngleAxis(&r_diff[0], rotation.data());
+      Eigen::Matrix<Dual, 3, 3, Eigen::RowMajor> rotation;
+      AngleAxisToRotation(&r_diff[0], rotation.data());
 
-    /* Storage is row-ordered : R00, R01, R02, R10, ... R22 */
-    Eigen::Matrix<T, 9, 3, Eigen::RowMajor> rotation_angleaxis;
-    for (int i = 0; i < 3; ++i) {
-      for (int j = 0; j < 3; ++j) {
-        for (int k = 0; k < 3; ++k) {
-          rotation_angleaxis(i * 3 + j, k) = rotation(i, j).derivatives()(k);
+      /* Storage is row-ordered : R00, R01, R02, R10, ... R22 */
+      Eigen::Matrix<T, 9, 3, Eigen::RowMajor> rotation_angleaxis;
+      for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j < 3; ++j) {
+          for (int k = 0; k < 3; ++k) {
+            rotation_angleaxis(i * 3 + j, k) = rotation(i, j).derivatives()(k);
+          }
         }
       }
-    }
 
-    /* R.(x-t) derivatives are pretty straightfoward : dR00, dR01, ... dR22,
-     * dx, dy, dz, dtx, dty, dtz */
-    const T xyz[] = {point[0] - rt[Tx], point[1] - rt[Ty], point[2] - rt[Tz]};
-    Eigen::Matrix<T, 3, 15, Eigen::RowMajor> point_rotation =
-        Eigen::Matrix<T, 3, 15, Eigen::RowMajor>::Zero();
-    for (int i = 0; i < 3; ++i) {
-      // dRij
-      for (int j = 0; j < 3; ++j) {
-        point_rotation(i, i * 3 + j) = xyz[j];
+      /* R.(x-t) derivatives are pretty straightfoward : dR00, dR01, ... dR22,
+       * dx, dy, dz, dtx, dty, dtz */
+      const T xyz[] = {point[0] - rt[Tx], point[1] - rt[Ty], point[2] - rt[Tz]};
+      Eigen::Matrix<T, 3, 15, Eigen::RowMajor> point_rotation =
+          Eigen::Matrix<T, 3, 15, Eigen::RowMajor>::Zero();
+      for (int i = 0; i < 3; ++i) {
+        // dRij
+        for (int j = 0; j < 3; ++j) {
+          point_rotation(i, i * 3 + j) = xyz[j];
+        }
+        // dx, dy, dz
+        for (int j = 0; j < 3; ++j) {
+          point_rotation(i, 9 + j) = rotation(i, j).value();
+        }
+        // dtx, dty, dtz
+        for (int j = 0; j < 3; ++j) {
+          point_rotation(i, 12 + j) = -point_rotation(i, 9 + j);
+        }
       }
-      // dx, dy, dz
-      for (int j = 0; j < 3; ++j) {
-        point_rotation(i, 9 + j) = rotation(i, j).value();
-      }
-      // dtx, dty, dtz
-      for (int j = 0; j < 3; ++j) {
-        point_rotation(i, 12 + j) = -point_rotation(i, 9 + j);
-      }
-    }
 
-    /* Compose d(R) / d(angle axis) with d(pose) / d(R | t | x) in order to get
-     * d(pose) / d(angle axis | t | x) */
-    ComposeDerivatives<T, 9, 3, 0, 3, 15, 6>(rotation_angleaxis, point_rotation,
-                                             jacobian);
+      /* Compose d(R) / d(angle axis) with d(pose) / d(R | t | x) in order to
+       * get d(pose) / d(angle axis | t | x) */
 
-    /* Re-orde from angle-axis | x | t to x | angle-axis | t */
-    for (int i = 0; i < 3; ++i) {
-      // Swap dai and dxi
-      for (int j = 0; j < 3; ++j) {
-        std::swap(jacobian[i * 9 + j], jacobian[i * 9 + 3 + j]);
+      ComposeDerivatives<T, true, 9, 3, 0, 3, 15, 6>(rotation_angleaxis,
+                                                     point_rotation, jacobian);
+
+      /* Re-orde from angle-axis | x | t to x | angle-axis | t */
+      for (int i = 0; i < 3; ++i) {
+        // Swap dai and dxi
+        for (int j = 0; j < 3; ++j) {
+          std::swap(jacobian[i * 9 + j], jacobian[i * 9 + 3 + j]);
+        }
       }
+    } else {
+      double minus_r[] = {-rt[Rx], -rt[Ry], -rt[Rz]};
+      AngleAxisToRotation(&minus_r[0], jacobian);
     }
     Forward(point, rt, transformed);
   }
 
  private:
   template <class T>
-  static void RotationToAngleAxis(const T* angle_axis, T* rotation) {
+  static void AngleAxisToRotation(const T* angle_axis, T* rotation) {
     const T theta2 = SquaredNorm(angle_axis) + angle_axis[2] * angle_axis[2];
 
     // Use Taylor approximation near zero angle : R = I + [angle_axis]x
@@ -1226,11 +1237,11 @@ struct Normalize : CameraFunctor<3, 0, 3> {
     }
   }
 
-  template <class T, bool COMP_PARAM>
+  template <class T, bool DERIV_PARAMS>
   static void ForwardDerivatives(const T* point, const T* /* k */,
                                  T* transformed, T* jacobian) {
     // dx, dy
-    constexpr int stride = Stride<COMP_PARAM>();
+    constexpr int stride = Stride<DERIV_PARAMS>();
 
     const T& x = point[0];
     const T& y = point[1];
@@ -1279,8 +1290,17 @@ struct ProjectPoseDerivatives {
   template <class TYPE, class T>
   static void Apply(const T* point, const T* parameters, T* projected,
                     T* jacobian) {
-    ComposeForwardDerivatives<T, TYPE, Pose>(point, parameters, projected,
-                                             jacobian);
+    ComposeForwardDerivatives<T, true, TYPE, Pose>(point, parameters, projected,
+                                                   jacobian);
+  }
+};
+
+struct ProjectPosePointDerivatives {
+  template <class TYPE, class T>
+  static void Apply(const T* point, const T* parameters, T* projected,
+                    T* jacobian) {
+    ComposeForwardDerivatives<T, false, TYPE, Pose>(point, parameters,
+                                                    projected, jacobian);
   }
 };
 
@@ -1288,8 +1308,8 @@ struct ProjectRigPoseDerivatives {
   template <class TYPE, class T>
   static void Apply(const T* point, const T* parameters, T* projected,
                     T* jacobian) {
-    ComposeForwardDerivatives<T, TYPE, Pose, Pose>(point, parameters, projected,
-                                                   jacobian);
+    ComposeForwardDerivatives<T, true, TYPE, Pose, Pose>(point, parameters,
+                                                         projected, jacobian);
   }
 };
 
@@ -1297,8 +1317,8 @@ struct PoseNormalizedDerivatives {
   template <class TYPE, class T>
   static void Apply(const T* point, const T* parameters, T* projected,
                     T* jacobian) {
-    ComposeForwardDerivatives<T, Normalize, Pose>(point, parameters, projected,
-                                                  jacobian);
+    ComposeForwardDerivatives<T, true, Normalize, Pose>(point, parameters,
+                                                        projected, jacobian);
   }
 };
 
@@ -1400,11 +1420,11 @@ struct ProjectGeneric
                      ForwardWrapper<PROJ>>(point, parameters, projected);
   };
 
-  template <class T, bool COMP_PARAM>
+  template <class T, bool DERIV_PARAMS>
   static void ForwardDerivatives(const T* point, const T* parameters,
                                  T* projected, T* jacobian) {
-    ComposeForwardDerivatives<T, AFF, DISTO, PROJ>(point, parameters, projected,
-                                                   jacobian);
+    ComposeForwardDerivatives<T, DERIV_PARAMS, AFF, DISTO, PROJ>(
+        point, parameters, projected, jacobian);
   }
 
   template <class T>
