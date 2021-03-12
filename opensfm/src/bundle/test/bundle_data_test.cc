@@ -167,6 +167,7 @@ class BARigModelFixture : public BAPoseWithPriorFixture {
   BARigModelFixture()
       : id("rig_model_id"),
         rig_model(id, {{"rig_camera_1", pose}, {"rig_camera_2", pose}},
+                  {{"rig_camera_1", pose}, {"rig_camera_2", pose}},
                   pose_sigma) {}
   std::string id;
   BARigModel rig_model;

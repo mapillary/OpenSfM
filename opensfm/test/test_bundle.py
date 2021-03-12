@@ -106,7 +106,7 @@ def test_bundle_projection_fixed_internals(scene_synthetic):
     custom_config = config.default_config()
     custom_config["bundle_use_gps"] = False
     custom_config["optimize_camera_parameters"] = False
-    reconstruction.bundle(reference, camera_priors, [], custom_config)
+    reconstruction.bundle(reference, camera_priors, {}, [], custom_config)
 
     assert _projection_errors_std(reference.points) < 5e-3
     assert reference.cameras["1"].focal == orig_camera.focal
@@ -389,7 +389,7 @@ def test_bundle_void_gps_ignored():
     shot.metadata.gps_accuracy.value = 1
     shot.metadata.gps_position.reset()
     shot.pose.set_origin(np.ones(3))
-    reconstruction.bundle(r, camera_priors, gcp, myconfig)
+    reconstruction.bundle(r, camera_priors, {}, gcp, myconfig)
     assert np.allclose(shot.pose.get_origin(), np.ones(3))
 
     # Missing accuracy
@@ -397,14 +397,14 @@ def test_bundle_void_gps_ignored():
     shot.metadata.gps_accuracy.value = 1
     shot.metadata.gps_accuracy.reset()
     shot.pose.set_origin(np.ones(3))
-    reconstruction.bundle(r, camera_priors, gcp, myconfig)
+    reconstruction.bundle(r, camera_priors, {}, gcp, myconfig)
     assert np.allclose(shot.pose.get_origin(), np.ones(3))
 
     # Valid gps position and accuracy
     shot.metadata.gps_position.value = np.zeros(3)
     shot.metadata.gps_accuracy.value = 1
     shot.pose.set_origin(np.ones(3))
-    reconstruction.bundle(r, camera_priors, gcp, myconfig)
+    reconstruction.bundle(r, camera_priors, {}, gcp, myconfig)
     assert np.allclose(shot.pose.get_origin(), np.zeros(3))
 
 
@@ -425,7 +425,7 @@ def test_bundle_alignment_prior():
     gcp = []
     myconfig = config.default_config()
 
-    reconstruction.bundle(r, camera_priors, gcp, myconfig)
+    reconstruction.bundle(r, camera_priors, {}, gcp, myconfig)
     shot = r.shots[shot.id]
     assert np.allclose(shot.pose.translation, np.zeros(3))
     # up vector in camera coordinates is (0, -1, 0)

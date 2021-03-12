@@ -16,14 +16,25 @@ class BAHelpers {
   static py::dict Bundle(
       map::Map& map,
       const std::unordered_map<map::CameraId, Camera>& camera_priors,
+      const std::unordered_map<map::RigModelId, map::RigModel>&
+          rig_model_priors,
       const AlignedVector<map::GroundControlPoint>& gcp,
       const py::dict& config);
 
   static py::tuple BundleLocal(
       map::Map& map,
       const std::unordered_map<map::CameraId, Camera>& camera_priors,
+      const std::unordered_map<map::RigModelId, map::RigModel>&
+          rig_model_priors,
       const AlignedVector<map::GroundControlPoint>& gcp,
       const map::ShotId& central_shot_id, const py::dict& config);
+
+  static py::dict BundleShotPoses(
+      map::Map& map, const std::unordered_set<map::ShotId>& shot_ids,
+      const std::unordered_map<map::CameraId, Camera>& camera_priors,
+      const std::unordered_map<map::RigModelId, map::RigModel>&
+          rig_model_priors,
+      const py::dict& config);
 
   static std::pair<std::unordered_set<map::ShotId>,
                    std::unordered_set<map::ShotId>>
@@ -41,7 +52,7 @@ class BAHelpers {
 
  private:
   static std::unordered_set<map::Shot*> DirectShotNeighbors(
-      const std::unordered_set<map::Shot*>& shot_ids,
+      map::Map& map, const std::unordered_set<map::Shot*>& shot_ids,
       const size_t min_common_points, const size_t max_neighbors);
   static void AddGCPToBundle(
       BundleAdjuster& ba, const AlignedVector<map::GroundControlPoint>& gcp,

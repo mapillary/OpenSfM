@@ -436,7 +436,7 @@ def main():
         data.config["bundle_max_iterations"] = 200
         data.config["bundle_use_gcp"] = True
         print("Running BA ...")
-        orec.bundle(merged, camera_models, gcp=gcps, config=data.config)
+        orec.bundle(merged, camera_models, {}, gcp=gcps, config=data.config)
         # rigid rotation to put images on the ground
         orec.align_reconstruction(merged, None, data.config)
         # data.save_reconstruction(

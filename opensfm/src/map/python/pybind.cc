@@ -532,6 +532,7 @@ PYBIND11_MODULE(pymap, m) {
   py::class_<BAHelpers>(m, "BAHelpers")
       .def("bundle", &BAHelpers::Bundle)
       .def("bundle_local", &BAHelpers::BundleLocal)
+      .def("bundle_shot_poses", &BAHelpers::BundleShotPoses)
       .def("shot_neighborhood_ids", &BAHelpers::ShotNeighborhoodIds)
       .def("detect_alignment_constraints",
            &BAHelpers::DetectAlignmentConstraints);

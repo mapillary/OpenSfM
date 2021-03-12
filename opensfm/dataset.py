@@ -192,6 +192,10 @@ class DataSetBase(ABC):
         pass
 
     @abstractmethod
+    def load_rig_assignments_per_image(self):
+        pass
+
+    @abstractmethod
     def save_rig_assignments(self, rig_assignments):
         pass
 

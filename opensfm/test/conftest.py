@@ -28,10 +28,10 @@ def scene_synthetic():
     gps_noise = 5.0
 
     exifs = data.get_scene_exifs(gps_noise)
-    features, desc, colors, graph = data.get_tracks_data(
+    features, desc, colors, tracks_manager = data.get_tracks_data(
         maximum_depth, projection_noise
     )
-    return data, exifs, features, desc, colors, graph
+    return data, exifs, features, desc, colors, tracks_manager
 
 
 @pytest.fixture(scope="session")
@@ -49,13 +49,13 @@ def scene_synthetic_rig():
 
     maximum_depth = 40
     projection_noise = 1.0
-    gps_noise = 5.0
+    gps_noise = 0.1
 
     exifs = data.get_scene_exifs(gps_noise)
-    features, desc, colors, graph = data.get_tracks_data(
+    features, desc, colors, tracks_manager = data.get_tracks_data(
         maximum_depth, projection_noise
     )
-    return data, exifs, features, desc, colors, graph
+    return data, exifs, features, desc, colors, tracks_manager
 
 
 @pytest.fixture(scope="module")

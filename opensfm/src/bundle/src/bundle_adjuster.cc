@@ -136,6 +136,7 @@ void BundleAdjuster::AddRigInstance(
 void BundleAdjuster::AddRigModel(
     const std::string &rig_model_id,
     const std::unordered_map<std::string, geometry::Pose> &cameras_poses,
+    const std::unordered_map<std::string, geometry::Pose> &cameras_poses_prior,
     bool fixed) {
   const auto rig_model_exists = rig_models_.find(rig_model_id);
   if (rig_model_exists != rig_models_.end()) {
@@ -147,6 +148,7 @@ void BundleAdjuster::AddRigModel(
           .emplace(std::piecewise_construct,
                    std::forward_as_tuple(rig_model_id),
                    std::forward_as_tuple(rig_model_id, cameras_poses,
+                                         cameras_poses_prior,
                                          GetDefaultRigPoseSigma()))
           .first->second;
   if (fixed) {

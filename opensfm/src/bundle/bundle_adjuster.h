@@ -259,16 +259,19 @@ struct BARigModel : public BADataContainer {
   BARigModel(
       const std::string &id,
       const std::unordered_map<std::string, geometry::Pose> &rig_cameras_poses,
+      const std::unordered_map<std::string, geometry::Pose>
+          &rig_cameras_poses_prior,
       const geometry::Pose &sigma)
       : BADataContainer(id) {
     for (const auto &rig_camera : rig_cameras_poses) {
       const auto rig_camera_id = rig_camera.first;
+      const auto &prior = rig_cameras_poses_prior.at(rig_camera_id);
       auto &rig_camera_data =
           rig_cameras_
               .emplace(std::piecewise_construct,
                        std::forward_as_tuple(rig_camera_id),
                        std::forward_as_tuple(rig_camera_id, rig_camera.second,
-                                             rig_camera.second, sigma))
+                                             prior, sigma))
               .first->second;
       RegisterData(rig_camera_id, &rig_camera_data);
     }
@@ -569,6 +572,8 @@ class BundleAdjuster {
   void AddRigModel(
       const std::string &rig_model,
       const std::unordered_map<std::string, geometry::Pose> &cameras_poses,
+      const std::unordered_map<std::string, geometry::Pose>
+          &cameras_poses_prior,
       bool fixed);
   void AddRigPositionPrior(const std::string &instance_id,
                            const Vec3d &position, double std_deviation);

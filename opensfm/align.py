@@ -18,6 +18,16 @@ def align_reconstruction(reconstruction, gcp, config):
         apply_similarity(reconstruction, s, A, b)
 
 
+def apply_similarity_pose(pose, s, A, b):
+    """ Apply a similarity (y = s A x + b) to an object having a 'pose' member. """
+    R = pose.get_rotation_matrix()
+    t = np.array(pose.translation)
+    Rp = R.dot(A.T)
+    tp = -Rp.dot(b) + s * t
+    pose.set_rotation_matrix(Rp)
+    pose.translation = list(tp)
+
+
 def apply_similarity(reconstruction, s, A, b):
     """Apply a similarity (y = s A x + b) to a reconstruction.
 
@@ -33,12 +43,13 @@ def apply_similarity(reconstruction, s, A, b):
 
     # Align cameras.
     for shot in reconstruction.shots.values():
-        R = shot.pose.get_rotation_matrix()
-        t = np.array(shot.pose.translation)
-        Rp = R.dot(A.T)
-        tp = -Rp.dot(b) + s * t
-        shot.pose.set_rotation_matrix(Rp)
-        shot.pose.translation = list(tp)
+        if shot.is_in_rig():
+            continue
+        apply_similarity_pose(shot.pose, s, A, b)
+
+    # Align rig instances
+    for rig_instance in reconstruction.rig_instances.values():
+        apply_similarity_pose(rig_instance.pose, s, A, b)
 
 
 def align_reconstruction_similarity(reconstruction, gcp, config):
@@ -292,8 +303,8 @@ def triangulate_all_gcp(reconstruction, gcp):
         x = multiview.triangulate_gcp(
             point,
             reconstruction.shots,
-            reproj_threshold = 0.004,
-            min_ray_angle_degrees = 2.0,
+            reproj_threshold=0.004,
+            min_ray_angle_degrees=2.0,
         )
         if x is not None:
             triangulated.append(x)

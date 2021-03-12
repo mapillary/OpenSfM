@@ -6,6 +6,7 @@
 #include <map/map.h>
 
 #include <chrono>
+#include <stdexcept>
 
 std::pair<std::unordered_set<map::ShotId>, std::unordered_set<map::ShotId>>
 BAHelpers::ShotNeighborhoodIds(map::Map& map,
@@ -41,21 +42,29 @@ BAHelpers::ShotNeighborhood(map::Map& map, const map::ShotId& central_shot_id,
                             size_t max_interior_size) {
   constexpr size_t MaxBoundarySize{1000000};
   std::unordered_set<map::Shot*> interior;
-  interior.insert(&map.GetShot(central_shot_id));
+  auto& central_shot = map.GetShot(central_shot_id);
+  if (central_shot.IsInRig()) {
+    const auto instance_shot =
+        map.GetRigInstance(central_shot.GetRigInstanceId()).GetShotIDs();
+    for (const auto& s : instance_shot) {
+      interior.insert(&map.GetShot(s));
+    }
+  }
+  interior.insert(&central_shot);
   for (size_t distance = 1;
        distance < radius && interior.size() < max_interior_size; ++distance) {
     const auto remaining = max_interior_size - interior.size();
     const auto neighbors =
-        DirectShotNeighbors(interior, min_common_points, remaining);
+        DirectShotNeighbors(map, interior, min_common_points, remaining);
     interior.insert(neighbors.begin(), neighbors.end());
   }
 
-  const auto boundary = DirectShotNeighbors(interior, 1, MaxBoundarySize);
+  const auto boundary = DirectShotNeighbors(map, interior, 1, MaxBoundarySize);
   return std::make_pair(interior, boundary);
 }
 
 std::unordered_set<map::Shot*> BAHelpers::DirectShotNeighbors(
-    const std::unordered_set<map::Shot*>& shot_ids,
+    map::Map& map, const std::unordered_set<map::Shot*>& shot_ids,
     const size_t min_common_points, const size_t max_neighbors) {
   std::unordered_set<map::Landmark*> points;
   for (auto* shot : shot_ids) {
@@ -87,7 +96,15 @@ std::unordered_set<map::Shot*> BAHelpers::DirectShotNeighbors(
   size_t idx = 0;
   for (auto& p : pairs) {
     if (p.second >= min_common_points && idx < max_n) {
-      neighbors.insert(p.first);
+      if (p.first->IsInRig()) {
+        const auto instance_shots =
+            map.GetRigInstance(p.first->GetRigInstanceId()).GetShotIDs();
+        for (const auto& s : instance_shots) {
+          neighbors.insert(&map.GetShot(s));
+        }
+      } else {
+        neighbors.insert(p.first);
+      }
     } else {
       break;
     }
@@ -99,6 +116,7 @@ std::unordered_set<map::Shot*> BAHelpers::DirectShotNeighbors(
 py::tuple BAHelpers::BundleLocal(
     map::Map& map,
     const std::unordered_map<map::CameraId, Camera>& camera_priors,
+    const std::unordered_map<map::RigModelId, map::RigModel>& rig_model_priors,
     const AlignedVector<map::GroundControlPoint>& gcp,
     const map::ShotId& central_shot_id, const py::dict& config) {
   py::dict report;
@@ -121,7 +139,7 @@ py::tuple BAHelpers::BundleLocal(
     constexpr bool fix_cameras{true};
     ba.AddCamera(cam.id, cam, cam_prior, fix_cameras);
   }
-  // Combine the sets
+  // combine the sets
   std::unordered_set<map::Shot*> int_and_bound(interior.cbegin(),
                                                interior.cend());
   int_and_bound.insert(boundary.cbegin(), boundary.cend());
@@ -129,6 +147,80 @@ py::tuple BAHelpers::BundleLocal(
   py::list pt_ids;
 
   constexpr bool point_constant{false};
+  constexpr bool rig_model_constant{true};
+
+  // gather required rig data to setup
+  std::unordered_set<map::RigModelId> rig_models_ids;
+  std::unordered_set<map::RigInstanceId> rig_instances_ids;
+  for (auto* shot : int_and_bound) {
+    if (!shot->IsInRig()) {
+      continue;
+    }
+    rig_models_ids.insert(shot->GetRigModelId());
+    rig_instances_ids.insert(shot->GetRigInstanceId());
+  }
+
+  // rig model are going to be fixed
+  for (const auto& rig_model_id : rig_models_ids) {
+    const auto& model = map.GetRigModel(rig_model_id);
+    std::unordered_map<std::string, geometry::Pose> rig_cameras_poses;
+    std::unordered_map<std::string, geometry::Pose> rig_cameras_poses_prior;
+    for (const auto& camera_pair : model.GetRigCameras()) {
+      const auto id = camera_pair.first;
+      rig_cameras_poses[id] = camera_pair.second.pose;
+      rig_cameras_poses_prior[id] =
+          rig_model_priors.at(rig_model_id).GetRigCamera(id).pose;
+    }
+    ba.AddRigModel(rig_model_id, rig_cameras_poses, rig_cameras_poses_prior,
+                   rig_model_constant);
+  }
+
+  // add rig instances shots
+  for (const auto& rig_instance_id : rig_instances_ids) {
+    const auto& instance = map.GetRigInstance(rig_instance_id);
+    std::unordered_map<std::string, std::string> shot_cameras;
+
+    // we're going to assign GPS constraint to the instance itself
+    // by averaging its shot's GPS values (and std dev.)
+    Vec3d average_position = Vec3d::Zero();
+    double average_std = 0.;
+    int gps_count = 0;
+
+    // if any instance's shot is in boundary
+    // then the entire instance will be fixed
+    bool fix_instance = false;
+
+    for (const auto& shot_n_rig_camera : instance.GetShotRigCameraIDs()) {
+      const auto shot_id = shot_n_rig_camera.first;
+      auto& shot = map.GetShot(shot_id);
+      shot_cameras[shot_id] = shot.GetCamera()->id;
+
+      const auto is_boundary = boundary.find(&shot) != boundary.end();
+      const auto is_interior = !is_boundary;
+
+      if (is_interior) {
+        if (config["bundle_use_gps"].cast<bool>()) {
+          average_position += shot.GetShotMeasurements().gps_position_.Value();
+          average_std += shot.GetShotMeasurements().gps_accuracy_.Value();
+          ++gps_count;
+        }
+      } else {
+        fix_instance = true;
+      }
+    }
+
+    ba.AddRigInstance(std::to_string(rig_instance_id), instance.GetPose(),
+                      instance.GetRigModel()->id, shot_cameras,
+                      instance.GetShotRigCameraIDs(), fix_instance);
+
+    // only add averaged rig position constraints to moving instances
+    if (!fix_instance && gps_count > 0) {
+      average_position /= gps_count;
+      average_std /= gps_count;
+      ba.AddRigPositionPrior(std::to_string(rig_instance_id), average_position,
+                             average_std);
+    }
+  }
 
   // add interior shots (non-rig)
   for (auto* shot : interior) {
@@ -204,6 +296,8 @@ py::tuple BAHelpers::BundleLocal(
       config["tangential_distortion_p2_sd"].cast<double>(),
       config["radial_distortion_k3_sd"].cast<double>(),
       config["radial_distortion_k4_sd"].cast<double>());
+  ba.SetRigParametersPriorSD(config["rig_translation_sd"].cast<double>(),
+                             config["rig_rotation_sd"].cast<double>());
 
   ba.SetNumThreads(config["processes"].cast<int>());
   ba.SetMaxNumIterations(10);
@@ -222,6 +316,12 @@ py::tuple BAHelpers::BundleLocal(
     }
     auto s = ba.GetShot(shot->id_);
     shot->SetPose(s.GetPose()->GetValue());
+  }
+
+  for (const auto& rig_instance_id : rig_instances_ids) {
+    auto& instance = map.GetRigInstance(rig_instance_id);
+    auto i = ba.GetRigInstance(std::to_string(rig_instance_id));
+    instance.SetPose(i.GetValue());
   }
 
   for (auto* point : points) {
@@ -322,9 +422,218 @@ void BAHelpers::AddGCPToBundle(
   }
 }
 
+py::dict BAHelpers::BundleShotPoses(
+    map::Map& map, const std::unordered_set<map::ShotId>& shot_ids,
+    const std::unordered_map<map::CameraId, Camera>& camera_priors,
+    const std::unordered_map<map::RigModelId, map::RigModel>& rig_model_priors,
+    const py::dict& config) {
+  py::dict report;
+
+  constexpr auto fix_cameras = true;
+  constexpr auto fix_points = true;
+  constexpr auto fix_rig_model = true;
+
+  auto ba = BundleAdjuster();
+  ba.SetUseAnalyticDerivatives(
+      config["bundle_analytic_derivatives"].cast<bool>());
+  const auto start = std::chrono::high_resolution_clock::now();
+
+  // gather required rig data to setup
+  std::unordered_set<map::RigModelId> rig_models_ids;
+  std::unordered_set<map::RigInstanceId> rig_instances_ids;
+  for (const auto& shot_id : shot_ids) {
+    const auto& shot = map.GetShot(shot_id);
+    if (!shot.IsInRig()) {
+      continue;
+    }
+    rig_models_ids.insert(shot.GetRigModelId());
+    rig_instances_ids.insert(shot.GetRigInstanceId());
+  }
+
+  // rig model are going to be fixed
+  for (const auto& rig_model_id : rig_models_ids) {
+    const auto& model = map.GetRigModel(rig_model_id);
+    std::unordered_map<std::string, geometry::Pose> rig_cameras_poses;
+    std::unordered_map<std::string, geometry::Pose> rig_cameras_poses_prior;
+    for (const auto& camera_pair : model.GetRigCameras()) {
+      const auto id = camera_pair.first;
+      rig_cameras_poses[id] = camera_pair.second.pose;
+      rig_cameras_poses_prior[id] =
+          rig_model_priors.at(rig_model_id).GetRigCamera(id).pose;
+    }
+    ba.AddRigModel(rig_model_id, rig_cameras_poses, rig_cameras_poses_prior,
+                   fix_rig_model);
+  }
+
+  std::unordered_set<map::CameraId> added_cameras;
+  for (const auto shot_id : shot_ids) {
+    const auto& shot = map.GetShot(shot_id);
+    const auto& cam = *shot.GetCamera();
+    if (added_cameras.find(cam.id) != added_cameras.end()) {
+      continue;
+    }
+    const auto& cam_prior = camera_priors.at(cam.id);
+    ba.AddCamera(cam.id, cam, cam_prior, fix_cameras);
+    added_cameras.insert(cam.id);
+  }
+
+  std::unordered_set<map::Landmark*> landmarks;
+  for (const auto shot_id : shot_ids) {
+    const auto& shot = map.GetShot(shot_id);
+    for (const auto& lm_obs : shot.GetLandmarkObservations()) {
+      landmarks.insert(lm_obs.first);
+    }
+  }
+  for (const auto& landmark : landmarks) {
+    ba.AddPoint(landmark->id_, landmark->GetGlobalPos(), fix_points);
+  }
+
+  // add rig instances shots
+  for (const auto& rig_instance_id : rig_instances_ids) {
+    const auto& instance = map.GetRigInstance(rig_instance_id);
+    std::unordered_map<std::string, std::string> shot_cameras;
+
+    // we're going to assign GPS constraint to the instance itself
+    // by averaging its shot's GPS values (and std dev.)
+    Vec3d average_position = Vec3d::Zero();
+    double average_std = 0.;
+    int gps_count = 0;
+
+    // if any instance's shot is in boundary
+    // then the entire instance will be fixed
+    bool fix_instance = false;
+
+    for (const auto& shot_n_rig_camera : instance.GetShotRigCameraIDs()) {
+      const auto shot_id = shot_n_rig_camera.first;
+      auto& shot = map.GetShot(shot_id);
+      shot_cameras[shot_id] = shot.GetCamera()->id;
+
+      const auto is_fixed = shot_ids.find(shot_id) != shot_ids.end();
+      if (!is_fixed) {
+        if (config["bundle_use_gps"].cast<bool>()) {
+          const auto pos = shot.GetShotMeasurements().gps_position_;
+          const auto acc = shot.GetShotMeasurements().gps_accuracy_;
+          if (pos.HasValue() && acc.HasValue()) {
+            average_position += pos.Value();
+            average_std += acc.Value();
+            ++gps_count;
+          }
+        }
+      } else {
+        fix_instance = true;
+      }
+
+      ba.AddRigInstance(std::to_string(rig_instance_id), instance.GetPose(),
+                        instance.GetRigModel()->id, shot_cameras,
+                        instance.GetShotRigCameraIDs(), fix_instance);
+
+      // only add averaged rig position constraints to moving instances
+      if (!fix_instance && gps_count > 0) {
+        average_position /= gps_count;
+        average_std /= gps_count;
+        ba.AddRigPositionPrior(std::to_string(rig_instance_id),
+                               average_position, average_std);
+      }
+    }
+  }
+
+  // add non-rig shots
+  for (const auto shot_id : shot_ids) {
+    const auto& shot = map.GetShot(shot_id);
+    if (shot.IsInRig()) {
+      continue;
+    }
+    const auto& pose = shot.GetPose();
+    constexpr auto fix_shot = false;
+    ba.AddShot(shot.id_, shot.GetCamera()->id, pose->RotationWorldToCameraMin(),
+               pose->TranslationWorldToCamera(), fix_shot);
+    if (config["bundle_use_gps"].cast<bool>()) {
+      const auto pos = shot.GetShotMeasurements().gps_position_;
+      const auto acc = shot.GetShotMeasurements().gps_accuracy_;
+      if (pos.HasValue() && acc.HasValue()) {
+        const auto& g = pos.Value();
+        ba.AddPositionPrior(shot.id_, g[0], g[1], g[2],
+                            shot.GetShotMeasurements().gps_accuracy_.Value());
+      }
+    }
+  }
+
+  // add observations
+  for (const auto shot_id : shot_ids) {
+    const auto& shot = map.GetShot(shot_id);
+    for (const auto& lm_obs : shot.GetLandmarkObservations()) {
+      const auto& obs = lm_obs.second;
+      ba.AddPointProjectionObservation(shot.id_, lm_obs.first->id_, obs.point,
+                                       obs.scale);
+    }
+  }
+
+  ba.SetPointProjectionLossFunction(
+      config["loss_function"].cast<std::string>(),
+      config["loss_function_threshold"].cast<double>());
+  ba.SetInternalParametersPriorSD(
+      config["exif_focal_sd"].cast<double>(),
+      config["principal_point_sd"].cast<double>(),
+      config["radial_distortion_k1_sd"].cast<double>(),
+      config["radial_distortion_k2_sd"].cast<double>(),
+      config["tangential_distortion_p1_sd"].cast<double>(),
+      config["tangential_distortion_p2_sd"].cast<double>(),
+      config["radial_distortion_k3_sd"].cast<double>(),
+      config["radial_distortion_k4_sd"].cast<double>());
+  ba.SetRigParametersPriorSD(config["rig_translation_sd"].cast<double>(),
+                             config["rig_rotation_sd"].cast<double>());
+
+  ba.SetNumThreads(config["processes"].cast<int>());
+  ba.SetMaxNumIterations(10);
+  ba.SetLinearSolverType("DENSE_QR");
+  const auto timer_setup = std::chrono::high_resolution_clock::now();
+
+  {
+    py::gil_scoped_release release;
+    ba.Run();
+  }
+
+  const auto timer_run = std::chrono::high_resolution_clock::now();
+
+  // update non-rig shots
+  for (const auto shot_id : shot_ids) {
+    auto& shot_dst = map.GetShot(shot_id);
+    if (shot_dst.IsInRig()) {
+      continue;
+    }
+    shot_dst.SetPose(ba.GetShot(shot_id).GetPose()->GetValue());
+  }
+
+  for (const auto& rig_instance_id : rig_instances_ids) {
+    auto& instance = map.GetRigInstance(rig_instance_id);
+    auto i = ba.GetRigInstance(std::to_string(rig_instance_id));
+    instance.SetPose(i.GetValue());
+  }
+
+  const auto timer_teardown = std::chrono::high_resolution_clock::now();
+  report["brief_report"] = ba.BriefReport();
+  report["wall_times"] = py::dict();
+  report["wall_times"]["setup"] =
+      std::chrono::duration_cast<std::chrono::microseconds>(timer_setup - start)
+          .count() /
+      1000000.0;
+  report["wall_times"]["run"] =
+      std::chrono::duration_cast<std::chrono::microseconds>(timer_run -
+                                                            timer_setup)
+          .count() /
+      1000000.0;
+  report["wall_times"]["teardown"] =
+      std::chrono::duration_cast<std::chrono::microseconds>(timer_teardown -
+                                                            timer_run)
+          .count() /
+      1000000.0;
+  return report;
+}
+
 py::dict BAHelpers::Bundle(
     map::Map& map,
     const std::unordered_map<map::CameraId, Camera>& camera_priors,
+    const std::unordered_map<map::RigModelId, map::RigModel>& rig_model_priors,
     const AlignedVector<map::GroundControlPoint>& gcp, const py::dict& config) {
   py::dict report;
 
@@ -360,6 +669,61 @@ py::dict BAHelpers::Bundle(
     } else if (align_orientation_prior.compare("horizontal") == 0) {
       do_add_align_vector = true;
       up_vector = Vec3d(0, -1, 0);
+    }
+  }
+
+  // setup rig models
+  constexpr size_t MinRigInstanceForAdjust{5};
+  const auto lock_rig_model =
+      map.GetRigInstances().size() <= MinRigInstanceForAdjust;
+  for (const auto& model_pair : map.GetRigModels()) {
+    const auto& model = model_pair.second;
+    std::unordered_map<std::string, geometry::Pose> rig_cameras_poses;
+    std::unordered_map<std::string, geometry::Pose> rig_cameras_poses_prior;
+    for (const auto& camera_pair : model.GetRigCameras()) {
+      const auto id = camera_pair.first;
+      rig_cameras_poses[id] = camera_pair.second.pose;
+      rig_cameras_poses_prior[id] =
+          rig_model_priors.at(model_pair.first).GetRigCamera(id).pose;
+    }
+    ba.AddRigModel(model_pair.first, rig_cameras_poses, rig_cameras_poses_prior,
+                   lock_rig_model);
+  }
+
+  // setup rig instances
+  for (auto instance_pair : map.GetRigInstances()) {
+    auto& instance = instance_pair.second;
+
+    Vec3d average_position = Vec3d::Zero();
+    double average_std = 0.;
+    int gps_count = 0;
+
+    // average GPS and assign GPS constraint to the instance
+    std::unordered_map<std::string, std::string> shot_cameras;
+    for (const auto& shot_n_rig_camera : instance.GetShotRigCameraIDs()) {
+      const auto shot_id = shot_n_rig_camera.first;
+      const auto& shot = map.GetShot(shot_id);
+      shot_cameras[shot_id] = shot.GetCamera()->id;
+      if (config["bundle_use_gps"].cast<bool>()) {
+        const auto pos = shot.GetShotMeasurements().gps_position_;
+        const auto acc = shot.GetShotMeasurements().gps_accuracy_;
+        if (pos.HasValue() && acc.HasValue()) {
+          average_position += pos.Value();
+          average_std += acc.Value();
+          ++gps_count;
+        }
+      }
+    }
+
+    ba.AddRigInstance(std::to_string(instance_pair.first), instance.GetPose(),
+                      instance.GetRigModel()->id, shot_cameras,
+                      instance.GetShotRigCameraIDs(), false);
+
+    if (config["bundle_use_gps"].cast<bool>() && gps_count > 0) {
+      average_position /= gps_count;
+      average_std /= gps_count;
+      ba.AddRigPositionPrior(std::to_string(instance_pair.first),
+                             average_position, average_std);
     }
   }
 
@@ -415,6 +779,8 @@ py::dict BAHelpers::Bundle(
       config["tangential_distortion_p2_sd"].cast<double>(),
       config["radial_distortion_k3_sd"].cast<double>(),
       config["radial_distortion_k4_sd"].cast<double>());
+  ba.SetRigParametersPriorSD(config["rig_translation_sd"].cast<double>(),
+                             config["rig_rotation_sd"].cast<double>());
 
   ba.SetNumThreads(config["processes"].cast<int>());
   ba.SetMaxNumIterations(config["bundle_max_iterations"].cast<int>());
@@ -445,6 +811,20 @@ py::dict BAHelpers::Bundle(
     }
     auto s = ba.GetShot(shot.first);
     shot.second.SetPose(s.GetPose()->GetValue());
+  }
+
+  // Update rig instances
+  for (auto& instance : map.GetRigInstances()) {
+    auto i = ba.GetRigInstance(std::to_string(instance.first));
+    instance.second.SetPose(i.GetValue());
+  }
+
+  // Update rig models
+  for (auto& model : map.GetRigModels()) {
+    auto i = ba.GetRigModel(model.first);
+    for (auto& c : model.second.GetRigCameras()) {
+      c.second.pose = i.GetRigCamera(c.first)->GetValue();
+    }
   }
 
   // Update points
