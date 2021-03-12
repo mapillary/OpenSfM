@@ -783,13 +783,15 @@ class DataSet(DataSetBase):
 
     def load_rig_models(self):
         """Return rig models data"""
+        if not os.path.exists(self._rig_models_file()):
+            return {}
         with io.open_rt(self._rig_models_file()) as fin:
-            return json.load(fin)
+            return io.rig_models_from_json(json.load(fin))
 
     def save_rig_models(self, rig_models):
         """Save rig models data"""
         with io.open_wt(self._rig_models_file()) as fout:
-            io.json_dump(rig_models, fout)
+            io.json_dump(io.rig_models_to_json(rig_models), fout)
 
     def _rig_assignments_file(self):
         """Return path of rig assignments file"""
@@ -797,8 +799,26 @@ class DataSet(DataSetBase):
 
     def load_rig_assignments(self):
         """Return rig assignments  data"""
+        if not os.path.exists(self._rig_assignments_file()):
+            return {}
         with io.open_rt(self._rig_assignments_file()) as fin:
             return json.load(fin)
+
+    def load_rig_assignments_per_image(self):
+        """Return rig assignments  data"""
+        raw_assignments = self.load_rig_assignments()
+        assignments_per_image = {}
+        for model_id, instances in raw_assignments.items():
+            for instance_id, instance in enumerate(instances):
+                instance_shots = [s[0] for s in instance]
+                for (shot_id, rig_camera_id) in instance:
+                    assignments_per_image[shot_id] = (
+                        model_id,
+                        instance_id,
+                        rig_camera_id,
+                        instance_shots,
+                    )
+        return assignments_per_image
 
     def save_rig_assignments(self, rig_assignments):
         """Save rig assignments  data"""
@@ -903,7 +923,6 @@ class DataSet(DataSetBase):
             "_config_file",
             "_camera_models_overrides_file",
             "_exif_overrides_file",
-            "_image_list_file",
         ]:
             files.append(
                 (

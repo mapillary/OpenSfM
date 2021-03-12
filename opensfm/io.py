@@ -139,6 +139,68 @@ def point_from_json(reconstruction, key, obj):
     return point
 
 
+def rig_model_from_json(key, obj):
+    """
+    Read a rig model from a json object
+    """
+    rig_model = pymap.RigModel(key)
+    for key, rig_camera in obj["rig_cameras"].items():
+        rig_model.add_rig_camera(rig_camera_from_json(key, rig_camera))
+    return rig_model
+
+
+def rig_models_from_json(obj):
+    """
+    Read rig models from a json object
+    """
+    rig_models = {}
+    for key, value in obj.items():
+        rig_models[key] = rig_model_from_json(key, value)
+    return rig_models
+
+
+def rig_camera_from_json(key, obj):
+    """
+    Read a rig cameras from a json object
+    """
+    pose = pygeometry.Pose()
+    pose.rotation = obj["rotation"]
+    pose.translation = obj["translation"]
+    rig_camera = pymap.RigCamera(pose, key)
+    return rig_camera
+
+
+def rig_cameras_from_json(obj):
+    """
+    Read rig cameras from a json object
+    """
+    rig_cameras = {}
+    for key, value in obj.items():
+        rig_cameras[key] = rig_camera_from_json(key, value)
+    return rig_cameras
+
+
+def rig_instance_from_json(reconstruction, key, obj):
+    """
+    Read any rig instance from a json shot object
+    """
+    instance_id = int(key)
+    rig_model_id = obj["rig_model_id"]
+    reconstruction.add_rig_instance(
+        pymap.RigInstance(reconstruction.rig_models[rig_model_id], instance_id)
+    )
+
+    pose = pygeometry.Pose()
+    pose.rotation = obj["rotation"]
+    pose.translation = obj["translation"]
+    reconstruction.rig_instances[instance_id].pose = pose
+
+    for shot_id, rig_camera_id in obj["rig_camera_ids"].items():
+        reconstruction.rig_instances[instance_id].add_shot(
+            rig_camera_id, reconstruction.shots[shot_id]
+        )
+
+
 def reconstruction_from_json(obj):
     """
     Read a reconstruction from a json object
@@ -150,9 +212,19 @@ def reconstruction_from_json(obj):
         camera = camera_from_json(key, value)
         reconstruction.add_camera(camera)
 
+    # Extract rig models
+    if "rig_models" in obj:
+        for key, value in obj["rig_models"].items():
+            reconstruction.add_rig_model(rig_model_from_json(key, value))
+
     # Extract shots
     for key, value in obj["shots"].items():
         shot_from_json(reconstruction, key, value)
+
+    # Extract rig instances from shots
+    if "rig_instances" in obj:
+        for key, value in obj["rig_instances"].items():
+            rig_instance_from_json(reconstruction, key, value)
 
     # Extract points
     if "points" in obj:
@@ -334,6 +406,39 @@ def shot_to_json(shot):
     return obj
 
 
+def rig_instance_to_json(rig_instance):
+    """
+    Write a rig instance to a json object
+    """
+    return {
+        "rig_model_id": rig_instance.rig_model.id,
+        "translation": list(rig_instance.pose.translation),
+        "rotation": list(rig_instance.pose.rotation),
+        "rig_camera_ids": rig_instance.camera_ids,
+    }
+
+
+def rig_model_to_json(rig_model):
+    """
+    Write a rig model to a json object
+    """
+    json_rig_cameras = {}
+    for rig_camera in rig_model.get_rig_cameras().values():
+        json_rig_cameras[rig_camera.id] = rig_camera_to_json(rig_camera)
+    return {"rig_cameras": json_rig_cameras}
+
+
+def rig_camera_to_json(rig_camera):
+    """
+    Write a rig camera to a json object
+    """
+    obj = {
+        "rotation": list(rig_camera.pose.rotation),
+        "translation": list(rig_camera.pose.translation),
+    }
+    return obj
+
+
 def pymap_metadata_to_json(metadata):
     obj = {}
     if metadata.orientation.has_value:
@@ -404,6 +509,16 @@ def reconstruction_to_json(reconstruction):
     for camera in reconstruction.cameras.values():
         obj["cameras"][camera.id] = camera_to_json(camera)
 
+    # Extract rig models
+    if len(reconstruction.rig_models):
+        obj["rig_models"] = {}
+    for rig_model in reconstruction.rig_models.values():
+        obj["rig_models"][rig_model.id] = rig_model_to_json(rig_model)
+    if len(reconstruction.rig_instances):
+        obj["rig_instances"] = {}
+    for rig_instance in reconstruction.rig_instances.values():
+        obj["rig_instances"][rig_instance.id] = rig_instance_to_json(rig_instance)
+
     # Extract shots
     for shot in reconstruction.shots.values():
         obj["shots"][shot.id] = shot_to_json(shot)
@@ -451,6 +566,26 @@ def cameras_to_json(cameras):
     obj = {}
     for camera in cameras.values():
         obj[camera.id] = camera_to_json(camera)
+    return obj
+
+
+def rig_models_to_json(rig_models):
+    """
+    Write rig models to a json object
+    """
+    obj = {}
+    for rig_model in rig_models.values():
+        obj[rig_model.id] = rig_model_to_json(rig_model)
+    return obj
+
+
+def rig_cameras_to_json(rig_cameras):
+    """
+    Write rig cameras to a json object
+    """
+    obj = {}
+    for rig_camera in rig_cameras.values():
+        obj[rig_camera.id] = rig_camera_to_json(rig_camera)
     return obj
 
 

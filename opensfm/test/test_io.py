@@ -12,6 +12,36 @@ filename = os.path.join(
 )
 
 
+def test_reconstructions_from_json_consistency():
+    with open(filename) as fin:
+        obj_before = json.loads(fin.read())
+    obj_after = io.reconstructions_to_json(io.reconstructions_from_json(obj_before))
+
+    assert obj_before[0]["cameras"] == obj_after[0]["cameras"]
+
+    # need to explicitly use np.allclose because of numerical
+    # differences on 3D coordinates (shot and points)
+    for key, shot in obj_before[0]["shots"].items():
+        for attr in shot:
+            obj1 = obj_before[0]["shots"][key][attr]
+            obj2 = obj_after[0]["shots"][key][attr]
+            if attr in ["translation", "rotation"]:
+                assert np.allclose(np.array(obj1), np.array(obj2))
+            else:
+                assert obj1 == obj2
+
+    for key, point in obj_before[0]["points"].items():
+        for attr in point:
+            if attr == "reprojection_error":
+                continue
+            obj1 = obj_before[0]["points"][key][attr]
+            obj2 = obj_after[0]["points"][key][attr]
+            if attr == "coordinates":
+                assert np.allclose(np.array(obj1), np.array(obj2))
+            else:
+                assert obj1 == obj2
+
+
 def test_reconstructions_from_json():
     with open(filename) as fin:
         obj = json.loads(fin.read())
@@ -22,6 +52,9 @@ def test_reconstructions_from_json():
     assert len(reconstructions[0].cameras) == 1
     assert len(reconstructions[0].shots) == 3
     assert len(reconstructions[0].points) == 1588
+    assert len(reconstructions[0].rig_models) == 1
+    assert len(reconstructions[0].rig_models["rig_model"].get_rig_cameras()) == 1
+    assert len(reconstructions[0].rig_instances) == 3
 
 
 def test_reconstruction_to_ply():
