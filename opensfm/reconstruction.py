@@ -579,7 +579,7 @@ def resect(
         report["shots"] = new_shots
         return True, new_shots, report
     else:
-        return False, new_shots, report
+        return False, [], report
 
 
 def corresponding_tracks(tracks1, tracks2):
