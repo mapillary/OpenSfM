@@ -136,7 +136,8 @@ PYBIND11_MODULE(pymap, m) {
            })
       // Tracks manager x Reconstruction intersection
       .def("compute_reprojection_errors", &map::Map::ComputeReprojectionErrors)
-      .def("get_valid_observations", &map::Map::GetValidObservations);
+      .def("get_valid_observations", &map::Map::GetValidObservations)
+      .def("to_tracks_manager", &map::Map::ToTracksManager);
 
   py::class_<map::Shot>(m, "Shot")
       .def(py::init<const ShotId &, const Camera &, const geometry::Pose &>())

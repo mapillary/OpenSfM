@@ -162,6 +162,7 @@ class Map {
     topo_conv_.long_ = longitude;
     topo_conv_.alt_ = alt;
   }
+  TracksManager ToTracksManager() const;
 
   // Tracks manager x Reconstruction intersection functions
   std::unordered_map<ShotId, std::unordered_map<LandmarkId, Vec2d> >

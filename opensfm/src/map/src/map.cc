@@ -415,4 +415,20 @@ Map::GetValidObservations(const TracksManager& tracks_manager) const {
   return observations;
 }
 
+TracksManager Map::ToTracksManager() const {
+  TracksManager manager;
+  for (const auto& shot_pair : shots_) {
+    for (const auto& lm_obs : shot_pair.second.GetLandmarkObservations()) {
+      manager.AddObservation(shot_pair.first, lm_obs.first->id_, lm_obs.second);
+    }
+  }
+  for (const auto& shot_pair : pano_shots_) {
+    for (const auto& lm_obs : shot_pair.second.GetLandmarkObservations()) {
+      manager.AddObservation(shot_pair.first, lm_obs.first->id_, lm_obs.second);
+    }
+  }
+  return manager;
+}
+
+
 };  // namespace map
