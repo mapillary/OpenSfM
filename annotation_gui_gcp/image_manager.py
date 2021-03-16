@@ -17,6 +17,11 @@ def load_image(path):
         new_w = int(round(rgb.size[0] / scale))
         new_h = int(round(rgb.size[1] / scale))
         rgb = rgb.resize((new_w, new_h), resample=Image.BILINEAR)
+
+    # Support grayscale images
+    if rgb.mode == 'L':
+        rgb = rgb.convert("RGB")
+
     # Matplotlib will transform to rgba when plotting
     return _rgb_to_rgba(np.asarray(rgb))
 
