@@ -1,9 +1,11 @@
 #pragma once
 
-#include <geometry/camera_functions.h>
+#include <foundation/types.h>
+#include <geometry/camera_instances.h>
 
 #include <unordered_map>
 
+namespace geometry {
 class Camera {
  public:
   enum class Parameters : int {
@@ -30,7 +32,7 @@ class Camera {
   };
 
   Camera() = default;
-  Camera(const ProjectionType& type,
+  Camera(const camera::ProjectionType& type,
          const std::vector<Camera::Parameters>& types, const VecXd& values);
   static Camera CreatePerspectiveCamera(double focal, double k1, double k2);
   static Camera CreateBrownCamera(double focal, double aspect_ratio,
@@ -67,9 +69,9 @@ class Camera {
   double GetParameterValue(const Parameters& parameter) const;
   void SetParameterValue(const Parameters& parameter, double value);
 
-  ProjectionType GetProjectionType() const;
+  camera::ProjectionType GetProjectionType() const;
   std::string GetProjectionString() const;
-  static std::string GetProjectionString(const ProjectionType& type);
+  static std::string GetProjectionString(const camera::ProjectionType& type);
 
   Mat3d GetProjectionMatrix() const;
   Mat3d GetProjectionMatrixScaled(int width, int height) const;
@@ -86,7 +88,7 @@ class Camera {
                                             const int width, const int height);
 
  private:
-  ProjectionType type_{ProjectionType::NONE};
+  camera::ProjectionType type_{camera::ProjectionType::NONE};
   std::vector<Parameters> types_;
   VecXd values_;
 };
@@ -94,3 +96,4 @@ class Camera {
 std::pair<MatXf, MatXf> ComputeCameraMapping(const Camera& from,
                                              const Camera& to, int width,
                                              int height);
+};  // namespace geometry

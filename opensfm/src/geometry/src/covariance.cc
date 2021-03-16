@@ -16,9 +16,9 @@ std::pair<PointJacobian, Vec2d> ComputeJacobianReprojectionError(
 
   Vec2d projected;
   PointJacobian jacobian;
-  Dispatch<ProjectPosePointDerivatives>(camera.GetProjectionType(),
-                                        point.data(), all_params.data(),
-                                        projected.data(), jacobian.data());
+  geometry::camera::Dispatch<geometry::camera::ProjectPosePointDerivatives>(
+      camera.GetProjectionType(), point.data(), all_params.data(),
+      projected.data(), jacobian.data());
   return std::make_pair(jacobian, observation - projected);
 }
 

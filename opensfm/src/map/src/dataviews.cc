@@ -42,10 +42,11 @@ size_t LandmarkView::NumberOfLandmarks() const {
 
 CameraView::CameraView(Map& map) : map_(map) {}
 size_t CameraView::NumberOfCameras() const { return map_.NumberOfCameras(); }
-Camera& CameraView::GetCamera(const CameraId& cam_id) {
+geometry::Camera& CameraView::GetCamera(const CameraId& cam_id) {
   return map_.GetCamera(cam_id);
 }
-const std::unordered_map<CameraId, Camera>& CameraView::GetCameras() const {
+const std::unordered_map<CameraId, geometry::Camera>& CameraView::GetCameras()
+    const {
   return map_.GetCameras();
 }
 bool CameraView::HasCamera(const CameraId& cam_id) const {

@@ -115,12 +115,13 @@ class BACameraWithPriorFixtureBase {
  public:
   BACameraWithPriorFixtureBase()
       : id("camera_id"),
-        camera(Camera::CreatePerspectiveCamera(0.1, 0.2, 0.3)),
-        camera_sigma(Camera::CreatePerspectiveCamera(0.01, 0.01, 0.01)),
+        camera(geometry::Camera::CreatePerspectiveCamera(0.1, 0.2, 0.3)),
+        camera_sigma(
+            geometry::Camera::CreatePerspectiveCamera(0.01, 0.01, 0.01)),
         ba_camera(id, camera, camera, camera_sigma) {}
   std::string id;
-  Camera camera;
-  Camera camera_sigma;
+  geometry::Camera camera;
+  geometry::Camera camera_sigma;
   bundle::Camera ba_camera;
 };
 

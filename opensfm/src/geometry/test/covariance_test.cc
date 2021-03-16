@@ -12,7 +12,7 @@
 class CovarianceFixture : public ::testing::Test {
  public:
   CovarianceFixture()
-      : camera(Camera::CreatePerspectiveCamera(focal, 0.0, 0.0)),
+      : camera(geometry::Camera::CreatePerspectiveCamera(focal, 0.0, 0.0)),
         pose(geometry::Pose(Vec3d(0., 0., 0.), Vec3d(0, 0, 0))) {
     point_adiff[0].value() = point[0] = 0.;
     point_adiff[1].value() = point[1] = 0.;
@@ -20,7 +20,8 @@ class CovarianceFixture : public ::testing::Test {
     observation << 0.0, 0.0;
   }
 
-  void RunAutodiffEval(const Camera& camera, const geometry::Pose& pose) {
+  void RunAutodiffEval(const geometry::Camera& camera,
+                       const geometry::Pose& pose) {
     // Prepare Eigen's Autodiff structures
     for (int i = 0; i < 3; ++i) {
       point_adiff[i].derivatives() = VecXd::Unit(3, i);
@@ -44,9 +45,11 @@ class CovarianceFixture : public ::testing::Test {
 
     // Run project with Autodiff types to get expected jacobian
     AScalar transformed[3];
-    Pose::Forward(point_adiff, pose_adiff.data(), &transformed[0]);
-    Dispatch<ProjectFunction>(camera.GetProjectionType(), transformed,
-                              camera_adiff.data(), projection_expected);
+    geometry::camera::Pose::Forward(point_adiff, pose_adiff.data(),
+                                    &transformed[0]);
+    geometry::camera::Dispatch<geometry::camera::ProjectFunction>(
+        camera.GetProjectionType(), transformed, camera_adiff.data(),
+        projection_expected);
   }
 
   template <class MAT>
@@ -68,7 +71,7 @@ class CovarianceFixture : public ::testing::Test {
   AScalar projection_expected[2];
   Vec2d observation;
 
-  const Camera camera;
+  const geometry::Camera camera;
   const geometry::Pose pose;
 };
 
