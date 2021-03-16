@@ -1,4 +1,4 @@
-#include <bundle/src/projection_errors.h>
+#include <bundle/error/projection_errors.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
@@ -72,14 +72,14 @@ class ReprojectionError2DFixture : public ReprojectionError2DFixtureBase {
     // Autodiff-ed version will be used as reference/expected values
     AScalar camera_adiff[size];
     SetupADiff(size, &camera[0], &camera_adiff[0]);
-    ReprojectionError2D autodiff(type, observed, scale);
+    bundle::ReprojectionError2D autodiff(type, observed, scale);
     autodiff(camera_adiff, rt_adiff, point_adiff, residual_adiff);
 
     // We test for analytic evaluation
     double jac_camera[size_residual * size];
     const double* params[] = {camera, rt, point};
     double* jacobians[] = {jac_camera, jac_rt, jac_point};
-    ReprojectionError2DAnalytic<size> analytic(type, observed, scale);
+    bundle::ReprojectionError2DAnalytic<size> analytic(type, observed, scale);
     analytic.Evaluate(params, residuals, &jacobians[0]);
 
     // Check
@@ -198,7 +198,8 @@ TEST_F(ReprojectionError3DFixture, AnalyticErrorEvaluatesOK) {
   // Autodiff-ed version will be used as reference/expected values
   SetupADiff();
   AScalar dummy_adiff;
-  ReprojectionError3D autodiff(ProjectionType::SPHERICAL, observed, scale);
+  bundle::ReprojectionError3D autodiff(ProjectionType::SPHERICAL, observed,
+                                       scale);
   autodiff(&dummy_adiff, rt_adiff, point_adiff, residual_adiff);
 
   // We test for analytic evaluation
@@ -206,8 +207,8 @@ TEST_F(ReprojectionError3DFixture, AnalyticErrorEvaluatesOK) {
   double dummy_jac[] = {0., 0., 0.};
   const double* params[] = {&dummy, rt, point};
   double* jacobians[] = {&dummy_jac[0], jac_rt, jac_point};
-  ReprojectionError3DAnalytic analytic(ProjectionType::SPHERICAL, observed,
-                                       scale);
+  bundle::ReprojectionError3DAnalytic analytic(ProjectionType::SPHERICAL,
+                                               observed, scale);
   analytic.Evaluate(params, residuals, &jacobians[0]);
 
   // Check
@@ -274,7 +275,7 @@ class RigReprojectionError2DFixture : public ReprojectionError2DFixtureBase {
     // Autodiff-ed version will be used as reference/expected values
     AScalar camera_adiff[size];
     SetupADiff(size, &camera[0], &camera_adiff[0]);
-    RigReprojectionError2D autodiff(type, observed, scale);
+    bundle::RigReprojectionError2D autodiff(type, observed, scale);
     autodiff(camera_adiff, rt_instance_adiff, rt_camera_adiff, point_adiff,
              residual_adiff);
 
@@ -283,7 +284,8 @@ class RigReprojectionError2DFixture : public ReprojectionError2DFixtureBase {
     const double* params[] = {camera, rt_camera, rt_instance, point};
     double* jacobians[] = {jac_camera, jac_rt_instance, jac_rt_camera,
                            jac_point};
-    RigReprojectionError2DAnalytic<size> analytic(type, observed, scale);
+    bundle::RigReprojectionError2DAnalytic<size> analytic(type, observed,
+                                                          scale);
     analytic.Evaluate(params, residuals, &jacobians[0]);
 
     // Check

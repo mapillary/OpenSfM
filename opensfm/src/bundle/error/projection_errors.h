@@ -7,6 +7,8 @@
 
 #include <unordered_set>
 
+namespace bundle {
+
 template <class PointFunc>
 struct BABearingError {
   BABearingError(const Eigen::Vector3d& bearing, double bearing_std_deviation,
@@ -33,20 +35,22 @@ struct BABearingError {
 template <typename T>
 void WorldToCameraCoordinates(const T* const shot, const T world_point[3],
                               T camera_point[3]) {
-  const T pt[3] = {world_point[0] - shot[BA_SHOT_TX],
-                   world_point[1] - shot[BA_SHOT_TY],
-                   world_point[2] - shot[BA_SHOT_TZ]};
-  const T Rt[3] = {-shot[BA_SHOT_RX], -shot[BA_SHOT_RY], -shot[BA_SHOT_RZ]};
+  const T pt[3] = {world_point[0] - shot[Pose::Parameter::BA_SHOT_TX],
+                   world_point[1] - shot[Pose::Parameter::BA_SHOT_TY],
+                   world_point[2] - shot[Pose::Parameter::BA_SHOT_TZ]};
+  const T Rt[3] = {-shot[Pose::Parameter::BA_SHOT_RX],
+                   -shot[Pose::Parameter::BA_SHOT_RY],
+                   -shot[Pose::Parameter::BA_SHOT_RZ]};
   ceres::AngleAxisRotatePoint(Rt, pt, camera_point);
 }
 
 template <class DATA>
-struct BADataPriorError {
+struct DataPriorError {
  public:
   // Parameter scaling
   enum class ScaleType { LINEAR = 0, LOGARITHMIC = 1 };
 
-  explicit BADataPriorError(BAData<DATA>* ba_data) : ba_data_(ba_data) {
+  explicit DataPriorError(Data<DATA>* ba_data) : ba_data_(ba_data) {
     const auto sigma = ba_data->GetSigmaData();
     for (int i = 0; i < sigma.rows(); ++i) {
       indexes_.insert(i);
@@ -103,7 +107,7 @@ struct BADataPriorError {
   }
 
  private:
-  BAData<DATA>* ba_data_;
+  Data<DATA>* ba_data_;
   std::set<int> indexes_;
   VecXd scales_;
   std::unordered_map<int, ScaleType>
@@ -193,7 +197,7 @@ class ReprojectionError2DAnalytic
 
     /* Error only */
     if (!jacobians) {
-      Pose::Forward(point, shot, &transformed[0]);
+      ::Pose::Forward(point, shot, &transformed[0]);
       Dispatch<ProjectFunction>(type_, transformed, camera, predicted);
     } /* Jacobian + Error */
     else {
@@ -270,8 +274,8 @@ class RigReprojectionError2DAnalytic
 
     /* Error only */
     if (!jacobians) {
-      Pose::Forward(point, rig_instance, &transformed[0]);
-      Pose::Forward(&transformed[0], rig_camera, &transformed[0]);
+      ::Pose::Forward(point, rig_instance, &transformed[0]);
+      ::Pose::Forward(&transformed[0], rig_camera, &transformed[0]);
       Dispatch<ProjectFunction>(type_, transformed, camera, predicted);
     } /* Jacobian + Error */
     else {
@@ -390,7 +394,7 @@ class ReprojectionError3DAnalytic
     Vec3d transformed;
     /* Error only */
     if (!jacobians) {
-      Pose::Forward(point, shot, transformed.data());
+      ::Pose::Forward(point, shot, transformed.data());
       transformed.normalize();
     } /* Jacobian + Error */
     else {
@@ -434,3 +438,4 @@ class ReprojectionError3DAnalytic
     return true;
   }
 };
+}  // namespace bundle

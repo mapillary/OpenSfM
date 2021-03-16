@@ -1,10 +1,11 @@
 #pragma once
 
+#include <bundle/error/error_utils.h>
 #include <foundation/types.h>
 
 #include <Eigen/Eigen>
 
-#include "error_utils.h"
+namespace bundle {
 
 struct ShotPositionShotParam {
   ShotPositionShotParam() = default;
@@ -13,7 +14,7 @@ struct ShotPositionShotParam {
   template <typename T>
   Vec3<T> operator()(T const* const* p) const {
     const T* const shot = p[index_];
-    Eigen::Map<const Vec3<T> > t(shot + BA_SHOT_TX);
+    Eigen::Map<const Vec3<T> > t(shot + Pose::Parameter::BA_SHOT_TX);
     return t;
   }
   const int index_{-1};
@@ -26,7 +27,7 @@ struct ShotPositionWorldParam {
   template <typename T>
   Vec3<T> operator()(T const* const* p) const {
     const T* const shot = p[index_];
-    Eigen::Map<const Vec3<T> > t(shot + BA_SHOT_TX);
+    Eigen::Map<const Vec3<T> > t(shot + Pose::Parameter::BA_SHOT_TX);
     return t;
   }
   const int index_{-1};
@@ -42,8 +43,8 @@ struct PointPositionScaledShot {
   template <typename T>
   Vec3<T> operator()(T const* const* p) const {
     const T* const shot = p[shot_index_];
-    Eigen::Map<const Vec3<T> > R(shot + BA_SHOT_RX);
-    Eigen::Map<const Vec3<T> > t(shot + BA_SHOT_TX);
+    Eigen::Map<const Vec3<T> > R(shot + Pose::Parameter::BA_SHOT_RX);
+    Eigen::Map<const Vec3<T> > t(shot + Pose::Parameter::BA_SHOT_TX);
 
     const T* const point = p[point_index_];
     Eigen::Map<const Vec3<T> > p_world(point);
@@ -58,9 +59,9 @@ struct PointPositionScaledShot {
   const int point_index_{-1};
 };
 
-struct PointPositionWorld {
-  PointPositionWorld() = default;
-  PointPositionWorld(int index) : index_(index) {}
+struct PointPositionWorldFunc {
+  PointPositionWorldFunc() = default;
+  PointPositionWorldFunc(int index) : index_(index) {}
 
   template <typename T>
   Vec3<T> operator()(T const* const* p) const {
@@ -71,3 +72,4 @@ struct PointPositionWorld {
 
   const int index_{-1};
 };
+}  // namespace bundle
