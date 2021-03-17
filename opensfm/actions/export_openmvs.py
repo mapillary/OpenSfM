@@ -31,12 +31,12 @@ def export(reconstruction, tracks_manager, udata: UndistortedDataSet, export_onl
             w, h = camera.width, camera.height
             K = np.array(
                 [
-                    [camera.focal, 0, (w - 1.0) / 2 / max(w, h)],
-                    [0, camera.focal, (h - 1.0) / 2 / max(w, h)],
+                    [camera.focal * max(w, h), 0, (w - 1.0) / 2.0],
+                    [0, camera.focal * max(w, h), (h - 1.0) / 2.0],
                     [0, 0, 1],
                 ]
             )
-            exporter.add_camera(str(camera.id), K)
+            exporter.add_camera(str(camera.id), K, w, h)
 
     for shot in reconstruction.shots.values():
         if export_only is not None and shot.id not in export_only:
