@@ -34,7 +34,11 @@ def merge_reconstructions(reconstructions, tracks_manager):
 
         for shot in reconstruction.shots.values():
             merged.add_shot(shot)
-            obsdict = tracks_manager.get_shot_observations(shot.id)
+            try:
+                obsdict = tracks_manager.get_shot_observations(shot.id)
+            except RuntimeError:
+                logger.warning(f"Shot id {shot.id} missing from tracks_manager!")
+                continue
             for track_id, obs in obsdict.items():
                 merged_track_id = f"R{ix_r}_{track_id}"
                 if merged_track_id in merged.points:
