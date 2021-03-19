@@ -7,6 +7,8 @@
 #include "ceres/ceres.h"
 #include "ceres/rotation.h"
 
+namespace bundle {
+
 template <class T>
 Vec3<T> MultRotations(const Vec3<T>& R1, const Vec3<T>& R2) {
   T qR1[4], qR2[4], qResult[4];
@@ -57,3 +59,4 @@ Vec3<T> ApplySimilarity(const T& s, const Vec3<T>& R, const Vec3<T>& t,
                         const Vec3<T>& x) {
   return RotatePoint((-R).eval(), (s * x - t).eval());
 }
+}  // namespace bundle

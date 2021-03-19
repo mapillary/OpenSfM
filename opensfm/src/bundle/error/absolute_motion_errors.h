@@ -1,16 +1,17 @@
 #pragma once
 
 #include <bundle/bundle_adjuster.h>
+#include <bundle/error/error_utils.h>
 
 #include <Eigen/Eigen>
 
-#include "error_utils.h"
+namespace bundle {
 
 template <class PosFunc>
-struct BAAbsolutePositionError {
-  BAAbsolutePositionError(const PosFunc& pos_func, const Vec3d& pos_prior,
-                          double std_deviation, bool has_std_deviation_param,
-                          const PositionConstraintType& type)
+struct AbsolutePositionError {
+  AbsolutePositionError(const PosFunc& pos_func, const Vec3d& pos_prior,
+                        double std_deviation, bool has_std_deviation_param,
+                        const PositionConstraintType& type)
       : pos_func_(pos_func),
         pos_prior_(pos_prior),
         scale_(1.0 / std_deviation),
@@ -64,15 +65,15 @@ T diff_between_angles(T a, T b) {
   }
 }
 
-struct BAUpVectorError {
-  BAUpVectorError(const Vec3d& acceleration, double std_deviation)
+struct UpVectorError {
+  UpVectorError(const Vec3d& acceleration, double std_deviation)
       : scale_(1.0 / std_deviation) {
     acceleration_ = acceleration.normalized();
   }
 
   template <typename T>
   bool operator()(const T* const shot, T* r) const {
-    Eigen::Map<const Vec3<T>> R(shot + BA_SHOT_RX);
+    Eigen::Map<const Vec3<T>> R(shot + Pose::Parameter::RX);
     Eigen::Map<Vec3<T>> residual(r);
 
     const Vec3<T> acceleration = acceleration_.cast<T>();
@@ -86,13 +87,13 @@ struct BAUpVectorError {
   double scale_;
 };
 
-struct BAPanAngleError {
-  BAPanAngleError(double angle, double std_deviation)
+struct PanAngleError {
+  PanAngleError(double angle, double std_deviation)
       : angle_(angle), scale_(1.0 / std_deviation) {}
 
   template <typename T>
   bool operator()(const T* const shot, T* residuals) const {
-    Eigen::Map<const Vec3<T>> R(shot + BA_SHOT_RX);
+    Eigen::Map<const Vec3<T>> R(shot + Pose::Parameter::RX);
 
     const Vec3<T> z_axis = Vec3d(0, 0, 1).cast<T>();
     const auto z_world = RotatePoint(R.eval(), z_axis);
@@ -111,13 +112,13 @@ struct BAPanAngleError {
   double scale_;
 };
 
-struct BATiltAngleError {
-  BATiltAngleError(double angle, double std_deviation)
+struct TiltAngleError {
+  TiltAngleError(double angle, double std_deviation)
       : angle_(angle), scale_(1.0 / std_deviation) {}
 
   template <typename T>
   bool operator()(const T* const shot, T* residuals) const {
-    const T* const R = shot + BA_SHOT_RX;
+    const T* const R = shot + Pose::Parameter::RX;
     T ez[3] = {T(0), T(0), T(1)};  // ez: A point in front of the camera (z=1)
     T Rt_ez[3];
     ceres::AngleAxisRotatePoint(R, ez, Rt_ez);
@@ -133,13 +134,13 @@ struct BATiltAngleError {
   double scale_;
 };
 
-struct BARollAngleError {
-  BARollAngleError(double angle, double std_deviation)
+struct RollAngleError {
+  RollAngleError(double angle, double std_deviation)
       : angle_(angle), scale_(1.0 / std_deviation) {}
 
   template <typename T>
   bool operator()(const T* const shot, T* residuals) const {
-    const T* const R = shot + BA_SHOT_RX;
+    const T* const R = shot + Pose::Parameter::RX;
     T ex[3] = {T(1), T(0), T(0)};  // A point to the right of the camera (x=1)
     T ez[3] = {T(0), T(0), T(1)};  // A point in front of the camera (z=1)
     T Rt_ex[3], Rt_ez[3];
@@ -177,7 +178,8 @@ struct RotationPriorError {
   template <typename T>
   bool operator()(const T* const shot, T* residuals) const {
     // Get rotation and translation values.
-    const T R[3] = {-shot[BA_SHOT_RX], -shot[BA_SHOT_RY], -shot[BA_SHOT_RZ]};
+    const T R[3] = {-shot[Pose::Parameter::RX], -shot[Pose::Parameter::RY],
+                    -shot[Pose::Parameter::RZ]};
     T Rpt[3] = {-T(R_prior_[0]), -T(R_prior_[1]), -T(R_prior_[2])};
 
     // Compute rotation residual: log( R Rp^t )
@@ -205,8 +207,10 @@ struct TranslationPriorError {
 
   template <typename T>
   bool operator()(const T* const shot, T* residuals) const {
-    const T mt[3] = {-shot[BA_SHOT_TX], -shot[BA_SHOT_TY], -shot[BA_SHOT_TZ]};
-    const T Rt[3] = {-shot[BA_SHOT_RX], -shot[BA_SHOT_RY], -shot[BA_SHOT_RZ]};
+    const T mt[3] = {-shot[Pose::Parameter::TX], -shot[Pose::Parameter::TY],
+                     -shot[Pose::Parameter::TZ]};
+    const T Rt[3] = {-shot[Pose::Parameter::RX], -shot[Pose::Parameter::RY],
+                     -shot[Pose::Parameter::RZ]};
     T translation[3];
     ceres::AngleAxisRotatePoint(Rt, mt, translation);
 
@@ -226,9 +230,12 @@ struct PositionPriorError {
 
   template <typename T>
   bool operator()(const T* const shot, T* residuals) const {
-    residuals[0] = T(scale_) * (shot[BA_SHOT_TX] - T(position_prior_[0]));
-    residuals[1] = T(scale_) * (shot[BA_SHOT_TY] - T(position_prior_[1]));
-    residuals[2] = T(scale_) * (shot[BA_SHOT_TZ] - T(position_prior_[2]));
+    residuals[0] =
+        T(scale_) * (shot[Pose::Parameter::TX] - T(position_prior_[0]));
+    residuals[1] =
+        T(scale_) * (shot[Pose::Parameter::TY] - T(position_prior_[1]));
+    residuals[2] =
+        T(scale_) * (shot[Pose::Parameter::TZ] - T(position_prior_[2]));
     return true;
   }
 
@@ -278,8 +285,8 @@ struct HeatmapdCostFunctor {
 
   template <typename T>
   bool operator()(T const* p, T* residuals) const {
-    const T x_coor = p[BA_SHOT_TX] - x_offset_;
-    const T y_coor = p[BA_SHOT_TY] - y_offset_;
+    const T x_coor = p[Pose::Parameter::TX] - x_offset_;
+    const T y_coor = p[Pose::Parameter::TY] - y_offset_;
     // const T z_coor = x[2]; - Z goes brrrrr
     const T row = height_ / 2. - (y_coor / resolution_);
     const T col = width_ / 2. + (x_coor / resolution_);
@@ -306,3 +313,4 @@ struct HeatmapdCostFunctor {
   const double resolution_;
   const double scale_;
 };
+}  // namespace bundle

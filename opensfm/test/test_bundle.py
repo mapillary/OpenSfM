@@ -124,7 +124,7 @@ def test_pair(bundle_adjuster):
     sa.add_reconstruction_shot("12", 4, "2")
     sa.set_scale_sharing("12", True)
     sa.add_relative_motion(
-        pybundle.BARelativeMotion("12", "1", "12", "2", [0, 0, 0], [-1, 0, 0], 1)
+        pybundle.RelativeMotion("12", "1", "12", "2", [0, 0, 0], [-1, 0, 0], 1)
     )
     sa.add_absolute_position("1", [0, 0, 0], 1, "1")
     sa.add_absolute_position("2", [2, 0, 0], 1, "2")
@@ -152,7 +152,7 @@ def test_pair_with_shot_point(bundle_adjuster):
     sa.add_rotation_prior("1", 0, 0, 0, 1)
     sa.set_scale_sharing("12", True)
     sa.add_relative_motion(
-        pybundle.BARelativeMotion("12", "1", "12", "2", [0, 0, 0], [-1, 0, 0], 1)
+        pybundle.RelativeMotion("12", "1", "12", "2", [0, 0, 0], [-1, 0, 0], 1)
     )
     sa.add_point_position_shot("p1", "1", "12", [1, 0, 0], 1, pybundle.XYZ)
     sa.add_point_position_shot("p1", "2", "12", [-1, 0, 0], 1, pybundle.XYZ)
@@ -181,7 +181,7 @@ def test_pair_non_rigid(bundle_adjuster):
     sa.add_reconstruction_shot("12", 4, "2")
     sa.set_scale_sharing("12", False)
     sa.add_relative_similarity(
-        pybundle.BARelativeSimilarity("12", "1", "12", "2", [0, 0, 0], [-1, 0, 0], 1, 1)
+        pybundle.RelativeSimilarity("12", "1", "12", "2", [0, 0, 0], [-1, 0, 0], 1, 1)
     )
     sa.add_absolute_position("1", [0, 0, 0], 1, "1")
     sa.add_absolute_position("2", [2, 0, 0], 1, "2")
@@ -211,13 +211,13 @@ def test_four_cams_single_reconstruction(bundle_adjuster):
     sa.add_reconstruction_shot("1234", 1, "4")
     sa.set_scale_sharing("1234", True)
     sa.add_relative_motion(
-        pybundle.BARelativeMotion("1234", "1", "1234", "2", [0, 0, 0], [-1, 0, 0], 1)
+        pybundle.RelativeMotion("1234", "1", "1234", "2", [0, 0, 0], [-1, 0, 0], 1)
     )
     sa.add_relative_motion(
-        pybundle.BARelativeMotion("1234", "1", "1234", "3", [0, 0, 0], [0, -1, 0], 1)
+        pybundle.RelativeMotion("1234", "1", "1234", "3", [0, 0, 0], [0, -1, 0], 1)
     )
     sa.add_relative_motion(
-        pybundle.BARelativeMotion("1234", "1", "1234", "4", [0, 0, 0], [0, 0, -1], 1)
+        pybundle.RelativeMotion("1234", "1", "1234", "4", [0, 0, 0], [0, 0, -1], 1)
     )
     sa.add_absolute_position("1", [0, 0, 0], 1, "1")
     sa.add_absolute_position("2", [2, 0, 0], 1, "2")
@@ -250,17 +250,17 @@ def test_four_cams_single_reconstruction_non_rigid(bundle_adjuster):
     sa.set_scale_sharing("1234", False)
 
     sa.add_relative_similarity(
-        pybundle.BARelativeSimilarity(
+        pybundle.RelativeSimilarity(
             "1234", "1", "1234", "2", [0, 0, 0], [-1, 0, 0], 1, 1
         )
     )
     sa.add_relative_similarity(
-        pybundle.BARelativeSimilarity(
+        pybundle.RelativeSimilarity(
             "1234", "2", "1234", "3", [0, 0, 0], [-1, -1, 0], 1, 1
         )
     )
     sa.add_relative_similarity(
-        pybundle.BARelativeSimilarity(
+        pybundle.RelativeSimilarity(
             "1234", "3", "1234", "4", [0, 0, 0], [0, -1, 0], 1, 1
         )
     )
@@ -301,13 +301,13 @@ def test_four_cams_one_fixed(bundle_adjuster):
     sa.add_reconstruction_shot("1234", 1, "4")
     sa.set_scale_sharing("1234", True)
     sa.add_relative_motion(
-        pybundle.BARelativeMotion("1234", "1", "1234", "2", [0, 0, 0], [-1, 0, 0], 1)
+        pybundle.RelativeMotion("1234", "1", "1234", "2", [0, 0, 0], [-1, 0, 0], 1)
     )
     sa.add_relative_motion(
-        pybundle.BARelativeMotion("1234", "1", "1234", "3", [0, 0, 0], [0, -1, 0], 1)
+        pybundle.RelativeMotion("1234", "1", "1234", "3", [0, 0, 0], [0, -1, 0], 1)
     )
     sa.add_relative_motion(
-        pybundle.BARelativeMotion("1234", "1", "1234", "4", [0, 0, 0], [0, 0, -1], 1)
+        pybundle.RelativeMotion("1234", "1", "1234", "4", [0, 0, 0], [0, 0, -1], 1)
     )
     sa.add_absolute_position("1", [100, 0, 0], 1, "1")
     sa.add_absolute_position("2", [2, 0, 0], 1, "2")
