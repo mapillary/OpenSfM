@@ -1,8 +1,8 @@
 #include <geometry/camera.h>
-#include <geometry/camera_functions.h>
 
 #include <iostream>
 
+namespace geometry {
 Camera::Camera(const ProjectionType& type,
                const std::vector<Camera::Parameters>& types,
                const VecXd& values)
@@ -332,3 +332,4 @@ Vec2d Camera::PixelToNormalizedCoordinates(const Vec2d& px_coord,
   return Vec2d((px_coord[0] + 0.5 - width / 2.0) * inv_size,
                (px_coord[1] + 0.5 - height / 2.0) * inv_size);
 }
+}  // namespace geometry

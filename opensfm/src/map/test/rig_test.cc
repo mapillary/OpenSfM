@@ -14,7 +14,7 @@ class RigModelFixture : public ::testing::Test {
     rig_camera.id = rig_camera_id;
   }
 
-  Camera camera;
+  geometry::Camera camera;
   geometry::Pose rig_camera_pose;
   map::RigCameraId rig_camera_id;
   map::RigCamera rig_camera;

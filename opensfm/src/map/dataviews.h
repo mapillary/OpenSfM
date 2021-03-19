@@ -49,8 +49,8 @@ class CameraView {
  public:
   CameraView(Map& map);
   size_t NumberOfCameras() const;
-  Camera& GetCamera(const CameraId& cam_id);
-  const std::unordered_map<CameraId, Camera>& GetCameras() const;
+  geometry::Camera& GetCamera(const CameraId& cam_id);
+  const std::unordered_map<CameraId, geometry::Camera>& GetCameras() const;
   bool HasCamera(const CameraId& cam_id) const;
 
  private:

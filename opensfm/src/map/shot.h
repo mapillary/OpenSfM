@@ -43,9 +43,10 @@ class Shot {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
   // Shot construction
-  Shot(const ShotId& shot_id, const Camera* const shot_camera,
+  Shot(const ShotId& shot_id, const geometry::Camera* const shot_camera,
        const geometry::Pose& pose);
-  Shot(const ShotId& shot_id, const Camera& cam, const geometry::Pose& pose);
+  Shot(const ShotId& shot_id, const geometry::Camera& cam,
+       const geometry::Pose& pose);
   ShotId GetId() const { return id_; }
 
   // Rig
@@ -114,7 +115,7 @@ class Shot {
   bool operator<=(const Shot& shot) const { return id_ <= shot.id_; }
   bool operator>(const Shot& shot) const { return id_ > shot.id_; }
   bool operator>=(const Shot& shot) const { return id_ >= shot.id_; }
-  const Camera* const GetCamera() const { return shot_camera_; }
+  const geometry::Camera* const GetCamera() const { return shot_camera_; }
 
   // Camera-related
   Vec2d Project(const Vec3d& global_pos) const;
@@ -147,8 +148,8 @@ class Shot {
   foundation::OptionalValue<const RigCamera*> rig_camera_;
 
   // Camera pointer (can optionaly belong to the shot)
-  foundation::OptionalValue<Camera> own_camera_;
-  const Camera* const shot_camera_;
+  foundation::OptionalValue<geometry::Camera> own_camera_;
+  const geometry::Camera* const shot_camera_;
 
   // Metadata
   ShotMeasurements shot_measurements_;

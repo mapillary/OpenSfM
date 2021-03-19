@@ -140,7 +140,8 @@ PYBIND11_MODULE(pymap, m) {
       .def("to_tracks_manager", &map::Map::ToTracksManager);
 
   py::class_<map::Shot>(m, "Shot")
-      .def(py::init<const ShotId &, const Camera &, const geometry::Pose &>())
+      .def(py::init<const ShotId &, const geometry::Camera &,
+                    const geometry::Pose &>())
       .def_readonly("id", &map::Shot::id_)
       .def_readonly("unique_id", &map::Shot::unique_id_)
       .def_readwrite("mesh", &map::Shot::mesh)
@@ -185,11 +186,13 @@ PYBIND11_MODULE(pymap, m) {
           [](py::tuple s) {
             // Create camera
             auto t = s[3].cast<py::tuple>();
-            Camera camera = Camera(t[2].cast<ProjectionType>(),
-                                   t[0].cast<std::vector<Camera::Parameters>>(),
-                                   t[1].cast<VecXd>());
+            geometry::Camera camera = geometry::Camera(
+                t[2].cast<geometry::ProjectionType>(),
+                t[0].cast<std::vector<geometry::Camera::Parameters>>(),
+                t[1].cast<VecXd>());
             // create unique_ptr
-            auto cam_ptr = std::unique_ptr<Camera>(new Camera(camera));
+            auto cam_ptr =
+                std::unique_ptr<geometry::Camera>(new geometry::Camera(camera));
             camera.width = t[3].cast<int>();
             camera.height = t[4].cast<int>();
             camera.id = t[5].cast<std::string>();

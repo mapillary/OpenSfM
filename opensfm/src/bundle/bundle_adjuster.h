@@ -298,8 +298,8 @@ class BundleAdjuster {
   // Bundle variables
 
   // Basic
-  void AddCamera(const std::string &id, const ::Camera &camera,
-                 const ::Camera &prior, bool constant);
+  void AddCamera(const std::string &id, const geometry::Camera &camera,
+                 const geometry::Camera &prior, bool constant);
   void AddShot(const std::string &id, const std::string &camera,
                const Vec3d &rotation, const Vec3d &translation, bool constant);
   void AddPoint(const std::string &id, const Vec3d &position, bool constant);
@@ -418,7 +418,7 @@ class BundleAdjuster {
   void ComputeReprojectionErrors();
 
   // Getters
-  ::Camera GetCamera(const std::string &id);
+  geometry::Camera GetCamera(const std::string &id);
   Shot GetShot(const std::string &id);
   Reconstruction GetReconstruction(const std::string &id);
   Point GetPoint(const std::string &id);
@@ -431,7 +431,7 @@ class BundleAdjuster {
 
  private:
   // default sigmas
-  ::Camera GetDefaultCameraSigma(const ::Camera &camera) const;
+  geometry::Camera GetDefaultCameraSigma(const geometry::Camera &camera) const;
   geometry::Pose GetDefaultRigPoseSigma() const;
 
   // minimized data

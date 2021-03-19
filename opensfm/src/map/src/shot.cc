@@ -8,13 +8,13 @@
 #include <stdexcept>
 namespace map {
 
-Shot::Shot(const ShotId& shot_id, const Camera* const shot_camera,
+Shot::Shot(const ShotId& shot_id, const geometry::Camera* const shot_camera,
            const geometry::Pose& pose)
     : id_(shot_id),
       pose_(std::make_unique<geometry::Pose>(pose)),
       shot_camera_(shot_camera) {}
 
-Shot::Shot(const ShotId& shot_id, const Camera& shot_camera,
+Shot::Shot(const ShotId& shot_id, const geometry::Camera& shot_camera,
            const geometry::Pose& pose)
     : id_(shot_id),
       pose_(std::make_unique<geometry::Pose>(pose)),

@@ -100,7 +100,7 @@ Shot& Map::CreateShot(const ShotId& shot_id, const CameraId& camera_id) {
  *
  * @returns             returns reference to created or existing shot
  */
-Shot& Map::CreateShot(const ShotId& shot_id, const Camera* const cam,
+Shot& Map::CreateShot(const ShotId& shot_id, const geometry::Camera* const cam,
                       const geometry::Pose& pose) {
   auto it_exist = shots_.find(shot_id);
   if (it_exist == shots_.end())  // create
@@ -161,7 +161,8 @@ Shot& Map::CreatePanoShot(const ShotId& shot_id, const CameraId& camera_id) {
  *
  * @returns             returns reference to created or existing shot
  */
-Shot& Map::CreatePanoShot(const ShotId& shot_id, const Camera* const cam,
+Shot& Map::CreatePanoShot(const ShotId& shot_id,
+                          const geometry::Camera* const cam,
                           const geometry::Pose& pose) {
   auto it_exist = pano_shots_.find(shot_id);
   if (it_exist == pano_shots_.end()) {
@@ -244,13 +245,13 @@ void Map::RemoveLandmark(const LandmarkId& lm_id) {
   }
 }
 
-Camera& Map::CreateCamera(const Camera& cam) {
+geometry::Camera& Map::CreateCamera(const geometry::Camera& cam) {
   auto it = cameras_.emplace(std::make_pair(cam.id, cam));
   return it.first->second;
   ;
 }
 
-Camera& Map::GetCamera(const CameraId& cam_id) {
+geometry::Camera& Map::GetCamera(const CameraId& cam_id) {
   auto it = cameras_.find(cam_id);
   if (it == cameras_.end()) {
     throw std::runtime_error("Accessing invalid CameraId " + cam_id);
@@ -258,7 +259,7 @@ Camera& Map::GetCamera(const CameraId& cam_id) {
   return it->second;
 }
 
-const Camera& Map::GetCamera(const CameraId& cam_id) const {
+const geometry::Camera& Map::GetCamera(const CameraId& cam_id) const {
   auto it = cameras_.find(cam_id);
   if (it == cameras_.end()) {
     throw std::runtime_error("Accessing invalid CameraId " + cam_id);
@@ -429,6 +430,5 @@ TracksManager Map::ToTracksManager() const {
   }
   return manager;
 }
-
 
 };  // namespace map

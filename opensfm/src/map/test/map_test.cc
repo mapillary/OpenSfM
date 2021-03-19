@@ -9,7 +9,7 @@ namespace {
 class BaseMapFixture : public ::testing::Test {
  public:
   BaseMapFixture() {
-    camera = Camera::CreatePerspectiveCamera(0.5, 0, 0);
+    camera = geometry::Camera::CreatePerspectiveCamera(0.5, 0, 0);
     camera.width = 640;
     camera.height = 480;
 
@@ -19,7 +19,7 @@ class BaseMapFixture : public ::testing::Test {
   }
   map::RigCamera rig_camera;
   map::RigModel rig_model;
-  Camera camera;
+  geometry::Camera camera;
 };
 
 class EmptyMapFixture : public BaseMapFixture {
@@ -336,7 +336,7 @@ TEST_F(ToyMapFixture, ToTracksManager) {
   for (auto& shot_pair : map.GetShots()) {
     for (auto& lm : map.GetLandmarks()) {
       map.AddObservation(&shot_pair.second, &lm.second,
-      Observation(100, 200, 0.5, 255, 255, 255, feat_id));
+                         Observation(100, 200, 0.5, 255, 255, 255, feat_id));
     }
     ++feat_id;
   }

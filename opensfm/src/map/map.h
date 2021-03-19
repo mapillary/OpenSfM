@@ -22,17 +22,19 @@ class Map {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
   // Camera Methods
-  Camera& GetCamera(const CameraId& cam_id);
-  const Camera& GetCamera(const CameraId& cam_id) const;
-  Camera& CreateCamera(const Camera& cam);
+  geometry::Camera& GetCamera(const CameraId& cam_id);
+  const geometry::Camera& GetCamera(const CameraId& cam_id) const;
+  geometry::Camera& CreateCamera(const geometry::Camera& cam);
   CameraView GetCameraView() { return CameraView(*this); }
   bool HasCamera(const CameraId& cam_id) const {
     return cameras_.count(cam_id) > 0;
   }
-  const std::unordered_map<CameraId, Camera>& GetCameras() const {
+  const std::unordered_map<CameraId, geometry::Camera>& GetCameras() const {
     return cameras_;
   }
-  std::unordered_map<CameraId, Camera>& GetCameras() { return cameras_; }
+  std::unordered_map<CameraId, geometry::Camera>& GetCameras() {
+    return cameras_;
+  }
 
   // Shot Methods
 
@@ -40,7 +42,7 @@ class Map {
   Shot& CreateShot(const ShotId& shot_id, const CameraId& camera_id);
   Shot& CreateShot(const ShotId& shot_id, const CameraId& camera_id,
                    const geometry::Pose& pose);
-  Shot& CreateShot(const ShotId& shot_id, const Camera* const cam,
+  Shot& CreateShot(const ShotId& shot_id, const geometry::Camera* const cam,
                    const geometry::Pose& pose = geometry::Pose());
 
   // Getters
@@ -63,7 +65,7 @@ class Map {
   Shot& CreatePanoShot(const ShotId& shot_id, const CameraId&,
                        const geometry::Pose& pose);
   Shot& CreatePanoShot(const ShotId& shot_id, const CameraId&);
-  Shot& CreatePanoShot(const ShotId& shot_id, const Camera* const cam,
+  Shot& CreatePanoShot(const ShotId& shot_id, const geometry::Camera* const cam,
                        const geometry::Pose& pose);
 
   // Getters
@@ -172,7 +174,7 @@ class Map {
   GetValidObservations(const TracksManager& tracks_manager) const;
 
  private:
-  std::unordered_map<CameraId, Camera> cameras_;
+  std::unordered_map<CameraId, geometry::Camera> cameras_;
   std::unordered_map<ShotId, Shot> shots_;
   std::unordered_map<ShotId, Shot> pano_shots_;
   std::unordered_map<LandmarkId, Landmark> landmarks_;

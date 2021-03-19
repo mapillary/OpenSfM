@@ -115,7 +115,7 @@ std::unordered_set<map::Shot*> BAHelpers::DirectShotNeighbors(
 
 py::tuple BAHelpers::BundleLocal(
     map::Map& map,
-    const std::unordered_map<map::CameraId, Camera>& camera_priors,
+    const std::unordered_map<map::CameraId, geometry::Camera>& camera_priors,
     const std::unordered_map<map::RigModelId, map::RigModel>& rig_model_priors,
     const AlignedVector<map::GroundControlPoint>& gcp,
     const map::ShotId& central_shot_id, const py::dict& config) {
@@ -426,7 +426,7 @@ void BAHelpers::AddGCPToBundle(
 
 py::dict BAHelpers::BundleShotPoses(
     map::Map& map, const std::unordered_set<map::ShotId>& shot_ids,
-    const std::unordered_map<map::CameraId, Camera>& camera_priors,
+    const std::unordered_map<map::CameraId, geometry::Camera>& camera_priors,
     const std::unordered_map<map::RigModelId, map::RigModel>& rig_model_priors,
     const py::dict& config) {
   py::dict report;
@@ -634,7 +634,7 @@ py::dict BAHelpers::BundleShotPoses(
 
 py::dict BAHelpers::Bundle(
     map::Map& map,
-    const std::unordered_map<map::CameraId, Camera>& camera_priors,
+    const std::unordered_map<map::CameraId, geometry::Camera>& camera_priors,
     const std::unordered_map<map::RigModelId, map::RigModel>& rig_model_priors,
     const AlignedVector<map::GroundControlPoint>& gcp, const py::dict& config) {
   py::dict report;

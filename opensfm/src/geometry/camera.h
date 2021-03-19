@@ -1,9 +1,11 @@
 #pragma once
 
-#include <geometry/camera_functions.h>
+#include <foundation/types.h>
+#include <geometry/camera_instances.h>
 
 #include <unordered_map>
 
+namespace geometry {
 class Camera {
  public:
   enum class Parameters : int {
@@ -30,8 +32,8 @@ class Camera {
   };
 
   Camera() = default;
-  Camera(const ProjectionType& type,
-         const std::vector<Camera::Parameters>& types, const VecXd& values);
+  Camera(const ProjectionType& type, const std::vector<Parameters>& types,
+         const VecXd& values);
   static Camera CreatePerspectiveCamera(double focal, double k1, double k2);
   static Camera CreateBrownCamera(double focal, double aspect_ratio,
                                   const Vec2d& principal_point,
@@ -94,3 +96,4 @@ class Camera {
 std::pair<MatXf, MatXf> ComputeCameraMapping(const Camera& from,
                                              const Camera& to, int width,
                                              int height);
+};  // namespace geometry

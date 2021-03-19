@@ -31,21 +31,23 @@ BundleAdjuster::BundleAdjuster() {
   linear_solver_type_ = "SPARSE_NORMAL_CHOLESKY";
 }
 
-::Camera BundleAdjuster::GetDefaultCameraSigma(const ::Camera &camera) const {
+geometry::Camera BundleAdjuster::GetDefaultCameraSigma(
+    const geometry::Camera &camera) const {
   std::unordered_map<int, double> std_dev_map;
-  std_dev_map[static_cast<int>(::Camera::Parameters::Focal)] = focal_prior_sd_;
-  std_dev_map[static_cast<int>(::Camera::Parameters::AspectRatio)] =
+  std_dev_map[static_cast<int>(geometry::Camera::Parameters::Focal)] =
       focal_prior_sd_;
-  std_dev_map[static_cast<int>(::Camera::Parameters::Cx)] = c_prior_sd_;
-  std_dev_map[static_cast<int>(::Camera::Parameters::Cy)] = c_prior_sd_;
-  std_dev_map[static_cast<int>(::Camera::Parameters::K1)] = k1_sd_;
-  std_dev_map[static_cast<int>(::Camera::Parameters::K2)] = k2_sd_;
-  std_dev_map[static_cast<int>(::Camera::Parameters::K3)] = k3_sd_;
-  std_dev_map[static_cast<int>(::Camera::Parameters::P1)] = p1_sd_;
-  std_dev_map[static_cast<int>(::Camera::Parameters::P2)] = p2_sd_;
-  std_dev_map[static_cast<int>(::Camera::Parameters::Transition)] = 1.0;
+  std_dev_map[static_cast<int>(geometry::Camera::Parameters::AspectRatio)] =
+      focal_prior_sd_;
+  std_dev_map[static_cast<int>(geometry::Camera::Parameters::Cx)] = c_prior_sd_;
+  std_dev_map[static_cast<int>(geometry::Camera::Parameters::Cy)] = c_prior_sd_;
+  std_dev_map[static_cast<int>(geometry::Camera::Parameters::K1)] = k1_sd_;
+  std_dev_map[static_cast<int>(geometry::Camera::Parameters::K2)] = k2_sd_;
+  std_dev_map[static_cast<int>(geometry::Camera::Parameters::K3)] = k3_sd_;
+  std_dev_map[static_cast<int>(geometry::Camera::Parameters::P1)] = p1_sd_;
+  std_dev_map[static_cast<int>(geometry::Camera::Parameters::P2)] = p2_sd_;
+  std_dev_map[static_cast<int>(geometry::Camera::Parameters::Transition)] = 1.0;
 
-  ::Camera sigma_camera = camera;
+  geometry::Camera sigma_camera = camera;
   for (const auto type : sigma_camera.GetParametersTypes()) {
     sigma_camera.SetParameterValue(type, std_dev_map[static_cast<int>(type)]);
   }
@@ -59,8 +61,9 @@ geometry::Pose BundleAdjuster::GetDefaultRigPoseSigma() const {
   return sigma;
 }
 
-void BundleAdjuster::AddCamera(const std::string &id, const ::Camera &camera,
-                               const ::Camera &prior, bool constant) {
+void BundleAdjuster::AddCamera(const std::string &id,
+                               const geometry::Camera &camera,
+                               const geometry::Camera &prior, bool constant) {
   auto &camera_data =
       cameras_
           .emplace(std::piecewise_construct, std::forward_as_tuple(id),
@@ -544,7 +547,7 @@ struct ErrorTraits {
   using Type = ReprojectionError2D;
 };
 template <>
-struct ErrorTraits<SphericalCamera> {
+struct ErrorTraits<geometry::SphericalCamera> {
   using Type = ReprojectionError3D;
 };
 
@@ -554,7 +557,7 @@ struct ErrorTraitsAnalytic {
 };
 
 template <>
-struct ErrorTraitsAnalytic<SphericalCamera, 1> {
+struct ErrorTraitsAnalytic<geometry::SphericalCamera, 1> {
   using Type = ReprojectionError3DAnalytic;
 };
 
@@ -686,24 +689,24 @@ struct ComputeRigResidualError {
 struct AddCameraPriorlError {
   template <class T>
   static void Apply(Camera &camera, ceres::Problem *problem) {
-    auto *prior_function = new DataPriorError<::Camera>(&camera);
+    auto *prior_function = new DataPriorError<geometry::Camera>(&camera);
 
     // Set some logarithmic prior for Focal and Aspect ratio (if any)
     const auto camera_object = camera.GetValue();
     const auto types = camera_object.GetParametersTypes();
     for (int i = 0; i < types.size(); ++i) {
       const auto t = types[i];
-      if (t == ::Camera::Parameters::Focal ||
-          t == ::Camera::Parameters::AspectRatio) {
+      if (t == geometry::Camera::Parameters::Focal ||
+          t == geometry::Camera::Parameters::AspectRatio) {
         prior_function->SetScaleType(
-            i, DataPriorError<::Camera>::ScaleType::LOGARITHMIC);
+            i, DataPriorError<geometry::Camera>::ScaleType::LOGARITHMIC);
       }
     }
 
     constexpr static int CameraSize = T::Size;
     ceres::CostFunction *cost_function =
-        new ceres::AutoDiffCostFunction<DataPriorError<::Camera>, CameraSize,
-                                        CameraSize>(prior_function);
+        new ceres::AutoDiffCostFunction<DataPriorError<geometry::Camera>,
+                                        CameraSize, CameraSize>(prior_function);
     problem->AddResidualBlock(cost_function, nullptr,
                               camera.GetValueData().data());
   }
@@ -735,18 +738,18 @@ void BundleAdjuster::Run() {
 
     // Add a barrier for constraining transition of dual to stay in [0, 1]
     const auto camera = i.second.GetValue();
-    if (camera.GetProjectionType() == ProjectionType::DUAL) {
+    if (camera.GetProjectionType() == geometry::ProjectionType::DUAL) {
       const auto types = camera.GetParametersTypes();
       int index = -1;
       for (int i = 0; i < types.size() && index < 0; ++i) {
-        if (types[i] == ::Camera::Parameters::Transition) {
+        if (types[i] == geometry::Camera::Parameters::Transition) {
           index = i;
         }
       }
       if (index >= 0) {
         ceres::CostFunction *transition_barrier =
             new ceres::AutoDiffCostFunction<ParameterBarrier, 1,
-                                            DualCamera::Size>(
+                                            geometry::DualCamera::Size>(
                 new ParameterBarrier(0.0, 1.0, index));
         problem.AddResidualBlock(transition_barrier, nullptr, data.data());
       }
@@ -836,14 +839,14 @@ void BundleAdjuster::Run() {
   for (auto &observation : point_projection_observations_) {
     const auto projection_type =
         observation.camera->GetValue().GetProjectionType();
-    Dispatch<AddProjectionError>(projection_type, use_analytic_, observation,
-                                 projection_loss, &problem);
+    geometry::Dispatch<AddProjectionError>(
+        projection_type, use_analytic_, observation, projection_loss, &problem);
   }
   for (auto &observation : point_rig_projection_observations_) {
     const auto projection_type =
         observation.camera->GetValue().GetProjectionType();
-    Dispatch<AddRigProjectionError>(projection_type, use_analytic_, observation,
-                                    projection_loss, &problem);
+    geometry::Dispatch<AddRigProjectionError>(
+        projection_type, use_analytic_, observation, projection_loss, &problem);
   }
 
   // Add rotation priors
@@ -889,7 +892,8 @@ void BundleAdjuster::Run() {
   // Add internal parameter priors blocks
   for (auto &i : cameras_) {
     const auto projection_type = i.second.GetValue().GetProjectionType();
-    Dispatch<AddCameraPriorlError>(projection_type, i.second, &problem);
+    geometry::Dispatch<AddCameraPriorlError>(projection_type, i.second,
+                                             &problem);
   }
 
   // Add unit translation block
@@ -1221,17 +1225,18 @@ void BundleAdjuster::ComputeReprojectionErrors() {
   for (auto &observation : point_projection_observations_) {
     const auto projection_type =
         observation.camera->GetValue().GetProjectionType();
-    Dispatch<ComputeResidualError>(projection_type, use_analytic_, observation);
+    geometry::Dispatch<ComputeResidualError>(projection_type, use_analytic_,
+                                             observation);
   }
   for (auto &observation : point_rig_projection_observations_) {
     const auto projection_type =
         observation.camera->GetValue().GetProjectionType();
-    Dispatch<ComputeRigResidualError>(projection_type, use_analytic_,
-                                      observation);
+    geometry::Dispatch<ComputeRigResidualError>(projection_type, use_analytic_,
+                                                observation);
   }
 }
 
-::Camera BundleAdjuster::GetCamera(const std::string &id) {
+geometry::Camera BundleAdjuster::GetCamera(const std::string &id) {
   if (cameras_.find(id) == cameras_.end()) {
     throw std::runtime_error("Camera " + id + " doesn't exists");
   }
