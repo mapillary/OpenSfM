@@ -4,6 +4,8 @@
 #include <foundation/types.h>
 #include <geometry/functions.h>
 
+#include <array>
+
 namespace geometry {
 /* Parameter is : k1 */
 struct Disto2 : Functor<2, 1, 2> {

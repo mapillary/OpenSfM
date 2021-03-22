@@ -5,7 +5,9 @@ set(GEOMETRY_FILES
     covariance.h
     pose.h
     camera.h
-    camera_functions.h
+    functions.h
+    camera_distortions_functions.h
+    camera_projections_functions.h
     relative_pose.h
     triangulation.h
     src/camera.cc

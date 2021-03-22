@@ -1,6 +1,6 @@
 #pragma once
 
-#include <geometry/camera_distorsions_functions.h>
+#include <geometry/camera_distortions_functions.h>
 #include <geometry/camera_projections_functions.h>
 #include <geometry/transformations_functions.h>
 
