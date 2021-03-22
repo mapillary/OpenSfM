@@ -507,7 +507,9 @@ def hard_coded_calibration(exif):
             return {"focal": 0.55, "k1": -0.30, "k2": 0.08}
         elif "hdr-as300" in model:
             return {"focal": 0.3958, "k1": -0.1496, "k2": 0.0201}
-
+    elif "PARROT" == make:
+        if 'Bebop 2' == model:
+            return {"focal": 0.36666666666666666}
 
 def focal_ratio_calibration(exif):
     if exif.get("focal_ratio"):
