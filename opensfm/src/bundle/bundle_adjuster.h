@@ -401,6 +401,7 @@ class BundleAdjuster {
   void SetNumThreads(int n);
   void SetUseAnalyticDerivatives(bool use);
   void SetLinearSolverType(std::string t);
+  void SetCovarianceAlgorithmType(std::string t);
 
   void SetInternalParametersPriorSD(double focal_sd, double c_sd, double k1_sd,
                                     double k2_sd, double p1_sd, double p2_sd,
@@ -508,6 +509,7 @@ class BundleAdjuster {
   int max_num_iterations_;
   int num_threads_;
   std::string linear_solver_type_;
+  std::string covariance_algorithm_type_;
 
   // internal
   ceres::Solver::Summary last_run_summary_;

@@ -29,6 +29,7 @@ BundleAdjuster::BundleAdjuster() {
   max_num_iterations_ = 500;
   num_threads_ = 1;
   linear_solver_type_ = "SPARSE_SCHUR";
+  covariance_algorithm_type_ = "SPARSE_QR";
 }
 
 geometry::Camera BundleAdjuster::GetDefaultCameraSigma(
@@ -453,6 +454,10 @@ void BundleAdjuster::SetUseAnalyticDerivatives(bool use) {
 
 void BundleAdjuster::SetLinearSolverType(std::string t) {
   linear_solver_type_ = t;
+}
+
+void BundleAdjuster::SetCovarianceAlgorithmType(std::string t) {
+  covariance_algorithm_type_ = t;
 }
 
 void BundleAdjuster::SetInternalParametersPriorSD(double focal_sd, double c_sd,
@@ -1138,6 +1143,9 @@ void BundleAdjuster::ComputeCovariances(ceres::Problem *problem) {
 
   if (last_run_summary_.termination_type != ceres::FAILURE) {
     ceres::Covariance::Options options;
+    if (!ceres::StringToCovarianceAlgorithmType(covariance_algorithm_type_, &options.algorithm_type)){
+      throw std::runtime_error("Covariance algorithm type " + covariance_algorithm_type_ + " doesn't exist.");
+    }
     ceres::Covariance covariance(options);
 
     std::vector<std::pair<const double *, const double *>> covariance_blocks;
