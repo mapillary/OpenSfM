@@ -28,7 +28,7 @@ BundleAdjuster::BundleAdjuster() {
   adjust_absolute_position_std_ = false;
   max_num_iterations_ = 500;
   num_threads_ = 1;
-  linear_solver_type_ = "SPARSE_NORMAL_CHOLESKY";
+  linear_solver_type_ = "SPARSE_SCHUR";
 }
 
 geometry::Camera BundleAdjuster::GetDefaultCameraSigma(
@@ -506,25 +506,6 @@ ceres::LossFunction *CreateLossFunction(std::string name, double threshold) {
     return new ceres::ArctanLoss(threshold);
   }
   return NULL;
-}
-
-ceres::LinearSolverType LinearSolverTypeFromNamae(std::string name) {
-  if (name.compare("DENSE_QR") == 0) {
-    return ceres::DENSE_QR;
-  } else if (name.compare("DENSE_NORMAL_CHOLESKY") == 0) {
-    return ceres::DENSE_NORMAL_CHOLESKY;
-  } else if (name.compare("SPARSE_NORMAL_CHOLESKY") == 0) {
-    return ceres::SPARSE_NORMAL_CHOLESKY;
-  } else if (name.compare("CGNR") == 0) {
-    return ceres::CGNR;
-  } else if (name.compare("DENSE_SCHUR") == 0) {
-    return ceres::DENSE_SCHUR;
-  } else if (name.compare("SPARSE_SCHUR") == 0) {
-    return ceres::SPARSE_SCHUR;
-  } else if (name.compare("ITERATIVE_SCHUR") == 0) {
-    return ceres::ITERATIVE_SCHUR;
-  }
-  return ceres::SPARSE_SCHUR;
 }
 
 void BundleAdjuster::AddLinearMotion(const std::string &shot0_id,
@@ -1136,8 +1117,9 @@ void BundleAdjuster::Run() {
 
   // Solve
   ceres::Solver::Options options;
-  options.linear_solver_type = ceres::SPARSE_NORMAL_CHOLESKY;
-  options.linear_solver_type = LinearSolverTypeFromNamae(linear_solver_type_);
+  if (!ceres::StringToLinearSolverType(linear_solver_type_, &options.linear_solver_type)){
+    throw std::runtime_error("Linear solver type " + linear_solver_type_ + " doesn't exist.");
+  }
   options.num_threads = num_threads_;
   options.max_num_iterations = max_num_iterations_;
 
