@@ -8,7 +8,7 @@ numpy
 Pillow>=8.1.1
 pyproj>=1.9.5.1
 pytest==3.0.7
-python-dateutil==2.6.0
+python-dateutil>=2.7
 pyyaml==5.4
 scipy
 Sphinx==3.4.3
