@@ -16,6 +16,7 @@ from . import (
     export_report,
     export_visualsfm,
     extract_metadata,
+    extend_reconstruction,
     match_features,
     mesh,
     reconstruct,
@@ -46,6 +47,7 @@ opensfm_commands = [
     export_colmap,
     export_geocoords,
     export_report,
+    extend_reconstruction,
     create_submodels,
     align_submodels,
 ]
