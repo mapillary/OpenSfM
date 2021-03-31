@@ -1189,6 +1189,31 @@ def incremental_reconstruction(data: DataSetBase, tracks_manager):
     return report, reconstructions
 
 
+def reconstruct_from_prior(data: DataSetBase, tracks_manager, rec_prior):
+    """Retriangulate a new reconstruction from the rec_prior"""
+    reconstruction = types.Reconstruction()
+    report = {}
+    rec_report = {}
+    report["retriangulate"] = [rec_report]
+    images = tracks_manager.get_shot_ids()
+
+    # copy prior poses, cameras
+    reconstruction.cameras = rec_prior.cameras
+    for shot in rec_prior.shots.values():
+        reconstruction.add_shot(shot)
+    prior_images = set(rec_prior.shots)
+    remaining_images = set(images) - prior_images
+
+    rec_report["num_prior_images"] = len(prior_images)
+    rec_report["num_remaining_images"] = len(remaining_images)
+
+    # Start with the known poses
+    triangulate_shot_features(tracks_manager, reconstruction, prior_images, data.config)
+    paint_reconstruction(data, tracks_manager, reconstruction)
+    report["not_reconstructed_images"] = list(remaining_images)
+    return report, reconstruction
+
+
 class Chronometer:
     def __init__(self):
         self.start()

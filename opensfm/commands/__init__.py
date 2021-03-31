@@ -19,6 +19,7 @@ from . import (
     match_features,
     mesh,
     reconstruct,
+    reconstruct_from_prior,
     undistort,
 )
 from .command_runner import command_runner
@@ -31,6 +32,7 @@ opensfm_commands = [
     create_rig,
     create_tracks,
     reconstruct,
+    reconstruct_from_prior,
     bundle,
     mesh,
     undistort,
