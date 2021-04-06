@@ -79,7 +79,7 @@ def create_subset_dataset_from_instances(data: DataSet, instances_per_rig, name)
         )
 
         subset_size = data.config["rig_calibration_subset_size"]
-        middle = len(instances_sorted) / 2
+        middle = len(instances_sorted) // 2
         instances_calibrate = instances_sorted[
             max([0, middle - int(subset_size / 2)]) : min(
                 [middle + int(subset_size / 2), len(instances_sorted) - 1]
