@@ -490,7 +490,7 @@ void BundleAdjuster::SetRigParametersPriorSD(double rig_translation_sd,
 
 void BundleAdjuster::SetComputeCovariances(bool v) { compute_covariances_ = v; }
 
-bool BundleAdjuster::GetCovarianceEstimationValid() {
+bool BundleAdjuster::GetCovarianceEstimationValid() const {
   return covariance_estimation_valid_;
 }
 
@@ -1226,53 +1226,53 @@ void BundleAdjuster::ComputeReprojectionErrors() {
   }
 }
 
-geometry::Camera BundleAdjuster::GetCamera(const std::string &id) {
+geometry::Camera BundleAdjuster::GetCamera(const std::string &id) const {
   if (cameras_.find(id) == cameras_.end()) {
     throw std::runtime_error("Camera " + id + " doesn't exists");
   }
   return cameras_.at(id).GetValue();
 }
 
-Shot BundleAdjuster::GetShot(const std::string &id) {
+Shot BundleAdjuster::GetShot(const std::string &id) const {
   if (shots_.find(id) == shots_.end()) {
     throw std::runtime_error("Shot " + id + " doesn't exists");
   }
   return shots_.at(id);
 }
 
-Point BundleAdjuster::GetPoint(const std::string &id) {
+Point BundleAdjuster::GetPoint(const std::string &id) const {
   if (points_.find(id) == points_.end()) {
     throw std::runtime_error("Point " + id + " doesn't exists");
   }
   return points_.at(id);
 }
 
-Reconstruction BundleAdjuster::GetReconstruction(const std::string &id) {
+Reconstruction BundleAdjuster::GetReconstruction(const std::string &id) const {
   if (reconstructions_.find(id) == reconstructions_.end()) {
     throw std::runtime_error("Reconstruction " + id + " doesn't exists");
   }
   return reconstructions_.at(id);
 }
 
-RigModel BundleAdjuster::GetRigModel(const std::string &model_id) {
+RigModel BundleAdjuster::GetRigModel(const std::string &model_id) const {
   if (rig_models_.find(model_id) == rig_models_.end()) {
     throw std::runtime_error("Rig model " + model_id + " doesn't exists");
   }
   return rig_models_.at(model_id);
 }
 
-RigInstance BundleAdjuster::GetRigInstance(const std::string &instance_id) {
+RigInstance BundleAdjuster::GetRigInstance(const std::string &instance_id) const {
   if (rig_instances_.find(instance_id) == rig_instances_.end()) {
     throw std::runtime_error("Rig instance " + instance_id + " doesn't exists");
   }
   return rig_instances_.at(instance_id);
 }
 
-std::string BundleAdjuster::BriefReport() {
+std::string BundleAdjuster::BriefReport() const {
   return last_run_summary_.BriefReport();
 }
 
-std::string BundleAdjuster::FullReport() {
+std::string BundleAdjuster::FullReport() const {
   return last_run_summary_.FullReport();
 }
 }  // namespace bundle
