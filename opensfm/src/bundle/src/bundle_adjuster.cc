@@ -820,8 +820,12 @@ void BundleAdjuster::Run() {
   }
 
   // Add reprojection error blocks
-  ceres::LossFunction *projection_loss = CreateLossFunction(
-      point_projection_loss_name_, point_projection_loss_threshold_);
+  ceres::LossFunction *projection_loss =
+      point_projection_observations_.empty() &&
+              point_rig_projection_observations_.empty()
+          ? nullptr
+          : CreateLossFunction(point_projection_loss_name_,
+                               point_projection_loss_threshold_);
   for (auto &observation : point_projection_observations_) {
     const auto projection_type =
         observation.camera->GetValue().GetProjectionType();
@@ -933,8 +937,11 @@ void BundleAdjuster::Run() {
   }
 
   // Add relative rotation errors
-  ceres::LossFunction *relative_rotation_loss = CreateLossFunction(
-      relative_motion_loss_name_, relative_motion_loss_threshold_);
+  ceres::LossFunction *relative_rotation_loss =
+      relative_rotations_.empty()
+          ? nullptr
+          : CreateLossFunction(relative_motion_loss_name_,
+                               relative_motion_loss_threshold_);
   for (auto &rr : relative_rotations_) {
     auto *cost_function =
         new ceres::AutoDiffCostFunction<RelativeRotationError, 3, 6, 6>(
@@ -1024,9 +1031,12 @@ void BundleAdjuster::Run() {
   }
 
   // Add absolute up vector errors
-  ceres::LossFunction *up_vector_loss = new ceres::CauchyLoss(1);
+  ceres::LossFunction *up_vector_loss = nullptr;
   for (auto &a : absolute_up_vectors_) {
     if (a.std_deviation > 0) {
+      if (up_vector_loss == nullptr) {
+        up_vector_loss = new ceres::CauchyLoss(1);
+      }
       auto *up_vector_cost_function =
           new ceres::AutoDiffCostFunction<UpVectorError, 3, 6>(
               new UpVectorError(a.up_vector, a.std_deviation));
@@ -1037,9 +1047,12 @@ void BundleAdjuster::Run() {
   }
 
   // Add absolute pan (compass) errors
-  ceres::LossFunction *pan_loss = new ceres::CauchyLoss(1);
+  ceres::LossFunction *pan_loss = nullptr;
   for (auto &a : absolute_pans_) {
     if (a.std_deviation > 0) {
+      if (pan_loss == nullptr) {
+        pan_loss = new ceres::CauchyLoss(1);
+      }
       ceres::CostFunction *pan_cost_function =
           new ceres::AutoDiffCostFunction<PanAngleError, 1, 6>(
               new PanAngleError(a.angle, a.std_deviation));
@@ -1049,9 +1062,12 @@ void BundleAdjuster::Run() {
   }
 
   // Add absolute tilt errors
-  ceres::LossFunction *tilt_loss = new ceres::CauchyLoss(1);
+  ceres::LossFunction *tilt_loss = nullptr;
   for (auto &a : absolute_tilts_) {
     if (a.std_deviation > 0) {
+      if (tilt_loss == nullptr) {
+        tilt_loss = new ceres::CauchyLoss(1);
+      }
       ceres::CostFunction *tilt_cost_function =
           new ceres::AutoDiffCostFunction<TiltAngleError, 1, 6>(
               new TiltAngleError(a.angle, a.std_deviation));
@@ -1061,9 +1077,12 @@ void BundleAdjuster::Run() {
   }
 
   // Add absolute roll errors
-  ceres::LossFunction *roll_loss = new ceres::CauchyLoss(1);
+  ceres::LossFunction *roll_loss = nullptr;
   for (auto &a : absolute_rolls_) {
     if (a.std_deviation > 0) {
+      if (roll_loss == nullptr) {
+        roll_loss = new ceres::CauchyLoss(1);
+      }
       ceres::CostFunction *roll_cost_function =
           new ceres::AutoDiffCostFunction<RollAngleError, 1, 6>(
               new RollAngleError(a.angle, a.std_deviation));
@@ -1073,8 +1092,11 @@ void BundleAdjuster::Run() {
   }
 
   // Add linear motion priors
-  ceres::LossFunction *linear_motion_prior_loss_ = new ceres::CauchyLoss(1);
+  ceres::LossFunction *linear_motion_prior_loss_ = nullptr;
   for (auto &a : linear_motion_prior_) {
+    if (linear_motion_prior_loss_ == nullptr) {
+      linear_motion_prior_loss_ = new ceres::CauchyLoss(1);
+    }
     auto *cost_function =
         new ceres::AutoDiffCostFunction<LinearMotionError, 6, 6, 6, 6>(
             new LinearMotionError(a.alpha, a.position_std_deviation,
@@ -1122,8 +1144,10 @@ void BundleAdjuster::Run() {
 
   // Solve
   ceres::Solver::Options options;
-  if (!ceres::StringToLinearSolverType(linear_solver_type_, &options.linear_solver_type)){
-    throw std::runtime_error("Linear solver type " + linear_solver_type_ + " doesn't exist.");
+  if (!ceres::StringToLinearSolverType(linear_solver_type_,
+                                       &options.linear_solver_type)) {
+    throw std::runtime_error("Linear solver type " + linear_solver_type_ +
+                             " doesn't exist.");
   }
   options.num_threads = num_threads_;
   options.max_num_iterations = max_num_iterations_;
@@ -1143,8 +1167,10 @@ void BundleAdjuster::ComputeCovariances(ceres::Problem *problem) {
 
   if (last_run_summary_.termination_type != ceres::FAILURE) {
     ceres::Covariance::Options options;
-    if (!ceres::StringToCovarianceAlgorithmType(covariance_algorithm_type_, &options.algorithm_type)){
-      throw std::runtime_error("Covariance algorithm type " + covariance_algorithm_type_ + " doesn't exist.");
+    if (!ceres::StringToCovarianceAlgorithmType(covariance_algorithm_type_,
+                                                &options.algorithm_type)) {
+      throw std::runtime_error("Covariance algorithm type " +
+                               covariance_algorithm_type_ + " doesn't exist.");
     }
     ceres::Covariance covariance(options);
 
