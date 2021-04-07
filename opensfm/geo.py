@@ -189,3 +189,6 @@ class TopocentricConverter(object):
     def to_lla(self, x, y, z):
         """Convert topocentric x, y, z to lat, lon, alt."""
         return lla_from_topocentric(x, y, z, self.lat, self.lon, self.alt)
+
+    def __eq__(self, o):
+        return np.allclose([self.lat, self.lon, self.alt], (o.lat, o.lon, o.alt))
