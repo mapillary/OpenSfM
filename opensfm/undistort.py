@@ -1,3 +1,4 @@
+import itertools
 import logging
 
 import cv2
@@ -5,6 +6,7 @@ import numpy as np
 from opensfm import features
 from opensfm import log
 from opensfm import pygeometry
+from opensfm import pymap
 from opensfm import pysfm
 from opensfm import transformations as tf
 from opensfm import types
@@ -20,6 +22,7 @@ def undistort_reconstruction(
     image_format = data.config["undistorted_image_format"]
     urec = types.Reconstruction()
     urec.points = reconstruction.points
+    rig_instance_count = itertools.count()
     utracks_manager = pysfm.TracksManager()
     logger.debug("Undistorting the reconstruction")
     undistorted_shots = {}
@@ -45,7 +48,7 @@ def undistort_reconstruction(
         elif pygeometry.Camera.is_panorama(shot.camera.projection_type):
             subshot_width = int(data.config["depthmap_resolution"])
             subshots = perspective_views_of_a_panorama(
-                shot, subshot_width, urec, image_format
+                shot, subshot_width, urec, image_format, rig_instance_count
             )
 
         for subshot in subshots:
@@ -248,7 +251,7 @@ def perspective_camera_from_fisheye62(fisheye62):
 
 
 def perspective_views_of_a_panorama(
-    spherical_shot, width, reconstruction, image_format
+    spherical_shot, width, reconstruction, image_format, rig_instance_count
 ):
     """Create 6 perspective views of a panorama."""
     camera = pygeometry.Camera.create_perspective(0.5, 0.0, 0.0)
@@ -266,23 +269,32 @@ def perspective_views_of_a_panorama(
         tf.rotation_matrix(-np.pi / 2, (1, 0, 0)),
         tf.rotation_matrix(+np.pi / 2, (1, 0, 0)),
     ]
+
+    rig_model_id = "panorama_cube_rig"
+    if rig_model_id not in reconstruction.rig_models:
+        rig_model = pymap.RigModel("panorama_cube_rig")
+        for name, rotation in zip(names, rotations):
+            rig_camera_pose = pygeometry.Pose()
+            rig_camera_pose.set_rotation_matrix(rotation[:3, :3])
+            rig_camera = pymap.RigCamera(rig_camera_pose, name)
+            rig_model.add_rig_camera(rig_camera)
+        reconstruction.add_rig_model(rig_model)
+
+    rig_instance = pymap.RigInstance(
+        reconstruction.rig_models[rig_model_id], next(rig_instance_count)
+    )
+    rig_instance.pose = spherical_shot.pose
+
     shots = []
-    for name, rotation in zip(names, rotations):
-        R = np.dot(rotation[:3, :3], spherical_shot.pose.get_rotation_matrix())
-        o = spherical_shot.pose.get_origin()
-        pose = pygeometry.Pose()
-        pose.set_rotation_matrix(R)
-        pose.set_origin(o)
+    for name in names:
         shot_id = add_image_format_extension(
             f"{spherical_shot.id}_perspective_view_{name}", image_format
         )
-        shots.append(
-            reconstruction.create_shot(
-                shot_id,
-                camera.id,
-                pose,
-            )
-        )
+        shot = reconstruction.create_shot(shot_id, camera.id)
+        rig_instance.add_shot(name, shot)
+        shots.append(shot)
+    reconstruction.add_rig_instance(rig_instance)
+
     return shots
 
 
