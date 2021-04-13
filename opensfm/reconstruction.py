@@ -545,9 +545,11 @@ def bootstrap_reconstruction(
     reconstruction.rig_models = rig_model_priors
 
     new_shots = add_shot(data, reconstruction, rig_assignments, im1, pygeometry.Pose())
-    new_shots |= add_shot(
-        data, reconstruction, rig_assignments, im2, pygeometry.Pose(R, t)
-    )
+
+    if im2 not in new_shots:
+        new_shots |= add_shot(
+            data, reconstruction, rig_assignments, im2, pygeometry.Pose(R, t)
+        )
 
     align_reconstruction(reconstruction, None, data.config)
     triangulate_shot_features(tracks_manager, reconstruction, new_shots, data.config)

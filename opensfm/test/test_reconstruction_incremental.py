@@ -1,7 +1,5 @@
-import numpy as np
-from opensfm import reconstruction, io
+from opensfm import reconstruction
 from opensfm.synthetic_data import synthetic_dataset, synthetic_scene
-from opensfm.synthetic_data import synthetic_examples
 
 
 def test_reconstruction_incremental(scene_synthetic):
