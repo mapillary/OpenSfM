@@ -57,15 +57,15 @@ RigModelView::RigModelView(Map& map) : map_(map) {}
 size_t RigModelView::NumberOfRigModels() const {
   return map_.NumberOfRigModels();
 }
-RigModel& RigModelView::GetRigModel(const RigModelId& cam_id) {
-  return map_.GetRigModel(cam_id);
+RigModel& RigModelView::GetRigModel(const RigModelId& rig_model_id) {
+  return map_.GetRigModel(rig_model_id);
 }
 const std::unordered_map<RigModelId, RigModel>& RigModelView::GetRigModels()
     const {
   return map_.GetRigModels();
 }
-bool RigModelView::HasRigModel(const RigModelId& cam_id) const {
-  return map_.HasRigModel(cam_id);
+bool RigModelView::HasRigModel(const RigModelId& rig_model_id) const {
+  return map_.HasRigModel(rig_model_id);
 }
 
 RigInstanceView::RigInstanceView(Map& map) : map_(map) {}

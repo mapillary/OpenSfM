@@ -61,9 +61,9 @@ class RigModelView {
  public:
   explicit RigModelView(Map& map);
   size_t NumberOfRigModels() const;
-  RigModel& GetRigModel(const RigModelId& cam_id);
+  RigModel& GetRigModel(const RigModelId& rig_model_id);
   const std::unordered_map<RigModelId, RigModel>& GetRigModels() const;
-  bool HasRigModel(const RigModelId& cam_id) const;
+  bool HasRigModel(const RigModelId& rig_model_id) const;
 
  private:
   Map& map_;
