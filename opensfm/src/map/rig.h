@@ -85,7 +85,7 @@ class RigInstance {
   }
 
   // Pose
-  geometry::Pose GetPose() const { return pose_; }
+  const geometry::Pose& GetPose() const { return pose_; }
   geometry::Pose& GetPose() { return pose_; }
   void SetPose(const geometry::Pose& pose) { pose_ = pose; }
 
