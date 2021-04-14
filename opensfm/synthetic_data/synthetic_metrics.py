@@ -85,6 +85,13 @@ def aligned_to_reference(reference, reconstruction):
             coords1.append(point1.coordinates)
             coords2.append(point2.coordinates)
 
+    if len(coords1) == 0 or len(coords2) == 0:
+        for shot1 in reconstruction.shots.values():
+            shot2 = reference.shots.get(shot1.id)
+            if shot2 is not None:
+                coords1.append(shot1.pose.get_origin())
+                coords2.append(shot2.pose.get_origin())
+
     s, A, b = find_alignment(coords1, coords2)
     aligned = _copy_reconstruction(reconstruction)
     align.apply_similarity(aligned, s, A, b)
