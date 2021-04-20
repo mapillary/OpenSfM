@@ -21,21 +21,11 @@ class Landmark {
   void SetColor(const Vec3i& color) { color_ = color; }
 
   // Utility functions
-  void AddObservation(Shot* shot, const FeatureId& feat_id) {
-    observations_.emplace(shot, feat_id);
-  }
+  void AddObservation(Shot* shot, const FeatureId& feat_id);
   void RemoveObservation(Shot* shot);
-  size_t NumberOfObservations() const { return observations_.size(); }
-  FeatureId GetObservationIdInShot(Shot* shot) const {
-    auto obs_it = observations_.find(shot);
-    if (obs_it == observations_.end()) {
-      throw std::runtime_error("Accessing with invalid shot ptr!");
-    }
-    return observations_.at(shot);
-  }
-  const std::map<Shot*, FeatureId, KeyCompare>& GetObservations() const {
-    return observations_;
-  }
+  size_t NumberOfObservations() const;
+  FeatureId GetObservationIdInShot(Shot* shot) const;
+  const std::map<Shot*, FeatureId, KeyCompare>& GetObservations() const;
   void ClearObservations() { observations_.clear(); }
 
   // Comparisons
@@ -49,15 +39,8 @@ class Landmark {
   // Reprojection Errors
   void SetReprojectionErrors(
       const std::map<ShotId, Eigen::VectorXd>& reproj_errors);
-  std::map<ShotId, Eigen::VectorXd> GetReprojectionErrors() const {
-    return reproj_errors_;
-  }
-  void RemoveReprojectionError(const ShotId& shot_id) {
-    auto it = reproj_errors_.find(shot_id);
-    if (it != reproj_errors_.end()) {
-      reproj_errors_.erase(it);
-    }
-  }
+  std::map<ShotId, Eigen::VectorXd> GetReprojectionErrors() const;
+  void RemoveReprojectionError(const ShotId& shot_id);
 
  public:
   const LandmarkId id_;

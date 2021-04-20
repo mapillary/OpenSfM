@@ -19,4 +19,32 @@ void Landmark::RemoveObservation(Shot* shot) {
   observations_.erase(shot);
 }
 
+FeatureId Landmark::GetObservationIdInShot(Shot* shot) const {
+  auto obs_it = observations_.find(shot);
+  if (obs_it == observations_.end()) {
+    throw std::runtime_error("Accessing with invalid shot ptr!");
+  }
+  return observations_.at(shot);
+}
+
+void Landmark::AddObservation(Shot* shot, const FeatureId& feat_id) {
+  observations_.emplace(shot, feat_id);
+}
+const std::map<Shot*, FeatureId, KeyCompare>& Landmark::GetObservations()
+    const {
+  return observations_;
+}
+
+std::map<ShotId, Eigen::VectorXd> Landmark::GetReprojectionErrors() const {
+  return reproj_errors_;
+}
+void Landmark::RemoveReprojectionError(const ShotId& shot_id) {
+  auto it = reproj_errors_.find(shot_id);
+  if (it != reproj_errors_.end()) {
+    reproj_errors_.erase(it);
+  }
+}
+
+size_t Landmark::NumberOfObservations() const { return observations_.size(); }
+
 };  // namespace map
