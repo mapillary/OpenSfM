@@ -90,7 +90,7 @@ Install vcpkg from the OpenSfM root directory::
 
 Then install OpenCV, Ceres, SuiteSparse and LAPACK (this will take a while)::
 
-    vcpkg install opencv4 ceres lapack suitesparse --triplet x64-windows
+    vcpkg install opencv4 ceres ceres[suitesparse] lapack suitesparse --triplet x64-windows
 
 Finally install the PIP requirements::
 
