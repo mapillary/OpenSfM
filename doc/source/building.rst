@@ -24,7 +24,10 @@ OpenSfM depends on the following libraries that need to be installed before buil
 
 * OpenCV_
 * `Ceres Solver`_
-* NumPy_, SciPy_, Networkx_, PyYAML, exifread
+
+Python dependencies can be installed with::
+
+    pip install -r requirements
 
 
 Installing dependencies on Ubuntu
@@ -32,6 +35,24 @@ Installing dependencies on Ubuntu
 
 See this `Dockerfile <https://github.com/mapillary/OpenSfM/blob/master/Dockerfile>`_ for the commands to install all dependencies on Ubuntu 20.04.
 
+Installing dependencies on Fedora
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Tested on Fedora 33
+
+    sudo dnf install zlib-devel libjpeg-devel python3-devel g++ ceres-solver-devel opencv-devel eigen3-devel libomp cmake glog-devel
+
+There's an `issue <https://github.com/ceres-solver/ceres-solver/issues/491>`_ with the gflags-config.cmake distributed with Fedora. We need to build from scratch instead of relying on the version installed by dnf:
+
+    mkdir ~/src && cd ~/src && clone git@github.com:gflags/gflags.git && checkout v2.2.2
+
+    mkdir ~/src/gflags/build && cd ~/src/gflags/build && cmake ../ && make -j4
+
+    sudo make install
+
+Install python dependencies before building:
+
+    cd ~/src/OpenSfM && pip install -r requirements.txt
 
 Installing dependencies on MacOSX
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -40,6 +61,7 @@ Install OpenCV and the Ceres solver using::
 
     brew install opencv
     brew install ceres-solver
+    brew install libomp
     sudo pip install -r requirements.txt
 
 Make sure you update your ``PYTHONPATH`` to include ``/usr/local/lib/python3.7/site-packages`` where OpenCV have been installed. For example with::
@@ -68,10 +90,10 @@ Building the documentation
 --------------------------
 To build the documentation and browse it locally use::
 
-    cd doc
-    make livehtml
+    python3 setup.py build_doc
+    python3 -m http.server --directory build/doc/html/
 
-and browse `http://localhost:8001/ <http://localhost:8001/>`_
+and browse `http://localhost:8000/ <http://localhost:8000/>`_
 
 
 .. _Github: https://github.com/mapillary/OpenSfM
@@ -82,5 +104,3 @@ and browse `http://localhost:8001/ <http://localhost:8001/>`_
 .. _SciPy: http://www.scipy.org/
 .. _Ceres solver: http://ceres-solver.org/
 .. _Networkx: https://github.com/networkx/networkx
-
-

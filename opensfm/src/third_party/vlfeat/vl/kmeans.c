@@ -660,7 +660,7 @@ VL_XCAT(_vl_kmeans_quantize_, SFX)
  TYPE const * data,
  vl_size numData)
 {
-  vl_index i ;
+  vl_index i = 0 ;
 
 #if (FLT == VL_TYPE_FLOAT)
   VlFloatVectorComparisonFunction distFn = vl_get_vector_comparison_function_f(self->distance) ;
@@ -880,7 +880,7 @@ VL_XCAT(_vl_kmeans_refine_centers_lloyd_, SFX)
       }
       break ;
     }
-    
+
     if (iteration == 0) {
       initialEnergy = energy ;
     } else {
@@ -892,7 +892,7 @@ VL_XCAT(_vl_kmeans_refine_centers_lloyd_, SFX)
         break ;
       }
     }
-    
+
     /* begin next iteration */
     previousEnergy = energy ;
 
@@ -1056,7 +1056,7 @@ VL_XCAT(_vl_kmeans_refine_centers_ann_, SFX)
       }
       break ;
     }
-    
+
     if (iteration == 0) {
       initialEnergy = energy ;
     } else {

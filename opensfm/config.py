@@ -1,17 +1,22 @@
 import os
+
 import yaml
 
-default_config_yaml = '''
+default_config_yaml = """
 # Metadata
 use_exif_size: yes
+unknown_camera_models_are_different: no   # Treat images from unknown camera models as comming from different cameras
 default_focal_prior: 0.85
 
 # Params for features
-feature_type: HAHOG           # Feature type (AKAZE, SURF, SIFT, HAHOG, ORB)
-feature_root: 1               # If 1, apply square root mapping to features
-feature_min_frames: 4000      # If fewer frames are detected, sift_peak_threshold/surf_hessian_threshold is reduced.
-feature_process_size: 2048    # Resize the image if its size is larger than specified. Set to -1 for original size
+feature_type: HAHOG                     # Feature type (AKAZE, SURF, SIFT, HAHOG, ORB)
+feature_root: 1                         # If 1, apply square root mapping to features
+feature_min_frames: 4000                # If fewer frames are detected, sift_peak_threshold/surf_hessian_threshold is reduced.
+feature_min_frames_panorama: 16000      # Same as above but for panorama images
+feature_process_size: 2048              # Resize the image if its size is larger than specified. Set to -1 for original size
+feature_process_size_panorama: 4096     # Same as above but for panorama images
 feature_use_adaptive_suppression: no
+features_bake_segmentation: no          # Bake segmentation info (class and instance) in the feature data. Thus it is done once for all at extraction time.
 
 # Params for SIFT
 sift_peak_threshold: 0.1     # Smaller value -> more features
@@ -102,6 +107,8 @@ radial_distortion_k3_sd: 0.01   # The standard deviation of the third radial dis
 radial_distortion_k4_sd: 0.01   # The standard deviation of the fourth radial distortion parameter
 tangential_distortion_p1_sd: 0.01   # The standard deviation of the first tangential distortion parameter
 tangential_distortion_p2_sd: 0.01   # The standard deviation of the second tangential distortion parameter
+rig_translation_sd: 0.1            # The standard deviation of the rig translation
+rig_rotation_sd: 0.1               # The standard deviation of the rig rotation
 bundle_outlier_filtering_type: FIXED    # Type of threshold for filtering outlier : either fixed value (FIXED) or based on actual distribution (AUTO)
 bundle_outlier_auto_ratio: 3.0          # For AUTO filtering type, projections with larger reprojection than ratio-times-mean, are removed
 bundle_outlier_fixed_threshold: 0.006   # For FIXED filtering type, projections with larger reprojection error after bundle adjustment are removed
@@ -125,6 +132,9 @@ align_method: orientation_prior       # orientation_prior or naive
 align_orientation_prior: horizontal   # horizontal, vertical or no_roll
 bundle_use_gps: yes                   # Enforce GPS position in bundle adjustment
 bundle_use_gcp: no                    # Enforce Ground Control Point position in bundle adjustment
+
+# Params for rigs
+rig_calibration_subset_size: 15
 
 # Params for navigation graph
 nav_min_distance: 0.01                # Minimum distance for a possible edge between two nodes
@@ -166,7 +176,7 @@ submodel_overlap: 30.0                                               # Radius of
 submodels_relpath: "submodels"                                       # Relative path to the submodels directory
 submodel_relpath_template: "submodels/submodel_%04d"                 # Template to generate the relative path to a submodel directory
 submodel_images_relpath_template: "submodels/submodel_%04d/images"   # Template to generate the relative path to a submodel images directory
-'''
+"""
 
 
 def default_config():

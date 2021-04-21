@@ -1,19 +1,13 @@
-import numpy as np
-from collections import defaultdict
 import math
-import copy
-import cv2
 
-from opensfm import geo
-from opensfm import types
-from opensfm import reconstruction as rc
-from opensfm import pysfm
-from opensfm import pygeometry
+import cv2
+import numpy as np
+from opensfm import geo, pygeometry, pysfm, reconstruction as rc, types, pymap
 
 
 def derivative(func, x):
     eps = 1e-10
-    d = (func(x+eps)-func(x))/eps
+    d = (func(x + eps) - func(x)) / eps
     d /= np.linalg.norm(d)
     return d
 
@@ -23,10 +17,10 @@ def samples_generator_random_count(count):
 
 
 def samples_generator_interval(start, length, interval, interval_noise):
-    samples = np.linspace(start/length, 1, num=int(length/interval))
-    samples += np.random.normal(0.0,
-                                float(interval_noise)/float(length),
-                                samples.shape)
+    samples = np.linspace(start / length, 1, num=int(length / interval))
+    samples += np.random.normal(
+        0.0, float(interval_noise) / float(length), samples.shape
+    )
     return samples
 
 
@@ -48,7 +42,7 @@ def generate_samples_shifted(samples, shape, shift):
         point = shape(i)
         tangent = derivative(shape, i)
         tangent = np.array([-tangent[1], tangent[0]])
-        point += tangent*(shift/2)
+        point += tangent * (shift / 2)
         plane_points += [point]
     return np.array(plane_points)
 
@@ -59,7 +53,7 @@ def generate_z_plane(samples, shape, thickness):
         point = shape(i)
         tangent = derivative(shape, i)
         tangent = np.array([-tangent[1], tangent[0]])
-        shift = tangent*((np.random.rand()-0.5)*thickness)
+        shift = tangent * ((np.random.rand() - 0.5) * thickness)
         point += shift
         plane_points += [point]
     plane_points = np.array(plane_points)
@@ -69,10 +63,8 @@ def generate_z_plane(samples, shape, thickness):
 def generate_xy_planes(samples, shape, z_size, y_size):
     xy1 = generate_samples_shifted(samples, shape, y_size)
     xy2 = generate_samples_shifted(samples, shape, -y_size)
-    xy1 = np.insert(xy1, 2, values=np.random.rand(
-        xy1.shape[0])*z_size, axis=1)
-    xy2 = np.insert(xy2, 2, values=np.random.rand(
-        xy2.shape[0])*z_size, axis=1)
+    xy1 = np.insert(xy1, 2, values=np.random.rand(xy1.shape[0]) * z_size, axis=1)
+    xy2 = np.insert(xy2, 2, values=np.random.rand(xy2.shape[0]) * z_size, axis=1)
     return np.concatenate((xy1, xy2), axis=0)
 
 
@@ -91,19 +83,24 @@ def generate_cameras(samples, shape, height):
 
 
 def line_generator(length, point):
-    x = point*length
+    x = point * length
     return np.transpose(np.array([x, 0]))
 
 
 def weird_curve(length, point):
-    y = math.cos(point+0.1*point**2+2.3*point**4 +
-                 0.8*point**7+0.1*point**9)
-    return length*np.transpose(np.array([point, y]))
+    y = math.cos(
+        point
+        + 0.1 * point ** 2
+        + 2.3 * point ** 4
+        + 0.8 * point ** 7
+        + 0.1 * point ** 9
+    )
+    return length * np.transpose(np.array([point, y]))
 
 
 def ellipse_generator(x_size, y_size, point):
-    y = np.sin(point*2*np.pi)*y_size/2
-    x = np.cos(point*2*np.pi)*x_size/2
+    y = np.sin(point * 2 * np.pi) * y_size / 2
+    x = np.cos(point * 2 * np.pi) * x_size / 2
     return np.transpose(np.array([x, y]))
 
 
@@ -111,8 +108,7 @@ def perturb_points(points, sigmas):
     eps = 1e-10
     for point in points:
         sigmas = np.array([max(s, eps) for s in sigmas])
-        point += np.random.normal(0.0, sigmas,
-                                  point.shape)
+        point += np.random.normal(0.0, sigmas, point.shape)
 
 
 def generate_exifs(reconstruction, gps_noise, speed_ms=10):
@@ -124,30 +120,30 @@ def generate_exifs(reconstruction, gps_noise, speed_ms=10):
     for shot_name in sorted(reconstruction.shots.keys()):
         shot = reconstruction.shots[shot_name]
         exif = {}
-        exif['width'] = shot.camera.width
-        exif['height'] = shot.camera.height
-        exif['focal_ratio'] = shot.camera.focal
-        exif['camera'] = str(shot.camera.id)
-        exif['make'] = str(shot.camera.id)
+        exif["width"] = shot.camera.width
+        exif["height"] = shot.camera.height
+        exif["focal_ratio"] = shot.camera.focal
+        exif["camera"] = str(shot.camera.id)
+        exif["make"] = str(shot.camera.id)
 
         pose = shot.pose.get_origin()
 
         if previous_pose is not None:
-            previous_time += np.linalg.norm(pose-previous_pose)*speed_ms
+            previous_time += np.linalg.norm(pose - previous_pose) * speed_ms
         previous_pose = pose
-        exif['capture_time'] = previous_time
+        exif["capture_time"] = previous_time
 
         perturb_points([pose], [gps_noise, gps_noise, gps_noise])
 
         _, _, _, comp = rc.shot_lla_and_compass(shot, reference)
         lat, lon, alt = reference.to_lla(*pose)
 
-        exif['gps'] = {}
-        exif['gps']['latitude'] = lat
-        exif['gps']['longitude'] = lon
-        exif['gps']['altitude'] = alt
-        exif['gps']['dop'] = gps_noise
-        exif['compass'] = {'angle': comp}
+        exif["gps"] = {}
+        exif["gps"]["latitude"] = lat
+        exif["gps"]["longitude"] = lon
+        exif["gps"]["altitude"] = alt
+        exif["gps"]["dop"] = gps_noise
+        exif["compass"] = {"angle": comp}
         exifs[shot_name] = exif
     return exifs
 
@@ -158,36 +154,63 @@ def perturb_rotations(rotations, angle_sigma):
         rodrigues = cv2.Rodrigues(rotation)[0].ravel()
         angle = np.linalg.norm(rodrigues)
         angle_pertubed = angle + np.random.normal(0.0, angle_sigma)
-        rodrigues *= (float(angle_pertubed)/float(angle))
+        rodrigues *= float(angle_pertubed) / float(angle)
         rotations[i] = cv2.Rodrigues(rodrigues)[0]
 
 
-def add_shots_to_reconstruction(positions, rotations,
-                                camera, reconstruction):
-    shift = len(reconstruction.shots)
+def add_shots_to_reconstruction(shot_ids, positions, rotations, camera, reconstruction):
     reconstruction.add_camera(camera)
-    for i, item in enumerate(zip(positions, rotations)):
-        reconstruction.create_shot('shot%04d' % (shift + i), camera.id,
-                                   pygeometry.Pose(item[1],
-                                                   -item[1].dot(item[0])))
-
+    for shot_id, position, rotation in zip(shot_ids, positions, rotations):
+        pose = pygeometry.Pose(rotation)
+        pose.set_origin(position)
+        reconstruction.create_shot(shot_id, camera.id, pose)
 
 
 def add_points_to_reconstruction(points, color, reconstruction):
     shift = len(reconstruction.points)
     for i in range(points.shape[0]):
-        point = reconstruction.create_point(str(shift+i), points[i, :])
+        point = reconstruction.create_point(str(shift + i), points[i, :])
         point.color = color
 
 
-def create_reconstruction(points, colors,
-                          cameras, positions,
-                          rotations):
+def add_rigs_to_reconstruction(shots, positions, rotations, model, reconstruction):
+    rig_model = reconstruction.add_rig_model(model)
+    for i, (i_shots, position, rotation) in enumerate(zip(shots, positions, rotations)):
+        rig_instance = reconstruction.add_rig_instance(pymap.RigInstance(rig_model, i))
+        for s in i_shots:
+            rig_instance.add_shot(s[1], reconstruction.get_shot(s[0]))
+        rig_instance.pose = pygeometry.Pose(rotation, -rotation.dot(position))
+
+
+def create_reconstruction(
+    points,
+    colors,
+    cameras,
+    shot_ids,
+    positions,
+    rotations,
+    rig_shots=None,
+    rig_positions=None,
+    rig_rotations=None,
+    rig_models=None,
+):
     reconstruction = types.Reconstruction()
-    for item in zip(points, colors):
-        add_points_to_reconstruction(item[0], item[1], reconstruction)
-    for item in zip(positions, rotations, cameras):
-        add_shots_to_reconstruction(item[0], item[1], item[2], reconstruction)
+    for point, color in zip(points, colors):
+        add_points_to_reconstruction(point, color, reconstruction)
+
+    for s_shot_ids, s_positions, s_rotations, s_cameras in zip(
+        shot_ids, positions, rotations, cameras
+    ):
+        add_shots_to_reconstruction(
+            s_shot_ids, s_positions, s_rotations, s_cameras, reconstruction
+        )
+
+    for s_rig_shots, s_rig_positions, s_rig_rotations, s_rig_model in zip(
+        rig_shots, rig_positions, rig_rotations, rig_models
+    ):
+        add_rigs_to_reconstruction(
+            s_rig_shots, s_rig_positions, s_rig_rotations, s_rig_model, reconstruction
+        )
     return reconstruction
 
 
@@ -203,8 +226,7 @@ def generate_track_data(reconstruction, maximum_depth, noise):
         for _ in range(non_zeroes):
             index = np.random.randint(0, desc_size)
             descriptor[index] = np.random.random() * 255
-        track_descriptors[track_index] = descriptor.round().\
-            astype(feature_data_type)
+        track_descriptors[track_index] = descriptor.round().astype(feature_data_type)
 
     colors = {}
     features = {}
@@ -232,17 +254,23 @@ def generate_track_data(reconstruction, maximum_depth, noise):
                 continue
 
             # add perturbation
-            perturbation = float(noise)/float(max(shot.camera.width,
-                                                  shot.camera.height))
+            perturbation = float(noise) / float(
+                max(shot.camera.width, shot.camera.height)
+            )
             perturb_points([projection], np.array([perturbation, perturbation]))
 
             projections_inside.append(np.hstack((projection, [default_scale])))
             descriptors_inside.append(track_descriptors[original_key])
             colors_inside.append(original_point.color)
             obs = pysfm.Observation(
-                projection[0], projection[1], default_scale,
-                original_point.color[0], original_point.color[1],
-                original_point.color[2], len(projections_inside) - 1)
+                projection[0],
+                projection[1],
+                default_scale,
+                original_point.color[0],
+                original_point.color[1],
+                original_point.color[2],
+                len(projections_inside) - 1,
+            )
             tracks_manager.add_observation(str(shot_index), str(original_key), obs)
         features[shot_index] = np.array(projections_inside)
         colors[shot_index] = np.array(colors_inside)
@@ -256,16 +284,25 @@ def _check_depth(point, shot, maximum_depth):
 
 
 def _is_in_front(point, shot):
-    return np.dot((point.coordinates - shot.pose.get_origin()),
-                  shot.pose.get_rotation_matrix()[2]) > 0
+    return (
+        np.dot(
+            (point.coordinates - shot.pose.get_origin()),
+            shot.pose.get_rotation_matrix()[2],
+        )
+        > 0
+    )
 
 
 def _is_inside_camera(projection, camera):
     if camera.width > camera.height:
-        return (-0.5 < projection[0] < 0.5) and \
-            (-float(camera.height)/float(2*camera.width) < projection[1]
-                < float(camera.height)/float(2*camera.width))
+        return (-0.5 < projection[0] < 0.5) and (
+            -float(camera.height) / float(2 * camera.width)
+            < projection[1]
+            < float(camera.height) / float(2 * camera.width)
+        )
     else:
-        return (-0.5 < projection[1] < 0.5) and \
-            (-float(camera.width)/float(2*camera.height) < projection[0]
-                < float(camera.width)/float(2*camera.height))
+        return (-0.5 < projection[1] < 0.5) and (
+            -float(camera.width) / float(2 * camera.height)
+            < projection[0]
+            < float(camera.width) / float(2 * camera.height)
+        )

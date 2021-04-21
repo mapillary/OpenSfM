@@ -1,5 +1,7 @@
+#include <foundation/union_find.h>
 #include <sfm/tracks_manager.h>
 
+#include <optional>
 #include <sstream>
 #include <unordered_set>
 
@@ -31,36 +33,68 @@ void WriteToStreamCurrentVersion(S& ostream, const TracksManager& manager) {
     const auto observations = manager.GetShotObservations(shotID);
     for (const auto& observation : observations) {
       ostream << shotID << "\t" << observation.first << "\t"
-              << observation.second.id << "\t" << observation.second.point(0)
-              << "\t" << observation.second.point(1) << "\t"
-              << observation.second.scale << "\t" << observation.second.color(0)
-              << "\t" << observation.second.color(1) << "\t"
-              << observation.second.color(2) << std::endl;
+              << observation.second.feature_id << "\t"
+              << observation.second.point(0) << "\t"
+              << observation.second.point(1) << "\t" << observation.second.scale
+              << "\t" << observation.second.color(0) << "\t"
+              << observation.second.color(1) << "\t"
+              << observation.second.color(2) << "\t"
+              << observation.second.segmentation_id << "\t"
+              << observation.second.instance_id << std::endl;
     }
   }
 }
 
 Observation InstanciateObservation(double x, double y, double scale, int id,
-                                   int r, int g, int b) {
+                                   int r, int g, int b,
+                                   int segm = Observation::NO_SEMANTIC_VALUE,
+                                   int inst = Observation::NO_SEMANTIC_VALUE) {
   Observation observation;
   observation.point << x, y;
   observation.scale = scale;
-  observation.id = id;
+  observation.feature_id = id;
   observation.color << r, g, b;
+  observation.segmentation_id = segm;
+  observation.instance_id = inst;
   return observation;
+}
+
+void SeparateLineByTabs(const std::string& line,
+                        std::vector<std::string>& elems) {
+  elems.clear();
+  std::stringstream stst(line);
+  std::string elem;
+  while (std::getline(stst, elem, '\t'))  // separate by tabs
+  {
+    elems.push_back(elem);
+  }
 }
 
 template <class S>
 TracksManager InstanciateFromStreamV0(S& fstream) {
-  ShotId image = "";
-  TrackId trackID = "";
-  int featureID = -1;
-  double x = -1.0, y = -1.0;
-  int r = 0, g = 0, b = 0;
-
   TracksManager manager;
-  while (fstream >> image >> trackID >> featureID >> x >> y >> r >> g >> b) {
-    auto observation = InstanciateObservation(x, y, 0., featureID, r, g, b);
+  std::string line;
+  std::vector<std::string> elems;
+  constexpr auto N_ENTRIES{8};
+  elems.reserve(N_ENTRIES);
+  while (std::getline(fstream, line)) {
+    SeparateLineByTabs(line, elems);
+    if (elems.size() != N_ENTRIES)  // process only valid lines
+    {
+      std::runtime_error(
+          "Encountered invalid line. A line must contain exactly " +
+          std::to_string(N_ENTRIES) + " values!");
+    }
+    const ShotId image = elems[0];
+    const TrackId trackID = elems[1];
+    const int featureID = std::stoi(elems[2]);
+    const double x = std::stod(elems[3]);
+    const double y = std::stod(elems[4]);
+    const double scale = 0.0;
+    const int r = std::stoi(elems[5]);
+    const int g = std::stoi(elems[6]);
+    const int b = std::stoi(elems[7]);
+    auto observation = InstanciateObservation(x, y, scale, featureID, r, g, b);
     manager.AddObservation(image, trackID, observation);
   }
   return manager;
@@ -68,16 +102,62 @@ TracksManager InstanciateFromStreamV0(S& fstream) {
 
 template <class S>
 TracksManager InstanciateFromStreamV1(S& fstream) {
-  ShotId image = "";
-  TrackId trackID = "";
-  int featureID = -1;
-  double x = -1.0, y = -1.0, scale = 0.;
-  int r = 0, g = 0, b = 0;
-
   TracksManager manager;
-  while (fstream >> image >> trackID >> featureID >> x >> y >> scale >> r >>
-         g >> b) {
+  std::string line;
+  std::vector<std::string> elems;
+  constexpr auto N_ENTRIES{9};
+  elems.reserve(N_ENTRIES);
+  while (std::getline(fstream, line)) {
+    SeparateLineByTabs(line, elems);
+    if (elems.size() != N_ENTRIES)  // process only valid lines
+    {
+      std::runtime_error(
+          "Encountered invalid line. A line must contain exactly " +
+          std::to_string(N_ENTRIES) + " values!");
+    }
+    const ShotId image = elems[0];
+    const TrackId trackID = elems[1];
+    const int featureID = std::stoi(elems[2]);
+    const double x = std::stod(elems[3]);
+    const double y = std::stod(elems[4]);
+    const double scale = std::stod(elems[5]);
+    const int r = std::stoi(elems[6]);
+    const int g = std::stoi(elems[7]);
+    const int b = std::stoi(elems[8]);
     auto observation = InstanciateObservation(x, y, scale, featureID, r, g, b);
+    manager.AddObservation(image, trackID, observation);
+  }
+  return manager;
+}
+
+template <class S>
+TracksManager InstanciateFromStreamV2(S& fstream) {
+  TracksManager manager;
+  std::string line;
+  std::vector<std::string> elems;
+  constexpr auto N_ENTRIES{11};
+  elems.reserve(N_ENTRIES);
+  while (std::getline(fstream, line)) {
+    SeparateLineByTabs(line, elems);
+    if (elems.size() != N_ENTRIES)  // process only valid lines
+    {
+      std::runtime_error(
+          "Encountered invalid line. A line must contain exactly " +
+          std::to_string(N_ENTRIES) + " values!");
+    }
+    const ShotId image = elems[0];
+    const TrackId trackID = elems[1];
+    const int featureID = std::stoi(elems[2]);
+    const double x = std::stod(elems[3]);
+    const double y = std::stod(elems[4]);
+    const double scale = std::stod(elems[5]);
+    const int r = std::stoi(elems[6]);
+    const int g = std::stoi(elems[7]);
+    const int b = std::stoi(elems[8]);
+    const int segm = std::stoi(elems[9]);
+    const int inst = std::stoi(elems[10]);
+    auto observation =
+        InstanciateObservation(x, y, scale, featureID, r, g, b, segm, inst);
     manager.AddObservation(image, trackID, observation);
   }
   return manager;
@@ -91,6 +171,8 @@ TracksManager InstanciateFromStreamT(S& fstream) {
       return InstanciateFromStreamV0(fstream);
     case 1:
       return InstanciateFromStreamV1(fstream);
+    case 2:
+      return InstanciateFromStreamV2(fstream);
     default:
       throw std::runtime_error("Unknown tracks manager file version");
   }
@@ -123,7 +205,9 @@ int TracksManager::NumShots() const { return tracks_per_shot_.size(); }
 
 int TracksManager::NumTracks() const { return shots_per_track_.size(); }
 
-bool TracksManager::HasShotObservations(const ShotId& shot) const { return tracks_per_shot_.count(shot) > 0; }
+bool TracksManager::HasShotObservations(const ShotId& shot) const {
+  return tracks_per_shot_.count(shot) > 0;
+}
 
 std::vector<ShotId> TracksManager::GetShotIds() const {
   std::vector<ShotId> shots;
@@ -267,6 +351,72 @@ TracksManager::GetAllPairsConnectivity(
   return common_per_pair;
 }
 
+TracksManager TracksManager::MergeTracksManager(
+    const std::vector<const TracksManager*>& tracks_managers) {
+  // Some typedefs claryfying the aggregations
+  using FeatureId = std::pair<ShotId, int>;
+  using SingleTrackId = std::pair<TrackId, int>;
+
+  // Union-find main data
+  std::vector<std::unique_ptr<UnionFindElement<SingleTrackId>>>
+      union_find_elements;
+
+  // Aggregate tracks be merged using (shot_id, feature_id)
+  std::unordered_map<FeatureId, std::vector<int>, HashPair>
+      observations_per_feature_id;
+  for (int i = 0; i < tracks_managers.size(); ++i) {
+    const auto& manager = tracks_managers[i];
+    for (const auto& track_obses : manager->shots_per_track_) {
+      const auto element_id = union_find_elements.size();
+      for (const auto& shot_obs : track_obses.second) {
+        observations_per_feature_id[std::make_pair(shot_obs.first,
+                                                   shot_obs.second.feature_id)]
+            .push_back(element_id);
+      }
+      union_find_elements.emplace_back(
+          std::unique_ptr<UnionFindElement<SingleTrackId>>(
+              new UnionFindElement<SingleTrackId>(
+                  std::make_pair(track_obses.first, i))));
+    }
+  }
+
+  TracksManager merged;
+  if (union_find_elements.empty()) {
+    return merged;
+  }
+
+  // Union-find any two tracks sharing a common FeatureId
+  // For N tracks, make 0 the parent of [1, ... N-1[
+  for (const auto& tracks_agg : observations_per_feature_id) {
+    if (tracks_agg.second.empty()) {
+      continue;
+    }
+    const auto e1 = union_find_elements[tracks_agg.second[0]].get();
+    for (int i = 1; i < tracks_agg.second.size(); ++i) {
+      const auto e2 = union_find_elements[tracks_agg.second[i]].get();
+      Union(e1, e2);
+    }
+  }
+
+  // Get clusters and construct new tracks
+  const auto clusters = GetUnionFindClusters(&union_find_elements);
+  for (int i = 0; i < clusters.size(); ++i) {
+    const auto& tracks_agg = clusters[i];
+    const auto merged_track_id = std::to_string(i);
+    // Run over tracks to merged into a new single track
+    for (const auto& manager_n_track_id : tracks_agg) {
+      const auto manager_id = manager_n_track_id->data.second;
+      const auto track_id = manager_n_track_id->data.first;
+      const auto track =
+          tracks_managers[manager_id]->shots_per_track_.at(track_id);
+      for (const auto& shot_obs : track) {
+        merged.AddObservation(shot_obs.first, merged_track_id, shot_obs.second);
+      }
+    }
+  }
+  return merged;
+}
+
 TracksManager TracksManager::InstanciateFromFile(const std::string& filename) {
   std::ifstream istream(filename);
   if (istream.is_open()) {
@@ -297,4 +447,4 @@ std::string TracksManager::AsSring() const {
 }
 
 std::string TracksManager::TRACKS_HEADER = "OPENSFM_TRACKS_VERSION";
-int TracksManager::TRACKS_VERSION = 1;
+int TracksManager::TRACKS_VERSION = 2;

@@ -1,23 +1,25 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import logging
-import numpy as np
+from collections import defaultdict
 
-from opensfm.dataset import DataSet
+import numpy as np
 from opensfm import tracking
+from opensfm.dataset import DataSet
 
 
 logger = logging.getLogger(__name__)
 
 
 class SyntheticDataSet(DataSet):
-
-    def __init__(self, reconstruction, exifs, features=None,
-                 descriptors=None, colors=None, tracks_manager=None):
-        super(SyntheticDataSet, self).__init__('')
+    def __init__(
+        self,
+        reconstruction,
+        exifs,
+        features=None,
+        descriptors=None,
+        colors=None,
+        tracks_manager=None,
+    ):
+        super(SyntheticDataSet, self).__init__("")
         self.reconstruction = reconstruction
         self.exifs = exifs
         self.features = features
@@ -25,16 +27,25 @@ class SyntheticDataSet(DataSet):
         self.colors = colors
         self.tracks_manager = tracks_manager
         self.image_list = list(reconstruction.shots.keys())
-        self.reference_lla = {'latitude': 0, 'longitude': 0, 'altitude': 0}
+        self.reference_lla = {"latitude": 0, "longitude": 0, "altitude": 0}
         self.matches = None
-        self.config['use_altitude_tag'] = True
-        self.config['align_method'] = 'naive'
+        self.config["use_altitude_tag"] = True
+        self.config["align_method"] = "naive"
 
     def images(self):
         return self.image_list
 
     def load_camera_models(self):
         return self.reconstruction.cameras
+
+    def load_rig_models(self):
+        return self.reconstruction.rig_models
+
+    def load_rig_assignments(self):
+        per_model = defaultdict(list)
+        for instance in self.reconstruction.rig_instances.values():
+            per_model[instance.rig_model.id].append(instance.camera_ids.items())
+        return per_model
 
     def load_exif(self, image):
         return self.exifs[image]
@@ -52,7 +63,12 @@ class SyntheticDataSet(DataSet):
         return [image] * n_closest
 
     def load_features(self, image):
-        return self.features[image], self.descriptors[image], self.colors[image]
+        return (
+            self.features[image],
+            self.descriptors[image],
+            self.colors[image],
+            {"segmentations": None, "instances": None, "segmentation_labels": None},
+        )
 
     def save_features(self, image, points, descriptors, colors):
         pass
@@ -79,14 +95,14 @@ class SyntheticDataSet(DataSet):
                 if im1 == im2:
                     continue
                 image_matches = matches.setdefault(im1, {})
-                tracks = tracking.common_tracks(self.tracks_manager,
-                                                im1, im2)[0]
+                tracks = tracking.common_tracks(self.tracks_manager, im1, im2)[0]
                 if len(tracks) > 10:
                     pair_matches = []
                     for t in tracks:
                         observations = self.tracks_manager.get_track_observations(t)
-                        pair_matches.append(np.array([observations[im1].id,
-                                                      observations[im2].id]))
+                        pair_matches.append(
+                            np.array([observations[im1].id, observations[im2].id])
+                        )
                     image_matches[im2] = np.array(pair_matches)
         return matches
 

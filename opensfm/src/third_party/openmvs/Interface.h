@@ -5,14 +5,17 @@
 // I N C L U D E S /////////////////////////////////////////////////
 
 #include <fstream>
+#include <string>
+#include <cctype>
+#include <limits>
 
 
 // D E F I N E S ///////////////////////////////////////////////////
 
 #define MVSI_PROJECT_ID "MVSI" // identifies the project stream
-#define MVSI_PROJECT_VER ((uint32_t)2) // identifies the version of a project stream
+#define MVSI_PROJECT_VER ((uint32_t)6) // identifies the version of a project stream
 
-// set a default namespace name is none given
+// set a default namespace name if none given
 #ifndef _INTERFACE_NAMESPACE
 #define _INTERFACE_NAMESPACE MVS
 #endif
@@ -23,10 +26,6 @@
 #define _USE_CUSTOM_CV
 #endif
 
-#ifndef NO_ID
-#define NO_ID std::numeric_limits<uint32_t>::max()
-#endif
-
 
 // S T R U C T S ///////////////////////////////////////////////////
 
@@ -34,12 +33,69 @@
 
 namespace cv {
 
+// simple cv::Point3_
+template<typename Type>
+class Point3_
+{
+public:
+	typedef Type value_type;
+
+	inline Point3_() {}
+	inline Point3_(Type _x, Type _y, Type _z) : x(_x), y(_y), z(_z) {}
+	#ifdef _USE_EIGEN
+	EIGEN_MAKE_ALIGNED_OPERATOR_NEW_IF_VECTORIZABLE_FIXED_SIZE(Type,3)
+	typedef Eigen::Matrix<Type,3,1> EVec;
+	typedef Eigen::Map<EVec> EVecMap;
+	template<typename Derived>
+	inline Point3_(const Eigen::EigenBase<Derived>& rhs) { operator EVecMap () = rhs; }
+	template<typename Derived>
+	inline Point3_& operator = (const Eigen::EigenBase<Derived>& rhs) { operator EVecMap () = rhs; return *this; }
+	inline operator const EVecMap () const { return EVecMap((Type*)this); }
+	inline operator EVecMap () { return EVecMap((Type*)this); }
+	#endif
+
+	const Type* ptr() const { return &x; }
+	Type* ptr() { return &x; }
+	Type operator()(int r) const { return (&x)[r]; }
+	Type& operator()(int r) { return (&x)[r]; }
+	Point3_ operator - () const {
+		return Point3_(
+			-x,
+			-y,
+			-z
+		);
+	}
+	Point3_ operator + (const Point3_& X) const {
+		return Point3_(
+			x+X.x,
+			y+X.y,
+			z+X.z
+		);
+	}
+	Point3_ operator - (const Point3_& X) const {
+		return Point3_(
+			x-X.x,
+			y-X.y,
+			z-X.z
+		);
+	}
+
+public:
+	Type x, y, z;
+};
+
 // simple cv::Matx
 template<typename Type, int m, int n>
 class Matx
 {
 public:
 	typedef Type value_type;
+	enum {
+		rows     = m,
+		cols     = n,
+		channels = rows*cols
+	};
+
 	inline Matx() {}
 	#ifdef _USE_EIGEN
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW_IF_VECTORIZABLE_FIXED_SIZE(Type,m*n)
@@ -53,6 +109,38 @@ public:
 	inline operator CEMatMap() const { return CEMatMap((const Type*)val); }
 	inline operator EMatMap () { return EMatMap((Type*)val); }
 	#endif
+
+	Type operator()(int r, int c) const { return val[r*n+c]; }
+	Type& operator()(int r, int c) { return val[r*n+c]; }
+	Point3_<Type> operator * (const Point3_<Type>& X) const {
+		Point3_<Type> R;
+		for (int r = 0; r < m; r++) {
+			R(r) = Type(0);
+			for (int c = 0; c < n; c++)
+				R(r) += operator()(r,c)*X(c);
+		}
+		return R;
+	}
+	template<int k>
+	Matx<Type,m,k> operator * (const Matx<Type,n,k>& M) const {
+		Matx<Type,m,k> R;
+		for (int r = 0; r < m; r++) {
+			for (int l = 0; l < k; l++) {
+				R(r,l) = Type(0);
+				for (int c = 0; c < n; c++)
+					R(r,l) += operator()(r,c)*M(c,l);
+			}
+		}
+		return R;
+	}
+	Matx<Type,n,m> t() const {
+		Matx<Type,n,m> M;
+		for (int r = 0; r < m; r++)
+			for (int c = 0; c < n; c++)
+				M(c,r) = operator()(r,c);
+		return M;
+	}
+
 	static Matx eye() {
 		Matx M;
 		memset(M.val, 0, sizeof(Type)*m*n);
@@ -61,32 +149,9 @@ public:
 			M(i,i) = 1;
 		return M;
 	}
-	Type operator()(int r, int c) const { return val[r*n+c]; }
-	Type& operator()(int r, int c) { return val[r*n+c]; }
+
 public:
 	Type val[m*n];
-};
-
-// simple cv::Matx
-template<typename Type>
-class Point3_
-{
-public:
-	typedef Type value_type;
-	inline Point3_() {}
-	#ifdef _USE_EIGEN
-	EIGEN_MAKE_ALIGNED_OPERATOR_NEW_IF_VECTORIZABLE_FIXED_SIZE(Type,3)
-	typedef Eigen::Matrix<Type,3,1> EVec;
-	typedef Eigen::Map<EVec> EVecMap;
-	template<typename Derived>
-	inline Point3_(const Eigen::EigenBase<Derived>& rhs) { operator EVecMap () = rhs; }
-	template<typename Derived>
-	inline Point3_& operator = (const Eigen::EigenBase<Derived>& rhs) { operator EVecMap () = rhs; return *this; }
-	inline operator const EVecMap () const { return EVecMap((Type*)this); }
-	inline operator EVecMap () { return EVecMap((Type*)this); }
-	#endif
-public:
-	Type x, y, z;
 };
 
 } // namespace cv
@@ -95,6 +160,9 @@ public:
 
 
 namespace _INTERFACE_NAMESPACE {
+
+// invalid index
+constexpr uint32_t NO_ID {std::numeric_limits<uint32_t>::max()};
 
 // custom serialization
 namespace ARCHIVE {
@@ -180,7 +248,7 @@ bool SerializeLoad(_Tp& obj, const std::string& fileName, uint32_t* pVersion=NUL
 		if (size <= 4)
 			return false;
 		std::string ext(fileName.substr(size-4));
-		std::transform(ext.begin(), ext.end(), ext.begin(), ::towlower);
+		std::transform(ext.begin(), ext.end(), ext.begin(), [](char c) { return (char)std::tolower(c); });
 		if (ext != ".mvs")
 			return false;
 		stream.seekg(0, std::ifstream::beg);
@@ -204,58 +272,58 @@ bool SerializeLoad(_Tp& obj, const std::string& fileName, uint32_t* pVersion=NUL
 
 #define ARCHIVE_DEFINE_TYPE(TYPE) \
 template<> \
-bool Save<TYPE>(ArchiveSave& a, const TYPE& v) { \
+inline bool Save<TYPE>(ArchiveSave& a, const TYPE& v) { \
 	a.stream.write((const char*)&v, sizeof(TYPE)); \
 	return true; \
 } \
 template<> \
-bool Load<TYPE>(ArchiveLoad& a, TYPE& v) { \
+inline bool Load<TYPE>(ArchiveLoad& a, TYPE& v) { \
 	a.stream.read((char*)&v, sizeof(TYPE)); \
 	return true; \
 }
 
 // Serialization support for basic types
 ARCHIVE_DEFINE_TYPE(uint32_t)
-ARCHIVE_DEFINE_TYPE(size_t)
+ARCHIVE_DEFINE_TYPE(uint64_t)
 ARCHIVE_DEFINE_TYPE(float)
 ARCHIVE_DEFINE_TYPE(double)
 
 // Serialization support for cv::Matx
 template<typename _Tp, int m, int n>
-bool Save(ArchiveSave& a, const cv::Matx<_Tp,m,n>& _m) {
+inline bool Save(ArchiveSave& a, const cv::Matx<_Tp,m,n>& _m) {
 	a.stream.write((const char*)_m.val, sizeof(_Tp)*m*n);
 	return true;
 }
 template<typename _Tp, int m, int n>
-bool Load(ArchiveLoad& a, cv::Matx<_Tp,m,n>& _m) {
+inline bool Load(ArchiveLoad& a, cv::Matx<_Tp,m,n>& _m) {
 	a.stream.read((char*)_m.val, sizeof(_Tp)*m*n);
 	return true;
 }
 
 // Serialization support for cv::Point3_
 template<typename _Tp>
-bool Save(ArchiveSave& a, const cv::Point3_<_Tp>& pt) {
+inline bool Save(ArchiveSave& a, const cv::Point3_<_Tp>& pt) {
 	a.stream.write((const char*)&pt.x, sizeof(_Tp)*3);
 	return true;
 }
 template<typename _Tp>
-bool Load(ArchiveLoad& a, cv::Point3_<_Tp>& pt) {
+inline bool Load(ArchiveLoad& a, cv::Point3_<_Tp>& pt) {
 	a.stream.read((char*)&pt.x, sizeof(_Tp)*3);
 	return true;
 }
 
 // Serialization support for std::string
 template<>
-bool Save<std::string>(ArchiveSave& a, const std::string& s) {
-	const size_t size(s.size());
+inline bool Save<std::string>(ArchiveSave& a, const std::string& s) {
+	const uint64_t size(s.size());
 	Save(a, size);
 	if (size > 0)
 		a.stream.write(&s[0], sizeof(char)*size);
 	return true;
 }
 template<>
-bool Load<std::string>(ArchiveLoad& a, std::string& s) {
-	size_t size;
+inline bool Load<std::string>(ArchiveLoad& a, std::string& s) {
+	uint64_t size;
 	Load(a, size);
 	if (size > 0) {
 		s.resize(size);
@@ -266,20 +334,20 @@ bool Load<std::string>(ArchiveLoad& a, std::string& s) {
 
 // Serialization support for std::vector
 template<typename _Tp>
-bool Save(ArchiveSave& a, const std::vector<_Tp>& v) {
-	const size_t size(v.size());
+inline bool Save(ArchiveSave& a, const std::vector<_Tp>& v) {
+	const uint64_t size(v.size());
 	Save(a, size);
-	for (size_t i=0; i<size; ++i)
+	for (uint64_t i=0; i<size; ++i)
 		Save(a, v[i]);
 	return true;
 }
 template<typename _Tp>
-bool Load(ArchiveLoad& a, std::vector<_Tp>& v) {
-	size_t size;
+inline bool Load(ArchiveLoad& a, std::vector<_Tp>& v) {
+	uint64_t size;
 	Load(a, size);
 	if (size > 0) {
 		v.resize(size);
-		for (size_t i=0; i<size; ++i)
+		for (uint64_t i=0; i<size; ++i)
 			Load(a, v[i]);
 	}
 	return true;
@@ -306,18 +374,24 @@ struct Interface
 		// structure describing a camera mounted on a platform
 		struct Camera {
 			std::string name; // camera's name
+			std::string bandName; // camera's band name, ex: RGB, BLUE, GREEN, RED, NIR, THERMAL, etc (optional)
 			uint32_t width, height; // image resolution in pixels for all images sharing this camera (optional)
-			Mat33d K; // camera's intrinsics matrix (normalized if image resolution not specified)
+			Mat33d K; // camera's intrinsics matrix (normalized if image resolution not specified), where integer coordinates is by convention the pixel center
 			Mat33d R; // camera's rotation matrix relative to the platform
 			Pos3d C; // camera's translation vector relative to the platform
 
 			Camera() : width(0), height(0) {}
 			bool HasResolution() const { return width > 0 && height > 0; }
 			bool IsNormalized() const { return !HasResolution(); }
+			static uint32_t GetNormalizationScale(uint32_t width, uint32_t height) { return std::max(width, height); }
+			uint32_t GetNormalizationScale() const { return GetNormalizationScale(width, height); }
 
 			template <class Archive>
 			void serialize(Archive& ar, const unsigned int version) {
 				ar & name;
+				if (version > 3) {
+					ar & bandName;
+				}
 				if (version > 0) {
 					ar & width;
 					ar & height;
@@ -331,8 +405,16 @@ struct Interface
 
 		// structure describing a pose along the trajectory of a platform
 		struct Pose {
-			Mat33d R; // platform's rotation matrix
-			Pos3d C; // platform's translation vector in the global coordinate system
+			Mat33d R; // platform's rotation matrix that rotates a point from world to camera coordinate system
+			Pos3d C; // platform's translation vector (position) in world coordinate system
+
+			Pose() {}
+			template <typename MAT, typename POS>
+			Pose(const MAT& _R, const POS& _C) : R(_R), C(_C) {}
+
+			// translation vector t = -RC
+			inline Pos3d GetTranslation() const { return R*(-C); }
+			inline void SetTranslation(const Pos3d& T) { C = R.t()*(-T); }
 
 			template <class Archive>
 			void serialize(Archive& ar, const unsigned int /*version*/) {
@@ -345,6 +427,47 @@ struct Interface
 		std::string name; // platform's name
 		CameraArr cameras; // cameras mounted on the platform
 		PoseArr poses; // trajectory of the platform
+
+		const Mat33d& GetK(uint32_t cameraID) const {
+			return cameras[cameraID].K;
+		}
+		static Mat33d ScaleK(const Mat33d& _K, double scale) {
+			Mat33d K(_K);
+			K(0,0) *= scale;
+			K(1,1) *= scale;
+			K(0,2) = (K(0,2)+0.5)*scale-0.5;
+			K(1,2) = (K(1,2)+0.5)*scale-0.5;
+			K(0,1) *= scale;
+			return K;
+		}
+		const Mat33d& SetFullK(uint32_t cameraID, const Mat33d& K, uint32_t width, uint32_t height, bool normalize=false) {
+			Camera& camera = cameras[cameraID];
+			if (normalize) {
+				camera.width = camera.height = 0;
+				camera.K = ScaleK(K, 1.0/(double)Camera::GetNormalizationScale(width, height));
+			} else {
+				camera.width = width; camera.height = height;
+				camera.K = K;
+			}
+			return camera.K;
+		}
+		Mat33d GetFullK(uint32_t cameraID, uint32_t width, uint32_t height) const {
+			const Camera& camera = cameras[cameraID];
+			if (!camera.IsNormalized() && camera.width == width && camera.height == height)
+				return camera.K;
+			return ScaleK(camera.K, (double)Camera::GetNormalizationScale(width, height)/
+				(camera.IsNormalized()?1.0:(double)camera.GetNormalizationScale()));
+		}
+
+		Pose GetPose(uint32_t cameraID, uint32_t poseID) const {
+			const Camera& camera = cameras[cameraID];
+			const Pose& pose = poses[poseID];
+			// add the relative camera pose to the platform
+			return Pose{
+				camera.R*pose.R,
+				pose.R.t()*camera.C+pose.C
+			};
+		}
 
 		template <class Archive>
 		void serialize(Archive& ar, const unsigned int /*version*/) {
@@ -359,16 +482,28 @@ struct Interface
 	// structure describing an image
 	struct Image {
 		std::string name; // image file name
+		std::string maskName; // segmentation file name (optional)
 		uint32_t platformID; // ID of the associated platform
 		uint32_t cameraID; // ID of the associated camera on the associated platform
 		uint32_t poseID; // ID of the pose of the associated platform
+		uint32_t ID; // ID of this image in the global space (optional)
+
+		Image() : platformID(NO_ID), cameraID(NO_ID), poseID(NO_ID), ID(NO_ID) {}
+
+		bool IsValid() const { return poseID != NO_ID; }
 
 		template <class Archive>
-		void serialize(Archive& ar, const unsigned int /*version*/) {
+		void serialize(Archive& ar, const unsigned int version) {
 			ar & name;
+			if (version > 4) {
+				ar & maskName;
+			}
 			ar & platformID;
 			ar & cameraID;
 			ar & poseID;
+			if (version > 2) {
+				ar & ID;
+			}
 		}
 	};
 	typedef std::vector<Image> ImageArr;
@@ -454,17 +589,47 @@ struct Interface
 	typedef std::vector<Color> ColorArr;
 	/*----------------------------------------------------------------*/
 
+	// structure describing a Oriented Bounding-Box (optional)
+	struct OBB {
+		Mat33d rot; // rotation from scene to OBB coordinate system
+		Pos3d ptMin; // minimal point represented in OBB coordinate system
+		Pos3d ptMax; // maximal point represented in OBB coordinate system
+
+		OBB() : rot(Mat33d::eye()), ptMin(0, 0, 0), ptMax(0, 0, 0) {}
+
+		bool IsValid() const { return ptMin.x < ptMax.x && ptMin.y < ptMax.y && ptMin.z < ptMax.z; }
+
+		template <class Archive>
+		void serialize(Archive& ar, const unsigned int /*version*/) {
+			ar & rot;
+			ar & ptMin;
+			ar & ptMax;
+		}
+	};
+	/*----------------------------------------------------------------*/
+
 	PlatformArr platforms; // array of platforms
 	ImageArr images; // array of images
 	VertexArr vertices; // array of reconstructed 3D points
 	NormalArr verticesNormal; // array of reconstructed 3D points' normal (optional)
 	ColorArr verticesColor; // array of reconstructed 3D points' color (optional)
-	LineArr lines; // array of reconstructed 3D lines
+	LineArr lines; // array of reconstructed 3D lines (optional)
 	NormalArr linesNormal; // array of reconstructed 3D lines' normal (optional)
 	ColorArr linesColor; // array of reconstructed 3D lines' color (optional)
 	Mat44d transform; // transformation used to convert from absolute to relative coordinate system (optional)
+	OBB obb; // minimum oriented bounding box containing the scene (optional)
 
 	Interface() : transform(Mat44d::eye()) {}
+
+	const Mat33d& GetK(uint32_t imageID) const {
+		const Image& image = images[imageID];
+		return platforms[image.platformID].GetK(image.cameraID);
+	}
+
+	Platform::Pose GetPose(uint32_t imageID) const {
+		const Image& image = images[imageID];
+		return platforms[image.platformID].GetPose(image.cameraID, image.poseID);
+	}
 
 	template <class Archive>
 	void serialize(Archive& ar, const unsigned int version) {
@@ -479,9 +644,45 @@ struct Interface
 			ar & linesColor;
 			if (version > 1) {
 				ar & transform;
+				if (version > 5) {
+					ar & obb;
+				}
 			}
 		}
 	}
+};
+/*----------------------------------------------------------------*/
+
+
+// interface used to export/import MVS depth-map data;
+// see MVS::ExportDepthDataRaw() and MVS::ImportDepthDataRaw() for usage example:
+//  - image-resolution at which the depth-map was estimated
+//  - depth-map-resolution, for now only the same resolution as the image is supported
+//  - min/max-depth of the values in the depth-map
+//  - image-file-name is the path to the reference color image
+//  - image-IDs are the reference view ID and neighbor view IDs used to estimate the depth-map
+//  - camera/rotation/position matrices (row-major) is the absolute pose corresponding to the reference view
+//  - depth-map represents the pixel depth
+//  - normal-map (optional) represents the 3D point normal in camera space; same resolution as the depth-map
+//  - confidence-map (optional) represents the 3D point confidence (usually a value in [0,1]); same resolution as the depth-map
+struct HeaderDepthDataRaw {
+	enum {
+		HAS_DEPTH = (1<<0),
+		HAS_NORMAL = (1<<1),
+		HAS_CONF = (1<<2),
+	};
+	uint16_t name; // file type
+	uint8_t type; // content type
+	uint8_t padding; // reserve
+	uint32_t imageWidth, imageHeight; // image resolution
+	uint32_t depthWidth, depthHeight; // depth-map resolution
+	float dMin, dMax; // depth range for this view
+	// image file name length followed by the characters: uint16_t nFileNameSize; char* FileName
+	// number of view IDs followed by view ID and neighbor view IDs: uint32_t nIDs; uint32_t* IDs
+	// camera, rotation and position matrices (row-major): double K[3][3], R[3][3], C[3]
+	// depth, normal, confidence maps: float depthMap[height][width], normalMap[height][width][3], confMap[height][width]
+	inline HeaderDepthDataRaw() : name(0), type(0), padding(0) {}
+	static uint16_t HeaderDepthDataRawName() { return *reinterpret_cast<const uint16_t*>("DR"); }
 };
 /*----------------------------------------------------------------*/
 

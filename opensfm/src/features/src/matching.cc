@@ -1,11 +1,10 @@
-#include <map>
-#include <vector>
-#include <opencv2/core/core.hpp>
-#include <pybind11/pybind11.h>
 #include <features/matching.h>
+#include <pybind11/pybind11.h>
+#include <map>
+#include <opencv2/core/core.hpp>
+#include <vector>
 
 namespace py = pybind11;
-
 
 namespace features {
 
@@ -25,12 +24,8 @@ float DistanceL2(const float *pa, const float *pb, int n) {
   return sqrt(distance);
 }
 
-void MatchUsingWords(const cv::Mat &f1,
-                     const cv::Mat &w1,
-                     const cv::Mat &f2,
-                     const cv::Mat &w2,
-                     float lowes_ratio,
-                     int max_checks,
+void MatchUsingWords(const cv::Mat &f1, const cv::Mat &w1, const cv::Mat &f2,
+                     const cv::Mat &w2, float lowes_ratio, int max_checks,
                      cv::Mat *matches) {
   // Index features on the second image.
   std::multimap<int, int> index2;
@@ -39,10 +34,9 @@ void MatchUsingWords(const cv::Mat &f1,
     index2.insert(std::pair<int, int>(pw2[i], i));
   }
 
-  std::vector<int> best_match(f1.rows, -1),
-                   second_best_match(f1.rows, -1);
+  std::vector<int> best_match(f1.rows, -1), second_best_match(f1.rows, -1);
   std::vector<float> best_distance(f1.rows, 99999999),
-                     second_best_distance(f1.rows, 99999999);
+      second_best_distance(f1.rows, 99999999);
   *matches = cv::Mat(0, 2, CV_32S);
   cv::Mat tmp_match(1, 2, CV_32S);
   for (unsigned int i = 0; i < w1.rows; ++i) {
@@ -79,8 +73,7 @@ void MatchUsingWords(const cv::Mat &f1,
 py::object match_using_words(foundation::pyarray_f features1,
                              foundation::pyarray_int words1,
                              foundation::pyarray_f features2,
-                             foundation::pyarray_int words2,
-                             float lowes_ratio,
+                             foundation::pyarray_int words2, float lowes_ratio,
                              int max_checks) {
   cv::Mat cv_f1 = foundation::pyarray_cv_mat_view(features1);
   cv::Mat cv_w1 = foundation::pyarray_cv_mat_view(words1);
@@ -88,13 +81,10 @@ py::object match_using_words(foundation::pyarray_f features1,
   cv::Mat cv_w2 = foundation::pyarray_cv_mat_view(words2);
   cv::Mat matches;
 
-  MatchUsingWords(cv_f1, cv_w1,
-                  cv_f2, cv_w2,
-                  lowes_ratio,
-                  max_checks,
+  MatchUsingWords(cv_f1, cv_w1, cv_f2, cv_w2, lowes_ratio, max_checks,
                   &matches);
 
   return foundation::py_array_from_cvmat<int>(matches);
 }
 
-}
+}  // namespace features

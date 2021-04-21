@@ -1,8 +1,7 @@
 import numpy as np
-
 from opensfm import dense
-from opensfm import types
 from opensfm import pygeometry
+from opensfm import types
 
 
 def test_angle_between_points():
@@ -27,13 +26,14 @@ def test_depthmap_to_ply():
     height, width = 2, 3
 
     camera = pygeometry.Camera.create_perspective(0.8, 0.0, 0.0)
-    camera.id = 'cam1'
+    camera.id = "cam1"
     camera.height = height
     camera.width = width
     r = types.Reconstruction()
     r.add_camera(camera)
-    shot = r.create_shot('shot1', camera.id, pygeometry.Pose(
-        [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]))
+    shot = r.create_shot(
+        "shot1", camera.id, pygeometry.Pose([0.0, 0.0, 0.0], [0.0, 0.0, 0.0])
+    )
 
     image = np.zeros((height, width, 3))
     depth = np.ones((height, width))

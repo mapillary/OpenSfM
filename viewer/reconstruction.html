@@ -59,9 +59,6 @@
                 font-family: sans-serif;
                 font-size: 30px;
             }
-            #journeyButton {
-                display: none;
-            }
         </style>
     </head>
     <body>
@@ -116,9 +113,6 @@
                 </tr>
                 <tr>
                     <td>
-                        <button id="journeyButton" onclick="invokeJourneyWrapper(function () { journeyWrapper.toggle(); });">
-                            Go
-                        </button>
                     </td>
                     <td id="nav-backward">
                         <button onclick="walkOneStep('STEP_BACKWARD')">
@@ -139,7 +133,6 @@
         <script src="js/OrbitControls.js"></script>
         <script src="js/TrackballControls.js"></script>
         <script src="js/dat.gui.js"></script>
-        <script src="js/journey.js"></script>
 
         <!-- Shaders -->
         <script type="x-shader/x-vertex" id="vertexshader">
@@ -401,7 +394,6 @@
                 f1.add(options, 'animationSpeed', 0, 0.2)
                     .onChange(function(value) {
                         controls.animationSpeed = value;
-                        invokeJourneyWrapper(function () { journeyWrapper.updateInterval(); });
                     });
                 f1.add(options, 'resolution', [ '320', '640', 'original' ] );
                 f1.add(options, 'showThumbnail')
@@ -491,7 +483,6 @@
                 if (mode != movingMode) {
                     movingMode = mode;
                     if (mode == 'orbit') {
-                        invokeJourneyWrapper(function () { journeyWrapper.stop(); journeyWrapper.addShowPathController(); });
                         resetWalkMode();
                         swapOptions();
                         controls.noRotate = false;
@@ -505,7 +496,6 @@
                         imagePlaneOld.material.depthWrite = true;
                         $('#navigation').hide();
                     } else if (mode == 'walk') {
-                        invokeJourneyWrapper(function () { journeyWrapper.removeShowPathController(); });
                         swapOptions();
                         // controls.noRotate = true;
                         // controls.noLookAround = true;
@@ -568,12 +558,6 @@
                    urlParams[decode(match[1])] = decode(match[2]);
             }
 
-            function invokeJourneyWrapper(action) {
-                if (typeof journeyWrapper != "undefined") {
-                    return action();
-                }
-            }
-
             function processUrlParams() {
                 parseUrl();
 
@@ -614,8 +598,6 @@
                 $('#loading').hide();
                 init();
                 animate();
-
-                invokeJourneyWrapper(function () { journeyWrapper.initialize(); });
             }
 
             function rotate(vector, angleaxis) {
@@ -1128,8 +1110,6 @@
                 text.innerHTML = shot_id;
                 var reconstruction = document.getElementById('reconstruction');
                 reconstruction.innerHTML = rid;
-
-                invokeJourneyWrapper(function () { journeyWrapper.showPath(); });
             }
 
             function setImagePlaneCamera(cameraObject) {
@@ -1317,8 +1297,6 @@
                     setImagePlaneCamera(line);
                     navigateToShot(line);
                 }
-
-                invokeJourneyWrapper(function () { journeyWrapper.stop(); });
             }
 
             function onKeyDown(event) {
@@ -1353,8 +1331,6 @@
                         case 27: // ESC
                             setMovingMode('orbit');
                             break;
-                        case 83: // S
-                            invokeJourneyWrapper(function () { journeyWrapper.toggle(); });
                         default:
                             validKey = false;
                             break;
@@ -1412,9 +1388,7 @@
                 if (imagePlaneOld !== undefined) {
                     imagePlaneOld.material.uniforms.opacity.value = 1;
                 }
-                if (invokeJourneyWrapper(function () { return journeyWrapper.isStarted() && journeyWrapper.isSmooth(); }) !== true) {
-                    options.imagePlaneOpacity *= 1 - options.animationSpeed;
-                }
+                options.imagePlaneOpacity *= 1 - options.animationSpeed;
 
                 controls.update();
             }
@@ -1422,9 +1396,7 @@
             function render() {
                 validMoves = computeValidMoves();
                 updateValidMovesWidget();
-                if (invokeJourneyWrapper(function () { return journeyWrapper.isStarted(); }) !== true) {
-                    preloadValidMoves();
-                }
+                preloadValidMoves();
 
                 // Handle camera selection.
                 if (hoverCamera !== undefined && hoverCamera !== selectedCamera) {

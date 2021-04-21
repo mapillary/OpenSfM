@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-from __future__ import print_function
 
 import argparse
 import os.path
@@ -37,7 +36,7 @@ if __name__ == "__main__":
     parser.add_argument('--image',
                         help='name of the image to show')
     parser.add_argument('--save_figs',
-                        help='save figures istead of showing them',
+                        help='save figures instead of showing them',
                         action='store_true')
     args = parser.parse_args()
 
@@ -45,7 +44,7 @@ if __name__ == "__main__":
 
     images = [args.image] if args.image else data.images()
     for image in images:
-        points, desc, colors = data.load_features(image)
+        points, _, _, _ = data.load_features(image)
         print("ploting {0} points".format(len(points)))
         plt.figure()
         plt.title('Image: ' + image + ', features: ' + str(len(points)))

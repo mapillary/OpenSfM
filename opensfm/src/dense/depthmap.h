@@ -19,16 +19,12 @@ class NCCEstimator {
   float sumw_;
 };
 
-void ApplyHomography(const cv::Matx33f &H,
-                     float x1, float y1,
-                     float *x2, float *y2);
+void ApplyHomography(const cv::Matx33f &H, float x1, float y1, float *x2,
+                     float *y2);
 
-cv::Matx33d PlaneInducedHomography(const cv::Matx33d &K1,
-                                   const cv::Matx33d &R1,
-                                   const cv::Vec3d &t1,
-                                   const cv::Matx33d &K2,
-                                   const cv::Matx33d &R2,
-                                   const cv::Vec3d &t2,
+cv::Matx33d PlaneInducedHomography(const cv::Matx33d &K1, const cv::Matx33d &R1,
+                                   const cv::Vec3d &t1, const cv::Matx33d &K2,
+                                   const cv::Matx33d &R2, const cv::Vec3d &t2,
                                    const cv::Vec3d &v);
 
 cv::Matx33f PlaneInducedHomographyBaked(const cv::Matx33d &K1inv,
@@ -37,24 +33,17 @@ cv::Matx33f PlaneInducedHomographyBaked(const cv::Matx33d &K1inv,
                                         const cv::Matx33d &K2,
                                         const cv::Vec3d &v);
 
-cv::Vec3d Project(const cv::Vec3d &x,
-                  const cv::Matx33d &K,
-                  const cv::Matx33d &R,
-                  const cv::Vec3d &t);
+cv::Vec3d Project(const cv::Vec3d &x, const cv::Matx33d &K,
+                  const cv::Matx33d &R, const cv::Vec3d &t);
 
-cv::Vec3d Backproject(double x, double y, double depth,
-                      const cv::Matx33d &K,
-                      const cv::Matx33d &R,
-                      const cv::Vec3d &t);
+cv::Vec3d Backproject(double x, double y, double depth, const cv::Matx33d &K,
+                      const cv::Matx33d &R, const cv::Vec3d &t);
 
-float DepthOfPlaneBackprojection(double x, double y,
-                                 const cv::Matx33d &K,
+float DepthOfPlaneBackprojection(double x, double y, const cv::Matx33d &K,
                                  const cv::Vec3d &plane);
 
-cv::Vec3f PlaneFromDepthAndNormal(float x, float y,
-                                  const cv::Matx33d &K,
-                                  float depth,
-                                  const cv::Vec3f &normal);
+cv::Vec3f PlaneFromDepthAndNormal(float x, float y, const cv::Matx33d &K,
+                                  float depth, const cv::Vec3f &normal);
 
 float UniformRand(float a, float b);
 
@@ -145,8 +134,7 @@ class DepthmapPruner {
   void AddView(const double *pK, const double *pR, const double *pt,
                const float *pdepth, const float *pplane,
                const unsigned char *pcolor, const unsigned char *plabel,
-               const unsigned char *pdetection,
-               int width, int height);
+               const unsigned char *pdetection, int width, int height);
   void Prune(std::vector<float> *merged_points,
              std::vector<float> *merged_normals,
              std::vector<unsigned char> *merged_colors,

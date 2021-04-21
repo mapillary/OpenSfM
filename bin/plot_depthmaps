@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import os
 import matplotlib.pyplot as pl
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
@@ -87,12 +88,13 @@ if __name__ == "__main__":
                         help='undistorted subfolder',
                         default='undistorted')
     parser.add_argument('--save-figs',
-                        help='save figures istead of showing them',
+                        help='save figures instead of showing them',
                         action='store_true')
     args = parser.parse_args()
 
     data = dataset.DataSet(args.dataset)
-    udata = dataset.UndistortedDataSet(data, args.subfolder)
+    udata_path = os.path.join(data.data_path, args.subfolder)
+    udata = dataset.UndistortedDataSet(data, udata_path)
 
     if args.image:
         images = [args.image]

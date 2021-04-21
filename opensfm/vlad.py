@@ -1,30 +1,30 @@
 from functools import lru_cache
 
 import numpy as np
-
 from opensfm import bow
 from opensfm import feature_loader
+from opensfm.dataset import DataSetBase
 
 
 def unnormalized_vlad(features, centers):
-    """ Compute unnormalized VLAD histograms from a set of
-        features in relation to centers.
+    """Compute unnormalized VLAD histograms from a set of
+    features in relation to centers.
 
-        Returns the unnormalized VLAD vector.
+    Returns the unnormalized VLAD vector.
     """
     vlad = np.zeros(centers.shape, dtype=np.float32)
     for f in features:
-        i = np.argmin(np.linalg.norm(f-centers, axis=1))
-        vlad[i, :] += f-centers[i]
+        i = np.argmin(np.linalg.norm(f - centers, axis=1))
+        vlad[i, :] += f - centers[i]
     vlad = np.ndarray.flatten(vlad)
     return vlad
 
 
 def signed_square_root_normalize(v):
-    """ Compute Signed Square Root (SSR) normalization on
-        a vector.
+    """Compute Signed Square Root (SSR) normalization on
+    a vector.
 
-        Returns the SSR normalized vector.
+    Returns the SSR normalized vector.
     """
     v = np.sign(v) * np.sqrt(np.abs(v))
     v /= np.linalg.norm(v)
@@ -32,11 +32,11 @@ def signed_square_root_normalize(v):
 
 
 def vlad_distances(image, other_images, histograms):
-    """ Compute VLAD-based distance (L2 on VLAD-histogram)
-        between an image and other images.
+    """Compute VLAD-based distance (L2 on VLAD-histogram)
+    between an image and other images.
 
-        Returns the image, the order of the other images,
-        and the other images.
+    Returns the image, the order of the other images,
+    and the other images.
     """
     if image not in histograms:
         return image, [], []
@@ -54,15 +54,16 @@ def vlad_distances(image, other_images, histograms):
 
 class VladCache(object):
     @lru_cache(1)
-    def load_words(self, data):
+    def load_words(self, data: DataSetBase):
         words, _ = bow.load_vlad_words_and_frequencies(data.config)
         return words
 
     @lru_cache(1000)
-    def vlad_histogram(self, data, image):
+    def vlad_histogram(self, data: DataSetBase, image):
         words = self.load_words(data)
-        _, features, _ = feature_loader.instance.load_points_features_colors(
-            data, image, masked=True)
+        _, features, _, _, _ = feature_loader.instance.load_all_data(
+            data, image, masked=True
+        )
         if features is None:
             return None
         vlad = unnormalized_vlad(features, words)

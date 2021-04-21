@@ -18,8 +18,8 @@ set(CMAKE_CXX_VISIBILITY_INLINES ON)
 # fPIC
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-# C++11
-set(CMAKE_CXX_STANDARD 11)
+# C++14
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # For compiling VLFeat
@@ -89,6 +89,7 @@ add_subdirectory(foundation)
 add_subdirectory(bundle)
 add_subdirectory(dense)
 add_subdirectory(features)
+add_subdirectory(geo)
 add_subdirectory(geometry)
 add_subdirectory(robust)
 add_subdirectory(sfm)

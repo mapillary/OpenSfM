@@ -1,10 +1,18 @@
 set(BUNDLE_FILES
     bundle_adjuster.h
     reconstruction_alignment.h
-    src/error_utils.h
-    src/motion_prior_terms.h
-    src/absolute_motion_terms.h
-    src/relative_motion_terms.h
+    data/camera.h
+    data/data.h
+    data/pose.h
+    data/rig.h
+    data/shot.h
+    error/error_utils.h
+    error/motion_prior_errors.h
+    error/position_functors.h
+    error/projection_errors.h
+    error/absolute_motion_errors.h
+    error/parameters_errors.h
+    error/relative_motion_errors.h
     src/bundle_adjuster.cc
 )
 add_library(bundle ${BUNDLE_FILES})
@@ -23,16 +31,20 @@ if (SUITESPARSE_FOUND)
 endif()
 target_include_directories(bundle PRIVATE ${CERES_INCLUDE_DIR} ${CMAKE_SOURCE_DIR})
 
-set(BUNDLE_TEST_FILES
-    test/reprojection_errors_test.cc
-)
-add_executable(bundle_test ${BUNDLE_TEST_FILES})
-target_include_directories(bundle_test PRIVATE ${CMAKE_SOURCE_DIR} ${EIGEN_INCLUDE_DIRS} ${GMOCK_INCLUDE_DIRS})
-target_link_libraries(bundle_test
-                      PUBLIC
-                      bundle
-                      ${TEST_MAIN})
-add_test(bundle_test bundle_test)
+if (OPENSFM_BUILD_TESTS)
+    set(BUNDLE_TEST_FILES
+        test/reprojection_errors_test.cc
+        test/bundle_data_test.cc
+    )
+    add_executable(bundle_test ${BUNDLE_TEST_FILES})
+    target_include_directories(bundle_test PRIVATE ${CMAKE_SOURCE_DIR} ${EIGEN_INCLUDE_DIRS} ${GMOCK_INCLUDE_DIRS})
+    target_link_libraries(bundle_test
+                        PUBLIC
+                        bundle
+                        geometry
+                        ${TEST_MAIN})
+    add_test(bundle_test bundle_test)
+endif()
 
 pybind11_add_module(pybundle python/pybind.cc)
 target_link_libraries(pybundle PRIVATE

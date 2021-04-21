@@ -1,12 +1,11 @@
 #include <dense/depthmap.h>
-#include <opencv2/core/core.hpp>
-#include <opencv2/calib3d/calib3d.hpp>
 #include <gtest/gtest.h>
+#include <opencv2/calib3d/calib3d.hpp>
+#include <opencv2/core/core.hpp>
 
 namespace {
 
 using namespace dense;
-
 
 TEST(PlaneInducedHomography, RandomPoint) {
   cv::Matx33d K1(600, 0, 300, 0, 400, 200, 0, 0, 1);
@@ -19,8 +18,9 @@ TEST(PlaneInducedHomography, RandomPoint) {
   cv::Rodrigues(cv::Vec3d(0.1, 0.2, 0.3), R2);
   cv::Vec3d t2(-0.3, -0.1, 0.2);
 
-  cv::Vec3d v(0.5, 0.7, -1);                                    // a plane
-  cv::Vec3d p_in_camera_coordinates(-1 - v(2), -1 - v(2), 1);   // a point in the plane
+  cv::Vec3d v(0.5, 0.7, -1);  // a plane
+  cv::Vec3d p_in_camera_coordinates(-1 - v(2), -1 - v(2),
+                                    1);  // a point in the plane
 
   EXPECT_NEAR(v.dot(p_in_camera_coordinates) + 1, 0.0, 1e-6);
 
@@ -41,7 +41,6 @@ TEST(PlaneInducedHomography, RandomPoint) {
   EXPECT_NEAR(y2, y2_mapped, 1e-4);
 }
 
-
 TEST(DepthOfPlaneBackprojection, DepthNormalPlaneLoop) {
   cv::Matx33d K(600, 0, 300, 0, 400, 200, 0, 0, 1);
   float depth = 3;
@@ -50,7 +49,6 @@ TEST(DepthOfPlaneBackprojection, DepthNormalPlaneLoop) {
   float backprojected_depth = DepthOfPlaneBackprojection(20, 30, K, plane);
   EXPECT_NEAR(depth, backprojected_depth, 1e-6);
 }
-
 
 TEST(Backproject, Reprojection) {
   cv::Matx33d K(600, 0, 300, 0, 400, 200, 0, 0, 1);

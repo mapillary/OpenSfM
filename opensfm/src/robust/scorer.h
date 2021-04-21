@@ -1,7 +1,7 @@
 #pragma once
 
-#include <vector>
 #include <algorithm>
+#include <vector>
 
 template <class MODEL, class LOMODEL = MODEL>
 struct ScoreInfo {
@@ -23,7 +23,7 @@ class RansacScoring {
   RansacScoring(double threshold) : threshold_(threshold) {}
 
   template <class IT, class T>
-  ScoreInfo<T> Score(IT begin, IT end, const ScoreInfo<T>& best_score)const {
+  ScoreInfo<T> Score(IT begin, IT end, const ScoreInfo<T>& best_score) const {
     ScoreInfo<T> score;
     for (IT it = begin; it != end; ++it) {
       if (it->norm() < threshold_) {

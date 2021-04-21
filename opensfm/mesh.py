@@ -1,28 +1,27 @@
 #!/usr/bin/env python3
 import itertools
-import numpy as np
-import scipy.spatial
 import logging
 
-
+import numpy as np
+import scipy.spatial
 from opensfm import pygeometry
 
 
 logger = logging.getLogger(__name__)
 
 
-def triangle_mesh(shot_id, r, tracks_manager, data):
-    '''
+def triangle_mesh(shot_id, r, tracks_manager):
+    """
     Create triangle meshes in a list
-    '''
+    """
     if shot_id not in r.shots or shot_id not in tracks_manager.get_shot_ids():
         return [], []
 
     shot = r.shots[shot_id]
 
-    if shot.camera.projection_type in ['perspective', 'brown']:
+    if shot.camera.projection_type in ["perspective", "brown"]:
         return triangle_mesh_perspective(shot_id, r, tracks_manager)
-    elif shot.camera.projection_type in ['fisheye', 'fisheye_opencv', 'dual']:
+    elif shot.camera.projection_type in ["fisheye", "fisheye_opencv", "dual"]:
         return triangle_mesh_fisheye(shot_id, r, tracks_manager)
     elif pygeometry.Camera.is_panorama(shot.camera.projection_type):
         return triangle_mesh_spherical(shot_id, r, tracks_manager)
@@ -50,12 +49,11 @@ def triangle_mesh_perspective(shot_id, r, tracks_manager):
     try:
         tri = scipy.spatial.Delaunay(pixels)
     except Exception as e:
-        logger.error('Delaunay triangulation failed for input: {}'.format(
-            repr(pixels)))
+        logger.error("Delaunay triangulation failed for input: {}".format(repr(pixels)))
         raise e
 
-    sums = [0., 0., 0., 0.]
-    depths = [0., 0., 0., 0.]
+    sums = [0.0, 0.0, 0.0, 0.0]
+    depths = [0.0, 0.0, 0.0, 0.0]
     for t in tri.simplices:
         for i in range(4):
             if i in t:
@@ -75,9 +73,9 @@ def triangle_mesh_perspective(shot_id, r, tracks_manager):
 
 
 def back_project_no_distortion(shot, pixel, depth):
-    '''
+    """
     Back-project a pixel of a perspective camera ignoring its radial distortion
-    '''
+    """
     K = shot.camera.get_K()
     K1 = np.linalg.inv(K)
     p = np.dot(K1, [pixel[0], pixel[1], 1])
@@ -124,9 +122,11 @@ def triangle_mesh_fisheye(shot_id, r, tracks_manager):
 
     # Remove faces having only boundary vertices
     def good_face(face):
-        return (face[0] >= num_circle_points or
-                face[1] >= num_circle_points or
-                face[2] >= num_circle_points)
+        return (
+            face[0] >= num_circle_points
+            or face[1] >= num_circle_points
+            or face[2] >= num_circle_points
+        )
 
     faces = list(filter(good_face, faces))
 

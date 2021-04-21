@@ -1,4 +1,4 @@
-OpenSfM [![Build Status](https://travis-ci.org/mapillary/OpenSfM.svg?branch=master)](https://travis-ci.org/mapillary/OpenSfM)
+OpenSfM ![Docker workflow](https://github.com/mapillary/opensfm/workflows/Docker%20CI/badge.svg)
 =======
 
 ## Overview
@@ -23,4 +23,7 @@ Checkout this [blog post with more demos](http://blog.mapillary.com/update/2014/
 [Documentation]: https://docs.opensfm.org  (OpenSfM documentation)
 
 ## License
-OpenSfM is BSD-style licensed, as found in the LICENSE file.
+OpenSfM is BSD-style licensed, as found in the LICENSE file.  See also the Facebook Open Source [Terms of Use][] and [Privacy Policy][]
+
+[Terms of Use]: https://opensource.facebook.com/legal/terms (Facebook Open Source - Terms of Use)
+[Privacy Policy]: https://opensource.facebook.com/legal/privacy (Facebook Open Source - Privacy Policy)

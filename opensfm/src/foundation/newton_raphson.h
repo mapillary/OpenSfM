@@ -3,6 +3,8 @@
 #include <Eigen/Eigen>
 #include <limits>
 
+namespace foundation {
+
 // Unfortunately we need these traits because we want to use
 // straight double fo the scalar (N=1, M=1) case. Otherwise,
 // wrapping in an Eigen object is killing the performance
@@ -39,7 +41,7 @@ struct FiniteDiff {
 };
 
 template <class F>
-struct FiniteDiff<F,1,1> {
+struct FiniteDiff<F, 1, 1> {
   static typename TypeTraits<1, 1>::Jacobian Derivative(
       const F& func, typename TypeTraits<1, 1>::Values& x) {
     typename TypeTraits<1, 1>::Jacobian jacobian;
@@ -88,3 +90,4 @@ typename TypeTraits<N, M>::Values NewtonRaphson(
   }
   return current_value;
 }
+}  // namespace foundation

@@ -1,34 +1,44 @@
-
-from . import extract_metadata
-from . import detect_features
-from . import match_features
-from . import create_tracks
-from . import reconstruct
-from . import bundle
-from . import mesh
-from . import undistort
-from . import compute_depthmaps
-from . import export_ply
-from . import export_openmvs
-from . import export_visualsfm
-from . import export_pmvs
-from . import export_bundler
-from . import export_colmap
-from . import export_geocoords
-from . import create_submodels
-from . import align_submodels
+from . import (
+    align_submodels,
+    bundle,
+    compute_depthmaps,
+    compute_statistics,
+    create_rig,
+    create_submodels,
+    create_tracks,
+    detect_features,
+    export_bundler,
+    export_colmap,
+    export_geocoords,
+    export_openmvs,
+    export_ply,
+    export_pmvs,
+    export_report,
+    export_visualsfm,
+    extract_metadata,
+    extend_reconstruction,
+    match_features,
+    mesh,
+    reconstruct,
+    reconstruct_from_prior,
+    undistort,
+)
+from .command_runner import command_runner
 
 
 opensfm_commands = [
     extract_metadata,
     detect_features,
     match_features,
+    create_rig,
     create_tracks,
     reconstruct,
+    reconstruct_from_prior,
     bundle,
     mesh,
     undistort,
     compute_depthmaps,
+    compute_statistics,
     export_ply,
     export_openmvs,
     export_visualsfm,
@@ -36,6 +46,8 @@ opensfm_commands = [
     export_bundler,
     export_colmap,
     export_geocoords,
+    export_report,
+    extend_reconstruction,
     create_submodels,
     align_submodels,
 ]

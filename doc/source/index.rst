@@ -1,4 +1,4 @@
-.. OpenSfM documentation master file
+.. OpenSfM documentation primary file
 
 OpenSfM
 =======
@@ -14,11 +14,11 @@ OpenSfM
    reconstruction_module
    large
    reporting
+   quality_report
+   rig
    api
-   python3
 
 Indices and tables
 ==================
 
 * :ref:`genindex`
-

@@ -1,20 +1,19 @@
 import numpy as np
-
 from opensfm.large import tools
 
 
 def test_connected_reconstructions():
     reconstruction_shots = {}
-    reconstruction_shots["r1"] = { "s1": True }
-    reconstruction_shots["r2"] = { "s2": True }
+    reconstruction_shots["r1"] = {"s1": True}
+    reconstruction_shots["r2"] = {"s2": True}
 
     connections = tools.connected_reconstructions(reconstruction_shots)
 
     assert len(connections) == 0
 
     reconstruction_shots = {}
-    reconstruction_shots["r1"] = { "s1": True }
-    reconstruction_shots["r2"] = { "s1": True }
+    reconstruction_shots["r1"] = {"s1": True}
+    reconstruction_shots["r2"] = {"s1": True}
 
     connections = tools.connected_reconstructions(reconstruction_shots)
 
@@ -22,9 +21,9 @@ def test_connected_reconstructions():
     assert ("r1", "r2") in connections
 
     reconstruction_shots = {}
-    reconstruction_shots["r1"] = { "s1": True }
-    reconstruction_shots["r2"] = { "s1": True }
-    reconstruction_shots["r3"] = { "s1": True }
+    reconstruction_shots["r1"] = {"s1": True}
+    reconstruction_shots["r2"] = {"s1": True}
+    reconstruction_shots["r3"] = {"s1": True}
 
     connections = tools.connected_reconstructions(reconstruction_shots)
     connections = [tuple(sorted(list(c))) for c in connections]

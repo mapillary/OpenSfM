@@ -58,20 +58,29 @@ Here is the usage page of ``bin/opensfm``, which lists the available commands::
 
     positional arguments:
       command            Command to run
-        extract_metadata
-                         Extract metadata form images' EXIF tag
-        detect_features  Compute features for all images
-        match_features   Match features between image pairs
-        create_tracks    Link matches pair-wise matches into tracks
-        reconstruct      Compute the reconstruction
-        mesh             Add delaunay meshes to the reconstruction
-        undistort        Save radially undistorted images
+        extract_metadata  Extract metadata from images' EXIF tag
+        detect_features   Compute features for all images
+        match_features    Match features between image pairs
+        create_tracks     Link matches pair-wise matches into tracks
+        reconstruct       Compute the reconstruction
+        bundle            Bundle a reconstruction
+        mesh              Add delaunay meshes to the reconstruction
+        undistort         Save radially undistorted images
         compute_depthmaps
-                         Compute depthmap
-        export_ply       Export reconstruction to PLY format
-        export_openmvs   Export reconstruction to openMVS format
-        export_visualsfm
-                         Export reconstruction to NVM_V3 format from VisualSfM
+                        Compute depthmap
+        compute_statistics
+                        Compute statistics and save them in the stats folder
+        export_ply        Export reconstruction to PLY format
+        export_openmvs    Export reconstruction to openMVS format
+        export_visualsfm  Export reconstruction to NVM_V3 format from VisualSfM
+        export_pmvs       Export reconstruction to PMVS
+        export_bundler    Export reconstruction to bundler format
+        export_colmap     Export reconstruction to colmap format
+        export_geocoords  Export reconstructions in geographic coordinates
+        export_report     Export a nice report based on previously generated
+                        statistics
+        create_submodels  Split the dataset into smaller submodels
+        align_submodels   Align submodel reconstructions
 
     optional arguments:
       -h, --help         show this help message and exit
@@ -92,9 +101,20 @@ The following data is extracted for each image:
 
 - ``camera orientation``: The EXIF orientation tag (see this `exif orientation documentation`_).  Used to orient the reconstruction straight up.
 
-- ``projection_type``: The camera projection type.  It is extracted from the GPano_ metadata and used to determine which projection to use for each camera.  Supported types are `perspective`, `equirectangular` and `fisheye`.
+- ``projection_type``: The camera projection type.  It is extracted from the GPano_ metadata and used to determine which projection to use for each camera.
+    Supported types are :
+        `perspective` : perspective projection with 2nd and 4th order radial distorsion
+        `radial` : same as above but with principal point and aspect aspect ratio
+        `simple_radial` : perspective projection with 2nd order radial distorsion, principal point and aspect aspect ratio
+        `brown` : perspective projection with 2nd/4th/6th radial, two tangential, principal point and aspect aspect ratio
+        `spherical` (or legacy `equirectangular`) : spherical projection for 360 images
+        `fisheye` : fisheye projection with 2nd and 4th order radial distorsion
+        `fisheye_opencv` : fisheye projection identical to OpenCV's fisheye_
+        `fisheye62` : fisheye projection with 1-6th order radial distorsion, 2 tangential, principal point and aspect aspect ratio
+        `dual` : linear interpolation between fisheye and perspective models thanks to some transitioning parameter
 
-- ``focal_ratio``: The focal length provided by the EXIF metadata divided by the sensor width. This is used as initialization and prior for the camera focal length parameter.
+
+- ``focal_ratio``: The focal length provided by the EXIF metadata divided by the sensor width. This is used as initialization and prior for the camera focal length parameter. For any model using aspect ratio, `focal_x`/`focal_y` have to used instead.
 
 - ``make`` and ``model``: The camera make and model.  Used to build the camera ID.
 
@@ -105,7 +125,7 @@ Once the metadata for all images has been extracted, a list of camera models is 
 
 For each camera ID, the cammera model parameters are chosen using the following procedure.
 
-- If the camera ID exists in the ``camera_models_overrides.json`` then the parameters are taken from that file. 
+- If the camera ID exists in the ``camera_models_overrides.json`` then the parameters are taken from that file.
 - Otherwise, if the camera ID exists in an internal calibration database, then the camera parameters are taken from the database.
 - Otherwise, the camera parameters are inferred from the avalable EXIF metadata.
 
@@ -120,9 +140,9 @@ For example, to set the GPS location of an image that might not have it availabl
     {
         "image_name.jpg": {
             "gps": {
-                "latitude": 52.51891, 
+                "latitude": 52.51891,
                 "longitude": 13.40029,
-                "altitude": 27.0, 
+                "altitude": 27.0,
                 "dop": 5.0
             }
         }
@@ -223,6 +243,13 @@ compute_depthmaps
 ~~~~~~~~~~~~~~~~~
 This commands computes a dense point cloud of the scene by computing and merging depthmaps.  It requires an undistorted reconstructions.  The resulting depthmaps are stored in the ``depthmaps`` folder and the merged point cloud is stored in ``undistorted/depthmaps/merged.ply``
 
+compute_statistics
+~~~~~~~~~~~~~~~~~~
+This commands computes a set of statistics that are stored in JSON in the `stats/stats.json`, together with some diagrams image files (`heatmap`, `matchgraph`, `topview` and `residuals`). Statistics will be computed using the `reconstruction.json` file. They can be later exported a as a nicer PDF report using the next command `export_report`.
+
+export_report
+~~~~~~~~~~~~~
+This commands export the statistics file `stats/stats.json` and the diagrams previously computed by `compute_statistics`, as a PDF report stored in `stats/report.pdf`.
 
 Configuration
 -------------
@@ -233,3 +260,4 @@ Checkout `the default configuration <_modules/opensfm/config.html>`_ to see the 
 
 
 .. include:: gcp.rst
+.. _fisheye https://docs.opencv.org/master/db/d58/group__calib3d__fisheye.html

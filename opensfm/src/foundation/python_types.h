@@ -1,9 +1,9 @@
 #pragma once
-#include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
+#include <pybind11/pybind11.h>
 
-#include <vector>
 #include <iostream>
+#include <vector>
 #include "opencv2/core/core.hpp"
 
 namespace py = pybind11;
@@ -11,13 +11,15 @@ namespace py = pybind11;
 namespace foundation {
 
 typedef py::array_t<float, py::array::c_style | py::array::forcecast> pyarray_f;
-typedef py::array_t<double, py::array::c_style | py::array::forcecast> pyarray_d;
+typedef py::array_t<double, py::array::c_style | py::array::forcecast>
+    pyarray_d;
 typedef py::array_t<int, py::array::c_style | py::array::forcecast> pyarray_int;
-typedef py::array_t<unsigned char, py::array::c_style | py::array::forcecast> pyarray_uint8;
+typedef py::array_t<unsigned char, py::array::c_style | py::array::forcecast>
+    pyarray_uint8;
 
 template <typename T>
 py::array_t<T> py_array_from_data(const T *data, size_t shape0) {
-  py::array_t<T> res({shape0});
+  py::array_t<T> res(shape0);
   std::copy(data, data + shape0, res.mutable_data());
   return res;
 }
@@ -30,7 +32,8 @@ py::array_t<T> py_array_from_data(const T *data, size_t shape0, size_t shape1) {
 }
 
 template <typename T>
-py::array_t<T> py_array_from_data(const T *data, size_t shape0, size_t shape1, size_t shape2) {
+py::array_t<T> py_array_from_data(const T *data, size_t shape0, size_t shape1,
+                                  size_t shape2) {
   py::array_t<T> res({shape0, shape1, shape2});
   std::copy(data, data + shape0 * shape1 * shape2, res.mutable_data());
   return res;
@@ -48,7 +51,7 @@ py::array_t<T> py_array_from_cvmat(const cv::Mat &m) {
   return py_array_from_data(data, m.rows, m.cols);
 }
 
-template<typename T>
+template <typename T>
 cv::Mat pyarray_cv_mat_view_typed(T &array, int type) {
   int height = 1;
   int width = 1;
@@ -67,4 +70,4 @@ cv::Mat pyarray_cv_mat_view(pyarray_f &array);
 cv::Mat pyarray_cv_mat_view(pyarray_d &array);
 cv::Mat pyarray_cv_mat_view(pyarray_int &array);
 cv::Mat pyarray_cv_mat_view(pyarray_uint8 &array);
-}
+}  // namespace foundation

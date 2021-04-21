@@ -1,11 +1,6 @@
 """Plot image crops around GCPs.
 """
 
-from __future__ import print_function
-from __future__ import division
-from __future__ import unicode_literals
-from __future__ import absolute_import
-
 import argparse
 import logging
 
@@ -40,7 +35,7 @@ def gcp_to_ply(gcps, reconstruction):
     vertices = []
 
     for gcp in gcps:
-        if gcp.coordinates is not None:
+        if gcp.coordinates.has_value:
             p = gcp.coordinates
         else:
             p = orec.triangulate_gcp(gcp, reconstruction.shots)
@@ -87,7 +82,7 @@ def main():
     for gcp in gcps:
         plt.suptitle("GCP '{}'".format(gcp.id))
 
-        if gcp.coordinates is not None:
+        if gcp.coordinates.has_value:
             coordinates = gcp.coordinates
         else:
             coordinates = orec.triangulate_gcp(gcp, reconstruction.shots)
