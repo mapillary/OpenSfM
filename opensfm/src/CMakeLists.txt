@@ -13,7 +13,6 @@ if (WIN32)
 # Place compilation results in opensfm/ folder, not in Debug/ or Release/
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE "${opensfm_SOURCE_DIR}/..")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG "${opensfm_SOURCE_DIR}/..")
-
 endif()
 
 ####### Compilation Options #######
