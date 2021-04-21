@@ -57,13 +57,13 @@ class CameraView {
   Map& map_;
 };
 
-class RigModelView {
+class RigCameraView {
  public:
-  explicit RigModelView(Map& map);
-  size_t NumberOfRigModels() const;
-  RigModel& GetRigModel(const RigModelId& rig_model_id);
-  const std::unordered_map<RigModelId, RigModel>& GetRigModels() const;
-  bool HasRigModel(const RigModelId& rig_model_id) const;
+  explicit RigCameraView(Map& map);
+  size_t NumberOfRigCameras() const;
+  RigCamera& GetRigCamera(const RigCameraId& rig_camera_id);
+  const std::unordered_map<RigCameraId, RigCamera>& GetRigCameras() const;
+  bool HasRigCamera(const RigCameraId& rig_camera_id) const;
 
  private:
   Map& map_;

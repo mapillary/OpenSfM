@@ -20,7 +20,7 @@ def test_perspective_views_of_a_panorama():
         spherical_shot, 800, urec, "jpg", rig_instance_count
     )
 
-    assert len(urec.rig_models) == 1
+    assert len(urec.rig_cameras) == 6
     assert len(urec.rig_instances) == 1
     assert len(urec.rig_instances[0].shots) == 6
     front_found = False

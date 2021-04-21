@@ -87,24 +87,24 @@ class Map {
   // Rigs
 
   // Creation
-  RigModel& CreateRigModel(const map::RigModel& model);
+  RigCamera& CreateRigCamera(const map::RigCamera& rig_camera);
   RigInstance& CreateRigInstance(
-      map::RigModel* model, const map::RigInstanceId& instance_id,
+      const map::RigInstanceId& instance_id,
       const std::map<map::ShotId, map::RigCameraId>& instance_shots);
 
   // Update
   RigInstance& UpdateRigInstance(const RigInstance& other_rig_instance);
 
   // Getters
-  size_t NumberOfRigModels() const;
-  RigModel& GetRigModel(const RigModelId& rig_model_id);
-  const std::unordered_map<RigModelId, RigModel>& GetRigModels() const {
-    return rig_models_;
+  size_t NumberOfRigCameras() const;
+  RigCamera& GetRigCamera(const RigCameraId& rig_camera_id);
+  const std::unordered_map<RigCameraId, RigCamera>& GetRigCameras() const {
+    return rig_cameras_;
   }
-  std::unordered_map<RigModelId, RigModel>& GetRigModels() {
-    return rig_models_;
+  std::unordered_map<RigCameraId, RigCamera>& GetRigCameras() {
+    return rig_cameras_;
   }
-  bool HasRigModel(const RigModelId& rig_model_id) const;
+  bool HasRigCamera(const RigCameraId& rig_camera_id) const;
 
   size_t NumberOfRigInstances() const;
   RigInstance& GetRigInstance(const RigInstanceId& instance_id);
@@ -179,7 +179,7 @@ class Map {
   std::unordered_map<ShotId, Shot> pano_shots_;
   std::unordered_map<LandmarkId, Landmark> landmarks_;
   std::unordered_map<RigInstanceId, RigInstance> rig_instances_;
-  std::unordered_map<RigModelId, RigModel> rig_models_;
+  std::unordered_map<RigCameraId, RigCamera> rig_cameras_;
 
   geo::TopocentricConverter topo_conv_;
 

@@ -16,24 +16,24 @@ class BAHelpers {
   static py::dict Bundle(
       map::Map& map,
       const std::unordered_map<map::CameraId, geometry::Camera>& camera_priors,
-      const std::unordered_map<map::RigModelId, map::RigModel>&
-          rig_model_priors,
+      const std::unordered_map<map::RigCameraId, map::RigCamera>&
+          rig_camera_priors,
       const AlignedVector<map::GroundControlPoint>& gcp,
       const py::dict& config);
 
   static py::tuple BundleLocal(
       map::Map& map,
       const std::unordered_map<map::CameraId, geometry::Camera>& camera_priors,
-      const std::unordered_map<map::RigModelId, map::RigModel>&
-          rig_model_priors,
+      const std::unordered_map<map::RigCameraId, map::RigCamera>&
+          rig_camera_priors,
       const AlignedVector<map::GroundControlPoint>& gcp,
       const map::ShotId& central_shot_id, const py::dict& config);
 
   static py::dict BundleShotPoses(
       map::Map& map, const std::unordered_set<map::ShotId>& shot_ids,
       const std::unordered_map<map::CameraId, geometry::Camera>& camera_priors,
-      const std::unordered_map<map::RigModelId, map::RigModel>&
-          rig_model_priors,
+      const std::unordered_map<map::RigCameraId, map::RigCamera>&
+          rig_camera_priors,
       const py::dict& config);
 
   static std::pair<std::unordered_set<map::ShotId>,

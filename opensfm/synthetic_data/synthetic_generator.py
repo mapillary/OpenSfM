@@ -173,12 +173,20 @@ def add_points_to_reconstruction(points, color, reconstruction):
         point.color = color
 
 
-def add_rigs_to_reconstruction(shots, positions, rotations, model, reconstruction):
-    rig_model = reconstruction.add_rig_model(model)
+def add_rigs_to_reconstruction(
+    shots, positions, rotations, rig_cameras, reconstruction
+):
+    rec_rig_cameras = []
+    for rig_camera in rig_cameras:
+        if rig_camera.id not in reconstruction.rig_cameras:
+            rec_rig_cameras.append(reconstruction.add_rig_camera(rig_camera))
+        else:
+            rec_rig_cameras.append(reconstruction.rig_cameras[rig_camera.id])
+
     for i, (i_shots, position, rotation) in enumerate(zip(shots, positions, rotations)):
-        rig_instance = reconstruction.add_rig_instance(pymap.RigInstance(rig_model, i))
-        for s in i_shots:
-            rig_instance.add_shot(s[1], reconstruction.get_shot(s[0]))
+        rig_instance = reconstruction.add_rig_instance(pymap.RigInstance(i))
+        for j, s in enumerate(i_shots):
+            rig_instance.add_shot(rec_rig_cameras[j], reconstruction.get_shot(s[0]))
         rig_instance.pose = pygeometry.Pose(rotation, -rotation.dot(position))
 
 
@@ -192,7 +200,7 @@ def create_reconstruction(
     rig_shots=None,
     rig_positions=None,
     rig_rotations=None,
-    rig_models=None,
+    rig_cameras=None,
 ):
     reconstruction = types.Reconstruction()
     for point, color in zip(points, colors):
@@ -205,11 +213,11 @@ def create_reconstruction(
             s_shot_ids, s_positions, s_rotations, s_cameras, reconstruction
         )
 
-    for s_rig_shots, s_rig_positions, s_rig_rotations, s_rig_model in zip(
-        rig_shots, rig_positions, rig_rotations, rig_models
+    for s_rig_shots, s_rig_positions, s_rig_rotations, s_rig_cameras in zip(
+        rig_shots, rig_positions, rig_rotations, rig_cameras
     ):
         add_rigs_to_reconstruction(
-            s_rig_shots, s_rig_positions, s_rig_rotations, s_rig_model, reconstruction
+            s_rig_shots, s_rig_positions, s_rig_rotations, s_rig_cameras, reconstruction
         )
     return reconstruction
 

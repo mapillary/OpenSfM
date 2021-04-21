@@ -305,16 +305,6 @@ def _cameras_statistics(camera_model):
     return camera_stats
 
 
-def _rig_model_statistics(rig_model):
-    rig_model_stats = {}
-    for rig_camera_id, rig_camera in rig_model.get_rig_cameras().items():
-        rig_model_stats[rig_camera_id] = {
-            "rotation": list(rig_camera.pose.rotation),
-            "translation": list(rig_camera.pose.translation),
-        }
-    return rig_model_stats
-
-
 def cameras_statistics(data: DataSetBase, reconstructions):
     stats = {}
     permutation = np.argsort([-len(r.shots) for r in reconstructions])
@@ -338,19 +328,27 @@ def cameras_statistics(data: DataSetBase, reconstructions):
 def rig_statistics(data: DataSetBase, reconstructions):
     stats = {}
     permutation = np.argsort([-len(r.shots) for r in reconstructions])
-    for rig_model_id, rig_model in data.load_rig_models().items():
-        stats[rig_model_id] = {"initial_values": _rig_model_statistics(rig_model)}
+    for rig_camera_id, rig_camera in data.load_rig_cameras().items():
+        stats[rig_camera_id] = {
+            "initial_values": {
+                "rotation": list(rig_camera.pose.rotation),
+                "translation": list(rig_camera.pose.translation),
+            }
+        }
 
     for idx in permutation:
         rec = reconstructions[idx]
-        for rig_model in rec.rig_models.values():
-            if "optimized_values" in stats[rig_model.id]:
+        for rig_camera in rec.rig_cameras.values():
+            if "optimized_values" in stats[rig_camera.id]:
                 continue
-            stats[rig_model.id]["optimized_values"] = _rig_model_statistics(rig_model)
+            stats[rig_camera.id]["optimized_values"] = {
+                "rotation": list(rig_camera.pose.rotation),
+                "translation": list(rig_camera.pose.translation),
+            }
 
-    for rig_model_id in data.load_rig_models():
-        if "optimized_values" not in stats[rig_model_id]:
-            del stats[rig_model_id]
+    for rig_camera_id in data.load_rig_cameras():
+        if "optimized_values" not in stats[rig_camera_id]:
+            del stats[rig_camera_id]
 
     return stats
 

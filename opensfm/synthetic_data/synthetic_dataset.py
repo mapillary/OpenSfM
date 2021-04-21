@@ -38,14 +38,14 @@ class SyntheticDataSet(DataSet):
     def load_camera_models(self):
         return self.reconstruction.cameras
 
-    def load_rig_models(self):
-        return self.reconstruction.rig_models
+    def load_rig_cameras(self):
+        return self.reconstruction.rig_cameras
 
     def load_rig_assignments(self):
-        per_model = defaultdict(list)
+        rig_assignments = []
         for instance in self.reconstruction.rig_instances.values():
-            per_model[instance.rig_model.id].append(instance.camera_ids.items())
-        return per_model
+            rig_assignments.append([(k, v.id) for k, v in instance.rig_cameras.items()])
+        return rig_assignments
 
     def load_exif(self, image):
         return self.exifs[image]

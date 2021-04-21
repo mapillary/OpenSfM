@@ -219,27 +219,27 @@ class DataSetBase(ABC):
         pass
 
     @abstractmethod
-    def load_rig_models(
+    def load_rig_cameras(
         self,
-    ) -> Dict[str, pymap.RigModel]:
+    ) -> Dict[str, pymap.RigCamera]:
         pass
 
     @abstractmethod
-    def save_rig_models(self, rig_models: Dict[str, pymap.RigModel]) -> None:
+    def save_rig_cameras(self, rig_cameras: Dict[str, pymap.RigCamera]) -> None:
         pass
 
     @abstractmethod
-    def load_rig_assignments(self) -> Dict[str, List[List[List[str]]]]:
+    def load_rig_assignments(self) -> List[List[Tuple[str, str]]]:
         pass
 
     @abstractmethod
     def load_rig_assignments_per_image(
         self,
-    ) -> Dict[str, Tuple[str, int, str, List[str]]]:
+    ) -> Dict[str, Tuple[int, str, List[str]]]:
         pass
 
     @abstractmethod
-    def save_rig_assignments(self, rig_assignments: Dict[str, List[List[List[str]]]]):
+    def save_rig_assignments(self, rig_assignments: List[List[Tuple[str, str]]]):
         pass
 
     # TODO(pau): switch this to save_profile_log
@@ -870,52 +870,50 @@ class DataSet(DataSetBase):
         with io.open_rt(self._exif_overrides_file()) as fin:
             return json.load(fin)
 
-    def _rig_models_file(self) -> str:
+    def _rig_cameras_file(self) -> str:
         """Return path of rig models file"""
-        return os.path.join(self.data_path, "rig_models.json")
+        return os.path.join(self.data_path, "rig_cameras.json")
 
-    def load_rig_models(self) -> Dict[str, pymap.RigModel]:
+    def load_rig_cameras(self) -> Dict[str, pymap.RigCamera]:
         """Return rig models data"""
-        if not os.path.exists(self._rig_models_file()):
+        if not os.path.exists(self._rig_cameras_file()):
             return {}
-        with io.open_rt(self._rig_models_file()) as fin:
-            return io.rig_models_from_json(json.load(fin))
+        with io.open_rt(self._rig_cameras_file()) as fin:
+            return io.rig_cameras_from_json(json.load(fin))
 
-    def save_rig_models(self, rig_models: Dict[str, pymap.RigModel]) -> None:
+    def save_rig_cameras(self, rig_cameras: Dict[str, pymap.RigCamera]) -> None:
         """Save rig models data"""
-        with io.open_wt(self._rig_models_file()) as fout:
-            io.json_dump(io.rig_models_to_json(rig_models), fout)
+        with io.open_wt(self._rig_cameras_file()) as fout:
+            io.json_dump(io.rig_cameras_to_json(rig_cameras), fout)
 
     def _rig_assignments_file(self) -> str:
         """Return path of rig assignments file"""
         return os.path.join(self.data_path, "rig_assignments.json")
 
-    def load_rig_assignments(self) -> Dict[str, List[List[List[str]]]]:
+    def load_rig_assignments(self) -> List[List[Tuple[str, str]]]:
         """Return rig assignments  data"""
         if not os.path.exists(self._rig_assignments_file()):
-            return {}
+            return []
         with io.open_rt(self._rig_assignments_file()) as fin:
             return json.load(fin)
 
     def load_rig_assignments_per_image(
         self,
-    ) -> Dict[str, Tuple[str, int, str, List[str]]]:
+    ) -> Dict[str, Tuple[int, str, List[str]]]:
         """Return rig assignments  data"""
         raw_assignments = self.load_rig_assignments()
         assignments_per_image = {}
-        for model_id, instances in raw_assignments.items():
-            for instance_id, instance in enumerate(instances):
-                instance_shots = [s[0] for s in instance]
-                for (shot_id, rig_camera_id) in instance:
-                    assignments_per_image[shot_id] = (
-                        model_id,
-                        instance_id,
-                        rig_camera_id,
-                        instance_shots,
-                    )
+        for instance_id, instance in enumerate(raw_assignments):
+            instance_shots = [s[0] for s in instance]
+            for (shot_id, rig_camera_id) in instance:
+                assignments_per_image[shot_id] = (
+                    instance_id,
+                    rig_camera_id,
+                    instance_shots,
+                )
         return assignments_per_image
 
-    def save_rig_assignments(self, rig_assignments: Dict[str, List[List[List[str]]]]):
+    def save_rig_assignments(self, rig_assignments: List[List[Tuple[str, str]]]):
         """Save rig assignments  data"""
         with io.open_wt(self._rig_assignments_file()) as fout:
             io.json_dump(rig_assignments, fout)

@@ -1,77 +1,6 @@
 """Test the rig module."""
-from typing import cast
-
 import numpy as np
 from opensfm import pygeometry, rig, types
-from opensfm.dataset import DataSetBase
-
-
-class MockDataset:
-    """Dataset mock class with images and exif data."""
-
-    def __init__(self, exif):
-        self.exif = exif
-
-    def images(self):
-        return self.exif.keys()
-
-    def load_exif(self, image):
-        return self.exif[image]
-
-
-def metadata(skey, capture_time, lat, lon):
-    return {
-        "skey": skey,
-        "capture_time": capture_time,
-        "gps": {"latitude": lat, "longitude": lon},
-    }
-
-
-def test_detect_rigs_two_cams_one_shots() -> None:
-    data = MockDataset({"1": metadata(1, 1, 1, 1), "2": metadata(2, 1, 1, 1)})
-    rig_info = rig.detect_rigs(data.images(), cast(DataSetBase, data))
-    r1 = rig_info["1"]
-    r2 = rig_info["2"]
-    assert r1["rig"] == r2["rig"]
-    assert r1["rig_camera"] != r2["rig_camera"]
-    assert r1["rig_pose"] == r2["rig_pose"]
-
-
-def test_detect_rigs_two_cams_two_shots() -> None:
-    data = MockDataset(
-        {
-            "11": metadata(1, 1, 1, 1),
-            "12": metadata(1, 2, 2, 2),
-            "21": metadata(2, 1, 1, 1),
-            "22": metadata(2, 2, 2, 2),
-        }
-    )
-    rig_info = rig.detect_rigs(data.images(), cast(DataSetBase, data))
-    r11 = rig_info["11"]
-    r12 = rig_info["12"]
-    r21 = rig_info["21"]
-    r22 = rig_info["22"]
-
-    assert r11["rig"] == r12["rig"] == r21["rig"] == r22["rig"]
-    assert r11["rig_camera"] == r12["rig_camera"]
-    assert r21["rig_camera"] == r22["rig_camera"]
-    assert r11["rig_camera"] != r21["rig_camera"]
-    assert r11["rig_pose"] == r21["rig_pose"]
-    assert r12["rig_pose"] == r22["rig_pose"]
-
-
-def test_pose_mode() -> None:
-    poses = [
-        pygeometry.Pose([0, 0, 0], [0, 0, 0]),
-        pygeometry.Pose([0.1, 0, 0], [0, 0, 0]),
-        pygeometry.Pose([0.2, 0, 0], [0, 0, 0]),
-        pygeometry.Pose([1, 0, 0], [0, 0, 0]),
-    ]
-    mode = rig.pose_mode(poses, 0.1, 0.1)
-    assert mode == poses[1]
-
-    mode = rig.pose_mode(poses, 1, 1)
-    assert mode == poses[2]
 
 
 def test_create_instances_with_patterns() -> None:
@@ -97,9 +26,9 @@ def test_create_instances_with_patterns() -> None:
 
     # A second one as RED/GREEN/BLUE
     instance3 = [
-        "RED_SENSOR_001-1234567.jpg",
-        "GREEN_SENSOR_002-1234567.jpg",
-        "BLUE_SENSOR_003-1234567.jpg",
+        "RED_SENSOR_001-12345678.jpg",
+        "GREEN_SENSOR_002-12345678.jpg",
+        "BLUE_SENSOR_003-12345678.jpg",
     ]
     patterns_3 = {
         "red": "(RED_SENSOR_001)",
@@ -108,22 +37,23 @@ def test_create_instances_with_patterns() -> None:
     }
 
     # Run detection with these two rig model patterns
-    rig_patterns = {"rig_model_1": patterns_12, "rig_model_2": patterns_3}
+    rig_patterns = patterns_12
+    rig_patterns.update(patterns_3)
     instances = rig.create_instances_with_patterns(
         instance1 + instance2 + instance3, rig_patterns
     )
 
-    # Ensure we have 2 instance for thr first rig, and one for the second
-    assert len(instances) == 2
+    # Ensure we have 2 instance for the first rig, and 1 for the second
+    assert len(instances) == 3
 
-    rig1 = instances["rig_model_1"]
-    assert len(rig1) == 2
-    assert [x[0] for x in rig1[0]] == instance1
-    assert [x[0] for x in rig1[1]] == instance2
+    recovered_instance1 = instances["12345_.jpg"]
+    assert [x[0] for x in recovered_instance1] == instance1
 
-    rig2 = instances["rig_model_2"]
-    assert len(rig2) == 1
-    assert [x[0] for x in rig2[0]] == instance3
+    recovered_instance2 = instances["1234567_.jpg"]
+    assert [x[0] for x in recovered_instance2] == instance2
+
+    recovered_instance3 = instances["-12345678.jpg"]
+    assert [x[0] for x in recovered_instance3] == instance3
 
 
 def test_compute_relative_pose() -> None:
@@ -200,18 +130,18 @@ def test_compute_relative_pose() -> None:
         ],
     ]
 
-    # Compute rig model poses
-    rig_model = rig.compute_relative_pose("dummy", pose_instances)
+    # Compute rig cameras poses
+    rig_cameras = rig.compute_relative_pose(pose_instances)
 
     assert np.allclose(
-        [0, -1, 0], rig_model.get_rig_camera("camera_id_1").pose.get_origin(), atol=1e-7
+        [0, -1, 0], rig_cameras["camera_id_1"].pose.get_origin(), atol=1e-7
     )
     assert np.allclose(
-        [1, 0, 0], rig_model.get_rig_camera("camera_id_2").pose.get_origin(), atol=1e-7
+        [1, 0, 0], rig_cameras["camera_id_2"].pose.get_origin(), atol=1e-7
     )
     assert np.allclose(
-        [-1, 0, 0], rig_model.get_rig_camera("camera_id_3").pose.get_origin(), atol=1e-7
+        [-1, 0, 0], rig_cameras["camera_id_3"].pose.get_origin(), atol=1e-7
     )
     assert np.allclose(
-        [0, 1, 0], rig_model.get_rig_camera("camera_id_4").pose.get_origin(), atol=1e-7
+        [0, 1, 0], rig_cameras["camera_id_4"].pose.get_origin(), atol=1e-7
     )

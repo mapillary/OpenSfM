@@ -16,7 +16,6 @@ struct KeyCompare {
   }
 };
 
-using RigModelId = std::string;
 using RigCameraId = std::string;
 using RigInstanceId = size_t;
 using ShotId = std::string;

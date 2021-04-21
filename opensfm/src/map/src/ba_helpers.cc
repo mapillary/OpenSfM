@@ -116,7 +116,8 @@ std::unordered_set<map::Shot*> BAHelpers::DirectShotNeighbors(
 py::tuple BAHelpers::BundleLocal(
     map::Map& map,
     const std::unordered_map<map::CameraId, geometry::Camera>& camera_priors,
-    const std::unordered_map<map::RigModelId, map::RigModel>& rig_model_priors,
+    const std::unordered_map<map::RigCameraId, map::RigCamera>&
+        rig_camera_priors,
     const AlignedVector<map::GroundControlPoint>& gcp,
     const map::ShotId& central_shot_id, const py::dict& config) {
   py::dict report;
@@ -147,38 +148,31 @@ py::tuple BAHelpers::BundleLocal(
   py::list pt_ids;
 
   constexpr bool point_constant{false};
-  constexpr bool rig_model_constant{true};
+  constexpr bool rig_camera_constant{true};
 
   // gather required rig data to setup
-  std::unordered_set<map::RigModelId> rig_models_ids;
+  std::unordered_set<map::RigCameraId> rig_cameras_ids;
   std::unordered_set<map::RigInstanceId> rig_instances_ids;
   for (auto* shot : int_and_bound) {
     if (!shot->IsInRig()) {
       continue;
     }
-    rig_models_ids.insert(shot->GetRigModelId());
+    rig_cameras_ids.insert(shot->GetRigCameraId());
     rig_instances_ids.insert(shot->GetRigInstanceId());
   }
 
-  // rig model are going to be fixed
-  for (const auto& rig_model_id : rig_models_ids) {
-    const auto& model = map.GetRigModel(rig_model_id);
-    std::unordered_map<std::string, geometry::Pose> rig_cameras_poses;
-    std::unordered_map<std::string, geometry::Pose> rig_cameras_poses_prior;
-    for (const auto& camera_pair : model.GetRigCameras()) {
-      const auto id = camera_pair.first;
-      rig_cameras_poses[id] = camera_pair.second.pose;
-      rig_cameras_poses_prior[id] =
-          rig_model_priors.at(rig_model_id).GetRigCamera(id).pose;
-    }
-    ba.AddRigModel(rig_model_id, rig_cameras_poses, rig_cameras_poses_prior,
-                   rig_model_constant);
+  // rig cameras are going to be fixed
+  for (const auto& rig_camera_id : rig_cameras_ids) {
+    const auto& rig_camera = map.GetRigCamera(rig_camera_id);
+    ba.AddRigCamera(rig_camera_id, rig_camera.pose,
+                    rig_camera_priors.at(rig_camera_id).pose,
+                    rig_camera_constant);
   }
 
   // add rig instances shots
   for (const auto& rig_instance_id : rig_instances_ids) {
-    const auto& instance = map.GetRigInstance(rig_instance_id);
-    std::unordered_map<std::string, std::string> shot_cameras;
+    auto& instance = map.GetRigInstance(rig_instance_id);
+    std::unordered_map<std::string, std::string> shot_cameras, shot_rig_cameras;
 
     // we're going to assign GPS constraint to the instance itself
     // by averaging its shot's GPS values (and std dev.)
@@ -189,11 +183,11 @@ py::tuple BAHelpers::BundleLocal(
     // if any instance's shot is in boundary
     // then the entire instance will be fixed
     bool fix_instance = false;
-
-    for (const auto& shot_n_rig_camera : instance.GetShotRigCameraIDs()) {
+    for (const auto& shot_n_rig_camera : instance.GetRigCameras()) {
       const auto shot_id = shot_n_rig_camera.first;
       auto& shot = map.GetShot(shot_id);
       shot_cameras[shot_id] = shot.GetCamera()->id;
+      shot_rig_cameras[shot_id] = shot_n_rig_camera.second->id;
 
       const auto is_boundary = boundary.find(&shot) != boundary.end();
       const auto is_interior = !is_boundary;
@@ -210,8 +204,7 @@ py::tuple BAHelpers::BundleLocal(
     }
 
     ba.AddRigInstance(std::to_string(rig_instance_id), instance.GetPose(),
-                      instance.GetRigModel()->id, shot_cameras,
-                      instance.GetShotRigCameraIDs(), fix_instance);
+                      shot_cameras, shot_rig_cameras, fix_instance);
 
     // only add averaged rig position constraints to moving instances
     if (!fix_instance && gps_count > 0) {
@@ -427,13 +420,14 @@ void BAHelpers::AddGCPToBundle(
 py::dict BAHelpers::BundleShotPoses(
     map::Map& map, const std::unordered_set<map::ShotId>& shot_ids,
     const std::unordered_map<map::CameraId, geometry::Camera>& camera_priors,
-    const std::unordered_map<map::RigModelId, map::RigModel>& rig_model_priors,
+    const std::unordered_map<map::RigCameraId, map::RigCamera>&
+        rig_camera_priors,
     const py::dict& config) {
   py::dict report;
 
   constexpr auto fix_cameras = true;
   constexpr auto fix_points = true;
-  constexpr auto fix_rig_model = true;
+  constexpr auto fix_rig_camera = true;
 
   auto ba = bundle::BundleAdjuster();
   ba.SetUseAnalyticDerivatives(
@@ -441,30 +435,22 @@ py::dict BAHelpers::BundleShotPoses(
   const auto start = std::chrono::high_resolution_clock::now();
 
   // gather required rig data to setup
-  std::unordered_set<map::RigModelId> rig_models_ids;
+  std::unordered_set<map::RigCameraId> rig_cameras_ids;
   std::unordered_set<map::RigInstanceId> rig_instances_ids;
   for (const auto& shot_id : shot_ids) {
     const auto& shot = map.GetShot(shot_id);
     if (!shot.IsInRig()) {
       continue;
     }
-    rig_models_ids.insert(shot.GetRigModelId());
+    rig_cameras_ids.insert(shot.GetRigCameraId());
     rig_instances_ids.insert(shot.GetRigInstanceId());
   }
 
-  // rig model are going to be fixed
-  for (const auto& rig_model_id : rig_models_ids) {
-    const auto& model = map.GetRigModel(rig_model_id);
-    std::unordered_map<std::string, geometry::Pose> rig_cameras_poses;
-    std::unordered_map<std::string, geometry::Pose> rig_cameras_poses_prior;
-    for (const auto& camera_pair : model.GetRigCameras()) {
-      const auto id = camera_pair.first;
-      rig_cameras_poses[id] = camera_pair.second.pose;
-      rig_cameras_poses_prior[id] =
-          rig_model_priors.at(rig_model_id).GetRigCamera(id).pose;
-    }
-    ba.AddRigModel(rig_model_id, rig_cameras_poses, rig_cameras_poses_prior,
-                   fix_rig_model);
+  // rig cameras are going to be fixed
+  for (const auto& rig_camera_id : rig_cameras_ids) {
+    const auto& rig_camera = map.GetRigCamera(rig_camera_id);
+    ba.AddRigCamera(rig_camera_id, rig_camera.pose,
+                    rig_camera_priors.at(rig_camera_id).pose, fix_rig_camera);
   }
 
   std::unordered_set<map::CameraId> added_cameras;
@@ -492,8 +478,8 @@ py::dict BAHelpers::BundleShotPoses(
 
   // add rig instances shots
   for (const auto& rig_instance_id : rig_instances_ids) {
-    const auto& instance = map.GetRigInstance(rig_instance_id);
-    std::unordered_map<std::string, std::string> shot_cameras;
+    auto& instance = map.GetRigInstance(rig_instance_id);
+    std::unordered_map<std::string, std::string> shot_cameras, shot_rig_cameras;
 
     // we're going to assign GPS constraint to the instance itself
     // by averaging its shot's GPS values (and std dev.)
@@ -505,10 +491,11 @@ py::dict BAHelpers::BundleShotPoses(
     // then the entire instance will be fixed
     bool fix_instance = false;
 
-    for (const auto& shot_n_rig_camera : instance.GetShotRigCameraIDs()) {
+    for (const auto& shot_n_rig_camera : instance.GetRigCameras()) {
       const auto shot_id = shot_n_rig_camera.first;
       auto& shot = map.GetShot(shot_id);
       shot_cameras[shot_id] = shot.GetCamera()->id;
+      shot_rig_cameras[shot_id] = shot_n_rig_camera.second->id;
 
       const auto is_fixed = shot_ids.find(shot_id) != shot_ids.end();
       if (!is_fixed) {
@@ -526,8 +513,7 @@ py::dict BAHelpers::BundleShotPoses(
       }
 
       ba.AddRigInstance(std::to_string(rig_instance_id), instance.GetPose(),
-                        instance.GetRigModel()->id, shot_cameras,
-                        instance.GetShotRigCameraIDs(), fix_instance);
+                        shot_cameras, shot_rig_cameras, fix_instance);
 
       // only add averaged rig position constraints to moving instances
       if (!fix_instance && gps_count > 0) {
@@ -635,7 +621,8 @@ py::dict BAHelpers::BundleShotPoses(
 py::dict BAHelpers::Bundle(
     map::Map& map,
     const std::unordered_map<map::CameraId, geometry::Camera>& camera_priors,
-    const std::unordered_map<map::RigModelId, map::RigModel>& rig_model_priors,
+    const std::unordered_map<map::RigCameraId, map::RigCamera>&
+        rig_camera_priors,
     const AlignedVector<map::GroundControlPoint>& gcp, const py::dict& config) {
   py::dict report;
 
@@ -674,22 +661,14 @@ py::dict BAHelpers::Bundle(
     }
   }
 
-  // setup rig models
+  // setup rig cameras
   constexpr size_t MinRigInstanceForAdjust{5};
-  const auto lock_rig_model =
+  const auto lock_rig_camera =
       map.GetRigInstances().size() <= MinRigInstanceForAdjust;
-  for (const auto& model_pair : map.GetRigModels()) {
-    const auto& model = model_pair.second;
-    std::unordered_map<std::string, geometry::Pose> rig_cameras_poses;
-    std::unordered_map<std::string, geometry::Pose> rig_cameras_poses_prior;
-    for (const auto& camera_pair : model.GetRigCameras()) {
-      const auto id = camera_pair.first;
-      rig_cameras_poses[id] = camera_pair.second.pose;
-      rig_cameras_poses_prior[id] =
-          rig_model_priors.at(model_pair.first).GetRigCamera(id).pose;
-    }
-    ba.AddRigModel(model_pair.first, rig_cameras_poses, rig_cameras_poses_prior,
-                   lock_rig_model);
+  for (const auto& camera_pair : map.GetRigCameras()) {
+    ba.AddRigCamera(camera_pair.first, camera_pair.second.pose,
+                    rig_camera_priors.at(camera_pair.first).pose,
+                    lock_rig_camera);
   }
 
   // setup rig instances
@@ -701,11 +680,13 @@ py::dict BAHelpers::Bundle(
     int gps_count = 0;
 
     // average GPS and assign GPS constraint to the instance
-    std::unordered_map<std::string, std::string> shot_cameras;
-    for (const auto& shot_n_rig_camera : instance.GetShotRigCameraIDs()) {
+    std::unordered_map<std::string, std::string> shot_cameras, shot_rig_cameras;
+    for (const auto& shot_n_rig_camera : instance.GetRigCameras()) {
       const auto shot_id = shot_n_rig_camera.first;
       const auto& shot = map.GetShot(shot_id);
       shot_cameras[shot_id] = shot.GetCamera()->id;
+      shot_rig_cameras[shot_id] = shot_n_rig_camera.second->id;
+
       if (config["bundle_use_gps"].cast<bool>()) {
         const auto pos = shot.GetShotMeasurements().gps_position_;
         const auto acc = shot.GetShotMeasurements().gps_accuracy_;
@@ -718,8 +699,7 @@ py::dict BAHelpers::Bundle(
     }
 
     ba.AddRigInstance(std::to_string(instance_pair.first), instance.GetPose(),
-                      instance.GetRigModel()->id, shot_cameras,
-                      instance.GetShotRigCameraIDs(), false);
+                      shot_cameras, shot_rig_cameras, false);
 
     if (config["bundle_use_gps"].cast<bool>() && gps_count > 0) {
       average_position /= gps_count;
@@ -822,11 +802,9 @@ py::dict BAHelpers::Bundle(
   }
 
   // Update rig models
-  for (auto& model : map.GetRigModels()) {
-    auto i = ba.GetRigModel(model.first);
-    for (auto& c : model.second.GetRigCameras()) {
-      c.second.pose = i.GetRigCamera(c.first)->GetValue();
-    }
+  for (auto& rig_camera : map.GetRigCameras()) {
+    auto i = ba.GetRigCamera(rig_camera.first);
+    rig_camera.second.pose = i.GetValue();
   }
 
   // Update points

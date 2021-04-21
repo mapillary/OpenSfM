@@ -298,23 +298,18 @@ Shot& Map::UpdatePanoShot(const Shot& other_shot) {
   }
 }
 
-RigModel& Map::CreateRigModel(const map::RigModel& model) {
-  auto it = rig_models_.emplace(std::make_pair(model.id, model));
+RigCamera& Map::CreateRigCamera(const map::RigCamera& rig_camera) {
+  auto it = rig_cameras_.emplace(std::make_pair(rig_camera.id, rig_camera));
   return it.first->second;
 }
 
 RigInstance& Map::CreateRigInstance(
-    map::RigModel* rig_model, const map::RigInstanceId& instance_id,
+    const map::RigInstanceId& instance_id,
     const std::map<map::ShotId, map::RigCameraId>& instance_shots) {
-  auto it_rig_model_exist = rig_models_.find(rig_model->id);
-  if (it_rig_model_exist == rig_models_.end()) {
-    throw std::runtime_error("Rig model" + rig_model->id + " does not exists.");
-  }
-
   // Create instance and add its shots
-  auto it = rig_instances_.emplace(
-      std::piecewise_construct, std::forward_as_tuple(instance_id),
-      std::forward_as_tuple(rig_model, instance_id));
+  auto it = rig_instances_.emplace(std::piecewise_construct,
+                                   std::forward_as_tuple(instance_id),
+                                   std::forward_as_tuple(instance_id));
   auto& instance = it.first->second;
   for (const auto& shot_id : instance_shots) {
     auto it_shot_exist = shots_.find(shot_id.first);
@@ -322,7 +317,12 @@ RigInstance& Map::CreateRigInstance(
       throw std::runtime_error("Instance shot " + shot_id.first +
                                " does not exists.");
     }
-    instance.AddShot(shot_id.second, &it_shot_exist->second);
+    auto it_rig_camera_exist = rig_cameras_.find(shot_id.second);
+    if (it_rig_camera_exist == rig_cameras_.end()) {
+      throw std::runtime_error("Rig camera " + shot_id.second +
+                               " does not exists.");
+    }
+    instance.AddShot(&it_rig_camera_exist->second, &it_shot_exist->second);
   }
   return instance;
 }
@@ -338,18 +338,18 @@ RigInstance& Map::UpdateRigInstance(const RigInstance& other_rig_instance) {
   }
 }
 
-size_t Map::NumberOfRigModels() const { return rig_models_.size(); }
+size_t Map::NumberOfRigCameras() const { return rig_cameras_.size(); }
 
-RigModel& Map::GetRigModel(const RigModelId& rig_model_id) {
-  const auto& it = rig_models_.find(rig_model_id);
-  if (it == rig_models_.end()) {
-    throw std::runtime_error("Accessing invalid RigModelID " + rig_model_id);
+RigCamera& Map::GetRigCamera(const RigCameraId& rig_camera_id) {
+  const auto& it = rig_cameras_.find(rig_camera_id);
+  if (it == rig_cameras_.end()) {
+    throw std::runtime_error("Accessing invalid RigCameraID " + rig_camera_id);
   }
   return it->second;
 }
 
-bool Map::HasRigModel(const RigModelId& rig_model_id) const {
-  return rig_models_.find(rig_model_id) != rig_models_.end();
+bool Map::HasRigCamera(const RigCameraId& rig_camera_id) const {
+  return rig_cameras_.find(rig_camera_id) != rig_cameras_.end();
 }
 
 size_t Map::NumberOfRigInstances() const { return rig_instances_.size(); }

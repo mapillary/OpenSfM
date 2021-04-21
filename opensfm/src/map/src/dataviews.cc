@@ -53,19 +53,19 @@ bool CameraView::HasCamera(const CameraId& cam_id) const {
   return map_.HasCamera(cam_id);
 }
 
-RigModelView::RigModelView(Map& map) : map_(map) {}
-size_t RigModelView::NumberOfRigModels() const {
-  return map_.NumberOfRigModels();
+RigCameraView::RigCameraView(Map& map) : map_(map) {}
+size_t RigCameraView::NumberOfRigCameras() const {
+  return map_.NumberOfRigCameras();
 }
-RigModel& RigModelView::GetRigModel(const RigModelId& rig_model_id) {
-  return map_.GetRigModel(rig_model_id);
+RigCamera& RigCameraView::GetRigCamera(const RigCameraId& rig_camera_id) {
+  return map_.GetRigCamera(rig_camera_id);
 }
-const std::unordered_map<RigModelId, RigModel>& RigModelView::GetRigModels()
+const std::unordered_map<RigCameraId, RigCamera>& RigCameraView::GetRigCameras()
     const {
-  return map_.GetRigModels();
+  return map_.GetRigCameras();
 }
-bool RigModelView::HasRigModel(const RigModelId& rig_model_id) const {
-  return map_.HasRigModel(rig_model_id);
+bool RigCameraView::HasRigCamera(const RigCameraId& rig_camera_id) const {
+  return map_.HasRigCamera(rig_camera_id);
 }
 
 RigInstanceView::RigInstanceView(Map& map) : map_(map) {}

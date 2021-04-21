@@ -14,11 +14,8 @@ class BaseMapFixture : public ::testing::Test {
     camera.height = 480;
 
     rig_camera.id = "rig_camera";
-    rig_model.id = "rig_model";
-    rig_model.AddRigCamera(rig_camera);
   }
   map::RigCamera rig_camera;
-  map::RigModel rig_model;
   geometry::Camera camera;
 };
 
@@ -95,9 +92,9 @@ TEST_F(EmptyMapFixture, ReturnsHasLandmark) {
   ASSERT_TRUE(map.HasLandmark(std::to_string(id)));
 }
 
-TEST_F(EmptyMapFixture, CreateRigModelCorrectly) {
-  auto& create_rig_model = map.CreateRigModel(rig_model);
-  ASSERT_EQ(create_rig_model.id, rig_model.id);
+TEST_F(EmptyMapFixture, CreateRigCameraCorrectly) {
+  auto& created_rig_camera = map.CreateRigCamera(rig_camera);
+  ASSERT_EQ(created_rig_camera.id, rig_camera.id);
 }
 
 class ToyMapFixture : public EmptyMapFixture {
@@ -117,7 +114,7 @@ class ToyMapFixture : public EmptyMapFixture {
       map.CreateLandmark(std::to_string(i), Vec3d::Random());
     }
 
-    map.CreateRigModel(rig_model);
+    map.CreateRigCamera(rig_camera);
   }
 
   static constexpr int num_points = 10;
@@ -163,8 +160,7 @@ TEST_F(ToyMapFixture, ThrowsWhenRemovingLandmarkTwice) {
 TEST_F(ToyMapFixture, CreateRigInstanceCorrectly) {
   std::map<map::ShotId, map::RigCameraId> instance_shots;
   instance_shots["0"] = rig_camera.id;
-  auto& create_rig_instance =
-      map.CreateRigInstance(&rig_model, 1, instance_shots);
+  auto& create_rig_instance = map.CreateRigInstance(1, instance_shots);
 
   ASSERT_EQ(1, create_rig_instance.GetShots().size());
 }
@@ -173,7 +169,7 @@ TEST_F(ToyMapFixture, UpdatesRigInstanceCorrectly) {
   std::map<map::ShotId, map::RigCameraId> instance_shots;
   instance_shots["0"] = rig_camera.id;
 
-  auto& instance1 = map.CreateRigInstance(&rig_model, 1, instance_shots);
+  auto& instance1 = map.CreateRigInstance(1, instance_shots);
   Vec3d rand1 = Vec3d::Random();
   instance1.SetPose(geometry::Pose(rand1));
 
@@ -188,16 +184,13 @@ TEST_F(ToyMapFixture, UpdatesRigInstanceCorrectly) {
 TEST_F(ToyMapFixture, ThrowOnCreateRigInstanceWithInvalidShot) {
   std::map<map::ShotId, map::RigCameraId> instance_shots;
   instance_shots["invalid_shot"] = rig_camera.id;
-  ASSERT_THROW(map.CreateRigInstance(&rig_model, 1, instance_shots),
-               std::runtime_error);
+  ASSERT_THROW(map.CreateRigInstance(1, instance_shots), std::runtime_error);
 }
 
-TEST_F(ToyMapFixture, ThrowOnCreateRigInstanceWithInvalidRigModel) {
+TEST_F(ToyMapFixture, ThrowOnCreateRigInstanceWithInvalidRigCamera) {
   std::map<map::ShotId, map::RigCameraId> instance_shots;
-  instance_shots["0"] = rig_camera.id;
-  rig_model.id = "invalid_rig_model";
-  ASSERT_THROW(map.CreateRigInstance(&rig_model, 1, instance_shots),
-               std::runtime_error);
+  instance_shots["0"] = "invalid_rig_camera";
+  ASSERT_THROW(map.CreateRigInstance(1, instance_shots), std::runtime_error);
 }
 
 class OneCameraMapFixture : public EmptyMapFixture {
@@ -276,28 +269,28 @@ class OneRigMapFixture : public EmptyMapFixture {
     camera.id = "0";
     map.CreateCamera(camera);
     map.CreateShot("0", "0");
-    map.CreateRigModel(rig_model);
+    map.CreateRigCamera(rig_camera);
     std::map<map::ShotId, map::RigCameraId> instance_shots;
     instance_shots["0"] = rig_camera.id;
-    map.CreateRigInstance(&rig_model, 1, instance_shots);
+    map.CreateRigInstance(1, instance_shots);
   }
 };
 
-TEST_F(OneRigMapFixture, ReturnsNumberOfRigModels) {
-  ASSERT_EQ(1, map.NumberOfRigModels());
+TEST_F(OneRigMapFixture, ReturnsNumberOfRigCameras) {
+  ASSERT_EQ(1, map.NumberOfRigCameras());
 }
 
-TEST_F(OneRigMapFixture, HasRigModels) {
-  ASSERT_TRUE(map.HasRigModel("rig_model"));
+TEST_F(OneRigMapFixture, HasRigCameras) {
+  ASSERT_TRUE(map.HasRigCamera("rig_camera"));
 }
 
-TEST_F(OneRigMapFixture, ReturnsRigModel) {
-  const auto& model = map.GetRigModel("rig_model");
-  ASSERT_EQ("rig_model", model.id);
+TEST_F(OneRigMapFixture, ReturnsRigCamera) {
+  const auto& rig_camera = map.GetRigCamera("rig_camera");
+  ASSERT_EQ("rig_camera", rig_camera.id);
 }
 
-TEST_F(OneRigMapFixture, ReturnsAllRigModels) {
-  ASSERT_EQ(1, map.GetRigModels().size());
+TEST_F(OneRigMapFixture, ReturnsAllRigCameras) {
+  ASSERT_EQ(1, map.GetRigCameras().size());
 }
 
 TEST_F(OneRigMapFixture, ReturnsNumberOfRigInstances) {

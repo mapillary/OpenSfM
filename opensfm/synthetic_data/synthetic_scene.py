@@ -149,7 +149,7 @@ class SyntheticStreetScene(SyntheticScene):
         self.instances_positions = []
         self.instances_rotations = []
         self.rig_instances = []
-        self.rig_models = []
+        self.rig_cameras = []
 
     def add_street(self, points_count, height, width):
         self.wall_points, self.floor_points = sg.generate_street(
@@ -248,17 +248,18 @@ class SyntheticStreetScene(SyntheticScene):
         self.shot_ids += shots_ids_per_camera
 
         rig_camera_ids = []
-        rig_model = pymap.RigModel(f"RigModel {len(self.rig_models)}")
+        rig_cameras = []
+        rig_camera_id_shift = sum(len(s) for s in self.rig_cameras)
         for i, (rig_camera_p, rig_camera_r) in enumerate(
             zip(relative_positions, relative_rotations)
         ):
             pose_rig_camera = pygeometry.Pose(rig_camera_r)
             pose_rig_camera.set_origin(rig_camera_p)
-            rig_camera_id = f"RigCamera {i}"
+            rig_camera_id = f"RigCamera {rig_camera_id_shift + i}"
             rig_camera = pymap.RigCamera(pose_rig_camera, rig_camera_id)
-            rig_model.add_rig_camera(rig_camera)
             rig_camera_ids.append(rig_camera_id)
-        self.rig_models.append(rig_model)
+            rig_cameras.append(rig_camera)
+        self.rig_cameras.append(rig_cameras)
 
         rig_instances = []
         for i in range(len(instances_positions)):
@@ -301,7 +302,7 @@ class SyntheticStreetScene(SyntheticScene):
             self.rig_instances,
             self.instances_positions,
             self.instances_rotations,
-            self.rig_models,
+            self.rig_cameras,
         )
 
     def get_scene_exifs(self, gps_noise):

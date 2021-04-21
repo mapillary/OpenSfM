@@ -612,33 +612,25 @@ def test_pano_shot_create_remove_create():
     assert len(rec.pano_shots) == n_shots
 
 
-def _create_rig_model():
-    rig_model = pymap.RigModel("rig_model")
+def _create_rig_camera():
     rig_camera = pymap.RigCamera()
     rig_camera.id = "rig_camera"
-    rig_model.add_rig_camera(rig_camera)
-    return rig_model
+    return rig_camera
 
 
 def _create_rig_instance():
     rec = _create_reconstruction(1, {"0": 2})
-    rig_model = rec.add_rig_model(_create_rig_model())
-    rig_instance = pymap.RigInstance(rig_model, 1)
+    rig_camera = rec.add_rig_camera(_create_rig_camera())
+    rig_instance = pymap.RigInstance(1)
     shot = pymap.Shot("0", pygeometry.Camera.create_spherical(), pygeometry.Pose())
-    rig_instance.add_shot("rig_camera", shot)
+    rig_instance.add_shot(rig_camera, shot)
     return rec, rig_instance, shot
 
 
-def test_rig_model():
-    rig_model = _create_rig_model()
-    rig_camera_retrieved = rig_model.get_rig_camera("rig_camera")
-    assert rig_camera_retrieved.id == "rig_camera"
-
-
-def test_rig_model_create():
+def test_rig_camera_create():
     rec = _create_reconstruction(1, {"0": 2})
-    rec.add_rig_model(_create_rig_model())
-    assert list(rec.rig_models.keys()) == ["rig_model"]
+    rec.add_rig_camera(_create_rig_camera())
+    assert list(rec.rig_cameras.keys()) == ["rig_camera"]
 
 
 def test_rig_instance():
@@ -651,7 +643,7 @@ def test_rig_instance_create():
     rec.add_rig_instance(rig_instance)
 
     assert len(rec.rig_instances) == 1
-    assert list(rec.rig_models.keys()) == ["rig_model"]
+    assert dict(rec.rig_instances[1].camera_ids.items()) == {"0": "rig_camera"}
     assert list(rec.rig_instances[1].shots.keys()) == ["0"]
 
 

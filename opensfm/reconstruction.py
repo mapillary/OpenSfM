@@ -82,7 +82,7 @@ def _add_gcp_to_bundle(
 def bundle(
     reconstruction: types.Reconstruction,
     camera_priors: Dict[str, pygeometry.Camera],
-    rig_model_priors: Dict[str, pymap.RigModel],
+    rig_camera_priors: Dict[str, pymap.RigCamera],
     gcp: Optional[List[pymap.GroundControlPoint]],
     config: Dict[str, Any],
 ) -> Dict[str, Any]:
@@ -90,7 +90,7 @@ def bundle(
     report = pymap.BAHelpers.bundle(
         reconstruction.map,
         dict(camera_priors),
-        dict(rig_model_priors),
+        dict(rig_camera_priors),
         gcp if gcp is not None else [],
         config,
     )
@@ -103,7 +103,7 @@ def bundle_shot_poses(
     reconstruction: types.Reconstruction,
     shot_ids: Set[str],
     camera_priors: Dict[str, pygeometry.Camera],
-    rig_model_priors: Dict[str, pymap.RigModel],
+    rig_camera_priors: Dict[str, pymap.RigCamera],
     config: Dict[str, Any],
 ) -> Dict[str, Any]:
     """Bundle adjust a set of shots poses."""
@@ -111,7 +111,7 @@ def bundle_shot_poses(
         reconstruction.map,
         shot_ids,
         dict(camera_priors),
-        dict(rig_model_priors),
+        dict(rig_camera_priors),
         config,
     )
     return report
@@ -120,7 +120,7 @@ def bundle_shot_poses(
 def bundle_local(
     reconstruction: types.Reconstruction,
     camera_priors: Dict[str, pygeometry.Camera],
-    rig_model_priors: Dict[str, pymap.RigModel],
+    rig_camera_priors: Dict[str, pymap.RigCamera],
     gcp: Optional[List[pymap.GroundControlPoint]],
     central_shot_id: str,
     config: Dict[str, Any],
@@ -129,7 +129,7 @@ def bundle_local(
     pt_ids, report = pymap.BAHelpers.bundle_local(
         reconstruction.map,
         dict(camera_priors),
-        dict(rig_model_priors),
+        dict(rig_camera_priors),
         gcp if gcp is not None else [],
         central_shot_id,
         config,
@@ -300,7 +300,7 @@ def get_image_metadata(data: DataSetBase, image: str) -> pymap.ShotMeasurements:
 def add_shot(
     data: DataSetBase,
     reconstruction: types.Reconstruction,
-    rig_assignments: Dict[str, Tuple[str, int, str, List[str]]],
+    rig_assignments: Dict[str, Tuple[int, str, List[str]]],
     shot_id: str,
     pose: pygeometry.Pose,
 ) -> Set[str]:
@@ -318,7 +318,7 @@ def add_shot(
         shot.metadata = get_image_metadata(data, shot_id)
         added_shots = {shot_id}
     else:
-        rig_model_id, instance_id, _, instance_shots = rig_assignments[shot_id]
+        instance_id, _, instance_shots = rig_assignments[shot_id]
 
         created_shots = {}
         for shot in instance_shots:
@@ -328,12 +328,12 @@ def add_shot(
             )
             created_shots[shot].metadata = get_image_metadata(data, shot)
 
-        rig_instance = reconstruction.add_rig_instance(
-            pymap.RigInstance(reconstruction.rig_models[rig_model_id], instance_id)
-        )
+        rig_instance = reconstruction.add_rig_instance(pymap.RigInstance(instance_id))
         for shot in instance_shots:
-            _, _, rig_camera_id, _ = rig_assignments[shot]
-            rig_instance.add_shot(rig_camera_id, created_shots[shot])
+            _, rig_camera_id, _ = rig_assignments[shot]
+            rig_instance.add_shot(
+                reconstruction.rig_cameras[rig_camera_id], created_shots[shot]
+            )
         rig_instance.update_instance_pose_with_shot(shot_id, pose)
         added_shots = set(instance_shots)
 
@@ -536,13 +536,13 @@ def bootstrap_reconstruction(
         logger.info(report["decision"])
         return None, report
 
-    rig_model_priors = data.load_rig_models()
+    rig_camera_priors = data.load_rig_cameras()
     rig_assignments = data.load_rig_assignments_per_image()
 
     reconstruction = types.Reconstruction()
     reconstruction.reference = data.load_reference()
     reconstruction.cameras = camera_priors
-    reconstruction.rig_models = rig_model_priors
+    reconstruction.rig_cameras = rig_camera_priors
 
     new_shots = add_shot(data, reconstruction, rig_assignments, im1, pygeometry.Pose())
 
@@ -563,7 +563,7 @@ def bootstrap_reconstruction(
 
     to_adjust = {s for s in new_shots if s != im1}
     bundle_shot_poses(
-        reconstruction, to_adjust, camera_priors, rig_model_priors, data.config
+        reconstruction, to_adjust, camera_priors, rig_camera_priors, data.config
     )
 
     retriangulate(tracks_manager, reconstruction, data.config)
@@ -575,7 +575,7 @@ def bootstrap_reconstruction(
         return None, report
 
     bundle_shot_poses(
-        reconstruction, to_adjust, camera_priors, rig_model_priors, data.config
+        reconstruction, to_adjust, camera_priors, rig_camera_priors, data.config
     )
 
     report["decision"] = "Success"
@@ -1193,12 +1193,12 @@ def grow_reconstruction(
     report = {"steps": []}
 
     camera_priors = data.load_camera_models()
-    rig_model_priors = data.load_rig_models()
+    rig_camera_priors = data.load_rig_cameras()
 
     paint_reconstruction(data, tracks_manager, reconstruction)
     align_reconstruction(reconstruction, gcp, config)
 
-    bundle(reconstruction, camera_priors, rig_model_priors, None, config)
+    bundle(reconstruction, camera_priors, rig_camera_priors, None, config)
     remove_outliers(reconstruction, config)
     paint_reconstruction(data, tracks_manager, reconstruction)
 
@@ -1240,7 +1240,7 @@ def grow_reconstruction(
                 reconstruction,
                 new_shots,
                 camera_priors,
-                rig_model_priors,
+                rig_camera_priors,
                 data.config,
             )
 
@@ -1261,11 +1261,11 @@ def grow_reconstruction(
                 logger.info("Re-triangulating")
                 align_reconstruction(reconstruction, gcp, config)
                 b1rep = bundle(
-                    reconstruction, camera_priors, rig_model_priors, None, config
+                    reconstruction, camera_priors, rig_camera_priors, None, config
                 )
                 rrep = retriangulate(tracks_manager, reconstruction, config)
                 b2rep = bundle(
-                    reconstruction, camera_priors, rig_model_priors, None, config
+                    reconstruction, camera_priors, rig_camera_priors, None, config
                 )
                 remove_outliers(reconstruction, config)
                 step["bundle"] = b1rep
@@ -1276,14 +1276,19 @@ def grow_reconstruction(
             elif should_bundle.should():
                 align_reconstruction(reconstruction, gcp, config)
                 brep = bundle(
-                    reconstruction, camera_priors, rig_model_priors, None, config
+                    reconstruction, camera_priors, rig_camera_priors, None, config
                 )
                 remove_outliers(reconstruction, config)
                 step["bundle"] = brep
                 should_bundle.done()
             elif config["local_bundle_radius"] > 0:
                 bundled_points, brep = bundle_local(
-                    reconstruction, camera_priors, rig_model_priors, None, image, config
+                    reconstruction,
+                    camera_priors,
+                    rig_camera_priors,
+                    None,
+                    image,
+                    config,
                 )
                 remove_outliers(reconstruction, config, bundled_points)
                 step["local_bundle"] = brep
@@ -1296,7 +1301,7 @@ def grow_reconstruction(
     logger.info("-------------------------------------------------------")
 
     align_reconstruction(reconstruction, gcp, config)
-    bundle(reconstruction, camera_priors, rig_model_priors, gcp, config)
+    bundle(reconstruction, camera_priors, rig_camera_priors, gcp, config)
     remove_outliers(reconstruction, config)
     paint_reconstruction(data, tracks_manager, reconstruction)
     return reconstruction, report

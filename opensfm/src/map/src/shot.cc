@@ -42,13 +42,6 @@ RigCameraId Shot::GetRigCameraId() const {
   return rig_camera_.Value()->id;
 }
 
-RigModelId Shot::GetRigModelId() const {
-  if (!IsInRig()) {
-    throw std::runtime_error("Shot " + id_ + " is not in a Rig.");
-  }
-  return rig_instance_.Value()->GetRigModel()->id;
-}
-
 void ShotMeasurements::Set(const ShotMeasurements& other) {
   if (other.capture_time_.HasValue()) {
     capture_time_.SetValue(other.capture_time_.Value());

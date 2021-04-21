@@ -54,7 +54,7 @@ PYBIND11_MODULE(pymap, m) {
            py::overload_cast<const map::CameraId &>(&map::Map::GetCamera),
            py::return_value_policy::reference_internal)
       // Rigs
-      .def("create_rig_model", &map::Map::CreateRigModel,
+      .def("create_rig_camera", &map::Map::CreateRigCamera,
            py::return_value_policy::reference_internal)
       .def("create_rig_instance", &map::Map::CreateRigInstance,
            py::return_value_policy::reference_internal)
@@ -152,7 +152,6 @@ PYBIND11_MODULE(pymap, m) {
       .def("is_in_rig", &map::Shot::IsInRig)
       .def_property_readonly("rig_instance_id", &map::Shot::GetRigInstanceId)
       .def_property_readonly("rig_camera_id", &map::Shot::GetRigCameraId)
-      .def_property_readonly("rig_model_id", &map::Shot::GetRigModelId)
       .def("get_observation", &map::Shot::GetObservation,
            py::return_value_policy::reference_internal)
       .def("get_valid_landmarks", &map::Shot::ComputeValidLandmarks,
@@ -209,32 +208,24 @@ PYBIND11_MODULE(pymap, m) {
       .def_readwrite("id", &map::RigCamera::id)
       .def_readwrite("pose", &map::RigCamera::pose);
 
-  py::class_<map::RigModel>(m, "RigModel")
-      .def(py::init<>())
-      .def(py::init<const map::RigModelId &>())
-      .def_readwrite("id", &map::RigModel::id)
-      .def_readwrite("relative_type", &map::RigModel::relative_type)
-      .def("add_rig_camera", &map::RigModel::AddRigCamera)
-      .def("get_rig_camera",
-           py::overload_cast<const map::RigCameraId &>(
-               &map::RigModel::GetRigCamera),
-           py::return_value_policy::reference_internal)
-      .def("get_rig_cameras",
-           py::overload_cast<>(&map::RigModel::GetRigCameras),
-           py::return_value_policy::reference_internal);
-
   py::class_<map::RigInstance>(m, "RigInstance")
-      .def(py::init<map::RigModel *, map::RigInstanceId>())
+      .def(py::init<map::RigInstanceId>())
       .def_readwrite("id", &map::RigInstance::id)
       .def_property_readonly("shots",
                              py::overload_cast<>(&map::RigInstance::GetShots),
                              py::return_value_policy::reference_internal)
-      .def_property_readonly("camera_ids",
-                             &map::RigInstance::GetShotRigCameraIDs)
       .def_property_readonly(
-          "rig_model",
-          py::overload_cast<>(&map::RigInstance::GetRigModel, py::const_),
+          "rig_cameras", py::overload_cast<>(&map::RigInstance::GetRigCameras),
           py::return_value_policy::reference_internal)
+      .def_property_readonly(
+          "camera_ids",
+          [](const map::RigInstance &ri) {
+            std::map<map::ShotId, map::RigCameraId> rig_camera_ids;
+            for (const auto &rig_camera : ri.GetRigCameras()) {
+              rig_camera_ids[rig_camera.first] = rig_camera.second->id;
+            }
+            return rig_camera_ids;
+          })
       .def("keys", &map::RigInstance::GetShotIDs)
       .def_property("pose", py::overload_cast<>(&map::RigInstance::GetPose),
                     &map::RigInstance::SetPose,
@@ -458,42 +449,42 @@ PYBIND11_MODULE(pymap, m) {
            py::return_value_policy::reference_internal)
       .def("__contains__", &map::CameraView::HasCamera);
 
-  py::class_<map::RigModelView>(m, "RigModelView")
+  py::class_<map::RigCameraView>(m, "RigCameraView")
       .def(py::init<map::Map &>())
-      .def("__len__", &map::RigModelView::NumberOfRigModels)
+      .def("__len__", &map::RigCameraView::NumberOfRigCameras)
       .def(
           "items",
-          [](const map::RigModelView &sv) {
-            const auto &cams = sv.GetRigModels();
+          [](const map::RigCameraView &sv) {
+            const auto &cams = sv.GetRigCameras();
             return py::make_iterator(cams.begin(), cams.end());
           },
           py::return_value_policy::reference_internal)
       .def(
           "values",
-          [](map::RigModelView &sv) {
-            auto &cams = sv.GetRigModels();
+          [](map::RigCameraView &sv) {
+            auto &cams = sv.GetRigCameras();
             return py::make_ref_value_iterator(cams.begin(), cams.end());
           },
           py::return_value_policy::reference_internal)
       .def(
           "__iter__",
-          [](const map::RigModelView &sv) {
-            const auto &cams = sv.GetRigModels();
+          [](const map::RigCameraView &sv) {
+            const auto &cams = sv.GetRigCameras();
             return py::make_key_iterator(cams.begin(), cams.end());
           },
           py::return_value_policy::reference_internal)
       .def(
           "keys",
-          [](const map::RigModelView &sv) {
-            const auto &cams = sv.GetRigModels();
+          [](const map::RigCameraView &sv) {
+            const auto &cams = sv.GetRigCameras();
             return py::make_key_iterator(cams.begin(), cams.end());
           },
           py::return_value_policy::reference_internal)
-      .def("get", &map::RigModelView::GetRigModel,
+      .def("get", &map::RigCameraView::GetRigCamera,
            py::return_value_policy::reference_internal)
-      .def("__getitem__", &map::RigModelView::GetRigModel,
+      .def("__getitem__", &map::RigCameraView::GetRigCamera,
            py::return_value_policy::reference_internal)
-      .def("__contains__", &map::RigModelView::HasRigModel);
+      .def("__contains__", &map::RigCameraView::HasRigCamera);
 
   py::class_<map::RigInstanceView>(m, "RigInstanceView")
       .def(py::init<map::Map &>())

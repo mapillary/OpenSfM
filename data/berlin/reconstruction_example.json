@@ -10,19 +10,14 @@
                 "focal": 0.9604884463403544
             }
         },
-        "rig_models": {
-            "rig_model" : {
-                "rig_cameras": {
-                    "rig_camera":{
-                        "rotation": [ 0, 0, 0],
-                        "translation": [ 0, 0, 0]
-                    }
-                }
+        "rig_cameras": {
+            "rig_camera":{
+                "rotation": [ 0, 0, 0],
+                "translation": [ 0, 0, 0]
             }
         },
         "rig_instances": {
             "1":{
-                "rig_model_id": "rig_model",
                 "translation": [
                     0.19287960609884439,
                     2.0784473237458099,
@@ -36,7 +31,6 @@
                 "rig_camera_ids": {"02.jpg": "rig_camera"}
             },
             "2":{
-                "rig_model_id": "rig_model",
                 "rotation": [
                     1.2093954126158601,
                     -0.39118466329305634,
@@ -50,7 +44,6 @@
                 "rig_camera_ids": {"01.jpg": "rig_camera"}
             },
             "3":{
-                "rig_model_id": "rig_model",
                 "rotation": [
                     1.0839814121206541,
                     -0.37128827384298013,

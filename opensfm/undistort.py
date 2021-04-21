@@ -270,28 +270,24 @@ def perspective_views_of_a_panorama(
         tf.rotation_matrix(+np.pi / 2, (1, 0, 0)),
     ]
 
-    rig_model_id = "panorama_cube_rig"
-    if rig_model_id not in reconstruction.rig_models:
-        rig_model = pymap.RigModel("panorama_cube_rig")
-        for name, rotation in zip(names, rotations):
-            rig_camera_pose = pygeometry.Pose()
-            rig_camera_pose.set_rotation_matrix(rotation[:3, :3])
-            rig_camera = pymap.RigCamera(rig_camera_pose, name)
-            rig_model.add_rig_camera(rig_camera)
-        reconstruction.add_rig_model(rig_model)
-
-    rig_instance = pymap.RigInstance(
-        reconstruction.rig_models[rig_model_id], next(rig_instance_count)
-    )
+    rig_instance = pymap.RigInstance(next(rig_instance_count))
     rig_instance.pose = spherical_shot.pose
 
     shots = []
-    for name in names:
+    for name, rotation in zip(names, rotations):
+        if name not in reconstruction.rig_cameras:
+            rig_camera_pose = pygeometry.Pose()
+            rig_camera_pose.set_rotation_matrix(rotation[:3, :3])
+            rig_camera = pymap.RigCamera(rig_camera_pose, name)
+            reconstruction.add_rig_camera(rig_camera)
+        rig_camera = reconstruction.rig_cameras[name]
+
         shot_id = add_image_format_extension(
             f"{spherical_shot.id}_perspective_view_{name}", image_format
         )
         shot = reconstruction.create_shot(shot_id, camera.id)
-        rig_instance.add_shot(name, shot)
+        rig_instance.add_shot(rig_camera, shot)
+
         shots.append(shot)
     reconstruction.add_rig_instance(rig_instance)
 

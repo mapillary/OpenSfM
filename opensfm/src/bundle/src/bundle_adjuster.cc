@@ -1,4 +1,5 @@
 #include <bundle/bundle_adjuster.h>
+#include <bundle/data/rig.h>
 #include <bundle/error/absolute_motion_errors.h>
 #include <bundle/error/motion_prior_errors.h>
 #include <bundle/error/parameters_errors.h>
@@ -100,17 +101,9 @@ void BundleAdjuster::AddShot(const std::string &id, const std::string &camera,
 
 void BundleAdjuster::AddRigInstance(
     const std::string &rig_instance_id, const geometry::Pose &rig_instance_pose,
-    const std::string &rig_model_id,
     const std::unordered_map<std::string, std::string> &shot_cameras,
     const std::unordered_map<std::string, std::string> &shot_rig_cameras,
     bool fixed) {
-  auto rig_model_exists = rig_models_.find(rig_model_id);
-  if (rig_model_exists == rig_models_.end()) {
-    throw std::runtime_error(
-        "Rig model " + rig_model_id +
-        " doesn't exist. Create it before adding rig instances.");
-  }
-
   auto &rig_instance =
       rig_instances_
           .emplace(std::piecewise_construct,
@@ -130,36 +123,36 @@ void BundleAdjuster::AddRigInstance(
     if (camera_exists == cameras_.end()) {
       throw std::runtime_error("Camera " + camera_id + " doesn't exist.");
     }
-    rig_shots_.emplace(std::piecewise_construct, std::forward_as_tuple(shot_id),
-                       std::forward_as_tuple(
-                           shot_id, &camera_exists->second,
-                           rig_model_exists->second.GetRigCamera(rig_camera_id),
-                           &rig_instances_.at(rig_instance_id)));
+    const auto rig_camera_exists = rig_cameras_.find(rig_camera_id);
+    if (rig_camera_exists == rig_cameras_.end()) {
+      throw std::runtime_error("Rig camera " + camera_id + " doesn't exist.");
+    }
+    rig_shots_.emplace(
+        std::piecewise_construct, std::forward_as_tuple(shot_id),
+        std::forward_as_tuple(shot_id, &camera_exists->second,
+                              &rig_camera_exists->second,
+                              &rig_instances_.at(rig_instance_id)));
   }
 };
 
-void BundleAdjuster::AddRigModel(
-    const std::string &rig_model_id,
-    const std::unordered_map<std::string, geometry::Pose> &cameras_poses,
-    const std::unordered_map<std::string, geometry::Pose> &cameras_poses_prior,
-    bool fixed) {
-  const auto rig_model_exists = rig_models_.find(rig_model_id);
-  if (rig_model_exists != rig_models_.end()) {
-    throw std::runtime_error("Rig model " + rig_model_id + " already exist.");
+void BundleAdjuster::AddRigCamera(const std::string &rig_camera_id,
+                                  const geometry::Pose &pose,
+                                  const geometry::Pose &pose_prior,
+                                  bool fixed) {
+  const auto rig_camera_exists = rig_cameras_.find(rig_camera_id);
+  if (rig_camera_exists != rig_cameras_.end()) {
+    throw std::runtime_error("Rig model " + rig_camera_id + " already exist.");
   }
 
-  auto &rig_model =
-      rig_models_
+  auto &rig_camera =
+      rig_cameras_
           .emplace(std::piecewise_construct,
-                   std::forward_as_tuple(rig_model_id),
-                   std::forward_as_tuple(rig_model_id, cameras_poses,
-                                         cameras_poses_prior,
+                   std::forward_as_tuple(rig_camera_id),
+                   std::forward_as_tuple(rig_camera_id, pose, pose_prior,
                                          GetDefaultRigPoseSigma()))
           .first->second;
   if (fixed) {
-    for (const auto &c : cameras_poses) {
-      rig_model.GetRigCamera(c.first)->SetParametersToOptimize({});
-    }
+    rig_camera.SetParametersToOptimize({});
   }
 };
 
@@ -481,10 +474,8 @@ void BundleAdjuster::SetRigParametersPriorSD(double rig_translation_sd,
                                              double rig_rotation_sd) {
   rig_translation_sd_ = rig_translation_sd;
   rig_rotation_sd_ = rig_rotation_sd;
-  for (auto &rig_model : rig_models_) {
-    for (auto &rc : rig_model.second.GetRigCameras()) {
-      rc.second->SetSigma(GetDefaultRigPoseSigma());
-    }
+  for (auto &rig_camera : rig_cameras_) {
+    rig_camera.second.SetSigma(GetDefaultRigPoseSigma());
   }
 }
 
@@ -743,15 +734,13 @@ void BundleAdjuster::Run() {
   }
 
   // Add rig models
-  for (auto &rm : rig_models_) {
-    for (auto rc : rm.second.GetRigCameras()) {
-      auto &data = rc.second->GetValueData();
-      problem.AddParameterBlock(data.data(), data.size());
+  for (auto &rc : rig_cameras_) {
+    auto &data = rc.second.GetValueData();
+    problem.AddParameterBlock(data.data(), data.size());
 
-      // Lock parameters based on bitmask of parameters : only constant for now
-      if (rc.second->GetParametersToOptimize().empty()) {
-        problem.SetParameterBlockConstant(data.data());
-      }
+    // Lock parameters based on bitmask of parameters : only constant for now
+    if (rc.second.GetParametersToOptimize().empty()) {
+      problem.SetParameterBlockConstant(data.data());
     }
   }
 
@@ -803,20 +792,18 @@ void BundleAdjuster::Run() {
     problem.AddResidualBlock(cost_function, nullptr,
                              i.second.GetValueData().data());
   }
-  for (auto &i : rig_models_) {
-    for (auto &rc : i.second.GetRigCameras()) {
-      if (!rc.second->HasPrior()) {
-        continue;
-      }
-      auto *pose_prior = new DataPriorError<geometry::Pose>(rc.second);
-      ceres::CostFunction *cost_function =
-          new ceres::AutoDiffCostFunction<DataPriorError<geometry::Pose>,
-                                          Pose::Parameter::NUM_PARAMS,
-                                          Pose::Parameter::NUM_PARAMS>(
-              pose_prior);
-      problem.AddResidualBlock(cost_function, nullptr,
-                               rc.second->GetValueData().data());
+  for (auto &rc : rig_cameras_) {
+    if (!rc.second.HasPrior()) {
+      continue;
     }
+    auto *pose_prior = new DataPriorError<geometry::Pose>(&rc.second);
+    ceres::CostFunction *cost_function =
+        new ceres::AutoDiffCostFunction<DataPriorError<geometry::Pose>,
+                                        Pose::Parameter::NUM_PARAMS,
+                                        Pose::Parameter::NUM_PARAMS>(
+            pose_prior);
+    problem.AddResidualBlock(cost_function, nullptr,
+                             rc.second.GetValueData().data());
   }
 
   // Add reprojection error blocks
@@ -1280,14 +1267,15 @@ Reconstruction BundleAdjuster::GetReconstruction(const std::string &id) const {
   return reconstructions_.at(id);
 }
 
-RigModel BundleAdjuster::GetRigModel(const std::string &model_id) const {
-  if (rig_models_.find(model_id) == rig_models_.end()) {
-    throw std::runtime_error("Rig model " + model_id + " doesn't exists");
+RigCamera BundleAdjuster::GetRigCamera(const std::string &rig_camera_id) const {
+  if (rig_cameras_.find(rig_camera_id) == rig_cameras_.end()) {
+    throw std::runtime_error("Rig camera " + rig_camera_id + " doesn't exists");
   }
-  return rig_models_.at(model_id);
+  return rig_cameras_.at(rig_camera_id);
 }
 
-RigInstance BundleAdjuster::GetRigInstance(const std::string &instance_id) const {
+RigInstance BundleAdjuster::GetRigInstance(
+    const std::string &instance_id) const {
   if (rig_instances_.find(instance_id) == rig_instances_.end()) {
     throw std::runtime_error("Rig instance " + instance_id + " doesn't exists");
   }

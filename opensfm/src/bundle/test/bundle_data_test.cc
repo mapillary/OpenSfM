@@ -163,26 +163,6 @@ TEST_F(BAShotFixture, ReturnsCamera) {
   ASSERT_EQ(&ba_camera, shot.GetCamera());
 }
 
-class BARigModelFixture : public BAPoseWithPriorFixture {
- public:
-  BARigModelFixture()
-      : id("rig_model_id"),
-        rig_model(id, {{"rig_camera_1", pose}, {"rig_camera_2", pose}},
-                  {{"rig_camera_1", pose}, {"rig_camera_2", pose}},
-                  pose_sigma) {}
-  std::string id;
-  bundle::RigModel rig_model;
-};
-
-TEST_F(BARigModelFixture, ReturnsRigCamera) {
-  ASSERT_EQ(pose, rig_model.GetRigCamera("rig_camera_1")->GetValue());
-  ASSERT_EQ(pose, rig_model.GetRigCamera("rig_camera_2")->GetValue());
-}
-
-TEST_F(BARigModelFixture, ReturnsRigCameras) {
-  ASSERT_EQ(2, rig_model.GetRigCameras().size());
-}
-
 class BARigShotFixture : public BACameraWithPriorFixtureBase,
                          public BAPoseWithPriorFixtureBase,
                          public ::testing::Test {

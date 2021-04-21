@@ -4,76 +4,94 @@ import logging
 import re
 from collections import defaultdict
 from itertools import combinations
+from typing import Dict, Tuple, List, Optional, Set
 
 import networkx as nx
 import numpy as np
-from opensfm import actions, pygeometry, pymap
+from opensfm import actions, pygeometry, pymap, types
 from opensfm.dataset import DataSet, DataSetBase
 
 
 logger = logging.getLogger(__name__)
 
 
-def find_image_rig(image, rig_patterns):
+TRigPatterns = Dict[str, str]
+TRigCameraGroup = Set[str]
+TRigImage = Tuple[str, str]
+TRigInstance = List[TRigImage]
+
+
+def find_image_rig(
+    image: str, rig_patterns: TRigPatterns
+) -> Tuple[Optional[str], Optional[str]]:
     """Given an image and candidates rig model patterns, return the
-    RigID/RigCameraID/Instance Member ID this image belongs to.
+    RigCamera ID/Instance Member ID this image belongs to.
     """
-    for rig_id, patterns in rig_patterns.items():
-        for rig_camera_id, pattern in patterns.items():
-            instance_member_id = re.sub(pattern, "", image)
-            if instance_member_id == "":
-                continue
-            if instance_member_id != image:
-                return (rig_id, rig_camera_id, instance_member_id)
-    return None, None, None
+    for rig_camera_id, pattern in rig_patterns.items():
+        instance_member_id = re.sub(pattern, "", image)
+        if instance_member_id == "":
+            continue
+        if instance_member_id != image:
+            return (rig_camera_id, instance_member_id)
+    return None, None
 
 
-def create_instances_with_patterns(images, rig_patterns):
+def create_instances_with_patterns(
+    images: List[str], rig_patterns: TRigPatterns
+) -> Dict[str, TRigInstance]:
     """Using the provided patterns, group images that should belong to the same rig instances.
-        Incomplete rig instances wrt. the expected size are not considered.
+    It will also check that a RigCamera belong to exactly one group of RigCameras
 
     Returns :
-        A dict of list of list of images, each list being an instances being aggregated by Rig ID
+        A dict (by instance ID) of list of tuple of (image, rig camera)
     """
-    per_pattern = defaultdict(dict)
+    per_instance_id: Dict[str, TRigInstance] = {}
     for image in images:
-        rig_id, rig_camera_id, instance_member_id = find_image_rig(image, rig_patterns)
-        if not rig_id:
+        rig_camera_id, instance_member_id = find_image_rig(image, rig_patterns)
+        assert instance_member_id
+        if not rig_camera_id:
             continue
-        if instance_member_id not in per_pattern[rig_id]:
-            per_pattern[rig_id][instance_member_id] = []
-        per_pattern[rig_id][instance_member_id].append((image, rig_camera_id))
+        if instance_member_id not in per_instance_id:
+            per_instance_id[instance_member_id] = []
+        per_instance_id[instance_member_id].append((image, rig_camera_id))
 
-    complete_instances = defaultdict(list)
-    problematic_images = []
-    for rig_id, patterns in per_pattern.items():
-        for pattern_images in patterns.values():
-            expected_size = len(rig_patterns[rig_id])
-            if len(pattern_images) != expected_size:
-                problematic_images += [im[0] for im in pattern_images]
-            else:
-                complete_instances[rig_id].append(pattern_images)
-
-    if problematic_images:
-        logger.warning(
-            (
-                "The following images are part of an incomplete rig, thus"
-                f"won't be considered of being part of a rig\n {problematic_images}"
-            )
-        )
-
-    return complete_instances
+    groups_per_camera: Dict[str, TRigCameraGroup] = {}
+    for cameras in per_instance_id.values():
+        cameras_group = {c for _, c in cameras}
+        for _, c in cameras:
+            if c in groups_per_camera:
+                logger.error(
+                    f"Rig camera {c} already belongs to the rig camera group {groups_per_camera[c]}"
+                )
+            groups_per_camera[c] = cameras_group
+    return per_instance_id
 
 
-def create_subset_dataset_from_instances(data: DataSet, instances_per_rig, name):
+def group_instances(
+    rig_instances: Dict[str, TRigInstance]
+) -> Dict[str, List[TRigInstance]]:
+    per_rig_camera_group: Dict[str, List[TRigInstance]] = {}
+    for cameras in rig_instances.values():
+        cameras_group = ", ".join({c for _, c in cameras})
+        if cameras_group not in per_rig_camera_group:
+            per_rig_camera_group[cameras_group] = []
+        per_rig_camera_group[cameras_group].append(cameras)
+    return per_rig_camera_group
+
+
+def create_subset_dataset_from_instances(
+    data: DataSet, rig_instances: Dict[str, TRigInstance], name: str
+) -> DataSet:
     """Given a list of images grouped by rigs instances, pick a subset of images
         and create a dataset subset with the provided name from them.
 
     Returns :
         A DataSet containing a subset of images containing enough rig instances
     """
+    per_rig_camera_group = group_instances(rig_instances)
+
     subset_images = []
-    for instances in instances_per_rig.values():
+    for instances in per_rig_camera_group.values():
         instances_sorted = sorted(
             instances, key=lambda x: data.load_exif(x[0][0])["capture_time"]
         )
@@ -92,7 +110,9 @@ def create_subset_dataset_from_instances(data: DataSet, instances_per_rig, name)
     return data.subset(name, subset_images)
 
 
-def compute_relative_pose(rig_id, pose_instances):
+def compute_relative_pose(
+    pose_instances: List[List[Tuple[pymap.Shot, str]]],
+) -> Dict[str, pymap.RigCamera]:
     """ Compute a rig model relatives poses given poses grouped by rig instance. """
 
     # Put all poses instances into some canonical frame taken as the mean of their R|t
@@ -133,22 +153,26 @@ def compute_relative_pose(rig_id, pose_instances):
             camera_ids[rig_camera_id] = camera_id
             count_poses[rig_camera_id] += 1
 
-    # Construct final rig_model results
-    rig_model = pymap.RigModel(rig_id)
+    # Construct final RigCamera results
+    rig_cameras: Dict[str, pymap.RigCamera] = {}
     for rig_camera_id, count in count_poses.items():
         o = average_origin[rig_camera_id] / count
         r = average_rotation[rig_camera_id] / count
         pose = pygeometry.Pose(r)
         pose.set_origin(o)
-        rig_model.add_rig_camera(pymap.RigCamera(pose, rig_camera_id))
-    return rig_model
+        rig_cameras[rig_camera_id] = pymap.RigCamera(pose, rig_camera_id)
+    return rig_cameras
 
 
-def create_rig_models_from_reconstruction(reconstruction, instances_per_rig):
-    """ Computed rig model's, given a reconstruction and rig instances's shots. """
-    rig_models = {}
+def create_rig_cameras_from_reconstruction(
+    reconstruction: types.Reconstruction, rig_instances: Dict[str, TRigInstance]
+) -> Dict[str, pymap.RigCamera]:
+    """ Compute rig cameras poses, given a reconstruction and rig instances's shots. """
+    rig_cameras: Dict[str, pymap.RigCamera] = {}
     reconstructions_shots = set(reconstruction.shots)
-    for rig_id, instances in instances_per_rig.items():
+
+    per_rig_camera_group = group_instances(rig_instances)
+    for instances in per_rig_camera_group.values():
         pose_groups = []
         for instance in instances:
             if any(
@@ -162,12 +186,12 @@ def create_rig_models_from_reconstruction(reconstruction, instances_per_rig):
                     for shot_id, rig_camera_id in instance
                 ]
             )
-        rig_models[rig_id] = compute_relative_pose(rig_id, pose_groups)
-    return rig_models
+        rig_cameras.update(compute_relative_pose(pose_groups))
+    return rig_cameras
 
 
-def create_rigs_with_pattern(data: DataSet, patterns):
-    """Create rig data (`rig_models.json` and `rig_assignments.json`) by performing
+def create_rigs_with_pattern(data: DataSet, patterns: TRigPatterns):
+    """Create rig data (`rig_cameras.json` and `rig_assignments.json`) by performing
     pattern matching to group images belonging to the same instances, followed
     by a bit of ad-hoc SfM to find some initial relative poses.
     """
@@ -193,12 +217,12 @@ def create_rigs_with_pattern(data: DataSet, patterns):
     actions.reconstruct.run_dataset(subset_data)
 
     # Compute some relative poses
-    rig_models = create_rig_models_from_reconstruction(
+    rig_cameras = create_rig_cameras_from_reconstruction(
         subset_data.load_reconstruction()[0], instances_per_rig
     )
 
-    data.save_rig_models(rig_models)
-    data.save_rig_assignments(instances_per_rig)
+    data.save_rig_cameras(rig_cameras)
+    data.save_rig_assignments(list(instances_per_rig.values()))
 
 
 def same_rig_shot(meta1, meta2):
@@ -216,69 +240,3 @@ def same_rig_shot(meta1, meta2):
     )
     same_time = meta1["capture_time"] == meta2["capture_time"]
     return same_gps and same_time
-
-
-def detect_rigs(images, data: DataSetBase):
-    """Search for rigs in a set of images.
-
-    For each image on a rig, returns rig, rig_camera and rig_pose ids.
-    """
-    # Build graph of connected images and sequences
-    image_graph = nx.Graph()
-    sequence_graph = nx.Graph()
-    for im1, im2 in combinations(images, 2):
-        meta1 = data.load_exif(im1)
-        meta2 = data.load_exif(im2)
-        if same_rig_shot(meta1, meta2):
-            image_graph.add_edge(im1, im2)
-            sequence_graph.add_edge(meta1["skey"], meta2["skey"])
-
-    # Build rigs
-    # pyre-fixme[16]: Module `nx` has no attribute `connected_components`.
-    sequence_cc = nx.connected_components(sequence_graph)
-    sequence_rig_info = {}
-    for i, cc in enumerate(sequence_cc):
-        for j, sequence in enumerate(cc):
-            sequence_rig_info[sequence] = {"rig": i, "rig_camera": j}
-
-    # Build rig poses
-    # pyre-fixme[16]: Module `nx` has no attribute `connected_components`.
-    image_cc = nx.connected_components(image_graph)
-    rig_info = {}
-    for i, cc in enumerate(image_cc):
-        for image in cc:
-            meta = data.load_exif(image)
-            sr = sequence_rig_info[meta["skey"]]
-            rig_info[image] = {
-                "rig": sr["rig"],
-                "rig_camera": sr["rig_camera"],
-                "rig_pose": i,
-            }
-
-    return rig_info
-
-
-def pose_kernel(x, y, rotation_std, translation_std):
-    """Gaussian kernel on the diff between two poses."""
-    diff = x.relative_to(y)
-    dr = sum(diff.rotation ** 2)
-    dt = sum(diff.translation ** 2)
-    return np.exp(-dr / rotation_std ** 2 - dt / translation_std ** 2)
-
-
-def pose_mode(poses, rotation_std, translation_std):
-    """Find the most popular pose.
-
-    Popular is defined by a Parzen estimatior with the given
-    Gaussian kernel standard deviations.
-    """
-    best_score = 0
-    best_pose = None
-    for pose in poses:
-        score = 0
-        for other in poses:
-            score += pose_kernel(pose, other, rotation_std, translation_std)
-        if score > best_score:
-            best_score = score
-            best_pose = pose
-    return best_pose

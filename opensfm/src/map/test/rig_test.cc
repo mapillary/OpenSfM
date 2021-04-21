@@ -3,12 +3,9 @@
 #include <gtest/gtest.h>
 #include <map/rig.h>
 
-class RigModelFixture : public ::testing::Test {
+class RigCameraFixture : public ::testing::Test {
  public:
-  RigModelFixture()
-      : rig_camera_id("rig_camera"),
-        id_model("rig_model"),
-        rig_model(id_model) {
+  RigCameraFixture() : rig_camera_id("rig_camera") {
     rig_camera_pose.SetOrigin(Vec3d::Random());
     rig_camera.pose = rig_camera_pose;
     rig_camera.id = rig_camera_id;
@@ -18,26 +15,15 @@ class RigModelFixture : public ::testing::Test {
   geometry::Pose rig_camera_pose;
   map::RigCameraId rig_camera_id;
   map::RigCamera rig_camera;
-
-  map::RigModelId id_model;
-  map::RigModel rig_model;
 };
 
-TEST_F(RigModelFixture, CreateRigModel) { ASSERT_EQ(rig_model.id, id_model); }
-
-TEST_F(RigModelFixture, AddRigCamera) {
-  rig_model.AddRigCamera(rig_camera);
-  ASSERT_EQ(rig_camera.id, rig_model.GetRigCamera(rig_camera_id).id);
-}
-
-class SharedRigInstanceFixture : public RigModelFixture {
+class SharedRigInstanceFixture : public RigCameraFixture {
  public:
   SharedRigInstanceFixture()
-      : instance1(&rig_model, 1),
+      : instance1(1),
         shot_instance1("1", camera, geometry::Pose()),
-        instance2(&rig_model, 2),
+        instance2(2),
         shot_instance2("2", camera, geometry::Pose()) {
-    rig_model.AddRigCamera(rig_camera);
     instance_pose1.SetWorldToCamRotation(Vec3d::Random());
     instance_pose1.SetOrigin(Vec3d::Random());
     instance_pose2.SetWorldToCamRotation(Vec3d::Random());
@@ -75,8 +61,16 @@ TEST_F(SharedRigInstanceFixture, SetPose) {
 }
 
 TEST_F(SharedRigInstanceFixture, AddShot) {
-  instance1.AddShot(rig_camera_id, &shot_instance1);
+  instance1.AddShot(&rig_camera, &shot_instance1);
   ASSERT_EQ(1, instance1.GetShots().size());
+  ASSERT_EQ(1, instance1.GetRigCameras().size());
+}
+
+TEST_F(SharedRigInstanceFixture, GetRigCameras) {
+  instance1.AddShot(&rig_camera, &shot_instance1);
+  auto added_rig_camera = instance1.GetRigCameras().at(shot_instance1.id_);
+  ASSERT_EQ(rig_camera.id, added_rig_camera->id);
+  ComparePoses(rig_camera.pose, added_rig_camera->pose);
 }
 
 class SharedRigInstanceWithShotsFixture : public SharedRigInstanceFixture {
@@ -84,14 +78,10 @@ class SharedRigInstanceWithShotsFixture : public SharedRigInstanceFixture {
   SharedRigInstanceWithShotsFixture() {
     instance1.SetPose(instance_pose1);
     instance2.SetPose(instance_pose2);
-    instance1.AddShot(rig_camera_id, &shot_instance1);
-    instance2.AddShot(rig_camera_id, &shot_instance2);
+    instance1.AddShot(&rig_camera, &shot_instance1);
+    instance2.AddShot(&rig_camera, &shot_instance2);
   }
 };
-
-TEST_F(SharedRigInstanceWithShotsFixture, MakesRigModelSharing) {
-  ASSERT_EQ(instance1.GetRigModel(), instance2.GetRigModel());
-}
 
 TEST_F(SharedRigInstanceWithShotsFixture, MakesShotInRig) {
   ASSERT_TRUE(shot_instance1.IsInRig());
@@ -99,10 +89,6 @@ TEST_F(SharedRigInstanceWithShotsFixture, MakesShotInRig) {
 
 TEST_F(SharedRigInstanceWithShotsFixture, MakesShotReturnsRigCamera) {
   ASSERT_EQ(rig_camera_id, shot_instance1.GetRigCameraId());
-}
-
-TEST_F(SharedRigInstanceWithShotsFixture, MakesShotReturnsRigModel) {
-  ASSERT_EQ(id_model, shot_instance1.GetRigModelId());
 }
 
 TEST_F(SharedRigInstanceWithShotsFixture, MakesShotReturnsRigInstance) {

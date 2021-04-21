@@ -52,8 +52,7 @@ def test_reconstructions_from_json():
     assert len(reconstructions[0].cameras) == 1
     assert len(reconstructions[0].shots) == 3
     assert len(reconstructions[0].points) == 1588
-    assert len(reconstructions[0].rig_models) == 1
-    assert len(reconstructions[0].rig_models["rig_model"].get_rig_cameras()) == 1
+    assert len(reconstructions[0].rig_cameras) == 1
     assert len(reconstructions[0].rig_instances) == 3
 
 
