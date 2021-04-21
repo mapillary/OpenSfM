@@ -110,6 +110,11 @@
 # TBB_FOUND
 # TBB_LIBRARIES
 
+if (WIN32)
+  # Let VCPKG handle this one
+  return()
+endif()
+
 # Called if we failed to find SuiteSparse or any of it's required dependencies,
 # unsets all public (designed to be used externally) variables and reports
 # error message at priority depending upon [REQUIRED/QUIET/<NONE>] argument.

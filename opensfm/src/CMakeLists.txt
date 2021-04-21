@@ -9,6 +9,11 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 set(CMAKE_MODULE_PATH ${opensfm_SOURCE_DIR}/cmake)
 
+if (WIN32)
+# Place compilation results in opensfm/ folder, not in Debug/ or Release/
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${opensfm_SOURCE_DIR}/..")
+endif()
+
 ####### Compilation Options #######
 # Visibility stuff
 cmake_policy(SET CMP0063 NEW)
@@ -24,6 +29,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # For compiling VLFeat
 add_definitions(-DVL_DISABLE_AVX)
+
+if (WIN32)
+    # Missing math constant
+    add_definitions(-DM_PI=3.14159265358979323846)
+endif()
 
 ####### Find Dependencies #######
 find_package(OpenMP)

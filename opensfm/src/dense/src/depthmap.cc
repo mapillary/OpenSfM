@@ -261,7 +261,7 @@ void DepthmapEstimator::ComputeIgnoreMask(DepthmapEstimatorResult *result) {
 }
 
 float DepthmapEstimator::PatchVariance(int i, int j) {
-  float patch[patch_size_ * patch_size_];
+  float *patch = new float[patch_size_ * patch_size_];
   int hpz = (patch_size_ - 1) / 2;
   int counter = 0;
   for (int u = -hpz; u <= hpz; ++u) {
@@ -269,7 +269,9 @@ float DepthmapEstimator::PatchVariance(int i, int j) {
       patch[counter++] = images_[0].at<unsigned char>(i + u, j + v);
     }
   }
-  return Variance(patch, patch_size_ * patch_size_);
+  float ret = Variance(patch, patch_size_ * patch_size_);
+  delete[] patch;
+  return ret;
 }
 
 void DepthmapEstimator::PatchMatchForwardPass(DepthmapEstimatorResult *result,
