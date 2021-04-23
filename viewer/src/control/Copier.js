@@ -12,14 +12,17 @@ export class Copier {
       return;
     }
 
-    this._copyText = options.copyText;
+    this._content = options.content;
+    this._message = options.message ?? ['Copy'];
+
     const container = options.container;
     this._resetCursor = container.style.cursor;
     container.style.cursor = 'pointer';
     container.addEventListener('click', this._onClick);
 
-    this._popup = new Popup({container, up: true});
-    this._popup.setLines(['Copy']);
+    const up = options.up === false ? false : true;
+    this._popup = new Popup({container, up});
+    this._popup.setLines(this._message);
     this._container = container;
   }
 
@@ -35,14 +38,21 @@ export class Copier {
     this._container = null;
   }
 
-  setCopyText(content) {
-    this._copyText = content;
+  setContent(content) {
+    this._content = content;
+  }
+
+  setMessage(message) {
+    if (!(message instanceof Array)) {
+      throw new Error('Faulty message type');
+    }
+    this._message = message;
   }
 
   _onClick = async () => {
     try {
       const navigator = window.navigator;
-      await navigator.clipboard.writeText(this._copyText);
+      await navigator.clipboard.writeText(this._content);
       await this._showCopied();
     } catch (error) {
       console.error(error);
@@ -60,7 +70,7 @@ export class Copier {
           resolve();
           return;
         }
-        this._popup.setLines(['Copy']);
+        this._popup.setLines(this._message);
         resolve();
       }, 850);
     });
