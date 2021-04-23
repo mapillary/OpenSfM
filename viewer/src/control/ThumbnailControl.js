@@ -63,7 +63,7 @@ export class ThumbnailControl {
     const document = window.document;
     const element = document.createElement('span');
     element.classList.add('opensfm-info-text', 'opensfm-info-inline');
-    const copier = new Copier({container: element, copyText: null});
+    const copier = new Copier({container: element, content: null});
     return {copier, element, prefix};
   }
 
@@ -75,7 +75,7 @@ export class ThumbnailControl {
 
   _setTextContent(textItem, content) {
     textItem.element.textContent = textItem.prefix + content;
-    textItem.copier.setCopyText(content);
+    textItem.copier.setContent(content);
   }
 
   _render() {
