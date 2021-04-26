@@ -169,6 +169,7 @@ depthmap_save_debug_files: no         # Save debug files with partial reconstruc
 
 # Other params
 processes: 1                  # Number of threads to use
+read_processes: 4             # When processes > 1, number of threads used for reading images
 
 # Params for submodel split and merge
 submodel_size: 80                                                    # Average number of images per submodel
