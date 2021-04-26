@@ -12,7 +12,8 @@ logger = logging.getLogger(__name__)
 
 def align_reconstruction(reconstruction, gcp, config):
     """Align a reconstruction with GPS and GCP data."""
-    res = align_reconstruction_similarity(reconstruction, gcp, config)
+    use_scale = len(reconstruction.rig_instances) < 1
+    res = align_reconstruction_similarity(reconstruction, gcp, config, use_scale)
     if res:
         s, A, b = res
         apply_similarity(reconstruction, s, A, b)
@@ -52,7 +53,7 @@ def apply_similarity(reconstruction, s, A, b):
         apply_similarity_pose(rig_instance.pose, s, A, b)
 
 
-def align_reconstruction_similarity(reconstruction, gcp, config):
+def align_reconstruction_similarity(reconstruction, gcp, config, use_scale):
     """Align reconstruction with GPS and GCP data.
 
     Config parameter `align_method` can be used to choose the alignment method.
@@ -65,10 +66,12 @@ def align_reconstruction_similarity(reconstruction, gcp, config):
         align_method = detect_alignment_constraints(config, reconstruction, gcp)
     if align_method == "orientation_prior":
         res = align_reconstruction_orientation_prior_similarity(
-            reconstruction, config, gcp
+            reconstruction, config, gcp, use_scale
         )
     elif align_method == "naive":
-        res = align_reconstruction_naive_similarity(config, reconstruction, gcp)
+        res = align_reconstruction_naive_similarity(
+            config, reconstruction, gcp, use_scale
+        )
 
     s, A, b = res
     if (s == 0) or np.isnan(A).any() or np.isnan(b).any():
@@ -133,7 +136,7 @@ def detect_alignment_constraints(config, reconstruction, gcp):
         return "naive"
 
 
-def align_reconstruction_naive_similarity(config, reconstruction, gcp):
+def align_reconstruction_naive_similarity(config, reconstruction, gcp, use_scale):
     """Align with GPS and GCP data using direct 3D-3D matches."""
     X, Xp = alignment_constraints(config, reconstruction, gcp)
 
@@ -164,7 +167,7 @@ def align_reconstruction_naive_similarity(config, reconstruction, gcp):
     # Compute similarity Xp = s A X + b
     X = np.array(X)
     Xp = np.array(Xp)
-    T = tf.superimposition_matrix(X.T, Xp.T, scale=True)
+    T = tf.superimposition_matrix(X.T, Xp.T, scale=use_scale)
 
     A, b = T[:3, :3], T[:3, 3]
     s = np.linalg.det(A) ** (1.0 / 3)
@@ -172,7 +175,9 @@ def align_reconstruction_naive_similarity(config, reconstruction, gcp):
     return s, A, b
 
 
-def align_reconstruction_orientation_prior_similarity(reconstruction, config, gcp):
+def align_reconstruction_orientation_prior_similarity(
+    reconstruction, config, gcp, use_scale
+):
     """Align with GPS data assuming particular a camera orientation.
 
     In some cases, using 3D-3D matches directly fails to find proper
@@ -218,7 +223,9 @@ def align_reconstruction_orientation_prior_similarity(reconstruction, config, gc
             b = max_scale * b / current_scale
             s = max_scale / current_scale
     else:
-        T = tf.affine_matrix_from_points(X.T[:2], Xp.T[:2], shear=False)
+        T = tf.affine_matrix_from_points(
+            X.T[:2], Xp.T[:2], shear=False, scale=use_scale
+        )
         s = np.linalg.det(T[:2, :2]) ** 0.5
         A = np.eye(3)
         A[:2, :2] = T[:2, :2] / s
