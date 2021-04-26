@@ -5,17 +5,20 @@ from opensfm import pygeometry, rig, types
 
 def test_create_instances_with_patterns() -> None:
     # A first rig model defined as left/right/top/bottom
+
+    # A complete instance
     instance1 = [
         "12345_left.jpg",
         "12345_bottom.jpg",
         "12345_top.jpg",
         "12345_right.jpg",
     ]
+
+    # An incomplete one
     instance2 = [
         "1234567_left.jpg",
         "1234567_bottom.jpg",
         "1234567_top.jpg",
-        "1234567_right.jpg",
     ]
     patterns_12 = {
         "camera_left": "(left)",
@@ -36,15 +39,24 @@ def test_create_instances_with_patterns() -> None:
         "blue": "(BLUE_SENSOR_003)",
     }
 
+    # Two single shots
+    instance4 = [
+        "RED_toto.jpg",
+        "tata.jpg",
+    ]
+
     # Run detection with these two rig model patterns
     rig_patterns = patterns_12
     rig_patterns.update(patterns_3)
-    instances = rig.create_instances_with_patterns(
-        instance1 + instance2 + instance3, rig_patterns
+    instances, single_shots = rig.create_instances_with_patterns(
+        instance1 + instance2 + instance3 + instance4, rig_patterns
     )
 
     # Ensure we have 2 instance for the first rig, and 1 for the second
     assert len(instances) == 3
+
+    # Ensure the two single shots
+    assert len(single_shots) == 2
 
     recovered_instance1 = instances["12345_.jpg"]
     assert [x[0] for x in recovered_instance1] == instance1

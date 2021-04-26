@@ -2,14 +2,11 @@
 
 import logging
 import re
-from collections import defaultdict
-from itertools import combinations
 from typing import Dict, Tuple, List, Optional, Set
 
-import networkx as nx
 import numpy as np
 from opensfm import actions, pygeometry, pymap, types
-from opensfm.dataset import DataSet, DataSetBase
+from opensfm.dataset import DataSet
 
 
 logger = logging.getLogger(__name__)
@@ -19,6 +16,9 @@ TRigPatterns = Dict[str, str]
 TRigCameraGroup = Set[str]
 TRigImage = Tuple[str, str]
 TRigInstance = List[TRigImage]
+
+INCOMPLETE_INSTANCE_GROUP = "INCOMPLETE_INSTANCE_GROUP"
+INCOMPLETE_INSTANCE_ID = "INCOMPLETE_INSTANCE_ID"
 
 
 def find_image_rig(
@@ -38,7 +38,7 @@ def find_image_rig(
 
 def create_instances_with_patterns(
     images: List[str], rig_patterns: TRigPatterns
-) -> Dict[str, TRigInstance]:
+) -> Tuple[Dict[str, TRigInstance], List[str]]:
     """Using the provided patterns, group images that should belong to the same rig instances.
     It will also check that a RigCamera belong to exactly one group of RigCameras
 
@@ -48,23 +48,37 @@ def create_instances_with_patterns(
     per_instance_id: Dict[str, TRigInstance] = {}
     for image in images:
         rig_camera_id, instance_member_id = find_image_rig(image, rig_patterns)
-        assert instance_member_id
-        if not rig_camera_id:
-            continue
+        if not rig_camera_id and not instance_member_id:
+            instance_member_id = INCOMPLETE_INSTANCE_GROUP
+            rig_camera_id = INCOMPLETE_INSTANCE_ID
         if instance_member_id not in per_instance_id:
+            # pyre-fixme [6]
             per_instance_id[instance_member_id] = []
+        # pyre-fixme [6]
         per_instance_id[instance_member_id].append((image, rig_camera_id))
 
+    per_complete_instance_id: Dict[str, TRigInstance] = {}
+    single_shots: List[str] = []
+
     groups_per_camera: Dict[str, TRigCameraGroup] = {}
-    for cameras in per_instance_id.values():
+    for instance_id, cameras in per_instance_id.items():
+        if instance_id == INCOMPLETE_INSTANCE_GROUP:
+            single_shots += [im for im, _ in cameras]
+            continue
+
         cameras_group = {c for _, c in cameras}
         for _, c in cameras:
-            if c in groups_per_camera:
-                logger.error(
-                    f"Rig camera {c} already belongs to the rig camera group {groups_per_camera[c]}"
+            if c in groups_per_camera and cameras_group != groups_per_camera[c]:
+                logger.warning(
+                    (
+                        f"Rig camera {c} already belongs to the rig camera group {groups_per_camera[c]}."
+                        f"This rig camera is probably part of an incomplete instance : {cameras_group}"
+                    )
                 )
             groups_per_camera[c] = cameras_group
-    return per_instance_id
+        per_complete_instance_id[instance_id] = cameras
+
+    return per_complete_instance_id, single_shots
 
 
 def group_instances(
@@ -172,7 +186,7 @@ def create_rig_cameras_from_reconstruction(
     reconstructions_shots = set(reconstruction.shots)
 
     per_rig_camera_group = group_instances(rig_instances)
-    for instances in per_rig_camera_group.values():
+    for instances in sorted(per_rig_camera_group.values(), key=lambda x: -len(x)):
         pose_groups = []
         for instance in instances:
             if any(
@@ -186,7 +200,13 @@ def create_rig_cameras_from_reconstruction(
                     for shot_id, rig_camera_id in instance
                 ]
             )
-        rig_cameras.update(compute_relative_pose(pose_groups))
+        for rig_camera_id, rig_camera in compute_relative_pose(pose_groups).items():
+            if rig_camera_id in rig_cameras:
+                logger.warning(
+                    f"Ignoring {rig_camera_id} as it was already computed from a bigger set of instances"
+                )
+            else:
+                rig_cameras[rig_camera_id] = rig_camera
     return rig_cameras
 
 
@@ -197,11 +217,14 @@ def create_rigs_with_pattern(data: DataSet, patterns: TRigPatterns):
     """
 
     # Construct instances assignments for each rig
-    instances_per_rig = create_instances_with_patterns(data.images(), patterns)
+    instances_per_rig, single_shots = create_instances_with_patterns(
+        data.images(), patterns
+    )
     for rig_id, instances in instances_per_rig.items():
         logger.info(
-            f"Found {len(instances)} rig instances for rig {rig_id} using pattern matching."
+            f"Found {len(instances)} shots for instance {rig_id} using pattern matching."
         )
+    logger.info(f"Found {len(single_shots)} single shots using pattern matching.")
 
     # Create some subset DataSet with enough images from each rig
     subset_data = create_subset_dataset_from_instances(
