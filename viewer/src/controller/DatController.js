@@ -3,7 +3,11 @@
  */
 
 import {GUI} from '../../node_modules/dat.gui/build/dat.gui.module.js';
-import {SpatialDataComponent as SDC} from '../../node_modules/mapillary-js/dist/mapillary.module.js';
+import {
+  CameraControls,
+  CameraVisualizationMode,
+  OriginalPositionMode,
+} from '../../node_modules/mapillary-js/dist/mapillary.module.js';
 import {ListController} from './ListController.js';
 
 export const FolderName = Object.freeze({
@@ -54,10 +58,20 @@ export class DatController {
       .onChange(v => this._onChange(name, v));
   }
 
+  _addCameraControlsOption(folder) {
+    const cc = CameraControls;
+    const ccs = [cc[cc.Earth], cc[cc.Street]];
+    folder
+      .add(this._config, 'cameraControls', ccs)
+      .listen()
+      .onChange(c => this._onChange('cameraControls', cc[c]));
+  }
+
   _addCameraVizualizationOption(folder) {
-    const cvm = SDC.CameraVisualizationMode;
+    const cvm = CameraVisualizationMode;
     const cvms = [
-      cvm[cvm.Default],
+      cvm[cvm.Hidden],
+      cvm[cvm.Homogeneous],
       cvm[cvm.Cluster],
       cvm[cvm.ConnectedComponent],
       cvm[cvm.Sequence],
@@ -76,7 +90,7 @@ export class DatController {
   }
 
   _addPositionVisualizationOption(folder) {
-    const opm = SDC.OriginalPositionMode;
+    const opm = OriginalPositionMode;
     const opms = [opm[opm.Hidden], opm[opm.Flat], opm[opm.Altitude]];
     folder
       .add(this._config, 'originalPositionMode', opms)
@@ -113,13 +127,12 @@ export class DatController {
     folder.open();
     this._addBooleanOption('pointsVisible', folder);
     this._addNumericOption('pointSize', folder);
-    this._addBooleanOption('camerasVisible', folder);
-    this._addNumericOption('cameraSize', folder);
     this._addCameraVizualizationOption(folder);
+    this._addNumericOption('cameraSize', folder);
     this._addPositionVisualizationOption(folder);
+    this._addCameraControlsOption(folder);
     this._addBooleanOption('tilesVisible', folder);
     this._addBooleanOption('imagesVisible', folder);
-    this._addBooleanOption('earthControls', folder);
     return folder;
   }
 
@@ -139,13 +152,8 @@ export class DatController {
         type = types[name];
         emitter.fire(type, {type, visible});
         break;
-      case 'earthControls':
-        const active = value;
-        type = types[name];
-        emitter.fire(type, {active, type});
-        break;
+      case 'cameraControls':
       case 'originalPositionMode':
-        mode = value;
       case 'cameraVisualizationMode':
         mode = value;
         type = types[name];

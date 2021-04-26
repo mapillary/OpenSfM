@@ -3,8 +3,10 @@
  */
 
 import {
+  CameraControls,
+  CameraVisualizationMode,
+  OriginalPositionMode,
   RenderMode,
-  SpatialDataComponent as SDC,
   Viewer,
 } from '../../node_modules/mapillary-js/dist/mapillary.module.js';
 import {EventEmitter} from '../util/EventEmitter.js';
@@ -27,30 +29,30 @@ export class OpensfmViewer extends EventEmitter {
     container.classList.add('opensfm-viewer');
     document.body.appendChild(container);
 
-    const cvm = SDC.CameraVisualizationMode.Default;
-    const opm = SDC.OriginalPositionMode.Hidden;
+    const cvm = CameraVisualizationMode.Homogeneous;
+    const opm = OriginalPositionMode.Hidden;
     const spatialConfiguration = {
       cameraSize: 0.5,
-      camerasVisible: true,
-      earthControls: true,
-      pointSize: 0.2,
+      cameraVisualizationMode: cvm,
       originalPositionMode: opm,
+      pointSize: 0.2,
       pointsVisible: true,
       tilesVisible: false,
-      cameraVisualizationMode: cvm,
     };
-    const imagesVisible = false;
 
+    const imagesVisible = false;
+    const cameraControls = CameraControls.Earth;
     this._viewer = new Viewer({
       apiClient: this._provider,
+      cameraControls,
       combinedPanning: false,
       component: {
         bearing: false,
         cover: false,
         direction: false,
-        imagePlane: imagesVisible,
+        image: imagesVisible,
         sequence: false,
-        spatialData: spatialConfiguration,
+        spatial: spatialConfiguration,
         zoom: false,
       },
       container,
@@ -58,23 +60,25 @@ export class OpensfmViewer extends EventEmitter {
       renderMode: RenderMode.Letterbox,
     });
     const viewer = this._viewer;
-    this._spatial = viewer.getComponent('spatialData');
+    this._spatial = viewer.getComponent('spatial');
 
     const infoSize = 0.3;
     const thumbnailVisible = false;
     const commandsVisible = true;
 
+    const controllerOptions = {
+      cameraControls,
+      commandsVisible,
+      imagesVisible,
+      infoSize,
+      thumbnailVisible,
+    };
     this._optionController = new OptionController(
       Object.assign(
         {},
-        viewer.getComponent('spatialData').defaultConfiguration,
-        {
-          commandsVisible,
-          imagesVisible,
-          infoSize,
-          thumbnailVisible,
-        },
+        viewer.getComponent('spatial').defaultConfiguration,
         spatialConfiguration,
+        controllerOptions,
       ),
     );
 
@@ -155,10 +159,10 @@ export class OpensfmViewer extends EventEmitter {
     this._fileController.on('load', event => this._onFileLoad(event));
 
     const optionController = this._optionController;
-    optionController.on('camerasize', event => this._onCameraSize(event));
-    optionController.on('camerasvisible', event =>
-      this._onCamerasVisible(event),
+    optionController.on('cameracontrols', event =>
+      this._onCameraControls(event),
     );
+    optionController.on('camerasize', event => this._onCameraSize(event));
     optionController.on('cameravisualizationmode', event =>
       this._onCameraVisualizationMode(event),
     );
@@ -166,7 +170,6 @@ export class OpensfmViewer extends EventEmitter {
       this._onCommandsVisible(event),
     );
     optionController.on('dattoggle', event => this._onDatToggle(event));
-    optionController.on('earthcontrols', event => this._onEarthControls(event));
     optionController.on('imagesvisible', event => this._onImagesVisible(event));
     optionController.on('infosize', event => this._onInfoSize(event));
     optionController.on('originalpositionmode', event =>
@@ -223,10 +226,6 @@ export class OpensfmViewer extends EventEmitter {
     this._configure({cameraSize: event.size});
   }
 
-  _onCamerasVisible(event) {
-    this._configure({camerasVisible: event.visible});
-  }
-
   _onCameraVisualizationMode(event) {
     this._configure({cameraVisualizationMode: event.mode});
   }
@@ -248,13 +247,13 @@ export class OpensfmViewer extends EventEmitter {
     }
   }
 
-  _onEarthControls(event) {
-    const active = event.active;
+  _onCameraControls(event) {
+    const mode = event.mode;
     const bearing = 'bearing';
     const direction = 'direction';
     const zoom = 'zoom';
-    this._configure({earthControls: active});
-    if (active) {
+    this._viewer.setCameraControls(mode);
+    if (mode === CameraControls.Earth) {
       this._viewer.deactivateComponent(bearing);
       this._viewer.deactivateComponent(direction);
       this._viewer.deactivateComponent(zoom);
@@ -275,9 +274,9 @@ export class OpensfmViewer extends EventEmitter {
 
   _onImagesVisible(event) {
     if (event.visible) {
-      this._viewer.activateComponent('imagePlane');
+      this._viewer.activateComponent('image');
     } else {
-      this._viewer.deactivateComponent('imagePlane');
+      this._viewer.deactivateComponent('image');
     }
   }
 

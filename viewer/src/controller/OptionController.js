@@ -2,26 +2,31 @@
  * @format
  */
 
-import {SpatialDataComponent as SDC} from '../../node_modules/mapillary-js/dist/mapillary.module.js';
+import {
+  CameraControls,
+  CameraVisualizationMode,
+  OriginalPositionMode,
+} from '../../node_modules/mapillary-js/dist/mapillary.module.js';
 import {EventEmitter} from '../util/EventEmitter.js';
 import {DatController} from './DatController.js';
 import {KeyController} from './KeyController.js';
 
 export class OptionController {
   constructor(options) {
-    const cvm = SDC.CameraVisualizationMode;
-    const opm = SDC.OriginalPositionMode;
+    const cc = CameraControls;
+    const cvm = CameraVisualizationMode;
+    const opm = OriginalPositionMode;
     const config = Object.assign({}, options, {
+      cameraControls: cc[options.cameraControls],
       cameraVisualizationMode: cvm[options.cameraVisualizationMode],
       originalPositionMode: opm[options.originalPositionMode],
     });
     const eventTypes = {
+      cameraControls: 'cameracontrols',
       cameraSize: 'camerasize',
-      camerasVisible: 'camerasvisible',
       cameraVisualizationMode: 'cameravisualizationmode',
       commandsVisible: 'commandsvisible',
       datToggle: 'dattoggle',
-      earthControls: 'earthcontrols',
       imagesVisible: 'imagesvisible',
       infoSize: 'infosize',
       originalPositionMode: 'originalpositionmode',

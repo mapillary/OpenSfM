@@ -15,7 +15,7 @@ body,
 .opensfm-file-background {
     position: absolute;
     top: 0;
-    background-color: #ffffff60;
+    background-color: #000000c0;
 }
 
 .opensfm-file-exit-button {
@@ -232,7 +232,7 @@ input[type='file'] {
 }
 
 .opensfm-info-text {
-    overflow-wrap: break-word;
+    overflow-wrap: anywhere;
     color: #eee;
     display: block;
     margin: 2px;

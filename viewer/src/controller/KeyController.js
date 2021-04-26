@@ -2,7 +2,11 @@
  * @format
  */
 
-import {SpatialDataComponent as SDC} from '../../node_modules/mapillary-js/dist/mapillary.module.js';
+import {
+  CameraControls,
+  CameraVisualizationMode,
+  OriginalPositionMode,
+} from '../../node_modules/mapillary-js/dist/mapillary.module.js';
 
 export class KeyController {
   constructor(options) {
@@ -14,18 +18,17 @@ export class KeyController {
     const increase = 1.1;
     this._commands = {
       // visibility
-      c: {value: 'camerasVisible'},
       e: {value: 'commandsVisible'},
       f: {value: 'pointsVisible'},
       d: {value: 'tilesVisible'},
       r: {value: 'imagesVisible'},
       v: {value: 'thumbnailVisible'},
       // activity
-      o: {value: 'earthControls'},
       l: {value: 'datToggle'},
       // mode
       '1': {value: 'cameraVisualizationMode'},
       '2': {value: 'originalPositionMode'},
+      '3': {value: 'cameraControls'},
       // size
       q: {value: 'pointSize', coeff: decrease},
       w: {value: 'pointSize', coeff: increase},
@@ -53,6 +56,10 @@ export class KeyController {
 
   _bindKeys() {
     window.document.addEventListener('keydown', event => {
+      if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
+        return;
+      }
+
       const key = event.key;
       if (!this._has(key)) {
         return;
@@ -79,10 +86,7 @@ export class KeyController {
         case 'l':
           emitter.fire(type, {type});
           break;
-        case 'o':
-          const active = this._toggle(command.value);
-          emitter.fire(type, {active, type});
-          break;
+
         case '1':
           const cvm = this._rotateCvm();
           emitter.fire(type, {type, mode: cvm});
@@ -90,6 +94,10 @@ export class KeyController {
         case '2':
           const opm = this._rotateOpm();
           emitter.fire(type, {type, mode: opm});
+          break;
+        case '3':
+          const cc = this._rotateCc();
+          emitter.fire(type, {type, mode: cc});
           break;
         case 'a':
         case 'q':
@@ -117,18 +125,35 @@ export class KeyController {
     return key in this._commands || key in this._customCommands;
   }
 
+  _rotateCc() {
+    const cc = CameraControls;
+    const earth = cc.Earth;
+    const street = cc.Street;
+
+    const modeRotation = {};
+    modeRotation[earth] = street;
+    modeRotation[street] = earth;
+
+    const config = this._config;
+    const mode = cc[config.cameraControls];
+    config.cameraControls = cc[modeRotation[mode]];
+    return cc[config.cameraControls];
+  }
+
   _rotateCvm() {
-    const cvm = SDC.CameraVisualizationMode;
-    const none = cvm.Default;
+    const cvm = CameraVisualizationMode;
+    const hidden = cvm.Hidden;
+    const homogeneous = cvm.Homogeneous;
     const cluster = cvm.Cluster;
     const connectedComponent = cvm.ConnectedComponent;
     const sequence = cvm.Sequence;
 
     const modeRotation = {};
-    modeRotation[none] = cluster;
+    modeRotation[hidden] = homogeneous;
+    modeRotation[homogeneous] = cluster;
     modeRotation[cluster] = connectedComponent;
     modeRotation[connectedComponent] = sequence;
-    modeRotation[sequence] = none;
+    modeRotation[sequence] = hidden;
 
     const config = this._config;
     const mode = cvm[config.cameraVisualizationMode];
@@ -137,7 +162,7 @@ export class KeyController {
   }
 
   _rotateOpm() {
-    const opm = SDC.OriginalPositionMode;
+    const opm = OriginalPositionMode;
     const hidden = opm.Hidden;
     const flat = opm.Flat;
     const altitude = opm.Altitude;

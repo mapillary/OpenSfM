@@ -2,7 +2,7 @@
  * @format
  */
 
-import {Geo} from '../../node_modules/mapillary-js/dist/mapillary.module.js';
+import {enuToGeodetic} from '../../node_modules/mapillary-js/dist/mapillary.module.js';
 import {imageEntToUniqueID} from '../util/ids.js';
 import * as math from './math.js';
 
@@ -12,48 +12,11 @@ export class DataConverter {
   }
 
   cluster(cluster, clusterId, reference) {
-    const cameras = {};
-    for (const cameraId in cluster.cameras) {
-      if (!cluster.cameras.hasOwnProperty(cameraId)) {
-        continue;
-      }
-
-      const camera = cluster.cameras[cameraId];
-      const camera_type = this._mapProjectionType(camera.projection_type);
-      const camera_parameters = [camera.focal, camera.k1, camera.k2];
-      cameras[cameraId] = {
-        camera_parameters,
-        camera_type,
-      };
-    }
-
-    const points = !!cluster.points ? cluster.points : {};
-    const shots = {};
-    for (const shotId in cluster.shots) {
-      if (!cluster.shots.hasOwnProperty(shotId)) {
-        continue;
-      }
-      const shot = cluster.shots[shotId];
-      const cameraId = shot.camera;
-      const rotation = shot.rotation;
-      const translation = shot.translation;
-      // Invent unique id
-      const uniqueId = imageEntToUniqueID({
-        cluster: {id: clusterId},
-        id: shotId,
-      });
-      shots[uniqueId] = {
-        cameraId,
-        rotation,
-        translation,
-      };
-    }
+    const points = cluster.points ?? {};
     return {
-      cameras,
       id: clusterId,
       points,
       reference,
-      shots,
     };
   }
 
@@ -149,8 +112,7 @@ export class DataConverter {
     const cluster = {id: clusterId, url: clusterId};
     const computed_rotation = shot.rotation;
     const height = camera.height;
-    const merge_cc = shot.merge_cc;
-    const merge_version = 1;
+    const merge_id = shot.merge_cc.toString();
     const exif_orientation = shot.orientation;
     const quality_score = 1;
     const width = camera.width;
@@ -178,8 +140,7 @@ export class DataConverter {
       geometry,
       height,
       id: uniqueId,
-      merge_cc,
-      merge_version,
+      merge_id,
       mesh,
       organization,
       exif_orientation,
@@ -208,7 +169,7 @@ export class DataConverter {
   }
 
   _enuToGeodetic(enu, reference) {
-    return Geo.enuToGeodetic(
+    return enuToGeodetic(
       enu[0],
       enu[1],
       enu[2],
