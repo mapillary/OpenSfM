@@ -247,6 +247,8 @@ void Map::RemoveLandmark(const LandmarkId& lm_id) {
 
 geometry::Camera& Map::CreateCamera(const geometry::Camera& cam) {
   auto it = cameras_.emplace(std::make_pair(cam.id, cam));
+  it.first->second.unique_id_ = camera_unique_id_;
+  camera_unique_id_++;
   return it.first->second;
   ;
 }

@@ -24,6 +24,7 @@ using LandmarkId = std::string;
 using LandmarkUniqueId = size_t;
 using FeatureId = size_t;
 using CameraId = std::string;
+using CameraUniqueId = size_t;
 }  // namespace map
 template <class T>
 using AlignedVector = std::vector<T, Eigen::aligned_allocator<T>>;

@@ -186,6 +186,7 @@ class Map {
   LandmarkUniqueId landmark_unique_id_ = 0;
   ShotUniqueId shot_unique_id_ = 0;
   ShotUniqueId pano_shot_unique_id_ = 0;
+  CameraUniqueId camera_unique_id_ = 0;
 };
 
 }  // namespace map

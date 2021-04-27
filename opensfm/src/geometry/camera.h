@@ -79,6 +79,7 @@ class Camera {
   int width{1};
   int height{1};
   std::string id;
+  size_t unique_id_{0}; // Assigned by map.CreateCamera(.)
 
   Vec2d PixelToNormalizedCoordinates(const Vec2d& px_coord) const;
   Vec2d NormalizedToPixelCoordinates(const Vec2d& norm_coord) const;
