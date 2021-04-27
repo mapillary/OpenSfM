@@ -2,7 +2,11 @@
  * @format
  */
 
-import {API} from '../../node_modules/mapillary-js/dist/mapillary.module.js';
+import {
+  fetchArrayBuffer,
+  DataProviderBase,
+  S2GeometryProvider,
+} from '../../node_modules/mapillary-js/dist/mapillary.module.js';
 import {isReconstructionData} from '../util/types.js';
 import {DataConverter} from './DataConverter.js';
 
@@ -12,9 +16,9 @@ function* generator(items, map) {
   }
 }
 
-export class OpensfmDataProvider extends API.DataProviderBase {
+export class OpensfmDataProvider extends DataProviderBase {
   constructor(options, geometry) {
-    super(geometry ?? new API.S2GeometryProvider(15));
+    super(geometry ?? new S2GeometryProvider(15));
     this._convert = new DataConverter(options);
     this._inventedImageBuffer = null;
     this._rawData = {};
@@ -127,7 +131,7 @@ export class OpensfmDataProvider extends API.DataProviderBase {
     });
   }
 
-  getClusterReconstruction(clusterId) {
+  getCluster(clusterId) {
     return this._getDataLoadedPromise().then(
       () => this._data.clusters[clusterId],
     );
@@ -150,7 +154,7 @@ export class OpensfmDataProvider extends API.DataProviderBase {
       return this._getInventedImageBuffer();
     }
 
-    return API.fetchArrayBuffer(url, cancellation);
+    return fetchArrayBuffer(url, cancellation);
   }
 
   getMesh(url) {
