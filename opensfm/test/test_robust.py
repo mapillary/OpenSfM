@@ -221,7 +221,7 @@ def test_outliers_relative_pose_ransac(pairs_and_their_E):
         expected = pose.get_world_to_cam()[:3]
         expected[:, 3] /= np.linalg.norm(expected[:, 3])
 
-        tolerance = 0.1
+        tolerance = 0.12
         inliers_count = (1 - ratio_outliers) * len(points)
         assert np.isclose(len(result.inliers_indices), inliers_count, rtol=tolerance)
 

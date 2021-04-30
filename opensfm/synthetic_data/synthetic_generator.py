@@ -1,22 +1,25 @@
-import math
+from collections import defaultdict
+from typing import Callable, Tuple, List, Dict, Any, Optional, Union
 
 import cv2
 import numpy as np
 from opensfm import geo, pygeometry, pysfm, reconstruction as rc, types, pymap
 
 
-def derivative(func, x):
+def derivative(func: Callable, x: np.ndarray) -> np.ndarray:
     eps = 1e-10
     d = (func(x + eps) - func(x)) / eps
     d /= np.linalg.norm(d)
     return d
 
 
-def samples_generator_random_count(count):
+def samples_generator_random_count(count: int) -> np.ndarray:
     return np.random.rand(count)
 
 
-def samples_generator_interval(start, length, interval, interval_noise):
+def samples_generator_interval(
+    start: float, length: float, interval: float, interval_noise: float
+) -> np.ndarray:
     samples = np.linspace(start / length, 1, num=int(length / interval))
     samples += np.random.normal(
         0.0, float(interval_noise) / float(length), samples.shape
@@ -24,7 +27,9 @@ def samples_generator_interval(start, length, interval, interval_noise):
     return samples
 
 
-def generate_samples_and_local_frame(samples, shape):
+def generate_samples_and_local_frame(
+    samples: np.ndarray, shape: Callable
+) -> Tuple[np.ndarray, np.ndarray]:
     points = []
     tangents = []
     for i in samples:
@@ -36,7 +41,9 @@ def generate_samples_and_local_frame(samples, shape):
     return np.array(points), np.array(tangents)
 
 
-def generate_samples_shifted(samples, shape, shift):
+def generate_samples_shifted(
+    samples: np.ndarray, shape: Callable, shift: float
+) -> np.ndarray:
     plane_points = []
     for i in samples:
         point = shape(i)
@@ -47,7 +54,9 @@ def generate_samples_shifted(samples, shape, shift):
     return np.array(plane_points)
 
 
-def generate_z_plane(samples, shape, thickness):
+def generate_z_plane(
+    samples: np.ndarray, shape: Callable, thickness: float
+) -> np.ndarray:
     plane_points = []
     for i in samples:
         point = shape(i)
@@ -60,7 +69,9 @@ def generate_z_plane(samples, shape, thickness):
     return np.insert(plane_points, 2, values=0, axis=1)
 
 
-def generate_xy_planes(samples, shape, z_size, y_size):
+def generate_xy_planes(
+    samples: np.ndarray, shape: Callable, z_size: float, y_size: float
+) -> np.ndarray:
     xy1 = generate_samples_shifted(samples, shape, y_size)
     xy2 = generate_samples_shifted(samples, shape, -y_size)
     xy1 = np.insert(xy1, 2, values=np.random.rand(xy1.shape[0]) * z_size, axis=1)
@@ -68,13 +79,17 @@ def generate_xy_planes(samples, shape, z_size, y_size):
     return np.concatenate((xy1, xy2), axis=0)
 
 
-def generate_street(samples, shape, height, width):
+def generate_street(
+    samples: np.ndarray, shape: Callable, height: float, width: float
+) -> Tuple[np.ndarray, np.ndarray]:
     walls = generate_xy_planes(samples, shape, height, width)
     floor = generate_z_plane(samples, shape, width)
     return walls, floor
 
 
-def generate_cameras(samples, shape, height):
+def generate_cameras(
+    samples: np.ndarray, shape: Callable, height: float
+) -> Tuple[np.ndarray, np.ndarray]:
     positions, rotations = generate_samples_and_local_frame(samples, shape)
     positions = np.insert(positions, 2, values=height, axis=1)
     rotations = np.insert(rotations, 2, values=0, axis=2)
@@ -82,37 +97,31 @@ def generate_cameras(samples, shape, height):
     return positions, rotations
 
 
-def line_generator(length, point):
+def line_generator(length: float, point: np.ndarray) -> np.ndarray:
     x = point * length
     return np.transpose(np.array([x, 0]))
 
 
-def weird_curve(length, point):
-    y = math.cos(
-        point
-        + 0.1 * point ** 2
-        + 2.3 * point ** 4
-        + 0.8 * point ** 7
-        + 0.1 * point ** 9
-    )
-    return length * np.transpose(np.array([point, y]))
-
-
-def ellipse_generator(x_size, y_size, point):
+def ellipse_generator(x_size: float, y_size: float, point: float) -> np.ndarray:
     y = np.sin(point * 2 * np.pi) * y_size / 2
     x = np.cos(point * 2 * np.pi) * x_size / 2
     return np.transpose(np.array([x, y]))
 
 
-def perturb_points(points, sigmas):
+def perturb_points(points: np.ndarray, sigmas: List[float]) -> None:
     eps = 1e-10
     for point in points:
-        sigmas = np.array([max(s, eps) for s in sigmas])
-        point += np.random.normal(0.0, sigmas, point.shape)
+        gaussian = np.array([max(s, eps) for s in sigmas])
+        point += np.random.normal(0.0, gaussian, point.shape)
 
 
-def generate_exifs(reconstruction, gps_noise, speed_ms=10):
+def generate_exifs(
+    reconstruction: types.Reconstruction,
+    gps_noise: Union[Dict[str, float], float],
+    causal_gps_noise: bool = False,
+) -> Dict[str, Any]:
     """Generate fake exif metadata from the reconstruction."""
+    speed_ms = 10.0
     previous_pose = None
     previous_time = 0
     exifs = {}
@@ -133,7 +142,9 @@ def generate_exifs(reconstruction, gps_noise, speed_ms=10):
         previous_pose = pose
         exif["capture_time"] = previous_time
 
-        perturb_points([pose], [gps_noise, gps_noise, gps_noise])
+        pose_arr = np.array([pose])
+        perturb_points(pose_arr, [gps_noise, gps_noise, gps_noise])  # pyre-fixme [6]
+        pose = pose_arr[0]
 
         _, _, _, comp = rc.shot_lla_and_compass(shot, reference)
         lat, lon, alt = reference.to_lla(*pose)
@@ -148,7 +159,7 @@ def generate_exifs(reconstruction, gps_noise, speed_ms=10):
     return exifs
 
 
-def perturb_rotations(rotations, angle_sigma):
+def perturb_rotations(rotations: np.ndarray, angle_sigma: float) -> None:
     for i in range(len(rotations)):
         rotation = rotations[i]
         rodrigues = cv2.Rodrigues(rotation)[0].ravel()
@@ -158,7 +169,13 @@ def perturb_rotations(rotations, angle_sigma):
         rotations[i] = cv2.Rodrigues(rodrigues)[0]
 
 
-def add_shots_to_reconstruction(shot_ids, positions, rotations, camera, reconstruction):
+def add_shots_to_reconstruction(
+    shot_ids: List[str],
+    positions: List[np.ndarray],
+    rotations: List[np.ndarray],
+    camera: pygeometry.Camera,
+    reconstruction: types.Reconstruction,
+):
     reconstruction.add_camera(camera)
     for shot_id, position, rotation in zip(shot_ids, positions, rotations):
         pose = pygeometry.Pose(rotation)
@@ -166,7 +183,9 @@ def add_shots_to_reconstruction(shot_ids, positions, rotations, camera, reconstr
         reconstruction.create_shot(shot_id, camera.id, pose)
 
 
-def add_points_to_reconstruction(points, color, reconstruction):
+def add_points_to_reconstruction(
+    points: np.ndarray, color: np.ndarray, reconstruction: types.Reconstruction
+):
     shift = len(reconstruction.points)
     for i in range(points.shape[0]):
         point = reconstruction.create_point(str(shift + i), points[i, :])
@@ -174,7 +193,11 @@ def add_points_to_reconstruction(points, color, reconstruction):
 
 
 def add_rigs_to_reconstruction(
-    shots, positions, rotations, rig_cameras, reconstruction
+    shots: List[List[str]],
+    positions: List[np.ndarray],
+    rotations: List[np.ndarray],
+    rig_cameras: List[pymap.RigCamera],
+    reconstruction: types.Reconstruction,
 ):
     rec_rig_cameras = []
     for rig_camera in rig_cameras:
@@ -191,16 +214,16 @@ def add_rigs_to_reconstruction(
 
 
 def create_reconstruction(
-    points,
-    colors,
-    cameras,
-    shot_ids,
-    positions,
-    rotations,
-    rig_shots=None,
-    rig_positions=None,
-    rig_rotations=None,
-    rig_cameras=None,
+    points: List[np.ndarray],
+    colors: List[np.ndarray],
+    cameras: List[pygeometry.Camera],
+    shot_ids: List[List[str]],
+    positions: List[List[np.ndarray]],
+    rotations: List[List[np.ndarray]],
+    rig_shots: List[List[List[str]]],
+    rig_positions: Optional[List[List[np.ndarray]]] = None,
+    rig_rotations: Optional[List[List[np.ndarray]]] = None,
+    rig_cameras: Optional[List[List[pymap.RigCamera]]] = None,
 ):
     reconstruction = types.Reconstruction()
     for point, color in zip(points, colors):
@@ -213,16 +236,32 @@ def create_reconstruction(
             s_shot_ids, s_positions, s_rotations, s_cameras, reconstruction
         )
 
-    for s_rig_shots, s_rig_positions, s_rig_rotations, s_rig_cameras in zip(
-        rig_shots, rig_positions, rig_rotations, rig_cameras
-    ):
-        add_rigs_to_reconstruction(
-            s_rig_shots, s_rig_positions, s_rig_rotations, s_rig_cameras, reconstruction
-        )
+    if rig_shots and rig_positions and rig_rotations and rig_cameras:
+        for s_rig_shots, s_rig_positions, s_rig_rotations, s_rig_cameras in zip(
+            rig_shots, rig_positions, rig_rotations, rig_cameras
+        ):
+            add_rigs_to_reconstruction(
+                s_rig_shots,
+                s_rig_positions,
+                s_rig_rotations,
+                s_rig_cameras,
+                reconstruction,
+            )
     return reconstruction
 
 
-def generate_track_data(reconstruction, maximum_depth, noise):
+def generate_track_data(
+    reconstruction: types.Reconstruction, maximum_depth: float, noise: float
+) -> Tuple[
+    Dict[str, np.ndarray],
+    Dict[str, np.ndarray],
+    Dict[str, np.ndarray],
+    pysfm.TracksManager,
+]:
+    """Generate projection data from a reconstruction, considering a maximum
+    viewing depth and gaussian noise added to the ideal projections.
+    Returns feature/descriptor/color data per shot and a tracks manager object.
+    """
     tracks_manager = pysfm.TracksManager()
 
     feature_data_type = np.float32
@@ -265,7 +304,14 @@ def generate_track_data(reconstruction, maximum_depth, noise):
             perturbation = float(noise) / float(
                 max(shot.camera.width, shot.camera.height)
             )
-            perturb_points([projection], np.array([perturbation, perturbation]))
+
+            projection_arr = np.array([projection])
+            perturb_points(
+                projection_arr,
+                # pyre-fixme [6]
+                np.array([perturbation, perturbation]),
+            )
+            projection = projection_arr[0]
 
             projections_inside.append(np.hstack((projection, [default_scale])))
             descriptors_inside.append(track_descriptors[original_key])

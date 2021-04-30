@@ -79,9 +79,9 @@ def _projection_errors_std(points):
 
 
 def test_bundle_projection_fixed_internals(scene_synthetic):
-    reference = scene_synthetic[0].get_reconstruction()
-    camera_priors = {c.id: c for c in scene_synthetic[0].cameras}
-    graph = tracking.as_graph(scene_synthetic[5])
+    reference = scene_synthetic.reconstruction
+    camera_priors = {c.id: c for c in reference.cameras.values()}
+    graph = tracking.as_graph(scene_synthetic.tracks_manager)
     # Create the connnections in the reference
     for point_id in reference.points.keys():
         if point_id in graph:
