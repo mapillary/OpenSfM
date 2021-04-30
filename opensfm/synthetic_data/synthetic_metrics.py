@@ -1,11 +1,14 @@
+from typing import Tuple, List
+
 import cv2
 import numpy as np
 import opensfm.transformations as tf
-from opensfm import align
-from opensfm import types
+from opensfm import align, types
 
 
-def points_errors(reference, candidate):
+def points_errors(
+    reference: types.Reconstruction, candidate: types.Reconstruction
+) -> np.ndarray:
     common_points = set(reference.points.keys()).intersection(
         set(candidate.points.keys())
     )
@@ -18,14 +21,16 @@ def points_errors(reference, candidate):
     )
 
 
-def completeness_errors(reference, candidate):
+def completeness_errors(
+    reference: types.Reconstruction, candidate: types.Reconstruction
+) -> Tuple[float, float]:
     return (
         float(len(candidate.shots)) / float(len(reference.shots)),
         float(len(candidate.points)) / float(len(reference.points)),
     )
 
 
-def gps_errors(candidate):
+def gps_errors(candidate: types.Reconstruction) -> np.ndarray:
     errors = []
     for shot in candidate.shots.values():
         pose1 = shot.metadata.gps_position.value
@@ -34,7 +39,9 @@ def gps_errors(candidate):
     return np.array(errors)
 
 
-def position_errors(reference, candidate):
+def position_errors(
+    reference: types.Reconstruction, candidate: types.Reconstruction
+) -> np.ndarray:
     common_shots = set(reference.shots.keys()).intersection(set(candidate.shots.keys()))
     errors = []
     for s in common_shots:
@@ -44,7 +51,9 @@ def position_errors(reference, candidate):
     return np.array(errors)
 
 
-def rotation_errors(reference, candidate):
+def rotation_errors(
+    reference: types.Reconstruction, candidate: types.Reconstruction
+) -> np.ndarray:
     common_shots = set(reference.shots.keys()).intersection(set(candidate.shots.keys()))
     errors = []
     for s in common_shots:
@@ -57,7 +66,9 @@ def rotation_errors(reference, candidate):
     return np.array(errors)
 
 
-def find_alignment(points0, points1):
+def find_alignment(
+    points0: List[np.ndarray], points1: List[np.ndarray]
+) -> Tuple[float, np.ndarray, np.ndarray]:
     """Compute similarity transform between point sets.
 
     Returns (s, A, b) such that ``points1 = s * A * points0 + b``
@@ -76,7 +87,9 @@ def find_alignment(points0, points1):
     return s, A, b
 
 
-def aligned_to_reference(reference, reconstruction):
+def aligned_to_reference(
+    reference: types.Reconstruction, reconstruction: types.Reconstruction
+) -> types.Reconstruction:
     """Align a reconstruction to a reference."""
     coords1, coords2 = [], []
     for point1 in reconstruction.points.values():
@@ -98,7 +111,7 @@ def aligned_to_reference(reference, reconstruction):
     return aligned
 
 
-def _copy_reconstruction(reconstruction):
+def _copy_reconstruction(reconstruction: types.Reconstruction) -> types.Reconstruction:
     copy = types.Reconstruction()
     for camera in reconstruction.cameras.values():
         copy.add_camera(camera)
@@ -109,5 +122,5 @@ def _copy_reconstruction(reconstruction):
     return copy
 
 
-def rmse(errors):
+def rmse(errors: np.ndarray) -> float:
     return np.sqrt(np.mean(errors ** 2))

@@ -36,7 +36,12 @@ def get_scene_generator(type: str, length: float, **kwargs) -> functools.partial
             sg.ellipse_generator, length, length / ellipse_ratio
         )
     if type == "line":
-        generator = functools.partial(sg.line_generator, length)
+        center_x = kwargs.get("center_x", 0)
+        center_y = kwargs.get("center_y", 0)
+        transpose = kwargs.get("transpose", True)
+        generator = functools.partial(
+            sg.line_generator, length, center_x, center_y, transpose
+        )
     assert generator
     return generator
 
@@ -156,6 +161,34 @@ class SyntheticStreetScene(SyntheticScene):
         self.rig_cameras = []
         self.width = 0.0
 
+    def combine(self, other_scene: "SyntheticStreetScene") -> "SyntheticStreetScene":
+        combined_scene = SyntheticStreetScene(None)
+        combined_scene.wall_points = np.concatenate(
+            (self.wall_points, other_scene.wall_points)
+        )
+        combined_scene.floor_points = np.concatenate(
+            (self.floor_points, other_scene.floor_points)
+        )
+        combined_scene.shot_positions = self.shot_positions + other_scene.shot_positions
+        combined_scene.shot_rotations = self.shot_rotations + other_scene.shot_rotations
+        combined_scene.cameras = self.cameras + other_scene.cameras
+        combined_scene.instances_positions = (
+            self.instances_positions + other_scene.instances_positions
+        )
+        combined_scene.instances_rotations = (
+            self.instances_rotations + other_scene.instances_rotations
+        )
+        combined_scene.rig_instances = self.rig_instances + other_scene.rig_instances
+        combined_scene.rig_cameras = self.rig_cameras + other_scene.rig_cameras
+        combined_scene.shot_ids = self.shot_ids + other_scene.shot_ids
+
+        shift = 0
+        for subshots in combined_scene.shot_ids:
+            for i in range(len(subshots)):
+                subshots[i] = f"Shot {i+shift:04d}"
+            shift += len(subshots)
+        return combined_scene
+
     def add_street(
         self, points_count: int, height: float, width: float
     ) -> "SyntheticStreetScene":
@@ -174,6 +207,25 @@ class SyntheticStreetScene(SyntheticScene):
 
     def perturb_floor(self, floor_pertubation: float) -> "SyntheticStreetScene":
         sg.perturb_points(self.floor_points, floor_pertubation)  # pyre-fixme [6]
+        return self
+
+    def set_terrain_hill(self, height: float, radius: float) -> "SyntheticStreetScene":
+        # pyre-fixme [16]: `Optional` has no attribute `__getitem__`
+        self.wall_points[:, 2] += height * np.exp(
+            -0.5 * np.linalg.norm(self.wall_points[:, :2], axis=1) ** 2 / radius ** 2
+        )
+        self.floor_points[:, 2] += height * np.exp(
+            -0.5 * np.linalg.norm(self.floor_points[:, :2], axis=1) ** 2 / radius ** 2
+        )
+
+        for positions in self.shot_positions + self.instances_positions:
+            for position in positions:
+                position[2] += height * np.exp(
+                    -0.5
+                    * np.linalg.norm(
+                        (position[0] ** 2 + position[1] ** 2) / radius ** 2
+                    )
+                )
         return self
 
     def add_camera_sequence(
@@ -320,20 +372,28 @@ class SyntheticInputData:
         projection_noise: float,
         gps_noise: Union[Dict[str, float], float],
         causal_gps_noise: bool,
+        generate_projections: bool = True,
     ):
         self.reconstruction = reconstruction
         self.exifs = sg.generate_exifs(
             reconstruction, gps_noise, causal_gps_noise=causal_gps_noise
         )
 
-        (
-            self.features,
-            self.descriptors,
-            self.colors,
-            self.tracks_manager,
-        ) = sg.generate_track_data(
-            reconstruction, projection_max_depth, projection_noise
-        )
+        if generate_projections:
+            (
+                self.features,
+                self.descriptors,
+                self.colors,
+                self.tracks_manager,
+            ) = sg.generate_track_data(
+                reconstruction, projection_max_depth, projection_noise
+            )
+        else:
+            (self.features, self.descriptors, self.colors) = (
+                {},
+                {},
+                {},
+            )
 
 
 def compare(

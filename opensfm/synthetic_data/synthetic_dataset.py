@@ -1,5 +1,4 @@
 import logging
-from collections import defaultdict
 
 import numpy as np
 from opensfm import tracking

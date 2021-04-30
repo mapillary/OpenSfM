@@ -3,7 +3,10 @@ from typing import Callable, Tuple, List, Dict, Any, Optional, Union
 
 import cv2
 import numpy as np
+import scipy.spatial as spatial
 from opensfm import geo, pygeometry, pysfm, reconstruction as rc, types, pymap
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import Matern
 
 
 def derivative(func: Callable, x: np.ndarray) -> np.ndarray:
@@ -97,9 +100,21 @@ def generate_cameras(
     return positions, rotations
 
 
-def line_generator(length: float, point: np.ndarray) -> np.ndarray:
+def line_generator(
+    length: float, center_x: float, center_y: float, transpose: bool, point: np.ndarray
+) -> np.ndarray:
     x = point * length
-    return np.transpose(np.array([x, 0]))
+    if transpose:
+        return np.transpose(
+            np.array(
+                [
+                    center_y,
+                    x + center_x,
+                ]
+            )
+        )
+    else:
+        return np.transpose(np.array([x + center_x, center_y]))
 
 
 def ellipse_generator(x_size: float, y_size: float, point: float) -> np.ndarray:
@@ -110,9 +125,22 @@ def ellipse_generator(x_size: float, y_size: float, point: float) -> np.ndarray:
 
 def perturb_points(points: np.ndarray, sigmas: List[float]) -> None:
     eps = 1e-10
+    gaussian = np.array([max(s, eps) for s in sigmas])
     for point in points:
-        gaussian = np.array([max(s, eps) for s in sigmas])
         point += np.random.normal(0.0, gaussian, point.shape)
+
+
+def generate_causal_noise(
+    dimensions: int, sigma: float, n: int, scale: float
+) -> List[np.ndarray]:
+    noise = []
+    for i in range(dimensions):
+        kernel = sigma ** 2 * Matern(length_scale=scale, nu=2.5)
+        gp = GaussianProcessRegressor(kernel=kernel)
+        time = np.arange(0, n) / 10.0
+        ys = gp.sample_y(time[:, np.newaxis], 1, random_state=i)
+        noise.append(ys[:, 0])
+    return noise
 
 
 def generate_exifs(
@@ -126,36 +154,69 @@ def generate_exifs(
     previous_time = 0
     exifs = {}
     reference = geo.TopocentricConverter(0, 0, 0)
+
+    def _gps_dop(shot):
+        gps_dop = 15
+        if isinstance(gps_noise, float):
+            gps_dop = gps_noise
+        if isinstance(gps_noise, dict):
+            gps_dop = gps_noise[shot.camera.id]
+        return gps_dop
+
+    per_sequence = defaultdict(list)
     for shot_name in sorted(reconstruction.shots.keys()):
         shot = reconstruction.shots[shot_name]
         exif = {}
         exif["width"] = shot.camera.width
         exif["height"] = shot.camera.height
-        exif["focal_ratio"] = shot.camera.focal
         exif["camera"] = str(shot.camera.id)
         exif["make"] = str(shot.camera.id)
 
-        pose = shot.pose.get_origin()
+        exif["skey"] = str(shot.camera.id)
+        per_sequence[exif["skey"]].append(shot_name)
 
+        if shot.camera.projection_type in ["perspective", "fisheye"]:
+            exif["focal_ratio"] = shot.camera.focal
+
+        pose = shot.pose.get_origin()
         if previous_pose is not None:
             previous_time += np.linalg.norm(pose - previous_pose) * speed_ms
         previous_pose = pose
         exif["capture_time"] = previous_time
 
-        pose_arr = np.array([pose])
-        perturb_points(pose_arr, [gps_noise, gps_noise, gps_noise])  # pyre-fixme [6]
-        pose = pose_arr[0]
-
-        _, _, _, comp = rc.shot_lla_and_compass(shot, reference)
-        lat, lon, alt = reference.to_lla(*pose)
-
-        exif["gps"] = {}
-        exif["gps"]["latitude"] = lat
-        exif["gps"]["longitude"] = lon
-        exif["gps"]["altitude"] = alt
-        exif["gps"]["dop"] = gps_noise
-        exif["compass"] = {"angle": comp}
         exifs[shot_name] = exif
+
+    for sequence_images in per_sequence.values():
+        if causal_gps_noise:
+            sequence_gps_dop = _gps_dop(reconstruction.shots[sequence_images[0]])
+            perturbations_2d = generate_causal_noise(
+                2, sequence_gps_dop, len(sequence_images), 1.0
+            )
+        for i, shot_name in enumerate(sequence_images):
+            shot = reconstruction.shots[shot_name]
+            exif = exifs[shot_name]
+
+            pose = shot.pose.get_origin()
+
+            if causal_gps_noise:
+                gps_perturbation = [perturbations_2d[j][i] for j in range(2)] + [0]
+            else:
+                gps_noise = _gps_dop(shot)
+                gps_perturbation = [gps_noise, gps_noise, 0]
+
+            pose = np.array([pose])
+            perturb_points(pose, gps_perturbation)
+            pose = pose[0]
+            _, _, _, comp = rc.shot_lla_and_compass(shot, reference)
+            lat, lon, alt = reference.to_lla(*pose)
+
+            exif["gps"] = {}
+            exif["gps"]["latitude"] = lat
+            exif["gps"]["longitude"] = lon
+            exif["gps"]["altitude"] = alt
+            exif["gps"]["dop"] = _gps_dop(shot)
+            exif["compass"] = {"angle": comp}
+
     return exifs
 
 
@@ -262,70 +323,85 @@ def generate_track_data(
     viewing depth and gaussian noise added to the ideal projections.
     Returns feature/descriptor/color data per shot and a tracks manager object.
     """
+
     tracks_manager = pysfm.TracksManager()
 
     feature_data_type = np.float32
     desc_size = 128
     non_zeroes = 5
-    track_descriptors = {}
-    for track_index in reconstruction.points:
+
+    points_ids = list(reconstruction.points)
+    points_coordinates = [p.coordinates for p in reconstruction.points.values()]
+    points_colors = [p.color for p in reconstruction.points.values()]
+
+    # generate random descriptors per point
+    track_descriptors = []
+    for _ in points_coordinates:
         descriptor = np.zeros(desc_size)
         for _ in range(non_zeroes):
             index = np.random.randint(0, desc_size)
             descriptor[index] = np.random.random() * 255
-        track_descriptors[track_index] = descriptor.round().astype(feature_data_type)
+        track_descriptors.append(descriptor.round().astype(feature_data_type))
+
+    # should speed-up projection queries
+    points_tree = spatial.cKDTree(points_coordinates)
 
     colors = {}
     features = {}
     descriptors = {}
     default_scale = 0.004
     for shot_index, shot in reconstruction.shots.items():
-        # need to have these as we lost track of keys
-        all_keys = list(reconstruction.points.keys())
-        all_values = list(reconstruction.points.values())
+        # query all closest points
+        neighbors = list(
+            sorted(points_tree.query_ball_point(shot.pose.get_origin(), maximum_depth))
+        )
 
-        # temporary work on numpy array
-        all_coordinates = [p.coordinates for p in all_values]
-        projections = shot.project_many(np.array(all_coordinates))
+        # project them
+        projections = shot.project_many(
+            np.array([points_coordinates[c] for c in neighbors])
+        )
+
+        # shot constants
+        center = shot.pose.get_origin()
+        z_axis = shot.pose.get_rotation_matrix()[2]
+        is_panorama = pygeometry.Camera.is_panorama(shot.camera.projection_type)
+        perturbation = float(noise) / float(max(shot.camera.width, shot.camera.height))
+        sigmas = np.array([perturbation, perturbation])
+
+        # pre-generate random perturbations
+        perturbations = np.random.normal(0.0, sigmas, (len(projections), 2))
+
+        # run and check valid projections
         projections_inside = []
         descriptors_inside = []
         colors_inside = []
-        for i, projection in enumerate(projections):
+        for i, (p_id, projection) in enumerate(zip(neighbors, projections)):
             if not _is_inside_camera(projection, shot.camera):
                 continue
-            original_key = all_keys[i]
-            original_point = all_values[i]
-            if not _is_in_front(original_point, shot):
-                continue
-            if not _check_depth(original_point, shot, maximum_depth):
+
+            point = points_coordinates[p_id]
+            if not is_panorama and not _is_in_front(point, center, z_axis):
                 continue
 
             # add perturbation
-            perturbation = float(noise) / float(
-                max(shot.camera.width, shot.camera.height)
-            )
+            projection += perturbations[i]
 
-            projection_arr = np.array([projection])
-            perturb_points(
-                projection_arr,
-                # pyre-fixme [6]
-                np.array([perturbation, perturbation]),
-            )
-            projection = projection_arr[0]
-
-            projections_inside.append(np.hstack((projection, [default_scale])))
-            descriptors_inside.append(track_descriptors[original_key])
-            colors_inside.append(original_point.color)
+            # push data
+            color = points_colors[p_id]
+            original_id = points_ids[p_id]
+            projections_inside.append([projection[0], projection[1], default_scale])
+            descriptors_inside.append(track_descriptors[p_id])
+            colors_inside.append(color)
             obs = pysfm.Observation(
                 projection[0],
                 projection[1],
                 default_scale,
-                original_point.color[0],
-                original_point.color[1],
-                original_point.color[2],
+                color[0],
+                color[1],
+                color[2],
                 len(projections_inside) - 1,
             )
-            tracks_manager.add_observation(str(shot_index), str(original_key), obs)
+            tracks_manager.add_observation(str(shot_index), str(original_id), obs)
         features[shot_index] = np.array(projections_inside)
         colors[shot_index] = np.array(colors_inside)
         descriptors[shot_index] = np.array(descriptors_inside)
@@ -333,30 +409,19 @@ def generate_track_data(
     return features, descriptors, colors, tracks_manager
 
 
-def _check_depth(point, shot, maximum_depth):
-    return shot.pose.transform(point.coordinates)[2] < maximum_depth
-
-
-def _is_in_front(point, shot):
+def _is_in_front(point: np.ndarray, center: np.ndarray, z_axis: np.ndarray) -> bool:
     return (
-        np.dot(
-            (point.coordinates - shot.pose.get_origin()),
-            shot.pose.get_rotation_matrix()[2],
-        )
-        > 0
-    )
+        (point[0] - center[0]) * z_axis[0]
+        + (point[1] - center[1]) * z_axis[1]
+        + (point[2] - center[2]) * z_axis[2]
+    ) > 0
 
 
-def _is_inside_camera(projection, camera):
-    if camera.width > camera.height:
-        return (-0.5 < projection[0] < 0.5) and (
-            -float(camera.height) / float(2 * camera.width)
-            < projection[1]
-            < float(camera.height) / float(2 * camera.width)
-        )
+def _is_inside_camera(projection: np.ndarray, camera: pygeometry.Camera) -> bool:
+    w, h = float(camera.width), float(camera.height)
+    w2 = float(2 * camera.width)
+    h2 = float(2 * camera.height)
+    if w > h:
+        return (-0.5 < projection[0] < 0.5) and (-h / w2 < projection[1] < h / w2)
     else:
-        return (-0.5 < projection[1] < 0.5) and (
-            -float(camera.width) / float(2 * camera.height)
-            < projection[0]
-            < float(camera.width) / float(2 * camera.height)
-        )
+        return (-0.5 < projection[1] < 0.5) and (-w / h2 < projection[0] < w / h2)

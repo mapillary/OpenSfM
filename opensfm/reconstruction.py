@@ -257,15 +257,15 @@ def _compute_pair_reconstructability(args: TPairArguments) -> Tuple[str, str, fl
     return (im1, im2, r)
 
 
-def get_image_metadata(data: DataSetBase, image: str) -> pymap.ShotMeasurements:
-    """Get image metadata as a ShotMetadata object."""
+def exif_to_metadata(
+    exif: Dict[str, Any], use_altitude: bool, reference: types.TopocentricConverter
+) -> pymap.ShotMeasurements:
+    """ Construct a metadata object from raw EXIF tags (as a dict). """
     metadata = pymap.ShotMeasurements()
-    exif = data.load_exif(image)
-    reference = data.load_reference()
     if "gps" in exif and "latitude" in exif["gps"] and "longitude" in exif["gps"]:
         lat = exif["gps"]["latitude"]
         lon = exif["gps"]["longitude"]
-        if data.config["use_altitude_tag"]:
+        if use_altitude:
             alt = min([oexif.maximum_altitude, exif["gps"].get("altitude", 2.0)])
         else:
             alt = 2.0  # Arbitrary value used to align the reconstruction
@@ -295,6 +295,13 @@ def get_image_metadata(data: DataSetBase, image: str) -> pymap.ShotMeasurements:
         metadata.sequence_key.value = exif["skey"]
 
     return metadata
+
+
+def get_image_metadata(data: DataSetBase, image: str) -> pymap.ShotMeasurements:
+    """Get image metadata as a ShotMetadata object."""
+    exif = data.load_exif(image)
+    reference = data.load_reference()
+    return exif_to_metadata(exif, data.config["use_altitude_tag"], reference)
 
 
 def add_shot(
