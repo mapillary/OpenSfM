@@ -18,7 +18,7 @@ function* generator(items, map) {
 
 export class OpensfmDataProvider extends DataProviderBase {
   constructor(options, geometry) {
-    super(geometry ?? new S2GeometryProvider(15));
+    super(geometry ?? new S2GeometryProvider(16));
     this._convert = new DataConverter(options);
     this._inventedImageBuffer = null;
     this._rawData = {};
@@ -32,7 +32,11 @@ export class OpensfmDataProvider extends DataProviderBase {
 
     const endpoint = options.endpoint;
     this._inventedImagePromise = !options.imagePath
-      ? this._inventImagePromise()
+      ? this._inventImagePromise().then(buffer => {
+          this._inventedImageBuffer = buffer;
+          this._inventedImagePromise = null;
+          return buffer;
+        })
       : null;
 
     const recs = options.reconstructionPaths;
@@ -100,21 +104,9 @@ export class OpensfmDataProvider extends DataProviderBase {
         reject(new Error('Already loading'));
         return;
       }
-      if (this.loaded) {
-        reject(new Error('Already loaded'));
-        return;
-      }
-      if (!isReconstructionData(file.data)) {
-        reject(new Error('Not a reconstruction'));
-        return;
-      }
 
       try {
-        this._addFile(file);
-        if (inventImages) {
-          this._inventedImagePromise = this._inventImagePromise();
-        }
-        this.fire('load', {target: this});
+        this._initialize(file, inventImages);
         resolve();
       } catch (error) {
         reject(error);
@@ -154,7 +146,9 @@ export class OpensfmDataProvider extends DataProviderBase {
       return this._getInventedImageBuffer();
     }
 
-    return fetchArrayBuffer(url, cancellation);
+    return fetchArrayBuffer(url, cancellation).catch(() =>
+      this._inventImagePromise(),
+    );
   }
 
   getMesh(url) {
@@ -222,7 +216,7 @@ export class OpensfmDataProvider extends DataProviderBase {
 
         meshes[uniqueId] = this._convert.mesh(shot);
 
-        const cellId = this._geometry.lngLatToCellId(image.computed_geometry);
+        const cellId = this._geometry.lngLatToCellId(image.geometry);
         if (!(cellId in cells)) {
           cells[cellId] = {};
         }
@@ -301,6 +295,28 @@ export class OpensfmDataProvider extends DataProviderBase {
     return imageId in this._data.images;
   }
 
+  _initialize(file, inventImages) {
+    if (this.loaded) {
+      reject(new Error('Already loaded'));
+      return;
+    }
+
+    if (!isReconstructionData(file.data)) {
+      reject(new Error('Not a reconstruction'));
+      return;
+    }
+
+    this._addFile(file);
+    if (inventImages) {
+      this._inventedImagePromise = this._inventImagePromise().then(buffer => {
+        this._inventedImageBuffer = buffer;
+        this._inventedImagePromise = null;
+        return buffer;
+      });
+    }
+    this.fire('load', {target: this});
+  }
+
   _inventClusterId(index) {
     return `cluster_${index}`;
   }
@@ -314,10 +330,6 @@ export class OpensfmDataProvider extends DataProviderBase {
         const buffer = await blob.arrayBuffer();
         resolve(buffer);
       }, 'image/jpeg');
-    }).then(buffer => {
-      this._inventedImageBuffer = buffer;
-      this._inventedImagePromise = null;
-      return buffer;
     });
   }
 
@@ -336,7 +348,7 @@ export class OpensfmDataProvider extends DataProviderBase {
                 return this.add({data});
               }
 
-              await this.load({data});
+              await this._initialize({data});
               this._load = null;
               resolve();
               return Promise.resolve();
