@@ -372,9 +372,9 @@ FEATURES_VERSION = 2
 FEATURES_HEADER = "OPENSFM_FEATURES_VERSION"
 
 
-def load_features(filepath, config):
-    """ Load features from filename """
-    s = np.load(filepath, allow_pickle=True)
+def load_features(fileobject, config):
+    """ Load features from file (path like or file object like) """
+    s = np.load(fileobject, allow_pickle=True)
     version = _features_file_version(s)
     return getattr(sys.modules[__name__], "_load_features_v%d" % version)(s, config)
 
@@ -440,7 +440,7 @@ def _load_features_v2(s, config):
 
 
 def save_features(
-    filepath,
+    fileobject,
     points,
     desc,
     colors,
@@ -449,6 +449,7 @@ def save_features(
     segmentation_labels,
     config,
 ):
+    """ Save features from file (path like or file object like) """
     feature_type = config["feature_type"]
     if (
         (
@@ -462,7 +463,7 @@ def save_features(
     else:
         feature_data_type = np.float32
     np.savez_compressed(
-        filepath,
+        fileobject,
         points=points.astype(np.float32),
         descriptors=desc.astype(feature_data_type),
         colors=colors,

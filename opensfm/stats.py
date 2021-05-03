@@ -245,7 +245,7 @@ def processing_statistics(data: DataSet, reconstructions):
     )
 
     stats["date"] = datetime.datetime.fromtimestamp(
-        os.path.getmtime(data._reconstruction_file(None))
+        data.io_handler.timestamp(data._reconstruction_file(None))
     ).strftime("%d/%m/%Y at %H:%M:%S")
 
     min_x, min_y, max_x, max_y = 1e30, 1e30, 0, 0
@@ -396,7 +396,13 @@ def _get_gaussian_kernel(radius, ratio):
     return kernel / sum(np.ndarray.flatten(kernel))
 
 
-def save_matchgraph(data: DataSetBase, tracks_manager, reconstructions, output_path):
+def save_matchgraph(
+    data: DataSetBase,
+    tracks_manager,
+    reconstructions,
+    output_path,
+    io_handler,
+):
     all_shots = []
     all_points = []
     shot_component = {}
@@ -444,14 +450,20 @@ def save_matchgraph(data: DataSetBase, tracks_manager, reconstructions, output_p
         label="Number of matches between images",
         pad=0.0,
     )
-    plt.savefig(
-        os.path.join(output_path, "matchgraph.png"),
-        dpi=300,
-        bbox_inches="tight",
-    )
+
+    with io_handler.open(os.path.join(output_path, "matchgraph.png"), "wb") as fwb:
+        plt.savefig(
+            fwb,
+            dpi=300,
+            bbox_inches="tight",
+        )
 
 
-def save_residual_histogram(stats, output_path):
+def save_residual_histogram(
+    stats,
+    output_path,
+    io_handler,
+):
     backup = dict(mpl.rcParams)
     fig, axs = plt.subplots(1, 2, tight_layout=True, figsize=(15, 3))
 
@@ -474,15 +486,20 @@ def save_residual_histogram(stats, output_path):
     axs[0].set_title("Normalized Residual")
     axs[1].set_title("Pixel Residual")
 
-    plt.savefig(
-        os.path.join(output_path, "residual_histogram.png"),
-        dpi=300,
-        bbox_inches="tight",
-    )
+    with io_handler.open(
+        os.path.join(output_path, "residual_histogram.png"), "wb"
+    ) as fwb:
+        plt.savefig(
+            fwb,
+            dpi=300,
+            bbox_inches="tight",
+        )
     mpl.rcParams = backup
 
 
-def save_topview(data: DataSetBase, tracks_manager, reconstructions, output_path):
+def save_topview(
+    data: DataSetBase, tracks_manager, reconstructions, output_path, io_handler
+):
     points = []
     colors = []
     for rec in reconstructions:
@@ -634,15 +651,17 @@ def save_topview(data: DataSetBase, tracks_manager, reconstructions, output_path
         [0, f"{int(size_y / 2):.0f}", f"{size_y:.0f} meters"],
         fontsize="small",
     )
+    with io_handler.open(os.path.join(output_path, "topview.png"), "wb") as fwb:
+        plt.savefig(
+            fwb,
+            dpi=300,
+            bbox_inches="tight",
+        )
 
-    plt.savefig(
-        os.path.join(output_path, "topview.png"),
-        dpi=300,
-        bbox_inches="tight",
-    )
 
-
-def save_heatmap(data: DataSetBase, tracks_manager, reconstructions, output_path):
+def save_heatmap(
+    data: DataSetBase, tracks_manager, reconstructions, output_path, io_handler
+):
     all_projections = {}
 
     splatting = 15
@@ -709,17 +728,26 @@ def save_heatmap(data: DataSetBase, tracks_manager, reconstructions, output_path
             [buckets_y, buckets_y / 2, 0], [0, int(h / 2), h], fontsize="x-small"
         )
 
+    with io_handler.open(
+        os.path.join(
+            output_path, "heatmap_" + str(camera_id.replace("/", "_")) + ".png"
+        ),
+        "wb",
+    ) as fwb:
+
         plt.savefig(
-            os.path.join(
-                output_path, "heatmap_" + str(camera_id.replace("/", "_")) + ".png"
-            ),
+            fwb,
             dpi=300,
             bbox_inches="tight",
         )
 
 
 def save_residual_grids(
-    data: DataSetBase, tracks_manager, reconstructions, output_path
+    data: DataSetBase,
+    tracks_manager,
+    reconstructions,
+    output_path,
+    io_handler,
 ):
     all_errors = {}
 
@@ -827,13 +855,18 @@ def save_residual_grids(
         plt.yticks(
             [0, buckets_y / 2, buckets_y], [0, int(h / 2), h], fontsize="x-small"
         )
-        plt.savefig(
+
+        with io_handler.open(
             os.path.join(
                 output_path, "residuals_" + str(camera_id.replace("/", "_")) + ".png"
             ),
-            dpi=300,
-            bbox_inches="tight",
-        )
+            "wb",
+        ) as fwb:
+            plt.savefig(
+                fwb,
+                dpi=300,
+                bbox_inches="tight",
+            )
 
 
 def decimate_points(reconstructions, max_num_points):

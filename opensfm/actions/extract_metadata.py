@@ -51,7 +51,7 @@ def run_dataset(data: DataSetBase):
     data.save_camera_models(camera_models)
 
     end = time.time()
-    with open(data.profile_log(), "a") as fout:
+    with data.io_handler.open(data.profile_log(), "a") as fout:
         fout.write("extract_metadata: {0}\n".format(end - start))
 
 

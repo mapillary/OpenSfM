@@ -1,6 +1,7 @@
 import logging
 import os
 import subprocess
+import tempfile
 
 import PIL
 from fpdf import FPDF
@@ -14,6 +15,7 @@ class Report:
     def __init__(self, data: DataSet):
         self.output_path = os.path.join(data.data_path, "stats")
         self.dataset_name = os.path.basename(data.data_path)
+        self.io_handler = data.io_handler
 
         self.mapi_light_light_green = [210, 245, 226]
         self.mapi_light_green = [5, 203, 99]
@@ -36,7 +38,12 @@ class Report:
         self.stats = self._read_stats_file("stats.json")
 
     def save_report(self, filename):
-        self.pdf.output(os.path.join(self.output_path, filename), "F")
+        bytestring = self.pdf.output(dest="S")
+        with self.io_handler.open(
+            os.path.join(self.output_path, filename), "wb"
+        ) as fwb:
+            fwb.write(bytestring)
+
 
     def _make_table(self, columns_names, rows, row_header=False):
         self.pdf.set_font("Helvetica", "", self.h3)
@@ -83,7 +90,7 @@ class Report:
 
     def _read_stats_file(self, filename):
         file_path = os.path.join(self.output_path, filename)
-        with io.open_rt(file_path) as fin:
+        with self.io_handler.open_rt(file_path) as fin:
             return io.json_load(fin)
 
     def _make_section(self, title):
@@ -100,19 +107,28 @@ class Report:
         self.pdf.set_xy(self.margin, self.pdf.get_y() + self.margin)
 
     def _make_centered_image(self, image_path, desired_height):
-        width, height = PIL.Image.open(image_path).size
-        resized_width = width * desired_height / height
-        if resized_width > self.total_size:
-            resized_width = self.total_size
-            desired_height = height * resized_width / width
 
-        self.pdf.image(
-            image_path,
-            self.pdf.get_x() + self.total_size / 2 - resized_width / 2,
-            self.pdf.get_y(),
-            h=desired_height,
-        )
-        self.pdf.set_xy(self.margin, self.pdf.get_y() + desired_height + self.margin)
+        with tempfile.TemporaryDirectory() as tmp_local_dir:
+            local_image_path = os.path.join(tmp_local_dir, os.path.basename(image_path))
+            with self.io_handler.open(local_image_path, "wb") as fwb:
+                with self.io_handler.open(image_path, "rb") as f:
+                    fwb.write(f.read())
+
+            width, height = PIL.Image.open(local_image_path).size
+            resized_width = width * desired_height / height
+            if resized_width > self.total_size:
+                resized_width = self.total_size
+                desired_height = height * resized_width / width
+
+            self.pdf.image(
+                local_image_path,
+                self.pdf.get_x() + self.total_size / 2 - resized_width / 2,
+                self.pdf.get_y(),
+                h=desired_height,
+            )
+            self.pdf.set_xy(
+                self.margin, self.pdf.get_y() + desired_height + self.margin
+            )
 
     def make_title(self):
         # title
@@ -224,7 +240,7 @@ class Report:
 
         topview_height = 130
         topview_grids = [
-            f for f in os.listdir(self.output_path) if f.startswith("topview")
+            f for f in self.io_handler.ls(self.output_path) if f.startswith("topview")
         ]
         self._make_centered_image(
             os.path.join(self.output_path, topview_grids[0]), topview_height
@@ -276,7 +292,9 @@ class Report:
         self._make_section("Features Details")
 
         heatmap_height = 60
-        heatmaps = [f for f in os.listdir(self.output_path) if f.startswith("heatmap")]
+        heatmaps = [
+            f for f in self.io_handler.ls(self.output_path) if f.startswith("heatmap")
+        ]
         self._make_centered_image(
             os.path.join(self.output_path, heatmaps[0]), heatmap_height
         )
@@ -322,7 +340,7 @@ class Report:
         residual_histogram_height = 60
         residual_histogram = [
             f
-            for f in os.listdir(self.output_path)
+            for f in self.io_handler.ls(self.output_path)
             if f.startswith("residual_histogram")
         ]
         self._make_centered_image(
@@ -337,7 +355,7 @@ class Report:
         for camera, params in self.stats["camera_errors"].items():
             residual_grids = [
                 f
-                for f in os.listdir(self.output_path)
+                for f in self.io_handler.ls(self.output_path)
                 if f.startswith("residuals_" + str(camera.replace("/", "_")))
             ]
             if not residual_grids:
@@ -407,7 +425,9 @@ class Report:
         self._make_section("Tracks Details")
         matchgraph_height = 80
         matchgraph = [
-            f for f in os.listdir(self.output_path) if f.startswith("matchgraph")
+            f
+            for f in self.io_handler.ls(self.output_path)
+            if f.startswith("matchgraph")
         ]
         self._make_centered_image(
             os.path.join(self.output_path, matchgraph[0]), matchgraph_height

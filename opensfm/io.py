@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+from abc import ABC, abstractmethod
 from typing import List
 
 import cv2
@@ -8,7 +9,6 @@ import numpy as np
 import pyproj
 from opensfm import context, features, geo, pygeometry, pymap, types
 from PIL import Image
-
 
 logger = logging.getLogger(__name__)
 
@@ -847,21 +847,6 @@ def write_ground_control_points(gcp, fileobj, reference):
     json_dump(obj, fileobj)
 
 
-def mkdir_p(path):
-    """Make a directory including parent directories."""
-    return os.makedirs(path, exist_ok=True)
-
-
-def open_wt(path):
-    """Open a file in text mode for writing utf-8."""
-    return open(path, "w", encoding="utf-8")
-
-
-def open_rt(path):
-    """Open a file in text mode for reading utf-8."""
-    return open(path, "r", encoding="utf-8")
-
-
 def json_dump_kwargs(minify=False):
     if minify:
         indent, separators = None, (",", ":")
@@ -886,67 +871,6 @@ def json_load(fp):
 
 def json_loads(text):
     return json.loads(text)
-
-
-def imread(filename, grayscale=False, unchanged=False, anydepth=False):
-    """Load image as an array ignoring EXIF orientation."""
-    if context.OPENCV3:
-        if grayscale:
-            flags = cv2.IMREAD_GRAYSCALE
-        elif unchanged:
-            flags = cv2.IMREAD_UNCHANGED
-        else:
-            flags = cv2.IMREAD_COLOR
-
-        try:
-            flags |= cv2.IMREAD_IGNORE_ORIENTATION
-        except AttributeError:
-            logger.warning(
-                "OpenCV version {} does not support loading images without "
-                "rotating them according to EXIF. Please upgrade OpenCV to "
-                "version 3.2 or newer.".format(cv2.__version__)
-            )
-
-        if anydepth:
-            flags |= cv2.IMREAD_ANYDEPTH
-    else:
-        if grayscale:
-            flags = cv2.CV_LOAD_IMAGE_GRAYSCALE
-        elif unchanged:
-            flags = cv2.CV_LOAD_IMAGE_UNCHANGED
-        else:
-            flags = cv2.CV_LOAD_IMAGE_COLOR
-
-        if anydepth:
-            flags |= cv2.CV_LOAD_IMAGE_ANYDEPTH
-
-    image = cv2.imread(filename, flags)
-
-    if image is None:
-        raise IOError("Unable to load image {}".format(filename))
-
-    if len(image.shape) == 3:
-        image[:, :, :3] = image[:, :, [2, 1, 0]]  # Turn BGR to RGB (or BGRA to RGBA)
-    return image
-
-
-def imwrite(filename, image):
-    """Write an image to a file"""
-    if len(image.shape) == 3:
-        image[:, :, :3] = image[:, :, [2, 1, 0]]  # Turn RGB to BGR (or RGBA to BGRA)
-    cv2.imwrite(filename, image)
-
-
-def image_size(filename):
-    """Height and width of an image."""
-    try:
-        with Image.open(filename) as img:
-            width, height = img.size
-            return height, width
-    except Exception:
-        # Slower fallback
-        image = imread(filename)
-        return image.shape[:2]
 
 
 # PLY
@@ -1034,3 +958,213 @@ def reconstruction_to_ply(
                         s += " 0"
                     vertices.append(s)
     return points_to_ply_string(vertices, point_num_views)
+
+
+# Filesystem interaction methods
+def mkdir_p(path):
+    """Make a directory including parent directories."""
+    return os.makedirs(path, exist_ok=True)
+
+
+def open_wt(path):
+    """Open a file in text mode for writing utf-8."""
+    return open(path, "w", encoding="utf-8")
+
+
+def open_rt(path):
+    """Open a file in text mode for reading utf-8."""
+    return open(path, "r", encoding="utf-8")
+
+
+def imread(filename, grayscale=False, unchanged=False, anydepth=False):
+    """Load image as an array ignoring EXIF orientation."""
+    if context.OPENCV3:
+        if grayscale:
+            flags = cv2.IMREAD_GRAYSCALE
+        elif unchanged:
+            flags = cv2.IMREAD_UNCHANGED
+        else:
+            flags = cv2.IMREAD_COLOR
+
+        try:
+            flags |= cv2.IMREAD_IGNORE_ORIENTATION
+        except AttributeError:
+            logger.warning(
+                "OpenCV version {} does not support loading images without "
+                "rotating them according to EXIF. Please upgrade OpenCV to "
+                "version 3.2 or newer.".format(cv2.__version__)
+            )
+
+        if anydepth:
+            flags |= cv2.IMREAD_ANYDEPTH
+    else:
+        if grayscale:
+            flags = cv2.CV_LOAD_IMAGE_GRAYSCALE
+        elif unchanged:
+            flags = cv2.CV_LOAD_IMAGE_UNCHANGED
+        else:
+            flags = cv2.CV_LOAD_IMAGE_COLOR
+
+        if anydepth:
+            flags |= cv2.CV_LOAD_IMAGE_ANYDEPTH
+
+    image = cv2.imread(filename, flags)
+
+    if image is None:
+        raise IOError("Unable to load image {}".format(filename))
+
+    if len(image.shape) == 3:
+        image[:, :, :3] = image[:, :, [2, 1, 0]]  # Turn BGR to RGB (or BGRA to RGBA)
+    return image
+
+
+def imwrite(filename, image):
+    """Write an image to a file"""
+    if len(image.shape) == 3:
+        image[:, :, :3] = image[:, :, [2, 1, 0]]  # Turn RGB to BGR (or RGBA to BGRA)
+    cv2.imwrite(filename, image)
+
+
+def image_size(filename):
+    """Height and width of an image."""
+    try:
+        with Image.open(filename) as img:
+            width, height = img.size
+            return height, width
+    except Exception:
+        # Slower fallback
+        image = imread(filename)
+        return image.shape[:2]
+
+
+# IO Filesystem
+class IoFilesystemBase(ABC):
+    @classmethod
+    @abstractmethod
+    def exists(cls, path):
+        pass
+
+    @classmethod
+    def ls(cls, path):
+        pass
+
+    @classmethod
+    @abstractmethod
+    def isfile(cls, path):
+        pass
+
+    @classmethod
+    @abstractmethod
+    def isdir(cls, path):
+        pass
+
+    @classmethod
+    def rm_if_exist(cls, filename):
+        pass
+
+    @classmethod
+    def symlink(cls, src_path, dst_path, **kwargs):
+        pass
+
+    @classmethod
+    @abstractmethod
+    def open(cls, *args, **kwargs):
+        pass
+
+    @classmethod
+    @abstractmethod
+    def open_wt(cls, path):
+        pass
+
+    @classmethod
+    @abstractmethod
+    def open_rt(cls, path):
+        pass
+
+    @classmethod
+    @abstractmethod
+    def mkdir_p(cls, path):
+        pass
+
+    @classmethod
+    @abstractmethod
+    def imwrite(cls, filename, image):
+        pass
+
+    @classmethod
+    @abstractmethod
+    def imread(cls, path, grayscale=False, unchanged=False, anydepth=False):
+        pass
+
+    @classmethod
+    @abstractmethod
+    def image_size(cls, filename):
+        pass
+
+    @classmethod
+    @abstractmethod
+    def timestamp(cls, path):
+        pass
+
+class IoFilesystemDefault(IoFilesystemBase):
+    def __init__(self):
+        self.type = "default"
+
+    @classmethod
+    def exists(cls, path):
+        return os.path.exists(path)
+
+    @classmethod
+    def ls(cls, path):
+        return os.listdir(path)
+
+    @classmethod
+    def isfile(cls, path):
+        return os.path.isfile(path)
+
+    @classmethod
+    def isdir(cls, path):
+        return os.path.isdir(path)
+
+    @classmethod
+    def rm_if_exist(cls, filename):
+        if os.path.islink(filename):
+            os.unlink(filename)
+        if os.path.exists(filename):
+            os.remove(filename)
+
+    @classmethod
+    def symlink(cls, src_path, dst_path, **kwargs):
+        os.symlink(src_path, dst_path, **kwargs)
+
+    @classmethod
+    def open(cls, *args, **kwargs):
+        return open(*args, **kwargs)
+
+    @classmethod
+    def open_wt(cls, path):
+        return cls.open(path, "w", encoding="utf-8")
+
+    @classmethod
+    def open_rt(cls, path):
+        return cls.open(path, "r", encoding="utf-8")
+
+    @classmethod
+    def mkdir_p(cls, path):
+        return os.makedirs(path, exist_ok=True)
+
+    @classmethod
+    def imread(cls, filename, grayscale=False, unchanged=False, anydepth=False):
+        return imread(filename, grayscale, unchanged, anydepth)
+
+    @classmethod
+    def imwrite(cls, filename, image):
+        imwrite(filename, image)
+
+    @classmethod
+    def image_size(cls, filename):
+        return image_size(filename)
+
+    @classmethod
+    def timestamp(cls, path):
+        return os.path.getmtime(path)

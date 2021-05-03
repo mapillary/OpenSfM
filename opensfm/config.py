@@ -186,14 +186,21 @@ def default_config():
 
 
 def load_config(filepath):
-    """Load config from a config.yaml filepath"""
+    """DEPRECATED: Load config from a config.yaml filepath"""
+    if not os.path.isfile(filepath):
+        return default_config()
+
+    with open(filepath) as fin:
+        return load_config_from_fileobject(fin)
+
+
+def load_config_from_fileobject(f):
+    """Load config from a config.yaml fileobject"""
     config = default_config()
 
-    if os.path.isfile(filepath):
-        with open(filepath) as fin:
-            new_config = yaml.safe_load(fin)
-        if new_config:
-            for k, v in new_config.items():
-                config[k] = v
+    new_config = yaml.safe_load(f)
+    if new_config:
+        for k, v in new_config.items():
+            config[k] = v
 
     return config

@@ -4,6 +4,7 @@ import logging
 import os
 import pickle
 from abc import ABC, abstractmethod
+from io import BytesIO
 from typing import Dict, List, Tuple, Optional, IO, Any
 
 import cv2
@@ -19,6 +20,11 @@ class DataSetBase(ABC):
     It is possible to store data remotely or in different formats
     by subclassing this class and overloading its methods.
     """
+
+    @property
+    @abstractmethod
+    def io_handler(self) -> io.IoFilesystemBase:
+        pass
 
     @property
     @abstractmethod
@@ -276,13 +282,15 @@ class DataSet(DataSetBase):
     by subclassing this class and overloading its methods.
     """
 
+    io_handler: io.IoFilesystemBase = io.IoFilesystemDefault()
     config = None
     image_files: Dict[str, str] = {}
     mask_files: Dict[str, str] = {}
     image_list: List[str] = []
 
-    def __init__(self, data_path: str):
+    def __init__(self, data_path: str, io_handler=io.IoFilesystemDefault):
         """Init dataset associated to a folder."""
+        self.io_handler = io_handler
         self.data_path = data_path
         self.load_config()
         self.load_image_list()
@@ -292,7 +300,12 @@ class DataSet(DataSetBase):
         return os.path.join(self.data_path, "config.yaml")
 
     def load_config(self):
-        self.config = config.load_config(self._config_file())
+        config_file_path = self._config_file()
+        if self.io_handler.isfile(config_file_path):
+            with self.io_handler.open(config_file_path) as f:
+                self.config = config.load_config_from_fileobject(f)
+        else:
+            self.config = config.default_config()
 
     def _image_list_file(self):
         return os.path.join(self.data_path, "image_list.txt")
@@ -300,8 +313,8 @@ class DataSet(DataSetBase):
     def load_image_list(self):
         """Load image list from image_list.txt or list images/ folder."""
         image_list_file = self._image_list_file()
-        if os.path.isfile(image_list_file):
-            with io.open_rt(image_list_file) as fin:
+        if self.io_handler.isfile(image_list_file):
+            with self.io_handler.open_rt(image_list_file) as fin:
                 lines = fin.read().splitlines()
             self._set_image_list(lines)
         else:
@@ -317,7 +330,7 @@ class DataSet(DataSetBase):
 
     def open_image_file(self, image: str) -> IO[Any]:
         """Open image file and return file object."""
-        return open(self._image_file(image), "rb")
+        return self.io_handler.open(self._image_file(image), "rb")
 
     def load_image(
         self,
@@ -331,7 +344,7 @@ class DataSet(DataSetBase):
         The array is 3D, indexed by y-coord, x-coord, channel.
         The channels are in RGB order.
         """
-        return io.imread(
+        return self.io_handler.imread(
             self._image_file(image),
             unchanged=unchanged,
             anydepth=anydepth,
@@ -340,13 +353,13 @@ class DataSet(DataSetBase):
 
     def image_size(self, image: str) -> Tuple[int, int]:
         """Height and width of the image."""
-        return io.image_size(self._image_file(image))
+        return self.io_handler.image_size(self._image_file(image))
 
     def load_mask_list(self) -> None:
         """Load mask list from mask_list.txt or list masks/ folder."""
         mask_list_file = os.path.join(self.data_path, "mask_list.txt")
-        if os.path.isfile(mask_list_file):
-            with io.open_rt(mask_list_file) as fin:
+        if self.io_handler.isfile(mask_list_file):
+            with self.io_handler.open_rt(mask_list_file) as fin:
                 lines = fin.read().splitlines()
             self._set_mask_list(lines)
         else:
@@ -356,7 +369,7 @@ class DataSet(DataSetBase):
         """Load image mask if it exists, otherwise return None."""
         if image in self.mask_files:
             mask_path = self.mask_files[image]
-            mask = io.imread(mask_path, grayscale=True)
+            mask = self.io_handler.imread(mask_path, grayscale=True)
             if mask is None:
                 raise IOError(
                     "Unable to load mask for image {} "
@@ -415,8 +428,8 @@ class DataSet(DataSetBase):
     def load_detection(self, image: str) -> Optional[np.ndarray]:
         """Load image detection if it exists, otherwise return None."""
         detection_file = self._detection_file(image)
-        if os.path.isfile(detection_file):
-            detection = io.imread(detection_file, grayscale=True)
+        if self.io_handler.isfile(detection_file):
+            detection = self.io_handler.imread(detection_file, grayscale=True)
         else:
             detection = None
         return detection
@@ -430,8 +443,8 @@ class DataSet(DataSetBase):
     def load_instances(self, image: str) -> Optional[np.ndarray]:
         """Load image instances file if it exists, otherwise return None."""
         instances_file = self._instances_file(image)
-        if os.path.isfile(instances_file):
-            instances = io.imread(instances_file, grayscale=True)
+        if self.io_handler.isfile(instances_file):
+            instances = self.io_handler.imread(instances_file, grayscale=True)
         else:
             instances = None
         return instances
@@ -448,8 +461,8 @@ class DataSet(DataSetBase):
     def load_segmentation(self, image: str) -> Optional[np.ndarray]:
         """Load image segmentation if it exists, otherwise return None."""
         segmentation_file = self._segmentation_file(image)
-        if os.path.isfile(segmentation_file):
-            segmentation = io.imread(segmentation_file, grayscale=True)
+        if self.io_handler.isfile(segmentation_file):
+            segmentation = self.io_handler.imread(segmentation_file, grayscale=True)
         else:
             segmentation = None
         return segmentation
@@ -531,8 +544,8 @@ class DataSet(DataSetBase):
         """Set image path and find all images in there"""
         self.image_list = []
         self.image_files = {}
-        if os.path.exists(path):
-            for name in os.listdir(path):
+        if self.io_handler.exists(path):
+            for name in self.io_handler.ls(path):
                 if self._is_image_file(name):
                     self.image_list.append(name)
                     self.image_files[name] = os.path.join(path, name)
@@ -551,7 +564,7 @@ class DataSet(DataSetBase):
         self.mask_files = {}
         for image in self.images():
             filepath = os.path.join(path, image + ".png")
-            if os.path.isfile(filepath):
+            if self.io_handler.isfile(filepath):
                 self.mask_files[image] = filepath
 
     def _set_mask_list(self, mask_list_lines: List[str]) -> None:
@@ -574,16 +587,16 @@ class DataSet(DataSetBase):
 
     def load_exif(self, image: str) -> Dict[str, Any]:
         """Load pre-extracted image exif metadata."""
-        with io.open_rt(self._exif_file(image)) as fin:
+        with self.io_handler.open_rt(self._exif_file(image)) as fin:
             return json.load(fin)
 
     def save_exif(self, image: str, data: Dict[str, Any]) -> None:
-        io.mkdir_p(self._exif_path())
-        with io.open_wt(self._exif_file(image)) as fout:
+        self.io_handler.mkdir_p(self._exif_path())
+        with self.io_handler.open_wt(self._exif_file(image)) as fout:
             io.json_dump(data, fout)
 
     def exif_exists(self, image: str) -> bool:
-        return os.path.isfile(self._exif_file(image))
+        return self.io_handler.isfile(self._exif_file(image))
 
     def feature_type(self) -> str:
         """Return the type of local features (e.g. AKAZE, SURF, SIFT)"""
@@ -619,31 +632,37 @@ class DataSet(DataSetBase):
         segmentations: Optional[np.ndarray] = None,
         instances: Optional[np.ndarray] = None,
     ) -> None:
-        io.mkdir_p(self._feature_path())
-        features.save_features(
-            filepath,
-            points,
-            descriptors,
-            colors,
-            segmentations,
-            instances,
-            self.segmentation_labels(),
-            self.config,
-        )
+        self.io_handler.mkdir_p(self._feature_path())
+        with self.io_handler.open(filepath, "wb") as fwb:
+            features.save_features(
+                fwb,
+                points,
+                descriptors,
+                colors,
+                segmentations,
+                instances,
+                self.segmentation_labels(),
+                self.config,
+            )
 
     def features_exist(self, image: str) -> bool:
-        return os.path.isfile(self._feature_file(image)) or os.path.isfile(
-            self._feature_file_legacy(image)
-        )
+        return self.io_handler.isfile(
+            self._feature_file(image)
+        ) or self.io_handler.isfile(self._feature_file_legacy(image))
 
     def load_features(
         self, image: str
     ) -> Tuple[
         np.ndarray, np.ndarray, np.ndarray, Optional[Dict[str, Optional[np.ndarray]]]
     ]:
-        if os.path.isfile(self._feature_file_legacy(image)):
-            return features.load_features(self._feature_file_legacy(image), self.config)
-        return features.load_features(self._feature_file(image), self.config)
+
+        features_filepath = (
+            self._feature_file_legacy(image)
+            if self.io_handler.isfile(self._feature_file_legacy(image))
+            else self._feature_file(image)
+        )
+        with self.io_handler.open(features_filepath, "rb") as f:
+            return features.load_features(f, self.config)
 
     def save_features(
         self,
@@ -667,14 +686,16 @@ class DataSet(DataSetBase):
         return os.path.join(self._feature_path(), image + ".words.npz")
 
     def words_exist(self, image: str) -> bool:
-        return os.path.isfile(self._words_file(image))
+        return self.io_handler.isfile(self._words_file(image))
 
     def load_words(self, image: str) -> np.ndarray:
-        s = np.load(self._words_file(image))
+        with self.io_handler.open(self._words_file(image), "rb") as f:
+            s = np.load(f)
         return s["words"].astype(np.int32)
 
     def save_words(self, image: str, words: np.ndarray) -> None:
-        np.savez_compressed(self._words_file(image), words=words.astype(np.uint16))
+        with self.io_handler.open(self._words_file(image), "wb") as f:
+            np.savez_compressed(f, words=words.astype(np.uint16))
 
     def _matches_path(self) -> str:
         """Return path of matches directory"""
@@ -685,19 +706,22 @@ class DataSet(DataSetBase):
         return os.path.join(self._matches_path(), "{}_matches.pkl.gz".format(image))
 
     def matches_exists(self, image: str) -> bool:
-        return os.path.isfile(self._matches_file(image))
+        return self.io_handler.isfile(self._matches_file(image))
 
     def load_matches(self, image: str) -> Dict[str, np.ndarray]:
-        with gzip.open(self._matches_file(image), "rb") as fin:
-            # pyre-fixme [6] : Expected `IO[bytes]` for 2nd positional only parameter
-            matches = pickle.load(fin)
+        with self.io_handler.open(self._matches_file(image), "rb") as fin:
+            matches = pickle.load(BytesIO(gzip.decompress(fin.read())))
         return matches
 
     def save_matches(self, image: str, matches: Dict[str, np.ndarray]) -> None:
-        io.mkdir_p(self._matches_path())
-        with gzip.open(self._matches_file(image), "wb") as fout:
-            # pyre-fixme [6] : Expected `IO[bytes]` for 2nd positional only parameter
-            pickle.dump(matches, fout)
+        self.io_handler.mkdir_p(self._matches_path())
+
+        with BytesIO() as buffer:
+            with gzip.GzipFile(fileobj=buffer, mode="w") as fzip:
+                # pyre-fixme[6]: Expected `IO[bytes]` for 2nd param but got `GzipFile`.
+                pickle.dump(matches, fzip)
+            with self.io_handler.open(self._matches_file(image), "wb") as fw:
+                fw.write(buffer.getvalue())
 
     def find_matches(self, im1: str, im2: str) -> np.ndarray:
         if self.matches_exists(im1):
@@ -719,29 +743,29 @@ class DataSet(DataSetBase):
         self, filename: Optional[str] = None
     ) -> pysfm.TracksManager:
         """Return the tracks manager"""
-        return pysfm.TracksManager.instanciate_from_file(
-            self._tracks_manager_file(filename)
-        )
+        with self.io_handler.open(self._tracks_manager_file(filename), "r") as f:
+            return pysfm.TracksManager.instanciate_from_string(f.read())
 
     def tracks_exists(self, filename: Optional[str] = None) -> bool:
-        return os.path.isfile(self._tracks_manager_file(filename))
+        return self.io_handler.isfile(self._tracks_manager_file(filename))
 
     def save_tracks_manager(
         self, tracks_manager: pysfm.TracksManager, filename: Optional[str] = None
     ) -> None:
-        tracks_manager.write_to_file(self._tracks_manager_file(filename))
+        with self.io_handler.open(self._tracks_manager_file(filename), "w") as fw:
+            fw.write(tracks_manager.as_string())
 
     def _reconstruction_file(self, filename: Optional[str]) -> str:
         """Return path of reconstruction file"""
         return os.path.join(self.data_path, filename or "reconstruction.json")
 
     def reconstruction_exists(self, filename: Optional[str] = None) -> bool:
-        return os.path.isfile(self._reconstruction_file(filename))
+        return self.io_handler.isfile(self._reconstruction_file(filename))
 
     def load_reconstruction(
         self, filename: Optional[str] = None
     ) -> List[types.Reconstruction]:
-        with io.open_rt(self._reconstruction_file(filename)) as fin:
+        with self.io_handler.open_rt(self._reconstruction_file(filename)) as fin:
             reconstructions = io.reconstructions_from_json(io.json_load(fin))
         return reconstructions
 
@@ -751,7 +775,7 @@ class DataSet(DataSetBase):
         filename: Optional[str] = None,
         minify=False,
     ) -> None:
-        with io.open_wt(self._reconstruction_file(filename)) as fout:
+        with self.io_handler.open_wt(self._reconstruction_file(filename)) as fout:
             io.json_dump(io.reconstructions_to_json(reconstruction), fout, minify)
 
     def _reference_lla_path(self) -> str:
@@ -802,11 +826,11 @@ class DataSet(DataSetBase):
         return reference
 
     def save_reference_lla(self, reference: Dict[str, float]) -> None:
-        with io.open_wt(self._reference_lla_path()) as fout:
+        with self.io_handler.open_wt(self._reference_lla_path()) as fout:
             io.json_dump(reference, fout)
 
     def load_reference_lla(self) -> Dict[str, float]:
-        with io.open_rt(self._reference_lla_path()) as fin:
+        with self.io_handler.open_rt(self._reference_lla_path()) as fin:
             return io.json_load(fin)
 
     def load_reference(self) -> geo.TopocentricConverter:
@@ -817,7 +841,7 @@ class DataSet(DataSetBase):
         )
 
     def reference_lla_exists(self) -> bool:
-        return os.path.isfile(self._reference_lla_path())
+        return self.io_handler.isfile(self._reference_lla_path())
 
     def _camera_models_file(self) -> str:
         """Return path of camera model file"""
@@ -825,13 +849,13 @@ class DataSet(DataSetBase):
 
     def load_camera_models(self) -> Dict[str, pygeometry.Camera]:
         """Return camera models data"""
-        with io.open_rt(self._camera_models_file()) as fin:
+        with self.io_handler.open_rt(self._camera_models_file()) as fin:
             obj = json.load(fin)
             return io.cameras_from_json(obj)
 
     def save_camera_models(self, camera_models: Dict[str, pygeometry.Camera]) -> None:
         """Save camera models data"""
-        with io.open_wt(self._camera_models_file()) as fout:
+        with self.io_handler.open_wt(self._camera_models_file()) as fout:
             obj = io.cameras_to_json(camera_models)
             io.json_dump(obj, fout)
 
@@ -841,11 +865,11 @@ class DataSet(DataSetBase):
 
     def camera_models_overrides_exists(self) -> bool:
         """Check if camera overrides file exists."""
-        return os.path.isfile(self._camera_models_overrides_file())
+        return self.io_handler.isfile(self._camera_models_overrides_file())
 
     def load_camera_models_overrides(self) -> Dict[str, pygeometry.Camera]:
         """Load camera models overrides data."""
-        with io.open_rt(self._camera_models_overrides_file()) as fin:
+        with self.io_handler.open_rt(self._camera_models_overrides_file()) as fin:
             obj = json.load(fin)
             return io.cameras_from_json(obj)
 
@@ -853,7 +877,7 @@ class DataSet(DataSetBase):
         self, camera_models: Dict[str, pygeometry.Camera]
     ) -> None:
         """Save camera models overrides data"""
-        with io.open_wt(self._camera_models_overrides_file()) as fout:
+        with self.io_handler.open_wt(self._camera_models_overrides_file()) as fout:
             obj = io.cameras_to_json(camera_models)
             io.json_dump(obj, fout)
 
@@ -863,11 +887,11 @@ class DataSet(DataSetBase):
 
     def exif_overrides_exists(self) -> bool:
         """Check if EXIF overrides file exists."""
-        return os.path.isfile(self._exif_overrides_file())
+        return self.io_handler.isfile(self._exif_overrides_file())
 
     def load_exif_overrides(self) -> Dict[str, Any]:
         """Load EXIF overrides data."""
-        with io.open_rt(self._exif_overrides_file()) as fin:
+        with self.io_handler.open_rt(self._exif_overrides_file()) as fin:
             return json.load(fin)
 
     def _rig_cameras_file(self) -> str:
@@ -876,14 +900,14 @@ class DataSet(DataSetBase):
 
     def load_rig_cameras(self) -> Dict[str, pymap.RigCamera]:
         """Return rig models data"""
-        if not os.path.exists(self._rig_cameras_file()):
+        if not self.io_handler.exists(self._rig_cameras_file()):
             return {}
-        with io.open_rt(self._rig_cameras_file()) as fin:
+        with self.io_handler.open_rt(self._rig_cameras_file()) as fin:
             return io.rig_cameras_from_json(json.load(fin))
 
     def save_rig_cameras(self, rig_cameras: Dict[str, pymap.RigCamera]) -> None:
         """Save rig models data"""
-        with io.open_wt(self._rig_cameras_file()) as fout:
+        with self.io_handler.open_wt(self._rig_cameras_file()) as fout:
             io.json_dump(io.rig_cameras_to_json(rig_cameras), fout)
 
     def _rig_assignments_file(self) -> str:
@@ -892,9 +916,9 @@ class DataSet(DataSetBase):
 
     def load_rig_assignments(self) -> List[List[Tuple[str, str]]]:
         """Return rig assignments  data"""
-        if not os.path.exists(self._rig_assignments_file()):
+        if not self.io_handler.exists(self._rig_assignments_file()):
             return []
-        with io.open_rt(self._rig_assignments_file()) as fin:
+        with self.io_handler.open_rt(self._rig_assignments_file()) as fin:
             return json.load(fin)
 
     def load_rig_assignments_per_image(
@@ -915,7 +939,7 @@ class DataSet(DataSetBase):
 
     def save_rig_assignments(self, rig_assignments: List[List[Tuple[str, str]]]):
         """Save rig assignments  data"""
-        with io.open_wt(self._rig_assignments_file()) as fout:
+        with self.io_handler.open_wt(self._rig_assignments_file()) as fout:
             io.json_dump(rig_assignments, fout)
 
     def profile_log(self) -> str:
@@ -927,14 +951,14 @@ class DataSet(DataSetBase):
 
     def load_report(self, path: str) -> str:
         """Load a report file as a string."""
-        with io.open_rt(os.path.join(self._report_path(), path)) as fin:
+        with self.io_handler.open_rt(os.path.join(self._report_path(), path)) as fin:
             return fin.read()
 
     def save_report(self, report_str: str, path: str) -> None:
         """Save report string to a file."""
         filepath = os.path.join(self._report_path(), path)
-        io.mkdir_p(os.path.dirname(filepath))
-        with io.open_wt(filepath) as fout:
+        self.io_handler.mkdir_p(os.path.dirname(filepath))
+        with self.io_handler.open_wt(filepath) as fout:
             return fout.write(report_str)
 
     def _ply_file(self, filename: Optional[str]):
@@ -953,7 +977,7 @@ class DataSet(DataSetBase):
         ply = io.reconstruction_to_ply(
             reconstruction, tracks_manager, no_cameras, no_points, point_num_views
         )
-        with io.open_wt(self._ply_file(filename)) as fout:
+        with self.io_handler.open_wt(self._ply_file(filename)) as fout:
             fout.write(ply)
 
     def _ground_control_points_file(self) -> str:
@@ -985,13 +1009,13 @@ class DataSet(DataSetBase):
         exif = {image: self.load_exif(image) for image in self.images()}
 
         gcp = []
-        if os.path.isfile(self._gcp_list_file()):
-            with io.open_rt(self._gcp_list_file()) as fin:
+        if self.io_handler.isfile(self._gcp_list_file()):
+            with self.io_handler.open_rt(self._gcp_list_file()) as fin:
                 gcp = io.read_gcp_list(fin, reference, exif)
 
         pcs = []
-        if os.path.isfile(self._ground_control_points_file()):
-            with io.open_rt(self._ground_control_points_file()) as fin:
+        if self.io_handler.isfile(self._ground_control_points_file()):
+            with self.io_handler.open_rt(self._ground_control_points_file()) as fin:
                 pcs = io.read_ground_control_points(fin, reference)
 
         return gcp + pcs
@@ -1007,10 +1031,10 @@ class DataSet(DataSetBase):
     def subset(self, name: str, images_subset: List[str]) -> "DataSet":
         """ Create a subset of this dataset by symlinking input data. """
         subset_dataset_path = os.path.join(self.data_path, name)
-        io.mkdir_p(subset_dataset_path)
-        io.mkdir_p(os.path.join(subset_dataset_path, "images"))
-        io.mkdir_p(os.path.join(subset_dataset_path, "segmentations"))
-        subset_dataset = DataSet(subset_dataset_path)
+        self.io_handler.mkdir_p(subset_dataset_path)
+        self.io_handler.mkdir_p(os.path.join(subset_dataset_path, "images"))
+        self.io_handler.mkdir_p(os.path.join(subset_dataset_path, "segmentations"))
+        subset_dataset = DataSet(subset_dataset_path, self.io_handler)
 
         files = []
         for method in [
@@ -1040,20 +1064,17 @@ class DataSet(DataSetBase):
             )
 
         for src, dst in files:
-            if not os.path.exists(src):
+            if not self.io_handler.exists(src):
                 continue
+            self.io_handler.rm_if_exist(dst)
+            self.io_handler.symlink(src, dst)
 
-            if os.path.islink(dst):
-                os.unlink(dst)
-            if os.path.exists(dst):
-                os.remove(dst)
-
-            os.symlink(src, dst)
-
-        return DataSet(subset_dataset_path)
+        return DataSet(subset_dataset_path, self.io_handler)
 
     def undistorted_dataset(self) -> "UndistortedDataSet":
-        return UndistortedDataSet(self, os.path.join(self.data_path, "undistorted"))
+        return UndistortedDataSet(
+            self, os.path.join(self.data_path, "undistorted"), self.io_handler
+        )
 
 
 class UndistortedDataSet(object):
@@ -1070,21 +1091,27 @@ class UndistortedDataSet(object):
     config: Dict[str, Any] = {}
     data_path: str
 
-    def __init__(self, base_dataset: DataSetBase, undistorted_data_path: str):
+    def __init__(
+        self,
+        base_dataset: DataSetBase,
+        undistorted_data_path: str,
+        io_handler=io.IoFilesystemDefault,
+    ):
         """Init dataset associated to a folder."""
         self.base = base_dataset
         self.config = self.base.config
         self.data_path = undistorted_data_path
+        self.io_handler = io_handler
 
     def load_undistorted_shot_ids(self) -> Dict[str, List[str]]:
         filename = os.path.join(self.data_path, "undistorted_shot_ids.json")
-        with io.open_rt(filename) as fin:
+        with self.io_handler.open_rt(filename) as fin:
             return io.json_load(fin)
 
     def save_undistorted_shot_ids(self, ushot_dict: Dict[str, List[str]]):
         filename = os.path.join(self.data_path, "undistorted_shot_ids.json")
-        io.mkdir_p(self.data_path)
-        with io.open_wt(filename) as fout:
+        self.io_handler.mkdir_p(self.data_path)
+        with self.io_handler.open_wt(filename) as fout:
             io.json_dump(ushot_dict, fout, minify=False)
 
     def _undistorted_image_path(self) -> str:
@@ -1096,16 +1123,16 @@ class UndistortedDataSet(object):
 
     def load_undistorted_image(self, image: str) -> np.ndarray:
         """Load undistorted image pixels as a numpy array."""
-        return io.imread(self._undistorted_image_file(image))
+        return self.io_handler.imread(self._undistorted_image_file(image))
 
     def save_undistorted_image(self, image: str, array: np.ndarray) -> None:
         """Save undistorted image pixels."""
-        io.mkdir_p(self._undistorted_image_path())
-        io.imwrite(self._undistorted_image_file(image), array)
+        self.io_handler.mkdir_p(self._undistorted_image_path())
+        self.io_handler.imwrite(self._undistorted_image_file(image), array)
 
     def undistorted_image_size(self, image: str) -> Tuple[int, int]:
         """Height and width of the undistorted image."""
-        return io.image_size(self._undistorted_image_file(image))
+        return self.io_handler.image_size(self._undistorted_image_file(image))
 
     def _undistorted_mask_path(self) -> str:
         return os.path.join(self.data_path, "masks")
@@ -1116,16 +1143,18 @@ class UndistortedDataSet(object):
 
     def undistorted_mask_exists(self, image: str) -> bool:
         """Check if the undistorted mask file exists."""
-        return os.path.isfile(self._undistorted_mask_file(image))
+        return self.io_handler.isfile(self._undistorted_mask_file(image))
 
     def load_undistorted_mask(self, image: str) -> np.ndarray:
         """Load undistorted mask pixels as a numpy array."""
-        return io.imread(self._undistorted_mask_file(image), grayscale=True)
+        return self.io_handler.imread(
+            self._undistorted_mask_file(image), grayscale=True
+        )
 
     def save_undistorted_mask(self, image: str, array: np.ndarray):
         """Save the undistorted image mask."""
-        io.mkdir_p(self._undistorted_mask_path())
-        io.imwrite(self._undistorted_mask_file(image), array)
+        self.io_handler.mkdir_p(self._undistorted_mask_path())
+        self.io_handler.imwrite(self._undistorted_mask_file(image), array)
 
     def _undistorted_detection_path(self) -> str:
         return os.path.join(self.data_path, "detections")
@@ -1136,16 +1165,18 @@ class UndistortedDataSet(object):
 
     def undistorted_detection_exists(self, image: str) -> bool:
         """Check if the undistorted detection file exists."""
-        return os.path.isfile(self._undistorted_detection_file(image))
+        return self.io_handler.isfile(self._undistorted_detection_file(image))
 
     def load_undistorted_detection(self, image: str) -> np.ndarray:
         """Load an undistorted image detection."""
-        return io.imread(self._undistorted_detection_file(image), grayscale=True)
+        return self.io_handler.imread(
+            self._undistorted_detection_file(image), grayscale=True
+        )
 
     def save_undistorted_detection(self, image: str, array: np.ndarray) -> None:
         """Save the undistorted image detection."""
-        io.mkdir_p(self._undistorted_detection_path())
-        io.imwrite(self._undistorted_detection_file(image), array)
+        self.io_handler.mkdir_p(self._undistorted_detection_path())
+        self.io_handler.imwrite(self._undistorted_detection_file(image), array)
 
     def _undistorted_segmentation_path(self) -> str:
         return os.path.join(self.data_path, "segmentations")
@@ -1156,16 +1187,18 @@ class UndistortedDataSet(object):
 
     def undistorted_segmentation_exists(self, image: str) -> bool:
         """Check if the undistorted segmentation file exists."""
-        return os.path.isfile(self._undistorted_segmentation_file(image))
+        return self.io_handler.isfile(self._undistorted_segmentation_file(image))
 
     def load_undistorted_segmentation(self, image: str) -> np.ndarray:
         """Load an undistorted image segmentation."""
-        return io.imread(self._undistorted_segmentation_file(image), grayscale=True)
+        return self.io_handler.imread(
+            self._undistorted_segmentation_file(image), grayscale=True
+        )
 
     def save_undistorted_segmentation(self, image: str, array: np.ndarray) -> None:
         """Save the undistorted image segmentation."""
-        io.mkdir_p(self._undistorted_segmentation_path())
-        io.imwrite(self._undistorted_segmentation_file(image), array)
+        self.io_handler.mkdir_p(self._undistorted_segmentation_path())
+        self.io_handler.imwrite(self._undistorted_segmentation_file(image), array)
 
     def load_undistorted_segmentation_mask(self, image: str) -> Optional[np.ndarray]:
         """Build a mask from the undistorted segmentation.
@@ -1208,7 +1241,7 @@ class UndistortedDataSet(object):
         return os.path.join(self._depthmap_path(), filename)
 
     def raw_depthmap_exists(self, image: str) -> bool:
-        return os.path.isfile(self.depthmap_file(image, "raw.npz"))
+        return self.io_handler.isfile(self.depthmap_file(image, "raw.npz"))
 
     def save_raw_depthmap(
         self,
@@ -1219,36 +1252,40 @@ class UndistortedDataSet(object):
         nghbr: np.ndarray,
         nghbrs: np.ndarray,
     ) -> None:
-        io.mkdir_p(self._depthmap_path())
+        self.io_handler.mkdir_p(self._depthmap_path())
         filepath = self.depthmap_file(image, "raw.npz")
-        np.savez_compressed(
-            filepath, depth=depth, plane=plane, score=score, nghbr=nghbr, nghbrs=nghbrs
-        )
+        with self.io_handler.open(filepath, "wb") as f:
+            np.savez_compressed(
+                f, depth=depth, plane=plane, score=score, nghbr=nghbr, nghbrs=nghbrs
+            )
 
     def load_raw_depthmap(
         self, image: str
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-        o = np.load(self.depthmap_file(image, "raw.npz"))
+        with self.io_handler.open(self.depthmap_file(image, "raw.npz"), "rb") as f:
+            o = np.load(f)
         return o["depth"], o["plane"], o["score"], o["nghbr"], o["nghbrs"]
 
     def clean_depthmap_exists(self, image: str) -> bool:
-        return os.path.isfile(self.depthmap_file(image, "clean.npz"))
+        return self.io_handler.isfile(self.depthmap_file(image, "clean.npz"))
 
     def save_clean_depthmap(
         self, image: str, depth: np.ndarray, plane: np.ndarray, score: np.ndarray
     ):
-        io.mkdir_p(self._depthmap_path())
+        self.io_handler.mkdir_p(self._depthmap_path())
         filepath = self.depthmap_file(image, "clean.npz")
-        np.savez_compressed(filepath, depth=depth, plane=plane, score=score)
+        with self.io_handler.open(filepath, "wb") as f:
+            np.savez_compressed(f, depth=depth, plane=plane, score=score)
 
     def load_clean_depthmap(
         self, image: str
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        o = np.load(self.depthmap_file(image, "clean.npz"))
+        with self.io_handler.open(self.depthmap_file(image, "clean.npz"), "rb") as f:
+            o = np.load(f)
         return o["depth"], o["plane"], o["score"]
 
     def pruned_depthmap_exists(self, image: str) -> bool:
-        return os.path.isfile(self.depthmap_file(image, "pruned.npz"))
+        return self.io_handler.isfile(self.depthmap_file(image, "pruned.npz"))
 
     def save_pruned_depthmap(
         self,
@@ -1259,21 +1296,23 @@ class UndistortedDataSet(object):
         labels: np.ndarray,
         detections: np.ndarray,
     ) -> None:
-        io.mkdir_p(self._depthmap_path())
+        self.io_handler.mkdir_p(self._depthmap_path())
         filepath = self.depthmap_file(image, "pruned.npz")
-        np.savez_compressed(
-            filepath,
-            points=points,
-            normals=normals,
-            colors=colors,
-            labels=labels,
-            detections=detections,
-        )
+        with self.io_handler.open(filepath, "wb") as f:
+            np.savez_compressed(
+                f,
+                points=points,
+                normals=normals,
+                colors=colors,
+                labels=labels,
+                detections=detections,
+            )
 
     def load_pruned_depthmap(
         self, image: str
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-        o = np.load(self.depthmap_file(image, "pruned.npz"))
+        with self.io_handler.open(self.depthmap_file(image, "pruned.npz"), "rb") as f:
+            o = np.load(f)
         if "detections" not in o:
             return (
                 o["points"],
@@ -1287,23 +1326,25 @@ class UndistortedDataSet(object):
 
     def load_undistorted_tracks_manager(self) -> pysfm.TracksManager:
         filename = os.path.join(self.data_path, "tracks.csv")
-        return pysfm.TracksManager.instanciate_from_file(filename)
+        with self.io_handler.open(filename, "r") as f:
+            return pysfm.TracksManager.instanciate_from_string(f.read())
 
     def save_undistorted_tracks_manager(
         self, tracks_manager: pysfm.TracksManager
     ) -> None:
         filename = os.path.join(self.data_path, "tracks.csv")
-        tracks_manager.write_to_file(filename)
+        with self.io_handler.open(filename, "w") as fw:
+            fw.write(tracks_manager.as_string())
 
     def load_undistorted_reconstruction(self) -> List[types.Reconstruction]:
         filename = os.path.join(self.data_path, "reconstruction.json")
-        with io.open_rt(filename) as fin:
+        with self.io_handler.open_rt(filename) as fin:
             return io.reconstructions_from_json(io.json_load(fin))
 
     def save_undistorted_reconstruction(
         self, reconstruction: List[types.Reconstruction]
     ) -> None:
         filename = os.path.join(self.data_path, "reconstruction.json")
-        io.mkdir_p(self.data_path)
-        with io.open_wt(filename) as fout:
+        self.io_handler.mkdir_p(self.data_path)
+        with self.io_handler.open_wt(filename) as fout:
             io.json_dump(io.reconstructions_to_json(reconstruction), fout, minify=True)
