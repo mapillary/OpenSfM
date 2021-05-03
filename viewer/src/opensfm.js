@@ -22,6 +22,7 @@ export {OpensfmViewer} from './ui/OpensfmViewer.js';
 
 export {CancelledError} from './util/Error.js';
 export {EventEmitter} from './util/EventEmitter.js';
+export * from './util/coords.js';
 export * from './util/ids.js';
 export * from './util/params.js';
 export * from './util/types.js';

@@ -238,6 +238,16 @@ input[type='file'] {
     margin: 2px;
 }
 
+.opensfm-info-text.opensfm-info-text-stat {
+    margin-bottom: 0;
+    margin-top: 0;
+    font-size: 9px;
+    overflow-wrap: initial;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
 .opensfm-info-text.opensfm-info-inline {
     display: inline-block;
 }

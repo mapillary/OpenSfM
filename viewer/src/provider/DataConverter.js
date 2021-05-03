@@ -13,6 +13,14 @@ export class DataConverter {
 
   cluster(cluster, clusterId, reference) {
     const points = cluster.points ?? {};
+    const normalize = 1 / 255;
+    for (const point of Object.values(points)) {
+      const color = point.color;
+      color[0] *= normalize;
+      color[1] *= normalize;
+      color[2] *= normalize;
+    }
+
     return {
       id: clusterId,
       points,
@@ -112,7 +120,7 @@ export class DataConverter {
     const cluster = {id: clusterId, url: clusterId};
     const computed_rotation = shot.rotation;
     const height = camera.height;
-    const merge_id = shot.merge_cc.toString();
+    const merge_id = shot.merge_cc == null ? null : shot.merge_cc.toString();
     const exif_orientation = shot.orientation;
     const quality_score = 1;
     const width = camera.width;

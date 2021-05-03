@@ -3,19 +3,24 @@
  */
 
 import {
-  CameraControls,
   CameraVisualizationMode,
   OriginalPositionMode,
   RenderMode,
   Viewer,
 } from '../../node_modules/mapillary-js/dist/mapillary.module.js';
 import {EventEmitter} from '../util/EventEmitter.js';
+import {AxesRenderer} from '../renderer/AxesRenderer.js';
+import {CustomRenderer} from '../renderer/CustomRenderer.js';
+import {EarthRenderer} from '../renderer/EarthRenderer.js';
 import {CommandExplainerControl} from '../control/CommandExplainerControl.js';
 import {InfoControl} from '../control/InfoControl.js';
+import {StatsControl} from '../control/StatsControl.js';
+import {ThumbnailControl} from '../control/ThumbnailControl.js';
 import {FolderName} from '../controller/DatController.js';
 import {OptionController} from '../controller/OptionController.js';
-import {ThumbnailControl} from '../control/ThumbnailControl.js';
 import {FileController} from '../controller/FileController.js';
+import {OrbitCameraControls} from './OrbitCameraControls.js';
+import {convertCameraControlMode, CameraControlMode} from './modes.js';
 
 export class OpensfmViewer extends EventEmitter {
   constructor(options) {
@@ -34,20 +39,20 @@ export class OpensfmViewer extends EventEmitter {
     const spatialConfiguration = {
       cameraSize: 0.5,
       cameraVisualizationMode: cvm,
+      cellGridDepth: 3,
+      cellsVisible: false,
       originalPositionMode: opm,
       pointSize: 0.2,
       pointsVisible: true,
-      tilesVisible: false,
     };
 
+    const cameraControlMode = CameraControlMode.ORBIT;
     const imagesVisible = false;
-    const cameraControls = CameraControls.Earth;
-    this._viewer = new Viewer({
+    const viewer = new Viewer({
       apiClient: this._provider,
-      cameraControls,
+      cameraControls: convertCameraControlMode(cameraControlMode),
       combinedPanning: false,
       component: {
-        bearing: false,
         cover: false,
         direction: false,
         image: imagesVisible,
@@ -59,29 +64,38 @@ export class OpensfmViewer extends EventEmitter {
       imageTiling: false,
       renderMode: RenderMode.Letterbox,
     });
-    const viewer = this._viewer;
+
+    viewer.attachCustomCameraControls(new OrbitCameraControls());
     this._spatial = viewer.getComponent('spatial');
+    this._viewer = viewer;
 
     const infoSize = 0.3;
-    const thumbnailVisible = false;
     const commandsVisible = true;
+    const statsVisible = true;
+    const thumbnailVisible = false;
 
     const controllerOptions = {
-      cameraControls,
+      axesVisible: true,
+      cameraControlMode,
       commandsVisible,
       imagesVisible,
       infoSize,
+      statsVisible,
       thumbnailVisible,
     };
     this._optionController = new OptionController(
       Object.assign(
         {},
-        viewer.getComponent('spatial').defaultConfiguration,
+        this._spatial.defaultConfiguration,
         spatialConfiguration,
         controllerOptions,
       ),
     );
 
+    this._statsControl = new StatsControl({
+      visible: statsVisible,
+      provider: this._provider,
+    });
     this._thumbnailControl = new ThumbnailControl({
       visible: thumbnailVisible,
       provider: this._provider,
@@ -96,6 +110,7 @@ export class OpensfmViewer extends EventEmitter {
     });
     this._infoControl.addControl(this._commandExplainerControl);
     this._infoControl.addControl(this._thumbnailControl);
+    this._infoControl.addControl(this._statsControl);
     this._infoControl.setWidth(infoSize);
 
     this._fileController = new FileController({
@@ -107,13 +122,14 @@ export class OpensfmViewer extends EventEmitter {
       this._fileController,
       FolderName.IO,
     );
-    const toggleCommand = {
-      key: 'p',
-      value: 'toggleFileLoader',
-      handler: async () => await this._fileController.toggle(),
-    };
-    this._optionController.key.addCommand(toggleCommand);
-    this._commandExplainerControl.add({[toggleCommand.key]: toggleCommand});
+
+    this._makeCommands();
+
+    this._axesRenderer = new AxesRenderer();
+    this._earthRenderer = new EarthRenderer();
+    this._customRenderer = new CustomRenderer(this._viewer);
+    this._customRenderer.add(this._axesRenderer);
+    this._viewer.addCustomRenderer(this._customRenderer);
   }
 
   get commands() {
@@ -144,6 +160,7 @@ export class OpensfmViewer extends EventEmitter {
     this._loadProvider().then(provider => {
       const items = Object.keys(provider.data.clusters);
       this._optionController.dat.addReconstructionItems(items);
+      this._statsControl.addRawData(provider.rawData);
     });
   }
 
@@ -159,8 +176,9 @@ export class OpensfmViewer extends EventEmitter {
     this._fileController.on('load', event => this._onFileLoad(event));
 
     const optionController = this._optionController;
-    optionController.on('cameracontrols', event =>
-      this._onCameraControls(event),
+    optionController.on('axesvisible', event => this._onAxesVisible(event));
+    optionController.on('cameracontrolmode', event =>
+      this._onCameraControlMode(event),
     );
     optionController.on('camerasize', event => this._onCameraSize(event));
     optionController.on('cameravisualizationmode', event =>
@@ -180,16 +198,18 @@ export class OpensfmViewer extends EventEmitter {
     optionController.on('thumbnailvisible', event =>
       this._onThumbnailVisible(event),
     );
-    optionController.on('tilesvisible', event => this._onTilesVisible(event));
+    optionController.on('cellsvisible', event => this._onCellsVisible(event));
     optionController.on('reconstructionsselected', event =>
       this._onReconstructionsSelected(event),
     );
+    optionController.on('statsvisible', event => this._onStatsVisible(event));
 
     this._provider.on('opensfmdatacreate', event =>
       this._onProviderOpensfmDataCreate(event),
     );
 
     this._viewer.on('image', event => this._onViewerImage(event));
+    this._viewer.on('mousemove', event => this._onViewerMouseMove(event));
   }
 
   _loadProvider() {
@@ -203,6 +223,16 @@ export class OpensfmViewer extends EventEmitter {
         resolve(event.target);
       });
     });
+  }
+
+  _makeCommands() {
+    const toggleCommand = {
+      key: 'p',
+      value: 'toggleFileLoader',
+      handler: async () => await this._fileController.toggle(),
+    };
+    this._optionController.key.addCommand(toggleCommand);
+    this._commandExplainerControl.add({[toggleCommand.key]: toggleCommand});
   }
 
   async _move() {
@@ -220,6 +250,15 @@ export class OpensfmViewer extends EventEmitter {
 
   _moveTo(viewer, imageId) {
     viewer.moveTo(imageId).catch(error => console.error(error));
+  }
+
+  _onAxesVisible(event) {
+    if (event.visible) {
+      this._customRenderer.add(this._axesRenderer);
+    } else {
+      this._customRenderer.remove(this._axesRenderer);
+    }
+    this._viewer.triggerRerender();
   }
 
   _onCameraSize(event) {
@@ -247,21 +286,30 @@ export class OpensfmViewer extends EventEmitter {
     }
   }
 
-  _onCameraControls(event) {
+  _onCameraControlMode(event) {
     const mode = event.mode;
-    const bearing = 'bearing';
     const direction = 'direction';
     const zoom = 'zoom';
-    this._viewer.setCameraControls(mode);
-    if (mode === CameraControls.Earth) {
-      this._viewer.deactivateComponent(bearing);
-      this._viewer.deactivateComponent(direction);
-      this._viewer.deactivateComponent(zoom);
-    } else {
-      this._viewer.activateComponent(bearing);
+
+    if (mode === CameraControlMode.STREET) {
       this._viewer.activateComponent(direction);
       this._viewer.activateComponent(zoom);
+    } else {
+      this._viewer.deactivateComponent(direction);
+      this._viewer.deactivateComponent(zoom);
     }
+
+    if (mode === CameraControlMode.EARTH) {
+      this._customRenderer.add(this._earthRenderer);
+    } else if (this._earthRenderer.active) {
+      this._customRenderer.remove(this._earthRenderer);
+    }
+
+    this._viewer.setCameraControls(convertCameraControlMode(mode));
+  }
+
+  _onCellsVisible(event) {
+    this._configure({cellsVisible: event.visible});
   }
 
   async _onFileLoad(event) {
@@ -284,6 +332,13 @@ export class OpensfmViewer extends EventEmitter {
     this._infoControl.setWidth(event.size);
   }
 
+  _onViewerMouseMove(event) {
+    if (this._earthRenderer.active) {
+      this._earthRenderer.intersect(event);
+      this._viewer.triggerRerender();
+    }
+  }
+
   _onOriginalPositionMode(event) {
     this._configure({originalPositionMode: event.mode});
   }
@@ -299,6 +354,7 @@ export class OpensfmViewer extends EventEmitter {
   _onProviderOpensfmDataCreate(event) {
     const clusters = Object.keys(event.data.clusters);
     this._optionController.dat.addReconstructionItems(clusters);
+    this._statsControl.addRawData(event.rawData);
   }
 
   _onReconstructionsSelected(event) {
@@ -306,8 +362,12 @@ export class OpensfmViewer extends EventEmitter {
     this._viewer.setFilter(filter);
   }
 
-  _onTilesVisible(event) {
-    this._configure({tilesVisible: event.visible});
+  _onStatsVisible(event) {
+    if (event.visible) {
+      this._statsControl.show();
+    } else {
+      this._statsControl.hide();
+    }
   }
 
   _onThumbnailVisible(event) {

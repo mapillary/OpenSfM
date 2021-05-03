@@ -3,28 +3,27 @@
  */
 
 import {
-  CameraControls,
   CameraVisualizationMode,
   OriginalPositionMode,
 } from '../../node_modules/mapillary-js/dist/mapillary.module.js';
 import {EventEmitter} from '../util/EventEmitter.js';
-import {DatController} from './DatController.js';
+import {DatController, FolderName} from './DatController.js';
 import {KeyController} from './KeyController.js';
 
 export class OptionController {
   constructor(options) {
-    const cc = CameraControls;
     const cvm = CameraVisualizationMode;
     const opm = OriginalPositionMode;
     const config = Object.assign({}, options, {
-      cameraControls: cc[options.cameraControls],
       cameraVisualizationMode: cvm[options.cameraVisualizationMode],
       originalPositionMode: opm[options.originalPositionMode],
     });
     const eventTypes = {
-      cameraControls: 'cameracontrols',
+      axesVisible: 'axesvisible',
+      cameraControlMode: 'cameracontrolmode',
       cameraSize: 'camerasize',
       cameraVisualizationMode: 'cameravisualizationmode',
+      cellsVisible: 'cellsvisible',
       commandsVisible: 'commandsvisible',
       datToggle: 'dattoggle',
       imagesVisible: 'imagesvisible',
@@ -34,7 +33,7 @@ export class OptionController {
       pointsVisible: 'pointsvisible',
       reconstructionsSelected: 'reconstructionsselected',
       thumbnailVisible: 'thumbnailvisible',
-      tilesVisible: 'tilesvisible',
+      statsVisible: 'statsvisible',
     };
     const emitter = new EventEmitter();
     const internalOptions = {config, emitter, eventTypes};
@@ -42,6 +41,7 @@ export class OptionController {
     this._keyController = new KeyController(internalOptions);
     this._emitter = emitter;
     this._config = config;
+    this._eventTypes = eventTypes;
   }
 
   get config() {

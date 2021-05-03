@@ -4,11 +4,11 @@
 
 import {GUI} from '../../node_modules/dat.gui/build/dat.gui.module.js';
 import {
-  CameraControls,
   CameraVisualizationMode,
   OriginalPositionMode,
 } from '../../node_modules/mapillary-js/dist/mapillary.module.js';
 import {ListController} from './ListController.js';
+import {CameraControlMode} from '../ui/modes.js';
 
 export const FolderName = Object.freeze({
   INFO: 'info',
@@ -58,13 +58,13 @@ export class DatController {
       .onChange(v => this._onChange(name, v));
   }
 
-  _addCameraControlsOption(folder) {
-    const cc = CameraControls;
-    const ccs = [cc[cc.Earth], cc[cc.Street]];
+  _addCameraControlOption(folder) {
+    const ccm = CameraControlMode;
+    const ccms = [ccm.ORBIT, ccm.STREET, ccm.EARTH];
     folder
-      .add(this._config, 'cameraControls', ccs)
+      .add(this._config, 'cameraControlMode', ccms)
       .listen()
-      .onChange(c => this._onChange('cameraControls', cc[c]));
+      .onChange(m => this._onChange('cameraControlMode', m));
   }
 
   _addCameraVizualizationOption(folder) {
@@ -103,6 +103,7 @@ export class DatController {
     folder.open();
     this._addBooleanOption('commandsVisible', folder);
     this._addBooleanOption('thumbnailVisible', folder);
+    this._addBooleanOption('statsVisible', folder);
     this._addNumericOption('infoSize', folder);
     return folder;
   }
@@ -116,7 +117,7 @@ export class DatController {
   _createReconstructionsController(gui) {
     const emitter = this._emitter;
     const eventType = this._eventTypes.reconstructionsSelected;
-    const folder = gui.addFolder('Reconstructions');
+    const folder = gui.addFolder('Clusters');
     folder.open();
     const controller = new ListController({emitter, eventType, folder});
     return controller;
@@ -130,9 +131,10 @@ export class DatController {
     this._addCameraVizualizationOption(folder);
     this._addNumericOption('cameraSize', folder);
     this._addPositionVisualizationOption(folder);
-    this._addCameraControlsOption(folder);
-    this._addBooleanOption('tilesVisible', folder);
+    this._addCameraControlOption(folder);
+    this._addBooleanOption('cellsVisible', folder);
     this._addBooleanOption('imagesVisible', folder);
+    this._addBooleanOption('axesVisible', folder);
     return folder;
   }
 
@@ -142,17 +144,18 @@ export class DatController {
     let mode = null;
     let type = null;
     switch (name) {
-      case 'camerasVisible':
+      case 'axesVisible':
+      case 'cellsVisible':
       case 'commandsVisible':
       case 'imagesVisible':
       case 'pointsVisible':
+      case 'statsVisible':
       case 'thumbnailVisible':
-      case 'tilesVisible':
         const visible = value;
         type = types[name];
         emitter.fire(type, {type, visible});
         break;
-      case 'cameraControls':
+      case 'cameraControlMode':
       case 'originalPositionMode':
       case 'cameraVisualizationMode':
         mode = value;

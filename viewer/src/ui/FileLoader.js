@@ -38,7 +38,7 @@ export class FileLoader {
           data,
           name: file.name,
           type: null,
-          url: `local/${file.name}`,
+          url: `file:${file.name}`,
         })),
       );
     }

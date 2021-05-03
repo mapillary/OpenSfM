@@ -3,10 +3,10 @@
  */
 
 import {
-  CameraControls,
   CameraVisualizationMode,
   OriginalPositionMode,
 } from '../../node_modules/mapillary-js/dist/mapillary.module.js';
+import {CameraControlMode} from '../ui/modes.js';
 
 export class KeyController {
   constructor(options) {
@@ -18,17 +18,19 @@ export class KeyController {
     const increase = 1.1;
     this._commands = {
       // visibility
+      c: {value: 'axesVisible'},
+      d: {value: 'cellsVisible'},
       e: {value: 'commandsVisible'},
-      f: {value: 'pointsVisible'},
-      d: {value: 'tilesVisible'},
       r: {value: 'imagesVisible'},
+      f: {value: 'pointsVisible'},
+      t: {value: 'statsVisible'},
       v: {value: 'thumbnailVisible'},
       // activity
       l: {value: 'datToggle'},
       // mode
       '1': {value: 'cameraVisualizationMode'},
       '2': {value: 'originalPositionMode'},
-      '3': {value: 'cameraControls'},
+      '3': {value: 'cameraControlMode'},
       // size
       q: {value: 'pointSize', coeff: decrease},
       w: {value: 'pointSize', coeff: increase},
@@ -79,6 +81,7 @@ export class KeyController {
         case 'e':
         case 'f':
         case 'r':
+        case 't':
         case 'v':
           const visible = this._toggle(command.value);
           emitter.fire(type, {type, visible});
@@ -96,8 +99,8 @@ export class KeyController {
           emitter.fire(type, {type, mode: opm});
           break;
         case '3':
-          const cc = this._rotateCc();
-          emitter.fire(type, {type, mode: cc});
+          const ccm = this._rotateCcm();
+          emitter.fire(type, {type, mode: ccm});
           break;
         case 'a':
         case 'q':
@@ -125,19 +128,21 @@ export class KeyController {
     return key in this._commands || key in this._customCommands;
   }
 
-  _rotateCc() {
-    const cc = CameraControls;
-    const earth = cc.Earth;
-    const street = cc.Street;
+  _rotateCcm() {
+    const ccm = CameraControlMode;
+    const orbit = ccm.ORBIT;
+    const earth = ccm.EARTH;
+    const street = ccm.STREET;
 
     const modeRotation = {};
+    modeRotation[orbit] = earth;
     modeRotation[earth] = street;
-    modeRotation[street] = earth;
+    modeRotation[street] = orbit;
 
     const config = this._config;
-    const mode = cc[config.cameraControls];
-    config.cameraControls = cc[modeRotation[mode]];
-    return cc[config.cameraControls];
+    const mode = config.cameraControlMode;
+    config.cameraControlMode = modeRotation[mode];
+    return config.cameraControlMode;
   }
 
   _rotateCvm() {

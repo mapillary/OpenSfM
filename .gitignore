@@ -18,7 +18,7 @@ launch.json
 eval
 
 # Viewer
-viewer/node_modules
+node_modules
 
 # Ignore the data folder, but not the berlin example.
 data/*
