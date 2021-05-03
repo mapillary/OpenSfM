@@ -976,7 +976,12 @@ def open_rt(path):
     return open(path, "r", encoding="utf-8")
 
 
-def imread(filename, grayscale=False, unchanged=False, anydepth=False):
+def imread(path, grayscale=False, unchanged=False, anydepth=False):
+    with open(path, "rb") as fb:
+        return imread_from_fileobject(fb, grayscale, unchanged, anydepth)
+
+
+def imread_from_fileobject(fb, grayscale=False, unchanged=False, anydepth=False):
     """Load image as an array ignoring EXIF orientation."""
     if context.OPENCV3:
         if grayscale:
@@ -1008,33 +1013,51 @@ def imread(filename, grayscale=False, unchanged=False, anydepth=False):
         if anydepth:
             flags |= cv2.CV_LOAD_IMAGE_ANYDEPTH
 
-    image = cv2.imread(filename, flags)
+    im_buffer = np.asarray(bytearray(fb.getvalue()), dtype=np.uint8)
+    image = cv2.imdecode(im_buffer, flags)
 
     if image is None:
-        raise IOError("Unable to load image {}".format(filename))
+        raise IOError("Unable to load image")
 
     if len(image.shape) == 3:
         image[:, :, :3] = image[:, :, [2, 1, 0]]  # Turn BGR to RGB (or BGRA to RGBA)
     return image
 
+    @classmethod
+    def imwrite(cls, path, image):
+        with cls.open(path, "wb") as fwb:
+            imwrite(fwb, image, path)
 
-def imwrite(filename, image):
-    """Write an image to a file"""
+
+def imwrite(path, image: np.ndarray):
+    with open(path, "wb") as fwb:
+        return imwrite_from_fileobject(fwb, image, path)
+
+
+def imwrite_from_fileobject(fwb, image: np.ndarray, ext: str):
+    """Write an image to a file object"""
     if len(image.shape) == 3:
         image[:, :, :3] = image[:, :, [2, 1, 0]]  # Turn RGB to BGR (or RGBA to BGRA)
-    cv2.imwrite(filename, image)
+    _, im_buffer = cv2.imecode(ext, image)
+    fwb.write(im_buffer)
 
 
-def image_size(filename):
+def image_size_from_fileobject(fb):
     """Height and width of an image."""
     try:
-        with Image.open(filename) as img:
+        with Image.open(fb) as img:
             width, height = img.size
             return height, width
     except Exception:
         # Slower fallback
-        image = imread(filename)
+        image = imread(fb)
         return image.shape[:2]
+
+
+def image_size(path):
+    """Height and width of an image."""
+    with open(path, "rb") as fb:
+        return image_size_from_fileobject(fb)
 
 
 # IO Filesystem
@@ -1106,6 +1129,7 @@ class IoFilesystemBase(ABC):
     def timestamp(cls, path):
         pass
 
+
 class IoFilesystemDefault(IoFilesystemBase):
     def __init__(self):
         self.type = "default"
@@ -1154,16 +1178,19 @@ class IoFilesystemDefault(IoFilesystemBase):
         return os.makedirs(path, exist_ok=True)
 
     @classmethod
-    def imread(cls, filename, grayscale=False, unchanged=False, anydepth=False):
-        return imread(filename, grayscale, unchanged, anydepth)
+    def imread(cls, path, grayscale=False, unchanged=False, anydepth=False):
+        with cls.open(path, "rb") as fb:
+            return imread_from_fileobject(fb, grayscale, unchanged, anydepth)
 
     @classmethod
-    def imwrite(cls, filename, image):
-        imwrite(filename, image)
+    def imwrite(cls, path, image):
+        with cls.open(path, "wb") as fwb:
+            imwrite_from_fileobject(fwb, image, path)
 
     @classmethod
-    def image_size(cls, filename):
-        return image_size(filename)
+    def image_size(cls, path):
+        with cls.open(path, "rb") as fb:
+            return image_size_from_fileobject(fb)
 
     @classmethod
     def timestamp(cls, path):
