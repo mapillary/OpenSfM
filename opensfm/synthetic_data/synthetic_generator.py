@@ -3,10 +3,9 @@ from typing import Callable, Tuple, List, Dict, Any, Optional, Union
 
 import cv2
 import numpy as np
+import scipy.signal as signal
 import scipy.spatial as spatial
 from opensfm import geo, pygeometry, pysfm, reconstruction as rc, types, pymap
-from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import Matern
 
 
 def derivative(func: Callable, x: np.ndarray) -> np.ndarray:
@@ -133,14 +132,13 @@ def perturb_points(points: np.ndarray, sigmas: List[float]) -> None:
 def generate_causal_noise(
     dimensions: int, sigma: float, n: int, scale: float
 ) -> List[np.ndarray]:
-    noise = []
-    for i in range(dimensions):
-        kernel = sigma ** 2 * Matern(length_scale=scale, nu=2.5)
-        gp = GaussianProcessRegressor(kernel=kernel)
-        time = np.arange(0, n) / 10.0
-        ys = gp.sample_y(time[:, np.newaxis], 1, random_state=i)
-        noise.append(ys[:, 0])
-    return noise
+    dims = [np.arange(-scale, scale) for _ in range(dimensions)]
+    mesh = np.meshgrid(*dims)
+    dist = np.linalg.norm(mesh, axis=0)
+    filter_kernel = np.exp(-(dist ** 2) / (2 * scale))
+
+    noise = np.random.randn(dimensions, n) * sigma
+    return signal.fftconvolve(noise, filter_kernel, mode="same")
 
 
 def generate_exifs(
@@ -190,7 +188,7 @@ def generate_exifs(
         if causal_gps_noise:
             sequence_gps_dop = _gps_dop(reconstruction.shots[sequence_images[0]])
             perturbations_2d = generate_causal_noise(
-                2, sequence_gps_dop, len(sequence_images), 1.0
+                2, sequence_gps_dop, len(sequence_images), 2.0
             )
         for i, shot_name in enumerate(sequence_images):
             shot = reconstruction.shots[shot_name]
