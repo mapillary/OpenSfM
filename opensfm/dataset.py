@@ -691,7 +691,7 @@ class DataSet(DataSetBase):
     def load_words(self, image: str) -> np.ndarray:
         with self.io_handler.open(self._words_file(image), "rb") as f:
             s = np.load(f)
-        return s["words"].astype(np.int32)
+            return s["words"].astype(np.int32)
 
     def save_words(self, image: str, words: np.ndarray) -> None:
         with self.io_handler.open(self._words_file(image), "wb") as f:
@@ -1264,7 +1264,7 @@ class UndistortedDataSet(object):
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         with self.io_handler.open(self.depthmap_file(image, "raw.npz"), "rb") as f:
             o = np.load(f)
-        return o["depth"], o["plane"], o["score"], o["nghbr"], o["nghbrs"]
+            return o["depth"], o["plane"], o["score"], o["nghbr"], o["nghbrs"]
 
     def clean_depthmap_exists(self, image: str) -> bool:
         return self.io_handler.isfile(self.depthmap_file(image, "clean.npz"))
@@ -1282,7 +1282,7 @@ class UndistortedDataSet(object):
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         with self.io_handler.open(self.depthmap_file(image, "clean.npz"), "rb") as f:
             o = np.load(f)
-        return o["depth"], o["plane"], o["score"]
+            return o["depth"], o["plane"], o["score"]
 
     def pruned_depthmap_exists(self, image: str) -> bool:
         return self.io_handler.isfile(self.depthmap_file(image, "pruned.npz"))
@@ -1313,16 +1313,16 @@ class UndistortedDataSet(object):
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         with self.io_handler.open(self.depthmap_file(image, "pruned.npz"), "rb") as f:
             o = np.load(f)
-        if "detections" not in o:
-            return (
-                o["points"],
-                o["normals"],
-                o["colors"],
-                o["labels"],
-                np.zeros(o["labels"].shape),
-            )
-        else:
-            return o["points"], o["normals"], o["colors"], o["labels"], o["detections"]
+            if "detections" not in o:
+                return (
+                    o["points"],
+                    o["normals"],
+                    o["colors"],
+                    o["labels"],
+                    np.zeros(o["labels"].shape),
+                )
+            else:
+                return o["points"], o["normals"], o["colors"], o["labels"], o["detections"]
 
     def load_undistorted_tracks_manager(self) -> pysfm.TracksManager:
         filename = os.path.join(self.data_path, "tracks.csv")

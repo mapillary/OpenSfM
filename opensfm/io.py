@@ -1013,7 +1013,7 @@ def imread_from_fileobject(fb, grayscale=False, unchanged=False, anydepth=False)
         if anydepth:
             flags |= cv2.CV_LOAD_IMAGE_ANYDEPTH
 
-    im_buffer = np.asarray(bytearray(fb.getvalue()), dtype=np.uint8)
+    im_buffer = np.asarray(bytearray(fb.read()), dtype=np.uint8)
     image = cv2.imdecode(im_buffer, flags)
 
     if image is None:
@@ -1038,7 +1038,7 @@ def imwrite_from_fileobject(fwb, image: np.ndarray, ext: str):
     """Write an image to a file object"""
     if len(image.shape) == 3:
         image[:, :, :3] = image[:, :, [2, 1, 0]]  # Turn RGB to BGR (or RGBA to BGRA)
-    _, im_buffer = cv2.imecode(ext, image)
+    _, im_buffer = cv2.imencode(ext, image)
     fwb.write(im_buffer)
 
 
