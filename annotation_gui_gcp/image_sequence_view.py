@@ -9,12 +9,12 @@ from .view import View
 
 
 class ImageSequenceView(View):
-    def __init__(self, main_ui, sequence_key, image_keys, show_ortho_track):
+    def __init__(self, main_ui, sequence_key, image_keys, show_track_checkbox):
         self.group_name = sequence_key
         self.images_in_list = image_keys
         self.zoom_window_size_px = 200
         self.image_manager = main_ui.image_manager
-        super(ImageSequenceView, self).__init__(main_ui, show_ortho_track)
+        super(ImageSequenceView, self).__init__(main_ui, show_track_checkbox)
 
         # Auto GCP - related stuff
         auto_gcp_button = tk.Button(
@@ -103,9 +103,6 @@ class ImageSequenceView(View):
         self.canvas.draw()
         self.update_image_list_text()
 
-    def pixel_to_latlon(self, x: float, y: float):
-        return None
-
     def set_title(self):
         shot = self.current_image
         seq_ix = self.images_in_list.index(shot)
@@ -113,13 +110,14 @@ class ImageSequenceView(View):
         self.window.title(title)
 
     def go_to_image_index(self, idx):
-        views_to_update = {self}
-        groups_this_view = [
-            g for g in self.main_ui.sequence_groups if self.group_name in g
-        ]
-        for g in groups_this_view:
+        incoming_image = self.images_in_list[idx]
+        incoming_rig_images = self.main_ui.rig_groups.get(
+            self.images_in_list[idx], [incoming_image]
+        )
+
+        # Update all views in the rig
+        for image in incoming_rig_images:
             for v in self.main_ui.sequence_views:
-                if v.group_name in g and v.images_in_list:
-                    views_to_update.add(v)
-        for v in views_to_update:
-            v.bring_new_image(v.images_in_list[idx])
+                if image in v.images_in_list:
+                    v.bring_new_image(image)
+                    break

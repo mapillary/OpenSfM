@@ -16,6 +16,7 @@ OpenSfM
    reporting
    quality_report
    rig
+   annotation_tool
    api
 
 Indices and tables

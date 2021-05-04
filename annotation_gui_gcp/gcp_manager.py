@@ -18,16 +18,12 @@ class GroundControlPointManager:
         self.image_cache = {}
         self.id_generator = id_generator()
 
-        # p_gcp_errors = self.path + "/gcp_reprojections_0x1.json"
-        # self.load_gcp_reprojections(p_gcp_errors)
-
     def load_gcp_reprojections(self, filename):
         if os.path.isfile(filename):
             with open(filename, "r") as f:
                 self.gcp_reprojections = json.load(f)
         else:
             self.gcp_reprojections = {}
-            print(f"Not found: {filename}")
 
     def load_from_file(self, file_path):
         self.points = OrderedDict()
@@ -38,8 +34,6 @@ class GroundControlPointManager:
             self.points[point["id"]] = point["observations"]
             latlon = point.get("position")
             if latlon:
-                if "altitude" in latlon:
-                    raise NotImplementedError("Not supported: altitude in GCPs")
                 self.latlons[point["id"]] = latlon
 
     def write_to_file(self, filename):
@@ -57,7 +51,10 @@ class GroundControlPointManager:
         for point_id, observations in self.points.items():
             for observation in observations:
                 if observation["shot_id"] == main_image:
-                    visible_points_coords[point_id] = observation["projection"]
+                    if "point" in observation:
+                        visible_points_coords[point_id] = observation["point"]
+                    else:
+                        visible_points_coords[point_id] = observation["projection"]
 
         return visible_points_coords
 
@@ -71,7 +68,9 @@ class GroundControlPointManager:
         self.points[new_id] = []
         return new_id
 
-    def add_point_observation(self, point_id, shot_id, projection, latlon=None):
+    def add_point_observation(
+        self, point_id, shot_id, projection_or_point, latlon=None
+    ):
         if not self.point_exists(point_id):
             raise ValueError(f"ERROR: trying to modify a non-existing point {point_id}")
 
@@ -80,33 +79,34 @@ class GroundControlPointManager:
                 "latitude": latlon[0],
                 "longitude": latlon[1],
             }
-        self.points[point_id].append(
-            {
-                "shot_id": shot_id,
-                "projection": projection,
-            }
-        )
+            if len(latlon) == 3:
+                self.latlons[point_id]["altitude"] = latlon[2]
 
-    def compute_gcp_errors(self):
-        error_avg = {}
+        obs = {"shot_id": shot_id}
+        if len(projection_or_point) == 2:
+            obs["projection"] = projection_or_point
+        else:
+            obs["point"] = projection_or_point
+        self.points[point_id].append(obs)
+
+    def get_worst_gcp(self):
         worst_gcp_error = 0
         worst_gcp = None
-        shot_worst_gcp = None
-        for gcp_id in self.points:
-            error_avg[gcp_id] = 0
         for gcp_id in self.gcp_reprojections:
             if gcp_id not in self.points:
                 continue
             for shot_id in self.gcp_reprojections[gcp_id]:
                 err = self.gcp_reprojections[gcp_id][shot_id]["error"]
-                error_avg[gcp_id] += err
                 if err > worst_gcp_error:
                     worst_gcp_error = err
-                    shot_worst_gcp = shot_id
                     worst_gcp = gcp_id
-            error_avg[gcp_id] /= len(self.gcp_reprojections[gcp_id])
 
-        return worst_gcp, shot_worst_gcp, worst_gcp_error, error_avg
+        errors_worst_gcp = [
+            x["error"] for x in self.gcp_reprojections[worst_gcp].values()
+        ]
+        n = len(errors_worst_gcp)
+        print(f"Worst GCP: {worst_gcp} unconfirmed in {n} images")
+        return worst_gcp
 
     def shot_with_max_gcp_error(self, image_keys, gcp):
         # Return they key with most reprojection error for this GCP
@@ -123,10 +123,12 @@ class GroundControlPointManager:
         if self.point_exists(point_id):
             del self.points[point_id]
 
-    def remove_point_observation(self, point_id, shot_id):
+    def remove_point_observation(self, point_id, shot_id, remove_latlon):
         if not self.point_exists(point_id):
             print("ERROR: trying to modify a non-existing point")
             return
+        if point_id in self.latlons and remove_latlon:
+            self.latlons.pop(point_id)
         self.points[point_id] = [
             obs for obs in self.points[point_id] if obs["shot_id"] != shot_id
         ]
