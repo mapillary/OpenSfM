@@ -114,7 +114,7 @@ def _get_valid_observations(reconstructions, tracks_manager):
     return _get_valid_observations_cached
 
 
-def _projection_error(data: DataSetBase, tracks_manager, reconstructions):
+def _projection_error(tracks_manager, reconstructions):
     all_errors_normalized, all_errors_pixels = [], []
     average_error_normalized, average_error_pixels = 0, 0
     for i in range(len(reconstructions)):
@@ -200,7 +200,7 @@ def reconstruction_statistics(data: DataSetBase, tracks_manager, reconstructions
         avg_pixels,
         (hist_normalized, bins_normalized),
         (hist_pixels, bins_pixels),
-    ) = _projection_error(data, tracks_manager, reconstructions)
+    ) = _projection_error(tracks_manager, reconstructions)
     stats["reprojection_error_normalized"] = avg_normalized
     stats["reprojection_error_pixels"] = avg_pixels
     stats["reprojection_histogram_normalized"] = (
