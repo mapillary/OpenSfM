@@ -1,4 +1,3 @@
-#include <foundation/stl_extensions.h>
 #include <map/landmark.h>
 #include <map/rig.h>
 #include <map/shot.h>

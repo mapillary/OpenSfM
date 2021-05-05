@@ -21,7 +21,6 @@
 
 #include "nldiffusion_functions.h"
 
-using namespace std;
 
 /* ************************************************************************* */
 void gaussian_2D_convolution(const cv::Mat& src, cv::Mat& dst, size_t ksize_x,
