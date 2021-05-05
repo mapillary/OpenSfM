@@ -89,6 +89,7 @@ export class AxesRenderer {
 
     const axes = new Object3D();
     axes.add(east, north, up, origin);
+    axes.position.z = -2;
 
     return axes;
   }

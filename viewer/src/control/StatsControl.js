@@ -26,7 +26,7 @@ export class StatsControl {
   addRawData(rawData) {
     for (const data of Object.values(rawData)) {
       const id = data.id;
-      const url = data.url;
+      const url = data.file.url;
       const cluster = data.cluster;
       const shotCount = Object.keys(cluster.shots).length;
       const pointCount = Object.keys(cluster.points).length;

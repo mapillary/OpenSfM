@@ -19,6 +19,7 @@ export class KeyController {
     this._commands = {
       // visibility
       c: {value: 'axesVisible'},
+      y: {value: 'gridVisible'},
       d: {value: 'cellsVisible'},
       e: {value: 'commandsVisible'},
       r: {value: 'imagesVisible'},
@@ -83,6 +84,7 @@ export class KeyController {
         case 'r':
         case 't':
         case 'v':
+        case 'y':
           const visible = this._toggle(command.value);
           emitter.fire(type, {type, visible});
           break;

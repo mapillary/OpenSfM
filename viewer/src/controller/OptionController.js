@@ -26,6 +26,7 @@ export class OptionController {
       cellsVisible: 'cellsvisible',
       commandsVisible: 'commandsvisible',
       datToggle: 'dattoggle',
+      gridVisible: 'gridvisible',
       imagesVisible: 'imagesvisible',
       infoSize: 'infosize',
       originalPositionMode: 'originalpositionmode',

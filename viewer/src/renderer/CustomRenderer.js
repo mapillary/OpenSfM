@@ -58,7 +58,7 @@ export class CustomRenderer extends EventEmitter {
     renderer.autoClear = false;
     this._renderer = renderer;
     for (const child of this._children) {
-      child.onAdd(this.viewer, this._camera, this._reference);
+      child.onAdd(this._viewer, this._camera, this._reference);
     }
     this.fire('add', {target: this});
   }

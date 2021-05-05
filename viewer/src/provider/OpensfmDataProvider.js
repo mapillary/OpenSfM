@@ -178,7 +178,11 @@ export class OpensfmDataProvider extends DataProviderBase {
       rawData[clusterId] = {
         cluster,
         id: clusterId,
-        url: file.url,
+        file: {
+          url: file.url,
+          children: file.children,
+          name: file.name,
+        },
       };
       const reference = this._convert.reference(cluster.reference_lla);
       clusters[clusterId] = this._convert.cluster(
