@@ -1,9 +1,9 @@
-from typing import overload, Any
+from typing import overload, Any, List
 
 import numpy
 
 
-def akaze(arg0: numpy.ndarray, arg1: AKAZEOptions) -> object:
+def akaze(arg0: numpy.ndarray, arg1: AKAZEOptions) -> List[numpy.ndarray]:
     ...
 
 
@@ -13,7 +13,7 @@ def hahog(
     edge_threshold: float = ...,
     target_num_features: int = ...,
     use_adaptive_suppression: bool = ...,
-) -> object:
+) -> List[numpy.ndarray]:
     ...
 
 

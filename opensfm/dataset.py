@@ -628,9 +628,9 @@ class DataSet(DataSetBase):
         filepath: str,
         points: np.ndarray,
         descriptors: np.ndarray,
-        colors: Optional[np.ndarray] = None,
-        segmentations: Optional[np.ndarray] = None,
-        instances: Optional[np.ndarray] = None,
+        colors: np.ndarray,
+        segmentations: Optional[np.ndarray],
+        instances: Optional[np.ndarray],
     ) -> None:
         self.io_handler.mkdir_p(self._feature_path())
         with self.io_handler.open(filepath, "wb") as fwb:
@@ -670,8 +670,8 @@ class DataSet(DataSetBase):
         points: np.ndarray,
         descriptors: np.ndarray,
         colors: np.ndarray,
-        segmentations: np.ndarray,
-        instances: np.ndarray,
+        segmentations: Optional[np.ndarray],
+        instances: Optional[np.ndarray],
     ) -> None:
         self._save_features(
             self._feature_file(image),
@@ -1322,7 +1322,13 @@ class UndistortedDataSet(object):
                     np.zeros(o["labels"].shape),
                 )
             else:
-                return o["points"], o["normals"], o["colors"], o["labels"], o["detections"]
+                return (
+                    o["points"],
+                    o["normals"],
+                    o["colors"],
+                    o["labels"],
+                    o["detections"],
+                )
 
     def load_undistorted_tracks_manager(self) -> pysfm.TracksManager:
         filename = os.path.join(self.data_path, "tracks.csv")
