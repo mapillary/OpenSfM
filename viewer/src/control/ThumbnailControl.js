@@ -85,7 +85,7 @@ export class ThumbnailControl {
     const image = this._image;
     this._thumb.src = image.image.src;
     const clusterId = image.clusterId;
-    const clusterURL = this._provider.rawData[clusterId].url;
+    const clusterURL = this._provider.rawData[clusterId].file.url;
     const imageId = uniqueIDToImageID(image.id);
     this._setTextContent(this._clusterURL, clusterURL);
     this._setTextContent(this._clusterText, clusterId);

@@ -14,7 +14,13 @@ export {KeyController} from './controller/KeyController.js';
 export {ListController} from './controller/ListController.js';
 export {OptionController} from './controller/OptionController.js';
 
+export * as ProviderMath from './provider/math.js';
+export {DataConverter} from './provider/DataConverter.js';
 export {OpensfmDataProvider} from './provider/OpensfmDataProvider.js';
+
+export {AxesRenderer} from './renderer/AxesRenderer.js';
+export {CustomRenderer} from './renderer/CustomRenderer.js';
+export {EarthRenderer} from './renderer/EarthRenderer.js';
 
 export {FileLoader} from './ui/FileLoader.js';
 export {FileSelecter} from './ui/FileSelecter.js';

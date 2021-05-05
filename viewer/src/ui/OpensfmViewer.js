@@ -78,6 +78,7 @@ export class OpensfmViewer extends EventEmitter {
       axesVisible: true,
       cameraControlMode,
       commandsVisible,
+      gridVisible: true,
       imagesVisible,
       infoSize,
       statsVisible,
@@ -126,9 +127,12 @@ export class OpensfmViewer extends EventEmitter {
     this._makeCommands();
 
     this._axesRenderer = new AxesRenderer();
-    this._earthRenderer = new EarthRenderer();
+    this._earthRenderer = new EarthRenderer({
+      mode: cameraControlMode,
+    });
     this._customRenderer = new CustomRenderer(this._viewer);
     this._customRenderer.add(this._axesRenderer);
+    this._customRenderer.add(this._earthRenderer);
     this._viewer.addCustomRenderer(this._customRenderer);
   }
 
@@ -199,6 +203,7 @@ export class OpensfmViewer extends EventEmitter {
       this._onThumbnailVisible(event),
     );
     optionController.on('cellsvisible', event => this._onCellsVisible(event));
+    optionController.on('gridvisible', event => this._onGridVisible(event));
     optionController.on('reconstructionsselected', event =>
       this._onReconstructionsSelected(event),
     );
@@ -299,12 +304,7 @@ export class OpensfmViewer extends EventEmitter {
       this._viewer.deactivateComponent(zoom);
     }
 
-    if (mode === CameraControlMode.EARTH) {
-      this._customRenderer.add(this._earthRenderer);
-    } else if (this._earthRenderer.active) {
-      this._customRenderer.remove(this._earthRenderer);
-    }
-
+    this._earthRenderer.configure({mode});
     this._viewer.setCameraControls(convertCameraControlMode(mode));
   }
 
@@ -318,6 +318,15 @@ export class OpensfmViewer extends EventEmitter {
     } catch (error) {
       console.error(error);
     }
+  }
+
+  _onGridVisible(event) {
+    if (event.visible) {
+      this._customRenderer.add(this._earthRenderer);
+    } else {
+      this._customRenderer.remove(this._earthRenderer);
+    }
+    this._viewer.triggerRerender();
   }
 
   _onImagesVisible(event) {
