@@ -139,7 +139,7 @@ def _projection_error(tracks_manager, reconstructions):
 
     error_count = len(all_errors_normalized)
     if error_count == 0:
-        return -1.0
+        return (-1.0, -1.0, ([], []), ([], []))
 
     bins = 30
     return (
@@ -186,12 +186,17 @@ def reconstruction_statistics(data: DataSetBase, tracks_manager, reconstructions
     lengths, counts = np.array([int(x[0]) for x in hist_agg]), np.array(
         [x[1] for x in hist_agg]
     )
+
+    points_count = stats["reconstructed_points_count"]
+    points_count_over_two = sum(counts[1:])
     stats["observations_count"] = int(sum(lengths * counts))
     stats["average_track_length"] = (
-        stats["observations_count"] / stats["reconstructed_points_count"]
+        (stats["observations_count"] / points_count) if points_count > 0 else -1
     )
-    stats["average_track_length_over_two"] = int(sum(lengths[1:] * counts[1:])) / sum(
-        counts[1:]
+    stats["average_track_length_over_two"] = (
+        (int(sum(lengths[1:] * counts[1:])) / points_count_over_two)
+        if points_count_over_two > 0
+        else -1
     )
     stats["histogram_track_length"] = {k: v for k, v in hist_agg}
 
@@ -244,11 +249,15 @@ def processing_statistics(data: DataSet, reconstructions):
         filter(lambda x: x >= 0, steps_times.values())
     )
 
-    stats["date"] = datetime.datetime.fromtimestamp(
-        data.io_handler.timestamp(data._reconstruction_file(None))
-    ).strftime("%d/%m/%Y at %H:%M:%S")
+    try:
+        stats["date"] = datetime.datetime.fromtimestamp(
+            data.io_handler.timestamp(data._reconstruction_file(None))
+        ).strftime("%d/%m/%Y at %H:%M:%S")
+    except FileNotFoundError:
+        stats["date"] = "unknown"
 
-    min_x, min_y, max_x, max_y = 1e30, 1e30, 0, 0
+    default_max = 1e30
+    min_x, min_y, max_x, max_y = default_max, default_max, 0, 0
     for rec in reconstructions:
         for shot in rec.shots.values():
             o = shot.pose.get_origin()
@@ -256,7 +265,7 @@ def processing_statistics(data: DataSet, reconstructions):
             min_y = min(min_y, o[1])
             max_x = max(max_x, o[0])
             max_y = max(max_y, o[1])
-    stats["area"] = (max_x - min_x) * (max_y - min_y)
+    stats["area"] = (max_x - min_x) * (max_y - min_y) if min_x != default_max else -1
     return stats
 
 
@@ -286,16 +295,12 @@ def features_statistics(data: DataSetBase, tracks_manager, reconstructions):
     per_shots = list(per_shots.values())
 
     stats["reconstructed_features"] = {
-        "min": int(min(per_shots)),
-        "max": int(max(per_shots)),
-        "mean": int(np.mean(per_shots)),
-        "median": int(np.median(per_shots)),
+        "min": int(min(per_shots)) if len(per_shots) > 0 else -1,
+        "max": int(max(per_shots)) if len(per_shots) > 0 else -1,
+        "mean": int(np.mean(per_shots)) if len(per_shots) > 0 else -1,
+        "median": int(np.median(per_shots)) if len(per_shots) > 0 else -1,
     }
     return stats
-
-
-def matching_statistics(data: DataSetBase):
-    return {}
 
 
 def _cameras_statistics(camera_model):
@@ -360,7 +365,6 @@ def compute_all_statistics(data: DataSet, tracks_manager, reconstructions):
     stats["features_statistics"] = features_statistics(
         data, tracks_manager, reconstructions
     )
-    stats["matching_statistics"] = matching_statistics(data)
     stats["reconstruction_statistics"] = reconstruction_statistics(
         data, tracks_manager, reconstructions
     )

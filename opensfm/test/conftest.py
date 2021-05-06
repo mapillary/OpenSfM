@@ -3,7 +3,7 @@ from distutils.version import LooseVersion
 
 import numpy as np
 import pytest
-from opensfm import multiview
+from opensfm import multiview, types
 from opensfm.synthetic_data import synthetic_examples
 from opensfm.synthetic_data import synthetic_scene
 
@@ -16,6 +16,12 @@ def use_legacy_numpy_printoptions():
     """Ensure numpy use legacy print formant."""
     if LooseVersion(np.__version__).version[:2] > [1, 13]:
         np.set_printoptions(legacy="1.13")
+
+
+@pytest.fixture(scope="module")
+def null_scene() -> types.Reconstruction:
+    reconstruction = types.Reconstruction()
+    return reconstruction
 
 
 @pytest.fixture(scope="module")
