@@ -192,44 +192,82 @@ def match_descriptors(im1, im2, camera1, camera2, data, config_override):
 def _match_descriptors_impl(im1, im2, camera1, camera2, data, overriden_config):
     """Perform descriptor matching for a pair of images. It also apply static objects removal."""
     # Will apply mask to features if any
-    p1, f1, _, _, _ = feature_loader.instance.load_all_data(data, im1, masked=True)
-    p2, f2, _, _, _ = feature_loader.instance.load_all_data(data, im2, masked=True)
-    if p1 is None or len(p1) < 2 or p2 is None or len(p2) < 2:
+    features_data1 = feature_loader.instance.load_all_data(data, im1, masked=True)
+    features_data2 = feature_loader.instance.load_all_data(data, im2, masked=True)
+    if (
+        features_data1 is None
+        or len(features_data1.points) < 2
+        or features_data2 is None
+        or len(features_data2.points) < 2
+    ):
         return [], [], []
 
     matcher_type = overriden_config["matcher_type"].upper()
     symmetric_matching = overriden_config["symmetric_matching"]
     if matcher_type == "WORDS":
-        w1 = feature_loader.instance.load_words(data, im1, masked=True)
-        w2 = feature_loader.instance.load_words(data, im2, masked=True)
-        if w1 is None or w2 is None:
+        words1 = feature_loader.instance.load_words(data, im1, masked=True)
+        words2 = feature_loader.instance.load_words(data, im2, masked=True)
+        if words1 is None or words2 is None:
             return [], [], []
 
         if symmetric_matching:
-            matches = match_words_symmetric(f1, w1, f2, w2, overriden_config)
+            matches = match_words_symmetric(
+                features_data1.descriptors,
+                words1,
+                features_data2.descriptors,
+                words2,
+                overriden_config,
+            )
         else:
-            matches = match_words(f1, w1, f2, w2, overriden_config)
+            matches = match_words(
+                features_data1.descriptors,
+                words1,
+                features_data2.descriptors,
+                words2,
+                overriden_config,
+            )
     elif matcher_type == "FLANN":
-        fi1, i1 = feature_loader.instance.load_features_index(data, im1, masked=True)
+        feat_data_index1, index1 = feature_loader.instance.load_features_index(
+            data, im1, masked=True
+        )
         if symmetric_matching:
-            fi2, i2 = feature_loader.instance.load_features_index(
+            feat_data_index2, index2 = feature_loader.instance.load_features_index(
                 data, im2, masked=True
             )
-            matches = match_flann_symmetric(fi1, i1, fi2, i2, overriden_config)
+            matches = match_flann_symmetric(
+                feat_data_index1.descriptors,
+                index1,
+                feat_data_index2.descriptors,
+                index2,
+                overriden_config,
+            )
         else:
-            matches = match_flann(i1, f2, overriden_config)
+            matches = match_flann(index1, features_data2.descriptors, overriden_config)
     elif matcher_type == "BRUTEFORCE":
         if symmetric_matching:
-            matches = match_brute_force_symmetric(f1, f2, overriden_config)
+            matches = match_brute_force_symmetric(
+                features_data1.descriptors, features_data2.descriptors, overriden_config
+            )
         else:
-            matches = match_brute_force(f1, f2, overriden_config)
+            matches = match_brute_force(
+                features_data1.descriptors, features_data2.descriptors, overriden_config
+            )
     else:
         raise ValueError("Invalid matcher_type: {}".format(matcher_type))
 
     # Adhoc filters
     if overriden_config["matching_use_filters"]:
-        matches = apply_adhoc_filters(data, matches, im1, camera1, p1, im2, camera2, p2)
-    return p1, p2, np.array(matches, dtype=int)
+        matches = apply_adhoc_filters(
+            data,
+            matches,
+            im1,
+            camera1,
+            features_data1.points,
+            im2,
+            camera2,
+            features_data2.points,
+        )
+    return features_data1.points, features_data2.points, np.array(matches, dtype=int)
 
 
 def match_robust(im1, im2, matches, camera1, camera2, data, config_override):
@@ -239,16 +277,29 @@ def match_robust(im1, im2, matches, camera1, camera2, data, config_override):
     overriden_config.update(config_override)
 
     # Will apply mask to features if any
-    p1, _, _, _, _ = feature_loader.instance.load_all_data(data, im1, masked=True)
-    p2, _, _, _, _ = feature_loader.instance.load_all_data(data, im2, masked=True)
-    if p1 is None or len(p1) < 2 or p2 is None or len(p2) < 2:
+    features_data1 = feature_loader.instance.load_all_data(data, im1, masked=True)
+    features_data2 = feature_loader.instance.load_all_data(data, im2, masked=True)
+    if (
+        features_data1 is None
+        or len(features_data1.points) < 2
+        or features_data2 is None
+        or len(features_data2.points) < 2
+    ):
         return []
 
     # Run robust matching
     np_matches = np.array(matches, dtype=int)
     t = timer()
     rmatches = _match_robust_impl(
-        im1, im2, p1, p2, np_matches, camera1, camera2, data, overriden_config
+        im1,
+        im2,
+        features_data1.points,
+        features_data2.points,
+        np_matches,
+        camera1,
+        camera2,
+        data,
+        overriden_config,
     )
     time_robust_matching = timer() - t
 

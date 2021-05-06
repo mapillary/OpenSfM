@@ -3,8 +3,8 @@ import logging
 import networkx as nx
 import numpy as np
 from opensfm import pysfm
-from opensfm.unionfind import UnionFind
 from opensfm.dataset import DataSetBase
+from opensfm.unionfind import UnionFind
 
 
 logger = logging.getLogger(__name__)
@@ -17,11 +17,19 @@ def load_features(dataset: DataSetBase, images):
     segmentations = {}
     instances = {}
     for im in images:
-        p, f, c, s = dataset.load_features(im)
-        features[im] = p[:, :3]
-        colors[im] = c
-        segmentations[im] = s["segmentations"] if s else None
-        instances[im] = s["instances"] if s else None
+        features_data = dataset.load_features(im)
+
+        if not features_data:
+            continue
+
+        features[im] = features_data.points[:, :3]
+        colors[im] = features_data.colors
+
+        semantic_data = features_data.semantic
+        if semantic_data:
+            segmentations[im] = semantic_data.segmentation
+            instances[im] = semantic_data.instances
+
     return features, colors, segmentations, instances
 
 
@@ -67,12 +75,8 @@ def create_tracks_manager(features, colors, segmentations, instances, matches, c
             x, y, s = features[image][featureid]
             r, g, b = colors[image][featureid]
             segmentation, instance = (
-                segmentations[image][featureid]
-                if segmentations[image] is not None
-                else NO_VALUE,
-                instances[image][featureid]
-                if instances[image] is not None
-                else NO_VALUE,
+                segmentations[image][featureid] if image in segmentations else NO_VALUE,
+                instances[image][featureid] if image in instances else NO_VALUE,
             )
             obs = pysfm.Observation(
                 x, y, s, int(r), int(g), int(b), featureid, segmentation, instance

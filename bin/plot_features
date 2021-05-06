@@ -44,7 +44,10 @@ if __name__ == "__main__":
 
     images = [args.image] if args.image else data.images()
     for image in images:
-        points, _, _, _ = data.load_features(image)
+        features_data = data.load_features(image)
+        if not features_data:
+            continue
+        points = features_data.points
         print("ploting {0} points".format(len(points)))
         plt.figure()
         plt.title('Image: ' + image + ', features: ' + str(len(points)))

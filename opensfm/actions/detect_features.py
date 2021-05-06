@@ -231,9 +231,14 @@ def detect(
     p_sorted = p_unsorted[order, :]
     f_sorted = f_unsorted[order, :]
     c_sorted = c_unsorted[order, :]
-    s_sorted = s_unsorted[order] if s_unsorted is not None else None
-    i_sorted = i_unsorted[order] if i_unsorted is not None else None
-    data.save_features(image, p_sorted, f_sorted, c_sorted, s_sorted, i_sorted)
+    if s_unsorted is not None and i_unsorted is not None:
+        semantic_data = features.SemanticData(
+            s_unsorted[order], i_unsorted[order], data.segmentation_labels()
+        )
+    else:
+        semantic_data = None
+    features_data = features.FeaturesData(p_sorted, f_sorted, c_sorted, semantic_data)
+    data.save_features(image, features_data)
 
     if need_words:
         bows = bow.load_bows(data.config)
