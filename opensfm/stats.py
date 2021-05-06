@@ -271,7 +271,12 @@ def processing_statistics(data: DataSet, reconstructions):
 
 def features_statistics(data: DataSetBase, tracks_manager, reconstructions):
     stats = {}
-    detected = [len(data.load_features(im)[0]) for im in data.images()]
+    detected = []
+    for im in data.images():
+        features_data = data.load_features(im)
+        if not features_data:
+            continue
+        detected.append(len(features_data.points))
     if len(detected) > 0:
         stats["detected_features"] = {
             "min": min(detected),

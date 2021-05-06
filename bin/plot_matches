@@ -83,10 +83,12 @@ if __name__ == "__main__":
                 continue
             print('plotting {} matches between {} {}'.format(len(matches), im1, im2))
 
-            p1, _, _, _ = data.load_features(im1)
-            p2, _, _, _ = data.load_features(im2)
-            p1 = p1[matches[:, 0]]
-            p2 = p2[matches[:, 1]]
+            features_data1 = data.load_features(im1)
+            features_data2 = data.load_features(im2)
+            assert features_data1
+            assert features_data2
+            p1 = features_data1.points[matches[:, 0]]
+            p2 = features_data2.points[matches[:, 1]]
 
             pl.figure(figsize=(20, 10))
             pl.title('Images: ' + im1 + ' - ' + im2 + ', matches: ' +

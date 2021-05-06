@@ -110,23 +110,11 @@ class DataSetBase(ABC):
         pass
 
     @abstractmethod
-    def load_features(
-        self, image: str
-    ) -> Tuple[
-        np.ndarray, np.ndarray, np.ndarray, Optional[Dict[str, Optional[np.ndarray]]]
-    ]:
+    def load_features(self, image: str) -> Optional[features.FeaturesData]:
         pass
 
     @abstractmethod
-    def save_features(
-        self,
-        image: str,
-        points: np.ndarray,
-        descriptors: np.ndarray,
-        colors: np.ndarray,
-        segmentations: np.ndarray,
-        instances: np.ndarray,
-    ) -> None:
+    def save_features(self, image: str, features_data: features.FeaturesData) -> None:
         pass
 
     @abstractmethod
@@ -624,63 +612,28 @@ class DataSet(DataSetBase):
         return os.path.join(self._feature_path(), image + ".npz")
 
     def _save_features(
-        self,
-        filepath: str,
-        points: np.ndarray,
-        descriptors: np.ndarray,
-        colors: np.ndarray,
-        segmentations: Optional[np.ndarray],
-        instances: Optional[np.ndarray],
+        self, filepath: str, features_data: features.FeaturesData
     ) -> None:
         self.io_handler.mkdir_p(self._feature_path())
         with self.io_handler.open(filepath, "wb") as fwb:
-            features.save_features(
-                fwb,
-                points,
-                descriptors,
-                colors,
-                segmentations,
-                instances,
-                self.segmentation_labels(),
-                self.config,
-            )
+            features_data.save(fwb, self.config)
 
     def features_exist(self, image: str) -> bool:
         return self.io_handler.isfile(
             self._feature_file(image)
         ) or self.io_handler.isfile(self._feature_file_legacy(image))
 
-    def load_features(
-        self, image: str
-    ) -> Tuple[
-        np.ndarray, np.ndarray, np.ndarray, Optional[Dict[str, Optional[np.ndarray]]]
-    ]:
-
+    def load_features(self, image: str) -> Optional[features.FeaturesData]:
         features_filepath = (
             self._feature_file_legacy(image)
             if self.io_handler.isfile(self._feature_file_legacy(image))
             else self._feature_file(image)
         )
         with self.io_handler.open(features_filepath, "rb") as f:
-            return features.load_features(f, self.config)
+            return features.FeaturesData.from_file(f, self.config)
 
-    def save_features(
-        self,
-        image: str,
-        points: np.ndarray,
-        descriptors: np.ndarray,
-        colors: np.ndarray,
-        segmentations: Optional[np.ndarray],
-        instances: Optional[np.ndarray],
-    ) -> None:
-        self._save_features(
-            self._feature_file(image),
-            points,
-            descriptors,
-            colors,
-            segmentations,
-            instances,
-        )
+    def save_features(self, image: str, features_data: features.FeaturesData) -> None:
+        self._save_features(self._feature_file(image), features_data)
 
     def _words_file(self, image: str) -> str:
         return os.path.join(self._feature_path(), image + ".words.npz")
@@ -1029,7 +982,7 @@ class DataSet(DataSetBase):
         return self.load_mask(image)
 
     def subset(self, name: str, images_subset: List[str]) -> "DataSet":
-        """ Create a subset of this dataset by symlinking input data. """
+        """Create a subset of this dataset by symlinking input data."""
         subset_dataset_path = os.path.join(self.data_path, name)
         self.io_handler.mkdir_p(subset_dataset_path)
         self.io_handler.mkdir_p(os.path.join(subset_dataset_path, "images"))

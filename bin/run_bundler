@@ -43,7 +43,10 @@ if __name__ == "__main__":
     fmt = '%f ' * 4 + '\n' + ('%d ' * 20 + '\n') * 6 + '%d ' * 8
     for image in images:
         exif = data.load_exif(image)
-        p, _, _, _ = data.load_features(image)
+        features_data = data.load_features(image)
+        assert features_data
+        p = features_data.points
+
         p[:,:2] = features.denormalized_image_coordinates(p[:,:2], exif['width'], exif['height'])
         p[:,-3::-1] = p[:,:2]
         keys_file = os.path.join(key_dir, os.path.splitext(image)[0] + '.key')

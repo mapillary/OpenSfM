@@ -21,11 +21,7 @@ import numpy as np
 import opensfm.actions.undistort as osfm_u
 from matplotlib import cm
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from opensfm import dataset
-from opensfm import features
-from opensfm import pygeometry
-from opensfm import pysfm
-from opensfm import types
+from opensfm import dataset, features, pygeometry, pysfm, types
 
 EXPORT_DIR_NAME = "opensfm_export"
 logger = logging.getLogger(__name__)
@@ -205,7 +201,8 @@ def import_features(db, data, image_map, camera_map):
         filename, _ = image_map[image_id]
         descriptors = np.fromstring(arr, dtype=np.uint8).reshape((n_rows, n_cols))
         kp = keypoints[image_id]
-        data.save_features(filename, kp, descriptors, colors[image_id])
+        features_data = features.FeaturesData(kp, descriptors, colors[image_id], None)
+        data.save_features(filename, features_data)
 
     cursor.close()
     return keypoints

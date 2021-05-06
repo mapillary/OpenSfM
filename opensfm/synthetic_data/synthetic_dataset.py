@@ -1,7 +1,8 @@
 import logging
+from typing import Optional
 
 import numpy as np
-from opensfm import tracking
+from opensfm import tracking, features
 from opensfm.dataset import DataSet
 
 
@@ -61,12 +62,12 @@ class SyntheticDataSet(DataSet):
         n_closest = 50
         return [image] * n_closest
 
-    def load_features(self, image):
-        return (
+    def load_features(self, image: str) -> Optional[features.FeaturesData]:
+        return features.FeaturesData(
             self.features[image],
             self.descriptors[image],
             self.colors[image],
-            {"segmentations": None, "instances": None, "segmentation_labels": None},
+            None,
         )
 
     def save_features(self, image, points, descriptors, colors):

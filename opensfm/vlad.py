@@ -61,12 +61,10 @@ class VladCache(object):
     @lru_cache(1000)
     def vlad_histogram(self, data: DataSetBase, image):
         words = self.load_words(data)
-        _, features, _, _, _ = feature_loader.instance.load_all_data(
-            data, image, masked=True
-        )
-        if features is None:
+        features_data = feature_loader.instance.load_all_data(data, image, masked=True)
+        if features_data is None:
             return None
-        vlad = unnormalized_vlad(features, words)
+        vlad = unnormalized_vlad(features_data.descriptors, words)
         vlad = signed_square_root_normalize(vlad)
         return vlad
 

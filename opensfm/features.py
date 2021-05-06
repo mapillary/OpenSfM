@@ -13,6 +13,179 @@ from opensfm import context, pyfeatures
 logger = logging.getLogger(__name__)
 
 
+class SemanticData:
+    segmentation: np.ndarray
+    instances: np.ndarray
+    labels: List[Dict[str, Any]]
+
+    def __init__(
+        self,
+        segmentation: np.ndarray,
+        instances: np.ndarray,
+        labels: List[Dict[str, Any]],
+    ):
+        self.segmentation = segmentation
+        self.instances = instances
+        self.labels = labels
+
+    def mask(self, mask: np.ndarray) -> "SemanticData":
+        return SemanticData(self.segmentation[mask], self.instances[mask], self.labels)
+
+
+class FeaturesData:
+    points: np.ndarray
+    descriptors: Optional[np.ndarray]
+    colors: np.ndarray
+    semantic: Optional[SemanticData]
+
+    FEATURES_VERSION: int = 2
+    FEATURES_HEADER: str = "OPENSFM_FEATURES_VERSION"
+
+    def __init__(
+        self,
+        points: np.ndarray,
+        descriptors: Optional[np.ndarray],
+        colors: np.ndarray,
+        semantic: Optional[SemanticData],
+    ):
+        self.points = points
+        self.descriptors = descriptors
+        self.colors = colors
+        self.semantic = semantic
+
+    def mask(self, mask: np.ndarray) -> "FeaturesData":
+        if self.semantic:
+            masked_semantic = self.semantic.mask(mask)  # pyre-fixme [16]
+        else:
+            masked_semantic = None
+        return FeaturesData(
+            self.points[mask],
+            # pyre-fixme [16]
+            self.descriptors[mask] if self.descriptors is not None else None,
+            self.colors[mask],
+            masked_semantic,
+        )
+
+    def save(self, fileobject: Any, config: Dict[str, Any]):
+        """ Save features from file (path like or file object like) """
+        feature_type = config["feature_type"]
+        if (
+            (
+                feature_type == "AKAZE"
+                and config["akaze_descriptor"] in ["MLDB_UPRIGHT", "MLDB"]
+            )
+            or (feature_type == "HAHOG" and config["hahog_normalize_to_uchar"])
+            or (feature_type == "ORB")
+        ):
+            feature_data_type = np.uint8
+        else:
+            feature_data_type = np.float32
+        if self.descriptors is None:
+            raise RuntimeError("No descriptors found, canot save features data.")
+        if self.semantic:
+            np.savez_compressed(
+                fileobject,
+                points=self.points.astype(np.float32),
+                # pyre-fixme [16]
+                descriptors=self.descriptors.astype(feature_data_type),
+                colors=self.colors,
+                segmentations=self.semantic.segmentation,  # pyre-fixme [16]
+                instances=self.semantic.instances,  # pyre-fixme [16]
+                segmentation_labels=self.semantic.labels,  # pyre-fixme [16]
+                OPENSFM_FEATURES_VERSION=self.FEATURES_VERSION,
+                allow_pickle=True,
+            )
+        else:
+            np.savez_compressed(
+                fileobject,
+                points=self.points.astype(np.float32),
+                descriptors=self.descriptors.astype(feature_data_type),
+                colors=self.colors,
+                segmentations=None,
+                instances=None,
+                segmentation_labels=None,
+                OPENSFM_FEATURES_VERSION=self.FEATURES_VERSION,
+                allow_pickle=True,
+            )
+
+    @classmethod
+    def from_file(cls, fileobject: Any, config: Dict[str, Any]) -> "FeaturesData":
+        """ Load features from file (path like or file object like) """
+        s = np.load(fileobject, allow_pickle=True)
+        version = cls._features_file_version(s)
+        return getattr(cls, "_from_file_v%d" % version)(s, config)
+
+    @classmethod
+    def _features_file_version(cls, obj: Dict[str, Any]) -> int:
+        """ Retrieve features file version. Return 0 if none """
+        if cls.FEATURES_HEADER in obj:
+            return obj[cls.FEATURES_HEADER]
+        else:
+            return 0
+
+    @classmethod
+    def _from_file_v0(
+        cls, data: Dict[str, np.ndarray], config: Dict[str, Any]
+    ) -> "FeaturesData":
+        """Base version of features file
+
+        Scale (desc[2]) set to reprojection_error_sd by default (legacy behaviour)
+        """
+        feature_type = config["feature_type"]
+        if feature_type == "HAHOG" and config["hahog_normalize_to_uchar"]:
+            descriptors = data["descriptors"].astype(np.float32)
+        else:
+            descriptors = data["descriptors"]
+        points = data["points"]
+        points[:, 2:3] = config["reprojection_error_sd"]
+        return FeaturesData(points, descriptors, data["colors"].astype(float), None)
+
+    @classmethod
+    def _from_file_v1(
+        cls, data: Dict[str, np.ndarray], config: Dict[str, Any]
+    ) -> "FeaturesData":
+        """Version 1 of features file
+
+        Scale is not properly set higher in the pipeline, default is gone.
+        """
+        feature_type = config["feature_type"]
+        if feature_type == "HAHOG" and config["hahog_normalize_to_uchar"]:
+            descriptors = data["descriptors"].astype(np.float32)
+        else:
+            descriptors = data["descriptors"]
+        return FeaturesData(
+            data["points"], descriptors, data["colors"].astype(float), None
+        )
+
+    @classmethod
+    def _from_file_v2(
+        cls,
+        data: Dict[str, Any],
+        config: Dict[str, Any],
+    ) -> "FeaturesData":
+        """Version 2 of features file
+
+        Added segmentation and segmentation labels.
+        """
+        feature_type = config["feature_type"]
+        if feature_type == "HAHOG" and config["hahog_normalize_to_uchar"]:
+            descriptors = data["descriptors"].astype(np.float32)
+        else:
+            descriptors = data["descriptors"]
+        has_segmentation = data["segmentations"].any()
+        has_instances = data["instances"].any()
+
+        if has_segmentation and has_instances:
+            semantic_data = SemanticData(
+                data["segmentations"], data["instances"], data["segmentation_labels"]
+            )
+        else:
+            semantic_data = None
+        return FeaturesData(
+            data["points"], descriptors, data["colors"].astype(float), semantic_data
+        )
+
+
 def resized_image(image: np.ndarray, max_size: int) -> np.ndarray:
     """Resize image to feature_process_size."""
     h, w, _ = image.shape
@@ -388,116 +561,3 @@ def build_flann_index(features: np.ndarray, config: Dict[str, Any]) -> Any:
     }
 
     return context.flann_Index(features, flann_params)
-
-
-FEATURES_VERSION = 2
-FEATURES_HEADER = "OPENSFM_FEATURES_VERSION"
-
-
-def load_features(fileobject: Any, config: Dict[str, Any]):
-    """ Load features from file (path like or file object like) """
-    s = np.load(fileobject, allow_pickle=True)
-    version = _features_file_version(s)
-    return getattr(sys.modules[__name__], "_load_features_v%d" % version)(s, config)
-
-
-def _features_file_version(obj: Dict[str, Any]) -> int:
-    """ Retrieve features file version. Return 0 if none """
-    if FEATURES_HEADER in obj:
-        return obj[FEATURES_HEADER]
-    else:
-        return 0
-
-
-def _load_features_v0(
-    s: Dict[str, np.ndarray], config: Dict[str, Any]
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, None]:
-    """Base version of features file
-
-    Scale (desc[2]) set to reprojection_error_sd by default (legacy behaviour)
-    """
-    feature_type = config["feature_type"]
-    if feature_type == "HAHOG" and config["hahog_normalize_to_uchar"]:
-        descriptors = s["descriptors"].astype(np.float32)
-    else:
-        descriptors = s["descriptors"]
-    points = s["points"]
-    points[:, 2:3] = config["reprojection_error_sd"]
-    return points, descriptors, s["colors"].astype(float), None
-
-
-def _load_features_v1(
-    s: Dict[str, np.ndarray], config: Dict[str, Any]
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, None]:
-    """Version 1 of features file
-
-    Scale is not properly set higher in the pipeline, default is gone.
-    """
-    feature_type = config["feature_type"]
-    if feature_type == "HAHOG" and config["hahog_normalize_to_uchar"]:
-        descriptors = s["descriptors"].astype(np.float32)
-    else:
-        descriptors = s["descriptors"]
-    return s["points"], descriptors, s["colors"].astype(float), None
-
-
-def _load_features_v2(
-    s: Dict[str, np.ndarray], config: Dict[str, Any]
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, Dict[str, Any]]:
-    """Version 2 of features file
-
-    Added segmentation and segmentation labels.
-    """
-    feature_type = config["feature_type"]
-    if feature_type == "HAHOG" and config["hahog_normalize_to_uchar"]:
-        descriptors = s["descriptors"].astype(np.float32)
-    else:
-        descriptors = s["descriptors"]
-    has_segmentation = s["segmentations"].any()
-    has_instances = s["instances"].any()
-    return (
-        s["points"],
-        descriptors,
-        s["colors"].astype(float),
-        {
-            "segmentations": s["segmentations"] if has_segmentation else None,
-            "instances": s["instances"] if has_instances else None,
-            "segmentation_labels": s["segmentation_labels"],
-        },
-    )
-
-
-def save_features(
-    fileobject: Any,
-    points: np.ndarray,
-    desc: np.ndarray,
-    colors: np.ndarray,
-    segmentations: Optional[np.ndarray],
-    instances: Optional[np.ndarray],
-    segmentation_labels: List[Dict[str, Any]],
-    config: Dict[str, Any],
-):
-    """ Save features from file (path like or file object like) """
-    feature_type = config["feature_type"]
-    if (
-        (
-            feature_type == "AKAZE"
-            and config["akaze_descriptor"] in ["MLDB_UPRIGHT", "MLDB"]
-        )
-        or (feature_type == "HAHOG" and config["hahog_normalize_to_uchar"])
-        or (feature_type == "ORB")
-    ):
-        feature_data_type = np.uint8
-    else:
-        feature_data_type = np.float32
-    np.savez_compressed(
-        fileobject,
-        points=points.astype(np.float32),
-        descriptors=desc.astype(feature_data_type),
-        colors=colors,
-        segmentations=segmentations,
-        instances=instances,
-        segmentation_labels=segmentation_labels,
-        OPENSFM_FEATURES_VERSION=FEATURES_VERSION,
-        allow_pickle=True,
-    )
