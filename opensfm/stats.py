@@ -11,7 +11,7 @@ import matplotlib.cm as cm
 import matplotlib.colors as colors
 import matplotlib.pyplot as plt
 import numpy as np
-from opensfm import io, multiview
+from opensfm import io, multiview, feature_loader
 from opensfm.dataset import DataSet, DataSetBase
 
 RESIDUAL_PIXEL_CUTOFF = 4
@@ -272,8 +272,9 @@ def processing_statistics(data: DataSet, reconstructions):
 def features_statistics(data: DataSetBase, tracks_manager, reconstructions):
     stats = {}
     detected = []
-    for im in data.images():
-        features_data = data.load_features(im)
+    images = {s for r in reconstructions for s in r.shots}
+    for im in images:
+        features_data = feature_loader.instance.load_all_data(data, im, False)
         if not features_data:
             continue
         detected.append(len(features_data.points))

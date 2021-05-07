@@ -110,6 +110,5 @@ class FeatureLoader(object):
             logger.error("Could not load features for image {}".format(image))
             return None
         else:
-            print(features_data)
             features_data.points = np.array(features_data.points[:, :3], dtype=float)
         return features_data
