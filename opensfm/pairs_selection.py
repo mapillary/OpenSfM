@@ -150,6 +150,9 @@ def match_candidates_with_vlad(
     If enforce_other_cameras is True, we keep max_neighbors images
     with same cameras AND max_neighbors images from any other different
     camera.
+
+    If enforce_other_cameras is False, we keep max_neighbors images
+    from all cameras.
     """
     if max_neighbors <= 0:
         return set()
