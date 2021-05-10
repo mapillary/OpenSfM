@@ -364,6 +364,14 @@ RigInstance& Map::GetRigInstance(const RigInstanceId& instance_id) {
   return it->second;
 }
 
+const RigInstance& Map::GetRigInstance(const RigInstanceId& instance_id) const{
+  const auto& it = rig_instances_.find(instance_id);
+  if (it == rig_instances_.end()) {
+    throw std::runtime_error("Accessing invalid RigInstance index");
+  }
+  return it->second;
+}
+
 bool Map::HasRigInstance(const RigInstanceId& instance_id) const {
   return rig_instances_.find(instance_id) != rig_instances_.end();
 }

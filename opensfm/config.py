@@ -71,11 +71,11 @@ matching_order_neighbors: 0           # Number of images to match selected by im
 matching_bow_neighbors: 0             # Number of images to match selected by BoW distance. Set to 0 to disable
 matching_bow_gps_distance: 0          # Maximum GPS distance for preempting images before using selection by BoW distance. Set to 0 to disable
 matching_bow_gps_neighbors: 0         # Number of images (selected by GPS distance) to preempt before using selection by BoW distance. Set to 0 to use no limit (or disable if matching_bow_gps_distance is also 0)
-matching_bow_other_cameras: False     # If True, BoW image selection will use N neighbors from the same camera + N neighbors from any different camera.
+matching_bow_other_cameras: False     # If True, BoW image selection will use N neighbors from the same camera + N neighbors from any different camera. If False, the selection will take the nearest neighbors from all cameras.
 matching_vlad_neighbors: 0            # Number of images to match selected by VLAD distance. Set to 0 to disable
 matching_vlad_gps_distance: 0         # Maximum GPS distance for preempting images before using selection by VLAD distance. Set to 0 to disable
 matching_vlad_gps_neighbors: 0        # Number of images (selected by GPS distance) to preempt before using selection by VLAD distance. Set to 0 to use no limit (or disable if matching_vlad_gps_distance is also 0)
-matching_vlad_other_cameras: False    # If True, VLAD image selection will use N neighbors from the same camera + N neighbors from any different camera.
+matching_vlad_other_cameras: False    # If True, VLAD image selection will use N neighbors from the same camera + N neighbors from any different camera. If False, the selection will take the nearest neighbors from all cameras.
 matching_use_filters: False           # If True, removes static matches using ad-hoc heuristics
 
 # Params for geometric estimation

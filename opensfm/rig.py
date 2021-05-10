@@ -231,7 +231,11 @@ def create_rigs_with_pattern(data: DataSet, patterns: TRigPatterns):
         data, instances_per_rig, "rig_calibration"
     )
 
-    # # Run a bit of SfM without any rig
+    if len(subset_data.images()) == 0:
+        logger.error("Not enough rig images")
+        return
+
+    # Run a bit of SfM without any rig
     logger.info(f"Running SfM on a subset of {len(subset_data.images())} images.")
     actions.extract_metadata.run_dataset(subset_data)
     actions.detect_features.run_dataset(subset_data)
