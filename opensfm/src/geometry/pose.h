@@ -1,5 +1,6 @@
 #pragma once
 #include <foundation/types.h>
+#include <geometry/transformations_functions.h>
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
@@ -84,7 +85,7 @@ class Pose {
   }
 
   virtual void SetWorldToCamRotation(const Vec3d& r_cw) {
-    Mat3d R_cw = VectorToRotationMatrix(r_cw);
+    Mat3d R_cw = geometry::VectorToRotationMatrix(r_cw);
     world_to_cam_.block<3, 3>(0, 0) = R_cw;
     cam_to_world_.block<3, 3>(0, 0) = R_cw.transpose();
     UpdateMinRotations();
@@ -101,11 +102,11 @@ class Pose {
     UpdateMinRotations();
   }
   virtual void SetFromCameraToWorld(const Vec3d& r_wc, const Vec3d& t_wc) {
-    const Mat3d R_wc = VectorToRotationMatrix(r_wc);
+    const Mat3d R_wc = geometry::VectorToRotationMatrix(r_wc);
     SetFromCameraToWorld(R_wc, t_wc);
   }
   virtual void SetFromWorldToCamera(const Vec3d& r_cw, const Vec3d& t_cw) {
-    const Mat3d R_cw = VectorToRotationMatrix(r_cw);
+    const Mat3d R_cw = geometry::VectorToRotationMatrix(r_cw);
     SetFromWorldToCamera(R_cw, t_cw);
   }
 
@@ -173,22 +174,9 @@ class Pose {
   Vec3d r_min_cam_to_world_;
   Vec3d r_min_world_to_cam_;
 
-  static Mat3d VectorToRotationMatrix(const Vec3d& r) {
-    const auto n = r.norm();
-    if (n == 0)  // avoid division by 0
-    {
-      return Eigen::AngleAxisd(0, r).toRotationMatrix();
-    } else {
-      return Eigen::AngleAxisd(n, r / n).toRotationMatrix();
-    }
-  }
-  static Vec3d RotationMatrixToVector(const Mat3d& R) {
-    Eigen::AngleAxisd tmp(R);
-    return tmp.axis() * tmp.angle();
-  }
   void UpdateMinRotations() {
     r_min_cam_to_world_ =
-        RotationMatrixToVector(cam_to_world_.block<3, 3>(0, 0));
+        geometry::RotationMatrixToVector(cam_to_world_.block<3, 3>(0, 0));
     r_min_world_to_cam_ = -r_min_cam_to_world_;
   }
 };

@@ -303,4 +303,18 @@ struct Normalize : Functor<3, 0, 3> {
     Forward(point, dummy, transformed);
   }
 };
+
+static Mat3d VectorToRotationMatrix(const Vec3d& r) {
+  const auto n = r.norm();
+  if (n == 0)  // avoid division by 0
+  {
+    return Eigen::AngleAxisd(0, r).toRotationMatrix();
+  } else {
+    return Eigen::AngleAxisd(n, r / n).toRotationMatrix();
+  }
+}
+static Vec3d RotationMatrixToVector(const Mat3d& R) {
+  Eigen::AngleAxisd tmp(R);
+  return tmp.axis() * tmp.angle();
+}
 }  // namespace geometry
