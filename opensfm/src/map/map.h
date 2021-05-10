@@ -108,6 +108,7 @@ class Map {
 
   size_t NumberOfRigInstances() const;
   RigInstance& GetRigInstance(const RigInstanceId& instance_id);
+  const RigInstance& GetRigInstance(const RigInstanceId& instance_id) const;
   const std::unordered_map<RigInstanceId, RigInstance>& GetRigInstances()
       const {
     return rig_instances_;
@@ -115,6 +116,7 @@ class Map {
   std::unordered_map<RigInstanceId, RigInstance>& GetRigInstances() {
     return rig_instances_;
   }
+
   bool HasRigInstance(const RigInstanceId& instance_id) const;
 
   // Landmark
