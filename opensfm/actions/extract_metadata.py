@@ -58,7 +58,7 @@ def run_dataset(data: DataSetBase):
 def _extract_exif(image, data: DataSetBase):
     with data.open_image_file(image) as fp:
         d = exif.extract_exif_from_file(
-            fp, partial(data.image_size, image), data.config["use_exif_size"]
+            fp, partial(data.image_size, image), data.config["use_exif_size"], name=image
         )
 
     if data.config["unknown_camera_models_are_different"] and (
