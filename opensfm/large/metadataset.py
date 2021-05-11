@@ -1,6 +1,8 @@
 import os
 import os.path
 import shutil
+import sys
+import glob
 
 import numpy as np
 from opensfm import config
@@ -71,15 +73,34 @@ class MetaDataSet:
 
         if not os.path.exists(src):
             return
-
-        if os.path.islink(dst):
-            os.unlink(dst)
+        
+        # Symlinks on Windows require admin privileges,
+        # so we use hard links instead
+        if sys.platform == 'win32':
+            if os.path.isdir(dst):
+                shutil.rmtree(dst)
+            elif os.path.isfile(dst):
+                os.remove(dst)
+        else:
+            if os.path.islink(dst):
+                os.unlink(dst)
 
         subfolders = len(file_path.split(os.path.sep)) - 1
 
-        os.symlink(
-            os.path.join(*[".."] * subfolders, os.path.relpath(src, base_path)), dst
-        )
+        if sys.platform == 'win32':
+            if os.path.isdir(src):
+                # Create directory in destination, then make hard links
+                # to files
+                os.mkdir(dst)
+
+                for f in glob.glob(os.path.join(src, "*")):
+                    filename = os.path.basename(f)
+                    os.link(f, os.path.join(dst, filename))
+            else:
+                # Just make hard link
+                os.link(src, dst)
+        else:
+            os.symlink(os.path.join(*[".."] * subfolders, os.path.relpath(src, base_path)), dst)
 
     def image_groups_exists(self):
         return os.path.isfile(self._image_groups_path())
@@ -160,7 +181,7 @@ class MetaDataSet:
                     dst = os.path.join(submodel_images_path, image)
                     src_relpath = os.path.relpath(src, submodel_images_path)
                     if not os.path.isfile(dst):
-                        os.symlink(src_relpath, dst)
+                        self._create_symlink(src_relpath, dst)
                     dst_relpath = os.path.relpath(dst, submodel_path)
                     txtfile.write(dst_relpath + "\n")
 
