@@ -51,4 +51,6 @@ PYBIND11_MODULE(pysfm, m) {
            py::arg("tracks") = std::vector<TrackId>());
 
   m.def("count_tracks_per_shot", &sfm_helpers::CountTracksPerShot);
+  m.def("add_connections", &sfm_helpers::AddConnections);
+  m.def("remove_connections", &sfm_helpers::RemoveConnections);
 }

@@ -1,5 +1,8 @@
 #include <sfm/sfm_helpers.h>
+
 #include <unordered_set>
+
+#include "sfm/types.h"
 
 namespace sfm_helpers {
 
@@ -26,4 +29,20 @@ std::unordered_map<ShotId, int> CountTracksPerShot(
   }
   return counts;
 }
+
+void AddConnections(TracksManager& manager, const ShotId& shot_id,
+                    const std::vector<TrackId>& connections) {
+  Observation observation;
+  for (const auto& connection : connections) {
+    manager.AddObservation(shot_id, connection, observation);
+  }
+}
+
+void RemoveConnections(TracksManager& manager, const ShotId& shot_id,
+                       const std::vector<TrackId>& connections) {
+  for (const auto& connection : connections) {
+    manager.RemoveObservation(shot_id, connection);
+  }
+}
+
 }  // namespace sfm_helpers
