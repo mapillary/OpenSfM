@@ -1,4 +1,6 @@
 #include "../depthmap.h"
+
+#include <cstdint>
 #include <opencv2/opencv.hpp>
 #include <random>
 
@@ -15,8 +17,8 @@ float LinearInterpolation(const cv::Mat &image, float y, float x) {
   if (x < 0.0f || x >= image.cols - 1 || y < 0.0f || y >= image.rows - 1) {
     return 0.0f;
   }
-  int ix = int(x);
-  int iy = int(y);
+  int ix = static_cast<int>(x);
+  int iy = static_cast<int>(y);
   float dx = x - ix;
   float dy = y - iy;
   float im00 = image.at<T>(iy, ix);
@@ -592,9 +594,11 @@ void DepthmapPruner::Prune(std::vector<float> *merged_points,
         if (reprojection(2) < z_epsilon || isnan(reprojection(2))) {
           continue;
         }
-        int iu = int(reprojection(0) / reprojection(2) + 0.5f);
-        int iv = int(reprojection(1) / reprojection(2) + 0.5f);
-        float depth_of_point = reprojection(2);
+        std::int64_t iu =
+            static_cast<std::int64_t>(reprojection(0) / reprojection(2) + 0.5);
+        std::int64_t iv =
+            static_cast<std::int64_t>(reprojection(1) / reprojection(2) + 0.5);
+        double depth_of_point = reprojection(2);
         if (!IsInsideImage(depths_[other], iv, iu)) {
           continue;
         }
