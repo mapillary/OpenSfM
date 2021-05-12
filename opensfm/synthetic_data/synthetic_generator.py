@@ -178,7 +178,7 @@ def generate_exifs(
         exif["camera"] = str(shot.camera.id)
         exif["make"] = str(shot.camera.id)
 
-        exif["skey"] = str(shot.camera.id)
+        exif["skey"] = shot.metadata.sequence_key.value
         per_sequence[exif["skey"]].append(shot_name)
 
         if shot.camera.projection_type in ["perspective", "fisheye"]:
@@ -242,12 +242,14 @@ def add_shots_to_reconstruction(
     rotations: List[np.ndarray],
     camera: pygeometry.Camera,
     reconstruction: types.Reconstruction,
+    sequence_key: str,
 ):
     reconstruction.add_camera(camera)
     for shot_id, position, rotation in zip(shot_ids, positions, rotations):
         pose = pygeometry.Pose(rotation)
         pose.set_origin(position)
-        reconstruction.create_shot(shot_id, camera.id, pose)
+        shot = reconstruction.create_shot(shot_id, camera.id, pose)
+        shot.metadata.sequence_key.value = sequence_key
 
 
 def add_points_to_reconstruction(
@@ -296,11 +298,16 @@ def create_reconstruction(
     for point, color in zip(points, colors):
         add_points_to_reconstruction(point, color, reconstruction)
 
-    for s_shot_ids, s_positions, s_rotations, s_cameras in zip(
-        shot_ids, positions, rotations, cameras
+    for i, (s_shot_ids, s_positions, s_rotations, s_cameras) in enumerate(
+        zip(shot_ids, positions, rotations, cameras)
     ):
         add_shots_to_reconstruction(
-            s_shot_ids, s_positions, s_rotations, s_cameras, reconstruction
+            s_shot_ids,
+            s_positions,
+            s_rotations,
+            s_cameras,
+            reconstruction,
+            str(f"sequence_{i}"),
         )
 
     if rig_shots and rig_positions and rig_rotations and rig_cameras:
