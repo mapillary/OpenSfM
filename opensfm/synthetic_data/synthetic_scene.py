@@ -5,7 +5,7 @@ from typing import Dict, Optional, List, Any, Union, Tuple, Callable
 import numpy as np
 import opensfm.synthetic_data.synthetic_generator as sg
 import opensfm.synthetic_data.synthetic_metrics as sm
-from opensfm import pygeometry, types, pymap, pysfm
+from opensfm import pygeometry, types, pymap, pysfm, features as oft
 
 
 def get_camera(
@@ -78,7 +78,7 @@ class SyntheticScene(object):
 
 
 class SyntheticCubeScene(SyntheticScene):
-    """ Scene consisting in of cameras looking at point in a cube. """
+    """Scene consisting of cameras looking at point in a cube."""
 
     def __init__(self, num_cameras: int, num_points: int, noise: float):
         self.reconstruction = types.Reconstruction()
@@ -360,9 +360,7 @@ class SyntheticInputData:
 
     reconstruction: types.Reconstruction
     exifs: Dict[str, Any]
-    features: Dict[str, np.ndarray]
-    descriptors: Dict[str, np.ndarray]
-    colors: Dict[str, np.ndarray]
+    features: Dict[str, oft.FeaturesData]
     tracks_manager: pysfm.TracksManager
 
     def __init__(
@@ -380,26 +378,18 @@ class SyntheticInputData:
         )
 
         if generate_projections:
-            (
-                self.features,
-                self.descriptors,
-                self.colors,
-                self.tracks_manager,
-            ) = sg.generate_track_data(
+            (self.features, self.tracks_manager) = sg.generate_track_data(
                 reconstruction, projection_max_depth, projection_noise
             )
         else:
-            (self.features, self.descriptors, self.colors) = (
-                {},
-                {},
-                {},
-            )
+            self.features = {}
+            self.tracks_manager = pysfm.TracksManager()
 
 
 def compare(
     reference: types.Reconstruction, reconstruction: types.Reconstruction
 ) -> Dict[str, float]:
-    """ Compare a reconstruction with reference groundtruth. """
+    """Compare a reconstruction with reference groundtruth."""
     completeness = sm.completeness_errors(reference, reconstruction)
 
     absolute_position = sm.position_errors(reference, reconstruction)

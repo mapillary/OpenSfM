@@ -10,8 +10,6 @@ def test_processing_statistics_normal(
         reference,
         scene_synthetic.exifs,
         scene_synthetic.features,
-        scene_synthetic.descriptors,
-        scene_synthetic.colors,
         scene_synthetic.tracks_manager,
     )
 
@@ -37,8 +35,6 @@ def test_processing_statistics_null(
         null_scene,
         scene_synthetic.exifs,
         scene_synthetic.features,
-        scene_synthetic.descriptors,
-        scene_synthetic.colors,
         scene_synthetic.tracks_manager,
     )
 
@@ -64,8 +60,6 @@ def test_features_statistics_normal(
         reference,
         scene_synthetic.exifs,
         scene_synthetic.features,
-        scene_synthetic.descriptors,
-        scene_synthetic.colors,
         scene_synthetic.tracks_manager,
     )
 
@@ -96,8 +90,6 @@ def test_features_statistics_null(
         null_scene,
         scene_synthetic.exifs,
         scene_synthetic.features,
-        scene_synthetic.descriptors,
-        scene_synthetic.colors,
         scene_synthetic.tracks_manager,
     )
 
@@ -129,8 +121,6 @@ def test_reconstruction_statistics_normal(
         reference,
         scene_synthetic.exifs,
         scene_synthetic.features,
-        scene_synthetic.descriptors,
-        scene_synthetic.colors,
         scene_synthetic.tracks_manager,
     )
 
@@ -165,8 +155,6 @@ def test_reconstruction_statistics_null(
         null_scene,
         scene_synthetic.exifs,
         scene_synthetic.features,
-        scene_synthetic.descriptors,
-        scene_synthetic.colors,
         scene_synthetic.tracks_manager,
     )
 
@@ -201,8 +189,6 @@ def test_cameras_statistics_normal(
         reference,
         scene_synthetic.exifs,
         scene_synthetic.features,
-        scene_synthetic.descriptors,
-        scene_synthetic.colors,
         scene_synthetic.tracks_manager,
     )
 
@@ -223,8 +209,6 @@ def test_cameras_statistics_null(
         null_scene,
         scene_synthetic.exifs,
         scene_synthetic.features,
-        scene_synthetic.descriptors,
-        scene_synthetic.colors,
         scene_synthetic.tracks_manager,
     )
 
@@ -240,8 +224,6 @@ def test_rig_statistics_normal(
         reference,
         scene_synthetic.exifs,
         scene_synthetic.features,
-        scene_synthetic.descriptors,
-        scene_synthetic.colors,
         scene_synthetic.tracks_manager,
     )
 
@@ -257,8 +239,6 @@ def test_rig_statistics_null(
         null_scene,
         scene_synthetic.exifs,
         scene_synthetic.features,
-        scene_synthetic.descriptors,
-        scene_synthetic.colors,
         scene_synthetic.tracks_manager,
     )
 
@@ -290,8 +270,6 @@ def test_gcp_errors_normal(
         reference,
         scene_synthetic.exifs,
         scene_synthetic.features,
-        scene_synthetic.descriptors,
-        scene_synthetic.colors,
         scene_synthetic.tracks_manager,
     )
 
@@ -307,8 +285,6 @@ def test_gcp_errors_null(
         null_scene,
         scene_synthetic.exifs,
         scene_synthetic.features,
-        scene_synthetic.descriptors,
-        scene_synthetic.colors,
         scene_synthetic.tracks_manager,
     )
 

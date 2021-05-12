@@ -10,8 +10,6 @@ def test_reconstruction_incremental(
         reference,
         scene_synthetic.exifs,
         scene_synthetic.features,
-        scene_synthetic.descriptors,
-        scene_synthetic.colors,
         scene_synthetic.tracks_manager,
     )
 
@@ -39,8 +37,6 @@ def test_reconstruction_incremental_rig(
         reference,
         scene_synthetic_rig.exifs,
         scene_synthetic_rig.features,
-        scene_synthetic_rig.descriptors,
-        scene_synthetic_rig.colors,
         scene_synthetic_rig.tracks_manager,
     )
 

@@ -5,7 +5,15 @@ import cv2
 import numpy as np
 import scipy.signal as signal
 import scipy.spatial as spatial
-from opensfm import geo, pygeometry, pysfm, reconstruction as rc, types, pymap
+from opensfm import (
+    geo,
+    pygeometry,
+    pysfm,
+    reconstruction as rc,
+    types,
+    pymap,
+    features as oft,
+)
 
 
 def derivative(func: Callable, x: np.ndarray) -> np.ndarray:
@@ -311,12 +319,7 @@ def create_reconstruction(
 
 def generate_track_data(
     reconstruction: types.Reconstruction, maximum_depth: float, noise: float
-) -> Tuple[
-    Dict[str, np.ndarray],
-    Dict[str, np.ndarray],
-    Dict[str, np.ndarray],
-    pysfm.TracksManager,
-]:
+) -> Tuple[Dict[str, oft.FeaturesData], pysfm.TracksManager,]:
     """Generate projection data from a reconstruction, considering a maximum
     viewing depth and gaussian noise added to the ideal projections.
     Returns feature/descriptor/color data per shot and a tracks manager object.
@@ -344,9 +347,7 @@ def generate_track_data(
     # should speed-up projection queries
     points_tree = spatial.cKDTree(points_coordinates)
 
-    colors = {}
     features = {}
-    descriptors = {}
     default_scale = 0.004
     for shot_index, shot in reconstruction.shots.items():
         # query all closest points
@@ -400,11 +401,14 @@ def generate_track_data(
                 len(projections_inside) - 1,
             )
             tracks_manager.add_observation(str(shot_index), str(original_id), obs)
-        features[shot_index] = np.array(projections_inside)
-        colors[shot_index] = np.array(colors_inside)
-        descriptors[shot_index] = np.array(descriptors_inside)
+        features[shot_index] = oft.FeaturesData(
+            np.array(projections_inside),
+            np.array(descriptors_inside),
+            np.array(colors_inside),
+            None,
+        )
 
-    return features, descriptors, colors, tracks_manager
+    return features, tracks_manager
 
 
 def _is_in_front(point: np.ndarray, center: np.ndarray, z_axis: np.ndarray) -> bool:

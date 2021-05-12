@@ -82,8 +82,6 @@ def test_match_images(scene_synthetic):
         reference,
         scene_synthetic.exifs,
         scene_synthetic.features,
-        scene_synthetic.descriptors,
-        scene_synthetic.colors,
         scene_synthetic.tracks_manager,
     )
 
