@@ -188,7 +188,7 @@ class FeaturesData:
 
 def resized_image(image: np.ndarray, max_size: int) -> np.ndarray:
     """Resize image to feature_process_size."""
-    h, w, _ = image.shape
+    h, w = image.shape[:2]
     size = max(w, h)
     if 0 < max_size < size:
         dsize = w * max_size // size, h * max_size // size
@@ -496,18 +496,14 @@ def extract_features(
     )
 
     assert len(image.shape) == 3 or len(image.shape) == 2
-
+    image = resized_image(image, extraction_size)
     if len(image.shape) == 2:  # convert (h, w) to (h, w, 1)
         image = np.expand_dims(image, axis=2)
-
-    image = resized_image(image, extraction_size)
-
     # convert color to gray-scale if necessary
     if image.shape[2] == 3:
         image_gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
     else:
         image_gray = image
-
     feature_type = config["feature_type"].upper()
     if feature_type == "SIFT":
         points, desc = extract_features_sift(image_gray, config, features_count)
