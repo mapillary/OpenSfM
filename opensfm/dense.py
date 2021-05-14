@@ -1,4 +1,5 @@
 import logging
+import typing as t
 
 import cv2
 import numpy as np
@@ -54,7 +55,8 @@ def compute_depthmaps(data: UndistortedDataSet, graph, reconstruction):
         arguments.append((data, neighbors[shot.id], shot))
     parallel_map(prune_depthmap_catched, arguments, processes)
 
-    merge_depthmaps(data, reconstruction)
+    point_cloud = merge_depthmaps(data, reconstruction)
+    data.save_point_cloud(*point_cloud, filename="merged.ply")
 
 
 def compute_depthmap_catched(arguments):
@@ -218,12 +220,13 @@ def prune_depthmap(arguments):
     data.save_pruned_depthmap(shot.id, points, normals, colors, labels, detections)
 
     if data.config["depthmap_save_debug_files"]:
-        with io.open_wt(data.depthmap_file(shot.id, "pruned.npz.ply")) as fp:
-            point_cloud_to_ply(points, normals, colors, labels, detections, fp)
+        data.save_point_cloud(
+            points, normals, colors, labels, detections, "pruned.npz.ply"
+        )
 
 
 def aggregate_depthmaps(shot_ids, depthmap_provider):
-    """ Aggregate depthmaps by concatenation."""
+    """Aggregate depthmaps by concatenation."""
 
     points = []
     normals = []
@@ -247,37 +250,29 @@ def aggregate_depthmaps(shot_ids, depthmap_provider):
     )
 
 
-def merge_depthmaps(data: UndistortedDataSet, reconstruction):
+def merge_depthmaps(
+    data: UndistortedDataSet, reconstruction
+) -> t.Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Merge depthmaps into a single point cloud."""
-    logger.info("Merging depthmaps")
-
     shot_ids = [s for s in reconstruction.shots if data.pruned_depthmap_exists(s)]
-
-    if not shot_ids:
-        logger.warning("Depthmaps contain no points.  Try using more images.")
-        return
 
     def depthmap_provider(shot_id):
         return data.load_pruned_depthmap(shot_id)
 
-    merge_depthmaps_from_provider(
-        data, shot_ids, depthmap_provider, data.point_cloud_file()
-    )
+    return merge_depthmaps_from_provider(data, shot_ids, depthmap_provider)
 
 
-def merge_depthmaps_from_provider(data: UndistortedDataSet, shot_ids, depthmap_provider, output):
+def merge_depthmaps_from_provider(
+    data: UndistortedDataSet, shot_ids: t.Iterable[str], depthmap_provider: t.Callable
+) -> t.Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Merge depthmaps into a single point cloud."""
     logger.info("Merging depthmaps")
 
     if not shot_ids:
         logger.warning("Depthmaps contain no points.  Try using more images.")
-        return
+        return np.array([]), np.array([]), np.array([]), np.array([]), np.array([])
 
-    points, normals, colors, labels, detections = aggregate_depthmaps(
-        shot_ids, depthmap_provider
-    )
-    with io.open_wt(output) as fp:
-        point_cloud_to_ply(points, normals, colors, labels, detections, fp)
+    return aggregate_depthmaps(shot_ids, depthmap_provider)
 
 
 def add_views_to_depth_estimator(data: UndistortedDataSet, neighbors, de):
@@ -469,47 +464,6 @@ def depthmap_to_ply(shot, depth, image):
             vertices.append(s)
 
     return io.points_to_ply_string(vertices)
-
-
-def point_cloud_to_ply(points, normals, colors, labels, detections, fp):
-    """Export depthmap points as a PLY string"""
-    lines = _point_cloud_to_ply_lines(points, normals, colors, labels, detections)
-    fp.writelines(lines)
-
-
-def _point_cloud_to_ply_lines(points, normals, colors, labels, detections):
-    yield "ply\n"
-    yield "format ascii 1.0\n"
-    yield "element vertex {}\n".format(len(points))
-    yield "property float x\n"
-    yield "property float y\n"
-    yield "property float z\n"
-    yield "property float nx\n"
-    yield "property float ny\n"
-    yield "property float nz\n"
-    yield "property uchar diffuse_red\n"
-    yield "property uchar diffuse_green\n"
-    yield "property uchar diffuse_blue\n"
-    yield "property uchar class\n"
-    yield "property uchar detection\n"
-    yield "end_header\n"
-
-    template = "{:.4f} {:.4f} {:.4f} {:.3f} {:.3f} {:.3f} {} {} {} {} {}\n"
-    for i in range(len(points)):
-        p, n, c, l, d = points[i], normals[i], colors[i], labels[i], detections[i]
-        yield template.format(
-            p[0],
-            p[1],
-            p[2],
-            n[0],
-            n[1],
-            n[2],
-            int(c[0]),
-            int(c[1]),
-            int(c[2]),
-            int(l),
-            int(d),
-        )
 
 
 def color_plane_normals(plane):
