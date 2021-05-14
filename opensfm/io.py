@@ -1,8 +1,8 @@
 import json
 import logging
 import os
+import typing as t
 from abc import ABC, abstractmethod
-from typing import List
 
 import cv2
 import numpy as np
@@ -178,7 +178,7 @@ def rig_instance_from_json(reconstruction, key, obj):
         )
 
 
-def reconstruction_from_json(obj):
+def reconstruction_from_json(obj: t.Dict[str, t.Any]):
     """
     Read a reconstruction from a json object
     """
@@ -216,8 +216,10 @@ def reconstruction_from_json(obj):
 
     # Extract main and unit shots
     if "main_shot" in obj:
+        # pyre-fixme[16]: `types.Reconstruction` has no attribute `main_shot`
         reconstruction.main_shot = obj["main_shot"]
     if "unit_shot" in obj:
+        # pyre-fixme[16]: `types.Reconstruction` has no attribute `unit_shot`
         reconstruction.unit_shot = obj["unit_shot"]
 
     # Extract reference topocentric frame
@@ -465,7 +467,7 @@ def point_to_json(point):
     }
 
 
-def reconstruction_to_json(reconstruction):
+def reconstruction_to_json(reconstruction) -> t.Dict[str, t.Any]:
     """
     Write a reconstruction to a json object
     """
@@ -518,7 +520,9 @@ def reconstruction_to_json(reconstruction):
     return obj
 
 
-def reconstructions_to_json(reconstructions):
+def reconstructions_to_json(
+    reconstructions: t.Iterable[types.Reconstruction],
+) -> t.List[t.Dict[str, t.Any]]:
     """
     Write all reconstructions to a json object
     """
@@ -550,7 +554,7 @@ def camera_from_vector(
     width: int,
     height: int,
     projection_type: str,
-    parameters: List[float],
+    parameters: t.List[float],
 ) -> pygeometry.Camera:
     """Build a camera from a serialized vector of parameters."""
     if projection_type == "perspective":
@@ -593,7 +597,7 @@ def camera_from_vector(
     return camera
 
 
-def camera_to_vector(camera: pygeometry.Camera) -> List[float]:
+def camera_to_vector(camera: pygeometry.Camera) -> t.List[float]:
     """Serialize camera parameters to a vector of floats."""
     if camera.projection_type == "perspective":
         parameters = [camera.focal, camera.k1, camera.k2]
@@ -958,6 +962,60 @@ def reconstruction_to_ply(
                         s += " 0"
                     vertices.append(s)
     return points_to_ply_string(vertices, point_num_views)
+
+
+def point_cloud_to_ply(
+    points: np.ndarray,
+    normals: np.ndarray,
+    colors: np.ndarray,
+    labels: np.ndarray,
+    detections: np.ndarray,
+    fp: t.TextIO,
+) -> None:
+    """Export depthmap points as a PLY string"""
+    lines = _point_cloud_to_ply_lines(points, normals, colors, labels, detections)
+    fp.writelines(lines)
+
+
+def _point_cloud_to_ply_lines(
+    points: np.ndarray,
+    normals: np.ndarray,
+    colors: np.ndarray,
+    labels: np.ndarray,
+    detections: np.ndarray,
+):
+    yield "ply\n"
+    yield "format ascii 1.0\n"
+    yield "element vertex {}\n".format(len(points))
+    yield "property float x\n"
+    yield "property float y\n"
+    yield "property float z\n"
+    yield "property float nx\n"
+    yield "property float ny\n"
+    yield "property float nz\n"
+    yield "property uchar diffuse_red\n"
+    yield "property uchar diffuse_green\n"
+    yield "property uchar diffuse_blue\n"
+    yield "property uchar class\n"
+    yield "property uchar detection\n"
+    yield "end_header\n"
+
+    template = "{:.4f} {:.4f} {:.4f} {:.3f} {:.3f} {:.3f} {} {} {} {} {}\n"
+    for i in range(len(points)):
+        p, n, c, l, d = points[i], normals[i], colors[i], labels[i], detections[i]
+        yield template.format(
+            p[0],
+            p[1],
+            p[2],
+            n[0],
+            n[1],
+            n[2],
+            int(c[0]),
+            int(c[1]),
+            int(c[2]),
+            int(l),
+            int(d),
+        )
 
 
 # Filesystem interaction methods
