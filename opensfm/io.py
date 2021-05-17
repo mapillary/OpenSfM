@@ -964,6 +964,35 @@ def reconstruction_to_ply(
     return points_to_ply_string(vertices, point_num_views)
 
 
+def point_cloud_from_ply(
+    fp: t.TextIO,
+) -> t.Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Load point cloud from a PLY file."""
+    all_lines = fp.read().splitlines()
+    start = all_lines.index("end_header") + 1
+    lines = all_lines[start:]
+    n = len(lines)
+
+    points = np.zeros((n, 3), dtype=np.float32)
+    normals = np.zeros((n, 3), dtype=np.float32)
+    colors = np.zeros((n, 3), dtype=np.uint8)
+    labels = np.zeros((n,), dtype=np.uint8)
+    detections = np.zeros((n,), dtype=np.uint8)
+
+    for i, row in enumerate(lines):
+        words = row.split()
+        label = int(words[9])
+        points[i] = list(map(float, words[0:3]))
+        normals[i] = list(map(float, words[3:6]))
+        colors[i] = list(map(int, words[6:9]))
+        labels[i] = label
+        if len(words) == 11:
+            detection = int(words[10])
+            detections[i] = detection
+
+    return points, normals, colors, labels, detections
+
+
 def point_cloud_to_ply(
     points: np.ndarray,
     normals: np.ndarray,
