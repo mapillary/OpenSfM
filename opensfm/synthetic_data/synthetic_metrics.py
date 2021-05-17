@@ -124,3 +124,7 @@ def _copy_reconstruction(reconstruction: types.Reconstruction) -> types.Reconstr
 
 def rmse(errors: np.ndarray) -> float:
     return np.sqrt(np.mean(errors ** 2))
+
+
+def mad(errors: np.ndarray) -> float:
+    return np.median(np.absolute(errors - np.median(errors)))
