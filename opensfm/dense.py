@@ -352,7 +352,7 @@ def load_segmentation_labels(data: UndistortedDataSet, shot):
 
 def add_views_to_depth_pruner(data: UndistortedDataSet, neighbors, dp):
     for shot in neighbors:
-        if not data.raw_depthmap_exists(shot.id):
+        if not data.clean_depthmap_exists(shot.id):
             continue
         depth, plane, score = data.load_clean_depthmap(shot.id)
         height, width = depth.shape
