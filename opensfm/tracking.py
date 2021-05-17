@@ -1,4 +1,5 @@
 import logging
+import typing as t
 
 import networkx as nx
 import numpy as np
@@ -109,7 +110,34 @@ def common_tracks(tracks_manager, im1, im2):
     return tracks, p1, p2
 
 
-def all_common_tracks(tracks_manager, include_features=True, min_common=50):
+TPairTracks = t.Tuple[t.List[str], np.ndarray, np.ndarray]
+
+
+def all_common_tracks_with_features(
+    tracks_manager: pysfm.TracksManager,
+    min_common: int = 50,
+) -> t.Dict[t.Tuple[str, str], TPairTracks]:
+    tracks = all_common_tracks(
+        tracks_manager, include_features=True, min_common=min_common
+    )
+    return t.cast(t.Dict[t.Tuple[str, str], TPairTracks], tracks)
+
+
+def all_common_tracks_without_features(
+    tracks_manager: pysfm.TracksManager,
+    min_common: int = 50,
+) -> t.Dict[t.Tuple[str, str], t.List[str]]:
+    tracks = all_common_tracks(
+        tracks_manager, include_features=False, min_common=min_common
+    )
+    return t.cast(t.Dict[t.Tuple[str, str], t.List[str]], tracks)
+
+
+def all_common_tracks(
+    tracks_manager: pysfm.TracksManager,
+    include_features: bool = True,
+    min_common: int = 50,
+) -> t.Dict[t.Tuple[str, str], t.Union[TPairTracks, t.List[str]]]:
     """List of tracks observed by each image pair.
 
     Args:
@@ -163,7 +191,7 @@ def as_weighted_graph(tracks_manager):
 
 
 def as_graph(tracks_manager):
-    """ Return the tracks manager as a bipartite graph (legacy). """
+    """Return the tracks manager as a bipartite graph (legacy)."""
     tracks = tracks_manager.get_track_ids()
     images = tracks_manager.get_shot_ids()
 

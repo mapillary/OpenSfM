@@ -215,12 +215,11 @@ def pairwise_reconstructability(common_tracks: int, rotation_inliers: int) -> fl
 TPairArguments = Tuple[
     str, str, np.ndarray, np.ndarray, pygeometry.Camera, pygeometry.Camera, float
 ]
-TPairTracks = Tuple[List[str], np.ndarray, np.ndarray]
 
 
 def compute_image_pairs(
-    track_dict: Dict[Tuple[str, str], TPairTracks], data: DataSetBase
-):
+    track_dict: Dict[Tuple[str, str], tracking.TPairTracks], data: DataSetBase
+) -> List[Tuple[str, str]]:
     """All matched image pairs sorted by reconstructability."""
     cameras = data.load_camera_models()
     args = _pair_reconstructability_arguments(track_dict, cameras, data)
@@ -234,7 +233,7 @@ def compute_image_pairs(
 
 
 def _pair_reconstructability_arguments(
-    track_dict: Dict[Tuple[str, str], TPairTracks],
+    track_dict: Dict[Tuple[str, str], tracking.TPairTracks],
     cameras: Dict[str, pygeometry.Camera],
     data: DataSetBase,
 ) -> List[TPairArguments]:
@@ -260,7 +259,7 @@ def _compute_pair_reconstructability(args: TPairArguments) -> Tuple[str, str, fl
 def exif_to_metadata(
     exif: Dict[str, Any], use_altitude: bool, reference: types.TopocentricConverter
 ) -> pymap.ShotMeasurements:
-    """ Construct a metadata object from raw EXIF tags (as a dict). """
+    """Construct a metadata object from raw EXIF tags (as a dict)."""
     metadata = pymap.ShotMeasurements()
     if "gps" in exif and "latitude" in exif["gps"] and "longitude" in exif["gps"]:
         lat = exif["gps"]["latitude"]
@@ -350,7 +349,7 @@ def add_shot(
 def _two_view_reconstruction_inliers(
     b1: np.ndarray, b2: np.ndarray, R: np.ndarray, t: np.ndarray, threshold: float
 ) -> List[int]:
-    """ Returns indices of matches that can be triangulated. """
+    """Returns indices of matches that can be triangulated."""
     ok = matching.compute_inliers_bearings(b1, b2, R, t, threshold)
     return np.nonzero(ok)[0]
 
@@ -1329,7 +1328,7 @@ def incremental_reconstruction(
 
     remaining_images = set(images)
     gcp = data.load_ground_control_points()
-    common_tracks = tracking.all_common_tracks(tracks_manager)
+    common_tracks = tracking.all_common_tracks_with_features(tracks_manager)
     reconstructions = []
     pairs = compute_image_pairs(common_tracks, data)
     chrono.lap("compute_image_pairs")

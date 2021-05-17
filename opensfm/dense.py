@@ -6,14 +6,21 @@ import numpy as np
 from opensfm import io
 from opensfm import log
 from opensfm import pydense
+from opensfm import pymap
+from opensfm import pysfm
 from opensfm import tracking
+from opensfm import types
 from opensfm.context import parallel_map
 from opensfm.dataset import UndistortedDataSet
 
 logger = logging.getLogger(__name__)
 
 
-def compute_depthmaps(data: UndistortedDataSet, graph, reconstruction):
+def compute_depthmaps(
+    data: UndistortedDataSet,
+    graph: pysfm.TracksManager,
+    reconstruction: types.Reconstruction,
+):
     """Compute and refine depthmaps for all shots.
 
     Args:
@@ -251,7 +258,7 @@ def aggregate_depthmaps(shot_ids, depthmap_provider):
 
 
 def merge_depthmaps(
-    data: UndistortedDataSet, reconstruction
+    data: UndistortedDataSet, reconstruction: types.Reconstruction
 ) -> t.Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Merge depthmaps into a single point cloud."""
     shot_ids = [s for s in reconstruction.shots if data.pruned_depthmap_exists(s)]
@@ -379,15 +386,15 @@ def compute_depth_range(tracks_manager, reconstruction, shot, config):
     return config_min_depth or min_depth, config_max_depth or max_depth
 
 
-def common_tracks_double_dict(tracks_manager):
+def common_tracks_double_dict(
+    tracks_manager: pysfm.TracksManager,
+) -> t.Dict[str, t.Dict[str, t.List[str]]]:
     """List of track ids observed by each image pair.
 
     Return a dict, ``res``, such that ``res[im1][im2]`` is the list of
     common tracks between ``im1`` and ``im2``.
     """
-    common_tracks_per_pair = tracking.all_common_tracks(
-        tracks_manager, include_features=False
-    )
+    common_tracks_per_pair = tracking.all_common_tracks_without_features(tracks_manager)
     res = {image: {} for image in tracks_manager.get_shot_ids()}
     for (im1, im2), v in common_tracks_per_pair.items():
         res[im1][im2] = v
@@ -395,7 +402,12 @@ def common_tracks_double_dict(tracks_manager):
     return res
 
 
-def find_neighboring_images(shot, common_tracks, reconstruction, num_neighbors):
+def find_neighboring_images(
+    shot: pymap.Shot,
+    common_tracks: t.Dict[str, t.Dict[str, t.List[str]]],
+    reconstruction: types.Reconstruction,
+    num_neighbors: int,
+):
     """Find neighboring images based on common tracks."""
     theta_min = np.pi / 60
     theta_max = np.pi / 6
