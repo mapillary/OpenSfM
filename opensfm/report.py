@@ -319,10 +319,11 @@ class Report:
 
         rows = [
             [
-                "Average Reprojection Error (normalized / pixels)",
+                "Average Reprojection Error (normalized / pixels / angular)",
                 (
                     f"{self.stats['reconstruction_statistics']['reprojection_error_normalized']:.2f} / "
-                    f"{self.stats['reconstruction_statistics']['reprojection_error_pixels']:.2f}"
+                    f"{self.stats['reconstruction_statistics']['reprojection_error_pixels']:.2f} / "
+                    f"{self.stats['reconstruction_statistics']['reprojection_error_angular']:.5f}"
                 ),
             ],
             [

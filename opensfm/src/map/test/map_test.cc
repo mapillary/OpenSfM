@@ -245,7 +245,7 @@ TEST_F(EmptyMapFixture, ConstructSmallProblem) {
   ASSERT_EQ(map.GetLandmarks().size(), n_points);
 }
 
-TEST_F(OneCameraMapFixture, ComputeReprojectionError) {
+TEST_F(OneCameraMapFixture, ComputeReprojectionErrorNormalized) {
   const auto& shot = map.CreateShot("0", "0");
   Eigen::Vector3d pos = Eigen::Vector3d::Random();
   map.CreateLandmark("1", pos);
@@ -257,7 +257,8 @@ TEST_F(OneCameraMapFixture, ComputeReprojectionError) {
   const Observation o(0., 0., scale, 1, 1, 1, 1, 1, 1);
   manager.AddObservation("0", "1", o);
 
-  auto errors = map.ComputeReprojectionErrors(manager, true);
+  auto errors =
+      map.ComputeReprojectionErrors(manager, map::Map::ErrorType::Normalized);
   const auto computed = errors["0"]["1"];
   ASSERT_NEAR(expected[0] / scale, computed[0], 1e-8);
   ASSERT_NEAR(expected[1] / scale, computed[1], 1e-8);

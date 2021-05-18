@@ -11,7 +11,7 @@ import matplotlib.cm as cm
 import matplotlib.colors as colors
 import matplotlib.pyplot as plt
 import numpy as np
-from opensfm import io, multiview, feature_loader
+from opensfm import io, multiview, feature_loader, pymap
 from opensfm.dataset import DataSet, DataSetBase
 
 RESIDUAL_PIXEL_CUTOFF = 4
@@ -98,9 +98,10 @@ def gcp_errors(data: DataSetBase, reconstructions):
 
 def _compute_errors(reconstructions, tracks_manager):
     @lru_cache(10)
-    def _compute_errors_cached(index, normalized):
+    def _compute_errors_cached(index, error_type):
         return reconstructions[index].map.compute_reprojection_errors(
-            tracks_manager, normalized
+            tracks_manager,
+            error_type,
         )
 
     return _compute_errors_cached
@@ -115,38 +116,52 @@ def _get_valid_observations(reconstructions, tracks_manager):
 
 
 def _projection_error(tracks_manager, reconstructions):
-    all_errors_normalized, all_errors_pixels = [], []
-    average_error_normalized, average_error_pixels = 0, 0
+    all_errors_normalized, all_errors_pixels, all_errors_angular = [], [], []
+    average_error_normalized, average_error_pixels, average_error_angular = 0, 0, 0
     for i in range(len(reconstructions)):
-        errors_normalized = _compute_errors(reconstructions, tracks_manager)(i, True)
-        errors_unnormalized = _compute_errors(reconstructions, tracks_manager)(i, False)
+        errors_normalized = _compute_errors(reconstructions, tracks_manager)(
+            i, pymap.ErrorType.Normalized
+        )
+        errors_unnormalized = _compute_errors(reconstructions, tracks_manager)(
+            i, pymap.ErrorType.Pixel
+        )
+        errors_angular = _compute_errors(reconstructions, tracks_manager)(
+            i, pymap.ErrorType.Angular
+        )
 
         for shot_id, shot_errors_normalized in errors_normalized.items():
             shot = reconstructions[i].get_shot(shot_id)
             normalizer = max(shot.camera.width, shot.camera.height)
 
-            for error_normalized, error_unnormalized in zip(
-                shot_errors_normalized.values(), errors_unnormalized[shot_id].values()
+            for error_normalized, error_unnormalized, error_angular in zip(
+                shot_errors_normalized.values(),
+                errors_unnormalized[shot_id].values(),
+                errors_angular[shot_id].values(),
             ):
                 norm_pixels = _norm2d(error_unnormalized * normalizer)
                 norm_normalized = _norm2d(error_normalized)
+                norm_angle = error_angular[0]
                 if norm_pixels > RESIDUAL_PIXEL_CUTOFF:
                     continue
                 average_error_normalized += norm_normalized
                 average_error_pixels += norm_pixels
+                average_error_angular += norm_angle
                 all_errors_normalized.append(norm_normalized)
                 all_errors_pixels.append(norm_pixels)
+                all_errors_angular.append(norm_angle)
 
     error_count = len(all_errors_normalized)
     if error_count == 0:
-        return (-1.0, -1.0, ([], []), ([], []))
+        return (-1.0, -1.0, -1.0, ([], []), ([], []), ([], []))
 
     bins = 30
     return (
         average_error_normalized / error_count,
         average_error_pixels / error_count,
+        average_error_angular / error_count,
         np.histogram(all_errors_normalized, bins),
         np.histogram(all_errors_pixels, bins),
+        np.histogram(all_errors_angular, bins),
     )
 
 
@@ -203,11 +218,14 @@ def reconstruction_statistics(data: DataSetBase, tracks_manager, reconstructions
     (
         avg_normalized,
         avg_pixels,
+        avg_angular,
         (hist_normalized, bins_normalized),
         (hist_pixels, bins_pixels),
+        (hist_angular, bins_angular),
     ) = _projection_error(tracks_manager, reconstructions)
     stats["reprojection_error_normalized"] = avg_normalized
     stats["reprojection_error_pixels"] = avg_pixels
+    stats["reprojection_error_angular"] = avg_angular
     stats["reprojection_histogram_normalized"] = (
         list(map(float, hist_normalized)),
         list(map(float, bins_normalized)),
@@ -215,6 +233,10 @@ def reconstruction_statistics(data: DataSetBase, tracks_manager, reconstructions
     stats["reprojection_histogram_pixels"] = (
         list(map(float, hist_pixels)),
         list(map(float, bins_pixels)),
+    )
+    stats["reprojection_histogram_angular"] = (
+        list(map(float, hist_angular)),
+        list(map(float, bins_angular)),
     )
 
     return stats
@@ -475,7 +497,7 @@ def save_residual_histogram(
     io_handler,
 ):
     backup = dict(mpl.rcParams)
-    fig, axs = plt.subplots(1, 2, tight_layout=True, figsize=(15, 3))
+    fig, axs = plt.subplots(1, 3, tight_layout=True, figsize=(15, 3))
 
     h_norm, b_norm = stats["reconstruction_statistics"][
         "reprojection_histogram_normalized"
@@ -493,8 +515,19 @@ def save_residual_histogram(
     for i in range(len(p_pixel)):
         p_pixel[i].set_facecolor(plt.cm.viridis(n[i] / max(n)))
 
+    h_angular, b_angular = stats["reconstruction_statistics"][
+        "reprojection_histogram_angular"
+    ]
+    n, _, p_angular, = axs[
+        2
+    ].hist(b_angular[:-1], b_angular, weights=h_angular)
+    n = n.astype("int")
+    for i in range(len(p_angular)):
+        p_angular[i].set_facecolor(plt.cm.viridis(n[i] / max(n)))
+
     axs[0].set_title("Normalized Residual")
     axs[1].set_title("Pixel Residual")
+    axs[2].set_title("Angular Residual")
 
     with io_handler.open(
         os.path.join(output_path, "residual_histogram.png"), "wb"
@@ -768,8 +801,8 @@ def save_residual_grids(
 
     for i in range(len(reconstructions)):
         valid_observations = _get_valid_observations(reconstructions, tracks_manager)(i)
-        errors_scaled = _compute_errors(reconstructions, tracks_manager)(i, True)
-        errors_unscaled = _compute_errors(reconstructions, tracks_manager)(i, False)
+        errors_scaled = _compute_errors(reconstructions, tracks_manager)(i, pymap.ErrorType.Normalized)
+        errors_unscaled = _compute_errors(reconstructions, tracks_manager)(i, pymap.ErrorType.Pixel)
 
         for shot_id, shot_errors in errors_scaled.items():
             shot = reconstructions[i].get_shot(shot_id)
