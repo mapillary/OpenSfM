@@ -48,7 +48,7 @@ def comp_color(color):
 
 
 class View:
-    def __init__(self, main_ui, show_ortho_track):
+    def __init__(self, main_ui, show_track_checkbox):
         self.main_ui = main_ui
         window = tk.Toplevel(self.main_ui.parent)
         self.window = window
@@ -62,12 +62,12 @@ class View:
         self.toolbox.pack(side="left", expand=False, fill=tk.BOTH)
 
         self.is_latlon_source = tk.BooleanVar(value=False)
-        if show_ortho_track:
+        if show_track_checkbox:
             self.latlons = self.load_latlons()
             if self.latlons:
                 button = tk.Checkbutton(
                     self.toolbox,
-                    text="Overhead focus",
+                    text="Track this view",
                     var=self.is_latlon_source,
                     command=self.trackToggle,
                 )
@@ -147,21 +147,27 @@ class View:
             return
         self.go_to_image_index(int(sel[0]))
 
+    def pixel_to_latlon(self, x: float, y: float):
+        return None
+
     def add_move_or_remove_gcp(self, x, y, add):
         if self.main_ui.curr_point is None:
             return
+        latlon = self.pixel_to_latlon(x, y)
         reproj = self.main_ui.gcp_manager.gcp_reprojections.get(self.main_ui.curr_point)
         if reproj:
             reproj.pop(self.current_image, None)
         self.main_ui.gcp_manager.remove_point_observation(
-            self.main_ui.curr_point, self.current_image
+            self.main_ui.curr_point,
+            self.current_image,
+            remove_latlon=latlon is not None,
         )
         if add:
             self.main_ui.gcp_manager.add_point_observation(
                 self.main_ui.curr_point,
                 self.current_image,
                 self.pixel_to_gcp_coordinates(x, y),
-                latlon=self.pixel_to_latlon(x, y),
+                latlon=latlon,
             )
             self.zoom_in(x, y)
         else:
@@ -320,9 +326,12 @@ class View:
         reproj = self.main_ui.gcp_manager.gcp_reprojections[point_id].get(shot)
         if not reproj:
             return
-        x2, y2 = reproj["reprojection"]
         x, y = self.gcp_to_pixel_coordinates(x, y)
-        x2, y2 = self.gcp_to_pixel_coordinates(x2, y2)
+        if "reprojection" in reproj:
+            x2, y2 = self.gcp_to_pixel_coordinates(*reproj["reprojection"])
+        elif "lla" in reproj:
+            lat, lon, _ = reproj["lla"]
+            x2, y2 = self.latlon_to_pixel(lat, lon)
         artists = self.ax.plot([x, x2], [y, y2], "r-")
         self.plt_artists.extend(artists)
         if zoom:
