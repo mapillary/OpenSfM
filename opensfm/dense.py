@@ -266,11 +266,11 @@ def merge_depthmaps(
     def depthmap_provider(shot_id):
         return data.load_pruned_depthmap(shot_id)
 
-    return merge_depthmaps_from_provider(data, shot_ids, depthmap_provider)
+    return merge_depthmaps_from_provider(shot_ids, depthmap_provider)
 
 
 def merge_depthmaps_from_provider(
-    data: UndistortedDataSet, shot_ids: t.Iterable[str], depthmap_provider: t.Callable
+    shot_ids: t.Iterable[str], depthmap_provider: t.Callable
 ) -> t.Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Merge depthmaps into a single point cloud."""
     logger.info("Merging depthmaps")
