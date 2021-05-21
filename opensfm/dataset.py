@@ -1208,6 +1208,7 @@ class UndistortedDataSet(object):
         detections: np.ndarray,
         filename: str = "merged.ply",
     ) -> None:
+        self.io_handler.mkdir_p(self._depthmap_path())
         with self.io_handler.open(self.point_cloud_file(filename), "w") as fp:
             io.point_cloud_to_ply(points, normals, colors, labels, detections, fp)
 
