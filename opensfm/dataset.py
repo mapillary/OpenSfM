@@ -1193,6 +1193,25 @@ class UndistortedDataSet(object):
     def point_cloud_file(self, filename: str = "merged.ply") -> str:
         return os.path.join(self._depthmap_path(), filename)
 
+    def load_point_cloud(
+        self, filename: str = "merged.ply"
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        with self.io_handler.open(self.point_cloud_file(filename), "r") as fp:
+            return io.point_cloud_from_ply(fp)
+
+    def save_point_cloud(
+        self,
+        points: np.ndarray,
+        normals: np.ndarray,
+        colors: np.ndarray,
+        labels: np.ndarray,
+        detections: np.ndarray,
+        filename: str = "merged.ply",
+    ) -> None:
+        self.io_handler.mkdir_p(self._depthmap_path())
+        with self.io_handler.open(self.point_cloud_file(filename), "w") as fp:
+            io.point_cloud_to_ply(points, normals, colors, labels, detections, fp)
+
     def raw_depthmap_exists(self, image: str) -> bool:
         return self.io_handler.isfile(self.depthmap_file(image, "raw.npz"))
 

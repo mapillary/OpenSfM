@@ -45,6 +45,12 @@ void DeclareShotMeasurement(py::module &m, const std::string &type_name) {
           }));
 }
 PYBIND11_MODULE(pymap, m) {
+  py::enum_<map::Map::ErrorType>(m, "ErrorType")
+      .value("Pixel", map::Map::Pixel)
+      .value("Normalized", map::Map::Normalized)
+      .value("Angular", map::Map::Angular)
+      .export_values();
+
   py::class_<map::Map>(m, "Map")
       .def(py::init())
       // Camera

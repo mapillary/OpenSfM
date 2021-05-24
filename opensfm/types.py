@@ -95,11 +95,11 @@ class Reconstruction(object):
 
     points = property(get_points, set_points)
 
-    def get_reference(self):
+    def get_reference(self) -> TopocentricConverter:
         ref = self.map.get_reference()
         return TopocentricConverter(ref.lat, ref.lon, ref.alt)
 
-    def set_reference(self, value):
+    def set_reference(self, value: TopocentricConverter) -> None:
         self.map.set_reference(value.lat, value.lon, value.alt)
 
     reference = property(get_reference, set_reference)

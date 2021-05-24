@@ -4,6 +4,7 @@
 #include <map/rig.h>
 #include <map/shot.h>
 
+#include <cmath>
 #include <unordered_set>
 
 namespace map {
@@ -364,7 +365,7 @@ RigInstance& Map::GetRigInstance(const RigInstanceId& instance_id) {
   return it->second;
 }
 
-const RigInstance& Map::GetRigInstance(const RigInstanceId& instance_id) const{
+const RigInstance& Map::GetRigInstance(const RigInstanceId& instance_id) const {
   const auto& it = rig_instances_.find(instance_id);
   if (it == rig_instances_.end()) {
     throw std::runtime_error("Accessing invalid RigInstance index");
@@ -378,7 +379,7 @@ bool Map::HasRigInstance(const RigInstanceId& instance_id) const {
 
 std::unordered_map<ShotId, std::unordered_map<LandmarkId, Vec2d> >
 Map::ComputeReprojectionErrors(const TracksManager& tracks_manager,
-                               bool scaled) const {
+                               const Map::ErrorType& error_type) const {
   std::unordered_map<ShotId, std::unordered_map<LandmarkId, Vec2d> > errors;
   for (const auto& shot_id : tracks_manager.GetShotIds()) {
     const auto find_shot = shots_.find(shot_id);
@@ -394,11 +395,27 @@ Map::ComputeReprojectionErrors(const TracksManager& tracks_manager,
         continue;
       }
 
-      const Vec2d error_2d =
-          (track_n_obs.second.point -
-           shot.Project(find_landmark->second.GetGlobalPos()));
-      const auto scale = scaled ? track_n_obs.second.scale : 1.0;
-      per_shot[track_n_obs.first] = error_2d / scale;
+      if (error_type == Map::ErrorType::Pixel) {
+        const Vec2d error_2d =
+            (track_n_obs.second.point -
+             shot.Project(find_landmark->second.GetGlobalPos()));
+        per_shot[track_n_obs.first] = error_2d;
+      }
+      if (error_type == Map::ErrorType::Normalized) {
+        const Vec2d error_2d =
+            (track_n_obs.second.point -
+             shot.Project(find_landmark->second.GetGlobalPos()));
+        per_shot[track_n_obs.first] = error_2d / track_n_obs.second.scale;
+      }
+      if (error_type == Map::ErrorType::Angular) {
+        const Vec3d point =
+            (find_landmark->second.GetGlobalPos() - shot.GetPose()->GetOrigin())
+                .normalized();
+        const Vec3d bearing =
+            shot.Bearing(track_n_obs.second.point).normalized();
+        const double angle = std::acos(point.dot(bearing));
+        per_shot[track_n_obs.first] = Vec2d::Constant(angle);
+      }
     }
   }
   return errors;

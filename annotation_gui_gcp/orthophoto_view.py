@@ -1,8 +1,10 @@
-from typing import Tuple
+import typing as t
 
 import numpy as np
 import rasterio.warp
+import rasterio.windows
 from opensfm import features
+from rasterio.io import DatasetReader
 
 from .orthophoto_manager import OrthoPhotoManager
 from .view import View
@@ -15,7 +17,7 @@ class OrthoPhotoView(View):
         path: str,
         init_lat: float,
         init_lon: float,
-        is_geo_reference: bool = False,
+        is_the_geo_reference: bool = False,
     ):
         """[summary]
 
@@ -25,8 +27,10 @@ class OrthoPhotoView(View):
         """
         self.image_manager = OrthoPhotoManager(path, 100.0)
         self.images_in_list = self.image_manager.image_keys
-        self.zoom_window_size_px = 500
-        self.is_geo_reference = is_geo_reference
+        self.zoom_window_size_px = 300
+        self.is_the_geo_reference = is_the_geo_reference
+        self.geot: t.Optional[DatasetReader] = None
+        self.image_window: t.Optional[rasterio.windows.Window] = None
 
         self.size = 50  # TODO add widget for zoom level
 
@@ -37,12 +41,14 @@ class OrthoPhotoView(View):
             self.bring_new_image(self.images_in_list[0])
         self.set_title()
 
-    def get_image(self, new_image):
-        crop, image_window, geot = self.image_manager.read_image_around_latlon(
+    def get_image(self, new_image: str):
+        (
+            crop,
+            self.image_window,
+            self.geot,
+        ) = self.image_manager.read_image_around_latlon(
             new_image, self.center_lat, self.center_lon, self.size
         )
-        self.image_window = image_window
-        self.geot = geot
         return crop
 
     def get_candidate_images(self):
@@ -50,41 +56,74 @@ class OrthoPhotoView(View):
             self.center_lat, self.center_lon, self.size
         )
 
+    def latlon_to_pixel(self, lat: float, lon: float) -> t.Tuple[float, float]:
+        """
+        From latlon to pixels (in the viewing window)
+        """
+        geot = self.geot
+        image_window = self.image_window
+        assert geot
+        assert image_window
+        # From WSG84 (lat/lon) to the image crs
+        # pyre-fixme[16]: Module `DatasetReader` has no attribute `crs`.
+        x, y = rasterio.warp.transform("EPSG:4326", geot.crs, [lon], [lat])
+
+        # Image crs to pixel
+        ys, xs = geot.index(x, y)
+        x, y = xs[0], ys[0]
+
+        # Offset by the viewing window
+        x -= image_window.col_off
+        y -= image_window.row_off
+
+        return x, y
+
     def pixel_to_latlon(self, x: float, y: float):
         """
         From pixels (in the viewing window) to latlon
         """
-        if not self.is_geo_reference:
+        if not self.is_the_geo_reference:
             return None
 
+        geot = self.geot
+        image_window = self.image_window
+        assert geot
+        assert image_window
+
+        # Offset by the viewing window
+        x += image_window.col_off
+        y += image_window.row_off
+
         # Pixel to whatever crs the image is in
-        # pyre-fixme[16]: `OrthoPhotoView` has no attribute `geot`.
-        x, y = self.geot.xy(y, x)
+        x, y = geot.xy(y, x)
         # And then to WSG84 (lat/lon)
-        lons, lats = rasterio.warp.transform(self.geot.crs, "EPSG:4326", [x], [y])
+        # pyre-fixme[16]: Module `DatasetReader` has no attribute `crs`.
+        lons, lats = rasterio.warp.transform(geot.crs, "EPSG:4326", [x], [y])
         return lats[0], lons[0]
 
-    def gcp_to_pixel_coordinates(self, x: float, y: float) -> Tuple[float, float]:
+    def gcp_to_pixel_coordinates(self, x: float, y: float) -> t.Tuple[float, float]:
         """
         Transforms from normalized coordinates (in the whole geotiff) to
         pixels (in the viewing window)
         """
+        image_window = self.image_window
+        assert image_window
         h, w = self.image_manager.get_image_size(self.current_image)
         px = features.denormalized_image_coordinates(np.array([[x, y]]), w, h)[0]
-        # pyre-fixme[16]: `OrthoPhotoView` has no attribute `image_window`.
-        x = px[0] - self.image_window.col_off
-        y = px[1] - self.image_window.row_off
-        # pyre-fixme[7]: Expected `Tuple[float, float]` but got `List[typing.Any]`.
+        x = px[0] - image_window.col_off
+        y = px[1] - image_window.row_off
+        # pyre-fixme[7]: Expected `t.Tuple[float, float]` but got `List[typing.Any]`.
         return [x, y]
 
-    def pixel_to_gcp_coordinates(self, x: float, y: float) -> Tuple[float, float]:
+    def pixel_to_gcp_coordinates(self, x: float, y: float) -> t.Tuple[float, float]:
         """
         Transforms from pixels (in the viewing window) to normalized coordinates
         (in the whole geotiff)
         """
-        # pyre-fixme[16]: `OrthoPhotoView` has no attribute `image_window`.
-        x += self.image_window.col_off
-        y += self.image_window.row_off
+        image_window = self.image_window
+        assert image_window
+        x += image_window.col_off
+        y += image_window.row_off
         h, w = self.image_manager.get_image_size(self.current_image)
         coords = features.normalized_image_coordinates(np.array([[x, y]]), w, h)[0]
         return coords.tolist()

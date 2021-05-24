@@ -12,6 +12,7 @@ from opensfm import dataset
 # pyre-fixme[16]: Module `matplotlib` has no attribute `use`.
 matplotlib.use("TkAgg")
 
+from .cad_viewer.cad_view import CadView
 from .image_sequence_view import ImageSequenceView
 from .orthophoto_view import OrthoPhotoView
 
@@ -20,7 +21,13 @@ FONT = "TkFixedFont"
 
 class Gui:
     def __init__(
-        self, parent, gcp_manager, image_manager, sequence_groups=(), ortho_paths=()
+        self,
+        parent,
+        gcp_manager,
+        image_manager,
+        rig_groups=None,
+        ortho_paths=(),
+        cad_paths=(),
     ):
         self.parent = parent
         self.gcp_manager = gcp_manager
@@ -28,15 +35,15 @@ class Gui:
         self.curr_point = None
         self.quick_save_filename = None
         self.shot_std = {}
-        self.sequence_groups = sequence_groups
+        self.rig_groups = rig_groups if rig_groups else {}
         self.path = self.gcp_manager.path
 
         parent.bind_all("q", lambda event: self.go_to_worst_gcp())
         parent.bind_all("z", lambda event: self.toggle_zoom_all_views())
         parent.bind_all("x", lambda event: self.toggle_sticky_zoom())
         parent.bind_all("a", lambda event: self.go_to_current_gcp())
-        self.get_reconstruction_options()
-        self.create_ui(ortho_paths)
+        self.reconstruction_options = self.get_reconstruction_options()
+        self.create_ui(ortho_paths, cad_paths)
         parent.lift()
 
         p_default_gcp = self.path + "/ground_control_points.json"
@@ -46,9 +53,8 @@ class Gui:
 
     def get_reconstruction_options(self):
         p_recs = self.path + "/reconstruction.json"
-        print(p_recs)
         if not os.path.exists(p_recs):
-            return {}
+            return ["NONE", "NONE"]
         data = dataset.DataSet(self.path)
         recs = data.load_reconstruction()
         options = []
@@ -61,30 +67,38 @@ class Gui:
             )
             options.append(str_repr)
         options.append("None (3d-to-2d)")
-        self.reconstruction_options = options
+        return options
 
-    def create_ui(self, ortho_paths):
+    def create_ui(self, ortho_paths, cad_paths):
         tools_frame = tk.Frame(self.parent)
         tools_frame.pack(side="left", expand=0, fill=tk.Y)
         self.create_tools(tools_frame)
-        self.create_sequence_views(show_ortho_track=len(ortho_paths) > 0)
+        has_views_that_need_tracking = len(ortho_paths) > 0 or len(cad_paths) > 0
+        self.create_sequence_views(show_track_checkbox=has_views_that_need_tracking)
         self.ortho_views = []
         if ortho_paths:
             v = self.sequence_views[0]
             k = v.current_image
             latlon = v.latlons[k]
             self.create_ortho_views(ortho_paths, latlon["lat"], latlon["lon"])
+
+        self.cad_views = [
+            CadView(self, cad_path, 5000 + ix) for ix, cad_path in enumerate(cad_paths)
+        ]
+
         self.parent.update_idletasks()
         # self.arrange_ui_onerow()
 
     def rec_ix_changed(self, *args):
         # Load analysis for the new reconstruction pair if it exists
-        ix_a = self.reconstruction_options.index(self.rec_a.get())
-        ix_b = self.reconstruction_options.index(self.rec_b.get())
-        if ix_b == len(self.reconstruction_options) - 1:
-            ix_b = None
-        print(f"Loading analysis results for {self.rec_a.get()} vs {self.rec_b.get()}")
-        self.load_analysis_results(ix_a, ix_b)
+        self.ix_a = self.reconstruction_options.index(self.rec_a.get())
+        self.ix_b = self.reconstruction_options.index(self.rec_b.get())
+        if self.ix_b == len(self.reconstruction_options) - 1:
+            self.ix_b = None
+        print(
+            f"Loading analysis results for #{self.ix_a}:{self.rec_a.get()} vs #{self.ix_b}:{self.rec_b.get()}"
+        )
+        self.load_analysis_results(self.ix_a, self.ix_b)
         for view in self.sequence_views:
             view.populate_image_list()
 
@@ -144,6 +158,7 @@ class Gui:
         analysis_frame.pack(side="top")
 
         options = self.reconstruction_options
+        self.ix_a = 0
         self.rec_a = tk.StringVar(parent)
         self.rec_a.set(options[0])
         self.rec_a.trace("w", self.rec_ix_changed)
@@ -151,6 +166,7 @@ class Gui:
         w.pack(side="top", fill=tk.X)
         w.config(width=width)
 
+        self.ix_b = None
         self.rec_b = tk.StringVar(parent)
         self.rec_b.set(options[1])
         self.rec_b.trace("w", self.rec_ix_changed)
@@ -161,7 +177,11 @@ class Gui:
         analysis_buttons_frame = tk.Frame(analysis_frame)
         analysis_buttons_frame.pack(side="top")
         button = tk.Button(
-            analysis_buttons_frame, text="Fast", command=self.analyze_fast
+            analysis_buttons_frame, text="Rigid", command=self.analyze_rigid
+        )
+        button.pack(side="left")
+        button = tk.Button(
+            analysis_buttons_frame, text="Flex", command=self.analyze_flex
         )
         button.pack(side="left")
         button = tk.Button(analysis_buttons_frame, text="Full", command=self.analyze)
@@ -183,29 +203,26 @@ class Gui:
                 ortho_p,
                 init_lat=lat,
                 init_lon=lon,
-                is_geo_reference=ortho_p is ortho_paths[0],
+                is_the_geo_reference=ortho_p is ortho_paths[0],
             )
             self.ortho_views.append(v)
 
-    def create_sequence_views(self, show_ortho_track):
+    def create_sequence_views(self, show_track_checkbox):
         self.sequence_views = []
         for sequence_key, image_keys in self.image_manager.seqs.items():
-            v = ImageSequenceView(self, sequence_key, image_keys, show_ortho_track)
+            v = ImageSequenceView(self, sequence_key, image_keys, show_track_checkbox)
             self.sequence_views.append(v)
 
-    def analyze_fast(self):
-        self.analyze(fast=True)
+    def analyze_rigid(self):
+        self.analyze(rigid=True, covariance=False)
 
-    def analyze(self, fast=False):
+    def analyze_flex(self):
+        self.analyze(rigid=False, covariance=False)
+
+    def analyze(self, rigid=False, covariance=True):
         t = time.time() - os.path.getmtime(self.path + "/ground_control_points.json")
         ix_a = self.reconstruction_options.index(self.rec_a.get())
         ix_b = self.reconstruction_options.index(self.rec_b.get())
-        if ix_a == ix_b:
-            print(
-                "Please select different reconstructions in the drop-down menus"
-                " before running the analysis"
-            )
-            return
         if t > 30:
             print(
                 "Please save to ground_control_points.json before running the analysis"
@@ -224,8 +241,11 @@ class Gui:
         else:
             ix_b = None
 
-        if fast:
-            args.extend(["--fast"])
+        if rigid:
+            args.extend(["--rigid"])
+
+        if covariance:
+            args.extend(["--covariance"])
 
         # Call the run_ba script
         subprocess.run(args)
@@ -261,15 +281,15 @@ class Gui:
             return
         self.quick_save_filename = filename
         self.gcp_manager.load_from_file(filename)
-        for view in self.sequence_views:
+        for view in self.sequence_views + self.ortho_views + self.cad_views:
             view.display_points()
             view.populate_image_list()
         self.populate_gcp_list()
 
     def add_gcp(self):
-        self.curr_point = self.gcp_manager.add_point()
+        new_gcp = self.gcp_manager.add_point()
         self.populate_gcp_list()
-        return self.curr_point
+        self.update_active_gcp(new_gcp)
 
     def toggle_sticky_zoom(self):
         if self.sticky_zoom.get():
@@ -321,13 +341,18 @@ class Gui:
         to_be_removed_point = self.curr_point
         if not to_be_removed_point:
             return
-        self.curr_point = None
-
         self.gcp_manager.remove_gcp(to_be_removed_point)
-        for view in self.sequence_views:
-            view.display_points()
-
         self.populate_gcp_list()
+        self.update_active_gcp(None)
+
+    def update_active_gcp(self, new_active_gcp):
+        self.curr_point = new_active_gcp
+        for view in self.sequence_views + self.ortho_views + self.cad_views:
+            view.display_points()
+            if self.curr_point:
+                view.highlight_gcp_reprojection(self.curr_point, zoom=False)
+
+        self.update_gcp_list_highlight()
 
     def onclick_gcp_list(self, event):
         widget = event.widget
@@ -335,17 +360,8 @@ class Gui:
         if not selection:
             return
         value = widget.get(int(selection[0]))
-        if value == "none":
-            self.curr_point = None
-        else:
-            self.curr_point = value.split(" ")[1]
-
-        for view in self.sequence_views:
-            view.display_points()
-            if self.curr_point:
-                view.highlight_gcp_reprojection(self.curr_point, zoom=False)
-
-        self.update_gcp_list_highlight()
+        curr_point = value.split(" ")[1] if value != "none" else None
+        self.update_active_gcp(curr_point)
 
     def save_gcps(self):
         if self.quick_save_filename is None:
@@ -393,7 +409,7 @@ class Gui:
         if len(self.gcp_manager.gcp_reprojections) == 0:
             print("No GCP reprojections available. Can't jump to worst GCP")
             return
-        worst_gcp = self.gcp_manager.compute_gcp_errors()[0]
+        worst_gcp = self.gcp_manager.get_worst_gcp()
         if worst_gcp is None:
             return
 
@@ -419,5 +435,5 @@ class Gui:
                 v.is_latlon_source.set(False)
 
     def refocus_overhead_views(self, lat, lon):
-        for view in self.ortho_views:
+        for view in self.ortho_views + self.cad_views:
             view.refocus(lat, lon)
