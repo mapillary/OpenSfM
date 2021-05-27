@@ -141,7 +141,7 @@ def _projection_error(tracks_manager, reconstructions):
                 norm_pixels = _norm2d(error_unnormalized * normalizer)
                 norm_normalized = _norm2d(error_normalized)
                 norm_angle = error_angular[0]
-                if norm_pixels > RESIDUAL_PIXEL_CUTOFF:
+                if norm_pixels > RESIDUAL_PIXEL_CUTOFF or math.isnan(norm_angle):
                     continue
                 average_error_normalized += norm_normalized
                 average_error_pixels += norm_pixels
@@ -801,8 +801,12 @@ def save_residual_grids(
 
     for i in range(len(reconstructions)):
         valid_observations = _get_valid_observations(reconstructions, tracks_manager)(i)
-        errors_scaled = _compute_errors(reconstructions, tracks_manager)(i, pymap.ErrorType.Normalized)
-        errors_unscaled = _compute_errors(reconstructions, tracks_manager)(i, pymap.ErrorType.Pixel)
+        errors_scaled = _compute_errors(reconstructions, tracks_manager)(
+            i, pymap.ErrorType.Normalized
+        )
+        errors_unscaled = _compute_errors(reconstructions, tracks_manager)(
+            i, pymap.ErrorType.Pixel
+        )
 
         for shot_id, shot_errors in errors_scaled.items():
             shot = reconstructions[i].get_shot(shot_id)
