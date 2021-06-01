@@ -3,11 +3,10 @@ import typing as t
 import numpy as np
 import rasterio.warp
 import rasterio.windows
+from annotation_gui_gcp.lib.orthophoto_manager import OrthoPhotoManager
+from annotation_gui_gcp.lib.view import View
 from opensfm import features
 from rasterio.io import DatasetReader
-
-from .orthophoto_manager import OrthoPhotoManager
-from .view import View
 
 
 class OrthoPhotoView(View):

@@ -2,10 +2,12 @@ import tkinter as tk
 
 import matplotlib
 import numpy as np
+from annotation_gui_gcp.lib.geometry import (
+    get_all_track_observations,
+    get_tracks_visible_in_image,
+)
+from annotation_gui_gcp.lib.view import View
 from matplotlib import pyplot as plt
-
-from .geometry import get_all_track_observations, get_tracks_visible_in_image
-from .view import View
 
 
 class ImageSequenceView(View):

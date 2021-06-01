@@ -8,7 +8,7 @@ from threading import Thread
 import rasterio
 from flask import Flask, Response, jsonify, request, send_from_directory
 from PIL import ImageColor
-from ..view import distinct_colors
+from annotation_gui_gcp.lib.view import distinct_colors
 
 
 def _load_georeference_metadata(path_cad_model):
