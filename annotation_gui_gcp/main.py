@@ -9,9 +9,9 @@ from pathlib import Path
 import numpy as np
 from opensfm import dataset, io
 
-from . import GUI
-from .gcp_manager import GroundControlPointManager
-from .image_manager import ImageManager
+from annotation_gui_gcp.lib import GUI
+from annotation_gui_gcp.lib.gcp_manager import GroundControlPointManager
+from annotation_gui_gcp.lib.image_manager import ImageManager
 
 
 def parse_args():

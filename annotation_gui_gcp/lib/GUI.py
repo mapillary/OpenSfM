@@ -12,9 +12,9 @@ from opensfm import dataset
 # pyre-fixme[16]: Module `matplotlib` has no attribute `use`.
 matplotlib.use("TkAgg")
 
-from .cad_viewer.cad_view import CadView
-from .image_sequence_view import ImageSequenceView
-from .orthophoto_view import OrthoPhotoView
+from annotation_gui_gcp.lib.cad_viewer.cad_view import CadView
+from annotation_gui_gcp.lib.image_sequence_view import ImageSequenceView
+from annotation_gui_gcp.lib.orthophoto_view import OrthoPhotoView
 
 FONT = "TkFixedFont"
 
