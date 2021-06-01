@@ -15,10 +15,25 @@ logger = logging.getLogger(__name__)
 
 
 def run_dataset(data: DataSetBase):
-    """ Compute features for all images. """
+    """Compute features for all images."""
 
     start = timer()
-    process_queue = queue.Queue()
+
+    default_queue_size = 10
+    max_queue_size = 200
+    mem_available = log.memory_available()
+    if mem_available:
+        expected_mb = mem_available / 2
+        expected_images = min(
+            max_queue_size, int(expected_mb / average_image_size(data))
+        )
+    else:
+        expected_images = default_queue_size
+    logger.info(
+        f"Capping memory usage to {expected_images} images (~ {expected_mb} MB)"
+    )
+
+    process_queue = queue.Queue(expected_images)
     arguments: List[Tuple[str, Any]] = []
 
     all_images = data.images()
@@ -55,6 +70,13 @@ def run_dataset(data: DataSetBase):
 
     end = timer()
     write_report(data, end - start)
+
+
+def average_image_size(data: DataSetBase) -> float:
+    average_size_mb = 0
+    for camera in data.load_camera_models().values():
+        average_size_mb += camera.width * camera.height * 4 / 1024 / 1024
+    return average_size_mb / len(data.load_camera_models())
 
 
 def write_report(data: DataSetBase, wall_time: float):
@@ -123,8 +145,9 @@ def read_images(
     counter: Counter,
     expected: int,
 ):
+    full_queue_timeout = 120
     for image in images:
-        logger.info(f"Reading data for image {image}")
+        logger.info(f"Reading data for image {image} (queue-size={queue.qsize()}")
         image_array = data.load_image(image)
         if data.config["features_bake_segmentation"]:
             segmentation_array = data.load_segmentation(image)
@@ -132,7 +155,7 @@ def read_images(
         else:
             segmentation_array, instances_array = None, None
         args = image, image_array, segmentation_array, instances_array, data
-        queue.put(args)
+        queue.put(args, block=True, timeout=full_queue_timeout)
         counter.increment()
         if counter.value() == expected:
             logger.info("Finished reading images")
@@ -147,6 +170,9 @@ def run_detection(queue: queue.Queue):
             break
         image, image_array, segmentation_array, instances_array, data = args
         detect(image, image_array, segmentation_array, instances_array, data)
+        del image_array
+        del segmentation_array
+        del instances_array
 
 
 def bake_segmentation(
