@@ -18,6 +18,9 @@ def test_reconstruction_incremental(
     )
     errors = synthetic_scene.compare(reference, reconstructed_scene[0])
 
+    assert reconstructed_scene[0].reference.lat == 47.0
+    assert reconstructed_scene[0].reference.lon == 6.0
+
     assert errors["ratio_cameras"] == 1.0
     assert 0.7 < errors["ratio_points"] < 1.0
 
@@ -45,6 +48,9 @@ def test_reconstruction_incremental_rig(
         dataset, scene_synthetic_rig.tracks_manager
     )
     errors = synthetic_scene.compare(reference, reconstructed_scene[0])
+
+    assert reconstructed_scene[0].reference.lat == 47.0
+    assert reconstructed_scene[0].reference.lon == 6.0
 
     assert errors["ratio_cameras"] == 1.0
     assert 0.7 < errors["ratio_points"] < 1.0

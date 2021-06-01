@@ -5,7 +5,7 @@ from typing import Dict, Optional, List, Any, Union, Tuple, Callable
 import numpy as np
 import opensfm.synthetic_data.synthetic_generator as sg
 import opensfm.synthetic_data.synthetic_metrics as sm
-from opensfm import pygeometry, types, pymap, pysfm, features as oft
+from opensfm import pygeometry, types, pymap, pysfm, features as oft, geo
 
 
 def get_camera(
@@ -366,6 +366,7 @@ class SyntheticInputData:
     def __init__(
         self,
         reconstruction: types.Reconstruction,
+        reference: geo.TopocentricConverter,
         projection_max_depth: float,
         projection_noise: float,
         gps_noise: Union[Dict[str, float], float],
@@ -374,7 +375,7 @@ class SyntheticInputData:
     ):
         self.reconstruction = reconstruction
         self.exifs = sg.generate_exifs(
-            reconstruction, gps_noise, causal_gps_noise=causal_gps_noise
+            reconstruction, reference, gps_noise, causal_gps_noise=causal_gps_noise
         )
 
         if generate_projections:

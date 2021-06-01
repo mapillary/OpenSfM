@@ -34,7 +34,7 @@ class SyntheticDataSet(DataSet):
         self.features = features
         self.tracks_manager = tracks_manager
         self.image_list = list(reconstruction.shots.keys())
-        self.reference_lla = {"latitude": 0.0, "longitude": 0.0, "altitude": 0.0}
+        self.reference_lla = {"latitude": 47.0, "longitude": 6.0, "altitude": 0.0}
         self.matches = None
         self.config["use_altitude_tag"] = True
         self.config["align_method"] = "naive"

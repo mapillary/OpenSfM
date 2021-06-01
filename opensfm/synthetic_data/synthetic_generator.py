@@ -151,6 +151,7 @@ def generate_causal_noise(
 
 def generate_exifs(
     reconstruction: types.Reconstruction,
+    reference: geo.TopocentricConverter,
     gps_noise: Union[Dict[str, float], float],
     causal_gps_noise: bool = False,
 ) -> Dict[str, Any]:
@@ -159,7 +160,6 @@ def generate_exifs(
     previous_pose = None
     previous_time = 0
     exifs = {}
-    reference = geo.TopocentricConverter(0, 0, 0)
 
     def _gps_dop(shot):
         gps_dop = 15
