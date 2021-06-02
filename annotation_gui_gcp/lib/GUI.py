@@ -231,7 +231,7 @@ class Gui:
 
         args = [
             sys.executable,
-            os.path.dirname(__file__) + "/run_ba.py",
+            os.path.join(os.path.dirname(os.path.dirname(__file__)), "run_ba.py"),
             self.path,
             "--rec_a",
             str(ix_a),
