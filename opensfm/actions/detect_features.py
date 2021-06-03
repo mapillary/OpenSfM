@@ -27,11 +27,10 @@ def run_dataset(data: DataSetBase):
         expected_images = min(
             max_queue_size, int(expected_mb / average_image_size(data))
         )
+        logger.info(f"Capping memory usage to ~ {expected_mb} MB")
     else:
         expected_images = default_queue_size
-    logger.info(
-        f"Capping memory usage to {expected_images} images (~ {expected_mb} MB)"
-    )
+    logger.info(f"Expecting to process {expected_images} images.")
 
     process_queue = queue.Queue(expected_images)
     arguments: List[Tuple[str, Any]] = []
