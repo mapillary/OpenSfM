@@ -298,7 +298,7 @@ function update_gcps(annotations) {
 
 function point_camera_at_xy(point) {
     // Replace Z with the maximum Z on the whole model
-    point.y = _cad_model_bbox.max.z
+    point.y = _cad_model_bbox.max.y
     point_camera_at_xyz(point);
 }
 
