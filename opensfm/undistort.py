@@ -1,5 +1,6 @@
 import itertools
 import logging
+from typing import Iterator
 
 import cv2
 import numpy as np
@@ -251,7 +252,11 @@ def perspective_camera_from_fisheye62(fisheye62):
 
 
 def perspective_views_of_a_panorama(
-    spherical_shot, width, reconstruction, image_format, rig_instance_count
+    spherical_shot: pymap.Shot,
+    width: int,
+    reconstruction: types.Reconstruction,
+    image_format: str,
+    rig_instance_count: Iterator[int],
 ):
     """Create 6 perspective views of a panorama."""
     camera = pygeometry.Camera.create_perspective(0.5, 0.0, 0.0)
@@ -286,6 +291,7 @@ def perspective_views_of_a_panorama(
             f"{spherical_shot.id}_perspective_view_{name}", image_format
         )
         shot = reconstruction.create_shot(shot_id, camera.id)
+        shot.metadata = spherical_shot.metadata
         rig_instance.add_shot(rig_camera, shot)
 
         shots.append(shot)
