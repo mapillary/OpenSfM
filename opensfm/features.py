@@ -1,7 +1,6 @@
 """Tools to extract features."""
 
 import logging
-import sys
 import time
 from typing import Tuple, Dict, Any, List, Optional
 
@@ -29,7 +28,16 @@ class SemanticData:
         self.labels = labels
 
     def mask(self, mask: np.ndarray) -> "SemanticData":
-        return SemanticData(self.segmentation[mask], self.instances[mask], self.labels)
+        try:
+            segmentation = self.segmentation[mask]
+            instances = self.instances[mask]
+        except IndexError:
+            logger.error(
+                f"Invalid mask array of dtype {mask.dtype}, shape {mask.shape}: {mask}"
+            )
+            raise
+
+        return SemanticData(segmentation, instances, self.labels)
 
 
 class FeaturesData:
@@ -67,7 +75,7 @@ class FeaturesData:
         )
 
     def save(self, fileobject: Any, config: Dict[str, Any]):
-        """ Save features from file (path like or file object like) """
+        """Save features from file (path like or file object like)"""
         feature_type = config["feature_type"]
         if (
             (
@@ -110,14 +118,14 @@ class FeaturesData:
 
     @classmethod
     def from_file(cls, fileobject: Any, config: Dict[str, Any]) -> "FeaturesData":
-        """ Load features from file (path like or file object like) """
+        """Load features from file (path like or file object like)"""
         s = np.load(fileobject, allow_pickle=True)
         version = cls._features_file_version(s)
         return getattr(cls, "_from_file_v%d" % version)(s, config)
 
     @classmethod
     def _features_file_version(cls, obj: Dict[str, Any]) -> int:
-        """ Retrieve features file version. Return 0 if none """
+        """Retrieve features file version. Return 0 if none"""
         if cls.FEATURES_HEADER in obj:
             return obj[cls.FEATURES_HEADER]
         else:
