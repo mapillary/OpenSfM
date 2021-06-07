@@ -86,7 +86,7 @@ def group_instances(
 ) -> Dict[str, List[TRigInstance]]:
     per_rig_camera_group: Dict[str, List[TRigInstance]] = {}
     for cameras in rig_instances.values():
-        cameras_group = ", ".join({c for _, c in cameras})
+        cameras_group = ", ".join(sorted({c for _, c in cameras}))
         if cameras_group not in per_rig_camera_group:
             per_rig_camera_group[cameras_group] = []
         per_rig_camera_group[cameras_group].append(cameras)
@@ -127,7 +127,7 @@ def create_subset_dataset_from_instances(
 def compute_relative_pose(
     pose_instances: List[List[Tuple[pymap.Shot, str]]],
 ) -> Dict[str, pymap.RigCamera]:
-    """ Compute a rig model relatives poses given poses grouped by rig instance. """
+    """Compute a rig model relatives poses given poses grouped by rig instance."""
 
     # Put all poses instances into some canonical frame taken as the mean of their R|t
     centered_pose_instances = []
@@ -179,34 +179,39 @@ def compute_relative_pose(
 
 
 def create_rig_cameras_from_reconstruction(
-    reconstruction: types.Reconstruction, rig_instances: Dict[str, TRigInstance]
+    reconstructions: List[types.Reconstruction], rig_instances: Dict[str, TRigInstance]
 ) -> Dict[str, pymap.RigCamera]:
-    """ Compute rig cameras poses, given a reconstruction and rig instances's shots. """
+    """Compute rig cameras poses, given a reconstruction and rig instances's shots."""
     rig_cameras: Dict[str, pymap.RigCamera] = {}
-    reconstructions_shots = set(reconstruction.shots)
+    for reconstruction in reconstructions:
+        reconstructions_shots = set(reconstruction.shots)
+        logger.info(
+            f"Computing rig cameras pose using {len(reconstructions_shots)} shots"
+        )
 
-    per_rig_camera_group = group_instances(rig_instances)
-    for instances in sorted(per_rig_camera_group.values(), key=lambda x: -len(x)):
-        pose_groups = []
-        for instance in instances:
-            if any(
-                True if shot_id not in reconstructions_shots else False
-                for shot_id, _ in instance
-            ):
-                continue
-            pose_groups.append(
-                [
-                    (reconstruction.shots[shot_id], rig_camera_id)
-                    for shot_id, rig_camera_id in instance
-                ]
-            )
-        for rig_camera_id, rig_camera in compute_relative_pose(pose_groups).items():
-            if rig_camera_id in rig_cameras:
-                logger.warning(
-                    f"Ignoring {rig_camera_id} as it was already computed from a bigger set of instances"
+        per_rig_camera_group = group_instances(rig_instances)
+        logger.info(f"Found {len(per_rig_camera_group)} rig cameras groups")
+        for instances in sorted(per_rig_camera_group.values(), key=lambda x: -len(x)):
+            pose_groups = []
+            for instance in instances:
+                if any(
+                    True if shot_id not in reconstructions_shots else False
+                    for shot_id, _ in instance
+                ):
+                    continue
+                pose_groups.append(
+                    [
+                        (reconstruction.shots[shot_id], rig_camera_id)
+                        for shot_id, rig_camera_id in instance
+                    ]
                 )
-            else:
-                rig_cameras[rig_camera_id] = rig_camera
+            for rig_camera_id, rig_camera in compute_relative_pose(pose_groups).items():
+                if rig_camera_id in rig_cameras:
+                    logger.warning(
+                        f"Ignoring {rig_camera_id} as it was already computed from a bigger set of instances"
+                    )
+                else:
+                    rig_cameras[rig_camera_id] = rig_camera
     return rig_cameras
 
 
@@ -245,11 +250,17 @@ def create_rigs_with_pattern(data: DataSet, patterns: TRigPatterns):
 
     # Compute some relative poses
     rig_cameras = create_rig_cameras_from_reconstruction(
-        subset_data.load_reconstruction()[0], instances_per_rig
+        subset_data.load_reconstruction(), instances_per_rig
     )
 
-    data.save_rig_cameras(rig_cameras)
-    data.save_rig_assignments(list(instances_per_rig.values()))
+    found_cameras = {c for i in instances_per_rig.values() for _, c in i}
+    if set(rig_cameras.keys()) != found_cameras:
+        logger.error(
+            f"Calibrated {len(rig_cameras)} whereas {len(found_cameras)} were requested. Rig creation failed."
+        )
+    else:
+        data.save_rig_cameras(rig_cameras)
+        data.save_rig_assignments(list(instances_per_rig.values()))
 
 
 def same_rig_shot(meta1, meta2):
