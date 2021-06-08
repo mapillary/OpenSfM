@@ -268,10 +268,12 @@ export class OpensfmDataProvider extends DataProviderBase {
   }
 
   _fetchReconstructions(urls) {
-    const fetchDataGenerator = generator(
-      urls,
-      this._fetchReconstruction.bind(this),
-    );
+    const fetchDataGenerator = generator(urls, url => {
+      return {
+        url,
+        fetch: this._fetchReconstruction(url),
+      };
+    });
 
     this._loadData(fetchDataGenerator);
   }
@@ -346,13 +348,20 @@ export class OpensfmDataProvider extends DataProviderBase {
       const loaders = [];
       for (const item of iterator) {
         loaders.push(
-          item
+          item.fetch
             .then(async data => {
+              const file = {
+                children: [],
+                data,
+                name: item.url,
+                url: item.url,
+              };
+
               if (this.loaded) {
-                return this.add({data});
+                return this.add(file);
               }
 
-              await this._initialize({data});
+              await this._initialize(file);
               this._load = null;
               resolve();
               return Promise.resolve();
