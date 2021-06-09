@@ -102,21 +102,16 @@ def camera_from_json(key, obj):
     return camera
 
 
-def shot_from_json(reconstruction, key, obj, is_pano_shot=False):
-    """
-    Read shot from a json object
-    """
+def pose_from_json(obj):
     pose = pygeometry.Pose()
     pose.rotation = obj["rotation"]
     if "translation" in obj:
         pose.translation = obj["translation"]
+    return pose
 
-    if is_pano_shot:
-        shot = reconstruction.create_pano_shot(key, obj["camera"], pose)
-    else:
-        shot = reconstruction.create_shot(key, obj["camera"], pose)
+
+def assign_shot_attributes(obj, shot):
     shot.metadata = json_to_pymap_metadata(obj)
-
     if "scale" in obj:
         shot.scale = obj["scale"]
     if "covariance" in obj:
@@ -127,6 +122,28 @@ def shot_from_json(reconstruction, key, obj, is_pano_shot=False):
         shot.mesh.vertices = obj["vertices"]
         shot.mesh.faces = obj["faces"]
 
+
+def shot_in_reconstruction_from_json(reconstruction, key, obj, is_pano_shot=False):
+    """
+    Read shot from a json object and append it to a reconstruction
+    """
+    pose = pose_from_json(obj)
+
+    if is_pano_shot:
+        shot = reconstruction.create_pano_shot(key, obj["camera"], pose)
+    else:
+        shot = reconstruction.create_shot(key, obj["camera"], pose)
+    assign_shot_attributes(obj, shot)
+    return shot
+
+
+def single_shot_from_json(key, obj, camera):
+    """
+    Read shot from a json object
+    """
+    pose = pose_from_json(obj)
+    shot = pymap.Shot(key, camera, pose)
+    assign_shot_attributes(obj, shot)
     return shot
 
 
@@ -196,7 +213,7 @@ def reconstruction_from_json(obj: t.Dict[str, t.Any]):
 
     # Extract shots
     for key, value in obj["shots"].items():
-        shot_from_json(reconstruction, key, value)
+        shot_in_reconstruction_from_json(reconstruction, key, value)
 
     # Extract rig instances from shots
     if "rig_instances" in obj:
@@ -212,7 +229,7 @@ def reconstruction_from_json(obj: t.Dict[str, t.Any]):
     if "pano_shots" in obj:
         for key, value in obj["pano_shots"].items():
             is_pano_shot = True
-            shot_from_json(reconstruction, key, value, is_pano_shot)
+            shot_in_reconstruction_from_json(reconstruction, key, value, is_pano_shot)
 
     # Extract main and unit shots
     if "main_shot" in obj:
