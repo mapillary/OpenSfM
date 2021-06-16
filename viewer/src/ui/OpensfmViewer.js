@@ -10,6 +10,7 @@ import {
 } from '../../node_modules/mapillary-js/dist/mapillary.module.js';
 import {EventEmitter} from '../util/EventEmitter.js';
 import {AxesRenderer} from '../renderer/AxesRenderer.js';
+import {BasemapRenderer} from '../renderer/BasemapRenderer.js';
 import {CustomRenderer} from '../renderer/CustomRenderer.js';
 import {EarthRenderer} from '../renderer/EarthRenderer.js';
 import {CommandExplainerControl} from '../control/CommandExplainerControl.js';
@@ -127,11 +128,13 @@ export class OpensfmViewer extends EventEmitter {
     this._makeCommands();
 
     this._axesRenderer = new AxesRenderer();
+    this._basemapRenderer = new BasemapRenderer();
     this._earthRenderer = new EarthRenderer({
       mode: cameraControlMode,
     });
     this._customRenderer = new CustomRenderer(this._viewer);
     this._customRenderer.add(this._axesRenderer);
+    this._customRenderer.add(this._basemapRenderer);
     this._customRenderer.add(this._earthRenderer);
     this._viewer.addCustomRenderer(this._customRenderer);
   }
