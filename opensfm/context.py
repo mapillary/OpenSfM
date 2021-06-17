@@ -2,9 +2,10 @@ import logging
 import os
 import resource
 import sys
+from typing import Optional
 
 import cv2
-from joblib import Parallel, delayed, externals, parallel_backend
+from joblib import Parallel, delayed, parallel_backend
 
 
 logger = logging.getLogger(__name__)
@@ -61,7 +62,7 @@ else:
     rusage_unit = 1024
 
 
-def memory_available():
+def memory_available() -> Optional[int]:
     """Available memory in MB.
 
     Only works on linux and returns None otherwise.
@@ -74,7 +75,7 @@ def memory_available():
     return available_mem
 
 
-def processes_that_fit_in_memory(desired, per_process):
+def processes_that_fit_in_memory(desired: int, per_process: int) -> int:
     """Amount of parallel BoW process that fit in memory."""
     available_mem = memory_available()
     if available_mem is not None:
