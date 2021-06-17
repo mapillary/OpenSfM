@@ -209,7 +209,16 @@ class SyntheticStreetScene(SyntheticScene):
         sg.perturb_points(self.floor_points, floor_pertubation)  # pyre-fixme [6]
         return self
 
-    def set_terrain_hill(self, height: float, radius: float) -> "SyntheticStreetScene":
+    def set_terrain_hill(
+        self, height: float, radius: float, repeated: bool
+    ) -> "SyntheticStreetScene":
+        if not repeated:
+            self._set_terrain_hill_single(height, radius)
+        else:
+            self._set_terrain_hill_repeated(height, radius)
+        return self
+
+    def _set_terrain_hill_single(self, height: float, radius: float):
         # pyre-fixme [16]: `Optional` has no attribute `__getitem__`
         self.wall_points[:, 2] += height * np.exp(
             -0.5 * np.linalg.norm(self.wall_points[:, :2], axis=1) ** 2 / radius ** 2
@@ -226,7 +235,21 @@ class SyntheticStreetScene(SyntheticScene):
                         (position[0] ** 2 + position[1] ** 2) / radius ** 2
                     )
                 )
-        return self
+
+    def _set_terrain_hill_repeated(self, height: float, radius: float):
+        # pyre-fixme [16]: `Optional` has no attribute `__getitem__`
+        self.wall_points[:, 2] += height * np.sin(
+            np.linalg.norm(self.wall_points[:, :2], axis=1) / radius
+        )
+        self.floor_points[:, 2] += height * np.sin(
+            np.linalg.norm(self.floor_points[:, :2], axis=1) / radius
+        )
+
+        for positions in self.shot_positions + self.instances_positions:
+            for position in positions:
+                position[2] += height * np.sin(
+                    math.sqrt(position[0] ** 2 + position[1] ** 2) / radius
+                )
 
     def add_camera_sequence(
         self,
