@@ -1,34 +1,28 @@
-import networkx as nx
 import numpy as np
-from opensfm import config
-from opensfm import multiview
-from opensfm import pysfm
-from opensfm import reconstruction
-from opensfm import types
-from opensfm.synthetic_data import synthetic_scene
+from opensfm import config, multiview, pymap, reconstruction, types
 
 
 def test_corresponding_tracks():
-    t1 = {1: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 1, 1, 1)}
-    t2 = {1: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 2, 2, 2)}
+    t1 = {1: pymap.Observation(1.0, 1.0, 1.0, 0, 0, 0, 1, 1, 1)}
+    t2 = {1: pymap.Observation(1.0, 1.0, 1.0, 0, 0, 0, 2, 2, 2)}
 
     correspondences = reconstruction.corresponding_tracks(t1, t2)
     assert len(correspondences) == 0
 
-    t1 = {1: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 3, 3, 3)}
-    t2 = {2: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 3, 3, 3)}
+    t1 = {1: pymap.Observation(1.0, 1.0, 1.0, 0, 0, 0, 3, 3, 3)}
+    t2 = {2: pymap.Observation(1.0, 1.0, 1.0, 0, 0, 0, 3, 3, 3)}
 
     correspondences = reconstruction.corresponding_tracks(t1, t2)
     assert len(correspondences) == 1
     assert correspondences[0] == (1, 2)
 
     t1 = {
-        1: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 3, 3, 3),
-        2: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 4, 4, 4),
+        1: pymap.Observation(1.0, 1.0, 1.0, 0, 0, 0, 3, 3, 3),
+        2: pymap.Observation(1.0, 1.0, 1.0, 0, 0, 0, 4, 4, 4),
     }
     t2 = {
-        1: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 4, 4, 4),
-        2: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 5, 5, 5),
+        1: pymap.Observation(1.0, 1.0, 1.0, 0, 0, 0, 4, 4, 4),
+        2: pymap.Observation(1.0, 1.0, 1.0, 0, 0, 0, 5, 5, 5),
     }
 
     correspondences = reconstruction.corresponding_tracks(t1, t2)
@@ -36,12 +30,12 @@ def test_corresponding_tracks():
     assert correspondences[0] == (2, 1)
 
     t1 = {
-        1: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 5, 5, 5),
-        2: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 6, 6, 6),
+        1: pymap.Observation(1.0, 1.0, 1.0, 0, 0, 0, 5, 5, 5),
+        2: pymap.Observation(1.0, 1.0, 1.0, 0, 0, 0, 6, 6, 6),
     }
     t2 = {
-        3: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 5, 5, 5),
-        4: pysfm.Observation(1.0, 1.0, 1.0, 0, 0, 0, 6, 6, 6),
+        3: pymap.Observation(1.0, 1.0, 1.0, 0, 0, 0, 5, 5, 5),
+        4: pymap.Observation(1.0, 1.0, 1.0, 0, 0, 0, 6, 6, 6),
     }
 
     correspondences = reconstruction.corresponding_tracks(t1, t2)

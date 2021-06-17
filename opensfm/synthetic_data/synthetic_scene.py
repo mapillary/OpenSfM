@@ -385,7 +385,7 @@ class SyntheticInputData:
     reconstruction: types.Reconstruction
     exifs: Dict[str, Any]
     features: sd.SyntheticFeatures
-    tracks_manager: pysfm.TracksManager
+    tracks_manager: pymap.TracksManager
 
     def __init__(
         self,
@@ -412,7 +412,7 @@ class SyntheticInputData:
             )
         else:
             self.features = sd.SyntheticFeatures(None)
-            self.tracks_manager = pysfm.TracksManager()
+            self.tracks_manager = pymap.TracksManager()
 
 
 def compare(

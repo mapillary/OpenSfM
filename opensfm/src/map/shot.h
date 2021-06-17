@@ -4,7 +4,7 @@
 #include <geometry/pose.h>
 #include <map/defines.h>
 #include <map/landmark.h>
-#include <sfm/observation.h>
+#include <map/observation.h>
 
 #include <Eigen/Eigen>
 #include <iostream>

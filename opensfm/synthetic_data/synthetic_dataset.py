@@ -51,7 +51,7 @@ class SyntheticDataSet(DataSet):
         reconstruction: types.Reconstruction,
         exifs: Dict[str, Any],
         features: Optional[SyntheticFeatures] = None,
-        tracks_manager: Optional[pysfm.TracksManager] = None,
+        tracks_manager: Optional[pymap.TracksManager] = None,
         output_path: Optional[str] = None,
     ):
         data_path = "" if not output_path else output_path
@@ -150,7 +150,7 @@ class SyntheticDataSet(DataSet):
 
     def load_tracks_manager(
         self, filename: Optional[str] = None
-    ) -> pysfm.TracksManager:
+    ) -> pymap.TracksManager:
         tracks_mgr = self.tracks_manager
         if not tracks_mgr:
             raise RuntimeError("No tracks manager for the synthetic dataset")

@@ -24,7 +24,7 @@ def undistort_reconstruction(
     urec = types.Reconstruction()
     urec.points = reconstruction.points
     rig_instance_count = itertools.count()
-    utracks_manager = pysfm.TracksManager()
+    utracks_manager = pymap.TracksManager()
     logger.debug("Undistorting the reconstruction")
     undistorted_shots = {}
     for shot in reconstruction.shots.values():

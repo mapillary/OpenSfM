@@ -8,7 +8,7 @@
 #include <map/landmark.h>
 #include <map/rig.h>
 #include <map/shot.h>
-#include <sfm/tracks_manager.h>
+#include <map/tracks_manager.h>
 
 #include <Eigen/Core>
 #include <map>
@@ -166,15 +166,15 @@ class Map {
     topo_conv_.long_ = longitude;
     topo_conv_.alt_ = alt;
   }
-  sfm::TracksManager ToTracksManager() const;
+  TracksManager ToTracksManager() const;
 
   // Tracks manager x Reconstruction intersection functions
   enum ErrorType { Pixel = 0x0, Normalized = 0x1, Angular = 0x2 };
   std::unordered_map<ShotId, std::unordered_map<LandmarkId, Vec2d> >
-  ComputeReprojectionErrors(const sfm::TracksManager& tracks_manager,
+  ComputeReprojectionErrors(const TracksManager& tracks_manager,
                             const ErrorType& error_type) const;
   std::unordered_map<ShotId, std::unordered_map<LandmarkId, Observation> >
-  GetValidObservations(const sfm::TracksManager& tracks_manager) const;
+  GetValidObservations(const TracksManager& tracks_manager) const;
 
  private:
   std::unordered_map<CameraId, geometry::Camera> cameras_;

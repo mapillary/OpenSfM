@@ -144,12 +144,12 @@ class DataSetBase(ABC):
     @abstractmethod
     def load_tracks_manager(
         self, filename: Optional[str] = None
-    ) -> pysfm.TracksManager:
+    ) -> pymap.TracksManager:
         pass
 
     @abstractmethod
     def save_tracks_manager(
-        self, tracks_manager: pysfm.TracksManager, filename: Optional[str] = None
+        self, tracks_manager: pymap.TracksManager, filename: Optional[str] = None
     ) -> None:
         pass
 
@@ -694,16 +694,16 @@ class DataSet(DataSetBase):
 
     def load_tracks_manager(
         self, filename: Optional[str] = None
-    ) -> pysfm.TracksManager:
+    ) -> pymap.TracksManager:
         """Return the tracks manager"""
         with self.io_handler.open(self._tracks_manager_file(filename), "r") as f:
-            return pysfm.TracksManager.instanciate_from_string(f.read())
+            return pymap.TracksManager.instanciate_from_string(f.read())
 
     def tracks_exists(self, filename: Optional[str] = None) -> bool:
         return self.io_handler.isfile(self._tracks_manager_file(filename))
 
     def save_tracks_manager(
-        self, tracks_manager: pysfm.TracksManager, filename: Optional[str] = None
+        self, tracks_manager: pymap.TracksManager, filename: Optional[str] = None
     ) -> None:
         with self.io_handler.open(self._tracks_manager_file(filename), "w") as fw:
             fw.write(tracks_manager.as_string())
@@ -920,7 +920,7 @@ class DataSet(DataSetBase):
     def save_ply(
         self,
         reconstruction: types.Reconstruction,
-        tracks_manager: pysfm.TracksManager,
+        tracks_manager: pymap.TracksManager,
         filename: Optional[str] = None,
         no_cameras: bool = False,
         no_points: bool = False,
@@ -1302,13 +1302,13 @@ class UndistortedDataSet(object):
                     o["detections"],
                 )
 
-    def load_undistorted_tracks_manager(self) -> pysfm.TracksManager:
+    def load_undistorted_tracks_manager(self) -> pymap.TracksManager:
         filename = os.path.join(self.data_path, "tracks.csv")
         with self.io_handler.open(filename, "r") as f:
-            return pysfm.TracksManager.instanciate_from_string(f.read())
+            return pymap.TracksManager.instanciate_from_string(f.read())
 
     def save_undistorted_tracks_manager(
-        self, tracks_manager: pysfm.TracksManager
+        self, tracks_manager: pymap.TracksManager
     ) -> None:
         filename = os.path.join(self.data_path, "tracks.csv")
         with self.io_handler.open(filename, "w") as fw:

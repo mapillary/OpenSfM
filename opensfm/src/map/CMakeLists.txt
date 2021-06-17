@@ -6,15 +6,15 @@ set(MAP_FILES
   ground_control_points.h
   defines.h
   dataviews.h
-  ba_helpers.h
-  retriangulation.h
+  observation.h
+  tracks_manager.h
   src/landmark.cc
   src/map.cc
   src/rig.cc
   src/shot.cc
   src/dataviews.cc
-  src/ba_helpers.cc
-  src/retriangulation.cc
+  src/observation.cc
+  src/tracks_manager.cc
 )
 
 add_library(map ${MAP_FILES})
@@ -23,7 +23,6 @@ target_link_libraries(map
     pybind11
   PRIVATE
     geo
-    sfm
     geometry
 )
 
@@ -47,6 +46,7 @@ if (OPENSFM_BUILD_TESTS)
     set(MAP_TEST_FILES
         test/map_test.cc
         test/rig_test.cc
+        test/tracks_manager_test.cc
     )
 
     add_executable(map_test ${MAP_TEST_FILES})

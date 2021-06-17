@@ -1,16 +1,16 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include <map/tracks_manager.h>
 #include <sfm/tracks_helpers.h>
-#include <sfm/tracks_manager.h>
 
 namespace {
 
 class TracksHelpersTest : public ::testing::Test {
  protected:
   void SetUp() override {
-    const auto o1 = Observation(1.0, 1.0, 1.0, 1, 1, 1, 1, 1, 1);
-    const auto o2 = Observation(2.0, 2.0, 2.0, 2, 2, 2, 2, 2, 2);
-    const auto o3 = Observation(3.0, 3.0, 3.0, 3, 3, 3, 3);
+    const auto o1 = map::Observation(1.0, 1.0, 1.0, 1, 1, 1, 1, 1, 1);
+    const auto o2 = map::Observation(2.0, 2.0, 2.0, 2, 2, 2, 2, 2, 2);
+    const auto o3 = map::Observation(3.0, 3.0, 3.0, 3, 3, 3, 3);
     manager.AddObservation("1", "1", o1);
     manager.AddObservation("2", "1", o2);
     manager.AddObservation("3", "1", o3);
@@ -25,10 +25,10 @@ class TracksHelpersTest : public ::testing::Test {
     connections_remove.push_back("1");
   }
 
-  sfm::TracksManager manager;
-  std::vector<TrackId> connections_add;
-  std::vector<TrackId> connections_remove;
-  std::unordered_map<ShotId, Observation> track;
+  map::TracksManager manager;
+  std::vector<map::TrackId> connections_add;
+  std::vector<map::TrackId> connections_remove;
+  std::unordered_map<map::ShotId, map::Observation> track;
 };
 
 TEST_F(TracksHelpersTest, CountTracksPerShot) {

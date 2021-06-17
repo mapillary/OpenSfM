@@ -1,5 +1,5 @@
 #include <foundation/union_find.h>
-#include <sfm/tracks_manager.h>
+#include <map/tracks_manager.h>
 
 #include <optional>
 #include <sstream>
@@ -15,9 +15,9 @@ int GetTracksFileVersion(S& fstream) {
   std::getline(fstream, line);
 
   int version = 0;
-  if (line.find(sfm::TracksManager::TRACKS_HEADER) == 0) {
+  if (line.find(map::TracksManager::TRACKS_HEADER) == 0) {
     version = std::atoi(
-        line.substr(sfm::TracksManager::TRACKS_HEADER.length() + 2).c_str());
+        line.substr(map::TracksManager::TRACKS_HEADER.length() + 2).c_str());
   } else {
     fstream.seekg(current_position);
   }
@@ -26,7 +26,7 @@ int GetTracksFileVersion(S& fstream) {
 
 template <class S>
 void WriteToStreamCurrentVersion(S& ostream,
-                                 const sfm::TracksManager& manager) {
+                                 const map::TracksManager& manager) {
   ostream << manager.TRACKS_HEADER << "_v" << manager.TRACKS_VERSION
           << std::endl;
   const auto shotsIDs = manager.GetShotIds();
@@ -46,11 +46,11 @@ void WriteToStreamCurrentVersion(S& ostream,
   }
 }
 
-Observation InstanciateObservation(double x, double y, double scale, int id,
-                                   int r, int g, int b,
-                                   int segm = Observation::NO_SEMANTIC_VALUE,
-                                   int inst = Observation::NO_SEMANTIC_VALUE) {
-  Observation observation;
+map::Observation InstanciateObservation(
+    double x, double y, double scale, int id, int r, int g, int b,
+    int segm = map::Observation::NO_SEMANTIC_VALUE,
+    int inst = map::Observation::NO_SEMANTIC_VALUE) {
+  map::Observation observation;
   observation.point << x, y;
   observation.scale = scale;
   observation.feature_id = id;
@@ -72,8 +72,8 @@ void SeparateLineByTabs(const std::string& line,
 }
 
 template <class S>
-sfm::TracksManager InstanciateFromStreamV0(S& fstream) {
-  sfm::TracksManager manager;
+map::TracksManager InstanciateFromStreamV0(S& fstream) {
+  map::TracksManager manager;
   std::string line;
   std::vector<std::string> elems;
   constexpr auto N_ENTRIES{8};
@@ -86,8 +86,8 @@ sfm::TracksManager InstanciateFromStreamV0(S& fstream) {
           "Encountered invalid line. A line must contain exactly " +
           std::to_string(N_ENTRIES) + " values!");
     }
-    const ShotId image = elems[0];
-    const TrackId trackID = elems[1];
+    const map::ShotId image = elems[0];
+    const map::TrackId trackID = elems[1];
     const int featureID = std::stoi(elems[2]);
     const double x = std::stod(elems[3]);
     const double y = std::stod(elems[4]);
@@ -102,8 +102,8 @@ sfm::TracksManager InstanciateFromStreamV0(S& fstream) {
 }
 
 template <class S>
-sfm::TracksManager InstanciateFromStreamV1(S& fstream) {
-  sfm::TracksManager manager;
+map::TracksManager InstanciateFromStreamV1(S& fstream) {
+  map::TracksManager manager;
   std::string line;
   std::vector<std::string> elems;
   constexpr auto N_ENTRIES{9};
@@ -116,8 +116,8 @@ sfm::TracksManager InstanciateFromStreamV1(S& fstream) {
           "Encountered invalid line. A line must contain exactly " +
           std::to_string(N_ENTRIES) + " values!");
     }
-    const ShotId image = elems[0];
-    const TrackId trackID = elems[1];
+    const map::ShotId image = elems[0];
+    const map::TrackId trackID = elems[1];
     const int featureID = std::stoi(elems[2]);
     const double x = std::stod(elems[3]);
     const double y = std::stod(elems[4]);
@@ -132,8 +132,8 @@ sfm::TracksManager InstanciateFromStreamV1(S& fstream) {
 }
 
 template <class S>
-sfm::TracksManager InstanciateFromStreamV2(S& fstream) {
-  sfm::TracksManager manager;
+map::TracksManager InstanciateFromStreamV2(S& fstream) {
+  map::TracksManager manager;
   std::string line;
   std::vector<std::string> elems;
   constexpr auto N_ENTRIES{11};
@@ -146,8 +146,8 @@ sfm::TracksManager InstanciateFromStreamV2(S& fstream) {
           "Encountered invalid line. A line must contain exactly " +
           std::to_string(N_ENTRIES) + " values!");
     }
-    const ShotId image = elems[0];
-    const TrackId trackID = elems[1];
+    const map::ShotId image = elems[0];
+    const map::TrackId trackID = elems[1];
     const int featureID = std::stoi(elems[2]);
     const double x = std::stod(elems[3]);
     const double y = std::stod(elems[4]);
@@ -165,7 +165,7 @@ sfm::TracksManager InstanciateFromStreamV2(S& fstream) {
 }
 
 template <class S>
-sfm::TracksManager InstanciateFromStreamT(S& fstream) {
+map::TracksManager InstanciateFromStreamT(S& fstream) {
   const auto version = GetTracksFileVersion(fstream);
   switch (version) {
     case 0:
@@ -181,7 +181,7 @@ sfm::TracksManager InstanciateFromStreamT(S& fstream) {
 
 }  // namespace
 
-namespace sfm {
+namespace map {
 void TracksManager::AddObservation(const ShotId& shot_id,
                                    const TrackId& track_id,
                                    const Observation& observation) {
@@ -450,4 +450,4 @@ std::string TracksManager::AsSring() const {
 
 std::string TracksManager::TRACKS_HEADER = "OPENSFM_TRACKS_VERSION";
 int TracksManager::TRACKS_VERSION = 2;
-}  // namespace sfm
+}  // namespace map

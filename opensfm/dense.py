@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 def compute_depthmaps(
     data: UndistortedDataSet,
-    graph: pysfm.TracksManager,
+    graph: pymap.TracksManager,
     reconstruction: types.Reconstruction,
 ):
     """Compute and refine depthmaps for all shots.
@@ -387,7 +387,7 @@ def compute_depth_range(tracks_manager, reconstruction, shot, config):
 
 
 def common_tracks_double_dict(
-    tracks_manager: pysfm.TracksManager,
+    tracks_manager: pymap.TracksManager,
 ) -> t.Dict[str, t.Dict[str, t.List[str]]]:
     """List of track ids observed by each image pair.
 

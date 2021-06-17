@@ -1,17 +1,22 @@
 #pragma once
 
-#include <sfm/observation.h>
-#include <sfm/tracks_manager.h>
-#include <sfm/types.h>
+#include <foundation/types.h>
+#include <geometry/camera.h>
+#include <map/defines.h>
+#include <map/observation.h>
+#include <map/shot.h>
+#include <map/tracks_manager.h>
+
+#include <string>
 
 namespace sfm {
 namespace tracks_helpers {
-std::unordered_map<ShotId, int> CountTracksPerShot(
-    const TracksManager& manager, const std::vector<ShotId>& shots,
-    const std::vector<TrackId>& tracks);
-void AddConnections(TracksManager& manager, const ShotId& shot_id,
-                    const std::vector<TrackId>& connections);
-void RemoveConnections(TracksManager& manager, const ShotId& shot_id,
-                       const std::vector<TrackId>& connections);
+std::unordered_map<map::ShotId, int> CountTracksPerShot(
+    const map::TracksManager& manager, const std::vector<map::ShotId>& shots,
+    const std::vector<map::TrackId>& tracks);
+void AddConnections(map::TracksManager& manager, const map::ShotId& shot_id,
+                    const std::vector<map::TrackId>& connections);
+void RemoveConnections(map::TracksManager& manager, const map::ShotId& shot_id,
+                       const std::vector<map::TrackId>& connections);
 }  // namespace tracks_helpers
 }  // namespace sfm

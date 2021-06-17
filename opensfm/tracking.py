@@ -3,7 +3,7 @@ import typing as t
 
 import networkx as nx
 import numpy as np
-from opensfm import pysfm
+from opensfm import pymap
 from opensfm.dataset import DataSetBase
 from opensfm.unionfind import UnionFind
 
@@ -67,8 +67,8 @@ def create_tracks_manager(features, colors, segmentations, instances, matches, c
     tracks = [t for t in sets.values() if _good_track(t, min_length)]
     logger.debug("Good tracks: {}".format(len(tracks)))
 
-    NO_VALUE = pysfm.Observation.NO_SEMANTIC_VALUE
-    tracks_manager = pysfm.TracksManager()
+    NO_VALUE = pymap.Observation.NO_SEMANTIC_VALUE
+    tracks_manager = pymap.TracksManager()
     for track_id, track in enumerate(tracks):
         for image, featureid in track:
             if image not in features:
@@ -79,7 +79,7 @@ def create_tracks_manager(features, colors, segmentations, instances, matches, c
                 segmentations[image][featureid] if image in segmentations else NO_VALUE,
                 instances[image][featureid] if image in instances else NO_VALUE,
             )
-            obs = pysfm.Observation(
+            obs = pymap.Observation(
                 x, y, s, int(r), int(g), int(b), featureid, segmentation, instance
             )
             tracks_manager.add_observation(image, str(track_id), obs)
@@ -114,7 +114,7 @@ TPairTracks = t.Tuple[t.List[str], np.ndarray, np.ndarray]
 
 
 def all_common_tracks_with_features(
-    tracks_manager: pysfm.TracksManager,
+    tracks_manager: pymap.TracksManager,
     min_common: int = 50,
 ) -> t.Dict[t.Tuple[str, str], TPairTracks]:
     tracks = all_common_tracks(
@@ -124,7 +124,7 @@ def all_common_tracks_with_features(
 
 
 def all_common_tracks_without_features(
-    tracks_manager: pysfm.TracksManager,
+    tracks_manager: pymap.TracksManager,
     min_common: int = 50,
 ) -> t.Dict[t.Tuple[str, str], t.List[str]]:
     tracks = all_common_tracks(
@@ -134,7 +134,7 @@ def all_common_tracks_without_features(
 
 
 def all_common_tracks(
-    tracks_manager: pysfm.TracksManager,
+    tracks_manager: pymap.TracksManager,
     include_features: bool = True,
     min_common: int = 50,
 ) -> t.Dict[t.Tuple[str, str], t.Union[TPairTracks, t.List[str]]]:
