@@ -3,9 +3,10 @@ import math
 from typing import Dict, Optional, List, Any, Union, Tuple, Callable
 
 import numpy as np
+import opensfm.synthetic_data.synthetic_dataset as sd
 import opensfm.synthetic_data.synthetic_generator as sg
 import opensfm.synthetic_data.synthetic_metrics as sm
-from opensfm import pygeometry, types, pymap, pysfm, features as oft, geo
+from opensfm import pygeometry, types, pymap, pysfm, geo
 
 
 def get_camera(
@@ -383,7 +384,7 @@ class SyntheticInputData:
 
     reconstruction: types.Reconstruction
     exifs: Dict[str, Any]
-    features: Dict[str, oft.FeaturesData]
+    features: sd.SyntheticFeatures
     tracks_manager: pysfm.TracksManager
 
     def __init__(
@@ -394,6 +395,7 @@ class SyntheticInputData:
         projection_noise: float,
         gps_noise: Union[Dict[str, float], float],
         causal_gps_noise: bool,
+        on_disk_features_filename: Optional[str] = None,
         generate_projections: bool = True,
     ):
         self.reconstruction = reconstruction
@@ -403,10 +405,13 @@ class SyntheticInputData:
 
         if generate_projections:
             (self.features, self.tracks_manager) = sg.generate_track_data(
-                reconstruction, projection_max_depth, projection_noise
+                reconstruction,
+                projection_max_depth,
+                projection_noise,
+                on_disk_features_filename,
             )
         else:
-            self.features = {}
+            self.features = sd.SyntheticFeatures(None)
             self.tracks_manager = pysfm.TracksManager()
 
 

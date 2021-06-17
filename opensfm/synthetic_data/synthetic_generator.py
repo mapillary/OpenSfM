@@ -3,6 +3,7 @@ from typing import Callable, Tuple, List, Dict, Any, Optional, Union
 
 import cv2
 import numpy as np
+import opensfm.synthetic_data.synthetic_dataset as sd
 import scipy.signal as signal
 import scipy.spatial as spatial
 from opensfm import (
@@ -325,8 +326,11 @@ def create_reconstruction(
 
 
 def generate_track_data(
-    reconstruction: types.Reconstruction, maximum_depth: float, noise: float
-) -> Tuple[Dict[str, oft.FeaturesData], pysfm.TracksManager,]:
+    reconstruction: types.Reconstruction,
+    maximum_depth: float,
+    noise: float,
+    on_disk_features_filename: Optional[str],
+) -> Tuple[sd.SyntheticFeatures, pysfm.TracksManager]:
     """Generate projection data from a reconstruction, considering a maximum
     viewing depth and gaussian noise added to the ideal projections.
     Returns feature/descriptor/color data per shot and a tracks manager object.
@@ -354,7 +358,7 @@ def generate_track_data(
     # should speed-up projection queries
     points_tree = spatial.cKDTree(points_coordinates)
 
-    features = {}
+    features = sd.SyntheticFeatures(on_disk_features_filename)
     default_scale = 0.004
     for shot_index, shot in reconstruction.shots.items():
         # query all closest points

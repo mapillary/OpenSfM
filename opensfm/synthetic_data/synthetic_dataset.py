@@ -1,6 +1,8 @@
+import collections
 import logging
 import os
-from typing import Optional, Dict, Any, List, Tuple
+import shelve
+from typing import Optional, Dict, Any, List, Tuple, Union
 
 import numpy as np
 from opensfm import tracking, features as oft, types, pysfm, pymap, pygeometry, io
@@ -10,17 +12,45 @@ from opensfm.dataset import DataSet
 logger = logging.getLogger(__name__)
 
 
+class SyntheticFeatures(collections.abc.MutableMapping):
+    database: Union[Dict[str, oft.FeaturesData], shelve.Shelf]
+
+    def __init__(self, on_disk_filename: Optional[str]):
+        if on_disk_filename:
+            self.database = shelve.open(on_disk_filename, flag="n")
+        else:
+            self.database = {}
+
+        for m in ["keys", "items", "values", "get"]:
+            setattr(self, m, getattr(self.database, m))
+
+    def __getitem__(self, key):
+        return self.database.__getitem__(key)
+
+    def __setitem__(self, key, item):
+        return self.database.__setitem__(key, item)
+
+    def __delitem__(self, key):
+        return self.database.__delitem__(key)
+
+    def __iter__(self):
+        return self.database.__iter__()
+
+    def __len__(self):
+        return self.database.__len__()
+
+
 class SyntheticDataSet(DataSet):
     reconstruction: types.Reconstruction
     exifs: Dict[str, Any]
-    features: Optional[Dict[str, oft.FeaturesData]]
+    features: Optional[SyntheticFeatures]
     reference_lla: Dict[str, float]
 
     def __init__(
         self,
         reconstruction: types.Reconstruction,
         exifs: Dict[str, Any],
-        features: Optional[Dict[str, oft.FeaturesData]] = None,
+        features: Optional[SyntheticFeatures] = None,
         tracks_manager: Optional[pysfm.TracksManager] = None,
         output_path: Optional[str] = None,
     ):
