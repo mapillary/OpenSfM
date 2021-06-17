@@ -153,6 +153,7 @@ def match_candidates_with_vlad(
     max_gps_distance: float,
     max_gps_neighbors: int,
     enforce_other_cameras: bool,
+    histograms: Dict[str, np.ndarray],
 ) -> Dict[Tuple[str, str], float]:
     """Find candidate matching pairs using VLAD-based distance.
      If max_gps_distance > 0, then we use first restrain a set of
@@ -165,6 +166,9 @@ def match_candidates_with_vlad(
 
     If enforce_other_cameras is False, we keep max_neighbors images
     from all cameras.
+
+    Pre-computed VLAD histograms can be passed as a dictionary.
+    Missing histograms will be computed and added to it.
     """
     if max_neighbors <= 0:
         return {}
@@ -177,6 +181,7 @@ def match_candidates_with_vlad(
         reference,
         max_gps_distance,
         max_gps_neighbors,
+        histograms,
     )
 
     return construct_pairs(results, max_neighbors, exifs, enforce_other_cameras)
@@ -190,6 +195,7 @@ def compute_vlad_affinity(
     reference: geo.TopocentricConverter,
     max_gps_distance: float,
     max_gps_neighbors: int,
+    histograms: Dict[str, np.ndarray],
 ) -> List[Tuple[str, List[float], List[str]]]:
     """Compute afinity scores between references and candidates
     images using VLAD-based distance.
@@ -199,8 +205,9 @@ def compute_vlad_affinity(
     )
 
     # construct VLAD histograms
+    need_load = {im for im in need_load if im not in histograms}
     logger.info("Computing %d VLAD histograms" % len(need_load))
-    histograms = vlad_histograms(need_load, data)
+    histograms.update(vlad_histograms(need_load, data))
 
     # parallel VLAD neighbors computation
     args, processes, batch_size = create_parallel_matching_args(
@@ -442,6 +449,7 @@ def match_candidates_from_metadata(
             vlad_gps_distance,
             vlad_gps_neighbors,
             vlad_other_cameras,
+            {},
         )
         pairs = d | t | o | set(b) | set(v)
 
