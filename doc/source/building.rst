@@ -78,6 +78,25 @@ Also, in order for Cmake to recognize the libraries installed by Brew, make sure
     When running OpenSfM on top of OpenCV version 3.0 the `OpenCV Contrib`_ modules are required for extracting SIFT or SURF features.
 
 
+Installing dependencies on Windows
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Install vcpkg from the OpenSfM root directory::
+
+    cd OpenSfM
+    git clone https://github.com/microsoft/vcpkg
+    cd vcpkg
+    bootstrap-vcpkg.bat
+
+Then install OpenCV, Ceres, SuiteSparse and LAPACK (this will take a while)::
+
+    vcpkg install opencv4 ceres ceres[suitesparse] lapack suitesparse --triplet x64-windows
+
+Finally install the PIP requirements::
+
+    pip install -r requirements.txt
+
+
 Building the library
 --------------------
 
