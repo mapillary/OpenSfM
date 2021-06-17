@@ -1,12 +1,13 @@
 import datetime
 import logging
 from codecs import encode, decode
+from typing import Tuple
 
 import exifread
 import xmltodict as x2d
 from opensfm import pygeometry
-from opensfm.sensors import sensor_data
 from opensfm.dataset import DataSetBase
+from opensfm.sensors import sensor_data
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +52,7 @@ def get_tag_as_float(tags, key, index=0):
         return None
 
 
-def compute_focal(focal_35, focal, sensor_width, sensor_string):
+def compute_focal(focal_35, focal, sensor_width, sensor_string) -> Tuple[float, float]:
     if focal_35 is not None and focal_35 > 0:
         focal_ratio = focal_35 / 36.0  # 35mm film produces 36x24mm pictures.
     else:
@@ -61,8 +62,8 @@ def compute_focal(focal_35, focal, sensor_width, sensor_string):
             focal_ratio = focal / sensor_width
             focal_35 = 36.0 * focal_ratio
         else:
-            focal_35 = 0
-            focal_ratio = 0
+            focal_35 = 0.0
+            focal_ratio = 0.0
     return focal_35, focal_ratio
 
 
@@ -96,7 +97,7 @@ def camera_id_(make, model, width, height, projection_type, focal):
             str(int(width)),
             str(int(height)),
             projection_type,
-            str(focal)[:6],
+            str(float(focal))[:6],
         ]
     ).lower()
 
@@ -517,8 +518,9 @@ def hard_coded_calibration(exif):
         elif "hdr-as300" in model:
             return {"focal": 0.3958, "k1": -0.1496, "k2": 0.0201}
     elif "PARROT" == make:
-        if 'Bebop 2' == model:
+        if "Bebop 2" == model:
             return {"focal": 0.36666666666666666}
+
 
 def focal_ratio_calibration(exif):
     if exif.get("focal_ratio"):
