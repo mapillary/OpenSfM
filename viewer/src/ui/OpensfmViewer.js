@@ -49,7 +49,6 @@ export class OpensfmViewer extends EventEmitter {
     const cameraControlMode = CameraControlMode.ORBIT;
     const imagesVisible = false;
     const viewer = new Viewer({
-      apiClient: this._provider,
       cameraControls: convertCameraControlMode(cameraControlMode),
       combinedPanning: false,
       component: {
@@ -61,6 +60,7 @@ export class OpensfmViewer extends EventEmitter {
         zoom: false,
       },
       container,
+      dataProvider: this._provider,
       imageTiling: false,
       renderMode: RenderMode.Letterbox,
     });
