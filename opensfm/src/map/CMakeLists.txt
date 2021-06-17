@@ -5,14 +5,16 @@ set(MAP_FILES
   map.h
   ground_control_points.h
   defines.h
+  dataviews.h
+  ba_helpers.h
+  retriangulation.h
   src/landmark.cc
   src/map.cc
   src/rig.cc
   src/shot.cc
-  dataviews.h
   src/dataviews.cc
-  ba_helpers.h
   src/ba_helpers.cc
+  src/retriangulation.cc
 )
 
 add_library(map ${MAP_FILES})
