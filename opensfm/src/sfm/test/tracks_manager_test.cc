@@ -35,7 +35,7 @@ class TracksManagerTest : public ::testing::Test {
   }
 
   TempFile tmpfile;
-  TracksManager manager;
+  sfm::TracksManager manager;
   std::unordered_map<ShotId, Observation> track;
 };
 
@@ -99,7 +99,7 @@ TEST_F(TracksManagerTest, ConstructSubTracksManager) {
 }
 
 TEST_F(TracksManagerTest, MergeThreeTracksManager) {
-  TracksManager manager1;
+  sfm::TracksManager manager1;
   const auto o0 = Observation(1.0, 1.0, 1.0, 1, 1, 1, 0);
   const auto o1 = Observation(1.0, 1.0, 1.0, 1, 1, 1, 1);
   const auto o2 = Observation(1.0, 1.0, 1.0, 1, 1, 1, 2);
@@ -109,7 +109,7 @@ TEST_F(TracksManagerTest, MergeThreeTracksManager) {
   manager1.AddObservation("2", "1", o2);
   manager1.AddObservation("3", "1", o3);
 
-  TracksManager manager2;
+  sfm::TracksManager manager2;
   const auto o4 = Observation(1.0, 1.0, 1.0, 1, 1, 1, 4);
   const auto o5 = Observation(1.0, 1.0, 1.0, 1, 1, 1, 5);
   const auto o6 = Observation(1.0, 1.0, 1.0, 1, 1, 1, 6);
@@ -118,7 +118,7 @@ TEST_F(TracksManagerTest, MergeThreeTracksManager) {
   manager2.AddObservation("5", "1", o5);
   manager2.AddObservation("6", "2", o6);
 
-  TracksManager manager3;
+  sfm::TracksManager manager3;
   const auto o7 = Observation(1.0, 1.0, 1.0, 1, 1, 1, 7);
   const auto o8 = Observation(1.0, 1.0, 1.0, 1, 1, 1, 8);
   manager3.AddObservation("6", "1", o6);
@@ -126,7 +126,7 @@ TEST_F(TracksManagerTest, MergeThreeTracksManager) {
   manager3.AddObservation("8", "2", o8);
 
   auto merged =
-      TracksManager::MergeTracksManager({&manager1, &manager2, &manager3});
+      sfm::TracksManager::MergeTracksManager({&manager1, &manager2, &manager3});
 
   std::unordered_map<ShotId, Observation> track0;
   track0["1"] = o1;
@@ -156,8 +156,8 @@ TEST_F(TracksManagerTest, MergeThreeTracksManager) {
 
 TEST_F(TracksManagerTest, HasIOFileConsistency) {
   manager.WriteToFile(tmpfile.Name());
-  const TracksManager manager_new =
-      TracksManager::InstanciateFromFile(tmpfile.Name());
+  const sfm::TracksManager manager_new =
+      sfm::TracksManager::InstanciateFromFile(tmpfile.Name());
 
   EXPECT_THAT(manager_new.GetShotIds(),
               ::testing::WhenSorted(::testing::ElementsAre("1", "2", "3")));
@@ -168,8 +168,8 @@ TEST_F(TracksManagerTest, HasIOFileConsistency) {
 
 TEST_F(TracksManagerTest, HasIOStringConsistency) {
   const auto serialized = manager.AsSring();
-  const TracksManager manager_new =
-      TracksManager::InstanciateFromString(serialized);
+  const sfm::TracksManager manager_new =
+      sfm::TracksManager::InstanciateFromString(serialized);
 
   EXPECT_THAT(manager_new.GetShotIds(),
               ::testing::WhenSorted(::testing::ElementsAre("1", "2", "3")));

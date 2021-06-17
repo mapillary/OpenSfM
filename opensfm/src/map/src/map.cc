@@ -378,7 +378,7 @@ bool Map::HasRigInstance(const RigInstanceId& instance_id) const {
 }
 
 std::unordered_map<ShotId, std::unordered_map<LandmarkId, Vec2d> >
-Map::ComputeReprojectionErrors(const TracksManager& tracks_manager,
+Map::ComputeReprojectionErrors(const sfm::TracksManager& tracks_manager,
                                const Map::ErrorType& error_type) const {
   std::unordered_map<ShotId, std::unordered_map<LandmarkId, Vec2d> > errors;
   for (const auto& shot_id : tracks_manager.GetShotIds()) {
@@ -422,7 +422,7 @@ Map::ComputeReprojectionErrors(const TracksManager& tracks_manager,
 }
 
 std::unordered_map<ShotId, std::unordered_map<LandmarkId, Observation> >
-Map::GetValidObservations(const TracksManager& tracks_manager) const {
+Map::GetValidObservations(const sfm::TracksManager& tracks_manager) const {
   std::unordered_map<ShotId, std::unordered_map<LandmarkId, Observation> >
       observations;
   for (const auto& shot_id : tracks_manager.GetShotIds()) {
@@ -443,8 +443,8 @@ Map::GetValidObservations(const TracksManager& tracks_manager) const {
   return observations;
 }
 
-TracksManager Map::ToTracksManager() const {
-  TracksManager manager;
+sfm::TracksManager Map::ToTracksManager() const {
+  sfm::TracksManager manager;
   for (const auto& shot_pair : shots_) {
     for (const auto& lm_obs : shot_pair.second.GetLandmarkObservations()) {
       manager.AddObservation(shot_pair.first, lm_obs.first->id_, lm_obs.second);

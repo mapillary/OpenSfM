@@ -3,7 +3,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <sfm/observation.h>
-#include <sfm/sfm_helpers.h>
+#include <sfm/tracks_helpers.h>
 #include <sfm/tracks_manager.h>
 
 #include <optional>
@@ -24,33 +24,41 @@ PYBIND11_MODULE(pysfm, m) {
       .def_readonly_static("NO_SEMANTIC_VALUE",
                            &Observation::NO_SEMANTIC_VALUE);
 
-  py::class_<TracksManager>(m, "TracksManager")
+  py::class_<sfm::TracksManager>(m, "TracksManager")
       .def(py::init())
-      .def_static("instanciate_from_file", &TracksManager::InstanciateFromFile)
+      .def_static("instanciate_from_file",
+                  &sfm::TracksManager::InstanciateFromFile,
+                  py::call_guard<py::gil_scoped_release>())
       .def_static("instanciate_from_string",
-                  &TracksManager::InstanciateFromString)
-      .def_static("merge_tracks_manager", &TracksManager::MergeTracksManager)
-      .def("add_observation", &TracksManager::AddObservation)
-      .def("remove_observation", &TracksManager::RemoveObservation)
-      .def("num_shots", &TracksManager::NumShots)
-      .def("num_tracks", &TracksManager::NumTracks)
-      .def("get_shot_ids", &TracksManager::GetShotIds)
-      .def("get_track_ids", &TracksManager::GetTrackIds)
-      .def("get_observation", &TracksManager::GetObservation)
-      .def("get_shot_observations", &TracksManager::GetShotObservations)
-      .def("get_track_observations", &TracksManager::GetTrackObservations)
+                  &sfm::TracksManager::InstanciateFromString,
+                  py::call_guard<py::gil_scoped_release>())
+      .def_static("merge_tracks_manager",
+                  &sfm::TracksManager::MergeTracksManager)
+      .def("add_observation", &sfm::TracksManager::AddObservation)
+      .def("remove_observation", &sfm::TracksManager::RemoveObservation)
+      .def("num_shots", &sfm::TracksManager::NumShots)
+      .def("num_tracks", &sfm::TracksManager::NumTracks)
+      .def("get_shot_ids", &sfm::TracksManager::GetShotIds)
+      .def("get_track_ids", &sfm::TracksManager::GetTrackIds)
+      .def("get_observation", &sfm::TracksManager::GetObservation)
+      .def("get_shot_observations", &sfm::TracksManager::GetShotObservations)
+      .def("get_track_observations", &sfm::TracksManager::GetTrackObservations)
       .def("construct_sub_tracks_manager",
-           &TracksManager::ConstructSubTracksManager)
-      .def("write_to_file", &TracksManager::WriteToFile)
-      .def("as_string", &TracksManager::AsSring)
+           &sfm::TracksManager::ConstructSubTracksManager)
+      .def("write_to_file", &sfm::TracksManager::WriteToFile)
+      .def("as_string", &sfm::TracksManager::AsSring)
       .def("get_all_common_observations",
-           &TracksManager::GetAllCommonObservations)
+           &sfm::TracksManager::GetAllCommonObservations,
+           py::call_guard<py::gil_scoped_release>())
       .def("get_all_pairs_connectivity",
-           &TracksManager::GetAllPairsConnectivity,
+           &sfm::TracksManager::GetAllPairsConnectivity,
            py::arg("shots") = std::vector<ShotId>(),
-           py::arg("tracks") = std::vector<TrackId>());
+           py::arg("tracks") = std::vector<TrackId>(),
+           py::call_guard<py::gil_scoped_release>());
 
-  m.def("count_tracks_per_shot", &sfm_helpers::CountTracksPerShot);
-  m.def("add_connections", &sfm_helpers::AddConnections);
-  m.def("remove_connections", &sfm_helpers::RemoveConnections);
+  m.def("count_tracks_per_shot", &sfm::tracks_helpers::CountTracksPerShot);
+  m.def("add_connections", &sfm::tracks_helpers::AddConnections,
+        py::call_guard<py::gil_scoped_release>());
+  m.def("remove_connections", &sfm::tracks_helpers::RemoveConnections,
+        py::call_guard<py::gil_scoped_release>());
 }

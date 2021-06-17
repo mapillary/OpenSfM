@@ -253,7 +253,7 @@ TEST_F(OneCameraMapFixture, ComputeReprojectionErrorNormalized) {
   const Vec2d expected = -shot.Project(pos);
   const auto scale = 0.1;
 
-  auto manager = TracksManager();
+  auto manager = sfm::TracksManager();
   const Observation o(0., 0., scale, 1, 1, 1, 1, 1, 1);
   manager.AddObservation("0", "1", o);
 
