@@ -87,21 +87,17 @@ export class BasemapRenderer {
     return basemap;
   }
 
-  _makeTileGeometryFromCorners(point0, point1) {
-    const diagonal = point0.distanceTo(point1);
-    const side = diagonal / Math.sqrt(2)
-    const width = side;
-    const height = side;
+  _makeTileGeometryFromCorners(corners) {
+    const width = Math.abs(corners[0].x - corners[1].x);
+    const height = Math.abs(corners[0].y - corners[1].y);
     const geometry = new PlaneGeometry(width, height);
 
     const center = new Vector3;
-    center.addVectors(point0, point1).divideScalar(2);
+    center.addVectors(corners[0], corners[1]).divideScalar(2);
     return { geometry, center };
   }
 
-  _createTile(x, y, z, reference) {
-    const url = `https://tile.openstreetmap.org/${z}/${x}/${y}.png`
-
+  _tileEnuCorners(x, y, z, reference) {
     // Get corners of tile in geodetic coordinates
     const lng0 = tilex2lng(x, z);
     const lat0 = tiley2lat(y, z);
@@ -129,7 +125,13 @@ export class BasemapRenderer {
         reference.alt,
       ))
 
-    const { geometry, center } = this._makeTileGeometryFromCorners(point0, point1);
+    return [point0, point1]
+  }
+
+  _createTile(x, y, z, reference) {
+    const url = `https://tile.openstreetmap.org/${z}/${x}/${y}.png`;
+    const corners = this._tileEnuCorners(x, y, z, reference);
+    const { geometry, center } = this._makeTileGeometryFromCorners(corners);
     const texture = new TextureLoader().load(url);
     const material = new MeshBasicMaterial({ map: texture });
     const plane = new Mesh(geometry, material);
