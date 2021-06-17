@@ -88,22 +88,14 @@ export class BasemapRenderer {
   }
 
   _makeTileGeometryFromCorners(point0, point1) {
-    const diagonal = Math.sqrt(
-      (point0[0] - point1[0]) ** 2 +
-      (point0[1] - point1[1]) ** 2 +
-      (point0[2] - point1[2]) ** 2
-    )
-
+    const diagonal = point0.distanceTo(point1);
     const side = diagonal / Math.sqrt(2)
     const width = side;
     const height = side;
     const geometry = new PlaneGeometry(width, height);
 
-    const center = new Vector3(
-      (point0[0] + point1[0]) / 2,
-      (point0[1] + point1[1]) / 2,
-      (point0[2] + point1[2]) / 2,
-    );
+    const center = new Vector3;
+    center.addVectors(point0, point1).divideScalar(2);
     return { geometry, center };
   }
 
@@ -118,22 +110,24 @@ export class BasemapRenderer {
 
     // Get corners of tile in local (enu) reference frame
     const plane_altitude = -5; //reference.alt;
-    const point0 = geodeticToEnu(
-      lng0,
-      lat0,
-      plane_altitude,
-      reference.lng,
-      reference.lat,
-      reference.alt,
-    )
-    const point1 = geodeticToEnu(
-      lng1,
-      lat1,
-      plane_altitude,
-      reference.lng,
-      reference.lat,
-      reference.alt,
-    )
+    const point0 = new Vector3(
+      ...geodeticToEnu(
+        lng0,
+        lat0,
+        plane_altitude,
+        reference.lng,
+        reference.lat,
+        reference.alt,
+      ))
+    const point1 = new Vector3(
+      ...geodeticToEnu(
+        lng1,
+        lat1,
+        plane_altitude,
+        reference.lng,
+        reference.lat,
+        reference.alt,
+      ))
 
     const { geometry, center } = this._makeTileGeometryFromCorners(point0, point1);
     const texture = new TextureLoader().load(url);
