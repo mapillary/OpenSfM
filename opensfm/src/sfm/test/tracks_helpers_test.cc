@@ -1,11 +1,11 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include <sfm/sfm_helpers.h>
+#include <sfm/tracks_helpers.h>
 #include <sfm/tracks_manager.h>
 
 namespace {
 
-class SfmHelpersTest : public ::testing::Test {
+class TracksHelpersTest : public ::testing::Test {
  protected:
   void SetUp() override {
     const auto o1 = Observation(1.0, 1.0, 1.0, 1, 1, 1, 1, 1, 1);
@@ -25,39 +25,39 @@ class SfmHelpersTest : public ::testing::Test {
     connections_remove.push_back("1");
   }
 
-  TracksManager manager;
+  sfm::TracksManager manager;
   std::vector<TrackId> connections_add;
   std::vector<TrackId> connections_remove;
   std::unordered_map<ShotId, Observation> track;
 };
 
-TEST_F(SfmHelpersTest, CountTracksPerShot) {
+TEST_F(TracksHelpersTest, CountTracksPerShot) {
   const auto counts =
-      sfm_helpers::CountTracksPerShot(manager, {"1", "2", "3"}, {"1"});
+      sfm::tracks_helpers::CountTracksPerShot(manager, {"1", "2", "3"}, {"1"});
 
   EXPECT_EQ(1, counts.at("1"));
   EXPECT_EQ(1, counts.at("2"));
   EXPECT_EQ(1, counts.at("3"));
 }
 
-TEST_F(SfmHelpersTest, AddConnections) {
-  sfm_helpers::AddConnections(manager, "1", connections_add);
-  sfm_helpers::AddConnections(manager, "2", connections_add);
-  sfm_helpers::AddConnections(manager, "3", connections_add);
+TEST_F(TracksHelpersTest, AddConnections) {
+  sfm::tracks_helpers::AddConnections(manager, "1", connections_add);
+  sfm::tracks_helpers::AddConnections(manager, "2", connections_add);
+  sfm::tracks_helpers::AddConnections(manager, "3", connections_add);
 
-  const auto counts = sfm_helpers::CountTracksPerShot(manager, {"1", "2", "3"},
-                                                      {"1", "2", "3"});
+  const auto counts = sfm::tracks_helpers::CountTracksPerShot(
+      manager, {"1", "2", "3"}, {"1", "2", "3"});
 
   EXPECT_EQ(3, counts.at("1"));
   EXPECT_EQ(3, counts.at("2"));
   EXPECT_EQ(3, counts.at("3"));
 }
 
-TEST_F(SfmHelpersTest, RemoveConnections) {
-  sfm_helpers::RemoveConnections(manager, "1", connections_remove);
+TEST_F(TracksHelpersTest, RemoveConnections) {
+  sfm::tracks_helpers::RemoveConnections(manager, "1", connections_remove);
 
   const auto counts =
-      sfm_helpers::CountTracksPerShot(manager, {"1", "2", "3"}, {"1"});
+      sfm::tracks_helpers::CountTracksPerShot(manager, {"1", "2", "3"}, {"1"});
 
   EXPECT_EQ(0, counts.at("1"));
   EXPECT_EQ(1, counts.at("2"));

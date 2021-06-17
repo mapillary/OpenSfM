@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <vector>
 
+namespace sfm {
 class TracksManager {
  public:
   void AddObservation(const ShotId& shot_id, const TrackId& track_id,
@@ -58,3 +59,4 @@ class TracksManager {
   std::unordered_map<TrackId, std::unordered_map<ShotId, Observation>>
       shots_per_track_;
 };
+}  // namespace sfm

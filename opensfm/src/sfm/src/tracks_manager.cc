@@ -15,9 +15,9 @@ int GetTracksFileVersion(S& fstream) {
   std::getline(fstream, line);
 
   int version = 0;
-  if (line.find(TracksManager::TRACKS_HEADER) == 0) {
+  if (line.find(sfm::TracksManager::TRACKS_HEADER) == 0) {
     version = std::atoi(
-        line.substr(TracksManager::TRACKS_HEADER.length() + 2).c_str());
+        line.substr(sfm::TracksManager::TRACKS_HEADER.length() + 2).c_str());
   } else {
     fstream.seekg(current_position);
   }
@@ -25,7 +25,8 @@ int GetTracksFileVersion(S& fstream) {
 }
 
 template <class S>
-void WriteToStreamCurrentVersion(S& ostream, const TracksManager& manager) {
+void WriteToStreamCurrentVersion(S& ostream,
+                                 const sfm::TracksManager& manager) {
   ostream << manager.TRACKS_HEADER << "_v" << manager.TRACKS_VERSION
           << std::endl;
   const auto shotsIDs = manager.GetShotIds();
@@ -71,8 +72,8 @@ void SeparateLineByTabs(const std::string& line,
 }
 
 template <class S>
-TracksManager InstanciateFromStreamV0(S& fstream) {
-  TracksManager manager;
+sfm::TracksManager InstanciateFromStreamV0(S& fstream) {
+  sfm::TracksManager manager;
   std::string line;
   std::vector<std::string> elems;
   constexpr auto N_ENTRIES{8};
@@ -101,8 +102,8 @@ TracksManager InstanciateFromStreamV0(S& fstream) {
 }
 
 template <class S>
-TracksManager InstanciateFromStreamV1(S& fstream) {
-  TracksManager manager;
+sfm::TracksManager InstanciateFromStreamV1(S& fstream) {
+  sfm::TracksManager manager;
   std::string line;
   std::vector<std::string> elems;
   constexpr auto N_ENTRIES{9};
@@ -131,8 +132,8 @@ TracksManager InstanciateFromStreamV1(S& fstream) {
 }
 
 template <class S>
-TracksManager InstanciateFromStreamV2(S& fstream) {
-  TracksManager manager;
+sfm::TracksManager InstanciateFromStreamV2(S& fstream) {
+  sfm::TracksManager manager;
   std::string line;
   std::vector<std::string> elems;
   constexpr auto N_ENTRIES{11};
@@ -164,7 +165,7 @@ TracksManager InstanciateFromStreamV2(S& fstream) {
 }
 
 template <class S>
-TracksManager InstanciateFromStreamT(S& fstream) {
+sfm::TracksManager InstanciateFromStreamT(S& fstream) {
   const auto version = GetTracksFileVersion(fstream);
   switch (version) {
     case 0:
@@ -180,6 +181,7 @@ TracksManager InstanciateFromStreamT(S& fstream) {
 
 }  // namespace
 
+namespace sfm {
 void TracksManager::AddObservation(const ShotId& shot_id,
                                    const TrackId& track_id,
                                    const Observation& observation) {
@@ -448,3 +450,4 @@ std::string TracksManager::AsSring() const {
 
 std::string TracksManager::TRACKS_HEADER = "OPENSFM_TRACKS_VERSION";
 int TracksManager::TRACKS_VERSION = 2;
+}  // namespace sfm

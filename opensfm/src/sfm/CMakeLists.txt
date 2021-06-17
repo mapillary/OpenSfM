@@ -1,11 +1,11 @@
 set(SFM_FILES
     observation.h
     tracks_manager.h
-    sfm_helpers.h
+    tracks_helpers.h
     types.h
     src/observation.cc
     src/tracks_manager.cc
-    src/sfm_helpers.cc
+    src/tracks_helpers.cc
 )
 add_library(sfm ${SFM_FILES})
 target_link_libraries(sfm
@@ -17,6 +17,7 @@ target_include_directories(sfm PUBLIC ${EIGEN_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR})
 if (OPENSFM_BUILD_TESTS)
     set(SFM_TEST_FILES
         test/tracks_manager_test.cc
+        test/tracks_helpers_test.cc
     )
     add_executable(sfm_test ${SFM_TEST_FILES})
     target_include_directories(sfm_test PRIVATE ${CMAKE_SOURCE_DIR})
