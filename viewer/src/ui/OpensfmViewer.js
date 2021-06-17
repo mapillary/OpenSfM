@@ -80,6 +80,7 @@ export class OpensfmViewer extends EventEmitter {
       cameraControlMode,
       commandsVisible,
       gridVisible: true,
+      basemapVisible: false,
       imagesVisible,
       infoSize,
       statsVisible,
@@ -134,7 +135,6 @@ export class OpensfmViewer extends EventEmitter {
     });
     this._customRenderer = new CustomRenderer(this._viewer);
     this._customRenderer.add(this._axesRenderer);
-    this._customRenderer.add(this._basemapRenderer);
     this._customRenderer.add(this._earthRenderer);
     this._viewer.addCustomRenderer(this._customRenderer);
   }
@@ -207,6 +207,7 @@ export class OpensfmViewer extends EventEmitter {
     );
     optionController.on('cellsvisible', event => this._onCellsVisible(event));
     optionController.on('gridvisible', event => this._onGridVisible(event));
+    optionController.on('basemapvisible', event => this._onBasemapVisible(event));
     optionController.on('reconstructionsselected', event =>
       this._onReconstructionsSelected(event),
     );
@@ -328,6 +329,15 @@ export class OpensfmViewer extends EventEmitter {
       this._customRenderer.add(this._earthRenderer);
     } else {
       this._customRenderer.remove(this._earthRenderer);
+    }
+    this._viewer.triggerRerender();
+  }
+
+  _onBasemapVisible(event) {
+    if (event.visible) {
+      this._customRenderer.add(this._basemapRenderer);
+    } else {
+      this._customRenderer.remove(this._basemapRenderer);
     }
     this._viewer.triggerRerender();
   }

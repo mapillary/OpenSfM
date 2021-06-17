@@ -20,6 +20,7 @@ export class KeyController {
       // visibility
       c: {value: 'axesVisible'},
       y: {value: 'gridVisible'},
+      b: {value: 'basemapVisible'},
       d: {value: 'cellsVisible'},
       e: {value: 'commandsVisible'},
       r: {value: 'imagesVisible'},
@@ -77,6 +78,7 @@ export class KeyController {
       const command = this._commands[key];
       const type = this._eventTypes[command.value];
       switch (key) {
+        case 'b':
         case 'c':
         case 'd':
         case 'e':

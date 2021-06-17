@@ -136,6 +136,7 @@ export class DatController {
     this._addBooleanOption('imagesVisible', folder);
     this._addBooleanOption('axesVisible', folder);
     this._addBooleanOption('gridVisible', folder);
+    this._addBooleanOption('basemapVisible', folder);
     return folder;
   }
 
@@ -149,6 +150,7 @@ export class DatController {
       case 'cellsVisible':
       case 'commandsVisible':
       case 'gridVisible':
+      case 'basemapVisible':
       case 'imagesVisible':
       case 'pointsVisible':
       case 'statsVisible':
