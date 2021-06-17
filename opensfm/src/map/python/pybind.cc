@@ -9,6 +9,7 @@
 #include <map/landmark.h>
 #include <map/map.h>
 #include <map/pybind_utils.h>
+#include <map/retriangulation.h>
 #include <map/rig.h>
 #include <map/shot.h>
 #include <pybind11/eigen.h>
@@ -537,6 +538,9 @@ PYBIND11_MODULE(pymap, m) {
       .def("shot_neighborhood_ids", &BAHelpers::ShotNeighborhoodIds)
       .def("detect_alignment_constraints",
            &BAHelpers::DetectAlignmentConstraints);
+
+  m.def("realign_points", &map::retriangulation::RealignPoints,
+        py::call_guard<py::gil_scoped_release>());
 
   py::class_<map::GroundControlPointObservation>(
       m, "GroundControlPointObservation")
