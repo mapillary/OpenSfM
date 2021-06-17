@@ -9,7 +9,6 @@ import scipy.spatial as spatial
 from opensfm import (
     geo,
     pygeometry,
-    pysfm,
     reconstruction as rc,
     types,
     pymap,
@@ -330,13 +329,13 @@ def generate_track_data(
     maximum_depth: float,
     noise: float,
     on_disk_features_filename: Optional[str],
-) -> Tuple[sd.SyntheticFeatures, pysfm.TracksManager]:
+) -> Tuple[sd.SyntheticFeatures, pymap.TracksManager]:
     """Generate projection data from a reconstruction, considering a maximum
     viewing depth and gaussian noise added to the ideal projections.
     Returns feature/descriptor/color data per shot and a tracks manager object.
     """
 
-    tracks_manager = pysfm.TracksManager()
+    tracks_manager = pymap.TracksManager()
 
     feature_data_type = np.float32
     desc_size = 128
@@ -402,7 +401,7 @@ def generate_track_data(
             projections_inside.append([projection[0], projection[1], default_scale])
             descriptors_inside.append(track_descriptors[p_id])
             colors_inside.append(color)
-            obs = pysfm.Observation(
+            obs = pymap.Observation(
                 projection[0],
                 projection[1],
                 default_scale,

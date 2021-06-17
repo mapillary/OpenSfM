@@ -21,7 +21,7 @@ import numpy as np
 import opensfm.actions.undistort as osfm_u
 from matplotlib import cm
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from opensfm import dataset, features, pygeometry, pysfm, types
+from opensfm import dataset, features, pygeometry, pymap, types
 
 EXPORT_DIR_NAME = "opensfm_export"
 logger = logging.getLogger(__name__)
@@ -46,7 +46,7 @@ def compute_and_save_undistorted_reconstruction(
 ):
     image_format = data.config["undistorted_image_format"]
     urec = types.Reconstruction()
-    utracks_manager = pysfm.TracksManager()
+    utracks_manager = pymap.TracksManager()
     undistorted_shots = []
     for shot in reconstruction.shots.values():
         if shot.camera.projection_type == "perspective":
@@ -354,7 +354,7 @@ def import_images_reconstruction(path_images, keypoints, rec):
     Read images.bin, building shots and tracks graph
     """
     logger.info("Importing images from {}".format(path_images))
-    tracks_manager = pysfm.TracksManager()
+    tracks_manager = pymap.TracksManager()
     image_ix_to_shot_id = {}
     with open(path_images, "rb") as f:
         n_ims = unpack("<Q", f.read(8))[0]
@@ -390,7 +390,7 @@ def import_images_reconstruction(path_images, keypoints, rec):
                 if point3d_id != np.iinfo(np.uint64).max:
                     kp = keypoints[image_id][point2d_ix]
                     r, g, b = rec.points[str(point3d_id)].color
-                    obs = pysfm.Observation(
+                    obs = pymap.Observation(
                         x,
                         y,
                         kp[2],

@@ -4,13 +4,12 @@
 #include <map/map.h>
 #include <pybind11/pybind11.h>
 
+#include <unordered_map>
 #include <unordered_set>
 
 namespace py = pybind11;
-namespace map {
+namespace sfm {
 class GroundControlPoint;
-}
-class OpenSfMConfig;
 class BAHelpers {
  public:
   static py::dict Bundle(
@@ -67,3 +66,4 @@ class BAHelpers {
       const map::Map& map, const py::dict& config,
       const AlignedVector<map::GroundControlPoint>& gcp, MatX3d& Xp, MatX3d& X);
 };
+}  // namespace sfm

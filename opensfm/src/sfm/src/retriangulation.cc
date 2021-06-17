@@ -1,11 +1,12 @@
-#include <map/retriangulation.h>
+#include <map/tracks_manager.h>
+#include <sfm/retriangulation.h>
 
 #include <limits>
 
-namespace map {
+namespace sfm {
 namespace retriangulation {
 void RealignPoints(const map::Map& reference,
-                   const sfm::TracksManager& tracks_manager,
+                   const map::TracksManager& tracks_manager,
                    map::Map& to_align) {
   const auto& all_reference_shots = reference.GetShots();
   const auto& to_align_shots = to_align.GetShots();
@@ -47,4 +48,4 @@ void RealignPoints(const map::Map& reference,
   }
 }
 }  // namespace retriangulation
-}  // namespace map
+}  // namespace sfm

@@ -7,7 +7,7 @@ from opensfm import (
     geometry,
     pybundle,
     pygeometry,
-    pysfm,
+    pymap,
     reconstruction,
     tracking,
     types,
@@ -18,7 +18,7 @@ def test_unicode_strings_in_bundle():
     """Test that byte and unicode strings can be used as camera ids."""
     ba = pybundle.BundleAdjuster()
 
-    unicode_id = u"A\xb2"
+    unicode_id = "A\xb2"
     byte_id = b"A_2"
 
     camera = pygeometry.Camera.create_perspective(0.4, 0.1, -0.01)
@@ -88,7 +88,7 @@ def test_bundle_projection_fixed_internals(scene_synthetic):
             for shot_id, g_obs in graph[point_id].items():
                 color = g_obs["feature_color"]
                 pt = g_obs["feature"]
-                obs = pysfm.Observation(
+                obs = pymap.Observation(
                     pt[0],
                     pt[1],
                     g_obs["feature_scale"],

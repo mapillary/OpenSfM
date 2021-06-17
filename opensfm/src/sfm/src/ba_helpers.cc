@@ -1,13 +1,14 @@
 #include <bundle/bundle_adjuster.h>
 #include <foundation/types.h>
 #include <geometry/triangulation.h>
-#include <map/ba_helpers.h>
 #include <map/ground_control_points.h>
 #include <map/map.h>
+#include <sfm/ba_helpers.h>
 
 #include <chrono>
 #include <stdexcept>
 
+namespace sfm {
 std::pair<std::unordered_set<map::ShotId>, std::unordered_set<map::ShotId>>
 BAHelpers::ShotNeighborhoodIds(map::Map& map,
                                const map::ShotId& central_shot_id,
@@ -903,3 +904,4 @@ std::string BAHelpers::DetectAlignmentConstraints(
 
   return "naive";
 }
+}  // namespace sfm

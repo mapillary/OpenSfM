@@ -1,9 +1,10 @@
 #pragma once
 
-#include <sfm/types.h>
+#include <map/defines.h>
 
 #include <Eigen/Dense>
 
+namespace map {
 struct Observation {
   Observation() = default;
   Observation(double x, double y, double s, int r, int g, int b, int feature,
@@ -32,3 +33,4 @@ struct Observation {
   int instance_id;
   static constexpr int NO_SEMANTIC_VALUE = -1;
 };
+}  // namespace map
