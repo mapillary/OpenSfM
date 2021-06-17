@@ -1,6 +1,7 @@
 import datetime
 import logging
 from codecs import encode, decode
+from bs4 import BeautifulSoup
 
 import exifread
 import xmltodict as x2d
@@ -112,11 +113,18 @@ def unescape_string(s):
 
 
 def parse_xmp_string(xmp_str):
-    for _ in range(2):
+    try:
+        return x2d.parse(xmp_str)
+    except:
+        xmp_str = unescape_string(xmp_str)
         try:
             return x2d.parse(xmp_str)
-        except Exception:
-            xmp_str = unescape_string(xmp_str)
+        except:
+            xmp_str = str(BeautifulSoup(xmp_str, 'xml'))
+            try:
+                return x2d.parse(xmp_str)
+            except:
+                pass
     return None
 
 

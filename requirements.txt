@@ -15,4 +15,6 @@ scipy
 Sphinx==3.4.3
 six
 xmltodict==0.10.2
+beautifulsoup4==4.9.1
+lxml==4.5.1
 wheel
