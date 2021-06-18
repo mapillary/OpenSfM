@@ -10,6 +10,7 @@ import {
 } from '../../node_modules/mapillary-js/dist/mapillary.module.js';
 import {EventEmitter} from '../util/EventEmitter.js';
 import {AxesRenderer} from '../renderer/AxesRenderer.js';
+import {BasemapRenderer} from '../renderer/BasemapRenderer.js';
 import {CustomRenderer} from '../renderer/CustomRenderer.js';
 import {EarthRenderer} from '../renderer/EarthRenderer.js';
 import {CommandExplainerControl} from '../control/CommandExplainerControl.js';
@@ -79,6 +80,7 @@ export class OpensfmViewer extends EventEmitter {
       cameraControlMode,
       commandsVisible,
       gridVisible: true,
+      basemapVisible: false,
       imagesVisible,
       infoSize,
       statsVisible,
@@ -127,6 +129,7 @@ export class OpensfmViewer extends EventEmitter {
     this._makeCommands();
 
     this._axesRenderer = new AxesRenderer();
+    this._basemapRenderer = new BasemapRenderer();
     this._earthRenderer = new EarthRenderer({
       mode: cameraControlMode,
     });
@@ -204,6 +207,7 @@ export class OpensfmViewer extends EventEmitter {
     );
     optionController.on('cellsvisible', event => this._onCellsVisible(event));
     optionController.on('gridvisible', event => this._onGridVisible(event));
+    optionController.on('basemapvisible', event => this._onBasemapVisible(event));
     optionController.on('reconstructionsselected', event =>
       this._onReconstructionsSelected(event),
     );
@@ -325,6 +329,15 @@ export class OpensfmViewer extends EventEmitter {
       this._customRenderer.add(this._earthRenderer);
     } else {
       this._customRenderer.remove(this._earthRenderer);
+    }
+    this._viewer.triggerRerender();
+  }
+
+  _onBasemapVisible(event) {
+    if (event.visible) {
+      this._customRenderer.add(this._basemapRenderer);
+    } else {
+      this._customRenderer.remove(this._basemapRenderer);
     }
     this._viewer.triggerRerender();
   }

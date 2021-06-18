@@ -20,6 +20,7 @@ export class KeyController {
       // visibility
       c: {value: 'axesVisible'},
       y: {value: 'gridVisible'},
+      m: {value: 'basemapVisible'},
       d: {value: 'cellsVisible'},
       e: {value: 'commandsVisible'},
       r: {value: 'imagesVisible'},
@@ -81,6 +82,7 @@ export class KeyController {
         case 'd':
         case 'e':
         case 'f':
+        case 'm':
         case 'r':
         case 't':
         case 'v':
