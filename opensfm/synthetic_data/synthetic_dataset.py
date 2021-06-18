@@ -24,6 +24,12 @@ class SyntheticFeatures(collections.abc.MutableMapping):
         for m in ["keys", "items", "values", "get"]:
             setattr(self, m, getattr(self.database, m))
 
+    def sync(self):
+        if type(self.database) is dict:
+            return
+        else:
+            self.database.sync()
+
     def __getitem__(self, key):
         return self.database.__getitem__(key)
 

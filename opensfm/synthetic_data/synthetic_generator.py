@@ -1,3 +1,5 @@
+import logging
+import time
 from collections import defaultdict
 from typing import Callable, Tuple, List, Dict, Any, Optional, Union
 
@@ -14,6 +16,9 @@ from opensfm import (
     pymap,
     features as oft,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 def derivative(func: Callable, x: np.ndarray) -> np.ndarray:
@@ -357,9 +362,10 @@ def generate_track_data(
     # should speed-up projection queries
     points_tree = spatial.cKDTree(points_coordinates)
 
+    start = time.time()
     features = sd.SyntheticFeatures(on_disk_features_filename)
     default_scale = 0.004
-    for shot_index, shot in reconstruction.shots.items():
+    for index, (shot_index, shot) in enumerate(reconstruction.shots.items()):
         # query all closest points
         neighbors = list(
             sorted(points_tree.query_ball_point(shot.pose.get_origin(), maximum_depth))
@@ -417,6 +423,12 @@ def generate_track_data(
             np.array(colors_inside),
             None,
         )
+
+        if index % 100 == 0:
+            logger.info(
+                f"Flushing images # {index} ({(time.time() - start)/(index+1)} sec. per image"
+            )
+            features.sync()
 
     return features, tracks_manager
 
