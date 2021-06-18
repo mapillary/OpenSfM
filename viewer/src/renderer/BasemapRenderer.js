@@ -1,3 +1,4 @@
+/**
  * @format
  */
 
@@ -115,7 +116,7 @@ export class BasemapRenderer {
     const lat1 = tiley2lat(y + 1, z);
 
     // Get corners of tile in local (enu) reference frame
-    const plane_altitude = reference.alt-1;
+    const plane_altitude = reference.alt - 1;
     const point0 = new Vector3(
       ...geodeticToEnu(
         lng0,
