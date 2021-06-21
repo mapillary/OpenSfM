@@ -35,11 +35,11 @@ import math
 import os
 import sqlite3
 import sys
+import tempfile
 from struct import pack
 
 import numpy as np
 from opensfm import features
-from opensfm import io
 from opensfm import matching
 from opensfm.dataset import DataSet
 
@@ -47,40 +47,45 @@ I_3 = np.eye(3)
 
 
 def run_dataset(data: DataSet, binary):
-    """ Export reconstruction to COLMAP format."""
+    """Export reconstruction to COLMAP format."""
 
     export_folder = os.path.join(data.data_path, "colmap_export")
-    io.mkdir_p(export_folder)
+    data.io_handler.mkdir_p(export_folder)
 
     database_path = os.path.join(export_folder, "colmap_database.db")
-    images_path = os.path.join(data.data_path, "images")
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        tmp_database_path = os.path.join(tmp_dir, "colmap_database.db")
+        images_path = os.path.join(data.data_path, "images")
 
-    if os.path.exists(database_path):
-        os.remove(database_path)
-    db = COLMAPDatabase.connect(database_path)
-    db.create_tables()
+        db = COLMAPDatabase.connect(tmp_database_path)
+        db.create_tables()
 
-    images_map, camera_map = export_cameras(data, db)
-    features_map = export_features(data, db, images_map)
-    export_matches(data, db, features_map, images_map)
+        images_map, camera_map = export_cameras(data, db)
+        features_map = export_features(data, db, images_map)
+        export_matches(data, db, features_map, images_map)
 
-    if data.reconstruction_exists():
-        export_ini_file(export_folder, database_path, images_path)
-        export_cameras_reconstruction(data, export_folder, camera_map, binary)
-        points_map = export_points_reconstruction(
-            data, export_folder, images_map, binary
-        )
-        export_images_reconstruction(
-            data,
-            export_folder,
-            camera_map,
-            images_map,
-            features_map,
-            points_map,
-            binary,
-        )
-    db.commit()
-    db.close()
+        if data.reconstruction_exists():
+            export_ini_file(export_folder, database_path, images_path, data.io_handler)
+            export_cameras_reconstruction(data, export_folder, camera_map, binary)
+            points_map = export_points_reconstruction(
+                data, export_folder, images_map, binary
+            )
+            export_images_reconstruction(
+                data,
+                export_folder,
+                camera_map,
+                images_map,
+                features_map,
+                points_map,
+                binary,
+            )
+        db.commit()
+        db.close()
+
+        data.io_handler.rm_if_exist(database_path)
+        with data.io_handler.open(tmp_database_path, "rb") as f:
+            with data.io_handler.open(database_path, "wb") as fwb:
+                fwb.write(f.read())
 
 
 IS_PYTHON3 = int(sys.version_info[0]) >= 3
@@ -383,7 +388,9 @@ def export_features(data, db, images_map):
         features_data = data.load_features(image)
         if not features_data:
             continue
-        feat = features.denormalized_image_coordinates(features_data.points, width, height)
+        feat = features.denormalized_image_coordinates(
+            features_data.points, width, height
+        )
         features_map[image] = feat
         db.add_keypoints(images_map[image], feat)
     return features_map
@@ -425,10 +432,10 @@ def export_cameras_reconstruction(data, path, camera_map, binary=False):
             cameras[camera_id] = camera
 
     if binary:
-        fout = open(os.path.join(path, "cameras.bin"), "wb")
+        fout = data.io_handler.open(os.path.join(path, "cameras.bin"), "wb")
         fout.write(pack("<Q", len(cameras)))
     else:
-        fout = io.open_wt(os.path.join(path, "cameras.txt"))
+        fout = data.io_handler.open_wt(os.path.join(path, "cameras.txt"))
 
     for camera_id, camera in cameras.items():
         w = camera.width
@@ -516,13 +523,13 @@ def export_images_reconstruction(
     tracks_manager = data.load_tracks_manager()
 
     if binary:
-        fout = open(os.path.join(path, "images.bin"), "wb")
+        fout = data.io_handler.open(os.path.join(path, "images.bin"), "wb")
         n_ims = 0
         for reconstruction in reconstructions:
             n_ims += len(reconstruction.shots)
         fout.write(pack("<Q", n_ims))
     else:
-        fout = io.open_wt(os.path.join(path, "images.txt"))
+        fout = data.io_handler.open_wt(os.path.join(path, "images.txt"))
 
     for reconstruction in reconstructions:
 
@@ -591,13 +598,13 @@ def export_points_reconstruction(data, path, images_map, binary=False):
     points_map = {}
 
     if binary:
-        fout = open(os.path.join(path, "points3D.bin"), "wb")
+        fout = data.io_handler.open(os.path.join(path, "points3D.bin"), "wb")
         n_points = 0
         for reconstruction in reconstructions:
             n_points += len(reconstruction.points)
         fout.write(pack("<Q", n_points))
     else:
-        fout = io.open_wt(os.path.join(path, "points3D.txt"))
+        fout = data.io_handler.open_wt(os.path.join(path, "points3D.txt"))
 
     i = 0
     for reconstruction in reconstructions:
@@ -657,8 +664,8 @@ def angle_axis_to_quaternion(angle_axis):
     return [qw, qx, qy, qz]
 
 
-def export_ini_file(path, db_path, images_path):
-    with io.open_wt(os.path.join(path, "project.ini")) as fout:
+def export_ini_file(path, db_path, images_path, io_handler):
+    with io_handler.open_wt(os.path.join(path, "project.ini")) as fout:
         fout.write("log_to_stderr=false\nlog_level=2\n")
         fout.write("database_path=%s\n" % db_path)
         fout.write("image_path=%s\n" % images_path)
