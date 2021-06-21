@@ -560,7 +560,7 @@ def main():
         data.save_tracks_manager(tracks_manager)
 
         # Save undistorted reconstruction as well
-        udata = dataset.UndistortedDataSet(data)
+        udata = dataset.UndistortedDataSet(data, io_handler=data.io_handler)
         urec = compute_and_save_undistorted_reconstruction(
             reconstruction, tracks_manager, data, udata
         )

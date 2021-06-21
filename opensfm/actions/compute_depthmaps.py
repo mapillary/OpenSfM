@@ -15,7 +15,7 @@ def run_dataset(data: DataSet, subfolder, interactive):
     """
 
     udata_path = os.path.join(data.data_path, subfolder)
-    udataset = dataset.UndistortedDataSet(data, udata_path)
+    udataset = dataset.UndistortedDataSet(data, udata_path, io_handler=data.io_handler)
     data.config["interactive"] = interactive
     reconstructions = udataset.load_undistorted_reconstruction()
     tracks_manager = udataset.load_undistorted_tracks_manager()
