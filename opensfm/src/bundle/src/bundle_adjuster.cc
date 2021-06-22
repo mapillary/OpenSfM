@@ -125,7 +125,8 @@ void BundleAdjuster::AddRigInstance(
     }
     const auto rig_camera_exists = rig_cameras_.find(rig_camera_id);
     if (rig_camera_exists == rig_cameras_.end()) {
-      throw std::runtime_error("Rig camera " + camera_id + " doesn't exist.");
+      throw std::runtime_error("Rig camera " + rig_camera_id +
+                               " doesn't exist.");
     }
     rig_shots_.emplace(
         std::piecewise_construct, std::forward_as_tuple(shot_id),

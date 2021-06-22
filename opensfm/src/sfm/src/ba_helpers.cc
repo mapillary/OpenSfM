@@ -436,15 +436,20 @@ py::dict BAHelpers::BundleShotPoses(
   const auto start = std::chrono::high_resolution_clock::now();
 
   // gather required rig data to setup
-  std::unordered_set<map::RigCameraId> rig_cameras_ids;
   std::unordered_set<map::RigInstanceId> rig_instances_ids;
   for (const auto& shot_id : shot_ids) {
     const auto& shot = map.GetShot(shot_id);
     if (!shot.IsInRig()) {
       continue;
     }
-    rig_cameras_ids.insert(shot.GetRigCameraId());
     rig_instances_ids.insert(shot.GetRigInstanceId());
+  }
+  std::unordered_set<map::RigCameraId> rig_cameras_ids;
+  for (const auto& rig_instance_id : rig_instances_ids) {
+    auto& instance = map.GetRigInstance(rig_instance_id);
+    for (const auto& shot_n_rig_camera : instance.GetRigCameras()) {
+      rig_cameras_ids.insert(shot_n_rig_camera.second->id);
+    }
   }
 
   // rig cameras are going to be fixed
@@ -663,9 +668,9 @@ py::dict BAHelpers::Bundle(
   }
 
   // setup rig cameras
-  constexpr size_t MinRigInstanceForAdjust{5};
+  constexpr size_t kMinRigInstanceForAdjust{10};
   const auto lock_rig_camera =
-      map.GetRigInstances().size() <= MinRigInstanceForAdjust;
+      map.GetRigInstances().size() <= kMinRigInstanceForAdjust;
   for (const auto& camera_pair : map.GetRigCameras()) {
     ba.AddRigCamera(camera_pair.first, camera_pair.second.pose,
                     rig_camera_priors.at(camera_pair.first).pose,
