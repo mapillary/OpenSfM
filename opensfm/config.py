@@ -134,7 +134,9 @@ bundle_use_gps: yes                   # Enforce GPS position in bundle adjustmen
 bundle_use_gcp: no                    # Enforce Ground Control Point position in bundle adjustment
 
 # Params for rigs
-rig_calibration_subset_size: 15
+rig_calibration_subset_size: 15       # Number of rig instances to use when calibration rigs
+rig_calibration_completeness: 0.85    # Ratio of reconstructed images needed to consider a reconstruction for rig calibration
+rig_calibration_max_rounds: 10        # Number of SfM tentatives to run until we get a satisfying reconstruction
 
 # Params for navigation graph
 nav_min_distance: 0.01                # Minimum distance for a possible edge between two nodes

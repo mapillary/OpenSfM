@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import shutil
 import typing as t
 from abc import ABC, abstractmethod
 
@@ -1259,7 +1260,11 @@ class IoFilesystemDefault(IoFilesystemBase):
         if os.path.islink(filename):
             os.unlink(filename)
         if os.path.exists(filename):
-            os.remove(filename)
+            if os.path.isdir(filename):
+                shutil.rmtree(filename)
+            else:
+                os.remove(filename)
+
 
     @classmethod
     def symlink(cls, src_path, dst_path, **kwargs):
