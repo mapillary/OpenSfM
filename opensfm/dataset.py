@@ -9,7 +9,7 @@ from typing import Dict, List, Tuple, Optional, IO, Any
 
 import cv2
 import numpy as np
-from opensfm import config, features, geo, io, pysfm, upright, pygeometry, types, pymap
+from opensfm import config, features, geo, io, upright, pygeometry, types, pymap
 
 logger = logging.getLogger(__name__)
 
