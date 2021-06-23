@@ -36,6 +36,14 @@ struct ShotMeasurements {
   foundation::OptionalValue<int> orientation_;
   foundation::OptionalValue<std::string> sequence_key_;
   void Set(const ShotMeasurements& other);
+
+  // Store any additional attributes
+  std::map<std::string, std::string> attributes_;
+  const auto& GetAttributes() const { return attributes_; }
+  auto& GetMutableAttributes() { return attributes_; }
+  void SetAttributes(const std::map<std::string, std::string>& attributes) {
+    attributes_ = attributes;
+  }
 };
 
 class Shot {
