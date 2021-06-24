@@ -550,10 +550,13 @@ class DataSet(DataSetBase):
     def _set_mask_path(self, path: str) -> None:
         """Set mask path and find all masks in there"""
         self.mask_files = {}
-        for image in self.images():
-            filepath = os.path.join(path, image + ".png")
-            if self.io_handler.isfile(filepath):
-                self.mask_files[image] = filepath
+        if self.io_handler.isdir(path):
+            files = set(self.io_handler.ls(path))
+            for image in self.images():
+                mask = image + ".png"
+                if mask in files:
+                    self.mask_files[image] = os.path.join(path, mask)
+
 
     def _set_mask_list(self, mask_list_lines: List[str]) -> None:
         self.mask_files = {}
