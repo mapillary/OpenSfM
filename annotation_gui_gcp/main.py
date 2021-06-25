@@ -260,7 +260,7 @@ def group_images(args):
         return groups_from_sequence_database
 
 
-def find_suitable_cad_paths(path_cad_files, path_dataset, n_paths=3):
+def find_suitable_cad_paths(path_cad_files, path_dataset, n_paths=6):
     if path_cad_files is None:
         return []
 
