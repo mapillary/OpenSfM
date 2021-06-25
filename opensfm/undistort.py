@@ -23,6 +23,7 @@ def undistort_reconstruction(
     image_format = data.config["undistorted_image_format"]
     urec = types.Reconstruction()
     urec.points = reconstruction.points
+    urec.reference = reconstruction.reference
     rig_instance_count = itertools.count()
     utracks_manager = pymap.TracksManager()
     logger.debug("Undistorting the reconstruction")
