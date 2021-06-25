@@ -312,8 +312,9 @@ COLMAP_TYPES_MAP = {
     "brown": "FULL_OPENCV",
     "perspective": "RADIAL",
     "fisheye": "RADIAL_FISHEYE",
+    "fisheye_opencv": "OPENCV_FISHEYE",
 }
-COLMAP_ID_MAP = {"brown": 6, "perspective": 3, "fisheye": 9}
+COLMAP_ID_MAP = {"brown": 6, "perspective": 3, "fisheye": 9, "fisheye_opencv": 5}
 
 
 def export_cameras(data, db):
@@ -341,8 +342,8 @@ def export_cameras(data, db):
                 (
                     camera.focal_x * normalizer,
                     camera.focal_y * normalizer,
-                    (camera.width - 1) * 0.5 + camera.c_x * normalizer,
-                    (camera.height - 1) * 0.5 + camera.c_y * normalizer,
+                    (camera.width - 1) * 0.5 + camera.principal_point[0] * normalizer,
+                    (camera.height - 1) * 0.5 + camera.principal_point[1] * normalizer,
                     camera.k1,
                     camera.k2,
                     camera.p1,
@@ -361,6 +362,20 @@ def export_cameras(data, db):
                     camera.height / 2,
                     camera.k1,
                     camera.k2,
+                )
+            )
+
+        if camera.projection_type == "fisheye_opencv":
+            parameters = np.array(
+                (
+                    camera.focal * normalizer,
+                    camera.focal * camera.aspect_ratio * normalizer,
+                    camera.width * 0.5 + camera.principal_point[0] * normalizer,
+                    camera.height * 0.5 + camera.principal_point[1] * normalizer,
+                    camera.k1,
+                    camera.k2,
+                    camera.k3,
+                    camera.k4,
                 )
             )
         camera_id = db.add_camera(
@@ -447,22 +462,24 @@ def export_cameras_reconstruction(data, path, camera_map, binary=False):
             f = camera.focal * normalizer
             k1 = camera.k1
             k2 = camera.k2
+            cx = w * 0.5
+            cy = h * 0.5
             if binary:
                 fout.write(
                     pack("<2i", colmap_id, COLMAP_ID_MAP[camera.projection_type])
                 )
                 fout.write(pack("<2Q", w, h))
-                fout.write(pack("<5d", f, w * 0.5, h * 0.5, k1, k2))
+                fout.write(pack("<5d", f, cx, cy, k1, k2))
             else:
                 fout.write(
                     "%d %s %d %d %f %f %f %f %f\n"
-                    % (colmap_id, colmap_type, w, h, f, w * 0.5, h * 0.5, k1, k2)
+                    % (colmap_id, colmap_type, w, h, f, cx, cy, k1, k2)
                 )
         elif camera.projection_type == "brown":
             f_x = camera.focal_x * normalizer
             f_y = camera.focal_y * normalizer
-            c_x = (w - 1) * 0.5 + normalizer * camera.c_x
-            c_y = (h - 1) * 0.5 + normalizer * camera.c_y
+            c_x = (w - 1) * 0.5 + normalizer * camera.principal_point[0]
+            c_y = (h - 1) * 0.5 + normalizer * camera.principal_point[1]
             k1 = camera.k1
             k2 = camera.k2
             k3 = camera.k3
@@ -502,16 +519,38 @@ def export_cameras_reconstruction(data, path, camera_map, binary=False):
             f = camera.focal * normalizer
             k1 = camera.k1
             k2 = camera.k2
+            cx = w * 0.5
+            cy = h * 0.5
             if binary:
                 fout.write(
                     pack("<2i", colmap_id, COLMAP_ID_MAP[camera.projection_type])
                 )
                 fout.write(pack("<2Q", w, h))
-                fout.write(pack("<5d", f, w * 0.5, h * 0.5, k1, k2))
+                fout.write(pack("<5d", f, cx, cy, k1, k2))
             else:
                 fout.write(
                     "%d %s %d %d %f %f %f %f %f\n"
-                    % (colmap_id, colmap_type, w, h, f, w * 0.5, h * 0.5, k1, k2)
+                    % (colmap_id, colmap_type, w, h, f, cx, cy, k1, k2)
+                )
+        elif camera.projection_type == "fisheye_opencv":
+            fx = camera.focal * normalizer
+            fy = camera.focal * camera.aspect_ratio * normalizer
+            cx = w * 0.5 + camera.principal_point[0]
+            cy = h * 0.5 + camera.principal_point[1]
+            k1 = camera.k1
+            k2 = camera.k2
+            k3 = camera.k3
+            k4 = camera.k4
+            if binary:
+                fout.write(
+                    pack("<2i", colmap_id, COLMAP_ID_MAP[camera.projection_type])
+                )
+                fout.write(pack("<2Q", w, h))
+                fout.write(pack("<8d", fx, fy, cx, cy, k1, k2, k3, k4))
+            else:
+                fout.write(
+                    "%d %s %d %d %f %f %f %f %f %f %f %f\n"
+                    % (colmap_id, colmap_type, w, h, fx, fy, cx, cy, k1, k2, k3, k4)
                 )
     fout.close()
 
