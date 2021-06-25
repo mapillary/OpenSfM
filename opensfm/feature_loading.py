@@ -35,7 +35,8 @@ class FeatureLoader(object):
                 [
                     False if segmentations[i] in ignore_values else True
                     for i in range(len(segmentations))
-                ]
+                ],
+                dtype=bool
             )
         else:
             return data.load_features_mask(image, all_features_data.points[:, :2])
