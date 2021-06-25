@@ -8,7 +8,6 @@ from opensfm import features
 from opensfm import log
 from opensfm import pygeometry
 from opensfm import pymap
-from opensfm import pysfm
 from opensfm import transformations as tf
 from opensfm import types
 from opensfm.context import parallel_map
@@ -83,7 +82,7 @@ def undistort_reconstruction_and_images(
     for shot in reconstruction.shots.values():
         arguments.append((shot, undistorted_shots[shot.id], data, udata))
 
-    processes = data.config["processes"]
+    processes = data.config["read_processes"]
     parallel_map(undistort_image_and_masks, arguments, processes)
 
 
