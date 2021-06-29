@@ -5,7 +5,6 @@ import matplotlib
 import matplotlib.patches as mpatches
 import numpy as np
 
-# pyre-fixme[16]: Module `matplotlib` has no attribute `use`.
 matplotlib.use("TkAgg")
 from typing import Tuple
 
