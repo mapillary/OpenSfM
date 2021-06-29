@@ -55,6 +55,7 @@ def undistort_reconstruction(
         for subshot in subshots:
             if tracks_manager:
                 add_subshot_tracks(tracks_manager, utracks_manager, shot, subshot)
+        # pyre-fixme[61]: `subshots` may not be initialized here.
         undistorted_shots[shot.id] = subshots
 
     udata.save_undistorted_reconstruction([urec])

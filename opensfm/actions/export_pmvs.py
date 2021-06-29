@@ -58,6 +58,7 @@ def run_dataset(data: DataSet, points, image_list, output, undistorted):
             reconstruction,
             h,
             image_graph,
+            # pyre-fixme[61]: `tracks_manager` may not be initialized here.
             tracks_manager,
             base_output_path,
             data,

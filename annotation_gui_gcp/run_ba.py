@@ -834,8 +834,11 @@ def align(
             )
         else:
             logger.info(
+                # pyre-fixme[61]: `std_values` may not be initialized here.
                 f"{n_nan_std}/{len(std_values)} images with unknown error."
+                # pyre-fixme[61]: `std_values` may not be initialized here.
                 f"\n{n_good_std}/{len(std_values)} well-localized images."
+                # pyre-fixme[61]: `std_values` may not be initialized here.
                 f"\n{n_bad_std}/{len(std_values)} badly localized images."
             )
 

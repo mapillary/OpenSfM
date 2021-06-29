@@ -89,6 +89,7 @@ def gcp_errors(data: DataSetBase, reconstructions):
             else:
                 break
 
+        # pyre-fixme[61]: `triangulated` may not be initialized here.
         if triangulated is None:
             continue
         all_errors.append(triangulated - gcp.coordinates.value)
@@ -765,9 +766,11 @@ def save_heatmap(
         )
 
         plt.xticks(
+            # pyre-fixme[61]: `w` may not be initialized here.
             [0, buckets_x / 2, buckets_x], [0, int(w / 2), w], fontsize="x-small"
         )
         plt.yticks(
+            # pyre-fixme[61]: `h` may not be initialized here.
             [buckets_y, buckets_y / 2, 0], [0, int(h / 2), h], fontsize="x-small"
         )
 
@@ -846,6 +849,7 @@ def save_residual_grids(
             camera_array_count[y, x, 0] += 1
         camera_array_res = np.divide(camera_array_res, camera_array_count)
 
+        # pyre-fixme[61]: `shot_id` may not be initialized here.
         shot = rec.get_shot(shot_id)
         w = shot.camera.width
         h = shot.camera.height
