@@ -11,7 +11,7 @@
   <link rel='stylesheet' href='styles/opensfm.css' />
 </head>
 
-<body>
+<body class="opensfm-container">
   <script type="module">
     import {
       createProviderOptions,
@@ -22,10 +22,11 @@
       OpensfmViewer,
     } from './src/opensfm.js';
 
+    const container = window.document.body;
     const params = parseHash(window.location.hash);
     const providerOptions = createProviderOptions(params);
     const provider = new OpensfmDataProvider(providerOptions);
-    const viewer = new OpensfmViewer({ params, provider });
+    const viewer = new OpensfmViewer({ container, params, provider });
 
     if (params.file) {
       viewer.initialize();

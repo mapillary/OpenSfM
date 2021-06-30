@@ -33,7 +33,7 @@ export class OpensfmViewer extends EventEmitter {
     const document = window.document;
     const container = document.createElement('div');
     container.classList.add('opensfm-viewer');
-    document.body.appendChild(container);
+    options.container.appendChild(container);
 
     const cvm = CameraVisualizationMode.Homogeneous;
     const opm = OriginalPositionMode.Hidden;
@@ -207,7 +207,9 @@ export class OpensfmViewer extends EventEmitter {
     );
     optionController.on('cellsvisible', event => this._onCellsVisible(event));
     optionController.on('gridvisible', event => this._onGridVisible(event));
-    optionController.on('basemapvisible', event => this._onBasemapVisible(event));
+    optionController.on('basemapvisible', event =>
+      this._onBasemapVisible(event),
+    );
     optionController.on('reconstructionsselected', event =>
       this._onReconstructionsSelected(event),
     );

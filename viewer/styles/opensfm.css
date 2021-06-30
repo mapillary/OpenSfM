@@ -1,4 +1,4 @@
-body {
+.opensfm-container {
     margin: 0;
     padding: 0;
     background-color: #0F0F0F;
@@ -6,6 +6,7 @@ body {
 
 html,
 body,
+.opensfm-container,
 .opensfm-viewer,
 .opensfm-file-background {
     width: 100%;
