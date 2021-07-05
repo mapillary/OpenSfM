@@ -340,10 +340,10 @@ def export_cameras(data, db):
         if camera.projection_type == "brown":
             parameters = np.array(
                 (
-                    camera.focal_x * normalizer,
-                    camera.focal_y * normalizer,
-                    (camera.width - 1) * 0.5 + camera.principal_point[0] * normalizer,
-                    (camera.height - 1) * 0.5 + camera.principal_point[1] * normalizer,
+                    camera.focal * normalizer,
+                    camera.focal * camera.aspect_ratio * normalizer,
+                    camera.width * 0.5 + camera.principal_point[0] * normalizer,
+                    camera.height * 0.5 + camera.principal_point[1] * normalizer,
                     camera.k1,
                     camera.k2,
                     camera.p1,
@@ -476,10 +476,10 @@ def export_cameras_reconstruction(data, path, camera_map, binary=False):
                     % (colmap_id, colmap_type, w, h, f, cx, cy, k1, k2)
                 )
         elif camera.projection_type == "brown":
-            f_x = camera.focal_x * normalizer
-            f_y = camera.focal_y * normalizer
-            c_x = (w - 1) * 0.5 + normalizer * camera.principal_point[0]
-            c_y = (h - 1) * 0.5 + normalizer * camera.principal_point[1]
+            f_x = camera.focal * normalizer,
+            f_y = camera.focal * camera.aspect_ratio * normalizer,
+            c_x = w * 0.5 + normalizer * camera.principal_point[0]
+            c_y = h * 0.5 + normalizer * camera.principal_point[1]
             k1 = camera.k1
             k2 = camera.k2
             k3 = camera.k3
@@ -533,8 +533,8 @@ def export_cameras_reconstruction(data, path, camera_map, binary=False):
                     % (colmap_id, colmap_type, w, h, f, cx, cy, k1, k2)
                 )
         elif camera.projection_type == "fisheye_opencv":
-            fx = camera.focal * normalizer
-            fy = camera.focal * camera.aspect_ratio * normalizer
+            fx = camera.focal * normalizer,
+            fy = camera.focal * camera.aspect_ratio * normalizer,
             cx = w * 0.5 + camera.principal_point[0]
             cy = h * 0.5 + camera.principal_point[1]
             k1 = camera.k1
