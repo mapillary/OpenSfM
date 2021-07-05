@@ -36,6 +36,7 @@ import os
 import sqlite3
 import sys
 import tempfile
+import typing as t
 from struct import pack
 
 import numpy as np
@@ -317,6 +318,40 @@ COLMAP_TYPES_MAP = {
 COLMAP_ID_MAP = {"brown": 6, "perspective": 3, "fisheye": 9, "fisheye_opencv": 5}
 
 
+def camera_to_colmap_params(camera) -> t.Tuple[float, ...]:
+    w = camera.width
+    h = camera.height
+    normalizer = max(w, h)
+    f = camera.focal * normalizer
+    if camera.projection_type in ("perspective", "fisheye"):
+        k1 = camera.k1
+        k2 = camera.k2
+        cx = w * 0.5
+        cy = h * 0.5
+        return f, cx, cy, k1, k2
+    elif camera.projection_type == "brown":
+        fy = f * camera.aspect_ratio
+        c_x = w * 0.5 + normalizer * camera.principal_point[0]
+        c_y = h * 0.5 + normalizer * camera.principal_point[1]
+        k1 = camera.k1
+        k2 = camera.k2
+        k3 = camera.k3
+        p1 = camera.p1
+        p2 = camera.p2
+        return f, fy, c_x, c_y, k1, k2, p1, p2, k3, 0.0, 0.0, 0.0
+    elif camera.projection_type == "fisheye_opencv":
+        fy = f * camera.aspect_ratio
+        cx = w * 0.5 + camera.principal_point[0]
+        cy = h * 0.5 + camera.principal_point[1]
+        k1 = camera.k1
+        k2 = camera.k2
+        k3 = camera.k3
+        k4 = camera.k4
+        return f, fy, cx, cy, k1, k2, k3, k4
+    else:
+        raise ValueError("Can't convert {camera.projection_type} to COLMAP")
+
+
 def export_cameras(data, db):
     camera_map = {}
     for camera_model, camera in data.load_camera_models().items():
@@ -325,64 +360,12 @@ def export_cameras(data, db):
             if camera_model in overrides:
                 camera = overrides[camera_model]
 
-        normalizer = max(camera.width, camera.height)
-
-        if camera.projection_type == "perspective":
-            parameters = np.array(
-                (
-                    camera.focal * normalizer,
-                    camera.width / 2,
-                    camera.height / 2,
-                    camera.k1,
-                    camera.k2,
-                )
-            )
-        if camera.projection_type == "brown":
-            parameters = np.array(
-                (
-                    camera.focal * normalizer,
-                    camera.focal * camera.aspect_ratio * normalizer,
-                    camera.width * 0.5 + camera.principal_point[0] * normalizer,
-                    camera.height * 0.5 + camera.principal_point[1] * normalizer,
-                    camera.k1,
-                    camera.k2,
-                    camera.p1,
-                    camera.p2,
-                    camera.k3,
-                    0.0,
-                    0.0,
-                    0.0,
-                )
-            )
-        if camera.projection_type == "fisheye":
-            parameters = np.array(
-                (
-                    camera.focal * normalizer,
-                    camera.width / 2,
-                    camera.height / 2,
-                    camera.k1,
-                    camera.k2,
-                )
-            )
-
-        if camera.projection_type == "fisheye_opencv":
-            parameters = np.array(
-                (
-                    camera.focal * normalizer,
-                    camera.focal * camera.aspect_ratio * normalizer,
-                    camera.width * 0.5 + camera.principal_point[0] * normalizer,
-                    camera.height * 0.5 + camera.principal_point[1] * normalizer,
-                    camera.k1,
-                    camera.k2,
-                    camera.k3,
-                    camera.k4,
-                )
-            )
+        parameters = camera_to_colmap_params(camera)
         camera_id = db.add_camera(
             COLMAP_ID_MAP[camera.projection_type],
             camera.width,
             camera.height,
-            parameters,
+            np.array(parameters),
         )
         camera_map[camera_model] = camera_id
 
@@ -453,105 +436,21 @@ def export_cameras_reconstruction(data, path, camera_map, binary=False):
         fout = data.io_handler.open_wt(os.path.join(path, "cameras.txt"))
 
     for camera_id, camera in cameras.items():
-        w = camera.width
-        h = camera.height
-        normalizer = max(w, h)
         colmap_id = camera_map[camera_id]
         colmap_type = COLMAP_TYPES_MAP[camera.projection_type]
-        if camera.projection_type == "perspective":
-            f = camera.focal * normalizer
-            k1 = camera.k1
-            k2 = camera.k2
-            cx = w * 0.5
-            cy = h * 0.5
-            if binary:
-                fout.write(
-                    pack("<2i", colmap_id, COLMAP_ID_MAP[camera.projection_type])
-                )
-                fout.write(pack("<2Q", w, h))
-                fout.write(pack("<5d", f, cx, cy, k1, k2))
-            else:
-                fout.write(
-                    "%d %s %d %d %f %f %f %f %f\n"
-                    % (colmap_id, colmap_type, w, h, f, cx, cy, k1, k2)
-                )
-        elif camera.projection_type == "brown":
-            f_x = camera.focal * normalizer,
-            f_y = camera.focal * camera.aspect_ratio * normalizer,
-            c_x = w * 0.5 + normalizer * camera.principal_point[0]
-            c_y = h * 0.5 + normalizer * camera.principal_point[1]
-            k1 = camera.k1
-            k2 = camera.k2
-            k3 = camera.k3
-            p1 = camera.p1
-            p2 = camera.p2
-            if binary:
-                fout.write(
-                    pack("<2i", colmap_id, COLMAP_ID_MAP[camera.projection_type])
-                )
-                fout.write(pack("<2Q", w, h))
-                fout.write(
-                    pack("<12d", f_x, f_y, c_x, c_y, k1, k2, p1, p2, k3, 0.0, 0.0, 0.0)
-                )
-            else:
-                fout.write(
-                    "%d %s %d %d %f %f %f %f %f %f %f %f %f %f %f %f\n"
-                    % (
-                        colmap_id,
-                        colmap_type,
-                        w,
-                        h,
-                        f_x,
-                        f_y,
-                        c_x,
-                        c_y,
-                        k1,
-                        k2,
-                        p1,
-                        p2,
-                        k3,
-                        0.0,
-                        0.0,
-                        0.0,
-                    )
-                )
-        elif camera.projection_type == "fisheye":
-            f = camera.focal * normalizer
-            k1 = camera.k1
-            k2 = camera.k2
-            cx = w * 0.5
-            cy = h * 0.5
-            if binary:
-                fout.write(
-                    pack("<2i", colmap_id, COLMAP_ID_MAP[camera.projection_type])
-                )
-                fout.write(pack("<2Q", w, h))
-                fout.write(pack("<5d", f, cx, cy, k1, k2))
-            else:
-                fout.write(
-                    "%d %s %d %d %f %f %f %f %f\n"
-                    % (colmap_id, colmap_type, w, h, f, cx, cy, k1, k2)
-                )
-        elif camera.projection_type == "fisheye_opencv":
-            fx = camera.focal * normalizer,
-            fy = camera.focal * camera.aspect_ratio * normalizer,
-            cx = w * 0.5 + camera.principal_point[0]
-            cy = h * 0.5 + camera.principal_point[1]
-            k1 = camera.k1
-            k2 = camera.k2
-            k3 = camera.k3
-            k4 = camera.k4
-            if binary:
-                fout.write(
-                    pack("<2i", colmap_id, COLMAP_ID_MAP[camera.projection_type])
-                )
-                fout.write(pack("<2Q", w, h))
-                fout.write(pack("<8d", fx, fy, cx, cy, k1, k2, k3, k4))
-            else:
-                fout.write(
-                    "%d %s %d %d %f %f %f %f %f %f %f %f\n"
-                    % (colmap_id, colmap_type, w, h, fx, fy, cx, cy, k1, k2, k3, k4)
-                )
+        w = camera.width
+        h = camera.height
+        params = camera_to_colmap_params(camera)
+        if binary:
+            fout.write(pack("<2i", colmap_id, COLMAP_ID_MAP[camera.projection_type]))
+            fout.write(pack("<2Q", w, h))
+            fout.write(pack(f"<{len(params)}d", *params))
+        else:
+            str_out = "%d %s %d %d"
+            for _param in params:
+                str_out += " %f"
+            str_out += "\n"
+            fout.write(str_out % (colmap_id, colmap_type, w, h, *params))
     fout.close()
 
 
