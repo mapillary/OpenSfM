@@ -149,7 +149,6 @@ PYBIND11_MODULE(pymap, m) {
       .def(py::init<const map::ShotId &, const geometry::Camera &,
                     const geometry::Pose &>())
       .def_readonly("id", &map::Shot::id_)
-      .def_readonly("unique_id", &map::Shot::unique_id_)
       .def_readwrite("mesh", &map::Shot::mesh)
       .def_property("covariance", &map::Shot::GetCovariance,
                     &map::Shot::SetCovariance)
@@ -183,7 +182,7 @@ PYBIND11_MODULE(pymap, m) {
           [](const map::Shot &s) {
             auto c = s.GetCamera();
             return py::make_tuple(
-                s.id_, s.unique_id_, s.GetPose()->CameraToWorld(),
+                s.id_, s.GetPose()->CameraToWorld(),
                 py::make_tuple(c->GetParametersTypes(),
                                c->GetParametersValues(), c->GetProjectionType(),
                                c->width, c->height, c->id));
@@ -202,9 +201,8 @@ PYBIND11_MODULE(pymap, m) {
             camera.height = t[4].cast<int>();
             camera.id = t[5].cast<std::string>();
             auto pose = geometry::Pose();
-            pose.SetFromCameraToWorld(s[2].cast<Mat4d>());
+            pose.SetFromCameraToWorld(s[1].cast<Mat4d>());
             auto shot = map::Shot(s[0].cast<map::ShotId>(), camera, pose);
-            shot.unique_id_ = s[1].cast<map::ShotUniqueId>();
             return shot;
           }));
 
@@ -298,7 +296,6 @@ PYBIND11_MODULE(pymap, m) {
   py::class_<map::Landmark>(m, "Landmark")
       .def(py::init<const map::LandmarkId &, const Vec3d &>())
       .def_readonly("id", &map::Landmark::id_)
-      .def_readonly("unique_id", &map::Landmark::unique_id_)
       .def_property("coordinates", &map::Landmark::GetGlobalPos,
                     &map::Landmark::SetGlobalPos)
       .def("get_observations", &map::Landmark::GetObservations,

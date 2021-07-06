@@ -136,7 +136,6 @@ class Shot {
 
  public:
   const ShotId id_;  // the file name
-  ShotUniqueId unique_id_;
 
   // Ad-hoc merge-specific data
   ShotMesh mesh;

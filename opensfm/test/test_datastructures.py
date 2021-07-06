@@ -735,7 +735,6 @@ def test_single_point_create():
 
     # It should be there
     assert pt.id == "0"
-    assert pt.unique_id == 0
     assert len(rec.points) == 1
 
 
@@ -805,7 +804,6 @@ def test_point_add_from_point():
     assert "1" == pt2_1.id
 
     # ... and with correct values
-    assert pt2_1.unique_id == 0
     assert pt2_1 == rec.points["1"]
     assert np.allclose(pt2_1.coordinates, coord2)
 

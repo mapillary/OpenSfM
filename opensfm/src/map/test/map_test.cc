@@ -205,7 +205,6 @@ class OneCameraMapFixture : public EmptyMapFixture {
 TEST_F(OneCameraMapFixture, ReturnsNumberOfShots) {
   const auto& shot = map.CreateShot("0", "0");
   ASSERT_EQ(shot.id_, "0");
-  ASSERT_EQ(shot.unique_id_, 0);
 }
 
 TEST_F(OneCameraMapFixture, ReturnsShots) {

@@ -185,11 +185,6 @@ class Map {
   std::unordered_map<RigCameraId, RigCamera> rig_cameras_;
 
   geo::TopocentricConverter topo_conv_;
-
-  LandmarkUniqueId landmark_unique_id_ = 0;
-  ShotUniqueId shot_unique_id_ = 0;
-  ShotUniqueId pano_shot_unique_id_ = 0;
-  CameraUniqueId camera_unique_id_ = 0;
 };
 
 }  // namespace map
