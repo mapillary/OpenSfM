@@ -276,7 +276,7 @@ class DataSet(DataSetBase):
     mask_files: Dict[str, str] = {}
     image_list: List[str] = []
 
-    def __init__(self, data_path: str, io_handler=io.IoFilesystemDefault):
+    def __init__(self, data_path: str, io_handler=io.IoFilesystemDefault) -> None:
         """Init dataset associated to a folder."""
         self.io_handler = io_handler
         self.data_path = data_path
@@ -284,10 +284,10 @@ class DataSet(DataSetBase):
         self.load_image_list()
         self.load_mask_list()
 
-    def _config_file(self):
+    def _config_file(self) -> str:
         return os.path.join(self.data_path, "config.yaml")
 
-    def load_config(self):
+    def load_config(self) -> None:
         config_file_path = self._config_file()
         if self.io_handler.isfile(config_file_path):
             with self.io_handler.open(config_file_path) as f:
@@ -295,10 +295,10 @@ class DataSet(DataSetBase):
         else:
             self.config = config.default_config()
 
-    def _image_list_file(self):
+    def _image_list_file(self) -> str:
         return os.path.join(self.data_path, "image_list.txt")
 
-    def load_image_list(self):
+    def load_image_list(self) -> None:
         """Load image list from image_list.txt or list images/ folder."""
         image_list_file = self._image_list_file()
         if self.io_handler.isfile(image_list_file):
@@ -308,11 +308,11 @@ class DataSet(DataSetBase):
         else:
             self._set_image_path(os.path.join(self.data_path, "images"))
 
-    def images(self):
+    def images(self) -> List[str]:
         """List of file names of all images in the dataset."""
         return self.image_list
 
-    def _image_file(self, image: str):
+    def _image_file(self, image: str) -> str:
         """Path to the image file."""
         return self.image_files[image]
 
@@ -556,7 +556,6 @@ class DataSet(DataSetBase):
                 mask = image + ".png"
                 if mask in files:
                     self.mask_files[image] = os.path.join(path, mask)
-
 
     def _set_mask_list(self, mask_list_lines: List[str]) -> None:
         self.mask_files = {}
