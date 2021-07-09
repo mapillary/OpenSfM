@@ -120,15 +120,6 @@ def undistort_image_and_masks(arguments):
         for k, v in undistorted.items():
             udata.save_undistorted_segmentation(k, v)
 
-    # Undistort detections
-    detection = data.load_detection(shot.id)
-    if detection is not None:
-        undistorted = undistort_image(
-            shot, undistorted_shots, detection, cv2.INTER_NEAREST, max_size
-        )
-        for k, v in undistorted.items():
-            udata.save_undistorted_detection(k, v)
-
 
 def undistort_image(shot, undistorted_shots, original, interpolation, max_size):
     """Undistort an image into a set of undistorted ones.

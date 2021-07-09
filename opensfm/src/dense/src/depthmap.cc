@@ -557,8 +557,7 @@ void DepthmapPruner::SetSameDepthThreshold(float t) {
 void DepthmapPruner::AddView(const double *pK, const double *pR,
                              const double *pt, const float *pdepth,
                              const float *pplane, const unsigned char *pcolor,
-                             const unsigned char *plabel,
-                             const unsigned char *pdetection, int width,
+                             const unsigned char *plabel, int width,
                              int height) {
   Ks_.emplace_back(pK);
   Rs_.emplace_back(pR);
@@ -568,15 +567,12 @@ void DepthmapPruner::AddView(const double *pK, const double *pR,
       cv::Mat(height, width, CV_32FC3, (void *)pplane).clone());
   colors_.emplace_back(cv::Mat(height, width, CV_8UC3, (void *)pcolor).clone());
   labels_.emplace_back(cv::Mat(height, width, CV_8U, (void *)plabel).clone());
-  detections_.emplace_back(
-      cv::Mat(height, width, CV_8U, (void *)pdetection).clone());
 }
 
 void DepthmapPruner::Prune(std::vector<float> *merged_points,
                            std::vector<float> *merged_normals,
                            std::vector<unsigned char> *merged_colors,
-                           std::vector<unsigned char> *merged_labels,
-                           std::vector<unsigned char> *merged_detections) {
+                           std::vector<unsigned char> *merged_labels) {
   cv::Matx33f Rinv = Rs_[0].t();
   for (int i = 0; i < depths_[0].rows; ++i) {
     for (int j = 0; j < depths_[0].cols; ++j) {
@@ -620,7 +616,6 @@ void DepthmapPruner::Prune(std::vector<float> *merged_points,
         cv::Vec3f R1_normal = Rinv * normal;
         cv::Vec3b color = colors_[0].at<cv::Vec3b>(i, j);
         unsigned char label = labels_[0].at<unsigned char>(i, j);
-        unsigned char detection = detections_[0].at<unsigned char>(i, j);
         merged_points->push_back(point[0]);
         merged_points->push_back(point[1]);
         merged_points->push_back(point[2]);
@@ -631,7 +626,6 @@ void DepthmapPruner::Prune(std::vector<float> *merged_points,
         merged_colors->push_back(color[1]);
         merged_colors->push_back(color[2]);
         merged_labels->push_back(label);
-        merged_detections->push_back(detection);
       }
     }
   }

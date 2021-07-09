@@ -984,7 +984,7 @@ def reconstruction_to_ply(
 
 def point_cloud_from_ply(
     fp: t.TextIO,
-) -> t.Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+) -> t.Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Load point cloud from a PLY file."""
     all_lines = fp.read().splitlines()
     start = all_lines.index("end_header") + 1
@@ -995,7 +995,6 @@ def point_cloud_from_ply(
     normals = np.zeros((n, 3), dtype=np.float32)
     colors = np.zeros((n, 3), dtype=np.uint8)
     labels = np.zeros((n,), dtype=np.uint8)
-    detections = np.zeros((n,), dtype=np.uint8)
 
     for i, row in enumerate(lines):
         words = row.split()
@@ -1004,11 +1003,8 @@ def point_cloud_from_ply(
         normals[i] = list(map(float, words[3:6]))
         colors[i] = list(map(int, words[6:9]))
         labels[i] = label
-        if len(words) == 11:
-            detection = int(words[10])
-            detections[i] = detection
 
-    return points, normals, colors, labels, detections
+    return points, normals, colors, labels
 
 
 def point_cloud_to_ply(
@@ -1016,11 +1012,10 @@ def point_cloud_to_ply(
     normals: np.ndarray,
     colors: np.ndarray,
     labels: np.ndarray,
-    detections: np.ndarray,
     fp: t.TextIO,
 ) -> None:
     """Export depthmap points as a PLY string"""
-    lines = _point_cloud_to_ply_lines(points, normals, colors, labels, detections)
+    lines = _point_cloud_to_ply_lines(points, normals, colors, labels)
     fp.writelines(lines)
 
 
@@ -1029,7 +1024,6 @@ def _point_cloud_to_ply_lines(
     normals: np.ndarray,
     colors: np.ndarray,
     labels: np.ndarray,
-    detections: np.ndarray,
 ):
     yield "ply\n"
     yield "format ascii 1.0\n"
@@ -1044,12 +1038,11 @@ def _point_cloud_to_ply_lines(
     yield "property uchar diffuse_green\n"
     yield "property uchar diffuse_blue\n"
     yield "property uchar class\n"
-    yield "property uchar detection\n"
     yield "end_header\n"
 
-    template = "{:.4f} {:.4f} {:.4f} {:.3f} {:.3f} {:.3f} {} {} {} {} {}\n"
+    template = "{:.4f} {:.4f} {:.4f} {:.3f} {:.3f} {:.3f} {} {} {} {}\n"
     for i in range(len(points)):
-        p, n, c, l, d = points[i], normals[i], colors[i], labels[i], detections[i]
+        p, n, c, l = points[i], normals[i], colors[i], labels[i]
         yield template.format(
             p[0],
             p[1],
@@ -1061,7 +1054,6 @@ def _point_cloud_to_ply_lines(
             int(c[1]),
             int(c[2]),
             int(l),
-            int(d),
         )
 
 

@@ -407,21 +407,6 @@ class DataSet(DataSetBase):
 
         return np.array(mask, dtype=bool)
 
-    def _detection_path(self) -> str:
-        return os.path.join(self.data_path, "detections")
-
-    def _detection_file(self, image: str) -> str:
-        return os.path.join(self._detection_path(), image + ".png")
-
-    def load_detection(self, image: str) -> Optional[np.ndarray]:
-        """Load image detection if it exists, otherwise return None."""
-        detection_file = self._detection_file(image)
-        if self.io_handler.isfile(detection_file):
-            detection = self.io_handler.imread(detection_file, grayscale=True)
-        else:
-            detection = None
-        return detection
-
     def _instances_path(self) -> str:
         return os.path.join(self.data_path, "instances")
 
@@ -1111,28 +1096,6 @@ class UndistortedDataSet(object):
         self.io_handler.mkdir_p(self._undistorted_mask_path())
         self.io_handler.imwrite(self._undistorted_mask_file(image), array)
 
-    def _undistorted_detection_path(self) -> str:
-        return os.path.join(self.data_path, "detections")
-
-    def _undistorted_detection_file(self, image: str) -> str:
-        """Path of undistorted version of a detection."""
-        return os.path.join(self._undistorted_detection_path(), image + ".png")
-
-    def undistorted_detection_exists(self, image: str) -> bool:
-        """Check if the undistorted detection file exists."""
-        return self.io_handler.isfile(self._undistorted_detection_file(image))
-
-    def load_undistorted_detection(self, image: str) -> np.ndarray:
-        """Load an undistorted image detection."""
-        return self.io_handler.imread(
-            self._undistorted_detection_file(image), grayscale=True
-        )
-
-    def save_undistorted_detection(self, image: str, array: np.ndarray) -> None:
-        """Save the undistorted image detection."""
-        self.io_handler.mkdir_p(self._undistorted_detection_path())
-        self.io_handler.imwrite(self._undistorted_detection_file(image), array)
-
     def _undistorted_segmentation_path(self) -> str:
         return os.path.join(self.data_path, "segmentations")
 
@@ -1197,7 +1160,7 @@ class UndistortedDataSet(object):
 
     def load_point_cloud(
         self, filename: str = "merged.ply"
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         with self.io_handler.open(self.point_cloud_file(filename), "r") as fp:
             return io.point_cloud_from_ply(fp)
 
@@ -1207,12 +1170,11 @@ class UndistortedDataSet(object):
         normals: np.ndarray,
         colors: np.ndarray,
         labels: np.ndarray,
-        detections: np.ndarray,
         filename: str = "merged.ply",
     ) -> None:
         self.io_handler.mkdir_p(self._depthmap_path())
         with self.io_handler.open(self.point_cloud_file(filename), "w") as fp:
-            io.point_cloud_to_ply(points, normals, colors, labels, detections, fp)
+            io.point_cloud_to_ply(points, normals, colors, labels, fp)
 
     def raw_depthmap_exists(self, image: str) -> bool:
         return self.io_handler.isfile(self.depthmap_file(image, "raw.npz"))
@@ -1268,7 +1230,6 @@ class UndistortedDataSet(object):
         normals: np.ndarray,
         colors: np.ndarray,
         labels: np.ndarray,
-        detections: np.ndarray,
     ) -> None:
         self.io_handler.mkdir_p(self._depthmap_path())
         filepath = self.depthmap_file(image, "pruned.npz")
@@ -1279,30 +1240,19 @@ class UndistortedDataSet(object):
                 normals=normals,
                 colors=colors,
                 labels=labels,
-                detections=detections,
             )
 
     def load_pruned_depthmap(
         self, image: str
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         with self.io_handler.open(self.depthmap_file(image, "pruned.npz"), "rb") as f:
             o = np.load(f)
-            if "detections" not in o:
-                return (
-                    o["points"],
-                    o["normals"],
-                    o["colors"],
-                    o["labels"],
-                    np.zeros(o["labels"].shape),
-                )
-            else:
-                return (
-                    o["points"],
-                    o["normals"],
-                    o["colors"],
-                    o["labels"],
-                    o["detections"],
-                )
+            return (
+                o["points"],
+                o["normals"],
+                o["colors"],
+                o["labels"],
+            )
 
     def load_undistorted_tracks_manager(self) -> pymap.TracksManager:
         filename = os.path.join(self.data_path, "tracks.csv")

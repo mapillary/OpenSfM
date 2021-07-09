@@ -221,15 +221,13 @@ def prune_depthmap(arguments):
     dp = pydense.DepthmapPruner()
     dp.set_same_depth_threshold(data.config["depthmap_same_depth_threshold"])
     add_views_to_depth_pruner(data, neighbors, dp)
-    points, normals, colors, labels, detections = dp.prune()
+    points, normals, colors, labels = dp.prune()
 
     # Save and display results
-    data.save_pruned_depthmap(shot.id, points, normals, colors, labels, detections)
+    data.save_pruned_depthmap(shot.id, points, normals, colors, labels)
 
     if data.config["depthmap_save_debug_files"]:
-        data.save_point_cloud(
-            points, normals, colors, labels, detections, "pruned.npz.ply"
-        )
+        data.save_point_cloud(points, normals, colors, labels, "pruned.npz.ply")
 
 
 def aggregate_depthmaps(shot_ids, depthmap_provider):
@@ -239,27 +237,24 @@ def aggregate_depthmaps(shot_ids, depthmap_provider):
     normals = []
     colors = []
     labels = []
-    detections = []
     for shot_id in shot_ids:
-        p, n, c, l, d = depthmap_provider(shot_id)
+        p, n, c, l = depthmap_provider(shot_id)
         points.append(p)
         normals.append(n)
         colors.append(c)
         labels.append(l)
-        detections.append(d)
 
     return (
         np.concatenate(points),
         np.concatenate(normals),
         np.concatenate(colors),
         np.concatenate(labels),
-        np.concatenate(detections),
     )
 
 
 def merge_depthmaps(
     data: UndistortedDataSet, reconstruction: types.Reconstruction
-) -> t.Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+) -> t.Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Merge depthmaps into a single point cloud."""
     shot_ids = [s for s in reconstruction.shots if data.pruned_depthmap_exists(s)]
 
@@ -271,13 +266,13 @@ def merge_depthmaps(
 
 def merge_depthmaps_from_provider(
     shot_ids: t.Iterable[str], depthmap_provider: t.Callable
-) -> t.Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+) -> t.Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Merge depthmaps into a single point cloud."""
     logger.info("Merging depthmaps")
 
     if not shot_ids:
         logger.warning("Depthmaps contain no points.  Try using more images.")
-        return np.array([]), np.array([]), np.array([]), np.array([]), np.array([])
+        return np.array([]), np.array([]), np.array([]), np.array([])
 
     return aggregate_depthmaps(shot_ids, depthmap_provider)
 
@@ -326,18 +321,6 @@ def load_combined_mask(data: UndistortedDataSet, shot):
         return mask
 
 
-def load_detection_labels(data: UndistortedDataSet, shot):
-    """Load the undistorted detection labels.
-
-    If no detection exists return an array of zeros.
-    """
-    if data.undistorted_detection_exists(shot.id):
-        return data.load_undistorted_detection(shot.id)
-    else:
-        size = int(shot.camera.height), int(shot.camera.width)
-        return np.zeros(size, dtype=np.uint8)
-
-
 def load_segmentation_labels(data: UndistortedDataSet, shot):
     """Load the undistorted segmentation labels.
 
@@ -358,15 +341,13 @@ def add_views_to_depth_pruner(data: UndistortedDataSet, neighbors, dp):
         height, width = depth.shape
         color_image = data.load_undistorted_image(shot.id)
         labels = load_segmentation_labels(data, shot)
-        detections = load_detection_labels(data, shot)
         height, width = depth.shape
         image = scale_down_image(color_image, width, height)
         labels = scale_down_image(labels, width, height, cv2.INTER_NEAREST)
-        detections = scale_down_image(detections, width, height, cv2.INTER_NEAREST)
         K = shot.camera.get_K_in_pixel_coordinates(width, height)
         R = shot.pose.get_rotation_matrix()
         t = shot.pose.translation
-        dp.add_view(K, R, t, depth, plane, image, labels, detections)
+        dp.add_view(K, R, t, depth, plane, image, labels)
 
 
 def compute_depth_range(tracks_manager, reconstruction, shot, config):
