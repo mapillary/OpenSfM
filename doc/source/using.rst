@@ -55,7 +55,7 @@ If you want to get a denser point cloud, you can run::
     bin/opensfm undistort data/berlin
     bin/opensfm compute_depthmaps data/berlin
 
-This will run dense multiview stereo matching and produce a denser point cloud stored in ``data/berlin/unidtorted/depthmaps/merged.ply``.  You can visualize that point cloud using MeshLab_ or any other viewer that supports PLY_ files.
+This will run dense multiview stereo matching and produce a denser point cloud stored in ``data/berlin/undistorted/depthmaps/merged.ply``.  You can visualize that point cloud using MeshLab_ or any other viewer that supports PLY_ files.
 
 For the Berlin dataset you should get something similar to this
 
