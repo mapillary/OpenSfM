@@ -474,13 +474,11 @@ def parse_args():
 
 
 def align_3d_annotations_to_reconstruction(
-    gcps, gcps_3d, model_id, reconstruction, gcps_this_model
+    gcps_this_model,
+    gcps_3d,
+    model_id,
+    reconstruction,
 ):
-    logger.info(f"{model_id} has {len(gcps)} gcps")
-    if len(gcps) < 3:
-        logger.info(f"{model_id} has {len(gcps)} gcps, not aligning")
-        return
-
     coords_triangulated_gcps = triangulate_gcps(gcps_this_model, reconstruction)
     n_triangulated = sum(x is not None for x in coords_triangulated_gcps)
     if n_triangulated < 3:
@@ -488,7 +486,7 @@ def align_3d_annotations_to_reconstruction(
         return
 
     coords_annotated_gcps = []
-    for gcp in gcps:
+    for gcp in gcps_this_model:
         # Find the corresponding 3D-annotated gcp coordinates, add in the same order
         for annotated_point_3D, gcp_id in gcps_3d[model_id]:
             if gcp_id == gcp.id:
@@ -499,9 +497,9 @@ def align_3d_annotations_to_reconstruction(
     gcp_reprojections = {}
     try:
         s, A, b = find_alignment(coords_triangulated_gcps, coords_annotated_gcps)
-        for gcp, coords in zip(gcps, coords_triangulated_gcps):
+        for gcp, coords in zip(gcps_this_model, coords_triangulated_gcps):
             gcp_reprojections[gcp.id] = (
-                (s * A.dot(coords) + b).tolist() if coords else None
+                (s * A.dot(coords) + b).tolist() if coords is not None else None
             )
     except ValueError:
         logger.warning(f"Could not align reconstruction with {model_id}")
@@ -541,7 +539,7 @@ def align_external_3d_models_to_reconstruction(data, gcps, reconstruction, ix_re
     # We now operate independently on each 3D model
     for model_id, gcps_this_model in gcps_per_source_file.items():
         gcp_reprojections, alignment = align_3d_annotations_to_reconstruction(
-            gcps, gcps_3d, model_id, reconstruction, gcps_this_model
+            gcps_this_model, gcps_3d, model_id, reconstruction
         )
         p_out = f"{data.data_path}/gcp_reprojections_3D_{ix_rec}x{model_id}.json"
         logger.info(f"Saving reprojected 3D points to {p_out}")
