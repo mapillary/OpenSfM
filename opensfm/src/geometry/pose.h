@@ -203,4 +203,10 @@ class PoseImmutable : public geometry::Pose {
   // clang-format on
 };
 
+struct ScaledPose : public geometry::Pose{
+double scale{1.0};
+ScaledPose() = default;
+ScaledPose(const geometry::Pose& pose, double s): geometry::Pose(pose), scale(s){}
+};
+
 }  // namespace geometry

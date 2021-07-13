@@ -155,6 +155,21 @@ class Map {
   size_t NumberOfPanoShots() const { return pano_shots_.size(); }
   size_t NumberOfLandmarks() const { return landmarks_.size(); }
   size_t NumberOfCameras() const { return cameras_.size(); }
+  size_t NumberOfBiases() const { return bias_.size(); }
+
+  // Bias
+  BiasView GetBiasView() { return BiasView(*this); }
+  geometry::ScaledPose& GetBias(const CameraId& camera_id);
+  void SetBias(const CameraId& camera_id, const geometry::ScaledPose& transform);
+  bool HasBias(const CameraId& cam_id) const {
+    return bias_.find(cam_id) != bias_.end();
+  }
+  const std::unordered_map<CameraId, geometry::ScaledPose>& GetBiases() const {
+    return bias_;
+  }
+  std::unordered_map<CameraId, geometry::ScaledPose>& GetBiases() {
+    return bias_;
+  }
 
   // TopocentricConverter
   const geo::TopocentricConverter& GetTopocentricConverter() const {
@@ -178,6 +193,7 @@ class Map {
 
  private:
   std::unordered_map<CameraId, geometry::Camera> cameras_;
+  std::unordered_map<CameraId, geometry::ScaledPose> bias_;
   std::unordered_map<ShotId, Shot> shots_;
   std::unordered_map<ShotId, Shot> pano_shots_;
   std::unordered_map<LandmarkId, Landmark> landmarks_;

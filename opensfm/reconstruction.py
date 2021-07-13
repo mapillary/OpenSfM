@@ -1198,6 +1198,9 @@ def grow_reconstruction(
     config = data.config
     report = {"steps": []}
 
+    compensate_gps_bias = config["bundle_compensate_gps_bias"]
+    config["bundle_compensate_gps_bias"] = False  # Only activated for the last bundle
+
     camera_priors = data.load_camera_models()
     rig_camera_priors = data.load_rig_cameras()
 
@@ -1306,7 +1309,25 @@ def grow_reconstruction(
 
     logger.info("-------------------------------------------------------")
 
-    align_reconstruction(reconstruction, gcp, config)
+    gps_bias = None
+    if compensate_gps_bias:
+        backup = config["bundle_use_gps"]  # De-activate GPS we have GCP-only alignment
+        config["bundle_use_gps"] = False
+        gps_bias = align_reconstruction(reconstruction, gcp, config)
+        config["bundle_use_gps"] = backup
+        config["bundle_compensate_gps_bias"] = compensate_gps_bias
+
+        if not gps_bias:
+            logger.warning("Cannot align on GCPs only, GPS bias won't be compensated.")
+
+    if gps_bias:
+        s, A, b = gps_bias
+        transform = pygeometry.ScaledPose(pygeometry.Pose(A, b), s)
+        for camera in reconstruction.cameras:
+            reconstruction.set_bias(camera, transform)
+    else:
+        align_reconstruction(reconstruction, gcp, config)
+
     bundle(reconstruction, camera_priors, rig_camera_priors, gcp, config)
     remove_outliers(reconstruction, config)
     paint_reconstruction(data, tracks_manager, reconstruction)

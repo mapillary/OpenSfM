@@ -242,6 +242,7 @@ void Map::RemoveLandmark(const LandmarkId& lm_id) {
 
 geometry::Camera& Map::CreateCamera(const geometry::Camera& cam) {
   auto it = cameras_.emplace(std::make_pair(cam.id, cam));
+  bias_.emplace(std::make_pair(cam.id, geometry::ScaledPose()));
   return it.first->second;
 }
 
@@ -367,6 +368,23 @@ const RigInstance& Map::GetRigInstance(const RigInstanceId& instance_id) const {
 bool Map::HasRigInstance(const RigInstanceId& instance_id) const {
   return rig_instances_.find(instance_id) != rig_instances_.end();
 }
+
+geometry::ScaledPose& Map::GetBias(const CameraId& camera_id){
+  const auto it = bias_.find(camera_id);
+  if (it == bias_.end()) {
+    throw std::runtime_error("Accessing invalid CameraID " + camera_id);
+  }
+  return it->second;
+}
+
+void Map::SetBias(const CameraId& camera_id, const geometry::ScaledPose& transform){
+  auto it = bias_.find(camera_id);
+  if (it == bias_.end()) {
+    throw std::runtime_error("Accessing invalid CameraID " + camera_id);
+  }
+  it->second = transform;
+}
+
 
 std::unordered_map<ShotId, std::unordered_map<LandmarkId, Vec2d> >
 Map::ComputeReprojectionErrors(const TracksManager& tracks_manager,

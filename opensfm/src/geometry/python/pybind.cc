@@ -330,4 +330,8 @@ PYBIND11_MODULE(pygeometry, m) {
         new_pose.SetFromWorldToCamera(p.CameraToWorld());
         return new_pose;
       });
+
+  py::class_<geometry::ScaledPose, geometry::Pose>(m, "ScaledPose")
+    .def(py::init<const geometry::Pose&, double>())
+    .def_readwrite("scale", &geometry::ScaledPose::scale);
 }

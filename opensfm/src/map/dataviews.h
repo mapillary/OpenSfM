@@ -81,4 +81,16 @@ class RigInstanceView {
   Map& map_;
 };
 
+class BiasView {
+ public:
+  BiasView(Map& map);
+  size_t NumberOfBiases() const;
+  geometry::ScaledPose& GetBias(const CameraId& cam_id);
+  const std::unordered_map<CameraId, geometry::ScaledPose>& GetBiases() const;
+  bool HasBias(const CameraId& cam_id) const;
+
+ private:
+  Map& map_;
+};
+
 }  // namespace map
