@@ -72,19 +72,19 @@ def undistort_reconstruction(
     return undistorted_shots
 
 
-def undistort_reconstruction_and_images(
-    tracks_manager, reconstruction, data: DataSetBase, udata: UndistortedDataSet
+def undistort_reconstruction_with_images(
+    tracks_manager, reconstruction, data: DataSetBase, udata: UndistortedDataSet, skip_images: bool = False
 ):
     undistorted_shots = undistort_reconstruction(
         tracks_manager, reconstruction, data, udata
     )
+    if not skip_images:
+        arguments = []
+        for shot in reconstruction.shots.values():
+            arguments.append((shot, undistorted_shots[shot.id], data, udata))
 
-    arguments = []
-    for shot in reconstruction.shots.values():
-        arguments.append((shot, undistorted_shots[shot.id], data, udata))
-
-    processes = data.config["read_processes"]
-    parallel_map(undistort_image_and_masks, arguments, processes)
+        processes = data.config["processes"]
+        parallel_map(undistort_image_and_masks, arguments, processes)
 
 
 def undistort_image_and_masks(arguments):

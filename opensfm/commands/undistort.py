@@ -14,6 +14,7 @@ class Command(command.CommandBase):
             args.reconstruction_index,
             args.tracks,
             args.output,
+            args.skip_images
         )
 
     def add_arguments_impl(self, parser):
@@ -35,4 +36,9 @@ class Command(command.CommandBase):
             "--output",
             help="output folder",
             default="undistorted",
+        )
+        parser.add_argument(
+            "--skip-images",
+            help="if set, only undistort the reconstruction and NOT the images.",
+            action="store_true",
         )
