@@ -1,6 +1,6 @@
 import itertools
 import logging
-from typing import Iterator
+from typing import Iterator, List, Dict, Optional
 
 import cv2
 import numpy as np
@@ -17,8 +17,11 @@ logger = logging.getLogger(__name__)
 
 
 def undistort_reconstruction(
-    tracks_manager, reconstruction, data: DataSetBase, udata: UndistortedDataSet
-):
+    tracks_manager: Optional[pymap.TracksManager],
+    reconstruction: types.Reconstruction,
+    data: DataSetBase,
+    udata: UndistortedDataSet,
+) -> Dict[pymap.Shot, List[pymap.Shot]]:
     image_format = data.config["undistorted_image_format"]
     urec = types.Reconstruction()
     urec.points = reconstruction.points
@@ -73,8 +76,12 @@ def undistort_reconstruction(
 
 
 def undistort_reconstruction_with_images(
-    tracks_manager, reconstruction, data: DataSetBase, udata: UndistortedDataSet, skip_images: bool = False
-):
+    tracks_manager: Optional[pymap.TracksManager],
+    reconstruction: types.Reconstruction,
+    data: DataSetBase,
+    udata: UndistortedDataSet,
+    skip_images: bool = False,
+) -> None:
     undistorted_shots = undistort_reconstruction(
         tracks_manager, reconstruction, data, udata
     )
@@ -87,7 +94,7 @@ def undistort_reconstruction_with_images(
         parallel_map(undistort_image_and_masks, arguments, processes)
 
 
-def undistort_image_and_masks(arguments):
+def undistort_image_and_masks(arguments) -> None:
     shot, undistorted_shots, data, udata = arguments
     log.setup()
     logger.debug("Undistorting image {}".format(shot.id))
@@ -121,7 +128,13 @@ def undistort_image_and_masks(arguments):
             udata.save_undistorted_segmentation(k, v)
 
 
-def undistort_image(shot, undistorted_shots, original, interpolation, max_size):
+def undistort_image(
+    shot: pymap.Shot,
+    undistorted_shots: List[pymap.Shot],
+    original: Optional[np.ndarray],
+    interpolation,
+    max_size: int,
+) -> Dict[str, np.ndarray]:
     """Undistort an image into a set of undistorted ones.
 
     Args:
@@ -134,7 +147,7 @@ def undistort_image(shot, undistorted_shots, original, interpolation, max_size):
         max_size: maximum size of the undistorted image.
     """
     if original is None:
-        return
+        return {}
 
     projection_type = shot.camera.projection_type
     if projection_type in ["perspective", "brown", "fisheye", "fisheye_opencv"]:
@@ -167,7 +180,7 @@ def undistort_image(shot, undistorted_shots, original, interpolation, max_size):
         )
 
 
-def scale_image(image, max_size):
+def scale_image(image: np.ndarray, max_size: int) -> np.ndarray:
     """Scale an image not to exceed max_size."""
     height, width = image.shape[:2]
     factor = max_size / float(max(height, width))
@@ -178,21 +191,28 @@ def scale_image(image, max_size):
     return cv2.resize(image, (width, height), interpolation=cv2.INTER_NEAREST)
 
 
-def add_image_format_extension(shot_id, image_format):
+def add_image_format_extension(shot_id: str, image_format: str) -> str:
     if shot_id.endswith(f".{image_format}"):
         return shot_id
     else:
         return f"{shot_id}.{image_format}"
 
 
-def get_shot_with_different_camera(urec, shot, camera, image_format):
+def get_shot_with_different_camera(
+    urec: types.Reconstruction,
+    shot: pymap.Shot,
+    camera: pygeometry.Camera,
+    image_format: str,
+) -> pymap.Shot:
     new_shot_id = add_image_format_extension(shot.id, image_format)
     new_shot = urec.create_shot(new_shot_id, shot.camera.id, shot.pose)
     new_shot.metadata = shot.metadata
     return new_shot
 
 
-def perspective_camera_from_perspective(distorted):
+def perspective_camera_from_perspective(
+    distorted: pygeometry.Camera,
+) -> pygeometry.Camera:
     """Create an undistorted camera from a distorted."""
     camera = pygeometry.Camera.create_perspective(distorted.focal, 0.0, 0.0)
     camera.id = distorted.id
@@ -201,7 +221,7 @@ def perspective_camera_from_perspective(distorted):
     return camera
 
 
-def perspective_camera_from_brown(brown):
+def perspective_camera_from_brown(brown: pygeometry.Camera) -> pygeometry.Camera:
     """Create a perspective camera from a Brown camera."""
     camera = pygeometry.Camera.create_perspective(
         brown.focal * (1 + brown.aspect_ratio) / 2.0, 0.0, 0.0
@@ -212,7 +232,7 @@ def perspective_camera_from_brown(brown):
     return camera
 
 
-def perspective_camera_from_fisheye(fisheye):
+def perspective_camera_from_fisheye(fisheye: pygeometry.Camera) -> pygeometry.Camera:
     """Create a perspective camera from a fisheye."""
     camera = pygeometry.Camera.create_perspective(fisheye.focal, 0.0, 0.0)
     camera.id = fisheye.id
@@ -221,7 +241,9 @@ def perspective_camera_from_fisheye(fisheye):
     return camera
 
 
-def perspective_camera_from_fisheye_opencv(fisheye_opencv):
+def perspective_camera_from_fisheye_opencv(
+    fisheye_opencv: pygeometry.Camera,
+) -> pygeometry.Camera:
     """Create a perspective camera from a fisheye extended."""
     camera = pygeometry.Camera.create_perspective(
         fisheye_opencv.focal * (1 + fisheye_opencv.aspect_ratio) / 2.0, 0.0, 0.0
@@ -232,7 +254,9 @@ def perspective_camera_from_fisheye_opencv(fisheye_opencv):
     return camera
 
 
-def perspective_camera_from_fisheye62(fisheye62):
+def perspective_camera_from_fisheye62(
+    fisheye62: pygeometry.Camera,
+) -> pygeometry.Camera:
     """Create a perspective camera from a fisheye extended."""
     camera = pygeometry.Camera.create_perspective(
         fisheye62.focal * (1 + fisheye62.aspect_ratio) / 2.0, 0.0, 0.0
@@ -249,7 +273,7 @@ def perspective_views_of_a_panorama(
     reconstruction: types.Reconstruction,
     image_format: str,
     rig_instance_count: Iterator[int],
-):
+) -> List[pymap.Shot]:
     """Create 6 perspective views of a panorama."""
     camera = pygeometry.Camera.create_perspective(0.5, 0.0, 0.0)
     camera.id = "perspective_panorama_camera"
@@ -293,12 +317,12 @@ def perspective_views_of_a_panorama(
 
 
 def render_perspective_view_of_a_panorama(
-    image,
-    panoshot,
+    image: np.ndarray,
+    panoshot: pymap.Shot,
     perspectiveshot,
     interpolation=cv2.INTER_LINEAR,
     borderMode=cv2.BORDER_WRAP,
-):
+) -> np.ndarray:
     """Render a perspective view of a panorama."""
     # Get destination pixel coordinates
     dst_shape = (perspectiveshot.camera.height, perspectiveshot.camera.width)
@@ -337,7 +361,12 @@ def render_perspective_view_of_a_panorama(
     return colors
 
 
-def add_subshot_tracks(tracks_manager, utracks_manager, shot, subshot):
+def add_subshot_tracks(
+    tracks_manager: pymap.TracksManager,
+    utracks_manager: pymap.TracksManager,
+    shot: pymap.Shot,
+    subshot: pymap.Shot,
+) -> None:
     """Add shot tracks to the undistorted tracks_manager."""
     if shot.id not in tracks_manager.get_shot_ids():
         return
@@ -349,7 +378,12 @@ def add_subshot_tracks(tracks_manager, utracks_manager, shot, subshot):
             utracks_manager.add_observation(subshot.id, track_id, obs)
 
 
-def add_pano_subshot_tracks(tracks_manager, utracks_manager, panoshot, perspectiveshot):
+def add_pano_subshot_tracks(
+    tracks_manager: pymap.TracksManager,
+    utracks_manager: pymap.TracksManager,
+    panoshot: pymap.Shot,
+    perspectiveshot: pymap.Shot,
+) -> None:
     """Add edges between subshots and visible tracks."""
     for track_id, obs in tracks_manager.get_shot_observations(panoshot.id).items():
         bearing = panoshot.camera.pixel_bearing(obs.point)

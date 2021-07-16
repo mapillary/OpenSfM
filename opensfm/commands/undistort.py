@@ -21,6 +21,7 @@ class Command(command.CommandBase):
         parser.add_argument(
             "--reconstruction",
             help="reconstruction to undistort",
+            type=str
         )
         parser.add_argument(
             "--reconstruction-index",
@@ -36,6 +37,7 @@ class Command(command.CommandBase):
             "--output",
             help="output folder",
             default="undistorted",
+            type=str
         )
         parser.add_argument(
             "--skip-images",

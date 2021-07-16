@@ -6,12 +6,12 @@ from opensfm.dataset import DataSet
 
 def run_dataset(
     data: DataSet,
-    reconstruction,
-    reconstruction_index,
-    tracks,
-    output,
+    reconstruction: str,
+    reconstruction_index: int,
+    tracks: str,
+    output: str,
     skip_images: bool = False,
-):
+) -> None:
     """Export reconstruction to NVM_V3 format from VisualSfM
 
     Args:
