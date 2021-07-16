@@ -32,22 +32,19 @@ def undistort_reconstruction(
     undistorted_shots = {}
     for shot in reconstruction.shots.values():
         if shot.camera.projection_type == "perspective":
-            camera = perspective_camera_from_perspective(shot.camera)
-            urec.add_camera(camera)
+            urec.add_camera(perspective_camera_from_perspective(shot.camera))
             subshots = [
-                get_shot_with_different_camera(urec, shot, camera, image_format)
+                get_shot_with_different_camera(urec, shot, image_format)
             ]
         elif shot.camera.projection_type == "brown":
-            camera = perspective_camera_from_brown(shot.camera)
-            urec.add_camera(camera)
+            urec.add_camera(perspective_camera_from_brown(shot.camera))
             subshots = [
-                get_shot_with_different_camera(urec, shot, camera, image_format)
+                get_shot_with_different_camera(urec, shot, image_format)
             ]
         elif shot.camera.projection_type in ["fisheye", "fisheye_opencv"]:
-            camera = perspective_camera_from_fisheye(shot.camera)
-            urec.add_camera(camera)
+            urec.add_camera(perspective_camera_from_fisheye(shot.camera))
             subshots = [
-                get_shot_with_different_camera(urec, shot, camera, image_format)
+                get_shot_with_different_camera(urec, shot, image_format)
             ]
         elif pygeometry.Camera.is_panorama(shot.camera.projection_type):
             subshot_width = int(data.config["depthmap_resolution"])
@@ -201,7 +198,6 @@ def add_image_format_extension(shot_id: str, image_format: str) -> str:
 def get_shot_with_different_camera(
     urec: types.Reconstruction,
     shot: pymap.Shot,
-    camera: pygeometry.Camera,
     image_format: str,
 ) -> pymap.Shot:
     new_shot_id = add_image_format_extension(shot.id, image_format)
