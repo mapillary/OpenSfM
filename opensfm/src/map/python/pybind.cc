@@ -58,6 +58,11 @@ PYBIND11_MODULE(pymap, m) {
       .def("get_camera",
            py::overload_cast<const map::CameraId &>(&map::Map::GetCamera),
            py::return_value_policy::reference_internal)
+      // Bias
+      .def("set_bias",&map::Map::SetBias,
+           py::return_value_policy::reference_internal)
+      .def("get_bias",&map::Map::GetBias,
+           py::return_value_policy::reference_internal)
       // Rigs
       .def("create_rig_camera", &map::Map::CreateRigCamera,
            py::return_value_policy::reference_internal)
@@ -130,6 +135,7 @@ PYBIND11_MODULE(pymap, m) {
       .def("get_shots", &map::Map::GetShotView)
       .def("get_pano_shots", &map::Map::GetPanoShotView)
       .def("get_cameras", &map::Map::GetCameraView)
+      .def("get_biases", &map::Map::GetBiasView)
       .def("get_camera_view", &map::Map::GetCameraView)
       .def("get_landmarks", &map::Map::GetLandmarkView)
       .def("get_landmark_view", &map::Map::GetLandmarkView)
@@ -454,6 +460,43 @@ PYBIND11_MODULE(pymap, m) {
       .def("__getitem__", &map::CameraView::GetCamera,
            py::return_value_policy::reference_internal)
       .def("__contains__", &map::CameraView::HasCamera);
+
+  py::class_<map::BiasView>(m, "BiasView")
+      .def(py::init<map::Map &>())
+      .def("__len__", &map::BiasView::NumberOfBiases)
+      .def(
+          "items",
+          [](const map::BiasView &sv) {
+            const auto &biases = sv.GetBiases();
+            return py::make_iterator(biases.begin(), biases.end());
+          },
+          py::return_value_policy::reference_internal)
+      .def(
+          "values",
+          [](map::BiasView &sv) {
+            auto &biases = sv.GetBiases();
+            return py::make_ref_value_iterator(biases.begin(), biases.end());
+          },
+          py::return_value_policy::reference_internal)
+      .def(
+          "__iter__",
+          [](const map::BiasView &sv) {
+            const auto &biases = sv.GetBiases();
+            return py::make_key_iterator(biases.begin(), biases.end());
+          },
+          py::return_value_policy::reference_internal)
+      .def(
+          "keys",
+          [](const map::BiasView &sv) {
+            const auto &biases = sv.GetBiases();
+            return py::make_key_iterator(biases.begin(), biases.end());
+          },
+          py::return_value_policy::reference_internal)
+      .def("get", &map::BiasView::GetBias,
+           py::return_value_policy::reference_internal)
+      .def("__getitem__", &map::BiasView::GetBias,
+           py::return_value_policy::reference_internal)
+      .def("__contains__", &map::BiasView::HasBias);
 
   py::class_<map::RigCameraView>(m, "RigCameraView")
       .def(py::init<map::Map &>())

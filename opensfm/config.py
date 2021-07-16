@@ -132,6 +132,8 @@ align_method: orientation_prior       # orientation_prior or naive
 align_orientation_prior: horizontal   # horizontal, vertical or no_roll
 bundle_use_gps: yes                   # Enforce GPS position in bundle adjustment
 bundle_use_gcp: no                    # Enforce Ground Control Point position in bundle adjustment
+bundle_compensate_gps_bias: no        # Compensate GPS with a per-camera similarity transform
+
 
 # Params for rigs
 rig_calibration_subset_size: 15       # Number of rig instances to use when calibration rigs

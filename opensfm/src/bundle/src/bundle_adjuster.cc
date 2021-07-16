@@ -75,6 +75,22 @@ void BundleAdjuster::AddCamera(const std::string &id,
   if (constant) {
     camera_data.SetParametersToOptimize({});
   }
+
+  // identity bias by default
+  auto &bias_data =
+      bias_
+          .emplace(std::piecewise_construct, std::forward_as_tuple(id),
+                   std::forward_as_tuple(id, geometry::ScaledPose(geometry::Pose(), 1.0)))
+          .first->second;
+  bias_data.SetParametersToOptimize({});
+}
+
+void BundleAdjuster::SetCameraBias(const std::string &camera_id, const geometry::ScaledPose& bias){
+  auto bias_exists = bias_.find(camera_id);
+  if (bias_exists == bias_.end()) {
+      throw std::runtime_error("Camera " + camera_id + " doesn't exist.");
+    }
+  bias_exists->second = Bias(camera_id, bias);
 }
 
 void BundleAdjuster::AddShot(const std::string &id, const std::string &camera,
@@ -695,12 +711,12 @@ void BundleAdjuster::Run() {
 
   // Add shots
   for (auto &i : shots_) {
-    const auto parameter_block = i.second.GetPose()->GetValueData().data();
-    problem.AddParameterBlock(parameter_block, Pose::Parameter::NUM_PARAMS);
+    auto& data = i.second.GetPose()->GetValueData();
+    problem.AddParameterBlock(data.data(), data.size());
 
     // Lock parameters based on bitmask of parameters : only constant for now
     if (i.second.GetPose()->GetParametersToOptimize().empty()) {
-      problem.SetParameterBlockConstant(parameter_block);
+      problem.SetParameterBlockConstant(data.data());
     }
   }
 
@@ -731,6 +747,17 @@ void BundleAdjuster::Run() {
                 new ParameterBarrier(0.0, 1.0, index));
         problem.AddResidualBlock(transition_barrier, nullptr, data.data());
       }
+    }
+  }
+
+  // Add cameras biases
+  for (auto &b : bias_) {
+    auto& data = b.second.GetValueData();
+    problem.AddParameterBlock(data.data(), data.size());
+
+    // Lock parameters based on bitmask of parameters : only constant for now
+    if (b.second.GetParametersToOptimize().empty()) {
+      problem.SetParameterBlockConstant(data.data());
     }
   }
 
@@ -850,11 +877,12 @@ void BundleAdjuster::Run() {
   // Add position priors
   for (auto &pp : position_priors_) {
     ceres::CostFunction *cost_function =
-        new ceres::AutoDiffCostFunction<PositionPriorError, 3, 6>(
+        new ceres::AutoDiffCostFunction<PositionPriorError, 3, 6, 7>(
             new PositionPriorError(pp.position, pp.std_deviation));
 
     problem.AddResidualBlock(cost_function, nullptr,
-                             pp.shot->GetPose()->GetValueData().data());
+                             pp.shot->GetPose()->GetValueData().data(),
+                             bias_.at(pp.shot->GetCamera()->GetID()).GetValueData().data());
   }
 
   // Add point position priors
@@ -1245,6 +1273,13 @@ geometry::Camera BundleAdjuster::GetCamera(const std::string &id) const {
     throw std::runtime_error("Camera " + id + " doesn't exists");
   }
   return cameras_.at(id).GetValue();
+}
+
+geometry::ScaledPose BundleAdjuster::GetBias(const std::string &id) const{
+  if (bias_.find(id) == bias_.end()) {
+    throw std::runtime_error("Camera " + id + " doesn't exists");
+  }
+  return bias_.at(id).GetValue();
 }
 
 Shot BundleAdjuster::GetShot(const std::string &id) const {

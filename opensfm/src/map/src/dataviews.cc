@@ -53,6 +53,19 @@ bool CameraView::HasCamera(const CameraId& cam_id) const {
   return map_.HasCamera(cam_id);
 }
 
+BiasView::BiasView(Map& map) : map_(map) {}
+size_t BiasView::NumberOfBiases() const { return map_.NumberOfBiases(); }
+geometry::ScaledPose& BiasView::GetBias(const CameraId& cam_id) {
+  return map_.GetBias(cam_id);
+}
+const std::unordered_map<CameraId, geometry::ScaledPose>& BiasView::GetBiases()
+    const {
+  return map_.GetBiases();
+}
+bool BiasView::HasBias(const CameraId& cam_id) const {
+  return map_.HasBias(cam_id);
+}
+
 RigCameraView::RigCameraView(Map& map) : map_(map) {}
 size_t RigCameraView::NumberOfRigCameras() const {
   return map_.NumberOfRigCameras();

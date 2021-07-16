@@ -31,6 +31,7 @@ class Reconstruction(object):
         """Defaut constructor"""
         self.map = pymap.Map()
         self.camera_view = pymap.CameraView(self.map)
+        self.bias_view = pymap.BiasView(self.map)
         self.rig_cameras_view = pymap.RigCameraView(self.map)
         self.rig_instances_view = pymap.RigInstanceView(self.map)
         self.shot_view = pymap.ShotView(self.map)
@@ -45,6 +46,18 @@ class Reconstruction(object):
             self.map.create_camera(cam)
 
     cameras = property(get_cameras, set_cameras)
+
+    def get_biases(self):
+        return self.bias_view
+
+    def set_biases(self, value):
+        for cam_id, bias in value.items():
+            self.map.set_bias(cam_id, bias)
+
+    def set_bias(self, cam_id, bias):
+        self.map.set_bias(cam_id, bias)
+
+    biases = property(get_biases, set_biases)
 
     def get_rig_cameras(self):
         return self.rig_cameras_view

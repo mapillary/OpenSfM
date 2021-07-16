@@ -17,10 +17,11 @@ def align_reconstruction(reconstruction, gcp, config):
     if res:
         s, A, b = res
         apply_similarity(reconstruction, s, A, b)
+    return res
 
 
 def apply_similarity_pose(pose, s, A, b):
-    """ Apply a similarity (y = s A x + b) to an object having a 'pose' member. """
+    """Apply a similarity (y = s A x + b) to an object having a 'pose' member."""
     R = pose.get_rotation_matrix()
     t = np.array(pose.translation)
     Rp = R.dot(A.T)
@@ -83,7 +84,7 @@ def align_reconstruction_similarity(reconstruction, gcp, config, use_scale):
 
 
 def alignment_constraints(config, reconstruction, gcp):
-    """ Gather alignment constraints to be used by checking bundle_use_gcp and bundle_use_gps. """
+    """Gather alignment constraints to be used by checking bundle_use_gcp and bundle_use_gps."""
 
     X, Xp = [], []
 
