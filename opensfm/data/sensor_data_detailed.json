@@ -118,6 +118,13 @@
         "Sensor": "1/2.5\" (~ 5.75 x 4.32 mm)", 
         "Sensor res. (height)": 2152.0
     }, 
+    "AeroVironment Quantix": {
+        "Sensor height (mm)": 4.56, 
+        "Sensor width (mm)": 6.08, 
+        "Sensor res. (width)": 4864.0, 
+        "Sensor": "1/2.3\" (~ 6.08 x 4.56 mm)", 
+        "Sensor res. (height)": 3648.0
+    }, 
     "AgfaPhoto Compact 100": {
         "Sensor height (mm)": 4.32, 
         "Sensor width (mm)": 5.75, 
