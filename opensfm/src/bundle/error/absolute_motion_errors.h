@@ -229,13 +229,20 @@ struct PositionPriorError {
       : position_prior_(position_prior), scale_(1.0 / std_deviation) {}
 
   template <typename T>
-  bool operator()(const T* const shot, T* residuals) const {
-    residuals[0] =
-        T(scale_) * (shot[Pose::Parameter::TX] - T(position_prior_[0]));
-    residuals[1] =
-        T(scale_) * (shot[Pose::Parameter::TY] - T(position_prior_[1]));
-    residuals[2] =
-        T(scale_) * (shot[Pose::Parameter::TZ] - T(position_prior_[2]));
+  bool operator()(const T* const shot, const T* const bias,
+                  T* residuals) const {
+    Eigen::Map<const Vec3<T>> R(bias + Bias::Parameter::RX);
+    Eigen::Map<const Vec3<T>> t(bias + Bias::Parameter::TX);
+    const T* const scale = bias + Bias::Parameter::SCALE;
+
+    Eigen::Map<Vec3d> prior(position_prior_);
+    Eigen::Map<Vec3<T>> res(residuals);
+    Eigen::Map<const Vec3<T>> optical_center(shot + Pose::Parameter::TX);
+
+    res = T(scale_) *
+          (optical_center -
+           (scale[0] * RotatePoint(R.eval(), prior.cast<T>().eval()) + t));
+
     return true;
   }
 

@@ -792,6 +792,12 @@ py::dict BAHelpers::Bundle(
     }
   }
 
+  // Update bias
+  for (auto& bias : map.GetBiases()) {
+    bias.second = ba.GetBias(bias.first);
+  }
+
+
   // Update shots
   for (auto& shot : map.GetShots()) {
     if (shot.second.IsInRig()) {
