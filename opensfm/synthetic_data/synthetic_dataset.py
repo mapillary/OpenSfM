@@ -81,6 +81,10 @@ class SyntheticDataSet(DataSet):
     def load_camera_models(self) -> Dict[str, pygeometry.Camera]:
         return self.reconstruction.cameras
 
+    def save_camera_models(self, camera_models: Dict[str, pygeometry.Camera]) -> None:
+        for camera in camera_models.values():
+            self.reconstruction.add_camera(camera)
+
     def load_rig_cameras(self) -> Dict[str, pymap.RigCamera]:
         return self.reconstruction.rig_cameras
 

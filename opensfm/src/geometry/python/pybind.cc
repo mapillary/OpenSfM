@@ -70,6 +70,7 @@ PYBIND11_MODULE(pygeometry, m) {
       .def("get_K_in_pixel_coordinates",
            &geometry::Camera::GetProjectionMatrixScaled)
       .def("set_parameter_value", &geometry::Camera::SetParameterValue)
+      .def("set_parameters_values", &geometry::Camera::SetParametersValues)
       .def("get_parameters_values", &geometry::Camera::GetParametersValues)
       .def("get_parameters_types", &geometry::Camera::GetParametersTypes)
       .def("get_parameters_map", &geometry::Camera::GetParametersMap)
