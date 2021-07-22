@@ -2,25 +2,35 @@
 
 import logging
 import math
+from collections import defaultdict
 
+import cv2
 import numpy as np
-from opensfm import multiview
-from opensfm import transformations as tf
+from opensfm import multiview, transformations as tf, pygeometry, types
+
 
 logger = logging.getLogger(__name__)
 
 
-def align_reconstruction(reconstruction, gcp, config):
+def align_reconstruction(
+    reconstruction, gcp, config, use_gps=True, bias_override=False
+):
     """Align a reconstruction with GPS and GCP data."""
     use_scale = len(reconstruction.rig_instances) < 1
-    res = align_reconstruction_similarity(reconstruction, gcp, config, use_scale)
-    if res:
-        s, A, b = res
-        apply_similarity(reconstruction, s, A, b)
+    if bias_override and config["bundle_compensate_gps_bias"]:
+        return set_gps_bias(reconstruction, config, gcp, use_scale)
+    else:
+        res = compute_reconstruction_similarity(
+            reconstruction, gcp, config, use_gps, use_scale
+        )
+        if res:
+            s, A, b = res
+            apply_similarity(reconstruction, s, A, b)
+        return res
 
 
 def apply_similarity_pose(pose, s, A, b):
-    """ Apply a similarity (y = s A x + b) to an object having a 'pose' member. """
+    """Apply a similarity (y = s A x + b) to an object having a 'pose' member."""
     R = pose.get_rotation_matrix()
     t = np.array(pose.translation)
     Rp = R.dot(A.T)
@@ -53,8 +63,8 @@ def apply_similarity(reconstruction, s, A, b):
         apply_similarity_pose(rig_instance.pose, s, A, b)
 
 
-def align_reconstruction_similarity(reconstruction, gcp, config, use_scale):
-    """Align reconstruction with GPS and GCP data.
+def compute_reconstruction_similarity(reconstruction, gcp, config, use_gps, use_scale):
+    """Compute similarity so that the reconstruction is aligned with GPS and GCP data.
 
     Config parameter `align_method` can be used to choose the alignment method.
     Accepted values are
@@ -63,15 +73,20 @@ def align_reconstruction_similarity(reconstruction, gcp, config, use_scale):
     """
     align_method = config["align_method"]
     if align_method == "auto":
-        align_method = detect_alignment_constraints(config, reconstruction, gcp)
+        align_method = detect_alignment_constraints(
+            config,
+            reconstruction,
+            gcp,
+        )
     if align_method == "orientation_prior":
-        res = align_reconstruction_orientation_prior_similarity(
-            reconstruction, config, gcp, use_scale
+        res = compute_orientation_prior_similarity(
+            reconstruction, config, gcp, use_gps, use_scale
         )
     elif align_method == "naive":
-        res = align_reconstruction_naive_similarity(
-            config, reconstruction, gcp, use_scale
-        )
+        res = compute_naive_similarity(config, reconstruction, gcp, use_gps, use_scale)
+
+    if not res:
+        return None
 
     s, A, b = res
     if (s == 0) or np.isnan(A).any() or np.isnan(b).any():
@@ -82,8 +97,8 @@ def align_reconstruction_similarity(reconstruction, gcp, config, use_scale):
     return res
 
 
-def alignment_constraints(config, reconstruction, gcp):
-    """ Gather alignment constraints to be used by checking bundle_use_gcp and bundle_use_gps. """
+def alignment_constraints(config, reconstruction, gcp, use_gps):
+    """Gather alignment constraints to be used by checking bundle_use_gcp and bundle_use_gps."""
 
     X, Xp = [], []
 
@@ -94,7 +109,7 @@ def alignment_constraints(config, reconstruction, gcp):
         Xp.extend(measured)
 
     # Get camera center correspondences
-    if config["bundle_use_gps"]:
+    if use_gps and config["bundle_use_gps"]:
         for shot in reconstruction.shots.values():
             if shot.metadata.gps_position.has_value:
                 X.append(shot.pose.get_origin())
@@ -103,13 +118,13 @@ def alignment_constraints(config, reconstruction, gcp):
     return X, Xp
 
 
-def detect_alignment_constraints(config, reconstruction, gcp):
+def detect_alignment_constraints(config, reconstruction, gcp, use_gps):
     """Automatically pick the best alignment method, depending
     if alignment data such as GPS/GCP is aligned on a single-line or not.
 
     """
 
-    X, Xp = alignment_constraints(config, reconstruction, gcp)
+    X, Xp = alignment_constraints(config, reconstruction, gcp, use_gps)
     if len(X) < 3:
         return "orientation_prior"
 
@@ -136,12 +151,12 @@ def detect_alignment_constraints(config, reconstruction, gcp):
         return "naive"
 
 
-def align_reconstruction_naive_similarity(config, reconstruction, gcp, use_scale):
-    """Align with GPS and GCP data using direct 3D-3D matches."""
-    X, Xp = alignment_constraints(config, reconstruction, gcp)
+def compute_naive_similarity(config, reconstruction, gcp, use_gps, use_scale):
+    """Compute similarity with GPS and GCP data using direct 3D-3D matches."""
+    X, Xp = alignment_constraints(config, reconstruction, gcp, use_gps)
 
     if len(X) == 0:
-        return 1.0, np.identity(3), np.zeros((3))
+        return None
 
     # Translation-only case, either :
     #  - a single value
@@ -175,10 +190,10 @@ def align_reconstruction_naive_similarity(config, reconstruction, gcp, use_scale
     return s, A, b
 
 
-def align_reconstruction_orientation_prior_similarity(
-    reconstruction, config, gcp, use_scale
+def compute_orientation_prior_similarity(
+    reconstruction, config, gcp, use_gps, use_scale
 ):
-    """Align with GPS data assuming particular a camera orientation.
+    """Compute similarity with GPS data assuming particular a camera orientation.
 
     In some cases, using 3D-3D matches directly fails to find proper
     orientation of the world.  That happends mainly when all cameras lie
@@ -192,12 +207,12 @@ def align_reconstruction_orientation_prior_similarity(
      - horizontal: assumes cameras are looking towards the horizon
      - vertical: assumes cameras are looking down towards the ground
     """
-    X, Xp = alignment_constraints(config, reconstruction, gcp)
+    X, Xp = alignment_constraints(config, reconstruction, gcp, use_gps)
     X = np.array(X)
     Xp = np.array(Xp)
 
     if len(X) < 1:
-        return 1.0, np.identity(3), np.zeros((3))
+        return None
 
     p = estimate_ground_plane(reconstruction, config)
     Rplane = multiview.plane_horizontalling_rotation(p)
@@ -238,6 +253,58 @@ def align_reconstruction_orientation_prior_similarity(
             ]
         )
     return s, A, b
+
+
+def set_gps_bias(reconstruction, config, gcp, use_scale):
+    """Compute and set the bias transform of the GPS coordinate system wrt. to the GCP one."""
+
+    # Compute similarity ('gps_bias') that brings the reconstruction on the GCPs ONLY
+    gps_bias = compute_reconstruction_similarity(
+        reconstruction, gcp, config, False, use_scale
+    )
+    if not gps_bias:
+        logger.warning("Cannot align on GCPs only, GPS bias won't be compensated.")
+        return
+
+    # Align the reconstruction on GCPs ONLY
+    s, A, b = gps_bias
+    A_angle_axis = cv2.Rodrigues(A)[0].flatten()
+    logger.info(
+        f"Applying global bias with scale {s:.5f} / translation {b} / rotation {A_angle_axis}"
+    )
+    apply_similarity(reconstruction, s, A, b)
+
+    # Compute per camera similarity between the GCP and the shots positions
+    per_camera_shots = defaultdict(list)
+    for s in reconstruction.shots.values():
+        per_camera_shots[s.camera.id].append(s.id)
+
+    per_camera_transform = {}
+    for camera_id, shots_id in per_camera_shots.items():
+
+        # As we re-use 'compute_reconstruction_similarity', we need to construct a 'Reconstruction'
+        subrec = types.Reconstruction()
+        subrec.add_camera(reconstruction.cameras[camera_id])
+        for shot_id in shots_id:
+            subrec.add_shot(reconstruction.shots[shot_id])
+        per_camera_transform[camera_id] = compute_reconstruction_similarity(
+            subrec, {}, config, True, use_scale
+        )
+
+    if any([True for x in per_camera_transform.values() if not x]):
+        logger.warning("Cannot compensate some shots, GPS bias won't be compensated.")
+    else:
+        for camera_id, transform in per_camera_transform.items():
+            s, A, b = transform
+            A_angle_axis = cv2.Rodrigues(A)[0].flatten()
+            s, A_angle_axis, b = 1.0 / s, -A_angle_axis, -A.T.dot(b) / s
+            logger.info(
+                f"Camera {camera_id} bias : scale {s:.5f} / translation {b} / rotation {A_angle_axis}"
+            )
+            camera_bias = pygeometry.Similarity(A_angle_axis, b, s)
+            reconstruction.set_bias(camera_id, camera_bias)
+
+    return gps_bias
 
 
 def estimate_ground_plane(reconstruction, config):

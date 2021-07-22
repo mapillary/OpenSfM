@@ -386,6 +386,7 @@ class SyntheticInputData:
     exifs: Dict[str, Any]
     features: sd.SyntheticFeatures
     tracks_manager: pymap.TracksManager
+    gcps: Dict[str, pymap.GroundControlPoint]
 
     def __init__(
         self,
@@ -395,6 +396,8 @@ class SyntheticInputData:
         projection_noise: float,
         gps_noise: Union[Dict[str, float], float],
         causal_gps_noise: bool,
+        gcps_count: Optional[int] = None,
+        gcps_shift: Optional[np.ndarray] = None,
         on_disk_features_filename: Optional[str] = None,
         generate_projections: bool = True,
     ):
@@ -404,10 +407,12 @@ class SyntheticInputData:
         )
 
         if generate_projections:
-            (self.features, self.tracks_manager) = sg.generate_track_data(
+            (self.features, self.tracks_manager, self.gcps) = sg.generate_track_data(
                 reconstruction,
                 projection_max_depth,
                 projection_noise,
+                gcps_count,
+                gcps_shift,
                 on_disk_features_filename,
             )
         else:

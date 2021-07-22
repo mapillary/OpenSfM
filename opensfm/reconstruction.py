@@ -1306,7 +1306,12 @@ def grow_reconstruction(
 
     logger.info("-------------------------------------------------------")
 
-    align_reconstruction(reconstruction, gcp, config)
+    align_result = align_reconstruction(reconstruction, gcp, config, bias_override=True)
+    if not align_result and config["bundle_compensate_gps_bias"]:
+        overidden_config = config.copy()
+        overidden_config["bundle_compensate_gps_bias"] = False
+        config = overidden_config
+
     bundle(reconstruction, camera_priors, rig_camera_priors, gcp, config)
     remove_outliers(reconstruction, config)
     paint_reconstruction(data, tracks_manager, reconstruction)

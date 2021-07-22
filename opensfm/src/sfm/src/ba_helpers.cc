@@ -755,6 +755,13 @@ py::dict BAHelpers::Bundle(
     AddGCPToBundle(ba, gcp, map.GetShots());
   }
 
+  if (config["bundle_compensate_gps_bias"].cast<bool>()) {
+    const auto& biases = map.GetBiases();
+    for (const auto& camera : map.GetCameras()) {
+      ba.SetCameraBias(camera.first, biases.at(camera.first));
+    }
+  }
+
   ba.SetPointProjectionLossFunction(
       config["loss_function"].cast<std::string>(),
       config["loss_function_threshold"].cast<double>());
@@ -796,7 +803,6 @@ py::dict BAHelpers::Bundle(
   for (auto& bias : map.GetBiases()) {
     bias.second = ba.GetBias(bias.first);
   }
-
 
   // Update shots
   for (auto& shot : map.GetShots()) {

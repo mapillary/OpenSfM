@@ -333,8 +333,12 @@ def generate_track_data(
     reconstruction: types.Reconstruction,
     maximum_depth: float,
     noise: float,
+    gcps_count: Optional[int],
+    gcp_shift: Optional[np.ndarray],
     on_disk_features_filename: Optional[str],
-) -> Tuple[sd.SyntheticFeatures, pymap.TracksManager]:
+) -> Tuple[
+    sd.SyntheticFeatures, pymap.TracksManager, Dict[str, pymap.GroundControlPoint]
+]:
     """Generate projection data from a reconstruction, considering a maximum
     viewing depth and gaussian noise added to the ideal projections.
     Returns feature/descriptor/color data per shot and a tracks manager object.
@@ -430,7 +434,29 @@ def generate_track_data(
             )
             features.sync()
 
-    return features, tracks_manager
+    gcps = {}
+    if gcps_count is not None and gcp_shift is not None:
+        all_track_ids = list(tracks_manager.get_track_ids())
+        gcps_ids = [
+            all_track_ids[i]
+            for i in np.random.randint(len(all_track_ids) - 1, size=gcps_count)
+        ]
+        for gcp_id in gcps_ids:
+            point = reconstruction.points[gcp_id]
+            gcp = pymap.GroundControlPoint()
+            gcp.id = f"gcp-{gcp_id}"
+            gcp.coordinates.value = point.coordinates + gcp_shift
+            lat, lon, alt = reconstruction.reference.to_lla(*gcp.coordinates.value)
+            gcp.lla = {"latitude": lat, "longitude": lon, "altitude": alt}
+            gcp.has_altitude = True
+            for shot_id, obs in tracks_manager.get_track_observations(gcp_id).items():
+                o = pymap.GroundControlPointObservation()
+                o.shot_id = shot_id
+                o.projection = obs.point
+                gcp.add_observation(o)
+            gcps[gcp.id] = gcp
+
+    return features, tracks_manager, gcps
 
 
 def _is_in_front(point: np.ndarray, center: np.ndarray, z_axis: np.ndarray) -> bool:
