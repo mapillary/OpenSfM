@@ -111,6 +111,10 @@ def pose_from_json(obj):
     return pose
 
 
+def bias_from_json(obj):
+    return pygeometry.Similarity(obj["rotation"], obj["translation"], obj["scale"])
+
+
 def assign_shot_attributes(obj, shot):
     shot.metadata = json_to_pymap_metadata(obj)
     if "scale" in obj:
@@ -206,6 +210,12 @@ def reconstruction_from_json(obj: t.Dict[str, t.Any]):
     for key, value in obj["cameras"].items():
         camera = camera_from_json(key, value)
         reconstruction.add_camera(camera)
+
+    # Extract camera biases
+    if "biases" in obj:
+        for key, value in obj["biases"].items():
+            transform = bias_from_json(value)
+            reconstruction.set_bias(key, transform)
 
     # Extract rig models
     if "rig_cameras" in obj:
@@ -489,11 +499,15 @@ def reconstruction_to_json(reconstruction) -> t.Dict[str, t.Any]:
     """
     Write a reconstruction to a json object
     """
-    obj = {"cameras": {}, "shots": {}, "points": {}}
+    obj = {"cameras": {}, "shots": {}, "points": {}, "biases": {}}
 
     # Extract cameras
     for camera in reconstruction.cameras.values():
         obj["cameras"][camera.id] = camera_to_json(camera)
+
+    # Extract cameras biases
+    for camera_id, bias in reconstruction.biases.items():
+        obj["biases"][camera_id] = bias_to_json(bias)
 
     # Extract rig models
     if len(reconstruction.rig_cameras):
@@ -555,6 +569,14 @@ def cameras_to_json(cameras):
     for camera in cameras.values():
         obj[camera.id] = camera_to_json(camera)
     return obj
+
+
+def bias_to_json(bias):
+    return {
+        "rotation": list(bias.rotation),
+        "translation": list(bias.translation),
+        "scale": bias.scale,
+    }
 
 
 def rig_cameras_to_json(rig_cameras):
@@ -1256,7 +1278,6 @@ class IoFilesystemDefault(IoFilesystemBase):
                 shutil.rmtree(filename)
             else:
                 os.remove(filename)
-
 
     @classmethod
     def symlink(cls, src_path, dst_path, **kwargs):
