@@ -19,7 +19,7 @@ def run_dataset(data: DataSet, diagram_max_points=-1):
     tracks_manager = data.load_tracks_manager()
 
     output_path = os.path.join(data.data_path, "stats")
-    io.mkdir_p(output_path)
+    data.io_handler.mkdir_p(output_path)
 
     stats_dict = stats.compute_all_statistics(data, tracks_manager, reconstructions)
 

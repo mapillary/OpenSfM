@@ -197,6 +197,11 @@ def test_cameras_statistics_normal(
         "1": {
             "initial_values": {"k1": -0.1, "k2": 0.01, "focal": 0.7},
             "optimized_values": {"k1": -0.1, "k2": 0.01, "focal": 0.7},
+            "bias": {
+                "rotation": [-0.0, -0.0, -0.0],
+                "scale": 1.0,
+                "translation": [0.0, 0.0, 0.0],
+            },
         }
     }
 

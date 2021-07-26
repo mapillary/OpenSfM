@@ -33,6 +33,9 @@ def scene_synthetic() -> synthetic_scene.SyntheticInputData:
     projection_noise = 1.0
     gps_noise = 5.0
 
+    gcps_count = 10
+    gcps_shift = [10.0, 0.0, 100.0]
+
     reference = geo.TopocentricConverter(47.0, 6.0, 0)
     return synthetic_scene.SyntheticInputData(
         data.get_reconstruction(),
@@ -41,6 +44,8 @@ def scene_synthetic() -> synthetic_scene.SyntheticInputData:
         projection_noise,
         gps_noise,
         False,
+        gcps_count,
+        gcps_shift,
     )
 
 

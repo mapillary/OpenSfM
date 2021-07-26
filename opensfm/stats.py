@@ -35,9 +35,11 @@ def _gps_errors(reconstruction):
     errors = []
     for shot in reconstruction.shots.values():
         if shot.metadata.gps_position.has_value:
-            errors.append(
-                np.array(shot.metadata.gps_position.value - shot.pose.get_origin())
-            )
+            bias = reconstruction.biases[shot.camera.id]
+            gps = shot.metadata.gps_position.value
+            unbiased_gps = bias.scale * bias.transform(gps)
+            optical_center = shot.pose.get_origin()
+            errors.append(np.array(optical_center - unbiased_gps))
     return errors
 
 
@@ -351,6 +353,7 @@ def cameras_statistics(data: DataSetBase, reconstructions):
             if "optimized_values" in stats[camera.id]:
                 continue
             stats[camera.id]["optimized_values"] = _cameras_statistics(camera)
+            stats[camera.id]["bias"] = io.bias_to_json(rec.biases[camera.id])
 
     for camera_id in data.load_camera_models():
         if "optimized_values" not in stats[camera_id]:
@@ -477,8 +480,10 @@ def save_matchgraph(
         ax.spines[b].set_visible(False)
 
     norm = colors.Normalize(vmin=lowest, vmax=highest)
+    sm = cm.ScalarMappable(norm=norm, cmap=cmap.reversed())
+    sm.set_array([])
     plt.colorbar(
-        cm.ScalarMappable(norm=norm, cmap=cmap.reversed()),
+        sm,
         orientation="horizontal",
         label="Number of matches between images",
         pad=0.0,
@@ -712,9 +717,11 @@ def save_heatmap(
     size = 2 * splatting + 1
     kernel = _get_gaussian_kernel(splatting, 2)
 
+    all_cameras = {}
     for rec in reconstructions:
-        for camera_id in rec.cameras:
-            all_projections[camera_id] = []
+        for camera in rec.cameras.values():
+            all_projections[camera.id] = []
+            all_cameras[camera.id] = camera
 
     for i in range(len(reconstructions)):
         valid_observations = _get_valid_observations(reconstructions, tracks_manager)(i)
@@ -765,13 +772,19 @@ def save_heatmap(
             fontsize="x-small",
         )
 
+        camera = all_cameras[camera_id]
+        w = camera.width
+        h = camera.height
+
         plt.xticks(
-            # pyre-fixme[61]: `w` may not be initialized here.
-            [0, buckets_x / 2, buckets_x], [0, int(w / 2), w], fontsize="x-small"
+            [0, buckets_x / 2, buckets_x],
+            [0, int(w / 2), w],
+            fontsize="x-small",
         )
         plt.yticks(
-            # pyre-fixme[61]: `h` may not be initialized here.
-            [buckets_y, buckets_y / 2, 0], [0, int(h / 2), h], fontsize="x-small"
+            [buckets_y, buckets_y / 2, 0],
+            [0, int(h / 2), h],
+            fontsize="x-small",
         )
 
     with io_handler.open(
@@ -892,8 +905,10 @@ def save_residual_grids(
 
         norm = colors.Normalize(vmin=lowest, vmax=highest)
         cmap = cm.get_cmap("viridis_r")
+        sm = cm.ScalarMappable(norm=norm, cmap=cmap)
+        sm.set_array([])
         plt.colorbar(
-            cm.ScalarMappable(norm=norm, cmap=cmap),
+            mappable=sm,
             orientation="horizontal",
             label="Residual Norm",
             pad=0.08,

@@ -3,6 +3,7 @@
 #include <geometry/essential.h>
 #include <geometry/pose.h>
 #include <geometry/relative_pose.h>
+#include <geometry/similarity.h>
 #include <geometry/triangulation.h>
 #include <pybind11/eigen.h>
 #include <pybind11/pybind11.h>
@@ -70,6 +71,7 @@ PYBIND11_MODULE(pygeometry, m) {
       .def("get_K_in_pixel_coordinates",
            &geometry::Camera::GetProjectionMatrixScaled)
       .def("set_parameter_value", &geometry::Camera::SetParameterValue)
+      .def("set_parameters_values", &geometry::Camera::SetParametersValues)
       .def("get_parameters_values", &geometry::Camera::GetParametersValues)
       .def("get_parameters_types", &geometry::Camera::GetParametersTypes)
       .def("get_parameters_map", &geometry::Camera::GetParametersMap)
@@ -330,4 +332,15 @@ PYBIND11_MODULE(pygeometry, m) {
         new_pose.SetFromWorldToCamera(p.CameraToWorld());
         return new_pose;
       });
+
+  py::class_<geometry::Similarity>(m, "Similarity")
+      .def(py::init<const Vec3d&, const Vec3d&, double>())
+      .def_property("translation", &geometry::Similarity::Translation,
+                    &geometry::Similarity::SetTranslation)
+      .def_property("rotation", &geometry::Similarity::Rotation,
+                    &geometry::Similarity::SetRotation)
+      .def_property("scale", &geometry::Similarity::Scale,
+                    &geometry::Similarity::SetScale)
+      .def("transform", &geometry::Similarity::Transform)
+      .def("get_rotation_matrix", &geometry::Similarity::RotationMatrix);
 }

@@ -51,6 +51,7 @@ class SyntheticDataSet(DataSet):
     exifs: Dict[str, Any]
     features: Optional[SyntheticFeatures]
     reference_lla: Dict[str, float]
+    gcps: Optional[Dict[str, pymap.GroundControlPoint]]
 
     def __init__(
         self,
@@ -58,6 +59,7 @@ class SyntheticDataSet(DataSet):
         exifs: Dict[str, Any],
         features: Optional[SyntheticFeatures] = None,
         tracks_manager: Optional[pymap.TracksManager] = None,
+        gcps: Optional[Dict[str, pymap.GroundControlPoint]] = None,
         output_path: Optional[str] = None,
     ):
         data_path = "" if not output_path else output_path
@@ -67,6 +69,7 @@ class SyntheticDataSet(DataSet):
         super(SyntheticDataSet, self).__init__(data_path)
         self.reconstruction = reconstruction
         self.exifs = exifs
+        self.gcps = gcps
         self.features = features
         self.tracks_manager = tracks_manager
         self.image_list = list(reconstruction.shots.keys())
@@ -80,6 +83,10 @@ class SyntheticDataSet(DataSet):
 
     def load_camera_models(self) -> Dict[str, pygeometry.Camera]:
         return self.reconstruction.cameras
+
+    def save_camera_models(self, camera_models: Dict[str, pygeometry.Camera]) -> None:
+        for camera in camera_models.values():
+            self.reconstruction.add_camera(camera)
 
     def load_rig_cameras(self) -> Dict[str, pymap.RigCamera]:
         return self.reconstruction.rig_cameras
@@ -172,3 +179,12 @@ class SyntheticDataSet(DataSet):
 
     def reference_lla_exists(self) -> bool:
         return True
+
+    def load_ground_control_points(
+        self,
+    ) -> List[pymap.GroundControlPoint]:
+        if self.gcps:
+            # pyre-fixme [16]
+            return list(self.gcps.values())
+        else:
+            return []
