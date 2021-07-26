@@ -288,12 +288,12 @@ def create_rigs_with_pattern(data: DataSet, patterns: TRigPatterns):
     for subset_data, instances in propose_subset_dataset_from_instances(
         data, instances_per_rig, "rig_calibration"
     ):
-        if len(subset_data.images()) == 0:
-            continue
-
         if count > max_rounds:
             break
         count += 1
+
+        if len(subset_data.images()) == 0:
+            continue
 
         # Run a bit of SfM without any rig
         logger.info(
