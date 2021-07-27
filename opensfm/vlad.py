@@ -55,6 +55,10 @@ def vlad_distances(
 
 
 class VladCache(object):
+    def clear_cache(self) -> None:
+        self.load_words.cache_clear()
+        self.vlad_histogram.cache_clear()
+
     @lru_cache(1)
     def load_words(self, data: DataSetBase) -> np.ndarray:
         words, _ = bow.load_vlad_words_and_frequencies(data.config)

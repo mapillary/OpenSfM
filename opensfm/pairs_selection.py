@@ -184,6 +184,7 @@ def match_candidates_with_vlad(
         histograms,
     )
 
+    vlad.instance.clear_cache()
     return construct_pairs(results, max_neighbors, exifs, enforce_other_cameras)
 
 
@@ -508,9 +509,7 @@ def load_histograms(data: DataSetBase, images: Iterable[str]) -> Dict[str, np.nd
     return histograms
 
 
-def vlad_histograms(
-    images: Iterable[str], data: DataSetBase
-) -> Dict[str, np.ndarray]:
+def vlad_histograms(images: Iterable[str], data: DataSetBase) -> Dict[str, np.ndarray]:
     """Construct VLAD histograms from the image features.
 
     Returns a dictionary of VLAD vectors for the images.

@@ -11,13 +11,13 @@ logger = logging.getLogger(__name__)
 
 
 class FeatureLoader(object):
-    def clear_cache(self):
+    def clear_cache(self) -> None:
         self.load_mask.cache_clear()
         self.load_points_colors_segmentations_instances.cache_clear()
         self._load_all_data_unmasked.cache_clear()
         self._load_all_data_masked.cache_clear()
         self.load_features_index.cache_clear()
-        self.load_words.cache_clear
+        self.load_words.cache_clear()
 
     @lru_cache(1000)
     def load_mask(self, data: DataSetBase, image: str) -> Optional[np.ndarray]:
@@ -36,7 +36,7 @@ class FeatureLoader(object):
                     False if segmentations[i] in ignore_values else True
                     for i in range(len(segmentations))
                 ],
-                dtype=bool
+                dtype=bool,
             )
         else:
             return data.load_features_mask(image, all_features_data.points[:, :2])
