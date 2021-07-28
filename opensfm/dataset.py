@@ -255,6 +255,9 @@ class DataSetBase(ABC):
     ) -> List[pymap.GroundControlPoint]:
         pass
 
+    def clean_up(self) -> None:
+        pass
+
 
 class DataSet(DataSetBase):
     """Accessors to the main input and output data.

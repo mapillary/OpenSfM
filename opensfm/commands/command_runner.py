@@ -30,9 +30,8 @@ def command_runner(all_commands_types, dataset_factory, dataset_choices):
     args = parser.parse_args()
 
     # Instanciate datast
-    data = dataset_factory(args.dataset, args.dataset_type)
-
-    # Run the selected subcommand
-    for command in command_objects:
-        if args.command == command.name:
-            command.run(data, args)
+    with dataset_factory(args.dataset, args.dataset_type) as data:
+        # Run the selected subcommand
+        for command in command_objects:
+            if args.command == command.name:
+                command.run(data, args)
