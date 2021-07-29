@@ -209,7 +209,7 @@ function roundRect(ctx, x, y, w, h, r) {
 }
 
 function update_text(data) {
-    const txt = "Annotating point " + data.selected_point + " on file " + data.cad_filename;
+    const txt = "Annotating point " + data.selected_point + " on file " + data.image_filename;
     const header = document.getElementById("header");
     header.innerHTML = txt;
 }
@@ -309,11 +309,17 @@ function point_camera_at_xyz(point) {
     _cameraControls.update();
 }
 
+function onSyncHandler(data) {
+    console.log("OnSynchandler", data);
+}
+
 function initialize_event_source() {
     let sse = new EventSource("/stream");
     sse.addEventListener("sync", function (e) {
-        const data = JSON.parse(e.data)
-        load_cad_model("/static/resources/cad_models/" + data.cad_filename);
+        const data = JSON.parse(e.data);
+        const delay = Date.now() - Math.round(data.time*1000);
+        console.log("SSE message delay is", delay, "ms");
+        load_cad_model("/static/resources/cad_models/" + data.image_filename);
         update_gcps(data.annotations);
         update_text(data);
     })

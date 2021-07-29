@@ -308,7 +308,7 @@ if __name__ == "__main__":
         image_manager,
         rig_groups,
         args.ortho,
-        find_suitable_cad_paths(args.cad, path),
+        find_suitable_cad_paths(args.cad, path, 1),
     )
     root.grid_columnconfigure(0, weight=1)
     root.grid_rowconfigure(0, weight=1)

@@ -1,17 +1,18 @@
 import abc
-import tkinter as tk
 import json
 import os
+import time
+import tkinter as tk
+import webbrowser
 from pathlib import Path
 from queue import Queue
 from threading import Thread
-import webbrowser
-import time
 
 import rasterio
-from flask import Flask, Response, jsonify, request, render_template
+from annotation_gui_gcp.lib.view import distinct_colors
+from flask import Flask, Response, jsonify, render_template, request
 from PIL import ImageColor
-from view import distinct_colors
+
 
 class WebView(abc.ABC):
     def __init__(self, main_ui):
@@ -28,7 +29,7 @@ class WebView(abc.ABC):
 
     def run_server(self, port, q, pipe_write):
         app = Flask(__name__)
-        app.config['TEMPLATES_AUTO_RELOAD'] = True
+        app.config["TEMPLATES_AUTO_RELOAD"] = True
 
         @app.route("/")
         def send_main_page():
@@ -58,15 +59,12 @@ class WebView(abc.ABC):
         app.run(port=port)
         print(f"{type(self).__name__} app finished")
 
-
     def start(self, port):
         # We use a Queue and a pipe to communicate from the web view to the tk GUI.
         # The Queue contains the information. The pipe is used to wake up the GUI thread.
         q = Queue()
         pipe_read, pipe_write = os.pipe()
-        server_thread = Thread(
-            target=self.run_server, args=(port, q, pipe_write)
-        )
+        server_thread = Thread(target=self.run_server, args=(port, q, pipe_write))
         server_thread.start()
 
         def message_from_client_available(file, mask):
@@ -94,14 +92,14 @@ class WebView(abc.ABC):
         self.eventQueue = Queue()
         self.sync_to_client()
 
-        # Opening a new window or setting size does not seem possible 
+        # Opening a new window or setting size does not seem possible
         # for webbrowser w/Chrome
         #
-        webbrowser.open(f"http://localhost:{port}") 
+        webbrowser.open(f"http://localhost:{port}")
 
-    
     def send_sse_message(self, data, event_type="sync"):
         # Send to the client
+        data["time"] = time.time()
         sse_string = f"event: {event_type}\ndata: {json.dumps(data)}\n\n"
         self.eventQueue.put(sse_string)
 
@@ -123,12 +121,12 @@ class WebView(abc.ABC):
         # TODO: Understand why this is specific to CAD 3d?
         #
         # Pick a color for each point
-        #fn_reprojections = Path(
+        # fn_reprojections = Path(
         #    f"{self.main_ui.path}/gcp_reprojections_3D_{self.main_ui.ix_a}x{self.cad_filename}.json"
-        #)
-        #if fn_reprojections.exists():
+        # )
+        # if fn_reprojections.exists():
         #    reprojections = json.load(open(fn_reprojections))
-        #else:
+        # else:
 
         reprojections = {}
         for point_id, coords in visible_points_coords.items():
@@ -141,4 +139,3 @@ class WebView(abc.ABC):
                 data["annotations"][point_id]["reprojection"] = reproj
 
         self.send_sse_message(data)
-

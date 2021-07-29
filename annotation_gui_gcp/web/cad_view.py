@@ -6,10 +6,9 @@ from queue import Queue
 from threading import Thread
 
 import rasterio
-from flask import Flask, Response, jsonify, request, render_template
-from PIL import ImageColor
 from annotation_gui_gcp.lib.view import distinct_colors
-
+from flask import Flask, Response, jsonify, render_template, request
+from PIL import ImageColor
 from web.web_view import WebView
 
 
@@ -24,7 +23,7 @@ def _load_georeference_metadata(path_cad_model):
     return metadata
 
 
-class CadView(WebView):
+class CADView(WebView):
     def __init__(
         self,
         main_ui,
@@ -56,7 +55,7 @@ class CadView(WebView):
         self.start(port)
 
     def page_source(self):
-        return "CADAnnotation.html"
+        return "CADView.html"
 
     def image_filename(self):
         return self.cad_filename

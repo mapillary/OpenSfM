@@ -11,10 +11,10 @@ from opensfm import dataset
 
 matplotlib.use("TkAgg")
 
-from annotation_gui_gcp.lib.cad_viewer.cad_view import CadView
 from annotation_gui_gcp.lib.image_sequence_view import ImageSequenceView
 from annotation_gui_gcp.lib.orthophoto_view import OrthoPhotoView
-from web.tools import ToolsView
+from annotation_gui_gcp.web.cad_view import CADView
+from annotation_gui_gcp.web.tools import ToolsView
 
 FONT = "TkFixedFont"
 
@@ -83,7 +83,7 @@ class Gui:
             self.create_ortho_views(ortho_paths, latlon["lat"], latlon["lon"])
 
         self.cad_views = [
-            CadView(self, cad_path, 5000 + ix) for ix, cad_path in enumerate(cad_paths)
+            CADView(self, cad_path, 5000 + ix) for ix, cad_path in enumerate(cad_paths)
         ]
 
         self.parent.update_idletasks()
@@ -120,7 +120,7 @@ class Gui:
             x += w
 
     def create_tools(self, parent):
-        self.tools_view = ToolsView(self)
+        # self.tools_view = ToolsView(self)
 
         width = 15
         gcp_list_frame = tk.Frame(parent)
