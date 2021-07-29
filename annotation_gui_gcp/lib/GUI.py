@@ -14,6 +14,7 @@ matplotlib.use("TkAgg")
 from annotation_gui_gcp.lib.cad_viewer.cad_view import CadView
 from annotation_gui_gcp.lib.image_sequence_view import ImageSequenceView
 from annotation_gui_gcp.lib.orthophoto_view import OrthoPhotoView
+from web.tools import ToolsView
 
 FONT = "TkFixedFont"
 
@@ -119,6 +120,8 @@ class Gui:
             x += w
 
     def create_tools(self, parent):
+        self.tools_view = ToolsView(self)
+
         width = 15
         gcp_list_frame = tk.Frame(parent)
         gcp_list_frame.pack(side="top", fill=tk.BOTH, expand=1)

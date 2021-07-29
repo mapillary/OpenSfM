@@ -1,0 +1,37 @@
+<html>
+    <head>
+        <title>{{ class_name }}</title>
+        <meta http-equiv="content-type" content="text/html;charset=utf-8" />
+        <link rel="stylesheet" href="/static/css/{{ class_name }}.css">
+        <script src="/static/js/WebView.js"></script>
+        <script src="/static/js/{{ class_name }}.js"></script>
+
+    </head>
+    <body>
+        <div class="tools">
+            <h3 id="header">OpenSfM Annotation Tools</h3>
+            <textarea rows=10 cols=30></textarea>
+            <div>
+                <button id="addGCP">Add GCP</button>
+                <button id="delGCP">Remove GCP</button>
+            </div>
+            <div>
+                <input type="checkbox" id="stickyzoom" name="scales" > <label for="stickyzoom">Sticky zoom (x)</label>
+                <input type="checkbox" id="showgcpnames" name="scales" > <label for="showgcpnames">Show GCP names</label>
+            </div>
+
+            <div margin=10>
+                <button id="rigid">Rigid</button>
+                <button id="flex">Flex</button>
+                <button id="full">Full</button>
+            </div>
+
+            <div margin=10>
+                <button id="load">Load</button>
+                <button id="save">Save</button>
+                <button id="save_as">Save As</button>
+            </div>
+        </div>
+    </body>
+</html>
+
