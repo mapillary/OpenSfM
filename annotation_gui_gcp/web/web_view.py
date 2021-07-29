@@ -20,6 +20,10 @@ class WebView(abc.ABC):
         self.eventQueue = None
 
     @abc.abstractclassmethod
+    def sync_to_client(self):
+        pass
+
+    @abc.abstractclassmethod
     def process_message(self, data):
         pass
 
@@ -102,40 +106,3 @@ class WebView(abc.ABC):
         data["time"] = time.time()
         sse_string = f"event: {event_type}\ndata: {json.dumps(data)}\n\n"
         self.eventQueue.put(sse_string)
-
-    def sync_to_client(self):
-        """
-        Sends all the data required to initialize the client
-        """
-        # Points with annotations on this file
-        visible_points_coords = self.main_ui.gcp_manager.get_visible_points_coords(
-            self.image_filename()
-        )
-
-        data = {
-            "annotations": {},
-            "selected_point": self.main_ui.curr_point,
-            "image_filename": self.image_filename(),
-        }
-
-        # TODO: Understand why this is specific to CAD 3d?
-        #
-        # Pick a color for each point
-        # fn_reprojections = Path(
-        #    f"{self.main_ui.path}/gcp_reprojections_3D_{self.main_ui.ix_a}x{self.cad_filename}.json"
-        # )
-        # if fn_reprojections.exists():
-        #    reprojections = json.load(open(fn_reprojections))
-        # else:
-
-        reprojections = {}
-        for point_id, coords in visible_points_coords.items():
-            hex_color = distinct_colors[divmod(hash(point_id), 19)[1]]
-            color = ImageColor.getrgb(hex_color)
-            data["annotations"][point_id] = {"coordinates": coords, "color": color}
-
-            reproj = reprojections.get(point_id)
-            if reproj:
-                data["annotations"][point_id]["reprojection"] = reproj
-
-        self.send_sse_message(data)

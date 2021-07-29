@@ -9,6 +9,7 @@ import rasterio
 from annotation_gui_gcp.lib.view import distinct_colors
 from flask import Flask, Response, jsonify, render_template, request
 from PIL import ImageColor
+
 from web.web_view import WebView
 
 
@@ -135,3 +136,37 @@ class CADView(WebView):
         self.scale = metadata["scale"]
         self.crs = metadata["crs"]
         self.offset = metadata["offset"]
+
+    def sync_to_client(self):
+        """
+        Sends all the data required to initialize or sync the CAD view
+        """
+        # Points with annotations on this file
+        visible_points_coords = self.main_ui.gcp_manager.get_visible_points_coords(
+            self.image_filename()
+        )
+
+        data = {
+            "annotations": {},
+            "selected_point": self.main_ui.curr_point,
+            "image_filename": self.image_filename(),
+        }
+
+        for point_id, coords in visible_points_coords.items():
+            hex_color = distinct_colors[divmod(hash(point_id), 19)[1]]
+            color = ImageColor.getrgb(hex_color)
+            data["annotations"][point_id] = {"coordinates": coords, "color": color}
+
+        # Add the 3D reprojections of the points
+        fn_reprojections = Path(
+            f"{self.main_ui.path}/gcp_reprojections_3D_{self.main_ui.ix_a}x{self.cad_filename}.json"
+        )
+        if fn_reprojections.exists():
+            reprojections = json.load(open(fn_reprojections))
+            for point_id in data["annotations"]:
+                if point_id in reprojections:
+                    data["annotations"][point_id]["reprojection"] = reprojections[
+                        point_id
+                    ]
+
+        self.send_sse_message(data)
