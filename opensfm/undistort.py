@@ -33,19 +33,13 @@ def undistort_reconstruction(
     for shot in reconstruction.shots.values():
         if shot.camera.projection_type == "perspective":
             urec.add_camera(perspective_camera_from_perspective(shot.camera))
-            subshots = [
-                get_shot_with_different_camera(urec, shot, image_format)
-            ]
+            subshots = [get_shot_with_different_camera(urec, shot, image_format)]
         elif shot.camera.projection_type == "brown":
             urec.add_camera(perspective_camera_from_brown(shot.camera))
-            subshots = [
-                get_shot_with_different_camera(urec, shot, image_format)
-            ]
+            subshots = [get_shot_with_different_camera(urec, shot, image_format)]
         elif shot.camera.projection_type in ["fisheye", "fisheye_opencv"]:
             urec.add_camera(perspective_camera_from_fisheye(shot.camera))
-            subshots = [
-                get_shot_with_different_camera(urec, shot, image_format)
-            ]
+            subshots = [get_shot_with_different_camera(urec, shot, image_format)]
         elif pygeometry.Camera.is_panorama(shot.camera.projection_type):
             subshot_width = int(data.config["depthmap_resolution"])
             subshots = perspective_views_of_a_panorama(
@@ -279,12 +273,12 @@ def perspective_views_of_a_panorama(
 
     names = ["front", "left", "back", "right", "top", "bottom"]
     rotations = [
-        tf.rotation_matrix(-0 * np.pi / 2, (0, 1, 0)),
-        tf.rotation_matrix(-1 * np.pi / 2, (0, 1, 0)),
-        tf.rotation_matrix(-2 * np.pi / 2, (0, 1, 0)),
-        tf.rotation_matrix(-3 * np.pi / 2, (0, 1, 0)),
-        tf.rotation_matrix(-np.pi / 2, (1, 0, 0)),
-        tf.rotation_matrix(+np.pi / 2, (1, 0, 0)),
+        tf.rotation_matrix(-0 * np.pi / 2, np.array([0, 1, 0])),
+        tf.rotation_matrix(-1 * np.pi / 2, np.array([0, 1, 0])),
+        tf.rotation_matrix(-2 * np.pi / 2, np.array([0, 1, 0])),
+        tf.rotation_matrix(-3 * np.pi / 2, np.array([0, 1, 0])),
+        tf.rotation_matrix(-np.pi / 2, np.array([1, 0, 0])),
+        tf.rotation_matrix(+np.pi / 2, np.array([1, 0, 0])),
     ]
 
     rig_instance = pymap.RigInstance(next(rig_instance_count))
