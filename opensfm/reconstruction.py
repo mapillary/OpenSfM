@@ -562,7 +562,7 @@ def bootstrap_reconstruction(
             data, reconstruction, rig_assignments, im2, pygeometry.Pose(R, t)
         )
 
-    align_reconstruction(reconstruction, None, data.config)
+    align_reconstruction(reconstruction, [], data.config)
     triangulate_shot_features(tracks_manager, reconstruction, new_shots, data.config)
 
     logger.info("Triangulated: {}".format(len(reconstruction.points)))
@@ -1085,7 +1085,7 @@ def merge_two_reconstructions(
         r = r2
         r.shots.update(r1p.shots)
         r.points.update(r1p.points)
-        align_reconstruction(r, None, config)
+        align_reconstruction(r, [], config)
         return [r]
     else:
         return [r1, r2]

@@ -3,18 +3,23 @@
 import logging
 import math
 from collections import defaultdict
+from typing import Dict, Any, List, Tuple, Optional
 
 import cv2
 import numpy as np
-from opensfm import multiview, transformations as tf, pygeometry, types
+from opensfm import multiview, transformations as tf, types, pygeometry, pymap
 
 
 logger = logging.getLogger(__name__)
 
 
 def align_reconstruction(
-    reconstruction, gcp, config, use_gps=True, bias_override=False
-):
+    reconstruction: types.Reconstruction,
+    gcp: List[pymap.GroundControlPoint],
+    config: Dict[str, Any],
+    use_gps: bool = True,
+    bias_override: bool = False,
+) -> Optional[Tuple[float, np.ndarray, np.ndarray]]:
     """Align a reconstruction with GPS and GCP data."""
     use_scale = len(reconstruction.rig_instances) < 1
     if bias_override and config["bundle_compensate_gps_bias"]:
@@ -29,7 +34,9 @@ def align_reconstruction(
         return res
 
 
-def apply_similarity_pose(pose, s, A, b):
+def apply_similarity_pose(
+    pose: pygeometry.Pose, s: float, A: np.ndarray, b: np.ndarray
+) -> None:
     """Apply a similarity (y = s A x + b) to an object having a 'pose' member."""
     R = pose.get_rotation_matrix()
     t = np.array(pose.translation)
@@ -39,7 +46,9 @@ def apply_similarity_pose(pose, s, A, b):
     pose.translation = list(tp)
 
 
-def apply_similarity(reconstruction, s, A, b):
+def apply_similarity(
+    reconstruction: types.Reconstruction, s: float, A: np.ndarray, b: np.ndarray
+) -> None:
     """Apply a similarity (y = s A x + b) to a reconstruction.
 
     :param reconstruction: The reconstruction to transform.
@@ -63,7 +72,13 @@ def apply_similarity(reconstruction, s, A, b):
         apply_similarity_pose(rig_instance.pose, s, A, b)
 
 
-def compute_reconstruction_similarity(reconstruction, gcp, config, use_gps, use_scale):
+def compute_reconstruction_similarity(
+    reconstruction: types.Reconstruction,
+    gcp: List[pymap.GroundControlPoint],
+    config: Dict[str, Any],
+    use_gps: bool,
+    use_scale: bool,
+) -> Optional[Tuple[float, np.ndarray, np.ndarray]]:
     """Compute similarity so that the reconstruction is aligned with GPS and GCP data.
 
     Config parameter `align_method` can be used to choose the alignment method.
@@ -77,7 +92,9 @@ def compute_reconstruction_similarity(reconstruction, gcp, config, use_gps, use_
             config,
             reconstruction,
             gcp,
+            use_gps,
         )
+    res = None
     if align_method == "orientation_prior":
         res = compute_orientation_prior_similarity(
             reconstruction, config, gcp, use_gps, use_scale
@@ -97,7 +114,12 @@ def compute_reconstruction_similarity(reconstruction, gcp, config, use_gps, use_
     return res
 
 
-def alignment_constraints(config, reconstruction, gcp, use_gps):
+def alignment_constraints(
+    config: Dict[str, Any],
+    reconstruction: types.Reconstruction,
+    gcp: List[pymap.GroundControlPoint],
+    use_gps: bool,
+) -> Tuple[List[np.ndarray], List[np.ndarray]]:
     """Gather alignment constraints to be used by checking bundle_use_gcp and bundle_use_gps."""
 
     X, Xp = [], []
@@ -118,7 +140,12 @@ def alignment_constraints(config, reconstruction, gcp, use_gps):
     return X, Xp
 
 
-def detect_alignment_constraints(config, reconstruction, gcp, use_gps):
+def detect_alignment_constraints(
+    config: Dict[str, Any],
+    reconstruction: types.Reconstruction,
+    gcp: List[pymap.GroundControlPoint],
+    use_gps: bool,
+) -> str:
     """Automatically pick the best alignment method, depending
     if alignment data such as GPS/GCP is aligned on a single-line or not.
 
@@ -151,7 +178,13 @@ def detect_alignment_constraints(config, reconstruction, gcp, use_gps):
         return "naive"
 
 
-def compute_naive_similarity(config, reconstruction, gcp, use_gps, use_scale):
+def compute_naive_similarity(
+    config: Dict[str, Any],
+    reconstruction: types.Reconstruction,
+    gcp: List[pymap.GroundControlPoint],
+    use_gps: bool,
+    use_scale: bool,
+) -> Optional[Tuple[float, np.ndarray, np.ndarray]]:
     """Compute similarity with GPS and GCP data using direct 3D-3D matches."""
     X, Xp = alignment_constraints(config, reconstruction, gcp, use_gps)
 
@@ -191,8 +224,12 @@ def compute_naive_similarity(config, reconstruction, gcp, use_gps, use_scale):
 
 
 def compute_orientation_prior_similarity(
-    reconstruction, config, gcp, use_gps, use_scale
-):
+    reconstruction: types.Reconstruction,
+    config: Dict[str, Any],
+    gcp: List[pymap.GroundControlPoint],
+    use_gps: bool,
+    use_scale: bool,
+) -> Optional[Tuple[float, np.ndarray, np.ndarray]]:
     """Compute similarity with GPS data assuming particular a camera orientation.
 
     In some cases, using 3D-3D matches directly fails to find proper
@@ -216,6 +253,8 @@ def compute_orientation_prior_similarity(
 
     p = estimate_ground_plane(reconstruction, config)
     Rplane = multiview.plane_horizontalling_rotation(p)
+    if Rplane is None:
+        return None
     X = Rplane.dot(X.T).T
 
     # Estimate 2d similarity to align to GPS
@@ -255,7 +294,12 @@ def compute_orientation_prior_similarity(
     return s, A, b
 
 
-def set_gps_bias(reconstruction, config, gcp, use_scale):
+def set_gps_bias(
+    reconstruction: types.Reconstruction,
+    config: Dict[str, Any],
+    gcp: List[pymap.GroundControlPoint],
+    use_scale: bool,
+) -> Optional[Tuple[float, np.ndarray, np.ndarray]]:
     """Compute and set the bias transform of the GPS coordinate system wrt. to the GCP one."""
 
     # Compute similarity ('gps_bias') that brings the reconstruction on the GCPs ONLY
@@ -264,7 +308,7 @@ def set_gps_bias(reconstruction, config, gcp, use_scale):
     )
     if not gps_bias:
         logger.warning("Cannot align on GCPs only, GPS bias won't be compensated.")
-        return
+        return None
 
     # Align the reconstruction on GCPs ONLY
     s, A, b = gps_bias
@@ -288,7 +332,7 @@ def set_gps_bias(reconstruction, config, gcp, use_scale):
         for shot_id in shots_id:
             subrec.add_shot(reconstruction.shots[shot_id])
         per_camera_transform[camera_id] = compute_reconstruction_similarity(
-            subrec, {}, config, True, use_scale
+            subrec, [], config, True, use_scale
         )
 
     if any([True for x in per_camera_transform.values() if not x]):
@@ -307,7 +351,9 @@ def set_gps_bias(reconstruction, config, gcp, use_scale):
     return gps_bias
 
 
-def estimate_ground_plane(reconstruction, config):
+def estimate_ground_plane(
+    reconstruction: types.Reconstruction, config: Dict[str, Any]
+) -> np.ndarray:
     """Estimate ground plane orientation.
 
     It assumes cameras are all at a similar height and uses the
@@ -339,11 +385,13 @@ def estimate_ground_plane(reconstruction, config):
     ground_points = np.array(ground_points)
     ground_points -= ground_points.mean(axis=0)
 
-    plane = multiview.fit_plane(ground_points, onplane, verticals)
+    plane = multiview.fit_plane(ground_points, np.array(onplane), np.array(verticals))
     return plane
 
 
-def get_horizontal_and_vertical_directions(R, orientation):
+def get_horizontal_and_vertical_directions(
+    R: np.ndarray, orientation: int
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Get orientation vectors from camera rotation matrix and orientation tag.
 
     Return a 3D vectors pointing to the positive XYZ directions of the image.
@@ -370,7 +418,9 @@ def get_horizontal_and_vertical_directions(R, orientation):
     return R[0, :], R[1, :], R[2, :]
 
 
-def triangulate_all_gcp(reconstruction, gcp):
+def triangulate_all_gcp(
+    reconstruction: types.Reconstruction, gcp: List[pymap.GroundControlPoint]
+) -> Tuple[List[np.ndarray], List[np.ndarray]]:
     """Group and triangulate Ground Control Points seen in 2+ images."""
     triangulated, measured = [], []
     for point in gcp:
