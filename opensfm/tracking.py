@@ -11,7 +11,14 @@ from opensfm.unionfind import UnionFind
 logger = logging.getLogger(__name__)
 
 
-def load_features(dataset: DataSetBase, images):
+def load_features(
+    dataset: DataSetBase, images: t.List[str]
+) -> t.Tuple[
+    t.Dict[str, np.ndarray],
+    t.Dict[str, np.ndarray],
+    t.Dict[str, np.ndarray],
+    t.Dict[str, np.ndarray],
+]:
     logging.info("reading features")
     features = {}
     colors = {}
@@ -34,7 +41,9 @@ def load_features(dataset: DataSetBase, images):
     return features, colors, segmentations, instances
 
 
-def load_matches(dataset: DataSetBase, images):
+def load_matches(
+    dataset: DataSetBase, images: t.List[str]
+) -> t.Dict[t.Tuple[str, str], t.List[t.Tuple[int, int]]]:
     matches = {}
     for im1 in images:
         try:
@@ -47,7 +56,14 @@ def load_matches(dataset: DataSetBase, images):
     return matches
 
 
-def create_tracks_manager(features, colors, segmentations, instances, matches, config):
+def create_tracks_manager(
+    features: t.Dict[str, np.ndarray],
+    colors: t.Dict[str, np.ndarray],
+    segmentations: t.Dict[str, np.ndarray],
+    instances: t.Dict[str, np.ndarray],
+    matches: t.Dict[t.Tuple[str, str], t.List[t.Tuple[int, int]]],
+    config: t.Dict[str, t.Any],
+):
     """Link matches into tracks."""
     logger.debug("Merging features onto tracks")
     uf = UnionFind()
@@ -67,7 +83,7 @@ def create_tracks_manager(features, colors, segmentations, instances, matches, c
     tracks = [t for t in sets.values() if _good_track(t, min_length)]
     logger.debug("Good tracks: {}".format(len(tracks)))
 
-    NO_VALUE = pymap.Observation.NO_SEMANTIC_VALUE
+    NO_VALUE = pymap.Observation.NO_SEMANTIC_VALUE  # pyre-fixme [16]
     tracks_manager = pymap.TracksManager()
     for track_id, track in enumerate(tracks):
         for image, featureid in track:
@@ -79,6 +95,7 @@ def create_tracks_manager(features, colors, segmentations, instances, matches, c
                 segmentations[image][featureid] if image in segmentations else NO_VALUE,
                 instances[image][featureid] if image in instances else NO_VALUE,
             )
+            # pyre-fixme [19]
             obs = pymap.Observation(
                 x, y, s, int(r), int(g), int(b), featureid, segmentation, instance
             )
@@ -86,7 +103,9 @@ def create_tracks_manager(features, colors, segmentations, instances, matches, c
     return tracks_manager
 
 
-def common_tracks(tracks_manager, im1, im2):
+def common_tracks(
+    tracks_manager: pymap.TracksManager, im1: str, im2: str
+) -> t.Tuple[t.List[str], np.ndarray, np.ndarray]:
     """List of tracks observed in both images.
 
     Args:
@@ -167,7 +186,7 @@ def all_common_tracks(
     return common_tracks
 
 
-def _good_track(track, min_length):
+def _good_track(track: t.List[t.Tuple[str, int]], min_length: int) -> bool:
     if len(track) < min_length:
         return False
     images = [f[0] for f in track]
@@ -176,7 +195,7 @@ def _good_track(track, min_length):
     return True
 
 
-def as_weighted_graph(tracks_manager):
+def as_weighted_graph(tracks_manager: pymap.TracksManager) -> nx.Graph:
     """Return the tracks manager as a weighted graph
     having shots a snodes and weighted by the # of
     common tracks between two nodes.
@@ -190,7 +209,7 @@ def as_weighted_graph(tracks_manager):
     return image_graph
 
 
-def as_graph(tracks_manager):
+def as_graph(tracks_manager: pymap.TracksManager) -> nx.Graph:
     """Return the tracks manager as a bipartite graph (legacy)."""
     tracks = tracks_manager.get_track_ids()
     images = tracks_manager.get_shot_ids()
