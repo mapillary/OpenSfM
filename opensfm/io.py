@@ -242,14 +242,6 @@ def reconstruction_from_json(obj: t.Dict[str, t.Any]):
             is_pano_shot = True
             shot_in_reconstruction_from_json(reconstruction, key, value, is_pano_shot)
 
-    # Extract main and unit shots
-    if "main_shot" in obj:
-        # pyre-fixme[16]: `types.Reconstruction` has no attribute `main_shot`
-        reconstruction.main_shot = obj["main_shot"]
-    if "unit_shot" in obj:
-        # pyre-fixme[16]: `types.Reconstruction` has no attribute `unit_shot`
-        reconstruction.unit_shot = obj["unit_shot"]
-
     # Extract reference topocentric frame
     if "reference_lla" in obj:
         lla = obj["reference_lla"]
@@ -533,12 +525,6 @@ def reconstruction_to_json(reconstruction) -> t.Dict[str, t.Any]:
             obj["pano_shots"] = {}
             for shot in reconstruction.pano_shots.values():
                 obj["pano_shots"][shot.id] = shot_to_json(shot)
-
-    # Extract main and unit shots
-    if hasattr(reconstruction, "main_shot"):
-        obj["main_shot"] = reconstruction.main_shot
-    if hasattr(reconstruction, "unit_shot"):
-        obj["unit_shot"] = reconstruction.unit_shot
 
     # Extract reference topocentric frame
     if reconstruction.reference:
