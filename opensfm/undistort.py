@@ -4,12 +4,14 @@ from typing import Iterator, List, Dict, Optional
 
 import cv2
 import numpy as np
-from opensfm import features
-from opensfm import log
-from opensfm import pygeometry
-from opensfm import pymap
-from opensfm import transformations as tf
-from opensfm import types
+from opensfm import (
+    features,
+    log,
+    pygeometry,
+    pymap,
+    transformations as tf,
+    types,
+)
 from opensfm.context import parallel_map
 from opensfm.dataset import DataSetBase, UndistortedDataSet
 
@@ -309,7 +311,7 @@ def perspective_views_of_a_panorama(
 def render_perspective_view_of_a_panorama(
     image: np.ndarray,
     panoshot: pymap.Shot,
-    perspectiveshot,
+    perspectiveshot: pymap.Shot,
     interpolation=cv2.INTER_LINEAR,
     borderMode=cv2.BORDER_WRAP,
 ) -> np.ndarray:
