@@ -4,19 +4,16 @@ import os
 import time
 import tkinter as tk
 import webbrowser
-from pathlib import Path
 from queue import Queue
 from threading import Thread
 
-import rasterio
-from annotation_gui_gcp.lib.view import distinct_colors
 from flask import Flask, Response, jsonify, render_template, request
-from PIL import ImageColor
 
 
 class WebView(abc.ABC):
     def __init__(self, main_ui):
         self.main_ui = main_ui
+        self.app = Flask(__name__)
         self.eventQueue = None
 
     @abc.abstractclassmethod
@@ -24,22 +21,22 @@ class WebView(abc.ABC):
         pass
 
     @abc.abstractclassmethod
-    def process_message(self, data):
+    def process_client_message(self, data):
         pass
 
-    @abc.abstractclassmethod
-    def page_source(self, data):
-        pass
+    def template_name(self):
+        class_name = type(self).__name__
+        return class_name
 
     def run_server(self, port, q, pipe_write):
-        app = Flask(__name__)
+        app = self.app
         app.config["TEMPLATES_AUTO_RELOAD"] = True
 
         @app.route("/")
         def send_main_page():
             # self.sync_to_client()
-            class_name = type(self).__name__
-            return render_template(f"{class_name}.html", class_name=class_name)
+            template = self.template_name()
+            return render_template(f"{template}.html", class_name=template)
 
         @app.route("/postdata", methods=["POST"])
         def postdata():
@@ -54,7 +51,7 @@ class WebView(abc.ABC):
         def stream():
             def eventStream():
                 while True:
-                    time.sleep(0.5)
+                    # time.sleep(0.5)
                     msg = self.eventQueue.get()  # blocks until a new message arrives
                     yield msg
 
@@ -84,7 +81,7 @@ class WebView(abc.ABC):
                     continue
                 q.task_done()
 
-            self.process_message(data)
+            self.process_client_message(data)
 
         # Use pipes and tk's file handler to wake up the GUI thread
         self.main_ui.parent.tk.createfilehandler(

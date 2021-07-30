@@ -1,13 +1,9 @@
 import json
 import os
-import tkinter as tk
 from pathlib import Path
-from queue import Queue
-from threading import Thread
 
 import rasterio
 from annotation_gui_gcp.lib.view import distinct_colors
-from flask import Flask, Response, jsonify, render_template, request
 from PIL import ImageColor
 
 from web.web_view import WebView
@@ -55,13 +51,10 @@ class CADView(WebView):
 
         self.start(port)
 
-    def page_source(self):
-        return "CADView.html"
-
     def image_filename(self):
         return self.cad_filename
 
-    def process_message(self, data):
+    def process_client_message(self, data):
         command = data["command"]
         if command == "add_or_update_point_observation":
             self.add_remove_update_point_observation(point_coordinates=data["xyz"])

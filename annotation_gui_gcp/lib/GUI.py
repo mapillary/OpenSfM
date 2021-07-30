@@ -14,6 +14,7 @@ matplotlib.use("TkAgg")
 from annotation_gui_gcp.lib.image_sequence_view import ImageSequenceView
 from annotation_gui_gcp.lib.orthophoto_view import OrthoPhotoView
 from annotation_gui_gcp.web.cad_view import CADView
+from annotation_gui_gcp.web.image_view import ImageView
 from annotation_gui_gcp.web.tools import ToolsView
 
 FONT = "TkFixedFont"
@@ -214,6 +215,13 @@ class Gui:
         for sequence_key, image_keys in self.image_manager.seqs.items():
             v = ImageSequenceView(self, sequence_key, image_keys, show_track_checkbox)
             self.sequence_views.append(v)
+
+        for sequence_key, image_keys in self.image_manager.seqs.items():
+            web_view = ImageView(
+                self, sequence_key, image_keys, show_track_checkbox, port=5123
+            )
+            self.sequence_views.append(web_view)
+            break
 
     def analyze_rigid(self):
         self.analyze(rigid=True, covariance=False)

@@ -477,4 +477,4 @@ function draw() {
     renderer.render(_scene, camera);
 }
 
-document.onload = initialize();
+window.addEventListener('load', initialize);
