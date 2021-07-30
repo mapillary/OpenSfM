@@ -2,8 +2,8 @@ import json
 import logging
 import os
 import shutil
-import typing as t
 from abc import ABC, abstractmethod
+from typing import Dict, Any, Iterable, List, IO, Tuple, TextIO, Optional
 
 import cv2
 import numpy as np
@@ -14,7 +14,7 @@ from PIL import Image
 logger = logging.getLogger(__name__)
 
 
-def camera_from_json(key, obj):
+def camera_from_json(key: str, obj: Dict[str, Any]) -> pygeometry.Camera:
     """
     Read camera from a json object
     """
@@ -103,7 +103,7 @@ def camera_from_json(key, obj):
     return camera
 
 
-def pose_from_json(obj):
+def pose_from_json(obj: Dict[str, Any]) -> pygeometry.Pose:
     pose = pygeometry.Pose()
     pose.rotation = obj["rotation"]
     if "translation" in obj:
@@ -111,11 +111,11 @@ def pose_from_json(obj):
     return pose
 
 
-def bias_from_json(obj):
+def bias_from_json(obj: Dict[str, Any]) -> pygeometry.Similarity:
     return pygeometry.Similarity(obj["rotation"], obj["translation"], obj["scale"])
 
 
-def assign_shot_attributes(obj, shot):
+def assign_shot_attributes(obj: Dict[str, Any], shot: pymap.Shot) -> None:
     shot.metadata = json_to_pymap_metadata(obj)
     if "scale" in obj:
         shot.scale = obj["scale"]
@@ -128,7 +128,12 @@ def assign_shot_attributes(obj, shot):
         shot.mesh.faces = obj["faces"]
 
 
-def shot_in_reconstruction_from_json(reconstruction, key, obj, is_pano_shot=False):
+def shot_in_reconstruction_from_json(
+    reconstruction: types.Reconstruction,
+    key: str,
+    obj: Dict[str, Any],
+    is_pano_shot: bool = False,
+) -> pymap.Shot:
     """
     Read shot from a json object and append it to a reconstruction
     """
@@ -142,7 +147,9 @@ def shot_in_reconstruction_from_json(reconstruction, key, obj, is_pano_shot=Fals
     return shot
 
 
-def single_shot_from_json(key, obj, camera):
+def single_shot_from_json(
+    key: str, obj: Dict[str, Any], camera: pygeometry.Camera
+) -> pymap.Shot:
     """
     Read shot from a json object
     """
@@ -152,7 +159,9 @@ def single_shot_from_json(key, obj, camera):
     return shot
 
 
-def point_from_json(reconstruction, key, obj):
+def point_from_json(
+    reconstruction: types.Reconstruction, key: str, obj: Dict[str, Any]
+) -> pymap.Landmark:
     """
     Read a point from a json object
     """
@@ -161,7 +170,7 @@ def point_from_json(reconstruction, key, obj):
     return point
 
 
-def rig_camera_from_json(key, obj):
+def rig_camera_from_json(key: str, obj: Dict[str, Any]) -> pymap.RigCamera:
     """
     Read a rig cameras from a json object
     """
@@ -172,7 +181,7 @@ def rig_camera_from_json(key, obj):
     return rig_camera
 
 
-def rig_cameras_from_json(obj):
+def rig_cameras_from_json(obj: Dict[str, Any]) -> Dict[str, pymap.RigCamera]:
     """
     Read rig cameras from a json object
     """
@@ -182,7 +191,9 @@ def rig_cameras_from_json(obj):
     return rig_cameras
 
 
-def rig_instance_from_json(reconstruction, key, obj):
+def rig_instance_from_json(
+    reconstruction: types.Reconstruction, key: str, obj: Dict[str, Any]
+) -> None:
     """
     Read any rig instance from a json shot object
     """
@@ -200,7 +211,7 @@ def rig_instance_from_json(reconstruction, key, obj):
         )
 
 
-def reconstruction_from_json(obj: t.Dict[str, t.Any]):
+def reconstruction_from_json(obj: Dict[str, Any]) -> types.Reconstruction:
     """
     Read a reconstruction from a json object
     """
@@ -252,14 +263,14 @@ def reconstruction_from_json(obj: t.Dict[str, t.Any]):
     return reconstruction
 
 
-def reconstructions_from_json(obj):
+def reconstructions_from_json(obj: List[Dict[str, Any]]) -> List[types.Reconstruction]:
     """
     Read all reconstructions from a json object
     """
     return [reconstruction_from_json(i) for i in obj]
 
 
-def cameras_from_json(obj):
+def cameras_from_json(obj: Dict[str, Any]) -> Dict[str, pygeometry.Camera]:
     """
     Read cameras from a json object
     """
@@ -269,7 +280,7 @@ def cameras_from_json(obj):
     return cameras
 
 
-def camera_to_json(camera):
+def camera_to_json(camera) -> Dict[str, Any]:
     """
     Write camera to a json object
     """
@@ -381,7 +392,7 @@ def camera_to_json(camera):
         raise NotImplementedError
 
 
-def shot_to_json(shot):
+def shot_to_json(shot: pymap.Shot) -> Dict[str, Any]:
     """
     Write shot to a json object
     """
@@ -405,7 +416,7 @@ def shot_to_json(shot):
     return obj
 
 
-def rig_instance_to_json(rig_instance):
+def rig_instance_to_json(rig_instance: pymap.RigInstance) -> Dict[str, Any]:
     """
     Write a rig instance to a json object
     """
@@ -416,7 +427,7 @@ def rig_instance_to_json(rig_instance):
     }
 
 
-def rig_camera_to_json(rig_camera):
+def rig_camera_to_json(rig_camera: pymap.RigCamera) -> Dict[str, Any]:
     """
     Write a rig camera to a json object
     """
@@ -427,7 +438,7 @@ def rig_camera_to_json(rig_camera):
     return obj
 
 
-def pymap_metadata_to_json(metadata):
+def pymap_metadata_to_json(metadata: pymap.ShotMeasurements) -> Dict[str, Any]:
     obj = {}
     if metadata.orientation.has_value:
         obj["orientation"] = metadata.orientation.value
@@ -454,7 +465,7 @@ def pymap_metadata_to_json(metadata):
     return obj
 
 
-def json_to_pymap_metadata(obj):
+def json_to_pymap_metadata(obj: Dict[str, Any]) -> pymap.ShotMeasurements:
     metadata = pymap.ShotMeasurements()
     if obj.get("orientation") is not None:
         metadata.orientation.value = obj.get("orientation")
@@ -477,7 +488,7 @@ def json_to_pymap_metadata(obj):
     return metadata
 
 
-def point_to_json(point):
+def point_to_json(point: pymap.Landmark) -> Dict[str, Any]:
     """
     Write a point to a json object
     """
@@ -487,7 +498,7 @@ def point_to_json(point):
     }
 
 
-def reconstruction_to_json(reconstruction) -> t.Dict[str, t.Any]:
+def reconstruction_to_json(reconstruction: types.Reconstruction) -> Dict[str, Any]:
     """
     Write a reconstruction to a json object
     """
@@ -539,15 +550,15 @@ def reconstruction_to_json(reconstruction) -> t.Dict[str, t.Any]:
 
 
 def reconstructions_to_json(
-    reconstructions: t.Iterable[types.Reconstruction],
-) -> t.List[t.Dict[str, t.Any]]:
+    reconstructions: Iterable[types.Reconstruction],
+) -> List[Dict[str, Any]]:
     """
     Write all reconstructions to a json object
     """
     return [reconstruction_to_json(i) for i in reconstructions]
 
 
-def cameras_to_json(cameras):
+def cameras_to_json(cameras: Dict[str, pygeometry.Camera]) -> Dict[str, Dict[str, Any]]:
     """
     Write cameras to a json object
     """
@@ -557,7 +568,7 @@ def cameras_to_json(cameras):
     return obj
 
 
-def bias_to_json(bias):
+def bias_to_json(bias: pygeometry.Similarity) -> Dict[str, Any]:
     return {
         "rotation": list(bias.rotation),
         "translation": list(bias.translation),
@@ -565,7 +576,9 @@ def bias_to_json(bias):
     }
 
 
-def rig_cameras_to_json(rig_cameras):
+def rig_cameras_to_json(
+    rig_cameras: Dict[str, pymap.RigCamera]
+) -> Dict[str, Dict[str, Any]]:
     """
     Write rig cameras to a json object
     """
@@ -580,7 +593,7 @@ def camera_from_vector(
     width: int,
     height: int,
     projection_type: str,
-    parameters: t.List[float],
+    parameters: List[float],
 ) -> pygeometry.Camera:
     """Build a camera from a serialized vector of parameters."""
     if projection_type == "perspective":
@@ -623,7 +636,7 @@ def camera_from_vector(
     return camera
 
 
-def camera_to_vector(camera: pygeometry.Camera) -> t.List[float]:
+def camera_to_vector(camera: pygeometry.Camera) -> List[float]:
     """Serialize camera parameters to a vector of floats."""
     if camera.projection_type == "perspective":
         parameters = [camera.focal, camera.k1, camera.k2]
@@ -699,7 +712,12 @@ def camera_to_vector(camera: pygeometry.Camera) -> t.List[float]:
     return parameters
 
 
-def _read_gcp_list_lines(lines, projection, reference, exif):
+def _read_gcp_list_lines(
+    lines: Iterable[str],
+    projection,
+    reference: Optional[geo.TopocentricConverter],
+    exif: Dict[str, Dict[str, Any]],
+) -> List[pymap.GroundControlPoint]:
     points = {}
     for line in lines:
         words = line.split(None, 5)
@@ -748,7 +766,7 @@ def _read_gcp_list_lines(lines, projection, reference, exif):
     return list(points.values())
 
 
-def _parse_utm_projection_string(line):
+def _parse_utm_projection_string(line: str) -> str:
     """Convert strings like 'WGS84 UTM 32N' to a proj4 definition."""
     words = line.lower().split()
     assert len(words) == 3
@@ -766,7 +784,7 @@ def _parse_utm_projection_string(line):
     return s.format(zone_number, zone_hemisphere)
 
 
-def _parse_projection(line):
+def _parse_projection(line: str):
     """Build a proj4 from the GCP format line."""
     if line.strip() == "WGS84":
         return None
@@ -778,12 +796,14 @@ def _parse_projection(line):
         raise ValueError("Un-supported geo system definition: {}".format(line))
 
 
-def _valid_gcp_line(line):
+def _valid_gcp_line(line: str) -> bool:
     stripped = line.strip()
-    return stripped and stripped[0] != "#"
+    return stripped != "" and stripped[0] != "#"
 
 
-def read_gcp_list(fileobj, reference, exif):
+def read_gcp_list(
+    fileobj, reference: Optional[geo.TopocentricConverter], exif: Dict[str, Any]
+) -> List[pymap.GroundControlPoint]:
     """Read a ground control points from a gcp_list.txt file.
 
     It requires the points to be in the WGS84 lat, lon, alt format.
@@ -796,7 +816,9 @@ def read_gcp_list(fileobj, reference, exif):
     return points
 
 
-def read_ground_control_points(fileobj, reference):
+def read_ground_control_points(
+    fileobj: IO, reference: Optional[geo.TopocentricConverter]
+) -> List[pymap.GroundControlPoint]:
     """Read ground control points from json file.
 
     Returns list of types.GroundControlPoint.
@@ -840,7 +862,11 @@ def read_ground_control_points(fileobj, reference):
     return points
 
 
-def write_ground_control_points(gcp, fileobj, reference):
+def write_ground_control_points(
+    gcp: List[pymap.GroundControlPoint],
+    fileobj: IO,
+    reference: geo.TopocentricConverter,
+) -> None:
     """Write ground control points to json file."""
     obj = {"points": []}
 
@@ -877,7 +903,7 @@ def write_ground_control_points(gcp, fileobj, reference):
     json_dump(obj, fileobj)
 
 
-def json_dump_kwargs(minify=False):
+def json_dump_kwargs(minify: bool = False) -> Dict[str, Any]:
     if minify:
         indent, separators = None, (",", ":")
     else:
@@ -906,7 +932,9 @@ def json_loads(text):
 # PLY
 
 
-def ply_header(count_vertices, with_normals=False, point_num_views=False):
+def ply_header(
+    count_vertices: int, with_normals: bool = False, point_num_views: bool = False
+) -> List[str]:
     if with_normals:
         header = [
             "ply",
@@ -943,17 +971,17 @@ def ply_header(count_vertices, with_normals=False, point_num_views=False):
     return header
 
 
-def points_to_ply_string(vertices, point_num_views=False):
+def points_to_ply_string(vertices: List[str], point_num_views: bool = False):
     header = ply_header(len(vertices), point_num_views=point_num_views)
     return "\n".join(header + vertices + [""])
 
 
 def reconstruction_to_ply(
-    reconstruction,
-    tracks_manager=None,
-    no_cameras=False,
-    no_points=False,
-    point_num_views=False,
+    reconstruction: types.Reconstruction,
+    tracks_manager: Optional[pymap.TracksManager] = None,
+    no_cameras: bool = False,
+    no_points: bool = False,
+    point_num_views: bool = False,
 ):
     """Export reconstruction points as a PLY string."""
     vertices = []
@@ -991,8 +1019,8 @@ def reconstruction_to_ply(
 
 
 def point_cloud_from_ply(
-    fp: t.TextIO,
-) -> t.Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    fp: TextIO,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Load point cloud from a PLY file."""
     all_lines = fp.read().splitlines()
     start = all_lines.index("end_header") + 1
@@ -1020,7 +1048,7 @@ def point_cloud_to_ply(
     normals: np.ndarray,
     colors: np.ndarray,
     labels: np.ndarray,
-    fp: t.TextIO,
+    fp: TextIO,
 ) -> None:
     """Export depthmap points as a PLY string"""
     lines = _point_cloud_to_ply_lines(points, normals, colors, labels)
@@ -1066,27 +1094,31 @@ def _point_cloud_to_ply_lines(
 
 
 # Filesystem interaction methods
-def mkdir_p(path):
+def mkdir_p(path: str) -> None:
     """Make a directory including parent directories."""
-    return os.makedirs(path, exist_ok=True)
+    os.makedirs(path, exist_ok=True)
 
 
-def open_wt(path):
+def open_wt(path: str) -> IO[Any]:
     """Open a file in text mode for writing utf-8."""
     return open(path, "w", encoding="utf-8")
 
 
-def open_rt(path):
+def open_rt(path: str) -> IO[Any]:
     """Open a file in text mode for reading utf-8."""
     return open(path, "r", encoding="utf-8")
 
 
-def imread(path, grayscale=False, unchanged=False, anydepth=False):
+def imread(
+    path: str, grayscale: bool = False, unchanged: bool = False, anydepth: bool = False
+):
     with open(path, "rb") as fb:
         return imread_from_fileobject(fb, grayscale, unchanged, anydepth)
 
 
-def imread_from_fileobject(fb, grayscale=False, unchanged=False, anydepth=False):
+def imread_from_fileobject(
+    fb, grayscale: bool = False, unchanged: bool = False, anydepth: bool = False
+) -> np.ndarray:
     """Load image as an array ignoring EXIF orientation."""
     if context.OPENCV3:
         if grayscale:
@@ -1129,17 +1161,17 @@ def imread_from_fileobject(fb, grayscale=False, unchanged=False, anydepth=False)
     return image
 
     @classmethod
-    def imwrite(cls, path, image):
+    def imwrite(cls, path: str, image: np.ndarray) -> None:
         with cls.open(path, "wb") as fwb:
             imwrite(fwb, image, path)
 
 
-def imwrite(path, image: np.ndarray):
+def imwrite(path: str, image: np.ndarray):
     with open(path, "wb") as fwb:
         return imwrite_from_fileobject(fwb, image, path)
 
 
-def imwrite_from_fileobject(fwb, image: np.ndarray, ext: str):
+def imwrite_from_fileobject(fwb, image: np.ndarray, ext: str) -> None:
     """Write an image to a file object"""
     if len(image.shape) == 3:
         image[:, :, :3] = image[:, :, [2, 1, 0]]  # Turn RGB to BGR (or RGBA to BGRA)
@@ -1159,7 +1191,7 @@ def image_size_from_fileobject(fb):
         return image.shape[:2]
 
 
-def image_size(path):
+def image_size(path: str) -> Tuple[int, int]:
     """Height and width of an image."""
     with open(path, "rb") as fb:
         return image_size_from_fileobject(fb)
@@ -1169,29 +1201,29 @@ def image_size(path):
 class IoFilesystemBase(ABC):
     @classmethod
     @abstractmethod
-    def exists(cls, path):
+    def exists(cls, path: str):
         pass
 
     @classmethod
-    def ls(cls, path):
-        pass
-
-    @classmethod
-    @abstractmethod
-    def isfile(cls, path):
+    def ls(cls, path: str):
         pass
 
     @classmethod
     @abstractmethod
-    def isdir(cls, path):
+    def isfile(cls, path: str):
         pass
 
     @classmethod
-    def rm_if_exist(cls, filename):
+    @abstractmethod
+    def isdir(cls, path: str):
         pass
 
     @classmethod
-    def symlink(cls, src_path, dst_path, **kwargs):
+    def rm_if_exist(cls, filename: str):
+        pass
+
+    @classmethod
+    def symlink(cls, src_path: str, dst_path: str, **kwargs):
         pass
 
     @classmethod
@@ -1201,37 +1233,37 @@ class IoFilesystemBase(ABC):
 
     @classmethod
     @abstractmethod
-    def open_wt(cls, path):
+    def open_wt(cls, path: str):
         pass
 
     @classmethod
     @abstractmethod
-    def open_rt(cls, path):
+    def open_rt(cls, path: str):
         pass
 
     @classmethod
     @abstractmethod
-    def mkdir_p(cls, path):
+    def mkdir_p(cls, path: str):
         pass
 
     @classmethod
     @abstractmethod
-    def imwrite(cls, filename, image):
+    def imwrite(cls, path: str, image):
         pass
 
     @classmethod
     @abstractmethod
-    def imread(cls, path, grayscale=False, unchanged=False, anydepth=False):
+    def imread(cls, path: str, grayscale=False, unchanged=False, anydepth=False):
         pass
 
     @classmethod
     @abstractmethod
-    def image_size(cls, filename):
+    def image_size(cls, path: str):
         pass
 
     @classmethod
     @abstractmethod
-    def timestamp(cls, path):
+    def timestamp(cls, path: str):
         pass
 
 
@@ -1240,23 +1272,23 @@ class IoFilesystemDefault(IoFilesystemBase):
         self.type = "default"
 
     @classmethod
-    def exists(cls, path):
+    def exists(cls, path: str) -> str:
         return os.path.exists(path)
 
     @classmethod
-    def ls(cls, path):
+    def ls(cls, path: str) -> List[str]:
         return os.listdir(path)
 
     @classmethod
-    def isfile(cls, path):
+    def isfile(cls, path: str) -> str:
         return os.path.isfile(path)
 
     @classmethod
-    def isdir(cls, path):
+    def isdir(cls, path: str) -> str:
         return os.path.isdir(path)
 
     @classmethod
-    def rm_if_exist(cls, filename):
+    def rm_if_exist(cls, filename: str) -> None:
         if os.path.islink(filename):
             os.unlink(filename)
         if os.path.exists(filename):
@@ -1266,7 +1298,7 @@ class IoFilesystemDefault(IoFilesystemBase):
                 os.remove(filename)
 
     @classmethod
-    def symlink(cls, src_path, dst_path, **kwargs):
+    def symlink(cls, src_path: str, dst_path: str, **kwargs):
         os.symlink(src_path, dst_path, **kwargs)
 
     @classmethod
@@ -1274,32 +1306,38 @@ class IoFilesystemDefault(IoFilesystemBase):
         return open(*args, **kwargs)
 
     @classmethod
-    def open_wt(cls, path):
+    def open_wt(cls, path: str):
         return cls.open(path, "w", encoding="utf-8")
 
     @classmethod
-    def open_rt(cls, path):
+    def open_rt(cls, path: str):
         return cls.open(path, "r", encoding="utf-8")
 
     @classmethod
-    def mkdir_p(cls, path):
+    def mkdir_p(cls, path: str):
         return os.makedirs(path, exist_ok=True)
 
     @classmethod
-    def imread(cls, path, grayscale=False, unchanged=False, anydepth=False):
+    def imread(
+        cls,
+        path: str,
+        grayscale: bool = False,
+        unchanged: bool = False,
+        anydepth: bool = False,
+    ):
         with cls.open(path, "rb") as fb:
             return imread_from_fileobject(fb, grayscale, unchanged, anydepth)
 
     @classmethod
-    def imwrite(cls, path, image):
+    def imwrite(cls, path: str, image) -> None:
         with cls.open(path, "wb") as fwb:
             imwrite_from_fileobject(fwb, image, path)
 
     @classmethod
-    def image_size(cls, path):
+    def image_size(cls, path: str) -> Tuple[int, int]:
         with cls.open(path, "rb") as fb:
             return image_size_from_fileobject(fb)
 
     @classmethod
-    def timestamp(cls, path):
+    def timestamp(cls, path: str) -> str:
         return os.path.getmtime(path)
