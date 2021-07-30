@@ -5,23 +5,26 @@ import random
 import statistics
 from collections import defaultdict
 from functools import lru_cache
+from typing import Dict, List, Tuple, Optional, Any
 
 import matplotlib as mpl
 import matplotlib.cm as cm
 import matplotlib.colors as colors
 import matplotlib.pyplot as plt
 import numpy as np
-from opensfm import io, multiview, feature_loader, pymap
+from opensfm import io, multiview, feature_loader, pymap, types, pygeometry
 from opensfm.dataset import DataSet, DataSetBase
 
 RESIDUAL_PIXEL_CUTOFF = 4
 
 
-def _norm2d(point):
+def _norm2d(point: np.ndarray) -> float:
     return math.sqrt(point[0] * point[0] + point[1] * point[1])
 
 
-def _length_histogram(tracks_manager, points):
+def _length_histogram(
+    tracks_manager: pymap.TracksManager, points: Dict[str, pymap.Landmark]
+) -> Tuple[List[str], List[int]]:
     hist = defaultdict(int)
     for point in points.values():
         obs_count = point.number_of_observations()
@@ -31,7 +34,7 @@ def _length_histogram(tracks_manager, points):
     return list(hist.keys()), list(hist.values())
 
 
-def _gps_errors(reconstruction):
+def _gps_errors(reconstruction: types.Reconstruction) -> List[np.ndarray]:
     errors = []
     for shot in reconstruction.shots.values():
         if shot.metadata.gps_position.has_value:
@@ -43,8 +46,8 @@ def _gps_errors(reconstruction):
     return errors
 
 
-def _gps_gcp_errors_stats(errors):
-    if not errors:
+def _gps_gcp_errors_stats(errors: Optional[np.ndarray]) -> Dict[str, Any]:
+    if errors is None or len(errors) == 0:
         return {}
 
     stats = {}
@@ -65,14 +68,16 @@ def _gps_gcp_errors_stats(errors):
     return stats
 
 
-def gps_errors(reconstructions):
+def gps_errors(reconstructions: List[types.Reconstruction]) -> Dict[str, Any]:
     all_errors = []
     for rec in reconstructions:
         all_errors += _gps_errors(rec)
-    return _gps_gcp_errors_stats(all_errors)
+    return _gps_gcp_errors_stats(np.array(all_errors))
 
 
-def gcp_errors(data: DataSetBase, reconstructions):
+def gcp_errors(
+    data: DataSetBase, reconstructions: List[types.Reconstruction]
+) -> Dict[str, Any]:
     all_errors = []
 
     gcp = data.load_ground_control_points()
@@ -96,12 +101,14 @@ def gcp_errors(data: DataSetBase, reconstructions):
             continue
         all_errors.append(triangulated - gcp.coordinates.value)
 
-    return _gps_gcp_errors_stats(all_errors)
+    return _gps_gcp_errors_stats(np.array(all_errors))
 
 
-def _compute_errors(reconstructions, tracks_manager):
+def _compute_errors(
+    reconstructions: List[types.Reconstruction], tracks_manager: pymap.TracksManager
+) -> Any:
     @lru_cache(10)
-    def _compute_errors_cached(index, error_type):
+    def _compute_errors_cached(index, error_type) -> Dict[str, Dict[str, np.ndarray]]:
         return reconstructions[index].map.compute_reprojection_errors(
             tracks_manager,
             error_type,
@@ -110,15 +117,24 @@ def _compute_errors(reconstructions, tracks_manager):
     return _compute_errors_cached
 
 
-def _get_valid_observations(reconstructions, tracks_manager):
+def _get_valid_observations(
+    reconstructions: List[types.Reconstruction], tracks_manager: pymap.TracksManager
+) -> Any:
     @lru_cache(10)
-    def _get_valid_observations_cached(index):
+    def _get_valid_observations_cached(
+        index,
+    ) -> Dict[str, Dict[str, pymap.Observation]]:
         return reconstructions[index].map.get_valid_observations(tracks_manager)
 
     return _get_valid_observations_cached
 
 
-def _projection_error(tracks_manager, reconstructions):
+THist = Tuple[np.ndarray, np.ndarray]
+
+
+def _projection_error(
+    tracks_manager: pymap.TracksManager, reconstructions: List[types.Reconstruction]
+) -> Tuple[float, float, float, THist, THist, THist]:
     all_errors_normalized, all_errors_pixels, all_errors_angular = [], [], []
     average_error_normalized, average_error_pixels, average_error_angular = 0, 0, 0
     for i in range(len(reconstructions)):
@@ -155,7 +171,8 @@ def _projection_error(tracks_manager, reconstructions):
 
     error_count = len(all_errors_normalized)
     if error_count == 0:
-        return (-1.0, -1.0, -1.0, ([], []), ([], []), ([], []))
+        dummy = (np.array([]), np.array([]))
+        return (-1.0, -1.0, -1.0, dummy, dummy, dummy)
 
     bins = 30
     return (
@@ -168,7 +185,11 @@ def _projection_error(tracks_manager, reconstructions):
     )
 
 
-def reconstruction_statistics(data: DataSetBase, tracks_manager, reconstructions):
+def reconstruction_statistics(
+    data: DataSetBase,
+    tracks_manager: pymap.TracksManager,
+    reconstructions: List[types.Reconstruction],
+) -> Dict[str, Any]:
     stats = {}
 
     stats["components"] = len(reconstructions)
@@ -245,7 +266,9 @@ def reconstruction_statistics(data: DataSetBase, tracks_manager, reconstructions
     return stats
 
 
-def processing_statistics(data: DataSet, reconstructions):
+def processing_statistics(
+    data: DataSet, reconstructions: List[types.Reconstruction]
+) -> Dict[str, Any]:
     steps = {
         "Feature Extraction": "features.json",
         "Features Matching": "matches.json",
@@ -294,7 +317,11 @@ def processing_statistics(data: DataSet, reconstructions):
     return stats
 
 
-def features_statistics(data: DataSetBase, tracks_manager, reconstructions):
+def features_statistics(
+    data: DataSetBase,
+    tracks_manager: pymap.TracksManager,
+    reconstructions: List[types.Reconstruction],
+) -> Dict[str, Any]:
     stats = {}
     detected = []
     images = {s for r in reconstructions for s in r.shots}
@@ -334,14 +361,16 @@ def features_statistics(data: DataSetBase, tracks_manager, reconstructions):
     return stats
 
 
-def _cameras_statistics(camera_model):
+def _cameras_statistics(camera_model: pygeometry.Camera) -> Dict[str, Any]:
     camera_stats = {}
     for param_type, param_value in camera_model.get_parameters_map().items():
         camera_stats[str(param_type).split(".")[1]] = param_value
     return camera_stats
 
 
-def cameras_statistics(data: DataSetBase, reconstructions):
+def cameras_statistics(
+    data: DataSetBase, reconstructions: List[types.Reconstruction]
+) -> Dict[str, Any]:
     stats = {}
     permutation = np.argsort([-len(r.shots) for r in reconstructions])
     for camera_id, camera_model in data.load_camera_models().items():
@@ -362,7 +391,9 @@ def cameras_statistics(data: DataSetBase, reconstructions):
     return stats
 
 
-def rig_statistics(data: DataSetBase, reconstructions):
+def rig_statistics(
+    data: DataSetBase, reconstructions: List[types.Reconstruction]
+) -> Dict[str, Any]:
     stats = {}
     permutation = np.argsort([-len(r.shots) for r in reconstructions])
     for rig_camera_id, rig_camera in data.load_rig_cameras().items():
@@ -390,7 +421,11 @@ def rig_statistics(data: DataSetBase, reconstructions):
     return stats
 
 
-def compute_all_statistics(data: DataSet, tracks_manager, reconstructions):
+def compute_all_statistics(
+    data: DataSet,
+    tracks_manager: pymap.TracksManager,
+    reconstructions: List[types.Reconstruction],
+) -> Dict[str, Any]:
     stats = {}
 
     stats["processing_statistics"] = processing_statistics(data, reconstructions)
@@ -408,7 +443,7 @@ def compute_all_statistics(data: DataSet, tracks_manager, reconstructions):
     return stats
 
 
-def _grid_buckets(camera):
+def _grid_buckets(camera: pygeometry.Camera) -> Tuple[int, int]:
     buckets = 40
     if camera.projection_type == "spherical":
         return 2 * buckets, buckets
@@ -416,7 +451,7 @@ def _grid_buckets(camera):
         return buckets, buckets
 
 
-def _heatmap_buckets(camera):
+def _heatmap_buckets(camera: pygeometry.Camera) -> Tuple[int, int]:
     buckets = 500
     if camera.projection_type == "spherical":
         return 2 * buckets, buckets
@@ -424,21 +459,21 @@ def _heatmap_buckets(camera):
         return buckets, int(buckets / camera.width * camera.height)
 
 
-def _get_gaussian_kernel(radius, ratio):
+def _get_gaussian_kernel(radius: int, ratio: float) -> np.ndarray:
     std_dev = radius / ratio
     half_kernel = list(range(1, radius + 1))
     kernel = np.array(half_kernel + [radius + 1] + list(reversed(half_kernel)))
     kernel = np.exp(np.outer(kernel.T, kernel) / (2 * std_dev * std_dev))
-    return kernel / sum(np.ndarray.flatten(kernel))
+    return kernel / sum(np.ndarray.flatten(kernel))  # pyre-fixme [16]
 
 
 def save_matchgraph(
     data: DataSetBase,
-    tracks_manager,
-    reconstructions,
-    output_path,
-    io_handler,
-):
+    tracks_manager: pymap.TracksManager,
+    reconstructions: List[types.Reconstruction],
+    output_path: str,
+    io_handler: io.IoFilesystemBase,
+) -> None:
     all_shots = []
     all_points = []
     shot_component = {}
@@ -498,10 +533,10 @@ def save_matchgraph(
 
 
 def save_residual_histogram(
-    stats,
-    output_path,
-    io_handler,
-):
+    stats: Dict[str, Any],
+    output_path: str,
+    io_handler: io.IoFilesystemBase,
+) -> None:
     backup = dict(mpl.rcParams)
     fig, axs = plt.subplots(1, 3, tight_layout=True, figsize=(15, 3))
 
@@ -547,8 +582,12 @@ def save_residual_histogram(
 
 
 def save_topview(
-    data: DataSetBase, tracks_manager, reconstructions, output_path, io_handler
-):
+    data: DataSetBase,
+    tracks_manager: pymap.TracksManager,
+    reconstructions: List[types.Reconstruction],
+    output_path: str,
+    io_handler: io.IoFilesystemBase,
+) -> None:
     points = []
     colors = []
     for rec in reconstructions:
@@ -709,8 +748,12 @@ def save_topview(
 
 
 def save_heatmap(
-    data: DataSetBase, tracks_manager, reconstructions, output_path, io_handler
-):
+    data: DataSetBase,
+    tracks_manager: pymap.TracksManager,
+    reconstructions: List[types.Reconstruction],
+    output_path: str,
+    io_handler: io.IoFilesystemBase,
+) -> None:
     all_projections = {}
 
     splatting = 15
@@ -803,11 +846,11 @@ def save_heatmap(
 
 def save_residual_grids(
     data: DataSetBase,
-    tracks_manager,
-    reconstructions,
-    output_path,
-    io_handler,
-):
+    tracks_manager: pymap.TracksManager,
+    reconstructions: List[types.Reconstruction],
+    output_path: str,
+    io_handler: io.IoFilesystemBase,
+) -> None:
     all_errors = {}
 
     scaling = 4
@@ -935,7 +978,9 @@ def save_residual_grids(
             )
 
 
-def decimate_points(reconstructions, max_num_points):
+def decimate_points(
+    reconstructions: List[types.Reconstruction], max_num_points: int
+) -> None:
     """
     Destructively decimate the points in a reconstruction
     if they exceed max_num_points by removing points
