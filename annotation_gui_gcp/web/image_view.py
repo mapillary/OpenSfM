@@ -16,13 +16,13 @@ class ImageView(WebView):
         main_ui,
         sequence_key,
         image_keys,
-        is_georeference,
+        is_geo_reference,
         port=5000,
     ):
         super().__init__(main_ui)
         self.main_ui = main_ui
         self.image_manager = main_ui.image_manager
-        self.is_georeference = is_georeference
+        self.is_geo_reference = is_geo_reference
         self.image_list = image_keys
 
         self.app.add_url_rule("/image/<key>", view_func=self.get_image)
@@ -31,10 +31,19 @@ class ImageView(WebView):
 
     def process_client_message(self, data):
         command = data["command"]
+
+        if data["point_id"] != self.main_ui.curr_point:
+            print("Frontend sending an update for some other point. Ignoring")
+            return
+
         if command == "add_or_update_point_observation":
-            self.add_remove_update_point_observation(point_coordinates=data["xy"])
+            self.add_remove_update_point_observation(
+                image_id=data["image_id"], point_coordinates=data["xy"]
+            )
         elif command == "remove_point_observation":
-            self.add_remove_update_point_observation(None)
+            self.add_remove_update_point_observation(
+                image_id=data["image_id"], point_coordinates=None
+            )
         else:
             raise ValueError
 
@@ -49,7 +58,7 @@ class ImageView(WebView):
         mimetype = magic.from_file(path_image, mime=True)
         return send_file(path_image, mimetype=mimetype)
 
-    def add_remove_update_point_observation(self, point_coordinates=None):
+    def add_remove_update_point_observation(self, image_id, point_coordinates=None):
         gcp_manager = self.main_ui.gcp_manager
         active_gcp = self.main_ui.curr_point
         if active_gcp is None:
@@ -58,17 +67,21 @@ class ImageView(WebView):
 
         # Remove the observation for this point if it's already there
         gcp_manager.remove_point_observation(
-            active_gcp, self.filename(), remove_latlon=self.is_geo_reference
+            active_gcp, image_id, remove_latlon=self.is_geo_reference
         )
 
         # Add the new observation
         if point_coordinates is not None:
-            lla = self.xyz_to_latlon(*point_coordinates)
+            lla = (
+                self.xyz_to_latlon(*point_coordinates)
+                if self.is_geo_reference
+                else None
+            )
             self.main_ui.gcp_manager.add_point_observation(
                 active_gcp,
-                self.filename(),
+                image_id,
                 point_coordinates,
-                lla if self.is_geo_reference else None,
+                lla,
             )
 
         self.main_ui.populate_gcp_list()
@@ -106,11 +119,25 @@ class ImageView(WebView):
             "selected_point": self.main_ui.curr_point,
         }
 
-        print(data)
-
         # for point_id, coords in visible_points_coords.items():
         #     hex_color = distinct_colors[divmod(hash(point_id), 19)[1]]
         #     color = ImageColor.getrgb(hex_color)
         #     data["annotations"][point_id] = {"coordinates": coords, "color": color}
 
         self.send_sse_message(data)
+
+    def process_client_message(self, data):
+        command = data["command"]
+        if command == "add_or_update_point_observation":
+            self.add_remove_update_point_observation(
+                image_id=data["image_id"], point_coordinates=data["xy"]
+            )
+        elif command == "remove_point_observation":
+            self.add_remove_update_point_observation(
+                image_id=data["image_id"], point_coordinates=None
+            )
+        else:
+            raise ValueError
+
+        # Update the client with the new data
+        self.sync_to_client()

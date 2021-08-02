@@ -80,6 +80,7 @@ function initialize_event_source() {
         populateImageList(data["points"]);
         populateMeasurements(data["points"]);
         currentPointID = data["selected_point"];
+        redrawWindow();
     })
 
 }
@@ -109,10 +110,11 @@ function onWindowResize() {
 }
 
 class Measurement {
-    constructor(x, y, id) {
+    constructor(x, y, id, image_id) {
         this.norm_x = x;
         this.norm_y = y;
         this.id = id;
+        this.image_id = image_id;
         this.radius_px = 10;
     }
 }
@@ -147,36 +149,52 @@ function drawMeasurements() {
     }
 };
 
+function post_json(data) {
+    const method = 'POST';
+    const headers = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+    };
+    const body = JSON.stringify(data, null, 4);
+    const url = 'postdata';
+    fetch(url, { method, headers, body })
+}
+
+function remove_point_observation(point_id) {
+    const data = {
+        command: "remove_point_observation",
+        point_id: "point_id",
+    };
+    post_json(data);
+}
+
+function add_or_update_point_observation(measurement) {
+    const data = {
+        command: "add_or_update_point_observation",
+        point_id: measurement.id,
+        radius_px: measurement.radius_px,
+        xy: [measurement.norm_x, measurement.norm_y],
+        image_id: measurement.image_id,
+    };
+    post_json(data);
+}
+
 const mouseClicked = function (mouse) {
     if (currentPointID === null) {
         console.log("No point selected, ignoring click")
         return;
     }
 
-    const rect = canvas.getBoundingClientRect();
-
     // native pixel coordinates
+    const rect = canvas.getBoundingClientRect();
     const normalizer = Math.max(image.width, image.height);
     const norm_x = ((mouse.x - rect.left) / currentImageScale - image.width / 2) / normalizer;
     const norm_y = ((mouse.y - rect.top) / currentImageScale - image.height / 2) / normalizer;
 
-    const measurement = new Measurement(norm_x, norm_y, currentPointID);
+    const measurement = new Measurement(norm_x, norm_y, currentPointID, currentImageKey);
 
-    if (!(currentImageKey in Measurements)) {
-        Measurements[currentImageKey] = {};
-    }
-
-    // If the point was already on the image, modify and redraw everything
-    if (!(currentPointID in Measurements[currentImageKey])) {
-
-        // Probably best to replace with a (laggy-but-robust) interaction with the backend ?
-        Measurements[currentImageKey][currentPointID] = measurement;
-        drawOneMeasurement(measurement);
-    }
-    else {
-        Measurements[currentImageKey][currentPointID] = measurement;
-        redrawWindow();
-    }
+    // Send the clicked point to the backend. Will be draw on next sync
+    add_or_update_point_observation(measurement);
 
 }
 
