@@ -1,11 +1,19 @@
-const canvas = document.getElementById("imgCanvas");
-const imageListBox = document.getElementById("imageSelectBox");
-const context = canvas.getContext("2d");
+let canvas;
+let imageListBox;
+let context;
 const Measurements = {};
 const image = new Image();
 let currentPointID = null;
 let currentImageID;
 let currentImageScale;
+window.addEventListener('DOMContentLoaded', onDOMLoaded);
+
+function onDOMLoaded() {
+    canvas = document.getElementById("imgCanvas");
+    imageListBox = document.getElementById("imageSelectBox");
+    context = canvas.getContext("2d");
+    window.addEventListener('load', initialize);
+}
 
 function changeImage(image_key) {
     image.onload = function () {
@@ -33,6 +41,12 @@ function displayImage(image_key) {
     }
     context.drawImage(image, 0, 0, w * currentImageScale, h * currentImageScale);
 
+
+    for (let i = 0; i < imageListBox.length; i++){
+        const opt = imageListBox.options[i];
+        opt.style.fontWeight = (opt.value == currentImageID) ? "bold" : "normal"
+      }
+
 }
 
 function onImageSelect() {
@@ -53,8 +67,13 @@ function populateImageList(points) {
         opt.text = image_id;
         opt.value = image_id;
         imageListBox.options.add(opt);
+
+        if (opt.value == currentImageID) {
+            opt.style.fontWeight = "bold";
+        }
     }
 
+    imageListBox.size = Math.min(20, imageListBox.options.length);
     redrawWindow();
 }
 
@@ -217,12 +236,10 @@ const mouseClicked = function (mouse) {
         // Send the clicked point to the backend. Will be draw on next sync
         add_or_update_point_observation(measurement);
     }
-    else{
+    else {
         remove_point_observation(currentImageID, currentPointID);
     }
 
 
 
 }
-
-window.addEventListener('load', initialize);

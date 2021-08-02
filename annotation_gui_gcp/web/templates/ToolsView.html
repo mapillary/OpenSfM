@@ -10,16 +10,18 @@
     <body>
         <div class="tools">
             <h3 id="header">OpenSfM Annotation Tools</h3>
-            <textarea rows=10 cols=30></textarea>
+            <p>Points list</p>
+            <select class=noselect id="pointListBox" size="4"></select>
             <div>
-                <button id="addGCP">Add GCP</button>
-                <button id="delGCP">Remove GCP</button>
+                <button id="addCP">Add CP</button>
+                <button id="delCP">Remove CP</button>
             </div>
-            <div>
+            <!-- <div>
                 <input type="checkbox" id="stickyzoom" name="scales" > <label for="stickyzoom">Sticky zoom (x)</label>
-                <input type="checkbox" id="showgcpnames" name="scales" > <label for="showgcpnames">Show GCP names</label>
-            </div>
+                <input type="checkbox" id="showgcpnames" name="scales" > <label for="showcpnames">Show CP names</label>
+            </div> -->
 
+            <p>Analysis</p>
             <div margin=10>
                 <button id="rigid">Rigid</button>
                 <button id="flex">Flex</button>
@@ -29,7 +31,6 @@
             <div margin=10>
                 <button id="load">Load</button>
                 <button id="save">Save</button>
-                <button id="save_as">Save As</button>
             </div>
         </div>
     </body>

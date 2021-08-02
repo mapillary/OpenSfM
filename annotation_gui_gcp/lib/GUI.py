@@ -74,6 +74,9 @@ class Gui:
         tools_frame = tk.Frame(self.parent)
         tools_frame.pack(side="left", expand=0, fill=tk.Y)
         self.create_tools(tools_frame)
+
+        self.tools_view = ToolsView(self)
+
         has_views_that_need_tracking = len(ortho_paths) > 0 or len(cad_paths) > 0
         self.create_sequence_views(show_track_checkbox=has_views_that_need_tracking)
         self.ortho_views = []
@@ -121,8 +124,6 @@ class Gui:
             x += w
 
     def create_tools(self, parent):
-        # self.tools_view = ToolsView(self)
-
         width = 15
         gcp_list_frame = tk.Frame(parent)
         gcp_list_frame.pack(side="top", fill=tk.BOTH, expand=1)

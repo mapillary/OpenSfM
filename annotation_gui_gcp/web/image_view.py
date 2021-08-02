@@ -76,7 +76,7 @@ class ImageView(WebView):
 
     def sync_to_client(self):
         """
-        Sends all the data required to initialize or sync the CAD view
+        Sends all the data required to initialize or sync the image view
         """
         # All images assigned to this view
         image_list = self.get_candidate_images()
