@@ -94,8 +94,6 @@ function initialize_event_source() {
 
     sse.addEventListener("sync", function (e) {
         const data = JSON.parse(e.data);
-        const delay = Date.now() - Math.round(data.time * 1000);
-        console.log("SSE message delay is", delay, "ms");
         populateImageList(data["points"]);
         populateMeasurements(data["points"]);
         currentPointID = data["selected_point"];

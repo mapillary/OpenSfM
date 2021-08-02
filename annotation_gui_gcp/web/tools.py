@@ -13,11 +13,14 @@ class ToolsView(WebView):
 
     def process_client_message(self, data):
         # Got some input from the frontend
-        print("Got post or somthin")
         print(data)
 
-        if data["event"] == "select_gcp":
+        if data["event"] == "select_cp":
             self.main_ui.update_active_gcp(data["point_id"])
+        elif data["event"] == "delCP":
+            self.main_ui.remove_gcp()
+        elif data["event"] == "addCP":
+            self.main_ui.add_gcp()
 
         self.sync_to_client()
 

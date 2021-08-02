@@ -31,13 +31,11 @@ function populatePointsList(points) {
 function clickedMe(button, e) {
     post_json({ event: button, data: {} });
 }
-function changeMe(e) {
-}
 
 function onPointSelect() {
     const opt = pointListBox.options[pointListBox.options.selectedIndex];
     const point_id = opt.value;
-    post_json({ event: "select_gcp", point_id: point_id })
+    post_json({ event: "select_cp", point_id: point_id })
 }
 
 function onDOMLoaded() {
