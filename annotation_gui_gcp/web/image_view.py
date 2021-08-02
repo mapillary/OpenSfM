@@ -1,11 +1,5 @@
-import json
-import os
-from pathlib import Path
-
 import magic
-from annotation_gui_gcp.lib.view import distinct_colors
 from flask import send_file
-from PIL import ImageColor
 
 from web.web_view import WebView
 
@@ -28,27 +22,6 @@ class ImageView(WebView):
         self.app.add_url_rule("/image/<key>", view_func=self.get_image)
 
         self.start(port)
-
-    def process_client_message(self, data):
-        command = data["command"]
-
-        if data["point_id"] != self.main_ui.curr_point:
-            print("Frontend sending an update for some other point. Ignoring")
-            return
-
-        if command == "add_or_update_point_observation":
-            self.add_remove_update_point_observation(
-                image_id=data["image_id"], point_coordinates=data["xy"]
-            )
-        elif command == "remove_point_observation":
-            self.add_remove_update_point_observation(
-                image_id=data["image_id"], point_coordinates=None
-            )
-        else:
-            raise ValueError
-
-        # Update the client with the new data
-        self.sync_to_client()
 
     def get_candidate_images(self):
         return self.image_list
@@ -128,6 +101,12 @@ class ImageView(WebView):
 
     def process_client_message(self, data):
         command = data["command"]
+
+        if data["point_id"] != self.main_ui.curr_point:
+            print(data["point_id"], self.main_ui.curr_point)
+            print("Frontend sending an update for some other point. Ignoring")
+            return
+
         if command == "add_or_update_point_observation":
             self.add_remove_update_point_observation(
                 image_id=data["image_id"], point_coordinates=data["xy"]

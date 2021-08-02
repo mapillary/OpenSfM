@@ -4,7 +4,7 @@ const context = canvas.getContext("2d");
 const Measurements = {};
 const image = new Image();
 let currentPointID = null;
-let currentImageKey;
+let currentImageID;
 let currentImageScale;
 
 function changeImage(image_key) {
@@ -17,7 +17,7 @@ function changeImage(image_key) {
 }
 
 function displayImage(image_key) {
-    currentImageKey = image_key;
+    currentImageID = image_key;
     // Clear Canvas
     context.fillStyle = "#FFF";
     context.fillRect(0, 0, canvas.width, canvas.height);
@@ -102,7 +102,7 @@ function resizeCanvas() {
 function redrawWindow() {
     // box.size = box.options.length;
     resizeCanvas();
-    displayImage(currentImageKey);
+    displayImage(currentImageID);
     drawMeasurements();
 }
 
@@ -142,10 +142,10 @@ function drawOneMeasurement(measurement) {
 }
 
 function drawMeasurements() {
-    if (!(currentImageKey in Measurements)) { return; }
+    if (!(currentImageID in Measurements)) { return; }
 
     // Draw measurements
-    for (const [id, measurement] of Object.entries(Measurements[currentImageKey])) {
+    for (const [id, measurement] of Object.entries(Measurements[currentImageID])) {
         drawOneMeasurement(measurement);
     }
 };
@@ -161,10 +161,11 @@ function post_json(data) {
     fetch(url, { method, headers, body })
 }
 
-function remove_point_observation(point_id) {
+function remove_point_observation(image_id, point_id) {
     const data = {
         command: "remove_point_observation",
-        point_id: "point_id",
+        image_id: image_id,
+        point_id: point_id,
     };
     post_json(data);
 }
@@ -185,7 +186,7 @@ const mouseWheelTurned = function (wheel) {
     let selected_i = null;
     for (let i = 0; i < imageListBox.options.length; i++) {
         const opt = imageListBox.options[i];
-        if (currentImageKey == opt.value) {
+        if (currentImageID == opt.value) {
             selected_i = i;
             break;
         }
@@ -193,7 +194,7 @@ const mouseWheelTurned = function (wheel) {
 
     selected_i = (wheel.deltaY > 0) ? selected_i - 1 : selected_i + 1
 
-    if (selected_i > 0 && selected_i < imageListBox.options.length) {
+    if (selected_i >= 0 && selected_i < imageListBox.options.length) {
         changeImage(imageListBox.options[selected_i].value);
     }
 }
@@ -204,16 +205,23 @@ const mouseClicked = function (mouse) {
         return;
     }
 
-    // native pixel coordinates
-    const rect = canvas.getBoundingClientRect();
-    const normalizer = Math.max(image.width, image.height);
-    const norm_x = ((mouse.x - rect.left) / currentImageScale - image.width / 2) / normalizer;
-    const norm_y = ((mouse.y - rect.top) / currentImageScale - image.height / 2) / normalizer;
+    if (mouse.button == 0) {
+        // native pixel coordinates
+        const rect = canvas.getBoundingClientRect();
+        const normalizer = Math.max(image.width, image.height);
+        const norm_x = ((mouse.x - rect.left) / currentImageScale - image.width / 2) / normalizer;
+        const norm_y = ((mouse.y - rect.top) / currentImageScale - image.height / 2) / normalizer;
 
-    const measurement = new Measurement(norm_x, norm_y, currentPointID, currentImageKey);
+        const measurement = new Measurement(norm_x, norm_y, currentPointID, currentImageID);
 
-    // Send the clicked point to the backend. Will be draw on next sync
-    add_or_update_point_observation(measurement);
+        // Send the clicked point to the backend. Will be draw on next sync
+        add_or_update_point_observation(measurement);
+    }
+    else{
+        remove_point_observation(currentImageID, currentPointID);
+    }
+
+
 
 }
 
