@@ -18,7 +18,7 @@ function populatePointsList(points) {
         opt.text = point_id;
         opt.value = point_id;
 
-        if (opt.value == currentPointID){
+        if (opt.value == currentPointID) {
             opt.style.fontWeight = "bold";
         }
 
@@ -29,18 +29,18 @@ function populatePointsList(points) {
 }
 
 function clickedMe(button, e) {
-    post_json({ event: button, data: {}});
+    post_json({ event: button, data: {} });
 }
 function changeMe(e) {
 }
 
-function onPointSelect(){
+function onPointSelect() {
     const opt = pointListBox.options[pointListBox.options.selectedIndex];
     const point_id = opt.value;
-    post_json({ event: "select_gcp", point_id: point_id})
+    post_json({ event: "select_gcp", point_id: point_id })
 }
 
-function onDOMLoaded(){
+function onDOMLoaded() {
     pointListBox = document.getElementById("pointListBox");
     pointListBox.addEventListener('change', onPointSelect);
     window.addEventListener('load', initialize_view);
@@ -48,7 +48,7 @@ function onDOMLoaded(){
 
 function initialize_view() {
     var sse = initialize_event_source("/stream", [
-            { event: "sync", handler: onSyncHandler }
+        { event: "sync", handler: onSyncHandler }
     ]);
     window.onunload = () => {
         sse.close();
@@ -68,5 +68,5 @@ function initialize_view() {
     button_bind("save", clickedMe);
     // button_bind("save_as", clickedMe);
 
-    post_json({ event: "init"});
+    post_json({ event: "init" });
 }

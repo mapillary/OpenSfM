@@ -42,10 +42,10 @@ function displayImage(image_key) {
     context.drawImage(image, 0, 0, w * currentImageScale, h * currentImageScale);
 
 
-    for (let i = 0; i < imageListBox.length; i++){
+    for (let i = 0; i < imageListBox.length; i++) {
         const opt = imageListBox.options[i];
         opt.style.fontWeight = (opt.value == currentImageID) ? "bold" : "normal"
-      }
+    }
 
 }
 
