@@ -374,12 +374,14 @@ class Gui:
         curr_point = value.split(" ")[1] if value != "none" else None
         self.update_active_gcp(curr_point)
 
-    def save_gcps(self):
-        if self.quick_save_filename is None:
+    def save_gcps(self, filename=None):
+        if self.quick_save_filename is None and filename is None:
             self.save_gcps_as()
         else:
-            self.gcp_manager.write_to_file(self.quick_save_filename)
-            parent = os.path.dirname(self.quick_save_filename)
+            if filename is None:
+                filename = self.quick_save_filename
+            self.gcp_manager.write_to_file(filename)
+            parent = os.path.dirname(filename)
             dirname = os.path.basename(parent)
             self.gcp_manager.write_to_file(os.path.join(parent, dirname + ".json"))
 

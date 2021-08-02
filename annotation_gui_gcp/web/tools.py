@@ -21,8 +21,18 @@ class ToolsView(WebView):
             self.main_ui.remove_gcp()
         elif data["event"] == "addCP":
             self.main_ui.add_gcp()
-
-        self.sync_to_client()
+        elif data["event"] == "save":
+            p_default_gcp = self.main_ui.path + "/ground_control_points.json"
+            self.main_ui.save_gcps(p_default_gcp)
+        elif data["event"] == "load":
+            p_default_gcp = self.main_ui.path + "/ground_control_points.json"
+            self.main_ui.load_gcps(p_default_gcp)
+        elif data["event"] == "flex":
+            self.main_ui.analyze_flex()
+        elif data["event"] == "rigid":
+            self.main_ui.analyze_rigid()
+        elif data["event"] == "full":
+            self.main_ui.analyze()
 
     def sync_to_client(self):
         # Sync state to frontend
