@@ -88,6 +88,7 @@ function initialize_event_source() {
 function initialize() {
     initialize_event_source();
     canvas.addEventListener("mousedown", mouseClicked, false);
+    canvas.addEventListener("mousewheel", mouseWheelTurned, false);
     window.addEventListener("resize", onWindowResize);
     imageListBox.addEventListener('change', onImageSelect);
     redrawWindow();
@@ -177,6 +178,24 @@ function add_or_update_point_observation(measurement) {
         image_id: measurement.image_id,
     };
     post_json(data);
+}
+
+const mouseWheelTurned = function (wheel) {
+    // Find index of selected image
+    let selected_i = null;
+    for (let i = 0; i < imageListBox.options.length; i++) {
+        const opt = imageListBox.options[i];
+        if (currentImageKey == opt.value) {
+            selected_i = i;
+            break;
+        }
+    }
+
+    selected_i = (wheel.deltaY > 0) ? selected_i - 1 : selected_i + 1
+
+    if (selected_i > 0 && selected_i < imageListBox.options.length) {
+        changeImage(imageListBox.options[selected_i].value);
+    }
 }
 
 const mouseClicked = function (mouse) {
