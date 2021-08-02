@@ -1,7 +1,6 @@
 import argparse
 import json
 import shutil
-import tkinter as tk
 import typing as t
 from collections import OrderedDict, defaultdict
 from pathlib import Path
@@ -48,14 +47,6 @@ def parse_args():
         help="dict-of-image-keys JSON file describing each sequence. "
         "Format: {'sequence_key': ['im_key_1', 'im_key_2', ...], ...}",
         default="sequence_database.json",
-    )
-    parser.add_argument(
-        "-o",
-        "--ortho",
-        type=str,
-        action="append",
-        help="Specify one or more directories containing geotiffs",
-        default=[],
     )
     parser.add_argument(
         "--cad",
@@ -299,18 +290,9 @@ if __name__ == "__main__":
         max_image_size=args.max_image_size,
     )
     gcp_manager = GroundControlPointManager(path)
-    root = tk.Tk()
-    root.resizable(True, True)
-
     ui = GUI.Gui(
-        root,
         gcp_manager,
         image_manager,
         rig_groups,
-        args.ortho,
         find_suitable_cad_paths(args.cad, path, 1),
     )
-    root.grid_columnconfigure(0, weight=1)
-    root.grid_rowconfigure(0, weight=1)
-    root.title("Tools")
-    root.mainloop()

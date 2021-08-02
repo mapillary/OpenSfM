@@ -3,10 +3,8 @@ import os
 from pathlib import Path
 
 import rasterio
-from annotation_gui_gcp.lib.view import distinct_colors
+from annotation_gui_gcp.web.web_view import WebView, distinct_colors
 from PIL import ImageColor
-
-from web.web_view import WebView
 
 
 def _load_georeference_metadata(path_cad_model):
@@ -80,7 +78,11 @@ class CADView(WebView):
 
         # Add the new observation
         if point_coordinates is not None:
-            lla = self.xyz_to_latlon(*point_coordinates) if self.is_geo_reference else None
+            lla = (
+                self.xyz_to_latlon(*point_coordinates)
+                if self.is_geo_reference
+                else None
+            )
             self.main_ui.gcp_manager.add_point_observation(
                 active_gcp,
                 self.cad_filename,

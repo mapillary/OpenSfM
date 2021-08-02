@@ -1,13 +1,32 @@
 import abc
 import json
-import os
 import time
-import tkinter as tk
-import webbrowser
 from queue import Queue
 from threading import Thread
 
 from flask import Flask, Response, jsonify, render_template, request
+
+distinct_colors = [
+    "#46f0f0",
+    "#f032e6",
+    "#bcf60c",
+    "#fabebe",
+    "#008080",
+    "#9a6324",
+    "#fffac8",
+    "#800000",
+    "#aaffc3",
+    "#808000",
+    "#3cb44b",
+    "#ffe119",
+    "#4363d8",
+    "#f58231",
+    "#911eb4",
+    "#000075",
+    "#808080",
+    "#ffffff",
+    "#000000",
+]
 
 
 class WebView(abc.ABC):
@@ -15,6 +34,7 @@ class WebView(abc.ABC):
         self.main_ui = main_ui
         self.app = Flask(__name__)
         self.eventQueue = None
+        self.latlons = main_ui.image_manager.load_latlons()
 
     @abc.abstractclassmethod
     def sync_to_client(self):
@@ -28,22 +48,21 @@ class WebView(abc.ABC):
         class_name = type(self).__name__
         return class_name
 
-    def run_server(self, port, q, pipe_write):
+    def run_server(self, port, q):
         app = self.app
         app.config["TEMPLATES_AUTO_RELOAD"] = True
 
         @app.route("/")
         def send_main_page():
-            # self.sync_to_client()
             template = self.template_name()
+            self.sync_to_client()
             return render_template(f"{template}.html", class_name=template)
 
         @app.route("/postdata", methods=["POST"])
         def postdata():
             data = request.get_json()
-            q.put(data)  # Push the data to the queue
-            # Write something (anything) to the pipe to trigger a UI event that reads from the queue
-            os.write(pipe_write, b"x")
+            self.process_client_message(data)
+            self.sync_to_client()
             return jsonify(success=True)
 
         # Stream for server -> client updates through Server-Sent Events
@@ -51,7 +70,6 @@ class WebView(abc.ABC):
         def stream():
             def eventStream():
                 while True:
-                    # time.sleep(0.5)
                     msg = self.eventQueue.get()  # blocks until a new message arrives
                     yield msg
 
@@ -61,42 +79,14 @@ class WebView(abc.ABC):
         print(f"{type(self).__name__} app finished")
 
     def start(self, port):
-        # We use a Queue and a pipe to communicate from the web view to the tk GUI.
-        # The Queue contains the information. The pipe is used to wake up the GUI thread.
         q = Queue()
-        pipe_read, pipe_write = os.pipe()
-        server_thread = Thread(target=self.run_server, args=(port, q, pipe_write))
+        server_thread = Thread(target=self.run_server, args=(port, q))
         server_thread.start()
-
-        def message_from_client_available(file, mask):
-            # This is triggered whenever there is something new in the pipe
-            os.read(pipe_read, 1)
-            data = q.get()
-
-            # Clear any other messages
-            while not q.empty():
-                try:
-                    q.get(False)
-                except Queue.Empty:
-                    continue
-                q.task_done()
-
-            self.process_client_message(data)
-
-        # Use pipes and tk's file handler to wake up the GUI thread
-        self.main_ui.parent.tk.createfilehandler(
-            pipe_read, tk.READABLE, message_from_client_available
-        )
 
         # Queue for Flask -> JS sync
         # The GUI thread populates the Queue. The server thread listens to the queue and sends events to the JS client
         self.eventQueue = Queue()
         self.sync_to_client()
-
-        # Opening a new window or setting size does not seem possible
-        # for webbrowser w/Chrome
-        #
-        webbrowser.open(f"http://localhost:{port}")
 
     def send_sse_message(self, data, event_type="sync"):
         # Send to the client

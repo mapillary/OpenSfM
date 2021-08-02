@@ -8,7 +8,6 @@ class ImageView(WebView):
     def __init__(
         self,
         main_ui,
-        sequence_key,
         image_keys,
         is_geo_reference,
         port=5000,
@@ -117,6 +116,3 @@ class ImageView(WebView):
             )
         else:
             raise ValueError
-
-        # Update the client with the new data
-        self.sync_to_client()
